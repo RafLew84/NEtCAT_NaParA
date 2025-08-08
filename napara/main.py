@@ -5,7 +5,6 @@ import sys
 import pyqtgraph as pg
 
 def main():
-    # Konfiguracja pyqtgraph – poprawna orientacja obrazów STM
     pg.setConfigOptions(imageAxisOrder='row-major')
 
     app = QApplication(sys.argv)

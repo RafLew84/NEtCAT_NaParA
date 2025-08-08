@@ -9,9 +9,7 @@ class ViewerWidget(QWidget):
 
     def _build(self):
         layout = QVBoxLayout(self)
-        # ImageView daje toolbar z play/levels; można podmienić na GraphicsLayoutWidget + ImageItem
         self.image_view = pg.ImageView(view=pg.PlotItem())
-        # sensowniejsze etykiety osi (nm ustawimy, gdy będziemy znać skalę)
         self.image_view.getView().setLabel("bottom", "x (px)")
         self.image_view.getView().setLabel("left", "y (px)")
         layout.addWidget(self.image_view)

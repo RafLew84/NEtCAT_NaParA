@@ -29,7 +29,7 @@ class MainWindow(QMainWindow):
         v.addWidget(self.meta_widget)
         # Viewer pod spodem
         self.viewer = ViewerWidget(self)
-        v.addWidget(self.viewer, 1)  # rośnie wraz z oknem
+        v.addWidget(self.viewer, 1)
         self.setCentralWidget(central)
 
     def _create_docks(self):

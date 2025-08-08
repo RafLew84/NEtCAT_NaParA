@@ -8,7 +8,6 @@ class ProcessingPanel(QWidget):
     def _build(self):
         layout = QVBoxLayout(self)
 
-        # Filtry (szkic)
         grp_filters = QGroupBox("Filters / Preprocessing", self)
         form = QFormLayout(grp_filters)
 
@@ -26,7 +25,6 @@ class ProcessingPanel(QWidget):
 
         layout.addWidget(grp_filters)
 
-        # Akcje
         self.btn_detect = QPushButton("Detect", self)
         layout.addWidget(self.btn_detect)
 
