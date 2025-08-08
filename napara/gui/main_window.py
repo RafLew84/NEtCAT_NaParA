@@ -1,4 +1,4 @@
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QPointF, QRectF
 from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import (
     QMainWindow, QFileDialog, QMessageBox, QWidget, QDockWidget, QVBoxLayout
@@ -8,6 +8,7 @@ from .panels.image_list_panel import ImageListPanel
 from .panels.processing_panel import ProcessingPanel
 from .widgets.metadata_widget import MetadataWidget
 from .widgets.viewer_widget import ViewerWidget
+from napara.logic.roi_manager import ROIManager
 
 from napara.io.factory import load_from_paths
 import numpy as np  # for type hints / potential future use
@@ -20,6 +21,12 @@ class MainWindow(QMainWindow):
         self._active_index = None  # int | None
         self._setup_ui()
         self._connect_signals()
+
+        self.roi_manager = ROIManager(self.viewer.get_plot_item(), self)
+        self.roi_manager.roiAdded.connect(self.on_roi_added)
+        self.roi_manager.roiChanged.connect(self.on_roi_changed)
+        self.roi_manager.roiRemoved.connect(self.on_roi_removed)
+        self.roi_manager.roiSelected.connect(self.on_roi_selected)
 
     def _setup_ui(self):
         self.setWindowTitle("NaParA – Nanoparticle Analyzer")
@@ -58,7 +65,6 @@ class MainWindow(QMainWindow):
         self.image_list_panel.btn_remove.clicked.connect(self.on_remove_selected_clicked)
         self.image_list_panel.list.currentRowChanged.connect(self.on_image_selected)
 
-    # ---------------- MENU (unchanged stubs) ----------------
     def _create_menu(self):
         menubar = self.menuBar()
         file_menu = menubar.addMenu("&File")
@@ -106,6 +112,14 @@ class MainWindow(QMainWindow):
         self.act_toggle_statusbar = QAction("Status Bar", self, checkable=True, checked=True)
         self.act_toggle_statusbar.triggered.connect(self.on_toggle_statusbar)
         view_menu.addAction(self.act_toggle_statusbar)
+
+        self.act_add_rect_roi = QAction("Add/Reset Rect ROI", self)
+        self.act_add_rect_roi.triggered.connect(self.on_add_rect_roi)
+        view_menu.addAction(self.act_add_rect_roi)
+
+        self.act_del_roi = QAction("Delete ROI", self)
+        self.act_del_roi.triggered.connect(self.on_delete_roi)
+        view_menu.addAction(self.act_del_roi)
 
         help_menu = menubar.addMenu("&Help")
         self.act_about = QAction("About NaParA", self); self.act_about.triggered.connect(self.on_about)
@@ -208,6 +222,8 @@ class MainWindow(QMainWindow):
             channel=img.image_type
         )
 
+        self.roi_manager.set_active_image(self._active_index)
+
     def on_open_project(self):
         path, _ = QFileDialog.getOpenFileName(self, "Open Project", "", "NaParA Project (*.json *.napara)")
         if path:
@@ -237,3 +253,33 @@ class MainWindow(QMainWindow):
             "<b>NaParA – Nanoparticle Analyzer</b><br>"
             "PyQt6 application for ROI‑driven nanoparticle detection on STM images."
         )
+    
+    # ROI actions:
+    def on_add_rect_roi(self):
+        if self._active_index is None:
+            return
+        # Create centered 20 nm square in current view
+        self.roi_manager.add_centered_rect(self._active_index, size_nm=20.0)
+
+    def on_add_poly_roi(self):
+        if self._active_index is None:
+            return
+        # Simple triangle around the center (example)
+        vb = self.viewer.get_plot_item().getViewBox()
+        (x0, x1), (y0, y1) = vb.viewRange()
+        cx, cy = 0.5 * (x0 + x1), 0.5 * (y0 + y1)
+        pts = [QPointF(cx - 15, cy - 10), QPointF(cx + 15, cy - 10), QPointF(cx, cy + 15)]
+        self.roi_manager.add_poly_roi(self._active_index, pts)
+
+    def on_delete_roi(self):
+        # delete currently selected ROI
+        # naive: find selected by pen style (manager tracks selected id)
+        rid = self.roi_manager._selected_id  # or expose getter if you prefer
+        if rid:
+            self.roi_manager.remove_roi(self._active_index)
+
+    # ROI signals (stubs for now)
+    def on_roi_added(self, roi_id: str, image_index: int): pass
+    def on_roi_changed(self, roi_id: str, image_index: int): pass
+    def on_roi_removed(self, roi_id: str, image_index: int): pass
+    def on_roi_selected(self, roi_id: str, image_index: int): pass

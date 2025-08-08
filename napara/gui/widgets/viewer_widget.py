@@ -99,6 +99,10 @@ class ViewerWidget(QWidget):
         rect = self._image_rect_nm(w, h)
         self.plot_item.getViewBox().setRange(rect, padding=0.0)
 
+    def get_plot_item(self):
+        """Return underlying PlotItem to attach ROI items."""
+        return self.plot_item
+
     def set_image(
         self,
         img,
