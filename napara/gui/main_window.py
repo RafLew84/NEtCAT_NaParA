@@ -1,10 +1,12 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import (
-    QMainWindow, QFileDialog, QMessageBox, QWidget, QLabel, QDockWidget, QVBoxLayout
+    QMainWindow, QFileDialog, QMessageBox, QWidget, QDockWidget, QVBoxLayout
 )
 from .panels.image_list_panel import ImageListPanel
 from .panels.processing_panel import ProcessingPanel
+from .widgets.metadata_widget import MetadataWidget
+from .widgets.viewer_widget import ViewerWidget
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
@@ -20,21 +22,23 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Ready")
 
     def _create_central(self):
-        # Placeholder na viewer (później podmienimy na pyqtgraph ImageView)
         central = QWidget(self)
-        layout = QVBoxLayout(central)
-        layout.addWidget(QLabel("Viewer placeholder (pyqtgraph)"))
+        v = QVBoxLayout(central)
+        # Metadata na górze
+        self.meta_widget = MetadataWidget(self)
+        v.addWidget(self.meta_widget)
+        # Viewer pod spodem
+        self.viewer = ViewerWidget(self)
+        v.addWidget(self.viewer, 1)  # rośnie wraz z oknem
         self.setCentralWidget(central)
 
     def _create_docks(self):
-        # Left: Image list
         self.image_list_panel = ImageListPanel(self)
         dock_left = QDockWidget("Images", self)
         dock_left.setWidget(self.image_list_panel)
         dock_left.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock_left)
 
-        # Right: Processing
         self.proc_panel = ProcessingPanel(self)
         dock_right = QDockWidget("Processing", self)
         dock_right.setWidget(self.proc_panel)
