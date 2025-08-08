@@ -1,35 +1,130 @@
+# napara/gui/widgets/viewer_widget.py
 import pyqtgraph as pg
-from PyQt6.QtWidgets import QWidget, QVBoxLayout
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSlider, QLabel
+from PyQt6.QtCore import QRectF, Qt
+from PyQt6.QtGui import QTransform
+import numpy as np
 
 class ViewerWidget(QWidget):
-    """Placeholder viewer oparty na pyqtgraph ImageView."""
+    """
+    Image viewer using ViewBox + ImageItem + HistogramLUTWidget.
+    - Maps pixel grid to physical nm using per-axis scale via QTransform.
+    - Preserves zoom/pan between images.
+    - Exposes gamma control via LUT.
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._last_view_range = None
+        self._nm_scale = (None, None)
+        self._gamma = 1.0
         self._build()
 
     def _build(self):
-        layout = QVBoxLayout(self)
-        self.image_view = pg.ImageView(view=pg.PlotItem())
-        self.image_view.getView().setLabel("bottom", "x (px)")
-        self.image_view.getView().setLabel("left", "y (px)")
-        layout.addWidget(self.image_view)
+        root = QVBoxLayout(self)
 
-    def set_image(self, img):
-        """img: numpy.ndarray 2D lub 3D (t, y, x). Na razie zakładamy 2D."""
-        self.image_view.setImage(img, autoLevels=True, autoHistogramRange=True)
+        # Create a PlotItem with axes instead of bare ViewBox
+        self.plot_item = pg.PlotItem()
+        self.plot_item.setAspectLocked(True)
+        self.plot_item.invertY(True)
+        self.plot_item.getAxis("bottom").setLabel("x", units="nm")
+        self.plot_item.getAxis("left").setLabel("y", units="nm")
+
+        # ImageItem inside PlotItem
+        self.image_item = pg.ImageItem()
+        self.plot_item.addItem(self.image_item)
+
+        # GraphicsLayoutWidget to host the PlotItem
+        self.glw = pg.GraphicsLayoutWidget()
+        self.glw.addItem(self.plot_item)
+
+        # Histogram + LUT (levels)
+        self.hist = pg.HistogramLUTWidget()
+        self.hist.setImageItem(self.image_item)
+
+        # Gamma slider
+        gamma_row = QHBoxLayout()
+        gamma_row.addWidget(QLabel("γ"))
+        self.slider_gamma = QSlider(Qt.Orientation.Horizontal)
+        self.slider_gamma.setRange(10, 400)
+        self.slider_gamma.setValue(100)
+        self.slider_gamma.valueChanged.connect(self._on_gamma_changed)
+        gamma_row.addWidget(self.slider_gamma)
+
+        # Layout: plot with axes on left, histogram on right
+        hl = QHBoxLayout()
+        hl.addWidget(self.glw, 1)
+        hl.addWidget(self.hist, 0)
+
+        root.addLayout(hl, 1)
+        root.addLayout(gamma_row)
+
+
+    def _on_gamma_changed(self, v: int):
+        """Update LUT gamma when slider moves."""
+        self.set_gamma(v / 100.0)
+
+    def set_gamma(self, gamma: float):
+        """Apply gamma to the image LUT (does not alter the data)."""
+        self._gamma = max(0.01, float(gamma))
+        # build LUT 256 entries with gamma curve
+        x = np.linspace(0.0, 1.0, 256)
+        lut = np.clip(x ** (1.0 / self._gamma), 0, 1)
+        lut = (lut * 255).astype(np.ubyte)
+        lut = np.stack([lut, lut, lut], axis=1)  # grayscale RGB
+        self.image_item.setLookupTable(lut)
 
     def clear(self):
-        self.image_view.clear()
+        """Clear image content and view state."""
+        self.image_item.clear()
+        self._last_view_range = None
 
-    def set_axis_labels_nm(self, scale_nm_per_px: float | None):
-        if scale_nm_per_px:
-            self.image_view.getView().setLabel("bottom", f"x (nm)")
-            self.image_view.getView().setLabel("left", f"y (nm)")
-            item = self.image_view.getImageItem()
-            if item is not None:
-                tr = pg.QtGui.QTransform()
-                tr.scale(scale_nm_per_px, scale_nm_per_px)
-                item.setTransform(tr)
+    def _image_rect_nm(self, w_px: int, h_px: int) -> QRectF:
+        sx, sy = self._nm_scale
+        if sx and sy:
+            return QRectF(0.0, 0.0, w_px * sx, h_px * sy)
+        return QRectF(0.0, 0.0, float(w_px), float(h_px))
+
+    def _apply_scale_transform(self):
+        """Apply nm-per-pixel scaling to the ImageItem via QTransform."""
+        self.image_item.resetTransform()
+        sx, sy = self._nm_scale
+        if sx and sy:
+            tr = QTransform()
+            tr.scale(sx, sy)
+            self.image_item.setTransform(tr)
+
+    def fit_to_view(self, img_shape_px: tuple[int, int]):
+        """Fit the whole image rect into the ViewBox (no padding)."""
+        h, w = img_shape_px
+        rect = self._image_rect_nm(w, h)
+        self.plot_item.getViewBox().setRange(rect, padding=0.0)
+
+    def set_image(
+        self,
+        img,
+        *,
+        scale_nm_per_px: tuple[float | None, float | None] = (None, None),
+        preserve_zoom: bool = True,
+        auto_levels: bool = True,
+    ):
+        """
+        Set a new image without resetting zoom/pan if requested.
+        """
+        if preserve_zoom:
+            self._last_view_range = self.plot_item.getViewBox().viewRange()
+
+        self._nm_scale = scale_nm_per_px
+        # Set image (avoid auto-range on ViewBox)
+        self.image_item.setImage(img, autoLevels=auto_levels, autoDownsample=True)
+
+        # Re-apply transform to map px->nm
+        self._apply_scale_transform()
+
+        # Restore zoom or fit
+        if preserve_zoom and self._last_view_range:
+            self.plot_item.getViewBox().setRange(xRange=self._last_view_range[0], yRange=self._last_view_range[1], padding=0.0)
         else:
-            self.image_view.getView().setLabel("bottom", "x (px)")
-            self.image_view.getView().setLabel("left", "y (px)")
+            self.fit_to_view(img.shape)
+
+        # Re-apply gamma LUT after new image (in case pyqtgraph reset it)
+        self.set_gamma(self._gamma)

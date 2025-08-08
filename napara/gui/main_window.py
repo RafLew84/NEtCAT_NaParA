@@ -188,21 +188,22 @@ class MainWindow(QMainWindow):
         self._active_index = row
         img = self._images[row]
 
-        # Show image
-        self.viewer.set_image(img.data)
-
-        # Derive pixel size in nm for axis labeling (uniform if both present)
+        # Physical pixel sizes (nm/px)
         px_x, px_y = img.get_pixel_size_nm()
-        # Set axis scaling label if square pixels; otherwise keep px
-        if px_x and px_y and abs(px_x - px_y) / max(px_x, px_y) < 1e-6:
-            self.viewer.set_axis_labels_nm(px_x)
-        else:
-            self.viewer.set_axis_labels_nm(None)
 
-        # Show metadata
+        # Pass image and physical scaling; preserve zoom between images
+        self.viewer.set_image(
+            img.data,
+            scale_nm_per_px=(px_x, px_y),     # maps px grid to nm
+            preserve_zoom=True,               # keep current zoom/pan
+            auto_levels=True
+        )
+
+        # Metadata: include physical size in nm
         self.meta_widget.set_metadata(
             filename=str(img.file_name),
             shape=(img.pixels_y, img.pixels_x),
+            size_nm=(img.size_nm_x, img.size_nm_y), 
             scale_nm_per_px=px_x if px_x else None,
             channel=img.image_type
         )
