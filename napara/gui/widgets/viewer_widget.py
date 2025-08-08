@@ -112,23 +112,47 @@ class ViewerWidget(QWidget):
         auto_levels: bool = True,
     ):
         """
-        Set a new image without resetting zoom/pan if requested.
+        Set a new image and map pixel grid to physical nm using QTransform.
+        - On the first image (or when preserve_zoom=False) it performs an auto-fit
+        equivalent to pressing 'A' (using transformed bounds), so axes show 'nm'
+        instead of tiny prefixes like 'mnm'.
+        - When preserve_zoom=True and a previous view exists, it restores the last view.
         """
-        if preserve_zoom:
-            self._last_view_range = self.plot_item.getViewBox().viewRange()
+        # Save current view before content changes
+        vb = self.plot_item.getViewBox()
+        if preserve_zoom and hasattr(self, "_ever_shown") and getattr(self, "_ever_shown"):
+            self._last_view_range = vb.viewRange()
+        else:
+            self._last_view_range = None
 
+        # Store scale and set image (avoid ViewBox autorange)
         self._nm_scale = scale_nm_per_px
-        # Set image (avoid auto-range on ViewBox)
         self.image_item.setImage(img, autoLevels=auto_levels, autoDownsample=True)
 
-        # Re-apply transform to map px->nm
+        # Apply px->nm transform
         self._apply_scale_transform()
 
-        # Restore zoom or fit
-        if preserve_zoom and self._last_view_range:
-            self.plot_item.getViewBox().setRange(xRange=self._last_view_range[0], yRange=self._last_view_range[1], padding=0.0)
-        else:
-            self.fit_to_view(img.shape)
+        # Decide whether to restore previous view or fit
+        restore = preserve_zoom and (self._last_view_range is not None)
 
-        # Re-apply gamma LUT after new image (in case pyqtgraph reset it)
+        if restore:
+            # Restore previous view range
+            x_rng, y_rng = self._last_view_range
+            vb.setRange(xRange=x_rng, yRange=y_rng, padding=0.0)
+        else:
+            # Robust auto-fit in physical coords (like pressing 'A')
+            bounds = self.image_item.mapRectToParent(self.image_item.boundingRect())
+            if bounds.isEmpty():
+                # Fallback: build bounds from shape and scale
+                h, w = img.shape[:2]
+                sx, sy = self._nm_scale
+                w_nm = w * (sx or 1.0)
+                h_nm = h * (sy or 1.0)
+                bounds = QRectF(0.0, 0.0, float(w_nm), float(h_nm))
+            vb.setRange(bounds, padding=0.0)
+
+        # Re-apply gamma LUT in case pyqtgraph reset it
         self.set_gamma(self._gamma)
+
+        # Mark that at least one image was shown
+        self._ever_shown = True
