@@ -3,15 +3,23 @@ from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import (
     QMainWindow, QFileDialog, QMessageBox, QWidget, QDockWidget, QVBoxLayout
 )
+
 from .panels.image_list_panel import ImageListPanel
 from .panels.processing_panel import ProcessingPanel
 from .widgets.metadata_widget import MetadataWidget
 from .widgets.viewer_widget import ViewerWidget
 
+from napara.io.factory import load_from_paths
+import numpy as np  # for type hints / potential future use
+
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
+        # Holds loaded STMImage objects flattened (STP/S94 -> 1 each; MPP -> many frames)
+        self._images = []  # list[STMImage]
+        self._active_index = None  # int | None
         self._setup_ui()
+        self._connect_signals()
 
     def _setup_ui(self):
         self.setWindowTitle("NaParA – Nanoparticle Analyzer")
@@ -24,10 +32,8 @@ class MainWindow(QMainWindow):
     def _create_central(self):
         central = QWidget(self)
         v = QVBoxLayout(central)
-        # Metadata na górze
         self.meta_widget = MetadataWidget(self)
         v.addWidget(self.meta_widget)
-        # Viewer pod spodem
         self.viewer = ViewerWidget(self)
         v.addWidget(self.viewer, 1)
         self.setCentralWidget(central)
@@ -45,6 +51,14 @@ class MainWindow(QMainWindow):
         dock_right.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock_right)
 
+    def _connect_signals(self):
+        """Connect UI signals to handlers."""
+        # Image list: add/remove and selection change
+        self.image_list_panel.btn_add.clicked.connect(self.on_add_images_clicked)
+        self.image_list_panel.btn_remove.clicked.connect(self.on_remove_selected_clicked)
+        self.image_list_panel.list.currentRowChanged.connect(self.on_image_selected)
+
+    # ---------------- MENU (unchanged stubs) ----------------
     def _create_menu(self):
         menubar = self.menuBar()
         file_menu = menubar.addMenu("&File")
@@ -97,7 +111,102 @@ class MainWindow(QMainWindow):
         self.act_about = QAction("About NaParA", self); self.act_about.triggered.connect(self.on_about)
         help_menu.addAction(self.act_about)
 
-    # --- Slots (stub) ---
+    def on_add_images_clicked(self):
+        """
+        Open a file dialog to load multiple STP/S94 files or a single MPP file.
+        STP/S94: multiple selection allowed; each path -> 1 STMImage.
+        MPP: only one file at a time (UI allows multi, but we'll expand frames).
+        """
+        # Build filter: multiple extensions
+        filt = "STM files (*.stp *.STP *.s94 *.S94 *.mpp *.MPP);;All files (*.*)"
+        paths, _ = QFileDialog.getOpenFileNames(self, "Add STM files", "", filt)
+        if not paths:
+            return
+
+        try:
+            new_images = load_from_paths(paths)  # flattens frames for MPP
+        except Exception as e:
+            QMessageBox.critical(self, "Load error", f"Failed to load files:\n{e}")
+            return
+
+        if not new_images:
+            QMessageBox.information(self, "No data", "No images were loaded from the selected files.")
+            return
+
+        # Extend internal list and refresh UI
+        start_index = len(self._images)
+        self._images.extend(new_images)
+        self._update_image_list(new_items=new_images, start_index=start_index)
+
+        # Select first newly added item to display it immediately
+        if start_index < len(self._images):
+            self.image_list_panel.list.setCurrentRow(start_index)
+
+        self.statusBar().showMessage(f"Loaded {len(new_images)} image(s).", 4000)
+
+    def _update_image_list(self, new_items, start_index: int):
+        """
+        Append loaded items to the QListWidget with readable labels.
+        For MPP frames, include frame index in the label.
+        """
+        lst = self.image_list_panel.list
+        for i, img in enumerate(new_items, start=0):
+            # Build label
+            base = img.file_name
+            if getattr(img, "frame_index", None) is not None:
+                label = f"{base}  [frame {img.frame_index}]  {img.pixels_x}×{img.pixels_y}px"
+            else:
+                label = f"{base}  {img.pixels_x}×{img.pixels_y}px"
+            lst.addItem(label)
+
+    def on_remove_selected_clicked(self):
+        """
+        Remove the currently selected image entry from the list and memory.
+        """
+        row = self.image_list_panel.list.currentRow()
+        if row < 0 or row >= len(self._images):
+            return
+        # Remove from data and UI
+        del self._images[row]
+        self.image_list_panel.list.takeItem(row)
+        # Clear viewer if nothing selected
+        if not self._images:
+            self._active_index = None
+            self.viewer.clear()
+            self.meta_widget.set_metadata(filename="", shape=None, scale_nm_per_px=None, channel=None)
+            return
+        # Adjust selection to a valid index
+        new_row = max(0, min(row, len(self._images) - 1))
+        self.image_list_panel.list.setCurrentRow(new_row)
+
+    def on_image_selected(self, row: int):
+        """
+        Update central viewer and metadata when a list entry is selected.
+        """
+        if row < 0 or row >= len(self._images):
+            return
+        self._active_index = row
+        img = self._images[row]
+
+        # Show image
+        self.viewer.set_image(img.data)
+
+        # Derive pixel size in nm for axis labeling (uniform if both present)
+        px_x, px_y = img.get_pixel_size_nm()
+        # Set axis scaling label if square pixels; otherwise keep px
+        if px_x and px_y and abs(px_x - px_y) / max(px_x, px_y) < 1e-6:
+            self.viewer.set_axis_labels_nm(px_x)
+        else:
+            self.viewer.set_axis_labels_nm(None)
+
+        # Show metadata
+        self.meta_widget.set_metadata(
+            filename=str(img.file_name),
+            shape=(img.pixels_y, img.pixels_x),
+            scale_nm_per_px=px_x if px_x else None,
+            channel=img.image_type
+        )
+
     def on_open_project(self):
         path, _ = QFileDialog.getOpenFileName(self, "Open Project", "", "NaParA Project (*.json *.napara)")
         if path:
