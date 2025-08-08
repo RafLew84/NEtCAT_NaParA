@@ -1,6 +1,10 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QKeySequence
-from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox
+from PyQt6.QtWidgets import (
+    QMainWindow, QFileDialog, QMessageBox, QWidget, QLabel, QDockWidget, QVBoxLayout
+)
+from .panels.image_list_panel import ImageListPanel
+from .panels.processing_panel import ProcessingPanel
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
@@ -9,15 +13,36 @@ class MainWindow(QMainWindow):
 
     def _setup_ui(self):
         self.setWindowTitle("NaParA – Nanoparticle Analyzer")
-        self.resize(1100, 700)
+        self.resize(1200, 800)
         self._create_menu()
+        self._create_central()
+        self._create_docks()
         self.statusBar().showMessage("Ready")
 
-    # --- MENU ---
+    def _create_central(self):
+        # Placeholder na viewer (później podmienimy na pyqtgraph ImageView)
+        central = QWidget(self)
+        layout = QVBoxLayout(central)
+        layout.addWidget(QLabel("Viewer placeholder (pyqtgraph)"))
+        self.setCentralWidget(central)
+
+    def _create_docks(self):
+        # Left: Image list
+        self.image_list_panel = ImageListPanel(self)
+        dock_left = QDockWidget("Images", self)
+        dock_left.setWidget(self.image_list_panel)
+        dock_left.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock_left)
+
+        # Right: Processing
+        self.proc_panel = ProcessingPanel(self)
+        dock_right = QDockWidget("Processing", self)
+        dock_right.setWidget(self.proc_panel)
+        dock_right.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock_right)
+
     def _create_menu(self):
         menubar = self.menuBar()
-
-        # File
         file_menu = menubar.addMenu("&File")
 
         self.act_open_project = QAction("Open Project…", self)
@@ -54,31 +79,18 @@ class MainWindow(QMainWindow):
         self.act_exit.triggered.connect(self.close)
         file_menu.addAction(self.act_exit)
 
-        # Edit
         edit_menu = menubar.addMenu("&Edit")
+        self.act_undo = QAction("Undo", self); self.act_undo.setShortcut(QKeySequence.StandardKey.Undo); self.act_undo.setEnabled(False)
+        self.act_redo = QAction("Redo", self); self.act_redo.setShortcut(QKeySequence.StandardKey.Redo); self.act_redo.setEnabled(False)
+        edit_menu.addAction(self.act_undo); edit_menu.addAction(self.act_redo)
 
-        self.act_undo = QAction("Undo", self)
-        self.act_undo.setShortcut(QKeySequence.StandardKey.Undo)
-        self.act_undo.setEnabled(False)
-        edit_menu.addAction(self.act_undo)
-
-        self.act_redo = QAction("Redo", self)
-        self.act_redo.setShortcut(QKeySequence.StandardKey.Redo)
-        self.act_redo.setEnabled(False)
-        edit_menu.addAction(self.act_redo)
-
-        # View
         view_menu = menubar.addMenu("&View")
-
         self.act_toggle_statusbar = QAction("Status Bar", self, checkable=True, checked=True)
         self.act_toggle_statusbar.triggered.connect(self.on_toggle_statusbar)
         view_menu.addAction(self.act_toggle_statusbar)
 
-        # Help
         help_menu = menubar.addMenu("&Help")
-
-        self.act_about = QAction("About NaParA", self)
-        self.act_about.triggered.connect(self.on_about)
+        self.act_about = QAction("About NaParA", self); self.act_about.triggered.connect(self.on_about)
         help_menu.addAction(self.act_about)
 
     # --- Slots (stub) ---
@@ -88,11 +100,9 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Opened project: {path}", 4000)
 
     def on_quick_load(self):
-        # stub: docelowo wczytanie ostatniego quicksave
         self.statusBar().showMessage("Quick Load… (stub)", 3000)
 
     def on_save(self):
-        # stub: docelowo zapis do bieżącej ścieżki projektu
         self.statusBar().showMessage("Save… (stub)", 3000)
 
     def on_save_as(self):
@@ -101,7 +111,6 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Saved project as: {path}", 4000)
 
     def on_quick_save(self):
-        # stub: docelowo szybki zapis do domyślnej lokalizacji
         self.statusBar().showMessage("Quick Save… (stub)", 3000)
 
     def on_toggle_statusbar(self, checked: bool):
