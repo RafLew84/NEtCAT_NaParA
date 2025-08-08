@@ -10,6 +10,7 @@ from .widgets.metadata_widget import MetadataWidget
 from .widgets.viewer_widget import ViewerWidget
 from napara.logic.roi_manager import ROIManager
 
+import os
 from napara.io.factory import load_from_paths
 import numpy as np  # for type hints / potential future use
 
@@ -160,17 +161,17 @@ class MainWindow(QMainWindow):
 
     def _update_image_list(self, new_items, start_index: int):
         """
-        Append loaded items to the QListWidget with readable labels.
-        For MPP frames, include frame index in the label.
+        Append loaded items to the QListWidget using short labels:
+        - STP/S94: show only 'filename.ext'
+        - MPP frames: show 'filename.ext  [frame N]'
         """
         lst = self.image_list_panel.list
-        for i, img in enumerate(new_items, start=0):
-            # Build label
-            base = img.file_name
+        for img in new_items:
+            base = os.path.basename(str(img.file_name))  # strip directories
             if getattr(img, "frame_index", None) is not None:
-                label = f"{base}  [frame {img.frame_index}]  {img.pixels_x}×{img.pixels_y}px"
+                label = f"{base}  [frame {img.frame_index}]"
             else:
-                label = f"{base}  {img.pixels_x}×{img.pixels_y}px"
+                label = base
             lst.addItem(label)
 
     def on_remove_selected_clicked(self):
