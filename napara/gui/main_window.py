@@ -9,16 +9,22 @@ from .panels.processing_panel import ProcessingPanel
 from .widgets.metadata_widget import MetadataWidget
 from .widgets.viewer_widget import ViewerWidget
 from napara.logic.roi_manager import ROIManager
+from napara.processing.pipeline_spec import PipelineSpec
 
 import os
-from napara.io.factory import load_from_paths
 import numpy as np  # for type hints / potential future use
+
+from napara.io.factory import load_from_paths
+from napara.processing.pipeline import run_pipeline
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         # Holds loaded STMImage objects flattened (STP/S94 -> 1 each; MPP -> many frames)
         self._images = []  # list[STMImage]
+        self._contours_by_image = {}  # dict[int, list[np.ndarray]]  # per-image detected contours
+        self._overlay_items = {}      # dict[int, list[pg.PlotDataItem]]  # drawn items per image
+        self._spec = PipelineSpec()   # default pipeline
         self._active_index = None  # int | None
         self._setup_ui()
         self._connect_signals()
@@ -26,7 +32,7 @@ class MainWindow(QMainWindow):
         self.roi_manager = ROIManager(self.viewer.get_plot_item(), self)
         self.roi_manager.roiAdded.connect(self.on_roi_added)
         self.roi_manager.roiChanged.connect(self.on_roi_changed)
-        self.roi_manager.roiRemoved.connect(self.on_roi_removed)
+        # self.roi_manager.roiRemoved.connect(self.on_roi_removed)
         self.roi_manager.roiSelected.connect(self.on_roi_selected)
 
     def _setup_ui(self):
@@ -38,13 +44,60 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Ready")
 
     def _create_central(self):
-        central = QWidget(self)
-        v = QVBoxLayout(central)
+        from PyQt6.QtWidgets import QSplitter
+        from PyQt6.QtCore import Qt
+
+        # widgets
         self.meta_widget = MetadataWidget(self)
-        v.addWidget(self.meta_widget)
+        from .widgets.roi_preview_widget import ROIPreviewWidget
+        self.roi_preview = ROIPreviewWidget(self)
         self.viewer = ViewerWidget(self)
-        v.addWidget(self.viewer, 1)
-        self.setCentralWidget(central)
+
+        self.viewer.lutChanged.connect(self._update_roi_preview)
+
+        # top: meta | preview
+        top_split = QSplitter(Qt.Orientation.Horizontal, self)
+        top_split.addWidget(self.meta_widget)
+        top_split.addWidget(self.roi_preview)
+        top_split.setStretchFactor(0, 10)
+        top_split.setStretchFactor(1, 1)
+
+        # main: (top) / (viewer)
+        main_split = QSplitter(Qt.Orientation.Vertical, self)
+        main_split.addWidget(top_split)
+        main_split.addWidget(self.viewer)
+        main_split.setStretchFactor(0, 0)
+        main_split.setStretchFactor(10, 1)
+
+        self.setCentralWidget(main_split)
+
+    def _update_roi_preview(self):
+        """Extract ROI (raw for now) and show in preview."""
+        if self._active_index is None or not self._images:
+            self.roi_preview.clear(); return
+        img = self._images[self._active_index]
+        sx, sy = img.get_pixel_size_nm()
+        rect = self._get_active_roi_rect_nm()
+
+        levels = self.viewer.image_item.getLevels()
+        lut = self.viewer.image_item.lut 
+
+        if not rect or not (sx and sy and sx > 0 and sy > 0):
+            self.roi_preview.clear(); return
+
+        x_nm, y_nm, w_nm, h_nm = rect
+        x0 = max(0, int(np.floor(x_nm / sx)))
+        y0 = max(0, int(np.floor(y_nm / sy)))
+        x1 = min(img.pixels_x, int(np.ceil((x_nm + w_nm) / sx)))
+        y1 = min(img.pixels_y, int(np.ceil((y_nm + h_nm) / sy)))
+        roi_img = img.data[y0:y1, x0:x1]
+
+        self.roi_preview.set_preview(
+            roi_img, 
+            (sx, sy), 
+            levels=levels,
+            lut=lut
+        )
 
     def _create_docks(self):
         self.image_list_panel = ImageListPanel(self)
@@ -109,22 +162,140 @@ class MainWindow(QMainWindow):
         self.act_redo = QAction("Redo", self); self.act_redo.setShortcut(QKeySequence.StandardKey.Redo); self.act_redo.setEnabled(False)
         edit_menu.addAction(self.act_undo); edit_menu.addAction(self.act_redo)
 
+        an_menu = menubar.addMenu("&Analyze")
+        self.act_detect_roi = QAction("Detect (ROI)", self)
+        self.act_detect_roi.setShortcut("D")
+        self.act_detect_roi.triggered.connect(self.on_detect_roi)
+        an_menu.addAction(self.act_detect_roi)
+
         view_menu = menubar.addMenu("&View")
         self.act_toggle_statusbar = QAction("Status Bar", self, checkable=True, checked=True)
         self.act_toggle_statusbar.triggered.connect(self.on_toggle_statusbar)
         view_menu.addAction(self.act_toggle_statusbar)
 
-        self.act_add_rect_roi = QAction("Add/Reset Rect ROI", self)
-        self.act_add_rect_roi.triggered.connect(self.on_add_rect_roi)
-        view_menu.addAction(self.act_add_rect_roi)
-
-        self.act_del_roi = QAction("Delete ROI", self)
-        self.act_del_roi.triggered.connect(self.on_delete_roi)
-        view_menu.addAction(self.act_del_roi)
+        self.act_reset_roi = QAction("Reset ROI", self)
+        self.act_reset_roi.triggered.connect(self.on_add_rect_roi)
+        view_menu.addAction(self.act_reset_roi)
 
         help_menu = menubar.addMenu("&Help")
         self.act_about = QAction("About NaParA", self); self.act_about.triggered.connect(self.on_about)
         help_menu.addAction(self.act_about)
+
+    def _get_active_roi_rect_nm(self):
+        """Return (x,y,w,h) in nm for current image ROI; None if missing.
+        If polygon ROI exists, use its bounding rect (warn once)."""
+        idx = self._active_index
+        if idx is None:
+            return None
+        # Rect ROI
+        rect = self.roi_manager.get_rect(idx)
+        if rect is not None:
+            return (rect.x(), rect.y(), rect.width(), rect.height())
+        # Poly ROI -> fallback to bounding rect
+        poly = self.roi_manager.get_polygon(idx)
+        if poly:
+            xs = [p.x() for p in poly]; ys = [p.y() for p in poly]
+            x, y = min(xs), min(ys); w, h = max(xs)-x, max(ys)-y
+            # Optional: QMessageBox.information(self, "...", "Polygon ROI treated as bounding box.")
+            return (x, y, w, h)
+        return None
+
+    @staticmethod
+    def _centroid(contour_xy: np.ndarray) -> tuple[float, float]:
+        """Return (cx, cy) in pixel coords for Nx2 contour array."""
+        if contour_xy.size == 0:
+            return (0.0, 0.0)
+        cx = float(np.mean(contour_xy[:, 0]))
+        cy = float(np.mean(contour_xy[:, 1]))
+        return (cx, cy)
+
+    @staticmethod
+    def _point_in_rect_px(pt: tuple[float, float], rect_nm: tuple[float, float, float, float], nm_per_px: tuple[float | None, float | None]) -> bool:
+        """Check if pixel point is inside nm-rect (convert rect to px)."""
+        sx, sy = nm_per_px
+        x_nm, y_nm, w_nm, h_nm = rect_nm
+        if not sx or not sy or sx <= 0 or sy <= 0:
+            return False
+        x0 = x_nm / sx; y0 = y_nm / sy
+        x1 = (x_nm + w_nm) / sx; y1 = (y_nm + h_nm) / sy
+        px, py = pt
+        return (x0 <= px <= x1) and (y0 <= py <= y1)
+
+    def _clear_overlays(self, image_index: int):
+        """Remove existing contour items for given image."""
+        items = self._overlay_items.get(image_index, [])
+        for it in items:
+            try:
+                self.viewer.get_plot_item().removeItem(it)
+            except Exception:
+                pass
+        self._overlay_items[image_index] = []
+
+    def _draw_contours(self, image_index: int, contours: list[np.ndarray]):
+        """Draw contours as polyline overlays in NM coordinates (viewer axes are in nm)."""
+        from pyqtgraph import PlotDataItem, mkPen
+        self._clear_overlays(image_index)
+
+        # Get nm/px scaling for this image
+        img = self._images[image_index]
+        sx, sy = img.get_pixel_size_nm()  # returns (nm_x_per_px, nm_y_per_px)
+
+        items = []
+        for c in contours:
+            if c.shape[0] < 2:
+                continue
+            # Convert pixel coords -> nm to match PlotItem axes
+            x_nm = c[:, 0] * (sx or 1.0)
+            y_nm = c[:, 1] * (sy or 1.0)
+            item = PlotDataItem(x_nm, y_nm, pen=mkPen((0, 255, 0), width=2))
+            self.viewer.get_plot_item().addItem(item)
+            items.append(item)
+
+        self._overlay_items[image_index] = items
+
+    def on_detect_roi(self):
+        """Run detection pipeline on current ROI, overwrite particles inside ROI, draw contours."""
+        if self._active_index is None:
+            return
+        img = self._images[self._active_index]
+        roi_rect_nm = self._get_active_roi_rect_nm()
+        if roi_rect_nm is None:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.information(self, "ROI required", "Please create a ROI (View → Add/Reset Rect ROI) and try again.")
+            return
+
+        # Physical scaling (nm/px)
+        px_x, px_y = img.get_pixel_size_nm()
+
+        # Run pipeline (synchronously for now)
+        try:
+            res = run_pipeline(
+                img.data,
+                roi_rect_nm=roi_rect_nm,
+                nm_per_px=(px_x, px_y),
+                spec=self._spec,
+            )
+        except Exception as e:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Detection error", str(e))
+            return
+
+        new_contours = res["contours"]  # list of Nx2 arrays in PX coords
+
+        # Overwrite policy: drop existing contours whose centroid ∈ ROI, then add new
+        existing = self._contours_by_image.get(self._active_index, [])
+        kept = []
+        for c in existing:
+            if not self._point_in_rect_px(self._centroid(c), roi_rect_nm, (px_x, px_y)):
+                kept.append(c)
+        merged = kept + new_contours
+        self._contours_by_image[self._active_index] = merged
+
+        # Draw overlays for current image
+        self._draw_contours(self._active_index, merged)
+
+        # Optional: status
+        self.statusBar().showMessage(f"Detected {len(new_contours)} objects (total: {len(merged)}).", 5000)
 
     def on_add_images_clicked(self):
         """
@@ -224,6 +395,11 @@ class MainWindow(QMainWindow):
         )
 
         self.roi_manager.set_active_image(self._active_index)
+        if not self.roi_manager.has_roi(self._active_index):
+            self.roi_manager.add_centered_rect(self._active_index, size_nm=20.0)
+        conts = self._contours_by_image.get(self._active_index, [])
+        self._draw_contours(self._active_index, conts)
+        self._update_roi_preview()
 
     def on_open_project(self):
         path, _ = QFileDialog.getOpenFileName(self, "Open Project", "", "NaParA Project (*.json *.napara)")
@@ -262,25 +438,19 @@ class MainWindow(QMainWindow):
         # Create centered 20 nm square in current view
         self.roi_manager.add_centered_rect(self._active_index, size_nm=20.0)
 
-    def on_add_poly_roi(self):
-        if self._active_index is None:
-            return
-        # Simple triangle around the center (example)
-        vb = self.viewer.get_plot_item().getViewBox()
-        (x0, x1), (y0, y1) = vb.viewRange()
-        cx, cy = 0.5 * (x0 + x1), 0.5 * (y0 + y1)
-        pts = [QPointF(cx - 15, cy - 10), QPointF(cx + 15, cy - 10), QPointF(cx, cy + 15)]
-        self.roi_manager.add_poly_roi(self._active_index, pts)
-
-    def on_delete_roi(self):
-        # delete currently selected ROI
-        # naive: find selected by pen style (manager tracks selected id)
-        rid = self.roi_manager._selected_id  # or expose getter if you prefer
-        if rid:
-            self.roi_manager.remove_roi(self._active_index)
-
     # ROI signals (stubs for now)
-    def on_roi_added(self, roi_id: str, image_index: int): pass
-    def on_roi_changed(self, roi_id: str, image_index: int): pass
-    def on_roi_removed(self, roi_id: str, image_index: int): pass
-    def on_roi_selected(self, roi_id: str, image_index: int): pass
+    def on_roi_added(self, image_index: int):
+        if image_index == self._active_index:
+            self._update_roi_preview()
+
+    def on_roi_changed(self, image_index: int):
+        if image_index == self._active_index:
+            self._update_roi_preview()
+
+    def on_roi_removed(self, image_index: int):
+        if image_index == self._active_index:
+            self.roi_preview.clear()
+
+    def on_roi_selected(self, image_index: int):
+        if image_index == self._active_index:
+            self._update_roi_preview()

@@ -1,7 +1,7 @@
 # napara/gui/widgets/viewer_widget.py
 import pyqtgraph as pg
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSlider, QLabel
-from PyQt6.QtCore import QRectF, Qt
+from PyQt6.QtCore import QRectF, Qt, pyqtSignal 
 from PyQt6.QtGui import QTransform
 import numpy as np
 
@@ -12,6 +12,9 @@ class ViewerWidget(QWidget):
     - Preserves zoom/pan between images.
     - Exposes gamma control via LUT.
     """
+
+    lutChanged = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._last_view_range = None
@@ -62,6 +65,7 @@ class ViewerWidget(QWidget):
     def _on_gamma_changed(self, v: int):
         """Update LUT gamma when slider moves."""
         self.set_gamma(v / 100.0)
+        self.lutChanged.emit()
 
     def set_gamma(self, gamma: float):
         """Apply gamma to the image LUT (does not alter the data)."""
