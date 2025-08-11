@@ -1,7 +1,7 @@
 from PyQt6.QtCore import Qt, QPointF, QRectF
 from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import (
-    QMainWindow, QFileDialog, QMessageBox, QWidget, QDockWidget, QVBoxLayout
+    QMainWindow, QFileDialog, QMessageBox, QWidget, QDockWidget, QVBoxLayout, QDialog
 )
 
 from .panels.image_list_panel import ImageListPanel
@@ -10,6 +10,7 @@ from .widgets.metadata_widget import MetadataWidget
 from .widgets.viewer_widget import ViewerWidget
 from napara.logic.roi_manager import ROIManager
 from napara.processing.pipeline_spec import PipelineSpec
+from .dialogs.preprocessing_dialog import PreprocessingDialog
 
 import os
 import numpy as np  # for type hints / potential future use
@@ -86,6 +87,13 @@ class MainWindow(QMainWindow):
             self.roi_preview.clear()
             return
         
+        if img.preprocessed_data is not None:
+            source_data = img.preprocessed_data
+            self.roi_preview.title.setText("ROI Preview (Processed)")
+        else:
+            source_data = img.data
+            self.roi_preview.title.setText("ROI Preview (Original)")
+        
         # Get physical scaling and current viewer visual settings
         px_x, px_y = img.get_pixel_size_nm()
         levels = self.viewer.image_item.getLevels()
@@ -93,7 +101,7 @@ class MainWindow(QMainWindow):
 
         try:
             result = run_pipeline(
-                img.data,
+                source_data,
                 roi_rect_nm=roi_rect_nm,
                 nm_per_px=(px_x, px_y),
                 spec=self._spec
@@ -201,6 +209,9 @@ class MainWindow(QMainWindow):
         self.act_detect_roi.setShortcut("D")
         self.act_detect_roi.triggered.connect(self.on_detect_roi)
         an_menu.addAction(self.act_detect_roi)
+        self.act_preprocess = QAction("Full Image Preprocessing...", self)
+        self.act_preprocess.triggered.connect(self.on_preprocess_image)
+        an_menu.addAction(self.act_preprocess)
 
         view_menu = menubar.addMenu("&View")
         self.act_toggle_statusbar = QAction("Status Bar", self, checkable=True, checked=True)
@@ -286,6 +297,25 @@ class MainWindow(QMainWindow):
             items.append(item)
 
         self._overlay_items[image_index] = items
+
+    def on_preprocess_image(self):
+        if self._active_index is None:
+            QMessageBox.warning(self, "No Image", "Please select an image to preprocess.")
+            return
+
+        active_image_obj = self._images[self._active_index]
+
+        dialog = PreprocessingDialog(active_image_obj.data, self)
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            processed_data = dialog.get_processed_image()
+            if processed_data is not None:
+                active_image_obj.preprocessed_data = processed_data
+                self.statusBar().showMessage("Image preprocessed successfully.", 4000)
+                self._update_roi_preview()
+            else:
+                self.statusBar().showMessage("Preprocessing was accepted, but no data was returned.", 4000)
 
     def on_detect_roi(self):
         """Run detection pipeline on current ROI, overwrite particles inside ROI, draw contours."""

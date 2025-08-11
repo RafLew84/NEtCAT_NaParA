@@ -29,6 +29,7 @@ class STMImage:
     z_nm_per_raw: Optional[float] = None
     image_type: str = "Unknown"
     frame_index: Optional[int] = None  # <- NEW: frame index for movie formats (e.g., MPP)
+    preprocessed_data: Optional[np.ndarray] = field(repr=False, default=None)
 
     def __post_init__(self):
         """

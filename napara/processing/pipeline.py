@@ -1,9 +1,12 @@
 from __future__ import annotations
 import numpy as np
-from scipy.ndimage import gaussian_filter
+from scipy.ndimage import gaussian_filter, median_filter
+from skimage.restoration import richardson_lucy, unsupervised_wiener
 from typing import Dict, Any, Tuple, Optional
 from dataclasses import asdict
 from .pipeline_spec import PipelineSpec
+
+import bm3d
 
 # Reuse helpers if masz je w pliku; jeśli nie, wklej te dwa:
 def _apply_rect_roi(img: np.ndarray, rect_nm: Tuple[float, float, float, float],
@@ -77,3 +80,36 @@ def run_pipeline(
         "debug": debug,
         "spec": asdict(spec),
     }
+
+def run_heavy_preprocessing(image: np.ndarray, spec: Dict[str, Any]) -> np.ndarray:
+    processed_image = image.copy().astype(np.float32)
+
+    # Krok 1: Opcjonalny Filtr Medianowy
+    if spec.get('median_filter', False):
+        size = spec.get('median_size', 3)
+        processed_image = median_filter(processed_image, size=size)
+
+    # Krok 2: Destriping
+    if spec.get('destripe', False):
+        row_medians = np.median(processed_image, axis=1, keepdims=True)
+        processed_image -= row_medians
+
+    # Krok 3: Opcjonalna Dekonwolucja
+    deconv_mode = spec.get('deconv_mode', 'none')
+    y, x = np.mgrid[-5:6, -5:6]
+    sx = spec.get('psf_sigma_x', 2.0)
+    sy = spec.get('psf_sigma_y', 0.5)
+    psf = np.exp(-(x**2 / (2.0 * sx**2) + y**2 / (2.0 * sy**2)))
+    psf /= psf.sum()
+    if deconv_mode == 'richardson_lucy':
+        processed_image = richardson_lucy(processed_image, psf, num_iter=spec.get('rl_iter', 15))
+    elif deconv_mode == 'wiener':
+        processed_image, _ = unsupervised_wiener(processed_image, psf=psf)
+
+    # Krok 4: Opcjonalne Odszumianie BM3D
+    if spec.get('denoise_bm3d', False):
+        mad = np.median(np.abs(processed_image - np.median(processed_image)))
+        sigma_psd = mad * 1.4826 * spec.get('bm3d_sigma_factor', 1.0)
+        processed_image = bm3d.bm3d(processed_image, sigma_psd=sigma_psd)
+
+    return processed_image
