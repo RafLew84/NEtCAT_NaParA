@@ -2,6 +2,8 @@ from __future__ import annotations
 import numpy as np
 from scipy.ndimage import gaussian_filter, median_filter
 from skimage.restoration import richardson_lucy, unsupervised_wiener
+from skimage.morphology import rectangle, erosion, dilation, reconstruction
+from skimage.transform import rotate
 from typing import Dict, Any, Tuple, Optional
 from dataclasses import asdict
 from .pipeline_spec import PipelineSpec
@@ -81,6 +83,27 @@ def run_pipeline(
         "spec": asdict(spec),
     }
 
+def _directional_morph_reconstruction(img: np.ndarray, length_px: int, width_px: int,
+                                      angle_deg: float, mode: str = "open") -> np.ndarray:
+    """Directional opening/closing by reconstruction with thin rectangular SE."""
+    # Rotate so that target lines become horizontal
+    rot = rotate(img, -angle_deg, resize=False, preserve_range=True, order=1, mode="edge")
+
+    # Structuring element: height = width_px, width = length_px
+    L = max(3, int(length_px) | 1)   # force odd
+    W = max(1, int(width_px))
+    se = rectangle(W, L)
+
+    if mode == "open":   # remove bright lines
+        seed = erosion(rot, se)
+        rec  = reconstruction(seed, rot, method='dilation')
+    else:                # "close" -> remove dark lines
+        seed = dilation(rot, se)
+        rec  = reconstruction(seed, rot, method='erosion')
+
+    out = rotate(rec, angle_deg, resize=False, preserve_range=True, order=1, mode="edge")
+    return out.astype(img.dtype)
+
 def run_heavy_preprocessing(image: np.ndarray, spec: Dict[str, Any]) -> np.ndarray:
     processed_image = image.copy().astype(np.float32)
 
@@ -93,6 +116,26 @@ def run_heavy_preprocessing(image: np.ndarray, spec: Dict[str, Any]) -> np.ndarr
     if spec.get('destripe', False):
         row_medians = np.median(processed_image, axis=1, keepdims=True)
         processed_image -= row_medians
+    
+    # 2.5A: Morph. Recon – bright lines (opening)
+    if spec.get('morphrec_bright_enable', False):
+        processed_image = _directional_morph_reconstruction(
+            processed_image,
+            length_px=spec.get('morphrec_bright_len_px', 31),
+            width_px=spec.get('morphrec_bright_w_px', 1),
+            angle_deg=spec.get('morphrec_bright_angle', 0.0),
+            mode="open"
+        )
+
+    # 2.5B: Morph. Recon – dark lines (closing)
+    if spec.get('morphrec_dark_enable', False):
+        processed_image = _directional_morph_reconstruction(
+            processed_image,
+            length_px=spec.get('morphrec_dark_len_px', 31),
+            width_px=spec.get('morphrec_dark_w_px', 1),
+            angle_deg=spec.get('morphrec_dark_angle', 0.0),
+            mode="close"
+        )
 
     # Krok 3: Opcjonalna Dekonwolucja
     deconv_mode = spec.get('deconv_mode', 'none')

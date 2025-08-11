@@ -107,6 +107,32 @@ class PreprocessingDialog(QDialog):
         form_bm3d.addRow("Sigma Factor:", self.sp_bm3d_sigma)
         params_layout.addWidget(grp_bm3d)
 
+        # 5A: Morph. by Reconstruction – Bright lines (Opening)
+        grp_mr_bright = QGroupBox("5A. Morph. Reconstruction – remove BRIGHT lines (Opening)")
+        form_mr_bright = QFormLayout(grp_mr_bright)
+        self.cb_mr_bright = QCheckBox("Enable")
+        self.sp_mr_b_len = QSpinBox(); self.sp_mr_b_len.setRange(3, 401); self.sp_mr_b_len.setSingleStep(2); self.sp_mr_b_len.setValue(31)
+        self.sp_mr_b_w   = QSpinBox(); self.sp_mr_b_w.setRange(1, 21);  self.sp_mr_b_w.setValue(1)   # NEW: thickness
+        self.sp_mr_b_ang = QDoubleSpinBox(); self.sp_mr_b_ang.setRange(-180.0, 180.0); self.sp_mr_b_ang.setDecimals(1); self.sp_mr_b_ang.setValue(0.0)
+        form_mr_bright.addRow(self.cb_mr_bright)
+        form_mr_bright.addRow("SE Length (px):", self.sp_mr_b_len)
+        form_mr_bright.addRow("SE Width (px):",  self.sp_mr_b_w)   # NEW
+        form_mr_bright.addRow("Direction (deg):", self.sp_mr_b_ang)
+        params_layout.addWidget(grp_mr_bright)
+
+        # 5B: Morph. by Reconstruction – Dark lines (Closing)
+        grp_mr_dark = QGroupBox("5B. Morph. Reconstruction – remove DARK lines (Closing)")
+        form_mr_dark = QFormLayout(grp_mr_dark)
+        self.cb_mr_dark = QCheckBox("Enable")
+        self.sp_mr_d_len = QSpinBox(); self.sp_mr_d_len.setRange(3, 401); self.sp_mr_d_len.setSingleStep(2); self.sp_mr_d_len.setValue(31)
+        self.sp_mr_d_w   = QSpinBox(); self.sp_mr_d_w.setRange(1, 21);  self.sp_mr_d_w.setValue(1)   # NEW: thickness
+        self.sp_mr_d_ang = QDoubleSpinBox(); self.sp_mr_d_ang.setRange(-180.0, 180.0); self.sp_mr_d_ang.setDecimals(1); self.sp_mr_d_ang.setValue(0.0)
+        form_mr_dark.addRow(self.cb_mr_dark)
+        form_mr_dark.addRow("SE Length (px):", self.sp_mr_d_len)
+        form_mr_dark.addRow("SE Width (px):",  self.sp_mr_d_w)    # NEW
+        form_mr_dark.addRow("Direction (deg):", self.sp_mr_d_ang)
+        params_layout.addWidget(grp_mr_dark)
+
         params_layout.addStretch()
 
         # --- Przyciski ---
@@ -149,7 +175,15 @@ class PreprocessingDialog(QDialog):
             'psf_sigma_x': self.sp_psf_sx.value(),
             'psf_sigma_y': self.sp_psf_sy.value(),
             'denoise_bm3d': self.cb_bm3d.isChecked(),
-            'bm3d_sigma_factor': self.sp_bm3d_sigma.value()
+            'bm3d_sigma_factor': self.sp_bm3d_sigma.value(),
+            'morphrec_bright_enable': self.cb_mr_bright.isChecked(),
+            'morphrec_bright_len_px': self.sp_mr_b_len.value(),
+            'morphrec_bright_w_px':   self.sp_mr_b_w.value(),  
+            'morphrec_bright_angle':  self.sp_mr_b_ang.value(),
+            'morphrec_dark_enable':   self.cb_mr_dark.isChecked(),
+            'morphrec_dark_len_px':   self.sp_mr_d_len.value(),
+            'morphrec_dark_w_px':     self.sp_mr_d_w.value(),  
+            'morphrec_dark_angle':    self.sp_mr_d_ang.value(),
         }
         if self.rb_deconv_rl.isChecked():
             spec['deconv_mode'] = 'richardson_lucy'
