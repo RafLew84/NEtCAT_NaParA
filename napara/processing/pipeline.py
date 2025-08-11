@@ -4,6 +4,7 @@ from scipy.ndimage import gaussian_filter, median_filter
 from skimage.restoration import richardson_lucy, unsupervised_wiener
 from skimage.morphology import rectangle, erosion, dilation, reconstruction
 from skimage.transform import rotate
+from sklearn.linear_model import RANSACRegressor
 from typing import Dict, Any, Tuple, Optional
 from dataclasses import asdict
 from .pipeline_spec import PipelineSpec
@@ -104,6 +105,49 @@ def _directional_morph_reconstruction(img: np.ndarray, length_px: int, width_px:
     out = rotate(rec, angle_deg, resize=False, preserve_range=True, order=1, mode="edge")
     return out.astype(img.dtype)
 
+def ransac_line_baseline(img: np.ndarray, axis: str = 'rows', mask: np.ndarray | None = None,
+                         poly_deg: int = 1, residual_threshold: float = 3.0, max_trials: int = 200) -> np.ndarray:
+    """Robust per-line baseline subtraction using RANSAC. axis: 'rows' or 'cols'."""
+    h, w = img.shape
+    out = img.astype(np.float32).copy()
+    n_lines = h if axis == 'rows' else w
+
+    for i in range(n_lines):
+        line = img[i, :] if axis == 'rows' else img[:, i]
+        x = np.arange(line.size).astype(np.float32).reshape(-1, 1)
+
+        if mask is not None:
+            m = mask[i, :] if axis == 'rows' else mask[:, i]
+            sel = ~m.astype(bool)
+        else:
+            sel = np.ones_like(line, dtype=bool)
+
+        if sel.sum() < max(8, 2 * poly_deg + 1):
+            continue
+
+        # Polynomial design matrix
+        X = np.hstack([x ** k for k in range(poly_deg + 1)])[sel]
+        y = line[sel]
+
+        try:
+            model = RANSACRegressor(
+                min_samples=max(8, 2 * poly_deg + 1),
+                residual_threshold=residual_threshold,
+                max_trials=max_trials
+            )
+            model.fit(X, y)
+            Xfull = np.hstack([x ** k for k in range(poly_deg + 1)])
+            baseline = model.predict(Xfull).astype(np.float32)
+            if axis == 'rows':
+                out[i, :] = line - baseline
+            else:
+                out[:, i] = line - baseline
+        except Exception:
+            # fall back: skip this line on failure
+            pass
+
+    return out
+
 def run_heavy_preprocessing(image: np.ndarray, spec: Dict[str, Any]) -> np.ndarray:
     processed_image = image.copy().astype(np.float32)
 
@@ -116,6 +160,16 @@ def run_heavy_preprocessing(image: np.ndarray, spec: Dict[str, Any]) -> np.ndarr
     if spec.get('destripe', False):
         row_medians = np.median(processed_image, axis=1, keepdims=True)
         processed_image -= row_medians
+    
+    if spec.get('destripe_ransac', False):
+        processed_image = ransac_line_baseline(
+            processed_image,
+            axis=spec.get('ransac_axis', 'rows'),
+            mask=None,  # opcjonalnie: tu można wpiąć maskę tła
+            poly_deg=int(spec.get('ransac_poly_deg', 1)),
+            residual_threshold=float(spec.get('ransac_residual', 3.0)),
+            max_trials=int(spec.get('ransac_trials', 200))
+        )
     
     # 2.5A: Morph. Recon – bright lines (opening)
     if spec.get('morphrec_bright_enable', False):

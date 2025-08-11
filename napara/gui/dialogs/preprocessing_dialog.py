@@ -2,7 +2,7 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QSplitter, QGroupBox, QFormLayout,
     QPushButton, QCheckBox, QDoubleSpinBox, QMessageBox, QProgressDialog,
-    QWidget, QRadioButton, QSpinBox, QApplication
+    QWidget, QRadioButton, QSpinBox, QApplication, QScrollArea, QComboBox
 )
 from PyQt6.QtCore import Qt
 import pyqtgraph as pg
@@ -46,8 +46,15 @@ class PreprocessingDialog(QDialog):
         main_splitter.addWidget(self.viewer_processed)
 
         # --- Panel z parametrami po prawej ---
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
         params_widget = QWidget(self)
         params_layout = QVBoxLayout(params_widget)
+        scroll.setWidget(params_widget)
+        scroll.setMinimumWidth(280)
+        main_splitter.setSizes([450, 450, 320])
+
+        main_splitter.addWidget(scroll)
         
         # Krok 1: Filtr Medianowy
         grp_median = QGroupBox("1. Optional: Median Filter (Pre-cleaning)")
@@ -68,6 +75,21 @@ class PreprocessingDialog(QDialog):
         self.cb_destripe.setChecked(True)
         form_destripe.addRow(self.cb_destripe)
         params_layout.addWidget(grp_destripe)
+
+        # 2b: RANSAC line baseline (robust per-line fitting)
+        grp_ransac = QGroupBox("2b. RANSAC line baseline (robust per-line fitting)")
+        form_ransac = QFormLayout(grp_ransac)
+        self.cb_ransac = QCheckBox("Enable", grp_ransac)
+        self.cmb_r_axis = QComboBox(); self.cmb_r_axis.addItems(["Rows (horizontal lines)", "Cols (vertical lines)"])
+        self.sp_r_poly = QSpinBox(); self.sp_r_poly.setRange(0, 3); self.sp_r_poly.setValue(1)
+        self.sp_r_resid = QDoubleSpinBox(); self.sp_r_resid.setRange(0.1, 50.0); self.sp_r_resid.setSingleStep(0.1); self.sp_r_resid.setValue(3.0)
+        self.sp_r_trials = QSpinBox(); self.sp_r_trials.setRange(10, 2000); self.sp_r_trials.setValue(200)
+        form_ransac.addRow(self.cb_ransac)
+        form_ransac.addRow("Axis:", self.cmb_r_axis)
+        form_ransac.addRow("Poly degree:", self.sp_r_poly)
+        form_ransac.addRow("Residual thresh.:", self.sp_r_resid)
+        form_ransac.addRow("Max trials:", self.sp_r_trials)
+        params_layout.addWidget(grp_ransac)
 
         # Krok 3: Dekonwolucja
         grp_deconv = QGroupBox("3. Shape Recovery (Deconvolution)")
@@ -151,7 +173,7 @@ class PreprocessingDialog(QDialog):
         # --- Składanie UI ---
         root_layout.addWidget(main_splitter, 1)
         root_layout.addLayout(btn_box)
-        main_splitter.addWidget(params_widget)
+        # main_splitter.addWidget(params_widget)
         main_splitter.setSizes([450, 450, 200])
 
     def _connect_signals(self):
@@ -170,6 +192,11 @@ class PreprocessingDialog(QDialog):
             'median_filter': self.cb_median.isChecked(),
             'median_size': self.sp_median_size.value(),
             'destripe': self.cb_destripe.isChecked(),
+            'destripe_ransac': self.cb_ransac.isChecked(),
+            'ransac_axis': 'rows' if self.cmb_r_axis.currentIndex() == 0 else 'cols',
+            'ransac_poly_deg': self.sp_r_poly.value(),
+            'ransac_residual': self.sp_r_resid.value(),
+            'ransac_trials': self.sp_r_trials.value(),
             'deconv_mode': 'none',
             'rl_iter': self.sp_rl_iter.value(),
             'psf_sigma_x': self.sp_psf_sx.value(),
