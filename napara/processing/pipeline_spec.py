@@ -11,6 +11,10 @@ class PipelineSpec:
     Deterministic ROI processing pipeline configuration.
     Steps order is fixed; toggles turn individual steps on/off.
     """
+    # Add Gaussian Blur step
+    gaussian_blur: bool = True
+    gaussian_sigma: float = 1.0
+
     # 1) Destriping (line-by-line)
     destripe_median_rows: bool = True
     destripe_poly_rows: bool = False

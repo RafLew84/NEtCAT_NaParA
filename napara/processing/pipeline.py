@@ -1,5 +1,6 @@
 from __future__ import annotations
 import numpy as np
+from scipy.ndimage import gaussian_filter
 from typing import Dict, Any, Tuple, Optional
 from dataclasses import asdict
 from .pipeline_spec import PipelineSpec
@@ -49,12 +50,20 @@ def run_pipeline(
         roi_slice = (0, img.shape[0], 0, img.shape[1])
         roi_img = img
 
-    # Empty mask the size of full image
-    empty_roi_mask = np.zeros((roi_slice[1] - roi_slice[0], roi_slice[3] - roi_slice[2]), dtype=bool)
-    full_mask = _rect_mask_to_full(empty_roi_mask, roi_slice, img.shape)
+    # processed_img = roi_img.copy() # Start with a copy of the ROI data
 
-    # No contours at this stage
+    # 1. Gaussian Blur
+    if spec.gaussian_blur:
+        # sigma is in pixels. For now, assume spec.gaussian_sigma is in px.
+        roi_img = gaussian_filter(roi_img, sigma=spec.gaussian_sigma)
+
+
+    final_mask_roi = np.zeros(roi_img.shape, dtype=bool)
     contours: list[np.ndarray] = []
+    
+    # --- End of Detection Steps ---
+
+    full_mask = _rect_mask_to_full(final_mask_roi, roi_slice, img.shape)
 
     # Minimal debug payload to help w/ visual checks
     debug = {

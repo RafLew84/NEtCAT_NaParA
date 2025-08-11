@@ -72,29 +72,41 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(main_split)
 
     def _update_roi_preview(self):
-        """Extract ROI (raw for now) and show in preview."""
+        """
+        Run a lightweight version of the pipeline on the ROI
+        and show the result in the preview widget.
+        """
         if self._active_index is None or not self._images:
-            self.roi_preview.clear(); return
+            self.roi_preview.clear()
+            return
+
         img = self._images[self._active_index]
-        sx, sy = img.get_pixel_size_nm()
-        rect = self._get_active_roi_rect_nm()
-
+        roi_rect_nm = self._get_active_roi_rect_nm()
+        if not roi_rect_nm:
+            self.roi_preview.clear()
+            return
+        
+        # Get physical scaling and current viewer visual settings
+        px_x, px_y = img.get_pixel_size_nm()
         levels = self.viewer.image_item.getLevels()
-        lut = self.viewer.image_item.lut 
+        lut = self.viewer.image_item.lut
 
-        if not rect or not (sx and sy and sx > 0 and sy > 0):
-            self.roi_preview.clear(); return
-
-        x_nm, y_nm, w_nm, h_nm = rect
-        x0 = max(0, int(np.floor(x_nm / sx)))
-        y0 = max(0, int(np.floor(y_nm / sy)))
-        x1 = min(img.pixels_x, int(np.ceil((x_nm + w_nm) / sx)))
-        y1 = min(img.pixels_y, int(np.ceil((y_nm + h_nm) / sy)))
-        roi_img = img.data[y0:y1, x0:x1]
+        try:
+            result = run_pipeline(
+                img.data,
+                roi_rect_nm=roi_rect_nm,
+                nm_per_px=(px_x, px_y),
+                spec=self._spec
+            )
+            processed_roi_img = result["debug"]["roi_preview"]
+        except Exception as e:
+            print(f"Error during preview update: {e}")
+            self.roi_preview.clear()
+            return
 
         self.roi_preview.set_preview(
-            roi_img, 
-            (sx, sy), 
+            processed_roi_img,
+            (px_x, px_y),
             levels=levels,
             lut=lut
         )
@@ -118,6 +130,28 @@ class MainWindow(QMainWindow):
         self.image_list_panel.btn_add.clicked.connect(self.on_add_images_clicked)
         self.image_list_panel.btn_remove.clicked.connect(self.on_remove_selected_clicked)
         self.image_list_panel.list.currentRowChanged.connect(self.on_image_selected)
+
+        self.proc_panel.cb_gauss.stateChanged.connect(self._on_spec_changed)
+        self.proc_panel.sp_sigma.valueChanged.connect(self._on_spec_changed)
+
+        self.proc_panel.btn_detect.clicked.connect(self.on_detect_roi)
+
+    def _on_spec_changed(self):
+        """
+        Update the spec object from UI controls and refresh the ROI preview.
+        This acts as a live preview handler.
+        """
+        if self._active_index is None:
+            return
+
+        # Read current values from the processing panel
+        self._spec.gaussian_blur = self.proc_panel.cb_gauss.isChecked()
+        self._spec.gaussian_sigma = self.proc_panel.sp_sigma.value()
+
+        # ...In the future, we'll read other parameters here...
+
+        # Trigger a refresh of the preview
+        self._update_roi_preview()
 
     def _create_menu(self):
         menubar = self.menuBar()
