@@ -80,6 +80,15 @@ class PreprocessingDialog(QDialog):
         form_median.addRow("Kernel Size (px):", self.sp_median_size)
         params_layout.addWidget(grp_median)
 
+        # 1b: Plane/Polynomial leveling
+        grp_level = QGroupBox("1b. Plane/Polynomial leveling")
+        form_level = QFormLayout(grp_level)
+        self.cb_level = QCheckBox("Enable"); self.cb_level.setChecked(True)
+        self.cmb_level_deg = QComboBox(); self.cmb_level_deg.addItems(["0: constant", "1: plane", "2: quadratic"])
+        form_level.addRow(self.cb_level)
+        form_level.addRow("Degree:", self.cmb_level_deg)
+        params_layout.addWidget(grp_level)
+
         # Krok 2: Destriping
         grp_destripe = QGroupBox("2. Scan-line Correction (Destriping)")
         form_destripe = QFormLayout(grp_destripe)
@@ -418,6 +427,8 @@ class PreprocessingDialog(QDialog):
             'hough_line_length': self.sp_h_len.value(),
             'hough_line_gap': self.sp_h_gap.value(),
             'hough_mask_width': self.sp_h_w.value(),
+            'level_enable': self.cb_level.isChecked(),
+            'level_degree': self.cmb_level_deg.currentIndex(),  # 0/1/2
         }
         if self.rb_deconv_rl.isChecked():
             spec['deconv_mode'] = 'richardson_lucy'

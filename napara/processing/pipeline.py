@@ -330,6 +330,39 @@ def _tv_chambolle_aniso(u0: np.ndarray, lam_x: float, lam_y: float, n_iter: int 
     u = u0 - (divp)
     return u.astype(u0.dtype)
 
+def subtract_poly_level(img: np.ndarray, degree: int = 1) -> np.ndarray:
+    """
+    Odejmuje tło dopasowane wielomianem 2D stopnia 0/1/2.
+    degree=0: stała, 1: płaszczyzna ax+by+c, 2: + x^2, xy, y^2.
+    """
+    h, w = img.shape
+    y, x = np.mgrid[0:h, 0:w]
+    x = x.astype(np.float32).ravel()
+    y = y.astype(np.float32).ravel()
+    z = img.astype(np.float32).ravel()
+
+    if degree == 0:
+        A = np.c_[np.ones_like(x)]
+    elif degree == 1:
+        A = np.c_[x, y, np.ones_like(x)]
+    else:  # degree == 2
+        A = np.c_[x*x, x*y, y*y, x, y, np.ones_like(x)]
+
+    coef, *_ = np.linalg.lstsq(A, z, rcond=None)
+    if degree == 0:
+        bg = (coef[0]).reshape(1, 1) * np.ones((h, w), dtype=np.float32)
+    elif degree == 1:
+        a, b, c = coef
+        bg = (a * np.arange(w)[None, :] + b * np.arange(h)[:, None] + c).astype(np.float32)
+    else:
+        a, b, c, d, e, f = coef
+        X = np.arange(w, dtype=np.float32)[None, :].repeat(h, 0)
+        Y = np.arange(h, dtype=np.float32)[:, None].repeat(w, 1)
+        bg = (a*X*X + b*X*Y + c*Y*Y + d*X + e*Y + f).astype(np.float32)
+
+    out = img.astype(np.float32) - bg
+    return out
+
 def directional_tv(img: np.ndarray, *, angle_deg: float = 0.0,
                    lam_along: float = 0.2, lam_across: float = 0.05,
                    n_iter: int = 50) -> np.ndarray:
@@ -349,6 +382,12 @@ def run_heavy_preprocessing(image: np.ndarray, spec: Dict[str, Any]) -> np.ndarr
     if spec.get('median_filter', False):
         size = spec.get('median_size', 3)
         processed_image = median_filter(processed_image, size=size)
+
+    # 1b: Plane/Polynomial leveling
+    if spec.get('level_enable', False):
+        deg = int(spec.get('level_degree', 1))
+        deg = 0 if deg <= 0 else 2 if deg >= 2 else 1
+        processed_image = subtract_poly_level(processed_image, degree=deg)
 
     # Krok 2: Destriping
     if spec.get('destripe', False):
