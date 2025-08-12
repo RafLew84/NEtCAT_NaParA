@@ -123,6 +123,24 @@ class PreprocessingDialog(QDialog):
 
         params_layout.addWidget(grp_hlines)
 
+        # 2d: LOWESS/LOESS baseline
+        grp_lowess = QGroupBox("2d. LOWESS/LOESS baseline")
+        form_lowess = QFormLayout(grp_lowess)
+
+        self.cb_lowess = QCheckBox("Enable")
+        self.cmb_l_axis = QComboBox(); self.cmb_l_axis.addItems(["Rows (horizontal lines)", "Cols (vertical lines)"])
+        self.sp_l_frac = QDoubleSpinBox(); self.sp_l_frac.setRange(0.01, 1.00); self.sp_l_frac.setSingleStep(0.01); self.sp_l_frac.setValue(0.10)
+        self.sp_l_it   = QSpinBox(); self.sp_l_it.setRange(0, 5); self.sp_l_it.setValue(1)  # robust iterations
+        self.sp_l_delta= QDoubleSpinBox(); self.sp_l_delta.setRange(0.0, 1000.0); self.sp_l_delta.setSingleStep(1.0); self.sp_l_delta.setValue(0.0)
+
+        form_lowess.addRow(self.cb_lowess)
+        form_lowess.addRow("Axis:", self.cmb_l_axis)
+        form_lowess.addRow("frac (window share):", self.sp_l_frac)
+        form_lowess.addRow("robust iters:", self.sp_l_it)
+        form_lowess.addRow("delta (skip step):", self.sp_l_delta)
+
+        params_layout.addWidget(grp_lowess)
+
         # Krok 3: Dekonwolucja
         grp_deconv = QGroupBox("3. Shape Recovery (Deconvolution)")
         deconv_layout = QVBoxLayout(grp_deconv)
@@ -363,6 +381,11 @@ class PreprocessingDialog(QDialog):
             'dtv_lam_along': self.sp_dtv_lalong.value(),
             'dtv_lam_across': self.sp_dtv_lacross.value(),
             'dtv_n_iter': self.sp_dtv_iter.value(),
+            'destripe_lowess': self.cb_lowess.isChecked(),
+            'lowess_axis': 'rows' if self.cmb_l_axis.currentIndex() == 0 else 'cols',
+            'lowess_frac': self.sp_l_frac.value(),
+            'lowess_it': self.sp_l_it.value(),
+            'lowess_delta': self.sp_l_delta.value(),
         }
         if self.rb_deconv_rl.isChecked():
             spec['deconv_mode'] = 'richardson_lucy'

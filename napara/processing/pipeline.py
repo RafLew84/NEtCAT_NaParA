@@ -1,6 +1,7 @@
 from __future__ import annotations
 import numpy as np
 from scipy.ndimage import gaussian_filter, median_filter
+from statsmodels.nonparametric.smoothers_lowess import lowess
 from skimage.restoration import richardson_lucy, unsupervised_wiener, inpaint, denoise_wavelet, denoise_nl_means, estimate_sigma
 from skimage.morphology import rectangle, erosion, dilation, reconstruction, opening
 from skimage.transform import rotate
@@ -232,6 +233,24 @@ def anisotropic_diffusion_pm(img: np.ndarray, *, n_iter: int = 10, kappa: float 
         u += gamma * div
     return u.astype(img.dtype)
 
+def lowess_line_baseline(img: np.ndarray, *, axis: str = 'rows',
+                         frac: float = 0.1, it: int = 1, delta: float = 0.0) -> np.ndarray:
+    """LOWESS per-line baseline subtraction. axis ∈ {'rows','cols'}."""
+    h, w = img.shape
+    out = img.astype(np.float32).copy()
+    n_lines = h if axis == 'rows' else w
+    for i in range(n_lines):
+        y = img[i, :] if axis == 'rows' else img[:, i]
+        x = np.arange(y.size, dtype=np.float32)
+        # statsmodels.lowess zwraca Nx2: [x, y_fit]
+        fit = lowess(y, x, frac=float(frac), it=int(it), delta=float(delta), return_sorted=True)
+        baseline = fit[:, 1].astype(np.float32)
+        if axis == 'rows':
+            out[i, :] = y - baseline
+        else:
+            out[:, i] = y - baseline
+    return out
+
 def _tv_chambolle_aniso(u0: np.ndarray, lam_x: float, lam_y: float, n_iter: int = 50) -> np.ndarray:
     """Anizotropowe ROF (Chambolle) z różnymi wagami dla ∂x i ∂y."""
     u0 = u0.astype(np.float32)
@@ -286,6 +305,16 @@ def run_heavy_preprocessing(image: np.ndarray, spec: Dict[str, Any]) -> np.ndarr
     if spec.get('destripe', False):
         row_medians = np.median(processed_image, axis=1, keepdims=True)
         processed_image -= row_medians
+
+    # 2a: LOWESS/LOESS line-by-line
+    if spec.get('destripe_lowess', False):
+        processed_image = lowess_line_baseline(
+            processed_image,
+            axis=spec.get('lowess_axis', 'rows'),
+            frac=float(spec.get('lowess_frac', 0.1)),
+            it=int(spec.get('lowess_it', 1)),
+            delta=float(spec.get('lowess_delta', 0.0)),
+        )
     
     if spec.get('destripe_ransac', False):
         processed_image = ransac_line_baseline(
