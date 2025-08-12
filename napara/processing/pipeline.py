@@ -205,6 +205,33 @@ def ransac_line_baseline(img: np.ndarray, axis: str = 'rows', mask: np.ndarray |
 
     return out
 
+def anisotropic_diffusion_pm(img: np.ndarray, *, n_iter: int = 10, kappa: float = 20.0,
+                             gamma: float = 0.15, option: int = 1) -> np.ndarray:
+    """
+    Perona–Malik anisotropic diffusion (4-neighbour). 
+    Stabilność: 0 < gamma <= 0.25.
+    option=1: c(s)=exp(-(s/kappa)^2); option=2: c(s)=1/(1+(s/kappa)^2).
+    """
+    u = img.astype(np.float32).copy()
+    for _ in range(int(n_iter)):
+        # różnice kierunkowe
+        dn = np.zeros_like(u); ds = np.zeros_like(u); de = np.zeros_like(u); dw = np.zeros_like(u)
+        dn[1:, :]  = u[1:, :]  - u[:-1, :]
+        ds[:-1, :] = u[:-1, :] - u[1:, :]
+        dw[:, 1:]  = u[:, 1:]  - u[:, :-1]
+        de[:, :-1] = u[:, :-1] - u[:, 1:]
+
+        if option == 1:
+            cn = np.exp(-(dn / kappa) ** 2); cs = np.exp(-(ds / kappa) ** 2)
+            cw = np.exp(-(dw / kappa) ** 2); ce = np.exp(-(de / kappa) ** 2)
+        else:
+            cn = 1.0 / (1.0 + (dn / kappa) ** 2); cs = 1.0 / (1.0 + (ds / kappa) ** 2)
+            cw = 1.0 / (1.0 + (dw / kappa) ** 2); ce = 1.0 / (1.0 + (de / kappa) ** 2)
+
+        div = cn * dn + cs * ds + cw * dw + ce * de
+        u += gamma * div
+    return u.astype(img.dtype)
+
 def run_heavy_preprocessing(image: np.ndarray, spec: Dict[str, Any]) -> np.ndarray:
     processed_image = image.copy().astype(np.float32)
 
@@ -309,6 +336,16 @@ def run_heavy_preprocessing(image: np.ndarray, spec: Dict[str, Any]) -> np.ndarr
             channel_axis=None,
             preserve_range=True
         ).astype(processed_image.dtype)
+
+    # Krok 3.7: Anisotropic diffusion (Perona–Malik)
+    if spec.get('pm_enable', False):
+        processed_image = anisotropic_diffusion_pm(
+            processed_image,
+            n_iter=int(spec.get('pm_n_iter', 10)),
+            kappa=float(spec.get('pm_kappa', 20.0)),
+            gamma=float(spec.get('pm_gamma', 0.15)),
+            option=int(spec.get('pm_option', 1)),
+        )
 
     # Krok 4: Opcjonalne Odszumianie BM3D
     if spec.get('denoise_bm3d', False):

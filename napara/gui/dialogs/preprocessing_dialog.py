@@ -201,6 +201,24 @@ class PreprocessingDialog(QDialog):
 
         params_layout.addWidget(grp_nlm)
 
+        # 4d: Anisotropic diffusion (Perona–Malik)
+        grp_pm = QGroupBox("4d. Anisotropic diffusion (Perona–Malik)")
+        form_pm = QFormLayout(grp_pm)
+
+        self.cb_pm_enable = QCheckBox("Enable"); self.cb_pm_enable.setChecked(False)
+        self.sp_pm_iter = QSpinBox(); self.sp_pm_iter.setRange(1, 200); self.sp_pm_iter.setValue(10)
+        self.sp_pm_kappa = QDoubleSpinBox(); self.sp_pm_kappa.setRange(0.1, 500.0); self.sp_pm_kappa.setValue(20.0); self.sp_pm_kappa.setSingleStep(1.0)
+        self.sp_pm_gamma = QDoubleSpinBox(); self.sp_pm_gamma.setRange(0.01, 0.25); self.sp_pm_gamma.setValue(0.15); self.sp_pm_gamma.setSingleStep(0.01)
+        self.cmb_pm_opt = QComboBox(); self.cmb_pm_opt.addItems(["1: exp(-(s/k)^2)", "2: 1/(1+(s/k)^2)"])
+
+        form_pm.addRow(self.cb_pm_enable)
+        form_pm.addRow("Iterations:", self.sp_pm_iter)
+        form_pm.addRow("Kappa:", self.sp_pm_kappa)
+        form_pm.addRow("Gamma (≤0.25):", self.sp_pm_gamma)
+        form_pm.addRow("Conduction:", self.cmb_pm_opt)
+
+        params_layout.addWidget(grp_pm)
+
         # 5A: Morph. by Reconstruction – Bright lines (Opening)
         grp_mr_bright = QGroupBox("5A. Morph. Reconstruction – remove BRIGHT lines (Opening)")
         form_mr_bright = QFormLayout(grp_mr_bright)
@@ -317,6 +335,11 @@ class PreprocessingDialog(QDialog):
             'nlm_patch_size': self.sp_nlm_ps.value(),
             'nlm_patch_distance': self.sp_nlm_pd.value(),
             'nlm_fast': self.cb_nlm_fast.isChecked(),
+            'pm_enable': self.cb_pm_enable.isChecked(),
+            'pm_n_iter': self.sp_pm_iter.value(),
+            'pm_kappa': self.sp_pm_kappa.value(),
+            'pm_gamma': self.sp_pm_gamma.value(),
+            'pm_option': 1 if self.cmb_pm_opt.currentIndex() == 0 else 2,
         }
         if self.rb_deconv_rl.isChecked():
             spec['deconv_mode'] = 'richardson_lucy'
