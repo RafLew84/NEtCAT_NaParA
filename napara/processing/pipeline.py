@@ -1,9 +1,11 @@
 from __future__ import annotations
 import numpy as np
 from scipy.ndimage import gaussian_filter, median_filter
-from skimage.restoration import richardson_lucy, unsupervised_wiener
-from skimage.morphology import rectangle, erosion, dilation, reconstruction
+from skimage.restoration import richardson_lucy, unsupervised_wiener, inpaint
+from skimage.morphology import rectangle, erosion, dilation, reconstruction, opening
 from skimage.transform import rotate
+from skimage.filters import threshold_otsu
+from skimage.measure import label, regionprops
 from sklearn.linear_model import RANSACRegressor
 from typing import Dict, Any, Tuple, Optional
 from dataclasses import asdict
@@ -84,25 +86,80 @@ def run_pipeline(
         "spec": asdict(spec),
     }
 
-def _directional_morph_reconstruction(img: np.ndarray, length_px: int, width_px: int,
-                                      angle_deg: float, mode: str = "open") -> np.ndarray:
-    """Directional opening/closing by reconstruction with thin rectangular SE."""
-    # Rotate so that target lines become horizontal
+def remove_horizontal_lines(img, *,
+    Lmin=20, Lse=61, Wse=1, angles=(-2,0,2), Wmax_keep=3):
+    acc = np.zeros_like(img, dtype=np.float32)
+    for a in angles:
+        r = rotate(img, -a, resize=False, preserve_range=True, order=1, mode="edge")
+        bh = r - reconstruction(erosion(r, rectangle(Wse, Lse)), r, method='dilation')  # bottom-hat
+        acc += rotate(bh, a, resize=False, preserve_range=True, order=1, mode="edge")
+    thr = threshold_otsu(acc.astype(np.float32))
+    cand = acc > thr
+
+    lab = label(cand, connectivity=2)
+    keep = np.zeros_like(cand, dtype=bool)
+    for reg in regionprops(lab):
+        if reg.major_axis_length >= Lmin and reg.minor_axis_length <= Wmax_keep and reg.eccentricity >= 0.98:
+            keep[lab == reg.label] = True
+
+    # inpainting
+    mask = keep
+    out = inpaint.inpaint_biharmonic(img.astype(np.float32), mask, channel_axis=None)
+    return out.astype(img.dtype), mask
+
+def _directional_morph_reconstruction(
+    img: np.ndarray,
+    length_px: int,
+    width_px: int,
+    angle_deg: float,
+    mode: str = "open",
+    *,
+    protect_min_area_px: int = 0,
+    protect_min_minor_px: int = 0
+) -> np.ndarray:
+    """Directional opening/closing by reconstruction with rectangular SE,
+    with optional restoration of removed large/thick objects."""
     rot = rotate(img, -angle_deg, resize=False, preserve_range=True, order=1, mode="edge")
 
-    # Structuring element: height = width_px, width = length_px
-    L = max(3, int(length_px) | 1)   # force odd
+    L = max(3, int(length_px) | 1)
     W = max(1, int(width_px))
     se = rectangle(W, L)
 
     if mode == "open":   # remove bright lines
         seed = erosion(rot, se)
         rec  = reconstruction(seed, rot, method='dilation')
+        removed = (rot - rec)  # positive where bright content got removed
     else:                # "close" -> remove dark lines
         seed = dilation(rot, se)
         rec  = reconstruction(seed, rot, method='erosion')
+        removed = (rec - rot)  # positive where dark deficits got filled
 
-    out = rotate(rec, angle_deg, resize=False, preserve_range=True, order=1, mode="edge")
+    out_rot = rec
+
+    # Ochrona obiektów większych/grubszych
+    if (protect_min_area_px > 0) or (protect_min_minor_px > 0):
+        # Bierzemy tylko wartości dodatnie (rzeczywiście „usunięte”)
+        pos = removed > 0
+        if np.any(pos):
+            rem_vals = removed[pos].astype(np.float32)
+            # bezpieczne Otsu: jeśli jednolite, ustaw próg minimalny
+            thr = threshold_otsu(rem_vals) if rem_vals.size >= 64 else float(rem_vals.mean() if rem_vals.size else 0.0)
+            cand = np.zeros_like(pos, dtype=bool)
+            cand[pos] = removed[pos] > max(thr, 0.0)
+
+            lab = label(cand, connectivity=2)
+            if lab.max() > 0:
+                restore = np.zeros_like(cand, dtype=bool)
+                for r in regionprops(lab):
+                    too_big = (r.area >= protect_min_area_px) if protect_min_area_px > 0 else False
+                    too_thick = (getattr(r, "minor_axis_length", 0.0) >= protect_min_minor_px) if protect_min_minor_px > 0 else False
+                    if too_big or too_thick:
+                        restore[lab == r.label] = True
+
+                # Przywracamy piksele z oryginału w zaznaczonych komponentach
+                out_rot[restore] = rot[restore]
+
+    out = rotate(out_rot, angle_deg, resize=False, preserve_range=True, order=1, mode="edge")
     return out.astype(img.dtype)
 
 def ransac_line_baseline(img: np.ndarray, axis: str = 'rows', mask: np.ndarray | None = None,
@@ -170,6 +227,16 @@ def run_heavy_preprocessing(image: np.ndarray, spec: Dict[str, Any]) -> np.ndarr
             residual_threshold=float(spec.get('ransac_residual', 3.0)),
             max_trials=int(spec.get('ransac_trials', 200))
         )
+
+    if spec.get('remove_hlines', False):
+        processed_image, hmask = remove_horizontal_lines(
+            processed_image,
+            Lmin=spec.get('hl_Lmin', 20),
+            Lse=spec.get('hl_Lse', 61),
+            Wse=spec.get('hl_Wse', 1),
+            angles=spec.get('hl_angles', (-2,0,2)),
+            Wmax_keep=spec.get('hl_Wmax_keep', 3),
+        )
     
     # 2.5A: Morph. Recon – bright lines (opening)
     if spec.get('morphrec_bright_enable', False):
@@ -178,7 +245,9 @@ def run_heavy_preprocessing(image: np.ndarray, spec: Dict[str, Any]) -> np.ndarr
             length_px=spec.get('morphrec_bright_len_px', 31),
             width_px=spec.get('morphrec_bright_w_px', 1),
             angle_deg=spec.get('morphrec_bright_angle', 0.0),
-            mode="open"
+            mode="open",
+            protect_min_area_px=int(spec.get('morphrec_protect_min_area_px', 0)),
+            protect_min_minor_px=int(spec.get('morphrec_protect_min_minor_px', 0)),
         )
 
     # 2.5B: Morph. Recon – dark lines (closing)
@@ -188,7 +257,9 @@ def run_heavy_preprocessing(image: np.ndarray, spec: Dict[str, Any]) -> np.ndarr
             length_px=spec.get('morphrec_dark_len_px', 31),
             width_px=spec.get('morphrec_dark_w_px', 1),
             angle_deg=spec.get('morphrec_dark_angle', 0.0),
-            mode="close"
+            mode="close",
+            protect_min_area_px=int(spec.get('morphrec_protect_min_area_px', 0)),
+            protect_min_minor_px=int(spec.get('morphrec_protect_min_minor_px', 0)),
         )
 
     # Krok 3: Opcjonalna Dekonwolucja

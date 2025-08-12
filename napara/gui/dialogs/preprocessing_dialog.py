@@ -2,7 +2,8 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QSplitter, QGroupBox, QFormLayout,
     QPushButton, QCheckBox, QDoubleSpinBox, QMessageBox, QProgressDialog,
-    QWidget, QRadioButton, QSpinBox, QApplication, QScrollArea, QComboBox
+    QWidget, QRadioButton, QSpinBox, QApplication, QScrollArea, QComboBox,
+    QLineEdit
 )
 from PyQt6.QtCore import Qt
 import pyqtgraph as pg
@@ -91,6 +92,26 @@ class PreprocessingDialog(QDialog):
         form_ransac.addRow("Max trials:", self.sp_r_trials)
         params_layout.addWidget(grp_ransac)
 
+        # 2c: Usuwanie linii poziomych + inpainting
+        grp_hlines = QGroupBox("2c. Remove horizontal lines (selective) + Inpaint")
+        form_hl = QFormLayout(grp_hlines)
+        self.cb_hl_enable = QCheckBox("Enable", grp_hlines); self.cb_hl_enable.setChecked(True)
+
+        self.sp_hl_Lmin = QSpinBox(); self.sp_hl_Lmin.setRange(1, 2000); self.sp_hl_Lmin.setValue(25)
+        self.sp_hl_Lse  = QSpinBox(); self.sp_hl_Lse.setRange(3, 1001); self.sp_hl_Lse.setSingleStep(2); self.sp_hl_Lse.setValue(61)
+        self.sp_hl_Wse  = QSpinBox(); self.sp_hl_Wse.setRange(1, 21); self.sp_hl_Wse.setValue(1)
+        self.sp_hl_Wmax = QSpinBox(); self.sp_hl_Wmax.setRange(1, 50); self.sp_hl_Wmax.setValue(2)
+        self.le_hl_angles = QLineEdit(); self.le_hl_angles.setText("-1.5,0,1.5")
+
+        form_hl.addRow(self.cb_hl_enable)
+        form_hl.addRow("Min length Lmin (px):", self.sp_hl_Lmin)
+        form_hl.addRow("SE length Lse (px):",   self.sp_hl_Lse)
+        form_hl.addRow("SE width Wse (px):",    self.sp_hl_Wse)
+        form_hl.addRow("Max thickness (px):",   self.sp_hl_Wmax)
+        form_hl.addRow("Angles (deg):",         self.le_hl_angles)
+
+        params_layout.addWidget(grp_hlines)
+
         # Krok 3: Dekonwolucja
         grp_deconv = QGroupBox("3. Shape Recovery (Deconvolution)")
         deconv_layout = QVBoxLayout(grp_deconv)
@@ -155,6 +176,14 @@ class PreprocessingDialog(QDialog):
         form_mr_dark.addRow("Direction (deg):", self.sp_mr_d_ang)
         params_layout.addWidget(grp_mr_dark)
 
+        grp_protect = QGroupBox("Protection: keep large/thick objects")
+        form_protect = QFormLayout(grp_protect)
+        self.sp_protect_area = QSpinBox(); self.sp_protect_area.setRange(0, 10_000); self.sp_protect_area.setValue(0)
+        self.sp_protect_minor = QSpinBox(); self.sp_protect_minor.setRange(0, 1000); self.sp_protect_minor.setValue(0)
+        form_protect.addRow("Min area to keep (px²):", self.sp_protect_area)
+        form_protect.addRow("Min thickness to keep (px):", self.sp_protect_minor)
+        params_layout.addWidget(grp_protect)
+
         params_layout.addStretch()
 
         # --- Przyciski ---
@@ -188,6 +217,11 @@ class PreprocessingDialog(QDialog):
 
     def _on_process_clicked(self):
         """Zbiera parametry z UI, uruchamia ciężkie przetwarzanie i aktualizuje podgląd."""
+        angles_txt = self.le_hl_angles.text().strip()
+        try:
+            hl_angles = tuple(float(a) for a in angles_txt.split(",") if a.strip() != "")
+        except Exception:
+            hl_angles = (0.0,)
         spec = {
             'median_filter': self.cb_median.isChecked(),
             'median_size': self.sp_median_size.value(),
@@ -211,6 +245,14 @@ class PreprocessingDialog(QDialog):
             'morphrec_dark_len_px':   self.sp_mr_d_len.value(),
             'morphrec_dark_w_px':     self.sp_mr_d_w.value(),  
             'morphrec_dark_angle':    self.sp_mr_d_ang.value(),
+            'morphrec_protect_min_area_px': self.sp_protect_area.value(),
+            'morphrec_protect_min_minor_px': self.sp_protect_minor.value(),
+            'remove_hlines': self.cb_hl_enable.isChecked(),
+            'hl_Lmin': self.sp_hl_Lmin.value(),
+            'hl_Lse': self.sp_hl_Lse.value(),
+            'hl_Wse': self.sp_hl_Wse.value(),
+            'hl_Wmax_keep': self.sp_hl_Wmax.value(),
+            'hl_angles': hl_angles,
         }
         if self.rb_deconv_rl.isChecked():
             spec['deconv_mode'] = 'richardson_lucy'
