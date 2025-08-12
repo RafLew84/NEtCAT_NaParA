@@ -28,6 +28,10 @@ class PreprocessingDialog(QDialog):
         self.setWindowTitle("Full Image Preprocessing")
         self.setMinimumSize(1100, 700)
 
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
+        self.setSizeGripEnabled(True)
+        self.showMaximized()
+
     def _build_ui(self):
         # --- Główne Layouty ---
         root_layout = QVBoxLayout(self)
