@@ -141,6 +141,30 @@ class PreprocessingDialog(QDialog):
 
         params_layout.addWidget(grp_lowess)
 
+        # 2e: Hough-guided streak removal
+        grp_hough = QGroupBox("2e. Hough-guided streak removal")
+        form_hough = QFormLayout(grp_hough)
+
+        self.cb_hough_enable = QCheckBox("Enable"); self.cb_hough_enable.setChecked(False)
+        self.sp_h_canny = QDoubleSpinBox(); self.sp_h_canny.setRange(0.1, 10.0); self.sp_h_canny.setSingleStep(0.1); self.sp_h_canny.setValue(1.0)
+        self.sp_h_angle = QDoubleSpinBox(); self.sp_h_angle.setRange(-180.0, 180.0); self.sp_h_angle.setDecimals(1); self.sp_h_angle.setValue(0.0)
+        self.sp_h_tol   = QDoubleSpinBox(); self.sp_h_tol.setRange(0.1, 45.0); self.sp_h_tol.setSingleStep(0.1); self.sp_h_tol.setValue(5.0)
+        self.sp_h_thr   = QSpinBox(); self.sp_h_thr.setRange(1, 1000); self.sp_h_thr.setValue(10)
+        self.sp_h_len   = QSpinBox(); self.sp_h_len.setRange(5, 2000); self.sp_h_len.setValue(30)
+        self.sp_h_gap   = QSpinBox(); self.sp_h_gap.setRange(0, 100); self.sp_h_gap.setValue(5)
+        self.sp_h_w     = QSpinBox(); self.sp_h_w.setRange(1, 25); self.sp_h_w.setValue(3)
+
+        form_hough.addRow(self.cb_hough_enable)
+        form_hough.addRow("Canny sigma:", self.sp_h_canny)
+        form_hough.addRow("Angle center (deg):", self.sp_h_angle)
+        form_hough.addRow("Angle tolerance (deg):", self.sp_h_tol)
+        form_hough.addRow("Hough threshold:", self.sp_h_thr)
+        form_hough.addRow("Min line length (px):", self.sp_h_len)
+        form_hough.addRow("Max line gap (px):", self.sp_h_gap)
+        form_hough.addRow("Mask width (px):", self.sp_h_w)
+
+        params_layout.addWidget(grp_hough)
+
         # Krok 3: Dekonwolucja
         grp_deconv = QGroupBox("3. Shape Recovery (Deconvolution)")
         deconv_layout = QVBoxLayout(grp_deconv)
@@ -386,6 +410,14 @@ class PreprocessingDialog(QDialog):
             'lowess_frac': self.sp_l_frac.value(),
             'lowess_it': self.sp_l_it.value(),
             'lowess_delta': self.sp_l_delta.value(),
+            'hough_streak_enable': self.cb_hough_enable.isChecked(),
+            'hough_canny_sigma': self.sp_h_canny.value(),
+            'hough_angle_center': self.sp_h_angle.value(),
+            'hough_angle_tol': self.sp_h_tol.value(),
+            'hough_threshold': self.sp_h_thr.value(),
+            'hough_line_length': self.sp_h_len.value(),
+            'hough_line_gap': self.sp_h_gap.value(),
+            'hough_mask_width': self.sp_h_w.value(),
         }
         if self.rb_deconv_rl.isChecked():
             spec['deconv_mode'] = 'richardson_lucy'

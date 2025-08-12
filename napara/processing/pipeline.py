@@ -3,10 +3,12 @@ import numpy as np
 from scipy.ndimage import gaussian_filter, median_filter
 from statsmodels.nonparametric.smoothers_lowess import lowess
 from skimage.restoration import richardson_lucy, unsupervised_wiener, inpaint, denoise_wavelet, denoise_nl_means, estimate_sigma
-from skimage.morphology import rectangle, erosion, dilation, reconstruction, opening
-from skimage.transform import rotate
+from skimage.morphology import rectangle, erosion, dilation, reconstruction, opening, disk
+from skimage.feature import canny
+from skimage.transform import rotate, probabilistic_hough_line
 from skimage.filters import threshold_otsu
 from skimage.measure import label, regionprops
+from skimage.draw import line as draw_line
 from sklearn.linear_model import RANSACRegressor
 from typing import Dict, Any, Tuple, Optional
 from dataclasses import asdict
@@ -251,6 +253,53 @@ def lowess_line_baseline(img: np.ndarray, *, axis: str = 'rows',
             out[:, i] = y - baseline
     return out
 
+def remove_streaks_hough(img: np.ndarray, *,
+    canny_sigma: float = 1.0,
+    angle_center_deg: float = 0.0,
+    angle_tol_deg: float = 5.0,
+    hough_threshold: int = 10,
+    line_length: int = 30,
+    line_gap: int = 5,
+    mask_width_px: int = 3
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    1) krawędzie (Canny) -> 2) Hough probabilistyczny -> 3) maska smug -> 4) inpaint.
+    Zwraca (obraz_po, maska).
+    """
+    # 1) krawędzie
+    edges = canny(img.astype(np.float32), sigma=canny_sigma)
+
+    # 2) segmenty linii
+    segments = probabilistic_hough_line(edges,
+                                        threshold=hough_threshold,
+                                        line_length=line_length,
+                                        line_gap=line_gap)
+
+    # 3) filtr kątowy i maska
+    mask = np.zeros(img.shape, dtype=bool)
+    a0 = angle_center_deg
+    tol = abs(angle_tol_deg)
+    for (x0, y0), (x1, y1) in segments:
+        dy = y1 - y0; dx = x1 - x0
+        ang = np.degrees(np.arctan2(dy, dx))  # [-180,180], 0° = poziomo
+        # najkrótsza odległość kątowa do a0
+        d = (ang - a0 + 180.0) % 360.0 - 180.0
+        if abs(d) <= tol:
+            rr, cc = draw_line(y0, x0, y1, x1)
+            rr = np.clip(rr, 0, img.shape[0]-1); cc = np.clip(cc, 0, img.shape[1]-1)
+            mask[rr, cc] = True
+
+    if mask.any() and mask_width_px > 1:
+        mask = dilation(mask, disk(max(1, mask_width_px // 2)))
+
+    # 4) inpainting (biharmonic)
+    if mask.any():
+        out = inpaint.inpaint_biharmonic(img.astype(np.float32), mask, channel_axis=None)
+        out = out.astype(img.dtype)
+    else:
+        out = img
+    return out, mask
+
 def _tv_chambolle_aniso(u0: np.ndarray, lam_x: float, lam_y: float, n_iter: int = 50) -> np.ndarray:
     """Anizotropowe ROF (Chambolle) z różnymi wagami dla ∂x i ∂y."""
     u0 = u0.astype(np.float32)
@@ -334,6 +383,19 @@ def run_heavy_preprocessing(image: np.ndarray, spec: Dict[str, Any]) -> np.ndarr
             Wse=spec.get('hl_Wse', 1),
             angles=spec.get('hl_angles', (-2,0,2)),
             Wmax_keep=spec.get('hl_Wmax_keep', 3),
+        )
+
+    # 2e: Hough-guided streak removal (detekcja smug + inpainting)
+    if spec.get('hough_streak_enable', False):
+        processed_image, _ = remove_streaks_hough(
+            processed_image,
+            canny_sigma=float(spec.get('hough_canny_sigma', 1.0)),
+            angle_center_deg=float(spec.get('hough_angle_center', 0.0)),
+            angle_tol_deg=float(spec.get('hough_angle_tol', 5.0)),
+            hough_threshold=int(spec.get('hough_threshold', 10)),
+            line_length=int(spec.get('hough_line_length', 30)),
+            line_gap=int(spec.get('hough_line_gap', 5)),
+            mask_width_px=int(spec.get('hough_mask_width', 3)),
         )
     
     # 2.5A: Morph. Recon – bright lines (opening)
