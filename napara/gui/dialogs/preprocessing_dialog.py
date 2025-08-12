@@ -219,6 +219,24 @@ class PreprocessingDialog(QDialog):
 
         params_layout.addWidget(grp_pm)
 
+        # 4e: Directional / Anisotropic TV (DTV)
+        grp_dtv = QGroupBox("4e. Directional / Anisotropic TV")
+        form_dtv = QFormLayout(grp_dtv)
+
+        self.cb_dtv_enable = QCheckBox("Enable"); self.cb_dtv_enable.setChecked(False)
+        self.sp_dtv_angle = QDoubleSpinBox(); self.sp_dtv_angle.setRange(-180.0, 180.0); self.sp_dtv_angle.setDecimals(1); self.sp_dtv_angle.setValue(0.0)
+        self.sp_dtv_lalong = QDoubleSpinBox(); self.sp_dtv_lalong.setRange(0.0, 5.0); self.sp_dtv_lalong.setSingleStep(0.01); self.sp_dtv_lalong.setValue(0.2)
+        self.sp_dtv_lacross = QDoubleSpinBox(); self.sp_dtv_lacross.setRange(0.0, 5.0); self.sp_dtv_lacross.setSingleStep(0.01); self.sp_dtv_lacross.setValue(0.05)
+        self.sp_dtv_iter = QSpinBox(); self.sp_dtv_iter.setRange(5, 500); self.sp_dtv_iter.setValue(50)
+
+        form_dtv.addRow(self.cb_dtv_enable)
+        form_dtv.addRow("Direction (deg):", self.sp_dtv_angle)
+        form_dtv.addRow("λ along:", self.sp_dtv_lalong)
+        form_dtv.addRow("λ across:", self.sp_dtv_lacross)
+        form_dtv.addRow("Iterations:", self.sp_dtv_iter)
+
+        params_layout.addWidget(grp_dtv)
+
         # 5A: Morph. by Reconstruction – Bright lines (Opening)
         grp_mr_bright = QGroupBox("5A. Morph. Reconstruction – remove BRIGHT lines (Opening)")
         form_mr_bright = QFormLayout(grp_mr_bright)
@@ -340,6 +358,11 @@ class PreprocessingDialog(QDialog):
             'pm_kappa': self.sp_pm_kappa.value(),
             'pm_gamma': self.sp_pm_gamma.value(),
             'pm_option': 1 if self.cmb_pm_opt.currentIndex() == 0 else 2,
+            'dtv_enable': self.cb_dtv_enable.isChecked(),
+            'dtv_angle': self.sp_dtv_angle.value(),
+            'dtv_lam_along': self.sp_dtv_lalong.value(),
+            'dtv_lam_across': self.sp_dtv_lacross.value(),
+            'dtv_n_iter': self.sp_dtv_iter.value(),
         }
         if self.rb_deconv_rl.isChecked():
             spec['deconv_mode'] = 'richardson_lucy'

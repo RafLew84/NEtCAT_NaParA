@@ -232,6 +232,48 @@ def anisotropic_diffusion_pm(img: np.ndarray, *, n_iter: int = 10, kappa: float 
         u += gamma * div
     return u.astype(img.dtype)
 
+def _tv_chambolle_aniso(u0: np.ndarray, lam_x: float, lam_y: float, n_iter: int = 50) -> np.ndarray:
+    """Anizotropowe ROF (Chambolle) z różnymi wagami dla ∂x i ∂y."""
+    u0 = u0.astype(np.float32)
+    p1 = np.zeros_like(u0); p2 = np.zeros_like(u0)
+    tau = 0.25  # stabilne
+    lam_x = float(lam_x); lam_y = float(lam_y)
+    for _ in range(int(n_iter)):
+        # u = f - div(p)
+        divp = np.zeros_like(u0)
+        divp[:, :-1] += p1[:, :-1]; divp[:, 1:] -= p1[:, :-1]
+        divp[:-1, :] += p2[:-1, :]; divp[1:, :] -= p2[:-1, :]
+        u = u0 - (divp)
+
+        # grad(u)
+        gx = np.zeros_like(u); gy = np.zeros_like(u)
+        gx[:, :-1] = u[:, 1:] - u[:, :-1]
+        gy[:-1, :] = u[1:, :] - u[:-1, :]
+
+        # aktualizacja dualna z wagami lam_x, lam_y
+        px_new = p1 + tau * lam_x * gx
+        py_new = p2 + tau * lam_y * gy
+        norm = np.maximum(1.0, np.sqrt(px_new**2 + py_new**2))
+        p1, p2 = px_new / norm, py_new / norm
+    # final u
+    divp = np.zeros_like(u0)
+    divp[:, :-1] += p1[:, :-1]; divp[:, 1:] -= p1[:, :-1]
+    divp[:-1, :] += p2[:-1, :]; divp[1:, :] -= p2[:-1, :]
+    u = u0 - (divp)
+    return u.astype(u0.dtype)
+
+def directional_tv(img: np.ndarray, *, angle_deg: float = 0.0,
+                   lam_along: float = 0.2, lam_across: float = 0.05,
+                   n_iter: int = 50) -> np.ndarray:
+    """
+    Kierunkowe TV: silniejsze wygładzanie wzdłuż zadanego kierunku (angle_deg).
+    Realizacja: obrót -> TV anizotropowe (lam_x=along, lam_y=across) -> odwrót.
+    """
+    r = rotate(img, -angle_deg, resize=False, preserve_range=True, order=1, mode="edge")
+    out_r = _tv_chambolle_aniso(r, lam_x=lam_along, lam_y=lam_across, n_iter=n_iter)
+    out = rotate(out_r, angle_deg, resize=False, preserve_range=True, order=1, mode="edge")
+    return out.astype(img.dtype)
+
 def run_heavy_preprocessing(image: np.ndarray, spec: Dict[str, Any]) -> np.ndarray:
     processed_image = image.copy().astype(np.float32)
 
@@ -345,6 +387,16 @@ def run_heavy_preprocessing(image: np.ndarray, spec: Dict[str, Any]) -> np.ndarr
             kappa=float(spec.get('pm_kappa', 20.0)),
             gamma=float(spec.get('pm_gamma', 0.15)),
             option=int(spec.get('pm_option', 1)),
+        )
+
+    # Krok 3.8: Directional / Anisotropic TV
+    if spec.get('dtv_enable', False):
+        processed_image = directional_tv(
+            processed_image,
+            angle_deg=float(spec.get('dtv_angle', 0.0)),
+            lam_along=float(spec.get('dtv_lam_along', 0.2)),
+            lam_across=float(spec.get('dtv_lam_across', 0.05)),
+            n_iter=int(spec.get('dtv_n_iter', 50)),
         )
 
     # Krok 4: Opcjonalne Odszumianie BM3D
