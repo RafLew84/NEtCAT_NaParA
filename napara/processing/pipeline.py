@@ -1,7 +1,7 @@
 from __future__ import annotations
 import numpy as np
 from scipy.ndimage import gaussian_filter, median_filter
-from skimage.restoration import richardson_lucy, unsupervised_wiener, inpaint
+from skimage.restoration import richardson_lucy, unsupervised_wiener, inpaint, denoise_wavelet, denoise_nl_means, estimate_sigma
 from skimage.morphology import rectangle, erosion, dilation, reconstruction, opening
 from skimage.transform import rotate
 from skimage.filters import threshold_otsu
@@ -273,6 +273,42 @@ def run_heavy_preprocessing(image: np.ndarray, spec: Dict[str, Any]) -> np.ndarr
         processed_image = richardson_lucy(processed_image, psf, num_iter=spec.get('rl_iter', 15))
     elif deconv_mode == 'wiener':
         processed_image, _ = unsupervised_wiener(processed_image, psf=psf)
+
+    # Krok 3.5: Wavelet Shrinkage
+    if spec.get('wavelet_enable', False):
+        method = spec.get('wavelet_method', 'BayesShrink')
+        mode = spec.get('wavelet_mode', 'soft')  # 'soft' | 'hard'
+        wavelet = spec.get('wavelet_name', 'db2')
+        level = int(spec.get('wavelet_level', 0)) or None  # 0 => auto
+        rescale_sigma = bool(spec.get('wavelet_rescale_sigma', True))
+        processed_image = denoise_wavelet(
+            processed_image.astype(np.float32),
+            method=method,
+            mode=mode,
+            wavelet=wavelet,
+            wavelet_levels=level,
+            rescale_sigma=rescale_sigma,
+            channel_axis=None
+        ).astype(processed_image.dtype)
+
+    # Krok 3.6: Non-Local Means (NLM)
+    if spec.get('nlm_enable', False):
+        # auto-sigma -> h = h_factor * sigma
+        if spec.get('nlm_auto_sigma', True):
+            sigma = float(estimate_sigma(processed_image, channel_axis=None, average_sigmas=True))
+            h = float(spec.get('nlm_h_factor', 1.0)) * sigma
+        else:
+            h = float(spec.get('nlm_h', 0.1))
+
+        processed_image = denoise_nl_means(
+            processed_image.astype(np.float32),
+            patch_size=int(spec.get('nlm_patch_size', 7)),
+            patch_distance=int(spec.get('nlm_patch_distance', 15)),
+            h=h,
+            fast_mode=bool(spec.get('nlm_fast', True)),
+            channel_axis=None,
+            preserve_range=True
+        ).astype(processed_image.dtype)
 
     # Krok 4: Opcjonalne Odszumianie BM3D
     if spec.get('denoise_bm3d', False):

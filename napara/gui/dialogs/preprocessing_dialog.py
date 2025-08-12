@@ -161,6 +161,46 @@ class PreprocessingDialog(QDialog):
         form_bm3d.addRow("Sigma Factor:", self.sp_bm3d_sigma)
         params_layout.addWidget(grp_bm3d)
 
+        grp_wv = QGroupBox("4b. Wavelet Shrinkage")
+        form_wv = QFormLayout(grp_wv)
+        self.cb_wv_enable = QCheckBox("Enable")
+        self.cmb_wv_method = QComboBox(); self.cmb_wv_method.addItems(["BayesShrink", "VisuShrink"])
+        self.cmb_wv_mode = QComboBox(); self.cmb_wv_mode.addItems(["soft", "hard"])
+        self.cmb_wv_name = QComboBox(); self.cmb_wv_name.addItems(["db2", "db1", "db3", "sym4", "coif1"])
+        self.sp_wv_level = QSpinBox(); self.sp_wv_level.setRange(0, 10); self.sp_wv_level.setValue(0)  # 0=auto
+        self.cb_wv_rescale = QCheckBox(); self.cb_wv_rescale.setChecked(True)
+        form_wv.addRow(self.cb_wv_enable)
+        form_wv.addRow("Method:", self.cmb_wv_method)
+        form_wv.addRow("Mode:", self.cmb_wv_mode)
+        form_wv.addRow("Wavelet:", self.cmb_wv_name)
+        form_wv.addRow("Levels (0=auto):", self.sp_wv_level)
+        form_wv.addRow("Rescale sigma:", self.cb_wv_rescale)
+        params_layout.addWidget(grp_wv)
+
+        # 4c: Non-Local Means (NLM)
+        grp_nlm = QGroupBox("4c. Non-Local Means (NLM)")
+        form_nlm = QFormLayout(grp_nlm)
+
+        self.cb_nlm_enable = QCheckBox("Enable"); self.cb_nlm_enable.setChecked(False)
+        self.cb_nlm_auto = QCheckBox("Auto sigma (estimate)"); self.cb_nlm_auto.setChecked(True)
+
+        self.sp_nlm_h = QDoubleSpinBox(); self.sp_nlm_h.setRange(0.001, 5.0); self.sp_nlm_h.setSingleStep(0.01); self.sp_nlm_h.setValue(0.1)
+        self.sp_nlm_hfac = QDoubleSpinBox(); self.sp_nlm_hfac.setRange(0.1, 5.0); self.sp_nlm_hfac.setSingleStep(0.1); self.sp_nlm_hfac.setValue(1.0)
+
+        self.sp_nlm_ps = QSpinBox(); self.sp_nlm_ps.setRange(3, 21); self.sp_nlm_ps.setSingleStep(2); self.sp_nlm_ps.setValue(7)      # nieparzyste
+        self.sp_nlm_pd = QSpinBox(); self.sp_nlm_pd.setRange(1, 31); self.sp_nlm_pd.setValue(15)
+        self.cb_nlm_fast = QCheckBox("Fast mode"); self.cb_nlm_fast.setChecked(True)
+
+        form_nlm.addRow(self.cb_nlm_enable)
+        form_nlm.addRow(self.cb_nlm_auto)
+        form_nlm.addRow("h (gdy auto=off):", self.sp_nlm_h)
+        form_nlm.addRow("h factor (gdy auto=on):", self.sp_nlm_hfac)
+        form_nlm.addRow("Patch size (px):", self.sp_nlm_ps)
+        form_nlm.addRow("Patch distance (px):", self.sp_nlm_pd)
+        form_nlm.addRow(self.cb_nlm_fast)
+
+        params_layout.addWidget(grp_nlm)
+
         # 5A: Morph. by Reconstruction – Bright lines (Opening)
         grp_mr_bright = QGroupBox("5A. Morph. Reconstruction – remove BRIGHT lines (Opening)")
         form_mr_bright = QFormLayout(grp_mr_bright)
@@ -264,6 +304,19 @@ class PreprocessingDialog(QDialog):
             'hl_Wse': self.sp_hl_Wse.value(),
             'hl_Wmax_keep': self.sp_hl_Wmax.value(),
             'hl_angles': hl_angles,
+            'wavelet_enable': self.cb_wv_enable.isChecked(),
+            'wavelet_method': self.cmb_wv_method.currentText(),
+            'wavelet_mode': self.cmb_wv_mode.currentText(),
+            'wavelet_name': self.cmb_wv_name.currentText(),
+            'wavelet_level': self.sp_wv_level.value(),
+            'wavelet_rescale_sigma': self.cb_wv_rescale.isChecked(),
+            'nlm_enable': self.cb_nlm_enable.isChecked(),
+            'nlm_auto_sigma': self.cb_nlm_auto.isChecked(),
+            'nlm_h': self.sp_nlm_h.value(),
+            'nlm_h_factor': self.sp_nlm_hfac.value(),
+            'nlm_patch_size': self.sp_nlm_ps.value(),
+            'nlm_patch_distance': self.sp_nlm_pd.value(),
+            'nlm_fast': self.cb_nlm_fast.isChecked(),
         }
         if self.rb_deconv_rl.isChecked():
             spec['deconv_mode'] = 'richardson_lucy'
