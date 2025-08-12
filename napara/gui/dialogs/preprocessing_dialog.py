@@ -31,6 +31,13 @@ class PreprocessingDialog(QDialog):
     def _build_ui(self):
         # --- Główne Layouty ---
         root_layout = QVBoxLayout(self)
+
+        top_btn_layout = QHBoxLayout()
+        top_btn_layout.addStretch(1)  # pcha przycisk w prawo
+        self.btn_process = QPushButton("Process", self)
+        top_btn_layout.addWidget(self.btn_process)
+        root_layout.addLayout(top_btn_layout)
+
         main_splitter = QSplitter(Qt.Orientation.Horizontal)
         
         # --- Panele z obrazami ---
@@ -187,7 +194,7 @@ class PreprocessingDialog(QDialog):
         params_layout.addStretch()
 
         # --- Przyciski ---
-        self.btn_process = QPushButton("Process", self)
+        # self.btn_process = QPushButton("Process", self)
         
         btn_box = QHBoxLayout()
         self.btn_ok = QPushButton("OK", self)
@@ -197,7 +204,7 @@ class PreprocessingDialog(QDialog):
         btn_box.addWidget(self.btn_cancel)
         btn_box.addWidget(self.btn_ok)
         
-        params_layout.addWidget(self.btn_process)
+        # params_layout.addWidget(self.btn_process)
         
         # --- Składanie UI ---
         root_layout.addWidget(main_splitter, 1)
