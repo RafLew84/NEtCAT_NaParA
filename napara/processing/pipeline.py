@@ -213,19 +213,19 @@ STEP_REGISTRY = {
     "lowess":            step_lowess,
     "destripe_ransac":   step_destripe_ransac,
     "hough_streak":      step_hough_streak,
-    "morphrec_bright":   step_morphrec_bright,
-    "morphrec_dark":     step_morphrec_dark,
     "deconv":            step_deconv,
     "wavelet":           step_wavelet,
     "nlm":               step_nlm,
     "pm":                step_pm,
     "dtv":               step_dtv,
     "bm3d":              step_bm3d,
+    "morphrec_bright":   step_morphrec_bright,
+    "morphrec_dark":     step_morphrec_dark,
 }
 DEFAULT_ORDER = [
     "median","level","destripe","lowess","destripe_ransac",
-    "hough_streak","morphrec_bright","morphrec_dark",
-    "deconv","wavelet","nlm","pm","dtv","bm3d"
+    "hough_streak","deconv", "wavelet", "nlm", "pm", "dtv", 
+    "bm3d", "morphrec_bright","morphrec_dark"
 ]
 
 
