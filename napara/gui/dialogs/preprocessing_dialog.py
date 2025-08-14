@@ -10,6 +10,7 @@ import pyqtgraph as pg
 import numpy as np
 from typing import Optional
 from napara.processing.pipeline import run_heavy_preprocessing
+from napara.processing.pipeline_spec import HeavyPreprocSpec
 
 class PreprocessingDialog(QDialog):
     """
@@ -355,6 +356,7 @@ class PreprocessingDialog(QDialog):
 
     def _on_process_clicked(self):
         """Zbiera parametry z UI, uruchamia ciężkie przetwarzanie i aktualizuje podgląd."""
+
         angles_txt = self.le_hl_angles.text().strip()
         try:
             hl_angles = tuple(float(a) for a in angles_txt.split(",") if a.strip() != "")
@@ -434,20 +436,38 @@ class PreprocessingDialog(QDialog):
             spec['deconv_mode'] = 'richardson_lucy'
         elif self.rb_deconv_wiener.isChecked():
             spec['deconv_mode'] = 'wiener'
-        
+
+        try:
+            spec_model = HeavyPreprocSpec(**spec).validate()
+        except Exception as e:
+            QMessageBox.critical(self, "Spec error", f"Invalid parameters: {e}")
+
         progress = QProgressDialog("Processing image... This may take a moment.", "Cancel", 0, 0, self)
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.show()
-
         try:
-            self.processed_image = run_heavy_preprocessing(self.original_image, spec)
+            self.processed_image = run_heavy_preprocessing(self.original_image, spec_model)
             self.viewer_processed.setImage(self.processed_image, autoRange=True, autoLevels=True)
             self.btn_ok.setEnabled(True)
-            QApplication.processEvents() # Wymuszenie odświeżenia UI
+            QApplication.processEvents()
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Preprocessing failed: {e}")
         finally:
             progress.close()
+        
+        # progress = QProgressDialog("Processing image... This may take a moment.", "Cancel", 0, 0, self)
+        # progress.setWindowModality(Qt.WindowModality.WindowModal)
+        # progress.show()
+
+        # try:
+        #     self.processed_image = run_heavy_preprocessing(self.original_image, spec)
+        #     self.viewer_processed.setImage(self.processed_image, autoRange=True, autoLevels=True)
+        #     self.btn_ok.setEnabled(True)
+        #     QApplication.processEvents() # Wymuszenie odświeżenia UI
+        # except Exception as e:
+        #     QMessageBox.critical(self, "Error", f"Preprocessing failed: {e}")
+        # finally:
+        #     progress.close()
 
     def get_processed_image(self) -> Optional[np.ndarray]:
         """Zwraca przetworzony obraz po zamknięciu dialogu przyciskiem OK."""
