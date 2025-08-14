@@ -3,13 +3,6 @@ import numpy as np
 from scipy.ndimage import gaussian_filter, median_filter
 from statsmodels.nonparametric.smoothers_lowess import lowess
 from skimage.restoration import richardson_lucy, unsupervised_wiener, inpaint, denoise_wavelet, denoise_nl_means, estimate_sigma
-from skimage.morphology import rectangle, erosion, dilation, reconstruction, opening, disk
-from skimage.feature import canny
-from skimage.transform import rotate, probabilistic_hough_line
-from skimage.filters import threshold_otsu
-from skimage.measure import label, regionprops
-from skimage.draw import line as draw_line
-from sklearn.linear_model import RANSACRegressor
 from typing import Dict, Any, Tuple, Optional
 from dataclasses import asdict
 from .pipeline_spec import PipelineSpec, HeavyPreprocSpec
@@ -28,6 +21,24 @@ from .dtv_tools import directional_tv
 # --- utils ---
 def _as_float32(img: np.ndarray) -> np.ndarray:
     return img.astype(np.float32, copy=False)
+
+def _sanitize(img: np.ndarray) -> np.ndarray:
+    im = img.astype(np.float32, copy=False)
+    # zamień NaN/Inf na medianę
+    if not np.isfinite(im).all():
+        med = float(np.nanmedian(im))
+        im = np.where(np.isfinite(im), im, med).astype(np.float32, copy=False)
+    return im
+
+def _clamp01_if_needed(im: np.ndarray) -> np.ndarray:
+    # część algorytmów zakłada [0,1]; nie wymuszamy globalnie, tylko gdy wartości są „dziwne”
+    vmin, vmax = float(np.min(im)), float(np.max(im))
+    if not np.isfinite([vmin, vmax]).all() or vmax <= vmin:
+        return np.zeros_like(im, dtype=np.float32)
+    # jeśli widełki są ekstremalne, przeskaluj do [0,1]
+    if vmax - vmin > 0 and (vmax > 1.5 or vmin < -0.5):
+        im = (im - vmin) / (vmax - vmin)
+    return im
 
 
 # --- kroki pipeline ---
@@ -71,6 +82,7 @@ def step_lowess(img, s):
 def step_hough_streak(img, s):
     if not s.get('hough_streak_enable'):
         return img
+    img = _clamp01_if_needed(img)
     out, _ = remove_streaks_hough(
         img,
         canny_sigma=float(s.get('hough_canny_sigma',1.0)),
@@ -86,6 +98,7 @@ def step_hough_streak(img, s):
 def step_morphrec_bright(img, s):
     if not s.get('morphrec_bright_enable'):
         return img
+    img = _clamp01_if_needed(img)
     return _directional_morph_reconstruction(
         img,
         length_px=s.get('morphrec_bright_len_px',31),
@@ -99,6 +112,7 @@ def step_morphrec_bright(img, s):
 def step_morphrec_dark(img, s):
     if not s.get('morphrec_dark_enable'):
         return img
+    img = _clamp01_if_needed(img)
     return _directional_morph_reconstruction(
         img,
         length_px=s.get('morphrec_dark_len_px',31),
@@ -113,6 +127,7 @@ def step_deconv(img, s):
     mode = s.get('deconv_mode','none')
     if mode == 'none':
         return img
+    img = _sanitize(img)
     y, x = np.mgrid[-5:6, -5:6]
     sx, sy = float(s.get('psf_sigma_x',2.0)), float(s.get('psf_sigma_y',0.5))
     psf = np.exp(-(x**2/(2*sx**2) + y**2/(2*sy**2)))
@@ -127,6 +142,7 @@ def step_deconv(img, s):
 def step_wavelet(img, s):
     if not s.get('wavelet_enable'):
         return img
+    img = _clamp01_if_needed(img)
     level = int(s.get('wavelet_level',0)) or None
     return denoise_wavelet(
         img,
@@ -141,6 +157,8 @@ def step_wavelet(img, s):
 def step_nlm(img, s):
     if not s.get('nlm_enable'):
         return img
+    img = _sanitize(img)
+    img = _clamp01_if_needed(img)
     if s.get('nlm_auto_sigma', True):
         sigma = float(estimate_sigma(img, channel_axis=None, average_sigmas=True))
         h = float(s.get('nlm_h_factor',1.0)) * sigma
@@ -181,6 +199,7 @@ def step_dtv(img, s):
 def step_bm3d(img, s):
     if not s.get('denoise_bm3d'):
         return img
+    img = _clamp01_if_needed(img)
     mad = np.median(np.abs(img - np.median(img)))
     sigma_psd = mad * 1.4826 * float(s.get('bm3d_sigma_factor',1.0))
     return bm3d.bm3d(img, sigma_psd=sigma_psd)
@@ -209,7 +228,8 @@ _STEPS = (
 def run_heavy_preprocessing(image: np.ndarray, spec: Dict[str, Any] | HeavyPreprocSpec) -> np.ndarray:
     if isinstance(spec, HeavyPreprocSpec):
         spec = spec.validate().to_dict()
-    im = _as_float32(image.copy())
+    im = _sanitize(image)
+    im = _as_float32(im.copy())
     for fn in _STEPS:
         im = fn(im, spec)
     return im.astype(image.dtype, copy=False)
