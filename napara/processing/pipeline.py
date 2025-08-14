@@ -206,32 +206,40 @@ def step_bm3d(img, s):
 
 
 # --- rejestr kroków ---
-_STEPS = (
-    step_median,
-    step_level,
-    step_destripe_simple,
-    step_lowess,
-    step_destripe_ransac,
-    step_hough_streak,
-    step_morphrec_bright,
-    step_morphrec_dark,
-    step_deconv,
-    step_wavelet,
-    step_nlm,
-    step_pm,
-    step_dtv,
-    step_bm3d,
-)
+STEP_REGISTRY = {
+    "median":            step_median,
+    "level":             step_level,
+    "destripe":          step_destripe_simple,
+    "lowess":            step_lowess,
+    "destripe_ransac":   step_destripe_ransac,
+    "hough_streak":      step_hough_streak,
+    "morphrec_bright":   step_morphrec_bright,
+    "morphrec_dark":     step_morphrec_dark,
+    "deconv":            step_deconv,
+    "wavelet":           step_wavelet,
+    "nlm":               step_nlm,
+    "pm":                step_pm,
+    "dtv":               step_dtv,
+    "bm3d":              step_bm3d,
+}
+DEFAULT_ORDER = [
+    "median","level","destripe","lowess","destripe_ransac",
+    "hough_streak","morphrec_bright","morphrec_dark",
+    "deconv","wavelet","nlm","pm","dtv","bm3d"
+]
 
 
 # --- główna funkcja ---
 def run_heavy_preprocessing(image: np.ndarray, spec: Dict[str, Any] | HeavyPreprocSpec) -> np.ndarray:
     if isinstance(spec, HeavyPreprocSpec):
         spec = spec.validate().to_dict()
-    im = _sanitize(image)
-    im = _as_float32(im.copy())
-    for fn in _STEPS:
-        im = fn(im, spec)
+    order = spec.get("order") or DEFAULT_ORDER
+    im = _sanitize(image).astype(np.float32, copy=False)
+    for key in order:
+        fn = STEP_REGISTRY.get(key)
+        if fn is None:
+            continue
+        im = fn(im, spec)  # poszczególne kroki już respektują swoje flagi Enable
     return im.astype(image.dtype, copy=False)
 
 # Reuse helpers if masz je w pliku; jeśli nie, wklej te dwa:

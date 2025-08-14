@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QSplitter, QGroupBox, QFormLayout,
     QPushButton, QCheckBox, QDoubleSpinBox, QMessageBox, QProgressDialog,
     QWidget, QRadioButton, QSpinBox, QApplication, QScrollArea, QComboBox,
-    QLineEdit
+    QLineEdit, QListWidget, QListWidgetItem
 )
 from PyQt6.QtCore import Qt
 import pyqtgraph as pg
@@ -325,6 +325,32 @@ class PreprocessingDialog(QDialog):
 
         params_layout.addStretch()
 
+        self.grp_order = QGroupBox("Order of operations")
+        order_layout = QVBoxLayout(self.grp_order)
+        self.lst_order = QListWidget(self.grp_order)
+        self.lst_order.setDragDropMode(QListWidget.DragDropMode.InternalMove)
+        for key, label in [
+            ("median","Median"),
+            ("level","Leveling"),
+            ("destripe","Destriping"),
+            ("lowess","LOWESS"),
+            ("destripe_ransac","RANSAC line baseline"),
+            ("hough_streak","Hough streak removal"),
+            ("morphrec_bright","Morph. reconstruction (bright)"),
+            ("morphrec_dark","Morph. reconstruction (dark)"),
+            ("deconv","Deconvolution"),
+            ("wavelet","Wavelet denoise"),
+            ("nlm","Non-Local Means"),
+            ("pm","Perona–Malik"),
+            ("dtv","Directional TV"),
+            ("bm3d","BM3D"),
+        ]:
+            it = QListWidgetItem(label)
+            it.setData(Qt.ItemDataRole.UserRole, key)
+            self.lst_order.addItem(it)
+        order_layout.addWidget(self.lst_order)
+        params_layout.addWidget(self.grp_order)
+
         # --- Przyciski ---
         # self.btn_process = QPushButton("Process", self)
         
@@ -436,6 +462,9 @@ class PreprocessingDialog(QDialog):
             spec['deconv_mode'] = 'richardson_lucy'
         elif self.rb_deconv_wiener.isChecked():
             spec['deconv_mode'] = 'wiener'
+
+        spec['order'] = [self.lst_order.item(i).data(Qt.ItemDataRole.UserRole)
+                 for i in range(self.lst_order.count())]
 
         try:
             spec_model = HeavyPreprocSpec(**spec).validate()

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field, asdict
-from typing import Literal, Optional, Tuple
+from typing import Literal, Optional, Tuple, List
 
 DenoiseMode = Literal["off", "nlm", "bm3d", "wavelet"]
 ThreshMode  = Literal["sauvola", "otsu", "yen", "isodata", "canny"]
@@ -8,6 +8,7 @@ ThreshMode  = Literal["sauvola", "otsu", "yen", "isodata", "canny"]
 
 @dataclass
 class HeavyPreprocSpec:
+    order: List[str] = field(default_factory=list)
     # 1) Median + Leveling
     median_filter: bool = False
     median_size: int = 3
