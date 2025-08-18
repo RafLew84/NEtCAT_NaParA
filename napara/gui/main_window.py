@@ -13,7 +13,8 @@ from napara.processing.pipeline_spec import PipelineSpec
 from .dialogs.preprocessing_dialog import PreprocessingDialog
 
 import os
-import numpy as np  # for type hints / potential future use
+import numpy as np
+from collections import defaultdict
 
 from napara.io.factory import load_from_paths
 from napara.processing.pipeline import run_pipeline
@@ -27,6 +28,7 @@ class MainWindow(QMainWindow):
         self._overlay_items = {}      # dict[int, list[pg.PlotDataItem]]  # drawn items per image
         self._spec = PipelineSpec()   # default pipeline
         self._active_index = None  # int | None
+        self.detections = defaultdict(list)
         self._setup_ui()
         self._connect_signals()
 
@@ -142,6 +144,17 @@ class MainWindow(QMainWindow):
         self.proc_panel.cb_gauss.stateChanged.connect(self._on_spec_changed)
         self.proc_panel.sp_sigma.valueChanged.connect(self._on_spec_changed)
 
+        self.proc_panel.cb_median.stateChanged.connect(self._on_spec_changed)
+        self.proc_panel.sp_med.valueChanged.connect(self._on_spec_changed)
+
+        self.proc_panel.cb_tophat.stateChanged.connect(self._on_spec_changed)
+        self.proc_panel.sp_tophat.valueChanged.connect(self._on_spec_changed)
+
+        self.proc_panel.cb_thresh.stateChanged.connect(self._on_spec_changed)
+        self.proc_panel.sp_min_area.valueChanged.connect(self._on_spec_changed)
+
+        self.proc_panel.cb_detect.stateChanged.connect(self._on_spec_changed)
+
         self.proc_panel.btn_detect.clicked.connect(self.on_detect_roi)
 
     def _on_spec_changed(self):
@@ -152,13 +165,21 @@ class MainWindow(QMainWindow):
         if self._active_index is None:
             return
 
-        # Read current values from the processing panel
-        self._spec.gaussian_blur = self.proc_panel.cb_gauss.isChecked()
-        self._spec.gaussian_sigma = self.proc_panel.sp_sigma.value()
+        self._spec.gaussian_blur  = self.proc_panel.cb_gauss.isChecked()
+        self._spec.gaussian_sigma = float(self.proc_panel.sp_sigma.value())
 
-        # ...In the future, we'll read other parameters here...
+        self._spec.median_filter  = self.proc_panel.cb_median.isChecked()
+        self._spec.median_size    = int(self.proc_panel.sp_med.value())
 
-        # Trigger a refresh of the preview
+        self._spec.white_top_hat  = self.proc_panel.cb_tophat.isChecked()
+        self._spec.wth_radius_px  = int(self.proc_panel.sp_tophat.value())
+
+        self._spec.threshold_enable = self.proc_panel.cb_thresh.isChecked()
+        self._spec.threshold_mode   = "otsu"
+        self._spec.min_area_px      = int(self.proc_panel.sp_min_area.value())
+
+        self._spec.detect_enable    = self.proc_panel.cb_detect.isChecked()
+
         self._update_roi_preview()
 
     def _create_menu(self):
@@ -318,33 +339,28 @@ class MainWindow(QMainWindow):
                 self.statusBar().showMessage("Preprocessing was accepted, but no data was returned.", 4000)
 
     def on_detect_roi(self):
-        """Run detection pipeline on current ROI, overwrite particles inside ROI, draw contours."""
         if self._active_index is None:
             return
+        if not self.proc_panel.cb_detect.isChecked():
+            self._clear_overlays(self._active_index)
+            self.statusBar().showMessage("Detection disabled.", 2000)
+            return
+
         img = self._images[self._active_index]
         roi_rect_nm = self._get_active_roi_rect_nm()
         if roi_rect_nm is None:
-            from PyQt6.QtWidgets import QMessageBox
             QMessageBox.information(self, "ROI required", "Please create a ROI (View → Add/Reset Rect ROI) and try again.")
             return
 
-        # Physical scaling (nm/px)
         px_x, px_y = img.get_pixel_size_nm()
 
-        # Run pipeline (synchronously for now)
-        try:
-            res = run_pipeline(
-                img.data,
-                roi_rect_nm=roi_rect_nm,
-                nm_per_px=(px_x, px_y),
-                spec=self._spec,
-            )
-        except Exception as e:
-            from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.critical(self, "Detection error", str(e))
-            return
-
-        new_contours = res["contours"]  # list of Nx2 arrays in PX coords
+        res = run_pipeline(
+            img.preprocessed_data if img.preprocessed_data is not None else img.data,
+            roi_rect_nm=roi_rect_nm,
+            nm_per_px=(px_x, px_y),
+            spec=self._spec,
+        )
+        new_contours = res["contours"]  # w px
 
         # Overwrite policy: drop existing contours whose centroid ∈ ROI, then add new
         existing = self._contours_by_image.get(self._active_index, [])

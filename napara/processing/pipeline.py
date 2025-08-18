@@ -1,6 +1,8 @@
 from __future__ import annotations
 import numpy as np
 from scipy.ndimage import gaussian_filter, median_filter
+from skimage import filters, measure, morphology, util
+from scipy.ndimage import white_tophat as wt
 from statsmodels.nonparametric.smoothers_lowess import lowess
 from skimage.restoration import richardson_lucy, unsupervised_wiener, inpaint, denoise_wavelet, denoise_nl_means, estimate_sigma
 from typing import Dict, Any, Tuple, Optional
@@ -289,28 +291,71 @@ def run_pipeline(
 
     # processed_img = roi_img.copy() # Start with a copy of the ROI data
 
-    # 1. Gaussian Blur
-    if spec.gaussian_blur:
-        # sigma is in pixels. For now, assume spec.gaussian_sigma is in px.
-        roi_img = gaussian_filter(roi_img, sigma=spec.gaussian_sigma)
+    proc = roi_img.astype(np.float32, copy=False)
 
+    # 1) Gaussian
+    if getattr(spec, "gaussian_blur", False):
+        proc = gaussian_filter(proc, sigma=float(getattr(spec, "gaussian_sigma", 1.0)))
 
-    final_mask_roi = np.zeros(roi_img.shape, dtype=bool)
-    contours: list[np.ndarray] = []
-    
-    # --- End of Detection Steps ---
+    # 2) Median
+    if getattr(spec, "median_filter", False):
+        k = int(getattr(spec, "median_size", 3)) | 1
+        proc = median_filter(proc, size=k)
 
-    full_mask = _rect_mask_to_full(final_mask_roi, roi_slice, img.shape)
+    # 3) White Top-Hat
+    if getattr(spec, "white_top_hat", False):
+        rad = max(1, int(getattr(spec, "wth_radius_px", 5)))
+        se = morphology.disk(rad)
+        proc = morphology.white_tophat(proc, footprint=se)
 
-    # Minimal debug payload to help w/ visual checks
+    # --- Threshold + optional contours ---
+    final_mask_roi = np.zeros(proc.shape, bool)
+    contours = []
+
+    preview = proc  # domyślnie: tylko filtry
+
+    if getattr(spec, "threshold_enable", False):
+        # próg
+        if getattr(spec, "threshold_mode", "otsu") == "sauvola":
+            win = max(7, int(getattr(spec, "sauvola_window", 21)))
+            k = float(getattr(spec, "sauvola_k", 0.2))
+            thr = filters.threshold_sauvola(proc, window_size=win, k=k)
+            mask_roi = proc > thr
+        else:
+            thr = filters.threshold_otsu(proc)
+            mask_roi = proc > thr
+
+        # czyszczenie
+        mask_roi = morphology.remove_small_objects(
+            mask_roi, min_size=int(getattr(spec, "min_area_px", 20))
+        )
+        final_mask_roi = mask_roi
+
+        # PODGLĄD: pokaż efekt progu
+        # 1) overlay (jasne tam, gdzie maska) — dobra domyślna opcja
+        norm = (proc - proc.min()) / (np.ptp(proc) + 1e-12)
+        preview = norm * (~mask_roi) + 1.0 * mask_roi
+        # jeśli wolisz binarnie, zamień linię wyżej na:
+        # preview = mask_roi.astype(np.float32)
+
+        # kontury tylko gdy włączone wykrywanie
+        if getattr(spec, "detect_enable", False):
+            cs = measure.find_contours(util.img_as_float(mask_roi), 0.5)
+            # contours = [np.ascontiguousarray(c[:, ::-1], dtype=np.float32) for c in cs]
+            y0, y1, x0, x1 = roi_slice  # px w obrazie globalnym
+            contours = []
+            for c in cs:
+                # c: (N, 2) = (row=y, col=x) względem ROI
+                xy = np.ascontiguousarray(c[:, ::-1], dtype=np.float32)  # (x,y) względem ROI
+                xy[:, 0] += x0  # + przesunięcie X
+                xy[:, 1] += y0  # + przesunięcie Y
+                contours.append(xy)
+
+    # --- debug preview po WSZYSTKIM ---
     debug = {
         "roi_slice": np.array(roi_slice, dtype=np.int32),
-        "roi_preview": roi_img.copy(),
+        "roi_preview": preview.copy(),
     }
 
-    return {
-        "mask": full_mask,
-        "contours": contours,
-        "debug": debug,
-        "spec": asdict(spec),
-    }
+    full_mask = _rect_mask_to_full(final_mask_roi, roi_slice, img.shape)
+    return {"mask": full_mask, "contours": contours, "debug": debug, "spec": asdict(spec)}
