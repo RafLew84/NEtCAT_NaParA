@@ -152,10 +152,12 @@ class MainWindow(QMainWindow):
 
         self.proc_panel.cb_thresh.stateChanged.connect(self._on_spec_changed)
         self.proc_panel.sp_min_area.valueChanged.connect(self._on_spec_changed)
+        self.proc_panel.sp_otsu_bias.valueChanged.connect(self._on_spec_changed)
+        self.proc_panel.cmb_thresh_mode.currentIndexChanged.connect(self._on_spec_changed)
+        self.proc_panel.sp_sauvola_win.valueChanged.connect(self._on_spec_changed)
+        self.proc_panel.sp_sauvola_k.valueChanged.connect(self._on_spec_changed)
 
         self.proc_panel.cb_detect.stateChanged.connect(self._on_spec_changed)
-
-        self.proc_panel.sp_otsu_bias.valueChanged.connect(self._on_spec_changed)
 
         self.proc_panel.btn_detect.clicked.connect(self.on_detect_roi)
 
@@ -177,9 +179,11 @@ class MainWindow(QMainWindow):
         self._spec.wth_radius_px  = int(self.proc_panel.sp_tophat.value())
 
         self._spec.threshold_enable = self.proc_panel.cb_thresh.isChecked()
-        self._spec.threshold_mode   = "otsu"
+        self._spec.threshold_mode   = "sauvola" if self.proc_panel.cmb_thresh_mode.currentIndex()==1 else "otsu"
         self._spec.min_area_px      = int(self.proc_panel.sp_min_area.value())
         self._spec.threshold_bias   = float(self.proc_panel.sp_otsu_bias.value())
+        self._spec.sauvola_window   = int(self.proc_panel.sp_sauvola_win.value())
+        self._spec.sauvola_k        = float(self.proc_panel.sp_sauvola_k.value())
 
         self._spec.detect_enable    = self.proc_panel.cb_detect.isChecked()
 

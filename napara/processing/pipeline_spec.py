@@ -131,10 +131,12 @@ class PipelineSpec:
     wth_radius_px: int = 5
 
     # Thresholding + cleanup
-    threshold_enable: bool = False   # Otsu na początek
-    threshold_mode: str = "otsu"     # rezerwacja na przyszłość
+    threshold_enable: bool = False
+    threshold_mode: str = "otsu"   # "otsu" | "sauvola"
     min_area_px: int = 20
     threshold_bias: float = 0.0
+    sauvola_window: int = 21
+    sauvola_k: float = 0.2
 
     # Detekcja konturów/obiektów
     detect_enable: bool = False
