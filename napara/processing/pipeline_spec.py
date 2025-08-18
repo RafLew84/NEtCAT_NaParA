@@ -134,6 +134,7 @@ class PipelineSpec:
     threshold_enable: bool = False   # Otsu na początek
     threshold_mode: str = "otsu"     # rezerwacja na przyszłość
     min_area_px: int = 20
+    threshold_bias: float = 0.0
 
     # Detekcja konturów/obiektów
     detect_enable: bool = False

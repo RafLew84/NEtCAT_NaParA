@@ -26,11 +26,16 @@ class ProcessingPanel(QWidget):
         self.sp_tophat = QSpinBox(grp_filters); self.sp_tophat.setRange(1, 99); self.sp_tophat.setValue(5)
         form.addRow(self.cb_tophat, self.sp_tophat)
 
-        # Thresholding (na początek Otsu)
         self.cb_thresh = QCheckBox("Threshold (Otsu)", grp_filters); self.cb_thresh.setChecked(False)
         self.sp_min_area = QSpinBox(grp_filters); self.sp_min_area.setRange(0, 100000); self.sp_min_area.setValue(20)
-        self.sp_min_area.setToolTip("Remove objects smaller than N pixels")
         form.addRow(self.cb_thresh, self.sp_min_area)
+
+        self.sp_otsu_bias = QDoubleSpinBox(grp_filters)
+        self.sp_otsu_bias.setRange(-0.5, 0.5)
+        self.sp_otsu_bias.setSingleStep(0.01)
+        self.sp_otsu_bias.setValue(0.0)
+        self.sp_otsu_bias.setToolTip("Ujemny = więcej pikseli, dodatni = mniej")
+        form.addRow("Otsu bias:", self.sp_otsu_bias)
 
         # Kontury/obiekty – globalny przełącznik detekcji w ROI
         self.cb_detect = QCheckBox("Detect contours/objects", grp_filters); self.cb_detect.setChecked(False)

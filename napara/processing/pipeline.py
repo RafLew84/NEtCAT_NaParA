@@ -309,53 +309,42 @@ def run_pipeline(
         proc = morphology.white_tophat(proc, footprint=se)
 
     # --- Threshold + optional contours ---
+    norm = (proc - proc.min()) / (np.ptp(proc) + 1e-12)
     final_mask_roi = np.zeros(proc.shape, bool)
     contours = []
 
     preview = proc  # domyślnie: tylko filtry
 
     if getattr(spec, "threshold_enable", False):
-        # próg
-        if getattr(spec, "threshold_mode", "otsu") == "sauvola":
+        bias = float(getattr(spec, "threshold_bias", 0.0))  # [-0.5, 0.5]
+        mode = getattr(spec, "threshold_mode", "otsu")
+
+        if mode == "sauvola":
             win = max(7, int(getattr(spec, "sauvola_window", 21)))
             k = float(getattr(spec, "sauvola_k", 0.2))
-            thr = filters.threshold_sauvola(proc, window_size=win, k=k)
-            mask_roi = proc > thr
+            thr_map = filters.threshold_sauvola(norm, window_size=win, k=k)
+            thr_map = np.clip(thr_map + bias, 0.0, 1.0)
+            mask_roi = norm > thr_map
         else:
-            thr = filters.threshold_otsu(proc)
-            mask_roi = proc > thr
+            thr = filters.threshold_otsu(norm)
+            thr = float(np.clip(thr + bias, 0.0, 1.0))
+            mask_roi = norm > thr
 
-        # czyszczenie
-        mask_roi = morphology.remove_small_objects(
-            mask_roi, min_size=int(getattr(spec, "min_area_px", 20))
-        )
+        mask_roi = morphology.remove_small_objects(mask_roi, min_size=int(getattr(spec, "min_area_px", 20)))
         final_mask_roi = mask_roi
 
-        # PODGLĄD: pokaż efekt progu
-        # 1) overlay (jasne tam, gdzie maska) — dobra domyślna opcja
-        norm = (proc - proc.min()) / (np.ptp(proc) + 1e-12)
+        # podgląd: overlay z norm
         preview = norm * (~mask_roi) + 1.0 * mask_roi
-        # jeśli wolisz binarnie, zamień linię wyżej na:
-        # preview = mask_roi.astype(np.float32)
 
-        # kontury tylko gdy włączone wykrywanie
         if getattr(spec, "detect_enable", False):
             cs = measure.find_contours(util.img_as_float(mask_roi), 0.5)
-            # contours = [np.ascontiguousarray(c[:, ::-1], dtype=np.float32) for c in cs]
-            y0, y1, x0, x1 = roi_slice  # px w obrazie globalnym
+            y0, y1, x0, x1 = roi_slice
             contours = []
             for c in cs:
-                # c: (N, 2) = (row=y, col=x) względem ROI
-                xy = np.ascontiguousarray(c[:, ::-1], dtype=np.float32)  # (x,y) względem ROI
-                xy[:, 0] += x0  # + przesunięcie X
-                xy[:, 1] += y0  # + przesunięcie Y
+                xy = np.ascontiguousarray(c[:, ::-1], dtype=np.float32)
+                xy[:, 0] += x0; xy[:, 1] += y0
                 contours.append(xy)
 
-    # --- debug preview po WSZYSTKIM ---
-    debug = {
-        "roi_slice": np.array(roi_slice, dtype=np.int32),
-        "roi_preview": preview.copy(),
-    }
-
+    debug = {"roi_slice": np.array(roi_slice, np.int32), "roi_preview": preview.copy()}
     full_mask = _rect_mask_to_full(final_mask_roi, roi_slice, img.shape)
-    return {"mask": full_mask, "contours": contours, "debug": debug, "spec": asdict(spec)}
+    return {"mask": full_mask, "contours": contours, "contours_units": "px", "debug": debug, "spec": asdict(spec)}
