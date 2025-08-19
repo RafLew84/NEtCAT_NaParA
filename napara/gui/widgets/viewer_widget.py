@@ -1,5 +1,6 @@
 # napara/gui/widgets/viewer_widget.py
 import pyqtgraph as pg
+from pyqtgraph import PlotDataItem, TextItem, mkPen
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSlider, QLabel
 from PyQt6.QtCore import QRectF, Qt, pyqtSignal 
 from PyQt6.QtGui import QTransform
@@ -20,6 +21,7 @@ class ViewerWidget(QWidget):
         self._last_view_range = None
         self._nm_scale = (None, None)
         self._gamma = 1.0
+        self._overlay_items = set()
         self._build()
 
     def _build(self):
@@ -160,3 +162,56 @@ class ViewerWidget(QWidget):
 
         # Mark that at least one image was shown
         self._ever_shown = True
+
+    def add_polyline_nm(self, pts_nm: np.ndarray, *, name: str | None = None,
+                    color=(0, 255, 0), width: float = 2.0):
+        """Dodaj polilinię w jednostkach nm. Zwraca item."""
+        if pts_nm is None or len(pts_nm) < 2:
+            return None
+        pen = mkPen(color, width=width)
+        item = PlotDataItem(pts_nm[:, 0], pts_nm[:, 1], pen=pen, name=name)
+        # zapamiętaj pióra do highlightu
+        item._base_pen = pen
+        item._hl_pen = mkPen((255, 220, 0), width=max(width * 1.8, width + 1))
+        self.plot_item.addItem(item)
+        self._overlay_items.add(item)
+        return item
+
+    def add_text_nm(self, text: str, pos_nm: tuple[float, float], *,
+                    color=(0, 255, 0)):
+        """Dodaj etykietę w nm. Zwraca item."""
+        ti = TextItem(text=text, color=color, anchor=(0.5, 0.5))
+        ti.setPos(float(pos_nm[0]), float(pos_nm[1]))
+        self.plot_item.addItem(ti)
+        self._overlay_items.add(ti)
+        return ti
+
+    def set_item_visible(self, item, visible: bool):
+        if item is not None:
+            item.setVisible(bool(visible))
+
+    def set_item_highlight(self, item, on: bool):
+        """Wyróżnij polilinię grubszym, żółtym piórem; etykietę – żółtym kolorem."""
+        if item is None:
+            return
+        if hasattr(item, "_base_pen"):
+            item.setPen(item._hl_pen if on else item._base_pen)
+        elif isinstance(item, TextItem):
+            item.setColor((255, 220, 0) if on else (0, 255, 0))
+
+    def remove_item(self, item):
+        if item is None:
+            return
+        try:
+            self.plot_item.removeItem(item)
+        except Exception:
+            pass
+        self._overlay_items.discard(item)
+
+    def clear_overlay(self):
+        for it in list(self._overlay_items):
+            try:
+                self.plot_item.removeItem(it)
+            except Exception:
+                pass
+        self._overlay_items.clear()

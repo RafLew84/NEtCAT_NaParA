@@ -1,7 +1,8 @@
 from PyQt6.QtCore import Qt, QPointF, QRectF
 from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import (
-    QMainWindow, QFileDialog, QMessageBox, QWidget, QDockWidget, QVBoxLayout, QDialog
+    QDockWidget, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QDialog, QMainWindow,
+    QCheckBox, QTableWidget, QTableWidgetItem, QPushButton, QFileDialog, QMessageBox
 )
 
 from .panels.image_list_panel import ImageListPanel
@@ -11,6 +12,7 @@ from .widgets.viewer_widget import ViewerWidget
 from napara.logic.roi_manager import ROIManager
 from napara.processing.pipeline_spec import PipelineSpec
 from .dialogs.preprocessing_dialog import PreprocessingDialog
+from napara.model.detection_model import Detection
 
 import os
 import numpy as np
@@ -29,6 +31,8 @@ class MainWindow(QMainWindow):
         self._spec = PipelineSpec()   # default pipeline
         self._active_index = None  # int | None
         self.detections = defaultdict(list)
+        self._detections: dict[int, list[Detection]] = {}   # image_idx -> [Detection]
+        self._next_id_counter: dict[int, int] = {}          # image_idx -> next ID
         self._setup_ui()
         self._connect_signals()
 
@@ -37,6 +41,10 @@ class MainWindow(QMainWindow):
         self.roi_manager.roiChanged.connect(self.on_roi_changed)
         # self.roi_manager.roiRemoved.connect(self.on_roi_removed)
         self.roi_manager.roiSelected.connect(self.on_roi_selected)
+
+        self._show_contours = True
+        self._show_labels = False
+        self._build_detections_panel()
 
     def _setup_ui(self):
         self.setWindowTitle("NaParA – Nanoparticle Analyzer")
@@ -73,6 +81,205 @@ class MainWindow(QMainWindow):
         main_split.setStretchFactor(10, 1)
 
         self.setCentralWidget(main_split)
+
+    def _next_id(self, idx: int) -> int:
+        n = self._next_id_counter.get(idx, 1)
+        self._next_id_counter[idx] = n + 1
+        return n
+
+    def _poly_area_px2(self, poly_px: np.ndarray) -> float:
+        """Pole wielokąta (piksele^2). poly_px: (N,2) w (x,y)."""
+        if poly_px is None or len(poly_px) < 3:
+            return 0.0
+        x = poly_px[:, 0]
+        y = poly_px[:, 1]
+        return 0.5 * abs(np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1)))
+    
+    def _build_detections_panel(self):
+        dock = QDockWidget("Detections", self)
+        dock.setObjectName("dockDetections")
+        dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.LeftDockWidgetArea)
+
+        w = QWidget(dock)
+        v = QVBoxLayout(w)
+
+        # widoczność
+        box_vis = QGroupBox("Visibility", w)
+        vvis = QHBoxLayout(box_vis)
+        self.chk_show_contours = QCheckBox("Show contours", box_vis)
+        self.chk_show_contours.setChecked(self._show_contours)
+        self.chk_show_labels = QCheckBox("Show labels", box_vis)
+        self.chk_show_labels.setChecked(self._show_labels)
+        vvis.addWidget(self.chk_show_contours)
+        vvis.addWidget(self.chk_show_labels)
+        v.addWidget(box_vis)
+
+        # tabela
+        self.det_table = QTableWidget(w)
+        self.det_table.setColumnCount(2)
+        self.det_table.setHorizontalHeaderLabels(["ID", "Area [nm²]"])
+        self.det_table.setSelectionBehavior(self.det_table.SelectionBehavior.SelectRows)
+        self.det_table.setSelectionMode(self.det_table.SelectionMode.SingleSelection)
+        self.det_table.verticalHeader().setVisible(False)
+        self.det_table.setEditTriggers(self.det_table.EditTrigger.NoEditTriggers)
+        v.addWidget(self.det_table, 1)
+
+        # akcje
+        h = QHBoxLayout()
+        self.btn_det_delete = QPushButton("Delete selected", w)
+        self.btn_det_clear = QPushButton("Clear all", w)
+        h.addWidget(self.btn_det_delete)
+        h.addWidget(self.btn_det_clear)
+        v.addLayout(h)
+
+        w.setLayout(v)
+        dock.setWidget(w)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
+
+        # sygnały
+        self.chk_show_contours.toggled.connect(self._on_toggle_contours)
+        self.chk_show_labels.toggled.connect(self._on_toggle_labels)
+        self.det_table.itemSelectionChanged.connect(self._on_select_detection)
+        self.btn_det_delete.clicked.connect(self._on_delete_selected)
+        self.btn_det_clear.clicked.connect(self._on_clear_all)
+
+        # start
+        self._refresh_detections_table()
+
+    def _refresh_detections_table(self):
+        idx = getattr(self, "_active_index", None)
+        rows = []
+        if idx is not None and idx in self._detections:
+            img = self._images[idx]
+            sx, sy = img.get_pixel_size_nm()
+            for d in self._detections[idx]:
+                area_nm2 = d.area_px2 * (sx or 1.0) * (sy or 1.0)
+                rows.append((d.id, area_nm2))
+
+        self.det_table.setRowCount(len(rows))
+        for r, (det_id, area_nm2) in enumerate(rows):
+            self.det_table.setItem(r, 0, QTableWidgetItem(str(det_id)))
+            it = QTableWidgetItem(f"{area_nm2:.2f}")
+            it.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self.det_table.setItem(r, 1, it)
+        self.det_table.resizeColumnsToContents()
+
+    def _on_toggle_contours(self, checked: bool):
+        self._show_contours = checked
+        self._update_overlay_visibility()  # implementujesz w kroku 3
+
+    def _on_toggle_labels(self, checked: bool):
+        self._show_labels = checked
+        self._update_overlay_visibility()  # implementujesz w kroku 3
+
+    def _on_select_detection(self):
+        self._highlight_detection_row(self.det_table.currentRow())
+
+    def _on_delete_selected(self):
+        idx = self._active_index
+        if idx is None: return
+        row = self.det_table.currentRow()
+        dets = self._detections.get(idx, [])
+        if row < 0 or row >= len(dets): return
+        d = dets.pop(row)
+        if d.path_item: self.viewer.remove_item(d.path_item)
+        if d.label_item: self.viewer.remove_item(d.label_item)
+        self._refresh_detections_table()
+        self._update_overlay_visibility()
+
+    def _on_clear_all(self):
+        idx = self._active_index
+        if idx is None: return
+        for d in self._detections.get(idx, []):
+            if d.path_item: self.viewer.remove_item(d.path_item)
+            if d.label_item: self.viewer.remove_item(d.label_item)
+        self._detections[idx] = []
+        self._refresh_detections_table()
+        self._update_overlay_visibility()
+
+    def _px_to_nm(self, poly_px: np.ndarray, sx: float|None, sy: float|None) -> np.ndarray:
+        return np.column_stack([poly_px[:, 0] * (sx or 1.0),
+                                poly_px[:, 1] * (sy or 1.0)]).astype(np.float32)
+
+    def _highlight_detection_row(self, row: int):
+        dets = self._detections.get(self._active_index, [])
+        for i, d in enumerate(dets):
+            self.viewer.set_item_highlight(d.path_item, i == row)
+            if d.label_item: self.viewer.set_item_highlight(d.label_item, i == row)
+
+    def _item_alive(self, item) -> bool:
+        return bool(item) and (item.scene() is not None)
+
+    def _update_overlay_visibility(self):
+        idx = self._active_index
+        if idx is None:
+            return
+        dets = self._detections.get(idx, [])
+        show_c = bool(getattr(self, "_show_contours", True))
+        show_l = bool(getattr(self, "_show_labels", False)) and show_c
+
+        img = self._images[idx]
+        sx, sy = img.get_pixel_size_nm()
+
+        for d in dets:
+            # kontury: odtwórz jeśli brak lub martwy
+            if show_c:
+                if not self._item_alive(d.path_item):
+                    poly_nm = self._px_to_nm(d.contour_px, sx, sy)
+                    d.path_item = self.viewer.add_polyline_nm(poly_nm, name=f"det-{d.id}")
+                self.viewer.set_item_visible(d.path_item, True)
+            else:
+                if self._item_alive(d.path_item):
+                    self.viewer.set_item_visible(d.path_item, False)
+
+            # etykiety: jak wcześniej, on-demand
+            if show_l:
+                if not self._item_alive(d.label_item):
+                    cx_nm = d.centroid_px[0] * (sx or 1.0)
+                    cy_nm = d.centroid_px[1] * (sy or 1.0)
+                    d.label_item = self.viewer.add_text_nm(str(d.id), (cx_nm, cy_nm))
+                self.viewer.set_item_visible(d.label_item, True)
+            else:
+                if self._item_alive(d.label_item):
+                    self.viewer.set_item_visible(d.label_item, False)
+
+    def _apply_roi_detections(self, image_idx: int, roi_rect_nm, contours_px: list[np.ndarray]):
+        img = self._images[image_idx]
+        sx, sy = img.get_pixel_size_nm()
+        x, y, w, h = roi_rect_nm
+        x1, y1 = x + w, y + h
+
+        # usuń stare detekcje z ROI (po centroidzie w nm) + skasuj ich itemy
+        kept = []
+        for d in self._detections.get(image_idx, []):
+            cx_nm = d.centroid_px[0] * (sx or 1.0)
+            cy_nm = d.centroid_px[1] * (sy or 1.0)
+            if x <= cx_nm <= x1 and y <= cy_nm <= y1:
+                if d.path_item: self.viewer.remove_item(d.path_item); d.path_item = None
+                if d.label_item: self.viewer.remove_item(d.label_item); d.label_item = None
+            else:
+                kept.append(d)
+        self._detections[image_idx] = kept
+
+        # dodaj nowe
+        self._detections.setdefault(image_idx, [])
+        for poly_px in contours_px or []:
+            if poly_px is None or len(poly_px) < 3:
+                continue
+            area_px2 = self._poly_area_px2(poly_px)
+            cx = float(np.mean(poly_px[:, 0])); cy = float(np.mean(poly_px[:, 1]))
+            det_id = self._next_id(image_idx)
+
+            poly_nm = self._px_to_nm(poly_px, sx, sy)
+            path_item = self.viewer.add_polyline_nm(poly_nm, name=f"det-{det_id}")
+            label_item = None  # tworzone on-demand w _update_overlay_visibility()
+
+            self._detections[image_idx].append(
+                Detection(det_id, poly_px.astype(np.float32), (cx, cy), area_px2, path_item, label_item)
+            )
+
+        self._refresh_detections_table()
+        self._update_overlay_visibility()
 
     def _update_roi_preview(self):
         """
@@ -349,40 +556,77 @@ class MainWindow(QMainWindow):
         if self._active_index is None:
             return
         if not self.proc_panel.cb_detect.isChecked():
-            self._clear_overlays(self._active_index)
-            self.statusBar().showMessage("Detection disabled.", 2000)
+            self._refresh_detections_table()
+            self._update_overlay_visibility()
             return
 
         img = self._images[self._active_index]
         roi_rect_nm = self._get_active_roi_rect_nm()
         if roi_rect_nm is None:
-            QMessageBox.information(self, "ROI required", "Please create a ROI (View → Add/Reset Rect ROI) and try again.")
             return
 
-        px_x, px_y = img.get_pixel_size_nm()
+        sx, sy = img.get_pixel_size_nm()
+        source = img.preprocessed_data if getattr(img, "preprocessed_data", None) is not None else img.data
 
         res = run_pipeline(
-            img.preprocessed_data if img.preprocessed_data is not None else img.data,
+            source,
             roi_rect_nm=roi_rect_nm,
-            nm_per_px=(px_x, px_y),
+            nm_per_px=(sx, sy),
             spec=self._spec,
         )
-        new_contours = res["contours"]  # w px
 
-        # Overwrite policy: drop existing contours whose centroid ∈ ROI, then add new
-        existing = self._contours_by_image.get(self._active_index, [])
-        kept = []
-        for c in existing:
-            if not self._point_in_rect_px(self._centroid(c), roi_rect_nm, (px_x, px_y)):
-                kept.append(c)
-        merged = kept + new_contours
-        self._contours_by_image[self._active_index] = merged
+        contours_px = res.get("contours", []) or []
 
-        # Draw overlays for current image
-        self._draw_contours(self._active_index, merged)
+        # Jeśli pipeline zwrócił kontury w nm, przelicz na px
+        if res.get("contours_units") == "nm":
+            fx = 1.0 / (sx or 1.0)
+            fy = 1.0 / (sy or 1.0)
+            conv = []
+            for c in contours_px:
+                conv.append(np.column_stack([c[:, 0] * fx, c[:, 1] * fy]).astype(np.float32))
+            contours_px = conv
 
-        # Optional: status
-        self.statusBar().showMessage(f"Detected {len(new_contours)} objects (total: {len(merged)}).", 5000)
+        # Zapisz i narysuj detekcje dla aktywnego obrazu
+        self._apply_roi_detections(self._active_index, roi_rect_nm, contours_px)
+
+    # def on_detect_roi(self):
+    #     if self._active_index is None:
+    #         return
+    #     if not self.proc_panel.cb_detect.isChecked():
+    #         self._clear_overlays(self._active_index)
+    #         self.statusBar().showMessage("Detection disabled.", 2000)
+    #         return
+
+    #     img = self._images[self._active_index]
+    #     roi_rect_nm = self._get_active_roi_rect_nm()
+    #     if roi_rect_nm is None:
+    #         QMessageBox.information(self, "ROI required", "Please create a ROI (View → Add/Reset Rect ROI) and try again.")
+    #         return
+
+    #     px_x, px_y = img.get_pixel_size_nm()
+
+    #     res = run_pipeline(
+    #         img.preprocessed_data if img.preprocessed_data is not None else img.data,
+    #         roi_rect_nm=roi_rect_nm,
+    #         nm_per_px=(px_x, px_y),
+    #         spec=self._spec,
+    #     )
+    #     new_contours = res["contours"]  # w px
+
+    #     # Overwrite policy: drop existing contours whose centroid ∈ ROI, then add new
+    #     existing = self._contours_by_image.get(self._active_index, [])
+    #     kept = []
+    #     for c in existing:
+    #         if not self._point_in_rect_px(self._centroid(c), roi_rect_nm, (px_x, px_y)):
+    #             kept.append(c)
+    #     merged = kept + new_contours
+    #     self._contours_by_image[self._active_index] = merged
+
+    #     # Draw overlays for current image
+    #     self._draw_contours(self._active_index, merged)
+
+    #     # Optional: status
+    #     self.statusBar().showMessage(f"Detected {len(new_contours)} objects (total: {len(merged)}).", 5000)
 
     def on_add_images_clicked(self):
         """
@@ -433,60 +677,94 @@ class MainWindow(QMainWindow):
             lst.addItem(label)
 
     def on_remove_selected_clicked(self):
-        """
-        Remove the currently selected image entry from the list and memory.
-        """
         row = self.image_list_panel.list.currentRow()
         if row < 0 or row >= len(self._images):
             return
-        # Remove from data and UI
+
+        # posprzątaj nakładki i detekcje dla usuwanego, jeśli był aktywny
+        if self._active_index == row:
+            self.viewer.clear_overlay()
+
         del self._images[row]
         self.image_list_panel.list.takeItem(row)
-        # Clear viewer if nothing selected
+
+        # przesuwamy indeksy w magazynie detekcji
+        if hasattr(self, "_detections"):
+            new_map = {}
+            for k, v in self._detections.items():
+                if k < row:
+                    new_map[k] = v
+                elif k > row:
+                    new_map[k-1] = v
+            self._detections = new_map
+
+        # jeśli lista pusta
         if not self._images:
             self._active_index = None
             self.viewer.clear()
             self.meta_widget.set_metadata(filename="", shape=None, scale_nm_per_px=None, channel=None)
+            self._refresh_detections_table()
             return
-        # Adjust selection to a valid index
+
+        # wybór nowego wiersza i odświeżenie
         new_row = max(0, min(row, len(self._images) - 1))
         self.image_list_panel.list.setCurrentRow(new_row)
 
     def on_image_selected(self, row: int):
-        """
-        Update central viewer and metadata when a list entry is selected.
-        """
         if row < 0 or row >= len(self._images):
             return
         self._active_index = row
         img = self._images[row]
 
-        # Physical pixel sizes (nm/px)
         px_x, px_y = img.get_pixel_size_nm()
-
-        # Pass image and physical scaling; preserve zoom between images
         self.viewer.set_image(
             img.data,
-            scale_nm_per_px=(px_x, px_y),     # maps px grid to nm
-            preserve_zoom=True,               # keep current zoom/pan
+            scale_nm_per_px=(px_x, px_y),
+            preserve_zoom=True,
             auto_levels=True
         )
 
-        # Metadata: include physical size in nm
+        self.viewer.clear_overlay()
+        if row in self._detections:
+            for d in self._detections[row]:
+                d.path_item = None
+                d.label_item = None
+
+        self._refresh_detections_table()
+        self._update_overlay_visibility()  # odtworzy nakładki on-demand
+        self._update_roi_preview()
+
         self.meta_widget.set_metadata(
             filename=str(img.file_name),
             shape=(img.pixels_y, img.pixels_x),
-            size_nm=(img.size_nm_x, img.size_nm_y), 
+            size_nm=(img.size_nm_x, img.size_nm_y),
             scale_nm_per_px=px_x if px_x else None,
             channel=img.image_type
         )
 
+        # pokaż tylko ROI dla bieżącego obrazu
         self.roi_manager.set_active_image(self._active_index)
         if not self.roi_manager.has_roi(self._active_index):
             self.roi_manager.add_centered_rect(self._active_index, size_nm=20.0)
-        conts = self._contours_by_image.get(self._active_index, [])
-        self._draw_contours(self._active_index, conts)
+
+        # odbuduj nakładki i tabelę dla bieżącego obrazu
+        self._rebuild_overlays_for_active_image()
+        self._refresh_detections_table()
+        self._update_overlay_visibility()
         self._update_roi_preview()
+
+    def _rebuild_overlays_for_active_image(self):
+        self.viewer.clear_overlay()
+        idx = self._active_index
+        if idx is None: return
+        img = self._images[idx]
+        sx, sy = img.get_pixel_size_nm()
+        for d in self._detections.get(idx, []):
+            if d.path_item is None:
+                poly_nm = np.column_stack([d.contour_px[:,0]*(sx or 1.0),
+                                        d.contour_px[:,1]*(sy or 1.0)]).astype(np.float32)
+                d.path_item = self.viewer.add_polyline_nm(poly_nm, name=f"det-{d.id}")
+            # etykiety tworzymy on-demand w _update_overlay_visibility()
 
     def on_open_project(self):
         path, _ = QFileDialog.getOpenFileName(self, "Open Project", "", "NaParA Project (*.json *.napara)")
