@@ -14,7 +14,8 @@ from napara.processing.pipeline_spec import PipelineSpec
 from .dialogs.preprocessing_dialog import PreprocessingDialog
 from napara.model.detection_model import Detection
 
-import os
+import os, io, json, zipfile, time
+from datetime import datetime
 import numpy as np
 from collections import defaultdict
 
@@ -33,6 +34,9 @@ class MainWindow(QMainWindow):
         self.detections = defaultdict(list)
         self._detections: dict[int, list[Detection]] = {}   # image_idx -> [Detection]
         self._next_id_counter: dict[int, int] = {}          # image_idx -> next ID
+        self._project_dir: str | None = None
+        self._last_quick_dir: str | None = None
+        self._quick_slot = 0
         self._setup_ui()
         self._connect_signals()
 
@@ -81,6 +85,217 @@ class MainWindow(QMainWindow):
         main_split.setStretchFactor(10, 1)
 
         self.setCentralWidget(main_split)
+
+    def _normalize_project_dir(self, path_or_dir: str) -> str:
+        d = path_or_dir if os.path.isdir(path_or_dir) else os.path.dirname(path_or_dir)
+        if os.path.basename(d).lower() == "saves":
+            d = os.path.dirname(d)
+        return d
+
+    def _quick_root_dir(self) -> str:
+        # priorytet: projekt → wspólny katalog obrazów → ostatni quick → fallback
+        if self._project_dir: 
+            return self._normalize_project_dir(self._project_dir)
+        if getattr(self, "_images", None):
+            roots = [os.path.dirname(str(im.file_name)) for im in self._images]
+            try:
+                return os.path.commonpath(roots)
+            except Exception:
+                return roots[0]
+        if getattr(self, "_last_quick_dir", None):
+            return self._normalize_project_dir(self._last_quick_dir)
+        return self._normalize_project_dir(os.path.expanduser("~/Documents/Napara"))
+    
+    def _rect_to_list(self, rect: QRectF | None) -> list[float]:
+        if rect is None:
+            return [0.0, 0.0, 0.0, 0.0]
+        return [float(rect.x()), float(rect.y()), float(rect.width()), float(rect.height())]
+
+    def _pack_detections(self, dets: list[Detection]) -> dict[str, np.ndarray]:
+        m = len(dets)
+        lens = [len(d.contour_px) for d in dets]
+        offs = np.zeros(m+1, dtype=np.int64)
+        offs[1:] = np.cumsum(lens, dtype=np.int64)
+        coords = np.empty((offs[-1], 2), np.float32)
+        ids = np.empty(m, np.int32)
+        areas = np.empty(m, np.float32)
+        cents = np.empty((m,2), np.float32)
+        pos = 0
+        for i, d in enumerate(dets):
+            n = lens[i]
+            coords[pos:pos+n] = d.contour_px.astype(np.float32, copy=False)
+            ids[i] = d.id
+            areas[i] = d.area_px2
+            cents[i] = d.centroid_px
+            pos += n
+        return {"coords": coords, "offsets": offs, "ids": ids, "areas_px2": areas, "centroids_px": cents}
+
+    def _unpack_detections(self, blob: dict[str, np.ndarray]) -> list[Detection]:
+        coords = blob["coords"]; offs = blob["offsets"]
+        ids = blob["ids"]; areas = blob["areas_px2"]; cents = blob["centroids_px"]
+        out: list[Detection] = []
+        for i in range(len(ids)):
+            sl = slice(offs[i], offs[i+1])
+            poly = coords[sl].astype(np.float32, copy=False)
+            cx, cy = map(float, cents[i])
+            out.append(Detection(int(ids[i]), poly, (cx, cy), float(areas[i])))
+        return out
+    
+    def _save_project_to_path(self, path: str, *, include_preproc: bool = True):
+        if not self._images:
+            raise RuntimeError("No images to save.")
+        # baza ścieżek względnych
+        roots = [os.path.dirname(str(im.file_name)) for im in self._images]
+        base = os.path.commonpath(roots) if roots else os.getcwd()
+        self._project_dir = os.path.dirname(path)
+
+        manifest = {
+            "schema": "napara.project.v1",
+            "created": datetime.now().isoformat(timespec="seconds"),
+            "active_index": self._active_index,
+            "base_dir": base,
+            "images": []
+        }
+
+        with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+            # manifest tymczasowo pusty, uzupełnimy po plikach
+            # zf.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
+
+            for idx, im in enumerate(self._images):
+                rel = os.path.relpath(str(im.file_name), base)
+                r = self.roi_manager.get_rect(idx)
+                info = {
+                    "index": idx,
+                    "name": os.path.basename(str(im.file_name)),
+                    "relpath": rel,
+                    "shape": [im.pixels_y, im.pixels_x],
+                    "size_nm": [im.size_nm_x, im.size_nm_y],
+                    "scale_nm_per_px": list(im.get_pixel_size_nm()),
+                    "channel": im.image_type,
+                    "has_preprocessed": bool(getattr(im, "preprocessed_data", None) is not None) and include_preproc,
+                    "detections": True,
+                    # "roi_rect_nm": list(self.roi_manager.get_rect(self._active_index if self._active_index==idx else idx) or [0,0,0,0]),
+                    "roi_rect_nm": self._rect_to_list(r),
+                }
+                manifest["images"].append(info)
+
+                # detekcje
+                dets = self._detections.get(idx, [])
+                pack = self._pack_detections(dets)
+                buf = io.BytesIO()
+                np.savez_compressed(buf, **pack)
+                zf.writestr(f"images/{idx}/dets.npz", buf.getvalue())
+
+                # preproc
+                if info["has_preprocessed"]:
+                    arr = im.preprocessed_data.astype(np.float32, copy=False)
+                    buf = io.BytesIO()
+                    np.savez_compressed(buf, arr=arr)
+                    zf.writestr(f"images/{idx}/preprocessed.npz", buf.getvalue())
+
+            # zaktualizuj manifest w archiwum
+            zf.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
+    
+    def _load_project_from_path(self, path: str):
+        with zipfile.ZipFile(path, "r") as zf:
+            man = json.loads(zf.read("manifest.json").decode("utf-8"))
+            base = man.get("base_dir") or os.path.dirname(path)
+            # wyczyść stan
+            self.viewer.clear_overlay()
+            self._images.clear()
+            self.image_list_panel.list.clear()
+            self._detections.clear()
+            self._next_id_counter.clear()
+
+            # odtwórz obrazy
+            for info in man["images"]:
+                abs_path = os.path.join(base, info["relpath"])
+                # wczytaj z oryginału (Factory)
+                try:
+                    imgs = load_from_paths([abs_path])  # użyj Twojej fabryki
+                    im = imgs[0]
+                except Exception:
+                    # jeśli nie ma pliku, pomiń lub zrób placeholder
+                    continue
+
+                # przypnij preproc z projektu
+                pfile = f"images/{info['index']}/preprocessed.npz"
+                if pfile in zf.namelist():
+                    arr = np.load(io.BytesIO(zf.read(pfile)))["arr"]
+                    im.preprocessed_data = arr.astype(np.float32, copy=False)
+
+                # dodaj do UI
+                self._images.append(im)
+                self.image_list_panel.list.addItem(str(im.file_name))
+
+                roi = info.get("roi_rect_nm")
+                if isinstance(roi, (list, tuple)) and len(roi) == 4 and roi[2] > 0 and roi[3] > 0:
+                    self.roi_manager.set_rect_roi(len(self._images)-1, QRectF(*roi))
+
+                # detekcje
+                dfile = f"images/{info['index']}/dets.npz"
+                if dfile in zf.namelist():
+                    npz = np.load(io.BytesIO(zf.read(dfile)))
+                    dets = self._unpack_detections({k: npz[k] for k in npz.files})
+                    self._detections[len(self._images)-1] = dets
+                    # ustaw next_id
+                    max_id = max([d.id for d in dets], default=0)
+                    self._next_id_counter[len(self._images)-1] = max_id + 1
+
+            # aktywuj obraz
+            ai = man.get("active_index", 0)
+            if 0 <= ai < len(self._images):
+                self.image_list_panel.list.setCurrentRow(ai)
+            else:
+                self.image_list_panel.list.setCurrentRow(0)
+
+        # odbuduj overlay i tabelę
+        self._rebuild_overlays_for_active_image()
+        self._refresh_detections_table()
+        self._update_overlay_visibility()
+
+    def quick_save(self):
+        root = self._quick_root_dir()
+        saves = os.path.join(root, "saves")
+        os.makedirs(saves, exist_ok=True)
+        path = os.path.join(saves, f"quick_{self._quick_slot % 3}.napara")
+        self._save_project_to_path(path, include_preproc=True)
+        self._quick_slot += 1
+        self._last_quick_dir = root
+        self.statusBar().showMessage(f"Quick-saved to: {path}", 3000)
+
+    def quick_load(self):
+        root = self._quick_root_dir()
+        saves = os.path.join(root, "saves")
+        if not os.path.isdir(saves):
+            QMessageBox.information(self, "Quick Load", f"No quick saves in: {saves}")
+            return
+        candidates = []
+        for i in range(3):
+            p = os.path.join(saves, f"quick_{i}.napara")
+            if os.path.isfile(p):
+                candidates.append((os.path.getmtime(p), p))
+        if not candidates:
+            QMessageBox.information(self, "Quick Load", f"No quick saves in: {saves}")
+            return
+        _, latest = max(candidates)
+        self._load_project_from_path(latest)
+        self._project_dir = self._normalize_project_dir(latest)  # kluczowe
+        self._last_quick_dir = root
+        self.statusBar().showMessage(f"Quick-loaded: {latest}", 3000)
+    
+    def save_as(self):
+        path, _ = QFileDialog.getSaveFileName(self, "Save project as", "", "Napara Project (*.napara)")
+        if not path: return
+        if not path.endswith(".napara"): path += ".napara"
+        self._save_project_to_path(path, include_preproc=True)
+        self._project_dir = self._normalize_project_dir(path)
+
+    def open_project(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Open project", "", "Napara Project (*.napara)")
+        if not path: return
+        self._load_project_from_path(path)
+        self._project_dir = self._normalize_project_dir(path)
 
     def _next_id(self, idx: int) -> int:
         n = self._next_id_counter.get(idx, 1)
@@ -402,29 +617,29 @@ class MainWindow(QMainWindow):
 
         self.act_open_project = QAction("Open Project…", self)
         self.act_open_project.setShortcut(QKeySequence.StandardKey.Open)
-        self.act_open_project.triggered.connect(self.on_open_project)
+        self.act_open_project.triggered.connect(self.open_project)
         file_menu.addAction(self.act_open_project)
 
         self.act_quickload = QAction("Quick Load", self)
-        self.act_quickload.setShortcut("Ctrl+L")
-        self.act_quickload.triggered.connect(self.on_quick_load)
+        self.act_quickload.setShortcut("Ctrl+D")
+        self.act_quickload.triggered.connect(self.quick_load)
         file_menu.addAction(self.act_quickload)
 
         file_menu.addSeparator()
 
-        self.act_save = QAction("Save", self)
-        self.act_save.setShortcut(QKeySequence.StandardKey.Save)
-        self.act_save.triggered.connect(self.on_save)
-        file_menu.addAction(self.act_save)
+        # self.act_save = QAction("Save", self)
+        # self.act_save.setShortcut(QKeySequence.StandardKey.Save)
+        # self.act_save.triggered.connect(self.on_save)
+        # file_menu.addAction(self.act_save)
 
         self.act_save_as = QAction("Save As…", self)
         self.act_save_as.setShortcut(QKeySequence.StandardKey.SaveAs)
-        self.act_save_as.triggered.connect(self.on_save_as)
+        self.act_save_as.triggered.connect(self.save_as)
         file_menu.addAction(self.act_save_as)
 
         self.act_quicksave = QAction("Quick Save", self)
         self.act_quicksave.setShortcut("Ctrl+S")
-        self.act_quicksave.triggered.connect(self.on_quick_save)
+        self.act_quicksave.triggered.connect(self.quick_save)
         file_menu.addAction(self.act_quicksave)
 
         file_menu.addSeparator()
