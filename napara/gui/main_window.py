@@ -122,12 +122,14 @@ class MainWindow(QMainWindow):
     def _pack_detections(self, dets: list[Detection]) -> dict[str, np.ndarray]:
         m = len(dets)
         lens = [len(d.contour_px) for d in dets]
-        offs = np.zeros(m+1, dtype=np.int64)
-        offs[1:] = np.cumsum(lens, dtype=np.int64)
+        offs = np.zeros(m+1, dtype=np.int64); offs[1:] = np.cumsum(lens, dtype=np.int64)
         coords = np.empty((offs[-1], 2), np.float32)
         ids = np.empty(m, np.int32)
         areas = np.empty(m, np.float32)
         cents = np.empty((m,2), np.float32)
+        nn_id = np.full(m, -1, np.int32)         # -1 = brak
+        nn_dist = np.full(m, np.nan, np.float32) # NaN = brak
+
         pos = 0
         for i, d in enumerate(dets):
             n = lens[i]
@@ -135,18 +137,43 @@ class MainWindow(QMainWindow):
             ids[i] = d.id
             areas[i] = d.area_px2
             cents[i] = d.centroid_px
+            if d.nn_id is not None:
+                nn_id[i] = int(d.nn_id)
+            if d.nn_dist_nm is not None:
+                nn_dist[i] = float(d.nn_dist_nm)
             pos += n
-        return {"coords": coords, "offsets": offs, "ids": ids, "areas_px2": areas, "centroids_px": cents}
 
+        return {
+            "coords": coords, "offsets": offs, "ids": ids,
+            "areas_px2": areas, "centroids_px": cents,
+            "nn_id": nn_id, "nn_dist_nm": nn_dist,
+        }
+    
     def _unpack_detections(self, blob: dict[str, np.ndarray]) -> list[Detection]:
         coords = blob["coords"]; offs = blob["offsets"]
         ids = blob["ids"]; areas = blob["areas_px2"]; cents = blob["centroids_px"]
+        nn_id = blob.get("nn_id", None)
+        nn_dist = blob.get("nn_dist_nm", None)
+
         out: list[Detection] = []
         for i in range(len(ids)):
             sl = slice(offs[i], offs[i+1])
             poly = coords[sl].astype(np.float32, copy=False)
             cx, cy = map(float, cents[i])
-            out.append(Detection(int(ids[i]), poly, (cx, cy), float(areas[i])))
+
+            nid = int(nn_id[i]) if nn_id is not None else -1
+            ndist = float(nn_dist[i]) if nn_dist is not None else float("nan")
+            nid = None if nid < 0 else nid
+            ndist = None if not np.isfinite(ndist) else ndist
+
+            out.append(Detection(
+                id=int(ids[i]),
+                contour_px=poly,
+                centroid_px=(cx, cy),
+                area_px2=float(areas[i]),
+                nn_id=nid,
+                nn_dist_nm=ndist,
+            ))
         return out
     
     def _save_project_to_path(self, path: str, *, include_preproc: bool = True):
