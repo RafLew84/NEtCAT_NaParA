@@ -2,7 +2,8 @@ from PyQt6.QtCore import Qt, QPointF, QRectF
 from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import (
     QDockWidget, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QDialog, QMainWindow,
-    QCheckBox, QTableWidget, QTableWidgetItem, QPushButton, QFileDialog, QMessageBox
+    QCheckBox, QTableWidget, QTableWidgetItem, QPushButton, QFileDialog, QMessageBox,
+    QListWidgetItem
 )
 
 from .panels.image_list_panel import ImageListPanel
@@ -226,7 +227,10 @@ class MainWindow(QMainWindow):
 
                 # dodaj do UI
                 self._images.append(im)
-                self.image_list_panel.list.addItem(str(im.file_name))
+                name = info.get("name") or os.path.basename(str(im.file_name))
+                item = QListWidgetItem(name)
+                item.setToolTip(os.path.abspath(abs_path))  # pełna ścieżka w podpowiedzi
+                self.image_list_panel.list.addItem(item)
 
                 roi = info.get("roi_rect_nm")
                 if isinstance(roi, (list, tuple)) and len(roi) == 4 and roi[2] > 0 and roi[3] > 0:
