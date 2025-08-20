@@ -13,11 +13,12 @@ from .widgets.viewer_widget import ViewerWidget
 from napara.logic.roi_manager import ROIManager
 from napara.processing.pipeline_spec import PipelineSpec
 from .dialogs.preprocessing_dialog import PreprocessingDialog
-from napara.model.detection_model import Detection
+from ..core.data_models import Detection
 
 import os, io, json, zipfile, time
 from datetime import datetime
 import numpy as np
+from scipy.spatial import cKDTree
 from collections import defaultdict
 
 from napara.io.factory import load_from_paths
@@ -338,11 +339,13 @@ class MainWindow(QMainWindow):
         vvis.addWidget(self.chk_show_contours)
         vvis.addWidget(self.chk_show_labels)
         v.addWidget(box_vis)
+        self.btn_nn = QPushButton("Detect nearest neighbours", w)
+        v.addWidget(self.btn_nn)
 
         # tabela
         self.det_table = QTableWidget(w)
-        self.det_table.setColumnCount(2)
-        self.det_table.setHorizontalHeaderLabels(["ID", "Area [nm²]"])
+        self.det_table.setColumnCount(4)
+        self.det_table.setHorizontalHeaderLabels(["ID", "Area [nm²]",  "NN ID", "NNeighbour [nm]"])
         self.det_table.setSelectionBehavior(self.det_table.SelectionBehavior.SelectRows)
         self.det_table.setSelectionMode(self.det_table.SelectionMode.SingleSelection)
         self.det_table.verticalHeader().setVisible(False)
@@ -367,6 +370,7 @@ class MainWindow(QMainWindow):
         self.det_table.itemSelectionChanged.connect(self._on_select_detection)
         self.btn_det_delete.clicked.connect(self._on_delete_selected)
         self.btn_det_clear.clicked.connect(self._on_clear_all)
+        self.btn_nn.clicked.connect(self._on_detect_nearest_neighbours)
 
         # start
         self._refresh_detections_table()
@@ -375,19 +379,61 @@ class MainWindow(QMainWindow):
         idx = getattr(self, "_active_index", None)
         rows = []
         if idx is not None and idx in self._detections:
-            img = self._images[idx]
-            sx, sy = img.get_pixel_size_nm()
+            img = self._images[idx]; sx, sy = img.get_pixel_size_nm()
             for d in self._detections[idx]:
                 area_nm2 = d.area_px2 * (sx or 1.0) * (sy or 1.0)
-                rows.append((d.id, area_nm2))
+                rows.append((d.id, area_nm2, d.nn_id, d.nn_dist_nm))
 
         self.det_table.setRowCount(len(rows))
-        for r, (det_id, area_nm2) in enumerate(rows):
+        for r, (det_id, area_nm2, nn_id, nn_nm) in enumerate(rows):
             self.det_table.setItem(r, 0, QTableWidgetItem(str(det_id)))
-            it = QTableWidgetItem(f"{area_nm2:.2f}")
-            it.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            self.det_table.setItem(r, 1, it)
+
+            it_area = QTableWidgetItem(f"{area_nm2:.2f}")
+            it_area.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self.det_table.setItem(r, 1, it_area)
+
+            it_nnid = QTableWidgetItem("" if nn_id is None else str(nn_id))
+            it_nnid.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self.det_table.setItem(r, 2, it_nnid)
+
+            it_nn = QTableWidgetItem("" if nn_nm is None else f"{nn_nm:.2f}")
+            it_nn.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self.det_table.setItem(r, 3, it_nn)
+
         self.det_table.resizeColumnsToContents()
+
+    def _on_detect_nearest_neighbours(self):
+        idx = self._active_index
+        if idx is None or idx not in self._detections:
+            return
+        dets = self._detections[idx]
+        if len(dets) < 2:
+            # nic do liczenia
+            for d in dets:
+                d.nn_id = None
+                d.nn_dist_nm = None
+            self._refresh_detections_table()
+            return
+
+        img = self._images[idx]
+        sx, sy = img.get_pixel_size_nm()  # nm/px
+
+        # punkty w nm
+        pts = np.array([[d.centroid_px[0] * (sx or 1.0),
+                        d.centroid_px[1] * (sy or 1.0)] for d in dets],
+                    dtype=np.float64)
+
+        tree = cKDTree(pts)
+        # k=2: pierwszy to punkt sam w sobie, drugi to NN
+        dist, nn_idx = tree.query(pts, k=2)
+        nn_d = dist[:, 1]
+        nn_i = nn_idx[:, 1]
+
+        for i, d in enumerate(dets):
+            d.nn_id = dets[int(nn_i[i])].id
+            d.nn_dist_nm = float(nn_d[i])
+
+        self._refresh_detections_table()
 
     def _on_toggle_contours(self, checked: bool):
         self._show_contours = checked
@@ -410,6 +456,7 @@ class MainWindow(QMainWindow):
         if d.path_item: self.viewer.remove_item(d.path_item)
         if d.label_item: self.viewer.remove_item(d.label_item)
         self._refresh_detections_table()
+        self._on_detect_nearest_neighbours()
         self._update_overlay_visibility()
 
     def _on_clear_all(self):

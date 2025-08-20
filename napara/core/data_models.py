@@ -56,3 +56,14 @@ class STMImage:
         px_x = self.size_nm_x / self.pixels_x if self.pixels_x > 0 and self.size_nm_x > 0 else None
         px_y = self.size_nm_y / self.pixels_y if self.pixels_y > 0 and self.size_nm_y > 0 else None
         return px_x, px_y
+    
+@dataclass
+class Detection:
+    id: int
+    contour_px: np.ndarray              # (N,2) w pikselach GLOBALNYCH
+    centroid_px: tuple[float, float]
+    area_px2: float
+    path_item: object = None  
+    label_item: object = None 
+    nn_id: Optional[int] = None       
+    nn_dist_nm: Optional[float] = None
