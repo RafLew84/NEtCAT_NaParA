@@ -1,5 +1,5 @@
 from PyQt6.QtCore import Qt, QPointF, QRectF
-from PyQt6.QtGui import QAction, QKeySequence
+from PyQt6.QtGui import QAction, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QDockWidget, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QDialog, QMainWindow,
     QCheckBox, QTableWidget, QTableWidgetItem, QPushButton, QFileDialog, QMessageBox,
@@ -40,6 +40,12 @@ class MainWindow(QMainWindow):
         self._quick_slot = 0
         self._setup_ui()
         self._connect_signals()
+
+        self._sc_detect_return = QShortcut(QKeySequence(Qt.Key.Key_Return), self)
+        self._sc_detect_enter  = QShortcut(QKeySequence(Qt.Key.Key_Enter), self)
+        for sc in (self._sc_detect_return, self._sc_detect_enter):
+            sc.setContext(Qt.ShortcutContext.WindowShortcut)
+            sc.activated.connect(self.on_detect_roi)
 
         self.roi_manager = ROIManager(self.viewer.get_plot_item(), self)
         self.roi_manager.roiAdded.connect(self.on_roi_added)
