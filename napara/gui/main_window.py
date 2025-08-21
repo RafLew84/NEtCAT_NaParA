@@ -13,6 +13,7 @@ from .widgets.viewer_widget import ViewerWidget
 from napara.logic.roi_manager import ROIManager
 from napara.processing.pipeline_spec import PipelineSpec
 from .dialogs.preprocessing_dialog import PreprocessingDialog
+from .dialogs.results_dialog import ResultsDialog
 from ..core.data_models import Detection
 
 import os, io, json, zipfile, time
@@ -368,6 +369,8 @@ class MainWindow(QMainWindow):
         v.addWidget(box_vis)
         self.btn_nn = QPushButton("Detect nearest neighbours", w)
         v.addWidget(self.btn_nn)
+        self.btn_show_results = QPushButton("Show results", w)
+        v.addWidget(self.btn_show_results)
 
         # tabela
         self.det_table = QTableWidget(w)
@@ -398,9 +401,18 @@ class MainWindow(QMainWindow):
         self.btn_det_delete.clicked.connect(self._on_delete_selected)
         self.btn_det_clear.clicked.connect(self._on_clear_all)
         self.btn_nn.clicked.connect(self._on_detect_nearest_neighbours)
+        self.btn_show_results.clicked.connect(self._on_show_results)
 
         # start
         self._refresh_detections_table()
+    
+
+    def _on_show_results(self):
+        if not hasattr(self, "_results_dlg") or self._results_dlg is None:
+            self._results_dlg = ResultsDialog(self)
+        self._results_dlg.set_data(self._images, self._detections)
+        self._results_dlg.refresh_all()
+        self._results_dlg.show(); self._results_dlg.raise_(); self._results_dlg.activateWindow()
 
     def _refresh_detections_table(self):
         idx = getattr(self, "_active_index", None)
