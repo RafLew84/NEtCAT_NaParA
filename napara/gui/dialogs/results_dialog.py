@@ -1,5 +1,5 @@
 # napara/gui/results_dialog.py
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QTabWidget, QWidget
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QTabWidget, QWidget, QFileDialog, QHBoxLayout
 from PyQt6.QtCore import Qt
 import numpy as np
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -8,6 +8,8 @@ try:
     from scipy.stats import gaussian_kde
 except Exception:
     gaussian_kde = None
+
+import os, re
 
 class _Mpl(FigureCanvas):
     def __init__(self):
@@ -25,6 +27,12 @@ class ResultsDialog(QDialog):
         self._detections = {}
         self._names = []
         self._scales = []  # (sx, sy) nm/px per image
+
+        self._img_ids = []          # numery z nazw plików
+        self._meta = {}             # id -> (time_s, ep_mV)
+        self._x_mode = "index"      # "index"|"time"|"ep"
+        self._x_time = None         # array[n] lub None
+        self._x_ep = None           # array[n] lub None
 
         tabs = QTabWidget(self)
         # --- Per-image tab ---
@@ -45,6 +53,15 @@ class ResultsDialog(QDialog):
 
         # --- Summary tab ---
         summ = QWidget(self); summ_v = QVBoxLayout(summ)
+        summ_head = QHBoxLayout()
+        self.btn_import_meta = QPushButton("Import metadata…", summ)
+        summ_head.addWidget(self.btn_import_meta)
+        summ_head.addStretch(1)
+        summ_head.addWidget(QLabel("X axis:", summ))
+        self.cmb_xaxis = QComboBox(summ)
+        self.cmb_xaxis.addItems(["Image index", "Time [s]", "Ep vs RHE [mV]"])
+        summ_head.addWidget(self.cmb_xaxis)
+        summ_v.addLayout(summ_head)  # to jest PRZED plot_mean_area i plot_mean_nn
         self.plot_mean_area = _Mpl()
         self.plot_mean_nn = _Mpl()
         summ_v.addWidget(self.plot_mean_area, 1)
@@ -60,6 +77,8 @@ class ResultsDialog(QDialog):
         # signals
         self.cmb_img.currentIndexChanged.connect(self._update_per_image)
         self.btn_refresh.clicked.connect(self.refresh_all)
+        self.btn_import_meta.clicked.connect(self._on_import_meta)
+        self.cmb_xaxis.currentIndexChanged.connect(self._on_xaxis_changed)
 
     # API
     def set_data(self, images, detections: dict[int, list]):
@@ -74,6 +93,66 @@ class ResultsDialog(QDialog):
         self.cmb_img.blockSignals(False)
         if self._names:
             self.cmb_img.setCurrentIndex(0)
+        self._names = [os.path.basename(str(getattr(im, "file_name", f"img_{i}"))) for i, im in enumerate(images)]
+        self._img_ids = [self._extract_id(nm) for nm in self._names]
+
+    def _extract_id(self, name: str) -> int | None:
+        """Wyciągnij pierwszy blok cyfr z nazwy (np. '3839a.stp' -> 3839)."""
+        m = re.search(r"(\d+)", name)
+        return int(m.group(1)) if m else None
+
+    def _on_import_meta(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Import metadata", "", "Text/CSV (*.txt *.csv);;All files (*)")
+        if not path:
+            return
+        meta = {}
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                # pomiń nagłówek, parsuj wiersze: file \t time_[s] \t Ep_vs_RHE_[mV]
+                lines = [ln.strip() for ln in f if ln.strip()]
+            # znajdź start danych: pomiń nagłówek jeśli jest
+            start = 0
+            if not lines[0][0].isdigit():
+                start = 1
+            for ln in lines[start:]:
+                parts = re.split(r"[,\t; ]+", ln.strip())
+                if len(parts) < 3:
+                    continue
+                # pierwszy element = identyfikator pliku (liczba)
+                try:
+                    fid = int(re.sub(r"\D", "", parts[0]))
+                except Exception:
+                    continue
+                # zamień przecinek na kropkę w liczbach
+                def to_float(s):
+                    return float(s.replace(",", "."))
+                try:
+                    t = to_float(parts[1])
+                    ep = to_float(parts[2])
+                except Exception:
+                    continue
+                meta[fid] = (t, ep)
+        except Exception as e:
+            # prosty komunikat, bez QMessageBox żeby trzymać dialog niezależny
+            print("Metadata import error:", e)
+            return
+
+        self._meta = meta
+        # zbuduj osie X dla obecnych obrazów
+        n = len(self._images)
+        self._x_time = np.full(n, np.nan, float)
+        self._x_ep   = np.full(n, np.nan, float)
+        for i, fid in enumerate(self._img_ids):
+            if fid is not None and fid in meta:
+                self._x_time[i] = float(meta[fid][0])
+                self._x_ep[i]   = float(meta[fid][1])
+
+        self._update_summary()
+
+    def _on_xaxis_changed(self, _idx: int):
+        txt = self.cmb_xaxis.currentText()
+        self._x_mode = "index" if "index" in txt.lower() else ("time" if "time" in txt.lower() else "ep")
+        self._update_summary()
 
     def refresh_all(self):
         self._update_per_image()
@@ -120,18 +199,34 @@ class ResultsDialog(QDialog):
         for i in range(n):
             a = self._areas_nm2(i); mean_area[i] = np.nan if a.size==0 else float(np.mean(a))
             d = self._nnd_nm(i);   mean_nn[i]   = np.nan if d.size==0 else float(np.mean(d))
-        x = np.arange(n)
 
+        # wybór osi X
+        if self._x_mode == "time" and self._x_time is not None and np.isfinite(self._x_time).any():
+            x = self._x_time.copy()
+            xlabel = "Time [s]"
+            xticks = None
+        elif self._x_mode == "ep" and self._x_ep is not None and np.isfinite(self._x_ep).any():
+            x = self._x_ep.copy()
+            xlabel = "Ep vs RHE [mV]"
+            xticks = None
+        else:
+            x = np.arange(n)
+            xlabel = "Image index"
+            xticks = self._names
+
+        # rysuj
         self.plot_mean_area.ax.clear()
         self.plot_mean_area.ax.plot(x, mean_area, marker="o")
         self.plot_mean_area.ax.set_title("Mean area per image")
-        self.plot_mean_area.ax.set_xlabel("Image index"); self.plot_mean_area.ax.set_ylabel("Mean area [nm²]")
-        self.plot_mean_area.ax.set_xticks(x); self.plot_mean_area.ax.set_xticklabels(self._names, rotation=45, ha="right")
+        self.plot_mean_area.ax.set_xlabel(xlabel); self.plot_mean_area.ax.set_ylabel("Mean area [nm²]")
+        if xticks is not None:
+            self.plot_mean_area.ax.set_xticks(x); self.plot_mean_area.ax.set_xticklabels(xticks, rotation=45, ha="right")
 
         self.plot_mean_nn.ax.clear()
         self.plot_mean_nn.ax.plot(x, mean_nn, marker="o")
         self.plot_mean_nn.ax.set_title("Mean NN distance per image")
-        self.plot_mean_nn.ax.set_xlabel("Image index"); self.plot_mean_nn.ax.set_ylabel("Mean NN [nm]")
-        self.plot_mean_nn.ax.set_xticks(x); self.plot_mean_nn.ax.set_xticklabels(self._names, rotation=45, ha="right")
+        self.plot_mean_nn.ax.set_xlabel(xlabel); self.plot_mean_nn.ax.set_ylabel("Mean NN [nm]")
+        if xticks is not None:
+            self.plot_mean_nn.ax.set_xticks(x); self.plot_mean_nn.ax.set_xticklabels(xticks, rotation=45, ha="right")
 
         self.plot_mean_area.draw(); self.plot_mean_nn.draw()
