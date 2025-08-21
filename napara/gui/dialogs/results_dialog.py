@@ -10,6 +10,7 @@ except Exception:
     gaussian_kde = None
 
 import os, re
+import csv
 
 class _Mpl(FigureCanvas):
     def __init__(self):
@@ -56,6 +57,8 @@ class ResultsDialog(QDialog):
         summ_head = QHBoxLayout()
         self.btn_import_meta = QPushButton("Import metadata…", summ)
         summ_head.addWidget(self.btn_import_meta)
+        self.btn_export = QPushButton("Export results…", summ)
+        summ_head.addWidget(self.btn_export)
         summ_head.addStretch(1)
         summ_head.addWidget(QLabel("X axis:", summ))
         self.cmb_xaxis = QComboBox(summ)
@@ -79,6 +82,7 @@ class ResultsDialog(QDialog):
         self.btn_refresh.clicked.connect(self.refresh_all)
         self.btn_import_meta.clicked.connect(self._on_import_meta)
         self.cmb_xaxis.currentIndexChanged.connect(self._on_xaxis_changed)
+        self.btn_export.clicked.connect(self._on_export_results)
 
     # API
     def set_data(self, images, detections: dict[int, list]):
@@ -230,3 +234,64 @@ class ResultsDialog(QDialog):
             self.plot_mean_nn.ax.set_xticks(x); self.plot_mean_nn.ax.set_xticklabels(xticks, rotation=45, ha="right")
 
         self.plot_mean_area.draw(); self.plot_mean_nn.draw()
+
+    def _on_export_results(self):
+        if not self._images:
+            return
+        root = QFileDialog.getExistingDirectory(self, "Choose output folder")
+        if not root:
+            return
+        out = os.path.join(root, "wyniki")
+        os.makedirs(out, exist_ok=True)
+
+        # 1) CSV: summary
+        summ_csv = os.path.join(out, "summary.csv")
+        with open(summ_csv, "w", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            w.writerow(["image_index","image_name","image_id","time_s","ep_vs_rhe_mV",
+                        "count","mean_area_nm2","mean_nn_nm"])
+            for i, nm in enumerate(self._names):
+                dets = self._detections.get(i, [])
+                a = self._areas_nm2(i)
+                d = self._nnd_nm(i)
+                mean_a = "" if a.size==0 else f"{np.mean(a):.6g}"
+                mean_d = "" if d.size==0 else f"{np.mean(d):.6g}"
+                time = "" if self._x_time is None or not np.isfinite(self._x_time[i]) else f"{self._x_time[i]:.6g}"
+                ep   = "" if self._x_ep   is None or not np.isfinite(self._x_ep[i])   else f"{self._x_ep[i]:.6g}"
+                img_id = "" if self._img_ids[i] is None else str(self._img_ids[i])
+                w.writerow([i, nm, img_id, time, ep, len(dets), mean_a, mean_d])
+
+        # 2) CSV: detekcje w układzie "long"
+        det_csv = os.path.join(out, "detections_long.csv")
+        with open(det_csv, "w", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            w.writerow(["image_index","image_name","image_id","det_id","area_nm2","nn_id","nn_nm"])
+            for i, nm in enumerate(self._names):
+                dets = self._detections.get(i, [])
+                sx, sy = self._scales[i] if i < len(self._scales) else (1.0, 1.0)
+                img_id = "" if self._img_ids[i] is None else str(self._img_ids[i])
+                for d in dets:
+                    area_nm2 = d.area_px2 * (sx or 1.0) * (sy or 1.0)
+                    nnid = "" if d.nn_id is None else d.nn_id
+                    nnd  = "" if d.nn_dist_nm is None else f"{d.nn_dist_nm:.6g}"
+                    w.writerow([i, nm, img_id, d.id, f"{area_nm2:.6g}", nnid, nnd])
+
+        # 3) PNG: summary plots (zgodne z aktualną osią X)
+        self._update_summary()  # aktualizuj figury
+        self.plot_mean_area.fig.savefig(os.path.join(out, "summary_mean_area.png"), dpi=150, bbox_inches="tight")
+        self.plot_mean_nn.fig.savefig(  os.path.join(out, "summary_mean_nn.png"),   dpi=150, bbox_inches="tight")
+
+        # 4) PNG: per-image dystrybucje (area i NN)
+        for i, nm in enumerate(self._names):
+            a = self._areas_nm2(i)
+            d = self._nnd_nm(i)
+
+            # area
+            fig = Figure(constrained_layout=True); ax = fig.add_subplot(111)
+            self._plot_kde_or_hist(ax, a, "Area [nm²]", f"Area distribution — {nm}")
+            fig.savefig(os.path.join(out, f"area_{i:03d}_{nm}.png"), dpi=150, bbox_inches="tight")
+
+            # NN
+            fig2 = Figure(constrained_layout=True); ax2 = fig2.add_subplot(111)
+            self._plot_kde_or_hist(ax2, d, "NN distance [nm]", f"Nearest-neighbour — {nm}")
+            fig2.savefig(os.path.join(out, f"nn_{i:03d}_{nm}.png"), dpi=150, bbox_inches="tight")
