@@ -1,7 +1,7 @@
 from PyQt6.QtCore import Qt, QPointF, QRectF
 from PyQt6.QtGui import QAction, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
-    QDockWidget, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QDialog, QMainWindow,
+    QApplication, QDockWidget, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QDialog, QMainWindow,
     QCheckBox, QTableWidget, QTableWidgetItem, QPushButton, QFileDialog, QMessageBox,
     QListWidgetItem
 )
@@ -34,6 +34,8 @@ class MainWindow(QMainWindow):
         self._overlay_items = {}      # dict[int, list[pg.PlotDataItem]]  # drawn items per image
         self._spec = PipelineSpec()   # default pipeline
         self._active_index = None  # int | None
+        self._unet_model = None
+        self._unet_device = None
         self.detections = defaultdict(list)
         self._detections: dict[int, list[Detection]] = {}   # image_idx -> [Detection]
         self._next_id_counter: dict[int, int] = {}          # image_idx -> next ID
@@ -758,6 +760,9 @@ class MainWindow(QMainWindow):
         self.act_preprocess = QAction("Full Image Preprocessing...", self)
         self.act_preprocess.triggered.connect(self.on_preprocess_image)
         an_menu.addAction(self.act_preprocess)
+        self.act_unet_denoise = QAction("Apply U-Net denoiser", self)
+        self.act_unet_denoise.triggered.connect(self.on_apply_unet_denoiser)
+        an_menu.addAction(self.act_unet_denoise)
 
         view_menu = menubar.addMenu("&View")
         self.act_toggle_statusbar = QAction("Status Bar", self, checkable=True, checked=True)
@@ -862,6 +867,53 @@ class MainWindow(QMainWindow):
                 self._update_roi_preview()
             else:
                 self.statusBar().showMessage("Preprocessing was accepted, but no data was returned.", 4000)
+
+    def _ensure_unet_loaded(self) -> bool:
+        if self._unet_model is not None and self._unet_device is not None:
+            return True
+        try:
+            from napara.processing.denoise_unet import load_unet
+        except ImportError as e:
+            QMessageBox.critical(self, "U-Net unavailable", f"PyTorch is required to run the denoiser.\n{e}")
+            return False
+        try:
+            self._unet_model, self._unet_device = load_unet()
+            return True
+        except FileNotFoundError as e:
+            QMessageBox.critical(self, "U-Net weights missing", str(e))
+        except Exception as e:
+            QMessageBox.critical(self, "U-Net load error", str(e))
+        return False
+
+    def on_apply_unet_denoiser(self):
+        if self._active_index is None:
+            QMessageBox.information(self, "No Image", "Select an image before applying the U-Net denoiser.")
+            return
+        if not self._ensure_unet_loaded():
+            return
+
+        img = self._images[self._active_index]
+        source = img.preprocessed_data if getattr(img, "preprocessed_data", None) is not None else img.data
+        if source is None:
+            QMessageBox.warning(self, "No data", "Active image has no pixel data.")
+            return
+
+        try:
+            from napara.processing.denoise_unet import denoise_stm_image
+        except ImportError as e:
+            QMessageBox.critical(self, "U-Net unavailable", f"PyTorch is required to run the denoiser.\n{e}")
+            return
+
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            out = denoise_stm_image(source, self._unet_model, self._unet_device)
+            img.preprocessed_data = out.astype(np.float32, copy=False)
+            self.statusBar().showMessage("U-Net denoising applied.", 4000)
+            self._update_roi_preview()
+        except Exception as e:
+            QMessageBox.critical(self, "U-Net denoise error", str(e))
+        finally:
+            QApplication.restoreOverrideCursor()
 
     def on_detect_roi(self):
         if self._active_index is None:

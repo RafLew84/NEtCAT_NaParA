@@ -15,6 +15,7 @@ from typing import Optional
 from napara.processing.pipeline import run_heavy_preprocessing
 from napara.processing.pipeline_spec import HeavyPreprocSpec
 from napara.processing.pipeline import DEFAULT_ORDER
+from napara.processing.denoise_unet import denoise_stm_image, load_unet
 
 import json, datetime, os
 
@@ -29,6 +30,8 @@ class PreprocessingDialog(QDialog):
         super().__init__(parent)
         self.original_image = original_image
         self.processed_image = None  # Tutaj zapiszemy finalny wynik
+        self._unet_model = None
+        self._unet_device = None
 
         self._build_ui()
         self._connect_signals()
@@ -61,6 +64,8 @@ class PreprocessingDialog(QDialog):
         # pasek u góry
         top_btn_layout = QHBoxLayout()
         top_btn_layout.addStretch(1)
+        self.btn_unet = QPushButton("Apply U-Net denoiser", self)
+        top_btn_layout.addWidget(self.btn_unet)
         self.btn_process = QPushButton("Process", self)
         top_btn_layout.addWidget(self.btn_process)
         root_layout.addLayout(top_btn_layout)
@@ -394,6 +399,7 @@ class PreprocessingDialog(QDialog):
     def _connect_signals(self):
         """Łączy sygnały UI z odpowiednimi metodami (slotami)."""
         self.btn_process.clicked.connect(self._on_process_clicked)
+        self.btn_unet.clicked.connect(self._on_apply_unet_clicked)
         self.btn_ok.clicked.connect(self.accept)
         self.btn_cancel.clicked.connect(self.reject)
         
@@ -515,6 +521,39 @@ class PreprocessingDialog(QDialog):
     def get_processed_image(self) -> Optional[np.ndarray]:
         """Zwraca przetworzony obraz po zamknięciu dialogu przyciskiem OK."""
         return self.processed_image
+
+    def _ensure_unet_loaded(self) -> bool:
+        if self._unet_model is not None and self._unet_device is not None:
+            return True
+        try:
+            self._unet_model, self._unet_device = load_unet()
+            return True
+        except FileNotFoundError as e:
+            QMessageBox.critical(self, "U-Net weights missing", str(e))
+        except ImportError as e:
+            QMessageBox.critical(self, "U-Net unavailable", f"PyTorch is required to run the denoiser.\n{e}")
+        except Exception as e:
+            QMessageBox.critical(self, "U-Net load error", str(e))
+        return False
+
+    def _on_apply_unet_clicked(self):
+        """Apply U-Net denoiser to full image and show in the processed viewer."""
+        if not self._ensure_unet_loaded():
+            return
+        if self.original_image is None:
+            QMessageBox.warning(self, "No data", "Original image is missing.")
+            return
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            out = denoise_stm_image(self.original_image, self._unet_model, self._unet_device)
+            self.processed_image = out
+            self.viewer_processed.setImage(out, autoRange=True, autoLevels=True)
+            self.btn_ok.setEnabled(True)
+            self.btn_ok.setFocus()
+        except Exception as e:
+            QMessageBox.critical(self, "U-Net denoise error", str(e))
+        finally:
+            QApplication.restoreOverrideCursor()
     
     def _spec_from_ui(self) -> dict:
         """Zbierz parametry z UI + kolejność z listy."""
