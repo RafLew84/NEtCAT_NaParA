@@ -68,6 +68,12 @@ class PreprocessingDialog(QDialog):
         top_btn_layout.addWidget(self.btn_unet)
         self.btn_process = QPushButton("Process", self)
         top_btn_layout.addWidget(self.btn_process)
+        self.cb_export_png = QCheckBox("Preview PNG", self)
+        self.cb_export_png.setChecked(False)
+        top_btn_layout.addWidget(self.cb_export_png)
+        self.btn_export_pair = QPushButton("Export pair...", self)
+        self.btn_export_pair.setEnabled(False)
+        top_btn_layout.addWidget(self.btn_export_pair)
         root_layout.addLayout(top_btn_layout)
 
         # TOOLBAR
@@ -400,6 +406,7 @@ class PreprocessingDialog(QDialog):
         """Łączy sygnały UI z odpowiednimi metodami (slotami)."""
         self.btn_process.clicked.connect(self._on_process_clicked)
         self.btn_unet.clicked.connect(self._on_apply_unet_clicked)
+        self.btn_export_pair.clicked.connect(self._on_export_pair_clicked)
         self.btn_ok.clicked.connect(self.accept)
         self.btn_cancel.clicked.connect(self.reject)
         
@@ -512,6 +519,7 @@ class PreprocessingDialog(QDialog):
             self.processed_image = run_heavy_preprocessing(self.original_image, spec)
             self.viewer_processed.setImage(self.processed_image, autoRange=True, autoLevels=True)
             self.btn_ok.setEnabled(True)
+            self.btn_export_pair.setEnabled(True)
             QApplication.processEvents()
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Preprocessing failed: {e}")
@@ -549,11 +557,113 @@ class PreprocessingDialog(QDialog):
             self.processed_image = out
             self.viewer_processed.setImage(out, autoRange=True, autoLevels=True)
             self.btn_ok.setEnabled(True)
+            self.btn_export_pair.setEnabled(True)
             self.btn_ok.setFocus()
         except Exception as e:
             QMessageBox.critical(self, "U-Net denoise error", str(e))
         finally:
             QApplication.restoreOverrideCursor()
+
+    def _on_export_pair_clicked(self):
+        """Export (noisy, clean) pair for surrogate learning."""
+        if self.original_image is None:
+            QMessageBox.warning(self, "No data", "Original image is missing.")
+            return
+        if self.processed_image is None:
+            QMessageBox.warning(self, "No data", "Run preprocessing before export.")
+            return
+        if self.original_image.shape != self.processed_image.shape:
+            QMessageBox.warning(self, "Size mismatch", "Original and processed images have different sizes.")
+            return
+
+        def _fft_log_mag(img: np.ndarray) -> np.ndarray:
+            fft = np.fft.fftshift(np.fft.fft2(img))
+            mag = np.abs(fft)
+            return np.log1p(mag).astype(np.float32, copy=False)
+
+        def _save_pair_png(path: str, left: np.ndarray, right: np.ndarray, title_l: str, title_r: str, cmap: str):
+            from matplotlib.figure import Figure
+            from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+
+            fig = Figure(figsize=(8, 4), dpi=150)
+            FigureCanvas(fig)
+            ax1 = fig.add_subplot(1, 2, 1)
+            ax2 = fig.add_subplot(1, 2, 2)
+
+            for ax, img, title in [(ax1, left, title_l), (ax2, right, title_r)]:
+                vmin, vmax = np.percentile(img, (1, 99))
+                ax.imshow(img, cmap=cmap, vmin=vmin, vmax=vmax, origin="lower")
+                ax.set_title(title)
+                ax.axis("off")
+
+            fig.tight_layout()
+            fig.savefig(path, dpi=150, bbox_inches="tight")
+
+        default_name = "stm_pair.h5"
+        path, selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Export training pair",
+            default_name,
+            "HDF5 (*.h5);;NumPy (*.npz)"
+        )
+        if not path:
+            return
+
+        base, ext = os.path.splitext(path)
+        ext = ext.lower()
+        if not ext:
+            ext = ".h5" if "HDF5" in selected_filter else ".npz"
+            base = path
+        noisy_path = f"{base}_noisy{ext}"
+        clean_path = f"{base}_clean{ext}"
+
+        noisy = self.original_image.astype(np.float32, copy=False)
+        clean = self.processed_image.astype(np.float32, copy=False)
+        fft_noisy = _fft_log_mag(noisy)
+        fft_clean = _fft_log_mag(clean)
+        save_preview = bool(self.cb_export_png.isChecked())
+        saved_paths = [noisy_path, clean_path]
+
+        try:
+            if ext in (".h5", ".hdf5"):
+                try:
+                    import h5py  # type: ignore
+                except Exception as e:
+                    QMessageBox.critical(self, "HDF5 unavailable", f"h5py is required for .h5 export.\n{e}")
+                    return
+                for pth, arr in [(noisy_path, noisy), (clean_path, clean)]:
+                    with h5py.File(pth, "w") as f:
+                        grp = f.create_group("scan")
+                        grp.create_dataset("image", data=arr, dtype="float32")
+                        if pth == noisy_path:
+                            grp.create_dataset("fft_log_mag", data=fft_noisy, dtype="float32")
+                        else:
+                            grp.create_dataset("fft_log_mag", data=fft_clean, dtype="float32")
+            else:
+                np.savez_compressed(noisy_path, image=noisy)
+                np.savez_compressed(clean_path, image=clean)
+                try:
+                    import h5py  # type: ignore
+                except Exception as e:
+                    QMessageBox.warning(self, "FFT HDF5 skipped", f"h5py is required for FFT HDF5 export.\n{e}")
+                else:
+                    fft_path = f"{base}_fft.h5"
+                    with h5py.File(fft_path, "w") as f:
+                        f.create_dataset("fft_noisy_log_mag", data=fft_noisy, dtype="float32")
+                        f.create_dataset("fft_clean_log_mag", data=fft_clean, dtype="float32")
+                    saved_paths.append(fft_path)
+
+            fft_png_path = f"{base}_fft.png"
+            _save_pair_png(fft_png_path, fft_noisy, fft_clean, "FFT noisy", "FFT clean", cmap="magma")
+            saved_paths.append(fft_png_path)
+            if save_preview:
+                preview_path = f"{base}_preview.png"
+                _save_pair_png(preview_path, noisy, clean, "Noisy", "Clean", cmap="gray")
+                saved_paths.append(preview_path)
+
+            QMessageBox.information(self, "Export complete", "Saved:\n" + "\n".join(saved_paths))
+        except Exception as e:
+            QMessageBox.critical(self, "Export error", str(e))
     
     def _spec_from_ui(self) -> dict:
         """Zbierz parametry z UI + kolejność z listy."""
