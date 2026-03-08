@@ -680,6 +680,78 @@ class MainWindow(QMainWindow):
         self.proc_panel.cb_detect.stateChanged.connect(self._on_spec_changed)
 
         self.proc_panel.btn_detect.clicked.connect(self.on_detect_roi)
+        self.proc_panel.btn_export_pair.clicked.connect(self.on_export_current_pair)
+
+    def on_export_current_pair(self):
+        if self._active_index is None or self._active_index >= len(self._images):
+            QMessageBox.information(self, "No Image", "Select an image first.")
+            return
+
+        img = self._images[self._active_index]
+        noisy = getattr(img, "data", None)
+        clean = getattr(img, "preprocessed_data", None)
+
+        if noisy is None:
+            QMessageBox.warning(self, "No data", "Selected image has no source data.")
+            return
+        if clean is None:
+            QMessageBox.warning(
+                self,
+                "No clean pair",
+                "No processed image found. Run Full Image Preprocessing or Apply U-Net first.",
+            )
+            return
+        if noisy.shape != clean.shape:
+            QMessageBox.warning(
+                self,
+                "Size mismatch",
+                f"Source and processed images have different shapes: {noisy.shape} vs {clean.shape}.",
+            )
+            return
+
+        base_name = os.path.basename(str(getattr(img, "file_name", "image")))
+        default_name = f"{os.path.splitext(base_name)[0]}_pair.h5"
+        path, selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Save noisy/clean pair",
+            default_name,
+            "HDF5 (*.h5);;NumPy (*.npz)",
+        )
+        if not path:
+            return
+
+        base, ext = os.path.splitext(path)
+        ext = ext.lower()
+        if not ext:
+            ext = ".h5" if "HDF5" in selected_filter else ".npz"
+            base = path
+
+        noisy_path = f"{base}_noisy{ext}"
+        clean_path = f"{base}_clean{ext}"
+
+        noisy_arr = np.asarray(noisy, dtype=np.float32)
+        clean_arr = np.asarray(clean, dtype=np.float32)
+
+        try:
+            if ext in (".h5", ".hdf5"):
+                try:
+                    import h5py  # type: ignore
+                except Exception as e:
+                    QMessageBox.critical(self, "HDF5 unavailable", f"h5py is required for .h5 export.\n{e}")
+                    return
+
+                for pth, arr in ((noisy_path, noisy_arr), (clean_path, clean_arr)):
+                    with h5py.File(pth, "w") as f:
+                        grp = f.create_group("scan")
+                        grp.create_dataset("image", data=arr, dtype="float32")
+            else:
+                np.savez_compressed(noisy_path, image=noisy_arr)
+                np.savez_compressed(clean_path, image=clean_arr)
+
+            QMessageBox.information(self, "Export complete", f"Saved:\n{noisy_path}\n{clean_path}")
+            self.statusBar().showMessage("Noisy/clean pair exported.", 3000)
+        except Exception as e:
+            QMessageBox.critical(self, "Export error", str(e))
 
     def _on_spec_changed(self):
         """
