@@ -30,6 +30,9 @@ class ImagePreviewWidget(QWidget):
         self.viewer.getView().setAspectLocked(True)
         layout.addWidget(self.viewer, 1)
 
+    def set_panel_title(self, title: str) -> None:
+        self.lbl_panel.setText(title)
+
     def clear(self) -> None:
         self.lbl_title.setText("No file selected")
         self.lbl_meta.setText("-")

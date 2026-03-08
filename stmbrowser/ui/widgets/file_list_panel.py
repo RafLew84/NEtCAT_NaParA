@@ -20,9 +20,12 @@ class FileListPanel(QWidget):
         self.btn_add_files = QPushButton("Add Files…", self)
         self.btn_add_folder = QPushButton("Add Folder…", self)
         self.btn_clear = QPushButton("Clear", self)
+        self.btn_save_pair = QPushButton("Save Pair…", self)
+        self.btn_save_pair.setEnabled(False)
         row.addWidget(self.btn_add_files)
         row.addWidget(self.btn_add_folder)
         row.addWidget(self.btn_clear)
+        row.addWidget(self.btn_save_pair)
         layout.addLayout(row)
 
         self.list = QListWidget(self)

@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
 from stmbrowser.services import (
     collect_supported_from_directory,
     collect_supported_from_files,
+    export_pair_to_h5_and_png,
     load_supported_stm_image,
 )
 from stmbrowser.ui.widgets import FileListPanel, PairPreviewWidget
@@ -46,6 +47,7 @@ class STMBrowserMainWindow(QMainWindow):
         self.file_panel.btn_add_files.clicked.connect(self._on_add_files)
         self.file_panel.btn_add_folder.clicked.connect(self._on_add_folder)
         self.file_panel.btn_clear.clicked.connect(self._on_clear)
+        self.file_panel.btn_save_pair.clicked.connect(self._on_save_pair)
         self.file_panel.list.currentRowChanged.connect(self._on_row_selected)
 
     def _on_add_files(self) -> None:
@@ -97,6 +99,7 @@ class STMBrowserMainWindow(QMainWindow):
         self._paths.clear()
         self.file_panel.list.clear()
         self.preview.clear()
+        self.file_panel.btn_save_pair.setEnabled(False)
         self.statusBar().showMessage("List cleared.", 2000)
 
     def _refresh_pair_selection_state(self) -> None:
@@ -116,20 +119,31 @@ class STMBrowserMainWindow(QMainWindow):
         if count < 2:
             self.file_panel.list.setCurrentRow(-1)
             self.preview.clear()
+            self.file_panel.btn_save_pair.setEnabled(False)
             return
 
         row = self.file_panel.list.currentRow()
         if row < 0 or row >= last_idx:
             self.file_panel.list.setCurrentRow(0)
+        self._update_save_button_state()
+
+    def _update_save_button_state(self) -> None:
+        row = self.file_panel.list.currentRow()
+        count = self.file_panel.list.count()
+        is_valid_pair_row = row >= 0 and row < count - 1
+        has_loaded_pair = self.preview.current_pair() is not None
+        self.file_panel.btn_save_pair.setEnabled(is_valid_pair_row and has_loaded_pair)
 
     def _on_row_selected(self, row: int) -> None:
         if row < 0:
             self.preview.clear()
+            self._update_save_button_state()
             return
 
         count = self.file_panel.list.count()
         if row >= count - 1:
             self.preview.clear()
+            self._update_save_button_state()
             return
 
         item_a = self.file_panel.list.item(row)
@@ -138,6 +152,7 @@ class STMBrowserMainWindow(QMainWindow):
         path_b = item_b.data(Qt.ItemDataRole.UserRole) if item_b else None
         if not path_a or not path_b:
             self.preview.clear()
+            self._update_save_button_state()
             return
 
         try:
@@ -149,7 +164,40 @@ class STMBrowserMainWindow(QMainWindow):
                 "Load error",
                 f"Cannot load selected pair:\n{path_a}\n{path_b}\n\n{e}",
             )
+            self.preview.clear()
+            self._update_save_button_state()
             return
 
         self.preview.set_pair(img_a, img_b)
+        self._update_save_button_state()
         self.statusBar().showMessage(f"Pair: {path_a}  |  {path_b}", 3000)
+
+    def _on_save_pair(self) -> None:
+        pair = self.preview.current_pair()
+        if pair is None:
+            QMessageBox.information(self, "No pair", "Select a valid pair first.")
+            return
+
+        row = self.file_panel.list.currentRow()
+        default_name = f"pair_{max(row, 0):06d}.h5"
+        path, _ = QFileDialog.getSaveFileName(self, "Save pair", default_name, "HDF5 (*.h5)")
+        if not path:
+            return
+
+        try:
+            result = export_pair_to_h5_and_png(
+                path,
+                noisy_image=pair[0],
+                clean_image=pair[1],
+                alignment_check_active=self.preview.is_alignment_check_active(),
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Save error", str(e))
+            return
+
+        QMessageBox.information(
+            self,
+            "Pair saved",
+            f"Saved files:\n{result.h5_path}\n{result.png_path}",
+        )
+        self.statusBar().showMessage(f"Saved: {result.h5_path}", 4000)
