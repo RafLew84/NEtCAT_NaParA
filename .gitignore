@@ -183,4 +183,6 @@ cython_debug/
 /data
 context.md
 plan.md
+plan_nanotrack.md
 models/unet_synthetic_v1.pth
+.codex
