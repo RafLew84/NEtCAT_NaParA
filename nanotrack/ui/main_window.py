@@ -20,6 +20,8 @@ from PyQt6.QtWidgets import (
 
 from nanotrack.core import ParticleTrack, STMSequence
 from nanotrack.io import load_mpp_sequence
+from nanotrack.processing import run_bm3d_preview
+from nanotrack.ui.dialogs import Bm3dPreviewDialog
 from nanotrack.ui.widgets import (
     PreprocessingActionsPanel,
     SequenceMetadataPanel,
@@ -35,6 +37,8 @@ class NanoTrackMainWindow(QMainWindow):
         super().__init__(parent)
         self._sequence: STMSequence | None = None
         self._tracks: list[ParticleTrack] = []
+        self._preview_frame_index: int | None = None
+        self._bm3d_preview_dialog: Bm3dPreviewDialog | None = None
         self._setup_ui()
         self._connect_signals()
 
@@ -146,6 +150,7 @@ class NanoTrackMainWindow(QMainWindow):
     def _show_current_frame(self, preserve_zoom: bool = True) -> None:
         if self._sequence is None:
             self.viewer.clear()
+            self._reset_preview_state()
             self._sync_navigation_controls()
             return
 
@@ -159,6 +164,7 @@ class NanoTrackMainWindow(QMainWindow):
     def set_sequence(self, sequence: STMSequence) -> None:
         self._sequence = sequence
         self.viewer.set_sequence(sequence)
+        self._reset_preview_state(close_dialog=True)
         self._sync_navigation_controls()
         self.statusBar().showMessage(
             f"{Path(sequence.source_path).name} | frame {sequence.active_frame_index + 1}/{sequence.frame_count}",
@@ -186,6 +192,7 @@ class NanoTrackMainWindow(QMainWindow):
         if frame_index == self._sequence.active_frame_index:
             return
         self._sequence.set_active_frame(frame_index)
+        self._reset_preview_state()
         self._show_current_frame(preserve_zoom=True)
 
     def _on_open_mpp(self) -> None:
@@ -223,8 +230,36 @@ class NanoTrackMainWindow(QMainWindow):
     def _on_preprocessing_preview_requested(self) -> None:
         if self._sequence is None:
             return
+
+        current_index = self._sequence.active_frame_index
+        sigma_factor = self.preprocessing_panel.bm3d_sigma_factor()
+
+        try:
+            denoised = run_bm3d_preview(self._sequence.active_frame, sigma_factor=sigma_factor)
+        except Exception as exc:
+            QMessageBox.critical(self, "BM3D preview error", str(exc))
+            self.preprocessing_panel.set_preview_status("BM3D preview failed")
+            return
+
+        px_x, px_y = self._sequence.metadata.get_pixel_size_nm()
+        dialog = self._ensure_bm3d_preview_dialog()
+        dialog.set_preview(
+            self._sequence.active_frame,
+            denoised,
+            frame_index=current_index,
+            frame_count=self._sequence.frame_count,
+            sigma_factor=sigma_factor,
+            scale_nm_per_px=(px_x, px_y),
+        )
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+        self._preview_frame_index = current_index
+        self.preprocessing_panel.set_preview_status(
+            f"Preview ready for frame {current_index + 1}"
+        )
         self.statusBar().showMessage(
-            "BM3D preview will be implemented in step 9.",
+            f"BM3D preview opened for frame {current_index + 1}.",
             3000,
         )
 
@@ -235,3 +270,28 @@ class NanoTrackMainWindow(QMainWindow):
             "Apply-to-all BM3D will be implemented in step 10.",
             3000,
         )
+
+    def _ensure_bm3d_preview_dialog(self) -> Bm3dPreviewDialog:
+        if self._bm3d_preview_dialog is None:
+            self._bm3d_preview_dialog = Bm3dPreviewDialog(self)
+        return self._bm3d_preview_dialog
+
+    def _reset_preview_state(self, *, close_dialog: bool = False) -> None:
+        if self._sequence is None:
+            self._preview_frame_index = None
+            self.preprocessing_panel.set_preview_status("No sequence loaded")
+        elif close_dialog:
+            self.preprocessing_panel.set_preview_status("No preview generated for current frame")
+        elif self._preview_frame_index != self._sequence.active_frame_index:
+            self.preprocessing_panel.set_preview_status("No preview generated for current frame")
+        else:
+            self.preprocessing_panel.set_preview_status(
+                f"Preview ready for frame {self._sequence.active_frame_index + 1}"
+            )
+
+        if close_dialog and self._bm3d_preview_dialog is not None:
+            self._bm3d_preview_dialog.close()
+            self._bm3d_preview_dialog.clear_preview()
+
+        if self._sequence is None or close_dialog:
+            self._preview_frame_index = None

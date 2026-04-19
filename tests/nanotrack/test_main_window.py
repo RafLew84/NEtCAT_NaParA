@@ -1,6 +1,7 @@
 import os
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -52,6 +53,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.track_list_panel.list_tracks.count(), 0)
         self.assertTrue(self.window.preprocessing_panel.btn_preview.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_apply_all.isEnabled())
+        self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "No preview generated for current frame")
 
     def test_slider_navigation_updates_active_frame_index(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
@@ -111,17 +113,33 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
         self.window.set_sequence(sequence)
 
-        self.window.preprocessing_panel.btn_preview.click()
-        self.assertEqual(
-            self.window.statusBar().currentMessage(),
-            "BM3D preview will be implemented in step 9.",
-        )
-
         self.window.preprocessing_panel.btn_apply_all.click()
         self.assertEqual(
             self.window.statusBar().currentMessage(),
             "Apply-to-all BM3D will be implemented in step 10.",
         )
+
+    @patch("nanotrack.ui.main_window.run_bm3d_preview")
+    def test_bm3d_preview_opens_comparison_dialog(self, run_bm3d_preview_mock) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+        denoised = np.full_like(sequence.active_frame, 0.5, dtype=np.float32)
+        run_bm3d_preview_mock.return_value = denoised
+
+        self.window.preprocessing_panel.sp_bm3d_sigma.setValue(1.7)
+        self.window.preprocessing_panel.btn_preview.click()
+
+        run_bm3d_preview_mock.assert_called_once()
+        np.testing.assert_array_equal(run_bm3d_preview_mock.call_args.args[0], sequence.active_frame)
+        self.assertEqual(run_bm3d_preview_mock.call_args.kwargs["sigma_factor"], 1.7)
+        self.assertIsNotNone(self.window._bm3d_preview_dialog)
+        self.assertTrue(self.window._bm3d_preview_dialog.isVisible())
+        self.assertIn("Original | Frame 1/", self.window._bm3d_preview_dialog.raw_view.lbl_title.text())
+        self.assertEqual(self.window._bm3d_preview_dialog.raw_view.lbl_meta.text(), "Raw frame")
+        self.assertIn("BM3D | Frame 1/", self.window._bm3d_preview_dialog.denoised_view.lbl_title.text())
+        self.assertEqual(self.window._bm3d_preview_dialog.denoised_view.lbl_meta.text(), "Sigma factor: 1.70")
+        self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "Preview ready for frame 1")
+        self.assertEqual(self.window.statusBar().currentMessage(), "BM3D preview opened for frame 1.")
 
 
 if __name__ == "__main__":
