@@ -37,7 +37,11 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.window = NanoTrackMainWindow()
 
     def tearDown(self) -> None:
+        if getattr(self.window, "_bm3d_preview_dialog", None) is not None:
+            self.window._bm3d_preview_dialog.close()
         self.window.close()
+        self.window.deleteLater()
+        self.__class__._app.processEvents()
 
     def test_set_sequence_enables_navigation_and_shows_first_frame(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
@@ -53,6 +57,9 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertIn("Frame 1/", self.window.viewer.lbl_title.text())
         self.assertEqual(self.window.metadata_panel.lbl_file.text(), "MOVIE_3.MPP")
         self.assertEqual(self.window.track_list_panel.list_tracks.count(), 0)
+        self.assertTrue(self.window.bbox_tools_panel.btn_place.isEnabled())
+        self.assertTrue(self.window.bbox_tools_panel.btn_clear.isEnabled())
+        self.assertEqual(self.window.bbox_tools_panel.lbl_bbox.text(), "No bbox on current frame")
         self.assertTrue(self.window.preprocessing_panel.btn_preview.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_apply_all.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_repair_preview.isEnabled())
@@ -110,11 +117,69 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.metadata_panel.lbl_file.toolTip(), "12345678901234567890.mpp")
 
     def test_preprocessing_panel_is_disabled_without_sequence(self) -> None:
+        self.assertFalse(self.window.bbox_tools_panel.btn_place.isEnabled())
+        self.assertFalse(self.window.bbox_tools_panel.btn_clear.isEnabled())
+        self.assertEqual(self.window.bbox_tools_panel.lbl_bbox.text(), "No sequence loaded")
         self.assertFalse(self.window.preprocessing_panel.btn_preview.isEnabled())
         self.assertFalse(self.window.preprocessing_panel.btn_apply_all.isEnabled())
         self.assertFalse(self.window.preprocessing_panel.btn_repair_preview.isEnabled())
         self.assertFalse(self.window.preprocessing_panel.btn_repair_apply_all.isEnabled())
         self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "No sequence loaded")
+
+    def test_bbox_placement_uses_default_size_and_updates_panel(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+        self.window.bbox_tools_panel.sp_width.setValue(20)
+        self.window.bbox_tools_panel.sp_height.setValue(10)
+        self.window.bbox_tools_panel.btn_place.setChecked(True)
+
+        bbox = self.window.viewer.place_bbox_at_pixel(30.0, 40.0)
+
+        self.assertEqual(bbox, BBoxXYXY(20.0, 35.0, 40.0, 45.0))
+        self.assertEqual(self.window.current_draft_bbox(), bbox)
+        self.assertIsNotNone(self.window.viewer._bbox_roi)
+        self.assertEqual(self.window.bbox_tools_panel.lbl_frame.text(), "Frame: 1")
+        self.assertIn("20.0x10.0 px", self.window.bbox_tools_panel.lbl_bbox.text())
+
+    def test_bbox_state_is_per_frame_and_manual_correction_updates_current_frame(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+        self.window.bbox_tools_panel.sp_width.setValue(16)
+        self.window.bbox_tools_panel.sp_height.setValue(12)
+
+        frame0_bbox = self.window.viewer.place_bbox_at_pixel(20.0, 22.0)
+        self.assertEqual(self.window.current_draft_bbox(), frame0_bbox)
+
+        self.window.slider_frame.setValue(1)
+        self.assertIsNone(self.window.current_draft_bbox())
+        self.assertIsNone(self.window.viewer.current_bbox())
+        self.assertEqual(self.window.bbox_tools_panel.lbl_bbox.text(), "No bbox on current frame")
+
+        frame1_bbox = self.window.viewer.place_bbox_at_pixel(32.0, 28.0)
+        self.assertEqual(self.window.current_draft_bbox(), frame1_bbox)
+
+        self.window.slider_frame.setValue(0)
+        self.assertEqual(self.window.current_draft_bbox(), frame0_bbox)
+        self.assertEqual(self.window.viewer.current_bbox(), frame0_bbox)
+
+        corrected_bbox = BBoxXYXY(15.0, 18.0, 33.0, 34.0)
+        self.window.viewer._commit_bbox(corrected_bbox)
+
+        self.assertEqual(self.window.current_draft_bbox(), corrected_bbox)
+        self.assertEqual(self.window.viewer.current_bbox(), corrected_bbox)
+        self.assertIn("18.0x16.0 px", self.window.bbox_tools_panel.lbl_bbox.text())
+
+    def test_clear_current_bbox_removes_overlay_and_state(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+        self.window.viewer.place_bbox_at_pixel(24.0, 24.0)
+
+        self.window.bbox_tools_panel.btn_clear.click()
+
+        self.assertIsNone(self.window.current_draft_bbox())
+        self.assertIsNone(self.window.viewer.current_bbox())
+        self.assertIsNone(self.window.viewer._bbox_roi)
+        self.assertEqual(self.window.bbox_tools_panel.lbl_bbox.text(), "No bbox on current frame")
 
     def test_preprocessing_panel_uses_scroll_area_for_small_screens(self) -> None:
         panel = self.window.preprocessing_panel
@@ -126,6 +191,18 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         )
         self.assertEqual(
             panel.scroll_area.verticalScrollBarPolicy(),
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded,
+        )
+
+    def test_right_sidebar_uses_scroll_area(self) -> None:
+        self.assertTrue(self.window.sidebar_scroll_area.widgetResizable())
+        self.assertIs(self.window.sidebar_scroll_area.widget(), self.window.sidebar_content)
+        self.assertEqual(
+            self.window.sidebar_scroll_area.horizontalScrollBarPolicy(),
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded,
+        )
+        self.assertEqual(
+            self.window.sidebar_scroll_area.verticalScrollBarPolicy(),
             Qt.ScrollBarPolicy.ScrollBarAsNeeded,
         )
 

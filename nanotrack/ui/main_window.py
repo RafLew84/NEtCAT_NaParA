@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QProgressDialog,
     QPushButton,
+    QScrollArea,
     QSlider,
     QSplitter,
     QSpinBox,
@@ -21,7 +22,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from nanotrack.core import ParticleTrack, STMSequence
+from nanotrack.core import BBoxXYXY, ParticleTrack, STMSequence
 from nanotrack.io import load_mpp_sequence
 from nanotrack.processing import (
     run_bm3d_batch,
@@ -31,6 +32,7 @@ from nanotrack.processing import (
 )
 from nanotrack.ui.dialogs import Bm3dPreviewDialog
 from nanotrack.ui.widgets import (
+    BBoxToolsPanel,
     PreprocessingActionsPanel,
     SequenceMetadataPanel,
     SequenceViewerWidget,
@@ -45,6 +47,7 @@ class NanoTrackMainWindow(QMainWindow):
         super().__init__(parent)
         self._sequence: STMSequence | None = None
         self._tracks: list[ParticleTrack] = []
+        self._draft_bboxes_by_frame: dict[int, BBoxXYXY] = {}
         self._repair_frames: np.ndarray | None = None
         self._repair_params: dict[str, float | int | str] | None = None
         self._denoised_frames: np.ndarray | None = None
@@ -105,17 +108,27 @@ class NanoTrackMainWindow(QMainWindow):
 
         layout.addWidget(nav_row)
 
-        sidebar = QWidget(self)
-        sidebar_layout = QVBoxLayout(sidebar)
-        self.metadata_panel = SequenceMetadataPanel(self)
-        self.track_list_panel = TrackListPanel(self)
-        self.preprocessing_panel = PreprocessingActionsPanel(self)
+        self.sidebar_content = QWidget(self)
+        sidebar_layout = QVBoxLayout(self.sidebar_content)
+        self.metadata_panel = SequenceMetadataPanel(self.sidebar_content)
+        self.track_list_panel = TrackListPanel(self.sidebar_content)
+        self.bbox_tools_panel = BBoxToolsPanel(self.sidebar_content)
+        self.preprocessing_panel = PreprocessingActionsPanel(self.sidebar_content)
         sidebar_layout.addWidget(self.metadata_panel, 0)
         sidebar_layout.addWidget(self.track_list_panel, 1)
+        sidebar_layout.addWidget(self.bbox_tools_panel, 0)
         sidebar_layout.addWidget(self.preprocessing_panel, 0)
+        sidebar_layout.addStretch(0)
+
+        self.sidebar_scroll_area = QScrollArea(self)
+        self.sidebar_scroll_area.setWidgetResizable(True)
+        self.sidebar_scroll_area.setFrameShape(QScrollArea.Shape.NoFrame)
+        self.sidebar_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.sidebar_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.sidebar_scroll_area.setWidget(self.sidebar_content)
 
         central.addWidget(viewer_container)
-        central.addWidget(sidebar)
+        central.addWidget(self.sidebar_scroll_area)
         central.setStretchFactor(0, 1)
         central.setStretchFactor(1, 0)
         central.setSizes([980, 300])
@@ -127,17 +140,23 @@ class NanoTrackMainWindow(QMainWindow):
         self.spin_frame.valueChanged.connect(self._on_spin_frame_selected)
         self.btn_prev.clicked.connect(self._on_prev_frame)
         self.btn_next.clicked.connect(self._on_next_frame)
+        self.viewer.bbox_changed.connect(self._on_viewer_bbox_changed)
+        self.bbox_tools_panel.place_mode_toggled.connect(self._on_bbox_place_mode_toggled)
+        self.bbox_tools_panel.default_size_changed.connect(self._on_bbox_default_size_changed)
+        self.bbox_tools_panel.clear_requested.connect(self._on_clear_current_bbox_requested)
         self.preprocessing_panel.repair_preview_requested.connect(self._on_repair_preview_requested)
         self.preprocessing_panel.repair_apply_all_requested.connect(self._on_repair_apply_all_requested)
         self.preprocessing_panel.preview_requested.connect(self._on_bm3d_preview_requested)
         self.preprocessing_panel.apply_all_requested.connect(self._on_bm3d_apply_all_requested)
         self.preprocessing_panel.show_denoised_toggled.connect(self._on_show_denoised_toggled)
+        self._on_bbox_default_size_changed(*self.bbox_tools_panel.default_size_px())
 
     def _update_navigation_enabled(self, enabled: bool) -> None:
         self.slider_frame.setEnabled(enabled)
         self.spin_frame.setEnabled(enabled)
         self.btn_prev.setEnabled(enabled)
         self.btn_next.setEnabled(enabled)
+        self.bbox_tools_panel.set_sequence_loaded(enabled)
         self.preprocessing_panel.set_sequence_loaded(enabled)
 
     def _sync_navigation_controls(self) -> None:
@@ -182,6 +201,7 @@ class NanoTrackMainWindow(QMainWindow):
             frame_override=frame_override,
             view_label=view_label,
         )
+        self._sync_current_bbox_ui()
         self._sync_navigation_controls()
         self.statusBar().showMessage(
             f"{Path(self._sequence.source_path).name} | frame {self._sequence.active_frame_index + 1}/{self._sequence.frame_count}",
@@ -190,10 +210,13 @@ class NanoTrackMainWindow(QMainWindow):
 
     def set_sequence(self, sequence: STMSequence) -> None:
         self._sequence = sequence
+        self._draft_bboxes_by_frame = {}
         self._clear_all_preprocessing_cache()
+        self._set_bbox_place_mode(False)
         self.viewer.set_sequence(sequence)
         self._reset_preview_state(close_dialog=True)
         self._sync_navigation_controls()
+        self._sync_current_bbox_ui()
         self.statusBar().showMessage(
             f"{Path(sequence.source_path).name} | frame {sequence.active_frame_index + 1}/{sequence.frame_count}",
             3000,
@@ -222,6 +245,11 @@ class NanoTrackMainWindow(QMainWindow):
         if self._denoised_frames is None or self._sequence is None:
             return None
         return self._denoised_frames[self._sequence.active_frame_index]
+
+    def current_draft_bbox(self) -> BBoxXYXY | None:
+        if self._sequence is None:
+            return None
+        return self._draft_bboxes_by_frame.get(self._sequence.active_frame_index)
 
     def set_tracks(self, tracks: list[ParticleTrack]) -> None:
         self._tracks = list(tracks)
@@ -270,6 +298,35 @@ class NanoTrackMainWindow(QMainWindow):
         if self._sequence is None:
             return
         self._set_active_frame(min(self._sequence.frame_count - 1, self._sequence.active_frame_index + 1))
+
+    def _on_bbox_place_mode_toggled(self, checked: bool) -> None:
+        self.viewer.set_bbox_draw_mode(checked)
+        if checked:
+            self.statusBar().showMessage("BBox placement active: click the image to place a bbox.", 3000)
+            return
+        self.statusBar().showMessage("BBox placement disabled.", 2000)
+
+    def _on_bbox_default_size_changed(self, width_px: int, height_px: int) -> None:
+        self.viewer.set_default_bbox_size_px(width_px, height_px)
+
+    def _on_viewer_bbox_changed(self, bbox: object) -> None:
+        if self._sequence is None:
+            return
+        frame_index = self._sequence.active_frame_index
+        if bbox is None:
+            self._draft_bboxes_by_frame.pop(frame_index, None)
+        else:
+            self._draft_bboxes_by_frame[frame_index] = bbox
+        self.bbox_tools_panel.set_current_bbox(frame_index, self.current_draft_bbox())
+
+    def _on_clear_current_bbox_requested(self) -> None:
+        if self._sequence is None:
+            return
+        frame_index = self._sequence.active_frame_index
+        self._draft_bboxes_by_frame.pop(frame_index, None)
+        self.viewer.clear_bbox()
+        self.bbox_tools_panel.set_current_bbox(frame_index, None)
+        self.statusBar().showMessage(f"Cleared bbox for frame {frame_index + 1}.", 2000)
 
     def _on_repair_preview_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing:
@@ -477,6 +534,7 @@ class NanoTrackMainWindow(QMainWindow):
     def _set_preprocessing_busy(self, busy: bool) -> None:
         self._is_preprocessing = busy
         self.action_open_mpp.setEnabled(not busy)
+        self.bbox_tools_panel.set_processing(busy)
         self.preprocessing_panel.set_processing(busy)
         if busy:
             self.slider_frame.setEnabled(False)
@@ -578,3 +636,16 @@ class NanoTrackMainWindow(QMainWindow):
 
         if self._sequence is None:
             self._preview_frame_index = None
+
+    def _set_bbox_place_mode(self, enabled: bool) -> None:
+        self.bbox_tools_panel.set_place_mode_active(enabled)
+        self.viewer.set_bbox_draw_mode(enabled)
+
+    def _sync_current_bbox_ui(self) -> None:
+        if self._sequence is None:
+            self.viewer.clear_bbox()
+            self.bbox_tools_panel.set_current_bbox(None, None)
+            return
+        current_bbox = self.current_draft_bbox()
+        self.viewer.set_bbox(current_bbox)
+        self.bbox_tools_panel.set_current_bbox(self._sequence.active_frame_index, current_bbox)
