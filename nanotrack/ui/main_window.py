@@ -66,6 +66,28 @@ class _Sam2RunWorker(QObject):
         self.finished.emit(output)
 
 
+class _Sam2BatchWorker(QObject):
+    progress = pyqtSignal(int, int, object)
+    finished = pyqtSignal()
+    failed = pyqtSignal(str)
+
+    def __init__(self, backend: Sam2SubprocessBackend, run_items: list[tuple[int, Sam2RunInput]]):
+        super().__init__()
+        self._backend = backend
+        self._run_items = list(run_items)
+
+    def run(self) -> None:
+        total = len(self._run_items)
+        try:
+            for index, (track_id, run_input) in enumerate(self._run_items, start=1):
+                output = self._backend.run(run_input)
+                self.progress.emit(index, total, (track_id, output))
+        except Exception as exc:
+            self.failed.emit(str(exc))
+            return
+        self.finished.emit()
+
+
 class NanoTrackMainWindow(QMainWindow):
     """Main window for MPP sequence browsing and navigation."""
 
@@ -180,6 +202,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.bbox_tools_panel.clear_requested.connect(self._on_clear_current_bbox_requested)
         self.track_list_panel.track_selected.connect(self._on_track_selected)
         self.track_list_panel.run_selected_requested.connect(self._on_run_sam2_for_selected_requested)
+        self.track_list_panel.run_all_requested.connect(self._on_run_sam2_for_all_requested)
         self.preprocessing_panel.repair_preview_requested.connect(self._on_repair_preview_requested)
         self.preprocessing_panel.repair_apply_all_requested.connect(self._on_repair_apply_all_requested)
         self.preprocessing_panel.preview_requested.connect(self._on_bm3d_preview_requested)
@@ -662,16 +685,82 @@ class NanoTrackMainWindow(QMainWindow):
         self._sam2_thread.finished.connect(self._cleanup_sam2_worker)
         self._sam2_thread.start()
 
+    def _on_run_sam2_for_all_requested(self) -> None:
+        if self._sequence is None or self._is_preprocessing or self._is_tracking or not self._tracks:
+            return
+
+        run_items: list[tuple[int, Sam2RunInput]] = []
+        try:
+            for track in self._tracks:
+                run_items.append((track.track_id, self._build_sam2_input_for_track(track)))
+        except Exception as exc:
+            QMessageBox.critical(self, "SAM2 input error", str(exc))
+            return
+
+        self._set_tracking_busy(True)
+        self._sam2_running_track_id = None
+        self._sam2_progress_dialog = QProgressDialog(
+            "Running SAM2 for all seeds...",
+            "",
+            0,
+            len(run_items),
+            self,
+        )
+        self._sam2_progress_dialog.setWindowTitle("SAM2 Tracking")
+        self._sam2_progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self._sam2_progress_dialog.setCancelButton(None)
+        self._sam2_progress_dialog.setMinimumDuration(0)
+        self._sam2_progress_dialog.setAutoClose(False)
+        self._sam2_progress_dialog.setAutoReset(False)
+        self._sam2_progress_dialog.setValue(0)
+        self._sam2_progress_dialog.show()
+        self.statusBar().showMessage(f"Running SAM2 for all {len(run_items)} seeds...", 0)
+        QApplication.processEvents()
+
+        self._sam2_thread = QThread(self)
+        self._sam2_batch_worker = _Sam2BatchWorker(self._sam2_backend, run_items)
+        self._sam2_batch_worker.moveToThread(self._sam2_thread)
+        self._sam2_thread.started.connect(self._sam2_batch_worker.run)
+        self._sam2_batch_worker.progress.connect(self._on_sam2_batch_progress)
+        self._sam2_batch_worker.finished.connect(self._on_sam2_batch_finished)
+        self._sam2_batch_worker.failed.connect(self._on_sam2_run_failed)
+        self._sam2_batch_worker.finished.connect(self._sam2_thread.quit)
+        self._sam2_batch_worker.failed.connect(self._sam2_thread.quit)
+        self._sam2_thread.finished.connect(self._cleanup_sam2_worker)
+        self._sam2_thread.start()
+
     def _on_sam2_run_finished(self, run_output: object) -> None:
         assert isinstance(run_output, Sam2RunOutput)
         self._apply_sam2_output_to_track(run_output.track_id, run_output)
         self.set_tracks(self._tracks, selected_track_id=run_output.track_id)
         self._show_current_frame(preserve_zoom=True)
         track = self._find_track_by_id(run_output.track_id)
+        label = track.label if track is not None and track.label else f"Track {run_output.track_id}"
         self.statusBar().showMessage(
-            f"SAM2 finished for {track.label or f'Track {run_output.track_id}' if track is not None else f'Track {run_output.track_id}'}.",
+            f"SAM2 finished for {label}.",
             3000,
         )
+        self._set_tracking_busy(False)
+        self._close_sam2_progress_dialog()
+
+    def _on_sam2_batch_progress(self, completed: int, total: int, payload: object) -> None:
+        track_id, run_output = payload
+        assert isinstance(track_id, int)
+        assert isinstance(run_output, Sam2RunOutput)
+        self._apply_sam2_output_to_track(track_id, run_output)
+        self.set_tracks(self._tracks, selected_track_id=self._selected_track_id)
+        self._show_current_frame(preserve_zoom=True)
+        track = self._find_track_by_id(track_id)
+        label = track.label if track is not None and track.label else f"Track {track_id}"
+        if self._sam2_progress_dialog is not None:
+            self._sam2_progress_dialog.setMaximum(total)
+            self._sam2_progress_dialog.setLabelText(f"Running SAM2 for all seeds... {completed}/{total}\nFinished: {label}")
+            self._sam2_progress_dialog.setValue(completed)
+        self.statusBar().showMessage(f"SAM2 batch {completed}/{total} finished: {label}", 0)
+
+    def _on_sam2_batch_finished(self) -> None:
+        completed_tracks = len(self._tracks)
+        self.statusBar().showMessage(f"SAM2 finished for all {completed_tracks} seeds.", 3000)
         self._set_tracking_busy(False)
         self._close_sam2_progress_dialog()
 
@@ -728,6 +817,9 @@ class NanoTrackMainWindow(QMainWindow):
         if self._sam2_worker is not None:
             self._sam2_worker.deleteLater()
             self._sam2_worker = None
+        if getattr(self, "_sam2_batch_worker", None) is not None:
+            self._sam2_batch_worker.deleteLater()
+            self._sam2_batch_worker = None
         if self._sam2_thread is not None:
             self._sam2_thread.deleteLater()
             self._sam2_thread = None

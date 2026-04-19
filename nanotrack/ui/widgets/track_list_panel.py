@@ -19,6 +19,7 @@ class TrackListPanel(QWidget):
 
     track_selected = pyqtSignal(object)
     run_selected_requested = pyqtSignal()
+    run_all_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -27,6 +28,7 @@ class TrackListPanel(QWidget):
         self._build()
         self.list_tracks.currentItemChanged.connect(self._on_current_item_changed)
         self.btn_run_selected.clicked.connect(self.run_selected_requested.emit)
+        self.btn_run_all.clicked.connect(self.run_all_requested.emit)
 
     def _build(self) -> None:
         layout = QVBoxLayout(self)
@@ -38,10 +40,12 @@ class TrackListPanel(QWidget):
         self.list_tracks = QListWidget(self)
         self.list_tracks.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         self.btn_run_selected = QPushButton("Run SAM2 for Selected", self)
+        self.btn_run_all = QPushButton("Run SAM2 for All Seeds", self)
 
         group_layout.addWidget(self.lbl_summary)
         group_layout.addWidget(self.list_tracks, 1)
         group_layout.addWidget(self.btn_run_selected)
+        group_layout.addWidget(self.btn_run_all)
 
         layout.addWidget(group, 1)
         self._apply_enabled_state()
@@ -107,6 +111,7 @@ class TrackListPanel(QWidget):
         has_selected_track = self.current_track_id() is not None
         self.list_tracks.setEnabled(has_tracks and not self._processing_busy)
         self.btn_run_selected.setEnabled(has_selected_track and not self._processing_busy)
+        self.btn_run_all.setEnabled(has_tracks and not self._processing_busy)
 
     def _on_current_item_changed(self, current: QListWidgetItem | None, _previous: QListWidgetItem | None) -> None:
         self._apply_enabled_state()

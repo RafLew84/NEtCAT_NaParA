@@ -62,6 +62,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.metadata_panel.lbl_file.text(), "MOVIE_3.MPP")
         self.assertEqual(self.window.track_list_panel.list_tracks.count(), 0)
         self.assertFalse(self.window.track_list_panel.btn_run_selected.isEnabled())
+        self.assertFalse(self.window.track_list_panel.btn_run_all.isEnabled())
         self.assertTrue(self.window.bbox_tools_panel.btn_place.isEnabled())
         self.assertFalse(self.window.bbox_tools_panel.btn_add_seed.isEnabled())
         self.assertFalse(self.window.bbox_tools_panel.btn_clear.isEnabled())
@@ -206,6 +207,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.track_list_panel.list_tracks.count(), 1)
         self.assertEqual(self.window.track_list_panel.current_track_id(), 1)
         self.assertTrue(self.window.track_list_panel.btn_run_selected.isEnabled())
+        self.assertTrue(self.window.track_list_panel.btn_run_all.isEnabled())
         self.assertIsNone(self.window.current_draft_bbox())
         self.assertIsNone(self.window.viewer.current_bbox())
         self.assertFalse(self.window.bbox_tools_panel.btn_add_seed.isEnabled())
@@ -479,6 +481,109 @@ class NanoTrackMainWindowTests(unittest.TestCase):
 
         self.window.slider_frame.setValue(2)
         self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
+
+    def test_run_all_sam2_updates_multiple_tracks_from_different_seed_frames(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.assertGreaterEqual(sequence.frame_count, 4)
+        self.window.set_sequence(sequence)
+
+        self.window.slider_frame.setValue(0)
+        bbox1 = self.window.viewer.place_bbox_at_pixel(20.0, 20.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+
+        self.window.slider_frame.setValue(2)
+        bbox2 = self.window.viewer.place_bbox_at_pixel(32.0, 28.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+
+        repaired = np.full_like(sequence.raw_frames, 0.6, dtype=np.float32)
+        self.window._repair_frames = repaired
+
+        def build_output(track_id: int, frame_index_offset: int, frame_count: int, frame_shape: tuple[int, int]):
+            masks = np.zeros((frame_count, *frame_shape), dtype=bool)
+            visible_mask = np.zeros((frame_count,), dtype=bool)
+            mask_bboxes = np.zeros((frame_count, 4), dtype=np.float32)
+            if track_id == 1:
+                masks[0, 8:14, 10:18] = True
+                masks[1, 9:15, 11:19] = True
+                visible_mask[:2] = True
+                mask_bboxes[0] = np.asarray([10.0, 8.0, 18.0, 14.0], dtype=np.float32)
+                mask_bboxes[1] = np.asarray([11.0, 9.0, 19.0, 15.0], dtype=np.float32)
+            else:
+                masks[0, 18:24, 22:29] = True
+                masks[1, 19:25, 23:30] = True
+                visible_mask[:2] = True
+                mask_bboxes[0] = np.asarray([22.0, 18.0, 29.0, 24.0], dtype=np.float32)
+                mask_bboxes[1] = np.asarray([23.0, 19.0, 30.0, 25.0], dtype=np.float32)
+
+            mask_areas = visible_mask.astype(np.float32) * np.asarray(
+                [float(np.count_nonzero(mask)) for mask in masks],
+                dtype=np.float32,
+            )
+            mask_scores = visible_mask.astype(np.float32) * 0.9
+            mask_component_counts = visible_mask.astype(np.int32)
+            return Sam2RunOutput(
+                track_id=track_id,
+                frame_index_offset=frame_index_offset,
+                masks=masks,
+                visible_mask=visible_mask,
+                mask_areas=mask_areas,
+                mask_bboxes_xyxy=mask_bboxes,
+                mask_scores=mask_scores,
+                mask_component_counts=mask_component_counts,
+            )
+
+        observed_inputs = []
+
+        def fake_run(run_input):
+            time.sleep(0.05)
+            observed_inputs.append((run_input.track_id, run_input.frame_index_offset, run_input.source_view))
+            if run_input.track_id == 1:
+                np.testing.assert_array_equal(run_input.frames, repaired[0:])
+                np.testing.assert_array_equal(run_input.query_box_xyxy, np.asarray(bbox1.as_tuple(), dtype=np.float32))
+            else:
+                np.testing.assert_array_equal(run_input.frames, repaired[2:])
+                np.testing.assert_array_equal(run_input.query_box_xyxy, np.asarray(bbox2.as_tuple(), dtype=np.float32))
+            return build_output(
+                run_input.track_id,
+                run_input.frame_index_offset,
+                int(run_input.frames.shape[0]),
+                tuple(run_input.frames.shape[1:3]),
+            )
+
+        with patch.object(self.window._sam2_backend, "run", side_effect=fake_run) as run_mock:
+            self.window.track_list_panel.btn_run_all.click()
+            self.assertFalse(self.window.track_list_panel.btn_run_selected.isEnabled())
+            self.assertFalse(self.window.track_list_panel.btn_run_all.isEnabled())
+            self.assertIsNotNone(self.window._sam2_progress_dialog)
+            self.assertTrue(self.window._sam2_progress_dialog.isVisible())
+            for _ in range(300):
+                self.__class__._app.processEvents()
+                tracks = self.window.current_tracks()
+                if run_mock.call_count == 2 and tracks[0].get_annotation(1) is not None and tracks[1].get_annotation(3) is not None:
+                    break
+                time.sleep(0.01)
+            for _ in range(20):
+                self.__class__._app.processEvents()
+                if self.window.statusBar().currentMessage() == "SAM2 finished for all 2 seeds.":
+                    break
+                time.sleep(0.01)
+
+        self.assertEqual(run_mock.call_count, 2)
+        self.assertEqual(observed_inputs, [(1, 0, "repair"), (2, 2, "repair")])
+
+        tracks = self.window.current_tracks()
+        track1 = tracks[0]
+        track2 = tracks[1]
+        self.assertEqual(track1.get_annotation(0).bbox, BBoxXYXY(10.0, 8.0, 18.0, 14.0))
+        self.assertEqual(track1.get_annotation(1).bbox, BBoxXYXY(11.0, 9.0, 19.0, 15.0))
+        self.assertEqual(track2.get_annotation(2).bbox, BBoxXYXY(22.0, 18.0, 29.0, 24.0))
+        self.assertEqual(track2.get_annotation(3).bbox, BBoxXYXY(23.0, 19.0, 30.0, 25.0))
+        self.assertTrue(track1.get_annotation(1).mask.any())
+        self.assertTrue(track2.get_annotation(3).mask.any())
+        self.assertTrue(self.window.track_list_panel.btn_run_all.isEnabled())
+        self.assertTrue(
+            self.window.statusBar().currentMessage() in {"SAM2 finished for all 2 seeds.", "SAM2 batch 2/2 finished: Track 2"}
+        )
 
 
 if __name__ == "__main__":
