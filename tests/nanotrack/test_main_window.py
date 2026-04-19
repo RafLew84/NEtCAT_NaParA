@@ -16,6 +16,7 @@ except ImportError:  # pragma: no cover - optional outside the target GUI env
 
 from nanotrack.core import BBoxXYXY, ParticleTrack, STMSequence, STMSequenceMetadata
 from nanotrack.io import load_mpp_sequence
+from nanotrack.sam2 import Sam2RunOutput
 
 if QApplication is not None:
     from nanotrack.ui.main_window import NanoTrackMainWindow
@@ -57,6 +58,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertIn("Frame 1/", self.window.viewer.lbl_title.text())
         self.assertEqual(self.window.metadata_panel.lbl_file.text(), "MOVIE_3.MPP")
         self.assertEqual(self.window.track_list_panel.list_tracks.count(), 0)
+        self.assertFalse(self.window.track_list_panel.btn_run_selected.isEnabled())
         self.assertTrue(self.window.bbox_tools_panel.btn_place.isEnabled())
         self.assertFalse(self.window.bbox_tools_panel.btn_add_seed.isEnabled())
         self.assertFalse(self.window.bbox_tools_panel.btn_clear.isEnabled())
@@ -200,6 +202,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.current_selected_track_id(), 1)
         self.assertEqual(self.window.track_list_panel.list_tracks.count(), 1)
         self.assertEqual(self.window.track_list_panel.current_track_id(), 1)
+        self.assertTrue(self.window.track_list_panel.btn_run_selected.isEnabled())
         self.assertIsNone(self.window.current_draft_bbox())
         self.assertIsNone(self.window.viewer.current_bbox())
         self.assertFalse(self.window.bbox_tools_panel.btn_add_seed.isEnabled())
@@ -382,6 +385,85 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.window.preprocessing_panel.chk_show_denoised.setChecked(False)
         np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, sequence.raw_frames[1])
         self.assertIn("View: Raw", self.window.viewer.lbl_meta.text())
+
+    def test_run_selected_sam2_updates_track_annotations_and_overlays(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.assertGreaterEqual(sequence.frame_count, 3)
+        self.window.set_sequence(sequence)
+        self.window.slider_frame.setValue(1)
+        bbox = self.window.viewer.place_bbox_at_pixel(24.0, 24.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+
+        denoised = np.full_like(sequence.raw_frames, 0.8, dtype=np.float32)
+        self.window._denoised_frames = denoised
+        self.window._denoised_sigma_factor = 1.2
+
+        tracked_frame_count = sequence.frame_count - 1
+        masks = np.zeros((tracked_frame_count, *sequence.frame_shape), dtype=bool)
+        masks[0, 12:20, 14:23] = True
+        masks[1, 13:21, 15:24] = True
+        visible_mask = np.zeros((tracked_frame_count,), dtype=bool)
+        visible_mask[:2] = True
+        mask_bboxes = np.zeros((tracked_frame_count, 4), dtype=np.float32)
+        mask_bboxes[0] = np.asarray([14.0, 12.0, 23.0, 20.0], dtype=np.float32)
+        mask_bboxes[1] = np.asarray([15.0, 13.0, 24.0, 21.0], dtype=np.float32)
+        mask_areas = np.zeros((tracked_frame_count,), dtype=np.float32)
+        mask_areas[:2] = 72.0
+        mask_scores = np.zeros((tracked_frame_count,), dtype=np.float32)
+        mask_scores[:2] = np.asarray([0.95, 0.91], dtype=np.float32)
+        mask_component_counts = np.zeros((tracked_frame_count,), dtype=np.int32)
+        mask_component_counts[:2] = 1
+        run_output = Sam2RunOutput(
+            track_id=1,
+            frame_index_offset=1,
+            masks=masks,
+            visible_mask=visible_mask,
+            mask_areas=mask_areas,
+            mask_bboxes_xyxy=mask_bboxes,
+            mask_scores=mask_scores,
+            mask_component_counts=mask_component_counts,
+        )
+
+        def fake_run(run_input):
+            np.testing.assert_array_equal(run_input.frames, denoised[1:])
+            np.testing.assert_array_equal(
+                run_input.query_box_xyxy,
+                np.asarray(bbox.as_tuple(), dtype=np.float32),
+            )
+            np.testing.assert_allclose(
+                run_input.query_point_tyx,
+                np.asarray([0.0, bbox.center_xy[1], bbox.center_xy[0]], dtype=np.float32),
+            )
+            self.assertEqual(run_input.track_id, 1)
+            self.assertEqual(run_input.frame_index_offset, 1)
+            self.assertEqual(run_input.source_view, "bm3d")
+            self.assertFalse(self.window.track_list_panel.btn_run_selected.isEnabled())
+            return run_output
+
+        with patch.object(self.window._sam2_backend, "run", side_effect=fake_run) as run_mock:
+            self.window.track_list_panel.btn_run_selected.click()
+
+        run_mock.assert_called_once()
+        track = self.window.current_tracks()[0]
+        frame1_annotation = track.get_annotation(1)
+        frame2_annotation = track.get_annotation(2)
+        frame_last_annotation = track.get_annotation(sequence.frame_count - 1)
+        self.assertIsNotNone(frame1_annotation)
+        self.assertIsNotNone(frame2_annotation)
+        self.assertIsNotNone(frame_last_annotation)
+        self.assertEqual(frame1_annotation.source.value, "sam2")
+        self.assertEqual(frame1_annotation.bbox, BBoxXYXY(14.0, 12.0, 23.0, 20.0))
+        self.assertTrue(frame1_annotation.mask.any())
+        self.assertEqual(frame2_annotation.bbox, BBoxXYXY(15.0, 13.0, 24.0, 21.0))
+        self.assertTrue(frame2_annotation.mask.any())
+        self.assertEqual(frame_last_annotation.visibility.value, "lost")
+        self.assertFalse(frame_last_annotation.mask.any())
+        self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
+        self.assertTrue(self.window.track_list_panel.btn_run_selected.isEnabled())
+        self.assertIn("SAM2 finished for Track 1.", self.window.statusBar().currentMessage())
+
+        self.window.slider_frame.setValue(2)
+        self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
 
 
 if __name__ == "__main__":

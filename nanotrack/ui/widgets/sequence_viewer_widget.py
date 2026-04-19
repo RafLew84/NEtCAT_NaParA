@@ -7,8 +7,9 @@ from PyQt6.QtCore import QRectF, Qt, pyqtSignal
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 import numpy as np
+from skimage import measure
 
-from nanotrack.core import BBoxXYXY, ParticleTrack, STMSequence
+from nanotrack.core import BBoxXYXY, FrameVisibility, ParticleTrack, STMSequence
 from napara.gui.widgets.viewer_widget import ViewerWidget
 
 
@@ -107,15 +108,37 @@ class SequenceViewerWidget(QWidget):
         current_frame = self._sequence.active_frame_index
         for track in tracks:
             annotation = track.get_annotation(current_frame)
-            if annotation is None or annotation.bbox is None:
+            if (
+                annotation is None
+                or annotation.visibility != FrameVisibility.VISIBLE
+                or not annotation.has_geometry
+            ):
                 continue
 
-            points_nm = self._bbox_polyline_nm(annotation.bbox)
-            polyline = self.viewer.add_polyline_nm(points_nm, color=(0, 255, 0), width=2.0)
+            overlay_items = []
+            if annotation.mask is not None and np.any(annotation.mask):
+                for contour_nm in self._mask_contours_nm(annotation.mask):
+                    polyline = self.viewer.add_polyline_nm(contour_nm, color=(0, 255, 0), width=2.0)
+                    if polyline is not None:
+                        overlay_items.append(polyline)
+            elif annotation.bbox is not None:
+                polyline = self.viewer.add_polyline_nm(
+                    self._bbox_polyline_nm(annotation.bbox),
+                    color=(0, 255, 0),
+                    width=2.0,
+                )
+                if polyline is not None:
+                    overlay_items.append(polyline)
+
             label_txt = track.label or f"T{track.track_id}"
-            text = self.viewer.add_text_nm(label_txt, self._bbox_center_nm(annotation.bbox), color=(0, 255, 0))
+            text = self.viewer.add_text_nm(
+                label_txt,
+                self._annotation_label_position_nm(annotation),
+                color=(0, 255, 0),
+            )
             highlight = track.track_id == selected_track_id
-            self.viewer.set_item_highlight(polyline, highlight)
+            for item in overlay_items:
+                self.viewer.set_item_highlight(item, highlight)
             self.viewer.set_item_highlight(text, highlight)
 
     def set_bbox_draw_mode(self, enabled: bool) -> None:
@@ -259,6 +282,24 @@ class SequenceViewerWidget(QWidget):
         sx, sy = self._pixel_scale()
         cx, cy = bbox.center_xy
         return cx * sx, cy * sy
+
+    def _annotation_label_position_nm(self, annotation) -> tuple[float, float]:
+        if annotation.bbox is not None:
+            return self._bbox_center_nm(annotation.bbox)
+        assert annotation.mask is not None
+        ys, xs = np.nonzero(annotation.mask)
+        sx, sy = self._pixel_scale()
+        return float(xs.mean()) * sx, float(ys.mean()) * sy
+
+    def _mask_contours_nm(self, mask: np.ndarray) -> list[np.ndarray]:
+        sx, sy = self._pixel_scale()
+        contours_nm: list[np.ndarray] = []
+        for contour in measure.find_contours(mask.astype(np.uint8), level=0.5):
+            if contour.shape[0] < 2:
+                continue
+            contour_xy = np.column_stack((contour[:, 1] * sx, contour[:, 0] * sy)).astype(np.float64, copy=False)
+            contours_nm.append(contour_xy)
+        return contours_nm
 
     def _frame_rect_nm(self) -> QRectF:
         if self._sequence is None:

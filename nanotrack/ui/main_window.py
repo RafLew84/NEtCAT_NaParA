@@ -22,7 +22,14 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from nanotrack.core import BBoxXYXY, ParticleTrack, STMSequence
+from nanotrack.core import (
+    AnnotationSource,
+    BBoxXYXY,
+    FrameVisibility,
+    ParticleTrack,
+    STMSequence,
+    TrackFrameAnnotation,
+)
 from nanotrack.io import load_mpp_sequence
 from nanotrack.processing import (
     run_bm3d_batch,
@@ -30,6 +37,7 @@ from nanotrack.processing import (
     run_horizontal_dropout_batch,
     run_horizontal_dropout_preview,
 )
+from nanotrack.sam2 import Sam2BackendError, Sam2RunInput, Sam2RunOutput, Sam2SubprocessBackend
 from nanotrack.ui.dialogs import Bm3dPreviewDialog
 from nanotrack.ui.widgets import (
     BBoxToolsPanel,
@@ -55,8 +63,10 @@ class NanoTrackMainWindow(QMainWindow):
         self._denoised_sigma_factor: float | None = None
         self._show_denoised_in_viewer = False
         self._is_preprocessing = False
+        self._is_tracking = False
         self._preview_frame_index: int | None = None
         self._bm3d_preview_dialog: Bm3dPreviewDialog | None = None
+        self._sam2_backend = Sam2SubprocessBackend()
         self._setup_ui()
         self._connect_signals()
 
@@ -147,6 +157,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.bbox_tools_panel.add_seed_requested.connect(self._on_add_seed_requested)
         self.bbox_tools_panel.clear_requested.connect(self._on_clear_current_bbox_requested)
         self.track_list_panel.track_selected.connect(self._on_track_selected)
+        self.track_list_panel.run_selected_requested.connect(self._on_run_sam2_for_selected_requested)
         self.preprocessing_panel.repair_preview_requested.connect(self._on_repair_preview_requested)
         self.preprocessing_panel.repair_apply_all_requested.connect(self._on_repair_apply_all_requested)
         self.preprocessing_panel.preview_requested.connect(self._on_bm3d_preview_requested)
@@ -380,7 +391,7 @@ class NanoTrackMainWindow(QMainWindow):
             )
 
     def _on_repair_preview_requested(self) -> None:
-        if self._sequence is None or self._is_preprocessing:
+        if self._sequence is None or self._is_preprocessing or self._is_tracking:
             return
 
         current_index = self._sequence.active_frame_index
@@ -421,7 +432,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.statusBar().showMessage(f"Repair preview opened for frame {current_index + 1}.", 3000)
 
     def _on_bm3d_preview_requested(self) -> None:
-        if self._sequence is None or self._is_preprocessing:
+        if self._sequence is None or self._is_preprocessing or self._is_tracking:
             return
 
         current_index = self._sequence.active_frame_index
@@ -468,7 +479,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.statusBar().showMessage(f"BM3D preview opened for frame {current_index + 1}.", 3000)
 
     def _on_repair_apply_all_requested(self) -> None:
-        if self._sequence is None or self._is_preprocessing:
+        if self._sequence is None or self._is_preprocessing or self._is_tracking:
             return
 
         params = self.preprocessing_panel.repair_parameters()
@@ -521,7 +532,7 @@ class NanoTrackMainWindow(QMainWindow):
             self._set_preprocessing_busy(False)
 
     def _on_bm3d_apply_all_requested(self) -> None:
-        if self._sequence is None or self._is_preprocessing:
+        if self._sequence is None or self._is_preprocessing or self._is_tracking:
             return
 
         sigma_factor = self.preprocessing_panel.bm3d_sigma_factor()
@@ -572,6 +583,48 @@ class NanoTrackMainWindow(QMainWindow):
             progress.close()
             self._set_preprocessing_busy(False)
 
+    def _on_run_sam2_for_selected_requested(self) -> None:
+        if self._sequence is None or self._is_preprocessing or self._is_tracking:
+            return
+
+        track = self._find_track_by_id(self._selected_track_id)
+        if track is None:
+            return
+
+        try:
+            run_input = self._build_sam2_input_for_track(track)
+        except Exception as exc:
+            QMessageBox.critical(self, "SAM2 input error", str(exc))
+            return
+
+        self._set_tracking_busy(True)
+        self.statusBar().showMessage(
+            f"Running SAM2 for {track.label or f'Track {track.track_id}'}...",
+            0,
+        )
+        QApplication.processEvents()
+
+        try:
+            run_output = self._sam2_backend.run(run_input)
+        except Sam2BackendError as exc:
+            QMessageBox.critical(self, "SAM2 error", str(exc))
+            self.statusBar().showMessage("SAM2 run failed.", 3000)
+            return
+        except Exception as exc:
+            QMessageBox.critical(self, "SAM2 error", str(exc))
+            self.statusBar().showMessage("SAM2 run failed.", 3000)
+            return
+        finally:
+            self._set_tracking_busy(False)
+
+        self._apply_sam2_output_to_track(track.track_id, run_output)
+        self.set_tracks(self._tracks, selected_track_id=track.track_id)
+        self._show_current_frame(preserve_zoom=True)
+        self.statusBar().showMessage(
+            f"SAM2 finished for {track.label or f'Track {track.track_id}'}.",
+            3000,
+        )
+
     def _on_show_denoised_toggled(self, checked: bool) -> None:
         self._show_denoised_in_viewer = bool(checked and self._has_any_preprocessing_cache())
         if self._sequence is not None:
@@ -584,9 +637,18 @@ class NanoTrackMainWindow(QMainWindow):
 
     def _set_preprocessing_busy(self, busy: bool) -> None:
         self._is_preprocessing = busy
+        self._apply_busy_state()
+
+    def _set_tracking_busy(self, busy: bool) -> None:
+        self._is_tracking = busy
+        self._apply_busy_state()
+
+    def _apply_busy_state(self) -> None:
+        busy = self._is_preprocessing or self._is_tracking
         self.action_open_mpp.setEnabled(not busy)
         self.bbox_tools_panel.set_processing(busy)
         self.preprocessing_panel.set_processing(busy)
+        self.track_list_panel.set_processing(busy)
         if busy:
             self.slider_frame.setEnabled(False)
             self.spin_frame.setEnabled(False)
@@ -719,3 +781,66 @@ class NanoTrackMainWindow(QMainWindow):
         if not self._tracks:
             return 1
         return max(track.track_id for track in self._tracks) + 1
+
+    def _current_sam2_input_frames(self) -> tuple[np.ndarray, str]:
+        if self._denoised_frames is not None:
+            return self._denoised_frames, "bm3d"
+        if self._repair_frames is not None:
+            return self._repair_frames, "repair"
+        assert self._sequence is not None
+        return self._sequence.raw_frames, "raw"
+
+    def _build_sam2_input_for_track(self, track: ParticleTrack) -> Sam2RunInput:
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
+
+        frames_source, source_view = self._current_sam2_input_frames()
+        frame_offset = track.seed_frame_index
+        frames = np.asarray(frames_source[frame_offset:], dtype=np.float32)
+        center_x, center_y = track.seed_bbox.center_xy
+        return Sam2RunInput(
+            track_id=track.track_id,
+            frame_index_offset=frame_offset,
+            frames=frames,
+            query_box_xyxy=np.asarray(track.seed_bbox.as_tuple(), dtype=np.float32),
+            query_point_tyx=np.asarray([0.0, center_y, center_x], dtype=np.float32),
+            source_view=source_view,
+        )
+
+    def _apply_sam2_output_to_track(self, track_id: int, run_output: Sam2RunOutput) -> None:
+        track = self._find_track_by_id(track_id)
+        if track is None:
+            raise RuntimeError(f"Track {track_id} does not exist.")
+
+        for local_frame_index in range(run_output.masks.shape[0]):
+            annotation = self._annotation_from_sam2_frame(run_output, local_frame_index)
+            track.add_annotation(annotation)
+
+    def _annotation_from_sam2_frame(
+        self,
+        run_output: Sam2RunOutput,
+        local_frame_index: int,
+    ) -> TrackFrameAnnotation:
+        frame_index = run_output.frame_index_offset + local_frame_index
+        visible = bool(run_output.visible_mask[local_frame_index])
+        mask = np.asarray(run_output.masks[local_frame_index], dtype=bool)
+        bbox = None
+        if visible and run_output.mask_bboxes_xyxy is not None:
+            bbox = self._bbox_from_output_array(run_output.mask_bboxes_xyxy[local_frame_index])
+
+        return TrackFrameAnnotation(
+            frame_index=frame_index,
+            bbox=bbox,
+            mask=mask,
+            visibility=FrameVisibility.VISIBLE if visible else FrameVisibility.LOST,
+            source=AnnotationSource.SAM2,
+        )
+
+    def _bbox_from_output_array(self, bbox_xyxy: np.ndarray) -> BBoxXYXY | None:
+        bbox_array = np.asarray(bbox_xyxy, dtype=np.float32)
+        if bbox_array.shape != (4,):
+            return None
+        x0, y0, x1, y1 = [float(value) for value in bbox_array.tolist()]
+        if x1 <= x0 or y1 <= y0:
+            return None
+        return BBoxXYXY(x0, y0, x1, y1)
