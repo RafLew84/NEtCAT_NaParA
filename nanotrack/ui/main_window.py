@@ -22,10 +22,12 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from nanotrack.analysis import compute_particle_metrics
 from nanotrack.core import (
     AnnotationSource,
     BBoxXYXY,
     FrameVisibility,
+    ParticleMetrics,
     ParticleTrack,
     STMSequence,
     TrackFrameAnnotation,
@@ -38,7 +40,7 @@ from nanotrack.processing import (
     run_horizontal_dropout_preview,
 )
 from nanotrack.sam2 import Sam2RunInput, Sam2RunOutput, Sam2SubprocessBackend
-from nanotrack.ui.dialogs import Bm3dPreviewDialog
+from nanotrack.ui.dialogs import Bm3dPreviewDialog, TrackResultsDialog
 from nanotrack.ui.widgets import (
     BBoxToolsPanel,
     PreprocessingActionsPanel,
@@ -106,6 +108,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._is_tracking = False
         self._preview_frame_index: int | None = None
         self._bm3d_preview_dialog: Bm3dPreviewDialog | None = None
+        self._results_dialog: TrackResultsDialog | None = None
         self._sam2_backend = Sam2SubprocessBackend()
         self._sam2_progress_dialog: QProgressDialog | None = None
         self._sam2_thread: QThread | None = None
@@ -131,6 +134,9 @@ class NanoTrackMainWindow(QMainWindow):
 
         self.action_open_mpp = toolbar.addAction("Open MPP...")
         self.action_open_mpp.setToolTip("Load an MPP sequence into NanoTrack")
+        self.action_open_results = toolbar.addAction("View Results...")
+        self.action_open_results.setToolTip("Open the quantitative results window")
+        self.action_open_results.setEnabled(False)
 
     def _build_central_widget(self) -> None:
         central = QSplitter(Qt.Orientation.Horizontal, self)
@@ -192,6 +198,7 @@ class NanoTrackMainWindow(QMainWindow):
 
     def _connect_signals(self) -> None:
         self.action_open_mpp.triggered.connect(self._on_open_mpp)
+        self.action_open_results.triggered.connect(self._on_open_results_requested)
         self.slider_frame.valueChanged.connect(self._on_frame_selected)
         self.spin_frame.valueChanged.connect(self._on_spin_frame_selected)
         self.btn_prev.clicked.connect(self._on_prev_frame)
@@ -324,6 +331,8 @@ class NanoTrackMainWindow(QMainWindow):
         elif self._selected_track_id not in valid_track_ids:
             self._selected_track_id = None
         self.track_list_panel.set_tracks(self._tracks, selected_track_id=self._selected_track_id)
+        self._update_results_action_state()
+        self._sync_results_dialog()
         self._sync_seed_track_overlays()
         self._sync_bbox_track_context()
 
@@ -332,6 +341,9 @@ class NanoTrackMainWindow(QMainWindow):
 
     def current_selected_track_id(self) -> int | None:
         return self._selected_track_id
+
+    def current_results_dialog(self) -> TrackResultsDialog | None:
+        return self._results_dialog
 
     def _set_active_frame(self, frame_index: int) -> None:
         if self._sequence is None:
@@ -357,6 +369,16 @@ class NanoTrackMainWindow(QMainWindow):
         except Exception as exc:
             QMessageBox.critical(self, "Load error", f"Cannot load MPP sequence:\n{path}\n\n{exc}")
             return
+
+    def _on_open_results_requested(self) -> None:
+        if not self._has_results_data():
+            return
+        dialog = self._ensure_results_dialog()
+        dialog.set_context(self._sequence, self._tracks, selected_track_id=self._selected_track_id)
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+        self.statusBar().showMessage("Results window opened.", 3000)
 
     def _on_frame_selected(self, frame_index: int) -> None:
         self._set_active_frame(frame_index)
@@ -552,6 +574,7 @@ class NanoTrackMainWindow(QMainWindow):
     def _on_track_selected(self, track_id: object) -> None:
         selected_id = None if track_id is None else int(track_id)
         self._selected_track_id = selected_id
+        self._sync_results_dialog_selection()
         track = self._find_track_by_id(selected_id)
         if track is not None and self._sequence is not None and track.seed_frame_index != self._sequence.active_frame_index:
             self._set_active_frame(track.seed_frame_index)
@@ -933,6 +956,7 @@ class NanoTrackMainWindow(QMainWindow):
     def _apply_busy_state(self) -> None:
         busy = self._is_preprocessing or self._is_tracking
         self.action_open_mpp.setEnabled(not busy)
+        self.action_open_results.setEnabled(self._has_results_data() and not busy)
         self.bbox_tools_panel.set_processing(busy)
         self.preprocessing_panel.set_processing(busy)
         self.track_list_panel.set_processing(busy)
@@ -1104,6 +1128,48 @@ class NanoTrackMainWindow(QMainWindow):
             has_bbox_on_current_frame=annotation is not None and annotation.bbox is not None,
         )
 
+    def _ensure_results_dialog(self) -> TrackResultsDialog:
+        if self._results_dialog is None:
+            self._results_dialog = TrackResultsDialog(self)
+            self._results_dialog.track_selected.connect(self._on_results_track_selected)
+        return self._results_dialog
+
+    def _on_results_track_selected(self, track_id: object) -> None:
+        if track_id is None:
+            return
+        self.track_list_panel.set_selected_track_id(int(track_id))
+        self._on_track_selected(track_id)
+
+    def _sync_results_dialog(self) -> None:
+        if self._results_dialog is None:
+            return
+        self._results_dialog.set_context(self._sequence, self._tracks, selected_track_id=self._selected_track_id)
+
+    def _sync_results_dialog_selection(self) -> None:
+        if self._results_dialog is None:
+            return
+        self._results_dialog.set_selected_track_id(self._selected_track_id)
+
+    def _has_results_data(self) -> bool:
+        for track in self._tracks:
+            for frame_index in track.frame_indices:
+                annotation = track.get_annotation(frame_index)
+                if annotation is None:
+                    continue
+                metrics = annotation.metrics
+                if (
+                    metrics.area_px is not None
+                    and metrics.perimeter_px is not None
+                    and metrics.intensity_sum is not None
+                    and metrics.intensity_mean is not None
+                    and metrics.intensity_max is not None
+                ):
+                    return True
+        return False
+
+    def _update_results_action_state(self) -> None:
+        self.action_open_results.setEnabled(self._has_results_data() and not (self._is_preprocessing or self._is_tracking))
+
     def _current_sam2_input_frames(self) -> tuple[np.ndarray, str]:
         if self._denoised_frames is not None:
             return self._denoised_frames, "bm3d"
@@ -1161,12 +1227,17 @@ class NanoTrackMainWindow(QMainWindow):
         run_output: Sam2RunOutput,
         local_frame_index: int,
     ) -> TrackFrameAnnotation:
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
         frame_index = run_output.frame_index_offset + local_frame_index
         visible = bool(run_output.visible_mask[local_frame_index])
         mask = np.asarray(run_output.masks[local_frame_index], dtype=bool)
         bbox = None
+        metrics = ParticleMetrics()
         if visible and run_output.mask_bboxes_xyxy is not None:
             bbox = self._bbox_from_output_array(run_output.mask_bboxes_xyxy[local_frame_index])
+        if visible and np.any(mask):
+            metrics = compute_particle_metrics(mask, self._sequence.get_frame(frame_index))
 
         return TrackFrameAnnotation(
             frame_index=frame_index,
@@ -1174,6 +1245,7 @@ class NanoTrackMainWindow(QMainWindow):
             mask=mask,
             visibility=FrameVisibility.VISIBLE if visible else FrameVisibility.LOST,
             source=AnnotationSource.SAM2,
+            metrics=metrics,
         )
 
     def _bbox_from_output_array(self, bbox_xyxy: np.ndarray) -> BBoxXYXY | None:

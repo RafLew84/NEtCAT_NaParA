@@ -8,6 +8,8 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import numpy as np
 
+from nanotrack.analysis import compute_particle_metrics
+
 try:
     from PyQt6.QtCore import Qt
     from PyQt6.QtWidgets import QApplication
@@ -18,6 +20,7 @@ except ImportError:  # pragma: no cover - optional outside the target GUI env
 from nanotrack.core import (
     AnnotationSource,
     BBoxXYXY,
+    ParticleMetrics,
     ParticleTrack,
     STMSequence,
     STMSequenceMetadata,
@@ -48,6 +51,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
     def tearDown(self) -> None:
         if getattr(self.window, "_bm3d_preview_dialog", None) is not None:
             self.window._bm3d_preview_dialog.close()
+        if getattr(self.window, "_results_dialog", None) is not None:
+            self.window._results_dialog.close()
         if getattr(self.window, "_sam2_progress_dialog", None) is not None:
             self.window._sam2_progress_dialog.close()
         self.window.close()
@@ -132,6 +137,48 @@ class NanoTrackMainWindowTests(unittest.TestCase):
 
         self.assertEqual(self.window.metadata_panel.lbl_file.text(), "123456789012...")
         self.assertEqual(self.window.metadata_panel.lbl_file.toolTip(), "12345678901234567890.mpp")
+
+    def test_results_action_opens_dialog_and_syncs_track_selection(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/results_main.mpp",
+            raw_frames=np.zeros((5, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+        )
+        self.window.set_sequence(sequence)
+
+        track1 = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(1.0, 1.0, 4.0, 4.0))
+        track1.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(2.0, 2.0, 5.0, 5.0),
+                metrics=ParticleMetrics(area_px=12.0, perimeter_px=16.0, intensity_sum=24.0, intensity_mean=2.0, intensity_max=3.0),
+            )
+        )
+        track2 = ParticleTrack(track_id=2, seed_frame_index=3, seed_bbox=BBoxXYXY(2.0, 2.0, 6.0, 6.0))
+        track2.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=4,
+                bbox=BBoxXYXY(3.0, 3.0, 7.0, 7.0),
+                metrics=ParticleMetrics(area_px=21.0, perimeter_px=24.0, intensity_sum=55.0, intensity_mean=2.62, intensity_max=5.0),
+            )
+        )
+        self.window.set_tracks([track1, track2], selected_track_id=1)
+
+        self.assertTrue(self.window.action_open_results.isEnabled())
+
+        self.window.action_open_results.trigger()
+        self.__class__._app.processEvents()
+
+        dialog = self.window.current_results_dialog()
+        self.assertIsNotNone(dialog)
+        self.assertTrue(dialog.isVisible())
+        self.assertEqual(dialog.current_track_id(), 1)
+
+        dialog.cmb_tracks.setCurrentIndex(1)
+        self.__class__._app.processEvents()
+
+        self.assertEqual(self.window.current_selected_track_id(), 2)
+        self.assertEqual(sequence.active_frame_index, 3)
 
     def test_preprocessing_panel_is_disabled_without_sequence(self) -> None:
         self.assertFalse(self.window.bbox_tools_panel.btn_place.isEnabled())
@@ -390,10 +437,20 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(resumed_track.get_annotation(1).bbox, BBoxXYXY(11.0, 11.0, 19.0, 19.0))
         self.assertEqual(resumed_track.get_annotation(2).bbox, corrected_bbox)
         self.assertEqual(resumed_track.get_annotation(2).source, AnnotationSource.MANUAL)
+        self.assertIsNone(resumed_track.get_annotation(2).metrics.area_px)
         self.assertEqual(resumed_track.get_annotation(3).bbox, BBoxXYXY(18.0, 17.0, 26.0, 24.0))
         self.assertEqual(resumed_track.get_annotation(4).bbox, BBoxXYXY(19.0, 18.0, 27.0, 25.0))
         self.assertEqual(resumed_track.get_annotation(3).source, AnnotationSource.SAM2)
         self.assertEqual(resumed_track.get_annotation(4).source, AnnotationSource.SAM2)
+        expected_resume_metrics = compute_particle_metrics(
+            resumed_track.get_annotation(3).mask,
+            sequence.raw_frames[3],
+        )
+        self.assertEqual(resumed_track.get_annotation(3).metrics.area_px, expected_resume_metrics.area_px)
+        self.assertEqual(resumed_track.get_annotation(3).metrics.perimeter_px, expected_resume_metrics.perimeter_px)
+        self.assertEqual(resumed_track.get_annotation(3).metrics.intensity_sum, expected_resume_metrics.intensity_sum)
+        self.assertEqual(resumed_track.get_annotation(3).metrics.intensity_mean, expected_resume_metrics.intensity_mean)
+        self.assertEqual(resumed_track.get_annotation(3).metrics.intensity_max, expected_resume_metrics.intensity_max)
         self.assertTrue(self.window.bbox_tools_panel.btn_resume_track.isEnabled())
         self.assertIn("SAM2 resume finished for Track 1 from frame 3.", self.window.statusBar().currentMessage())
 
@@ -630,10 +687,25 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(frame1_annotation.source.value, "sam2")
         self.assertEqual(frame1_annotation.bbox, BBoxXYXY(14.0, 12.0, 23.0, 20.0))
         self.assertTrue(frame1_annotation.mask.any())
+        expected_frame1_metrics = compute_particle_metrics(frame1_annotation.mask, sequence.raw_frames[1])
+        self.assertEqual(frame1_annotation.metrics.area_px, expected_frame1_metrics.area_px)
+        self.assertEqual(frame1_annotation.metrics.perimeter_px, expected_frame1_metrics.perimeter_px)
+        self.assertEqual(frame1_annotation.metrics.intensity_sum, expected_frame1_metrics.intensity_sum)
+        self.assertEqual(frame1_annotation.metrics.intensity_mean, expected_frame1_metrics.intensity_mean)
+        self.assertEqual(frame1_annotation.metrics.intensity_max, expected_frame1_metrics.intensity_max)
         self.assertEqual(frame2_annotation.bbox, BBoxXYXY(15.0, 13.0, 24.0, 21.0))
         self.assertTrue(frame2_annotation.mask.any())
+        expected_frame2_metrics = compute_particle_metrics(frame2_annotation.mask, sequence.raw_frames[2])
+        self.assertEqual(frame2_annotation.metrics.area_px, expected_frame2_metrics.area_px)
+        self.assertEqual(frame2_annotation.metrics.perimeter_px, expected_frame2_metrics.perimeter_px)
+        self.assertEqual(frame2_annotation.metrics.intensity_sum, expected_frame2_metrics.intensity_sum)
+        self.assertEqual(frame2_annotation.metrics.intensity_mean, expected_frame2_metrics.intensity_mean)
+        self.assertEqual(frame2_annotation.metrics.intensity_max, expected_frame2_metrics.intensity_max)
         self.assertEqual(frame_last_annotation.visibility.value, "lost")
         self.assertFalse(frame_last_annotation.mask.any())
+        self.assertIsNone(frame_last_annotation.metrics.area_px)
+        self.assertIsNone(frame_last_annotation.metrics.perimeter_px)
+        self.assertIsNone(frame_last_annotation.metrics.intensity_sum)
         self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
         self.assertTrue(self.window.track_list_panel.btn_run_selected.isEnabled())
         self.assertIn("SAM2 finished for Track 1.", self.window.statusBar().currentMessage())
