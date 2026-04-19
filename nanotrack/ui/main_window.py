@@ -2,13 +2,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 from PyQt6.QtCore import QSignalBlocker, Qt
 from PyQt6.QtWidgets import (
+    QApplication,
     QFileDialog,
     QHBoxLayout,
     QLabel,
     QMainWindow,
     QMessageBox,
+    QProgressDialog,
     QPushButton,
     QSlider,
     QSplitter,
@@ -20,7 +23,7 @@ from PyQt6.QtWidgets import (
 
 from nanotrack.core import ParticleTrack, STMSequence
 from nanotrack.io import load_mpp_sequence
-from nanotrack.processing import run_bm3d_preview
+from nanotrack.processing import run_bm3d_batch, run_bm3d_preview
 from nanotrack.ui.dialogs import Bm3dPreviewDialog
 from nanotrack.ui.widgets import (
     PreprocessingActionsPanel,
@@ -37,6 +40,10 @@ class NanoTrackMainWindow(QMainWindow):
         super().__init__(parent)
         self._sequence: STMSequence | None = None
         self._tracks: list[ParticleTrack] = []
+        self._denoised_frames: np.ndarray | None = None
+        self._denoised_sigma_factor: float | None = None
+        self._show_denoised_in_viewer = False
+        self._is_preprocessing = False
         self._preview_frame_index: int | None = None
         self._bm3d_preview_dialog: Bm3dPreviewDialog | None = None
         self._setup_ui()
@@ -115,6 +122,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.btn_next.clicked.connect(self._on_next_frame)
         self.preprocessing_panel.preview_requested.connect(self._on_preprocessing_preview_requested)
         self.preprocessing_panel.apply_all_requested.connect(self._on_preprocessing_apply_all_requested)
+        self.preprocessing_panel.show_denoised_toggled.connect(self._on_show_denoised_toggled)
 
     def _update_navigation_enabled(self, enabled: bool) -> None:
         self.slider_frame.setEnabled(enabled)
@@ -154,7 +162,21 @@ class NanoTrackMainWindow(QMainWindow):
             self._sync_navigation_controls()
             return
 
-        self.viewer.show_frame(self._sequence.active_frame_index, preserve_zoom=preserve_zoom)
+        frame_override = None
+        view_label = "Raw"
+        if self._show_denoised_in_viewer and self.current_denoised_frame() is not None:
+            frame_override = self.current_denoised_frame()
+            if self._denoised_sigma_factor is None:
+                view_label = "BM3D"
+            else:
+                view_label = f"BM3D sigma {self._denoised_sigma_factor:.2f}"
+
+        self.viewer.show_frame(
+            self._sequence.active_frame_index,
+            preserve_zoom=preserve_zoom,
+            frame_override=frame_override,
+            view_label=view_label,
+        )
         self._sync_navigation_controls()
         self.statusBar().showMessage(
             f"{Path(self._sequence.source_path).name} | frame {self._sequence.active_frame_index + 1}/{self._sequence.frame_count}",
@@ -163,6 +185,7 @@ class NanoTrackMainWindow(QMainWindow):
 
     def set_sequence(self, sequence: STMSequence) -> None:
         self._sequence = sequence
+        self._clear_denoised_cache()
         self.viewer.set_sequence(sequence)
         self._reset_preview_state(close_dialog=True)
         self._sync_navigation_controls()
@@ -178,6 +201,14 @@ class NanoTrackMainWindow(QMainWindow):
 
     def current_sequence(self) -> STMSequence | None:
         return self._sequence
+
+    def current_denoised_frames(self) -> np.ndarray | None:
+        return self._denoised_frames
+
+    def current_denoised_frame(self) -> np.ndarray | None:
+        if self._denoised_frames is None or self._sequence is None:
+            return None
+        return self._denoised_frames[self._sequence.active_frame_index]
 
     def set_tracks(self, tracks: list[ParticleTrack]) -> None:
         self._tracks = list(tracks)
@@ -228,18 +259,21 @@ class NanoTrackMainWindow(QMainWindow):
         self._set_active_frame(min(self._sequence.frame_count - 1, self._sequence.active_frame_index + 1))
 
     def _on_preprocessing_preview_requested(self) -> None:
-        if self._sequence is None:
+        if self._sequence is None or self._is_preprocessing:
             return
 
         current_index = self._sequence.active_frame_index
         sigma_factor = self.preprocessing_panel.bm3d_sigma_factor()
 
-        try:
-            denoised = run_bm3d_preview(self._sequence.active_frame, sigma_factor=sigma_factor)
-        except Exception as exc:
-            QMessageBox.critical(self, "BM3D preview error", str(exc))
-            self.preprocessing_panel.set_preview_status("BM3D preview failed")
-            return
+        if self._has_matching_denoised_cache(sigma_factor):
+            denoised = self.current_denoised_frame()
+        else:
+            try:
+                denoised = run_bm3d_preview(self._sequence.active_frame, sigma_factor=sigma_factor)
+            except Exception as exc:
+                QMessageBox.critical(self, "BM3D preview error", str(exc))
+                self.preprocessing_panel.set_preview_status("BM3D preview failed")
+                return
 
         px_x, px_y = self._sequence.metadata.get_pixel_size_nm()
         dialog = self._ensure_bm3d_preview_dialog()
@@ -264,34 +298,121 @@ class NanoTrackMainWindow(QMainWindow):
         )
 
     def _on_preprocessing_apply_all_requested(self) -> None:
-        if self._sequence is None:
+        if self._sequence is None or self._is_preprocessing:
             return
-        self.statusBar().showMessage(
-            "Apply-to-all BM3D will be implemented in step 10.",
-            3000,
-        )
+
+        sigma_factor = self.preprocessing_panel.bm3d_sigma_factor()
+        frame_count = self._sequence.frame_count
+        progress = QProgressDialog("Applying BM3D to all frames...", "", 0, frame_count, self)
+        progress.setWindowTitle("BM3D Processing")
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setCancelButton(None)
+        progress.setMinimumDuration(0)
+        progress.setAutoClose(True)
+        progress.setAutoReset(True)
+        progress.setValue(0)
+
+        self._set_preprocessing_busy(True)
+        self.preprocessing_panel.set_preview_status(f"Applying BM3D... 0/{frame_count}")
+        self.statusBar().showMessage("Applying BM3D to all frames...", 0)
+
+        def on_progress(processed: int, total: int) -> None:
+            progress.setMaximum(total)
+            progress.setValue(processed)
+            self.preprocessing_panel.set_preview_status(f"Applying BM3D... {processed}/{total}")
+            QApplication.processEvents()
+
+        try:
+            denoised_frames = run_bm3d_batch(
+                self._sequence.raw_frames,
+                sigma_factor=sigma_factor,
+                progress_callback=on_progress,
+            )
+        except Exception as exc:
+            self._clear_denoised_cache()
+            QMessageBox.critical(self, "BM3D apply-all error", str(exc))
+            self.preprocessing_panel.set_preview_status("BM3D apply-all failed")
+        else:
+            self._denoised_frames = denoised_frames
+            self._denoised_sigma_factor = sigma_factor
+            self.preprocessing_panel.set_denoised_available(True)
+            if self._show_denoised_in_viewer:
+                self._show_current_frame(preserve_zoom=True)
+            progress.setValue(frame_count)
+            self.preprocessing_panel.set_preview_status(self._default_preprocessing_status())
+            self.statusBar().showMessage(
+                f"BM3D applied to all {frame_count} frames.",
+                3000,
+            )
+        finally:
+            progress.close()
+            self._set_preprocessing_busy(False)
+
+    def _on_show_denoised_toggled(self, checked: bool) -> None:
+        self._show_denoised_in_viewer = bool(checked and self._denoised_frames is not None)
+        if self._sequence is not None:
+            self._show_current_frame(preserve_zoom=True)
 
     def _ensure_bm3d_preview_dialog(self) -> Bm3dPreviewDialog:
         if self._bm3d_preview_dialog is None:
             self._bm3d_preview_dialog = Bm3dPreviewDialog(self)
         return self._bm3d_preview_dialog
 
-    def _reset_preview_state(self, *, close_dialog: bool = False) -> None:
+    def _set_preprocessing_busy(self, busy: bool) -> None:
+        self._is_preprocessing = busy
+        self.action_open_mpp.setEnabled(not busy)
+        self.preprocessing_panel.set_processing(busy)
+        if busy:
+            self.slider_frame.setEnabled(False)
+            self.spin_frame.setEnabled(False)
+            self.btn_prev.setEnabled(False)
+            self.btn_next.setEnabled(False)
+            QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+            return
+
+        if QApplication.overrideCursor() is not None:
+            QApplication.restoreOverrideCursor()
+        self._sync_navigation_controls()
+
+    def _clear_denoised_cache(self) -> None:
+        self._denoised_frames = None
+        self._denoised_sigma_factor = None
+        self._show_denoised_in_viewer = False
+        self.preprocessing_panel.set_denoised_available(False)
+
+    def _has_matching_denoised_cache(self, sigma_factor: float) -> bool:
+        if self._sequence is None or self._denoised_frames is None or self._denoised_sigma_factor is None:
+            return False
+        return (
+            self._denoised_frames.shape == self._sequence.raw_frames.shape
+            and abs(self._denoised_sigma_factor - sigma_factor) < 1e-9
+        )
+
+    def _default_preprocessing_status(self) -> str:
         if self._sequence is None:
+            return "No sequence loaded"
+        if self._denoised_frames is not None and self._denoised_sigma_factor is not None:
+            return (
+                f"BM3D cached for all {self._sequence.frame_count} frames "
+                f"(sigma {self._denoised_sigma_factor:.2f})"
+            )
+        return "No preview generated for current frame"
+
+    def _reset_preview_state(self, *, close_dialog: bool = False) -> None:
+        if close_dialog:
             self._preview_frame_index = None
+        if self._sequence is None:
             self.preprocessing_panel.set_preview_status("No sequence loaded")
-        elif close_dialog:
-            self.preprocessing_panel.set_preview_status("No preview generated for current frame")
-        elif self._preview_frame_index != self._sequence.active_frame_index:
-            self.preprocessing_panel.set_preview_status("No preview generated for current frame")
-        else:
+        elif self._preview_frame_index == self._sequence.active_frame_index:
             self.preprocessing_panel.set_preview_status(
                 f"Preview ready for frame {self._sequence.active_frame_index + 1}"
             )
+        else:
+            self.preprocessing_panel.set_preview_status(self._default_preprocessing_status())
 
         if close_dialog and self._bm3d_preview_dialog is not None:
             self._bm3d_preview_dialog.close()
             self._bm3d_preview_dialog.clear_preview()
 
-        if self._sequence is None or close_dialog:
+        if self._sequence is None:
             self._preview_frame_index = None

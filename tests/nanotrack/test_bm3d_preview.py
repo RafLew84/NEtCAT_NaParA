@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import numpy as np
 
-from nanotrack.processing.bm3d_preview import run_bm3d_preview
+from nanotrack.processing.bm3d_preview import run_bm3d_batch, run_bm3d_preview
 
 
 class _FakeBM3DModule:
@@ -38,3 +38,23 @@ class BM3DPreviewTests(unittest.TestCase):
     def test_rejects_non_positive_sigma_factor(self) -> None:
         with self.assertRaises(ValueError):
             run_bm3d_preview(np.zeros((2, 2), dtype=np.float32), sigma_factor=0.0)
+
+    @patch("nanotrack.processing.bm3d_preview.run_bm3d_preview")
+    def test_batch_runs_preview_for_all_frames_and_reports_progress(self, run_preview_mock) -> None:
+        frames = np.arange(12, dtype=np.float32).reshape(3, 2, 2)
+        run_preview_mock.side_effect = lambda frame, sigma_factor: frame + sigma_factor
+        progress = []
+
+        output = run_bm3d_batch(
+            frames,
+            sigma_factor=1.5,
+            progress_callback=lambda done, total: progress.append((done, total)),
+        )
+
+        self.assertEqual(run_preview_mock.call_count, 3)
+        np.testing.assert_allclose(output, frames + 1.5)
+        self.assertEqual(progress, [(1, 3), (2, 3), (3, 3)])
+
+    def test_batch_rejects_non_3d_frames(self) -> None:
+        with self.assertRaises(ValueError):
+            run_bm3d_batch(np.zeros((4, 4), dtype=np.float32), sigma_factor=1.0)

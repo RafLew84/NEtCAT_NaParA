@@ -37,13 +37,20 @@ class SequenceViewerWidget(QWidget):
         self._sequence = sequence
         self.show_frame(sequence.active_frame_index, preserve_zoom=False)
 
-    def show_frame(self, frame_index: int, preserve_zoom: bool = True) -> None:
+    def show_frame(
+        self,
+        frame_index: int,
+        preserve_zoom: bool = True,
+        *,
+        frame_override=None,
+        view_label: str = "Raw",
+    ) -> None:
         if self._sequence is None:
             self.clear()
             return
 
         self._sequence.set_active_frame(frame_index)
-        frame = self._sequence.active_frame
+        frame = self._sequence.active_frame if frame_override is None else frame_override
         px_x, px_y = self._sequence.metadata.get_pixel_size_nm()
         self.viewer.set_image(
             frame,
@@ -66,5 +73,6 @@ class SequenceViewerWidget(QWidget):
         self.lbl_meta.setText(
             f"Shape: {frame.shape[1]}x{frame.shape[0]} px | "
             f"Channel: {self._sequence.metadata.image_type} | "
-            f"Time: {time_txt}"
+            f"Time: {time_txt} | "
+            f"View: {view_label}"
         )

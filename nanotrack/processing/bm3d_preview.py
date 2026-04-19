@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+from collections.abc import Callable
 
 import numpy as np
 
@@ -41,3 +42,26 @@ def run_bm3d_preview(frame: np.ndarray, sigma_factor: float = 1.0) -> np.ndarray
     bm3d = _import_bm3d_module()
     denoised = bm3d.bm3d(image, sigma_psd=sigma_psd)
     return np.asarray(denoised, dtype=np.float32)
+
+
+def run_bm3d_batch(
+    frames: np.ndarray,
+    sigma_factor: float = 1.0,
+    *,
+    progress_callback: Callable[[int, int], None] | None = None,
+) -> np.ndarray:
+    """Run BM3D on a full sequence and return cached denoised frames."""
+    frames_array = np.asarray(frames)
+    if frames_array.ndim != 3:
+        raise ValueError("frames must have shape [T, H, W].")
+    if frames_array.shape[0] == 0:
+        raise ValueError("frames must contain at least one frame.")
+
+    frame_count = int(frames_array.shape[0])
+    denoised_frames = []
+    for frame_index, frame in enumerate(frames_array):
+        denoised_frames.append(run_bm3d_preview(frame, sigma_factor=sigma_factor))
+        if progress_callback is not None:
+            progress_callback(frame_index + 1, frame_count)
+
+    return np.stack(denoised_frames, axis=0).astype(np.float32, copy=False)

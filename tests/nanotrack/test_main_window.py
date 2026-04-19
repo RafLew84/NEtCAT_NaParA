@@ -53,6 +53,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.track_list_panel.list_tracks.count(), 0)
         self.assertTrue(self.window.preprocessing_panel.btn_preview.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_apply_all.isEnabled())
+        self.assertFalse(self.window.preprocessing_panel.chk_show_denoised.isEnabled())
         self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "No preview generated for current frame")
 
     def test_slider_navigation_updates_active_frame_index(self) -> None:
@@ -109,14 +110,41 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.preprocessing_panel.btn_apply_all.isEnabled())
         self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "No sequence loaded")
 
-    def test_preprocessing_panel_buttons_update_status_messages(self) -> None:
+    @patch("nanotrack.ui.main_window.run_bm3d_batch")
+    def test_apply_all_caches_denoised_frames_and_updates_status(self, run_bm3d_batch_mock) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
         self.window.set_sequence(sequence)
+        denoised = np.full_like(sequence.raw_frames, 0.25, dtype=np.float32)
 
+        def fake_batch(frames, sigma_factor, progress_callback):
+            np.testing.assert_array_equal(frames, sequence.raw_frames)
+            self.assertEqual(sigma_factor, 1.3)
+            self.assertTrue(callable(progress_callback))
+            self.assertFalse(self.window.preprocessing_panel.btn_preview.isEnabled())
+            self.assertFalse(self.window.preprocessing_panel.btn_apply_all.isEnabled())
+            progress_callback(1, sequence.frame_count)
+            progress_callback(sequence.frame_count, sequence.frame_count)
+            return denoised
+
+        run_bm3d_batch_mock.side_effect = fake_batch
+
+        self.window.preprocessing_panel.sp_bm3d_sigma.setValue(1.3)
         self.window.preprocessing_panel.btn_apply_all.click()
+
+        run_bm3d_batch_mock.assert_called_once()
+        np.testing.assert_array_equal(self.window.current_denoised_frames(), denoised)
+        np.testing.assert_array_equal(self.window.current_denoised_frame(), denoised[0])
+        self.assertTrue(self.window.preprocessing_panel.btn_preview.isEnabled())
+        self.assertTrue(self.window.preprocessing_panel.btn_apply_all.isEnabled())
+        self.assertTrue(self.window.preprocessing_panel.chk_show_denoised.isEnabled())
+        self.assertFalse(self.window.preprocessing_panel.chk_show_denoised.isChecked())
+        self.assertEqual(
+            self.window.preprocessing_panel.lbl_status.text(),
+            f"BM3D cached for all {sequence.frame_count} frames (sigma 1.30)",
+        )
         self.assertEqual(
             self.window.statusBar().currentMessage(),
-            "Apply-to-all BM3D will be implemented in step 10.",
+            f"BM3D applied to all {sequence.frame_count} frames.",
         )
 
     @patch("nanotrack.ui.main_window.run_bm3d_preview")
@@ -140,6 +168,54 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window._bm3d_preview_dialog.denoised_view.lbl_meta.text(), "Sigma factor: 1.70")
         self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "Preview ready for frame 1")
         self.assertEqual(self.window.statusBar().currentMessage(), "BM3D preview opened for frame 1.")
+
+    @patch("nanotrack.ui.main_window.run_bm3d_preview")
+    @patch("nanotrack.ui.main_window.run_bm3d_batch")
+    def test_bm3d_preview_uses_cached_frames_for_matching_sigma(
+        self,
+        run_bm3d_batch_mock,
+        run_bm3d_preview_mock,
+    ) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+        denoised = np.full_like(sequence.raw_frames, 0.75, dtype=np.float32)
+        run_bm3d_batch_mock.return_value = denoised
+
+        self.window.preprocessing_panel.sp_bm3d_sigma.setValue(1.4)
+        self.window.preprocessing_panel.btn_apply_all.click()
+        self.window.preprocessing_panel.btn_preview.click()
+
+        run_bm3d_batch_mock.assert_called_once()
+        run_bm3d_preview_mock.assert_not_called()
+        self.assertIsNotNone(self.window._bm3d_preview_dialog)
+        self.assertTrue(self.window._bm3d_preview_dialog.isVisible())
+        self.assertEqual(self.window._bm3d_preview_dialog.denoised_view.lbl_meta.text(), "Sigma factor: 1.40")
+        self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "Preview ready for frame 1")
+
+    @patch("nanotrack.ui.main_window.run_bm3d_batch")
+    def test_show_denoised_checkbox_switches_main_viewer_source(self, run_bm3d_batch_mock) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+        denoised = np.full_like(sequence.raw_frames, 0.9, dtype=np.float32)
+        run_bm3d_batch_mock.return_value = denoised
+
+        self.window.preprocessing_panel.sp_bm3d_sigma.setValue(1.1)
+        self.window.preprocessing_panel.btn_apply_all.click()
+
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, sequence.raw_frames[0])
+        self.assertIn("View: Raw", self.window.viewer.lbl_meta.text())
+
+        self.window.preprocessing_panel.chk_show_denoised.setChecked(True)
+
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, denoised[0])
+        self.assertIn("View: BM3D sigma 1.10", self.window.viewer.lbl_meta.text())
+
+        self.window.slider_frame.setValue(1)
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, denoised[1])
+
+        self.window.preprocessing_panel.chk_show_denoised.setChecked(False)
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, sequence.raw_frames[1])
+        self.assertIn("View: Raw", self.window.viewer.lbl_meta.text())
 
 
 if __name__ == "__main__":
