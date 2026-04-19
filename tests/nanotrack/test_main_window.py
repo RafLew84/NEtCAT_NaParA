@@ -1,4 +1,5 @@
 import os
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -40,6 +41,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
     def tearDown(self) -> None:
         if getattr(self.window, "_bm3d_preview_dialog", None) is not None:
             self.window._bm3d_preview_dialog.close()
+        if getattr(self.window, "_sam2_progress_dialog", None) is not None:
+            self.window._sam2_progress_dialog.close()
         self.window.close()
         self.window.deleteLater()
         self.__class__._app.processEvents()
@@ -303,7 +306,9 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
         self.window.set_sequence(sequence)
         repaired = np.full_like(sequence.active_frame, 0.35, dtype=np.float32)
-        run_repair_preview_mock.return_value = (repaired, np.zeros_like(sequence.active_frame, dtype=bool))
+        mask = np.zeros_like(sequence.active_frame, dtype=bool)
+        mask[4:6, 8:14] = True
+        run_repair_preview_mock.return_value = (repaired, mask)
 
         self.window.preprocessing_panel.btn_repair_preview.click()
 
@@ -315,7 +320,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window._bm3d_preview_dialog.raw_view.lbl_meta.text(), "Raw frame")
         self.assertIn("Repair | Frame 1/", self.window._bm3d_preview_dialog.denoised_view.lbl_title.text())
         self.assertIn("thr", self.window._bm3d_preview_dialog.denoised_view.lbl_meta.text())
-        self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "Repair preview ready for frame 1")
+        self.assertIn("mask 12px", self.window._bm3d_preview_dialog.denoised_view.lbl_meta.text())
+        self.assertIn("Repair preview ready for frame 1", self.window.preprocessing_panel.lbl_status.text())
         self.assertEqual(self.window.statusBar().currentMessage(), "Repair preview opened for frame 1.")
 
     @patch("nanotrack.ui.main_window.run_bm3d_preview")
@@ -425,6 +431,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         )
 
         def fake_run(run_input):
+            time.sleep(0.05)
             np.testing.assert_array_equal(run_input.frames, denoised[1:])
             np.testing.assert_array_equal(
                 run_input.query_box_xyxy,
@@ -437,11 +444,19 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             self.assertEqual(run_input.track_id, 1)
             self.assertEqual(run_input.frame_index_offset, 1)
             self.assertEqual(run_input.source_view, "bm3d")
-            self.assertFalse(self.window.track_list_panel.btn_run_selected.isEnabled())
             return run_output
 
         with patch.object(self.window._sam2_backend, "run", side_effect=fake_run) as run_mock:
             self.window.track_list_panel.btn_run_selected.click()
+            self.assertFalse(self.window.track_list_panel.btn_run_selected.isEnabled())
+            self.assertIsNotNone(self.window._sam2_progress_dialog)
+            self.assertTrue(self.window._sam2_progress_dialog.isVisible())
+            for _ in range(200):
+                self.__class__._app.processEvents()
+                track = self.window.current_tracks()[0]
+                if run_mock.called and track.get_annotation(2) is not None:
+                    break
+                time.sleep(0.01)
 
         run_mock.assert_called_once()
         track = self.window.current_tracks()[0]

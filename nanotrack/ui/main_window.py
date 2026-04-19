@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
-from PyQt6.QtCore import QSignalBlocker, Qt
+from PyQt6.QtCore import QObject, QSignalBlocker, QThread, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -37,7 +37,7 @@ from nanotrack.processing import (
     run_horizontal_dropout_batch,
     run_horizontal_dropout_preview,
 )
-from nanotrack.sam2 import Sam2BackendError, Sam2RunInput, Sam2RunOutput, Sam2SubprocessBackend
+from nanotrack.sam2 import Sam2RunInput, Sam2RunOutput, Sam2SubprocessBackend
 from nanotrack.ui.dialogs import Bm3dPreviewDialog
 from nanotrack.ui.widgets import (
     BBoxToolsPanel,
@@ -46,6 +46,24 @@ from nanotrack.ui.widgets import (
     SequenceViewerWidget,
     TrackListPanel,
 )
+
+
+class _Sam2RunWorker(QObject):
+    finished = pyqtSignal(object)
+    failed = pyqtSignal(str)
+
+    def __init__(self, backend: Sam2SubprocessBackend, run_input: Sam2RunInput):
+        super().__init__()
+        self._backend = backend
+        self._run_input = run_input
+
+    def run(self) -> None:
+        try:
+            output = self._backend.run(self._run_input)
+        except Exception as exc:
+            self.failed.emit(str(exc))
+            return
+        self.finished.emit(output)
 
 
 class NanoTrackMainWindow(QMainWindow):
@@ -67,6 +85,10 @@ class NanoTrackMainWindow(QMainWindow):
         self._preview_frame_index: int | None = None
         self._bm3d_preview_dialog: Bm3dPreviewDialog | None = None
         self._sam2_backend = Sam2SubprocessBackend()
+        self._sam2_progress_dialog: QProgressDialog | None = None
+        self._sam2_thread: QThread | None = None
+        self._sam2_worker: _Sam2RunWorker | None = None
+        self._sam2_running_track_id: int | None = None
         self._setup_ui()
         self._connect_signals()
 
@@ -396,16 +418,17 @@ class NanoTrackMainWindow(QMainWindow):
 
         current_index = self._sequence.active_frame_index
         params = self.preprocessing_panel.repair_parameters()
+        try:
+            repaired, mask = run_horizontal_dropout_preview(self._sequence.active_frame, **params)
+        except Exception as exc:
+            QMessageBox.critical(self, "Repair preview error", str(exc))
+            self.preprocessing_panel.set_preview_status("Repair preview failed")
+            return
 
-        if self._has_matching_repair_cache(params):
-            repaired = self.current_repaired_frame()
-        else:
-            try:
-                repaired, _ = run_horizontal_dropout_preview(self._sequence.active_frame, **params)
-            except Exception as exc:
-                QMessageBox.critical(self, "Repair preview error", str(exc))
-                self.preprocessing_panel.set_preview_status("Repair preview failed")
-                return
+        diff = np.abs(np.asarray(repaired, dtype=np.float32) - np.asarray(self._sequence.active_frame, dtype=np.float32))
+        mask_pixels = int(np.count_nonzero(mask))
+        changed_pixels = int(np.count_nonzero(diff > 1e-6))
+        max_delta = float(diff.max()) if diff.size else 0.0
 
         px_x, px_y = self._sequence.metadata.get_pixel_size_nm()
         dialog = self._ensure_bm3d_preview_dialog()
@@ -421,14 +444,22 @@ class NanoTrackMainWindow(QMainWindow):
             right_title="Repair",
             right_meta=(
                 f"thr {params['threshold_sigma']:.1f}, "
-                f"width {params['min_width_frac']*100:.1f}-{params['max_width_frac']*100:.1f}%"
+                f"width {params['min_width_frac']*100:.1f}-{params['max_width_frac']*100:.1f}% | "
+                f"mask {mask_pixels}px | changed {changed_pixels}px | max Δ {max_delta:.3g}"
             ),
         )
         dialog.show()
         dialog.raise_()
         dialog.activateWindow()
         self._preview_frame_index = current_index
-        self.preprocessing_panel.set_preview_status(f"Repair preview ready for frame {current_index + 1}")
+        if mask_pixels == 0:
+            self.preprocessing_panel.set_preview_status(
+                f"Repair preview: no dropout detected on frame {current_index + 1}"
+            )
+        else:
+            self.preprocessing_panel.set_preview_status(
+                f"Repair preview ready for frame {current_index + 1} | mask {mask_pixels}px | max Δ {max_delta:.3g}"
+            )
         self.statusBar().showMessage(f"Repair preview opened for frame {current_index + 1}.", 3000)
 
     def _on_bm3d_preview_requested(self) -> None:
@@ -598,32 +629,57 @@ class NanoTrackMainWindow(QMainWindow):
             return
 
         self._set_tracking_busy(True)
+        self._sam2_running_track_id = track.track_id
+        self._sam2_progress_dialog = QProgressDialog(
+            f"Running SAM2 for {track.label or f'Track {track.track_id}'}...",
+            "",
+            0,
+            0,
+            self,
+        )
+        self._sam2_progress_dialog.setWindowTitle("SAM2 Tracking")
+        self._sam2_progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self._sam2_progress_dialog.setCancelButton(None)
+        self._sam2_progress_dialog.setMinimumDuration(0)
+        self._sam2_progress_dialog.setAutoClose(False)
+        self._sam2_progress_dialog.setAutoReset(False)
+        self._sam2_progress_dialog.setValue(0)
+        self._sam2_progress_dialog.show()
         self.statusBar().showMessage(
             f"Running SAM2 for {track.label or f'Track {track.track_id}'}...",
             0,
         )
         QApplication.processEvents()
 
-        try:
-            run_output = self._sam2_backend.run(run_input)
-        except Sam2BackendError as exc:
-            QMessageBox.critical(self, "SAM2 error", str(exc))
-            self.statusBar().showMessage("SAM2 run failed.", 3000)
-            return
-        except Exception as exc:
-            QMessageBox.critical(self, "SAM2 error", str(exc))
-            self.statusBar().showMessage("SAM2 run failed.", 3000)
-            return
-        finally:
-            self._set_tracking_busy(False)
+        self._sam2_thread = QThread(self)
+        self._sam2_worker = _Sam2RunWorker(self._sam2_backend, run_input)
+        self._sam2_worker.moveToThread(self._sam2_thread)
+        self._sam2_thread.started.connect(self._sam2_worker.run)
+        self._sam2_worker.finished.connect(self._on_sam2_run_finished)
+        self._sam2_worker.failed.connect(self._on_sam2_run_failed)
+        self._sam2_worker.finished.connect(self._sam2_thread.quit)
+        self._sam2_worker.failed.connect(self._sam2_thread.quit)
+        self._sam2_thread.finished.connect(self._cleanup_sam2_worker)
+        self._sam2_thread.start()
 
-        self._apply_sam2_output_to_track(track.track_id, run_output)
-        self.set_tracks(self._tracks, selected_track_id=track.track_id)
+    def _on_sam2_run_finished(self, run_output: object) -> None:
+        assert isinstance(run_output, Sam2RunOutput)
+        self._apply_sam2_output_to_track(run_output.track_id, run_output)
+        self.set_tracks(self._tracks, selected_track_id=run_output.track_id)
         self._show_current_frame(preserve_zoom=True)
+        track = self._find_track_by_id(run_output.track_id)
         self.statusBar().showMessage(
-            f"SAM2 finished for {track.label or f'Track {track.track_id}'}.",
+            f"SAM2 finished for {track.label or f'Track {run_output.track_id}' if track is not None else f'Track {run_output.track_id}'}.",
             3000,
         )
+        self._set_tracking_busy(False)
+        self._close_sam2_progress_dialog()
+
+    def _on_sam2_run_failed(self, error_message: str) -> None:
+        QMessageBox.critical(self, "SAM2 error", error_message)
+        self.statusBar().showMessage("SAM2 run failed.", 3000)
+        self._set_tracking_busy(False)
+        self._close_sam2_progress_dialog()
 
     def _on_show_denoised_toggled(self, checked: bool) -> None:
         self._show_denoised_in_viewer = bool(checked and self._has_any_preprocessing_cache())
@@ -660,6 +716,22 @@ class NanoTrackMainWindow(QMainWindow):
         if QApplication.overrideCursor() is not None:
             QApplication.restoreOverrideCursor()
         self._sync_navigation_controls()
+
+    def _close_sam2_progress_dialog(self) -> None:
+        if self._sam2_progress_dialog is None:
+            return
+        self._sam2_progress_dialog.close()
+        self._sam2_progress_dialog.deleteLater()
+        self._sam2_progress_dialog = None
+
+    def _cleanup_sam2_worker(self) -> None:
+        if self._sam2_worker is not None:
+            self._sam2_worker.deleteLater()
+            self._sam2_worker = None
+        if self._sam2_thread is not None:
+            self._sam2_thread.deleteLater()
+            self._sam2_thread = None
+        self._sam2_running_track_id = None
 
     def _clear_denoised_cache(self) -> None:
         self._denoised_frames = None
