@@ -6,7 +6,9 @@ import pyqtgraph as pg
 from PyQt6.QtCore import QRectF, Qt, pyqtSignal
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
-from nanotrack.core import BBoxXYXY, STMSequence
+import numpy as np
+
+from nanotrack.core import BBoxXYXY, ParticleTrack, STMSequence
 from napara.gui.widgets.viewer_widget import ViewerWidget
 
 
@@ -40,6 +42,7 @@ class SequenceViewerWidget(QWidget):
     def clear(self) -> None:
         self._sequence = None
         self.clear_bbox()
+        self.clear_track_seed_overlays()
         self.set_bbox_draw_mode(False)
         self.lbl_title.setText("No sequence loaded")
         self.lbl_meta.setText("-")
@@ -92,6 +95,28 @@ class SequenceViewerWidget(QWidget):
 
     def current_bbox(self) -> BBoxXYXY | None:
         return self._current_bbox
+
+    def clear_track_seed_overlays(self) -> None:
+        self.viewer.clear_overlay()
+
+    def set_seed_tracks(self, tracks: list[ParticleTrack], *, selected_track_id: int | None = None) -> None:
+        self.clear_track_seed_overlays()
+        if self._sequence is None:
+            return
+
+        current_frame = self._sequence.active_frame_index
+        for track in tracks:
+            annotation = track.get_annotation(current_frame)
+            if annotation is None or annotation.bbox is None:
+                continue
+
+            points_nm = self._bbox_polyline_nm(annotation.bbox)
+            polyline = self.viewer.add_polyline_nm(points_nm, color=(0, 255, 0), width=2.0)
+            label_txt = track.label or f"T{track.track_id}"
+            text = self.viewer.add_text_nm(label_txt, self._bbox_center_nm(annotation.bbox), color=(0, 255, 0))
+            highlight = track.track_id == selected_track_id
+            self.viewer.set_item_highlight(polyline, highlight)
+            self.viewer.set_item_highlight(text, highlight)
 
     def set_bbox_draw_mode(self, enabled: bool) -> None:
         self._bbox_draw_mode = bool(enabled)
@@ -216,6 +241,24 @@ class SequenceViewerWidget(QWidget):
     def _bbox_to_nm(self, bbox: BBoxXYXY) -> tuple[tuple[float, float], tuple[float, float]]:
         sx, sy = self._pixel_scale()
         return (bbox.x0 * sx, bbox.y0 * sy), (bbox.width * sx, bbox.height * sy)
+
+    def _bbox_polyline_nm(self, bbox: BBoxXYXY) -> np.ndarray:
+        sx, sy = self._pixel_scale()
+        return np.asarray(
+            [
+                [bbox.x0 * sx, bbox.y0 * sy],
+                [bbox.x1 * sx, bbox.y0 * sy],
+                [bbox.x1 * sx, bbox.y1 * sy],
+                [bbox.x0 * sx, bbox.y1 * sy],
+                [bbox.x0 * sx, bbox.y0 * sy],
+            ],
+            dtype=np.float64,
+        )
+
+    def _bbox_center_nm(self, bbox: BBoxXYXY) -> tuple[float, float]:
+        sx, sy = self._pixel_scale()
+        cx, cy = bbox.center_xy
+        return cx * sx, cy * sy
 
     def _frame_rect_nm(self) -> QRectF:
         if self._sequence is None:

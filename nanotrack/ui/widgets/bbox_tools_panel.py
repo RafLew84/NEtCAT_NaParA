@@ -21,6 +21,7 @@ class BBoxToolsPanel(QWidget):
     place_mode_toggled = pyqtSignal(bool)
     default_size_changed = pyqtSignal(int, int)
     clear_requested = pyqtSignal()
+    add_seed_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -57,8 +58,10 @@ class BBoxToolsPanel(QWidget):
         button_row = QHBoxLayout()
         self.btn_place = QPushButton("Place BBox", group)
         self.btn_place.setCheckable(True)
+        self.btn_add_seed = QPushButton("Add Seed", group)
         self.btn_clear = QPushButton("Clear Current", group)
         button_row.addWidget(self.btn_place)
+        button_row.addWidget(self.btn_add_seed)
         button_row.addWidget(self.btn_clear)
         group_layout.addLayout(button_row)
 
@@ -73,6 +76,7 @@ class BBoxToolsPanel(QWidget):
 
     def _connect_signals(self) -> None:
         self.btn_place.toggled.connect(self.place_mode_toggled)
+        self.btn_add_seed.clicked.connect(self.add_seed_requested)
         self.btn_clear.clicked.connect(self.clear_requested)
         self.sp_width.valueChanged.connect(self._emit_default_size_changed)
         self.sp_height.valueChanged.connect(self._emit_default_size_changed)
@@ -85,7 +89,9 @@ class BBoxToolsPanel(QWidget):
         self.sp_width.setEnabled(enabled)
         self.sp_height.setEnabled(enabled)
         self.btn_place.setEnabled(enabled)
-        self.btn_clear.setEnabled(enabled)
+        has_bbox = self.lbl_bbox.text() != "No bbox on current frame"
+        self.btn_add_seed.setEnabled(enabled and has_bbox)
+        self.btn_clear.setEnabled(enabled and has_bbox)
 
     def default_size_px(self) -> tuple[int, int]:
         return self.sp_width.value(), self.sp_height.value()
@@ -104,6 +110,7 @@ class BBoxToolsPanel(QWidget):
         self.lbl_frame.setText(f"Frame: {frame_index + 1}")
         if bbox is None:
             self.lbl_bbox.setText("No bbox on current frame")
+            self._update_enabled_state()
             return
 
         self.lbl_bbox.setText(
@@ -116,11 +123,13 @@ class BBoxToolsPanel(QWidget):
                 bbox.height,
             )
         )
+        self._update_enabled_state()
 
     def clear(self) -> None:
         self.set_place_mode_active(False)
         self.lbl_frame.setText("Frame: -")
         self.lbl_bbox.setText("No sequence loaded")
+        self._update_enabled_state()
 
     def set_sequence_loaded(self, loaded: bool) -> None:
         self._sequence_loaded = bool(loaded)

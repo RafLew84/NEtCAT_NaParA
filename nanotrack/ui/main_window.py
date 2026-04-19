@@ -47,6 +47,7 @@ class NanoTrackMainWindow(QMainWindow):
         super().__init__(parent)
         self._sequence: STMSequence | None = None
         self._tracks: list[ParticleTrack] = []
+        self._selected_track_id: int | None = None
         self._draft_bboxes_by_frame: dict[int, BBoxXYXY] = {}
         self._repair_frames: np.ndarray | None = None
         self._repair_params: dict[str, float | int | str] | None = None
@@ -143,7 +144,9 @@ class NanoTrackMainWindow(QMainWindow):
         self.viewer.bbox_changed.connect(self._on_viewer_bbox_changed)
         self.bbox_tools_panel.place_mode_toggled.connect(self._on_bbox_place_mode_toggled)
         self.bbox_tools_panel.default_size_changed.connect(self._on_bbox_default_size_changed)
+        self.bbox_tools_panel.add_seed_requested.connect(self._on_add_seed_requested)
         self.bbox_tools_panel.clear_requested.connect(self._on_clear_current_bbox_requested)
+        self.track_list_panel.track_selected.connect(self._on_track_selected)
         self.preprocessing_panel.repair_preview_requested.connect(self._on_repair_preview_requested)
         self.preprocessing_panel.repair_apply_all_requested.connect(self._on_repair_apply_all_requested)
         self.preprocessing_panel.preview_requested.connect(self._on_bm3d_preview_requested)
@@ -202,6 +205,7 @@ class NanoTrackMainWindow(QMainWindow):
             view_label=view_label,
         )
         self._sync_current_bbox_ui()
+        self._sync_seed_track_overlays()
         self._sync_navigation_controls()
         self.statusBar().showMessage(
             f"{Path(self._sequence.source_path).name} | frame {self._sequence.active_frame_index + 1}/{self._sequence.frame_count}",
@@ -210,6 +214,7 @@ class NanoTrackMainWindow(QMainWindow):
 
     def set_sequence(self, sequence: STMSequence) -> None:
         self._sequence = sequence
+        self._selected_track_id = None
         self._draft_bboxes_by_frame = {}
         self._clear_all_preprocessing_cache()
         self._set_bbox_place_mode(False)
@@ -251,12 +256,21 @@ class NanoTrackMainWindow(QMainWindow):
             return None
         return self._draft_bboxes_by_frame.get(self._sequence.active_frame_index)
 
-    def set_tracks(self, tracks: list[ParticleTrack]) -> None:
+    def set_tracks(self, tracks: list[ParticleTrack], *, selected_track_id: int | None = None) -> None:
         self._tracks = list(tracks)
-        self.track_list_panel.set_tracks(self._tracks)
+        valid_track_ids = {track.track_id for track in self._tracks}
+        if selected_track_id is not None and selected_track_id in valid_track_ids:
+            self._selected_track_id = selected_track_id
+        elif self._selected_track_id not in valid_track_ids:
+            self._selected_track_id = None
+        self.track_list_panel.set_tracks(self._tracks, selected_track_id=self._selected_track_id)
+        self._sync_seed_track_overlays()
 
     def current_tracks(self) -> list[ParticleTrack]:
         return list(self._tracks)
+
+    def current_selected_track_id(self) -> int | None:
+        return self._selected_track_id
 
     def _set_active_frame(self, frame_index: int) -> None:
         if self._sequence is None:
@@ -327,6 +341,43 @@ class NanoTrackMainWindow(QMainWindow):
         self.viewer.clear_bbox()
         self.bbox_tools_panel.set_current_bbox(frame_index, None)
         self.statusBar().showMessage(f"Cleared bbox for frame {frame_index + 1}.", 2000)
+
+    def _on_add_seed_requested(self) -> None:
+        if self._sequence is None:
+            return
+        current_bbox = self.current_draft_bbox()
+        if current_bbox is None:
+            return
+
+        track_id = self._next_track_id()
+        track = ParticleTrack(
+            track_id=track_id,
+            seed_frame_index=self._sequence.active_frame_index,
+            seed_bbox=current_bbox,
+        )
+        self._tracks.append(track)
+        self.set_tracks(self._tracks, selected_track_id=track_id)
+        self._draft_bboxes_by_frame.pop(self._sequence.active_frame_index, None)
+        self.viewer.clear_bbox()
+        self.bbox_tools_panel.set_current_bbox(self._sequence.active_frame_index, None)
+        self.statusBar().showMessage(
+            f"Added seed Track {track_id} on frame {self._sequence.active_frame_index + 1}.",
+            3000,
+        )
+
+    def _on_track_selected(self, track_id: object) -> None:
+        selected_id = None if track_id is None else int(track_id)
+        self._selected_track_id = selected_id
+        track = self._find_track_by_id(selected_id)
+        if track is not None and self._sequence is not None and track.seed_frame_index != self._sequence.active_frame_index:
+            self._set_active_frame(track.seed_frame_index)
+            return
+        self._sync_seed_track_overlays()
+        if track is not None:
+            self.statusBar().showMessage(
+                f"Selected {track.label or f'Track {track.track_id}'} | seed frame {track.seed_frame_index + 1}",
+                3000,
+            )
 
     def _on_repair_preview_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing:
@@ -649,3 +700,22 @@ class NanoTrackMainWindow(QMainWindow):
         current_bbox = self.current_draft_bbox()
         self.viewer.set_bbox(current_bbox)
         self.bbox_tools_panel.set_current_bbox(self._sequence.active_frame_index, current_bbox)
+
+    def _sync_seed_track_overlays(self) -> None:
+        if self._sequence is None:
+            self.viewer.clear_track_seed_overlays()
+            return
+        self.viewer.set_seed_tracks(self._tracks, selected_track_id=self._selected_track_id)
+
+    def _find_track_by_id(self, track_id: int | None) -> ParticleTrack | None:
+        if track_id is None:
+            return None
+        for track in self._tracks:
+            if track.track_id == track_id:
+                return track
+        return None
+
+    def _next_track_id(self) -> int:
+        if not self._tracks:
+            return 1
+        return max(track.track_id for track in self._tracks) + 1

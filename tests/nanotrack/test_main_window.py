@@ -58,7 +58,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.metadata_panel.lbl_file.text(), "MOVIE_3.MPP")
         self.assertEqual(self.window.track_list_panel.list_tracks.count(), 0)
         self.assertTrue(self.window.bbox_tools_panel.btn_place.isEnabled())
-        self.assertTrue(self.window.bbox_tools_panel.btn_clear.isEnabled())
+        self.assertFalse(self.window.bbox_tools_panel.btn_add_seed.isEnabled())
+        self.assertFalse(self.window.bbox_tools_panel.btn_clear.isEnabled())
         self.assertEqual(self.window.bbox_tools_panel.lbl_bbox.text(), "No bbox on current frame")
         self.assertTrue(self.window.preprocessing_panel.btn_preview.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_apply_all.isEnabled())
@@ -118,6 +119,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
 
     def test_preprocessing_panel_is_disabled_without_sequence(self) -> None:
         self.assertFalse(self.window.bbox_tools_panel.btn_place.isEnabled())
+        self.assertFalse(self.window.bbox_tools_panel.btn_add_seed.isEnabled())
         self.assertFalse(self.window.bbox_tools_panel.btn_clear.isEnabled())
         self.assertEqual(self.window.bbox_tools_panel.lbl_bbox.text(), "No sequence loaded")
         self.assertFalse(self.window.preprocessing_panel.btn_preview.isEnabled())
@@ -140,6 +142,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertIsNotNone(self.window.viewer._bbox_roi)
         self.assertEqual(self.window.bbox_tools_panel.lbl_frame.text(), "Frame: 1")
         self.assertIn("20.0x10.0 px", self.window.bbox_tools_panel.lbl_bbox.text())
+        self.assertTrue(self.window.bbox_tools_panel.btn_add_seed.isEnabled())
 
     def test_bbox_state_is_per_frame_and_manual_correction_updates_current_frame(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
@@ -180,6 +183,52 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertIsNone(self.window.viewer.current_bbox())
         self.assertIsNone(self.window.viewer._bbox_roi)
         self.assertEqual(self.window.bbox_tools_panel.lbl_bbox.text(), "No bbox on current frame")
+        self.assertFalse(self.window.bbox_tools_panel.btn_add_seed.isEnabled())
+
+    def test_add_seed_creates_track_and_clears_current_draft_bbox(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+        bbox = self.window.viewer.place_bbox_at_pixel(24.0, 24.0)
+
+        self.window.bbox_tools_panel.btn_add_seed.click()
+
+        tracks = self.window.current_tracks()
+        self.assertEqual(len(tracks), 1)
+        self.assertEqual(tracks[0].track_id, 1)
+        self.assertEqual(tracks[0].seed_frame_index, 0)
+        self.assertEqual(tracks[0].seed_bbox, bbox)
+        self.assertEqual(self.window.current_selected_track_id(), 1)
+        self.assertEqual(self.window.track_list_panel.list_tracks.count(), 1)
+        self.assertEqual(self.window.track_list_panel.current_track_id(), 1)
+        self.assertIsNone(self.window.current_draft_bbox())
+        self.assertIsNone(self.window.viewer.current_bbox())
+        self.assertFalse(self.window.bbox_tools_panel.btn_add_seed.isEnabled())
+
+    def test_can_add_multiple_seed_tracks_from_different_frames_and_select_them(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+
+        self.window.viewer.place_bbox_at_pixel(20.0, 20.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+
+        self.window.slider_frame.setValue(2)
+        self.window.viewer.place_bbox_at_pixel(30.0, 35.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+
+        tracks = self.window.current_tracks()
+        self.assertEqual(len(tracks), 2)
+        self.assertEqual([track.track_id for track in tracks], [1, 2])
+        self.assertEqual([track.seed_frame_index for track in tracks], [0, 2])
+        self.assertEqual(self.window.track_list_panel.list_tracks.count(), 2)
+        self.assertEqual(self.window.current_selected_track_id(), 2)
+
+        first_item = self.window.track_list_panel.list_tracks.item(0)
+        self.window.track_list_panel.list_tracks.setCurrentItem(first_item)
+
+        self.assertEqual(self.window.current_selected_track_id(), 1)
+        self.assertEqual(sequence.active_frame_index, 0)
+        self.assertEqual(self.window.viewer.current_bbox(), None)
+        self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
 
     def test_preprocessing_panel_uses_scroll_area_for_small_screens(self) -> None:
         panel = self.window.preprocessing_panel
