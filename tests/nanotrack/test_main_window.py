@@ -50,6 +50,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertIn("Frame 1/", self.window.viewer.lbl_title.text())
         self.assertEqual(self.window.metadata_panel.lbl_file.text(), "MOVIE_3.MPP")
         self.assertEqual(self.window.track_list_panel.list_tracks.count(), 0)
+        self.assertTrue(self.window.preprocessing_panel.btn_preview.isEnabled())
+        self.assertTrue(self.window.preprocessing_panel.btn_apply_all.isEnabled())
 
     def test_slider_navigation_updates_active_frame_index(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
@@ -99,6 +101,27 @@ class NanoTrackMainWindowTests(unittest.TestCase):
 
         self.assertEqual(self.window.metadata_panel.lbl_file.text(), "123456789012...")
         self.assertEqual(self.window.metadata_panel.lbl_file.toolTip(), "12345678901234567890.mpp")
+
+    def test_preprocessing_panel_is_disabled_without_sequence(self) -> None:
+        self.assertFalse(self.window.preprocessing_panel.btn_preview.isEnabled())
+        self.assertFalse(self.window.preprocessing_panel.btn_apply_all.isEnabled())
+        self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "No sequence loaded")
+
+    def test_preprocessing_panel_buttons_update_status_messages(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+
+        self.window.preprocessing_panel.btn_preview.click()
+        self.assertEqual(
+            self.window.statusBar().currentMessage(),
+            "BM3D preview will be implemented in step 9.",
+        )
+
+        self.window.preprocessing_panel.btn_apply_all.click()
+        self.assertEqual(
+            self.window.statusBar().currentMessage(),
+            "Apply-to-all BM3D will be implemented in step 10.",
+        )
 
 
 if __name__ == "__main__":

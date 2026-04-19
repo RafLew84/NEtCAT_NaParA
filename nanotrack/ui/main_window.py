@@ -20,7 +20,12 @@ from PyQt6.QtWidgets import (
 
 from nanotrack.core import ParticleTrack, STMSequence
 from nanotrack.io import load_mpp_sequence
-from nanotrack.ui.widgets import SequenceMetadataPanel, SequenceViewerWidget, TrackListPanel
+from nanotrack.ui.widgets import (
+    PreprocessingActionsPanel,
+    SequenceMetadataPanel,
+    SequenceViewerWidget,
+    TrackListPanel,
+)
 
 
 class NanoTrackMainWindow(QMainWindow):
@@ -86,8 +91,10 @@ class NanoTrackMainWindow(QMainWindow):
         sidebar_layout = QVBoxLayout(sidebar)
         self.metadata_panel = SequenceMetadataPanel(self)
         self.track_list_panel = TrackListPanel(self)
+        self.preprocessing_panel = PreprocessingActionsPanel(self)
         sidebar_layout.addWidget(self.metadata_panel, 0)
         sidebar_layout.addWidget(self.track_list_panel, 1)
+        sidebar_layout.addWidget(self.preprocessing_panel, 0)
 
         central.addWidget(viewer_container)
         central.addWidget(sidebar)
@@ -102,12 +109,15 @@ class NanoTrackMainWindow(QMainWindow):
         self.spin_frame.valueChanged.connect(self._on_spin_frame_selected)
         self.btn_prev.clicked.connect(self._on_prev_frame)
         self.btn_next.clicked.connect(self._on_next_frame)
+        self.preprocessing_panel.preview_requested.connect(self._on_preprocessing_preview_requested)
+        self.preprocessing_panel.apply_all_requested.connect(self._on_preprocessing_apply_all_requested)
 
     def _update_navigation_enabled(self, enabled: bool) -> None:
         self.slider_frame.setEnabled(enabled)
         self.spin_frame.setEnabled(enabled)
         self.btn_prev.setEnabled(enabled)
         self.btn_next.setEnabled(enabled)
+        self.preprocessing_panel.set_sequence_loaded(enabled)
 
     def _sync_navigation_controls(self) -> None:
         if self._sequence is None:
@@ -209,3 +219,19 @@ class NanoTrackMainWindow(QMainWindow):
         if self._sequence is None:
             return
         self._set_active_frame(min(self._sequence.frame_count - 1, self._sequence.active_frame_index + 1))
+
+    def _on_preprocessing_preview_requested(self) -> None:
+        if self._sequence is None:
+            return
+        self.statusBar().showMessage(
+            "BM3D preview will be implemented in step 9.",
+            3000,
+        )
+
+    def _on_preprocessing_apply_all_requested(self) -> None:
+        if self._sequence is None:
+            return
+        self.statusBar().showMessage(
+            "Apply-to-all BM3D will be implemented in step 10.",
+            3000,
+        )
