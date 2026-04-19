@@ -288,3 +288,15 @@ class ParticleTrack:
     def add_annotation(self, annotation: TrackFrameAnnotation) -> None:
         self.annotations[annotation.frame_index] = annotation
         self.annotations = dict(sorted(self.annotations.items()))
+
+    def drop_annotations_after(self, frame_index: int) -> None:
+        self.annotations = dict(
+            sorted(
+                (
+                    annotation_frame,
+                    annotation,
+                )
+                for annotation_frame, annotation in self.annotations.items()
+                if annotation_frame <= frame_index
+            )
+        )

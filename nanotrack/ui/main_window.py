@@ -111,6 +111,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._sam2_thread: QThread | None = None
         self._sam2_worker: _Sam2RunWorker | None = None
         self._sam2_running_track_id: int | None = None
+        self._sam2_resume_from_frame: int | None = None
         self._setup_ui()
         self._connect_signals()
 
@@ -200,6 +201,9 @@ class NanoTrackMainWindow(QMainWindow):
         self.bbox_tools_panel.default_size_changed.connect(self._on_bbox_default_size_changed)
         self.bbox_tools_panel.add_seed_requested.connect(self._on_add_seed_requested)
         self.bbox_tools_panel.clear_requested.connect(self._on_clear_current_bbox_requested)
+        self.bbox_tools_panel.load_track_bbox_requested.connect(self._on_load_track_bbox_requested)
+        self.bbox_tools_panel.save_correction_requested.connect(self._on_save_correction_requested)
+        self.bbox_tools_panel.resume_track_requested.connect(self._on_resume_track_requested)
         self.track_list_panel.track_selected.connect(self._on_track_selected)
         self.track_list_panel.run_selected_requested.connect(self._on_run_sam2_for_selected_requested)
         self.track_list_panel.run_all_requested.connect(self._on_run_sam2_for_all_requested)
@@ -321,6 +325,7 @@ class NanoTrackMainWindow(QMainWindow):
             self._selected_track_id = None
         self.track_list_panel.set_tracks(self._tracks, selected_track_id=self._selected_track_id)
         self._sync_seed_track_overlays()
+        self._sync_bbox_track_context()
 
     def current_tracks(self) -> list[ParticleTrack]:
         return list(self._tracks)
@@ -397,6 +402,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.viewer.clear_bbox()
         self.bbox_tools_panel.set_current_bbox(frame_index, None)
         self.statusBar().showMessage(f"Cleared bbox for frame {frame_index + 1}.", 2000)
+        self._sync_bbox_track_context()
 
     def _on_add_seed_requested(self) -> None:
         if self._sequence is None:
@@ -420,6 +426,128 @@ class NanoTrackMainWindow(QMainWindow):
             f"Added seed Track {track_id} on frame {self._sequence.active_frame_index + 1}.",
             3000,
         )
+        self._sync_bbox_track_context()
+
+    def _on_load_track_bbox_requested(self) -> None:
+        if self._sequence is None:
+            return
+        track = self._find_track_by_id(self._selected_track_id)
+        if track is None:
+            return
+        annotation = track.get_annotation(self._sequence.active_frame_index)
+        if annotation is None or annotation.bbox is None:
+            return
+        self._draft_bboxes_by_frame[self._sequence.active_frame_index] = annotation.bbox
+        self.viewer.set_bbox(annotation.bbox)
+        self.bbox_tools_panel.set_current_bbox(self._sequence.active_frame_index, annotation.bbox)
+        self._sync_bbox_track_context()
+        self.statusBar().showMessage(
+            f"Loaded bbox from {track.label or f'Track {track.track_id}'} on frame {self._sequence.active_frame_index + 1}.",
+            3000,
+        )
+
+    def _on_save_correction_requested(self) -> None:
+        if self._sequence is None:
+            return
+        track = self._find_track_by_id(self._selected_track_id)
+        current_bbox = self.current_draft_bbox()
+        if track is None or current_bbox is None:
+            return
+        current_frame = self._sequence.active_frame_index
+        if current_frame < track.seed_frame_index:
+            QMessageBox.warning(
+                self,
+                "Invalid correction frame",
+                (
+                    f"Track {track.track_id} starts at frame {track.seed_frame_index + 1}. "
+                    f"Cannot save a correction on frame {current_frame + 1}."
+                ),
+            )
+            return
+
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=current_frame,
+                bbox=current_bbox,
+                mask=None,
+                visibility=FrameVisibility.VISIBLE,
+                source=AnnotationSource.MANUAL,
+            )
+        )
+        self._draft_bboxes_by_frame.pop(current_frame, None)
+        self.viewer.clear_bbox()
+        self.set_tracks(self._tracks, selected_track_id=track.track_id)
+        self._show_current_frame(preserve_zoom=True)
+        self.statusBar().showMessage(
+            f"Saved manual correction for {track.label or f'Track {track.track_id}'} on frame {current_frame + 1}.",
+            3000,
+        )
+
+    def _on_resume_track_requested(self) -> None:
+        if self._sequence is None or self._is_preprocessing or self._is_tracking:
+            return
+
+        track = self._find_track_by_id(self._selected_track_id)
+        if track is None:
+            return
+
+        resume_frame = self._sequence.active_frame_index
+        annotation = track.get_annotation(resume_frame)
+        if annotation is None or annotation.bbox is None:
+            QMessageBox.warning(
+                self,
+                "Resume unavailable",
+                (
+                    f"Track {track.track_id} has no bbox on frame {resume_frame + 1}. "
+                    "Load or save a correction first."
+                ),
+            )
+            return
+
+        try:
+            run_input = self._build_sam2_input_for_track(
+                track,
+                start_frame_index=resume_frame,
+                prompt_bbox=annotation.bbox,
+            )
+        except Exception as exc:
+            QMessageBox.critical(self, "SAM2 resume input error", str(exc))
+            return
+
+        self._set_tracking_busy(True)
+        self._sam2_running_track_id = track.track_id
+        self._sam2_resume_from_frame = resume_frame
+        self._sam2_progress_dialog = QProgressDialog(
+            f"Resuming SAM2 for {track.label or f'Track {track.track_id}'} from frame {resume_frame + 1}...",
+            "",
+            0,
+            0,
+            self,
+        )
+        self._sam2_progress_dialog.setWindowTitle("SAM2 Resume")
+        self._sam2_progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self._sam2_progress_dialog.setCancelButton(None)
+        self._sam2_progress_dialog.setMinimumDuration(0)
+        self._sam2_progress_dialog.setAutoClose(False)
+        self._sam2_progress_dialog.setAutoReset(False)
+        self._sam2_progress_dialog.setValue(0)
+        self._sam2_progress_dialog.show()
+        self.statusBar().showMessage(
+            f"Resuming SAM2 for {track.label or f'Track {track.track_id}'} from frame {resume_frame + 1}...",
+            0,
+        )
+        QApplication.processEvents()
+
+        self._sam2_thread = QThread(self)
+        self._sam2_worker = _Sam2RunWorker(self._sam2_backend, run_input)
+        self._sam2_worker.moveToThread(self._sam2_thread)
+        self._sam2_thread.started.connect(self._sam2_worker.run)
+        self._sam2_worker.finished.connect(self._on_sam2_run_finished)
+        self._sam2_worker.failed.connect(self._on_sam2_run_failed)
+        self._sam2_worker.finished.connect(self._sam2_thread.quit)
+        self._sam2_worker.failed.connect(self._sam2_thread.quit)
+        self._sam2_thread.finished.connect(self._cleanup_sam2_worker)
+        self._sam2_thread.start()
 
     def _on_track_selected(self, track_id: object) -> None:
         selected_id = None if track_id is None else int(track_id)
@@ -429,6 +557,7 @@ class NanoTrackMainWindow(QMainWindow):
             self._set_active_frame(track.seed_frame_index)
             return
         self._sync_seed_track_overlays()
+        self._sync_bbox_track_context()
         if track is not None:
             self.statusBar().showMessage(
                 f"Selected {track.label or f'Track {track.track_id}'} | seed frame {track.seed_frame_index + 1}",
@@ -653,6 +782,7 @@ class NanoTrackMainWindow(QMainWindow):
 
         self._set_tracking_busy(True)
         self._sam2_running_track_id = track.track_id
+        self._sam2_resume_from_frame = None
         self._sam2_progress_dialog = QProgressDialog(
             f"Running SAM2 for {track.label or f'Track {track.track_id}'}...",
             "",
@@ -699,6 +829,7 @@ class NanoTrackMainWindow(QMainWindow):
 
         self._set_tracking_busy(True)
         self._sam2_running_track_id = None
+        self._sam2_resume_from_frame = None
         self._sam2_progress_dialog = QProgressDialog(
             "Running SAM2 for all seeds...",
             "",
@@ -731,15 +862,26 @@ class NanoTrackMainWindow(QMainWindow):
 
     def _on_sam2_run_finished(self, run_output: object) -> None:
         assert isinstance(run_output, Sam2RunOutput)
-        self._apply_sam2_output_to_track(run_output.track_id, run_output)
-        self.set_tracks(self._tracks, selected_track_id=run_output.track_id)
-        self._show_current_frame(preserve_zoom=True)
-        track = self._find_track_by_id(run_output.track_id)
-        label = track.label if track is not None and track.label else f"Track {run_output.track_id}"
-        self.statusBar().showMessage(
-            f"SAM2 finished for {label}.",
-            3000,
-        )
+        if self._sam2_resume_from_frame is not None:
+            self._resume_track_from_output(run_output.track_id, run_output, self._sam2_resume_from_frame)
+            track = self._find_track_by_id(run_output.track_id)
+            label = track.label if track is not None and track.label else f"Track {run_output.track_id}"
+            self.set_tracks(self._tracks, selected_track_id=run_output.track_id)
+            self._show_current_frame(preserve_zoom=True)
+            self.statusBar().showMessage(
+                f"SAM2 resume finished for {label} from frame {self._sam2_resume_from_frame + 1}.",
+                3000,
+            )
+        else:
+            self._apply_sam2_output_to_track(run_output.track_id, run_output)
+            self.set_tracks(self._tracks, selected_track_id=run_output.track_id)
+            self._show_current_frame(preserve_zoom=True)
+            track = self._find_track_by_id(run_output.track_id)
+            label = track.label if track is not None and track.label else f"Track {run_output.track_id}"
+            self.statusBar().showMessage(
+                f"SAM2 finished for {label}.",
+                3000,
+            )
         self._set_tracking_busy(False)
         self._close_sam2_progress_dialog()
 
@@ -824,6 +966,7 @@ class NanoTrackMainWindow(QMainWindow):
             self._sam2_thread.deleteLater()
             self._sam2_thread = None
         self._sam2_running_track_id = None
+        self._sam2_resume_from_frame = None
 
     def _clear_denoised_cache(self) -> None:
         self._denoised_frames = None
@@ -926,6 +1069,7 @@ class NanoTrackMainWindow(QMainWindow):
         current_bbox = self.current_draft_bbox()
         self.viewer.set_bbox(current_bbox)
         self.bbox_tools_panel.set_current_bbox(self._sequence.active_frame_index, current_bbox)
+        self._sync_bbox_track_context()
 
     def _sync_seed_track_overlays(self) -> None:
         if self._sequence is None:
@@ -946,6 +1090,20 @@ class NanoTrackMainWindow(QMainWindow):
             return 1
         return max(track.track_id for track in self._tracks) + 1
 
+    def _sync_bbox_track_context(self) -> None:
+        if self._sequence is None:
+            self.bbox_tools_panel.set_track_context(None, has_bbox_on_current_frame=False)
+            return
+        track = self._find_track_by_id(self._selected_track_id)
+        if track is None:
+            self.bbox_tools_panel.set_track_context(None, has_bbox_on_current_frame=False)
+            return
+        annotation = track.get_annotation(self._sequence.active_frame_index)
+        self.bbox_tools_panel.set_track_context(
+            track.track_id,
+            has_bbox_on_current_frame=annotation is not None and annotation.bbox is not None,
+        )
+
     def _current_sam2_input_frames(self) -> tuple[np.ndarray, str]:
         if self._denoised_frames is not None:
             return self._denoised_frames, "bm3d"
@@ -954,19 +1112,28 @@ class NanoTrackMainWindow(QMainWindow):
         assert self._sequence is not None
         return self._sequence.raw_frames, "raw"
 
-    def _build_sam2_input_for_track(self, track: ParticleTrack) -> Sam2RunInput:
+    def _build_sam2_input_for_track(
+        self,
+        track: ParticleTrack,
+        *,
+        start_frame_index: int | None = None,
+        prompt_bbox: BBoxXYXY | None = None,
+    ) -> Sam2RunInput:
         if self._sequence is None:
             raise RuntimeError("No sequence loaded.")
 
         frames_source, source_view = self._current_sam2_input_frames()
-        frame_offset = track.seed_frame_index
+        frame_offset = track.seed_frame_index if start_frame_index is None else int(start_frame_index)
+        if frame_offset < track.seed_frame_index:
+            raise ValueError("start_frame_index cannot be earlier than the seed frame.")
         frames = np.asarray(frames_source[frame_offset:], dtype=np.float32)
-        center_x, center_y = track.seed_bbox.center_xy
+        bbox = track.seed_bbox if prompt_bbox is None else prompt_bbox
+        center_x, center_y = bbox.center_xy
         return Sam2RunInput(
             track_id=track.track_id,
             frame_index_offset=frame_offset,
             frames=frames,
-            query_box_xyxy=np.asarray(track.seed_bbox.as_tuple(), dtype=np.float32),
+            query_box_xyxy=np.asarray(bbox.as_tuple(), dtype=np.float32),
             query_point_tyx=np.asarray([0.0, center_y, center_x], dtype=np.float32),
             source_view=source_view,
         )
@@ -977,6 +1144,15 @@ class NanoTrackMainWindow(QMainWindow):
             raise RuntimeError(f"Track {track_id} does not exist.")
 
         for local_frame_index in range(run_output.masks.shape[0]):
+            annotation = self._annotation_from_sam2_frame(run_output, local_frame_index)
+            track.add_annotation(annotation)
+
+    def _resume_track_from_output(self, track_id: int, run_output: Sam2RunOutput, resume_frame: int) -> None:
+        track = self._find_track_by_id(track_id)
+        if track is None:
+            raise RuntimeError(f"Track {track_id} does not exist.")
+        track.drop_annotations_after(resume_frame)
+        for local_frame_index in range(1, run_output.masks.shape[0]):
             annotation = self._annotation_from_sam2_frame(run_output, local_frame_index)
             track.add_annotation(annotation)
 

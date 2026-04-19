@@ -15,7 +15,14 @@ except ImportError:  # pragma: no cover - optional outside the target GUI env
     Qt = None
     QApplication = None
 
-from nanotrack.core import BBoxXYXY, ParticleTrack, STMSequence, STMSequenceMetadata
+from nanotrack.core import (
+    AnnotationSource,
+    BBoxXYXY,
+    ParticleTrack,
+    STMSequence,
+    STMSequenceMetadata,
+    TrackFrameAnnotation,
+)
 from nanotrack.io import load_mpp_sequence
 from nanotrack.sam2 import Sam2RunOutput
 
@@ -66,6 +73,9 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(self.window.bbox_tools_panel.btn_place.isEnabled())
         self.assertFalse(self.window.bbox_tools_panel.btn_add_seed.isEnabled())
         self.assertFalse(self.window.bbox_tools_panel.btn_clear.isEnabled())
+        self.assertFalse(self.window.bbox_tools_panel.btn_load_track_bbox.isEnabled())
+        self.assertFalse(self.window.bbox_tools_panel.btn_save_correction.isEnabled())
+        self.assertFalse(self.window.bbox_tools_panel.btn_resume_track.isEnabled())
         self.assertEqual(self.window.bbox_tools_panel.lbl_bbox.text(), "No bbox on current frame")
         self.assertTrue(self.window.preprocessing_panel.btn_preview.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_apply_all.isEnabled())
@@ -237,6 +247,155 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(sequence.active_frame_index, 0)
         self.assertEqual(self.window.viewer.current_bbox(), None)
         self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
+
+    def test_can_load_track_bbox_and_save_manual_correction(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+
+        seed_bbox = BBoxXYXY(10.0, 10.0, 18.0, 18.0)
+        track = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=seed_bbox)
+        original_bbox = BBoxXYXY(14.0, 12.0, 23.0, 20.0)
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=2,
+                bbox=original_bbox,
+                source=AnnotationSource.SAM2,
+            )
+        )
+        self.window.set_tracks([track], selected_track_id=1)
+        self.window.slider_frame.setValue(2)
+
+        self.assertTrue(self.window.bbox_tools_panel.btn_load_track_bbox.isEnabled())
+        self.assertFalse(self.window.bbox_tools_panel.btn_save_correction.isEnabled())
+
+        self.window.bbox_tools_panel.btn_load_track_bbox.click()
+
+        self.assertEqual(self.window.current_draft_bbox(), original_bbox)
+        self.assertEqual(self.window.viewer.current_bbox(), original_bbox)
+        self.assertTrue(self.window.bbox_tools_panel.btn_save_correction.isEnabled())
+
+        corrected_bbox = BBoxXYXY(16.0, 13.0, 26.0, 21.0)
+        self.window.viewer._commit_bbox(corrected_bbox)
+        self.window.bbox_tools_panel.btn_save_correction.click()
+
+        corrected_annotation = self.window.current_tracks()[0].get_annotation(2)
+        self.assertIsNotNone(corrected_annotation)
+        self.assertEqual(corrected_annotation.bbox, corrected_bbox)
+        self.assertEqual(corrected_annotation.source, AnnotationSource.MANUAL)
+        self.assertIsNone(corrected_annotation.mask)
+        self.assertIsNone(self.window.current_draft_bbox())
+        self.assertIsNone(self.window.viewer.current_bbox())
+        self.assertIn("Saved manual correction for Track 1 on frame 3.", self.window.statusBar().currentMessage())
+
+    def test_resume_sam2_replaces_only_tail_after_current_frame(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.assertGreaterEqual(sequence.frame_count, 5)
+        self.window.set_sequence(sequence)
+
+        track = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(10.0, 10.0, 18.0, 18.0))
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(11.0, 11.0, 19.0, 19.0),
+                source=AnnotationSource.SAM2,
+            )
+        )
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=2,
+                bbox=BBoxXYXY(12.0, 12.0, 20.0, 20.0),
+                source=AnnotationSource.SAM2,
+            )
+        )
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=3,
+                bbox=BBoxXYXY(13.0, 13.0, 21.0, 21.0),
+                source=AnnotationSource.SAM2,
+            )
+        )
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=4,
+                bbox=BBoxXYXY(14.0, 14.0, 22.0, 22.0),
+                source=AnnotationSource.SAM2,
+            )
+        )
+        self.window.set_tracks([track], selected_track_id=1)
+        self.window.slider_frame.setValue(2)
+
+        self.window.bbox_tools_panel.btn_load_track_bbox.click()
+        corrected_bbox = BBoxXYXY(16.0, 15.0, 25.0, 23.0)
+        self.window.viewer._commit_bbox(corrected_bbox)
+        self.window.bbox_tools_panel.btn_save_correction.click()
+        self.assertTrue(self.window.bbox_tools_panel.btn_resume_track.isEnabled())
+
+        repaired = np.full_like(sequence.raw_frames, 0.55, dtype=np.float32)
+        self.window._repair_frames = repaired
+
+        resumed_frame_count = sequence.frame_count - 2
+        masks = np.zeros((resumed_frame_count, *sequence.frame_shape), dtype=bool)
+        masks[0, 15:23, 16:25] = True
+        masks[1, 17:24, 18:26] = True
+        masks[2, 18:25, 19:27] = True
+        visible_mask = np.zeros((resumed_frame_count,), dtype=bool)
+        visible_mask[:3] = True
+        mask_bboxes = np.zeros((resumed_frame_count, 4), dtype=np.float32)
+        mask_bboxes[0] = np.asarray([16.0, 15.0, 25.0, 23.0], dtype=np.float32)
+        mask_bboxes[1] = np.asarray([18.0, 17.0, 26.0, 24.0], dtype=np.float32)
+        mask_bboxes[2] = np.asarray([19.0, 18.0, 27.0, 25.0], dtype=np.float32)
+        mask_areas = np.zeros((resumed_frame_count,), dtype=np.float32)
+        mask_areas[:3] = np.asarray([72.0, 56.0, 56.0], dtype=np.float32)
+        mask_scores = np.zeros((resumed_frame_count,), dtype=np.float32)
+        mask_scores[:3] = np.asarray([0.93, 0.89, 0.87], dtype=np.float32)
+        mask_component_counts = np.zeros((resumed_frame_count,), dtype=np.int32)
+        mask_component_counts[:3] = 1
+        run_output = Sam2RunOutput(
+            track_id=1,
+            frame_index_offset=2,
+            masks=masks,
+            visible_mask=visible_mask,
+            mask_areas=mask_areas,
+            mask_bboxes_xyxy=mask_bboxes,
+            mask_scores=mask_scores,
+            mask_component_counts=mask_component_counts,
+        )
+
+        def fake_run(run_input):
+            time.sleep(0.05)
+            np.testing.assert_array_equal(run_input.frames, repaired[2:])
+            np.testing.assert_array_equal(run_input.query_box_xyxy, np.asarray(corrected_bbox.as_tuple(), dtype=np.float32))
+            self.assertEqual(run_input.frame_index_offset, 2)
+            self.assertEqual(run_input.source_view, "repair")
+            return run_output
+
+        with patch.object(self.window._sam2_backend, "run", side_effect=fake_run) as run_mock:
+            self.window.bbox_tools_panel.btn_resume_track.click()
+            self.assertFalse(self.window.bbox_tools_panel.btn_resume_track.isEnabled())
+            self.assertIsNotNone(self.window._sam2_progress_dialog)
+            self.assertTrue(self.window._sam2_progress_dialog.isVisible())
+            for _ in range(250):
+                self.__class__._app.processEvents()
+                resumed_track = self.window.current_tracks()[0]
+                annotation3 = resumed_track.get_annotation(3)
+                annotation4 = resumed_track.get_annotation(4)
+                if run_mock.called and annotation3 is not None and annotation4 is not None:
+                    if annotation3.bbox == BBoxXYXY(18.0, 17.0, 26.0, 24.0) and annotation4.bbox == BBoxXYXY(19.0, 18.0, 27.0, 25.0):
+                        break
+                time.sleep(0.01)
+
+        run_mock.assert_called_once()
+        resumed_track = self.window.current_tracks()[0]
+        self.assertEqual(resumed_track.get_annotation(0).bbox, BBoxXYXY(10.0, 10.0, 18.0, 18.0))
+        self.assertEqual(resumed_track.get_annotation(1).bbox, BBoxXYXY(11.0, 11.0, 19.0, 19.0))
+        self.assertEqual(resumed_track.get_annotation(2).bbox, corrected_bbox)
+        self.assertEqual(resumed_track.get_annotation(2).source, AnnotationSource.MANUAL)
+        self.assertEqual(resumed_track.get_annotation(3).bbox, BBoxXYXY(18.0, 17.0, 26.0, 24.0))
+        self.assertEqual(resumed_track.get_annotation(4).bbox, BBoxXYXY(19.0, 18.0, 27.0, 25.0))
+        self.assertEqual(resumed_track.get_annotation(3).source, AnnotationSource.SAM2)
+        self.assertEqual(resumed_track.get_annotation(4).source, AnnotationSource.SAM2)
+        self.assertTrue(self.window.bbox_tools_panel.btn_resume_track.isEnabled())
+        self.assertIn("SAM2 resume finished for Track 1 from frame 3.", self.window.statusBar().currentMessage())
 
     def test_preprocessing_panel_uses_scroll_area_for_small_screens(self) -> None:
         panel = self.window.preprocessing_panel

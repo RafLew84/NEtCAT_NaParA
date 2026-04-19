@@ -117,6 +117,41 @@ class ParticleTrackTests(unittest.TestCase):
         self.assertEqual(track.visible_frame_indices, [1, 4])
         self.assertEqual(track.end_frame_index, 4)
 
+    def test_drop_annotations_after_preserves_prefix_of_track(self) -> None:
+        track = ParticleTrack(
+            track_id=5,
+            seed_frame_index=0,
+            seed_bbox=BBoxXYXY(0.0, 0.0, 3.0, 3.0),
+        )
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(1.0, 1.0, 4.0, 4.0),
+                source=AnnotationSource.SAM2,
+            )
+        )
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=2,
+                bbox=BBoxXYXY(2.0, 2.0, 5.0, 5.0),
+                source=AnnotationSource.SAM2,
+            )
+        )
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=3,
+                bbox=BBoxXYXY(3.0, 3.0, 6.0, 6.0),
+                source=AnnotationSource.SAM2,
+            )
+        )
+
+        track.drop_annotations_after(1)
+
+        self.assertEqual(track.frame_indices, [0, 1])
+        self.assertEqual(track.end_frame_index, 1)
+        self.assertIsNone(track.get_annotation(2))
+        self.assertIsNone(track.get_annotation(3))
+
 
 if __name__ == "__main__":
     unittest.main()
