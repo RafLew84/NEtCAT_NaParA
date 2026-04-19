@@ -30,6 +30,7 @@ class SessionStoreTests(unittest.TestCase):
                 frame_interval_s=0.5,
             ),
             active_frame_index=2,
+            reverse_frame_order=True,
         )
         track = ParticleTrack(
             track_id=7,
@@ -88,7 +89,7 @@ class SessionStoreTests(unittest.TestCase):
 
             loaded = load_session_snapshot(
                 session_path,
-                sequence_loader=lambda _path: STMSequence(
+                sequence_loader=lambda _path, reverse_frame_order=False: STMSequence(
                     source_path="/tmp/source.mpp",
                     raw_frames=np.arange(3 * 4 * 5, dtype=np.float32).reshape(3, 4, 5),
                     metadata=STMSequenceMetadata(
@@ -98,11 +99,13 @@ class SessionStoreTests(unittest.TestCase):
                         size_nm_y=8.0,
                         frame_interval_s=0.5,
                     ),
+                    reverse_frame_order=reverse_frame_order,
                 ),
             )
 
         self.assertEqual(loaded.sequence.source_path, "/tmp/source.mpp")
         self.assertEqual(loaded.sequence.active_frame_index, 2)
+        self.assertTrue(loaded.sequence.reverse_frame_order)
         self.assertEqual(loaded.selected_track_id, 7)
         self.assertTrue(loaded.show_denoised_in_viewer)
         self.assertEqual(loaded.draft_bboxes_by_frame[2], BBoxXYXY(0.0, 0.0, 3.0, 2.0))

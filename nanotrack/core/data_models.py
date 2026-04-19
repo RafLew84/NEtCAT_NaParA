@@ -54,6 +54,7 @@ class STMSequence:
     raw_frames: np.ndarray = field(repr=False)
     metadata: STMSequenceMetadata
     active_frame_index: int = 0
+    reverse_frame_order: bool = False
 
     def __post_init__(self) -> None:
         frames = np.asarray(self.raw_frames)
@@ -79,6 +80,7 @@ class STMSequence:
             raise ValueError("Metadata pixel dimensions must match raw_frames shape.")
         if not 0 <= self.active_frame_index < frame_count:
             raise IndexError("active_frame_index is out of range.")
+        self.reverse_frame_order = bool(self.reverse_frame_order)
 
     @property
     def file_name(self) -> str:

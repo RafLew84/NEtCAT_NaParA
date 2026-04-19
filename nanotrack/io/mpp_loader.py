@@ -55,9 +55,12 @@ def _infer_frame_interval_s(frame_times_s: Optional[np.ndarray]) -> Optional[flo
     return None
 
 
-def _build_sequence_metadata(frames: list[STMImage]) -> STMSequenceMetadata:
+def _build_sequence_metadata(frames: list[STMImage], *, reverse_frame_order: bool = False) -> STMSequenceMetadata:
     first = frames[0]
     frame_times_s = _extract_frame_times_s(first.raw_header, len(frames))
+    frame_interval_s = _infer_frame_interval_s(frame_times_s)
+    if frame_times_s is not None and reverse_frame_order:
+        frame_times_s = frame_times_s[::-1].copy()
     return STMSequenceMetadata(
         raw_header=first.raw_header,
         pixels_x=first.pixels_x,
@@ -71,7 +74,7 @@ def _build_sequence_metadata(frames: list[STMImage]) -> STMSequenceMetadata:
         setpoint_a=first.setpoint_a,
         image_type=first.image_type,
         frame_times_s=frame_times_s,
-        frame_interval_s=_infer_frame_interval_s(frame_times_s),
+        frame_interval_s=frame_interval_s,
     )
 
 
@@ -93,12 +96,14 @@ def _orient_frame_for_nanotrack(frame: STMImage) -> np.ndarray:
     return np.rot90(np.asarray(frame.data), 2)
 
 
-def load_mpp_sequence(file_path: str) -> STMSequence:
+def load_mpp_sequence(file_path: str, *, reverse_frame_order: bool = False) -> STMSequence:
     """Load a `.mpp` file and convert it into an `STMSequence`."""
     if os.path.splitext(file_path)[1].lower() != ".mpp":
         raise ValueError(f"Unsupported extension for NanoTrack sequence loader: {file_path}")
 
     frames = _normalize_frames(read_mpp_file(file_path) or [])
+    if reverse_frame_order:
+        frames = list(reversed(frames))
     try:
         raw_frames = np.stack([_orient_frame_for_nanotrack(frame) for frame in frames], axis=0)
     except ValueError as exc:
@@ -107,5 +112,6 @@ def load_mpp_sequence(file_path: str) -> STMSequence:
     return STMSequence(
         source_path=file_path,
         raw_frames=raw_frames,
-        metadata=_build_sequence_metadata(frames),
+        metadata=_build_sequence_metadata(frames, reverse_frame_order=reverse_frame_order),
+        reverse_frame_order=reverse_frame_order,
     )

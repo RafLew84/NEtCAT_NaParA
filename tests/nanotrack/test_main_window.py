@@ -90,6 +90,13 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.preprocessing_panel.chk_show_denoised.isEnabled())
         self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "No preview generated for current frame")
 
+    @patch("nanotrack.ui.main_window.QFileDialog.getOpenFileName", return_value=("/tmp/reversed.mpp", "MPP files"))
+    def test_open_reverse_uses_reversed_frame_order_loader(self, _get_open_file_name) -> None:
+        with patch.object(self.window, "load_sequence_from_path") as load_sequence_mock:
+            self.window.action_open_mpp_reverse.trigger()
+
+        load_sequence_mock.assert_called_once_with("/tmp/reversed.mpp", reverse_frame_order=True)
+
     def test_slider_navigation_updates_active_frame_index(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
         self.window.set_sequence(sequence)

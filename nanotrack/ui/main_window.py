@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 from PyQt6.QtCore import QObject, QSignalBlocker, QThread, Qt, pyqtSignal
+from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -134,15 +135,21 @@ class NanoTrackMainWindow(QMainWindow):
         self.addToolBar(toolbar)
 
         file_menu = self.menuBar().addMenu("File")
-        self.action_open_mpp = toolbar.addAction("Open MPP...")
+        self.action_open_mpp = QAction("Open MPP...", self)
         self.action_open_mpp.setToolTip("Load an MPP sequence into NanoTrack")
-        self.action_open_session = file_menu.addAction("Open Session...")
+        toolbar.addAction(self.action_open_mpp)
+        self.action_open_mpp_reverse = QAction("Open Reverse...", self)
+        self.action_open_mpp_reverse.setToolTip("Load an MPP sequence with reversed frame order")
+        self.action_open_session = QAction("Open Session...", self)
         self.action_open_session.setToolTip("Open a saved NanoTrack session")
-        self.action_save_session = file_menu.addAction("Save Session...")
+        self.action_save_session = QAction("Save Session...", self)
         self.action_save_session.setToolTip("Save the current NanoTrack session")
         self.action_save_session.setEnabled(False)
-        file_menu.addSeparator()
         file_menu.addAction(self.action_open_mpp)
+        file_menu.addAction(self.action_open_mpp_reverse)
+        file_menu.addSeparator()
+        file_menu.addAction(self.action_open_session)
+        file_menu.addAction(self.action_save_session)
         self.action_open_results = toolbar.addAction("View Results...")
         self.action_open_results.setToolTip("Open the quantitative results window")
         self.action_open_results.setEnabled(False)
@@ -207,6 +214,7 @@ class NanoTrackMainWindow(QMainWindow):
 
     def _connect_signals(self) -> None:
         self.action_open_mpp.triggered.connect(self._on_open_mpp)
+        self.action_open_mpp_reverse.triggered.connect(self._on_open_mpp_reverse)
         self.action_open_session.triggered.connect(self._on_open_session_requested)
         self.action_save_session.triggered.connect(self._on_save_session_requested)
         self.action_open_results.triggered.connect(self._on_open_results_requested)
@@ -307,8 +315,8 @@ class NanoTrackMainWindow(QMainWindow):
         )
         self.set_tracks([])
 
-    def load_sequence_from_path(self, file_path: str) -> None:
-        sequence = load_mpp_sequence(file_path)
+    def load_sequence_from_path(self, file_path: str, *, reverse_frame_order: bool = False) -> None:
+        sequence = load_mpp_sequence(file_path, reverse_frame_order=reverse_frame_order)
         self.set_sequence(sequence)
 
     def current_sequence(self) -> STMSequence | None:
@@ -360,6 +368,7 @@ class NanoTrackMainWindow(QMainWindow):
     def _update_menu_action_state(self) -> None:
         busy = self._is_preprocessing or self._is_tracking
         self.action_open_mpp.setEnabled(not busy)
+        self.action_open_mpp_reverse.setEnabled(not busy)
         self.action_open_session.setEnabled(not busy)
         self.action_save_session.setEnabled(self._sequence is not None and not busy)
         self.action_open_results.setEnabled(self._has_results_data() and not busy)
@@ -399,9 +408,15 @@ class NanoTrackMainWindow(QMainWindow):
         self._show_current_frame(preserve_zoom=True)
 
     def _on_open_mpp(self) -> None:
+        self._open_mpp_sequence(reverse_frame_order=False)
+
+    def _on_open_mpp_reverse(self) -> None:
+        self._open_mpp_sequence(reverse_frame_order=True)
+
+    def _open_mpp_sequence(self, *, reverse_frame_order: bool) -> None:
         path, _ = QFileDialog.getOpenFileName(
             self,
-            "Open MPP sequence",
+            "Open MPP sequence (reverse)" if reverse_frame_order else "Open MPP sequence",
             "",
             "MPP files (*.mpp *.MPP);;All files (*.*)",
         )
@@ -409,7 +424,7 @@ class NanoTrackMainWindow(QMainWindow):
             return
 
         try:
-            self.load_sequence_from_path(path)
+            self.load_sequence_from_path(path, reverse_frame_order=reverse_frame_order)
         except Exception as exc:
             QMessageBox.critical(self, "Load error", f"Cannot load MPP sequence:\n{path}\n\n{exc}")
             return

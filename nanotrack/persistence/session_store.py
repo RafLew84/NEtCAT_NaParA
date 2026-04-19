@@ -72,7 +72,7 @@ def save_session_snapshot(path: str, snapshot: NanoTrackSessionSnapshot) -> None
 def load_session_snapshot(
     path: str,
     *,
-    sequence_loader: Callable[[str], STMSequence] = load_mpp_sequence,
+    sequence_loader: Callable[..., STMSequence] = load_mpp_sequence,
 ) -> NanoTrackSessionSnapshot:
     """Load a NanoTrack session from disk and reconstruct the in-memory state."""
 
@@ -82,7 +82,8 @@ def load_session_snapshot(
             raise ValueError(f"Unsupported NanoTrack session schema: {manifest.get('schema')!r}")
 
         sequence_path = str(manifest["sequence"]["source_path"])
-        sequence = sequence_loader(sequence_path)
+        reverse_frame_order = bool(manifest["sequence"].get("reverse_frame_order", False))
+        sequence = sequence_loader(sequence_path, reverse_frame_order=reverse_frame_order)
         sequence.set_active_frame(int(manifest["sequence"]["active_frame_index"]))
 
         repair_frames = _read_optional_npz(zf, "preprocessing/repair_frames.npz", "frames")
@@ -113,6 +114,7 @@ def _build_manifest(snapshot: NanoTrackSessionSnapshot) -> dict:
         "sequence": {
             "source_path": snapshot.sequence.source_path,
             "active_frame_index": snapshot.sequence.active_frame_index,
+            "reverse_frame_order": bool(snapshot.sequence.reverse_frame_order),
         },
         "selected_track_id": snapshot.selected_track_id,
         "show_denoised_in_viewer": bool(snapshot.show_denoised_in_viewer),
