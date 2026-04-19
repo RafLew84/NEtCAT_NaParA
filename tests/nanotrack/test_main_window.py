@@ -1,5 +1,6 @@
 import os
 import time
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -179,6 +180,66 @@ class NanoTrackMainWindowTests(unittest.TestCase):
 
         self.assertEqual(self.window.current_selected_track_id(), 2)
         self.assertEqual(sequence.active_frame_index, 3)
+
+    def test_save_and_load_session_roundtrip_restores_window_state(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+        self.window.slider_frame.setValue(2)
+        self.window.viewer.place_bbox_at_pixel(24.0, 24.0)
+
+        track = ParticleTrack(track_id=1, seed_frame_index=1, seed_bbox=BBoxXYXY(10.0, 10.0, 18.0, 18.0), label="NP-1")
+        mask = np.zeros(sequence.frame_shape, dtype=bool)
+        mask[8:12, 11:16] = True
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=2,
+                bbox=BBoxXYXY(11.0, 8.0, 16.0, 12.0),
+                mask=mask,
+                source=AnnotationSource.SAM2,
+                metrics=ParticleMetrics(
+                    area_px=float(np.count_nonzero(mask)),
+                    perimeter_px=18.0,
+                    intensity_sum=33.0,
+                    intensity_mean=2.2,
+                    intensity_max=4.5,
+                ),
+            )
+        )
+        self.window.set_tracks([track], selected_track_id=1)
+        self.window._repair_frames = np.full_like(sequence.raw_frames, 0.15, dtype=np.float32)
+        self.window._repair_params = {"threshold_sigma": 3.0, "repair_mode": "vertical_interp"}
+        self.window._denoised_frames = np.full_like(sequence.raw_frames, 0.85, dtype=np.float32)
+        self.window._denoised_sigma_factor = 1.2
+        self.window._update_cached_preprocessing_availability()
+        self.window.preprocessing_panel.chk_show_denoised.setChecked(True)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session_path = f"{tmpdir}/sample.nanotrack"
+            self.window.save_session_to_path(session_path)
+
+            self.window._repair_frames = None
+            self.window._repair_params = None
+            self.window._denoised_frames = None
+            self.window._denoised_sigma_factor = None
+            self.window._draft_bboxes_by_frame = {}
+            self.window.set_tracks([])
+            self.window.preprocessing_panel.chk_show_denoised.setChecked(False)
+
+            self.window.load_session_from_path(session_path)
+
+        self.assertEqual(self.window.current_sequence().active_frame_index, 2)
+        self.assertEqual(self.window.current_selected_track_id(), 1)
+        self.assertTrue(self.window.action_save_session.isEnabled())
+        self.assertEqual(self.window.current_draft_bbox(), BBoxXYXY(0.0, 0.0, 48.0, 48.0))
+        self.assertTrue(self.window.preprocessing_panel.chk_show_denoised.isChecked())
+        np.testing.assert_array_equal(self.window.current_repair_frames(), np.full_like(sequence.raw_frames, 0.15, dtype=np.float32))
+        np.testing.assert_array_equal(self.window.current_denoised_frames(), np.full_like(sequence.raw_frames, 0.85, dtype=np.float32))
+        restored_track = self.window.current_tracks()[0]
+        restored_annotation = restored_track.get_annotation(2)
+        self.assertEqual(restored_track.label, "NP-1")
+        np.testing.assert_array_equal(restored_annotation.mask, mask)
+        self.assertEqual(restored_annotation.metrics.area_px, float(np.count_nonzero(mask)))
+        self.assertEqual(restored_annotation.metrics.intensity_sum, 33.0)
 
     def test_preprocessing_panel_is_disabled_without_sequence(self) -> None:
         self.assertFalse(self.window.bbox_tools_panel.btn_place.isEnabled())

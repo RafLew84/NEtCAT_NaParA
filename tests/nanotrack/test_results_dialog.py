@@ -1,3 +1,4 @@
+import tempfile
 import os
 import unittest
 
@@ -74,6 +75,7 @@ class TrackResultsDialogTests(unittest.TestCase):
         intensity_items = self.dialog.plot_intensity.plotItem.listDataItems()
         self.assertEqual(len(intensity_items), 3)
         self.assertIn("measured frames: 2 / 4", self.dialog.lbl_summary.text())
+        self.assertTrue(self.dialog.btn_export.isEnabled())
 
     def test_changing_track_updates_plots_and_emits_selection(self) -> None:
         sequence = STMSequence(
@@ -109,6 +111,28 @@ class TrackResultsDialogTests(unittest.TestCase):
         x_data, y_data = area_items[0].getData()
         np.testing.assert_array_equal(x_data, np.asarray([4.0], dtype=np.float32))
         np.testing.assert_array_equal(y_data, np.asarray([21.0], dtype=np.float32))
+
+    def test_export_results_to_path_writes_csv_pair(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/results.mpp",
+            raw_frames=np.zeros((4, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8, frame_interval_s=0.5),
+        )
+        track1 = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(1.0, 1.0, 4.0, 4.0))
+        track1.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(2.0, 2.0, 5.0, 5.0),
+                metrics=ParticleMetrics(area_px=12.0, perimeter_px=16.0, intensity_sum=24.0, intensity_mean=2.0, intensity_max=3.0),
+            )
+        )
+        self.dialog.set_context(sequence, [track1], selected_track_id=1)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exported = self.dialog.export_results_to_path(f"{tmpdir}/results.csv")
+
+            self.assertTrue(os.path.exists(exported["metrics_csv"]))
+            self.assertTrue(os.path.exists(exported["summary_csv"]))
 
 
 if __name__ == "__main__":

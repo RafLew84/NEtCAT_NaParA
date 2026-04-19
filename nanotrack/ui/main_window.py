@@ -33,6 +33,7 @@ from nanotrack.core import (
     TrackFrameAnnotation,
 )
 from nanotrack.io import load_mpp_sequence
+from nanotrack.persistence import NanoTrackSessionSnapshot, load_session_snapshot, save_session_snapshot
 from nanotrack.processing import (
     run_bm3d_batch,
     run_bm3d_preview,
@@ -132,8 +133,16 @@ class NanoTrackMainWindow(QMainWindow):
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
 
+        file_menu = self.menuBar().addMenu("File")
         self.action_open_mpp = toolbar.addAction("Open MPP...")
         self.action_open_mpp.setToolTip("Load an MPP sequence into NanoTrack")
+        self.action_open_session = file_menu.addAction("Open Session...")
+        self.action_open_session.setToolTip("Open a saved NanoTrack session")
+        self.action_save_session = file_menu.addAction("Save Session...")
+        self.action_save_session.setToolTip("Save the current NanoTrack session")
+        self.action_save_session.setEnabled(False)
+        file_menu.addSeparator()
+        file_menu.addAction(self.action_open_mpp)
         self.action_open_results = toolbar.addAction("View Results...")
         self.action_open_results.setToolTip("Open the quantitative results window")
         self.action_open_results.setEnabled(False)
@@ -198,6 +207,8 @@ class NanoTrackMainWindow(QMainWindow):
 
     def _connect_signals(self) -> None:
         self.action_open_mpp.triggered.connect(self._on_open_mpp)
+        self.action_open_session.triggered.connect(self._on_open_session_requested)
+        self.action_save_session.triggered.connect(self._on_save_session_requested)
         self.action_open_results.triggered.connect(self._on_open_results_requested)
         self.slider_frame.valueChanged.connect(self._on_frame_selected)
         self.spin_frame.valueChanged.connect(self._on_spin_frame_selected)
@@ -289,6 +300,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._reset_preview_state(close_dialog=True)
         self._sync_navigation_controls()
         self._sync_current_bbox_ui()
+        self._update_menu_action_state()
         self.statusBar().showMessage(
             f"{Path(sequence.source_path).name} | frame {sequence.active_frame_index + 1}/{sequence.frame_count}",
             3000,
@@ -345,6 +357,38 @@ class NanoTrackMainWindow(QMainWindow):
     def current_results_dialog(self) -> TrackResultsDialog | None:
         return self._results_dialog
 
+    def _update_menu_action_state(self) -> None:
+        busy = self._is_preprocessing or self._is_tracking
+        self.action_open_mpp.setEnabled(not busy)
+        self.action_open_session.setEnabled(not busy)
+        self.action_save_session.setEnabled(self._sequence is not None and not busy)
+        self.action_open_results.setEnabled(self._has_results_data() and not busy)
+
+    def current_session_snapshot(self) -> NanoTrackSessionSnapshot | None:
+        if self._sequence is None:
+            return None
+        return NanoTrackSessionSnapshot(
+            sequence=self._sequence,
+            tracks=self.current_tracks(),
+            selected_track_id=self._selected_track_id,
+            draft_bboxes_by_frame=dict(self._draft_bboxes_by_frame),
+            repair_frames=None if self._repair_frames is None else np.asarray(self._repair_frames, dtype=np.float32),
+            repair_params=None if self._repair_params is None else dict(self._repair_params),
+            denoised_frames=None if self._denoised_frames is None else np.asarray(self._denoised_frames, dtype=np.float32),
+            denoised_sigma_factor=self._denoised_sigma_factor,
+            show_denoised_in_viewer=self._show_denoised_in_viewer,
+        )
+
+    def save_session_to_path(self, path: str) -> None:
+        snapshot = self.current_session_snapshot()
+        if snapshot is None:
+            raise RuntimeError("No sequence loaded.")
+        save_session_snapshot(path, snapshot)
+
+    def load_session_from_path(self, path: str) -> None:
+        snapshot = load_session_snapshot(path)
+        self._apply_session_snapshot(snapshot)
+
     def _set_active_frame(self, frame_index: int) -> None:
         if self._sequence is None:
             return
@@ -370,6 +414,45 @@ class NanoTrackMainWindow(QMainWindow):
             QMessageBox.critical(self, "Load error", f"Cannot load MPP sequence:\n{path}\n\n{exc}")
             return
 
+    def _on_open_session_requested(self) -> None:
+        if self._is_preprocessing or self._is_tracking:
+            return
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Open NanoTrack session",
+            "",
+            "NanoTrack Session (*.nanotrack);;All files (*.*)",
+        )
+        if not path:
+            return
+        try:
+            self.load_session_from_path(path)
+        except Exception as exc:
+            QMessageBox.critical(self, "Session load error", f"Cannot load session:\n{path}\n\n{exc}")
+            return
+        self.statusBar().showMessage(f"Loaded session: {Path(path).name}", 3000)
+
+    def _on_save_session_requested(self) -> None:
+        if self._sequence is None or self._is_preprocessing or self._is_tracking:
+            return
+        default_name = Path(self._sequence.file_name).stem if self._sequence.file_name else "session"
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save NanoTrack session",
+            f"{default_name}.nanotrack",
+            "NanoTrack Session (*.nanotrack);;All files (*.*)",
+        )
+        if not path:
+            return
+        if not path.lower().endswith(".nanotrack"):
+            path = f"{path}.nanotrack"
+        try:
+            self.save_session_to_path(path)
+        except Exception as exc:
+            QMessageBox.critical(self, "Session save error", f"Cannot save session:\n{path}\n\n{exc}")
+            return
+        self.statusBar().showMessage(f"Saved session: {Path(path).name}", 3000)
+
     def _on_open_results_requested(self) -> None:
         if not self._has_results_data():
             return
@@ -379,6 +462,20 @@ class NanoTrackMainWindow(QMainWindow):
         dialog.raise_()
         dialog.activateWindow()
         self.statusBar().showMessage("Results window opened.", 3000)
+
+    def _apply_session_snapshot(self, snapshot: NanoTrackSessionSnapshot) -> None:
+        self.set_sequence(snapshot.sequence)
+        self._repair_frames = snapshot.repair_frames
+        self._repair_params = None if snapshot.repair_params is None else dict(snapshot.repair_params)
+        self._denoised_frames = snapshot.denoised_frames
+        self._denoised_sigma_factor = snapshot.denoised_sigma_factor
+        self._draft_bboxes_by_frame = dict(snapshot.draft_bboxes_by_frame)
+        self._update_cached_preprocessing_availability()
+        self._show_denoised_in_viewer = bool(snapshot.show_denoised_in_viewer and self._has_any_preprocessing_cache())
+        with QSignalBlocker(self.preprocessing_panel.chk_show_denoised):
+            self.preprocessing_panel.chk_show_denoised.setChecked(self._show_denoised_in_viewer)
+        self.set_tracks(snapshot.tracks, selected_track_id=snapshot.selected_track_id)
+        self._show_current_frame(preserve_zoom=False)
 
     def _on_frame_selected(self, frame_index: int) -> None:
         self._set_active_frame(frame_index)
@@ -955,8 +1052,7 @@ class NanoTrackMainWindow(QMainWindow):
 
     def _apply_busy_state(self) -> None:
         busy = self._is_preprocessing or self._is_tracking
-        self.action_open_mpp.setEnabled(not busy)
-        self.action_open_results.setEnabled(self._has_results_data() and not busy)
+        self._update_menu_action_state()
         self.bbox_tools_panel.set_processing(busy)
         self.preprocessing_panel.set_processing(busy)
         self.track_list_panel.set_processing(busy)
@@ -1168,7 +1264,7 @@ class NanoTrackMainWindow(QMainWindow):
         return False
 
     def _update_results_action_state(self) -> None:
-        self.action_open_results.setEnabled(self._has_results_data() and not (self._is_preprocessing or self._is_tracking))
+        self._update_menu_action_state()
 
     def _current_sam2_input_frames(self) -> tuple[np.ndarray, str]:
         if self._denoised_frames is not None:
