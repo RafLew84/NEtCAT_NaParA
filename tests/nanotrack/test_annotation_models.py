@@ -1,0 +1,122 @@
+import unittest
+
+import numpy as np
+
+from nanotrack.core.data_models import (
+    AnnotationSource,
+    BBoxXYXY,
+    FrameVisibility,
+    ParticleMetrics,
+    ParticleTrack,
+    TrackFrameAnnotation,
+    TrackQuality,
+)
+
+
+class BBoxXYXYTests(unittest.TestCase):
+    def test_exposes_size_and_center(self) -> None:
+        bbox = BBoxXYXY(2.0, 4.0, 10.0, 16.0)
+
+        self.assertEqual(bbox.width, 8.0)
+        self.assertEqual(bbox.height, 12.0)
+        self.assertEqual(bbox.center_xy, (6.0, 10.0))
+        self.assertEqual(bbox.as_tuple(), (2.0, 4.0, 10.0, 16.0))
+
+    def test_rejects_non_positive_extent(self) -> None:
+        with self.assertRaises(ValueError):
+            BBoxXYXY(1.0, 2.0, 1.0, 5.0)
+
+
+class ParticleMetricsTests(unittest.TestCase):
+    def test_rejects_negative_area(self) -> None:
+        with self.assertRaises(ValueError):
+            ParticleMetrics(area_px=-1.0)
+
+
+class TrackFrameAnnotationTests(unittest.TestCase):
+    def test_normalizes_mask_to_bool(self) -> None:
+        annotation = TrackFrameAnnotation(
+            frame_index=3,
+            mask=np.array([[0, 1], [2, 0]], dtype=np.uint8),
+        )
+
+        self.assertTrue(annotation.has_mask)
+        self.assertEqual(annotation.mask.dtype, np.bool_)
+        np.testing.assert_array_equal(annotation.mask, [[False, True], [True, False]])
+
+    def test_visible_annotation_requires_geometry(self) -> None:
+        with self.assertRaises(ValueError):
+            TrackFrameAnnotation(frame_index=0)
+
+    def test_hidden_annotation_can_exist_without_geometry(self) -> None:
+        annotation = TrackFrameAnnotation(
+            frame_index=5,
+            visibility=FrameVisibility.LOST,
+            source=AnnotationSource.RESUME,
+        )
+
+        self.assertFalse(annotation.has_geometry)
+        self.assertEqual(annotation.visibility, FrameVisibility.LOST)
+
+
+class ParticleTrackTests(unittest.TestCase):
+    def test_seed_annotation_is_inserted_automatically(self) -> None:
+        track = ParticleTrack(
+            track_id=7,
+            seed_frame_index=2,
+            seed_bbox=BBoxXYXY(1.0, 1.0, 5.0, 6.0),
+        )
+
+        seed = track.get_annotation(2)
+
+        self.assertIsNotNone(seed)
+        self.assertEqual(seed.bbox, BBoxXYXY(1.0, 1.0, 5.0, 6.0))
+        self.assertEqual(seed.source, AnnotationSource.MANUAL)
+        self.assertEqual(track.visible_frame_indices, [2])
+        self.assertEqual(track.end_frame_index, 2)
+        self.assertEqual(track.quality, TrackQuality.UNREVIEWED)
+
+    def test_rejects_mismatched_annotation_key(self) -> None:
+        with self.assertRaises(ValueError):
+            ParticleTrack(
+                track_id=1,
+                seed_frame_index=0,
+                seed_bbox=BBoxXYXY(0.0, 0.0, 2.0, 2.0),
+                annotations={
+                    3: TrackFrameAnnotation(
+                        frame_index=2,
+                        bbox=BBoxXYXY(0.0, 0.0, 2.0, 2.0),
+                    )
+                },
+            )
+
+    def test_add_annotation_keeps_frame_order_and_visible_subset(self) -> None:
+        track = ParticleTrack(
+            track_id=3,
+            seed_frame_index=1,
+            seed_bbox=BBoxXYXY(1.0, 2.0, 4.0, 5.0),
+        )
+
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=4,
+                bbox=BBoxXYXY(2.0, 3.0, 6.0, 7.0),
+                visibility=FrameVisibility.VISIBLE,
+                source=AnnotationSource.SAM2,
+            )
+        )
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=3,
+                visibility=FrameVisibility.HIDDEN,
+                source=AnnotationSource.SAM2,
+            )
+        )
+
+        self.assertEqual(track.frame_indices, [1, 3, 4])
+        self.assertEqual(track.visible_frame_indices, [1, 4])
+        self.assertEqual(track.end_frame_index, 4)
+
+
+if __name__ == "__main__":
+    unittest.main()

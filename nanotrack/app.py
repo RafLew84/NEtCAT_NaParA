@@ -1,16 +1,23 @@
 import sys
 
-from PyQt6.QtWidgets import QApplication, QMainWindow
+import pyqtgraph as pg
+from PyQt6.QtWidgets import QApplication
+
+from nanotrack.ui import NanoTrackMainWindow
+
+
+def configure_pyqtgraph() -> None:
+    """Align NanoTrack image rendering with the rest of the repo."""
+    pg.setConfigOptions(imageAxisOrder="row-major")
 
 
 def main() -> None:
+    configure_pyqtgraph()
     app = QApplication(sys.argv)
     app.setOrganizationName("NaParA")
     app.setApplicationName("NanoTrack")
 
-    window = QMainWindow()
-    window.setWindowTitle("NanoTrack")
-    window.resize(1100, 800)
+    window = NanoTrackMainWindow()
     window.show()
 
     sys.exit(app.exec())
