@@ -8,8 +8,10 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 import numpy as np
 
 try:
+    from PyQt6.QtCore import Qt
     from PyQt6.QtWidgets import QApplication
 except ImportError:  # pragma: no cover - optional outside the target GUI env
+    Qt = None
     QApplication = None
 
 from nanotrack.core import BBoxXYXY, ParticleTrack, STMSequence, STMSequenceMetadata
@@ -53,6 +55,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.track_list_panel.list_tracks.count(), 0)
         self.assertTrue(self.window.preprocessing_panel.btn_preview.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_apply_all.isEnabled())
+        self.assertTrue(self.window.preprocessing_panel.btn_repair_preview.isEnabled())
+        self.assertTrue(self.window.preprocessing_panel.btn_repair_apply_all.isEnabled())
         self.assertFalse(self.window.preprocessing_panel.chk_show_denoised.isEnabled())
         self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "No preview generated for current frame")
 
@@ -108,104 +112,140 @@ class NanoTrackMainWindowTests(unittest.TestCase):
     def test_preprocessing_panel_is_disabled_without_sequence(self) -> None:
         self.assertFalse(self.window.preprocessing_panel.btn_preview.isEnabled())
         self.assertFalse(self.window.preprocessing_panel.btn_apply_all.isEnabled())
+        self.assertFalse(self.window.preprocessing_panel.btn_repair_preview.isEnabled())
+        self.assertFalse(self.window.preprocessing_panel.btn_repair_apply_all.isEnabled())
         self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "No sequence loaded")
 
-    @patch("nanotrack.ui.main_window.run_bm3d_batch")
-    def test_apply_all_caches_denoised_frames_and_updates_status(self, run_bm3d_batch_mock) -> None:
+    def test_preprocessing_panel_uses_scroll_area_for_small_screens(self) -> None:
+        panel = self.window.preprocessing_panel
+
+        self.assertGreaterEqual(panel.content_widget.minimumWidth(), 360)
+        self.assertEqual(
+            panel.scroll_area.horizontalScrollBarPolicy(),
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded,
+        )
+        self.assertEqual(
+            panel.scroll_area.verticalScrollBarPolicy(),
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded,
+        )
+
+    @patch("nanotrack.ui.main_window.run_horizontal_dropout_batch")
+    def test_repair_apply_all_caches_frames_and_updates_status(self, run_repair_batch_mock) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
         self.window.set_sequence(sequence)
-        denoised = np.full_like(sequence.raw_frames, 0.25, dtype=np.float32)
+        repaired = np.full_like(sequence.raw_frames, 0.15, dtype=np.float32)
 
-        def fake_batch(frames, sigma_factor, progress_callback):
+        def fake_batch(frames, progress_callback, **params):
             np.testing.assert_array_equal(frames, sequence.raw_frames)
-            self.assertEqual(sigma_factor, 1.3)
             self.assertTrue(callable(progress_callback))
             self.assertFalse(self.window.preprocessing_panel.btn_preview.isEnabled())
             self.assertFalse(self.window.preprocessing_panel.btn_apply_all.isEnabled())
+            self.assertFalse(self.window.preprocessing_panel.btn_repair_preview.isEnabled())
+            self.assertFalse(self.window.preprocessing_panel.btn_repair_apply_all.isEnabled())
+            self.assertEqual(params["repair_mode"], "vertical_interp")
             progress_callback(1, sequence.frame_count)
             progress_callback(sequence.frame_count, sequence.frame_count)
-            return denoised
+            return repaired
 
-        run_bm3d_batch_mock.side_effect = fake_batch
+        run_repair_batch_mock.side_effect = fake_batch
 
-        self.window.preprocessing_panel.sp_bm3d_sigma.setValue(1.3)
-        self.window.preprocessing_panel.btn_apply_all.click()
+        self.window.preprocessing_panel.btn_repair_apply_all.click()
 
-        run_bm3d_batch_mock.assert_called_once()
-        np.testing.assert_array_equal(self.window.current_denoised_frames(), denoised)
-        np.testing.assert_array_equal(self.window.current_denoised_frame(), denoised[0])
+        run_repair_batch_mock.assert_called_once()
+        np.testing.assert_array_equal(self.window.current_repair_frames(), repaired)
+        np.testing.assert_array_equal(self.window.current_repaired_frame(), repaired[0])
         self.assertTrue(self.window.preprocessing_panel.btn_preview.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_apply_all.isEnabled())
+        self.assertTrue(self.window.preprocessing_panel.btn_repair_preview.isEnabled())
+        self.assertTrue(self.window.preprocessing_panel.btn_repair_apply_all.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.chk_show_denoised.isEnabled())
         self.assertFalse(self.window.preprocessing_panel.chk_show_denoised.isChecked())
         self.assertEqual(
             self.window.preprocessing_panel.lbl_status.text(),
-            f"BM3D cached for all {sequence.frame_count} frames (sigma 1.30)",
+            f"Horizontal repair cached for all {sequence.frame_count} frames",
         )
         self.assertEqual(
             self.window.statusBar().currentMessage(),
-            f"BM3D applied to all {sequence.frame_count} frames.",
+            f"Horizontal repair applied to all {sequence.frame_count} frames.",
         )
 
-    @patch("nanotrack.ui.main_window.run_bm3d_preview")
-    def test_bm3d_preview_opens_comparison_dialog(self, run_bm3d_preview_mock) -> None:
+    @patch("nanotrack.ui.main_window.run_horizontal_dropout_preview")
+    def test_repair_preview_opens_comparison_dialog(self, run_repair_preview_mock) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
         self.window.set_sequence(sequence)
-        denoised = np.full_like(sequence.active_frame, 0.5, dtype=np.float32)
-        run_bm3d_preview_mock.return_value = denoised
+        repaired = np.full_like(sequence.active_frame, 0.35, dtype=np.float32)
+        run_repair_preview_mock.return_value = (repaired, np.zeros_like(sequence.active_frame, dtype=bool))
 
-        self.window.preprocessing_panel.sp_bm3d_sigma.setValue(1.7)
-        self.window.preprocessing_panel.btn_preview.click()
+        self.window.preprocessing_panel.btn_repair_preview.click()
 
-        run_bm3d_preview_mock.assert_called_once()
-        np.testing.assert_array_equal(run_bm3d_preview_mock.call_args.args[0], sequence.active_frame)
-        self.assertEqual(run_bm3d_preview_mock.call_args.kwargs["sigma_factor"], 1.7)
+        run_repair_preview_mock.assert_called_once()
+        np.testing.assert_array_equal(run_repair_preview_mock.call_args.args[0], sequence.active_frame)
         self.assertIsNotNone(self.window._bm3d_preview_dialog)
         self.assertTrue(self.window._bm3d_preview_dialog.isVisible())
         self.assertIn("Original | Frame 1/", self.window._bm3d_preview_dialog.raw_view.lbl_title.text())
         self.assertEqual(self.window._bm3d_preview_dialog.raw_view.lbl_meta.text(), "Raw frame")
-        self.assertIn("BM3D | Frame 1/", self.window._bm3d_preview_dialog.denoised_view.lbl_title.text())
-        self.assertEqual(self.window._bm3d_preview_dialog.denoised_view.lbl_meta.text(), "Sigma factor: 1.70")
-        self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "Preview ready for frame 1")
-        self.assertEqual(self.window.statusBar().currentMessage(), "BM3D preview opened for frame 1.")
+        self.assertIn("Repair | Frame 1/", self.window._bm3d_preview_dialog.denoised_view.lbl_title.text())
+        self.assertIn("thr", self.window._bm3d_preview_dialog.denoised_view.lbl_meta.text())
+        self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "Repair preview ready for frame 1")
+        self.assertEqual(self.window.statusBar().currentMessage(), "Repair preview opened for frame 1.")
 
     @patch("nanotrack.ui.main_window.run_bm3d_preview")
     @patch("nanotrack.ui.main_window.run_bm3d_batch")
-    def test_bm3d_preview_uses_cached_frames_for_matching_sigma(
+    @patch("nanotrack.ui.main_window.run_horizontal_dropout_batch")
+    def test_bm3d_preview_uses_repair_cache_and_cached_frames_for_matching_sigma(
         self,
+        run_repair_batch_mock,
         run_bm3d_batch_mock,
         run_bm3d_preview_mock,
     ) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
         self.window.set_sequence(sequence)
+        repaired = np.full_like(sequence.raw_frames, 0.2, dtype=np.float32)
         denoised = np.full_like(sequence.raw_frames, 0.75, dtype=np.float32)
+        run_repair_batch_mock.return_value = repaired
         run_bm3d_batch_mock.return_value = denoised
 
+        self.window.preprocessing_panel.btn_repair_apply_all.click()
         self.window.preprocessing_panel.sp_bm3d_sigma.setValue(1.4)
         self.window.preprocessing_panel.btn_apply_all.click()
         self.window.preprocessing_panel.btn_preview.click()
 
+        run_repair_batch_mock.assert_called_once()
         run_bm3d_batch_mock.assert_called_once()
+        np.testing.assert_array_equal(run_bm3d_batch_mock.call_args.args[0], repaired)
         run_bm3d_preview_mock.assert_not_called()
         self.assertIsNotNone(self.window._bm3d_preview_dialog)
         self.assertTrue(self.window._bm3d_preview_dialog.isVisible())
+        self.assertEqual(self.window._bm3d_preview_dialog.raw_view.lbl_meta.text(), "Horizontal repair cache")
         self.assertEqual(self.window._bm3d_preview_dialog.denoised_view.lbl_meta.text(), "Sigma factor: 1.40")
-        self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "Preview ready for frame 1")
+        self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "BM3D preview ready for frame 1")
 
+    @patch("nanotrack.ui.main_window.run_horizontal_dropout_batch")
     @patch("nanotrack.ui.main_window.run_bm3d_batch")
-    def test_show_denoised_checkbox_switches_main_viewer_source(self, run_bm3d_batch_mock) -> None:
+    def test_show_denoised_checkbox_switches_main_viewer_source(
+        self,
+        run_bm3d_batch_mock,
+        run_repair_batch_mock,
+    ) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
         self.window.set_sequence(sequence)
+        repaired = np.full_like(sequence.raw_frames, 0.4, dtype=np.float32)
         denoised = np.full_like(sequence.raw_frames, 0.9, dtype=np.float32)
+        run_repair_batch_mock.return_value = repaired
         run_bm3d_batch_mock.return_value = denoised
 
-        self.window.preprocessing_panel.sp_bm3d_sigma.setValue(1.1)
-        self.window.preprocessing_panel.btn_apply_all.click()
+        self.window.preprocessing_panel.btn_repair_apply_all.click()
 
         np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, sequence.raw_frames[0])
         self.assertIn("View: Raw", self.window.viewer.lbl_meta.text())
 
         self.window.preprocessing_panel.chk_show_denoised.setChecked(True)
+
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, repaired[0])
+        self.assertIn("View: Horizontal repair", self.window.viewer.lbl_meta.text())
+
+        self.window.preprocessing_panel.sp_bm3d_sigma.setValue(1.1)
+        self.window.preprocessing_panel.btn_apply_all.click()
 
         np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, denoised[0])
         self.assertIn("View: BM3D sigma 1.10", self.window.viewer.lbl_meta.text())

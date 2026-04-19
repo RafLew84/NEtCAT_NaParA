@@ -25,28 +25,33 @@ class Bm3dPreviewDialog(QDialog):
 
     def set_preview(
         self,
-        raw_frame,
-        denoised_frame,
+        left_frame,
+        right_frame,
         *,
         frame_index: int,
         frame_count: int,
-        sigma_factor: float,
         scale_nm_per_px: tuple[float | None, float | None] = (None, None),
+        window_title: str = "BM3D Preview",
+        left_title: str = "Original",
+        left_meta: str = "Raw frame",
+        right_title: str = "BM3D",
+        right_meta: str = "-",
     ) -> None:
         preserve_zoom = self._preview_frame_index == frame_index
         frame_label = f"Frame {frame_index + 1}/{frame_count}"
+        self.setWindowTitle(window_title)
 
         self.raw_view.set_frame(
-            raw_frame,
-            title=f"Original | {frame_label}",
-            meta="Raw frame",
+            left_frame,
+            title=f"{left_title} | {frame_label}",
+            meta=left_meta,
             scale_nm_per_px=scale_nm_per_px,
             preserve_zoom=preserve_zoom,
         )
         self.denoised_view.set_frame(
-            denoised_frame,
-            title=f"BM3D | {frame_label}",
-            meta=f"Sigma factor: {sigma_factor:.2f}",
+            right_frame,
+            title=f"{right_title} | {frame_label}",
+            meta=right_meta,
             scale_nm_per_px=scale_nm_per_px,
             preserve_zoom=preserve_zoom,
         )

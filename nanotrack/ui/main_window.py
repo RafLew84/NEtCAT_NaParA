@@ -23,7 +23,12 @@ from PyQt6.QtWidgets import (
 
 from nanotrack.core import ParticleTrack, STMSequence
 from nanotrack.io import load_mpp_sequence
-from nanotrack.processing import run_bm3d_batch, run_bm3d_preview
+from nanotrack.processing import (
+    run_bm3d_batch,
+    run_bm3d_preview,
+    run_horizontal_dropout_batch,
+    run_horizontal_dropout_preview,
+)
 from nanotrack.ui.dialogs import Bm3dPreviewDialog
 from nanotrack.ui.widgets import (
     PreprocessingActionsPanel,
@@ -40,6 +45,8 @@ class NanoTrackMainWindow(QMainWindow):
         super().__init__(parent)
         self._sequence: STMSequence | None = None
         self._tracks: list[ParticleTrack] = []
+        self._repair_frames: np.ndarray | None = None
+        self._repair_params: dict[str, float | int | str] | None = None
         self._denoised_frames: np.ndarray | None = None
         self._denoised_sigma_factor: float | None = None
         self._show_denoised_in_viewer = False
@@ -120,8 +127,10 @@ class NanoTrackMainWindow(QMainWindow):
         self.spin_frame.valueChanged.connect(self._on_spin_frame_selected)
         self.btn_prev.clicked.connect(self._on_prev_frame)
         self.btn_next.clicked.connect(self._on_next_frame)
-        self.preprocessing_panel.preview_requested.connect(self._on_preprocessing_preview_requested)
-        self.preprocessing_panel.apply_all_requested.connect(self._on_preprocessing_apply_all_requested)
+        self.preprocessing_panel.repair_preview_requested.connect(self._on_repair_preview_requested)
+        self.preprocessing_panel.repair_apply_all_requested.connect(self._on_repair_apply_all_requested)
+        self.preprocessing_panel.preview_requested.connect(self._on_bm3d_preview_requested)
+        self.preprocessing_panel.apply_all_requested.connect(self._on_bm3d_apply_all_requested)
         self.preprocessing_panel.show_denoised_toggled.connect(self._on_show_denoised_toggled)
 
     def _update_navigation_enabled(self, enabled: bool) -> None:
@@ -164,12 +173,8 @@ class NanoTrackMainWindow(QMainWindow):
 
         frame_override = None
         view_label = "Raw"
-        if self._show_denoised_in_viewer and self.current_denoised_frame() is not None:
-            frame_override = self.current_denoised_frame()
-            if self._denoised_sigma_factor is None:
-                view_label = "BM3D"
-            else:
-                view_label = f"BM3D sigma {self._denoised_sigma_factor:.2f}"
+        if self._show_denoised_in_viewer:
+            frame_override, view_label = self._current_viewer_override()
 
         self.viewer.show_frame(
             self._sequence.active_frame_index,
@@ -185,7 +190,7 @@ class NanoTrackMainWindow(QMainWindow):
 
     def set_sequence(self, sequence: STMSequence) -> None:
         self._sequence = sequence
-        self._clear_denoised_cache()
+        self._clear_all_preprocessing_cache()
         self.viewer.set_sequence(sequence)
         self._reset_preview_state(close_dialog=True)
         self._sync_navigation_controls()
@@ -201,6 +206,14 @@ class NanoTrackMainWindow(QMainWindow):
 
     def current_sequence(self) -> STMSequence | None:
         return self._sequence
+
+    def current_repair_frames(self) -> np.ndarray | None:
+        return self._repair_frames
+
+    def current_repaired_frame(self) -> np.ndarray | None:
+        if self._repair_frames is None or self._sequence is None:
+            return None
+        return self._repair_frames[self._sequence.active_frame_index]
 
     def current_denoised_frames(self) -> np.ndarray | None:
         return self._denoised_frames
@@ -258,46 +271,148 @@ class NanoTrackMainWindow(QMainWindow):
             return
         self._set_active_frame(min(self._sequence.frame_count - 1, self._sequence.active_frame_index + 1))
 
-    def _on_preprocessing_preview_requested(self) -> None:
+    def _on_repair_preview_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing:
             return
 
         current_index = self._sequence.active_frame_index
-        sigma_factor = self.preprocessing_panel.bm3d_sigma_factor()
+        params = self.preprocessing_panel.repair_parameters()
 
-        if self._has_matching_denoised_cache(sigma_factor):
-            denoised = self.current_denoised_frame()
+        if self._has_matching_repair_cache(params):
+            repaired = self.current_repaired_frame()
         else:
             try:
-                denoised = run_bm3d_preview(self._sequence.active_frame, sigma_factor=sigma_factor)
+                repaired, _ = run_horizontal_dropout_preview(self._sequence.active_frame, **params)
             except Exception as exc:
-                QMessageBox.critical(self, "BM3D preview error", str(exc))
-                self.preprocessing_panel.set_preview_status("BM3D preview failed")
+                QMessageBox.critical(self, "Repair preview error", str(exc))
+                self.preprocessing_panel.set_preview_status("Repair preview failed")
                 return
 
         px_x, px_y = self._sequence.metadata.get_pixel_size_nm()
         dialog = self._ensure_bm3d_preview_dialog()
         dialog.set_preview(
             self._sequence.active_frame,
-            denoised,
+            repaired,
             frame_index=current_index,
             frame_count=self._sequence.frame_count,
-            sigma_factor=sigma_factor,
             scale_nm_per_px=(px_x, px_y),
+            window_title="Horizontal Repair Preview",
+            left_title="Original",
+            left_meta="Raw frame",
+            right_title="Repair",
+            right_meta=(
+                f"thr {params['threshold_sigma']:.1f}, "
+                f"width {params['min_width_frac']*100:.1f}-{params['max_width_frac']*100:.1f}%"
+            ),
         )
         dialog.show()
         dialog.raise_()
         dialog.activateWindow()
         self._preview_frame_index = current_index
-        self.preprocessing_panel.set_preview_status(
-            f"Preview ready for frame {current_index + 1}"
-        )
-        self.statusBar().showMessage(
-            f"BM3D preview opened for frame {current_index + 1}.",
-            3000,
-        )
+        self.preprocessing_panel.set_preview_status(f"Repair preview ready for frame {current_index + 1}")
+        self.statusBar().showMessage(f"Repair preview opened for frame {current_index + 1}.", 3000)
 
-    def _on_preprocessing_apply_all_requested(self) -> None:
+    def _on_bm3d_preview_requested(self) -> None:
+        if self._sequence is None or self._is_preprocessing:
+            return
+
+        current_index = self._sequence.active_frame_index
+        sigma_factor = self.preprocessing_panel.bm3d_sigma_factor()
+        input_frame = self._current_bm3d_input_frame()
+        if input_frame is None:
+            return
+
+        if self._has_matching_denoised_cache(sigma_factor):
+            denoised = self.current_denoised_frame()
+        else:
+            try:
+                denoised = run_bm3d_preview(input_frame, sigma_factor=sigma_factor)
+            except Exception as exc:
+                QMessageBox.critical(self, "BM3D preview error", str(exc))
+                self.preprocessing_panel.set_preview_status("BM3D preview failed")
+                return
+
+        left_title = "Original"
+        left_meta = "Raw frame"
+        if self._repair_frames is not None:
+            left_title = "Repair input"
+            left_meta = "Horizontal repair cache"
+
+        px_x, px_y = self._sequence.metadata.get_pixel_size_nm()
+        dialog = self._ensure_bm3d_preview_dialog()
+        dialog.set_preview(
+            input_frame,
+            denoised,
+            frame_index=current_index,
+            frame_count=self._sequence.frame_count,
+            scale_nm_per_px=(px_x, px_y),
+            window_title="BM3D Preview",
+            left_title=left_title,
+            left_meta=left_meta,
+            right_title="BM3D",
+            right_meta=f"Sigma factor: {sigma_factor:.2f}",
+        )
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+        self._preview_frame_index = current_index
+        self.preprocessing_panel.set_preview_status(f"BM3D preview ready for frame {current_index + 1}")
+        self.statusBar().showMessage(f"BM3D preview opened for frame {current_index + 1}.", 3000)
+
+    def _on_repair_apply_all_requested(self) -> None:
+        if self._sequence is None or self._is_preprocessing:
+            return
+
+        params = self.preprocessing_panel.repair_parameters()
+        frame_count = self._sequence.frame_count
+        progress = QProgressDialog("Applying horizontal repair to all frames...", "", 0, frame_count, self)
+        progress.setWindowTitle("Horizontal Repair")
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setCancelButton(None)
+        progress.setMinimumDuration(0)
+        progress.setAutoClose(True)
+        progress.setAutoReset(True)
+        progress.setValue(0)
+
+        self._set_preprocessing_busy(True)
+        self.preprocessing_panel.set_preview_status(f"Applying repair... 0/{frame_count}")
+        self.statusBar().showMessage("Applying horizontal repair to all frames...", 0)
+
+        def on_progress(processed: int, total: int) -> None:
+            progress.setMaximum(total)
+            progress.setValue(processed)
+            self.preprocessing_panel.set_preview_status(f"Applying repair... {processed}/{total}")
+            QApplication.processEvents()
+
+        try:
+            repair_frames = run_horizontal_dropout_batch(
+                self._sequence.raw_frames,
+                progress_callback=on_progress,
+                **params,
+            )
+        except Exception as exc:
+            self._clear_repair_cache()
+            self._update_cached_preprocessing_availability()
+            QMessageBox.critical(self, "Repair apply-all error", str(exc))
+            self.preprocessing_panel.set_preview_status("Repair apply-all failed")
+        else:
+            self._repair_frames = repair_frames
+            self._repair_params = dict(params)
+            self._clear_denoised_cache()
+            self._update_cached_preprocessing_availability()
+            if self._show_denoised_in_viewer:
+                self._show_current_frame(preserve_zoom=True)
+            progress.setValue(frame_count)
+            self.preprocessing_panel.set_preview_status(self._default_preprocessing_status())
+            self.statusBar().showMessage(
+                f"Horizontal repair applied to all {frame_count} frames.",
+                3000,
+            )
+        finally:
+            progress.close()
+            self._set_preprocessing_busy(False)
+
+    def _on_bm3d_apply_all_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing:
             return
 
@@ -324,18 +439,19 @@ class NanoTrackMainWindow(QMainWindow):
 
         try:
             denoised_frames = run_bm3d_batch(
-                self._sequence.raw_frames,
+                self._current_bm3d_input_frames(),
                 sigma_factor=sigma_factor,
                 progress_callback=on_progress,
             )
         except Exception as exc:
             self._clear_denoised_cache()
+            self._update_cached_preprocessing_availability()
             QMessageBox.critical(self, "BM3D apply-all error", str(exc))
             self.preprocessing_panel.set_preview_status("BM3D apply-all failed")
         else:
             self._denoised_frames = denoised_frames
             self._denoised_sigma_factor = sigma_factor
-            self.preprocessing_panel.set_denoised_available(True)
+            self._update_cached_preprocessing_availability()
             if self._show_denoised_in_viewer:
                 self._show_current_frame(preserve_zoom=True)
             progress.setValue(frame_count)
@@ -349,7 +465,7 @@ class NanoTrackMainWindow(QMainWindow):
             self._set_preprocessing_busy(False)
 
     def _on_show_denoised_toggled(self, checked: bool) -> None:
-        self._show_denoised_in_viewer = bool(checked and self._denoised_frames is not None)
+        self._show_denoised_in_viewer = bool(checked and self._has_any_preprocessing_cache())
         if self._sequence is not None:
             self._show_current_frame(preserve_zoom=True)
 
@@ -377,8 +493,28 @@ class NanoTrackMainWindow(QMainWindow):
     def _clear_denoised_cache(self) -> None:
         self._denoised_frames = None
         self._denoised_sigma_factor = None
+
+    def _clear_repair_cache(self) -> None:
+        self._repair_frames = None
+        self._repair_params = None
+
+    def _clear_all_preprocessing_cache(self) -> None:
+        self._clear_repair_cache()
+        self._clear_denoised_cache()
         self._show_denoised_in_viewer = False
-        self.preprocessing_panel.set_denoised_available(False)
+        self.preprocessing_panel.set_cached_preprocessing_available(False)
+
+    def _update_cached_preprocessing_availability(self) -> None:
+        self.preprocessing_panel.set_cached_preprocessing_available(self._has_any_preprocessing_cache())
+        if not self._has_any_preprocessing_cache():
+            self._show_denoised_in_viewer = False
+
+    def _has_matching_repair_cache(self, params: dict[str, float | int | str]) -> bool:
+        if self._sequence is None or self._repair_frames is None or self._repair_params is None:
+            return False
+        if self._repair_frames.shape != self._sequence.raw_frames.shape:
+            return False
+        return all(self._repair_params.get(key) == value for key, value in params.items())
 
     def _has_matching_denoised_cache(self, sigma_factor: float) -> bool:
         if self._sequence is None or self._denoised_frames is None or self._denoised_sigma_factor is None:
@@ -388,6 +524,30 @@ class NanoTrackMainWindow(QMainWindow):
             and abs(self._denoised_sigma_factor - sigma_factor) < 1e-9
         )
 
+    def _has_any_preprocessing_cache(self) -> bool:
+        return self._repair_frames is not None or self._denoised_frames is not None
+
+    def _current_bm3d_input_frames(self) -> np.ndarray:
+        if self._repair_frames is not None:
+            return self._repair_frames
+        assert self._sequence is not None
+        return self._sequence.raw_frames
+
+    def _current_bm3d_input_frame(self) -> np.ndarray | None:
+        if self._sequence is None:
+            return None
+        if self._repair_frames is not None:
+            return self._repair_frames[self._sequence.active_frame_index]
+        return self._sequence.active_frame
+
+    def _current_viewer_override(self) -> tuple[np.ndarray | None, str]:
+        if self._denoised_frames is not None and self._sequence is not None:
+            label = "BM3D" if self._denoised_sigma_factor is None else f"BM3D sigma {self._denoised_sigma_factor:.2f}"
+            return self.current_denoised_frame(), label
+        if self._repair_frames is not None and self._sequence is not None:
+            return self.current_repaired_frame(), "Horizontal repair"
+        return None, "Raw"
+
     def _default_preprocessing_status(self) -> str:
         if self._sequence is None:
             return "No sequence loaded"
@@ -396,6 +556,8 @@ class NanoTrackMainWindow(QMainWindow):
                 f"BM3D cached for all {self._sequence.frame_count} frames "
                 f"(sigma {self._denoised_sigma_factor:.2f})"
             )
+        if self._repair_frames is not None:
+            return f"Horizontal repair cached for all {self._sequence.frame_count} frames"
         return "No preview generated for current frame"
 
     def _reset_preview_state(self, *, close_dialog: bool = False) -> None:
