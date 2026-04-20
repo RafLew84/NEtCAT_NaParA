@@ -38,6 +38,10 @@ class Sam2BackendConfig:
     repo_path: str | Path | None = DEFAULT_SAM2_REPO_PATH
     config_path: str | Path | None = None
     device: str = "auto"
+    apply_postprocessing: bool = True
+    offload_video_to_cpu: bool = True
+    offload_state_to_cpu: bool = False
+    async_loading_frames: bool = False
     timeout_sec: float = 600.0
     working_directory: str | Path | None = None
 
@@ -119,6 +123,16 @@ class Sam2SubprocessBackend:
             command.extend(["--repo-path", str(self.config.repo_path)])
         if self.config.config_path is not None:
             command.extend(["--config", str(self.config.config_path)])
+        if self.config.apply_postprocessing:
+            command.append("--apply-postprocessing")
+        else:
+            command.append("--disable-postprocessing")
+        if self.config.offload_video_to_cpu:
+            command.append("--offload-video-to-cpu")
+        if self.config.offload_state_to_cpu:
+            command.append("--offload-state-to-cpu")
+        if self.config.async_loading_frames:
+            command.append("--async-loading-frames")
         return command
 
     def _working_directory(self) -> str:
@@ -132,10 +146,13 @@ class Sam2SubprocessBackend:
     def _format_subprocess_error(self, command: list[str], completed: subprocess.CompletedProcess[str]) -> str:
         stdout = completed.stdout.strip() or "<empty>"
         stderr = completed.stderr.strip() or "<empty>"
+        hint = self._format_return_code_hint(completed.returncode)
+        hint_block = "" if hint is None else f"\nHint: {hint}\n"
         return (
             "SAM2 worker failed.\n"
             f"Command: {self._format_command(command)}\n"
             f"Exit code: {completed.returncode}\n"
+            f"{hint_block}"
             f"stdout:\n{stdout}\n"
             f"stderr:\n{stderr}"
         )
@@ -162,3 +179,12 @@ class Sam2SubprocessBackend:
             value = value.decode("utf-8", errors="replace")
         value = value.strip()
         return value or "<empty>"
+
+    def _format_return_code_hint(self, return_code: int) -> str | None:
+        if int(return_code) == 3221226505:
+            return (
+                "Windows exit code 3221226505 (0xC0000409) usually means a native crash in a C/CUDA extension. "
+                "For large SAM2 batches this is often memory-pressure related. NanoTrack now runs with video "
+                "offloaded to CPU, but if the problem persists try a smaller checkpoint or CPU device."
+            )
+        return None

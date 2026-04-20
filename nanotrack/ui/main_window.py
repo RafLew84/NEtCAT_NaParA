@@ -72,8 +72,8 @@ class _Sam2RunWorker(QObject):
 
 class _Sam2BatchWorker(QObject):
     progress = pyqtSignal(int, int, object)
-    finished = pyqtSignal()
-    failed = pyqtSignal(str)
+    item_failed = pyqtSignal(int, int, object)
+    finished = pyqtSignal(object)
 
     def __init__(self, backend: Sam2SubprocessBackend, run_items: list[tuple[int, Sam2RunInput]]):
         super().__init__()
@@ -82,14 +82,16 @@ class _Sam2BatchWorker(QObject):
 
     def run(self) -> None:
         total = len(self._run_items)
-        try:
-            for index, (track_id, run_input) in enumerate(self._run_items, start=1):
+        failures: list[tuple[int, str]] = []
+        for index, (track_id, run_input) in enumerate(self._run_items, start=1):
+            try:
                 output = self._backend.run(run_input)
                 self.progress.emit(index, total, (track_id, output))
-        except Exception as exc:
-            self.failed.emit(str(exc))
-            return
-        self.finished.emit()
+            except Exception as exc:
+                error_message = f"Track {track_id} failed during SAM2 batch.\n{exc}"
+                failures.append((track_id, error_message))
+                self.item_failed.emit(index, total, (track_id, error_message))
+        self.finished.emit({"total": total, "failures": failures})
 
 
 class NanoTrackMainWindow(QMainWindow):
@@ -117,6 +119,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._sam2_worker: _Sam2RunWorker | None = None
         self._sam2_running_track_id: int | None = None
         self._sam2_resume_from_frame: int | None = None
+        self._sam2_batch_failures: list[tuple[int, str]] = []
         self._setup_ui()
         self._connect_signals()
 
@@ -965,6 +968,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._set_tracking_busy(True)
         self._sam2_running_track_id = None
         self._sam2_resume_from_frame = None
+        self._sam2_batch_failures = []
         self._sam2_progress_dialog = QProgressDialog(
             "Running SAM2 for all seeds...",
             "",
@@ -988,10 +992,9 @@ class NanoTrackMainWindow(QMainWindow):
         self._sam2_batch_worker.moveToThread(self._sam2_thread)
         self._sam2_thread.started.connect(self._sam2_batch_worker.run)
         self._sam2_batch_worker.progress.connect(self._on_sam2_batch_progress)
+        self._sam2_batch_worker.item_failed.connect(self._on_sam2_batch_item_failed)
         self._sam2_batch_worker.finished.connect(self._on_sam2_batch_finished)
-        self._sam2_batch_worker.failed.connect(self._on_sam2_run_failed)
         self._sam2_batch_worker.finished.connect(self._sam2_thread.quit)
-        self._sam2_batch_worker.failed.connect(self._sam2_thread.quit)
         self._sam2_thread.finished.connect(self._cleanup_sam2_worker)
         self._sam2_thread.start()
 
@@ -1035,9 +1038,36 @@ class NanoTrackMainWindow(QMainWindow):
             self._sam2_progress_dialog.setValue(completed)
         self.statusBar().showMessage(f"SAM2 batch {completed}/{total} finished: {label}", 0)
 
-    def _on_sam2_batch_finished(self) -> None:
-        completed_tracks = len(self._tracks)
-        self.statusBar().showMessage(f"SAM2 finished for all {completed_tracks} seeds.", 3000)
+    def _on_sam2_batch_item_failed(self, completed: int, total: int, payload: object) -> None:
+        track_id, error_message = payload
+        assert isinstance(track_id, int)
+        assert isinstance(error_message, str)
+        self._sam2_batch_failures.append((track_id, error_message))
+        if self._sam2_progress_dialog is not None:
+            self._sam2_progress_dialog.setMaximum(total)
+            self._sam2_progress_dialog.setLabelText(f"Running SAM2 for all seeds... {completed}/{total}\nFailed: Track {track_id}")
+            self._sam2_progress_dialog.setValue(completed)
+        self.statusBar().showMessage(f"SAM2 batch {completed}/{total} failed: Track {track_id}", 0)
+
+    def _on_sam2_batch_finished(self, summary: object) -> None:
+        failures = []
+        total = len(self._tracks)
+        if isinstance(summary, dict):
+            failures = list(summary.get("failures", []))
+            total = int(summary.get("total", total))
+        if failures:
+            failed_track_ids = ", ".join(str(track_id) for track_id, _message in failures)
+            QMessageBox.warning(
+                self,
+                "SAM2 batch finished with failures",
+                f"SAM2 finished with failures for {len(failures)}/{total} seeds.\nFailed track IDs: {failed_track_ids}",
+            )
+            self.statusBar().showMessage(
+                f"SAM2 finished with failures for {len(failures)}/{total} seeds.",
+                5000,
+            )
+        else:
+            self.statusBar().showMessage(f"SAM2 finished for all {total} seeds.", 3000)
         self._set_tracking_busy(False)
         self._close_sam2_progress_dialog()
 
@@ -1102,6 +1132,7 @@ class NanoTrackMainWindow(QMainWindow):
             self._sam2_thread = None
         self._sam2_running_track_id = None
         self._sam2_resume_from_frame = None
+        self._sam2_batch_failures = []
 
     def _clear_denoised_cache(self) -> None:
         self._denoised_frames = None
@@ -1348,7 +1379,11 @@ class NanoTrackMainWindow(QMainWindow):
         if visible and run_output.mask_bboxes_xyxy is not None:
             bbox = self._bbox_from_output_array(run_output.mask_bboxes_xyxy[local_frame_index])
         if visible and np.any(mask):
-            metrics = compute_particle_metrics(mask, self._sequence.get_frame(frame_index))
+            metrics = compute_particle_metrics(
+                mask,
+                self._sequence.get_frame(frame_index),
+                pixel_size_nm=self._sequence.metadata.get_pixel_size_nm(),
+            )
 
         return TrackFrameAnnotation(
             frame_index=frame_index,

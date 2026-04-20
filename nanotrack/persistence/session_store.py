@@ -158,6 +158,8 @@ def _serialize_annotation(track_id: int, annotation: TrackFrameAnnotation) -> di
         "metrics": {
             "area_px": annotation.metrics.area_px,
             "perimeter_px": annotation.metrics.perimeter_px,
+            "area_nm2": annotation.metrics.area_nm2,
+            "perimeter_nm": annotation.metrics.perimeter_nm,
             "intensity_sum": annotation.metrics.intensity_sum,
             "intensity_mean": annotation.metrics.intensity_mean,
             "intensity_max": annotation.metrics.intensity_max,
@@ -190,6 +192,8 @@ def _restore_tracks(zf: zipfile.ZipFile, tracks_payload: list[dict]) -> list[Par
                 metrics=ParticleMetrics(
                     area_px=metrics_payload.get("area_px"),
                     perimeter_px=metrics_payload.get("perimeter_px"),
+                    area_nm2=metrics_payload.get("area_nm2"),
+                    perimeter_nm=metrics_payload.get("perimeter_nm"),
                     intensity_sum=metrics_payload.get("intensity_sum"),
                     intensity_mean=metrics_payload.get("intensity_mean"),
                     intensity_max=metrics_payload.get("intensity_max"),

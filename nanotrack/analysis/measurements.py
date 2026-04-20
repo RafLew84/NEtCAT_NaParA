@@ -7,7 +7,12 @@ import numpy as np
 from nanotrack.core import ParticleMetrics
 
 
-def compute_particle_metrics(mask: np.ndarray, raw_frame: np.ndarray) -> ParticleMetrics:
+def compute_particle_metrics(
+    mask: np.ndarray,
+    raw_frame: np.ndarray,
+    *,
+    pixel_size_nm: tuple[float | None, float | None] | None = None,
+) -> ParticleMetrics:
     """Compute per-frame particle metrics from a binary mask and the raw STM frame."""
 
     mask_array = np.asarray(mask, dtype=bool)
@@ -25,10 +30,21 @@ def compute_particle_metrics(mask: np.ndarray, raw_frame: np.ndarray) -> Particl
     values = raw_array[mask_array]
     area_px = float(np.count_nonzero(mask_array))
     perimeter_px = float(_binary_mask_perimeter_px(mask_array))
+    area_nm2 = None
+    perimeter_nm = None
+    if pixel_size_nm is not None:
+        pixel_size_x_nm, pixel_size_y_nm = pixel_size_nm
+        if pixel_size_x_nm is not None and pixel_size_y_nm is not None:
+            area_nm2 = float(area_px * pixel_size_x_nm * pixel_size_y_nm)
+            perimeter_nm = float(
+                _binary_mask_perimeter_nm(mask_array, pixel_size_x_nm=pixel_size_x_nm, pixel_size_y_nm=pixel_size_y_nm)
+            )
 
     return ParticleMetrics(
         area_px=area_px,
         perimeter_px=perimeter_px,
+        area_nm2=area_nm2,
+        perimeter_nm=perimeter_nm,
         intensity_sum=float(values.sum()),
         intensity_mean=float(values.mean()),
         intensity_max=float(values.max()),
@@ -42,3 +58,12 @@ def _binary_mask_perimeter_px(mask: np.ndarray) -> int:
     vertical_edges = np.count_nonzero(padded[1:, :] != padded[:-1, :])
     horizontal_edges = np.count_nonzero(padded[:, 1:] != padded[:, :-1])
     return int(vertical_edges + horizontal_edges)
+
+
+def _binary_mask_perimeter_nm(mask: np.ndarray, *, pixel_size_x_nm: float, pixel_size_y_nm: float) -> float:
+    """Return the exposed-edge perimeter in physical units."""
+
+    padded = np.pad(np.asarray(mask, dtype=bool), 1, mode="constant", constant_values=False)
+    row_boundaries = np.count_nonzero(padded[1:, :] != padded[:-1, :])
+    column_boundaries = np.count_nonzero(padded[:, 1:] != padded[:, :-1])
+    return float(row_boundaries * pixel_size_x_nm + column_boundaries * pixel_size_y_nm)

@@ -32,6 +32,10 @@ class ParticleMetricsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ParticleMetrics(area_px=-1.0)
 
+    def test_rejects_negative_physical_perimeter(self) -> None:
+        with self.assertRaises(ValueError):
+            ParticleMetrics(perimeter_nm=-1.0)
+
 
 class TrackFrameAnnotationTests(unittest.TestCase):
     def test_normalizes_mask_to_bool(self) -> None:

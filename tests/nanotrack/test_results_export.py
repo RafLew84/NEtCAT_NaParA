@@ -13,14 +13,14 @@ class ResultsExportTests(unittest.TestCase):
         sequence = STMSequence(
             source_path="/tmp/results.mpp",
             raw_frames=np.zeros((4, 8, 8), dtype=np.float32),
-            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8, frame_interval_s=0.5),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8, size_nm_x=80.0, size_nm_y=40.0, frame_interval_s=0.5),
         )
         track1 = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(1.0, 1.0, 4.0, 4.0), label="NP-1")
         track1.add_annotation(
             TrackFrameAnnotation(
                 frame_index=1,
                 bbox=BBoxXYXY(2.0, 2.0, 5.0, 5.0),
-                metrics=ParticleMetrics(area_px=12.0, perimeter_px=16.0, intensity_sum=24.0, intensity_mean=2.0, intensity_max=3.0),
+                metrics=ParticleMetrics(area_px=12.0, perimeter_px=16.0, area_nm2=600.0, perimeter_nm=120.0, intensity_sum=24.0, intensity_mean=2.0, intensity_max=3.0),
             )
         )
         track2 = ParticleTrack(track_id=2, seed_frame_index=2, seed_bbox=BBoxXYXY(2.0, 2.0, 6.0, 6.0), label="NP-2")
@@ -28,7 +28,7 @@ class ResultsExportTests(unittest.TestCase):
             TrackFrameAnnotation(
                 frame_index=3,
                 bbox=BBoxXYXY(3.0, 3.0, 7.0, 7.0),
-                metrics=ParticleMetrics(area_px=21.0, perimeter_px=24.0, intensity_sum=55.0, intensity_mean=2.62, intensity_max=5.0),
+                metrics=ParticleMetrics(area_px=21.0, perimeter_px=24.0, area_nm2=1050.0, perimeter_nm=180.0, intensity_sum=55.0, intensity_mean=2.62, intensity_max=5.0),
             )
         )
 
@@ -46,6 +46,10 @@ class ResultsExportTests(unittest.TestCase):
         self.assertEqual(metrics_rows[0]["frame_number"], "2")
         self.assertEqual(metrics_rows[0]["time_s"], "0.5")
         self.assertEqual(metrics_rows[0]["area_px"], "12.0")
+        self.assertEqual(metrics_rows[0]["area_nm2"], "600.0")
+        self.assertEqual(metrics_rows[0]["perimeter_nm"], "120.0")
+        self.assertEqual(metrics_rows[0]["image_size_nm_x"], "80.0")
+        self.assertEqual(metrics_rows[0]["pixel_size_nm_y"], "5.0")
         self.assertEqual(metrics_rows[1]["track_id"], "2")
         self.assertEqual(metrics_rows[1]["intensity_max"], "5.0")
 
@@ -53,6 +57,8 @@ class ResultsExportTests(unittest.TestCase):
         self.assertEqual(summary_rows[0]["track_id"], "1")
         self.assertEqual(summary_rows[0]["measured_frames"], "1")
         self.assertEqual(summary_rows[0]["mean_area_px"], "12.0")
+        self.assertEqual(summary_rows[0]["mean_area_nm2"], "600.0")
+        self.assertEqual(summary_rows[0]["mean_perimeter_nm"], "120.0")
         self.assertEqual(summary_rows[1]["track_id"], "2")
         self.assertEqual(summary_rows[1]["max_intensity_max"], "5.0")
 

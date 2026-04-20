@@ -57,6 +57,8 @@ class SessionStoreTests(unittest.TestCase):
                 metrics=ParticleMetrics(
                     area_px=4.0,
                     perimeter_px=8.0,
+                    area_nm2=32.0,
+                    perimeter_nm=14.0,
                     intensity_sum=18.0,
                     intensity_mean=4.5,
                     intensity_max=7.0,
@@ -123,6 +125,8 @@ class SessionStoreTests(unittest.TestCase):
         np.testing.assert_array_equal(restored_visible.mask, track.get_annotation(2).mask)
         self.assertEqual(restored_visible.metrics.area_px, 4.0)
         self.assertEqual(restored_visible.metrics.perimeter_px, 8.0)
+        self.assertEqual(restored_visible.metrics.area_nm2, 32.0)
+        self.assertEqual(restored_visible.metrics.perimeter_nm, 14.0)
         self.assertEqual(restored_visible.metrics.intensity_sum, 18.0)
         restored_lost = restored_track.get_annotation(3)
         self.assertEqual(restored_lost.visibility, FrameVisibility.LOST)

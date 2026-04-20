@@ -193,6 +193,8 @@ class ParticleMetrics:
 
     area_px: Optional[float] = None
     perimeter_px: Optional[float] = None
+    area_nm2: Optional[float] = None
+    perimeter_nm: Optional[float] = None
     intensity_sum: Optional[float] = None
     intensity_mean: Optional[float] = None
     intensity_max: Optional[float] = None
@@ -202,6 +204,10 @@ class ParticleMetrics:
             raise ValueError("area_px must be non-negative.")
         if self.perimeter_px is not None and self.perimeter_px < 0:
             raise ValueError("perimeter_px must be non-negative.")
+        if self.area_nm2 is not None and self.area_nm2 < 0:
+            raise ValueError("area_nm2 must be non-negative.")
+        if self.perimeter_nm is not None and self.perimeter_nm < 0:
+            raise ValueError("perimeter_nm must be non-negative.")
 
 
 @dataclass

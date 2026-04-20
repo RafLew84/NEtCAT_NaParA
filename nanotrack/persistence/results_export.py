@@ -28,7 +28,7 @@ def export_results_csv(base_path: str, sequence: STMSequence, tracks: list[Parti
     summary_path = base.parent / f"{base.name}_summary.csv"
 
     _write_csv(metrics_path, metrics_rows)
-    _write_csv(summary_path, list(_summary_rows(exportable_tracks)))
+    _write_csv(summary_path, list(_summary_rows(sequence, exportable_tracks)))
     return {
         "metrics_csv": str(metrics_path),
         "summary_csv": str(summary_path),
@@ -37,6 +37,7 @@ def export_results_csv(base_path: str, sequence: STMSequence, tracks: list[Parti
 
 def _metrics_rows(sequence: STMSequence, tracks: list[ParticleTrack]) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
+    pixel_size_x_nm, pixel_size_y_nm = sequence.metadata.get_pixel_size_nm()
     for track in tracks:
         label = track.label or f"Track {track.track_id}"
         for frame_index in track.frame_indices:
@@ -63,12 +64,18 @@ def _metrics_rows(sequence: STMSequence, tracks: list[ParticleTrack]) -> list[di
                     "time_s": sequence.get_frame_time_s(frame_index),
                     "visibility": annotation.visibility.value,
                     "source": annotation.source.value,
+                    "image_size_nm_x": sequence.metadata.size_nm_x or None,
+                    "image_size_nm_y": sequence.metadata.size_nm_y or None,
+                    "pixel_size_nm_x": pixel_size_x_nm,
+                    "pixel_size_nm_y": pixel_size_y_nm,
                     "bbox_x0": None if bbox is None else bbox.x0,
                     "bbox_y0": None if bbox is None else bbox.y0,
                     "bbox_x1": None if bbox is None else bbox.x1,
                     "bbox_y1": None if bbox is None else bbox.y1,
                     "area_px": metrics.area_px,
                     "perimeter_px": metrics.perimeter_px,
+                    "area_nm2": metrics.area_nm2,
+                    "perimeter_nm": metrics.perimeter_nm,
                     "intensity_sum": metrics.intensity_sum,
                     "intensity_mean": metrics.intensity_mean,
                     "intensity_max": metrics.intensity_max,
@@ -77,8 +84,9 @@ def _metrics_rows(sequence: STMSequence, tracks: list[ParticleTrack]) -> list[di
     return rows
 
 
-def _summary_rows(tracks: list[ParticleTrack]) -> list[dict[str, object]]:
+def _summary_rows(sequence: STMSequence, tracks: list[ParticleTrack]) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
+    pixel_size_x_nm, pixel_size_y_nm = sequence.metadata.get_pixel_size_nm()
     for track in tracks:
         label = track.label or f"Track {track.track_id}"
         measured_annotations = []
@@ -102,6 +110,8 @@ def _summary_rows(tracks: list[ParticleTrack]) -> list[dict[str, object]]:
         if measured_annotations:
             area_values = [annotation.metrics.area_px for annotation in measured_annotations]
             perimeter_values = [annotation.metrics.perimeter_px for annotation in measured_annotations]
+            area_nm2_values = [annotation.metrics.area_nm2 for annotation in measured_annotations if annotation.metrics.area_nm2 is not None]
+            perimeter_nm_values = [annotation.metrics.perimeter_nm for annotation in measured_annotations if annotation.metrics.perimeter_nm is not None]
             intensity_sum_values = [annotation.metrics.intensity_sum for annotation in measured_annotations]
             intensity_mean_values = [annotation.metrics.intensity_mean for annotation in measured_annotations]
             intensity_max_values = [annotation.metrics.intensity_max for annotation in measured_annotations]
@@ -110,6 +120,10 @@ def _summary_rows(tracks: list[ParticleTrack]) -> list[dict[str, object]]:
                 "max_area_px": max(area_values),
                 "mean_perimeter_px": sum(perimeter_values) / len(perimeter_values),
                 "max_perimeter_px": max(perimeter_values),
+                "mean_area_nm2": sum(area_nm2_values) / len(area_nm2_values) if area_nm2_values else None,
+                "max_area_nm2": max(area_nm2_values) if area_nm2_values else None,
+                "mean_perimeter_nm": sum(perimeter_nm_values) / len(perimeter_nm_values) if perimeter_nm_values else None,
+                "max_perimeter_nm": max(perimeter_nm_values) if perimeter_nm_values else None,
                 "mean_intensity_sum": sum(intensity_sum_values) / len(intensity_sum_values),
                 "max_intensity_sum": max(intensity_sum_values),
                 "mean_intensity_mean": sum(intensity_mean_values) / len(intensity_mean_values),
@@ -122,6 +136,10 @@ def _summary_rows(tracks: list[ParticleTrack]) -> list[dict[str, object]]:
                 "max_area_px": None,
                 "mean_perimeter_px": None,
                 "max_perimeter_px": None,
+                "mean_area_nm2": None,
+                "max_area_nm2": None,
+                "mean_perimeter_nm": None,
+                "max_perimeter_nm": None,
                 "mean_intensity_sum": None,
                 "max_intensity_sum": None,
                 "mean_intensity_mean": None,
@@ -138,6 +156,10 @@ def _summary_rows(tracks: list[ParticleTrack]) -> list[dict[str, object]]:
                 "seed_frame_number": track.seed_frame_index + 1,
                 "end_frame_index": track.end_frame_index,
                 "end_frame_number": track.end_frame_index + 1,
+                "image_size_nm_x": sequence.metadata.size_nm_x or None,
+                "image_size_nm_y": sequence.metadata.size_nm_y or None,
+                "pixel_size_nm_x": pixel_size_x_nm,
+                "pixel_size_nm_y": pixel_size_y_nm,
                 "visible_frames": visible_frames,
                 **summary,
             }

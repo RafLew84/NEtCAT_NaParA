@@ -1,4 +1,5 @@
 import sys
+import subprocess
 import textwrap
 import unittest
 from pathlib import Path
@@ -47,12 +48,22 @@ class Sam2SubprocessBackendTests(unittest.TestCase):
                 parser.add_argument("--repo-path", default=None)
                 parser.add_argument("--config", default=None)
                 parser.add_argument("--device", default=None)
+                parser.add_argument("--apply-postprocessing", dest="apply_postprocessing", action="store_true")
+                parser.add_argument("--disable-postprocessing", dest="apply_postprocessing", action="store_false")
+                parser.set_defaults(apply_postprocessing=True)
+                parser.add_argument("--offload-video-to-cpu", action="store_true")
+                parser.add_argument("--offload-state-to-cpu", action="store_true")
+                parser.add_argument("--async-loading-frames", action="store_true")
                 args = parser.parse_args()
 
                 assert args.checkpoint == "checkpoint.pt"
                 assert args.repo_path == "repo-dir"
                 assert args.config == "config.yaml"
                 assert args.device == "cuda:0"
+                assert args.apply_postprocessing is True
+                assert args.offload_video_to_cpu is True
+                assert args.offload_state_to_cpu is False
+                assert args.async_loading_frames is False
 
                 with np.load(args.input_npz, allow_pickle=False) as payload:
                     frames = payload["frames"]
@@ -144,6 +155,12 @@ class Sam2SubprocessBackendTests(unittest.TestCase):
                 parser.add_argument("--repo-path", default=None)
                 parser.add_argument("--config", default=None)
                 parser.add_argument("--device", default=None)
+                parser.add_argument("--apply-postprocessing", dest="apply_postprocessing", action="store_true")
+                parser.add_argument("--disable-postprocessing", dest="apply_postprocessing", action="store_false")
+                parser.set_defaults(apply_postprocessing=True)
+                parser.add_argument("--offload-video-to-cpu", action="store_true")
+                parser.add_argument("--offload-state-to-cpu", action="store_true")
+                parser.add_argument("--async-loading-frames", action="store_true")
                 parser.parse_args()
                 """,
             )
@@ -181,6 +198,12 @@ class Sam2SubprocessBackendTests(unittest.TestCase):
                 parser.add_argument("--repo-path", default=None)
                 parser.add_argument("--config", default=None)
                 parser.add_argument("--device", default=None)
+                parser.add_argument("--apply-postprocessing", dest="apply_postprocessing", action="store_true")
+                parser.add_argument("--disable-postprocessing", dest="apply_postprocessing", action="store_false")
+                parser.set_defaults(apply_postprocessing=True)
+                parser.add_argument("--offload-video-to-cpu", action="store_true")
+                parser.add_argument("--offload-state-to-cpu", action="store_true")
+                parser.add_argument("--async-loading-frames", action="store_true")
                 parser.parse_args()
                 time.sleep(1.0)
                 """,
@@ -205,6 +228,28 @@ class Sam2SubprocessBackendTests(unittest.TestCase):
     def test_backend_config_validates_timeout(self) -> None:
         with self.assertRaises(ValueError):
             Sam2BackendConfig(timeout_sec=0.0)
+
+    def test_backend_formats_windows_native_crash_hint(self) -> None:
+        backend = Sam2SubprocessBackend(
+            Sam2BackendConfig(
+                python_executable=sys.executable,
+                worker_script="worker.py",
+                checkpoint_path="checkpoint.pt",
+            )
+        )
+
+        message = backend._format_subprocess_error(
+            ["python", "worker.py"],
+            completed=subprocess.CompletedProcess(
+                args=["python", "worker.py"],
+                returncode=3221226505,
+                stdout="",
+                stderr="",
+            ),
+        )
+
+        self.assertIn("0xC0000409", message)
+        self.assertIn("memory-pressure", message)
 
 
 if __name__ == "__main__":

@@ -182,7 +182,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(dialog.isVisible())
         self.assertEqual(dialog.current_track_id(), 1)
 
-        dialog.cmb_tracks.setCurrentIndex(1)
+        dialog.cmb_tracks.setCurrentIndex(2)
         self.__class__._app.processEvents()
 
         self.assertEqual(self.window.current_selected_track_id(), 2)
@@ -883,6 +883,82 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(
             self.window.statusBar().currentMessage() in {"SAM2 finished for all 2 seeds.", "SAM2 batch 2/2 finished: Track 2"}
         )
+
+    @patch("nanotrack.ui.main_window.QMessageBox.warning")
+    def test_run_all_sam2_continues_after_single_track_failure(self, warning_mock) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.assertGreaterEqual(sequence.frame_count, 4)
+        self.window.set_sequence(sequence)
+
+        self.window.slider_frame.setValue(0)
+        self.window.viewer.place_bbox_at_pixel(20.0, 20.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+
+        self.window.slider_frame.setValue(2)
+        self.window.viewer.place_bbox_at_pixel(32.0, 28.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+
+        def build_output(track_id: int, frame_index_offset: int, frame_count: int, frame_shape: tuple[int, int]):
+            masks = np.zeros((frame_count, *frame_shape), dtype=bool)
+            visible_mask = np.zeros((frame_count,), dtype=bool)
+            mask_bboxes = np.zeros((frame_count, 4), dtype=np.float32)
+            masks[0, 18:24, 22:29] = True
+            visible_mask[0] = True
+            mask_bboxes[0] = np.asarray([22.0, 18.0, 29.0, 24.0], dtype=np.float32)
+            mask_areas = visible_mask.astype(np.float32) * np.asarray(
+                [float(np.count_nonzero(mask)) for mask in masks],
+                dtype=np.float32,
+            )
+            mask_scores = visible_mask.astype(np.float32) * 0.9
+            mask_component_counts = visible_mask.astype(np.int32)
+            return Sam2RunOutput(
+                track_id=track_id,
+                frame_index_offset=frame_index_offset,
+                masks=masks,
+                visible_mask=visible_mask,
+                mask_areas=mask_areas,
+                mask_bboxes_xyxy=mask_bboxes,
+                mask_scores=mask_scores,
+                mask_component_counts=mask_component_counts,
+            )
+
+        def fake_run(run_input):
+            time.sleep(0.05)
+            if run_input.track_id == 1:
+                raise RuntimeError("simulated native crash")
+            return build_output(
+                run_input.track_id,
+                run_input.frame_index_offset,
+                int(run_input.frames.shape[0]),
+                tuple(run_input.frames.shape[1:3]),
+            )
+
+        with patch.object(self.window._sam2_backend, "run", side_effect=fake_run) as run_mock:
+            self.window.track_list_panel.btn_run_all.click()
+            for _ in range(300):
+                self.__class__._app.processEvents()
+                track2 = self.window.current_tracks()[1]
+                if run_mock.call_count == 2 and track2.get_annotation(2) is not None:
+                    break
+                time.sleep(0.01)
+            for _ in range(20):
+                self.__class__._app.processEvents()
+                if warning_mock.called:
+                    break
+                time.sleep(0.01)
+
+        self.assertEqual(run_mock.call_count, 2)
+        tracks = self.window.current_tracks()
+        self.assertIsNone(tracks[0].get_annotation(1))
+        self.assertIsNotNone(tracks[1].get_annotation(2))
+        warning_mock.assert_called_once()
+        self.assertIn("1/2 seeds", warning_mock.call_args.args[2])
+        self.assertIn("Failed track IDs: 1", warning_mock.call_args.args[2])
+        self.assertIn(
+            self.window.statusBar().currentMessage(),
+            {"SAM2 finished with failures for 1/2 seeds.", "SAM2 batch 2/2 finished: Track 2"},
+        )
+        self.assertTrue(self.window.track_list_panel.btn_run_all.isEnabled())
 
 
 if __name__ == "__main__":

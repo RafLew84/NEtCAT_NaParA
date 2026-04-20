@@ -43,6 +43,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--repo-path", default=None, help="Optional path to the local SAM2 repo.")
     parser.add_argument("--config", default=None, help="Optional SAM2 config path or identifier.")
     parser.add_argument("--device", default="auto", help="Torch device, e.g. auto, cuda, cuda:0, cpu.")
+    parser.add_argument("--apply-postprocessing", dest="apply_postprocessing", action="store_true")
+    parser.add_argument("--disable-postprocessing", dest="apply_postprocessing", action="store_false")
+    parser.set_defaults(apply_postprocessing=True)
+    parser.add_argument("--offload-video-to-cpu", action="store_true")
+    parser.add_argument("--offload-state-to-cpu", action="store_true")
+    parser.add_argument("--async-loading-frames", action="store_true")
     return parser.parse_args()
 
 
@@ -290,6 +296,10 @@ def _run_real_sam2(
     repo_path: Path | None,
     config_path: str | Path | None,
     device_name: str,
+    apply_postprocessing: bool,
+    offload_video_to_cpu: bool,
+    offload_state_to_cpu: bool,
+    async_loading_frames: bool,
 ) -> Sam2RunOutput:
     with _sam2_import_context(repo_path):
         import torch
@@ -304,7 +314,7 @@ def _run_real_sam2(
             str(checkpoint_path),
             device=device,
             vos_optimized=False,
-            apply_postprocessing=True,
+            apply_postprocessing=apply_postprocessing,
         )
 
         frames_rgb = _prepare_frames_rgb(run_input.frames)
@@ -316,9 +326,9 @@ def _run_real_sam2(
             _write_video_sequence(video_dir, frames_rgb)
             state = predictor.init_state(
                 str(video_dir),
-                offload_video_to_cpu=False,
-                offload_state_to_cpu=False,
-                async_loading_frames=False,
+                offload_video_to_cpu=offload_video_to_cpu,
+                offload_state_to_cpu=offload_state_to_cpu,
+                async_loading_frames=async_loading_frames,
             )
 
             if run_input.initial_mask is not None:
@@ -386,6 +396,10 @@ def main() -> int:
         repo_path=None if args.repo_path is None else Path(args.repo_path).expanduser().resolve(),
         config_path=args.config,
         device_name=args.device,
+        apply_postprocessing=bool(args.apply_postprocessing),
+        offload_video_to_cpu=bool(args.offload_video_to_cpu),
+        offload_state_to_cpu=bool(args.offload_state_to_cpu),
+        async_loading_frames=bool(args.async_loading_frames),
     )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)

@@ -24,10 +24,12 @@ class ComputeParticleMetricsTests(unittest.TestCase):
             dtype=bool,
         )
 
-        metrics = compute_particle_metrics(mask, raw_frame)
+        metrics = compute_particle_metrics(mask, raw_frame, pixel_size_nm=(2.0, 3.0))
 
         self.assertEqual(metrics.area_px, 4.0)
         self.assertEqual(metrics.perimeter_px, 8.0)
+        self.assertEqual(metrics.area_nm2, 24.0)
+        self.assertEqual(metrics.perimeter_nm, 20.0)
         self.assertEqual(metrics.intensity_sum, 18.0)
         self.assertEqual(metrics.intensity_mean, 4.5)
         self.assertEqual(metrics.intensity_max, 7.0)
@@ -40,6 +42,8 @@ class ComputeParticleMetricsTests(unittest.TestCase):
 
         self.assertIsNone(metrics.area_px)
         self.assertIsNone(metrics.perimeter_px)
+        self.assertIsNone(metrics.area_nm2)
+        self.assertIsNone(metrics.perimeter_nm)
         self.assertIsNone(metrics.intensity_sum)
         self.assertIsNone(metrics.intensity_mean)
         self.assertIsNone(metrics.intensity_max)

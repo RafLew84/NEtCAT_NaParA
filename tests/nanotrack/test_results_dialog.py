@@ -65,7 +65,7 @@ class TrackResultsDialogTests(unittest.TestCase):
 
         self.dialog.set_context(sequence, [track1, track2], selected_track_id=1)
 
-        self.assertEqual(self.dialog.cmb_tracks.count(), 2)
+        self.assertEqual(self.dialog.cmb_tracks.count(), 3)
         self.assertEqual(self.dialog.current_track_id(), 1)
         area_items = self.dialog.plot_area.plotItem.listDataItems()
         self.assertEqual(len(area_items), 1)
@@ -103,7 +103,7 @@ class TrackResultsDialogTests(unittest.TestCase):
         self.dialog.track_selected.connect(selected.append)
         self.dialog.set_context(sequence, [track1, track2], selected_track_id=1)
 
-        self.dialog.cmb_tracks.setCurrentIndex(1)
+        self.dialog.cmb_tracks.setCurrentIndex(2)
         self.__class__._app.processEvents()
 
         self.assertEqual(selected[-1], 2)
@@ -112,18 +112,72 @@ class TrackResultsDialogTests(unittest.TestCase):
         np.testing.assert_array_equal(x_data, np.asarray([4.0], dtype=np.float32))
         np.testing.assert_array_equal(y_data, np.asarray([21.0], dtype=np.float32))
 
-    def test_export_results_to_path_writes_csv_pair(self) -> None:
+    def test_all_tracks_and_nanometer_units_aggregate_plots(self) -> None:
         sequence = STMSequence(
             source_path="/tmp/results.mpp",
             raw_frames=np.zeros((4, 8, 8), dtype=np.float32),
-            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8, frame_interval_s=0.5),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8, size_nm_x=80.0, size_nm_y=40.0),
         )
         track1 = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(1.0, 1.0, 4.0, 4.0))
         track1.add_annotation(
             TrackFrameAnnotation(
                 frame_index=1,
                 bbox=BBoxXYXY(2.0, 2.0, 5.0, 5.0),
-                metrics=ParticleMetrics(area_px=12.0, perimeter_px=16.0, intensity_sum=24.0, intensity_mean=2.0, intensity_max=3.0),
+                metrics=ParticleMetrics(
+                    area_px=4.0,
+                    perimeter_px=8.0,
+                    area_nm2=200.0,
+                    perimeter_nm=60.0,
+                    intensity_sum=20.0,
+                    intensity_mean=5.0,
+                    intensity_max=7.0,
+                ),
+            )
+        )
+        track2 = ParticleTrack(track_id=2, seed_frame_index=0, seed_bbox=BBoxXYXY(2.0, 2.0, 6.0, 6.0))
+        track2.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(3.0, 3.0, 7.0, 7.0),
+                metrics=ParticleMetrics(
+                    area_px=3.0,
+                    perimeter_px=10.0,
+                    area_nm2=150.0,
+                    perimeter_nm=70.0,
+                    intensity_sum=30.0,
+                    intensity_mean=10.0,
+                    intensity_max=12.0,
+                ),
+            )
+        )
+
+        self.dialog.set_context(sequence, [track1, track2], selected_track_id=None)
+        self.dialog.cmb_units.setCurrentIndex(1)
+        self.__class__._app.processEvents()
+
+        self.assertIsNone(self.dialog.current_track_id())
+        self.assertEqual(self.dialog.cmb_tracks.currentIndex(), 0)
+        area_items = self.dialog.plot_area.plotItem.listDataItems()
+        x_data, y_data = area_items[0].getData()
+        np.testing.assert_array_equal(x_data, np.asarray([2.0], dtype=np.float32))
+        np.testing.assert_array_equal(y_data, np.asarray([350.0], dtype=np.float32))
+        intensity_items = self.dialog.plot_intensity.plotItem.listDataItems()
+        _, intensity_mean_data = intensity_items[1].getData()
+        np.testing.assert_allclose(intensity_mean_data, np.asarray([50.0 / 7.0], dtype=np.float32))
+        self.assertIn("All tracks", self.dialog.lbl_summary.text())
+
+    def test_export_results_to_path_writes_csv_pair(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/results.mpp",
+            raw_frames=np.zeros((4, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8, size_nm_x=80.0, size_nm_y=40.0, frame_interval_s=0.5),
+        )
+        track1 = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(1.0, 1.0, 4.0, 4.0))
+        track1.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(2.0, 2.0, 5.0, 5.0),
+                metrics=ParticleMetrics(area_px=12.0, perimeter_px=16.0, area_nm2=600.0, perimeter_nm=120.0, intensity_sum=24.0, intensity_mean=2.0, intensity_max=3.0),
             )
         )
         self.dialog.set_context(sequence, [track1], selected_track_id=1)
