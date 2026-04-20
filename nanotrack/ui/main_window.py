@@ -1274,6 +1274,7 @@ class NanoTrackMainWindow(QMainWindow):
         if self._results_dialog is None:
             self._results_dialog = TrackResultsDialog(self)
             self._results_dialog.track_selected.connect(self._on_results_track_selected)
+            self._results_dialog.track_delete_requested.connect(self._on_results_track_delete_requested)
         return self._results_dialog
 
     def _on_results_track_selected(self, track_id: object) -> None:
@@ -1281,6 +1282,19 @@ class NanoTrackMainWindow(QMainWindow):
             return
         self.track_list_panel.set_selected_track_id(int(track_id))
         self._on_track_selected(track_id)
+
+    def _on_results_track_delete_requested(self, track_id: int) -> None:
+        remaining_tracks = [track for track in self._tracks if track.track_id != track_id]
+        if len(remaining_tracks) == len(self._tracks):
+            return
+
+        next_selected_track_id = self._selected_track_id
+        if next_selected_track_id == track_id:
+            next_selected_track_id = None
+
+        self.set_tracks(remaining_tracks, selected_track_id=next_selected_track_id)
+        self._show_current_frame(preserve_zoom=True)
+        self.statusBar().showMessage(f"Deleted track {track_id}.", 3000)
 
     def _sync_results_dialog(self) -> None:
         if self._results_dialog is None:

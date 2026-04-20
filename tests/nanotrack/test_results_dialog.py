@@ -165,6 +165,45 @@ class TrackResultsDialogTests(unittest.TestCase):
         _, intensity_mean_data = intensity_items[1].getData()
         np.testing.assert_allclose(intensity_mean_data, np.asarray([50.0 / 7.0], dtype=np.float32))
         self.assertIn("All tracks", self.dialog.lbl_summary.text())
+        self.assertFalse(self.dialog.btn_delete.isEnabled())
+
+    def test_delete_button_emits_selected_track_request(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/results.mpp",
+            raw_frames=np.zeros((4, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+        )
+        track1 = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(1.0, 1.0, 4.0, 4.0))
+        track1.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(2.0, 2.0, 5.0, 5.0),
+                metrics=ParticleMetrics(area_px=12.0, perimeter_px=16.0, intensity_sum=24.0, intensity_mean=2.0, intensity_max=3.0),
+            )
+        )
+        track2 = ParticleTrack(track_id=2, seed_frame_index=2, seed_bbox=BBoxXYXY(2.0, 2.0, 6.0, 6.0))
+        track2.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=3,
+                bbox=BBoxXYXY(3.0, 3.0, 7.0, 7.0),
+                metrics=ParticleMetrics(area_px=21.0, perimeter_px=24.0, intensity_sum=55.0, intensity_mean=2.62, intensity_max=5.0),
+            )
+        )
+        deleted_track_ids: list[int] = []
+        self.dialog.track_delete_requested.connect(deleted_track_ids.append)
+
+        self.dialog.set_context(sequence, [track1, track2], selected_track_id=None)
+        self.assertFalse(self.dialog.btn_delete.isEnabled())
+
+        self.dialog.cmb_tracks.setCurrentIndex(1)
+        self.__class__._app.processEvents()
+
+        self.assertEqual(self.dialog.current_track_id(), 1)
+        self.assertTrue(self.dialog.btn_delete.isEnabled())
+
+        self.dialog.btn_delete.click()
+
+        self.assertEqual(deleted_track_ids, [1])
 
     def test_export_results_to_path_writes_csv_pair(self) -> None:
         sequence = STMSequence(

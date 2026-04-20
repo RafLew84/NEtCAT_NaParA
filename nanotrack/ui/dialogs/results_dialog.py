@@ -30,6 +30,7 @@ class TrackResultsDialog(QDialog):
     UNIT_NANOMETERS = "nm"
 
     track_selected = pyqtSignal(object)
+    track_delete_requested = pyqtSignal(int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -64,12 +65,15 @@ class TrackResultsDialog(QDialog):
 
         button_row = QHBoxLayout()
         button_row.addStretch(1)
+        self.btn_delete = QPushButton("Delete Track", self)
         self.btn_export = QPushButton("Export Results...", self)
+        button_row.addWidget(self.btn_delete)
         button_row.addWidget(self.btn_export)
         layout.addLayout(button_row)
 
         self.cmb_tracks.currentIndexChanged.connect(self._on_track_changed)
         self.cmb_units.currentIndexChanged.connect(self._on_units_changed)
+        self.btn_delete.clicked.connect(self._on_delete_clicked)
         self.btn_export.clicked.connect(self._on_export_clicked)
         self._set_empty_state()
 
@@ -136,6 +140,12 @@ class TrackResultsDialog(QDialog):
     def _on_units_changed(self, _index: int) -> None:
         self._refresh_plots()
 
+    def _on_delete_clicked(self) -> None:
+        track_id = self.current_track_id()
+        if track_id is None:
+            return
+        self.track_delete_requested.emit(track_id)
+
     def export_results_to_path(self, base_path: str) -> dict[str, str]:
         if self._sequence is None:
             raise RuntimeError("No sequence loaded.")
@@ -165,6 +175,7 @@ class TrackResultsDialog(QDialog):
 
     def _refresh_plots(self) -> None:
         self.btn_export.setEnabled(self._has_exportable_results())
+        self.btn_delete.setEnabled(self.current_track_id() is not None)
         if self._sequence is None:
             self._set_empty_state()
             return
@@ -387,6 +398,7 @@ class TrackResultsDialog(QDialog):
         self._clear_plots()
         self._update_plot_labels()
         self.btn_export.setEnabled(False)
+        self.btn_delete.setEnabled(False)
         if self._tracks:
             self.lbl_summary.setText("Select a track to inspect measured results")
         else:

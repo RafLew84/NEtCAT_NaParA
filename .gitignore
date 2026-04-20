@@ -184,5 +184,6 @@ cython_debug/
 context.md
 plan.md
 plan_nanotrack.md
+plan_nanotrack_edgetracking.md
 models/unet_synthetic_v1.pth
 .codex

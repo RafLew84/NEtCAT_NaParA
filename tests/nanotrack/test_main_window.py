@@ -1,3 +1,4 @@
+import csv
 import os
 import time
 import tempfile
@@ -187,6 +188,85 @@ class NanoTrackMainWindowTests(unittest.TestCase):
 
         self.assertEqual(self.window.current_selected_track_id(), 2)
         self.assertEqual(sequence.active_frame_index, 3)
+
+    def test_delete_track_from_results_dialog_updates_all_tracks_export_and_session(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+        pixel_size_nm = sequence.metadata.get_pixel_size_nm()
+
+        mask1 = np.zeros(sequence.frame_shape, dtype=bool)
+        mask1[6:10, 10:15] = True
+        mask2 = np.zeros(sequence.frame_shape, dtype=bool)
+        mask2[18:23, 20:26] = True
+
+        track1 = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(9.0, 5.0, 16.0, 11.0))
+        track1.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(10.0, 6.0, 15.0, 10.0),
+                mask=mask1,
+                metrics=compute_particle_metrics(
+                    mask1,
+                    sequence.raw_frames[1],
+                    pixel_size_nm=pixel_size_nm,
+                ),
+            )
+        )
+
+        track2 = ParticleTrack(track_id=2, seed_frame_index=0, seed_bbox=BBoxXYXY(19.0, 17.0, 27.0, 24.0))
+        track2.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(20.0, 18.0, 26.0, 23.0),
+                mask=mask2,
+                metrics=compute_particle_metrics(
+                    mask2,
+                    sequence.raw_frames[1],
+                    pixel_size_nm=pixel_size_nm,
+                ),
+            )
+        )
+        self.window.set_tracks([track1, track2], selected_track_id=1)
+        self.window.action_open_results.trigger()
+        self.__class__._app.processEvents()
+
+        dialog = self.window.current_results_dialog()
+        self.assertIsNotNone(dialog)
+        self.assertEqual(dialog.current_track_id(), 1)
+
+        dialog.btn_delete.click()
+        self.__class__._app.processEvents()
+
+        self.assertEqual([track.track_id for track in self.window.current_tracks()], [2])
+        self.assertIsNone(self.window.current_selected_track_id())
+        self.assertEqual(self.window.track_list_panel.list_tracks.count(), 1)
+        self.assertEqual(dialog.cmb_tracks.count(), 2)
+        self.assertIsNone(dialog.current_track_id())
+
+        dialog.cmb_tracks.setCurrentIndex(0)
+        self.__class__._app.processEvents()
+
+        area_items = dialog.plot_area.plotItem.listDataItems()
+        self.assertEqual(len(area_items), 1)
+        x_data, y_data = area_items[0].getData()
+        np.testing.assert_array_equal(x_data, np.asarray([2.0], dtype=np.float32))
+        np.testing.assert_array_equal(
+            y_data,
+            np.asarray([track2.get_annotation(1).metrics.area_px], dtype=np.float32),
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exported = dialog.export_results_to_path(f"{tmpdir}/deleted_track_results.csv")
+            with open(exported["metrics_csv"], newline="", encoding="utf-8") as handle:
+                metrics_rows = list(csv.DictReader(handle))
+            self.assertEqual({row["track_id"] for row in metrics_rows}, {"2"})
+
+            session_path = f"{tmpdir}/deleted_track_session.nanotrack"
+            self.window.save_session_to_path(session_path)
+            self.window.set_tracks([])
+            self.window.load_session_from_path(session_path)
+
+        self.assertEqual([track.track_id for track in self.window.current_tracks()], [2])
 
     def test_save_and_load_session_roundtrip_restores_window_state(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
