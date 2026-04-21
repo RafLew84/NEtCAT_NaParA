@@ -430,6 +430,9 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertIn("repair+bm3d", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertIn("selected px", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertIn("mode component", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
+        self.assertIn("polyline binned_pca", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
+        self.assertIn("pts", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
+        self.assertGreater(len(self.window._edge_preview_dialog.edge_view.viewer._overlay_items), 0)
         self.assertEqual(self.window.statusBar().currentMessage(), "DexiNed preview opened for frame 1.")
 
     def test_polygon_roi_state_is_per_frame_and_can_be_replaced_on_current_frame(self) -> None:

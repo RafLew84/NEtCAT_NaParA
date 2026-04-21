@@ -35,8 +35,10 @@ class EdgePreviewDialog(QDialog):
         input_title: str = "Input",
         input_meta: str = "-",
         input_overlay_mask=None,
+        input_overlay_polyline=None,
         edge_title: str = "DexiNed",
         edge_meta: str = "-",
+        edge_overlay_polyline=None,
     ) -> None:
         preserve_zoom = self._preview_frame_index == frame_index
         frame_label = f"Frame {frame_index + 1}/{frame_count}"
@@ -49,6 +51,7 @@ class EdgePreviewDialog(QDialog):
             scale_nm_per_px=scale_nm_per_px,
             preserve_zoom=preserve_zoom,
             overlay_mask=input_overlay_mask,
+            overlay_polyline=input_overlay_polyline,
         )
         self.edge_view.set_frame(
             edge_frame,
@@ -56,6 +59,7 @@ class EdgePreviewDialog(QDialog):
             meta=edge_meta,
             scale_nm_per_px=scale_nm_per_px,
             preserve_zoom=preserve_zoom,
+            overlay_polyline=edge_overlay_polyline,
         )
         self._preview_frame_index = frame_index
 

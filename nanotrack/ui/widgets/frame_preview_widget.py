@@ -54,6 +54,25 @@ class FramePreviewWidget(QWidget):
                 pts[:, 1] *= float(sy)
             self.viewer.add_polyline_nm(pts, color=color, width=width)
 
+    def _add_polyline_overlay(
+        self,
+        overlay_polyline,
+        *,
+        scale_nm_per_px: tuple[float | None, float | None],
+        color=(255, 220, 0),
+        width: float = 2.5,
+    ) -> None:
+        polyline = np.asarray(overlay_polyline, dtype=np.float64)
+        if polyline.ndim != 2 or polyline.shape[1] != 2 or len(polyline) < 2:
+            return
+
+        sx, sy = scale_nm_per_px
+        pts = np.asarray(polyline, dtype=np.float64, copy=True)
+        if sx is not None and sy is not None:
+            pts[:, 0] *= float(sx)
+            pts[:, 1] *= float(sy)
+        self.viewer.add_polyline_nm(pts, color=color, width=width)
+
     def set_frame(
         self,
         frame,
@@ -63,6 +82,7 @@ class FramePreviewWidget(QWidget):
         scale_nm_per_px: tuple[float | None, float | None] = (None, None),
         preserve_zoom: bool = True,
         overlay_mask=None,
+        overlay_polyline=None,
     ) -> None:
         self.viewer.clear_overlay()
         self.viewer.set_image(
@@ -73,5 +93,7 @@ class FramePreviewWidget(QWidget):
         )
         if overlay_mask is not None:
             self._add_mask_overlay(overlay_mask, scale_nm_per_px=scale_nm_per_px)
+        if overlay_polyline is not None:
+            self._add_polyline_overlay(overlay_polyline, scale_nm_per_px=scale_nm_per_px)
         self.lbl_title.setText(title)
         self.lbl_meta.setText(meta)

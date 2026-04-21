@@ -44,6 +44,7 @@ from nanotrack.processing import (
     run_horizontal_dropout_preview,
 )
 from nanotrack.edges import DexiNedRunInput, DexiNedRunOutput, DexiNedSubprocessBackend
+from nanotrack.edges.polyline import dominant_edge_to_polyline
 from nanotrack.edges.selection import select_dominant_edge
 from nanotrack.sam2 import Sam2RunInput, Sam2RunOutput, Sam2SubprocessBackend
 from nanotrack.ui.dialogs import Bm3dPreviewDialog, EdgePreviewDialog, TrackResultsDialog
@@ -960,6 +961,7 @@ class NanoTrackMainWindow(QMainWindow):
                 effective_threshold = float(np.min(edge_frame[edge_binary_frame & polygon_mask]))
         selection = select_dominant_edge(edge_frame, polygon_mask, threshold=effective_threshold)
         selected_edge_frame = edge_frame * selection.edge_mask.astype(np.float32, copy=False)
+        polyline = dominant_edge_to_polyline(selection.edge_mask, edge_prob=edge_frame)
         max_prob = float(np.max(selected_edge_frame)) if selected_edge_frame.size else 0.0
 
         dialog = self._ensure_edge_preview_dialog()
@@ -973,11 +975,14 @@ class NanoTrackMainWindow(QMainWindow):
             input_title=source_title,
             input_meta=source_meta,
             input_overlay_mask=selection.edge_mask,
+            input_overlay_polyline=polyline.polyline_xy,
             edge_title="Dominant Edge",
             edge_meta=(
                 f"View: {source_view} | mode {selection.selection_mode} | "
-                f"selected px {selection.pixel_count} | mean p {selection.mean_probability:.3f} | max p {max_prob:.3f}"
+                f"selected px {selection.pixel_count} | mean p {selection.mean_probability:.3f} | "
+                f"polyline {polyline.extraction_mode} | pts {polyline.point_count} | max p {max_prob:.3f}"
             ),
+            edge_overlay_polyline=polyline.polyline_xy,
         )
         dialog.show()
         dialog.raise_()
