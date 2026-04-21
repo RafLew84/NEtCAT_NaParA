@@ -1396,6 +1396,9 @@ class NanoTrackMainWindow(QMainWindow):
         source_meta = str(self._pending_edge_preview_meta["source_meta"])
         source_view = str(self._pending_edge_preview_meta["source_view"])
         polygon_mask = np.asarray(self._pending_edge_preview_meta["polygon_mask"], dtype=bool)
+        threshold = float(self._pending_edge_preview_meta["threshold"])
+        top_k_components = int(self._pending_edge_preview_meta["top_k_components"])
+        inference_resolution_hw = self._pending_edge_preview_meta["inference_resolution_hw"]
         px_x, px_y = self._sequence.metadata.get_pixel_size_nm()
         edge_frame = np.asarray(output.edge_prob[0], dtype=np.float32)
         edge_binary_frame = None if output.edge_binary is None else np.asarray(output.edge_binary[0], dtype=bool)
@@ -1403,6 +1406,8 @@ class NanoTrackMainWindow(QMainWindow):
             edge_frame,
             polygon_mask,
             edge_binary_frame=edge_binary_frame,
+            requested_threshold=threshold,
+            top_k_components=top_k_components,
         )
 
         dialog = self._ensure_edge_preview_dialog()
@@ -1420,6 +1425,8 @@ class NanoTrackMainWindow(QMainWindow):
             edge_title="Dominant Edge",
             edge_meta=(
                 f"View: {source_view} | mode {selection.selection_mode} | "
+                f"thr {threshold:.2f} | k {top_k_components} | "
+                f"res {inference_resolution_hw if inference_resolution_hw is not None else 'auto'} | "
                 f"selected px {selection.pixel_count} | mean p {selection.mean_probability:.3f} | "
                 f"polyline {polyline.extraction_mode} | pts {polyline.point_count} | max p {max_prob:.3f}"
             ),
@@ -2073,9 +2080,15 @@ class NanoTrackMainWindow(QMainWindow):
             raise RuntimeError("No sequence loaded.")
         input_frame, source_title, source_meta, source_view = self._current_edge_input_frame()
         polygon_mask = self._polygon_roi_to_mask(polygon)
+        threshold = self.polygon_tools_panel.dexined_threshold()
+        inference_resolution_hw = self.polygon_tools_panel.dexined_inference_resolution_hw()
         run_input = DexiNedRunInput(
             frames=np.asarray(input_frame[None, ...], dtype=np.float32),
             polygon_mask=polygon_mask,
+            inference_resolution_hw=None
+            if inference_resolution_hw is None
+            else np.asarray(inference_resolution_hw, dtype=np.int32),
+            threshold=threshold,
             source_view=source_view,
         )
         preview_meta = {
@@ -2084,6 +2097,9 @@ class NanoTrackMainWindow(QMainWindow):
             "source_meta": source_meta,
             "source_view": source_view,
             "polygon_mask": polygon_mask,
+            "threshold": threshold,
+            "top_k_components": self.polygon_tools_panel.dexined_top_k_components(),
+            "inference_resolution_hw": inference_resolution_hw,
         }
         return run_input, np.asarray(input_frame, dtype=np.float32), preview_meta
 
@@ -2095,9 +2111,15 @@ class NanoTrackMainWindow(QMainWindow):
             raise RuntimeError("No sequence loaded.")
         input_frames, source_title, source_meta, source_view = self._current_edge_input_frames()
         polygon_mask = self._polygon_roi_to_mask(polygon)
+        threshold = self.polygon_tools_panel.dexined_threshold()
+        inference_resolution_hw = self.polygon_tools_panel.dexined_inference_resolution_hw()
         run_input = DexiNedRunInput(
             frames=np.asarray(input_frames, dtype=np.float32),
             polygon_mask=polygon_mask,
+            inference_resolution_hw=None
+            if inference_resolution_hw is None
+            else np.asarray(inference_resolution_hw, dtype=np.int32),
+            threshold=threshold,
             source_view=source_view,
         )
         sequence_meta = {
@@ -2107,6 +2129,9 @@ class NanoTrackMainWindow(QMainWindow):
             "source_title": source_title,
             "source_meta": source_meta,
             "source_view": source_view,
+            "threshold": threshold,
+            "top_k_components": self.polygon_tools_panel.dexined_top_k_components(),
+            "inference_resolution_hw": inference_resolution_hw,
         }
         return run_input, sequence_meta
 
@@ -2116,7 +2141,10 @@ class NanoTrackMainWindow(QMainWindow):
         polygon_mask: np.ndarray,
         *,
         edge_binary_frame: np.ndarray | None,
+        requested_threshold: float | None = None,
     ) -> float:
+        if requested_threshold is not None:
+            return float(requested_threshold)
         effective_threshold = 0.5
         if edge_binary_frame is not None and np.any(edge_binary_frame & polygon_mask):
             effective_threshold = float(np.min(edge_frame[edge_binary_frame & polygon_mask]))
@@ -2128,13 +2156,21 @@ class NanoTrackMainWindow(QMainWindow):
         polygon_mask: np.ndarray,
         *,
         edge_binary_frame: np.ndarray | None,
+        requested_threshold: float | None = None,
+        top_k_components: int = 1,
     ):
         effective_threshold = self._effective_dexined_threshold(
             edge_frame,
             polygon_mask,
             edge_binary_frame=edge_binary_frame,
+            requested_threshold=requested_threshold,
         )
-        selection = select_dominant_edge(edge_frame, polygon_mask, threshold=effective_threshold)
+        selection = select_dominant_edge(
+            edge_frame,
+            polygon_mask,
+            threshold=effective_threshold,
+            max_components=top_k_components,
+        )
         selected_edge_frame = edge_frame * selection.edge_mask.astype(np.float32, copy=False)
         polyline = dominant_edge_to_polyline(selection.edge_mask, edge_prob=edge_frame)
         max_prob = float(np.max(selected_edge_frame)) if selected_edge_frame.size else 0.0
@@ -2159,6 +2195,8 @@ class NanoTrackMainWindow(QMainWindow):
         polygon = sequence_meta["polygon"]
         polygon_mask = np.asarray(sequence_meta["polygon_mask"], dtype=bool)
         seed_frame_index = int(sequence_meta["seed_frame_index"])
+        threshold = float(sequence_meta["threshold"])
+        top_k_components = int(sequence_meta["top_k_components"])
         edge_prob = np.asarray(output.edge_prob, dtype=np.float32)
         if edge_prob.shape[0] != self._sequence.frame_count:
             raise ValueError("DexiNed sequence output length must match the current sequence.")
@@ -2174,6 +2212,8 @@ class NanoTrackMainWindow(QMainWindow):
                 edge_frame,
                 polygon_mask,
                 edge_binary_frame=edge_binary_frame,
+                requested_threshold=threshold,
+                top_k_components=top_k_components,
             )
             annotations[frame_index] = EdgeFrameAnnotation(
                 frame_index=frame_index,
@@ -2273,9 +2313,15 @@ class NanoTrackMainWindow(QMainWindow):
         input_frames, _source_title, _source_meta, source_view = self._current_edge_input_frames()
         suffix_frames = np.asarray(input_frames[resume_from_frame + 1 :], dtype=np.float32)
         polygon_mask = self._polygon_roi_to_mask(polygon)
+        threshold = self.polygon_tools_panel.dexined_threshold()
+        inference_resolution_hw = self.polygon_tools_panel.dexined_inference_resolution_hw()
         run_input = DexiNedRunInput(
             frames=suffix_frames,
             polygon_mask=polygon_mask,
+            inference_resolution_hw=None
+            if inference_resolution_hw is None
+            else np.asarray(inference_resolution_hw, dtype=np.int32),
+            threshold=threshold,
             source_view=source_view,
         )
         resume_meta = {
@@ -2284,6 +2330,9 @@ class NanoTrackMainWindow(QMainWindow):
             "polygon": polygon,
             "polygon_mask": polygon_mask,
             "current_annotation": current_annotation,
+            "threshold": threshold,
+            "top_k_components": self.polygon_tools_panel.dexined_top_k_components(),
+            "inference_resolution_hw": inference_resolution_hw,
         }
         return run_input, resume_meta
 
@@ -2421,6 +2470,8 @@ class NanoTrackMainWindow(QMainWindow):
         polygon = resume_meta["polygon"]
         polygon_mask = np.asarray(resume_meta["polygon_mask"], dtype=bool)
         current_annotation = resume_meta["current_annotation"]
+        threshold = float(resume_meta["threshold"])
+        top_k_components = int(resume_meta["top_k_components"])
         expected_suffix_length = self._sequence.frame_count - resume_from_frame - 1
 
         track.polygon_roi = polygon
@@ -2443,6 +2494,8 @@ class NanoTrackMainWindow(QMainWindow):
                 edge_frame,
                 polygon_mask,
                 edge_binary_frame=edge_binary_frame,
+                requested_threshold=threshold,
+                top_k_components=top_k_components,
             )
             track.add_annotation(
                 EdgeFrameAnnotation(

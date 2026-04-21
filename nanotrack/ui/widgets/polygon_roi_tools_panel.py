@@ -3,6 +3,7 @@ from __future__ import annotations
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QComboBox,
+    QDoubleSpinBox,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -96,6 +97,30 @@ class PolygonRoiToolsPanel(QWidget):
         hybrid_row.addWidget(self.btn_hybrid)
         group_layout.addLayout(hybrid_row)
 
+        dexined_row = QHBoxLayout()
+        self.sp_dexined_threshold = QDoubleSpinBox(group)
+        self.sp_dexined_threshold.setRange(0.05, 0.95)
+        self.sp_dexined_threshold.setSingleStep(0.05)
+        self.sp_dexined_threshold.setDecimals(2)
+        self.sp_dexined_threshold.setValue(0.35)
+        self.sp_dexined_threshold.setPrefix("Thr ")
+        self.sp_dexined_threshold.setToolTip("Probability threshold used to binarize the DexiNed response.")
+        self.sp_edge_components = QSpinBox(group)
+        self.sp_edge_components.setRange(1, 8)
+        self.sp_edge_components.setValue(1)
+        self.sp_edge_components.setPrefix("k ")
+        self.sp_edge_components.setToolTip("Number of strongest edge components inside the ROI used to build one polyline.")
+        self.cmb_inference_resolution = QComboBox(group)
+        self.cmb_inference_resolution.addItem("Auto", None)
+        self.cmb_inference_resolution.addItem("512 px", (512, 512))
+        self.cmb_inference_resolution.addItem("768 px", (768, 768))
+        self.cmb_inference_resolution.addItem("1024 px", (1024, 1024))
+        self.cmb_inference_resolution.setToolTip("Square inference resolution used for the DexiNed crop.")
+        dexined_row.addWidget(self.sp_dexined_threshold)
+        dexined_row.addWidget(self.sp_edge_components)
+        dexined_row.addWidget(self.cmb_inference_resolution)
+        group_layout.addLayout(dexined_row)
+
         self.lbl_frame = QLabel("Frame: -", group)
         self.lbl_polygon = QLabel("No polygon ROI on current frame", group)
         self.lbl_edge = QLabel("Active edge track: -", group)
@@ -133,6 +158,9 @@ class PolygonRoiToolsPanel(QWidget):
             and self._has_polygon
             and (self._has_editable_edge or self._has_edge_polyline_on_frame)
         )
+        self.sp_dexined_threshold.setEnabled(enabled)
+        self.sp_edge_components.setEnabled(enabled)
+        self.cmb_inference_resolution.setEnabled(enabled)
         self.cmb_tracker.setEnabled(enabled)
         self.sp_tracker_points.setEnabled(enabled)
         self.btn_hybrid.setEnabled(
@@ -209,6 +237,19 @@ class PolygonRoiToolsPanel(QWidget):
 
     def hybrid_control_point_count(self) -> int:
         return int(self.sp_tracker_points.value())
+
+    def dexined_threshold(self) -> float:
+        return float(self.sp_dexined_threshold.value())
+
+    def dexined_top_k_components(self) -> int:
+        return int(self.sp_edge_components.value())
+
+    def dexined_inference_resolution_hw(self) -> tuple[int, int] | None:
+        value = self.cmb_inference_resolution.currentData()
+        if value is None:
+            return None
+        height, width = value
+        return int(height), int(width)
 
     def set_edge_track_context(
         self,

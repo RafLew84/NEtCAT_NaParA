@@ -523,6 +523,9 @@ class NanoTrackMainWindowTests(unittest.TestCase):
 
         polygon = PolygonROI(np.asarray([[10.0, 12.0], [22.0, 14.0], [18.0, 28.0]], dtype=np.float64))
         self.window.viewer._commit_polygon(polygon)
+        self.window.polygon_tools_panel.sp_dexined_threshold.setValue(0.35)
+        self.window.polygon_tools_panel.sp_edge_components.setValue(2)
+        self.window.polygon_tools_panel.cmb_inference_resolution.setCurrentIndex(1)
 
         repaired = np.full_like(sequence.raw_frames, 0.2, dtype=np.float32)
         denoised = np.full_like(sequence.raw_frames, 0.4, dtype=np.float32)
@@ -547,6 +550,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             self.assertEqual(run_input.source_view, "repair+bm3d")
             self.assertEqual(run_input.polygon_mask.shape, sequence.frame_shape)
             self.assertTrue(np.any(run_input.polygon_mask))
+            self.assertAlmostEqual(run_input.threshold, 0.35, places=6)
+            np.testing.assert_array_equal(run_input.inference_resolution_hw, np.asarray([512, 512], dtype=np.int32))
             return run_output
 
         with patch.object(self.window._dexined_backend, "run", side_effect=fake_run) as run_mock:
@@ -567,6 +572,9 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertGreater(len(self.window._edge_preview_dialog.input_view.viewer._overlay_items), 0)
         self.assertIn("Dominant Edge | Frame 1/", self.window._edge_preview_dialog.edge_view.lbl_title.text())
         self.assertIn("repair+bm3d", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
+        self.assertIn("thr 0.35", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
+        self.assertIn("k 2", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
+        self.assertIn("512", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertIn("selected px", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertIn("mode component", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertIn("polyline binned_pca", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
@@ -584,6 +592,9 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         sequence.raw_frames[1, 11:23, 9:21] = 0.5
         sequence.raw_frames[2, 12:24, 10:22] = 0.7
         self.window.set_sequence(sequence)
+        self.window.polygon_tools_panel.sp_dexined_threshold.setValue(0.4)
+        self.window.polygon_tools_panel.sp_edge_components.setValue(2)
+        self.window.polygon_tools_panel.cmb_inference_resolution.setCurrentIndex(2)
 
         polygon = PolygonROI(np.asarray([[8.0, 10.0], [22.0, 10.0], [24.0, 24.0], [10.0, 26.0]], dtype=np.float64))
         self.window.viewer._commit_polygon(polygon)
@@ -591,8 +602,11 @@ class NanoTrackMainWindowTests(unittest.TestCase):
 
         edge_prob = np.zeros((sequence.frame_count, *sequence.frame_shape), dtype=np.float32)
         edge_prob[0, 12:15, 8:21] = 0.72
+        edge_prob[0, 9:11, 19:22] = 0.71
         edge_prob[1, 13:16, 9:22] = 0.74
+        edge_prob[1, 10:12, 20:23] = 0.73
         edge_prob[2, 14:17, 10:23] = 0.76
+        edge_prob[2, 11:13, 21:24] = 0.75
         edge_binary = edge_prob >= 0.5
         run_output = DexiNedRunOutput(
             edge_prob=edge_prob,
@@ -607,6 +621,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             np.testing.assert_array_equal(run_input.frames, sequence.raw_frames)
             self.assertEqual(run_input.source_view, "raw")
             self.assertTrue(np.any(run_input.polygon_mask))
+            self.assertAlmostEqual(run_input.threshold, 0.4, places=6)
+            np.testing.assert_array_equal(run_input.inference_resolution_hw, np.asarray([768, 768], dtype=np.int32))
             return run_output
 
         with patch.object(self.window._dexined_backend, "run", side_effect=fake_run) as run_mock:

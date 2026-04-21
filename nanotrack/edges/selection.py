@@ -34,6 +34,7 @@ def select_dominant_edge(
     polygon_mask: np.ndarray,
     *,
     threshold: float = 0.5,
+    max_components: int = 1,
 ) -> DominantEdgeSelection:
     """Pick one dominant connected edge component inside the ROI.
 
@@ -52,14 +53,13 @@ def select_dominant_edge(
         raise ValueError("polygon_mask must contain at least one True pixel.")
     if not 0.0 <= float(threshold) <= 1.0:
         raise ValueError("threshold must be within [0, 1].")
+    if int(max_components) <= 0:
+        raise ValueError("max_components must be positive.")
 
     candidate_mask = (edge_prob_f32 >= float(threshold)) & polygon_mask_bool
     if np.any(candidate_mask):
         labels = measure.label(candidate_mask, connectivity=2)
-        best_label = None
-        best_score = -np.inf
-        best_count = -1
-        best_mean = -np.inf
+        component_stats: list[tuple[float, int, float, int]] = []
         for label_id in range(1, int(labels.max()) + 1):
             component_mask = labels == label_id
             pixel_count = int(np.count_nonzero(component_mask))
@@ -68,22 +68,24 @@ def select_dominant_edge(
             component_prob = edge_prob_f32[component_mask]
             score = float(np.sum(component_prob))
             mean_probability = float(np.mean(component_prob))
-            if (
-                score > best_score
-                or (score == best_score and pixel_count > best_count)
-                or (score == best_score and pixel_count == best_count and mean_probability > best_mean)
-            ):
-                best_label = label_id
-                best_score = score
-                best_count = pixel_count
-                best_mean = mean_probability
-        if best_label is not None:
+            component_stats.append((score, pixel_count, mean_probability, label_id))
+        if component_stats:
+            component_stats.sort(key=lambda item: (item[0], item[1], item[2]), reverse=True)
+            selected_components = component_stats[: int(max_components)]
+            selected_labels = {label_id for _score, _count, _mean, label_id in selected_components}
+            combined_mask = np.isin(labels, list(selected_labels))
+            total_score = float(sum(score for score, _count, _mean, _label_id in selected_components))
+            total_pixels = int(np.count_nonzero(combined_mask))
+            mean_probability = 0.0 if total_pixels == 0 else float(np.mean(edge_prob_f32[combined_mask]))
+            selection_mode = "component"
+            if len(selected_components) > 1:
+                selection_mode = f"top_{len(selected_components)}_components"
             return DominantEdgeSelection(
-                edge_mask=labels == best_label,
-                score=best_score,
-                pixel_count=best_count,
-                mean_probability=best_mean,
-                selection_mode="component",
+                edge_mask=combined_mask,
+                score=total_score,
+                pixel_count=total_pixels,
+                mean_probability=mean_probability,
+                selection_mode=selection_mode,
             )
 
     masked_prob = np.where(polygon_mask_bool, edge_prob_f32, -np.inf)

@@ -38,6 +38,22 @@ class DominantEdgeSelectionTests(unittest.TestCase):
         expected_mask[3, 4] = True
         np.testing.assert_array_equal(selection.edge_mask, expected_mask)
 
+    def test_can_merge_top_k_components_before_polyline_extraction(self) -> None:
+        polygon_mask = np.ones((8, 12), dtype=bool)
+        edge_prob = np.zeros((8, 12), dtype=np.float32)
+        edge_prob[1:3, 1:4] = 0.7
+        edge_prob[4:6, 7:10] = 0.65
+        edge_prob[6:8, 0:2] = 0.2
+
+        selection = select_dominant_edge(edge_prob, polygon_mask, threshold=0.5, max_components=2)
+
+        self.assertEqual(selection.selection_mode, "top_2_components")
+        self.assertEqual(selection.pixel_count, 12)
+        expected_mask = np.zeros_like(polygon_mask, dtype=bool)
+        expected_mask[1:3, 1:4] = True
+        expected_mask[4:6, 7:10] = True
+        np.testing.assert_array_equal(selection.edge_mask, expected_mask)
+
     def test_validates_shape_mismatch(self) -> None:
         with self.assertRaises(ValueError):
             select_dominant_edge(
