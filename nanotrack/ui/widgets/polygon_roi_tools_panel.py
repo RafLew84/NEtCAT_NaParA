@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
+    QComboBox,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
@@ -24,6 +26,7 @@ class PolygonRoiToolsPanel(QWidget):
     load_edge_requested = pyqtSignal()
     save_edge_correction_requested = pyqtSignal()
     resume_edge_requested = pyqtSignal()
+    hybrid_stabilize_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -76,6 +79,23 @@ class PolygonRoiToolsPanel(QWidget):
         edge_row.addWidget(self.btn_resume_edge)
         group_layout.addLayout(edge_row)
 
+        hybrid_row = QHBoxLayout()
+        self.cmb_tracker = QComboBox(group)
+        self.cmb_tracker.addItem("TAPIR", "tapir")
+        self.cmb_tracker.addItem("LocoTrack", "locotrack")
+        self.cmb_tracker.addItem("Track-On-R", "trackonr")
+        self.cmb_tracker.setToolTip("Point-tracker backend used to stabilize the edge polyline over time.")
+        self.sp_tracker_points = QSpinBox(group)
+        self.sp_tracker_points.setRange(4, 64)
+        self.sp_tracker_points.setValue(16)
+        self.sp_tracker_points.setPrefix("Pts ")
+        self.sp_tracker_points.setToolTip("Number of control points sampled from the anchor polyline.")
+        self.btn_hybrid = QPushButton("Hybrid Stabilize", group)
+        hybrid_row.addWidget(self.cmb_tracker)
+        hybrid_row.addWidget(self.sp_tracker_points)
+        hybrid_row.addWidget(self.btn_hybrid)
+        group_layout.addLayout(hybrid_row)
+
         self.lbl_frame = QLabel("Frame: -", group)
         self.lbl_polygon = QLabel("No polygon ROI on current frame", group)
         self.lbl_edge = QLabel("Active edge track: -", group)
@@ -96,6 +116,7 @@ class PolygonRoiToolsPanel(QWidget):
         self.btn_load_edge.clicked.connect(self.load_edge_requested)
         self.btn_save_edge.clicked.connect(self.save_edge_correction_requested)
         self.btn_resume_edge.clicked.connect(self.resume_edge_requested)
+        self.btn_hybrid.clicked.connect(self.hybrid_stabilize_requested)
 
     def _update_enabled_state(self) -> None:
         enabled = self._sequence_loaded and not self._processing_busy
@@ -111,6 +132,11 @@ class PolygonRoiToolsPanel(QWidget):
             and self._has_active_edge
             and self._has_polygon
             and (self._has_editable_edge or self._has_edge_polyline_on_frame)
+        )
+        self.cmb_tracker.setEnabled(enabled)
+        self.sp_tracker_points.setEnabled(enabled)
+        self.btn_hybrid.setEnabled(
+            enabled and self._has_active_edge and (self._has_editable_edge or self._has_edge_polyline_on_frame)
         )
 
     def set_draw_mode_active(self, active: bool) -> None:
@@ -176,6 +202,13 @@ class PolygonRoiToolsPanel(QWidget):
     def set_processing(self, busy: bool) -> None:
         self._processing_busy = bool(busy)
         self._update_enabled_state()
+
+    def hybrid_tracker_model(self) -> str:
+        current_data = self.cmb_tracker.currentData()
+        return "tapir" if current_data is None else str(current_data)
+
+    def hybrid_control_point_count(self) -> int:
+        return int(self.sp_tracker_points.value())
 
     def set_edge_track_context(
         self,

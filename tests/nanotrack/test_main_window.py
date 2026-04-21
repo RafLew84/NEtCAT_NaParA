@@ -36,6 +36,7 @@ from nanotrack.core import (
 from nanotrack.io import load_mpp_sequence
 from nanotrack.edges import DexiNedRunOutput
 from nanotrack.sam2 import Sam2RunOutput
+from nanotrack.trackers import PointTrackerRunOutput
 
 if QApplication is not None:
     from nanotrack.ui.main_window import NanoTrackMainWindow
@@ -65,6 +66,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             self.window._edge_results_dialog.close()
         if getattr(self.window, "_dexined_progress_dialog", None) is not None:
             self.window._dexined_progress_dialog.close()
+        if getattr(self.window, "_point_tracker_progress_dialog", None) is not None:
+            self.window._point_tracker_progress_dialog.close()
         if getattr(self.window, "_results_dialog", None) is not None:
             self.window._results_dialog.close()
         if getattr(self.window, "_sam2_progress_dialog", None) is not None:
@@ -104,6 +107,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.polygon_tools_panel.btn_load_edge.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_save_edge.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_resume_edge.isEnabled())
+        self.assertFalse(self.window.polygon_tools_panel.btn_hybrid.isEnabled())
         self.assertEqual(self.window.polygon_tools_panel.lbl_polygon.text(), "No polygon ROI on current frame")
         self.assertTrue(self.window.preprocessing_panel.btn_preview.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_apply_all.isEnabled())
@@ -391,6 +395,38 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             )
         )
         self.window.set_tracks([track], selected_track_id=1)
+        polygon = PolygonROI(np.asarray([[10.0, 10.0], [36.0, 12.0], [34.0, 36.0], [12.0, 34.0]], dtype=np.float64))
+        edge_track = EdgeTrack(
+            edge_track_id=2,
+            seed_frame_index=1,
+            polygon_roi=polygon,
+            seed_polyline=np.asarray([[12.0, 18.0], [34.0, 18.0]], dtype=np.float64),
+            label="Edge-2",
+        )
+        edge_mask = np.zeros(sequence.frame_shape, dtype=bool)
+        edge_mask[18, 12:35] = True
+        edge_track.add_annotation(
+            EdgeFrameAnnotation(
+                frame_index=2,
+                polyline=np.asarray([[12.0, 18.5], [23.0, 19.0], [34.0, 19.5]], dtype=np.float64),
+                edge_mask=edge_mask,
+                source=EdgeAnnotationSource.TRACKER_REFINE,
+                metrics=EdgeMetrics(
+                    length_px=22.0,
+                    length_nm=22.0,
+                    roughness_rms_px=0.4,
+                    roughness_rms_nm=0.4,
+                    mean_curvature=0.1,
+                    max_curvature=0.15,
+                    waviness_amplitude_px=1.0,
+                    waviness_amplitude_nm=1.0,
+                ),
+            )
+        )
+        self.window._edge_tracks = [edge_track]
+        self.window._selected_edge_track_id = 2
+        self.window._draft_polygons_by_frame = {2: polygon}
+        self.window._draft_edge_polylines_by_frame = {2: np.asarray([[12.0, 20.0], [34.0, 20.0]], dtype=np.float64)}
         self.window._repair_frames = np.full_like(sequence.raw_frames, 0.15, dtype=np.float32)
         self.window._repair_params = {"threshold_sigma": 3.0, "repair_mode": "vertical_interp"}
         self.window._denoised_frames = np.full_like(sequence.raw_frames, 0.85, dtype=np.float32)
@@ -407,6 +443,10 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             self.window._denoised_frames = None
             self.window._denoised_sigma_factor = None
             self.window._draft_bboxes_by_frame = {}
+            self.window._draft_polygons_by_frame = {}
+            self.window._draft_edge_polylines_by_frame = {}
+            self.window._edge_tracks = []
+            self.window._selected_edge_track_id = None
             self.window.set_tracks([])
             self.window.preprocessing_panel.chk_show_denoised.setChecked(False)
 
@@ -425,6 +465,18 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         np.testing.assert_array_equal(restored_annotation.mask, mask)
         self.assertEqual(restored_annotation.metrics.area_px, float(np.count_nonzero(mask)))
         self.assertEqual(restored_annotation.metrics.intensity_sum, 33.0)
+        self.assertEqual(self.window.current_selected_edge_track_id(), 2)
+        np.testing.assert_array_equal(self.window.current_draft_polygon_roi().as_array(), polygon.as_array())
+        np.testing.assert_array_equal(
+            self.window.current_draft_edge_polyline(),
+            np.asarray([[12.0, 20.0], [34.0, 20.0]], dtype=np.float64),
+        )
+        restored_edge_track = self.window.current_edge_tracks()[0]
+        self.assertEqual(restored_edge_track.label, "Edge-2")
+        restored_edge_annotation = restored_edge_track.get_annotation(2)
+        self.assertEqual(restored_edge_annotation.source, EdgeAnnotationSource.TRACKER_REFINE)
+        np.testing.assert_array_equal(restored_edge_annotation.edge_mask, edge_mask)
+        self.assertEqual(restored_edge_annotation.metrics.length_px, 22.0)
 
     def test_preprocessing_panel_is_disabled_without_sequence(self) -> None:
         self.assertFalse(self.window.bbox_tools_panel.btn_place.isEnabled())
@@ -690,6 +742,90 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertIsNotNone(track.get_annotation(3).metrics.length_px)
         self.assertFalse(np.array_equal(track.get_annotation(3).polyline, original_frame3_polyline))
         self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
+
+    def test_edge_hybrid_stabilization_replaces_suffix_with_tracker_refine(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_hybrid.mpp",
+            raw_frames=np.zeros((4, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+
+        polygon = PolygonROI(np.asarray([[6.0, 8.0], [24.0, 8.0], [24.0, 24.0], [8.0, 26.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(polygon)
+
+        initial_edge_prob = np.zeros((sequence.frame_count, *sequence.frame_shape), dtype=np.float32)
+        initial_edge_prob[0, 10:13, 8:20] = 0.70
+        initial_edge_prob[1, 11:14, 9:21] = 0.72
+        initial_edge_prob[2, 12:15, 10:22] = 0.74
+        initial_edge_prob[3, 13:16, 11:23] = 0.76
+        initial_output = DexiNedRunOutput(
+            edge_prob=initial_edge_prob,
+            edge_binary=initial_edge_prob >= 0.5,
+            model_name="dexined",
+            checkpoint_name="DexiNed_BIPED_10.pth",
+        )
+
+        with patch.object(self.window._dexined_backend, "run", return_value=initial_output):
+            self.window.polygon_tools_panel.btn_run_sequence.click()
+            for _ in range(250):
+                self.__class__._app.processEvents()
+                if self.window.current_edge_tracks():
+                    break
+                time.sleep(0.01)
+
+        track = self.window.current_edge_tracks()[0]
+        original_frame2_polyline = np.asarray(track.get_annotation(2).polyline, dtype=np.float64)
+        original_frame3_polyline = np.asarray(track.get_annotation(3).polyline, dtype=np.float64)
+
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+        self.assertTrue(self.window.polygon_tools_panel.btn_hybrid.isEnabled())
+
+        def fake_tracker_run(run_input):
+            self.assertEqual(run_input.frames.shape[0], 3)
+            self.assertEqual(run_input.source_view, "raw")
+            self.assertEqual(run_input.query_points_tyx.shape[0], self.window.polygon_tools_panel.hybrid_control_point_count())
+            query_points_xy = np.column_stack([run_input.query_points_tyx[:, 2], run_input.query_points_tyx[:, 1]]).astype(
+                np.float32,
+                copy=False,
+            )
+            tracks_xy = np.stack(
+                [
+                    query_points_xy,
+                    query_points_xy + np.asarray([1.5, 0.4], dtype=np.float32),
+                    query_points_xy + np.asarray([3.0, 0.8], dtype=np.float32),
+                ],
+                axis=1,
+            )
+            visible_mask = np.ones(tracks_xy.shape[:2], dtype=bool)
+            return PointTrackerRunOutput(
+                tracks_xy=tracks_xy,
+                visible_mask=visible_mask,
+                model_name="tapir_stub",
+                checkpoint_name=None,
+            )
+
+        with patch.object(self.window._point_tracker_backends["tapir"], "run", side_effect=fake_tracker_run) as run_mock:
+            self.window.polygon_tools_panel.btn_hybrid.click()
+            self.assertIsNotNone(self.window._point_tracker_progress_dialog)
+            self.assertTrue(self.window._point_tracker_progress_dialog.isVisible())
+            for _ in range(250):
+                self.__class__._app.processEvents()
+                if run_mock.called and track.get_annotation(2).source == EdgeAnnotationSource.TRACKER_REFINE:
+                    break
+                time.sleep(0.01)
+
+        run_mock.assert_called_once()
+        self.assertEqual(track.get_annotation(1).source, EdgeAnnotationSource.DEXINED)
+        self.assertEqual(track.get_annotation(2).source, EdgeAnnotationSource.TRACKER_REFINE)
+        self.assertEqual(track.get_annotation(3).source, EdgeAnnotationSource.TRACKER_REFINE)
+        self.assertFalse(np.array_equal(track.get_annotation(2).polyline, original_frame2_polyline))
+        self.assertFalse(np.array_equal(track.get_annotation(3).polyline, original_frame3_polyline))
+        self.assertIsNotNone(track.get_annotation(2).metrics.length_px)
+        self.assertIsNotNone(track.get_annotation(3).metrics.length_px)
+        self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
+        self.assertIn("hybrid stabilization finished", self.window.statusBar().currentMessage().lower())
 
     def test_polygon_roi_state_is_per_frame_and_can_be_replaced_on_current_frame(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))

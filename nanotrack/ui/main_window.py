@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
+import sys
 import time
 
 import numpy as np
@@ -46,10 +48,22 @@ from nanotrack.processing import (
     run_horizontal_dropout_batch,
     run_horizontal_dropout_preview,
 )
-from nanotrack.edges import DexiNedRunInput, DexiNedRunOutput, DexiNedSubprocessBackend
+from nanotrack.edges import (
+    DexiNedRunInput,
+    DexiNedRunOutput,
+    DexiNedSubprocessBackend,
+    hybrid_refine_polyline,
+    sample_polyline_control_points,
+)
 from nanotrack.edges.polyline import dominant_edge_to_polyline
 from nanotrack.edges.selection import select_dominant_edge
 from nanotrack.sam2 import Sam2RunInput, Sam2RunOutput, Sam2SubprocessBackend
+from nanotrack.trackers import (
+    PointTrackerBackendConfig,
+    PointTrackerRunInput,
+    PointTrackerRunOutput,
+    PointTrackerSubprocessBackend,
+)
 from nanotrack.ui.dialogs import Bm3dPreviewDialog, EdgePreviewDialog, EdgeTrackResultsDialog, TrackResultsDialog
 from nanotrack.ui.widgets import (
     BBoxToolsPanel,
@@ -121,6 +135,24 @@ class _Sam2BatchWorker(QObject):
         self.finished.emit({"total": total, "failures": failures})
 
 
+class _PointTrackerRunWorker(QObject):
+    finished = pyqtSignal(object)
+    failed = pyqtSignal(str)
+
+    def __init__(self, backend: PointTrackerSubprocessBackend, run_input: PointTrackerRunInput):
+        super().__init__()
+        self._backend = backend
+        self._run_input = run_input
+
+    def run(self) -> None:
+        try:
+            output = self._backend.run(self._run_input)
+        except Exception as exc:
+            self.failed.emit(str(exc))
+            return
+        self.finished.emit(output)
+
+
 class NanoTrackMainWindow(QMainWindow):
     """Main window for MPP sequence browsing and navigation."""
 
@@ -147,13 +179,18 @@ class NanoTrackMainWindow(QMainWindow):
         self._results_dialog: TrackResultsDialog | None = None
         self._edge_results_dialog: EdgeTrackResultsDialog | None = None
         self._dexined_backend = DexiNedSubprocessBackend()
+        self._point_tracker_backends = self._build_point_tracker_backends()
         self._dexined_progress_dialog: QProgressDialog | None = None
         self._dexined_thread: QThread | None = None
         self._dexined_worker: _DexiNedRunWorker | None = None
+        self._point_tracker_progress_dialog: QProgressDialog | None = None
+        self._point_tracker_thread: QThread | None = None
+        self._point_tracker_worker: _PointTrackerRunWorker | None = None
         self._pending_edge_preview_frame: np.ndarray | None = None
         self._pending_edge_preview_meta: dict[str, object] | None = None
         self._pending_edge_sequence_meta: dict[str, object] | None = None
         self._pending_edge_resume_meta: dict[str, object] | None = None
+        self._pending_edge_hybrid_meta: dict[str, object] | None = None
         self._sam2_backend = Sam2SubprocessBackend()
         self._sam2_progress_dialog: QProgressDialog | None = None
         self._sam2_thread: QThread | None = None
@@ -290,6 +327,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.polygon_tools_panel.load_edge_requested.connect(self._on_load_current_edge_requested)
         self.polygon_tools_panel.save_edge_correction_requested.connect(self._on_save_edge_correction_requested)
         self.polygon_tools_panel.resume_edge_requested.connect(self._on_resume_edge_requested)
+        self.polygon_tools_panel.hybrid_stabilize_requested.connect(self._on_edge_hybrid_requested)
         self.track_list_panel.track_selected.connect(self._on_track_selected)
         self.track_list_panel.run_selected_requested.connect(self._on_run_sam2_for_selected_requested)
         self.track_list_panel.run_all_requested.connect(self._on_run_sam2_for_all_requested)
@@ -456,6 +494,38 @@ class NanoTrackMainWindow(QMainWindow):
     def current_edge_results_dialog(self) -> EdgeTrackResultsDialog | None:
         return self._edge_results_dialog
 
+    def _build_point_tracker_backends(self) -> dict[str, PointTrackerSubprocessBackend]:
+        worker_root = Path(__file__).resolve().parents[1] / "trackers"
+        model_specs = {
+            "tapir": {
+                "env_prefix": "TAPIR",
+                "worker_script": worker_root / "run_tapir_subprocess.py",
+            },
+            "locotrack": {
+                "env_prefix": "LOCOTRACK",
+                "worker_script": worker_root / "run_locotrack_subprocess.py",
+            },
+            "trackonr": {
+                "env_prefix": "TRACKONR",
+                "worker_script": worker_root / "run_trackonr_subprocess.py",
+            },
+        }
+        backends: dict[str, PointTrackerSubprocessBackend] = {}
+        for model_name, spec in model_specs.items():
+            env_prefix = spec["env_prefix"]
+            config = PointTrackerBackendConfig(
+                model_name=model_name,
+                python_executable=os.environ.get(f"NANOTRACK_{env_prefix}_PYTHON", sys.executable),
+                worker_script=spec["worker_script"],
+                checkpoint_path=os.environ.get(f"NANOTRACK_{env_prefix}_CHECKPOINT"),
+                repo_path=os.environ.get(f"NANOTRACK_{env_prefix}_REPO"),
+                device=os.environ.get(f"NANOTRACK_{env_prefix}_DEVICE", "auto"),
+                timeout_sec=float(os.environ.get(f"NANOTRACK_{env_prefix}_TIMEOUT_SEC", "300.0")),
+                working_directory=worker_root,
+            )
+            backends[model_name] = PointTrackerSubprocessBackend(config)
+        return backends
+
     def _update_menu_action_state(self) -> None:
         busy = self._is_preprocessing or self._is_tracking
         self.action_open_mpp.setEnabled(not busy)
@@ -471,8 +541,15 @@ class NanoTrackMainWindow(QMainWindow):
         return NanoTrackSessionSnapshot(
             sequence=self._sequence,
             tracks=self.current_tracks(),
+            edge_tracks=self.current_edge_tracks(),
             selected_track_id=self._selected_track_id,
+            selected_edge_track_id=self._selected_edge_track_id,
             draft_bboxes_by_frame=dict(self._draft_bboxes_by_frame),
+            draft_polygons_by_frame=dict(self._draft_polygons_by_frame),
+            draft_edge_polylines_by_frame={
+                frame_index: np.asarray(polyline, dtype=np.float64)
+                for frame_index, polyline in self._draft_edge_polylines_by_frame.items()
+            },
             repair_frames=None if self._repair_frames is None else np.asarray(self._repair_frames, dtype=np.float32),
             repair_params=None if self._repair_params is None else dict(self._repair_params),
             denoised_frames=None if self._denoised_frames is None else np.asarray(self._denoised_frames, dtype=np.float32),
@@ -586,11 +663,20 @@ class NanoTrackMainWindow(QMainWindow):
         self._denoised_frames = snapshot.denoised_frames
         self._denoised_sigma_factor = snapshot.denoised_sigma_factor
         self._draft_bboxes_by_frame = dict(snapshot.draft_bboxes_by_frame)
+        self._draft_polygons_by_frame = dict(snapshot.draft_polygons_by_frame)
+        self._draft_edge_polylines_by_frame = {
+            frame_index: np.asarray(polyline, dtype=np.float64)
+            for frame_index, polyline in snapshot.draft_edge_polylines_by_frame.items()
+        }
+        self._edge_tracks = list(snapshot.edge_tracks)
+        self._selected_edge_track_id = snapshot.selected_edge_track_id
         self._update_cached_preprocessing_availability()
         self._show_denoised_in_viewer = bool(snapshot.show_denoised_in_viewer and self._has_any_preprocessing_cache())
         with QSignalBlocker(self.preprocessing_panel.chk_show_denoised):
             self.preprocessing_panel.chk_show_denoised.setChecked(self._show_denoised_in_viewer)
         self.set_tracks(snapshot.tracks, selected_track_id=snapshot.selected_track_id)
+        self._sync_edge_results_dialog()
+        self._sync_edge_results_dialog_selection()
         self._show_current_frame(preserve_zoom=False)
 
     def _on_frame_selected(self, frame_index: int) -> None:
@@ -931,6 +1017,115 @@ class NanoTrackMainWindow(QMainWindow):
         self._dexined_worker.failed.connect(self._dexined_thread.quit)
         self._dexined_thread.finished.connect(self._cleanup_dexined_worker)
         self._dexined_thread.start()
+
+    def _on_edge_hybrid_requested(self) -> None:
+        if self._sequence is None or self._is_preprocessing or self._is_tracking:
+            return
+
+        track = self._find_edge_track_by_id(self._selected_edge_track_id)
+        if track is None:
+            return
+
+        frame_index = self._sequence.active_frame_index
+        annotation = track.get_annotation(frame_index)
+        draft_polyline = self.current_draft_edge_polyline()
+        anchor_polyline = (
+            np.asarray(draft_polyline, dtype=np.float64)
+            if draft_polyline is not None
+            else None if annotation is None or annotation.polyline is None else np.asarray(annotation.polyline, dtype=np.float64)
+        )
+        if anchor_polyline is None:
+            QMessageBox.warning(
+                self,
+                "Hybrid stabilization unavailable",
+                (
+                    f"Edge {track.edge_track_id} has no polyline on frame {frame_index + 1}. "
+                    "Load or edit the current edge first."
+                ),
+            )
+            return
+
+        anchor_polygon = self.current_draft_polygon_roi() or track.polygon_roi
+        current_edge_mask = None if annotation is None else annotation.edge_mask
+        current_source = (
+            EdgeAnnotationSource.MANUAL
+            if draft_polyline is not None or self.current_draft_polygon_roi() is not None
+            else EdgeAnnotationSource.MANUAL
+            if annotation is None
+            else annotation.source
+        )
+        current_annotation = EdgeFrameAnnotation(
+            frame_index=frame_index,
+            polyline=np.asarray(anchor_polyline, dtype=np.float64),
+            edge_mask=current_edge_mask,
+            visibility=FrameVisibility.VISIBLE,
+            source=current_source,
+            metrics=self._compute_edge_metrics(anchor_polyline),
+        )
+
+        if frame_index >= self._sequence.frame_count - 1:
+            track.polygon_roi = anchor_polygon
+            if frame_index == track.seed_frame_index:
+                track.seed_polyline = np.asarray(anchor_polyline, dtype=np.float64)
+            track.drop_annotations_after(frame_index)
+            track.add_annotation(current_annotation)
+            self._update_results_action_state()
+            self._sync_edge_results_dialog()
+            self._sync_edge_results_dialog_selection()
+            self._show_current_frame(preserve_zoom=True)
+            self.statusBar().showMessage(
+                f"Saved final-frame edge correction for {track.label or f'Edge {track.edge_track_id}'}.",
+                3000,
+            )
+            return
+
+        try:
+            run_input, hybrid_meta = self._build_edge_hybrid_input(
+                track,
+                anchor_polygon,
+                current_annotation,
+                tracker_model=self.polygon_tools_panel.hybrid_tracker_model(),
+                control_point_count=self.polygon_tools_panel.hybrid_control_point_count(),
+            )
+        except Exception as exc:
+            QMessageBox.critical(self, "Hybrid stabilization error", str(exc))
+            return
+
+        tracker_label = str(hybrid_meta["tracker_model"]).upper()
+        self._pending_edge_hybrid_meta = hybrid_meta
+        self._set_preprocessing_busy(True)
+        self._point_tracker_progress_dialog = QProgressDialog(
+            f"Running {tracker_label} hybrid stabilization for {self._sequence.frame_count - frame_index} frames...",
+            "",
+            0,
+            0,
+            self,
+        )
+        self._point_tracker_progress_dialog.setWindowTitle("Hybrid Edge Stabilization")
+        self._point_tracker_progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self._point_tracker_progress_dialog.setCancelButton(None)
+        self._point_tracker_progress_dialog.setMinimumDuration(0)
+        self._point_tracker_progress_dialog.setAutoClose(False)
+        self._point_tracker_progress_dialog.setAutoReset(False)
+        self._point_tracker_progress_dialog.setValue(0)
+        self._point_tracker_progress_dialog.show()
+        self.statusBar().showMessage(
+            f"Running {tracker_label} hybrid stabilization for {track.label or f'Edge {track.edge_track_id}'}...",
+            0,
+        )
+        QApplication.processEvents()
+
+        backend = self._point_tracker_backends[str(hybrid_meta["tracker_model"])]
+        self._point_tracker_thread = QThread(self)
+        self._point_tracker_worker = _PointTrackerRunWorker(backend, run_input)
+        self._point_tracker_worker.moveToThread(self._point_tracker_thread)
+        self._point_tracker_thread.started.connect(self._point_tracker_worker.run)
+        self._point_tracker_worker.finished.connect(self._on_edge_hybrid_finished)
+        self._point_tracker_worker.failed.connect(self._on_edge_hybrid_failed)
+        self._point_tracker_worker.finished.connect(self._point_tracker_thread.quit)
+        self._point_tracker_worker.failed.connect(self._point_tracker_thread.quit)
+        self._point_tracker_thread.finished.connect(self._cleanup_point_tracker_worker)
+        self._point_tracker_thread.start()
 
     def _on_add_seed_requested(self) -> None:
         if self._sequence is None:
@@ -1303,6 +1498,40 @@ class NanoTrackMainWindow(QMainWindow):
         self._set_preprocessing_busy(False)
         self._close_dexined_progress_dialog()
 
+    def _on_edge_hybrid_finished(self, output: object) -> None:
+        assert isinstance(output, PointTrackerRunOutput)
+        if self._pending_edge_hybrid_meta is None:
+            self._set_preprocessing_busy(False)
+            self._close_point_tracker_progress_dialog()
+            return
+
+        try:
+            self._apply_edge_hybrid_output(output, self._pending_edge_hybrid_meta)
+        except Exception as exc:
+            QMessageBox.critical(self, "Hybrid stabilization error", str(exc))
+            self.statusBar().showMessage("Hybrid edge stabilization failed.", 3000)
+        else:
+            track_id = int(self._pending_edge_hybrid_meta["track_id"])
+            tracker_model = str(self._pending_edge_hybrid_meta["tracker_model"]).upper()
+            start_frame_index = int(self._pending_edge_hybrid_meta["start_frame_index"])
+            self._update_results_action_state()
+            self._sync_edge_results_dialog()
+            self._sync_edge_results_dialog_selection()
+            self._show_current_frame(preserve_zoom=True)
+            self.statusBar().showMessage(
+                f"{tracker_model} hybrid stabilization finished for Edge Track {track_id} from frame {start_frame_index + 1}.",
+                4000,
+            )
+        finally:
+            self._set_preprocessing_busy(False)
+            self._close_point_tracker_progress_dialog()
+
+    def _on_edge_hybrid_failed(self, error_message: str) -> None:
+        QMessageBox.critical(self, "Hybrid stabilization error", error_message)
+        self.statusBar().showMessage("Hybrid edge stabilization failed.", 3000)
+        self._set_preprocessing_busy(False)
+        self._close_point_tracker_progress_dialog()
+
     def _on_repair_apply_all_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
             return
@@ -1637,6 +1866,13 @@ class NanoTrackMainWindow(QMainWindow):
         self._dexined_progress_dialog.deleteLater()
         self._dexined_progress_dialog = None
 
+    def _close_point_tracker_progress_dialog(self) -> None:
+        if self._point_tracker_progress_dialog is None:
+            return
+        self._point_tracker_progress_dialog.close()
+        self._point_tracker_progress_dialog.deleteLater()
+        self._point_tracker_progress_dialog = None
+
     def _cleanup_dexined_worker(self) -> None:
         if self._dexined_worker is not None:
             self._dexined_worker.deleteLater()
@@ -1648,6 +1884,15 @@ class NanoTrackMainWindow(QMainWindow):
         self._pending_edge_preview_meta = None
         self._pending_edge_sequence_meta = None
         self._pending_edge_resume_meta = None
+
+    def _cleanup_point_tracker_worker(self) -> None:
+        if self._point_tracker_worker is not None:
+            self._point_tracker_worker.deleteLater()
+            self._point_tracker_worker = None
+        if self._point_tracker_thread is not None:
+            self._point_tracker_thread.deleteLater()
+            self._point_tracker_thread = None
+        self._pending_edge_hybrid_meta = None
 
     def _cleanup_sam2_worker(self) -> None:
         if self._sam2_worker is not None:
@@ -2041,6 +2286,129 @@ class NanoTrackMainWindow(QMainWindow):
             "current_annotation": current_annotation,
         }
         return run_input, resume_meta
+
+    def _build_edge_hybrid_input(
+        self,
+        track: EdgeTrack,
+        polygon: PolygonROI,
+        current_annotation: EdgeFrameAnnotation,
+        *,
+        tracker_model: str,
+        control_point_count: int,
+    ) -> tuple[PointTrackerRunInput, dict[str, object]]:
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
+        if tracker_model not in self._point_tracker_backends:
+            raise ValueError(f"Unsupported point tracker backend: {tracker_model}")
+
+        start_frame_index = self._sequence.active_frame_index
+        input_frames, _source_title, _source_meta, source_view = self._current_edge_input_frames()
+        suffix_frames = np.asarray(input_frames[start_frame_index:], dtype=np.float32)
+        if current_annotation.polyline is None:
+            raise ValueError("Current edge annotation does not contain a polyline.")
+
+        control_points_xy = sample_polyline_control_points(current_annotation.polyline, int(control_point_count))
+        query_points_tyx = np.column_stack(
+            [
+                np.zeros(len(control_points_xy), dtype=np.float32),
+                control_points_xy[:, 1].astype(np.float32, copy=False),
+                control_points_xy[:, 0].astype(np.float32, copy=False),
+            ]
+        )
+        run_input = PointTrackerRunInput(
+            frames=suffix_frames,
+            query_points_tyx=query_points_tyx,
+            source_view=source_view,
+        )
+        existing_annotations = {
+            frame_index: track.get_annotation(frame_index)
+            for frame_index in range(start_frame_index + 1, self._sequence.frame_count)
+        }
+        hybrid_meta = {
+            "track_id": track.edge_track_id,
+            "start_frame_index": start_frame_index,
+            "polygon": polygon,
+            "current_annotation": current_annotation,
+            "existing_annotations": existing_annotations,
+            "tracker_model": tracker_model,
+            "control_point_count": int(control_point_count),
+        }
+        return run_input, hybrid_meta
+
+    def _apply_edge_hybrid_output(self, output: PointTrackerRunOutput, hybrid_meta: dict[str, object]) -> None:
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
+
+        track = self._find_edge_track_by_id(int(hybrid_meta["track_id"]))
+        if track is None:
+            raise RuntimeError("Selected edge track is no longer available.")
+
+        start_frame_index = int(hybrid_meta["start_frame_index"])
+        polygon = hybrid_meta["polygon"]
+        current_annotation = hybrid_meta["current_annotation"]
+        existing_annotations = dict(hybrid_meta["existing_annotations"])
+        expected_frame_count = self._sequence.frame_count - start_frame_index
+
+        tracks_xy = np.asarray(output.tracks_xy, dtype=np.float32)
+        visible_mask = np.asarray(output.visible_mask, dtype=bool)
+        if tracks_xy.shape[1] != expected_frame_count:
+            raise ValueError("Point-tracker output length must match the remaining frame count for hybrid stabilization.")
+        if tracks_xy.shape[0] < 2:
+            raise ValueError("Hybrid stabilization requires at least two tracked control points.")
+
+        track.polygon_roi = polygon
+        if start_frame_index == track.seed_frame_index:
+            track.seed_polyline = np.asarray(current_annotation.polyline, dtype=np.float64)
+
+        track.drop_annotations_after(start_frame_index)
+        track.add_annotation(current_annotation)
+
+        for local_index in range(1, tracks_xy.shape[1]):
+            frame_index = start_frame_index + local_index
+            tracked_points = np.asarray(tracks_xy[:, local_index, :], dtype=np.float64)
+            visible_points = tracked_points[visible_mask[:, local_index]]
+            existing_annotation = existing_annotations.get(frame_index)
+
+            if existing_annotation is not None and existing_annotation.polyline is not None and len(visible_points) >= 2:
+                refined_polyline = hybrid_refine_polyline(existing_annotation.polyline, visible_points)
+                track.add_annotation(
+                    EdgeFrameAnnotation(
+                        frame_index=frame_index,
+                        polyline=refined_polyline,
+                        edge_mask=None if existing_annotation is None else existing_annotation.edge_mask,
+                        visibility=FrameVisibility.VISIBLE,
+                        source=EdgeAnnotationSource.TRACKER_REFINE,
+                        metrics=self._compute_edge_metrics(refined_polyline),
+                    )
+                )
+                continue
+
+            if existing_annotation is not None:
+                track.add_annotation(existing_annotation)
+                continue
+
+            if len(visible_points) >= 2:
+                track.add_annotation(
+                    EdgeFrameAnnotation(
+                        frame_index=frame_index,
+                        polyline=visible_points,
+                        edge_mask=None,
+                        visibility=FrameVisibility.VISIBLE,
+                        source=EdgeAnnotationSource.TRACKER_REFINE,
+                        metrics=self._compute_edge_metrics(visible_points),
+                    )
+                )
+                continue
+
+            track.add_annotation(
+                EdgeFrameAnnotation(
+                    frame_index=frame_index,
+                    polyline=None,
+                    edge_mask=None,
+                    visibility=FrameVisibility.LOST,
+                    source=EdgeAnnotationSource.TRACKER_REFINE,
+                )
+            )
 
     def _apply_edge_resume_output(self, output: DexiNedRunOutput, resume_meta: dict[str, object]) -> None:
         if self._sequence is None:

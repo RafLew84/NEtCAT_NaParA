@@ -6,9 +6,14 @@ import numpy as np
 from nanotrack.core import (
     AnnotationSource,
     BBoxXYXY,
+    EdgeAnnotationSource,
+    EdgeFrameAnnotation,
+    EdgeMetrics,
+    EdgeTrack,
     FrameVisibility,
     ParticleMetrics,
     ParticleTrack,
+    PolygonROI,
     STMSequence,
     STMSequenceMetadata,
     TrackFrameAnnotation,
@@ -73,11 +78,45 @@ class SessionStoreTests(unittest.TestCase):
                 source=AnnotationSource.RESUME,
             )
         )
+        polygon = PolygonROI(np.asarray([[0.0, 0.0], [4.0, 0.0], [4.0, 3.0], [0.0, 3.0]], dtype=np.float64))
+        edge_track = EdgeTrack(
+            edge_track_id=3,
+            seed_frame_index=1,
+            polygon_roi=polygon,
+            seed_polyline=np.asarray([[0.0, 1.0], [4.0, 1.0]], dtype=np.float64),
+            quality=TrackQuality.ACCEPTED,
+            label="Edge-3",
+        )
+        edge_mask = np.zeros((4, 5), dtype=bool)
+        edge_mask[1, 1:4] = True
+        edge_track.add_annotation(
+            EdgeFrameAnnotation(
+                frame_index=2,
+                polyline=np.asarray([[0.5, 1.5], [4.0, 1.5]], dtype=np.float64),
+                edge_mask=edge_mask,
+                visibility=FrameVisibility.VISIBLE,
+                source=EdgeAnnotationSource.TRACKER_REFINE,
+                metrics=EdgeMetrics(
+                    length_px=3.5,
+                    length_nm=7.0,
+                    roughness_rms_px=0.25,
+                    roughness_rms_nm=0.5,
+                    mean_curvature=0.1,
+                    max_curvature=0.2,
+                    waviness_amplitude_px=0.4,
+                    waviness_amplitude_nm=0.8,
+                ),
+            )
+        )
         snapshot = NanoTrackSessionSnapshot(
             sequence=sequence,
             tracks=[track],
+            edge_tracks=[edge_track],
             selected_track_id=7,
+            selected_edge_track_id=3,
             draft_bboxes_by_frame={2: BBoxXYXY(0.0, 0.0, 3.0, 2.0)},
+            draft_polygons_by_frame={2: polygon},
+            draft_edge_polylines_by_frame={2: np.asarray([[0.0, 2.0], [4.0, 2.0]], dtype=np.float64)},
             repair_frames=np.full_like(sequence.raw_frames, 0.25, dtype=np.float32),
             repair_params={"threshold_sigma": 3.0, "repair_mode": "vertical_interp"},
             denoised_frames=np.full_like(sequence.raw_frames, 0.75, dtype=np.float32),
@@ -109,8 +148,14 @@ class SessionStoreTests(unittest.TestCase):
         self.assertEqual(loaded.sequence.active_frame_index, 2)
         self.assertTrue(loaded.sequence.reverse_frame_order)
         self.assertEqual(loaded.selected_track_id, 7)
+        self.assertEqual(loaded.selected_edge_track_id, 3)
         self.assertTrue(loaded.show_denoised_in_viewer)
         self.assertEqual(loaded.draft_bboxes_by_frame[2], BBoxXYXY(0.0, 0.0, 3.0, 2.0))
+        np.testing.assert_array_equal(loaded.draft_polygons_by_frame[2].as_array(), polygon.as_array())
+        np.testing.assert_array_equal(
+            loaded.draft_edge_polylines_by_frame[2],
+            np.asarray([[0.0, 2.0], [4.0, 2.0]], dtype=np.float64),
+        )
         np.testing.assert_array_equal(loaded.repair_frames, snapshot.repair_frames)
         np.testing.assert_array_equal(loaded.denoised_frames, snapshot.denoised_frames)
         self.assertEqual(loaded.repair_params, snapshot.repair_params)
@@ -131,6 +176,17 @@ class SessionStoreTests(unittest.TestCase):
         restored_lost = restored_track.get_annotation(3)
         self.assertEqual(restored_lost.visibility, FrameVisibility.LOST)
         np.testing.assert_array_equal(restored_lost.mask, np.zeros((4, 5), dtype=bool))
+
+        restored_edge_track = loaded.edge_tracks[0]
+        self.assertEqual(restored_edge_track.edge_track_id, 3)
+        self.assertEqual(restored_edge_track.label, "Edge-3")
+        self.assertEqual(restored_edge_track.quality, TrackQuality.ACCEPTED)
+        np.testing.assert_array_equal(restored_edge_track.polygon_roi.as_array(), polygon.as_array())
+        restored_edge_annotation = restored_edge_track.get_annotation(2)
+        self.assertEqual(restored_edge_annotation.source, EdgeAnnotationSource.TRACKER_REFINE)
+        np.testing.assert_array_equal(restored_edge_annotation.edge_mask, edge_mask)
+        self.assertEqual(restored_edge_annotation.metrics.length_px, 3.5)
+        self.assertEqual(restored_edge_annotation.metrics.length_nm, 7.0)
 
 
 if __name__ == "__main__":

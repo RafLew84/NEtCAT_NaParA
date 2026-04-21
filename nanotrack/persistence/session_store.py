@@ -14,9 +14,14 @@ import numpy as np
 from nanotrack.core import (
     AnnotationSource,
     BBoxXYXY,
+    EdgeAnnotationSource,
+    EdgeFrameAnnotation,
+    EdgeMetrics,
+    EdgeTrack,
     FrameVisibility,
     ParticleMetrics,
     ParticleTrack,
+    PolygonROI,
     STMSequence,
     TrackFrameAnnotation,
     TrackQuality,
@@ -32,8 +37,12 @@ class NanoTrackSessionSnapshot:
 
     sequence: STMSequence
     tracks: list[ParticleTrack] = field(default_factory=list)
+    edge_tracks: list[EdgeTrack] = field(default_factory=list)
     selected_track_id: int | None = None
+    selected_edge_track_id: int | None = None
     draft_bboxes_by_frame: dict[int, BBoxXYXY] = field(default_factory=dict)
+    draft_polygons_by_frame: dict[int, PolygonROI] = field(default_factory=dict)
+    draft_edge_polylines_by_frame: dict[int, np.ndarray] = field(default_factory=dict)
     repair_frames: np.ndarray | None = None
     repair_params: dict[str, float | int | str] | None = None
     denoised_frames: np.ndarray | None = None
@@ -67,6 +76,15 @@ def save_session_snapshot(path: str, snapshot: NanoTrackSessionSnapshot) -> None
                     f"tracks/{track.track_id}/mask_{annotation.frame_index}.npz",
                     mask=np.asarray(annotation.mask, dtype=np.uint8),
                 )
+        for edge_track in snapshot.edge_tracks:
+            for annotation in edge_track.annotations.values():
+                if annotation.edge_mask is None:
+                    continue
+                _write_npz(
+                    zf,
+                    f"edge_tracks/{edge_track.edge_track_id}/edge_mask_{annotation.frame_index}.npz",
+                    edge_mask=np.asarray(annotation.edge_mask, dtype=np.uint8),
+                )
 
 
 def load_session_snapshot(
@@ -89,17 +107,30 @@ def load_session_snapshot(
         repair_frames = _read_optional_npz(zf, "preprocessing/repair_frames.npz", "frames")
         denoised_frames = _read_optional_npz(zf, "preprocessing/denoised_frames.npz", "frames")
         tracks = _restore_tracks(zf, manifest.get("tracks", []))
+        edge_tracks = _restore_edge_tracks(zf, manifest.get("edge_tracks", []))
         draft_bboxes = {
             int(item["frame_index"]): _bbox_from_payload(item["bbox"])
             for item in manifest.get("draft_bboxes", [])
+        }
+        draft_polygons = {
+            int(item["frame_index"]): PolygonROI(np.asarray(item["vertices_xy"], dtype=np.float64))
+            for item in manifest.get("draft_polygons", [])
+        }
+        draft_edge_polylines = {
+            int(item["frame_index"]): np.asarray(item["polyline_xy"], dtype=np.float64)
+            for item in manifest.get("draft_edge_polylines", [])
         }
 
         preprocessing = manifest.get("preprocessing", {})
         return NanoTrackSessionSnapshot(
             sequence=sequence,
             tracks=tracks,
+            edge_tracks=edge_tracks,
             selected_track_id=manifest.get("selected_track_id"),
+            selected_edge_track_id=manifest.get("selected_edge_track_id"),
             draft_bboxes_by_frame=draft_bboxes,
+            draft_polygons_by_frame=draft_polygons,
+            draft_edge_polylines_by_frame=draft_edge_polylines,
             repair_frames=repair_frames,
             repair_params=preprocessing.get("repair_params"),
             denoised_frames=denoised_frames,
@@ -117,6 +148,7 @@ def _build_manifest(snapshot: NanoTrackSessionSnapshot) -> dict:
             "reverse_frame_order": bool(snapshot.sequence.reverse_frame_order),
         },
         "selected_track_id": snapshot.selected_track_id,
+        "selected_edge_track_id": snapshot.selected_edge_track_id,
         "show_denoised_in_viewer": bool(snapshot.show_denoised_in_viewer),
         "draft_bboxes": [
             {
@@ -125,11 +157,26 @@ def _build_manifest(snapshot: NanoTrackSessionSnapshot) -> dict:
             }
             for frame_index, bbox in sorted(snapshot.draft_bboxes_by_frame.items())
         ],
+        "draft_polygons": [
+            {
+                "frame_index": int(frame_index),
+                "vertices_xy": polygon.as_array().tolist(),
+            }
+            for frame_index, polygon in sorted(snapshot.draft_polygons_by_frame.items())
+        ],
+        "draft_edge_polylines": [
+            {
+                "frame_index": int(frame_index),
+                "polyline_xy": np.asarray(polyline, dtype=np.float64).tolist(),
+            }
+            for frame_index, polyline in sorted(snapshot.draft_edge_polylines_by_frame.items())
+        ],
         "preprocessing": {
             "repair_params": snapshot.repair_params,
             "denoised_sigma_factor": snapshot.denoised_sigma_factor,
         },
         "tracks": [_serialize_track(track) for track in snapshot.tracks],
+        "edge_tracks": [_serialize_edge_track(track) for track in snapshot.edge_tracks],
     }
 
 
@@ -163,6 +210,42 @@ def _serialize_annotation(track_id: int, annotation: TrackFrameAnnotation) -> di
             "intensity_sum": annotation.metrics.intensity_sum,
             "intensity_mean": annotation.metrics.intensity_mean,
             "intensity_max": annotation.metrics.intensity_max,
+        },
+    }
+
+
+def _serialize_edge_track(track: EdgeTrack) -> dict:
+    return {
+        "edge_track_id": track.edge_track_id,
+        "seed_frame_index": track.seed_frame_index,
+        "polygon_roi": track.polygon_roi.as_array().tolist(),
+        "seed_polyline": np.asarray(track.seed_polyline, dtype=np.float64).tolist(),
+        "quality": track.quality.value,
+        "label": track.label,
+        "annotations": [_serialize_edge_annotation(track.edge_track_id, annotation) for annotation in track.annotations.values()],
+    }
+
+
+def _serialize_edge_annotation(edge_track_id: int, annotation: EdgeFrameAnnotation) -> dict:
+    polyline_payload = None if annotation.polyline is None else np.asarray(annotation.polyline, dtype=np.float64).tolist()
+    edge_mask_path = None
+    if annotation.edge_mask is not None:
+        edge_mask_path = f"edge_tracks/{edge_track_id}/edge_mask_{annotation.frame_index}.npz"
+    return {
+        "frame_index": annotation.frame_index,
+        "polyline_xy": polyline_payload,
+        "edge_mask_path": edge_mask_path,
+        "visibility": annotation.visibility.value,
+        "source": annotation.source.value,
+        "metrics": {
+            "length_px": annotation.metrics.length_px,
+            "length_nm": annotation.metrics.length_nm,
+            "roughness_rms_px": annotation.metrics.roughness_rms_px,
+            "roughness_rms_nm": annotation.metrics.roughness_rms_nm,
+            "mean_curvature": annotation.metrics.mean_curvature,
+            "max_curvature": annotation.metrics.max_curvature,
+            "waviness_amplitude_px": annotation.metrics.waviness_amplitude_px,
+            "waviness_amplitude_nm": annotation.metrics.waviness_amplitude_nm,
         },
     }
 
@@ -204,6 +287,53 @@ def _restore_tracks(zf: zipfile.ZipFile, tracks_payload: list[dict]) -> list[Par
                 track_id=int(track_payload["track_id"]),
                 seed_frame_index=int(track_payload["seed_frame_index"]),
                 seed_bbox=_bbox_from_payload(track_payload["seed_bbox"]),
+                annotations=annotations,
+                quality=TrackQuality(track_payload.get("quality", TrackQuality.UNREVIEWED.value)),
+                label=track_payload.get("label"),
+            )
+        )
+    return tracks
+
+
+def _restore_edge_tracks(zf: zipfile.ZipFile, tracks_payload: list[dict]) -> list[EdgeTrack]:
+    tracks: list[EdgeTrack] = []
+    for track_payload in tracks_payload:
+        annotations: dict[int, EdgeFrameAnnotation] = {}
+        for annotation_payload in track_payload.get("annotations", []):
+            frame_index = int(annotation_payload["frame_index"])
+            polyline = annotation_payload.get("polyline_xy")
+            if polyline is not None:
+                polyline = np.asarray(polyline, dtype=np.float64)
+            edge_mask = None
+            edge_mask_path = annotation_payload.get("edge_mask_path")
+            if edge_mask_path:
+                edge_mask = _read_optional_npz(zf, edge_mask_path, "edge_mask")
+                if edge_mask is not None:
+                    edge_mask = np.asarray(edge_mask, dtype=bool)
+            metrics_payload = annotation_payload.get("metrics", {})
+            annotations[frame_index] = EdgeFrameAnnotation(
+                frame_index=frame_index,
+                polyline=polyline,
+                edge_mask=edge_mask,
+                visibility=FrameVisibility(annotation_payload["visibility"]),
+                source=EdgeAnnotationSource(annotation_payload["source"]),
+                metrics=EdgeMetrics(
+                    length_px=metrics_payload.get("length_px"),
+                    length_nm=metrics_payload.get("length_nm"),
+                    roughness_rms_px=metrics_payload.get("roughness_rms_px"),
+                    roughness_rms_nm=metrics_payload.get("roughness_rms_nm"),
+                    mean_curvature=metrics_payload.get("mean_curvature"),
+                    max_curvature=metrics_payload.get("max_curvature"),
+                    waviness_amplitude_px=metrics_payload.get("waviness_amplitude_px"),
+                    waviness_amplitude_nm=metrics_payload.get("waviness_amplitude_nm"),
+                ),
+            )
+        tracks.append(
+            EdgeTrack(
+                edge_track_id=int(track_payload["edge_track_id"]),
+                seed_frame_index=int(track_payload["seed_frame_index"]),
+                polygon_roi=PolygonROI(np.asarray(track_payload["polygon_roi"], dtype=np.float64)),
+                seed_polyline=np.asarray(track_payload["seed_polyline"], dtype=np.float64),
                 annotations=annotations,
                 quality=TrackQuality(track_payload.get("quality", TrackQuality.UNREVIEWED.value)),
                 label=track_payload.get("label"),
