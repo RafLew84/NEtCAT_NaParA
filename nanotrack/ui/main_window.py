@@ -24,7 +24,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from nanotrack.analysis import compute_particle_metrics
+from nanotrack.analysis import compute_edge_metrics, compute_particle_metrics
 from nanotrack.core import (
     AnnotationSource,
     BBoxXYXY,
@@ -50,7 +50,7 @@ from nanotrack.edges import DexiNedRunInput, DexiNedRunOutput, DexiNedSubprocess
 from nanotrack.edges.polyline import dominant_edge_to_polyline
 from nanotrack.edges.selection import select_dominant_edge
 from nanotrack.sam2 import Sam2RunInput, Sam2RunOutput, Sam2SubprocessBackend
-from nanotrack.ui.dialogs import Bm3dPreviewDialog, EdgePreviewDialog, TrackResultsDialog
+from nanotrack.ui.dialogs import Bm3dPreviewDialog, EdgePreviewDialog, EdgeTrackResultsDialog, TrackResultsDialog
 from nanotrack.ui.widgets import (
     BBoxToolsPanel,
     PolygonRoiToolsPanel,
@@ -145,6 +145,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._bm3d_preview_dialog: Bm3dPreviewDialog | None = None
         self._edge_preview_dialog: EdgePreviewDialog | None = None
         self._results_dialog: TrackResultsDialog | None = None
+        self._edge_results_dialog: EdgeTrackResultsDialog | None = None
         self._dexined_backend = DexiNedSubprocessBackend()
         self._dexined_progress_dialog: QProgressDialog | None = None
         self._dexined_thread: QThread | None = None
@@ -196,6 +197,9 @@ class NanoTrackMainWindow(QMainWindow):
         self.action_open_results = toolbar.addAction("View Results...")
         self.action_open_results.setToolTip("Open the quantitative results window")
         self.action_open_results.setEnabled(False)
+        self.action_open_edge_results = toolbar.addAction("View Edge Results...")
+        self.action_open_edge_results.setToolTip("Open the quantitative edge-tracking results window")
+        self.action_open_edge_results.setEnabled(False)
 
     def _build_central_widget(self) -> None:
         central = QSplitter(Qt.Orientation.Horizontal, self)
@@ -263,6 +267,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.action_open_session.triggered.connect(self._on_open_session_requested)
         self.action_save_session.triggered.connect(self._on_save_session_requested)
         self.action_open_results.triggered.connect(self._on_open_results_requested)
+        self.action_open_edge_results.triggered.connect(self._on_open_edge_results_requested)
         self.slider_frame.valueChanged.connect(self._on_frame_selected)
         self.spin_frame.valueChanged.connect(self._on_spin_frame_selected)
         self.btn_prev.clicked.connect(self._on_prev_frame)
@@ -372,6 +377,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._sync_current_bbox_ui()
         self._sync_current_polygon_ui()
         self._update_menu_action_state()
+        self._sync_edge_results_dialog()
         self.statusBar().showMessage(
             f"{Path(sequence.source_path).name} | frame {sequence.active_frame_index + 1}/{sequence.frame_count}",
             3000,
@@ -447,6 +453,9 @@ class NanoTrackMainWindow(QMainWindow):
     def current_results_dialog(self) -> TrackResultsDialog | None:
         return self._results_dialog
 
+    def current_edge_results_dialog(self) -> EdgeTrackResultsDialog | None:
+        return self._edge_results_dialog
+
     def _update_menu_action_state(self) -> None:
         busy = self._is_preprocessing or self._is_tracking
         self.action_open_mpp.setEnabled(not busy)
@@ -454,6 +463,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.action_open_session.setEnabled(not busy)
         self.action_save_session.setEnabled(self._sequence is not None and not busy)
         self.action_open_results.setEnabled(self._has_results_data() and not busy)
+        self.action_open_edge_results.setEnabled(self._has_edge_results_data() and not busy)
 
     def current_session_snapshot(self) -> NanoTrackSessionSnapshot | None:
         if self._sequence is None:
@@ -555,6 +565,15 @@ class NanoTrackMainWindow(QMainWindow):
             return
         dialog = self._ensure_results_dialog()
         dialog.set_context(self._sequence, self._tracks, selected_track_id=self._selected_track_id)
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+
+    def _on_open_edge_results_requested(self) -> None:
+        if not self._has_edge_results_data():
+            return
+        dialog = self._ensure_edge_results_dialog()
+        dialog.set_context(self._sequence, self._edge_tracks, selected_track_id=self._selected_edge_track_id)
         dialog.show()
         dialog.raise_()
         dialog.activateWindow()
@@ -819,8 +838,12 @@ class NanoTrackMainWindow(QMainWindow):
                 edge_mask=edge_mask,
                 visibility=FrameVisibility.VISIBLE,
                 source=EdgeAnnotationSource.MANUAL,
+                metrics=self._compute_edge_metrics(polyline),
             )
         )
+        self._update_results_action_state()
+        self._sync_edge_results_dialog()
+        self._sync_edge_results_dialog_selection()
         self._show_current_frame(preserve_zoom=True)
         self._sync_edge_track_context()
         self.statusBar().showMessage(
@@ -855,6 +878,7 @@ class NanoTrackMainWindow(QMainWindow):
             edge_mask=current_edge_mask,
             visibility=FrameVisibility.VISIBLE,
             source=EdgeAnnotationSource.MANUAL,
+            metrics=self._compute_edge_metrics(polyline),
         )
 
         if frame_index >= self._sequence.frame_count - 1:
@@ -1228,6 +1252,9 @@ class NanoTrackMainWindow(QMainWindow):
         else:
             self._edge_tracks.append(track)
             self._selected_edge_track_id = track.edge_track_id
+            self._update_results_action_state()
+            self._sync_edge_results_dialog()
+            self._sync_edge_results_dialog_selection()
             self._show_current_frame(preserve_zoom=True)
             self.statusBar().showMessage(
                 f"DexiNed sequence finished: Edge Track {track.edge_track_id} with {len(track.annotations)} frames.",
@@ -1868,6 +1895,14 @@ class NanoTrackMainWindow(QMainWindow):
         max_prob = float(np.max(selected_edge_frame)) if selected_edge_frame.size else 0.0
         return selection, selected_edge_frame, polyline, max_prob
 
+    def _compute_edge_metrics(self, polyline_xy: np.ndarray):
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
+        return compute_edge_metrics(
+            polyline_xy,
+            pixel_size_nm=self._sequence.metadata.get_pixel_size_nm(),
+        )
+
     def _build_edge_track_from_dexined_output(
         self,
         output: DexiNedRunOutput,
@@ -1900,6 +1935,7 @@ class NanoTrackMainWindow(QMainWindow):
                 polyline=polyline.polyline_xy,
                 edge_mask=selection.edge_mask,
                 source=EdgeAnnotationSource.DEXINED,
+                metrics=self._compute_edge_metrics(polyline.polyline_xy),
             )
             if frame_index == seed_frame_index:
                 seed_polyline = np.asarray(polyline.polyline_xy, dtype=np.float64)
@@ -2047,9 +2083,13 @@ class NanoTrackMainWindow(QMainWindow):
                     edge_mask=selection.edge_mask,
                     visibility=FrameVisibility.VISIBLE,
                     source=EdgeAnnotationSource.DEXINED,
+                    metrics=self._compute_edge_metrics(polyline.polyline_xy),
                 )
             )
 
+        self._update_results_action_state()
+        self._sync_edge_results_dialog()
+        self._sync_edge_results_dialog_selection()
         self._show_current_frame(preserve_zoom=True)
 
     def _sync_bbox_track_context(self) -> None:
@@ -2073,11 +2113,33 @@ class NanoTrackMainWindow(QMainWindow):
             self._results_dialog.track_delete_requested.connect(self._on_results_track_delete_requested)
         return self._results_dialog
 
+    def _ensure_edge_results_dialog(self) -> EdgeTrackResultsDialog:
+        if self._edge_results_dialog is None:
+            self._edge_results_dialog = EdgeTrackResultsDialog(self)
+            self._edge_results_dialog.track_selected.connect(self._on_edge_results_track_selected)
+        return self._edge_results_dialog
+
     def _on_results_track_selected(self, track_id: object) -> None:
         if track_id is None:
             return
         self.track_list_panel.set_selected_track_id(int(track_id))
         self._on_track_selected(track_id)
+
+    def _on_edge_results_track_selected(self, track_id: object) -> None:
+        selected_id = None if track_id is None else int(track_id)
+        self._selected_edge_track_id = selected_id
+        self._sync_edge_results_dialog_selection()
+        track = self._find_edge_track_by_id(selected_id)
+        if track is not None and self._sequence is not None and track.seed_frame_index != self._sequence.active_frame_index:
+            self._set_active_frame(track.seed_frame_index)
+            return
+        self._sync_track_overlays()
+        self._sync_edge_track_context()
+        if track is not None:
+            self.statusBar().showMessage(
+                f"Selected {track.label or f'Edge {track.edge_track_id}'} | seed frame {track.seed_frame_index + 1}",
+                3000,
+            )
 
     def _on_results_track_delete_requested(self, track_id: int) -> None:
         remaining_tracks = [track for track in self._tracks if track.track_id != track_id]
@@ -2097,10 +2159,24 @@ class NanoTrackMainWindow(QMainWindow):
             return
         self._results_dialog.set_context(self._sequence, self._tracks, selected_track_id=self._selected_track_id)
 
+    def _sync_edge_results_dialog(self) -> None:
+        if self._edge_results_dialog is None:
+            return
+        self._edge_results_dialog.set_context(
+            self._sequence,
+            self._edge_tracks,
+            selected_track_id=self._selected_edge_track_id,
+        )
+
     def _sync_results_dialog_selection(self) -> None:
         if self._results_dialog is None:
             return
         self._results_dialog.set_selected_track_id(self._selected_track_id)
+
+    def _sync_edge_results_dialog_selection(self) -> None:
+        if self._edge_results_dialog is None:
+            return
+        self._edge_results_dialog.set_selected_track_id(self._selected_edge_track_id)
 
     def _has_results_data(self) -> bool:
         for track in self._tracks:
@@ -2115,6 +2191,23 @@ class NanoTrackMainWindow(QMainWindow):
                     and metrics.intensity_sum is not None
                     and metrics.intensity_mean is not None
                     and metrics.intensity_max is not None
+                ):
+                    return True
+        return False
+
+    def _has_edge_results_data(self) -> bool:
+        for track in self._edge_tracks:
+            for frame_index in track.frame_indices:
+                annotation = track.get_annotation(frame_index)
+                if annotation is None:
+                    continue
+                metrics = annotation.metrics
+                if (
+                    metrics.length_px is not None
+                    and metrics.roughness_rms_px is not None
+                    and metrics.mean_curvature is not None
+                    and metrics.max_curvature is not None
+                    and metrics.waviness_amplitude_px is not None
                 ):
                     return True
         return False

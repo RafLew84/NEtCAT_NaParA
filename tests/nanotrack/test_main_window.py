@@ -23,6 +23,9 @@ from nanotrack.core import (
     AnnotationSource,
     BBoxXYXY,
     EdgeAnnotationSource,
+    EdgeFrameAnnotation,
+    EdgeMetrics,
+    EdgeTrack,
     ParticleMetrics,
     ParticleTrack,
     PolygonROI,
@@ -58,6 +61,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             self.window._bm3d_preview_dialog.close()
         if getattr(self.window, "_edge_preview_dialog", None) is not None:
             self.window._edge_preview_dialog.close()
+        if getattr(self.window, "_edge_results_dialog", None) is not None:
+            self.window._edge_results_dialog.close()
         if getattr(self.window, "_dexined_progress_dialog", None) is not None:
             self.window._dexined_progress_dialog.close()
         if getattr(self.window, "_results_dialog", None) is not None:
@@ -203,6 +208,83 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.__class__._app.processEvents()
 
         self.assertEqual(self.window.current_selected_track_id(), 2)
+        self.assertEqual(sequence.active_frame_index, 3)
+
+    def test_edge_results_action_opens_dialog_and_syncs_edge_track_selection(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_results_main.mpp",
+            raw_frames=np.zeros((5, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8, size_nm_x=80.0, size_nm_y=40.0),
+        )
+        self.window.set_sequence(sequence)
+
+        polygon = PolygonROI(np.asarray([[1.0, 1.0], [6.0, 1.0], [6.0, 6.0], [1.0, 6.0]], dtype=np.float64))
+        track1 = EdgeTrack(
+            edge_track_id=1,
+            seed_frame_index=0,
+            polygon_roi=polygon,
+            seed_polyline=np.asarray([[1.0, 2.0], [6.0, 2.0]], dtype=np.float64),
+        )
+        track1.add_annotation(
+            EdgeFrameAnnotation(
+                frame_index=1,
+                polyline=np.asarray([[1.0, 2.0], [6.0, 2.0]], dtype=np.float64),
+                metrics=EdgeMetrics(
+                    length_px=5.0,
+                    length_nm=50.0,
+                    roughness_rms_px=0.2,
+                    roughness_rms_nm=2.0,
+                    mean_curvature=0.05,
+                    max_curvature=0.08,
+                    waviness_amplitude_px=0.4,
+                    waviness_amplitude_nm=4.0,
+                ),
+            )
+        )
+        track2 = EdgeTrack(
+            edge_track_id=2,
+            seed_frame_index=3,
+            polygon_roi=polygon,
+            seed_polyline=np.asarray([[1.0, 3.0], [6.0, 3.0]], dtype=np.float64),
+        )
+        track2.add_annotation(
+            EdgeFrameAnnotation(
+                frame_index=4,
+                polyline=np.asarray([[1.0, 3.0], [6.0, 3.0]], dtype=np.float64),
+                metrics=EdgeMetrics(
+                    length_px=6.0,
+                    length_nm=60.0,
+                    roughness_rms_px=0.3,
+                    roughness_rms_nm=3.0,
+                    mean_curvature=0.06,
+                    max_curvature=0.10,
+                    waviness_amplitude_px=0.5,
+                    waviness_amplitude_nm=5.0,
+                ),
+            )
+        )
+
+        self.window._edge_tracks = [track1, track2]
+        self.window._selected_edge_track_id = 1
+        self.window._update_results_action_state()
+        self.window._sync_edge_results_dialog()
+        self.window._sync_edge_results_dialog_selection()
+        self.window._sync_track_overlays()
+
+        self.assertTrue(self.window.action_open_edge_results.isEnabled())
+
+        self.window.action_open_edge_results.trigger()
+        self.__class__._app.processEvents()
+
+        dialog = self.window.current_edge_results_dialog()
+        self.assertIsNotNone(dialog)
+        self.assertTrue(dialog.isVisible())
+        self.assertEqual(dialog.current_track_id(), 1)
+
+        dialog.cmb_tracks.setCurrentIndex(2)
+        self.__class__._app.processEvents()
+
+        self.assertEqual(self.window.current_selected_edge_track_id(), 2)
         self.assertEqual(sequence.active_frame_index, 3)
 
     def test_delete_track_from_results_dialog_updates_all_tracks_export_and_session(self) -> None:
@@ -500,6 +582,13 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             self.assertIsNotNone(annotation.edge_mask)
             self.assertIsNotNone(annotation.polyline)
             self.assertGreaterEqual(annotation.polyline_point_count, 2)
+            self.assertIsNotNone(annotation.metrics.length_px)
+            self.assertGreater(annotation.metrics.length_px, 0.0)
+            self.assertIsNotNone(annotation.metrics.length_nm)
+            self.assertGreaterEqual(annotation.metrics.roughness_rms_px, 0.0)
+            self.assertGreaterEqual(annotation.metrics.mean_curvature, 0.0)
+            self.assertGreaterEqual(annotation.metrics.max_curvature, 0.0)
+            self.assertGreaterEqual(annotation.metrics.waviness_amplitude_px, 0.0)
         self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
         self.assertIn("Edge Track 1", self.window.statusBar().currentMessage())
 
@@ -563,6 +652,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(track.get_annotation(1).source, EdgeAnnotationSource.MANUAL)
         np.testing.assert_array_equal(track.get_annotation(1).polyline, corrected_polyline)
         np.testing.assert_array_equal(track.polygon_roi.as_array(), corrected_polygon.as_array())
+        self.assertIsNotNone(track.get_annotation(1).metrics.length_px)
+        self.assertGreater(track.get_annotation(1).metrics.length_px, 0.0)
         self.assertTrue(self.window.polygon_tools_panel.btn_resume_edge.isEnabled())
 
         resume_edge_prob = np.zeros((2, *sequence.frame_shape), dtype=np.float32)
@@ -594,6 +685,9 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         np.testing.assert_array_equal(track.get_annotation(1).polyline, corrected_polyline)
         self.assertEqual(track.get_annotation(2).source, EdgeAnnotationSource.DEXINED)
         self.assertEqual(track.get_annotation(3).source, EdgeAnnotationSource.DEXINED)
+        self.assertIsNotNone(track.get_annotation(2).metrics.length_px)
+        self.assertGreater(track.get_annotation(2).metrics.length_px, 0.0)
+        self.assertIsNotNone(track.get_annotation(3).metrics.length_px)
         self.assertFalse(np.array_equal(track.get_annotation(3).polyline, original_frame3_polyline))
         self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
 
