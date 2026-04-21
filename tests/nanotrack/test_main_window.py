@@ -94,6 +94,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.polygon_tools_panel.btn_finish.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_clear.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_preview.isEnabled())
+        self.assertFalse(self.window.polygon_tools_panel.btn_run_sequence.isEnabled())
         self.assertEqual(self.window.polygon_tools_panel.lbl_polygon.text(), "No polygon ROI on current frame")
         self.assertTrue(self.window.preprocessing_panel.btn_preview.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_apply_all.isEnabled())
@@ -434,6 +435,68 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertIn("pts", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertGreater(len(self.window._edge_preview_dialog.edge_view.viewer._overlay_items), 0)
         self.assertEqual(self.window.statusBar().currentMessage(), "DexiNed preview opened for frame 1.")
+
+    def test_edge_sequence_run_creates_edge_track_for_all_frames(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_sequence.mpp",
+            raw_frames=np.zeros((3, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        sequence.raw_frames[0, 10:22, 8:20] = 0.3
+        sequence.raw_frames[1, 11:23, 9:21] = 0.5
+        sequence.raw_frames[2, 12:24, 10:22] = 0.7
+        self.window.set_sequence(sequence)
+
+        polygon = PolygonROI(np.asarray([[8.0, 10.0], [22.0, 10.0], [24.0, 24.0], [10.0, 26.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(polygon)
+        self.assertTrue(self.window.polygon_tools_panel.btn_run_sequence.isEnabled())
+
+        edge_prob = np.zeros((sequence.frame_count, *sequence.frame_shape), dtype=np.float32)
+        edge_prob[0, 12:15, 8:21] = 0.72
+        edge_prob[1, 13:16, 9:22] = 0.74
+        edge_prob[2, 14:17, 10:23] = 0.76
+        edge_binary = edge_prob >= 0.5
+        run_output = DexiNedRunOutput(
+            edge_prob=edge_prob,
+            edge_binary=edge_binary,
+            model_name="dexined",
+            checkpoint_name="DexiNed_BIPED_10.pth",
+        )
+
+        def fake_run(run_input):
+            time.sleep(0.05)
+            self.assertEqual(run_input.frames.shape, sequence.raw_frames.shape)
+            np.testing.assert_array_equal(run_input.frames, sequence.raw_frames)
+            self.assertEqual(run_input.source_view, "raw")
+            self.assertTrue(np.any(run_input.polygon_mask))
+            return run_output
+
+        with patch.object(self.window._dexined_backend, "run", side_effect=fake_run) as run_mock:
+            self.window.polygon_tools_panel.btn_run_sequence.click()
+            self.assertIsNotNone(self.window._dexined_progress_dialog)
+            self.assertTrue(self.window._dexined_progress_dialog.isVisible())
+            for _ in range(250):
+                self.__class__._app.processEvents()
+                if run_mock.called and self.window.current_edge_tracks():
+                    break
+                time.sleep(0.01)
+
+        run_mock.assert_called_once()
+        edge_tracks = self.window.current_edge_tracks()
+        self.assertEqual(len(edge_tracks), 1)
+        track = edge_tracks[0]
+        self.assertEqual(track.edge_track_id, 1)
+        self.assertEqual(track.seed_frame_index, 0)
+        self.assertEqual(track.label, "Edge 1")
+        self.assertEqual(track.frame_indices, [0, 1, 2])
+        self.assertEqual(self.window.current_selected_edge_track_id(), 1)
+        for frame_index in range(sequence.frame_count):
+            annotation = track.get_annotation(frame_index)
+            self.assertIsNotNone(annotation)
+            self.assertIsNotNone(annotation.edge_mask)
+            self.assertIsNotNone(annotation.polyline)
+            self.assertGreaterEqual(annotation.polyline_point_count, 2)
+        self.assertIn("Edge Track 1", self.window.statusBar().currentMessage())
 
     def test_polygon_roi_state_is_per_frame_and_can_be_replaced_on_current_frame(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))

@@ -20,6 +20,7 @@ class PolygonRoiToolsPanel(QWidget):
     finish_requested = pyqtSignal()
     clear_requested = pyqtSignal()
     preview_requested = pyqtSignal()
+    run_sequence_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -57,6 +58,9 @@ class PolygonRoiToolsPanel(QWidget):
         button_row.addWidget(self.btn_preview)
         group_layout.addLayout(button_row)
 
+        self.btn_run_sequence = QPushButton("Run DexiNed on Sequence", group)
+        group_layout.addWidget(self.btn_run_sequence)
+
         self.lbl_frame = QLabel("Frame: -", group)
         self.lbl_polygon = QLabel("No polygon ROI on current frame", group)
         self.lbl_polygon.setWordWrap(True)
@@ -71,6 +75,7 @@ class PolygonRoiToolsPanel(QWidget):
         self.btn_finish.clicked.connect(self.finish_requested)
         self.btn_clear.clicked.connect(self.clear_requested)
         self.btn_preview.clicked.connect(self.preview_requested)
+        self.btn_run_sequence.clicked.connect(self.run_sequence_requested)
 
     def _update_enabled_state(self) -> None:
         enabled = self._sequence_loaded and not self._processing_busy
@@ -78,6 +83,7 @@ class PolygonRoiToolsPanel(QWidget):
         self.btn_finish.setEnabled(enabled and self._draw_mode_active)
         self.btn_clear.setEnabled(enabled and (self._draw_mode_active or self._has_polygon))
         self.btn_preview.setEnabled(enabled and self._has_polygon and not self._draw_mode_active)
+        self.btn_run_sequence.setEnabled(enabled and self._has_polygon and not self._draw_mode_active)
 
     def set_draw_mode_active(self, active: bool) -> None:
         self._draw_mode_active = bool(active)
