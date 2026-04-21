@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import time
 
 import numpy as np
 from PyQt6.QtCore import QObject, QSignalBlocker, QThread, Qt, pyqtSignal
@@ -42,8 +43,10 @@ from nanotrack.processing import (
     run_horizontal_dropout_batch,
     run_horizontal_dropout_preview,
 )
+from nanotrack.edges import DexiNedRunInput, DexiNedRunOutput, DexiNedSubprocessBackend
+from nanotrack.edges.selection import select_dominant_edge
 from nanotrack.sam2 import Sam2RunInput, Sam2RunOutput, Sam2SubprocessBackend
-from nanotrack.ui.dialogs import Bm3dPreviewDialog, TrackResultsDialog
+from nanotrack.ui.dialogs import Bm3dPreviewDialog, EdgePreviewDialog, TrackResultsDialog
 from nanotrack.ui.widgets import (
     BBoxToolsPanel,
     PolygonRoiToolsPanel,
@@ -52,6 +55,24 @@ from nanotrack.ui.widgets import (
     SequenceViewerWidget,
     TrackListPanel,
 )
+
+
+class _DexiNedRunWorker(QObject):
+    finished = pyqtSignal(object)
+    failed = pyqtSignal(str)
+
+    def __init__(self, backend: DexiNedSubprocessBackend, run_input: DexiNedRunInput):
+        super().__init__()
+        self._backend = backend
+        self._run_input = run_input
+
+    def run(self) -> None:
+        try:
+            output = self._backend.run(self._run_input)
+        except Exception as exc:
+            self.failed.emit(str(exc))
+            return
+        self.finished.emit(output)
 
 
 class _Sam2RunWorker(QObject):
@@ -115,7 +136,14 @@ class NanoTrackMainWindow(QMainWindow):
         self._is_tracking = False
         self._preview_frame_index: int | None = None
         self._bm3d_preview_dialog: Bm3dPreviewDialog | None = None
+        self._edge_preview_dialog: EdgePreviewDialog | None = None
         self._results_dialog: TrackResultsDialog | None = None
+        self._dexined_backend = DexiNedSubprocessBackend()
+        self._dexined_progress_dialog: QProgressDialog | None = None
+        self._dexined_thread: QThread | None = None
+        self._dexined_worker: _DexiNedRunWorker | None = None
+        self._pending_edge_preview_frame: np.ndarray | None = None
+        self._pending_edge_preview_meta: dict[str, object] | None = None
         self._sam2_backend = Sam2SubprocessBackend()
         self._sam2_progress_dialog: QProgressDialog | None = None
         self._sam2_thread: QThread | None = None
@@ -242,6 +270,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.polygon_tools_panel.draw_mode_toggled.connect(self._on_polygon_draw_mode_toggled)
         self.polygon_tools_panel.finish_requested.connect(self._on_finish_polygon_requested)
         self.polygon_tools_panel.clear_requested.connect(self._on_clear_current_polygon_requested)
+        self.polygon_tools_panel.preview_requested.connect(self._on_edge_preview_requested)
         self.track_list_panel.track_selected.connect(self._on_track_selected)
         self.track_list_panel.run_selected_requested.connect(self._on_run_sam2_for_selected_requested)
         self.track_list_panel.run_all_requested.connect(self._on_run_sam2_for_all_requested)
@@ -590,6 +619,7 @@ class NanoTrackMainWindow(QMainWindow):
         if polygon is None:
             self.statusBar().showMessage("Polygon ROI requires at least three vertices before finishing.", 3000)
             return
+        self._set_polygon_draw_mode(False)
         self.statusBar().showMessage(
             f"Saved polygon ROI with {polygon.vertex_count} vertices on frame {self._sequence.active_frame_index + 1}.",
             3000,
@@ -602,6 +632,55 @@ class NanoTrackMainWindow(QMainWindow):
         self.viewer.clear_polygon()
         self.polygon_tools_panel.set_current_polygon(frame_index, None)
         self.statusBar().showMessage(f"Cleared polygon ROI for frame {frame_index + 1}.", 2000)
+
+    def _on_edge_preview_requested(self) -> None:
+        if self._sequence is None or self._is_preprocessing or self._is_tracking:
+            return
+
+        polygon = self.current_draft_polygon_roi()
+        if polygon is None:
+            return
+
+        try:
+            run_input, input_frame, preview_meta = self._build_dexined_preview_input(polygon)
+        except Exception as exc:
+            QMessageBox.critical(self, "DexiNed preview error", str(exc))
+            return
+
+        self._pending_edge_preview_frame = np.asarray(input_frame, dtype=np.float32)
+        self._pending_edge_preview_meta = preview_meta
+        self._set_preprocessing_busy(True)
+        self._dexined_progress_dialog = QProgressDialog(
+            f"Running DexiNed preview for frame {self._sequence.active_frame_index + 1}...",
+            "",
+            0,
+            0,
+            self,
+        )
+        self._dexined_progress_dialog.setWindowTitle("DexiNed Preview")
+        self._dexined_progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self._dexined_progress_dialog.setCancelButton(None)
+        self._dexined_progress_dialog.setMinimumDuration(0)
+        self._dexined_progress_dialog.setAutoClose(False)
+        self._dexined_progress_dialog.setAutoReset(False)
+        self._dexined_progress_dialog.setValue(0)
+        self._dexined_progress_dialog.show()
+        self.statusBar().showMessage(
+            f"Running DexiNed preview for frame {self._sequence.active_frame_index + 1}...",
+            0,
+        )
+        QApplication.processEvents()
+
+        self._dexined_thread = QThread(self)
+        self._dexined_worker = _DexiNedRunWorker(self._dexined_backend, run_input)
+        self._dexined_worker.moveToThread(self._dexined_thread)
+        self._dexined_thread.started.connect(self._dexined_worker.run)
+        self._dexined_worker.finished.connect(self._on_dexined_preview_finished)
+        self._dexined_worker.failed.connect(self._on_dexined_preview_failed)
+        self._dexined_worker.finished.connect(self._dexined_thread.quit)
+        self._dexined_worker.failed.connect(self._dexined_thread.quit)
+        self._dexined_thread.finished.connect(self._cleanup_dexined_worker)
+        self._dexined_thread.start()
 
     def _on_add_seed_requested(self) -> None:
         if self._sequence is None:
@@ -860,6 +939,59 @@ class NanoTrackMainWindow(QMainWindow):
         self._preview_frame_index = current_index
         self.preprocessing_panel.set_preview_status(f"BM3D preview ready for frame {current_index + 1}")
         self.statusBar().showMessage(f"BM3D preview opened for frame {current_index + 1}.", 3000)
+
+    def _on_dexined_preview_finished(self, output: DexiNedRunOutput) -> None:
+        if self._sequence is None or self._pending_edge_preview_frame is None or self._pending_edge_preview_meta is None:
+            self._set_preprocessing_busy(False)
+            self._close_dexined_progress_dialog()
+            return
+
+        current_index = int(self._pending_edge_preview_meta["frame_index"])
+        source_title = str(self._pending_edge_preview_meta["source_title"])
+        source_meta = str(self._pending_edge_preview_meta["source_meta"])
+        source_view = str(self._pending_edge_preview_meta["source_view"])
+        polygon_mask = np.asarray(self._pending_edge_preview_meta["polygon_mask"], dtype=bool)
+        px_x, px_y = self._sequence.metadata.get_pixel_size_nm()
+        edge_frame = np.asarray(output.edge_prob[0], dtype=np.float32)
+        effective_threshold = 0.5
+        if output.edge_binary is not None:
+            edge_binary_frame = np.asarray(output.edge_binary[0], dtype=bool)
+            if np.any(edge_binary_frame & polygon_mask):
+                effective_threshold = float(np.min(edge_frame[edge_binary_frame & polygon_mask]))
+        selection = select_dominant_edge(edge_frame, polygon_mask, threshold=effective_threshold)
+        selected_edge_frame = edge_frame * selection.edge_mask.astype(np.float32, copy=False)
+        max_prob = float(np.max(selected_edge_frame)) if selected_edge_frame.size else 0.0
+
+        dialog = self._ensure_edge_preview_dialog()
+        dialog.set_preview(
+            self._pending_edge_preview_frame,
+            selected_edge_frame,
+            frame_index=current_index,
+            frame_count=self._sequence.frame_count,
+            scale_nm_per_px=(px_x, px_y),
+            window_title="DexiNed Preview",
+            input_title=source_title,
+            input_meta=source_meta,
+            input_overlay_mask=selection.edge_mask,
+            edge_title="Dominant Edge",
+            edge_meta=(
+                f"View: {source_view} | mode {selection.selection_mode} | "
+                f"selected px {selection.pixel_count} | mean p {selection.mean_probability:.3f} | max p {max_prob:.3f}"
+            ),
+        )
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+
+        self.statusBar().showMessage(f"DexiNed preview opened for frame {current_index + 1}.", 3000)
+        self._set_preprocessing_busy(False)
+        self._close_dexined_progress_dialog()
+
+    def _on_dexined_preview_failed(self, error_message: str) -> None:
+        QMessageBox.critical(self, "DexiNed preview error", error_message)
+        self.statusBar().showMessage("DexiNed preview failed.", 3000)
+        self._set_preprocessing_busy(False)
+        self._close_dexined_progress_dialog()
 
     def _on_repair_apply_all_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
@@ -1149,6 +1281,11 @@ class NanoTrackMainWindow(QMainWindow):
             self._bm3d_preview_dialog = Bm3dPreviewDialog(self)
         return self._bm3d_preview_dialog
 
+    def _ensure_edge_preview_dialog(self) -> EdgePreviewDialog:
+        if self._edge_preview_dialog is None:
+            self._edge_preview_dialog = EdgePreviewDialog(self)
+        return self._edge_preview_dialog
+
     def _set_preprocessing_busy(self, busy: bool) -> None:
         self._is_preprocessing = busy
         self._apply_busy_state()
@@ -1182,6 +1319,23 @@ class NanoTrackMainWindow(QMainWindow):
         self._sam2_progress_dialog.close()
         self._sam2_progress_dialog.deleteLater()
         self._sam2_progress_dialog = None
+
+    def _close_dexined_progress_dialog(self) -> None:
+        if self._dexined_progress_dialog is None:
+            return
+        self._dexined_progress_dialog.close()
+        self._dexined_progress_dialog.deleteLater()
+        self._dexined_progress_dialog = None
+
+    def _cleanup_dexined_worker(self) -> None:
+        if self._dexined_worker is not None:
+            self._dexined_worker.deleteLater()
+            self._dexined_worker = None
+        if self._dexined_thread is not None:
+            self._dexined_thread.deleteLater()
+            self._dexined_thread = None
+        self._pending_edge_preview_frame = None
+        self._pending_edge_preview_meta = None
 
     def _cleanup_sam2_worker(self) -> None:
         if self._sam2_worker is not None:
@@ -1282,6 +1436,9 @@ class NanoTrackMainWindow(QMainWindow):
         if close_dialog and self._bm3d_preview_dialog is not None:
             self._bm3d_preview_dialog.close()
             self._bm3d_preview_dialog.clear_preview()
+        if close_dialog and self._edge_preview_dialog is not None:
+            self._edge_preview_dialog.close()
+            self._edge_preview_dialog.clear_preview()
 
         if self._sequence is None:
             self._preview_frame_index = None
@@ -1318,6 +1475,46 @@ class NanoTrackMainWindow(QMainWindow):
         current_polygon = self.current_draft_polygon_roi()
         self.viewer.set_polygon_roi(current_polygon)
         self.polygon_tools_panel.set_current_polygon(self._sequence.active_frame_index, current_polygon)
+
+    def _current_edge_input_frame(self) -> tuple[np.ndarray, str, str, str]:
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
+        if self._denoised_frames is not None:
+            source_view = "repair+bm3d" if self._repair_frames is not None else "bm3d"
+            return self.current_denoised_frame(), "BM3D input", "BM3D cache", source_view
+        if self._repair_frames is not None:
+            return self.current_repaired_frame(), "Repair input", "Horizontal repair cache", "repair"
+        return self._sequence.active_frame, "Raw input", "Raw frame", "raw"
+
+    def _polygon_roi_to_mask(self, polygon: PolygonROI) -> np.ndarray:
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
+        from skimage.draw import polygon2mask
+
+        polygon_vertices_rc = polygon.as_array()[:, [1, 0]]
+        return np.asarray(polygon2mask(self._sequence.frame_shape, polygon_vertices_rc), dtype=bool)
+
+    def _build_dexined_preview_input(
+        self,
+        polygon: PolygonROI,
+    ) -> tuple[DexiNedRunInput, np.ndarray, dict[str, object]]:
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
+        input_frame, source_title, source_meta, source_view = self._current_edge_input_frame()
+        polygon_mask = self._polygon_roi_to_mask(polygon)
+        run_input = DexiNedRunInput(
+            frames=np.asarray(input_frame[None, ...], dtype=np.float32),
+            polygon_mask=polygon_mask,
+            source_view=source_view,
+        )
+        preview_meta = {
+            "frame_index": self._sequence.active_frame_index,
+            "source_title": source_title,
+            "source_meta": source_meta,
+            "source_view": source_view,
+            "polygon_mask": polygon_mask,
+        }
+        return run_input, np.asarray(input_frame, dtype=np.float32), preview_meta
 
     def _sync_seed_track_overlays(self) -> None:
         if self._sequence is None:

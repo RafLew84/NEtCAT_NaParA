@@ -30,6 +30,7 @@ from nanotrack.core import (
     TrackFrameAnnotation,
 )
 from nanotrack.io import load_mpp_sequence
+from nanotrack.edges import DexiNedRunOutput
 from nanotrack.sam2 import Sam2RunOutput
 
 if QApplication is not None:
@@ -54,6 +55,10 @@ class NanoTrackMainWindowTests(unittest.TestCase):
     def tearDown(self) -> None:
         if getattr(self.window, "_bm3d_preview_dialog", None) is not None:
             self.window._bm3d_preview_dialog.close()
+        if getattr(self.window, "_edge_preview_dialog", None) is not None:
+            self.window._edge_preview_dialog.close()
+        if getattr(self.window, "_dexined_progress_dialog", None) is not None:
+            self.window._dexined_progress_dialog.close()
         if getattr(self.window, "_results_dialog", None) is not None:
             self.window._results_dialog.close()
         if getattr(self.window, "_sam2_progress_dialog", None) is not None:
@@ -88,6 +93,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(self.window.polygon_tools_panel.btn_draw.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_finish.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_clear.isEnabled())
+        self.assertFalse(self.window.polygon_tools_panel.btn_preview.isEnabled())
         self.assertEqual(self.window.polygon_tools_panel.lbl_polygon.text(), "No polygon ROI on current frame")
         self.assertTrue(self.window.preprocessing_panel.btn_preview.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_apply_all.isEnabled())
@@ -341,6 +347,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.polygon_tools_panel.btn_draw.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_finish.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_clear.isEnabled())
+        self.assertFalse(self.window.polygon_tools_panel.btn_preview.isEnabled())
         self.assertEqual(self.window.polygon_tools_panel.lbl_polygon.text(), "No sequence loaded")
         self.assertFalse(self.window.preprocessing_panel.btn_preview.isEnabled())
         self.assertFalse(self.window.preprocessing_panel.btn_apply_all.isEnabled())
@@ -369,6 +376,61 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.polygon_tools_panel.lbl_frame.text(), "Frame: 1")
         self.assertIn("Vertices: 3", self.window.polygon_tools_panel.lbl_polygon.text())
         self.assertTrue(self.window.polygon_tools_panel.btn_clear.isEnabled())
+        self.assertTrue(self.window.polygon_tools_panel.btn_preview.isEnabled())
+
+    def test_edge_preview_uses_preprocessed_input_and_opens_dialog(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+
+        polygon = PolygonROI(np.asarray([[10.0, 12.0], [22.0, 14.0], [18.0, 28.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(polygon)
+
+        repaired = np.full_like(sequence.raw_frames, 0.2, dtype=np.float32)
+        denoised = np.full_like(sequence.raw_frames, 0.4, dtype=np.float32)
+        self.window._repair_frames = repaired
+        self.window._denoised_frames = denoised
+        self.window._denoised_sigma_factor = 0.8
+
+        edge_prob = np.zeros((1, *sequence.frame_shape), dtype=np.float32)
+        edge_prob[0, 12:28, 10:22] = 0.75
+        edge_prob[0, 4:7, 4:10] = 0.6
+        edge_binary = edge_prob >= 0.5
+        run_output = DexiNedRunOutput(
+            edge_prob=edge_prob,
+            edge_binary=edge_binary,
+            model_name="dexined",
+            checkpoint_name="DexiNed_BIPED_10.pth",
+        )
+
+        def fake_run(run_input):
+            time.sleep(0.05)
+            np.testing.assert_array_equal(run_input.frames, denoised[[0]])
+            self.assertEqual(run_input.source_view, "repair+bm3d")
+            self.assertEqual(run_input.polygon_mask.shape, sequence.frame_shape)
+            self.assertTrue(np.any(run_input.polygon_mask))
+            return run_output
+
+        with patch.object(self.window._dexined_backend, "run", side_effect=fake_run) as run_mock:
+            self.window.polygon_tools_panel.btn_preview.click()
+            self.assertIsNotNone(self.window._dexined_progress_dialog)
+            self.assertTrue(self.window._dexined_progress_dialog.isVisible())
+            for _ in range(250):
+                self.__class__._app.processEvents()
+                if run_mock.called and self.window._edge_preview_dialog is not None and self.window._edge_preview_dialog.isVisible():
+                    break
+                time.sleep(0.01)
+
+        run_mock.assert_called_once()
+        self.assertIsNotNone(self.window._edge_preview_dialog)
+        self.assertTrue(self.window._edge_preview_dialog.isVisible())
+        self.assertIn("BM3D input | Frame 1/", self.window._edge_preview_dialog.input_view.lbl_title.text())
+        self.assertEqual(self.window._edge_preview_dialog.input_view.lbl_meta.text(), "BM3D cache")
+        self.assertGreater(len(self.window._edge_preview_dialog.input_view.viewer._overlay_items), 0)
+        self.assertIn("Dominant Edge | Frame 1/", self.window._edge_preview_dialog.edge_view.lbl_title.text())
+        self.assertIn("repair+bm3d", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
+        self.assertIn("selected px", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
+        self.assertIn("mode component", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
+        self.assertEqual(self.window.statusBar().currentMessage(), "DexiNed preview opened for frame 1.")
 
     def test_polygon_roi_state_is_per_frame_and_can_be_replaced_on_current_frame(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))

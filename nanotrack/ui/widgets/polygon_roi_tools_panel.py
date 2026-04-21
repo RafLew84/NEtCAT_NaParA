@@ -19,6 +19,7 @@ class PolygonRoiToolsPanel(QWidget):
     draw_mode_toggled = pyqtSignal(bool)
     finish_requested = pyqtSignal()
     clear_requested = pyqtSignal()
+    preview_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -49,9 +50,11 @@ class PolygonRoiToolsPanel(QWidget):
         self.btn_draw.setCheckable(True)
         self.btn_finish = QPushButton("Finish Polygon", group)
         self.btn_clear = QPushButton("Clear Current", group)
+        self.btn_preview = QPushButton("Preview Edge Detection", group)
         button_row.addWidget(self.btn_draw)
         button_row.addWidget(self.btn_finish)
         button_row.addWidget(self.btn_clear)
+        button_row.addWidget(self.btn_preview)
         group_layout.addLayout(button_row)
 
         self.lbl_frame = QLabel("Frame: -", group)
@@ -67,12 +70,14 @@ class PolygonRoiToolsPanel(QWidget):
         self.btn_draw.toggled.connect(self.draw_mode_toggled)
         self.btn_finish.clicked.connect(self.finish_requested)
         self.btn_clear.clicked.connect(self.clear_requested)
+        self.btn_preview.clicked.connect(self.preview_requested)
 
     def _update_enabled_state(self) -> None:
         enabled = self._sequence_loaded and not self._processing_busy
         self.btn_draw.setEnabled(enabled)
         self.btn_finish.setEnabled(enabled and self._draw_mode_active)
         self.btn_clear.setEnabled(enabled and (self._draw_mode_active or self._has_polygon))
+        self.btn_preview.setEnabled(enabled and self._has_polygon and not self._draw_mode_active)
 
     def set_draw_mode_active(self, active: bool) -> None:
         self._draw_mode_active = bool(active)
