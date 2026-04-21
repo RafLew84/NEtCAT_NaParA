@@ -22,6 +22,7 @@ except ImportError:  # pragma: no cover - optional outside the target GUI env
 from nanotrack.core import (
     AnnotationSource,
     BBoxXYXY,
+    EdgeAnnotationSource,
     ParticleMetrics,
     ParticleTrack,
     PolygonROI,
@@ -95,6 +96,9 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.polygon_tools_panel.btn_clear.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_preview.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_run_sequence.isEnabled())
+        self.assertFalse(self.window.polygon_tools_panel.btn_load_edge.isEnabled())
+        self.assertFalse(self.window.polygon_tools_panel.btn_save_edge.isEnabled())
+        self.assertFalse(self.window.polygon_tools_panel.btn_resume_edge.isEnabled())
         self.assertEqual(self.window.polygon_tools_panel.lbl_polygon.text(), "No polygon ROI on current frame")
         self.assertTrue(self.window.preprocessing_panel.btn_preview.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_apply_all.isEnabled())
@@ -502,6 +506,95 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.window.slider_frame.setValue(2)
         self.__class__._app.processEvents()
         self.assertEqual(sequence.active_frame_index, 2)
+        self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
+
+    def test_edge_correction_and_resume_replace_suffix(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_resume.mpp",
+            raw_frames=np.zeros((4, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+
+        polygon = PolygonROI(np.asarray([[6.0, 8.0], [24.0, 8.0], [24.0, 24.0], [8.0, 26.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(polygon)
+
+        initial_edge_prob = np.zeros((sequence.frame_count, *sequence.frame_shape), dtype=np.float32)
+        initial_edge_prob[0, 10:13, 8:20] = 0.70
+        initial_edge_prob[1, 11:14, 9:21] = 0.72
+        initial_edge_prob[2, 12:15, 10:22] = 0.74
+        initial_edge_prob[3, 13:16, 11:23] = 0.76
+        initial_output = DexiNedRunOutput(
+            edge_prob=initial_edge_prob,
+            edge_binary=initial_edge_prob >= 0.5,
+            model_name="dexined",
+            checkpoint_name="DexiNed_BIPED_10.pth",
+        )
+
+        with patch.object(self.window._dexined_backend, "run", return_value=initial_output):
+            self.window.polygon_tools_panel.btn_run_sequence.click()
+            for _ in range(250):
+                self.__class__._app.processEvents()
+                if self.window.current_edge_tracks():
+                    break
+                time.sleep(0.01)
+
+        track = self.window.current_edge_tracks()[0]
+        original_frame3_polyline = np.asarray(track.get_annotation(3).polyline, dtype=np.float64)
+
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+        self.window.polygon_tools_panel.btn_load_edge.click()
+        self.__class__._app.processEvents()
+
+        corrected_polygon = PolygonROI(np.asarray([[7.0, 9.0], [25.0, 9.0], [25.0, 25.0], [9.0, 27.0]], dtype=np.float64))
+        corrected_polyline = np.asarray([[9.0, 12.0], [14.0, 12.5], [19.0, 13.0], [24.0, 13.5]], dtype=np.float64)
+        self.window._draft_polygons_by_frame[1] = corrected_polygon
+        self.window._draft_edge_polylines_by_frame[1] = corrected_polyline
+        self.window.viewer.set_polygon_roi(corrected_polygon)
+        self.window.viewer.set_edge_polyline(corrected_polyline)
+        self.window._sync_current_polygon_ui()
+
+        self.assertTrue(self.window.polygon_tools_panel.btn_save_edge.isEnabled())
+        self.assertTrue(self.window.polygon_tools_panel.btn_resume_edge.isEnabled())
+
+        self.window.polygon_tools_panel.btn_save_edge.click()
+        self.__class__._app.processEvents()
+        self.assertEqual(track.get_annotation(1).source, EdgeAnnotationSource.MANUAL)
+        np.testing.assert_array_equal(track.get_annotation(1).polyline, corrected_polyline)
+        np.testing.assert_array_equal(track.polygon_roi.as_array(), corrected_polygon.as_array())
+        self.assertTrue(self.window.polygon_tools_panel.btn_resume_edge.isEnabled())
+
+        resume_edge_prob = np.zeros((2, *sequence.frame_shape), dtype=np.float32)
+        resume_edge_prob[0, 16:19, 12:24] = 0.81
+        resume_edge_prob[1, 17:20, 13:25] = 0.83
+        resume_output = DexiNedRunOutput(
+            edge_prob=resume_edge_prob,
+            edge_binary=resume_edge_prob >= 0.5,
+            model_name="dexined",
+            checkpoint_name="DexiNed_BIPED_10.pth",
+        )
+
+        def fake_resume(run_input):
+            self.assertEqual(run_input.frames.shape[0], 2)
+            self.assertEqual(run_input.source_view, "raw")
+            self.assertTrue(np.any(run_input.polygon_mask))
+            return resume_output
+
+        with patch.object(self.window._dexined_backend, "run", side_effect=fake_resume) as run_mock:
+            self.window.polygon_tools_panel.btn_resume_edge.click()
+            for _ in range(250):
+                self.__class__._app.processEvents()
+                if run_mock.called and np.any(track.get_annotation(2).edge_mask):
+                    break
+                time.sleep(0.01)
+
+        run_mock.assert_called_once()
+        self.assertEqual(track.get_annotation(1).source, EdgeAnnotationSource.MANUAL)
+        np.testing.assert_array_equal(track.get_annotation(1).polyline, corrected_polyline)
+        self.assertEqual(track.get_annotation(2).source, EdgeAnnotationSource.DEXINED)
+        self.assertEqual(track.get_annotation(3).source, EdgeAnnotationSource.DEXINED)
+        self.assertFalse(np.array_equal(track.get_annotation(3).polyline, original_frame3_polyline))
         self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
 
     def test_polygon_roi_state_is_per_frame_and_can_be_replaced_on_current_frame(self) -> None:

@@ -18,6 +18,7 @@ class SequenceViewerWidget(QWidget):
 
     bbox_changed = pyqtSignal(object)
     polygon_changed = pyqtSignal(object)
+    edge_polyline_changed = pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -34,6 +35,9 @@ class SequenceViewerWidget(QWidget):
         self._polygon_draft_scatter: pg.ScatterPlotItem | None = None
         self._current_polygon: PolygonROI | None = None
         self._suppress_polygon_signal = False
+        self._edge_polyline_roi: pg.PolyLineROI | None = None
+        self._current_edge_polyline: np.ndarray | None = None
+        self._suppress_edge_polyline_signal = False
         self._build()
 
     def _build(self) -> None:
@@ -52,6 +56,7 @@ class SequenceViewerWidget(QWidget):
         self._sequence = None
         self.clear_bbox()
         self.clear_polygon()
+        self.clear_edge_polyline()
         self.clear_track_seed_overlays()
         self.set_bbox_draw_mode(False)
         self.set_polygon_draw_mode(False)
@@ -109,6 +114,9 @@ class SequenceViewerWidget(QWidget):
 
     def current_polygon_roi(self) -> PolygonROI | None:
         return self._current_polygon
+
+    def current_edge_polyline(self) -> np.ndarray | None:
+        return None if self._current_edge_polyline is None else np.asarray(self._current_edge_polyline, dtype=np.float64)
 
     def clear_track_seed_overlays(self) -> None:
         self.viewer.clear_overlay()
@@ -210,6 +218,12 @@ class SequenceViewerWidget(QWidget):
             return
         self.polygon_changed.emit(None)
 
+    def clear_edge_polyline(self) -> None:
+        self._clear_edge_polyline_internal()
+        if self._suppress_edge_polyline_signal:
+            return
+        self.edge_polyline_changed.emit(None)
+
     def set_bbox(self, bbox: BBoxXYXY | None) -> None:
         self._suppress_bbox_signal = True
         try:
@@ -228,6 +242,13 @@ class SequenceViewerWidget(QWidget):
             self._set_polygon_roi_internal(polygon)
         finally:
             self._suppress_polygon_signal = False
+
+    def set_edge_polyline(self, polyline: np.ndarray | None) -> None:
+        self._suppress_edge_polyline_signal = True
+        try:
+            self._set_edge_polyline_internal(polyline)
+        finally:
+            self._suppress_edge_polyline_signal = False
 
     def place_bbox_at_pixel(self, center_x_px: float, center_y_px: float) -> BBoxXYXY | None:
         if self._sequence is None:
@@ -351,6 +372,15 @@ class SequenceViewerWidget(QWidget):
                 pass
             self._polygon_roi = None
 
+    def _clear_edge_polyline_internal(self) -> None:
+        self._current_edge_polyline = None
+        if self._edge_polyline_roi is not None:
+            try:
+                self.viewer.plot_item.removeItem(self._edge_polyline_roi)
+            except Exception:
+                pass
+            self._edge_polyline_roi = None
+
     def _clear_polygon_draft_items(self) -> None:
         for item_name in ("_polygon_draft_curve", "_polygon_draft_scatter"):
             item = getattr(self, item_name)
@@ -402,6 +432,53 @@ class SequenceViewerWidget(QWidget):
         polygon = self._polygon_from_roi()
         self._current_polygon = polygon
         self.polygon_changed.emit(polygon)
+
+    def _set_edge_polyline_internal(self, polyline: np.ndarray | None) -> None:
+        self._clear_edge_polyline_internal()
+        if polyline is None:
+            return
+        polyline_arr = np.asarray(polyline, dtype=np.float64)
+        if polyline_arr.ndim != 2 or polyline_arr.shape[1] != 2 or len(polyline_arr) < 2:
+            raise ValueError("edge polyline must have shape [N, 2] with at least two points.")
+        self._current_edge_polyline = polyline_arr
+        self._ensure_edge_polyline_roi(polyline_arr)
+
+    def _ensure_edge_polyline_roi(self, polyline: np.ndarray) -> None:
+        points_nm = [tuple(point) for point in self._polygon_vertices_px_to_nm(polyline)]
+        self._edge_polyline_roi = pg.PolyLineROI(
+            points_nm,
+            closed=False,
+            movable=False,
+            rotatable=False,
+            resizable=False,
+            pen=pg.mkPen(255, 230, 0, width=2),
+            maxBounds=self._frame_rect_nm(),
+        )
+        self._edge_polyline_roi.sigRegionChanged.connect(self._on_edge_polyline_roi_changed)
+        self.viewer.plot_item.addItem(self._edge_polyline_roi)
+
+    def _on_edge_polyline_roi_changed(self) -> None:
+        if self._edge_polyline_roi is None or self._sequence is None or self._suppress_edge_polyline_signal:
+            return
+        polyline = self._edge_polyline_from_roi()
+        self._current_edge_polyline = polyline
+        self.edge_polyline_changed.emit(polyline)
+
+    def _edge_polyline_from_roi(self) -> np.ndarray:
+        if self._edge_polyline_roi is None or self._sequence is None:
+            raise RuntimeError("Edge polyline ROI is not available.")
+        state = self._edge_polyline_roi.saveState()
+        points_nm = np.asarray(
+            [
+                (
+                    float(point[0] if isinstance(point, (tuple, list)) else point.x()),
+                    float(point[1] if isinstance(point, (tuple, list)) else point.y()),
+                )
+                for point in state["points"]
+            ],
+            dtype=np.float64,
+        )
+        return self._polygon_vertices_nm_to_px(points_nm)
 
     def _polygon_from_roi(self) -> PolygonROI:
         if self._polygon_roi is None or self._sequence is None:

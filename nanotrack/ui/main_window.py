@@ -133,6 +133,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._selected_edge_track_id: int | None = None
         self._draft_bboxes_by_frame: dict[int, BBoxXYXY] = {}
         self._draft_polygons_by_frame: dict[int, PolygonROI] = {}
+        self._draft_edge_polylines_by_frame: dict[int, np.ndarray] = {}
         self._repair_frames: np.ndarray | None = None
         self._repair_params: dict[str, float | int | str] | None = None
         self._denoised_frames: np.ndarray | None = None
@@ -151,6 +152,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._pending_edge_preview_frame: np.ndarray | None = None
         self._pending_edge_preview_meta: dict[str, object] | None = None
         self._pending_edge_sequence_meta: dict[str, object] | None = None
+        self._pending_edge_resume_meta: dict[str, object] | None = None
         self._sam2_backend = Sam2SubprocessBackend()
         self._sam2_progress_dialog: QProgressDialog | None = None
         self._sam2_thread: QThread | None = None
@@ -267,6 +269,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.btn_next.clicked.connect(self._on_next_frame)
         self.viewer.bbox_changed.connect(self._on_viewer_bbox_changed)
         self.viewer.polygon_changed.connect(self._on_viewer_polygon_changed)
+        self.viewer.edge_polyline_changed.connect(self._on_viewer_edge_polyline_changed)
         self.bbox_tools_panel.place_mode_toggled.connect(self._on_bbox_place_mode_toggled)
         self.bbox_tools_panel.default_size_changed.connect(self._on_bbox_default_size_changed)
         self.bbox_tools_panel.add_seed_requested.connect(self._on_add_seed_requested)
@@ -279,6 +282,9 @@ class NanoTrackMainWindow(QMainWindow):
         self.polygon_tools_panel.clear_requested.connect(self._on_clear_current_polygon_requested)
         self.polygon_tools_panel.preview_requested.connect(self._on_edge_preview_requested)
         self.polygon_tools_panel.run_sequence_requested.connect(self._on_edge_sequence_requested)
+        self.polygon_tools_panel.load_edge_requested.connect(self._on_load_current_edge_requested)
+        self.polygon_tools_panel.save_edge_correction_requested.connect(self._on_save_edge_correction_requested)
+        self.polygon_tools_panel.resume_edge_requested.connect(self._on_resume_edge_requested)
         self.track_list_panel.track_selected.connect(self._on_track_selected)
         self.track_list_panel.run_selected_requested.connect(self._on_run_sam2_for_selected_requested)
         self.track_list_panel.run_all_requested.connect(self._on_run_sam2_for_all_requested)
@@ -356,6 +362,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._edge_tracks = []
         self._draft_bboxes_by_frame = {}
         self._draft_polygons_by_frame = {}
+        self._draft_edge_polylines_by_frame = {}
         self._clear_all_preprocessing_cache()
         self._set_bbox_place_mode(False)
         self._set_polygon_draw_mode(False)
@@ -403,6 +410,14 @@ class NanoTrackMainWindow(QMainWindow):
         if self._sequence is None:
             return None
         return self._draft_polygons_by_frame.get(self._sequence.active_frame_index)
+
+    def current_draft_edge_polyline(self) -> np.ndarray | None:
+        if self._sequence is None:
+            return None
+        polyline = self._draft_edge_polylines_by_frame.get(self._sequence.active_frame_index)
+        if polyline is None:
+            return None
+        return np.asarray(polyline, dtype=np.float64)
 
     def set_tracks(self, tracks: list[ParticleTrack], *, selected_track_id: int | None = None) -> None:
         self._tracks = list(tracks)
@@ -617,6 +632,17 @@ class NanoTrackMainWindow(QMainWindow):
         else:
             self._draft_polygons_by_frame[frame_index] = polygon
         self.polygon_tools_panel.set_current_polygon(frame_index, self.current_draft_polygon_roi())
+        self._sync_edge_track_context()
+
+    def _on_viewer_edge_polyline_changed(self, polyline: object) -> None:
+        if self._sequence is None:
+            return
+        frame_index = self._sequence.active_frame_index
+        if polyline is None:
+            self._draft_edge_polylines_by_frame.pop(frame_index, None)
+        else:
+            self._draft_edge_polylines_by_frame[frame_index] = np.asarray(polyline, dtype=np.float64)
+        self._sync_edge_track_context()
 
     def _on_clear_current_bbox_requested(self) -> None:
         if self._sequence is None:
@@ -741,6 +767,142 @@ class NanoTrackMainWindow(QMainWindow):
         self._dexined_thread.started.connect(self._dexined_worker.run)
         self._dexined_worker.finished.connect(self._on_dexined_sequence_finished)
         self._dexined_worker.failed.connect(self._on_dexined_sequence_failed)
+        self._dexined_worker.finished.connect(self._dexined_thread.quit)
+        self._dexined_worker.failed.connect(self._dexined_thread.quit)
+        self._dexined_thread.finished.connect(self._cleanup_dexined_worker)
+        self._dexined_thread.start()
+
+    def _on_load_current_edge_requested(self) -> None:
+        if self._sequence is None:
+            return
+        track = self._find_edge_track_by_id(self._selected_edge_track_id)
+        if track is None:
+            return
+        annotation = track.get_annotation(self._sequence.active_frame_index)
+        if annotation is None or annotation.polyline is None:
+            return
+
+        frame_index = self._sequence.active_frame_index
+        self._draft_polygons_by_frame[frame_index] = track.polygon_roi
+        self._draft_edge_polylines_by_frame[frame_index] = np.asarray(annotation.polyline, dtype=np.float64)
+        self.viewer.set_polygon_roi(track.polygon_roi)
+        self.viewer.set_edge_polyline(annotation.polyline)
+        self.polygon_tools_panel.set_current_polygon(frame_index, track.polygon_roi)
+        self._sync_edge_track_context()
+        self.statusBar().showMessage(
+            f"Loaded {track.label or f'Edge {track.edge_track_id}'} for manual correction on frame {frame_index + 1}.",
+            3000,
+        )
+
+    def _on_save_edge_correction_requested(self) -> None:
+        if self._sequence is None:
+            return
+        track = self._find_edge_track_by_id(self._selected_edge_track_id)
+        if track is None:
+            return
+
+        polygon = self.current_draft_polygon_roi() or track.polygon_roi
+        polyline = self.current_draft_edge_polyline()
+        if polyline is None:
+            return
+
+        frame_index = self._sequence.active_frame_index
+        previous = track.get_annotation(frame_index)
+        edge_mask = None if previous is None else previous.edge_mask
+        track.polygon_roi = polygon
+        if frame_index == track.seed_frame_index:
+            track.seed_polyline = np.asarray(polyline, dtype=np.float64)
+        track.add_annotation(
+            EdgeFrameAnnotation(
+                frame_index=frame_index,
+                polyline=np.asarray(polyline, dtype=np.float64),
+                edge_mask=edge_mask,
+                visibility=FrameVisibility.VISIBLE,
+                source=EdgeAnnotationSource.MANUAL,
+            )
+        )
+        self._show_current_frame(preserve_zoom=True)
+        self._sync_edge_track_context()
+        self.statusBar().showMessage(
+            f"Saved edge correction for {track.label or f'Edge {track.edge_track_id}'} on frame {frame_index + 1}.",
+            3000,
+        )
+
+    def _on_resume_edge_requested(self) -> None:
+        if self._sequence is None or self._is_preprocessing or self._is_tracking:
+            return
+        track = self._find_edge_track_by_id(self._selected_edge_track_id)
+        if track is None:
+            return
+
+        frame_index = self._sequence.active_frame_index
+        polygon = self.current_draft_polygon_roi() or track.polygon_roi
+        polyline = self.current_draft_edge_polyline()
+        if polyline is None:
+            annotation = track.get_annotation(frame_index)
+            if annotation is None or annotation.polyline is None:
+                return
+            polyline = np.asarray(annotation.polyline, dtype=np.float64)
+
+        track.polygon_roi = polygon
+        if frame_index == track.seed_frame_index:
+            track.seed_polyline = np.asarray(polyline, dtype=np.float64)
+        previous = track.get_annotation(frame_index)
+        current_edge_mask = None if previous is None else previous.edge_mask
+        current_annotation = EdgeFrameAnnotation(
+            frame_index=frame_index,
+            polyline=np.asarray(polyline, dtype=np.float64),
+            edge_mask=current_edge_mask,
+            visibility=FrameVisibility.VISIBLE,
+            source=EdgeAnnotationSource.MANUAL,
+        )
+
+        if frame_index >= self._sequence.frame_count - 1:
+            track.drop_annotations_after(frame_index)
+            track.add_annotation(current_annotation)
+            self._show_current_frame(preserve_zoom=True)
+            self.statusBar().showMessage(
+                f"Saved edge correction at final frame for {track.label or f'Edge {track.edge_track_id}'}.",
+                3000,
+            )
+            return
+
+        try:
+            run_input, resume_meta = self._build_dexined_resume_input(track, polygon, current_annotation)
+        except Exception as exc:
+            QMessageBox.critical(self, "DexiNed resume error", str(exc))
+            return
+
+        self._pending_edge_resume_meta = resume_meta
+        self._set_preprocessing_busy(True)
+        remaining = self._sequence.frame_count - frame_index - 1
+        self._dexined_progress_dialog = QProgressDialog(
+            f"Resuming edge tracking for {remaining} frames...",
+            "",
+            0,
+            0,
+            self,
+        )
+        self._dexined_progress_dialog.setWindowTitle("DexiNed Edge Resume")
+        self._dexined_progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self._dexined_progress_dialog.setCancelButton(None)
+        self._dexined_progress_dialog.setMinimumDuration(0)
+        self._dexined_progress_dialog.setAutoClose(False)
+        self._dexined_progress_dialog.setAutoReset(False)
+        self._dexined_progress_dialog.setValue(0)
+        self._dexined_progress_dialog.show()
+        self.statusBar().showMessage(
+            f"Resuming edge tracking for {track.label or f'Edge {track.edge_track_id}'}...",
+            0,
+        )
+        QApplication.processEvents()
+
+        self._dexined_thread = QThread(self)
+        self._dexined_worker = _DexiNedRunWorker(self._dexined_backend, run_input)
+        self._dexined_worker.moveToThread(self._dexined_thread)
+        self._dexined_thread.started.connect(self._dexined_worker.run)
+        self._dexined_worker.finished.connect(self._on_dexined_resume_finished)
+        self._dexined_worker.failed.connect(self._on_dexined_resume_failed)
         self._dexined_worker.finished.connect(self._dexined_thread.quit)
         self._dexined_worker.failed.connect(self._dexined_thread.quit)
         self._dexined_thread.finished.connect(self._cleanup_dexined_worker)
@@ -1075,6 +1237,27 @@ class NanoTrackMainWindow(QMainWindow):
             self._set_preprocessing_busy(False)
             self._close_dexined_progress_dialog()
 
+    def _on_dexined_resume_finished(self, output: DexiNedRunOutput) -> None:
+        if self._sequence is None or self._pending_edge_resume_meta is None:
+            self._set_preprocessing_busy(False)
+            self._close_dexined_progress_dialog()
+            return
+
+        try:
+            self._apply_edge_resume_output(output, self._pending_edge_resume_meta)
+        except Exception as exc:
+            QMessageBox.critical(self, "DexiNed resume error", str(exc))
+            self.statusBar().showMessage("DexiNed edge resume failed.", 3000)
+        else:
+            track_id = int(self._pending_edge_resume_meta["track_id"])
+            self.statusBar().showMessage(
+                f"Resumed edge tracking for Edge Track {track_id} from frame {int(self._pending_edge_resume_meta['resume_from_frame']) + 1}.",
+                4000,
+            )
+        finally:
+            self._set_preprocessing_busy(False)
+            self._close_dexined_progress_dialog()
+
     def _on_dexined_preview_failed(self, error_message: str) -> None:
         QMessageBox.critical(self, "DexiNed preview error", error_message)
         self.statusBar().showMessage("DexiNed preview failed.", 3000)
@@ -1084,6 +1267,12 @@ class NanoTrackMainWindow(QMainWindow):
     def _on_dexined_sequence_failed(self, error_message: str) -> None:
         QMessageBox.critical(self, "DexiNed sequence error", error_message)
         self.statusBar().showMessage("DexiNed sequence failed.", 3000)
+        self._set_preprocessing_busy(False)
+        self._close_dexined_progress_dialog()
+
+    def _on_dexined_resume_failed(self, error_message: str) -> None:
+        QMessageBox.critical(self, "DexiNed resume error", error_message)
+        self.statusBar().showMessage("DexiNed edge resume failed.", 3000)
         self._set_preprocessing_busy(False)
         self._close_dexined_progress_dialog()
 
@@ -1431,6 +1620,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._pending_edge_preview_frame = None
         self._pending_edge_preview_meta = None
         self._pending_edge_sequence_meta = None
+        self._pending_edge_resume_meta = None
 
     def _cleanup_sam2_worker(self) -> None:
         if self._sam2_worker is not None:
@@ -1566,10 +1756,18 @@ class NanoTrackMainWindow(QMainWindow):
         if self._sequence is None:
             self.viewer.set_polygon_roi(None)
             self.polygon_tools_panel.set_current_polygon(None, None)
+            self.viewer.set_edge_polyline(None)
+            self.polygon_tools_panel.set_edge_track_context(
+                None,
+                has_polyline_on_current_frame=False,
+                has_editable_polyline=False,
+            )
             return
         current_polygon = self.current_draft_polygon_roi()
         self.viewer.set_polygon_roi(current_polygon)
         self.polygon_tools_panel.set_current_polygon(self._sequence.active_frame_index, current_polygon)
+        self.viewer.set_edge_polyline(self.current_draft_edge_polyline())
+        self._sync_edge_track_context()
 
     def _current_edge_input_frames(self) -> tuple[np.ndarray, str, str, str]:
         if self._sequence is None:
@@ -1738,6 +1936,14 @@ class NanoTrackMainWindow(QMainWindow):
                 return track
         return None
 
+    def _find_edge_track_by_id(self, edge_track_id: int | None) -> EdgeTrack | None:
+        if edge_track_id is None:
+            return None
+        for track in self._edge_tracks:
+            if track.edge_track_id == edge_track_id:
+                return track
+        return None
+
     def _next_track_id(self) -> int:
         if not self._tracks:
             return 1
@@ -1747,6 +1953,104 @@ class NanoTrackMainWindow(QMainWindow):
         if not self._edge_tracks:
             return 1
         return max(track.edge_track_id for track in self._edge_tracks) + 1
+
+    def _sync_edge_track_context(self) -> None:
+        if self._sequence is None:
+            self.polygon_tools_panel.set_edge_track_context(
+                None,
+                has_polyline_on_current_frame=False,
+                has_editable_polyline=False,
+            )
+            return
+
+        track = self._find_edge_track_by_id(self._selected_edge_track_id)
+        if track is None:
+            self.polygon_tools_panel.set_edge_track_context(
+                None,
+                has_polyline_on_current_frame=False,
+                has_editable_polyline=self.current_draft_edge_polyline() is not None,
+            )
+            return
+
+        annotation = track.get_annotation(self._sequence.active_frame_index)
+        edge_label = track.label or f"Edge {track.edge_track_id}"
+        self.polygon_tools_panel.set_edge_track_context(
+            edge_label,
+            has_polyline_on_current_frame=annotation is not None and annotation.polyline is not None,
+            has_editable_polyline=self.current_draft_edge_polyline() is not None,
+        )
+
+    def _build_dexined_resume_input(
+        self,
+        track: EdgeTrack,
+        polygon: PolygonROI,
+        current_annotation: EdgeFrameAnnotation,
+    ) -> tuple[DexiNedRunInput, dict[str, object]]:
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
+        resume_from_frame = self._sequence.active_frame_index
+        input_frames, _source_title, _source_meta, source_view = self._current_edge_input_frames()
+        suffix_frames = np.asarray(input_frames[resume_from_frame + 1 :], dtype=np.float32)
+        polygon_mask = self._polygon_roi_to_mask(polygon)
+        run_input = DexiNedRunInput(
+            frames=suffix_frames,
+            polygon_mask=polygon_mask,
+            source_view=source_view,
+        )
+        resume_meta = {
+            "track_id": track.edge_track_id,
+            "resume_from_frame": resume_from_frame,
+            "polygon": polygon,
+            "polygon_mask": polygon_mask,
+            "current_annotation": current_annotation,
+        }
+        return run_input, resume_meta
+
+    def _apply_edge_resume_output(self, output: DexiNedRunOutput, resume_meta: dict[str, object]) -> None:
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
+        track = self._find_edge_track_by_id(int(resume_meta["track_id"]))
+        if track is None:
+            raise RuntimeError("Selected edge track is no longer available.")
+
+        resume_from_frame = int(resume_meta["resume_from_frame"])
+        polygon = resume_meta["polygon"]
+        polygon_mask = np.asarray(resume_meta["polygon_mask"], dtype=bool)
+        current_annotation = resume_meta["current_annotation"]
+        expected_suffix_length = self._sequence.frame_count - resume_from_frame - 1
+
+        track.polygon_roi = polygon
+        if resume_from_frame == track.seed_frame_index:
+            track.seed_polyline = np.asarray(current_annotation.polyline, dtype=np.float64)
+
+        track.drop_annotations_after(resume_from_frame)
+        track.add_annotation(current_annotation)
+
+        edge_prob = np.asarray(output.edge_prob, dtype=np.float32)
+        if edge_prob.shape[0] != expected_suffix_length:
+            raise ValueError("DexiNed resume output length must match the remaining frame count.")
+        for local_index in range(edge_prob.shape[0]):
+            frame_index = resume_from_frame + 1 + local_index
+            edge_frame = np.asarray(edge_prob[local_index], dtype=np.float32)
+            edge_binary_frame = None
+            if output.edge_binary is not None:
+                edge_binary_frame = np.asarray(output.edge_binary[local_index], dtype=bool)
+            selection, _selected_edge_frame, polyline, _max_prob = self._extract_dominant_edge_geometry(
+                edge_frame,
+                polygon_mask,
+                edge_binary_frame=edge_binary_frame,
+            )
+            track.add_annotation(
+                EdgeFrameAnnotation(
+                    frame_index=frame_index,
+                    polyline=polyline.polyline_xy,
+                    edge_mask=selection.edge_mask,
+                    visibility=FrameVisibility.VISIBLE,
+                    source=EdgeAnnotationSource.DEXINED,
+                )
+            )
+
+        self._show_current_frame(preserve_zoom=True)
 
     def _sync_bbox_track_context(self) -> None:
         if self._sequence is None:

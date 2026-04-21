@@ -21,6 +21,9 @@ class PolygonRoiToolsPanel(QWidget):
     clear_requested = pyqtSignal()
     preview_requested = pyqtSignal()
     run_sequence_requested = pyqtSignal()
+    load_edge_requested = pyqtSignal()
+    save_edge_correction_requested = pyqtSignal()
+    resume_edge_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -28,6 +31,9 @@ class PolygonRoiToolsPanel(QWidget):
         self._processing_busy = False
         self._draw_mode_active = False
         self._has_polygon = False
+        self._has_active_edge = False
+        self._has_edge_polyline_on_frame = False
+        self._has_editable_edge = False
         self._build()
         self._connect_signals()
         self._update_enabled_state()
@@ -61,11 +67,22 @@ class PolygonRoiToolsPanel(QWidget):
         self.btn_run_sequence = QPushButton("Run DexiNed on Sequence", group)
         group_layout.addWidget(self.btn_run_sequence)
 
+        edge_row = QHBoxLayout()
+        self.btn_load_edge = QPushButton("Load Current Edge", group)
+        self.btn_save_edge = QPushButton("Save Edge Correction", group)
+        self.btn_resume_edge = QPushButton("Resume Edge Tracking", group)
+        edge_row.addWidget(self.btn_load_edge)
+        edge_row.addWidget(self.btn_save_edge)
+        edge_row.addWidget(self.btn_resume_edge)
+        group_layout.addLayout(edge_row)
+
         self.lbl_frame = QLabel("Frame: -", group)
         self.lbl_polygon = QLabel("No polygon ROI on current frame", group)
+        self.lbl_edge = QLabel("Active edge track: -", group)
         self.lbl_polygon.setWordWrap(True)
         group_layout.addWidget(self.lbl_frame)
         group_layout.addWidget(self.lbl_polygon)
+        group_layout.addWidget(self.lbl_edge)
 
         layout.addWidget(group)
         layout.addStretch(0)
@@ -76,6 +93,9 @@ class PolygonRoiToolsPanel(QWidget):
         self.btn_clear.clicked.connect(self.clear_requested)
         self.btn_preview.clicked.connect(self.preview_requested)
         self.btn_run_sequence.clicked.connect(self.run_sequence_requested)
+        self.btn_load_edge.clicked.connect(self.load_edge_requested)
+        self.btn_save_edge.clicked.connect(self.save_edge_correction_requested)
+        self.btn_resume_edge.clicked.connect(self.resume_edge_requested)
 
     def _update_enabled_state(self) -> None:
         enabled = self._sequence_loaded and not self._processing_busy
@@ -84,6 +104,14 @@ class PolygonRoiToolsPanel(QWidget):
         self.btn_clear.setEnabled(enabled and (self._draw_mode_active or self._has_polygon))
         self.btn_preview.setEnabled(enabled and self._has_polygon and not self._draw_mode_active)
         self.btn_run_sequence.setEnabled(enabled and self._has_polygon and not self._draw_mode_active)
+        self.btn_load_edge.setEnabled(enabled and self._has_active_edge and self._has_edge_polyline_on_frame)
+        self.btn_save_edge.setEnabled(enabled and self._has_active_edge and self._has_polygon and self._has_editable_edge)
+        self.btn_resume_edge.setEnabled(
+            enabled
+            and self._has_active_edge
+            and self._has_polygon
+            and (self._has_editable_edge or self._has_edge_polyline_on_frame)
+        )
 
     def set_draw_mode_active(self, active: bool) -> None:
         self._draw_mode_active = bool(active)
@@ -124,18 +152,48 @@ class PolygonRoiToolsPanel(QWidget):
         self.set_draw_mode_active(False)
         self.lbl_frame.setText("Frame: -")
         self.lbl_polygon.setText("No sequence loaded")
+        self.lbl_edge.setText("Active edge track: -")
         self._has_polygon = False
+        self._has_active_edge = False
+        self._has_edge_polyline_on_frame = False
+        self._has_editable_edge = False
         self._update_enabled_state()
 
     def set_sequence_loaded(self, loaded: bool) -> None:
+        was_loaded = self._sequence_loaded
         self._sequence_loaded = bool(loaded)
         if not self._sequence_loaded:
             self.clear()
-        else:
+        elif not was_loaded:
             self.lbl_polygon.setText("No polygon ROI on current frame")
+            self.lbl_edge.setText("Active edge track: -")
             self._has_polygon = False
+            self._has_active_edge = False
+            self._has_edge_polyline_on_frame = False
+            self._has_editable_edge = False
         self._update_enabled_state()
 
     def set_processing(self, busy: bool) -> None:
         self._processing_busy = bool(busy)
+        self._update_enabled_state()
+
+    def set_edge_track_context(
+        self,
+        edge_label: str | None,
+        *,
+        has_polyline_on_current_frame: bool,
+        has_editable_polyline: bool,
+    ) -> None:
+        if edge_label is None:
+            self.lbl_edge.setText("Active edge track: -")
+            self._has_active_edge = False
+            self._has_edge_polyline_on_frame = False
+            self._has_editable_edge = False
+            self._update_enabled_state()
+            return
+
+        self.lbl_edge.setText(f"Active edge track: {edge_label}")
+        self._has_active_edge = True
+        self._has_edge_polyline_on_frame = bool(has_polyline_on_current_frame)
+        self._has_editable_edge = bool(has_editable_polyline)
         self._update_enabled_state()
