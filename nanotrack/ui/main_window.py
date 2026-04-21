@@ -342,7 +342,7 @@ class NanoTrackMainWindow(QMainWindow):
         )
         self._sync_current_bbox_ui()
         self._sync_current_polygon_ui()
-        self._sync_seed_track_overlays()
+        self._sync_track_overlays()
         self._sync_navigation_controls()
         self.statusBar().showMessage(
             f"{Path(self._sequence.source_path).name} | frame {self._sequence.active_frame_index + 1}/{self._sequence.frame_count}",
@@ -414,7 +414,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.track_list_panel.set_tracks(self._tracks, selected_track_id=self._selected_track_id)
         self._update_results_action_state()
         self._sync_results_dialog()
-        self._sync_seed_track_overlays()
+        self._sync_track_overlays()
         self._sync_bbox_track_context()
 
     def current_tracks(self) -> list[ParticleTrack]:
@@ -899,7 +899,7 @@ class NanoTrackMainWindow(QMainWindow):
         if track is not None and self._sequence is not None and track.seed_frame_index != self._sequence.active_frame_index:
             self._set_active_frame(track.seed_frame_index)
             return
-        self._sync_seed_track_overlays()
+        self._sync_track_overlays()
         self._sync_bbox_track_context()
         if track is not None:
             self.statusBar().showMessage(
@@ -1066,6 +1066,7 @@ class NanoTrackMainWindow(QMainWindow):
         else:
             self._edge_tracks.append(track)
             self._selected_edge_track_id = track.edge_track_id
+            self._show_current_frame(preserve_zoom=True)
             self.statusBar().showMessage(
                 f"DexiNed sequence finished: Edge Track {track.edge_track_id} with {len(track.annotations)} frames.",
                 4000,
@@ -1718,11 +1719,16 @@ class NanoTrackMainWindow(QMainWindow):
             label=f"Edge {edge_track_id}",
         )
 
-    def _sync_seed_track_overlays(self) -> None:
+    def _sync_track_overlays(self) -> None:
         if self._sequence is None:
             self.viewer.clear_track_seed_overlays()
             return
-        self.viewer.set_seed_tracks(self._tracks, selected_track_id=self._selected_track_id)
+        self.viewer.set_tracks_and_edges(
+            self._tracks,
+            selected_track_id=self._selected_track_id,
+            edge_tracks=self._edge_tracks,
+            selected_edge_track_id=self._selected_edge_track_id,
+        )
 
     def _find_track_by_id(self, track_id: int | None) -> ParticleTrack | None:
         if track_id is None:

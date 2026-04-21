@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 import numpy as np
 from skimage import measure
 
-from nanotrack.core import BBoxXYXY, FrameVisibility, ParticleTrack, PolygonROI, STMSequence
+from nanotrack.core import BBoxXYXY, EdgeTrack, FrameVisibility, ParticleTrack, PolygonROI, STMSequence
 from napara.gui.widgets.viewer_widget import ViewerWidget
 
 
@@ -113,7 +113,14 @@ class SequenceViewerWidget(QWidget):
     def clear_track_seed_overlays(self) -> None:
         self.viewer.clear_overlay()
 
-    def set_seed_tracks(self, tracks: list[ParticleTrack], *, selected_track_id: int | None = None) -> None:
+    def set_tracks_and_edges(
+        self,
+        tracks: list[ParticleTrack],
+        *,
+        selected_track_id: int | None = None,
+        edge_tracks: list[EdgeTrack] | None = None,
+        selected_edge_track_id: int | None = None,
+    ) -> None:
         self.clear_track_seed_overlays()
         if self._sequence is None:
             return
@@ -152,6 +159,30 @@ class SequenceViewerWidget(QWidget):
             highlight = track.track_id == selected_track_id
             for item in overlay_items:
                 self.viewer.set_item_highlight(item, highlight)
+            self.viewer.set_item_highlight(text, highlight)
+
+        for edge_track in edge_tracks or []:
+            annotation = edge_track.get_annotation(current_frame)
+            if (
+                annotation is None
+                or annotation.visibility != FrameVisibility.VISIBLE
+                or annotation.polyline is None
+            ):
+                continue
+
+            polyline_item = self.viewer.add_polyline_nm(
+                self._polyline_nm(annotation.polyline),
+                color=(0, 220, 255),
+                width=2.4,
+            )
+            label_txt = edge_track.label or f"E{edge_track.edge_track_id}"
+            text = self.viewer.add_text_nm(
+                label_txt,
+                self._polyline_label_position_nm(annotation.polyline),
+                color=(0, 220, 255),
+            )
+            highlight = edge_track.edge_track_id == selected_edge_track_id
+            self.viewer.set_item_highlight(polyline_item, highlight)
             self.viewer.set_item_highlight(text, highlight)
 
     def set_bbox_draw_mode(self, enabled: bool) -> None:
@@ -432,6 +463,11 @@ class SequenceViewerWidget(QWidget):
             dtype=np.float64,
         )
 
+    def _polyline_nm(self, polyline_px: np.ndarray) -> np.ndarray:
+        sx, sy = self._pixel_scale()
+        polyline_px = np.asarray(polyline_px, dtype=np.float64)
+        return np.column_stack((polyline_px[:, 0] * sx, polyline_px[:, 1] * sy)).astype(np.float64, copy=False)
+
     def _bbox_center_nm(self, bbox: BBoxXYXY) -> tuple[float, float]:
         sx, sy = self._pixel_scale()
         cx, cy = bbox.center_xy
@@ -444,6 +480,12 @@ class SequenceViewerWidget(QWidget):
         ys, xs = np.nonzero(annotation.mask)
         sx, sy = self._pixel_scale()
         return float(xs.mean()) * sx, float(ys.mean()) * sy
+
+    def _polyline_label_position_nm(self, polyline_px: np.ndarray) -> tuple[float, float]:
+        polyline_px = np.asarray(polyline_px, dtype=np.float64)
+        sx, sy = self._pixel_scale()
+        center = np.mean(polyline_px, axis=0)
+        return float(center[0]) * sx, float(center[1]) * sy
 
     def _mask_contours_nm(self, mask: np.ndarray) -> list[np.ndarray]:
         sx, sy = self._pixel_scale()

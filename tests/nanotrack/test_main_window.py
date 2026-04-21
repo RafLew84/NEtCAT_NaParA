@@ -496,7 +496,13 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             self.assertIsNotNone(annotation.edge_mask)
             self.assertIsNotNone(annotation.polyline)
             self.assertGreaterEqual(annotation.polyline_point_count, 2)
+        self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
         self.assertIn("Edge Track 1", self.window.statusBar().currentMessage())
+
+        self.window.slider_frame.setValue(2)
+        self.__class__._app.processEvents()
+        self.assertEqual(sequence.active_frame_index, 2)
+        self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
 
     def test_polygon_roi_state_is_per_frame_and_can_be_replaced_on_current_frame(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
