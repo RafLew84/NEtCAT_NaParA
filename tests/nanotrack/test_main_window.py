@@ -24,6 +24,7 @@ from nanotrack.core import (
     BBoxXYXY,
     ParticleMetrics,
     ParticleTrack,
+    PolygonROI,
     STMSequence,
     STMSequenceMetadata,
     TrackFrameAnnotation,
@@ -84,6 +85,10 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.bbox_tools_panel.btn_save_correction.isEnabled())
         self.assertFalse(self.window.bbox_tools_panel.btn_resume_track.isEnabled())
         self.assertEqual(self.window.bbox_tools_panel.lbl_bbox.text(), "No bbox on current frame")
+        self.assertTrue(self.window.polygon_tools_panel.btn_draw.isEnabled())
+        self.assertFalse(self.window.polygon_tools_panel.btn_finish.isEnabled())
+        self.assertFalse(self.window.polygon_tools_panel.btn_clear.isEnabled())
+        self.assertEqual(self.window.polygon_tools_panel.lbl_polygon.text(), "No polygon ROI on current frame")
         self.assertTrue(self.window.preprocessing_panel.btn_preview.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_apply_all.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_repair_preview.isEnabled())
@@ -333,11 +338,65 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.bbox_tools_panel.btn_add_seed.isEnabled())
         self.assertFalse(self.window.bbox_tools_panel.btn_clear.isEnabled())
         self.assertEqual(self.window.bbox_tools_panel.lbl_bbox.text(), "No sequence loaded")
+        self.assertFalse(self.window.polygon_tools_panel.btn_draw.isEnabled())
+        self.assertFalse(self.window.polygon_tools_panel.btn_finish.isEnabled())
+        self.assertFalse(self.window.polygon_tools_panel.btn_clear.isEnabled())
+        self.assertEqual(self.window.polygon_tools_panel.lbl_polygon.text(), "No sequence loaded")
         self.assertFalse(self.window.preprocessing_panel.btn_preview.isEnabled())
         self.assertFalse(self.window.preprocessing_panel.btn_apply_all.isEnabled())
         self.assertFalse(self.window.preprocessing_panel.btn_repair_preview.isEnabled())
         self.assertFalse(self.window.preprocessing_panel.btn_repair_apply_all.isEnabled())
         self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "No sequence loaded")
+
+    def test_polygon_roi_can_be_finished_and_updates_panel(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+
+        self.window.polygon_tools_panel.btn_draw.setChecked(True)
+        self.window.viewer.place_polygon_vertex_at_pixel(10.0, 12.0)
+        self.window.viewer.place_polygon_vertex_at_pixel(22.0, 14.0)
+        self.window.viewer.place_polygon_vertex_at_pixel(18.0, 28.0)
+        self.window.polygon_tools_panel.btn_finish.click()
+
+        polygon = self.window.current_draft_polygon_roi()
+        self.assertIsNotNone(polygon)
+        np.testing.assert_array_equal(
+            polygon.as_array(),
+            np.asarray([[10.0, 12.0], [22.0, 14.0], [18.0, 28.0]], dtype=np.float64),
+        )
+        self.assertIsNotNone(self.window.viewer.current_polygon_roi())
+        self.assertIsNotNone(self.window.viewer._polygon_roi)
+        self.assertEqual(self.window.polygon_tools_panel.lbl_frame.text(), "Frame: 1")
+        self.assertIn("Vertices: 3", self.window.polygon_tools_panel.lbl_polygon.text())
+        self.assertTrue(self.window.polygon_tools_panel.btn_clear.isEnabled())
+
+    def test_polygon_roi_state_is_per_frame_and_can_be_replaced_on_current_frame(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+
+        frame0_polygon = PolygonROI(np.asarray([[8.0, 8.0], [24.0, 10.0], [18.0, 26.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(frame0_polygon)
+        self.assertIsNotNone(self.window.current_draft_polygon_roi())
+
+        self.window.slider_frame.setValue(1)
+        self.assertIsNone(self.window.current_draft_polygon_roi())
+        self.assertIsNone(self.window.viewer.current_polygon_roi())
+        self.assertEqual(self.window.polygon_tools_panel.lbl_polygon.text(), "No polygon ROI on current frame")
+
+        frame1_polygon = PolygonROI(np.asarray([[12.0, 14.0], [28.0, 16.0], [26.0, 30.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(frame1_polygon)
+        np.testing.assert_array_equal(self.window.current_draft_polygon_roi().as_array(), frame1_polygon.as_array())
+
+        self.window.slider_frame.setValue(0)
+        np.testing.assert_array_equal(self.window.current_draft_polygon_roi().as_array(), frame0_polygon.as_array())
+        np.testing.assert_array_equal(self.window.viewer.current_polygon_roi().as_array(), frame0_polygon.as_array())
+
+        replacement_polygon = PolygonROI(np.asarray([[9.0, 9.0], [26.0, 11.0], [20.0, 29.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(replacement_polygon)
+
+        np.testing.assert_array_equal(self.window.current_draft_polygon_roi().as_array(), replacement_polygon.as_array())
+        np.testing.assert_array_equal(self.window.viewer.current_polygon_roi().as_array(), replacement_polygon.as_array())
+        self.assertIn("Vertices: 3", self.window.polygon_tools_panel.lbl_polygon.text())
 
     def test_bbox_placement_uses_default_size_and_updates_panel(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))

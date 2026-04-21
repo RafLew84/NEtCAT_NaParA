@@ -30,6 +30,7 @@ from nanotrack.core import (
     FrameVisibility,
     ParticleMetrics,
     ParticleTrack,
+    PolygonROI,
     STMSequence,
     TrackFrameAnnotation,
 )
@@ -45,6 +46,7 @@ from nanotrack.sam2 import Sam2RunInput, Sam2RunOutput, Sam2SubprocessBackend
 from nanotrack.ui.dialogs import Bm3dPreviewDialog, TrackResultsDialog
 from nanotrack.ui.widgets import (
     BBoxToolsPanel,
+    PolygonRoiToolsPanel,
     PreprocessingActionsPanel,
     SequenceMetadataPanel,
     SequenceViewerWidget,
@@ -103,6 +105,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._tracks: list[ParticleTrack] = []
         self._selected_track_id: int | None = None
         self._draft_bboxes_by_frame: dict[int, BBoxXYXY] = {}
+        self._draft_polygons_by_frame: dict[int, PolygonROI] = {}
         self._repair_frames: np.ndarray | None = None
         self._repair_params: dict[str, float | int | str] | None = None
         self._denoised_frames: np.ndarray | None = None
@@ -194,10 +197,12 @@ class NanoTrackMainWindow(QMainWindow):
         self.metadata_panel = SequenceMetadataPanel(self.sidebar_content)
         self.track_list_panel = TrackListPanel(self.sidebar_content)
         self.bbox_tools_panel = BBoxToolsPanel(self.sidebar_content)
+        self.polygon_tools_panel = PolygonRoiToolsPanel(self.sidebar_content)
         self.preprocessing_panel = PreprocessingActionsPanel(self.sidebar_content)
         sidebar_layout.addWidget(self.metadata_panel, 0)
         sidebar_layout.addWidget(self.track_list_panel, 1)
         sidebar_layout.addWidget(self.bbox_tools_panel, 0)
+        sidebar_layout.addWidget(self.polygon_tools_panel, 0)
         sidebar_layout.addWidget(self.preprocessing_panel, 0)
         sidebar_layout.addStretch(0)
 
@@ -226,6 +231,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.btn_prev.clicked.connect(self._on_prev_frame)
         self.btn_next.clicked.connect(self._on_next_frame)
         self.viewer.bbox_changed.connect(self._on_viewer_bbox_changed)
+        self.viewer.polygon_changed.connect(self._on_viewer_polygon_changed)
         self.bbox_tools_panel.place_mode_toggled.connect(self._on_bbox_place_mode_toggled)
         self.bbox_tools_panel.default_size_changed.connect(self._on_bbox_default_size_changed)
         self.bbox_tools_panel.add_seed_requested.connect(self._on_add_seed_requested)
@@ -233,6 +239,9 @@ class NanoTrackMainWindow(QMainWindow):
         self.bbox_tools_panel.load_track_bbox_requested.connect(self._on_load_track_bbox_requested)
         self.bbox_tools_panel.save_correction_requested.connect(self._on_save_correction_requested)
         self.bbox_tools_panel.resume_track_requested.connect(self._on_resume_track_requested)
+        self.polygon_tools_panel.draw_mode_toggled.connect(self._on_polygon_draw_mode_toggled)
+        self.polygon_tools_panel.finish_requested.connect(self._on_finish_polygon_requested)
+        self.polygon_tools_panel.clear_requested.connect(self._on_clear_current_polygon_requested)
         self.track_list_panel.track_selected.connect(self._on_track_selected)
         self.track_list_panel.run_selected_requested.connect(self._on_run_sam2_for_selected_requested)
         self.track_list_panel.run_all_requested.connect(self._on_run_sam2_for_all_requested)
@@ -249,6 +258,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.btn_prev.setEnabled(enabled)
         self.btn_next.setEnabled(enabled)
         self.bbox_tools_panel.set_sequence_loaded(enabled)
+        self.polygon_tools_panel.set_sequence_loaded(enabled)
         self.preprocessing_panel.set_sequence_loaded(enabled)
 
     def _sync_navigation_controls(self) -> None:
@@ -294,6 +304,7 @@ class NanoTrackMainWindow(QMainWindow):
             view_label=view_label,
         )
         self._sync_current_bbox_ui()
+        self._sync_current_polygon_ui()
         self._sync_seed_track_overlays()
         self._sync_navigation_controls()
         self.statusBar().showMessage(
@@ -305,12 +316,15 @@ class NanoTrackMainWindow(QMainWindow):
         self._sequence = sequence
         self._selected_track_id = None
         self._draft_bboxes_by_frame = {}
+        self._draft_polygons_by_frame = {}
         self._clear_all_preprocessing_cache()
         self._set_bbox_place_mode(False)
+        self._set_polygon_draw_mode(False)
         self.viewer.set_sequence(sequence)
         self._reset_preview_state(close_dialog=True)
         self._sync_navigation_controls()
         self._sync_current_bbox_ui()
+        self._sync_current_polygon_ui()
         self._update_menu_action_state()
         self.statusBar().showMessage(
             f"{Path(sequence.source_path).name} | frame {sequence.active_frame_index + 1}/{sequence.frame_count}",
@@ -345,6 +359,11 @@ class NanoTrackMainWindow(QMainWindow):
         if self._sequence is None:
             return None
         return self._draft_bboxes_by_frame.get(self._sequence.active_frame_index)
+
+    def current_draft_polygon_roi(self) -> PolygonROI | None:
+        if self._sequence is None:
+            return None
+        return self._draft_polygons_by_frame.get(self._sequence.active_frame_index)
 
     def set_tracks(self, tracks: list[ParticleTrack], *, selected_track_id: int | None = None) -> None:
         self._tracks = list(tracks)
@@ -512,11 +531,24 @@ class NanoTrackMainWindow(QMainWindow):
         self._set_active_frame(min(self._sequence.frame_count - 1, self._sequence.active_frame_index + 1))
 
     def _on_bbox_place_mode_toggled(self, checked: bool) -> None:
-        self.viewer.set_bbox_draw_mode(checked)
+        self._set_bbox_place_mode(checked)
+        if checked:
+            self._set_polygon_draw_mode(False)
         if checked:
             self.statusBar().showMessage("BBox placement active: click the image to place a bbox.", 3000)
             return
         self.statusBar().showMessage("BBox placement disabled.", 2000)
+
+    def _on_polygon_draw_mode_toggled(self, checked: bool) -> None:
+        self._set_polygon_draw_mode(checked)
+        if checked:
+            self._set_bbox_place_mode(False)
+            self.statusBar().showMessage(
+                "Polygon ROI placement active: click successive vertices, then finish the polygon.",
+                3000,
+            )
+            return
+        self.statusBar().showMessage("Polygon ROI placement disabled.", 2000)
 
     def _on_bbox_default_size_changed(self, width_px: int, height_px: int) -> None:
         self.viewer.set_default_bbox_size_px(width_px, height_px)
@@ -531,6 +563,16 @@ class NanoTrackMainWindow(QMainWindow):
             self._draft_bboxes_by_frame[frame_index] = bbox
         self.bbox_tools_panel.set_current_bbox(frame_index, self.current_draft_bbox())
 
+    def _on_viewer_polygon_changed(self, polygon: object) -> None:
+        if self._sequence is None:
+            return
+        frame_index = self._sequence.active_frame_index
+        if polygon is None:
+            self._draft_polygons_by_frame.pop(frame_index, None)
+        else:
+            self._draft_polygons_by_frame[frame_index] = polygon
+        self.polygon_tools_panel.set_current_polygon(frame_index, self.current_draft_polygon_roi())
+
     def _on_clear_current_bbox_requested(self) -> None:
         if self._sequence is None:
             return
@@ -540,6 +582,26 @@ class NanoTrackMainWindow(QMainWindow):
         self.bbox_tools_panel.set_current_bbox(frame_index, None)
         self.statusBar().showMessage(f"Cleared bbox for frame {frame_index + 1}.", 2000)
         self._sync_bbox_track_context()
+
+    def _on_finish_polygon_requested(self) -> None:
+        if self._sequence is None:
+            return
+        polygon = self.viewer.finish_polygon_drawing()
+        if polygon is None:
+            self.statusBar().showMessage("Polygon ROI requires at least three vertices before finishing.", 3000)
+            return
+        self.statusBar().showMessage(
+            f"Saved polygon ROI with {polygon.vertex_count} vertices on frame {self._sequence.active_frame_index + 1}.",
+            3000,
+        )
+
+    def _on_clear_current_polygon_requested(self) -> None:
+        if self._sequence is None:
+            return
+        frame_index = self._sequence.active_frame_index
+        self.viewer.clear_polygon()
+        self.polygon_tools_panel.set_current_polygon(frame_index, None)
+        self.statusBar().showMessage(f"Cleared polygon ROI for frame {frame_index + 1}.", 2000)
 
     def _on_add_seed_requested(self) -> None:
         if self._sequence is None:
@@ -1099,6 +1161,7 @@ class NanoTrackMainWindow(QMainWindow):
         busy = self._is_preprocessing or self._is_tracking
         self._update_menu_action_state()
         self.bbox_tools_panel.set_processing(busy)
+        self.polygon_tools_panel.set_processing(busy)
         self.preprocessing_panel.set_processing(busy)
         self.track_list_panel.set_processing(busy)
         if busy:
@@ -1226,6 +1289,16 @@ class NanoTrackMainWindow(QMainWindow):
     def _set_bbox_place_mode(self, enabled: bool) -> None:
         self.bbox_tools_panel.set_place_mode_active(enabled)
         self.viewer.set_bbox_draw_mode(enabled)
+        if enabled:
+            self.polygon_tools_panel.set_draw_mode_active(False)
+            self.viewer.set_polygon_draw_mode(False)
+
+    def _set_polygon_draw_mode(self, enabled: bool) -> None:
+        self.polygon_tools_panel.set_draw_mode_active(enabled)
+        self.viewer.set_polygon_draw_mode(enabled)
+        if enabled:
+            self.bbox_tools_panel.set_place_mode_active(False)
+            self.viewer.set_bbox_draw_mode(False)
 
     def _sync_current_bbox_ui(self) -> None:
         if self._sequence is None:
@@ -1236,6 +1309,15 @@ class NanoTrackMainWindow(QMainWindow):
         self.viewer.set_bbox(current_bbox)
         self.bbox_tools_panel.set_current_bbox(self._sequence.active_frame_index, current_bbox)
         self._sync_bbox_track_context()
+
+    def _sync_current_polygon_ui(self) -> None:
+        if self._sequence is None:
+            self.viewer.set_polygon_roi(None)
+            self.polygon_tools_panel.set_current_polygon(None, None)
+            return
+        current_polygon = self.current_draft_polygon_roi()
+        self.viewer.set_polygon_roi(current_polygon)
+        self.polygon_tools_panel.set_current_polygon(self._sequence.active_frame_index, current_polygon)
 
     def _sync_seed_track_overlays(self) -> None:
         if self._sequence is None:

@@ -138,6 +138,14 @@ class AnnotationSource(str, Enum):
     RESUME = "resume"
 
 
+class EdgeAnnotationSource(str, Enum):
+    """How an edge annotation was created or last updated."""
+
+    MANUAL = "manual"
+    DEXINED = "dexined"
+    TRACKER_REFINE = "tracker_refine"
+
+
 class FrameVisibility(str, Enum):
     """Visibility state of an object in a single frame."""
 
@@ -153,6 +161,41 @@ class TrackQuality(str, Enum):
     ACCEPTED = "accepted"
     NEEDS_REVIEW = "needs_review"
     REJECTED = "rejected"
+
+
+@dataclass(frozen=True)
+class PolygonROI:
+    """Polygonal region of interest stored as [x, y] vertices."""
+
+    vertices_xy: np.ndarray = field(repr=False)
+
+    def __post_init__(self) -> None:
+        vertices = np.asarray(self.vertices_xy, dtype=np.float64)
+        if vertices.ndim != 2 or vertices.shape[1] != 2:
+            raise ValueError("vertices_xy must have shape [N, 2].")
+        if len(vertices) < 3:
+            raise ValueError("PolygonROI requires at least three vertices.")
+        if not np.all(np.isfinite(vertices)):
+            raise ValueError("PolygonROI vertices must be finite.")
+        object.__setattr__(self, "vertices_xy", vertices)
+
+    @property
+    def vertex_count(self) -> int:
+        return int(len(self.vertices_xy))
+
+    @property
+    def bounds_xyxy(self) -> tuple[float, float, float, float]:
+        x_coords = self.vertices_xy[:, 0]
+        y_coords = self.vertices_xy[:, 1]
+        return (
+            float(np.min(x_coords)),
+            float(np.min(y_coords)),
+            float(np.max(x_coords)),
+            float(np.max(y_coords)),
+        )
+
+    def as_array(self) -> np.ndarray:
+        return np.asarray(self.vertices_xy, dtype=np.float64)
 
 
 @dataclass(frozen=True)
@@ -211,6 +254,35 @@ class ParticleMetrics:
 
 
 @dataclass
+class EdgeMetrics:
+    """Per-frame measurements describing step-edge geometry and roughness."""
+
+    length_px: Optional[float] = None
+    length_nm: Optional[float] = None
+    roughness_rms_px: Optional[float] = None
+    roughness_rms_nm: Optional[float] = None
+    mean_curvature: Optional[float] = None
+    max_curvature: Optional[float] = None
+    waviness_amplitude_px: Optional[float] = None
+    waviness_amplitude_nm: Optional[float] = None
+
+    def __post_init__(self) -> None:
+        for field_name in (
+            "length_px",
+            "length_nm",
+            "roughness_rms_px",
+            "roughness_rms_nm",
+            "mean_curvature",
+            "max_curvature",
+            "waviness_amplitude_px",
+            "waviness_amplitude_nm",
+        ):
+            value = getattr(self, field_name)
+            if value is not None and value < 0:
+                raise ValueError(f"{field_name} must be non-negative.")
+
+
+@dataclass
 class TrackFrameAnnotation:
     """Single-frame annotation for one tracked object."""
 
@@ -240,6 +312,52 @@ class TrackFrameAnnotation:
     @property
     def has_geometry(self) -> bool:
         return self.bbox is not None or self.mask is not None
+
+
+@dataclass
+class EdgeFrameAnnotation:
+    """Single-frame annotation for one tracked step edge."""
+
+    frame_index: int
+    polyline: Optional[np.ndarray] = field(default=None, repr=False)
+    edge_mask: Optional[np.ndarray] = field(default=None, repr=False)
+    visibility: FrameVisibility = FrameVisibility.VISIBLE
+    source: EdgeAnnotationSource = EdgeAnnotationSource.DEXINED
+    metrics: EdgeMetrics = field(default_factory=EdgeMetrics)
+
+    def __post_init__(self) -> None:
+        if self.frame_index < 0:
+            raise ValueError("frame_index must be non-negative.")
+        if self.polyline is not None:
+            polyline = np.asarray(self.polyline, dtype=np.float64)
+            if polyline.ndim != 2 or polyline.shape[1] != 2:
+                raise ValueError("polyline must have shape [N, 2].")
+            if len(polyline) < 2:
+                raise ValueError("polyline must contain at least two points.")
+            if not np.all(np.isfinite(polyline)):
+                raise ValueError("polyline points must be finite.")
+            self.polyline = polyline
+        if self.edge_mask is not None:
+            edge_mask = np.asarray(self.edge_mask, dtype=bool)
+            if edge_mask.ndim != 2:
+                raise ValueError("edge_mask must have shape [H, W].")
+            self.edge_mask = edge_mask
+        if self.visibility == FrameVisibility.VISIBLE and not self.has_geometry:
+            raise ValueError("Visible edge annotations require at least a polyline or an edge_mask.")
+
+    @property
+    def has_geometry(self) -> bool:
+        return self.polyline is not None or self.edge_mask is not None
+
+    @property
+    def has_edge_mask(self) -> bool:
+        return self.edge_mask is not None
+
+    @property
+    def polyline_point_count(self) -> int:
+        if self.polyline is None:
+            return 0
+        return int(len(self.polyline))
 
 
 @dataclass
@@ -294,6 +412,84 @@ class ParticleTrack:
         return self.annotations.get(frame_index)
 
     def add_annotation(self, annotation: TrackFrameAnnotation) -> None:
+        self.annotations[annotation.frame_index] = annotation
+        self.annotations = dict(sorted(self.annotations.items()))
+
+    def drop_annotations_after(self, frame_index: int) -> None:
+        self.annotations = dict(
+            sorted(
+                (
+                    annotation_frame,
+                    annotation,
+                )
+                for annotation_frame, annotation in self.annotations.items()
+                if annotation_frame <= frame_index
+            )
+        )
+
+
+@dataclass
+class EdgeTrack:
+    """Frame-indexed annotations for a single tracked STM step edge."""
+
+    edge_track_id: int
+    seed_frame_index: int
+    polygon_roi: PolygonROI
+    seed_polyline: np.ndarray = field(repr=False)
+    annotations: Dict[int, EdgeFrameAnnotation] = field(default_factory=dict, repr=False)
+    quality: TrackQuality = TrackQuality.UNREVIEWED
+    label: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if self.edge_track_id < 0:
+            raise ValueError("edge_track_id must be non-negative.")
+        if self.seed_frame_index < 0:
+            raise ValueError("seed_frame_index must be non-negative.")
+
+        seed_polyline = np.asarray(self.seed_polyline, dtype=np.float64)
+        if seed_polyline.ndim != 2 or seed_polyline.shape[1] != 2:
+            raise ValueError("seed_polyline must have shape [N, 2].")
+        if len(seed_polyline) < 2:
+            raise ValueError("seed_polyline must contain at least two points.")
+        if not np.all(np.isfinite(seed_polyline)):
+            raise ValueError("seed_polyline points must be finite.")
+        self.seed_polyline = seed_polyline
+
+        normalized: Dict[int, EdgeFrameAnnotation] = {}
+        for frame_index, annotation in self.annotations.items():
+            if frame_index != annotation.frame_index:
+                raise ValueError("Annotation dictionary keys must match annotation.frame_index.")
+            normalized[frame_index] = annotation
+
+        if self.seed_frame_index not in normalized:
+            normalized[self.seed_frame_index] = EdgeFrameAnnotation(
+                frame_index=self.seed_frame_index,
+                polyline=self.seed_polyline,
+                source=EdgeAnnotationSource.MANUAL,
+            )
+
+        self.annotations = dict(sorted(normalized.items()))
+
+    @property
+    def frame_indices(self) -> list[int]:
+        return list(self.annotations.keys())
+
+    @property
+    def visible_frame_indices(self) -> list[int]:
+        return [
+            frame_index
+            for frame_index, annotation in self.annotations.items()
+            if annotation.visibility == FrameVisibility.VISIBLE
+        ]
+
+    @property
+    def end_frame_index(self) -> int:
+        return max(self.annotations)
+
+    def get_annotation(self, frame_index: int) -> Optional[EdgeFrameAnnotation]:
+        return self.annotations.get(frame_index)
+
+    def add_annotation(self, annotation: EdgeFrameAnnotation) -> None:
         self.annotations[annotation.frame_index] = annotation
         self.annotations = dict(sorted(self.annotations.items()))
 

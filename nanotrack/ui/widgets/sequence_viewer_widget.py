@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 import numpy as np
 from skimage import measure
 
-from nanotrack.core import BBoxXYXY, FrameVisibility, ParticleTrack, STMSequence
+from nanotrack.core import BBoxXYXY, FrameVisibility, ParticleTrack, PolygonROI, STMSequence
 from napara.gui.widgets.viewer_widget import ViewerWidget
 
 
@@ -17,6 +17,7 @@ class SequenceViewerWidget(QWidget):
     """Main frame viewer for NanoTrack sequences."""
 
     bbox_changed = pyqtSignal(object)
+    polygon_changed = pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -26,6 +27,13 @@ class SequenceViewerWidget(QWidget):
         self._bbox_default_size_px = (48.0, 48.0)
         self._current_bbox: BBoxXYXY | None = None
         self._suppress_bbox_signal = False
+        self._polygon_roi: pg.PolyLineROI | None = None
+        self._polygon_draw_mode = False
+        self._polygon_draft_vertices_px: list[tuple[float, float]] = []
+        self._polygon_draft_curve: pg.PlotCurveItem | None = None
+        self._polygon_draft_scatter: pg.ScatterPlotItem | None = None
+        self._current_polygon: PolygonROI | None = None
+        self._suppress_polygon_signal = False
         self._build()
 
     def _build(self) -> None:
@@ -43,8 +51,10 @@ class SequenceViewerWidget(QWidget):
     def clear(self) -> None:
         self._sequence = None
         self.clear_bbox()
+        self.clear_polygon()
         self.clear_track_seed_overlays()
         self.set_bbox_draw_mode(False)
+        self.set_polygon_draw_mode(False)
         self.lbl_title.setText("No sequence loaded")
         self.lbl_meta.setText("-")
         self.viewer.clear()
@@ -97,6 +107,9 @@ class SequenceViewerWidget(QWidget):
     def current_bbox(self) -> BBoxXYXY | None:
         return self._current_bbox
 
+    def current_polygon_roi(self) -> PolygonROI | None:
+        return self._current_polygon
+
     def clear_track_seed_overlays(self) -> None:
         self.viewer.clear_overlay()
 
@@ -144,6 +157,9 @@ class SequenceViewerWidget(QWidget):
     def set_bbox_draw_mode(self, enabled: bool) -> None:
         self._bbox_draw_mode = bool(enabled)
 
+    def set_polygon_draw_mode(self, enabled: bool) -> None:
+        self._polygon_draw_mode = bool(enabled)
+
     def set_default_bbox_size_px(self, width_px: float, height_px: float) -> None:
         self._bbox_default_size_px = (max(1.0, float(width_px)), max(1.0, float(height_px)))
 
@@ -157,6 +173,12 @@ class SequenceViewerWidget(QWidget):
             pass
         self._bbox_roi = None
 
+    def clear_polygon(self) -> None:
+        self._clear_polygon_internal()
+        if self._suppress_polygon_signal:
+            return
+        self.polygon_changed.emit(None)
+
     def set_bbox(self, bbox: BBoxXYXY | None) -> None:
         self._suppress_bbox_signal = True
         try:
@@ -168,6 +190,13 @@ class SequenceViewerWidget(QWidget):
             self._update_bbox_roi(bbox)
         finally:
             self._suppress_bbox_signal = False
+
+    def set_polygon_roi(self, polygon: PolygonROI | None) -> None:
+        self._suppress_polygon_signal = True
+        try:
+            self._set_polygon_roi_internal(polygon)
+        finally:
+            self._suppress_polygon_signal = False
 
     def place_bbox_at_pixel(self, center_x_px: float, center_y_px: float) -> BBoxXYXY | None:
         if self._sequence is None:
@@ -190,8 +219,29 @@ class SequenceViewerWidget(QWidget):
         self._commit_bbox(bbox)
         return bbox
 
+    def place_polygon_vertex_at_pixel(self, x_px: float, y_px: float) -> tuple[float, float] | None:
+        if self._sequence is None:
+            return None
+
+        frame_h, frame_w = self._sequence.frame_shape
+        x_px = float(min(max(x_px, 0.0), float(frame_w)))
+        y_px = float(min(max(y_px, 0.0), float(frame_h)))
+        if not self._polygon_draft_vertices_px and self._current_polygon is not None:
+            self._commit_polygon(None)
+
+        self._polygon_draft_vertices_px.append((x_px, y_px))
+        self._update_polygon_draft_items()
+        return x_px, y_px
+
+    def finish_polygon_drawing(self) -> PolygonROI | None:
+        if len(self._polygon_draft_vertices_px) < 3:
+            return None
+        polygon = PolygonROI(np.asarray(self._polygon_draft_vertices_px, dtype=np.float64))
+        self._commit_polygon(polygon)
+        return polygon
+
     def _on_scene_mouse_clicked(self, event) -> None:
-        if not self._bbox_draw_mode or self._sequence is None:
+        if self._sequence is None:
             return
         if event.button() != Qt.MouseButton.LeftButton:
             return
@@ -200,12 +250,20 @@ class SequenceViewerWidget(QWidget):
 
         view_pos = self.viewer.plot_item.getViewBox().mapSceneToView(event.scenePos())
         center_x_px, center_y_px = self._view_to_pixel_coords(view_pos.x(), view_pos.y())
-        if self.place_bbox_at_pixel(center_x_px, center_y_px) is not None:
+        if self._polygon_draw_mode:
+            if self.place_polygon_vertex_at_pixel(center_x_px, center_y_px) is not None:
+                event.accept()
+            return
+        if self._bbox_draw_mode and self.place_bbox_at_pixel(center_x_px, center_y_px) is not None:
             event.accept()
 
     def _commit_bbox(self, bbox: BBoxXYXY | None) -> None:
         self.set_bbox(bbox)
         self.bbox_changed.emit(bbox)
+
+    def _commit_polygon(self, polygon: PolygonROI | None) -> None:
+        self.set_polygon_roi(polygon)
+        self.polygon_changed.emit(polygon)
 
     def _ensure_bbox_roi(self, bbox: BBoxXYXY) -> None:
         if self._bbox_roi is not None:
@@ -243,6 +301,102 @@ class SequenceViewerWidget(QWidget):
         bbox = self._bbox_from_roi()
         self._current_bbox = bbox
         self.bbox_changed.emit(bbox)
+
+    def _set_polygon_roi_internal(self, polygon: PolygonROI | None) -> None:
+        self._clear_polygon_internal()
+        self._current_polygon = polygon
+        if polygon is None:
+            return
+        self._ensure_polygon_roi(polygon)
+
+    def _clear_polygon_internal(self) -> None:
+        self._current_polygon = None
+        self._polygon_draft_vertices_px = []
+        self._clear_polygon_draft_items()
+        if self._polygon_roi is not None:
+            try:
+                self.viewer.plot_item.removeItem(self._polygon_roi)
+            except Exception:
+                pass
+            self._polygon_roi = None
+
+    def _clear_polygon_draft_items(self) -> None:
+        for item_name in ("_polygon_draft_curve", "_polygon_draft_scatter"):
+            item = getattr(self, item_name)
+            if item is None:
+                continue
+            try:
+                self.viewer.plot_item.removeItem(item)
+            except Exception:
+                pass
+            setattr(self, item_name, None)
+
+    def _update_polygon_draft_items(self) -> None:
+        self._clear_polygon_draft_items()
+        if not self._polygon_draft_vertices_px:
+            return
+        vertices_nm = self._polygon_vertices_px_to_nm(self._polygon_draft_vertices_px)
+        self._polygon_draft_curve = pg.PlotCurveItem(
+            vertices_nm[:, 0],
+            vertices_nm[:, 1],
+            pen=pg.mkPen(255, 120, 0, width=2),
+        )
+        self._polygon_draft_scatter = pg.ScatterPlotItem(
+            vertices_nm[:, 0],
+            vertices_nm[:, 1],
+            pen=pg.mkPen(255, 160, 0, width=1),
+            brush=pg.mkBrush(255, 200, 0, 180),
+            size=8,
+        )
+        self.viewer.plot_item.addItem(self._polygon_draft_curve)
+        self.viewer.plot_item.addItem(self._polygon_draft_scatter)
+
+    def _ensure_polygon_roi(self, polygon: PolygonROI) -> None:
+        points_nm = [tuple(point) for point in self._polygon_vertices_px_to_nm(polygon.vertices_xy)]
+        self._polygon_roi = pg.PolyLineROI(
+            points_nm,
+            closed=True,
+            movable=False,
+            rotatable=False,
+            resizable=False,
+            pen=pg.mkPen(255, 120, 0, width=2),
+            maxBounds=self._frame_rect_nm(),
+        )
+        self._polygon_roi.sigRegionChanged.connect(self._on_polygon_roi_changed)
+        self.viewer.plot_item.addItem(self._polygon_roi)
+
+    def _on_polygon_roi_changed(self) -> None:
+        if self._polygon_roi is None or self._sequence is None or self._suppress_polygon_signal:
+            return
+        polygon = self._polygon_from_roi()
+        self._current_polygon = polygon
+        self.polygon_changed.emit(polygon)
+
+    def _polygon_from_roi(self) -> PolygonROI:
+        if self._polygon_roi is None or self._sequence is None:
+            raise RuntimeError("Polygon ROI is not available.")
+        state = self._polygon_roi.saveState()
+        points_nm = np.asarray(
+            [
+                (
+                    float(point[0] if isinstance(point, (tuple, list)) else point.x()),
+                    float(point[1] if isinstance(point, (tuple, list)) else point.y()),
+                )
+                for point in state["points"]
+            ],
+            dtype=np.float64,
+        )
+        return PolygonROI(self._polygon_vertices_nm_to_px(points_nm))
+
+    def _polygon_vertices_px_to_nm(self, vertices_px) -> np.ndarray:
+        sx, sy = self._pixel_scale()
+        vertices_px = np.asarray(vertices_px, dtype=np.float64)
+        return np.column_stack((vertices_px[:, 0] * sx, vertices_px[:, 1] * sy)).astype(np.float64, copy=False)
+
+    def _polygon_vertices_nm_to_px(self, vertices_nm) -> np.ndarray:
+        sx, sy = self._pixel_scale()
+        vertices_nm = np.asarray(vertices_nm, dtype=np.float64)
+        return np.column_stack((vertices_nm[:, 0] / sx, vertices_nm[:, 1] / sy)).astype(np.float64, copy=False)
 
     def _bbox_from_roi(self) -> BBoxXYXY:
         if self._bbox_roi is None or self._sequence is None:
