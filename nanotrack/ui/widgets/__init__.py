@@ -1,6 +1,7 @@
 """Reusable NanoTrack UI widgets."""
 
 from .bbox_tools_panel import BBoxToolsPanel
+from .edge_track_list_panel import EdgeTrackListPanel
 from .frame_preview_widget import FramePreviewWidget
 from .polygon_roi_tools_panel import PolygonRoiToolsPanel
 from .preprocessing_actions_panel import PreprocessingActionsPanel
@@ -10,6 +11,7 @@ from .track_list_panel import TrackListPanel
 
 __all__ = [
     "BBoxToolsPanel",
+    "EdgeTrackListPanel",
     "FramePreviewWidget",
     "PolygonRoiToolsPanel",
     "PreprocessingActionsPanel",

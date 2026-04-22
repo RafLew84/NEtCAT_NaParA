@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDoubleSpinBox,
     QGroupBox,
@@ -38,6 +39,7 @@ class PolygonRoiToolsPanel(QWidget):
         self._has_active_edge = False
         self._has_edge_polyline_on_frame = False
         self._has_editable_edge = False
+        self._frame_count = 0
         self._build()
         self._connect_signals()
         self._update_enabled_state()
@@ -68,8 +70,22 @@ class PolygonRoiToolsPanel(QWidget):
         button_row.addWidget(self.btn_preview)
         group_layout.addLayout(button_row)
 
-        self.btn_run_sequence = QPushButton("Run DexiNed on Sequence", group)
-        group_layout.addWidget(self.btn_run_sequence)
+        run_row = QHBoxLayout()
+        self.btn_run_sequence = QPushButton("Run DexiNed on Range", group)
+        self.sp_run_end_frame = QSpinBox(group)
+        self.sp_run_end_frame.setPrefix("End ")
+        self.sp_run_end_frame.setMinimum(1)
+        self.sp_run_end_frame.setMaximum(1)
+        self.sp_run_end_frame.setValue(1)
+        self.sp_run_end_frame.setToolTip("Current frame is the start; choose the last frame included in this DexiNed run.")
+        self.chk_stitch_active = QCheckBox("Stitch Active Edge", group)
+        self.chk_stitch_active.setToolTip(
+            "Append or replace only the selected frame range in the currently active edge track instead of creating a new edge."
+        )
+        run_row.addWidget(self.btn_run_sequence)
+        run_row.addWidget(self.sp_run_end_frame)
+        run_row.addWidget(self.chk_stitch_active)
+        group_layout.addLayout(run_row)
 
         edge_row = QHBoxLayout()
         self.btn_load_edge = QPushButton("Load Current Edge", group)
@@ -150,6 +166,12 @@ class PolygonRoiToolsPanel(QWidget):
         self.btn_clear.setEnabled(enabled and (self._draw_mode_active or self._has_polygon))
         self.btn_preview.setEnabled(enabled and self._has_polygon and not self._draw_mode_active)
         self.btn_run_sequence.setEnabled(enabled and self._has_polygon and not self._draw_mode_active)
+        self.sp_run_end_frame.setEnabled(enabled)
+        self.chk_stitch_active.setEnabled(enabled and self._has_active_edge)
+        if not (enabled and self._has_active_edge):
+            blocked = self.chk_stitch_active.blockSignals(True)
+            self.chk_stitch_active.setChecked(False)
+            self.chk_stitch_active.blockSignals(blocked)
         self.btn_load_edge.setEnabled(enabled and self._has_active_edge and self._has_edge_polyline_on_frame)
         self.btn_save_edge.setEnabled(enabled and self._has_active_edge and self._has_polygon and self._has_editable_edge)
         self.btn_resume_edge.setEnabled(
@@ -202,6 +224,26 @@ class PolygonRoiToolsPanel(QWidget):
         self._has_polygon = True
         self._update_enabled_state()
 
+    def set_frame_context(self, frame_index: int | None, frame_count: int | None) -> None:
+        if frame_index is None or frame_count is None or frame_count <= 0:
+            self._frame_count = 0
+            self.sp_run_end_frame.setRange(1, 1)
+            self.sp_run_end_frame.setValue(1)
+            self._update_enabled_state()
+            return
+
+        self._frame_count = int(frame_count)
+        start_frame_number = int(frame_index) + 1
+        previous_minimum = int(self.sp_run_end_frame.minimum())
+        previous_value = int(self.sp_run_end_frame.value())
+        self.sp_run_end_frame.setRange(start_frame_number, self._frame_count)
+        if start_frame_number <= previous_value <= self._frame_count and previous_value != previous_minimum:
+            target_value = previous_value
+        else:
+            target_value = self._frame_count
+        self.sp_run_end_frame.setValue(target_value)
+        self._update_enabled_state()
+
     def clear(self) -> None:
         self.set_draw_mode_active(False)
         self.lbl_frame.setText("Frame: -")
@@ -211,6 +253,7 @@ class PolygonRoiToolsPanel(QWidget):
         self._has_active_edge = False
         self._has_edge_polyline_on_frame = False
         self._has_editable_edge = False
+        self._frame_count = 0
         self._update_enabled_state()
 
     def set_sequence_loaded(self, loaded: bool) -> None:
@@ -225,6 +268,7 @@ class PolygonRoiToolsPanel(QWidget):
             self._has_active_edge = False
             self._has_edge_polyline_on_frame = False
             self._has_editable_edge = False
+            self._frame_count = 0
         self._update_enabled_state()
 
     def set_processing(self, busy: bool) -> None:
@@ -250,6 +294,12 @@ class PolygonRoiToolsPanel(QWidget):
             return None
         height, width = value
         return int(height), int(width)
+
+    def edge_run_end_frame_index(self) -> int:
+        return max(0, int(self.sp_run_end_frame.value()) - 1)
+
+    def stitch_to_active_edge(self) -> bool:
+        return self.chk_stitch_active.isEnabled() and self.chk_stitch_active.isChecked()
 
     def set_edge_track_context(
         self,

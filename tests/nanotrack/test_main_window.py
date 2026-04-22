@@ -14,10 +14,11 @@ from nanotrack.analysis import compute_particle_metrics
 
 try:
     from PyQt6.QtCore import Qt
-    from PyQt6.QtWidgets import QApplication
+    from PyQt6.QtWidgets import QApplication, QMessageBox
 except ImportError:  # pragma: no cover - optional outside the target GUI env
     Qt = None
     QApplication = None
+    QMessageBox = None
 
 from nanotrack.core import (
     AnnotationSource,
@@ -55,6 +56,15 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         cls._app = QApplication.instance() or QApplication([])
 
     def setUp(self) -> None:
+        self._messagebox_patcher = None
+        if QMessageBox is not None:
+            self._messagebox_patcher = patch.multiple(
+                QMessageBox,
+                critical=lambda *args, **kwargs: QMessageBox.StandardButton.Ok,
+                warning=lambda *args, **kwargs: QMessageBox.StandardButton.Ok,
+                information=lambda *args, **kwargs: QMessageBox.StandardButton.Ok,
+            )
+            self._messagebox_patcher.start()
         self.window = NanoTrackMainWindow()
 
     def tearDown(self) -> None:
@@ -75,6 +85,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.window.close()
         self.window.deleteLater()
         self.__class__._app.processEvents()
+        if self._messagebox_patcher is not None:
+            self._messagebox_patcher.stop()
 
     def test_set_sequence_enables_navigation_and_shows_first_frame(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
@@ -92,6 +104,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.track_list_panel.list_tracks.count(), 0)
         self.assertFalse(self.window.track_list_panel.btn_run_selected.isEnabled())
         self.assertFalse(self.window.track_list_panel.btn_run_all.isEnabled())
+        self.assertEqual(self.window.edge_track_list_panel.list_tracks.count(), 0)
+        self.assertEqual(self.window.edge_track_list_panel.lbl_summary.text(), "0 edge tracks")
         self.assertTrue(self.window.bbox_tools_panel.btn_place.isEnabled())
         self.assertFalse(self.window.bbox_tools_panel.btn_add_seed.isEnabled())
         self.assertFalse(self.window.bbox_tools_panel.btn_clear.isEnabled())
@@ -159,6 +173,34 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.track_list_panel.lbl_summary.text(), "2 tracks")
         self.assertIn("Track 1", self.window.track_list_panel.list_tracks.item(0).text())
         self.assertIn("NP-2", self.window.track_list_panel.list_tracks.item(1).text())
+
+    def test_set_edge_tracks_populates_edge_track_list(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+
+        polygon = PolygonROI(np.asarray([[1.0, 1.0], [6.0, 1.0], [6.0, 6.0], [1.0, 6.0]], dtype=np.float64))
+        track1 = EdgeTrack(
+            edge_track_id=1,
+            seed_frame_index=0,
+            polygon_roi=polygon,
+            seed_polyline=np.asarray([[1.0, 2.0], [6.0, 2.0]], dtype=np.float64),
+        )
+        track2 = EdgeTrack(
+            edge_track_id=2,
+            seed_frame_index=3,
+            polygon_roi=polygon,
+            seed_polyline=np.asarray([[1.0, 3.0], [6.0, 3.0]], dtype=np.float64),
+            label="Step-B",
+        )
+
+        self.window.set_edge_tracks([track1, track2], selected_track_id=2)
+
+        self.assertEqual(len(self.window.current_edge_tracks()), 2)
+        self.assertEqual(self.window.edge_track_list_panel.list_tracks.count(), 2)
+        self.assertEqual(self.window.edge_track_list_panel.lbl_summary.text(), "2 edge tracks")
+        self.assertIn("Edge 1", self.window.edge_track_list_panel.list_tracks.item(0).text())
+        self.assertIn("Step-B", self.window.edge_track_list_panel.list_tracks.item(1).text())
+        self.assertEqual(self.window.edge_track_list_panel.current_track_id(), 2)
 
     def test_long_filename_is_truncated_in_metadata_panel(self) -> None:
         sequence = STMSequence(
@@ -268,12 +310,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             )
         )
 
-        self.window._edge_tracks = [track1, track2]
-        self.window._selected_edge_track_id = 1
-        self.window._update_results_action_state()
-        self.window._sync_edge_results_dialog()
-        self.window._sync_edge_results_dialog_selection()
-        self.window._sync_track_overlays()
+        self.window.set_edge_tracks([track1, track2], selected_track_id=1)
 
         self.assertTrue(self.window.action_open_edge_results.isEnabled())
 
@@ -289,7 +326,152 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.__class__._app.processEvents()
 
         self.assertEqual(self.window.current_selected_edge_track_id(), 2)
+        self.assertEqual(self.window.edge_track_list_panel.current_track_id(), 2)
         self.assertEqual(sequence.active_frame_index, 3)
+
+    def test_edge_track_list_selection_syncs_results_dialog_and_frame(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_sidebar_sync.mpp",
+            raw_frames=np.zeros((5, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8, size_nm_x=80.0, size_nm_y=40.0),
+        )
+        self.window.set_sequence(sequence)
+
+        polygon = PolygonROI(np.asarray([[1.0, 1.0], [6.0, 1.0], [6.0, 6.0], [1.0, 6.0]], dtype=np.float64))
+        track1 = EdgeTrack(
+            edge_track_id=1,
+            seed_frame_index=0,
+            polygon_roi=polygon,
+            seed_polyline=np.asarray([[1.0, 2.0], [6.0, 2.0]], dtype=np.float64),
+        )
+        track1.add_annotation(
+            EdgeFrameAnnotation(
+                frame_index=1,
+                polyline=np.asarray([[1.0, 2.0], [6.0, 2.0]], dtype=np.float64),
+                metrics=EdgeMetrics(
+                    length_px=5.0,
+                    roughness_rms_px=0.2,
+                    mean_curvature=0.05,
+                    max_curvature=0.08,
+                    waviness_amplitude_px=0.4,
+                ),
+            )
+        )
+        track2 = EdgeTrack(
+            edge_track_id=2,
+            seed_frame_index=3,
+            polygon_roi=polygon,
+            seed_polyline=np.asarray([[1.0, 3.0], [6.0, 3.0]], dtype=np.float64),
+        )
+        track2.add_annotation(
+            EdgeFrameAnnotation(
+                frame_index=4,
+                polyline=np.asarray([[1.0, 3.0], [6.0, 3.0]], dtype=np.float64),
+                metrics=EdgeMetrics(
+                    length_px=6.0,
+                    roughness_rms_px=0.3,
+                    mean_curvature=0.06,
+                    max_curvature=0.10,
+                    waviness_amplitude_px=0.5,
+                ),
+            )
+        )
+
+        self.window.set_edge_tracks([track1, track2], selected_track_id=1)
+        self.window.action_open_edge_results.trigger()
+        self.__class__._app.processEvents()
+
+        second_item = self.window.edge_track_list_panel.list_tracks.item(1)
+        self.window.edge_track_list_panel.list_tracks.setCurrentItem(second_item)
+        self.__class__._app.processEvents()
+
+        self.assertEqual(self.window.current_selected_edge_track_id(), 2)
+        self.assertEqual(sequence.active_frame_index, 3)
+        self.assertEqual(self.window.current_edge_results_dialog().current_track_id(), 2)
+
+    def test_delete_selected_edge_track_from_main_window_updates_results_and_session(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_delete_main.mpp",
+            raw_frames=np.zeros((5, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8, size_nm_x=80.0, size_nm_y=40.0),
+        )
+        self.window.set_sequence(sequence)
+
+        polygon = PolygonROI(np.asarray([[1.0, 1.0], [6.0, 1.0], [6.0, 6.0], [1.0, 6.0]], dtype=np.float64))
+        track1 = EdgeTrack(
+            edge_track_id=1,
+            seed_frame_index=0,
+            polygon_roi=polygon,
+            seed_polyline=np.asarray([[1.0, 2.0], [6.0, 2.0]], dtype=np.float64),
+        )
+        track1.add_annotation(
+            EdgeFrameAnnotation(
+                frame_index=1,
+                polyline=np.asarray([[1.0, 2.1], [6.0, 2.2]], dtype=np.float64),
+                metrics=EdgeMetrics(
+                    length_px=5.0,
+                    length_nm=50.0,
+                    roughness_rms_px=0.2,
+                    roughness_rms_nm=2.0,
+                    mean_curvature=0.05,
+                    max_curvature=0.08,
+                    waviness_amplitude_px=0.4,
+                    waviness_amplitude_nm=4.0,
+                ),
+            )
+        )
+        track2 = EdgeTrack(
+            edge_track_id=2,
+            seed_frame_index=3,
+            polygon_roi=polygon,
+            seed_polyline=np.asarray([[1.0, 3.0], [6.0, 3.0]], dtype=np.float64),
+            label="Step-B",
+        )
+        track2.add_annotation(
+            EdgeFrameAnnotation(
+                frame_index=4,
+                polyline=np.asarray([[1.0, 3.2], [6.0, 3.1]], dtype=np.float64),
+                metrics=EdgeMetrics(
+                    length_px=6.0,
+                    length_nm=60.0,
+                    roughness_rms_px=0.3,
+                    roughness_rms_nm=3.0,
+                    mean_curvature=0.06,
+                    max_curvature=0.10,
+                    waviness_amplitude_px=0.5,
+                    waviness_amplitude_nm=5.0,
+                ),
+            )
+        )
+
+        self.window.set_edge_tracks([track1, track2], selected_track_id=1)
+        self.window.action_open_edge_results.trigger()
+        self.__class__._app.processEvents()
+
+        self.assertTrue(self.window.edge_track_list_panel.btn_delete_selected.isEnabled())
+
+        self.window.edge_track_list_panel.btn_delete_selected.click()
+        self.__class__._app.processEvents()
+
+        remaining_tracks = self.window.current_edge_tracks()
+        self.assertEqual(len(remaining_tracks), 1)
+        self.assertEqual(remaining_tracks[0].edge_track_id, 2)
+        self.assertEqual(self.window.current_selected_edge_track_id(), 2)
+        self.assertEqual(self.window.edge_track_list_panel.list_tracks.count(), 1)
+        self.assertEqual(self.window.edge_track_list_panel.lbl_summary.text(), "1 edge track")
+        self.assertEqual(self.window.edge_track_list_panel.current_track_id(), 2)
+
+        dialog = self.window.current_edge_results_dialog()
+        self.assertIsNotNone(dialog)
+        self.assertEqual(dialog.current_track_id(), 2)
+        self.assertEqual(dialog.cmb_tracks.count(), 2)
+        self.assertEqual(dialog.cmb_tracks.itemData(1, Qt.ItemDataRole.UserRole), 2)
+
+        snapshot = self.window.current_session_snapshot()
+        self.assertIsNotNone(snapshot)
+        assert snapshot is not None
+        self.assertEqual(len(snapshot.edge_tracks), 1)
+        self.assertEqual(snapshot.edge_tracks[0].edge_track_id, 2)
 
     def test_delete_track_from_results_dialog_updates_all_tracks_export_and_session(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
@@ -664,6 +846,132 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.__class__._app.processEvents()
         self.assertEqual(sequence.active_frame_index, 2)
         self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
+
+    def test_edge_sequence_run_can_be_limited_to_selected_frame_range(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_sequence_range.mpp",
+            raw_frames=np.zeros((5, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+
+        polygon = PolygonROI(np.asarray([[8.0, 10.0], [22.0, 10.0], [24.0, 24.0], [10.0, 26.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(polygon)
+        self.window.polygon_tools_panel.sp_run_end_frame.setValue(3)
+
+        edge_prob = np.zeros((3, *sequence.frame_shape), dtype=np.float32)
+        edge_prob[0, 12:15, 8:21] = 0.72
+        edge_prob[1, 13:16, 9:22] = 0.74
+        edge_prob[2, 14:17, 10:23] = 0.76
+        run_output = DexiNedRunOutput(
+            edge_prob=edge_prob,
+            edge_binary=edge_prob >= 0.5,
+            model_name="dexined",
+            checkpoint_name="DexiNed_BIPED_10.pth",
+        )
+
+        def fake_run(run_input):
+            self.assertEqual(run_input.frames.shape[0], 3)
+            np.testing.assert_array_equal(run_input.frame_indices, np.asarray([0, 1, 2], dtype=np.int32))
+            return run_output
+
+        with patch.object(self.window._dexined_backend, "run", side_effect=fake_run) as run_mock:
+            self.window.polygon_tools_panel.btn_run_sequence.click()
+            for _ in range(250):
+                self.__class__._app.processEvents()
+                if run_mock.called and self.window.current_edge_tracks():
+                    break
+                time.sleep(0.01)
+
+        run_mock.assert_called_once()
+        edge_tracks = self.window.current_edge_tracks()
+        self.assertEqual(len(edge_tracks), 1)
+        track = edge_tracks[0]
+        self.assertEqual(track.frame_indices, [0, 1, 2])
+        self.assertEqual(track.seed_frame_index, 0)
+        self.assertIsNone(track.get_annotation(3))
+        self.assertIsNone(track.get_annotation(4))
+
+    def test_edge_sequence_run_can_stitch_new_range_into_existing_edge_track(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_sequence_stitch.mpp",
+            raw_frames=np.zeros((6, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+
+        initial_polygon = PolygonROI(
+            np.asarray([[8.0, 10.0], [22.0, 10.0], [24.0, 24.0], [10.0, 26.0]], dtype=np.float64)
+        )
+        self.window.viewer._commit_polygon(initial_polygon)
+        self.window.polygon_tools_panel.sp_run_end_frame.setValue(2)
+
+        initial_edge_prob = np.zeros((2, *sequence.frame_shape), dtype=np.float32)
+        initial_edge_prob[0, 12:15, 8:21] = 0.72
+        initial_edge_prob[1, 13:16, 9:22] = 0.74
+        initial_output = DexiNedRunOutput(
+            edge_prob=initial_edge_prob,
+            edge_binary=initial_edge_prob >= 0.5,
+            model_name="dexined",
+            checkpoint_name="DexiNed_BIPED_10.pth",
+        )
+
+        with patch.object(self.window._dexined_backend, "run", return_value=initial_output):
+            self.window.polygon_tools_panel.btn_run_sequence.click()
+            for _ in range(250):
+                self.__class__._app.processEvents()
+                if self.window.current_edge_tracks():
+                    break
+                time.sleep(0.01)
+
+        self.assertEqual(len(self.window.current_edge_tracks()), 1)
+        track = self.window.current_edge_tracks()[0]
+        self.assertEqual(track.frame_indices, [0, 1])
+
+        self.window.slider_frame.setValue(2)
+        self.__class__._app.processEvents()
+        stitched_polygon = PolygonROI(
+            np.asarray([[9.0, 11.0], [23.0, 11.0], [25.0, 25.0], [11.0, 27.0]], dtype=np.float64)
+        )
+        self.window.viewer._commit_polygon(stitched_polygon)
+        self.window.polygon_tools_panel.chk_stitch_active.setChecked(True)
+        self.window.polygon_tools_panel.sp_run_end_frame.setValue(5)
+
+        stitched_edge_prob = np.zeros((3, *sequence.frame_shape), dtype=np.float32)
+        stitched_edge_prob[0, 15:18, 11:24] = 0.78
+        stitched_edge_prob[1, 16:19, 12:25] = 0.80
+        stitched_edge_prob[2, 17:20, 13:26] = 0.82
+        stitched_output = DexiNedRunOutput(
+            edge_prob=stitched_edge_prob,
+            edge_binary=stitched_edge_prob >= 0.5,
+            model_name="dexined",
+            checkpoint_name="DexiNed_BIPED_10.pth",
+        )
+
+        def fake_stitch_run(run_input):
+            self.assertEqual(run_input.frames.shape[0], 3)
+            np.testing.assert_array_equal(run_input.frame_indices, np.asarray([2, 3, 4], dtype=np.int32))
+            self.assertEqual(run_input.source_view, "raw")
+            return stitched_output
+
+        with patch.object(self.window._dexined_backend, "run", side_effect=fake_stitch_run) as run_mock:
+            self.window.polygon_tools_panel.btn_run_sequence.click()
+            for _ in range(250):
+                self.__class__._app.processEvents()
+                updated_track = self.window.current_edge_tracks()[0]
+                if run_mock.called and updated_track.get_annotation(4) is not None:
+                    break
+                time.sleep(0.01)
+
+        run_mock.assert_called_once()
+        edge_tracks = self.window.current_edge_tracks()
+        self.assertEqual(len(edge_tracks), 1)
+        track = edge_tracks[0]
+        self.assertEqual(track.edge_track_id, 1)
+        self.assertEqual(track.frame_indices, [0, 1, 2, 3, 4])
+        np.testing.assert_array_equal(track.polygon_roi.as_array(), stitched_polygon.as_array())
+        self.assertEqual(self.window.current_selected_edge_track_id(), 1)
+        self.assertIn("stitched edge track 1", self.window.statusBar().currentMessage().lower())
 
     def test_edge_correction_and_resume_replace_suffix(self) -> None:
         sequence = STMSequence(

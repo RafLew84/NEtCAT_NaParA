@@ -17,6 +17,12 @@ class EdgeTrackResultsDialog(QDialog):
     ALL_EDGE_TRACKS_KEY = "__all_edge_tracks__"
     UNIT_PIXELS = "px"
     UNIT_NANOMETERS = "nm"
+    TREND_NONE = "__trend_none__"
+    TREND_LENGTH = "length"
+    TREND_ROUGHNESS = "roughness"
+    TREND_WAVINESS = "waviness"
+    TREND_CURVATURE_MEAN = "curvature_mean"
+    TREND_CURVATURE_MAX = "curvature_max"
 
     track_selected = pyqtSignal(object)
 
@@ -37,10 +43,12 @@ class EdgeTrackResultsDialog(QDialog):
         controls_layout = QFormLayout(controls)
         self.cmb_tracks = QComboBox(self)
         self.cmb_units = QComboBox(self)
+        self.cmb_trend = QComboBox(self)
         self.lbl_summary = QLabel("No edge results available", self)
         self.lbl_summary.setWordWrap(True)
         controls_layout.addRow("Edge Track", self.cmb_tracks)
         controls_layout.addRow("Units", self.cmb_units)
+        controls_layout.addRow("Trend", self.cmb_trend)
         controls_layout.addRow("Summary", self.lbl_summary)
         layout.addWidget(controls, 0)
 
@@ -61,7 +69,9 @@ class EdgeTrackResultsDialog(QDialog):
 
         self.cmb_tracks.currentIndexChanged.connect(self._on_track_changed)
         self.cmb_units.currentIndexChanged.connect(self._on_units_changed)
+        self.cmb_trend.currentIndexChanged.connect(self._on_trend_changed)
         self.btn_export.clicked.connect(self._on_export_clicked)
+        self._populate_trend_selector()
         self._set_empty_state()
 
     def _create_plot_widget(self, title: str, y_label: str) -> pg.PlotWidget:
@@ -125,6 +135,9 @@ class EdgeTrackResultsDialog(QDialog):
         self.track_selected.emit(self.current_track_id())
 
     def _on_units_changed(self, _index: int) -> None:
+        self._refresh_plots()
+
+    def _on_trend_changed(self, _index: int) -> None:
         self._refresh_plots()
 
     def export_results_to_path(self, base_path: str) -> dict[str, str]:
@@ -203,21 +216,64 @@ class EdgeTrackResultsDialog(QDialog):
         mean_curvature = np.asarray([metrics.mean_curvature for _frame_index, metrics in metric_rows], dtype=np.float32)
         max_curvature = np.asarray([metrics.max_curvature for _frame_index, metrics in metric_rows], dtype=np.float32)
 
-        self._plot_single_series(self.plot_length, x, length, pen="#1f77b4", symbol="o")
-        self._plot_single_series(self.plot_roughness, x, roughness, pen="#d62728", symbol="o")
-        self._plot_single_series(self.plot_waviness, x, waviness, pen="#2ca02c", symbol="o")
-        self._plot_curvature_series(x, mean_curvature, max_curvature)
+        trend_key = self._current_trend_key()
+        length_trend = self._compute_linear_trend(x, length) if trend_key == self.TREND_LENGTH else None
+        roughness_trend = self._compute_linear_trend(x, roughness) if trend_key == self.TREND_ROUGHNESS else None
+        waviness_trend = self._compute_linear_trend(x, waviness) if trend_key == self.TREND_WAVINESS else None
+        mean_curvature_trend = (
+            self._compute_linear_trend(x, mean_curvature)
+            if trend_key == self.TREND_CURVATURE_MEAN
+            else None
+        )
+        max_curvature_trend = (
+            self._compute_linear_trend(x, max_curvature)
+            if trend_key == self.TREND_CURVATURE_MAX
+            else None
+        )
+
+        self._plot_single_series(
+            self.plot_length,
+            x,
+            length,
+            pen="#1f77b4",
+            symbol="o",
+            trend=length_trend,
+        )
+        self._plot_single_series(
+            self.plot_roughness,
+            x,
+            roughness,
+            pen="#d62728",
+            symbol="o",
+            trend=roughness_trend,
+        )
+        self._plot_single_series(
+            self.plot_waviness,
+            x,
+            waviness,
+            pen="#2ca02c",
+            symbol="o",
+            trend=waviness_trend,
+        )
+        self._plot_curvature_series(
+            x,
+            mean_curvature,
+            max_curvature,
+            mean_trend=mean_curvature_trend,
+            max_trend=max_curvature_trend,
+        )
 
         if track_key == self.ALL_EDGE_TRACKS_KEY:
             measured_track_frames = sum(1 for track in self._edge_tracks for _ in self._metric_rows(track))
-            self.lbl_summary.setText(
+            summary = (
                 f"All edge tracks | measured frames: {len(metric_rows)} / {self._sequence.frame_count} | track-frames: {measured_track_frames}"
             )
         else:
             track = self._current_track()
-            self.lbl_summary.setText(
+            summary = (
                 f"{track.label or f'Edge {track.edge_track_id}'} | measured frames: {len(metric_rows)} / {self._sequence.frame_count}"
             )
+        self.lbl_summary.setText(summary + self._format_trend_summary(trend_key, length_trend, roughness_trend, waviness_trend, mean_curvature_trend, max_curvature_trend))
 
     def _plot_single_series(
         self,
@@ -227,6 +283,7 @@ class EdgeTrackResultsDialog(QDialog):
         *,
         pen: str,
         symbol: str,
+        trend: dict[str, float | np.ndarray] | None = None,
     ) -> None:
         plot_widget.clear()
         plot_widget.plot(
@@ -237,15 +294,26 @@ class EdgeTrackResultsDialog(QDialog):
             symbolSize=7,
             symbolBrush=pen,
         )
+        if trend is None:
+            return
+        plot_widget.plot(
+            x,
+            np.asarray(trend["y"], dtype=np.float32),
+            pen=pg.mkPen(pen, width=2, style=Qt.PenStyle.DashLine),
+        )
 
     def _plot_curvature_series(
         self,
         x: np.ndarray,
         mean_curvature: np.ndarray,
         max_curvature: np.ndarray,
+        *,
+        mean_trend: dict[str, float | np.ndarray] | None = None,
+        max_trend: dict[str, float | np.ndarray] | None = None,
     ) -> None:
         self.plot_curvature.clear()
-        self.plot_curvature.addLegend(offset=(8, 8))
+        if self.plot_curvature.plotItem.legend is None:
+            self.plot_curvature.addLegend(offset=(8, 8))
         self.plot_curvature.plot(
             x,
             mean_curvature,
@@ -264,6 +332,20 @@ class EdgeTrackResultsDialog(QDialog):
             symbolSize=7,
             symbolBrush="#ff7f0e",
         )
+        if mean_trend is not None:
+            self.plot_curvature.plot(
+                x,
+                np.asarray(mean_trend["y"], dtype=np.float32),
+                name="mean trend",
+                pen=pg.mkPen("#9467bd", width=2, style=Qt.PenStyle.DashLine),
+            )
+        if max_trend is not None:
+            self.plot_curvature.plot(
+                x,
+                np.asarray(max_trend["y"], dtype=np.float32),
+                name="max trend",
+                pen=pg.mkPen("#ff7f0e", width=2, style=Qt.PenStyle.DashLine),
+            )
 
     def _metric_rows(self, track: EdgeTrack) -> Iterable[tuple[int, EdgeMetrics]]:
         for frame_index in track.frame_indices:
@@ -367,6 +449,21 @@ class EdgeTrackResultsDialog(QDialog):
                 return index
         return -1
 
+    def _populate_trend_selector(self) -> None:
+        current_trend = self._current_trend_key()
+        self.cmb_trend.clear()
+        self.cmb_trend.addItem("No trend", self.TREND_NONE)
+        self.cmb_trend.addItem("Length", self.TREND_LENGTH)
+        self.cmb_trend.addItem("Roughness", self.TREND_ROUGHNESS)
+        self.cmb_trend.addItem("Waviness", self.TREND_WAVINESS)
+        self.cmb_trend.addItem("Curvature mean", self.TREND_CURVATURE_MEAN)
+        self.cmb_trend.addItem("Curvature max", self.TREND_CURVATURE_MAX)
+        for index in range(self.cmb_trend.count()):
+            if self.cmb_trend.itemData(index, Qt.ItemDataRole.UserRole) == current_trend:
+                self.cmb_trend.setCurrentIndex(index)
+                return
+        self.cmb_trend.setCurrentIndex(0)
+
     def _populate_units_selector(self) -> None:
         current_unit = self._current_unit_mode()
         self.cmb_units.clear()
@@ -403,3 +500,55 @@ class EdgeTrackResultsDialog(QDialog):
             self.lbl_summary.setText("Select an edge track to inspect measured results")
         else:
             self.lbl_summary.setText("No edge results available")
+
+    def _current_trend_key(self) -> str:
+        if self.cmb_trend.count() == 0:
+            return self.TREND_NONE
+        return str(self.cmb_trend.currentData(Qt.ItemDataRole.UserRole))
+
+    def _compute_linear_trend(
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+    ) -> dict[str, float | np.ndarray] | None:
+        if x.size < 2 or y.size < 2:
+            return None
+        coefficients = np.polyfit(
+            np.asarray(x, dtype=np.float64),
+            np.asarray(y, dtype=np.float64),
+            deg=1,
+        )
+        slope = float(coefficients[0])
+        intercept = float(coefficients[1])
+        return {
+            "slope": slope,
+            "intercept": intercept,
+            "y": (slope * np.asarray(x, dtype=np.float64) + intercept).astype(np.float32),
+        }
+
+    def _format_trend_summary(
+        self,
+        trend_key: str,
+        length_trend: dict[str, float | np.ndarray] | None,
+        roughness_trend: dict[str, float | np.ndarray] | None,
+        waviness_trend: dict[str, float | np.ndarray] | None,
+        mean_curvature_trend: dict[str, float | np.ndarray] | None,
+        max_curvature_trend: dict[str, float | np.ndarray] | None,
+    ) -> str:
+        trend_map = {
+            self.TREND_LENGTH: ("Length", length_trend, self._current_length_unit_label()),
+            self.TREND_ROUGHNESS: ("Roughness", roughness_trend, self._current_length_unit_label()),
+            self.TREND_WAVINESS: ("Waviness", waviness_trend, self._current_length_unit_label()),
+            self.TREND_CURVATURE_MEAN: ("Curvature mean", mean_curvature_trend, "1/px"),
+            self.TREND_CURVATURE_MAX: ("Curvature max", max_curvature_trend, "1/px"),
+        }
+        trend_label, trend, unit_label = trend_map.get(trend_key, ("", None, ""))
+        if trend is None:
+            return ""
+        slope = float(trend["slope"])
+        return f" | trend: {trend_label} slope {slope:+.4f} {unit_label}/frame"
+
+    def _current_length_unit_label(self) -> str:
+        if self._current_unit_mode() == self.UNIT_NANOMETERS:
+            return "nm"
+        return "px"
