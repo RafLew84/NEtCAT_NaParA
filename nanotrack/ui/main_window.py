@@ -331,6 +331,8 @@ class NanoTrackMainWindow(QMainWindow):
         self.polygon_tools_panel.load_edge_requested.connect(self._on_load_current_edge_requested)
         self.polygon_tools_panel.save_edge_correction_requested.connect(self._on_save_edge_correction_requested)
         self.polygon_tools_panel.resume_edge_requested.connect(self._on_resume_edge_requested)
+        self.polygon_tools_panel.redetect_edge_requested.connect(self._on_redetect_edge_requested)
+        self.polygon_tools_panel.redetect_edge_range_requested.connect(self._on_redetect_edge_range_requested)
         self.polygon_tools_panel.hybrid_stabilize_requested.connect(self._on_edge_hybrid_requested)
         self.track_list_panel.track_selected.connect(self._on_track_selected)
         self.track_list_panel.run_selected_requested.connect(self._on_run_sam2_for_selected_requested)
@@ -1059,6 +1061,106 @@ class NanoTrackMainWindow(QMainWindow):
         self._dexined_thread.finished.connect(self._cleanup_dexined_worker)
         self._dexined_thread.start()
 
+    def _on_redetect_edge_requested(self) -> None:
+        if self._sequence is None or self._is_preprocessing or self._is_tracking:
+            return
+        track = self._find_edge_track_by_id(self._selected_edge_track_id)
+        if track is None:
+            return
+
+        try:
+            run_input, redetect_meta = self._build_dexined_redetect_input(track)
+        except Exception as exc:
+            QMessageBox.critical(self, "DexiNed re-detect error", str(exc))
+            return
+
+        self._pending_edge_sequence_meta = redetect_meta
+        self._set_preprocessing_busy(True)
+        start_frame_index = int(redetect_meta["start_frame_index"])
+        end_frame_index = int(redetect_meta["end_frame_index"])
+        run_label = (
+            f"Re-detecting Edge Track {track.edge_track_id} on frames "
+            f"{start_frame_index + 1}-{end_frame_index + 1}..."
+        )
+        self._dexined_progress_dialog = QProgressDialog(
+            run_label,
+            "",
+            0,
+            0,
+            self,
+        )
+        self._dexined_progress_dialog.setWindowTitle("DexiNed Re-detect")
+        self._dexined_progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self._dexined_progress_dialog.setCancelButton(None)
+        self._dexined_progress_dialog.setMinimumDuration(0)
+        self._dexined_progress_dialog.setAutoClose(False)
+        self._dexined_progress_dialog.setAutoReset(False)
+        self._dexined_progress_dialog.setValue(0)
+        self._dexined_progress_dialog.show()
+        self.statusBar().showMessage(run_label, 0)
+        QApplication.processEvents()
+
+        self._dexined_thread = QThread(self)
+        self._dexined_worker = _DexiNedRunWorker(self._dexined_backend, run_input)
+        self._dexined_worker.moveToThread(self._dexined_thread)
+        self._dexined_thread.started.connect(self._dexined_worker.run)
+        self._dexined_worker.finished.connect(self._on_dexined_sequence_finished)
+        self._dexined_worker.failed.connect(self._on_dexined_sequence_failed)
+        self._dexined_worker.finished.connect(self._dexined_thread.quit)
+        self._dexined_worker.failed.connect(self._dexined_thread.quit)
+        self._dexined_thread.finished.connect(self._cleanup_dexined_worker)
+        self._dexined_thread.start()
+
+    def _on_redetect_edge_range_requested(self) -> None:
+        if self._sequence is None or self._is_preprocessing or self._is_tracking:
+            return
+        track = self._find_edge_track_by_id(self._selected_edge_track_id)
+        if track is None:
+            return
+
+        try:
+            run_input, redetect_meta = self._build_dexined_partial_redetect_input(track)
+        except Exception as exc:
+            QMessageBox.critical(self, "DexiNed re-detect error", str(exc))
+            return
+
+        self._pending_edge_sequence_meta = redetect_meta
+        self._set_preprocessing_busy(True)
+        start_frame_index = int(redetect_meta["start_frame_index"])
+        end_frame_index = int(redetect_meta["end_frame_index"])
+        run_label = (
+            f"Re-detecting Edge Track {track.edge_track_id} on frames "
+            f"{start_frame_index + 1}-{end_frame_index + 1}..."
+        )
+        self._dexined_progress_dialog = QProgressDialog(
+            run_label,
+            "",
+            0,
+            0,
+            self,
+        )
+        self._dexined_progress_dialog.setWindowTitle("DexiNed Re-detect Range")
+        self._dexined_progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self._dexined_progress_dialog.setCancelButton(None)
+        self._dexined_progress_dialog.setMinimumDuration(0)
+        self._dexined_progress_dialog.setAutoClose(False)
+        self._dexined_progress_dialog.setAutoReset(False)
+        self._dexined_progress_dialog.setValue(0)
+        self._dexined_progress_dialog.show()
+        self.statusBar().showMessage(run_label, 0)
+        QApplication.processEvents()
+
+        self._dexined_thread = QThread(self)
+        self._dexined_worker = _DexiNedRunWorker(self._dexined_backend, run_input)
+        self._dexined_worker.moveToThread(self._dexined_thread)
+        self._dexined_thread.started.connect(self._dexined_worker.run)
+        self._dexined_worker.finished.connect(self._on_dexined_sequence_finished)
+        self._dexined_worker.failed.connect(self._on_dexined_sequence_failed)
+        self._dexined_worker.finished.connect(self._dexined_thread.quit)
+        self._dexined_worker.failed.connect(self._dexined_thread.quit)
+        self._dexined_thread.finished.connect(self._cleanup_dexined_worker)
+        self._dexined_thread.start()
+
     def _on_edge_hybrid_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
             return
@@ -1517,6 +1619,32 @@ class NanoTrackMainWindow(QMainWindow):
                 self.statusBar().showMessage(
                     (
                         f"Stitched Edge Track {track_id}: frames "
+                        f"{start_frame_index + 1}-{end_frame_index + 1}."
+                    ),
+                    4000,
+                )
+                track = None
+            elif self._pending_edge_sequence_meta.get("mode") == "redetect":
+                self._apply_edge_redetect_output(output, self._pending_edge_sequence_meta)
+                track_id = int(self._pending_edge_sequence_meta["track_id"])
+                start_frame_index = int(self._pending_edge_sequence_meta["start_frame_index"])
+                end_frame_index = int(self._pending_edge_sequence_meta["end_frame_index"])
+                self.statusBar().showMessage(
+                    (
+                        f"Re-detected Edge Track {track_id}: frames "
+                        f"{start_frame_index + 1}-{end_frame_index + 1}."
+                    ),
+                    4000,
+                )
+                track = None
+            elif self._pending_edge_sequence_meta.get("mode") == "partial_redetect":
+                self._apply_edge_partial_redetect_output(output, self._pending_edge_sequence_meta)
+                track_id = int(self._pending_edge_sequence_meta["track_id"])
+                start_frame_index = int(self._pending_edge_sequence_meta["start_frame_index"])
+                end_frame_index = int(self._pending_edge_sequence_meta["end_frame_index"])
+                self.statusBar().showMessage(
+                    (
+                        f"Partially re-detected Edge Track {track_id}: frames "
                         f"{start_frame_index + 1}-{end_frame_index + 1}."
                     ),
                     4000,
@@ -2307,6 +2435,119 @@ class NanoTrackMainWindow(QMainWindow):
         )
         return run_input, stitch_meta
 
+    def _build_dexined_redetect_input(
+        self,
+        track: EdgeTrack,
+    ) -> tuple[DexiNedRunInput, dict[str, object]]:
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
+
+        frame_indices = np.asarray(track.frame_indices, dtype=np.int32)
+        if len(frame_indices) == 0:
+            raise ValueError("Selected edge track has no annotated frames to re-detect.")
+
+        polygon = self.current_draft_polygon_roi() or track.polygon_roi
+        input_frames, source_title, source_meta, source_view = self._current_edge_input_frames()
+        polygon_mask = self._polygon_roi_to_mask(polygon)
+        threshold = self.polygon_tools_panel.dexined_threshold()
+        inference_resolution_hw = self.polygon_tools_panel.dexined_inference_resolution_hw()
+        top_k_components = self.polygon_tools_panel.dexined_top_k_components()
+        run_frames = np.asarray(input_frames[frame_indices], dtype=np.float32)
+
+        run_input = DexiNedRunInput(
+            frames=run_frames,
+            polygon_mask=polygon_mask,
+            frame_indices=frame_indices,
+            inference_resolution_hw=None
+            if inference_resolution_hw is None
+            else np.asarray(inference_resolution_hw, dtype=np.int32),
+            threshold=threshold,
+            source_view=source_view,
+        )
+        redetect_meta = {
+            "mode": "redetect",
+            "track_id": track.edge_track_id,
+            "polygon": polygon,
+            "polygon_mask": polygon_mask,
+            "start_frame_index": int(frame_indices[0]),
+            "end_frame_index": int(frame_indices[-1]),
+            "frame_indices": frame_indices,
+            "input_frames": run_frames,
+            "source_title": source_title,
+            "source_meta": source_meta,
+            "source_view": source_view,
+            "threshold": threshold,
+            "top_k_components": top_k_components,
+            "inference_resolution_hw": inference_resolution_hw,
+            "refine_score_mode": self.polygon_tools_panel.edge_refine_score_mode(),
+            "refine_search_radius_px": self.polygon_tools_panel.edge_refine_search_radius_px(),
+        }
+        return run_input, redetect_meta
+
+    def _build_dexined_partial_redetect_input(
+        self,
+        track: EdgeTrack,
+    ) -> tuple[DexiNedRunInput, dict[str, object]]:
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
+
+        annotated_frame_indices = np.asarray(track.frame_indices, dtype=np.int32)
+        if len(annotated_frame_indices) == 0:
+            raise ValueError("Selected edge track has no annotated frames to re-detect.")
+
+        start_frame_index = int(self._sequence.active_frame_index)
+        end_frame_index = int(self.polygon_tools_panel.edge_run_end_frame_index())
+        if end_frame_index < start_frame_index:
+            raise ValueError("End frame must be at or after the current frame.")
+        if start_frame_index < int(annotated_frame_indices[0]) or end_frame_index > int(annotated_frame_indices[-1]):
+            raise ValueError(
+                "Partial re-detect must stay within the currently annotated frame range of the selected edge track."
+            )
+
+        frame_indices = annotated_frame_indices[
+            (annotated_frame_indices >= start_frame_index) & (annotated_frame_indices <= end_frame_index)
+        ]
+        if len(frame_indices) == 0:
+            raise ValueError("Selected frame range does not overlap the current edge track.")
+
+        polygon = self.current_draft_polygon_roi() or track.polygon_roi
+        input_frames, source_title, source_meta, source_view = self._current_edge_input_frames()
+        polygon_mask = self._polygon_roi_to_mask(polygon)
+        threshold = self.polygon_tools_panel.dexined_threshold()
+        inference_resolution_hw = self.polygon_tools_panel.dexined_inference_resolution_hw()
+        top_k_components = self.polygon_tools_panel.dexined_top_k_components()
+        run_frames = np.asarray(input_frames[frame_indices], dtype=np.float32)
+
+        run_input = DexiNedRunInput(
+            frames=run_frames,
+            polygon_mask=polygon_mask,
+            frame_indices=frame_indices,
+            inference_resolution_hw=None
+            if inference_resolution_hw is None
+            else np.asarray(inference_resolution_hw, dtype=np.int32),
+            threshold=threshold,
+            source_view=source_view,
+        )
+        redetect_meta = {
+            "mode": "partial_redetect",
+            "track_id": track.edge_track_id,
+            "polygon": polygon,
+            "polygon_mask": polygon_mask,
+            "start_frame_index": start_frame_index,
+            "end_frame_index": end_frame_index,
+            "frame_indices": frame_indices,
+            "input_frames": run_frames,
+            "source_title": source_title,
+            "source_meta": source_meta,
+            "source_view": source_view,
+            "threshold": threshold,
+            "top_k_components": top_k_components,
+            "inference_resolution_hw": inference_resolution_hw,
+            "refine_score_mode": self.polygon_tools_panel.edge_refine_score_mode(),
+            "refine_search_radius_px": self.polygon_tools_panel.edge_refine_search_radius_px(),
+        }
+        return run_input, redetect_meta
+
     def _effective_dexined_threshold(
         self,
         edge_frame: np.ndarray,
@@ -2509,6 +2750,95 @@ class NanoTrackMainWindow(QMainWindow):
                     refine_search_radius_px=refine_search_radius_px,
                 )
             )
+
+        track.polygon_roi = polygon
+        self._replace_edge_track_annotations_in_range(
+            track,
+            start_frame_index=start_frame_index,
+            end_frame_index=end_frame_index,
+            replacement_annotations=replacement_annotations,
+        )
+        if track.seed_frame_index in replacement_annotations and replacement_annotations[track.seed_frame_index].polyline is not None:
+            track.seed_polyline = np.asarray(replacement_annotations[track.seed_frame_index].polyline, dtype=np.float64)
+
+        self.set_edge_tracks(self._edge_tracks, selected_track_id=track.edge_track_id)
+        self._show_current_frame(preserve_zoom=True)
+
+    def _apply_edge_redetect_output(
+        self,
+        output: DexiNedRunOutput,
+        redetect_meta: dict[str, object],
+    ) -> None:
+        track = self._find_edge_track_by_id(int(redetect_meta["track_id"]))
+        if track is None:
+            raise RuntimeError("Selected edge track is no longer available.")
+
+        polygon = redetect_meta["polygon"]
+        polygon_mask = np.asarray(redetect_meta["polygon_mask"], dtype=bool)
+        threshold = float(redetect_meta["threshold"])
+        top_k_components = int(redetect_meta["top_k_components"])
+        frame_indices = np.asarray(redetect_meta["frame_indices"], dtype=np.int32)
+        input_frames = np.asarray(redetect_meta["input_frames"], dtype=np.float32)
+        refine_score_mode = str(redetect_meta["refine_score_mode"])
+        refine_search_radius_px = int(redetect_meta["refine_search_radius_px"])
+
+        replacement_annotations = self._build_edge_annotations_from_dexined_output(
+            output,
+            frame_indices=frame_indices,
+            input_frames=input_frames,
+            polygon_mask=polygon_mask,
+            threshold=threshold,
+            top_k_components=top_k_components,
+            refine_score_mode=refine_score_mode,
+            refine_search_radius_px=refine_search_radius_px,
+        )
+        if track.seed_frame_index not in replacement_annotations or replacement_annotations[track.seed_frame_index].polyline is None:
+            raise ValueError("Re-detect output does not contain a valid seed-frame polyline.")
+
+        track.polygon_roi = polygon
+        track.seed_polyline = np.asarray(replacement_annotations[track.seed_frame_index].polyline, dtype=np.float64)
+        track.annotations = dict(sorted(replacement_annotations.items()))
+        self.set_edge_tracks(self._edge_tracks, selected_track_id=track.edge_track_id)
+        self._show_current_frame(preserve_zoom=True)
+
+    def _apply_edge_partial_redetect_output(
+        self,
+        output: DexiNedRunOutput,
+        redetect_meta: dict[str, object],
+    ) -> None:
+        track = self._find_edge_track_by_id(int(redetect_meta["track_id"]))
+        if track is None:
+            raise RuntimeError("Selected edge track is no longer available.")
+
+        start_frame_index = int(redetect_meta["start_frame_index"])
+        end_frame_index = int(redetect_meta["end_frame_index"])
+        polygon = redetect_meta["polygon"]
+        polygon_mask = np.asarray(redetect_meta["polygon_mask"], dtype=bool)
+        threshold = float(redetect_meta["threshold"])
+        top_k_components = int(redetect_meta["top_k_components"])
+        frame_indices = np.asarray(redetect_meta["frame_indices"], dtype=np.int32)
+        input_frames = np.asarray(redetect_meta["input_frames"], dtype=np.float32)
+        refine_score_mode = str(redetect_meta["refine_score_mode"])
+        refine_search_radius_px = int(redetect_meta["refine_search_radius_px"])
+
+        replacement_annotations = self._build_edge_annotations_from_dexined_output(
+            output,
+            frame_indices=frame_indices,
+            input_frames=input_frames,
+            polygon_mask=polygon_mask,
+            threshold=threshold,
+            top_k_components=top_k_components,
+            refine_score_mode=refine_score_mode,
+            refine_search_radius_px=refine_search_radius_px,
+        )
+        if (
+            start_frame_index <= track.seed_frame_index <= end_frame_index
+            and (
+                track.seed_frame_index not in replacement_annotations
+                or replacement_annotations[track.seed_frame_index].polyline is None
+            )
+        ):
+            raise ValueError("Partial re-detect output does not contain a valid seed-frame polyline.")
 
         track.polygon_roi = polygon
         self._replace_edge_track_annotations_in_range(

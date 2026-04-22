@@ -28,6 +28,8 @@ class PolygonRoiToolsPanel(QWidget):
     load_edge_requested = pyqtSignal()
     save_edge_correction_requested = pyqtSignal()
     resume_edge_requested = pyqtSignal()
+    redetect_edge_requested = pyqtSignal()
+    redetect_edge_range_requested = pyqtSignal()
     hybrid_stabilize_requested = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -91,9 +93,13 @@ class PolygonRoiToolsPanel(QWidget):
         self.btn_load_edge = QPushButton("Load Current Edge", group)
         self.btn_save_edge = QPushButton("Save Edge Correction", group)
         self.btn_resume_edge = QPushButton("Resume Edge Tracking", group)
+        self.btn_redetect_edge = QPushButton("Re-detect Edge", group)
+        self.btn_redetect_edge_range = QPushButton("Re-detect Range", group)
         edge_row.addWidget(self.btn_load_edge)
         edge_row.addWidget(self.btn_save_edge)
         edge_row.addWidget(self.btn_resume_edge)
+        edge_row.addWidget(self.btn_redetect_edge)
+        edge_row.addWidget(self.btn_redetect_edge_range)
         group_layout.addLayout(edge_row)
 
         hybrid_row = QHBoxLayout()
@@ -175,6 +181,8 @@ class PolygonRoiToolsPanel(QWidget):
         self.btn_load_edge.clicked.connect(self.load_edge_requested)
         self.btn_save_edge.clicked.connect(self.save_edge_correction_requested)
         self.btn_resume_edge.clicked.connect(self.resume_edge_requested)
+        self.btn_redetect_edge.clicked.connect(self.redetect_edge_requested)
+        self.btn_redetect_edge_range.clicked.connect(self.redetect_edge_range_requested)
         self.btn_hybrid.clicked.connect(self.hybrid_stabilize_requested)
 
     def _update_enabled_state(self) -> None:
@@ -198,6 +206,8 @@ class PolygonRoiToolsPanel(QWidget):
             and self._has_polygon
             and (self._has_editable_edge or self._has_edge_polyline_on_frame)
         )
+        self.btn_redetect_edge.setEnabled(enabled and self._has_active_edge and not self._draw_mode_active)
+        self.btn_redetect_edge_range.setEnabled(enabled and self._has_active_edge and not self._draw_mode_active)
         self.sp_dexined_threshold.setEnabled(enabled)
         self.sp_edge_components.setEnabled(enabled)
         self.cmb_inference_resolution.setEnabled(enabled)

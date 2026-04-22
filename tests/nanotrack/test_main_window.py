@@ -27,6 +27,7 @@ from nanotrack.core import (
     EdgeFrameAnnotation,
     EdgeMetrics,
     EdgeTrack,
+    FrameVisibility,
     ParticleMetrics,
     ParticleTrack,
     PolygonROI,
@@ -121,6 +122,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.polygon_tools_panel.btn_load_edge.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_save_edge.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_resume_edge.isEnabled())
+        self.assertFalse(self.window.polygon_tools_panel.btn_redetect_edge.isEnabled())
+        self.assertFalse(self.window.polygon_tools_panel.btn_redetect_edge_range.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_hybrid.isEnabled())
         self.assertEqual(self.window.polygon_tools_panel.lbl_polygon.text(), "No polygon ROI on current frame")
         self.assertTrue(self.window.preprocessing_panel.btn_preview.isEnabled())
@@ -1068,6 +1071,172 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertIsNotNone(track.get_annotation(3).metrics.length_px)
         self.assertFalse(np.array_equal(track.get_annotation(3).polyline, original_frame3_polyline))
         self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
+
+    def test_edge_redetect_replaces_existing_track_annotations_without_creating_new_track(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_redetect.mpp",
+            raw_frames=np.zeros((4, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+
+        polygon = PolygonROI(np.asarray([[6.0, 8.0], [24.0, 8.0], [24.0, 24.0], [8.0, 26.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(polygon)
+
+        initial_edge_prob = np.zeros((3, *sequence.frame_shape), dtype=np.float32)
+        initial_edge_prob[0, 10:13, 8:20] = 0.70
+        initial_edge_prob[1, 11:14, 9:21] = 0.72
+        initial_edge_prob[2, 12:15, 10:22] = 0.74
+        initial_output = DexiNedRunOutput(
+            edge_prob=initial_edge_prob,
+            edge_binary=initial_edge_prob >= 0.5,
+            model_name="dexined",
+            checkpoint_name="DexiNed_BIPED_10.pth",
+        )
+
+        self.window.polygon_tools_panel.sp_run_end_frame.setValue(3)
+        with patch.object(self.window._dexined_backend, "run", return_value=initial_output):
+            self.window.polygon_tools_panel.btn_run_sequence.click()
+            for _ in range(250):
+                self.__class__._app.processEvents()
+                if self.window.current_edge_tracks():
+                    break
+                time.sleep(0.01)
+
+        self.assertEqual(len(self.window.current_edge_tracks()), 1)
+        track = self.window.current_edge_tracks()[0]
+        manual_polyline = np.asarray([[8.0, 24.0], [20.0, 24.0]], dtype=np.float64)
+        track.add_annotation(
+            EdgeFrameAnnotation(
+                frame_index=2,
+                polyline=manual_polyline,
+                visibility=FrameVisibility.VISIBLE,
+                source=EdgeAnnotationSource.MANUAL,
+            )
+        )
+        self.window.set_edge_tracks(self.window.current_edge_tracks(), selected_track_id=track.edge_track_id)
+        self.assertEqual(track.get_annotation(2).source, EdgeAnnotationSource.MANUAL)
+        self.assertTrue(self.window.polygon_tools_panel.btn_redetect_edge.isEnabled())
+
+        self.window.polygon_tools_panel.sp_dexined_threshold.setValue(0.30)
+        self.window.polygon_tools_panel.sp_edge_components.setValue(2)
+        self.window.polygon_tools_panel.cmb_refine_score_mode.setCurrentIndex(2)
+        self.window.polygon_tools_panel.sp_refine_radius.setValue(6)
+
+        redetect_edge_prob = np.zeros((3, *sequence.frame_shape), dtype=np.float32)
+        for offset in range(8):
+            redetect_edge_prob[0, 10 + offset, 8 + offset] = 0.82
+            redetect_edge_prob[1, 11 + offset, 8 + offset] = 0.84
+            redetect_edge_prob[2, 12 + offset, 8 + offset] = 0.86
+        redetect_output = DexiNedRunOutput(
+            edge_prob=redetect_edge_prob,
+            edge_binary=redetect_edge_prob >= 0.5,
+            model_name="dexined",
+            checkpoint_name="DexiNed_BIPED_10.pth",
+        )
+
+        run_input, redetect_meta = self.window._build_dexined_redetect_input(track)
+        np.testing.assert_array_equal(run_input.frame_indices, np.asarray([0, 1, 2], dtype=np.int32))
+        self.assertEqual(run_input.frames.shape[0], 3)
+        self.assertEqual(run_input.source_view, "raw")
+        self.assertAlmostEqual(run_input.threshold, 0.30, places=6)
+        self.window._apply_edge_redetect_output(redetect_output, redetect_meta)
+
+        self.assertEqual(len(self.window.current_edge_tracks()), 1)
+        updated_track = self.window.current_edge_tracks()[0]
+        self.assertEqual(updated_track.edge_track_id, 1)
+        self.assertEqual(updated_track.frame_indices, [0, 1, 2])
+        self.assertEqual(self.window.current_selected_edge_track_id(), 1)
+        self.assertEqual(updated_track.get_annotation(2).source, EdgeAnnotationSource.DEXINED)
+
+    def test_edge_partial_redetect_replaces_only_selected_range(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_partial_redetect.mpp",
+            raw_frames=np.zeros((5, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+
+        polygon = PolygonROI(np.asarray([[6.0, 8.0], [24.0, 8.0], [24.0, 24.0], [8.0, 26.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(polygon)
+
+        initial_edge_prob = np.zeros((5, *sequence.frame_shape), dtype=np.float32)
+        initial_edge_prob[0, 10:13, 8:20] = 0.70
+        initial_edge_prob[1, 11:14, 9:21] = 0.72
+        initial_edge_prob[2, 12:15, 10:22] = 0.74
+        initial_edge_prob[3, 13:16, 11:23] = 0.76
+        initial_edge_prob[4, 14:17, 12:24] = 0.78
+        initial_output = DexiNedRunOutput(
+            edge_prob=initial_edge_prob,
+            edge_binary=initial_edge_prob >= 0.5,
+            model_name="dexined",
+            checkpoint_name="DexiNed_BIPED_10.pth",
+        )
+
+        self.window.polygon_tools_panel.sp_run_end_frame.setValue(5)
+        with patch.object(self.window._dexined_backend, "run", return_value=initial_output):
+            self.window.polygon_tools_panel.btn_run_sequence.click()
+            for _ in range(250):
+                self.__class__._app.processEvents()
+                if self.window.current_edge_tracks():
+                    break
+                time.sleep(0.01)
+
+        self.assertEqual(len(self.window.current_edge_tracks()), 1)
+        track = self.window.current_edge_tracks()[0]
+        original_frame0_polyline = np.asarray(track.get_annotation(0).polyline, dtype=np.float64)
+        original_frame4_polyline = np.asarray(track.get_annotation(4).polyline, dtype=np.float64)
+        manual_polyline = np.asarray([[8.0, 22.0], [20.0, 22.0]], dtype=np.float64)
+        track.add_annotation(
+            EdgeFrameAnnotation(
+                frame_index=1,
+                polyline=manual_polyline,
+                visibility=FrameVisibility.VISIBLE,
+                source=EdgeAnnotationSource.MANUAL,
+            )
+        )
+        self.window.set_edge_tracks(self.window.current_edge_tracks(), selected_track_id=track.edge_track_id)
+
+        self.window.slider_frame.setValue(2)
+        self.__class__._app.processEvents()
+        self.window.polygon_tools_panel.sp_run_end_frame.setValue(4)
+        self.assertTrue(self.window.polygon_tools_panel.btn_redetect_edge_range.isEnabled())
+
+        self.window.polygon_tools_panel.sp_dexined_threshold.setValue(0.28)
+        self.window.polygon_tools_panel.sp_edge_components.setValue(2)
+        self.window.polygon_tools_panel.cmb_refine_score_mode.setCurrentIndex(1)
+        self.window.polygon_tools_panel.sp_refine_radius.setValue(5)
+
+        redetect_edge_prob = np.zeros((2, *sequence.frame_shape), dtype=np.float32)
+        for offset in range(8):
+            redetect_edge_prob[0, 10 + offset, 7 + offset] = 0.82
+            redetect_edge_prob[1, 11 + offset, 7 + offset] = 0.84
+        redetect_output = DexiNedRunOutput(
+            edge_prob=redetect_edge_prob,
+            edge_binary=redetect_edge_prob >= 0.5,
+            model_name="dexined",
+            checkpoint_name="DexiNed_BIPED_10.pth",
+        )
+
+        run_input, redetect_meta = self.window._build_dexined_partial_redetect_input(track)
+        np.testing.assert_array_equal(run_input.frame_indices, np.asarray([2, 3], dtype=np.int32))
+        self.assertEqual(run_input.frames.shape[0], 2)
+        self.assertAlmostEqual(run_input.threshold, 0.28, places=6)
+        self.assertEqual(redetect_meta["start_frame_index"], 2)
+        self.assertEqual(redetect_meta["end_frame_index"], 3)
+        self.window._apply_edge_partial_redetect_output(redetect_output, redetect_meta)
+
+        self.assertEqual(len(self.window.current_edge_tracks()), 1)
+        updated_track = self.window.current_edge_tracks()[0]
+        self.assertEqual(updated_track.edge_track_id, 1)
+        self.assertEqual(updated_track.frame_indices, [0, 1, 2, 3, 4])
+        np.testing.assert_array_equal(updated_track.get_annotation(0).polyline, original_frame0_polyline)
+        np.testing.assert_array_equal(updated_track.get_annotation(1).polyline, manual_polyline)
+        self.assertEqual(updated_track.get_annotation(1).source, EdgeAnnotationSource.MANUAL)
+        np.testing.assert_array_equal(updated_track.get_annotation(4).polyline, original_frame4_polyline)
+        self.assertEqual(updated_track.get_annotation(2).source, EdgeAnnotationSource.DEXINED)
+        self.assertEqual(updated_track.get_annotation(3).source, EdgeAnnotationSource.DEXINED)
+        self.assertEqual(self.window.current_selected_edge_track_id(), 1)
 
     def test_edge_hybrid_stabilization_replaces_suffix_with_tracker_refine(self) -> None:
         sequence = STMSequence(
