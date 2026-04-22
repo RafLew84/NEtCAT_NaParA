@@ -53,6 +53,7 @@ from nanotrack.edges import (
     DexiNedRunOutput,
     DexiNedSubprocessBackend,
     hybrid_refine_polyline,
+    refine_edge_polyline,
     sample_polyline_control_points,
 )
 from nanotrack.edges.polyline import dominant_edge_to_polyline
@@ -1453,15 +1454,20 @@ class NanoTrackMainWindow(QMainWindow):
         threshold = float(self._pending_edge_preview_meta["threshold"])
         top_k_components = int(self._pending_edge_preview_meta["top_k_components"])
         inference_resolution_hw = self._pending_edge_preview_meta["inference_resolution_hw"]
+        refine_score_mode = str(self._pending_edge_preview_meta["refine_score_mode"])
+        refine_search_radius_px = int(self._pending_edge_preview_meta["refine_search_radius_px"])
         px_x, px_y = self._sequence.metadata.get_pixel_size_nm()
         edge_frame = np.asarray(output.edge_prob[0], dtype=np.float32)
         edge_binary_frame = None if output.edge_binary is None else np.asarray(output.edge_binary[0], dtype=bool)
-        selection, selected_edge_frame, polyline, max_prob = self._extract_dominant_edge_geometry(
+        selection, selected_edge_frame, coarse_polyline, refined_polyline, max_prob = self._extract_dominant_edge_geometry(
             edge_frame,
             polygon_mask,
+            input_frame=self._pending_edge_preview_frame,
             edge_binary_frame=edge_binary_frame,
             requested_threshold=threshold,
             top_k_components=top_k_components,
+            refine_score_mode=refine_score_mode,
+            refine_search_radius_px=refine_search_radius_px,
         )
 
         dialog = self._ensure_edge_preview_dialog()
@@ -1475,16 +1481,18 @@ class NanoTrackMainWindow(QMainWindow):
             input_title=source_title,
             input_meta=source_meta,
             input_overlay_mask=selection.edge_mask,
-            input_overlay_polyline=polyline.polyline_xy,
+            input_overlay_polyline=refined_polyline.polyline_xy,
             edge_title="Dominant Edge",
             edge_meta=(
                 f"View: {source_view} | mode {selection.selection_mode} | "
                 f"thr {threshold:.2f} | k {top_k_components} | "
                 f"res {inference_resolution_hw if inference_resolution_hw is not None else 'auto'} | "
                 f"selected px {selection.pixel_count} | mean p {selection.mean_probability:.3f} | "
-                f"polyline {polyline.extraction_mode} | pts {polyline.point_count} | max p {max_prob:.3f}"
+                f"coarse {coarse_polyline.extraction_mode} | "
+                f"refine {refined_polyline.score_mode} r {refine_search_radius_px}px | "
+                f"pts {refined_polyline.point_count} | shift {refined_polyline.mean_shift_px:.2f}px | max p {max_prob:.3f}"
             ),
-            edge_overlay_polyline=polyline.polyline_xy,
+            edge_overlay_polyline=refined_polyline.polyline_xy,
         )
         dialog.show()
         dialog.raise_()
@@ -2166,6 +2174,8 @@ class NanoTrackMainWindow(QMainWindow):
             "threshold": threshold,
             "top_k_components": self.polygon_tools_panel.dexined_top_k_components(),
             "inference_resolution_hw": inference_resolution_hw,
+            "refine_score_mode": self.polygon_tools_panel.edge_refine_score_mode(),
+            "refine_search_radius_px": self.polygon_tools_panel.edge_refine_search_radius_px(),
         }
         return run_input, np.asarray(input_frame, dtype=np.float32), preview_meta
 
@@ -2198,12 +2208,15 @@ class NanoTrackMainWindow(QMainWindow):
             "start_frame_index": start_frame_index,
             "end_frame_index": end_frame_index,
             "frame_indices": frame_indices,
+            "input_frames": np.asarray(input_frames[start_frame_index : end_frame_index + 1], dtype=np.float32),
             "source_title": source_title,
             "source_meta": source_meta,
             "source_view": source_view,
             "threshold": threshold,
             "top_k_components": self.polygon_tools_panel.dexined_top_k_components(),
             "inference_resolution_hw": inference_resolution_hw,
+            "refine_score_mode": self.polygon_tools_panel.edge_refine_score_mode(),
+            "refine_search_radius_px": self.polygon_tools_panel.edge_refine_search_radius_px(),
             "mode": "create",
         }
         return run_input, sequence_meta
@@ -2269,12 +2282,15 @@ class NanoTrackMainWindow(QMainWindow):
             "end_frame_index": end_frame_index,
             "current_annotation": current_annotation,
             "frame_indices": frame_indices,
+            "input_frames": np.asarray(input_frames[suffix_start_frame_index : end_frame_index + 1], dtype=np.float32),
             "source_title": source_title,
             "source_meta": source_meta,
             "source_view": source_view,
             "threshold": threshold,
             "top_k_components": top_k_components,
             "inference_resolution_hw": inference_resolution_hw,
+            "refine_score_mode": self.polygon_tools_panel.edge_refine_score_mode(),
+            "refine_search_radius_px": self.polygon_tools_panel.edge_refine_search_radius_px(),
         }
         if len(frame_indices) == 0:
             return None, stitch_meta
@@ -2311,9 +2327,12 @@ class NanoTrackMainWindow(QMainWindow):
         edge_frame: np.ndarray,
         polygon_mask: np.ndarray,
         *,
+        input_frame: np.ndarray,
         edge_binary_frame: np.ndarray | None,
         requested_threshold: float | None = None,
         top_k_components: int = 1,
+        refine_score_mode: str = "combined",
+        refine_search_radius_px: int = 4,
     ):
         effective_threshold = self._effective_dexined_threshold(
             edge_frame,
@@ -2328,9 +2347,17 @@ class NanoTrackMainWindow(QMainWindow):
             max_components=top_k_components,
         )
         selected_edge_frame = edge_frame * selection.edge_mask.astype(np.float32, copy=False)
-        polyline = dominant_edge_to_polyline(selection.edge_mask, edge_prob=edge_frame)
+        coarse_polyline = dominant_edge_to_polyline(selection.edge_mask, edge_prob=edge_frame)
+        refined_polyline = refine_edge_polyline(
+            coarse_polyline.polyline_xy,
+            edge_prob=edge_frame,
+            input_frame=input_frame,
+            polygon_mask=polygon_mask,
+            score_mode=refine_score_mode,
+            search_radius_px=refine_search_radius_px,
+        )
         max_prob = float(np.max(selected_edge_frame)) if selected_edge_frame.size else 0.0
-        return selection, selected_edge_frame, polyline, max_prob
+        return selection, selected_edge_frame, coarse_polyline, refined_polyline, max_prob
 
     def _compute_edge_metrics(self, polyline_xy: np.ndarray):
         if self._sequence is None:
@@ -2354,12 +2381,18 @@ class NanoTrackMainWindow(QMainWindow):
         threshold = float(sequence_meta["threshold"])
         top_k_components = int(sequence_meta["top_k_components"])
         frame_indices = np.asarray(sequence_meta["frame_indices"], dtype=np.int32)
+        input_frames = np.asarray(sequence_meta["input_frames"], dtype=np.float32)
+        refine_score_mode = str(sequence_meta["refine_score_mode"])
+        refine_search_radius_px = int(sequence_meta["refine_search_radius_px"])
         annotations = self._build_edge_annotations_from_dexined_output(
             output,
             frame_indices=frame_indices,
+            input_frames=input_frames,
             polygon_mask=polygon_mask,
             threshold=threshold,
             top_k_components=top_k_components,
+            refine_score_mode=refine_score_mode,
+            refine_search_radius_px=refine_search_radius_px,
         )
         seed_annotation = annotations.get(seed_frame_index)
         seed_polyline = None if seed_annotation is None else np.asarray(seed_annotation.polyline, dtype=np.float64)
@@ -2382,34 +2415,44 @@ class NanoTrackMainWindow(QMainWindow):
         output: DexiNedRunOutput,
         *,
         frame_indices: np.ndarray,
+        input_frames: np.ndarray,
         polygon_mask: np.ndarray,
         threshold: float,
         top_k_components: int,
+        refine_score_mode: str,
+        refine_search_radius_px: int,
     ) -> dict[int, EdgeFrameAnnotation]:
         edge_prob = np.asarray(output.edge_prob, dtype=np.float32)
         frame_indices = np.asarray(frame_indices, dtype=np.int32)
         if edge_prob.shape[0] != len(frame_indices):
             raise ValueError("DexiNed output length must match the requested frame range.")
+        input_frames_f32 = np.asarray(input_frames, dtype=np.float32)
+        if input_frames_f32.shape[0] != len(frame_indices):
+            raise ValueError("Input frame range length must match the requested frame range.")
 
         annotations: dict[int, EdgeFrameAnnotation] = {}
         for local_index, frame_index in enumerate(frame_indices):
             edge_frame = np.asarray(edge_prob[local_index], dtype=np.float32)
+            input_frame = np.asarray(input_frames_f32[local_index], dtype=np.float32)
             edge_binary_frame = None
             if output.edge_binary is not None:
                 edge_binary_frame = np.asarray(output.edge_binary[local_index], dtype=bool)
-            selection, _selected_edge_frame, polyline, _max_prob = self._extract_dominant_edge_geometry(
+            selection, _selected_edge_frame, _coarse_polyline, refined_polyline, _max_prob = self._extract_dominant_edge_geometry(
                 edge_frame,
                 polygon_mask,
+                input_frame=input_frame,
                 edge_binary_frame=edge_binary_frame,
                 requested_threshold=threshold,
                 top_k_components=top_k_components,
+                refine_score_mode=refine_score_mode,
+                refine_search_radius_px=refine_search_radius_px,
             )
             annotations[int(frame_index)] = EdgeFrameAnnotation(
                 frame_index=int(frame_index),
-                polyline=polyline.polyline_xy,
+                polyline=refined_polyline.polyline_xy,
                 edge_mask=selection.edge_mask,
                 source=EdgeAnnotationSource.DEXINED,
-                metrics=self._compute_edge_metrics(polyline.polyline_xy),
+                metrics=self._compute_edge_metrics(refined_polyline.polyline_xy),
             )
         return annotations
 
@@ -2445,6 +2488,9 @@ class NanoTrackMainWindow(QMainWindow):
         threshold = float(stitch_meta["threshold"])
         top_k_components = int(stitch_meta["top_k_components"])
         frame_indices = np.asarray(stitch_meta["frame_indices"], dtype=np.int32)
+        input_frames = np.asarray(stitch_meta["input_frames"], dtype=np.float32)
+        refine_score_mode = str(stitch_meta["refine_score_mode"])
+        refine_search_radius_px = int(stitch_meta["refine_search_radius_px"])
         current_annotation = stitch_meta.get("current_annotation")
 
         replacement_annotations: dict[int, EdgeFrameAnnotation] = {}
@@ -2455,9 +2501,12 @@ class NanoTrackMainWindow(QMainWindow):
                 self._build_edge_annotations_from_dexined_output(
                     output,
                     frame_indices=frame_indices,
+                    input_frames=input_frames,
                     polygon_mask=polygon_mask,
                     threshold=threshold,
                     top_k_components=top_k_components,
+                    refine_score_mode=refine_score_mode,
+                    refine_search_radius_px=refine_search_radius_px,
                 )
             )
 
@@ -2565,10 +2614,13 @@ class NanoTrackMainWindow(QMainWindow):
             "resume_from_frame": resume_from_frame,
             "polygon": polygon,
             "polygon_mask": polygon_mask,
+            "input_frames": suffix_frames,
             "current_annotation": current_annotation,
             "threshold": threshold,
             "top_k_components": self.polygon_tools_panel.dexined_top_k_components(),
             "inference_resolution_hw": inference_resolution_hw,
+            "refine_score_mode": self.polygon_tools_panel.edge_refine_score_mode(),
+            "refine_search_radius_px": self.polygon_tools_panel.edge_refine_search_radius_px(),
         }
         return run_input, resume_meta
 
@@ -2705,9 +2757,12 @@ class NanoTrackMainWindow(QMainWindow):
         resume_from_frame = int(resume_meta["resume_from_frame"])
         polygon = resume_meta["polygon"]
         polygon_mask = np.asarray(resume_meta["polygon_mask"], dtype=bool)
+        input_frames = np.asarray(resume_meta["input_frames"], dtype=np.float32)
         current_annotation = resume_meta["current_annotation"]
         threshold = float(resume_meta["threshold"])
         top_k_components = int(resume_meta["top_k_components"])
+        refine_score_mode = str(resume_meta["refine_score_mode"])
+        refine_search_radius_px = int(resume_meta["refine_search_radius_px"])
         expected_suffix_length = self._sequence.frame_count - resume_from_frame - 1
 
         track.polygon_roi = polygon
@@ -2720,27 +2775,33 @@ class NanoTrackMainWindow(QMainWindow):
         edge_prob = np.asarray(output.edge_prob, dtype=np.float32)
         if edge_prob.shape[0] != expected_suffix_length:
             raise ValueError("DexiNed resume output length must match the remaining frame count.")
+        if input_frames.shape[0] != expected_suffix_length:
+            raise ValueError("DexiNed resume input frame range must match the remaining frame count.")
         for local_index in range(edge_prob.shape[0]):
             frame_index = resume_from_frame + 1 + local_index
             edge_frame = np.asarray(edge_prob[local_index], dtype=np.float32)
+            input_frame = np.asarray(input_frames[local_index], dtype=np.float32)
             edge_binary_frame = None
             if output.edge_binary is not None:
                 edge_binary_frame = np.asarray(output.edge_binary[local_index], dtype=bool)
-            selection, _selected_edge_frame, polyline, _max_prob = self._extract_dominant_edge_geometry(
+            selection, _selected_edge_frame, _coarse_polyline, refined_polyline, _max_prob = self._extract_dominant_edge_geometry(
                 edge_frame,
                 polygon_mask,
+                input_frame=input_frame,
                 edge_binary_frame=edge_binary_frame,
                 requested_threshold=threshold,
                 top_k_components=top_k_components,
+                refine_score_mode=refine_score_mode,
+                refine_search_radius_px=refine_search_radius_px,
             )
             track.add_annotation(
                 EdgeFrameAnnotation(
                     frame_index=frame_index,
-                    polyline=polyline.polyline_xy,
+                    polyline=refined_polyline.polyline_xy,
                     edge_mask=selection.edge_mask,
                     visibility=FrameVisibility.VISIBLE,
                     source=EdgeAnnotationSource.DEXINED,
-                    metrics=self._compute_edge_metrics(polyline.polyline_xy),
+                    metrics=self._compute_edge_metrics(refined_polyline.polyline_xy),
                 )
             )
 

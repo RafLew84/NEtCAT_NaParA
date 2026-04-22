@@ -137,6 +137,24 @@ class PolygonRoiToolsPanel(QWidget):
         dexined_row.addWidget(self.cmb_inference_resolution)
         group_layout.addLayout(dexined_row)
 
+        refine_row = QHBoxLayout()
+        self.cmb_refine_score_mode = QComboBox(group)
+        self.cmb_refine_score_mode.addItem("Ref combined", "combined")
+        self.cmb_refine_score_mode.addItem("Ref edge_prob", "edge_prob")
+        self.cmb_refine_score_mode.addItem("Ref gradient", "gradient")
+        self.cmb_refine_score_mode.setToolTip(
+            "Score used during normal-direction refinement of the final edge geometry."
+        )
+        self.sp_refine_radius = QSpinBox(group)
+        self.sp_refine_radius.setRange(1, 24)
+        self.sp_refine_radius.setValue(4)
+        self.sp_refine_radius.setPrefix("R ")
+        self.sp_refine_radius.setSuffix(" px")
+        self.sp_refine_radius.setToolTip("Half-width of the search window used to localize the final edge.")
+        refine_row.addWidget(self.cmb_refine_score_mode)
+        refine_row.addWidget(self.sp_refine_radius)
+        group_layout.addLayout(refine_row)
+
         self.lbl_frame = QLabel("Frame: -", group)
         self.lbl_polygon = QLabel("No polygon ROI on current frame", group)
         self.lbl_edge = QLabel("Active edge track: -", group)
@@ -183,6 +201,8 @@ class PolygonRoiToolsPanel(QWidget):
         self.sp_dexined_threshold.setEnabled(enabled)
         self.sp_edge_components.setEnabled(enabled)
         self.cmb_inference_resolution.setEnabled(enabled)
+        self.cmb_refine_score_mode.setEnabled(enabled)
+        self.sp_refine_radius.setEnabled(enabled)
         self.cmb_tracker.setEnabled(enabled)
         self.sp_tracker_points.setEnabled(enabled)
         self.btn_hybrid.setEnabled(
@@ -294,6 +314,13 @@ class PolygonRoiToolsPanel(QWidget):
             return None
         height, width = value
         return int(height), int(width)
+
+    def edge_refine_score_mode(self) -> str:
+        current_data = self.cmb_refine_score_mode.currentData()
+        return "combined" if current_data is None else str(current_data)
+
+    def edge_refine_search_radius_px(self) -> int:
+        return int(self.sp_refine_radius.value())
 
     def edge_run_end_frame_index(self) -> int:
         return max(0, int(self.sp_run_end_frame.value()) - 1)
