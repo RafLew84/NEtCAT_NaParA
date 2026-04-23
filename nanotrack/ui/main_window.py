@@ -341,6 +341,8 @@ class NanoTrackMainWindow(QMainWindow):
         self.bbox_tools_panel.resume_track_requested.connect(self._on_resume_track_requested)
         self.yolo_panel.detect_current_requested.connect(self._on_yolo_detect_current_requested)
         self.yolo_panel.detect_all_requested.connect(self._on_yolo_detect_all_requested)
+        self.yolo_panel.scale_current_requested.connect(self._on_yolo_scale_current_requested)
+        self.yolo_panel.scale_all_requested.connect(self._on_yolo_scale_all_requested)
         self.yolo_panel.select_all_current_requested.connect(self._on_yolo_select_all_current_requested)
         self.yolo_panel.deselect_all_current_requested.connect(self._on_yolo_deselect_all_current_requested)
         self.yolo_panel.select_all_global_requested.connect(self._on_yolo_select_all_global_requested)
@@ -1069,6 +1071,12 @@ class NanoTrackMainWindow(QMainWindow):
     def _on_yolo_deselect_all_current_requested(self) -> None:
         self._set_yolo_current_selection_state(False)
 
+    def _on_yolo_scale_current_requested(self) -> None:
+        self._scale_yolo_detections(current_only=True)
+
+    def _on_yolo_scale_all_requested(self) -> None:
+        self._scale_yolo_detections(current_only=False)
+
     def _on_yolo_select_all_global_requested(self) -> None:
         self._set_yolo_global_selection_state(True)
 
@@ -1107,6 +1115,76 @@ class NanoTrackMainWindow(QMainWindow):
             f"All YOLO detections on frame {frame_index + 1} {state_label}.",
             2500,
         )
+
+    def _scale_yolo_detections(self, *, current_only: bool) -> None:
+        if self._sequence is None or self._yolo_detections is None:
+            return
+
+        multiplier = self.yolo_panel.bbox_scale_multiplier()
+        frame_height, frame_width = self._sequence.frame_shape
+        frame_indices = (
+            [int(self._sequence.active_frame_index)]
+            if current_only
+            else list(self._yolo_detections.frame_indices)
+        )
+
+        scaled_count = 0
+        for frame_index in frame_indices:
+            frame_detections = self._yolo_detections.get_detections(frame_index)
+            if not frame_detections:
+                continue
+            for detection in frame_detections:
+                detection.bbox = self._scaled_yolo_bbox(
+                    detection.bbox,
+                    multiplier=multiplier,
+                    frame_width=frame_width,
+                    frame_height=frame_height,
+                )
+                scaled_count += 1
+
+        if scaled_count <= 0:
+            return
+
+        self._sync_yolo_detection_ui()
+        self._sync_track_overlays()
+        if current_only:
+            target_label = f"on frame {int(self._sequence.active_frame_index) + 1}"
+        else:
+            target_label = "across all frames"
+        self.statusBar().showMessage(
+            f"Scaled {scaled_count} YOLO bbox proposals by x{multiplier:.2f} {target_label}.",
+            3500,
+        )
+
+    def _scaled_yolo_bbox(
+        self,
+        bbox: BBoxXYXY,
+        *,
+        multiplier: float,
+        frame_width: int,
+        frame_height: int,
+    ) -> BBoxXYXY:
+        multiplier = float(multiplier)
+        frame_width_f = float(frame_width)
+        frame_height_f = float(frame_height)
+        center_x, center_y = bbox.center_xy
+        half_width = (bbox.width * multiplier) / 2.0
+        half_height = (bbox.height * multiplier) / 2.0
+
+        x0 = max(0.0, center_x - half_width)
+        y0 = max(0.0, center_y - half_height)
+        x1 = min(frame_width_f, center_x + half_width)
+        y1 = min(frame_height_f, center_y + half_height)
+
+        min_extent = 1e-6
+        if x1 <= x0:
+            x0 = min(max(0.0, center_x - (min_extent / 2.0)), max(0.0, frame_width_f - min_extent))
+            x1 = min(frame_width_f, x0 + min_extent)
+        if y1 <= y0:
+            y0 = min(max(0.0, center_y - (min_extent / 2.0)), max(0.0, frame_height_f - min_extent))
+            y1 = min(frame_height_f, y0 + min_extent)
+
+        return BBoxXYXY(x0, y0, x1, y1)
 
     def _set_yolo_global_selection_state(self, selected: bool) -> None:
         if self._yolo_detections is None:

@@ -132,6 +132,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.yolo_panel.btn_deselect_all_current.isEnabled())
         self.assertFalse(self.window.yolo_panel.btn_select_all_global.isEnabled())
         self.assertFalse(self.window.yolo_panel.btn_deselect_all_global.isEnabled())
+        self.assertFalse(self.window.yolo_panel.btn_scale_current.isEnabled())
+        self.assertFalse(self.window.yolo_panel.btn_scale_all.isEnabled())
         self.assertFalse(self.window.yolo_panel.btn_convert_current.isEnabled())
         self.assertFalse(self.window.yolo_panel.btn_convert_all.isEnabled())
         self.assertFalse(self.window.yolo_panel.btn_clear.isEnabled())
@@ -211,6 +213,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(self.window.yolo_panel.btn_deselect_all_current.isEnabled())
         self.assertTrue(self.window.yolo_panel.btn_select_all_global.isEnabled())
         self.assertTrue(self.window.yolo_panel.btn_deselect_all_global.isEnabled())
+        self.assertTrue(self.window.yolo_panel.btn_scale_current.isEnabled())
+        self.assertTrue(self.window.yolo_panel.btn_scale_all.isEnabled())
         self.assertFalse(self.window.yolo_panel.btn_convert_current.isEnabled())
         self.assertFalse(self.window.yolo_panel.btn_convert_all.isEnabled())
         self.assertFalse(self.window.yolo_panel.btn_clear.isEnabled())
@@ -306,6 +310,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(self.window.yolo_panel.btn_deselect_all_current.isEnabled())
         self.assertTrue(self.window.yolo_panel.btn_select_all_global.isEnabled())
         self.assertTrue(self.window.yolo_panel.btn_deselect_all_global.isEnabled())
+        self.assertTrue(self.window.yolo_panel.btn_scale_current.isEnabled())
+        self.assertTrue(self.window.yolo_panel.btn_scale_all.isEnabled())
         self.assertEqual(
             self.window.yolo_panel.lbl_detections.text(),
             "Detections: current 2 (selected 2) | all 3 (selected 3)",
@@ -420,6 +426,107 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             "Detections: current 1 (selected 1) | all 3 (selected 3)",
         )
 
+    def test_yolo_scale_bboxes_current_affects_only_active_frame(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/yolo_scale_current.mpp",
+            raw_frames=np.zeros((2, 8, 10), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=10, pixels_y=8),
+        )
+        self.window.set_sequence(sequence)
+        if self.window.yolo_panel.cmb_model.count() == 0:
+            self.skipTest("No local YOLO models available for the GUI test.")
+
+        model_name = self.window.yolo_panel.current_model_name()
+        self.assertIsNotNone(model_name)
+        self.window._replace_yolo_detections(
+            model_name=str(model_name),
+            detections_by_frame={
+                0: [
+                    YoloDetection(
+                        frame_index=0,
+                        bbox=BBoxXYXY(2.0, 2.0, 6.0, 6.0),
+                        confidence=0.9,
+                        selected=True,
+                        model_name=str(model_name),
+                    )
+                ],
+                1: [
+                    YoloDetection(
+                        frame_index=1,
+                        bbox=BBoxXYXY(1.0, 1.0, 5.0, 5.0),
+                        confidence=0.8,
+                        selected=True,
+                        model_name=str(model_name),
+                    )
+                ],
+            },
+        )
+        detection_set = self.window.current_yolo_detection_set()
+        self.assertIsNotNone(detection_set)
+        assert detection_set is not None
+
+        self.window.yolo_panel.sp_scale_multiplier.setValue(0.50)
+        self.window._on_yolo_scale_current_requested()
+
+        self.assertEqual(detection_set.get_detections(0)[0].bbox, BBoxXYXY(3.0, 3.0, 5.0, 5.0))
+        self.assertEqual(detection_set.get_detections(1)[0].bbox, BBoxXYXY(1.0, 1.0, 5.0, 5.0))
+        self.assertEqual(
+            self.window.yolo_panel.lbl_detections.text(),
+            "Detections: current 1 (selected 1) | all 2 (selected 2)",
+        )
+
+    def test_yolo_scale_bboxes_all_affects_all_frames_and_clips_to_bounds(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/yolo_scale_all.mpp",
+            raw_frames=np.zeros((2, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+        )
+        self.window.set_sequence(sequence)
+        if self.window.yolo_panel.cmb_model.count() == 0:
+            self.skipTest("No local YOLO models available for the GUI test.")
+
+        model_name = self.window.yolo_panel.current_model_name()
+        self.assertIsNotNone(model_name)
+        self.window._replace_yolo_detections(
+            model_name=str(model_name),
+            detections_by_frame={
+                0: [
+                    YoloDetection(
+                        frame_index=0,
+                        bbox=BBoxXYXY(2.0, 2.0, 4.0, 4.0),
+                        confidence=0.9,
+                        selected=True,
+                        model_name=str(model_name),
+                    )
+                ],
+                1: [
+                    YoloDetection(
+                        frame_index=1,
+                        bbox=BBoxXYXY(1.0, 1.0, 3.0, 3.0),
+                        confidence=0.8,
+                        selected=False,
+                        model_name=str(model_name),
+                    )
+                ],
+            },
+        )
+        detection_set = self.window.current_yolo_detection_set()
+        self.assertIsNotNone(detection_set)
+        assert detection_set is not None
+
+        self.window.yolo_panel.sp_scale_multiplier.setValue(3.00)
+        self.window._on_yolo_scale_all_requested()
+
+        self.assertEqual(detection_set.get_detections(0)[0].bbox, BBoxXYXY(0.0, 0.0, 6.0, 6.0))
+        self.assertEqual(detection_set.get_detections(1)[0].bbox, BBoxXYXY(0.0, 0.0, 5.0, 5.0))
+        self.assertFalse(detection_set.get_detections(1)[0].selected)
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+        self.assertEqual(
+            self.window.yolo_panel.lbl_detections.text(),
+            "Detections: current 1 (selected 0) | all 2 (selected 1)",
+        )
+
     def test_yolo_detect_all_creates_detection_proposals_for_included_frames(self) -> None:
         sequence = STMSequence(
             source_path="/tmp/yolo_detect_all.mpp",
@@ -466,6 +573,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(len(self.window.viewer.viewer._overlay_items), 2)
         self.assertTrue(self.window.yolo_panel.btn_detect_current.isEnabled())
         self.assertTrue(self.window.yolo_panel.btn_detect_all.isEnabled())
+        self.assertTrue(self.window.yolo_panel.btn_scale_current.isEnabled())
+        self.assertTrue(self.window.yolo_panel.btn_scale_all.isEnabled())
 
         self.window.slider_frame.setValue(1)
         self.__class__._app.processEvents()

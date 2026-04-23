@@ -20,6 +20,8 @@ class YoloSeedDetectionPanel(QWidget):
 
     detect_current_requested = pyqtSignal()
     detect_all_requested = pyqtSignal()
+    scale_current_requested = pyqtSignal()
+    scale_all_requested = pyqtSignal()
     select_all_current_requested = pyqtSignal()
     deselect_all_current_requested = pyqtSignal()
     select_all_global_requested = pyqtSignal()
@@ -92,6 +94,24 @@ class YoloSeedDetectionPanel(QWidget):
         detect_row.addWidget(self.btn_detect_all)
         group_layout.addLayout(detect_row)
 
+        scale_multiplier_row = QHBoxLayout()
+        self.sp_scale_multiplier = QDoubleSpinBox(group)
+        self.sp_scale_multiplier.setRange(0.10, 5.0)
+        self.sp_scale_multiplier.setSingleStep(0.05)
+        self.sp_scale_multiplier.setDecimals(2)
+        self.sp_scale_multiplier.setValue(1.00)
+        self.sp_scale_multiplier.setPrefix("Scale x")
+        self.sp_scale_multiplier.setToolTip("Multiply YOLO bbox size around its center before converting detections to seeds.")
+        scale_multiplier_row.addWidget(self.sp_scale_multiplier)
+        group_layout.addLayout(scale_multiplier_row)
+
+        scale_row = QHBoxLayout()
+        self.btn_scale_current = QPushButton("Scale BBoxes (Current)", group)
+        self.btn_scale_all = QPushButton("Scale BBoxes (All Frames)", group)
+        scale_row.addWidget(self.btn_scale_current)
+        scale_row.addWidget(self.btn_scale_all)
+        group_layout.addLayout(scale_row)
+
         current_row = QHBoxLayout()
         self.btn_select_all_current = QPushButton("Select All (Current)", group)
         self.btn_deselect_all_current = QPushButton("Deselect All (Current)", group)
@@ -131,6 +151,8 @@ class YoloSeedDetectionPanel(QWidget):
     def _connect_signals(self) -> None:
         self.btn_detect_current.clicked.connect(self.detect_current_requested)
         self.btn_detect_all.clicked.connect(self.detect_all_requested)
+        self.btn_scale_current.clicked.connect(self.scale_current_requested)
+        self.btn_scale_all.clicked.connect(self.scale_all_requested)
         self.btn_select_all_current.clicked.connect(self.select_all_current_requested)
         self.btn_deselect_all_current.clicked.connect(self.deselect_all_current_requested)
         self.btn_select_all_global.clicked.connect(self.select_all_global_requested)
@@ -146,8 +168,11 @@ class YoloSeedDetectionPanel(QWidget):
         self.cmb_model.setEnabled(can_configure)
         self.sp_confidence.setEnabled(not self._processing_busy)
         self.sp_iou.setEnabled(not self._processing_busy)
+        self.sp_scale_multiplier.setEnabled(not self._processing_busy)
         self.btn_detect_current.setEnabled(can_detect and self._detect_current_available)
         self.btn_detect_all.setEnabled(can_detect and self._detect_all_available)
+        self.btn_scale_current.setEnabled(self._sequence_loaded and not self._processing_busy and self._current_detection_count > 0)
+        self.btn_scale_all.setEnabled(self._sequence_loaded and not self._processing_busy and self._total_detection_count > 0)
         self.btn_select_all_current.setEnabled(
             can_detect and self._current_selection_actions_available and self._current_detection_count > 0
         )
@@ -273,3 +298,6 @@ class YoloSeedDetectionPanel(QWidget):
 
     def nms_iou_threshold(self) -> float:
         return float(self.sp_iou.value())
+
+    def bbox_scale_multiplier(self) -> float:
+        return float(self.sp_scale_multiplier.value())
