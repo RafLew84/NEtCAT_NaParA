@@ -40,6 +40,8 @@ from nanotrack.core import (
     PolygonROI,
     STMSequence,
     TrackFrameAnnotation,
+    YoloDetection,
+    YoloDetectionSet,
 )
 from nanotrack.io import load_mpp_sequence
 from nanotrack.persistence import NanoTrackSessionSnapshot, load_session_snapshot, save_session_snapshot
@@ -66,6 +68,7 @@ from nanotrack.trackers import (
     PointTrackerRunOutput,
     PointTrackerSubprocessBackend,
 )
+from nanotrack.yolo import YoloRuntime
 from nanotrack.ui.dialogs import Bm3dPreviewDialog, EdgePreviewDialog, EdgeTrackResultsDialog, TrackResultsDialog
 from nanotrack.ui.widgets import (
     BBoxToolsPanel,
@@ -167,6 +170,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._edge_tracks: list[EdgeTrack] = []
         self._selected_track_id: int | None = None
         self._selected_edge_track_id: int | None = None
+        self._yolo_detections: YoloDetectionSet | None = None
         self._draft_bboxes_by_frame: dict[int, BBoxXYXY] = {}
         self._draft_polygons_by_frame: dict[int, PolygonROI] = {}
         self._draft_edge_polylines_by_frame: dict[int, np.ndarray] = {}
@@ -196,6 +200,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._pending_edge_resume_meta: dict[str, object] | None = None
         self._pending_edge_hybrid_meta: dict[str, object] | None = None
         self._sam2_backend = Sam2SubprocessBackend()
+        self._yolo_runtime = YoloRuntime()
         self._sam2_progress_dialog: QProgressDialog | None = None
         self._sam2_thread: QThread | None = None
         self._sam2_worker: _Sam2RunWorker | None = None
@@ -333,6 +338,8 @@ class NanoTrackMainWindow(QMainWindow):
         self.bbox_tools_panel.load_track_bbox_requested.connect(self._on_load_track_bbox_requested)
         self.bbox_tools_panel.save_correction_requested.connect(self._on_save_correction_requested)
         self.bbox_tools_panel.resume_track_requested.connect(self._on_resume_track_requested)
+        self.yolo_panel.detect_current_requested.connect(self._on_yolo_detect_current_requested)
+        self.yolo_panel.detect_all_requested.connect(self._on_yolo_detect_all_requested)
         self.polygon_tools_panel.draw_mode_toggled.connect(self._on_polygon_draw_mode_toggled)
         self.polygon_tools_panel.finish_requested.connect(self._on_finish_polygon_requested)
         self.polygon_tools_panel.clear_requested.connect(self._on_clear_current_polygon_requested)
@@ -364,6 +371,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.btn_next.setEnabled(enabled)
         self.bbox_tools_panel.set_sequence_loaded(enabled)
         self.yolo_panel.set_sequence_loaded(enabled)
+        self.yolo_panel.set_detect_all_available(enabled)
         self.polygon_tools_panel.set_sequence_loaded(enabled)
         self.preprocessing_panel.set_sequence_loaded(enabled)
 
@@ -416,6 +424,7 @@ class NanoTrackMainWindow(QMainWindow):
         )
         self._sync_current_bbox_ui()
         self._sync_current_polygon_ui()
+        self._sync_yolo_detection_ui()
         self._sync_track_overlays()
         self._sync_navigation_controls()
         excluded_suffix = " | excluded from analysis" if self._sequence.is_frame_excluded(self._sequence.active_frame_index) else ""
@@ -429,6 +438,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._selected_track_id = None
         self._selected_edge_track_id = None
         self._edge_tracks = []
+        self._yolo_detections = None
         self._draft_bboxes_by_frame = {}
         self._draft_polygons_by_frame = {}
         self._draft_edge_polylines_by_frame = {}
@@ -537,6 +547,9 @@ class NanoTrackMainWindow(QMainWindow):
 
     def current_edge_results_dialog(self) -> EdgeTrackResultsDialog | None:
         return self._edge_results_dialog
+
+    def current_yolo_detection_set(self) -> YoloDetectionSet | None:
+        return self._yolo_detections
 
     def _build_point_tracker_backends(self) -> dict[str, PointTrackerSubprocessBackend]:
         worker_root = Path(__file__).resolve().parents[1] / "trackers"
@@ -749,6 +762,7 @@ class NanoTrackMainWindow(QMainWindow):
             self._draft_bboxes_by_frame.pop(frame_index, None)
             self._draft_polygons_by_frame.pop(frame_index, None)
             self._draft_edge_polylines_by_frame.pop(frame_index, None)
+            removed_yolo_detections = self._prune_excluded_frame_from_yolo_detections(frame_index)
             removed_particle_tracks, removed_particle_annotations = self._prune_excluded_frame_from_tracks(frame_index)
             removed_edge_tracks, removed_edge_annotations = self._prune_excluded_frame_from_edge_tracks(frame_index)
             self._reset_preview_state(close_dialog=True)
@@ -756,7 +770,8 @@ class NanoTrackMainWindow(QMainWindow):
             self.statusBar().showMessage(
                 (
                     f"Excluded frame {frame_index + 1} from analysis "
-                    f"(removed {removed_particle_annotations} particle annotations, {removed_edge_annotations} edge annotations, "
+                    f"(removed {removed_yolo_detections} YOLO detections, "
+                    f"{removed_particle_annotations} particle annotations, {removed_edge_annotations} edge annotations, "
                     f"dropped {removed_particle_tracks} particle tracks, {removed_edge_tracks} edge tracks)."
                 ),
                 5000,
@@ -801,6 +816,239 @@ class NanoTrackMainWindow(QMainWindow):
         ) else (remaining_tracks[0].track_id if remaining_tracks else None)
         self.set_tracks(remaining_tracks, selected_track_id=next_selected_track_id)
         return removed_tracks, removed_annotations
+
+    def _prune_excluded_frame_from_yolo_detections(self, frame_index: int) -> int:
+        if self._yolo_detections is None:
+            return 0
+        removed = len(self._yolo_detections.get_detections(frame_index))
+        if removed == 0:
+            return 0
+        self._yolo_detections.clear_frame(frame_index)
+        if self._yolo_detections.detection_count == 0:
+            self._yolo_detections = None
+        self._sync_yolo_detection_ui()
+        return removed
+
+    def _on_yolo_detect_current_requested(self) -> None:
+        if self._sequence is None or self._is_preprocessing or self._is_tracking:
+            return
+        if not self._ensure_current_frame_included("Detect YOLO on Current Frame"):
+            return
+
+        model_path = self.yolo_panel.current_model_path()
+        model_name = self.yolo_panel.current_model_name()
+        if model_path is None or model_name is None:
+            QMessageBox.warning(
+                self,
+                "YOLO model missing",
+                "No local YOLO checkpoint is available in nanotrack/yolo_models.",
+            )
+            return
+
+        frame_index = int(self._sequence.active_frame_index)
+        input_frame, source_view = self._current_yolo_input_frame()
+        self._set_tracking_busy(True)
+        self.statusBar().showMessage(
+            f"Running YOLO on frame {frame_index + 1} using {model_name}...",
+            0,
+        )
+        QApplication.processEvents()
+        try:
+            runtime_detections = self._yolo_runtime.predict_frame(
+                input_frame,
+                model_path=model_path,
+                conf_threshold=self.yolo_panel.confidence_threshold(),
+                iou_threshold=self.yolo_panel.nms_iou_threshold(),
+            )
+        except Exception as exc:
+            QMessageBox.critical(self, "YOLO detection error", str(exc))
+            return
+        finally:
+            self._set_tracking_busy(False)
+
+        detections = [
+            YoloDetection(
+                frame_index=frame_index,
+                bbox=detection.bbox,
+                confidence=detection.confidence,
+                selected=True,
+                model_name=model_name,
+            )
+            for detection in runtime_detections
+        ]
+        self._upsert_current_frame_yolo_detections(model_name=model_name, frame_index=frame_index, detections=detections)
+        self.statusBar().showMessage(
+            (
+                f"YOLO detected {len(detections)} bbox proposals on frame {frame_index + 1} "
+                f"using {model_name} ({source_view})."
+            ),
+            4000,
+        )
+
+    def _on_yolo_detect_all_requested(self) -> None:
+        if self._sequence is None or self._is_preprocessing or self._is_tracking:
+            return
+
+        model_path = self.yolo_panel.current_model_path()
+        model_name = self.yolo_panel.current_model_name()
+        if model_path is None or model_name is None:
+            QMessageBox.warning(
+                self,
+                "YOLO model missing",
+                "No local YOLO checkpoint is available in nanotrack/yolo_models.",
+            )
+            return
+
+        input_frames, source_view = self._current_yolo_input_frames()
+        included_frame_indices = self._sequence.included_frame_indices()
+        if not included_frame_indices:
+            QMessageBox.warning(
+                self,
+                "No frames available",
+                "All frames are currently excluded from analysis. Restore at least one frame before running YOLO.",
+            )
+            return
+
+        progress = QProgressDialog("Running YOLO on all included frames...", "", 0, len(included_frame_indices), self)
+        progress.setWindowTitle("YOLO Detection")
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setCancelButton(None)
+        progress.setMinimumDuration(0)
+        progress.setAutoClose(False)
+        progress.setAutoReset(False)
+        progress.setValue(0)
+
+        self._set_tracking_busy(True)
+        self.statusBar().showMessage(
+            f"Running YOLO on {len(included_frame_indices)} frames using {model_name}...",
+            0,
+        )
+        progress.show()
+        QApplication.processEvents()
+
+        detections_by_frame: dict[int, list[YoloDetection]] = {}
+        try:
+            for processed_index, frame_index in enumerate(included_frame_indices, start=1):
+                runtime_detections = self._yolo_runtime.predict_frame(
+                    input_frames[frame_index],
+                    model_path=model_path,
+                    conf_threshold=self.yolo_panel.confidence_threshold(),
+                    iou_threshold=self.yolo_panel.nms_iou_threshold(),
+                )
+                detections_by_frame[frame_index] = [
+                    YoloDetection(
+                        frame_index=frame_index,
+                        bbox=detection.bbox,
+                        confidence=detection.confidence,
+                        selected=True,
+                        model_name=model_name,
+                    )
+                    for detection in runtime_detections
+                ]
+                progress.setValue(processed_index)
+                self.statusBar().showMessage(
+                    (
+                        f"Running YOLO on frame {frame_index + 1}/{self._sequence.frame_count} "
+                        f"({processed_index}/{len(included_frame_indices)})..."
+                    ),
+                    0,
+                )
+                QApplication.processEvents()
+        except Exception as exc:
+            QMessageBox.critical(self, "YOLO detection error", str(exc))
+            return
+        finally:
+            progress.close()
+            self._set_tracking_busy(False)
+
+        self._replace_yolo_detections(
+            model_name=model_name,
+            detections_by_frame=detections_by_frame,
+        )
+        self.statusBar().showMessage(
+            (
+                f"YOLO detected {self._yolo_detections.detection_count if self._yolo_detections is not None else 0} "
+                f"bbox proposals on {len(included_frame_indices)} frames using {model_name} ({source_view})."
+            ),
+            5000,
+        )
+
+    def _current_yolo_input_frame(self) -> tuple[np.ndarray, str]:
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
+        frames_source, source_view = self._current_sam2_input_frames()
+        return np.asarray(frames_source[self._sequence.active_frame_index], dtype=np.float32), source_view
+
+    def _current_yolo_input_frames(self) -> tuple[np.ndarray, str]:
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
+        frames_source, source_view = self._current_sam2_input_frames()
+        return np.asarray(frames_source, dtype=np.float32), source_view
+
+    def _upsert_current_frame_yolo_detections(
+        self,
+        *,
+        model_name: str,
+        frame_index: int,
+        detections: list[YoloDetection],
+    ) -> None:
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
+        if (
+            self._yolo_detections is None
+            or self._yolo_detections.model_name != model_name
+            or self._yolo_detections.source_path != self._sequence.source_path
+        ):
+            self._yolo_detections = YoloDetectionSet(
+                model_name=model_name,
+                source_path=self._sequence.source_path,
+            )
+        self._yolo_detections.set_detections(frame_index, detections)
+        if self._yolo_detections.detection_count == 0:
+            self._yolo_detections = None
+        self._sync_yolo_detection_ui()
+
+    def _replace_yolo_detections(
+        self,
+        *,
+        model_name: str,
+        detections_by_frame: dict[int, list[YoloDetection]],
+    ) -> None:
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
+        normalized = {
+            int(frame_index): list(frame_detections)
+            for frame_index, frame_detections in detections_by_frame.items()
+            if frame_detections
+        }
+        if normalized:
+            self._yolo_detections = YoloDetectionSet(
+                model_name=model_name,
+                source_path=self._sequence.source_path,
+                detections_by_frame=normalized,
+            )
+        else:
+            self._yolo_detections = None
+        self._sync_yolo_detection_ui()
+
+    def _sync_yolo_detection_ui(self) -> None:
+        if self._sequence is None:
+            self.yolo_panel.set_frame_context(None, None)
+            self.yolo_panel.clear_detection_state()
+            return
+
+        current_frame_index = int(self._sequence.active_frame_index)
+        self.yolo_panel.set_frame_context(current_frame_index, self._sequence.frame_count)
+        if self._yolo_detections is None:
+            self.yolo_panel.clear_detection_state()
+            return
+
+        self.yolo_panel.set_detection_counts(
+            current_detection_count=len(self._yolo_detections.get_detections(current_frame_index)),
+            total_detection_count=self._yolo_detections.detection_count,
+            current_selected_count=self._yolo_detections.selected_detection_count(current_frame_index),
+            total_selected_count=self._yolo_detections.selected_detection_count(),
+        )
 
     def _prune_excluded_frame_from_edge_tracks(self, frame_index: int) -> tuple[int, int]:
         removed_tracks = 0
@@ -2165,6 +2413,7 @@ class NanoTrackMainWindow(QMainWindow):
         busy = self._is_preprocessing or self._is_tracking
         self._update_menu_action_state()
         self.bbox_tools_panel.set_processing(busy)
+        self.yolo_panel.set_processing(busy)
         self.polygon_tools_panel.set_processing(busy)
         self.preprocessing_panel.set_processing(busy)
         self.track_list_panel.set_processing(busy)

@@ -33,6 +33,11 @@ class YoloSeedDetectionPanel(QWidget):
         self._models: list[YoloModelInfo] = []
         self._sequence_loaded = False
         self._processing_busy = False
+        self._detect_current_available = True
+        self._detect_all_available = False
+        self._selection_actions_available = False
+        self._conversion_actions_available = False
+        self._clear_action_available = False
         self._current_detection_count = 0
         self._total_detection_count = 0
         self._current_selected_count = 0
@@ -140,15 +145,27 @@ class YoloSeedDetectionPanel(QWidget):
         self.cmb_model.setEnabled(can_configure)
         self.sp_confidence.setEnabled(not self._processing_busy)
         self.sp_iou.setEnabled(not self._processing_busy)
-        self.btn_detect_current.setEnabled(can_detect)
-        self.btn_detect_all.setEnabled(can_detect)
-        self.btn_select_all_current.setEnabled(can_detect and self._current_detection_count > 0)
-        self.btn_deselect_all_current.setEnabled(can_detect and self._current_detection_count > 0)
-        self.btn_select_all_global.setEnabled(can_detect and self._total_detection_count > 0)
-        self.btn_deselect_all_global.setEnabled(can_detect and self._total_detection_count > 0)
-        self.btn_convert_current.setEnabled(can_detect and self._current_selected_count > 0)
-        self.btn_convert_all.setEnabled(can_detect and self._total_selected_count > 0)
-        self.btn_clear.setEnabled(can_detect and self._total_detection_count > 0)
+        self.btn_detect_current.setEnabled(can_detect and self._detect_current_available)
+        self.btn_detect_all.setEnabled(can_detect and self._detect_all_available)
+        self.btn_select_all_current.setEnabled(
+            can_detect and self._selection_actions_available and self._current_detection_count > 0
+        )
+        self.btn_deselect_all_current.setEnabled(
+            can_detect and self._selection_actions_available and self._current_detection_count > 0
+        )
+        self.btn_select_all_global.setEnabled(
+            can_detect and self._selection_actions_available and self._total_detection_count > 0
+        )
+        self.btn_deselect_all_global.setEnabled(
+            can_detect and self._selection_actions_available and self._total_detection_count > 0
+        )
+        self.btn_convert_current.setEnabled(
+            can_detect and self._conversion_actions_available and self._current_selected_count > 0
+        )
+        self.btn_convert_all.setEnabled(
+            can_detect and self._conversion_actions_available and self._total_selected_count > 0
+        )
+        self.btn_clear.setEnabled(can_detect and self._clear_action_available and self._total_detection_count > 0)
 
     def refresh_models(self, models: list[YoloModelInfo] | None = None) -> None:
         current_path = self.current_model_path()
@@ -182,6 +199,22 @@ class YoloSeedDetectionPanel(QWidget):
 
     def set_processing(self, busy: bool) -> None:
         self._processing_busy = bool(busy)
+        self._update_enabled_state()
+
+    def set_detect_all_available(self, available: bool) -> None:
+        self._detect_all_available = bool(available)
+        self._update_enabled_state()
+
+    def set_selection_actions_available(self, available: bool) -> None:
+        self._selection_actions_available = bool(available)
+        self._update_enabled_state()
+
+    def set_conversion_actions_available(self, available: bool) -> None:
+        self._conversion_actions_available = bool(available)
+        self._update_enabled_state()
+
+    def set_clear_action_available(self, available: bool) -> None:
+        self._clear_action_available = bool(available)
         self._update_enabled_state()
 
     def set_frame_context(self, frame_index: int | None, frame_count: int | None = None) -> None:

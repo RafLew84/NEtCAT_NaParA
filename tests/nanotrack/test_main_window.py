@@ -2,6 +2,7 @@ import csv
 import os
 import time
 import tempfile
+from types import SimpleNamespace
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -168,6 +169,95 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(sequence.active_frame_index, 2)
         self.assertEqual(self.window.spin_frame.value(), 3)
         self.assertEqual(self.window.lbl_frame.text(), f"Frame: 3 / {sequence.frame_count}")
+
+    def test_yolo_detect_current_creates_detection_proposals_for_active_frame(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+        if self.window.yolo_panel.cmb_model.count() == 0:
+            self.skipTest("No local YOLO models available for the GUI test.")
+
+        model_name = self.window.yolo_panel.current_model_name()
+        self.assertIsNotNone(model_name)
+
+        with patch.object(
+            self.window._yolo_runtime,
+            "predict_frame",
+            return_value=[SimpleNamespace(bbox=BBoxXYXY(5.0, 6.0, 15.0, 18.0), confidence=0.82)],
+        ) as predict_mock:
+            self.window._on_yolo_detect_current_requested()
+
+        predict_mock.assert_called_once()
+        detection_set = self.window.current_yolo_detection_set()
+        self.assertIsNotNone(detection_set)
+        assert detection_set is not None
+        self.assertEqual(detection_set.model_name, model_name)
+        self.assertEqual(detection_set.source_path, sequence.source_path)
+        detections = detection_set.get_detections(sequence.active_frame_index)
+        self.assertEqual(len(detections), 1)
+        detection = detections[0]
+        self.assertEqual(detection.bbox, BBoxXYXY(5.0, 6.0, 15.0, 18.0))
+        self.assertAlmostEqual(detection.confidence, 0.82, places=6)
+        self.assertTrue(detection.selected)
+        self.assertEqual(detection.model_name, model_name)
+        self.assertEqual(
+            self.window.yolo_panel.lbl_detections.text(),
+            "Detections: current 1 (selected 1) | all 1 (selected 1)",
+        )
+        self.assertTrue(self.window.yolo_panel.btn_detect_current.isEnabled())
+        self.assertTrue(self.window.yolo_panel.btn_detect_all.isEnabled())
+        self.assertFalse(self.window.yolo_panel.btn_select_all_current.isEnabled())
+        self.assertFalse(self.window.yolo_panel.btn_deselect_all_current.isEnabled())
+        self.assertFalse(self.window.yolo_panel.btn_select_all_global.isEnabled())
+        self.assertFalse(self.window.yolo_panel.btn_deselect_all_global.isEnabled())
+        self.assertFalse(self.window.yolo_panel.btn_convert_current.isEnabled())
+        self.assertFalse(self.window.yolo_panel.btn_convert_all.isEnabled())
+        self.assertFalse(self.window.yolo_panel.btn_clear.isEnabled())
+
+    def test_yolo_detect_all_creates_detection_proposals_for_included_frames(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/yolo_detect_all.mpp",
+            raw_frames=np.zeros((4, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+        )
+        self.window.set_sequence(sequence)
+        if self.window.yolo_panel.cmb_model.count() == 0:
+            self.skipTest("No local YOLO models available for the GUI test.")
+
+        sequence.set_frame_excluded(2, True)
+        self.window._show_current_frame(preserve_zoom=True)
+        model_name = self.window.yolo_panel.current_model_name()
+        self.assertIsNotNone(model_name)
+
+        detections_per_call = {
+            0: [SimpleNamespace(bbox=BBoxXYXY(1.0, 1.0, 3.0, 3.0), confidence=0.9)],
+            1: [SimpleNamespace(bbox=BBoxXYXY(2.0, 2.0, 4.0, 4.0), confidence=0.8)],
+            3: [SimpleNamespace(bbox=BBoxXYXY(4.0, 4.0, 6.0, 6.0), confidence=0.7)],
+        }
+
+        def _predict_frame(frame, **_kwargs):
+            frame = np.asarray(frame)
+            frame_index = int(frame[0, 0])
+            return detections_per_call[frame_index]
+
+        sequence.raw_frames[0, ...] = 0.0
+        sequence.raw_frames[1, ...] = 1.0
+        sequence.raw_frames[2, ...] = 2.0
+        sequence.raw_frames[3, ...] = 3.0
+
+        with patch.object(self.window._yolo_runtime, "predict_frame", side_effect=_predict_frame) as predict_mock:
+            self.window._on_yolo_detect_all_requested()
+
+        self.assertEqual(predict_mock.call_count, 3)
+        detection_set = self.window.current_yolo_detection_set()
+        self.assertIsNotNone(detection_set)
+        assert detection_set is not None
+        self.assertEqual(detection_set.model_name, model_name)
+        self.assertEqual(detection_set.frame_indices, [0, 1, 3])
+        self.assertEqual(detection_set.detection_count, 3)
+        self.assertEqual(len(detection_set.get_detections(2)), 0)
+        self.assertEqual(self.window.yolo_panel.lbl_detections.text(), "Detections: current 1 (selected 1) | all 3 (selected 3)")
+        self.assertTrue(self.window.yolo_panel.btn_detect_current.isEnabled())
+        self.assertTrue(self.window.yolo_panel.btn_detect_all.isEnabled())
 
     def test_excluding_current_frame_removes_it_from_analysis_state(self) -> None:
         sequence = STMSequence(
