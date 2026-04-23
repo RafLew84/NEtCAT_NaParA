@@ -18,6 +18,8 @@ from nanotrack.core import (
     STMSequenceMetadata,
     TrackFrameAnnotation,
     TrackQuality,
+    YoloDetection,
+    YoloDetectionSet,
 )
 from nanotrack.persistence import NanoTrackSessionSnapshot, load_session_snapshot, save_session_snapshot
 
@@ -113,6 +115,30 @@ class SessionStoreTests(unittest.TestCase):
             sequence=sequence,
             tracks=[track],
             edge_tracks=[edge_track],
+            yolo_detections=YoloDetectionSet(
+                model_name="yolo11s_v2.0",
+                source_path=sequence.source_path,
+                detections_by_frame={
+                    0: [
+                        YoloDetection(
+                            frame_index=0,
+                            bbox=BBoxXYXY(0.5, 0.5, 2.5, 2.0),
+                            confidence=0.91,
+                            selected=True,
+                            model_name="yolo11s_v2.0",
+                        )
+                    ],
+                    2: [
+                        YoloDetection(
+                            frame_index=2,
+                            bbox=BBoxXYXY(1.0, 1.5, 4.5, 3.5),
+                            confidence=0.66,
+                            selected=False,
+                            model_name="yolo11s_v2.0",
+                        )
+                    ],
+                },
+            ),
             selected_track_id=7,
             selected_edge_track_id=3,
             draft_bboxes_by_frame={2: BBoxXYXY(0.0, 0.0, 3.0, 2.0)},
@@ -152,6 +178,7 @@ class SessionStoreTests(unittest.TestCase):
         self.assertEqual(loaded.selected_track_id, 7)
         self.assertEqual(loaded.selected_edge_track_id, 3)
         self.assertTrue(loaded.show_denoised_in_viewer)
+        self.assertIsNotNone(loaded.yolo_detections)
         self.assertEqual(loaded.draft_bboxes_by_frame[2], BBoxXYXY(0.0, 0.0, 3.0, 2.0))
         np.testing.assert_array_equal(loaded.draft_polygons_by_frame[2].as_array(), polygon.as_array())
         np.testing.assert_array_equal(
@@ -189,6 +216,18 @@ class SessionStoreTests(unittest.TestCase):
         np.testing.assert_array_equal(restored_edge_annotation.edge_mask, edge_mask)
         self.assertEqual(restored_edge_annotation.metrics.length_px, 3.5)
         self.assertEqual(restored_edge_annotation.metrics.length_nm, 7.0)
+        restored_yolo_detections = loaded.yolo_detections
+        self.assertEqual(restored_yolo_detections.model_name, "yolo11s_v2.0")
+        self.assertEqual(restored_yolo_detections.source_path, "/tmp/source.mpp")
+        self.assertEqual(restored_yolo_detections.detection_count, 2)
+        restored_selected = restored_yolo_detections.get_detections(0)[0]
+        self.assertTrue(restored_selected.selected)
+        self.assertAlmostEqual(restored_selected.confidence, 0.91)
+        self.assertEqual(restored_selected.bbox, BBoxXYXY(0.5, 0.5, 2.5, 2.0))
+        restored_unselected = restored_yolo_detections.get_detections(2)[0]
+        self.assertFalse(restored_unselected.selected)
+        self.assertAlmostEqual(restored_unselected.confidence, 0.66)
+        self.assertEqual(restored_unselected.bbox, BBoxXYXY(1.0, 1.5, 4.5, 3.5))
 
 
 if __name__ == "__main__":

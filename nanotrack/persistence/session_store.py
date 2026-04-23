@@ -25,6 +25,8 @@ from nanotrack.core import (
     STMSequence,
     TrackFrameAnnotation,
     TrackQuality,
+    YoloDetection,
+    YoloDetectionSet,
 )
 from nanotrack.io import load_mpp_sequence
 
@@ -38,6 +40,7 @@ class NanoTrackSessionSnapshot:
     sequence: STMSequence
     tracks: list[ParticleTrack] = field(default_factory=list)
     edge_tracks: list[EdgeTrack] = field(default_factory=list)
+    yolo_detections: YoloDetectionSet | None = None
     selected_track_id: int | None = None
     selected_edge_track_id: int | None = None
     draft_bboxes_by_frame: dict[int, BBoxXYXY] = field(default_factory=dict)
@@ -110,6 +113,7 @@ def load_session_snapshot(
         denoised_frames = _read_optional_npz(zf, "preprocessing/denoised_frames.npz", "frames")
         tracks = _restore_tracks(zf, manifest.get("tracks", []))
         edge_tracks = _restore_edge_tracks(zf, manifest.get("edge_tracks", []))
+        yolo_detections = _restore_yolo_detections(manifest.get("yolo_detections"))
         draft_bboxes = {
             int(item["frame_index"]): _bbox_from_payload(item["bbox"])
             for item in manifest.get("draft_bboxes", [])
@@ -128,6 +132,7 @@ def load_session_snapshot(
             sequence=sequence,
             tracks=tracks,
             edge_tracks=edge_tracks,
+            yolo_detections=yolo_detections,
             selected_track_id=manifest.get("selected_track_id"),
             selected_edge_track_id=manifest.get("selected_edge_track_id"),
             draft_bboxes_by_frame=draft_bboxes,
@@ -153,6 +158,7 @@ def _build_manifest(snapshot: NanoTrackSessionSnapshot) -> dict:
         "selected_track_id": snapshot.selected_track_id,
         "selected_edge_track_id": snapshot.selected_edge_track_id,
         "show_denoised_in_viewer": bool(snapshot.show_denoised_in_viewer),
+        "yolo_detections": _serialize_yolo_detections(snapshot.yolo_detections),
         "draft_bboxes": [
             {
                 "frame_index": int(frame_index),
@@ -180,6 +186,30 @@ def _build_manifest(snapshot: NanoTrackSessionSnapshot) -> dict:
         },
         "tracks": [_serialize_track(track) for track in snapshot.tracks],
         "edge_tracks": [_serialize_edge_track(track) for track in snapshot.edge_tracks],
+    }
+
+
+def _serialize_yolo_detections(detections: YoloDetectionSet | None) -> dict | None:
+    if detections is None:
+        return None
+    return {
+        "model_name": detections.model_name,
+        "source_path": detections.source_path,
+        "detections_by_frame": [
+            {
+                "frame_index": int(frame_index),
+                "detections": [
+                    {
+                        "bbox": list(detection.bbox.as_tuple()),
+                        "confidence": detection.confidence,
+                        "selected": bool(detection.selected),
+                        "model_name": detection.model_name,
+                    }
+                    for detection in detections.get_detections(frame_index)
+                ],
+            }
+            for frame_index in detections.frame_indices
+        ],
     }
 
 
@@ -343,6 +373,29 @@ def _restore_edge_tracks(zf: zipfile.ZipFile, tracks_payload: list[dict]) -> lis
             )
         )
     return tracks
+
+
+def _restore_yolo_detections(payload: dict | None) -> YoloDetectionSet | None:
+    if not payload:
+        return None
+    detections_by_frame: dict[int, list[YoloDetection]] = {}
+    for frame_payload in payload.get("detections_by_frame", []):
+        frame_index = int(frame_payload["frame_index"])
+        detections_by_frame[frame_index] = [
+            YoloDetection(
+                frame_index=frame_index,
+                bbox=_bbox_from_payload(detection_payload["bbox"]),
+                confidence=float(detection_payload["confidence"]),
+                selected=bool(detection_payload.get("selected", True)),
+                model_name=str(detection_payload.get("model_name") or payload["model_name"]),
+            )
+            for detection_payload in frame_payload.get("detections", [])
+        ]
+    return YoloDetectionSet(
+        model_name=str(payload["model_name"]),
+        source_path=str(payload["source_path"]),
+        detections_by_frame=detections_by_frame,
+    )
 
 
 def _bbox_from_payload(payload: list[float] | tuple[float, float, float, float]) -> BBoxXYXY:

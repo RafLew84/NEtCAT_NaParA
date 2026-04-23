@@ -352,6 +352,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.yolo_panel.deselect_all_global_requested.connect(self._on_yolo_deselect_all_global_requested)
         self.yolo_panel.convert_selected_current_requested.connect(self._on_yolo_convert_selected_current_requested)
         self.yolo_panel.convert_selected_all_requested.connect(self._on_yolo_convert_selected_all_requested)
+        self.yolo_panel.clear_detections_requested.connect(self._on_yolo_clear_detections_requested)
         self.polygon_tools_panel.draw_mode_toggled.connect(self._on_polygon_draw_mode_toggled)
         self.polygon_tools_panel.finish_requested.connect(self._on_finish_polygon_requested)
         self.polygon_tools_panel.clear_requested.connect(self._on_clear_current_polygon_requested)
@@ -614,6 +615,7 @@ class NanoTrackMainWindow(QMainWindow):
             sequence=self._sequence,
             tracks=self.current_tracks(),
             edge_tracks=self.current_edge_tracks(),
+            yolo_detections=self._yolo_detections,
             selected_track_id=self._selected_track_id,
             selected_edge_track_id=self._selected_edge_track_id,
             draft_bboxes_by_frame=dict(self._draft_bboxes_by_frame),
@@ -740,6 +742,8 @@ class NanoTrackMainWindow(QMainWindow):
             frame_index: np.asarray(polyline, dtype=np.float64)
             for frame_index, polyline in snapshot.draft_edge_polylines_by_frame.items()
         }
+        self._yolo_detections = snapshot.yolo_detections
+        self._yolo_edit_target = None
         self._update_cached_preprocessing_availability()
         self._show_denoised_in_viewer = bool(snapshot.show_denoised_in_viewer and self._has_any_preprocessing_cache())
         with QSignalBlocker(self.preprocessing_panel.chk_show_denoised):
@@ -1059,6 +1063,7 @@ class NanoTrackMainWindow(QMainWindow):
             self.yolo_panel.set_global_selection_actions_available(False)
             self.yolo_panel.set_edit_actions_available(load_available=False, save_available=False)
             self.yolo_panel.set_conversion_actions_available(current_available=False, global_available=False)
+            self.yolo_panel.set_clear_action_available(False)
             self.yolo_panel.clear_detection_state()
             return
 
@@ -1069,6 +1074,7 @@ class NanoTrackMainWindow(QMainWindow):
             self.yolo_panel.set_global_selection_actions_available(False)
             self.yolo_panel.set_edit_actions_available(load_available=False, save_available=False)
             self.yolo_panel.set_conversion_actions_available(current_available=False, global_available=False)
+            self.yolo_panel.set_clear_action_available(False)
             self.yolo_panel.clear_detection_state()
             return
 
@@ -1089,6 +1095,7 @@ class NanoTrackMainWindow(QMainWindow):
             current_available=self._yolo_edit_target is None,
             global_available=self._yolo_edit_target is None,
         )
+        self.yolo_panel.set_clear_action_available(True)
         self.yolo_panel.set_detection_counts(
             current_detection_count=len(self._yolo_detections.get_detections(current_frame_index)),
             total_detection_count=self._yolo_detections.detection_count,
@@ -1258,6 +1265,31 @@ class NanoTrackMainWindow(QMainWindow):
         self._sync_track_overlays()
         self.statusBar().showMessage(
             f"Converted {len(created_tracks)} selected YOLO detection(s) across all frames to seeds.",
+            3500,
+        )
+
+    def _on_yolo_clear_detections_requested(self) -> None:
+        if self._yolo_detections is None:
+            return
+
+        cleared_count = self._yolo_detections.detection_count
+        if cleared_count <= 0:
+            return
+
+        cleared_current_draft = False
+        if self._yolo_edit_target is not None:
+            edit_frame_index = int(self._yolo_edit_target.frame_index)
+            if self._draft_bboxes_by_frame.pop(edit_frame_index, None) is not None:
+                cleared_current_draft = self._sequence is not None and edit_frame_index == int(self._sequence.active_frame_index)
+            self._yolo_edit_target = None
+
+        self._yolo_detections = None
+        if cleared_current_draft:
+            self._sync_current_bbox_ui()
+        self._sync_yolo_detection_ui()
+        self._sync_track_overlays()
+        self.statusBar().showMessage(
+            f"Cleared {cleared_count} YOLO detection proposal(s). Existing seeds were left unchanged.",
             3500,
         )
 
