@@ -22,6 +22,8 @@ class YoloSeedDetectionPanel(QWidget):
     detect_all_requested = pyqtSignal()
     scale_current_requested = pyqtSignal()
     scale_all_requested = pyqtSignal()
+    load_selected_bbox_requested = pyqtSignal()
+    save_edited_bbox_requested = pyqtSignal()
     select_all_current_requested = pyqtSignal()
     deselect_all_current_requested = pyqtSignal()
     select_all_global_requested = pyqtSignal()
@@ -39,6 +41,8 @@ class YoloSeedDetectionPanel(QWidget):
         self._detect_all_available = False
         self._current_selection_actions_available = False
         self._global_selection_actions_available = False
+        self._load_edit_action_available = False
+        self._save_edit_action_available = False
         self._conversion_actions_available = False
         self._clear_action_available = False
         self._current_detection_count = 0
@@ -112,6 +116,13 @@ class YoloSeedDetectionPanel(QWidget):
         scale_row.addWidget(self.btn_scale_all)
         group_layout.addLayout(scale_row)
 
+        edit_row = QHBoxLayout()
+        self.btn_load_selected_bbox = QPushButton("Load Selected BBox", group)
+        self.btn_save_edited_bbox = QPushButton("Save Edited BBox", group)
+        edit_row.addWidget(self.btn_load_selected_bbox)
+        edit_row.addWidget(self.btn_save_edited_bbox)
+        group_layout.addLayout(edit_row)
+
         current_row = QHBoxLayout()
         self.btn_select_all_current = QPushButton("Select All (Current)", group)
         self.btn_deselect_all_current = QPushButton("Deselect All (Current)", group)
@@ -153,6 +164,8 @@ class YoloSeedDetectionPanel(QWidget):
         self.btn_detect_all.clicked.connect(self.detect_all_requested)
         self.btn_scale_current.clicked.connect(self.scale_current_requested)
         self.btn_scale_all.clicked.connect(self.scale_all_requested)
+        self.btn_load_selected_bbox.clicked.connect(self.load_selected_bbox_requested)
+        self.btn_save_edited_bbox.clicked.connect(self.save_edited_bbox_requested)
         self.btn_select_all_current.clicked.connect(self.select_all_current_requested)
         self.btn_deselect_all_current.clicked.connect(self.deselect_all_current_requested)
         self.btn_select_all_global.clicked.connect(self.select_all_global_requested)
@@ -173,6 +186,8 @@ class YoloSeedDetectionPanel(QWidget):
         self.btn_detect_all.setEnabled(can_detect and self._detect_all_available)
         self.btn_scale_current.setEnabled(self._sequence_loaded and not self._processing_busy and self._current_detection_count > 0)
         self.btn_scale_all.setEnabled(self._sequence_loaded and not self._processing_busy and self._total_detection_count > 0)
+        self.btn_load_selected_bbox.setEnabled(self._sequence_loaded and not self._processing_busy and self._load_edit_action_available)
+        self.btn_save_edited_bbox.setEnabled(self._sequence_loaded and not self._processing_busy and self._save_edit_action_available)
         self.btn_select_all_current.setEnabled(
             can_detect and self._current_selection_actions_available and self._current_detection_count > 0
         )
@@ -237,6 +252,11 @@ class YoloSeedDetectionPanel(QWidget):
 
     def set_global_selection_actions_available(self, available: bool) -> None:
         self._global_selection_actions_available = bool(available)
+        self._update_enabled_state()
+
+    def set_edit_actions_available(self, *, load_available: bool, save_available: bool) -> None:
+        self._load_edit_action_available = bool(load_available)
+        self._save_edit_action_available = bool(save_available)
         self._update_enabled_state()
 
     def set_conversion_actions_available(self, available: bool) -> None:

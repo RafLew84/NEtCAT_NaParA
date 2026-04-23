@@ -171,6 +171,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._selected_track_id: int | None = None
         self._selected_edge_track_id: int | None = None
         self._yolo_detections: YoloDetectionSet | None = None
+        self._yolo_edit_target: YoloDetection | None = None
         self._draft_bboxes_by_frame: dict[int, BBoxXYXY] = {}
         self._draft_polygons_by_frame: dict[int, PolygonROI] = {}
         self._draft_edge_polylines_by_frame: dict[int, np.ndarray] = {}
@@ -343,6 +344,8 @@ class NanoTrackMainWindow(QMainWindow):
         self.yolo_panel.detect_all_requested.connect(self._on_yolo_detect_all_requested)
         self.yolo_panel.scale_current_requested.connect(self._on_yolo_scale_current_requested)
         self.yolo_panel.scale_all_requested.connect(self._on_yolo_scale_all_requested)
+        self.yolo_panel.load_selected_bbox_requested.connect(self._on_yolo_load_selected_bbox_requested)
+        self.yolo_panel.save_edited_bbox_requested.connect(self._on_yolo_save_edited_bbox_requested)
         self.yolo_panel.select_all_current_requested.connect(self._on_yolo_select_all_current_requested)
         self.yolo_panel.deselect_all_current_requested.connect(self._on_yolo_deselect_all_current_requested)
         self.yolo_panel.select_all_global_requested.connect(self._on_yolo_select_all_global_requested)
@@ -446,6 +449,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._selected_edge_track_id = None
         self._edge_tracks = []
         self._yolo_detections = None
+        self._yolo_edit_target = None
         self._draft_bboxes_by_frame = {}
         self._draft_polygons_by_frame = {}
         self._draft_edge_polylines_by_frame = {}
@@ -458,6 +462,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._sync_current_bbox_ui()
         self._sync_current_polygon_ui()
         self.yolo_panel.clear_detection_state()
+        self.yolo_panel.set_edit_actions_available(load_available=False, save_available=False)
         self._update_menu_action_state()
         self._sync_edge_results_dialog()
         self.statusBar().showMessage(
@@ -830,6 +835,8 @@ class NanoTrackMainWindow(QMainWindow):
         removed = len(self._yolo_detections.get_detections(frame_index))
         if removed == 0:
             return 0
+        if self._yolo_edit_target is not None and self._yolo_edit_target.frame_index == int(frame_index):
+            self._yolo_edit_target = None
         self._yolo_detections.clear_frame(frame_index)
         if self._yolo_detections.detection_count == 0:
             self._yolo_detections = None
@@ -1010,6 +1017,7 @@ class NanoTrackMainWindow(QMainWindow):
                 model_name=model_name,
                 source_path=self._sequence.source_path,
             )
+        self._yolo_edit_target = None
         self._yolo_detections.set_detections(frame_index, detections)
         if self._yolo_detections.detection_count == 0:
             self._yolo_detections = None
@@ -1024,6 +1032,7 @@ class NanoTrackMainWindow(QMainWindow):
     ) -> None:
         if self._sequence is None:
             raise RuntimeError("No sequence loaded.")
+        self._yolo_edit_target = None
         normalized = {
             int(frame_index): list(frame_detections)
             for frame_index, frame_detections in detections_by_frame.items()
@@ -1045,6 +1054,7 @@ class NanoTrackMainWindow(QMainWindow):
             self.yolo_panel.set_frame_context(None, None)
             self.yolo_panel.set_current_selection_actions_available(False)
             self.yolo_panel.set_global_selection_actions_available(False)
+            self.yolo_panel.set_edit_actions_available(load_available=False, save_available=False)
             self.yolo_panel.clear_detection_state()
             return
 
@@ -1053,16 +1063,91 @@ class NanoTrackMainWindow(QMainWindow):
         if self._yolo_detections is None:
             self.yolo_panel.set_current_selection_actions_available(False)
             self.yolo_panel.set_global_selection_actions_available(False)
+            self.yolo_panel.set_edit_actions_available(load_available=False, save_available=False)
             self.yolo_panel.clear_detection_state()
             return
 
+        current_selected_count = self._yolo_detections.selected_detection_count(current_frame_index)
+        has_current_draft_bbox = self.current_draft_bbox() is not None
+        save_edit_available = (
+            self._yolo_edit_target is not None
+            and self._yolo_edit_target.frame_index == current_frame_index
+            and has_current_draft_bbox
+        )
         self.yolo_panel.set_current_selection_actions_available(True)
         self.yolo_panel.set_global_selection_actions_available(True)
+        self.yolo_panel.set_edit_actions_available(
+            load_available=current_selected_count == 1,
+            save_available=save_edit_available,
+        )
         self.yolo_panel.set_detection_counts(
             current_detection_count=len(self._yolo_detections.get_detections(current_frame_index)),
             total_detection_count=self._yolo_detections.detection_count,
-            current_selected_count=self._yolo_detections.selected_detection_count(current_frame_index),
+            current_selected_count=current_selected_count,
             total_selected_count=self._yolo_detections.selected_detection_count(),
+        )
+
+    def _on_yolo_load_selected_bbox_requested(self) -> None:
+        if self._sequence is None or self._yolo_detections is None:
+            return
+        frame_index = int(self._sequence.active_frame_index)
+        selected_detections = self._yolo_detections.selected_detections(frame_index)
+        if len(selected_detections) != 1:
+            QMessageBox.warning(
+                self,
+                "YOLO edit unavailable",
+                "Select exactly one YOLO detection on the current frame before loading it for manual editing.",
+            )
+            return
+
+        detection = selected_detections[0]
+        self._set_bbox_place_mode(False)
+        self._yolo_edit_target = detection
+        self._draft_bboxes_by_frame[frame_index] = detection.bbox
+        self._sync_current_bbox_ui()
+        self._sync_yolo_detection_ui()
+        self.statusBar().showMessage(
+            f"Loaded selected YOLO bbox on frame {frame_index + 1} for manual editing.",
+            3000,
+        )
+
+    def _on_yolo_save_edited_bbox_requested(self) -> None:
+        if self._sequence is None or self._yolo_detections is None:
+            return
+        if not self._ensure_current_frame_included("Save Edited YOLO BBox"):
+            return
+
+        frame_index = int(self._sequence.active_frame_index)
+        current_bbox = self.current_draft_bbox()
+        target = self._yolo_edit_target
+        if current_bbox is None or target is None:
+            return
+        if target.frame_index != frame_index:
+            QMessageBox.warning(
+                self,
+                "YOLO edit frame mismatch",
+                "The loaded YOLO detection belongs to a different frame. Load the detection again on the current frame.",
+            )
+            return
+        if all(detection is not target for detection in self._yolo_detections.get_detections(frame_index)):
+            self._yolo_edit_target = None
+            self._sync_yolo_detection_ui()
+            QMessageBox.warning(
+                self,
+                "YOLO detection missing",
+                "The loaded YOLO detection is no longer available on the current frame.",
+            )
+            return
+
+        target.bbox = current_bbox
+        self._draft_bboxes_by_frame.pop(frame_index, None)
+        self._yolo_edit_target = None
+        self._sync_current_bbox_ui()
+        self._sync_yolo_detection_ui()
+        self._sync_track_overlays()
+        self.statusBar().showMessage(
+            f"Saved edited YOLO bbox on frame {frame_index + 1}.",
+            3000,
         )
 
     def _on_yolo_select_all_current_requested(self) -> None:
@@ -1247,6 +1332,7 @@ class NanoTrackMainWindow(QMainWindow):
         else:
             self._draft_bboxes_by_frame[frame_index] = bbox
         self.bbox_tools_panel.set_current_bbox(frame_index, self.current_draft_bbox())
+        self._sync_yolo_detection_ui()
 
     def _on_viewer_polygon_changed(self, polygon: object) -> None:
         if self._sequence is None:
@@ -1274,10 +1360,13 @@ class NanoTrackMainWindow(QMainWindow):
             return
         frame_index = self._sequence.active_frame_index
         self._draft_bboxes_by_frame.pop(frame_index, None)
+        if self._yolo_edit_target is not None and self._yolo_edit_target.frame_index == frame_index:
+            self._yolo_edit_target = None
         self.viewer.clear_bbox()
         self.bbox_tools_panel.set_current_bbox(frame_index, None)
         self.statusBar().showMessage(f"Cleared bbox for frame {frame_index + 1}.", 2000)
         self._sync_bbox_track_context()
+        self._sync_yolo_detection_ui()
 
     def _on_finish_polygon_requested(self) -> None:
         if self._sequence is None:
@@ -1797,6 +1886,8 @@ class NanoTrackMainWindow(QMainWindow):
         self._tracks.append(track)
         self.set_tracks(self._tracks, selected_track_id=track_id)
         self._draft_bboxes_by_frame.pop(self._sequence.active_frame_index, None)
+        if self._yolo_edit_target is not None and self._yolo_edit_target.frame_index == int(self._sequence.active_frame_index):
+            self._yolo_edit_target = None
         self.viewer.clear_bbox()
         self.bbox_tools_panel.set_current_bbox(self._sequence.active_frame_index, None)
         self.statusBar().showMessage(
@@ -1804,6 +1895,7 @@ class NanoTrackMainWindow(QMainWindow):
             3000,
         )
         self._sync_bbox_track_context()
+        self._sync_yolo_detection_ui()
 
     def _on_load_track_bbox_requested(self) -> None:
         if self._sequence is None:
@@ -1814,10 +1906,12 @@ class NanoTrackMainWindow(QMainWindow):
         annotation = track.get_annotation(self._sequence.active_frame_index)
         if annotation is None or annotation.bbox is None:
             return
+        self._yolo_edit_target = None
         self._draft_bboxes_by_frame[self._sequence.active_frame_index] = annotation.bbox
         self.viewer.set_bbox(annotation.bbox)
         self.bbox_tools_panel.set_current_bbox(self._sequence.active_frame_index, annotation.bbox)
         self._sync_bbox_track_context()
+        self._sync_yolo_detection_ui()
         self.statusBar().showMessage(
             f"Loaded bbox from {track.label or f'Track {track.track_id}'} on frame {self._sequence.active_frame_index + 1}.",
             3000,
@@ -1854,9 +1948,12 @@ class NanoTrackMainWindow(QMainWindow):
             )
         )
         self._draft_bboxes_by_frame.pop(current_frame, None)
+        if self._yolo_edit_target is not None and self._yolo_edit_target.frame_index == current_frame:
+            self._yolo_edit_target = None
         self.viewer.clear_bbox()
         self.set_tracks(self._tracks, selected_track_id=track.track_id)
         self._show_current_frame(preserve_zoom=True)
+        self._sync_yolo_detection_ui()
         self.statusBar().showMessage(
             f"Saved manual correction for {track.label or f'Track {track.track_id}'} on frame {current_frame + 1}.",
             3000,
