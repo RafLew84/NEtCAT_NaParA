@@ -203,6 +203,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             self.window.yolo_panel.lbl_detections.text(),
             "Detections: current 1 (selected 1) | all 1 (selected 1)",
         )
+        self.assertEqual(len(self.window.viewer.viewer._overlay_items), 2)
         self.assertTrue(self.window.yolo_panel.btn_detect_current.isEnabled())
         self.assertTrue(self.window.yolo_panel.btn_detect_all.isEnabled())
         self.assertFalse(self.window.yolo_panel.btn_select_all_current.isEnabled())
@@ -256,8 +257,17 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(detection_set.detection_count, 3)
         self.assertEqual(len(detection_set.get_detections(2)), 0)
         self.assertEqual(self.window.yolo_panel.lbl_detections.text(), "Detections: current 1 (selected 1) | all 3 (selected 3)")
+        self.assertEqual(len(self.window.viewer.viewer._overlay_items), 2)
         self.assertTrue(self.window.yolo_panel.btn_detect_current.isEnabled())
         self.assertTrue(self.window.yolo_panel.btn_detect_all.isEnabled())
+
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+        self.assertEqual(len(self.window.viewer.viewer._overlay_items), 2)
+
+        self.window.slider_frame.setValue(2)
+        self.__class__._app.processEvents()
+        self.assertEqual(len(self.window.viewer.viewer._overlay_items), 0)
 
     def test_excluding_current_frame_removes_it_from_analysis_state(self) -> None:
         sequence = STMSequence(

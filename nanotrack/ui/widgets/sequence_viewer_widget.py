@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 import numpy as np
 from skimage import measure
 
-from nanotrack.core import BBoxXYXY, EdgeTrack, FrameVisibility, ParticleTrack, PolygonROI, STMSequence
+from nanotrack.core import BBoxXYXY, EdgeTrack, FrameVisibility, ParticleTrack, PolygonROI, STMSequence, YoloDetection
 from napara.gui.widgets.viewer_widget import ViewerWidget
 
 
@@ -128,6 +128,7 @@ class SequenceViewerWidget(QWidget):
         selected_track_id: int | None = None,
         edge_tracks: list[EdgeTrack] | None = None,
         selected_edge_track_id: int | None = None,
+        yolo_detections: list[YoloDetection] | None = None,
     ) -> None:
         self.clear_track_seed_overlays()
         if self._sequence is None:
@@ -192,6 +193,21 @@ class SequenceViewerWidget(QWidget):
             highlight = edge_track.edge_track_id == selected_edge_track_id
             self.viewer.set_item_highlight(polyline_item, highlight)
             self.viewer.set_item_highlight(text, highlight)
+
+        for detection in yolo_detections or []:
+            color = (255, 0, 255) if detection.selected else (255, 140, 0)
+            polyline_item = self.viewer.add_polyline_nm(
+                self._bbox_polyline_nm(detection.bbox),
+                color=color,
+                width=1.8,
+            )
+            confidence_text = self.viewer.add_text_nm(
+                f"{detection.confidence:.2f}",
+                self._bbox_center_nm(detection.bbox),
+                color=color,
+            )
+            if polyline_item is None:
+                self.viewer.remove_item(confidence_text)
 
     def set_bbox_draw_mode(self, enabled: bool) -> None:
         self._bbox_draw_mode = bool(enabled)

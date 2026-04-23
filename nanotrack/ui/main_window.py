@@ -1007,6 +1007,7 @@ class NanoTrackMainWindow(QMainWindow):
         if self._yolo_detections.detection_count == 0:
             self._yolo_detections = None
         self._sync_yolo_detection_ui()
+        self._sync_track_overlays()
 
     def _replace_yolo_detections(
         self,
@@ -1030,6 +1031,7 @@ class NanoTrackMainWindow(QMainWindow):
         else:
             self._yolo_detections = None
         self._sync_yolo_detection_ui()
+        self._sync_track_overlays()
 
     def _sync_yolo_detection_ui(self) -> None:
         if self._sequence is None:
@@ -3230,11 +3232,14 @@ class NanoTrackMainWindow(QMainWindow):
         if self._sequence is None:
             self.viewer.clear_track_seed_overlays()
             return
+        current_frame_index = int(self._sequence.active_frame_index)
+        yolo_detections = [] if self._yolo_detections is None else self._yolo_detections.get_detections(current_frame_index)
         self.viewer.set_tracks_and_edges(
             self._tracks,
             selected_track_id=self._selected_track_id,
             edge_tracks=self._edge_tracks,
             selected_edge_track_id=self._selected_edge_track_id,
+            yolo_detections=yolo_detections,
         )
 
     def _find_track_by_id(self, track_id: int | None) -> ParticleTrack | None:
