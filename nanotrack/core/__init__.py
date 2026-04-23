@@ -15,6 +15,8 @@ from .data_models import (
     STMSequenceMetadata,
     TrackFrameAnnotation,
     TrackQuality,
+    YoloDetection,
+    YoloDetectionSet,
 )
 
 __all__ = [
@@ -32,4 +34,6 @@ __all__ = [
     "STMSequenceMetadata",
     "TrackFrameAnnotation",
     "TrackQuality",
+    "YoloDetection",
+    "YoloDetectionSet",
 ]

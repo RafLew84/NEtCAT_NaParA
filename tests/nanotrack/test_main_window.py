@@ -116,6 +116,23 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.bbox_tools_panel.btn_save_correction.isEnabled())
         self.assertFalse(self.window.bbox_tools_panel.btn_resume_track.isEnabled())
         self.assertEqual(self.window.bbox_tools_panel.lbl_bbox.text(), "No bbox on current frame")
+        self.assertEqual(self.window.yolo_panel.lbl_frame.text(), f"Frame: 1 / {sequence.frame_count}")
+        self.assertGreaterEqual(self.window.yolo_panel.cmb_model.count(), 0)
+        self.assertEqual(
+            self.window.yolo_panel.btn_detect_current.isEnabled(),
+            self.window.yolo_panel.cmb_model.count() > 0,
+        )
+        self.assertEqual(
+            self.window.yolo_panel.btn_detect_all.isEnabled(),
+            self.window.yolo_panel.cmb_model.count() > 0,
+        )
+        self.assertFalse(self.window.yolo_panel.btn_select_all_current.isEnabled())
+        self.assertFalse(self.window.yolo_panel.btn_deselect_all_current.isEnabled())
+        self.assertFalse(self.window.yolo_panel.btn_select_all_global.isEnabled())
+        self.assertFalse(self.window.yolo_panel.btn_deselect_all_global.isEnabled())
+        self.assertFalse(self.window.yolo_panel.btn_convert_current.isEnabled())
+        self.assertFalse(self.window.yolo_panel.btn_convert_all.isEnabled())
+        self.assertFalse(self.window.yolo_panel.btn_clear.isEnabled())
         self.assertTrue(self.window.polygon_tools_panel.btn_draw.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_finish.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_clear.isEnabled())

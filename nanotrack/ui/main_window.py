@@ -75,6 +75,7 @@ from nanotrack.ui.widgets import (
     SequenceMetadataPanel,
     SequenceViewerWidget,
     TrackListPanel,
+    YoloSeedDetectionPanel,
 )
 
 
@@ -284,12 +285,14 @@ class NanoTrackMainWindow(QMainWindow):
         self.track_list_panel = TrackListPanel(self.sidebar_content)
         self.edge_track_list_panel = EdgeTrackListPanel(self.sidebar_content)
         self.bbox_tools_panel = BBoxToolsPanel(self.sidebar_content)
+        self.yolo_panel = YoloSeedDetectionPanel(self.sidebar_content)
         self.polygon_tools_panel = PolygonRoiToolsPanel(self.sidebar_content)
         self.preprocessing_panel = PreprocessingActionsPanel(self.sidebar_content)
         sidebar_layout.addWidget(self.metadata_panel, 0)
         sidebar_layout.addWidget(self.track_list_panel, 1)
         sidebar_layout.addWidget(self.edge_track_list_panel, 1)
         sidebar_layout.addWidget(self.bbox_tools_panel, 0)
+        sidebar_layout.addWidget(self.yolo_panel, 0)
         sidebar_layout.addWidget(self.polygon_tools_panel, 0)
         sidebar_layout.addWidget(self.preprocessing_panel, 0)
         sidebar_layout.addStretch(0)
@@ -360,6 +363,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.btn_prev.setEnabled(enabled)
         self.btn_next.setEnabled(enabled)
         self.bbox_tools_panel.set_sequence_loaded(enabled)
+        self.yolo_panel.set_sequence_loaded(enabled)
         self.polygon_tools_panel.set_sequence_loaded(enabled)
         self.preprocessing_panel.set_sequence_loaded(enabled)
 
@@ -387,6 +391,7 @@ class NanoTrackMainWindow(QMainWindow):
 
         self.btn_prev.setEnabled(current > 0)
         self.btn_next.setEnabled(current < total - 1)
+        self.yolo_panel.set_frame_context(current, total)
         exclusion_suffix = " | excluded" if self._sequence.is_frame_excluded(current) else ""
         self.lbl_frame.setText(f"Frame: {current + 1} / {total}{exclusion_suffix}")
         self.metadata_panel.set_sequence(self._sequence)
@@ -435,6 +440,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._sync_navigation_controls()
         self._sync_current_bbox_ui()
         self._sync_current_polygon_ui()
+        self.yolo_panel.clear_detection_state()
         self._update_menu_action_state()
         self._sync_edge_results_dialog()
         self.statusBar().showMessage(

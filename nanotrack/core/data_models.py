@@ -309,6 +309,123 @@ class EdgeMetrics:
 
 
 @dataclass
+class YoloDetection:
+    """One YOLO bbox proposal for a single frame."""
+
+    frame_index: int
+    bbox: BBoxXYXY
+    confidence: float
+    selected: bool = True
+    model_name: str = ""
+
+    def __post_init__(self) -> None:
+        if self.frame_index < 0:
+            raise ValueError("frame_index must be non-negative.")
+        if not np.isfinite(self.confidence):
+            raise ValueError("confidence must be finite.")
+        if not 0.0 <= float(self.confidence) <= 1.0:
+            raise ValueError("confidence must be in [0, 1].")
+        self.confidence = float(self.confidence)
+        self.selected = bool(self.selected)
+        self.model_name = str(self.model_name).strip()
+        if not self.model_name:
+            raise ValueError("model_name must be a non-empty string.")
+
+
+@dataclass
+class YoloDetectionSet:
+    """Frame-indexed YOLO bbox proposals for one sequence and one model."""
+
+    model_name: str
+    source_path: str
+    detections_by_frame: Dict[int, list[YoloDetection]] = field(default_factory=dict, repr=False)
+
+    def __post_init__(self) -> None:
+        self.model_name = str(self.model_name).strip()
+        self.source_path = str(self.source_path).strip()
+        if not self.model_name:
+            raise ValueError("model_name must be a non-empty string.")
+        if not self.source_path:
+            raise ValueError("source_path must be a non-empty string.")
+
+        normalized: Dict[int, list[YoloDetection]] = {}
+        for frame_index, detections in self.detections_by_frame.items():
+            frame_key = int(frame_index)
+            if frame_key < 0:
+                raise ValueError("detections_by_frame keys must be non-negative.")
+            normalized[frame_key] = self._normalize_frame_detections(frame_key, detections)
+        self.detections_by_frame = dict(sorted(normalized.items()))
+
+    @property
+    def frame_indices(self) -> list[int]:
+        return list(self.detections_by_frame.keys())
+
+    @property
+    def detection_count(self) -> int:
+        return sum(len(detections) for detections in self.detections_by_frame.values())
+
+    def get_detections(self, frame_index: int) -> list[YoloDetection]:
+        return list(self.detections_by_frame.get(int(frame_index), []))
+
+    def selected_detections(self, frame_index: int | None = None) -> list[YoloDetection]:
+        if frame_index is not None:
+            return [detection for detection in self.get_detections(frame_index) if detection.selected]
+        selected: list[YoloDetection] = []
+        for current_frame_index in self.frame_indices:
+            selected.extend(self.selected_detections(current_frame_index))
+        return selected
+
+    def selected_detection_count(self, frame_index: int | None = None) -> int:
+        return len(self.selected_detections(frame_index))
+
+    def set_detections(self, frame_index: int, detections: list[YoloDetection]) -> None:
+        frame_index = int(frame_index)
+        if frame_index < 0:
+            raise ValueError("frame_index must be non-negative.")
+        normalized = self._normalize_frame_detections(frame_index, detections)
+        if normalized:
+            self.detections_by_frame[frame_index] = normalized
+        else:
+            self.detections_by_frame.pop(frame_index, None)
+        self.detections_by_frame = dict(sorted(self.detections_by_frame.items()))
+
+    def add_detection(self, detection: YoloDetection) -> None:
+        frame_index = int(detection.frame_index)
+        current = self.get_detections(frame_index)
+        current.append(detection)
+        self.set_detections(frame_index, current)
+
+    def clear_frame(self, frame_index: int) -> None:
+        self.detections_by_frame.pop(int(frame_index), None)
+
+    def clear_all(self) -> None:
+        self.detections_by_frame.clear()
+
+    def set_selected(self, frame_index: int | None, selected: bool) -> None:
+        if frame_index is None:
+            target_frame_indices = self.frame_indices
+        else:
+            target_frame_indices = [int(frame_index)]
+        for current_frame_index in target_frame_indices:
+            for detection in self.detections_by_frame.get(current_frame_index, []):
+                detection.selected = bool(selected)
+
+    def _normalize_frame_detections(
+        self,
+        frame_index: int,
+        detections: list[YoloDetection],
+    ) -> list[YoloDetection]:
+        normalized: list[YoloDetection] = []
+        for detection in detections:
+            if detection.frame_index != frame_index:
+                raise ValueError("Detection frame_index must match the frame key in detections_by_frame.")
+            if detection.model_name != self.model_name:
+                raise ValueError("All detections inside YoloDetectionSet must match model_name.")
+            normalized.append(detection)
+        return list(normalized)
+
+
+@dataclass
 class TrackFrameAnnotation:
     """Single-frame annotation for one tracked object."""
 
