@@ -35,7 +35,8 @@ class YoloSeedDetectionPanel(QWidget):
         self._processing_busy = False
         self._detect_current_available = True
         self._detect_all_available = False
-        self._selection_actions_available = False
+        self._current_selection_actions_available = False
+        self._global_selection_actions_available = False
         self._conversion_actions_available = False
         self._clear_action_available = False
         self._current_detection_count = 0
@@ -148,16 +149,16 @@ class YoloSeedDetectionPanel(QWidget):
         self.btn_detect_current.setEnabled(can_detect and self._detect_current_available)
         self.btn_detect_all.setEnabled(can_detect and self._detect_all_available)
         self.btn_select_all_current.setEnabled(
-            can_detect and self._selection_actions_available and self._current_detection_count > 0
+            can_detect and self._current_selection_actions_available and self._current_detection_count > 0
         )
         self.btn_deselect_all_current.setEnabled(
-            can_detect and self._selection_actions_available and self._current_detection_count > 0
+            can_detect and self._current_selection_actions_available and self._current_detection_count > 0
         )
         self.btn_select_all_global.setEnabled(
-            can_detect and self._selection_actions_available and self._total_detection_count > 0
+            can_detect and self._global_selection_actions_available and self._total_detection_count > 0
         )
         self.btn_deselect_all_global.setEnabled(
-            can_detect and self._selection_actions_available and self._total_detection_count > 0
+            can_detect and self._global_selection_actions_available and self._total_detection_count > 0
         )
         self.btn_convert_current.setEnabled(
             can_detect and self._conversion_actions_available and self._current_selected_count > 0
@@ -205,8 +206,12 @@ class YoloSeedDetectionPanel(QWidget):
         self._detect_all_available = bool(available)
         self._update_enabled_state()
 
-    def set_selection_actions_available(self, available: bool) -> None:
-        self._selection_actions_available = bool(available)
+    def set_current_selection_actions_available(self, available: bool) -> None:
+        self._current_selection_actions_available = bool(available)
+        self._update_enabled_state()
+
+    def set_global_selection_actions_available(self, available: bool) -> None:
+        self._global_selection_actions_available = bool(available)
         self._update_enabled_state()
 
     def set_conversion_actions_available(self, available: bool) -> None:

@@ -37,6 +37,16 @@ class _FakeModel:
 
 
 class YoloRuntimeTests(unittest.TestCase):
+    def _import_side_effect(self, ultralytics_module, torch_module):
+        def _side_effect(module_name: str):
+            if module_name == "ultralytics":
+                return ultralytics_module
+            if module_name == "torch":
+                return torch_module
+            raise ImportError(module_name)
+
+        return _side_effect
+
     def test_load_model_raises_when_ultralytics_is_missing(self) -> None:
         runtime = YoloRuntime()
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -77,7 +87,7 @@ class YoloRuntimeTests(unittest.TestCase):
     def test_predict_frames_reuses_loaded_model(self) -> None:
         fake_model = _FakeModel("fake.pt")
         ultralytics_module = types.SimpleNamespace(YOLO=lambda _path: fake_model)
-        runtime = YoloRuntime()
+        runtime = YoloRuntime(YoloRuntimeConfig(device="cpu"))
         frames = np.zeros((2, 4, 4), dtype=np.float32)
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -98,6 +108,50 @@ class YoloRuntimeTests(unittest.TestCase):
 
         with self.assertRaises(YoloRuntimeModelLoadError):
             runtime.load_model("/tmp/definitely_missing_nanotrack_model.pt")
+
+    def test_auto_device_resolves_to_cuda_zero(self) -> None:
+        fake_model = _FakeModel("fake.pt")
+        ultralytics_module = types.SimpleNamespace(YOLO=lambda _path: fake_model)
+        torch_module = types.SimpleNamespace(
+            cuda=types.SimpleNamespace(is_available=lambda: True),
+            backends=types.SimpleNamespace(mps=types.SimpleNamespace(is_available=lambda: False)),
+        )
+        runtime = YoloRuntime(YoloRuntimeConfig(device="auto"))
+        frame = np.zeros((8, 8), dtype=np.float32)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            checkpoint = Path(tmpdir) / "model.pt"
+            checkpoint.write_bytes(b"weights")
+
+            with patch(
+                "nanotrack.yolo.runtime.importlib.import_module",
+                side_effect=self._import_side_effect(ultralytics_module, torch_module),
+            ):
+                runtime.predict_frame(frame, model_path=checkpoint)
+
+        self.assertEqual(fake_model.calls[0]["kwargs"]["device"], 0)
+
+    def test_auto_device_falls_back_to_cpu_without_cuda(self) -> None:
+        fake_model = _FakeModel("fake.pt")
+        ultralytics_module = types.SimpleNamespace(YOLO=lambda _path: fake_model)
+        torch_module = types.SimpleNamespace(
+            cuda=types.SimpleNamespace(is_available=lambda: False),
+            backends=types.SimpleNamespace(mps=types.SimpleNamespace(is_available=lambda: False)),
+        )
+        runtime = YoloRuntime(YoloRuntimeConfig(device="auto"))
+        frame = np.zeros((8, 8), dtype=np.float32)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            checkpoint = Path(tmpdir) / "model.pt"
+            checkpoint.write_bytes(b"weights")
+
+            with patch(
+                "nanotrack.yolo.runtime.importlib.import_module",
+                side_effect=self._import_side_effect(ultralytics_module, torch_module),
+            ):
+                runtime.predict_frame(frame, model_path=checkpoint)
+
+        self.assertEqual(fake_model.calls[0]["kwargs"]["device"], "cpu")
 
 
 if __name__ == "__main__":

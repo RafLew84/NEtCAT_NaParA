@@ -331,6 +331,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.viewer.bbox_changed.connect(self._on_viewer_bbox_changed)
         self.viewer.polygon_changed.connect(self._on_viewer_polygon_changed)
         self.viewer.edge_polyline_changed.connect(self._on_viewer_edge_polyline_changed)
+        self.viewer.yolo_detection_clicked.connect(self._on_yolo_detection_clicked)
         self.bbox_tools_panel.place_mode_toggled.connect(self._on_bbox_place_mode_toggled)
         self.bbox_tools_panel.default_size_changed.connect(self._on_bbox_default_size_changed)
         self.bbox_tools_panel.add_seed_requested.connect(self._on_add_seed_requested)
@@ -340,6 +341,10 @@ class NanoTrackMainWindow(QMainWindow):
         self.bbox_tools_panel.resume_track_requested.connect(self._on_resume_track_requested)
         self.yolo_panel.detect_current_requested.connect(self._on_yolo_detect_current_requested)
         self.yolo_panel.detect_all_requested.connect(self._on_yolo_detect_all_requested)
+        self.yolo_panel.select_all_current_requested.connect(self._on_yolo_select_all_current_requested)
+        self.yolo_panel.deselect_all_current_requested.connect(self._on_yolo_deselect_all_current_requested)
+        self.yolo_panel.select_all_global_requested.connect(self._on_yolo_select_all_global_requested)
+        self.yolo_panel.deselect_all_global_requested.connect(self._on_yolo_deselect_all_global_requested)
         self.polygon_tools_panel.draw_mode_toggled.connect(self._on_polygon_draw_mode_toggled)
         self.polygon_tools_panel.finish_requested.connect(self._on_finish_polygon_requested)
         self.polygon_tools_panel.clear_requested.connect(self._on_clear_current_polygon_requested)
@@ -1036,21 +1041,83 @@ class NanoTrackMainWindow(QMainWindow):
     def _sync_yolo_detection_ui(self) -> None:
         if self._sequence is None:
             self.yolo_panel.set_frame_context(None, None)
+            self.yolo_panel.set_current_selection_actions_available(False)
+            self.yolo_panel.set_global_selection_actions_available(False)
             self.yolo_panel.clear_detection_state()
             return
 
         current_frame_index = int(self._sequence.active_frame_index)
         self.yolo_panel.set_frame_context(current_frame_index, self._sequence.frame_count)
         if self._yolo_detections is None:
+            self.yolo_panel.set_current_selection_actions_available(False)
+            self.yolo_panel.set_global_selection_actions_available(False)
             self.yolo_panel.clear_detection_state()
             return
 
+        self.yolo_panel.set_current_selection_actions_available(True)
+        self.yolo_panel.set_global_selection_actions_available(True)
         self.yolo_panel.set_detection_counts(
             current_detection_count=len(self._yolo_detections.get_detections(current_frame_index)),
             total_detection_count=self._yolo_detections.detection_count,
             current_selected_count=self._yolo_detections.selected_detection_count(current_frame_index),
             total_selected_count=self._yolo_detections.selected_detection_count(),
         )
+
+    def _on_yolo_select_all_current_requested(self) -> None:
+        self._set_yolo_current_selection_state(True)
+
+    def _on_yolo_deselect_all_current_requested(self) -> None:
+        self._set_yolo_current_selection_state(False)
+
+    def _on_yolo_select_all_global_requested(self) -> None:
+        self._set_yolo_global_selection_state(True)
+
+    def _on_yolo_deselect_all_global_requested(self) -> None:
+        self._set_yolo_global_selection_state(False)
+
+    def _on_yolo_detection_clicked(self, detection_index: int) -> None:
+        if self._sequence is None or self._yolo_detections is None:
+            return
+        frame_index = int(self._sequence.active_frame_index)
+        frame_detections = self._yolo_detections.get_detections(frame_index)
+        if not 0 <= int(detection_index) < len(frame_detections):
+            return
+
+        detection = frame_detections[int(detection_index)]
+        detection.selected = not detection.selected
+        self._sync_yolo_detection_ui()
+        self._sync_track_overlays()
+        state_label = "selected" if detection.selected else "deselected"
+        self.statusBar().showMessage(
+            f"YOLO detection on frame {frame_index + 1} {state_label} ({detection.confidence:.2f}).",
+            2500,
+        )
+
+    def _set_yolo_current_selection_state(self, selected: bool) -> None:
+        if self._sequence is None or self._yolo_detections is None:
+            return
+        frame_index = int(self._sequence.active_frame_index)
+        if not self._yolo_detections.get_detections(frame_index):
+            return
+        self._yolo_detections.set_selected(frame_index, selected)
+        self._sync_yolo_detection_ui()
+        self._sync_track_overlays()
+        state_label = "selected" if selected else "deselected"
+        self.statusBar().showMessage(
+            f"All YOLO detections on frame {frame_index + 1} {state_label}.",
+            2500,
+        )
+
+    def _set_yolo_global_selection_state(self, selected: bool) -> None:
+        if self._yolo_detections is None:
+            return
+        if self._yolo_detections.detection_count <= 0:
+            return
+        self._yolo_detections.set_selected(None, selected)
+        self._sync_yolo_detection_ui()
+        self._sync_track_overlays()
+        state_label = "selected" if selected else "deselected"
+        self.statusBar().showMessage(f"All YOLO detections {state_label}.", 2500)
 
     def _prune_excluded_frame_from_edge_tracks(self, frame_index: int) -> tuple[int, int]:
         removed_tracks = 0

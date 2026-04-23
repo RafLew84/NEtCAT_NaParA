@@ -19,6 +19,7 @@ class SequenceViewerWidget(QWidget):
     bbox_changed = pyqtSignal(object)
     polygon_changed = pyqtSignal(object)
     edge_polyline_changed = pyqtSignal(object)
+    yolo_detection_clicked = pyqtSignal(int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -38,6 +39,7 @@ class SequenceViewerWidget(QWidget):
         self._edge_polyline_roi: pg.PolyLineROI | None = None
         self._current_edge_polyline: np.ndarray | None = None
         self._suppress_edge_polyline_signal = False
+        self._current_yolo_detections: list[YoloDetection] = []
         self._build()
 
     def _build(self) -> None:
@@ -119,6 +121,7 @@ class SequenceViewerWidget(QWidget):
         return None if self._current_edge_polyline is None else np.asarray(self._current_edge_polyline, dtype=np.float64)
 
     def clear_track_seed_overlays(self) -> None:
+        self._current_yolo_detections = []
         self.viewer.clear_overlay()
 
     def set_tracks_and_edges(
@@ -133,6 +136,7 @@ class SequenceViewerWidget(QWidget):
         self.clear_track_seed_overlays()
         if self._sequence is None:
             return
+        self._current_yolo_detections = list(yolo_detections or [])
 
         current_frame = self._sequence.active_frame_index
         for track in tracks:
@@ -194,7 +198,7 @@ class SequenceViewerWidget(QWidget):
             self.viewer.set_item_highlight(polyline_item, highlight)
             self.viewer.set_item_highlight(text, highlight)
 
-        for detection in yolo_detections or []:
+        for detection in self._current_yolo_detections:
             color = (255, 0, 255) if detection.selected else (255, 140, 0)
             polyline_item = self.viewer.add_polyline_nm(
                 self._bbox_polyline_nm(detection.bbox),
@@ -323,6 +327,11 @@ class SequenceViewerWidget(QWidget):
                 event.accept()
             return
         if self._bbox_draw_mode and self.place_bbox_at_pixel(center_x_px, center_y_px) is not None:
+            event.accept()
+            return
+        clicked_detection_index = self._find_yolo_detection_at_pixel(center_x_px, center_y_px)
+        if clicked_detection_index is not None:
+            self.yolo_detection_clicked.emit(clicked_detection_index)
             event.accept()
 
     def _commit_bbox(self, bbox: BBoxXYXY | None) -> None:
@@ -565,6 +574,19 @@ class SequenceViewerWidget(QWidget):
         sx, sy = self._pixel_scale()
         cx, cy = bbox.center_xy
         return cx * sx, cy * sy
+
+    def _find_yolo_detection_at_pixel(self, x_px: float, y_px: float) -> int | None:
+        best_index: int | None = None
+        best_area: float | None = None
+        for index, detection in enumerate(self._current_yolo_detections):
+            bbox = detection.bbox
+            if not (bbox.x0 <= x_px <= bbox.x1 and bbox.y0 <= y_px <= bbox.y1):
+                continue
+            area = float(bbox.width * bbox.height)
+            if best_area is None or area < best_area:
+                best_index = index
+                best_area = area
+        return best_index
 
     def _annotation_label_position_nm(self, annotation) -> tuple[float, float]:
         if annotation.bbox is not None:

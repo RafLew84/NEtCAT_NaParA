@@ -153,7 +153,8 @@ class YoloRuntime:
         effective_conf = self.config.default_conf_threshold if conf_threshold is None else float(conf_threshold)
         effective_iou = self.config.default_iou_threshold if iou_threshold is None else float(iou_threshold)
         effective_imgsz = self.config.default_imgsz if imgsz is None else int(imgsz)
-        effective_device = self.config.device if device is None else str(device)
+        requested_device: Any = self.config.device if device is None else device
+        effective_device = self._resolve_device(requested_device)
         if not 0.0 <= effective_conf <= 1.0:
             raise ValueError("conf_threshold must be in [0, 1].")
         if not 0.0 <= effective_iou <= 1.0:
@@ -168,6 +169,23 @@ class YoloRuntime:
         if effective_imgsz is not None:
             kwargs["imgsz"] = effective_imgsz
         return kwargs
+
+    def _resolve_device(self, requested_device: Any) -> Any:
+        if requested_device is None:
+            return "cpu"
+        if isinstance(requested_device, str) and requested_device.strip().lower() == "auto":
+            try:
+                torch = importlib.import_module("torch")
+            except ImportError:
+                return "cpu"
+            cuda_backend = getattr(torch, "cuda", None)
+            if cuda_backend is not None and getattr(cuda_backend, "is_available", lambda: False)():
+                return 0
+            mps_backend = getattr(getattr(torch, "backends", None), "mps", None)
+            if mps_backend is not None and getattr(mps_backend, "is_available", lambda: False)():
+                return "mps"
+            return "cpu"
+        return requested_device
 
     def _prepare_frame(self, frame: np.ndarray) -> np.ndarray:
         frame_array = np.asarray(frame)

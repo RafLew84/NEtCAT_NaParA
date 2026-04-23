@@ -35,6 +35,7 @@ from nanotrack.core import (
     STMSequence,
     STMSequenceMetadata,
     TrackFrameAnnotation,
+    YoloDetection,
 )
 from nanotrack.io import load_mpp_sequence
 from nanotrack.edges import DexiNedRunOutput
@@ -206,13 +207,218 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(len(self.window.viewer.viewer._overlay_items), 2)
         self.assertTrue(self.window.yolo_panel.btn_detect_current.isEnabled())
         self.assertTrue(self.window.yolo_panel.btn_detect_all.isEnabled())
-        self.assertFalse(self.window.yolo_panel.btn_select_all_current.isEnabled())
-        self.assertFalse(self.window.yolo_panel.btn_deselect_all_current.isEnabled())
-        self.assertFalse(self.window.yolo_panel.btn_select_all_global.isEnabled())
-        self.assertFalse(self.window.yolo_panel.btn_deselect_all_global.isEnabled())
+        self.assertTrue(self.window.yolo_panel.btn_select_all_current.isEnabled())
+        self.assertTrue(self.window.yolo_panel.btn_deselect_all_current.isEnabled())
+        self.assertTrue(self.window.yolo_panel.btn_select_all_global.isEnabled())
+        self.assertTrue(self.window.yolo_panel.btn_deselect_all_global.isEnabled())
         self.assertFalse(self.window.yolo_panel.btn_convert_current.isEnabled())
         self.assertFalse(self.window.yolo_panel.btn_convert_all.isEnabled())
         self.assertFalse(self.window.yolo_panel.btn_clear.isEnabled())
+
+    def test_yolo_single_detection_selection_toggles_selected_flag(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+        if self.window.yolo_panel.cmb_model.count() == 0:
+            self.skipTest("No local YOLO models available for the GUI test.")
+
+        model_name = self.window.yolo_panel.current_model_name()
+        self.assertIsNotNone(model_name)
+
+        with patch.object(
+            self.window._yolo_runtime,
+            "predict_frame",
+            return_value=[SimpleNamespace(bbox=BBoxXYXY(5.0, 6.0, 15.0, 18.0), confidence=0.82)],
+        ):
+            self.window._on_yolo_detect_current_requested()
+
+        detection_set = self.window.current_yolo_detection_set()
+        self.assertIsNotNone(detection_set)
+        assert detection_set is not None
+        self.assertEqual(detection_set.selected_detection_count(), 1)
+
+        self.window._on_yolo_detection_clicked(0)
+
+        detections = detection_set.get_detections(sequence.active_frame_index)
+        self.assertEqual(len(detections), 1)
+        self.assertFalse(detections[0].selected)
+        self.assertEqual(detection_set.selected_detection_count(), 0)
+        self.assertEqual(
+            self.window.yolo_panel.lbl_detections.text(),
+            "Detections: current 1 (selected 0) | all 1 (selected 0)",
+        )
+        self.assertEqual(len(self.window.viewer.viewer._overlay_items), 2)
+
+        self.window._on_yolo_detection_clicked(0)
+
+        self.assertTrue(detections[0].selected)
+        self.assertEqual(detection_set.selected_detection_count(), 1)
+        self.assertEqual(
+            self.window.yolo_panel.lbl_detections.text(),
+            "Detections: current 1 (selected 1) | all 1 (selected 1)",
+        )
+
+    def test_yolo_select_all_and_deselect_all_current_affect_active_frame_only(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/yolo_select_current.mpp",
+            raw_frames=np.zeros((2, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+        )
+        self.window.set_sequence(sequence)
+        if self.window.yolo_panel.cmb_model.count() == 0:
+            self.skipTest("No local YOLO models available for the GUI test.")
+
+        model_name = self.window.yolo_panel.current_model_name()
+        self.assertIsNotNone(model_name)
+        self.window._replace_yolo_detections(
+            model_name=str(model_name),
+            detections_by_frame={
+                0: [
+                    YoloDetection(
+                        frame_index=0,
+                        bbox=BBoxXYXY(1.0, 1.0, 3.0, 3.0),
+                        confidence=0.9,
+                        selected=True,
+                        model_name=str(model_name),
+                    ),
+                    YoloDetection(
+                        frame_index=0,
+                        bbox=BBoxXYXY(4.0, 4.0, 6.0, 6.0),
+                        confidence=0.8,
+                        selected=True,
+                        model_name=str(model_name),
+                    ),
+                ],
+                1: [
+                    YoloDetection(
+                        frame_index=1,
+                        bbox=BBoxXYXY(2.0, 2.0, 5.0, 5.0),
+                        confidence=0.7,
+                        selected=True,
+                        model_name=str(model_name),
+                    )
+                ],
+            },
+        )
+        detection_set = self.window.current_yolo_detection_set()
+        self.assertIsNotNone(detection_set)
+        assert detection_set is not None
+        self.assertTrue(self.window.yolo_panel.btn_select_all_current.isEnabled())
+        self.assertTrue(self.window.yolo_panel.btn_deselect_all_current.isEnabled())
+        self.assertTrue(self.window.yolo_panel.btn_select_all_global.isEnabled())
+        self.assertTrue(self.window.yolo_panel.btn_deselect_all_global.isEnabled())
+        self.assertEqual(
+            self.window.yolo_panel.lbl_detections.text(),
+            "Detections: current 2 (selected 2) | all 3 (selected 3)",
+        )
+
+        self.window._on_yolo_deselect_all_current_requested()
+
+        self.assertEqual(detection_set.selected_detection_count(0), 0)
+        self.assertEqual(detection_set.selected_detection_count(1), 1)
+        self.assertEqual(detection_set.selected_detection_count(), 1)
+        self.assertEqual(
+            self.window.yolo_panel.lbl_detections.text(),
+            "Detections: current 2 (selected 0) | all 3 (selected 1)",
+        )
+
+        self.window._on_yolo_select_all_current_requested()
+
+        self.assertEqual(detection_set.selected_detection_count(0), 2)
+        self.assertEqual(detection_set.selected_detection_count(), 3)
+        self.assertEqual(
+            self.window.yolo_panel.lbl_detections.text(),
+            "Detections: current 2 (selected 2) | all 3 (selected 3)",
+        )
+
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+        self.assertTrue(self.window.yolo_panel.btn_select_all_current.isEnabled())
+        self.assertTrue(self.window.yolo_panel.btn_deselect_all_current.isEnabled())
+        self.assertEqual(
+            self.window.yolo_panel.lbl_detections.text(),
+            "Detections: current 1 (selected 1) | all 3 (selected 3)",
+        )
+
+    def test_yolo_select_all_and_deselect_all_global_affect_all_frames(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/yolo_select_global.mpp",
+            raw_frames=np.zeros((2, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+        )
+        self.window.set_sequence(sequence)
+        if self.window.yolo_panel.cmb_model.count() == 0:
+            self.skipTest("No local YOLO models available for the GUI test.")
+
+        model_name = self.window.yolo_panel.current_model_name()
+        self.assertIsNotNone(model_name)
+        self.window._replace_yolo_detections(
+            model_name=str(model_name),
+            detections_by_frame={
+                0: [
+                    YoloDetection(
+                        frame_index=0,
+                        bbox=BBoxXYXY(1.0, 1.0, 3.0, 3.0),
+                        confidence=0.9,
+                        selected=True,
+                        model_name=str(model_name),
+                    ),
+                    YoloDetection(
+                        frame_index=0,
+                        bbox=BBoxXYXY(4.0, 4.0, 6.0, 6.0),
+                        confidence=0.8,
+                        selected=False,
+                        model_name=str(model_name),
+                    ),
+                ],
+                1: [
+                    YoloDetection(
+                        frame_index=1,
+                        bbox=BBoxXYXY(2.0, 2.0, 5.0, 5.0),
+                        confidence=0.7,
+                        selected=True,
+                        model_name=str(model_name),
+                    )
+                ],
+            },
+        )
+        detection_set = self.window.current_yolo_detection_set()
+        self.assertIsNotNone(detection_set)
+        assert detection_set is not None
+        self.assertTrue(self.window.yolo_panel.btn_select_all_global.isEnabled())
+        self.assertTrue(self.window.yolo_panel.btn_deselect_all_global.isEnabled())
+        self.assertEqual(
+            self.window.yolo_panel.lbl_detections.text(),
+            "Detections: current 2 (selected 1) | all 3 (selected 2)",
+        )
+
+        self.window._on_yolo_deselect_all_global_requested()
+
+        self.assertEqual(detection_set.selected_detection_count(0), 0)
+        self.assertEqual(detection_set.selected_detection_count(1), 0)
+        self.assertEqual(detection_set.selected_detection_count(), 0)
+        self.assertEqual(
+            self.window.yolo_panel.lbl_detections.text(),
+            "Detections: current 2 (selected 0) | all 3 (selected 0)",
+        )
+
+        self.window._on_yolo_select_all_global_requested()
+
+        self.assertEqual(detection_set.selected_detection_count(0), 2)
+        self.assertEqual(detection_set.selected_detection_count(1), 1)
+        self.assertEqual(detection_set.selected_detection_count(), 3)
+        self.assertEqual(
+            self.window.yolo_panel.lbl_detections.text(),
+            "Detections: current 2 (selected 2) | all 3 (selected 3)",
+        )
+
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+        self.assertTrue(self.window.yolo_panel.btn_select_all_global.isEnabled())
+        self.assertTrue(self.window.yolo_panel.btn_deselect_all_global.isEnabled())
+        self.assertEqual(
+            self.window.yolo_panel.lbl_detections.text(),
+            "Detections: current 1 (selected 1) | all 3 (selected 3)",
+        )
 
     def test_yolo_detect_all_creates_detection_proposals_for_included_frames(self) -> None:
         sequence = STMSequence(
