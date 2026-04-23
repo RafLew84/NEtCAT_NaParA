@@ -37,6 +37,7 @@ class SessionStoreTests(unittest.TestCase):
             active_frame_index=2,
             reverse_frame_order=True,
         )
+        sequence.set_frame_excluded(1, True)
         track = ParticleTrack(
             track_id=7,
             seed_frame_index=1,
@@ -147,6 +148,7 @@ class SessionStoreTests(unittest.TestCase):
         self.assertEqual(loaded.sequence.source_path, "/tmp/source.mpp")
         self.assertEqual(loaded.sequence.active_frame_index, 2)
         self.assertTrue(loaded.sequence.reverse_frame_order)
+        self.assertTrue(loaded.sequence.is_frame_excluded(1))
         self.assertEqual(loaded.selected_track_id, 7)
         self.assertEqual(loaded.selected_edge_track_id, 3)
         self.assertTrue(loaded.show_denoised_in_viewer)

@@ -10,6 +10,7 @@ from PyQt6.QtCore import QObject, QSignalBlocker, QThread, Qt, pyqtSignal
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -264,10 +265,15 @@ class NanoTrackMainWindow(QMainWindow):
         self.btn_prev = QPushButton("Previous Frame", self)
         self.spin_frame = QSpinBox(self)
         self.spin_frame.setPrefix("Frame ")
+        self.chk_exclude_frame = QCheckBox("Exclude From Analysis", self)
+        self.chk_exclude_frame.setToolTip(
+            "Exclude the current frame from tracks, edge tracks, metrics, exports, and future analysis runs."
+        )
         self.btn_next = QPushButton("Next Frame", self)
 
         nav_layout.addWidget(self.btn_prev)
         nav_layout.addWidget(self.spin_frame)
+        nav_layout.addWidget(self.chk_exclude_frame)
         nav_layout.addWidget(self.btn_next)
 
         layout.addWidget(nav_row)
@@ -311,6 +317,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.action_open_edge_results.triggered.connect(self._on_open_edge_results_requested)
         self.slider_frame.valueChanged.connect(self._on_frame_selected)
         self.spin_frame.valueChanged.connect(self._on_spin_frame_selected)
+        self.chk_exclude_frame.toggled.connect(self._on_exclude_frame_toggled)
         self.btn_prev.clicked.connect(self._on_prev_frame)
         self.btn_next.clicked.connect(self._on_next_frame)
         self.viewer.bbox_changed.connect(self._on_viewer_bbox_changed)
@@ -349,6 +356,7 @@ class NanoTrackMainWindow(QMainWindow):
     def _update_navigation_enabled(self, enabled: bool) -> None:
         self.slider_frame.setEnabled(enabled)
         self.spin_frame.setEnabled(enabled)
+        self.chk_exclude_frame.setEnabled(enabled)
         self.btn_prev.setEnabled(enabled)
         self.btn_next.setEnabled(enabled)
         self.bbox_tools_panel.set_sequence_loaded(enabled)
@@ -374,9 +382,13 @@ class NanoTrackMainWindow(QMainWindow):
             self.spin_frame.setRange(1, total)
             self.spin_frame.setValue(current + 1)
 
+        with QSignalBlocker(self.chk_exclude_frame):
+            self.chk_exclude_frame.setChecked(self._sequence.is_frame_excluded(current))
+
         self.btn_prev.setEnabled(current > 0)
         self.btn_next.setEnabled(current < total - 1)
-        self.lbl_frame.setText(f"Frame: {current + 1} / {total}")
+        exclusion_suffix = " | excluded" if self._sequence.is_frame_excluded(current) else ""
+        self.lbl_frame.setText(f"Frame: {current + 1} / {total}{exclusion_suffix}")
         self.metadata_panel.set_sequence(self._sequence)
 
     def _show_current_frame(self, preserve_zoom: bool = True) -> None:
@@ -401,8 +413,9 @@ class NanoTrackMainWindow(QMainWindow):
         self._sync_current_polygon_ui()
         self._sync_track_overlays()
         self._sync_navigation_controls()
+        excluded_suffix = " | excluded from analysis" if self._sequence.is_frame_excluded(self._sequence.active_frame_index) else ""
         self.statusBar().showMessage(
-            f"{Path(self._sequence.source_path).name} | frame {self._sequence.active_frame_index + 1}/{self._sequence.frame_count}",
+            f"{Path(self._sequence.source_path).name} | frame {self._sequence.active_frame_index + 1}/{self._sequence.frame_count}{excluded_suffix}",
             3000,
         )
 
@@ -425,7 +438,10 @@ class NanoTrackMainWindow(QMainWindow):
         self._update_menu_action_state()
         self._sync_edge_results_dialog()
         self.statusBar().showMessage(
-            f"{Path(sequence.source_path).name} | frame {sequence.active_frame_index + 1}/{sequence.frame_count}",
+            (
+                f"{Path(sequence.source_path).name} | frame {sequence.active_frame_index + 1}/{sequence.frame_count}"
+                f"{' | excluded from analysis' if sequence.is_frame_excluded(sequence.active_frame_index) else ''}"
+            ),
             3000,
         )
         self.set_tracks([])
@@ -714,6 +730,90 @@ class NanoTrackMainWindow(QMainWindow):
             return
         self._set_active_frame(min(self._sequence.frame_count - 1, self._sequence.active_frame_index + 1))
 
+    def _on_exclude_frame_toggled(self, checked: bool) -> None:
+        if self._sequence is None:
+            return
+
+        frame_index = int(self._sequence.active_frame_index)
+        if self._sequence.is_frame_excluded(frame_index) == bool(checked):
+            return
+
+        self._sequence.set_frame_excluded(frame_index, bool(checked))
+        if checked:
+            self._draft_bboxes_by_frame.pop(frame_index, None)
+            self._draft_polygons_by_frame.pop(frame_index, None)
+            self._draft_edge_polylines_by_frame.pop(frame_index, None)
+            removed_particle_tracks, removed_particle_annotations = self._prune_excluded_frame_from_tracks(frame_index)
+            removed_edge_tracks, removed_edge_annotations = self._prune_excluded_frame_from_edge_tracks(frame_index)
+            self._reset_preview_state(close_dialog=True)
+            self._show_current_frame(preserve_zoom=True)
+            self.statusBar().showMessage(
+                (
+                    f"Excluded frame {frame_index + 1} from analysis "
+                    f"(removed {removed_particle_annotations} particle annotations, {removed_edge_annotations} edge annotations, "
+                    f"dropped {removed_particle_tracks} particle tracks, {removed_edge_tracks} edge tracks)."
+                ),
+                5000,
+            )
+            return
+
+        self._show_current_frame(preserve_zoom=True)
+        self.statusBar().showMessage(
+            f"Frame {frame_index + 1} restored for future analysis runs.", 4000
+        )
+
+    def _ensure_current_frame_included(self, action_label: str) -> bool:
+        if self._sequence is None:
+            return False
+        frame_index = int(self._sequence.active_frame_index)
+        if not self._sequence.is_frame_excluded(frame_index):
+            return True
+        QMessageBox.warning(
+            self,
+            "Frame excluded from analysis",
+            (
+                f"Frame {frame_index + 1} is currently excluded from analysis. "
+                f"Restore it before using: {action_label}."
+            ),
+        )
+        return False
+
+    def _prune_excluded_frame_from_tracks(self, frame_index: int) -> tuple[int, int]:
+        removed_tracks = 0
+        removed_annotations = 0
+        remaining_tracks: list[ParticleTrack] = []
+        for track in self._tracks:
+            if track.seed_frame_index == frame_index:
+                removed_tracks += 1
+                continue
+            if frame_index in track.annotations:
+                track.annotations.pop(frame_index, None)
+                removed_annotations += 1
+            remaining_tracks.append(track)
+        next_selected_track_id = self._selected_track_id if any(
+            track.track_id == self._selected_track_id for track in remaining_tracks
+        ) else (remaining_tracks[0].track_id if remaining_tracks else None)
+        self.set_tracks(remaining_tracks, selected_track_id=next_selected_track_id)
+        return removed_tracks, removed_annotations
+
+    def _prune_excluded_frame_from_edge_tracks(self, frame_index: int) -> tuple[int, int]:
+        removed_tracks = 0
+        removed_annotations = 0
+        remaining_tracks: list[EdgeTrack] = []
+        for track in self._edge_tracks:
+            if track.seed_frame_index == frame_index:
+                removed_tracks += 1
+                continue
+            if frame_index in track.annotations:
+                track.annotations.pop(frame_index, None)
+                removed_annotations += 1
+            remaining_tracks.append(track)
+        next_selected_track_id = self._selected_edge_track_id if any(
+            track.edge_track_id == self._selected_edge_track_id for track in remaining_tracks
+        ) else (remaining_tracks[0].edge_track_id if remaining_tracks else None)
+        self.set_edge_tracks(remaining_tracks, selected_track_id=next_selected_track_id)
+        return removed_tracks, removed_annotations
+
     def _on_bbox_place_mode_toggled(self, checked: bool) -> None:
         self._set_bbox_place_mode(checked)
         if checked:
@@ -851,6 +951,8 @@ class NanoTrackMainWindow(QMainWindow):
     def _on_edge_sequence_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
             return
+        if not self._ensure_current_frame_included("Run DexiNed on Range"):
+            return
 
         polygon = self.current_draft_polygon_roi()
         if polygon is None:
@@ -947,6 +1049,8 @@ class NanoTrackMainWindow(QMainWindow):
     def _on_save_edge_correction_requested(self) -> None:
         if self._sequence is None:
             return
+        if not self._ensure_current_frame_included("Save Edge Correction"):
+            return
         track = self._find_edge_track_by_id(self._selected_edge_track_id)
         if track is None:
             return
@@ -982,6 +1086,8 @@ class NanoTrackMainWindow(QMainWindow):
 
     def _on_resume_edge_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
+            return
+        if not self._ensure_current_frame_included("Resume Edge Tracking"):
             return
         track = self._find_edge_track_by_id(self._selected_edge_track_id)
         if track is None:
@@ -1114,6 +1220,8 @@ class NanoTrackMainWindow(QMainWindow):
     def _on_redetect_edge_range_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
             return
+        if not self._ensure_current_frame_included("Re-detect Range"):
+            return
         track = self._find_edge_track_by_id(self._selected_edge_track_id)
         if track is None:
             return
@@ -1163,6 +1271,8 @@ class NanoTrackMainWindow(QMainWindow):
 
     def _on_edge_hybrid_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
+            return
+        if not self._ensure_current_frame_included("Hybrid Stabilize"):
             return
 
         track = self._find_edge_track_by_id(self._selected_edge_track_id)
@@ -1271,6 +1381,8 @@ class NanoTrackMainWindow(QMainWindow):
     def _on_add_seed_requested(self) -> None:
         if self._sequence is None:
             return
+        if not self._ensure_current_frame_included("Add Seed"):
+            return
         current_bbox = self.current_draft_bbox()
         if current_bbox is None:
             return
@@ -1313,6 +1425,8 @@ class NanoTrackMainWindow(QMainWindow):
     def _on_save_correction_requested(self) -> None:
         if self._sequence is None:
             return
+        if not self._ensure_current_frame_included("Save Correction"):
+            return
         track = self._find_track_by_id(self._selected_track_id)
         current_bbox = self.current_draft_bbox()
         if track is None or current_bbox is None:
@@ -1349,6 +1463,8 @@ class NanoTrackMainWindow(QMainWindow):
 
     def _on_resume_track_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
+            return
+        if not self._ensure_current_frame_included("Resume SAM2"):
             return
 
         track = self._find_track_by_id(self._selected_track_id)
@@ -2673,6 +2789,8 @@ class NanoTrackMainWindow(QMainWindow):
 
         annotations: dict[int, EdgeFrameAnnotation] = {}
         for local_index, frame_index in enumerate(frame_indices):
+            if self._sequence is not None and self._sequence.is_frame_excluded(int(frame_index)):
+                continue
             edge_frame = np.asarray(edge_prob[local_index], dtype=np.float32)
             input_frame = np.asarray(input_frames_f32[local_index], dtype=np.float32)
             edge_binary_frame = None
@@ -3032,6 +3150,8 @@ class NanoTrackMainWindow(QMainWindow):
 
         for local_index in range(1, tracks_xy.shape[1]):
             frame_index = start_frame_index + local_index
+            if self._sequence.is_frame_excluded(frame_index):
+                continue
             tracked_points = np.asarray(tracks_xy[:, local_index, :], dtype=np.float64)
             visible_points = tracked_points[visible_mask[:, local_index]]
             existing_annotation = existing_annotations.get(frame_index)
@@ -3109,6 +3229,8 @@ class NanoTrackMainWindow(QMainWindow):
             raise ValueError("DexiNed resume input frame range must match the remaining frame count.")
         for local_index in range(edge_prob.shape[0]):
             frame_index = resume_from_frame + 1 + local_index
+            if self._sequence.is_frame_excluded(frame_index):
+                continue
             edge_frame = np.asarray(edge_prob[local_index], dtype=np.float32)
             input_frame = np.asarray(input_frames[local_index], dtype=np.float32)
             edge_binary_frame = None
@@ -3229,8 +3351,12 @@ class NanoTrackMainWindow(QMainWindow):
         self._edge_results_dialog.set_selected_track_id(self._selected_edge_track_id)
 
     def _has_results_data(self) -> bool:
+        if self._sequence is None:
+            return False
         for track in self._tracks:
             for frame_index in track.frame_indices:
+                if self._sequence.is_frame_excluded(frame_index):
+                    continue
                 annotation = track.get_annotation(frame_index)
                 if annotation is None:
                     continue
@@ -3246,8 +3372,12 @@ class NanoTrackMainWindow(QMainWindow):
         return False
 
     def _has_edge_results_data(self) -> bool:
+        if self._sequence is None:
+            return False
         for track in self._edge_tracks:
             for frame_index in track.frame_indices:
+                if self._sequence.is_frame_excluded(frame_index):
+                    continue
                 annotation = track.get_annotation(frame_index)
                 if annotation is None:
                     continue
@@ -3306,7 +3436,8 @@ class NanoTrackMainWindow(QMainWindow):
 
         for local_frame_index in range(run_output.masks.shape[0]):
             annotation = self._annotation_from_sam2_frame(run_output, local_frame_index)
-            track.add_annotation(annotation)
+            if annotation is not None:
+                track.add_annotation(annotation)
 
     def _resume_track_from_output(self, track_id: int, run_output: Sam2RunOutput, resume_frame: int) -> None:
         track = self._find_track_by_id(track_id)
@@ -3315,16 +3446,19 @@ class NanoTrackMainWindow(QMainWindow):
         track.drop_annotations_after(resume_frame)
         for local_frame_index in range(1, run_output.masks.shape[0]):
             annotation = self._annotation_from_sam2_frame(run_output, local_frame_index)
-            track.add_annotation(annotation)
+            if annotation is not None:
+                track.add_annotation(annotation)
 
     def _annotation_from_sam2_frame(
         self,
         run_output: Sam2RunOutput,
         local_frame_index: int,
-    ) -> TrackFrameAnnotation:
+    ) -> TrackFrameAnnotation | None:
         if self._sequence is None:
             raise RuntimeError("No sequence loaded.")
         frame_index = run_output.frame_index_offset + local_frame_index
+        if self._sequence.is_frame_excluded(frame_index):
+            return None
         visible = bool(run_output.visible_mask[local_frame_index])
         mask = np.asarray(run_output.masks[local_frame_index], dtype=bool)
         bbox = None

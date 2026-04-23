@@ -41,6 +41,8 @@ def _metrics_rows(sequence: STMSequence, tracks: list[ParticleTrack]) -> list[di
     for track in tracks:
         label = track.label or f"Track {track.track_id}"
         for frame_index in track.frame_indices:
+            if sequence.is_frame_excluded(frame_index):
+                continue
             annotation = track.get_annotation(frame_index)
             if annotation is None:
                 continue
@@ -92,6 +94,8 @@ def _summary_rows(sequence: STMSequence, tracks: list[ParticleTrack]) -> list[di
         measured_annotations = []
         visible_frames = 0
         for frame_index in track.frame_indices:
+            if sequence.is_frame_excluded(frame_index):
+                continue
             annotation = track.get_annotation(frame_index)
             if annotation is None:
                 continue

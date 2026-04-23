@@ -108,6 +108,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.edge_track_list_panel.list_tracks.count(), 0)
         self.assertEqual(self.window.edge_track_list_panel.lbl_summary.text(), "0 edge tracks")
         self.assertTrue(self.window.bbox_tools_panel.btn_place.isEnabled())
+        self.assertTrue(self.window.chk_exclude_frame.isEnabled())
+        self.assertFalse(self.window.chk_exclude_frame.isChecked())
         self.assertFalse(self.window.bbox_tools_panel.btn_add_seed.isEnabled())
         self.assertFalse(self.window.bbox_tools_panel.btn_clear.isEnabled())
         self.assertFalse(self.window.bbox_tools_panel.btn_load_track_bbox.isEnabled())
@@ -149,6 +151,84 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(sequence.active_frame_index, 2)
         self.assertEqual(self.window.spin_frame.value(), 3)
         self.assertEqual(self.window.lbl_frame.text(), f"Frame: 3 / {sequence.frame_count}")
+
+    def test_excluding_current_frame_removes_it_from_analysis_state(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/excluded_frame.mpp",
+            raw_frames=np.zeros((3, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+        )
+        self.window.set_sequence(sequence)
+
+        particle_track_keep = ParticleTrack(
+            track_id=1,
+            seed_frame_index=0,
+            seed_bbox=BBoxXYXY(1.0, 1.0, 4.0, 4.0),
+        )
+        particle_track_keep.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(2.0, 2.0, 5.0, 5.0),
+                source=AnnotationSource.MANUAL,
+            )
+        )
+        particle_track_drop = ParticleTrack(
+            track_id=2,
+            seed_frame_index=1,
+            seed_bbox=BBoxXYXY(1.0, 1.0, 3.0, 3.0),
+        )
+
+        polygon = PolygonROI(np.asarray([[1.0, 1.0], [6.0, 1.0], [6.0, 6.0], [1.0, 6.0]], dtype=np.float64))
+        edge_track_keep = EdgeTrack(
+            edge_track_id=1,
+            seed_frame_index=0,
+            polygon_roi=polygon,
+            seed_polyline=np.asarray([[1.0, 2.0], [6.0, 2.0]], dtype=np.float64),
+        )
+        edge_track_keep.add_annotation(
+            EdgeFrameAnnotation(
+                frame_index=1,
+                polyline=np.asarray([[1.5, 2.5], [6.5, 2.5]], dtype=np.float64),
+                source=EdgeAnnotationSource.MANUAL,
+            )
+        )
+        edge_track_drop = EdgeTrack(
+            edge_track_id=2,
+            seed_frame_index=1,
+            polygon_roi=polygon,
+            seed_polyline=np.asarray([[1.0, 3.0], [6.0, 3.0]], dtype=np.float64),
+        )
+
+        self.window.set_tracks([particle_track_keep, particle_track_drop], selected_track_id=1)
+        self.window.set_edge_tracks([edge_track_keep, edge_track_drop], selected_track_id=1)
+
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+        self.window.viewer.set_bbox(BBoxXYXY(0.5, 0.5, 3.5, 3.5))
+        self.window.viewer._commit_polygon(polygon)
+        self.window.viewer.set_edge_polyline(np.asarray([[1.0, 4.0], [6.0, 4.0]], dtype=np.float64))
+
+        self.window.chk_exclude_frame.setChecked(True)
+        self.__class__._app.processEvents()
+
+        self.assertTrue(sequence.is_frame_excluded(1))
+        self.assertTrue(self.window.chk_exclude_frame.isChecked())
+        self.assertIn("excluded", self.window.lbl_frame.text().lower())
+        self.assertIsNone(self.window.current_draft_bbox())
+        self.assertIsNone(self.window.current_draft_polygon_roi())
+        self.assertIsNone(self.window.current_draft_edge_polyline())
+
+        remaining_track_ids = [track.track_id for track in self.window.current_tracks()]
+        self.assertEqual(remaining_track_ids, [1])
+        self.assertEqual(self.window.current_tracks()[0].frame_indices, [0])
+
+        remaining_edge_track_ids = [track.edge_track_id for track in self.window.current_edge_tracks()]
+        self.assertEqual(remaining_edge_track_ids, [1])
+        self.assertEqual(self.window.current_edge_tracks()[0].frame_indices, [0])
+
+        self.window.chk_exclude_frame.setChecked(False)
+        self.__class__._app.processEvents()
+        self.assertFalse(sequence.is_frame_excluded(1))
 
     def test_prev_next_buttons_follow_sequence_bounds(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))

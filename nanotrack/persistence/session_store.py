@@ -102,6 +102,8 @@ def load_session_snapshot(
         sequence_path = str(manifest["sequence"]["source_path"])
         reverse_frame_order = bool(manifest["sequence"].get("reverse_frame_order", False))
         sequence = sequence_loader(sequence_path, reverse_frame_order=reverse_frame_order)
+        for frame_index in manifest["sequence"].get("excluded_frame_indices", []):
+            sequence.set_frame_excluded(int(frame_index), True)
         sequence.set_active_frame(int(manifest["sequence"]["active_frame_index"]))
 
         repair_frames = _read_optional_npz(zf, "preprocessing/repair_frames.npz", "frames")
@@ -146,6 +148,7 @@ def _build_manifest(snapshot: NanoTrackSessionSnapshot) -> dict:
             "source_path": snapshot.sequence.source_path,
             "active_frame_index": snapshot.sequence.active_frame_index,
             "reverse_frame_order": bool(snapshot.sequence.reverse_frame_order),
+            "excluded_frame_indices": snapshot.sequence.sorted_excluded_frame_indices(),
         },
         "selected_track_id": snapshot.selected_track_id,
         "selected_edge_track_id": snapshot.selected_edge_track_id,

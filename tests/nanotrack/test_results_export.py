@@ -15,6 +15,7 @@ class ResultsExportTests(unittest.TestCase):
             raw_frames=np.zeros((4, 8, 8), dtype=np.float32),
             metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8, size_nm_x=80.0, size_nm_y=40.0, frame_interval_s=0.5),
         )
+        sequence.set_frame_excluded(1, True)
         track1 = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(1.0, 1.0, 4.0, 4.0), label="NP-1")
         track1.add_annotation(
             TrackFrameAnnotation(
@@ -40,25 +41,19 @@ class ResultsExportTests(unittest.TestCase):
             with open(exported["summary_csv"], newline="", encoding="utf-8") as handle:
                 summary_rows = list(csv.DictReader(handle))
 
-        self.assertEqual(len(metrics_rows), 2)
-        self.assertEqual(metrics_rows[0]["track_id"], "1")
-        self.assertEqual(metrics_rows[0]["label"], "NP-1")
-        self.assertEqual(metrics_rows[0]["frame_number"], "2")
-        self.assertEqual(metrics_rows[0]["time_s"], "0.5")
-        self.assertEqual(metrics_rows[0]["area_px"], "12.0")
-        self.assertEqual(metrics_rows[0]["area_nm2"], "600.0")
-        self.assertEqual(metrics_rows[0]["perimeter_nm"], "120.0")
-        self.assertEqual(metrics_rows[0]["image_size_nm_x"], "80.0")
-        self.assertEqual(metrics_rows[0]["pixel_size_nm_y"], "5.0")
-        self.assertEqual(metrics_rows[1]["track_id"], "2")
-        self.assertEqual(metrics_rows[1]["intensity_max"], "5.0")
+        self.assertEqual(len(metrics_rows), 1)
+        self.assertEqual(metrics_rows[0]["track_id"], "2")
+        self.assertEqual(metrics_rows[0]["label"], "NP-2")
+        self.assertEqual(metrics_rows[0]["frame_number"], "4")
+        self.assertEqual(metrics_rows[0]["time_s"], "1.5")
+        self.assertEqual(metrics_rows[0]["intensity_max"], "5.0")
 
         self.assertEqual(len(summary_rows), 2)
         self.assertEqual(summary_rows[0]["track_id"], "1")
-        self.assertEqual(summary_rows[0]["measured_frames"], "1")
-        self.assertEqual(summary_rows[0]["mean_area_px"], "12.0")
-        self.assertEqual(summary_rows[0]["mean_area_nm2"], "600.0")
-        self.assertEqual(summary_rows[0]["mean_perimeter_nm"], "120.0")
+        self.assertEqual(summary_rows[0]["measured_frames"], "0")
+        self.assertEqual(summary_rows[0]["mean_area_px"], "")
+        self.assertEqual(summary_rows[0]["mean_area_nm2"], "")
+        self.assertEqual(summary_rows[0]["mean_perimeter_nm"], "")
         self.assertEqual(summary_rows[1]["track_id"], "2")
         self.assertEqual(summary_rows[1]["max_intensity_max"], "5.0")
 

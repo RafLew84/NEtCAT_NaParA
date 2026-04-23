@@ -55,6 +55,7 @@ class STMSequence:
     metadata: STMSequenceMetadata
     active_frame_index: int = 0
     reverse_frame_order: bool = False
+    excluded_frame_indices: set[int] = field(default_factory=set, repr=False)
 
     def __post_init__(self) -> None:
         frames = np.asarray(self.raw_frames)
@@ -81,6 +82,11 @@ class STMSequence:
         if not 0 <= self.active_frame_index < frame_count:
             raise IndexError("active_frame_index is out of range.")
         self.reverse_frame_order = bool(self.reverse_frame_order)
+        excluded = {int(frame_index) for frame_index in self.excluded_frame_indices}
+        for frame_index in excluded:
+            if not 0 <= frame_index < frame_count:
+                raise IndexError("excluded_frame_indices contains an out-of-range frame index.")
+        self.excluded_frame_indices = excluded
 
     @property
     def file_name(self) -> str:
@@ -128,6 +134,26 @@ class STMSequence:
         if self.metadata.frame_interval_s is not None:
             return float(frame_index * self.metadata.frame_interval_s)
         return None
+
+    def is_frame_excluded(self, frame_index: int) -> bool:
+        if not 0 <= frame_index < self.frame_count:
+            raise IndexError("frame_index is out of range.")
+        return int(frame_index) in self.excluded_frame_indices
+
+    def set_frame_excluded(self, frame_index: int, excluded: bool = True) -> None:
+        if not 0 <= frame_index < self.frame_count:
+            raise IndexError("frame_index is out of range.")
+        frame_index = int(frame_index)
+        if excluded:
+            self.excluded_frame_indices.add(frame_index)
+        else:
+            self.excluded_frame_indices.discard(frame_index)
+
+    def included_frame_indices(self) -> list[int]:
+        return [frame_index for frame_index in range(self.frame_count) if frame_index not in self.excluded_frame_indices]
+
+    def sorted_excluded_frame_indices(self) -> list[int]:
+        return sorted(self.excluded_frame_indices)
 
 
 class AnnotationSource(str, Enum):

@@ -41,6 +41,8 @@ def _metrics_rows(sequence: STMSequence, edge_tracks: list[EdgeTrack]) -> list[d
     for track in edge_tracks:
         label = track.label or f"Edge {track.edge_track_id}"
         for frame_index in track.frame_indices:
+            if sequence.is_frame_excluded(frame_index):
+                continue
             annotation = track.get_annotation(frame_index)
             if annotation is None:
                 continue
@@ -89,6 +91,8 @@ def _summary_rows(sequence: STMSequence, edge_tracks: list[EdgeTrack]) -> list[d
         measured_annotations = []
         visible_frames = 0
         for frame_index in track.frame_indices:
+            if sequence.is_frame_excluded(frame_index):
+                continue
             annotation = track.get_annotation(frame_index)
             if annotation is None:
                 continue
