@@ -350,6 +350,8 @@ class NanoTrackMainWindow(QMainWindow):
         self.yolo_panel.deselect_all_current_requested.connect(self._on_yolo_deselect_all_current_requested)
         self.yolo_panel.select_all_global_requested.connect(self._on_yolo_select_all_global_requested)
         self.yolo_panel.deselect_all_global_requested.connect(self._on_yolo_deselect_all_global_requested)
+        self.yolo_panel.convert_selected_current_requested.connect(self._on_yolo_convert_selected_current_requested)
+        self.yolo_panel.convert_selected_all_requested.connect(self._on_yolo_convert_selected_all_requested)
         self.polygon_tools_panel.draw_mode_toggled.connect(self._on_polygon_draw_mode_toggled)
         self.polygon_tools_panel.finish_requested.connect(self._on_finish_polygon_requested)
         self.polygon_tools_panel.clear_requested.connect(self._on_clear_current_polygon_requested)
@@ -463,6 +465,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._sync_current_polygon_ui()
         self.yolo_panel.clear_detection_state()
         self.yolo_panel.set_edit_actions_available(load_available=False, save_available=False)
+        self.yolo_panel.set_conversion_actions_available(current_available=False, global_available=False)
         self._update_menu_action_state()
         self._sync_edge_results_dialog()
         self.statusBar().showMessage(
@@ -1055,6 +1058,7 @@ class NanoTrackMainWindow(QMainWindow):
             self.yolo_panel.set_current_selection_actions_available(False)
             self.yolo_panel.set_global_selection_actions_available(False)
             self.yolo_panel.set_edit_actions_available(load_available=False, save_available=False)
+            self.yolo_panel.set_conversion_actions_available(current_available=False, global_available=False)
             self.yolo_panel.clear_detection_state()
             return
 
@@ -1064,6 +1068,7 @@ class NanoTrackMainWindow(QMainWindow):
             self.yolo_panel.set_current_selection_actions_available(False)
             self.yolo_panel.set_global_selection_actions_available(False)
             self.yolo_panel.set_edit_actions_available(load_available=False, save_available=False)
+            self.yolo_panel.set_conversion_actions_available(current_available=False, global_available=False)
             self.yolo_panel.clear_detection_state()
             return
 
@@ -1079,6 +1084,10 @@ class NanoTrackMainWindow(QMainWindow):
         self.yolo_panel.set_edit_actions_available(
             load_available=current_selected_count == 1,
             save_available=save_edit_available,
+        )
+        self.yolo_panel.set_conversion_actions_available(
+            current_available=self._yolo_edit_target is None,
+            global_available=self._yolo_edit_target is None,
         )
         self.yolo_panel.set_detection_counts(
             current_detection_count=len(self._yolo_detections.get_detections(current_frame_index)),
@@ -1155,6 +1164,102 @@ class NanoTrackMainWindow(QMainWindow):
 
     def _on_yolo_deselect_all_current_requested(self) -> None:
         self._set_yolo_current_selection_state(False)
+
+    def _on_yolo_convert_selected_current_requested(self) -> None:
+        if self._sequence is None or self._yolo_detections is None:
+            return
+        if not self._ensure_current_frame_included("Convert Selected YOLO Detections to Seeds"):
+            return
+        if self._yolo_edit_target is not None:
+            QMessageBox.warning(
+                self,
+                "Finish YOLO bbox editing",
+                "Save or clear the currently edited YOLO bbox before converting detections to seeds.",
+            )
+            return
+
+        frame_index = int(self._sequence.active_frame_index)
+        frame_detections = self._yolo_detections.get_detections(frame_index)
+        selected_detections = [detection for detection in frame_detections if detection.selected]
+        if not selected_detections:
+            return
+
+        created_tracks: list[ParticleTrack] = []
+        next_track_id = self._next_track_id()
+        for offset, detection in enumerate(selected_detections):
+            created_tracks.append(
+                ParticleTrack(
+                    track_id=next_track_id + offset,
+                    seed_frame_index=frame_index,
+                    seed_bbox=detection.bbox,
+                )
+            )
+
+        remaining_detections = [detection for detection in frame_detections if not detection.selected]
+        self._yolo_detections.set_detections(frame_index, remaining_detections)
+        if self._yolo_detections.detection_count == 0:
+            self._yolo_detections = None
+
+        self.set_tracks(self._tracks + created_tracks, selected_track_id=created_tracks[-1].track_id)
+        self._sync_yolo_detection_ui()
+        self._sync_track_overlays()
+        self.statusBar().showMessage(
+            f"Converted {len(created_tracks)} selected YOLO detection(s) on frame {frame_index + 1} to seeds.",
+            3500,
+        )
+
+    def _on_yolo_convert_selected_all_requested(self) -> None:
+        if self._sequence is None or self._yolo_detections is None:
+            return
+        if self._yolo_edit_target is not None:
+            QMessageBox.warning(
+                self,
+                "Finish YOLO bbox editing",
+                "Save or clear the currently edited YOLO bbox before converting detections to seeds.",
+            )
+            return
+
+        selected_by_frame = {
+            frame_index: [detection for detection in self._yolo_detections.get_detections(frame_index) if detection.selected]
+            for frame_index in self._yolo_detections.frame_indices
+        }
+        selected_by_frame = {
+            frame_index: detections
+            for frame_index, detections in selected_by_frame.items()
+            if detections
+        }
+        if not selected_by_frame:
+            return
+
+        created_tracks: list[ParticleTrack] = []
+        next_track_id = self._next_track_id()
+        next_offset = 0
+        for frame_index in sorted(selected_by_frame):
+            for detection in selected_by_frame[frame_index]:
+                created_tracks.append(
+                    ParticleTrack(
+                        track_id=next_track_id + next_offset,
+                        seed_frame_index=frame_index,
+                        seed_bbox=detection.bbox,
+                    )
+                )
+                next_offset += 1
+
+        for frame_index in sorted(selected_by_frame):
+            frame_detections = self._yolo_detections.get_detections(frame_index)
+            remaining_detections = [detection for detection in frame_detections if not detection.selected]
+            self._yolo_detections.set_detections(frame_index, remaining_detections)
+
+        if self._yolo_detections.detection_count == 0:
+            self._yolo_detections = None
+
+        self.set_tracks(self._tracks + created_tracks, selected_track_id=created_tracks[-1].track_id)
+        self._sync_yolo_detection_ui()
+        self._sync_track_overlays()
+        self.statusBar().showMessage(
+            f"Converted {len(created_tracks)} selected YOLO detection(s) across all frames to seeds.",
+            3500,
+        )
 
     def _on_yolo_scale_current_requested(self) -> None:
         self._scale_yolo_detections(current_only=True)

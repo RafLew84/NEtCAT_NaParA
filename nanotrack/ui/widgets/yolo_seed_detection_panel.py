@@ -43,7 +43,8 @@ class YoloSeedDetectionPanel(QWidget):
         self._global_selection_actions_available = False
         self._load_edit_action_available = False
         self._save_edit_action_available = False
-        self._conversion_actions_available = False
+        self._current_conversion_action_available = False
+        self._global_conversion_action_available = False
         self._clear_action_available = False
         self._current_detection_count = 0
         self._total_detection_count = 0
@@ -201,10 +202,10 @@ class YoloSeedDetectionPanel(QWidget):
             can_detect and self._global_selection_actions_available and self._total_detection_count > 0
         )
         self.btn_convert_current.setEnabled(
-            can_detect and self._conversion_actions_available and self._current_selected_count > 0
+            can_detect and self._current_conversion_action_available and self._current_selected_count > 0
         )
         self.btn_convert_all.setEnabled(
-            can_detect and self._conversion_actions_available and self._total_selected_count > 0
+            can_detect and self._global_conversion_action_available and self._total_selected_count > 0
         )
         self.btn_clear.setEnabled(can_detect and self._clear_action_available and self._total_detection_count > 0)
 
@@ -259,8 +260,9 @@ class YoloSeedDetectionPanel(QWidget):
         self._save_edit_action_available = bool(save_available)
         self._update_enabled_state()
 
-    def set_conversion_actions_available(self, available: bool) -> None:
-        self._conversion_actions_available = bool(available)
+    def set_conversion_actions_available(self, *, current_available: bool, global_available: bool) -> None:
+        self._current_conversion_action_available = bool(current_available)
+        self._global_conversion_action_available = bool(global_available)
         self._update_enabled_state()
 
     def set_clear_action_available(self, available: bool) -> None:
