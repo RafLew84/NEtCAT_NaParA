@@ -1592,6 +1592,50 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertGreater(len(self.window._edge_preview_dialog.edge_view.viewer._overlay_items), 0)
         self.assertEqual(self.window.statusBar().currentMessage(), "DexiNed preview opened for frame 1.")
 
+    def test_edge_preview_can_use_teed_backend(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+
+        polygon = PolygonROI(np.asarray([[10.0, 12.0], [22.0, 14.0], [18.0, 28.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(polygon)
+        self.window.polygon_tools_panel.cmb_edge_backend.setCurrentIndex(1)
+
+        edge_prob = np.zeros((1, *sequence.frame_shape), dtype=np.float32)
+        edge_prob[0, 12:28, 10:22] = 0.78
+        run_output = DexiNedRunOutput(
+            edge_prob=edge_prob,
+            edge_binary=edge_prob >= 0.5,
+            model_name="teed",
+            checkpoint_name="5_model.pth",
+        )
+
+        def fake_teed_run(run_input):
+            time.sleep(0.05)
+            self.assertEqual(run_input.source_view, "raw")
+            return run_output
+
+        with (
+            patch.object(self.window._teed_backend, "run", side_effect=fake_teed_run) as teed_run_mock,
+            patch.object(
+                self.window._dexined_backend,
+                "run",
+                side_effect=AssertionError("DexiNed backend should not run when TEED is selected."),
+            ) as dexined_run_mock,
+        ):
+            self.window.polygon_tools_panel.btn_preview.click()
+            for _ in range(250):
+                self.__class__._app.processEvents()
+                if teed_run_mock.called and self.window._edge_preview_dialog is not None and self.window._edge_preview_dialog.isVisible():
+                    break
+                time.sleep(0.01)
+
+        teed_run_mock.assert_called_once()
+        dexined_run_mock.assert_not_called()
+        self.assertIsNotNone(self.window._edge_preview_dialog)
+        self.assertTrue(self.window._edge_preview_dialog.isVisible())
+        self.assertEqual(self.window._edge_preview_dialog.windowTitle(), "TEED Preview")
+        self.assertEqual(self.window.statusBar().currentMessage(), "TEED preview opened for frame 1.")
+
     def test_edge_sequence_run_creates_edge_track_for_all_frames(self) -> None:
         sequence = STMSequence(
             source_path="/tmp/edge_sequence.mpp",
@@ -1674,6 +1718,54 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.__class__._app.processEvents()
         self.assertEqual(sequence.active_frame_index, 2)
         self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
+
+    def test_edge_sequence_run_can_use_teed_backend(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_sequence_teed.mpp",
+            raw_frames=np.zeros((3, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+        self.window.polygon_tools_panel.cmb_edge_backend.setCurrentIndex(1)
+
+        polygon = PolygonROI(np.asarray([[8.0, 10.0], [22.0, 10.0], [24.0, 24.0], [10.0, 26.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(polygon)
+
+        edge_prob = np.zeros((sequence.frame_count, *sequence.frame_shape), dtype=np.float32)
+        edge_prob[0, 12:15, 8:21] = 0.72
+        edge_prob[1, 13:16, 9:22] = 0.74
+        edge_prob[2, 14:17, 10:23] = 0.76
+        run_output = DexiNedRunOutput(
+            edge_prob=edge_prob,
+            edge_binary=edge_prob >= 0.5,
+            model_name="teed",
+            checkpoint_name="5_model.pth",
+        )
+
+        def fake_teed_run(run_input):
+            time.sleep(0.05)
+            self.assertEqual(run_input.frames.shape[0], 3)
+            return run_output
+
+        with (
+            patch.object(self.window._teed_backend, "run", side_effect=fake_teed_run) as teed_run_mock,
+            patch.object(
+                self.window._dexined_backend,
+                "run",
+                side_effect=AssertionError("DexiNed backend should not run when TEED is selected."),
+            ) as dexined_run_mock,
+        ):
+            self.window.polygon_tools_panel.btn_run_sequence.click()
+            for _ in range(250):
+                self.__class__._app.processEvents()
+                if teed_run_mock.called and self.window.current_edge_tracks():
+                    break
+                time.sleep(0.01)
+
+        teed_run_mock.assert_called_once()
+        dexined_run_mock.assert_not_called()
+        self.assertEqual(len(self.window.current_edge_tracks()), 1)
+        self.assertIn("TEED sequence finished: Edge Track 1", self.window.statusBar().currentMessage())
 
     def test_edge_sequence_run_can_be_limited_to_selected_frame_range(self) -> None:
         sequence = STMSequence(

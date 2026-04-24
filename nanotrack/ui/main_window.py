@@ -55,6 +55,7 @@ from nanotrack.edges import (
     DexiNedRunInput,
     DexiNedRunOutput,
     DexiNedSubprocessBackend,
+    TeedSubprocessBackend,
     hybrid_refine_polyline,
     refine_edge_polyline,
     sample_polyline_control_points,
@@ -86,7 +87,7 @@ class _DexiNedRunWorker(QObject):
     finished = pyqtSignal(object)
     failed = pyqtSignal(str)
 
-    def __init__(self, backend: DexiNedSubprocessBackend, run_input: DexiNedRunInput):
+    def __init__(self, backend: DexiNedSubprocessBackend | TeedSubprocessBackend, run_input: DexiNedRunInput):
         super().__init__()
         self._backend = backend
         self._run_input = run_input
@@ -188,10 +189,12 @@ class NanoTrackMainWindow(QMainWindow):
         self._results_dialog: TrackResultsDialog | None = None
         self._edge_results_dialog: EdgeTrackResultsDialog | None = None
         self._dexined_backend = DexiNedSubprocessBackend()
+        self._teed_backend = TeedSubprocessBackend()
         self._point_tracker_backends = self._build_point_tracker_backends()
         self._dexined_progress_dialog: QProgressDialog | None = None
         self._dexined_thread: QThread | None = None
         self._dexined_worker: _DexiNedRunWorker | None = None
+        self._active_edge_backend_label: str | None = None
         self._point_tracker_progress_dialog: QProgressDialog | None = None
         self._point_tracker_thread: QThread | None = None
         self._point_tracker_worker: _PointTrackerRunWorker | None = None
@@ -598,6 +601,30 @@ class NanoTrackMainWindow(QMainWindow):
             )
             backends[model_name] = PointTrackerSubprocessBackend(config)
         return backends
+
+    def _selected_edge_detector_backend_key(self) -> str:
+        return self.polygon_tools_panel.edge_backend()
+
+    def _format_edge_detector_backend_label(self, backend_key: str) -> str:
+        normalized = str(backend_key).strip().lower()
+        if normalized == "teed":
+            return "TEED"
+        if normalized == "dexined":
+            return "DexiNed"
+        return str(backend_key)
+
+    def _selected_edge_detector_backend_label(self) -> str:
+        return self._format_edge_detector_backend_label(self._selected_edge_detector_backend_key())
+
+    def _selected_edge_detector_backend(self) -> DexiNedSubprocessBackend | TeedSubprocessBackend:
+        if self._selected_edge_detector_backend_key() == "teed":
+            return self._teed_backend
+        return self._dexined_backend
+
+    def _current_edge_detector_backend_label(self) -> str:
+        if self._active_edge_backend_label:
+            return self._active_edge_backend_label
+        return self._selected_edge_detector_backend_label()
 
     def _update_menu_action_state(self) -> None:
         busy = self._is_preprocessing or self._is_tracking
@@ -1526,6 +1553,41 @@ class NanoTrackMainWindow(QMainWindow):
         self.polygon_tools_panel.set_current_polygon(frame_index, None)
         self.statusBar().showMessage(f"Cleared polygon ROI for frame {frame_index + 1}.", 2000)
 
+    def _start_edge_detector_worker(
+        self,
+        run_input: DexiNedRunInput,
+        *,
+        backend_label: str,
+        progress_label: str,
+        window_title: str,
+        finished_slot,
+        failed_slot,
+    ) -> None:
+        self._set_preprocessing_busy(True)
+        self._active_edge_backend_label = backend_label
+        self._dexined_progress_dialog = QProgressDialog(progress_label, "", 0, 0, self)
+        self._dexined_progress_dialog.setWindowTitle(window_title)
+        self._dexined_progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self._dexined_progress_dialog.setCancelButton(None)
+        self._dexined_progress_dialog.setMinimumDuration(0)
+        self._dexined_progress_dialog.setAutoClose(False)
+        self._dexined_progress_dialog.setAutoReset(False)
+        self._dexined_progress_dialog.setValue(0)
+        self._dexined_progress_dialog.show()
+        self.statusBar().showMessage(progress_label, 0)
+        QApplication.processEvents()
+
+        self._dexined_thread = QThread(self)
+        self._dexined_worker = _DexiNedRunWorker(self._selected_edge_detector_backend(), run_input)
+        self._dexined_worker.moveToThread(self._dexined_thread)
+        self._dexined_thread.started.connect(self._dexined_worker.run)
+        self._dexined_worker.finished.connect(finished_slot)
+        self._dexined_worker.failed.connect(failed_slot)
+        self._dexined_worker.finished.connect(self._dexined_thread.quit)
+        self._dexined_worker.failed.connect(self._dexined_thread.quit)
+        self._dexined_thread.finished.connect(self._cleanup_dexined_worker)
+        self._dexined_thread.start()
+
     def _on_edge_preview_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
             return
@@ -1534,51 +1596,29 @@ class NanoTrackMainWindow(QMainWindow):
         if polygon is None:
             return
 
+        backend_label = self._selected_edge_detector_backend_label()
         try:
             run_input, input_frame, preview_meta = self._build_dexined_preview_input(polygon)
         except Exception as exc:
-            QMessageBox.critical(self, "DexiNed preview error", str(exc))
+            QMessageBox.critical(self, f"{backend_label} preview error", str(exc))
             return
 
         self._pending_edge_preview_frame = np.asarray(input_frame, dtype=np.float32)
-        self._pending_edge_preview_meta = preview_meta
-        self._set_preprocessing_busy(True)
-        self._dexined_progress_dialog = QProgressDialog(
-            f"Running DexiNed preview for frame {self._sequence.active_frame_index + 1}...",
-            "",
-            0,
-            0,
-            self,
+        self._pending_edge_preview_meta = {**preview_meta, "backend_label": backend_label}
+        self._start_edge_detector_worker(
+            run_input,
+            backend_label=backend_label,
+            progress_label=f"Running {backend_label} preview for frame {self._sequence.active_frame_index + 1}...",
+            window_title=f"{backend_label} Preview",
+            finished_slot=self._on_dexined_preview_finished,
+            failed_slot=self._on_dexined_preview_failed,
         )
-        self._dexined_progress_dialog.setWindowTitle("DexiNed Preview")
-        self._dexined_progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-        self._dexined_progress_dialog.setCancelButton(None)
-        self._dexined_progress_dialog.setMinimumDuration(0)
-        self._dexined_progress_dialog.setAutoClose(False)
-        self._dexined_progress_dialog.setAutoReset(False)
-        self._dexined_progress_dialog.setValue(0)
-        self._dexined_progress_dialog.show()
-        self.statusBar().showMessage(
-            f"Running DexiNed preview for frame {self._sequence.active_frame_index + 1}...",
-            0,
-        )
-        QApplication.processEvents()
-
-        self._dexined_thread = QThread(self)
-        self._dexined_worker = _DexiNedRunWorker(self._dexined_backend, run_input)
-        self._dexined_worker.moveToThread(self._dexined_thread)
-        self._dexined_thread.started.connect(self._dexined_worker.run)
-        self._dexined_worker.finished.connect(self._on_dexined_preview_finished)
-        self._dexined_worker.failed.connect(self._on_dexined_preview_failed)
-        self._dexined_worker.finished.connect(self._dexined_thread.quit)
-        self._dexined_worker.failed.connect(self._dexined_thread.quit)
-        self._dexined_thread.finished.connect(self._cleanup_dexined_worker)
-        self._dexined_thread.start()
 
     def _on_edge_sequence_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
             return
-        if not self._ensure_current_frame_included("Run DexiNed on Range"):
+        backend_label = self._selected_edge_detector_backend_label()
+        if not self._ensure_current_frame_included("Run Edge Detection on Range"):
             return
 
         polygon = self.current_draft_polygon_roi()
@@ -1592,14 +1632,14 @@ class NanoTrackMainWindow(QMainWindow):
             else:
                 run_input, sequence_meta = self._build_dexined_stitch_input(stitch_track, polygon)
         except Exception as exc:
-            QMessageBox.critical(self, "DexiNed sequence error", str(exc))
+            QMessageBox.critical(self, f"{backend_label} sequence error", str(exc))
             return
 
         if run_input is None:
             try:
                 self._apply_edge_stitch_output(None, sequence_meta)
             except Exception as exc:
-                QMessageBox.critical(self, "DexiNed stitch error", str(exc))
+                QMessageBox.critical(self, f"{backend_label} stitch error", str(exc))
                 return
             track_id = int(sequence_meta["track_id"])
             start_frame_index = int(sequence_meta["start_frame_index"])
@@ -1613,43 +1653,26 @@ class NanoTrackMainWindow(QMainWindow):
             )
             return
 
-        self._pending_edge_sequence_meta = sequence_meta
-        self._set_preprocessing_busy(True)
+        self._pending_edge_sequence_meta = {**sequence_meta, "backend_label": backend_label}
         start_frame_index = int(sequence_meta["start_frame_index"])
         end_frame_index = int(sequence_meta["end_frame_index"])
         run_label = (
             f"Stitching Edge Track {int(sequence_meta['track_id'])} on frames {start_frame_index + 1}-{end_frame_index + 1}..."
             if sequence_meta.get("mode") == "stitch"
-            else f"Running DexiNed on frames {start_frame_index + 1}-{end_frame_index + 1}..."
+            else f"Running {backend_label} on frames {start_frame_index + 1}-{end_frame_index + 1}..."
         )
-        self._dexined_progress_dialog = QProgressDialog(
-            run_label,
-            "",
-            0,
-            0,
-            self,
+        self._start_edge_detector_worker(
+            run_input,
+            backend_label=backend_label,
+            progress_label=run_label,
+            window_title=(
+                "Edge Stitch"
+                if sequence_meta.get("mode") == "stitch"
+                else f"{backend_label} Sequence"
+            ),
+            finished_slot=self._on_dexined_sequence_finished,
+            failed_slot=self._on_dexined_sequence_failed,
         )
-        self._dexined_progress_dialog.setWindowTitle("DexiNed Sequence")
-        self._dexined_progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-        self._dexined_progress_dialog.setCancelButton(None)
-        self._dexined_progress_dialog.setMinimumDuration(0)
-        self._dexined_progress_dialog.setAutoClose(False)
-        self._dexined_progress_dialog.setAutoReset(False)
-        self._dexined_progress_dialog.setValue(0)
-        self._dexined_progress_dialog.show()
-        self.statusBar().showMessage(run_label, 0)
-        QApplication.processEvents()
-
-        self._dexined_thread = QThread(self)
-        self._dexined_worker = _DexiNedRunWorker(self._dexined_backend, run_input)
-        self._dexined_worker.moveToThread(self._dexined_thread)
-        self._dexined_thread.started.connect(self._dexined_worker.run)
-        self._dexined_worker.finished.connect(self._on_dexined_sequence_finished)
-        self._dexined_worker.failed.connect(self._on_dexined_sequence_failed)
-        self._dexined_worker.finished.connect(self._dexined_thread.quit)
-        self._dexined_worker.failed.connect(self._dexined_thread.quit)
-        self._dexined_thread.finished.connect(self._cleanup_dexined_worker)
-        self._dexined_thread.start()
 
     def _on_load_current_edge_requested(self) -> None:
         if self._sequence is None:
@@ -1753,46 +1776,26 @@ class NanoTrackMainWindow(QMainWindow):
             )
             return
 
+        backend_label = self._selected_edge_detector_backend_label()
         try:
             run_input, resume_meta = self._build_dexined_resume_input(track, polygon, current_annotation)
         except Exception as exc:
-            QMessageBox.critical(self, "DexiNed resume error", str(exc))
+            QMessageBox.critical(self, f"{backend_label} resume error", str(exc))
             return
 
-        self._pending_edge_resume_meta = resume_meta
-        self._set_preprocessing_busy(True)
+        self._pending_edge_resume_meta = {**resume_meta, "backend_label": backend_label}
         remaining = self._sequence.frame_count - frame_index - 1
-        self._dexined_progress_dialog = QProgressDialog(
-            f"Resuming edge tracking for {remaining} frames...",
-            "",
-            0,
-            0,
-            self,
+        self._start_edge_detector_worker(
+            run_input,
+            backend_label=backend_label,
+            progress_label=(
+                f"Resuming edge tracking with {backend_label} for "
+                f"{track.label or f'Edge {track.edge_track_id}'} ({remaining} frames)..."
+            ),
+            window_title=f"{backend_label} Edge Resume",
+            finished_slot=self._on_dexined_resume_finished,
+            failed_slot=self._on_dexined_resume_failed,
         )
-        self._dexined_progress_dialog.setWindowTitle("DexiNed Edge Resume")
-        self._dexined_progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-        self._dexined_progress_dialog.setCancelButton(None)
-        self._dexined_progress_dialog.setMinimumDuration(0)
-        self._dexined_progress_dialog.setAutoClose(False)
-        self._dexined_progress_dialog.setAutoReset(False)
-        self._dexined_progress_dialog.setValue(0)
-        self._dexined_progress_dialog.show()
-        self.statusBar().showMessage(
-            f"Resuming edge tracking for {track.label or f'Edge {track.edge_track_id}'}...",
-            0,
-        )
-        QApplication.processEvents()
-
-        self._dexined_thread = QThread(self)
-        self._dexined_worker = _DexiNedRunWorker(self._dexined_backend, run_input)
-        self._dexined_worker.moveToThread(self._dexined_thread)
-        self._dexined_thread.started.connect(self._dexined_worker.run)
-        self._dexined_worker.finished.connect(self._on_dexined_resume_finished)
-        self._dexined_worker.failed.connect(self._on_dexined_resume_failed)
-        self._dexined_worker.finished.connect(self._dexined_thread.quit)
-        self._dexined_worker.failed.connect(self._dexined_thread.quit)
-        self._dexined_thread.finished.connect(self._cleanup_dexined_worker)
-        self._dexined_thread.start()
 
     def _on_redetect_edge_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
@@ -1801,48 +1804,28 @@ class NanoTrackMainWindow(QMainWindow):
         if track is None:
             return
 
+        backend_label = self._selected_edge_detector_backend_label()
         try:
             run_input, redetect_meta = self._build_dexined_redetect_input(track)
         except Exception as exc:
-            QMessageBox.critical(self, "DexiNed re-detect error", str(exc))
+            QMessageBox.critical(self, f"{backend_label} re-detect error", str(exc))
             return
 
-        self._pending_edge_sequence_meta = redetect_meta
-        self._set_preprocessing_busy(True)
+        self._pending_edge_sequence_meta = {**redetect_meta, "backend_label": backend_label}
         start_frame_index = int(redetect_meta["start_frame_index"])
         end_frame_index = int(redetect_meta["end_frame_index"])
         run_label = (
-            f"Re-detecting Edge Track {track.edge_track_id} on frames "
+            f"Re-detecting Edge Track {track.edge_track_id} with {backend_label} on frames "
             f"{start_frame_index + 1}-{end_frame_index + 1}..."
         )
-        self._dexined_progress_dialog = QProgressDialog(
-            run_label,
-            "",
-            0,
-            0,
-            self,
+        self._start_edge_detector_worker(
+            run_input,
+            backend_label=backend_label,
+            progress_label=run_label,
+            window_title=f"{backend_label} Re-detect",
+            finished_slot=self._on_dexined_sequence_finished,
+            failed_slot=self._on_dexined_sequence_failed,
         )
-        self._dexined_progress_dialog.setWindowTitle("DexiNed Re-detect")
-        self._dexined_progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-        self._dexined_progress_dialog.setCancelButton(None)
-        self._dexined_progress_dialog.setMinimumDuration(0)
-        self._dexined_progress_dialog.setAutoClose(False)
-        self._dexined_progress_dialog.setAutoReset(False)
-        self._dexined_progress_dialog.setValue(0)
-        self._dexined_progress_dialog.show()
-        self.statusBar().showMessage(run_label, 0)
-        QApplication.processEvents()
-
-        self._dexined_thread = QThread(self)
-        self._dexined_worker = _DexiNedRunWorker(self._dexined_backend, run_input)
-        self._dexined_worker.moveToThread(self._dexined_thread)
-        self._dexined_thread.started.connect(self._dexined_worker.run)
-        self._dexined_worker.finished.connect(self._on_dexined_sequence_finished)
-        self._dexined_worker.failed.connect(self._on_dexined_sequence_failed)
-        self._dexined_worker.finished.connect(self._dexined_thread.quit)
-        self._dexined_worker.failed.connect(self._dexined_thread.quit)
-        self._dexined_thread.finished.connect(self._cleanup_dexined_worker)
-        self._dexined_thread.start()
 
     def _on_redetect_edge_range_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
@@ -1853,48 +1836,28 @@ class NanoTrackMainWindow(QMainWindow):
         if track is None:
             return
 
+        backend_label = self._selected_edge_detector_backend_label()
         try:
             run_input, redetect_meta = self._build_dexined_partial_redetect_input(track)
         except Exception as exc:
-            QMessageBox.critical(self, "DexiNed re-detect error", str(exc))
+            QMessageBox.critical(self, f"{backend_label} re-detect error", str(exc))
             return
 
-        self._pending_edge_sequence_meta = redetect_meta
-        self._set_preprocessing_busy(True)
+        self._pending_edge_sequence_meta = {**redetect_meta, "backend_label": backend_label}
         start_frame_index = int(redetect_meta["start_frame_index"])
         end_frame_index = int(redetect_meta["end_frame_index"])
         run_label = (
-            f"Re-detecting Edge Track {track.edge_track_id} on frames "
+            f"Re-detecting Edge Track {track.edge_track_id} with {backend_label} on frames "
             f"{start_frame_index + 1}-{end_frame_index + 1}..."
         )
-        self._dexined_progress_dialog = QProgressDialog(
-            run_label,
-            "",
-            0,
-            0,
-            self,
+        self._start_edge_detector_worker(
+            run_input,
+            backend_label=backend_label,
+            progress_label=run_label,
+            window_title=f"{backend_label} Re-detect Range",
+            finished_slot=self._on_dexined_sequence_finished,
+            failed_slot=self._on_dexined_sequence_failed,
         )
-        self._dexined_progress_dialog.setWindowTitle("DexiNed Re-detect Range")
-        self._dexined_progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-        self._dexined_progress_dialog.setCancelButton(None)
-        self._dexined_progress_dialog.setMinimumDuration(0)
-        self._dexined_progress_dialog.setAutoClose(False)
-        self._dexined_progress_dialog.setAutoReset(False)
-        self._dexined_progress_dialog.setValue(0)
-        self._dexined_progress_dialog.show()
-        self.statusBar().showMessage(run_label, 0)
-        QApplication.processEvents()
-
-        self._dexined_thread = QThread(self)
-        self._dexined_worker = _DexiNedRunWorker(self._dexined_backend, run_input)
-        self._dexined_worker.moveToThread(self._dexined_thread)
-        self._dexined_thread.started.connect(self._dexined_worker.run)
-        self._dexined_worker.finished.connect(self._on_dexined_sequence_finished)
-        self._dexined_worker.failed.connect(self._on_dexined_sequence_failed)
-        self._dexined_worker.finished.connect(self._dexined_thread.quit)
-        self._dexined_worker.failed.connect(self._dexined_thread.quit)
-        self._dexined_thread.finished.connect(self._cleanup_dexined_worker)
-        self._dexined_thread.start()
 
     def _on_edge_hybrid_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
@@ -2299,6 +2262,9 @@ class NanoTrackMainWindow(QMainWindow):
             self._close_dexined_progress_dialog()
             return
 
+        backend_label = str(
+            self._pending_edge_preview_meta.get("backend_label", self._format_edge_detector_backend_label(output.model_name))
+        )
         current_index = int(self._pending_edge_preview_meta["frame_index"])
         source_title = str(self._pending_edge_preview_meta["source_title"])
         source_meta = str(self._pending_edge_preview_meta["source_meta"])
@@ -2330,7 +2296,7 @@ class NanoTrackMainWindow(QMainWindow):
             frame_index=current_index,
             frame_count=self._sequence.frame_count,
             scale_nm_per_px=(px_x, px_y),
-            window_title="DexiNed Preview",
+            window_title=f"{backend_label} Preview",
             input_title=source_title,
             input_meta=source_meta,
             input_overlay_mask=selection.edge_mask,
@@ -2351,7 +2317,7 @@ class NanoTrackMainWindow(QMainWindow):
         dialog.raise_()
         dialog.activateWindow()
 
-        self.statusBar().showMessage(f"DexiNed preview opened for frame {current_index + 1}.", 3000)
+        self.statusBar().showMessage(f"{backend_label} preview opened for frame {current_index + 1}.", 3000)
         self._set_preprocessing_busy(False)
         self._close_dexined_progress_dialog()
 
@@ -2361,6 +2327,9 @@ class NanoTrackMainWindow(QMainWindow):
             self._close_dexined_progress_dialog()
             return
 
+        backend_label = str(
+            self._pending_edge_sequence_meta.get("backend_label", self._format_edge_detector_backend_label(output.model_name))
+        )
         try:
             if self._pending_edge_sequence_meta.get("mode") == "stitch":
                 self._apply_edge_stitch_output(output, self._pending_edge_sequence_meta)
@@ -2404,14 +2373,14 @@ class NanoTrackMainWindow(QMainWindow):
             else:
                 track = self._build_edge_track_from_dexined_output(output, self._pending_edge_sequence_meta)
         except Exception as exc:
-            QMessageBox.critical(self, "DexiNed sequence error", str(exc))
-            self.statusBar().showMessage("DexiNed sequence failed.", 3000)
+            QMessageBox.critical(self, f"{backend_label} sequence error", str(exc))
+            self.statusBar().showMessage(f"{backend_label} sequence failed.", 3000)
         else:
             if track is not None:
                 self.set_edge_tracks([*self._edge_tracks, track], selected_track_id=track.edge_track_id)
                 self._show_current_frame(preserve_zoom=True)
                 self.statusBar().showMessage(
-                    f"DexiNed sequence finished: Edge Track {track.edge_track_id} with {len(track.annotations)} frames.",
+                    f"{backend_label} sequence finished: Edge Track {track.edge_track_id} with {len(track.annotations)} frames.",
                     4000,
                 )
         finally:
@@ -2424,15 +2393,18 @@ class NanoTrackMainWindow(QMainWindow):
             self._close_dexined_progress_dialog()
             return
 
+        backend_label = str(
+            self._pending_edge_resume_meta.get("backend_label", self._format_edge_detector_backend_label(output.model_name))
+        )
         try:
             self._apply_edge_resume_output(output, self._pending_edge_resume_meta)
         except Exception as exc:
-            QMessageBox.critical(self, "DexiNed resume error", str(exc))
-            self.statusBar().showMessage("DexiNed edge resume failed.", 3000)
+            QMessageBox.critical(self, f"{backend_label} resume error", str(exc))
+            self.statusBar().showMessage(f"{backend_label} edge resume failed.", 3000)
         else:
             track_id = int(self._pending_edge_resume_meta["track_id"])
             self.statusBar().showMessage(
-                f"Resumed edge tracking for Edge Track {track_id} from frame {int(self._pending_edge_resume_meta['resume_from_frame']) + 1}.",
+                f"Resumed edge tracking with {backend_label} for Edge Track {track_id} from frame {int(self._pending_edge_resume_meta['resume_from_frame']) + 1}.",
                 4000,
             )
         finally:
@@ -2440,20 +2412,23 @@ class NanoTrackMainWindow(QMainWindow):
             self._close_dexined_progress_dialog()
 
     def _on_dexined_preview_failed(self, error_message: str) -> None:
-        QMessageBox.critical(self, "DexiNed preview error", error_message)
-        self.statusBar().showMessage("DexiNed preview failed.", 3000)
+        backend_label = self._current_edge_detector_backend_label()
+        QMessageBox.critical(self, f"{backend_label} preview error", error_message)
+        self.statusBar().showMessage(f"{backend_label} preview failed.", 3000)
         self._set_preprocessing_busy(False)
         self._close_dexined_progress_dialog()
 
     def _on_dexined_sequence_failed(self, error_message: str) -> None:
-        QMessageBox.critical(self, "DexiNed sequence error", error_message)
-        self.statusBar().showMessage("DexiNed sequence failed.", 3000)
+        backend_label = self._current_edge_detector_backend_label()
+        QMessageBox.critical(self, f"{backend_label} sequence error", error_message)
+        self.statusBar().showMessage(f"{backend_label} sequence failed.", 3000)
         self._set_preprocessing_busy(False)
         self._close_dexined_progress_dialog()
 
     def _on_dexined_resume_failed(self, error_message: str) -> None:
-        QMessageBox.critical(self, "DexiNed resume error", error_message)
-        self.statusBar().showMessage("DexiNed edge resume failed.", 3000)
+        backend_label = self._current_edge_detector_backend_label()
+        QMessageBox.critical(self, f"{backend_label} resume error", error_message)
+        self.statusBar().showMessage(f"{backend_label} edge resume failed.", 3000)
         self._set_preprocessing_busy(False)
         self._close_dexined_progress_dialog()
 
@@ -2839,6 +2814,7 @@ class NanoTrackMainWindow(QMainWindow):
         if self._dexined_thread is not None:
             self._dexined_thread.deleteLater()
             self._dexined_thread = None
+        self._active_edge_backend_label = None
         self._pending_edge_preview_frame = None
         self._pending_edge_preview_meta = None
         self._pending_edge_sequence_meta = None

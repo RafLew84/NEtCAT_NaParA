@@ -73,13 +73,15 @@ class PolygonRoiToolsPanel(QWidget):
         group_layout.addLayout(button_row)
 
         run_row = QHBoxLayout()
-        self.btn_run_sequence = QPushButton("Run DexiNed on Range", group)
+        self.btn_run_sequence = QPushButton("Run Edge Detection on Range", group)
         self.sp_run_end_frame = QSpinBox(group)
         self.sp_run_end_frame.setPrefix("End ")
         self.sp_run_end_frame.setMinimum(1)
         self.sp_run_end_frame.setMaximum(1)
         self.sp_run_end_frame.setValue(1)
-        self.sp_run_end_frame.setToolTip("Current frame is the start; choose the last frame included in this DexiNed run.")
+        self.sp_run_end_frame.setToolTip(
+            "Current frame is the start; choose the last frame included in this edge-detector run."
+        )
         self.chk_stitch_active = QCheckBox("Stitch Active Edge", group)
         self.chk_stitch_active.setToolTip(
             "Append or replace only the selected frame range in the currently active edge track instead of creating a new edge."
@@ -120,13 +122,21 @@ class PolygonRoiToolsPanel(QWidget):
         group_layout.addLayout(hybrid_row)
 
         dexined_row = QHBoxLayout()
+        self.cmb_edge_backend = QComboBox(group)
+        self.cmb_edge_backend.addItem("DexiNed", "dexined")
+        self.cmb_edge_backend.addItem("TEED", "teed")
+        self.cmb_edge_backend.setToolTip(
+            "Coarse edge-detector backend used before component selection, polyline extraction, and refinement."
+        )
         self.sp_dexined_threshold = QDoubleSpinBox(group)
         self.sp_dexined_threshold.setRange(0.05, 0.95)
         self.sp_dexined_threshold.setSingleStep(0.05)
         self.sp_dexined_threshold.setDecimals(2)
         self.sp_dexined_threshold.setValue(0.35)
         self.sp_dexined_threshold.setPrefix("Thr ")
-        self.sp_dexined_threshold.setToolTip("Probability threshold used to binarize the DexiNed response.")
+        self.sp_dexined_threshold.setToolTip(
+            "Probability threshold used to binarize the coarse edge-detector response."
+        )
         self.sp_edge_components = QSpinBox(group)
         self.sp_edge_components.setRange(1, 8)
         self.sp_edge_components.setValue(1)
@@ -137,7 +147,8 @@ class PolygonRoiToolsPanel(QWidget):
         self.cmb_inference_resolution.addItem("512 px", (512, 512))
         self.cmb_inference_resolution.addItem("768 px", (768, 768))
         self.cmb_inference_resolution.addItem("1024 px", (1024, 1024))
-        self.cmb_inference_resolution.setToolTip("Square inference resolution used for the DexiNed crop.")
+        self.cmb_inference_resolution.setToolTip("Square inference resolution used for the edge-detector crop.")
+        dexined_row.addWidget(self.cmb_edge_backend)
         dexined_row.addWidget(self.sp_dexined_threshold)
         dexined_row.addWidget(self.sp_edge_components)
         dexined_row.addWidget(self.cmb_inference_resolution)
@@ -193,6 +204,7 @@ class PolygonRoiToolsPanel(QWidget):
         self.btn_preview.setEnabled(enabled and self._has_polygon and not self._draw_mode_active)
         self.btn_run_sequence.setEnabled(enabled and self._has_polygon and not self._draw_mode_active)
         self.sp_run_end_frame.setEnabled(enabled)
+        self.cmb_edge_backend.setEnabled(enabled)
         self.chk_stitch_active.setEnabled(enabled and self._has_active_edge)
         if not (enabled and self._has_active_edge):
             blocked = self.chk_stitch_active.blockSignals(True)
@@ -311,6 +323,10 @@ class PolygonRoiToolsPanel(QWidget):
 
     def hybrid_control_point_count(self) -> int:
         return int(self.sp_tracker_points.value())
+
+    def edge_backend(self) -> str:
+        current_data = self.cmb_edge_backend.currentData()
+        return "dexined" if current_data is None else str(current_data)
 
     def dexined_threshold(self) -> float:
         return float(self.sp_dexined_threshold.value())
