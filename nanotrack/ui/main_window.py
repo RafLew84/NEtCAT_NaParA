@@ -55,6 +55,7 @@ from nanotrack.edges import (
     DexiNedRunInput,
     DexiNedRunOutput,
     DexiNedSubprocessBackend,
+    NbedSubprocessBackend,
     TeedSubprocessBackend,
     hybrid_refine_polyline,
     refine_edge_polyline,
@@ -87,7 +88,11 @@ class _DexiNedRunWorker(QObject):
     finished = pyqtSignal(object)
     failed = pyqtSignal(str)
 
-    def __init__(self, backend: DexiNedSubprocessBackend | TeedSubprocessBackend, run_input: DexiNedRunInput):
+    def __init__(
+        self,
+        backend: DexiNedSubprocessBackend | TeedSubprocessBackend | NbedSubprocessBackend,
+        run_input: DexiNedRunInput,
+    ):
         super().__init__()
         self._backend = backend
         self._run_input = run_input
@@ -190,6 +195,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._edge_results_dialog: EdgeTrackResultsDialog | None = None
         self._dexined_backend = DexiNedSubprocessBackend()
         self._teed_backend = TeedSubprocessBackend()
+        self._nbed_backend = NbedSubprocessBackend()
         self._point_tracker_backends = self._build_point_tracker_backends()
         self._dexined_progress_dialog: QProgressDialog | None = None
         self._dexined_thread: QThread | None = None
@@ -609,6 +615,8 @@ class NanoTrackMainWindow(QMainWindow):
         normalized = str(backend_key).strip().lower()
         if normalized == "teed":
             return "TEED"
+        if normalized == "nbed":
+            return "NBED"
         if normalized == "dexined":
             return "DexiNed"
         return str(backend_key)
@@ -616,9 +624,12 @@ class NanoTrackMainWindow(QMainWindow):
     def _selected_edge_detector_backend_label(self) -> str:
         return self._format_edge_detector_backend_label(self._selected_edge_detector_backend_key())
 
-    def _selected_edge_detector_backend(self) -> DexiNedSubprocessBackend | TeedSubprocessBackend:
-        if self._selected_edge_detector_backend_key() == "teed":
+    def _selected_edge_detector_backend(self) -> DexiNedSubprocessBackend | TeedSubprocessBackend | NbedSubprocessBackend:
+        backend_key = self._selected_edge_detector_backend_key()
+        if backend_key == "teed":
             return self._teed_backend
+        if backend_key == "nbed":
+            return self._nbed_backend
         return self._dexined_backend
 
     def _current_edge_detector_backend_label(self) -> str:
