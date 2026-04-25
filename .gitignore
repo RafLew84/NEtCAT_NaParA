@@ -187,6 +187,7 @@ plan_nanotrack.md
 plan_nanotrack_edgetracking.md
 plan_nanotrack_yolo.md
 plan_nanotrack_registration.md
+plan_nanotrack_uaed_muge.md
 models/unet_synthetic_v1.pth
 .codex
 nanotrack/yolo_models/yolo11l_v3.0.pt
