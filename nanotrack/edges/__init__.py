@@ -5,6 +5,12 @@ from .contract import DEXINED_CONTRACT_VERSION, DexiNedRunInput, DexiNedRunOutpu
 from .ddn_backend import DdnBackendConfig, DdnBackendError, DdnBackendTimeoutError, DdnSubprocessBackend
 from .hybrid import hybrid_refine_polyline, resample_polyline_xy, sample_polyline_control_points
 from .nbed_backend import NbedBackendConfig, NbedBackendError, NbedBackendTimeoutError, NbedSubprocessBackend
+from .pidinet_backend import (
+    PidinetBackendConfig,
+    PidinetBackendError,
+    PidinetBackendTimeoutError,
+    PidinetSubprocessBackend,
+)
 from .refinement import EdgeRefinementResult, refine_edge_polyline
 from .teed_backend import TeedBackendConfig, TeedBackendError, TeedBackendTimeoutError, TeedSubprocessBackend
 
@@ -26,6 +32,10 @@ __all__ = [
     "NbedBackendError",
     "NbedBackendTimeoutError",
     "NbedSubprocessBackend",
+    "PidinetBackendConfig",
+    "PidinetBackendError",
+    "PidinetBackendTimeoutError",
+    "PidinetSubprocessBackend",
     "refine_edge_polyline",
     "resample_polyline_xy",
     "sample_polyline_control_points",
