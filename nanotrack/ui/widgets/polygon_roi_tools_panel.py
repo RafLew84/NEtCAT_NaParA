@@ -126,6 +126,7 @@ class PolygonRoiToolsPanel(QWidget):
         self.cmb_edge_backend.addItem("DexiNed", "dexined")
         self.cmb_edge_backend.addItem("TEED", "teed")
         self.cmb_edge_backend.addItem("NBED", "nbed")
+        self.cmb_edge_backend.addItem("DDN", "ddn")
         self.cmb_edge_backend.setToolTip(
             "Coarse edge-detector backend used before component selection, polyline extraction, and refinement."
         )

@@ -91,6 +91,70 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         if self._messagebox_patcher is not None:
             self._messagebox_patcher.stop()
 
+    def _wait_until(self, predicate, *, attempts: int = 250) -> None:
+        for _ in range(attempts):
+            self.__class__._app.processEvents()
+            if predicate():
+                return
+            time.sleep(0.01)
+
+    def _edge_probability_output(
+        self,
+        frame_count: int,
+        frame_shape: tuple[int, int],
+        *,
+        model_name: str = "ddn",
+        checkpoint_name: str = "DDN_M36_BSDS.pth",
+        start_row: int = 10,
+        start_col: int = 8,
+    ) -> DexiNedRunOutput:
+        edge_prob = np.zeros((frame_count, *frame_shape), dtype=np.float32)
+        for frame_offset in range(frame_count):
+            row = start_row + frame_offset
+            col = start_col + frame_offset
+            edge_prob[frame_offset, row : row + 3, col : col + 13] = 0.78 + 0.01 * frame_offset
+        return DexiNedRunOutput(
+            edge_prob=edge_prob,
+            edge_binary=edge_prob >= 0.5,
+            model_name=model_name,
+            checkpoint_name=checkpoint_name,
+        )
+
+    def _set_existing_edge_track(
+        self,
+        sequence: STMSequence,
+        *,
+        frame_indices: list[int],
+        polygon: PolygonROI | None = None,
+    ) -> EdgeTrack:
+        if polygon is None:
+            polygon = PolygonROI(
+                np.asarray([[6.0, 8.0], [24.0, 8.0], [24.0, 24.0], [8.0, 26.0]], dtype=np.float64)
+            )
+        annotations: dict[int, EdgeFrameAnnotation] = {}
+        seed_polyline = np.asarray([[8.0, 12.0], [14.0, 12.5], [20.0, 13.0]], dtype=np.float64)
+        edge_mask = np.zeros(sequence.frame_shape, dtype=bool)
+        edge_mask[10:13, 8:21] = True
+        for frame_index in frame_indices:
+            polyline = seed_polyline + np.asarray([float(frame_index), 0.5 * float(frame_index)], dtype=np.float64)
+            annotations[int(frame_index)] = EdgeFrameAnnotation(
+                frame_index=int(frame_index),
+                polyline=polyline,
+                edge_mask=edge_mask,
+                source=EdgeAnnotationSource.DEXINED,
+                metrics=self.window._compute_edge_metrics(polyline),
+            )
+        track = EdgeTrack(
+            edge_track_id=1,
+            seed_frame_index=int(frame_indices[0]),
+            polygon_roi=polygon,
+            seed_polyline=annotations[int(frame_indices[0])].polyline,
+            annotations=annotations,
+            label="Edge 1",
+        )
+        self.window.set_edge_tracks([track], selected_track_id=track.edge_track_id)
+        return track
+
     def test_set_sequence_enables_navigation_and_shows_first_frame(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
 
@@ -1686,6 +1750,62 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window._edge_preview_dialog.windowTitle(), "NBED Preview")
         self.assertEqual(self.window.statusBar().currentMessage(), "NBED preview opened for frame 1.")
 
+    def test_edge_preview_can_use_ddn_backend(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+
+        polygon = PolygonROI(np.asarray([[10.0, 12.0], [22.0, 14.0], [18.0, 28.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(polygon)
+        self.window.polygon_tools_panel.cmb_edge_backend.setCurrentIndex(3)
+
+        edge_prob = np.zeros((1, *sequence.frame_shape), dtype=np.float32)
+        edge_prob[0, 12:28, 10:22] = 0.78
+        run_output = DexiNedRunOutput(
+            edge_prob=edge_prob,
+            edge_binary=edge_prob >= 0.5,
+            model_name="ddn",
+            checkpoint_name="DDN_M36_BSDS.pth",
+        )
+
+        def fake_ddn_run(run_input):
+            time.sleep(0.05)
+            self.assertEqual(run_input.source_view, "raw")
+            return run_output
+
+        with (
+            patch.object(self.window._ddn_backend, "run", side_effect=fake_ddn_run) as ddn_run_mock,
+            patch.object(
+                self.window._dexined_backend,
+                "run",
+                side_effect=AssertionError("DexiNed backend should not run when DDN is selected."),
+            ) as dexined_run_mock,
+            patch.object(
+                self.window._teed_backend,
+                "run",
+                side_effect=AssertionError("TEED backend should not run when DDN is selected."),
+            ) as teed_run_mock,
+            patch.object(
+                self.window._nbed_backend,
+                "run",
+                side_effect=AssertionError("NBED backend should not run when DDN is selected."),
+            ) as nbed_run_mock,
+        ):
+            self.window.polygon_tools_panel.btn_preview.click()
+            for _ in range(250):
+                self.__class__._app.processEvents()
+                if ddn_run_mock.called and self.window._edge_preview_dialog is not None and self.window._edge_preview_dialog.isVisible():
+                    break
+                time.sleep(0.01)
+
+        ddn_run_mock.assert_called_once()
+        dexined_run_mock.assert_not_called()
+        teed_run_mock.assert_not_called()
+        nbed_run_mock.assert_not_called()
+        self.assertIsNotNone(self.window._edge_preview_dialog)
+        self.assertTrue(self.window._edge_preview_dialog.isVisible())
+        self.assertEqual(self.window._edge_preview_dialog.windowTitle(), "DDN Preview")
+        self.assertEqual(self.window.statusBar().currentMessage(), "DDN preview opened for frame 1.")
+
     def test_edge_sequence_run_creates_edge_track_for_all_frames(self) -> None:
         sequence = STMSequence(
             source_path="/tmp/edge_sequence.mpp",
@@ -1816,6 +1936,289 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         dexined_run_mock.assert_not_called()
         self.assertEqual(len(self.window.current_edge_tracks()), 1)
         self.assertIn("TEED sequence finished: Edge Track 1", self.window.statusBar().currentMessage())
+
+    def test_edge_sequence_run_can_use_ddn_backend(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_sequence_ddn.mpp",
+            raw_frames=np.zeros((3, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+        self.window.polygon_tools_panel.cmb_edge_backend.setCurrentIndex(3)
+
+        polygon = PolygonROI(np.asarray([[8.0, 10.0], [22.0, 10.0], [24.0, 24.0], [10.0, 26.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(polygon)
+
+        edge_prob = np.zeros((sequence.frame_count, *sequence.frame_shape), dtype=np.float32)
+        edge_prob[0, 12:15, 8:21] = 0.72
+        edge_prob[1, 13:16, 9:22] = 0.74
+        edge_prob[2, 14:17, 10:23] = 0.76
+        run_output = DexiNedRunOutput(
+            edge_prob=edge_prob,
+            edge_binary=edge_prob >= 0.5,
+            model_name="ddn",
+            checkpoint_name="DDN_M36_BSDS.pth",
+        )
+
+        def fake_ddn_run(run_input):
+            time.sleep(0.05)
+            self.assertEqual(run_input.frames.shape[0], 3)
+            return run_output
+
+        with (
+            patch.object(self.window._ddn_backend, "run", side_effect=fake_ddn_run) as ddn_run_mock,
+            patch.object(
+                self.window._dexined_backend,
+                "run",
+                side_effect=AssertionError("DexiNed backend should not run when DDN is selected."),
+            ) as dexined_run_mock,
+            patch.object(
+                self.window._teed_backend,
+                "run",
+                side_effect=AssertionError("TEED backend should not run when DDN is selected."),
+            ) as teed_run_mock,
+            patch.object(
+                self.window._nbed_backend,
+                "run",
+                side_effect=AssertionError("NBED backend should not run when DDN is selected."),
+            ) as nbed_run_mock,
+        ):
+            self.window.polygon_tools_panel.btn_run_sequence.click()
+            for _ in range(250):
+                self.__class__._app.processEvents()
+                if ddn_run_mock.called and self.window.current_edge_tracks():
+                    break
+                time.sleep(0.01)
+
+        ddn_run_mock.assert_called_once()
+        dexined_run_mock.assert_not_called()
+        teed_run_mock.assert_not_called()
+        nbed_run_mock.assert_not_called()
+        self.assertEqual(len(self.window.current_edge_tracks()), 1)
+        self.assertIn("DDN sequence finished: Edge Track 1", self.window.statusBar().currentMessage())
+
+    def test_edge_stitch_can_use_selected_alternative_backend(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_stitch_backend_ddn.mpp",
+            raw_frames=np.zeros((5, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+        track = self._set_existing_edge_track(sequence, frame_indices=[0, 1])
+
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+        stitched_polygon = PolygonROI(
+            np.asarray([[7.0, 9.0], [25.0, 9.0], [25.0, 25.0], [9.0, 27.0]], dtype=np.float64)
+        )
+        self.window.viewer._commit_polygon(stitched_polygon)
+        self.window.polygon_tools_panel.cmb_edge_backend.setCurrentIndex(3)
+        self.window.polygon_tools_panel.chk_stitch_active.setChecked(True)
+        self.window.polygon_tools_panel.sp_run_end_frame.setValue(4)
+
+        stitch_output = self._edge_probability_output(2, sequence.frame_shape, start_row=13, start_col=10)
+
+        def fake_ddn_run(run_input):
+            self.assertEqual(run_input.frames.shape[0], 2)
+            np.testing.assert_array_equal(run_input.frame_indices, np.asarray([2, 3], dtype=np.int32))
+            return stitch_output
+
+        with (
+            patch.object(self.window._ddn_backend, "run", side_effect=fake_ddn_run) as ddn_run_mock,
+            patch.object(
+                self.window._dexined_backend,
+                "run",
+                side_effect=AssertionError("DexiNed backend should not run when DDN is selected."),
+            ) as dexined_run_mock,
+            patch.object(
+                self.window._teed_backend,
+                "run",
+                side_effect=AssertionError("TEED backend should not run when DDN is selected."),
+            ) as teed_run_mock,
+            patch.object(
+                self.window._nbed_backend,
+                "run",
+                side_effect=AssertionError("NBED backend should not run when DDN is selected."),
+            ) as nbed_run_mock,
+        ):
+            self.window.polygon_tools_panel.btn_run_sequence.click()
+            self._wait_until(lambda: ddn_run_mock.called and track.get_annotation(3) is not None)
+
+        ddn_run_mock.assert_called_once()
+        dexined_run_mock.assert_not_called()
+        teed_run_mock.assert_not_called()
+        nbed_run_mock.assert_not_called()
+        self.assertEqual(track.frame_indices, [0, 1, 2, 3])
+        self.assertEqual(self.window.current_selected_edge_track_id(), track.edge_track_id)
+        self.assertIn("stitched edge track 1", self.window.statusBar().currentMessage().lower())
+
+    def test_edge_resume_can_use_selected_alternative_backend(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_resume_backend_ddn.mpp",
+            raw_frames=np.zeros((4, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+        track = self._set_existing_edge_track(sequence, frame_indices=[0, 1, 2, 3])
+        original_frame3_polyline = np.asarray(track.get_annotation(3).polyline, dtype=np.float64)
+
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+        self.window.viewer._commit_polygon(track.polygon_roi)
+        self.window.polygon_tools_panel.cmb_edge_backend.setCurrentIndex(3)
+        self.assertTrue(self.window.polygon_tools_panel.btn_resume_edge.isEnabled())
+
+        resume_output = self._edge_probability_output(2, sequence.frame_shape, start_row=14, start_col=11)
+
+        def fake_ddn_run(run_input):
+            self.assertEqual(run_input.frames.shape[0], 2)
+            self.assertIsNone(run_input.frame_indices)
+            return resume_output
+
+        with (
+            patch.object(self.window._ddn_backend, "run", side_effect=fake_ddn_run) as ddn_run_mock,
+            patch.object(
+                self.window._dexined_backend,
+                "run",
+                side_effect=AssertionError("DexiNed backend should not run when DDN is selected."),
+            ) as dexined_run_mock,
+            patch.object(
+                self.window._teed_backend,
+                "run",
+                side_effect=AssertionError("TEED backend should not run when DDN is selected."),
+            ) as teed_run_mock,
+            patch.object(
+                self.window._nbed_backend,
+                "run",
+                side_effect=AssertionError("NBED backend should not run when DDN is selected."),
+            ) as nbed_run_mock,
+        ):
+            self.window.polygon_tools_panel.btn_resume_edge.click()
+            self._wait_until(
+                lambda: ddn_run_mock.called
+                and not np.array_equal(track.get_annotation(3).polyline, original_frame3_polyline)
+            )
+
+        ddn_run_mock.assert_called_once()
+        dexined_run_mock.assert_not_called()
+        teed_run_mock.assert_not_called()
+        nbed_run_mock.assert_not_called()
+        self.assertEqual(track.frame_indices, [0, 1, 2, 3])
+        self.assertFalse(np.array_equal(track.get_annotation(3).polyline, original_frame3_polyline))
+        self.assertIn("resumed edge tracking with ddn", self.window.statusBar().currentMessage().lower())
+
+    def test_edge_redetect_can_use_selected_alternative_backend(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_redetect_backend_ddn.mpp",
+            raw_frames=np.zeros((4, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+        track = self._set_existing_edge_track(sequence, frame_indices=[0, 1, 2])
+        original_frame2_polyline = np.asarray(track.get_annotation(2).polyline, dtype=np.float64)
+        self.window.polygon_tools_panel.cmb_edge_backend.setCurrentIndex(3)
+        self.assertTrue(self.window.polygon_tools_panel.btn_redetect_edge.isEnabled())
+
+        redetect_output = self._edge_probability_output(3, sequence.frame_shape, start_row=13, start_col=7)
+
+        def fake_ddn_run(run_input):
+            self.assertEqual(run_input.frames.shape[0], 3)
+            np.testing.assert_array_equal(run_input.frame_indices, np.asarray([0, 1, 2], dtype=np.int32))
+            return redetect_output
+
+        with (
+            patch.object(self.window._ddn_backend, "run", side_effect=fake_ddn_run) as ddn_run_mock,
+            patch.object(
+                self.window._dexined_backend,
+                "run",
+                side_effect=AssertionError("DexiNed backend should not run when DDN is selected."),
+            ) as dexined_run_mock,
+            patch.object(
+                self.window._teed_backend,
+                "run",
+                side_effect=AssertionError("TEED backend should not run when DDN is selected."),
+            ) as teed_run_mock,
+            patch.object(
+                self.window._nbed_backend,
+                "run",
+                side_effect=AssertionError("NBED backend should not run when DDN is selected."),
+            ) as nbed_run_mock,
+        ):
+            self.window.polygon_tools_panel.btn_redetect_edge.click()
+            self._wait_until(
+                lambda: ddn_run_mock.called
+                and not np.array_equal(track.get_annotation(2).polyline, original_frame2_polyline)
+            )
+
+        ddn_run_mock.assert_called_once()
+        dexined_run_mock.assert_not_called()
+        teed_run_mock.assert_not_called()
+        nbed_run_mock.assert_not_called()
+        self.assertEqual(len(self.window.current_edge_tracks()), 1)
+        self.assertEqual(track.frame_indices, [0, 1, 2])
+        self.assertFalse(np.array_equal(track.get_annotation(2).polyline, original_frame2_polyline))
+        self.assertEqual(self.window.current_selected_edge_track_id(), track.edge_track_id)
+        self.assertIn("re-detected edge track 1", self.window.statusBar().currentMessage().lower())
+
+    def test_edge_partial_redetect_can_use_selected_alternative_backend(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_partial_redetect_backend_ddn.mpp",
+            raw_frames=np.zeros((5, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+        track = self._set_existing_edge_track(sequence, frame_indices=[0, 1, 2, 3, 4])
+        original_frame0_polyline = np.asarray(track.get_annotation(0).polyline, dtype=np.float64)
+        original_frame3_polyline = np.asarray(track.get_annotation(3).polyline, dtype=np.float64)
+        original_frame4_polyline = np.asarray(track.get_annotation(4).polyline, dtype=np.float64)
+
+        self.window.slider_frame.setValue(2)
+        self.__class__._app.processEvents()
+        self.window.polygon_tools_panel.cmb_edge_backend.setCurrentIndex(3)
+        self.window.polygon_tools_panel.sp_run_end_frame.setValue(4)
+        self.assertTrue(self.window.polygon_tools_panel.btn_redetect_edge_range.isEnabled())
+
+        redetect_output = self._edge_probability_output(2, sequence.frame_shape, start_row=12, start_col=9)
+
+        def fake_ddn_run(run_input):
+            self.assertEqual(run_input.frames.shape[0], 2)
+            np.testing.assert_array_equal(run_input.frame_indices, np.asarray([2, 3], dtype=np.int32))
+            return redetect_output
+
+        with (
+            patch.object(self.window._ddn_backend, "run", side_effect=fake_ddn_run) as ddn_run_mock,
+            patch.object(
+                self.window._dexined_backend,
+                "run",
+                side_effect=AssertionError("DexiNed backend should not run when DDN is selected."),
+            ) as dexined_run_mock,
+            patch.object(
+                self.window._teed_backend,
+                "run",
+                side_effect=AssertionError("TEED backend should not run when DDN is selected."),
+            ) as teed_run_mock,
+            patch.object(
+                self.window._nbed_backend,
+                "run",
+                side_effect=AssertionError("NBED backend should not run when DDN is selected."),
+            ) as nbed_run_mock,
+        ):
+            self.window.polygon_tools_panel.btn_redetect_edge_range.click()
+            self._wait_until(
+                lambda: ddn_run_mock.called
+                and not np.array_equal(track.get_annotation(3).polyline, original_frame3_polyline)
+            )
+
+        ddn_run_mock.assert_called_once()
+        dexined_run_mock.assert_not_called()
+        teed_run_mock.assert_not_called()
+        nbed_run_mock.assert_not_called()
+        self.assertEqual(track.frame_indices, [0, 1, 2, 3, 4])
+        np.testing.assert_array_equal(track.get_annotation(0).polyline, original_frame0_polyline)
+        self.assertFalse(np.array_equal(track.get_annotation(3).polyline, original_frame3_polyline))
+        np.testing.assert_array_equal(track.get_annotation(4).polyline, original_frame4_polyline)
+        self.assertEqual(self.window.current_selected_edge_track_id(), track.edge_track_id)
+        self.assertIn("partially re-detected edge track 1", self.window.statusBar().currentMessage().lower())
 
     def test_edge_sequence_run_can_be_limited_to_selected_frame_range(self) -> None:
         sequence = STMSequence(

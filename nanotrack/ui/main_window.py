@@ -52,6 +52,7 @@ from nanotrack.processing import (
     run_horizontal_dropout_preview,
 )
 from nanotrack.edges import (
+    DdnSubprocessBackend,
     DexiNedRunInput,
     DexiNedRunOutput,
     DexiNedSubprocessBackend,
@@ -90,7 +91,7 @@ class _DexiNedRunWorker(QObject):
 
     def __init__(
         self,
-        backend: DexiNedSubprocessBackend | TeedSubprocessBackend | NbedSubprocessBackend,
+        backend: DexiNedSubprocessBackend | TeedSubprocessBackend | NbedSubprocessBackend | DdnSubprocessBackend,
         run_input: DexiNedRunInput,
     ):
         super().__init__()
@@ -196,6 +197,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._dexined_backend = DexiNedSubprocessBackend()
         self._teed_backend = TeedSubprocessBackend()
         self._nbed_backend = NbedSubprocessBackend()
+        self._ddn_backend = DdnSubprocessBackend()
         self._point_tracker_backends = self._build_point_tracker_backends()
         self._dexined_progress_dialog: QProgressDialog | None = None
         self._dexined_thread: QThread | None = None
@@ -617,6 +619,8 @@ class NanoTrackMainWindow(QMainWindow):
             return "TEED"
         if normalized == "nbed":
             return "NBED"
+        if normalized == "ddn":
+            return "DDN"
         if normalized == "dexined":
             return "DexiNed"
         return str(backend_key)
@@ -624,12 +628,16 @@ class NanoTrackMainWindow(QMainWindow):
     def _selected_edge_detector_backend_label(self) -> str:
         return self._format_edge_detector_backend_label(self._selected_edge_detector_backend_key())
 
-    def _selected_edge_detector_backend(self) -> DexiNedSubprocessBackend | TeedSubprocessBackend | NbedSubprocessBackend:
+    def _selected_edge_detector_backend(
+        self,
+    ) -> DexiNedSubprocessBackend | TeedSubprocessBackend | NbedSubprocessBackend | DdnSubprocessBackend:
         backend_key = self._selected_edge_detector_backend_key()
         if backend_key == "teed":
             return self._teed_backend
         if backend_key == "nbed":
             return self._nbed_backend
+        if backend_key == "ddn":
+            return self._ddn_backend
         return self._dexined_backend
 
     def _current_edge_detector_backend_label(self) -> str:
