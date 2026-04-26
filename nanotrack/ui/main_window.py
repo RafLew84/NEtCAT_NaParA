@@ -59,6 +59,7 @@ from nanotrack.edges import (
     NbedSubprocessBackend,
     PidinetSubprocessBackend,
     TeedSubprocessBackend,
+    UaedSubprocessBackend,
     hybrid_refine_polyline,
     refine_edge_polyline,
     sample_polyline_control_points,
@@ -98,6 +99,7 @@ class _DexiNedRunWorker(QObject):
             | NbedSubprocessBackend
             | DdnSubprocessBackend
             | PidinetSubprocessBackend
+            | UaedSubprocessBackend
         ),
         run_input: DexiNedRunInput,
     ):
@@ -206,6 +208,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._nbed_backend = NbedSubprocessBackend()
         self._ddn_backend = DdnSubprocessBackend()
         self._pidinet_backend = PidinetSubprocessBackend()
+        self._uaed_backend = UaedSubprocessBackend()
         self._point_tracker_backends = self._build_point_tracker_backends()
         self._dexined_progress_dialog: QProgressDialog | None = None
         self._dexined_thread: QThread | None = None
@@ -631,6 +634,8 @@ class NanoTrackMainWindow(QMainWindow):
             return "DDN"
         if normalized == "pidinet":
             return "PiDiNet"
+        if normalized == "uaed":
+            return "UAED"
         if normalized == "dexined":
             return "DexiNed"
         return str(backend_key)
@@ -646,6 +651,7 @@ class NanoTrackMainWindow(QMainWindow):
         | NbedSubprocessBackend
         | DdnSubprocessBackend
         | PidinetSubprocessBackend
+        | UaedSubprocessBackend
     ):
         backend_key = self._selected_edge_detector_backend_key()
         if backend_key == "teed":
@@ -656,6 +662,8 @@ class NanoTrackMainWindow(QMainWindow):
             return self._ddn_backend
         if backend_key == "pidinet":
             return self._pidinet_backend
+        if backend_key == "uaed":
+            return self._uaed_backend
         return self._dexined_backend
 
     def _current_edge_detector_backend_label(self) -> str:

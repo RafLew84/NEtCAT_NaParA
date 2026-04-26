@@ -13,6 +13,7 @@ from .pidinet_backend import (
 )
 from .refinement import EdgeRefinementResult, refine_edge_polyline
 from .teed_backend import TeedBackendConfig, TeedBackendError, TeedBackendTimeoutError, TeedSubprocessBackend
+from .uaed_backend import UaedBackendConfig, UaedBackendError, UaedBackendTimeoutError, UaedSubprocessBackend
 
 __all__ = [
     "DEXINED_CONTRACT_VERSION",
@@ -43,4 +44,8 @@ __all__ = [
     "TeedBackendError",
     "TeedBackendTimeoutError",
     "TeedSubprocessBackend",
+    "UaedBackendConfig",
+    "UaedBackendError",
+    "UaedBackendTimeoutError",
+    "UaedSubprocessBackend",
 ]
