@@ -170,6 +170,12 @@ class PolygonRoiToolsPanel(QWidget):
         group_layout.addLayout(dexined_row)
 
         refine_row = QHBoxLayout()
+        self.cmb_polyline_method = QComboBox(group)
+        self.cmb_polyline_method.addItem("Graph path", "graph")
+        self.cmb_polyline_method.addItem("PCA + binning", "pca_bins")
+        self.cmb_polyline_method.setToolTip(
+            "Coarse polyline extraction method used after component selection and before refinement."
+        )
         self.cmb_refine_score_mode = QComboBox(group)
         self.cmb_refine_score_mode.addItem("Ref combined", "combined")
         self.cmb_refine_score_mode.addItem("Ref edge_prob", "edge_prob")
@@ -183,6 +189,7 @@ class PolygonRoiToolsPanel(QWidget):
         self.sp_refine_radius.setPrefix("R ")
         self.sp_refine_radius.setSuffix(" px")
         self.sp_refine_radius.setToolTip("Half-width of the search window used to localize the final edge.")
+        refine_row.addWidget(self.cmb_polyline_method)
         refine_row.addWidget(self.cmb_refine_score_mode)
         refine_row.addWidget(self.sp_refine_radius)
         group_layout.addLayout(refine_row)
@@ -240,6 +247,7 @@ class PolygonRoiToolsPanel(QWidget):
         self.sp_edge_components.setEnabled(enabled)
         self.cmb_inference_resolution.setEnabled(enabled)
         self.sp_muge_granularity.setEnabled(enabled and self.edge_backend() == "muge")
+        self.cmb_polyline_method.setEnabled(enabled)
         self.cmb_refine_score_mode.setEnabled(enabled)
         self.sp_refine_radius.setEnabled(enabled)
         self.cmb_tracker.setEnabled(enabled)
@@ -360,6 +368,10 @@ class PolygonRoiToolsPanel(QWidget):
 
     def muge_granularity(self) -> float:
         return float(self.sp_muge_granularity.value())
+
+    def edge_polyline_method(self) -> str:
+        current_data = self.cmb_polyline_method.currentData()
+        return "graph" if current_data is None else str(current_data)
 
     def edge_refine_score_mode(self) -> str:
         current_data = self.cmb_refine_score_mode.currentData()

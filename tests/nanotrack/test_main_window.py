@@ -215,6 +215,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.polygon_tools_panel.btn_redetect_edge.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_redetect_edge_range.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_hybrid.isEnabled())
+        self.assertTrue(self.window.polygon_tools_panel.cmb_polyline_method.isEnabled())
+        self.assertEqual(self.window.polygon_tools_panel.edge_polyline_method(), "graph")
         self.assertEqual(self.window.polygon_tools_panel.lbl_polygon.text(), "No polygon ROI on current frame")
         self.assertTrue(self.window.preprocessing_panel.btn_preview.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_apply_all.isEnabled())
@@ -1650,12 +1652,47 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertIn("512", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertIn("selected px", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertIn("mode component", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
-        self.assertIn("coarse binned_pca", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
+        self.assertIn("coarse graph_path", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertIn("refine combined", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertIn("shift", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertIn("pts", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertGreater(len(self.window._edge_preview_dialog.edge_view.viewer._overlay_items), 0)
         self.assertEqual(self.window.statusBar().currentMessage(), "DexiNed preview opened for frame 1.")
+
+    def test_edge_polyline_method_can_use_pca_binning(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+
+        polygon = PolygonROI(np.asarray([[8.0, 10.0], [24.0, 10.0], [24.0, 28.0], [8.0, 28.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(polygon)
+        method_index = self.window.polygon_tools_panel.cmb_polyline_method.findData("pca_bins")
+        self.assertNotEqual(method_index, -1)
+        self.window.polygon_tools_panel.cmb_polyline_method.setCurrentIndex(method_index)
+
+        run_input, input_frame, preview_meta = self.window._build_dexined_preview_input(polygon)
+        self.assertEqual(self.window.polygon_tools_panel.edge_polyline_method(), "pca_bins")
+        self.assertEqual(preview_meta["polyline_method"], "pca_bins")
+        self.assertEqual(run_input.frames.shape[0], 1)
+
+        edge_frame = np.zeros(sequence.frame_shape, dtype=np.float32)
+        edge_frame[14:17, 10:24] = 0.8
+        selection, _selected_edge_frame, coarse_polyline, refined_polyline, _max_prob = (
+            self.window._extract_dominant_edge_geometry(
+                edge_frame,
+                np.asarray(preview_meta["polygon_mask"], dtype=bool),
+                input_frame=input_frame,
+                edge_binary_frame=edge_frame >= 0.5,
+                requested_threshold=float(preview_meta["threshold"]),
+                top_k_components=int(preview_meta["top_k_components"]),
+                polyline_method=str(preview_meta["polyline_method"]),
+                refine_score_mode="edge_prob",
+                refine_search_radius_px=1,
+            )
+        )
+
+        self.assertEqual(coarse_polyline.extraction_mode, "binned_pca")
+        self.assertGreater(selection.pixel_count, 0)
+        self.assertGreater(refined_polyline.point_count, 1)
 
     def test_edge_preview_can_use_teed_backend(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
