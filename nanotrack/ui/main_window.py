@@ -56,6 +56,8 @@ from nanotrack.edges import (
     DexiNedRunInput,
     DexiNedRunOutput,
     DexiNedSubprocessBackend,
+    MugeBackendConfig,
+    MugeSubprocessBackend,
     NbedSubprocessBackend,
     PidinetSubprocessBackend,
     TeedSubprocessBackend,
@@ -100,6 +102,7 @@ class _DexiNedRunWorker(QObject):
             | DdnSubprocessBackend
             | PidinetSubprocessBackend
             | UaedSubprocessBackend
+            | MugeSubprocessBackend
         ),
         run_input: DexiNedRunInput,
     ):
@@ -209,6 +212,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._ddn_backend = DdnSubprocessBackend()
         self._pidinet_backend = PidinetSubprocessBackend()
         self._uaed_backend = UaedSubprocessBackend()
+        self._muge_backend = MugeSubprocessBackend()
         self._point_tracker_backends = self._build_point_tracker_backends()
         self._dexined_progress_dialog: QProgressDialog | None = None
         self._dexined_thread: QThread | None = None
@@ -636,6 +640,8 @@ class NanoTrackMainWindow(QMainWindow):
             return "PiDiNet"
         if normalized == "uaed":
             return "UAED"
+        if normalized == "muge":
+            return "MuGE"
         if normalized == "dexined":
             return "DexiNed"
         return str(backend_key)
@@ -652,6 +658,7 @@ class NanoTrackMainWindow(QMainWindow):
         | DdnSubprocessBackend
         | PidinetSubprocessBackend
         | UaedSubprocessBackend
+        | MugeSubprocessBackend
     ):
         backend_key = self._selected_edge_detector_backend_key()
         if backend_key == "teed":
@@ -664,7 +671,24 @@ class NanoTrackMainWindow(QMainWindow):
             return self._pidinet_backend
         if backend_key == "uaed":
             return self._uaed_backend
+        if backend_key == "muge":
+            self._sync_muge_backend_config()
+            return self._muge_backend
         return self._dexined_backend
+
+    def _sync_muge_backend_config(self) -> None:
+        current = self._muge_backend.config
+        self._muge_backend.config = MugeBackendConfig(
+            python_executable=current.python_executable,
+            worker_script=current.worker_script,
+            checkpoint_path=current.checkpoint_path,
+            repo_path=current.repo_path,
+            distribution=current.distribution,
+            device=current.device,
+            granularity=self.polygon_tools_panel.muge_granularity(),
+            timeout_sec=current.timeout_sec,
+            working_directory=current.working_directory,
+        )
 
     def _current_edge_detector_backend_label(self) -> str:
         if self._active_edge_backend_label:

@@ -129,6 +129,7 @@ class PolygonRoiToolsPanel(QWidget):
         self.cmb_edge_backend.addItem("DDN", "ddn")
         self.cmb_edge_backend.addItem("PiDiNet", "pidinet")
         self.cmb_edge_backend.addItem("UAED", "uaed")
+        self.cmb_edge_backend.addItem("MuGE", "muge")
         self.cmb_edge_backend.setToolTip(
             "Coarse edge-detector backend used before component selection, polyline extraction, and refinement."
         )
@@ -152,10 +153,20 @@ class PolygonRoiToolsPanel(QWidget):
         self.cmb_inference_resolution.addItem("768 px", (768, 768))
         self.cmb_inference_resolution.addItem("1024 px", (1024, 1024))
         self.cmb_inference_resolution.setToolTip("Square inference resolution used for the edge-detector crop.")
+        self.sp_muge_granularity = QDoubleSpinBox(group)
+        self.sp_muge_granularity.setRange(0.0, 1.0)
+        self.sp_muge_granularity.setSingleStep(0.05)
+        self.sp_muge_granularity.setDecimals(2)
+        self.sp_muge_granularity.setValue(0.50)
+        self.sp_muge_granularity.setPrefix("G ")
+        self.sp_muge_granularity.setToolTip(
+            "MuGE granularity/alpha. Lower is more conservative; higher returns denser edge maps."
+        )
         dexined_row.addWidget(self.cmb_edge_backend)
         dexined_row.addWidget(self.sp_dexined_threshold)
         dexined_row.addWidget(self.sp_edge_components)
         dexined_row.addWidget(self.cmb_inference_resolution)
+        dexined_row.addWidget(self.sp_muge_granularity)
         group_layout.addLayout(dexined_row)
 
         refine_row = QHBoxLayout()
@@ -199,6 +210,7 @@ class PolygonRoiToolsPanel(QWidget):
         self.btn_redetect_edge.clicked.connect(self.redetect_edge_requested)
         self.btn_redetect_edge_range.clicked.connect(self.redetect_edge_range_requested)
         self.btn_hybrid.clicked.connect(self.hybrid_stabilize_requested)
+        self.cmb_edge_backend.currentIndexChanged.connect(lambda _index: self._update_enabled_state())
 
     def _update_enabled_state(self) -> None:
         enabled = self._sequence_loaded and not self._processing_busy
@@ -227,6 +239,7 @@ class PolygonRoiToolsPanel(QWidget):
         self.sp_dexined_threshold.setEnabled(enabled)
         self.sp_edge_components.setEnabled(enabled)
         self.cmb_inference_resolution.setEnabled(enabled)
+        self.sp_muge_granularity.setEnabled(enabled and self.edge_backend() == "muge")
         self.cmb_refine_score_mode.setEnabled(enabled)
         self.sp_refine_radius.setEnabled(enabled)
         self.cmb_tracker.setEnabled(enabled)
@@ -344,6 +357,9 @@ class PolygonRoiToolsPanel(QWidget):
             return None
         height, width = value
         return int(height), int(width)
+
+    def muge_granularity(self) -> float:
+        return float(self.sp_muge_granularity.value())
 
     def edge_refine_score_mode(self) -> str:
         current_data = self.cmb_refine_score_mode.currentData()

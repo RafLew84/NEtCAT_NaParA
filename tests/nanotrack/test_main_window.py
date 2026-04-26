@@ -1,4 +1,5 @@
 import csv
+from contextlib import ExitStack
 import os
 import time
 import tempfile
@@ -1940,6 +1941,140 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window._edge_preview_dialog.windowTitle(), "UAED Preview")
         self.assertEqual(self.window.statusBar().currentMessage(), "UAED preview opened for frame 1.")
 
+    def test_edge_preview_can_use_muge_backend_with_granularity(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+
+        polygon = PolygonROI(np.asarray([[10.0, 12.0], [22.0, 14.0], [18.0, 28.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(polygon)
+        backend_index = self.window.polygon_tools_panel.cmb_edge_backend.findData("muge")
+        self.assertNotEqual(backend_index, -1)
+        self.assertFalse(self.window.polygon_tools_panel.sp_muge_granularity.isEnabled())
+        self.window.polygon_tools_panel.cmb_edge_backend.setCurrentIndex(backend_index)
+        self.assertTrue(self.window.polygon_tools_panel.sp_muge_granularity.isEnabled())
+        self.window.polygon_tools_panel.sp_muge_granularity.setValue(0.75)
+
+        edge_prob = np.zeros((1, *sequence.frame_shape), dtype=np.float32)
+        edge_prob[0, 12:28, 10:22] = 0.78
+        run_output = DexiNedRunOutput(
+            edge_prob=edge_prob,
+            edge_binary=edge_prob >= 0.5,
+            model_name="muge",
+            checkpoint_name="muge-epoch-19-checkpoint.pth",
+        )
+
+        def fake_muge_run(run_input):
+            time.sleep(0.05)
+            self.assertEqual(run_input.source_view, "raw")
+            self.assertAlmostEqual(self.window._muge_backend.config.granularity, 0.75, places=6)
+            return run_output
+
+        with (
+            patch.object(self.window._muge_backend, "run", side_effect=fake_muge_run) as muge_run_mock,
+            patch.object(
+                self.window._dexined_backend,
+                "run",
+                side_effect=AssertionError("DexiNed backend should not run when MuGE is selected."),
+            ) as dexined_run_mock,
+            patch.object(
+                self.window._teed_backend,
+                "run",
+                side_effect=AssertionError("TEED backend should not run when MuGE is selected."),
+            ) as teed_run_mock,
+            patch.object(
+                self.window._nbed_backend,
+                "run",
+                side_effect=AssertionError("NBED backend should not run when MuGE is selected."),
+            ) as nbed_run_mock,
+            patch.object(
+                self.window._ddn_backend,
+                "run",
+                side_effect=AssertionError("DDN backend should not run when MuGE is selected."),
+            ) as ddn_run_mock,
+            patch.object(
+                self.window._pidinet_backend,
+                "run",
+                side_effect=AssertionError("PiDiNet backend should not run when MuGE is selected."),
+            ) as pidinet_run_mock,
+            patch.object(
+                self.window._uaed_backend,
+                "run",
+                side_effect=AssertionError("UAED backend should not run when MuGE is selected."),
+            ) as uaed_run_mock,
+        ):
+            self.window.polygon_tools_panel.btn_preview.click()
+            self._wait_until(
+                lambda: muge_run_mock.called
+                and self.window._edge_preview_dialog is not None
+                and self.window._edge_preview_dialog.isVisible()
+            )
+
+        muge_run_mock.assert_called_once()
+        dexined_run_mock.assert_not_called()
+        teed_run_mock.assert_not_called()
+        nbed_run_mock.assert_not_called()
+        ddn_run_mock.assert_not_called()
+        pidinet_run_mock.assert_not_called()
+        uaed_run_mock.assert_not_called()
+        self.assertIsNotNone(self.window._edge_preview_dialog)
+        self.assertTrue(self.window._edge_preview_dialog.isVisible())
+        self.assertEqual(self.window._edge_preview_dialog.windowTitle(), "MuGE Preview")
+        self.assertEqual(self.window.statusBar().currentMessage(), "MuGE preview opened for frame 1.")
+
+    def test_edge_preview_failure_uses_uaed_backend_label(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+
+        polygon = PolygonROI(np.asarray([[10.0, 12.0], [22.0, 14.0], [18.0, 28.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(polygon)
+        backend_index = self.window.polygon_tools_panel.cmb_edge_backend.findData("uaed")
+        self.assertNotEqual(backend_index, -1)
+        self.window.polygon_tools_panel.cmb_edge_backend.setCurrentIndex(backend_index)
+
+        with (
+            patch.object(self.window._uaed_backend, "run", side_effect=RuntimeError("UAED worker failed.")) as uaed_run_mock,
+            patch.object(
+                self.window._dexined_backend,
+                "run",
+                side_effect=AssertionError("DexiNed backend should not run when UAED is selected."),
+            ) as dexined_run_mock,
+            patch.object(
+                self.window._teed_backend,
+                "run",
+                side_effect=AssertionError("TEED backend should not run when UAED is selected."),
+            ) as teed_run_mock,
+            patch.object(
+                self.window._nbed_backend,
+                "run",
+                side_effect=AssertionError("NBED backend should not run when UAED is selected."),
+            ) as nbed_run_mock,
+            patch.object(
+                self.window._ddn_backend,
+                "run",
+                side_effect=AssertionError("DDN backend should not run when UAED is selected."),
+            ) as ddn_run_mock,
+            patch.object(
+                self.window._pidinet_backend,
+                "run",
+                side_effect=AssertionError("PiDiNet backend should not run when UAED is selected."),
+            ) as pidinet_run_mock,
+            patch("nanotrack.ui.main_window.QMessageBox.critical", return_value=QMessageBox.StandardButton.Ok) as critical_mock,
+        ):
+            self.window.polygon_tools_panel.btn_preview.click()
+            self._wait_until(lambda: critical_mock.called)
+
+        uaed_run_mock.assert_called_once()
+        dexined_run_mock.assert_not_called()
+        teed_run_mock.assert_not_called()
+        nbed_run_mock.assert_not_called()
+        ddn_run_mock.assert_not_called()
+        pidinet_run_mock.assert_not_called()
+        critical_mock.assert_called_once()
+        self.assertEqual(critical_mock.call_args.args[1], "UAED preview error")
+        self.assertIn("UAED worker failed.", critical_mock.call_args.args[2])
+        self.assertEqual(self.window.statusBar().currentMessage(), "UAED preview failed.")
+        self.assertFalse(self.window.current_edge_tracks())
+
     def test_edge_sequence_run_creates_edge_track_for_all_frames(self) -> None:
         sequence = STMSequence(
             source_path="/tmp/edge_sequence.mpp",
@@ -2264,6 +2399,274 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         pidinet_run_mock.assert_not_called()
         self.assertEqual(len(self.window.current_edge_tracks()), 1)
         self.assertIn("UAED sequence finished: Edge Track 1", self.window.statusBar().currentMessage())
+
+    def test_edge_sequence_run_can_use_muge_backend_with_granularity(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_sequence_muge.mpp",
+            raw_frames=np.zeros((3, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+        backend_index = self.window.polygon_tools_panel.cmb_edge_backend.findData("muge")
+        self.assertNotEqual(backend_index, -1)
+        self.window.polygon_tools_panel.cmb_edge_backend.setCurrentIndex(backend_index)
+        self.window.polygon_tools_panel.sp_muge_granularity.setValue(0.25)
+
+        polygon = PolygonROI(np.asarray([[8.0, 10.0], [22.0, 10.0], [24.0, 24.0], [10.0, 26.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(polygon)
+
+        edge_prob = np.zeros((sequence.frame_count, *sequence.frame_shape), dtype=np.float32)
+        edge_prob[0, 12:15, 8:21] = 0.72
+        edge_prob[1, 13:16, 9:22] = 0.74
+        edge_prob[2, 14:17, 10:23] = 0.76
+        run_output = DexiNedRunOutput(
+            edge_prob=edge_prob,
+            edge_binary=edge_prob >= 0.5,
+            model_name="muge",
+            checkpoint_name="muge-epoch-19-checkpoint.pth",
+        )
+
+        def fake_muge_run(run_input):
+            time.sleep(0.05)
+            self.assertEqual(run_input.frames.shape[0], 3)
+            self.assertAlmostEqual(self.window._muge_backend.config.granularity, 0.25, places=6)
+            return run_output
+
+        with (
+            patch.object(self.window._muge_backend, "run", side_effect=fake_muge_run) as muge_run_mock,
+            patch.object(
+                self.window._dexined_backend,
+                "run",
+                side_effect=AssertionError("DexiNed backend should not run when MuGE is selected."),
+            ) as dexined_run_mock,
+            patch.object(
+                self.window._teed_backend,
+                "run",
+                side_effect=AssertionError("TEED backend should not run when MuGE is selected."),
+            ) as teed_run_mock,
+            patch.object(
+                self.window._nbed_backend,
+                "run",
+                side_effect=AssertionError("NBED backend should not run when MuGE is selected."),
+            ) as nbed_run_mock,
+            patch.object(
+                self.window._ddn_backend,
+                "run",
+                side_effect=AssertionError("DDN backend should not run when MuGE is selected."),
+            ) as ddn_run_mock,
+            patch.object(
+                self.window._pidinet_backend,
+                "run",
+                side_effect=AssertionError("PiDiNet backend should not run when MuGE is selected."),
+            ) as pidinet_run_mock,
+            patch.object(
+                self.window._uaed_backend,
+                "run",
+                side_effect=AssertionError("UAED backend should not run when MuGE is selected."),
+            ) as uaed_run_mock,
+        ):
+            self.window.polygon_tools_panel.btn_run_sequence.click()
+            self._wait_until(lambda: muge_run_mock.called and self.window.current_edge_tracks())
+
+        muge_run_mock.assert_called_once()
+        dexined_run_mock.assert_not_called()
+        teed_run_mock.assert_not_called()
+        nbed_run_mock.assert_not_called()
+        ddn_run_mock.assert_not_called()
+        pidinet_run_mock.assert_not_called()
+        uaed_run_mock.assert_not_called()
+        self.assertEqual(len(self.window.current_edge_tracks()), 1)
+        self.assertIn("MuGE sequence finished: Edge Track 1", self.window.statusBar().currentMessage())
+
+    def test_edge_sequence_failure_uses_muge_backend_label_and_granularity(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_sequence_muge_failure.mpp",
+            raw_frames=np.zeros((3, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+        backend_index = self.window.polygon_tools_panel.cmb_edge_backend.findData("muge")
+        self.assertNotEqual(backend_index, -1)
+        self.window.polygon_tools_panel.cmb_edge_backend.setCurrentIndex(backend_index)
+        self.window.polygon_tools_panel.sp_muge_granularity.setValue(0.9)
+
+        polygon = PolygonROI(np.asarray([[8.0, 10.0], [22.0, 10.0], [24.0, 24.0], [10.0, 26.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(polygon)
+
+        observed_granularity: list[float] = []
+
+        def fail_muge_run(run_input):
+            observed_granularity.append(float(self.window._muge_backend.config.granularity))
+            raise RuntimeError("MuGE worker failed.")
+
+        with (
+            patch.object(self.window._muge_backend, "run", side_effect=fail_muge_run) as muge_run_mock,
+            patch.object(
+                self.window._dexined_backend,
+                "run",
+                side_effect=AssertionError("DexiNed backend should not run when MuGE is selected."),
+            ) as dexined_run_mock,
+            patch.object(
+                self.window._teed_backend,
+                "run",
+                side_effect=AssertionError("TEED backend should not run when MuGE is selected."),
+            ) as teed_run_mock,
+            patch.object(
+                self.window._nbed_backend,
+                "run",
+                side_effect=AssertionError("NBED backend should not run when MuGE is selected."),
+            ) as nbed_run_mock,
+            patch.object(
+                self.window._ddn_backend,
+                "run",
+                side_effect=AssertionError("DDN backend should not run when MuGE is selected."),
+            ) as ddn_run_mock,
+            patch.object(
+                self.window._pidinet_backend,
+                "run",
+                side_effect=AssertionError("PiDiNet backend should not run when MuGE is selected."),
+            ) as pidinet_run_mock,
+            patch.object(
+                self.window._uaed_backend,
+                "run",
+                side_effect=AssertionError("UAED backend should not run when MuGE is selected."),
+            ) as uaed_run_mock,
+            patch("nanotrack.ui.main_window.QMessageBox.critical", return_value=QMessageBox.StandardButton.Ok) as critical_mock,
+        ):
+            self.window.polygon_tools_panel.btn_run_sequence.click()
+            self._wait_until(lambda: critical_mock.called)
+
+        muge_run_mock.assert_called_once()
+        dexined_run_mock.assert_not_called()
+        teed_run_mock.assert_not_called()
+        nbed_run_mock.assert_not_called()
+        ddn_run_mock.assert_not_called()
+        pidinet_run_mock.assert_not_called()
+        uaed_run_mock.assert_not_called()
+        self.assertEqual(observed_granularity, [0.9])
+        critical_mock.assert_called_once()
+        self.assertEqual(critical_mock.call_args.args[1], "MuGE sequence error")
+        self.assertIn("MuGE worker failed.", critical_mock.call_args.args[2])
+        self.assertEqual(self.window.statusBar().currentMessage(), "MuGE sequence failed.")
+        self.assertFalse(self.window.current_edge_tracks())
+
+    def test_all_edge_backends_feed_common_edge_prob_workflow(self) -> None:
+        backend_specs = [
+            ("dexined", "_dexined_backend", "DexiNed", "DexiNed_BIPED_10.pth"),
+            ("teed", "_teed_backend", "TEED", "5_model.pth"),
+            ("nbed", "_nbed_backend", "NBED", "NBED_BSDS.pth"),
+            ("ddn", "_ddn_backend", "DDN", "DDN_M36_BSDS.pth"),
+            ("pidinet", "_pidinet_backend", "PiDiNet", "table5_pidinet.pth"),
+            ("uaed", "_uaed_backend", "UAED", "epoch-19-checkpoint.pth"),
+            ("muge", "_muge_backend", "MuGE", "muge-epoch-19-checkpoint.pth"),
+        ]
+        baseline_polylines: dict[int, np.ndarray] | None = None
+        baseline_mask_counts: dict[int, int] | None = None
+
+        for backend_key, backend_attr, backend_label, checkpoint_name in backend_specs:
+            with self.subTest(backend=backend_key):
+                sequence = STMSequence(
+                    source_path=f"/tmp/edge_sequence_{backend_key}_common.mpp",
+                    raw_frames=np.zeros((3, 32, 32), dtype=np.float32),
+                    metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+                )
+                sequence.raw_frames[0, 10:22, 8:20] = 0.25
+                sequence.raw_frames[1, 11:23, 9:21] = 0.5
+                sequence.raw_frames[2, 12:24, 10:22] = 0.75
+                self.window.set_sequence(sequence)
+                self.window.polygon_tools_panel.sp_dexined_threshold.setValue(0.5)
+                self.window.polygon_tools_panel.sp_edge_components.setValue(1)
+
+                backend_index = self.window.polygon_tools_panel.cmb_edge_backend.findData(backend_key)
+                self.assertNotEqual(backend_index, -1)
+                self.window.polygon_tools_panel.cmb_edge_backend.setCurrentIndex(backend_index)
+                if backend_key == "muge":
+                    self.window.polygon_tools_panel.sp_muge_granularity.setValue(0.65)
+
+                polygon = PolygonROI(
+                    np.asarray([[8.0, 10.0], [22.0, 10.0], [24.0, 24.0], [10.0, 26.0]], dtype=np.float64)
+                )
+                self.window.viewer._commit_polygon(polygon)
+
+                run_output = self._edge_probability_output(
+                    sequence.frame_count,
+                    sequence.frame_shape,
+                    model_name=backend_key,
+                    checkpoint_name=checkpoint_name,
+                    start_row=12,
+                    start_col=8,
+                )
+                captured_inputs = []
+
+                def selected_run(run_input):
+                    time.sleep(0.01)
+                    captured_inputs.append(run_input)
+                    return run_output
+
+                with ExitStack() as stack:
+                    backend_mocks = {}
+                    for spec_key, spec_attr, _spec_label, _spec_checkpoint_name in backend_specs:
+                        backend = getattr(self.window, spec_attr)
+                        if spec_key == backend_key:
+                            side_effect = selected_run
+                        else:
+                            side_effect = AssertionError(
+                                f"{spec_key} backend should not run when {backend_key} is selected."
+                            )
+                        backend_mocks[spec_key] = stack.enter_context(
+                            patch.object(backend, "run", side_effect=side_effect)
+                        )
+
+                    self.window.polygon_tools_panel.btn_run_sequence.click()
+                    self._wait_until(
+                        lambda: len(self.window.current_edge_tracks()) == 1 and self.window._dexined_thread is None,
+                        attempts=500,
+                    )
+
+                backend_mocks[backend_key].assert_called_once()
+                for spec_key, mock in backend_mocks.items():
+                    if spec_key != backend_key:
+                        mock.assert_not_called()
+                self.assertEqual(len(captured_inputs), 1)
+                run_input = captured_inputs[0]
+                self.assertEqual(run_input.frames.shape, sequence.raw_frames.shape)
+                np.testing.assert_array_equal(run_input.frames, sequence.raw_frames)
+                self.assertEqual(run_input.source_view, "raw")
+                self.assertEqual(run_input.threshold, 0.5)
+                self.assertTrue(np.any(run_input.polygon_mask))
+                if backend_key == "muge":
+                    self.assertAlmostEqual(self.window._muge_backend.config.granularity, 0.65, places=6)
+
+                tracks = self.window.current_edge_tracks()
+                self.assertEqual(len(tracks), 1)
+                track = tracks[0]
+                self.assertEqual(track.edge_track_id, 1)
+                self.assertEqual(track.frame_indices, [0, 1, 2])
+                self.assertIn(f"{backend_label} sequence finished: Edge Track 1", self.window.statusBar().currentMessage())
+
+                current_polylines = {}
+                current_mask_counts = {}
+                for frame_index in range(sequence.frame_count):
+                    annotation = track.get_annotation(frame_index)
+                    self.assertIsNotNone(annotation)
+                    assert annotation is not None
+                    self.assertEqual(annotation.source, EdgeAnnotationSource.DEXINED)
+                    self.assertIsNotNone(annotation.edge_mask)
+                    self.assertIsNotNone(annotation.polyline)
+                    self.assertIsNotNone(annotation.metrics)
+                    self.assertGreater(annotation.polyline_point_count, 1)
+                    self.assertGreater(annotation.metrics.length_px, 0.0)
+                    current_polylines[frame_index] = np.asarray(annotation.polyline, dtype=np.float64)
+                    current_mask_counts[frame_index] = int(np.count_nonzero(annotation.edge_mask))
+
+                if baseline_polylines is None:
+                    baseline_polylines = current_polylines
+                    baseline_mask_counts = current_mask_counts
+                else:
+                    assert baseline_mask_counts is not None
+                    self.assertEqual(current_mask_counts, baseline_mask_counts)
+                    for frame_index, baseline_polyline in baseline_polylines.items():
+                        np.testing.assert_allclose(current_polylines[frame_index], baseline_polyline, atol=1e-9)
 
     def test_edge_stitch_can_use_selected_alternative_backend(self) -> None:
         sequence = STMSequence(

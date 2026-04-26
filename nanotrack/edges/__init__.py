@@ -4,6 +4,7 @@ from .backend import DexiNedBackendConfig, DexiNedBackendError, DexiNedBackendTi
 from .contract import DEXINED_CONTRACT_VERSION, DexiNedRunInput, DexiNedRunOutput
 from .ddn_backend import DdnBackendConfig, DdnBackendError, DdnBackendTimeoutError, DdnSubprocessBackend
 from .hybrid import hybrid_refine_polyline, resample_polyline_xy, sample_polyline_control_points
+from .muge_backend import MugeBackendConfig, MugeBackendError, MugeBackendTimeoutError, MugeSubprocessBackend
 from .nbed_backend import NbedBackendConfig, NbedBackendError, NbedBackendTimeoutError, NbedSubprocessBackend
 from .pidinet_backend import (
     PidinetBackendConfig,
@@ -29,6 +30,10 @@ __all__ = [
     "DexiNedSubprocessBackend",
     "EdgeRefinementResult",
     "hybrid_refine_polyline",
+    "MugeBackendConfig",
+    "MugeBackendError",
+    "MugeBackendTimeoutError",
+    "MugeSubprocessBackend",
     "NbedBackendConfig",
     "NbedBackendError",
     "NbedBackendTimeoutError",
