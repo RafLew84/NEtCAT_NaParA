@@ -297,8 +297,11 @@ class NanoTrackMainWindow(QMainWindow):
         self.action_open_mpp = QAction("Open STM...", self)
         self.action_open_mpp.setToolTip("Load an MPP movie or STP/S94 frame series into NanoTrack")
         toolbar.addAction(self.action_open_mpp)
-        self.action_open_mpp_reverse = QAction("Open Reverse...", self)
-        self.action_open_mpp_reverse.setToolTip("Load an STM sequence with reversed frame order")
+        self.action_open_mpp_reverse = QAction("Open STM Reverse...", self)
+        self.action_open_mpp_reverse.setToolTip(
+            "Load an MPP movie or STP/S94 frame series into NanoTrack with reversed frame order"
+        )
+        toolbar.addAction(self.action_open_mpp_reverse)
         self.action_open_session = QAction("Open Session...", self)
         self.action_open_session.setToolTip("Open a saved NanoTrack session")
         self.action_save_session = QAction("Save Session...", self)

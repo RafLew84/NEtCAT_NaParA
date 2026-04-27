@@ -322,6 +322,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             self.window.action_open_mpp_reverse.trigger()
 
         load_sequence_mock.assert_called_once_with("/tmp/reversed.mpp", reverse_frame_order=True)
+        self.assertEqual(self.window.action_open_mpp_reverse.text(), "Open STM Reverse...")
+        self.assertIn("STP/S94", self.window.action_open_mpp_reverse.toolTip())
 
     @patch("nanotrack.ui.main_window.QFileDialog.getOpenFileNames", return_value=(["/tmp/movie.mpp"], "STM files"))
     def test_open_stm_accepts_single_mpp_file(self, get_open_file_names_mock) -> None:
@@ -333,6 +335,23 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertIn("*.stp", filter_text)
         self.assertIn("*.s94", filter_text)
         self.assertEqual(self.window.action_open_mpp.text(), "Open STM...")
+
+    @patch(
+        "nanotrack.ui.main_window.QFileDialog.getOpenFileNames",
+        return_value=(["/tmp/frame_001.stp", "/tmp/frame_002.s94", "/tmp/frame_003.stp"], "STM files"),
+    )
+    def test_open_reverse_accepts_stp_s94_frame_series(self, get_open_file_names_mock) -> None:
+        with patch.object(self.window, "load_sequence_from_path") as load_sequence_mock:
+            self.window.action_open_mpp_reverse.trigger()
+
+        load_sequence_mock.assert_called_once_with(
+            ["/tmp/frame_001.stp", "/tmp/frame_002.s94", "/tmp/frame_003.stp"],
+            reverse_frame_order=True,
+        )
+        dialog_args = get_open_file_names_mock.call_args.args
+        self.assertIn("reverse", dialog_args[1].lower())
+        self.assertIn("*.stp", dialog_args[3])
+        self.assertIn("*.s94", dialog_args[3])
 
     @patch(
         "nanotrack.ui.main_window.QFileDialog.getOpenFileNames",
