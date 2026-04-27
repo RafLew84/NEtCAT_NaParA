@@ -302,12 +302,55 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.preprocessing_panel.chk_show_denoised.isEnabled())
         self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "No preview generated for current frame")
 
-    @patch("nanotrack.ui.main_window.QFileDialog.getOpenFileName", return_value=("/tmp/reversed.mpp", "MPP files"))
-    def test_open_reverse_uses_reversed_frame_order_loader(self, _get_open_file_name) -> None:
+    @patch("nanotrack.ui.main_window.QFileDialog.getOpenFileNames", return_value=(["/tmp/reversed.mpp"], "STM files"))
+    def test_open_reverse_uses_reversed_frame_order_loader(self, _get_open_file_names) -> None:
         with patch.object(self.window, "load_sequence_from_path") as load_sequence_mock:
             self.window.action_open_mpp_reverse.trigger()
 
         load_sequence_mock.assert_called_once_with("/tmp/reversed.mpp", reverse_frame_order=True)
+
+    @patch("nanotrack.ui.main_window.QFileDialog.getOpenFileNames", return_value=(["/tmp/movie.mpp"], "STM files"))
+    def test_open_stm_accepts_single_mpp_file(self, get_open_file_names_mock) -> None:
+        with patch.object(self.window, "load_sequence_from_path") as load_sequence_mock:
+            self.window.action_open_mpp.trigger()
+
+        load_sequence_mock.assert_called_once_with("/tmp/movie.mpp", reverse_frame_order=False)
+        filter_text = get_open_file_names_mock.call_args.args[3]
+        self.assertIn("*.stp", filter_text)
+        self.assertIn("*.s94", filter_text)
+        self.assertEqual(self.window.action_open_mpp.text(), "Open STM...")
+
+    @patch(
+        "nanotrack.ui.main_window.QFileDialog.getOpenFileNames",
+        return_value=(["/tmp/frame_001.stp", "/tmp/frame_002.s94"], "STM files"),
+    )
+    def test_open_stm_accepts_stp_s94_frame_series(self, _get_open_file_names) -> None:
+        with patch.object(self.window, "load_sequence_from_path") as load_sequence_mock:
+            self.window.action_open_mpp.trigger()
+
+        load_sequence_mock.assert_called_once_with(
+            ["/tmp/frame_001.stp", "/tmp/frame_002.s94"],
+            reverse_frame_order=False,
+        )
+
+    def test_load_sequence_from_path_uses_common_stm_loader(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/frame_001_series_2_frames",
+            raw_frames=np.zeros((2, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+        )
+
+        with (
+            patch("nanotrack.ui.main_window.load_stm_sequence", return_value=sequence) as load_sequence_mock,
+            patch.object(self.window, "set_sequence") as set_sequence_mock,
+        ):
+            self.window.load_sequence_from_path(["/tmp/frame_001.stp", "/tmp/frame_002.s94"], reverse_frame_order=True)
+
+        load_sequence_mock.assert_called_once_with(
+            ["/tmp/frame_001.stp", "/tmp/frame_002.s94"],
+            reverse_frame_order=True,
+        )
+        set_sequence_mock.assert_called_once_with(sequence)
 
     def test_slider_navigation_updates_active_frame_index(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))

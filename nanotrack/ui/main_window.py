@@ -43,7 +43,7 @@ from nanotrack.core import (
     YoloDetection,
     YoloDetectionSet,
 )
-from nanotrack.io import load_mpp_sequence
+from nanotrack.io import load_stm_sequence
 from nanotrack.persistence import NanoTrackSessionSnapshot, load_session_snapshot, save_session_snapshot
 from nanotrack.processing import (
     run_bm3d_batch,
@@ -269,11 +269,11 @@ class NanoTrackMainWindow(QMainWindow):
         self.addToolBar(toolbar)
 
         file_menu = self.menuBar().addMenu("File")
-        self.action_open_mpp = QAction("Open MPP...", self)
-        self.action_open_mpp.setToolTip("Load an MPP sequence into NanoTrack")
+        self.action_open_mpp = QAction("Open STM...", self)
+        self.action_open_mpp.setToolTip("Load an MPP movie or STP/S94 frame series into NanoTrack")
         toolbar.addAction(self.action_open_mpp)
         self.action_open_mpp_reverse = QAction("Open Reverse...", self)
-        self.action_open_mpp_reverse.setToolTip("Load an MPP sequence with reversed frame order")
+        self.action_open_mpp_reverse.setToolTip("Load an STM sequence with reversed frame order")
         self.action_open_session = QAction("Open Session...", self)
         self.action_open_session.setToolTip("Open a saved NanoTrack session")
         self.action_save_session = QAction("Save Session...", self)
@@ -522,8 +522,8 @@ class NanoTrackMainWindow(QMainWindow):
         self.set_tracks([])
         self.set_edge_tracks([])
 
-    def load_sequence_from_path(self, file_path: str, *, reverse_frame_order: bool = False) -> None:
-        sequence = load_mpp_sequence(file_path, reverse_frame_order=reverse_frame_order)
+    def load_sequence_from_path(self, file_path: str | list[str], *, reverse_frame_order: bool = False) -> None:
+        sequence = load_stm_sequence(file_path, reverse_frame_order=reverse_frame_order)
         self.set_sequence(sequence)
 
     def current_sequence(self) -> STMSequence | None:
@@ -767,22 +767,32 @@ class NanoTrackMainWindow(QMainWindow):
         self._open_mpp_sequence(reverse_frame_order=False)
 
     def _on_open_mpp_reverse(self) -> None:
-        self._open_mpp_sequence(reverse_frame_order=True)
+        self._open_stm_sequence(reverse_frame_order=True)
 
     def _open_mpp_sequence(self, *, reverse_frame_order: bool) -> None:
-        path, _ = QFileDialog.getOpenFileName(
+        self._open_stm_sequence(reverse_frame_order=reverse_frame_order)
+
+    def _open_stm_sequence(self, *, reverse_frame_order: bool) -> None:
+        paths, _ = QFileDialog.getOpenFileNames(
             self,
-            "Open MPP sequence (reverse)" if reverse_frame_order else "Open MPP sequence",
+            "Open STM sequence (reverse)" if reverse_frame_order else "Open STM sequence",
             "",
-            "MPP files (*.mpp *.MPP);;All files (*.*)",
+            (
+                "STM files (*.mpp *.MPP *.stp *.STP *.s94 *.S94);;"
+                "MPP movies (*.mpp *.MPP);;"
+                "STP/S94 frame series (*.stp *.STP *.s94 *.S94);;"
+                "All files (*.*)"
+            ),
         )
-        if not path:
+        if not paths:
             return
 
+        source = paths[0] if len(paths) == 1 else list(paths)
         try:
-            self.load_sequence_from_path(path, reverse_frame_order=reverse_frame_order)
+            self.load_sequence_from_path(source, reverse_frame_order=reverse_frame_order)
         except Exception as exc:
-            QMessageBox.critical(self, "Load error", f"Cannot load MPP sequence:\n{path}\n\n{exc}")
+            source_label = "\n".join(paths)
+            QMessageBox.critical(self, "Load error", f"Cannot load STM sequence:\n{source_label}\n\n{exc}")
             return
 
     def _on_open_session_requested(self) -> None:
