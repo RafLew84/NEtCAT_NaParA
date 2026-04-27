@@ -83,6 +83,21 @@ class EdgePolylineExtractionTests(unittest.TestCase):
         self.assertGreater(float(np.max(extraction.polyline_xy[:, 0])), 15.0)
         self.assertGreater(float(np.max(extraction.polyline_xy[:, 1])), 16.0)
 
+    def test_graph_and_pca_methods_are_explicitly_distinguishable_on_bent_edge(self) -> None:
+        edge_mask = np.zeros((24, 24), dtype=bool)
+        edge_mask[5, 4:17] = True
+        edge_mask[5:18, 16] = True
+        edge_prob = np.zeros_like(edge_mask, dtype=np.float32)
+        edge_prob[edge_mask] = 0.85
+
+        graph = dominant_edge_to_polyline(edge_mask, edge_prob=edge_prob, method="graph", max_points=32)
+        pca_bins = dominant_edge_to_polyline(edge_mask, edge_prob=edge_prob, method="pca_bins", max_points=32)
+
+        self.assertEqual(graph.extraction_mode, "graph_path")
+        self.assertEqual(pca_bins.extraction_mode, "binned_pca")
+        self.assertGreater(graph.axis_length_px, pca_bins.axis_length_px)
+        self.assertGreater(float(np.max(graph.polyline_xy[:, 1])), float(np.max(pca_bins.polyline_xy[:, 1])))
+
     def test_selects_component_with_best_polyline_geometry_from_top_candidates(self) -> None:
         edge_prob = np.zeros((20, 30), dtype=np.float32)
         short_mask = np.zeros_like(edge_prob, dtype=bool)

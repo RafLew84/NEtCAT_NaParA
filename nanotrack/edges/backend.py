@@ -10,6 +10,7 @@ import subprocess
 import numpy as np
 
 from .contract import DexiNedRunInput, DexiNedRunOutput
+from .subprocess_utils import CancellableSubprocessRunner
 
 
 DEFAULT_DEXINED_PYTHON = Path(r"C:\Users\rlewa\anaconda3\envs\dexined_gpu\python.exe")
@@ -50,6 +51,7 @@ class DexiNedSubprocessBackend:
 
     def __init__(self, config: DexiNedBackendConfig | None = None):
         self.config = config or DexiNedBackendConfig()
+        self._runner = CancellableSubprocessRunner()
 
     def run(self, run_input: DexiNedRunInput) -> DexiNedRunOutput:
         with TemporaryDirectory(prefix="nanotrack_dexined_") as temp_dir:
@@ -62,13 +64,10 @@ class DexiNedSubprocessBackend:
             cwd = self._working_directory()
 
             try:
-                completed = subprocess.run(
+                completed = self._runner.run(
                     command,
                     cwd=cwd,
-                    capture_output=True,
-                    text=True,
                     timeout=self.config.timeout_sec,
-                    check=False,
                 )
             except FileNotFoundError as exc:
                 raise DexiNedBackendError(
@@ -91,6 +90,9 @@ class DexiNedSubprocessBackend:
                 )
 
             return self._read_output(output_path)
+
+    def cancel(self) -> None:
+        self._runner.cancel()
 
     def _write_input(self, path: Path, run_input: DexiNedRunInput) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)

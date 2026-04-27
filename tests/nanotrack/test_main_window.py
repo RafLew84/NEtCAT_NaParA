@@ -3,6 +3,7 @@ from contextlib import ExitStack
 import os
 import time
 import tempfile
+import threading
 from types import SimpleNamespace
 import unittest
 from pathlib import Path
@@ -51,6 +52,24 @@ else:  # pragma: no cover - optional outside the target GUI env
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SAMPLE_MPP = REPO_ROOT / "data" / "MOVIE_3.MPP"
+
+
+class _FakeCancelableEdgeBackend:
+    def __init__(self) -> None:
+        self.started = threading.Event()
+        self.canceled = threading.Event()
+        self.cancel_called = False
+        self.run_input = None
+
+    def run(self, run_input):
+        self.run_input = run_input
+        self.started.set()
+        self.canceled.wait(timeout=5.0)
+        raise RuntimeError("fake backend stopped")
+
+    def cancel(self) -> None:
+        self.cancel_called = True
+        self.canceled.set()
 
 
 @unittest.skipUnless(QApplication is not None, "PyQt6 is required for NanoTrack GUI tests")
@@ -155,6 +174,64 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         )
         self.window.set_edge_tracks([track], selected_track_id=track.edge_track_id)
         return track
+
+    def _snapshot_edge_track(self, track: EdgeTrack) -> dict[str, object]:
+        annotations: dict[int, dict[str, object]] = {}
+        for frame_index, annotation in track.annotations.items():
+            annotations[int(frame_index)] = {
+                "polyline": None
+                if annotation.polyline is None
+                else np.asarray(annotation.polyline, dtype=np.float64).copy(),
+                "edge_mask": None if annotation.edge_mask is None else np.asarray(annotation.edge_mask, dtype=bool).copy(),
+                "source": annotation.source,
+                "visibility": annotation.visibility,
+            }
+        return {
+            "edge_track_id": track.edge_track_id,
+            "seed_frame_index": track.seed_frame_index,
+            "polygon_roi": track.polygon_roi.as_array().copy(),
+            "seed_polyline": np.asarray(track.seed_polyline, dtype=np.float64).copy(),
+            "frame_indices": list(track.frame_indices),
+            "annotations": annotations,
+        }
+
+    def _assert_edge_track_matches_snapshot(self, track: EdgeTrack, snapshot: dict[str, object]) -> None:
+        self.assertEqual(track.edge_track_id, snapshot["edge_track_id"])
+        self.assertEqual(track.seed_frame_index, snapshot["seed_frame_index"])
+        self.assertEqual(track.frame_indices, snapshot["frame_indices"])
+        np.testing.assert_array_equal(track.polygon_roi.as_array(), snapshot["polygon_roi"])
+        np.testing.assert_array_equal(track.seed_polyline, snapshot["seed_polyline"])
+        expected_annotations = snapshot["annotations"]
+        assert isinstance(expected_annotations, dict)
+        self.assertEqual(set(track.annotations), set(expected_annotations))
+        for frame_index, expected in expected_annotations.items():
+            annotation = track.get_annotation(frame_index)
+            self.assertIsNotNone(annotation)
+            assert annotation is not None
+            self.assertEqual(annotation.source, expected["source"])
+            self.assertEqual(annotation.visibility, expected["visibility"])
+            expected_polyline = expected["polyline"]
+            if expected_polyline is None:
+                self.assertIsNone(annotation.polyline)
+            else:
+                np.testing.assert_array_equal(annotation.polyline, expected_polyline)
+            expected_edge_mask = expected["edge_mask"]
+            if expected_edge_mask is None:
+                self.assertIsNone(annotation.edge_mask)
+            else:
+                np.testing.assert_array_equal(annotation.edge_mask, expected_edge_mask)
+
+    def _cancel_active_edge_operation(self, fake_backend: _FakeCancelableEdgeBackend) -> None:
+        self._wait_until(lambda: fake_backend.started.is_set())
+        self.assertIsNotNone(self.window._dexined_progress_dialog)
+        self.assertTrue(self.window._dexined_progress_dialog.isVisible())
+
+        self.window._on_edge_detector_cancel_requested()
+        self._wait_until(lambda: self.window._dexined_thread is None and self.window._dexined_progress_dialog is None)
+
+        self.assertTrue(fake_backend.cancel_called)
+        self.assertFalse(self.window._is_preprocessing)
+        self.assertIn("operation canceled", self.window.statusBar().currentMessage().lower())
 
     def test_set_sequence_enables_navigation_and_shows_first_frame(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
@@ -1654,6 +1731,12 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertIn("mode component", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertIn("coarse graph_path", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertIn("refine combined", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
+        self.assertIn("subpx step_tanh", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
+        self.assertIn("fit", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
+        self.assertIn("sigma", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
+        self.assertIn("geom graph->graph_path", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
+        self.assertIn("conf", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
+        self.assertIn("review", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertIn("shift", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertIn("pts", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertGreater(len(self.window._edge_preview_dialog.edge_view.viewer._overlay_items), 0)
@@ -1676,7 +1759,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
 
         edge_frame = np.zeros(sequence.frame_shape, dtype=np.float32)
         edge_frame[14:17, 10:24] = 0.8
-        selection, _selected_edge_frame, coarse_polyline, refined_polyline, _max_prob = (
+        selection, _selected_edge_frame, coarse_polyline, refined_polyline, geometry_quality, _max_prob = (
             self.window._extract_dominant_edge_geometry(
                 edge_frame,
                 np.asarray(preview_meta["polygon_mask"], dtype=bool),
@@ -1691,8 +1774,100 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         )
 
         self.assertEqual(coarse_polyline.extraction_mode, "binned_pca")
+        self.assertEqual(geometry_quality.polyline_method, "pca_bins")
+        self.assertEqual(geometry_quality.extraction_mode, "binned_pca")
+        self.assertEqual(refined_polyline.subpixel_mode, "step_tanh")
         self.assertGreater(selection.pixel_count, 0)
         self.assertGreater(refined_polyline.point_count, 1)
+
+    def test_edge_polyline_method_is_preserved_across_edge_workflow_metadata(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_polyline_method_meta.mpp",
+            raw_frames=np.zeros((5, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+        track = self._set_existing_edge_track(sequence, frame_indices=[0, 1, 2, 3, 4])
+
+        method_index = self.window.polygon_tools_panel.cmb_polyline_method.findData("pca_bins")
+        self.assertNotEqual(method_index, -1)
+        self.window.polygon_tools_panel.cmb_polyline_method.setCurrentIndex(method_index)
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+        polygon = PolygonROI(np.asarray([[6.0, 8.0], [25.0, 8.0], [25.0, 25.0], [8.0, 27.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(polygon)
+        self.window.polygon_tools_panel.sp_run_end_frame.setValue(4)
+
+        _preview_input, _preview_frame, preview_meta = self.window._build_dexined_preview_input(polygon)
+        sequence_input, sequence_meta = self.window._build_dexined_sequence_input(polygon)
+        stitch_input, stitch_meta = self.window._build_dexined_stitch_input(track, polygon)
+        redetect_input, redetect_meta = self.window._build_dexined_redetect_input(track)
+        partial_input, partial_meta = self.window._build_dexined_partial_redetect_input(track)
+        resume_input, resume_meta = self.window._build_dexined_resume_input(track, polygon, track.get_annotation(1))
+
+        for meta in (preview_meta, sequence_meta, stitch_meta, redetect_meta, partial_meta, resume_meta):
+            self.assertEqual(meta["polyline_method"], "pca_bins")
+
+        np.testing.assert_array_equal(sequence_input.frame_indices, np.asarray([1, 2, 3], dtype=np.int32))
+        self.assertIsNotNone(stitch_input)
+        assert stitch_input is not None
+        np.testing.assert_array_equal(stitch_input.frame_indices, np.asarray([2, 3], dtype=np.int32))
+        np.testing.assert_array_equal(redetect_input.frame_indices, np.asarray([0, 1, 2, 3, 4], dtype=np.int32))
+        np.testing.assert_array_equal(partial_input.frame_indices, np.asarray([1, 2, 3], dtype=np.int32))
+        self.assertEqual(resume_input.frames.shape[0], 3)
+
+    def test_edge_geometry_pipeline_end_to_end_for_graph_and_pca_methods(self) -> None:
+        y_coords = np.arange(32, dtype=np.float64)[:, None]
+        x_coords = np.arange(32, dtype=np.float64)[None, :]
+        true_y = 13.35
+        step_sigma = 0.7
+        input_frame = (
+            0.10
+            + 0.01 * x_coords
+            + 2.0 * 0.5 * (1.0 + np.tanh((y_coords - true_y) / step_sigma))
+        ).astype(np.float32)
+        sequence = STMSequence(
+            source_path="/tmp/advanced_edge_geometry.mpp",
+            raw_frames=input_frame[None, ...],
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+
+        edge_profile = 1.0 / np.cosh((np.arange(32, dtype=np.float64) - true_y) / step_sigma) ** 2
+        edge_frame = np.zeros(sequence.frame_shape, dtype=np.float32)
+        edge_frame[:, 5:27] = edge_profile[:, None].astype(np.float32)
+        polygon = PolygonROI(np.asarray([[4.0, 5.0], [28.0, 5.0], [28.0, 26.0], [4.0, 26.0]], dtype=np.float64))
+        polygon_mask = self.window._polygon_roi_to_mask(polygon)
+
+        for polyline_method, extraction_mode in (("graph", "graph_path"), ("pca_bins", "binned_pca")):
+            output = DexiNedRunOutput(
+                edge_prob=edge_frame[None, ...],
+                edge_binary=edge_frame[None, ...] >= 0.25,
+                model_name="dexined",
+                checkpoint_name="DexiNed_BIPED_10.pth",
+            )
+            annotations = self.window._build_edge_annotations_from_dexined_output(
+                output,
+                frame_indices=np.asarray([0], dtype=np.int32),
+                input_frames=input_frame[None, ...],
+                polygon_mask=polygon_mask,
+                threshold=0.25,
+                top_k_components=1,
+                polyline_method=polyline_method,
+                refine_score_mode="edge_prob",
+                refine_search_radius_px=5,
+            )
+
+            annotation = annotations[0]
+            self.assertIsNotNone(annotation.geometry_quality)
+            assert annotation.geometry_quality is not None
+            self.assertEqual(annotation.geometry_quality.polyline_method, polyline_method)
+            self.assertEqual(annotation.geometry_quality.extraction_mode, extraction_mode)
+            self.assertEqual(annotation.geometry_quality.refinement_mode, "normal_dp_edge_prob")
+            self.assertIsNotNone(annotation.polyline)
+            self.assertIsNotNone(annotation.metrics)
+            self.assertGreater(annotation.metrics.length_px, 0.0)
+            self.assertLess(abs(float(np.mean(annotation.polyline[:, 1])) - true_y), 0.30)
 
     def test_edge_preview_can_use_teed_backend(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
@@ -2972,6 +3147,105 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(track.seed_frame_index, 0)
         self.assertIsNone(track.get_annotation(3))
         self.assertIsNone(track.get_annotation(4))
+
+    def test_edge_sequence_cancel_stops_worker_without_creating_track(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_sequence_cancel.mpp",
+            raw_frames=np.zeros((4, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+
+        polygon = PolygonROI(np.asarray([[8.0, 10.0], [22.0, 10.0], [24.0, 24.0], [10.0, 26.0]], dtype=np.float64))
+        self.window.viewer._commit_polygon(polygon)
+        self.window.polygon_tools_panel.sp_run_end_frame.setValue(4)
+
+        fake_backend = _FakeCancelableEdgeBackend()
+        self.window._dexined_backend = fake_backend
+
+        self.window.polygon_tools_panel.btn_run_sequence.click()
+        self._cancel_active_edge_operation(fake_backend)
+
+        self.assertEqual(fake_backend.run_input.frames.shape[0], 4)
+        np.testing.assert_array_equal(fake_backend.run_input.frame_indices, np.asarray([0, 1, 2, 3], dtype=np.int32))
+        self.assertEqual(self.window.current_edge_tracks(), [])
+
+    def test_edge_resume_cancel_keeps_existing_track_annotations(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_resume_cancel.mpp",
+            raw_frames=np.zeros((4, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+        track = self._set_existing_edge_track(sequence, frame_indices=[0, 1, 2, 3])
+        snapshot = self._snapshot_edge_track(track)
+
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+        self.window.viewer._commit_polygon(track.polygon_roi)
+        self.assertTrue(self.window.polygon_tools_panel.btn_resume_edge.isEnabled())
+
+        fake_backend = _FakeCancelableEdgeBackend()
+        self.window._dexined_backend = fake_backend
+
+        self.window.polygon_tools_panel.btn_resume_edge.click()
+        self._cancel_active_edge_operation(fake_backend)
+
+        self.assertEqual(fake_backend.run_input.frames.shape[0], 2)
+        self.assertIsNone(fake_backend.run_input.frame_indices)
+        self.assertEqual(len(self.window.current_edge_tracks()), 1)
+        self._assert_edge_track_matches_snapshot(track, snapshot)
+        self.assertEqual(self.window.current_selected_edge_track_id(), track.edge_track_id)
+
+    def test_edge_redetect_cancel_keeps_existing_track_annotations(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_redetect_cancel.mpp",
+            raw_frames=np.zeros((4, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+        track = self._set_existing_edge_track(sequence, frame_indices=[0, 1, 2])
+        snapshot = self._snapshot_edge_track(track)
+        self.assertTrue(self.window.polygon_tools_panel.btn_redetect_edge.isEnabled())
+
+        fake_backend = _FakeCancelableEdgeBackend()
+        self.window._dexined_backend = fake_backend
+
+        self.window.polygon_tools_panel.btn_redetect_edge.click()
+        self._cancel_active_edge_operation(fake_backend)
+
+        self.assertEqual(fake_backend.run_input.frames.shape[0], 3)
+        np.testing.assert_array_equal(fake_backend.run_input.frame_indices, np.asarray([0, 1, 2], dtype=np.int32))
+        self.assertEqual(len(self.window.current_edge_tracks()), 1)
+        self._assert_edge_track_matches_snapshot(track, snapshot)
+        self.assertEqual(self.window.current_selected_edge_track_id(), track.edge_track_id)
+
+    def test_edge_partial_redetect_cancel_keeps_existing_track_annotations(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/edge_partial_redetect_cancel.mpp",
+            raw_frames=np.zeros((5, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+        track = self._set_existing_edge_track(sequence, frame_indices=[0, 1, 2, 3, 4])
+        snapshot = self._snapshot_edge_track(track)
+
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+        self.window.polygon_tools_panel.sp_run_end_frame.setValue(4)
+        self.assertTrue(self.window.polygon_tools_panel.btn_redetect_edge_range.isEnabled())
+
+        fake_backend = _FakeCancelableEdgeBackend()
+        self.window._dexined_backend = fake_backend
+
+        self.window.polygon_tools_panel.btn_redetect_edge_range.click()
+        self._cancel_active_edge_operation(fake_backend)
+
+        self.assertEqual(fake_backend.run_input.frames.shape[0], 3)
+        np.testing.assert_array_equal(fake_backend.run_input.frame_indices, np.asarray([1, 2, 3], dtype=np.int32))
+        self.assertEqual(len(self.window.current_edge_tracks()), 1)
+        self._assert_edge_track_matches_snapshot(track, snapshot)
+        self.assertEqual(self.window.current_selected_edge_track_id(), track.edge_track_id)
 
     def test_edge_sequence_run_can_stitch_new_range_into_existing_edge_track(self) -> None:
         sequence = STMSequence(

@@ -16,6 +16,7 @@ from nanotrack.core import (
     BBoxXYXY,
     EdgeAnnotationSource,
     EdgeFrameAnnotation,
+    EdgeGeometryQuality,
     EdgeMetrics,
     EdgeTrack,
     FrameVisibility,
@@ -270,6 +271,7 @@ def _serialize_edge_annotation(edge_track_id: int, annotation: EdgeFrameAnnotati
         "edge_mask_path": edge_mask_path,
         "visibility": annotation.visibility.value,
         "source": annotation.source.value,
+        "geometry_quality": _serialize_edge_geometry_quality(annotation.geometry_quality),
         "metrics": {
             "length_px": annotation.metrics.length_px,
             "length_nm": annotation.metrics.length_nm,
@@ -280,6 +282,24 @@ def _serialize_edge_annotation(edge_track_id: int, annotation: EdgeFrameAnnotati
             "waviness_amplitude_px": annotation.metrics.waviness_amplitude_px,
             "waviness_amplitude_nm": annotation.metrics.waviness_amplitude_nm,
         },
+    }
+
+
+def _serialize_edge_geometry_quality(geometry_quality: EdgeGeometryQuality | None) -> dict | None:
+    if geometry_quality is None:
+        return None
+    return {
+        "confidence": geometry_quality.confidence,
+        "review_status": geometry_quality.review_status,
+        "warnings": list(geometry_quality.warnings),
+        "polyline_method": geometry_quality.polyline_method,
+        "extraction_mode": geometry_quality.extraction_mode,
+        "method_explicit": geometry_quality.method_explicit,
+        "coarse_score": geometry_quality.coarse_score,
+        "refinement_score": geometry_quality.refinement_score,
+        "refinement_stability": geometry_quality.refinement_stability,
+        "mean_shift_px": geometry_quality.mean_shift_px,
+        "refinement_mode": geometry_quality.refinement_mode,
     }
 
 
@@ -344,6 +364,7 @@ def _restore_edge_tracks(zf: zipfile.ZipFile, tracks_payload: list[dict]) -> lis
                 if edge_mask is not None:
                     edge_mask = np.asarray(edge_mask, dtype=bool)
             metrics_payload = annotation_payload.get("metrics", {})
+            geometry_quality_payload = annotation_payload.get("geometry_quality")
             annotations[frame_index] = EdgeFrameAnnotation(
                 frame_index=frame_index,
                 polyline=polyline,
@@ -360,6 +381,7 @@ def _restore_edge_tracks(zf: zipfile.ZipFile, tracks_payload: list[dict]) -> lis
                     waviness_amplitude_px=metrics_payload.get("waviness_amplitude_px"),
                     waviness_amplitude_nm=metrics_payload.get("waviness_amplitude_nm"),
                 ),
+                geometry_quality=_restore_edge_geometry_quality(geometry_quality_payload),
             )
         tracks.append(
             EdgeTrack(
@@ -373,6 +395,24 @@ def _restore_edge_tracks(zf: zipfile.ZipFile, tracks_payload: list[dict]) -> lis
             )
         )
     return tracks
+
+
+def _restore_edge_geometry_quality(payload: dict | None) -> EdgeGeometryQuality | None:
+    if not payload:
+        return None
+    return EdgeGeometryQuality(
+        confidence=float(payload.get("confidence", 0.0)),
+        review_status=str(payload.get("review_status", "needs_review")),
+        warnings=tuple(str(warning) for warning in payload.get("warnings", [])),
+        polyline_method=str(payload.get("polyline_method", "")),
+        extraction_mode=str(payload.get("extraction_mode", "")),
+        method_explicit=bool(payload.get("method_explicit", True)),
+        coarse_score=float(payload.get("coarse_score", 0.0)),
+        refinement_score=float(payload.get("refinement_score", 0.0)),
+        refinement_stability=float(payload.get("refinement_stability", 0.0)),
+        mean_shift_px=float(payload.get("mean_shift_px", 0.0)),
+        refinement_mode=str(payload.get("refinement_mode", "")),
+    )
 
 
 def _restore_yolo_detections(payload: dict | None) -> YoloDetectionSet | None:

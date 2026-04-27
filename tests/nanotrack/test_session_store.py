@@ -8,6 +8,7 @@ from nanotrack.core import (
     BBoxXYXY,
     EdgeAnnotationSource,
     EdgeFrameAnnotation,
+    EdgeGeometryQuality,
     EdgeMetrics,
     EdgeTrack,
     FrameVisibility,
@@ -108,6 +109,19 @@ class SessionStoreTests(unittest.TestCase):
                     max_curvature=0.2,
                     waviness_amplitude_px=0.4,
                     waviness_amplitude_nm=0.8,
+                ),
+                geometry_quality=EdgeGeometryQuality(
+                    confidence=0.82,
+                    review_status="ok",
+                    warnings=(),
+                    polyline_method="graph",
+                    extraction_mode="graph_path",
+                    method_explicit=True,
+                    coarse_score=4.2,
+                    refinement_score=0.74,
+                    refinement_stability=0.91,
+                    mean_shift_px=1.25,
+                    refinement_mode="normal_dp_combined",
                 ),
             )
         )
@@ -216,6 +230,12 @@ class SessionStoreTests(unittest.TestCase):
         np.testing.assert_array_equal(restored_edge_annotation.edge_mask, edge_mask)
         self.assertEqual(restored_edge_annotation.metrics.length_px, 3.5)
         self.assertEqual(restored_edge_annotation.metrics.length_nm, 7.0)
+        self.assertIsNotNone(restored_edge_annotation.geometry_quality)
+        self.assertAlmostEqual(restored_edge_annotation.geometry_quality.confidence, 0.82)
+        self.assertEqual(restored_edge_annotation.geometry_quality.review_status, "ok")
+        self.assertEqual(restored_edge_annotation.geometry_quality.polyline_method, "graph")
+        self.assertEqual(restored_edge_annotation.geometry_quality.extraction_mode, "graph_path")
+        self.assertAlmostEqual(restored_edge_annotation.geometry_quality.refinement_stability, 0.91)
         restored_yolo_detections = loaded.yolo_detections
         self.assertEqual(restored_yolo_detections.model_name, "yolo11s_v2.0")
         self.assertEqual(restored_yolo_detections.source_path, "/tmp/source.mpp")

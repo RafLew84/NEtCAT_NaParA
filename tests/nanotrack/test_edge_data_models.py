@@ -5,6 +5,7 @@ import numpy as np
 from nanotrack.core.data_models import (
     EdgeAnnotationSource,
     EdgeFrameAnnotation,
+    EdgeGeometryQuality,
     EdgeMetrics,
     EdgeTrack,
     FrameVisibility,
@@ -51,14 +52,28 @@ class EdgeMetricsTests(unittest.TestCase):
 
 class EdgeFrameAnnotationTests(unittest.TestCase):
     def test_normalizes_polyline_and_edge_mask(self) -> None:
+        geometry_quality = EdgeGeometryQuality(
+            confidence=0.75,
+            review_status="ok",
+            warnings=("minor_shift",),
+            polyline_method="graph",
+            extraction_mode="graph_path",
+            coarse_score=2.0,
+            refinement_score=0.7,
+            refinement_stability=0.8,
+            mean_shift_px=1.0,
+            refinement_mode="normal_dp_combined",
+        )
         annotation = EdgeFrameAnnotation(
             frame_index=3,
             polyline=np.asarray([[1, 2], [2, 4], [4, 6]], dtype=np.int32),
             edge_mask=np.asarray([[0, 1], [2, 0]], dtype=np.uint8),
+            geometry_quality=geometry_quality,
         )
 
         self.assertTrue(annotation.has_geometry)
         self.assertTrue(annotation.has_edge_mask)
+        self.assertIs(annotation.geometry_quality, geometry_quality)
         self.assertEqual(annotation.polyline.dtype, np.float64)
         self.assertEqual(annotation.polyline_point_count, 3)
         self.assertEqual(annotation.edge_mask.dtype, np.bool_)
@@ -83,6 +98,16 @@ class EdgeFrameAnnotationTests(unittest.TestCase):
             EdgeFrameAnnotation(
                 frame_index=1,
                 polyline=np.asarray([[1.0, 2.0]], dtype=np.float32),
+            )
+
+    def test_rejects_invalid_geometry_quality_payload(self) -> None:
+        with self.assertRaises(ValueError):
+            EdgeGeometryQuality(confidence=1.5)
+        with self.assertRaises(ValueError):
+            EdgeFrameAnnotation(
+                frame_index=1,
+                polyline=np.asarray([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32),
+                geometry_quality={"confidence": 0.5},
             )
 
 

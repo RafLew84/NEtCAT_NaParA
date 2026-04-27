@@ -1,5 +1,7 @@
 import sys
+import threading
 import textwrap
+import time
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -12,6 +14,7 @@ from nanotrack.edges import (
     DexiNedBackendTimeoutError,
     DexiNedRunInput,
     DexiNedSubprocessBackend,
+    EdgeSubprocessCancelledError,
 )
 
 
@@ -201,6 +204,54 @@ class DexiNedSubprocessBackendTests(unittest.TestCase):
                 backend.run(self._make_run_input())
 
             self.assertIn("timed out", str(exc_info.exception))
+
+    def test_backend_cancel_terminates_active_worker_process(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            worker_script = temp_path / "worker_cancel.py"
+            _write_worker_script(
+                worker_script,
+                """
+                import argparse
+                import time
+
+                parser = argparse.ArgumentParser()
+                parser.add_argument("--input-npz", required=True)
+                parser.add_argument("--output-npz", required=True)
+                parser.add_argument("--checkpoint", required=True)
+                parser.add_argument("--repo-path", default=None)
+                parser.add_argument("--device", default=None)
+                parser.parse_args()
+                time.sleep(10.0)
+                """,
+            )
+
+            backend = DexiNedSubprocessBackend(
+                DexiNedBackendConfig(
+                    python_executable=sys.executable,
+                    worker_script=worker_script,
+                    checkpoint_path="checkpoint.pth",
+                    repo_path=None,
+                    timeout_sec=30.0,
+                    working_directory=temp_path,
+                )
+            )
+            result: dict[str, BaseException | None] = {"exception": None}
+
+            def run_backend() -> None:
+                try:
+                    backend.run(self._make_run_input())
+                except BaseException as exc:  # pragma: no cover - asserted after thread joins
+                    result["exception"] = exc
+
+            worker_thread = threading.Thread(target=run_backend)
+            worker_thread.start()
+            time.sleep(0.25)
+            backend.cancel()
+            worker_thread.join(timeout=5.0)
+
+            self.assertFalse(worker_thread.is_alive())
+            self.assertIsInstance(result["exception"], EdgeSubprocessCancelledError)
 
     def test_backend_config_validates_timeout(self) -> None:
         with self.assertRaises(ValueError):

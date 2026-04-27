@@ -61,6 +61,22 @@ class DominantEdgeSelectionTests(unittest.TestCase):
         self.assertEqual(candidates[0].branch_count, 0)
         self.assertGreater(candidates[0].continuity_score, 0.0)
 
+    def test_component_scoring_penalizes_branched_geometry_when_probability_ties(self) -> None:
+        polygon_mask = np.ones((18, 20), dtype=bool)
+        edge_prob = np.zeros((18, 20), dtype=np.float32)
+        edge_prob[3, 2:14] = 0.7
+        edge_prob[11, 8:16] = 0.7
+        edge_prob[8:14, 12] = 0.7
+
+        candidates = rank_edge_component_candidates(edge_prob, polygon_mask, threshold=0.5)
+
+        self.assertEqual(len(candidates), 2)
+        self.assertEqual(candidates[0].bbox, (3, 2, 4, 14))
+        self.assertEqual(candidates[0].branch_count, 0)
+        self.assertGreater(candidates[1].branch_count, 0)
+        self.assertGreater(candidates[0].score, candidates[1].score)
+        self.assertIn("branches=", candidates[1].reason)
+
     def test_prior_overlap_can_promote_temporally_consistent_candidate(self) -> None:
         polygon_mask = np.ones((8, 12), dtype=bool)
         edge_prob = np.zeros((8, 12), dtype=np.float32)

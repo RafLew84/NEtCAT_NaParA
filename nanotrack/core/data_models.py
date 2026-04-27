@@ -309,6 +309,55 @@ class EdgeMetrics:
 
 
 @dataclass
+class EdgeGeometryQuality:
+    """Confidence and review metadata for one refined edge geometry."""
+
+    confidence: float = 0.0
+    review_status: str = "needs_review"
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+    polyline_method: str = ""
+    extraction_mode: str = ""
+    method_explicit: bool = True
+    coarse_score: float = 0.0
+    refinement_score: float = 0.0
+    refinement_stability: float = 0.0
+    mean_shift_px: float = 0.0
+    refinement_mode: str = ""
+
+    def __post_init__(self) -> None:
+        if not np.isfinite(self.confidence):
+            raise ValueError("confidence must be finite.")
+        if not 0.0 <= float(self.confidence) <= 1.0:
+            raise ValueError("confidence must be in [0, 1].")
+        if not np.isfinite(self.refinement_stability):
+            raise ValueError("refinement_stability must be finite.")
+        if not 0.0 <= float(self.refinement_stability) <= 1.0:
+            raise ValueError("refinement_stability must be in [0, 1].")
+        if not np.isfinite(self.coarse_score):
+            raise ValueError("coarse_score must be finite.")
+        if not np.isfinite(self.refinement_score):
+            raise ValueError("refinement_score must be finite.")
+        if not np.isfinite(self.mean_shift_px):
+            raise ValueError("mean_shift_px must be finite.")
+        if float(self.mean_shift_px) < 0.0:
+            raise ValueError("mean_shift_px must be non-negative.")
+        review_status = str(self.review_status)
+        if review_status not in {"ok", "needs_review"}:
+            raise ValueError("review_status must be 'ok' or 'needs_review'.")
+        self.confidence = float(self.confidence)
+        self.review_status = review_status
+        self.warnings = tuple(str(warning) for warning in self.warnings)
+        self.polyline_method = str(self.polyline_method)
+        self.extraction_mode = str(self.extraction_mode)
+        self.method_explicit = bool(self.method_explicit)
+        self.coarse_score = float(self.coarse_score)
+        self.refinement_score = float(self.refinement_score)
+        self.refinement_stability = float(self.refinement_stability)
+        self.mean_shift_px = float(self.mean_shift_px)
+        self.refinement_mode = str(self.refinement_mode)
+
+
+@dataclass
 class YoloDetection:
     """One YOLO bbox proposal for a single frame."""
 
@@ -467,6 +516,7 @@ class EdgeFrameAnnotation:
     visibility: FrameVisibility = FrameVisibility.VISIBLE
     source: EdgeAnnotationSource = EdgeAnnotationSource.DEXINED
     metrics: EdgeMetrics = field(default_factory=EdgeMetrics)
+    geometry_quality: Optional[EdgeGeometryQuality] = None
 
     def __post_init__(self) -> None:
         if self.frame_index < 0:
@@ -485,6 +535,8 @@ class EdgeFrameAnnotation:
             if edge_mask.ndim != 2:
                 raise ValueError("edge_mask must have shape [H, W].")
             self.edge_mask = edge_mask
+        if self.geometry_quality is not None and not isinstance(self.geometry_quality, EdgeGeometryQuality):
+            raise ValueError("geometry_quality must be an EdgeGeometryQuality instance.")
         if self.visibility == FrameVisibility.VISIBLE and not self.has_geometry:
             raise ValueError("Visible edge annotations require at least a polyline or an edge_mask.")
 

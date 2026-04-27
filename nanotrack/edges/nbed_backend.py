@@ -10,6 +10,7 @@ import subprocess
 import numpy as np
 
 from .contract import DexiNedRunInput, DexiNedRunOutput
+from .subprocess_utils import CancellableSubprocessRunner
 
 
 DEFAULT_NBED_PYTHON = Path(r"C:\Users\rlewa\anaconda3\envs\nbed_gpu\python.exe")
@@ -48,6 +49,7 @@ class NbedSubprocessBackend:
 
     def __init__(self, config: NbedBackendConfig | None = None):
         self.config = config or NbedBackendConfig()
+        self._runner = CancellableSubprocessRunner()
 
     def run(self, run_input: DexiNedRunInput) -> DexiNedRunOutput:
         with TemporaryDirectory(prefix="nanotrack_nbed_") as temp_dir:
@@ -60,13 +62,10 @@ class NbedSubprocessBackend:
             cwd = self._working_directory()
 
             try:
-                completed = subprocess.run(
+                completed = self._runner.run(
                     command,
                     cwd=cwd,
-                    capture_output=True,
-                    text=True,
                     timeout=self.config.timeout_sec,
-                    check=False,
                 )
             except FileNotFoundError as exc:
                 raise NbedBackendError(
@@ -89,6 +88,9 @@ class NbedSubprocessBackend:
                 )
 
             return self._read_output(output_path)
+
+    def cancel(self) -> None:
+        self._runner.cancel()
 
     def _write_input(self, path: Path, run_input: DexiNedRunInput) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)

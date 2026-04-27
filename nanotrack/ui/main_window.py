@@ -62,6 +62,8 @@ from nanotrack.edges import (
     PidinetSubprocessBackend,
     TeedSubprocessBackend,
     UaedSubprocessBackend,
+    assess_edge_geometry_quality,
+    format_edge_geometry_review,
     hybrid_refine_polyline,
     refine_edge_polyline,
     sample_polyline_control_points,
@@ -92,6 +94,7 @@ from nanotrack.ui.widgets import (
 class _DexiNedRunWorker(QObject):
     finished = pyqtSignal(object)
     failed = pyqtSignal(str)
+    canceled = pyqtSignal()
 
     def __init__(
         self,
@@ -109,14 +112,27 @@ class _DexiNedRunWorker(QObject):
         super().__init__()
         self._backend = backend
         self._run_input = run_input
+        self._cancel_requested = False
 
     def run(self) -> None:
         try:
             output = self._backend.run(self._run_input)
         except Exception as exc:
+            if self._cancel_requested:
+                self.canceled.emit()
+                return
             self.failed.emit(str(exc))
             return
+        if self._cancel_requested:
+            self.canceled.emit()
+            return
         self.finished.emit(output)
+
+    def cancel(self) -> None:
+        self._cancel_requested = True
+        cancel = getattr(self._backend, "cancel", None)
+        if callable(cancel):
+            cancel()
 
 
 class _Sam2RunWorker(QObject):
@@ -217,6 +233,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._dexined_progress_dialog: QProgressDialog | None = None
         self._dexined_thread: QThread | None = None
         self._dexined_worker: _DexiNedRunWorker | None = None
+        self._edge_detector_cancel_requested = False
         self._active_edge_backend_label: str | None = None
         self._point_tracker_progress_dialog: QProgressDialog | None = None
         self._point_tracker_thread: QThread | None = None
@@ -1631,13 +1648,19 @@ class NanoTrackMainWindow(QMainWindow):
         window_title: str,
         finished_slot,
         failed_slot,
+        cancel_enabled: bool = False,
     ) -> None:
         self._set_preprocessing_busy(True)
         self._active_edge_backend_label = backend_label
+        self._edge_detector_cancel_requested = False
         self._dexined_progress_dialog = QProgressDialog(progress_label, "", 0, 0, self)
         self._dexined_progress_dialog.setWindowTitle(window_title)
         self._dexined_progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-        self._dexined_progress_dialog.setCancelButton(None)
+        if cancel_enabled:
+            self._dexined_progress_dialog.setCancelButtonText("Cancel")
+            self._dexined_progress_dialog.canceled.connect(self._on_edge_detector_cancel_requested)
+        else:
+            self._dexined_progress_dialog.setCancelButton(None)
         self._dexined_progress_dialog.setMinimumDuration(0)
         self._dexined_progress_dialog.setAutoClose(False)
         self._dexined_progress_dialog.setAutoReset(False)
@@ -1652,8 +1675,10 @@ class NanoTrackMainWindow(QMainWindow):
         self._dexined_thread.started.connect(self._dexined_worker.run)
         self._dexined_worker.finished.connect(finished_slot)
         self._dexined_worker.failed.connect(failed_slot)
+        self._dexined_worker.canceled.connect(self._on_dexined_run_canceled)
         self._dexined_worker.finished.connect(self._dexined_thread.quit)
         self._dexined_worker.failed.connect(self._dexined_thread.quit)
+        self._dexined_worker.canceled.connect(self._dexined_thread.quit)
         self._dexined_thread.finished.connect(self._cleanup_dexined_worker)
         self._dexined_thread.start()
 
@@ -1681,6 +1706,7 @@ class NanoTrackMainWindow(QMainWindow):
             window_title=f"{backend_label} Preview",
             finished_slot=self._on_dexined_preview_finished,
             failed_slot=self._on_dexined_preview_failed,
+            cancel_enabled=False,
         )
 
     def _on_edge_sequence_requested(self) -> None:
@@ -1741,6 +1767,7 @@ class NanoTrackMainWindow(QMainWindow):
             ),
             finished_slot=self._on_dexined_sequence_finished,
             failed_slot=self._on_dexined_sequence_failed,
+            cancel_enabled=True,
         )
 
     def _on_load_current_edge_requested(self) -> None:
@@ -1864,6 +1891,7 @@ class NanoTrackMainWindow(QMainWindow):
             window_title=f"{backend_label} Edge Resume",
             finished_slot=self._on_dexined_resume_finished,
             failed_slot=self._on_dexined_resume_failed,
+            cancel_enabled=True,
         )
 
     def _on_redetect_edge_requested(self) -> None:
@@ -1894,6 +1922,7 @@ class NanoTrackMainWindow(QMainWindow):
             window_title=f"{backend_label} Re-detect",
             finished_slot=self._on_dexined_sequence_finished,
             failed_slot=self._on_dexined_sequence_failed,
+            cancel_enabled=True,
         )
 
     def _on_redetect_edge_range_requested(self) -> None:
@@ -1926,6 +1955,7 @@ class NanoTrackMainWindow(QMainWindow):
             window_title=f"{backend_label} Re-detect Range",
             finished_slot=self._on_dexined_sequence_finished,
             failed_slot=self._on_dexined_sequence_failed,
+            cancel_enabled=True,
         )
 
     def _on_edge_hybrid_requested(self) -> None:
@@ -2348,7 +2378,7 @@ class NanoTrackMainWindow(QMainWindow):
         px_x, px_y = self._sequence.metadata.get_pixel_size_nm()
         edge_frame = np.asarray(output.edge_prob[0], dtype=np.float32)
         edge_binary_frame = None if output.edge_binary is None else np.asarray(output.edge_binary[0], dtype=bool)
-        selection, selected_edge_frame, coarse_polyline, refined_polyline, max_prob = self._extract_dominant_edge_geometry(
+        selection, selected_edge_frame, coarse_polyline, refined_polyline, geometry_quality, max_prob = self._extract_dominant_edge_geometry(
             edge_frame,
             polygon_mask,
             input_frame=self._pending_edge_preview_frame,
@@ -2359,6 +2389,14 @@ class NanoTrackMainWindow(QMainWindow):
             refine_score_mode=refine_score_mode,
             refine_search_radius_px=refine_search_radius_px,
         )
+        subpixel_meta = (
+            f"subpx {refined_polyline.subpixel_mode} {refined_polyline.mean_subpixel_correction_px:.2f}px"
+        )
+        if refined_polyline.subpixel_mode in {"step_tanh", "step_erf"}:
+            subpixel_meta = (
+                f"{subpixel_meta} fit {refined_polyline.profile_fit_success_rate:.0%} "
+                f"sigma {refined_polyline.mean_step_width_px:.2f}px"
+            )
 
         dialog = self._ensure_edge_preview_dialog()
         dialog.set_preview(
@@ -2380,7 +2418,9 @@ class NanoTrackMainWindow(QMainWindow):
                 f"selected px {selection.pixel_count} | mean p {selection.mean_probability:.3f} | "
                 f"coarse {coarse_polyline.extraction_mode} | "
                 f"refine {refined_polyline.score_mode} r {refine_search_radius_px}px | "
-                f"pts {refined_polyline.point_count} | shift {refined_polyline.mean_shift_px:.2f}px | max p {max_prob:.3f}"
+                f"{subpixel_meta} | "
+                f"pts {refined_polyline.point_count} | shift {refined_polyline.mean_shift_px:.2f}px | "
+                f"{format_edge_geometry_review(geometry_quality)} | max p {max_prob:.3f}"
             ),
             edge_overlay_polyline=refined_polyline.polyline_xy,
         )
@@ -2500,6 +2540,23 @@ class NanoTrackMainWindow(QMainWindow):
         backend_label = self._current_edge_detector_backend_label()
         QMessageBox.critical(self, f"{backend_label} resume error", error_message)
         self.statusBar().showMessage(f"{backend_label} edge resume failed.", 3000)
+        self._set_preprocessing_busy(False)
+        self._close_dexined_progress_dialog()
+
+    def _on_edge_detector_cancel_requested(self) -> None:
+        if self._dexined_worker is None:
+            return
+        self._edge_detector_cancel_requested = True
+        backend_label = self._current_edge_detector_backend_label()
+        if self._dexined_progress_dialog is not None:
+            self._dexined_progress_dialog.setLabelText(f"Cancelling {backend_label} operation...")
+            self._dexined_progress_dialog.setCancelButton(None)
+        self.statusBar().showMessage(f"Cancelling {backend_label} operation...", 0)
+        self._dexined_worker.cancel()
+
+    def _on_dexined_run_canceled(self) -> None:
+        backend_label = self._current_edge_detector_backend_label()
+        self.statusBar().showMessage(f"{backend_label} operation canceled.", 3000)
         self._set_preprocessing_busy(False)
         self._close_dexined_progress_dialog()
 
@@ -2867,6 +2924,10 @@ class NanoTrackMainWindow(QMainWindow):
     def _close_dexined_progress_dialog(self) -> None:
         if self._dexined_progress_dialog is None:
             return
+        try:
+            self._dexined_progress_dialog.canceled.disconnect(self._on_edge_detector_cancel_requested)
+        except TypeError:
+            pass
         self._dexined_progress_dialog.close()
         self._dexined_progress_dialog.deleteLater()
         self._dexined_progress_dialog = None
@@ -2886,6 +2947,7 @@ class NanoTrackMainWindow(QMainWindow):
             self._dexined_thread.deleteLater()
             self._dexined_thread = None
         self._active_edge_backend_label = None
+        self._edge_detector_cancel_requested = False
         self._pending_edge_preview_frame = None
         self._pending_edge_preview_meta = None
         self._pending_edge_sequence_meta = None
@@ -3432,9 +3494,17 @@ class NanoTrackMainWindow(QMainWindow):
             polygon_mask=polygon_mask,
             score_mode=refine_score_mode,
             search_radius_px=refine_search_radius_px,
+            subpixel_mode="step_tanh",
+        )
+        geometry_quality = assess_edge_geometry_quality(
+            selection,
+            coarse_polyline,
+            refined_polyline,
+            polyline_method=polyline_method,
+            method_explicit=True,
         )
         max_prob = float(np.max(selected_edge_frame)) if selected_edge_frame.size else 0.0
-        return selection, selected_edge_frame, coarse_polyline, refined_polyline, max_prob
+        return selection, selected_edge_frame, coarse_polyline, refined_polyline, geometry_quality, max_prob
 
     def _compute_edge_metrics(self, polyline_xy: np.ndarray):
         if self._sequence is None:
@@ -3519,7 +3589,7 @@ class NanoTrackMainWindow(QMainWindow):
             edge_binary_frame = None
             if output.edge_binary is not None:
                 edge_binary_frame = np.asarray(output.edge_binary[local_index], dtype=bool)
-            selection, _selected_edge_frame, _coarse_polyline, refined_polyline, _max_prob = self._extract_dominant_edge_geometry(
+            selection, _selected_edge_frame, _coarse_polyline, refined_polyline, geometry_quality, _max_prob = self._extract_dominant_edge_geometry(
                 edge_frame,
                 polygon_mask,
                 input_frame=input_frame,
@@ -3536,6 +3606,7 @@ class NanoTrackMainWindow(QMainWindow):
                 edge_mask=selection.edge_mask,
                 source=EdgeAnnotationSource.DEXINED,
                 metrics=self._compute_edge_metrics(refined_polyline.polyline_xy),
+                geometry_quality=geometry_quality,
             )
         return annotations
 
@@ -3971,7 +4042,7 @@ class NanoTrackMainWindow(QMainWindow):
             edge_binary_frame = None
             if output.edge_binary is not None:
                 edge_binary_frame = np.asarray(output.edge_binary[local_index], dtype=bool)
-            selection, _selected_edge_frame, _coarse_polyline, refined_polyline, _max_prob = self._extract_dominant_edge_geometry(
+            selection, _selected_edge_frame, _coarse_polyline, refined_polyline, geometry_quality, _max_prob = self._extract_dominant_edge_geometry(
                 edge_frame,
                 polygon_mask,
                 input_frame=input_frame,
@@ -3990,6 +4061,7 @@ class NanoTrackMainWindow(QMainWindow):
                     visibility=FrameVisibility.VISIBLE,
                     source=EdgeAnnotationSource.DEXINED,
                     metrics=self._compute_edge_metrics(refined_polyline.polyline_xy),
+                    geometry_quality=geometry_quality,
                 )
             )
 
