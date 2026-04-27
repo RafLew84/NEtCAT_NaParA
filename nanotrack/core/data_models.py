@@ -156,6 +156,194 @@ class STMSequence:
         return sorted(self.excluded_frame_indices)
 
 
+@dataclass
+class RegistrationSettings:
+    """Configuration used to estimate global frame-to-frame registration shifts."""
+
+    backend: str = "phase_correlation"
+    reference_strategy: str = "adjacent"
+    registration_view: str = "raw"
+    roi_mask: Optional[np.ndarray] = field(default=None, repr=False)
+    backend_params: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        self.backend = str(self.backend).strip()
+        self.reference_strategy = str(self.reference_strategy).strip()
+        self.registration_view = str(self.registration_view).strip()
+        if not self.backend:
+            raise ValueError("backend must be a non-empty string.")
+        if not self.reference_strategy:
+            raise ValueError("reference_strategy must be a non-empty string.")
+        if not self.registration_view:
+            raise ValueError("registration_view must be a non-empty string.")
+        if self.roi_mask is not None:
+            roi_mask = np.asarray(self.roi_mask, dtype=bool)
+            if roi_mask.ndim != 2:
+                raise ValueError("roi_mask must be a 2D boolean image.")
+            self.roi_mask = roi_mask
+        self.backend_params = dict(self.backend_params)
+
+
+@dataclass
+class RegistrationFrameResult:
+    """One translation-only registration estimate for a single frame."""
+
+    frame_index: int
+    shift_xy: tuple[float, float] | np.ndarray
+    method: str
+    quality_score: float = 0.0
+    phase_peak_ratio: Optional[float] = None
+    ecc_score: Optional[float] = None
+    num_inlier_tiles: Optional[int] = None
+    num_total_tiles: Optional[int] = None
+    median_tile_residual: Optional[float] = None
+    flow_mad: Optional[float] = None
+    status: str = "ok"
+
+    VALID_STATUSES = {"ok", "low_confidence", "failed", "manual_review"}
+
+    def __post_init__(self) -> None:
+        self.frame_index = int(self.frame_index)
+        if self.frame_index < 0:
+            raise ValueError("frame_index must be non-negative.")
+
+        shift = np.asarray(self.shift_xy, dtype=np.float64)
+        if shift.shape != (2,):
+            raise ValueError("shift_xy must contain exactly two values: dx, dy.")
+        if not np.all(np.isfinite(shift)):
+            raise ValueError("shift_xy values must be finite.")
+        self.shift_xy = (float(shift[0]), float(shift[1]))
+
+        self.method = str(self.method).strip()
+        if not self.method:
+            raise ValueError("method must be a non-empty string.")
+
+        if not np.isfinite(self.quality_score):
+            raise ValueError("quality_score must be finite.")
+        if not 0.0 <= float(self.quality_score) <= 1.0:
+            raise ValueError("quality_score must be in [0, 1].")
+        self.quality_score = float(self.quality_score)
+
+        self.phase_peak_ratio = self._normalize_optional_nonnegative_float(
+            self.phase_peak_ratio,
+            "phase_peak_ratio",
+        )
+        self.ecc_score = self._normalize_optional_finite_float(self.ecc_score, "ecc_score")
+        self.median_tile_residual = self._normalize_optional_nonnegative_float(
+            self.median_tile_residual,
+            "median_tile_residual",
+        )
+        self.flow_mad = self._normalize_optional_nonnegative_float(self.flow_mad, "flow_mad")
+        self.num_inlier_tiles = self._normalize_optional_nonnegative_int(
+            self.num_inlier_tiles,
+            "num_inlier_tiles",
+        )
+        self.num_total_tiles = self._normalize_optional_nonnegative_int(
+            self.num_total_tiles,
+            "num_total_tiles",
+        )
+        if (
+            self.num_inlier_tiles is not None
+            and self.num_total_tiles is not None
+            and self.num_inlier_tiles > self.num_total_tiles
+        ):
+            raise ValueError("num_inlier_tiles cannot exceed num_total_tiles.")
+
+        self.status = str(self.status).strip()
+        if self.status not in self.VALID_STATUSES:
+            allowed = ", ".join(sorted(self.VALID_STATUSES))
+            raise ValueError(f"status must be one of: {allowed}.")
+
+    @property
+    def dx(self) -> float:
+        return float(self.shift_xy[0])
+
+    @property
+    def dy(self) -> float:
+        return float(self.shift_xy[1])
+
+    @staticmethod
+    def _normalize_optional_finite_float(value: Optional[float], field_name: str) -> Optional[float]:
+        if value is None:
+            return None
+        value = float(value)
+        if not np.isfinite(value):
+            raise ValueError(f"{field_name} must be finite.")
+        return value
+
+    @classmethod
+    def _normalize_optional_nonnegative_float(cls, value: Optional[float], field_name: str) -> Optional[float]:
+        value = cls._normalize_optional_finite_float(value, field_name)
+        if value is not None and value < 0.0:
+            raise ValueError(f"{field_name} must be non-negative.")
+        return value
+
+    @staticmethod
+    def _normalize_optional_nonnegative_int(value: Optional[int], field_name: str) -> Optional[int]:
+        if value is None:
+            return None
+        value = int(value)
+        if value < 0:
+            raise ValueError(f"{field_name} must be non-negative.")
+        return value
+
+
+@dataclass
+class RegistrationResultSet:
+    """Collection of registration estimates for one sequence."""
+
+    settings: RegistrationSettings
+    results_by_frame: Dict[int, RegistrationFrameResult] = field(default_factory=dict, repr=False)
+    reference_frame_index: int = 0
+    template_frame_indices: Optional[tuple[int, ...] | list[int] | np.ndarray] = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.settings, RegistrationSettings):
+            raise TypeError("settings must be a RegistrationSettings instance.")
+        self.reference_frame_index = int(self.reference_frame_index)
+        if self.reference_frame_index < 0:
+            raise ValueError("reference_frame_index must be non-negative.")
+
+        normalized_results: Dict[int, RegistrationFrameResult] = {}
+        for frame_index, result in self.results_by_frame.items():
+            frame_key = int(frame_index)
+            if frame_key < 0:
+                raise ValueError("results_by_frame keys must be non-negative.")
+            if not isinstance(result, RegistrationFrameResult):
+                raise TypeError("results_by_frame values must be RegistrationFrameResult instances.")
+            if result.frame_index != frame_key:
+                raise ValueError("results_by_frame keys must match result.frame_index.")
+            normalized_results[frame_key] = result
+        self.results_by_frame = dict(sorted(normalized_results.items()))
+
+        if self.template_frame_indices is not None:
+            template_indices = tuple(int(index) for index in self.template_frame_indices)
+            if any(index < 0 for index in template_indices):
+                raise ValueError("template_frame_indices must be non-negative.")
+            self.template_frame_indices = template_indices
+
+    @property
+    def frame_indices(self) -> list[int]:
+        return list(self.results_by_frame.keys())
+
+    @property
+    def result_count(self) -> int:
+        return len(self.results_by_frame)
+
+    def get_result(self, frame_index: int) -> Optional[RegistrationFrameResult]:
+        return self.results_by_frame.get(int(frame_index))
+
+    def shifts_xy_array(self) -> np.ndarray:
+        """Return shifts ordered by frame index with shape [N, 2]."""
+        return np.asarray([self.results_by_frame[index].shift_xy for index in self.frame_indices], dtype=np.float64)
+
+    def status_counts(self) -> dict[str, int]:
+        counts = {status: 0 for status in sorted(RegistrationFrameResult.VALID_STATUSES)}
+        for result in self.results_by_frame.values():
+            counts[result.status] = counts.get(result.status, 0) + 1
+        return counts
+
+
 class AnnotationSource(str, Enum):
     """How an annotation was created or last updated."""
 
