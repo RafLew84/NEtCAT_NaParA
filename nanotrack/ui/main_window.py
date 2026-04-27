@@ -55,7 +55,9 @@ from nanotrack.processing import (
     run_horizontal_dropout_preview,
 )
 from nanotrack.registration import (
+    ExpandedAlignedStack,
     build_aligned_frames,
+    build_expanded_aligned_frames,
     build_registration_backend_from_settings,
     build_registration_pair_preview,
     run_adjacent_phase_registration,
@@ -242,7 +244,9 @@ class NanoTrackMainWindow(QMainWindow):
         self._edge_results_dialog: EdgeTrackResultsDialog | None = None
         self._registration_results: RegistrationResultSet | None = None
         self._aligned_frames: np.ndarray | None = None
+        self._expanded_aligned_stack: ExpandedAlignedStack | None = None
         self._show_aligned_in_viewer = False
+        self._show_expanded_aligned_in_viewer = False
         self._dexined_backend = DexiNedSubprocessBackend()
         self._teed_backend = TeedSubprocessBackend()
         self._nbed_backend = NbedSubprocessBackend()
@@ -337,6 +341,12 @@ class NanoTrackMainWindow(QMainWindow):
         self.action_show_aligned_registration.setToolTip("Show frames translated by the latest registration results")
         self.action_show_aligned_registration.setCheckable(True)
         self.action_show_aligned_registration.setEnabled(False)
+        self.action_show_expanded_aligned_registration = toolbar.addAction("Show Expanded Aligned")
+        self.action_show_expanded_aligned_registration.setToolTip(
+            "Show registered frames on an expanded canvas without clipping translated edges"
+        )
+        self.action_show_expanded_aligned_registration.setCheckable(True)
+        self.action_show_expanded_aligned_registration.setEnabled(False)
 
     def _build_central_widget(self) -> None:
         central = QSplitter(Qt.Orientation.Horizontal, self)
@@ -418,6 +428,9 @@ class NanoTrackMainWindow(QMainWindow):
         self.action_run_registration.triggered.connect(self._on_registration_batch_requested)
         self.action_open_registration_results.triggered.connect(self._on_open_registration_results_requested)
         self.action_show_aligned_registration.toggled.connect(self._on_show_aligned_registration_toggled)
+        self.action_show_expanded_aligned_registration.toggled.connect(
+            self._on_show_expanded_aligned_registration_toggled
+        )
         self.slider_frame.valueChanged.connect(self._on_frame_selected)
         self.spin_frame.valueChanged.connect(self._on_spin_frame_selected)
         self.chk_exclude_frame.toggled.connect(self._on_exclude_frame_toggled)
@@ -520,7 +533,11 @@ class NanoTrackMainWindow(QMainWindow):
 
         frame_override = None
         view_label = "Raw"
-        if self._show_aligned_in_viewer:
+        display_offset_px = (0.0, 0.0)
+        if self._show_expanded_aligned_in_viewer:
+            frame_override, view_label = self._current_expanded_aligned_viewer_override()
+            display_offset_px = self._current_expanded_aligned_display_offset_px()
+        elif self._show_aligned_in_viewer:
             frame_override, view_label = self._current_aligned_viewer_override()
         elif self._show_denoised_in_viewer:
             frame_override, view_label = self._current_viewer_override()
@@ -530,6 +547,7 @@ class NanoTrackMainWindow(QMainWindow):
             preserve_zoom=preserve_zoom,
             frame_override=frame_override,
             view_label=view_label,
+            display_offset_px=display_offset_px,
         )
         self._sync_current_bbox_ui()
         self._sync_current_polygon_ui()
@@ -677,6 +695,19 @@ class NanoTrackMainWindow(QMainWindow):
             return None
         return self._aligned_frames[self._sequence.active_frame_index]
 
+    def current_expanded_aligned_stack(self) -> ExpandedAlignedStack | None:
+        return self._expanded_aligned_stack
+
+    def current_expanded_aligned_frames(self) -> np.ndarray | None:
+        if self._expanded_aligned_stack is None:
+            return None
+        return self._expanded_aligned_stack.frames
+
+    def current_expanded_aligned_frame(self) -> np.ndarray | None:
+        if self._expanded_aligned_stack is None or self._sequence is None:
+            return None
+        return self._expanded_aligned_stack.frames[self._sequence.active_frame_index]
+
     def current_yolo_detection_set(self) -> YoloDetectionSet | None:
         return self._yolo_detections
 
@@ -799,6 +830,9 @@ class NanoTrackMainWindow(QMainWindow):
             self._sequence is not None and self._registration_results is not None and not busy
         )
         self.action_show_aligned_registration.setEnabled(
+            self._sequence is not None and self._registration_results is not None and not busy
+        )
+        self.action_show_expanded_aligned_registration.setEnabled(
             self._sequence is not None and self._registration_results is not None and not busy
         )
 
@@ -3100,6 +3134,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._show_denoised_in_viewer = bool(checked and self._has_any_preprocessing_cache())
         if self._show_denoised_in_viewer:
             self._disable_aligned_registration_view()
+            self._disable_expanded_aligned_registration_view()
         if self._sequence is not None:
             self._show_current_frame(preserve_zoom=True)
 
@@ -3124,9 +3159,35 @@ class NanoTrackMainWindow(QMainWindow):
             return
 
         self._show_aligned_in_viewer = True
+        self._disable_expanded_aligned_registration_view()
         self._disable_denoised_view()
         self._show_current_frame(preserve_zoom=True)
         self.statusBar().showMessage("Aligned registration view enabled.", 3000)
+
+    def _on_show_expanded_aligned_registration_toggled(self, checked: bool) -> None:
+        if not checked:
+            self._show_expanded_aligned_in_viewer = False
+            if self._sequence is not None:
+                self._show_current_frame(preserve_zoom=True)
+            return
+
+        if self._sequence is None or self._registration_results is None:
+            self._disable_expanded_aligned_registration_view()
+            return
+
+        try:
+            self._ensure_expanded_aligned_registration_cache()
+        except Exception as exc:
+            self._disable_expanded_aligned_registration_view()
+            QMessageBox.critical(self, "Expanded aligned registration view error", str(exc))
+            self.statusBar().showMessage("Expanded aligned registration view failed.", 3000)
+            return
+
+        self._show_expanded_aligned_in_viewer = True
+        self._disable_aligned_registration_view()
+        self._disable_denoised_view()
+        self._show_current_frame(preserve_zoom=True)
+        self.statusBar().showMessage("Expanded aligned registration view enabled.", 3000)
 
     def _ensure_bm3d_preview_dialog(self) -> Bm3dPreviewDialog:
         if self._bm3d_preview_dialog is None:
@@ -3255,16 +3316,27 @@ class NanoTrackMainWindow(QMainWindow):
 
     def _clear_aligned_registration_cache(self) -> None:
         self._aligned_frames = None
+        self._expanded_aligned_stack = None
         self._show_aligned_in_viewer = False
+        self._show_expanded_aligned_in_viewer = False
         if hasattr(self, "action_show_aligned_registration"):
             with QSignalBlocker(self.action_show_aligned_registration):
                 self.action_show_aligned_registration.setChecked(False)
+        if hasattr(self, "action_show_expanded_aligned_registration"):
+            with QSignalBlocker(self.action_show_expanded_aligned_registration):
+                self.action_show_expanded_aligned_registration.setChecked(False)
 
     def _disable_aligned_registration_view(self) -> None:
         self._show_aligned_in_viewer = False
         if hasattr(self, "action_show_aligned_registration"):
             with QSignalBlocker(self.action_show_aligned_registration):
                 self.action_show_aligned_registration.setChecked(False)
+
+    def _disable_expanded_aligned_registration_view(self) -> None:
+        self._show_expanded_aligned_in_viewer = False
+        if hasattr(self, "action_show_expanded_aligned_registration"):
+            with QSignalBlocker(self.action_show_expanded_aligned_registration):
+                self.action_show_expanded_aligned_registration.setChecked(False)
 
     def _disable_denoised_view(self) -> None:
         self._show_denoised_in_viewer = False
@@ -3319,6 +3391,33 @@ class NanoTrackMainWindow(QMainWindow):
         if self._aligned_frames is not None and self._sequence is not None:
             return self.current_aligned_frame(), "Aligned registration"
         return None, "Raw"
+
+    def _current_expanded_aligned_viewer_override(self) -> tuple[np.ndarray | None, str]:
+        if self._expanded_aligned_stack is not None and self._sequence is not None:
+            left, top, right, bottom = self._expanded_aligned_stack.padding_ltrb
+            height, width = self._expanded_aligned_stack.frames.shape[1:]
+            return (
+                self.current_expanded_aligned_frame(),
+                f"Expanded aligned registration {width}x{height} px pad {left},{top},{right},{bottom}",
+            )
+        return None, "Raw"
+
+    def _current_expanded_aligned_display_offset_px(self) -> tuple[float, float]:
+        if self._expanded_aligned_stack is None or self._sequence is None:
+            return 0.0, 0.0
+        origin = self._expanded_aligned_stack.frame_origins_xy[self._sequence.active_frame_index]
+        return float(origin[0]), float(origin[1])
+
+    def _ensure_expanded_aligned_registration_cache(self) -> ExpandedAlignedStack:
+        if self._sequence is None or self._registration_results is None:
+            raise RuntimeError("Expanded aligned registration requires sequence and registration results.")
+        if self._expanded_aligned_stack is None:
+            self._expanded_aligned_stack = build_expanded_aligned_frames(
+                self._sequence.raw_frames,
+                self._registration_results,
+                metadata=self._sequence.metadata,
+            )
+        return self._expanded_aligned_stack
 
     def _default_preprocessing_status(self) -> str:
         if self._sequence is None:

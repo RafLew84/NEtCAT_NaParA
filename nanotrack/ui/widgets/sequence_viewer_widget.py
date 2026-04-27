@@ -40,6 +40,7 @@ class SequenceViewerWidget(QWidget):
         self._current_edge_polyline: np.ndarray | None = None
         self._suppress_edge_polyline_signal = False
         self._current_yolo_detections: list[YoloDetection] = []
+        self._display_offset_px = (0.0, 0.0)
         self._build()
 
     def _build(self) -> None:
@@ -56,6 +57,7 @@ class SequenceViewerWidget(QWidget):
 
     def clear(self) -> None:
         self._sequence = None
+        self._display_offset_px = (0.0, 0.0)
         self.clear_bbox()
         self.clear_polygon()
         self.clear_edge_polyline()
@@ -78,12 +80,14 @@ class SequenceViewerWidget(QWidget):
         *,
         frame_override=None,
         view_label: str = "Raw",
+        display_offset_px: tuple[float, float] | None = None,
     ) -> None:
         if self._sequence is None:
             self.clear()
             return
 
         self._sequence.set_active_frame(frame_index)
+        self._display_offset_px = self._normalize_display_offset(display_offset_px)
         frame = self._sequence.active_frame if frame_override is None else frame_override
         px_x, px_y = self._sequence.metadata.get_pixel_size_nm()
         self.viewer.set_image(
@@ -524,12 +528,17 @@ class SequenceViewerWidget(QWidget):
     def _polygon_vertices_px_to_nm(self, vertices_px) -> np.ndarray:
         sx, sy = self._pixel_scale()
         vertices_px = np.asarray(vertices_px, dtype=np.float64)
-        return np.column_stack((vertices_px[:, 0] * sx, vertices_px[:, 1] * sy)).astype(np.float64, copy=False)
+        display_px = self._model_points_to_display_px(vertices_px)
+        return np.column_stack((display_px[:, 0] * sx, display_px[:, 1] * sy)).astype(np.float64, copy=False)
 
     def _polygon_vertices_nm_to_px(self, vertices_nm) -> np.ndarray:
         sx, sy = self._pixel_scale()
         vertices_nm = np.asarray(vertices_nm, dtype=np.float64)
-        return np.column_stack((vertices_nm[:, 0] / sx, vertices_nm[:, 1] / sy)).astype(np.float64, copy=False)
+        display_px = np.column_stack((vertices_nm[:, 0] / sx, vertices_nm[:, 1] / sy)).astype(
+            np.float64,
+            copy=False,
+        )
+        return self._display_points_to_model_px(display_px)
 
     def _bbox_from_roi(self) -> BBoxXYXY:
         if self._bbox_roi is None or self._sequence is None:
@@ -550,29 +559,34 @@ class SequenceViewerWidget(QWidget):
 
     def _bbox_to_nm(self, bbox: BBoxXYXY) -> tuple[tuple[float, float], tuple[float, float]]:
         sx, sy = self._pixel_scale()
-        return (bbox.x0 * sx, bbox.y0 * sy), (bbox.width * sx, bbox.height * sy)
+        x0, y0 = self._model_point_to_display_px((bbox.x0, bbox.y0))
+        return (x0 * sx, y0 * sy), (bbox.width * sx, bbox.height * sy)
 
     def _bbox_polyline_nm(self, bbox: BBoxXYXY) -> np.ndarray:
         sx, sy = self._pixel_scale()
-        return np.asarray(
-            [
-                [bbox.x0 * sx, bbox.y0 * sy],
-                [bbox.x1 * sx, bbox.y0 * sy],
-                [bbox.x1 * sx, bbox.y1 * sy],
-                [bbox.x0 * sx, bbox.y1 * sy],
-                [bbox.x0 * sx, bbox.y0 * sy],
-            ],
-            dtype=np.float64,
+        display_px = self._model_points_to_display_px(
+            np.asarray(
+                [
+                    [bbox.x0, bbox.y0],
+                    [bbox.x1, bbox.y0],
+                    [bbox.x1, bbox.y1],
+                    [bbox.x0, bbox.y1],
+                    [bbox.x0, bbox.y0],
+                ],
+                dtype=np.float64,
+            )
         )
+        return np.column_stack((display_px[:, 0] * sx, display_px[:, 1] * sy)).astype(np.float64, copy=False)
 
     def _polyline_nm(self, polyline_px: np.ndarray) -> np.ndarray:
         sx, sy = self._pixel_scale()
         polyline_px = np.asarray(polyline_px, dtype=np.float64)
-        return np.column_stack((polyline_px[:, 0] * sx, polyline_px[:, 1] * sy)).astype(np.float64, copy=False)
+        display_px = self._model_points_to_display_px(polyline_px)
+        return np.column_stack((display_px[:, 0] * sx, display_px[:, 1] * sy)).astype(np.float64, copy=False)
 
     def _bbox_center_nm(self, bbox: BBoxXYXY) -> tuple[float, float]:
         sx, sy = self._pixel_scale()
-        cx, cy = bbox.center_xy
+        cx, cy = self._model_point_to_display_px(bbox.center_xy)
         return cx * sx, cy * sy
 
     def _find_yolo_detection_at_pixel(self, x_px: float, y_px: float) -> int | None:
@@ -594,13 +608,15 @@ class SequenceViewerWidget(QWidget):
         assert annotation.mask is not None
         ys, xs = np.nonzero(annotation.mask)
         sx, sy = self._pixel_scale()
-        return float(xs.mean()) * sx, float(ys.mean()) * sy
+        x_px, y_px = self._model_point_to_display_px((float(xs.mean()), float(ys.mean())))
+        return x_px * sx, y_px * sy
 
     def _polyline_label_position_nm(self, polyline_px: np.ndarray) -> tuple[float, float]:
         polyline_px = np.asarray(polyline_px, dtype=np.float64)
         sx, sy = self._pixel_scale()
         center = np.mean(polyline_px, axis=0)
-        return float(center[0]) * sx, float(center[1]) * sy
+        x_px, y_px = self._model_point_to_display_px((float(center[0]), float(center[1])))
+        return x_px * sx, y_px * sy
 
     def _mask_contours_nm(self, mask: np.ndarray) -> list[np.ndarray]:
         sx, sy = self._pixel_scale()
@@ -608,8 +624,11 @@ class SequenceViewerWidget(QWidget):
         for contour in measure.find_contours(mask.astype(np.uint8), level=0.5):
             if contour.shape[0] < 2:
                 continue
-            contour_xy = np.column_stack((contour[:, 1] * sx, contour[:, 0] * sy)).astype(np.float64, copy=False)
-            contours_nm.append(contour_xy)
+            contour_xy = np.column_stack((contour[:, 1], contour[:, 0])).astype(np.float64, copy=False)
+            display_xy = self._model_points_to_display_px(contour_xy)
+            contours_nm.append(
+                np.column_stack((display_xy[:, 0] * sx, display_xy[:, 1] * sy)).astype(np.float64, copy=False)
+            )
         return contours_nm
 
     def _frame_rect_nm(self) -> QRectF:
@@ -617,7 +636,8 @@ class SequenceViewerWidget(QWidget):
             return QRectF()
         frame_h, frame_w = self._sequence.frame_shape
         sx, sy = self._pixel_scale()
-        return QRectF(0.0, 0.0, frame_w * sx, frame_h * sy)
+        offset_x, offset_y = self._display_offset_px
+        return QRectF(offset_x * sx, offset_y * sy, frame_w * sx, frame_h * sy)
 
     def _pixel_scale(self) -> tuple[float, float]:
         if self._sequence is None:
@@ -627,4 +647,32 @@ class SequenceViewerWidget(QWidget):
 
     def _view_to_pixel_coords(self, x_view: float, y_view: float) -> tuple[float, float]:
         sx, sy = self._pixel_scale()
-        return float(x_view) / sx, float(y_view) / sy
+        return self._display_point_to_model_px((float(x_view) / sx, float(y_view) / sy))
+
+    def _normalize_display_offset(self, display_offset_px: tuple[float, float] | None) -> tuple[float, float]:
+        if display_offset_px is None:
+            return 0.0, 0.0
+        offset = np.asarray(display_offset_px, dtype=np.float64)
+        if offset.shape != (2,) or not np.all(np.isfinite(offset)):
+            return 0.0, 0.0
+        return float(offset[0]), float(offset[1])
+
+    def _model_point_to_display_px(self, point_px) -> tuple[float, float]:
+        point = np.asarray(point_px, dtype=np.float64)
+        offset_x, offset_y = self._display_offset_px
+        return float(point[0] + offset_x), float(point[1] + offset_y)
+
+    def _display_point_to_model_px(self, point_px) -> tuple[float, float]:
+        point = np.asarray(point_px, dtype=np.float64)
+        offset_x, offset_y = self._display_offset_px
+        return float(point[0] - offset_x), float(point[1] - offset_y)
+
+    def _model_points_to_display_px(self, points_px) -> np.ndarray:
+        points = np.asarray(points_px, dtype=np.float64)
+        offset = np.asarray(self._display_offset_px, dtype=np.float64)
+        return points + offset
+
+    def _display_points_to_model_px(self, points_px) -> np.ndarray:
+        points = np.asarray(points_px, dtype=np.float64)
+        offset = np.asarray(self._display_offset_px, dtype=np.float64)
+        return points - offset

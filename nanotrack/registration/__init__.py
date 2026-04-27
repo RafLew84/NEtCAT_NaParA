@@ -47,7 +47,7 @@ from .batch import (
     build_registration_backend_from_settings,
     run_adjacent_phase_registration,
 )
-from .aligned import build_aligned_frames
+from .aligned import ExpandedAlignedStack, build_aligned_frames, build_expanded_aligned_frames
 
 __all__ = [
     "PhaseCorrelationBackendError",
@@ -59,6 +59,7 @@ __all__ = [
     "ECCTranslationBackend",
     "ECCTranslationBackendError",
     "ECCTranslationConfig",
+    "ExpandedAlignedStack",
     "GlobalShiftGraphOptimizer",
     "GlobalShiftGraphOptimizerConfig",
     "GlobalShiftGraphOptimizerError",
@@ -75,6 +76,7 @@ __all__ = [
     "RegistrationViewResult",
     "apply_translation_to_frame",
     "build_aligned_frames",
+    "build_expanded_aligned_frames",
     "build_registration_backend_from_settings",
     "run_adjacent_phase_registration",
     "build_registration_view",

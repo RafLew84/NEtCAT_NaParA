@@ -293,6 +293,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.action_open_registration_results.isEnabled())
         self.assertFalse(self.window.action_show_aligned_registration.isEnabled())
         self.assertFalse(self.window.action_show_aligned_registration.isChecked())
+        self.assertFalse(self.window.action_show_expanded_aligned_registration.isEnabled())
+        self.assertFalse(self.window.action_show_expanded_aligned_registration.isChecked())
         self.assertTrue(self.window.polygon_tools_panel.btn_draw.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_finish.isEnabled())
         self.assertFalse(self.window.polygon_tools_panel.btn_clear.isEnabled())
@@ -1681,8 +1683,11 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(self.window.action_open_registration_results.isEnabled())
         self.assertTrue(self.window.action_show_aligned_registration.isEnabled())
         self.assertFalse(self.window.action_show_aligned_registration.isChecked())
+        self.assertTrue(self.window.action_show_expanded_aligned_registration.isEnabled())
+        self.assertFalse(self.window.action_show_expanded_aligned_registration.isChecked())
         self.window.action_show_aligned_registration.trigger()
         self.assertTrue(self.window.action_show_aligned_registration.isChecked())
+        self.assertFalse(self.window.action_show_expanded_aligned_registration.isChecked())
         self.assertIsNotNone(self.window.current_aligned_frames())
         self.assertFalse(self.window.preprocessing_panel.chk_show_denoised.isChecked())
         self.assertIn("View: Aligned registration", self.window.viewer.lbl_meta.text())
@@ -1738,6 +1743,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.action_run_registration.isEnabled())
         self.assertFalse(self.window.action_open_registration_results.isEnabled())
         self.assertFalse(self.window.action_show_aligned_registration.isEnabled())
+        self.assertFalse(self.window.action_show_expanded_aligned_registration.isEnabled())
         self.assertEqual(self.window.cmb_registration_backend.currentData(), "phase_correlation")
         self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "No sequence loaded")
 
@@ -1819,7 +1825,10 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(self.window.action_open_registration_results.isEnabled())
         self.assertTrue(self.window.action_show_aligned_registration.isEnabled())
         self.assertFalse(self.window.action_show_aligned_registration.isChecked())
+        self.assertTrue(self.window.action_show_expanded_aligned_registration.isEnabled())
+        self.assertFalse(self.window.action_show_expanded_aligned_registration.isChecked())
         self.assertIsNone(self.window.current_aligned_frames())
+        self.assertIsNone(self.window.current_expanded_aligned_stack())
         self.assertIn("Registration finished for 3 frames", self.window.statusBar().currentMessage())
 
     def test_registration_batch_action_uses_selected_ui_backend(self) -> None:
@@ -1911,6 +1920,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertIsNotNone(aligned)
         assert aligned is not None
         self.assertTrue(self.window.action_show_aligned_registration.isChecked())
+        self.assertFalse(self.window.action_show_expanded_aligned_registration.isChecked())
         self.assertIn("View: Aligned registration", self.window.viewer.lbl_meta.text())
         np.testing.assert_array_equal(sequence.raw_frames, raw_frames)
         np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, aligned[0])
@@ -1923,6 +1933,235 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.action_show_aligned_registration.isChecked())
         np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, sequence.raw_frames[1])
         self.assertIn("View: Raw", self.window.viewer.lbl_meta.text())
+
+    def test_registration_expanded_aligned_view_uses_expanded_cache_and_renders_frame(self) -> None:
+        raw_frames = np.arange(2 * 3 * 4, dtype=np.float32).reshape(2, 3, 4)
+        sequence = STMSequence(
+            source_path="/tmp/registration_expanded_aligned.mpp",
+            raw_frames=raw_frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=3, size_nm_x=8.0, size_nm_y=6.0),
+        )
+        result_set = RegistrationResultSet(
+            settings=RegistrationSettings(registration_view="raw"),
+            results_by_frame={
+                0: RegistrationFrameResult(0, (0.0, 0.0), "identity", quality_score=1.0),
+                1: RegistrationFrameResult(1, (2.0, -1.0), "manual", quality_score=0.9),
+            },
+        )
+        self.window.set_sequence(sequence)
+        self.window._registration_results = result_set
+        self.window._update_menu_action_state()
+
+        self.assertTrue(self.window.action_show_expanded_aligned_registration.isEnabled())
+        self.assertIsNone(self.window.current_expanded_aligned_stack())
+        self.window.action_show_expanded_aligned_registration.trigger()
+
+        expanded = self.window.current_expanded_aligned_stack()
+        self.assertIsNotNone(expanded)
+        assert expanded is not None
+        self.assertTrue(self.window.action_show_expanded_aligned_registration.isChecked())
+        self.assertFalse(self.window.action_show_aligned_registration.isChecked())
+        self.assertEqual(expanded.frames.shape, (2, 4, 6))
+        self.assertEqual(expanded.padding_ltrb, (0, 1, 2, 0))
+        self.assertIn("View: Expanded aligned registration 6x4 px pad 0,1,2,0", self.window.viewer.lbl_meta.text())
+        np.testing.assert_array_equal(sequence.raw_frames, raw_frames)
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, expanded.frames[0])
+
+        self.window.slider_frame.setValue(1)
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, expanded.frames[1])
+
+        self.window.action_show_expanded_aligned_registration.trigger()
+        self.assertFalse(self.window.action_show_expanded_aligned_registration.isChecked())
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, sequence.raw_frames[1])
+        self.assertIn("View: Raw", self.window.viewer.lbl_meta.text())
+
+    def test_registration_view_actions_switch_between_raw_aligned_and_expanded_aligned(self) -> None:
+        raw_frames = np.arange(2 * 4 * 5, dtype=np.float32).reshape(2, 4, 5)
+        sequence = STMSequence(
+            source_path="/tmp/registration_view_switching.mpp",
+            raw_frames=raw_frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4, size_nm_x=10.0, size_nm_y=8.0),
+        )
+        result_set = RegistrationResultSet(
+            settings=RegistrationSettings(registration_view="raw"),
+            results_by_frame={
+                0: RegistrationFrameResult(0, (0.0, 0.0), "identity", quality_score=1.0),
+                1: RegistrationFrameResult(1, (2.0, -1.0), "manual", quality_score=0.9),
+            },
+        )
+        self.window.set_sequence(sequence)
+        self.window._registration_results = result_set
+        self.window._set_active_frame(1)
+        self.window._update_menu_action_state()
+
+        self.assertFalse(self.window.action_show_aligned_registration.isChecked())
+        self.assertFalse(self.window.action_show_expanded_aligned_registration.isChecked())
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, sequence.raw_frames[1])
+        self.assertIn("View: Raw", self.window.viewer.lbl_meta.text())
+
+        self.window.action_show_aligned_registration.trigger()
+        aligned = self.window.current_aligned_frames()
+        self.assertIsNotNone(aligned)
+        assert aligned is not None
+        self.assertTrue(self.window.action_show_aligned_registration.isChecked())
+        self.assertFalse(self.window.action_show_expanded_aligned_registration.isChecked())
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, aligned[1])
+        self.assertIn("View: Aligned registration", self.window.viewer.lbl_meta.text())
+
+        self.window.action_show_expanded_aligned_registration.trigger()
+        expanded = self.window.current_expanded_aligned_stack()
+        self.assertIsNotNone(expanded)
+        assert expanded is not None
+        self.assertFalse(self.window.action_show_aligned_registration.isChecked())
+        self.assertTrue(self.window.action_show_expanded_aligned_registration.isChecked())
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, expanded.frames[1])
+        self.assertIn("View: Expanded aligned registration", self.window.viewer.lbl_meta.text())
+
+        self.window.action_show_aligned_registration.trigger()
+        self.assertTrue(self.window.action_show_aligned_registration.isChecked())
+        self.assertFalse(self.window.action_show_expanded_aligned_registration.isChecked())
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, aligned[1])
+        self.assertIn("View: Aligned registration", self.window.viewer.lbl_meta.text())
+
+        self.window.action_show_aligned_registration.trigger()
+        self.assertFalse(self.window.action_show_aligned_registration.isChecked())
+        self.assertFalse(self.window.action_show_expanded_aligned_registration.isChecked())
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, sequence.raw_frames[1])
+        self.assertIn("View: Raw", self.window.viewer.lbl_meta.text())
+
+    def test_expanded_aligned_view_offsets_overlays_without_mutating_raw_annotations(self) -> None:
+        raw_frames = np.arange(2 * 3 * 4, dtype=np.float32).reshape(2, 3, 4)
+        sequence = STMSequence(
+            source_path="/tmp/registration_expanded_overlay_offset.mpp",
+            raw_frames=raw_frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=3, size_nm_x=8.0, size_nm_y=6.0),
+        )
+        result_set = RegistrationResultSet(
+            settings=RegistrationSettings(registration_view="raw"),
+            results_by_frame={
+                0: RegistrationFrameResult(0, (0.0, 0.0), "identity", quality_score=1.0),
+                1: RegistrationFrameResult(1, (2.0, -1.0), "manual", quality_score=0.9),
+            },
+        )
+        bbox = BBoxXYXY(1.0, 1.0, 3.0, 2.0)
+        polygon = PolygonROI(np.asarray([[1.0, 1.0], [3.0, 1.0], [1.0, 2.0]], dtype=np.float64))
+        edge_polyline = np.asarray([[1.5, 1.0], [2.5, 1.5]], dtype=np.float64)
+        self.window.set_sequence(sequence)
+        self.window._draft_bboxes_by_frame[1] = bbox
+        self.window._draft_polygons_by_frame[1] = polygon
+        self.window._draft_edge_polylines_by_frame[1] = edge_polyline.copy()
+        self.window._registration_results = result_set
+        self.window._set_active_frame(1)
+        self.window._update_menu_action_state()
+
+        self.window.action_show_expanded_aligned_registration.trigger()
+
+        expanded = self.window.current_expanded_aligned_stack()
+        self.assertIsNotNone(expanded)
+        assert expanded is not None
+        np.testing.assert_allclose(expanded.frame_origins_xy[1], np.asarray([2.0, 0.0]))
+        self.assertEqual(self.window.current_draft_bbox(), bbox)
+        np.testing.assert_array_equal(self.window.current_draft_polygon_roi().as_array(), polygon.as_array())
+        np.testing.assert_array_equal(self.window.current_draft_edge_polyline(), edge_polyline)
+        self.assertEqual(self.window.viewer.current_bbox(), bbox)
+        np.testing.assert_array_equal(self.window.viewer.current_polygon_roi().as_array(), polygon.as_array())
+        np.testing.assert_array_equal(self.window.viewer.current_edge_polyline(), edge_polyline)
+
+        bbox_pos = self.window.viewer._bbox_roi.pos()
+        bbox_size = self.window.viewer._bbox_roi.size()
+        self.assertAlmostEqual(bbox_pos.x(), 6.0)
+        self.assertAlmostEqual(bbox_pos.y(), 2.0)
+        self.assertAlmostEqual(bbox_size.x(), 4.0)
+        self.assertAlmostEqual(bbox_size.y(), 2.0)
+        np.testing.assert_allclose(
+            self.window.viewer._polygon_vertices_px_to_nm(polygon.vertices_xy),
+            np.asarray([[6.0, 2.0], [10.0, 2.0], [6.0, 4.0]], dtype=np.float64),
+        )
+        np.testing.assert_allclose(
+            self.window.viewer._polyline_nm(edge_polyline),
+            np.asarray([[7.0, 2.0], [9.0, 3.0]], dtype=np.float64),
+        )
+        np.testing.assert_allclose(self.window.viewer._view_to_pixel_coords(8.0, 3.0), (2.0, 1.5))
+
+        self.window.action_show_expanded_aligned_registration.trigger()
+        bbox_pos = self.window.viewer._bbox_roi.pos()
+        self.assertAlmostEqual(bbox_pos.x(), 2.0)
+        self.assertAlmostEqual(bbox_pos.y(), 2.0)
+        np.testing.assert_allclose(
+            self.window.viewer._polygon_vertices_px_to_nm(polygon.vertices_xy),
+            np.asarray([[2.0, 2.0], [6.0, 2.0], [2.0, 4.0]], dtype=np.float64),
+        )
+
+    def test_expanded_aligned_registration_cache_is_lazy_and_reused(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/expanded_aligned_cache.mpp",
+            raw_frames=np.arange(2 * 3 * 4, dtype=np.float32).reshape(2, 3, 4),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=3, size_nm_x=8.0, size_nm_y=6.0),
+        )
+        result_set = RegistrationResultSet(
+            settings=RegistrationSettings(registration_view="raw"),
+            results_by_frame={
+                0: RegistrationFrameResult(0, (0.0, 0.0), "identity", quality_score=1.0),
+                1: RegistrationFrameResult(1, (2.0, -1.0), "manual", quality_score=0.9),
+            },
+        )
+        self.window.set_sequence(sequence)
+        self.window._registration_results = result_set
+
+        self.assertIsNone(self.window.current_expanded_aligned_stack())
+        expanded = self.window._ensure_expanded_aligned_registration_cache()
+
+        self.assertIs(self.window.current_expanded_aligned_stack(), expanded)
+        self.assertIs(self.window.current_expanded_aligned_frames(), expanded.frames)
+        self.assertIs(self.window._ensure_expanded_aligned_registration_cache(), expanded)
+        self.assertEqual(expanded.frames.shape, (2, 4, 6))
+        self.assertEqual(expanded.metadata.pixels_x, 6)
+        self.assertEqual(expanded.metadata.pixels_y, 4)
+        self.window._set_active_frame(1)
+        np.testing.assert_array_equal(self.window.current_expanded_aligned_frame(), expanded.frames[1])
+
+    def test_expanded_aligned_registration_cache_is_cleared_on_sequence_change_and_registration_rerun(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/expanded_aligned_cache_clear.mpp",
+            raw_frames=np.zeros((2, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+        )
+        old_result_set = RegistrationResultSet(
+            settings=RegistrationSettings(registration_view="raw"),
+            results_by_frame={
+                0: RegistrationFrameResult(0, (0.0, 0.0), "identity", quality_score=1.0),
+                1: RegistrationFrameResult(1, (1.0, 0.0), "manual", quality_score=0.9),
+            },
+        )
+        self.window.set_sequence(sequence)
+        self.window._registration_results = old_result_set
+        self.window._ensure_expanded_aligned_registration_cache()
+        self.assertIsNotNone(self.window.current_expanded_aligned_stack())
+
+        replacement = STMSequence(
+            source_path="/tmp/replacement.mpp",
+            raw_frames=np.zeros((1, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+        )
+        self.window.set_sequence(replacement)
+        self.assertIsNone(self.window.current_expanded_aligned_stack())
+
+        new_result_set = RegistrationResultSet(
+            settings=RegistrationSettings(registration_view="raw"),
+            results_by_frame={
+                0: RegistrationFrameResult(0, (0.0, 0.0), "identity", quality_score=1.0),
+                1: RegistrationFrameResult(1, (-1.0, 1.0), "manual", quality_score=0.8),
+            },
+        )
+        self.window.set_sequence(sequence)
+        self.window._registration_results = old_result_set
+        self.window._ensure_expanded_aligned_registration_cache()
+
+        with patch("nanotrack.ui.main_window.run_adjacent_phase_registration", return_value=new_result_set):
+            self.window._on_registration_batch_requested()
+
+        self.assertIs(self.window.current_registration_results(), new_result_set)
+        self.assertIsNone(self.window.current_expanded_aligned_stack())
 
     def test_polygon_roi_can_be_finished_and_updates_panel(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
