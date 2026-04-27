@@ -126,7 +126,9 @@ def run_adjacent_phase_registration(
     )
 
 
-def _backend_from_settings(settings: RegistrationSettings) -> AdjacentRegistrationBackend:
+def build_registration_backend_from_settings(settings: RegistrationSettings) -> AdjacentRegistrationBackend:
+    """Create a registration backend from shared registration settings."""
+
     backend_name = settings.backend.strip().lower()
     if backend_name == "phase_correlation":
         return PhaseCorrelationShiftBackend()
@@ -206,6 +208,10 @@ def _backend_from_settings(settings: RegistrationSettings) -> AdjacentRegistrati
             )
         )
     raise ValueError(f"Unsupported registration backend: {settings.backend!r}.")
+
+
+def _backend_from_settings(settings: RegistrationSettings) -> AdjacentRegistrationBackend:
+    return build_registration_backend_from_settings(settings)
 
 
 def _estimate_adjacent_pair(

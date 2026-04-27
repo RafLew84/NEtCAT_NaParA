@@ -1738,7 +1738,20 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.action_run_registration.isEnabled())
         self.assertFalse(self.window.action_open_registration_results.isEnabled())
         self.assertFalse(self.window.action_show_aligned_registration.isEnabled())
+        self.assertEqual(self.window.cmb_registration_backend.currentData(), "phase_correlation")
         self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "No sequence loaded")
+
+    def test_registration_backend_combo_lists_supported_algorithms(self) -> None:
+        backend_keys = [
+            self.window.cmb_registration_backend.itemData(index)
+            for index in range(self.window.cmb_registration_backend.count())
+        ]
+
+        self.assertEqual(backend_keys[0], "phase_correlation")
+        self.assertIn("tile_correlation_ransac", backend_keys)
+        self.assertIn("ecc_translation", backend_keys)
+        self.assertIn("optical_flow_median", backend_keys)
+        self.assertIn("deep_matcher_translation", backend_keys)
 
     def test_registration_preview_action_opens_adjacent_pair_dialog(self) -> None:
         rng = np.random.default_rng(123)
@@ -1772,7 +1785,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertIn("quality", aligned_meta)
         self.assertEqual(
             self.window.statusBar().currentMessage(),
-            "Registration preview opened for frames 1 -> 2.",
+            "Phase registration preview opened for frames 1 -> 2.",
         )
 
     def test_registration_batch_action_stores_adjacent_shift_results(self) -> None:
@@ -1808,6 +1821,41 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.action_show_aligned_registration.isChecked())
         self.assertIsNone(self.window.current_aligned_frames())
         self.assertIn("Registration finished for 3 frames", self.window.statusBar().currentMessage())
+
+    def test_registration_batch_action_uses_selected_ui_backend(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/registration_backend_choice.mpp",
+            raw_frames=np.zeros((2, 16, 16), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=16, pixels_y=16),
+        )
+        self.window.set_sequence(sequence)
+        backend_index = self.window.cmb_registration_backend.findData("tile_correlation_ransac")
+        self.assertNotEqual(backend_index, -1)
+        self.window.cmb_registration_backend.setCurrentIndex(backend_index)
+        expected_result_set = RegistrationResultSet(
+            settings=RegistrationSettings(
+                backend="tile_correlation_ransac",
+                reference_strategy="adjacent",
+                registration_view="raw",
+            ),
+            results_by_frame={
+                0: RegistrationFrameResult(0, (0.0, 0.0), "identity", quality_score=1.0),
+                1: RegistrationFrameResult(1, (1.0, -1.0), "tile_correlation_ransac_adjacent", quality_score=0.9),
+            },
+            reference_frame_index=0,
+            template_frame_indices=(0,),
+        )
+
+        with patch("nanotrack.ui.main_window.run_adjacent_phase_registration", return_value=expected_result_set) as run_mock:
+            self.window.action_run_registration.trigger()
+
+        run_mock.assert_called_once()
+        _, kwargs = run_mock.call_args
+        self.assertEqual(kwargs["settings"].backend, "tile_correlation_ransac")
+        self.assertEqual(kwargs["settings"].reference_strategy, "adjacent")
+        self.assertEqual(kwargs["settings"].registration_view, "raw")
+        self.assertNotIn("backend", kwargs)
+        self.assertIs(self.window.current_registration_results(), expected_result_set)
 
     def test_registration_results_action_opens_quality_dialog(self) -> None:
         rng = np.random.default_rng(987)

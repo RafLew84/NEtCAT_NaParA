@@ -11,6 +11,7 @@ from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QApplication,
     QCheckBox,
+    QComboBox,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -54,8 +55,8 @@ from nanotrack.processing import (
     run_horizontal_dropout_preview,
 )
 from nanotrack.registration import (
-    PhaseCorrelationShiftBackend,
     build_aligned_frames,
+    build_registration_backend_from_settings,
     build_registration_pair_preview,
     run_adjacent_phase_registration,
 )
@@ -242,7 +243,6 @@ class NanoTrackMainWindow(QMainWindow):
         self._registration_results: RegistrationResultSet | None = None
         self._aligned_frames: np.ndarray | None = None
         self._show_aligned_in_viewer = False
-        self._registration_backend = PhaseCorrelationShiftBackend()
         self._dexined_backend = DexiNedSubprocessBackend()
         self._teed_backend = TeedSubprocessBackend()
         self._nbed_backend = NbedSubprocessBackend()
@@ -311,13 +311,24 @@ class NanoTrackMainWindow(QMainWindow):
         self.action_open_edge_results = toolbar.addAction("View Edge Results...")
         self.action_open_edge_results.setToolTip("Open the quantitative edge-tracking results window")
         self.action_open_edge_results.setEnabled(False)
+        toolbar.addSeparator()
+        self.lbl_registration_backend = QLabel("Registration:", self)
+        toolbar.addWidget(self.lbl_registration_backend)
+        self.cmb_registration_backend = QComboBox(self)
+        self.cmb_registration_backend.addItem("Phase", "phase_correlation")
+        self.cmb_registration_backend.addItem("Tile+RANSAC", "tile_correlation_ransac")
+        self.cmb_registration_backend.addItem("ECC", "ecc_translation")
+        self.cmb_registration_backend.addItem("Optical Flow", "optical_flow_median")
+        self.cmb_registration_backend.addItem("Deep Matcher", "deep_matcher_translation")
+        self.cmb_registration_backend.setToolTip("Registration algorithm used for preview and batch registration.")
+        toolbar.addWidget(self.cmb_registration_backend)
         self.action_preview_registration = toolbar.addAction("Registration Preview...")
         self.action_preview_registration.setToolTip(
-            "Preview phase-correlation registration for the active adjacent frame pair"
+            "Preview registration for the active adjacent frame pair with the selected algorithm"
         )
         self.action_preview_registration.setEnabled(False)
         self.action_run_registration = toolbar.addAction("Run Registration...")
-        self.action_run_registration.setToolTip("Run adjacent phase-correlation registration for the whole sequence")
+        self.action_run_registration.setToolTip("Run adjacent registration for the whole sequence with the selected algorithm")
         self.action_run_registration.setEnabled(False)
         self.action_open_registration_results = toolbar.addAction("View Registration...")
         self.action_open_registration_results.setToolTip("Open registration shifts and quality metrics")
@@ -779,6 +790,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.action_save_session.setEnabled(self._sequence is not None and not busy)
         self.action_open_results.setEnabled(self._has_results_data() and not busy)
         self.action_open_edge_results.setEnabled(self._has_edge_results_data() and not busy)
+        self.cmb_registration_backend.setEnabled(not busy)
         self.action_preview_registration.setEnabled(
             self._sequence is not None and self._sequence.frame_count > 1 and not busy
         )
@@ -933,16 +945,33 @@ class NanoTrackMainWindow(QMainWindow):
         dialog.activateWindow()
         self.statusBar().showMessage("Registration results window opened.", 3000)
 
+    def _selected_registration_backend_key(self) -> str:
+        current_data = self.cmb_registration_backend.currentData()
+        return str(current_data or "phase_correlation")
+
+    def _selected_registration_backend_label(self) -> str:
+        current_text = self.cmb_registration_backend.currentText().strip()
+        return current_text or "Phase"
+
+    def _current_registration_settings(self) -> RegistrationSettings:
+        return RegistrationSettings(
+            backend=self._selected_registration_backend_key(),
+            reference_strategy="adjacent",
+            registration_view="raw",
+        )
+
     def _on_registration_preview_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
             return
         try:
             reference_index, moving_index = self._registration_preview_pair_indices()
+            settings = self._current_registration_settings()
             preview = build_registration_pair_preview(
                 self._sequence.raw_frames,
                 reference_index=reference_index,
                 moving_index=moving_index,
-                backend=self._registration_backend,
+                settings=settings,
+                backend=build_registration_backend_from_settings(settings),
             )
         except Exception as exc:
             QMessageBox.critical(self, "Registration preview error", str(exc))
@@ -960,7 +989,8 @@ class NanoTrackMainWindow(QMainWindow):
         dialog.raise_()
         dialog.activateWindow()
         self.statusBar().showMessage(
-            f"Registration preview opened for frames {reference_index + 1} -> {moving_index + 1}.",
+            f"{self._selected_registration_backend_label()} registration preview opened for "
+            f"frames {reference_index + 1} -> {moving_index + 1}.",
             3000,
         )
 
@@ -987,14 +1017,10 @@ class NanoTrackMainWindow(QMainWindow):
             QApplication.processEvents()
 
         try:
+            settings = self._current_registration_settings()
             result_set = run_adjacent_phase_registration(
                 self._sequence.raw_frames,
-                settings=RegistrationSettings(
-                    backend="phase_correlation",
-                    reference_strategy="adjacent",
-                    registration_view="raw",
-                ),
-                backend=self._registration_backend,
+                settings=settings,
                 progress_callback=on_progress,
             )
         except Exception as exc:

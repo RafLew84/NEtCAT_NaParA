@@ -44,6 +44,7 @@ from .preview import (
 )
 from .batch import (
     RegistrationProgressCallback,
+    build_registration_backend_from_settings,
     run_adjacent_phase_registration,
 )
 from .aligned import build_aligned_frames
@@ -74,6 +75,7 @@ __all__ = [
     "RegistrationViewResult",
     "apply_translation_to_frame",
     "build_aligned_frames",
+    "build_registration_backend_from_settings",
     "run_adjacent_phase_registration",
     "build_registration_view",
     "build_registration_view_from_settings",
