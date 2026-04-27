@@ -23,6 +23,9 @@ from nanotrack.core import (
     ParticleMetrics,
     ParticleTrack,
     PolygonROI,
+    RegistrationFrameResult,
+    RegistrationResultSet,
+    RegistrationSettings,
     STMSequence,
     TrackFrameAnnotation,
     TrackQuality,
@@ -52,6 +55,7 @@ class NanoTrackSessionSnapshot:
     denoised_frames: np.ndarray | None = None
     denoised_sigma_factor: float | None = None
     show_denoised_in_viewer: bool = False
+    registration_results: RegistrationResultSet | None = None
 
 
 def save_session_snapshot(path: str, snapshot: NanoTrackSessionSnapshot) -> None:
@@ -115,6 +119,7 @@ def load_session_snapshot(
         tracks = _restore_tracks(zf, manifest.get("tracks", []))
         edge_tracks = _restore_edge_tracks(zf, manifest.get("edge_tracks", []))
         yolo_detections = _restore_yolo_detections(manifest.get("yolo_detections"))
+        registration_results = _restore_registration_result_set(manifest.get("registration_results"))
         draft_bboxes = {
             int(item["frame_index"]): _bbox_from_payload(item["bbox"])
             for item in manifest.get("draft_bboxes", [])
@@ -144,6 +149,7 @@ def load_session_snapshot(
             denoised_frames=denoised_frames,
             denoised_sigma_factor=preprocessing.get("denoised_sigma_factor"),
             show_denoised_in_viewer=bool(manifest.get("show_denoised_in_viewer", False)),
+            registration_results=registration_results,
         )
 
 
@@ -160,6 +166,7 @@ def _build_manifest(snapshot: NanoTrackSessionSnapshot) -> dict:
         "selected_edge_track_id": snapshot.selected_edge_track_id,
         "show_denoised_in_viewer": bool(snapshot.show_denoised_in_viewer),
         "yolo_detections": _serialize_yolo_detections(snapshot.yolo_detections),
+        "registration_results": _serialize_registration_result_set(snapshot.registration_results),
         "draft_bboxes": [
             {
                 "frame_index": int(frame_index),
@@ -187,6 +194,50 @@ def _build_manifest(snapshot: NanoTrackSessionSnapshot) -> dict:
         },
         "tracks": [_serialize_track(track) for track in snapshot.tracks],
         "edge_tracks": [_serialize_edge_track(track) for track in snapshot.edge_tracks],
+    }
+
+
+def _serialize_registration_result_set(result_set: RegistrationResultSet | None) -> dict | None:
+    if result_set is None:
+        return None
+    return {
+        "settings": _serialize_registration_settings(result_set.settings),
+        "reference_frame_index": int(result_set.reference_frame_index),
+        "template_frame_indices": (
+            None if result_set.template_frame_indices is None else [int(index) for index in result_set.template_frame_indices]
+        ),
+        "results": [
+            _serialize_registration_frame_result(result_set.get_result(frame_index))
+            for frame_index in result_set.frame_indices
+        ],
+    }
+
+
+def _serialize_registration_settings(settings: RegistrationSettings) -> dict:
+    return {
+        "backend": settings.backend,
+        "reference_strategy": settings.reference_strategy,
+        "registration_view": settings.registration_view,
+        "roi_mask": None if settings.roi_mask is None else np.asarray(settings.roi_mask, dtype=bool).tolist(),
+        "backend_params": _json_safe(settings.backend_params),
+    }
+
+
+def _serialize_registration_frame_result(result: RegistrationFrameResult | None) -> dict:
+    if result is None:
+        raise ValueError("registration result set contains a missing frame result.")
+    return {
+        "frame_index": int(result.frame_index),
+        "shift_xy": [float(result.dx), float(result.dy)],
+        "method": result.method,
+        "quality_score": float(result.quality_score),
+        "phase_peak_ratio": result.phase_peak_ratio,
+        "ecc_score": result.ecc_score,
+        "num_inlier_tiles": result.num_inlier_tiles,
+        "num_total_tiles": result.num_total_tiles,
+        "median_tile_residual": result.median_tile_residual,
+        "flow_mad": result.flow_mad,
+        "status": result.status,
     }
 
 
@@ -415,6 +466,45 @@ def _restore_edge_geometry_quality(payload: dict | None) -> EdgeGeometryQuality 
     )
 
 
+def _restore_registration_result_set(payload: dict | None) -> RegistrationResultSet | None:
+    if not payload:
+        return None
+    settings = _restore_registration_settings(payload.get("settings", {}))
+    results_by_frame: dict[int, RegistrationFrameResult] = {}
+    for result_payload in payload.get("results", []):
+        result = RegistrationFrameResult(
+            frame_index=int(result_payload["frame_index"]),
+            shift_xy=result_payload["shift_xy"],
+            method=str(result_payload["method"]),
+            quality_score=float(result_payload.get("quality_score", 0.0)),
+            phase_peak_ratio=result_payload.get("phase_peak_ratio"),
+            ecc_score=result_payload.get("ecc_score"),
+            num_inlier_tiles=result_payload.get("num_inlier_tiles"),
+            num_total_tiles=result_payload.get("num_total_tiles"),
+            median_tile_residual=result_payload.get("median_tile_residual"),
+            flow_mad=result_payload.get("flow_mad"),
+            status=str(result_payload.get("status", "ok")),
+        )
+        results_by_frame[result.frame_index] = result
+    return RegistrationResultSet(
+        settings=settings,
+        results_by_frame=results_by_frame,
+        reference_frame_index=int(payload.get("reference_frame_index", 0)),
+        template_frame_indices=payload.get("template_frame_indices"),
+    )
+
+
+def _restore_registration_settings(payload: dict) -> RegistrationSettings:
+    roi_mask = payload.get("roi_mask")
+    return RegistrationSettings(
+        backend=str(payload.get("backend", "phase_correlation")),
+        reference_strategy=str(payload.get("reference_strategy", "adjacent")),
+        registration_view=str(payload.get("registration_view", "raw")),
+        roi_mask=None if roi_mask is None else np.asarray(roi_mask, dtype=bool),
+        backend_params=dict(payload.get("backend_params", {})),
+    )
+
+
 def _restore_yolo_detections(payload: dict | None) -> YoloDetectionSet | None:
     if not payload:
         return None
@@ -456,3 +546,15 @@ def _read_optional_npz(zf: zipfile.ZipFile, path: str, key: str) -> np.ndarray |
         return None
     with np.load(io.BytesIO(raw), allow_pickle=False) as npz:
         return np.asarray(npz[key])
+
+
+def _json_safe(value):
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    return value

@@ -33,6 +33,25 @@ class RegistrationAlignedViewTests(unittest.TestCase):
         self.assertLess(float(np.mean((aligned[1] - frame0) ** 2)), float(np.mean((frame1 - frame0) ** 2)))
         self.assertLess(float(np.mean((aligned[2] - frame0) ** 2)), float(np.mean((frame2 - frame0) ** 2)))
 
+    def test_materialized_aligned_view_does_not_mutate_raw_stack(self) -> None:
+        frames = np.arange(2 * 5 * 6, dtype=np.float32).reshape(2, 5, 6)
+        original = frames.copy()
+        result_set = RegistrationResultSet(
+            settings=RegistrationSettings(registration_view="raw"),
+            results_by_frame={
+                0: RegistrationFrameResult(frame_index=0, shift_xy=(0.0, 0.0), method="identity"),
+                1: RegistrationFrameResult(frame_index=1, shift_xy=(1.0, -1.0), method="manual"),
+            },
+        )
+
+        aligned = build_aligned_frames(frames, result_set, interpolation_order=0)
+
+        np.testing.assert_array_equal(frames, original)
+        self.assertFalse(np.shares_memory(aligned, frames))
+        self.assertEqual(aligned.dtype, np.float32)
+        np.testing.assert_array_equal(aligned[0], original[0])
+        self.assertFalse(np.array_equal(aligned[1], original[1]))
+
     def test_rejects_missing_or_extra_registration_results(self) -> None:
         frames = np.zeros((2, 8, 8), dtype=np.float32)
         settings = RegistrationSettings(registration_view="raw")

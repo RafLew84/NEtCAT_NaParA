@@ -34,6 +34,9 @@ from nanotrack.core import (
     ParticleMetrics,
     ParticleTrack,
     PolygonROI,
+    RegistrationFrameResult,
+    RegistrationResultSet,
+    RegistrationSettings,
     STMSequence,
     STMSequenceMetadata,
     TrackFrameAnnotation,
@@ -97,6 +100,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             self.window._edge_preview_dialog.close()
         if getattr(self.window, "_registration_preview_dialog", None) is not None:
             self.window._registration_preview_dialog.close()
+        if getattr(self.window, "_registration_results_dialog", None) is not None:
+            self.window._registration_results_dialog.close()
         if getattr(self.window, "_edge_results_dialog", None) is not None:
             self.window._edge_results_dialog.close()
         if getattr(self.window, "_dexined_progress_dialog", None) is not None:
@@ -285,6 +290,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.yolo_panel.btn_clear.isEnabled())
         self.assertTrue(self.window.action_preview_registration.isEnabled())
         self.assertTrue(self.window.action_run_registration.isEnabled())
+        self.assertFalse(self.window.action_open_registration_results.isEnabled())
         self.assertFalse(self.window.action_show_aligned_registration.isEnabled())
         self.assertFalse(self.window.action_show_aligned_registration.isChecked())
         self.assertTrue(self.window.polygon_tools_panel.btn_draw.isEnabled())
@@ -1620,6 +1626,27 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         )
         self.window._update_cached_preprocessing_availability()
         self.window.preprocessing_panel.chk_show_denoised.setChecked(True)
+        registration_results = RegistrationResultSet(
+            settings=RegistrationSettings(
+                backend="phase_correlation",
+                reference_strategy="adjacent",
+                registration_view="raw",
+            ),
+            results_by_frame={
+                frame_index: RegistrationFrameResult(
+                    frame_index=frame_index,
+                    shift_xy=(float(frame_index), -0.5 * float(frame_index)),
+                    method="identity" if frame_index == 0 else "phase_correlation_adjacent",
+                    quality_score=1.0 if frame_index == 0 else 0.8,
+                    phase_peak_ratio=None if frame_index == 0 else 3.0,
+                    status="ok",
+                )
+                for frame_index in range(sequence.frame_count)
+            },
+            reference_frame_index=0,
+            template_frame_indices=(0,),
+        )
+        self.window._registration_results = registration_results
 
         with tempfile.TemporaryDirectory() as tmpdir:
             session_path = f"{tmpdir}/sample.nanotrack"
@@ -1635,6 +1662,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             self.window._edge_tracks = []
             self.window._selected_edge_track_id = None
             self.window._yolo_detections = None
+            self.window._registration_results = None
             self.window.set_tracks([])
             self.window.preprocessing_panel.chk_show_denoised.setChecked(False)
 
@@ -1645,6 +1673,19 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(self.window.action_save_session.isEnabled())
         self.assertEqual(self.window.current_draft_bbox(), BBoxXYXY(0.0, 0.0, 48.0, 48.0))
         self.assertTrue(self.window.preprocessing_panel.chk_show_denoised.isChecked())
+        restored_registration = self.window.current_registration_results()
+        self.assertIsNotNone(restored_registration)
+        assert restored_registration is not None
+        np.testing.assert_allclose(restored_registration.shifts_xy_array(), registration_results.shifts_xy_array())
+        self.assertEqual(restored_registration.settings.registration_view, "raw")
+        self.assertTrue(self.window.action_open_registration_results.isEnabled())
+        self.assertTrue(self.window.action_show_aligned_registration.isEnabled())
+        self.assertFalse(self.window.action_show_aligned_registration.isChecked())
+        self.window.action_show_aligned_registration.trigger()
+        self.assertTrue(self.window.action_show_aligned_registration.isChecked())
+        self.assertIsNotNone(self.window.current_aligned_frames())
+        self.assertFalse(self.window.preprocessing_panel.chk_show_denoised.isChecked())
+        self.assertIn("View: Aligned registration", self.window.viewer.lbl_meta.text())
         np.testing.assert_array_equal(self.window.current_repair_frames(), np.full_like(sequence.raw_frames, 0.15, dtype=np.float32))
         np.testing.assert_array_equal(self.window.current_denoised_frames(), np.full_like(sequence.raw_frames, 0.85, dtype=np.float32))
         restored_track = self.window.current_tracks()[0]
@@ -1695,6 +1736,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.preprocessing_panel.btn_repair_apply_all.isEnabled())
         self.assertFalse(self.window.action_preview_registration.isEnabled())
         self.assertFalse(self.window.action_run_registration.isEnabled())
+        self.assertFalse(self.window.action_open_registration_results.isEnabled())
         self.assertFalse(self.window.action_show_aligned_registration.isEnabled())
         self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "No sequence loaded")
 
@@ -1761,10 +1803,43 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         )
         self.assertEqual(result_set.get_result(2).method, "phase_correlation_adjacent")
         self.assertEqual(result_set.status_counts()["ok"], 3)
+        self.assertTrue(self.window.action_open_registration_results.isEnabled())
         self.assertTrue(self.window.action_show_aligned_registration.isEnabled())
         self.assertFalse(self.window.action_show_aligned_registration.isChecked())
         self.assertIsNone(self.window.current_aligned_frames())
         self.assertIn("Registration finished for 3 frames", self.window.statusBar().currentMessage())
+
+    def test_registration_results_action_opens_quality_dialog(self) -> None:
+        rng = np.random.default_rng(987)
+        frame0 = rng.normal(0.0, 0.1, (48, 48)).astype(np.float32)
+        frame0[8:20, 10:23] += 2.0
+        frame0[29:41, 30:38] -= 1.4
+        frame1 = np.roll(frame0, shift=(2, -3), axis=(0, 1))
+        frame2 = np.roll(frame1, shift=(-1, 5), axis=(0, 1))
+        sequence = STMSequence(
+            source_path="/tmp/registration_results.mpp",
+            raw_frames=np.stack([frame0, frame1, frame2]).astype(np.float32),
+            metadata=STMSequenceMetadata(pixels_x=48, pixels_y=48),
+        )
+        self.window.set_sequence(sequence)
+        self.window.action_run_registration.trigger()
+
+        self.window.action_open_registration_results.trigger()
+
+        dialog = self.window.current_registration_results_dialog()
+        self.assertIsNotNone(dialog)
+        assert dialog is not None
+        self.assertTrue(dialog.isVisible())
+        self.assertEqual(dialog.table_results.rowCount(), 3)
+        self.assertEqual(dialog.table_results.item(1, 0).text(), "2")
+        self.assertEqual(dialog.table_results.item(1, 1).text(), "3.000")
+        self.assertEqual(dialog.table_results.item(1, 2).text(), "-2.000")
+        self.assertIn("frames: 3 / 3", dialog.lbl_summary.text())
+        self.assertIn("ok: 3", dialog.lbl_summary.text())
+        self.assertEqual(len(dialog.plot_dx.plotItem.listDataItems()), 1)
+        self.assertEqual(len(dialog.plot_dy.plotItem.listDataItems()), 1)
+        self.assertEqual(len(dialog.plot_quality.plotItem.listDataItems()), 1)
+        self.assertEqual(self.window.statusBar().currentMessage(), "Registration results window opened.")
 
     def test_registration_aligned_view_uses_stored_shifts_without_mutating_raw_frames(self) -> None:
         rng = np.random.default_rng(654)

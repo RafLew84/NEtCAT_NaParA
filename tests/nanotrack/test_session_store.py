@@ -15,6 +15,9 @@ from nanotrack.core import (
     ParticleMetrics,
     ParticleTrack,
     PolygonROI,
+    RegistrationFrameResult,
+    RegistrationResultSet,
+    RegistrationSettings,
     STMSequence,
     STMSequenceMetadata,
     TrackFrameAnnotation,
@@ -125,6 +128,55 @@ class SessionStoreTests(unittest.TestCase):
                 ),
             )
         )
+        registration_results = RegistrationResultSet(
+            settings=RegistrationSettings(
+                backend="phase_correlation",
+                reference_strategy="adjacent",
+                registration_view="normalized",
+                roi_mask=np.asarray(
+                    [
+                        [True, True, True, False, False],
+                        [True, True, True, False, False],
+                        [True, True, True, False, False],
+                        [True, True, True, False, False],
+                    ],
+                    dtype=bool,
+                ),
+                backend_params={"upsample_factor": np.int64(20), "window": "hann"},
+            ),
+            results_by_frame={
+                0: RegistrationFrameResult(
+                    frame_index=0,
+                    shift_xy=(0.0, 0.0),
+                    method="identity",
+                    quality_score=1.0,
+                    status="ok",
+                ),
+                1: RegistrationFrameResult(
+                    frame_index=1,
+                    shift_xy=(1.25, -0.5),
+                    method="phase_correlation_adjacent",
+                    quality_score=0.75,
+                    phase_peak_ratio=2.8,
+                    status="low_confidence",
+                ),
+                2: RegistrationFrameResult(
+                    frame_index=2,
+                    shift_xy=(2.0, -1.0),
+                    method="phase_correlation_adjacent",
+                    quality_score=0.7,
+                    phase_peak_ratio=3.1,
+                    ecc_score=0.91,
+                    num_inlier_tiles=7,
+                    num_total_tiles=9,
+                    median_tile_residual=0.2,
+                    flow_mad=0.15,
+                    status="ok",
+                ),
+            },
+            reference_frame_index=0,
+            template_frame_indices=(0,),
+        )
         snapshot = NanoTrackSessionSnapshot(
             sequence=sequence,
             tracks=[track],
@@ -163,6 +215,7 @@ class SessionStoreTests(unittest.TestCase):
             denoised_frames=np.full_like(sequence.raw_frames, 0.75, dtype=np.float32),
             denoised_sigma_factor=1.4,
             show_denoised_in_viewer=True,
+            registration_results=registration_results,
         )
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -203,6 +256,29 @@ class SessionStoreTests(unittest.TestCase):
         np.testing.assert_array_equal(loaded.denoised_frames, snapshot.denoised_frames)
         self.assertEqual(loaded.repair_params, snapshot.repair_params)
         self.assertEqual(loaded.denoised_sigma_factor, 1.4)
+        self.assertIsNotNone(loaded.registration_results)
+        loaded_registration = loaded.registration_results
+        assert loaded_registration is not None
+        self.assertEqual(loaded_registration.reference_frame_index, 0)
+        self.assertEqual(loaded_registration.template_frame_indices, (0,))
+        self.assertEqual(loaded_registration.frame_indices, [0, 1, 2])
+        self.assertEqual(loaded_registration.settings.registration_view, "normalized")
+        self.assertEqual(loaded_registration.settings.backend_params["upsample_factor"], 20)
+        np.testing.assert_array_equal(
+            loaded_registration.settings.roi_mask,
+            registration_results.settings.roi_mask,
+        )
+        np.testing.assert_allclose(
+            loaded_registration.shifts_xy_array(),
+            np.asarray([[0.0, 0.0], [1.25, -0.5], [2.0, -1.0]], dtype=np.float64),
+        )
+        self.assertEqual(loaded_registration.get_result(1).status, "low_confidence")
+        self.assertAlmostEqual(loaded_registration.get_result(1).phase_peak_ratio, 2.8)
+        self.assertAlmostEqual(loaded_registration.get_result(2).ecc_score, 0.91)
+        self.assertEqual(loaded_registration.get_result(2).num_inlier_tiles, 7)
+        self.assertEqual(loaded_registration.get_result(2).num_total_tiles, 9)
+        self.assertAlmostEqual(loaded_registration.get_result(2).median_tile_residual, 0.2)
+        self.assertAlmostEqual(loaded_registration.get_result(2).flow_mad, 0.15)
 
         restored_track = loaded.tracks[0]
         self.assertEqual(restored_track.track_id, 7)

@@ -75,6 +75,25 @@ class STMSequenceLoaderTests(unittest.TestCase):
         self.assertEqual(sequence.metadata.raw_header["NanoTrack Source"]["source_extensions"], [".stp", ".s94", ".stp"])
         self.assertEqual(len(sequence.metadata.raw_header["NanoTrack Frame Headers"]), 3)
 
+    def test_single_s94_uses_frame_series_loader_and_preserves_source_metadata(self) -> None:
+        image = _stm_image("single.s94", np.array([[1.5, 2.5]], dtype=np.float32), image_type="Current")
+
+        with (
+            patch("nanotrack.io.sequence_loader.load_stm_path", return_value=[image]) as load_stm_mock,
+            patch("nanotrack.io.sequence_loader.load_mpp_sequence") as load_mpp_mock,
+        ):
+            sequence = load_stm_sequence("single.s94")
+
+        load_stm_mock.assert_called_once_with("single.s94")
+        load_mpp_mock.assert_not_called()
+        self.assertEqual(sequence.source_path, "single.s94")
+        self.assertEqual(sequence.frame_count, 1)
+        np.testing.assert_array_equal(sequence.raw_frames[0], np.array([[1.5, 2.5]], dtype=np.float32))
+        self.assertEqual(sequence.metadata.image_type, "Current")
+        self.assertEqual(sequence.metadata.raw_header["NanoTrack Source"]["source_files"], ["single.s94"])
+        self.assertEqual(sequence.metadata.raw_header["NanoTrack Source"]["source_extensions"], [".s94"])
+        self.assertEqual(sequence.metadata.raw_header["NanoTrack Frame Headers"][0]["source_file"], "single.s94")
+
     def test_can_reverse_stp_s94_series_order(self) -> None:
         images_by_path = {
             "frame_a.stp": [_stm_image("frame_a.stp", np.array([[1]], dtype=np.float32))],

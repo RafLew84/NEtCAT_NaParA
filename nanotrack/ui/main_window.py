@@ -91,6 +91,7 @@ from nanotrack.ui.dialogs import (
     EdgePreviewDialog,
     EdgeTrackResultsDialog,
     RegistrationPreviewDialog,
+    RegistrationResultsDialog,
     TrackResultsDialog,
 )
 from nanotrack.ui.widgets import (
@@ -235,6 +236,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._bm3d_preview_dialog: Bm3dPreviewDialog | None = None
         self._edge_preview_dialog: EdgePreviewDialog | None = None
         self._registration_preview_dialog: RegistrationPreviewDialog | None = None
+        self._registration_results_dialog: RegistrationResultsDialog | None = None
         self._results_dialog: TrackResultsDialog | None = None
         self._edge_results_dialog: EdgeTrackResultsDialog | None = None
         self._registration_results: RegistrationResultSet | None = None
@@ -317,6 +319,9 @@ class NanoTrackMainWindow(QMainWindow):
         self.action_run_registration = toolbar.addAction("Run Registration...")
         self.action_run_registration.setToolTip("Run adjacent phase-correlation registration for the whole sequence")
         self.action_run_registration.setEnabled(False)
+        self.action_open_registration_results = toolbar.addAction("View Registration...")
+        self.action_open_registration_results.setToolTip("Open registration shifts and quality metrics")
+        self.action_open_registration_results.setEnabled(False)
         self.action_show_aligned_registration = toolbar.addAction("Show Aligned")
         self.action_show_aligned_registration.setToolTip("Show frames translated by the latest registration results")
         self.action_show_aligned_registration.setCheckable(True)
@@ -400,6 +405,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.action_open_edge_results.triggered.connect(self._on_open_edge_results_requested)
         self.action_preview_registration.triggered.connect(self._on_registration_preview_requested)
         self.action_run_registration.triggered.connect(self._on_registration_batch_requested)
+        self.action_open_registration_results.triggered.connect(self._on_open_registration_results_requested)
         self.action_show_aligned_registration.toggled.connect(self._on_show_aligned_registration_toggled)
         self.slider_frame.valueChanged.connect(self._on_frame_selected)
         self.spin_frame.valueChanged.connect(self._on_spin_frame_selected)
@@ -549,6 +555,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.yolo_panel.set_edit_actions_available(load_available=False, save_available=False)
         self.yolo_panel.set_conversion_actions_available(current_available=False, global_available=False)
         self._update_menu_action_state()
+        self._sync_registration_results_dialog()
         self._sync_edge_results_dialog()
         self.statusBar().showMessage(
             (
@@ -644,6 +651,9 @@ class NanoTrackMainWindow(QMainWindow):
 
     def current_edge_results_dialog(self) -> EdgeTrackResultsDialog | None:
         return self._edge_results_dialog
+
+    def current_registration_results_dialog(self) -> RegistrationResultsDialog | None:
+        return self._registration_results_dialog
 
     def current_registration_results(self) -> RegistrationResultSet | None:
         return self._registration_results
@@ -773,6 +783,9 @@ class NanoTrackMainWindow(QMainWindow):
             self._sequence is not None and self._sequence.frame_count > 1 and not busy
         )
         self.action_run_registration.setEnabled(self._sequence is not None and not busy)
+        self.action_open_registration_results.setEnabled(
+            self._sequence is not None and self._registration_results is not None and not busy
+        )
         self.action_show_aligned_registration.setEnabled(
             self._sequence is not None and self._registration_results is not None and not busy
         )
@@ -798,6 +811,7 @@ class NanoTrackMainWindow(QMainWindow):
             denoised_frames=None if self._denoised_frames is None else np.asarray(self._denoised_frames, dtype=np.float32),
             denoised_sigma_factor=self._denoised_sigma_factor,
             show_denoised_in_viewer=self._show_denoised_in_viewer,
+            registration_results=self._registration_results,
         )
 
     def save_session_to_path(self, path: str) -> None:
@@ -909,6 +923,16 @@ class NanoTrackMainWindow(QMainWindow):
         dialog.activateWindow()
         self.statusBar().showMessage("Results window opened.", 3000)
 
+    def _on_open_registration_results_requested(self) -> None:
+        if self._sequence is None or self._registration_results is None:
+            return
+        dialog = self._ensure_registration_results_dialog()
+        dialog.set_context(self._sequence, self._registration_results)
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+        self.statusBar().showMessage("Registration results window opened.", 3000)
+
     def _on_registration_preview_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
             return
@@ -976,11 +1000,13 @@ class NanoTrackMainWindow(QMainWindow):
         except Exception as exc:
             self._registration_results = None
             self._clear_aligned_registration_cache()
+            self._sync_registration_results_dialog()
             QMessageBox.critical(self, "Registration error", str(exc))
             self.statusBar().showMessage("Registration failed.", 3000)
         else:
             self._registration_results = result_set
             self._clear_aligned_registration_cache()
+            self._sync_registration_results_dialog()
             progress.setValue(frame_count)
             self.statusBar().showMessage(self._format_registration_finished_message(result_set), 5000)
         finally:
@@ -1027,12 +1053,16 @@ class NanoTrackMainWindow(QMainWindow):
         }
         self._yolo_detections = snapshot.yolo_detections
         self._yolo_edit_target = None
+        self._registration_results = snapshot.registration_results
+        self._clear_aligned_registration_cache()
         self._update_cached_preprocessing_availability()
         self._show_denoised_in_viewer = bool(snapshot.show_denoised_in_viewer and self._has_any_preprocessing_cache())
         with QSignalBlocker(self.preprocessing_panel.chk_show_denoised):
             self.preprocessing_panel.chk_show_denoised.setChecked(self._show_denoised_in_viewer)
         self.set_tracks(snapshot.tracks, selected_track_id=snapshot.selected_track_id)
         self.set_edge_tracks(snapshot.edge_tracks, selected_track_id=snapshot.selected_edge_track_id)
+        self._update_menu_action_state()
+        self._sync_registration_results_dialog()
         self._show_current_frame(preserve_zoom=False)
 
     def _on_frame_selected(self, frame_index: int) -> None:
@@ -3087,6 +3117,11 @@ class NanoTrackMainWindow(QMainWindow):
             self._registration_preview_dialog = RegistrationPreviewDialog(self)
         return self._registration_preview_dialog
 
+    def _ensure_registration_results_dialog(self) -> RegistrationResultsDialog:
+        if self._registration_results_dialog is None:
+            self._registration_results_dialog = RegistrationResultsDialog(self)
+        return self._registration_results_dialog
+
     def _set_preprocessing_busy(self, busy: bool) -> None:
         self._is_preprocessing = busy
         self._apply_busy_state()
@@ -4374,6 +4409,11 @@ class NanoTrackMainWindow(QMainWindow):
             self._edge_tracks,
             selected_track_id=self._selected_edge_track_id,
         )
+
+    def _sync_registration_results_dialog(self) -> None:
+        if self._registration_results_dialog is None:
+            return
+        self._registration_results_dialog.set_context(self._sequence, self._registration_results)
 
     def _sync_results_dialog_selection(self) -> None:
         if self._results_dialog is None:

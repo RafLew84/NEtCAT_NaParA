@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from nanotrack.core import RegistrationSettings
+from nanotrack.core import RegistrationFrameResult, RegistrationSettings
 from nanotrack.registration import run_adjacent_phase_registration
 
 
@@ -56,6 +56,55 @@ class AdjacentPhaseRegistrationTests(unittest.TestCase):
         self.assertEqual(result_set.frame_indices, [0])
         np.testing.assert_array_equal(result_set.shifts_xy_array(), np.asarray([[0.0, 0.0]], dtype=np.float64))
         self.assertEqual(result_set.get_result(0).quality_score, 1.0)
+
+    def test_batch_registration_propagates_quality_metrics_from_pair_backend(self) -> None:
+        class MetricsBackend:
+            def estimate_pair(
+                self,
+                registration_view,
+                *,
+                reference_index: int,
+                moving_index: int,
+            ) -> RegistrationFrameResult:
+                self.seen_shape = registration_view.frames.shape
+                return RegistrationFrameResult(
+                    frame_index=moving_index,
+                    shift_xy=(1.25, -0.5),
+                    method="metrics_backend",
+                    quality_score=0.65,
+                    phase_peak_ratio=2.4,
+                    ecc_score=0.91,
+                    num_inlier_tiles=6,
+                    num_total_tiles=8,
+                    median_tile_residual=0.35,
+                    flow_mad=0.12,
+                    status="low_confidence",
+                )
+
+        frame = self._textured_frame()
+        backend = MetricsBackend()
+        result_set = run_adjacent_phase_registration(
+            np.stack([frame, frame, frame]).astype(np.float32),
+            backend=backend,
+            settings=RegistrationSettings(registration_view="normalized"),
+        )
+
+        self.assertEqual(backend.seen_shape, (3, 64, 64))
+        np.testing.assert_allclose(
+            result_set.shifts_xy_array(),
+            np.asarray([[0.0, 0.0], [1.25, -0.5], [2.5, -1.0]], dtype=np.float64),
+        )
+        result = result_set.get_result(2)
+        assert result is not None
+        self.assertEqual(result.method, "metrics_backend_adjacent")
+        self.assertEqual(result.status, "low_confidence")
+        self.assertAlmostEqual(result.quality_score, 0.65)
+        self.assertAlmostEqual(result.phase_peak_ratio, 2.4)
+        self.assertAlmostEqual(result.ecc_score, 0.91)
+        self.assertEqual(result.num_inlier_tiles, 6)
+        self.assertEqual(result.num_total_tiles, 8)
+        self.assertAlmostEqual(result.median_tile_residual, 0.35)
+        self.assertAlmostEqual(result.flow_mad, 0.12)
 
     def test_rejects_invalid_inputs_and_reference_strategy(self) -> None:
         frame = self._textured_frame()
