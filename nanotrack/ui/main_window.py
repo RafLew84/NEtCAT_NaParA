@@ -905,7 +905,7 @@ class NanoTrackMainWindow(QMainWindow):
         tracker_kind = self._selected_mask_tracker_kind()
         if tracker_kind is MaskTrackerKind.SAM2:
             return True
-        if tracker_kind is MaskTrackerKind.DAM4SAM and action_label == "Run for Selected":
+        if tracker_kind in {MaskTrackerKind.DAM4SAM, MaskTrackerKind.SAMURAI} and action_label == "Run for Selected":
             return True
         if tracker_kind in {MaskTrackerKind.DAM4SAM, MaskTrackerKind.SAMURAI} and action_label in {
             "Run for All Seeds",

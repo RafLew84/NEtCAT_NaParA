@@ -5083,21 +5083,68 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.window.slider_frame.setValue(2)
         self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
 
-    def test_unimplemented_mask_tracker_selection_does_not_run_current_sam2_backend(self) -> None:
+    def test_run_selected_samurai_updates_track_annotations_with_samurai_source(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.assertGreaterEqual(sequence.frame_count, 3)
         self.window.set_sequence(sequence)
-        self.window.slider_frame.setValue(0)
-        self.window.viewer.place_bbox_at_pixel(24.0, 24.0)
+        self.window.slider_frame.setValue(1)
+        bbox = self.window.viewer.place_bbox_at_pixel(24.0, 24.0)
         self.window.bbox_tools_panel.btn_add_seed.click()
         self.window.track_list_panel.set_mask_tracker_kind(MaskTrackerKind.SAMURAI)
 
-        with patch.object(self.window._sam2_backend, "run") as run_mock:
-            self.window.track_list_panel.btn_run_selected.click()
+        frame_count = sequence.frame_count - 1
+        run_output = self._mask_tracker_output(
+            MaskTrackerKind.SAMURAI,
+            track_id=1,
+            frame_index_offset=1,
+            frame_count=frame_count,
+            frame_shape=sequence.frame_shape,
+            row=10,
+            col=11,
+        )
+        observed_inputs = []
 
-        run_mock.assert_not_called()
-        self.assertIsNone(self.window._sam2_progress_dialog)
-        self.assertFalse(self.window._is_tracking)
-        self.assertIn("SAMURAI mask tracking is not available yet", self.window.statusBar().currentMessage())
+        def fake_run(run_input):
+            time.sleep(0.05)
+            observed_inputs.append(run_input)
+            return run_output
+
+        samurai_backend = self.window._mask_tracker_backends[MaskTrackerKind.SAMURAI]
+        with patch.object(samurai_backend, "run", side_effect=fake_run) as run_mock:
+            self.window.track_list_panel.btn_run_selected.click()
+            self._wait_until(
+                lambda: (
+                    run_mock.called
+                    and self.window.current_tracks()[0].get_annotation(2) is not None
+                    and not self.window._is_tracking
+                )
+            )
+
+        run_mock.assert_called_once()
+        self.assertEqual(len(observed_inputs), 1)
+        run_input = observed_inputs[0]
+        self.assertEqual(run_input.tracker_kind, MaskTrackerKind.SAMURAI)
+        self.assertEqual(run_input.track_id, 1)
+        self.assertEqual(run_input.frame_index_offset, 1)
+        self.assertEqual(run_input.source_view, "raw")
+        np.testing.assert_allclose(run_input.frames, np.asarray(sequence.raw_frames[1:], dtype=np.float32))
+        np.testing.assert_array_equal(run_input.query_box_xyxy, np.asarray(bbox.as_tuple(), dtype=np.float32))
+        track = self.window.current_tracks()[0]
+        frame1_annotation = track.get_annotation(1)
+        frame2_annotation = track.get_annotation(2)
+        self.assertIsNotNone(frame1_annotation)
+        self.assertIsNotNone(frame2_annotation)
+        self.assertEqual(frame1_annotation.source, AnnotationSource.SAMURAI)
+        self.assertEqual(frame2_annotation.source, AnnotationSource.SAMURAI)
+        self.assertEqual(frame1_annotation.bbox, BBoxXYXY(11.0, 10.0, 18.0, 16.0))
+        self.assertEqual(frame2_annotation.bbox, BBoxXYXY(12.0, 11.0, 19.0, 17.0))
+        self.assertTrue(frame1_annotation.mask.any())
+        expected_metrics = compute_particle_metrics(frame1_annotation.mask, sequence.raw_frames[1])
+        self.assertEqual(frame1_annotation.metrics.area_px, expected_metrics.area_px)
+        self.assertEqual(frame1_annotation.metrics.perimeter_px, expected_metrics.perimeter_px)
+        self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
+        self.assertTrue(self.window.track_list_panel.btn_run_selected.isEnabled())
+        self.assertIn("SAMURAI finished for Track 1.", self.window.statusBar().currentMessage())
 
     def test_run_selected_dam4sam_updates_track_annotations_with_dam4sam_source(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
@@ -5196,6 +5243,32 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(critical_mock.call_args.args[1], "DAM4SAM error")
         self.assertIn("DAM4SAM worker failed.", critical_mock.call_args.args[2])
         self.assertEqual(self.window.statusBar().currentMessage(), "DAM4SAM run failed.")
+        track = self.window.current_tracks()[0]
+        self.assertIsNotNone(track.get_annotation(1))
+        self.assertIsNone(track.get_annotation(2))
+        self.assertIsNone(track.get_annotation(sequence.frame_count - 1))
+        self.assertTrue(self.window.track_list_panel.btn_run_selected.isEnabled())
+
+    @patch("nanotrack.ui.main_window.QMessageBox.critical")
+    def test_run_selected_samurai_failure_uses_backend_label_and_keeps_seed_only(self, critical_mock) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.assertGreaterEqual(sequence.frame_count, 3)
+        self.window.set_sequence(sequence)
+        self.window.slider_frame.setValue(1)
+        self.window.viewer.place_bbox_at_pixel(24.0, 24.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+        self.window.track_list_panel.set_mask_tracker_kind(MaskTrackerKind.SAMURAI)
+
+        samurai_backend = self.window._mask_tracker_backends[MaskTrackerKind.SAMURAI]
+        with patch.object(samurai_backend, "run", side_effect=RuntimeError("SAMURAI worker failed.")) as run_mock:
+            self.window.track_list_panel.btn_run_selected.click()
+            self._wait_until(lambda: critical_mock.called and not self.window._is_tracking, attempts=350)
+
+        run_mock.assert_called_once()
+        critical_mock.assert_called_once()
+        self.assertEqual(critical_mock.call_args.args[1], "SAMURAI error")
+        self.assertIn("SAMURAI worker failed.", critical_mock.call_args.args[2])
+        self.assertEqual(self.window.statusBar().currentMessage(), "SAMURAI run failed.")
         track = self.window.current_tracks()[0]
         self.assertIsNotNone(track.get_annotation(1))
         self.assertIsNone(track.get_annotation(2))
