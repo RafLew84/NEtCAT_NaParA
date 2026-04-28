@@ -6,6 +6,31 @@ from PyQt6.QtCore import QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import QTransform
 import numpy as np
 
+def _image_for_pyqtgraph_display(img):
+    """Return an image safe for pyqtgraph ImageItem rendering.
+
+    Pyqtgraph can render NaNs transparently, but some versions keep cached NaN
+    locations across image shape changes and then fail with an IndexError. NanoTrack
+    uses NaN fill values for expanded registration canvases, so the viewer sanitizes
+    only the displayed copy while leaving source data untouched.
+    """
+
+    arr = np.asarray(img)
+    if arr.size == 0 or not np.issubdtype(arr.dtype, np.number):
+        return arr
+
+    finite_mask = np.isfinite(arr)
+    if bool(np.all(finite_mask)):
+        return arr
+
+    safe = np.asarray(arr, dtype=np.float32).copy()
+    if bool(np.any(finite_mask)):
+        fill_value = float(np.nanmedian(safe[finite_mask]))
+    else:
+        fill_value = 0.0
+    return np.nan_to_num(safe, nan=fill_value, posinf=fill_value, neginf=fill_value)
+
+
 class ViewerWidget(QWidget):
     """
     Image viewer using ViewBox + ImageItem + HistogramLUTWidget.
@@ -133,7 +158,10 @@ class ViewerWidget(QWidget):
 
         # Store scale and set image (avoid ViewBox autorange)
         self._nm_scale = scale_nm_per_px
-        self.image_item.setImage(img, autoLevels=auto_levels, autoDownsample=True)
+        display_img = _image_for_pyqtgraph_display(img)
+        if hasattr(self.image_item, "_imageNanLocations"):
+            self.image_item._imageNanLocations = None
+        self.image_item.setImage(display_img, autoLevels=auto_levels, autoDownsample=True)
 
         # Apply px->nm transform
         self._apply_scale_transform()
@@ -150,7 +178,7 @@ class ViewerWidget(QWidget):
             bounds = self.image_item.mapRectToParent(self.image_item.boundingRect())
             if bounds.isEmpty():
                 # Fallback: build bounds from shape and scale
-                h, w = img.shape[:2]
+                h, w = display_img.shape[:2]
                 sx, sy = self._nm_scale
                 w_nm = w * (sx or 1.0)
                 h_nm = h * (sy or 1.0)
