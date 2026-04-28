@@ -200,3 +200,4 @@ nanotrack/yolo_models/yolo11s_pro_v1_fine_tuning.pt
 nanotrack/yolo_models/yolo11s_v2.0.pt
 nanotrack/yolo_models/yolo11s_v4.0_pro.pt
 nanotrack/yolo_models/yolo11x_v3.0.pt
+plan_nanotrack_mask_trackers.md
