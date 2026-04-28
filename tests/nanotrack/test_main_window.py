@@ -44,6 +44,7 @@ from nanotrack.core import (
 )
 from nanotrack.io import load_mpp_sequence
 from nanotrack.edges import DexiNedRunOutput
+from nanotrack.mask_trackers import MaskTrackerKind, MaskTrackerRunOutput
 from nanotrack.sam2 import Sam2RunOutput
 from nanotrack.trackers import PointTrackerRunOutput
 
@@ -69,6 +70,24 @@ class _FakeCancelableEdgeBackend:
         self.started.set()
         self.canceled.wait(timeout=5.0)
         raise RuntimeError("fake backend stopped")
+
+    def cancel(self) -> None:
+        self.cancel_called = True
+        self.canceled.set()
+
+
+class _FakeCancelableMaskTrackerBackend:
+    def __init__(self) -> None:
+        self.started = threading.Event()
+        self.canceled = threading.Event()
+        self.cancel_called = False
+        self.run_inputs = []
+
+    def run(self, run_input):
+        self.run_inputs.append(run_input)
+        self.started.set()
+        self.canceled.wait(timeout=5.0)
+        raise RuntimeError("fake mask tracker stopped")
 
     def cancel(self) -> None:
         self.cancel_called = True
@@ -145,6 +164,48 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             edge_binary=edge_prob >= 0.5,
             model_name=model_name,
             checkpoint_name=checkpoint_name,
+        )
+
+    def _mask_tracker_output(
+        self,
+        tracker_kind: MaskTrackerKind,
+        *,
+        track_id: int,
+        frame_index_offset: int,
+        frame_count: int,
+        frame_shape: tuple[int, int],
+        row: int,
+        col: int,
+        visible_count: int = 2,
+    ) -> MaskTrackerRunOutput:
+        masks = np.zeros((frame_count, *frame_shape), dtype=bool)
+        visible_mask = np.zeros((frame_count,), dtype=bool)
+        mask_bboxes = np.zeros((frame_count, 4), dtype=np.float32)
+        for local_index in range(min(visible_count, frame_count)):
+            local_row = row + local_index
+            local_col = col + local_index
+            masks[local_index, local_row : local_row + 6, local_col : local_col + 7] = True
+            visible_mask[local_index] = True
+            mask_bboxes[local_index] = np.asarray(
+                [float(local_col), float(local_row), float(local_col + 7), float(local_row + 6)],
+                dtype=np.float32,
+            )
+        mask_areas = np.asarray([float(np.count_nonzero(mask)) for mask in masks], dtype=np.float32)
+        mask_scores = visible_mask.astype(np.float32) * 0.91
+        mask_component_counts = visible_mask.astype(np.int32)
+        return MaskTrackerRunOutput(
+            tracker_kind=tracker_kind,
+            track_id=track_id,
+            frame_index_offset=frame_index_offset,
+            masks=masks,
+            visible_mask=visible_mask,
+            mask_areas=mask_areas,
+            mask_bboxes_xyxy=mask_bboxes,
+            mask_scores=mask_scores,
+            mask_component_counts=mask_component_counts,
+            model_name=tracker_kind.value,
+            model_variant="test-variant",
+            checkpoint_name=f"{tracker_kind.value}.pt",
         )
 
     def _set_existing_edge_track(
@@ -240,6 +301,18 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window._is_preprocessing)
         self.assertIn("operation canceled", self.window.statusBar().currentMessage().lower())
 
+    def _cancel_active_mask_tracker_operation(self, fake_backend: _FakeCancelableMaskTrackerBackend) -> None:
+        self._wait_until(lambda: fake_backend.started.is_set())
+        self.assertIsNotNone(self.window._sam2_progress_dialog)
+        self.assertTrue(self.window._sam2_progress_dialog.isVisible())
+
+        self.window._on_mask_tracker_cancel_requested()
+        self._wait_until(lambda: self.window._sam2_thread is None and self.window._sam2_progress_dialog is None)
+
+        self.assertTrue(fake_backend.cancel_called)
+        self.assertFalse(self.window._is_tracking)
+        self.assertIn("operation canceled", self.window.statusBar().currentMessage().lower())
+
     def test_set_sequence_enables_navigation_and_shows_first_frame(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
 
@@ -256,6 +329,9 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.track_list_panel.list_tracks.count(), 0)
         self.assertFalse(self.window.track_list_panel.btn_run_selected.isEnabled())
         self.assertFalse(self.window.track_list_panel.btn_run_all.isEnabled())
+        self.assertEqual(self.window.track_list_panel.btn_run_selected.text(), "Run for Selected")
+        self.assertEqual(self.window.track_list_panel.btn_run_all.text(), "Run for All Seeds")
+        self.assertEqual(self.window.track_list_panel.current_mask_tracker_kind(), MaskTrackerKind.SAM2)
         self.assertEqual(self.window.edge_track_list_panel.list_tracks.count(), 0)
         self.assertEqual(self.window.edge_track_list_panel.lbl_summary.text(), "0 edge tracks")
         self.assertTrue(self.window.bbox_tools_panel.btn_place.isEnabled())
@@ -266,6 +342,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.bbox_tools_panel.btn_load_track_bbox.isEnabled())
         self.assertFalse(self.window.bbox_tools_panel.btn_save_correction.isEnabled())
         self.assertFalse(self.window.bbox_tools_panel.btn_resume_track.isEnabled())
+        self.assertEqual(self.window.bbox_tools_panel.btn_resume_track.text(), "Resume")
         self.assertEqual(self.window.bbox_tools_panel.lbl_bbox.text(), "No bbox on current frame")
         self.assertEqual(self.window.yolo_panel.lbl_frame.text(), f"Frame: 1 / {sequence.frame_count}")
         self.assertGreaterEqual(self.window.yolo_panel.cmb_model.count(), 0)
@@ -1647,6 +1724,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         )
         self.window._update_cached_preprocessing_availability()
         self.window.preprocessing_panel.chk_show_denoised.setChecked(True)
+        self.window.track_list_panel.set_mask_tracker_kind(MaskTrackerKind.DAM4SAM)
         registration_results = RegistrationResultSet(
             settings=RegistrationSettings(
                 backend="phase_correlation",
@@ -1686,11 +1764,13 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             self.window._registration_results = None
             self.window.set_tracks([])
             self.window.preprocessing_panel.chk_show_denoised.setChecked(False)
+            self.window.track_list_panel.set_mask_tracker_kind(MaskTrackerKind.SAM2)
 
             self.window.load_session_from_path(session_path)
 
         self.assertEqual(self.window.current_sequence().active_frame_index, 2)
         self.assertEqual(self.window.current_selected_track_id(), 1)
+        self.assertEqual(self.window.track_list_panel.current_mask_tracker_kind(), MaskTrackerKind.DAM4SAM)
         self.assertTrue(self.window.action_save_session.isEnabled())
         self.assertEqual(self.window.current_draft_bbox(), BBoxXYXY(0.0, 0.0, 48.0, 48.0))
         self.assertTrue(self.window.preprocessing_panel.chk_show_denoised.isChecked())
@@ -4499,6 +4579,251 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(self.window.bbox_tools_panel.btn_resume_track.isEnabled())
         self.assertIn("SAM2 resume finished for Track 1 from frame 3.", self.window.statusBar().currentMessage())
 
+    def _assert_resume_with_mask_tracker(
+        self,
+        tracker_kind: MaskTrackerKind,
+        expected_source: AnnotationSource,
+    ) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.assertGreaterEqual(sequence.frame_count, 5)
+        self.window.set_sequence(sequence)
+
+        corrected_bbox = BBoxXYXY(16.0, 15.0, 25.0, 23.0)
+        track = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(10.0, 10.0, 18.0, 18.0))
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(11.0, 11.0, 19.0, 19.0),
+                source=AnnotationSource.SAM2,
+            )
+        )
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=2,
+                bbox=corrected_bbox,
+                source=AnnotationSource.MANUAL,
+            )
+        )
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=3,
+                bbox=BBoxXYXY(13.0, 13.0, 21.0, 21.0),
+                source=AnnotationSource.SAM2,
+            )
+        )
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=4,
+                bbox=BBoxXYXY(14.0, 14.0, 22.0, 22.0),
+                source=AnnotationSource.SAM2,
+            )
+        )
+        self.window.set_tracks([track], selected_track_id=1)
+        self.window.slider_frame.setValue(2)
+        self.window.track_list_panel.set_mask_tracker_kind(tracker_kind)
+        self.assertTrue(self.window.bbox_tools_panel.btn_resume_track.isEnabled())
+
+        repaired = np.full_like(sequence.raw_frames, 0.55, dtype=np.float32)
+        self.window._repair_frames = repaired
+
+        def fake_run(run_input):
+            time.sleep(0.05)
+            self.assertEqual(run_input.tracker_kind, tracker_kind)
+            self.assertEqual(run_input.track_id, 1)
+            self.assertEqual(run_input.frame_index_offset, 2)
+            self.assertEqual(run_input.source_view, "repair")
+            np.testing.assert_array_equal(run_input.frames, repaired[2:])
+            np.testing.assert_array_equal(run_input.query_box_xyxy, np.asarray(corrected_bbox.as_tuple(), dtype=np.float32))
+            return self._mask_tracker_output(
+                tracker_kind,
+                track_id=1,
+                frame_index_offset=2,
+                frame_count=int(run_input.frames.shape[0]),
+                frame_shape=tuple(run_input.frames.shape[1:3]),
+                row=30,
+                col=40,
+                visible_count=3,
+            )
+
+        backend = self.window._mask_tracker_backends[tracker_kind]
+        with patch.object(backend, "run", side_effect=fake_run) as run_mock:
+            self.window.bbox_tools_panel.btn_resume_track.click()
+            self.assertFalse(self.window.bbox_tools_panel.btn_resume_track.isEnabled())
+            self.assertIsNotNone(self.window._sam2_progress_dialog)
+            self.assertTrue(self.window._sam2_progress_dialog.isVisible())
+            self._wait_until(
+                lambda: (
+                    run_mock.called
+                    and self.window.current_tracks()[0].get_annotation(3) is not None
+                    and self.window.current_tracks()[0].get_annotation(4) is not None
+                    and not self.window._is_tracking
+                ),
+                attempts=350,
+            )
+
+        run_mock.assert_called_once()
+        resumed_track = self.window.current_tracks()[0]
+        self.assertEqual(resumed_track.get_annotation(0).bbox, BBoxXYXY(10.0, 10.0, 18.0, 18.0))
+        self.assertEqual(resumed_track.get_annotation(1).bbox, BBoxXYXY(11.0, 11.0, 19.0, 19.0))
+        self.assertEqual(resumed_track.get_annotation(2).bbox, corrected_bbox)
+        self.assertEqual(resumed_track.get_annotation(2).source, AnnotationSource.MANUAL)
+        self.assertEqual(resumed_track.get_annotation(3).bbox, BBoxXYXY(41.0, 31.0, 48.0, 37.0))
+        self.assertEqual(resumed_track.get_annotation(4).bbox, BBoxXYXY(42.0, 32.0, 49.0, 38.0))
+        self.assertEqual(resumed_track.get_annotation(3).source, expected_source)
+        self.assertEqual(resumed_track.get_annotation(4).source, expected_source)
+        self.assertTrue(resumed_track.get_annotation(3).mask.any())
+        self.assertTrue(resumed_track.get_annotation(4).mask.any())
+        backend_label = self.window._format_mask_tracker_backend_label(tracker_kind)
+        self.assertTrue(self.window.bbox_tools_panel.btn_resume_track.isEnabled())
+        self.assertIn(
+            f"{backend_label} resume finished for Track 1 from frame 3.",
+            self.window.statusBar().currentMessage(),
+        )
+
+    def test_resume_dam4sam_replaces_tail_with_dam4sam_source(self) -> None:
+        self._assert_resume_with_mask_tracker(MaskTrackerKind.DAM4SAM, AnnotationSource.DAM4SAM)
+
+    def test_resume_samurai_replaces_tail_with_samurai_source(self) -> None:
+        self._assert_resume_with_mask_tracker(MaskTrackerKind.SAMURAI, AnnotationSource.SAMURAI)
+
+    @patch("nanotrack.ui.main_window.QMessageBox.critical")
+    def test_resume_samurai_failure_keeps_existing_tail_and_uses_backend_label(self, critical_mock) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.assertGreaterEqual(sequence.frame_count, 5)
+        self.window.set_sequence(sequence)
+
+        track = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(10.0, 10.0, 18.0, 18.0))
+        for frame_index in range(5):
+            track.add_annotation(
+                TrackFrameAnnotation(
+                    frame_index=frame_index,
+                    bbox=BBoxXYXY(10.0 + frame_index, 9.0, 18.0 + frame_index, 17.0),
+                    source=AnnotationSource.MANUAL if frame_index == 2 else AnnotationSource.SAM2,
+                )
+            )
+        expected = {
+            frame_index: (annotation.bbox, annotation.source)
+            for frame_index, annotation in track.annotations.items()
+        }
+        self.window.set_tracks([track], selected_track_id=1)
+        self.window.slider_frame.setValue(2)
+        self.window.track_list_panel.set_mask_tracker_kind(MaskTrackerKind.SAMURAI)
+
+        samurai_backend = self.window._mask_tracker_backends[MaskTrackerKind.SAMURAI]
+        with patch.object(samurai_backend, "run", side_effect=RuntimeError("SAMURAI worker failed.")) as run_mock:
+            self.window.bbox_tools_panel.btn_resume_track.click()
+            self._wait_until(lambda: critical_mock.called and not self.window._is_tracking, attempts=350)
+
+        run_mock.assert_called_once()
+        critical_mock.assert_called_once()
+        self.assertEqual(critical_mock.call_args.args[1], "SAMURAI error")
+        self.assertIn("SAMURAI worker failed.", critical_mock.call_args.args[2])
+        self.assertEqual(self.window.statusBar().currentMessage(), "SAMURAI run failed.")
+        resumed_track = self.window.current_tracks()[0]
+        self.assertEqual(set(resumed_track.annotations), set(expected))
+        for frame_index, (expected_bbox, expected_source) in expected.items():
+            annotation = resumed_track.get_annotation(frame_index)
+            self.assertIsNotNone(annotation)
+            self.assertEqual(annotation.bbox, expected_bbox)
+            self.assertEqual(annotation.source, expected_source)
+        self.assertTrue(self.window.bbox_tools_panel.btn_resume_track.isEnabled())
+
+    def test_mask_tracker_selected_cancel_stops_worker_without_new_annotations(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/mask_tracker_selected_cancel.mpp",
+            raw_frames=np.zeros((4, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+        self.window.slider_frame.setValue(0)
+        self.window.viewer.place_bbox_at_pixel(16.0, 16.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+        self.window.track_list_panel.set_mask_tracker_kind(MaskTrackerKind.DAM4SAM)
+
+        fake_backend = _FakeCancelableMaskTrackerBackend()
+        self.window._mask_tracker_backends[MaskTrackerKind.DAM4SAM] = fake_backend
+
+        self.window.track_list_panel.btn_run_selected.click()
+        self._cancel_active_mask_tracker_operation(fake_backend)
+
+        self.assertEqual(len(fake_backend.run_inputs), 1)
+        self.assertEqual(fake_backend.run_inputs[0].tracker_kind, MaskTrackerKind.DAM4SAM)
+        self.assertEqual(fake_backend.run_inputs[0].frame_index_offset, 0)
+        track = self.window.current_tracks()[0]
+        self.assertIsNotNone(track.get_annotation(0))
+        self.assertIsNone(track.get_annotation(1))
+        self.assertIsNone(track.get_annotation(2))
+
+    def test_mask_tracker_resume_cancel_keeps_existing_track_annotations(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/mask_tracker_resume_cancel.mpp",
+            raw_frames=np.zeros((4, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+        track = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(10.0, 10.0, 18.0, 18.0))
+        for frame_index in range(4):
+            track.add_annotation(
+                TrackFrameAnnotation(
+                    frame_index=frame_index,
+                    bbox=BBoxXYXY(10.0 + frame_index, 10.0, 18.0 + frame_index, 18.0),
+                    source=AnnotationSource.MANUAL if frame_index == 1 else AnnotationSource.SAM2,
+                )
+            )
+        expected = {
+            frame_index: (annotation.bbox, annotation.source)
+            for frame_index, annotation in track.annotations.items()
+        }
+        self.window.set_tracks([track], selected_track_id=1)
+        self.window.slider_frame.setValue(1)
+        self.window.track_list_panel.set_mask_tracker_kind(MaskTrackerKind.DAM4SAM)
+
+        fake_backend = _FakeCancelableMaskTrackerBackend()
+        self.window._mask_tracker_backends[MaskTrackerKind.DAM4SAM] = fake_backend
+
+        self.window.bbox_tools_panel.btn_resume_track.click()
+        self._cancel_active_mask_tracker_operation(fake_backend)
+
+        self.assertEqual(len(fake_backend.run_inputs), 1)
+        self.assertEqual(fake_backend.run_inputs[0].frame_index_offset, 1)
+        resumed_track = self.window.current_tracks()[0]
+        self.assertEqual(set(resumed_track.annotations), set(expected))
+        for frame_index, (expected_bbox, expected_source) in expected.items():
+            annotation = resumed_track.get_annotation(frame_index)
+            self.assertIsNotNone(annotation)
+            self.assertEqual(annotation.bbox, expected_bbox)
+            self.assertEqual(annotation.source, expected_source)
+
+    def test_mask_tracker_batch_cancel_stops_current_worker_without_processing_remaining_seeds(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/mask_tracker_batch_cancel.mpp",
+            raw_frames=np.zeros((5, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+        self.window.slider_frame.setValue(0)
+        self.window.viewer.place_bbox_at_pixel(12.0, 12.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+        self.window.slider_frame.setValue(2)
+        self.window.viewer.place_bbox_at_pixel(20.0, 20.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+        self.window.track_list_panel.set_mask_tracker_kind(MaskTrackerKind.SAMURAI)
+
+        fake_backend = _FakeCancelableMaskTrackerBackend()
+        self.window._mask_tracker_backends[MaskTrackerKind.SAMURAI] = fake_backend
+
+        self.window.track_list_panel.btn_run_all.click()
+        self._cancel_active_mask_tracker_operation(fake_backend)
+
+        self.assertEqual(len(fake_backend.run_inputs), 1)
+        self.assertEqual(fake_backend.run_inputs[0].tracker_kind, MaskTrackerKind.SAMURAI)
+        self.assertEqual(fake_backend.run_inputs[0].track_id, 1)
+        tracks = self.window.current_tracks()
+        self.assertIsNotNone(tracks[0].get_annotation(0))
+        self.assertIsNone(tracks[0].get_annotation(1))
+        self.assertIsNotNone(tracks[1].get_annotation(2))
+        self.assertIsNone(tracks[1].get_annotation(3))
+
     def test_preprocessing_panel_uses_scroll_area_for_small_screens(self) -> None:
         panel = self.window.preprocessing_panel
 
@@ -4758,6 +5083,189 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.window.slider_frame.setValue(2)
         self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
 
+    def test_unimplemented_mask_tracker_selection_does_not_run_current_sam2_backend(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+        self.window.slider_frame.setValue(0)
+        self.window.viewer.place_bbox_at_pixel(24.0, 24.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+        self.window.track_list_panel.set_mask_tracker_kind(MaskTrackerKind.SAMURAI)
+
+        with patch.object(self.window._sam2_backend, "run") as run_mock:
+            self.window.track_list_panel.btn_run_selected.click()
+
+        run_mock.assert_not_called()
+        self.assertIsNone(self.window._sam2_progress_dialog)
+        self.assertFalse(self.window._is_tracking)
+        self.assertIn("SAMURAI mask tracking is not available yet", self.window.statusBar().currentMessage())
+
+    def test_run_selected_dam4sam_updates_track_annotations_with_dam4sam_source(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.assertGreaterEqual(sequence.frame_count, 3)
+        self.window.set_sequence(sequence)
+        self.window.slider_frame.setValue(1)
+        bbox = self.window.viewer.place_bbox_at_pixel(24.0, 24.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+        self.window.track_list_panel.set_mask_tracker_kind(MaskTrackerKind.DAM4SAM)
+
+        repaired = np.full_like(sequence.raw_frames, 0.45, dtype=np.float32)
+        self.window._repair_frames = repaired
+
+        frame_count = sequence.frame_count - 1
+        masks = np.zeros((frame_count, *sequence.frame_shape), dtype=bool)
+        masks[0, 12:20, 14:23] = True
+        masks[1, 13:21, 15:24] = True
+        visible_mask = np.zeros((frame_count,), dtype=bool)
+        visible_mask[:2] = True
+        mask_bboxes = np.zeros((frame_count, 4), dtype=np.float32)
+        mask_bboxes[0] = np.asarray([14.0, 12.0, 23.0, 20.0], dtype=np.float32)
+        mask_bboxes[1] = np.asarray([15.0, 13.0, 24.0, 21.0], dtype=np.float32)
+        run_output = MaskTrackerRunOutput(
+            tracker_kind=MaskTrackerKind.DAM4SAM,
+            track_id=1,
+            frame_index_offset=1,
+            masks=masks,
+            visible_mask=visible_mask,
+            mask_bboxes_xyxy=mask_bboxes,
+            mask_scores=visible_mask.astype(np.float32),
+            model_name="dam4sam",
+            model_variant="sam21pp-B",
+            checkpoint_name="sam2.1_hiera_base_plus.pt",
+        )
+
+        observed_inputs = []
+
+        def fake_run(run_input):
+            time.sleep(0.05)
+            observed_inputs.append(run_input)
+            self.assertEqual(run_input.tracker_kind, MaskTrackerKind.DAM4SAM)
+            self.assertEqual(run_input.track_id, 1)
+            self.assertEqual(run_input.frame_index_offset, 1)
+            self.assertEqual(run_input.source_view, "repair")
+            np.testing.assert_array_equal(run_input.frames, repaired[1:])
+            np.testing.assert_array_equal(run_input.query_box_xyxy, np.asarray(bbox.as_tuple(), dtype=np.float32))
+            return run_output
+
+        dam4sam_backend = self.window._mask_tracker_backends[MaskTrackerKind.DAM4SAM]
+        with patch.object(dam4sam_backend, "run", side_effect=fake_run) as run_mock:
+            self.window.track_list_panel.btn_run_selected.click()
+            self._wait_until(
+                lambda: (
+                    run_mock.called
+                    and self.window.current_tracks()[0].get_annotation(2) is not None
+                    and not self.window._is_tracking
+                )
+            )
+
+        run_mock.assert_called_once()
+        self.assertEqual(len(observed_inputs), 1)
+        track = self.window.current_tracks()[0]
+        frame1_annotation = track.get_annotation(1)
+        frame2_annotation = track.get_annotation(2)
+        self.assertIsNotNone(frame1_annotation)
+        self.assertIsNotNone(frame2_annotation)
+        self.assertEqual(frame1_annotation.source, AnnotationSource.DAM4SAM)
+        self.assertEqual(frame2_annotation.source, AnnotationSource.DAM4SAM)
+        self.assertEqual(frame1_annotation.bbox, BBoxXYXY(14.0, 12.0, 23.0, 20.0))
+        self.assertEqual(frame2_annotation.bbox, BBoxXYXY(15.0, 13.0, 24.0, 21.0))
+        self.assertTrue(frame1_annotation.mask.any())
+        expected_metrics = compute_particle_metrics(frame1_annotation.mask, sequence.raw_frames[1])
+        self.assertEqual(frame1_annotation.metrics.area_px, expected_metrics.area_px)
+        self.assertEqual(frame1_annotation.metrics.perimeter_px, expected_metrics.perimeter_px)
+        self.assertGreater(len(self.window.viewer.viewer._overlay_items), 0)
+        self.assertTrue(self.window.track_list_panel.btn_run_selected.isEnabled())
+        self.assertIn("DAM4SAM finished for Track 1.", self.window.statusBar().currentMessage())
+
+    @patch("nanotrack.ui.main_window.QMessageBox.critical")
+    def test_run_selected_dam4sam_failure_uses_backend_label_and_keeps_seed_only(self, critical_mock) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.assertGreaterEqual(sequence.frame_count, 3)
+        self.window.set_sequence(sequence)
+        self.window.slider_frame.setValue(1)
+        self.window.viewer.place_bbox_at_pixel(24.0, 24.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+        self.window.track_list_panel.set_mask_tracker_kind(MaskTrackerKind.DAM4SAM)
+
+        dam4sam_backend = self.window._mask_tracker_backends[MaskTrackerKind.DAM4SAM]
+        with patch.object(dam4sam_backend, "run", side_effect=RuntimeError("DAM4SAM worker failed.")) as run_mock:
+            self.window.track_list_panel.btn_run_selected.click()
+            self._wait_until(lambda: critical_mock.called and not self.window._is_tracking, attempts=350)
+
+        run_mock.assert_called_once()
+        critical_mock.assert_called_once()
+        self.assertEqual(critical_mock.call_args.args[1], "DAM4SAM error")
+        self.assertIn("DAM4SAM worker failed.", critical_mock.call_args.args[2])
+        self.assertEqual(self.window.statusBar().currentMessage(), "DAM4SAM run failed.")
+        track = self.window.current_tracks()[0]
+        self.assertIsNotNone(track.get_annotation(1))
+        self.assertIsNone(track.get_annotation(2))
+        self.assertIsNone(track.get_annotation(sequence.frame_count - 1))
+        self.assertTrue(self.window.track_list_panel.btn_run_selected.isEnabled())
+
+    def test_default_mask_tracker_selection_runs_existing_sam2_backend_and_writes_source(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+        self.window.slider_frame.setValue(0)
+        bbox = self.window.viewer.place_bbox_at_pixel(24.0, 24.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+
+        self.assertEqual(self.window.track_list_panel.current_mask_tracker_kind(), MaskTrackerKind.SAM2)
+        self.assertEqual(self.window.track_list_panel.btn_run_selected.text(), "Run for Selected")
+
+        frame_count = sequence.frame_count
+        masks = np.zeros((frame_count, *sequence.frame_shape), dtype=bool)
+        masks[1, 12:18, 14:21] = True
+        visible_mask = np.zeros((frame_count,), dtype=bool)
+        visible_mask[1] = True
+        mask_bboxes = np.zeros((frame_count, 4), dtype=np.float32)
+        mask_bboxes[1] = np.asarray([14.0, 12.0, 21.0, 18.0], dtype=np.float32)
+        mask_areas = np.asarray([float(np.count_nonzero(mask)) for mask in masks], dtype=np.float32)
+        mask_scores = visible_mask.astype(np.float32) * 0.93
+        mask_component_counts = visible_mask.astype(np.int32)
+        run_output = Sam2RunOutput(
+            track_id=1,
+            frame_index_offset=0,
+            masks=masks,
+            visible_mask=visible_mask,
+            mask_areas=mask_areas,
+            mask_bboxes_xyxy=mask_bboxes,
+            mask_scores=mask_scores,
+            mask_component_counts=mask_component_counts,
+        )
+        observed_inputs = []
+
+        def fake_run(run_input):
+            time.sleep(0.05)
+            observed_inputs.append(run_input)
+            return run_output
+
+        with patch.object(self.window._sam2_backend, "run", side_effect=fake_run) as run_mock:
+            self.window.track_list_panel.btn_run_selected.click()
+            self._wait_until(
+                lambda: (
+                    run_mock.called
+                    and self.window.current_tracks()[0].get_annotation(1) is not None
+                    and self.window.current_tracks()[0].get_annotation(1).source is AnnotationSource.SAM2
+                    and not self.window._is_tracking
+                )
+            )
+
+        run_mock.assert_called_once()
+        self.assertEqual(len(observed_inputs), 1)
+        run_input = observed_inputs[0]
+        self.assertEqual(run_input.track_id, 1)
+        self.assertEqual(run_input.frame_index_offset, 0)
+        self.assertEqual(run_input.source_view, "raw")
+        np.testing.assert_array_equal(run_input.frames, np.asarray(sequence.raw_frames, dtype=np.float32))
+        np.testing.assert_array_equal(run_input.query_box_xyxy, np.asarray(bbox.as_tuple(), dtype=np.float32))
+        track = self.window.current_tracks()[0]
+        self.assertEqual(track.get_annotation(0).source, AnnotationSource.SAM2)
+        annotation = track.get_annotation(1)
+        self.assertEqual(annotation.source, AnnotationSource.SAM2)
+        self.assertEqual(annotation.bbox, BBoxXYXY(14.0, 12.0, 21.0, 18.0))
+        self.assertTrue(annotation.mask.any())
+        self.assertIn("SAM2 finished for Track 1.", self.window.statusBar().currentMessage())
+
     def test_run_all_sam2_updates_multiple_tracks_from_different_seed_frames(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
         self.assertGreaterEqual(sequence.frame_count, 4)
@@ -4860,6 +5368,126 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(
             self.window.statusBar().currentMessage() in {"SAM2 finished for all 2 seeds.", "SAM2 batch 2/2 finished: Track 2"}
         )
+
+    def test_run_all_dam4sam_updates_multiple_tracks_with_dam4sam_source(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.assertGreaterEqual(sequence.frame_count, 4)
+        self.window.set_sequence(sequence)
+
+        self.window.slider_frame.setValue(0)
+        self.window.viewer.place_bbox_at_pixel(20.0, 20.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+
+        self.window.slider_frame.setValue(2)
+        self.window.viewer.place_bbox_at_pixel(32.0, 28.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+        self.window.track_list_panel.set_mask_tracker_kind(MaskTrackerKind.DAM4SAM)
+
+        observed_inputs = []
+
+        def fake_run(run_input):
+            time.sleep(0.05)
+            observed_inputs.append((run_input.tracker_kind, run_input.track_id, run_input.frame_index_offset))
+            self.assertEqual(run_input.tracker_kind, MaskTrackerKind.DAM4SAM)
+            if run_input.track_id == 1:
+                return self._mask_tracker_output(
+                    MaskTrackerKind.DAM4SAM,
+                    track_id=1,
+                    frame_index_offset=0,
+                    frame_count=int(run_input.frames.shape[0]),
+                    frame_shape=tuple(run_input.frames.shape[1:3]),
+                    row=8,
+                    col=10,
+                )
+            return self._mask_tracker_output(
+                MaskTrackerKind.DAM4SAM,
+                track_id=2,
+                frame_index_offset=2,
+                frame_count=int(run_input.frames.shape[0]),
+                frame_shape=tuple(run_input.frames.shape[1:3]),
+                row=18,
+                col=22,
+            )
+
+        dam4sam_backend = self.window._mask_tracker_backends[MaskTrackerKind.DAM4SAM]
+        with patch.object(dam4sam_backend, "run", side_effect=fake_run) as run_mock:
+            self.window.track_list_panel.btn_run_all.click()
+            self._wait_until(
+                lambda: (
+                    run_mock.call_count == 2
+                    and self.window.current_tracks()[0].get_annotation(1) is not None
+                    and self.window.current_tracks()[1].get_annotation(3) is not None
+                    and not self.window._is_tracking
+                ),
+                attempts=350,
+            )
+
+        self.assertEqual(observed_inputs, [(MaskTrackerKind.DAM4SAM, 1, 0), (MaskTrackerKind.DAM4SAM, 2, 2)])
+        tracks = self.window.current_tracks()
+        self.assertEqual(tracks[0].get_annotation(0).source, AnnotationSource.DAM4SAM)
+        self.assertEqual(tracks[0].get_annotation(1).source, AnnotationSource.DAM4SAM)
+        self.assertEqual(tracks[1].get_annotation(2).source, AnnotationSource.DAM4SAM)
+        self.assertEqual(tracks[1].get_annotation(3).source, AnnotationSource.DAM4SAM)
+        self.assertEqual(tracks[0].get_annotation(1).bbox, BBoxXYXY(11.0, 9.0, 18.0, 15.0))
+        self.assertEqual(tracks[1].get_annotation(3).bbox, BBoxXYXY(23.0, 19.0, 30.0, 25.0))
+        self.assertTrue(self.window.track_list_panel.btn_run_all.isEnabled())
+        self.assertTrue(
+            self.window.statusBar().currentMessage()
+            in {"DAM4SAM finished for all 2 seeds.", "DAM4SAM batch 2/2 finished: Track 2"}
+        )
+
+    @patch("nanotrack.ui.main_window.QMessageBox.warning")
+    def test_run_all_samurai_continues_after_single_track_failure(self, warning_mock) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.assertGreaterEqual(sequence.frame_count, 4)
+        self.window.set_sequence(sequence)
+
+        self.window.slider_frame.setValue(0)
+        self.window.viewer.place_bbox_at_pixel(20.0, 20.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+
+        self.window.slider_frame.setValue(2)
+        self.window.viewer.place_bbox_at_pixel(32.0, 28.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+        self.window.track_list_panel.set_mask_tracker_kind(MaskTrackerKind.SAMURAI)
+
+        def fake_run(run_input):
+            time.sleep(0.05)
+            self.assertEqual(run_input.tracker_kind, MaskTrackerKind.SAMURAI)
+            if run_input.track_id == 1:
+                raise RuntimeError("simulated SAMURAI crash")
+            return self._mask_tracker_output(
+                MaskTrackerKind.SAMURAI,
+                track_id=2,
+                frame_index_offset=2,
+                frame_count=int(run_input.frames.shape[0]),
+                frame_shape=tuple(run_input.frames.shape[1:3]),
+                row=18,
+                col=22,
+            )
+
+        samurai_backend = self.window._mask_tracker_backends[MaskTrackerKind.SAMURAI]
+        with patch.object(samurai_backend, "run", side_effect=fake_run) as run_mock:
+            self.window.track_list_panel.btn_run_all.click()
+            self._wait_until(
+                lambda: (
+                    run_mock.call_count == 2
+                    and self.window.current_tracks()[1].get_annotation(2) is not None
+                    and not self.window._is_tracking
+                ),
+                attempts=350,
+            )
+            self._wait_until(lambda: warning_mock.called, attempts=50)
+
+        self.assertEqual(run_mock.call_count, 2)
+        tracks = self.window.current_tracks()
+        self.assertIsNone(tracks[0].get_annotation(1))
+        self.assertEqual(tracks[1].get_annotation(2).source, AnnotationSource.SAMURAI)
+        self.assertEqual(tracks[1].get_annotation(2).bbox, BBoxXYXY(22.0, 18.0, 29.0, 24.0))
+        warning_mock.assert_called_once()
+        self.assertIn("SAMURAI finished with failures for 1/2 seeds", warning_mock.call_args.args[2])
+        self.assertIn("Failed track IDs: 1", warning_mock.call_args.args[2])
+        self.assertTrue(self.window.track_list_panel.btn_run_all.isEnabled())
 
     @patch("nanotrack.ui.main_window.QMessageBox.warning")
     def test_run_all_sam2_continues_after_single_track_failure(self, warning_mock) -> None:

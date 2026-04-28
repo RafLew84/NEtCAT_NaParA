@@ -1,5 +1,7 @@
+import json
 import tempfile
 import unittest
+import zipfile
 
 import numpy as np
 
@@ -25,6 +27,7 @@ from nanotrack.core import (
     YoloDetection,
     YoloDetectionSet,
 )
+from nanotrack.mask_trackers import MaskTrackerKind
 from nanotrack.persistence import NanoTrackSessionSnapshot, load_session_snapshot, save_session_snapshot
 
 
@@ -83,6 +86,46 @@ class SessionStoreTests(unittest.TestCase):
                 mask=np.zeros((4, 5), dtype=bool),
                 visibility=FrameVisibility.LOST,
                 source=AnnotationSource.RESUME,
+            )
+        )
+        alternative_tracker_track = ParticleTrack(
+            track_id=8,
+            seed_frame_index=0,
+            seed_bbox=BBoxXYXY(0.5, 0.5, 3.0, 2.5),
+            label="NP-8",
+        )
+        alternative_tracker_track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(0.75, 0.75, 3.25, 2.75),
+                mask=np.asarray(
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, False, False],
+                        [False, True, True, False, False],
+                        [False, False, False, False, False],
+                    ],
+                    dtype=bool,
+                ),
+                visibility=FrameVisibility.VISIBLE,
+                source=AnnotationSource.DAM4SAM,
+            )
+        )
+        alternative_tracker_track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=2,
+                bbox=BBoxXYXY(1.0, 1.0, 3.5, 3.0),
+                mask=np.asarray(
+                    [
+                        [False, False, False, False, False],
+                        [False, False, True, True, False],
+                        [False, False, True, True, False],
+                        [False, False, False, False, False],
+                    ],
+                    dtype=bool,
+                ),
+                visibility=FrameVisibility.VISIBLE,
+                source=AnnotationSource.SAMURAI,
             )
         )
         polygon = PolygonROI(np.asarray([[0.0, 0.0], [4.0, 0.0], [4.0, 3.0], [0.0, 3.0]], dtype=np.float64))
@@ -179,7 +222,7 @@ class SessionStoreTests(unittest.TestCase):
         )
         snapshot = NanoTrackSessionSnapshot(
             sequence=sequence,
-            tracks=[track],
+            tracks=[track, alternative_tracker_track],
             edge_tracks=[edge_track],
             yolo_detections=YoloDetectionSet(
                 model_name="yolo11s_v2.0",
@@ -207,6 +250,7 @@ class SessionStoreTests(unittest.TestCase):
             ),
             selected_track_id=7,
             selected_edge_track_id=3,
+            selected_mask_tracker_kind=MaskTrackerKind.SAMURAI.value,
             draft_bboxes_by_frame={2: BBoxXYXY(0.0, 0.0, 3.0, 2.0)},
             draft_polygons_by_frame={2: polygon},
             draft_edge_polylines_by_frame={2: np.asarray([[0.0, 2.0], [4.0, 2.0]], dtype=np.float64)},
@@ -244,6 +288,7 @@ class SessionStoreTests(unittest.TestCase):
         self.assertTrue(loaded.sequence.is_frame_excluded(1))
         self.assertEqual(loaded.selected_track_id, 7)
         self.assertEqual(loaded.selected_edge_track_id, 3)
+        self.assertEqual(loaded.selected_mask_tracker_kind, MaskTrackerKind.SAMURAI.value)
         self.assertTrue(loaded.show_denoised_in_viewer)
         self.assertIsNotNone(loaded.yolo_detections)
         self.assertEqual(loaded.draft_bboxes_by_frame[2], BBoxXYXY(0.0, 0.0, 3.0, 2.0))
@@ -295,6 +340,21 @@ class SessionStoreTests(unittest.TestCase):
         restored_lost = restored_track.get_annotation(3)
         self.assertEqual(restored_lost.visibility, FrameVisibility.LOST)
         np.testing.assert_array_equal(restored_lost.mask, np.zeros((4, 5), dtype=bool))
+        restored_alternative_track = loaded.tracks[1]
+        self.assertEqual(restored_alternative_track.track_id, 8)
+        self.assertEqual(restored_alternative_track.label, "NP-8")
+        restored_dam4sam_annotation = restored_alternative_track.get_annotation(1)
+        self.assertEqual(restored_dam4sam_annotation.source, AnnotationSource.DAM4SAM)
+        np.testing.assert_array_equal(
+            restored_dam4sam_annotation.mask,
+            alternative_tracker_track.get_annotation(1).mask,
+        )
+        restored_samurai_annotation = restored_alternative_track.get_annotation(2)
+        self.assertEqual(restored_samurai_annotation.source, AnnotationSource.SAMURAI)
+        np.testing.assert_array_equal(
+            restored_samurai_annotation.mask,
+            alternative_tracker_track.get_annotation(2).mask,
+        )
 
         restored_edge_track = loaded.edge_tracks[0]
         self.assertEqual(restored_edge_track.edge_track_id, 3)
@@ -324,6 +384,44 @@ class SessionStoreTests(unittest.TestCase):
         self.assertFalse(restored_unselected.selected)
         self.assertAlmostEqual(restored_unselected.confidence, 0.66)
         self.assertEqual(restored_unselected.bbox, BBoxXYXY(1.0, 1.5, 4.5, 3.5))
+
+    def test_load_session_without_mask_tracker_kind_defaults_to_sam2(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session_path = f"{tmpdir}/legacy.nanotrack"
+            manifest = {
+                "schema": "nanotrack.session.v1",
+                "sequence": {
+                    "source_path": "/tmp/legacy.mpp",
+                    "active_frame_index": 0,
+                    "reverse_frame_order": False,
+                    "excluded_frame_indices": [],
+                },
+                "selected_track_id": None,
+                "selected_edge_track_id": None,
+                "show_denoised_in_viewer": False,
+                "yolo_detections": None,
+                "registration_results": None,
+                "draft_bboxes": [],
+                "draft_polygons": [],
+                "draft_edge_polylines": [],
+                "preprocessing": {"repair_params": None, "denoised_sigma_factor": None},
+                "tracks": [],
+                "edge_tracks": [],
+            }
+            with zipfile.ZipFile(session_path, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+                zf.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
+
+            loaded = load_session_snapshot(
+                session_path,
+                sequence_loader=lambda _path, reverse_frame_order=False: STMSequence(
+                    source_path="/tmp/legacy.mpp",
+                    raw_frames=np.zeros((1, 4, 5), dtype=np.float32),
+                    metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4, size_nm_x=10.0, size_nm_y=8.0),
+                    reverse_frame_order=reverse_frame_order,
+                ),
+            )
+
+        self.assertEqual(loaded.selected_mask_tracker_kind, MaskTrackerKind.SAM2.value)
 
 
 if __name__ == "__main__":

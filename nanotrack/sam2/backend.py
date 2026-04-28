@@ -9,6 +9,8 @@ import subprocess
 
 import numpy as np
 
+from nanotrack.subprocess_utils import CancellableSubprocessRunner, SubprocessCancelledError
+
 from .contract import Sam2RunInput, Sam2RunOutput
 
 
@@ -26,6 +28,10 @@ class Sam2BackendError(RuntimeError):
 
 class Sam2BackendTimeoutError(Sam2BackendError):
     """Raised when the SAM2 worker exceeds the configured timeout."""
+
+
+class Sam2BackendCancelledError(Sam2BackendError):
+    """Raised when the SAM2 worker is canceled by the UI."""
 
 
 @dataclass(frozen=True)
@@ -55,6 +61,7 @@ class Sam2SubprocessBackend:
 
     def __init__(self, config: Sam2BackendConfig | None = None):
         self.config = config or Sam2BackendConfig()
+        self._runner = CancellableSubprocessRunner()
 
     def run(self, run_input: Sam2RunInput) -> Sam2RunOutput:
         with TemporaryDirectory(prefix="nanotrack_sam2_") as temp_dir:
@@ -67,18 +74,17 @@ class Sam2SubprocessBackend:
             cwd = self._working_directory()
 
             try:
-                completed = subprocess.run(
+                completed = self._runner.run(
                     command,
                     cwd=cwd,
-                    capture_output=True,
-                    text=True,
                     timeout=self.config.timeout_sec,
-                    check=False,
                 )
             except FileNotFoundError as exc:
                 raise Sam2BackendError(
                     f"SAM2 executable or worker not found: {exc.filename or exc}."
                 ) from exc
+            except SubprocessCancelledError as exc:
+                raise Sam2BackendCancelledError("SAM2 worker was canceled.") from exc
             except subprocess.TimeoutExpired as exc:
                 raise Sam2BackendTimeoutError(
                     self._format_timeout_message(command, exc.stdout, exc.stderr)
@@ -96,6 +102,9 @@ class Sam2SubprocessBackend:
                 )
 
             return self._read_output(output_path)
+
+    def cancel(self) -> None:
+        self._runner.cancel()
 
     def _write_input(self, path: Path, run_input: Sam2RunInput) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)

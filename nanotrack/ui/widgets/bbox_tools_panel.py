@@ -73,7 +73,7 @@ class BBoxToolsPanel(QWidget):
         correction_row = QHBoxLayout()
         self.btn_load_track_bbox = QPushButton("Load Track BBox", group)
         self.btn_save_correction = QPushButton("Save Correction", group)
-        self.btn_resume_track = QPushButton("Resume SAM2", group)
+        self.btn_resume_track = QPushButton("Resume", group)
         correction_row.addWidget(self.btn_load_track_bbox)
         correction_row.addWidget(self.btn_save_correction)
         correction_row.addWidget(self.btn_resume_track)

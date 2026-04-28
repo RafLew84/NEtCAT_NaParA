@@ -38,6 +38,12 @@ class ParticleMetricsTests(unittest.TestCase):
 
 
 class TrackFrameAnnotationTests(unittest.TestCase):
+    def test_annotation_source_includes_optional_mask_trackers(self) -> None:
+        self.assertEqual(AnnotationSource.DAM4SAM.value, "dam4sam")
+        self.assertEqual(AnnotationSource.SAMURAI.value, "samurai")
+        self.assertEqual(AnnotationSource("dam4sam"), AnnotationSource.DAM4SAM)
+        self.assertEqual(AnnotationSource("samurai"), AnnotationSource.SAMURAI)
+
     def test_normalizes_mask_to_bool(self) -> None:
         annotation = TrackFrameAnnotation(
             frame_index=3,

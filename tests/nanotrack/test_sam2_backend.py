@@ -9,12 +9,14 @@ import numpy as np
 
 from nanotrack.sam2 import (
     SAM2_CONTRACT_VERSION,
+    Sam2BackendCancelledError,
     Sam2BackendConfig,
     Sam2BackendError,
     Sam2BackendTimeoutError,
     Sam2RunInput,
     Sam2SubprocessBackend,
 )
+from nanotrack.subprocess_utils import SubprocessCancelledError
 
 
 def _write_worker_script(path: Path, body: str) -> None:
@@ -224,6 +226,35 @@ class Sam2SubprocessBackendTests(unittest.TestCase):
                 backend.run(self._make_run_input())
 
             self.assertIn("timed out", str(exc_info.exception))
+
+    def test_backend_translates_cancelled_runner_error(self) -> None:
+        class FakeRunner:
+            def __init__(self) -> None:
+                self.cancel_called = False
+
+            def run(self, command, *, cwd, timeout):
+                raise SubprocessCancelledError("stopped")
+
+            def cancel(self) -> None:
+                self.cancel_called = True
+
+        backend = Sam2SubprocessBackend(
+            Sam2BackendConfig(
+                python_executable=sys.executable,
+                worker_script="worker.py",
+                checkpoint_path="checkpoint.pt",
+                repo_path=None,
+            )
+        )
+        fake_runner = FakeRunner()
+        backend._runner = fake_runner
+
+        with self.assertRaises(Sam2BackendCancelledError) as exc_info:
+            backend.run(self._make_run_input())
+
+        self.assertIn("canceled", str(exc_info.exception))
+        backend.cancel()
+        self.assertTrue(fake_runner.cancel_called)
 
     def test_backend_config_validates_timeout(self) -> None:
         with self.assertRaises(ValueError):

@@ -81,7 +81,15 @@ from nanotrack.edges import (
 )
 from nanotrack.edges.polyline import dominant_edge_to_polyline, select_best_edge_polyline_candidate
 from nanotrack.edges.selection import DominantEdgeSelection, select_dominant_edge
-from nanotrack.sam2 import Sam2RunInput, Sam2RunOutput, Sam2SubprocessBackend
+from nanotrack.mask_trackers import (
+    MaskTrackerKind,
+    MaskTrackerRunInput,
+    MaskTrackerRunOutput,
+    MaskTrackerSubprocessBackend,
+    Sam2MaskTrackerBackend,
+    default_mask_tracker_config,
+)
+from nanotrack.sam2 import Sam2SubprocessBackend
 from nanotrack.trackers import (
     PointTrackerBackendConfig,
     PointTrackerRunInput,
@@ -153,46 +161,88 @@ class _DexiNedRunWorker(QObject):
             cancel()
 
 
-class _Sam2RunWorker(QObject):
+class _MaskTrackerRunWorker(QObject):
     finished = pyqtSignal(object)
     failed = pyqtSignal(str)
+    canceled = pyqtSignal()
 
-    def __init__(self, backend: Sam2SubprocessBackend, run_input: Sam2RunInput):
+    def __init__(
+        self,
+        backend: Sam2MaskTrackerBackend | MaskTrackerSubprocessBackend,
+        run_input: MaskTrackerRunInput,
+    ):
         super().__init__()
         self._backend = backend
         self._run_input = run_input
+        self._cancel_requested = False
 
     def run(self) -> None:
         try:
             output = self._backend.run(self._run_input)
         except Exception as exc:
+            if self._cancel_requested:
+                self.canceled.emit()
+                return
             self.failed.emit(str(exc))
+            return
+        if self._cancel_requested:
+            self.canceled.emit()
             return
         self.finished.emit(output)
 
+    def cancel(self) -> None:
+        self._cancel_requested = True
+        cancel = getattr(self._backend, "cancel", None)
+        if callable(cancel):
+            cancel()
 
-class _Sam2BatchWorker(QObject):
+
+class _MaskTrackerBatchWorker(QObject):
     progress = pyqtSignal(int, int, object)
     item_failed = pyqtSignal(int, int, object)
     finished = pyqtSignal(object)
+    canceled = pyqtSignal(object)
 
-    def __init__(self, backend: Sam2SubprocessBackend, run_items: list[tuple[int, Sam2RunInput]]):
+    def __init__(
+        self,
+        backend: Sam2MaskTrackerBackend | MaskTrackerSubprocessBackend,
+        run_items: list[tuple[int, MaskTrackerRunInput]],
+        *,
+        backend_label: str = "SAM2",
+    ):
         super().__init__()
         self._backend = backend
         self._run_items = list(run_items)
+        self._backend_label = backend_label
+        self._cancel_requested = False
 
     def run(self) -> None:
         total = len(self._run_items)
         failures: list[tuple[int, str]] = []
         for index, (track_id, run_input) in enumerate(self._run_items, start=1):
+            if self._cancel_requested:
+                self.canceled.emit({"total": total, "failures": failures, "completed": index - 1})
+                return
             try:
                 output = self._backend.run(run_input)
+                if self._cancel_requested:
+                    self.canceled.emit({"total": total, "failures": failures, "completed": index - 1})
+                    return
                 self.progress.emit(index, total, (track_id, output))
             except Exception as exc:
-                error_message = f"Track {track_id} failed during SAM2 batch.\n{exc}"
+                if self._cancel_requested:
+                    self.canceled.emit({"total": total, "failures": failures, "completed": index - 1})
+                    return
+                error_message = f"Track {track_id} failed during {self._backend_label} batch.\n{exc}"
                 failures.append((track_id, error_message))
                 self.item_failed.emit(index, total, (track_id, error_message))
         self.finished.emit({"total": total, "failures": failures})
+
+    def cancel(self) -> None:
+        self._cancel_requested = True
+        cancel = getattr(self._backend, "cancel", None)
+        if callable(cancel):
+            cancel()
 
 
 class _PointTrackerRunWorker(QObject):
@@ -269,13 +319,27 @@ class NanoTrackMainWindow(QMainWindow):
         self._pending_edge_resume_meta: dict[str, object] | None = None
         self._pending_edge_hybrid_meta: dict[str, object] | None = None
         self._sam2_backend = Sam2SubprocessBackend()
+        self._mask_tracker_backends: dict[
+            MaskTrackerKind,
+            Sam2MaskTrackerBackend | MaskTrackerSubprocessBackend,
+        ] = {
+            MaskTrackerKind.SAM2: Sam2MaskTrackerBackend(backend=self._sam2_backend),
+            MaskTrackerKind.DAM4SAM: MaskTrackerSubprocessBackend(
+                default_mask_tracker_config(MaskTrackerKind.DAM4SAM)
+            ),
+            MaskTrackerKind.SAMURAI: MaskTrackerSubprocessBackend(
+                default_mask_tracker_config(MaskTrackerKind.SAMURAI)
+            ),
+        }
         self._yolo_runtime = YoloRuntime()
         self._sam2_progress_dialog: QProgressDialog | None = None
         self._sam2_thread: QThread | None = None
-        self._sam2_worker: _Sam2RunWorker | None = None
+        self._sam2_worker: _MaskTrackerRunWorker | None = None
         self._sam2_running_track_id: int | None = None
         self._sam2_resume_from_frame: int | None = None
         self._sam2_batch_failures: list[tuple[int, str]] = []
+        self._active_mask_tracker_backend_label: str | None = None
+        self._mask_tracker_cancel_requested = False
         self._setup_ui()
         self._connect_signals()
 
@@ -816,6 +880,53 @@ class NanoTrackMainWindow(QMainWindow):
             return self._active_edge_backend_label
         return self._selected_edge_detector_backend_label()
 
+    def _selected_mask_tracker_kind(self) -> MaskTrackerKind:
+        return self.track_list_panel.current_mask_tracker_kind()
+
+    def _format_mask_tracker_backend_label(self, tracker_kind: MaskTrackerKind | str) -> str:
+        tracker = MaskTrackerKind.from_value(tracker_kind)
+        if tracker is MaskTrackerKind.SAM2:
+            return "SAM2"
+        if tracker is MaskTrackerKind.DAM4SAM:
+            return "DAM4SAM"
+        if tracker is MaskTrackerKind.SAMURAI:
+            return "SAMURAI"
+        return tracker.value
+
+    def _selected_mask_tracker_backend_label(self) -> str:
+        return self._format_mask_tracker_backend_label(self._selected_mask_tracker_kind())
+
+    def _current_mask_tracker_backend_label(self) -> str:
+        if self._active_mask_tracker_backend_label:
+            return self._active_mask_tracker_backend_label
+        return self._selected_mask_tracker_backend_label()
+
+    def _ensure_selected_mask_tracker_available(self, action_label: str) -> bool:
+        tracker_kind = self._selected_mask_tracker_kind()
+        if tracker_kind is MaskTrackerKind.SAM2:
+            return True
+        if tracker_kind is MaskTrackerKind.DAM4SAM and action_label == "Run for Selected":
+            return True
+        if tracker_kind in {MaskTrackerKind.DAM4SAM, MaskTrackerKind.SAMURAI} and action_label in {
+            "Run for All Seeds",
+            "Resume",
+        }:
+            return True
+        backend_label = self._format_mask_tracker_backend_label(tracker_kind)
+        QMessageBox.warning(
+            self,
+            f"{backend_label} not available",
+            (
+                f"{backend_label} mask tracking is not implemented yet for: {action_label}. "
+                "Select SAM2 to use the current tracking workflow."
+            ),
+        )
+        self.statusBar().showMessage(f"{backend_label} mask tracking is not available yet.", 3000)
+        return False
+
+    def _selected_mask_tracker_backend(self) -> Sam2MaskTrackerBackend | MaskTrackerSubprocessBackend | None:
+        return self._mask_tracker_backends.get(self._selected_mask_tracker_kind())
+
     def _update_menu_action_state(self) -> None:
         busy = self._is_preprocessing or self._is_tracking
         self.action_open_mpp.setEnabled(not busy)
@@ -849,6 +960,7 @@ class NanoTrackMainWindow(QMainWindow):
             yolo_detections=self._yolo_detections,
             selected_track_id=self._selected_track_id,
             selected_edge_track_id=self._selected_edge_track_id,
+            selected_mask_tracker_kind=self._selected_mask_tracker_kind().value,
             draft_bboxes_by_frame=dict(self._draft_bboxes_by_frame),
             draft_polygons_by_frame=dict(self._draft_polygons_by_frame),
             draft_edge_polylines_by_frame={
@@ -1124,6 +1236,7 @@ class NanoTrackMainWindow(QMainWindow):
             self.preprocessing_panel.chk_show_denoised.setChecked(self._show_denoised_in_viewer)
         self.set_tracks(snapshot.tracks, selected_track_id=snapshot.selected_track_id)
         self.set_edge_tracks(snapshot.edge_tracks, selected_track_id=snapshot.selected_edge_track_id)
+        self.track_list_panel.set_mask_tracker_kind(snapshot.selected_mask_tracker_kind)
         self._update_menu_action_state()
         self._sync_registration_results_dialog()
         self._show_current_frame(preserve_zoom=False)
@@ -1373,13 +1486,13 @@ class NanoTrackMainWindow(QMainWindow):
     def _current_yolo_input_frame(self) -> tuple[np.ndarray, str]:
         if self._sequence is None:
             raise RuntimeError("No sequence loaded.")
-        frames_source, source_view = self._current_sam2_input_frames()
+        frames_source, source_view = self._current_mask_tracker_input_frames()
         return np.asarray(frames_source[self._sequence.active_frame_index], dtype=np.float32), source_view
 
     def _current_yolo_input_frames(self) -> tuple[np.ndarray, str]:
         if self._sequence is None:
             raise RuntimeError("No sequence loaded.")
-        frames_source, source_view = self._current_sam2_input_frames()
+        frames_source, source_view = self._current_mask_tracker_input_frames()
         return np.asarray(frames_source, dtype=np.float32), source_view
 
     def _upsert_current_frame_yolo_detections(
@@ -2424,7 +2537,11 @@ class NanoTrackMainWindow(QMainWindow):
     def _on_resume_track_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
             return
-        if not self._ensure_current_frame_included("Resume SAM2"):
+        if not self._ensure_selected_mask_tracker_available("Resume"):
+            return
+        tracker_kind = self._selected_mask_tracker_kind()
+        backend_label = self._format_mask_tracker_backend_label(tracker_kind)
+        if not self._ensure_current_frame_included(f"Resume {backend_label}"):
             return
 
         track = self._find_track_by_id(self._selected_track_id)
@@ -2445,47 +2562,60 @@ class NanoTrackMainWindow(QMainWindow):
             return
 
         try:
-            run_input = self._build_sam2_input_for_track(
+            run_input = self._build_mask_tracker_input_for_track(
                 track,
+                tracker_kind,
                 start_frame_index=resume_frame,
                 prompt_bbox=annotation.bbox,
             )
         except Exception as exc:
-            QMessageBox.critical(self, "SAM2 resume input error", str(exc))
+            QMessageBox.critical(self, f"{backend_label} resume input error", str(exc))
             return
 
         self._set_tracking_busy(True)
+        self._active_mask_tracker_backend_label = backend_label
+        self._mask_tracker_cancel_requested = False
         self._sam2_running_track_id = track.track_id
         self._sam2_resume_from_frame = resume_frame
         self._sam2_progress_dialog = QProgressDialog(
-            f"Resuming SAM2 for {track.label or f'Track {track.track_id}'} from frame {resume_frame + 1}...",
+            f"Resuming {backend_label} for {track.label or f'Track {track.track_id}'} from frame {resume_frame + 1}...",
             "",
             0,
             0,
             self,
         )
-        self._sam2_progress_dialog.setWindowTitle("SAM2 Resume")
+        self._sam2_progress_dialog.setWindowTitle(f"{backend_label} Resume")
         self._sam2_progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-        self._sam2_progress_dialog.setCancelButton(None)
+        self._sam2_progress_dialog.setCancelButtonText("Cancel")
+        self._sam2_progress_dialog.canceled.connect(self._on_mask_tracker_cancel_requested)
         self._sam2_progress_dialog.setMinimumDuration(0)
         self._sam2_progress_dialog.setAutoClose(False)
         self._sam2_progress_dialog.setAutoReset(False)
         self._sam2_progress_dialog.setValue(0)
         self._sam2_progress_dialog.show()
         self.statusBar().showMessage(
-            f"Resuming SAM2 for {track.label or f'Track {track.track_id}'} from frame {resume_frame + 1}...",
+            f"Resuming {backend_label} for {track.label or f'Track {track.track_id}'} from frame {resume_frame + 1}...",
             0,
         )
         QApplication.processEvents()
 
         self._sam2_thread = QThread(self)
-        self._sam2_worker = _Sam2RunWorker(self._sam2_backend, run_input)
+        backend = self._selected_mask_tracker_backend()
+        if backend is None:
+            QMessageBox.warning(self, f"{backend_label} not available", f"{backend_label} backend is not configured.")
+            self._set_tracking_busy(False)
+            self._close_sam2_progress_dialog()
+            self._active_mask_tracker_backend_label = None
+            return
+        self._sam2_worker = _MaskTrackerRunWorker(backend, run_input)
         self._sam2_worker.moveToThread(self._sam2_thread)
         self._sam2_thread.started.connect(self._sam2_worker.run)
         self._sam2_worker.finished.connect(self._on_sam2_run_finished)
         self._sam2_worker.failed.connect(self._on_sam2_run_failed)
+        self._sam2_worker.canceled.connect(self._on_mask_tracker_run_canceled)
         self._sam2_worker.finished.connect(self._sam2_thread.quit)
         self._sam2_worker.failed.connect(self._sam2_thread.quit)
+        self._sam2_worker.canceled.connect(self._sam2_thread.quit)
         self._sam2_thread.finished.connect(self._cleanup_sam2_worker)
         self._sam2_thread.start()
 
@@ -2963,99 +3093,128 @@ class NanoTrackMainWindow(QMainWindow):
     def _on_run_sam2_for_selected_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
             return
+        if not self._ensure_selected_mask_tracker_available("Run for Selected"):
+            return
+        tracker_kind = self._selected_mask_tracker_kind()
+        backend_label = self._selected_mask_tracker_backend_label()
+        backend = self._selected_mask_tracker_backend()
+        if backend is None:
+            QMessageBox.warning(self, f"{backend_label} not available", f"{backend_label} backend is not configured.")
+            self.statusBar().showMessage(f"{backend_label} mask tracking is not available yet.", 3000)
+            return
 
         track = self._find_track_by_id(self._selected_track_id)
         if track is None:
             return
 
         try:
-            run_input = self._build_sam2_input_for_track(track)
+            run_input = self._build_mask_tracker_input_for_track(track, tracker_kind)
         except Exception as exc:
-            QMessageBox.critical(self, "SAM2 input error", str(exc))
+            QMessageBox.critical(self, f"{backend_label} input error", str(exc))
             return
 
         self._set_tracking_busy(True)
+        self._active_mask_tracker_backend_label = backend_label
+        self._mask_tracker_cancel_requested = False
         self._sam2_running_track_id = track.track_id
         self._sam2_resume_from_frame = None
         self._sam2_progress_dialog = QProgressDialog(
-            f"Running SAM2 for {track.label or f'Track {track.track_id}'}...",
+            f"Running {backend_label} for {track.label or f'Track {track.track_id}'}...",
             "",
             0,
             0,
             self,
         )
-        self._sam2_progress_dialog.setWindowTitle("SAM2 Tracking")
+        self._sam2_progress_dialog.setWindowTitle(f"{backend_label} Tracking")
         self._sam2_progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-        self._sam2_progress_dialog.setCancelButton(None)
+        self._sam2_progress_dialog.setCancelButtonText("Cancel")
+        self._sam2_progress_dialog.canceled.connect(self._on_mask_tracker_cancel_requested)
         self._sam2_progress_dialog.setMinimumDuration(0)
         self._sam2_progress_dialog.setAutoClose(False)
         self._sam2_progress_dialog.setAutoReset(False)
         self._sam2_progress_dialog.setValue(0)
         self._sam2_progress_dialog.show()
         self.statusBar().showMessage(
-            f"Running SAM2 for {track.label or f'Track {track.track_id}'}...",
+            f"Running {backend_label} for {track.label or f'Track {track.track_id}'}...",
             0,
         )
         QApplication.processEvents()
 
         self._sam2_thread = QThread(self)
-        self._sam2_worker = _Sam2RunWorker(self._sam2_backend, run_input)
+        self._sam2_worker = _MaskTrackerRunWorker(backend, run_input)
         self._sam2_worker.moveToThread(self._sam2_thread)
         self._sam2_thread.started.connect(self._sam2_worker.run)
         self._sam2_worker.finished.connect(self._on_sam2_run_finished)
         self._sam2_worker.failed.connect(self._on_sam2_run_failed)
+        self._sam2_worker.canceled.connect(self._on_mask_tracker_run_canceled)
         self._sam2_worker.finished.connect(self._sam2_thread.quit)
         self._sam2_worker.failed.connect(self._sam2_thread.quit)
+        self._sam2_worker.canceled.connect(self._sam2_thread.quit)
         self._sam2_thread.finished.connect(self._cleanup_sam2_worker)
         self._sam2_thread.start()
 
     def _on_run_sam2_for_all_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking or not self._tracks:
             return
+        if not self._ensure_selected_mask_tracker_available("Run for All Seeds"):
+            return
+        tracker_kind = self._selected_mask_tracker_kind()
+        backend_label = self._selected_mask_tracker_backend_label()
+        backend = self._selected_mask_tracker_backend()
+        if backend is None:
+            QMessageBox.warning(self, f"{backend_label} not available", f"{backend_label} backend is not configured.")
+            self.statusBar().showMessage(f"{backend_label} mask tracking is not available yet.", 3000)
+            return
 
-        run_items: list[tuple[int, Sam2RunInput]] = []
+        run_items: list[tuple[int, MaskTrackerRunInput]] = []
         try:
             for track in self._tracks:
-                run_items.append((track.track_id, self._build_sam2_input_for_track(track)))
+                run_items.append((track.track_id, self._build_mask_tracker_input_for_track(track, tracker_kind)))
         except Exception as exc:
-            QMessageBox.critical(self, "SAM2 input error", str(exc))
+            QMessageBox.critical(self, f"{backend_label} input error", str(exc))
             return
 
         self._set_tracking_busy(True)
+        self._active_mask_tracker_backend_label = backend_label
+        self._mask_tracker_cancel_requested = False
         self._sam2_running_track_id = None
         self._sam2_resume_from_frame = None
         self._sam2_batch_failures = []
         self._sam2_progress_dialog = QProgressDialog(
-            "Running SAM2 for all seeds...",
+            f"Running {backend_label} for all seeds...",
             "",
             0,
             len(run_items),
             self,
         )
-        self._sam2_progress_dialog.setWindowTitle("SAM2 Tracking")
+        self._sam2_progress_dialog.setWindowTitle(f"{backend_label} Tracking")
         self._sam2_progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-        self._sam2_progress_dialog.setCancelButton(None)
+        self._sam2_progress_dialog.setCancelButtonText("Cancel")
+        self._sam2_progress_dialog.canceled.connect(self._on_mask_tracker_cancel_requested)
         self._sam2_progress_dialog.setMinimumDuration(0)
         self._sam2_progress_dialog.setAutoClose(False)
         self._sam2_progress_dialog.setAutoReset(False)
         self._sam2_progress_dialog.setValue(0)
         self._sam2_progress_dialog.show()
-        self.statusBar().showMessage(f"Running SAM2 for all {len(run_items)} seeds...", 0)
+        self.statusBar().showMessage(f"Running {backend_label} for all {len(run_items)} seeds...", 0)
         QApplication.processEvents()
 
         self._sam2_thread = QThread(self)
-        self._sam2_batch_worker = _Sam2BatchWorker(self._sam2_backend, run_items)
+        self._sam2_batch_worker = _MaskTrackerBatchWorker(backend, run_items, backend_label=backend_label)
         self._sam2_batch_worker.moveToThread(self._sam2_thread)
         self._sam2_thread.started.connect(self._sam2_batch_worker.run)
         self._sam2_batch_worker.progress.connect(self._on_sam2_batch_progress)
         self._sam2_batch_worker.item_failed.connect(self._on_sam2_batch_item_failed)
         self._sam2_batch_worker.finished.connect(self._on_sam2_batch_finished)
+        self._sam2_batch_worker.canceled.connect(self._on_mask_tracker_run_canceled)
         self._sam2_batch_worker.finished.connect(self._sam2_thread.quit)
+        self._sam2_batch_worker.canceled.connect(self._sam2_thread.quit)
         self._sam2_thread.finished.connect(self._cleanup_sam2_worker)
         self._sam2_thread.start()
 
     def _on_sam2_run_finished(self, run_output: object) -> None:
-        assert isinstance(run_output, Sam2RunOutput)
+        assert isinstance(run_output, MaskTrackerRunOutput)
+        backend_label = self._current_mask_tracker_backend_label()
         if self._sam2_resume_from_frame is not None:
             self._resume_track_from_output(run_output.track_id, run_output, self._sam2_resume_from_frame)
             track = self._find_track_by_id(run_output.track_id)
@@ -3063,49 +3222,53 @@ class NanoTrackMainWindow(QMainWindow):
             self.set_tracks(self._tracks, selected_track_id=run_output.track_id)
             self._show_current_frame(preserve_zoom=True)
             self.statusBar().showMessage(
-                f"SAM2 resume finished for {label} from frame {self._sam2_resume_from_frame + 1}.",
+                f"{backend_label} resume finished for {label} from frame {self._sam2_resume_from_frame + 1}.",
                 3000,
             )
         else:
-            self._apply_sam2_output_to_track(run_output.track_id, run_output)
+            self._apply_mask_tracker_output_to_track(run_output.track_id, run_output)
             self.set_tracks(self._tracks, selected_track_id=run_output.track_id)
             self._show_current_frame(preserve_zoom=True)
             track = self._find_track_by_id(run_output.track_id)
             label = track.label if track is not None and track.label else f"Track {run_output.track_id}"
             self.statusBar().showMessage(
-                f"SAM2 finished for {label}.",
+                f"{backend_label} finished for {label}.",
                 3000,
             )
         self._set_tracking_busy(False)
         self._close_sam2_progress_dialog()
+        self._active_mask_tracker_backend_label = None
 
     def _on_sam2_batch_progress(self, completed: int, total: int, payload: object) -> None:
         track_id, run_output = payload
         assert isinstance(track_id, int)
-        assert isinstance(run_output, Sam2RunOutput)
-        self._apply_sam2_output_to_track(track_id, run_output)
+        assert isinstance(run_output, MaskTrackerRunOutput)
+        backend_label = self._current_mask_tracker_backend_label()
+        self._apply_mask_tracker_output_to_track(track_id, run_output)
         self.set_tracks(self._tracks, selected_track_id=self._selected_track_id)
         self._show_current_frame(preserve_zoom=True)
         track = self._find_track_by_id(track_id)
         label = track.label if track is not None and track.label else f"Track {track_id}"
         if self._sam2_progress_dialog is not None:
             self._sam2_progress_dialog.setMaximum(total)
-            self._sam2_progress_dialog.setLabelText(f"Running SAM2 for all seeds... {completed}/{total}\nFinished: {label}")
+            self._sam2_progress_dialog.setLabelText(f"Running {backend_label} for all seeds... {completed}/{total}\nFinished: {label}")
             self._sam2_progress_dialog.setValue(completed)
-        self.statusBar().showMessage(f"SAM2 batch {completed}/{total} finished: {label}", 0)
+        self.statusBar().showMessage(f"{backend_label} batch {completed}/{total} finished: {label}", 0)
 
     def _on_sam2_batch_item_failed(self, completed: int, total: int, payload: object) -> None:
         track_id, error_message = payload
         assert isinstance(track_id, int)
         assert isinstance(error_message, str)
+        backend_label = self._current_mask_tracker_backend_label()
         self._sam2_batch_failures.append((track_id, error_message))
         if self._sam2_progress_dialog is not None:
             self._sam2_progress_dialog.setMaximum(total)
-            self._sam2_progress_dialog.setLabelText(f"Running SAM2 for all seeds... {completed}/{total}\nFailed: Track {track_id}")
+            self._sam2_progress_dialog.setLabelText(f"Running {backend_label} for all seeds... {completed}/{total}\nFailed: Track {track_id}")
             self._sam2_progress_dialog.setValue(completed)
-        self.statusBar().showMessage(f"SAM2 batch {completed}/{total} failed: Track {track_id}", 0)
+        self.statusBar().showMessage(f"{backend_label} batch {completed}/{total} failed: Track {track_id}", 0)
 
     def _on_sam2_batch_finished(self, summary: object) -> None:
+        backend_label = self._current_mask_tracker_backend_label()
         failures = []
         total = len(self._tracks)
         if isinstance(summary, dict):
@@ -3115,23 +3278,49 @@ class NanoTrackMainWindow(QMainWindow):
             failed_track_ids = ", ".join(str(track_id) for track_id, _message in failures)
             QMessageBox.warning(
                 self,
-                "SAM2 batch finished with failures",
-                f"SAM2 finished with failures for {len(failures)}/{total} seeds.\nFailed track IDs: {failed_track_ids}",
+                f"{backend_label} batch finished with failures",
+                f"{backend_label} finished with failures for {len(failures)}/{total} seeds.\nFailed track IDs: {failed_track_ids}",
             )
             self.statusBar().showMessage(
-                f"SAM2 finished with failures for {len(failures)}/{total} seeds.",
+                f"{backend_label} finished with failures for {len(failures)}/{total} seeds.",
                 5000,
             )
         else:
-            self.statusBar().showMessage(f"SAM2 finished for all {total} seeds.", 3000)
+            self.statusBar().showMessage(f"{backend_label} finished for all {total} seeds.", 3000)
         self._set_tracking_busy(False)
         self._close_sam2_progress_dialog()
+        self._active_mask_tracker_backend_label = None
 
     def _on_sam2_run_failed(self, error_message: str) -> None:
-        QMessageBox.critical(self, "SAM2 error", error_message)
-        self.statusBar().showMessage("SAM2 run failed.", 3000)
+        backend_label = self._current_mask_tracker_backend_label()
+        QMessageBox.critical(self, f"{backend_label} error", error_message)
+        self.statusBar().showMessage(f"{backend_label} run failed.", 3000)
         self._set_tracking_busy(False)
         self._close_sam2_progress_dialog()
+        self._active_mask_tracker_backend_label = None
+
+    def _on_mask_tracker_cancel_requested(self) -> None:
+        worker = self._sam2_worker
+        batch_worker = getattr(self, "_sam2_batch_worker", None)
+        if worker is None and batch_worker is None:
+            return
+        self._mask_tracker_cancel_requested = True
+        backend_label = self._current_mask_tracker_backend_label()
+        if self._sam2_progress_dialog is not None:
+            self._sam2_progress_dialog.setLabelText(f"Cancelling {backend_label} operation...")
+            self._sam2_progress_dialog.setCancelButton(None)
+        self.statusBar().showMessage(f"Cancelling {backend_label} operation...", 0)
+        if worker is not None:
+            worker.cancel()
+        if batch_worker is not None:
+            batch_worker.cancel()
+
+    def _on_mask_tracker_run_canceled(self, _summary: object | None = None) -> None:
+        backend_label = self._current_mask_tracker_backend_label()
+        self.statusBar().showMessage(f"{backend_label} operation canceled.", 3000)
+        self._set_tracking_busy(False)
+        self._close_sam2_progress_dialog()
+        self._active_mask_tracker_backend_label = None
 
     def _on_show_denoised_toggled(self, checked: bool) -> None:
         self._show_denoised_in_viewer = bool(checked and self._has_any_preprocessing_cache())
@@ -3244,6 +3433,10 @@ class NanoTrackMainWindow(QMainWindow):
     def _close_sam2_progress_dialog(self) -> None:
         if self._sam2_progress_dialog is None:
             return
+        try:
+            self._sam2_progress_dialog.canceled.disconnect(self._on_mask_tracker_cancel_requested)
+        except TypeError:
+            pass
         self._sam2_progress_dialog.close()
         self._sam2_progress_dialog.deleteLater()
         self._sam2_progress_dialog = None
@@ -3302,6 +3495,8 @@ class NanoTrackMainWindow(QMainWindow):
         self._sam2_running_track_id = None
         self._sam2_resume_from_frame = None
         self._sam2_batch_failures = []
+        self._active_mask_tracker_backend_label = None
+        self._mask_tracker_cancel_requested = False
 
     def _clear_denoised_cache(self) -> None:
         self._denoised_frames = None
@@ -4599,7 +4794,7 @@ class NanoTrackMainWindow(QMainWindow):
     def _update_results_action_state(self) -> None:
         self._update_menu_action_state()
 
-    def _current_sam2_input_frames(self) -> tuple[np.ndarray, str]:
+    def _current_mask_tracker_input_frames(self) -> tuple[np.ndarray, str]:
         if self._denoised_frames is not None:
             return self._denoised_frames, "bm3d"
         if self._repair_frames is not None:
@@ -4607,24 +4802,26 @@ class NanoTrackMainWindow(QMainWindow):
         assert self._sequence is not None
         return self._sequence.raw_frames, "raw"
 
-    def _build_sam2_input_for_track(
+    def _build_mask_tracker_input_for_track(
         self,
         track: ParticleTrack,
+        tracker_kind: MaskTrackerKind | str,
         *,
         start_frame_index: int | None = None,
         prompt_bbox: BBoxXYXY | None = None,
-    ) -> Sam2RunInput:
+    ) -> MaskTrackerRunInput:
         if self._sequence is None:
             raise RuntimeError("No sequence loaded.")
 
-        frames_source, source_view = self._current_sam2_input_frames()
+        frames_source, source_view = self._current_mask_tracker_input_frames()
         frame_offset = track.seed_frame_index if start_frame_index is None else int(start_frame_index)
         if frame_offset < track.seed_frame_index:
             raise ValueError("start_frame_index cannot be earlier than the seed frame.")
         frames = np.asarray(frames_source[frame_offset:], dtype=np.float32)
         bbox = track.seed_bbox if prompt_bbox is None else prompt_bbox
         center_x, center_y = bbox.center_xy
-        return Sam2RunInput(
+        return MaskTrackerRunInput(
+            tracker_kind=tracker_kind,
             track_id=track.track_id,
             frame_index_offset=frame_offset,
             frames=frames,
@@ -4633,29 +4830,29 @@ class NanoTrackMainWindow(QMainWindow):
             source_view=source_view,
         )
 
-    def _apply_sam2_output_to_track(self, track_id: int, run_output: Sam2RunOutput) -> None:
+    def _apply_mask_tracker_output_to_track(self, track_id: int, run_output: MaskTrackerRunOutput) -> None:
         track = self._find_track_by_id(track_id)
         if track is None:
             raise RuntimeError(f"Track {track_id} does not exist.")
 
         for local_frame_index in range(run_output.masks.shape[0]):
-            annotation = self._annotation_from_sam2_frame(run_output, local_frame_index)
+            annotation = self._annotation_from_mask_tracker_frame(run_output, local_frame_index)
             if annotation is not None:
                 track.add_annotation(annotation)
 
-    def _resume_track_from_output(self, track_id: int, run_output: Sam2RunOutput, resume_frame: int) -> None:
+    def _resume_track_from_output(self, track_id: int, run_output: MaskTrackerRunOutput, resume_frame: int) -> None:
         track = self._find_track_by_id(track_id)
         if track is None:
             raise RuntimeError(f"Track {track_id} does not exist.")
         track.drop_annotations_after(resume_frame)
         for local_frame_index in range(1, run_output.masks.shape[0]):
-            annotation = self._annotation_from_sam2_frame(run_output, local_frame_index)
+            annotation = self._annotation_from_mask_tracker_frame(run_output, local_frame_index)
             if annotation is not None:
                 track.add_annotation(annotation)
 
-    def _annotation_from_sam2_frame(
+    def _annotation_from_mask_tracker_frame(
         self,
-        run_output: Sam2RunOutput,
+        run_output: MaskTrackerRunOutput,
         local_frame_index: int,
     ) -> TrackFrameAnnotation | None:
         if self._sequence is None:
@@ -4681,9 +4878,19 @@ class NanoTrackMainWindow(QMainWindow):
             bbox=bbox,
             mask=mask,
             visibility=FrameVisibility.VISIBLE if visible else FrameVisibility.LOST,
-            source=AnnotationSource.SAM2,
+            source=self._annotation_source_for_mask_tracker(run_output.tracker_kind),
             metrics=metrics,
         )
+
+    def _annotation_source_for_mask_tracker(self, tracker_kind: MaskTrackerKind | str) -> AnnotationSource:
+        tracker = MaskTrackerKind.from_value(tracker_kind)
+        if tracker is MaskTrackerKind.SAM2:
+            return AnnotationSource.SAM2
+        if tracker is MaskTrackerKind.DAM4SAM:
+            return AnnotationSource.DAM4SAM
+        if tracker is MaskTrackerKind.SAMURAI:
+            return AnnotationSource.SAMURAI
+        raise ValueError(f"Unsupported mask tracker kind: {tracker_kind!r}.")
 
     def _bbox_from_output_array(self, bbox_xyxy: np.ndarray) -> BBoxXYXY | None:
         bbox_array = np.asarray(bbox_xyxy, dtype=np.float32)

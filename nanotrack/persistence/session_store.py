@@ -33,6 +33,7 @@ from nanotrack.core import (
     YoloDetectionSet,
 )
 from nanotrack.io import load_mpp_sequence
+from nanotrack.mask_trackers.config import MaskTrackerKind
 
 SESSION_SCHEMA = "nanotrack.session.v1"
 
@@ -47,6 +48,7 @@ class NanoTrackSessionSnapshot:
     yolo_detections: YoloDetectionSet | None = None
     selected_track_id: int | None = None
     selected_edge_track_id: int | None = None
+    selected_mask_tracker_kind: str = MaskTrackerKind.SAM2.value
     draft_bboxes_by_frame: dict[int, BBoxXYXY] = field(default_factory=dict)
     draft_polygons_by_frame: dict[int, PolygonROI] = field(default_factory=dict)
     draft_edge_polylines_by_frame: dict[int, np.ndarray] = field(default_factory=dict)
@@ -141,6 +143,9 @@ def load_session_snapshot(
             yolo_detections=yolo_detections,
             selected_track_id=manifest.get("selected_track_id"),
             selected_edge_track_id=manifest.get("selected_edge_track_id"),
+            selected_mask_tracker_kind=_normalize_mask_tracker_kind(
+                manifest.get("selected_mask_tracker_kind", MaskTrackerKind.SAM2.value)
+            ),
             draft_bboxes_by_frame=draft_bboxes,
             draft_polygons_by_frame=draft_polygons,
             draft_edge_polylines_by_frame=draft_edge_polylines,
@@ -164,6 +169,7 @@ def _build_manifest(snapshot: NanoTrackSessionSnapshot) -> dict:
         },
         "selected_track_id": snapshot.selected_track_id,
         "selected_edge_track_id": snapshot.selected_edge_track_id,
+        "selected_mask_tracker_kind": _normalize_mask_tracker_kind(snapshot.selected_mask_tracker_kind),
         "show_denoised_in_viewer": bool(snapshot.show_denoised_in_viewer),
         "yolo_detections": _serialize_yolo_detections(snapshot.yolo_detections),
         "registration_results": _serialize_registration_result_set(snapshot.registration_results),
@@ -531,6 +537,13 @@ def _restore_yolo_detections(payload: dict | None) -> YoloDetectionSet | None:
 def _bbox_from_payload(payload: list[float] | tuple[float, float, float, float]) -> BBoxXYXY:
     x0, y0, x1, y1 = [float(value) for value in payload]
     return BBoxXYXY(x0, y0, x1, y1)
+
+
+def _normalize_mask_tracker_kind(value: object) -> str:
+    try:
+        return MaskTrackerKind.from_value(value).value
+    except Exception:
+        return MaskTrackerKind.SAM2.value
 
 
 def _write_npz(zf: zipfile.ZipFile, path: str, **arrays: np.ndarray) -> None:

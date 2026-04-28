@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
+    QComboBox,
     QGroupBox,
+    QHBoxLayout,
     QLabel,
     QListWidget,
     QListWidgetItem,
@@ -12,12 +14,14 @@ from PyQt6.QtWidgets import (
 )
 
 from nanotrack.core import ParticleTrack
+from nanotrack.mask_trackers import MASK_TRACKER_KINDS, MaskTrackerKind
 
 
 class TrackListPanel(QWidget):
     """Sidebar panel listing tracked objects."""
 
     track_selected = pyqtSignal(object)
+    mask_tracker_changed = pyqtSignal(object)
     run_selected_requested = pyqtSignal()
     run_all_requested = pyqtSignal()
 
@@ -39,15 +43,26 @@ class TrackListPanel(QWidget):
         self.lbl_summary = QLabel("0 tracks", self)
         self.list_tracks = QListWidget(self)
         self.list_tracks.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
-        self.btn_run_selected = QPushButton("Run SAM2 for Selected", self)
-        self.btn_run_all = QPushButton("Run SAM2 for All Seeds", self)
+        self.lbl_mask_tracker = QLabel("Mask Tracker", self)
+        self.cmb_mask_tracker = QComboBox(self)
+        for tracker_kind in MASK_TRACKER_KINDS:
+            self.cmb_mask_tracker.addItem(_mask_tracker_label(tracker_kind), tracker_kind.value)
+        self.cmb_mask_tracker.setCurrentIndex(self.cmb_mask_tracker.findData(MaskTrackerKind.SAM2.value))
+        self.btn_run_selected = QPushButton("Run for Selected", self)
+        self.btn_run_all = QPushButton("Run for All Seeds", self)
+
+        tracker_layout = QHBoxLayout()
+        tracker_layout.addWidget(self.lbl_mask_tracker)
+        tracker_layout.addWidget(self.cmb_mask_tracker, 1)
 
         group_layout.addWidget(self.lbl_summary)
         group_layout.addWidget(self.list_tracks, 1)
+        group_layout.addLayout(tracker_layout)
         group_layout.addWidget(self.btn_run_selected)
         group_layout.addWidget(self.btn_run_all)
 
         layout.addWidget(group, 1)
+        self.cmb_mask_tracker.currentIndexChanged.connect(self._on_mask_tracker_changed)
         self._apply_enabled_state()
 
     def clear(self) -> None:
@@ -84,6 +99,17 @@ class TrackListPanel(QWidget):
             return None
         return item.data(Qt.ItemDataRole.UserRole)
 
+    def current_mask_tracker_kind(self) -> MaskTrackerKind:
+        tracker_value = self.cmb_mask_tracker.currentData()
+        return MaskTrackerKind.from_value(tracker_value)
+
+    def set_mask_tracker_kind(self, tracker_kind: MaskTrackerKind | str) -> None:
+        tracker = MaskTrackerKind.from_value(tracker_kind)
+        index = self.cmb_mask_tracker.findData(tracker.value)
+        if index < 0:
+            raise ValueError(f"Mask tracker is not listed in the UI selector: {tracker.value!r}.")
+        self.cmb_mask_tracker.setCurrentIndex(index)
+
     def set_selected_track_id(self, track_id: int | None) -> None:
         self._updating_selection = True
         try:
@@ -110,6 +136,7 @@ class TrackListPanel(QWidget):
         has_tracks = self.list_tracks.count() > 0
         has_selected_track = self.current_track_id() is not None
         self.list_tracks.setEnabled(has_tracks and not self._processing_busy)
+        self.cmb_mask_tracker.setEnabled(not self._processing_busy)
         self.btn_run_selected.setEnabled(has_selected_track and not self._processing_busy)
         self.btn_run_all.setEnabled(has_tracks and not self._processing_busy)
 
@@ -119,3 +146,16 @@ class TrackListPanel(QWidget):
             return
         track_id = None if current is None else current.data(Qt.ItemDataRole.UserRole)
         self.track_selected.emit(track_id)
+
+    def _on_mask_tracker_changed(self) -> None:
+        self.mask_tracker_changed.emit(self.current_mask_tracker_kind())
+
+
+def _mask_tracker_label(tracker_kind: MaskTrackerKind) -> str:
+    if tracker_kind is MaskTrackerKind.SAM2:
+        return "SAM2"
+    if tracker_kind is MaskTrackerKind.DAM4SAM:
+        return "DAM4SAM"
+    if tracker_kind is MaskTrackerKind.SAMURAI:
+        return "SAMURAI"
+    return tracker_kind.value

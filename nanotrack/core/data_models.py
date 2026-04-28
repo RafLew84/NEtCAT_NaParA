@@ -349,6 +349,8 @@ class AnnotationSource(str, Enum):
 
     MANUAL = "manual"
     SAM2 = "sam2"
+    DAM4SAM = "dam4sam"
+    SAMURAI = "samurai"
     RESUME = "resume"
 
 
