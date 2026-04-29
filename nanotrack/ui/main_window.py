@@ -283,6 +283,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._denoised_frames: np.ndarray | None = None
         self._denoised_sigma_factor: float | None = None
         self._show_denoised_in_viewer = False
+        self._hide_excluded_frames = False
         self._is_preprocessing = False
         self._is_tracking = False
         self._preview_frame_index: int | None = None
@@ -443,11 +444,16 @@ class NanoTrackMainWindow(QMainWindow):
         self.chk_exclude_frame.setToolTip(
             "Exclude the current frame from tracks, edge tracks, metrics, exports, and future analysis runs."
         )
+        self.chk_hide_excluded_frames = QCheckBox("Hide Excluded", self)
+        self.chk_hide_excluded_frames.setToolTip(
+            "Skip excluded frames when navigating with previous/next, slider, or frame spin box."
+        )
         self.btn_next = QPushButton("Next Frame", self)
 
         nav_layout.addWidget(self.btn_prev)
         nav_layout.addWidget(self.spin_frame)
         nav_layout.addWidget(self.chk_exclude_frame)
+        nav_layout.addWidget(self.chk_hide_excluded_frames)
         nav_layout.addWidget(self.btn_next)
 
         layout.addWidget(nav_row)
@@ -501,6 +507,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.slider_frame.valueChanged.connect(self._on_frame_selected)
         self.spin_frame.valueChanged.connect(self._on_spin_frame_selected)
         self.chk_exclude_frame.toggled.connect(self._on_exclude_frame_toggled)
+        self.chk_hide_excluded_frames.toggled.connect(self._on_hide_excluded_frames_toggled)
         self.btn_prev.clicked.connect(self._on_prev_frame)
         self.btn_next.clicked.connect(self._on_next_frame)
         self.viewer.bbox_changed.connect(self._on_viewer_bbox_changed)
@@ -554,6 +561,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.slider_frame.setEnabled(enabled)
         self.spin_frame.setEnabled(enabled)
         self.chk_exclude_frame.setEnabled(enabled)
+        self.chk_hide_excluded_frames.setEnabled(enabled)
         self.btn_prev.setEnabled(enabled)
         self.btn_next.setEnabled(enabled)
         self.bbox_tools_panel.set_sequence_loaded(enabled)
@@ -583,9 +591,11 @@ class NanoTrackMainWindow(QMainWindow):
 
         with QSignalBlocker(self.chk_exclude_frame):
             self.chk_exclude_frame.setChecked(self._sequence.is_frame_excluded(current))
+        with QSignalBlocker(self.chk_hide_excluded_frames):
+            self.chk_hide_excluded_frames.setChecked(self._hide_excluded_frames)
 
-        self.btn_prev.setEnabled(current > 0)
-        self.btn_next.setEnabled(current < total - 1)
+        self.btn_prev.setEnabled(self._previous_visible_frame_index(current) is not None)
+        self.btn_next.setEnabled(self._next_visible_frame_index(current) is not None)
         self.yolo_panel.set_frame_context(current, total)
         exclusion_suffix = " | excluded" if self._sequence.is_frame_excluded(current) else ""
         self.lbl_frame.setText(f"Frame: {current + 1} / {total}{exclusion_suffix}")
@@ -638,6 +648,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._draft_polygons_by_frame = {}
         self._draft_edge_polylines_by_frame = {}
         self._registration_results = None
+        self._hide_excluded_frames = False
         self._clear_aligned_registration_cache()
         self._clear_all_preprocessing_cache()
         self._set_bbox_place_mode(False)
@@ -1171,6 +1182,7 @@ class NanoTrackMainWindow(QMainWindow):
                 self._sequence.raw_frames,
                 settings=settings,
                 progress_callback=on_progress,
+                excluded_frame_indices=self._sequence.sorted_excluded_frame_indices(),
             )
         except Exception as exc:
             self._registration_results = None
@@ -1242,20 +1254,87 @@ class NanoTrackMainWindow(QMainWindow):
         self._show_current_frame(preserve_zoom=False)
 
     def _on_frame_selected(self, frame_index: int) -> None:
-        self._set_active_frame(frame_index)
+        current = -1 if self._sequence is None else self._sequence.active_frame_index
+        self._set_active_frame(self._coerce_visible_frame_index(frame_index, direction=frame_index - current))
 
     def _on_spin_frame_selected(self, spin_value: int) -> None:
-        self._set_active_frame(spin_value - 1)
+        target = spin_value - 1
+        current = -1 if self._sequence is None else self._sequence.active_frame_index
+        self._set_active_frame(self._coerce_visible_frame_index(target, direction=target - current))
 
     def _on_prev_frame(self) -> None:
         if self._sequence is None:
             return
-        self._set_active_frame(max(0, self._sequence.active_frame_index - 1))
+        previous_index = self._previous_visible_frame_index(self._sequence.active_frame_index)
+        if previous_index is not None:
+            self._set_active_frame(previous_index)
 
     def _on_next_frame(self) -> None:
         if self._sequence is None:
             return
-        self._set_active_frame(min(self._sequence.frame_count - 1, self._sequence.active_frame_index + 1))
+        next_index = self._next_visible_frame_index(self._sequence.active_frame_index)
+        if next_index is not None:
+            self._set_active_frame(next_index)
+
+    def _on_hide_excluded_frames_toggled(self, checked: bool) -> None:
+        self._hide_excluded_frames = bool(checked)
+        if self._sequence is None:
+            return
+        if not self._hide_excluded_frames:
+            self._sync_navigation_controls()
+            return
+
+        included = self._sequence.included_frame_indices()
+        if not included:
+            self._hide_excluded_frames = False
+            with QSignalBlocker(self.chk_hide_excluded_frames):
+                self.chk_hide_excluded_frames.setChecked(False)
+            self.statusBar().showMessage("Cannot hide excluded frames because all frames are excluded.", 4000)
+            self._sync_navigation_controls()
+            return
+
+        current = self._sequence.active_frame_index
+        target = self._coerce_visible_frame_index(current)
+        if target != current:
+            self._set_active_frame(target)
+            return
+        self._sync_navigation_controls()
+
+    def _coerce_visible_frame_index(self, frame_index: int, *, direction: int = 0) -> int:
+        if self._sequence is None:
+            return int(frame_index)
+        frame_index = int(min(max(frame_index, 0), self._sequence.frame_count - 1))
+        if not self._hide_excluded_frames or not self._sequence.is_frame_excluded(frame_index):
+            return frame_index
+
+        included = self._sequence.included_frame_indices()
+        if not included:
+            return frame_index
+        if direction < 0:
+            candidates = [index for index in included if index <= frame_index]
+            return candidates[-1] if candidates else included[0]
+        if direction > 0:
+            candidates = [index for index in included if index >= frame_index]
+            return candidates[0] if candidates else included[-1]
+        return min(included, key=lambda index: (abs(index - frame_index), index))
+
+    def _previous_visible_frame_index(self, frame_index: int) -> int | None:
+        if self._sequence is None:
+            return None
+        frame_index = int(frame_index)
+        if not self._hide_excluded_frames:
+            return None if frame_index <= 0 else frame_index - 1
+        candidates = [index for index in self._sequence.included_frame_indices() if index < frame_index]
+        return candidates[-1] if candidates else None
+
+    def _next_visible_frame_index(self, frame_index: int) -> int | None:
+        if self._sequence is None:
+            return None
+        frame_index = int(frame_index)
+        if not self._hide_excluded_frames:
+            return None if frame_index >= self._sequence.frame_count - 1 else frame_index + 1
+        candidates = [index for index in self._sequence.included_frame_indices() if index > frame_index]
+        return candidates[0] if candidates else None
 
     def _on_exclude_frame_toggled(self, checked: bool) -> None:
         if self._sequence is None:
@@ -1274,6 +1353,27 @@ class NanoTrackMainWindow(QMainWindow):
             removed_particle_tracks, removed_particle_annotations = self._prune_excluded_frame_from_tracks(frame_index)
             removed_edge_tracks, removed_edge_annotations = self._prune_excluded_frame_from_edge_tracks(frame_index)
             self._reset_preview_state(close_dialog=True)
+            if self._hide_excluded_frames:
+                target = self._next_visible_frame_index(frame_index)
+                if target is None:
+                    target = self._previous_visible_frame_index(frame_index)
+                if target is not None:
+                    self._set_active_frame(target)
+                    self.statusBar().showMessage(
+                        (
+                            f"Excluded frame {frame_index + 1} from analysis "
+                            f"(removed {removed_yolo_detections} YOLO detections, "
+                            f"{removed_particle_annotations} particle annotations, "
+                            f"{removed_edge_annotations} edge annotations, "
+                            f"dropped {removed_particle_tracks} particle tracks, "
+                            f"{removed_edge_tracks} edge tracks)."
+                        ),
+                        5000,
+                    )
+                    return
+                self._hide_excluded_frames = False
+                with QSignalBlocker(self.chk_hide_excluded_frames):
+                    self.chk_hide_excluded_frames.setChecked(False)
             self._show_current_frame(preserve_zoom=True)
             self.statusBar().showMessage(
                 (

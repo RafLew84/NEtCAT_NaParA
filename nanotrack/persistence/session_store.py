@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import zipfile
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Callable
 
 import numpy as np
@@ -32,7 +33,7 @@ from nanotrack.core import (
     YoloDetection,
     YoloDetectionSet,
 )
-from nanotrack.io import load_mpp_sequence
+from nanotrack.io import FRAME_SERIES_EXTENSIONS, load_stm_sequence
 from nanotrack.mask_trackers.config import MaskTrackerKind
 
 SESSION_SCHEMA = "nanotrack.session.v1"
@@ -100,7 +101,7 @@ def save_session_snapshot(path: str, snapshot: NanoTrackSessionSnapshot) -> None
 def load_session_snapshot(
     path: str,
     *,
-    sequence_loader: Callable[..., STMSequence] = load_mpp_sequence,
+    sequence_loader: Callable[..., STMSequence] = load_stm_sequence,
 ) -> NanoTrackSessionSnapshot:
     """Load a NanoTrack session from disk and reconstruct the in-memory state."""
 
@@ -109,9 +110,10 @@ def load_session_snapshot(
         if manifest.get("schema") != SESSION_SCHEMA:
             raise ValueError(f"Unsupported NanoTrack session schema: {manifest.get('schema')!r}")
 
-        sequence_path = str(manifest["sequence"]["source_path"])
+        sequence_payload = manifest["sequence"]
+        sequence_source = _sequence_source_for_load(sequence_payload, session_path=path)
         reverse_frame_order = bool(manifest["sequence"].get("reverse_frame_order", False))
-        sequence = sequence_loader(sequence_path, reverse_frame_order=reverse_frame_order)
+        sequence = sequence_loader(sequence_source, reverse_frame_order=reverse_frame_order)
         for frame_index in manifest["sequence"].get("excluded_frame_indices", []):
             sequence.set_frame_excluded(int(frame_index), True)
         sequence.set_active_frame(int(manifest["sequence"]["active_frame_index"]))
@@ -163,6 +165,7 @@ def _build_manifest(snapshot: NanoTrackSessionSnapshot) -> dict:
         "schema": SESSION_SCHEMA,
         "sequence": {
             "source_path": snapshot.sequence.source_path,
+            "source_paths": _sequence_source_paths(snapshot.sequence),
             "active_frame_index": snapshot.sequence.active_frame_index,
             "reverse_frame_order": bool(snapshot.sequence.reverse_frame_order),
             "excluded_frame_indices": snapshot.sequence.sorted_excluded_frame_indices(),
@@ -201,6 +204,85 @@ def _build_manifest(snapshot: NanoTrackSessionSnapshot) -> dict:
         "tracks": [_serialize_track(track) for track in snapshot.tracks],
         "edge_tracks": [_serialize_edge_track(track) for track in snapshot.edge_tracks],
     }
+
+
+def _sequence_source_paths(sequence: STMSequence) -> list[str]:
+    source_payload = sequence.metadata.raw_header.get("NanoTrack Source", {})
+    if isinstance(source_payload, dict):
+        source_files = source_payload.get("source_files")
+        if isinstance(source_files, list) and source_files:
+            return [str(path) for path in source_files]
+    return [str(sequence.source_path)]
+
+
+def _sequence_source_for_load(sequence_payload: dict, *, session_path: str | Path | None = None) -> str | list[str]:
+    source_paths = sequence_payload.get("source_paths")
+    if isinstance(source_paths, list) and source_paths:
+        normalized_paths = [str(path) for path in source_paths]
+        return normalized_paths[0] if len(normalized_paths) == 1 else normalized_paths
+
+    source_path = str(sequence_payload["source_path"])
+    if Path(source_path).suffix:
+        return source_path
+
+    session_directory = None if session_path is None else Path(session_path).resolve().parent
+    inferred_paths = _infer_legacy_frame_series_source_paths(source_path, fallback_directory=session_directory)
+    return inferred_paths if inferred_paths is not None else source_path
+
+
+def _infer_legacy_frame_series_source_paths(
+    source_path: str,
+    *,
+    fallback_directory: Path | None = None,
+) -> list[str] | None:
+    """Recover source files for old sessions saved with only a synthetic series name."""
+
+    source = Path(source_path)
+    series_name = _portable_path_name(source_path)
+    match = re.fullmatch(r"(?P<first_stem>.+)_series_(?P<count>\d+)_frames", series_name)
+    if match is None:
+        return None
+
+    first_stem = match.group("first_stem").casefold()
+    frame_count = int(match.group("count"))
+
+    directories = [source.parent]
+    if fallback_directory is not None and fallback_directory not in directories:
+        directories.append(fallback_directory)
+
+    for directory in directories:
+        if not directory.is_dir():
+            continue
+        candidates = sorted(
+            (
+                path
+                for path in directory.iterdir()
+                if path.is_file() and path.suffix.lower() in FRAME_SERIES_EXTENSIONS
+            ),
+            key=_natural_path_sort_key,
+        )
+        start_index = next(
+            (index for index, path in enumerate(candidates) if path.stem.casefold() == first_stem),
+            None,
+        )
+        if start_index is None:
+            continue
+        selected = candidates[start_index : start_index + frame_count]
+        if len(selected) == frame_count:
+            return [str(path) for path in selected]
+    return None
+
+
+def _portable_path_name(path: str) -> str:
+    windows_name = PureWindowsPath(path).name
+    if windows_name != path:
+        return windows_name
+    return Path(path).name
+
+
+def _natural_path_sort_key(path: Path) -> tuple:
+    parts = re.split(r"(\d+)", path.name.casefold())
+    return tuple(int(part) if part.isdigit() else part for part in parts)
 
 
 def _serialize_registration_result_set(result_set: RegistrationResultSet | None) -> dict | None:

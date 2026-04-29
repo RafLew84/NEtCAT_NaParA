@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, Iterable
 
 import numpy as np
 
@@ -53,10 +53,17 @@ def run_adjacent_phase_registration(
     settings: RegistrationSettings | None = None,
     backend: AdjacentRegistrationBackend | None = None,
     progress_callback: RegistrationProgressCallback | None = None,
+    excluded_frame_indices: Iterable[int] | None = None,
 ) -> RegistrationResultSet:
-    """Register all frames to frame 0 by accumulating adjacent translations."""
+    """Register included frames by accumulating adjacent translations."""
 
     source_stack = _ensure_frame_stack(frames)
+    total = int(source_stack.shape[0])
+    excluded = _normalize_excluded_frame_indices(excluded_frame_indices, frame_count=total)
+    included = [frame_index for frame_index in range(total) if frame_index not in excluded]
+    if not included:
+        raise ValueError("registration requires at least one frame that is not excluded.")
+
     settings = settings or RegistrationSettings(
         backend="phase_correlation",
         reference_strategy="adjacent",
@@ -69,60 +76,67 @@ def run_adjacent_phase_registration(
     if isinstance(backend, MaskedPhaseCorrelationBackend) and settings.roi_mask is None:
         raise ValueError("MaskedPhaseCorrelationBackend requires RegistrationSettings.roi_mask.")
     registration_view = build_registration_view_from_settings(source_stack, settings)
-    total = int(source_stack.shape[0])
 
     results: dict[int, RegistrationFrameResult] = {}
-    identity = RegistrationFrameResult(
-        frame_index=0,
-        shift_xy=(0.0, 0.0),
-        method="identity",
-        quality_score=1.0,
-        status="ok",
-    )
-    results[0] = identity
-    if progress_callback is not None:
-        progress_callback(1, total, identity)
+    cumulative_shift = np.asarray((0.0, 0.0), dtype=np.float64)
+    cumulative_quality = 1.0
+    cumulative_status = "ok"
+    previous_included_index: int | None = None
 
-    cumulative_shift = np.asarray(identity.shift_xy, dtype=np.float64)
-    cumulative_quality = float(identity.quality_score)
-    cumulative_status = identity.status
+    for frame_index in range(total):
+        if frame_index in excluded:
+            result = _excluded_registration_result(frame_index, cumulative_shift)
+            results[frame_index] = result
+            if progress_callback is not None:
+                progress_callback(frame_index + 1, total, result)
+            continue
 
-    for moving_index in range(1, total):
-        pair_result = _estimate_adjacent_pair(backend, registration_view, settings, moving_index)
-        pair_shift = np.asarray(pair_result.shift_xy, dtype=np.float64)
-        cumulative_shift = cumulative_shift + pair_shift
-        cumulative_quality = min(cumulative_quality, pair_result.quality_score)
-        if cumulative_status == "failed" or pair_result.status == "failed":
-            cumulative_status = "failed"
-        elif cumulative_status == "manual_review" or pair_result.status == "manual_review":
-            cumulative_status = "manual_review"
-        elif cumulative_status == "low_confidence" or pair_result.status == "low_confidence":
-            cumulative_status = "low_confidence"
+        if previous_included_index is None:
+            result = RegistrationFrameResult(
+                frame_index=frame_index,
+                shift_xy=(0.0, 0.0),
+                method="identity",
+                quality_score=1.0,
+                status="ok",
+            )
+            previous_included_index = frame_index
         else:
-            cumulative_status = "ok"
+            pair_result = _estimate_adjacent_pair(
+                backend,
+                registration_view,
+                settings,
+                reference_index=previous_included_index,
+                moving_index=frame_index,
+            )
+            pair_shift = np.asarray(pair_result.shift_xy, dtype=np.float64)
+            cumulative_shift = cumulative_shift + pair_shift
+            cumulative_quality = min(cumulative_quality, pair_result.quality_score)
+            cumulative_status = _combine_registration_status(cumulative_status, pair_result.status)
 
-        cumulative_result = RegistrationFrameResult(
-            frame_index=moving_index,
-            shift_xy=(float(cumulative_shift[0]), float(cumulative_shift[1])),
-            method=_adjacent_method_name(pair_result.method),
-            quality_score=cumulative_quality,
-            phase_peak_ratio=pair_result.phase_peak_ratio,
-            ecc_score=pair_result.ecc_score,
-            num_inlier_tiles=pair_result.num_inlier_tiles,
-            num_total_tiles=pair_result.num_total_tiles,
-            median_tile_residual=pair_result.median_tile_residual,
-            flow_mad=pair_result.flow_mad,
-            status=cumulative_status,
-        )
-        results[moving_index] = cumulative_result
+            result = RegistrationFrameResult(
+                frame_index=frame_index,
+                shift_xy=(float(cumulative_shift[0]), float(cumulative_shift[1])),
+                method=_adjacent_method_name(pair_result.method),
+                quality_score=cumulative_quality,
+                phase_peak_ratio=pair_result.phase_peak_ratio,
+                ecc_score=pair_result.ecc_score,
+                num_inlier_tiles=pair_result.num_inlier_tiles,
+                num_total_tiles=pair_result.num_total_tiles,
+                median_tile_residual=pair_result.median_tile_residual,
+                flow_mad=pair_result.flow_mad,
+                status=cumulative_status,
+            )
+            previous_included_index = frame_index
+
+        results[frame_index] = result
         if progress_callback is not None:
-            progress_callback(moving_index + 1, total, cumulative_result)
+            progress_callback(frame_index + 1, total, result)
 
     return RegistrationResultSet(
         settings=settings,
         results_by_frame=results,
-        reference_frame_index=0,
-        template_frame_indices=(0,),
+        reference_frame_index=included[0],
+        template_frame_indices=(included[0],),
     )
 
 
@@ -218,46 +232,48 @@ def _estimate_adjacent_pair(
     backend: AdjacentRegistrationBackend,
     registration_view: np.ndarray,
     settings: RegistrationSettings,
+    *,
+    reference_index: int,
     moving_index: int,
 ) -> RegistrationFrameResult:
     if isinstance(backend, MaskedPhaseCorrelationBackend):
         return backend.estimate_pair(
             registration_view,
-            reference_index=moving_index - 1,
+            reference_index=reference_index,
             moving_index=moving_index,
             reference_mask=settings.roi_mask,
         )
     if isinstance(backend, TileCorrelationRansacBackend):
         return backend.estimate_pair(
             registration_view,
-            reference_index=moving_index - 1,
+            reference_index=reference_index,
             moving_index=moving_index,
             reference_mask=settings.roi_mask,
         )
     if isinstance(backend, ECCTranslationBackend):
         return backend.estimate_pair(
             registration_view,
-            reference_index=moving_index - 1,
+            reference_index=reference_index,
             moving_index=moving_index,
             reference_mask=settings.roi_mask,
         )
     if isinstance(backend, OpticalFlowMedianBackend):
         return backend.estimate_pair(
             registration_view,
-            reference_index=moving_index - 1,
+            reference_index=reference_index,
             moving_index=moving_index,
             reference_mask=settings.roi_mask,
         )
     if isinstance(backend, DeepMatcherTranslationBackend):
         return backend.estimate_pair(
             registration_view,
-            reference_index=moving_index - 1,
+            reference_index=reference_index,
             moving_index=moving_index,
             reference_mask=settings.roi_mask,
         )
     return backend.estimate_pair(
         registration_view,
-        reference_index=moving_index - 1,
+        reference_index=reference_index,
         moving_index=moving_index,
     )
 
@@ -267,6 +283,40 @@ def _adjacent_method_name(pair_method: str) -> str:
     if method.endswith("_adjacent"):
         return method
     return f"{method}_adjacent"
+
+
+def _normalize_excluded_frame_indices(
+    excluded_frame_indices: Iterable[int] | None,
+    *,
+    frame_count: int,
+) -> set[int]:
+    if excluded_frame_indices is None:
+        return set()
+    excluded = {int(frame_index) for frame_index in excluded_frame_indices}
+    for frame_index in excluded:
+        if not 0 <= frame_index < frame_count:
+            raise IndexError("excluded_frame_indices contains an out-of-range frame index.")
+    return excluded
+
+
+def _excluded_registration_result(frame_index: int, cumulative_shift: np.ndarray) -> RegistrationFrameResult:
+    return RegistrationFrameResult(
+        frame_index=frame_index,
+        shift_xy=(float(cumulative_shift[0]), float(cumulative_shift[1])),
+        method="excluded_frame",
+        quality_score=0.0,
+        status="manual_review",
+    )
+
+
+def _combine_registration_status(current_status: str, pair_status: str) -> str:
+    if current_status == "failed" or pair_status == "failed":
+        return "failed"
+    if current_status == "manual_review" or pair_status == "manual_review":
+        return "manual_review"
+    if current_status == "low_confidence" or pair_status == "low_confidence":
+        return "low_confidence"
+    return "ok"
 
 
 def _ensure_frame_stack(frames: np.ndarray) -> np.ndarray:

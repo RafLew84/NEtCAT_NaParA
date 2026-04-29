@@ -1233,6 +1233,52 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.__class__._app.processEvents()
         self.assertFalse(sequence.is_frame_excluded(1))
 
+    def test_hide_excluded_frames_skips_hidden_frames_in_navigation(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/hide_excluded_navigation.mpp",
+            raw_frames=np.zeros((5, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+        )
+        sequence.set_frame_excluded(1, True)
+        sequence.set_frame_excluded(3, True)
+        self.window.set_sequence(sequence)
+
+        self.window.chk_hide_excluded_frames.setChecked(True)
+        self.__class__._app.processEvents()
+
+        self.window._on_next_frame()
+        self.assertEqual(sequence.active_frame_index, 2)
+
+        self.window.slider_frame.setValue(3)
+        self.__class__._app.processEvents()
+        self.assertEqual(sequence.active_frame_index, 4)
+
+        self.window._on_prev_frame()
+        self.assertEqual(sequence.active_frame_index, 2)
+
+        self.window.spin_frame.setValue(2)
+        self.__class__._app.processEvents()
+        self.assertEqual(sequence.active_frame_index, 0)
+        self.assertFalse(self.window.btn_prev.isEnabled())
+
+    def test_excluding_current_frame_moves_to_visible_frame_when_hidden(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/exclude_hidden_current.mpp",
+            raw_frames=np.zeros((3, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+        )
+        self.window.set_sequence(sequence)
+        self.window.chk_hide_excluded_frames.setChecked(True)
+        self.window._set_active_frame(1)
+
+        self.window.chk_exclude_frame.setChecked(True)
+        self.__class__._app.processEvents()
+
+        self.assertTrue(sequence.is_frame_excluded(1))
+        self.assertTrue(self.window.chk_hide_excluded_frames.isChecked())
+        self.assertEqual(sequence.active_frame_index, 2)
+        self.assertFalse(self.window.chk_exclude_frame.isChecked())
+
     def test_prev_next_buttons_follow_sequence_bounds(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
         self.window.set_sequence(sequence)
@@ -1962,7 +2008,41 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(kwargs["settings"].backend, "tile_correlation_ransac")
         self.assertEqual(kwargs["settings"].reference_strategy, "adjacent")
         self.assertEqual(kwargs["settings"].registration_view, "raw")
+        self.assertEqual(kwargs["excluded_frame_indices"], [])
         self.assertNotIn("backend", kwargs)
+        self.assertIs(self.window.current_registration_results(), expected_result_set)
+
+    def test_registration_batch_action_passes_excluded_frames_to_runner(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/registration_excluded_frames.mpp",
+            raw_frames=np.zeros((4, 16, 16), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=16, pixels_y=16),
+        )
+        sequence.set_frame_excluded(1, True)
+        sequence.set_frame_excluded(3, True)
+        self.window.set_sequence(sequence)
+        expected_result_set = RegistrationResultSet(
+            settings=RegistrationSettings(
+                backend="phase_correlation",
+                reference_strategy="adjacent",
+                registration_view="raw",
+            ),
+            results_by_frame={
+                0: RegistrationFrameResult(0, (0.0, 0.0), "identity", quality_score=1.0),
+                1: RegistrationFrameResult(1, (0.0, 0.0), "excluded_frame", quality_score=0.0, status="manual_review"),
+                2: RegistrationFrameResult(2, (1.0, 0.0), "phase_correlation_adjacent", quality_score=0.9),
+                3: RegistrationFrameResult(3, (1.0, 0.0), "excluded_frame", quality_score=0.0, status="manual_review"),
+            },
+            reference_frame_index=0,
+            template_frame_indices=(0,),
+        )
+
+        with patch("nanotrack.ui.main_window.run_adjacent_phase_registration", return_value=expected_result_set) as run_mock:
+            self.window.action_run_registration.trigger()
+
+        run_mock.assert_called_once()
+        _, kwargs = run_mock.call_args
+        self.assertEqual(kwargs["excluded_frame_indices"], [1, 3])
         self.assertIs(self.window.current_registration_results(), expected_result_set)
 
     def test_registration_results_action_opens_quality_dialog(self) -> None:

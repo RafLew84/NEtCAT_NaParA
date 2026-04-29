@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 import tempfile
 import unittest
 import zipfile
@@ -384,6 +385,94 @@ class SessionStoreTests(unittest.TestCase):
         self.assertFalse(restored_unselected.selected)
         self.assertAlmostEqual(restored_unselected.confidence, 0.66)
         self.assertEqual(restored_unselected.bbox, BBoxXYXY(1.0, 1.5, 4.5, 3.5))
+
+    def test_frame_series_session_manifest_preserves_source_paths(self) -> None:
+        source_paths = [
+            r"C:\data\stm\3815.STP",
+            r"C:\data\stm\3816.STP",
+            r"C:\data\stm\3818.STP",
+        ]
+        sequence = STMSequence(
+            source_path=r"C:\data\stm\3815_series_3_frames",
+            raw_frames=np.zeros((3, 4, 5), dtype=np.float32),
+            metadata=STMSequenceMetadata(
+                pixels_x=5,
+                pixels_y=4,
+                raw_header={
+                    "NanoTrack Source": {
+                        "loader": "napara.io.factory.load_stm_path",
+                        "source_files": source_paths,
+                        "frame_count": 3,
+                    }
+                },
+            ),
+        )
+        snapshot = NanoTrackSessionSnapshot(sequence=sequence)
+        seen_sources: list[object] = []
+
+        def _loader(source, *, reverse_frame_order: bool = False) -> STMSequence:
+            seen_sources.append(source)
+            return STMSequence(
+                source_path="loaded",
+                raw_frames=np.zeros((3, 4, 5), dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4),
+                reverse_frame_order=reverse_frame_order,
+            )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session_path = f"{tmpdir}/series.nanotrack"
+            save_session_snapshot(session_path, snapshot)
+            with zipfile.ZipFile(session_path, mode="r") as zf:
+                manifest = json.loads(zf.read("manifest.json").decode("utf-8"))
+
+            loaded = load_session_snapshot(session_path, sequence_loader=_loader)
+
+        self.assertEqual(manifest["sequence"]["source_path"], sequence.source_path)
+        self.assertEqual(manifest["sequence"]["source_paths"], source_paths)
+        self.assertEqual(seen_sources, [source_paths])
+        self.assertEqual(loaded.sequence.source_path, "loaded")
+
+    def test_load_legacy_frame_series_session_infers_source_files_from_series_name(self) -> None:
+        seen_sources: list[object] = []
+
+        def _loader(source, *, reverse_frame_order: bool = False) -> STMSequence:
+            seen_sources.append(source)
+            return STMSequence(
+                source_path="loaded",
+                raw_frames=np.zeros((3, 4, 5), dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4),
+                reverse_frame_order=reverse_frame_order,
+            )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir)
+            for name in ["3814.STP", "3815.STP", "3816.STP", "3818.STP", "3819.STP"]:
+                (source_dir / name).write_bytes(b"")
+            manifest = {
+                "schema": "nanotrack.session.v1",
+                "sequence": {
+                    "source_path": str(source_dir / "3815_series_3_frames"),
+                    "active_frame_index": 0,
+                    "reverse_frame_order": False,
+                    "excluded_frame_indices": [],
+                },
+                "registration_results": None,
+                "tracks": [],
+                "edge_tracks": [],
+            }
+            session_path = source_dir / "legacy.nanotrack"
+            with zipfile.ZipFile(session_path, mode="w") as zf:
+                zf.writestr("manifest.json", json.dumps(manifest))
+
+            load_session_snapshot(str(session_path), sequence_loader=_loader)
+
+            expected_sources = [
+                str(source_dir / "3815.STP"),
+                str(source_dir / "3816.STP"),
+                str(source_dir / "3818.STP"),
+            ]
+
+        self.assertEqual(seen_sources, [expected_sources])
 
     def test_load_session_without_mask_tracker_kind_defaults_to_sam2(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
