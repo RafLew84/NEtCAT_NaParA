@@ -220,13 +220,17 @@ class TrackResultsDialog(QDialog):
 
         if track_key == self.ALL_TRACKS_KEY:
             measured_track_frames = sum(1 for track in self._tracks for _ in self._metric_rows(track))
+            source_suffix = self._source_views_summary(self._tracks)
             self.lbl_summary.setText(
-                f"All tracks | measured frames: {len(metric_rows)} / {self._sequence.frame_count} | track-frames: {measured_track_frames}"
+                f"All tracks | measured frames: {len(metric_rows)} / {self._sequence.frame_count} | "
+                f"track-frames: {measured_track_frames}{source_suffix}"
             )
         else:
             track = self._current_track()
+            source_suffix = self._source_views_summary([] if track is None else [track])
             self.lbl_summary.setText(
-                f"{track.label or f'Track {track.track_id}'} | measured frames: {len(metric_rows)} / {self._sequence.frame_count}"
+                f"{track.label or f'Track {track.track_id}'} | "
+                f"measured frames: {len(metric_rows)} / {self._sequence.frame_count}{source_suffix}"
             )
 
     def _plot_single_series(
@@ -300,6 +304,17 @@ class TrackResultsDialog(QDialog):
             ):
                 continue
             yield frame_index, metrics
+
+    def _source_views_summary(self, tracks: list[ParticleTrack]) -> str:
+        source_views: set[str] = set()
+        for track in tracks:
+            for frame_index in track.frame_indices:
+                annotation = track.get_annotation(frame_index)
+                if annotation is not None and annotation.source_view:
+                    source_views.add(annotation.source_view)
+        if not source_views:
+            return ""
+        return " | source views: " + ", ".join(sorted(source_views))
 
     def _aggregate_metric_rows(self) -> list[tuple[int, object]]:
         grouped: dict[int, list[object]] = {}

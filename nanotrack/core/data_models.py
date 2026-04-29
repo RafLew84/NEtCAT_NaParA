@@ -674,10 +674,12 @@ class TrackFrameAnnotation:
     visibility: FrameVisibility = FrameVisibility.VISIBLE
     source: AnnotationSource = AnnotationSource.SAM2
     metrics: ParticleMetrics = field(default_factory=ParticleMetrics)
+    source_view: str = ""
 
     def __post_init__(self) -> None:
         if self.frame_index < 0:
             raise ValueError("frame_index must be non-negative.")
+        self.source_view = str(self.source_view).strip()
         if self.mask is not None:
             mask = np.asarray(self.mask, dtype=bool)
             if mask.ndim != 2:

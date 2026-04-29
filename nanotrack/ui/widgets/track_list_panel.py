@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QPushButton,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
@@ -48,16 +49,28 @@ class TrackListPanel(QWidget):
         for tracker_kind in MASK_TRACKER_KINDS:
             self.cmb_mask_tracker.addItem(_mask_tracker_label(tracker_kind), tracker_kind.value)
         self.cmb_mask_tracker.setCurrentIndex(self.cmb_mask_tracker.findData(MaskTrackerKind.SAM2.value))
+        self.lbl_run_frame_limit = QLabel("Frames", self)
+        self.sp_run_frame_limit = QSpinBox(self)
+        self.sp_run_frame_limit.setRange(0, 1_000_000)
+        self.sp_run_frame_limit.setValue(0)
+        self.sp_run_frame_limit.setSpecialValueText("All")
+        self.sp_run_frame_limit.setToolTip(
+            "Maximum frames to run from each seed frame, including the seed frame. Use All to run to the end."
+        )
         self.btn_run_selected = QPushButton("Run for Selected", self)
         self.btn_run_all = QPushButton("Run for All Seeds", self)
 
         tracker_layout = QHBoxLayout()
         tracker_layout.addWidget(self.lbl_mask_tracker)
         tracker_layout.addWidget(self.cmb_mask_tracker, 1)
+        frame_limit_layout = QHBoxLayout()
+        frame_limit_layout.addWidget(self.lbl_run_frame_limit)
+        frame_limit_layout.addWidget(self.sp_run_frame_limit, 1)
 
         group_layout.addWidget(self.lbl_summary)
         group_layout.addWidget(self.list_tracks, 1)
         group_layout.addLayout(tracker_layout)
+        group_layout.addLayout(frame_limit_layout)
         group_layout.addWidget(self.btn_run_selected)
         group_layout.addWidget(self.btn_run_all)
 
@@ -110,6 +123,18 @@ class TrackListPanel(QWidget):
             raise ValueError(f"Mask tracker is not listed in the UI selector: {tracker.value!r}.")
         self.cmb_mask_tracker.setCurrentIndex(index)
 
+    def current_run_frame_limit(self) -> int | None:
+        value = int(self.sp_run_frame_limit.value())
+        return None if value == 0 else value
+
+    def set_run_frame_limit(self, frame_limit: int | None) -> None:
+        if frame_limit is None:
+            self.sp_run_frame_limit.setValue(0)
+            return
+        if frame_limit < 1:
+            raise ValueError("frame_limit must be positive or None.")
+        self.sp_run_frame_limit.setValue(int(frame_limit))
+
     def set_selected_track_id(self, track_id: int | None) -> None:
         self._updating_selection = True
         try:
@@ -137,6 +162,7 @@ class TrackListPanel(QWidget):
         has_selected_track = self.current_track_id() is not None
         self.list_tracks.setEnabled(has_tracks and not self._processing_busy)
         self.cmb_mask_tracker.setEnabled(not self._processing_busy)
+        self.sp_run_frame_limit.setEnabled(not self._processing_busy)
         self.btn_run_selected.setEnabled(has_selected_track and not self._processing_busy)
         self.btn_run_all.setEnabled(has_tracks and not self._processing_busy)
 

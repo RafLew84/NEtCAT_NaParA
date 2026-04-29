@@ -30,6 +30,7 @@ class ResultsExportTests(unittest.TestCase):
                 frame_index=3,
                 bbox=BBoxXYXY(3.0, 3.0, 7.0, 7.0),
                 metrics=ParticleMetrics(area_px=21.0, perimeter_px=24.0, area_nm2=1050.0, perimeter_nm=180.0, intensity_sum=55.0, intensity_mean=2.62, intensity_max=5.0),
+                source_view="bm3d+expanded_registration",
             )
         )
 
@@ -46,6 +47,7 @@ class ResultsExportTests(unittest.TestCase):
         self.assertEqual(metrics_rows[0]["label"], "NP-2")
         self.assertEqual(metrics_rows[0]["frame_number"], "4")
         self.assertEqual(metrics_rows[0]["time_s"], "1.5")
+        self.assertEqual(metrics_rows[0]["source_view"], "bm3d+expanded_registration")
         self.assertEqual(metrics_rows[0]["intensity_max"], "5.0")
 
         self.assertEqual(len(summary_rows), 2)
@@ -55,6 +57,7 @@ class ResultsExportTests(unittest.TestCase):
         self.assertEqual(summary_rows[0]["mean_area_nm2"], "")
         self.assertEqual(summary_rows[0]["mean_perimeter_nm"], "")
         self.assertEqual(summary_rows[1]["track_id"], "2")
+        self.assertEqual(summary_rows[1]["source_views"], "bm3d+expanded_registration")
         self.assertEqual(summary_rows[1]["max_intensity_max"], "5.0")
 
 

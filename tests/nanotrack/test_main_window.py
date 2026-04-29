@@ -45,6 +45,7 @@ from nanotrack.core import (
 from nanotrack.io import load_mpp_sequence
 from nanotrack.edges import DexiNedRunOutput
 from nanotrack.mask_trackers import MaskTrackerKind, MaskTrackerRunOutput
+from nanotrack.registration import build_aligned_frames, build_expanded_aligned_frames
 from nanotrack.sam2 import Sam2RunOutput
 from nanotrack.trackers import PointTrackerRunOutput
 
@@ -143,6 +144,15 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             if predicate():
                 return
             time.sleep(0.01)
+
+    def _assert_viewer_image_matches_finite_pixels(self, expected: np.ndarray) -> None:
+        actual = np.asarray(self.window.viewer.viewer.image_item.image)
+        expected_array = np.asarray(expected)
+        self.assertEqual(actual.shape, expected_array.shape)
+        finite_mask = np.isfinite(expected_array)
+        np.testing.assert_array_equal(actual[finite_mask], expected_array[finite_mask])
+        if np.any(~finite_mask):
+            self.assertTrue(np.all(np.isfinite(actual[~finite_mask])))
 
     def _edge_probability_output(
         self,
@@ -392,6 +402,53 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(self.window.preprocessing_panel.btn_repair_apply_all.isEnabled())
         self.assertFalse(self.window.preprocessing_panel.chk_show_denoised.isEnabled())
         self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "No preview generated for current frame")
+
+    def test_mask_tracker_base_frames_prefer_bm3d_then_repair_then_raw(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+
+        frames, source_view, stack_kind = self.window._current_mask_tracker_base_frames()
+        self.assertEqual(source_view, "raw")
+        self.assertEqual(stack_kind, "raw")
+        np.testing.assert_array_equal(frames, sequence.raw_frames)
+
+        repaired = np.full_like(sequence.raw_frames, 0.25, dtype=np.float32)
+        self.window._repair_frames = repaired
+        frames, source_view, stack_kind = self.window._current_mask_tracker_base_frames()
+        self.assertEqual(source_view, "repair")
+        self.assertEqual(stack_kind, "repair")
+        np.testing.assert_array_equal(frames, repaired)
+
+        denoised = np.full_like(sequence.raw_frames, 0.75, dtype=np.float32)
+        self.window._denoised_frames = denoised
+        frames, source_view, stack_kind = self.window._current_mask_tracker_base_frames()
+        self.assertEqual(source_view, "bm3d")
+        self.assertEqual(stack_kind, "bm3d")
+        np.testing.assert_array_equal(frames, denoised)
+
+        tracker_frames, tracker_source_view = self.window._current_mask_tracker_input_frames()
+        self.assertEqual(tracker_source_view, "bm3d")
+        np.testing.assert_array_equal(tracker_frames, denoised)
+
+    def test_yolo_input_uses_base_frames_independently_from_mask_tracker_input(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+        self.window.slider_frame.setValue(1)
+        repaired = np.full_like(sequence.raw_frames, 0.4, dtype=np.float32)
+        self.window._repair_frames = repaired
+
+        with patch.object(
+            self.window,
+            "_current_mask_tracker_input_frames",
+            side_effect=AssertionError("YOLO must not depend on the high-level mask tracker input helper."),
+        ):
+            frame, frame_source_view = self.window._current_yolo_input_frame()
+            frames, frames_source_view = self.window._current_yolo_input_frames()
+
+        self.assertEqual(frame_source_view, "repair")
+        self.assertEqual(frames_source_view, "repair")
+        np.testing.assert_array_equal(frame, repaired[1])
+        np.testing.assert_array_equal(frames, repaired)
 
     @patch("nanotrack.ui.main_window.QFileDialog.getOpenFileNames", return_value=(["/tmp/reversed.mpp"], "STM files"))
     def test_open_reverse_uses_reversed_frame_order_loader(self, _get_open_file_names) -> None:
@@ -2144,15 +2201,461 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(expanded.padding_ltrb, (0, 1, 2, 0))
         self.assertIn("View: Expanded aligned registration 6x4 px pad 0,1,2,0", self.window.viewer.lbl_meta.text())
         np.testing.assert_array_equal(sequence.raw_frames, raw_frames)
-        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, expanded.frames[0])
+        self._assert_viewer_image_matches_finite_pixels(expanded.frames[0])
 
         self.window.slider_frame.setValue(1)
-        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, expanded.frames[1])
+        self._assert_viewer_image_matches_finite_pixels(expanded.frames[1])
 
         self.window.action_show_expanded_aligned_registration.trigger()
         self.assertFalse(self.window.action_show_expanded_aligned_registration.isChecked())
         np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, sequence.raw_frames[1])
         self.assertIn("View: Raw", self.window.viewer.lbl_meta.text())
+
+    def test_mask_tracker_input_uses_bm3d_aligned_registration_when_view_active(self) -> None:
+        raw_frames = np.arange(3 * 4 * 5, dtype=np.float32).reshape(3, 4, 5)
+        sequence = STMSequence(
+            source_path="/tmp/mask_tracker_bm3d_aligned.mpp",
+            raw_frames=raw_frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4),
+        )
+        result_set = RegistrationResultSet(
+            settings=RegistrationSettings(registration_view="raw"),
+            results_by_frame={
+                0: RegistrationFrameResult(0, (0.0, 0.0), "identity", quality_score=1.0),
+                1: RegistrationFrameResult(1, (1.0, 0.0), "manual", quality_score=0.9),
+                2: RegistrationFrameResult(2, (-1.0, 1.0), "manual", quality_score=0.8),
+            },
+        )
+        denoised = raw_frames + 100.0
+        self.window.set_sequence(sequence)
+        self.window._denoised_frames = denoised
+        self.window._denoised_sigma_factor = 1.0
+        self.window._registration_results = result_set
+        self.window._update_menu_action_state()
+
+        self.window.action_show_aligned_registration.trigger()
+
+        expected = build_aligned_frames(denoised, result_set)
+        input_frames, source_view = self.window._current_mask_tracker_input_frames()
+        self.assertEqual(source_view, "bm3d+registration")
+        np.testing.assert_allclose(input_frames, expected, atol=1e-6)
+        np.testing.assert_allclose(self.window.current_aligned_frames(), expected, atol=1e-6)
+        np.testing.assert_array_equal(sequence.raw_frames, raw_frames)
+
+    def test_mask_tracker_input_uses_repair_expanded_registration_when_view_active(self) -> None:
+        raw_frames = np.arange(2 * 3 * 4, dtype=np.float32).reshape(2, 3, 4)
+        sequence = STMSequence(
+            source_path="/tmp/mask_tracker_repair_expanded.mpp",
+            raw_frames=raw_frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=3, size_nm_x=8.0, size_nm_y=6.0),
+        )
+        result_set = RegistrationResultSet(
+            settings=RegistrationSettings(registration_view="raw"),
+            results_by_frame={
+                0: RegistrationFrameResult(0, (0.0, 0.0), "identity", quality_score=1.0),
+                1: RegistrationFrameResult(1, (2.0, -1.0), "manual", quality_score=0.9),
+            },
+        )
+        repaired = raw_frames + 50.0
+        self.window.set_sequence(sequence)
+        self.window._repair_frames = repaired
+        self.window._registration_results = result_set
+        self.window._update_menu_action_state()
+
+        self.window.action_show_expanded_aligned_registration.trigger()
+
+        expected = build_expanded_aligned_frames(repaired, result_set, metadata=sequence.metadata)
+        input_frames, source_view = self.window._current_mask_tracker_input_frames()
+        self.assertEqual(source_view, "repair+expanded_registration")
+        np.testing.assert_allclose(input_frames, expected.frames, equal_nan=True)
+        expanded = self.window.current_expanded_aligned_stack()
+        self.assertIsNotNone(expanded)
+        assert expanded is not None
+        np.testing.assert_allclose(expanded.frames, expected.frames, equal_nan=True)
+        self.assertEqual(expanded.metadata.pixels_x, expected.metadata.pixels_x)
+        self.assertEqual(expanded.metadata.pixels_y, expected.metadata.pixels_y)
+        np.testing.assert_array_equal(sequence.raw_frames, raw_frames)
+
+    def test_mask_tracker_input_source_matrix_covers_preprocessing_and_registration_views(self) -> None:
+        raw_frames = np.arange(3 * 4 * 5, dtype=np.float32).reshape(3, 4, 5)
+        result_set = RegistrationResultSet(
+            settings=RegistrationSettings(registration_view="raw"),
+            results_by_frame={
+                0: RegistrationFrameResult(0, (0.0, 0.0), "identity", quality_score=1.0),
+                1: RegistrationFrameResult(1, (2.0, -1.0), "manual", quality_score=0.9),
+                2: RegistrationFrameResult(2, (-1.0, 1.0), "manual", quality_score=0.8),
+            },
+        )
+        stacks = {
+            "raw": raw_frames,
+            "repair": raw_frames + 50.0,
+            "bm3d": raw_frames + 100.0,
+        }
+        cases = [
+            ("raw", "none", "raw"),
+            ("repair", "none", "repair"),
+            ("bm3d", "none", "bm3d"),
+            ("raw", "aligned", "raw+registration"),
+            ("repair", "aligned", "repair+registration"),
+            ("bm3d", "aligned", "bm3d+registration"),
+            ("raw", "expanded", "raw+expanded_registration"),
+            ("repair", "expanded", "repair+expanded_registration"),
+            ("bm3d", "expanded", "bm3d+expanded_registration"),
+        ]
+
+        for base_name, view_mode, expected_source_view in cases:
+            with self.subTest(base_name=base_name, view_mode=view_mode):
+                sequence = STMSequence(
+                    source_path=f"/tmp/mask_tracker_matrix_{base_name}_{view_mode}.mpp",
+                    raw_frames=raw_frames.copy(),
+                    metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4, size_nm_x=5.0, size_nm_y=4.0),
+                )
+                self.window.set_sequence(sequence)
+                self.window._repair_frames = stacks["repair"] if base_name == "repair" else None
+                self.window._denoised_frames = stacks["bm3d"] if base_name == "bm3d" else None
+                self.window._denoised_sigma_factor = 1.0 if base_name == "bm3d" else None
+                self.window._registration_results = result_set
+                self.window._show_aligned_in_viewer = view_mode == "aligned"
+                self.window._show_expanded_aligned_in_viewer = view_mode == "expanded"
+
+                input_frames, source_view = self.window._current_mask_tracker_input_frames()
+
+                self.assertEqual(source_view, expected_source_view)
+                base_stack = stacks[base_name]
+                if view_mode == "aligned":
+                    np.testing.assert_allclose(input_frames, build_aligned_frames(base_stack, result_set), atol=1e-6)
+                elif view_mode == "expanded":
+                    expected_expanded = build_expanded_aligned_frames(base_stack, result_set, metadata=sequence.metadata)
+                    np.testing.assert_allclose(input_frames, expected_expanded.frames, equal_nan=True)
+                    expanded = self.window.current_expanded_aligned_stack()
+                    self.assertIsNotNone(expanded)
+                    assert expanded is not None
+                    np.testing.assert_allclose(expanded.frame_origins_xy, expected_expanded.frame_origins_xy)
+                else:
+                    np.testing.assert_array_equal(input_frames, base_stack)
+
+    def test_mask_tracker_input_ignores_registration_results_until_view_is_enabled(self) -> None:
+        raw_frames = np.arange(3 * 4 * 5, dtype=np.float32).reshape(3, 4, 5)
+        sequence = STMSequence(
+            source_path="/tmp/mask_tracker_registration_inactive.mpp",
+            raw_frames=raw_frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4),
+        )
+        result_set = RegistrationResultSet(
+            settings=RegistrationSettings(registration_view="raw"),
+            results_by_frame={
+                0: RegistrationFrameResult(0, (0.0, 0.0), "identity", quality_score=1.0),
+                1: RegistrationFrameResult(1, (2.0, -1.0), "manual", quality_score=0.9),
+                2: RegistrationFrameResult(2, (-1.0, 1.0), "manual", quality_score=0.8),
+            },
+        )
+        denoised = raw_frames + 100.0
+        self.window.set_sequence(sequence)
+        self.window._denoised_frames = denoised
+        self.window._denoised_sigma_factor = 1.0
+        self.window._registration_results = result_set
+        self.window._update_menu_action_state()
+
+        input_frames, source_view = self.window._current_mask_tracker_input_frames()
+
+        self.assertEqual(source_view, "bm3d")
+        np.testing.assert_array_equal(input_frames, denoised)
+        self.assertIsNone(self.window.current_aligned_frames())
+        self.assertIsNone(self.window.current_expanded_aligned_stack())
+
+    def test_mask_tracker_registration_cache_rebuilds_when_base_stack_changes(self) -> None:
+        raw_frames = np.ones((2, 4, 5), dtype=np.float32)
+        sequence = STMSequence(
+            source_path="/tmp/mask_tracker_cache_rebuild.mpp",
+            raw_frames=raw_frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4),
+        )
+        result_set = RegistrationResultSet(
+            settings=RegistrationSettings(registration_view="raw"),
+            results_by_frame={
+                0: RegistrationFrameResult(0, (0.0, 0.0), "identity", quality_score=1.0),
+                1: RegistrationFrameResult(1, (0.0, 0.0), "identity", quality_score=1.0),
+            },
+        )
+        repaired = np.full_like(raw_frames, 2.0)
+        denoised = np.full_like(raw_frames, 3.0)
+        self.window.set_sequence(sequence)
+        self.window._repair_frames = repaired
+        self.window._registration_results = result_set
+        self.window._update_menu_action_state()
+        self.window.action_show_aligned_registration.trigger()
+        first_cache = self.window.current_aligned_frames()
+        self.assertIsNotNone(first_cache)
+        assert first_cache is not None
+        np.testing.assert_allclose(first_cache, repaired)
+
+        self.window._denoised_frames = denoised
+        input_frames, source_view = self.window._current_mask_tracker_input_frames()
+
+        self.assertEqual(source_view, "bm3d+registration")
+        np.testing.assert_allclose(input_frames, denoised)
+        self.assertIsNot(self.window.current_aligned_frames(), first_cache)
+        np.testing.assert_allclose(self.window.current_aligned_frames(), denoised)
+
+    def test_mask_tracker_aligned_registration_keeps_prompt_bbox_coordinates(self) -> None:
+        raw_frames = np.zeros((2, 4, 5), dtype=np.float32)
+        sequence = STMSequence(
+            source_path="/tmp/mask_tracker_aligned_prompt.mpp",
+            raw_frames=raw_frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4),
+        )
+        result_set = RegistrationResultSet(
+            settings=RegistrationSettings(registration_view="raw"),
+            results_by_frame={
+                0: RegistrationFrameResult(0, (0.0, 0.0), "identity", quality_score=1.0),
+                1: RegistrationFrameResult(1, (2.0, -1.0), "manual", quality_score=0.9),
+            },
+        )
+        self.window.set_sequence(sequence)
+        self.window._registration_results = result_set
+        self.window._update_menu_action_state()
+        self.window.action_show_aligned_registration.trigger()
+        track = ParticleTrack(track_id=1, seed_frame_index=1, seed_bbox=BBoxXYXY(1.0, 1.0, 3.0, 3.0))
+
+        run_input = self.window._build_mask_tracker_input_for_track(
+            track,
+            MaskTrackerKind.SAM2,
+            frame_limit=1,
+        )
+
+        self.assertEqual(run_input.source_view, "raw+registration")
+        np.testing.assert_array_equal(run_input.query_box_xyxy, np.asarray([1.0, 1.0, 3.0, 3.0], dtype=np.float32))
+        np.testing.assert_array_equal(run_input.query_point_tyx, np.asarray([0.0, 2.0, 2.0], dtype=np.float32))
+        self.assertEqual(run_input.frames.shape, (1, *sequence.frame_shape))
+
+    def test_run_selected_expanded_registration_shifts_prompt_and_stores_model_coordinates(self) -> None:
+        raw_frames = np.zeros((2, 4, 5), dtype=np.float32)
+        sequence = STMSequence(
+            source_path="/tmp/mask_tracker_expanded_prompt.mpp",
+            raw_frames=raw_frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4, size_nm_x=5.0, size_nm_y=4.0),
+        )
+        result_set = RegistrationResultSet(
+            settings=RegistrationSettings(registration_view="raw"),
+            results_by_frame={
+                0: RegistrationFrameResult(0, (0.0, 0.0), "identity", quality_score=1.0),
+                1: RegistrationFrameResult(1, (2.0, -1.0), "manual", quality_score=0.9),
+            },
+        )
+        self.window.set_sequence(sequence)
+        self.window._registration_results = result_set
+        self.window._update_menu_action_state()
+        self.window.action_show_expanded_aligned_registration.trigger()
+        self.window.track_list_panel.set_run_frame_limit(1)
+        track = ParticleTrack(track_id=1, seed_frame_index=1, seed_bbox=BBoxXYXY(1.0, 1.0, 3.0, 3.0))
+        self.window.set_tracks([track], selected_track_id=1)
+
+        expanded = self.window.current_expanded_aligned_stack()
+        self.assertIsNotNone(expanded)
+        assert expanded is not None
+        np.testing.assert_array_equal(expanded.frame_origins_xy[1], np.asarray([2.0, 0.0]))
+        expanded_mask = np.zeros(expanded.frames.shape[1:], dtype=bool)
+        expanded_mask[1:3, 3:5] = True
+        run_output = MaskTrackerRunOutput(
+            tracker_kind=MaskTrackerKind.SAM2,
+            track_id=1,
+            frame_index_offset=1,
+            masks=expanded_mask[None, :, :],
+            visible_mask=np.asarray([True]),
+            mask_areas=np.asarray([4.0], dtype=np.float32),
+            mask_bboxes_xyxy=np.asarray([[3.0, 1.0, 5.0, 3.0]], dtype=np.float32),
+            mask_scores=np.asarray([0.95], dtype=np.float32),
+            mask_component_counts=np.asarray([1], dtype=np.int32),
+        )
+        observed_inputs = []
+
+        def fake_run(run_input):
+            time.sleep(0.05)
+            observed_inputs.append(run_input)
+            self.assertEqual(run_input.source_view, "raw+expanded_registration")
+            np.testing.assert_allclose(run_input.frames, expanded.frames[1:2], equal_nan=True)
+            np.testing.assert_array_equal(
+                run_input.query_box_xyxy,
+                np.asarray([3.0, 1.0, 5.0, 3.0], dtype=np.float32),
+            )
+            np.testing.assert_array_equal(
+                run_input.query_point_tyx,
+                np.asarray([0.0, 2.0, 4.0], dtype=np.float32),
+            )
+            return run_output
+
+        with patch.object(self.window._sam2_backend, "run", side_effect=fake_run) as run_mock:
+            self.window.track_list_panel.btn_run_selected.click()
+            self._wait_until(
+                lambda: (
+                    run_mock.called
+                    and self.window.current_tracks()[0].get_annotation(1) is not None
+                    and not self.window._is_tracking
+                )
+            )
+
+        run_mock.assert_called_once()
+        self.assertEqual(len(observed_inputs), 1)
+        tracked = self.window.current_tracks()[0]
+        annotation = tracked.get_annotation(1)
+        self.assertIsNotNone(annotation)
+        assert annotation is not None
+        self.assertEqual(annotation.bbox, BBoxXYXY(1.0, 1.0, 3.0, 3.0))
+        self.assertEqual(annotation.mask.shape, sequence.frame_shape)
+        expected_mask = np.zeros(sequence.frame_shape, dtype=bool)
+        expected_mask[1:3, 1:3] = True
+        np.testing.assert_array_equal(annotation.mask, expected_mask)
+        self.assertEqual(annotation.source, AnnotationSource.SAM2)
+        self.assertEqual(annotation.source_view, "raw+expanded_registration")
+        self.assertEqual(annotation.metrics.area_px, 4.0)
+        np.testing.assert_array_equal(sequence.raw_frames, raw_frames)
+
+    def test_resume_expanded_registration_transforms_prompt_and_result_coordinates(self) -> None:
+        raw_frames = np.zeros((3, 4, 5), dtype=np.float32)
+        sequence = STMSequence(
+            source_path="/tmp/mask_tracker_expanded_resume.mpp",
+            raw_frames=raw_frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4, size_nm_x=5.0, size_nm_y=4.0),
+        )
+        result_set = RegistrationResultSet(
+            settings=RegistrationSettings(registration_view="raw"),
+            results_by_frame={
+                0: RegistrationFrameResult(0, (0.0, 0.0), "identity", quality_score=1.0),
+                1: RegistrationFrameResult(1, (2.0, -1.0), "manual", quality_score=0.9),
+                2: RegistrationFrameResult(2, (1.0, 0.0), "manual", quality_score=0.8),
+            },
+        )
+        self.window.set_sequence(sequence)
+        self.window._registration_results = result_set
+        self.window._update_menu_action_state()
+        self.window.action_show_expanded_aligned_registration.trigger()
+
+        corrected_bbox = BBoxXYXY(1.0, 1.0, 3.0, 3.0)
+        track = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(0.5, 0.5, 2.5, 2.5))
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=corrected_bbox,
+                source=AnnotationSource.MANUAL,
+            )
+        )
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=2,
+                bbox=BBoxXYXY(0.0, 0.0, 1.0, 1.0),
+                source=AnnotationSource.SAM2,
+            )
+        )
+        self.window.set_tracks([track], selected_track_id=1)
+        self.window.slider_frame.setValue(1)
+        self.assertTrue(self.window.bbox_tools_panel.btn_resume_track.isEnabled())
+
+        expanded = self.window.current_expanded_aligned_stack()
+        self.assertIsNotNone(expanded)
+        assert expanded is not None
+        np.testing.assert_array_equal(expanded.frame_origins_xy[1], np.asarray([2.0, 0.0]))
+        np.testing.assert_array_equal(expanded.frame_origins_xy[2], np.asarray([1.0, 1.0]))
+        masks = np.zeros((2, *expanded.frames.shape[1:]), dtype=bool)
+        masks[0, 1:3, 3:5] = True
+        masks[1, 2:4, 2:4] = True
+        run_output = MaskTrackerRunOutput(
+            tracker_kind=MaskTrackerKind.SAM2,
+            track_id=1,
+            frame_index_offset=1,
+            masks=masks,
+            visible_mask=np.asarray([True, True]),
+            mask_areas=np.asarray([4.0, 4.0], dtype=np.float32),
+            mask_bboxes_xyxy=np.asarray(
+                [
+                    [3.0, 1.0, 5.0, 3.0],
+                    [2.0, 2.0, 4.0, 4.0],
+                ],
+                dtype=np.float32,
+            ),
+            mask_scores=np.asarray([0.95, 0.94], dtype=np.float32),
+            mask_component_counts=np.asarray([1, 1], dtype=np.int32),
+        )
+
+        def fake_run(run_input):
+            time.sleep(0.05)
+            self.assertEqual(run_input.source_view, "raw+expanded_registration")
+            self.assertEqual(run_input.frame_index_offset, 1)
+            np.testing.assert_allclose(run_input.frames, expanded.frames[1:], equal_nan=True)
+            np.testing.assert_array_equal(
+                run_input.query_box_xyxy,
+                np.asarray([3.0, 1.0, 5.0, 3.0], dtype=np.float32),
+            )
+            np.testing.assert_array_equal(
+                run_input.query_point_tyx,
+                np.asarray([0.0, 2.0, 4.0], dtype=np.float32),
+            )
+            return run_output
+
+        with patch.object(self.window._sam2_backend, "run", side_effect=fake_run) as run_mock:
+            self.window.bbox_tools_panel.btn_resume_track.click()
+            self._wait_until(
+                lambda: (
+                    run_mock.called
+                    and self.window.current_tracks()[0].get_annotation(2) is not None
+                    and not self.window._is_tracking
+                ),
+                attempts=350,
+            )
+
+        run_mock.assert_called_once()
+        resumed_track = self.window.current_tracks()[0]
+        self.assertEqual(resumed_track.get_annotation(1).bbox, corrected_bbox)
+        self.assertEqual(resumed_track.get_annotation(1).source, AnnotationSource.MANUAL)
+        annotation = resumed_track.get_annotation(2)
+        self.assertIsNotNone(annotation)
+        assert annotation is not None
+        self.assertEqual(annotation.bbox, BBoxXYXY(1.0, 1.0, 3.0, 3.0))
+        self.assertEqual(annotation.mask.shape, sequence.frame_shape)
+        expected_mask = np.zeros(sequence.frame_shape, dtype=bool)
+        expected_mask[1:3, 1:3] = True
+        np.testing.assert_array_equal(annotation.mask, expected_mask)
+        self.assertEqual(annotation.source, AnnotationSource.SAM2)
+        self.assertEqual(annotation.source_view, "raw+expanded_registration")
+        self.assertEqual(annotation.metrics.area_px, 4.0)
+
+    @patch("nanotrack.ui.main_window.QMessageBox.warning")
+    def test_resume_rejects_bbox_outside_original_frame_coordinates(self, warning_mock) -> None:
+        raw_frames = np.zeros((2, 4, 5), dtype=np.float32)
+        sequence = STMSequence(
+            source_path="/tmp/mask_tracker_resume_source_mismatch.mpp",
+            raw_frames=raw_frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4, size_nm_x=5.0, size_nm_y=4.0),
+        )
+        result_set = RegistrationResultSet(
+            settings=RegistrationSettings(registration_view="raw"),
+            results_by_frame={
+                0: RegistrationFrameResult(0, (0.0, 0.0), "identity", quality_score=1.0),
+                1: RegistrationFrameResult(1, (2.0, -1.0), "manual", quality_score=0.9),
+            },
+        )
+        self.window.set_sequence(sequence)
+        self.window._registration_results = result_set
+        self.window._update_menu_action_state()
+        self.window.action_show_expanded_aligned_registration.trigger()
+        track = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(1.0, 1.0, 3.0, 3.0))
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(5.5, 1.0, 7.0, 3.0),
+                source=AnnotationSource.MANUAL,
+            )
+        )
+        self.window.set_tracks([track], selected_track_id=1)
+        self.window.slider_frame.setValue(1)
+
+        with patch.object(self.window._sam2_backend, "run") as run_mock:
+            self.window.bbox_tools_panel.btn_resume_track.click()
+
+        run_mock.assert_not_called()
+        warning_mock.assert_called_once()
+        self.assertEqual(warning_mock.call_args.args[1], "Resume source mismatch")
+        self.assertIn("outside the original frame coordinates", warning_mock.call_args.args[2])
+        self.assertFalse(self.window._is_tracking)
 
     def test_registration_view_actions_switch_between_raw_aligned_and_expanded_aligned(self) -> None:
         raw_frames = np.arange(2 * 4 * 5, dtype=np.float32).reshape(2, 4, 5)
@@ -2193,7 +2696,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         assert expanded is not None
         self.assertFalse(self.window.action_show_aligned_registration.isChecked())
         self.assertTrue(self.window.action_show_expanded_aligned_registration.isChecked())
-        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, expanded.frames[1])
+        self._assert_viewer_image_matches_finite_pixels(expanded.frames[1])
         self.assertIn("View: Expanded aligned registration", self.window.viewer.lbl_meta.text())
 
         self.window.action_show_aligned_registration.trigger()
@@ -2207,6 +2710,41 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.action_show_expanded_aligned_registration.isChecked())
         np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, sequence.raw_frames[1])
         self.assertIn("View: Raw", self.window.viewer.lbl_meta.text())
+
+    def test_session_roundtrip_restores_expanded_registration_view_flag(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+        result_set = RegistrationResultSet(
+            settings=RegistrationSettings(registration_view="raw"),
+            results_by_frame={
+                frame_index: RegistrationFrameResult(
+                    frame_index=frame_index,
+                    shift_xy=(1.0 if frame_index else 0.0, -1.0 if frame_index else 0.0),
+                    method="identity" if frame_index == 0 else "manual",
+                    quality_score=1.0,
+                )
+                for frame_index in range(sequence.frame_count)
+            },
+        )
+        self.window._registration_results = result_set
+        self.window._update_menu_action_state()
+        self.window.action_show_expanded_aligned_registration.trigger()
+        self.assertTrue(self.window.action_show_expanded_aligned_registration.isChecked())
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session_path = f"{tmpdir}/expanded_view.nanotrack"
+            self.window.save_session_to_path(session_path)
+
+            self.window.action_show_expanded_aligned_registration.trigger()
+            self.assertFalse(self.window.action_show_expanded_aligned_registration.isChecked())
+
+            self.window.load_session_from_path(session_path)
+
+        self.assertIsNotNone(self.window.current_registration_results())
+        self.assertTrue(self.window.action_show_expanded_aligned_registration.isChecked())
+        self.assertFalse(self.window.action_show_aligned_registration.isChecked())
+        self.assertFalse(self.window.preprocessing_panel.chk_show_denoised.isChecked())
+        self.assertIn("View: Expanded aligned registration", self.window.viewer.lbl_meta.text())
 
     def test_expanded_aligned_view_offsets_overlays_without_mutating_raw_annotations(self) -> None:
         raw_frames = np.arange(2 * 3 * 4, dtype=np.float32).reshape(2, 3, 4)
@@ -2297,7 +2835,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(expanded.metadata.pixels_x, 6)
         self.assertEqual(expanded.metadata.pixels_y, 4)
         self.window._set_active_frame(1)
-        np.testing.assert_array_equal(self.window.current_expanded_aligned_frame(), expanded.frames[1])
+        np.testing.assert_allclose(self.window.current_expanded_aligned_frame(), expanded.frames[1], equal_nan=True)
 
     def test_expanded_aligned_registration_cache_is_cleared_on_sequence_change_and_registration_rerun(self) -> None:
         sequence = STMSequence(
@@ -5521,6 +6059,135 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(
             self.window.statusBar().currentMessage() in {"SAM2 finished for all 2 seeds.", "SAM2 batch 2/2 finished: Track 2"}
         )
+
+    def test_run_all_sam2_uses_active_aligned_source_for_every_seed(self) -> None:
+        raw_frames = np.zeros((4, 8, 8), dtype=np.float32)
+        sequence = STMSequence(
+            source_path="/tmp/run_all_sam2_aligned_source.mpp",
+            raw_frames=raw_frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8, size_nm_x=8.0, size_nm_y=8.0),
+        )
+        result_set = RegistrationResultSet(
+            settings=RegistrationSettings(registration_view="raw"),
+            results_by_frame={
+                0: RegistrationFrameResult(0, (0.0, 0.0), "identity", quality_score=1.0),
+                1: RegistrationFrameResult(1, (1.0, 0.0), "manual", quality_score=0.9),
+                2: RegistrationFrameResult(2, (1.0, -1.0), "manual", quality_score=0.8),
+                3: RegistrationFrameResult(3, (0.0, -1.0), "manual", quality_score=0.7),
+            },
+        )
+        denoised = raw_frames + 0.75
+        self.window.set_sequence(sequence)
+        self.window._denoised_frames = denoised
+        self.window._denoised_sigma_factor = 1.0
+        self.window._registration_results = result_set
+        self.window._update_menu_action_state()
+        self.window.action_show_aligned_registration.trigger()
+        expected_aligned = build_aligned_frames(denoised, result_set)
+        track1 = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(1.0, 1.0, 3.0, 3.0))
+        track2 = ParticleTrack(track_id=2, seed_frame_index=1, seed_bbox=BBoxXYXY(2.0, 2.0, 4.0, 4.0))
+        self.window.set_tracks([track1, track2], selected_track_id=1)
+        observed_inputs: list[tuple[int, int, str]] = []
+
+        def fake_run(run_input):
+            time.sleep(0.05)
+            observed_inputs.append((int(run_input.track_id), int(run_input.frame_index_offset), run_input.source_view))
+            self.assertEqual(run_input.source_view, "bm3d+registration")
+            if run_input.track_id == 1:
+                np.testing.assert_allclose(run_input.frames, expected_aligned[0:], atol=1e-6)
+                np.testing.assert_array_equal(run_input.query_box_xyxy, np.asarray(track1.seed_bbox.as_tuple(), dtype=np.float32))
+            else:
+                np.testing.assert_allclose(run_input.frames, expected_aligned[1:], atol=1e-6)
+                np.testing.assert_array_equal(run_input.query_box_xyxy, np.asarray(track2.seed_bbox.as_tuple(), dtype=np.float32))
+            return self._mask_tracker_output(
+                MaskTrackerKind.SAM2,
+                track_id=int(run_input.track_id),
+                frame_index_offset=int(run_input.frame_index_offset),
+                frame_count=int(run_input.frames.shape[0]),
+                frame_shape=tuple(run_input.frames.shape[1:3]),
+                row=1,
+                col=1,
+                visible_count=int(run_input.frames.shape[0]),
+            )
+
+        with patch.object(self.window._sam2_backend, "run", side_effect=fake_run) as run_mock:
+            self.window.track_list_panel.btn_run_all.click()
+            self._wait_until(
+                lambda: (
+                    run_mock.call_count == 2
+                    and self.window.current_tracks()[0].get_annotation(1) is not None
+                    and self.window.current_tracks()[1].get_annotation(2) is not None
+                    and not self.window._is_tracking
+                ),
+                attempts=350,
+            )
+
+        self.assertEqual(observed_inputs, [(1, 0, "bm3d+registration"), (2, 1, "bm3d+registration")])
+        tracks = self.window.current_tracks()
+        self.assertEqual(tracks[0].get_annotation(0).source_view, "bm3d+registration")
+        self.assertEqual(tracks[0].get_annotation(1).source_view, "bm3d+registration")
+        self.assertEqual(tracks[1].get_annotation(1).source_view, "bm3d+registration")
+        self.assertEqual(tracks[1].get_annotation(2).source_view, "bm3d+registration")
+
+    def test_run_all_sam2_uses_configured_frame_limit_per_seed(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/run_all_sam2_frame_limit.mpp",
+            raw_frames=np.zeros((5, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+
+        self.window.slider_frame.setValue(0)
+        self.window.viewer.place_bbox_at_pixel(12.0, 12.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+
+        self.window.slider_frame.setValue(2)
+        self.window.viewer.place_bbox_at_pixel(20.0, 20.0)
+        self.window.bbox_tools_panel.btn_add_seed.click()
+
+        self.window.track_list_panel.set_run_frame_limit(2)
+        observed_inputs: list[tuple[int, int, int]] = []
+
+        def fake_run(run_input):
+            time.sleep(0.05)
+            observed_inputs.append(
+                (
+                    int(run_input.track_id),
+                    int(run_input.frame_index_offset),
+                    int(run_input.frames.shape[0]),
+                )
+            )
+            return self._mask_tracker_output(
+                MaskTrackerKind.SAM2,
+                track_id=int(run_input.track_id),
+                frame_index_offset=int(run_input.frame_index_offset),
+                frame_count=int(run_input.frames.shape[0]),
+                frame_shape=tuple(run_input.frames.shape[1:3]),
+                row=8 if run_input.track_id == 1 else 18,
+                col=10 if run_input.track_id == 1 else 20,
+                visible_count=int(run_input.frames.shape[0]),
+            )
+
+        with patch.object(self.window._sam2_backend, "run", side_effect=fake_run) as run_mock:
+            self.window.track_list_panel.btn_run_all.click()
+            self._wait_until(
+                lambda: (
+                    run_mock.call_count == 2
+                    and self.window.current_tracks()[0].get_annotation(1) is not None
+                    and self.window.current_tracks()[1].get_annotation(3) is not None
+                    and not self.window._is_tracking
+                ),
+                attempts=350,
+            )
+
+        self.assertEqual(observed_inputs, [(1, 0, 2), (2, 2, 2)])
+        tracks = self.window.current_tracks()
+        self.assertIsNotNone(tracks[0].get_annotation(0))
+        self.assertIsNotNone(tracks[0].get_annotation(1))
+        self.assertIsNone(tracks[0].get_annotation(2))
+        self.assertIsNotNone(tracks[1].get_annotation(2))
+        self.assertIsNotNone(tracks[1].get_annotation(3))
+        self.assertIsNone(tracks[1].get_annotation(4))
 
     def test_run_all_dam4sam_updates_multiple_tracks_with_dam4sam_source(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))

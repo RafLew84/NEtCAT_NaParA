@@ -79,6 +79,7 @@ class SessionStoreTests(unittest.TestCase):
                     intensity_mean=4.5,
                     intensity_max=7.0,
                 ),
+                source_view="raw+expanded_registration",
             )
         )
         track.add_annotation(
@@ -110,6 +111,7 @@ class SessionStoreTests(unittest.TestCase):
                 ),
                 visibility=FrameVisibility.VISIBLE,
                 source=AnnotationSource.DAM4SAM,
+                source_view="repair+registration",
             )
         )
         alternative_tracker_track.add_annotation(
@@ -127,6 +129,7 @@ class SessionStoreTests(unittest.TestCase):
                 ),
                 visibility=FrameVisibility.VISIBLE,
                 source=AnnotationSource.SAMURAI,
+                source_view="bm3d",
             )
         )
         polygon = PolygonROI(np.asarray([[0.0, 0.0], [4.0, 0.0], [4.0, 3.0], [0.0, 3.0]], dtype=np.float64))
@@ -261,6 +264,8 @@ class SessionStoreTests(unittest.TestCase):
             denoised_sigma_factor=1.4,
             show_denoised_in_viewer=True,
             registration_results=registration_results,
+            show_aligned_in_viewer=False,
+            show_expanded_aligned_in_viewer=True,
         )
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -302,6 +307,8 @@ class SessionStoreTests(unittest.TestCase):
         np.testing.assert_array_equal(loaded.denoised_frames, snapshot.denoised_frames)
         self.assertEqual(loaded.repair_params, snapshot.repair_params)
         self.assertEqual(loaded.denoised_sigma_factor, 1.4)
+        self.assertFalse(loaded.show_aligned_in_viewer)
+        self.assertTrue(loaded.show_expanded_aligned_in_viewer)
         self.assertIsNotNone(loaded.registration_results)
         loaded_registration = loaded.registration_results
         assert loaded_registration is not None
@@ -332,6 +339,7 @@ class SessionStoreTests(unittest.TestCase):
         self.assertEqual(restored_track.quality, TrackQuality.NEEDS_REVIEW)
         restored_visible = restored_track.get_annotation(2)
         self.assertEqual(restored_visible.source, AnnotationSource.SAM2)
+        self.assertEqual(restored_visible.source_view, "raw+expanded_registration")
         np.testing.assert_array_equal(restored_visible.mask, track.get_annotation(2).mask)
         self.assertEqual(restored_visible.metrics.area_px, 4.0)
         self.assertEqual(restored_visible.metrics.perimeter_px, 8.0)
@@ -346,12 +354,14 @@ class SessionStoreTests(unittest.TestCase):
         self.assertEqual(restored_alternative_track.label, "NP-8")
         restored_dam4sam_annotation = restored_alternative_track.get_annotation(1)
         self.assertEqual(restored_dam4sam_annotation.source, AnnotationSource.DAM4SAM)
+        self.assertEqual(restored_dam4sam_annotation.source_view, "repair+registration")
         np.testing.assert_array_equal(
             restored_dam4sam_annotation.mask,
             alternative_tracker_track.get_annotation(1).mask,
         )
         restored_samurai_annotation = restored_alternative_track.get_annotation(2)
         self.assertEqual(restored_samurai_annotation.source, AnnotationSource.SAMURAI)
+        self.assertEqual(restored_samurai_annotation.source_view, "bm3d")
         np.testing.assert_array_equal(
             restored_samurai_annotation.mask,
             alternative_tracker_track.get_annotation(2).mask,

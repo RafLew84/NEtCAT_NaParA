@@ -66,6 +66,7 @@ def _metrics_rows(sequence: STMSequence, tracks: list[ParticleTrack]) -> list[di
                     "time_s": sequence.get_frame_time_s(frame_index),
                     "visibility": annotation.visibility.value,
                     "source": annotation.source.value,
+                    "source_view": annotation.source_view,
                     "image_size_nm_x": sequence.metadata.size_nm_x or None,
                     "image_size_nm_y": sequence.metadata.size_nm_y or None,
                     "pixel_size_nm_x": pixel_size_x_nm,
@@ -119,6 +120,7 @@ def _summary_rows(sequence: STMSequence, tracks: list[ParticleTrack]) -> list[di
             intensity_sum_values = [annotation.metrics.intensity_sum for annotation in measured_annotations]
             intensity_mean_values = [annotation.metrics.intensity_mean for annotation in measured_annotations]
             intensity_max_values = [annotation.metrics.intensity_max for annotation in measured_annotations]
+            source_views = sorted({annotation.source_view for annotation in measured_annotations if annotation.source_view})
             summary = {
                 "mean_area_px": sum(area_values) / len(area_values),
                 "max_area_px": max(area_values),
@@ -133,6 +135,7 @@ def _summary_rows(sequence: STMSequence, tracks: list[ParticleTrack]) -> list[di
                 "mean_intensity_mean": sum(intensity_mean_values) / len(intensity_mean_values),
                 "max_intensity_max": max(intensity_max_values),
                 "measured_frames": len(measured_annotations),
+                "source_views": ";".join(source_views),
             }
         else:
             summary = {
@@ -149,6 +152,7 @@ def _summary_rows(sequence: STMSequence, tracks: list[ParticleTrack]) -> list[di
                 "mean_intensity_mean": None,
                 "max_intensity_max": None,
                 "measured_frames": 0,
+                "source_views": "",
             }
 
         rows.append(

@@ -45,6 +45,7 @@ class TrackResultsDialogTests(unittest.TestCase):
                 frame_index=1,
                 bbox=BBoxXYXY(2.0, 2.0, 5.0, 5.0),
                 metrics=ParticleMetrics(area_px=12.0, perimeter_px=16.0, intensity_sum=24.0, intensity_mean=2.0, intensity_max=3.0),
+                source_view="raw+registration",
             )
         )
         track1.add_annotation(
@@ -75,6 +76,7 @@ class TrackResultsDialogTests(unittest.TestCase):
         intensity_items = self.dialog.plot_intensity.plotItem.listDataItems()
         self.assertEqual(len(intensity_items), 3)
         self.assertIn("measured frames: 2 / 4", self.dialog.lbl_summary.text())
+        self.assertIn("source views: raw+registration", self.dialog.lbl_summary.text())
         self.assertTrue(self.dialog.btn_export.isEnabled())
 
     def test_changing_track_updates_plots_and_emits_selection(self) -> None:

@@ -43,8 +43,21 @@ class TrackListPanelTests(unittest.TestCase):
         self.assertEqual(values, [tracker_kind.value for tracker_kind in MASK_TRACKER_KINDS])
         self.assertEqual(labels, ["SAM2", "DAM4SAM", "SAMURAI"])
         self.assertEqual(self.panel.current_mask_tracker_kind(), MaskTrackerKind.SAM2)
+        self.assertIsNone(self.panel.current_run_frame_limit())
+        self.assertEqual(self.panel.sp_run_frame_limit.specialValueText(), "All")
         self.assertEqual(self.panel.btn_run_selected.text(), "Run for Selected")
         self.assertEqual(self.panel.btn_run_all.text(), "Run for All Seeds")
+
+    def test_run_frame_limit_defaults_to_all_and_can_be_limited(self) -> None:
+        self.assertIsNone(self.panel.current_run_frame_limit())
+
+        self.panel.set_run_frame_limit(5)
+
+        self.assertEqual(self.panel.current_run_frame_limit(), 5)
+
+        self.panel.set_run_frame_limit(None)
+
+        self.assertIsNone(self.panel.current_run_frame_limit())
 
     def test_mask_tracker_selection_can_be_changed_and_emits_kind(self) -> None:
         emitted: list[MaskTrackerKind] = []
@@ -61,11 +74,13 @@ class TrackListPanelTests(unittest.TestCase):
         self.panel.set_processing(True)
 
         self.assertFalse(self.panel.cmb_mask_tracker.isEnabled())
+        self.assertFalse(self.panel.sp_run_frame_limit.isEnabled())
         self.assertEqual(self.panel.current_mask_tracker_kind(), MaskTrackerKind.DAM4SAM)
 
         self.panel.set_processing(False)
 
         self.assertTrue(self.panel.cmb_mask_tracker.isEnabled())
+        self.assertTrue(self.panel.sp_run_frame_limit.isEnabled())
         self.assertEqual(self.panel.current_mask_tracker_kind(), MaskTrackerKind.DAM4SAM)
 
 

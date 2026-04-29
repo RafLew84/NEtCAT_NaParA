@@ -59,6 +59,8 @@ class NanoTrackSessionSnapshot:
     denoised_sigma_factor: float | None = None
     show_denoised_in_viewer: bool = False
     registration_results: RegistrationResultSet | None = None
+    show_aligned_in_viewer: bool = False
+    show_expanded_aligned_in_viewer: bool = False
 
 
 def save_session_snapshot(path: str, snapshot: NanoTrackSessionSnapshot) -> None:
@@ -157,6 +159,8 @@ def load_session_snapshot(
             denoised_sigma_factor=preprocessing.get("denoised_sigma_factor"),
             show_denoised_in_viewer=bool(manifest.get("show_denoised_in_viewer", False)),
             registration_results=registration_results,
+            show_aligned_in_viewer=bool(manifest.get("show_aligned_in_viewer", False)),
+            show_expanded_aligned_in_viewer=bool(manifest.get("show_expanded_aligned_in_viewer", False)),
         )
 
 
@@ -174,6 +178,8 @@ def _build_manifest(snapshot: NanoTrackSessionSnapshot) -> dict:
         "selected_edge_track_id": snapshot.selected_edge_track_id,
         "selected_mask_tracker_kind": _normalize_mask_tracker_kind(snapshot.selected_mask_tracker_kind),
         "show_denoised_in_viewer": bool(snapshot.show_denoised_in_viewer),
+        "show_aligned_in_viewer": bool(snapshot.show_aligned_in_viewer),
+        "show_expanded_aligned_in_viewer": bool(snapshot.show_expanded_aligned_in_viewer),
         "yolo_detections": _serialize_yolo_detections(snapshot.yolo_detections),
         "registration_results": _serialize_registration_result_set(snapshot.registration_results),
         "draft_bboxes": [
@@ -375,6 +381,7 @@ def _serialize_annotation(track_id: int, annotation: TrackFrameAnnotation) -> di
         "mask_path": mask_path,
         "visibility": annotation.visibility.value,
         "source": annotation.source.value,
+        "source_view": annotation.source_view,
         "metrics": {
             "area_px": annotation.metrics.area_px,
             "perimeter_px": annotation.metrics.perimeter_px,
@@ -473,6 +480,7 @@ def _restore_tracks(zf: zipfile.ZipFile, tracks_payload: list[dict]) -> list[Par
                     intensity_mean=metrics_payload.get("intensity_mean"),
                     intensity_max=metrics_payload.get("intensity_max"),
                 ),
+                source_view=str(annotation_payload.get("source_view", "")),
             )
         tracks.append(
             ParticleTrack(
