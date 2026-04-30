@@ -48,6 +48,7 @@ from nanotrack.mask_trackers import MaskTrackerKind, MaskTrackerRunOutput
 from nanotrack.registration import build_aligned_frames, build_expanded_aligned_frames
 from nanotrack.sam2 import Sam2RunOutput
 from nanotrack.trackers import PointTrackerRunOutput
+from nanotrack.yolo import YoloModelInfo
 
 if QApplication is not None:
     from nanotrack.ui.main_window import NanoTrackMainWindow
@@ -576,6 +577,30 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(self.window.yolo_panel.btn_convert_current.isEnabled())
         self.assertTrue(self.window.yolo_panel.btn_convert_all.isEnabled())
         self.assertTrue(self.window.yolo_panel.btn_clear.isEnabled())
+
+    def test_yolo_detect_current_preserves_right_sidebar_scroll_position(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.resize(900, 420)
+        self.window.show()
+        self.window.set_sequence(sequence)
+        self.window.yolo_panel.refresh_models([YoloModelInfo(name="fake_yolo.pt", path=Path("/tmp/fake_yolo.pt"))])
+        self.window.yolo_panel.set_detect_all_available(True)
+        self.window.sidebar_scroll_area.setFixedHeight(260)
+        self.__class__._app.processEvents()
+
+        vertical_scrollbar = self.window.sidebar_scroll_area.verticalScrollBar()
+        if vertical_scrollbar.maximum() <= 0:
+            self.skipTest("Right sidebar does not overflow in this Qt environment.")
+        expected_scroll = max(1, min(vertical_scrollbar.maximum(), vertical_scrollbar.maximum() // 2))
+        vertical_scrollbar.setValue(expected_scroll)
+        self.__class__._app.processEvents()
+        expected_scroll = vertical_scrollbar.value()
+
+        with patch.object(self.window._yolo_runtime, "predict_frame", return_value=[]):
+            self.window.yolo_panel.btn_detect_current.click()
+        self.__class__._app.processEvents()
+
+        self.assertEqual(vertical_scrollbar.value(), expected_scroll)
 
     def test_yolo_single_detection_selection_toggles_selected_flag(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
@@ -1661,6 +1686,63 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         assert snapshot is not None
         self.assertEqual(len(snapshot.edge_tracks), 1)
         self.assertEqual(snapshot.edge_tracks[0].edge_track_id, 2)
+
+    def test_delete_selected_track_from_main_window_updates_results_and_session(self) -> None:
+        sequence = load_mpp_sequence(str(SAMPLE_MPP))
+        self.window.set_sequence(sequence)
+        pixel_size_nm = sequence.metadata.get_pixel_size_nm()
+
+        mask1 = np.zeros(sequence.frame_shape, dtype=bool)
+        mask1[6:10, 10:15] = True
+        mask2 = np.zeros(sequence.frame_shape, dtype=bool)
+        mask2[18:23, 20:26] = True
+        track1 = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(9.0, 5.0, 16.0, 11.0))
+        track1.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(10.0, 6.0, 15.0, 10.0),
+                mask=mask1,
+                metrics=compute_particle_metrics(mask1, sequence.raw_frames[1], pixel_size_nm=pixel_size_nm),
+            )
+        )
+        track2 = ParticleTrack(track_id=2, seed_frame_index=0, seed_bbox=BBoxXYXY(19.0, 17.0, 27.0, 24.0))
+        track2.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(20.0, 18.0, 26.0, 23.0),
+                mask=mask2,
+                metrics=compute_particle_metrics(mask2, sequence.raw_frames[1], pixel_size_nm=pixel_size_nm),
+            )
+        )
+
+        self.window.set_tracks([track1, track2], selected_track_id=1)
+        self.window.action_open_results.trigger()
+        self.__class__._app.processEvents()
+
+        self.assertTrue(self.window.track_list_panel.btn_delete_selected.isEnabled())
+
+        self.window.track_list_panel.btn_delete_selected.click()
+        self.__class__._app.processEvents()
+
+        remaining_tracks = self.window.current_tracks()
+        self.assertEqual([track.track_id for track in remaining_tracks], [2])
+        self.assertEqual(self.window.current_selected_track_id(), 2)
+        self.assertEqual(self.window.track_list_panel.list_tracks.count(), 1)
+        self.assertEqual(self.window.track_list_panel.lbl_summary.text(), "1 track")
+        self.assertEqual(self.window.track_list_panel.current_track_id(), 2)
+
+        dialog = self.window.current_results_dialog()
+        self.assertIsNotNone(dialog)
+        assert dialog is not None
+        self.assertEqual(dialog.current_track_id(), 2)
+        self.assertEqual(dialog.cmb_tracks.count(), 2)
+        self.assertEqual(dialog.cmb_tracks.itemData(1, Qt.ItemDataRole.UserRole), 2)
+
+        snapshot = self.window.current_session_snapshot()
+        self.assertIsNotNone(snapshot)
+        assert snapshot is not None
+        self.assertEqual([track.track_id for track in snapshot.tracks], [2])
+        self.assertEqual(snapshot.selected_track_id, 2)
 
     def test_delete_track_from_results_dialog_updates_all_tracks_export_and_session(self) -> None:
         sequence = load_mpp_sequence(str(SAMPLE_MPP))

@@ -22,6 +22,7 @@ class TrackListPanel(QWidget):
     """Sidebar panel listing tracked objects."""
 
     track_selected = pyqtSignal(object)
+    track_delete_requested = pyqtSignal(int)
     mask_tracker_changed = pyqtSignal(object)
     run_selected_requested = pyqtSignal()
     run_all_requested = pyqtSignal()
@@ -32,6 +33,7 @@ class TrackListPanel(QWidget):
         self._processing_busy = False
         self._build()
         self.list_tracks.currentItemChanged.connect(self._on_current_item_changed)
+        self.btn_delete_selected.clicked.connect(self._on_delete_selected_clicked)
         self.btn_run_selected.clicked.connect(self.run_selected_requested.emit)
         self.btn_run_all.clicked.connect(self.run_all_requested.emit)
 
@@ -57,6 +59,7 @@ class TrackListPanel(QWidget):
         self.sp_run_frame_limit.setToolTip(
             "Maximum frames to run from each seed frame, including the seed frame. Use All to run to the end."
         )
+        self.btn_delete_selected = QPushButton("Delete Selected", self)
         self.btn_run_selected = QPushButton("Run for Selected", self)
         self.btn_run_all = QPushButton("Run for All Seeds", self)
 
@@ -69,6 +72,7 @@ class TrackListPanel(QWidget):
 
         group_layout.addWidget(self.lbl_summary)
         group_layout.addWidget(self.list_tracks, 1)
+        group_layout.addWidget(self.btn_delete_selected)
         group_layout.addLayout(tracker_layout)
         group_layout.addLayout(frame_limit_layout)
         group_layout.addWidget(self.btn_run_selected)
@@ -163,6 +167,7 @@ class TrackListPanel(QWidget):
         self.list_tracks.setEnabled(has_tracks and not self._processing_busy)
         self.cmb_mask_tracker.setEnabled(not self._processing_busy)
         self.sp_run_frame_limit.setEnabled(not self._processing_busy)
+        self.btn_delete_selected.setEnabled(has_selected_track and not self._processing_busy)
         self.btn_run_selected.setEnabled(has_selected_track and not self._processing_busy)
         self.btn_run_all.setEnabled(has_tracks and not self._processing_busy)
 
@@ -175,6 +180,12 @@ class TrackListPanel(QWidget):
 
     def _on_mask_tracker_changed(self) -> None:
         self.mask_tracker_changed.emit(self.current_mask_tracker_kind())
+
+    def _on_delete_selected_clicked(self) -> None:
+        track_id = self.current_track_id()
+        if track_id is None:
+            return
+        self.track_delete_requested.emit(int(track_id))
 
 
 def _mask_tracker_label(tracker_kind: MaskTrackerKind) -> str:

@@ -73,8 +73,10 @@ class TrackResultsDialogTests(unittest.TestCase):
         x_data, y_data = area_items[0].getData()
         np.testing.assert_array_equal(x_data, np.asarray([2.0, 3.0], dtype=np.float32))
         np.testing.assert_array_equal(y_data, np.asarray([12.0, 14.0], dtype=np.float32))
-        intensity_items = self.dialog.plot_intensity.plotItem.listDataItems()
-        self.assertEqual(len(intensity_items), 3)
+        coverage_items = self.dialog.plot_coverage.plotItem.listDataItems()
+        self.assertEqual(len(coverage_items), 1)
+        _, coverage_data = coverage_items[0].getData()
+        np.testing.assert_allclose(coverage_data, np.asarray([18.75, 21.875], dtype=np.float32))
         self.assertIn("measured frames: 2 / 4", self.dialog.lbl_summary.text())
         self.assertIn("source views: raw+registration", self.dialog.lbl_summary.text())
         self.assertTrue(self.dialog.btn_export.isEnabled())
@@ -163,11 +165,43 @@ class TrackResultsDialogTests(unittest.TestCase):
         x_data, y_data = area_items[0].getData()
         np.testing.assert_array_equal(x_data, np.asarray([2.0], dtype=np.float32))
         np.testing.assert_array_equal(y_data, np.asarray([350.0], dtype=np.float32))
-        intensity_items = self.dialog.plot_intensity.plotItem.listDataItems()
-        _, intensity_mean_data = intensity_items[1].getData()
-        np.testing.assert_allclose(intensity_mean_data, np.asarray([50.0 / 7.0], dtype=np.float32))
+        coverage_items = self.dialog.plot_coverage.plotItem.listDataItems()
+        self.assertEqual(len(coverage_items), 1)
+        _, coverage_data = coverage_items[0].getData()
+        np.testing.assert_allclose(coverage_data, np.asarray([(7.0 / 64.0) * 100.0], dtype=np.float32))
         self.assertIn("All tracks", self.dialog.lbl_summary.text())
         self.assertFalse(self.dialog.btn_delete.isEnabled())
+
+    def test_coverage_uses_original_frame_area_for_expanded_registration_source_view(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/results_expanded_registration.mpp",
+            raw_frames=np.zeros((2, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+        )
+        track = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(1.0, 1.0, 5.0, 5.0))
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(1.0, 1.0, 5.0, 5.0),
+                metrics=ParticleMetrics(
+                    area_px=16.0,
+                    perimeter_px=16.0,
+                    intensity_sum=32.0,
+                    intensity_mean=2.0,
+                    intensity_max=4.0,
+                ),
+                source_view="bm3d+expanded_registration",
+            )
+        )
+
+        self.dialog.set_context(sequence, [track], selected_track_id=1)
+
+        coverage_items = self.dialog.plot_coverage.plotItem.listDataItems()
+        self.assertEqual(len(coverage_items), 1)
+        x_data, coverage_data = coverage_items[0].getData()
+        np.testing.assert_array_equal(x_data, np.asarray([2.0], dtype=np.float32))
+        np.testing.assert_allclose(coverage_data, np.asarray([25.0], dtype=np.float32))
+        self.assertIn("source views: bm3d+expanded_registration", self.dialog.lbl_summary.text())
 
     def test_delete_button_emits_selected_track_request(self) -> None:
         sequence = STMSequence(

@@ -58,10 +58,10 @@ class TrackResultsDialog(QDialog):
 
         self.plot_area = self._create_plot_widget("Area", "Area [px]")
         self.plot_perimeter = self._create_plot_widget("Perimeter", "Perimeter [px]")
-        self.plot_intensity = self._create_plot_widget("Intensity", "Intensity [raw a.u.]")
+        self.plot_coverage = self._create_plot_widget("Surface Coverage", "Coverage [% of original frame]")
         layout.addWidget(self.plot_area, 1)
         layout.addWidget(self.plot_perimeter, 1)
-        layout.addWidget(self.plot_intensity, 1)
+        layout.addWidget(self.plot_coverage, 1)
 
         button_row = QHBoxLayout()
         button_row.addStretch(1)
@@ -210,13 +210,11 @@ class TrackResultsDialog(QDialog):
         else:
             area = np.asarray([metrics.area_px for _frame_index, metrics in metric_rows], dtype=np.float32)
             perimeter = np.asarray([metrics.perimeter_px for _frame_index, metrics in metric_rows], dtype=np.float32)
-        intensity_sum = np.asarray([metrics.intensity_sum for _frame_index, metrics in metric_rows], dtype=np.float32)
-        intensity_mean = np.asarray([metrics.intensity_mean for _frame_index, metrics in metric_rows], dtype=np.float32)
-        intensity_max = np.asarray([metrics.intensity_max for _frame_index, metrics in metric_rows], dtype=np.float32)
+        coverage_percent = self._coverage_percent_for_rows(metric_rows)
 
         self._plot_single_series(self.plot_area, x, area, pen="#1f77b4", symbol="o")
         self._plot_single_series(self.plot_perimeter, x, perimeter, pen="#2ca02c", symbol="o")
-        self._plot_intensity_series(x, intensity_sum, intensity_mean, intensity_max)
+        self._plot_single_series(self.plot_coverage, x, coverage_percent, pen="#d62728", symbol="o")
 
         if track_key == self.ALL_TRACKS_KEY:
             measured_track_frames = sum(1 for track in self._tracks for _ in self._metric_rows(track))
@@ -252,42 +250,24 @@ class TrackResultsDialog(QDialog):
             symbolBrush=pen,
         )
 
-    def _plot_intensity_series(
-        self,
-        x: np.ndarray,
-        intensity_sum: np.ndarray,
-        intensity_mean: np.ndarray,
-        intensity_max: np.ndarray,
-    ) -> None:
-        self.plot_intensity.clear()
-        self.plot_intensity.addLegend(offset=(8, 8))
-        self.plot_intensity.plot(
-            x,
-            intensity_sum,
-            name="sum",
-            pen=pg.mkPen("#d62728", width=2),
-            symbol="o",
-            symbolSize=6,
-            symbolBrush="#d62728",
+    def _coverage_percent_for_rows(self, metric_rows: list[tuple[int, object]]) -> np.ndarray:
+        original_frame_area_px = self._original_frame_area_px()
+        if original_frame_area_px <= 0:
+            return np.zeros(len(metric_rows), dtype=np.float32)
+        return np.asarray(
+            [(metrics.area_px / original_frame_area_px) * 100.0 for _frame_index, metrics in metric_rows],
+            dtype=np.float32,
         )
-        self.plot_intensity.plot(
-            x,
-            intensity_mean,
-            name="mean",
-            pen=pg.mkPen("#ff7f0e", width=2),
-            symbol="t",
-            symbolSize=7,
-            symbolBrush="#ff7f0e",
-        )
-        self.plot_intensity.plot(
-            x,
-            intensity_max,
-            name="max",
-            pen=pg.mkPen("#9467bd", width=2),
-            symbol="s",
-            symbolSize=6,
-            symbolBrush="#9467bd",
-        )
+
+    def _original_frame_area_px(self) -> float:
+        if self._sequence is None:
+            return 0.0
+        pixels_x = int(self._sequence.metadata.pixels_x)
+        pixels_y = int(self._sequence.metadata.pixels_y)
+        if pixels_x > 0 and pixels_y > 0:
+            return float(pixels_x * pixels_y)
+        frame_height, frame_width = self._sequence.frame_shape
+        return float(frame_width * frame_height)
 
     def _metric_rows(self, track: ParticleTrack) -> Iterable[tuple[int, object]]:
         for frame_index in track.frame_indices:
@@ -366,7 +346,7 @@ class TrackResultsDialog(QDialog):
     def _clear_plots(self) -> None:
         self.plot_area.clear()
         self.plot_perimeter.clear()
-        self.plot_intensity.clear()
+        self.plot_coverage.clear()
 
     def _current_track_key(self) -> object:
         if self.cmb_tracks.count() == 0:
@@ -405,6 +385,7 @@ class TrackResultsDialog(QDialog):
         else:
             self.plot_area.setLabel("left", "Area [px]")
             self.plot_perimeter.setLabel("left", "Perimeter / Obwód [px]")
+        self.plot_coverage.setLabel("left", "Coverage [% of original frame]")
 
     def _has_exportable_results(self) -> bool:
         return any(True for track in self._tracks for _ in self._metric_rows(track))

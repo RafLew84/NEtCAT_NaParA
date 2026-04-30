@@ -8,6 +8,7 @@ try:
 except ImportError:  # pragma: no cover - optional outside the target GUI env
     QApplication = None
 
+from nanotrack.core import BBoxXYXY, ParticleTrack
 from nanotrack.mask_trackers import MASK_TRACKER_KINDS, MaskTrackerKind
 
 if QApplication is not None:
@@ -45,8 +46,10 @@ class TrackListPanelTests(unittest.TestCase):
         self.assertEqual(self.panel.current_mask_tracker_kind(), MaskTrackerKind.SAM2)
         self.assertIsNone(self.panel.current_run_frame_limit())
         self.assertEqual(self.panel.sp_run_frame_limit.specialValueText(), "All")
+        self.assertEqual(self.panel.btn_delete_selected.text(), "Delete Selected")
         self.assertEqual(self.panel.btn_run_selected.text(), "Run for Selected")
         self.assertEqual(self.panel.btn_run_all.text(), "Run for All Seeds")
+        self.assertFalse(self.panel.btn_delete_selected.isEnabled())
 
     def test_run_frame_limit_defaults_to_all_and_can_be_limited(self) -> None:
         self.assertIsNone(self.panel.current_run_frame_limit())
@@ -82,6 +85,27 @@ class TrackListPanelTests(unittest.TestCase):
         self.assertTrue(self.panel.cmb_mask_tracker.isEnabled())
         self.assertTrue(self.panel.sp_run_frame_limit.isEnabled())
         self.assertEqual(self.panel.current_mask_tracker_kind(), MaskTrackerKind.DAM4SAM)
+
+    def test_delete_selected_emits_track_id_and_respects_processing_state(self) -> None:
+        deleted_track_ids: list[int] = []
+        self.panel.track_delete_requested.connect(deleted_track_ids.append)
+        track1 = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(1.0, 1.0, 4.0, 4.0))
+        track2 = ParticleTrack(track_id=2, seed_frame_index=1, seed_bbox=BBoxXYXY(2.0, 2.0, 5.0, 5.0))
+
+        self.panel.set_tracks([track1, track2], selected_track_id=1)
+
+        self.assertTrue(self.panel.btn_delete_selected.isEnabled())
+        self.panel.btn_delete_selected.click()
+        self.assertEqual(deleted_track_ids, [1])
+
+        self.panel.set_selected_track_id(2)
+        self.panel.set_processing(True)
+        self.assertFalse(self.panel.btn_delete_selected.isEnabled())
+
+        self.panel.set_processing(False)
+        self.assertTrue(self.panel.btn_delete_selected.isEnabled())
+        self.panel.btn_delete_selected.click()
+        self.assertEqual(deleted_track_ids, [1, 2])
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ import sys
 import time
 
 import numpy as np
-from PyQt6.QtCore import QObject, QSignalBlocker, QThread, Qt, pyqtSignal
+from PyQt6.QtCore import QObject, QSignalBlocker, QThread, QTimer, Qt, pyqtSignal
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QApplication,
@@ -550,6 +550,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.polygon_tools_panel.redetect_edge_range_requested.connect(self._on_redetect_edge_range_requested)
         self.polygon_tools_panel.hybrid_stabilize_requested.connect(self._on_edge_hybrid_requested)
         self.track_list_panel.track_selected.connect(self._on_track_selected)
+        self.track_list_panel.track_delete_requested.connect(self._on_track_delete_requested)
         self.track_list_panel.run_selected_requested.connect(self._on_run_sam2_for_selected_requested)
         self.track_list_panel.run_all_requested.connect(self._on_run_sam2_for_all_requested)
         self.edge_track_list_panel.track_selected.connect(self._on_edge_track_selected)
@@ -3553,25 +3554,46 @@ class NanoTrackMainWindow(QMainWindow):
         self._apply_busy_state()
 
     def _apply_busy_state(self) -> None:
-        busy = self._is_preprocessing or self._is_tracking
-        self._update_menu_action_state()
-        self.bbox_tools_panel.set_processing(busy)
-        self.yolo_panel.set_processing(busy)
-        self.polygon_tools_panel.set_processing(busy)
-        self.preprocessing_panel.set_processing(busy)
-        self.track_list_panel.set_processing(busy)
-        self.edge_track_list_panel.set_processing(busy)
-        if busy:
-            self.slider_frame.setEnabled(False)
-            self.spin_frame.setEnabled(False)
-            self.btn_prev.setEnabled(False)
-            self.btn_next.setEnabled(False)
-            QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-            return
+        sidebar_scroll_position = self._sidebar_scroll_position()
+        try:
+            busy = self._is_preprocessing or self._is_tracking
+            self._update_menu_action_state()
+            self.bbox_tools_panel.set_processing(busy)
+            self.yolo_panel.set_processing(busy)
+            self.polygon_tools_panel.set_processing(busy)
+            self.preprocessing_panel.set_processing(busy)
+            self.track_list_panel.set_processing(busy)
+            self.edge_track_list_panel.set_processing(busy)
+            if busy:
+                self.slider_frame.setEnabled(False)
+                self.spin_frame.setEnabled(False)
+                self.btn_prev.setEnabled(False)
+                self.btn_next.setEnabled(False)
+                QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+                return
 
-        if QApplication.overrideCursor() is not None:
-            QApplication.restoreOverrideCursor()
-        self._sync_navigation_controls()
+            if QApplication.overrideCursor() is not None:
+                QApplication.restoreOverrideCursor()
+            self._sync_navigation_controls()
+        finally:
+            self._restore_sidebar_scroll_position(sidebar_scroll_position)
+            QTimer.singleShot(0, lambda position=sidebar_scroll_position: self._restore_sidebar_scroll_position(position))
+
+    def _sidebar_scroll_position(self) -> tuple[int, int] | None:
+        if not hasattr(self, "sidebar_scroll_area"):
+            return None
+        horizontal = self.sidebar_scroll_area.horizontalScrollBar()
+        vertical = self.sidebar_scroll_area.verticalScrollBar()
+        return int(horizontal.value()), int(vertical.value())
+
+    def _restore_sidebar_scroll_position(self, position: tuple[int, int] | None) -> None:
+        if position is None or not hasattr(self, "sidebar_scroll_area"):
+            return
+        horizontal_value, vertical_value = position
+        horizontal = self.sidebar_scroll_area.horizontalScrollBar()
+        vertical = self.sidebar_scroll_area.verticalScrollBar()
+        horizontal.setValue(max(horizontal.minimum(), min(int(horizontal_value), horizontal.maximum())))
+        vertical.setValue(max(vertical.minimum(), min(int(vertical_value), vertical.maximum())))
 
     def _close_sam2_progress_dialog(self) -> None:
         if self._sam2_progress_dialog is None:
@@ -4875,6 +4897,21 @@ class NanoTrackMainWindow(QMainWindow):
         next_selected_track_id = self._selected_track_id
         if next_selected_track_id == track_id:
             next_selected_track_id = None
+
+        self.set_tracks(remaining_tracks, selected_track_id=next_selected_track_id)
+        self._show_current_frame(preserve_zoom=True)
+        self.statusBar().showMessage(f"Deleted track {track_id}.", 3000)
+
+    def _on_track_delete_requested(self, track_id: int) -> None:
+        selected_row = self.track_list_panel.list_tracks.currentRow()
+        remaining_tracks = [track for track in self._tracks if track.track_id != track_id]
+        if len(remaining_tracks) == len(self._tracks):
+            return
+
+        next_selected_track_id = None
+        if remaining_tracks:
+            next_row = max(0, min(selected_row, len(remaining_tracks) - 1))
+            next_selected_track_id = remaining_tracks[next_row].track_id
 
         self.set_tracks(remaining_tracks, selected_track_id=next_selected_track_id)
         self._show_current_frame(preserve_zoom=True)
