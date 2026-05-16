@@ -1,0 +1,1 @@
+"""STM Browser package."""

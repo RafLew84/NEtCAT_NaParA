@@ -59,5 +59,7 @@ class ProcessingPanel(QWidget):
 
         self.btn_detect = QPushButton("Detect", self)
         layout.addWidget(self.btn_detect)
+        self.btn_export_pair = QPushButton("Save noisy/clean pair...", self)
+        layout.addWidget(self.btn_export_pair)
 
         layout.addStretch(1)
