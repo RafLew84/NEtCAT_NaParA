@@ -187,3 +187,12 @@ context.md
 nanotrack.zip
 models/unet_synthetic_v1.pth
 plan_nanotrack_mask_trackers.md
+plan.md
+plan_nanotrack.md
+plan_nanotrack_edgetracking.md
+plan_nanotrack_registration.md
+plan_nanotrack_registration_expanded_canvas.md
+plan_nanotrack_uaed_muge.md
+plan_nanotrack_yolo.md
+nanotrack/yolo_models/yolo11s_dimmed_full_from_smoke_20260225_154251_train_config.json
+.codex
