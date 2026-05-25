@@ -43,6 +43,7 @@ class Sam2RunInput:
     query_point_tyx: np.ndarray | None = None
     initial_mask: np.ndarray | None = None
     source_view: str = "preprocessed"
+    mask_probability_threshold: float = 0.5
 
     def __post_init__(self) -> None:
         if self.track_id < 0:
@@ -82,6 +83,11 @@ class Sam2RunInput:
         if query_box is None and query_point is None and mask is None:
             raise ValueError("At least one prompt must be provided: query_box_xyxy, query_point_tyx, or initial_mask.")
 
+        threshold = float(self.mask_probability_threshold)
+        if not np.isfinite(threshold) or not 0.0 < threshold < 1.0:
+            raise ValueError("mask_probability_threshold must be finite and in the open range (0, 1).")
+        object.__setattr__(self, "mask_probability_threshold", threshold)
+
     def to_npz_payload(self) -> dict[str, np.ndarray]:
         payload: dict[str, np.ndarray] = {
             "contract_version": np.asarray(SAM2_CONTRACT_VERSION, dtype=np.int64),
@@ -89,6 +95,7 @@ class Sam2RunInput:
             "frame_index_offset": np.asarray(self.frame_index_offset, dtype=np.int64),
             "frames": self.frames.astype(np.float32, copy=False),
             "source_view": np.asarray(self.source_view),
+            "mask_probability_threshold": np.asarray(self.mask_probability_threshold, dtype=np.float32),
         }
         if self.query_box_xyxy is not None:
             payload["query_box_xyxy"] = self.query_box_xyxy.astype(np.float32, copy=False)
@@ -113,6 +120,7 @@ class Sam2RunInput:
             query_point_tyx=_optional_array(payload, "query_point_tyx", dtype=np.float32),
             initial_mask=_optional_array(payload, "initial_mask", dtype=bool),
             source_view=str(np.asarray(payload.get("source_view", "preprocessed")).item()),
+            mask_probability_threshold=float(np.asarray(payload.get("mask_probability_threshold", 0.5)).item()),
         )
 
 

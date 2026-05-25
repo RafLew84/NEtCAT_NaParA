@@ -5180,6 +5180,7 @@ class NanoTrackMainWindow(QMainWindow):
             query_box_xyxy=np.asarray(input_bbox.as_tuple(), dtype=np.float32),
             query_point_tyx=np.asarray([0.0, center_y, center_x], dtype=np.float32),
             source_view=source_view,
+            mask_probability_threshold=self.track_list_panel.current_mask_probability_threshold(),
         )
 
     def _apply_mask_tracker_output_to_track(self, track_id: int, run_output: MaskTrackerRunOutput) -> None:

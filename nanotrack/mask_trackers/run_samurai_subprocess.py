@@ -314,9 +314,17 @@ def _run_real_samurai(
                     frame_idx=seed_frame,
                     obj_id=0,
                 )
-                _record_samurai_output_tuple(add_result, masks=masks)
+                _record_samurai_output_tuple(
+                    add_result,
+                    masks=masks,
+                    probability_threshold=run_input.mask_probability_threshold,
+                )
                 for output_tuple in predictor.propagate_in_video(state):
-                    _record_samurai_output_tuple(output_tuple, masks=masks)
+                    _record_samurai_output_tuple(
+                        output_tuple,
+                        masks=masks,
+                        probability_threshold=run_input.mask_probability_threshold,
+                    )
         finally:
             _release_samurai_resources(torch_module)
 
@@ -404,7 +412,12 @@ def _samurai_autocast_context(torch_module: Any, device_name: str):
     return autocast("cuda", dtype=getattr(torch_module, "float16", None))
 
 
-def _record_samurai_output_tuple(output_tuple: Any, *, masks: np.ndarray) -> None:
+def _record_samurai_output_tuple(
+    output_tuple: Any,
+    *,
+    masks: np.ndarray,
+    probability_threshold: float = 0.5,
+) -> None:
     if output_tuple is None:
         return
     try:
@@ -418,10 +431,19 @@ def _record_samurai_output_tuple(output_tuple: Any, *, masks: np.ndarray) -> Non
     for object_id, mask_tensor in zip(object_ids, mask_logits):
         if int(object_id) != 0:
             continue
-        masks[frame_idx] = _coerce_samurai_mask(mask_tensor, frame_shape=masks.shape[1:3])
+        masks[frame_idx] = _coerce_samurai_mask(
+            mask_tensor,
+            frame_shape=masks.shape[1:3],
+            probability_threshold=probability_threshold,
+        )
 
 
-def _coerce_samurai_mask(mask_tensor: Any, *, frame_shape: tuple[int, int]) -> np.ndarray:
+def _coerce_samurai_mask(
+    mask_tensor: Any,
+    *,
+    frame_shape: tuple[int, int],
+    probability_threshold: float = 0.5,
+) -> np.ndarray:
     if hasattr(mask_tensor, "detach"):
         arr = mask_tensor.detach().cpu().numpy()
     else:
@@ -433,7 +455,10 @@ def _coerce_samurai_mask(mask_tensor: Any, *, frame_shape: tuple[int, int]) -> n
         arr = np.squeeze(arr)
     if arr.ndim != 2:
         raise ValueError(f"Unexpected SAMURAI mask tensor shape: {arr.shape}.")
-    mask = np.asarray(arr > 0.0, dtype=bool)
+    mask = np.asarray(
+        _soft_samurai_mask_to_bool(arr, probability_threshold=probability_threshold),
+        dtype=bool,
+    )
     if mask.shape == tuple(frame_shape):
         return mask
     return _resize_mask_nearest(mask, frame_shape)
@@ -460,6 +485,23 @@ def _resize_mask_nearest(mask: np.ndarray, frame_shape: tuple[int, int]) -> np.n
             copy_width = min(width, mask.shape[1])
             output[:copy_height, :copy_width] = mask[:copy_height, :copy_width]
             return output
+
+
+def _sigmoid(values: np.ndarray) -> np.ndarray:
+    clipped = np.clip(np.asarray(values, dtype=np.float32), -60.0, 60.0)
+    return 1.0 / (1.0 + np.exp(-clipped))
+
+
+def _soft_samurai_mask_to_bool(mask: np.ndarray, *, probability_threshold: float) -> np.ndarray:
+    mask_np = np.asarray(mask)
+    finite_values = mask_np[np.isfinite(mask_np)]
+    if finite_values.size == 0:
+        return np.zeros(mask_np.shape, dtype=bool)
+    value_min = float(np.min(finite_values))
+    value_max = float(np.max(finite_values))
+    if 0.0 <= value_min and value_max <= 1.0:
+        return mask_np >= float(probability_threshold)
+    return _sigmoid(mask_np) >= float(probability_threshold)
 
 
 def _bbox_xywh_to_xyxy(bbox_xywh: tuple[int, int, int, int]) -> tuple[float, float, float, float]:

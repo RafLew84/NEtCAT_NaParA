@@ -3,6 +3,7 @@ from __future__ import annotations
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QComboBox,
+    QDoubleSpinBox,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -59,6 +60,15 @@ class TrackListPanel(QWidget):
         self.sp_run_frame_limit.setToolTip(
             "Maximum frames to run from each seed frame, including the seed frame. Use All to run to the end."
         )
+        self.lbl_mask_probability_threshold = QLabel("Prob Thr", self)
+        self.sp_mask_probability_threshold = QDoubleSpinBox(self)
+        self.sp_mask_probability_threshold.setRange(0.01, 0.99)
+        self.sp_mask_probability_threshold.setDecimals(2)
+        self.sp_mask_probability_threshold.setSingleStep(0.05)
+        self.sp_mask_probability_threshold.setValue(0.50)
+        self.sp_mask_probability_threshold.setToolTip(
+            "Probability threshold used when a mask tracker returns soft masks/logits. 0.50 preserves the default mask."
+        )
         self.btn_delete_selected = QPushButton("Delete Selected", self)
         self.btn_run_selected = QPushButton("Run for Selected", self)
         self.btn_run_all = QPushButton("Run for All Seeds", self)
@@ -69,12 +79,16 @@ class TrackListPanel(QWidget):
         frame_limit_layout = QHBoxLayout()
         frame_limit_layout.addWidget(self.lbl_run_frame_limit)
         frame_limit_layout.addWidget(self.sp_run_frame_limit, 1)
+        threshold_layout = QHBoxLayout()
+        threshold_layout.addWidget(self.lbl_mask_probability_threshold)
+        threshold_layout.addWidget(self.sp_mask_probability_threshold, 1)
 
         group_layout.addWidget(self.lbl_summary)
         group_layout.addWidget(self.list_tracks, 1)
         group_layout.addWidget(self.btn_delete_selected)
         group_layout.addLayout(tracker_layout)
         group_layout.addLayout(frame_limit_layout)
+        group_layout.addLayout(threshold_layout)
         group_layout.addWidget(self.btn_run_selected)
         group_layout.addWidget(self.btn_run_all)
 
@@ -139,6 +153,15 @@ class TrackListPanel(QWidget):
             raise ValueError("frame_limit must be positive or None.")
         self.sp_run_frame_limit.setValue(int(frame_limit))
 
+    def current_mask_probability_threshold(self) -> float:
+        return float(self.sp_mask_probability_threshold.value())
+
+    def set_mask_probability_threshold(self, threshold: float) -> None:
+        threshold_value = float(threshold)
+        if not 0.0 < threshold_value < 1.0:
+            raise ValueError("threshold must be in the open range (0, 1).")
+        self.sp_mask_probability_threshold.setValue(threshold_value)
+
     def set_selected_track_id(self, track_id: int | None) -> None:
         self._updating_selection = True
         try:
@@ -167,6 +190,7 @@ class TrackListPanel(QWidget):
         self.list_tracks.setEnabled(has_tracks and not self._processing_busy)
         self.cmb_mask_tracker.setEnabled(not self._processing_busy)
         self.sp_run_frame_limit.setEnabled(not self._processing_busy)
+        self.sp_mask_probability_threshold.setEnabled(not self._processing_busy)
         self.btn_delete_selected.setEnabled(has_selected_track and not self._processing_busy)
         self.btn_run_selected.setEnabled(has_selected_track and not self._processing_busy)
         self.btn_run_all.setEnabled(has_tracks and not self._processing_busy)

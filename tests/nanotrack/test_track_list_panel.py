@@ -46,6 +46,9 @@ class TrackListPanelTests(unittest.TestCase):
         self.assertEqual(self.panel.current_mask_tracker_kind(), MaskTrackerKind.SAM2)
         self.assertIsNone(self.panel.current_run_frame_limit())
         self.assertEqual(self.panel.sp_run_frame_limit.specialValueText(), "All")
+        self.assertAlmostEqual(self.panel.current_mask_probability_threshold(), 0.5)
+        self.assertEqual(self.panel.sp_mask_probability_threshold.minimum(), 0.01)
+        self.assertEqual(self.panel.sp_mask_probability_threshold.maximum(), 0.99)
         self.assertEqual(self.panel.btn_delete_selected.text(), "Delete Selected")
         self.assertEqual(self.panel.btn_run_selected.text(), "Run for Selected")
         self.assertEqual(self.panel.btn_run_all.text(), "Run for All Seeds")
@@ -53,6 +56,14 @@ class TrackListPanelTests(unittest.TestCase):
 
     def test_run_frame_limit_defaults_to_all_and_can_be_limited(self) -> None:
         self.assertIsNone(self.panel.current_run_frame_limit())
+
+    def test_mask_probability_threshold_can_be_changed(self) -> None:
+        self.panel.set_mask_probability_threshold(0.75)
+
+        self.assertAlmostEqual(self.panel.current_mask_probability_threshold(), 0.75)
+
+        with self.assertRaises(ValueError):
+            self.panel.set_mask_probability_threshold(1.0)
 
         self.panel.set_run_frame_limit(5)
 
@@ -78,12 +89,14 @@ class TrackListPanelTests(unittest.TestCase):
 
         self.assertFalse(self.panel.cmb_mask_tracker.isEnabled())
         self.assertFalse(self.panel.sp_run_frame_limit.isEnabled())
+        self.assertFalse(self.panel.sp_mask_probability_threshold.isEnabled())
         self.assertEqual(self.panel.current_mask_tracker_kind(), MaskTrackerKind.DAM4SAM)
 
         self.panel.set_processing(False)
 
         self.assertTrue(self.panel.cmb_mask_tracker.isEnabled())
         self.assertTrue(self.panel.sp_run_frame_limit.isEnabled())
+        self.assertTrue(self.panel.sp_mask_probability_threshold.isEnabled())
         self.assertEqual(self.panel.current_mask_tracker_kind(), MaskTrackerKind.DAM4SAM)
 
     def test_delete_selected_emits_track_id_and_respects_processing_state(self) -> None:

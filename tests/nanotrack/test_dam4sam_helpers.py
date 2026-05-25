@@ -20,6 +20,7 @@ from nanotrack.mask_trackers import (
     default_mask_tracker_config,
     validate_mask_tracker_backend_config,
 )
+from nanotrack.mask_trackers.run_dam4sam_subprocess import _coerce_pred_mask
 
 
 class Dam4SamVariantMappingTests(unittest.TestCase):
@@ -117,6 +118,28 @@ class Dam4SamBackendValidationTests(unittest.TestCase):
         self.assertIn("models_dir", message)
         self.assertIn("repo_path", message)
         self.assertIn("expected directory", message)
+
+
+class Dam4SamMaskThresholdTests(unittest.TestCase):
+    def test_coerce_pred_mask_applies_probability_threshold_for_soft_masks(self) -> None:
+        probabilities = np.asarray(
+            [
+                [0.20, 0.60],
+                [0.75, 0.90],
+            ],
+            dtype=np.float32,
+        )
+
+        mask = _coerce_pred_mask(probabilities, frame_shape=(2, 2), probability_threshold=0.7)
+
+        np.testing.assert_array_equal(mask, np.asarray([[False, False], [True, True]]))
+
+    def test_coerce_pred_mask_preserves_binary_scaled_masks(self) -> None:
+        binary_scaled = np.asarray([[0.0, 255.0], [0.0, 255.0]], dtype=np.float32)
+
+        mask = _coerce_pred_mask(binary_scaled, frame_shape=(2, 2), probability_threshold=0.9)
+
+        np.testing.assert_array_equal(mask, np.asarray([[False, True], [False, True]]))
 
 
 def _default_dam4sam_runtime_available() -> bool:

@@ -34,6 +34,7 @@ class MaskTrackerRunInputTests(unittest.TestCase):
             query_point_tyx=np.asarray([0.0, 3.0, 4.0], dtype=np.float64),
             initial_mask=initial_mask,
             source_view="bm3d",
+            mask_probability_threshold=0.7,
         )
 
         payload = run_input.to_npz_payload()
@@ -46,6 +47,7 @@ class MaskTrackerRunInputTests(unittest.TestCase):
         self.assertEqual(restored.track_id, 7)
         self.assertEqual(restored.frame_index_offset, 12)
         self.assertEqual(restored.source_view, "bm3d")
+        self.assertAlmostEqual(restored.mask_probability_threshold, 0.7)
         self.assertEqual(restored.frames.dtype, np.float32)
         self.assertEqual(restored.query_box_xyxy.dtype, np.float32)
         self.assertEqual(restored.query_point_tyx.dtype, np.float32)
@@ -99,6 +101,15 @@ class MaskTrackerRunInputTests(unittest.TestCase):
                 frame_index_offset=0,
                 frames=np.zeros((2, 4, 4), dtype=np.float32),
                 initial_mask=np.zeros((3, 4), dtype=bool),
+            )
+        with self.assertRaises(ValueError):
+            MaskTrackerRunInput(
+                tracker_kind="sam2",
+                track_id=1,
+                frame_index_offset=0,
+                frames=np.zeros((2, 4, 4), dtype=np.float32),
+                query_box_xyxy=np.asarray([0.0, 0.0, 3.0, 3.0], dtype=np.float32),
+                mask_probability_threshold=1.0,
             )
 
     def test_input_rejects_unsupported_contract_version(self) -> None:

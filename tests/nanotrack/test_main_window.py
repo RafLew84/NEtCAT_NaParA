@@ -2497,6 +2497,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.window._registration_results = result_set
         self.window._update_menu_action_state()
         self.window.action_show_aligned_registration.trigger()
+        self.window.track_list_panel.set_mask_probability_threshold(0.75)
         track = ParticleTrack(track_id=1, seed_frame_index=1, seed_bbox=BBoxXYXY(1.0, 1.0, 3.0, 3.0))
 
         run_input = self.window._build_mask_tracker_input_for_track(
@@ -2508,6 +2509,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(run_input.source_view, "raw+registration")
         np.testing.assert_array_equal(run_input.query_box_xyxy, np.asarray([1.0, 1.0, 3.0, 3.0], dtype=np.float32))
         np.testing.assert_array_equal(run_input.query_point_tyx, np.asarray([0.0, 2.0, 2.0], dtype=np.float32))
+        self.assertAlmostEqual(run_input.mask_probability_threshold, 0.75)
         self.assertEqual(run_input.frames.shape, (1, *sequence.frame_shape))
 
     def test_run_selected_expanded_registration_shifts_prompt_and_stores_model_coordinates(self) -> None:
