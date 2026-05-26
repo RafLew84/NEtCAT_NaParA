@@ -172,6 +172,236 @@ class TrackResultsDialogTests(unittest.TestCase):
         self.assertIn("All tracks", self.dialog.lbl_summary.text())
         self.assertFalse(self.dialog.btn_delete.isEnabled())
 
+    def test_all_tracks_coverage_uses_union_of_masks_instead_of_summed_areas(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/results_union_coverage.mpp",
+            raw_frames=np.zeros((3, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+        )
+        mask1 = np.zeros((8, 8), dtype=bool)
+        mask1[1:4, 1:4] = True
+        mask2 = np.zeros((8, 8), dtype=bool)
+        mask2[2:5, 2:5] = True
+        track1 = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(1.0, 1.0, 4.0, 4.0))
+        track1.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(1.0, 1.0, 4.0, 4.0),
+                mask=mask1,
+                metrics=ParticleMetrics(
+                    area_px=float(np.count_nonzero(mask1)),
+                    perimeter_px=12.0,
+                    intensity_sum=18.0,
+                    intensity_mean=2.0,
+                    intensity_max=3.0,
+                ),
+            )
+        )
+        track2 = ParticleTrack(track_id=2, seed_frame_index=0, seed_bbox=BBoxXYXY(2.0, 2.0, 5.0, 5.0))
+        track2.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(2.0, 2.0, 5.0, 5.0),
+                mask=mask2,
+                metrics=ParticleMetrics(
+                    area_px=float(np.count_nonzero(mask2)),
+                    perimeter_px=12.0,
+                    intensity_sum=27.0,
+                    intensity_mean=3.0,
+                    intensity_max=4.0,
+                ),
+            )
+        )
+
+        self.dialog.set_context(sequence, [track1, track2], selected_track_id=None)
+
+        area_items = self.dialog.plot_area.plotItem.listDataItems()
+        _x_area, area_data = area_items[0].getData()
+        np.testing.assert_array_equal(area_data, np.asarray([18.0], dtype=np.float32))
+        coverage_items = self.dialog.plot_coverage.plotItem.listDataItems()
+        _x_coverage, coverage_data = coverage_items[0].getData()
+        expected_union_area = float(np.count_nonzero(mask1 | mask2))
+        np.testing.assert_allclose(coverage_data, np.asarray([(expected_union_area / 64.0) * 100.0], dtype=np.float32))
+
+    def test_boundary_correction_half_counts_boundary_pixels_for_selected_track(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/results_boundary_exclusion.mpp",
+            raw_frames=np.ones((2, 7, 7), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=7, pixels_y=7),
+        )
+        mask = np.zeros((7, 7), dtype=bool)
+        mask[1:6, 1:6] = True
+        track = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(1.0, 1.0, 6.0, 6.0))
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(1.0, 1.0, 6.0, 6.0),
+                mask=mask,
+                metrics=ParticleMetrics(
+                    area_px=25.0,
+                    perimeter_px=20.0,
+                    intensity_sum=25.0,
+                    intensity_mean=1.0,
+                    intensity_max=1.0,
+                ),
+            )
+        )
+
+        self.dialog.set_context(sequence, [track], selected_track_id=1)
+        self.assertFalse(self.dialog.chk_exclude_boundary_pixels.isChecked())
+        self.assertEqual(self.dialog.spn_boundary_pixel_weight.value(), 0.5)
+        self.assertFalse(self.dialog.spn_boundary_pixel_weight.isEnabled())
+
+        area_items = self.dialog.plot_area.plotItem.listDataItems()
+        _x_area, area_data = area_items[0].getData()
+        np.testing.assert_array_equal(area_data, np.asarray([25.0], dtype=np.float32))
+
+        self.dialog.chk_exclude_boundary_pixels.setChecked(True)
+        self.__class__._app.processEvents()
+
+        self.assertTrue(self.dialog.spn_boundary_pixel_weight.isEnabled())
+        area_items = self.dialog.plot_area.plotItem.listDataItems()
+        _x_area, area_data = area_items[0].getData()
+        np.testing.assert_array_equal(area_data, np.asarray([17.0], dtype=np.float32))
+        perimeter_items = self.dialog.plot_perimeter.plotItem.listDataItems()
+        _x_perimeter, perimeter_data = perimeter_items[0].getData()
+        np.testing.assert_array_equal(perimeter_data, np.asarray([20.0], dtype=np.float32))
+        coverage_items = self.dialog.plot_coverage.plotItem.listDataItems()
+        _x_coverage, coverage_data = coverage_items[0].getData()
+        np.testing.assert_allclose(coverage_data, np.asarray([(17.0 / 49.0) * 100.0], dtype=np.float32))
+        self.assertIn("boundary correction 0.50x", self.dialog.lbl_summary.text())
+
+        self.dialog.spn_boundary_pixel_weight.setValue(0.0)
+        self.__class__._app.processEvents()
+
+        area_items = self.dialog.plot_area.plotItem.listDataItems()
+        _x_area, area_data = area_items[0].getData()
+        np.testing.assert_array_equal(area_data, np.asarray([9.0], dtype=np.float32))
+        perimeter_items = self.dialog.plot_perimeter.plotItem.listDataItems()
+        _x_perimeter, perimeter_data = perimeter_items[0].getData()
+        np.testing.assert_array_equal(perimeter_data, np.asarray([12.0], dtype=np.float32))
+        coverage_items = self.dialog.plot_coverage.plotItem.listDataItems()
+        _x_coverage, coverage_data = coverage_items[0].getData()
+        np.testing.assert_allclose(coverage_data, np.asarray([(9.0 / 49.0) * 100.0], dtype=np.float32))
+        self.assertIn("boundary correction 0.00x", self.dialog.lbl_summary.text())
+
+    def test_boundary_correction_uses_weighted_union_for_all_tracks_coverage(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/results_boundary_union_coverage.mpp",
+            raw_frames=np.ones((2, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+        )
+        mask1 = np.zeros((8, 8), dtype=bool)
+        mask1[1:4, 1:4] = True
+        mask2 = np.zeros((8, 8), dtype=bool)
+        mask2[2:5, 2:5] = True
+        track1 = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(1.0, 1.0, 4.0, 4.0))
+        track1.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(1.0, 1.0, 4.0, 4.0),
+                mask=mask1,
+                metrics=ParticleMetrics(
+                    area_px=9.0,
+                    perimeter_px=12.0,
+                    intensity_sum=9.0,
+                    intensity_mean=1.0,
+                    intensity_max=1.0,
+                ),
+            )
+        )
+        track2 = ParticleTrack(track_id=2, seed_frame_index=0, seed_bbox=BBoxXYXY(2.0, 2.0, 5.0, 5.0))
+        track2.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(2.0, 2.0, 5.0, 5.0),
+                mask=mask2,
+                metrics=ParticleMetrics(
+                    area_px=9.0,
+                    perimeter_px=12.0,
+                    intensity_sum=9.0,
+                    intensity_mean=1.0,
+                    intensity_max=1.0,
+                ),
+            )
+        )
+
+        self.dialog.set_context(sequence, [track1, track2], selected_track_id=None)
+        self.dialog.chk_exclude_boundary_pixels.setChecked(True)
+        self.__class__._app.processEvents()
+
+        area_items = self.dialog.plot_area.plotItem.listDataItems()
+        _x_area, area_data = area_items[0].getData()
+        np.testing.assert_array_equal(area_data, np.asarray([10.0], dtype=np.float32))
+        coverage_items = self.dialog.plot_coverage.plotItem.listDataItems()
+        _x_coverage, coverage_data = coverage_items[0].getData()
+        np.testing.assert_allclose(coverage_data, np.asarray([(8.0 / 64.0) * 100.0], dtype=np.float32))
+
+    def test_exclude_boundary_pixels_falls_back_to_saved_metrics_when_masks_are_missing(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/results_boundary_saved_session.mpp",
+            raw_frames=np.ones((2, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+        )
+        track = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(1.0, 1.0, 4.0, 4.0))
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(1.0, 1.0, 4.0, 4.0),
+                metrics=ParticleMetrics(
+                    area_px=12.0,
+                    perimeter_px=16.0,
+                    intensity_sum=24.0,
+                    intensity_mean=2.0,
+                    intensity_max=3.0,
+                ),
+            )
+        )
+
+        self.dialog.set_context(sequence, [track], selected_track_id=1)
+        self.dialog.chk_exclude_boundary_pixels.setChecked(True)
+        self.__class__._app.processEvents()
+
+        area_items = self.dialog.plot_area.plotItem.listDataItems()
+        _x_area, area_data = area_items[0].getData()
+        np.testing.assert_array_equal(area_data, np.asarray([12.0], dtype=np.float32))
+        coverage_items = self.dialog.plot_coverage.plotItem.listDataItems()
+        _x_coverage, coverage_data = coverage_items[0].getData()
+        np.testing.assert_allclose(coverage_data, np.asarray([(12.0 / 64.0) * 100.0], dtype=np.float32))
+
+    def test_results_ignore_excluded_frames(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/results_excluded_frame.mpp",
+            raw_frames=np.zeros((4, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+        )
+        sequence.set_frame_excluded(1, True)
+        track = ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(1.0, 1.0, 4.0, 4.0))
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=1,
+                bbox=BBoxXYXY(1.0, 1.0, 4.0, 4.0),
+                metrics=ParticleMetrics(area_px=12.0, perimeter_px=12.0, intensity_sum=24.0, intensity_mean=2.0, intensity_max=3.0),
+            )
+        )
+        track.add_annotation(
+            TrackFrameAnnotation(
+                frame_index=2,
+                bbox=BBoxXYXY(2.0, 2.0, 5.0, 5.0),
+                metrics=ParticleMetrics(area_px=8.0, perimeter_px=10.0, intensity_sum=16.0, intensity_mean=2.0, intensity_max=4.0),
+            )
+        )
+
+        self.dialog.set_context(sequence, [track], selected_track_id=1)
+
+        area_items = self.dialog.plot_area.plotItem.listDataItems()
+        x_data, y_data = area_items[0].getData()
+        np.testing.assert_array_equal(x_data, np.asarray([3.0], dtype=np.float32))
+        np.testing.assert_array_equal(y_data, np.asarray([8.0], dtype=np.float32))
+        coverage_items = self.dialog.plot_coverage.plotItem.listDataItems()
+        _x_coverage, coverage_data = coverage_items[0].getData()
+        np.testing.assert_allclose(coverage_data, np.asarray([(8.0 / 64.0) * 100.0], dtype=np.float32))
+
     def test_coverage_uses_original_frame_area_for_expanded_registration_source_view(self) -> None:
         sequence = STMSequence(
             source_path="/tmp/results_expanded_registration.mpp",
