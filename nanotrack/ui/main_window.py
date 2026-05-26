@@ -344,6 +344,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._sam2_batch_failures: list[tuple[int, str]] = []
         self._mask_tracker_run_source_views: dict[tuple[int, int], str] = {}
         self._active_mask_tracker_backend_label: str | None = None
+        self._mask_tracker_batch_scope_label = "all seeds"
         self._mask_tracker_cancel_requested = False
         self._setup_ui()
         self._connect_signals()
@@ -552,6 +553,9 @@ class NanoTrackMainWindow(QMainWindow):
         self.track_list_panel.track_selected.connect(self._on_track_selected)
         self.track_list_panel.track_delete_requested.connect(self._on_track_delete_requested)
         self.track_list_panel.run_selected_requested.connect(self._on_run_sam2_for_selected_requested)
+        self.track_list_panel.run_all_at_selected_frame_requested.connect(
+            self._on_run_sam2_for_all_at_selected_frame_requested
+        )
         self.track_list_panel.run_all_requested.connect(self._on_run_sam2_for_all_requested)
         self.edge_track_list_panel.track_selected.connect(self._on_edge_track_selected)
         self.edge_track_list_panel.track_delete_requested.connect(self._on_edge_track_delete_requested)
@@ -3288,7 +3292,38 @@ class NanoTrackMainWindow(QMainWindow):
     def _on_run_sam2_for_all_requested(self) -> None:
         if self._sequence is None or self._is_preprocessing or self._is_tracking or not self._tracks:
             return
-        if not self._ensure_selected_mask_tracker_available("Run for All Seeds"):
+        self._start_mask_tracker_batch_for_tracks(
+            list(self._tracks),
+            action_label="Run for All Seeds",
+            scope_label="all seeds",
+        )
+
+    def _on_run_sam2_for_all_at_selected_frame_requested(self) -> None:
+        if self._sequence is None or self._is_preprocessing or self._is_tracking or not self._tracks:
+            return
+
+        frame_index = int(self._sequence.active_frame_index)
+        tracks_at_frame = [track for track in self._tracks if int(track.seed_frame_index) == frame_index]
+        if not tracks_at_frame:
+            self.statusBar().showMessage(f"No seeds on frame {frame_index + 1}.", 3000)
+            return
+
+        self._start_mask_tracker_batch_for_tracks(
+            tracks_at_frame,
+            action_label="Run for Seeds at Current Frame",
+            scope_label=f"seeds at frame {frame_index + 1}",
+        )
+
+    def _start_mask_tracker_batch_for_tracks(
+        self,
+        tracks: list[ParticleTrack],
+        *,
+        action_label: str,
+        scope_label: str,
+    ) -> None:
+        if self._sequence is None or not tracks:
+            return
+        if not self._ensure_selected_mask_tracker_available(action_label):
             return
         tracker_kind = self._selected_mask_tracker_kind()
         backend_label = self._selected_mask_tracker_backend_label()
@@ -3301,7 +3336,7 @@ class NanoTrackMainWindow(QMainWindow):
         run_items: list[tuple[int, MaskTrackerRunInput]] = []
         frame_limit = self.track_list_panel.current_run_frame_limit()
         try:
-            for track in self._tracks:
+            for track in tracks:
                 run_items.append(
                     (
                         track.track_id,
@@ -3318,6 +3353,7 @@ class NanoTrackMainWindow(QMainWindow):
 
         self._set_tracking_busy(True)
         self._active_mask_tracker_backend_label = backend_label
+        self._mask_tracker_batch_scope_label = str(scope_label)
         self._mask_tracker_cancel_requested = False
         self._mask_tracker_run_source_views = {}
         for _track_id, run_input in run_items:
@@ -3326,7 +3362,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._sam2_resume_from_frame = None
         self._sam2_batch_failures = []
         self._sam2_progress_dialog = QProgressDialog(
-            f"Running {backend_label} for all seeds...",
+            f"Running {backend_label} for {scope_label}...",
             "",
             0,
             len(run_items),
@@ -3341,7 +3377,10 @@ class NanoTrackMainWindow(QMainWindow):
         self._sam2_progress_dialog.setAutoReset(False)
         self._sam2_progress_dialog.setValue(0)
         self._sam2_progress_dialog.show()
-        self.statusBar().showMessage(f"Running {backend_label} for all {len(run_items)} seeds...", 0)
+        self.statusBar().showMessage(
+            f"Running {backend_label} for {self._format_mask_tracker_batch_scope(len(run_items))}...",
+            0,
+        )
         QApplication.processEvents()
 
         self._sam2_thread = QThread(self)
@@ -3389,6 +3428,7 @@ class NanoTrackMainWindow(QMainWindow):
         assert isinstance(track_id, int)
         assert isinstance(run_output, MaskTrackerRunOutput)
         backend_label = self._current_mask_tracker_backend_label()
+        scope_text = self._format_mask_tracker_batch_scope()
         self._apply_mask_tracker_output_to_track(track_id, run_output)
         self.set_tracks(self._tracks, selected_track_id=self._selected_track_id)
         self._show_current_frame(preserve_zoom=True)
@@ -3396,7 +3436,9 @@ class NanoTrackMainWindow(QMainWindow):
         label = track.label if track is not None and track.label else f"Track {track_id}"
         if self._sam2_progress_dialog is not None:
             self._sam2_progress_dialog.setMaximum(total)
-            self._sam2_progress_dialog.setLabelText(f"Running {backend_label} for all seeds... {completed}/{total}\nFinished: {label}")
+            self._sam2_progress_dialog.setLabelText(
+                f"Running {backend_label} for {scope_text}... {completed}/{total}\nFinished: {label}"
+            )
             self._sam2_progress_dialog.setValue(completed)
         self.statusBar().showMessage(f"{backend_label} batch {completed}/{total} finished: {label}", 0)
 
@@ -3405,10 +3447,13 @@ class NanoTrackMainWindow(QMainWindow):
         assert isinstance(track_id, int)
         assert isinstance(error_message, str)
         backend_label = self._current_mask_tracker_backend_label()
+        scope_text = self._format_mask_tracker_batch_scope()
         self._sam2_batch_failures.append((track_id, error_message))
         if self._sam2_progress_dialog is not None:
             self._sam2_progress_dialog.setMaximum(total)
-            self._sam2_progress_dialog.setLabelText(f"Running {backend_label} for all seeds... {completed}/{total}\nFailed: Track {track_id}")
+            self._sam2_progress_dialog.setLabelText(
+                f"Running {backend_label} for {scope_text}... {completed}/{total}\nFailed: Track {track_id}"
+            )
             self._sam2_progress_dialog.setValue(completed)
         self.statusBar().showMessage(f"{backend_label} batch {completed}/{total} failed: Track {track_id}", 0)
 
@@ -3419,6 +3464,7 @@ class NanoTrackMainWindow(QMainWindow):
         if isinstance(summary, dict):
             failures = list(summary.get("failures", []))
             total = int(summary.get("total", total))
+        formatted_scope = self._format_mask_tracker_batch_scope(total)
         if failures:
             failed_track_ids = ", ".join(str(track_id) for track_id, _message in failures)
             QMessageBox.warning(
@@ -3431,10 +3477,16 @@ class NanoTrackMainWindow(QMainWindow):
                 5000,
             )
         else:
-            self.statusBar().showMessage(f"{backend_label} finished for all {total} seeds.", 3000)
+            self.statusBar().showMessage(f"{backend_label} finished for {formatted_scope}.", 3000)
         self._set_tracking_busy(False)
         self._close_sam2_progress_dialog()
         self._active_mask_tracker_backend_label = None
+
+    def _format_mask_tracker_batch_scope(self, total: int | None = None) -> str:
+        scope = str(getattr(self, "_mask_tracker_batch_scope_label", "all seeds") or "all seeds")
+        if scope == "all seeds":
+            return "all seeds" if total is None else f"all {int(total)} seeds"
+        return scope if total is None else f"{int(total)} {scope}"
 
     def _on_sam2_run_failed(self, error_message: str) -> None:
         backend_label = self._current_mask_tracker_backend_label()
@@ -3662,6 +3714,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._sam2_batch_failures = []
         self._mask_tracker_run_source_views = {}
         self._active_mask_tracker_backend_label = None
+        self._mask_tracker_batch_scope_label = "all seeds"
         self._mask_tracker_cancel_requested = False
 
     def _clear_denoised_cache(self) -> None:

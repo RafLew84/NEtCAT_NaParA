@@ -27,6 +27,7 @@ class TrackListPanel(QWidget):
     mask_tracker_changed = pyqtSignal(object)
     run_selected_requested = pyqtSignal()
     run_all_requested = pyqtSignal()
+    run_all_at_selected_frame_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -36,6 +37,7 @@ class TrackListPanel(QWidget):
         self.list_tracks.currentItemChanged.connect(self._on_current_item_changed)
         self.btn_delete_selected.clicked.connect(self._on_delete_selected_clicked)
         self.btn_run_selected.clicked.connect(self.run_selected_requested.emit)
+        self.btn_run_all_at_selected_frame.clicked.connect(self.run_all_at_selected_frame_requested.emit)
         self.btn_run_all.clicked.connect(self.run_all_requested.emit)
 
     def _build(self) -> None:
@@ -71,6 +73,7 @@ class TrackListPanel(QWidget):
         )
         self.btn_delete_selected = QPushButton("Delete Selected", self)
         self.btn_run_selected = QPushButton("Run for Selected", self)
+        self.btn_run_all_at_selected_frame = QPushButton("Run for Seeds at Current Frame", self)
         self.btn_run_all = QPushButton("Run for All Seeds", self)
 
         tracker_layout = QHBoxLayout()
@@ -90,6 +93,7 @@ class TrackListPanel(QWidget):
         group_layout.addLayout(frame_limit_layout)
         group_layout.addLayout(threshold_layout)
         group_layout.addWidget(self.btn_run_selected)
+        group_layout.addWidget(self.btn_run_all_at_selected_frame)
         group_layout.addWidget(self.btn_run_all)
 
         layout.addWidget(group, 1)
@@ -193,6 +197,7 @@ class TrackListPanel(QWidget):
         self.sp_mask_probability_threshold.setEnabled(not self._processing_busy)
         self.btn_delete_selected.setEnabled(has_selected_track and not self._processing_busy)
         self.btn_run_selected.setEnabled(has_selected_track and not self._processing_busy)
+        self.btn_run_all_at_selected_frame.setEnabled(has_tracks and not self._processing_busy)
         self.btn_run_all.setEnabled(has_tracks and not self._processing_busy)
 
     def _on_current_item_changed(self, current: QListWidgetItem | None, _previous: QListWidgetItem | None) -> None:
