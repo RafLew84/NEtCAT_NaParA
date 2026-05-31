@@ -18,6 +18,29 @@ class AnalysisRegionKind(str, Enum):
     CUSTOM = "custom"
 
 
+class DetectionReviewStatus(str, Enum):
+    """Review state of one molecular detection."""
+
+    CANDIDATE = "candidate"
+    ACCEPTED = "accepted"
+    EDITED = "edited"
+    REJECTED = "rejected"
+    MANUAL = "manual"
+    UNCERTAIN = "uncertain"
+
+    @property
+    def included_in_default_analysis(self) -> bool:
+        return self in {
+            DetectionReviewStatus.ACCEPTED,
+            DetectionReviewStatus.EDITED,
+            DetectionReviewStatus.MANUAL,
+        }
+
+    @classmethod
+    def default_for_yolo(cls) -> DetectionReviewStatus:
+        return cls.CANDIDATE
+
+
 @dataclass(frozen=True)
 class AnalysisRegion:
     """A named image area in native frame coordinates."""
@@ -155,6 +178,77 @@ class FrameScopedAnalysisRegion:
 
     def applies_to_working_frame(self, working_frame_index: int) -> bool:
         return int(working_frame_index) in self.working_frame_indices
+
+
+@dataclass(frozen=True)
+class MolecularDetection:
+    """One molecule detection bbox in native frame coordinates."""
+
+    detection_id: str
+    working_frame_index: int
+    source_frame_index: int
+    bbox_xyxy: tuple[float, float, float, float]
+    confidence: float
+    model_name: str
+    review_status: DetectionReviewStatus | str
+    backend_name: str
+    run_mode: str
+    region_name: str | None = None
+    coordinate_system: str = "native"
+
+    def __post_init__(self) -> None:
+        detection_id = str(self.detection_id).strip()
+        if not detection_id:
+            raise ValueError("detection_id must be a non-empty string.")
+        working_frame_index = int(self.working_frame_index)
+        source_frame_index = int(self.source_frame_index)
+        if working_frame_index < 0:
+            raise ValueError("working_frame_index must be non-negative.")
+        if source_frame_index < 0:
+            raise ValueError("source_frame_index must be non-negative.")
+        bbox_xyxy = _normalize_rect_xyxy(self.bbox_xyxy)
+        confidence = float(self.confidence)
+        if not np.isfinite(confidence) or not 0.0 <= confidence <= 1.0:
+            raise ValueError("confidence must be finite and in the range 0..1.")
+        model_name = str(self.model_name).strip()
+        if not model_name:
+            raise ValueError("model_name must be a non-empty string.")
+        review_status = (
+            self.review_status
+            if isinstance(self.review_status, DetectionReviewStatus)
+            else DetectionReviewStatus(str(self.review_status).strip())
+        )
+        backend_name = str(self.backend_name).strip()
+        if not backend_name:
+            raise ValueError("backend_name must be a non-empty string.")
+        run_mode = str(self.run_mode).strip()
+        if run_mode not in {"full_frame", "roi_replace"}:
+            raise ValueError("run_mode must be 'full_frame' or 'roi_replace'.")
+        region_name = None if self.region_name is None else str(self.region_name).strip()
+        if region_name == "":
+            region_name = None
+        if self.coordinate_system != "native":
+            raise ValueError("MolecularDetection bbox must be stored in native coordinates.")
+
+        object.__setattr__(self, "detection_id", detection_id)
+        object.__setattr__(self, "working_frame_index", working_frame_index)
+        object.__setattr__(self, "source_frame_index", source_frame_index)
+        object.__setattr__(self, "bbox_xyxy", bbox_xyxy)
+        object.__setattr__(self, "confidence", confidence)
+        object.__setattr__(self, "model_name", model_name)
+        object.__setattr__(self, "review_status", review_status)
+        object.__setattr__(self, "backend_name", backend_name)
+        object.__setattr__(self, "run_mode", run_mode)
+        object.__setattr__(self, "region_name", region_name)
+
+    @property
+    def centroid_xy(self) -> tuple[float, float]:
+        x0, y0, x1, y1 = self.bbox_xyxy
+        return (x0 + x1) / 2.0, (y0 + y1) / 2.0
+
+    @property
+    def included_in_default_analysis(self) -> bool:
+        return self.review_status.included_in_default_analysis
 
 
 @dataclass(frozen=True)
@@ -358,6 +452,7 @@ class MolTrackProject:
     copied_analysis_regions: tuple[CopiedAnalysisRegion, ...] = ()
     frame_scoped_analysis_regions: tuple[FrameScopedAnalysisRegion, ...] = ()
     registration_shifts: tuple[RegistrationShift, ...] = ()
+    molecular_detections: tuple[MolecularDetection, ...] = ()
 
     @classmethod
     def from_source_series(
@@ -406,6 +501,13 @@ class MolTrackProject:
         if any(not isinstance(shift, RegistrationShift) for shift in registration_shifts):
             raise TypeError("registration_shifts must contain RegistrationShift instances.")
         normalized_registration_shifts = _validate_registration_shifts(registration_shifts, self.working_series)
+        molecular_detections = tuple(self.molecular_detections)
+        if any(not isinstance(detection, MolecularDetection) for detection in molecular_detections):
+            raise TypeError("molecular_detections must contain MolecularDetection instances.")
+        normalized_molecular_detections = _validate_molecular_detections(
+            molecular_detections,
+            self.working_series,
+        )
         object.__setattr__(
             self,
             "project_name",
@@ -415,6 +517,7 @@ class MolTrackProject:
         object.__setattr__(self, "copied_analysis_regions", tuple(normalized_copied_regions))
         object.__setattr__(self, "frame_scoped_analysis_regions", frame_scoped_analysis_regions)
         object.__setattr__(self, "registration_shifts", normalized_registration_shifts)
+        object.__setattr__(self, "molecular_detections", normalized_molecular_detections)
 
     def remove_working_frame(self, working_frame_index: int) -> MolTrackProject:
         working_series = self.working_series.remove_working_frame(working_frame_index)
@@ -451,6 +554,22 @@ class MolTrackProject:
             for shift in self.registration_shifts
             if shift.working_frame_index in old_to_new_index
         )
+        remapped_molecular_detections = tuple(
+            MolecularDetection(
+                detection_id=detection.detection_id,
+                working_frame_index=old_to_new_index[detection.working_frame_index],
+                source_frame_index=detection.source_frame_index,
+                bbox_xyxy=detection.bbox_xyxy,
+                confidence=detection.confidence,
+                model_name=detection.model_name,
+                review_status=detection.review_status,
+                backend_name=detection.backend_name,
+                run_mode=detection.run_mode,
+                region_name=detection.region_name,
+            )
+            for detection in self.molecular_detections
+            if detection.working_frame_index in old_to_new_index
+        )
         return MolTrackProject(
             source_series=self.source_series,
             working_series=working_series,
@@ -462,6 +581,7 @@ class MolTrackProject:
             ),
             frame_scoped_analysis_regions=tuple(remapped_scoped_regions),
             registration_shifts=remapped_registration_shifts,
+            molecular_detections=remapped_molecular_detections,
         )
 
     def with_analysis_regions(
@@ -471,6 +591,7 @@ class MolTrackProject:
         copied_analysis_regions: tuple[CopiedAnalysisRegion, ...] = (),
         frame_scoped_analysis_regions: tuple[FrameScopedAnalysisRegion, ...] | None = None,
         registration_shifts: tuple[RegistrationShift, ...] | None = None,
+        molecular_detections: tuple[MolecularDetection, ...] | None = None,
     ) -> MolTrackProject:
         return MolTrackProject(
             source_series=self.source_series,
@@ -488,6 +609,11 @@ class MolTrackProject:
                 if registration_shifts is None
                 else tuple(registration_shifts)
             ),
+            molecular_detections=(
+                self.molecular_detections
+                if molecular_detections is None
+                else tuple(molecular_detections)
+            ),
         )
 
     def with_frame_scoped_analysis_regions(
@@ -502,6 +628,7 @@ class MolTrackProject:
             copied_analysis_regions=self.copied_analysis_regions,
             frame_scoped_analysis_regions=tuple(frame_scoped_analysis_regions),
             registration_shifts=self.registration_shifts,
+            molecular_detections=self.molecular_detections,
         )
 
     def with_registration_shifts(
@@ -516,6 +643,22 @@ class MolTrackProject:
             copied_analysis_regions=self.copied_analysis_regions,
             frame_scoped_analysis_regions=self.frame_scoped_analysis_regions,
             registration_shifts=tuple(registration_shifts),
+            molecular_detections=self.molecular_detections,
+        )
+
+    def with_molecular_detections(
+        self,
+        molecular_detections: tuple[MolecularDetection, ...],
+    ) -> MolTrackProject:
+        return MolTrackProject(
+            source_series=self.source_series,
+            working_series=self.working_series,
+            project_name=self.project_name,
+            analysis_regions=self.analysis_regions,
+            copied_analysis_regions=self.copied_analysis_regions,
+            frame_scoped_analysis_regions=self.frame_scoped_analysis_regions,
+            registration_shifts=self.registration_shifts,
+            molecular_detections=tuple(molecular_detections),
         )
 
     def analysis_regions_for_working_frame(self, working_frame_index: int) -> tuple[AnalysisRegion, ...]:
@@ -548,6 +691,15 @@ class MolTrackProject:
             if shift.working_frame_index == working_frame_index:
                 return shift
         return None
+
+    def molecular_detections_for_working_frame(self, working_frame_index: int) -> tuple[MolecularDetection, ...]:
+        working_frame_index = int(working_frame_index)
+        self.working_series.get_working_frame(working_frame_index)
+        return tuple(
+            detection
+            for detection in self.molecular_detections
+            if detection.working_frame_index == working_frame_index
+        )
 
 
 def _sort_regions_by_priority(regions: list[AnalysisRegion]) -> list[AnalysisRegion]:
@@ -592,3 +744,20 @@ def _validate_registration_shifts(
         shifts_by_working_frame_index[index]
         for index in sorted(shifts_by_working_frame_index)
     )
+
+
+def _validate_molecular_detections(
+    molecular_detections: tuple[MolecularDetection, ...],
+    working_series: WorkingImageSeries,
+) -> tuple[MolecularDetection, ...]:
+    detections_by_id: dict[str, MolecularDetection] = {}
+    for detection in molecular_detections:
+        working_frame = working_series.get_working_frame(detection.working_frame_index)
+        if detection.source_frame_index != working_frame.source_frame_index:
+            raise ValueError(
+                "MolecularDetection source_frame_index must match its working frame."
+            )
+        if detection.detection_id in detections_by_id:
+            raise ValueError(f"Duplicate MolecularDetection id: {detection.detection_id!r}.")
+        detections_by_id[detection.detection_id] = detection
+    return molecular_detections

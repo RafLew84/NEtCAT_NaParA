@@ -165,6 +165,111 @@ class MolTrackDomainModelTests(unittest.TestCase):
         self.assertEqual(shift.shift_xy, (1.25, -0.5))
         self.assertEqual(shift.method, "phase_correlation")
 
+    def test_molecular_detection_describes_one_bbox_in_native_coordinates(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+
+        detection = MolecularDetection(
+            detection_id=" mol-001 ",
+            working_frame_index=2,
+            source_frame_index=7,
+            bbox_xyxy=(10.0, 20.0, 18.0, 28.0),
+            confidence=0.875,
+            model_name="yolo-molecules-v1",
+            review_status="candidate",
+            backend_name="yolo",
+            run_mode="roi_replace",
+            region_name="Terrace 1",
+        )
+
+        self.assertEqual(detection.detection_id, "mol-001")
+        self.assertEqual(detection.working_frame_index, 2)
+        self.assertEqual(detection.source_frame_index, 7)
+        self.assertEqual(detection.coordinate_system, "native")
+        self.assertEqual(detection.bbox_xyxy, (10.0, 20.0, 18.0, 28.0))
+        self.assertEqual(detection.centroid_xy, (14.0, 24.0))
+        self.assertEqual(detection.confidence, 0.875)
+        self.assertEqual(detection.model_name, "yolo-molecules-v1")
+        self.assertEqual(detection.review_status, DetectionReviewStatus.CANDIDATE)
+        self.assertEqual(detection.backend_name, "yolo")
+        self.assertEqual(detection.run_mode, "roi_replace")
+        self.assertEqual(detection.region_name, "Terrace 1")
+
+    def test_molecular_detection_rejects_invalid_contract_values(self) -> None:
+        from moltrack.core import MolecularDetection
+
+        valid_payload = dict(
+            detection_id="mol-001",
+            working_frame_index=2,
+            source_frame_index=7,
+            bbox_xyxy=(10.0, 20.0, 18.0, 28.0),
+            confidence=0.875,
+            model_name="yolo-molecules-v1",
+            review_status="candidate",
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+
+        invalid_overrides = (
+            {"detection_id": " "},
+            {"working_frame_index": -1},
+            {"source_frame_index": -1},
+            {"bbox_xyxy": (10.0, 20.0, 10.0, 28.0)},
+            {"confidence": 1.01},
+            {"confidence": float("nan")},
+            {"model_name": " "},
+            {"review_status": " "},
+            {"review_status": "unknown"},
+            {"backend_name": " "},
+            {"run_mode": "unknown"},
+            {"coordinate_system": "registered"},
+        )
+
+        for overrides in invalid_overrides:
+            with self.subTest(overrides=overrides):
+                payload = {**valid_payload, **overrides}
+                with self.assertRaises(ValueError):
+                    MolecularDetection(**payload)
+
+    def test_detection_review_status_controls_default_analysis_membership(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+
+        self.assertEqual(
+            [status.value for status in DetectionReviewStatus],
+            ["candidate", "accepted", "edited", "rejected", "manual", "uncertain"],
+        )
+
+        candidate = MolecularDetection(
+            detection_id="mol-001",
+            working_frame_index=2,
+            source_frame_index=7,
+            bbox_xyxy=(10.0, 20.0, 18.0, 28.0),
+            confidence=0.875,
+            model_name="yolo-molecules-v1",
+            review_status="candidate",
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        accepted = MolecularDetection(
+            detection_id="mol-002",
+            working_frame_index=2,
+            source_frame_index=7,
+            bbox_xyxy=(20.0, 30.0, 28.0, 38.0),
+            confidence=0.75,
+            model_name="yolo-molecules-v1",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+
+        self.assertEqual(candidate.review_status, DetectionReviewStatus.CANDIDATE)
+        self.assertFalse(candidate.included_in_default_analysis)
+        self.assertTrue(accepted.included_in_default_analysis)
+        self.assertTrue(DetectionReviewStatus.EDITED.included_in_default_analysis)
+        self.assertTrue(DetectionReviewStatus.MANUAL.included_in_default_analysis)
+        self.assertFalse(DetectionReviewStatus.REJECTED.included_in_default_analysis)
+        self.assertFalse(DetectionReviewStatus.UNCERTAIN.included_in_default_analysis)
+        self.assertEqual(DetectionReviewStatus.default_for_yolo(), DetectionReviewStatus.CANDIDATE)
+
     def test_project_can_store_optional_registration_shifts_by_working_frame(self) -> None:
         from moltrack.core import MolTrackProject, RegistrationShift, SourceImageSeries
 

@@ -206,6 +206,103 @@ class MolTrackProjectFormatTests(unittest.TestCase):
         self.assertEqual(loaded.registration_shift_for_working_frame(2).shift_xy, (1.25, -0.5))
         self.assertEqual(loaded.registration_shift_for_working_frame(2).method, "phase_correlation_adjacent")
 
+    def test_save_and_load_project_round_trips_molecular_detections(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolTrackProject, MolecularDetection, SourceImageSeries
+        from moltrack.persistence import load_project, save_project
+
+        project = MolTrackProject.from_source_series(
+            SourceImageSeries(source_uri="movie.mpp", frame_count=3),
+            project_name="detections",
+        ).with_molecular_detections(
+            (
+                MolecularDetection(
+                    detection_id="accepted-full-frame",
+                    working_frame_index=0,
+                    source_frame_index=0,
+                    bbox_xyxy=(1.0, 2.0, 4.0, 6.0),
+                    confidence=0.93,
+                    model_name="yolo11s_v4.0_pro.pt",
+                    review_status=DetectionReviewStatus.ACCEPTED,
+                    backend_name="yolo",
+                    run_mode="full_frame",
+                ),
+                MolecularDetection(
+                    detection_id="roi-edited",
+                    working_frame_index=1,
+                    source_frame_index=1,
+                    bbox_xyxy=(10.5, 20.25, 12.75, 23.5),
+                    confidence=0.81,
+                    model_name="yolo11s_v4.0_pro.pt",
+                    review_status=DetectionReviewStatus.EDITED,
+                    backend_name="yolo",
+                    run_mode="roi_replace",
+                    region_name="Terrace A",
+                ),
+            )
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "detections.moltrack"
+
+            save_project(path, project)
+            loaded = load_project(path)
+
+        self.assertEqual(loaded.molecular_detections, project.molecular_detections)
+        self.assertEqual(loaded.molecular_detections[0].review_status, DetectionReviewStatus.ACCEPTED)
+        self.assertEqual(loaded.molecular_detections[0].bbox_xyxy, (1.0, 2.0, 4.0, 6.0))
+        self.assertEqual(loaded.molecular_detections[0].backend_name, "yolo")
+        self.assertEqual(loaded.molecular_detections[0].run_mode, "full_frame")
+        self.assertIsNone(loaded.molecular_detections[0].region_name)
+        self.assertEqual(loaded.molecular_detections[1].review_status, DetectionReviewStatus.EDITED)
+        self.assertEqual(loaded.molecular_detections[1].bbox_xyxy, (10.5, 20.25, 12.75, 23.5))
+        self.assertEqual(loaded.molecular_detections[1].run_mode, "roi_replace")
+        self.assertEqual(loaded.molecular_detections[1].region_name, "Terrace A")
+
+    def test_manifest_records_molecular_detection_provenance(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolTrackProject, MolecularDetection, SourceImageSeries
+        from moltrack.persistence import build_project_manifest
+
+        project = MolTrackProject.from_source_series(
+            SourceImageSeries(source_uri="movie.mpp", frame_count=2),
+            project_name="detection manifest",
+        ).with_molecular_detections(
+            (
+                MolecularDetection(
+                    detection_id="roi-candidate",
+                    working_frame_index=1,
+                    source_frame_index=1,
+                    bbox_xyxy=(2.0, 3.0, 5.0, 7.0),
+                    confidence=0.66,
+                    model_name="yolo11s_v4.0_pro.pt",
+                    review_status=DetectionReviewStatus.CANDIDATE,
+                    backend_name="yolo",
+                    run_mode="roi_replace",
+                    region_name="Terrace A",
+                ),
+            )
+        )
+
+        manifest = build_project_manifest(project)
+
+        self.assertEqual(
+            manifest["molecular_detections"],
+            [
+                {
+                    "detection_id": "roi-candidate",
+                    "working_frame_index": 1,
+                    "source_frame_index": 1,
+                    "bbox_xyxy": [2.0, 3.0, 5.0, 7.0],
+                    "confidence": 0.66,
+                    "model_name": "yolo11s_v4.0_pro.pt",
+                    "review_status": "candidate",
+                    "backend_name": "yolo",
+                    "run_mode": "roi_replace",
+                    "region_name": "Terrace A",
+                    "coordinate_system": "native",
+                },
+            ],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

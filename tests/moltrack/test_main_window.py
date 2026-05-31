@@ -3,6 +3,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import ANY, patch
 
 import numpy as np
@@ -139,6 +140,746 @@ class MolTrackMainWindowTests(unittest.TestCase):
             ],
             ["phase_correlation", "optical_flow_median"],
         )
+
+    def test_yolo_menu_exposes_detect_current_frame_action(self) -> None:
+        yolo_menu = None
+        for action in self.window.menuBar().actions():
+            if action.text() == "YOLO":
+                yolo_menu = action.menu()
+                break
+
+        self.assertIsNotNone(yolo_menu)
+        self.assertEqual(
+            [action.text() for action in yolo_menu.actions()],
+            [
+                "Detect Current Frame",
+                "Detect Current Frame in Selected ROI",
+                "Detect All Working Frames",
+                "Detect Selected ROI on Frame Range...",
+            ],
+        )
+
+    def test_yolo_menu_action_opens_options_dialog_and_uses_selected_model_parameters(self) -> None:
+        from moltrack.yolo import MolTrackYoloDetectionConfig, MolTrackYoloModelInfo
+
+        model_a = MolTrackYoloModelInfo(
+            name="molecule_small.pt",
+            path=Path(tempfile.gettempdir()) / "molecule_small.pt",
+        )
+        model_b = MolTrackYoloModelInfo(
+            name="molecule_large.pt",
+            path=Path(tempfile.gettempdir()) / "molecule_large.pt",
+        )
+        config = MolTrackYoloDetectionConfig(confidence_threshold=0.37, iou_threshold=0.58, device="cuda:0")
+        project, _frames = _project_with_frames()
+
+        self.window.set_project(project)
+        self.window.refresh_yolo_models([model_a, model_b])
+
+        with (
+            patch(
+                "moltrack.ui.main_window.YoloDetectionOptionsDialog.get_options",
+                return_value=(model_b, config),
+            ) as options_mock,
+            patch.object(self.window, "detect_yolo_on_current_frame", return_value=()) as detect_mock,
+        ):
+            self.window.detect_yolo_current_frame_action.trigger()
+
+        self.assertFalse(hasattr(self.window, "yolo_model_combo"))
+        options_mock.assert_called_once()
+        self.assertEqual(options_mock.call_args.kwargs["models"], [model_a, model_b])
+        self.assertEqual(options_mock.call_args.kwargs["selected_model_path"], model_a.path)
+        detect_mock.assert_called_once()
+        model_arg = detect_mock.call_args.args[0]
+        config_arg = detect_mock.call_args.kwargs["config"]
+        self.assertEqual(model_arg, model_b)
+        self.assertAlmostEqual(config_arg.confidence_threshold, 0.37)
+        self.assertAlmostEqual(config_arg.iou_threshold, 0.58)
+        self.assertEqual(config_arg.device, "cuda:0")
+        self.assertEqual(self.window.selected_yolo_model(), model_b)
+        self.assertEqual(self.window.selected_yolo_detection_config(), config)
+
+    def test_yolo_detection_options_dialog_selects_model_and_parameters(self) -> None:
+        from moltrack.ui.main_window import YoloDetectionOptionsDialog
+        from moltrack.yolo import MolTrackYoloDetectionConfig, MolTrackYoloModelInfo
+
+        model_a = MolTrackYoloModelInfo(
+            name="molecule_small.pt",
+            path=Path(tempfile.gettempdir()) / "molecule_small.pt",
+        )
+        model_b = MolTrackYoloModelInfo(
+            name="molecule_large.pt",
+            path=Path(tempfile.gettempdir()) / "molecule_large.pt",
+        )
+
+        dialog = YoloDetectionOptionsDialog(
+            self.window,
+            models=[model_a, model_b],
+            selected_model_path=model_a.path,
+            config=MolTrackYoloDetectionConfig(confidence_threshold=0.11, iou_threshold=0.22, device="cpu"),
+        )
+        dialog.model_combo.setCurrentIndex(1)
+        dialog.confidence_spin.setValue(0.41)
+        dialog.iou_spin.setValue(0.62)
+        dialog.device_combo.setCurrentIndex(dialog.device_combo.findData("cuda:0"))
+
+        model, config = dialog.to_options()
+
+        self.assertEqual(dialog.model_combo.objectName(), "moltrack-yolo-model-combo")
+        self.assertEqual(dialog.device_combo.objectName(), "moltrack-yolo-device-combo")
+        self.assertEqual(
+            [
+                (dialog.device_combo.itemText(index), dialog.device_combo.itemData(index))
+                for index in range(dialog.device_combo.count())
+            ],
+            [("Auto", "auto"), ("CPU", "cpu"), ("GPU", "cuda:0")],
+        )
+        self.assertEqual(
+            [dialog.model_combo.itemText(index) for index in range(dialog.model_combo.count())],
+            ["molecule_small.pt", "molecule_large.pt"],
+        )
+        self.assertEqual(model, model_b)
+        self.assertAlmostEqual(config.confidence_threshold, 0.41)
+        self.assertAlmostEqual(config.iou_threshold, 0.62)
+        self.assertEqual(config.device, "cuda:0")
+
+    def test_detect_yolo_current_frame_uses_runtime_and_draws_candidate_detections(self) -> None:
+        from moltrack.core import DetectionReviewStatus
+        from moltrack.yolo import MolTrackYoloDetectionConfig, MolTrackYoloModelInfo
+        from nanotrack.core import BBoxXYXY
+
+        class FakeYoloRuntime:
+            def __init__(self) -> None:
+                self.calls = []
+
+            def predict_frame(self, frame, **kwargs):
+                self.calls.append((np.asarray(frame), kwargs))
+                return [
+                    SimpleNamespace(
+                        bbox=BBoxXYXY(0.25, 0.5, 1.5, 1.75),
+                        confidence=0.91,
+                        model_name="moltrack_model.pt",
+                    )
+                ]
+
+        project, frames = _project_with_frames()
+        runtime = FakeYoloRuntime()
+        config = MolTrackYoloDetectionConfig(confidence_threshold=0.31, iou_threshold=0.42, device="cpu")
+        model = MolTrackYoloModelInfo(
+            name="moltrack_model.pt",
+            path=Path(tempfile.gettempdir()) / "moltrack_model.pt",
+        )
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        with patch.object(self.window.viewer, "add_polyline_nm", return_value=object()) as add_mock:
+            detections = self.window.detect_yolo_on_current_frame(model, config=config, runtime=runtime)
+
+        self.assertEqual(len(detections), 1)
+        detection = detections[0]
+        self.assertEqual(detection.working_frame_index, 1)
+        self.assertEqual(detection.source_frame_index, 1)
+        self.assertEqual(detection.bbox_xyxy, (0.25, 0.5, 1.5, 1.75))
+        self.assertEqual(detection.confidence, 0.91)
+        self.assertEqual(detection.model_name, "moltrack_model.pt")
+        self.assertEqual(detection.review_status, DetectionReviewStatus.CANDIDATE)
+        self.assertEqual(detection.backend_name, "yolo")
+        self.assertEqual(detection.run_mode, "full_frame")
+        np.testing.assert_array_equal(runtime.calls[0][0], frames[1])
+        self.assertEqual(runtime.calls[0][1]["model_path"], model.path)
+        self.assertEqual(runtime.calls[0][1]["conf_threshold"], 0.31)
+        self.assertEqual(runtime.calls[0][1]["iou_threshold"], 0.42)
+        self.assertEqual(runtime.calls[0][1]["device"], "cpu")
+        self.assertEqual(self.window.current_project().molecular_detections_for_working_frame(1), tuple(detections))
+        overlay_points = add_mock.call_args.args[0]
+        np.testing.assert_allclose(
+            overlay_points,
+            np.asarray(
+                [
+                    [0.25, 0.5],
+                    [1.5, 0.5],
+                    [1.5, 1.75],
+                    [0.25, 1.75],
+                    [0.25, 0.5],
+                ],
+                dtype=np.float64,
+            ),
+        )
+
+    def test_detect_yolo_current_frame_replaces_only_existing_yolo_candidates(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+        from moltrack.yolo import MolTrackYoloDetectionConfig, MolTrackYoloModelInfo
+        from nanotrack.core import BBoxXYXY
+
+        class FakeYoloRuntime:
+            def predict_frame(self, _frame, **_kwargs):
+                return [
+                    SimpleNamespace(
+                        bbox=BBoxXYXY(0.0, 0.0, 1.0, 1.0),
+                        confidence=0.72,
+                        model_name="moltrack_model.pt",
+                    )
+                ]
+
+        project, _frames = _project_with_frames()
+        old_candidate = MolecularDetection(
+            detection_id="old-candidate",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 0.5, 0.5),
+            confidence=0.5,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        accepted = MolecularDetection(
+            detection_id="yolo-w0001-0000",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(1.0, 1.0, 1.5, 1.5),
+            confidence=0.8,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        manual = MolecularDetection(
+            detection_id="manual-keep",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(1.5, 1.5, 2.0, 2.0),
+            confidence=1.0,
+            model_name="manual",
+            review_status=DetectionReviewStatus.MANUAL,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        project = project.with_molecular_detections((old_candidate, accepted, manual))
+        model = MolTrackYoloModelInfo(
+            name="moltrack_model.pt",
+            path=Path(tempfile.gettempdir()) / "moltrack_model.pt",
+        )
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        with patch.object(self.window.viewer, "add_polyline_nm", return_value=object()):
+            new_detections = self.window.detect_yolo_on_current_frame(
+                model,
+                config=MolTrackYoloDetectionConfig(device="cpu"),
+                runtime=FakeYoloRuntime(),
+            )
+
+        active_detections = self.window.current_project().molecular_detections_for_working_frame(1)
+        self.assertNotIn(old_candidate, active_detections)
+        self.assertIn(accepted, active_detections)
+        self.assertIn(manual, active_detections)
+        self.assertEqual(len(new_detections), 1)
+        self.assertIn(new_detections[0], active_detections)
+        self.assertEqual(new_detections[0].detection_id, "yolo-w0001-0000-1")
+        self.assertEqual(new_detections[0].review_status, DetectionReviewStatus.CANDIDATE)
+
+    def test_detect_yolo_current_frame_in_rect_roi_replaces_only_detections_inside_roi(self) -> None:
+        from moltrack.core import AnalysisRegion, DetectionReviewStatus, MolecularDetection
+        from moltrack.yolo import MolTrackYoloDetectionConfig, MolTrackYoloModelInfo
+        from nanotrack.core import BBoxXYXY
+
+        class FakeYoloRuntime:
+            def __init__(self) -> None:
+                self.calls = []
+
+            def predict_frame(self, frame, **kwargs):
+                self.calls.append((np.asarray(frame), kwargs))
+                return [
+                    SimpleNamespace(
+                        bbox=BBoxXYXY(0.0, 0.0, 3.0, 3.0),
+                        confidence=0.72,
+                        model_name="moltrack_model.pt",
+                    ),
+                    SimpleNamespace(
+                        bbox=BBoxXYXY(3.0, 3.0, 4.0, 4.0),
+                        confidence=0.91,
+                        model_name="moltrack_model.pt",
+                    ),
+                ]
+
+        project, frames = _project_with_frames()
+        roi = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="ROI A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(0.0, 0.0, 2.0, 2.0),
+        )
+        inside_existing = MolecularDetection(
+            detection_id="inside-existing",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.8,
+            model_name="manual",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        outside_existing = MolecularDetection(
+            detection_id="outside-existing",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(3.0, 3.0, 4.0, 4.0),
+            confidence=0.8,
+            model_name="manual",
+            review_status=DetectionReviewStatus.MANUAL,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        project = project.with_analysis_regions((roi,)).with_molecular_detections(
+            (inside_existing, outside_existing)
+        )
+        runtime = FakeYoloRuntime()
+        model = MolTrackYoloModelInfo(
+            name="moltrack_model.pt",
+            path=Path(tempfile.gettempdir()) / "moltrack_model.pt",
+        )
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        with patch.object(self.window.viewer, "add_polyline_nm", return_value=object()):
+            new_detections = self.window.detect_yolo_on_current_frame_in_region(
+                "ROI A",
+                model,
+                config=MolTrackYoloDetectionConfig(device="cpu"),
+                runtime=runtime,
+            )
+
+        np.testing.assert_array_equal(runtime.calls[0][0], frames[1])
+        self.assertEqual(len(new_detections), 1)
+        self.assertEqual(new_detections[0].bbox_xyxy, (0.0, 0.0, 3.0, 3.0))
+        self.assertEqual(new_detections[0].run_mode, "roi_replace")
+        self.assertEqual(new_detections[0].region_name, "ROI A")
+        active_detections = self.window.current_project().molecular_detections_for_working_frame(1)
+        self.assertNotIn(inside_existing, active_detections)
+        self.assertIn(outside_existing, active_detections)
+        self.assertIn(new_detections[0], active_detections)
+        self.assertEqual(len(active_detections), 2)
+
+    def test_detect_yolo_current_frame_in_polygon_roi_uses_centroid_membership(self) -> None:
+        from moltrack.core import AnalysisRegion, DetectionReviewStatus, MolecularDetection
+        from moltrack.yolo import MolTrackYoloDetectionConfig, MolTrackYoloModelInfo
+        from nanotrack.core import BBoxXYXY
+
+        class FakeYoloRuntime:
+            def predict_frame(self, _frame, **_kwargs):
+                return [
+                    SimpleNamespace(
+                        bbox=BBoxXYXY(0.0, 0.0, 1.0, 1.0),
+                        confidence=0.72,
+                        model_name="moltrack_model.pt",
+                    ),
+                    SimpleNamespace(
+                        bbox=BBoxXYXY(1.5, 1.5, 2.0, 2.0),
+                        confidence=0.91,
+                        model_name="moltrack_model.pt",
+                    ),
+                ]
+
+        project, _frames = _project_with_frames()
+        roi = AnalysisRegion.polygon(
+            kind="terrace",
+            name="Triangle ROI",
+            color_rgb=(20, 120, 240),
+            vertices_xy=[(0.0, 0.0), (2.0, 0.0), (0.0, 2.0)],
+        )
+        inside_existing = MolecularDetection(
+            detection_id="inside-existing",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.8,
+            model_name="manual",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        outside_existing = MolecularDetection(
+            detection_id="outside-existing",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(1.5, 1.5, 2.0, 2.0),
+            confidence=0.8,
+            model_name="manual",
+            review_status=DetectionReviewStatus.MANUAL,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        project = project.with_analysis_regions((roi,)).with_molecular_detections(
+            (inside_existing, outside_existing)
+        )
+        model = MolTrackYoloModelInfo(
+            name="moltrack_model.pt",
+            path=Path(tempfile.gettempdir()) / "moltrack_model.pt",
+        )
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        with patch.object(self.window.viewer, "add_polyline_nm", return_value=object()):
+            new_detections = self.window.detect_yolo_on_current_frame_in_region(
+                "Triangle ROI",
+                model,
+                config=MolTrackYoloDetectionConfig(device="cpu"),
+                runtime=FakeYoloRuntime(),
+            )
+
+        self.assertEqual(len(new_detections), 1)
+        self.assertEqual(new_detections[0].bbox_xyxy, (0.0, 0.0, 1.0, 1.0))
+        active_detections = self.window.current_project().molecular_detections_for_working_frame(1)
+        self.assertNotIn(inside_existing, active_detections)
+        self.assertIn(outside_existing, active_detections)
+        self.assertIn(new_detections[0], active_detections)
+
+    def test_detect_yolo_all_working_frames_runs_only_working_series_and_returns_results_per_frame(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+        from moltrack.yolo import MolTrackYoloDetectionConfig, MolTrackYoloModelInfo
+        from nanotrack.core import BBoxXYXY
+
+        class FakeYoloRuntime:
+            def __init__(self) -> None:
+                self.calls = []
+
+            def predict_frame(self, frame, **kwargs):
+                self.calls.append((np.asarray(frame), kwargs))
+                call_index = len(self.calls) - 1
+                return [
+                    SimpleNamespace(
+                        bbox=BBoxXYXY(call_index, call_index, call_index + 1.0, call_index + 1.0),
+                        confidence=0.70 + call_index / 10.0,
+                        model_name="moltrack_model.pt",
+                    )
+                ]
+
+        project, frames = _project_with_frames()
+        project = project.remove_working_frame(1)
+        old_candidate = MolecularDetection(
+            detection_id="old-candidate",
+            working_frame_index=0,
+            source_frame_index=2,
+            bbox_xyxy=(0.0, 0.0, 0.5, 0.5),
+            confidence=0.5,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        accepted = MolecularDetection(
+            detection_id="accepted-keep",
+            working_frame_index=0,
+            source_frame_index=2,
+            bbox_xyxy=(1.0, 1.0, 1.5, 1.5),
+            confidence=0.8,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        project = project.with_molecular_detections((old_candidate, accepted))
+        runtime = FakeYoloRuntime()
+        progress_events = []
+        model = MolTrackYoloModelInfo(
+            name="moltrack_model.pt",
+            path=Path(tempfile.gettempdir()) / "moltrack_model.pt",
+        )
+
+        self.window.set_project(project)
+        with patch.object(self.window.viewer, "add_polyline_nm", return_value=object()):
+            detections_by_frame = self.window.detect_yolo_on_all_working_frames(
+                model,
+                config=MolTrackYoloDetectionConfig(device="cpu"),
+                runtime=runtime,
+                progress_callback=lambda completed, total, frame_index: progress_events.append(
+                    (completed, total, frame_index)
+                ),
+            )
+
+        self.assertEqual(list(detections_by_frame), [0, 1])
+        np.testing.assert_array_equal(runtime.calls[0][0], frames[2])
+        np.testing.assert_array_equal(runtime.calls[1][0], frames[0])
+        self.assertEqual(progress_events, [(1, 2, 0), (2, 2, 1)])
+        active_frame_zero = self.window.current_project().molecular_detections_for_working_frame(0)
+        self.assertNotIn(old_candidate, active_frame_zero)
+        self.assertIn(accepted, active_frame_zero)
+        self.assertIn(detections_by_frame[0][0], active_frame_zero)
+        self.assertEqual(detections_by_frame[0][0].run_mode, "full_frame")
+        self.assertEqual(detections_by_frame[0][0].review_status, DetectionReviewStatus.CANDIDATE)
+        self.assertEqual(detections_by_frame[1][0].source_frame_index, 0)
+
+    def test_detect_yolo_all_working_frames_can_cancel_after_completed_frame(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+        from moltrack.yolo import MolTrackYoloDetectionConfig, MolTrackYoloModelInfo
+        from nanotrack.core import BBoxXYXY
+
+        class FakeYoloRuntime:
+            def __init__(self) -> None:
+                self.calls = []
+
+            def predict_frame(self, frame, **_kwargs):
+                self.calls.append(np.asarray(frame))
+                return [
+                    SimpleNamespace(
+                        bbox=BBoxXYXY(0.0, 0.0, 1.0, 1.0),
+                        confidence=0.72,
+                        model_name="moltrack_model.pt",
+                    )
+                ]
+
+        project, _frames = _project_with_frames()
+        unprocessed_candidate = MolecularDetection(
+            detection_id="future-candidate",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(1.0, 1.0, 1.5, 1.5),
+            confidence=0.5,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        project = project.with_molecular_detections((unprocessed_candidate,))
+        runtime = FakeYoloRuntime()
+        progress_events = []
+        model = MolTrackYoloModelInfo(
+            name="moltrack_model.pt",
+            path=Path(tempfile.gettempdir()) / "moltrack_model.pt",
+        )
+
+        self.window.set_project(project)
+        with patch.object(self.window.viewer, "add_polyline_nm", return_value=object()):
+            detections_by_frame = self.window.detect_yolo_on_all_working_frames(
+                model,
+                config=MolTrackYoloDetectionConfig(device="cpu"),
+                runtime=runtime,
+                progress_callback=lambda completed, total, frame_index: progress_events.append(
+                    (completed, total, frame_index)
+                ),
+                cancel_check=lambda: bool(progress_events),
+            )
+
+        self.assertEqual(list(detections_by_frame), [0])
+        self.assertEqual(len(runtime.calls), 1)
+        self.assertEqual(progress_events, [(1, 3, 0)])
+        active_frame_one = self.window.current_project().molecular_detections_for_working_frame(1)
+        self.assertIn(unprocessed_candidate, active_frame_one)
+
+    def test_detect_yolo_selected_roi_on_working_frame_range_uses_frame_scoped_region_geometry(self) -> None:
+        from moltrack.core import AnalysisRegion, DetectionReviewStatus, FrameScopedAnalysisRegion, MolecularDetection
+        from moltrack.yolo import MolTrackYoloDetectionConfig, MolTrackYoloModelInfo
+        from nanotrack.core import BBoxXYXY
+
+        class FakeYoloRuntime:
+            def __init__(self) -> None:
+                self.calls = []
+
+            def predict_frame(self, frame, **kwargs):
+                self.calls.append((np.asarray(frame), kwargs))
+                return [
+                    SimpleNamespace(
+                        bbox=BBoxXYXY(0.0, 0.0, 1.0, 1.0),
+                        confidence=0.72,
+                        model_name="moltrack_model.pt",
+                    ),
+                    SimpleNamespace(
+                        bbox=BBoxXYXY(3.0, 3.0, 4.0, 4.0),
+                        confidence=0.91,
+                        model_name="moltrack_model.pt",
+                    ),
+                ]
+
+        project, frames = _project_with_frames()
+        frame_zero_region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="ROI A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(0.0, 0.0, 2.0, 2.0),
+        )
+        frame_one_region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="ROI A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(2.0, 2.0, 5.0, 5.0),
+        )
+        inside_frame_zero = MolecularDetection(
+            detection_id="inside-frame-zero",
+            working_frame_index=0,
+            source_frame_index=2,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.8,
+            model_name="manual",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        outside_frame_zero = MolecularDetection(
+            detection_id="outside-frame-zero",
+            working_frame_index=0,
+            source_frame_index=2,
+            bbox_xyxy=(3.0, 3.0, 4.0, 4.0),
+            confidence=0.8,
+            model_name="manual",
+            review_status=DetectionReviewStatus.MANUAL,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        outside_frame_one = MolecularDetection(
+            detection_id="outside-frame-one",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.8,
+            model_name="manual",
+            review_status=DetectionReviewStatus.MANUAL,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        inside_frame_one = MolecularDetection(
+            detection_id="inside-frame-one",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(3.0, 3.0, 4.0, 4.0),
+            confidence=0.8,
+            model_name="manual",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        untouched_frame_two = MolecularDetection(
+            detection_id="untouched-frame-two",
+            working_frame_index=2,
+            source_frame_index=0,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.8,
+            model_name="manual",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        project = project.with_analysis_regions(
+            (frame_zero_region,),
+            frame_scoped_analysis_regions=(
+                FrameScopedAnalysisRegion(region=frame_zero_region, working_frame_indices=(0,)),
+                FrameScopedAnalysisRegion(region=frame_one_region, working_frame_indices=(1,)),
+            ),
+            molecular_detections=(
+                inside_frame_zero,
+                outside_frame_zero,
+                outside_frame_one,
+                inside_frame_one,
+                untouched_frame_two,
+            ),
+        )
+        runtime = FakeYoloRuntime()
+        progress_events = []
+        model = MolTrackYoloModelInfo(
+            name="moltrack_model.pt",
+            path=Path(tempfile.gettempdir()) / "moltrack_model.pt",
+        )
+
+        self.window.set_project(project)
+        with patch.object(self.window.viewer, "add_polyline_nm", return_value=object()):
+            detections_by_frame = self.window.detect_yolo_in_region_on_working_frames(
+                "ROI A",
+                model,
+                working_frame_indices=(0, 1),
+                config=MolTrackYoloDetectionConfig(device="cpu"),
+                runtime=runtime,
+                progress_callback=lambda completed, total, frame_index: progress_events.append(
+                    (completed, total, frame_index)
+                ),
+            )
+
+        self.assertEqual(list(detections_by_frame), [0, 1])
+        np.testing.assert_array_equal(runtime.calls[0][0], frames[2])
+        np.testing.assert_array_equal(runtime.calls[1][0], frames[1])
+        self.assertEqual(progress_events, [(1, 2, 0), (2, 2, 1)])
+        self.assertEqual(detections_by_frame[0][0].bbox_xyxy, (0.0, 0.0, 1.0, 1.0))
+        self.assertEqual(detections_by_frame[1][0].bbox_xyxy, (3.0, 3.0, 4.0, 4.0))
+        self.assertEqual(detections_by_frame[0][0].run_mode, "roi_replace")
+        self.assertEqual(detections_by_frame[1][0].region_name, "ROI A")
+        frame_zero_detections = self.window.current_project().molecular_detections_for_working_frame(0)
+        frame_one_detections = self.window.current_project().molecular_detections_for_working_frame(1)
+        frame_two_detections = self.window.current_project().molecular_detections_for_working_frame(2)
+        self.assertNotIn(inside_frame_zero, frame_zero_detections)
+        self.assertIn(outside_frame_zero, frame_zero_detections)
+        self.assertIn(detections_by_frame[0][0], frame_zero_detections)
+        self.assertIn(outside_frame_one, frame_one_detections)
+        self.assertNotIn(inside_frame_one, frame_one_detections)
+        self.assertIn(detections_by_frame[1][0], frame_one_detections)
+        self.assertEqual(frame_two_detections, (untouched_frame_two,))
+
+    def test_detect_yolo_selected_roi_on_working_frame_range_can_cancel_after_completed_frame(self) -> None:
+        from moltrack.core import AnalysisRegion, DetectionReviewStatus, MolecularDetection
+        from moltrack.yolo import MolTrackYoloDetectionConfig, MolTrackYoloModelInfo
+        from nanotrack.core import BBoxXYXY
+
+        class FakeYoloRuntime:
+            def __init__(self) -> None:
+                self.calls = []
+
+            def predict_frame(self, frame, **_kwargs):
+                self.calls.append(np.asarray(frame))
+                return [
+                    SimpleNamespace(
+                        bbox=BBoxXYXY(0.0, 0.0, 1.0, 1.0),
+                        confidence=0.72,
+                        model_name="moltrack_model.pt",
+                    )
+                ]
+
+        project, _frames = _project_with_frames()
+        roi = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="ROI A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(0.0, 0.0, 2.0, 2.0),
+        )
+        unprocessed_inside_roi = MolecularDetection(
+            detection_id="unprocessed-inside-roi",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.8,
+            model_name="manual",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        project = project.with_analysis_regions(
+            (roi,),
+            molecular_detections=(unprocessed_inside_roi,),
+        )
+        runtime = FakeYoloRuntime()
+        progress_events = []
+        model = MolTrackYoloModelInfo(
+            name="moltrack_model.pt",
+            path=Path(tempfile.gettempdir()) / "moltrack_model.pt",
+        )
+
+        self.window.set_project(project)
+        with patch.object(self.window.viewer, "add_polyline_nm", return_value=object()):
+            detections_by_frame = self.window.detect_yolo_in_region_on_working_frames(
+                "ROI A",
+                model,
+                working_frame_indices=(0, 1),
+                config=MolTrackYoloDetectionConfig(device="cpu"),
+                runtime=runtime,
+                progress_callback=lambda completed, total, frame_index: progress_events.append(
+                    (completed, total, frame_index)
+                ),
+                cancel_check=lambda: bool(progress_events),
+            )
+
+        self.assertEqual(list(detections_by_frame), [0])
+        self.assertEqual(len(runtime.calls), 1)
+        self.assertEqual(progress_events, [(1, 2, 0)])
+        frame_one_detections = self.window.current_project().molecular_detections_for_working_frame(1)
+        self.assertEqual(frame_one_detections, (unprocessed_inside_roi,))
 
     def test_add_rect_region_action_adds_dialog_region_to_project_and_list(self) -> None:
         from moltrack.core import AnalysisRegion

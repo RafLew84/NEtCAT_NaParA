@@ -32,12 +32,16 @@ from moltrack.core import (
     AnalysisRegion,
     AnalysisRegionKind,
     CopiedAnalysisRegion,
+    DetectionReviewStatus,
     FrameScopedAnalysisRegion,
     MolTrackProject,
+    MolecularDetection,
 )
 from moltrack.io import import_image_series
 from moltrack.persistence import load_project, save_project
 from moltrack.registration import expanded_registered_working_stack, run_project_registration
+from moltrack.yolo import MolTrackYoloDetectionConfig, MolTrackYoloModelInfo, discover_moltrack_yolo_models
+from nanotrack.yolo import YoloRuntime
 from napara.gui.widgets.viewer_widget import ViewerWidget
 
 
@@ -61,6 +65,10 @@ class MolTrackWorkspace(QMainWindow):
         self._expanded_aligned_cache_key: tuple[int, int] | None = None
         self._analysis_regions: dict[str, AnalysisRegion] = {}
         self._analysis_region_items: dict[str, object] = {}
+        self._molecular_detection_items: list[object] = []
+        self._yolo_models: list[MolTrackYoloModelInfo] = []
+        self._selected_yolo_model_path: Path | None = None
+        self._yolo_detection_config = MolTrackYoloDetectionConfig()
         self._copied_analysis_regions: dict[str, CopiedAnalysisRegion] = {}
         self._frame_scoped_analysis_regions: list[FrameScopedAnalysisRegion] = []
         self._draft_region_roi = None
@@ -177,6 +185,33 @@ class MolTrackWorkspace(QMainWindow):
         self.copy_selected_region_to_series_action.triggered.connect(self._on_copy_selected_region_to_series)
         regions_menu.addAction(self.copy_selected_region_to_series_action)
 
+        yolo_menu = self.menuBar().addMenu("YOLO")
+        self.detect_yolo_current_frame_action = QAction("Detect Current Frame", self)
+        self.detect_yolo_current_frame_action.triggered.connect(self._on_detect_yolo_current_frame)
+        yolo_menu.addAction(self.detect_yolo_current_frame_action)
+
+        self.detect_yolo_current_frame_in_selected_roi_action = QAction(
+            "Detect Current Frame in Selected ROI",
+            self,
+        )
+        self.detect_yolo_current_frame_in_selected_roi_action.triggered.connect(
+            self._on_detect_yolo_current_frame_in_selected_roi
+        )
+        yolo_menu.addAction(self.detect_yolo_current_frame_in_selected_roi_action)
+
+        self.detect_yolo_all_working_frames_action = QAction("Detect All Working Frames", self)
+        self.detect_yolo_all_working_frames_action.triggered.connect(self._on_detect_yolo_all_working_frames)
+        yolo_menu.addAction(self.detect_yolo_all_working_frames_action)
+
+        self.detect_yolo_selected_roi_frame_range_action = QAction(
+            "Detect Selected ROI on Frame Range...",
+            self,
+        )
+        self.detect_yolo_selected_roi_frame_range_action.triggered.connect(
+            self._on_detect_yolo_selected_roi_frame_range
+        )
+        yolo_menu.addAction(self.detect_yolo_selected_roi_frame_range_action)
+
     def _build_registration_toolbar(self) -> None:
         toolbar = QToolBar("Registration", self)
         toolbar.setMovable(False)
@@ -256,6 +291,7 @@ class MolTrackWorkspace(QMainWindow):
         self._set_show_expanded_aligned(False)
         self.clear_drawn_region_roi()
         self._clear_analysis_region_overlays()
+        self._clear_molecular_detection_overlays()
         self._analysis_regions = {region.name: region for region in project.analysis_regions}
         self._copied_analysis_regions = {
             copied_region.region.name: copied_region
@@ -302,6 +338,7 @@ class MolTrackWorkspace(QMainWindow):
             f"{self._registered_view_label_suffix()}"
         )
         self._redraw_analysis_region_overlays()
+        self._redraw_molecular_detection_overlays()
 
     def active_working_frame_index(self) -> int:
         return self._active_working_frame_index
@@ -406,6 +443,350 @@ class MolTrackWorkspace(QMainWindow):
 
     def frame_scoped_analysis_regions(self) -> list[FrameScopedAnalysisRegion]:
         return list(self._frame_scoped_analysis_regions)
+
+    def molecular_detections(self) -> list[MolecularDetection]:
+        if self._project is None:
+            return []
+        return list(self._project.molecular_detections)
+
+    def refresh_yolo_models(self, models: list[MolTrackYoloModelInfo] | None = None) -> None:
+        current_path = self._selected_yolo_model_path
+        self._yolo_models = list(discover_moltrack_yolo_models() if models is None else models)
+        if current_path is not None and any(model.path == current_path for model in self._yolo_models):
+            self._selected_yolo_model_path = current_path
+        elif self._yolo_models:
+            self._selected_yolo_model_path = self._yolo_models[0].path
+        else:
+            self._selected_yolo_model_path = None
+
+    def selected_yolo_model(self) -> MolTrackYoloModelInfo | None:
+        if self._selected_yolo_model_path is not None:
+            for model in self._yolo_models:
+                if model.path == self._selected_yolo_model_path:
+                    return model
+        return self._yolo_models[0] if self._yolo_models else None
+
+    def selected_yolo_detection_config(self) -> MolTrackYoloDetectionConfig:
+        return self._yolo_detection_config
+
+    def _request_yolo_detection_options(
+        self,
+        *,
+        title: str = "YOLO Detection Options",
+    ) -> tuple[MolTrackYoloModelInfo, MolTrackYoloDetectionConfig] | None:
+        if not self._yolo_models:
+            self.refresh_yolo_models()
+        options = YoloDetectionOptionsDialog.get_options(
+            self,
+            title=title,
+            models=self._yolo_models,
+            selected_model_path=self._selected_yolo_model_path,
+            config=self._yolo_detection_config,
+        )
+        if options is None:
+            return None
+        model, config = options
+        self._selected_yolo_model_path = model.path
+        self._yolo_detection_config = config
+        if all(existing.path != model.path for existing in self._yolo_models):
+            self._yolo_models.append(model)
+        return model, config
+
+    def detect_yolo_on_current_frame(
+        self,
+        model: MolTrackYoloModelInfo,
+        *,
+        config: MolTrackYoloDetectionConfig | None = None,
+        runtime=None,
+    ) -> tuple[MolecularDetection, ...]:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        if self._project.source_series.raw_frames is None:
+            raise ValueError("YOLO detection requires loaded source image frames.")
+        config = config or MolTrackYoloDetectionConfig()
+        runtime = runtime or YoloRuntime(config.to_nanotrack_runtime_config())
+        working_frame = self._project.working_series.get_working_frame(self._active_working_frame_index)
+        frame = self._project.source_series.get_frame(working_frame.source_frame_index)
+        runtime_detections = runtime.predict_frame(
+            frame,
+            model_path=model.path,
+            conf_threshold=config.confidence_threshold,
+            iou_threshold=config.iou_threshold,
+            device=config.device,
+        )
+        preserved_detections = [
+            detection
+            for detection in self._project.molecular_detections
+            if not (
+                detection.working_frame_index == working_frame.working_frame_index
+                and detection.backend_name == "yolo"
+                and detection.review_status == DetectionReviewStatus.CANDIDATE
+            )
+        ]
+        used_detection_ids = {detection.detection_id for detection in preserved_detections}
+        new_detections = []
+        for detection_index, runtime_detection in enumerate(runtime_detections):
+            detection_id = _unique_detection_id(
+                f"yolo-w{working_frame.working_frame_index:04d}-{detection_index:04d}",
+                used_detection_ids,
+            )
+            used_detection_ids.add(detection_id)
+            model_name = str(getattr(runtime_detection, "model_name", model.name)).strip() or model.name
+            new_detections.append(
+                MolecularDetection(
+                    detection_id=detection_id,
+                    working_frame_index=working_frame.working_frame_index,
+                    source_frame_index=working_frame.source_frame_index,
+                    bbox_xyxy=_runtime_bbox_xyxy(runtime_detection.bbox),
+                    confidence=float(runtime_detection.confidence),
+                    model_name=model_name,
+                    review_status=DetectionReviewStatus.default_for_yolo(),
+                    backend_name="yolo",
+                    run_mode="full_frame",
+                )
+            )
+        self._project = self._project.with_molecular_detections(
+            tuple(preserved_detections + new_detections)
+        )
+        self._redraw_molecular_detection_overlays()
+        return tuple(new_detections)
+
+    def detect_yolo_on_current_frame_in_region(
+        self,
+        region_name: str,
+        model: MolTrackYoloModelInfo,
+        *,
+        config: MolTrackYoloDetectionConfig | None = None,
+        runtime=None,
+    ) -> tuple[MolecularDetection, ...]:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        if self._project.source_series.raw_frames is None:
+            raise ValueError("YOLO detection requires loaded source image frames.")
+        config = config or MolTrackYoloDetectionConfig()
+        runtime = runtime or YoloRuntime(config.to_nanotrack_runtime_config())
+        working_frame = self._project.working_series.get_working_frame(self._active_working_frame_index)
+        active_region = self._project.region_for_working_frame(
+            str(region_name),
+            working_frame.working_frame_index,
+        )
+        frame = self._project.source_series.get_frame(working_frame.source_frame_index)
+        runtime_detections = runtime.predict_frame(
+            frame,
+            model_path=model.path,
+            conf_threshold=config.confidence_threshold,
+            iou_threshold=config.iou_threshold,
+            device=config.device,
+        )
+        preserved_detections = [
+            detection
+            for detection in self._project.molecular_detections
+            if not (
+                detection.working_frame_index == working_frame.working_frame_index
+                and _point_inside_analysis_region(active_region, detection.centroid_xy)
+            )
+        ]
+        used_detection_ids = {detection.detection_id for detection in preserved_detections}
+        new_detections = []
+        for detection_index, runtime_detection in enumerate(runtime_detections):
+            bbox_xyxy = _runtime_bbox_xyxy(runtime_detection.bbox)
+            if not _point_inside_analysis_region(active_region, _bbox_centroid_xy(bbox_xyxy)):
+                continue
+            detection_id = _unique_detection_id(
+                f"yolo-roi-w{working_frame.working_frame_index:04d}-{detection_index:04d}",
+                used_detection_ids,
+            )
+            used_detection_ids.add(detection_id)
+            model_name = str(getattr(runtime_detection, "model_name", model.name)).strip() or model.name
+            new_detections.append(
+                MolecularDetection(
+                    detection_id=detection_id,
+                    working_frame_index=working_frame.working_frame_index,
+                    source_frame_index=working_frame.source_frame_index,
+                    bbox_xyxy=bbox_xyxy,
+                    confidence=float(runtime_detection.confidence),
+                    model_name=model_name,
+                    review_status=DetectionReviewStatus.default_for_yolo(),
+                    backend_name="yolo",
+                    run_mode="roi_replace",
+                    region_name=active_region.name,
+                )
+            )
+        self._project = self._project.with_molecular_detections(
+            tuple(preserved_detections + new_detections)
+        )
+        self._redraw_molecular_detection_overlays()
+        return tuple(new_detections)
+
+    def detect_yolo_on_all_working_frames(
+        self,
+        model: MolTrackYoloModelInfo,
+        *,
+        config: MolTrackYoloDetectionConfig | None = None,
+        runtime=None,
+        progress_callback=None,
+        cancel_check=None,
+    ) -> dict[int, tuple[MolecularDetection, ...]]:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        if self._project.source_series.raw_frames is None:
+            raise ValueError("YOLO detection requires loaded source image frames.")
+        config = config or MolTrackYoloDetectionConfig()
+        runtime = runtime or YoloRuntime(config.to_nanotrack_runtime_config())
+        working_frames = tuple(self._project.working_series.frames)
+        total = len(working_frames)
+        detections_by_frame: dict[int, tuple[MolecularDetection, ...]] = {}
+        new_detections: list[MolecularDetection] = []
+        used_detection_ids = {detection.detection_id for detection in self._project.molecular_detections}
+
+        for completed, working_frame in enumerate(working_frames):
+            if cancel_check is not None and cancel_check():
+                break
+            frame = self._project.source_series.get_frame(working_frame.source_frame_index)
+            runtime_detections = runtime.predict_frame(
+                frame,
+                model_path=model.path,
+                conf_threshold=config.confidence_threshold,
+                iou_threshold=config.iou_threshold,
+                device=config.device,
+            )
+            frame_detections = []
+            for detection_index, runtime_detection in enumerate(runtime_detections):
+                detection_id = _unique_detection_id(
+                    f"yolo-w{working_frame.working_frame_index:04d}-{detection_index:04d}",
+                    used_detection_ids,
+                )
+                used_detection_ids.add(detection_id)
+                model_name = str(getattr(runtime_detection, "model_name", model.name)).strip() or model.name
+                frame_detections.append(
+                    MolecularDetection(
+                        detection_id=detection_id,
+                        working_frame_index=working_frame.working_frame_index,
+                        source_frame_index=working_frame.source_frame_index,
+                        bbox_xyxy=_runtime_bbox_xyxy(runtime_detection.bbox),
+                        confidence=float(runtime_detection.confidence),
+                        model_name=model_name,
+                        review_status=DetectionReviewStatus.default_for_yolo(),
+                        backend_name="yolo",
+                        run_mode="full_frame",
+                    )
+                )
+            detections_by_frame[working_frame.working_frame_index] = tuple(frame_detections)
+            new_detections.extend(frame_detections)
+            if progress_callback is not None:
+                progress_callback(completed + 1, total, working_frame.working_frame_index)
+
+        processed_frame_indices = set(detections_by_frame)
+        preserved_detections = [
+            detection
+            for detection in self._project.molecular_detections
+            if not (
+                detection.working_frame_index in processed_frame_indices
+                and detection.backend_name == "yolo"
+                and detection.review_status == DetectionReviewStatus.CANDIDATE
+            )
+        ]
+        self._project = self._project.with_molecular_detections(
+            tuple(preserved_detections + new_detections)
+        )
+        self._redraw_molecular_detection_overlays()
+        return detections_by_frame
+
+    def detect_yolo_in_region_on_working_frames(
+        self,
+        region_name: str,
+        model: MolTrackYoloModelInfo,
+        *,
+        working_frame_indices=None,
+        config: MolTrackYoloDetectionConfig | None = None,
+        runtime=None,
+        progress_callback=None,
+        cancel_check=None,
+    ) -> dict[int, tuple[MolecularDetection, ...]]:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        if self._project.source_series.raw_frames is None:
+            raise ValueError("YOLO detection requires loaded source image frames.")
+        config = config or MolTrackYoloDetectionConfig()
+        runtime = runtime or YoloRuntime(config.to_nanotrack_runtime_config())
+        region_name = str(region_name)
+        if working_frame_indices is None:
+            working_frames = tuple(self._project.working_series.frames)
+        else:
+            unique_indices = tuple(dict.fromkeys(int(index) for index in working_frame_indices))
+            working_frames = tuple(
+                self._project.working_series.get_working_frame(index)
+                for index in unique_indices
+            )
+        total = len(working_frames)
+        detections_by_frame: dict[int, tuple[MolecularDetection, ...]] = {}
+        regions_by_frame: dict[int, AnalysisRegion] = {}
+        new_detections: list[MolecularDetection] = []
+        used_detection_ids = {detection.detection_id for detection in self._project.molecular_detections}
+
+        for completed, working_frame in enumerate(working_frames):
+            if cancel_check is not None and cancel_check():
+                break
+            active_region = self._project.region_for_working_frame(
+                region_name,
+                working_frame.working_frame_index,
+            )
+            regions_by_frame[working_frame.working_frame_index] = active_region
+            frame = self._project.source_series.get_frame(working_frame.source_frame_index)
+            runtime_detections = runtime.predict_frame(
+                frame,
+                model_path=model.path,
+                conf_threshold=config.confidence_threshold,
+                iou_threshold=config.iou_threshold,
+                device=config.device,
+            )
+            frame_detections = []
+            for detection_index, runtime_detection in enumerate(runtime_detections):
+                bbox_xyxy = _runtime_bbox_xyxy(runtime_detection.bbox)
+                if not _point_inside_analysis_region(active_region, _bbox_centroid_xy(bbox_xyxy)):
+                    continue
+                detection_id = _unique_detection_id(
+                    f"yolo-roi-w{working_frame.working_frame_index:04d}-{detection_index:04d}",
+                    used_detection_ids,
+                )
+                used_detection_ids.add(detection_id)
+                model_name = str(getattr(runtime_detection, "model_name", model.name)).strip() or model.name
+                frame_detections.append(
+                    MolecularDetection(
+                        detection_id=detection_id,
+                        working_frame_index=working_frame.working_frame_index,
+                        source_frame_index=working_frame.source_frame_index,
+                        bbox_xyxy=bbox_xyxy,
+                        confidence=float(runtime_detection.confidence),
+                        model_name=model_name,
+                        review_status=DetectionReviewStatus.default_for_yolo(),
+                        backend_name="yolo",
+                        run_mode="roi_replace",
+                        region_name=active_region.name,
+                    )
+                )
+            detections_by_frame[working_frame.working_frame_index] = tuple(frame_detections)
+            new_detections.extend(frame_detections)
+            if progress_callback is not None:
+                progress_callback(completed + 1, total, working_frame.working_frame_index)
+
+        processed_frame_indices = set(detections_by_frame)
+        preserved_detections = [
+            detection
+            for detection in self._project.molecular_detections
+            if not (
+                detection.working_frame_index in processed_frame_indices
+                and _point_inside_analysis_region(
+                    regions_by_frame[detection.working_frame_index],
+                    detection.centroid_xy,
+                )
+            )
+        ]
+        self._project = self._project.with_molecular_detections(
+            tuple(preserved_detections + new_detections)
+        )
+        self._redraw_molecular_detection_overlays()
+        return detections_by_frame
 
     def apply_analysis_region_to_frames(
         self,
@@ -631,6 +1012,27 @@ class MolTrackWorkspace(QMainWindow):
         for item in self._analysis_region_items.values():
             self.viewer.remove_item(item)
         self._analysis_region_items = {}
+
+    def _draw_molecular_detection(self, detection: MolecularDetection) -> None:
+        item = self.viewer.add_polyline_nm(
+            _bbox_polyline(detection.bbox_xyxy),
+            name=detection.detection_id,
+            color=(255, 180, 0),
+            width=1.5,
+        )
+        self._molecular_detection_items.append(item)
+
+    def _clear_molecular_detection_overlays(self) -> None:
+        for item in self._molecular_detection_items:
+            self.viewer.remove_item(item)
+        self._molecular_detection_items = []
+
+    def _redraw_molecular_detection_overlays(self) -> None:
+        self._clear_molecular_detection_overlays()
+        if self._project is None:
+            return
+        for detection in self._project.molecular_detections_for_working_frame(self._active_working_frame_index):
+            self._draw_molecular_detection(detection)
 
     def _active_analysis_regions(self) -> list[AnalysisRegion]:
         if self._project is None:
@@ -886,6 +1288,179 @@ class MolTrackWorkspace(QMainWindow):
         finally:
             progress.close()
 
+    def _on_detect_yolo_current_frame(self) -> None:
+        if self._project is None:
+            QMessageBox.warning(self, "YOLO detection", "Load or import a project before running YOLO detection.")
+            return
+        options = self._request_yolo_detection_options(title="YOLO Detect Current Frame")
+        if options is None:
+            return
+        model, config = options
+        try:
+            detections = self.detect_yolo_on_current_frame(
+                model,
+                config=config,
+            )
+        except Exception as exc:
+            QMessageBox.critical(self, "YOLO detection failed", str(exc))
+            return
+        self.statusBar().showMessage(
+            f"YOLO detected {len(detections)} molecules on current frame.",
+            2500,
+        )
+
+    def _on_detect_yolo_current_frame_in_selected_roi(self) -> None:
+        if self._project is None:
+            QMessageBox.warning(self, "YOLO ROI detection", "Load or import a project before running YOLO detection.")
+            return
+        region_name = self.selected_region_name()
+        if region_name is None:
+            QMessageBox.warning(self, "YOLO ROI detection", "Select a region before running ROI detection.")
+            return
+        options = self._request_yolo_detection_options(title="YOLO Detect Current Frame in Selected ROI")
+        if options is None:
+            return
+        model, config = options
+        try:
+            detections = self.detect_yolo_on_current_frame_in_region(
+                region_name,
+                model,
+                config=config,
+            )
+        except Exception as exc:
+            QMessageBox.critical(self, "YOLO ROI detection failed", str(exc))
+            return
+        self.statusBar().showMessage(
+            f"YOLO replaced {len(detections)} molecules inside {region_name}.",
+            2500,
+        )
+
+    def _on_detect_yolo_all_working_frames(self) -> None:
+        if self._project is None:
+            QMessageBox.warning(self, "YOLO detection", "Load or import a project before running YOLO detection.")
+            return
+        options = self._request_yolo_detection_options(title="YOLO Detect All Working Frames")
+        if options is None:
+            return
+        model, config = options
+        total_frames = self._project.working_series.frame_count
+        progress = QProgressDialog("Running YOLO detection...", "Cancel", 0, total_frames, self)
+        progress.setWindowTitle("YOLO detection")
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setAutoClose(True)
+        progress.setAutoReset(True)
+        progress.setValue(0)
+
+        def on_progress(completed: int, total: int, frame_index: int) -> None:
+            progress.setMaximum(int(total))
+            progress.setLabelText(
+                f"Running YOLO detection... {int(completed)}/{int(total)} "
+                f"(working frame {int(frame_index) + 1})"
+            )
+            progress.setValue(int(completed))
+            QApplication.processEvents()
+
+        def is_canceled() -> bool:
+            QApplication.processEvents()
+            return progress.wasCanceled()
+
+        try:
+            detections_by_frame = self.detect_yolo_on_all_working_frames(
+                model,
+                config=config,
+                progress_callback=on_progress,
+                cancel_check=is_canceled,
+            )
+        except Exception as exc:
+            QMessageBox.critical(self, "YOLO detection failed", str(exc))
+            return
+        finally:
+            progress.close()
+
+        detection_count = sum(len(detections) for detections in detections_by_frame.values())
+        if len(detections_by_frame) < total_frames:
+            self.statusBar().showMessage(
+                f"YOLO detection canceled after {len(detections_by_frame)}/{total_frames} frames; "
+                f"{detection_count} molecules detected.",
+                3500,
+            )
+        else:
+            self.statusBar().showMessage(
+                f"YOLO detected {detection_count} molecules across {total_frames} working frames.",
+                3500,
+            )
+
+    def _on_detect_yolo_selected_roi_frame_range(self) -> None:
+        if self._project is None:
+            QMessageBox.warning(self, "YOLO ROI detection", "Load or import a project before running YOLO detection.")
+            return
+        region_name = self.selected_region_name()
+        if region_name is None:
+            QMessageBox.warning(self, "YOLO ROI detection", "Select a region before running ROI detection.")
+            return
+        frame_indices = AnalysisRegionFrameRangeDialog.get_working_frame_indices(
+            self,
+            self._project.working_series.frame_count,
+            self._active_working_frame_index,
+        )
+        if frame_indices is None:
+            return
+        options = self._request_yolo_detection_options(title="YOLO Detect Selected ROI on Frame Range")
+        if options is None:
+            return
+        model, config = options
+
+        progress = QProgressDialog("Running YOLO ROI detection...", "Cancel", 0, len(frame_indices), self)
+        progress.setWindowTitle("YOLO ROI detection")
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setAutoClose(True)
+        progress.setAutoReset(True)
+        progress.setValue(0)
+
+        def on_progress(completed: int, total: int, frame_index: int) -> None:
+            progress.setMaximum(int(total))
+            progress.setLabelText(
+                f"Running YOLO ROI detection... {int(completed)}/{int(total)} "
+                f"(working frame {int(frame_index) + 1})"
+            )
+            progress.setValue(int(completed))
+            QApplication.processEvents()
+
+        def is_canceled() -> bool:
+            QApplication.processEvents()
+            return progress.wasCanceled()
+
+        try:
+            detections_by_frame = self.detect_yolo_in_region_on_working_frames(
+                region_name,
+                model,
+                working_frame_indices=frame_indices,
+                config=config,
+                progress_callback=on_progress,
+                cancel_check=is_canceled,
+            )
+        except Exception as exc:
+            QMessageBox.critical(self, "YOLO ROI detection failed", str(exc))
+            return
+        finally:
+            progress.close()
+
+        detection_count = sum(len(detections) for detections in detections_by_frame.values())
+        if len(detections_by_frame) < len(frame_indices):
+            self.statusBar().showMessage(
+                f"YOLO ROI detection canceled after {len(detections_by_frame)}/{len(frame_indices)} frames; "
+                f"{detection_count} molecules detected inside {region_name}.",
+                3500,
+            )
+        else:
+            self.statusBar().showMessage(
+                f"YOLO detected {detection_count} molecules inside {region_name} "
+                f"across {len(frame_indices)} working frames.",
+                3500,
+            )
+
     def _on_show_expanded_aligned_toggled(self, checked: bool) -> None:
         self._show_expanded_aligned_view = bool(checked)
         if self._project is None:
@@ -1136,22 +1711,84 @@ class MolTrackWorkspace(QMainWindow):
 
 def _analysis_region_polyline(region: AnalysisRegion) -> np.ndarray:
     if region.rect_xyxy is not None:
-        x0, y0, x1, y1 = region.rect_xyxy
-        return np.asarray(
-            [
-                [x0, y0],
-                [x1, y0],
-                [x1, y1],
-                [x0, y1],
-                [x0, y0],
-            ],
-            dtype=np.float64,
-        )
+        return _bbox_polyline(region.rect_xyxy)
 
     vertices = np.asarray(region.polygon_xy, dtype=np.float64)
     if np.allclose(vertices[0], vertices[-1]):
         return vertices
     return np.vstack([vertices, vertices[0]])
+
+
+def _bbox_polyline(bbox_xyxy) -> np.ndarray:
+    x0, y0, x1, y1 = (float(value) for value in bbox_xyxy)
+    return np.asarray(
+        [
+            [x0, y0],
+            [x1, y0],
+            [x1, y1],
+            [x0, y1],
+            [x0, y0],
+        ],
+        dtype=np.float64,
+    )
+
+
+def _runtime_bbox_xyxy(bbox) -> tuple[float, float, float, float]:
+    if hasattr(bbox, "as_tuple"):
+        values = bbox.as_tuple()
+    elif all(hasattr(bbox, attr) for attr in ("x0", "y0", "x1", "y1")):
+        values = (bbox.x0, bbox.y0, bbox.x1, bbox.y1)
+    else:
+        values = tuple(bbox)
+    return tuple(float(value) for value in values)
+
+
+def _bbox_centroid_xy(bbox_xyxy) -> tuple[float, float]:
+    x0, y0, x1, y1 = (float(value) for value in bbox_xyxy)
+    return (x0 + x1) / 2.0, (y0 + y1) / 2.0
+
+
+def _point_inside_analysis_region(region: AnalysisRegion, point_xy) -> bool:
+    x, y = (float(value) for value in point_xy)
+    if region.rect_xyxy is not None:
+        x0, y0, x1, y1 = region.rect_xyxy
+        return x0 <= x <= x1 and y0 <= y <= y1
+    return _point_inside_polygon_xy((x, y), np.asarray(region.polygon_xy, dtype=np.float64))
+
+
+def _point_inside_polygon_xy(point_xy: tuple[float, float], polygon_xy: np.ndarray) -> bool:
+    x, y = point_xy
+    inside = False
+    previous_x, previous_y = polygon_xy[-1]
+    for current_x, current_y in polygon_xy:
+        if _point_on_segment_xy((x, y), (previous_x, previous_y), (current_x, current_y)):
+            return True
+        crosses_y = (current_y > y) != (previous_y > y)
+        if crosses_y:
+            boundary_x = (previous_x - current_x) * (y - current_y) / (previous_y - current_y) + current_x
+            if x < boundary_x:
+                inside = not inside
+        previous_x, previous_y = current_x, current_y
+    return inside
+
+
+def _point_on_segment_xy(point_xy, start_xy, end_xy, *, eps: float = 1e-9) -> bool:
+    px, py = (float(value) for value in point_xy)
+    x0, y0 = (float(value) for value in start_xy)
+    x1, y1 = (float(value) for value in end_xy)
+    cross = (px - x0) * (y1 - y0) - (py - y0) * (x1 - x0)
+    if abs(cross) > eps:
+        return False
+    return min(x0, x1) - eps <= px <= max(x0, x1) + eps and min(y0, y1) - eps <= py <= max(y0, y1) + eps
+
+
+def _unique_detection_id(base_id: str, existing_ids: set[str]) -> str:
+    if base_id not in existing_ids:
+        return base_id
+    suffix = 1
+    while f"{base_id}-{suffix}" in existing_ids:
+        suffix += 1
+    return f"{base_id}-{suffix}"
 
 
 def _translated_analysis_region(region: AnalysisRegion, offset_xy) -> AnalysisRegion:
@@ -1179,6 +1816,152 @@ def _translated_analysis_region(region: AnalysisRegion, offset_xy) -> AnalysisRe
 def _sorted_rect_xyxy(rect_xyxy) -> tuple[float, float, float, float]:
     x0, y0, x1, y1 = (float(value) for value in rect_xyxy)
     return min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1)
+
+
+def _yolo_device_combo_index(device: str) -> int:
+    normalized = str(device).strip().lower()
+    if normalized == "cpu":
+        return 1
+    if normalized in {"gpu", "cuda", "cuda:0", "0"}:
+        return 2
+    return 0
+
+
+class YoloDetectionOptionsDialog(QDialog):
+    """Dialog for choosing the YOLO checkpoint and detection thresholds."""
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        title: str = "YOLO Detection Options",
+        models: list[MolTrackYoloModelInfo] | None = None,
+        selected_model_path: Path | None = None,
+        config: MolTrackYoloDetectionConfig | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self._models: list[MolTrackYoloModelInfo] = []
+        self._selected_model_path = Path(selected_model_path).resolve() if selected_model_path is not None else None
+
+        config = config or MolTrackYoloDetectionConfig()
+        layout = QFormLayout(self)
+
+        self.model_combo = QComboBox(self)
+        self.model_combo.setObjectName("moltrack-yolo-model-combo")
+        self.model_combo.setToolTip("Choose a YOLO checkpoint discovered in nanotrack/yolo_models.")
+        layout.addRow("Model", self.model_combo)
+
+        self.confidence_spin = QDoubleSpinBox(self)
+        self.confidence_spin.setObjectName("moltrack-yolo-confidence-spin")
+        self.confidence_spin.setRange(0.0, 1.0)
+        self.confidence_spin.setSingleStep(0.05)
+        self.confidence_spin.setDecimals(2)
+        self.confidence_spin.setValue(config.confidence_threshold)
+        self.confidence_spin.setToolTip("Confidence threshold passed to YOLO detection.")
+        layout.addRow("Confidence", self.confidence_spin)
+
+        self.iou_spin = QDoubleSpinBox(self)
+        self.iou_spin.setObjectName("moltrack-yolo-iou-spin")
+        self.iou_spin.setRange(0.0, 1.0)
+        self.iou_spin.setSingleStep(0.05)
+        self.iou_spin.setDecimals(2)
+        self.iou_spin.setValue(config.iou_threshold)
+        self.iou_spin.setToolTip("NMS IoU threshold passed to YOLO detection.")
+        layout.addRow("IoU", self.iou_spin)
+
+        self.device_combo = QComboBox(self)
+        self.device_combo.setObjectName("moltrack-yolo-device-combo")
+        self.device_combo.setToolTip("Choose where YOLO inference runs.")
+        self.device_combo.addItem("Auto", "auto")
+        self.device_combo.addItem("CPU", "cpu")
+        self.device_combo.addItem("GPU", "cuda:0")
+        self.device_combo.setCurrentIndex(_yolo_device_combo_index(config.device))
+        layout.addRow("Device", self.device_combo)
+
+        self.models_label = QLabel("", self)
+        self.models_label.setWordWrap(True)
+        layout.addRow(self.models_label)
+
+        self.refresh_models_button = QPushButton("Refresh Models", self)
+        self.refresh_models_button.clicked.connect(lambda: self.refresh_models())
+        layout.addRow(self.refresh_models_button)
+
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+            self,
+        )
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        layout.addRow(self.button_box)
+
+        self.refresh_models(models)
+
+    def refresh_models(self, models: list[MolTrackYoloModelInfo] | None = None) -> None:
+        current_model = self.selected_model()
+        current_path = None if current_model is None else current_model.path
+        selected_path = current_path or self._selected_model_path
+        self._models = list(discover_moltrack_yolo_models() if models is None else models)
+        self.model_combo.clear()
+
+        selected_index = -1
+        for index, model in enumerate(self._models):
+            self.model_combo.addItem(model.display_name, model)
+            if selected_path is not None and model.path == selected_path:
+                selected_index = index
+
+        if selected_index >= 0:
+            self.model_combo.setCurrentIndex(selected_index)
+        elif self._models:
+            self.model_combo.setCurrentIndex(0)
+
+        self.model_combo.setEnabled(bool(self._models))
+        ok_button = self.button_box.button(QDialogButtonBox.StandardButton.Ok)
+        if ok_button is not None:
+            ok_button.setEnabled(bool(self._models))
+        if self._models:
+            self.models_label.setText(f"YOLO models available: {len(self._models)}")
+        else:
+            self.models_label.setText("No YOLO models found in nanotrack/yolo_models.")
+
+    def selected_model(self) -> MolTrackYoloModelInfo | None:
+        data = self.model_combo.currentData()
+        return data if isinstance(data, MolTrackYoloModelInfo) else None
+
+    def to_options(self) -> tuple[MolTrackYoloModelInfo, MolTrackYoloDetectionConfig]:
+        model = self.selected_model()
+        if model is None:
+            raise ValueError("Select a YOLO model before running detection.")
+        device = str(self.device_combo.currentData() or "auto")
+        return (
+            model,
+            MolTrackYoloDetectionConfig(
+                confidence_threshold=self.confidence_spin.value(),
+                iou_threshold=self.iou_spin.value(),
+                device=device,
+            ),
+        )
+
+    @classmethod
+    def get_options(
+        cls,
+        parent: QWidget | None = None,
+        *,
+        title: str = "YOLO Detection Options",
+        models: list[MolTrackYoloModelInfo] | None = None,
+        selected_model_path: Path | None = None,
+        config: MolTrackYoloDetectionConfig | None = None,
+    ) -> tuple[MolTrackYoloModelInfo, MolTrackYoloDetectionConfig] | None:
+        dialog = cls(
+            parent,
+            title=title,
+            models=models,
+            selected_model_path=selected_model_path,
+            config=config,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return None
+        return dialog.to_options()
 
 
 class AnalysisRegionRectDialog(QDialog):

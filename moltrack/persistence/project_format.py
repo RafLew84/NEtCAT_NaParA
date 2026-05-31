@@ -9,6 +9,7 @@ from moltrack.core import (
     CopiedAnalysisRegion,
     FrameScopedAnalysisRegion,
     MolTrackProject,
+    MolecularDetection,
     RegistrationShift,
     SourceImageSeries,
     WorkingFrame,
@@ -69,6 +70,10 @@ def build_project_manifest(project: MolTrackProject) -> dict:
                 "method": shift.method,
             }
             for shift in project.registration_shifts
+        ],
+        "molecular_detections": [
+            _molecular_detection_to_manifest(detection)
+            for detection in project.molecular_detections
         ],
     }
 
@@ -137,6 +142,10 @@ def project_from_manifest(manifest: dict) -> MolTrackProject:
         )
         for item in manifest.get("registration_shifts", ())
     )
+    molecular_detections = tuple(
+        _molecular_detection_from_manifest(item)
+        for item in manifest.get("molecular_detections", ())
+    )
     return MolTrackProject(
         source_series=source_series,
         working_series=working_series,
@@ -145,6 +154,7 @@ def project_from_manifest(manifest: dict) -> MolTrackProject:
         copied_analysis_regions=copied_analysis_regions,
         frame_scoped_analysis_regions=frame_scoped_analysis_regions,
         registration_shifts=registration_shifts,
+        molecular_detections=molecular_detections,
     )
 
 
@@ -182,3 +192,35 @@ def _analysis_region_from_manifest(payload: dict) -> AnalysisRegion:
             vertices_xy=geometry["vertices_xy"],
         )
     raise ValueError(f"Unsupported analysis region geometry type: {geometry['type']!r}")
+
+
+def _molecular_detection_to_manifest(detection: MolecularDetection) -> dict:
+    return {
+        "detection_id": detection.detection_id,
+        "working_frame_index": detection.working_frame_index,
+        "source_frame_index": detection.source_frame_index,
+        "bbox_xyxy": list(detection.bbox_xyxy),
+        "confidence": detection.confidence,
+        "model_name": detection.model_name,
+        "review_status": detection.review_status.value,
+        "backend_name": detection.backend_name,
+        "run_mode": detection.run_mode,
+        "region_name": detection.region_name,
+        "coordinate_system": detection.coordinate_system,
+    }
+
+
+def _molecular_detection_from_manifest(payload: dict) -> MolecularDetection:
+    return MolecularDetection(
+        detection_id=payload["detection_id"],
+        working_frame_index=int(payload["working_frame_index"]),
+        source_frame_index=int(payload["source_frame_index"]),
+        bbox_xyxy=tuple(payload["bbox_xyxy"]),
+        confidence=float(payload["confidence"]),
+        model_name=payload["model_name"],
+        review_status=payload["review_status"],
+        backend_name=payload["backend_name"],
+        run_mode=payload["run_mode"],
+        region_name=payload.get("region_name"),
+        coordinate_system=payload.get("coordinate_system", "native"),
+    )

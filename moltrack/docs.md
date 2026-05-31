@@ -1,8 +1,8 @@
 # MolTrack - dokumentacja aktualnego zakresu
 
-Ten dokument opisuje funkcjonalnosci dodane do `moltrack` do kroku 42 planu. Aktualny zakres obejmuje fundament aplikacji, import i przegladanie jednej serii obrazow, zapis/odczyt projektu, regiony analizy z geometriami aktywnymi na wybranych klatkach oraz opcjonalny workflow rejestracji globalnych przesuniec XY.
+Ten dokument opisuje funkcjonalnosci dodane do `moltrack`. Aktualny zakres obejmuje fundament aplikacji, import i przegladanie jednej serii obrazow, zapis/odczyt projektu, regiony analizy z geometriami aktywnymi na wybranych klatkach, opcjonalny workflow rejestracji globalnych przesuniec XY, detekcje YOLO na aktywnej klatce, batch YOLO po working frames, detekcje YOLO w wybranym ROI oraz zapis detekcji do `.moltrack`.
 
-Funkcje detekcji YOLO, review bboxow, metryki, maski i pelny tracking sa nadal etapami planowanymi.
+Review bboxow, metryki, maski i pelny tracking sa nadal etapami planowanymi.
 
 ## Uruchamianie
 
@@ -723,12 +723,101 @@ Warunki:
 - `dx` i `dy` musza byc skonczone,
 - brak shiftu oznacza, ze rejestracja dla tej klatki nie zostala jeszcze wyznaczona.
 
+## YOLO detect current frame
+
+Menu:
+
+```text
+YOLO -> Detect Current Frame
+YOLO -> Detect Current Frame in Selected ROI
+YOLO -> Detect All Working Frames
+YOLO -> Detect Selected ROI on Frame Range...
+```
+
+Po wybraniu dowolnej akcji `Detect...` otwierany jest dialog `YOLO Detection Options`.
+Dialog pozwala wybrac checkpoint i parametry wykrywania, a detekcja startuje dopiero po `OK`:
+
+```text
+nanotrack/yolo_models
+```
+
+Opcje:
+
+- lista modeli pokazuje checkpointy znalezione w `nanotrack/yolo_models`,
+- `Refresh Models` ponownie skanuje katalog checkpointow,
+- `Conf` ustawia prog confidence przekazywany do YOLO,
+- `IoU` ustawia prog NMS IoU przekazywany do YOLO,
+- `Device` jest lista `Auto`, `CPU`, `GPU`; `GPU` przekazuje do runtime `cuda:0`.
+
+Wszystkie akcje z menu `YOLO` uzywaja modelu i parametrow zaakceptowanych w dialogu.
+Ostatnio zaakceptowany model i parametry sa pamietane jako domyslne wartosci kolejnego dialogu.
+
+Kontrakt:
+
+- runtime jest zgodny z `nanotrack.yolo.YoloRuntime.predict_frame(...)`,
+- wejscie do runtime to natywna aktywna klatka z `SourceImageSeries`,
+- bboxy sa zapisywane jako `MolecularDetection` w native coordinates,
+- domyslny status detekcji YOLO to `candidate`,
+- `backend_name = "yolo"`,
+- `run_mode = "full_frame"`,
+- pelnoklatkowy run usuwa tylko poprzednie detekcje `yolo/candidate` z aktywnej klatki,
+- detekcje `accepted`, `manual` oraz inne nie-kandydackie zostaja zachowane,
+- viewer rysuje bboxy jako zolte prostokatne overlaye.
+
+Tryb `Detect Current Frame in Selected ROI`:
+
+- wymaga zaznaczenia regionu na liscie regionow,
+- obsluguje regiony `rect` i `polygon`,
+- uzywa aktywnej geometrii regionu dla biezacej klatki, w tym geometrii frame-scoped,
+- nadal przekazuje do runtime cala natywna klatke, bez cropowania,
+- filtruje wynik po centroidzie bboxa w ROI,
+- zapisuje nowe bboxy w pelnych native coordinates calej klatki,
+- nie przycina bboxow do granicy ROI,
+- usuwa/podmienia tylko istniejace detekcje na aktywnej klatce, ktorych centroid lezy w ROI,
+- zostawia bez zmian detekcje poza ROI oraz detekcje na innych klatkach,
+- zapisuje `run_mode = "roi_replace"` i `region_name` wskazujacy uzyty region.
+
+Tryb `Detect All Working Frames`:
+
+- iteruje po `WorkingImageSeries.frames`, dlatego klatki usuniete z serii roboczej nie sa przetwarzane,
+- dla kazdej klatki przekazuje do runtime natywna klatke z odpowiadajacym `source_frame_index`,
+- zapisuje wyniki jako `MolecularDetection` z `run_mode = "full_frame"`,
+- wynik metody aplikacyjnej jest slownikiem `working_frame_index -> tuple[MolecularDetection, ...]`,
+- dla przetworzonych klatek podmienia poprzednie detekcje `yolo/candidate`,
+- zachowuje detekcje zaakceptowane/manualne oraz detekcje z klatek, ktore nie zostaly przetworzone,
+- UI pokazuje dialog postepu i pozwala przerwac batch; po przerwaniu w projekcie zostaja wyniki juz ukonczonych klatek.
+
+Tryb `Detect Selected ROI on Frame Range...`:
+
+- wymaga zaznaczenia regionu na liscie regionow,
+- pyta o zakres working frame przez dialog start/end,
+- dla kazdej przetwarzanej klatki pobiera aktywna geometrie przez `project.region_for_working_frame(region_name, working_frame_index)`,
+- dzieki temu obsluguje regiony frame-scoped po rejestracji i trybie `Fixed expanded canvas`,
+- runtime nadal dostaje cala natywna klatke,
+- nowe bboxy sa filtrowane po centroidzie wewnatrz aktywnego ROI danej klatki,
+- bboxy pozostaja w pelnych native coordinates calej klatki,
+- dla kazdej przetworzonej klatki podmieniane sa tylko istniejace detekcje, ktorych centroid lezy w aktywnym ROI tej klatki,
+- detekcje poza ROI i detekcje na nieprzetworzonych klatkach zostaja zachowane,
+- UI pokazuje dialog postepu z Cancel; po przerwaniu zapisane sa wyniki juz ukonczonych klatek.
+
+Detekcje sa trzymane w `MolTrackProject.molecular_detections` i zapisywane w manifestcie `.moltrack` jako `molecular_detections`.
+Round-trip zachowuje:
+
+- `detection_id`,
+- `working_frame_index` i `source_frame_index`,
+- `bbox_xyxy`,
+- `confidence`,
+- `model_name`,
+- `review_status`,
+- `backend_name`,
+- `run_mode`,
+- `region_name`,
+- `coordinate_system`.
+
 ## Aktualne ograniczenia
 
 Na tym etapie nie ma jeszcze:
 
-- detekcji molekul YOLO,
-- statusow detekcji,
 - listy i review detekcji,
 - recznej edycji bboxow,
 - metryk populacyjnych,
