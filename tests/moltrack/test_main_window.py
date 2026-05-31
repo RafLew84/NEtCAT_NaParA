@@ -116,6 +116,8 @@ class MolTrackMainWindowTests(unittest.TestCase):
         )
         self.assertEqual(self.window.region_list.objectName(), "moltrack-region-list")
         self.assertEqual(self.window.region_list.count(), 0)
+        self.assertEqual(self.window.expanded_region_mode_combo.itemData(0), "fixed_canvas")
+        self.assertEqual(self.window.expanded_region_mode_combo.itemData(1), "move_with_image")
 
     def test_registration_menu_exposes_run_registration_action(self) -> None:
         registration_menu = None
@@ -557,6 +559,191 @@ class MolTrackMainWindowTests(unittest.TestCase):
             ),
         )
         self.assertEqual(region.rect_xyxy, (1.0, 2.0, 5.0, 7.0))
+
+    def test_commit_drawn_region_in_fixed_expanded_mode_stays_fixed_when_changing_frames(self) -> None:
+        from moltrack.core import RegistrationShift
+        from nanotrack.core import STMSequenceMetadata
+        from nanotrack.registration import ExpandedAlignedStack
+
+        project, _frames = _project_with_frames()
+        project = project.with_registration_shifts(
+            (
+                RegistrationShift(working_frame_index=0, dx=0.0, dy=0.0, method="identity"),
+                RegistrationShift(working_frame_index=1, dx=3.0, dy=-2.0, method="manual"),
+                RegistrationShift(working_frame_index=2, dx=7.0, dy=1.0, method="manual"),
+            )
+        )
+        expanded = ExpandedAlignedStack(
+            frames=np.ones((3, 8, 12), dtype=np.float32),
+            canvas_offset_xy=(0.0, 2.0),
+            padding_ltrb=(0, 2, 7, 1),
+            frame_origins_xy=np.asarray([[0.0, 2.0], [3.0, 0.0], [7.0, 3.0]], dtype=np.float64),
+            metadata=STMSequenceMetadata(pixels_x=12, pixels_y=8),
+        )
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        with patch("moltrack.ui.main_window.expanded_registered_working_stack", return_value=expanded):
+            self.window.show_expanded_aligned_action.setChecked(True)
+            self.window.start_rect_region_roi((10.0, 20.0, 14.0, 25.0))
+            with (
+                patch(
+                    "moltrack.ui.main_window.AnalysisRegionMetadataDialog.get_metadata",
+                    return_value=("terrace", "Aligned Terrace", (20, 120, 240)),
+                ),
+                patch.object(self.window.viewer, "add_polyline_nm", return_value=object()) as add_mock,
+            ):
+                self.window.commit_drawn_region_action.trigger()
+
+        region = self.window.analysis_regions()[0]
+        self.assertEqual(region.rect_xyxy, (7.0, 20.0, 11.0, 25.0))
+        self.assertEqual(len(self.window.current_project().frame_scoped_analysis_regions), 3)
+        self.assertEqual(
+            self.window.current_project().region_for_working_frame("Aligned Terrace", 0).rect_xyxy,
+            (10.0, 18.0, 14.0, 23.0),
+        )
+        self.assertEqual(
+            self.window.current_project().region_for_working_frame("Aligned Terrace", 1).rect_xyxy,
+            (7.0, 20.0, 11.0, 25.0),
+        )
+        self.assertEqual(
+            self.window.current_project().region_for_working_frame("Aligned Terrace", 2).rect_xyxy,
+            (3.0, 17.0, 7.0, 22.0),
+        )
+        pts = add_mock.call_args.args[0]
+        np.testing.assert_allclose(
+            pts,
+            np.asarray(
+                [
+                    [10.0, 20.0],
+                    [14.0, 20.0],
+                    [14.0, 25.0],
+                    [10.0, 25.0],
+                    [10.0, 20.0],
+                ],
+                dtype=np.float64,
+            ),
+        )
+        for frame_index in range(3):
+            self.window.set_active_working_frame_index(frame_index)
+            region = self.window.current_project().region_for_working_frame("Aligned Terrace", frame_index)
+            display_rect = self.window._region_to_expanded_canvas(region, frame_index).rect_xyxy
+            self.assertEqual(display_rect, (10.0, 20.0, 14.0, 25.0))
+
+    def test_copy_region_to_series_in_expanded_aligned_view_keeps_region_fixed_on_canvas(self) -> None:
+        from moltrack.core import AnalysisRegion, RegistrationShift
+        from nanotrack.core import STMSequenceMetadata
+        from nanotrack.registration import ExpandedAlignedStack
+
+        project, _frames = _project_with_frames()
+        project = project.with_registration_shifts(
+            (
+                RegistrationShift(working_frame_index=0, dx=0.0, dy=0.0, method="identity"),
+                RegistrationShift(working_frame_index=1, dx=3.0, dy=-2.0, method="manual"),
+                RegistrationShift(working_frame_index=2, dx=7.0, dy=1.0, method="manual"),
+            )
+        )
+        expanded = ExpandedAlignedStack(
+            frames=np.ones((3, 8, 12), dtype=np.float32),
+            canvas_offset_xy=(0.0, 2.0),
+            padding_ltrb=(0, 2, 7, 1),
+            frame_origins_xy=np.asarray([[0.0, 2.0], [3.0, 0.0], [7.0, 3.0]], dtype=np.float64),
+            metadata=STMSequenceMetadata(pixels_x=12, pixels_y=8),
+        )
+        active_native_region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Aligned Terrace",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(7.0, 20.0, 11.0, 25.0),
+        )
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        with (
+            patch("moltrack.ui.main_window.expanded_registered_working_stack", return_value=expanded),
+            patch.object(self.window.viewer, "add_polyline_nm", return_value=object()),
+        ):
+            self.window.show_expanded_aligned_action.setChecked(True)
+            self.window.add_analysis_region(active_native_region)
+            self.window.select_analysis_region("Aligned Terrace")
+            copied = self.window.copy_analysis_region_to_series("Aligned Terrace")
+
+        self.assertIsNone(copied)
+        self.assertEqual(self.window.copied_analysis_regions(), [])
+        self.assertEqual(len(self.window.current_project().frame_scoped_analysis_regions), 3)
+        self.assertEqual(
+            self.window.current_project().region_for_working_frame("Aligned Terrace", 0).rect_xyxy,
+            (10.0, 18.0, 14.0, 23.0),
+        )
+        self.assertEqual(
+            self.window.current_project().region_for_working_frame("Aligned Terrace", 1).rect_xyxy,
+            (7.0, 20.0, 11.0, 25.0),
+        )
+        self.assertEqual(
+            self.window.current_project().region_for_working_frame("Aligned Terrace", 2).rect_xyxy,
+            (3.0, 17.0, 7.0, 22.0),
+        )
+        for frame_index in range(3):
+            region = self.window.current_project().region_for_working_frame("Aligned Terrace", frame_index)
+            display_rect = self.window._region_to_expanded_canvas(region, frame_index).rect_xyxy
+            self.assertEqual(display_rect, (10.0, 20.0, 14.0, 25.0))
+
+    def test_copy_region_to_series_in_move_with_image_mode_reuses_native_geometry(self) -> None:
+        from moltrack.core import AnalysisRegion, RegistrationShift
+        from nanotrack.core import STMSequenceMetadata
+        from nanotrack.registration import ExpandedAlignedStack
+
+        project, _frames = _project_with_frames()
+        project = project.with_registration_shifts(
+            (
+                RegistrationShift(working_frame_index=0, dx=0.0, dy=0.0, method="identity"),
+                RegistrationShift(working_frame_index=1, dx=3.0, dy=-2.0, method="manual"),
+                RegistrationShift(working_frame_index=2, dx=7.0, dy=1.0, method="manual"),
+            )
+        )
+        expanded = ExpandedAlignedStack(
+            frames=np.ones((3, 8, 12), dtype=np.float32),
+            canvas_offset_xy=(0.0, 2.0),
+            padding_ltrb=(0, 2, 7, 1),
+            frame_origins_xy=np.asarray([[0.0, 2.0], [3.0, 0.0], [7.0, 3.0]], dtype=np.float64),
+            metadata=STMSequenceMetadata(pixels_x=12, pixels_y=8),
+        )
+        active_native_region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Moving Terrace",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(7.0, 20.0, 11.0, 25.0),
+        )
+
+        self.window.set_project(project)
+        mode_index = self.window.expanded_region_mode_combo.findData("move_with_image")
+        self.assertGreaterEqual(mode_index, 0)
+        self.window.expanded_region_mode_combo.setCurrentIndex(mode_index)
+        self.window.set_active_working_frame_index(1)
+        with (
+            patch("moltrack.ui.main_window.expanded_registered_working_stack", return_value=expanded),
+            patch.object(self.window.viewer, "add_polyline_nm", return_value=object()),
+        ):
+            self.window.show_expanded_aligned_action.setChecked(True)
+            self.window.add_analysis_region(active_native_region)
+            self.window.select_analysis_region("Moving Terrace")
+            copied = self.window.copy_analysis_region_to_series("Moving Terrace")
+
+        self.assertIsNotNone(copied)
+        self.assertEqual(copied.working_frame_indices, (0, 1, 2))
+        self.assertEqual(self.window.frame_scoped_analysis_regions(), [])
+        self.assertEqual(
+            self.window.current_project().region_for_working_frame("Moving Terrace", 0).rect_xyxy,
+            (7.0, 20.0, 11.0, 25.0),
+        )
+        self.assertEqual(
+            self.window.current_project().region_for_working_frame("Moving Terrace", 2).rect_xyxy,
+            (7.0, 20.0, 11.0, 25.0),
+        )
+        display_rect_0 = self.window._region_to_expanded_canvas(active_native_region, 0).rect_xyxy
+        display_rect_2 = self.window._region_to_expanded_canvas(active_native_region, 2).rect_xyxy
+        self.assertEqual(display_rect_0, (7.0, 22.0, 11.0, 27.0))
+        self.assertEqual(display_rect_2, (14.0, 23.0, 18.0, 28.0))
 
     def test_apply_selected_region_to_current_frame_creates_frame_scope(self) -> None:
         from moltrack.core import AnalysisRegion

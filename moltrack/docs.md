@@ -505,6 +505,17 @@ To jest checkowalna opcja UI. Po wlaczeniu:
 - regiony nadal sa przechowywane w native coordinates,
 - overlaye regionow sa rysowane jako derived geometry przesunieta o `frame_origin_xy` aktywnej klatki w expanded canvas.
 
+Dodawanie i kopiowanie regionow w expanded aligned view:
+
+- ROI/prostokaty/polyline rysowane w expanded view sa traktowane jako wspolrzedne expanded canvasu,
+- przy zapisie do projektu nowo rysowana geometria jest konwertowana do native coordinates aktywnej klatki przez odjecie jej `frame_origin_xy`,
+- w prawym panelu `Regions` dostepny jest selector `Expanded region mode`, ktory kontroluje kopiowanie i aplikowanie regionow przy wlaczonym `Show Expanded Aligned`.
+
+Tryby `Expanded region mode`:
+
+- `Fixed expanded canvas` - nowy ROI/poly oraz `Add Rect Region...` od razu tworza frame-scoped geometrie dla calej serii. `Copy Selected to Series`, `Copy Selected from Current to End`, `Copy Selected to Frame Range...` oraz `Apply Selected to Current Frame` tez tworza frame-scoped geometrie przeliczone osobno dla kazdej klatki. Wizualnie region pozostaje w tym samym miejscu expanded canvasu, a obrazy przesuwaja sie pod nim zgodnie z rejestracja.
+- `Move with image` - region jest kopiowany/aplikowany jako ta sama native geometry. W expanded view overlay dostaje `frame_origin_xy`, wiec przesuwa sie razem z obrazem.
+
 Wylaczenie opcji wraca do natywnego obrazu bez zmiany danych projektu.
 
 Ograniczenia:

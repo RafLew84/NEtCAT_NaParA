@@ -41,6 +41,10 @@ from moltrack.registration import expanded_registered_working_stack, run_project
 from napara.gui.widgets.viewer_widget import ViewerWidget
 
 
+EXPANDED_REGION_MODE_FIXED_CANVAS = "fixed_canvas"
+EXPANDED_REGION_MODE_MOVE_WITH_IMAGE = "move_with_image"
+
+
 class MolTrackWorkspace(QMainWindow):
     """Top-level MolTrack workspace window."""
 
@@ -190,6 +194,15 @@ class MolTrackWorkspace(QMainWindow):
         panel = QWidget(parent)
         layout = QVBoxLayout(panel)
         layout.addWidget(QLabel("Regions", panel))
+
+        layout.addWidget(QLabel("Expanded region mode", panel))
+        self.expanded_region_mode_combo = QComboBox(panel)
+        self.expanded_region_mode_combo.addItem("Fixed expanded canvas", EXPANDED_REGION_MODE_FIXED_CANVAS)
+        self.expanded_region_mode_combo.addItem("Move with image", EXPANDED_REGION_MODE_MOVE_WITH_IMAGE)
+        self.expanded_region_mode_combo.setToolTip(
+            "Controls how region copy/apply behaves while Show Expanded Aligned is enabled."
+        )
+        layout.addWidget(self.expanded_region_mode_combo)
 
         self.region_list = QListWidget(panel)
         self.region_list.setObjectName("moltrack-region-list")
@@ -370,12 +383,16 @@ class MolTrackWorkspace(QMainWindow):
     def analysis_regions(self) -> list[AnalysisRegion]:
         return list(self._analysis_regions.values())
 
-    def copy_analysis_region_to_series(self, region_name: str) -> CopiedAnalysisRegion:
+    def copy_analysis_region_to_series(self, region_name: str) -> CopiedAnalysisRegion | None:
         if self._project is None:
             raise ValueError("No MolTrack project is loaded.")
         region_name = str(region_name)
         if region_name not in self._analysis_regions:
             raise KeyError(f"Unknown analysis region: {region_name}")
+        if self._expanded_region_mode_is_fixed_canvas():
+            frame_indices = tuple(frame.working_frame_index for frame in self._project.working_series.frames)
+            self._copy_active_expanded_canvas_region_to_frames(region_name, frame_indices)
+            return None
         copied_region = CopiedAnalysisRegion.from_working_series(
             self._analysis_regions[region_name],
             self._project.working_series,
@@ -428,6 +445,59 @@ class MolTrackWorkspace(QMainWindow):
         self._redraw_analysis_region_overlays()
         self._warn_if_terrace_regions_overlap()
         return scoped_region
+
+    def _copy_active_expanded_canvas_region_to_frames(
+        self,
+        region_name: str,
+        working_frame_indices,
+    ) -> tuple[FrameScopedAnalysisRegion, ...]:
+        active_region = self._active_analysis_region_by_name(region_name)
+        display_region = self._region_to_expanded_canvas(active_region, self._active_working_frame_index)
+        return self._apply_expanded_canvas_region_to_frames(display_region, working_frame_indices)
+
+    def _apply_expanded_canvas_region_to_frames(
+        self,
+        expanded_canvas_region: AnalysisRegion,
+        working_frame_indices,
+    ) -> tuple[FrameScopedAnalysisRegion, ...]:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        frame_indices = tuple(int(index) for index in working_frame_indices)
+        if not frame_indices:
+            raise ValueError("working_frame_indices must contain at least one frame.")
+        for frame_index in frame_indices:
+            self._project.working_series.get_working_frame(frame_index)
+        region_name = expanded_canvas_region.name
+        if region_name not in self._analysis_regions:
+            active_native_region = self._region_from_expanded_canvas(
+                expanded_canvas_region,
+                self._active_working_frame_index,
+            )
+            self._analysis_regions[region_name] = active_native_region
+
+        new_index_set = set(frame_indices)
+        self._copied_analysis_regions.pop(region_name, None)
+        self._frame_scoped_analysis_regions = [
+            existing
+            for existing in self._frame_scoped_analysis_regions
+            if existing.region.name != region_name or set(existing.working_frame_indices).isdisjoint(new_index_set)
+        ]
+        scoped_regions = tuple(
+            FrameScopedAnalysisRegion(
+                region=self._region_from_expanded_canvas(expanded_canvas_region, frame_index),
+                working_frame_indices=(frame_index,),
+            )
+            for frame_index in frame_indices
+        )
+        self._frame_scoped_analysis_regions.extend(scoped_regions)
+        self._frame_scoped_analysis_regions.sort(
+            key=lambda item: (item.region.name, item.working_frame_indices[0])
+        )
+        self._sync_project_analysis_regions()
+        self._refresh_region_list(region_name)
+        self._redraw_analysis_region_overlays()
+        self._warn_if_terrace_regions_overlap()
+        return scoped_regions
 
     def region_overlay_count(self) -> int:
         return len(self._analysis_region_items)
@@ -518,6 +588,39 @@ class MolTrackWorkspace(QMainWindow):
             return polyline
         origin_xy = expanded.frame_origins_xy[self._active_working_frame_index]
         return polyline + np.asarray(origin_xy, dtype=np.float64)
+
+    def _active_analysis_region_by_name(self, region_name: str) -> AnalysisRegion:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        return self._project.region_for_working_frame(str(region_name), self._active_working_frame_index)
+
+    def _region_from_current_view_to_native(self, region: AnalysisRegion) -> AnalysisRegion:
+        if not self._show_expanded_aligned_view:
+            return region
+        return self._region_from_expanded_canvas(region, self._active_working_frame_index)
+
+    def _region_from_expanded_canvas(
+        self,
+        region: AnalysisRegion,
+        working_frame_index: int,
+    ) -> AnalysisRegion:
+        origin = self._expanded_frame_origin_xy(working_frame_index)
+        return _translated_analysis_region(region, -origin)
+
+    def _region_to_expanded_canvas(
+        self,
+        region: AnalysisRegion,
+        working_frame_index: int,
+    ) -> AnalysisRegion:
+        origin = self._expanded_frame_origin_xy(working_frame_index)
+        return _translated_analysis_region(region, origin)
+
+    def _expanded_frame_origin_xy(self, working_frame_index: int) -> np.ndarray:
+        expanded = self._ensure_expanded_aligned_stack()
+        frame_index = int(working_frame_index)
+        if not 0 <= frame_index < expanded.frame_origins_xy.shape[0]:
+            raise IndexError("working_frame_index is out of range for expanded aligned stack.")
+        return np.asarray(expanded.frame_origins_xy[frame_index], dtype=np.float64)
 
     def _remove_analysis_region_overlay(self, region_name: str) -> None:
         item = self._analysis_region_items.pop(region_name, None)
@@ -622,7 +725,10 @@ class MolTrackWorkspace(QMainWindow):
         if region is None:
             return
         try:
-            self.add_analysis_region(region)
+            if self._expanded_region_mode_is_fixed_canvas():
+                self._apply_expanded_canvas_region_to_frames(region, self._all_working_frame_indices())
+            else:
+                self.add_analysis_region(self._region_from_current_view_to_native(region))
         except Exception as exc:
             QMessageBox.critical(self, "Add region failed", str(exc))
 
@@ -676,13 +782,19 @@ class MolTrackWorkspace(QMainWindow):
                 )
                 if frame_indices is None:
                     return
-                self.apply_analysis_region_to_frames(
-                    region.name,
-                    frame_indices,
-                    region=region,
-                )
+                if self._expanded_region_mode_is_fixed_canvas():
+                    self._apply_expanded_canvas_region_to_frames(region, frame_indices)
+                else:
+                    self.apply_analysis_region_to_frames(
+                        region.name,
+                        frame_indices,
+                        region=self._region_from_current_view_to_native(region),
+                    )
             else:
-                self.add_analysis_region(region)
+                if self._expanded_region_mode_is_fixed_canvas():
+                    self._apply_expanded_canvas_region_to_frames(region, self._all_working_frame_indices())
+                else:
+                    self.add_analysis_region(self._region_from_current_view_to_native(region))
             self.clear_drawn_region_roi()
         except Exception as exc:
             QMessageBox.critical(self, "Commit region failed", str(exc))
@@ -790,7 +902,10 @@ class MolTrackWorkspace(QMainWindow):
             QMessageBox.warning(self, "Apply region", "Select a region to apply to the current frame.")
             return
         try:
-            self.apply_analysis_region_to_frames(region_name, (self._active_working_frame_index,))
+            if self._expanded_region_mode_is_fixed_canvas():
+                self._copy_active_expanded_canvas_region_to_frames(region_name, (self._active_working_frame_index,))
+            else:
+                self.apply_analysis_region_to_frames(region_name, (self._active_working_frame_index,))
         except Exception as exc:
             QMessageBox.critical(self, "Apply region failed", str(exc))
 
@@ -806,7 +921,10 @@ class MolTrackWorkspace(QMainWindow):
             frame_indices = tuple(
                 range(self._active_working_frame_index, self._project.working_series.frame_count)
             )
-            self.apply_analysis_region_to_frames(region_name, frame_indices)
+            if self._expanded_region_mode_is_fixed_canvas():
+                self._copy_active_expanded_canvas_region_to_frames(region_name, frame_indices)
+            else:
+                self.apply_analysis_region_to_frames(region_name, frame_indices)
         except Exception as exc:
             QMessageBox.critical(self, "Copy region failed", str(exc))
 
@@ -826,7 +944,10 @@ class MolTrackWorkspace(QMainWindow):
             )
             if frame_indices is None:
                 return
-            self.apply_analysis_region_to_frames(region_name, frame_indices)
+            if self._expanded_region_mode_is_fixed_canvas():
+                self._copy_active_expanded_canvas_region_to_frames(region_name, frame_indices)
+            else:
+                self.apply_analysis_region_to_frames(region_name, frame_indices)
         except Exception as exc:
             QMessageBox.critical(self, "Copy region failed", str(exc))
 
@@ -885,6 +1006,26 @@ class MolTrackWorkspace(QMainWindow):
     def _selected_registration_backend_label(self) -> str:
         current_text = self.registration_backend_combo.currentText().strip()
         return current_text or "Phase"
+
+    def _selected_expanded_region_mode(self) -> str:
+        combo = getattr(self, "expanded_region_mode_combo", None)
+        if combo is None:
+            return EXPANDED_REGION_MODE_FIXED_CANVAS
+        current_data = combo.currentData()
+        if current_data in {EXPANDED_REGION_MODE_FIXED_CANVAS, EXPANDED_REGION_MODE_MOVE_WITH_IMAGE}:
+            return str(current_data)
+        return EXPANDED_REGION_MODE_FIXED_CANVAS
+
+    def _expanded_region_mode_is_fixed_canvas(self) -> bool:
+        return (
+            self._show_expanded_aligned_view
+            and self._selected_expanded_region_mode() == EXPANDED_REGION_MODE_FIXED_CANVAS
+        )
+
+    def _all_working_frame_indices(self) -> tuple[int, ...]:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        return tuple(frame.working_frame_index for frame in self._project.working_series.frames)
 
     def _clear_expanded_aligned_cache(self) -> None:
         self._expanded_aligned_stack = None
@@ -1011,6 +1152,28 @@ def _analysis_region_polyline(region: AnalysisRegion) -> np.ndarray:
     if np.allclose(vertices[0], vertices[-1]):
         return vertices
     return np.vstack([vertices, vertices[0]])
+
+
+def _translated_analysis_region(region: AnalysisRegion, offset_xy) -> AnalysisRegion:
+    offset = np.asarray(offset_xy, dtype=np.float64)
+    if offset.shape != (2,) or not np.all(np.isfinite(offset)):
+        raise ValueError("offset_xy must contain two finite values.")
+    dx, dy = float(offset[0]), float(offset[1])
+    if region.rect_xyxy is not None:
+        x0, y0, x1, y1 = region.rect_xyxy
+        return AnalysisRegion.rectangle(
+            kind=region.kind,
+            name=region.name,
+            color_rgb=region.color_rgb,
+            rect_xyxy=(x0 + dx, y0 + dy, x1 + dx, y1 + dy),
+        )
+    vertices = np.asarray(region.polygon_xy, dtype=np.float64) + offset
+    return AnalysisRegion.polygon(
+        kind=region.kind,
+        name=region.name,
+        color_rgb=region.color_rgb,
+        vertices_xy=vertices,
+    )
 
 
 def _sorted_rect_xyxy(rect_xyxy) -> tuple[float, float, float, float]:
