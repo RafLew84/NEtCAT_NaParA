@@ -203,3 +203,8 @@ nanotrack/yolo_models/yolo11x_v3.0.pt
 plan_nanotrack_mask_trackers.md
 fix_track.md
 nanotrack.zip
+nanotrack/notes/
+CONTEXT-MAP.md
+docs/adr/0001-moltrack-ml-backends-run-out-of-process.md
+docs/adr/0002-moltrack-uses-own-project-format.md
+plan_moltrack.md
