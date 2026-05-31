@@ -10,9 +10,10 @@ import numpy as np
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
-    from PyQt6.QtWidgets import QApplication
+    from PyQt6.QtWidgets import QApplication, QDialog
 except ImportError:  # pragma: no cover - optional outside the target GUI env
     QApplication = None
+    QDialog = None
 
 
 def _project_with_frames():
@@ -89,6 +90,380 @@ class MolTrackMainWindowTests(unittest.TestCase):
         )
         self.assertTrue(file_menu.actions()[1].isCheckable())
 
+    def test_regions_menu_and_panel_expose_region_actions(self) -> None:
+        regions_menu = None
+        for action in self.window.menuBar().actions():
+            if action.text() == "Regions":
+                regions_menu = action.menu()
+                break
+
+        self.assertIsNotNone(regions_menu)
+        self.assertEqual(
+            [action.text() for action in regions_menu.actions()],
+            [
+                "Add Rect Region...",
+                "Draw Rect ROI",
+                "Draw Polyline Region",
+                "Commit Drawn Region...",
+                "Clear Drawn Region",
+                "Apply Selected to Current Frame",
+                "Copy Selected from Current to End",
+                "Copy Selected to Frame Range...",
+                "Edit Selected Region...",
+                "Delete Selected Region",
+                "Copy Selected to Series",
+            ],
+        )
+        self.assertEqual(self.window.region_list.objectName(), "moltrack-region-list")
+        self.assertEqual(self.window.region_list.count(), 0)
+
+    def test_add_rect_region_action_adds_dialog_region_to_project_and_list(self) -> None:
+        from moltrack.core import AnalysisRegion
+
+        project, _frames = _project_with_frames()
+        region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(1.0, 2.0, 5.0, 7.0),
+        )
+
+        self.window.set_project(project)
+        with (
+            patch("moltrack.ui.main_window.AnalysisRegionRectDialog.get_region", return_value=region) as dialog_mock,
+            patch.object(self.window.viewer, "add_polyline_nm", return_value=object()) as add_mock,
+        ):
+            self.window.add_rect_region_action.trigger()
+
+        dialog_mock.assert_called_once()
+        self.assertEqual(self.window.analysis_regions(), [region])
+        self.assertEqual(self.window.current_project().analysis_regions, (region,))
+        self.assertEqual(self.window.region_list.count(), 1)
+        self.assertEqual(self.window.region_list.item(0).text(), "Terrace A")
+        add_mock.assert_called_once()
+
+    def test_rect_region_dialog_builds_region_from_form_values(self) -> None:
+        from moltrack.ui.main_window import AnalysisRegionRectDialog
+
+        dialog = AnalysisRegionRectDialog(self.window)
+        self.addCleanup(dialog.deleteLater)
+        dialog.kind_combo.setCurrentIndex(dialog.kind_combo.findData("ignore"))
+        dialog.name_edit.setText("Ignore edge")
+        dialog.red_spin.setValue(240)
+        dialog.green_spin.setValue(40)
+        dialog.blue_spin.setValue(20)
+        dialog.x0_spin.setValue(1.0)
+        dialog.y0_spin.setValue(2.0)
+        dialog.x1_spin.setValue(5.0)
+        dialog.y1_spin.setValue(7.0)
+
+        region = dialog.to_region()
+
+        self.assertEqual(region.kind.value, "ignore")
+        self.assertEqual(region.name, "Ignore edge")
+        self.assertEqual(region.color_rgb, (240, 40, 20))
+        self.assertEqual(region.rect_xyxy, (1.0, 2.0, 5.0, 7.0))
+
+    def test_rect_region_dialog_rejects_invalid_geometry_without_traceback(self) -> None:
+        from moltrack.ui.main_window import AnalysisRegionRectDialog
+
+        dialog = AnalysisRegionRectDialog(self.window)
+        self.addCleanup(dialog.deleteLater)
+        dialog.name_edit.setText("Bad rect")
+        dialog.x0_spin.setValue(5.0)
+        dialog.y0_spin.setValue(2.0)
+        dialog.x1_spin.setValue(1.0)
+        dialog.y1_spin.setValue(7.0)
+
+        with patch("moltrack.ui.main_window.QMessageBox.warning") as warning_mock:
+            dialog.accept()
+
+        warning_mock.assert_called_once()
+        self.assertNotEqual(dialog.result(), QDialog.DialogCode.Accepted)
+
+    def test_draw_rect_roi_commit_action_adds_region_from_viewer_roi(self) -> None:
+        project, _frames = _project_with_frames()
+
+        self.window.set_project(project)
+        self.window.start_rect_region_roi((1.0, 2.0, 5.0, 7.0))
+        with (
+            patch(
+                "moltrack.ui.main_window.AnalysisRegionMetadataDialog.get_metadata",
+                return_value=("terrace", "ROI Terrace", (20, 120, 240)),
+            ) as dialog_mock,
+            patch.object(self.window.viewer, "add_polyline_nm", return_value=object()) as add_mock,
+        ):
+            self.window.commit_drawn_region_action.trigger()
+
+        dialog_mock.assert_called_once()
+        self.assertEqual(self.window.analysis_regions()[0].name, "ROI Terrace")
+        self.assertEqual(self.window.analysis_regions()[0].rect_xyxy, (1.0, 2.0, 5.0, 7.0))
+        self.assertIsNone(self.window.active_region_roi_kind())
+        add_mock.assert_called_once()
+
+    def test_draw_polyline_region_commit_action_adds_polygon_region_from_viewer_roi(self) -> None:
+        project, _frames = _project_with_frames()
+
+        self.window.set_project(project)
+        self.window.start_polyline_region_roi([(1.0, 2.0), (5.0, 2.0), (3.0, 7.0)])
+        with (
+            patch(
+                "moltrack.ui.main_window.AnalysisRegionMetadataDialog.get_metadata",
+                return_value=("ignore", "Polyline Ignore", (240, 40, 40)),
+            ),
+            patch.object(self.window.viewer, "add_polyline_nm", return_value=object()),
+        ):
+            self.window.commit_drawn_region_action.trigger()
+
+        region = self.window.analysis_regions()[0]
+        self.assertEqual(region.name, "Polyline Ignore")
+        self.assertEqual(region.kind.value, "ignore")
+        np.testing.assert_allclose(region.polygon_xy, np.asarray([(1.0, 2.0), (5.0, 2.0), (3.0, 7.0)]))
+        self.assertIsNone(self.window.active_region_roi_kind())
+
+    def test_edit_selected_region_action_updates_region_project_and_list(self) -> None:
+        from moltrack.core import AnalysisRegion
+
+        project, _frames = _project_with_frames()
+        original = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(1.0, 2.0, 5.0, 7.0),
+        )
+        updated = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace moved",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(2.0, 3.0, 6.0, 8.0),
+        )
+
+        self.window.set_project(project)
+        with (
+            patch.object(self.window.viewer, "add_polyline_nm", side_effect=[object(), object()]),
+            patch.object(self.window.viewer, "remove_item"),
+        ):
+            self.window.add_analysis_region(original)
+            self.window.select_analysis_region("Terrace A")
+            with patch("moltrack.ui.main_window.AnalysisRegionRectDialog.get_region", return_value=updated) as dialog_mock:
+                self.window.edit_selected_region_action.trigger()
+
+        dialog_mock.assert_called_once_with(self.window, original)
+        self.assertEqual(self.window.analysis_regions(), [updated])
+        self.assertEqual(self.window.current_project().analysis_regions, (updated,))
+        self.assertEqual(self.window.region_list.count(), 1)
+        self.assertEqual(self.window.region_list.item(0).text(), "Terrace moved")
+        self.assertEqual(self.window.selected_region_name(), "Terrace moved")
+
+    def test_delete_selected_region_action_removes_region_from_project_and_list(self) -> None:
+        from moltrack.core import AnalysisRegion
+
+        project, _frames = _project_with_frames()
+        region = AnalysisRegion.rectangle(
+            kind="ignore",
+            name="Ignore A",
+            color_rgb=(240, 40, 40),
+            rect_xyxy=(1.0, 2.0, 5.0, 7.0),
+        )
+        overlay_item = object()
+
+        self.window.set_project(project)
+        with (
+            patch.object(self.window.viewer, "add_polyline_nm", return_value=overlay_item),
+            patch.object(self.window.viewer, "remove_item") as remove_mock,
+        ):
+            self.window.add_analysis_region(region)
+            self.window.select_analysis_region("Ignore A")
+            self.window.delete_selected_region_action.trigger()
+
+        self.assertEqual(self.window.analysis_regions(), [])
+        self.assertEqual(self.window.current_project().analysis_regions, ())
+        self.assertEqual(self.window.region_list.count(), 0)
+        remove_mock.assert_called_once_with(overlay_item)
+
+    def test_copy_selected_region_to_series_action_marks_region_as_copied(self) -> None:
+        from moltrack.core import AnalysisRegion
+
+        project, _frames = _project_with_frames()
+        region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(1.0, 2.0, 5.0, 7.0),
+        )
+
+        self.window.set_project(project)
+        with patch.object(self.window.viewer, "add_polyline_nm", return_value=object()):
+            self.window.add_analysis_region(region)
+        self.window.select_analysis_region("Terrace A")
+        self.window.copy_selected_region_to_series_action.trigger()
+
+        self.assertEqual(len(self.window.copied_analysis_regions()), 1)
+        self.assertEqual(self.window.copied_analysis_regions()[0].region.name, "Terrace A")
+        self.assertEqual(self.window.copied_analysis_regions()[0].working_frame_indices, (0, 1, 2))
+        self.assertEqual(len(self.window.current_project().copied_analysis_regions), 1)
+
+    def test_apply_selected_region_to_current_frame_creates_frame_scope(self) -> None:
+        from moltrack.core import AnalysisRegion
+
+        project, _frames = _project_with_frames()
+        region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(1.0, 2.0, 5.0, 7.0),
+        )
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        with patch.object(self.window.viewer, "add_polyline_nm", return_value=object()):
+            self.window.add_analysis_region(region)
+        self.window.select_analysis_region("Terrace A")
+        self.window.apply_selected_region_to_current_frame_action.trigger()
+
+        self.assertEqual(len(self.window.current_project().frame_scoped_analysis_regions), 1)
+        self.assertEqual(
+            self.window.current_project().frame_scoped_analysis_regions[0].working_frame_indices,
+            (1,),
+        )
+
+    def test_copy_selected_region_from_current_to_end_creates_frame_scope(self) -> None:
+        from moltrack.core import AnalysisRegion
+
+        project, _frames = _project_with_frames()
+        region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(1.0, 2.0, 5.0, 7.0),
+        )
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        with patch.object(self.window.viewer, "add_polyline_nm", return_value=object()):
+            self.window.add_analysis_region(region)
+        self.window.select_analysis_region("Terrace A")
+        self.window.copy_selected_region_from_current_to_end_action.trigger()
+
+        self.assertEqual(
+            self.window.current_project().frame_scoped_analysis_regions[0].working_frame_indices,
+            (1, 2),
+        )
+
+    def test_copy_selected_region_to_frame_range_uses_dialog_scope(self) -> None:
+        from moltrack.core import AnalysisRegion
+
+        project, _frames = _project_with_frames()
+        region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(1.0, 2.0, 5.0, 7.0),
+        )
+
+        self.window.set_project(project)
+        with patch.object(self.window.viewer, "add_polyline_nm", return_value=object()):
+            self.window.add_analysis_region(region)
+        self.window.select_analysis_region("Terrace A")
+        with patch("moltrack.ui.main_window.AnalysisRegionFrameRangeDialog.get_working_frame_indices", return_value=(0, 2)):
+            self.window.copy_selected_region_to_frame_range_action.trigger()
+
+        self.assertEqual(
+            self.window.current_project().frame_scoped_analysis_regions[0].working_frame_indices,
+            (0, 2),
+        )
+
+    def test_commit_drawn_region_with_existing_name_adds_frame_scoped_geometry(self) -> None:
+        from moltrack.core import AnalysisRegion
+
+        project, _frames = _project_with_frames()
+        early_region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace 1",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(1.0, 2.0, 5.0, 7.0),
+        )
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        with patch.object(self.window.viewer, "add_polyline_nm", return_value=object()):
+            self.window.add_analysis_region(early_region)
+        self.window.start_rect_region_roi((10.0, 12.0, 15.0, 17.0))
+        with (
+            patch(
+                "moltrack.ui.main_window.AnalysisRegionMetadataDialog.get_metadata",
+                return_value=("terrace", "Terrace 1", (20, 120, 240)),
+            ),
+            patch(
+                "moltrack.ui.main_window.AnalysisRegionFrameRangeDialog.get_working_frame_indices",
+                return_value=(1, 2),
+            ),
+            patch.object(self.window.viewer, "add_polyline_nm", return_value=object()),
+        ):
+            self.window.commit_drawn_region_action.trigger()
+
+        self.assertEqual(len(self.window.current_project().frame_scoped_analysis_regions), 1)
+        self.assertEqual(
+            self.window.current_project().region_for_working_frame("Terrace 1", 0).rect_xyxy,
+            early_region.rect_xyxy,
+        )
+        self.assertEqual(
+            self.window.current_project().region_for_working_frame("Terrace 1", 2).rect_xyxy,
+            (10.0, 12.0, 15.0, 17.0),
+        )
+
+    def test_edit_selected_region_can_update_only_active_frame_scope(self) -> None:
+        from moltrack.core import AnalysisRegion
+
+        project, _frames = _project_with_frames()
+        early_region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace 1",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(1.0, 2.0, 5.0, 7.0),
+        )
+        late_region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace 1",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(10.0, 12.0, 15.0, 17.0),
+        )
+        updated_late_region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace 1",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(11.0, 13.0, 16.0, 18.0),
+        )
+
+        self.window.set_project(project)
+        self.window.add_analysis_region(early_region)
+        self.window.apply_analysis_region_to_frames("Terrace 1", (1, 2), region=late_region)
+        self.window.set_active_working_frame_index(2)
+        self.window.select_analysis_region("Terrace 1")
+
+        with (
+            patch(
+                "moltrack.ui.main_window.AnalysisRegionRectDialog.get_region",
+                return_value=updated_late_region,
+            ) as region_dialog_mock,
+            patch(
+                "moltrack.ui.main_window.AnalysisRegionEditScopeDialog.get_scope",
+                return_value="current_scope",
+            ) as scope_dialog_mock,
+        ):
+            self.window.edit_selected_region_action.trigger()
+
+        region_dialog_mock.assert_called_once_with(self.window, late_region)
+        scope_dialog_mock.assert_called_once_with(self.window)
+        self.assertEqual(
+            self.window.current_project().region_for_working_frame("Terrace 1", 0).rect_xyxy,
+            early_region.rect_xyxy,
+        )
+        self.assertEqual(
+            self.window.current_project().region_for_working_frame("Terrace 1", 2).rect_xyxy,
+            updated_late_region.rect_xyxy,
+        )
+
     def test_ui_save_and_open_project_round_trip_without_copying_source_images(self) -> None:
         from moltrack.persistence import MANIFEST_PATH
 
@@ -117,6 +492,36 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.active_working_frame_index(), 0)
         self.assertEqual(self.window.active_source_frame_index(), 2)
         self.assertIn("Images not loaded", self.window.frame_index_text())
+
+    def test_ui_save_and_open_project_round_trips_analysis_regions(self) -> None:
+        from moltrack.core import AnalysisRegion
+
+        project, _frames = _project_with_frames()
+        region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(1.0, 2.0, 5.0, 7.0),
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "ui_regions.moltrack"
+
+            self.window.set_project(project)
+            with patch.object(self.window.viewer, "add_polyline_nm", return_value=object()):
+                self.window.add_analysis_region(region)
+                self.window.copy_analysis_region_to_series("Terrace A")
+                self.window.save_project_to(path)
+
+            with patch.object(self.window.viewer, "add_polyline_nm", return_value=object()) as add_mock:
+                self.window.open_project_file(path)
+
+        loaded_project = self.window.current_project()
+        self.assertIsNotNone(loaded_project)
+        self.assertEqual([loaded_region.name for loaded_region in loaded_project.analysis_regions], ["Terrace A"])
+        self.assertEqual(self.window.analysis_regions()[0].rect_xyxy, (1.0, 2.0, 5.0, 7.0))
+        self.assertEqual(self.window.copied_analysis_regions()[0].working_frame_indices, (0, 1, 2))
+        add_mock.assert_called_once()
 
     def test_import_image_series_from_paths_sets_unsaved_project_and_displays_first_frame(self) -> None:
         project, frames = _project_with_frames()
@@ -166,6 +571,154 @@ class MolTrackMainWindowTests(unittest.TestCase):
 
         import_mock.assert_called_once_with("movie.mpp", reverse_frame_order=False)
         self.assertIs(self.window.current_project(), project)
+
+    def test_add_analysis_region_draws_overlay_and_stores_region(self) -> None:
+        from moltrack.core import AnalysisRegion
+
+        region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(1.0, 2.0, 5.0, 7.0),
+        )
+        overlay_item = object()
+
+        with patch.object(self.window.viewer, "add_polyline_nm", return_value=overlay_item) as add_mock:
+            self.window.add_analysis_region(region)
+
+        self.assertEqual(self.window.analysis_regions(), [region])
+        self.assertEqual(self.window.region_overlay_count(), 1)
+        add_mock.assert_called_once()
+        pts = add_mock.call_args.args[0]
+        np.testing.assert_allclose(
+            pts,
+            np.asarray(
+                [
+                    [1.0, 2.0],
+                    [5.0, 2.0],
+                    [5.0, 7.0],
+                    [1.0, 7.0],
+                    [1.0, 2.0],
+                ],
+                dtype=np.float64,
+            ),
+        )
+        self.assertEqual(add_mock.call_args.kwargs["color"], (20, 120, 240))
+
+    def test_update_analysis_region_replaces_region_and_overlay(self) -> None:
+        from moltrack.core import AnalysisRegion
+
+        original = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(1.0, 2.0, 5.0, 7.0),
+        )
+        moved = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(3.0, 4.0, 9.0, 12.0),
+        )
+        old_item = object()
+        new_item = object()
+
+        with (
+            patch.object(self.window.viewer, "add_polyline_nm", side_effect=[old_item, new_item]) as add_mock,
+            patch.object(self.window.viewer, "remove_item") as remove_mock,
+        ):
+            self.window.add_analysis_region(original)
+            self.window.update_analysis_region("Terrace A", moved)
+
+        self.assertEqual(self.window.analysis_regions(), [moved])
+        remove_mock.assert_called_once_with(old_item)
+        self.assertEqual(add_mock.call_count, 2)
+        pts = add_mock.call_args.args[0]
+        np.testing.assert_allclose(
+            pts,
+            np.asarray(
+                [
+                    [3.0, 4.0],
+                    [9.0, 4.0],
+                    [9.0, 12.0],
+                    [3.0, 12.0],
+                    [3.0, 4.0],
+                ],
+                dtype=np.float64,
+            ),
+        )
+
+    def test_remove_analysis_region_removes_region_and_overlay(self) -> None:
+        from moltrack.core import AnalysisRegion
+
+        region = AnalysisRegion.rectangle(
+            kind="ignore",
+            name="Ignore A",
+            color_rgb=(240, 40, 40),
+            rect_xyxy=(0.0, 0.0, 2.0, 2.0),
+        )
+        overlay_item = object()
+
+        with (
+            patch.object(self.window.viewer, "add_polyline_nm", return_value=overlay_item),
+            patch.object(self.window.viewer, "remove_item") as remove_mock,
+        ):
+            self.window.add_analysis_region(region)
+            removed = self.window.remove_analysis_region("Ignore A")
+
+        self.assertEqual(removed, region)
+        self.assertEqual(self.window.analysis_regions(), [])
+        self.assertEqual(self.window.region_overlay_count(), 0)
+        remove_mock.assert_called_once_with(overlay_item)
+
+    def test_add_polygon_analysis_region_draws_closed_polygon_overlay(self) -> None:
+        from moltrack.core import AnalysisRegion
+
+        region = AnalysisRegion.polygon(
+            kind="step_edge",
+            name="Step edge band",
+            color_rgb=(20, 220, 220),
+            vertices_xy=[(1.0, 1.0), (5.0, 2.0), (4.0, 6.0)],
+        )
+
+        with patch.object(self.window.viewer, "add_polyline_nm", return_value=object()) as add_mock:
+            self.window.add_analysis_region(region)
+
+        pts = add_mock.call_args.args[0]
+        np.testing.assert_allclose(
+            pts,
+            np.asarray(
+                [
+                    [1.0, 1.0],
+                    [5.0, 2.0],
+                    [4.0, 6.0],
+                    [1.0, 1.0],
+                ],
+                dtype=np.float64,
+            ),
+        )
+        self.assertEqual(add_mock.call_args.kwargs["color"], (20, 220, 220))
+
+    def test_copy_analysis_region_to_series_reuses_native_geometry_on_each_working_frame(self) -> None:
+        from moltrack.core import AnalysisRegion
+
+        project, _frames = _project_with_frames()
+        region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(1.0, 2.0, 5.0, 7.0),
+        )
+
+        self.window.set_project(project)
+        with patch.object(self.window.viewer, "add_polyline_nm", return_value=object()):
+            self.window.add_analysis_region(region)
+        copied = self.window.copy_analysis_region_to_series("Terrace A")
+
+        self.assertEqual(copied.working_frame_indices, (0, 1, 2))
+        self.assertIs(copied.region_for_working_frame(0), region)
+        self.assertIs(copied.region_for_working_frame(2), region)
+        self.assertEqual(self.window.copied_analysis_regions(), [copied])
 
 
 if __name__ == "__main__":

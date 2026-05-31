@@ -3,9 +3,190 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any
 
 import numpy as np
+
+
+class AnalysisRegionKind(str, Enum):
+    """Semantic type of a MolTrack analysis region."""
+
+    TERRACE = "terrace"
+    STEP_EDGE = "step_edge"
+    IGNORE = "ignore"
+    CUSTOM = "custom"
+
+
+@dataclass(frozen=True)
+class AnalysisRegion:
+    """A named image area in native frame coordinates."""
+
+    kind: AnalysisRegionKind | str
+    name: str
+    color_rgb: tuple[int, int, int]
+    rect_xyxy: tuple[float, float, float, float] | None = None
+    polygon_xy: np.ndarray | None = None
+    coordinate_system: str = "native"
+
+    @classmethod
+    def rectangle(
+        cls,
+        *,
+        kind: AnalysisRegionKind | str,
+        name: str,
+        color_rgb: tuple[int, int, int],
+        rect_xyxy: tuple[float, float, float, float],
+    ) -> AnalysisRegion:
+        return cls(kind=kind, name=name, color_rgb=color_rgb, rect_xyxy=rect_xyxy)
+
+    @classmethod
+    def polygon(
+        cls,
+        *,
+        kind: AnalysisRegionKind | str,
+        name: str,
+        color_rgb: tuple[int, int, int],
+        vertices_xy,
+    ) -> AnalysisRegion:
+        return cls(kind=kind, name=name, color_rgb=color_rgb, polygon_xy=vertices_xy)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "kind", AnalysisRegionKind(self.kind))
+        object.__setattr__(self, "name", str(self.name).strip())
+        if not self.name:
+            raise ValueError("Analysis region name must be a non-empty string.")
+        object.__setattr__(self, "color_rgb", _normalize_color_rgb(self.color_rgb))
+        if self.coordinate_system != "native":
+            raise ValueError("AnalysisRegion geometry must be stored in native coordinates.")
+
+        has_rect = self.rect_xyxy is not None
+        has_polygon = self.polygon_xy is not None
+        if has_rect == has_polygon:
+            raise ValueError("AnalysisRegion requires exactly one geometry: rect_xyxy or polygon_xy.")
+        if has_rect:
+            object.__setattr__(self, "rect_xyxy", _normalize_rect_xyxy(self.rect_xyxy))
+        if has_polygon:
+            object.__setattr__(self, "polygon_xy", _normalize_polygon_xy(self.polygon_xy))
+
+    @property
+    def geometry_type(self) -> str:
+        return "rect" if self.rect_xyxy is not None else "polygon"
+
+    @property
+    def bounds_xyxy(self) -> tuple[float, float, float, float]:
+        if self.rect_xyxy is not None:
+            return self.rect_xyxy
+        polygon = np.asarray(self.polygon_xy, dtype=np.float64)
+        return (
+            float(np.min(polygon[:, 0])),
+            float(np.min(polygon[:, 1])),
+            float(np.max(polygon[:, 0])),
+            float(np.max(polygon[:, 1])),
+        )
+
+
+@dataclass(frozen=True)
+class CopiedAnalysisRegion:
+    """An analysis region reused on working frames without geometry changes."""
+
+    region: AnalysisRegion
+    working_frame_indices: tuple[int, ...]
+
+    @classmethod
+    def from_working_series(
+        cls,
+        region: AnalysisRegion,
+        working_series: WorkingImageSeries,
+    ) -> CopiedAnalysisRegion:
+        return cls(
+            region=region,
+            working_frame_indices=tuple(frame.working_frame_index for frame in working_series.frames),
+        )
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.region, AnalysisRegion):
+            raise TypeError("region must be an AnalysisRegion.")
+        working_frame_indices = tuple(int(index) for index in self.working_frame_indices)
+        if not working_frame_indices:
+            raise ValueError("working_frame_indices must contain at least one frame.")
+        if any(index < 0 for index in working_frame_indices):
+            raise ValueError("working_frame_indices must be non-negative.")
+        if len(set(working_frame_indices)) != len(working_frame_indices):
+            raise ValueError("working_frame_indices must be unique.")
+        object.__setattr__(self, "working_frame_indices", working_frame_indices)
+
+    def applies_to_working_frame(self, working_frame_index: int) -> bool:
+        return int(working_frame_index) in self.working_frame_indices
+
+    def region_for_working_frame(self, working_frame_index: int) -> AnalysisRegion:
+        if not self.applies_to_working_frame(working_frame_index):
+            raise IndexError("working_frame_index is not covered by the copied analysis region.")
+        return self.region
+
+
+@dataclass(frozen=True)
+class FrameScopedAnalysisRegion:
+    """An analysis region geometry active only on selected working frames."""
+
+    region: AnalysisRegion
+    working_frame_indices: tuple[int, ...]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.region, AnalysisRegion):
+            raise TypeError("region must be an AnalysisRegion.")
+        working_frame_indices = tuple(sorted({int(index) for index in self.working_frame_indices}))
+        if not working_frame_indices:
+            raise ValueError("working_frame_indices must contain at least one frame.")
+        if any(index < 0 for index in working_frame_indices):
+            raise ValueError("working_frame_indices must be non-negative.")
+        object.__setattr__(self, "working_frame_indices", working_frame_indices)
+
+    @classmethod
+    def from_working_series(
+        cls,
+        region: AnalysisRegion,
+        working_series: WorkingImageSeries,
+    ) -> FrameScopedAnalysisRegion:
+        return cls(
+            region=region,
+            working_frame_indices=tuple(frame.working_frame_index for frame in working_series.frames),
+        )
+
+    def applies_to_working_frame(self, working_frame_index: int) -> bool:
+        return int(working_frame_index) in self.working_frame_indices
+
+
+def _normalize_color_rgb(color_rgb: tuple[int, int, int]) -> tuple[int, int, int]:
+    if len(color_rgb) != 3:
+        raise ValueError("color_rgb must contain exactly three channels.")
+    color = tuple(int(channel) for channel in color_rgb)
+    if any(channel < 0 or channel > 255 for channel in color):
+        raise ValueError("color_rgb channels must be in the range 0..255.")
+    return color
+
+
+def _normalize_rect_xyxy(rect_xyxy: tuple[float, float, float, float]) -> tuple[float, float, float, float]:
+    rect = tuple(float(value) for value in rect_xyxy)
+    if len(rect) != 4:
+        raise ValueError("rect_xyxy must contain exactly four values.")
+    if not np.all(np.isfinite(rect)):
+        raise ValueError("rect_xyxy values must be finite.")
+    x0, y0, x1, y1 = rect
+    if x1 <= x0 or y1 <= y0:
+        raise ValueError("rect_xyxy must have positive width and height.")
+    return rect
+
+
+def _normalize_polygon_xy(vertices_xy) -> np.ndarray:
+    vertices = np.asarray(vertices_xy, dtype=np.float64)
+    if vertices.ndim != 2 or vertices.shape[1] != 2:
+        raise ValueError("vertices_xy must have shape [N, 2].")
+    if len(vertices) < 3:
+        raise ValueError("AnalysisRegion polygon requires at least three vertices.")
+    if not np.all(np.isfinite(vertices)):
+        raise ValueError("AnalysisRegion polygon vertices must be finite.")
+    return vertices
 
 
 @dataclass(frozen=True)
@@ -145,6 +326,9 @@ class MolTrackProject:
     source_series: SourceImageSeries
     working_series: WorkingImageSeries
     project_name: str = "Untitled MolTrack Project"
+    analysis_regions: tuple[AnalysisRegion, ...] = ()
+    copied_analysis_regions: tuple[CopiedAnalysisRegion, ...] = ()
+    frame_scoped_analysis_regions: tuple[FrameScopedAnalysisRegion, ...] = ()
 
     @classmethod
     def from_source_series(
@@ -163,15 +347,155 @@ class MolTrackProject:
     def __post_init__(self) -> None:
         if self.working_series.source_series != self.source_series:
             raise ValueError("working_series must be derived from source_series.")
+        analysis_regions = tuple(self.analysis_regions)
+        if any(not isinstance(region, AnalysisRegion) for region in analysis_regions):
+            raise TypeError("analysis_regions must contain AnalysisRegion instances.")
+        region_names = [region.name for region in analysis_regions]
+        if len(set(region_names)) != len(region_names):
+            raise ValueError("analysis_regions must have unique names.")
+
+        copied_analysis_regions = tuple(self.copied_analysis_regions)
+        if any(not isinstance(region, CopiedAnalysisRegion) for region in copied_analysis_regions):
+            raise TypeError("copied_analysis_regions must contain CopiedAnalysisRegion instances.")
+        region_by_name = {region.name: region for region in analysis_regions}
+        normalized_copied_regions = []
+        for copied_region in copied_analysis_regions:
+            if copied_region.region.name not in region_by_name:
+                raise ValueError("copied_analysis_regions must reference project analysis_regions.")
+            normalized_copied_regions.append(
+                CopiedAnalysisRegion(
+                    region=region_by_name[copied_region.region.name],
+                    working_frame_indices=copied_region.working_frame_indices,
+                )
+            )
+        frame_scoped_analysis_regions = tuple(self.frame_scoped_analysis_regions)
+        if any(not isinstance(region, FrameScopedAnalysisRegion) for region in frame_scoped_analysis_regions):
+            raise TypeError("frame_scoped_analysis_regions must contain FrameScopedAnalysisRegion instances.")
+        _validate_frame_scoped_regions(frame_scoped_analysis_regions, self.working_series)
         object.__setattr__(
             self,
             "project_name",
             str(self.project_name).strip() or "Untitled MolTrack Project",
         )
+        object.__setattr__(self, "analysis_regions", analysis_regions)
+        object.__setattr__(self, "copied_analysis_regions", tuple(normalized_copied_regions))
+        object.__setattr__(self, "frame_scoped_analysis_regions", frame_scoped_analysis_regions)
 
     def remove_working_frame(self, working_frame_index: int) -> MolTrackProject:
+        working_series = self.working_series.remove_working_frame(working_frame_index)
+        remaining_old_indices = [
+            frame.working_frame_index
+            for frame in self.working_series.frames
+            if frame.working_frame_index != int(working_frame_index)
+        ]
+        old_to_new_index = {
+            old_index: new_index
+            for new_index, old_index in enumerate(remaining_old_indices)
+        }
+        remapped_scoped_regions = []
+        for scoped_region in self.frame_scoped_analysis_regions:
+            remapped_indices = tuple(
+                old_to_new_index[index]
+                for index in scoped_region.working_frame_indices
+                if index in old_to_new_index
+            )
+            if remapped_indices:
+                remapped_scoped_regions.append(
+                    FrameScopedAnalysisRegion(
+                        region=scoped_region.region,
+                        working_frame_indices=remapped_indices,
+                    )
+                )
         return MolTrackProject(
             source_series=self.source_series,
-            working_series=self.working_series.remove_working_frame(working_frame_index),
+            working_series=working_series,
             project_name=self.project_name,
+            analysis_regions=self.analysis_regions,
+            copied_analysis_regions=tuple(
+                CopiedAnalysisRegion.from_working_series(copied_region.region, working_series)
+                for copied_region in self.copied_analysis_regions
+            ),
+            frame_scoped_analysis_regions=tuple(remapped_scoped_regions),
         )
+
+    def with_analysis_regions(
+        self,
+        analysis_regions: tuple[AnalysisRegion, ...],
+        *,
+        copied_analysis_regions: tuple[CopiedAnalysisRegion, ...] = (),
+        frame_scoped_analysis_regions: tuple[FrameScopedAnalysisRegion, ...] | None = None,
+    ) -> MolTrackProject:
+        return MolTrackProject(
+            source_series=self.source_series,
+            working_series=self.working_series,
+            project_name=self.project_name,
+            analysis_regions=tuple(analysis_regions),
+            copied_analysis_regions=tuple(copied_analysis_regions),
+            frame_scoped_analysis_regions=(
+                self.frame_scoped_analysis_regions
+                if frame_scoped_analysis_regions is None
+                else tuple(frame_scoped_analysis_regions)
+            ),
+        )
+
+    def with_frame_scoped_analysis_regions(
+        self,
+        frame_scoped_analysis_regions: tuple[FrameScopedAnalysisRegion, ...],
+    ) -> MolTrackProject:
+        return MolTrackProject(
+            source_series=self.source_series,
+            working_series=self.working_series,
+            project_name=self.project_name,
+            analysis_regions=self.analysis_regions,
+            copied_analysis_regions=self.copied_analysis_regions,
+            frame_scoped_analysis_regions=tuple(frame_scoped_analysis_regions),
+        )
+
+    def analysis_regions_for_working_frame(self, working_frame_index: int) -> tuple[AnalysisRegion, ...]:
+        working_frame_index = int(working_frame_index)
+        self.working_series.get_working_frame(working_frame_index)
+        scoped_regions = [
+            scoped_region.region
+            for scoped_region in self.frame_scoped_analysis_regions
+            if scoped_region.applies_to_working_frame(working_frame_index)
+        ]
+        scoped_names = {region.name for region in scoped_regions}
+        inherited_global_regions = [
+            region
+            for region in self.analysis_regions
+            if region.name not in scoped_names
+        ]
+        return tuple(_sort_regions_by_priority(scoped_regions + inherited_global_regions))
+
+    def region_for_working_frame(self, region_name: str, working_frame_index: int) -> AnalysisRegion:
+        region_name = str(region_name)
+        for region in self.analysis_regions_for_working_frame(working_frame_index):
+            if region.name == region_name:
+                return region
+        raise KeyError(f"Unknown analysis region for frame {working_frame_index}: {region_name}")
+
+
+def _sort_regions_by_priority(regions: list[AnalysisRegion]) -> list[AnalysisRegion]:
+    priority = {
+        AnalysisRegionKind.IGNORE: 0,
+        AnalysisRegionKind.STEP_EDGE: 1,
+        AnalysisRegionKind.TERRACE: 2,
+        AnalysisRegionKind.CUSTOM: 3,
+    }
+    return sorted(regions, key=lambda region: (priority[region.kind], region.name))
+
+
+def _validate_frame_scoped_regions(
+    frame_scoped_analysis_regions: tuple[FrameScopedAnalysisRegion, ...],
+    working_series: WorkingImageSeries,
+) -> None:
+    frames_by_region_name: dict[str, set[int]] = {}
+    for scoped_region in frame_scoped_analysis_regions:
+        frames = frames_by_region_name.setdefault(scoped_region.region.name, set())
+        for working_frame_index in scoped_region.working_frame_indices:
+            working_series.get_working_frame(working_frame_index)
+            if working_frame_index in frames:
+                raise ValueError(
+                    f"Region {scoped_region.region.name!r} has overlapping frame scopes."
+                )
+            frames.add(working_frame_index)

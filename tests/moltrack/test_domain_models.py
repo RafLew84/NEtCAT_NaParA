@@ -1,7 +1,156 @@
 import unittest
 
+import numpy as np
+
 
 class MolTrackDomainModelTests(unittest.TestCase):
+    def test_analysis_region_can_describe_rectangular_terrace_in_native_coordinates(self) -> None:
+        from moltrack.core import AnalysisRegion, AnalysisRegionKind
+
+        region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(1.5, 2.0, 11.5, 8.0),
+        )
+
+        self.assertEqual(region.kind, AnalysisRegionKind.TERRACE)
+        self.assertEqual(region.name, "Terrace A")
+        self.assertEqual(region.color_rgb, (20, 120, 240))
+        self.assertEqual(region.geometry_type, "rect")
+        self.assertEqual(region.coordinate_system, "native")
+        self.assertEqual(region.bounds_xyxy, (1.5, 2.0, 11.5, 8.0))
+        self.assertEqual(region.rect_xyxy, (1.5, 2.0, 11.5, 8.0))
+
+    def test_analysis_region_can_describe_polygonal_ignore_region(self) -> None:
+        from moltrack.core import AnalysisRegion, AnalysisRegionKind
+
+        vertices = [(3.0, 1.0), (9.0, 2.0), (7.0, 8.0), (2.0, 6.0)]
+
+        region = AnalysisRegion.polygon(
+            kind=AnalysisRegionKind.IGNORE,
+            name="Ignore drift artifact",
+            color_rgb=(220, 30, 30),
+            vertices_xy=vertices,
+        )
+
+        self.assertEqual(region.kind, AnalysisRegionKind.IGNORE)
+        self.assertEqual(region.geometry_type, "polygon")
+        self.assertIsNone(region.rect_xyxy)
+        np.testing.assert_allclose(region.polygon_xy, np.asarray(vertices, dtype=np.float64))
+        self.assertEqual(region.bounds_xyxy, (2.0, 1.0, 9.0, 8.0))
+
+    def test_analysis_region_rejects_invalid_contract_values(self) -> None:
+        from moltrack.core import AnalysisRegion
+
+        with self.assertRaises(ValueError):
+            AnalysisRegion.rectangle(
+                kind="unknown",
+                name="Bad kind",
+                color_rgb=(1, 2, 3),
+                rect_xyxy=(0.0, 0.0, 1.0, 1.0),
+            )
+        with self.assertRaises(ValueError):
+            AnalysisRegion.rectangle(
+                kind="custom",
+                name=" ",
+                color_rgb=(1, 2, 3),
+                rect_xyxy=(0.0, 0.0, 1.0, 1.0),
+            )
+        with self.assertRaises(ValueError):
+            AnalysisRegion.rectangle(
+                kind="custom",
+                name="Bad color",
+                color_rgb=(1, 2, 300),
+                rect_xyxy=(0.0, 0.0, 1.0, 1.0),
+            )
+        with self.assertRaises(ValueError):
+            AnalysisRegion(
+                kind="custom",
+                name="Ambiguous geometry",
+                color_rgb=(1, 2, 3),
+                rect_xyxy=(0.0, 0.0, 1.0, 1.0),
+                polygon_xy=np.asarray([(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)]),
+            )
+
+    def test_analysis_region_can_be_copied_to_all_working_frames_without_registration(self) -> None:
+        from moltrack.core import AnalysisRegion, CopiedAnalysisRegion, SourceImageSeries
+
+        source = SourceImageSeries(source_uri="C:/data/movie.mpp", frame_count=4)
+        working_series = source.create_working_series(reverse_frame_order=True).remove_working_frame(1)
+        region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(2.0, 3.0, 12.0, 18.0),
+        )
+
+        copied = CopiedAnalysisRegion.from_working_series(region, working_series)
+
+        self.assertEqual(copied.working_frame_indices, (0, 1, 2))
+        for working_frame_index in copied.working_frame_indices:
+            self.assertTrue(copied.applies_to_working_frame(working_frame_index))
+            self.assertIs(copied.region_for_working_frame(working_frame_index), region)
+            self.assertEqual(copied.region_for_working_frame(working_frame_index).rect_xyxy, region.rect_xyxy)
+        self.assertFalse(copied.applies_to_working_frame(3))
+        with self.assertRaises(IndexError):
+            copied.region_for_working_frame(3)
+
+    def test_project_can_resolve_frame_scoped_versions_of_one_logical_region(self) -> None:
+        from moltrack.core import AnalysisRegion, FrameScopedAnalysisRegion, MolTrackProject, SourceImageSeries
+
+        source = SourceImageSeries(source_uri="C:/data/movie.mpp", frame_count=5)
+        project = MolTrackProject.from_source_series(source)
+        terrace_early = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace 1",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(0.0, 0.0, 10.0, 10.0),
+        )
+        terrace_late = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace 1",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(20.0, 0.0, 30.0, 10.0),
+        )
+
+        project = project.with_frame_scoped_analysis_regions(
+            (
+                FrameScopedAnalysisRegion(region=terrace_early, working_frame_indices=(0, 1)),
+                FrameScopedAnalysisRegion(region=terrace_late, working_frame_indices=(2, 3, 4)),
+            )
+        )
+
+        self.assertEqual(project.analysis_regions_for_working_frame(0)[0].rect_xyxy, terrace_early.rect_xyxy)
+        self.assertEqual(project.analysis_regions_for_working_frame(4)[0].rect_xyxy, terrace_late.rect_xyxy)
+        self.assertIs(project.region_for_working_frame("Terrace 1", 1), project.analysis_regions_for_working_frame(1)[0])
+        self.assertEqual(project.region_for_working_frame("Terrace 1", 4).rect_xyxy, terrace_late.rect_xyxy)
+
+    def test_project_rejects_overlapping_frame_scopes_for_the_same_logical_region(self) -> None:
+        from moltrack.core import AnalysisRegion, FrameScopedAnalysisRegion, MolTrackProject, SourceImageSeries
+
+        project = MolTrackProject.from_source_series(SourceImageSeries(source_uri="C:/data/movie.mpp", frame_count=3))
+        region_a = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace 1",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(0.0, 0.0, 10.0, 10.0),
+        )
+        region_b = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace 1",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(20.0, 0.0, 30.0, 10.0),
+        )
+
+        with self.assertRaises(ValueError):
+            project.with_frame_scoped_analysis_regions(
+                (
+                    FrameScopedAnalysisRegion(region=region_a, working_frame_indices=(0, 1)),
+                    FrameScopedAnalysisRegion(region=region_b, working_frame_indices=(1, 2)),
+                )
+            )
+
     def test_project_from_source_series_preserves_working_to_source_frame_mapping(self) -> None:
         from moltrack.core import MolTrackProject, SourceImageSeries
 
