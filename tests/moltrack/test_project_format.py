@@ -181,6 +181,31 @@ class MolTrackProjectFormatTests(unittest.TestCase):
         self.assertEqual(loaded.region_for_working_frame("Terrace 1", 0).rect_xyxy, (0.0, 0.0, 10.0, 10.0))
         self.assertEqual(loaded.region_for_working_frame("Terrace 1", 4).rect_xyxy, (20.0, 0.0, 30.0, 10.0))
 
+    def test_save_and_load_project_round_trips_registration_shifts(self) -> None:
+        from moltrack.core import MolTrackProject, RegistrationShift, SourceImageSeries
+        from moltrack.persistence import load_project, save_project
+
+        project = MolTrackProject.from_source_series(
+            SourceImageSeries(source_uri="movie.mpp", frame_count=3),
+            project_name="registered",
+        ).with_registration_shifts(
+            (
+                RegistrationShift(working_frame_index=0, dx=0.0, dy=0.0, method="identity"),
+                RegistrationShift(working_frame_index=2, dx=1.25, dy=-0.5, method="phase_correlation_adjacent"),
+            )
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "registered.moltrack"
+
+            save_project(path, project)
+            loaded = load_project(path)
+
+        self.assertEqual(len(loaded.registration_shifts), 2)
+        self.assertEqual(loaded.registration_shift_for_working_frame(0).shift_xy, (0.0, 0.0))
+        self.assertEqual(loaded.registration_shift_for_working_frame(2).shift_xy, (1.25, -0.5))
+        self.assertEqual(loaded.registration_shift_for_working_frame(2).method, "phase_correlation_adjacent")
+
 
 if __name__ == "__main__":
     unittest.main()

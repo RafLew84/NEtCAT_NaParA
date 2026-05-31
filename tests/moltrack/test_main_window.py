@@ -3,7 +3,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import numpy as np
 
@@ -116,6 +116,27 @@ class MolTrackMainWindowTests(unittest.TestCase):
         )
         self.assertEqual(self.window.region_list.objectName(), "moltrack-region-list")
         self.assertEqual(self.window.region_list.count(), 0)
+
+    def test_registration_menu_exposes_run_registration_action(self) -> None:
+        registration_menu = None
+        for action in self.window.menuBar().actions():
+            if action.text() == "Registration":
+                registration_menu = action.menu()
+                break
+
+        self.assertIsNotNone(registration_menu)
+        self.assertEqual(
+            [action.text() for action in registration_menu.actions()],
+            ["Run Registration", "Show Expanded Aligned"],
+        )
+        self.assertTrue(registration_menu.actions()[1].isCheckable())
+        self.assertEqual(
+            [
+                self.window.registration_backend_combo.itemData(index)
+                for index in range(self.window.registration_backend_combo.count())
+            ],
+            ["phase_correlation", "optical_flow_median"],
+        )
 
     def test_add_rect_region_action_adds_dialog_region_to_project_and_list(self) -> None:
         from moltrack.core import AnalysisRegion
@@ -302,6 +323,240 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.copied_analysis_regions()[0].region.name, "Terrace A")
         self.assertEqual(self.window.copied_analysis_regions()[0].working_frame_indices, (0, 1, 2))
         self.assertEqual(len(self.window.current_project().copied_analysis_regions), 1)
+
+    def test_run_registration_action_uses_selected_backend_and_shows_expanded_aligned_by_default(self) -> None:
+        from moltrack.core import RegistrationShift
+        from nanotrack.core import STMSequenceMetadata
+        from nanotrack.registration import ExpandedAlignedStack
+
+        project, _frames = _project_with_frames()
+        registered_project = project.with_registration_shifts(
+            (
+                RegistrationShift(working_frame_index=0, dx=0.0, dy=0.0, method="identity"),
+                RegistrationShift(working_frame_index=1, dx=1.25, dy=-0.5, method="optical_flow_median_adjacent"),
+                RegistrationShift(working_frame_index=2, dx=1.5, dy=-0.25, method="optical_flow_median_adjacent"),
+            )
+        )
+        expanded = ExpandedAlignedStack(
+            frames=np.asarray(
+                [
+                    [[1.0, 1.0, 1.0]],
+                    [[2.0, 2.0, 2.0]],
+                    [[3.0, 3.0, 3.0]],
+                ],
+                dtype=np.float32,
+            ),
+            canvas_offset_xy=(0.0, 1.0),
+            padding_ltrb=(0, 1, 1, 0),
+            frame_origins_xy=np.asarray([[0.0, 1.0], [1.25, 0.5], [1.5, 0.75]], dtype=np.float64),
+            metadata=STMSequenceMetadata(pixels_x=3, pixels_y=1),
+        )
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        self.window.registration_backend_combo.setCurrentIndex(1)
+        with (
+            patch("moltrack.ui.main_window.run_project_registration", return_value=registered_project) as run_mock,
+            patch("moltrack.ui.main_window.expanded_registered_working_stack", return_value=expanded) as expanded_mock,
+        ):
+            self.window.run_registration_action.trigger()
+
+        run_mock.assert_called_once_with(project, backend="optical_flow_median", progress_callback=ANY)
+        expanded_mock.assert_called()
+        self.assertIs(self.window.current_project(), registered_project)
+        self.assertEqual(self.window.active_working_frame_index(), 1)
+        self.assertIn("Registration dx=1.250px dy=-0.500px", self.window.frame_index_text())
+        self.assertIn("Expanded aligned view", self.window.frame_index_text())
+        self.assertTrue(self.window.show_expanded_aligned_action.isChecked())
+        np.testing.assert_array_equal(self.window.displayed_frame(), expanded.frames[1])
+
+    def test_run_registration_action_shows_progress_dialog_and_updates_from_callback(self) -> None:
+        from moltrack.core import RegistrationShift
+        from nanotrack.core import STMSequenceMetadata
+        from nanotrack.registration import ExpandedAlignedStack
+
+        class FakeProgressDialog:
+            instances = []
+
+            def __init__(self, label, cancel_text, minimum, maximum, parent):
+                self.label = label
+                self.cancel_text = cancel_text
+                self.minimum = minimum
+                self.maximum = maximum
+                self.parent = parent
+                self.values = []
+                self.labels = []
+                self.closed = False
+                FakeProgressDialog.instances.append(self)
+
+            def setWindowTitle(self, title):
+                self.window_title = title
+
+            def setWindowModality(self, modality):
+                self.modality = modality
+
+            def setCancelButton(self, button):
+                self.cancel_button = button
+
+            def setMinimumDuration(self, duration):
+                self.minimum_duration = duration
+
+            def setAutoClose(self, auto_close):
+                self.auto_close = auto_close
+
+            def setAutoReset(self, auto_reset):
+                self.auto_reset = auto_reset
+
+            def setValue(self, value):
+                self.values.append(int(value))
+
+            def setMaximum(self, maximum):
+                self.maximum = int(maximum)
+
+            def setLabelText(self, label):
+                self.labels.append(label)
+
+            def close(self):
+                self.closed = True
+
+        project, _frames = _project_with_frames()
+        registered_project = project.with_registration_shifts(
+            (
+                RegistrationShift(working_frame_index=0, dx=0.0, dy=0.0, method="identity"),
+                RegistrationShift(working_frame_index=1, dx=1.0, dy=0.0, method="phase_correlation_adjacent"),
+                RegistrationShift(working_frame_index=2, dx=2.0, dy=0.0, method="phase_correlation_adjacent"),
+            )
+        )
+        expanded = ExpandedAlignedStack(
+            frames=np.ones((3, 2, 2), dtype=np.float32),
+            canvas_offset_xy=(0.0, 0.0),
+            padding_ltrb=(0, 0, 0, 0),
+            frame_origins_xy=np.zeros((3, 2), dtype=np.float64),
+            metadata=STMSequenceMetadata(pixels_x=2, pixels_y=2),
+        )
+
+        def run_with_progress(_project, *, backend, progress_callback):
+            progress_callback(1, 3, registered_project.registration_shift_for_working_frame(0))
+            progress_callback(2, 3, registered_project.registration_shift_for_working_frame(1))
+            progress_callback(3, 3, registered_project.registration_shift_for_working_frame(2))
+            return registered_project
+
+        self.window.set_project(project)
+        with (
+            patch("moltrack.ui.main_window.QProgressDialog", FakeProgressDialog),
+            patch("moltrack.ui.main_window.QApplication.processEvents") as process_events_mock,
+            patch("moltrack.ui.main_window.run_project_registration", side_effect=run_with_progress),
+            patch("moltrack.ui.main_window.expanded_registered_working_stack", return_value=expanded),
+        ):
+            self.window.run_registration_action.trigger()
+
+        progress = FakeProgressDialog.instances[0]
+        self.assertEqual(progress.label, "Running Phase registration...")
+        self.assertEqual(progress.maximum, 3)
+        self.assertEqual(progress.values, [0, 1, 2, 3, 3])
+        self.assertEqual(progress.labels[-1], "Running Phase registration... 3/3")
+        self.assertTrue(progress.closed)
+        self.assertEqual(process_events_mock.call_count, 3)
+
+    def test_show_expanded_aligned_action_displays_expanded_frame_without_changing_native_project(self) -> None:
+        from moltrack.core import RegistrationShift
+        from nanotrack.core import STMSequenceMetadata
+        from nanotrack.registration import ExpandedAlignedStack
+
+        project, frames = _project_with_frames()
+        project = project.with_registration_shifts(
+            (
+                RegistrationShift(working_frame_index=0, dx=0.0, dy=0.0, method="identity"),
+                RegistrationShift(working_frame_index=1, dx=1.0, dy=0.0, method="manual"),
+                RegistrationShift(working_frame_index=2, dx=0.0, dy=0.0, method="manual"),
+            )
+        )
+        expanded = ExpandedAlignedStack(
+            frames=np.asarray(
+                [
+                    [[100.0, 101.0, 102.0]],
+                    [[200.0, 201.0, 202.0]],
+                    [[300.0, 301.0, 302.0]],
+                ],
+                dtype=np.float32,
+            ),
+            canvas_offset_xy=(0.0, 0.0),
+            padding_ltrb=(0, 0, 1, 0),
+            frame_origins_xy=np.asarray([[0.0, 0.0], [1.0, 0.0], [0.0, 0.0]], dtype=np.float64),
+            metadata=STMSequenceMetadata(pixels_x=3, pixels_y=1),
+        )
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        native_frame = self.window.displayed_frame().copy()
+
+        with patch("moltrack.ui.main_window.expanded_registered_working_stack", return_value=expanded) as expanded_mock:
+            self.window.show_expanded_aligned_action.setChecked(True)
+            self.__class__._app.processEvents()
+
+        expanded_mock.assert_called_once_with(project)
+        np.testing.assert_array_equal(self.window.displayed_frame(), expanded.frames[1])
+        self.assertIn("Expanded aligned view", self.window.frame_index_text())
+        np.testing.assert_array_equal(project.source_series.raw_frames, frames)
+
+        self.window.show_expanded_aligned_action.setChecked(False)
+        self.__class__._app.processEvents()
+
+        np.testing.assert_array_equal(self.window.displayed_frame(), native_frame)
+        self.assertNotIn("Expanded aligned view", self.window.frame_index_text())
+
+    def test_expanded_aligned_view_draws_analysis_region_overlay_with_frame_origin_offset(self) -> None:
+        from moltrack.core import AnalysisRegion, RegistrationShift
+        from nanotrack.core import STMSequenceMetadata
+        from nanotrack.registration import ExpandedAlignedStack
+
+        project, _frames = _project_with_frames()
+        project = project.with_registration_shifts(
+            (
+                RegistrationShift(working_frame_index=0, dx=0.0, dy=0.0, method="identity"),
+                RegistrationShift(working_frame_index=1, dx=1.5, dy=-2.0, method="manual"),
+                RegistrationShift(working_frame_index=2, dx=0.0, dy=0.0, method="manual"),
+            )
+        )
+        region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(1.0, 2.0, 5.0, 7.0),
+        )
+        expanded = ExpandedAlignedStack(
+            frames=np.ones((3, 4, 7), dtype=np.float32),
+            canvas_offset_xy=(2.0, 1.0),
+            padding_ltrb=(2, 1, 0, 0),
+            frame_origins_xy=np.asarray([[2.0, 1.0], [3.5, -1.0], [2.0, 1.0]], dtype=np.float64),
+            metadata=STMSequenceMetadata(pixels_x=7, pixels_y=4),
+        )
+
+        self.window.set_project(project)
+        self.window.add_analysis_region(region)
+        self.window.set_active_working_frame_index(1)
+        with (
+            patch("moltrack.ui.main_window.expanded_registered_working_stack", return_value=expanded),
+            patch.object(self.window.viewer, "add_polyline_nm", return_value=object()) as add_mock,
+        ):
+            self.window.show_expanded_aligned_action.setChecked(True)
+            self.__class__._app.processEvents()
+
+        pts = add_mock.call_args.args[0]
+        np.testing.assert_allclose(
+            pts,
+            np.asarray(
+                [
+                    [4.5, 1.0],
+                    [8.5, 1.0],
+                    [8.5, 6.0],
+                    [4.5, 6.0],
+                    [4.5, 1.0],
+                ],
+                dtype=np.float64,
+            ),
+        )
+        self.assertEqual(region.rect_xyxy, (1.0, 2.0, 5.0, 7.0))
 
     def test_apply_selected_region_to_current_frame_creates_frame_scope(self) -> None:
         from moltrack.core import AnalysisRegion

@@ -9,6 +9,7 @@ from moltrack.core import (
     CopiedAnalysisRegion,
     FrameScopedAnalysisRegion,
     MolTrackProject,
+    RegistrationShift,
     SourceImageSeries,
     WorkingFrame,
     WorkingImageSeries,
@@ -60,6 +61,14 @@ def build_project_manifest(project: MolTrackProject) -> dict:
                 "working_frame_indices": list(scoped_region.working_frame_indices),
             }
             for scoped_region in project.frame_scoped_analysis_regions
+        ],
+        "registration_shifts": [
+            {
+                "working_frame_index": shift.working_frame_index,
+                "shift_xy": [shift.dx, shift.dy],
+                "method": shift.method,
+            }
+            for shift in project.registration_shifts
         ],
     }
 
@@ -119,6 +128,15 @@ def project_from_manifest(manifest: dict) -> MolTrackProject:
         )
         for item in manifest.get("frame_scoped_analysis_regions", ())
     )
+    registration_shifts = tuple(
+        RegistrationShift(
+            working_frame_index=int(item["working_frame_index"]),
+            dx=float(item["shift_xy"][0]),
+            dy=float(item["shift_xy"][1]),
+            method=item.get("method", "unknown"),
+        )
+        for item in manifest.get("registration_shifts", ())
+    )
     return MolTrackProject(
         source_series=source_series,
         working_series=working_series,
@@ -126,6 +144,7 @@ def project_from_manifest(manifest: dict) -> MolTrackProject:
         analysis_regions=analysis_regions,
         copied_analysis_regions=copied_analysis_regions,
         frame_scoped_analysis_regions=frame_scoped_analysis_regions,
+        registration_shifts=registration_shifts,
     )
 
 

@@ -157,6 +157,34 @@ class FrameScopedAnalysisRegion:
         return int(working_frame_index) in self.working_frame_indices
 
 
+@dataclass(frozen=True)
+class RegistrationShift:
+    """A global XY translation estimated for one working frame."""
+
+    working_frame_index: int
+    dx: float
+    dy: float
+    method: str = "unknown"
+
+    def __post_init__(self) -> None:
+        working_frame_index = int(self.working_frame_index)
+        if working_frame_index < 0:
+            raise ValueError("working_frame_index must be non-negative.")
+        dx = float(self.dx)
+        dy = float(self.dy)
+        if not np.isfinite(dx) or not np.isfinite(dy):
+            raise ValueError("RegistrationShift dx and dy must be finite.")
+        method = str(self.method).strip() or "unknown"
+        object.__setattr__(self, "working_frame_index", working_frame_index)
+        object.__setattr__(self, "dx", dx)
+        object.__setattr__(self, "dy", dy)
+        object.__setattr__(self, "method", method)
+
+    @property
+    def shift_xy(self) -> tuple[float, float]:
+        return self.dx, self.dy
+
+
 def _normalize_color_rgb(color_rgb: tuple[int, int, int]) -> tuple[int, int, int]:
     if len(color_rgb) != 3:
         raise ValueError("color_rgb must contain exactly three channels.")
@@ -329,6 +357,7 @@ class MolTrackProject:
     analysis_regions: tuple[AnalysisRegion, ...] = ()
     copied_analysis_regions: tuple[CopiedAnalysisRegion, ...] = ()
     frame_scoped_analysis_regions: tuple[FrameScopedAnalysisRegion, ...] = ()
+    registration_shifts: tuple[RegistrationShift, ...] = ()
 
     @classmethod
     def from_source_series(
@@ -372,6 +401,11 @@ class MolTrackProject:
         if any(not isinstance(region, FrameScopedAnalysisRegion) for region in frame_scoped_analysis_regions):
             raise TypeError("frame_scoped_analysis_regions must contain FrameScopedAnalysisRegion instances.")
         _validate_frame_scoped_regions(frame_scoped_analysis_regions, self.working_series)
+
+        registration_shifts = tuple(self.registration_shifts)
+        if any(not isinstance(shift, RegistrationShift) for shift in registration_shifts):
+            raise TypeError("registration_shifts must contain RegistrationShift instances.")
+        normalized_registration_shifts = _validate_registration_shifts(registration_shifts, self.working_series)
         object.__setattr__(
             self,
             "project_name",
@@ -380,6 +414,7 @@ class MolTrackProject:
         object.__setattr__(self, "analysis_regions", analysis_regions)
         object.__setattr__(self, "copied_analysis_regions", tuple(normalized_copied_regions))
         object.__setattr__(self, "frame_scoped_analysis_regions", frame_scoped_analysis_regions)
+        object.__setattr__(self, "registration_shifts", normalized_registration_shifts)
 
     def remove_working_frame(self, working_frame_index: int) -> MolTrackProject:
         working_series = self.working_series.remove_working_frame(working_frame_index)
@@ -406,6 +441,16 @@ class MolTrackProject:
                         working_frame_indices=remapped_indices,
                     )
                 )
+        remapped_registration_shifts = tuple(
+            RegistrationShift(
+                working_frame_index=old_to_new_index[shift.working_frame_index],
+                dx=shift.dx,
+                dy=shift.dy,
+                method=shift.method,
+            )
+            for shift in self.registration_shifts
+            if shift.working_frame_index in old_to_new_index
+        )
         return MolTrackProject(
             source_series=self.source_series,
             working_series=working_series,
@@ -416,6 +461,7 @@ class MolTrackProject:
                 for copied_region in self.copied_analysis_regions
             ),
             frame_scoped_analysis_regions=tuple(remapped_scoped_regions),
+            registration_shifts=remapped_registration_shifts,
         )
 
     def with_analysis_regions(
@@ -424,6 +470,7 @@ class MolTrackProject:
         *,
         copied_analysis_regions: tuple[CopiedAnalysisRegion, ...] = (),
         frame_scoped_analysis_regions: tuple[FrameScopedAnalysisRegion, ...] | None = None,
+        registration_shifts: tuple[RegistrationShift, ...] | None = None,
     ) -> MolTrackProject:
         return MolTrackProject(
             source_series=self.source_series,
@@ -435,6 +482,11 @@ class MolTrackProject:
                 self.frame_scoped_analysis_regions
                 if frame_scoped_analysis_regions is None
                 else tuple(frame_scoped_analysis_regions)
+            ),
+            registration_shifts=(
+                self.registration_shifts
+                if registration_shifts is None
+                else tuple(registration_shifts)
             ),
         )
 
@@ -449,6 +501,21 @@ class MolTrackProject:
             analysis_regions=self.analysis_regions,
             copied_analysis_regions=self.copied_analysis_regions,
             frame_scoped_analysis_regions=tuple(frame_scoped_analysis_regions),
+            registration_shifts=self.registration_shifts,
+        )
+
+    def with_registration_shifts(
+        self,
+        registration_shifts: tuple[RegistrationShift, ...],
+    ) -> MolTrackProject:
+        return MolTrackProject(
+            source_series=self.source_series,
+            working_series=self.working_series,
+            project_name=self.project_name,
+            analysis_regions=self.analysis_regions,
+            copied_analysis_regions=self.copied_analysis_regions,
+            frame_scoped_analysis_regions=self.frame_scoped_analysis_regions,
+            registration_shifts=tuple(registration_shifts),
         )
 
     def analysis_regions_for_working_frame(self, working_frame_index: int) -> tuple[AnalysisRegion, ...]:
@@ -473,6 +540,14 @@ class MolTrackProject:
             if region.name == region_name:
                 return region
         raise KeyError(f"Unknown analysis region for frame {working_frame_index}: {region_name}")
+
+    def registration_shift_for_working_frame(self, working_frame_index: int) -> RegistrationShift | None:
+        working_frame_index = int(working_frame_index)
+        self.working_series.get_working_frame(working_frame_index)
+        for shift in self.registration_shifts:
+            if shift.working_frame_index == working_frame_index:
+                return shift
+        return None
 
 
 def _sort_regions_by_priority(regions: list[AnalysisRegion]) -> list[AnalysisRegion]:
@@ -499,3 +574,21 @@ def _validate_frame_scoped_regions(
                     f"Region {scoped_region.region.name!r} has overlapping frame scopes."
                 )
             frames.add(working_frame_index)
+
+
+def _validate_registration_shifts(
+    registration_shifts: tuple[RegistrationShift, ...],
+    working_series: WorkingImageSeries,
+) -> tuple[RegistrationShift, ...]:
+    shifts_by_working_frame_index: dict[int, RegistrationShift] = {}
+    for shift in registration_shifts:
+        working_series.get_working_frame(shift.working_frame_index)
+        if shift.working_frame_index in shifts_by_working_frame_index:
+            raise ValueError(
+                f"Duplicate RegistrationShift for working frame {shift.working_frame_index}."
+            )
+        shifts_by_working_frame_index[shift.working_frame_index] = shift
+    return tuple(
+        shifts_by_working_frame_index[index]
+        for index in sorted(shifts_by_working_frame_index)
+    )

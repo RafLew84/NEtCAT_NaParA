@@ -151,6 +151,79 @@ class MolTrackDomainModelTests(unittest.TestCase):
                 )
             )
 
+    def test_registration_shift_describes_global_xy_shift_for_one_working_frame(self) -> None:
+        from moltrack.core import RegistrationShift
+
+        shift = RegistrationShift(
+            working_frame_index=2,
+            dx=1.25,
+            dy=-0.5,
+            method="phase_correlation",
+        )
+
+        self.assertEqual(shift.working_frame_index, 2)
+        self.assertEqual(shift.shift_xy, (1.25, -0.5))
+        self.assertEqual(shift.method, "phase_correlation")
+
+    def test_project_can_store_optional_registration_shifts_by_working_frame(self) -> None:
+        from moltrack.core import MolTrackProject, RegistrationShift, SourceImageSeries
+
+        project = MolTrackProject.from_source_series(SourceImageSeries(source_uri="C:/data/movie.mpp", frame_count=3))
+
+        self.assertEqual(project.registration_shifts, ())
+        self.assertIsNone(project.registration_shift_for_working_frame(1))
+
+        updated = project.with_registration_shifts(
+            (
+                RegistrationShift(working_frame_index=2, dx=-0.5, dy=0.25, method="ecc_translation"),
+                RegistrationShift(working_frame_index=0, dx=0.0, dy=0.0, method="reference"),
+            )
+        )
+
+        self.assertEqual([shift.working_frame_index for shift in updated.registration_shifts], [0, 2])
+        self.assertEqual(updated.registration_shift_for_working_frame(2).shift_xy, (-0.5, 0.25))
+        self.assertIsNone(updated.registration_shift_for_working_frame(1))
+
+    def test_project_rejects_invalid_registration_shift_contracts(self) -> None:
+        from moltrack.core import MolTrackProject, RegistrationShift, SourceImageSeries
+
+        project = MolTrackProject.from_source_series(SourceImageSeries(source_uri="C:/data/movie.mpp", frame_count=2))
+
+        with self.assertRaises(ValueError):
+            RegistrationShift(working_frame_index=0, dx=float("nan"), dy=0.0)
+
+        with self.assertRaises(ValueError):
+            project.with_registration_shifts(
+                (
+                    RegistrationShift(working_frame_index=1, dx=0.0, dy=0.0),
+                    RegistrationShift(working_frame_index=1, dx=0.5, dy=0.0),
+                )
+            )
+
+        with self.assertRaises(IndexError):
+            project.with_registration_shifts(
+                (RegistrationShift(working_frame_index=2, dx=0.0, dy=0.0),)
+            )
+
+    def test_project_remaps_registration_shifts_when_working_frame_is_removed(self) -> None:
+        from moltrack.core import MolTrackProject, RegistrationShift, SourceImageSeries
+
+        project = MolTrackProject.from_source_series(SourceImageSeries(source_uri="C:/data/movie.mpp", frame_count=4))
+        project = project.with_registration_shifts(
+            (
+                RegistrationShift(working_frame_index=0, dx=0.0, dy=0.0, method="reference"),
+                RegistrationShift(working_frame_index=1, dx=1.0, dy=0.0, method="phase_correlation"),
+                RegistrationShift(working_frame_index=3, dx=3.0, dy=-1.0, method="phase_correlation"),
+            )
+        )
+
+        updated = project.remove_working_frame(1)
+
+        self.assertEqual([shift.working_frame_index for shift in updated.registration_shifts], [0, 2])
+        self.assertEqual(updated.registration_shift_for_working_frame(0).shift_xy, (0.0, 0.0))
+        self.assertEqual(updated.registration_shift_for_working_frame(2).shift_xy, (3.0, -1.0))
+        self.assertIsNone(updated.registration_shift_for_working_frame(1))
+
     def test_project_from_source_series_preserves_working_to_source_frame_mapping(self) -> None:
         from moltrack.core import MolTrackProject, SourceImageSeries
 

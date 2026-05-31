@@ -1,8 +1,8 @@
 # MolTrack - dokumentacja aktualnego zakresu
 
-Ten dokument opisuje funkcjonalnosci dodane do `moltrack` do kroku 13.6 planu. Aktualny zakres obejmuje fundament aplikacji, import i przegladanie jednej serii obrazow, zapis/odczyt projektu oraz regiony analizy z geometriami aktywnymi na wybranych klatkach.
+Ten dokument opisuje funkcjonalnosci dodane do `moltrack` do kroku 42 planu. Aktualny zakres obejmuje fundament aplikacji, import i przegladanie jednej serii obrazow, zapis/odczyt projektu, regiony analizy z geometriami aktywnymi na wybranych klatkach oraz opcjonalny workflow rejestracji globalnych przesuniec XY.
 
-Funkcje detekcji YOLO, review bboxow, metryki, rejestracja, maski i tracking sa nadal etapami planowanymi.
+Funkcje detekcji YOLO, review bboxow, metryki, maski i pelny tracking sa nadal etapami planowanymi.
 
 ## Uruchamianie
 
@@ -134,6 +134,7 @@ Zapis zawiera:
 - regiony analizy,
 - informacje o regionach skopiowanych na serie,
 - geometrie regionow aktywne na wybranych klatkach.
+- shifty rejestracji `registration_shifts`.
 
 Zapis nie zawiera:
 
@@ -444,6 +445,139 @@ Aktualne sortowanie aktywnych regionow uzywa priorytetu:
 
 UI ostrzega, gdy aktywne regiony typu `terrace` nachodza na siebie w tym samym zakresie klatek. Obecna walidacja overlapu jest oparta o bounds regionow, wiec jest konserwatywna dla polygonow.
 
+## Rejestracja obrazow
+
+MolTrack ma opcjonalny workflow rejestracji globalnej XY. Rejestracja nie wykonuje lokalnego warp/morphingu; wynik to jeden shift `dx, dy` dla kazdej klatki roboczej.
+
+Workflow uzywa technicznie backendu rejestracji z NanoTrack, ale zapisuje wynik jako MolTrackowe `RegistrationShift`.
+
+Menu:
+
+```text
+Registration -> Run Registration
+```
+
+W pasku narzedzi jest selektor backendu rejestracji:
+
+```text
+Registration: Phase | Optical Flow
+```
+
+Obecnie MolTrack celowo udostepnia tylko dwa backendy z NanoTrack:
+
+- `Phase` -> `phase_correlation`,
+- `Optical Flow` -> `optical_flow_median`.
+
+Domyslne ustawienia:
+
+```text
+backend = phase_correlation
+registration_view = raw
+reference_strategy = adjacent
+```
+
+Po wykonaniu rejestracji:
+
+- `MolTrackProject.registration_shifts` zawiera shifty dla klatek roboczych,
+- UI automatycznie wlacza `Show Expanded Aligned`,
+- podczas obliczen UI pokazuje modalny dialog postepu `Registration`,
+- aktualny projekt moze zostac zapisany do `.moltrack`,
+- etykieta aktywnej klatki pokazuje shift, np.:
+
+```text
+Working 2/3 | Source 2/3 | Registration dx=1.250px dy=-0.500px | Expanded aligned view
+```
+
+### Expanded aligned view
+
+Po wyznaczeniu shiftow mozna wlaczyc albo wylaczyc widok expanded aligned:
+
+```text
+Registration -> Show Expanded Aligned
+```
+
+To jest checkowalna opcja UI. Po wlaczeniu:
+
+- viewer pokazuje obraz aktywnej klatki po zastosowaniu globalnego `dx/dy` na wiekszym canvasie,
+- canvas jest powiekszany o padding wyliczony z maksymalnych dodatnich i ujemnych shiftow,
+- przesuniete krawedzie obrazu nie sa obcinane,
+- etykieta klatki zawiera `Expanded aligned view`,
+- regiony nadal sa przechowywane w native coordinates,
+- overlaye regionow sa rysowane jako derived geometry przesunieta o `frame_origin_xy` aktywnej klatki w expanded canvas.
+
+Wylaczenie opcji wraca do natywnego obrazu bez zmiany danych projektu.
+
+Ograniczenia:
+
+- rejestracja wymaga, aby projekt mial zaladowane obrazy w `SourceImageSeries.raw_frames`,
+- projekt otwarty z `.moltrack` nie ma aktualnie obrazow w bundle, wiec bez ponownego importu/zaladowania zrodla nie uruchomi rejestracji,
+- bbox/centroid detekcji nie sa jeszcze dostepne, bo `MolecularDetection` zaczyna sie w kolejnym bloku planu.
+
+Przyklad API:
+
+```python
+from moltrack.registration import run_project_registration
+from moltrack.registration import expanded_registered_working_stack
+from moltrack.registration import registered_working_frame, registered_working_stack
+
+registered_project = run_project_registration(
+    project,
+    backend="phase_correlation",
+    registration_view="raw",
+)
+
+flow_registered_project = run_project_registration(
+    project,
+    backend="optical_flow_median",
+    registration_view="raw",
+)
+
+shift = registered_project.registration_shift_for_working_frame(1)
+frame = registered_working_frame(registered_project, 1)
+stack = registered_working_stack(registered_project)
+expanded = expanded_registered_working_stack(registered_project)
+expanded_frame = expanded.frames[1]
+origin_xy = expanded.frame_origins_xy[1]
+```
+
+### Registered coordinates dla przyszlego linkingu
+
+Dane domenowe pozostaja zapisane w `native coordinates`. Gdy rejestracja jest dostepna, kod linkingu moze pracowac na wspolrzednych widoku registered jako wartosci pochodnej.
+
+Publiczne helpery:
+
+```python
+from moltrack.registration import (
+    linking_xy,
+    native_bbox_to_registered_xyxy,
+    native_to_registered_xy,
+    registered_bbox_to_native_xyxy,
+    registered_to_native_xy,
+)
+
+centroid_native = (5.0, 7.0)
+centroid_registered = native_to_registered_xy(project, 1, centroid_native)
+centroid_native_again = registered_to_native_xy(project, 1, centroid_registered)
+
+bbox_native = (10.0, 20.0, 30.0, 40.0)
+bbox_registered = native_bbox_to_registered_xyxy(project, 1, bbox_native)
+bbox_native_again = registered_bbox_to_native_xyxy(project, 1, bbox_registered)
+
+candidate_position = linking_xy(project, 1, centroid_native)
+native_candidate_position = linking_xy(project, 1, centroid_native, use_registered=False)
+```
+
+Semantyka:
+
+- `native_to_registered_xy` i `registered_to_native_xy` obsluguja pojedynczy punkt `(x, y)` oraz tablice punktow o ksztalcie `(N, 2)`,
+- bboxy sa transformowane jako `(x0, y0, x1, y1)` przez dodanie albo odjecie tego samego `dx/dy`,
+- brak shiftu nie blokuje podstawowej analizy: domyslnie helpery zwracaja wspolrzedne bez przesuniecia,
+- `require_shift=True` wymusza blad, jesli dla klatki nie ma `RegistrationShift`,
+- `linking_xy(..., use_registered=True)` uzywa registered coordinates tylko wtedy, gdy shift jest dostepny; bez rejestracji zachowuje native coordinates,
+- `linking_xy(..., use_registered=False)` zawsze zwraca native coordinates.
+
+To przygotowuje przyszly linker bez wymuszania rejestracji dla zwyklej analizy.
+
 ## Publiczne klasy i API
 
 Najwazniejsze publiczne importy:
@@ -455,6 +589,7 @@ from moltrack.core import (
     CopiedAnalysisRegion,
     FrameScopedAnalysisRegion,
     MolTrackProject,
+    RegistrationShift,
     SourceImageSeries,
     WorkingFrame,
     WorkingImageSeries,
@@ -537,6 +672,46 @@ scoped = FrameScopedAnalysisRegion(
 )
 ```
 
+### RegistrationShift
+
+Opisuje opcjonalne globalne przesuniecie XY dla jednej klatki roboczej. Model zawiera tylko translacje `dx`, `dy`; nie przechowuje lokalnego flow, morphingu ani macierzy affine.
+
+Przyklad:
+
+```python
+from moltrack.core import RegistrationShift
+
+shift = RegistrationShift(
+    working_frame_index=2,
+    dx=1.25,
+    dy=-0.5,
+    method="phase_correlation",
+)
+
+print(shift.shift_xy)
+```
+
+Shifty moga byc zapisane w stanie `MolTrackProject` i sa round-tripowane przez `.moltrack`:
+
+```python
+project = project.with_registration_shifts(
+    (
+        RegistrationShift(working_frame_index=0, dx=0.0, dy=0.0, method="reference"),
+        RegistrationShift(working_frame_index=1, dx=1.2, dy=-0.4, method="phase_correlation"),
+    )
+)
+
+shift = project.registration_shift_for_working_frame(1)
+missing = project.registration_shift_for_working_frame(2)
+```
+
+Warunki:
+
+- `working_frame_index` musi istniec w `WorkingImageSeries`,
+- dla jednej klatki roboczej moze istniec najwyzej jeden shift,
+- `dx` i `dy` musza byc skonczone,
+- brak shiftu oznacza, ze rejestracja dla tej klatki nie zostala jeszcze wyznaczona.
+
 ## Aktualne ograniczenia
 
 Na tym etapie nie ma jeszcze:
@@ -547,7 +722,6 @@ Na tym etapie nie ma jeszcze:
 - recznej edycji bboxow,
 - metryk populacyjnych,
 - metryk uporzadkowania rzedow,
-- rejestracji obrazow w MolTrack,
 - masek instancji,
 - SAM2/DAM4SAM/SAMURAI/micro-sam w MolTrack,
 - Trackastry,

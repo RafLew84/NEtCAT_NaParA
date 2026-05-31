@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import numpy as np
 import pyqtgraph as pg
-from PyQt6.QtCore import Qt, QRectF
+from PyQt6.QtCore import Qt, QRectF, QSignalBlocker
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -18,9 +18,12 @@ from PyQt6.QtWidgets import (
     QListWidget,
     QMainWindow,
     QMessageBox,
+    QApplication,
+    QProgressDialog,
     QPushButton,
     QSlider,
     QSpinBox,
+    QToolBar,
     QVBoxLayout,
     QWidget,
 )
@@ -34,6 +37,7 @@ from moltrack.core import (
 )
 from moltrack.io import import_image_series
 from moltrack.persistence import load_project, save_project
+from moltrack.registration import expanded_registered_working_stack, run_project_registration
 from napara.gui.widgets.viewer_widget import ViewerWidget
 
 
@@ -48,6 +52,9 @@ class MolTrackWorkspace(QMainWindow):
         self._project_path: Path | None = None
         self._active_working_frame_index = 0
         self._displayed_frame: np.ndarray | None = None
+        self._show_expanded_aligned_view = False
+        self._expanded_aligned_stack = None
+        self._expanded_aligned_cache_key: tuple[int, int] | None = None
         self._analysis_regions: dict[str, AnalysisRegion] = {}
         self._analysis_region_items: dict[str, object] = {}
         self._copied_analysis_regions: dict[str, CopiedAnalysisRegion] = {}
@@ -55,6 +62,7 @@ class MolTrackWorkspace(QMainWindow):
         self._draft_region_roi = None
         self._draft_region_roi_kind: str | None = None
         self._build_menu()
+        self._build_registration_toolbar()
 
         central = QWidget(self)
         root_layout = QHBoxLayout(central)
@@ -101,6 +109,17 @@ class MolTrackWorkspace(QMainWindow):
         self.save_project_as_action = QAction("Save Project As...", self)
         self.save_project_as_action.triggered.connect(self._on_save_project_as)
         file_menu.addAction(self.save_project_as_action)
+
+        registration_menu = self.menuBar().addMenu("Registration")
+
+        self.run_registration_action = QAction("Run Registration", self)
+        self.run_registration_action.triggered.connect(self._on_run_registration)
+        registration_menu.addAction(self.run_registration_action)
+
+        self.show_expanded_aligned_action = QAction("Show Expanded Aligned", self)
+        self.show_expanded_aligned_action.setCheckable(True)
+        self.show_expanded_aligned_action.toggled.connect(self._on_show_expanded_aligned_toggled)
+        registration_menu.addAction(self.show_expanded_aligned_action)
 
         regions_menu = self.menuBar().addMenu("Regions")
 
@@ -153,6 +172,19 @@ class MolTrackWorkspace(QMainWindow):
         self.copy_selected_region_to_series_action = QAction("Copy Selected to Series", self)
         self.copy_selected_region_to_series_action.triggered.connect(self._on_copy_selected_region_to_series)
         regions_menu.addAction(self.copy_selected_region_to_series_action)
+
+    def _build_registration_toolbar(self) -> None:
+        toolbar = QToolBar("Registration", self)
+        toolbar.setMovable(False)
+        self.addToolBar(toolbar)
+        toolbar.addWidget(QLabel("Registration:", self))
+        self.registration_backend_combo = QComboBox(self)
+        self.registration_backend_combo.addItem("Phase", "phase_correlation")
+        self.registration_backend_combo.addItem("Optical Flow", "optical_flow_median")
+        self.registration_backend_combo.setToolTip("Registration algorithm used for adjacent registration.")
+        toolbar.addWidget(self.registration_backend_combo)
+        toolbar.addAction(self.run_registration_action)
+        toolbar.addAction(self.show_expanded_aligned_action)
 
     def _build_regions_panel(self, parent: QWidget) -> QWidget:
         panel = QWidget(parent)
@@ -207,6 +239,8 @@ class MolTrackWorkspace(QMainWindow):
 
     def set_project(self, project: MolTrackProject) -> None:
         self._project = project
+        self._clear_expanded_aligned_cache()
+        self._set_show_expanded_aligned(False)
         self.clear_drawn_region_roi()
         self._clear_analysis_region_overlays()
         self._analysis_regions = {region.name: region for region in project.analysis_regions}
@@ -238,7 +272,7 @@ class MolTrackWorkspace(QMainWindow):
             self.viewer.clear()
             suffix = " | Images not loaded"
         else:
-            frame = self._project.source_series.get_frame(working_frame.source_frame_index)
+            frame = self._display_frame_for_working_frame(working_frame_index)
             self._displayed_frame = np.asarray(frame)
             self.viewer.set_image(
                 self._displayed_frame,
@@ -251,6 +285,8 @@ class MolTrackWorkspace(QMainWindow):
             f"Working {working_frame_index + 1}/{self._project.working_series.frame_count} | "
             f"Source {working_frame.source_frame_index + 1}/{self._project.source_series.frame_count}"
             f"{suffix}"
+            f"{self._registration_shift_label_suffix(working_frame_index)}"
+            f"{self._registered_view_label_suffix()}"
         )
         self._redraw_analysis_region_overlays()
 
@@ -466,12 +502,22 @@ class MolTrackWorkspace(QMainWindow):
 
     def _draw_analysis_region(self, region: AnalysisRegion) -> None:
         item = self.viewer.add_polyline_nm(
-            _analysis_region_polyline(region),
+            self._analysis_region_display_polyline(region),
             name=region.name,
             color=region.color_rgb,
             width=2.0,
         )
         self._analysis_region_items[region.name] = item
+
+    def _analysis_region_display_polyline(self, region: AnalysisRegion) -> np.ndarray:
+        polyline = _analysis_region_polyline(region)
+        if self._project is None or not self._show_expanded_aligned_view:
+            return polyline
+        expanded = self._ensure_expanded_aligned_stack()
+        if not 0 <= self._active_working_frame_index < expanded.frame_origins_xy.shape[0]:
+            return polyline
+        origin_xy = expanded.frame_origins_xy[self._active_working_frame_index]
+        return polyline + np.asarray(origin_xy, dtype=np.float64)
 
     def _remove_analysis_region_overlay(self, region_name: str) -> None:
         item = self._analysis_region_items.pop(region_name, None)
@@ -688,6 +734,56 @@ class MolTrackWorkspace(QMainWindow):
         except Exception as exc:
             QMessageBox.critical(self, "Copy region failed", str(exc))
 
+    def _on_run_registration(self) -> None:
+        if self._project is None:
+            QMessageBox.warning(self, "Run registration", "Load or import a project before running registration.")
+            return
+        active_index = self._active_working_frame_index
+        frame_count = self._project.working_series.frame_count
+        backend_label = self._selected_registration_backend_label()
+        progress = QProgressDialog(f"Running {backend_label} registration...", "", 0, frame_count, self)
+        progress.setWindowTitle("Registration")
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setCancelButton(None)
+        progress.setMinimumDuration(0)
+        progress.setAutoClose(True)
+        progress.setAutoReset(True)
+        progress.setValue(0)
+
+        def on_progress(completed: int, total: int, _shift) -> None:
+            progress.setMaximum(int(total))
+            progress.setLabelText(f"Running {backend_label} registration... {int(completed)}/{int(total)}")
+            progress.setValue(int(completed))
+            QApplication.processEvents()
+
+        try:
+            backend = self._selected_registration_backend_key()
+            registered_project = run_project_registration(
+                self._project,
+                backend=backend,
+                progress_callback=on_progress,
+            )
+            self.set_project(registered_project)
+            self._set_show_expanded_aligned(True)
+            self.set_active_working_frame_index(
+                min(active_index, registered_project.working_series.frame_count - 1)
+            )
+            progress.setValue(frame_count)
+        except Exception as exc:
+            QMessageBox.critical(self, "Run registration failed", str(exc))
+        finally:
+            progress.close()
+
+    def _on_show_expanded_aligned_toggled(self, checked: bool) -> None:
+        self._show_expanded_aligned_view = bool(checked)
+        if self._project is None:
+            return
+        try:
+            self.set_active_working_frame_index(self._active_working_frame_index)
+        except Exception as exc:
+            self._set_show_expanded_aligned(False)
+            QMessageBox.critical(self, "Expanded aligned view failed", str(exc))
+
     def _on_apply_selected_region_to_current_frame(self) -> None:
         region_name = self.selected_region_name()
         if region_name is None:
@@ -762,6 +858,60 @@ class MolTrackWorkspace(QMainWindow):
         self._sync_project_analysis_regions()
         self._refresh_region_list(updated_region.name)
         self._redraw_analysis_region_overlays()
+
+    def _registration_shift_label_suffix(self, working_frame_index: int) -> str:
+        if self._project is None:
+            return ""
+        shift = self._project.registration_shift_for_working_frame(working_frame_index)
+        if shift is None:
+            return ""
+        return f" | Registration dx={shift.dx:.3f}px dy={shift.dy:.3f}px"
+
+    def _registered_view_label_suffix(self) -> str:
+        return " | Expanded aligned view" if self._show_expanded_aligned_view else ""
+
+    def _display_frame_for_working_frame(self, working_frame_index: int) -> np.ndarray:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        working_frame = self._project.working_series.get_working_frame(working_frame_index)
+        if self._show_expanded_aligned_view:
+            return self._ensure_expanded_aligned_stack().frames[working_frame.working_frame_index]
+        return self._project.source_series.get_frame(working_frame.source_frame_index)
+
+    def _selected_registration_backend_key(self) -> str:
+        current_data = self.registration_backend_combo.currentData()
+        return str(current_data or "phase_correlation")
+
+    def _selected_registration_backend_label(self) -> str:
+        current_text = self.registration_backend_combo.currentText().strip()
+        return current_text or "Phase"
+
+    def _clear_expanded_aligned_cache(self) -> None:
+        self._expanded_aligned_stack = None
+        self._expanded_aligned_cache_key = None
+
+    def _set_show_expanded_aligned(self, checked: bool) -> None:
+        self._show_expanded_aligned_view = bool(checked)
+        if hasattr(self, "show_expanded_aligned_action"):
+            with QSignalBlocker(self.show_expanded_aligned_action):
+                self.show_expanded_aligned_action.setChecked(bool(checked))
+
+    def _ensure_expanded_aligned_stack(self):
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        if self._project.source_series.raw_frames is None:
+            raise ValueError("Expanded aligned view requires loaded source image frames.")
+        cache_key = (id(self._project), id(self._project.source_series.raw_frames))
+        if self._expanded_aligned_stack is None or self._expanded_aligned_cache_key != cache_key:
+            self._expanded_aligned_stack = expanded_registered_working_stack(self._project)
+            self._expanded_aligned_cache_key = cache_key
+        return self._expanded_aligned_stack
+
+    def current_expanded_aligned_stack(self):
+        return self._ensure_expanded_aligned_stack()
+
+    def current_expanded_aligned_frame(self) -> np.ndarray:
+        return self._ensure_expanded_aligned_stack().frames[self._active_working_frame_index]
 
     def current_project(self) -> MolTrackProject | None:
         return self._project
