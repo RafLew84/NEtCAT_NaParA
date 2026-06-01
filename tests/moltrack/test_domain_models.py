@@ -230,6 +230,152 @@ class MolTrackDomainModelTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     MolecularDetection(**payload)
 
+    def test_segmentation_prompt_is_derived_from_molecular_detection_without_seed_conversion(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection, SegmentationPrompt
+
+        detection = MolecularDetection(
+            detection_id="mol-001",
+            working_frame_index=2,
+            source_frame_index=7,
+            bbox_xyxy=(10.0, 20.0, 18.0, 28.0),
+            confidence=0.875,
+            model_name="yolo-molecules-v1",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="yolo",
+            run_mode="full_frame",
+            region_name="Terrace 1",
+        )
+
+        prompt = SegmentationPrompt.from_detection(
+            detection,
+            negative_points_xy=((9, 19), (20.5, 30.25)),
+        )
+
+        self.assertEqual(prompt.detection_id, "mol-001")
+        self.assertEqual(prompt.working_frame_index, 2)
+        self.assertEqual(prompt.source_frame_index, 7)
+        self.assertEqual(prompt.coordinate_system, "native")
+        self.assertEqual(prompt.bbox_prompt_xyxy, (10.0, 20.0, 18.0, 28.0))
+        self.assertEqual(prompt.center_point_xy, (14.0, 24.0))
+        self.assertEqual(prompt.positive_points_xy, ((14.0, 24.0),))
+        self.assertEqual(prompt.negative_points_xy, ((9.0, 19.0), (20.5, 30.25)))
+
+    def test_segmentation_prompt_rejects_invalid_prompt_geometry(self) -> None:
+        from moltrack.core import SegmentationPrompt
+
+        valid_payload = dict(
+            detection_id="mol-001",
+            working_frame_index=2,
+            source_frame_index=7,
+            bbox_prompt_xyxy=(10.0, 20.0, 18.0, 28.0),
+            center_point_xy=(14.0, 24.0),
+            negative_points_xy=((9.0, 19.0),),
+        )
+
+        invalid_overrides = (
+            {"detection_id": " "},
+            {"working_frame_index": -1},
+            {"source_frame_index": -1},
+            {"bbox_prompt_xyxy": (10.0, 20.0, 10.0, 28.0)},
+            {"center_point_xy": (30.0, 24.0)},
+            {"negative_points_xy": ((float("nan"), 19.0),)},
+            {"coordinate_system": "registered"},
+        )
+
+        for overrides in invalid_overrides:
+            with self.subTest(overrides=overrides):
+                payload = {**valid_payload, **overrides}
+                with self.assertRaises(ValueError):
+                    SegmentationPrompt(**payload)
+
+    def test_molecular_instance_mask_belongs_to_one_detection_with_candidates_and_measurement_mask(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection, MolecularInstanceMask
+
+        detection = MolecularDetection(
+            detection_id="mol-001",
+            working_frame_index=2,
+            source_frame_index=7,
+            bbox_xyxy=(10.0, 20.0, 18.0, 28.0),
+            confidence=0.875,
+            model_name="yolo-molecules-v1",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        measurement_mask = np.asarray(
+            [
+                [False, True, False],
+                [True, True, False],
+            ]
+        )
+        candidate_a = np.asarray(
+            [
+                [False, True, False],
+                [False, True, False],
+            ]
+        )
+        candidate_b = np.asarray(
+            [
+                [False, True, True],
+                [True, True, False],
+            ]
+        )
+
+        instance_mask = MolecularInstanceMask.from_detection(
+            detection,
+            measurement_mask=measurement_mask,
+            candidate_masks=(candidate_a, candidate_b),
+            backend_name="classical_local_refinement",
+            backend_params={"threshold_k": 2.5, "polarity": "bright"},
+            score=0.82,
+        )
+
+        self.assertEqual(instance_mask.detection_id, "mol-001")
+        self.assertEqual(instance_mask.working_frame_index, 2)
+        self.assertEqual(instance_mask.source_frame_index, 7)
+        self.assertEqual(instance_mask.backend_name, "classical_local_refinement")
+        self.assertEqual(dict(instance_mask.backend_params), {"threshold_k": 2.5, "polarity": "bright"})
+        self.assertEqual(instance_mask.score, 0.82)
+        self.assertEqual(instance_mask.coordinate_system, "native")
+        self.assertEqual(instance_mask.mask_shape, (2, 3))
+        self.assertEqual(instance_mask.candidate_count, 2)
+        self.assertEqual(instance_mask.measurement_area_px2, 3)
+        np.testing.assert_array_equal(instance_mask.measurement_mask, measurement_mask.astype(bool))
+        np.testing.assert_array_equal(instance_mask.candidate_masks[0], candidate_a.astype(bool))
+        np.testing.assert_array_equal(instance_mask.candidate_masks[1], candidate_b.astype(bool))
+
+    def test_molecular_instance_mask_rejects_invalid_mask_contract_values(self) -> None:
+        from moltrack.core import MolecularInstanceMask
+
+        valid_payload = dict(
+            detection_id="mol-001",
+            working_frame_index=2,
+            source_frame_index=7,
+            measurement_mask=np.asarray([[False, True], [True, False]]),
+            backend_name="classical_local_refinement",
+            backend_params={"threshold_k": 2.5},
+            score=0.75,
+            candidate_masks=(np.asarray([[True, True], [False, False]]),),
+        )
+
+        invalid_overrides = (
+            {"detection_id": " "},
+            {"working_frame_index": -1},
+            {"source_frame_index": -1},
+            {"measurement_mask": np.zeros((1, 2, 3), dtype=bool)},
+            {"candidate_masks": (np.zeros((3, 3), dtype=bool),)},
+            {"backend_name": " "},
+            {"score": -0.1},
+            {"score": float("nan")},
+            {"coordinate_system": "registered"},
+        )
+
+        for overrides in invalid_overrides:
+            with self.subTest(overrides=overrides):
+                payload = {**valid_payload, **overrides}
+                with self.assertRaises(ValueError):
+                    MolecularInstanceMask(**payload)
+
     def test_detection_review_status_controls_default_analysis_membership(self) -> None:
         from moltrack.core import DetectionReviewStatus, MolecularDetection
 

@@ -723,6 +723,246 @@ Warunki:
 - `dx` i `dy` musza byc skonczone,
 - brak shiftu oznacza, ze rejestracja dla tej klatki nie zostala jeszcze wyznaczona.
 
+### SegmentationPrompt
+
+Opisuje prompt wejściowy dla backendow segmentacji masek tworzony z pojedynczej detekcji molekuly. Model nie jest seedem i nie wykonuje konwersji na seed; przechowuje geometrię promptu bezpośrednio z `MolecularDetection`.
+
+Pola:
+
+- `detection_id`,
+- `working_frame_index`,
+- `source_frame_index`,
+- `bbox_prompt_xyxy`,
+- `center_point_xy`,
+- `negative_points_xy`,
+- `coordinate_system = "native"`.
+
+Przyklad:
+
+```python
+from moltrack.core import SegmentationPrompt
+
+prompt = SegmentationPrompt.from_detection(
+    detection,
+    negative_points_xy=((9.0, 19.0), (20.5, 30.25)),
+)
+```
+
+Kontrakt:
+
+- `bbox_prompt_xyxy` jest kopia bboxa detekcji,
+- `center_point_xy` jest centroidem bboxa detekcji i jedynym dodatnim punktem promptu,
+- `positive_points_xy` zwraca krotke z `center_point_xy`,
+- `negative_points_xy` jest opcjonalna lista punktow tla,
+- wszystkie wspolrzedne sa zapisane w natywnym ukladzie klatki,
+- `center_point_xy` musi lezec wewnatrz `bbox_prompt_xyxy`,
+- punkty negatywne musza byc skonczone, ale nie musza lezec wewnatrz bboxa.
+
+### MolecularInstanceMask
+
+Opisuje wynik segmentacji maski dla jednej detekcji molekuly. Model przechowuje jedna maske pomiarowa oraz opcjonalne maski-kandydatki zwrocone przez backend.
+
+Pola:
+
+- `detection_id`,
+- `working_frame_index`,
+- `source_frame_index`,
+- `measurement_mask`,
+- `candidate_masks`,
+- `backend_name`,
+- `backend_params`,
+- `score`,
+- `coordinate_system = "native"`.
+
+Przyklad:
+
+```python
+from moltrack.core import MolecularInstanceMask
+
+instance_mask = MolecularInstanceMask.from_detection(
+    detection,
+    measurement_mask=measurement_mask,
+    candidate_masks=(candidate_a, candidate_b),
+    backend_name="classical_local_refinement",
+    backend_params={"threshold_k": 2.5, "polarity": "bright"},
+    score=0.82,
+)
+```
+
+Kontrakt:
+
+- maska nalezy do jednej detekcji przez `detection_id`, `working_frame_index` i `source_frame_index`,
+- `measurement_mask` jest jedna maska uzywana pozniej do pomiarow,
+- `candidate_masks` przechowuje opcjonalne propozycje backendu,
+- wszystkie maski sa 2D, bool i maja ten sam ksztalt,
+- `backend_name` musi byc niepusty,
+- `backend_params` jest niemutowalnym mappingiem parametrow backendu,
+- `score` musi byc skonczony i w zakresie `0..1`,
+- `mask_shape`, `candidate_count` i `measurement_area_px2` sa wartosciami pochodnymi,
+- model nie jest jeszcze zapisywany w `.moltrack`; storage masek i workflow backendow sa kolejnymi krokami planu.
+
+### Classical Local Refinement
+
+`moltrack.masks.ClassicalLocalRefinementBackend` jest pierwszym klasycznym backendem segmentacji maski. Dziala lokalnie na cropie wokol `SegmentationPrompt.bbox_prompt_xyxy`, ale zwraca pelnoklatkowa maske w natywnych wspolrzednych obrazu.
+
+Przyklad:
+
+```python
+from moltrack.masks import ClassicalLocalRefinementBackend, ClassicalLocalRefinementConfig
+
+backend = ClassicalLocalRefinementBackend(
+    ClassicalLocalRefinementConfig(
+        polarity="bright",
+        crop_margin_px=4,
+        threshold_k=2.5,
+    )
+)
+
+instance_mask = backend.segment(frame, prompt)
+```
+
+Dostepna jest tez funkcja pomocnicza:
+
+```python
+from moltrack.masks import run_classical_local_refinement
+
+instance_mask = run_classical_local_refinement(frame, prompt)
+```
+
+Kontrakt:
+
+- wejscie `frame` musi byc 2D i miec skonczone wartosci,
+- crop jest liczony z bbox promptu i `crop_margin_px`, a nastepnie obcinany do granic obrazu,
+- lokalne tlo jest liczone z pikseli cropa poza bboxem; gdy ich nie ma, uzywany jest border cropa,
+- backend generuje trzy kandydaty: robust threshold, half-height i gradient-derived,
+- `measurement_mask` jest komponentem robust-threshold najblizszym centroidu promptu,
+- `candidate_masks` zawiera trzy pelnoklatkowe maski-kandydatki,
+- `polarity="bright"` segmentuje jasne czastki na ciemniejszym tle,
+- `polarity="dark"` segmentuje ciemne czastki na jasniejszym tle,
+- wynik ma `backend_name = "classical_local_refinement"` i `backend_params` z uzyta konfiguracja,
+- backend nie zapisuje jeszcze masek do projektu; to zostaje dla kolejnych krokow review/storage/export.
+
+### SAM2 Frame Segmentation
+
+`moltrack.masks.Sam2FrameSegmentationBackend` jest adapterem MolTrack do istniejącego backendu `nanotrack.sam2.Sam2SubprocessBackend`. Domyslnie uzywa osobnego procesu SAM2 przez NanoTrackowy kontrakt `.npz`; w testach i przyszlym UI mozna wstrzyknac kompatybilny backend z metoda `run(...)`.
+
+Przyklad:
+
+```python
+from moltrack.masks import Sam2FrameSegmentationBackend, Sam2FrameSegmentationConfig
+
+backend = Sam2FrameSegmentationBackend(
+    config=Sam2FrameSegmentationConfig(
+        source_view="bm3d+registered",
+        mask_probability_threshold=0.65,
+    )
+)
+
+instance_masks = backend.segment_frame(frame, prompts)
+```
+
+Dostepna jest tez funkcja pomocnicza:
+
+```python
+from moltrack.masks import run_sam2_frame_segmentation
+
+instance_masks = run_sam2_frame_segmentation(frame, prompts)
+```
+
+Kontrakt:
+
+- wejscie `frame` ma ksztalt `[H, W]` albo `[H, W, C]` i skonczone wartosci,
+- `prompts` to krotka `SegmentationPrompt` dla jednej working/source frame,
+- pusty zestaw promptow zwraca pusta krotke wynikow,
+- kazdy prompt jest uruchamiany jako osobny `Sam2RunInput` z jednym lokalnym frame,
+- `query_box_xyxy` pochodzi z `bbox_prompt_xyxy`,
+- `query_point_tyx` uzywa centrum promptu jako dodatniego punktu w lokalnym czasie `t=0`,
+- domyslnym wykonawca jest `nanotrack.sam2.Sam2SubprocessBackend`, czyli osobny env/subprocess SAM2,
+- wynik to `MolecularInstanceMask` per prompt z `backend_name = "sam2"`,
+- `measurement_mask` jest maska pierwszej klatki z `Sam2RunOutput`; gdy `visible_mask[0] = False`, measurement mask jest pusta i `score = 0.0`,
+- `backend_params` zawiera `source_view` i `mask_probability_threshold`,
+- adapter nie zapisuje jeszcze masek do projektu ani nie dodaje UI; to zostaje dla kolejnych krokow review/storage/export.
+
+### DAM4SAM Frame Segmentation
+
+`moltrack.masks.Dam4SamFrameSegmentationBackend` jest adapterem MolTrack do wspolnego kontraktu `nanotrack.mask_trackers`. Domyslnie uzywa `MaskTrackerSubprocessBackend` skonfigurowanego dla `MaskTrackerKind.DAM4SAM`, czyli realna inferencja idzie przez osobny env/subprocess DAM4SAM.
+
+Przyklad:
+
+```python
+from moltrack.masks import Dam4SamFrameSegmentationBackend, Dam4SamFrameSegmentationConfig
+
+backend = Dam4SamFrameSegmentationBackend(
+    config=Dam4SamFrameSegmentationConfig(
+        source_view="repair+registered",
+        mask_probability_threshold=0.7,
+    )
+)
+
+instance_masks = backend.segment_frame(frame, prompts)
+```
+
+Dostepna jest tez funkcja pomocnicza:
+
+```python
+from moltrack.masks import run_dam4sam_frame_segmentation
+
+instance_masks = run_dam4sam_frame_segmentation(frame, prompts)
+```
+
+Kontrakt:
+
+- wejscie `frame` ma ksztalt `[H, W]` albo `[H, W, C]` i skonczone wartosci,
+- `prompts` to krotka `SegmentationPrompt` dla jednej working/source frame,
+- pusty zestaw promptow zwraca pusta krotke wynikow,
+- kazdy prompt jest uruchamiany jako osobny `MaskTrackerRunInput` z `tracker_kind = "dam4sam"` i jednym lokalnym frame,
+- `query_box_xyxy` pochodzi z `bbox_prompt_xyxy`,
+- `query_point_tyx` uzywa centrum promptu jako dodatniego punktu w lokalnym czasie `t=0`,
+- wynik to `MolecularInstanceMask` per prompt z `backend_name = "dam4sam"`,
+- `measurement_mask` jest maska pierwszej klatki z `MaskTrackerRunOutput`; gdy `visible_mask[0] = False`, measurement mask jest pusta i `score = 0.0`,
+- `backend_params` zawiera `source_view`, `mask_probability_threshold`, metadane modelu/checkpointu, jesli backend je zwrocil, oraz `temporal_propagation_role = "proposal_only"`,
+- temporalna propagacja DAM4SAM nie jest traktowana jako potwierdzony tracking tozsamosci; na tym etapie adapter produkuje frame-level propozycje masek do pozniejszego review/storage/export.
+
+### SAMURAI Frame Segmentation
+
+`moltrack.masks.SamuraiFrameSegmentationBackend` jest adapterem MolTrack do wspolnego kontraktu `nanotrack.mask_trackers`. Domyslnie uzywa `MaskTrackerSubprocessBackend` skonfigurowanego dla `MaskTrackerKind.SAMURAI`, czyli realna inferencja idzie przez osobny env/subprocess SAMURAI.
+
+Przyklad:
+
+```python
+from moltrack.masks import SamuraiFrameSegmentationBackend, SamuraiFrameSegmentationConfig
+
+backend = SamuraiFrameSegmentationBackend(
+    config=SamuraiFrameSegmentationConfig(
+        source_view="registered",
+        mask_probability_threshold=0.6,
+    )
+)
+
+instance_masks = backend.segment_frame(frame, prompts)
+```
+
+Dostepna jest tez funkcja pomocnicza:
+
+```python
+from moltrack.masks import run_samurai_frame_segmentation
+
+instance_masks = run_samurai_frame_segmentation(frame, prompts)
+```
+
+Kontrakt:
+
+- wejscie `frame` ma ksztalt `[H, W]` albo `[H, W, C]` i skonczone wartosci,
+- `prompts` to krotka `SegmentationPrompt` dla jednej working/source frame,
+- pusty zestaw promptow zwraca pusta krotke wynikow,
+- kazdy prompt jest uruchamiany jako osobny `MaskTrackerRunInput` z `tracker_kind = "samurai"` i jednym lokalnym frame,
+- `query_box_xyxy` pochodzi z `bbox_prompt_xyxy`,
+- `query_point_tyx` uzywa centrum promptu jako dodatniego punktu w lokalnym czasie `t=0`,
+- wynik to `MolecularInstanceMask` per prompt z `backend_name = "samurai"`,
+- `measurement_mask` jest maska pierwszej klatki z `MaskTrackerRunOutput`; gdy `visible_mask[0] = False`, measurement mask jest pusta i `score = 0.0`,
+- `backend_params` zawiera `source_view`, `mask_probability_threshold`, metadane modelu/checkpointu, jesli backend je zwrocil, oraz `temporal_propagation_role = "temporal_proposal"`,
+- SAMURAI jest backendem naturalnie temporalnym, wiec wynik MolTrack jest oznaczany jako propozycja temporalna, a nie jako potwierdzony tracking tozsamosci.
+
 ## YOLO detect current frame
 
 Menu:

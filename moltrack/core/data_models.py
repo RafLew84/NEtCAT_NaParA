@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from types import MappingProxyType
+from typing import Any, Mapping
 
 import numpy as np
 
@@ -252,6 +253,151 @@ class MolecularDetection:
 
 
 @dataclass(frozen=True)
+class SegmentationPrompt:
+    """Prompt package for generating a mask from one molecular detection."""
+
+    detection_id: str
+    working_frame_index: int
+    source_frame_index: int
+    bbox_prompt_xyxy: tuple[float, float, float, float]
+    center_point_xy: tuple[float, float]
+    negative_points_xy: tuple[tuple[float, float], ...] = ()
+    coordinate_system: str = "native"
+
+    @classmethod
+    def from_detection(
+        cls,
+        detection: MolecularDetection,
+        *,
+        negative_points_xy=(),
+    ) -> SegmentationPrompt:
+        return cls(
+            detection_id=detection.detection_id,
+            working_frame_index=detection.working_frame_index,
+            source_frame_index=detection.source_frame_index,
+            bbox_prompt_xyxy=detection.bbox_xyxy,
+            center_point_xy=detection.centroid_xy,
+            negative_points_xy=negative_points_xy,
+            coordinate_system=detection.coordinate_system,
+        )
+
+    def __post_init__(self) -> None:
+        detection_id = str(self.detection_id).strip()
+        if not detection_id:
+            raise ValueError("detection_id must be a non-empty string.")
+        working_frame_index = int(self.working_frame_index)
+        source_frame_index = int(self.source_frame_index)
+        if working_frame_index < 0:
+            raise ValueError("working_frame_index must be non-negative.")
+        if source_frame_index < 0:
+            raise ValueError("source_frame_index must be non-negative.")
+        bbox_prompt_xyxy = _normalize_rect_xyxy(self.bbox_prompt_xyxy)
+        center_point_xy = _normalize_point_xy(self.center_point_xy, field_name="center_point_xy")
+        if not _point_inside_rect_xyxy(center_point_xy, bbox_prompt_xyxy):
+            raise ValueError("center_point_xy must lie inside bbox_prompt_xyxy.")
+        negative_points_xy = _normalize_points_xy(self.negative_points_xy, field_name="negative_points_xy")
+        if self.coordinate_system != "native":
+            raise ValueError("SegmentationPrompt geometry must be stored in native coordinates.")
+
+        object.__setattr__(self, "detection_id", detection_id)
+        object.__setattr__(self, "working_frame_index", working_frame_index)
+        object.__setattr__(self, "source_frame_index", source_frame_index)
+        object.__setattr__(self, "bbox_prompt_xyxy", bbox_prompt_xyxy)
+        object.__setattr__(self, "center_point_xy", center_point_xy)
+        object.__setattr__(self, "negative_points_xy", negative_points_xy)
+
+    @property
+    def positive_points_xy(self) -> tuple[tuple[float, float], ...]:
+        return (self.center_point_xy,)
+
+
+@dataclass(frozen=True)
+class MolecularInstanceMask:
+    """Mask result attached to one molecular detection."""
+
+    detection_id: str
+    working_frame_index: int
+    source_frame_index: int
+    measurement_mask: np.ndarray
+    backend_name: str
+    backend_params: Mapping[str, Any] | None = None
+    score: float = 0.0
+    candidate_masks: tuple[np.ndarray, ...] = ()
+    coordinate_system: str = "native"
+
+    @classmethod
+    def from_detection(
+        cls,
+        detection: MolecularDetection,
+        *,
+        measurement_mask,
+        backend_name: str,
+        backend_params: Mapping[str, Any] | None = None,
+        score: float = 0.0,
+        candidate_masks: tuple[np.ndarray, ...] = (),
+    ) -> MolecularInstanceMask:
+        return cls(
+            detection_id=detection.detection_id,
+            working_frame_index=detection.working_frame_index,
+            source_frame_index=detection.source_frame_index,
+            measurement_mask=measurement_mask,
+            backend_name=backend_name,
+            backend_params=backend_params,
+            score=score,
+            candidate_masks=candidate_masks,
+            coordinate_system=detection.coordinate_system,
+        )
+
+    def __post_init__(self) -> None:
+        detection_id = str(self.detection_id).strip()
+        if not detection_id:
+            raise ValueError("detection_id must be a non-empty string.")
+        working_frame_index = int(self.working_frame_index)
+        source_frame_index = int(self.source_frame_index)
+        if working_frame_index < 0:
+            raise ValueError("working_frame_index must be non-negative.")
+        if source_frame_index < 0:
+            raise ValueError("source_frame_index must be non-negative.")
+        measurement_mask = _normalize_mask_array(self.measurement_mask, field_name="measurement_mask")
+        candidate_masks = tuple(
+            _normalize_mask_array(candidate_mask, field_name="candidate_masks")
+            for candidate_mask in self.candidate_masks
+        )
+        if any(candidate_mask.shape != measurement_mask.shape for candidate_mask in candidate_masks):
+            raise ValueError("candidate_masks must have the same shape as measurement_mask.")
+        backend_name = str(self.backend_name).strip()
+        if not backend_name:
+            raise ValueError("backend_name must be a non-empty string.")
+        backend_params = MappingProxyType(dict(self.backend_params or {}))
+        score = float(self.score)
+        if not np.isfinite(score) or not 0.0 <= score <= 1.0:
+            raise ValueError("score must be finite and in the range 0..1.")
+        if self.coordinate_system != "native":
+            raise ValueError("MolecularInstanceMask geometry must be stored in native coordinates.")
+
+        object.__setattr__(self, "detection_id", detection_id)
+        object.__setattr__(self, "working_frame_index", working_frame_index)
+        object.__setattr__(self, "source_frame_index", source_frame_index)
+        object.__setattr__(self, "measurement_mask", measurement_mask)
+        object.__setattr__(self, "backend_name", backend_name)
+        object.__setattr__(self, "backend_params", backend_params)
+        object.__setattr__(self, "score", score)
+        object.__setattr__(self, "candidate_masks", candidate_masks)
+
+    @property
+    def mask_shape(self) -> tuple[int, int]:
+        return int(self.measurement_mask.shape[0]), int(self.measurement_mask.shape[1])
+
+    @property
+    def candidate_count(self) -> int:
+        return len(self.candidate_masks)
+
+    @property
+    def measurement_area_px2(self) -> int:
+        return int(np.count_nonzero(self.measurement_mask))
+
+
+@dataclass(frozen=True)
 class RegistrationShift:
     """A global XY translation estimated for one working frame."""
 
@@ -298,6 +444,36 @@ def _normalize_rect_xyxy(rect_xyxy: tuple[float, float, float, float]) -> tuple[
     if x1 <= x0 or y1 <= y0:
         raise ValueError("rect_xyxy must have positive width and height.")
     return rect
+
+
+def _normalize_point_xy(point_xy, *, field_name: str) -> tuple[float, float]:
+    point = tuple(float(value) for value in point_xy)
+    if len(point) != 2:
+        raise ValueError(f"{field_name} must contain exactly two values.")
+    if not np.all(np.isfinite(point)):
+        raise ValueError(f"{field_name} values must be finite.")
+    return point
+
+
+def _normalize_points_xy(points_xy, *, field_name: str) -> tuple[tuple[float, float], ...]:
+    return tuple(_normalize_point_xy(point_xy, field_name=field_name) for point_xy in points_xy)
+
+
+def _point_inside_rect_xyxy(point_xy, rect_xyxy: tuple[float, float, float, float]) -> bool:
+    x, y = (float(value) for value in point_xy)
+    x0, y0, x1, y1 = rect_xyxy
+    return x0 <= x <= x1 and y0 <= y <= y1
+
+
+def _normalize_mask_array(mask, *, field_name: str) -> np.ndarray:
+    mask_array = np.asarray(mask, dtype=bool)
+    if mask_array.ndim != 2:
+        raise ValueError(f"{field_name} must be a 2D mask.")
+    if mask_array.shape[0] <= 0 or mask_array.shape[1] <= 0:
+        raise ValueError(f"{field_name} must have positive height and width.")
+    mask_array = np.array(mask_array, dtype=bool, copy=True)
+    mask_array.setflags(write=False)
+    return mask_array
 
 
 def _normalize_polygon_xy(vertices_xy) -> np.ndarray:
