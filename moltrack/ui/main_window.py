@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 import numpy as np
 import pyqtgraph as pg
@@ -12,15 +13,19 @@ from PyQt6.QtWidgets import (
     QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QListWidget,
+    QListWidgetItem,
     QMainWindow,
+    QMenu,
     QMessageBox,
     QApplication,
     QProgressDialog,
     QPushButton,
+    QScrollArea,
     QSlider,
     QSpinBox,
     QToolBar,
@@ -66,6 +71,7 @@ class MolTrackWorkspace(QMainWindow):
         self._analysis_regions: dict[str, AnalysisRegion] = {}
         self._analysis_region_items: dict[str, object] = {}
         self._molecular_detection_items: list[object] = []
+        self._selected_molecular_detection_id: str | None = None
         self._yolo_models: list[MolTrackYoloModelInfo] = []
         self._selected_yolo_model_path: Path | None = None
         self._yolo_detection_config = MolTrackYoloDetectionConfig()
@@ -73,6 +79,8 @@ class MolTrackWorkspace(QMainWindow):
         self._frame_scoped_analysis_regions: list[FrameScopedAnalysisRegion] = []
         self._draft_region_roi = None
         self._draft_region_roi_kind: str | None = None
+        self._draft_detection_bbox_roi = None
+        self._editing_detection_id: str | None = None
         self._build_menu()
         self._build_registration_toolbar()
 
@@ -85,6 +93,7 @@ class MolTrackWorkspace(QMainWindow):
         self.lbl_frame_index.setObjectName("moltrack-frame-index-label")
 
         self.viewer = ViewerWidget(central)
+        self.viewer.glw.scene().sigMouseClicked.connect(self._on_viewer_scene_mouse_clicked)
 
         self.frame_slider = QSlider(Qt.Orientation.Horizontal, central)
         self.frame_slider.setObjectName("moltrack-frame-slider")
@@ -226,72 +235,198 @@ class MolTrackWorkspace(QMainWindow):
         toolbar.addAction(self.show_expanded_aligned_action)
 
     def _build_regions_panel(self, parent: QWidget) -> QWidget:
-        panel = QWidget(parent)
-        layout = QVBoxLayout(panel)
-        layout.addWidget(QLabel("Regions", panel))
+        scroll = QScrollArea(parent)
+        scroll.setObjectName("moltrack-side-panel-scroll")
+        scroll.setWidgetResizable(True)
+        scroll.setMinimumWidth(320)
+        scroll.setToolTip("Side panel with region and detection lists plus frame-wide actions.")
 
-        layout.addWidget(QLabel("Expanded region mode", panel))
+        panel = QWidget(scroll)
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        def group(title: str, tooltip: str) -> tuple[QGroupBox, QVBoxLayout]:
+            box = QGroupBox(title, panel)
+            box.setToolTip(tooltip)
+            box_layout = QVBoxLayout(box)
+            box_layout.setSpacing(6)
+            return box, box_layout
+
+        def button(text: str, tooltip: str, callback) -> QPushButton:
+            btn = QPushButton(text, panel)
+            btn.setToolTip(tooltip)
+            btn.clicked.connect(callback)
+            return btn
+
+        def button_row(*buttons: QPushButton) -> QWidget:
+            row = QWidget(panel)
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.setSpacing(6)
+            for btn in buttons:
+                row_layout.addWidget(btn)
+            return row
+
+        regions_group, regions_layout = group(
+            "Regions",
+            "Define and manage analysis regions on the active working frame.",
+        )
+
         self.expanded_region_mode_combo = QComboBox(panel)
         self.expanded_region_mode_combo.addItem("Fixed expanded canvas", EXPANDED_REGION_MODE_FIXED_CANVAS)
         self.expanded_region_mode_combo.addItem("Move with image", EXPANDED_REGION_MODE_MOVE_WITH_IMAGE)
         self.expanded_region_mode_combo.setToolTip(
             "Controls how region copy/apply behaves while Show Expanded Aligned is enabled."
         )
-        layout.addWidget(self.expanded_region_mode_combo)
+        regions_layout.addWidget(QLabel("Expanded region mode", panel))
+        regions_layout.addWidget(self.expanded_region_mode_combo)
 
         self.region_list = QListWidget(panel)
         self.region_list.setObjectName("moltrack-region-list")
-        layout.addWidget(self.region_list, 1)
+        self.region_list.setToolTip("Analysis regions available on the active working frame.")
+        regions_layout.addWidget(self.region_list, 1)
+        layout.addWidget(regions_group)
 
-        add_button = QPushButton("Add Rect", panel)
-        add_button.clicked.connect(lambda: self.add_rect_region_action.trigger())
-        layout.addWidget(add_button)
+        region_actions_group, region_actions_layout = group(
+            "Region Actions",
+            "Create, edit, delete, and copy analysis regions.",
+        )
+        add_button = button("Add Rect", "Open a coordinate dialog for a rectangular region.", lambda: self.add_rect_region_action.trigger())
+        draw_rect_button = button("Draw ROI", "Draw a rectangular ROI directly on the viewer.", lambda: self.draw_rect_region_roi_action.trigger())
+        draw_poly_button = button("Draw Polyline", "Draw a polygon/polyline region directly on the viewer.", lambda: self.draw_polyline_region_action.trigger())
+        commit_button = button("Commit Drawn", "Save the currently drawn ROI/polyline as a region.", lambda: self.commit_drawn_region_action.trigger())
+        apply_current_button = button("Apply Current", "Apply the selected region geometry to the active working frame.", lambda: self.apply_selected_region_to_current_frame_action.trigger())
+        copy_to_end_button = button("Copy to End", "Copy the selected region from the active frame to the end of the series.", lambda: self.copy_selected_region_from_current_to_end_action.trigger())
+        copy_range_button = button("Copy Range", "Copy the selected region to a chosen working-frame range.", lambda: self.copy_selected_region_to_frame_range_action.trigger())
+        edit_button = button("Edit", "Edit metadata or rectangle coordinates for the selected region.", lambda: self.edit_selected_region_action.trigger())
+        delete_button = button("Delete", "Delete the selected region.", lambda: self.delete_selected_region_action.trigger())
+        copy_button = button("Copy to Series", "Copy the selected region to the whole working series.", lambda: self.copy_selected_region_to_series_action.trigger())
+        region_actions_layout.addWidget(button_row(add_button, draw_rect_button))
+        region_actions_layout.addWidget(button_row(draw_poly_button, commit_button))
+        region_actions_layout.addWidget(button_row(apply_current_button, copy_to_end_button))
+        region_actions_layout.addWidget(button_row(copy_range_button, copy_button))
+        region_actions_layout.addWidget(button_row(edit_button, delete_button))
+        layout.addWidget(region_actions_group)
 
-        draw_rect_button = QPushButton("Draw ROI", panel)
-        draw_rect_button.clicked.connect(lambda: self.draw_rect_region_roi_action.trigger())
-        layout.addWidget(draw_rect_button)
+        detections_group, detections_layout = group(
+            "Detections",
+            "Detections on the active working frame. Right-click a bbox on the viewer for single-bbox actions.",
+        )
+        self.detection_list = QListWidget(panel)
+        self.detection_list.setObjectName("moltrack-detection-list")
+        self.detection_list.setToolTip(
+            "Detection list for the active frame. Select an item to highlight it; right-click the bbox on the image for single-bbox actions."
+        )
+        self.detection_list.currentItemChanged.connect(self._on_detection_list_current_item_changed)
+        detections_layout.addWidget(self.detection_list, 1)
+        layout.addWidget(detections_group)
 
-        draw_poly_button = QPushButton("Draw Polyline", panel)
-        draw_poly_button.clicked.connect(lambda: self.draw_polyline_region_action.trigger())
-        layout.addWidget(draw_poly_button)
+        self.draw_manual_detection_button = QPushButton("Draw BBox", panel)
+        self.draw_manual_detection_button.setObjectName("moltrack-draw-manual-detection-button")
+        self.draw_manual_detection_button.setToolTip("Start drawing a manual molecular bbox on the active frame.")
+        self.draw_manual_detection_button.clicked.connect(self._on_draw_manual_detection_bbox)
 
-        commit_button = QPushButton("Commit Drawn", panel)
-        commit_button.clicked.connect(lambda: self.commit_drawn_region_action.trigger())
-        layout.addWidget(commit_button)
+        self.commit_manual_detection_button = QPushButton("Commit Manual", panel)
+        self.commit_manual_detection_button.setObjectName("moltrack-commit-manual-detection-button")
+        self.commit_manual_detection_button.setToolTip("Save the drawn bbox as a manual detection on the active frame.")
+        self.commit_manual_detection_button.clicked.connect(self._on_commit_manual_detection_bbox)
+        manual_group, manual_layout = group(
+            "Manual Detection",
+            "Create one manual bbox on the active working frame.",
+        )
+        manual_layout.addWidget(button_row(self.draw_manual_detection_button, self.commit_manual_detection_button))
+        layout.addWidget(manual_group)
 
-        apply_current_button = QPushButton("Apply Current", panel)
-        apply_current_button.clicked.connect(lambda: self.apply_selected_region_to_current_frame_action.trigger())
-        layout.addWidget(apply_current_button)
+        review_group, review_layout = group(
+            "Review Current Frame",
+            "Bulk review operations for detections on the active working frame.",
+        )
+        self.accept_all_current_frame_button = QPushButton("Accept Current", panel)
+        self.accept_all_current_frame_button.setObjectName("moltrack-accept-all-current-frame-button")
+        self.accept_all_current_frame_button.setToolTip("Mark every detection on the active frame as accepted.")
+        self.accept_all_current_frame_button.clicked.connect(self._on_accept_all_current_frame)
 
-        copy_to_end_button = QPushButton("Copy to End", panel)
-        copy_to_end_button.clicked.connect(lambda: self.copy_selected_region_from_current_to_end_action.trigger())
-        layout.addWidget(copy_to_end_button)
+        self.accept_confidence_threshold_spin = QDoubleSpinBox(panel)
+        self.accept_confidence_threshold_spin.setObjectName("moltrack-accept-confidence-threshold-spin")
+        self.accept_confidence_threshold_spin.setRange(0.0, 1.0)
+        self.accept_confidence_threshold_spin.setSingleStep(0.05)
+        self.accept_confidence_threshold_spin.setDecimals(2)
+        self.accept_confidence_threshold_spin.setValue(0.80)
+        self.accept_confidence_threshold_spin.setPrefix("Conf >= ")
+        self.accept_confidence_threshold_spin.setToolTip("Confidence threshold used by Accept Above Conf.")
 
-        copy_range_button = QPushButton("Copy Range", panel)
-        copy_range_button.clicked.connect(lambda: self.copy_selected_region_to_frame_range_action.trigger())
-        layout.addWidget(copy_range_button)
+        self.accept_above_confidence_button = QPushButton("Accept Above Conf", panel)
+        self.accept_above_confidence_button.setObjectName("moltrack-accept-above-confidence-button")
+        self.accept_above_confidence_button.setToolTip("Mark active-frame detections above the confidence threshold as accepted.")
+        self.accept_above_confidence_button.clicked.connect(self._on_accept_above_confidence)
+        review_layout.addWidget(self.accept_all_current_frame_button)
+        review_layout.addWidget(self.accept_confidence_threshold_spin)
+        review_layout.addWidget(self.accept_above_confidence_button)
+        layout.addWidget(review_group)
 
-        edit_button = QPushButton("Edit", panel)
-        edit_button.clicked.connect(lambda: self.edit_selected_region_action.trigger())
-        layout.addWidget(edit_button)
+        delete_group, delete_layout = group(
+            "Delete Current Frame",
+            "Bulk deletion operations. Single bbox deletion is in the right-click bbox menu.",
+        )
+        self.delete_status_combo = QComboBox(panel)
+        self.delete_status_combo.setObjectName("moltrack-delete-status-combo")
+        for status in DetectionReviewStatus:
+            self.delete_status_combo.addItem(status.value, status.value)
+        self.delete_status_combo.setToolTip("Status removed by Delete Status on the active frame.")
+        delete_layout.addWidget(self.delete_status_combo)
 
-        delete_button = QPushButton("Delete", panel)
-        delete_button.clicked.connect(lambda: self.delete_selected_region_action.trigger())
-        layout.addWidget(delete_button)
+        self.delete_current_status_button = QPushButton("Delete Status", panel)
+        self.delete_current_status_button.setObjectName("moltrack-delete-current-status-button")
+        self.delete_current_status_button.setToolTip("Delete active-frame detections whose status matches the selected status.")
+        self.delete_current_status_button.clicked.connect(self._on_delete_current_status)
 
-        copy_button = QPushButton("Copy to Series", panel)
-        copy_button.clicked.connect(lambda: self.copy_selected_region_to_series_action.trigger())
-        layout.addWidget(copy_button)
+        self.delete_inside_selected_region_button = QPushButton("Delete in Region", panel)
+        self.delete_inside_selected_region_button.setObjectName("moltrack-delete-inside-selected-region-button")
+        self.delete_inside_selected_region_button.setToolTip("Delete active-frame detections whose bbox centroid lies inside the selected region.")
+        self.delete_inside_selected_region_button.clicked.connect(self._on_delete_inside_selected_region)
+        delete_layout.addWidget(button_row(self.delete_current_status_button, self.delete_inside_selected_region_button))
+        layout.addWidget(delete_group)
 
-        return panel
+        scale_group, scale_layout = group(
+            "Scale BBoxes",
+            "Bulk bbox scaling. Single bbox scaling is in the right-click bbox menu.",
+        )
+        self.scale_bbox_factor_spin = QDoubleSpinBox(panel)
+        self.scale_bbox_factor_spin.setObjectName("moltrack-scale-bbox-factor-spin")
+        self.scale_bbox_factor_spin.setRange(0.05, 10.0)
+        self.scale_bbox_factor_spin.setSingleStep(0.05)
+        self.scale_bbox_factor_spin.setDecimals(3)
+        self.scale_bbox_factor_spin.setValue(1.0)
+        self.scale_bbox_factor_spin.setPrefix("Scale x ")
+        self.scale_bbox_factor_spin.setToolTip("Scale factor for current-frame and all-frame bbox scaling.")
+        scale_layout.addWidget(self.scale_bbox_factor_spin)
+
+        self.scale_current_frame_bboxes_button = QPushButton("Scale Current", panel)
+        self.scale_current_frame_bboxes_button.setObjectName("moltrack-scale-current-frame-bboxes-button")
+        self.scale_current_frame_bboxes_button.setToolTip("Scale every bbox on the active working frame around its own center.")
+        self.scale_current_frame_bboxes_button.clicked.connect(self._on_scale_current_frame_bboxes)
+
+        self.scale_all_bboxes_button = QPushButton("Scale All", panel)
+        self.scale_all_bboxes_button.setObjectName("moltrack-scale-all-bboxes-button")
+        self.scale_all_bboxes_button.setToolTip("Scale every bbox in the whole working series around its own center.")
+        self.scale_all_bboxes_button.clicked.connect(self._on_scale_all_bboxes)
+        scale_layout.addWidget(button_row(self.scale_current_frame_bboxes_button, self.scale_all_bboxes_button))
+        layout.addWidget(scale_group)
+
+        layout.addStretch(1)
+        scroll.setWidget(panel)
+        return scroll
 
     def set_project(self, project: MolTrackProject) -> None:
         self._project = project
         self._clear_expanded_aligned_cache()
         self._set_show_expanded_aligned(False)
         self.clear_drawn_region_roi()
+        self.clear_manual_detection_bbox()
         self._clear_analysis_region_overlays()
         self._clear_molecular_detection_overlays()
+        self._selected_molecular_detection_id = None
         self._analysis_regions = {region.name: region for region in project.analysis_regions}
         self._copied_analysis_regions = {
             copied_region.region.name: copied_region
@@ -338,6 +473,7 @@ class MolTrackWorkspace(QMainWindow):
             f"{self._registered_view_label_suffix()}"
         )
         self._redraw_analysis_region_overlays()
+        self._refresh_detection_list()
         self._redraw_molecular_detection_overlays()
 
     def active_working_frame_index(self) -> int:
@@ -449,6 +585,267 @@ class MolTrackWorkspace(QMainWindow):
             return []
         return list(self._project.molecular_detections)
 
+    def set_molecular_detection_status(
+        self,
+        detection_ids,
+        status: DetectionReviewStatus | str,
+    ) -> tuple[MolecularDetection, ...]:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        target_ids = {str(detection_id) for detection_id in detection_ids}
+        if not target_ids:
+            return tuple()
+        review_status = (
+            status
+            if isinstance(status, DetectionReviewStatus)
+            else DetectionReviewStatus(str(status).strip())
+        )
+        updated_detections = []
+        changed_detections = []
+        for detection in self._project.molecular_detections:
+            if detection.detection_id in target_ids:
+                updated_detection = replace(detection, review_status=review_status)
+                updated_detections.append(updated_detection)
+                changed_detections.append(updated_detection)
+            else:
+                updated_detections.append(detection)
+        changed_ids = {detection.detection_id for detection in changed_detections}
+        missing_ids = target_ids - changed_ids
+        if missing_ids:
+            raise KeyError(f"Unknown molecular detection id: {sorted(missing_ids)[0]}")
+        self._project = self._project.with_molecular_detections(tuple(updated_detections))
+        self._refresh_detection_list(self._selected_molecular_detection_id)
+        self._redraw_molecular_detection_overlays()
+        return tuple(changed_detections)
+
+    def set_selected_molecular_detection_status(
+        self,
+        status: DetectionReviewStatus | str,
+    ) -> MolecularDetection:
+        if self._selected_molecular_detection_id is None:
+            raise ValueError("Select a molecular detection first.")
+        return self.set_molecular_detection_status((self._selected_molecular_detection_id,), status)[0]
+
+    def set_current_frame_molecular_detection_status(
+        self,
+        status: DetectionReviewStatus | str,
+    ) -> tuple[MolecularDetection, ...]:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        detection_ids = [
+            detection.detection_id
+            for detection in self._project.molecular_detections_for_working_frame(self._active_working_frame_index)
+        ]
+        return self.set_molecular_detection_status(detection_ids, status)
+
+    def set_current_frame_molecular_detection_status_above_confidence(
+        self,
+        threshold: float,
+        status: DetectionReviewStatus | str,
+    ) -> tuple[MolecularDetection, ...]:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        threshold = float(threshold)
+        if not 0.0 <= threshold <= 1.0:
+            raise ValueError("threshold must be in [0, 1].")
+        detection_ids = [
+            detection.detection_id
+            for detection in self._project.molecular_detections_for_working_frame(self._active_working_frame_index)
+            if detection.confidence >= threshold
+        ]
+        return self.set_molecular_detection_status(detection_ids, status)
+
+    def add_manual_detection_bbox(
+        self,
+        bbox_xyxy,
+        *,
+        select: bool = True,
+    ) -> MolecularDetection:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        working_frame = self._project.working_series.get_working_frame(self._active_working_frame_index)
+        bbox_xyxy = _sorted_rect_xyxy(bbox_xyxy)
+        used_detection_ids = {detection.detection_id for detection in self._project.molecular_detections}
+        detection_id = _unique_detection_id(
+            f"manual-w{working_frame.working_frame_index:04d}-0000",
+            used_detection_ids,
+        )
+        detection = MolecularDetection(
+            detection_id=detection_id,
+            working_frame_index=working_frame.working_frame_index,
+            source_frame_index=working_frame.source_frame_index,
+            bbox_xyxy=bbox_xyxy,
+            confidence=1.0,
+            model_name="manual",
+            review_status=DetectionReviewStatus.MANUAL,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        self._project = self._project.with_molecular_detections(
+            tuple(self._project.molecular_detections + (detection,))
+        )
+        if select:
+            self._selected_molecular_detection_id = detection.detection_id
+        self._refresh_detection_list(detection.detection_id if select else None)
+        self._redraw_molecular_detection_overlays()
+        return detection
+
+    def edit_molecular_detection_bbox(
+        self,
+        detection_id: str,
+        bbox_xyxy,
+    ) -> MolecularDetection:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        target_id = str(detection_id)
+        bbox_xyxy = _sorted_rect_xyxy(bbox_xyxy)
+        updated_detections = []
+        updated_detection = None
+        for detection in self._project.molecular_detections:
+            if detection.detection_id == target_id:
+                updated_status = _review_status_after_bbox_edit(detection.review_status)
+                updated_detection = replace(
+                    detection,
+                    bbox_xyxy=bbox_xyxy,
+                    review_status=updated_status,
+                )
+                updated_detections.append(updated_detection)
+            else:
+                updated_detections.append(detection)
+        if updated_detection is None:
+            raise KeyError(f"Unknown molecular detection id: {target_id}")
+        self._project = self._project.with_molecular_detections(tuple(updated_detections))
+        self._selected_molecular_detection_id = updated_detection.detection_id
+        self._refresh_detection_list(updated_detection.detection_id)
+        self._redraw_molecular_detection_overlays()
+        return updated_detection
+
+    def remove_molecular_detections(self, detection_ids) -> tuple[MolecularDetection, ...]:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        target_ids = {str(detection_id) for detection_id in detection_ids}
+        if not target_ids:
+            return tuple()
+        removed_detections = tuple(
+            detection
+            for detection in self._project.molecular_detections
+            if detection.detection_id in target_ids
+        )
+        removed_ids = {detection.detection_id for detection in removed_detections}
+        missing_ids = target_ids - removed_ids
+        if missing_ids:
+            raise KeyError(f"Unknown molecular detection id: {sorted(missing_ids)[0]}")
+        remaining_detections = tuple(
+            detection
+            for detection in self._project.molecular_detections
+            if detection.detection_id not in target_ids
+        )
+        self._project = self._project.with_molecular_detections(remaining_detections)
+        if self._selected_molecular_detection_id in target_ids:
+            self._selected_molecular_detection_id = None
+        self._refresh_detection_list()
+        self._redraw_molecular_detection_overlays()
+        return removed_detections
+
+    def remove_selected_molecular_detection(self) -> MolecularDetection:
+        if self._selected_molecular_detection_id is None:
+            raise ValueError("Select a molecular detection first.")
+        return self.remove_molecular_detections((self._selected_molecular_detection_id,))[0]
+
+    def remove_current_frame_molecular_detections_by_status(
+        self,
+        status: DetectionReviewStatus | str,
+    ) -> tuple[MolecularDetection, ...]:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        review_status = (
+            status
+            if isinstance(status, DetectionReviewStatus)
+            else DetectionReviewStatus(str(status).strip())
+        )
+        detection_ids = [
+            detection.detection_id
+            for detection in self._project.molecular_detections_for_working_frame(self._active_working_frame_index)
+            if detection.review_status == review_status
+        ]
+        return self.remove_molecular_detections(detection_ids)
+
+    def remove_current_frame_molecular_detections_inside_region(
+        self,
+        region_name: str,
+    ) -> tuple[MolecularDetection, ...]:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        active_region = self._project.region_for_working_frame(
+            str(region_name),
+            self._active_working_frame_index,
+        )
+        detection_ids = [
+            detection.detection_id
+            for detection in self._project.molecular_detections_for_working_frame(self._active_working_frame_index)
+            if _point_inside_analysis_region(active_region, detection.centroid_xy)
+        ]
+        return self.remove_molecular_detections(detection_ids)
+
+    def scale_molecular_detection_bboxes(
+        self,
+        detection_ids,
+        scale_factor: float,
+    ) -> tuple[MolecularDetection, ...]:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        target_ids = {str(detection_id) for detection_id in detection_ids}
+        if not target_ids:
+            return tuple()
+        scale_factor = _valid_bbox_scale_factor(scale_factor)
+        updated_detections = []
+        changed_detections = []
+        for detection in self._project.molecular_detections:
+            if detection.detection_id in target_ids:
+                updated_detection = replace(
+                    detection,
+                    bbox_xyxy=_scale_bbox_xyxy(detection.bbox_xyxy, scale_factor),
+                    review_status=_review_status_after_bbox_edit(detection.review_status),
+                )
+                updated_detections.append(updated_detection)
+                changed_detections.append(updated_detection)
+            else:
+                updated_detections.append(detection)
+        changed_ids = {detection.detection_id for detection in changed_detections}
+        missing_ids = target_ids - changed_ids
+        if missing_ids:
+            raise KeyError(f"Unknown molecular detection id: {sorted(missing_ids)[0]}")
+        self._project = self._project.with_molecular_detections(tuple(updated_detections))
+        self._refresh_detection_list(self._selected_molecular_detection_id)
+        self._redraw_molecular_detection_overlays()
+        return tuple(changed_detections)
+
+    def scale_selected_molecular_detection_bbox(self, scale_factor: float) -> MolecularDetection:
+        if self._selected_molecular_detection_id is None:
+            raise ValueError("Select a molecular detection first.")
+        return self.scale_molecular_detection_bboxes((self._selected_molecular_detection_id,), scale_factor)[0]
+
+    def scale_current_frame_molecular_detection_bboxes(
+        self,
+        scale_factor: float,
+    ) -> tuple[MolecularDetection, ...]:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        detection_ids = [
+            detection.detection_id
+            for detection in self._project.molecular_detections_for_working_frame(self._active_working_frame_index)
+        ]
+        return self.scale_molecular_detection_bboxes(detection_ids, scale_factor)
+
+    def scale_all_molecular_detection_bboxes(
+        self,
+        scale_factor: float,
+    ) -> tuple[MolecularDetection, ...]:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        detection_ids = [detection.detection_id for detection in self._project.molecular_detections]
+        return self.scale_molecular_detection_bboxes(detection_ids, scale_factor)
+
     def refresh_yolo_models(self, models: list[MolTrackYoloModelInfo] | None = None) -> None:
         current_path = self._selected_yolo_model_path
         self._yolo_models = list(discover_moltrack_yolo_models() if models is None else models)
@@ -548,6 +945,7 @@ class MolTrackWorkspace(QMainWindow):
         self._project = self._project.with_molecular_detections(
             tuple(preserved_detections + new_detections)
         )
+        self._refresh_detection_list()
         self._redraw_molecular_detection_overlays()
         return tuple(new_detections)
 
@@ -615,6 +1013,7 @@ class MolTrackWorkspace(QMainWindow):
         self._project = self._project.with_molecular_detections(
             tuple(preserved_detections + new_detections)
         )
+        self._refresh_detection_list()
         self._redraw_molecular_detection_overlays()
         return tuple(new_detections)
 
@@ -689,6 +1088,7 @@ class MolTrackWorkspace(QMainWindow):
         self._project = self._project.with_molecular_detections(
             tuple(preserved_detections + new_detections)
         )
+        self._refresh_detection_list()
         self._redraw_molecular_detection_overlays()
         return detections_by_frame
 
@@ -785,6 +1185,7 @@ class MolTrackWorkspace(QMainWindow):
         self._project = self._project.with_molecular_detections(
             tuple(preserved_detections + new_detections)
         )
+        self._refresh_detection_list()
         self._redraw_molecular_detection_overlays()
         return detections_by_frame
 
@@ -911,6 +1312,36 @@ class MolTrackWorkspace(QMainWindow):
         self._draft_region_roi = roi
         self._draft_region_roi_kind = "rect"
 
+    def start_manual_detection_bbox(self, rect_xyxy: tuple[float, float, float, float] | None = None) -> None:
+        self.clear_manual_detection_bbox()
+        self._editing_detection_id = None
+        if rect_xyxy is None:
+            rect_xyxy = self._default_rect_roi_xyxy()
+        self._start_detection_bbox_roi(rect_xyxy)
+
+    def start_selected_detection_bbox_edit(self) -> None:
+        detection = self._selected_molecular_detection()
+        self.clear_manual_detection_bbox()
+        self._editing_detection_id = detection.detection_id
+        self._start_detection_bbox_roi(self._bbox_from_native_to_current_view(detection.bbox_xyxy))
+
+    def _start_detection_bbox_roi(self, rect_xyxy) -> None:
+        x0, y0, x1, y1 = _sorted_rect_xyxy(rect_xyxy)
+        roi = pg.RectROI(
+            [x0, y0],
+            [x1 - x0, y1 - y0],
+            pen=pg.mkPen((0, 220, 255), width=2),
+            movable=True,
+            resizable=True,
+            rotatable=False,
+        )
+        roi.addScaleHandle((0, 0), (1, 1))
+        roi.addScaleHandle((1, 1), (0, 0))
+        roi.addScaleHandle((1, 0), (0, 1))
+        roi.addScaleHandle((0, 1), (1, 0))
+        self.viewer.get_plot_item().addItem(roi)
+        self._draft_detection_bbox_roi = roi
+
     def start_polyline_region_roi(self, vertices_xy=None) -> None:
         self.clear_drawn_region_roi()
         if vertices_xy is None:
@@ -937,6 +1368,15 @@ class MolTrackWorkspace(QMainWindow):
         self._draft_region_roi = None
         self._draft_region_roi_kind = None
 
+    def clear_manual_detection_bbox(self) -> None:
+        if self._draft_detection_bbox_roi is not None:
+            try:
+                self.viewer.get_plot_item().removeItem(self._draft_detection_bbox_roi)
+            except Exception:
+                pass
+        self._draft_detection_bbox_roi = None
+        self._editing_detection_id = None
+
     def select_analysis_region(self, region_name: str) -> None:
         matching_items = self.region_list.findItems(str(region_name), Qt.MatchFlag.MatchExactly)
         if not matching_items:
@@ -950,6 +1390,56 @@ class MolTrackWorkspace(QMainWindow):
             self.region_list.addItem(region.name)
         if current_name and current_name in self._analysis_regions:
             self.select_analysis_region(current_name)
+
+    def _refresh_detection_list(self, selected_detection_id: str | None = None) -> None:
+        if self._project is None:
+            self._selected_molecular_detection_id = None
+            self.detection_list.clear()
+            return
+        current_detection_id = selected_detection_id or self._selected_molecular_detection_id
+        detections = self._project.molecular_detections_for_working_frame(self._active_working_frame_index)
+        active_detection_ids = {detection.detection_id for detection in detections}
+        if current_detection_id not in active_detection_ids:
+            current_detection_id = None
+        self._selected_molecular_detection_id = current_detection_id
+
+        with QSignalBlocker(self.detection_list):
+            self.detection_list.clear()
+            selected_item = None
+            for detection in detections:
+                item = QListWidgetItem(_detection_list_label(detection))
+                item.setData(Qt.ItemDataRole.UserRole, detection.detection_id)
+                self.detection_list.addItem(item)
+                if detection.detection_id == current_detection_id:
+                    selected_item = item
+            if selected_item is not None:
+                self.detection_list.setCurrentItem(selected_item)
+
+    def _on_detection_list_current_item_changed(self, current_item, _previous_item) -> None:
+        self._selected_molecular_detection_id = (
+            None
+            if current_item is None
+            else str(current_item.data(Qt.ItemDataRole.UserRole))
+        )
+        self._redraw_molecular_detection_overlays()
+
+    def _on_viewer_scene_mouse_clicked(self, event) -> None:
+        if self._project is None or event.button() != Qt.MouseButton.RightButton:
+            return
+        plot_item = self.viewer.get_plot_item()
+        if not plot_item.sceneBoundingRect().contains(event.scenePos()):
+            return
+        view_pos = plot_item.getViewBox().mapSceneToView(event.scenePos())
+        detection_id = self.detection_id_at_view_point(view_pos.x(), view_pos.y())
+        if detection_id is None:
+            return
+        global_pos = (
+            event.screenPos().toPoint()
+            if hasattr(event, "screenPos")
+            else self.viewer.mapToGlobal(self.viewer.rect().center())
+        )
+        self.show_detection_context_menu(detection_id, global_pos)
+        event.accept()
 
     def _draw_analysis_region(self, region: AnalysisRegion) -> None:
         item = self.viewer.add_polyline_nm(
@@ -1014,11 +1504,12 @@ class MolTrackWorkspace(QMainWindow):
         self._analysis_region_items = {}
 
     def _draw_molecular_detection(self, detection: MolecularDetection) -> None:
+        is_selected = detection.detection_id == self._selected_molecular_detection_id
         item = self.viewer.add_polyline_nm(
-            _bbox_polyline(detection.bbox_xyxy),
+            _bbox_polyline(self._bbox_from_native_to_current_view(detection.bbox_xyxy)),
             name=detection.detection_id,
-            color=(255, 180, 0),
-            width=1.5,
+            color=(0, 220, 255) if is_selected else (255, 180, 0),
+            width=3.0 if is_selected else 1.5,
         )
         self._molecular_detection_items.append(item)
 
@@ -1031,8 +1522,116 @@ class MolTrackWorkspace(QMainWindow):
         self._clear_molecular_detection_overlays()
         if self._project is None:
             return
+        detections = self._project.molecular_detections_for_working_frame(self._active_working_frame_index)
+        for detection in detections:
+            if detection.detection_id != self._selected_molecular_detection_id:
+                self._draw_molecular_detection(detection)
+        for detection in detections:
+            if detection.detection_id == self._selected_molecular_detection_id:
+                self._draw_molecular_detection(detection)
+
+    def selected_molecular_detection_id(self) -> str | None:
+        return self._selected_molecular_detection_id
+
+    def select_molecular_detection(self, detection_id: str) -> None:
+        target_id = str(detection_id)
+        matches = [
+            self.detection_list.item(row)
+            for row in range(self.detection_list.count())
+            if self.detection_list.item(row).data(Qt.ItemDataRole.UserRole) == target_id
+        ]
+        if not matches:
+            raise KeyError(f"Unknown active-frame molecular detection: {target_id}")
+        self.detection_list.setCurrentItem(matches[0])
+
+    def detection_id_at_view_point(self, x: float, y: float) -> str | None:
+        if self._project is None:
+            return None
+        native_point = self._point_from_current_view_to_native((float(x), float(y)))
+        detections = self._project.molecular_detections_for_working_frame(self._active_working_frame_index)
+        for detection in reversed(detections):
+            if _point_inside_bbox_xyxy(detection.bbox_xyxy, native_point):
+                return detection.detection_id
+        return None
+
+    def build_detection_context_menu(self, detection_id: str) -> QMenu:
+        detection = self._active_molecular_detection_by_id(detection_id)
+        self.select_molecular_detection(detection.detection_id)
+        menu = QMenu(self)
+        accept_action = menu.addAction("Accept")
+        accept_action.triggered.connect(
+            lambda _checked=False, target_id=detection.detection_id: self.set_molecular_detection_status(
+                (target_id,),
+                DetectionReviewStatus.ACCEPTED,
+            )
+        )
+        reject_action = menu.addAction("Reject")
+        reject_action.triggered.connect(
+            lambda _checked=False, target_id=detection.detection_id: self.set_molecular_detection_status(
+                (target_id,),
+                DetectionReviewStatus.REJECTED,
+            )
+        )
+        uncertain_action = menu.addAction("Uncertain")
+        uncertain_action.triggered.connect(
+            lambda _checked=False, target_id=detection.detection_id: self.set_molecular_detection_status(
+                (target_id,),
+                DetectionReviewStatus.UNCERTAIN,
+            )
+        )
+        menu.addSeparator()
+        edit_action = menu.addAction("Edit BBox...")
+        edit_action.triggered.connect(
+            lambda _checked=False, target_id=detection.detection_id: self.edit_detection_bbox_via_dialog(target_id)
+        )
+        scale_action = menu.addAction("Scale BBox...")
+        scale_action.triggered.connect(
+            lambda _checked=False, target_id=detection.detection_id: self.scale_detection_bbox_via_dialog(target_id)
+        )
+        menu.addSeparator()
+        delete_action = menu.addAction("Delete")
+        delete_action.triggered.connect(
+            lambda _checked=False, target_id=detection.detection_id: self.remove_molecular_detections((target_id,))
+        )
+        return menu
+
+    def show_detection_context_menu(self, detection_id: str, global_pos) -> None:
+        menu = self.build_detection_context_menu(detection_id)
+        menu.exec(global_pos)
+        menu.deleteLater()
+
+    def edit_detection_bbox_via_dialog(self, detection_id: str) -> MolecularDetection | None:
+        detection = self._active_molecular_detection_by_id(detection_id)
+        bbox_xyxy = DetectionBBoxDialog.get_bbox(self, detection.bbox_xyxy)
+        if bbox_xyxy is None:
+            return None
+        return self.edit_molecular_detection_bbox(detection.detection_id, bbox_xyxy)
+
+    def scale_detection_bbox_via_dialog(self, detection_id: str) -> MolecularDetection | None:
+        detection = self._active_molecular_detection_by_id(detection_id)
+        scale_factor = DetectionScaleDialog.get_scale_factor(self, self.scale_bbox_factor_spin.value())
+        if scale_factor is None:
+            return None
+        return self.scale_molecular_detection_bboxes((detection.detection_id,), scale_factor)[0]
+
+    def _active_molecular_detection_by_id(self, detection_id: str) -> MolecularDetection:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        target_id = str(detection_id)
         for detection in self._project.molecular_detections_for_working_frame(self._active_working_frame_index):
-            self._draw_molecular_detection(detection)
+            if detection.detection_id == target_id:
+                return detection
+        raise KeyError(f"Unknown active-frame molecular detection: {target_id}")
+
+    def _selected_molecular_detection(self) -> MolecularDetection:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        if self._selected_molecular_detection_id is None:
+            raise ValueError("Select a molecular detection first.")
+        for detection in self._project.molecular_detections_for_working_frame(self._active_working_frame_index):
+            if detection.detection_id == self._selected_molecular_detection_id:
+                return detection
+        raise KeyError(f"Unknown active-frame molecular detection: {self._selected_molecular_detection_id}")
 
     def _active_analysis_regions(self) -> list[AnalysisRegion]:
         if self._project is None:
@@ -1119,6 +1718,59 @@ class MolTrackWorkspace(QMainWindow):
             raise ValueError("Drawn polyline region requires at least three vertices.")
         return "polygon", vertices
 
+    def _manual_detection_bbox_geometry(self) -> tuple[float, float, float, float]:
+        if self._draft_detection_bbox_roi is None:
+            raise ValueError("No drawn detection bbox is available.")
+        pos = self._draft_detection_bbox_roi.pos()
+        size = self._draft_detection_bbox_roi.size()
+        return _sorted_rect_xyxy(
+            (
+                float(pos.x()),
+                float(pos.y()),
+                float(pos.x() + size.x()),
+                float(pos.y() + size.y()),
+            )
+        )
+
+    def _bbox_from_current_view_to_native(self, bbox_xyxy) -> tuple[float, float, float, float]:
+        region = AnalysisRegion.rectangle(
+            kind=AnalysisRegionKind.CUSTOM,
+            name="manual_detection_bbox",
+            color_rgb=(0, 220, 255),
+            rect_xyxy=_sorted_rect_xyxy(bbox_xyxy),
+        )
+        native_region = self._region_from_current_view_to_native(region)
+        return native_region.rect_xyxy
+
+    def _bbox_from_native_to_current_view(self, bbox_xyxy) -> tuple[float, float, float, float]:
+        region = AnalysisRegion.rectangle(
+            kind=AnalysisRegionKind.CUSTOM,
+            name="detection_bbox",
+            color_rgb=(0, 220, 255),
+            rect_xyxy=_sorted_rect_xyxy(bbox_xyxy),
+        )
+        if self._show_expanded_aligned_view:
+            region = self._region_to_expanded_canvas(region, self._active_working_frame_index)
+        return region.rect_xyxy
+
+    def _point_from_current_view_to_native(self, point_xy) -> tuple[float, float]:
+        x, y = (float(value) for value in point_xy)
+        if not self._show_expanded_aligned_view:
+            return x, y
+        origin = self._expanded_frame_origin_xy(self._active_working_frame_index)
+        return x - float(origin[0]), y - float(origin[1])
+
+    def commit_selected_detection_bbox_edit(self, bbox_xyxy=None) -> MolecularDetection:
+        detection_id = self._editing_detection_id or self._selected_molecular_detection_id
+        if detection_id is None:
+            raise ValueError("Select a molecular detection first.")
+        if bbox_xyxy is None:
+            bbox_xyxy = self._manual_detection_bbox_geometry()
+        native_bbox = self._bbox_from_current_view_to_native(bbox_xyxy)
+        updated_detection = self.edit_molecular_detection_bbox(detection_id, native_bbox)
+        self.clear_manual_detection_bbox()
+        return updated_detection
+
     def _on_add_rect_region(self) -> None:
         if self._project is None:
             QMessageBox.warning(self, "Add region", "Load or import a project before adding regions.")
@@ -1151,6 +1803,90 @@ class MolTrackWorkspace(QMainWindow):
             self.start_polyline_region_roi()
         except Exception as exc:
             QMessageBox.critical(self, "Draw region failed", str(exc))
+
+    def _on_draw_manual_detection_bbox(self) -> None:
+        if self._project is None:
+            QMessageBox.warning(self, "Draw detection", "Load or import a project before drawing detections.")
+            return
+        try:
+            self.start_manual_detection_bbox()
+        except Exception as exc:
+            QMessageBox.critical(self, "Draw detection failed", str(exc))
+
+    def _on_commit_manual_detection_bbox(self) -> None:
+        if self._project is None:
+            QMessageBox.warning(self, "Manual detection", "Load or import a project before adding detections.")
+            return
+        try:
+            bbox_xyxy = self._bbox_from_current_view_to_native(self._manual_detection_bbox_geometry())
+            self.add_manual_detection_bbox(bbox_xyxy)
+            self.clear_manual_detection_bbox()
+        except ValueError as exc:
+            QMessageBox.warning(self, "Manual detection", str(exc))
+        except Exception as exc:
+            QMessageBox.critical(self, "Manual detection failed", str(exc))
+
+    def _on_edit_selected_detection_bbox(self) -> None:
+        try:
+            self.start_selected_detection_bbox_edit()
+        except ValueError as exc:
+            QMessageBox.warning(self, "Edit detection", str(exc))
+        except Exception as exc:
+            QMessageBox.critical(self, "Edit detection failed", str(exc))
+
+    def _on_commit_detection_bbox_edit(self) -> None:
+        try:
+            self.commit_selected_detection_bbox_edit()
+        except ValueError as exc:
+            QMessageBox.warning(self, "Edit detection", str(exc))
+        except Exception as exc:
+            QMessageBox.critical(self, "Edit detection failed", str(exc))
+
+    def _on_delete_selected_detection(self) -> None:
+        try:
+            self.remove_selected_molecular_detection()
+        except ValueError as exc:
+            QMessageBox.warning(self, "Delete detection", str(exc))
+        except Exception as exc:
+            QMessageBox.critical(self, "Delete detection failed", str(exc))
+
+    def _on_delete_current_status(self) -> None:
+        try:
+            self.remove_current_frame_molecular_detections_by_status(
+                str(self.delete_status_combo.currentData() or DetectionReviewStatus.CANDIDATE.value)
+            )
+        except Exception as exc:
+            QMessageBox.critical(self, "Delete detection failed", str(exc))
+
+    def _on_delete_inside_selected_region(self) -> None:
+        region_name = self.selected_region_name()
+        if region_name is None:
+            QMessageBox.warning(self, "Delete detection", "Select a region before deleting detections inside it.")
+            return
+        try:
+            self.remove_current_frame_molecular_detections_inside_region(region_name)
+        except Exception as exc:
+            QMessageBox.critical(self, "Delete detection failed", str(exc))
+
+    def _on_scale_selected_bbox(self) -> None:
+        try:
+            self.scale_selected_molecular_detection_bbox(self.scale_bbox_factor_spin.value())
+        except ValueError as exc:
+            QMessageBox.warning(self, "Scale detection", str(exc))
+        except Exception as exc:
+            QMessageBox.critical(self, "Scale detection failed", str(exc))
+
+    def _on_scale_current_frame_bboxes(self) -> None:
+        try:
+            self.scale_current_frame_molecular_detection_bboxes(self.scale_bbox_factor_spin.value())
+        except Exception as exc:
+            QMessageBox.critical(self, "Scale detection failed", str(exc))
+
+    def _on_scale_all_bboxes(self) -> None:
+        try:
+            self.scale_all_molecular_detection_bboxes(self.scale_bbox_factor_spin.value())
+        except Exception as exc:
+            QMessageBox.critical(self, "Scale detection failed", str(exc))
 
     def _on_commit_drawn_region(self) -> None:
         if self._project is None:
@@ -1237,6 +1973,29 @@ class MolTrackWorkspace(QMainWindow):
             self.remove_analysis_region(region_name)
         except Exception as exc:
             QMessageBox.critical(self, "Delete region failed", str(exc))
+
+    def _on_set_selected_detection_status(self, status: DetectionReviewStatus) -> None:
+        try:
+            self.set_selected_molecular_detection_status(status)
+        except ValueError as exc:
+            QMessageBox.warning(self, "Detection review", str(exc))
+        except Exception as exc:
+            QMessageBox.critical(self, "Detection review failed", str(exc))
+
+    def _on_accept_all_current_frame(self) -> None:
+        try:
+            self.set_current_frame_molecular_detection_status(DetectionReviewStatus.ACCEPTED)
+        except Exception as exc:
+            QMessageBox.critical(self, "Detection review failed", str(exc))
+
+    def _on_accept_above_confidence(self) -> None:
+        try:
+            self.set_current_frame_molecular_detection_status_above_confidence(
+                self.accept_confidence_threshold_spin.value(),
+                DetectionReviewStatus.ACCEPTED,
+            )
+        except Exception as exc:
+            QMessageBox.critical(self, "Detection review failed", str(exc))
 
     def _on_copy_selected_region_to_series(self) -> None:
         region_name = self.selected_region_name()
@@ -1748,12 +2507,54 @@ def _bbox_centroid_xy(bbox_xyxy) -> tuple[float, float]:
     return (x0 + x1) / 2.0, (y0 + y1) / 2.0
 
 
+def _detection_list_label(detection: MolecularDetection) -> str:
+    region = detection.region_name or "-"
+    return (
+        f"{detection.detection_id} | {detection.review_status.value} | "
+        f"conf={detection.confidence:.3f} | region={region}"
+    )
+
+
+def _review_status_after_bbox_edit(status: DetectionReviewStatus) -> DetectionReviewStatus:
+    if status in {DetectionReviewStatus.CANDIDATE, DetectionReviewStatus.ACCEPTED}:
+        return DetectionReviewStatus.EDITED
+    return status
+
+
+def _valid_bbox_scale_factor(scale_factor: float) -> float:
+    scale_factor = float(scale_factor)
+    if not np.isfinite(scale_factor) or scale_factor <= 0.0:
+        raise ValueError("scale_factor must be a positive finite value.")
+    return scale_factor
+
+
+def _scale_bbox_xyxy(bbox_xyxy, scale_factor: float) -> tuple[float, float, float, float]:
+    x0, y0, x1, y1 = _sorted_rect_xyxy(bbox_xyxy)
+    scale_factor = _valid_bbox_scale_factor(scale_factor)
+    cx = (x0 + x1) / 2.0
+    cy = (y0 + y1) / 2.0
+    half_width = (x1 - x0) * scale_factor / 2.0
+    half_height = (y1 - y0) * scale_factor / 2.0
+    return (
+        cx - half_width,
+        cy - half_height,
+        cx + half_width,
+        cy + half_height,
+    )
+
+
 def _point_inside_analysis_region(region: AnalysisRegion, point_xy) -> bool:
     x, y = (float(value) for value in point_xy)
     if region.rect_xyxy is not None:
         x0, y0, x1, y1 = region.rect_xyxy
         return x0 <= x <= x1 and y0 <= y <= y1
     return _point_inside_polygon_xy((x, y), np.asarray(region.polygon_xy, dtype=np.float64))
+
+
+def _point_inside_bbox_xyxy(bbox_xyxy, point_xy) -> bool:
+    x, y = (float(value) for value in point_xy)
+    x0, y0, x1, y1 = _sorted_rect_xyxy(bbox_xyxy)
+    return x0 <= x <= x1 and y0 <= y <= y1
 
 
 def _point_inside_polygon_xy(point_xy: tuple[float, float], polygon_xy: np.ndarray) -> bool:
@@ -1962,6 +2763,109 @@ class YoloDetectionOptionsDialog(QDialog):
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return None
         return dialog.to_options()
+
+
+class DetectionBBoxDialog(QDialog):
+    """Dialog for editing one molecular detection bbox in native coordinates."""
+
+    def __init__(self, parent: QWidget | None = None, bbox_xyxy=None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Edit BBox")
+
+        layout = QFormLayout(self)
+        self.x0_spin = _coordinate_spinbox(self)
+        self.y0_spin = _coordinate_spinbox(self)
+        self.x1_spin = _coordinate_spinbox(self)
+        self.y1_spin = _coordinate_spinbox(self)
+        layout.addRow("x0", self.x0_spin)
+        layout.addRow("y0", self.y0_spin)
+        layout.addRow("x1", self.x1_spin)
+        layout.addRow("y1", self.y1_spin)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+            self,
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addRow(buttons)
+
+        x0, y0, x1, y1 = _sorted_rect_xyxy((0.0, 0.0, 1.0, 1.0) if bbox_xyxy is None else bbox_xyxy)
+        self.x0_spin.setValue(x0)
+        self.y0_spin.setValue(y0)
+        self.x1_spin.setValue(x1)
+        self.y1_spin.setValue(y1)
+
+    @classmethod
+    def get_bbox(
+        cls,
+        parent: QWidget | None,
+        bbox_xyxy=None,
+    ) -> tuple[float, float, float, float] | None:
+        dialog = cls(parent, bbox_xyxy)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return None
+        return dialog.to_bbox()
+
+    def to_bbox(self) -> tuple[float, float, float, float]:
+        x0, y0, x1, y1 = _sorted_rect_xyxy(
+            (
+                self.x0_spin.value(),
+                self.y0_spin.value(),
+                self.x1_spin.value(),
+                self.y1_spin.value(),
+            )
+        )
+        if x0 == x1 or y0 == y1:
+            raise ValueError("bbox must have positive width and height.")
+        return x0, y0, x1, y1
+
+    def accept(self) -> None:
+        try:
+            self.to_bbox()
+        except Exception as exc:
+            QMessageBox.warning(self, "Invalid bbox", str(exc))
+            return
+        super().accept()
+
+
+class DetectionScaleDialog(QDialog):
+    """Dialog for scaling one molecular detection bbox."""
+
+    def __init__(self, parent: QWidget | None = None, scale_factor: float = 1.0) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Scale BBox")
+
+        layout = QFormLayout(self)
+        self.scale_spin = QDoubleSpinBox(self)
+        self.scale_spin.setRange(0.05, 10.0)
+        self.scale_spin.setSingleStep(0.05)
+        self.scale_spin.setDecimals(3)
+        self.scale_spin.setValue(_valid_bbox_scale_factor(scale_factor))
+        self.scale_spin.setPrefix("Scale x ")
+        layout.addRow("Factor", self.scale_spin)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+            self,
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addRow(buttons)
+
+    @classmethod
+    def get_scale_factor(
+        cls,
+        parent: QWidget | None,
+        scale_factor: float = 1.0,
+    ) -> float | None:
+        dialog = cls(parent, scale_factor)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return None
+        return dialog.to_scale_factor()
+
+    def to_scale_factor(self) -> float:
+        return _valid_bbox_scale_factor(self.scale_spin.value())
 
 
 class AnalysisRegionRectDialog(QDialog):

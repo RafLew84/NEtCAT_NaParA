@@ -11,10 +11,13 @@ import numpy as np
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
-    from PyQt6.QtWidgets import QApplication, QDialog
+    from PyQt6.QtWidgets import QApplication, QDialog, QGroupBox, QPushButton, QScrollArea
 except ImportError:  # pragma: no cover - optional outside the target GUI env
     QApplication = None
     QDialog = None
+    QGroupBox = None
+    QPushButton = None
+    QScrollArea = None
 
 
 def _project_with_frames():
@@ -35,6 +38,14 @@ def _project_with_frames():
         raw_frames=frames,
     )
     return MolTrackProject.from_source_series(source, reverse_frame_order=True), frames
+
+
+def _trigger_menu_action(menu, action_text: str) -> None:
+    for action in menu.actions():
+        if action.text() == action_text:
+            action.trigger()
+            return
+    raise AssertionError(f"Missing menu action: {action_text}")
 
 
 @unittest.skipUnless(QApplication is not None, "PyQt6 is required for MolTrack GUI tests")
@@ -119,6 +130,40 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.region_list.count(), 0)
         self.assertEqual(self.window.expanded_region_mode_combo.itemData(0), "fixed_canvas")
         self.assertEqual(self.window.expanded_region_mode_combo.itemData(1), "move_with_image")
+
+    def test_side_panel_groups_controls_and_adds_tooltips(self) -> None:
+        scroll = self.window.findChild(QScrollArea, "moltrack-side-panel-scroll")
+        self.assertIsNotNone(scroll)
+        group_titles = [group.title() for group in self.window.findChildren(QGroupBox)]
+        self.assertEqual(
+            group_titles,
+            [
+                "Regions",
+                "Region Actions",
+                "Detections",
+                "Manual Detection",
+                "Review Current Frame",
+                "Delete Current Frame",
+                "Scale BBoxes",
+            ],
+        )
+        for widget in (
+            self.window.expanded_region_mode_combo,
+            self.window.region_list,
+            self.window.detection_list,
+            self.window.draw_manual_detection_button,
+            self.window.commit_manual_detection_button,
+            self.window.accept_all_current_frame_button,
+            self.window.accept_confidence_threshold_spin,
+            self.window.accept_above_confidence_button,
+            self.window.delete_status_combo,
+            self.window.delete_current_status_button,
+            self.window.delete_inside_selected_region_button,
+            self.window.scale_bbox_factor_spin,
+            self.window.scale_current_frame_bboxes_button,
+            self.window.scale_all_bboxes_button,
+        ):
+            self.assertTrue(widget.toolTip(), widget.objectName() or widget.__class__.__name__)
 
     def test_registration_menu_exposes_run_registration_action(self) -> None:
         registration_menu = None
@@ -880,6 +925,807 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(progress_events, [(1, 2, 0)])
         frame_one_detections = self.window.current_project().molecular_detections_for_working_frame(1)
         self.assertEqual(frame_one_detections, (unprocessed_inside_roi,))
+
+    def test_detection_list_shows_active_frame_detection_summary(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+
+        current_detection = MolecularDetection(
+            detection_id="det-current",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.876,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="roi_replace",
+            region_name="Terrace A",
+        )
+        other_frame_detection = MolecularDetection(
+            detection_id="det-other",
+            working_frame_index=2,
+            source_frame_index=0,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.5,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        project, _frames = _project_with_frames()
+        project = project.with_molecular_detections((current_detection, other_frame_detection))
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+
+        self.assertEqual(self.window.detection_list.objectName(), "moltrack-detection-list")
+        self.assertEqual(self.window.detection_list.count(), 1)
+        self.assertEqual(
+            self.window.detection_list.item(0).text(),
+            "det-current | candidate | conf=0.876 | region=Terrace A",
+        )
+
+    def test_clicking_detection_list_item_highlights_detection_bbox_in_viewer(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+
+        detection_a = MolecularDetection(
+            detection_id="det-a",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.8,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        detection_b = MolecularDetection(
+            detection_id="det-b",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(2.0, 2.0, 3.0, 3.0),
+            confidence=0.9,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        project, _frames = _project_with_frames()
+        project = project.with_molecular_detections((detection_a, detection_b))
+
+        with patch.object(self.window.viewer, "add_polyline_nm", return_value=object()) as add_mock:
+            self.window.set_project(project)
+            self.window.set_active_working_frame_index(1)
+            add_mock.reset_mock()
+
+            self.window.detection_list.setCurrentRow(1)
+
+        selected_calls = [
+            call
+            for call in add_mock.call_args_list
+            if call.kwargs.get("name") == "det-b"
+        ]
+        self.assertTrue(selected_calls)
+        self.assertEqual(selected_calls[-1].kwargs["color"], (0, 220, 255))
+        self.assertEqual(selected_calls[-1].kwargs["width"], 3.0)
+
+    def test_detection_context_menu_replaces_selected_bbox_panel_actions(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+
+        detection = MolecularDetection(
+            detection_id="det-current",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.876,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        project, _frames = _project_with_frames()
+        project = project.with_molecular_detections((detection,))
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        menu = self.window.build_detection_context_menu("det-current")
+        self.addCleanup(menu.deleteLater)
+
+        self.assertEqual(
+            [action.text() for action in menu.actions() if not action.isSeparator()],
+            ["Accept", "Reject", "Uncertain", "Edit BBox...", "Scale BBox...", "Delete"],
+        )
+        for object_name in (
+            "moltrack-edit-selected-detection-bbox-button",
+            "moltrack-commit-detection-bbox-edit-button",
+            "moltrack-delete-selected-detection-button",
+            "moltrack-scale-selected-bbox-button",
+            "moltrack-accept-selected-detection-button",
+            "moltrack-reject-selected-detection-button",
+            "moltrack-mark-uncertain-detection-button",
+        ):
+            self.assertIsNone(self.window.findChild(QPushButton, object_name))
+        for object_name in (
+            "moltrack-delete-current-status-button",
+            "moltrack-delete-inside-selected-region-button",
+            "moltrack-scale-current-frame-bboxes-button",
+            "moltrack-scale-all-bboxes-button",
+            "moltrack-accept-all-current-frame-button",
+            "moltrack-accept-above-confidence-button",
+        ):
+            self.assertIsNotNone(self.window.findChild(QPushButton, object_name))
+
+    def test_accept_selected_detection_updates_project_list_and_keeps_selection(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+
+        detection = MolecularDetection(
+            detection_id="det-candidate",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.876,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        project, _frames = _project_with_frames()
+        project = project.with_molecular_detections((detection,))
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        self.window.detection_list.setCurrentRow(0)
+
+        menu = self.window.build_detection_context_menu("det-candidate")
+        self.addCleanup(menu.deleteLater)
+        _trigger_menu_action(menu, "Accept")
+
+        updated = self.window.current_project().molecular_detections_for_working_frame(1)[0]
+        self.assertEqual(updated.review_status, DetectionReviewStatus.ACCEPTED)
+        self.assertEqual(self.window.selected_molecular_detection_id(), "det-candidate")
+        self.assertEqual(
+            self.window.detection_list.item(0).text(),
+            "det-candidate | accepted | conf=0.876 | region=-",
+        )
+
+    def test_reject_and_uncertain_selected_detection_buttons_update_status(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+
+        detection = MolecularDetection(
+            detection_id="det-candidate",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.876,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        project, _frames = _project_with_frames()
+        project = project.with_molecular_detections((detection,))
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        self.window.detection_list.setCurrentRow(0)
+        menu = self.window.build_detection_context_menu("det-candidate")
+        self.addCleanup(menu.deleteLater)
+
+        _trigger_menu_action(menu, "Reject")
+        rejected = self.window.current_project().molecular_detections_for_working_frame(1)[0]
+        self.assertEqual(rejected.review_status, DetectionReviewStatus.REJECTED)
+        self.assertIn("det-candidate | rejected", self.window.detection_list.item(0).text())
+
+        _trigger_menu_action(menu, "Uncertain")
+        uncertain = self.window.current_project().molecular_detections_for_working_frame(1)[0]
+        self.assertEqual(uncertain.review_status, DetectionReviewStatus.UNCERTAIN)
+        self.assertIn("det-candidate | uncertain", self.window.detection_list.item(0).text())
+
+    def test_accept_all_current_frame_updates_only_active_frame_detections(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+
+        active_candidate = MolecularDetection(
+            detection_id="active-candidate",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.6,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        active_uncertain = MolecularDetection(
+            detection_id="active-uncertain",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(1.0, 1.0, 2.0, 2.0),
+            confidence=0.7,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.UNCERTAIN,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        other_frame_candidate = MolecularDetection(
+            detection_id="other-candidate",
+            working_frame_index=2,
+            source_frame_index=0,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.9,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        project, _frames = _project_with_frames()
+        project = project.with_molecular_detections((active_candidate, active_uncertain, other_frame_candidate))
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+
+        self.window.accept_all_current_frame_button.click()
+
+        active_statuses = [
+            detection.review_status
+            for detection in self.window.current_project().molecular_detections_for_working_frame(1)
+        ]
+        other_status = self.window.current_project().molecular_detections_for_working_frame(2)[0].review_status
+        self.assertEqual(active_statuses, [DetectionReviewStatus.ACCEPTED, DetectionReviewStatus.ACCEPTED])
+        self.assertEqual(other_status, DetectionReviewStatus.CANDIDATE)
+        self.assertIn("active-candidate | accepted", self.window.detection_list.item(0).text())
+        self.assertIn("active-uncertain | accepted", self.window.detection_list.item(1).text())
+
+    def test_accept_all_above_confidence_updates_only_matching_active_frame_detections(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+
+        high_confidence = MolecularDetection(
+            detection_id="high-confidence",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.86,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        low_confidence = MolecularDetection(
+            detection_id="low-confidence",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(1.0, 1.0, 2.0, 2.0),
+            confidence=0.73,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        other_frame_high_confidence = MolecularDetection(
+            detection_id="other-high-confidence",
+            working_frame_index=2,
+            source_frame_index=0,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.91,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        project, _frames = _project_with_frames()
+        project = project.with_molecular_detections(
+            (high_confidence, low_confidence, other_frame_high_confidence)
+        )
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        self.window.accept_confidence_threshold_spin.setValue(0.80)
+
+        self.window.accept_above_confidence_button.click()
+
+        active_detections = self.window.current_project().molecular_detections_for_working_frame(1)
+        other_detection = self.window.current_project().molecular_detections_for_working_frame(2)[0]
+        self.assertEqual(active_detections[0].review_status, DetectionReviewStatus.ACCEPTED)
+        self.assertEqual(active_detections[1].review_status, DetectionReviewStatus.CANDIDATE)
+        self.assertEqual(other_detection.review_status, DetectionReviewStatus.CANDIDATE)
+        self.assertIn("high-confidence | accepted", self.window.detection_list.item(0).text())
+        self.assertIn("low-confidence | candidate", self.window.detection_list.item(1).text())
+
+    def test_manual_detection_from_drawn_bbox_creates_manual_detection_on_active_frame(self) -> None:
+        from moltrack.core import DetectionReviewStatus
+
+        project, _frames = _project_with_frames()
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        self.window.start_manual_detection_bbox((0.25, 0.5, 1.25, 1.75))
+
+        self.window.commit_manual_detection_button.click()
+
+        detections = self.window.current_project().molecular_detections_for_working_frame(1)
+        self.assertEqual(len(detections), 1)
+        detection = detections[0]
+        self.assertEqual(detection.detection_id, "manual-w0001-0000")
+        self.assertEqual(detection.working_frame_index, 1)
+        self.assertEqual(detection.source_frame_index, 1)
+        self.assertEqual(detection.bbox_xyxy, (0.25, 0.5, 1.25, 1.75))
+        self.assertEqual(detection.confidence, 1.0)
+        self.assertEqual(detection.model_name, "manual")
+        self.assertEqual(detection.review_status, DetectionReviewStatus.MANUAL)
+        self.assertEqual(detection.backend_name, "manual")
+        self.assertEqual(detection.run_mode, "full_frame")
+        self.assertEqual(self.window.selected_molecular_detection_id(), "manual-w0001-0000")
+        self.assertEqual(
+            self.window.detection_list.item(0).text(),
+            "manual-w0001-0000 | manual | conf=1.000 | region=-",
+        )
+
+    def test_manual_detection_drawn_on_expanded_aligned_view_is_saved_in_native_coordinates(self) -> None:
+        from moltrack.core import DetectionReviewStatus, RegistrationShift
+        from nanotrack.core import STMSequenceMetadata
+        from nanotrack.registration import ExpandedAlignedStack
+
+        project, _frames = _project_with_frames()
+        project = project.with_registration_shifts(
+            (
+                RegistrationShift(working_frame_index=0, dx=0.0, dy=0.0, method="identity"),
+                RegistrationShift(working_frame_index=1, dx=3.0, dy=-2.0, method="manual"),
+                RegistrationShift(working_frame_index=2, dx=7.0, dy=1.0, method="manual"),
+            )
+        )
+        expanded = ExpandedAlignedStack(
+            frames=np.ones((3, 8, 12), dtype=np.float32),
+            canvas_offset_xy=(0.0, 2.0),
+            padding_ltrb=(0, 2, 7, 1),
+            frame_origins_xy=np.asarray([[0.0, 2.0], [3.0, 0.0], [7.0, 3.0]], dtype=np.float64),
+            metadata=STMSequenceMetadata(pixels_x=12, pixels_y=8),
+        )
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        with patch("moltrack.ui.main_window.expanded_registered_working_stack", return_value=expanded):
+            self.window.show_expanded_aligned_action.setChecked(True)
+            self.__class__._app.processEvents()
+            self.window.start_manual_detection_bbox((4.0, 2.0, 6.0, 5.0))
+
+            self.window.commit_manual_detection_button.click()
+
+        detections = self.window.current_project().molecular_detections_for_working_frame(1)
+        self.assertEqual(len(detections), 1)
+        self.assertEqual(detections[0].bbox_xyxy, (1.0, 2.0, 3.0, 5.0))
+        self.assertEqual(detections[0].review_status, DetectionReviewStatus.MANUAL)
+
+    def test_edit_selected_candidate_detection_bbox_updates_bbox_and_marks_edited(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+
+        detection = MolecularDetection(
+            detection_id="det-candidate",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.72,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        project, _frames = _project_with_frames()
+        project = project.with_molecular_detections((detection,))
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        self.window.select_molecular_detection("det-candidate")
+        menu = self.window.build_detection_context_menu("det-candidate")
+        self.addCleanup(menu.deleteLater)
+
+        with patch(
+            "moltrack.ui.main_window.DetectionBBoxDialog.get_bbox",
+            return_value=(0.25, 0.5, 1.5, 1.75),
+        ):
+            _trigger_menu_action(menu, "Edit BBox...")
+
+        updated = self.window.current_project().molecular_detections_for_working_frame(1)[0]
+        self.assertEqual(updated.bbox_xyxy, (0.25, 0.5, 1.5, 1.75))
+        self.assertEqual(updated.review_status, DetectionReviewStatus.EDITED)
+        self.assertEqual(updated.backend_name, "yolo")
+        self.assertEqual(self.window.selected_molecular_detection_id(), "det-candidate")
+        self.assertEqual(
+            self.window.detection_list.item(0).text(),
+            "det-candidate | edited | conf=0.720 | region=-",
+        )
+
+    def test_editing_accepted_bbox_marks_edited_but_manual_bbox_stays_manual(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+
+        accepted_detection = MolecularDetection(
+            detection_id="det-accepted",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.82,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        manual_detection = MolecularDetection(
+            detection_id="det-manual",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(2.0, 2.0, 3.0, 3.0),
+            confidence=1.0,
+            model_name="manual",
+            review_status=DetectionReviewStatus.MANUAL,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        project, _frames = _project_with_frames()
+        project = project.with_molecular_detections((accepted_detection, manual_detection))
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        self.window.select_molecular_detection("det-accepted")
+        self.window.start_selected_detection_bbox_edit()
+        self.window.commit_selected_detection_bbox_edit((0.25, 0.5, 1.5, 1.75))
+
+        self.window.select_molecular_detection("det-manual")
+        self.window.start_selected_detection_bbox_edit()
+        self.window.commit_selected_detection_bbox_edit((2.25, 2.5, 3.5, 3.75))
+
+        detections = self.window.current_project().molecular_detections_for_working_frame(1)
+        self.assertEqual(detections[0].review_status, DetectionReviewStatus.EDITED)
+        self.assertEqual(detections[0].bbox_xyxy, (0.25, 0.5, 1.5, 1.75))
+        self.assertEqual(detections[1].review_status, DetectionReviewStatus.MANUAL)
+        self.assertEqual(detections[1].bbox_xyxy, (2.25, 2.5, 3.5, 3.75))
+
+    def test_editing_bbox_on_expanded_aligned_view_is_saved_in_native_coordinates(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection, RegistrationShift
+        from nanotrack.core import STMSequenceMetadata
+        from nanotrack.registration import ExpandedAlignedStack
+
+        detection = MolecularDetection(
+            detection_id="det-candidate",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.72,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        project, _frames = _project_with_frames()
+        project = project.with_molecular_detections((detection,)).with_registration_shifts(
+            (
+                RegistrationShift(working_frame_index=0, dx=0.0, dy=0.0, method="identity"),
+                RegistrationShift(working_frame_index=1, dx=3.0, dy=-2.0, method="manual"),
+                RegistrationShift(working_frame_index=2, dx=7.0, dy=1.0, method="manual"),
+            )
+        )
+        expanded = ExpandedAlignedStack(
+            frames=np.ones((3, 8, 12), dtype=np.float32),
+            canvas_offset_xy=(0.0, 2.0),
+            padding_ltrb=(0, 2, 7, 1),
+            frame_origins_xy=np.asarray([[0.0, 2.0], [3.0, 0.0], [7.0, 3.0]], dtype=np.float64),
+            metadata=STMSequenceMetadata(pixels_x=12, pixels_y=8),
+        )
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        self.window.select_molecular_detection("det-candidate")
+        with patch("moltrack.ui.main_window.expanded_registered_working_stack", return_value=expanded):
+            self.window.show_expanded_aligned_action.setChecked(True)
+            self.__class__._app.processEvents()
+            self.window.start_selected_detection_bbox_edit()
+
+            self.window.commit_selected_detection_bbox_edit((4.0, 2.0, 6.0, 5.0))
+
+        updated = self.window.current_project().molecular_detections_for_working_frame(1)[0]
+        self.assertEqual(updated.bbox_xyxy, (1.0, 2.0, 3.0, 5.0))
+        self.assertEqual(updated.review_status, DetectionReviewStatus.EDITED)
+
+    def test_delete_selected_detection_removes_only_selected_detection(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+
+        selected_detection = MolecularDetection(
+            detection_id="det-delete",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.72,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        kept_detection = MolecularDetection(
+            detection_id="det-keep",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(2.0, 2.0, 3.0, 3.0),
+            confidence=0.91,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        project, _frames = _project_with_frames()
+        project = project.with_molecular_detections((selected_detection, kept_detection))
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        self.window.select_molecular_detection("det-delete")
+
+        menu = self.window.build_detection_context_menu("det-delete")
+        self.addCleanup(menu.deleteLater)
+        _trigger_menu_action(menu, "Delete")
+
+        detections = self.window.current_project().molecular_detections_for_working_frame(1)
+        self.assertEqual(detections, (kept_detection,))
+        self.assertIsNone(self.window.selected_molecular_detection_id())
+        self.assertEqual(self.window.detection_list.count(), 1)
+        self.assertIn("det-keep | accepted", self.window.detection_list.item(0).text())
+
+    def test_delete_current_frame_detections_by_status_removes_only_matching_active_frame_status(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+
+        active_candidate = MolecularDetection(
+            detection_id="active-candidate",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.72,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        active_accepted = MolecularDetection(
+            detection_id="active-accepted",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(1.0, 1.0, 2.0, 2.0),
+            confidence=0.91,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        other_frame_candidate = MolecularDetection(
+            detection_id="other-candidate",
+            working_frame_index=2,
+            source_frame_index=0,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.88,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        project, _frames = _project_with_frames()
+        project = project.with_molecular_detections(
+            (active_candidate, active_accepted, other_frame_candidate)
+        )
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        self.window.delete_status_combo.setCurrentIndex(
+            self.window.delete_status_combo.findData(DetectionReviewStatus.CANDIDATE.value)
+        )
+
+        self.window.delete_current_status_button.click()
+
+        active_detections = self.window.current_project().molecular_detections_for_working_frame(1)
+        other_detections = self.window.current_project().molecular_detections_for_working_frame(2)
+        self.assertEqual(active_detections, (active_accepted,))
+        self.assertEqual(other_detections, (other_frame_candidate,))
+        self.assertEqual(self.window.detection_list.count(), 1)
+        self.assertIn("active-accepted | accepted", self.window.detection_list.item(0).text())
+
+    def test_delete_detections_inside_selected_region_removes_only_active_frame_centroid_matches(self) -> None:
+        from moltrack.core import AnalysisRegion, DetectionReviewStatus, MolecularDetection
+
+        roi = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="ROI A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(0.0, 0.0, 2.0, 2.0),
+        )
+        inside_active = MolecularDetection(
+            detection_id="inside-active",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.25, 0.25, 1.0, 1.0),
+            confidence=0.72,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        outside_active = MolecularDetection(
+            detection_id="outside-active",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(3.0, 3.0, 4.0, 4.0),
+            confidence=0.91,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        inside_other_frame = MolecularDetection(
+            detection_id="inside-other-frame",
+            working_frame_index=2,
+            source_frame_index=0,
+            bbox_xyxy=(0.25, 0.25, 1.0, 1.0),
+            confidence=0.88,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        project, _frames = _project_with_frames()
+        project = project.with_analysis_regions(
+            (roi,),
+            molecular_detections=(inside_active, outside_active, inside_other_frame),
+        )
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        self.window.select_analysis_region("ROI A")
+
+        self.window.delete_inside_selected_region_button.click()
+
+        active_detections = self.window.current_project().molecular_detections_for_working_frame(1)
+        other_detections = self.window.current_project().molecular_detections_for_working_frame(2)
+        self.assertEqual(active_detections, (outside_active,))
+        self.assertEqual(other_detections, (inside_other_frame,))
+        self.assertEqual(self.window.detection_list.count(), 1)
+        self.assertIn("outside-active | accepted", self.window.detection_list.item(0).text())
+
+    def test_scale_selected_detection_bbox_scales_around_bbox_center_and_marks_edited(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+
+        selected_detection = MolecularDetection(
+            detection_id="det-scale",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(1.0, 2.0, 5.0, 6.0),
+            confidence=0.72,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        kept_detection = MolecularDetection(
+            detection_id="det-keep",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(10.0, 10.0, 12.0, 12.0),
+            confidence=0.91,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        project, _frames = _project_with_frames()
+        project = project.with_molecular_detections((selected_detection, kept_detection))
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        self.window.select_molecular_detection("det-scale")
+
+        menu = self.window.build_detection_context_menu("det-scale")
+        self.addCleanup(menu.deleteLater)
+        with patch("moltrack.ui.main_window.DetectionScaleDialog.get_scale_factor", return_value=1.5):
+            _trigger_menu_action(menu, "Scale BBox...")
+
+        scaled_detection, unchanged_detection = self.window.current_project().molecular_detections_for_working_frame(1)
+        self.assertEqual(scaled_detection.detection_id, "det-scale")
+        self.assertEqual(scaled_detection.bbox_xyxy, (0.0, 1.0, 6.0, 7.0))
+        self.assertEqual(scaled_detection.review_status, DetectionReviewStatus.EDITED)
+        self.assertEqual(unchanged_detection, kept_detection)
+        self.assertEqual(self.window.selected_molecular_detection_id(), "det-scale")
+        self.assertIn("det-scale | edited", self.window.detection_list.item(0).text())
+
+    def test_scale_current_frame_detection_bboxes_scales_only_active_working_frame(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+
+        active_candidate = MolecularDetection(
+            detection_id="active-candidate",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 4.0, 4.0),
+            confidence=0.72,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        active_manual = MolecularDetection(
+            detection_id="active-manual",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(4.0, 4.0, 8.0, 6.0),
+            confidence=1.0,
+            model_name="manual",
+            review_status=DetectionReviewStatus.MANUAL,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        other_frame_accepted = MolecularDetection(
+            detection_id="other-accepted",
+            working_frame_index=2,
+            source_frame_index=0,
+            bbox_xyxy=(0.0, 0.0, 4.0, 4.0),
+            confidence=0.91,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        project, _frames = _project_with_frames()
+        project = project.with_molecular_detections(
+            (active_candidate, active_manual, other_frame_accepted)
+        )
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        self.window.scale_bbox_factor_spin.setValue(0.5)
+
+        self.window.scale_current_frame_bboxes_button.click()
+
+        active_detections = self.window.current_project().molecular_detections_for_working_frame(1)
+        other_detections = self.window.current_project().molecular_detections_for_working_frame(2)
+        self.assertEqual(active_detections[0].bbox_xyxy, (1.0, 1.0, 3.0, 3.0))
+        self.assertEqual(active_detections[0].review_status, DetectionReviewStatus.EDITED)
+        self.assertEqual(active_detections[1].bbox_xyxy, (5.0, 4.5, 7.0, 5.5))
+        self.assertEqual(active_detections[1].review_status, DetectionReviewStatus.MANUAL)
+        self.assertEqual(other_detections, (other_frame_accepted,))
+        self.assertEqual(self.window.detection_list.count(), 2)
+
+    def test_scale_all_detection_bboxes_scales_every_working_frame(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+
+        active_candidate = MolecularDetection(
+            detection_id="active-candidate",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(2.0, 2.0, 4.0, 4.0),
+            confidence=0.72,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        other_frame_accepted = MolecularDetection(
+            detection_id="other-accepted",
+            working_frame_index=2,
+            source_frame_index=0,
+            bbox_xyxy=(10.0, 10.0, 12.0, 16.0),
+            confidence=0.91,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        project, _frames = _project_with_frames()
+        project = project.with_molecular_detections((active_candidate, other_frame_accepted))
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+        self.window.select_molecular_detection("active-candidate")
+        self.window.scale_bbox_factor_spin.setValue(2.0)
+
+        self.window.scale_all_bboxes_button.click()
+
+        active_detection = self.window.current_project().molecular_detections_for_working_frame(1)[0]
+        other_detection = self.window.current_project().molecular_detections_for_working_frame(2)[0]
+        self.assertEqual(active_detection.bbox_xyxy, (1.0, 1.0, 5.0, 5.0))
+        self.assertEqual(active_detection.review_status, DetectionReviewStatus.EDITED)
+        self.assertEqual(other_detection.bbox_xyxy, (9.0, 7.0, 13.0, 19.0))
+        self.assertEqual(other_detection.review_status, DetectionReviewStatus.EDITED)
+        self.assertEqual(self.window.selected_molecular_detection_id(), "active-candidate")
+        self.assertIn("active-candidate | edited", self.window.detection_list.item(0).text())
 
     def test_add_rect_region_action_adds_dialog_region_to_project_and_list(self) -> None:
         from moltrack.core import AnalysisRegion

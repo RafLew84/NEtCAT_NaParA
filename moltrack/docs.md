@@ -801,6 +801,72 @@ Tryb `Detect Selected ROI on Frame Range...`:
 - UI pokazuje dialog postepu z Cancel; po przerwaniu zapisane sa wyniki juz ukonczonych klatek.
 
 Detekcje sa trzymane w `MolTrackProject.molecular_detections` i zapisywane w manifestcie `.moltrack` jako `molecular_detections`.
+Panel boczny jest podzielony na sekcje:
+
+- `Regions` - tryb regionow expanded/aligned i lista regionow aktywnej klatki,
+- `Region Actions` - tworzenie, edycja, kasowanie i kopiowanie regionow,
+- `Detections` - lista detekcji aktywnej klatki,
+- `Manual Detection` - reczne dodawanie bboxa,
+- `Review Current Frame` - zbiorcze zatwierdzanie detekcji na aktywnej klatce,
+- `Delete Current Frame` - zbiorcze usuwanie detekcji aktywnej klatki,
+- `Scale BBoxes` - zbiorcze skalowanie bboxow.
+
+Kazda wazna kontrolka ma tooltip. Panel jest przewijany, zeby przy mniejszym oknie nie upychac wszystkich opcji w jednej nieczytelnej kolumnie.
+
+Lista `Detections` pokazuje detekcje aktywnej klatki. Kazdy wpis pokazuje:
+
+- `detection_id`,
+- `review_status`,
+- `confidence`,
+- `region_name` albo `-`.
+
+Po kliknieciu detekcji jej bbox jest przerysowany w viewerze jako zaznaczony overlay.
+Pojedyncze akcje bboxa sa dostepne przez prawy klik na bbox w viewerze:
+
+- `Accept` ustawia status zaznaczonej detekcji na `accepted`,
+- `Reject` ustawia status zaznaczonej detekcji na `rejected`,
+- `Uncertain` ustawia status zaznaczonej detekcji na `uncertain`,
+- `Edit BBox...` otwiera dialog edycji wspolrzednych,
+- `Scale BBox...` otwiera dialog skali dla jednego bboxa,
+- `Delete` usuwa wskazana detekcje.
+
+W panelu `Review Current Frame` sa dostepne akcje zbiorcze:
+
+- `Accept Current` ustawia status `accepted` dla wszystkich detekcji aktywnej klatki,
+- `Conf >= ...` ustawia prog confidence dla akcji zbiorczej,
+- `Accept Above Conf` ustawia status `accepted` tylko dla detekcji aktywnej klatki z `confidence >= prog`.
+
+Pod lista sa tez akcje recznego dodawania:
+
+- `Draw BBox` tworzy edytowalny prostokat bbox na aktualnym widoku,
+- `Commit Manual` zapisuje bbox jako `MolecularDetection` na aktywnej klatce,
+- reczna detekcja ma `review_status = manual`, `backend_name = manual`, `model_name = manual`, `confidence = 1.0`,
+- bbox jest zapisywany w native coordinates; jesli widok jest expanded/aligned, wspolrzedne sa przeliczane z canvasu expanded do natywnego ukladu aktywnej klatki.
+
+Akcje dla pojedynczego bboxa:
+
+- prawy klik na bbox na viewerze zaznacza detekcje i otwiera menu kontekstowe,
+- menu kontekstowe zawiera `Accept`, `Reject`, `Uncertain`, `Edit BBox...`, `Scale BBox...` i `Delete`,
+- `Edit BBox...` otwiera dialog wspolrzednych bboxa i zapisuje zmiane w tej samej detekcji,
+- `Scale BBox...` otwiera dialog skali i skaluje tylko wskazana detekcje,
+- `Delete` usuwa tylko wskazana detekcje,
+- jesli edytowana detekcja miala status `candidate` albo `accepted`, status zmienia sie na `edited`,
+- detekcje `manual`, `rejected`, `uncertain` i juz `edited` zachowuja swoj status po zmianie bboxa,
+- edytowany bbox jest zapisywany w native coordinates.
+
+Akcje zbiorcze bboxow w panelu bocznym:
+
+- lista statusow i `Delete Status` usuwaja detekcje o wybranym statusie tylko z aktywnej klatki,
+- `Delete in Region` usuwa z aktywnej klatki detekcje, ktorych centroid bboxa lezy wewnatrz zaznaczonego regionu,
+- `Scale x ...` ustawia mnoznik skali bboxa,
+- `Scale Current` skaluje wszystkie detekcje aktywnej working frame,
+- `Scale All` skaluje detekcje ze wszystkich working frames,
+- `Accept Current` ustawia status `accepted` dla wszystkich detekcji aktywnej klatki,
+- `Accept Above Conf` ustawia status `accepted` dla detekcji aktywnej klatki powyzej progu confidence,
+- kasowanie wewnatrz regionu uzywa aktywnej geometrii regionu dla biezacej working frame,
+- skalowanie jest wykonywane wzgledem srodka kazdego bboxa,
+- skalowanie traktowane jest jak edycja bboxa: status `candidate` albo `accepted` przechodzi na `edited`, a statusy `manual`, `rejected`, `uncertain` i `edited` pozostaja bez automatycznej zmiany.
+
 Round-trip zachowuje:
 
 - `detection_id`,
@@ -818,8 +884,6 @@ Round-trip zachowuje:
 
 Na tym etapie nie ma jeszcze:
 
-- listy i review detekcji,
-- recznej edycji bboxow,
 - metryk populacyjnych,
 - metryk uporzadkowania rzedow,
 - masek instancji,
