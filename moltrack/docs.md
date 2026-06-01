@@ -907,6 +907,104 @@ Opcja `All regions` agreguje aktywne regiony inne niz `ignore` per working frame
 
 Po wyborze konkretnego regionu dialog pokazuje te same trzy serie tylko dla tego regionu. Dane pochodza z `PopulationMetrics.from_project(project)`, wiec obowiazuje ten sam filtr domyslnej analizy: `accepted`, `edited` i `manual`; bez `candidate`, `rejected`, `uncertain` oraz bez regionow `ignore`.
 
+## Centroid Nearest-Neighbour Metrics
+
+`CentroidNearestNeighbourMetrics.from_project(project)` liczy rozklad odleglosci najblizszego sasiada z centroidow bboxow `MolecularDetection`.
+
+Metryki sa liczone per working frame i per aktywny region analizy inny niz `ignore`. Kazdy wiersz `CentroidNearestNeighbourMetricRow` zawiera:
+
+- `working_frame_index` i `source_frame_index`,
+- `region_name` i `region_kind`,
+- `detection_count`,
+- `nearest_neighbour_count`,
+- `nearest_neighbour_distances_px`,
+- `mean_nearest_neighbour_distance_px`,
+- `median_nearest_neighbour_distance_px`.
+
+Obowiazuje ten sam filtr domyslnej analizy co w metrykach populacyjnych: liczone sa tylko `accepted`, `edited` i `manual`. Detekcje `candidate`, `rejected` i `uncertain` sa pominiete. Detekcje z regionow `ignore` sa pominiete. Jezeli detekcja nie ma zapisanego `region_name`, metryki tymczasowo przypisuja region po centroidzie bboxa bez mutowania projektu.
+
+Odleglosci sa wyrazone w pikselach natywnego ukladu klatki. Dla regionu z mniej niz dwiema detekcjami rozklad jest pusty, a srednia i mediana wynosza `0.0`.
+
+## Molecular Row Orientation Metrics
+
+`MolecularRowOrientationMetrics.from_project(project)` estymuje dominujaca orientacje rzedow molekul z centroidow bboxow `MolecularDetection`.
+
+Metryki sa liczone per working frame i per aktywny region analizy inny niz `ignore`. Kazdy wiersz `MolecularRowOrientationMetricRow` zawiera:
+
+- `working_frame_index` i `source_frame_index`,
+- `region_name` i `region_kind`,
+- `detection_count`,
+- `orientation_degrees`,
+- `orientation_confidence`.
+
+Orientacja jest liczona metoda PCA na centroidach w natywnym ukladzie klatki. `orientation_degrees` jest katem w stopniach w zakresie `[0, 180)`: `0` oznacza rzad poziomy, `90` pionowy, a `45` przekatna w dol-prawo w ukladzie obrazu. `orientation_confidence` jest anizotropia PCA liczona jako `1 - lambda_minor / lambda_major`, obcieta do zakresu `0..1`.
+
+Obowiazuje ten sam filtr domyslnej analizy co w metrykach populacyjnych: liczone sa tylko `accepted`, `edited` i `manual`; `candidate`, `rejected`, `uncertain` oraz regiony `ignore` sa pominiete. Jezeli detekcja nie ma zapisanego `region_name`, metryki tymczasowo przypisuja region po centroidzie bboxa bez mutowania projektu.
+
+Dla regionu z mniej niz dwiema detekcjami `orientation_degrees = 0.0` i `orientation_confidence = 0.0`.
+
+## Molecular Row Spacing Metrics
+
+`MolecularRowSpacingMetrics.from_project(project)` estymuje odstep miedzy rzedami molekul z centroidow bboxow `MolecularDetection`.
+
+Metryki sa liczone per working frame i per aktywny region analizy inny niz `ignore`. Kazdy wiersz `MolecularRowSpacingMetricRow` zawiera:
+
+- `working_frame_index` i `source_frame_index`,
+- `region_name` i `region_kind`,
+- `detection_count`,
+- `orientation_degrees`,
+- `row_count`,
+- `row_spacing_px`.
+
+Najpierw liczona jest orientacja rzedow ta sama metoda PCA co w `MolecularRowOrientationMetrics`. Nastepnie centroidy sa projektowane na normalna do tej orientacji. Unikalne pozycje projekcji sa traktowane jako pozycje rzedow, a `row_spacing_px` jest mediana odstepow miedzy kolejnymi pozycjami rzedow.
+
+Odstep jest wyrazony w pikselach natywnego ukladu klatki. Obowiazuje ten sam filtr domyslnej analizy: liczone sa tylko `accepted`, `edited` i `manual`; `candidate`, `rejected`, `uncertain` oraz regiony `ignore` sa pominiete. Jezeli detekcja nie ma zapisanego `region_name`, metryki tymczasowo przypisuja region po centroidzie bboxa bez mutowania projektu.
+
+Dla regionu z mniej niz dwiema pozycjami rzedow `row_spacing_px = 0.0`.
+
+## Molecular Row Order Metrics
+
+`MolecularRowOrderMetrics.from_project(project)` liczy pierwszy centroidowy `Molecular Row Order` score bez uzywania masek.
+
+Metryki sa liczone per working frame i per aktywny region analizy inny niz `ignore`. Kazdy wiersz `MolecularRowOrderMetricRow` zawiera:
+
+- `working_frame_index` i `source_frame_index`,
+- `region_name` i `region_kind`,
+- `detection_count`,
+- `assigned_detection_count`,
+- `orientation_degrees`,
+- `row_count`,
+- `row_spacing_px`,
+- `row_order_score`.
+
+`row_order_score` ma zakres `0..1`. Wynik laczy trzy skladniki:
+
+- jaki udzial detekcji da sie przypisac do pasm rzędow,
+- jak blisko centroidy leza swoich pasm projekcji,
+- jak regularne sa odstepy miedzy pasmami rzędow.
+
+Orientacja pochodzi z tej samej estymacji PCA co `MolecularRowOrientationMetrics`. Centroidy sa projektowane na normalna do orientacji, a projekcje sa grupowane w pasma z tolerancja `1.0 px`. Rzad musi miec co najmniej dwie detekcje, zeby byl traktowany jako potwierdzony rzad.
+
+Obowiazuje ten sam filtr domyslnej analizy: liczone sa tylko `accepted`, `edited` i `manual`; `candidate`, `rejected`, `uncertain` oraz regiony `ignore` sa pominiete. Jezeli detekcja nie ma zapisanego `region_name`, metryki tymczasowo przypisuja region po centroidzie bboxa bez mutowania projektu.
+
+Ograniczenia: to pierwsza metryka centroidowa dla czystych, w przyblizeniu prostych rzędow. Nie uzywa masek, nie rozdziela wielu orientacji w jednym regionie i nie modeluje zakrzywionych domen. Przy duzym szumie pozycji, silnych defektach albo pojedynczych detekcjach na potencjalnych rzędach score moze zanizac uporzadkowanie.
+
+## Row Order Metrics Window
+
+Okno `Results -> Row Order Metrics...` pokazuje trzy wykresy metryk uporzadkowania rzędow:
+
+- row order vs working frame,
+- row orientation vs working frame,
+- row spacing vs working frame.
+
+Opcja `All regions` agreguje aktywne regiony per working frame jako srednia wazona liczba detekcji:
+
+- `row_order_score` jest srednia wazona `detection_count`,
+- `orientation_degrees` jest srednia wazona `detection_count`,
+- `row_spacing_px` jest srednia wazona `detection_count`.
+
+Po wyborze konkretnego regionu dialog pokazuje te same trzy serie tylko dla tego regionu. Dane pochodza z `MolecularRowOrderMetrics.from_project(project)`, wiec obowiazuje filtr domyslnej analizy: `accepted`, `edited` i `manual`; bez `candidate`, `rejected`, `uncertain` oraz bez regionow `ignore`.
+
 ## Detections CSV Export
 
 `File -> Export Detections CSV...` zapisuje wszystkie detekcje z projektu do pliku `.csv`. Ten eksport nie uzywa filtra domyslnej analizy, wiec zawiera rowniez `candidate`, `rejected` i `uncertain`.
@@ -942,6 +1040,25 @@ Kolumny:
 - `detection_footprint_coverage`.
 
 Wiersze sa zapisywane w kolejnosci zwracanej przez `PopulationMetrics`, czyli per working frame i aktywny region inny niz `ignore`. Region bez detekcji nadal daje wiersz z `detection_count = 0`.
+
+## Row Order Metrics CSV Export
+
+`File -> Export Row Order Metrics CSV...` zapisuje metryki uporzadkowania rzedow per working frame i per aktywny region do pliku `.csv`. Eksport korzysta z `MolecularRowOrderMetrics.from_project(project)`, wiec obowiazuje filtr domyslnej analizy: liczone sa tylko `accepted`, `edited` i `manual`; pominiete sa `candidate`, `rejected`, `uncertain` oraz regiony `ignore`.
+
+Kolumny:
+
+- `working_frame_index`,
+- `source_frame_index`,
+- `region_name`,
+- `region_kind`,
+- `detection_count`,
+- `assigned_detection_count`,
+- `orientation_degrees`,
+- `row_count`,
+- `row_spacing_px`,
+- `row_order_score`.
+
+Wiersze sa zapisywane w kolejnosci zwracanej przez `MolecularRowOrderMetrics`, czyli per working frame i aktywny region inny niz `ignore`. Eksport dziedziczy ograniczenia metryki centroidowej: uzywa centroidow bboxow, nie masek, i najlepiej opisuje czyste, w przyblizeniu proste rzedy w jednym dominujacym kierunku.
 
 ## Project Summary CSV Export
 

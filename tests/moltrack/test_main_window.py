@@ -106,6 +106,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
                 "Save Project As...",
                 "Export Detections CSV...",
                 "Export Regional Metrics CSV...",
+                "Export Row Order Metrics CSV...",
                 "Export Project Summary CSV...",
                 "Export YOLO Labels...",
             ],
@@ -147,6 +148,25 @@ class MolTrackMainWindowTests(unittest.TestCase):
             patch("moltrack.ui.main_window.export_regional_metrics_csv") as export_mock,
         ):
             _trigger_menu_action(file_menu, "Export Regional Metrics CSV...")
+
+        export_mock.assert_called_once_with(project, output_path)
+
+    def test_file_menu_exports_row_order_metrics_csv_for_current_project(self) -> None:
+        project, _frames = _project_with_frames()
+        self.window.set_project(project)
+        file_menu = None
+        for action in self.window.menuBar().actions():
+            if action.text() == "File":
+                file_menu = action.menu()
+                break
+
+        self.assertIsNotNone(file_menu)
+        output_path = str(Path(tempfile.gettempdir()) / "moltrack-row-order-metrics.csv")
+        with (
+            patch("moltrack.ui.main_window.QFileDialog.getSaveFileName", return_value=(output_path, "CSV Files (*.csv)")),
+            patch("moltrack.ui.main_window.export_row_order_metrics_csv") as export_mock,
+        ):
+            _trigger_menu_action(file_menu, "Export Row Order Metrics CSV...")
 
         export_mock.assert_called_once_with(project, output_path)
 
@@ -306,10 +326,28 @@ class MolTrackMainWindowTests(unittest.TestCase):
                 break
 
         self.assertIsNotNone(results_menu)
-        self.assertEqual([action.text() for action in results_menu.actions()], ["Population Metrics..."])
+        self.assertEqual(
+            [action.text() for action in results_menu.actions()],
+            ["Population Metrics...", "Row Order Metrics..."],
+        )
 
         with patch("moltrack.ui.main_window.PopulationMetricsDialog.show_for_project") as show_mock:
             _trigger_menu_action(results_menu, "Population Metrics...")
+
+        show_mock.assert_called_once_with(project, self.window)
+
+    def test_results_menu_opens_row_order_metrics_dialog_for_current_project(self) -> None:
+        project, _frames = _project_with_frames()
+        self.window.set_project(project)
+        results_menu = None
+        for action in self.window.menuBar().actions():
+            if action.text() == "Results":
+                results_menu = action.menu()
+                break
+
+        self.assertIsNotNone(results_menu)
+        with patch("moltrack.ui.main_window.RowOrderMetricsDialog.show_for_project") as show_mock:
+            _trigger_menu_action(results_menu, "Row Order Metrics...")
 
         show_mock.assert_called_once_with(project, self.window)
 
@@ -439,6 +477,83 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertAlmostEqual(terrace_a_points[0].detection_footprint_coverage, 6.0 / 100.0)
         _count_x, count_y = dialog.count_plot.listDataItems()[0].getData()
         np.testing.assert_array_equal(count_y, np.asarray([2, 1]))
+
+    def test_row_order_metrics_dialog_plots_order_orientation_and_spacing_series(self) -> None:
+        from moltrack.core import (
+            AnalysisRegion,
+            DetectionReviewStatus,
+            MolTrackProject,
+            MolecularDetection,
+            MolecularRowOrderMetrics,
+            SourceImageSeries,
+        )
+        from moltrack.ui.main_window import RowOrderMetricsDialog
+
+        source = SourceImageSeries(
+            source_uri="C:/data/rows.stp",
+            frame_count=2,
+            raw_frames=np.zeros((2, 64, 64), dtype=np.float32),
+        )
+        terrace = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(0.0, 0.0, 64.0, 64.0),
+        )
+        points_by_frame = {
+            0: ((10.0, 10.0), (20.0, 10.0), (30.0, 10.0), (10.0, 20.0), (20.0, 20.0), (30.0, 20.0)),
+            1: ((10.0, 12.0), (20.0, 12.0), (30.0, 12.0), (10.0, 24.0), (20.0, 24.0), (30.0, 24.0)),
+        }
+        detections = []
+        for working_frame_index, points in points_by_frame.items():
+            for index, (x, y) in enumerate(points):
+                detections.append(
+                    MolecularDetection(
+                        detection_id=f"row-{working_frame_index}-{index}",
+                        working_frame_index=working_frame_index,
+                        source_frame_index=working_frame_index,
+                        bbox_xyxy=(x - 0.5, y - 0.5, x + 0.5, y + 0.5),
+                        confidence=1.0,
+                        model_name="manual",
+                        review_status=DetectionReviewStatus.ACCEPTED,
+                        backend_name="manual",
+                        run_mode="full_frame",
+                        region_name="Terrace A",
+                    )
+                )
+        project = MolTrackProject.from_source_series(source).with_analysis_regions(
+            (terrace,),
+            molecular_detections=tuple(detections),
+        )
+
+        dialog = RowOrderMetricsDialog(MolecularRowOrderMetrics.from_project(project), self.window)
+        self.addCleanup(dialog.deleteLater)
+
+        self.assertEqual(dialog.objectName(), "moltrack-row-order-metrics-dialog")
+        self.assertEqual(dialog.order_plot.objectName(), "moltrack-row-order-score-plot")
+        self.assertEqual(dialog.orientation_plot.objectName(), "moltrack-row-order-orientation-plot")
+        self.assertEqual(dialog.spacing_plot.objectName(), "moltrack-row-order-spacing-plot")
+        self.assertEqual(
+            [dialog.region_filter_combo.itemText(index) for index in range(dialog.region_filter_combo.count())],
+            ["All regions", "Terrace A"],
+        )
+
+        points = dialog.current_series_points()
+        self.assertEqual(
+            [(point.working_frame_index, point.source_frame_index) for point in points],
+            [(0, 0), (1, 1)],
+        )
+        self.assertAlmostEqual(points[0].row_order_score, 1.0)
+        self.assertAlmostEqual(points[0].orientation_degrees, 0.0)
+        self.assertAlmostEqual(points[0].row_spacing_px, 10.0)
+        self.assertAlmostEqual(points[1].row_order_score, 1.0)
+        self.assertAlmostEqual(points[1].orientation_degrees, 0.0)
+        self.assertAlmostEqual(points[1].row_spacing_px, 12.0)
+
+        _x, order_y = dialog.order_plot.listDataItems()[0].getData()
+        np.testing.assert_array_equal(order_y, np.asarray([1.0, 1.0]))
+        _x, spacing_y = dialog.spacing_plot.listDataItems()[0].getData()
+        np.testing.assert_array_equal(spacing_y, np.asarray([10.0, 12.0]))
 
     def test_yolo_menu_action_opens_options_dialog_and_uses_selected_model_parameters(self) -> None:
         from moltrack.yolo import MolTrackYoloDetectionConfig, MolTrackYoloModelInfo

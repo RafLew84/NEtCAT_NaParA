@@ -164,6 +164,68 @@ class MolTrackExporterTests(unittest.TestCase):
         self.assertEqual(rows[1]["region_name"], "Terrace A")
         self.assertEqual(rows[1]["detection_count"], "0")
 
+    def test_export_row_order_metrics_csv_writes_row_order_metric_rows(self) -> None:
+        from moltrack.core import (
+            AnalysisRegion,
+            DetectionReviewStatus,
+            MolTrackProject,
+            MolecularDetection,
+            SourceImageSeries,
+        )
+        from moltrack.io import export_row_order_metrics_csv
+
+        terrace = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(255, 0, 0),
+            rect_xyxy=(0.0, 0.0, 40.0, 30.0),
+        )
+        detections = tuple(
+            MolecularDetection(
+                detection_id=f"row-point-{x}-{y}",
+                working_frame_index=0,
+                source_frame_index=0,
+                bbox_xyxy=(x - 1.0, y - 1.0, x + 1.0, y + 1.0),
+                confidence=0.95,
+                model_name="manual",
+                review_status=DetectionReviewStatus.ACCEPTED,
+                backend_name="manual",
+                run_mode="full_frame",
+                region_name="Terrace A",
+            )
+            for y in (10.0, 20.0)
+            for x in (10.0, 20.0, 30.0)
+        )
+        project = MolTrackProject.from_source_series(
+            SourceImageSeries(source_uri="movie.mpp", frame_count=1),
+            project_name="row order export",
+        ).with_analysis_regions((terrace,)).with_molecular_detections(detections)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "row_order_metrics.csv"
+            export_row_order_metrics_csv(project, output_path)
+
+            with output_path.open(newline="", encoding="utf-8") as fh:
+                rows = list(csv.DictReader(fh))
+
+        self.assertEqual(
+            rows,
+            [
+                {
+                    "working_frame_index": "0",
+                    "source_frame_index": "0",
+                    "region_name": "Terrace A",
+                    "region_kind": "terrace",
+                    "detection_count": "6",
+                    "assigned_detection_count": "6",
+                    "orientation_degrees": "0.0",
+                    "row_count": "2",
+                    "row_spacing_px": "10.0",
+                    "row_order_score": "1.0",
+                }
+            ],
+        )
+
     def test_export_project_summary_csv_writes_frame_counts_status_counts_and_yolo_models(self) -> None:
         from moltrack.core import DetectionReviewStatus, MolTrackProject, MolecularDetection, SourceImageSeries
         from moltrack.io import export_project_summary_csv

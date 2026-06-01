@@ -4,7 +4,13 @@ import csv
 import os
 from pathlib import Path
 
-from moltrack.core import DetectionReviewStatus, MolTrackProject, MolecularDetection, PopulationMetrics
+from moltrack.core import (
+    DetectionReviewStatus,
+    MolTrackProject,
+    MolecularDetection,
+    MolecularRowOrderMetrics,
+    PopulationMetrics,
+)
 
 
 DETECTIONS_CSV_COLUMNS = (
@@ -33,6 +39,19 @@ REGIONAL_METRICS_CSV_COLUMNS = (
     "detection_footprint_area_px2",
     "density_per_px2",
     "detection_footprint_coverage",
+)
+
+ROW_ORDER_METRICS_CSV_COLUMNS = (
+    "working_frame_index",
+    "source_frame_index",
+    "region_name",
+    "region_kind",
+    "detection_count",
+    "assigned_detection_count",
+    "orientation_degrees",
+    "row_count",
+    "row_spacing_px",
+    "row_order_score",
 )
 
 PROJECT_SUMMARY_CSV_COLUMNS = ("metric", "value")
@@ -81,6 +100,32 @@ def export_regional_metrics_csv(project: MolTrackProject, path: str | os.PathLik
                     "detection_footprint_area_px2": row.detection_footprint_area_px2,
                     "density_per_px2": row.density_per_px2,
                     "detection_footprint_coverage": row.detection_footprint_coverage,
+                }
+            )
+
+
+def export_row_order_metrics_csv(project: MolTrackProject, path: str | os.PathLike[str]) -> None:
+    """Export molecular row-order metrics per working frame and active analysis region."""
+
+    output_path = _prepare_output_path(path)
+    metrics = MolecularRowOrderMetrics.from_project(project)
+
+    with open(output_path, mode="w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=ROW_ORDER_METRICS_CSV_COLUMNS)
+        writer.writeheader()
+        for row in metrics.rows:
+            writer.writerow(
+                {
+                    "working_frame_index": row.working_frame_index,
+                    "source_frame_index": row.source_frame_index,
+                    "region_name": row.region_name,
+                    "region_kind": row.region_kind,
+                    "detection_count": row.detection_count,
+                    "assigned_detection_count": row.assigned_detection_count,
+                    "orientation_degrees": row.orientation_degrees,
+                    "row_count": row.row_count,
+                    "row_spacing_px": row.row_spacing_px,
+                    "row_order_score": row.row_order_score,
                 }
             )
 

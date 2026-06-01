@@ -41,12 +41,14 @@ from moltrack.core import (
     FrameScopedAnalysisRegion,
     MolTrackProject,
     MolecularDetection,
+    MolecularRowOrderMetrics,
     PopulationMetrics,
 )
 from moltrack.io import (
     export_detections_csv,
     export_project_summary_csv,
     export_regional_metrics_csv,
+    export_row_order_metrics_csv,
     export_yolo_labels,
     import_image_series,
 )
@@ -145,6 +147,10 @@ class MolTrackWorkspace(QMainWindow):
         self.export_regional_metrics_csv_action = QAction("Export Regional Metrics CSV...", self)
         self.export_regional_metrics_csv_action.triggered.connect(self._on_export_regional_metrics_csv)
         file_menu.addAction(self.export_regional_metrics_csv_action)
+
+        self.export_row_order_metrics_csv_action = QAction("Export Row Order Metrics CSV...", self)
+        self.export_row_order_metrics_csv_action.triggered.connect(self._on_export_row_order_metrics_csv)
+        file_menu.addAction(self.export_row_order_metrics_csv_action)
 
         self.export_project_summary_csv_action = QAction("Export Project Summary CSV...", self)
         self.export_project_summary_csv_action.triggered.connect(self._on_export_project_summary_csv)
@@ -248,6 +254,9 @@ class MolTrackWorkspace(QMainWindow):
         self.population_metrics_action = QAction("Population Metrics...", self)
         self.population_metrics_action.triggered.connect(self._on_show_population_metrics)
         results_menu.addAction(self.population_metrics_action)
+        self.row_order_metrics_action = QAction("Row Order Metrics...", self)
+        self.row_order_metrics_action.triggered.connect(self._on_show_row_order_metrics)
+        results_menu.addAction(self.row_order_metrics_action)
 
     def _build_registration_toolbar(self) -> None:
         toolbar = QToolBar("Registration", self)
@@ -2303,6 +2312,12 @@ class MolTrackWorkspace(QMainWindow):
             return
         PopulationMetricsDialog.show_for_project(self._project, self)
 
+    def _on_show_row_order_metrics(self) -> None:
+        if self._project is None:
+            QMessageBox.warning(self, "Row order metrics", "Load a project before showing row order metrics.")
+            return
+        RowOrderMetricsDialog.show_for_project(self._project, self)
+
     def _on_show_expanded_aligned_toggled(self, checked: bool) -> None:
         self._show_expanded_aligned_view = bool(checked)
         if self._project is None:
@@ -2583,6 +2598,23 @@ class MolTrackWorkspace(QMainWindow):
             export_regional_metrics_csv(self._project, path)
         except Exception as exc:
             QMessageBox.critical(self, "Export regional metrics failed", str(exc))
+
+    def _on_export_row_order_metrics_csv(self) -> None:
+        if self._project is None:
+            QMessageBox.warning(self, "Export row order metrics", "Load a project before exporting row order metrics.")
+            return
+        path, _selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Export Row Order Metrics CSV",
+            "",
+            "CSV Files (*.csv);;All Files (*)",
+        )
+        if not path:
+            return
+        try:
+            export_row_order_metrics_csv(self._project, path)
+        except Exception as exc:
+            QMessageBox.critical(self, "Export row order metrics failed", str(exc))
 
     def _on_export_project_summary_csv(self) -> None:
         if self._project is None:
@@ -2980,6 +3012,142 @@ def _plot_metric_series(
     plot_widget.setLabel("bottom", "Working frame")
     plot_widget.setLabel("left", y_label)
     plot_widget.plot(x_values, y_values, pen=pg.mkPen(color_rgb, width=2), symbol="o")
+
+
+@dataclass(frozen=True)
+class RowOrderMetricSeriesPoint:
+    working_frame_index: int
+    source_frame_index: int
+    row_order_score: float
+    orientation_degrees: float
+    row_spacing_px: float
+
+
+class RowOrderMetricsDialog(QDialog):
+    """Dialog showing molecular row-order metrics for the current MolTrack project."""
+
+    def __init__(self, metrics: MolecularRowOrderMetrics, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("moltrack-row-order-metrics-dialog")
+        self.setWindowTitle("Row Order Metrics")
+        self._metrics = metrics
+
+        layout = QVBoxLayout(self)
+        self.region_filter_combo = QComboBox(self)
+        self.region_filter_combo.setObjectName("moltrack-row-order-region-filter-combo")
+        self.region_filter_combo.addItem("All regions", None)
+        for region_name in _row_order_metric_region_names(metrics):
+            self.region_filter_combo.addItem(region_name, region_name)
+        self.region_filter_combo.currentIndexChanged.connect(self._refresh_plots)
+        layout.addWidget(self.region_filter_combo)
+
+        self.order_plot = pg.PlotWidget(self)
+        self.order_plot.setObjectName("moltrack-row-order-score-plot")
+        self.order_plot.setTitle("Row order vs frame")
+        layout.addWidget(self.order_plot)
+
+        self.orientation_plot = pg.PlotWidget(self)
+        self.orientation_plot.setObjectName("moltrack-row-order-orientation-plot")
+        self.orientation_plot.setTitle("Row orientation vs frame")
+        layout.addWidget(self.orientation_plot)
+
+        self.spacing_plot = pg.PlotWidget(self)
+        self.spacing_plot.setObjectName("moltrack-row-order-spacing-plot")
+        self.spacing_plot.setTitle("Row spacing vs frame")
+        layout.addWidget(self.spacing_plot)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, self)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+        self._refresh_plots()
+
+    def current_region_name(self) -> str | None:
+        region_name = self.region_filter_combo.currentData()
+        return None if region_name is None else str(region_name)
+
+    def current_series_points(self) -> tuple[RowOrderMetricSeriesPoint, ...]:
+        return _row_order_metric_series_points(self._metrics, self.current_region_name())
+
+    def _refresh_plots(self) -> None:
+        points = self.current_series_points()
+        x_values = [point.working_frame_index for point in points]
+        order_scores = [point.row_order_score for point in points]
+        orientations = [point.orientation_degrees for point in points]
+        spacings = [point.row_spacing_px for point in points]
+
+        _plot_metric_series(self.order_plot, x_values, order_scores, "Row order", (50, 130, 255))
+        _plot_metric_series(self.orientation_plot, x_values, orientations, "Orientation deg", (0, 170, 110))
+        _plot_metric_series(self.spacing_plot, x_values, spacings, "Spacing px", (220, 110, 0))
+
+    @classmethod
+    def show_for_project(cls, project: MolTrackProject, parent: QWidget | None = None):
+        dialog = cls(MolecularRowOrderMetrics.from_project(project), parent)
+        return dialog.exec()
+
+
+def _row_order_metric_region_names(metrics: MolecularRowOrderMetrics) -> tuple[str, ...]:
+    return tuple(sorted({row.region_name for row in metrics.rows}))
+
+
+def _row_order_metric_series_points(
+    metrics: MolecularRowOrderMetrics,
+    region_name: str | None,
+) -> tuple[RowOrderMetricSeriesPoint, ...]:
+    if region_name is not None:
+        return tuple(
+            RowOrderMetricSeriesPoint(
+                working_frame_index=row.working_frame_index,
+                source_frame_index=row.source_frame_index,
+                row_order_score=row.row_order_score,
+                orientation_degrees=row.orientation_degrees,
+                row_spacing_px=row.row_spacing_px,
+            )
+            for row in sorted(
+                (row for row in metrics.rows if row.region_name == region_name),
+                key=lambda row: row.working_frame_index,
+            )
+        )
+
+    by_frame: dict[int, dict[str, float]] = {}
+    for row in metrics.rows:
+        frame_values = by_frame.setdefault(
+            row.working_frame_index,
+            {
+                "source_frame_index": float(row.source_frame_index),
+                "weight": 0.0,
+                "row_order_score": 0.0,
+                "orientation_degrees": 0.0,
+                "row_spacing_px": 0.0,
+            },
+        )
+        weight = float(row.detection_count)
+        frame_values["weight"] += weight
+        frame_values["row_order_score"] += row.row_order_score * weight
+        frame_values["orientation_degrees"] += row.orientation_degrees * weight
+        frame_values["row_spacing_px"] += row.row_spacing_px * weight
+
+    points = []
+    for working_frame_index in sorted(by_frame):
+        frame_values = by_frame[working_frame_index]
+        weight = frame_values["weight"]
+        if weight <= 0.0:
+            row_order_score = 0.0
+            orientation_degrees = 0.0
+            row_spacing_px = 0.0
+        else:
+            row_order_score = frame_values["row_order_score"] / weight
+            orientation_degrees = frame_values["orientation_degrees"] / weight
+            row_spacing_px = frame_values["row_spacing_px"] / weight
+        points.append(
+            RowOrderMetricSeriesPoint(
+                working_frame_index=working_frame_index,
+                source_frame_index=int(frame_values["source_frame_index"]),
+                row_order_score=row_order_score,
+                orientation_degrees=orientation_degrees,
+                row_spacing_px=row_spacing_px,
+            )
+        )
+    return tuple(points)
 
 
 class YoloDetectionOptionsDialog(QDialog):
