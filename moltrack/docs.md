@@ -821,6 +821,8 @@ Lista `Detections` pokazuje detekcje aktywnej klatki. Kazdy wpis pokazuje:
 - `region_name` albo `-`.
 
 Po kliknieciu detekcji jej bbox jest przerysowany w viewerze jako zaznaczony overlay.
+`Assign Regions` przypisuje detekcje z calej roboczej serii do aktywnych regionow po centroidzie bboxa. Dla kazdej klatki uzywana jest geometria regionu aktywna dla tej working frame. Gdy centroid lezy w kilku regionach, priorytet ma `ignore`, potem `step_edge`, `terrace` i `custom`. Detekcja przypisana do regionu `ignore` pozostaje w projekcie, ale nie wchodzi do domyslnej analizy.
+
 Pojedyncze akcje bboxa sa dostepne przez prawy klik na bbox w viewerze:
 
 - `Accept` ustawia status zaznaczonej detekcji na `accepted`,
@@ -830,9 +832,10 @@ Pojedyncze akcje bboxa sa dostepne przez prawy klik na bbox w viewerze:
 - `Scale BBox...` otwiera dialog skali dla jednego bboxa,
 - `Delete` usuwa wskazana detekcje.
 
-W panelu `Review Current Frame` sa dostepne akcje zbiorcze:
+W panelu `Review Detections` sa dostepne akcje zbiorcze:
 
 - `Accept Current` ustawia status `accepted` dla wszystkich detekcji aktywnej klatki,
+- `Accept All Frames` ustawia status `accepted` dla wszystkich detekcji ze wszystkich working frames,
 - `Conf >= ...` ustawia prog confidence dla akcji zbiorczej,
 - `Accept Above Conf` ustawia status `accepted` tylko dla detekcji aktywnej klatki z `confidence >= prog`.
 
@@ -862,10 +865,130 @@ Akcje zbiorcze bboxow w panelu bocznym:
 - `Scale Current` skaluje wszystkie detekcje aktywnej working frame,
 - `Scale All` skaluje detekcje ze wszystkich working frames,
 - `Accept Current` ustawia status `accepted` dla wszystkich detekcji aktywnej klatki,
+- `Accept All Frames` ustawia status `accepted` dla wszystkich detekcji ze wszystkich working frames,
 - `Accept Above Conf` ustawia status `accepted` dla detekcji aktywnej klatki powyzej progu confidence,
 - kasowanie wewnatrz regionu uzywa aktywnej geometrii regionu dla biezacej working frame,
 - skalowanie jest wykonywane wzgledem srodka kazdego bboxa,
 - skalowanie traktowane jest jak edycja bboxa: status `candidate` albo `accepted` przechodzi na `edited`, a statusy `manual`, `rejected`, `uncertain` i `edited` pozostaja bez automatycznej zmiany.
+
+## Population Metrics
+
+`PopulationMetrics.from_project(project)` tworzy tabele metryk populacyjnych per working frame i per aktywny region analizy.
+
+Kazdy wiersz `PopulationMetricRow` zawiera:
+
+- `working_frame_index` i `source_frame_index`,
+- `region_name` i `region_kind`,
+- `detection_count`,
+- `region_area_px2`,
+- `detection_footprint_area_px2`,
+- `density_per_px2`,
+- `detection_footprint_coverage`.
+
+Domyslnie liczone sa tylko detekcje w domyslnej analizie, czyli statusy `accepted`, `edited` i `manual`. Detekcje `candidate`, `rejected` i `uncertain` sa pominiete. Detekcje przypisane do regionu `ignore` tez sa pominiete, nawet jesli maja status `accepted`, `edited` albo `manual`.
+
+Jezeli detekcja ma zapisane `region_name`, metryki uzywaja tego przypisania. Jezeli `region_name` jest puste, metryki tymczasowo przypisuja detekcje do aktywnego regionu po centroidzie bboxa. Projekt nie jest przez to zmieniany, ale wyniki po `YOLO Detect All` z regionem obejmujacym cala klatke sa liczone bez recznego naciskania `Assign Regions`.
+
+Wiersze sa tworzone dla aktywnych regionow innych niz `ignore`, rowniez gdy count wynosi zero. Dla regionow z wieloma geometriami na roznych working frames uzywana jest geometria aktywna dla danej klatki. Density jest liczone jako `detection_count / region_area_px2`, a coverage jako `suma pol bboxow / region_area_px2`.
+
+## Population Metrics Window
+
+Okno `Results -> Population Metrics...` pokazuje trzy wykresy populacyjne:
+
+- count vs working frame,
+- density vs working frame,
+- detection footprint coverage vs working frame.
+
+Opcja `All regions` agreguje aktywne regiony inne niz `ignore` per working frame:
+
+- count jest suma `detection_count`,
+- density jest liczone jako `suma count / suma area`,
+- coverage jest liczone jako `suma footprint area / suma area`.
+
+Po wyborze konkretnego regionu dialog pokazuje te same trzy serie tylko dla tego regionu. Dane pochodza z `PopulationMetrics.from_project(project)`, wiec obowiazuje ten sam filtr domyslnej analizy: `accepted`, `edited` i `manual`; bez `candidate`, `rejected`, `uncertain` oraz bez regionow `ignore`.
+
+## Detections CSV Export
+
+`File -> Export Detections CSV...` zapisuje wszystkie detekcje z projektu do pliku `.csv`. Ten eksport nie uzywa filtra domyslnej analizy, wiec zawiera rowniez `candidate`, `rejected` i `uncertain`.
+
+Kolumny:
+
+- `working_frame_index`,
+- `source_frame_index`,
+- `detection_id`,
+- `review_status`,
+- `bbox_x0`, `bbox_y0`, `bbox_x1`, `bbox_y1`,
+- `centroid_x`, `centroid_y`,
+- `confidence`,
+- `model_name`,
+- `region_name`.
+
+Detekcje sa zapisywane deterministycznie wedlug `working_frame_index`, `source_frame_index` i `detection_id`. Puste `region_name` oznacza detekcje bez przypisanego regionu.
+
+## Regional Metrics CSV Export
+
+`File -> Export Regional Metrics CSV...` zapisuje metryki populacyjne per working frame i per aktywny region do pliku `.csv`. Eksport korzysta z `PopulationMetrics.from_project(project)`, wiec obowiazuje filtr domyslnej analizy: liczone sa tylko `accepted`, `edited` i `manual`; pominiete sa `candidate`, `rejected`, `uncertain` oraz regiony `ignore`.
+
+Kolumny:
+
+- `working_frame_index`,
+- `source_frame_index`,
+- `region_name`,
+- `region_kind`,
+- `detection_count`,
+- `region_area_px2`,
+- `detection_footprint_area_px2`,
+- `density_per_px2`,
+- `detection_footprint_coverage`.
+
+Wiersze sa zapisywane w kolejnosci zwracanej przez `PopulationMetrics`, czyli per working frame i aktywny region inny niz `ignore`. Region bez detekcji nadal daje wiersz z `detection_count = 0`.
+
+## Project Summary CSV Export
+
+`File -> Export Project Summary CSV...` zapisuje podsumowanie projektu jako tabele `metric,value`.
+
+Eksport zawiera:
+
+- `project_name`,
+- `source_frame_count`,
+- `working_frame_count`,
+- `removed_source_frame_count`,
+- `removed_source_frame_indices`,
+- `detection_count_total`,
+- `detection_count_candidate`,
+- `detection_count_accepted`,
+- `detection_count_edited`,
+- `detection_count_rejected`,
+- `detection_count_manual`,
+- `detection_count_uncertain`,
+- `yolo_model_count`,
+- `yolo_models`.
+
+`removed_source_frame_indices` i `yolo_models` sa zapisywane jako wartosci rozdzielone srednikiem. Modele YOLO sa zbierane z detekcji, dla ktorych `backend_name = "yolo"`, sortowane i deduplikowane.
+
+## YOLO Labels Export
+
+`File -> Export YOLO Labels...` zapisuje katalog etykiet YOLO bbox. Eksport tworzy jeden plik `.txt` na working frame:
+
+```text
+working_0000_source_0000.txt
+working_0001_source_0001.txt
+```
+
+Kazda linia ma standardowy format YOLO:
+
+```text
+class_id x_center y_center width height
+```
+
+`x_center`, `y_center`, `width` i `height` sa normalizowane do rozmiaru obrazu z `SourceImageSeries.raw_frames`. Jezeli projekt nie ma zaladowanych obrazow zrodlowych, eksport wymaga jawnego rozmiaru obrazu w publicznym API `export_yolo_labels(...)`.
+
+Tryby:
+
+- `Accepted / edited / manual` - domyslny tryb eksportu statusow `accepted`, `edited` i `manual`,
+- `Candidate / uncertain` - osobny tryb eksportu statusow `candidate` i `uncertain`.
+
+Status `rejected` nie jest eksportowany w zadnym z tych trybow. Domyslny `class_id` to `0`.
 
 Round-trip zachowuje:
 
@@ -884,12 +1007,10 @@ Round-trip zachowuje:
 
 Na tym etapie nie ma jeszcze:
 
-- metryk populacyjnych,
 - metryk uporzadkowania rzedow,
 - masek instancji,
 - SAM2/DAM4SAM/SAMURAI/micro-sam w MolTrack,
 - Trackastry,
-- eksportow CSV,
 - UI do usuwania klatek z serii roboczej.
 
 Te elementy sa zaplanowane od kroku 14 dalej.

@@ -98,9 +98,99 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertIsNotNone(file_menu)
         self.assertEqual(
             [action.text() for action in file_menu.actions()],
-            ["Import Image Series...", "Import Reversed Order", "Open Project...", "Save Project", "Save Project As..."],
+            [
+                "Import Image Series...",
+                "Import Reversed Order",
+                "Open Project...",
+                "Save Project",
+                "Save Project As...",
+                "Export Detections CSV...",
+                "Export Regional Metrics CSV...",
+                "Export Project Summary CSV...",
+                "Export YOLO Labels...",
+            ],
         )
         self.assertTrue(file_menu.actions()[1].isCheckable())
+
+    def test_file_menu_exports_detections_csv_for_current_project(self) -> None:
+        project, _frames = _project_with_frames()
+        self.window.set_project(project)
+        file_menu = None
+        for action in self.window.menuBar().actions():
+            if action.text() == "File":
+                file_menu = action.menu()
+                break
+
+        self.assertIsNotNone(file_menu)
+        output_path = str(Path(tempfile.gettempdir()) / "moltrack-detections.csv")
+        with (
+            patch("moltrack.ui.main_window.QFileDialog.getSaveFileName", return_value=(output_path, "CSV Files (*.csv)")),
+            patch("moltrack.ui.main_window.export_detections_csv") as export_mock,
+        ):
+            _trigger_menu_action(file_menu, "Export Detections CSV...")
+
+        export_mock.assert_called_once_with(project, output_path)
+
+    def test_file_menu_exports_regional_metrics_csv_for_current_project(self) -> None:
+        project, _frames = _project_with_frames()
+        self.window.set_project(project)
+        file_menu = None
+        for action in self.window.menuBar().actions():
+            if action.text() == "File":
+                file_menu = action.menu()
+                break
+
+        self.assertIsNotNone(file_menu)
+        output_path = str(Path(tempfile.gettempdir()) / "moltrack-regional-metrics.csv")
+        with (
+            patch("moltrack.ui.main_window.QFileDialog.getSaveFileName", return_value=(output_path, "CSV Files (*.csv)")),
+            patch("moltrack.ui.main_window.export_regional_metrics_csv") as export_mock,
+        ):
+            _trigger_menu_action(file_menu, "Export Regional Metrics CSV...")
+
+        export_mock.assert_called_once_with(project, output_path)
+
+    def test_file_menu_exports_project_summary_csv_for_current_project(self) -> None:
+        project, _frames = _project_with_frames()
+        self.window.set_project(project)
+        file_menu = None
+        for action in self.window.menuBar().actions():
+            if action.text() == "File":
+                file_menu = action.menu()
+                break
+
+        self.assertIsNotNone(file_menu)
+        output_path = str(Path(tempfile.gettempdir()) / "moltrack-project-summary.csv")
+        with (
+            patch("moltrack.ui.main_window.QFileDialog.getSaveFileName", return_value=(output_path, "CSV Files (*.csv)")),
+            patch("moltrack.ui.main_window.export_project_summary_csv") as export_mock,
+        ):
+            _trigger_menu_action(file_menu, "Export Project Summary CSV...")
+
+        export_mock.assert_called_once_with(project, output_path)
+
+    def test_file_menu_exports_yolo_labels_for_current_project_with_selected_mode(self) -> None:
+        project, _frames = _project_with_frames()
+        self.window.set_project(project)
+        file_menu = None
+        for action in self.window.menuBar().actions():
+            if action.text() == "File":
+                file_menu = action.menu()
+                break
+
+        self.assertIsNotNone(file_menu)
+        output_dir = str(Path(tempfile.gettempdir()) / "moltrack-yolo-labels")
+        with (
+            patch(
+                "moltrack.ui.main_window.YoloLabelsExportOptionsDialog.get_options",
+                return_value=(output_dir, "candidate_uncertain", 2),
+            ) as dialog_mock,
+            patch("moltrack.ui.main_window.export_yolo_labels") as export_mock,
+        ):
+            _trigger_menu_action(file_menu, "Export YOLO Labels...")
+
+        dialog_mock.assert_called_once_with(self.window)
+        export_mock.assert_called_once_with(project, output_dir, mode="candidate_uncertain", class_id=2)
 
     def test_regions_menu_and_panel_expose_region_actions(self) -> None:
         regions_menu = None
@@ -142,7 +232,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
                 "Region Actions",
                 "Detections",
                 "Manual Detection",
-                "Review Current Frame",
+                "Review Detections",
                 "Delete Current Frame",
                 "Scale BBoxes",
             ],
@@ -151,9 +241,11 @@ class MolTrackMainWindowTests(unittest.TestCase):
             self.window.expanded_region_mode_combo,
             self.window.region_list,
             self.window.detection_list,
+            self.window.assign_detection_regions_button,
             self.window.draw_manual_detection_button,
             self.window.commit_manual_detection_button,
             self.window.accept_all_current_frame_button,
+            self.window.accept_all_frames_button,
             self.window.accept_confidence_threshold_spin,
             self.window.accept_above_confidence_button,
             self.window.delete_status_combo,
@@ -203,6 +295,150 @@ class MolTrackMainWindowTests(unittest.TestCase):
                 "Detect Selected ROI on Frame Range...",
             ],
         )
+
+    def test_results_menu_opens_population_metrics_dialog_for_current_project(self) -> None:
+        project, _frames = _project_with_frames()
+        self.window.set_project(project)
+        results_menu = None
+        for action in self.window.menuBar().actions():
+            if action.text() == "Results":
+                results_menu = action.menu()
+                break
+
+        self.assertIsNotNone(results_menu)
+        self.assertEqual([action.text() for action in results_menu.actions()], ["Population Metrics..."])
+
+        with patch("moltrack.ui.main_window.PopulationMetricsDialog.show_for_project") as show_mock:
+            _trigger_menu_action(results_menu, "Population Metrics...")
+
+        show_mock.assert_called_once_with(project, self.window)
+
+    def test_population_metrics_dialog_plots_global_and_region_filtered_series(self) -> None:
+        from moltrack.core import (
+            AnalysisRegion,
+            DetectionReviewStatus,
+            MolTrackProject,
+            MolecularDetection,
+            PopulationMetrics,
+            SourceImageSeries,
+        )
+        from moltrack.ui.main_window import PopulationMetricsDialog
+
+        source = SourceImageSeries(
+            source_uri="C:/data/series.stp",
+            frame_count=2,
+            raw_frames=np.zeros((2, 4, 4), dtype=np.float32),
+        )
+        terrace_a = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(255, 0, 0),
+            rect_xyxy=(0.0, 0.0, 10.0, 10.0),
+        )
+        terrace_b = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace B",
+            color_rgb=(0, 255, 0),
+            rect_xyxy=(0.0, 0.0, 5.0, 10.0),
+        )
+        project = MolTrackProject.from_source_series(source).with_analysis_regions(
+            (terrace_a, terrace_b),
+            molecular_detections=(
+                MolecularDetection(
+                    detection_id="a-0",
+                    working_frame_index=0,
+                    source_frame_index=0,
+                    bbox_xyxy=(0.0, 0.0, 1.0, 2.0),
+                    confidence=0.9,
+                    model_name="manual",
+                    review_status=DetectionReviewStatus.ACCEPTED,
+                    backend_name="manual",
+                    run_mode="full_frame",
+                    region_name="Terrace A",
+                ),
+                MolecularDetection(
+                    detection_id="a-1",
+                    working_frame_index=0,
+                    source_frame_index=0,
+                    bbox_xyxy=(0.0, 0.0, 2.0, 2.0),
+                    confidence=1.0,
+                    model_name="manual",
+                    review_status=DetectionReviewStatus.MANUAL,
+                    backend_name="manual",
+                    run_mode="full_frame",
+                    region_name="Terrace A",
+                ),
+                MolecularDetection(
+                    detection_id="b-0",
+                    working_frame_index=0,
+                    source_frame_index=0,
+                    bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+                    confidence=0.8,
+                    model_name="yolo",
+                    review_status=DetectionReviewStatus.EDITED,
+                    backend_name="yolo",
+                    run_mode="full_frame",
+                    region_name="Terrace B",
+                ),
+                MolecularDetection(
+                    detection_id="candidate-ignored",
+                    working_frame_index=0,
+                    source_frame_index=0,
+                    bbox_xyxy=(0.0, 0.0, 10.0, 10.0),
+                    confidence=0.8,
+                    model_name="yolo",
+                    review_status=DetectionReviewStatus.CANDIDATE,
+                    backend_name="yolo",
+                    run_mode="full_frame",
+                    region_name="Terrace A",
+                ),
+                MolecularDetection(
+                    detection_id="a-2",
+                    working_frame_index=1,
+                    source_frame_index=1,
+                    bbox_xyxy=(0.0, 0.0, 2.0, 2.0),
+                    confidence=0.9,
+                    model_name="yolo",
+                    review_status=DetectionReviewStatus.ACCEPTED,
+                    backend_name="yolo",
+                    run_mode="full_frame",
+                    region_name="Terrace A",
+                ),
+            ),
+        )
+
+        dialog = PopulationMetricsDialog(PopulationMetrics.from_project(project), self.window)
+        self.addCleanup(dialog.deleteLater)
+
+        self.assertEqual(dialog.objectName(), "moltrack-population-metrics-dialog")
+        self.assertEqual(dialog.count_plot.objectName(), "moltrack-population-count-plot")
+        self.assertEqual(dialog.density_plot.objectName(), "moltrack-population-density-plot")
+        self.assertEqual(dialog.coverage_plot.objectName(), "moltrack-population-coverage-plot")
+        self.assertEqual(
+            [dialog.region_filter_combo.itemText(index) for index in range(dialog.region_filter_combo.count())],
+            ["All regions", "Terrace A", "Terrace B"],
+        )
+
+        global_points = dialog.current_series_points()
+        self.assertEqual(
+            [(point.working_frame_index, point.detection_count) for point in global_points],
+            [(0, 3), (1, 1)],
+        )
+        self.assertAlmostEqual(global_points[0].density_per_px2, 3.0 / 150.0)
+        self.assertAlmostEqual(global_points[0].detection_footprint_coverage, 7.0 / 150.0)
+        _count_x, count_y = dialog.count_plot.listDataItems()[0].getData()
+        np.testing.assert_array_equal(count_y, np.asarray([3, 1]))
+
+        dialog.region_filter_combo.setCurrentIndex(dialog.region_filter_combo.findData("Terrace A"))
+        terrace_a_points = dialog.current_series_points()
+        self.assertEqual(
+            [(point.working_frame_index, point.detection_count) for point in terrace_a_points],
+            [(0, 2), (1, 1)],
+        )
+        self.assertAlmostEqual(terrace_a_points[0].density_per_px2, 2.0 / 100.0)
+        self.assertAlmostEqual(terrace_a_points[0].detection_footprint_coverage, 6.0 / 100.0)
+        _count_x, count_y = dialog.count_plot.listDataItems()[0].getData()
+        np.testing.assert_array_equal(count_y, np.asarray([2, 1]))
 
     def test_yolo_menu_action_opens_options_dialog_and_uses_selected_model_parameters(self) -> None:
         from moltrack.yolo import MolTrackYoloDetectionConfig, MolTrackYoloModelInfo
@@ -965,6 +1201,67 @@ class MolTrackMainWindowTests(unittest.TestCase):
             "det-current | candidate | conf=0.876 | region=Terrace A",
         )
 
+    def test_assign_regions_button_updates_detection_region_names_for_whole_series(self) -> None:
+        from moltrack.core import AnalysisRegion, DetectionReviewStatus, FrameScopedAnalysisRegion, MolecularDetection
+
+        frame_zero_region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(0.0, 0.0, 2.0, 2.0),
+        )
+        frame_one_region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(4.0, 4.0, 6.0, 6.0),
+        )
+        active_detection = MolecularDetection(
+            detection_id="active",
+            working_frame_index=0,
+            source_frame_index=2,
+            bbox_xyxy=(0.25, 0.25, 1.25, 1.25),
+            confidence=0.9,
+            model_name="manual",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        other_frame_detection = MolecularDetection(
+            detection_id="other-frame",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(4.25, 4.25, 5.25, 5.25),
+            confidence=0.9,
+            model_name="manual",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        project, _frames = _project_with_frames()
+        project = project.with_analysis_regions(
+            (frame_zero_region,),
+            frame_scoped_analysis_regions=(
+                FrameScopedAnalysisRegion(region=frame_zero_region, working_frame_indices=(0,)),
+                FrameScopedAnalysisRegion(region=frame_one_region, working_frame_indices=(1,)),
+            ),
+            molecular_detections=(active_detection, other_frame_detection),
+        )
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(0)
+
+        self.window.assign_detection_regions_button.click()
+
+        active = self.window.current_project().molecular_detections_for_working_frame(0)[0]
+        other = self.window.current_project().molecular_detections_for_working_frame(1)[0]
+        self.assertEqual(active.region_name, "Terrace A")
+        self.assertEqual(other.region_name, "Terrace A")
+        self.assertEqual(
+            self.window.detection_list.item(0).text(),
+            "active | accepted | conf=0.900 | region=Terrace A",
+        )
+
     def test_clicking_detection_list_item_highlights_detection_bbox_in_viewer(self) -> None:
         from moltrack.core import DetectionReviewStatus, MolecularDetection
 
@@ -1172,6 +1469,65 @@ class MolTrackMainWindowTests(unittest.TestCase):
         other_status = self.window.current_project().molecular_detections_for_working_frame(2)[0].review_status
         self.assertEqual(active_statuses, [DetectionReviewStatus.ACCEPTED, DetectionReviewStatus.ACCEPTED])
         self.assertEqual(other_status, DetectionReviewStatus.CANDIDATE)
+        self.assertIn("active-candidate | accepted", self.window.detection_list.item(0).text())
+        self.assertIn("active-uncertain | accepted", self.window.detection_list.item(1).text())
+
+    def test_accept_all_frames_updates_every_detection_in_project(self) -> None:
+        from moltrack.core import DetectionReviewStatus, MolecularDetection
+
+        active_candidate = MolecularDetection(
+            detection_id="active-candidate",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.6,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        active_uncertain = MolecularDetection(
+            detection_id="active-uncertain",
+            working_frame_index=1,
+            source_frame_index=1,
+            bbox_xyxy=(1.0, 1.0, 2.0, 2.0),
+            confidence=0.7,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.UNCERTAIN,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        other_frame_candidate = MolecularDetection(
+            detection_id="other-candidate",
+            working_frame_index=2,
+            source_frame_index=0,
+            bbox_xyxy=(0.0, 0.0, 1.0, 1.0),
+            confidence=0.9,
+            model_name="moltrack_model.pt",
+            review_status=DetectionReviewStatus.CANDIDATE,
+            backend_name="yolo",
+            run_mode="full_frame",
+        )
+        project, _frames = _project_with_frames()
+        project = project.with_molecular_detections((active_candidate, active_uncertain, other_frame_candidate))
+
+        self.window.set_project(project)
+        self.window.set_active_working_frame_index(1)
+
+        self.window.accept_all_frames_button.click()
+
+        statuses = [
+            detection.review_status
+            for detection in self.window.current_project().molecular_detections
+        ]
+        self.assertEqual(
+            statuses,
+            [
+                DetectionReviewStatus.ACCEPTED,
+                DetectionReviewStatus.ACCEPTED,
+                DetectionReviewStatus.ACCEPTED,
+            ],
+        )
         self.assertIn("active-candidate | accepted", self.window.detection_list.item(0).text())
         self.assertIn("active-uncertain | accepted", self.window.detection_list.item(1).text())
 

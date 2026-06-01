@@ -270,6 +270,73 @@ class MolTrackDomainModelTests(unittest.TestCase):
         self.assertFalse(DetectionReviewStatus.UNCERTAIN.included_in_default_analysis)
         self.assertEqual(DetectionReviewStatus.default_for_yolo(), DetectionReviewStatus.CANDIDATE)
 
+    def test_project_assigns_detection_regions_by_centroid_and_excludes_ignore_region_from_default_analysis(self) -> None:
+        from moltrack.core import AnalysisRegion, DetectionReviewStatus, MolTrackProject, MolecularDetection, SourceImageSeries
+
+        source = SourceImageSeries(source_uri="C:/data/movie.mpp", frame_count=1)
+        ignore_region = AnalysisRegion.rectangle(
+            kind="ignore",
+            name="Ignore artifact",
+            color_rgb=(220, 30, 30),
+            rect_xyxy=(0.0, 0.0, 2.0, 2.0),
+        )
+        terrace_region = AnalysisRegion.rectangle(
+            kind="terrace",
+            name="Terrace A",
+            color_rgb=(20, 120, 240),
+            rect_xyxy=(0.0, 0.0, 5.0, 5.0),
+        )
+        ignored_detection = MolecularDetection(
+            detection_id="ignored",
+            working_frame_index=0,
+            source_frame_index=0,
+            bbox_xyxy=(0.25, 0.25, 1.25, 1.25),
+            confidence=0.9,
+            model_name="manual",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        terrace_detection = MolecularDetection(
+            detection_id="terrace",
+            working_frame_index=0,
+            source_frame_index=0,
+            bbox_xyxy=(3.0, 3.0, 4.0, 4.0),
+            confidence=0.9,
+            model_name="manual",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        outside_detection = MolecularDetection(
+            detection_id="outside",
+            working_frame_index=0,
+            source_frame_index=0,
+            bbox_xyxy=(8.0, 8.0, 9.0, 9.0),
+            confidence=0.9,
+            model_name="manual",
+            review_status=DetectionReviewStatus.ACCEPTED,
+            backend_name="manual",
+            run_mode="full_frame",
+        )
+        project = MolTrackProject.from_source_series(source).with_analysis_regions(
+            (terrace_region, ignore_region),
+            molecular_detections=(ignored_detection, terrace_detection, outside_detection),
+        )
+
+        assigned = project.assign_molecular_detection_regions_by_centroid()
+
+        ignored, terrace, outside = assigned.molecular_detections_for_working_frame(0)
+        self.assertEqual(ignored.region_name, "Ignore artifact")
+        self.assertEqual(terrace.region_name, "Terrace A")
+        self.assertIsNone(outside.region_name)
+        self.assertFalse(assigned.molecular_detection_included_in_default_analysis(ignored))
+        self.assertTrue(assigned.molecular_detection_included_in_default_analysis(terrace))
+        self.assertEqual(
+            [detection.detection_id for detection in assigned.default_analysis_molecular_detections_for_working_frame(0)],
+            ["terrace", "outside"],
+        )
+
     def test_project_can_store_optional_registration_shifts_by_working_frame(self) -> None:
         from moltrack.core import MolTrackProject, RegistrationShift, SourceImageSeries
 

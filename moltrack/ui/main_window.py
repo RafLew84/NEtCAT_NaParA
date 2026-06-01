@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 import numpy as np
 import pyqtgraph as pg
@@ -41,8 +41,15 @@ from moltrack.core import (
     FrameScopedAnalysisRegion,
     MolTrackProject,
     MolecularDetection,
+    PopulationMetrics,
 )
-from moltrack.io import import_image_series
+from moltrack.io import (
+    export_detections_csv,
+    export_project_summary_csv,
+    export_regional_metrics_csv,
+    export_yolo_labels,
+    import_image_series,
+)
 from moltrack.persistence import load_project, save_project
 from moltrack.registration import expanded_registered_working_stack, run_project_registration
 from moltrack.yolo import MolTrackYoloDetectionConfig, MolTrackYoloModelInfo, discover_moltrack_yolo_models
@@ -130,6 +137,22 @@ class MolTrackWorkspace(QMainWindow):
         self.save_project_as_action = QAction("Save Project As...", self)
         self.save_project_as_action.triggered.connect(self._on_save_project_as)
         file_menu.addAction(self.save_project_as_action)
+
+        self.export_detections_csv_action = QAction("Export Detections CSV...", self)
+        self.export_detections_csv_action.triggered.connect(self._on_export_detections_csv)
+        file_menu.addAction(self.export_detections_csv_action)
+
+        self.export_regional_metrics_csv_action = QAction("Export Regional Metrics CSV...", self)
+        self.export_regional_metrics_csv_action.triggered.connect(self._on_export_regional_metrics_csv)
+        file_menu.addAction(self.export_regional_metrics_csv_action)
+
+        self.export_project_summary_csv_action = QAction("Export Project Summary CSV...", self)
+        self.export_project_summary_csv_action.triggered.connect(self._on_export_project_summary_csv)
+        file_menu.addAction(self.export_project_summary_csv_action)
+
+        self.export_yolo_labels_action = QAction("Export YOLO Labels...", self)
+        self.export_yolo_labels_action.triggered.connect(self._on_export_yolo_labels)
+        file_menu.addAction(self.export_yolo_labels_action)
 
         registration_menu = self.menuBar().addMenu("Registration")
 
@@ -220,6 +243,11 @@ class MolTrackWorkspace(QMainWindow):
             self._on_detect_yolo_selected_roi_frame_range
         )
         yolo_menu.addAction(self.detect_yolo_selected_roi_frame_range_action)
+
+        results_menu = self.menuBar().addMenu("Results")
+        self.population_metrics_action = QAction("Population Metrics...", self)
+        self.population_metrics_action.triggered.connect(self._on_show_population_metrics)
+        results_menu.addAction(self.population_metrics_action)
 
     def _build_registration_toolbar(self) -> None:
         toolbar = QToolBar("Registration", self)
@@ -320,6 +348,13 @@ class MolTrackWorkspace(QMainWindow):
         )
         self.detection_list.currentItemChanged.connect(self._on_detection_list_current_item_changed)
         detections_layout.addWidget(self.detection_list, 1)
+        self.assign_detection_regions_button = QPushButton("Assign Regions", panel)
+        self.assign_detection_regions_button.setObjectName("moltrack-assign-detection-regions-button")
+        self.assign_detection_regions_button.setToolTip(
+            "Assign each detection to the active region containing its bbox centroid. Ignore regions are kept as assignments for default-analysis filtering."
+        )
+        self.assign_detection_regions_button.clicked.connect(self._on_assign_detection_regions)
+        detections_layout.addWidget(self.assign_detection_regions_button)
         layout.addWidget(detections_group)
 
         self.draw_manual_detection_button = QPushButton("Draw BBox", panel)
@@ -339,13 +374,18 @@ class MolTrackWorkspace(QMainWindow):
         layout.addWidget(manual_group)
 
         review_group, review_layout = group(
-            "Review Current Frame",
-            "Bulk review operations for detections on the active working frame.",
+            "Review Detections",
+            "Bulk review operations for detections on the active working frame or whole series.",
         )
         self.accept_all_current_frame_button = QPushButton("Accept Current", panel)
         self.accept_all_current_frame_button.setObjectName("moltrack-accept-all-current-frame-button")
         self.accept_all_current_frame_button.setToolTip("Mark every detection on the active frame as accepted.")
         self.accept_all_current_frame_button.clicked.connect(self._on_accept_all_current_frame)
+
+        self.accept_all_frames_button = QPushButton("Accept All Frames", panel)
+        self.accept_all_frames_button.setObjectName("moltrack-accept-all-frames-button")
+        self.accept_all_frames_button.setToolTip("Mark every detection in every working frame as accepted.")
+        self.accept_all_frames_button.clicked.connect(self._on_accept_all_frames)
 
         self.accept_confidence_threshold_spin = QDoubleSpinBox(panel)
         self.accept_confidence_threshold_spin.setObjectName("moltrack-accept-confidence-threshold-spin")
@@ -361,6 +401,7 @@ class MolTrackWorkspace(QMainWindow):
         self.accept_above_confidence_button.setToolTip("Mark active-frame detections above the confidence threshold as accepted.")
         self.accept_above_confidence_button.clicked.connect(self._on_accept_above_confidence)
         review_layout.addWidget(self.accept_all_current_frame_button)
+        review_layout.addWidget(self.accept_all_frames_button)
         review_layout.addWidget(self.accept_confidence_threshold_spin)
         review_layout.addWidget(self.accept_above_confidence_button)
         layout.addWidget(review_group)
@@ -585,6 +626,18 @@ class MolTrackWorkspace(QMainWindow):
             return []
         return list(self._project.molecular_detections)
 
+    def assign_molecular_detection_regions_by_centroid(
+        self,
+        working_frame_indices: tuple[int, ...] | None = None,
+    ) -> tuple[MolecularDetection, ...]:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        previous_selected_id = self._selected_molecular_detection_id
+        self._project = self._project.assign_molecular_detection_regions_by_centroid(working_frame_indices)
+        self._refresh_detection_list(previous_selected_id)
+        self._redraw_molecular_detection_overlays()
+        return tuple(self._project.molecular_detections)
+
     def set_molecular_detection_status(
         self,
         detection_ids,
@@ -635,6 +688,18 @@ class MolTrackWorkspace(QMainWindow):
         detection_ids = [
             detection.detection_id
             for detection in self._project.molecular_detections_for_working_frame(self._active_working_frame_index)
+        ]
+        return self.set_molecular_detection_status(detection_ids, status)
+
+    def set_all_molecular_detection_status(
+        self,
+        status: DetectionReviewStatus | str,
+    ) -> tuple[MolecularDetection, ...]:
+        if self._project is None:
+            raise ValueError("No MolTrack project is loaded.")
+        detection_ids = [
+            detection.detection_id
+            for detection in self._project.molecular_detections
         ]
         return self.set_molecular_detection_status(detection_ids, status)
 
@@ -1423,6 +1488,12 @@ class MolTrackWorkspace(QMainWindow):
         )
         self._redraw_molecular_detection_overlays()
 
+    def _on_assign_detection_regions(self) -> None:
+        try:
+            self.assign_molecular_detection_regions_by_centroid()
+        except Exception as exc:
+            QMessageBox.critical(self, "Assign detection regions failed", str(exc))
+
     def _on_viewer_scene_mouse_clicked(self, event) -> None:
         if self._project is None or event.button() != Qt.MouseButton.RightButton:
             return
@@ -1988,6 +2059,12 @@ class MolTrackWorkspace(QMainWindow):
         except Exception as exc:
             QMessageBox.critical(self, "Detection review failed", str(exc))
 
+    def _on_accept_all_frames(self) -> None:
+        try:
+            self.set_all_molecular_detection_status(DetectionReviewStatus.ACCEPTED)
+        except Exception as exc:
+            QMessageBox.critical(self, "Detection review failed", str(exc))
+
     def _on_accept_above_confidence(self) -> None:
         try:
             self.set_current_frame_molecular_detection_status_above_confidence(
@@ -2219,6 +2296,12 @@ class MolTrackWorkspace(QMainWindow):
                 f"across {len(frame_indices)} working frames.",
                 3500,
             )
+
+    def _on_show_population_metrics(self) -> None:
+        if self._project is None:
+            QMessageBox.warning(self, "Population metrics", "Load a project before showing population metrics.")
+            return
+        PopulationMetricsDialog.show_for_project(self._project, self)
 
     def _on_show_expanded_aligned_toggled(self, checked: bool) -> None:
         self._show_expanded_aligned_view = bool(checked)
@@ -2467,6 +2550,70 @@ class MolTrackWorkspace(QMainWindow):
             except Exception as exc:
                 QMessageBox.critical(self, "Save project failed", str(exc))
 
+    def _on_export_detections_csv(self) -> None:
+        if self._project is None:
+            QMessageBox.warning(self, "Export detections", "Load a project before exporting detections.")
+            return
+        path, _selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Export Detections CSV",
+            "",
+            "CSV Files (*.csv);;All Files (*)",
+        )
+        if not path:
+            return
+        try:
+            export_detections_csv(self._project, path)
+        except Exception as exc:
+            QMessageBox.critical(self, "Export detections failed", str(exc))
+
+    def _on_export_regional_metrics_csv(self) -> None:
+        if self._project is None:
+            QMessageBox.warning(self, "Export regional metrics", "Load a project before exporting regional metrics.")
+            return
+        path, _selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Export Regional Metrics CSV",
+            "",
+            "CSV Files (*.csv);;All Files (*)",
+        )
+        if not path:
+            return
+        try:
+            export_regional_metrics_csv(self._project, path)
+        except Exception as exc:
+            QMessageBox.critical(self, "Export regional metrics failed", str(exc))
+
+    def _on_export_project_summary_csv(self) -> None:
+        if self._project is None:
+            QMessageBox.warning(self, "Export project summary", "Load a project before exporting project summary.")
+            return
+        path, _selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Export Project Summary CSV",
+            "",
+            "CSV Files (*.csv);;All Files (*)",
+        )
+        if not path:
+            return
+        try:
+            export_project_summary_csv(self._project, path)
+        except Exception as exc:
+            QMessageBox.critical(self, "Export project summary failed", str(exc))
+
+    def _on_export_yolo_labels(self) -> None:
+        if self._project is None:
+            QMessageBox.warning(self, "Export YOLO labels", "Load a project before exporting YOLO labels.")
+            return
+        options = YoloLabelsExportOptionsDialog.get_options(self)
+        if options is None:
+            return
+        output_dir, mode, class_id = options
+        try:
+            export_yolo_labels(self._project, output_dir, mode=mode, class_id=class_id)
+        except Exception as exc:
+            QMessageBox.critical(self, "Export YOLO labels failed", str(exc))
+
 
 def _analysis_region_polyline(region: AnalysisRegion) -> np.ndarray:
     if region.rect_xyxy is not None:
@@ -2626,6 +2773,213 @@ def _yolo_device_combo_index(device: str) -> int:
     if normalized in {"gpu", "cuda", "cuda:0", "0"}:
         return 2
     return 0
+
+
+class YoloLabelsExportOptionsDialog(QDialog):
+    """Dialog for selecting YOLO label export output and status mode."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Export YOLO Labels")
+
+        layout = QFormLayout(self)
+        output_widget = QWidget(self)
+        output_layout = QHBoxLayout(output_widget)
+        output_layout.setContentsMargins(0, 0, 0, 0)
+        self.output_dir_edit = QLineEdit(self)
+        self.output_dir_edit.setObjectName("moltrack-yolo-labels-output-dir-edit")
+        self.output_dir_edit.setToolTip("Directory where one YOLO .txt label file per working frame will be written.")
+        output_layout.addWidget(self.output_dir_edit, 1)
+        self.browse_button = QPushButton("Browse...", self)
+        self.browse_button.clicked.connect(self._browse_output_dir)
+        output_layout.addWidget(self.browse_button)
+        layout.addRow("Output dir", output_widget)
+
+        self.mode_combo = QComboBox(self)
+        self.mode_combo.setObjectName("moltrack-yolo-labels-mode-combo")
+        self.mode_combo.addItem("Accepted / edited / manual", "default")
+        self.mode_combo.addItem("Candidate / uncertain", "candidate_uncertain")
+        layout.addRow("Mode", self.mode_combo)
+
+        self.class_id_spin = QSpinBox(self)
+        self.class_id_spin.setObjectName("moltrack-yolo-labels-class-id-spin")
+        self.class_id_spin.setRange(0, 9999)
+        self.class_id_spin.setValue(0)
+        layout.addRow("Class ID", self.class_id_spin)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+            self,
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addRow(buttons)
+
+    @classmethod
+    def get_options(cls, parent: QWidget | None = None) -> tuple[str, str, int] | None:
+        dialog = cls(parent)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return None
+        return dialog.options()
+
+    def options(self) -> tuple[str, str, int]:
+        output_dir = self.output_dir_edit.text().strip()
+        if not output_dir:
+            raise ValueError("Select an output directory for YOLO labels.")
+        return output_dir, str(self.mode_combo.currentData()), int(self.class_id_spin.value())
+
+    def accept(self) -> None:
+        try:
+            self.options()
+        except Exception as exc:
+            QMessageBox.warning(self, "Invalid YOLO labels export", str(exc))
+            return
+        super().accept()
+
+    def _browse_output_dir(self) -> None:
+        output_dir = QFileDialog.getExistingDirectory(self, "Select YOLO Labels Output Directory")
+        if output_dir:
+            self.output_dir_edit.setText(output_dir)
+
+
+@dataclass(frozen=True)
+class PopulationMetricSeriesPoint:
+    working_frame_index: int
+    source_frame_index: int
+    detection_count: int
+    density_per_px2: float
+    detection_footprint_coverage: float
+
+
+class PopulationMetricsDialog(QDialog):
+    """Dialog showing population metrics for the current MolTrack project."""
+
+    def __init__(self, metrics: PopulationMetrics, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("moltrack-population-metrics-dialog")
+        self.setWindowTitle("Population Metrics")
+        self._metrics = metrics
+
+        layout = QVBoxLayout(self)
+        self.region_filter_combo = QComboBox(self)
+        self.region_filter_combo.setObjectName("moltrack-population-region-filter-combo")
+        self.region_filter_combo.addItem("All regions", None)
+        for region_name in _population_metric_region_names(metrics):
+            self.region_filter_combo.addItem(region_name, region_name)
+        self.region_filter_combo.currentIndexChanged.connect(self._refresh_plots)
+        layout.addWidget(self.region_filter_combo)
+
+        self.count_plot = pg.PlotWidget(self)
+        self.count_plot.setObjectName("moltrack-population-count-plot")
+        self.count_plot.setTitle("Count vs frame")
+        layout.addWidget(self.count_plot)
+
+        self.density_plot = pg.PlotWidget(self)
+        self.density_plot.setObjectName("moltrack-population-density-plot")
+        self.density_plot.setTitle("Density vs frame")
+        layout.addWidget(self.density_plot)
+
+        self.coverage_plot = pg.PlotWidget(self)
+        self.coverage_plot.setObjectName("moltrack-population-coverage-plot")
+        self.coverage_plot.setTitle("Detection Footprint Coverage vs frame")
+        layout.addWidget(self.coverage_plot)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, self)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+        self._refresh_plots()
+
+    def current_region_name(self) -> str | None:
+        region_name = self.region_filter_combo.currentData()
+        return None if region_name is None else str(region_name)
+
+    def current_series_points(self) -> tuple[PopulationMetricSeriesPoint, ...]:
+        return _population_metric_series_points(self._metrics, self.current_region_name())
+
+    def _refresh_plots(self) -> None:
+        points = self.current_series_points()
+        x_values = [point.working_frame_index for point in points]
+        counts = [point.detection_count for point in points]
+        densities = [point.density_per_px2 for point in points]
+        coverages = [point.detection_footprint_coverage for point in points]
+
+        _plot_metric_series(self.count_plot, x_values, counts, "Count", (50, 130, 255))
+        _plot_metric_series(self.density_plot, x_values, densities, "Density / px^2", (0, 170, 110))
+        _plot_metric_series(self.coverage_plot, x_values, coverages, "Footprint coverage", (220, 110, 0))
+
+    @classmethod
+    def show_for_project(cls, project: MolTrackProject, parent: QWidget | None = None):
+        dialog = cls(PopulationMetrics.from_project(project), parent)
+        return dialog.exec()
+
+
+def _population_metric_region_names(metrics: PopulationMetrics) -> tuple[str, ...]:
+    return tuple(sorted({row.region_name for row in metrics.rows}))
+
+
+def _population_metric_series_points(
+    metrics: PopulationMetrics,
+    region_name: str | None,
+) -> tuple[PopulationMetricSeriesPoint, ...]:
+    if region_name is not None:
+        return tuple(
+            PopulationMetricSeriesPoint(
+                working_frame_index=row.working_frame_index,
+                source_frame_index=row.source_frame_index,
+                detection_count=row.detection_count,
+                density_per_px2=row.density_per_px2,
+                detection_footprint_coverage=row.detection_footprint_coverage,
+            )
+            for row in sorted(
+                (row for row in metrics.rows if row.region_name == region_name),
+                key=lambda row: row.working_frame_index,
+            )
+        )
+
+    by_frame: dict[int, dict[str, float]] = {}
+    for row in metrics.rows:
+        frame_values = by_frame.setdefault(
+            row.working_frame_index,
+            {
+                "source_frame_index": float(row.source_frame_index),
+                "detection_count": 0.0,
+                "region_area_px2": 0.0,
+                "detection_footprint_area_px2": 0.0,
+            },
+        )
+        frame_values["detection_count"] += float(row.detection_count)
+        frame_values["region_area_px2"] += float(row.region_area_px2)
+        frame_values["detection_footprint_area_px2"] += float(row.detection_footprint_area_px2)
+
+    points = []
+    for working_frame_index in sorted(by_frame):
+        frame_values = by_frame[working_frame_index]
+        count = int(frame_values["detection_count"])
+        area = frame_values["region_area_px2"]
+        footprint_area = frame_values["detection_footprint_area_px2"]
+        points.append(
+            PopulationMetricSeriesPoint(
+                working_frame_index=working_frame_index,
+                source_frame_index=int(frame_values["source_frame_index"]),
+                detection_count=count,
+                density_per_px2=0.0 if area <= 0.0 else count / area,
+                detection_footprint_coverage=0.0 if area <= 0.0 else footprint_area / area,
+            )
+        )
+    return tuple(points)
+
+
+def _plot_metric_series(
+    plot_widget: pg.PlotWidget,
+    x_values: list[int],
+    y_values: list[float],
+    y_label: str,
+    color_rgb: tuple[int, int, int],
+) -> None:
+    plot_widget.clear()
+    plot_widget.setLabel("bottom", "Working frame")
+    plot_widget.setLabel("left", y_label)
+    plot_widget.plot(x_values, y_values, pen=pg.mkPen(color_rgb, width=2), symbol="o")
 
 
 class YoloDetectionOptionsDialog(QDialog):

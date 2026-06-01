@@ -11,6 +11,7 @@ from moltrack.core.data_models import (
     WorkingFrame,
     WorkingImageSeries,
 )
+from moltrack.core.population_metrics import PopulationMetricRow, PopulationMetrics
 
 __all__ = [
     "AnalysisRegion",
@@ -24,4 +25,6 @@ __all__ = [
     "SourceImageSeries",
     "WorkingFrame",
     "WorkingImageSeries",
+    "PopulationMetricRow",
+    "PopulationMetrics",
 ]

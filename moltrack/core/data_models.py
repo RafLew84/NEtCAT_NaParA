@@ -701,6 +701,70 @@ class MolTrackProject:
             if detection.working_frame_index == working_frame_index
         )
 
+    def assign_molecular_detection_regions_by_centroid(
+        self,
+        working_frame_indices: tuple[int, ...] | None = None,
+    ) -> MolTrackProject:
+        if working_frame_indices is None:
+            target_indices = {
+                frame.working_frame_index
+                for frame in self.working_series.frames
+            }
+        else:
+            target_indices = {int(index) for index in working_frame_indices}
+            for index in target_indices:
+                self.working_series.get_working_frame(index)
+
+        updated_detections = []
+        for detection in self.molecular_detections:
+            if detection.working_frame_index not in target_indices:
+                updated_detections.append(detection)
+                continue
+            region = self._region_for_detection_centroid(detection)
+            updated_detections.append(
+                MolecularDetection(
+                    detection_id=detection.detection_id,
+                    working_frame_index=detection.working_frame_index,
+                    source_frame_index=detection.source_frame_index,
+                    bbox_xyxy=detection.bbox_xyxy,
+                    confidence=detection.confidence,
+                    model_name=detection.model_name,
+                    review_status=detection.review_status,
+                    backend_name=detection.backend_name,
+                    run_mode=detection.run_mode,
+                    region_name=None if region is None else region.name,
+                    coordinate_system=detection.coordinate_system,
+                )
+            )
+        return self.with_molecular_detections(tuple(updated_detections))
+
+    def molecular_detection_included_in_default_analysis(self, detection: MolecularDetection) -> bool:
+        if not detection.included_in_default_analysis:
+            return False
+        if detection.region_name is None:
+            return True
+        try:
+            region = self.region_for_working_frame(detection.region_name, detection.working_frame_index)
+        except KeyError:
+            return True
+        return region.kind != AnalysisRegionKind.IGNORE
+
+    def default_analysis_molecular_detections_for_working_frame(
+        self,
+        working_frame_index: int,
+    ) -> tuple[MolecularDetection, ...]:
+        return tuple(
+            detection
+            for detection in self.molecular_detections_for_working_frame(working_frame_index)
+            if self.molecular_detection_included_in_default_analysis(detection)
+        )
+
+    def _region_for_detection_centroid(self, detection: MolecularDetection) -> AnalysisRegion | None:
+        for region in self.analysis_regions_for_working_frame(detection.working_frame_index):
+            if _point_inside_analysis_region(region, detection.centroid_xy):
+                return region
+        return None
+
 
 def _sort_regions_by_priority(regions: list[AnalysisRegion]) -> list[AnalysisRegion]:
     priority = {
@@ -710,6 +774,40 @@ def _sort_regions_by_priority(regions: list[AnalysisRegion]) -> list[AnalysisReg
         AnalysisRegionKind.CUSTOM: 3,
     }
     return sorted(regions, key=lambda region: (priority[region.kind], region.name))
+
+
+def _point_inside_analysis_region(region: AnalysisRegion, point_xy) -> bool:
+    x, y = (float(value) for value in point_xy)
+    if region.rect_xyxy is not None:
+        x0, y0, x1, y1 = region.rect_xyxy
+        return x0 <= x <= x1 and y0 <= y <= y1
+    return _point_inside_polygon_xy((x, y), np.asarray(region.polygon_xy, dtype=np.float64))
+
+
+def _point_inside_polygon_xy(point_xy: tuple[float, float], polygon_xy: np.ndarray) -> bool:
+    x, y = point_xy
+    inside = False
+    previous_x, previous_y = polygon_xy[-1]
+    for current_x, current_y in polygon_xy:
+        if _point_on_segment_xy((x, y), (previous_x, previous_y), (current_x, current_y)):
+            return True
+        crosses_y = (current_y > y) != (previous_y > y)
+        if crosses_y:
+            boundary_x = (previous_x - current_x) * (y - current_y) / (previous_y - current_y) + current_x
+            if x < boundary_x:
+                inside = not inside
+        previous_x, previous_y = current_x, current_y
+    return inside
+
+
+def _point_on_segment_xy(point_xy, start_xy, end_xy, *, eps: float = 1e-9) -> bool:
+    px, py = (float(value) for value in point_xy)
+    x0, y0 = (float(value) for value in start_xy)
+    x1, y1 = (float(value) for value in end_xy)
+    cross = (px - x0) * (y1 - y0) - (py - y0) * (x1 - x0)
+    if abs(cross) > eps:
+        return False
+    return min(x0, x1) - eps <= px <= max(x0, x1) + eps and min(y0, y1) - eps <= py <= max(y0, y1) + eps
 
 
 def _validate_frame_scoped_regions(
