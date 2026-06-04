@@ -202,3 +202,5 @@ nanotrack/yolo_models/yolo11s_v4.0_pro.pt
 nanotrack/yolo_models/yolo11x_v3.0.pt
 plan_nanotrack_mask_trackers.md
 nanotrack.zip
+fix_track.md
+/notes
