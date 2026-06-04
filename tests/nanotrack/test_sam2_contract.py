@@ -15,6 +15,7 @@ class Sam2RunInputTests(unittest.TestCase):
             query_box_xyxy=np.asarray([1.0, 2.0, 6.0, 7.0], dtype=np.float32),
             query_point_tyx=np.asarray([0.0, 4.0, 5.0], dtype=np.float32),
             source_view="bm3d",
+            mask_probability_threshold=0.65,
         )
 
         payload = contract.to_npz_payload()
@@ -24,6 +25,7 @@ class Sam2RunInputTests(unittest.TestCase):
         self.assertEqual(restored.track_id, 7)
         self.assertEqual(restored.frame_index_offset, 12)
         self.assertEqual(restored.source_view, "bm3d")
+        self.assertAlmostEqual(restored.mask_probability_threshold, 0.65)
         np.testing.assert_array_equal(restored.frames, frames)
         np.testing.assert_array_equal(restored.query_box_xyxy, np.asarray([1.0, 2.0, 6.0, 7.0], dtype=np.float32))
         np.testing.assert_array_equal(restored.query_point_tyx, np.asarray([0.0, 4.0, 5.0], dtype=np.float32))

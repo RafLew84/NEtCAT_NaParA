@@ -6,8 +6,10 @@ import numpy as np
 import pyqtgraph as pg
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
+    QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
     QGroupBox,
@@ -18,6 +20,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from nanotrack.analysis import compute_particle_metrics
+from nanotrack.core import ParticleMetrics
 from nanotrack.core import ParticleTrack, STMSequence
 from nanotrack.persistence import export_results_csv
 
@@ -49,10 +53,26 @@ class TrackResultsDialog(QDialog):
         controls_layout = QFormLayout(controls)
         self.cmb_tracks = QComboBox(self)
         self.cmb_units = QComboBox(self)
+        self.chk_exclude_boundary_pixels = QCheckBox("Boundary correction", self)
+        self.chk_exclude_boundary_pixels.setToolTip(
+            "Recompute displayed plots from stored masks with a configurable boundary-pixel weight. "
+            "Saved annotations and exports are not modified."
+        )
+        self.spn_boundary_pixel_weight = QDoubleSpinBox(self)
+        self.spn_boundary_pixel_weight.setRange(0.0, 1.0)
+        self.spn_boundary_pixel_weight.setDecimals(2)
+        self.spn_boundary_pixel_weight.setSingleStep(0.1)
+        self.spn_boundary_pixel_weight.setValue(0.5)
+        self.spn_boundary_pixel_weight.setToolTip(
+            "Weight assigned to pixels on the mask boundary when boundary correction is enabled. "
+            "0.00 excludes boundary pixels, 0.50 half-counts them, 1.00 keeps the original area."
+        )
         self.lbl_summary = QLabel("No results available", self)
         self.lbl_summary.setWordWrap(True)
         controls_layout.addRow("Track", self.cmb_tracks)
         controls_layout.addRow("Units", self.cmb_units)
+        controls_layout.addRow("Metrics", self.chk_exclude_boundary_pixels)
+        controls_layout.addRow("Boundary weight", self.spn_boundary_pixel_weight)
         controls_layout.addRow("Summary", self.lbl_summary)
         layout.addWidget(controls, 0)
 
@@ -73,8 +93,11 @@ class TrackResultsDialog(QDialog):
 
         self.cmb_tracks.currentIndexChanged.connect(self._on_track_changed)
         self.cmb_units.currentIndexChanged.connect(self._on_units_changed)
+        self.chk_exclude_boundary_pixels.stateChanged.connect(self._on_exclude_boundary_pixels_changed)
+        self.spn_boundary_pixel_weight.valueChanged.connect(self._on_boundary_pixel_weight_changed)
         self.btn_delete.clicked.connect(self._on_delete_clicked)
         self.btn_export.clicked.connect(self._on_export_clicked)
+        self._sync_boundary_weight_state()
         self._set_empty_state()
 
     def _create_plot_widget(self, title: str, y_label: str) -> pg.PlotWidget:
@@ -138,6 +161,13 @@ class TrackResultsDialog(QDialog):
         self.track_selected.emit(self.current_track_id())
 
     def _on_units_changed(self, _index: int) -> None:
+        self._refresh_plots()
+
+    def _on_exclude_boundary_pixels_changed(self, _state: int) -> None:
+        self._sync_boundary_weight_state()
+        self._refresh_plots()
+
+    def _on_boundary_pixel_weight_changed(self, _value: float) -> None:
         self._refresh_plots()
 
     def _on_delete_clicked(self) -> None:
@@ -219,16 +249,18 @@ class TrackResultsDialog(QDialog):
         if track_key == self.ALL_TRACKS_KEY:
             measured_track_frames = sum(1 for track in self._tracks for _ in self._metric_rows(track))
             source_suffix = self._source_views_summary(self._tracks)
+            boundary_suffix = self._boundary_exclusion_summary_suffix()
             self.lbl_summary.setText(
                 f"All tracks | measured frames: {len(metric_rows)} / {self._sequence.frame_count} | "
-                f"track-frames: {measured_track_frames}{source_suffix}"
+                f"track-frames: {measured_track_frames}{source_suffix}{boundary_suffix}"
             )
         else:
             track = self._current_track()
             source_suffix = self._source_views_summary([] if track is None else [track])
+            boundary_suffix = self._boundary_exclusion_summary_suffix()
             self.lbl_summary.setText(
                 f"{track.label or f'Track {track.track_id}'} | "
-                f"measured frames: {len(metric_rows)} / {self._sequence.frame_count}{source_suffix}"
+                f"measured frames: {len(metric_rows)} / {self._sequence.frame_count}{source_suffix}{boundary_suffix}"
             )
 
     def _plot_single_series(
@@ -254,10 +286,47 @@ class TrackResultsDialog(QDialog):
         original_frame_area_px = self._original_frame_area_px()
         if original_frame_area_px <= 0:
             return np.zeros(len(metric_rows), dtype=np.float32)
+        if self._current_track_key() == self.ALL_TRACKS_KEY:
+            return self._all_tracks_coverage_percent(metric_rows, original_frame_area_px=original_frame_area_px)
         return np.asarray(
             [(metrics.area_px / original_frame_area_px) * 100.0 for _frame_index, metrics in metric_rows],
             dtype=np.float32,
         )
+
+    def _all_tracks_coverage_percent(
+        self,
+        metric_rows: list[tuple[int, object]],
+        *,
+        original_frame_area_px: float,
+    ) -> np.ndarray:
+        coverage_values: list[float] = []
+        for frame_index, aggregate_metrics in metric_rows:
+            union_area_px = self._union_mask_area_px_for_frame(frame_index)
+            area_px = aggregate_metrics.area_px if union_area_px is None else union_area_px
+            coverage_values.append((float(area_px) / original_frame_area_px) * 100.0)
+        return np.asarray(coverage_values, dtype=np.float32)
+
+    def _union_mask_area_px_for_frame(self, frame_index: int) -> float | None:
+        if self._sequence is None:
+            return None
+        frame_shape = tuple(self._sequence.frame_shape)
+        union_mask = np.zeros(frame_shape, dtype=bool)
+        measured_annotation_count = 0
+        for track in self._tracks:
+            annotation = track.get_annotation(frame_index)
+            if annotation is None:
+                continue
+            metrics = self._display_metrics_for_annotation(annotation)
+            if metrics is None or not self._metrics_are_complete(metrics):
+                continue
+            measured_annotation_count += 1
+            metric_weight_map = self._metric_weight_map_for_annotation(annotation)
+            if metric_weight_map is None or metric_weight_map.shape != frame_shape:
+                return None
+            union_mask = np.maximum(union_mask, metric_weight_map)
+        if measured_annotation_count == 0:
+            return None
+        return float(np.sum(union_mask))
 
     def _original_frame_area_px(self) -> float:
         if self._sequence is None:
@@ -271,19 +340,152 @@ class TrackResultsDialog(QDialog):
 
     def _metric_rows(self, track: ParticleTrack) -> Iterable[tuple[int, object]]:
         for frame_index in track.frame_indices:
+            if self._sequence is not None and self._sequence.is_frame_excluded(frame_index):
+                continue
             annotation = track.get_annotation(frame_index)
             if annotation is None:
                 continue
-            metrics = annotation.metrics
-            if (
-                metrics.area_px is None
-                or metrics.perimeter_px is None
-                or metrics.intensity_sum is None
-                or metrics.intensity_mean is None
-                or metrics.intensity_max is None
-            ):
+            metrics = self._display_metrics_for_annotation(annotation)
+            if metrics is None or not self._metrics_are_complete(metrics):
                 continue
             yield frame_index, metrics
+
+    def _annotation_has_complete_metrics(self, annotation) -> bool:
+        return self._metrics_are_complete(annotation.metrics)
+
+    def _metrics_are_complete(self, metrics) -> bool:
+        return (
+            metrics.area_px is not None
+            and metrics.perimeter_px is not None
+            and metrics.intensity_sum is not None
+            and metrics.intensity_mean is not None
+            and metrics.intensity_max is not None
+        )
+
+    def _display_metrics_for_annotation(self, annotation) -> ParticleMetrics | None:
+        if self._exclude_boundary_pixels_enabled():
+            metrics = self._boundary_adjusted_metrics_for_annotation(annotation)
+            if metrics is not None:
+                return metrics
+        if not self._annotation_has_complete_metrics(annotation):
+            return None
+        return annotation.metrics
+
+    def _boundary_adjusted_metrics_for_annotation(self, annotation) -> ParticleMetrics | None:
+        if self._sequence is None:
+            return None
+        metric_weight_map = self._metric_weight_map_for_annotation(annotation)
+        if metric_weight_map is None:
+            return None
+        if not np.any(metric_weight_map > 0.0):
+            return self._zero_particle_metrics()
+        return self._compute_weighted_particle_metrics(metric_weight_map, self._sequence.get_frame(annotation.frame_index))
+
+    def _metric_mask_for_annotation(self, annotation) -> np.ndarray | None:
+        metric_weight_map = self._metric_weight_map_for_annotation(annotation)
+        if metric_weight_map is None:
+            return None
+        return metric_weight_map > 0.0
+
+    def _metric_weight_map_for_annotation(self, annotation) -> np.ndarray | None:
+        if self._sequence is None or annotation.mask is None:
+            return None
+        mask = np.asarray(annotation.mask, dtype=bool)
+        if mask.shape != tuple(self._sequence.frame_shape):
+            return None
+        if not self._exclude_boundary_pixels_enabled():
+            return mask.astype(np.float32, copy=False)
+        interior = self._interior_mask(mask)
+        boundary = mask & ~interior
+        weight = self._boundary_pixel_weight()
+        metric_weight_map = interior.astype(np.float32, copy=False)
+        if weight > 0.0:
+            metric_weight_map = metric_weight_map.copy()
+            metric_weight_map[boundary] = np.float32(weight)
+        return metric_weight_map
+
+    def _exclude_boundary_pixels_enabled(self) -> bool:
+        return bool(self.chk_exclude_boundary_pixels.isChecked())
+
+    def _boundary_pixel_weight(self) -> float:
+        if not self._exclude_boundary_pixels_enabled():
+            return 1.0
+        return float(self.spn_boundary_pixel_weight.value())
+
+    def _sync_boundary_weight_state(self) -> None:
+        self.spn_boundary_pixel_weight.setEnabled(self._exclude_boundary_pixels_enabled())
+
+    def _interior_mask(self, mask: np.ndarray) -> np.ndarray:
+        mask_bool = np.asarray(mask, dtype=bool)
+        if mask_bool.ndim != 2 or not np.any(mask_bool):
+            return np.zeros(mask_bool.shape, dtype=bool)
+
+        height, width = mask_bool.shape
+        padded = np.pad(mask_bool, 1, mode="constant", constant_values=False)
+        interior = np.ones((height, width), dtype=bool)
+        for row_offset in range(3):
+            for col_offset in range(3):
+                interior &= padded[row_offset : row_offset + height, col_offset : col_offset + width]
+        return interior
+
+    def _compute_weighted_particle_metrics(self, weight_map: np.ndarray, raw_frame: np.ndarray) -> ParticleMetrics:
+        weights = np.asarray(weight_map, dtype=np.float32)
+        raw_array = np.asarray(raw_frame, dtype=np.float32)
+        if weights.shape != raw_array.shape:
+            raise ValueError("weight_map and raw_frame must have the same shape.")
+
+        support_mask = weights > 0.0
+        area_px = float(np.sum(weights))
+        if area_px <= 0.0 or not np.any(support_mask):
+            return self._zero_particle_metrics()
+
+        weighted_values = raw_array * weights
+        intensity_sum = float(np.sum(weighted_values))
+        area_nm2 = None
+        perimeter_nm = None
+        if self._sequence is not None:
+            pixel_size_x_nm, pixel_size_y_nm = self._sequence.metadata.get_pixel_size_nm()
+            if pixel_size_x_nm is not None and pixel_size_y_nm is not None:
+                area_nm2 = float(area_px * pixel_size_x_nm * pixel_size_y_nm)
+                perimeter_nm = compute_particle_metrics(
+                    support_mask,
+                    raw_array,
+                    pixel_size_nm=(pixel_size_x_nm, pixel_size_y_nm),
+                ).perimeter_nm
+
+        support_metrics = compute_particle_metrics(support_mask, raw_array)
+        return ParticleMetrics(
+            area_px=area_px,
+            perimeter_px=support_metrics.perimeter_px,
+            area_nm2=area_nm2,
+            perimeter_nm=perimeter_nm,
+            intensity_sum=intensity_sum,
+            intensity_mean=float(intensity_sum / area_px),
+            intensity_max=float(np.max(raw_array[support_mask])),
+        )
+
+    def _zero_particle_metrics(self) -> ParticleMetrics:
+        area_nm2 = None
+        perimeter_nm = None
+        if self._sequence is not None:
+            pixel_size_x_nm, pixel_size_y_nm = self._sequence.metadata.get_pixel_size_nm()
+            if pixel_size_x_nm is not None and pixel_size_y_nm is not None:
+                area_nm2 = 0.0
+                perimeter_nm = 0.0
+        return ParticleMetrics(
+            area_px=0.0,
+            perimeter_px=0.0,
+            area_nm2=area_nm2,
+            perimeter_nm=perimeter_nm,
+            intensity_sum=0.0,
+            intensity_mean=0.0,
+            intensity_max=0.0,
+        )
+
+    def _boundary_exclusion_summary_suffix(self) -> str:
+        if not self._exclude_boundary_pixels_enabled():
+            return ""
+        return f" | boundary correction {self._boundary_pixel_weight():.2f}x"
 
     def _source_views_summary(self, tracks: list[ParticleTrack]) -> str:
         source_views: set[str] = set()

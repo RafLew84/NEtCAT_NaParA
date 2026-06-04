@@ -74,6 +74,24 @@ class Sam2WorkerHelperTests(unittest.TestCase):
         self.assertEqual(run_output.mask_component_counts[1], 0)
         self.assertEqual(run_output.mask_component_counts[2], 1)
 
+    def test_build_output_from_frame_logits_applies_probability_threshold(self) -> None:
+        logits = np.zeros((3, 3), dtype=np.float32)
+        logits[1, 1] = 2.0
+
+        run_output = _build_output_from_frame_logits(
+            track_id=3,
+            frame_index_offset=0,
+            frame_logits={0: logits},
+            frame_count=1,
+            frame_shape=(3, 3),
+            mask_probability_threshold=0.75,
+        )
+
+        expected = np.zeros((3, 3), dtype=bool)
+        expected[1, 1] = True
+        np.testing.assert_array_equal(run_output.masks[0], expected)
+        self.assertEqual(run_output.mask_areas[0], 1.0)
+
     def test_build_output_from_frame_logits_rejects_wrong_shape(self) -> None:
         with self.assertRaises(ValueError):
             _build_output_from_frame_logits(

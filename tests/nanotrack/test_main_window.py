@@ -339,8 +339,13 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.metadata_panel.lbl_file.text(), "MOVIE_3.MPP")
         self.assertEqual(self.window.track_list_panel.list_tracks.count(), 0)
         self.assertFalse(self.window.track_list_panel.btn_run_selected.isEnabled())
+        self.assertFalse(self.window.track_list_panel.btn_run_all_at_selected_frame.isEnabled())
         self.assertFalse(self.window.track_list_panel.btn_run_all.isEnabled())
         self.assertEqual(self.window.track_list_panel.btn_run_selected.text(), "Run for Selected")
+        self.assertEqual(
+            self.window.track_list_panel.btn_run_all_at_selected_frame.text(),
+            "Run for Seeds at Current Frame",
+        )
         self.assertEqual(self.window.track_list_panel.btn_run_all.text(), "Run for All Seeds")
         self.assertEqual(self.window.track_list_panel.current_mask_tracker_kind(), MaskTrackerKind.SAM2)
         self.assertEqual(self.window.edge_track_list_panel.list_tracks.count(), 0)
@@ -2497,6 +2502,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.window._registration_results = result_set
         self.window._update_menu_action_state()
         self.window.action_show_aligned_registration.trigger()
+        self.window.track_list_panel.set_mask_probability_threshold(0.75)
         track = ParticleTrack(track_id=1, seed_frame_index=1, seed_bbox=BBoxXYXY(1.0, 1.0, 3.0, 3.0))
 
         run_input = self.window._build_mask_tracker_input_for_track(
@@ -2508,6 +2514,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(run_input.source_view, "raw+registration")
         np.testing.assert_array_equal(run_input.query_box_xyxy, np.asarray([1.0, 1.0, 3.0, 3.0], dtype=np.float32))
         np.testing.assert_array_equal(run_input.query_point_tyx, np.asarray([0.0, 2.0, 2.0], dtype=np.float32))
+        self.assertAlmostEqual(run_input.mask_probability_threshold, 0.75)
         self.assertEqual(run_input.frames.shape, (1, *sequence.frame_shape))
 
     def test_run_selected_expanded_registration_shifts_prompt_and_stores_model_coordinates(self) -> None:
@@ -6210,6 +6217,62 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(tracks[0].get_annotation(1).source_view, "bm3d+registration")
         self.assertEqual(tracks[1].get_annotation(1).source_view, "bm3d+registration")
         self.assertEqual(tracks[1].get_annotation(2).source_view, "bm3d+registration")
+
+    def test_run_all_at_selected_frame_only_runs_seed_tracks_from_current_frame(self) -> None:
+        sequence = STMSequence(
+            source_path="/tmp/run_frame_seed_subset.mpp",
+            raw_frames=np.zeros((5, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=32, pixels_y=32, size_nm_x=32.0, size_nm_y=32.0),
+        )
+        self.window.set_sequence(sequence)
+        tracks = [
+            ParticleTrack(track_id=1, seed_frame_index=0, seed_bbox=BBoxXYXY(4.0, 4.0, 8.0, 8.0)),
+            ParticleTrack(track_id=2, seed_frame_index=2, seed_bbox=BBoxXYXY(10.0, 10.0, 14.0, 14.0)),
+            ParticleTrack(track_id=3, seed_frame_index=2, seed_bbox=BBoxXYXY(18.0, 18.0, 22.0, 22.0)),
+        ]
+        self.window.set_tracks(tracks, selected_track_id=1)
+        self.window.slider_frame.setValue(2)
+        observed_inputs: list[tuple[int, int]] = []
+
+        def fake_run(run_input):
+            time.sleep(0.05)
+            observed_inputs.append((int(run_input.track_id), int(run_input.frame_index_offset)))
+            self.assertEqual(run_input.frame_index_offset, 2)
+            return self._mask_tracker_output(
+                MaskTrackerKind.SAM2,
+                track_id=int(run_input.track_id),
+                frame_index_offset=int(run_input.frame_index_offset),
+                frame_count=int(run_input.frames.shape[0]),
+                frame_shape=tuple(run_input.frames.shape[1:3]),
+                row=8 if run_input.track_id == 2 else 18,
+                col=10 if run_input.track_id == 2 else 20,
+                visible_count=2,
+            )
+
+        with patch.object(self.window._sam2_backend, "run", side_effect=fake_run) as run_mock:
+            self.window.track_list_panel.btn_run_all_at_selected_frame.click()
+            self._wait_until(
+                lambda: (
+                    run_mock.call_count == 2
+                    and self.window.current_tracks()[1].get_annotation(3) is not None
+                    and self.window.current_tracks()[2].get_annotation(3) is not None
+                    and not self.window._is_tracking
+                ),
+                attempts=350,
+            )
+
+        self.assertEqual(observed_inputs, [(2, 2), (3, 2)])
+        current_tracks = self.window.current_tracks()
+        self.assertIsNone(current_tracks[0].get_annotation(1))
+        self.assertIsNone(current_tracks[0].get_annotation(2))
+        self.assertIsNotNone(current_tracks[1].get_annotation(2))
+        self.assertIsNotNone(current_tracks[1].get_annotation(3))
+        self.assertIsNotNone(current_tracks[2].get_annotation(2))
+        self.assertIsNotNone(current_tracks[2].get_annotation(3))
+        self.assertTrue(
+            self.window.statusBar().currentMessage()
+            in {"SAM2 finished for 2 seeds at frame 3.", "SAM2 batch 2/2 finished: Track 3"}
+        )
 
     def test_run_all_sam2_uses_configured_frame_limit_per_seed(self) -> None:
         sequence = STMSequence(

@@ -40,6 +40,7 @@ def sam2_run_input_from_mask_input(run_input: MaskTrackerRunInput) -> Sam2RunInp
         query_point_tyx=run_input.query_point_tyx,
         initial_mask=run_input.initial_mask,
         source_view=run_input.source_view,
+        mask_probability_threshold=run_input.mask_probability_threshold,
     )
 
 

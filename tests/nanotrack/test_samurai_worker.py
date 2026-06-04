@@ -244,6 +244,21 @@ class SamuraiWorkerTests(unittest.TestCase):
         expected[1, 1:3, 2:5] = True
         np.testing.assert_array_equal(masks, expected)
 
+    def test_parses_samurai_output_tuple_applies_probability_threshold(self) -> None:
+        masks = np.zeros((1, 3, 3), dtype=bool)
+        selected = np.zeros((1, 3, 3), dtype=np.float32)
+        selected[0, 1, 1] = 2.0
+
+        _record_samurai_output_tuple(
+            (0, [0], [_FakeTensor(selected)]),
+            masks=masks,
+            probability_threshold=0.75,
+        )
+
+        expected = np.zeros((1, 3, 3), dtype=bool)
+        expected[0, 1, 1] = True
+        np.testing.assert_array_equal(masks, expected)
+
     def test_coerces_resized_samurai_mask_to_frame_shape(self) -> None:
         source = np.zeros((1, 2, 3), dtype=np.float32)
         source[0, 0, 1] = 1.0

@@ -196,8 +196,8 @@ def _write_video_sequence(video_dir: Path, frames_rgb: np.ndarray) -> None:
         Image.fromarray(frame_rgb, mode="RGB").save(video_dir / f"{frame_idx:05d}.jpg", format="JPEG", quality=95)
 
 
-def _mask_logits_to_bool_mask(mask_logits: np.ndarray) -> np.ndarray:
-    return _sigmoid(mask_logits) >= 0.5
+def _mask_logits_to_bool_mask(mask_logits: np.ndarray, *, probability_threshold: float = 0.5) -> np.ndarray:
+    return _sigmoid(mask_logits) >= float(probability_threshold)
 
 
 def _sigmoid(values: np.ndarray) -> np.ndarray:
@@ -252,6 +252,7 @@ def _build_output_from_frame_logits(
     frame_logits: dict[int, np.ndarray],
     frame_count: int,
     frame_shape: tuple[int, int],
+    mask_probability_threshold: float = 0.5,
 ) -> Sam2RunOutput:
     height, width = frame_shape
     masks = np.zeros((frame_count, height, width), dtype=bool)
@@ -269,7 +270,10 @@ def _build_output_from_frame_logits(
             raise ValueError(
                 f"Mask logits shape {mask_logits.shape} does not match expected frame shape {(height, width)}."
             )
-        mask_bool = _mask_logits_to_bool_mask(mask_logits)
+        mask_bool = _mask_logits_to_bool_mask(
+            mask_logits,
+            probability_threshold=mask_probability_threshold,
+        )
         masks[frame_idx] = mask_bool
         visible_mask[frame_idx] = bool(np.any(mask_bool))
         mask_areas[frame_idx] = float(np.count_nonzero(mask_bool))
@@ -381,6 +385,7 @@ def _run_real_sam2(
         frame_logits=frame_logits,
         frame_count=int(run_input.frames.shape[0]),
         frame_shape=tuple(run_input.frames.shape[1:3]),
+        mask_probability_threshold=run_input.mask_probability_threshold,
     )
 
 

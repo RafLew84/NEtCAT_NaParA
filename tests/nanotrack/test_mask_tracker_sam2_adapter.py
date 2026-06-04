@@ -29,6 +29,7 @@ class Sam2MaskTrackerAdapterTests(unittest.TestCase):
             frames=np.zeros((3, 6, 8), dtype=np.float32),
             query_box_xyxy=np.asarray([1.0, 2.0, 5.0, 4.0], dtype=np.float32),
             source_view="repair+bm3d",
+            mask_probability_threshold=0.8,
         )
 
     def test_sam2_input_conversion_preserves_existing_contract_fields(self) -> None:
@@ -39,6 +40,7 @@ class Sam2MaskTrackerAdapterTests(unittest.TestCase):
         self.assertEqual(sam2_input.track_id, 5)
         self.assertEqual(sam2_input.frame_index_offset, 7)
         self.assertEqual(sam2_input.source_view, "repair+bm3d")
+        self.assertAlmostEqual(sam2_input.mask_probability_threshold, 0.8)
         np.testing.assert_array_equal(sam2_input.frames, run_input.frames)
         np.testing.assert_array_equal(sam2_input.query_box_xyxy, run_input.query_box_xyxy)
 
@@ -132,6 +134,7 @@ class Sam2MaskTrackerAdapterTests(unittest.TestCase):
                     track_id = int(payload["track_id"])
                     frame_index_offset = int(payload["frame_index_offset"])
                     assert payload["source_view"].item() == "repair+bm3d"
+                    assert abs(float(payload["mask_probability_threshold"]) - 0.8) < 1e-6
                     assert payload["query_box_xyxy"].shape == (4,)
 
                 masks = np.zeros((frames.shape[0], frames.shape[1], frames.shape[2]), dtype=np.uint8)

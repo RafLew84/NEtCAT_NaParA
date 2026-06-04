@@ -187,10 +187,22 @@ def _run_real_dam4sam(
 
         masks: list[np.ndarray] = []
         first_output = tracker.initialize(frames_pil[0], init_mask, bbox=init_bbox_xywh)
-        masks.append(_coerce_pred_mask(first_output["pred_mask"], frame_shape=run_input.frames.shape[1:3]))
+        masks.append(
+            _coerce_pred_mask(
+                first_output["pred_mask"],
+                frame_shape=run_input.frames.shape[1:3],
+                probability_threshold=run_input.mask_probability_threshold,
+            )
+        )
         for frame_pil in frames_pil[1:]:
             output = tracker.track(frame_pil)
-            masks.append(_coerce_pred_mask(output["pred_mask"], frame_shape=run_input.frames.shape[1:3]))
+            masks.append(
+                _coerce_pred_mask(
+                    output["pred_mask"],
+                    frame_shape=run_input.frames.shape[1:3],
+                    probability_threshold=run_input.mask_probability_threshold,
+                )
+            )
 
     return _output_from_masks(
         run_input,
@@ -201,9 +213,14 @@ def _run_real_dam4sam(
     )
 
 
-def _coerce_pred_mask(mask: np.ndarray, *, frame_shape: tuple[int, int]) -> np.ndarray:
+def _coerce_pred_mask(
+    mask: np.ndarray,
+    *,
+    frame_shape: tuple[int, int],
+    probability_threshold: float = 0.5,
+) -> np.ndarray:
     height, width = frame_shape
-    mask_np = np.asarray(mask, dtype=bool)
+    mask_np = _soft_or_binary_mask_to_bool(np.asarray(mask), probability_threshold=probability_threshold)
     if mask_np.ndim != 2:
         raise ValueError(f"DAM4SAM pred_mask must be 2D, got shape {mask_np.shape}.")
     if mask_np.shape == (height, width):
@@ -213,6 +230,30 @@ def _coerce_pred_mask(mask: np.ndarray, *, frame_shape: tuple[int, int]) -> np.n
     copy_width = min(width, mask_np.shape[1])
     output[:copy_height, :copy_width] = mask_np[:copy_height, :copy_width]
     return output
+
+
+def _soft_or_binary_mask_to_bool(mask: np.ndarray, *, probability_threshold: float) -> np.ndarray:
+    mask_np = np.asarray(mask)
+    if mask_np.dtype == bool:
+        return mask_np
+    if not np.issubdtype(mask_np.dtype, np.floating):
+        return mask_np != 0
+
+    finite_values = mask_np[np.isfinite(mask_np)]
+    if finite_values.size == 0:
+        return np.zeros(mask_np.shape, dtype=bool)
+    value_min = float(np.min(finite_values))
+    value_max = float(np.max(finite_values))
+    if 0.0 <= value_min and value_max <= 1.0:
+        return mask_np >= float(probability_threshold)
+    if value_min < 0.0:
+        return _sigmoid(mask_np) >= float(probability_threshold)
+    return mask_np != 0.0
+
+
+def _sigmoid(values: np.ndarray) -> np.ndarray:
+    clipped = np.clip(np.asarray(values, dtype=np.float32), -60.0, 60.0)
+    return 1.0 / (1.0 + np.exp(-clipped))
 
 
 def _synthetic_output(
