@@ -1,5 +1,6 @@
 import os
 import unittest
+from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -65,6 +66,7 @@ class SeriesMetadataPanelTests(unittest.TestCase):
         text = self.panel.metadata_text()
         self.assertIn("Source: movie.mpp", text)
         self.assertIn("Frames: 3", text)
+        self.assertNotIn("Removed frames", text)
         self.assertIn("Active frame: 2 / 3", text)
         self.assertIn("Shape: 4x2 px", text)
         self.assertIn("Physical size: 8 nm x 1 nm", text)
@@ -95,6 +97,24 @@ class SeriesMetadataPanelTests(unittest.TestCase):
         self.assertIn("Channel: n/a", text)
         self.assertIn("Setpoint: n/a A", text)
         self.assertIn("Frame interval: n/a s", text)
+
+    def test_panel_displays_expanded_aligned_shape_and_padding(self) -> None:
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((3, 2, 4), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+        )
+        series.expanded_aligned_stack = SimpleNamespace(
+            frames=np.zeros((3, 5, 9), dtype=np.float32),
+            padding_ltrb=(2, 1, 3, 1),
+        )
+        self.panel = SeriesMetadataPanel()
+
+        self.panel.set_image_series(series)
+
+        text = self.panel.metadata_text()
+        self.assertIn("Expanded shape: 9x5 px", text)
+        self.assertIn("Expanded padding: 2,1,3,1 px", text)
 
 
 if __name__ == "__main__":

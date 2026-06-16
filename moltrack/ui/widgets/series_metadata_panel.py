@@ -46,24 +46,45 @@ class SeriesMetadataPanel(QGroupBox):
         metadata = self._series.metadata
         height, width = self._series.frame_shape
         px_x, px_y = self._series.pixel_size_nm
-        self.lbl_metadata.setText(
-            "\n".join(
-                [
-                    f"Source: {os.path.basename(self._series.source_path)}",
-                    f"Frames: {self._series.frame_count}",
-                    f"Active frame: {self._series.active_frame_index + 1} / {self._series.frame_count}",
-                    f"Shape: {width}x{height} px",
-                    f"Physical size: {_format_positive_number(getattr(metadata, 'size_nm_x', None))} nm x "
-                    f"{_format_positive_number(getattr(metadata, 'size_nm_y', None))} nm",
-                    f"Pixel size: {_format_number(px_x)} nm/px x {_format_number(px_y)} nm/px",
-                    f"Channel: {_format_text(getattr(metadata, 'image_type', None))}",
-                    f"Bias: {_format_number(getattr(metadata, 'bias_v', None))} V",
-                    f"Setpoint: {_format_number(getattr(metadata, 'setpoint_a', None))} A",
-                    f"Scan angle: {_format_number(getattr(metadata, 'scan_angle_deg', None))} deg",
-                    f"Frame interval: {_format_number(getattr(metadata, 'frame_interval_s', None))} s",
-                ]
-            )
+        lines = [
+            f"Source: {os.path.basename(self._series.source_path)}",
+            f"Frames: {self._series.frame_count}",
+            f"Active frame: {self._series.active_frame_index + 1} / {self._series.frame_count}",
+            f"Shape: {width}x{height} px",
+        ]
+        lines.extend(_expanded_aligned_metadata_lines(getattr(self._series, "expanded_aligned_stack", None)))
+        lines.extend(
+            [
+                f"Physical size: {_format_positive_number(getattr(metadata, 'size_nm_x', None))} nm x "
+                f"{_format_positive_number(getattr(metadata, 'size_nm_y', None))} nm",
+                f"Pixel size: {_format_number(px_x)} nm/px x {_format_number(px_y)} nm/px",
+                f"Channel: {_format_text(getattr(metadata, 'image_type', None))}",
+                f"Bias: {_format_number(getattr(metadata, 'bias_v', None))} V",
+                f"Setpoint: {_format_number(getattr(metadata, 'setpoint_a', None))} A",
+                f"Scan angle: {_format_number(getattr(metadata, 'scan_angle_deg', None))} deg",
+                f"Frame interval: {_format_number(getattr(metadata, 'frame_interval_s', None))} s",
+            ]
         )
+        self.lbl_metadata.setText("\n".join(lines))
+
+
+def _expanded_aligned_metadata_lines(expanded_stack: Any) -> list[str]:
+    if expanded_stack is None:
+        return []
+    frames = getattr(expanded_stack, "frames", None)
+    padding = getattr(expanded_stack, "padding_ltrb", None)
+    lines: list[str] = []
+    try:
+        height, width = int(frames.shape[1]), int(frames.shape[2])
+        lines.append(f"Expanded shape: {width}x{height} px")
+    except (AttributeError, IndexError, TypeError, ValueError):
+        pass
+    try:
+        left, top, right, bottom = (int(value) for value in padding)
+        lines.append(f"Expanded padding: {left},{top},{right},{bottom} px")
+    except (TypeError, ValueError):
+        pass
+    return lines
 
 
 def _format_text(value: Any) -> str:

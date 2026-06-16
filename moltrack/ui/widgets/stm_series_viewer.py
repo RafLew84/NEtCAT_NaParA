@@ -46,20 +46,54 @@ class STMSeriesViewer(QWidget):
         self._series.set_active_frame(frame_index)
         px_x, px_y = self._series.pixel_size_nm
         frame = self._series.active_frame
-        self.viewer.set_image(
-            frame,
-            scale_nm_per_px=(px_x, px_y),
-            preserve_zoom=preserve_zoom,
-            auto_levels=True,
-        )
-
         file_name = os.path.basename(self._series.source_path)
         current = self._series.active_frame_index + 1
         total = self._series.frame_count
-        self.lbl_title.setText(f"{file_name} | Frame {current}/{total}")
-
         image_type = getattr(self._series.metadata, "image_type", "") or "n/a"
-        self.lbl_meta.setText(
-            f"Shape: {frame.shape[1]}x{frame.shape[0]} px | "
-            f"Channel: {image_type}"
+        self.show_image(
+            frame,
+            title=f"{file_name} | Frame {current}/{total}",
+            meta=f"Shape: {frame.shape[1]}x{frame.shape[0]} px | Channel: {image_type}",
+            scale_nm_per_px=(px_x, px_y),
+            preserve_zoom=preserve_zoom,
         )
+
+    def show_expanded_aligned_frame(self, series, expanded_stack, frame_index: int, *, preserve_zoom: bool = True) -> None:
+        self._series = series
+        self._series.set_active_frame(frame_index)
+        metadata = getattr(expanded_stack, "metadata", self._series.metadata)
+        get_pixel_size = getattr(metadata, "get_pixel_size_nm", None)
+        px_x, px_y = get_pixel_size() if callable(get_pixel_size) else self._series.pixel_size_nm
+        frame = expanded_stack.frames[self._series.active_frame_index]
+        file_name = os.path.basename(self._series.source_path)
+        current = self._series.active_frame_index + 1
+        total = self._series.frame_count
+        left, top, right, bottom = expanded_stack.padding_ltrb
+        self.show_image(
+            frame,
+            title=f"{file_name} | Expanded aligned frame {current}/{total}",
+            meta=(
+                f"Shape: {frame.shape[1]}x{frame.shape[0]} px | "
+                f"Padding: {left},{top},{right},{bottom} px"
+            ),
+            scale_nm_per_px=(px_x, px_y),
+            preserve_zoom=preserve_zoom,
+        )
+
+    def show_image(
+        self,
+        frame,
+        *,
+        title: str,
+        meta: str,
+        scale_nm_per_px: tuple[float | None, float | None],
+        preserve_zoom: bool = True,
+    ) -> None:
+        self.viewer.set_image(
+            frame,
+            scale_nm_per_px=scale_nm_per_px,
+            preserve_zoom=preserve_zoom,
+            auto_levels=True,
+        )
+        self.lbl_title.setText(str(title))
+        self.lbl_meta.setText(str(meta))

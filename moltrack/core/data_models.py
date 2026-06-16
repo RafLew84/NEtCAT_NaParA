@@ -15,6 +15,8 @@ class MolTrackImageSeries:
     metadata: Any
     active_frame_index: int = 0
     reverse_frame_order: bool = False
+    registration_results: Any | None = None
+    expanded_aligned_stack: Any | None = None
 
     @classmethod
     def from_stm_sequence(cls, sequence: Any) -> "MolTrackImageSeries":
@@ -69,6 +71,21 @@ class MolTrackImageSeries:
     def set_active_frame(self, frame_index: int) -> None:
         self.get_frame(frame_index)
         self.active_frame_index = int(frame_index)
+
+    def remove_frame(self, frame_index: int | None = None) -> None:
+        frame_index = self.active_frame_index if frame_index is None else int(frame_index)
+        self.get_frame(frame_index)
+        if self.frame_count <= 1:
+            raise ValueError("at least one frame must remain active.")
+
+        old_active_index = self.active_frame_index
+        self.raw_frames = np.delete(self.raw_frames, frame_index, axis=0)
+        if old_active_index > frame_index:
+            self.active_frame_index = old_active_index - 1
+        elif old_active_index == frame_index:
+            self.active_frame_index = min(frame_index, self.frame_count - 1)
+        self.registration_results = None
+        self.expanded_aligned_stack = None
 
     def _validate_metadata_dimensions(self) -> None:
         pixels_y, pixels_x = self.frame_shape

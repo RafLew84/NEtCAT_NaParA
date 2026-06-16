@@ -42,6 +42,41 @@ class MolTrackImageSeriesTests(unittest.TestCase):
         np.testing.assert_array_equal(series.active_frame, frames[2])
         np.testing.assert_array_equal(series.get_frame(1), frames[1])
 
+    def test_image_series_removes_active_frame_from_working_series(self) -> None:
+        frames = np.arange(24, dtype=np.float32).reshape(3, 2, 4)
+        metadata = STMSequenceMetadata(pixels_x=4, pixels_y=2)
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=metadata,
+            active_frame_index=1,
+        )
+
+        series.remove_frame()
+
+        self.assertEqual(series.frame_count, 2)
+        self.assertEqual(series.active_frame_index, 1)
+        np.testing.assert_array_equal(series.raw_frames, frames[[0, 2]])
+        np.testing.assert_array_equal(series.active_frame, frames[2])
+
+    def test_image_series_keeps_at_least_one_frame_active(self) -> None:
+        frames = np.arange(16, dtype=np.float32).reshape(2, 2, 4)
+        metadata = STMSequenceMetadata(pixels_x=4, pixels_y=2)
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=metadata,
+        )
+
+        series.remove_frame(0)
+
+        with self.assertRaises(ValueError):
+            series.remove_frame(0)
+
+        self.assertEqual(series.frame_count, 1)
+        self.assertEqual(series.active_frame_index, 0)
+        np.testing.assert_array_equal(series.active_frame, frames[1])
+
     def test_image_series_rejects_frame_indexes_outside_series(self) -> None:
         frames = np.arange(24, dtype=np.float32).reshape(3, 2, 4)
         metadata = STMSequenceMetadata(pixels_x=4, pixels_y=2)

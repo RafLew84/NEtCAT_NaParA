@@ -3,10 +3,13 @@ from __future__ import annotations
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
+    QComboBox,
     QFileDialog,
+    QGroupBox,
     QLabel,
     QMainWindow,
     QMessageBox,
+    QPushButton,
     QScrollArea,
     QSlider,
     QSplitter,
@@ -14,6 +17,11 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from moltrack.core import (
+    MolTrackRegistrationSettings,
+    build_moltrack_expanded_aligned_stack,
+    run_moltrack_registration,
+)
 from moltrack.io import load_moltrack_image_series
 from moltrack.ui.widgets import STMSeriesViewer, SeriesMetadataPanel
 
@@ -21,10 +29,19 @@ from moltrack.ui.widgets import STMSeriesViewer, SeriesMetadataPanel
 class MolTrackMainWindow(QMainWindow):
     """Initial empty workspace for MolTrack."""
 
-    def __init__(self, parent=None, *, series_loader=load_moltrack_image_series):
+    def __init__(
+        self,
+        parent=None,
+        *,
+        series_loader=load_moltrack_image_series,
+        registration_runner=run_moltrack_registration,
+        expanded_aligned_builder=build_moltrack_expanded_aligned_stack,
+    ):
         super().__init__(parent)
         self._series = None
         self._series_loader = series_loader
+        self._registration_runner = registration_runner
+        self._expanded_aligned_builder = expanded_aligned_builder
         self.setWindowTitle("MolTrack")
         self.resize(1280, 860)
         self._build_actions()
@@ -62,6 +79,29 @@ class MolTrackMainWindow(QMainWindow):
         sidebar_layout = QVBoxLayout(sidebar_content)
         self.metadata_panel = SeriesMetadataPanel(sidebar_content)
         sidebar_layout.addWidget(self.metadata_panel)
+        self.btn_remove_current_frame = QPushButton("Remove current frame", sidebar_content)
+        self.btn_remove_current_frame.setToolTip("Delete the current frame from the working series")
+        self.btn_remove_current_frame.setEnabled(False)
+        sidebar_layout.addWidget(self.btn_remove_current_frame)
+
+        self.registration_group = QGroupBox("Registration", sidebar_content)
+        registration_layout = QVBoxLayout(self.registration_group)
+        self.cmb_registration_backend = QComboBox(self.registration_group)
+        self.cmb_registration_backend.addItem("phase_correlation")
+        self.cmb_registration_backend.setEnabled(False)
+        registration_layout.addWidget(self.cmb_registration_backend)
+        self.btn_run_registration = QPushButton("Run registration", self.registration_group)
+        self.btn_run_registration.setEnabled(False)
+        registration_layout.addWidget(self.btn_run_registration)
+        self.cmb_registration_view_mode = QComboBox(self.registration_group)
+        self.cmb_registration_view_mode.addItems(["Show raw", "Show expanded aligned"])
+        self.cmb_registration_view_mode.setEnabled(False)
+        registration_layout.addWidget(self.cmb_registration_view_mode)
+        self.lbl_registration_status = QLabel("No registration results", self.registration_group)
+        self.lbl_registration_status.setWordWrap(True)
+        registration_layout.addWidget(self.lbl_registration_status)
+        sidebar_layout.addWidget(self.registration_group)
+
         sidebar_layout.addStretch(1)
 
         sidebar = QScrollArea(self)
@@ -83,9 +123,13 @@ class MolTrackMainWindow(QMainWindow):
         self.action_open_stm.triggered.connect(self._on_open_stm_requested)
         self.action_open_stm_reverse.triggered.connect(self._on_open_stm_reverse_requested)
         self.slider_frame.valueChanged.connect(self._on_frame_selected)
+        self.btn_remove_current_frame.clicked.connect(self._on_remove_current_frame_requested)
+        self.btn_run_registration.clicked.connect(self._on_run_registration_requested)
+        self.cmb_registration_view_mode.currentTextChanged.connect(self._on_registration_view_mode_changed)
 
     def set_image_series(self, series) -> None:
         self._series = series
+        self._set_registration_view_mode("Show raw")
         self._sync_navigation_controls()
         self.viewer.set_image_series(series)
         self.metadata_panel.set_image_series(series)
@@ -99,9 +143,23 @@ class MolTrackMainWindow(QMainWindow):
         if self._series is None:
             self.lbl_frame.setText("Frame: - / -")
             self._update_navigation_enabled(False)
+            self.btn_remove_current_frame.setEnabled(False)
+            self.cmb_registration_backend.setEnabled(False)
+            self.btn_run_registration.setEnabled(False)
+            self.cmb_registration_view_mode.setEnabled(False)
+            self._set_registration_view_mode("Show raw")
+            self.lbl_registration_status.setText("No registration results")
             return
 
         self._update_navigation_enabled(True)
+        self.btn_remove_current_frame.setEnabled(self._series.frame_count > 1)
+        self.cmb_registration_backend.setEnabled(True)
+        self.btn_run_registration.setEnabled(True)
+        has_registration = self._series.registration_results is not None
+        self.cmb_registration_view_mode.setEnabled(has_registration)
+        if not has_registration:
+            self._set_registration_view_mode("Show raw")
+        self._sync_registration_status()
         self.slider_frame.blockSignals(True)
         try:
             self.slider_frame.setRange(0, self._series.frame_count - 1)
@@ -114,6 +172,21 @@ class MolTrackMainWindow(QMainWindow):
         if self._series is None:
             self.viewer.clear()
             return
+        if self._is_expanded_aligned_view_requested():
+            try:
+                expanded = self._ensure_expanded_aligned_stack()
+            except Exception as exc:
+                self._set_registration_view_mode("Show raw")
+                QMessageBox.critical(self, "Expanded aligned view failed", str(exc))
+                self.statusBar().showMessage("Expanded aligned view failed.", 3000)
+            else:
+                self.viewer.show_expanded_aligned_frame(
+                    self._series,
+                    expanded,
+                    self._series.active_frame_index,
+                )
+                self.metadata_panel.set_image_series(self._series)
+                return
         self.viewer.show_frame(self._series.active_frame_index)
 
     def _on_frame_selected(self, frame_index: int) -> None:
@@ -123,6 +196,79 @@ class MolTrackMainWindow(QMainWindow):
         self._sync_navigation_controls()
         self._show_current_frame()
         self.metadata_panel.set_active_frame(int(frame_index))
+
+    def _on_remove_current_frame_requested(self) -> None:
+        if self._series is None:
+            return
+        try:
+            self._series.remove_frame()
+        except ValueError as exc:
+            QMessageBox.critical(self, "Remove frame failed", str(exc))
+            self.statusBar().showMessage("Remove frame failed.", 3000)
+            return
+        self._set_registration_view_mode("Show raw")
+        self._sync_navigation_controls()
+        self._show_current_frame()
+        self.metadata_panel.set_image_series(self._series)
+        self.statusBar().showMessage("Removed current frame.", 3000)
+
+    def _on_run_registration_requested(self) -> None:
+        if self._series is None:
+            return
+        settings = MolTrackRegistrationSettings(
+            backend=self.cmb_registration_backend.currentText(),
+        )
+        try:
+            result_set = self._registration_runner(self._series, settings=settings)
+        except Exception as exc:
+            message = str(exc) or exc.__class__.__name__
+            QMessageBox.critical(self, "Registration failed", message)
+            self.lbl_registration_status.setText(f"Registration failed: {message}")
+            self.statusBar().showMessage("Registration failed.", 3000)
+            return
+        self.lbl_registration_status.setText(
+            f"Registered {result_set.result_count} frames with {result_set.settings.backend}"
+        )
+        self.cmb_registration_view_mode.setEnabled(True)
+        self.statusBar().showMessage(
+            f"Registration finished for {result_set.result_count} frames.",
+            5000,
+        )
+
+    def _sync_registration_status(self) -> None:
+        if self._series is None or self._series.registration_results is None:
+            self.lbl_registration_status.setText("No registration results")
+            return
+        result_set = self._series.registration_results
+        self.lbl_registration_status.setText(
+            f"Registered {result_set.result_count} frames with {result_set.settings.backend}"
+        )
+
+    def _on_registration_view_mode_changed(self, _mode: str) -> None:
+        if self._series is None:
+            return
+        self._show_current_frame()
+
+    def _is_expanded_aligned_view_requested(self) -> bool:
+        return self.cmb_registration_view_mode.currentText() == "Show expanded aligned"
+
+    def _set_registration_view_mode(self, mode: str) -> None:
+        previous = self.cmb_registration_view_mode.blockSignals(True)
+        try:
+            index = self.cmb_registration_view_mode.findText(mode)
+            if index >= 0:
+                self.cmb_registration_view_mode.setCurrentIndex(index)
+        finally:
+            self.cmb_registration_view_mode.blockSignals(previous)
+
+    def _ensure_expanded_aligned_stack(self):
+        if self._series is None:
+            raise RuntimeError("expanded aligned view requires a loaded series.")
+        if self._series.registration_results is None:
+            raise RuntimeError("expanded aligned view requires registration results.")
+        if self._series.expanded_aligned_stack is None:
+            self._series.expanded_aligned_stack = self._expanded_aligned_builder(self._series)
+        return self._series.expanded_aligned_stack
 
     def _on_open_stm_requested(self) -> None:
         self._choose_and_open_stm(reverse_frame_order=False)

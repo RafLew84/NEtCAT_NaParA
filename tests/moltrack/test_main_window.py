@@ -1,12 +1,17 @@
 import os
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import numpy as np
 
-from moltrack.core import MolTrackImageSeries
+from moltrack.core import (
+    MolTrackImageSeries,
+    MolTrackRegistrationFrameResult,
+    MolTrackRegistrationResultSet,
+)
 from nanotrack.core import STMSequenceMetadata
 
 try:
@@ -43,6 +48,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.action_open_stm_reverse.text(), "Open STM Reverse...")
         self.assertEqual(self.window.lbl_frame.text(), "Frame: - / -")
         self.assertFalse(self.window.slider_frame.isEnabled())
+        self.assertFalse(self.window.btn_remove_current_frame.isEnabled())
         self.assertEqual(self.window.metadata_panel.title(), "Metadata")
 
     def test_canceling_open_dialog_keeps_loaded_series_unchanged(self) -> None:
@@ -134,6 +140,270 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(series.active_frame_index, 2)
         self.assertEqual(self.window.lbl_frame.text(), "Frame: 3 / 3")
         np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, frames[2])
+
+    def test_remove_current_frame_button_deletes_active_frame_from_working_series(self) -> None:
+        self.window = MolTrackMainWindow()
+        frames = np.arange(24, dtype=np.float32).reshape(3, 2, 4)
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+        )
+        self.window.set_image_series(series)
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+
+        self.window.btn_remove_current_frame.click()
+        self.__class__._app.processEvents()
+
+        self.assertEqual(series.frame_count, 2)
+        self.assertEqual(series.active_frame_index, 1)
+        np.testing.assert_array_equal(series.raw_frames, frames[[0, 2]])
+        self.assertEqual(self.window.slider_frame.maximum(), 1)
+        self.assertEqual(self.window.lbl_frame.text(), "Frame: 2 / 2")
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, frames[2])
+        self.assertIn("Frames: 2", self.window.metadata_panel.metadata_text())
+
+    def test_remove_current_frame_button_disables_when_one_frame_remains(self) -> None:
+        self.window = MolTrackMainWindow()
+        frames = np.arange(16, dtype=np.float32).reshape(2, 2, 4)
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+        )
+        self.window.set_image_series(series)
+
+        self.window.btn_remove_current_frame.click()
+        self.__class__._app.processEvents()
+
+        self.assertEqual(series.frame_count, 1)
+        self.assertFalse(self.window.btn_remove_current_frame.isEnabled())
+        self.assertEqual(self.window.slider_frame.maximum(), 0)
+        self.assertEqual(self.window.lbl_frame.text(), "Frame: 1 / 1")
+
+    def test_run_registration_button_registers_current_working_series(self) -> None:
+        calls = []
+
+        def fake_registration_runner(series, *, settings):
+            calls.append((series.raw_frames.copy(), settings.backend))
+            result_set = MolTrackRegistrationResultSet(
+                settings=settings,
+                results_by_frame={
+                    0: MolTrackRegistrationFrameResult(
+                        frame_index=0,
+                        shift_xy=(0.0, 0.0),
+                        method="identity",
+                        quality_score=1.0,
+                    ),
+                    1: MolTrackRegistrationFrameResult(
+                        frame_index=1,
+                        shift_xy=(1.25, -0.5),
+                        method="phase_correlation",
+                        quality_score=0.8,
+                    ),
+                },
+            )
+            series.registration_results = result_set
+            return result_set
+
+        self.window = MolTrackMainWindow(registration_runner=fake_registration_runner)
+        frames = np.arange(16, dtype=np.float32).reshape(2, 2, 4)
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+        )
+        self.window.set_image_series(series)
+
+        self.window.btn_run_registration.click()
+        self.__class__._app.processEvents()
+
+        self.assertEqual(len(calls), 1)
+        passed_frames, backend = calls[0]
+        np.testing.assert_array_equal(passed_frames, frames)
+        self.assertEqual(backend, "phase_correlation")
+        self.assertIsNotNone(series.registration_results)
+        self.assertEqual(series.registration_results.result_count, 2)
+        self.assertIn("Registered 2 frames", self.window.lbl_registration_status.text())
+        self.assertIn("Registration finished", self.window.statusBar().currentMessage())
+
+    def test_run_registration_after_frame_removal_uses_shortened_working_series(self) -> None:
+        calls = []
+
+        def fake_registration_runner(series, *, settings):
+            calls.append(series.raw_frames.copy())
+            result_set = MolTrackRegistrationResultSet(
+                settings=settings,
+                results_by_frame={
+                    frame_index: MolTrackRegistrationFrameResult(
+                        frame_index=frame_index,
+                        shift_xy=(float(frame_index), -float(frame_index)),
+                        method="phase_correlation",
+                        quality_score=0.8,
+                    )
+                    for frame_index in range(series.frame_count)
+                },
+            )
+            series.registration_results = result_set
+            return result_set
+
+        self.window = MolTrackMainWindow(registration_runner=fake_registration_runner)
+        frames = np.arange(24, dtype=np.float32).reshape(3, 2, 4)
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+        )
+        self.window.set_image_series(series)
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+
+        self.window.btn_remove_current_frame.click()
+        self.window.btn_run_registration.click()
+        self.__class__._app.processEvents()
+
+        self.assertEqual(len(calls), 1)
+        np.testing.assert_array_equal(calls[0], frames[[0, 2]])
+        self.assertEqual(series.registration_results.result_count, 2)
+        self.assertIn("Registered 2 frames", self.window.lbl_registration_status.text())
+
+    def test_registration_view_mode_switches_between_raw_and_expanded_aligned_frames(self) -> None:
+        expanded_frames = (np.arange(2 * 3 * 5, dtype=np.float32).reshape(2, 3, 5) + 1000.0)
+
+        def fake_registration_runner(series, *, settings):
+            result_set = MolTrackRegistrationResultSet(
+                settings=settings,
+                results_by_frame={
+                    0: MolTrackRegistrationFrameResult(
+                        frame_index=0,
+                        shift_xy=(0.0, 0.0),
+                        method="identity",
+                        quality_score=1.0,
+                    ),
+                    1: MolTrackRegistrationFrameResult(
+                        frame_index=1,
+                        shift_xy=(2.0, -1.0),
+                        method="phase_correlation",
+                        quality_score=0.8,
+                    ),
+                },
+            )
+            series.registration_results = result_set
+            return result_set
+
+        def fake_expanded_builder(series):
+            expanded_stack = SimpleNamespace(
+                frames=expanded_frames,
+                metadata=STMSequenceMetadata(pixels_x=5, pixels_y=3),
+                padding_ltrb=(0, 1, 1, 0),
+                frame_origins_xy=np.asarray([[0.0, 1.0], [2.0, 0.0]], dtype=np.float64),
+            )
+            series.expanded_aligned_stack = expanded_stack
+            return expanded_stack
+
+        self.window = MolTrackMainWindow(
+            registration_runner=fake_registration_runner,
+            expanded_aligned_builder=fake_expanded_builder,
+        )
+        frames = np.arange(16, dtype=np.float32).reshape(2, 2, 4)
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+        )
+        self.window.set_image_series(series)
+
+        self.window.btn_run_registration.click()
+        self.__class__._app.processEvents()
+        self.window.cmb_registration_view_mode.setCurrentText("Show expanded aligned")
+        self.__class__._app.processEvents()
+
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, expanded_frames[0])
+        self.assertIn("Expanded aligned", self.window.viewer.lbl_title.text())
+
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, expanded_frames[1])
+
+        self.window.cmb_registration_view_mode.setCurrentText("Show raw")
+        self.__class__._app.processEvents()
+
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, frames[1])
+        self.assertNotIn("Expanded aligned", self.window.viewer.lbl_title.text())
+
+    def test_remove_current_frame_disables_expanded_aligned_view_until_registration_reruns(self) -> None:
+        def fake_registration_runner(series, *, settings):
+            result_set = MolTrackRegistrationResultSet(
+                settings=settings,
+                results_by_frame={
+                    frame_index: MolTrackRegistrationFrameResult(
+                        frame_index=frame_index,
+                        shift_xy=(float(frame_index), 0.0),
+                        method="phase_correlation",
+                        quality_score=0.8,
+                    )
+                    for frame_index in range(series.frame_count)
+                },
+            )
+            series.registration_results = result_set
+            return result_set
+
+        def fake_expanded_builder(series):
+            expanded_stack = SimpleNamespace(
+                frames=np.full((series.frame_count, 3, 5), 42.0, dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=5, pixels_y=3),
+                padding_ltrb=(0, 0, 1, 1),
+                frame_origins_xy=np.zeros((series.frame_count, 2), dtype=np.float64),
+            )
+            series.expanded_aligned_stack = expanded_stack
+            return expanded_stack
+
+        self.window = MolTrackMainWindow(
+            registration_runner=fake_registration_runner,
+            expanded_aligned_builder=fake_expanded_builder,
+        )
+        frames = np.arange(24, dtype=np.float32).reshape(3, 2, 4)
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+        )
+        self.window.set_image_series(series)
+        self.window.btn_run_registration.click()
+        self.window.cmb_registration_view_mode.setCurrentText("Show expanded aligned")
+        self.__class__._app.processEvents()
+
+        self.window.btn_remove_current_frame.click()
+        self.__class__._app.processEvents()
+
+        self.assertIsNone(series.registration_results)
+        self.assertIsNone(series.expanded_aligned_stack)
+        self.assertEqual(self.window.cmb_registration_view_mode.currentText(), "Show raw")
+        self.assertFalse(self.window.cmb_registration_view_mode.isEnabled())
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, frames[1])
+
+    def test_run_registration_reports_error_when_series_has_too_few_frames(self) -> None:
+        self.window = MolTrackMainWindow()
+        series = MolTrackImageSeries(
+            source_path="single.mpp",
+            raw_frames=np.zeros((1, 2, 4), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+        )
+        self.window.set_image_series(series)
+
+        with patch.object(QMessageBox, "critical", return_value=QMessageBox.StandardButton.Ok) as critical:
+            self.window.btn_run_registration.click()
+            self.__class__._app.processEvents()
+
+        critical.assert_called_once()
+        _parent, title, message = critical.call_args.args
+        self.assertEqual(title, "Registration failed")
+        self.assertIn("at least two frames", message)
+        self.assertTrue(self.window.btn_run_registration.isEnabled())
+        self.assertIn("Registration failed", self.window.lbl_registration_status.text())
+        self.assertIn("Registration failed", self.window.statusBar().currentMessage())
 
     def test_open_stm_source_uses_loader_and_displays_loaded_series(self) -> None:
         frames = np.zeros((2, 3, 4), dtype=np.float32)
