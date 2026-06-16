@@ -42,6 +42,24 @@ class MolTrackImageSeriesTests(unittest.TestCase):
         np.testing.assert_array_equal(series.active_frame, frames[2])
         np.testing.assert_array_equal(series.get_frame(1), frames[1])
 
+    def test_image_series_rejects_frame_indexes_outside_series(self) -> None:
+        frames = np.arange(24, dtype=np.float32).reshape(3, 2, 4)
+        metadata = STMSequenceMetadata(pixels_x=4, pixels_y=2)
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=metadata,
+            active_frame_index=1,
+        )
+
+        with self.assertRaises(IndexError):
+            series.get_frame(3)
+
+        with self.assertRaises(IndexError):
+            series.set_active_frame(-1)
+
+        self.assertEqual(series.active_frame_index, 1)
+
     def test_image_series_rejects_metadata_dimensions_that_do_not_match_frames(self) -> None:
         frames = np.zeros((3, 2, 4), dtype=np.float32)
         metadata = STMSequenceMetadata(pixels_x=5, pixels_y=2)

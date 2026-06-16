@@ -4,7 +4,6 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QFileDialog,
-    QGroupBox,
     QLabel,
     QMainWindow,
     QMessageBox,
@@ -16,7 +15,7 @@ from PyQt6.QtWidgets import (
 )
 
 from moltrack.io import load_moltrack_image_series
-from moltrack.ui.widgets import STMSeriesViewer
+from moltrack.ui.widgets import STMSeriesViewer, SeriesMetadataPanel
 
 
 class MolTrackMainWindow(QMainWindow):
@@ -61,12 +60,8 @@ class MolTrackMainWindow(QMainWindow):
 
         sidebar_content = QWidget(self)
         sidebar_layout = QVBoxLayout(sidebar_content)
-        self.metadata_group = QGroupBox("Metadata", sidebar_content)
-        metadata_layout = QVBoxLayout(self.metadata_group)
-        self.lbl_metadata = QLabel("No series loaded", self.metadata_group)
-        self.lbl_metadata.setWordWrap(True)
-        metadata_layout.addWidget(self.lbl_metadata)
-        sidebar_layout.addWidget(self.metadata_group)
+        self.metadata_panel = SeriesMetadataPanel(sidebar_content)
+        sidebar_layout.addWidget(self.metadata_panel)
         sidebar_layout.addStretch(1)
 
         sidebar = QScrollArea(self)
@@ -93,7 +88,7 @@ class MolTrackMainWindow(QMainWindow):
         self._series = series
         self._sync_navigation_controls()
         self.viewer.set_image_series(series)
-        self._sync_metadata_summary()
+        self.metadata_panel.set_image_series(series)
 
     def open_stm_source(self, source_path, *, reverse_frame_order: bool = False) -> None:
         series = self._series_loader(source_path, reverse_frame_order=reverse_frame_order)
@@ -121,29 +116,13 @@ class MolTrackMainWindow(QMainWindow):
             return
         self.viewer.show_frame(self._series.active_frame_index)
 
-    def _sync_metadata_summary(self) -> None:
-        if self._series is None:
-            self.lbl_metadata.setText("No series loaded")
-            return
-        height, width = self._series.frame_shape
-        image_type = getattr(self._series.metadata, "image_type", "") or "n/a"
-        self.lbl_metadata.setText(
-            "\n".join(
-                [
-                    str(self._series.source_path),
-                    f"Frames: {self._series.frame_count}",
-                    f"Shape: {width}x{height} px",
-                    f"Channel: {image_type}",
-                ]
-            )
-        )
-
     def _on_frame_selected(self, frame_index: int) -> None:
         if self._series is None:
             return
         self._series.set_active_frame(int(frame_index))
         self._sync_navigation_controls()
         self._show_current_frame()
+        self.metadata_panel.set_active_frame(int(frame_index))
 
     def _on_open_stm_requested(self) -> None:
         self._choose_and_open_stm(reverse_frame_order=False)
@@ -163,4 +142,6 @@ class MolTrackMainWindow(QMainWindow):
         try:
             self.open_stm_source(path, reverse_frame_order=reverse_frame_order)
         except Exception as exc:
-            QMessageBox.critical(self, "Open STM failed", str(exc))
+            message = str(exc) or exc.__class__.__name__
+            self.statusBar().showMessage(f"Open STM failed: {message}", 5000)
+            QMessageBox.critical(self, "Open STM failed", message)
