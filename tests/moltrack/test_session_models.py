@@ -3,6 +3,8 @@ import unittest
 import numpy as np
 
 from moltrack.core import (
+    MolecularDetection,
+    MolecularDetectionSet,
     MolTrackImageSeries,
     MolTrackRegistrationFrameResult,
     MolTrackRegistrationResultSet,
@@ -35,6 +37,23 @@ class MolTrackSessionTests(unittest.TestCase):
                 for frame_index in range(series.frame_count)
             },
         )
+        detections = MolecularDetectionSet(frame_count=series.frame_count)
+        detections.set_detections(
+            1,
+            [
+                MolecularDetection(
+                    frame_index=1,
+                    bbox_xyxy=(0, 0, 2, 1),
+                    confidence=0.8,
+                    model_name="model-a.pt",
+                    checkpoint_path="nanotrack/yolo_models/model-a.pt",
+                    source_view="raw",
+                )
+            ],
+            source_view="raw",
+            frame_shape=(2, 4),
+        )
+        series.molecular_detections = detections
 
         session = MolTrackSession.from_image_series(
             series,
@@ -53,6 +72,7 @@ class MolTrackSessionTests(unittest.TestCase):
         self.assertEqual(session.registration_view_mode, "Show expanded aligned")
         self.assertIs(session.registration_settings, settings)
         self.assertIs(session.registration_results, series.registration_results)
+        self.assertIs(session.molecular_detections, detections)
 
     def test_session_rejects_invalid_state_for_later_restore(self) -> None:
         with self.assertRaises(IndexError):
@@ -87,6 +107,14 @@ class MolTrackSessionTests(unittest.TestCase):
                 source_frame_indices=(0, 2),
                 active_frame_index=1,
                 registration_results=result_set,
+            )
+
+        with self.assertRaisesRegex(ValueError, "molecular_detections do not match"):
+            MolTrackSession(
+                source_path="movie.mpp",
+                source_frame_indices=(0, 2),
+                active_frame_index=1,
+                molecular_detections=MolecularDetectionSet(frame_count=1),
             )
 
 

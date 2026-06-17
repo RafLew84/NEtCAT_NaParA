@@ -6,6 +6,8 @@ from pathlib import Path
 import numpy as np
 
 from moltrack.core import (
+    MolecularDetection,
+    MolecularDetectionSet,
     MolTrackImageSeries,
     MolTrackRegistrationFrameResult,
     MolTrackRegistrationResultSet,
@@ -54,6 +56,40 @@ class MolTrackSessionStoreTests(unittest.TestCase):
                 },
             )
             series.expanded_aligned_stack = object()
+            detections = MolecularDetectionSet(frame_count=series.frame_count)
+            detections.set_detections(
+                0,
+                [
+                    MolecularDetection(
+                        frame_index=0,
+                        bbox_xyxy=(0, 0, 2, 1),
+                        confidence=0.91,
+                        selected=True,
+                        model_name="model-a.pt",
+                        checkpoint_path="nanotrack/yolo_models/model-a.pt",
+                        source_view="raw",
+                    )
+                ],
+                source_view="raw",
+                frame_shape=(2, 4),
+            )
+            detections.set_detections(
+                1,
+                [
+                    MolecularDetection(
+                        frame_index=1,
+                        bbox_xyxy=(1, 0, 4, 2),
+                        confidence=0.72,
+                        selected=False,
+                        model_name="model-b.pt",
+                        checkpoint_path="missing/model-b.pt",
+                        source_view="expanded_aligned",
+                    )
+                ],
+                source_view="expanded_aligned",
+                frame_shape=(2, 4),
+            )
+            series.molecular_detections = detections
 
             save_moltrack_session(
                 session_path,
@@ -72,6 +108,18 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             self.assertEqual(payload["registration"]["settings"]["backend"], "optical_flow_median")
             self.assertEqual(payload["registration"]["settings"]["backend_params"]["method"], "ilk")
             self.assertEqual(payload["registration"]["results_by_frame"][1]["shift_xy"], [1.0, -1.0])
+            self.assertEqual(payload["molecular_detections"]["frame_count"], 3)
+            self.assertEqual(payload["molecular_detections"]["detections"][0]["frame_index"], 0)
+            self.assertEqual(payload["molecular_detections"]["detections"][0]["bbox_xyxy"], [0.0, 0.0, 2.0, 1.0])
+            self.assertEqual(payload["molecular_detections"]["detections"][0]["confidence"], 0.91)
+            self.assertTrue(payload["molecular_detections"]["detections"][0]["selected"])
+            self.assertEqual(payload["molecular_detections"]["detections"][0]["model_name"], "model-a.pt")
+            self.assertEqual(
+                payload["molecular_detections"]["detections"][0]["checkpoint_path"],
+                "nanotrack/yolo_models/model-a.pt",
+            )
+            self.assertEqual(payload["molecular_detections"]["detections"][1]["source_view"], "expanded_aligned")
+            self.assertFalse(payload["molecular_detections"]["detections"][1]["selected"])
             self.assertNotIn("expanded_aligned_stack", payload)
 
             loaded = load_moltrack_session(session_path)
@@ -85,6 +133,18 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             self.assertEqual(loaded.registration_settings.backend_params["method"], "ilk")
             self.assertEqual(loaded.registration_results.result_count, 3)
             self.assertEqual(loaded.registration_results.get_result(2).shift_xy, (2.0, -2.0))
+            self.assertIsNotNone(loaded.molecular_detections)
+            loaded_raw = loaded.molecular_detections.get_detections(0, source_view="raw")
+            loaded_expanded = loaded.molecular_detections.get_detections(1, source_view="expanded_aligned")
+            self.assertEqual(len(loaded_raw), 1)
+            self.assertEqual(loaded_raw[0].bbox_xyxy, (0.0, 0.0, 2.0, 1.0))
+            self.assertEqual(loaded_raw[0].confidence, 0.91)
+            self.assertTrue(loaded_raw[0].selected)
+            self.assertEqual(loaded_raw[0].model_name, "model-a.pt")
+            self.assertEqual(loaded_raw[0].checkpoint_path, "nanotrack/yolo_models/model-a.pt")
+            self.assertEqual(len(loaded_expanded), 1)
+            self.assertFalse(loaded_expanded[0].selected)
+            self.assertEqual(loaded_expanded[0].source_view, "expanded_aligned")
 
     def test_load_session_rejects_unknown_schema_version(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -132,6 +192,33 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "source file metadata does not match"):
                 load_moltrack_session(session_path)
 
+    def test_load_session_rejects_molecular_detection_frame_count_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"fake mpp bytes")
+            session_path = tmp_path / "state.moltrack.json"
+            series = MolTrackImageSeries(
+                source_path=str(source_path),
+                raw_frames=np.arange(16, dtype=np.float32).reshape(2, 2, 4),
+                metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+            )
+            detections = MolecularDetectionSet(frame_count=2)
+            detections.set_detections(
+                0,
+                [MolecularDetection(frame_index=0, bbox_xyxy=(0, 0, 2, 1), confidence=0.8)],
+                source_view="raw",
+                frame_shape=(2, 4),
+            )
+            series.molecular_detections = detections
+            save_moltrack_session(session_path, series, None)
+            payload = json.loads(session_path.read_text(encoding="utf-8"))
+            payload["molecular_detections"]["frame_count"] = 3
+            session_path.write_text(json.dumps(payload), encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "molecular_detections frame_count"):
+                load_moltrack_session(session_path)
+
     def test_restore_working_series_from_session_reloads_source_and_applies_saved_frame_indices(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_path = Path(tmpdir)
@@ -159,6 +246,23 @@ class MolTrackSessionStoreTests(unittest.TestCase):
                     for frame_index in range(series.frame_count)
                 },
             )
+            detections = MolecularDetectionSet(frame_count=series.frame_count)
+            detections.set_detections(
+                2,
+                [
+                    MolecularDetection(
+                        frame_index=2,
+                        bbox_xyxy=(0, 0, 2, 1),
+                        confidence=0.83,
+                        model_name="model-a.pt",
+                        checkpoint_path="missing/model-a.pt",
+                        source_view="expanded_aligned",
+                    )
+                ],
+                source_view="expanded_aligned",
+                frame_shape=(2, 4),
+            )
+            series.molecular_detections = detections
             series.expanded_aligned_stack = object()
             save_moltrack_session(session_path, series, {"registration_view_mode": "Show expanded aligned"})
             calls = []
@@ -184,11 +288,17 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             self.assertIsNotNone(restored.registration_results)
             self.assertEqual(restored.registration_results.result_count, 3)
             self.assertIsNone(restored.expanded_aligned_stack)
+            self.assertIsNotNone(restored.molecular_detections)
+            restored_expanded = restored.molecular_detections.get_detections(2, source_view="expanded_aligned")
+            self.assertEqual(len(restored_expanded), 1)
+            self.assertEqual(restored_expanded[0].model_name, "model-a.pt")
+            self.assertEqual(restored_expanded[0].checkpoint_path, "missing/model-a.pt")
 
             restored.remove_frame(1)
 
             self.assertEqual(restored.source_frame_indices, (0, 4))
             self.assertIsNone(restored.registration_results)
+            self.assertIsNone(restored.molecular_detections)
 
     def test_restore_working_series_maps_source_indices_for_reversed_sources(self) -> None:
         full_frames = np.arange(40, dtype=np.float32).reshape(5, 2, 4)

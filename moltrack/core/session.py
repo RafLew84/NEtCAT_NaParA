@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .data_models import MolTrackImageSeries
+from .detections import MolecularDetectionSet
 from .registration import MolTrackRegistrationResultSet, MolTrackRegistrationSettings
 
 
@@ -21,6 +22,7 @@ class MolTrackSession:
     registration_view_mode: str = "Show raw"
     registration_settings: MolTrackRegistrationSettings | None = None
     registration_results: MolTrackRegistrationResultSet | None = None
+    molecular_detections: MolecularDetectionSet | None = None
     source_size_bytes: int | None = None
     source_mtime_ns: int | None = None
     schema_version: int = MOLTRACK_SESSION_SCHEMA_VERSION
@@ -61,12 +63,18 @@ class MolTrackSession:
             self.registration_results, MolTrackRegistrationResultSet
         ):
             raise TypeError("registration_results must be a MolTrackRegistrationResultSet instance.")
+        if self.molecular_detections is not None and not isinstance(
+            self.molecular_detections, MolecularDetectionSet
+        ):
+            raise TypeError("molecular_detections must be a MolecularDetectionSet instance.")
         if self.registration_results is not None:
             expected = tuple(range(len(source_frame_indices)))
             if self.registration_results.frame_indices != expected:
                 raise ValueError("registration_results do not match source_frame_indices length.")
             if self.registration_settings is not None and self.registration_results.settings != self.registration_settings:
                 raise ValueError("registration_settings must match registration_results.settings.")
+        if self.molecular_detections is not None and self.molecular_detections.frame_count != len(source_frame_indices):
+            raise ValueError("molecular_detections do not match source_frame_indices length.")
 
         object.__setattr__(self, "source_path", source_path)
         object.__setattr__(self, "source_frame_indices", source_frame_indices)
@@ -98,6 +106,7 @@ class MolTrackSession:
             registration_view_mode=registration_view_mode,
             registration_settings=registration_settings,
             registration_results=registration_results,
+            molecular_detections=series.molecular_detections,
             source_size_bytes=source_size_bytes,
             source_mtime_ns=source_mtime_ns,
         )

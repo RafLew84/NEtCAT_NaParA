@@ -9,6 +9,8 @@ import numpy as np
 
 from moltrack.core import (
     MOLTRACK_SESSION_SCHEMA_VERSION,
+    MolecularDetection,
+    MolecularDetectionSet,
     MolTrackImageSeries,
     MolTrackRegistrationFrameResult,
     MolTrackRegistrationResultSet,
@@ -70,11 +72,16 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
     working_series_payload = _require_mapping(payload.get("working_series"), "working_series")
     ui_payload = _require_mapping(payload.get("ui", {}), "ui")
     registration_payload = payload.get("registration")
+    molecular_detections_payload = payload.get("molecular_detections")
 
     registration_settings: MolTrackRegistrationSettings | None = None
     registration_results: MolTrackRegistrationResultSet | None = None
     if registration_payload is not None:
         registration_settings, registration_results = _registration_from_payload(registration_payload)
+    molecular_detections = _molecular_detections_from_payload(
+        molecular_detections_payload,
+        expected_frame_count=len(working_series_payload["source_frame_indices"]),
+    )
 
     return MolTrackSession(
         source_path=str(source_path),
@@ -84,6 +91,7 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
         registration_view_mode=str(ui_payload.get("registration_view_mode", "Show raw")),
         registration_settings=registration_settings,
         registration_results=registration_results,
+        molecular_detections=molecular_detections,
         source_size_bytes=int(source_payload["size_bytes"]),
         source_mtime_ns=int(source_payload["mtime_ns"]),
         schema_version=schema_version,
@@ -127,6 +135,7 @@ def restore_moltrack_image_series_from_session(
         source_frame_indices=session.source_frame_indices,
         registration_results=session.registration_results,
         expanded_aligned_stack=None,
+        molecular_detections=session.molecular_detections,
     )
     if restored.registration_results is not None:
         expected = tuple(range(restored.frame_count))
@@ -158,6 +167,7 @@ def _session_to_payload(
             "registration_view_mode": session.registration_view_mode,
         },
         "registration": _registration_to_payload(session.registration_results),
+        "molecular_detections": _molecular_detections_to_payload(session.molecular_detections),
     }
 
 
@@ -215,6 +225,64 @@ def _registration_from_payload(payload: Any) -> tuple[MolTrackRegistrationSettin
         reference_frame_index=int(registration_payload.get("reference_frame_index", 0)),
     )
     return settings, result_set
+
+
+def _molecular_detections_to_payload(detection_set: MolecularDetectionSet | None) -> dict[str, Any] | None:
+    if detection_set is None:
+        return None
+    items: list[dict[str, Any]] = []
+    for frame_index in range(detection_set.frame_count):
+        for detection in detection_set.get_detections(frame_index):
+            items.append(
+                {
+                    "frame_index": detection.frame_index,
+                    "bbox_xyxy": list(detection.bbox_xyxy),
+                    "confidence": detection.confidence,
+                    "selected": detection.selected,
+                    "model_name": detection.model_name,
+                    "checkpoint_path": detection.checkpoint_path,
+                    "source_view": detection.source_view,
+                }
+            )
+    return {
+        "frame_count": detection_set.frame_count,
+        "detections": items,
+    }
+
+
+def _molecular_detections_from_payload(
+    payload: Any,
+    *,
+    expected_frame_count: int,
+) -> MolecularDetectionSet | None:
+    if payload is None:
+        return None
+    detections_payload = _require_mapping(payload, "molecular_detections")
+    frame_count = int(detections_payload["frame_count"])
+    if frame_count != int(expected_frame_count):
+        raise ValueError("molecular_detections frame_count does not match working series frame count.")
+    items = detections_payload.get("detections", [])
+    if not isinstance(items, list):
+        raise ValueError("molecular_detections.detections must be a list.")
+
+    detection_set = MolecularDetectionSet(frame_count=frame_count)
+    detections_by_frame_and_view: dict[tuple[int, str], list[MolecularDetection]] = {}
+    for item in items:
+        item_payload = _require_mapping(item, "molecular detection")
+        detection = MolecularDetection(
+            frame_index=int(item_payload["frame_index"]),
+            bbox_xyxy=tuple(item_payload["bbox_xyxy"]),
+            confidence=float(item_payload["confidence"]),
+            selected=bool(item_payload.get("selected", True)),
+            model_name=str(item_payload.get("model_name", "")),
+            checkpoint_path=str(item_payload.get("checkpoint_path", "")),
+            source_view=str(item_payload.get("source_view", "raw")),
+        )
+        detections_by_frame_and_view.setdefault((detection.frame_index, detection.source_view), []).append(detection)
+
+    for (frame_index, source_view), detections in detections_by_frame_and_view.items():
+        detection_set.set_detections(frame_index, detections, source_view=source_view)
+    return detection_set
 
 
 def _registration_view_mode_from_ui_state(ui_state: Any | None) -> str:

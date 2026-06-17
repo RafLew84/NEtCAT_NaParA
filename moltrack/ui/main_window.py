@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PyQt6.QtCore import QObject, QThread, Qt, pyqtSignal
+from PyQt6.QtCore import QObject, QThread, QTimer, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QApplication,
@@ -56,8 +56,58 @@ class _RegistrationRunWorker(QObject):
         self.finished.emit(result_set)
 
 
+class _YoloDetectAllWorker(QObject):
+    progress = pyqtSignal(int, int)
+    finished = pyqtSignal(object)
+    failed = pyqtSignal(str)
+
+    def __init__(
+        self,
+        detector,
+        frames,
+        frame_indices: list[int],
+        *,
+        checkpoint_path,
+        confidence_threshold: float,
+        iou_threshold: float,
+        source_view: str,
+    ):
+        super().__init__()
+        self._detector = detector
+        self._frames = frames
+        self._frame_indices = frame_indices
+        self._checkpoint_path = checkpoint_path
+        self._confidence_threshold = confidence_threshold
+        self._iou_threshold = iou_threshold
+        self._source_view = source_view
+
+    def run(self) -> None:
+        try:
+            results = []
+            total = len(self._frame_indices)
+            for position, (frame, frame_index) in enumerate(zip(self._frames, self._frame_indices), start=1):
+                self.progress.emit(position, total)
+                detections = self._detector.detect_frame(
+                    frame,
+                    frame_index=frame_index,
+                    checkpoint_path=self._checkpoint_path,
+                    confidence_threshold=self._confidence_threshold,
+                    iou_threshold=self._iou_threshold,
+                    source_view=self._source_view,
+                )
+                results.append((frame_index, frame.shape[:2], detections))
+        except Exception as exc:
+            self.failed.emit(str(exc) or exc.__class__.__name__)
+            return
+        self.finished.emit(results)
+
+
 class MolTrackMainWindow(QMainWindow):
     """Initial empty workspace for MolTrack."""
+
+    _yolo_apply_detection_progress = pyqtSignal(int, int)
+    _yolo_apply_detection_finished = pyqtSignal(object)
+    _yolo_apply_detection_failed = pyqtSignal(str)
 
     def __init__(
         self,
@@ -91,10 +141,28 @@ class MolTrackMainWindow(QMainWindow):
         self._yolo_model_discovery = yolo_model_discovery
         self._yolo_detector = yolo_detector if yolo_detector is not None else MolTrackYoloDetector()
         self._yolo_models = []
+        self._yolo_detection_running = False
+        self._yolo_detection_progress_dialog: QProgressDialog | None = None
+        self._yolo_detection_thread: QThread | None = None
+        self._yolo_detection_worker: _YoloDetectAllWorker | None = None
+        self._yolo_detection_model_name = ""
+        self._yolo_detection_source_view = "raw"
         self._registration_running = False
         self._registration_progress_dialog: QProgressDialog | None = None
         self._registration_thread: QThread | None = None
         self._registration_worker: _RegistrationRunWorker | None = None
+        self._yolo_apply_detection_progress.connect(
+            self._on_yolo_detection_progress,
+            type=Qt.ConnectionType.QueuedConnection,
+        )
+        self._yolo_apply_detection_finished.connect(
+            self._on_yolo_detection_finished,
+            type=Qt.ConnectionType.QueuedConnection,
+        )
+        self._yolo_apply_detection_failed.connect(
+            self._on_yolo_detection_failed,
+            type=Qt.ConnectionType.QueuedConnection,
+        )
         self.setWindowTitle("MolTrack")
         self.resize(1280, 860)
         self._build_actions()
@@ -194,6 +262,9 @@ class MolTrackMainWindow(QMainWindow):
         self.btn_yolo_detect_current = QPushButton("Detect Current Frame", self.yolo_group)
         self.btn_yolo_detect_current.setEnabled(False)
         yolo_layout.addWidget(self.btn_yolo_detect_current)
+        self.btn_yolo_detect_all_frames = QPushButton("Detect All Frames", self.yolo_group)
+        self.btn_yolo_detect_all_frames.setEnabled(False)
+        yolo_layout.addWidget(self.btn_yolo_detect_all_frames)
         self.btn_yolo_clear_current = QPushButton("Clear Current", self.yolo_group)
         self.btn_yolo_clear_current.setEnabled(False)
         yolo_layout.addWidget(self.btn_yolo_clear_current)
@@ -231,6 +302,7 @@ class MolTrackMainWindow(QMainWindow):
         self.cmb_registration_view_mode.currentTextChanged.connect(self._on_registration_view_mode_changed)
         self.btn_yolo_refresh_models.clicked.connect(self._refresh_yolo_models)
         self.btn_yolo_detect_current.clicked.connect(self._on_yolo_detect_current_requested)
+        self.btn_yolo_detect_all_frames.clicked.connect(self._on_yolo_detect_all_frames_requested)
         self.btn_yolo_clear_current.clicked.connect(self._on_yolo_clear_current_requested)
 
     def set_image_series(self, series) -> None:
@@ -247,7 +319,7 @@ class MolTrackMainWindow(QMainWindow):
         self.statusBar().showMessage(f"Loaded {series.source_path}", 3000)
 
     def _sync_navigation_controls(self) -> None:
-        self._set_file_actions_enabled(not self._registration_running)
+        self._set_file_actions_enabled(not self._is_processing())
         if self._series is None:
             self.lbl_frame.setText("Frame: - / -")
             self._update_navigation_enabled(False)
@@ -260,7 +332,7 @@ class MolTrackMainWindow(QMainWindow):
             self._sync_yolo_controls()
             return
 
-        controls_enabled = not self._registration_running
+        controls_enabled = not self._is_processing()
         self._update_navigation_enabled(controls_enabled)
         self.btn_remove_current_frame.setEnabled(controls_enabled and self._series.frame_count > 1)
         self.cmb_registration_backend.setEnabled(controls_enabled)
@@ -296,13 +368,14 @@ class MolTrackMainWindow(QMainWindow):
         self._sync_yolo_controls()
 
     def _sync_yolo_controls(self) -> None:
-        controls_enabled = self._series is not None and not self._registration_running
+        controls_enabled = self._series is not None and not self._is_processing()
         has_models = self.cmb_yolo_model.count() > 0
         self.cmb_yolo_model.setEnabled(controls_enabled and has_models)
-        self.btn_yolo_refresh_models.setEnabled(not self._registration_running)
+        self.btn_yolo_refresh_models.setEnabled(not self._is_processing())
         self.sp_yolo_confidence.setEnabled(controls_enabled)
         self.sp_yolo_iou.setEnabled(controls_enabled)
         self.btn_yolo_detect_current.setEnabled(controls_enabled and has_models)
+        self.btn_yolo_detect_all_frames.setEnabled(controls_enabled and has_models)
         current_count = self._current_molecular_detection_count()
         self.btn_yolo_clear_current.setEnabled(controls_enabled and current_count > 0)
         if self._series is not None and self._series.molecular_detections is not None:
@@ -323,6 +396,9 @@ class MolTrackMainWindow(QMainWindow):
 
     def _current_yolo_source_view(self) -> str:
         return "expanded_aligned" if self._is_expanded_aligned_view_requested() else "raw"
+
+    def _is_processing(self) -> bool:
+        return self._registration_running or self._yolo_detection_running
 
     def _yolo_model_display_name(self, model) -> str:
         return str(
@@ -356,7 +432,7 @@ class MolTrackMainWindow(QMainWindow):
         return self._series.molecular_detections
 
     def _on_yolo_detect_current_requested(self) -> None:
-        if self._series is None:
+        if self._series is None or self._is_processing():
             return
         model = self._current_yolo_model()
         if model is None:
@@ -399,6 +475,158 @@ class MolTrackMainWindow(QMainWindow):
             ),
             5000,
         )
+
+    def _on_yolo_detect_all_frames_requested(self) -> None:
+        if self._series is None or self._is_processing():
+            return
+        model = self._current_yolo_model()
+        if model is None:
+            self.statusBar().showMessage("No YOLO model selected.", 3000)
+            return
+
+        source_view = self._current_yolo_source_view()
+        try:
+            frames = self._current_yolo_frames(source_view)
+        except Exception as exc:
+            message = str(exc) or exc.__class__.__name__
+            QMessageBox.critical(self, "YOLO detection error", message)
+            self.statusBar().showMessage("YOLO detection failed.", 3000)
+            return
+
+        frame_indices = list(range(self._series.frame_count))
+        model_path = self._current_yolo_model_path(model)
+        self._yolo_detection_running = True
+        self._yolo_detection_model_name = self._yolo_model_display_name(model)
+        self._yolo_detection_source_view = source_view
+        self._set_file_actions_enabled(False)
+        self._yolo_detection_progress_dialog = self._show_yolo_detection_progress_dialog(
+            self._yolo_detection_model_name,
+            total=len(frame_indices),
+        )
+        self._sync_navigation_controls()
+        self.statusBar().showMessage(
+            f"Running YOLO {self._yolo_detection_model_name} on {len(frame_indices)} frames...",
+            0,
+        )
+
+        self._yolo_detection_thread = QThread(self)
+        self._yolo_detection_worker = _YoloDetectAllWorker(
+            self._yolo_detector,
+            frames,
+            frame_indices,
+            checkpoint_path=model_path,
+            confidence_threshold=float(self.sp_yolo_confidence.value()),
+            iou_threshold=float(self.sp_yolo_iou.value()),
+            source_view=source_view,
+        )
+        self._yolo_detection_worker.moveToThread(self._yolo_detection_thread)
+        self._yolo_detection_thread.started.connect(self._yolo_detection_worker.run)
+        self._yolo_detection_worker.progress.connect(self._yolo_apply_detection_progress.emit)
+        self._yolo_detection_worker.finished.connect(self._yolo_apply_detection_finished.emit)
+        self._yolo_detection_worker.failed.connect(self._yolo_apply_detection_failed.emit)
+        self._yolo_detection_worker.finished.connect(self._yolo_detection_thread.quit)
+        self._yolo_detection_worker.failed.connect(self._yolo_detection_thread.quit)
+        self._yolo_detection_thread.finished.connect(self._cleanup_yolo_detection_worker)
+        self._yolo_detection_thread.start()
+
+    def _current_yolo_frames(self, source_view: str):
+        if self._series is None:
+            raise RuntimeError("YOLO detection requires a loaded series.")
+        if source_view == "expanded_aligned":
+            return self._ensure_expanded_aligned_stack().frames.copy()
+        return self._series.raw_frames.copy()
+
+    def _show_yolo_detection_progress_dialog(self, model_name: str, *, total: int) -> QProgressDialog:
+        progress_dialog = QProgressDialog(
+            f"Running YOLO {model_name} on frame 0 / {total}...",
+            None,
+            0,
+            total,
+            self,
+        )
+        progress_dialog.setWindowTitle("YOLO Detection")
+        progress_dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
+        progress_dialog.setCancelButton(None)
+        progress_dialog.setMinimumDuration(0)
+        progress_dialog.setAutoClose(False)
+        progress_dialog.setAutoReset(False)
+        progress_dialog.setValue(0)
+        progress_dialog.show()
+        QApplication.processEvents()
+        return progress_dialog
+
+    @pyqtSlot(int, int)
+    def _on_yolo_detection_progress(self, current: int, total: int) -> None:
+        if not self._yolo_detection_running:
+            return
+        if self._yolo_detection_progress_dialog is not None:
+            self._yolo_detection_progress_dialog.setLabelText(
+                f"Running YOLO {self._yolo_detection_model_name} on frame {current} / {total}..."
+            )
+            self._yolo_detection_progress_dialog.setValue(current)
+        self.statusBar().showMessage(
+            f"Running YOLO {self._yolo_detection_model_name}: frame {current} / {total}...",
+            0,
+        )
+
+    @pyqtSlot(object)
+    def _on_yolo_detection_finished(self, results) -> None:
+        self._yolo_detection_running = False
+        total_detections = 0
+        try:
+            if self._series is not None:
+                detection_set = self._ensure_molecular_detection_set()
+                for frame_index, frame_shape, detections in results:
+                    detection_set.set_detections(
+                        frame_index,
+                        detections,
+                        source_view=self._yolo_detection_source_view,
+                        frame_shape=frame_shape,
+                    )
+                    total_detections += len(detections)
+        except Exception as exc:
+            self._finish_yolo_detection_run()
+            message = str(exc) or exc.__class__.__name__
+            QMessageBox.critical(self, "YOLO detection error", message)
+            self.statusBar().showMessage("YOLO detection failed.", 3000)
+            return
+
+        frame_count = len(results)
+        model_name = self._yolo_detection_model_name
+        final_message = f"YOLO {model_name}: {total_detections} detections on {frame_count} frames."
+        self.statusBar().showMessage(final_message, 5000)
+        self._finish_yolo_detection_run()
+        self._show_current_frame()
+        self.statusBar().showMessage(final_message, 5000)
+        QTimer.singleShot(0, lambda message=final_message: self.statusBar().showMessage(message, 5000))
+
+    @pyqtSlot(str)
+    def _on_yolo_detection_failed(self, message: str) -> None:
+        self._finish_yolo_detection_run()
+        QMessageBox.critical(self, "YOLO detection error", message)
+        failure_message = "YOLO detection failed."
+        self.statusBar().showMessage(failure_message, 3000)
+        QTimer.singleShot(0, lambda message=failure_message: self.statusBar().showMessage(message, 3000))
+
+    def _finish_yolo_detection_run(self) -> None:
+        self._yolo_detection_running = False
+        self._set_file_actions_enabled(True)
+        self._close_yolo_detection_progress_dialog()
+        self._sync_navigation_controls()
+
+    def _close_yolo_detection_progress_dialog(self) -> None:
+        if self._yolo_detection_progress_dialog is None:
+            return
+        self._yolo_detection_progress_dialog.close()
+        self._yolo_detection_progress_dialog = None
+
+    def _cleanup_yolo_detection_worker(self) -> None:
+        if self._yolo_detection_worker is not None:
+            self._yolo_detection_worker.deleteLater()
+            self._yolo_detection_worker = None
+        if self._yolo_detection_thread is not None:
+            self._yolo_detection_thread.deleteLater()
+            self._yolo_detection_thread = None
 
     def _on_yolo_clear_current_requested(self) -> None:
         if self._series is None or self._series.molecular_detections is None:
