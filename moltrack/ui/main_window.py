@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QObject, QThread, Qt, pyqtSignal
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
+    QApplication,
     QComboBox,
     QFileDialog,
     QGroupBox,
     QLabel,
     QMainWindow,
     QMessageBox,
+    QProgressDialog,
     QPushButton,
     QScrollArea,
     QSlider,
@@ -19,11 +21,31 @@ from PyQt6.QtWidgets import (
 
 from moltrack.core import (
     MolTrackRegistrationSettings,
+    SUPPORTED_REGISTRATION_BACKENDS,
     build_moltrack_expanded_aligned_stack,
     run_moltrack_registration,
 )
 from moltrack.io import load_moltrack_image_series
 from moltrack.ui.widgets import STMSeriesViewer, SeriesMetadataPanel
+
+
+class _RegistrationRunWorker(QObject):
+    finished = pyqtSignal(object)
+    failed = pyqtSignal(str)
+
+    def __init__(self, registration_runner, series, settings: MolTrackRegistrationSettings):
+        super().__init__()
+        self._registration_runner = registration_runner
+        self._series = series
+        self._settings = settings
+
+    def run(self) -> None:
+        try:
+            result_set = self._registration_runner(self._series, settings=self._settings)
+        except Exception as exc:
+            self.failed.emit(str(exc) or exc.__class__.__name__)
+            return
+        self.finished.emit(result_set)
 
 
 class MolTrackMainWindow(QMainWindow):
@@ -42,6 +64,10 @@ class MolTrackMainWindow(QMainWindow):
         self._series_loader = series_loader
         self._registration_runner = registration_runner
         self._expanded_aligned_builder = expanded_aligned_builder
+        self._registration_running = False
+        self._registration_progress_dialog: QProgressDialog | None = None
+        self._registration_thread: QThread | None = None
+        self._registration_worker: _RegistrationRunWorker | None = None
         self.setWindowTitle("MolTrack")
         self.resize(1280, 860)
         self._build_actions()
@@ -87,7 +113,7 @@ class MolTrackMainWindow(QMainWindow):
         self.registration_group = QGroupBox("Registration", sidebar_content)
         registration_layout = QVBoxLayout(self.registration_group)
         self.cmb_registration_backend = QComboBox(self.registration_group)
-        self.cmb_registration_backend.addItem("phase_correlation")
+        self.cmb_registration_backend.addItems(SUPPORTED_REGISTRATION_BACKENDS)
         self.cmb_registration_backend.setEnabled(False)
         registration_layout.addWidget(self.cmb_registration_backend)
         self.btn_run_registration = QPushButton("Run registration", self.registration_group)
@@ -151,12 +177,13 @@ class MolTrackMainWindow(QMainWindow):
             self.lbl_registration_status.setText("No registration results")
             return
 
-        self._update_navigation_enabled(True)
-        self.btn_remove_current_frame.setEnabled(self._series.frame_count > 1)
-        self.cmb_registration_backend.setEnabled(True)
-        self.btn_run_registration.setEnabled(True)
+        controls_enabled = not self._registration_running
+        self._update_navigation_enabled(controls_enabled)
+        self.btn_remove_current_frame.setEnabled(controls_enabled and self._series.frame_count > 1)
+        self.cmb_registration_backend.setEnabled(controls_enabled)
+        self.btn_run_registration.setEnabled(controls_enabled)
         has_registration = self._series.registration_results is not None
-        self.cmb_registration_view_mode.setEnabled(has_registration)
+        self.cmb_registration_view_mode.setEnabled(controls_enabled and has_registration)
         if not has_registration:
             self._set_registration_view_mode("Show raw")
         self._sync_registration_status()
@@ -213,19 +240,36 @@ class MolTrackMainWindow(QMainWindow):
         self.statusBar().showMessage("Removed current frame.", 3000)
 
     def _on_run_registration_requested(self) -> None:
-        if self._series is None:
+        if self._series is None or self._registration_running:
             return
         settings = MolTrackRegistrationSettings(
             backend=self.cmb_registration_backend.currentText(),
         )
-        try:
-            result_set = self._registration_runner(self._series, settings=settings)
-        except Exception as exc:
-            message = str(exc) or exc.__class__.__name__
-            QMessageBox.critical(self, "Registration failed", message)
-            self.lbl_registration_status.setText(f"Registration failed: {message}")
-            self.statusBar().showMessage("Registration failed.", 3000)
-            return
+        self._registration_running = True
+        self._set_file_actions_enabled(False)
+        self._registration_progress_dialog = self._show_registration_progress_dialog(settings)
+        self._sync_navigation_controls()
+        self.lbl_registration_status.setText(f"Running {settings.backend} registration...")
+        self.statusBar().showMessage(f"Running {settings.backend} registration...", 0)
+
+        self._registration_thread = QThread(self)
+        self._registration_worker = _RegistrationRunWorker(self._registration_runner, self._series, settings)
+        self._registration_worker.moveToThread(self._registration_thread)
+        self._registration_thread.started.connect(self._registration_worker.run)
+        self._registration_worker.finished.connect(self._on_registration_finished)
+        self._registration_worker.failed.connect(self._on_registration_failed)
+        self._registration_worker.finished.connect(self._registration_thread.quit)
+        self._registration_worker.failed.connect(self._registration_thread.quit)
+        self._registration_thread.finished.connect(self._cleanup_registration_worker)
+        self._registration_thread.start()
+
+    def _on_registration_finished(self, result_set) -> None:
+        if self._series is not None and self._series.registration_results is None:
+            self._series.registration_results = result_set
+        self._registration_running = False
+        self._set_file_actions_enabled(True)
+        self._close_registration_progress_dialog()
+        self._sync_navigation_controls()
         self.lbl_registration_status.setText(
             f"Registered {result_set.result_count} frames with {result_set.settings.backend}"
         )
@@ -234,6 +278,52 @@ class MolTrackMainWindow(QMainWindow):
             f"Registration finished for {result_set.result_count} frames.",
             5000,
         )
+
+    def _on_registration_failed(self, message: str) -> None:
+        self._registration_running = False
+        self._set_file_actions_enabled(True)
+        self._close_registration_progress_dialog()
+        self._sync_navigation_controls()
+        QMessageBox.critical(self, "Registration failed", message)
+        self.lbl_registration_status.setText(f"Registration failed: {message}")
+        self.statusBar().showMessage("Registration failed.", 3000)
+
+    def _show_registration_progress_dialog(self, settings: MolTrackRegistrationSettings) -> QProgressDialog:
+        progress_dialog = QProgressDialog(
+            f"Running {settings.backend} registration...",
+            None,
+            0,
+            0,
+            self,
+        )
+        progress_dialog.setWindowTitle("Registration")
+        progress_dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
+        progress_dialog.setCancelButton(None)
+        progress_dialog.setMinimumDuration(0)
+        progress_dialog.setAutoClose(False)
+        progress_dialog.setAutoReset(False)
+        progress_dialog.show()
+        QApplication.processEvents()
+        return progress_dialog
+
+    def _close_registration_progress_dialog(self) -> None:
+        if self._registration_progress_dialog is None:
+            return
+        self._registration_progress_dialog.close()
+        self._registration_progress_dialog = None
+        QApplication.processEvents()
+
+    def _cleanup_registration_worker(self) -> None:
+        if self._registration_worker is not None:
+            self._registration_worker.deleteLater()
+            self._registration_worker = None
+        if self._registration_thread is not None:
+            self._registration_thread.deleteLater()
+            self._registration_thread = None
+
+    def _set_file_actions_enabled(self, enabled: bool) -> None:
+        self.action_open_stm.setEnabled(enabled)
+        self.action_open_stm_reverse.setEnabled(enabled)
 
     def _sync_registration_status(self) -> None:
         if self._series is None or self._series.registration_results is None:

@@ -1,4 +1,5 @@
 import os
+import time
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -20,6 +21,7 @@ except ImportError:  # pragma: no cover - optional outside target GUI env
     QApplication = None
 
 if QApplication is not None:
+    from PyQt6.QtCore import QThread
     from PyQt6.QtWidgets import QFileDialog, QMessageBox
 
     from moltrack.ui import MolTrackMainWindow
@@ -40,6 +42,15 @@ class MolTrackMainWindowTests(unittest.TestCase):
             self.window.close()
             self.window.deleteLater()
             self.__class__._app.processEvents()
+
+    def process_events_until(self, condition, *, timeout_s: float = 3.0) -> None:
+        deadline = time.monotonic() + timeout_s
+        while time.monotonic() < deadline:
+            self.__class__._app.processEvents()
+            if condition():
+                return
+            time.sleep(0.01)
+        self.fail("Timed out waiting for Qt event-loop condition.")
 
     def test_empty_workspace_exposes_file_actions_and_disables_frame_navigation(self) -> None:
         self.window = MolTrackMainWindow()
@@ -217,7 +228,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.window.set_image_series(series)
 
         self.window.btn_run_registration.click()
-        self.__class__._app.processEvents()
+        self.process_events_until(lambda: series.registration_results is not None and self.window.btn_run_registration.isEnabled())
 
         self.assertEqual(len(calls), 1)
         passed_frames, backend = calls[0]
@@ -227,6 +238,121 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(series.registration_results.result_count, 2)
         self.assertIn("Registered 2 frames", self.window.lbl_registration_status.text())
         self.assertIn("Registration finished", self.window.statusBar().currentMessage())
+
+    def test_can_select_and_run_optical_flow_median_registration(self) -> None:
+        calls = []
+
+        def fake_registration_runner(series, *, settings):
+            calls.append(settings.backend)
+            result_set = MolTrackRegistrationResultSet(
+                settings=settings,
+                results_by_frame={
+                    0: MolTrackRegistrationFrameResult(
+                        frame_index=0,
+                        shift_xy=(0.0, 0.0),
+                        method="identity",
+                        quality_score=1.0,
+                    ),
+                    1: MolTrackRegistrationFrameResult(
+                        frame_index=1,
+                        shift_xy=(0.5, -1.5),
+                        method="optical_flow_median",
+                        quality_score=0.8,
+                    ),
+                },
+            )
+            series.registration_results = result_set
+            return result_set
+
+        self.window = MolTrackMainWindow(registration_runner=fake_registration_runner)
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.arange(16, dtype=np.float32).reshape(2, 2, 4),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+        )
+        self.window.set_image_series(series)
+
+        self.assertGreaterEqual(self.window.cmb_registration_backend.findText("optical_flow_median"), 0)
+        self.window.cmb_registration_backend.setCurrentText("optical_flow_median")
+        self.window.btn_run_registration.click()
+        self.process_events_until(lambda: series.registration_results is not None and self.window.btn_run_registration.isEnabled())
+
+        self.assertEqual(calls, ["optical_flow_median"])
+        self.assertEqual(series.registration_results.settings.backend, "optical_flow_median")
+        self.assertIn("Registered 2 frames with optical_flow_median", self.window.lbl_registration_status.text())
+
+    def test_run_registration_uses_worker_thread_and_shows_busy_dialog_while_running(self) -> None:
+        events = []
+        main_thread_id = int(QThread.currentThreadId())
+
+        class FakeProgressDialog:
+            def __init__(self, label_text, cancel_button_text, minimum, maximum, parent):
+                events.append(("dialog_init", label_text, cancel_button_text, minimum, maximum, parent))
+
+            def setWindowTitle(self, title):
+                events.append(("title", title))
+
+            def setWindowModality(self, modality):
+                events.append(("modality", modality))
+
+            def setCancelButton(self, button):
+                events.append(("cancel_button", button))
+
+            def setMinimumDuration(self, duration_ms):
+                events.append(("minimum_duration", duration_ms))
+
+            def setAutoClose(self, enabled):
+                events.append(("auto_close", enabled))
+
+            def setAutoReset(self, enabled):
+                events.append(("auto_reset", enabled))
+
+            def show(self):
+                events.append("show")
+
+            def close(self):
+                events.append("close")
+
+        def fake_registration_runner(series, *, settings):
+            events.append(("runner_thread", int(QThread.currentThreadId())))
+            result_set = MolTrackRegistrationResultSet(
+                settings=settings,
+                results_by_frame={
+                    frame_index: MolTrackRegistrationFrameResult(
+                        frame_index=frame_index,
+                        shift_xy=(0.0, 0.0),
+                        method="phase_correlation",
+                        quality_score=1.0,
+                    )
+                    for frame_index in range(series.frame_count)
+                },
+            )
+            series.registration_results = result_set
+            return result_set
+
+        self.window = MolTrackMainWindow(registration_runner=fake_registration_runner)
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.arange(16, dtype=np.float32).reshape(2, 2, 4),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+        )
+        self.window.set_image_series(series)
+
+        with patch("moltrack.ui.main_window.QProgressDialog", FakeProgressDialog, create=True):
+            self.window.btn_run_registration.click()
+            self.assertIn("show", events)
+            self.assertFalse(self.window.btn_run_registration.isEnabled())
+            self.process_events_until(lambda: series.registration_results is not None and self.window.btn_run_registration.isEnabled())
+
+        self.assertIn("show", events)
+        self.assertIn("close", events)
+        runner_events = [event for event in events if isinstance(event, tuple) and event[0] == "runner_thread"]
+        self.assertEqual(len(runner_events), 1)
+        self.assertNotEqual(runner_events[0][1], main_thread_id)
+        self.assertLess(events.index("show"), events.index(runner_events[0]))
+        self.assertLess(events.index(runner_events[0]), events.index("close"))
+        self.assertTrue(self.window.btn_run_registration.isEnabled())
+        self.assertIn("Registered 2 frames", self.window.lbl_registration_status.text())
 
     def test_run_registration_after_frame_removal_uses_shortened_working_series(self) -> None:
         calls = []
@@ -261,7 +387,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
 
         self.window.btn_remove_current_frame.click()
         self.window.btn_run_registration.click()
-        self.__class__._app.processEvents()
+        self.process_events_until(lambda: series.registration_results is not None and self.window.btn_run_registration.isEnabled())
 
         self.assertEqual(len(calls), 1)
         np.testing.assert_array_equal(calls[0], frames[[0, 2]])
@@ -315,7 +441,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.window.set_image_series(series)
 
         self.window.btn_run_registration.click()
-        self.__class__._app.processEvents()
+        self.process_events_until(lambda: series.registration_results is not None and self.window.btn_run_registration.isEnabled())
         self.window.cmb_registration_view_mode.setCurrentText("Show expanded aligned")
         self.__class__._app.processEvents()
 
@@ -372,6 +498,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
         )
         self.window.set_image_series(series)
         self.window.btn_run_registration.click()
+        self.process_events_until(lambda: series.registration_results is not None and self.window.btn_run_registration.isEnabled())
         self.window.cmb_registration_view_mode.setCurrentText("Show expanded aligned")
         self.__class__._app.processEvents()
 
@@ -395,7 +522,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
 
         with patch.object(QMessageBox, "critical", return_value=QMessageBox.StandardButton.Ok) as critical:
             self.window.btn_run_registration.click()
-            self.__class__._app.processEvents()
+            self.process_events_until(lambda: critical.called)
 
         critical.assert_called_once()
         _parent, title, message = critical.call_args.args
