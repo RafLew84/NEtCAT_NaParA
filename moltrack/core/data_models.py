@@ -15,6 +15,7 @@ class MolTrackImageSeries:
     metadata: Any
     active_frame_index: int = 0
     reverse_frame_order: bool = False
+    source_frame_indices: tuple[int, ...] | None = None
     registration_results: Any | None = None
     expanded_aligned_stack: Any | None = None
 
@@ -42,6 +43,7 @@ class MolTrackImageSeries:
         self.active_frame_index = int(self.active_frame_index)
         self.source_path = str(self.source_path)
         self.reverse_frame_order = bool(self.reverse_frame_order)
+        self.source_frame_indices = self._normalize_source_frame_indices()
 
     @property
     def frame_count(self) -> int:
@@ -80,12 +82,30 @@ class MolTrackImageSeries:
 
         old_active_index = self.active_frame_index
         self.raw_frames = np.delete(self.raw_frames, frame_index, axis=0)
+        source_indices = list(self.source_frame_indices)
+        del source_indices[frame_index]
+        self.source_frame_indices = tuple(source_indices)
         if old_active_index > frame_index:
             self.active_frame_index = old_active_index - 1
         elif old_active_index == frame_index:
             self.active_frame_index = min(frame_index, self.frame_count - 1)
         self.registration_results = None
         self.expanded_aligned_stack = None
+
+    def _normalize_source_frame_indices(self) -> tuple[int, ...]:
+        if self.source_frame_indices is None:
+            if self.reverse_frame_order:
+                return tuple(reversed(range(self.frame_count)))
+            return tuple(range(self.frame_count))
+
+        indices = tuple(int(index) for index in self.source_frame_indices)
+        if len(indices) != self.frame_count:
+            raise ValueError("source_frame_indices length must match frame_count.")
+        if any(index < 0 for index in indices):
+            raise ValueError("source_frame_indices must be non-negative.")
+        if len(set(indices)) != len(indices):
+            raise ValueError("source_frame_indices must not contain duplicates.")
+        return indices
 
     def _validate_metadata_dimensions(self) -> None:
         pixels_y, pixels_x = self.frame_shape

@@ -1,0 +1,221 @@
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+import numpy as np
+
+from moltrack.core import (
+    MolTrackImageSeries,
+    MolTrackRegistrationFrameResult,
+    MolTrackRegistrationResultSet,
+    MolTrackRegistrationSettings,
+    MolTrackSession,
+)
+from moltrack.persistence import (
+    load_moltrack_session,
+    restore_moltrack_image_series_from_session,
+    save_moltrack_session,
+)
+from nanotrack.core import STMSequenceMetadata
+
+
+class MolTrackSessionStoreTests(unittest.TestCase):
+    def test_save_and_load_session_round_trip_writes_readable_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"fake mpp bytes")
+            session_path = tmp_path / "state.moltrack.json"
+
+            frames = np.arange(32, dtype=np.float32).reshape(4, 2, 4)
+            series = MolTrackImageSeries(
+                source_path=str(source_path),
+                raw_frames=frames.copy(),
+                metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+                active_frame_index=2,
+            )
+            series.remove_frame(1)
+            settings = MolTrackRegistrationSettings(
+                backend="optical_flow_median",
+                backend_params={"method": "ilk", "low_confidence_flow_mad_px": 2.0},
+            )
+            series.registration_results = MolTrackRegistrationResultSet(
+                settings=settings,
+                results_by_frame={
+                    frame_index: MolTrackRegistrationFrameResult(
+                        frame_index=frame_index,
+                        shift_xy=(float(frame_index), -float(frame_index)),
+                        method="optical_flow_median",
+                        quality_score=0.75,
+                        status="ok",
+                    )
+                    for frame_index in range(series.frame_count)
+                },
+            )
+            series.expanded_aligned_stack = object()
+
+            save_moltrack_session(
+                session_path,
+                series,
+                {"registration_view_mode": "Show expanded aligned"},
+            )
+
+            payload = json.loads(session_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["schema_version"], 1)
+            self.assertEqual(payload["source"]["path"], str(source_path.resolve()))
+            self.assertEqual(payload["source"]["path_relative_to_session"], "movie.mpp")
+            self.assertEqual(payload["working_series"]["source_frame_indices"], [0, 2, 3])
+            self.assertEqual(payload["working_series"]["active_frame_index"], 1)
+            self.assertFalse(payload["working_series"]["reverse_frame_order"])
+            self.assertEqual(payload["ui"]["registration_view_mode"], "Show expanded aligned")
+            self.assertEqual(payload["registration"]["settings"]["backend"], "optical_flow_median")
+            self.assertEqual(payload["registration"]["settings"]["backend_params"]["method"], "ilk")
+            self.assertEqual(payload["registration"]["results_by_frame"][1]["shift_xy"], [1.0, -1.0])
+            self.assertNotIn("expanded_aligned_stack", payload)
+
+            loaded = load_moltrack_session(session_path)
+
+            self.assertEqual(loaded.source_path, str(source_path.resolve()))
+            self.assertEqual(loaded.source_frame_indices, (0, 2, 3))
+            self.assertEqual(loaded.active_frame_index, 1)
+            self.assertFalse(loaded.reverse_frame_order)
+            self.assertEqual(loaded.registration_view_mode, "Show expanded aligned")
+            self.assertEqual(loaded.registration_settings.backend, "optical_flow_median")
+            self.assertEqual(loaded.registration_settings.backend_params["method"], "ilk")
+            self.assertEqual(loaded.registration_results.result_count, 3)
+            self.assertEqual(loaded.registration_results.get_result(2).shift_xy, (2.0, -2.0))
+
+    def test_load_session_rejects_unknown_schema_version(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session_path = Path(tmpdir) / "state.moltrack.json"
+            session_path.write_text(
+                json.dumps({"schema_version": 999}),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "Unsupported MolTrack session schema_version"):
+                load_moltrack_session(session_path)
+
+    def test_load_session_rejects_missing_or_changed_source_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"fake mpp bytes")
+            session_path = tmp_path / "state.moltrack.json"
+            series = MolTrackImageSeries(
+                source_path=str(source_path),
+                raw_frames=np.arange(16, dtype=np.float32).reshape(2, 2, 4),
+                metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+            )
+
+            save_moltrack_session(session_path, series, None)
+            source_path.unlink()
+
+            with self.assertRaises(FileNotFoundError):
+                load_moltrack_session(session_path)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"fake mpp bytes")
+            session_path = tmp_path / "state.moltrack.json"
+            series = MolTrackImageSeries(
+                source_path=str(source_path),
+                raw_frames=np.arange(16, dtype=np.float32).reshape(2, 2, 4),
+                metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+            )
+
+            save_moltrack_session(session_path, series, None)
+            source_path.write_bytes(b"changed mpp bytes with different size")
+
+            with self.assertRaisesRegex(ValueError, "source file metadata does not match"):
+                load_moltrack_session(session_path)
+
+    def test_restore_working_series_from_session_reloads_source_and_applies_saved_frame_indices(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"fake mpp bytes")
+            session_path = tmp_path / "state.moltrack.json"
+            full_frames = np.arange(40, dtype=np.float32).reshape(5, 2, 4)
+            series = MolTrackImageSeries(
+                source_path=str(source_path),
+                raw_frames=full_frames.copy(),
+                metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+                active_frame_index=2,
+            )
+            series.remove_frame(1)
+            series.remove_frame(2)
+            settings = MolTrackRegistrationSettings()
+            series.registration_results = MolTrackRegistrationResultSet(
+                settings=settings,
+                results_by_frame={
+                    frame_index: MolTrackRegistrationFrameResult(
+                        frame_index=frame_index,
+                        shift_xy=(float(frame_index), 0.0),
+                        method="phase_correlation",
+                    )
+                    for frame_index in range(series.frame_count)
+                },
+            )
+            series.expanded_aligned_stack = object()
+            save_moltrack_session(session_path, series, {"registration_view_mode": "Show expanded aligned"})
+            calls = []
+
+            def fake_loader(source_path_arg, *, reverse_frame_order=False):
+                calls.append((str(source_path_arg), reverse_frame_order))
+                return MolTrackImageSeries(
+                    source_path=str(source_path_arg),
+                    raw_frames=full_frames.copy(),
+                    metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+                    reverse_frame_order=reverse_frame_order,
+                )
+
+            restored = restore_moltrack_image_series_from_session(
+                session_path,
+                series_loader=fake_loader,
+            )
+
+            self.assertEqual(calls, [(str(source_path.resolve()), False)])
+            self.assertEqual(restored.source_frame_indices, (0, 2, 4))
+            self.assertEqual(restored.active_frame_index, 1)
+            np.testing.assert_array_equal(restored.raw_frames, full_frames[[0, 2, 4]])
+            self.assertIsNotNone(restored.registration_results)
+            self.assertEqual(restored.registration_results.result_count, 3)
+            self.assertIsNone(restored.expanded_aligned_stack)
+
+            restored.remove_frame(1)
+
+            self.assertEqual(restored.source_frame_indices, (0, 4))
+            self.assertIsNone(restored.registration_results)
+
+    def test_restore_working_series_maps_source_indices_for_reversed_sources(self) -> None:
+        full_frames = np.arange(40, dtype=np.float32).reshape(5, 2, 4)
+
+        def fake_loader(source_path_arg, *, reverse_frame_order=False):
+            self.assertTrue(reverse_frame_order)
+            loaded_frames = full_frames[::-1].copy()
+            return MolTrackImageSeries(
+                source_path=str(source_path_arg),
+                raw_frames=loaded_frames,
+                metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+                reverse_frame_order=True,
+            )
+
+        restored = restore_moltrack_image_series_from_session(
+            MolTrackSession(
+                source_path="movie.mpp",
+                source_frame_indices=(4, 2),
+                active_frame_index=1,
+                reverse_frame_order=True,
+            ),
+            series_loader=fake_loader,
+        )
+
+        self.assertEqual(restored.source_frame_indices, (4, 2))
+        np.testing.assert_array_equal(restored.raw_frames, full_frames[[4, 2]])
+
+
+if __name__ == "__main__":
+    unittest.main()

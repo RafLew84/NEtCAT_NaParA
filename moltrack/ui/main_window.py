@@ -26,6 +26,11 @@ from moltrack.core import (
     run_moltrack_registration,
 )
 from moltrack.io import load_moltrack_image_series
+from moltrack.persistence import (
+    load_moltrack_session,
+    restore_moltrack_image_series_from_session,
+    save_moltrack_session,
+)
 from moltrack.ui.widgets import STMSeriesViewer, SeriesMetadataPanel
 
 
@@ -58,12 +63,26 @@ class MolTrackMainWindow(QMainWindow):
         series_loader=load_moltrack_image_series,
         registration_runner=run_moltrack_registration,
         expanded_aligned_builder=build_moltrack_expanded_aligned_stack,
+        session_saver=save_moltrack_session,
+        session_loader=load_moltrack_session,
+        session_restorer=None,
     ):
         super().__init__(parent)
         self._series = None
         self._series_loader = series_loader
         self._registration_runner = registration_runner
         self._expanded_aligned_builder = expanded_aligned_builder
+        self._session_saver = session_saver
+        self._session_loader = session_loader
+        self._session_restorer = (
+            session_restorer
+            if session_restorer is not None
+            else lambda session: restore_moltrack_image_series_from_session(
+                session,
+                series_loader=self._series_loader,
+            )
+        )
+        self._session_path: str | None = None
         self._registration_running = False
         self._registration_progress_dialog: QProgressDialog | None = None
         self._registration_thread: QThread | None = None
@@ -82,8 +101,20 @@ class MolTrackMainWindow(QMainWindow):
         self.action_open_stm.setToolTip("Load one MPP movie into MolTrack")
         self.action_open_stm_reverse = QAction("Open STM Reverse...", self)
         self.action_open_stm_reverse.setToolTip("Load one MPP movie with reversed frame order")
+        self.action_open_state = QAction("Open State...", self)
+        self.action_open_state.setToolTip("Load a saved MolTrack application state")
+        self.action_save_state = QAction("Save State...", self)
+        self.action_save_state.setToolTip("Save the current MolTrack application state")
+        self.action_save_state.setEnabled(False)
+        self.action_save_state_as = QAction("Save State As...", self)
+        self.action_save_state_as.setToolTip("Save the current MolTrack application state to a new file")
+        self.action_save_state_as.setEnabled(False)
         file_menu.addAction(self.action_open_stm)
         file_menu.addAction(self.action_open_stm_reverse)
+        file_menu.addSeparator()
+        file_menu.addAction(self.action_open_state)
+        file_menu.addAction(self.action_save_state)
+        file_menu.addAction(self.action_save_state_as)
 
     def _build_central_widget(self) -> None:
         central = QSplitter(Qt.Orientation.Horizontal, self)
@@ -148,6 +179,9 @@ class MolTrackMainWindow(QMainWindow):
     def _connect_signals(self) -> None:
         self.action_open_stm.triggered.connect(self._on_open_stm_requested)
         self.action_open_stm_reverse.triggered.connect(self._on_open_stm_reverse_requested)
+        self.action_open_state.triggered.connect(self._on_open_state_requested)
+        self.action_save_state.triggered.connect(self._on_save_state_requested)
+        self.action_save_state_as.triggered.connect(self._on_save_state_as_requested)
         self.slider_frame.valueChanged.connect(self._on_frame_selected)
         self.btn_remove_current_frame.clicked.connect(self._on_remove_current_frame_requested)
         self.btn_run_registration.clicked.connect(self._on_run_registration_requested)
@@ -163,9 +197,11 @@ class MolTrackMainWindow(QMainWindow):
     def open_stm_source(self, source_path, *, reverse_frame_order: bool = False) -> None:
         series = self._series_loader(source_path, reverse_frame_order=reverse_frame_order)
         self.set_image_series(series)
+        self._session_path = None
         self.statusBar().showMessage(f"Loaded {series.source_path}", 3000)
 
     def _sync_navigation_controls(self) -> None:
+        self._set_file_actions_enabled(not self._registration_running)
         if self._series is None:
             self.lbl_frame.setText("Frame: - / -")
             self._update_navigation_enabled(False)
@@ -324,6 +360,10 @@ class MolTrackMainWindow(QMainWindow):
     def _set_file_actions_enabled(self, enabled: bool) -> None:
         self.action_open_stm.setEnabled(enabled)
         self.action_open_stm_reverse.setEnabled(enabled)
+        self.action_open_state.setEnabled(enabled)
+        can_save_state = enabled and self._series is not None
+        self.action_save_state.setEnabled(can_save_state)
+        self.action_save_state_as.setEnabled(can_save_state)
 
     def _sync_registration_status(self) -> None:
         if self._series is None or self._series.registration_results is None:
@@ -365,6 +405,77 @@ class MolTrackMainWindow(QMainWindow):
 
     def _on_open_stm_reverse_requested(self) -> None:
         self._choose_and_open_stm(reverse_frame_order=True)
+
+    def _on_open_state_requested(self) -> None:
+        self._choose_and_open_state()
+
+    def _on_save_state_requested(self) -> None:
+        if self._session_path is None:
+            self._choose_and_save_state()
+            return
+        self.save_state(self._session_path)
+
+    def _on_save_state_as_requested(self) -> None:
+        self._choose_and_save_state()
+
+    def _choose_and_save_state(self) -> None:
+        path, _selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Save State",
+            "",
+            "MolTrack state (*.moltrack.json);;JSON files (*.json)",
+        )
+        if not path:
+            return
+        self.save_state(path)
+
+    def save_state(self, path) -> None:
+        if self._series is None:
+            return
+        try:
+            self._session_saver(path, self._series, self._current_ui_state())
+        except Exception as exc:
+            message = str(exc) or exc.__class__.__name__
+            self.statusBar().showMessage(f"Save State failed: {message}", 5000)
+            QMessageBox.critical(self, "Save State failed", message)
+            return
+        self._session_path = str(path)
+        self.statusBar().showMessage(f"Saved state {path}", 5000)
+
+    def _current_ui_state(self) -> dict[str, str]:
+        return {
+            "registration_view_mode": self.cmb_registration_view_mode.currentText(),
+        }
+
+    def _choose_and_open_state(self) -> None:
+        path, _selected_filter = QFileDialog.getOpenFileName(
+            self,
+            "Open State",
+            "",
+            "MolTrack state (*.moltrack.json *.json);;JSON files (*.json)",
+        )
+        if not path:
+            return
+        self.open_state(path)
+
+    def open_state(self, path) -> None:
+        try:
+            session = self._session_loader(path)
+            series = self._session_restorer(session)
+        except Exception as exc:
+            message = str(exc) or exc.__class__.__name__
+            self.statusBar().showMessage(f"Open State failed: {message}", 5000)
+            QMessageBox.critical(self, "Open State failed", message)
+            return
+
+        registration_view_mode = getattr(session, "registration_view_mode", "Show raw")
+        self.set_image_series(series)
+        self._session_path = str(path)
+        self._set_registration_view_mode(registration_view_mode)
+        self._sync_navigation_controls()
+        self._show_current_frame()
+        self.metadata_panel.set_image_series(series)
+        self.statusBar().showMessage(f"Loaded state {path}", 5000)
 
     def _choose_and_open_stm(self, *, reverse_frame_order: bool) -> None:
         path, _selected_filter = QFileDialog.getOpenFileName(

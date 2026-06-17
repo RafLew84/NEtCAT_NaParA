@@ -59,6 +59,56 @@ class MolTrackImageSeriesTests(unittest.TestCase):
         np.testing.assert_array_equal(series.raw_frames, frames[[0, 2]])
         np.testing.assert_array_equal(series.active_frame, frames[2])
 
+    def test_image_series_tracks_source_frame_indices_when_removing_frames(self) -> None:
+        frames = np.arange(32, dtype=np.float32).reshape(4, 2, 4)
+        metadata = STMSequenceMetadata(pixels_x=4, pixels_y=2)
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=metadata,
+        )
+
+        self.assertEqual(series.source_frame_indices, (0, 1, 2, 3))
+
+        series.remove_frame(1)
+        series.remove_frame(2)
+
+        self.assertEqual(series.source_frame_indices, (0, 2))
+        np.testing.assert_array_equal(series.raw_frames, frames[[0, 2]])
+
+    def test_image_series_defaults_reversed_source_frame_indices_for_reverse_order(self) -> None:
+        frames = np.arange(24, dtype=np.float32).reshape(3, 2, 4)
+        metadata = STMSequenceMetadata(pixels_x=4, pixels_y=2)
+
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=metadata,
+            reverse_frame_order=True,
+        )
+
+        self.assertEqual(series.source_frame_indices, (2, 1, 0))
+
+    def test_image_series_rejects_invalid_source_frame_indices(self) -> None:
+        frames = np.arange(24, dtype=np.float32).reshape(3, 2, 4)
+        metadata = STMSequenceMetadata(pixels_x=4, pixels_y=2)
+
+        with self.assertRaisesRegex(ValueError, "length must match"):
+            MolTrackImageSeries(
+                source_path="movie.mpp",
+                raw_frames=frames,
+                metadata=metadata,
+                source_frame_indices=(0, 1),
+            )
+
+        with self.assertRaisesRegex(ValueError, "must not contain duplicates"):
+            MolTrackImageSeries(
+                source_path="movie.mpp",
+                raw_frames=frames,
+                metadata=metadata,
+                source_frame_indices=(0, 1, 1),
+            )
+
     def test_image_series_keeps_at_least_one_frame_active(self) -> None:
         frames = np.arange(16, dtype=np.float32).reshape(2, 2, 4)
         metadata = STMSequenceMetadata(pixels_x=4, pixels_y=2)

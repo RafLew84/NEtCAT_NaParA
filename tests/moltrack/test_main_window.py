@@ -1,6 +1,8 @@
 import os
+import tempfile
 import time
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -12,7 +14,9 @@ from moltrack.core import (
     MolTrackImageSeries,
     MolTrackRegistrationFrameResult,
     MolTrackRegistrationResultSet,
+    MolTrackRegistrationSettings,
 )
+from moltrack.persistence import save_moltrack_session
 from nanotrack.core import STMSequenceMetadata
 
 try:
@@ -57,9 +61,15 @@ class MolTrackMainWindowTests(unittest.TestCase):
 
         self.assertEqual(self.window.action_open_stm.text(), "Open STM...")
         self.assertEqual(self.window.action_open_stm_reverse.text(), "Open STM Reverse...")
+        self.assertEqual(self.window.action_open_state.text(), "Open State...")
+        self.assertEqual(self.window.action_save_state.text(), "Save State...")
+        self.assertEqual(self.window.action_save_state_as.text(), "Save State As...")
         self.assertEqual(self.window.lbl_frame.text(), "Frame: - / -")
         self.assertFalse(self.window.slider_frame.isEnabled())
         self.assertFalse(self.window.btn_remove_current_frame.isEnabled())
+        self.assertTrue(self.window.action_open_state.isEnabled())
+        self.assertFalse(self.window.action_save_state.isEnabled())
+        self.assertFalse(self.window.action_save_state_as.isEnabled())
         self.assertEqual(self.window.metadata_panel.title(), "Metadata")
 
     def test_canceling_open_dialog_keeps_loaded_series_unchanged(self) -> None:
@@ -128,6 +138,213 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(title, "Open STM failed")
         self.assertIn("bad.txt", message)
         self.assertIn("Open STM failed", self.window.statusBar().currentMessage())
+
+    def test_save_state_as_uses_dialog_and_remembers_session_path(self) -> None:
+        saved = []
+
+        def fake_saver(path, series, ui_state):
+            saved.append((path, series, dict(ui_state)))
+            return SimpleNamespace(source_path=series.source_path)
+
+        self.window = MolTrackMainWindow(session_saver=fake_saver)
+        frames = np.arange(24, dtype=np.float32).reshape(3, 2, 4)
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+        )
+        self.window.set_image_series(series)
+
+        self.assertTrue(self.window.action_save_state.isEnabled())
+        self.assertTrue(self.window.action_save_state_as.isEnabled())
+
+        with patch.object(QFileDialog, "getSaveFileName", return_value=("state.moltrack.json", "")) as dialog:
+            self.window.action_save_state_as.trigger()
+            self.__class__._app.processEvents()
+
+        dialog.assert_called_once()
+        self.assertEqual(saved, [("state.moltrack.json", series, {"registration_view_mode": "Show raw"})])
+        self.assertIn("Saved state state.moltrack.json", self.window.statusBar().currentMessage())
+
+        saved.clear()
+        with patch.object(QFileDialog, "getSaveFileName", return_value=("other.moltrack.json", "")) as dialog:
+            self.window.action_save_state.trigger()
+            self.__class__._app.processEvents()
+
+        dialog.assert_not_called()
+        self.assertEqual(saved, [("state.moltrack.json", series, {"registration_view_mode": "Show raw"})])
+
+    def test_open_state_uses_dialog_and_restores_working_series(self) -> None:
+        loaded_session = SimpleNamespace(registration_view_mode="Show raw")
+        load_calls = []
+        restore_calls = []
+        frames = np.arange(24, dtype=np.float32).reshape(3, 2, 4)
+
+        def fake_session_loader(path):
+            load_calls.append(path)
+            return loaded_session
+
+        def fake_session_restorer(session):
+            restore_calls.append(session)
+            return MolTrackImageSeries(
+                source_path="movie.mpp",
+                raw_frames=frames,
+                metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+                active_frame_index=1,
+            )
+
+        self.window = MolTrackMainWindow(
+            session_loader=fake_session_loader,
+            session_restorer=fake_session_restorer,
+        )
+
+        with patch.object(QFileDialog, "getOpenFileName", return_value=("state.moltrack.json", "")) as dialog:
+            self.window.action_open_state.trigger()
+            self.__class__._app.processEvents()
+
+        dialog.assert_called_once()
+        self.assertEqual(load_calls, ["state.moltrack.json"])
+        self.assertEqual(restore_calls, [loaded_session])
+        self.assertEqual(self.window.lbl_frame.text(), "Frame: 2 / 3")
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, frames[1])
+        self.assertIn("Source: movie.mpp", self.window.metadata_panel.metadata_text())
+        self.assertIn("Loaded state state.moltrack.json", self.window.statusBar().currentMessage())
+        self.assertTrue(self.window.action_save_state.isEnabled())
+
+    def test_save_then_open_state_round_trip_restores_working_series_and_expanded_view(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"fake mpp bytes")
+            session_path = tmp_path / "state.moltrack.json"
+            full_frames = np.arange(40, dtype=np.float32).reshape(5, 2, 4)
+            working_series = MolTrackImageSeries(
+                source_path=str(source_path),
+                raw_frames=full_frames.copy(),
+                metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+                active_frame_index=2,
+            )
+            working_series.remove_frame(1)
+            working_series.remove_frame(2)
+            working_series.set_active_frame(1)
+            settings = MolTrackRegistrationSettings(backend="phase_correlation")
+            working_series.registration_results = MolTrackRegistrationResultSet(
+                settings=settings,
+                results_by_frame={
+                    frame_index: MolTrackRegistrationFrameResult(
+                        frame_index=frame_index,
+                        shift_xy=(float(frame_index), -float(frame_index)),
+                        method="phase_correlation",
+                        quality_score=0.8,
+                    )
+                    for frame_index in range(working_series.frame_count)
+                },
+            )
+            expanded_frames = np.arange(working_series.frame_count * 3 * 5, dtype=np.float32).reshape(
+                working_series.frame_count,
+                3,
+                5,
+            )
+            loader_calls = []
+            expanded_builder_calls = []
+
+            def fake_series_loader(source_path_arg, *, reverse_frame_order=False):
+                loader_calls.append((str(source_path_arg), reverse_frame_order))
+                return MolTrackImageSeries(
+                    source_path=str(source_path_arg),
+                    raw_frames=full_frames.copy(),
+                    metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+                    reverse_frame_order=reverse_frame_order,
+                )
+
+            def fake_expanded_builder(series):
+                expanded_builder_calls.append(series.frame_count)
+                expanded_stack = SimpleNamespace(
+                    frames=expanded_frames,
+                    metadata=STMSequenceMetadata(pixels_x=5, pixels_y=3),
+                    padding_ltrb=(0, 1, 1, 0),
+                    frame_origins_xy=np.zeros((series.frame_count, 2), dtype=np.float64),
+                )
+                series.expanded_aligned_stack = expanded_stack
+                return expanded_stack
+
+            self.window = MolTrackMainWindow(
+                series_loader=fake_series_loader,
+                expanded_aligned_builder=fake_expanded_builder,
+            )
+            self.window.set_image_series(working_series)
+            self.window.cmb_registration_view_mode.setCurrentText("Show expanded aligned")
+            self.__class__._app.processEvents()
+            expanded_builder_calls.clear()
+
+            with patch.object(QFileDialog, "getSaveFileName", return_value=(str(session_path), "")):
+                self.window.action_save_state_as.trigger()
+                self.__class__._app.processEvents()
+
+            self.window.close()
+            self.window.deleteLater()
+            self.__class__._app.processEvents()
+            self.window = MolTrackMainWindow(
+                series_loader=fake_series_loader,
+                expanded_aligned_builder=fake_expanded_builder,
+            )
+
+            with patch.object(QFileDialog, "getOpenFileName", return_value=(str(session_path), "")):
+                self.window.action_open_state.trigger()
+                self.__class__._app.processEvents()
+
+            self.assertEqual(loader_calls, [(str(source_path.resolve()), False)])
+            self.assertEqual(expanded_builder_calls, [3])
+            self.assertEqual(self.window.lbl_frame.text(), "Frame: 2 / 3")
+            self.assertEqual(self.window.slider_frame.maximum(), 2)
+            self.assertEqual(self.window.cmb_registration_view_mode.currentText(), "Show expanded aligned")
+            np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, expanded_frames[1])
+            self.assertIn("Expanded aligned", self.window.viewer.lbl_title.text())
+            metadata_text = self.window.metadata_panel.metadata_text()
+            self.assertIn("Frames: 3", metadata_text)
+            self.assertIn("Active frame: 2 / 3", metadata_text)
+            self.assertIn("Expanded shape: 5x3 px", metadata_text)
+            self.assertIn(f"Loaded state {session_path}", self.window.statusBar().currentMessage())
+
+    def test_open_state_reports_missing_source_and_preserves_loaded_series(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"fake mpp bytes")
+            session_path = tmp_path / "state.moltrack.json"
+            saved_series = MolTrackImageSeries(
+                source_path=str(source_path),
+                raw_frames=np.arange(16, dtype=np.float32).reshape(2, 2, 4),
+                metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+            )
+            save_moltrack_session(session_path, saved_series, None)
+            source_path.unlink()
+
+            self.window = MolTrackMainWindow()
+            current_frames = np.full((2, 2, 4), 7.0, dtype=np.float32)
+            current_series = MolTrackImageSeries(
+                source_path="current.mpp",
+                raw_frames=current_frames,
+                metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+                active_frame_index=1,
+            )
+            self.window.set_image_series(current_series)
+
+            with (
+                patch.object(QFileDialog, "getOpenFileName", return_value=(str(session_path), "")),
+                patch.object(QMessageBox, "critical", return_value=QMessageBox.StandardButton.Ok) as critical,
+            ):
+                self.window.action_open_state.trigger()
+                self.__class__._app.processEvents()
+
+            self.assertEqual(self.window.lbl_frame.text(), "Frame: 2 / 2")
+            np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, current_frames[1])
+            self.assertIn("Source: current.mpp", self.window.metadata_panel.metadata_text())
+            critical.assert_called_once()
+            _parent, title, message = critical.call_args.args
+            self.assertEqual(title, "Open State failed")
+            self.assertIn("does not exist", message)
+            self.assertIn("Open State failed", self.window.statusBar().currentMessage())
 
     def test_setting_series_enables_frame_navigation_and_slider_selects_frame(self) -> None:
         self.window = MolTrackMainWindow()
@@ -342,6 +559,11 @@ class MolTrackMainWindowTests(unittest.TestCase):
             self.window.btn_run_registration.click()
             self.assertIn("show", events)
             self.assertFalse(self.window.btn_run_registration.isEnabled())
+            self.assertFalse(self.window.action_open_stm.isEnabled())
+            self.assertFalse(self.window.action_open_stm_reverse.isEnabled())
+            self.assertFalse(self.window.action_open_state.isEnabled())
+            self.assertFalse(self.window.action_save_state.isEnabled())
+            self.assertFalse(self.window.action_save_state_as.isEnabled())
             self.process_events_until(lambda: series.registration_results is not None and self.window.btn_run_registration.isEnabled())
 
         self.assertIn("show", events)
@@ -352,6 +574,11 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertLess(events.index("show"), events.index(runner_events[0]))
         self.assertLess(events.index(runner_events[0]), events.index("close"))
         self.assertTrue(self.window.btn_run_registration.isEnabled())
+        self.assertTrue(self.window.action_open_stm.isEnabled())
+        self.assertTrue(self.window.action_open_stm_reverse.isEnabled())
+        self.assertTrue(self.window.action_open_state.isEnabled())
+        self.assertTrue(self.window.action_save_state.isEnabled())
+        self.assertTrue(self.window.action_save_state_as.isEnabled())
         self.assertIn("Registered 2 frames", self.window.lbl_registration_status.text())
 
     def test_run_registration_after_frame_removal_uses_shortened_working_series(self) -> None:
