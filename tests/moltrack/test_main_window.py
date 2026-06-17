@@ -11,6 +11,8 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 import numpy as np
 
 from moltrack.core import (
+    MolecularDetection,
+    MolecularDetectionSet,
     MolTrackImageSeries,
     MolTrackRegistrationFrameResult,
     MolTrackRegistrationResultSet,
@@ -57,7 +59,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.fail("Timed out waiting for Qt event-loop condition.")
 
     def test_empty_workspace_exposes_file_actions_and_disables_frame_navigation(self) -> None:
-        self.window = MolTrackMainWindow()
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
 
         self.assertEqual(self.window.action_open_stm.text(), "Open STM...")
         self.assertEqual(self.window.action_open_stm_reverse.text(), "Open STM Reverse...")
@@ -71,6 +73,13 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.action_save_state.isEnabled())
         self.assertFalse(self.window.action_save_state_as.isEnabled())
         self.assertEqual(self.window.metadata_panel.title(), "Metadata")
+        self.assertEqual(self.window.yolo_group.title(), "YOLO Detection")
+        self.assertEqual(self.window.cmb_yolo_model.count(), 0)
+        self.assertIn("No YOLO models found in nanotrack/yolo_models", self.window.lbl_yolo_models.text())
+        self.assertFalse(self.window.btn_yolo_detect_current.isEnabled())
+        self.assertFalse(self.window.btn_yolo_clear_current.isEnabled())
+        self.assertIn("current 0", self.window.lbl_yolo_status.text())
+        self.assertIn("series 0", self.window.lbl_yolo_status.text())
 
     def test_canceling_open_dialog_keeps_loaded_series_unchanged(self) -> None:
         calls = []
@@ -368,6 +377,417 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(series.active_frame_index, 2)
         self.assertEqual(self.window.lbl_frame.text(), "Frame: 3 / 3")
         np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, frames[2])
+
+    def test_viewer_shows_molecular_detections_for_active_raw_frame(self) -> None:
+        self.window = MolTrackMainWindow()
+        frames = np.arange(48, dtype=np.float32).reshape(3, 4, 4)
+        detections = MolecularDetectionSet(frame_count=3)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(frame_index=0, bbox_xyxy=(0, 0, 2, 2), confidence=0.9, selected=True),
+                MolecularDetection(frame_index=0, bbox_xyxy=(2, 1, 4, 3), confidence=0.6, selected=False),
+            ],
+            source_view="raw",
+            frame_shape=(4, 4),
+        )
+        detections.set_detections(
+            2,
+            [MolecularDetection(frame_index=2, bbox_xyxy=(1, 1, 3, 3), confidence=0.7)],
+            source_view="raw",
+            frame_shape=(4, 4),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            molecular_detections=detections,
+        )
+
+        self.window.set_image_series(series)
+
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 2)
+        self.assertEqual(
+            self.window.viewer.visible_molecular_detection_colors(),
+            [(255, 0, 255), (255, 140, 0)],
+        )
+
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 0)
+
+        self.window.slider_frame.setValue(2)
+        self.__class__._app.processEvents()
+
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
+
+    def test_viewer_uses_detection_source_view_for_expanded_aligned_overlay(self) -> None:
+        expanded_frames = np.arange(2 * 5 * 6, dtype=np.float32).reshape(2, 5, 6)
+
+        def fake_expanded_builder(series):
+            expanded_stack = SimpleNamespace(
+                frames=expanded_frames,
+                metadata=STMSequenceMetadata(pixels_x=6, pixels_y=5),
+                padding_ltrb=(1, 1, 1, 2),
+                frame_origins_xy=np.zeros((series.frame_count, 2), dtype=np.float64),
+            )
+            series.expanded_aligned_stack = expanded_stack
+            return expanded_stack
+
+        self.window = MolTrackMainWindow(expanded_aligned_builder=fake_expanded_builder)
+        frames = np.arange(2 * 4 * 4, dtype=np.float32).reshape(2, 4, 4)
+        detections = MolecularDetectionSet(frame_count=2)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(frame_index=0, bbox_xyxy=(0, 0, 2, 2), confidence=0.9, source_view="raw"),
+                MolecularDetection(frame_index=0, bbox_xyxy=(2, 2, 4, 4), confidence=0.7, source_view="raw"),
+            ],
+            source_view="raw",
+            frame_shape=(4, 4),
+        )
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(1, 1, 5, 4),
+                    confidence=0.8,
+                    source_view="expanded_aligned",
+                )
+            ],
+            source_view="expanded_aligned",
+            frame_shape=(5, 6),
+        )
+        settings = MolTrackRegistrationSettings()
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            registration_results=MolTrackRegistrationResultSet(
+                settings=settings,
+                results_by_frame={
+                    frame_index: MolTrackRegistrationFrameResult(
+                        frame_index=frame_index,
+                        shift_xy=(0.0, 0.0),
+                        method="identity",
+                    )
+                    for frame_index in range(2)
+                },
+            ),
+            molecular_detections=detections,
+        )
+
+        self.window.set_image_series(series)
+
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 2)
+
+        self.window.cmb_registration_view_mode.setCurrentText("Show expanded aligned")
+        self.__class__._app.processEvents()
+
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, expanded_frames[0])
+        self.assertIn("Expanded aligned", self.window.viewer.lbl_title.text())
+
+    def test_yolo_detect_current_frame_stores_raw_detections_and_updates_viewer(self) -> None:
+        calls = []
+        checkpoint = Path("model-a.pt")
+
+        class FakeYoloDetector:
+            def detect_frame(
+                self,
+                frame,
+                *,
+                frame_index,
+                checkpoint_path,
+                confidence_threshold,
+                iou_threshold,
+                source_view,
+            ):
+                calls.append(
+                    {
+                        "frame": np.asarray(frame).copy(),
+                        "frame_index": frame_index,
+                        "checkpoint_path": checkpoint_path,
+                        "confidence_threshold": confidence_threshold,
+                        "iou_threshold": iou_threshold,
+                        "source_view": source_view,
+                    }
+                )
+                return [
+                    MolecularDetection(
+                        frame_index=frame_index,
+                        bbox_xyxy=(1, 1, 3, 3),
+                        confidence=0.82,
+                        model_name="model-a.pt",
+                        checkpoint_path=str(checkpoint_path),
+                        source_view=source_view,
+                    )
+                ]
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [SimpleNamespace(name="model-a.pt", path=checkpoint)],
+            yolo_detector=FakeYoloDetector(),
+        )
+        frames = np.arange(3 * 4 * 4, dtype=np.float32).reshape(3, 4, 4)
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+        )
+        self.window.set_image_series(series)
+        self.window.slider_frame.setValue(1)
+        self.window.sp_yolo_confidence.setValue(0.35)
+        self.window.sp_yolo_iou.setValue(0.55)
+        self.__class__._app.processEvents()
+
+        self.window.btn_yolo_detect_current.click()
+        self.__class__._app.processEvents()
+
+        self.assertEqual(len(calls), 1)
+        np.testing.assert_array_equal(calls[0]["frame"], frames[1])
+        self.assertEqual(calls[0]["frame_index"], 1)
+        self.assertEqual(calls[0]["checkpoint_path"], checkpoint)
+        self.assertAlmostEqual(calls[0]["confidence_threshold"], 0.35)
+        self.assertAlmostEqual(calls[0]["iou_threshold"], 0.55)
+        self.assertEqual(calls[0]["source_view"], "raw")
+        self.assertIsNotNone(series.molecular_detections)
+        current = series.molecular_detections.get_detections(1, source_view="raw")
+        self.assertEqual(len(current), 1)
+        self.assertEqual(current[0].model_name, "model-a.pt")
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
+        self.assertIn("current 1", self.window.lbl_yolo_status.text())
+        self.assertIn("series 1", self.window.lbl_yolo_status.text())
+        self.assertIn("model-a.pt", self.window.statusBar().currentMessage())
+        self.assertIn("1 detection", self.window.statusBar().currentMessage())
+        self.assertIn("frame 2", self.window.statusBar().currentMessage())
+
+    def test_yolo_clear_current_removes_only_active_frame_and_view_detections(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        frames = np.arange(2 * 4 * 4, dtype=np.float32).reshape(2, 4, 4)
+        detections = MolecularDetectionSet(frame_count=2)
+        detections.set_detections(
+            0,
+            [MolecularDetection(frame_index=0, bbox_xyxy=(0, 0, 2, 2), confidence=0.9, source_view="raw")],
+            source_view="raw",
+            frame_shape=(4, 4),
+        )
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(1, 1, 3, 3),
+                    confidence=0.8,
+                    source_view="expanded_aligned",
+                )
+            ],
+            source_view="expanded_aligned",
+            frame_shape=(4, 4),
+        )
+        detections.set_detections(
+            1,
+            [MolecularDetection(frame_index=1, bbox_xyxy=(2, 2, 4, 4), confidence=0.7, source_view="raw")],
+            source_view="raw",
+            frame_shape=(4, 4),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
+        self.assertTrue(self.window.btn_yolo_clear_current.isEnabled())
+
+        self.window.btn_yolo_clear_current.click()
+        self.__class__._app.processEvents()
+
+        self.assertEqual(series.molecular_detections.get_detections(0, source_view="raw"), [])
+        self.assertEqual(len(series.molecular_detections.get_detections(0, source_view="expanded_aligned")), 1)
+        self.assertEqual(len(series.molecular_detections.get_detections(1, source_view="raw")), 1)
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 0)
+        self.assertFalse(self.window.btn_yolo_clear_current.isEnabled())
+        self.assertIn("current 0", self.window.lbl_yolo_status.text())
+        self.assertIn("series 2", self.window.lbl_yolo_status.text())
+
+    def test_yolo_status_tracks_active_registration_view(self) -> None:
+        expanded_frames = np.arange(2 * 5 * 6, dtype=np.float32).reshape(2, 5, 6)
+
+        def fake_expanded_builder(series):
+            expanded_stack = SimpleNamespace(
+                frames=expanded_frames,
+                metadata=STMSequenceMetadata(pixels_x=6, pixels_y=5),
+                padding_ltrb=(1, 1, 1, 2),
+                frame_origins_xy=np.zeros((series.frame_count, 2), dtype=np.float64),
+            )
+            series.expanded_aligned_stack = expanded_stack
+            return expanded_stack
+
+        self.window = MolTrackMainWindow(
+            expanded_aligned_builder=fake_expanded_builder,
+            yolo_model_discovery=lambda: [],
+        )
+        detections = MolecularDetectionSet(frame_count=2)
+        detections.set_detections(
+            0,
+            [MolecularDetection(frame_index=0, bbox_xyxy=(0, 0, 2, 2), confidence=0.9, source_view="raw")],
+            source_view="raw",
+            frame_shape=(4, 4),
+        )
+        settings = MolTrackRegistrationSettings()
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.arange(2 * 4 * 4, dtype=np.float32).reshape(2, 4, 4),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            registration_results=MolTrackRegistrationResultSet(
+                settings=settings,
+                results_by_frame={
+                    frame_index: MolTrackRegistrationFrameResult(
+                        frame_index=frame_index,
+                        shift_xy=(0.0, 0.0),
+                        method="identity",
+                    )
+                    for frame_index in range(2)
+                },
+            ),
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+
+        self.assertIn("current 1", self.window.lbl_yolo_status.text())
+        self.assertTrue(self.window.btn_yolo_clear_current.isEnabled())
+
+        self.window.cmb_registration_view_mode.setCurrentText("Show expanded aligned")
+        self.__class__._app.processEvents()
+
+        self.assertIn("current 0", self.window.lbl_yolo_status.text())
+        self.assertFalse(self.window.btn_yolo_clear_current.isEnabled())
+
+        self.window.cmb_registration_view_mode.setCurrentText("Show raw")
+        self.__class__._app.processEvents()
+
+        self.assertIn("current 1", self.window.lbl_yolo_status.text())
+        self.assertTrue(self.window.btn_yolo_clear_current.isEnabled())
+
+    def test_yolo_detect_current_frame_uses_expanded_aligned_active_view(self) -> None:
+        calls = []
+        checkpoint = Path("expanded-model.pt")
+        expanded_frames = (np.arange(2 * 5 * 6, dtype=np.float32).reshape(2, 5, 6) + 100.0)
+
+        class FakeYoloDetector:
+            def detect_frame(
+                self,
+                frame,
+                *,
+                frame_index,
+                checkpoint_path,
+                confidence_threshold,
+                iou_threshold,
+                source_view,
+            ):
+                calls.append((np.asarray(frame).copy(), frame_index, checkpoint_path, source_view))
+                return [
+                    MolecularDetection(
+                        frame_index=frame_index,
+                        bbox_xyxy=(1, 1, 5, 4),
+                        confidence=0.75,
+                        model_name="expanded-model.pt",
+                        checkpoint_path=str(checkpoint_path),
+                        source_view=source_view,
+                    )
+                ]
+
+        def fake_expanded_builder(series):
+            expanded_stack = SimpleNamespace(
+                frames=expanded_frames,
+                metadata=STMSequenceMetadata(pixels_x=6, pixels_y=5),
+                padding_ltrb=(1, 1, 1, 2),
+                frame_origins_xy=np.zeros((series.frame_count, 2), dtype=np.float64),
+            )
+            series.expanded_aligned_stack = expanded_stack
+            return expanded_stack
+
+        self.window = MolTrackMainWindow(
+            expanded_aligned_builder=fake_expanded_builder,
+            yolo_model_discovery=lambda: [SimpleNamespace(name="expanded-model.pt", path=checkpoint)],
+            yolo_detector=FakeYoloDetector(),
+        )
+        raw_frames = np.arange(2 * 4 * 4, dtype=np.float32).reshape(2, 4, 4)
+        raw_detections = MolecularDetectionSet(frame_count=2)
+        raw_detections.set_detections(
+            1,
+            [MolecularDetection(frame_index=1, bbox_xyxy=(0, 0, 2, 2), confidence=0.9, source_view="raw")],
+            source_view="raw",
+            frame_shape=(4, 4),
+        )
+        settings = MolTrackRegistrationSettings()
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=raw_frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            registration_results=MolTrackRegistrationResultSet(
+                settings=settings,
+                results_by_frame={
+                    frame_index: MolTrackRegistrationFrameResult(
+                        frame_index=frame_index,
+                        shift_xy=(0.0, 0.0),
+                        method="identity",
+                    )
+                    for frame_index in range(2)
+                },
+            ),
+            molecular_detections=raw_detections,
+        )
+        self.window.set_image_series(series)
+        self.window.slider_frame.setValue(1)
+        self.window.cmb_registration_view_mode.setCurrentText("Show expanded aligned")
+        self.__class__._app.processEvents()
+
+        self.window.btn_yolo_detect_current.click()
+        self.__class__._app.processEvents()
+
+        self.assertEqual(len(calls), 1)
+        np.testing.assert_array_equal(calls[0][0], expanded_frames[1])
+        self.assertEqual(calls[0][1], 1)
+        self.assertEqual(calls[0][2], checkpoint)
+        self.assertEqual(calls[0][3], "expanded_aligned")
+        self.assertEqual(len(series.molecular_detections.get_detections(1, source_view="raw")), 1)
+        self.assertEqual(len(series.molecular_detections.get_detections(1, source_view="expanded_aligned")), 1)
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, expanded_frames[1])
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
+        self.assertIn("current 1", self.window.lbl_yolo_status.text())
+        self.assertIn("series 2", self.window.lbl_yolo_status.text())
+
+    def test_yolo_detect_current_frame_reports_inference_errors(self) -> None:
+        class FailingYoloDetector:
+            def detect_frame(self, *args, **kwargs):
+                raise RuntimeError("GPU inference failed")
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [SimpleNamespace(name="model-a.pt", path=Path("model-a.pt"))],
+            yolo_detector=FailingYoloDetector(),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.arange(2 * 4 * 4, dtype=np.float32).reshape(2, 4, 4),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+        )
+        self.window.set_image_series(series)
+
+        with patch.object(QMessageBox, "critical", return_value=QMessageBox.StandardButton.Ok) as critical:
+            self.window.btn_yolo_detect_current.click()
+            self.__class__._app.processEvents()
+
+        critical.assert_called_once()
+        _parent, title, message = critical.call_args.args
+        self.assertEqual(title, "YOLO detection error")
+        self.assertIn("GPU inference failed", message)
+        self.assertIsNone(series.molecular_detections)
+        self.assertIn("YOLO detection failed", self.window.statusBar().currentMessage())
 
     def test_remove_current_frame_button_deletes_active_frame_from_working_series(self) -> None:
         self.window = MolTrackMainWindow()

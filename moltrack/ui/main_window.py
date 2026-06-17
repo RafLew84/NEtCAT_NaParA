@@ -5,6 +5,7 @@ from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
+    QDoubleSpinBox,
     QFileDialog,
     QGroupBox,
     QLabel,
@@ -20,6 +21,7 @@ from PyQt6.QtWidgets import (
 )
 
 from moltrack.core import (
+    MolecularDetectionSet,
     MolTrackRegistrationSettings,
     SUPPORTED_REGISTRATION_BACKENDS,
     build_moltrack_expanded_aligned_stack,
@@ -32,6 +34,7 @@ from moltrack.persistence import (
     save_moltrack_session,
 )
 from moltrack.ui.widgets import STMSeriesViewer, SeriesMetadataPanel
+from moltrack.yolo import MolTrackYoloDetector, discover_yolo_models
 
 
 class _RegistrationRunWorker(QObject):
@@ -66,6 +69,8 @@ class MolTrackMainWindow(QMainWindow):
         session_saver=save_moltrack_session,
         session_loader=load_moltrack_session,
         session_restorer=None,
+        yolo_model_discovery=discover_yolo_models,
+        yolo_detector=None,
     ):
         super().__init__(parent)
         self._series = None
@@ -83,6 +88,9 @@ class MolTrackMainWindow(QMainWindow):
             )
         )
         self._session_path: str | None = None
+        self._yolo_model_discovery = yolo_model_discovery
+        self._yolo_detector = yolo_detector if yolo_detector is not None else MolTrackYoloDetector()
+        self._yolo_models = []
         self._registration_running = False
         self._registration_progress_dialog: QProgressDialog | None = None
         self._registration_thread: QThread | None = None
@@ -91,6 +99,7 @@ class MolTrackMainWindow(QMainWindow):
         self.resize(1280, 860)
         self._build_actions()
         self._build_central_widget()
+        self._refresh_yolo_models()
         self._connect_signals()
         self._update_navigation_enabled(False)
         self.statusBar().showMessage("Ready")
@@ -159,6 +168,40 @@ class MolTrackMainWindow(QMainWindow):
         registration_layout.addWidget(self.lbl_registration_status)
         sidebar_layout.addWidget(self.registration_group)
 
+        self.yolo_group = QGroupBox("YOLO Detection", sidebar_content)
+        yolo_layout = QVBoxLayout(self.yolo_group)
+        self.lbl_yolo_models = QLabel("", self.yolo_group)
+        self.lbl_yolo_models.setWordWrap(True)
+        yolo_layout.addWidget(self.lbl_yolo_models)
+        self.cmb_yolo_model = QComboBox(self.yolo_group)
+        yolo_layout.addWidget(self.cmb_yolo_model)
+        self.btn_yolo_refresh_models = QPushButton("Refresh models", self.yolo_group)
+        yolo_layout.addWidget(self.btn_yolo_refresh_models)
+        self.sp_yolo_confidence = QDoubleSpinBox(self.yolo_group)
+        self.sp_yolo_confidence.setRange(0.0, 1.0)
+        self.sp_yolo_confidence.setSingleStep(0.05)
+        self.sp_yolo_confidence.setDecimals(2)
+        self.sp_yolo_confidence.setPrefix("Confidence ")
+        self.sp_yolo_confidence.setValue(0.25)
+        yolo_layout.addWidget(self.sp_yolo_confidence)
+        self.sp_yolo_iou = QDoubleSpinBox(self.yolo_group)
+        self.sp_yolo_iou.setRange(0.0, 1.0)
+        self.sp_yolo_iou.setSingleStep(0.05)
+        self.sp_yolo_iou.setDecimals(2)
+        self.sp_yolo_iou.setPrefix("IoU ")
+        self.sp_yolo_iou.setValue(0.45)
+        yolo_layout.addWidget(self.sp_yolo_iou)
+        self.btn_yolo_detect_current = QPushButton("Detect Current Frame", self.yolo_group)
+        self.btn_yolo_detect_current.setEnabled(False)
+        yolo_layout.addWidget(self.btn_yolo_detect_current)
+        self.btn_yolo_clear_current = QPushButton("Clear Current", self.yolo_group)
+        self.btn_yolo_clear_current.setEnabled(False)
+        yolo_layout.addWidget(self.btn_yolo_clear_current)
+        self.lbl_yolo_status = QLabel("Detections: current 0 | series 0", self.yolo_group)
+        self.lbl_yolo_status.setWordWrap(True)
+        yolo_layout.addWidget(self.lbl_yolo_status)
+        sidebar_layout.addWidget(self.yolo_group)
+
         sidebar_layout.addStretch(1)
 
         sidebar = QScrollArea(self)
@@ -186,6 +229,9 @@ class MolTrackMainWindow(QMainWindow):
         self.btn_remove_current_frame.clicked.connect(self._on_remove_current_frame_requested)
         self.btn_run_registration.clicked.connect(self._on_run_registration_requested)
         self.cmb_registration_view_mode.currentTextChanged.connect(self._on_registration_view_mode_changed)
+        self.btn_yolo_refresh_models.clicked.connect(self._refresh_yolo_models)
+        self.btn_yolo_detect_current.clicked.connect(self._on_yolo_detect_current_requested)
+        self.btn_yolo_clear_current.clicked.connect(self._on_yolo_clear_current_requested)
 
     def set_image_series(self, series) -> None:
         self._series = series
@@ -211,6 +257,7 @@ class MolTrackMainWindow(QMainWindow):
             self.cmb_registration_view_mode.setEnabled(False)
             self._set_registration_view_mode("Show raw")
             self.lbl_registration_status.setText("No registration results")
+            self._sync_yolo_controls()
             return
 
         controls_enabled = not self._registration_running
@@ -230,6 +277,141 @@ class MolTrackMainWindow(QMainWindow):
         finally:
             self.slider_frame.blockSignals(False)
         self.lbl_frame.setText(f"Frame: {self._series.active_frame_index + 1} / {self._series.frame_count}")
+        self._sync_yolo_controls()
+
+    def _refresh_yolo_models(self) -> None:
+        self._yolo_models = list(self._yolo_model_discovery())
+        self.cmb_yolo_model.blockSignals(True)
+        try:
+            self.cmb_yolo_model.clear()
+            for model in self._yolo_models:
+                self.cmb_yolo_model.addItem(self._yolo_model_display_name(model), model)
+        finally:
+            self.cmb_yolo_model.blockSignals(False)
+
+        if self._yolo_models:
+            self.lbl_yolo_models.setText(f"{len(self._yolo_models)} YOLO model(s) available")
+        else:
+            self.lbl_yolo_models.setText("No YOLO models found in nanotrack/yolo_models")
+        self._sync_yolo_controls()
+
+    def _sync_yolo_controls(self) -> None:
+        controls_enabled = self._series is not None and not self._registration_running
+        has_models = self.cmb_yolo_model.count() > 0
+        self.cmb_yolo_model.setEnabled(controls_enabled and has_models)
+        self.btn_yolo_refresh_models.setEnabled(not self._registration_running)
+        self.sp_yolo_confidence.setEnabled(controls_enabled)
+        self.sp_yolo_iou.setEnabled(controls_enabled)
+        self.btn_yolo_detect_current.setEnabled(controls_enabled and has_models)
+        current_count = self._current_molecular_detection_count()
+        self.btn_yolo_clear_current.setEnabled(controls_enabled and current_count > 0)
+        if self._series is not None and self._series.molecular_detections is not None:
+            total_count = self._series.molecular_detections.detection_count
+        else:
+            total_count = 0
+        self.lbl_yolo_status.setText(f"Detections: current {current_count} | series {total_count}")
+
+    def _current_molecular_detection_count(self) -> int:
+        if self._series is None or self._series.molecular_detections is None:
+            return 0
+        return len(
+            self._series.molecular_detections.get_detections(
+                self._series.active_frame_index,
+                source_view=self._current_yolo_source_view(),
+            )
+        )
+
+    def _current_yolo_source_view(self) -> str:
+        return "expanded_aligned" if self._is_expanded_aligned_view_requested() else "raw"
+
+    def _yolo_model_display_name(self, model) -> str:
+        return str(
+            getattr(model, "display_name", None)
+            or getattr(model, "name", None)
+            or getattr(model, "path", model)
+        )
+
+    def _current_yolo_model(self):
+        index = self.cmb_yolo_model.currentIndex()
+        if index < 0:
+            return None
+        return self.cmb_yolo_model.itemData(index)
+
+    def _current_yolo_model_path(self, model):
+        return getattr(model, "path", model)
+
+    def _current_yolo_frame(self, source_view: str):
+        if self._series is None:
+            raise RuntimeError("YOLO detection requires a loaded series.")
+        frame_index = self._series.active_frame_index
+        if source_view == "expanded_aligned":
+            return self._ensure_expanded_aligned_stack().frames[frame_index]
+        return self._series.raw_frames[frame_index]
+
+    def _ensure_molecular_detection_set(self) -> MolecularDetectionSet:
+        if self._series is None:
+            raise RuntimeError("Molecular detections require a loaded series.")
+        if self._series.molecular_detections is None:
+            self._series.molecular_detections = MolecularDetectionSet(frame_count=self._series.frame_count)
+        return self._series.molecular_detections
+
+    def _on_yolo_detect_current_requested(self) -> None:
+        if self._series is None:
+            return
+        model = self._current_yolo_model()
+        if model is None:
+            self.statusBar().showMessage("No YOLO model selected.", 3000)
+            return
+
+        source_view = self._current_yolo_source_view()
+        frame_index = self._series.active_frame_index
+        model_path = self._current_yolo_model_path(model)
+        try:
+            frame = self._current_yolo_frame(source_view)
+            detections = self._yolo_detector.detect_frame(
+                frame,
+                frame_index=frame_index,
+                checkpoint_path=model_path,
+                confidence_threshold=float(self.sp_yolo_confidence.value()),
+                iou_threshold=float(self.sp_yolo_iou.value()),
+                source_view=source_view,
+            )
+            detection_set = self._ensure_molecular_detection_set()
+            detection_set.set_detections(
+                frame_index,
+                detections,
+                source_view=source_view,
+                frame_shape=frame.shape[:2],
+            )
+        except Exception as exc:
+            message = str(exc) or exc.__class__.__name__
+            QMessageBox.critical(self, "YOLO detection error", message)
+            self.statusBar().showMessage("YOLO detection failed.", 3000)
+            return
+
+        self._show_current_frame()
+        self._sync_yolo_controls()
+        detection_word = "detection" if len(detections) == 1 else "detections"
+        self.statusBar().showMessage(
+            (
+                f"YOLO {self._yolo_model_display_name(model)}: "
+                f"{len(detections)} {detection_word} on frame {frame_index + 1}."
+            ),
+            5000,
+        )
+
+    def _on_yolo_clear_current_requested(self) -> None:
+        if self._series is None or self._series.molecular_detections is None:
+            return
+        frame_index = self._series.active_frame_index
+        source_view = self._current_yolo_source_view()
+        removed = self._series.molecular_detections.clear_frame(frame_index, source_view=source_view)
+        self._show_current_frame()
+        self._sync_yolo_controls()
+        self.statusBar().showMessage(
+            f"Cleared {removed} YOLO detection(s) on frame {frame_index + 1}.",
+            3000,
+        )
 
     def _show_current_frame(self) -> None:
         if self._series is None:
@@ -378,6 +560,7 @@ class MolTrackMainWindow(QMainWindow):
         if self._series is None:
             return
         self._show_current_frame()
+        self._sync_yolo_controls()
 
     def _is_expanded_aligned_view_requested(self) -> bool:
         return self.cmb_registration_view_mode.currentText() == "Show expanded aligned"
