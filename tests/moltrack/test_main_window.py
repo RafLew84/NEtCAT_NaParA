@@ -938,6 +938,63 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertIn("current 0", self.window.lbl_yolo_status.text())
         self.assertIn("series 2", self.window.lbl_yolo_status.text())
 
+    def test_remove_current_frame_after_yolo_clears_detections_and_requires_rerun(self) -> None:
+        checkpoint = Path("model-a.pt")
+
+        class FakeYoloDetector:
+            def detect_frame(
+                self,
+                frame,
+                *,
+                frame_index,
+                checkpoint_path,
+                confidence_threshold,
+                iou_threshold,
+                source_view,
+            ):
+                return [
+                    MolecularDetection(
+                        frame_index=frame_index,
+                        bbox_xyxy=(0, 0, 2, 2),
+                        confidence=0.8,
+                        model_name="model-a.pt",
+                        checkpoint_path=str(checkpoint_path),
+                        source_view=source_view,
+                    )
+                ]
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [SimpleNamespace(name="model-a.pt", path=checkpoint)],
+            yolo_detector=FakeYoloDetector(),
+        )
+        frames = np.arange(3 * 4 * 4, dtype=np.float32).reshape(3, 4, 4)
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+        )
+        self.window.set_image_series(series)
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+
+        self.window.btn_yolo_detect_current.click()
+        self.__class__._app.processEvents()
+
+        self.assertIsNotNone(series.molecular_detections)
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
+        self.assertIn("series 1", self.window.lbl_yolo_status.text())
+
+        self.window.btn_remove_current_frame.click()
+        self.__class__._app.processEvents()
+
+        self.assertIsNone(series.molecular_detections)
+        self.assertEqual(series.frame_count, 2)
+        self.assertEqual(series.active_frame_index, 1)
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 0)
+        self.assertIn("current 0", self.window.lbl_yolo_status.text())
+        self.assertIn("series 0", self.window.lbl_yolo_status.text())
+        self.assertTrue(self.window.btn_yolo_detect_current.isEnabled())
+
     def test_yolo_status_tracks_active_registration_view(self) -> None:
         expanded_frames = np.arange(2 * 5 * 6, dtype=np.float32).reshape(2, 5, 6)
 

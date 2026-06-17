@@ -8,6 +8,7 @@ from moltrack.core import MolecularDetection
 from moltrack.yolo import MolTrackYoloDetector, MolTrackYoloError, YoloModelInfo, discover_yolo_models
 from nanotrack.core import BBoxXYXY
 from nanotrack.yolo import YoloRuntimeDetection
+from nanotrack.yolo import discover_yolo_models as discover_nanotrack_yolo_models
 
 
 class MolTrackYoloAdapterTests(unittest.TestCase):
@@ -22,8 +23,13 @@ class MolTrackYoloAdapterTests(unittest.TestCase):
             (root / "nested" / "ignored.pt").write_bytes(b"pt")
 
             models = discover_yolo_models(root)
+            nanotrack_models = discover_nanotrack_yolo_models(root)
 
         self.assertEqual([model.name for model in models], ["a-first.pt", "middle.onnx", "z-last.engine"])
+        self.assertEqual(
+            [(model.name, model.path) for model in models],
+            [(model.name, model.path) for model in nanotrack_models],
+        )
         self.assertTrue(all(isinstance(model, YoloModelInfo) for model in models))
         self.assertTrue(all(model.path.is_absolute() for model in models))
 
