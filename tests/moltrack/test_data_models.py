@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from moltrack.core import MolTrackImageSeries
+from moltrack.core import MolecularDetection, MolecularDetectionSet, MolTrackImageSeries
 from nanotrack.core import STMSequence, STMSequenceMetadata
 
 
@@ -75,6 +75,26 @@ class MolTrackImageSeriesTests(unittest.TestCase):
 
         self.assertEqual(series.source_frame_indices, (0, 2))
         np.testing.assert_array_equal(series.raw_frames, frames[[0, 2]])
+
+    def test_image_series_clears_molecular_detections_when_removing_frame(self) -> None:
+        frames = np.arange(24, dtype=np.float32).reshape(3, 2, 4)
+        detections = MolecularDetectionSet(frame_count=3)
+        detections.set_detections(
+            1,
+            [MolecularDetection(frame_index=1, bbox_xyxy=(0, 0, 2, 1), confidence=0.9)],
+            source_view="raw",
+            frame_shape=(2, 4),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+            molecular_detections=detections,
+        )
+
+        series.remove_frame(0)
+
+        self.assertIsNone(series.molecular_detections)
 
     def test_image_series_defaults_reversed_source_frame_indices_for_reverse_order(self) -> None:
         frames = np.arange(24, dtype=np.float32).reshape(3, 2, 4)
