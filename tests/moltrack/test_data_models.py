@@ -2,7 +2,13 @@ import unittest
 
 import numpy as np
 
-from moltrack.core import MolecularDetection, MolecularDetectionSet, MolTrackImageSeries
+from moltrack.core import (
+    MolecularDetection,
+    MolecularDetectionSet,
+    MolecularSegmentation,
+    MolecularSegmentationSet,
+    MolTrackImageSeries,
+)
 from nanotrack.core import STMSequence, STMSequenceMetadata
 
 
@@ -95,6 +101,28 @@ class MolTrackImageSeriesTests(unittest.TestCase):
         series.remove_frame(0)
 
         self.assertIsNone(series.molecular_detections)
+
+    def test_image_series_clears_molecular_segmentations_when_removing_frame(self) -> None:
+        frames = np.arange(24, dtype=np.float32).reshape(3, 2, 4)
+        segmentations = MolecularSegmentationSet(frame_count=3)
+        segmentations.add_segmentation(
+            MolecularSegmentation(
+                frame_index=1,
+                source_view="raw",
+                mask=np.ones((2, 4), dtype=bool),
+                segmentation_id="seg-1",
+            )
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+            molecular_segmentations=segmentations,
+        )
+
+        series.remove_frame(0)
+
+        self.assertIsNone(series.molecular_segmentations)
 
     def test_image_series_defaults_reversed_source_frame_indices_for_reverse_order(self) -> None:
         frames = np.arange(24, dtype=np.float32).reshape(3, 2, 4)

@@ -5,7 +5,13 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import numpy as np
 
-from moltrack.core import MolTrackImageSeries
+from moltrack.core import (
+    MolecularDetection,
+    MolecularDetectionSet,
+    MolecularSegmentation,
+    MolecularSegmentationSet,
+    MolTrackImageSeries,
+)
 from nanotrack.core import STMSequenceMetadata
 
 try:
@@ -72,6 +78,85 @@ class STMSeriesViewerTests(unittest.TestCase):
         transform = self.viewer.viewer.image_item.transform()
         self.assertAlmostEqual(transform.m11(), 2.0)
         self.assertAlmostEqual(transform.m22(), 0.5)
+
+    def test_viewer_shows_active_frame_segmentations_without_hiding_bbox_overlay(self) -> None:
+        frames = np.arange(2 * 4 * 4, dtype=np.float32).reshape(2, 4, 4)
+        detections = MolecularDetectionSet(frame_count=2)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(1, 1, 3, 3),
+                    confidence=0.9,
+                    source_view="raw",
+                    detection_id="bbox-active",
+                )
+            ],
+            source_view="raw",
+            frame_shape=(4, 4),
+        )
+        segmentations = MolecularSegmentationSet(frame_count=2)
+        segmentations.add_segmentation(
+            MolecularSegmentation(
+                frame_index=0,
+                source_view="raw",
+                bbox_xyxy=(1, 1, 3, 3),
+                mask=np.asarray(
+                    [
+                        [False, False, False, False],
+                        [False, True, True, False],
+                        [False, True, True, False],
+                        [False, False, False, False],
+                    ],
+                    dtype=bool,
+                ),
+                polygon_xy=[(1, 1), (3, 1), (3, 3), (1, 3)],
+                prompt_detection_ids=("bbox-active",),
+                origin="sam2",
+                segmentation_id="seg-active",
+            )
+        )
+        segmentations.add_segmentation(
+            MolecularSegmentation(
+                frame_index=0,
+                source_view="expanded_aligned",
+                mask=np.ones((4, 4), dtype=bool),
+                segmentation_id="seg-other-view",
+            )
+        )
+        segmentations.add_segmentation(
+            MolecularSegmentation(
+                frame_index=1,
+                source_view="raw",
+                mask=np.ones((4, 4), dtype=bool),
+                segmentation_id="seg-other-frame",
+            )
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            molecular_detections=detections,
+            molecular_segmentations=segmentations,
+        )
+        self.viewer = STMSeriesViewer()
+
+        self.viewer.set_image_series(series)
+
+        self.assertEqual(self.viewer.visible_molecular_detection_count(), 1)
+        self.assertEqual(self.viewer.visible_molecular_segmentation_count(), 1)
+        self.assertEqual(self.viewer.visible_molecular_segmentation_ids(), ["seg-active"])
+
+        self.viewer.select_molecular_detection_by_id("bbox-active")
+
+        self.assertEqual(self.viewer.highlighted_molecular_detection_ids(), ["bbox-active"])
+        self.assertEqual(self.viewer.highlighted_molecular_segmentation_ids(), ["seg-active"])
+
+        self.viewer.show_frame(1)
+
+        self.assertEqual(self.viewer.visible_molecular_detection_count(), 0)
+        self.assertEqual(self.viewer.visible_molecular_segmentation_ids(), ["seg-other-frame"])
 
 
 if __name__ == "__main__":

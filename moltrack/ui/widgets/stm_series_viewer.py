@@ -21,8 +21,13 @@ class STMSeriesViewer(QWidget):
         self._series = None
         self._visible_molecular_detection_count = 0
         self._visible_molecular_detection_colors: list[tuple[int, int, int]] = []
+        self._visible_molecular_segmentation_count = 0
+        self._visible_molecular_segmentation_ids: list[str] = []
+        self._highlighted_molecular_segmentation_ids: list[str] = []
         self._selected_molecular_detection_id: str | None = None
         self._molecular_detection_overlay_items_by_id: dict[str, list[object]] = {}
+        self._molecular_segmentation_overlay_items_by_id: dict[str, list[object]] = {}
+        self._molecular_segmentation_prompt_ids_by_id: dict[str, tuple[str, ...]] = {}
         self._current_molecular_detection_source_view = "raw"
         self._current_scale_nm_per_px = (1.0, 1.0)
         self._current_image_shape_px: tuple[int, int] | None = None
@@ -128,7 +133,12 @@ class STMSeriesViewer(QWidget):
         self.viewer.clear_overlay()
         self._visible_molecular_detection_count = 0
         self._visible_molecular_detection_colors = []
+        self._visible_molecular_segmentation_count = 0
+        self._visible_molecular_segmentation_ids = []
+        self._highlighted_molecular_segmentation_ids = []
         self._molecular_detection_overlay_items_by_id = {}
+        self._molecular_segmentation_overlay_items_by_id = {}
+        self._molecular_segmentation_prompt_ids_by_id = {}
         self._manual_bbox_preview_item = None
 
     def visible_molecular_detection_count(self) -> int:
@@ -140,11 +150,20 @@ class STMSeriesViewer(QWidget):
     def selected_molecular_detection_id(self) -> str | None:
         return self._selected_molecular_detection_id
 
+    def visible_molecular_segmentation_count(self) -> int:
+        return int(self._visible_molecular_segmentation_count)
+
+    def visible_molecular_segmentation_ids(self) -> list[str]:
+        return list(self._visible_molecular_segmentation_ids)
+
     def highlighted_molecular_detection_ids(self) -> list[str]:
         selected_id = self._selected_molecular_detection_id
         if selected_id is None or selected_id not in self._molecular_detection_overlay_items_by_id:
             return []
         return [selected_id]
+
+    def highlighted_molecular_segmentation_ids(self) -> list[str]:
+        return list(self._highlighted_molecular_segmentation_ids)
 
     def molecular_bbox_add_mode_enabled(self) -> bool:
         return bool(self._molecular_bbox_add_mode_enabled)
@@ -205,43 +224,96 @@ class STMSeriesViewer(QWidget):
             self._set_selected_molecular_detection_id(None)
             return
         detection_set = getattr(self._series, "molecular_detections", None)
-        if detection_set is None:
-            self._set_selected_molecular_detection_id(None)
-            return
-        detections = detection_set.get_detections(
-            self._series.active_frame_index,
-            source_view=source_view,
-        )
         sx, sy = self._effective_scale_nm_per_px(scale_nm_per_px)
         self._current_scale_nm_per_px = (sx, sy)
         count = 0
         colors: list[tuple[int, int, int]] = []
         visible_ids: set[str] = set()
-        for detection in detections:
-            color = (255, 0, 255) if detection.selected else (255, 140, 0)
-            polyline = self.viewer.add_polyline_nm(
-                self._bbox_polyline_nm(detection.bbox_xyxy, scale_nm_per_px=(sx, sy)),
-                color=color,
-                width=1.8,
+        if detection_set is not None:
+            detections = detection_set.get_detections(
+                self._series.active_frame_index,
+                source_view=source_view,
             )
-            if polyline is None:
-                continue
-            visible_ids.add(detection.detection_id)
-            self._molecular_detection_overlay_items_by_id[detection.detection_id] = [polyline]
-            colors.append(color)
-            x0, y0, x1, y1 = detection.bbox_xyxy
-            self.viewer.add_text_nm(
-                f"{detection.confidence:.2f}",
-                (((x0 + x1) / 2.0) * sx, ((y0 + y1) / 2.0) * sy),
-                color=color,
-            )
-            count += 1
+            for detection in detections:
+                color = (255, 0, 255) if detection.selected else (255, 140, 0)
+                polyline = self.viewer.add_polyline_nm(
+                    self._bbox_polyline_nm(detection.bbox_xyxy, scale_nm_per_px=(sx, sy)),
+                    color=color,
+                    width=1.8,
+                )
+                if polyline is None:
+                    continue
+                visible_ids.add(detection.detection_id)
+                self._molecular_detection_overlay_items_by_id[detection.detection_id] = [polyline]
+                colors.append(color)
+                x0, y0, x1, y1 = detection.bbox_xyxy
+                self.viewer.add_text_nm(
+                    f"{detection.confidence:.2f}",
+                    (((x0 + x1) / 2.0) * sx, ((y0 + y1) / 2.0) * sy),
+                    color=color,
+                )
+                count += 1
         self._visible_molecular_detection_count = count
         self._visible_molecular_detection_colors = colors
+        self._show_molecular_segmentations(source_view=source_view, scale_nm_per_px=(sx, sy))
         if self._selected_molecular_detection_id not in visible_ids:
             self._set_selected_molecular_detection_id(None)
         else:
             self._apply_molecular_detection_highlight()
+
+    def _show_molecular_segmentations(
+        self,
+        *,
+        source_view: str,
+        scale_nm_per_px: tuple[float, float],
+    ) -> None:
+        self._visible_molecular_segmentation_count = 0
+        self._visible_molecular_segmentation_ids = []
+        self._molecular_segmentation_overlay_items_by_id = {}
+        self._molecular_segmentation_prompt_ids_by_id = {}
+        self._highlighted_molecular_segmentation_ids = []
+        if self._series is None:
+            return
+        segmentation_set = getattr(self._series, "molecular_segmentations", None)
+        if segmentation_set is None:
+            return
+        segmentations = segmentation_set.get_segmentations(
+            self._series.active_frame_index,
+            source_view=source_view,
+        )
+        count = 0
+        visible_ids: list[str] = []
+        sx, sy = scale_nm_per_px
+        for segmentation in segmentations:
+            items = []
+            mask = self._full_frame_mask_for_segmentation(segmentation)
+            if mask is not None:
+                mask_item = self.viewer.add_mask_overlay_px(
+                    mask,
+                    color=(0, 200, 255),
+                    alpha=80,
+                    scale_nm_per_px=(sx, sy),
+                )
+                if mask_item is not None:
+                    items.append(mask_item)
+            if segmentation.polygon_xy is not None:
+                polyline = self.viewer.add_polyline_nm(
+                    self._polygon_polyline_nm(segmentation.polygon_xy, scale_nm_per_px=(sx, sy)),
+                    color=(0, 220, 255),
+                    width=2.0,
+                )
+                if polyline is not None:
+                    items.append(polyline)
+            if not items:
+                continue
+            self._molecular_segmentation_overlay_items_by_id[segmentation.segmentation_id] = items
+            self._molecular_segmentation_prompt_ids_by_id[segmentation.segmentation_id] = tuple(
+                segmentation.prompt_detection_ids
+            )
+            visible_ids.append(segmentation.segmentation_id)
+            count += 1
+        self._visible_molecular_segmentation_count = count
+        self._visible_molecular_segmentation_ids = visible_ids
 
     def _on_scene_mouse_clicked(self, event) -> None:
         if self._series is None:
@@ -376,6 +448,15 @@ class STMSeriesViewer(QWidget):
         for detection_id, items in self._molecular_detection_overlay_items_by_id.items():
             for item in items:
                 self.viewer.set_item_highlight(item, detection_id == selected_id)
+        highlighted_segmentations: list[str] = []
+        for segmentation_id, items in self._molecular_segmentation_overlay_items_by_id.items():
+            prompt_ids = self._molecular_segmentation_prompt_ids_by_id.get(segmentation_id, ())
+            highlighted = selected_id is not None and selected_id in prompt_ids
+            if highlighted:
+                highlighted_segmentations.append(segmentation_id)
+            for item in items:
+                self.viewer.set_item_highlight(item, highlighted)
+        self._highlighted_molecular_segmentation_ids = highlighted_segmentations
 
     def _effective_scale_nm_per_px(self, scale_nm_per_px: tuple[float | None, float | None]) -> tuple[float, float]:
         sx, sy = scale_nm_per_px
@@ -407,3 +488,46 @@ class STMSeriesViewer(QWidget):
             ],
             dtype=np.float64,
         )
+
+    def _polygon_polyline_nm(
+        self,
+        polygon_xy,
+        *,
+        scale_nm_per_px: tuple[float, float],
+    ) -> np.ndarray:
+        sx, sy = scale_nm_per_px
+        pts = np.asarray(polygon_xy, dtype=np.float64)
+        if pts.ndim != 2 or pts.shape[1] != 2:
+            return np.empty((0, 2), dtype=np.float64)
+        if len(pts) >= 2 and not np.allclose(pts[0], pts[-1]):
+            pts = np.vstack([pts, pts[0]])
+        pts = pts.copy()
+        pts[:, 0] *= sx
+        pts[:, 1] *= sy
+        return pts
+
+    def _full_frame_mask_for_segmentation(self, segmentation) -> np.ndarray | None:
+        if segmentation.mask is None:
+            return None
+        mask = np.asarray(segmentation.mask, dtype=bool)
+        if self._current_image_shape_px is None:
+            return mask
+        image_height, image_width = self._current_image_shape_px
+        if mask.shape == (image_height, image_width):
+            return mask
+        if segmentation.bbox_xyxy is None:
+            return None
+
+        x0, y0, x1, y1 = (int(round(float(value))) for value in segmentation.bbox_xyxy)
+        x0 = min(max(x0, 0), image_width)
+        x1 = min(max(x1, 0), image_width)
+        y0 = min(max(y0, 0), image_height)
+        y1 = min(max(y1, 0), image_height)
+        if x1 <= x0 or y1 <= y0:
+            return None
+        target_shape = (y1 - y0, x1 - x0)
+        if mask.shape != target_shape:
+            return None
+        full_mask = np.zeros((image_height, image_width), dtype=bool)
+        full_mask[y0:y1, x0:x1] = mask
+        return full_mask

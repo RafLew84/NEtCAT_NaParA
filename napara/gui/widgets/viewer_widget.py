@@ -214,6 +214,34 @@ class ViewerWidget(QWidget):
         self._overlay_items.add(ti)
         return ti
 
+    def add_mask_overlay_px(
+        self,
+        mask,
+        *,
+        color=(0, 200, 255),
+        alpha: int = 80,
+        scale_nm_per_px: tuple[float | None, float | None] | None = None,
+    ):
+        """Dodaj półprzezroczystą maskę binarną w układzie pikselowym."""
+        mask_array = np.asarray(mask, dtype=bool)
+        if mask_array.ndim != 2 or mask_array.size == 0 or not np.any(mask_array):
+            return None
+        rgba = np.zeros((*mask_array.shape, 4), dtype=np.ubyte)
+        rgba[mask_array, 0] = int(color[0])
+        rgba[mask_array, 1] = int(color[1])
+        rgba[mask_array, 2] = int(color[2])
+        rgba[mask_array, 3] = int(alpha)
+        item = pg.ImageItem(rgba)
+        sx, sy = scale_nm_per_px if scale_nm_per_px is not None else self._nm_scale
+        sx = sx or 1.0
+        sy = sy or 1.0
+        tr = QTransform()
+        tr.scale(float(sx), float(sy))
+        item.setTransform(tr)
+        self.plot_item.addItem(item)
+        self._overlay_items.add(item)
+        return item
+
     def set_item_visible(self, item, visible: bool):
         if item is not None:
             item.setVisible(bool(visible))

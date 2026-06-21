@@ -19,6 +19,7 @@ class MolTrackImageSeries:
     registration_results: Any | None = None
     expanded_aligned_stack: Any | None = None
     molecular_detections: Any | None = None
+    molecular_segmentations: Any | None = None
 
     @classmethod
     def from_stm_sequence(cls, sequence: Any) -> "MolTrackImageSeries":
@@ -93,6 +94,7 @@ class MolTrackImageSeries:
         self.registration_results = None
         self.expanded_aligned_stack = None
         self.molecular_detections = None
+        self.molecular_segmentations = None
 
     def _normalize_source_frame_indices(self) -> tuple[int, ...]:
         if self.source_frame_indices is None:

@@ -5,8 +5,11 @@ from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QDoubleSpinBox,
     QFileDialog,
+    QFormLayout,
     QGroupBox,
     QLabel,
     QMainWindow,
@@ -22,6 +25,7 @@ from PyQt6.QtWidgets import (
 
 from moltrack.core import (
     MolecularDetectionSet,
+    MolecularSegmentationSet,
     MolTrackRegistrationSettings,
     SUPPORTED_REGISTRATION_BACKENDS,
     build_moltrack_expanded_aligned_stack,
@@ -35,6 +39,7 @@ from moltrack.persistence import (
 )
 from moltrack.ui.widgets import STMSeriesViewer, SeriesMetadataPanel
 from moltrack.yolo import MolTrackYoloDetector, discover_yolo_models
+from moltrack.sam2 import MolTrackSam2Segmenter
 
 
 MIN_MANUAL_BBOX_SIZE_PX = 1.0
@@ -105,6 +110,93 @@ class _YoloDetectAllWorker(QObject):
         self.finished.emit(results)
 
 
+class Sam2SegmentationSettingsDialog(QDialog):
+    """Parameter dialog used before launching SAM2 segmentation."""
+
+    def __init__(
+        self,
+        parent=None,
+        *,
+        backend: str = "SAM2",
+        bbox_count: int = 1,
+        initial_mask_threshold: float = 0.5,
+    ):
+        super().__init__(parent)
+        self.setWindowTitle("SAM2 Segmentation")
+
+        layout = QVBoxLayout(self)
+        form_layout = QFormLayout()
+
+        self.cmb_backend = QComboBox(self)
+        self.cmb_backend.addItems(["SAM2"])
+        backend_index = self.cmb_backend.findText(str(backend))
+        if backend_index >= 0:
+            self.cmb_backend.setCurrentIndex(backend_index)
+        self.cmb_backend.setEnabled(False)
+        form_layout.addRow("Backend", self.cmb_backend)
+
+        self.lbl_bbox_count = QLabel(f"{int(bbox_count)} BBox(es)", self)
+        form_layout.addRow("Scope", self.lbl_bbox_count)
+
+        self.sp_mask_threshold = QDoubleSpinBox(self)
+        self.sp_mask_threshold.setRange(0.01, 0.99)
+        self.sp_mask_threshold.setSingleStep(0.05)
+        self.sp_mask_threshold.setDecimals(2)
+        self.sp_mask_threshold.setValue(float(initial_mask_threshold))
+        form_layout.addRow("Mask threshold", self.sp_mask_threshold)
+
+        layout.addLayout(form_layout)
+
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+            self,
+        )
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        layout.addWidget(self.button_box)
+
+    def mask_probability_threshold(self) -> float:
+        return float(self.sp_mask_threshold.value())
+
+
+class _Sam2SegmentWorker(QObject):
+    progress = pyqtSignal(int, int)
+    finished = pyqtSignal(object)
+    failed = pyqtSignal(str)
+
+    def __init__(
+        self,
+        segmenter,
+        frame,
+        detections,
+        *,
+        mask_probability_threshold: float,
+    ):
+        super().__init__()
+        self._segmenter = segmenter
+        self._frame = frame
+        self._detections = list(detections)
+        self._mask_probability_threshold = mask_probability_threshold
+
+    def run(self) -> None:
+        try:
+            results = []
+            total = len(self._detections)
+            for position, detection in enumerate(self._detections, start=1):
+                self.progress.emit(position - 1, total)
+                segmentation = self._segmenter.segment_detection(
+                    self._frame,
+                    detection,
+                    mask_probability_threshold=self._mask_probability_threshold,
+                )
+                results.append((detection, segmentation))
+                self.progress.emit(position, total)
+        except Exception as exc:
+            self.failed.emit(str(exc) or exc.__class__.__name__)
+            return
+        self.finished.emit(results)
+
+
 class MolTrackMainWindow(QMainWindow):
     """Initial empty workspace for MolTrack."""
 
@@ -124,6 +216,8 @@ class MolTrackMainWindow(QMainWindow):
         session_restorer=None,
         yolo_model_discovery=discover_yolo_models,
         yolo_detector=None,
+        sam2_segmenter=None,
+        sam2_settings_dialog_factory=None,
     ):
         super().__init__(parent)
         self._series = None
@@ -143,6 +237,8 @@ class MolTrackMainWindow(QMainWindow):
         self._session_path: str | None = None
         self._yolo_model_discovery = yolo_model_discovery
         self._yolo_detector = yolo_detector if yolo_detector is not None else MolTrackYoloDetector()
+        self._sam2_segmenter = sam2_segmenter if sam2_segmenter is not None else MolTrackSam2Segmenter()
+        self._sam2_settings_dialog_factory = sam2_settings_dialog_factory
         self._yolo_models = []
         self._yolo_detection_running = False
         self._yolo_detection_progress_dialog: QProgressDialog | None = None
@@ -151,6 +247,11 @@ class MolTrackMainWindow(QMainWindow):
         self._yolo_detection_model_name = ""
         self._yolo_detection_source_view = "raw"
         self._selected_molecular_detection_id: str | None = None
+        self._sam2_segmentation_running = False
+        self._sam2_segmentation_progress_dialog: QProgressDialog | None = None
+        self._sam2_segmentation_thread: QThread | None = None
+        self._sam2_segmentation_worker: _Sam2SegmentWorker | None = None
+        self._sam2_segmentation_scope = ""
         self._registration_running = False
         self._registration_progress_dialog: QProgressDialog | None = None
         self._registration_thread: QThread | None = None
@@ -317,6 +418,31 @@ class MolTrackMainWindow(QMainWindow):
         bbox_edit_layout.addWidget(self.lbl_bbox_edit_status)
         sidebar_layout.addWidget(self.bbox_edit_group)
 
+        self.segmentation_group = QGroupBox("Segmentation", sidebar_content)
+        segmentation_layout = QVBoxLayout(self.segmentation_group)
+        self.cmb_segmentation_backend = QComboBox(self.segmentation_group)
+        self.cmb_segmentation_backend.addItems(["SAM2"])
+        self.cmb_segmentation_backend.setEnabled(False)
+        segmentation_layout.addWidget(self.cmb_segmentation_backend)
+        self.sp_sam2_mask_threshold = QDoubleSpinBox(self.segmentation_group)
+        self.sp_sam2_mask_threshold.setRange(0.01, 0.99)
+        self.sp_sam2_mask_threshold.setSingleStep(0.05)
+        self.sp_sam2_mask_threshold.setDecimals(2)
+        self.sp_sam2_mask_threshold.setPrefix("Mask threshold ")
+        self.sp_sam2_mask_threshold.setValue(0.5)
+        self.sp_sam2_mask_threshold.setEnabled(False)
+        segmentation_layout.addWidget(self.sp_sam2_mask_threshold)
+        self.btn_sam2_segment_selected = QPushButton("Segment Selected BBox", self.segmentation_group)
+        self.btn_sam2_segment_selected.setEnabled(False)
+        segmentation_layout.addWidget(self.btn_sam2_segment_selected)
+        self.btn_sam2_segment_all_current = QPushButton("Segment All BBoxes In Image", self.segmentation_group)
+        self.btn_sam2_segment_all_current.setEnabled(False)
+        segmentation_layout.addWidget(self.btn_sam2_segment_all_current)
+        self.lbl_segmentation_status = QLabel("No series loaded", self.segmentation_group)
+        self.lbl_segmentation_status.setWordWrap(True)
+        segmentation_layout.addWidget(self.lbl_segmentation_status)
+        sidebar_layout.addWidget(self.segmentation_group)
+
         sidebar_layout.addStretch(1)
 
         self.sidebar_scroll_area = QScrollArea(self)
@@ -355,6 +481,8 @@ class MolTrackMainWindow(QMainWindow):
         self.btn_bbox_reset.clicked.connect(self._on_bbox_reset_requested)
         self.btn_bbox_add.toggled.connect(self._on_bbox_add_toggled)
         self.btn_bbox_delete_selected.clicked.connect(self._on_bbox_delete_selected_requested)
+        self.btn_sam2_segment_selected.clicked.connect(self._on_sam2_segment_selected_requested)
+        self.btn_sam2_segment_all_current.clicked.connect(self._on_sam2_segment_all_current_requested)
         self.viewer.molecular_detection_selection_changed.connect(self._on_molecular_detection_selection_changed)
         self.viewer.manual_molecular_bbox_drawn.connect(self._on_manual_molecular_bbox_drawn)
 
@@ -403,6 +531,7 @@ class MolTrackMainWindow(QMainWindow):
             self.slider_frame.blockSignals(False)
         self.lbl_frame.setText(f"Frame: {self._series.active_frame_index + 1} / {self._series.frame_count}")
         self._sync_yolo_controls()
+        self._sync_segmentation_controls()
 
     def _refresh_yolo_models(self) -> None:
         self._yolo_models = list(self._yolo_model_discovery())
@@ -469,6 +598,7 @@ class MolTrackMainWindow(QMainWindow):
         selected_detection = self._current_selected_molecular_detection()
         has_selection = controls_enabled and selected_detection is not None
         self.btn_bbox_delete_selected.setEnabled(has_selection)
+        self._sync_segmentation_controls()
 
         if controls_enabled and self.btn_bbox_add.isChecked():
             self.lbl_bbox_edit_status.setText("Add BBox: drag on image")
@@ -483,10 +613,44 @@ class MolTrackMainWindow(QMainWindow):
             f"Selected BBox: frame {selected_detection.frame_index + 1}, {view_label}"
         )
 
+    def _sync_segmentation_controls(self) -> None:
+        if self._sam2_segmentation_running:
+            self.cmb_segmentation_backend.setEnabled(False)
+            self.sp_sam2_mask_threshold.setEnabled(False)
+            self.btn_sam2_segment_selected.setEnabled(False)
+            self.btn_sam2_segment_all_current.setEnabled(False)
+            self.lbl_segmentation_status.setText("Running SAM2 segmentation...")
+            return
+        controls_enabled = self._series is not None and not self._is_processing()
+        selected_detection = self._current_selected_molecular_detection()
+        current_count = self._current_molecular_detection_count()
+        has_selection = controls_enabled and selected_detection is not None
+        has_current_detections = controls_enabled and current_count > 0
+        self.cmb_segmentation_backend.setEnabled(controls_enabled)
+        self.sp_sam2_mask_threshold.setEnabled(has_current_detections)
+        self.btn_sam2_segment_selected.setEnabled(has_selection)
+        self.btn_sam2_segment_all_current.setEnabled(has_current_detections)
+        if not controls_enabled:
+            self.lbl_segmentation_status.setText("No series loaded")
+            return
+        if current_count == 0:
+            self.lbl_segmentation_status.setText("No BBox in current image")
+            return
+        if selected_detection is None:
+            self.lbl_segmentation_status.setText(f"Ready: {current_count} BBox(es) in current image")
+            return
+        view_label = "expanded aligned" if selected_detection.source_view == "expanded_aligned" else "raw"
+        self.lbl_segmentation_status.setText(
+            f"Ready: frame {selected_detection.frame_index + 1}, {view_label}, {current_count} BBox(es)"
+        )
+
     def _current_molecular_detection_count(self) -> int:
+        return len(self._current_frame_molecular_detections())
+
+    def _current_frame_molecular_detections(self) -> list:
         if self._series is None or self._series.molecular_detections is None:
-            return 0
-        return len(
+            return []
+        return list(
             self._series.molecular_detections.get_detections(
                 self._series.active_frame_index,
                 source_view=self._current_yolo_source_view(),
@@ -577,7 +741,7 @@ class MolTrackMainWindow(QMainWindow):
         return total
 
     def _is_processing(self) -> bool:
-        return self._registration_running or self._yolo_detection_running
+        return self._registration_running or self._yolo_detection_running or self._sam2_segmentation_running
 
     def _yolo_model_display_name(self, model) -> str:
         return str(
@@ -609,6 +773,13 @@ class MolTrackMainWindow(QMainWindow):
         if self._series.molecular_detections is None:
             self._series.molecular_detections = MolecularDetectionSet(frame_count=self._series.frame_count)
         return self._series.molecular_detections
+
+    def _ensure_molecular_segmentation_set(self) -> MolecularSegmentationSet:
+        if self._series is None:
+            raise RuntimeError("Molecular segmentations require a loaded series.")
+        if self._series.molecular_segmentations is None:
+            self._series.molecular_segmentations = MolecularSegmentationSet(frame_count=self._series.frame_count)
+        return self._series.molecular_segmentations
 
     def _on_yolo_detect_current_requested(self) -> None:
         if self._series is None or self._is_processing():
@@ -887,6 +1058,205 @@ class MolTrackMainWindow(QMainWindow):
             f"Deleted selected BBox from frame {frame_index + 1} ({view_label}).",
             3000,
         )
+
+    def _on_sam2_segment_selected_requested(self) -> None:
+        if self._sam2_segmentation_running:
+            return
+        detection = self._current_selected_molecular_detection()
+        if self._series is None or detection is None:
+            self.statusBar().showMessage("No BBox selected.", 3000)
+            self._sync_segmentation_controls()
+            return
+        settings = self._choose_sam2_segmentation_settings(detection_count=1)
+        if settings is None:
+            return
+        self._start_sam2_segmentation(
+            [detection],
+            mask_probability_threshold=settings["mask_probability_threshold"],
+            scope="selected",
+        )
+
+    def _on_sam2_segment_all_current_requested(self) -> None:
+        if self._sam2_segmentation_running:
+            return
+        detections = self._current_frame_molecular_detections()
+        if self._series is None or not detections:
+            self.statusBar().showMessage("No BBox in current image.", 3000)
+            self._sync_segmentation_controls()
+            return
+        settings = self._choose_sam2_segmentation_settings(detection_count=len(detections))
+        if settings is None:
+            return
+        self._start_sam2_segmentation(
+            detections,
+            mask_probability_threshold=settings["mask_probability_threshold"],
+            scope="current_image",
+        )
+
+    def _choose_sam2_segmentation_settings(self, *, detection_count: int) -> dict[str, float] | None:
+        dialog = self._create_sam2_segmentation_settings_dialog(detection_count=detection_count)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            self.statusBar().showMessage("SAM2 segmentation canceled.", 3000)
+            return None
+        mask_probability_threshold = float(dialog.mask_probability_threshold())
+        self.sp_sam2_mask_threshold.setValue(mask_probability_threshold)
+        return {"mask_probability_threshold": mask_probability_threshold}
+
+    def _create_sam2_segmentation_settings_dialog(self, *, detection_count: int):
+        kwargs = {
+            "parent": self,
+            "backend": self.cmb_segmentation_backend.currentText(),
+            "bbox_count": int(detection_count),
+            "initial_mask_threshold": float(self.sp_sam2_mask_threshold.value()),
+        }
+        if self._sam2_settings_dialog_factory is not None:
+            return self._sam2_settings_dialog_factory(**kwargs)
+        return Sam2SegmentationSettingsDialog(**kwargs)
+
+    def _start_sam2_segmentation(
+        self,
+        detections,
+        *,
+        mask_probability_threshold: float,
+        scope: str,
+    ) -> None:
+        detections = list(detections)
+        if self._series is None or not detections:
+            return
+        frame_index = detections[0].frame_index
+        source_view = detections[0].source_view
+        try:
+            frame = self._current_yolo_frame(source_view).copy()
+        except Exception as exc:
+            message = str(exc) or exc.__class__.__name__
+            QMessageBox.critical(self, "SAM2 segmentation error", message)
+            self.statusBar().showMessage("SAM2 segmentation failed.", 3000)
+            return
+
+        self._sam2_segmentation_running = True
+        self._sam2_segmentation_scope = str(scope)
+        self._set_file_actions_enabled(False)
+        self._sam2_segmentation_progress_dialog = self._show_sam2_segmentation_progress_dialog(
+            frame_index=frame_index,
+            detection_count=len(detections),
+        )
+        self._sync_navigation_controls()
+        self.statusBar().showMessage(
+            f"Running SAM2 segmentation on {len(detections)} BBox(es) from frame {frame_index + 1}...",
+            0,
+        )
+
+        self._sam2_segmentation_thread = QThread(self)
+        self._sam2_segmentation_worker = _Sam2SegmentWorker(
+            self._sam2_segmenter,
+            frame,
+            detections,
+            mask_probability_threshold=float(mask_probability_threshold),
+        )
+        self._sam2_segmentation_worker.moveToThread(self._sam2_segmentation_thread)
+        self._sam2_segmentation_thread.started.connect(self._sam2_segmentation_worker.run)
+        self._sam2_segmentation_worker.progress.connect(self._on_sam2_segmentation_progress)
+        self._sam2_segmentation_worker.finished.connect(self._on_sam2_segmentation_finished)
+        self._sam2_segmentation_worker.failed.connect(self._on_sam2_segmentation_failed)
+        self._sam2_segmentation_worker.finished.connect(self._sam2_segmentation_thread.quit)
+        self._sam2_segmentation_worker.failed.connect(self._sam2_segmentation_thread.quit)
+        self._sam2_segmentation_thread.finished.connect(self._cleanup_sam2_segmentation_worker)
+        self._sam2_segmentation_thread.start()
+
+    def _show_sam2_segmentation_progress_dialog(self, *, frame_index: int, detection_count: int) -> QProgressDialog:
+        progress_dialog = QProgressDialog(
+            f"Running SAM2 segmentation: 0 / {detection_count} BBox(es) on frame {frame_index + 1}...",
+            None,
+            0,
+            detection_count,
+            self,
+        )
+        progress_dialog.setWindowTitle("SAM2 Segmentation")
+        progress_dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
+        progress_dialog.setCancelButton(None)
+        progress_dialog.setMinimumDuration(0)
+        progress_dialog.setAutoClose(False)
+        progress_dialog.setAutoReset(False)
+        progress_dialog.setValue(0)
+        progress_dialog.show()
+        QApplication.processEvents()
+        return progress_dialog
+
+    @pyqtSlot(int, int)
+    def _on_sam2_segmentation_progress(self, completed: int, total: int) -> None:
+        if not self._sam2_segmentation_running:
+            return
+        label = f"Running SAM2 segmentation: {completed} / {total} BBox(es)..."
+        if self._sam2_segmentation_progress_dialog is not None:
+            self._sam2_segmentation_progress_dialog.setLabelText(label)
+            self._sam2_segmentation_progress_dialog.setValue(int(completed))
+        self.statusBar().showMessage(label, 0)
+
+    @pyqtSlot(object)
+    def _on_sam2_segmentation_finished(self, results) -> None:
+        results = list(results)
+        selected_detection_id = self._selected_molecular_detection_id
+        try:
+            if self._series is None:
+                raise RuntimeError("No series loaded.")
+            for detection, segmentation in results:
+                if segmentation.frame_index != detection.frame_index:
+                    raise ValueError("SAM2 segmentation frame_index does not match the prompt BBox.")
+                if segmentation.source_view != detection.source_view:
+                    raise ValueError("SAM2 segmentation source_view does not match the prompt BBox.")
+            segmentation_set = self._ensure_molecular_segmentation_set()
+            for _detection, segmentation in results:
+                segmentation_set.add_segmentation(segmentation)
+        except Exception as exc:
+            self._finish_sam2_segmentation_run()
+            message = str(exc) or exc.__class__.__name__
+            QMessageBox.critical(self, "SAM2 segmentation error", message)
+            self.statusBar().showMessage("SAM2 segmentation failed.", 3000)
+            return
+
+        count = len(results)
+        frame_index = results[0][0].frame_index if results else self._series.active_frame_index
+        scope = self._sam2_segmentation_scope
+        self._finish_sam2_segmentation_run()
+        self._show_current_frame()
+        if selected_detection_id is not None:
+            self.viewer.select_molecular_detection_by_id(selected_detection_id)
+        if scope == "selected" and count == 1:
+            final_message = f"SAM2 segmented selected BBox on frame {frame_index + 1}."
+        else:
+            final_message = f"SAM2 segmented {count} BBox(es) on frame {frame_index + 1}."
+        self.statusBar().showMessage(final_message, 5000)
+        QTimer.singleShot(0, lambda message=final_message: self.statusBar().showMessage(message, 5000))
+
+    @pyqtSlot(str)
+    def _on_sam2_segmentation_failed(self, message: str) -> None:
+        self._finish_sam2_segmentation_run()
+        QMessageBox.critical(self, "SAM2 segmentation error", message)
+        failure_message = "SAM2 segmentation failed."
+        self.statusBar().showMessage(failure_message, 3000)
+        QTimer.singleShot(0, lambda message=failure_message: self.statusBar().showMessage(message, 3000))
+
+    def _finish_sam2_segmentation_run(self) -> None:
+        self._sam2_segmentation_running = False
+        self._sam2_segmentation_scope = ""
+        self._set_file_actions_enabled(True)
+        self._close_sam2_segmentation_progress_dialog()
+        self._sync_navigation_controls()
+
+    def _close_sam2_segmentation_progress_dialog(self) -> None:
+        if self._sam2_segmentation_progress_dialog is None:
+            return
+        self._sam2_segmentation_progress_dialog.close()
+        self._sam2_segmentation_progress_dialog = None
+        QApplication.processEvents()
+
+    def _cleanup_sam2_segmentation_worker(self) -> None:
+        if self._sam2_segmentation_worker is not None:
+            self._sam2_segmentation_worker.deleteLater()
+            self._sam2_segmentation_worker = None
+        if self._sam2_segmentation_thread is not None:
+            self._sam2_segmentation_thread.deleteLater()
+            self._sam2_segmentation_thread = None
 
     def _manual_bbox_from_pixel_drag(
         self,
