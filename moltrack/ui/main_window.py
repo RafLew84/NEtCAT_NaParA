@@ -37,6 +37,9 @@ from moltrack.ui.widgets import STMSeriesViewer, SeriesMetadataPanel
 from moltrack.yolo import MolTrackYoloDetector, discover_yolo_models
 
 
+MIN_MANUAL_BBOX_SIZE_PX = 1.0
+
+
 class _RegistrationRunWorker(QObject):
     finished = pyqtSignal(object)
     failed = pyqtSignal(str)
@@ -147,6 +150,7 @@ class MolTrackMainWindow(QMainWindow):
         self._yolo_detection_worker: _YoloDetectAllWorker | None = None
         self._yolo_detection_model_name = ""
         self._yolo_detection_source_view = "raw"
+        self._selected_molecular_detection_id: str | None = None
         self._registration_running = False
         self._registration_progress_dialog: QProgressDialog | None = None
         self._registration_thread: QThread | None = None
@@ -297,6 +301,20 @@ class MolTrackMainWindow(QMainWindow):
         bbox_resize_layout.addWidget(self.lbl_bbox_resize_status)
         sidebar_layout.addWidget(self.bbox_resize_group)
 
+        self.bbox_edit_group = QGroupBox("BBox Edit", sidebar_content)
+        bbox_edit_layout = QVBoxLayout(self.bbox_edit_group)
+        self.btn_bbox_add = QPushButton("Add BBox", self.bbox_edit_group)
+        self.btn_bbox_add.setCheckable(True)
+        self.btn_bbox_add.setEnabled(False)
+        bbox_edit_layout.addWidget(self.btn_bbox_add)
+        self.btn_bbox_delete_selected = QPushButton("Delete Selected BBox", self.bbox_edit_group)
+        self.btn_bbox_delete_selected.setEnabled(False)
+        bbox_edit_layout.addWidget(self.btn_bbox_delete_selected)
+        self.lbl_bbox_edit_status = QLabel("No BBox selected", self.bbox_edit_group)
+        self.lbl_bbox_edit_status.setWordWrap(True)
+        bbox_edit_layout.addWidget(self.lbl_bbox_edit_status)
+        sidebar_layout.addWidget(self.bbox_edit_group)
+
         sidebar_layout.addStretch(1)
 
         sidebar = QScrollArea(self)
@@ -331,6 +349,10 @@ class MolTrackMainWindow(QMainWindow):
         self.btn_bbox_increase.clicked.connect(self._on_bbox_increase_requested)
         self.btn_bbox_decrease.clicked.connect(self._on_bbox_decrease_requested)
         self.btn_bbox_reset.clicked.connect(self._on_bbox_reset_requested)
+        self.btn_bbox_add.toggled.connect(self._on_bbox_add_toggled)
+        self.btn_bbox_delete_selected.clicked.connect(self._on_bbox_delete_selected_requested)
+        self.viewer.molecular_detection_selection_changed.connect(self._on_molecular_detection_selection_changed)
+        self.viewer.manual_molecular_bbox_drawn.connect(self._on_manual_molecular_bbox_drawn)
 
     def set_image_series(self, series) -> None:
         self._series = series
@@ -411,6 +433,7 @@ class MolTrackMainWindow(QMainWindow):
             total_count = 0
         self.lbl_yolo_status.setText(f"Detections: current {current_count} | series {total_count}")
         self._sync_bbox_resize_controls()
+        self._sync_bbox_edit_controls()
 
     def _sync_bbox_resize_controls(self) -> None:
         controls_enabled = self._series is not None and not self._is_processing()
@@ -428,6 +451,34 @@ class MolTrackMainWindow(QMainWindow):
         view_label = "expanded aligned" if source_view == "expanded_aligned" else "raw"
         self.lbl_bbox_resize_status.setText(f"BBoxes: {view_label} {source_count}")
 
+    def _sync_bbox_edit_controls(self) -> None:
+        controls_enabled = self._series is not None and not self._is_processing()
+        self.btn_bbox_add.setEnabled(controls_enabled)
+        if not controls_enabled and self.btn_bbox_add.isChecked():
+            self.btn_bbox_add.blockSignals(True)
+            try:
+                self.btn_bbox_add.setChecked(False)
+            finally:
+                self.btn_bbox_add.blockSignals(False)
+            self.viewer.set_molecular_bbox_add_mode_enabled(False)
+
+        selected_detection = self._current_selected_molecular_detection()
+        has_selection = controls_enabled and selected_detection is not None
+        self.btn_bbox_delete_selected.setEnabled(has_selection)
+
+        if controls_enabled and self.btn_bbox_add.isChecked():
+            self.lbl_bbox_edit_status.setText("Add BBox: drag on image")
+            return
+
+        if selected_detection is None:
+            self.lbl_bbox_edit_status.setText("No BBox selected")
+            return
+
+        view_label = "expanded aligned" if selected_detection.source_view == "expanded_aligned" else "raw"
+        self.lbl_bbox_edit_status.setText(
+            f"Selected BBox: frame {selected_detection.frame_index + 1}, {view_label}"
+        )
+
     def _current_molecular_detection_count(self) -> int:
         if self._series is None or self._series.molecular_detections is None:
             return 0
@@ -440,6 +491,78 @@ class MolTrackMainWindow(QMainWindow):
 
     def _current_yolo_source_view(self) -> str:
         return "expanded_aligned" if self._is_expanded_aligned_view_requested() else "raw"
+
+    def selected_molecular_detection_id(self) -> str | None:
+        return self._selected_molecular_detection_id
+
+    def select_molecular_detection_at_pixel(self, x_px: float, y_px: float) -> str | None:
+        return self.viewer.select_molecular_detection_at_pixel(
+            x_px,
+            y_px,
+            source_view=self._current_yolo_source_view(),
+        )
+
+    def add_manual_bbox_from_pixel_drag(
+        self,
+        start_xy_px: tuple[float, float],
+        end_xy_px: tuple[float, float],
+    ):
+        if self._series is None:
+            return None
+
+        source_view = self._current_yolo_source_view()
+        bbox_xyxy = self._manual_bbox_from_pixel_drag(
+            start_xy_px,
+            end_xy_px,
+            frame_shape=self._current_bbox_frame_shape(source_view),
+        )
+        if bbox_xyxy is None:
+            self.statusBar().showMessage("Draw a larger BBox.", 3000)
+            self._sync_bbox_edit_controls()
+            return None
+
+        detection_set = self._ensure_molecular_detection_set()
+        detection = detection_set.add_detection(
+            self._series.active_frame_index,
+            bbox_xyxy,
+            source_view=source_view,
+            frame_shape=self._current_bbox_frame_shape(source_view),
+            confidence=1.0,
+            selected=True,
+            model_name="manual",
+            checkpoint_path="",
+            origin="manual",
+        )
+        self._show_current_frame()
+        self.viewer.select_molecular_detection_by_id(detection.detection_id)
+        self._sync_yolo_controls()
+        view_label = "expanded aligned" if source_view == "expanded_aligned" else "raw"
+        self.statusBar().showMessage(
+            f"Added manual BBox on frame {detection.frame_index + 1} ({view_label}).",
+            3000,
+        )
+        return detection
+
+    def _on_molecular_detection_selection_changed(self, detection_id) -> None:
+        self._selected_molecular_detection_id = str(detection_id) if detection_id is not None else None
+        self._sync_bbox_edit_controls()
+
+    def _current_selected_molecular_detection(self):
+        if (
+            self._series is None
+            or self._series.molecular_detections is None
+            or self._selected_molecular_detection_id is None
+        ):
+            return None
+
+        detection = self._series.molecular_detections.get_detection(self._selected_molecular_detection_id)
+        if detection is None:
+            return None
+        if detection.frame_index != self._series.active_frame_index:
+            return None
+        if detection.source_view != self._current_yolo_source_view():
+            return None
+        return detection
 
     def _source_view_molecular_detection_count(self, source_view: str) -> int:
         if self._series is None or self._series.molecular_detections is None:
@@ -699,6 +822,16 @@ class MolTrackMainWindow(QMainWindow):
     def _on_bbox_decrease_requested(self) -> None:
         self._resize_current_view_bboxes(margin_px=-float(self.sp_bbox_resize_margin.value()))
 
+    def _on_bbox_add_toggled(self, checked: bool) -> None:
+        self.viewer.set_molecular_bbox_add_mode_enabled(bool(checked))
+        self._sync_bbox_edit_controls()
+
+    def _on_manual_molecular_bbox_drawn(self, bbox_xyxy) -> None:
+        self.add_manual_bbox_from_pixel_drag(
+            (float(bbox_xyxy[0]), float(bbox_xyxy[1])),
+            (float(bbox_xyxy[2]), float(bbox_xyxy[3])),
+        )
+
     def _on_bbox_reset_requested(self) -> None:
         if self._series is None or self._series.molecular_detections is None:
             return
@@ -727,6 +860,49 @@ class MolTrackMainWindow(QMainWindow):
             self._show_bbox_resize_error(exc)
             return
         self._finish_bbox_resize(changed, verb="Resized")
+
+    def _on_bbox_delete_selected_requested(self) -> None:
+        if self._series is None or self._series.molecular_detections is None:
+            return
+
+        detection = self._current_selected_molecular_detection()
+        if detection is None:
+            self._selected_molecular_detection_id = None
+            self._show_current_frame()
+            self._sync_yolo_controls()
+            self.statusBar().showMessage("No BBox selected.", 3000)
+            return
+
+        frame_index = detection.frame_index
+        source_view = detection.source_view
+        self._series.molecular_detections.remove_detection(detection.detection_id)
+        self._show_current_frame()
+        self._sync_yolo_controls()
+        view_label = "expanded aligned" if source_view == "expanded_aligned" else "raw"
+        self.statusBar().showMessage(
+            f"Deleted selected BBox from frame {frame_index + 1} ({view_label}).",
+            3000,
+        )
+
+    def _manual_bbox_from_pixel_drag(
+        self,
+        start_xy_px: tuple[float, float],
+        end_xy_px: tuple[float, float],
+        *,
+        frame_shape: tuple[int, int],
+    ) -> tuple[float, float, float, float] | None:
+        height, width = (int(value) for value in frame_shape)
+        x0 = min(float(start_xy_px[0]), float(end_xy_px[0]))
+        y0 = min(float(start_xy_px[1]), float(end_xy_px[1]))
+        x1 = max(float(start_xy_px[0]), float(end_xy_px[0]))
+        y1 = max(float(start_xy_px[1]), float(end_xy_px[1]))
+        x0 = min(max(x0, 0.0), float(width))
+        x1 = min(max(x1, 0.0), float(width))
+        y0 = min(max(y0, 0.0), float(height))
+        y1 = min(max(y1, 0.0), float(height))
+        if (x1 - x0) < MIN_MANUAL_BBOX_SIZE_PX or (y1 - y0) < MIN_MANUAL_BBOX_SIZE_PX:
+            return None
+        return x0, y0, x1, y1
 
     def _current_bbox_frame_shape(self, source_view: str) -> tuple[int, int]:
         if self._series is None:

@@ -243,6 +243,8 @@ def _molecular_detections_to_payload(detection_set: MolecularDetectionSet | None
                     "model_name": detection.model_name,
                     "checkpoint_path": detection.checkpoint_path,
                     "source_view": detection.source_view,
+                    "detection_id": detection.detection_id,
+                    "origin": detection.origin,
                 }
             )
     return {
@@ -280,6 +282,8 @@ def _molecular_detections_from_payload(
             model_name=str(item_payload.get("model_name", "")),
             checkpoint_path=str(item_payload.get("checkpoint_path", "")),
             source_view=str(item_payload.get("source_view", "raw")),
+            detection_id=item_payload.get("detection_id"),
+            origin=item_payload.get("origin"),
         )
         detections_by_frame_and_view.setdefault((detection.frame_index, detection.source_view), []).append(detection)
 

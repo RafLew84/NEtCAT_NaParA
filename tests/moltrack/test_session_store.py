@@ -69,6 +69,8 @@ class MolTrackSessionStoreTests(unittest.TestCase):
                         model_name="model-a.pt",
                         checkpoint_path="nanotrack/yolo_models/model-a.pt",
                         source_view="raw",
+                        detection_id="det-raw-1",
+                        origin="yolo",
                     )
                 ],
                 source_view="raw",
@@ -85,6 +87,8 @@ class MolTrackSessionStoreTests(unittest.TestCase):
                         model_name="model-b.pt",
                         checkpoint_path="missing/model-b.pt",
                         source_view="expanded_aligned",
+                        detection_id="det-expanded-1",
+                        origin="manual",
                     )
                 ],
                 source_view="expanded_aligned",
@@ -123,8 +127,12 @@ class MolTrackSessionStoreTests(unittest.TestCase):
                 payload["molecular_detections"]["detections"][0]["checkpoint_path"],
                 "nanotrack/yolo_models/model-a.pt",
             )
+            self.assertEqual(payload["molecular_detections"]["detections"][0]["detection_id"], "det-raw-1")
+            self.assertEqual(payload["molecular_detections"]["detections"][0]["origin"], "yolo")
             self.assertEqual(payload["molecular_detections"]["detections"][1]["source_view"], "expanded_aligned")
             self.assertFalse(payload["molecular_detections"]["detections"][1]["selected"])
+            self.assertEqual(payload["molecular_detections"]["detections"][1]["detection_id"], "det-expanded-1")
+            self.assertEqual(payload["molecular_detections"]["detections"][1]["origin"], "manual")
             self.assertNotIn("expanded_aligned_stack", payload)
 
             loaded = load_moltrack_session(session_path)
@@ -148,9 +156,13 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             self.assertTrue(loaded_raw[0].selected)
             self.assertEqual(loaded_raw[0].model_name, "model-a.pt")
             self.assertEqual(loaded_raw[0].checkpoint_path, "nanotrack/yolo_models/model-a.pt")
+            self.assertEqual(loaded_raw[0].detection_id, "det-raw-1")
+            self.assertEqual(loaded_raw[0].origin, "yolo")
             self.assertEqual(len(loaded_expanded), 1)
             self.assertFalse(loaded_expanded[0].selected)
             self.assertEqual(loaded_expanded[0].source_view, "expanded_aligned")
+            self.assertEqual(loaded_expanded[0].detection_id, "det-expanded-1")
+            self.assertEqual(loaded_expanded[0].origin, "manual")
 
     def test_load_session_rejects_unknown_schema_version(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -247,6 +259,8 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             save_moltrack_session(session_path, series, None)
             payload = json.loads(session_path.read_text(encoding="utf-8"))
             del payload["molecular_detections"]["detections"][0]["original_bbox_xyxy"]
+            del payload["molecular_detections"]["detections"][0]["detection_id"]
+            del payload["molecular_detections"]["detections"][0]["origin"]
             session_path.write_text(json.dumps(payload), encoding="utf-8")
 
             loaded = load_moltrack_session(session_path)
@@ -255,6 +269,8 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             loaded_detection = loaded.molecular_detections.get_detections(0, source_view="raw")[0]
             self.assertEqual(loaded_detection.bbox_xyxy, (0.5, 0.0, 2.5, 1.0))
             self.assertEqual(loaded_detection.original_bbox_xyxy, loaded_detection.bbox_xyxy)
+            self.assertTrue(loaded_detection.detection_id)
+            self.assertEqual(loaded_detection.origin, "yolo")
 
     def test_restore_working_series_from_session_reloads_source_and_applies_saved_frame_indices(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

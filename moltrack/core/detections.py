@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from math import isfinite
+from uuid import uuid4
 
 
 SUPPORTED_DETECTION_SOURCE_VIEWS = ("raw", "expanded_aligned")
+SUPPORTED_DETECTION_ORIGINS = ("yolo", "manual")
 
 
 @dataclass
@@ -19,6 +21,8 @@ class MolecularDetection:
     checkpoint_path: str = ""
     source_view: str = "raw"
     original_bbox_xyxy: tuple[float, float, float, float] | None = None
+    detection_id: str | None = None
+    origin: str | None = None
 
     def __post_init__(self) -> None:
         frame_index = int(self.frame_index)
@@ -51,6 +55,8 @@ class MolecularDetection:
         self.model_name = str(self.model_name)
         self.checkpoint_path = str(self.checkpoint_path)
         self.source_view = source_view
+        self.detection_id = _normalize_detection_id(self.detection_id)
+        self.origin = _normalize_detection_origin(self.origin, model_name=self.model_name)
 
     def validate_within_frame(self, frame_shape: tuple[int, int]) -> None:
         _validate_bbox_within_frame(self.bbox_xyxy, frame_shape, field_name="bbox_xyxy")
@@ -91,6 +97,14 @@ class MolecularDetectionSet:
             return detections
         source_view = _normalize_source_view(source_view)
         return [detection for detection in detections if detection.source_view == source_view]
+
+    def get_detection(self, detection_id: str) -> MolecularDetection | None:
+        detection_id = _normalize_detection_id(detection_id)
+        for detections in self.detections_by_frame.values():
+            for detection in detections:
+                if detection.detection_id == detection_id:
+                    return detection
+        return None
 
     def set_detections(
         self,
@@ -135,6 +149,47 @@ class MolecularDetectionSet:
             self.detections_by_frame.pop(frame_index, None)
         return removed
 
+    def remove_detection(self, detection_id: str) -> MolecularDetection:
+        detection_id = _normalize_detection_id(detection_id)
+        for frame_index, detections in list(self.detections_by_frame.items()):
+            for position, detection in enumerate(detections):
+                if detection.detection_id != detection_id:
+                    continue
+                removed = detections.pop(position)
+                if detections:
+                    self.detections_by_frame[frame_index] = detections
+                else:
+                    self.detections_by_frame.pop(frame_index, None)
+                return removed
+        raise KeyError(f"Unknown molecular detection_id: {detection_id}")
+
+    def update_detection_bbox(
+        self,
+        detection_id: str,
+        bbox_xyxy: tuple[float, float, float, float],
+        *,
+        frame_shape: tuple[int, int] | None = None,
+        update_original: bool = False,
+    ) -> MolecularDetection:
+        detection = self.get_detection(detection_id)
+        if detection is None:
+            raise KeyError(f"Unknown molecular detection_id: {_normalize_detection_id(detection_id)}")
+
+        bbox_xyxy = _normalize_bbox_xyxy(bbox_xyxy, field_name="bbox_xyxy")
+        previous_bbox = detection.bbox_xyxy
+        previous_original = detection.original_bbox_xyxy
+        detection.bbox_xyxy = bbox_xyxy
+        if update_original:
+            detection.original_bbox_xyxy = bbox_xyxy
+        try:
+            if frame_shape is not None:
+                detection.validate_within_frame(frame_shape)
+        except Exception:
+            detection.bbox_xyxy = previous_bbox
+            detection.original_bbox_xyxy = previous_original
+            raise
+        return detection
+
     def clear_all(self, *, source_view: str | None = None) -> int:
         if source_view is None:
             removed = self.detection_count
@@ -161,6 +216,40 @@ class MolecularDetectionSet:
         for frame_index in range(self.frame_count):
             changed += self.set_frame_selected(frame_index, selected, source_view=source_view)
         return changed
+
+    def add_detection(
+        self,
+        frame_index: int,
+        bbox_xyxy: tuple[float, float, float, float],
+        *,
+        source_view: str,
+        frame_shape: tuple[int, int] | None = None,
+        confidence: float = 1.0,
+        selected: bool = True,
+        model_name: str = "manual",
+        checkpoint_path: str = "",
+        detection_id: str | None = None,
+        origin: str = "manual",
+    ) -> MolecularDetection:
+        frame_index = self._validate_frame_index(frame_index)
+        source_view = _normalize_source_view(source_view)
+        detection = MolecularDetection(
+            frame_index=frame_index,
+            bbox_xyxy=bbox_xyxy,
+            confidence=confidence,
+            selected=selected,
+            model_name=model_name,
+            checkpoint_path=checkpoint_path,
+            source_view=source_view,
+            detection_id=detection_id,
+            origin=origin,
+        )
+        if self.get_detection(detection.detection_id) is not None:
+            raise ValueError(f"Duplicate detection_id: {detection.detection_id}")
+        if frame_shape is not None:
+            detection.validate_within_frame(frame_shape)
+        self.detections_by_frame.setdefault(frame_index, []).append(detection)
+        return detection
 
     def resize_all(
         self,
@@ -255,6 +344,25 @@ def _normalize_source_view(source_view: str) -> str:
         supported = ", ".join(SUPPORTED_DETECTION_SOURCE_VIEWS)
         raise ValueError(f"Unsupported source_view: {source_view!r}. Supported: {supported}.")
     return source_view
+
+
+def _normalize_detection_id(detection_id: str | None) -> str:
+    if detection_id is None:
+        return uuid4().hex
+    detection_id = str(detection_id).strip()
+    if not detection_id:
+        raise ValueError("detection_id must be a non-empty string.")
+    return detection_id
+
+
+def _normalize_detection_origin(origin: str | None, *, model_name: str) -> str:
+    if origin is None:
+        origin = "manual" if str(model_name).strip().lower() == "manual" else "yolo"
+    origin = str(origin).strip().lower()
+    if origin not in SUPPORTED_DETECTION_ORIGINS:
+        supported = ", ".join(SUPPORTED_DETECTION_ORIGINS)
+        raise ValueError(f"Unsupported origin: {origin!r}. Supported: {supported}.")
+    return origin
 
 
 def _normalize_bbox_xyxy(

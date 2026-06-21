@@ -4,7 +4,7 @@ import os
 
 import numpy as np
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QEvent, Qt, pyqtSignal
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from napara.gui.widgets.viewer_widget import ViewerWidget
@@ -13,11 +13,23 @@ from napara.gui.widgets.viewer_widget import ViewerWidget
 class STMSeriesViewer(QWidget):
     """Minimal STM image-series viewer for MolTrack."""
 
+    molecular_detection_selection_changed = pyqtSignal(object)
+    manual_molecular_bbox_drawn = pyqtSignal(object)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._series = None
         self._visible_molecular_detection_count = 0
         self._visible_molecular_detection_colors: list[tuple[int, int, int]] = []
+        self._selected_molecular_detection_id: str | None = None
+        self._molecular_detection_overlay_items_by_id: dict[str, list[object]] = {}
+        self._current_molecular_detection_source_view = "raw"
+        self._current_scale_nm_per_px = (1.0, 1.0)
+        self._current_image_shape_px: tuple[int, int] | None = None
+        self._molecular_bbox_add_mode_enabled = False
+        self._manual_bbox_drag_start_px: tuple[float, float] | None = None
+        self._manual_bbox_drag_current_px: tuple[float, float] | None = None
+        self._manual_bbox_preview_item = None
         self._build()
 
     def _build(self) -> None:
@@ -31,10 +43,15 @@ class STMSeriesViewer(QWidget):
 
         self.viewer = ViewerWidget(self)
         layout.addWidget(self.viewer, 1)
+        self.viewer.glw.scene().sigMouseClicked.connect(self._on_scene_mouse_clicked)
+        self.viewer.glw.viewport().installEventFilter(self)
+        self.viewer.glw.viewport().setMouseTracking(True)
 
     def clear(self) -> None:
         self._series = None
+        self.set_molecular_bbox_add_mode_enabled(False)
         self.clear_molecular_detection_overlays()
+        self._set_selected_molecular_detection_id(None)
         self.lbl_title.setText("No STM series loaded")
         self.lbl_meta.setText("-")
         self.viewer.clear()
@@ -102,6 +119,8 @@ class STMSeriesViewer(QWidget):
             preserve_zoom=preserve_zoom,
             auto_levels=True,
         )
+        frame_array = np.asarray(frame)
+        self._current_image_shape_px = tuple(int(value) for value in frame_array.shape[:2])
         self.lbl_title.setText(str(title))
         self.lbl_meta.setText(str(meta))
 
@@ -109,12 +128,70 @@ class STMSeriesViewer(QWidget):
         self.viewer.clear_overlay()
         self._visible_molecular_detection_count = 0
         self._visible_molecular_detection_colors = []
+        self._molecular_detection_overlay_items_by_id = {}
+        self._manual_bbox_preview_item = None
 
     def visible_molecular_detection_count(self) -> int:
         return int(self._visible_molecular_detection_count)
 
     def visible_molecular_detection_colors(self) -> list[tuple[int, int, int]]:
         return list(self._visible_molecular_detection_colors)
+
+    def selected_molecular_detection_id(self) -> str | None:
+        return self._selected_molecular_detection_id
+
+    def highlighted_molecular_detection_ids(self) -> list[str]:
+        selected_id = self._selected_molecular_detection_id
+        if selected_id is None or selected_id not in self._molecular_detection_overlay_items_by_id:
+            return []
+        return [selected_id]
+
+    def molecular_bbox_add_mode_enabled(self) -> bool:
+        return bool(self._molecular_bbox_add_mode_enabled)
+
+    def set_molecular_bbox_add_mode_enabled(self, enabled: bool) -> None:
+        self._molecular_bbox_add_mode_enabled = bool(enabled)
+        if not self._molecular_bbox_add_mode_enabled:
+            self._manual_bbox_drag_start_px = None
+            self._manual_bbox_drag_current_px = None
+            self._set_manual_bbox_preview(None)
+
+    def select_molecular_detection_by_id(self, detection_id: str | None) -> str | None:
+        detection_id = str(detection_id) if detection_id is not None else None
+        if detection_id is None or detection_id not in self._molecular_detection_overlay_items_by_id:
+            self._set_selected_molecular_detection_id(None)
+            return None
+        self._set_selected_molecular_detection_id(detection_id)
+        return detection_id
+
+    def select_molecular_detection_at_pixel(
+        self,
+        x_px: float,
+        y_px: float,
+        *,
+        source_view: str | None = None,
+    ) -> str | None:
+        detection_id = self._find_molecular_detection_at_pixel(
+            float(x_px),
+            float(y_px),
+            source_view=source_view or self._current_molecular_detection_source_view,
+        )
+        self._set_selected_molecular_detection_id(detection_id)
+        return detection_id
+
+    def finish_manual_bbox_drag_from_pixels(
+        self,
+        start_xy_px: tuple[float, float],
+        end_xy_px: tuple[float, float],
+    ) -> tuple[float, float, float, float] | None:
+        bbox_xyxy = self._bbox_from_pixel_drag(start_xy_px, end_xy_px)
+        self._manual_bbox_drag_start_px = None
+        self._manual_bbox_drag_current_px = None
+        self._set_manual_bbox_preview(None)
+        if bbox_xyxy is None:
+            return None
+        self.manual_molecular_bbox_drawn.emit(bbox_xyxy)
+        return bbox_xyxy
 
     def show_molecular_detections(
         self,
@@ -123,18 +200,23 @@ class STMSeriesViewer(QWidget):
         scale_nm_per_px: tuple[float | None, float | None],
     ) -> None:
         self.clear_molecular_detection_overlays()
+        self._current_molecular_detection_source_view = str(source_view)
         if self._series is None:
+            self._set_selected_molecular_detection_id(None)
             return
         detection_set = getattr(self._series, "molecular_detections", None)
         if detection_set is None:
+            self._set_selected_molecular_detection_id(None)
             return
         detections = detection_set.get_detections(
             self._series.active_frame_index,
             source_view=source_view,
         )
         sx, sy = self._effective_scale_nm_per_px(scale_nm_per_px)
+        self._current_scale_nm_per_px = (sx, sy)
         count = 0
         colors: list[tuple[int, int, int]] = []
+        visible_ids: set[str] = set()
         for detection in detections:
             color = (255, 0, 255) if detection.selected else (255, 140, 0)
             polyline = self.viewer.add_polyline_nm(
@@ -144,6 +226,8 @@ class STMSeriesViewer(QWidget):
             )
             if polyline is None:
                 continue
+            visible_ids.add(detection.detection_id)
+            self._molecular_detection_overlay_items_by_id[detection.detection_id] = [polyline]
             colors.append(color)
             x0, y0, x1, y1 = detection.bbox_xyxy
             self.viewer.add_text_nm(
@@ -154,6 +238,144 @@ class STMSeriesViewer(QWidget):
             count += 1
         self._visible_molecular_detection_count = count
         self._visible_molecular_detection_colors = colors
+        if self._selected_molecular_detection_id not in visible_ids:
+            self._set_selected_molecular_detection_id(None)
+        else:
+            self._apply_molecular_detection_highlight()
+
+    def _on_scene_mouse_clicked(self, event) -> None:
+        if self._series is None:
+            return
+        if self._molecular_bbox_add_mode_enabled:
+            return
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+        if not self.viewer.plot_item.sceneBoundingRect().contains(event.scenePos()):
+            return
+
+        view_pos = self.viewer.plot_item.getViewBox().mapSceneToView(event.scenePos())
+        x_px, y_px = self._view_to_pixel_coords(view_pos.x(), view_pos.y())
+        self.select_molecular_detection_at_pixel(x_px, y_px)
+        event.accept()
+
+    def eventFilter(self, watched, event) -> bool:
+        if watched is self.viewer.glw.viewport() and self._molecular_bbox_add_mode_enabled:
+            event_type = event.type()
+            if event_type == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
+                start_px = self._pixel_coords_from_viewport_pos(event.position())
+                if start_px is None:
+                    return False
+                self._manual_bbox_drag_start_px = start_px
+                self._manual_bbox_drag_current_px = start_px
+                self._set_manual_bbox_preview(None)
+                event.accept()
+                return True
+
+            if event_type == QEvent.Type.MouseMove and self._manual_bbox_drag_start_px is not None:
+                current_px = self._pixel_coords_from_viewport_pos(event.position(), require_inside=False)
+                if current_px is not None:
+                    self._manual_bbox_drag_current_px = current_px
+                    self._set_manual_bbox_preview(
+                        self._bbox_from_pixel_drag(self._manual_bbox_drag_start_px, current_px)
+                    )
+                event.accept()
+                return True
+
+            if event_type == QEvent.Type.MouseButtonRelease and event.button() == Qt.MouseButton.LeftButton:
+                if self._manual_bbox_drag_start_px is None:
+                    return False
+                end_px = self._pixel_coords_from_viewport_pos(event.position(), require_inside=False)
+                if end_px is None:
+                    end_px = self._manual_bbox_drag_current_px or self._manual_bbox_drag_start_px
+                self.finish_manual_bbox_drag_from_pixels(self._manual_bbox_drag_start_px, end_px)
+                event.accept()
+                return True
+
+        return super().eventFilter(watched, event)
+
+    def _find_molecular_detection_at_pixel(
+        self,
+        x_px: float,
+        y_px: float,
+        *,
+        source_view: str,
+    ) -> str | None:
+        if self._series is None:
+            return None
+        detection_set = getattr(self._series, "molecular_detections", None)
+        if detection_set is None:
+            return None
+        detections = detection_set.get_detections(
+            self._series.active_frame_index,
+            source_view=source_view,
+        )
+        matches = []
+        for detection in detections:
+            x0, y0, x1, y1 = detection.bbox_xyxy
+            if float(x0) <= x_px <= float(x1) and float(y0) <= y_px <= float(y1):
+                area = (float(x1) - float(x0)) * (float(y1) - float(y0))
+                matches.append((area, detection.detection_id))
+        if not matches:
+            return None
+        matches.sort(key=lambda item: item[0])
+        return matches[0][1]
+
+    def _view_to_pixel_coords(self, x_view: float, y_view: float) -> tuple[float, float]:
+        sx, sy = self._current_scale_nm_per_px
+        return float(x_view) / sx, float(y_view) / sy
+
+    def _pixel_coords_from_viewport_pos(self, pos, *, require_inside: bool = True) -> tuple[float, float] | None:
+        scene_pos = self.viewer.glw.mapToScene(pos.toPoint())
+        if require_inside and not self.viewer.plot_item.sceneBoundingRect().contains(scene_pos):
+            return None
+        view_pos = self.viewer.plot_item.getViewBox().mapSceneToView(scene_pos)
+        return self._view_to_pixel_coords(view_pos.x(), view_pos.y())
+
+    def _bbox_from_pixel_drag(
+        self,
+        start_xy_px: tuple[float, float],
+        end_xy_px: tuple[float, float],
+    ) -> tuple[float, float, float, float] | None:
+        x0 = min(float(start_xy_px[0]), float(end_xy_px[0]))
+        y0 = min(float(start_xy_px[1]), float(end_xy_px[1]))
+        x1 = max(float(start_xy_px[0]), float(end_xy_px[0]))
+        y1 = max(float(start_xy_px[1]), float(end_xy_px[1]))
+        if self._current_image_shape_px is not None:
+            height, width = self._current_image_shape_px
+            x0 = min(max(x0, 0.0), float(width))
+            x1 = min(max(x1, 0.0), float(width))
+            y0 = min(max(y0, 0.0), float(height))
+            y1 = min(max(y1, 0.0), float(height))
+        if x1 <= x0 or y1 <= y0:
+            return None
+        return x0, y0, x1, y1
+
+    def _set_manual_bbox_preview(self, bbox_xyxy: tuple[float, float, float, float] | None) -> None:
+        if self._manual_bbox_preview_item is not None:
+            self.viewer.remove_item(self._manual_bbox_preview_item)
+            self._manual_bbox_preview_item = None
+        if bbox_xyxy is None:
+            return
+        self._manual_bbox_preview_item = self.viewer.add_polyline_nm(
+            self._bbox_polyline_nm(bbox_xyxy, scale_nm_per_px=self._current_scale_nm_per_px),
+            color=(255, 220, 0),
+            width=1.5,
+        )
+
+    def _set_selected_molecular_detection_id(self, detection_id: str | None) -> None:
+        detection_id = str(detection_id) if detection_id is not None else None
+        if detection_id == self._selected_molecular_detection_id:
+            self._apply_molecular_detection_highlight()
+            return
+        self._selected_molecular_detection_id = detection_id
+        self._apply_molecular_detection_highlight()
+        self.molecular_detection_selection_changed.emit(detection_id)
+
+    def _apply_molecular_detection_highlight(self) -> None:
+        selected_id = self._selected_molecular_detection_id
+        for detection_id, items in self._molecular_detection_overlay_items_by_id.items():
+            for item in items:
+                self.viewer.set_item_highlight(item, detection_id == selected_id)
 
     def _effective_scale_nm_per_px(self, scale_nm_per_px: tuple[float | None, float | None]) -> tuple[float, float]:
         sx, sy = scale_nm_per_px

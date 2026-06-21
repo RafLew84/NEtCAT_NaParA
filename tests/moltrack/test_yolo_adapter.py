@@ -77,6 +77,8 @@ class MolTrackYoloAdapterTests(unittest.TestCase):
         self.assertEqual(detections[0].model_name, "molecules.pt")
         self.assertEqual(detections[0].checkpoint_path, "C:/models/molecules.pt")
         self.assertEqual(detections[0].source_view, "expanded_aligned")
+        self.assertTrue(detections[0].detection_id)
+        self.assertEqual(detections[0].origin, "yolo")
         self.assertEqual(runtime.calls[0]["model_path"], "C:/models/molecules.pt")
         self.assertEqual(runtime.calls[0]["conf_threshold"], 0.3)
         self.assertEqual(runtime.calls[0]["iou_threshold"], 0.4)
@@ -134,6 +136,8 @@ class MolTrackYoloAdapterTests(unittest.TestCase):
         self.assertEqual([[detection.frame_index for detection in frame] for frame in detections_by_frame], [[4], [5]])
         self.assertEqual(detections_by_frame[0][0].bbox_xyxy, (0.0, 0.0, 2.0, 2.0))
         self.assertEqual(detections_by_frame[1][0].bbox_xyxy, (1.0, 1.0, 3.0, 3.0))
+        self.assertEqual(detections_by_frame[0][0].origin, "yolo")
+        self.assertEqual(detections_by_frame[1][0].origin, "yolo")
 
 
 if __name__ == "__main__":

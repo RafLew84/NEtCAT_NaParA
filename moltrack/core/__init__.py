@@ -1,5 +1,6 @@
 from .data_models import MolTrackImageSeries
 from .detections import (
+    SUPPORTED_DETECTION_ORIGINS,
     SUPPORTED_DETECTION_SOURCE_VIEWS,
     MolecularDetection,
     MolecularDetectionSet,
@@ -22,6 +23,7 @@ __all__ = [
     "MolTrackRegistrationResultSet",
     "MolTrackRegistrationSettings",
     "SUPPORTED_REGISTRATION_BACKENDS",
+    "SUPPORTED_DETECTION_ORIGINS",
     "SUPPORTED_DETECTION_SOURCE_VIEWS",
     "MOLTRACK_SESSION_SCHEMA_VERSION",
     "MolTrackSession",

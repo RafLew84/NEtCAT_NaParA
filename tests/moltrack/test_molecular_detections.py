@@ -23,6 +23,8 @@ class MolecularDetectionModelTests(unittest.TestCase):
         self.assertEqual(detection.checkpoint_path, "C:/models/molecules.pt")
         self.assertEqual(detection.source_view, "expanded_aligned")
         self.assertEqual(detection.original_bbox_xyxy, detection.bbox_xyxy)
+        self.assertTrue(detection.detection_id)
+        self.assertEqual(detection.origin, "yolo")
 
     def test_molecular_detection_keeps_explicit_original_bbox_for_reset(self) -> None:
         detection = MolecularDetection(
@@ -34,6 +36,28 @@ class MolecularDetectionModelTests(unittest.TestCase):
 
         self.assertEqual(detection.bbox_xyxy, (2.0, 3.0, 8.0, 9.0))
         self.assertEqual(detection.original_bbox_xyxy, (1.0, 2.0, 5.0, 6.0))
+
+    def test_molecular_detection_tracks_detection_id_and_origin(self) -> None:
+        detection = MolecularDetection(
+            frame_index=0,
+            bbox_xyxy=(1, 1, 4, 4),
+            confidence=1.0,
+            model_name="manual",
+            detection_id=" manual-1 ",
+            origin=" manual ",
+        )
+
+        self.assertEqual(detection.detection_id, "manual-1")
+        self.assertEqual(detection.origin, "manual")
+
+        detections = MolecularDetectionSet(frame_count=1)
+        detections.set_detections(0, [detection], source_view="raw", frame_shape=(5, 5))
+
+        detections.resize_all(margin_px=1.0, source_view="raw", frame_shape=(5, 5))
+        detections.reset_all_to_original(source_view="raw", frame_shape=(5, 5))
+
+        self.assertEqual(detection.detection_id, "manual-1")
+        self.assertEqual(detection.origin, "manual")
 
     def test_molecular_detection_validates_bbox_and_frame_bounds(self) -> None:
         detection = MolecularDetection(
@@ -50,6 +74,10 @@ class MolecularDetectionModelTests(unittest.TestCase):
             MolecularDetection(frame_index=0, bbox_xyxy=(0, 1, 4, 3), confidence=1.5)
         with self.assertRaisesRegex(ValueError, "source_view"):
             MolecularDetection(frame_index=0, bbox_xyxy=(0, 1, 4, 3), confidence=0.5, source_view="aligned")
+        with self.assertRaisesRegex(ValueError, "detection_id"):
+            MolecularDetection(frame_index=0, bbox_xyxy=(0, 1, 4, 3), confidence=0.5, detection_id=" ")
+        with self.assertRaisesRegex(ValueError, "origin"):
+            MolecularDetection(frame_index=0, bbox_xyxy=(0, 1, 4, 3), confidence=0.5, origin="user")
         with self.assertRaisesRegex(ValueError, "within frame"):
             detection.validate_within_frame((3, 3))
 
@@ -156,6 +184,117 @@ class MolecularDetectionModelTests(unittest.TestCase):
 
         self.assertEqual(removed, 2)
         self.assertEqual(detections.detection_count, 0)
+
+    def test_detection_set_adds_manual_detection_for_frame_and_source_view(self) -> None:
+        detections = MolecularDetectionSet(frame_count=2)
+
+        detection = detections.add_detection(
+            1,
+            (1, 1, 4, 3),
+            source_view="expanded_aligned",
+            frame_shape=(5, 6),
+        )
+
+        self.assertEqual(detection.frame_index, 1)
+        self.assertEqual(detection.bbox_xyxy, (1.0, 1.0, 4.0, 3.0))
+        self.assertEqual(detection.original_bbox_xyxy, detection.bbox_xyxy)
+        self.assertEqual(detection.confidence, 1.0)
+        self.assertEqual(detection.model_name, "manual")
+        self.assertEqual(detection.checkpoint_path, "")
+        self.assertEqual(detection.source_view, "expanded_aligned")
+        self.assertEqual(detection.origin, "manual")
+        self.assertTrue(detection.detection_id)
+        self.assertEqual(detections.get_detections(1, source_view="expanded_aligned"), [detection])
+        self.assertEqual(detections.get_detections(0, source_view="expanded_aligned"), [])
+
+    def test_detection_set_rejects_duplicate_detection_id_when_adding(self) -> None:
+        detections = MolecularDetectionSet(frame_count=1)
+        detections.add_detection(
+            0,
+            (0, 0, 2, 2),
+            source_view="raw",
+            frame_shape=(4, 4),
+            detection_id="duplicate",
+        )
+
+        with self.assertRaisesRegex(ValueError, "detection_id"):
+            detections.add_detection(
+                0,
+                (1, 1, 3, 3),
+                source_view="raw",
+                frame_shape=(4, 4),
+                detection_id="duplicate",
+            )
+
+        self.assertEqual(len(detections.get_detections(0, source_view="raw")), 1)
+
+    def test_detection_set_gets_and_removes_detection_by_id_without_cross_view_side_effects(self) -> None:
+        detections = MolecularDetectionSet(frame_count=2)
+        target = detections.add_detection(
+            0,
+            (0, 0, 2, 2),
+            source_view="raw",
+            frame_shape=(4, 4),
+            detection_id="target",
+        )
+        same_frame_other_view = detections.add_detection(
+            0,
+            (1, 1, 3, 3),
+            source_view="expanded_aligned",
+            frame_shape=(4, 4),
+            detection_id="expanded",
+        )
+        other_frame = detections.add_detection(
+            1,
+            (1, 1, 2, 2),
+            source_view="raw",
+            frame_shape=(4, 4),
+            detection_id="other-frame",
+        )
+
+        self.assertIs(detections.get_detection("target"), target)
+
+        removed = detections.remove_detection("target")
+
+        self.assertIs(removed, target)
+        self.assertIsNone(detections.get_detection("target"))
+        self.assertEqual(detections.get_detections(0, source_view="raw"), [])
+        self.assertEqual(detections.get_detections(0, source_view="expanded_aligned"), [same_frame_other_view])
+        self.assertEqual(detections.get_detections(1, source_view="raw"), [other_frame])
+        with self.assertRaisesRegex(KeyError, "missing"):
+            detections.remove_detection("missing")
+
+    def test_detection_set_updates_detection_bbox_by_id_with_validation(self) -> None:
+        detections = MolecularDetectionSet(frame_count=1)
+        detection = detections.add_detection(
+            0,
+            (1, 1, 3, 3),
+            source_view="raw",
+            frame_shape=(5, 5),
+            detection_id="manual-1",
+        )
+
+        updated = detections.update_detection_bbox("manual-1", (0, 0, 4, 4), frame_shape=(5, 5))
+
+        self.assertIs(updated, detection)
+        self.assertEqual(detection.bbox_xyxy, (0.0, 0.0, 4.0, 4.0))
+        self.assertEqual(detection.original_bbox_xyxy, (1.0, 1.0, 3.0, 3.0))
+
+        with self.assertRaisesRegex(ValueError, "within frame"):
+            detections.update_detection_bbox("manual-1", (0, 0, 6, 4), frame_shape=(5, 5))
+        self.assertEqual(detection.bbox_xyxy, (0.0, 0.0, 4.0, 4.0))
+
+        detections.update_detection_bbox(
+            "manual-1",
+            (1, 1, 2, 2),
+            frame_shape=(5, 5),
+            update_original=True,
+        )
+
+        self.assertEqual(detection.bbox_xyxy, (1.0, 1.0, 2.0, 2.0))
+        self.assertEqual(detection.original_bbox_xyxy, (1.0, 1.0, 2.0, 2.0))
+        with self.assertRaisesRegex(KeyError, "missing"):
+            detections.update_detection_bbox("missing", (1, 1, 2, 2), frame_shape=(5, 5))
 
     def test_detection_set_resizes_detections_for_source_view(self) -> None:
         detections = MolecularDetectionSet(frame_count=2)
