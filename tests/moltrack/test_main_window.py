@@ -14,6 +14,7 @@ from moltrack.core import (
     MolecularDetection,
     MolecularDetectionSet,
     MolecularSegmentation,
+    MolecularSegmentationSet,
     MolTrackImageSeries,
     MolTrackRegistrationFrameResult,
     MolTrackRegistrationResultSet,
@@ -834,6 +835,98 @@ class MolTrackMainWindowTests(unittest.TestCase):
             self.assertIn("Frames: 3", metadata_text)
             self.assertIn("Active frame: 2 / 3", metadata_text)
             self.assertIn("Expanded shape: 5x3 px", metadata_text)
+
+    def test_save_then_open_state_restores_sam2_segmentation_overlay(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"fake mpp bytes")
+            session_path = tmp_path / "state.moltrack.json"
+            frames = np.arange(2 * 4 * 5, dtype=np.float32).reshape(2, 4, 5)
+
+            def fake_series_loader(source_path_arg, *, reverse_frame_order=False):
+                return MolTrackImageSeries(
+                    source_path=str(source_path_arg),
+                    raw_frames=frames.copy(),
+                    metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4),
+                    reverse_frame_order=reverse_frame_order,
+                )
+
+            detections = MolecularDetectionSet(frame_count=2)
+            detection = MolecularDetection(
+                frame_index=0,
+                bbox_xyxy=(1, 1, 4, 3),
+                confidence=0.93,
+                source_view="raw",
+                detection_id="bbox-1",
+            )
+            detections.set_detections(0, [detection], source_view="raw", frame_shape=(4, 5))
+            mask = np.array(
+                [
+                    [False, False, False, False, False],
+                    [False, True, True, True, False],
+                    [False, False, True, True, False],
+                    [False, False, False, False, False],
+                ],
+                dtype=bool,
+            )
+            segmentations = MolecularSegmentationSet(frame_count=2)
+            segmentations.add_segmentation(
+                MolecularSegmentation(
+                    frame_index=0,
+                    source_view="raw",
+                    bbox_xyxy=(1, 1, 4, 3),
+                    mask=mask,
+                    score=0.88,
+                    origin="sam2",
+                    prompt_detection_ids=("bbox-1",),
+                    model_name="missing-sam2.pt",
+                    metadata={"checkpoint": "missing/sam2.pt"},
+                    segmentation_id="sam2-seg-1",
+                )
+            )
+            working_series = MolTrackImageSeries(
+                source_path=str(source_path),
+                raw_frames=frames.copy(),
+                metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4),
+                molecular_detections=detections,
+                molecular_segmentations=segmentations,
+            )
+
+            self.window = MolTrackMainWindow(
+                series_loader=fake_series_loader,
+                yolo_model_discovery=lambda: [],
+            )
+            self.window.set_image_series(working_series)
+            self.assertEqual(self.window.viewer.visible_molecular_segmentation_ids(), ["sam2-seg-1"])
+
+            with patch.object(QFileDialog, "getSaveFileName", return_value=(str(session_path), "")):
+                self.window.action_save_state_as.trigger()
+                self.__class__._app.processEvents()
+
+            self.window.close()
+            self.window.deleteLater()
+            self.__class__._app.processEvents()
+            self.window = MolTrackMainWindow(
+                series_loader=fake_series_loader,
+                yolo_model_discovery=lambda: [],
+            )
+
+            with patch.object(QFileDialog, "getOpenFileName", return_value=(str(session_path), "")):
+                self.window.action_open_state.trigger()
+                self.__class__._app.processEvents()
+
+            self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
+            self.assertEqual(self.window.viewer.visible_molecular_segmentation_count(), 1)
+            self.assertEqual(self.window.viewer.visible_molecular_segmentation_ids(), ["sam2-seg-1"])
+            restored_detection = self.window._series.molecular_detections.get_detection("bbox-1")
+            self.assertIsNotNone(restored_detection)
+            restored_segmentation = self.window._series.molecular_segmentations.get_segmentation("sam2-seg-1")
+            self.assertIsNotNone(restored_segmentation)
+            self.assertEqual(restored_segmentation.prompt_detection_ids, ("bbox-1",))
+            self.assertEqual(restored_segmentation.model_name, "missing-sam2.pt")
+            np.testing.assert_array_equal(restored_segmentation.mask, mask)
+            self.assertIn(f"Loaded state {session_path}", self.window.statusBar().currentMessage())
 
     def test_save_then_open_state_restores_manual_bbox_for_reset_and_delete(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

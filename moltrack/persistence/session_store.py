@@ -11,6 +11,8 @@ from moltrack.core import (
     MOLTRACK_SESSION_SCHEMA_VERSION,
     MolecularDetection,
     MolecularDetectionSet,
+    MolecularSegmentation,
+    MolecularSegmentationSet,
     MolTrackImageSeries,
     MolTrackRegistrationFrameResult,
     MolTrackRegistrationResultSet,
@@ -73,6 +75,7 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
     ui_payload = _require_mapping(payload.get("ui", {}), "ui")
     registration_payload = payload.get("registration")
     molecular_detections_payload = payload.get("molecular_detections")
+    molecular_segmentations_payload = payload.get("molecular_segmentations")
 
     registration_settings: MolTrackRegistrationSettings | None = None
     registration_results: MolTrackRegistrationResultSet | None = None
@@ -80,6 +83,10 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
         registration_settings, registration_results = _registration_from_payload(registration_payload)
     molecular_detections = _molecular_detections_from_payload(
         molecular_detections_payload,
+        expected_frame_count=len(working_series_payload["source_frame_indices"]),
+    )
+    molecular_segmentations = _molecular_segmentations_from_payload(
+        molecular_segmentations_payload,
         expected_frame_count=len(working_series_payload["source_frame_indices"]),
     )
 
@@ -92,6 +99,7 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
         registration_settings=registration_settings,
         registration_results=registration_results,
         molecular_detections=molecular_detections,
+        molecular_segmentations=molecular_segmentations,
         source_size_bytes=int(source_payload["size_bytes"]),
         source_mtime_ns=int(source_payload["mtime_ns"]),
         schema_version=schema_version,
@@ -136,6 +144,7 @@ def restore_moltrack_image_series_from_session(
         registration_results=session.registration_results,
         expanded_aligned_stack=None,
         molecular_detections=session.molecular_detections,
+        molecular_segmentations=session.molecular_segmentations,
     )
     if restored.registration_results is not None:
         expected = tuple(range(restored.frame_count))
@@ -168,6 +177,7 @@ def _session_to_payload(
         },
         "registration": _registration_to_payload(session.registration_results),
         "molecular_detections": _molecular_detections_to_payload(session.molecular_detections),
+        "molecular_segmentations": _molecular_segmentations_to_payload(session.molecular_segmentations),
     }
 
 
@@ -290,6 +300,139 @@ def _molecular_detections_from_payload(
     for (frame_index, source_view), detections in detections_by_frame_and_view.items():
         detection_set.set_detections(frame_index, detections, source_view=source_view)
     return detection_set
+
+
+def _molecular_segmentations_to_payload(
+    segmentation_set: MolecularSegmentationSet | None,
+) -> dict[str, Any] | None:
+    if segmentation_set is None:
+        return None
+    items: list[dict[str, Any]] = []
+    for frame_index in range(segmentation_set.frame_count):
+        for segmentation in segmentation_set.get_segmentations(frame_index):
+            items.append(
+                {
+                    "frame_index": segmentation.frame_index,
+                    "source_view": segmentation.source_view,
+                    "bbox_xyxy": None if segmentation.bbox_xyxy is None else list(segmentation.bbox_xyxy),
+                    "mask": _mask_to_payload(segmentation.mask),
+                    "polygon_xy": _polygon_to_payload(segmentation.polygon_xy),
+                    "score": segmentation.score,
+                    "origin": segmentation.origin,
+                    "prompt_detection_ids": list(segmentation.prompt_detection_ids),
+                    "model_name": segmentation.model_name,
+                    "metadata": dict(segmentation.metadata),
+                    "segmentation_id": segmentation.segmentation_id,
+                }
+            )
+    return {
+        "frame_count": segmentation_set.frame_count,
+        "segmentations": items,
+    }
+
+
+def _molecular_segmentations_from_payload(
+    payload: Any,
+    *,
+    expected_frame_count: int,
+) -> MolecularSegmentationSet | None:
+    if payload is None:
+        return None
+    segmentations_payload = _require_mapping(payload, "molecular_segmentations")
+    frame_count = int(segmentations_payload["frame_count"])
+    if frame_count != int(expected_frame_count):
+        raise ValueError("molecular_segmentations frame_count does not match working series frame count.")
+    items = segmentations_payload.get("segmentations", [])
+    if not isinstance(items, list):
+        raise ValueError("molecular_segmentations.segmentations must be a list.")
+
+    segmentation_set = MolecularSegmentationSet(frame_count=frame_count)
+    for item in items:
+        item_payload = _require_mapping(item, "molecular segmentation")
+        segmentation = MolecularSegmentation(
+            frame_index=int(item_payload["frame_index"]),
+            source_view=str(item_payload.get("source_view", "raw")),
+            bbox_xyxy=(
+                None
+                if item_payload.get("bbox_xyxy") is None
+                else tuple(item_payload.get("bbox_xyxy"))
+            ),
+            mask=_mask_from_payload(item_payload.get("mask")),
+            polygon_xy=_polygon_from_payload(item_payload.get("polygon_xy")),
+            score=item_payload.get("score"),
+            origin=str(item_payload.get("origin", "manual")),
+            prompt_detection_ids=tuple(item_payload.get("prompt_detection_ids", ())),
+            model_name=str(item_payload.get("model_name", "")),
+            metadata=dict(item_payload.get("metadata", {})),
+            segmentation_id=item_payload.get("segmentation_id"),
+        )
+        segmentation_set.add_segmentation(segmentation)
+    return segmentation_set
+
+
+def _mask_to_payload(mask) -> dict[str, Any] | None:
+    if mask is None:
+        return None
+    mask_array = np.asarray(mask, dtype=bool)
+    if mask_array.ndim != 2:
+        raise ValueError("molecular segmentation mask must be a 2D array.")
+    flat = mask_array.ravel(order="C")
+    counts: list[int] = []
+    expected_value = False
+    run_length = 0
+    for value in flat:
+        value = bool(value)
+        if value == expected_value:
+            run_length += 1
+            continue
+        counts.append(run_length)
+        expected_value = value
+        run_length = 1
+    counts.append(run_length)
+    return {
+        "encoding": "rle",
+        "shape": [int(mask_array.shape[0]), int(mask_array.shape[1])],
+        "counts": counts,
+    }
+
+
+def _mask_from_payload(payload: Any) -> np.ndarray | None:
+    if payload is None:
+        return None
+    mask_payload = _require_mapping(payload, "molecular segmentation mask")
+    encoding = str(mask_payload.get("encoding", ""))
+    if encoding != "rle":
+        raise ValueError(f"Unsupported molecular segmentation mask encoding: {encoding!r}.")
+    shape = tuple(int(value) for value in mask_payload.get("shape", ()))
+    if len(shape) != 2 or shape[0] <= 0 or shape[1] <= 0:
+        raise ValueError("molecular segmentation mask shape must contain positive height and width.")
+    counts = [int(value) for value in mask_payload.get("counts", [])]
+    if any(count < 0 for count in counts):
+        raise ValueError("molecular segmentation mask RLE counts must be non-negative.")
+
+    total = shape[0] * shape[1]
+    values: list[bool] = []
+    current_value = False
+    for count in counts:
+        values.extend([current_value] * count)
+        current_value = not current_value
+    if len(values) != total:
+        raise ValueError("molecular segmentation mask RLE counts do not match mask shape.")
+    return np.asarray(values, dtype=bool).reshape(shape)
+
+
+def _polygon_to_payload(polygon_xy) -> list[list[float]] | None:
+    if polygon_xy is None:
+        return None
+    return [[float(x), float(y)] for x, y in polygon_xy]
+
+
+def _polygon_from_payload(payload: Any) -> tuple[tuple[float, float], ...] | None:
+    if payload is None:
+        return None
+    if not isinstance(payload, list):
+        raise ValueError("molecular segmentation polygon_xy must be a list.")
+    return tuple((float(point[0]), float(point[1])) for point in payload)
 
 
 def _registration_view_mode_from_ui_state(ui_state: Any | None) -> str:

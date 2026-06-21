@@ -8,6 +8,8 @@ import numpy as np
 from moltrack.core import (
     MolecularDetection,
     MolecularDetectionSet,
+    MolecularSegmentation,
+    MolecularSegmentationSet,
     MolTrackImageSeries,
     MolTrackRegistrationFrameResult,
     MolTrackRegistrationResultSet,
@@ -271,6 +273,93 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             self.assertEqual(loaded_detection.original_bbox_xyxy, loaded_detection.bbox_xyxy)
             self.assertTrue(loaded_detection.detection_id)
             self.assertEqual(loaded_detection.origin, "yolo")
+
+    def test_save_and_load_session_round_trip_preserves_sam2_segmentations(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"fake mpp bytes")
+            session_path = tmp_path / "state.moltrack.json"
+            frames = np.arange(2 * 4 * 5, dtype=np.float32).reshape(2, 4, 5)
+            series = MolTrackImageSeries(
+                source_path=str(source_path),
+                raw_frames=frames,
+                metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4),
+            )
+            detections = MolecularDetectionSet(frame_count=2)
+            detections.set_detections(
+                0,
+                [
+                    MolecularDetection(
+                        frame_index=0,
+                        bbox_xyxy=(1, 1, 4, 3),
+                        confidence=0.9,
+                        source_view="raw",
+                        detection_id="bbox-1",
+                    )
+                ],
+                source_view="raw",
+                frame_shape=(4, 5),
+            )
+            series.molecular_detections = detections
+            mask = np.array(
+                [
+                    [False, False, False, False, False],
+                    [False, True, True, True, False],
+                    [False, False, True, True, False],
+                    [False, False, False, False, False],
+                ],
+                dtype=bool,
+            )
+            segmentations = MolecularSegmentationSet(frame_count=2)
+            segmentations.add_segmentation(
+                MolecularSegmentation(
+                    frame_index=0,
+                    source_view="raw",
+                    bbox_xyxy=(1, 1, 4, 3),
+                    mask=mask,
+                    polygon_xy=((1, 1), (4, 1), (4, 3), (1, 3)),
+                    score=0.87,
+                    origin="sam2",
+                    prompt_detection_ids=("bbox-1",),
+                    model_name="missing-sam2.pt",
+                    metadata={"checkpoint": "missing/sam2.pt", "sam2_threshold": 0.55},
+                    segmentation_id="sam2-seg-1",
+                )
+            )
+            series.molecular_segmentations = segmentations
+
+            save_moltrack_session(session_path, series, None)
+
+            payload = json.loads(session_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["molecular_segmentations"]["frame_count"], 2)
+            self.assertEqual(len(payload["molecular_segmentations"]["segmentations"]), 1)
+            segmentation_payload = payload["molecular_segmentations"]["segmentations"][0]
+            self.assertEqual(segmentation_payload["segmentation_id"], "sam2-seg-1")
+            self.assertEqual(segmentation_payload["origin"], "sam2")
+            self.assertEqual(segmentation_payload["model_name"], "missing-sam2.pt")
+            self.assertEqual(segmentation_payload["prompt_detection_ids"], ["bbox-1"])
+            self.assertEqual(segmentation_payload["mask"]["encoding"], "rle")
+            self.assertEqual(segmentation_payload["mask"]["shape"], [4, 5])
+
+            loaded = load_moltrack_session(session_path)
+
+            self.assertIsNotNone(loaded.molecular_detections)
+            self.assertEqual(loaded.molecular_detections.get_detection("bbox-1").detection_id, "bbox-1")
+            self.assertIsNotNone(loaded.molecular_segmentations)
+            restored = loaded.molecular_segmentations.get_segmentation("sam2-seg-1")
+            self.assertIsNotNone(restored)
+            self.assertEqual(restored.frame_index, 0)
+            self.assertEqual(restored.source_view, "raw")
+            self.assertEqual(restored.bbox_xyxy, (1.0, 1.0, 4.0, 3.0))
+            np.testing.assert_array_equal(restored.mask, mask)
+            self.assertEqual(restored.polygon_xy, ((1.0, 1.0), (4.0, 1.0), (4.0, 3.0), (1.0, 3.0)))
+            self.assertEqual(restored.score, 0.87)
+            self.assertEqual(restored.origin, "sam2")
+            self.assertEqual(restored.prompt_detection_ids, ("bbox-1",))
+            self.assertEqual(restored.model_name, "missing-sam2.pt")
+            self.assertEqual(restored.metadata["checkpoint"], "missing/sam2.pt")
+            self.assertEqual(restored.metadata["sam2_threshold"], 0.55)
 
     def test_restore_working_series_from_session_reloads_source_and_applies_saved_frame_indices(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
