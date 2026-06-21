@@ -213,7 +213,9 @@ class MolTrackMainWindow(QMainWindow):
         self.slider_frame.setTracking(True)
         viewer_layout.addWidget(self.slider_frame)
 
-        sidebar_content = QWidget(self)
+        self.sidebar_content = QWidget(self)
+        self.sidebar_content.setObjectName("moltrack_right_controls_content")
+        sidebar_content = self.sidebar_content
         sidebar_layout = QVBoxLayout(sidebar_content)
         self.metadata_panel = SeriesMetadataPanel(sidebar_content)
         sidebar_layout.addWidget(self.metadata_panel)
@@ -317,16 +319,18 @@ class MolTrackMainWindow(QMainWindow):
 
         sidebar_layout.addStretch(1)
 
-        sidebar = QScrollArea(self)
-        sidebar.setWidgetResizable(True)
-        sidebar.setFrameShape(QScrollArea.Shape.NoFrame)
-        sidebar.setWidget(sidebar_content)
+        self.sidebar_scroll_area = QScrollArea(self)
+        self.sidebar_scroll_area.setObjectName("moltrack_right_controls_scroll")
+        self.sidebar_scroll_area.setWidgetResizable(True)
+        self.sidebar_scroll_area.setFrameShape(QScrollArea.Shape.NoFrame)
+        self.sidebar_scroll_area.setMinimumWidth(320)
+        self.sidebar_scroll_area.setWidget(sidebar_content)
 
         central.addWidget(viewer_container)
-        central.addWidget(sidebar)
+        central.addWidget(self.sidebar_scroll_area)
         central.setStretchFactor(0, 1)
         central.setStretchFactor(1, 0)
-        central.setSizes([980, 300])
+        central.setSizes([940, 340])
         self.setCentralWidget(central)
 
     def _update_navigation_enabled(self, enabled: bool) -> None:

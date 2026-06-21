@@ -28,7 +28,7 @@ except ImportError:  # pragma: no cover - optional outside target GUI env
 
 if QApplication is not None:
     from PyQt6.QtCore import QThread
-    from PyQt6.QtWidgets import QFileDialog, QMessageBox
+    from PyQt6.QtWidgets import QFileDialog, QGroupBox, QMessageBox, QScrollArea
 
     from moltrack.ui import MolTrackMainWindow
 else:  # pragma: no cover - optional outside target GUI env
@@ -89,6 +89,30 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.btn_bbox_increase.isEnabled())
         self.assertFalse(self.window.btn_bbox_decrease.isEnabled())
         self.assertFalse(self.window.btn_bbox_reset.isEnabled())
+
+    def test_right_control_panel_is_scrollable_and_contains_control_groups(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+
+        scroll_area = self.window.findChild(QScrollArea, "moltrack_right_controls_scroll")
+
+        self.assertIsNotNone(scroll_area)
+        self.assertTrue(scroll_area.widgetResizable())
+        self.assertGreaterEqual(scroll_area.minimumWidth(), 320)
+        content = scroll_area.widget()
+        self.assertIsNotNone(content)
+        self.assertEqual(content.objectName(), "moltrack_right_controls_content")
+        self.assertIs(self.window.metadata_panel.parent(), content)
+        self.assertIs(self.window.btn_remove_current_frame.parent(), content)
+
+        groups = content.findChildren(QGroupBox)
+        self.assertIn(self.window.registration_group, groups)
+        self.assertIn(self.window.yolo_group, groups)
+        self.assertIn(self.window.bbox_resize_group, groups)
+        self.assertIn(self.window.bbox_edit_group, groups)
+        self.assertIs(self.window.registration_group.parent(), content)
+        self.assertIs(self.window.yolo_group.parent(), content)
+        self.assertIs(self.window.bbox_resize_group.parent(), content)
+        self.assertIs(self.window.bbox_edit_group.parent(), content)
 
     def test_canceling_open_dialog_keeps_loaded_series_unchanged(self) -> None:
         calls = []
