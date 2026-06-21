@@ -237,6 +237,7 @@ def _molecular_detections_to_payload(detection_set: MolecularDetectionSet | None
                 {
                     "frame_index": detection.frame_index,
                     "bbox_xyxy": list(detection.bbox_xyxy),
+                    "original_bbox_xyxy": list(detection.original_bbox_xyxy),
                     "confidence": detection.confidence,
                     "selected": detection.selected,
                     "model_name": detection.model_name,
@@ -269,9 +270,11 @@ def _molecular_detections_from_payload(
     detections_by_frame_and_view: dict[tuple[int, str], list[MolecularDetection]] = {}
     for item in items:
         item_payload = _require_mapping(item, "molecular detection")
+        bbox_xyxy = tuple(item_payload["bbox_xyxy"])
         detection = MolecularDetection(
             frame_index=int(item_payload["frame_index"]),
-            bbox_xyxy=tuple(item_payload["bbox_xyxy"]),
+            bbox_xyxy=bbox_xyxy,
+            original_bbox_xyxy=tuple(item_payload.get("original_bbox_xyxy", bbox_xyxy)),
             confidence=float(item_payload["confidence"]),
             selected=bool(item_payload.get("selected", True)),
             model_name=str(item_payload.get("model_name", "")),

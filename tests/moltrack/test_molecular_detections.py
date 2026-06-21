@@ -22,6 +22,18 @@ class MolecularDetectionModelTests(unittest.TestCase):
         self.assertEqual(detection.model_name, "molecules.pt")
         self.assertEqual(detection.checkpoint_path, "C:/models/molecules.pt")
         self.assertEqual(detection.source_view, "expanded_aligned")
+        self.assertEqual(detection.original_bbox_xyxy, detection.bbox_xyxy)
+
+    def test_molecular_detection_keeps_explicit_original_bbox_for_reset(self) -> None:
+        detection = MolecularDetection(
+            frame_index=0,
+            bbox_xyxy=(2, 3, 8, 9),
+            original_bbox_xyxy=(1, 2, 5, 6),
+            confidence=0.9,
+        )
+
+        self.assertEqual(detection.bbox_xyxy, (2.0, 3.0, 8.0, 9.0))
+        self.assertEqual(detection.original_bbox_xyxy, (1.0, 2.0, 5.0, 6.0))
 
     def test_molecular_detection_validates_bbox_and_frame_bounds(self) -> None:
         detection = MolecularDetection(
@@ -144,6 +156,81 @@ class MolecularDetectionModelTests(unittest.TestCase):
 
         self.assertEqual(removed, 2)
         self.assertEqual(detections.detection_count, 0)
+
+    def test_detection_set_resizes_detections_for_source_view(self) -> None:
+        detections = MolecularDetectionSet(frame_count=2)
+        raw_detection = MolecularDetection(frame_index=0, bbox_xyxy=(2, 2, 6, 6), confidence=0.9)
+        expanded_detection = MolecularDetection(
+            frame_index=0,
+            bbox_xyxy=(0, 0, 2, 2),
+            confidence=0.8,
+            source_view="expanded_aligned",
+        )
+        detections.set_detections(0, [raw_detection], source_view="raw", frame_shape=(10, 10))
+        detections.set_detections(
+            0,
+            [expanded_detection],
+            source_view="expanded_aligned",
+            frame_shape=(10, 10),
+        )
+
+        changed = detections.resize_all(scale_factor=1.5, source_view="raw", frame_shape=(10, 10))
+
+        self.assertEqual(changed, 1)
+        self.assertEqual(raw_detection.bbox_xyxy, (1.0, 1.0, 7.0, 7.0))
+        self.assertEqual(raw_detection.original_bbox_xyxy, (2.0, 2.0, 6.0, 6.0))
+        self.assertEqual(expanded_detection.bbox_xyxy, (0.0, 0.0, 2.0, 2.0))
+
+    def test_detection_set_clamps_resized_bbox_and_resets_to_original(self) -> None:
+        detections = MolecularDetectionSet(frame_count=1)
+        detection = MolecularDetection(frame_index=0, bbox_xyxy=(0, 0, 2, 2), confidence=0.9)
+        detections.set_detections(0, [detection], source_view="raw", frame_shape=(5, 5))
+
+        changed = detections.resize_all(scale_factor=2.0, source_view="raw", frame_shape=(5, 5))
+
+        self.assertEqual(changed, 1)
+        self.assertEqual(detection.bbox_xyxy, (0.0, 0.0, 4.0, 4.0))
+
+        changed = detections.resize_all(scale_factor=0.1, source_view="raw", frame_shape=(5, 5), min_size_px=1.0)
+
+        self.assertEqual(changed, 1)
+        self.assertEqual(detection.bbox_xyxy, (1.5, 1.5, 2.5, 2.5))
+
+        changed = detections.reset_all_to_original(source_view="raw", frame_shape=(5, 5))
+
+        self.assertEqual(changed, 1)
+        self.assertEqual(detection.bbox_xyxy, (0.0, 0.0, 2.0, 2.0))
+
+    def test_detection_set_resizes_with_pixel_margin(self) -> None:
+        detections = MolecularDetectionSet(frame_count=1)
+        detection = MolecularDetection(frame_index=0, bbox_xyxy=(2, 2, 6, 6), confidence=0.9)
+        detections.set_detections(0, [detection], source_view="raw", frame_shape=(10, 10))
+
+        changed = detections.resize_all(margin_px=1.0, source_view="raw", frame_shape=(10, 10))
+
+        self.assertEqual(changed, 1)
+        self.assertEqual(detection.bbox_xyxy, (1.0, 1.0, 7.0, 7.0))
+
+        changed = detections.resize_all(margin_px=-2.0, source_view="raw", frame_shape=(10, 10))
+
+        self.assertEqual(changed, 1)
+        self.assertEqual(detection.bbox_xyxy, (3.0, 3.0, 5.0, 5.0))
+
+    def test_detection_set_validates_resize_arguments(self) -> None:
+        detections = MolecularDetectionSet(frame_count=1)
+        detections.set_detections(
+            0,
+            [MolecularDetection(frame_index=0, bbox_xyxy=(0, 0, 2, 2), confidence=0.9)],
+            source_view="raw",
+            frame_shape=(5, 5),
+        )
+
+        with self.assertRaisesRegex(ValueError, "scale_factor"):
+            detections.resize_all(scale_factor=0.0, source_view="raw", frame_shape=(5, 5))
+        with self.assertRaisesRegex(ValueError, "min_size_px"):
+            detections.resize_all(scale_factor=1.0, source_view="raw", frame_shape=(5, 5), min_size_px=0.0)
+        with self.assertRaisesRegex(ValueError, "positive height and width"):
+            detections.resize_all(scale_factor=1.0, source_view="raw", frame_shape=(0, 5))
 
 
 if __name__ == "__main__":

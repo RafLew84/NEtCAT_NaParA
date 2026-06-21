@@ -273,6 +273,30 @@ class MolTrackMainWindow(QMainWindow):
         yolo_layout.addWidget(self.lbl_yolo_status)
         sidebar_layout.addWidget(self.yolo_group)
 
+        self.bbox_resize_group = QGroupBox("BBox Resize", sidebar_content)
+        bbox_resize_layout = QVBoxLayout(self.bbox_resize_group)
+        self.sp_bbox_resize_margin = QDoubleSpinBox(self.bbox_resize_group)
+        self.sp_bbox_resize_margin.setRange(0.1, 1000.0)
+        self.sp_bbox_resize_margin.setSingleStep(1.0)
+        self.sp_bbox_resize_margin.setDecimals(1)
+        self.sp_bbox_resize_margin.setPrefix("Margin px ")
+        self.sp_bbox_resize_margin.setValue(1.0)
+        self.sp_bbox_resize_margin.setEnabled(False)
+        bbox_resize_layout.addWidget(self.sp_bbox_resize_margin)
+        self.btn_bbox_increase = QPushButton("Increase BBoxes", self.bbox_resize_group)
+        self.btn_bbox_increase.setEnabled(False)
+        bbox_resize_layout.addWidget(self.btn_bbox_increase)
+        self.btn_bbox_decrease = QPushButton("Decrease BBoxes", self.bbox_resize_group)
+        self.btn_bbox_decrease.setEnabled(False)
+        bbox_resize_layout.addWidget(self.btn_bbox_decrease)
+        self.btn_bbox_reset = QPushButton("Reset BBoxes", self.bbox_resize_group)
+        self.btn_bbox_reset.setEnabled(False)
+        bbox_resize_layout.addWidget(self.btn_bbox_reset)
+        self.lbl_bbox_resize_status = QLabel("BBoxes: no detections", self.bbox_resize_group)
+        self.lbl_bbox_resize_status.setWordWrap(True)
+        bbox_resize_layout.addWidget(self.lbl_bbox_resize_status)
+        sidebar_layout.addWidget(self.bbox_resize_group)
+
         sidebar_layout.addStretch(1)
 
         sidebar = QScrollArea(self)
@@ -304,6 +328,9 @@ class MolTrackMainWindow(QMainWindow):
         self.btn_yolo_detect_current.clicked.connect(self._on_yolo_detect_current_requested)
         self.btn_yolo_detect_all_frames.clicked.connect(self._on_yolo_detect_all_frames_requested)
         self.btn_yolo_clear_current.clicked.connect(self._on_yolo_clear_current_requested)
+        self.btn_bbox_increase.clicked.connect(self._on_bbox_increase_requested)
+        self.btn_bbox_decrease.clicked.connect(self._on_bbox_decrease_requested)
+        self.btn_bbox_reset.clicked.connect(self._on_bbox_reset_requested)
 
     def set_image_series(self, series) -> None:
         self._series = series
@@ -383,6 +410,23 @@ class MolTrackMainWindow(QMainWindow):
         else:
             total_count = 0
         self.lbl_yolo_status.setText(f"Detections: current {current_count} | series {total_count}")
+        self._sync_bbox_resize_controls()
+
+    def _sync_bbox_resize_controls(self) -> None:
+        controls_enabled = self._series is not None and not self._is_processing()
+        if self._series is None or self._series.molecular_detections is None:
+            source_count = 0
+            source_view = self._current_yolo_source_view()
+        else:
+            source_view = self._current_yolo_source_view()
+            source_count = self._source_view_molecular_detection_count(source_view)
+        has_detections = controls_enabled and source_count > 0
+        self.sp_bbox_resize_margin.setEnabled(has_detections)
+        self.btn_bbox_increase.setEnabled(has_detections)
+        self.btn_bbox_decrease.setEnabled(has_detections)
+        self.btn_bbox_reset.setEnabled(has_detections)
+        view_label = "expanded aligned" if source_view == "expanded_aligned" else "raw"
+        self.lbl_bbox_resize_status.setText(f"BBoxes: {view_label} {source_count}")
 
     def _current_molecular_detection_count(self) -> int:
         if self._series is None or self._series.molecular_detections is None:
@@ -396,6 +440,14 @@ class MolTrackMainWindow(QMainWindow):
 
     def _current_yolo_source_view(self) -> str:
         return "expanded_aligned" if self._is_expanded_aligned_view_requested() else "raw"
+
+    def _source_view_molecular_detection_count(self, source_view: str) -> int:
+        if self._series is None or self._series.molecular_detections is None:
+            return 0
+        total = 0
+        for frame_index in range(self._series.frame_count):
+            total += len(self._series.molecular_detections.get_detections(frame_index, source_view=source_view))
+        return total
 
     def _is_processing(self) -> bool:
         return self._registration_running or self._yolo_detection_running
@@ -640,6 +692,60 @@ class MolTrackMainWindow(QMainWindow):
             f"Cleared {removed} YOLO detection(s) on frame {frame_index + 1}.",
             3000,
         )
+
+    def _on_bbox_increase_requested(self) -> None:
+        self._resize_current_view_bboxes(margin_px=float(self.sp_bbox_resize_margin.value()))
+
+    def _on_bbox_decrease_requested(self) -> None:
+        self._resize_current_view_bboxes(margin_px=-float(self.sp_bbox_resize_margin.value()))
+
+    def _on_bbox_reset_requested(self) -> None:
+        if self._series is None or self._series.molecular_detections is None:
+            return
+        source_view = self._current_yolo_source_view()
+        try:
+            changed = self._series.molecular_detections.reset_all_to_original(
+                source_view=source_view,
+                frame_shape=self._current_bbox_frame_shape(source_view),
+            )
+        except Exception as exc:
+            self._show_bbox_resize_error(exc)
+            return
+        self._finish_bbox_resize(changed, verb="Reset")
+
+    def _resize_current_view_bboxes(self, *, margin_px: float) -> None:
+        if self._series is None or self._series.molecular_detections is None:
+            return
+        source_view = self._current_yolo_source_view()
+        try:
+            changed = self._series.molecular_detections.resize_all(
+                margin_px=margin_px,
+                source_view=source_view,
+                frame_shape=self._current_bbox_frame_shape(source_view),
+            )
+        except Exception as exc:
+            self._show_bbox_resize_error(exc)
+            return
+        self._finish_bbox_resize(changed, verb="Resized")
+
+    def _current_bbox_frame_shape(self, source_view: str) -> tuple[int, int]:
+        if self._series is None:
+            raise RuntimeError("BBox resize requires a loaded series.")
+        if source_view == "expanded_aligned":
+            expanded = self._ensure_expanded_aligned_stack()
+            return int(expanded.frames.shape[1]), int(expanded.frames.shape[2])
+        return self._series.frame_shape
+
+    def _finish_bbox_resize(self, changed: int, *, verb: str) -> None:
+        self._show_current_frame()
+        self._sync_yolo_controls()
+        source_label = "expanded aligned" if self._current_yolo_source_view() == "expanded_aligned" else "raw"
+        self.statusBar().showMessage(f"{verb} {changed} BBox(es) in {source_label}.", 3000)
+
+    def _show_bbox_resize_error(self, exc: Exception) -> None:
+        message = str(exc) or exc.__class__.__name__
+        QMessageBox.critical(self, "BBox resize failed", message)
+        self.statusBar().showMessage("BBox resize failed.", 3000)
 
     def _show_current_frame(self) -> None:
         if self._series is None:

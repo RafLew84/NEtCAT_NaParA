@@ -82,6 +82,13 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.btn_yolo_clear_current.isEnabled())
         self.assertIn("current 0", self.window.lbl_yolo_status.text())
         self.assertIn("series 0", self.window.lbl_yolo_status.text())
+        self.assertEqual(self.window.bbox_resize_group.title(), "BBox Resize")
+        self.assertEqual(self.window.btn_bbox_increase.text(), "Increase BBoxes")
+        self.assertEqual(self.window.btn_bbox_decrease.text(), "Decrease BBoxes")
+        self.assertEqual(self.window.btn_bbox_reset.text(), "Reset BBoxes")
+        self.assertFalse(self.window.btn_bbox_increase.isEnabled())
+        self.assertFalse(self.window.btn_bbox_decrease.isEnabled())
+        self.assertFalse(self.window.btn_bbox_reset.isEnabled())
 
     def test_canceling_open_dialog_keeps_loaded_series_unchanged(self) -> None:
         calls = []
@@ -258,6 +265,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
                     MolecularDetection(
                         frame_index=1,
                         bbox_xyxy=(1, 0, 4, 2),
+                        original_bbox_xyxy=(0, 0, 3, 2),
                         confidence=0.86,
                         model_name="missing-model.pt",
                         checkpoint_path="nanotrack/yolo_models/missing-model.pt",
@@ -331,6 +339,21 @@ class MolTrackMainWindowTests(unittest.TestCase):
             np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, expanded_frames[1])
             self.assertIn("Expanded aligned", self.window.viewer.lbl_title.text())
             self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
+            self.assertIsNotNone(self.window._series.molecular_detections)
+            restored_detections = self.window._series.molecular_detections.get_detections(
+                1,
+                source_view="expanded_aligned",
+            )
+            self.assertEqual(restored_detections[0].bbox_xyxy, (1.0, 0.0, 4.0, 2.0))
+            self.assertEqual(restored_detections[0].original_bbox_xyxy, (0.0, 0.0, 3.0, 2.0))
+            self.assertIn(f"Loaded state {session_path}", self.window.statusBar().currentMessage())
+
+            self.window.btn_bbox_reset.click()
+            self.__class__._app.processEvents()
+
+            self.assertEqual(restored_detections[0].bbox_xyxy, (0.0, 0.0, 3.0, 2.0))
+            self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
+            self.assertIn("Reset 1", self.window.statusBar().currentMessage())
             self.assertIn("No YOLO models found", self.window.lbl_yolo_models.text())
             self.assertIn("current 1", self.window.lbl_yolo_status.text())
             self.assertIn("series 1", self.window.lbl_yolo_status.text())
@@ -338,7 +361,6 @@ class MolTrackMainWindowTests(unittest.TestCase):
             self.assertIn("Frames: 3", metadata_text)
             self.assertIn("Active frame: 2 / 3", metadata_text)
             self.assertIn("Expanded shape: 5x3 px", metadata_text)
-            self.assertIn(f"Loaded state {session_path}", self.window.statusBar().currentMessage())
 
     def test_open_state_reports_missing_source_and_preserves_loaded_series(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -938,6 +960,142 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertIn("current 0", self.window.lbl_yolo_status.text())
         self.assertIn("series 2", self.window.lbl_yolo_status.text())
 
+    def test_bbox_resize_increase_updates_raw_view_detections_and_viewer(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        frames = np.arange(2 * 5 * 5, dtype=np.float32).reshape(2, 5, 5)
+        detections = MolecularDetectionSet(frame_count=2)
+        raw_frame_0 = MolecularDetection(frame_index=0, bbox_xyxy=(1, 1, 3, 3), confidence=0.9, source_view="raw")
+        raw_frame_1 = MolecularDetection(frame_index=1, bbox_xyxy=(0, 0, 2, 2), confidence=0.7, source_view="raw")
+        expanded_frame_0 = MolecularDetection(
+            frame_index=0,
+            bbox_xyxy=(1, 1, 3, 3),
+            confidence=0.8,
+            source_view="expanded_aligned",
+        )
+        detections.set_detections(0, [raw_frame_0], source_view="raw", frame_shape=(5, 5))
+        detections.set_detections(1, [raw_frame_1], source_view="raw", frame_shape=(5, 5))
+        detections.set_detections(0, [expanded_frame_0], source_view="expanded_aligned", frame_shape=(5, 5))
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=5),
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+
+        self.assertTrue(self.window.btn_bbox_increase.isEnabled())
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
+        self.window.sp_bbox_resize_margin.setValue(1.0)
+
+        self.window.btn_bbox_increase.click()
+        self.__class__._app.processEvents()
+
+        self.assertEqual(raw_frame_0.bbox_xyxy, (0.0, 0.0, 4.0, 4.0))
+        self.assertEqual(raw_frame_1.bbox_xyxy, (0.0, 0.0, 4.0, 4.0))
+        self.assertEqual(expanded_frame_0.bbox_xyxy, (1.0, 1.0, 3.0, 3.0))
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
+        self.assertIn("current 1", self.window.lbl_yolo_status.text())
+        self.assertIn("series 3", self.window.lbl_yolo_status.text())
+        self.assertIn("Resized 2", self.window.statusBar().currentMessage())
+
+    def test_bbox_resize_decrease_and_reset_restore_original_raw_bbox(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        frames = np.arange(25, dtype=np.float32).reshape(1, 5, 5)
+        detection = MolecularDetection(
+            frame_index=0,
+            bbox_xyxy=(0, 0, 5, 5),
+            original_bbox_xyxy=(1, 1, 4, 4),
+            confidence=0.9,
+            source_view="raw",
+        )
+        detections = MolecularDetectionSet(frame_count=1)
+        detections.set_detections(0, [detection], source_view="raw", frame_shape=(5, 5))
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=5),
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+        self.window.sp_bbox_resize_margin.setValue(1.0)
+
+        self.window.btn_bbox_decrease.click()
+        self.__class__._app.processEvents()
+
+        self.assertEqual(detection.bbox_xyxy, (1.0, 1.0, 4.0, 4.0))
+        self.assertEqual(detection.original_bbox_xyxy, (1.0, 1.0, 4.0, 4.0))
+        self.assertIn("Resized 1", self.window.statusBar().currentMessage())
+
+        self.window.btn_bbox_increase.click()
+        self.__class__._app.processEvents()
+
+        self.assertEqual(detection.bbox_xyxy, (0.0, 0.0, 5.0, 5.0))
+
+        self.window.btn_bbox_reset.click()
+        self.__class__._app.processEvents()
+
+        self.assertEqual(detection.bbox_xyxy, (1.0, 1.0, 4.0, 4.0))
+        self.assertIn("Reset 1", self.window.statusBar().currentMessage())
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
+
+    def test_bbox_resize_uses_expanded_aligned_view_and_frame_shape(self) -> None:
+        expanded_frames = np.arange(1 * 6 * 6, dtype=np.float32).reshape(1, 6, 6)
+
+        def fake_expanded_builder(series):
+            expanded_stack = SimpleNamespace(
+                frames=expanded_frames,
+                metadata=STMSequenceMetadata(pixels_x=6, pixels_y=6),
+                padding_ltrb=(1, 1, 1, 1),
+                frame_origins_xy=np.zeros((series.frame_count, 2), dtype=np.float64),
+            )
+            series.expanded_aligned_stack = expanded_stack
+            return expanded_stack
+
+        self.window = MolTrackMainWindow(
+            expanded_aligned_builder=fake_expanded_builder,
+            yolo_model_discovery=lambda: [],
+        )
+        detections = MolecularDetectionSet(frame_count=1)
+        raw_detection = MolecularDetection(frame_index=0, bbox_xyxy=(1, 1, 3, 3), confidence=0.9, source_view="raw")
+        expanded_detection = MolecularDetection(
+            frame_index=0,
+            bbox_xyxy=(3, 3, 5, 5),
+            confidence=0.8,
+            source_view="expanded_aligned",
+        )
+        detections.set_detections(0, [raw_detection], source_view="raw", frame_shape=(4, 4))
+        detections.set_detections(0, [expanded_detection], source_view="expanded_aligned", frame_shape=(6, 6))
+        settings = MolTrackRegistrationSettings()
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.arange(1 * 4 * 4, dtype=np.float32).reshape(1, 4, 4),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            registration_results=MolTrackRegistrationResultSet(
+                settings=settings,
+                results_by_frame={
+                    0: MolTrackRegistrationFrameResult(
+                        frame_index=0,
+                        shift_xy=(0.0, 0.0),
+                        method="identity",
+                    )
+                },
+            ),
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+        self.window.cmb_registration_view_mode.setCurrentText("Show expanded aligned")
+        self.__class__._app.processEvents()
+        self.window.sp_bbox_resize_margin.setValue(1.0)
+
+        self.window.btn_bbox_increase.click()
+        self.__class__._app.processEvents()
+
+        self.assertEqual(expanded_detection.bbox_xyxy, (2.0, 2.0, 6.0, 6.0))
+        self.assertEqual(raw_detection.bbox_xyxy, (1.0, 1.0, 3.0, 3.0))
+        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, expanded_frames[0])
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
+        self.assertIn("expanded aligned", self.window.statusBar().currentMessage())
+
     def test_remove_current_frame_after_yolo_clears_detections_and_requires_rerun(self) -> None:
         checkpoint = Path("model-a.pt")
 
@@ -983,6 +1141,14 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertIsNotNone(series.molecular_detections)
         self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
         self.assertIn("series 1", self.window.lbl_yolo_status.text())
+        self.window.sp_bbox_resize_margin.setValue(1.0)
+
+        self.window.btn_bbox_increase.click()
+        self.__class__._app.processEvents()
+
+        resized_detection = series.molecular_detections.get_detections(1, source_view="raw")[0]
+        self.assertEqual(resized_detection.bbox_xyxy, (0.0, 0.0, 4.0, 4.0))
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
 
         self.window.btn_remove_current_frame.click()
         self.__class__._app.processEvents()
@@ -994,6 +1160,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertIn("current 0", self.window.lbl_yolo_status.text())
         self.assertIn("series 0", self.window.lbl_yolo_status.text())
         self.assertTrue(self.window.btn_yolo_detect_current.isEnabled())
+        self.assertFalse(self.window.btn_bbox_increase.isEnabled())
 
     def test_yolo_status_tracks_active_registration_view(self) -> None:
         expanded_frames = np.arange(2 * 5 * 6, dtype=np.float32).reshape(2, 5, 6)
@@ -1041,18 +1208,22 @@ class MolTrackMainWindowTests(unittest.TestCase):
 
         self.assertIn("current 1", self.window.lbl_yolo_status.text())
         self.assertTrue(self.window.btn_yolo_clear_current.isEnabled())
+        self.assertTrue(self.window.btn_bbox_increase.isEnabled())
 
         self.window.cmb_registration_view_mode.setCurrentText("Show expanded aligned")
         self.__class__._app.processEvents()
 
         self.assertIn("current 0", self.window.lbl_yolo_status.text())
         self.assertFalse(self.window.btn_yolo_clear_current.isEnabled())
+        self.assertFalse(self.window.btn_bbox_increase.isEnabled())
+        self.assertIn("expanded aligned 0", self.window.lbl_bbox_resize_status.text())
 
         self.window.cmb_registration_view_mode.setCurrentText("Show raw")
         self.__class__._app.processEvents()
 
         self.assertIn("current 1", self.window.lbl_yolo_status.text())
         self.assertTrue(self.window.btn_yolo_clear_current.isEnabled())
+        self.assertTrue(self.window.btn_bbox_increase.isEnabled())
 
     def test_yolo_detect_current_frame_uses_expanded_aligned_active_view(self) -> None:
         calls = []
