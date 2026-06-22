@@ -1,5 +1,6 @@
 import os
 import unittest
+from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -13,6 +14,7 @@ from moltrack.core import (
     MolTrackImageSeries,
 )
 from nanotrack.core import STMSequenceMetadata
+from moltrack.sam3 import MolTrackSam3Proposal, build_moltrack_sam3_preview
 
 try:
     from PyQt6.QtWidgets import QApplication
@@ -157,6 +159,67 @@ class STMSeriesViewerTests(unittest.TestCase):
 
         self.assertEqual(self.viewer.visible_molecular_detection_count(), 0)
         self.assertEqual(self.viewer.visible_molecular_segmentation_ids(), ["seg-other-frame"])
+
+    def test_viewer_shows_sam3_preview_and_clears_it_when_frame_or_view_changes(self) -> None:
+        frames = np.arange(2 * 4 * 4, dtype=np.float32).reshape(2, 4, 4)
+        preview = build_moltrack_sam3_preview(
+            [
+                MolTrackSam3Proposal(
+                    frame_index=0,
+                    source_view="raw",
+                    bbox_xyxy=(1, 1, 3, 3),
+                    score=0.81,
+                    mask=np.asarray(
+                        [
+                            [False, False, False, False],
+                            [False, True, True, False],
+                            [False, True, True, False],
+                            [False, False, False, False],
+                        ],
+                        dtype=bool,
+                    ),
+                    polygon_xy=((1, 1), (3, 1), (3, 3), (1, 3)),
+                    prompt_detection_ids=("bbox-1",),
+                    model_name="facebook/sam3",
+                )
+            ],
+            frame_index=0,
+            source_view="raw",
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            sam3_preview=preview,
+        )
+        self.viewer = STMSeriesViewer()
+
+        self.viewer.set_image_series(series)
+
+        self.assertEqual(self.viewer.visible_sam3_preview_count(), 1)
+        self.assertEqual(
+            self.viewer.visible_sam3_preview_ids(),
+            [preview.proposals[0].proposal_id],
+        )
+        self.assertEqual(self.viewer.visible_molecular_detection_count(), 0)
+        self.assertIsNotNone(series.sam3_preview)
+
+        self.viewer.show_frame(1)
+
+        self.assertIsNone(series.sam3_preview)
+        self.assertEqual(self.viewer.visible_sam3_preview_count(), 0)
+
+        series.sam3_preview = preview
+        expanded_stack = SimpleNamespace(
+            frames=frames + 100.0,
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            padding_ltrb=(0, 0, 0, 0),
+        )
+
+        self.viewer.show_expanded_aligned_frame(series, expanded_stack, 0)
+
+        self.assertIsNone(series.sam3_preview)
+        self.assertEqual(self.viewer.visible_sam3_preview_count(), 0)
 
 
 if __name__ == "__main__":

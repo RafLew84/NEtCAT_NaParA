@@ -4,6 +4,7 @@ import numpy as np
 
 from moltrack.core import MolecularDetection
 from moltrack.sam3 import (
+    MolTrackSam3BoxPrompt,
     MolTrackSam3ConceptAdapter,
     MolTrackSam3BackendConfig,
     MolTrackSam3Error,
@@ -88,6 +89,51 @@ class MolTrackSam3AdapterTests(unittest.TestCase):
         self.assertEqual(proposal.prompt_detection_ids, ("bbox-1",))
         self.assertEqual(proposal.model_name, "facebook/sam3.1")
         self.assertEqual(proposal.metadata["backend"], "official_sam31")
+
+    def test_adapter_runs_explicit_prompt_batch_and_reports_positive_prompt_ids(self) -> None:
+        class FakeSam3Backend:
+            def __init__(self) -> None:
+                self.inputs = []
+
+            def run(self, run_input):
+                self.inputs.append(run_input)
+                return MolTrackSam3RunOutput(
+                    proposals=(
+                        MolTrackSam3OutputProposal(
+                            bbox_xyxy=(1, 1, 4, 4),
+                            score=0.8,
+                        ),
+                    )
+                )
+
+        backend = FakeSam3Backend()
+        adapter = MolTrackSam3ConceptAdapter(backend=backend)
+        frame = np.arange(5 * 6, dtype=np.float32).reshape(5, 6)
+        prompts = (
+            MolTrackSam3BoxPrompt(bbox_xyxy=(1, 1, 3, 3), label=1, detection_id="positive-1"),
+            MolTrackSam3BoxPrompt(bbox_xyxy=(4, 1, 5, 3), label=0, detection_id="negative-1"),
+        )
+
+        proposals = adapter.segment_prompts(
+            frame,
+            prompts,
+            frame_index=0,
+            source_view="raw",
+            model_id="facebook/sam3",
+            score_threshold=0.4,
+            mask_threshold=0.7,
+            max_results=12,
+        )
+
+        self.assertEqual(len(backend.inputs), 1)
+        run_input = backend.inputs[0]
+        self.assertEqual([prompt.label for prompt in run_input.prompts], [1, 0])
+        self.assertEqual([prompt.detection_id for prompt in run_input.prompts], ["positive-1", "negative-1"])
+        self.assertEqual(run_input.score_threshold, 0.4)
+        self.assertEqual(run_input.mask_threshold, 0.7)
+        self.assertEqual(run_input.max_results, 12)
+        self.assertEqual(len(proposals), 1)
+        self.assertEqual(proposals[0].prompt_detection_ids, ("positive-1",))
 
     def test_subprocess_backend_reports_missing_sam3_environment_as_domain_error(self) -> None:
         def fake_subprocess_run(*_args, **_kwargs):

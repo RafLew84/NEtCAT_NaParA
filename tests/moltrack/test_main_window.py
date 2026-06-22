@@ -21,6 +21,7 @@ from moltrack.core import (
     MolTrackRegistrationSettings,
 )
 from moltrack.persistence import save_moltrack_session
+from moltrack.sam3 import MolTrackSam3Preview, MolTrackSam3PreviewProposal, MolTrackSam3Proposal
 from nanotrack.core import STMSequenceMetadata
 
 try:
@@ -109,7 +110,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.btn_bbox_decrease.isEnabled())
         self.assertFalse(self.window.btn_bbox_reset.isEnabled())
         self.assertEqual(self.window.segmentation_group.title(), "Segmentation")
-        self.assertEqual(self.window.cmb_segmentation_backend.count(), 1)
+        self.assertEqual(self.window.cmb_segmentation_backend.count(), 2)
         self.assertEqual(self.window.cmb_segmentation_backend.currentText(), "SAM2")
         self.assertFalse(self.window.cmb_segmentation_backend.isEnabled())
         self.assertAlmostEqual(self.window.sp_sam2_mask_threshold.value(), 0.5)
@@ -118,6 +119,14 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(self.window.btn_sam2_segment_selected.isEnabled())
         self.assertEqual(self.window.btn_sam2_segment_all_current.text(), "Segment All BBoxes In Image")
         self.assertFalse(self.window.btn_sam2_segment_all_current.isEnabled())
+        self.assertEqual(self.window.cmb_sam3_model.currentText(), "facebook/sam3")
+        self.assertFalse(self.window.cmb_sam3_model.isEnabled())
+        self.assertEqual(self.window.cmb_sam3_prompt_source.currentText(), "Active selected BBox")
+        self.assertFalse(self.window.cmb_sam3_prompt_source.isEnabled())
+        self.assertEqual(self.window.btn_sam3_run_concepts.text(), "Run SAM3 Concepts")
+        self.assertFalse(self.window.btn_sam3_run_concepts.isEnabled())
+        self.assertEqual(self.window.btn_sam3_commit_proposals.text(), "Commit Proposals")
+        self.assertFalse(self.window.btn_sam3_commit_proposals.isEnabled())
         self.assertEqual(self.window.lbl_segmentation_status.text(), "No series loaded")
 
     def test_right_control_panel_is_scrollable_and_contains_control_groups(self) -> None:
@@ -145,6 +154,206 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertIs(self.window.bbox_resize_group.parent(), content)
         self.assertIs(self.window.bbox_edit_group.parent(), content)
         self.assertIs(self.window.segmentation_group.parent(), content)
+
+    def test_sam3_run_is_blocked_without_positive_prompt(self) -> None:
+        class FakeSam3Adapter:
+            def __init__(self) -> None:
+                self.calls = []
+
+            def segment_prompts(self, *args, **kwargs):
+                self.calls.append((args, kwargs))
+                raise AssertionError("SAM3 must not run without a positive prompt")
+
+        fake_sam3 = FakeSam3Adapter()
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            sam3_adapter=fake_sam3,
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.arange(16, dtype=np.float32).reshape(1, 4, 4),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+        )
+        self.window.set_image_series(series)
+
+        self.assertEqual(self.window.cmb_segmentation_backend.count(), 2)
+        self.window.cmb_segmentation_backend.setCurrentText("SAM3")
+        self.__class__._app.processEvents()
+        self.assertTrue(self.window.btn_sam3_run_concepts.isEnabled())
+
+        self.window.btn_sam3_run_concepts.click()
+        self.__class__._app.processEvents()
+
+        self.assertEqual(fake_sam3.calls, [])
+        self.assertIsNone(series.sam3_preview)
+        self.assertIn("positive", self.window.lbl_segmentation_status.text())
+
+    def test_sam3_run_concepts_runs_in_worker_and_stores_preview(self) -> None:
+        class SlowSam3Adapter:
+            def __init__(self) -> None:
+                self.calls = []
+
+            def segment_prompts(
+                self,
+                frame,
+                prompts,
+                *,
+                frame_index,
+                source_view,
+                model_id,
+                score_threshold,
+                mask_threshold,
+                max_results,
+            ):
+                self.calls.append(
+                    {
+                        "frame": frame.copy(),
+                        "prompts": tuple(prompts),
+                        "frame_index": frame_index,
+                        "source_view": source_view,
+                        "model_id": model_id,
+                        "score_threshold": score_threshold,
+                        "mask_threshold": mask_threshold,
+                        "max_results": max_results,
+                    }
+                )
+                time.sleep(0.25)
+                mask = np.zeros(frame.shape[:2], dtype=bool)
+                mask[2:4, 2:4] = True
+                return [
+                    MolTrackSam3Proposal(
+                        frame_index=frame_index,
+                        source_view=source_view,
+                        bbox_xyxy=(2, 2, 4, 4),
+                        score=0.82,
+                        mask=mask,
+                        polygon_xy=((2, 2), (4, 2), (4, 4), (2, 4)),
+                        prompt_detection_ids=("bbox-1",),
+                        model_name=model_id,
+                    )
+                ]
+
+        slow_sam3 = SlowSam3Adapter()
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            sam3_adapter=slow_sam3,
+        )
+        frames = np.arange(1 * 5 * 5, dtype=np.float32).reshape(1, 5, 5)
+        detections = MolecularDetectionSet(frame_count=1)
+        detection = MolecularDetection(
+            frame_index=0,
+            bbox_xyxy=(1, 1, 3, 3),
+            confidence=0.9,
+            source_view="raw",
+            detection_id="bbox-1",
+        )
+        detections.set_detections(0, [detection], source_view="raw", frame_shape=(5, 5))
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=5),
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+        self.window.cmb_segmentation_backend.setCurrentText("SAM3")
+        self.window.cmb_sam3_prompt_source.setCurrentText("All current BBoxes")
+        self.window.cmb_sam3_model.setCurrentText("facebook/sam3.1")
+        self.window.sp_sam3_score_threshold.setValue(0.41)
+        self.window.sp_sam3_mask_threshold.setValue(0.62)
+        self.window.sp_sam3_max_results.setValue(12)
+        self.__class__._app.processEvents()
+
+        start = time.monotonic()
+        self.window.btn_sam3_run_concepts.click()
+        elapsed_s = time.monotonic() - start
+
+        self.assertLess(elapsed_s, 0.15)
+        self.assertFalse(self.window.btn_sam3_run_concepts.isEnabled())
+        self.assertIsNotNone(self.window._sam3_concept_progress_dialog)
+        self.assertIn("Running SAM3", self.window.lbl_segmentation_status.text())
+
+        self.process_events_until(
+            lambda: series.sam3_preview is not None and series.sam3_preview.proposal_count == 1,
+            timeout_s=3.0,
+        )
+
+        self.assertEqual(len(slow_sam3.calls), 1)
+        call = slow_sam3.calls[0]
+        np.testing.assert_array_equal(call["frame"], frames[0])
+        self.assertEqual(call["frame_index"], 0)
+        self.assertEqual(call["source_view"], "raw")
+        self.assertEqual(call["model_id"], "facebook/sam3.1")
+        self.assertAlmostEqual(call["score_threshold"], 0.41)
+        self.assertAlmostEqual(call["mask_threshold"], 0.62)
+        self.assertEqual(call["max_results"], 12)
+        self.assertEqual([prompt.detection_id for prompt in call["prompts"]], ["bbox-1"])
+        self.assertIsNotNone(series.sam3_preview)
+        self.assertEqual(series.sam3_preview.proposals[0].bbox_xyxy, (2.0, 2.0, 4.0, 4.0))
+        self.assertEqual(series.molecular_detections.detection_count, 1)
+        self.assertIsNone(series.molecular_segmentations)
+        self.assertEqual(self.window.viewer.visible_sam3_preview_count(), 1)
+        self.assertIsNone(self.window._sam3_concept_progress_dialog)
+        self.assertTrue(self.window.btn_sam3_run_concepts.isEnabled())
+        self.assertTrue(self.window.btn_sam3_commit_proposals.isEnabled())
+        self.assertIn("SAM3 preview", self.window.statusBar().currentMessage())
+
+    def test_sam3_commit_proposals_commits_preview_as_bbox_and_segmentation(self) -> None:
+        preview = MolTrackSam3Preview(
+            frame_index=0,
+            source_view="raw",
+            proposals=(
+                MolTrackSam3PreviewProposal(
+                    frame_index=0,
+                    source_view="raw",
+                    bbox_xyxy=(1, 1, 3, 3),
+                    score=0.86,
+                    mask=np.asarray(
+                        [
+                            [False, False, False, False],
+                            [False, True, True, False],
+                            [False, True, True, False],
+                            [False, False, False, False],
+                        ],
+                        dtype=bool,
+                    ),
+                    polygon_xy=((1, 1), (3, 1), (3, 3), (1, 3)),
+                    prompt_detection_ids=("prompt-1",),
+                    model_name="facebook/sam3",
+                    proposal_id="commit-1",
+                ),
+            ),
+        )
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.arange(16, dtype=np.float32).reshape(1, 4, 4),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            sam3_preview=preview,
+        )
+        self.window.set_image_series(series)
+        self.window.cmb_segmentation_backend.setCurrentText("SAM3")
+        self.__class__._app.processEvents()
+
+        self.assertTrue(self.window.btn_sam3_commit_proposals.isEnabled())
+        self.assertEqual(self.window.viewer.visible_sam3_preview_count(), 1)
+        self.window.btn_sam3_commit_proposals.click()
+        self.__class__._app.processEvents()
+
+        self.assertIsNone(series.sam3_preview)
+        self.assertIsNotNone(series.molecular_detections)
+        committed_detection = series.molecular_detections.get_detection("sam3-bbox-commit-1")
+        self.assertIsNotNone(committed_detection)
+        self.assertEqual(committed_detection.origin, "sam3_concept")
+        self.assertEqual(committed_detection.bbox_xyxy, (1.0, 1.0, 3.0, 3.0))
+        self.assertIsNotNone(series.molecular_segmentations)
+        committed_segmentation = series.molecular_segmentations.get_segmentation("sam3-seg-commit-1")
+        self.assertIsNotNone(committed_segmentation)
+        self.assertEqual(committed_segmentation.origin, "sam3")
+        self.assertEqual(committed_segmentation.prompt_detection_ids, ("prompt-1",))
+        self.assertEqual(self.window.viewer.visible_sam3_preview_count(), 0)
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
+        self.assertEqual(self.window.viewer.visible_molecular_segmentation_ids(), ["sam3-seg-commit-1"])
+        self.assertIn("Committed SAM3 proposals", self.window.statusBar().currentMessage())
 
     def test_sam2_segment_selected_bbox_is_disabled_without_selected_bbox(self) -> None:
         class FakeSam2Segmenter:

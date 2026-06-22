@@ -6,7 +6,7 @@ from uuid import uuid4
 
 
 SUPPORTED_DETECTION_SOURCE_VIEWS = ("raw", "expanded_aligned")
-SUPPORTED_DETECTION_ORIGINS = ("yolo", "manual")
+SUPPORTED_DETECTION_ORIGINS = ("yolo", "manual", "sam3", "sam3_concept")
 
 
 @dataclass

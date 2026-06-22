@@ -72,7 +72,41 @@ class MolTrackSam3ConceptAdapter:
             )
             for detection in detections
         )
-        prompt_detection_ids = tuple(detection.detection_id for detection in detections)
+        return self.segment_prompts(
+            frame,
+            prompts,
+            frame_index=frame_index,
+            source_view=source_view,
+            model_id=model_id,
+            backend=backend,
+            score_threshold=score_threshold,
+            mask_threshold=mask_threshold,
+            max_results=max_results,
+            roi_xyxy=roi_xyxy,
+            upscale=upscale,
+        )
+
+    def segment_prompts(
+        self,
+        frame,
+        prompts,
+        *,
+        frame_index: int,
+        source_view: str,
+        model_id: str = "facebook/sam3",
+        backend: str = "transformers_sam3",
+        score_threshold: float = 0.3,
+        mask_threshold: float = 0.5,
+        max_results: int = 300,
+        roi_xyxy: tuple[float, float, float, float] | None = None,
+        upscale: int = 1,
+    ) -> list[MolTrackSam3Proposal]:
+        prompts = tuple(prompts)
+        prompt_detection_ids = tuple(
+            prompt.detection_id
+            for prompt in prompts
+            if prompt.label == 1 and prompt.detection_id
+        )
         run_input = MolTrackSam3RunInput(
             frame_index=frame_index,
             source_view=source_view,

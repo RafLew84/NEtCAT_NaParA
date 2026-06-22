@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSlider,
+    QSpinBox,
     QSplitter,
     QVBoxLayout,
     QWidget,
@@ -40,9 +41,19 @@ from moltrack.persistence import (
 from moltrack.ui.widgets import STMSeriesViewer, SeriesMetadataPanel
 from moltrack.yolo import MolTrackYoloDetector, discover_yolo_models
 from moltrack.sam2 import MolTrackSam2Segmenter
+from moltrack.sam3 import (
+    MolTrackSam3ConceptAdapter,
+    MolTrackSam3PromptValidationError,
+    build_moltrack_sam3_preview,
+    build_moltrack_sam3_prompt_batch,
+    commit_moltrack_sam3_preview,
+)
 
 
 MIN_MANUAL_BBOX_SIZE_PX = 1.0
+SAM3_PROMPT_SOURCE_ACTIVE = "Active selected BBox"
+SAM3_PROMPT_SOURCE_ALL_CURRENT = "All current BBoxes"
+SAM3_PROMPT_SOURCE_SELECTED_CURRENT = "Selected current BBoxes"
 
 
 class _RegistrationRunWorker(QObject):
@@ -197,6 +208,52 @@ class _Sam2SegmentWorker(QObject):
         self.finished.emit(results)
 
 
+class _Sam3ConceptWorker(QObject):
+    finished = pyqtSignal(object)
+    failed = pyqtSignal(str)
+
+    def __init__(
+        self,
+        adapter,
+        frame,
+        prompts,
+        *,
+        frame_index: int,
+        source_view: str,
+        model_id: str,
+        score_threshold: float,
+        mask_threshold: float,
+        max_results: int,
+    ):
+        super().__init__()
+        self._adapter = adapter
+        self._frame = frame
+        self._prompts = tuple(prompts)
+        self._frame_index = int(frame_index)
+        self._source_view = str(source_view)
+        self._model_id = str(model_id)
+        self._score_threshold = float(score_threshold)
+        self._mask_threshold = float(mask_threshold)
+        self._max_results = int(max_results)
+
+    def run(self) -> None:
+        try:
+            proposals = self._adapter.segment_prompts(
+                self._frame,
+                self._prompts,
+                frame_index=self._frame_index,
+                source_view=self._source_view,
+                model_id=self._model_id,
+                score_threshold=self._score_threshold,
+                mask_threshold=self._mask_threshold,
+                max_results=self._max_results,
+            )
+        except Exception as exc:
+            self.failed.emit(str(exc) or exc.__class__.__name__)
+            return
+        self.finished.emit(proposals)
+
+
 class MolTrackMainWindow(QMainWindow):
     """Initial empty workspace for MolTrack."""
 
@@ -218,6 +275,7 @@ class MolTrackMainWindow(QMainWindow):
         yolo_detector=None,
         sam2_segmenter=None,
         sam2_settings_dialog_factory=None,
+        sam3_adapter=None,
     ):
         super().__init__(parent)
         self._series = None
@@ -239,6 +297,7 @@ class MolTrackMainWindow(QMainWindow):
         self._yolo_detector = yolo_detector if yolo_detector is not None else MolTrackYoloDetector()
         self._sam2_segmenter = sam2_segmenter if sam2_segmenter is not None else MolTrackSam2Segmenter()
         self._sam2_settings_dialog_factory = sam2_settings_dialog_factory
+        self._sam3_adapter = sam3_adapter if sam3_adapter is not None else MolTrackSam3ConceptAdapter()
         self._yolo_models = []
         self._yolo_detection_running = False
         self._yolo_detection_progress_dialog: QProgressDialog | None = None
@@ -252,6 +311,13 @@ class MolTrackMainWindow(QMainWindow):
         self._sam2_segmentation_thread: QThread | None = None
         self._sam2_segmentation_worker: _Sam2SegmentWorker | None = None
         self._sam2_segmentation_scope = ""
+        self._sam3_concept_running = False
+        self._sam3_concept_progress_dialog: QProgressDialog | None = None
+        self._sam3_concept_thread: QThread | None = None
+        self._sam3_concept_worker: _Sam3ConceptWorker | None = None
+        self._sam3_concept_source_view = "raw"
+        self._sam3_concept_frame_index = 0
+        self._sam3_concept_duplicate_iou_threshold = 0.9
         self._registration_running = False
         self._registration_progress_dialog: QProgressDialog | None = None
         self._registration_thread: QThread | None = None
@@ -421,7 +487,7 @@ class MolTrackMainWindow(QMainWindow):
         self.segmentation_group = QGroupBox("Segmentation", sidebar_content)
         segmentation_layout = QVBoxLayout(self.segmentation_group)
         self.cmb_segmentation_backend = QComboBox(self.segmentation_group)
-        self.cmb_segmentation_backend.addItems(["SAM2"])
+        self.cmb_segmentation_backend.addItems(["SAM2", "SAM3"])
         self.cmb_segmentation_backend.setEnabled(False)
         segmentation_layout.addWidget(self.cmb_segmentation_backend)
         self.sp_sam2_mask_threshold = QDoubleSpinBox(self.segmentation_group)
@@ -438,6 +504,56 @@ class MolTrackMainWindow(QMainWindow):
         self.btn_sam2_segment_all_current = QPushButton("Segment All BBoxes In Image", self.segmentation_group)
         self.btn_sam2_segment_all_current.setEnabled(False)
         segmentation_layout.addWidget(self.btn_sam2_segment_all_current)
+        self.cmb_sam3_model = QComboBox(self.segmentation_group)
+        self.cmb_sam3_model.addItems(["facebook/sam3", "facebook/sam3.1"])
+        self.cmb_sam3_model.setEnabled(False)
+        segmentation_layout.addWidget(self.cmb_sam3_model)
+        self.cmb_sam3_prompt_source = QComboBox(self.segmentation_group)
+        self.cmb_sam3_prompt_source.addItems(
+            [
+                SAM3_PROMPT_SOURCE_ACTIVE,
+                SAM3_PROMPT_SOURCE_ALL_CURRENT,
+                SAM3_PROMPT_SOURCE_SELECTED_CURRENT,
+            ]
+        )
+        self.cmb_sam3_prompt_source.setEnabled(False)
+        segmentation_layout.addWidget(self.cmb_sam3_prompt_source)
+        self.sp_sam3_score_threshold = QDoubleSpinBox(self.segmentation_group)
+        self.sp_sam3_score_threshold.setRange(0.0, 1.0)
+        self.sp_sam3_score_threshold.setSingleStep(0.05)
+        self.sp_sam3_score_threshold.setDecimals(2)
+        self.sp_sam3_score_threshold.setPrefix("SAM3 score ")
+        self.sp_sam3_score_threshold.setValue(0.3)
+        self.sp_sam3_score_threshold.setEnabled(False)
+        segmentation_layout.addWidget(self.sp_sam3_score_threshold)
+        self.sp_sam3_mask_threshold = QDoubleSpinBox(self.segmentation_group)
+        self.sp_sam3_mask_threshold.setRange(0.0, 1.0)
+        self.sp_sam3_mask_threshold.setSingleStep(0.05)
+        self.sp_sam3_mask_threshold.setDecimals(2)
+        self.sp_sam3_mask_threshold.setPrefix("SAM3 mask ")
+        self.sp_sam3_mask_threshold.setValue(0.5)
+        self.sp_sam3_mask_threshold.setEnabled(False)
+        segmentation_layout.addWidget(self.sp_sam3_mask_threshold)
+        self.sp_sam3_duplicate_iou = QDoubleSpinBox(self.segmentation_group)
+        self.sp_sam3_duplicate_iou.setRange(0.0, 1.0)
+        self.sp_sam3_duplicate_iou.setSingleStep(0.05)
+        self.sp_sam3_duplicate_iou.setDecimals(2)
+        self.sp_sam3_duplicate_iou.setPrefix("Duplicate IoU ")
+        self.sp_sam3_duplicate_iou.setValue(0.9)
+        self.sp_sam3_duplicate_iou.setEnabled(False)
+        segmentation_layout.addWidget(self.sp_sam3_duplicate_iou)
+        self.sp_sam3_max_results = QSpinBox(self.segmentation_group)
+        self.sp_sam3_max_results.setRange(1, 10000)
+        self.sp_sam3_max_results.setPrefix("Max results ")
+        self.sp_sam3_max_results.setValue(300)
+        self.sp_sam3_max_results.setEnabled(False)
+        segmentation_layout.addWidget(self.sp_sam3_max_results)
+        self.btn_sam3_run_concepts = QPushButton("Run SAM3 Concepts", self.segmentation_group)
+        self.btn_sam3_run_concepts.setEnabled(False)
+        segmentation_layout.addWidget(self.btn_sam3_run_concepts)
+        self.btn_sam3_commit_proposals = QPushButton("Commit Proposals", self.segmentation_group)
+        self.btn_sam3_commit_proposals.setEnabled(False)
+        segmentation_layout.addWidget(self.btn_sam3_commit_proposals)
         self.lbl_segmentation_status = QLabel("No series loaded", self.segmentation_group)
         self.lbl_segmentation_status.setWordWrap(True)
         segmentation_layout.addWidget(self.lbl_segmentation_status)
@@ -481,8 +597,11 @@ class MolTrackMainWindow(QMainWindow):
         self.btn_bbox_reset.clicked.connect(self._on_bbox_reset_requested)
         self.btn_bbox_add.toggled.connect(self._on_bbox_add_toggled)
         self.btn_bbox_delete_selected.clicked.connect(self._on_bbox_delete_selected_requested)
+        self.cmb_segmentation_backend.currentTextChanged.connect(self._on_segmentation_backend_changed)
         self.btn_sam2_segment_selected.clicked.connect(self._on_sam2_segment_selected_requested)
         self.btn_sam2_segment_all_current.clicked.connect(self._on_sam2_segment_all_current_requested)
+        self.btn_sam3_run_concepts.clicked.connect(self._on_sam3_run_concepts_requested)
+        self.btn_sam3_commit_proposals.clicked.connect(self._on_sam3_commit_proposals_requested)
         self.viewer.molecular_detection_selection_changed.connect(self._on_molecular_detection_selection_changed)
         self.viewer.manual_molecular_bbox_drawn.connect(self._on_manual_molecular_bbox_drawn)
 
@@ -619,19 +738,40 @@ class MolTrackMainWindow(QMainWindow):
             self.sp_sam2_mask_threshold.setEnabled(False)
             self.btn_sam2_segment_selected.setEnabled(False)
             self.btn_sam2_segment_all_current.setEnabled(False)
+            self._set_sam3_controls_enabled(False)
             self.lbl_segmentation_status.setText("Running SAM2 segmentation...")
             return
+        if self._sam3_concept_running:
+            self.cmb_segmentation_backend.setEnabled(False)
+            self.sp_sam2_mask_threshold.setEnabled(False)
+            self.btn_sam2_segment_selected.setEnabled(False)
+            self.btn_sam2_segment_all_current.setEnabled(False)
+            self._set_sam3_controls_enabled(False)
+            self.lbl_segmentation_status.setText("Running SAM3 concepts...")
+            return
         controls_enabled = self._series is not None and not self._is_processing()
+        sam3_active = self.cmb_segmentation_backend.currentText() == "SAM3"
         selected_detection = self._current_selected_molecular_detection()
         current_count = self._current_molecular_detection_count()
         has_selection = controls_enabled and selected_detection is not None
         has_current_detections = controls_enabled and current_count > 0
         self.cmb_segmentation_backend.setEnabled(controls_enabled)
-        self.sp_sam2_mask_threshold.setEnabled(has_current_detections)
-        self.btn_sam2_segment_selected.setEnabled(has_selection)
-        self.btn_sam2_segment_all_current.setEnabled(has_current_detections)
+        self.sp_sam2_mask_threshold.setEnabled(has_current_detections and not sam3_active)
+        self.btn_sam2_segment_selected.setEnabled(has_selection and not sam3_active)
+        self.btn_sam2_segment_all_current.setEnabled(has_current_detections and not sam3_active)
+        self._set_sam3_controls_enabled(controls_enabled and sam3_active)
+        self.btn_sam3_commit_proposals.setEnabled(
+            controls_enabled and sam3_active and self._current_sam3_preview() is not None
+        )
         if not controls_enabled:
             self.lbl_segmentation_status.setText("No series loaded")
+            return
+        if sam3_active:
+            preview = self._current_sam3_preview()
+            if preview is not None:
+                self.lbl_segmentation_status.setText(f"SAM3 preview: {preview.proposal_count} proposal(s)")
+                return
+            self.lbl_segmentation_status.setText(f"SAM3 ready: {current_count} BBox(es) in current image")
             return
         if current_count == 0:
             self.lbl_segmentation_status.setText("No BBox in current image")
@@ -643,6 +783,28 @@ class MolTrackMainWindow(QMainWindow):
         self.lbl_segmentation_status.setText(
             f"Ready: frame {selected_detection.frame_index + 1}, {view_label}, {current_count} BBox(es)"
         )
+
+    def _set_sam3_controls_enabled(self, enabled: bool) -> None:
+        self.cmb_sam3_model.setEnabled(enabled)
+        self.cmb_sam3_prompt_source.setEnabled(enabled)
+        self.sp_sam3_score_threshold.setEnabled(enabled)
+        self.sp_sam3_mask_threshold.setEnabled(enabled)
+        self.sp_sam3_duplicate_iou.setEnabled(enabled)
+        self.sp_sam3_max_results.setEnabled(enabled)
+        self.btn_sam3_run_concepts.setEnabled(enabled)
+
+    def _current_sam3_preview(self):
+        if self._series is None:
+            return None
+        preview = getattr(self._series, "sam3_preview", None)
+        if preview is None:
+            return None
+        if not preview.matches_context(
+            frame_index=self._series.active_frame_index,
+            source_view=self._current_yolo_source_view(),
+        ):
+            return None
+        return preview
 
     def _current_molecular_detection_count(self) -> int:
         return len(self._current_frame_molecular_detections())
@@ -741,7 +903,12 @@ class MolTrackMainWindow(QMainWindow):
         return total
 
     def _is_processing(self) -> bool:
-        return self._registration_running or self._yolo_detection_running or self._sam2_segmentation_running
+        return (
+            self._registration_running
+            or self._yolo_detection_running
+            or self._sam2_segmentation_running
+            or self._sam3_concept_running
+        )
 
     def _yolo_model_display_name(self, model) -> str:
         return str(
@@ -1058,6 +1225,196 @@ class MolTrackMainWindow(QMainWindow):
             f"Deleted selected BBox from frame {frame_index + 1} ({view_label}).",
             3000,
         )
+
+    def _on_segmentation_backend_changed(self, _backend: str) -> None:
+        self._sync_segmentation_controls()
+
+    def _on_sam3_run_concepts_requested(self) -> None:
+        if self._series is None or self._is_processing():
+            return
+        source_view = self._current_yolo_source_view()
+        frame_index = self._series.active_frame_index
+        try:
+            prompts = self._build_current_sam3_prompt_batch(source_view=source_view)
+            frame = self._current_yolo_frame(source_view).copy()
+        except MolTrackSam3PromptValidationError as exc:
+            message = str(exc)
+            self.lbl_segmentation_status.setText(message)
+            self.statusBar().showMessage(message, 3000)
+            return
+        except Exception as exc:
+            message = str(exc) or exc.__class__.__name__
+            QMessageBox.critical(self, "SAM3 concepts error", message)
+            self.statusBar().showMessage("SAM3 concepts failed.", 3000)
+            return
+
+        self._sam3_concept_running = True
+        self._sam3_concept_source_view = source_view
+        self._sam3_concept_frame_index = frame_index
+        self._sam3_concept_duplicate_iou_threshold = float(self.sp_sam3_duplicate_iou.value())
+        self._set_file_actions_enabled(False)
+        self._sam3_concept_progress_dialog = self._show_sam3_concept_progress_dialog(
+            model_id=self.cmb_sam3_model.currentText(),
+            prompt_count=len(prompts),
+        )
+        self._sync_navigation_controls()
+        self.statusBar().showMessage(f"Running SAM3 concepts with {len(prompts)} prompt(s)...", 0)
+
+        self._sam3_concept_thread = QThread(self)
+        self._sam3_concept_worker = _Sam3ConceptWorker(
+            self._sam3_adapter,
+            frame,
+            prompts,
+            frame_index=frame_index,
+            source_view=source_view,
+            model_id=self.cmb_sam3_model.currentText(),
+            score_threshold=float(self.sp_sam3_score_threshold.value()),
+            mask_threshold=float(self.sp_sam3_mask_threshold.value()),
+            max_results=int(self.sp_sam3_max_results.value()),
+        )
+        self._sam3_concept_worker.moveToThread(self._sam3_concept_thread)
+        self._sam3_concept_thread.started.connect(self._sam3_concept_worker.run)
+        self._sam3_concept_worker.finished.connect(self._on_sam3_concept_finished)
+        self._sam3_concept_worker.failed.connect(self._on_sam3_concept_failed)
+        self._sam3_concept_worker.finished.connect(self._sam3_concept_thread.quit)
+        self._sam3_concept_worker.failed.connect(self._sam3_concept_thread.quit)
+        self._sam3_concept_thread.finished.connect(self._cleanup_sam3_concept_worker)
+        self._sam3_concept_thread.start()
+
+    def _build_current_sam3_prompt_batch(self, *, source_view: str):
+        if self._series is None:
+            raise MolTrackSam3PromptValidationError("SAM3 concept prompts require a loaded series.")
+        detection_set = self._series.molecular_detections
+        if detection_set is None:
+            detection_set = MolecularDetectionSet(frame_count=self._series.frame_count)
+        prompt_source = self.cmb_sam3_prompt_source.currentText()
+        selected_detection_ids = None
+        if prompt_source == SAM3_PROMPT_SOURCE_ACTIVE:
+            detection = self._current_selected_molecular_detection()
+            if detection is None:
+                raise MolTrackSam3PromptValidationError(
+                    "SAM3 concept prompts require at least one positive bbox."
+                )
+            positive_bbox_mode = "selected_current"
+            selected_detection_ids = (detection.detection_id,)
+        elif prompt_source == SAM3_PROMPT_SOURCE_SELECTED_CURRENT:
+            positive_bbox_mode = "selected_current"
+        else:
+            positive_bbox_mode = "all_current"
+        return build_moltrack_sam3_prompt_batch(
+            detection_set,
+            frame_index=self._series.active_frame_index,
+            source_view=source_view,
+            positive_bbox_mode=positive_bbox_mode,
+            selected_detection_ids=selected_detection_ids,
+        )
+
+    def _show_sam3_concept_progress_dialog(self, *, model_id: str, prompt_count: int) -> QProgressDialog:
+        progress_dialog = QProgressDialog(
+            f"Running SAM3 {model_id} with {prompt_count} prompt(s)...",
+            None,
+            0,
+            0,
+            self,
+        )
+        progress_dialog.setWindowTitle("SAM3 Concepts")
+        progress_dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
+        progress_dialog.setCancelButton(None)
+        progress_dialog.setMinimumDuration(0)
+        progress_dialog.setAutoClose(False)
+        progress_dialog.setAutoReset(False)
+        progress_dialog.show()
+        QApplication.processEvents()
+        return progress_dialog
+
+    @pyqtSlot(object)
+    def _on_sam3_concept_finished(self, proposals) -> None:
+        proposals = list(proposals)
+        try:
+            if self._series is None:
+                raise RuntimeError("No series loaded.")
+            detection_set = self._series.molecular_detections
+            existing_detections = []
+            if detection_set is not None:
+                existing_detections = detection_set.get_detections(
+                    self._sam3_concept_frame_index,
+                    source_view=self._sam3_concept_source_view,
+                )
+            preview = build_moltrack_sam3_preview(
+                proposals,
+                frame_index=self._sam3_concept_frame_index,
+                source_view=self._sam3_concept_source_view,
+                existing_detections=existing_detections,
+                score_threshold=float(self.sp_sam3_score_threshold.value()),
+                mask_threshold=float(self.sp_sam3_mask_threshold.value()),
+                max_results=int(self.sp_sam3_max_results.value()),
+                duplicate_iou_threshold=self._sam3_concept_duplicate_iou_threshold,
+            )
+            self._series.sam3_preview = preview
+        except Exception as exc:
+            self._finish_sam3_concept_run()
+            message = str(exc) or exc.__class__.__name__
+            QMessageBox.critical(self, "SAM3 concepts error", message)
+            self.statusBar().showMessage("SAM3 concepts failed.", 3000)
+            return
+
+        proposal_count = self._series.sam3_preview.proposal_count
+        self._finish_sam3_concept_run()
+        self._show_current_frame()
+        final_message = f"SAM3 preview: {proposal_count} proposal(s)."
+        self.lbl_segmentation_status.setText(final_message)
+        self.statusBar().showMessage(final_message, 5000)
+
+    @pyqtSlot(str)
+    def _on_sam3_concept_failed(self, message: str) -> None:
+        self._finish_sam3_concept_run()
+        QMessageBox.critical(self, "SAM3 concepts error", message)
+        self.statusBar().showMessage("SAM3 concepts failed.", 3000)
+
+    def _finish_sam3_concept_run(self) -> None:
+        self._sam3_concept_running = False
+        self._set_file_actions_enabled(True)
+        self._close_sam3_concept_progress_dialog()
+        self._sync_navigation_controls()
+
+    def _close_sam3_concept_progress_dialog(self) -> None:
+        if self._sam3_concept_progress_dialog is None:
+            return
+        self._sam3_concept_progress_dialog.close()
+        self._sam3_concept_progress_dialog = None
+        QApplication.processEvents()
+
+    def _cleanup_sam3_concept_worker(self) -> None:
+        if self._sam3_concept_worker is not None:
+            self._sam3_concept_worker.deleteLater()
+            self._sam3_concept_worker = None
+        if self._sam3_concept_thread is not None:
+            self._sam3_concept_thread.deleteLater()
+            self._sam3_concept_thread = None
+
+    def _on_sam3_commit_proposals_requested(self) -> None:
+        if self._series is None or self._is_processing():
+            return
+        preview = self._current_sam3_preview()
+        if preview is None:
+            self.statusBar().showMessage("No SAM3 preview to commit.", 3000)
+            self._sync_segmentation_controls()
+            return
+        result = commit_moltrack_sam3_preview(
+            preview,
+            detection_set=self._ensure_molecular_detection_set(),
+            segmentation_set=self._ensure_molecular_segmentation_set(),
+            mode="both",
+            duplicate_iou_threshold=float(self.sp_sam3_duplicate_iou.value()),
+        )
+        self._series.sam3_preview = None
+        self._show_current_frame()
+        self._sync_yolo_controls()
+        final_message = (
+            f"Committed SAM3 proposals: {result.added_bbox_count} BBox(es), "
+            f"{result.added_segmentation_count} segmentation(s)."
+        )
+        self.statusBar().showMessage(final_message, 5000)
 
     def _on_sam2_segment_selected_requested(self) -> None:
         if self._sam2_segmentation_running:

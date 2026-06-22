@@ -20,6 +20,7 @@ class MolTrackImageSeries:
     expanded_aligned_stack: Any | None = None
     molecular_detections: Any | None = None
     molecular_segmentations: Any | None = None
+    sam3_preview: Any | None = None
 
     @classmethod
     def from_stm_sequence(cls, sequence: Any) -> "MolTrackImageSeries":
@@ -74,7 +75,10 @@ class MolTrackImageSeries:
 
     def set_active_frame(self, frame_index: int) -> None:
         self.get_frame(frame_index)
-        self.active_frame_index = int(frame_index)
+        frame_index = int(frame_index)
+        if frame_index != self.active_frame_index:
+            self.sam3_preview = None
+        self.active_frame_index = frame_index
 
     def remove_frame(self, frame_index: int | None = None) -> None:
         frame_index = self.active_frame_index if frame_index is None else int(frame_index)
@@ -95,6 +99,22 @@ class MolTrackImageSeries:
         self.expanded_aligned_stack = None
         self.molecular_detections = None
         self.molecular_segmentations = None
+        self.sam3_preview = None
+
+    def clear_sam3_preview_if_context_changed(self, *, source_view: str) -> None:
+        preview = self.sam3_preview
+        if preview is None:
+            return
+        matches_context = getattr(preview, "matches_context", None)
+        if callable(matches_context):
+            if not matches_context(frame_index=self.active_frame_index, source_view=source_view):
+                self.sam3_preview = None
+            return
+        if (
+            getattr(preview, "frame_index", None) != self.active_frame_index
+            or getattr(preview, "source_view", None) != str(source_view)
+        ):
+            self.sam3_preview = None
 
     def _normalize_source_frame_indices(self) -> tuple[int, ...]:
         if self.source_frame_indices is None:

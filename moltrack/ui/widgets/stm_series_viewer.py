@@ -24,10 +24,13 @@ class STMSeriesViewer(QWidget):
         self._visible_molecular_segmentation_count = 0
         self._visible_molecular_segmentation_ids: list[str] = []
         self._highlighted_molecular_segmentation_ids: list[str] = []
+        self._visible_sam3_preview_count = 0
+        self._visible_sam3_preview_ids: list[str] = []
         self._selected_molecular_detection_id: str | None = None
         self._molecular_detection_overlay_items_by_id: dict[str, list[object]] = {}
         self._molecular_segmentation_overlay_items_by_id: dict[str, list[object]] = {}
         self._molecular_segmentation_prompt_ids_by_id: dict[str, tuple[str, ...]] = {}
+        self._sam3_preview_overlay_items_by_id: dict[str, list[object]] = {}
         self._current_molecular_detection_source_view = "raw"
         self._current_scale_nm_per_px = (1.0, 1.0)
         self._current_image_shape_px: tuple[int, int] | None = None
@@ -136,9 +139,12 @@ class STMSeriesViewer(QWidget):
         self._visible_molecular_segmentation_count = 0
         self._visible_molecular_segmentation_ids = []
         self._highlighted_molecular_segmentation_ids = []
+        self._visible_sam3_preview_count = 0
+        self._visible_sam3_preview_ids = []
         self._molecular_detection_overlay_items_by_id = {}
         self._molecular_segmentation_overlay_items_by_id = {}
         self._molecular_segmentation_prompt_ids_by_id = {}
+        self._sam3_preview_overlay_items_by_id = {}
         self._manual_bbox_preview_item = None
 
     def visible_molecular_detection_count(self) -> int:
@@ -164,6 +170,12 @@ class STMSeriesViewer(QWidget):
 
     def highlighted_molecular_segmentation_ids(self) -> list[str]:
         return list(self._highlighted_molecular_segmentation_ids)
+
+    def visible_sam3_preview_count(self) -> int:
+        return int(self._visible_sam3_preview_count)
+
+    def visible_sam3_preview_ids(self) -> list[str]:
+        return list(self._visible_sam3_preview_ids)
 
     def molecular_bbox_add_mode_enabled(self) -> bool:
         return bool(self._molecular_bbox_add_mode_enabled)
@@ -256,6 +268,7 @@ class STMSeriesViewer(QWidget):
         self._visible_molecular_detection_count = count
         self._visible_molecular_detection_colors = colors
         self._show_molecular_segmentations(source_view=source_view, scale_nm_per_px=(sx, sy))
+        self._show_sam3_preview(source_view=source_view, scale_nm_per_px=(sx, sy))
         if self._selected_molecular_detection_id not in visible_ids:
             self._set_selected_molecular_detection_id(None)
         else:
@@ -314,6 +327,74 @@ class STMSeriesViewer(QWidget):
             count += 1
         self._visible_molecular_segmentation_count = count
         self._visible_molecular_segmentation_ids = visible_ids
+
+    def _show_sam3_preview(
+        self,
+        *,
+        source_view: str,
+        scale_nm_per_px: tuple[float, float],
+    ) -> None:
+        self._visible_sam3_preview_count = 0
+        self._visible_sam3_preview_ids = []
+        self._sam3_preview_overlay_items_by_id = {}
+        if self._series is None:
+            return
+        clear_if_context_changed = getattr(self._series, "clear_sam3_preview_if_context_changed", None)
+        if callable(clear_if_context_changed):
+            clear_if_context_changed(source_view=source_view)
+        preview = getattr(self._series, "sam3_preview", None)
+        if preview is None:
+            return
+        matches_context = getattr(preview, "matches_context", None)
+        if callable(matches_context) and not matches_context(
+            frame_index=self._series.active_frame_index,
+            source_view=source_view,
+        ):
+            self._series.sam3_preview = None
+            return
+        sx, sy = scale_nm_per_px
+        visible_ids: list[str] = []
+        count = 0
+        for proposal in preview.proposals:
+            items = []
+            mask = self._full_frame_mask_for_sam3_preview_proposal(proposal)
+            if mask is not None:
+                mask_item = self.viewer.add_mask_overlay_px(
+                    mask,
+                    color=(0, 255, 120),
+                    alpha=70,
+                    scale_nm_per_px=(sx, sy),
+                )
+                if mask_item is not None:
+                    items.append(mask_item)
+            if proposal.polygon_xy:
+                polyline = self.viewer.add_polyline_nm(
+                    self._polygon_polyline_nm(proposal.polygon_xy, scale_nm_per_px=(sx, sy)),
+                    color=(0, 255, 120),
+                    width=2.0,
+                )
+                if polyline is not None:
+                    items.append(polyline)
+            bbox_item = self.viewer.add_polyline_nm(
+                self._bbox_polyline_nm(proposal.bbox_xyxy, scale_nm_per_px=(sx, sy)),
+                color=(0, 255, 120),
+                width=1.8,
+            )
+            if bbox_item is not None:
+                items.append(bbox_item)
+            x0, y0, x1, y1 = proposal.bbox_xyxy
+            self.viewer.add_text_nm(
+                f"SAM3 {proposal.score:.2f}",
+                (((x0 + x1) / 2.0) * sx, ((y0 + y1) / 2.0) * sy),
+                color=(0, 255, 120),
+            )
+            if not items:
+                continue
+            self._sam3_preview_overlay_items_by_id[proposal.proposal_id] = items
+            visible_ids.append(proposal.proposal_id)
+            count += 1
+        self._visible_sam3_preview_count = count
+        self._visible_sam3_preview_ids = visible_ids
 
     def _on_scene_mouse_clicked(self, event) -> None:
         if self._series is None:
@@ -531,3 +612,14 @@ class STMSeriesViewer(QWidget):
         full_mask = np.zeros((image_height, image_width), dtype=bool)
         full_mask[y0:y1, x0:x1] = mask
         return full_mask
+
+    def _full_frame_mask_for_sam3_preview_proposal(self, proposal) -> np.ndarray | None:
+        if proposal.mask is None:
+            return None
+        mask = np.asarray(proposal.mask, dtype=bool)
+        if self._current_image_shape_px is None:
+            return mask
+        image_height, image_width = self._current_image_shape_px
+        if mask.shape == (image_height, image_width):
+            return mask
+        return None
