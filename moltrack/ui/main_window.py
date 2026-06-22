@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+import numpy as np
+
 from PyQt6.QtCore import QObject, QThread, QTimer, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -40,7 +45,7 @@ from moltrack.persistence import (
 )
 from moltrack.ui.widgets import STMSeriesViewer, SeriesMetadataPanel
 from moltrack.yolo import MolTrackYoloDetector, discover_yolo_models
-from moltrack.sam2 import MolTrackSam2Segmenter
+from moltrack.sam2 import MolTrackSam2Segmenter, discover_sam2_checkpoints, select_default_sam2_checkpoint
 from moltrack.sam3 import (
     MolTrackSam3ConceptAdapter,
     MolTrackSam3PromptValidationError,
@@ -51,9 +56,16 @@ from moltrack.sam3 import (
 
 
 MIN_MANUAL_BBOX_SIZE_PX = 1.0
+SAM2_EXISTING_MASK_POLICY_REPLACE = "replace"
+SAM2_EXISTING_MASK_POLICY_APPEND = "append"
+SAM2_EXISTING_MASK_POLICY_SKIP = "skip"
 SAM3_PROMPT_SOURCE_ACTIVE = "Active selected BBox"
 SAM3_PROMPT_SOURCE_ALL_CURRENT = "All current BBoxes"
 SAM3_PROMPT_SOURCE_SELECTED_CURRENT = "Selected current BBoxes"
+
+
+def _sam2_checkpoint_path(checkpoint) -> Path:
+    return Path(getattr(checkpoint, "path", checkpoint))
 
 
 class _RegistrationRunWorker(QObject):
@@ -131,9 +143,13 @@ class Sam2SegmentationSettingsDialog(QDialog):
         backend: str = "SAM2",
         bbox_count: int = 1,
         initial_mask_threshold: float = 0.5,
+        checkpoints=(),
+        selected_checkpoint_path=None,
     ):
         super().__init__(parent)
         self.setWindowTitle("SAM2 Segmentation")
+        checkpoint_paths = [_sam2_checkpoint_path(checkpoint) for checkpoint in checkpoints]
+        selected_path = Path(selected_checkpoint_path) if selected_checkpoint_path is not None else None
 
         layout = QVBoxLayout(self)
         form_layout = QFormLayout()
@@ -149,12 +165,46 @@ class Sam2SegmentationSettingsDialog(QDialog):
         self.lbl_bbox_count = QLabel(f"{int(bbox_count)} BBox(es)", self)
         form_layout.addRow("Scope", self.lbl_bbox_count)
 
+        self.cmb_checkpoint = QComboBox(self)
+        for checkpoint_path in checkpoint_paths:
+            self.cmb_checkpoint.addItem(checkpoint_path.name, checkpoint_path)
+        if selected_path is not None:
+            for index in range(self.cmb_checkpoint.count()):
+                if Path(self.cmb_checkpoint.itemData(index)) == selected_path:
+                    self.cmb_checkpoint.setCurrentIndex(index)
+                    break
+        if self.cmb_checkpoint.count() == 0:
+            self.cmb_checkpoint.addItem("No SAM2 checkpoints found", None)
+            self.cmb_checkpoint.setEnabled(False)
+        form_layout.addRow("Checkpoint", self.cmb_checkpoint)
+
         self.sp_mask_threshold = QDoubleSpinBox(self)
         self.sp_mask_threshold.setRange(0.01, 0.99)
         self.sp_mask_threshold.setSingleStep(0.05)
         self.sp_mask_threshold.setDecimals(2)
         self.sp_mask_threshold.setValue(float(initial_mask_threshold))
         form_layout.addRow("Mask threshold", self.sp_mask_threshold)
+
+        self.cmb_existing_masks_policy = QComboBox(self)
+        self.cmb_existing_masks_policy.addItem(
+            "Replace existing SAM2 masks for same BBox",
+            SAM2_EXISTING_MASK_POLICY_REPLACE,
+        )
+        self.cmb_existing_masks_policy.addItem("Append", SAM2_EXISTING_MASK_POLICY_APPEND)
+        self.cmb_existing_masks_policy.addItem(
+            "Skip BBoxes that already have SAM2 mask",
+            SAM2_EXISTING_MASK_POLICY_SKIP,
+        )
+        form_layout.addRow("Existing SAM2 masks", self.cmb_existing_masks_policy)
+
+        self.chk_keep_largest_component = QCheckBox("Keep largest component", self)
+        form_layout.addRow("", self.chk_keep_largest_component)
+
+        self.sp_min_mask_area_px = QSpinBox(self)
+        self.sp_min_mask_area_px.setRange(0, 1_000_000)
+        self.sp_min_mask_area_px.setValue(0)
+        self.sp_min_mask_area_px.setSpecialValueText("Disabled")
+        form_layout.addRow("Min mask area px", self.sp_min_mask_area_px)
 
         layout.addLayout(form_layout)
 
@@ -164,10 +214,28 @@ class Sam2SegmentationSettingsDialog(QDialog):
         )
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
+        ok_button = self.button_box.button(QDialogButtonBox.StandardButton.Ok)
+        if ok_button is not None:
+            ok_button.setEnabled(bool(checkpoint_paths))
         layout.addWidget(self.button_box)
 
     def mask_probability_threshold(self) -> float:
         return float(self.sp_mask_threshold.value())
+
+    def checkpoint_path(self):
+        checkpoint_path = self.cmb_checkpoint.currentData()
+        if checkpoint_path is None:
+            return None
+        return Path(checkpoint_path)
+
+    def existing_sam2_masks_policy(self) -> str:
+        return str(self.cmb_existing_masks_policy.currentData())
+
+    def keep_largest_component(self) -> bool:
+        return bool(self.chk_keep_largest_component.isChecked())
+
+    def min_mask_area_px(self) -> int:
+        return int(self.sp_min_mask_area_px.value())
 
 
 class _Sam2SegmentWorker(QObject):
@@ -182,12 +250,20 @@ class _Sam2SegmentWorker(QObject):
         detections,
         *,
         mask_probability_threshold: float,
+        checkpoint_path=None,
+        existing_masks_policy: str = SAM2_EXISTING_MASK_POLICY_REPLACE,
+        keep_largest_component: bool = False,
+        min_mask_area_px: int = 0,
     ):
         super().__init__()
         self._segmenter = segmenter
         self._frame = frame
         self._detections = list(detections)
         self._mask_probability_threshold = mask_probability_threshold
+        self._checkpoint_path = Path(checkpoint_path) if checkpoint_path is not None else None
+        self._existing_masks_policy = str(existing_masks_policy)
+        self._keep_largest_component = bool(keep_largest_component)
+        self._min_mask_area_px = int(min_mask_area_px)
 
     def run(self) -> None:
         try:
@@ -199,6 +275,10 @@ class _Sam2SegmentWorker(QObject):
                     self._frame,
                     detection,
                     mask_probability_threshold=self._mask_probability_threshold,
+                    checkpoint_path=self._checkpoint_path,
+                    existing_masks_policy=self._existing_masks_policy,
+                    keep_largest_component=self._keep_largest_component,
+                    min_mask_area_px=self._min_mask_area_px,
                 )
                 results.append((detection, segmentation))
                 self.progress.emit(position, total)
@@ -273,6 +353,7 @@ class MolTrackMainWindow(QMainWindow):
         session_restorer=None,
         yolo_model_discovery=discover_yolo_models,
         yolo_detector=None,
+        sam2_checkpoint_discovery=discover_sam2_checkpoints,
         sam2_segmenter=None,
         sam2_settings_dialog_factory=None,
         sam3_adapter=None,
@@ -295,10 +376,13 @@ class MolTrackMainWindow(QMainWindow):
         self._session_path: str | None = None
         self._yolo_model_discovery = yolo_model_discovery
         self._yolo_detector = yolo_detector if yolo_detector is not None else MolTrackYoloDetector()
+        self._sam2_checkpoint_discovery = sam2_checkpoint_discovery
         self._sam2_segmenter = sam2_segmenter if sam2_segmenter is not None else MolTrackSam2Segmenter()
         self._sam2_settings_dialog_factory = sam2_settings_dialog_factory
         self._sam3_adapter = sam3_adapter if sam3_adapter is not None else MolTrackSam3ConceptAdapter()
         self._yolo_models = []
+        self._sam2_checkpoints = []
+        self._selected_sam2_checkpoint_path = None
         self._yolo_detection_running = False
         self._yolo_detection_progress_dialog: QProgressDialog | None = None
         self._yolo_detection_thread: QThread | None = None
@@ -306,11 +390,15 @@ class MolTrackMainWindow(QMainWindow):
         self._yolo_detection_model_name = ""
         self._yolo_detection_source_view = "raw"
         self._selected_molecular_detection_id: str | None = None
+        self._selected_molecular_segmentation_id: str | None = None
+        self._mask_edit_undo_stack_by_segmentation_id: dict[str, list[dict[str, object]]] = {}
+        self._mask_edit_baseline_by_segmentation_id: dict[str, dict[str, object]] = {}
         self._sam2_segmentation_running = False
         self._sam2_segmentation_progress_dialog: QProgressDialog | None = None
         self._sam2_segmentation_thread: QThread | None = None
         self._sam2_segmentation_worker: _Sam2SegmentWorker | None = None
         self._sam2_segmentation_scope = ""
+        self._sam2_segmentation_existing_masks_policy = SAM2_EXISTING_MASK_POLICY_REPLACE
         self._sam3_concept_running = False
         self._sam3_concept_progress_dialog: QProgressDialog | None = None
         self._sam3_concept_thread: QThread | None = None
@@ -339,6 +427,7 @@ class MolTrackMainWindow(QMainWindow):
         self._build_actions()
         self._build_central_widget()
         self._refresh_yolo_models()
+        self._refresh_sam2_checkpoints()
         self._connect_signals()
         self._update_navigation_enabled(False)
         self.statusBar().showMessage("Ready")
@@ -504,6 +593,39 @@ class MolTrackMainWindow(QMainWindow):
         self.btn_sam2_segment_all_current = QPushButton("Segment All BBoxes In Image", self.segmentation_group)
         self.btn_sam2_segment_all_current.setEnabled(False)
         segmentation_layout.addWidget(self.btn_sam2_segment_all_current)
+        self.cmb_active_segmentation = QComboBox(self.segmentation_group)
+        self.cmb_active_segmentation.setEnabled(False)
+        segmentation_layout.addWidget(self.cmb_active_segmentation)
+        self.lbl_active_segmentation_status = QLabel("No active segmentation", self.segmentation_group)
+        self.lbl_active_segmentation_status.setWordWrap(True)
+        segmentation_layout.addWidget(self.lbl_active_segmentation_status)
+        self.btn_edit_mask = QPushButton("Edit Mask", self.segmentation_group)
+        self.btn_edit_mask.setCheckable(True)
+        self.btn_edit_mask.setEnabled(False)
+        segmentation_layout.addWidget(self.btn_edit_mask)
+        self.cmb_mask_brush_mode = QComboBox(self.segmentation_group)
+        self.cmb_mask_brush_mode.addItem("Add pixels", "add")
+        self.cmb_mask_brush_mode.addItem("Erase pixels", "erase")
+        self.cmb_mask_brush_mode.setEnabled(False)
+        segmentation_layout.addWidget(self.cmb_mask_brush_mode)
+        self.sp_mask_brush_size = QSpinBox(self.segmentation_group)
+        self.sp_mask_brush_size.setRange(0, 100)
+        self.sp_mask_brush_size.setPrefix("Brush size px ")
+        self.sp_mask_brush_size.setValue(1)
+        self.sp_mask_brush_size.setEnabled(False)
+        segmentation_layout.addWidget(self.sp_mask_brush_size)
+        self.btn_undo_mask_edit = QPushButton("Undo Mask Edit", self.segmentation_group)
+        self.btn_undo_mask_edit.setEnabled(False)
+        segmentation_layout.addWidget(self.btn_undo_mask_edit)
+        self.btn_apply_mask_edit = QPushButton("Apply Edit", self.segmentation_group)
+        self.btn_apply_mask_edit.setEnabled(False)
+        segmentation_layout.addWidget(self.btn_apply_mask_edit)
+        self.btn_cancel_mask_edit = QPushButton("Cancel Edit", self.segmentation_group)
+        self.btn_cancel_mask_edit.setEnabled(False)
+        segmentation_layout.addWidget(self.btn_cancel_mask_edit)
+        self.btn_reset_mask_to_sam2_result = QPushButton("Reset to SAM2 Result", self.segmentation_group)
+        self.btn_reset_mask_to_sam2_result.setEnabled(False)
+        segmentation_layout.addWidget(self.btn_reset_mask_to_sam2_result)
         self.cmb_sam3_model = QComboBox(self.segmentation_group)
         self.cmb_sam3_model.addItems(["facebook/sam3", "facebook/sam3.1"])
         self.cmb_sam3_model.setEnabled(False)
@@ -598,12 +720,22 @@ class MolTrackMainWindow(QMainWindow):
         self.btn_bbox_add.toggled.connect(self._on_bbox_add_toggled)
         self.btn_bbox_delete_selected.clicked.connect(self._on_bbox_delete_selected_requested)
         self.cmb_segmentation_backend.currentTextChanged.connect(self._on_segmentation_backend_changed)
+        self.cmb_active_segmentation.currentIndexChanged.connect(self._on_active_segmentation_combo_changed)
+        self.btn_edit_mask.toggled.connect(self._on_edit_mask_toggled)
+        self.btn_undo_mask_edit.clicked.connect(lambda _checked=False: self.undo_last_mask_edit())
+        self.btn_apply_mask_edit.clicked.connect(lambda _checked=False: self.apply_active_mask_edit())
+        self.btn_cancel_mask_edit.clicked.connect(lambda _checked=False: self.cancel_active_mask_edit())
+        self.btn_reset_mask_to_sam2_result.clicked.connect(
+            lambda _checked=False: self.reset_active_segmentation_to_sam2_result()
+        )
         self.btn_sam2_segment_selected.clicked.connect(self._on_sam2_segment_selected_requested)
         self.btn_sam2_segment_all_current.clicked.connect(self._on_sam2_segment_all_current_requested)
         self.btn_sam3_run_concepts.clicked.connect(self._on_sam3_run_concepts_requested)
         self.btn_sam3_commit_proposals.clicked.connect(self._on_sam3_commit_proposals_requested)
         self.viewer.molecular_detection_selection_changed.connect(self._on_molecular_detection_selection_changed)
+        self.viewer.molecular_segmentation_selection_changed.connect(self._on_molecular_segmentation_selection_changed)
         self.viewer.manual_molecular_bbox_drawn.connect(self._on_manual_molecular_bbox_drawn)
+        self.viewer.manual_molecular_mask_brush_dragged.connect(self._on_manual_mask_brush_dragged)
 
     def set_image_series(self, series) -> None:
         self._series = series
@@ -667,6 +799,22 @@ class MolTrackMainWindow(QMainWindow):
         else:
             self.lbl_yolo_models.setText("No YOLO models found in nanotrack/yolo_models")
         self._sync_yolo_controls()
+
+    def _refresh_sam2_checkpoints(self) -> None:
+        try:
+            checkpoints = list(self._sam2_checkpoint_discovery())
+        except Exception:
+            checkpoints = []
+        self._sam2_checkpoints = [_sam2_checkpoint_path(checkpoint) for checkpoint in checkpoints]
+        if (
+            self._selected_sam2_checkpoint_path is None
+            or self._selected_sam2_checkpoint_path not in self._sam2_checkpoints
+        ):
+            default_checkpoint = select_default_sam2_checkpoint(self._sam2_checkpoints)
+            self._selected_sam2_checkpoint_path = (
+                _sam2_checkpoint_path(default_checkpoint) if default_checkpoint is not None else None
+            )
+        self._sync_segmentation_controls()
 
     def _sync_yolo_controls(self) -> None:
         controls_enabled = self._series is not None and not self._is_processing()
@@ -733,11 +881,13 @@ class MolTrackMainWindow(QMainWindow):
         )
 
     def _sync_segmentation_controls(self) -> None:
+        self._sync_active_segmentation_panel()
         if self._sam2_segmentation_running:
             self.cmb_segmentation_backend.setEnabled(False)
             self.sp_sam2_mask_threshold.setEnabled(False)
             self.btn_sam2_segment_selected.setEnabled(False)
             self.btn_sam2_segment_all_current.setEnabled(False)
+            self.cmb_active_segmentation.setEnabled(False)
             self._set_sam3_controls_enabled(False)
             self.lbl_segmentation_status.setText("Running SAM2 segmentation...")
             return
@@ -746,19 +896,25 @@ class MolTrackMainWindow(QMainWindow):
             self.sp_sam2_mask_threshold.setEnabled(False)
             self.btn_sam2_segment_selected.setEnabled(False)
             self.btn_sam2_segment_all_current.setEnabled(False)
+            self.cmb_active_segmentation.setEnabled(False)
             self._set_sam3_controls_enabled(False)
             self.lbl_segmentation_status.setText("Running SAM3 concepts...")
             return
         controls_enabled = self._series is not None and not self._is_processing()
         sam3_active = self.cmb_segmentation_backend.currentText() == "SAM3"
+        sam2_checkpoint_available = self._selected_sam2_checkpoint_path is not None
         selected_detection = self._current_selected_molecular_detection()
         current_count = self._current_molecular_detection_count()
         has_selection = controls_enabled and selected_detection is not None
         has_current_detections = controls_enabled and current_count > 0
         self.cmb_segmentation_backend.setEnabled(controls_enabled)
-        self.sp_sam2_mask_threshold.setEnabled(has_current_detections and not sam3_active)
-        self.btn_sam2_segment_selected.setEnabled(has_selection and not sam3_active)
-        self.btn_sam2_segment_all_current.setEnabled(has_current_detections and not sam3_active)
+        self.sp_sam2_mask_threshold.setEnabled(
+            has_current_detections and not sam3_active and sam2_checkpoint_available
+        )
+        self.btn_sam2_segment_selected.setEnabled(has_selection and not sam3_active and sam2_checkpoint_available)
+        self.btn_sam2_segment_all_current.setEnabled(
+            has_current_detections and not sam3_active and sam2_checkpoint_available
+        )
         self._set_sam3_controls_enabled(controls_enabled and sam3_active)
         self.btn_sam3_commit_proposals.setEnabled(
             controls_enabled and sam3_active and self._current_sam3_preview() is not None
@@ -772,6 +928,9 @@ class MolTrackMainWindow(QMainWindow):
                 self.lbl_segmentation_status.setText(f"SAM3 preview: {preview.proposal_count} proposal(s)")
                 return
             self.lbl_segmentation_status.setText(f"SAM3 ready: {current_count} BBox(es) in current image")
+            return
+        if not sam2_checkpoint_available:
+            self.lbl_segmentation_status.setText("No SAM2 checkpoints found")
             return
         if current_count == 0:
             self.lbl_segmentation_status.setText("No BBox in current image")
@@ -825,12 +984,206 @@ class MolTrackMainWindow(QMainWindow):
     def selected_molecular_detection_id(self) -> str | None:
         return self._selected_molecular_detection_id
 
+    def selected_molecular_segmentation_id(self) -> str | None:
+        return self._selected_molecular_segmentation_id
+
     def select_molecular_detection_at_pixel(self, x_px: float, y_px: float) -> str | None:
         return self.viewer.select_molecular_detection_at_pixel(
             x_px,
             y_px,
             source_view=self._current_yolo_source_view(),
         )
+
+    def select_molecular_segmentation_at_pixel(self, x_px: float, y_px: float) -> str | None:
+        return self.viewer.select_molecular_segmentation_at_pixel(
+            x_px,
+            y_px,
+            source_view=self._current_yolo_source_view(),
+        )
+
+    def apply_mask_brush_at_pixel(
+        self,
+        x_px: float,
+        y_px: float,
+        *,
+        mode: str,
+        brush_size_px: int,
+    ) -> bool:
+        segmentation = self._current_selected_molecular_segmentation()
+        if segmentation is None:
+            self.statusBar().showMessage("No active segmentation selected.", 3000)
+            self._sync_active_segmentation_panel()
+            return False
+        if segmentation.origin != "sam2":
+            self.statusBar().showMessage("Mask editing is available for SAM2 segmentations.", 3000)
+            return False
+        if segmentation.mask is None:
+            self.statusBar().showMessage("Active segmentation has no editable mask.", 3000)
+            return False
+
+        mode = str(mode).strip().lower()
+        if mode not in ("add", "erase"):
+            raise ValueError("Mask brush mode must be 'add' or 'erase'.")
+        brush_size_px = int(brush_size_px)
+        if brush_size_px < 0:
+            raise ValueError("brush_size_px must be non-negative.")
+
+        current_mask = np.asarray(segmentation.mask, dtype=bool)
+        if segmentation.original_mask is None:
+            segmentation.original_mask = current_mask.copy()
+        edited_mask = current_mask.copy()
+        brush_mask = self._mask_brush_pixels(
+            edited_mask.shape,
+            x_px=float(x_px),
+            y_px=float(y_px),
+            brush_size_px=brush_size_px,
+        )
+        if mode == "add":
+            edited_mask[brush_mask] = True
+        else:
+            edited_mask[brush_mask] = False
+
+        if not bool(np.any(edited_mask)):
+            self.statusBar().showMessage("Mask edit rejected: mask cannot be empty.", 3000)
+            self._sync_active_segmentation_panel()
+            return False
+
+        self._remember_mask_edit_state(segmentation)
+        self._apply_segmentation_mask_update(
+            segmentation,
+            edited_mask,
+            metadata={
+                "edited": True,
+                "edit_tool": "manual_brush",
+                "edit_mode": mode,
+                "brush_size_px": brush_size_px,
+            },
+        )
+        self._show_current_frame()
+        self.viewer.select_molecular_segmentation_by_id(segmentation.segmentation_id)
+        self._sync_active_segmentation_panel()
+        self.statusBar().showMessage(f"Edited SAM2 mask {segmentation.segmentation_id}.", 3000)
+        return True
+
+    def undo_last_mask_edit(self) -> bool:
+        segmentation = self._current_selected_molecular_segmentation()
+        if segmentation is None:
+            self.statusBar().showMessage("No active segmentation selected.", 3000)
+            return False
+        stack = self._mask_edit_undo_stack_by_segmentation_id.get(segmentation.segmentation_id, [])
+        if not stack:
+            self.statusBar().showMessage("No mask edit to undo.", 3000)
+            return False
+        previous_state = stack.pop()
+        self._restore_mask_edit_state(segmentation, previous_state)
+        self._show_current_frame()
+        self.viewer.select_molecular_segmentation_by_id(segmentation.segmentation_id)
+        self._sync_active_segmentation_panel()
+        self.statusBar().showMessage(f"Undo mask edit {segmentation.segmentation_id}.", 3000)
+        return True
+
+    def cancel_active_mask_edit(self) -> bool:
+        segmentation = self._current_selected_molecular_segmentation()
+        if segmentation is None:
+            self.statusBar().showMessage("No active segmentation selected.", 3000)
+            return False
+        baseline = self._mask_edit_baseline_by_segmentation_id.pop(segmentation.segmentation_id, None)
+        if baseline is None:
+            self.statusBar().showMessage("No mask edit session to cancel.", 3000)
+            return False
+        self._mask_edit_undo_stack_by_segmentation_id.pop(segmentation.segmentation_id, None)
+        self._restore_mask_edit_state(segmentation, baseline)
+        self.btn_edit_mask.setChecked(False)
+        self.viewer.set_mask_brush_edit_mode_enabled(False)
+        self._show_current_frame()
+        self.viewer.select_molecular_segmentation_by_id(segmentation.segmentation_id)
+        self._sync_active_segmentation_panel()
+        self.statusBar().showMessage(f"Cancel mask edit {segmentation.segmentation_id}.", 3000)
+        return True
+
+    def apply_active_mask_edit(self) -> bool:
+        segmentation = self._current_selected_molecular_segmentation()
+        if segmentation is None:
+            self.statusBar().showMessage("No active segmentation selected.", 3000)
+            return False
+        if segmentation.segmentation_id not in self._mask_edit_baseline_by_segmentation_id:
+            self.statusBar().showMessage("No mask edit session to apply.", 3000)
+            return False
+        self._mask_edit_baseline_by_segmentation_id.pop(segmentation.segmentation_id, None)
+        self._mask_edit_undo_stack_by_segmentation_id.pop(segmentation.segmentation_id, None)
+        self.btn_edit_mask.setChecked(False)
+        self.viewer.set_mask_brush_edit_mode_enabled(False)
+        self._sync_active_segmentation_panel()
+        self.statusBar().showMessage(f"Apply mask edit {segmentation.segmentation_id}.", 3000)
+        return True
+
+    def _remember_mask_edit_state(self, segmentation) -> None:
+        state = self._capture_mask_edit_state(segmentation)
+        self._mask_edit_undo_stack_by_segmentation_id.setdefault(segmentation.segmentation_id, []).append(state)
+        self._mask_edit_baseline_by_segmentation_id.setdefault(
+            segmentation.segmentation_id,
+            self._capture_mask_edit_state(segmentation),
+        )
+
+    def _begin_mask_edit_session(self, segmentation) -> None:
+        self._mask_edit_baseline_by_segmentation_id.setdefault(
+            segmentation.segmentation_id,
+            self._capture_mask_edit_state(segmentation),
+        )
+
+    def _capture_mask_edit_state(self, segmentation) -> dict[str, object]:
+        return {
+            "mask": np.asarray(segmentation.mask, dtype=bool).copy(),
+            "original_mask": (
+                None
+                if segmentation.original_mask is None
+                else np.asarray(segmentation.original_mask, dtype=bool).copy()
+            ),
+            "bbox_xyxy": None if segmentation.bbox_xyxy is None else tuple(segmentation.bbox_xyxy),
+            "polygon_xy": None if segmentation.polygon_xy is None else tuple(segmentation.polygon_xy),
+            "metadata": dict(segmentation.metadata),
+        }
+
+    def _restore_mask_edit_state(self, segmentation, state: dict[str, object]) -> None:
+        segmentation.mask = np.asarray(state["mask"], dtype=bool).copy()
+        original_mask = state.get("original_mask")
+        segmentation.original_mask = (
+            None if original_mask is None else np.asarray(original_mask, dtype=bool).copy()
+        )
+        bbox_xyxy = state.get("bbox_xyxy")
+        segmentation.bbox_xyxy = None if bbox_xyxy is None else tuple(bbox_xyxy)
+        polygon_xy = state.get("polygon_xy")
+        segmentation.polygon_xy = None if polygon_xy is None else tuple(polygon_xy)
+        segmentation.metadata = dict(state.get("metadata", {}))
+
+    def reset_active_segmentation_to_sam2_result(self) -> bool:
+        segmentation = self._current_selected_molecular_segmentation()
+        if segmentation is None:
+            self.statusBar().showMessage("No active segmentation selected.", 3000)
+            self._sync_active_segmentation_panel()
+            return False
+        if segmentation.origin != "sam2":
+            self.statusBar().showMessage("Reset to SAM2 result is available for SAM2 segmentations.", 3000)
+            return False
+        if segmentation.original_mask is None:
+            self.statusBar().showMessage("No original SAM2 result stored for this segmentation.", 3000)
+            return False
+        original_mask = np.asarray(segmentation.original_mask, dtype=bool).copy()
+        self._mask_edit_undo_stack_by_segmentation_id.pop(segmentation.segmentation_id, None)
+        self._mask_edit_baseline_by_segmentation_id.pop(segmentation.segmentation_id, None)
+        self._apply_segmentation_mask_update(
+            segmentation,
+            original_mask,
+            metadata={
+                "edited": False,
+                "edit_tool": "reset_to_sam2_result",
+            },
+        )
+        self._show_current_frame()
+        self.viewer.select_molecular_segmentation_by_id(segmentation.segmentation_id)
+        self._sync_active_segmentation_panel()
+        self.statusBar().showMessage(f"Reset SAM2 mask {segmentation.segmentation_id}.", 3000)
+        return True
 
     def add_manual_bbox_from_pixel_drag(
         self,
@@ -877,6 +1230,99 @@ class MolTrackMainWindow(QMainWindow):
         self._selected_molecular_detection_id = str(detection_id) if detection_id is not None else None
         self._sync_bbox_edit_controls()
 
+    def _on_molecular_segmentation_selection_changed(self, segmentation_id) -> None:
+        self._selected_molecular_segmentation_id = str(segmentation_id) if segmentation_id is not None else None
+        self._sync_active_segmentation_panel()
+
+    def _on_active_segmentation_combo_changed(self, _index: int) -> None:
+        segmentation_id = self.cmb_active_segmentation.currentData()
+        if segmentation_id is None:
+            return
+        self.viewer.select_molecular_segmentation_by_id(str(segmentation_id))
+
+    def _on_edit_mask_toggled(self, checked: bool) -> None:
+        enabled = bool(checked) and self.btn_edit_mask.isEnabled()
+        if enabled and self.btn_bbox_add.isChecked():
+            self.btn_bbox_add.setChecked(False)
+        if enabled:
+            segmentation = self._current_selected_molecular_segmentation()
+            if segmentation is not None and segmentation.mask is not None:
+                self._begin_mask_edit_session(segmentation)
+        self.viewer.set_mask_brush_edit_mode_enabled(enabled)
+        self.cmb_mask_brush_mode.setEnabled(enabled)
+        self.sp_mask_brush_size.setEnabled(enabled)
+        self._sync_active_segmentation_panel()
+
+    def _on_manual_mask_brush_dragged(self, points) -> None:
+        mode = self.cmb_mask_brush_mode.currentData() or "add"
+        brush_size_px = int(self.sp_mask_brush_size.value())
+        edited_any = False
+        for x_px, y_px in tuple(points):
+            edited_any = self.apply_mask_brush_at_pixel(
+                x_px,
+                y_px,
+                mode=str(mode),
+                brush_size_px=brush_size_px,
+            ) or edited_any
+        if not edited_any:
+            self._sync_active_segmentation_panel()
+
+    def _sync_active_segmentation_panel(self) -> None:
+        segmentations = self._current_frame_molecular_segmentations()
+        current_id = self._selected_molecular_segmentation_id
+        visible_ids = [segmentation.segmentation_id for segmentation in segmentations]
+        if current_id not in visible_ids:
+            current_id = None
+            self._selected_molecular_segmentation_id = None
+
+        self.cmb_active_segmentation.blockSignals(True)
+        try:
+            self.cmb_active_segmentation.clear()
+            if not segmentations:
+                self.cmb_active_segmentation.addItem("No segmentations", None)
+            else:
+                for segmentation in segmentations:
+                    self.cmb_active_segmentation.addItem(
+                        self._molecular_segmentation_display_name(segmentation),
+                        segmentation.segmentation_id,
+                    )
+                if current_id is not None:
+                    index = self.cmb_active_segmentation.findData(current_id)
+                    if index >= 0:
+                        self.cmb_active_segmentation.setCurrentIndex(index)
+        finally:
+            self.cmb_active_segmentation.blockSignals(False)
+
+        self.cmb_active_segmentation.setEnabled(bool(segmentations) and not self._is_processing())
+        segmentation = self._current_selected_molecular_segmentation()
+        can_edit = segmentation is not None and segmentation.origin == "sam2" and not self._is_processing()
+        self.btn_edit_mask.setEnabled(can_edit)
+        self.cmb_mask_brush_mode.setEnabled(can_edit and self.btn_edit_mask.isChecked())
+        self.sp_mask_brush_size.setEnabled(can_edit and self.btn_edit_mask.isChecked())
+        has_edit_session = (
+            can_edit
+            and segmentation.segmentation_id in self._mask_edit_baseline_by_segmentation_id
+        )
+        has_undo = (
+            can_edit
+            and bool(self._mask_edit_undo_stack_by_segmentation_id.get(segmentation.segmentation_id, []))
+        )
+        self.btn_undo_mask_edit.setEnabled(has_undo)
+        self.btn_apply_mask_edit.setEnabled(has_edit_session)
+        self.btn_cancel_mask_edit.setEnabled(has_edit_session)
+        self.btn_reset_mask_to_sam2_result.setEnabled(can_edit and segmentation.original_mask is not None)
+        if not can_edit and self.btn_edit_mask.isChecked():
+            self.btn_edit_mask.blockSignals(True)
+            try:
+                self.btn_edit_mask.setChecked(False)
+            finally:
+                self.btn_edit_mask.blockSignals(False)
+            self.viewer.set_mask_brush_edit_mode_enabled(False)
+        if segmentation is None:
+            self.lbl_active_segmentation_status.setText("No active segmentation")
+            return
+        self.lbl_active_segmentation_status.setText(self._molecular_segmentation_status_text(segmentation))
+
     def _current_selected_molecular_detection(self):
         if (
             self._series is None
@@ -893,6 +1339,113 @@ class MolTrackMainWindow(QMainWindow):
         if detection.source_view != self._current_yolo_source_view():
             return None
         return detection
+
+    def _current_frame_molecular_segmentations(self) -> list:
+        if self._series is None or self._series.molecular_segmentations is None:
+            return []
+        return list(
+            self._series.molecular_segmentations.get_segmentations(
+                self._series.active_frame_index,
+                source_view=self._current_yolo_source_view(),
+            )
+        )
+
+    def _current_selected_molecular_segmentation(self):
+        if (
+            self._series is None
+            or self._series.molecular_segmentations is None
+            or self._selected_molecular_segmentation_id is None
+        ):
+            return None
+        segmentation = self._series.molecular_segmentations.get_segmentation(
+            self._selected_molecular_segmentation_id
+        )
+        if segmentation is None:
+            return None
+        if segmentation.frame_index != self._series.active_frame_index:
+            return None
+        if segmentation.source_view != self._current_yolo_source_view():
+            return None
+        return segmentation
+
+    def _molecular_segmentation_display_name(self, segmentation) -> str:
+        prompt = ",".join(segmentation.prompt_detection_ids) or "no prompt"
+        return f"{segmentation.segmentation_id} | {segmentation.origin} | {prompt}"
+
+    def _molecular_segmentation_status_text(self, segmentation) -> str:
+        prompt = ",".join(segmentation.prompt_detection_ids) or "-"
+        if segmentation.mask is not None:
+            area = int(np.count_nonzero(segmentation.mask))
+        else:
+            area = int(segmentation.metadata.get("mask_area_px", 0) or 0)
+        bbox = segmentation.bbox_xyxy
+        bbox_text = "-"
+        if bbox is not None:
+            bbox_text = ",".join(f"{float(value):.1f}" for value in bbox)
+        return (
+            f"Active segmentation: {segmentation.segmentation_id} | "
+            f"{segmentation.origin} | prompt {prompt} | area {area} | bbox {bbox_text}"
+        )
+
+    def _apply_segmentation_mask_update(self, segmentation, mask, *, metadata: dict | None = None) -> None:
+        mask_array = np.asarray(mask, dtype=bool)
+        if not bool(np.any(mask_array)):
+            raise ValueError("Cannot apply an empty segmentation mask.")
+        segmentation.mask = mask_array.copy()
+        segmentation.bbox_xyxy = self._bbox_from_mask(mask_array)
+        segmentation.polygon_xy = None
+        segmentation.metadata.update(
+            {
+                "mask_area_px": float(np.count_nonzero(mask_array)),
+                "mask_component_count": self._mask_component_count(mask_array),
+            }
+        )
+        if metadata:
+            segmentation.metadata.update(dict(metadata))
+
+    def _mask_brush_pixels(
+        self,
+        mask_shape: tuple[int, int],
+        *,
+        x_px: float,
+        y_px: float,
+        brush_size_px: int,
+    ) -> np.ndarray:
+        height, width = mask_shape
+        yy, xx = np.ogrid[:height, :width]
+        center_x = int(np.floor(float(x_px)))
+        center_y = int(np.floor(float(y_px)))
+        radius = max(0, int(brush_size_px))
+        return (xx - center_x) ** 2 + (yy - center_y) ** 2 <= radius**2
+
+    def _bbox_from_mask(self, mask: np.ndarray) -> tuple[float, float, float, float]:
+        ys, xs = np.nonzero(mask)
+        if ys.size == 0 or xs.size == 0:
+            raise ValueError("Cannot compute bbox for an empty mask.")
+        return float(xs.min()), float(ys.min()), float(xs.max() + 1), float(ys.max() + 1)
+
+    def _mask_component_count(self, mask: np.ndarray) -> int:
+        visited = np.zeros(mask.shape, dtype=bool)
+        component_count = 0
+        height, width = mask.shape
+        for start_y, start_x in np.argwhere(mask):
+            start_y = int(start_y)
+            start_x = int(start_x)
+            if visited[start_y, start_x]:
+                continue
+            component_count += 1
+            stack = [(start_y, start_x)]
+            visited[start_y, start_x] = True
+            while stack:
+                y, x = stack.pop()
+                for next_y, next_x in ((y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)):
+                    if not (0 <= next_y < height and 0 <= next_x < width):
+                        continue
+                    if visited[next_y, next_x] or not mask[next_y, next_x]:
+                        continue
+                    visited[next_y, next_x] = True
+                    stack.append((next_y, next_x))
+        return int(component_count)
 
     def _source_view_molecular_detection_count(self, source_view: str) -> int:
         if self._series is None or self._series.molecular_detections is None:
@@ -1430,6 +1983,10 @@ class MolTrackMainWindow(QMainWindow):
         self._start_sam2_segmentation(
             [detection],
             mask_probability_threshold=settings["mask_probability_threshold"],
+            checkpoint_path=settings["checkpoint_path"],
+            existing_masks_policy=settings["existing_masks_policy"],
+            keep_largest_component=settings["keep_largest_component"],
+            min_mask_area_px=settings["min_mask_area_px"],
             scope="selected",
         )
 
@@ -1447,17 +2004,37 @@ class MolTrackMainWindow(QMainWindow):
         self._start_sam2_segmentation(
             detections,
             mask_probability_threshold=settings["mask_probability_threshold"],
+            checkpoint_path=settings["checkpoint_path"],
+            existing_masks_policy=settings["existing_masks_policy"],
+            keep_largest_component=settings["keep_largest_component"],
+            min_mask_area_px=settings["min_mask_area_px"],
             scope="current_image",
         )
 
-    def _choose_sam2_segmentation_settings(self, *, detection_count: int) -> dict[str, float] | None:
+    def _choose_sam2_segmentation_settings(self, *, detection_count: int) -> dict[str, object] | None:
         dialog = self._create_sam2_segmentation_settings_dialog(detection_count=detection_count)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             self.statusBar().showMessage("SAM2 segmentation canceled.", 3000)
             return None
         mask_probability_threshold = float(dialog.mask_probability_threshold())
+        checkpoint_path = dialog.checkpoint_path()
+        if checkpoint_path is None:
+            self.statusBar().showMessage("No SAM2 checkpoints found.", 3000)
+            self._sync_segmentation_controls()
+            return None
+        checkpoint_path = Path(checkpoint_path)
+        self._selected_sam2_checkpoint_path = checkpoint_path
+        existing_masks_policy = str(dialog.existing_sam2_masks_policy())
+        keep_largest_component = bool(dialog.keep_largest_component())
+        min_mask_area_px = int(dialog.min_mask_area_px())
         self.sp_sam2_mask_threshold.setValue(mask_probability_threshold)
-        return {"mask_probability_threshold": mask_probability_threshold}
+        return {
+            "mask_probability_threshold": mask_probability_threshold,
+            "checkpoint_path": checkpoint_path,
+            "existing_masks_policy": existing_masks_policy,
+            "keep_largest_component": keep_largest_component,
+            "min_mask_area_px": min_mask_area_px,
+        }
 
     def _create_sam2_segmentation_settings_dialog(self, *, detection_count: int):
         kwargs = {
@@ -1465,6 +2042,8 @@ class MolTrackMainWindow(QMainWindow):
             "backend": self.cmb_segmentation_backend.currentText(),
             "bbox_count": int(detection_count),
             "initial_mask_threshold": float(self.sp_sam2_mask_threshold.value()),
+            "checkpoints": list(self._sam2_checkpoints),
+            "selected_checkpoint_path": self._selected_sam2_checkpoint_path,
         }
         if self._sam2_settings_dialog_factory is not None:
             return self._sam2_settings_dialog_factory(**kwargs)
@@ -1475,11 +2054,30 @@ class MolTrackMainWindow(QMainWindow):
         detections,
         *,
         mask_probability_threshold: float,
+        checkpoint_path,
+        existing_masks_policy: str,
+        keep_largest_component: bool,
+        min_mask_area_px: int,
         scope: str,
     ) -> None:
         detections = list(detections)
         if self._series is None or not detections:
             return
+        if str(existing_masks_policy) == SAM2_EXISTING_MASK_POLICY_SKIP:
+            original_count = len(detections)
+            detections = [
+                detection
+                for detection in detections
+                if not self._has_existing_sam2_segmentation_for_detection(detection)
+            ]
+            skipped_count = original_count - len(detections)
+            if not detections:
+                self.statusBar().showMessage(
+                    f"SAM2 skipped {skipped_count} BBox(es) with existing masks.",
+                    5000,
+                )
+                self._sync_segmentation_controls()
+                return
         frame_index = detections[0].frame_index
         source_view = detections[0].source_view
         try:
@@ -1492,6 +2090,7 @@ class MolTrackMainWindow(QMainWindow):
 
         self._sam2_segmentation_running = True
         self._sam2_segmentation_scope = str(scope)
+        self._sam2_segmentation_existing_masks_policy = str(existing_masks_policy)
         self._set_file_actions_enabled(False)
         self._sam2_segmentation_progress_dialog = self._show_sam2_segmentation_progress_dialog(
             frame_index=frame_index,
@@ -1509,6 +2108,10 @@ class MolTrackMainWindow(QMainWindow):
             frame,
             detections,
             mask_probability_threshold=float(mask_probability_threshold),
+            checkpoint_path=checkpoint_path,
+            existing_masks_policy=str(existing_masks_policy),
+            keep_largest_component=bool(keep_largest_component),
+            min_mask_area_px=int(min_mask_area_px),
         )
         self._sam2_segmentation_worker.moveToThread(self._sam2_segmentation_thread)
         self._sam2_segmentation_thread.started.connect(self._sam2_segmentation_worker.run)
@@ -1519,6 +2122,20 @@ class MolTrackMainWindow(QMainWindow):
         self._sam2_segmentation_worker.failed.connect(self._sam2_segmentation_thread.quit)
         self._sam2_segmentation_thread.finished.connect(self._cleanup_sam2_segmentation_worker)
         self._sam2_segmentation_thread.start()
+
+    def _has_existing_sam2_segmentation_for_detection(self, detection) -> bool:
+        if self._series is None or self._series.molecular_segmentations is None:
+            return False
+        prompt_ids = (detection.detection_id,)
+        for segmentation in self._series.molecular_segmentations.get_segmentations(
+            detection.frame_index,
+            source_view=detection.source_view,
+        ):
+            if segmentation.origin != "sam2":
+                continue
+            if tuple(segmentation.prompt_detection_ids) == prompt_ids:
+                return True
+        return False
 
     def _show_sam2_segmentation_progress_dialog(self, *, frame_index: int, detection_count: int) -> QProgressDialog:
         progress_dialog = QProgressDialog(
@@ -1563,6 +2180,9 @@ class MolTrackMainWindow(QMainWindow):
                     raise ValueError("SAM2 segmentation source_view does not match the prompt BBox.")
             segmentation_set = self._ensure_molecular_segmentation_set()
             for _detection, segmentation in results:
+                self._ensure_sam2_original_mask(segmentation)
+                if self._sam2_segmentation_existing_masks_policy == SAM2_EXISTING_MASK_POLICY_REPLACE:
+                    self._remove_existing_sam2_segmentations_for_prompt(segmentation_set, segmentation)
                 segmentation_set.add_segmentation(segmentation)
         except Exception as exc:
             self._finish_sam2_segmentation_run()
@@ -1585,6 +2205,11 @@ class MolTrackMainWindow(QMainWindow):
         self.statusBar().showMessage(final_message, 5000)
         QTimer.singleShot(0, lambda message=final_message: self.statusBar().showMessage(message, 5000))
 
+    def _ensure_sam2_original_mask(self, segmentation) -> None:
+        if segmentation.origin != "sam2" or segmentation.mask is None or segmentation.original_mask is not None:
+            return
+        segmentation.original_mask = np.asarray(segmentation.mask, dtype=bool).copy()
+
     @pyqtSlot(str)
     def _on_sam2_segmentation_failed(self, message: str) -> None:
         self._finish_sam2_segmentation_run()
@@ -1596,9 +2221,27 @@ class MolTrackMainWindow(QMainWindow):
     def _finish_sam2_segmentation_run(self) -> None:
         self._sam2_segmentation_running = False
         self._sam2_segmentation_scope = ""
+        self._sam2_segmentation_existing_masks_policy = SAM2_EXISTING_MASK_POLICY_REPLACE
         self._set_file_actions_enabled(True)
         self._close_sam2_segmentation_progress_dialog()
         self._sync_navigation_controls()
+
+    def _remove_existing_sam2_segmentations_for_prompt(self, segmentation_set, new_segmentation) -> int:
+        prompt_ids = tuple(new_segmentation.prompt_detection_ids)
+        if not prompt_ids:
+            return 0
+        to_remove = [
+            segmentation.segmentation_id
+            for segmentation in segmentation_set.get_segmentations(
+                new_segmentation.frame_index,
+                source_view=new_segmentation.source_view,
+            )
+            if segmentation.origin == "sam2"
+            and tuple(segmentation.prompt_detection_ids) == prompt_ids
+        ]
+        for segmentation_id in to_remove:
+            segmentation_set.remove_segmentation(segmentation_id)
+        return len(to_remove)
 
     def _close_sam2_segmentation_progress_dialog(self) -> None:
         if self._sam2_segmentation_progress_dialog is None:

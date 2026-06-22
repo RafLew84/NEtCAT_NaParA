@@ -311,6 +311,15 @@ class MolTrackSessionStoreTests(unittest.TestCase):
                 ],
                 dtype=bool,
             )
+            original_mask = np.array(
+                [
+                    [False, False, False, False, False],
+                    [False, True, True, False, False],
+                    [False, False, True, False, False],
+                    [False, False, False, False, False],
+                ],
+                dtype=bool,
+            )
             segmentations = MolecularSegmentationSet(frame_count=2)
             segmentations.add_segmentation(
                 MolecularSegmentation(
@@ -318,12 +327,24 @@ class MolTrackSessionStoreTests(unittest.TestCase):
                     source_view="raw",
                     bbox_xyxy=(1, 1, 4, 3),
                     mask=mask,
+                    original_mask=original_mask,
                     polygon_xy=((1, 1), (4, 1), (4, 3), (1, 3)),
                     score=0.87,
                     origin="sam2",
                     prompt_detection_ids=("bbox-1",),
                     model_name="missing-sam2.pt",
-                    metadata={"checkpoint": "missing/sam2.pt", "sam2_threshold": 0.55},
+                    metadata={
+                        "checkpoint_name": "missing-sam2.pt",
+                        "checkpoint_path": "missing/sam2.pt",
+                        "sam2_threshold": 0.55,
+                        "existing_sam2_masks_policy": "replace",
+                        "keep_largest_component": True,
+                        "min_mask_area_px": 8,
+                        "edited": True,
+                        "edit_tool": "manual_brush",
+                        "edit_mode": "add",
+                        "brush_size_px": 2,
+                    },
                     segmentation_id="sam2-seg-1",
                 )
             )
@@ -341,6 +362,9 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             self.assertEqual(segmentation_payload["prompt_detection_ids"], ["bbox-1"])
             self.assertEqual(segmentation_payload["mask"]["encoding"], "rle")
             self.assertEqual(segmentation_payload["mask"]["shape"], [4, 5])
+            self.assertEqual(segmentation_payload["original_mask"]["encoding"], "rle")
+            self.assertEqual(segmentation_payload["original_mask"]["shape"], [4, 5])
+            self.assertNotEqual(segmentation_payload["mask"]["counts"], segmentation_payload["original_mask"]["counts"])
 
             loaded = load_moltrack_session(session_path)
 
@@ -353,13 +377,22 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             self.assertEqual(restored.source_view, "raw")
             self.assertEqual(restored.bbox_xyxy, (1.0, 1.0, 4.0, 3.0))
             np.testing.assert_array_equal(restored.mask, mask)
+            np.testing.assert_array_equal(restored.original_mask, original_mask)
             self.assertEqual(restored.polygon_xy, ((1.0, 1.0), (4.0, 1.0), (4.0, 3.0), (1.0, 3.0)))
             self.assertEqual(restored.score, 0.87)
             self.assertEqual(restored.origin, "sam2")
             self.assertEqual(restored.prompt_detection_ids, ("bbox-1",))
             self.assertEqual(restored.model_name, "missing-sam2.pt")
-            self.assertEqual(restored.metadata["checkpoint"], "missing/sam2.pt")
+            self.assertEqual(restored.metadata["checkpoint_name"], "missing-sam2.pt")
+            self.assertEqual(restored.metadata["checkpoint_path"], "missing/sam2.pt")
             self.assertEqual(restored.metadata["sam2_threshold"], 0.55)
+            self.assertEqual(restored.metadata["existing_sam2_masks_policy"], "replace")
+            self.assertTrue(restored.metadata["keep_largest_component"])
+            self.assertEqual(restored.metadata["min_mask_area_px"], 8)
+            self.assertTrue(restored.metadata["edited"])
+            self.assertEqual(restored.metadata["edit_tool"], "manual_brush")
+            self.assertEqual(restored.metadata["edit_mode"], "add")
+            self.assertEqual(restored.metadata["brush_size_px"], 2)
 
     def test_restore_working_series_from_session_reloads_source_and_applies_saved_frame_indices(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

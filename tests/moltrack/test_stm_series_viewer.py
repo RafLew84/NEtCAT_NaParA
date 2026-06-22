@@ -160,6 +160,67 @@ class STMSeriesViewerTests(unittest.TestCase):
         self.assertEqual(self.viewer.visible_molecular_detection_count(), 0)
         self.assertEqual(self.viewer.visible_molecular_segmentation_ids(), ["seg-other-frame"])
 
+    def test_viewer_selects_specific_segmentation_by_mask_pixel(self) -> None:
+        frames = np.zeros((1, 5, 5), dtype=np.float32)
+        detections = MolecularDetectionSet(frame_count=1)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(0, 0, 5, 5),
+                    confidence=0.9,
+                    source_view="raw",
+                    detection_id="bbox-1",
+                )
+            ],
+            source_view="raw",
+            frame_shape=(5, 5),
+        )
+        first_mask = np.zeros((5, 5), dtype=bool)
+        first_mask[1, 1] = True
+        second_mask = np.zeros((5, 5), dtype=bool)
+        second_mask[3, 3] = True
+        segmentations = MolecularSegmentationSet(frame_count=1)
+        segmentations.add_segmentation(
+            MolecularSegmentation(
+                frame_index=0,
+                source_view="raw",
+                bbox_xyxy=(1, 1, 2, 2),
+                mask=first_mask,
+                origin="sam2",
+                prompt_detection_ids=("bbox-1",),
+                segmentation_id="seg-first",
+            )
+        )
+        segmentations.add_segmentation(
+            MolecularSegmentation(
+                frame_index=0,
+                source_view="raw",
+                bbox_xyxy=(3, 3, 4, 4),
+                mask=second_mask,
+                origin="sam2",
+                prompt_detection_ids=("bbox-1",),
+                segmentation_id="seg-second",
+            )
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=5),
+            molecular_detections=detections,
+            molecular_segmentations=segmentations,
+        )
+        self.viewer = STMSeriesViewer()
+        self.viewer.set_image_series(series)
+
+        selected_id = self.viewer.select_molecular_segmentation_at_pixel(3.0, 3.0)
+
+        self.assertEqual(selected_id, "seg-second")
+        self.assertEqual(self.viewer.selected_molecular_segmentation_id(), "seg-second")
+        self.assertEqual(self.viewer.highlighted_molecular_segmentation_ids(), ["seg-second"])
+        self.assertIsNone(self.viewer.selected_molecular_detection_id())
+
     def test_viewer_shows_sam3_preview_and_clears_it_when_frame_or_view_changes(self) -> None:
         frames = np.arange(2 * 4 * 4, dtype=np.float32).reshape(2, 4, 4)
         preview = build_moltrack_sam3_preview(

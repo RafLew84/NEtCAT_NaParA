@@ -14,7 +14,9 @@ class STMSeriesViewer(QWidget):
     """Minimal STM image-series viewer for MolTrack."""
 
     molecular_detection_selection_changed = pyqtSignal(object)
+    molecular_segmentation_selection_changed = pyqtSignal(object)
     manual_molecular_bbox_drawn = pyqtSignal(object)
+    manual_molecular_mask_brush_dragged = pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -27,6 +29,7 @@ class STMSeriesViewer(QWidget):
         self._visible_sam3_preview_count = 0
         self._visible_sam3_preview_ids: list[str] = []
         self._selected_molecular_detection_id: str | None = None
+        self._selected_molecular_segmentation_id: str | None = None
         self._molecular_detection_overlay_items_by_id: dict[str, list[object]] = {}
         self._molecular_segmentation_overlay_items_by_id: dict[str, list[object]] = {}
         self._molecular_segmentation_prompt_ids_by_id: dict[str, tuple[str, ...]] = {}
@@ -35,8 +38,11 @@ class STMSeriesViewer(QWidget):
         self._current_scale_nm_per_px = (1.0, 1.0)
         self._current_image_shape_px: tuple[int, int] | None = None
         self._molecular_bbox_add_mode_enabled = False
+        self._mask_brush_edit_mode_enabled = False
         self._manual_bbox_drag_start_px: tuple[float, float] | None = None
         self._manual_bbox_drag_current_px: tuple[float, float] | None = None
+        self._mask_brush_drag_start_px: tuple[float, float] | None = None
+        self._mask_brush_drag_current_px: tuple[float, float] | None = None
         self._manual_bbox_preview_item = None
         self._build()
 
@@ -60,6 +66,7 @@ class STMSeriesViewer(QWidget):
         self.set_molecular_bbox_add_mode_enabled(False)
         self.clear_molecular_detection_overlays()
         self._set_selected_molecular_detection_id(None)
+        self._set_selected_molecular_segmentation_id(None)
         self.lbl_title.setText("No STM series loaded")
         self.lbl_meta.setText("-")
         self.viewer.clear()
@@ -156,6 +163,9 @@ class STMSeriesViewer(QWidget):
     def selected_molecular_detection_id(self) -> str | None:
         return self._selected_molecular_detection_id
 
+    def selected_molecular_segmentation_id(self) -> str | None:
+        return self._selected_molecular_segmentation_id
+
     def visible_molecular_segmentation_count(self) -> int:
         return int(self._visible_molecular_segmentation_count)
 
@@ -187,6 +197,15 @@ class STMSeriesViewer(QWidget):
             self._manual_bbox_drag_current_px = None
             self._set_manual_bbox_preview(None)
 
+    def mask_brush_edit_mode_enabled(self) -> bool:
+        return bool(self._mask_brush_edit_mode_enabled)
+
+    def set_mask_brush_edit_mode_enabled(self, enabled: bool) -> None:
+        self._mask_brush_edit_mode_enabled = bool(enabled)
+        if not self._mask_brush_edit_mode_enabled:
+            self._mask_brush_drag_start_px = None
+            self._mask_brush_drag_current_px = None
+
     def select_molecular_detection_by_id(self, detection_id: str | None) -> str | None:
         detection_id = str(detection_id) if detection_id is not None else None
         if detection_id is None or detection_id not in self._molecular_detection_overlay_items_by_id:
@@ -210,6 +229,29 @@ class STMSeriesViewer(QWidget):
         self._set_selected_molecular_detection_id(detection_id)
         return detection_id
 
+    def select_molecular_segmentation_by_id(self, segmentation_id: str | None) -> str | None:
+        segmentation_id = str(segmentation_id) if segmentation_id is not None else None
+        if segmentation_id is None or segmentation_id not in self._molecular_segmentation_overlay_items_by_id:
+            self._set_selected_molecular_segmentation_id(None)
+            return None
+        self._set_selected_molecular_segmentation_id(segmentation_id)
+        return segmentation_id
+
+    def select_molecular_segmentation_at_pixel(
+        self,
+        x_px: float,
+        y_px: float,
+        *,
+        source_view: str | None = None,
+    ) -> str | None:
+        segmentation_id = self._find_molecular_segmentation_at_pixel(
+            float(x_px),
+            float(y_px),
+            source_view=source_view or self._current_molecular_detection_source_view,
+        )
+        self._set_selected_molecular_segmentation_id(segmentation_id)
+        return segmentation_id
+
     def finish_manual_bbox_drag_from_pixels(
         self,
         start_xy_px: tuple[float, float],
@@ -223,6 +265,18 @@ class STMSeriesViewer(QWidget):
             return None
         self.manual_molecular_bbox_drawn.emit(bbox_xyxy)
         return bbox_xyxy
+
+    def finish_mask_brush_drag_from_pixels(
+        self,
+        start_xy_px: tuple[float, float],
+        end_xy_px: tuple[float, float],
+    ) -> tuple[tuple[float, float], ...]:
+        points = self._sample_pixel_line(start_xy_px, end_xy_px)
+        self._mask_brush_drag_start_px = None
+        self._mask_brush_drag_current_px = None
+        if points:
+            self.manual_molecular_mask_brush_dragged.emit(points)
+        return points
 
     def show_molecular_detections(
         self,
@@ -271,6 +325,10 @@ class STMSeriesViewer(QWidget):
         self._show_sam3_preview(source_view=source_view, scale_nm_per_px=(sx, sy))
         if self._selected_molecular_detection_id not in visible_ids:
             self._set_selected_molecular_detection_id(None)
+        else:
+            self._apply_molecular_detection_highlight()
+        if self._selected_molecular_segmentation_id not in self._visible_molecular_segmentation_ids:
+            self._set_selected_molecular_segmentation_id(None)
         else:
             self._apply_molecular_detection_highlight()
 
@@ -408,6 +466,7 @@ class STMSeriesViewer(QWidget):
 
         view_pos = self.viewer.plot_item.getViewBox().mapSceneToView(event.scenePos())
         x_px, y_px = self._view_to_pixel_coords(view_pos.x(), view_pos.y())
+        self.select_molecular_segmentation_at_pixel(x_px, y_px)
         self.select_molecular_detection_at_pixel(x_px, y_px)
         event.accept()
 
@@ -444,6 +503,34 @@ class STMSeriesViewer(QWidget):
                 event.accept()
                 return True
 
+        if watched is self.viewer.glw.viewport() and self._mask_brush_edit_mode_enabled:
+            event_type = event.type()
+            if event_type == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
+                start_px = self._pixel_coords_from_viewport_pos(event.position())
+                if start_px is None:
+                    return False
+                self._mask_brush_drag_start_px = start_px
+                self._mask_brush_drag_current_px = start_px
+                event.accept()
+                return True
+
+            if event_type == QEvent.Type.MouseMove and self._mask_brush_drag_start_px is not None:
+                current_px = self._pixel_coords_from_viewport_pos(event.position(), require_inside=False)
+                if current_px is not None:
+                    self._mask_brush_drag_current_px = current_px
+                event.accept()
+                return True
+
+            if event_type == QEvent.Type.MouseButtonRelease and event.button() == Qt.MouseButton.LeftButton:
+                if self._mask_brush_drag_start_px is None:
+                    return False
+                end_px = self._pixel_coords_from_viewport_pos(event.position(), require_inside=False)
+                if end_px is None:
+                    end_px = self._mask_brush_drag_current_px or self._mask_brush_drag_start_px
+                self.finish_mask_brush_drag_from_pixels(self._mask_brush_drag_start_px, end_px)
+                event.accept()
+                return True
+
         return super().eventFilter(watched, event)
 
     def _find_molecular_detection_at_pixel(
@@ -468,6 +555,39 @@ class STMSeriesViewer(QWidget):
             if float(x0) <= x_px <= float(x1) and float(y0) <= y_px <= float(y1):
                 area = (float(x1) - float(x0)) * (float(y1) - float(y0))
                 matches.append((area, detection.detection_id))
+        if not matches:
+            return None
+        matches.sort(key=lambda item: item[0])
+        return matches[0][1]
+
+    def _find_molecular_segmentation_at_pixel(
+        self,
+        x_px: float,
+        y_px: float,
+        *,
+        source_view: str,
+    ) -> str | None:
+        if self._series is None:
+            return None
+        segmentation_set = getattr(self._series, "molecular_segmentations", None)
+        if segmentation_set is None:
+            return None
+        x_index = int(np.floor(float(x_px)))
+        y_index = int(np.floor(float(y_px)))
+        matches = []
+        for segmentation in segmentation_set.get_segmentations(
+            self._series.active_frame_index,
+            source_view=source_view,
+        ):
+            mask = self._full_frame_mask_for_segmentation(segmentation)
+            if mask is None:
+                continue
+            if not (0 <= y_index < mask.shape[0] and 0 <= x_index < mask.shape[1]):
+                continue
+            if not bool(mask[y_index, x_index]):
+                continue
+            area = int(np.count_nonzero(mask))
+            matches.append((area, segmentation.segmentation_id))
         if not matches:
             return None
         matches.sort(key=lambda item: item[0])
@@ -503,6 +623,20 @@ class STMSeriesViewer(QWidget):
             return None
         return x0, y0, x1, y1
 
+    def _sample_pixel_line(
+        self,
+        start_xy_px: tuple[float, float],
+        end_xy_px: tuple[float, float],
+    ) -> tuple[tuple[float, float], ...]:
+        x0, y0 = (float(value) for value in start_xy_px)
+        x1, y1 = (float(value) for value in end_xy_px)
+        steps = int(max(abs(x1 - x0), abs(y1 - y0))) + 1
+        if steps <= 1:
+            return ((x0, y0),)
+        xs = np.linspace(x0, x1, steps)
+        ys = np.linspace(y0, y1, steps)
+        return tuple((float(x), float(y)) for x, y in zip(xs, ys))
+
     def _set_manual_bbox_preview(self, bbox_xyxy: tuple[float, float, float, float] | None) -> None:
         if self._manual_bbox_preview_item is not None:
             self.viewer.remove_item(self._manual_bbox_preview_item)
@@ -524,15 +658,28 @@ class STMSeriesViewer(QWidget):
         self._apply_molecular_detection_highlight()
         self.molecular_detection_selection_changed.emit(detection_id)
 
+    def _set_selected_molecular_segmentation_id(self, segmentation_id: str | None) -> None:
+        segmentation_id = str(segmentation_id) if segmentation_id is not None else None
+        if segmentation_id == self._selected_molecular_segmentation_id:
+            self._apply_molecular_detection_highlight()
+            return
+        self._selected_molecular_segmentation_id = segmentation_id
+        self._apply_molecular_detection_highlight()
+        self.molecular_segmentation_selection_changed.emit(segmentation_id)
+
     def _apply_molecular_detection_highlight(self) -> None:
         selected_id = self._selected_molecular_detection_id
         for detection_id, items in self._molecular_detection_overlay_items_by_id.items():
             for item in items:
                 self.viewer.set_item_highlight(item, detection_id == selected_id)
         highlighted_segmentations: list[str] = []
+        selected_segmentation_id = self._selected_molecular_segmentation_id
         for segmentation_id, items in self._molecular_segmentation_overlay_items_by_id.items():
             prompt_ids = self._molecular_segmentation_prompt_ids_by_id.get(segmentation_id, ())
-            highlighted = selected_id is not None and selected_id in prompt_ids
+            if selected_segmentation_id is not None:
+                highlighted = segmentation_id == selected_segmentation_id
+            else:
+                highlighted = selected_id is not None and selected_id in prompt_ids
             if highlighted:
                 highlighted_segmentations.append(segmentation_id)
             for item in items:

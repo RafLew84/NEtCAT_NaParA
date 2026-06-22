@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 
 from moltrack.core import MolecularDetection
+import moltrack.sam3.subprocess_worker as sam3_worker
 from moltrack.sam3 import (
     MolTrackSam3BoxPrompt,
     MolTrackSam3ConceptAdapter,
@@ -12,9 +13,99 @@ from moltrack.sam3 import (
     MolTrackSam3RunOutput,
     MolTrackSam3SubprocessBackend,
 )
+from moltrack.sam3.backend import DEFAULT_SAM31_OFFICIAL_WORKER, DEFAULT_SAM3_TRANSFORMERS_WORKER
 
 
 class MolTrackSam3AdapterTests(unittest.TestCase):
+    def test_default_subprocess_worker_scripts_exist(self) -> None:
+        self.assertTrue(
+            DEFAULT_SAM3_TRANSFORMERS_WORKER.is_file(),
+            f"Missing SAM3 worker: {DEFAULT_SAM3_TRANSFORMERS_WORKER}",
+        )
+        self.assertTrue(
+            DEFAULT_SAM31_OFFICIAL_WORKER.is_file(),
+            f"Missing SAM3.1 worker: {DEFAULT_SAM31_OFFICIAL_WORKER}",
+        )
+
+    def test_subprocess_worker_uses_transformers_visual_search_with_all_box_prompts(self) -> None:
+        calls = []
+
+        def fake_visual_search(**kwargs):
+            calls.append(kwargs)
+            np.testing.assert_array_equal(
+                kwargs["input_boxes_xyxy"],
+                np.asarray(
+                    [
+                        [1, 1, 3, 3],
+                        [3, 1, 5, 3],
+                        [5, 1, 7, 3],
+                    ],
+                    dtype=np.float32,
+                ),
+            )
+            np.testing.assert_array_equal(kwargs["input_boxes_labels"], np.asarray([1, 1, 0], dtype=np.int64))
+            masks = np.zeros((4, 6, 8), dtype=bool)
+            masks[:, 1:3, 2:5] = True
+            return {
+                "bboxes_xyxy": np.asarray(
+                    [
+                        [1, 1, 3, 3],
+                        [3, 1, 5, 3],
+                        [5, 1, 7, 3],
+                        [1, 3, 4, 5],
+                    ],
+                    dtype=np.float32,
+                ),
+                "scores": np.asarray([0.95, 0.9, 0.85, 0.8], dtype=np.float32),
+                "masks": masks,
+            }
+
+        original_visual_search = sam3_worker._run_transformers_visual_search
+        sam3_worker._run_transformers_visual_search = fake_visual_search
+        try:
+            import tempfile
+            from pathlib import Path
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                tmp_path = Path(tmpdir)
+                input_path = tmp_path / "input.npz"
+                output_path = tmp_path / "output.npz"
+                np.savez_compressed(
+                    input_path,
+                    image_rgb=np.zeros((6, 8, 3), dtype=np.uint8),
+                    prompt_bboxes_xyxy=np.asarray(
+                        [
+                            [1, 1, 3, 3],
+                            [3, 1, 5, 3],
+                            [5, 1, 7, 3],
+                        ],
+                        dtype=np.float32,
+                    ),
+                    prompt_labels=np.asarray([1, 1, 0], dtype=np.int64),
+                    backend=np.asarray("transformers_sam3"),
+                    max_results=np.asarray(10, dtype=np.int32),
+                )
+
+                sam3_worker.run_worker(
+                    input_npz=input_path,
+                    output_npz=output_path,
+                    model_id="facebook/sam3",
+                    device="cuda",
+                    score_threshold=0.1,
+                    mask_threshold=0.5,
+                    default_version="sam3",
+                    default_backend="transformers_sam3",
+                )
+
+                self.assertEqual(len(calls), 1)
+                self.assertEqual(calls[0]["model_id"], "facebook/sam3")
+                self.assertEqual(calls[0]["device_arg"], "cuda")
+                with np.load(output_path, allow_pickle=False) as output:
+                    self.assertEqual(output["bboxes_xyxy"].shape[0], 4)
+                    self.assertEqual(output["masks"].shape[0], 4)
+        finally:
+            sam3_worker._run_transformers_visual_search = original_visual_search
+
     def test_adapter_maps_worker_proposals_from_roi_upscale_to_full_frame_coordinates(self) -> None:
         class FakeSam3Backend:
             def __init__(self) -> None:

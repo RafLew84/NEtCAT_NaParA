@@ -19,6 +19,7 @@ class MolecularSegmentation:
     source_view: str = "raw"
     bbox_xyxy: tuple[float, float, float, float] | None = None
     mask: Any | None = None
+    original_mask: Any | None = None
     polygon_xy: Any | None = None
     score: float | None = None
     origin: str = "manual"
@@ -35,9 +36,12 @@ class MolecularSegmentation:
         source_view = _normalize_source_view(self.source_view)
         bbox_xyxy = None if self.bbox_xyxy is None else _normalize_bbox_xyxy(self.bbox_xyxy)
         mask = _normalize_mask(self.mask)
+        original_mask = _normalize_mask(self.original_mask)
         polygon_xy = _normalize_polygon_xy(self.polygon_xy)
         if mask is None and polygon_xy is None:
             raise ValueError("MolecularSegmentation requires a mask or polygon_xy.")
+        if mask is not None and original_mask is not None and original_mask.shape != mask.shape:
+            raise ValueError("original_mask shape must match mask shape.")
 
         score = _normalize_score(self.score)
         origin = str(self.origin).strip().lower()
@@ -48,6 +52,7 @@ class MolecularSegmentation:
         self.source_view = source_view
         self.bbox_xyxy = bbox_xyxy
         self.mask = mask
+        self.original_mask = original_mask
         self.polygon_xy = polygon_xy
         self.score = score
         self.origin = origin

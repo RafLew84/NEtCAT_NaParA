@@ -316,6 +316,7 @@ def _molecular_segmentations_to_payload(
                     "source_view": segmentation.source_view,
                     "bbox_xyxy": None if segmentation.bbox_xyxy is None else list(segmentation.bbox_xyxy),
                     "mask": _mask_to_payload(segmentation.mask),
+                    "original_mask": _mask_to_payload(segmentation.original_mask),
                     "polygon_xy": _polygon_to_payload(segmentation.polygon_xy),
                     "score": segmentation.score,
                     "origin": segmentation.origin,
@@ -358,6 +359,7 @@ def _molecular_segmentations_from_payload(
                 else tuple(item_payload.get("bbox_xyxy"))
             ),
             mask=_mask_from_payload(item_payload.get("mask")),
+            original_mask=_mask_from_payload(item_payload.get("original_mask")),
             polygon_xy=_polygon_from_payload(item_payload.get("polygon_xy")),
             score=item_payload.get("score"),
             origin=str(item_payload.get("origin", "manual")),
