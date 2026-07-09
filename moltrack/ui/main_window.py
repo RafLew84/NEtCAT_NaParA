@@ -62,6 +62,7 @@ SAM2_EXISTING_MASK_POLICY_SKIP = "skip"
 SAM3_PROMPT_SOURCE_ACTIVE = "Active selected BBox"
 SAM3_PROMPT_SOURCE_ALL_CURRENT = "All current BBoxes"
 SAM3_PROMPT_SOURCE_SELECTED_CURRENT = "Selected current BBoxes"
+SAM3_PROMPT_SOURCE_MANUAL = "Manual prompt BBoxes"
 
 
 def _sam2_checkpoint_path(checkpoint) -> Path:
@@ -406,6 +407,13 @@ class MolTrackMainWindow(QMainWindow):
         self._sam3_concept_source_view = "raw"
         self._sam3_concept_frame_index = 0
         self._sam3_concept_duplicate_iou_threshold = 0.9
+        self._sam3_manual_positive_bboxes_by_context: dict[
+            tuple[int, str], list[tuple[float, float, float, float]]
+        ] = {}
+        self._sam3_manual_negative_bboxes_by_context: dict[
+            tuple[int, str], list[tuple[float, float, float, float]]
+        ] = {}
+        self._sam3_prompt_draw_mode: str | None = None
         self._registration_running = False
         self._registration_progress_dialog: QProgressDialog | None = None
         self._registration_thread: QThread | None = None
@@ -636,10 +644,25 @@ class MolTrackMainWindow(QMainWindow):
                 SAM3_PROMPT_SOURCE_ACTIVE,
                 SAM3_PROMPT_SOURCE_ALL_CURRENT,
                 SAM3_PROMPT_SOURCE_SELECTED_CURRENT,
+                SAM3_PROMPT_SOURCE_MANUAL,
             ]
         )
         self.cmb_sam3_prompt_source.setEnabled(False)
         segmentation_layout.addWidget(self.cmb_sam3_prompt_source)
+        self.btn_sam3_add_positive_prompt = QPushButton("Add + Prompt BBox", self.segmentation_group)
+        self.btn_sam3_add_positive_prompt.setCheckable(True)
+        self.btn_sam3_add_positive_prompt.setEnabled(False)
+        segmentation_layout.addWidget(self.btn_sam3_add_positive_prompt)
+        self.btn_sam3_add_negative_prompt = QPushButton("Add - Prompt BBox", self.segmentation_group)
+        self.btn_sam3_add_negative_prompt.setCheckable(True)
+        self.btn_sam3_add_negative_prompt.setEnabled(False)
+        segmentation_layout.addWidget(self.btn_sam3_add_negative_prompt)
+        self.btn_sam3_clear_prompts = QPushButton("Clear SAM3 Prompts", self.segmentation_group)
+        self.btn_sam3_clear_prompts.setEnabled(False)
+        segmentation_layout.addWidget(self.btn_sam3_clear_prompts)
+        self.lbl_sam3_prompt_status = QLabel("Manual prompts: +0 / -0", self.segmentation_group)
+        self.lbl_sam3_prompt_status.setWordWrap(True)
+        segmentation_layout.addWidget(self.lbl_sam3_prompt_status)
         self.sp_sam3_score_threshold = QDoubleSpinBox(self.segmentation_group)
         self.sp_sam3_score_threshold.setRange(0.0, 1.0)
         self.sp_sam3_score_threshold.setSingleStep(0.05)
@@ -730,6 +753,9 @@ class MolTrackMainWindow(QMainWindow):
         )
         self.btn_sam2_segment_selected.clicked.connect(self._on_sam2_segment_selected_requested)
         self.btn_sam2_segment_all_current.clicked.connect(self._on_sam2_segment_all_current_requested)
+        self.btn_sam3_add_positive_prompt.toggled.connect(self._on_sam3_add_positive_prompt_toggled)
+        self.btn_sam3_add_negative_prompt.toggled.connect(self._on_sam3_add_negative_prompt_toggled)
+        self.btn_sam3_clear_prompts.clicked.connect(lambda _checked=False: self.clear_sam3_manual_prompts())
         self.btn_sam3_run_concepts.clicked.connect(self._on_sam3_run_concepts_requested)
         self.btn_sam3_commit_proposals.clicked.connect(self._on_sam3_commit_proposals_requested)
         self.viewer.molecular_detection_selection_changed.connect(self._on_molecular_detection_selection_changed)
@@ -738,6 +764,9 @@ class MolTrackMainWindow(QMainWindow):
         self.viewer.manual_molecular_mask_brush_dragged.connect(self._on_manual_mask_brush_dragged)
 
     def set_image_series(self, series) -> None:
+        self._clear_sam3_prompt_draw_mode()
+        self._sam3_manual_positive_bboxes_by_context.clear()
+        self._sam3_manual_negative_bboxes_by_context.clear()
         self._series = series
         self._set_registration_view_mode("Show raw")
         self._sync_navigation_controls()
@@ -853,8 +882,9 @@ class MolTrackMainWindow(QMainWindow):
 
     def _sync_bbox_edit_controls(self) -> None:
         controls_enabled = self._series is not None and not self._is_processing()
-        self.btn_bbox_add.setEnabled(controls_enabled)
-        if not controls_enabled and self.btn_bbox_add.isChecked():
+        sam3_prompt_tool_active = self._sam3_prompt_draw_mode is not None
+        self.btn_bbox_add.setEnabled(controls_enabled and not sam3_prompt_tool_active)
+        if (not controls_enabled or sam3_prompt_tool_active) and self.btn_bbox_add.isChecked():
             self.btn_bbox_add.blockSignals(True)
             try:
                 self.btn_bbox_add.setChecked(False)
@@ -867,7 +897,7 @@ class MolTrackMainWindow(QMainWindow):
         self.btn_bbox_delete_selected.setEnabled(has_selection)
         self._sync_segmentation_controls()
 
-        if controls_enabled and self.btn_bbox_add.isChecked():
+        if controls_enabled and not sam3_prompt_tool_active and self.btn_bbox_add.isChecked():
             self.lbl_bbox_edit_status.setText("Add BBox: drag on image")
             return
 
@@ -944,8 +974,15 @@ class MolTrackMainWindow(QMainWindow):
         )
 
     def _set_sam3_controls_enabled(self, enabled: bool) -> None:
+        if not enabled and self._sam3_prompt_draw_mode is not None:
+            self._sam3_prompt_draw_mode = None
+            self._set_sam3_prompt_button_states(None)
         self.cmb_sam3_model.setEnabled(enabled)
         self.cmb_sam3_prompt_source.setEnabled(enabled)
+        self.btn_sam3_add_positive_prompt.setEnabled(enabled)
+        self.btn_sam3_add_negative_prompt.setEnabled(enabled)
+        self.btn_sam3_clear_prompts.setEnabled(enabled)
+        self._sync_sam3_prompt_status()
         self.sp_sam3_score_threshold.setEnabled(enabled)
         self.sp_sam3_mask_threshold.setEnabled(enabled)
         self.sp_sam3_duplicate_iou.setEnabled(enabled)
@@ -986,6 +1023,121 @@ class MolTrackMainWindow(QMainWindow):
 
     def selected_molecular_segmentation_id(self) -> str | None:
         return self._selected_molecular_segmentation_id
+
+    def sam3_prompt_draw_mode(self) -> str | None:
+        return self._sam3_prompt_draw_mode
+
+    def add_sam3_manual_prompt_bbox(
+        self,
+        bbox_xyxy: tuple[float, float, float, float],
+        *,
+        label: int,
+    ) -> bool:
+        if self._series is None:
+            return False
+        label = int(label)
+        if label not in (0, 1):
+            raise ValueError("SAM3 manual prompt label must be 0 or 1.")
+        try:
+            x1, y1, x2, y2 = (float(value) for value in bbox_xyxy)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("SAM3 manual prompt bbox must contain four numeric values.") from exc
+        bbox = self._manual_bbox_from_pixel_drag(
+            (x1, y1),
+            (x2, y2),
+            frame_shape=self._current_bbox_frame_shape(self._current_yolo_source_view()),
+        )
+        if bbox is None:
+            self.statusBar().showMessage("Draw a larger SAM3 prompt BBox.", 3000)
+            return False
+
+        target = (
+            self._sam3_manual_positive_bboxes_by_context
+            if label == 1
+            else self._sam3_manual_negative_bboxes_by_context
+        )
+        target.setdefault(self._current_sam3_manual_prompt_context(), []).append(bbox)
+        self._show_current_sam3_manual_prompt_overlays()
+        self._sync_sam3_prompt_status()
+        self._sync_segmentation_controls()
+        return True
+
+    def clear_sam3_manual_prompts(self) -> int:
+        context = self._current_sam3_manual_prompt_context()
+        positive_count = len(self._sam3_manual_positive_bboxes_by_context.pop(context, []))
+        negative_count = len(self._sam3_manual_negative_bboxes_by_context.pop(context, []))
+        self._show_current_sam3_manual_prompt_overlays()
+        self._sync_sam3_prompt_status()
+        self._sync_segmentation_controls()
+        return positive_count + negative_count
+
+    def sam3_manual_prompt_counts(self) -> tuple[int, int]:
+        context = self._current_sam3_manual_prompt_context()
+        return (
+            len(self._sam3_manual_positive_bboxes_by_context.get(context, ())),
+            len(self._sam3_manual_negative_bboxes_by_context.get(context, ())),
+        )
+
+    def sam3_manual_prompt_bboxes(self, *, label: int) -> tuple[tuple[float, float, float, float], ...]:
+        label = int(label)
+        if label not in (0, 1):
+            raise ValueError("SAM3 manual prompt label must be 0 or 1.")
+        context = self._current_sam3_manual_prompt_context()
+        source = (
+            self._sam3_manual_positive_bboxes_by_context
+            if label == 1
+            else self._sam3_manual_negative_bboxes_by_context
+        )
+        return tuple(source.get(context, ()))
+
+    def _current_sam3_manual_prompt_context(self) -> tuple[int, str]:
+        if self._series is None:
+            return -1, self._current_yolo_source_view()
+        return self._series.active_frame_index, self._current_yolo_source_view()
+
+    def _sync_sam3_prompt_status(self) -> None:
+        positive_count, negative_count = self.sam3_manual_prompt_counts()
+        self.lbl_sam3_prompt_status.setText(f"Manual prompts: +{positive_count} / -{negative_count}")
+
+    def _set_sam3_prompt_button_states(self, mode: str | None) -> None:
+        for button, checked in (
+            (self.btn_sam3_add_positive_prompt, mode == "positive"),
+            (self.btn_sam3_add_negative_prompt, mode == "negative"),
+        ):
+            previous = button.blockSignals(True)
+            try:
+                button.setChecked(checked)
+            finally:
+                button.blockSignals(previous)
+
+    def _set_sam3_prompt_draw_mode(self, mode: str | None) -> None:
+        if mode not in (None, "positive", "negative"):
+            raise ValueError("SAM3 prompt draw mode must be None, 'positive' or 'negative'.")
+        self._sam3_prompt_draw_mode = mode
+        self.viewer.set_prompt_bbox_draw_mode_enabled(mode is not None)
+        if mode == "positive":
+            self.viewer.set_manual_bbox_preview_color(self.viewer.sam3_manual_prompt_color(label=1))
+        elif mode == "negative":
+            self.viewer.set_manual_bbox_preview_color(self.viewer.sam3_manual_prompt_color(label=0))
+        else:
+            self.viewer.set_manual_bbox_preview_color(None)
+        self._set_sam3_prompt_button_states(mode)
+        if mode is not None:
+            if self.btn_bbox_add.isChecked():
+                self.btn_bbox_add.setChecked(False)
+            else:
+                self.viewer.set_molecular_bbox_add_mode_enabled(False)
+            if self.btn_edit_mask.isChecked():
+                self.btn_edit_mask.setChecked(False)
+            else:
+                self.viewer.set_mask_brush_edit_mode_enabled(False)
+        self._sync_bbox_edit_controls()
+        self._sync_active_segmentation_panel()
+        self._sync_sam3_prompt_status()
+
+    def _clear_sam3_prompt_draw_mode(self) -> None:
+        if self._sam3_prompt_draw_mode is not None:
+            self._set_sam3_prompt_draw_mode(None)
 
     def select_molecular_detection_at_pixel(self, x_px: float, y_px: float) -> str | None:
         return self.viewer.select_molecular_detection_at_pixel(
@@ -1244,6 +1396,8 @@ class MolTrackMainWindow(QMainWindow):
         enabled = bool(checked) and self.btn_edit_mask.isEnabled()
         if enabled and self.btn_bbox_add.isChecked():
             self.btn_bbox_add.setChecked(False)
+        if enabled and self._sam3_prompt_draw_mode is not None:
+            self._set_sam3_prompt_draw_mode(None)
         if enabled:
             segmentation = self._current_selected_molecular_segmentation()
             if segmentation is not None and segmentation.mask is not None:
@@ -1295,7 +1449,12 @@ class MolTrackMainWindow(QMainWindow):
 
         self.cmb_active_segmentation.setEnabled(bool(segmentations) and not self._is_processing())
         segmentation = self._current_selected_molecular_segmentation()
-        can_edit = segmentation is not None and segmentation.origin == "sam2" and not self._is_processing()
+        can_edit = (
+            segmentation is not None
+            and segmentation.origin == "sam2"
+            and not self._is_processing()
+            and self._sam3_prompt_draw_mode is None
+        )
         self.btn_edit_mask.setEnabled(can_edit)
         self.cmb_mask_brush_mode.setEnabled(can_edit and self.btn_edit_mask.isChecked())
         self.sp_mask_brush_size.setEnabled(can_edit and self.btn_edit_mask.isChecked())
@@ -1718,10 +1877,33 @@ class MolTrackMainWindow(QMainWindow):
         self._resize_current_view_bboxes(margin_px=-float(self.sp_bbox_resize_margin.value()))
 
     def _on_bbox_add_toggled(self, checked: bool) -> None:
+        if checked and self._sam3_prompt_draw_mode is not None:
+            self._set_sam3_prompt_draw_mode(None)
+        if checked:
+            self.viewer.set_manual_bbox_preview_color(None)
         self.viewer.set_molecular_bbox_add_mode_enabled(bool(checked))
         self._sync_bbox_edit_controls()
 
+    def _on_sam3_add_positive_prompt_toggled(self, checked: bool) -> None:
+        if checked:
+            self._set_sam3_prompt_draw_mode("positive")
+        elif self._sam3_prompt_draw_mode == "positive":
+            self._set_sam3_prompt_draw_mode(None)
+
+    def _on_sam3_add_negative_prompt_toggled(self, checked: bool) -> None:
+        if checked:
+            self._set_sam3_prompt_draw_mode("negative")
+        elif self._sam3_prompt_draw_mode == "negative":
+            self._set_sam3_prompt_draw_mode(None)
+
     def _on_manual_molecular_bbox_drawn(self, bbox_xyxy) -> None:
+        if self._sam3_prompt_draw_mode is not None:
+            label = 1 if self._sam3_prompt_draw_mode == "positive" else 0
+            self.add_sam3_manual_prompt_bbox(
+                (float(bbox_xyxy[0]), float(bbox_xyxy[1]), float(bbox_xyxy[2]), float(bbox_xyxy[3])),
+                label=label,
+            )
+            return
         self.add_manual_bbox_from_pixel_drag(
             (float(bbox_xyxy[0]), float(bbox_xyxy[1])),
             (float(bbox_xyxy[2]), float(bbox_xyxy[3])),
@@ -1842,6 +2024,8 @@ class MolTrackMainWindow(QMainWindow):
             detection_set = MolecularDetectionSet(frame_count=self._series.frame_count)
         prompt_source = self.cmb_sam3_prompt_source.currentText()
         selected_detection_ids = None
+        manual_positive_bboxes = ()
+        manual_negative_bboxes = ()
         if prompt_source == SAM3_PROMPT_SOURCE_ACTIVE:
             detection = self._current_selected_molecular_detection()
             if detection is None:
@@ -1852,6 +2036,10 @@ class MolTrackMainWindow(QMainWindow):
             selected_detection_ids = (detection.detection_id,)
         elif prompt_source == SAM3_PROMPT_SOURCE_SELECTED_CURRENT:
             positive_bbox_mode = "selected_current"
+        elif prompt_source == SAM3_PROMPT_SOURCE_MANUAL:
+            positive_bbox_mode = "manual_only"
+            manual_positive_bboxes = self.sam3_manual_prompt_bboxes(label=1)
+            manual_negative_bboxes = self.sam3_manual_prompt_bboxes(label=0)
         else:
             positive_bbox_mode = "all_current"
         return build_moltrack_sam3_prompt_batch(
@@ -1860,6 +2048,8 @@ class MolTrackMainWindow(QMainWindow):
             source_view=source_view,
             positive_bbox_mode=positive_bbox_mode,
             selected_detection_ids=selected_detection_ids,
+            manual_positive_bboxes=manual_positive_bboxes,
+            manual_negative_bboxes=manual_negative_bboxes,
         )
 
     def _show_sam3_concept_progress_dialog(self, *, model_id: str, prompt_count: int) -> QProgressDialog:
@@ -2314,14 +2504,28 @@ class MolTrackMainWindow(QMainWindow):
                     expanded,
                     self._series.active_frame_index,
                 )
+                self._show_current_sam3_manual_prompt_overlays()
                 self.metadata_panel.set_image_series(self._series)
                 return
         self.viewer.show_frame(self._series.active_frame_index)
+        self._show_current_sam3_manual_prompt_overlays()
+
+    def _show_current_sam3_manual_prompt_overlays(self) -> None:
+        if self._series is None:
+            self.viewer.clear_sam3_manual_prompt_overlays()
+            return
+        self.viewer.show_sam3_manual_prompts(
+            self.sam3_manual_prompt_bboxes(label=1),
+            self.sam3_manual_prompt_bboxes(label=0),
+        )
 
     def _on_frame_selected(self, frame_index: int) -> None:
         if self._series is None:
             return
+        previous_frame_index = self._series.active_frame_index
         self._series.set_active_frame(int(frame_index))
+        if self._series.active_frame_index != previous_frame_index:
+            self._clear_sam3_prompt_draw_mode()
         self._sync_navigation_controls()
         self._show_current_frame()
         self.metadata_panel.set_active_frame(int(frame_index))
@@ -2443,6 +2647,7 @@ class MolTrackMainWindow(QMainWindow):
     def _on_registration_view_mode_changed(self, _mode: str) -> None:
         if self._series is None:
             return
+        self._clear_sam3_prompt_draw_mode()
         self._show_current_frame()
         self._sync_yolo_controls()
 

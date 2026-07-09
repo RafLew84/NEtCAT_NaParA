@@ -13,6 +13,10 @@ from napara.gui.widgets.viewer_widget import ViewerWidget
 class STMSeriesViewer(QWidget):
     """Minimal STM image-series viewer for MolTrack."""
 
+    SAM3_MANUAL_POSITIVE_PROMPT_COLOR = (0, 180, 255)
+    SAM3_MANUAL_NEGATIVE_PROMPT_COLOR = (255, 70, 70)
+    DEFAULT_MANUAL_BBOX_PREVIEW_COLOR = (255, 220, 0)
+
     molecular_detection_selection_changed = pyqtSignal(object)
     molecular_segmentation_selection_changed = pyqtSignal(object)
     manual_molecular_bbox_drawn = pyqtSignal(object)
@@ -28,22 +32,27 @@ class STMSeriesViewer(QWidget):
         self._highlighted_molecular_segmentation_ids: list[str] = []
         self._visible_sam3_preview_count = 0
         self._visible_sam3_preview_ids: list[str] = []
+        self._visible_sam3_manual_prompt_count = 0
+        self._visible_sam3_manual_prompt_colors: list[tuple[int, int, int]] = []
         self._selected_molecular_detection_id: str | None = None
         self._selected_molecular_segmentation_id: str | None = None
         self._molecular_detection_overlay_items_by_id: dict[str, list[object]] = {}
         self._molecular_segmentation_overlay_items_by_id: dict[str, list[object]] = {}
         self._molecular_segmentation_prompt_ids_by_id: dict[str, tuple[str, ...]] = {}
         self._sam3_preview_overlay_items_by_id: dict[str, list[object]] = {}
+        self._sam3_manual_prompt_overlay_items: list[object] = []
         self._current_molecular_detection_source_view = "raw"
         self._current_scale_nm_per_px = (1.0, 1.0)
         self._current_image_shape_px: tuple[int, int] | None = None
         self._molecular_bbox_add_mode_enabled = False
+        self._prompt_bbox_draw_mode_enabled = False
         self._mask_brush_edit_mode_enabled = False
         self._manual_bbox_drag_start_px: tuple[float, float] | None = None
         self._manual_bbox_drag_current_px: tuple[float, float] | None = None
         self._mask_brush_drag_start_px: tuple[float, float] | None = None
         self._mask_brush_drag_current_px: tuple[float, float] | None = None
         self._manual_bbox_preview_item = None
+        self._manual_bbox_preview_color = self.DEFAULT_MANUAL_BBOX_PREVIEW_COLOR
         self._build()
 
     def _build(self) -> None:
@@ -64,6 +73,7 @@ class STMSeriesViewer(QWidget):
     def clear(self) -> None:
         self._series = None
         self.set_molecular_bbox_add_mode_enabled(False)
+        self.set_prompt_bbox_draw_mode_enabled(False)
         self.clear_molecular_detection_overlays()
         self._set_selected_molecular_detection_id(None)
         self._set_selected_molecular_segmentation_id(None)
@@ -152,6 +162,7 @@ class STMSeriesViewer(QWidget):
         self._molecular_segmentation_overlay_items_by_id = {}
         self._molecular_segmentation_prompt_ids_by_id = {}
         self._sam3_preview_overlay_items_by_id = {}
+        self._reset_sam3_manual_prompt_overlay_state()
         self._manual_bbox_preview_item = None
 
     def visible_molecular_detection_count(self) -> int:
@@ -187,15 +198,54 @@ class STMSeriesViewer(QWidget):
     def visible_sam3_preview_ids(self) -> list[str]:
         return list(self._visible_sam3_preview_ids)
 
+    def visible_sam3_manual_prompt_count(self) -> int:
+        return int(self._visible_sam3_manual_prompt_count)
+
+    def visible_sam3_manual_prompt_colors(self) -> list[tuple[int, int, int]]:
+        return list(self._visible_sam3_manual_prompt_colors)
+
+    def sam3_manual_prompt_color(self, *, label: int) -> tuple[int, int, int]:
+        label = int(label)
+        if label == 1:
+            return self.SAM3_MANUAL_POSITIVE_PROMPT_COLOR
+        if label == 0:
+            return self.SAM3_MANUAL_NEGATIVE_PROMPT_COLOR
+        raise ValueError("SAM3 manual prompt label must be 0 or 1.")
+
     def molecular_bbox_add_mode_enabled(self) -> bool:
         return bool(self._molecular_bbox_add_mode_enabled)
 
     def set_molecular_bbox_add_mode_enabled(self, enabled: bool) -> None:
         self._molecular_bbox_add_mode_enabled = bool(enabled)
-        if not self._molecular_bbox_add_mode_enabled:
-            self._manual_bbox_drag_start_px = None
-            self._manual_bbox_drag_current_px = None
-            self._set_manual_bbox_preview(None)
+        if not self._manual_bbox_drag_mode_enabled():
+            self._clear_manual_bbox_drag_state()
+
+    def prompt_bbox_draw_mode_enabled(self) -> bool:
+        return bool(self._prompt_bbox_draw_mode_enabled)
+
+    def set_prompt_bbox_draw_mode_enabled(self, enabled: bool) -> None:
+        self._prompt_bbox_draw_mode_enabled = bool(enabled)
+        if not self._manual_bbox_drag_mode_enabled():
+            self._clear_manual_bbox_drag_state()
+
+    def set_manual_bbox_preview_color(self, color: tuple[int, int, int] | None) -> None:
+        self._manual_bbox_preview_color = (
+            self.DEFAULT_MANUAL_BBOX_PREVIEW_COLOR
+            if color is None
+            else tuple(int(channel) for channel in color)
+        )
+        if self._manual_bbox_drag_current_px is not None and self._manual_bbox_drag_start_px is not None:
+            self._set_manual_bbox_preview(
+                self._bbox_from_pixel_drag(self._manual_bbox_drag_start_px, self._manual_bbox_drag_current_px)
+            )
+
+    def _manual_bbox_drag_mode_enabled(self) -> bool:
+        return bool(self._molecular_bbox_add_mode_enabled or self._prompt_bbox_draw_mode_enabled)
+
+    def _clear_manual_bbox_drag_state(self) -> None:
+        self._manual_bbox_drag_start_px = None
+        self._manual_bbox_drag_current_px = None
+        self._set_manual_bbox_preview(None)
 
     def mask_brush_edit_mode_enabled(self) -> bool:
         return bool(self._mask_brush_edit_mode_enabled)
@@ -332,6 +382,45 @@ class STMSeriesViewer(QWidget):
         else:
             self._apply_molecular_detection_highlight()
 
+    def show_sam3_manual_prompts(
+        self,
+        positive_bboxes: tuple[tuple[float, float, float, float], ...],
+        negative_bboxes: tuple[tuple[float, float, float, float], ...],
+        *,
+        scale_nm_per_px: tuple[float | None, float | None] | None = None,
+    ) -> None:
+        self.clear_sam3_manual_prompt_overlays()
+        sx, sy = self._effective_scale_nm_per_px(scale_nm_per_px or self._current_scale_nm_per_px)
+        visible_colors: list[tuple[int, int, int]] = []
+        count = 0
+        for bboxes, color in (
+            (positive_bboxes, self.SAM3_MANUAL_POSITIVE_PROMPT_COLOR),
+            (negative_bboxes, self.SAM3_MANUAL_NEGATIVE_PROMPT_COLOR),
+        ):
+            for bbox_xyxy in bboxes:
+                prompt_item = self.viewer.add_polyline_nm(
+                    self._bbox_polyline_nm(bbox_xyxy, scale_nm_per_px=(sx, sy)),
+                    color=color,
+                    width=2.1,
+                )
+                if prompt_item is None:
+                    continue
+                self._sam3_manual_prompt_overlay_items.append(prompt_item)
+                visible_colors.append(color)
+                count += 1
+        self._visible_sam3_manual_prompt_count = count
+        self._visible_sam3_manual_prompt_colors = visible_colors
+
+    def clear_sam3_manual_prompt_overlays(self) -> None:
+        for item in list(self._sam3_manual_prompt_overlay_items):
+            self.viewer.remove_item(item)
+        self._reset_sam3_manual_prompt_overlay_state()
+
+    def _reset_sam3_manual_prompt_overlay_state(self) -> None:
+        self._visible_sam3_manual_prompt_count = 0
+        self._visible_sam3_manual_prompt_colors = []
+        self._sam3_manual_prompt_overlay_items = []
+
     def _show_molecular_segmentations(
         self,
         *,
@@ -457,7 +546,7 @@ class STMSeriesViewer(QWidget):
     def _on_scene_mouse_clicked(self, event) -> None:
         if self._series is None:
             return
-        if self._molecular_bbox_add_mode_enabled:
+        if self._manual_bbox_drag_mode_enabled():
             return
         if event.button() != Qt.MouseButton.LeftButton:
             return
@@ -471,7 +560,7 @@ class STMSeriesViewer(QWidget):
         event.accept()
 
     def eventFilter(self, watched, event) -> bool:
-        if watched is self.viewer.glw.viewport() and self._molecular_bbox_add_mode_enabled:
+        if watched is self.viewer.glw.viewport() and self._manual_bbox_drag_mode_enabled():
             event_type = event.type()
             if event_type == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
                 start_px = self._pixel_coords_from_viewport_pos(event.position())
@@ -645,7 +734,7 @@ class STMSeriesViewer(QWidget):
             return
         self._manual_bbox_preview_item = self.viewer.add_polyline_nm(
             self._bbox_polyline_nm(bbox_xyxy, scale_nm_per_px=self._current_scale_nm_per_px),
-            color=(255, 220, 0),
+            color=self._manual_bbox_preview_color,
             width=1.5,
         )
 
