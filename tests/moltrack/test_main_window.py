@@ -2970,6 +2970,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(dialog.axis_unit(), "nm")
         self.assertEqual(dialog.axis_labels(), ("x [nm]", "y [nm]"))
         self.assertEqual(dialog.axis_ranges(), ((0.0, 20.0), (0.0, 5.0)))
+        self.assertIn("Nearest neighbor [nm]:", dialog.metrics_summary_text())
         self.assertEqual(dialog.lbl_status.text(), "Points: 2")
 
     def test_position_analysis_dialog_shows_empty_current_frame_without_error(self) -> None:
@@ -2991,7 +2992,46 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(dialog.displayed_points_xy(), ())
         self.assertEqual(dialog.axis_unit(), "px")
         self.assertEqual(dialog.axis_ranges(), ((0.0, 4.0), (0.0, 3.0)))
+        self.assertIn("Molecules: 0", dialog.metrics_summary_text())
+        self.assertIn("Nearest neighbor [px]: unavailable", dialog.metrics_summary_text())
+        self.assertIn("Line order score: unavailable", dialog.metrics_summary_text())
+        self.assertEqual(dialog.histogram_counts(), (0,) * 18)
         self.assertEqual(dialog.lbl_status.text(), "Points: 0")
+
+    def test_position_analysis_dialog_presents_nearest_neighbor_metrics_and_angle_histogram(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        detections = MolecularDetectionSet(frame_count=1)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(frame_index=0, bbox_xyxy=(0, 0, 2, 2), confidence=0.9),
+                MolecularDetection(frame_index=0, bbox_xyxy=(2, 0, 4, 2), confidence=0.8),
+                MolecularDetection(frame_index=0, bbox_xyxy=(5, 0, 7, 2), confidence=0.7),
+            ],
+            source_view="raw",
+            frame_shape=(3, 8),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((1, 3, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=3),
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+
+        self.window.btn_position_analysis.click()
+        self.__class__._app.processEvents()
+
+        dialog = self.window.position_analysis_dialog()
+        summary = dialog.metrics_summary_text()
+        self.assertIn("Molecules: 3", summary)
+        self.assertIn(
+            "Nearest neighbor [px]: mean 2.333 | median 2.000 | min 2.000 | max 3.000",
+            summary,
+        )
+        self.assertIn("Line order score: 1.000", summary)
+        self.assertEqual(dialog.histogram_counts(), (3,) + (0,) * 17)
+        self.assertEqual(dialog.histogram_axis_labels(), ("Angle [deg]", "Count"))
 
     def test_open_position_analysis_dialog_refreshes_when_frame_changes(self) -> None:
         self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
