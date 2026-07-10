@@ -582,7 +582,16 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.viewer.visible_sam3_manual_prompt_count(), 2)
 
         self.window.save_state("state.moltrack.json")
-        self.assertEqual(saved, [("state.moltrack.json", series, {"registration_view_mode": "Show raw"})])
+        self.assertEqual(
+            saved,
+            [
+                (
+                    "state.moltrack.json",
+                    series,
+                    {"registration_view_mode": "Show raw", "bbox_opacity_percent": 100},
+                )
+            ],
+        )
 
         self.window.open_state("state.moltrack.json")
         self.__class__._app.processEvents()
@@ -2312,7 +2321,14 @@ class MolTrackMainWindowTests(unittest.TestCase):
             self.__class__._app.processEvents()
 
         dialog.assert_called_once()
-        self.assertEqual(saved, [("state.moltrack.json", series, {"registration_view_mode": "Show raw"})])
+        expected_saved_state = [
+            (
+                "state.moltrack.json",
+                series,
+                {"registration_view_mode": "Show raw", "bbox_opacity_percent": 100},
+            )
+        ]
+        self.assertEqual(saved, expected_saved_state)
         self.assertIn("Saved state state.moltrack.json", self.window.statusBar().currentMessage())
 
         saved.clear()
@@ -2321,7 +2337,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
             self.__class__._app.processEvents()
 
         dialog.assert_not_called()
-        self.assertEqual(saved, [("state.moltrack.json", series, {"registration_view_mode": "Show raw"})])
+        self.assertEqual(saved, expected_saved_state)
 
     def test_open_state_uses_dialog_and_restores_working_series(self) -> None:
         loaded_session = SimpleNamespace(registration_view_mode="Show raw")
@@ -2767,6 +2783,199 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.__class__._app.processEvents()
 
         self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
+
+    def test_bbox_opacity_slider_controls_detection_overlay_without_changing_detections(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        frames = np.arange(32, dtype=np.float32).reshape(2, 4, 4)
+        detections = MolecularDetectionSet(frame_count=2)
+        first_detection = MolecularDetection(
+            frame_index=0,
+            bbox_xyxy=(0, 0, 2, 2),
+            confidence=0.9,
+            source_view="raw",
+        )
+        second_detection = MolecularDetection(
+            frame_index=1,
+            bbox_xyxy=(1, 1, 3, 3),
+            confidence=0.8,
+            source_view="raw",
+        )
+        detections.set_detections(0, [first_detection], source_view="raw", frame_shape=(4, 4))
+        detections.set_detections(1, [second_detection], source_view="raw", frame_shape=(4, 4))
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            molecular_detections=detections,
+        )
+        original_bboxes = (first_detection.bbox_xyxy, second_detection.bbox_xyxy)
+
+        self.window.set_image_series(series)
+
+        self.assertEqual(self.window.slider_bbox_opacity.minimum(), 0)
+        self.assertEqual(self.window.slider_bbox_opacity.maximum(), 100)
+        self.assertEqual(self.window.slider_bbox_opacity.value(), 100)
+        self.assertEqual(self.window.viewer.visible_molecular_detection_opacities(), [1.0])
+
+        self.window.slider_bbox_opacity.setValue(25)
+        self.__class__._app.processEvents()
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+
+        self.assertEqual(self.window.lbl_bbox_opacity.text(), "BBox opacity: 25%")
+        self.assertEqual(self.window.viewer.visible_molecular_detection_opacities(), [0.25])
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
+        self.assertEqual((first_detection.bbox_xyxy, second_detection.bbox_xyxy), original_bboxes)
+
+    def test_show_centroids_toggle_adds_positions_without_hiding_bbox_and_mask_overlays(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        detections = MolecularDetectionSet(frame_count=1)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(0, 0, 3, 3),
+                    confidence=0.9,
+                    detection_id="bbox-with-mask",
+                ),
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(3, 3, 5, 5),
+                    confidence=0.8,
+                    detection_id="bbox-fallback",
+                ),
+            ],
+            source_view="raw",
+            frame_shape=(5, 5),
+        )
+        mask = np.zeros((5, 5), dtype=bool)
+        mask[1:3, 1:3] = True
+        segmentations = MolecularSegmentationSet(frame_count=1)
+        segmentations.add_segmentation(
+            MolecularSegmentation(
+                frame_index=0,
+                source_view="raw",
+                mask=mask,
+                prompt_detection_ids=("bbox-with-mask",),
+                segmentation_id="seg-1",
+                origin="sam2",
+            )
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((1, 5, 5), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=5),
+            molecular_detections=detections,
+            molecular_segmentations=segmentations,
+        )
+
+        self.window.set_image_series(series)
+
+        self.assertEqual(self.window.chk_show_centroids.text(), "Show centroids")
+        self.assertFalse(self.window.chk_show_centroids.isChecked())
+        self.assertEqual(self.window.viewer.visible_molecular_centroid_count(), 0)
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 2)
+        self.assertEqual(self.window.viewer.visible_molecular_segmentation_count(), 1)
+
+        self.window.chk_show_centroids.setChecked(True)
+        self.__class__._app.processEvents()
+
+        self.assertEqual(self.window.viewer.visible_molecular_centroid_count(), 2)
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 2)
+        self.assertEqual(self.window.viewer.visible_molecular_segmentation_count(), 1)
+
+    def test_centroid_overlay_refreshes_per_frame_and_is_independent_of_bbox_opacity(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        detections = MolecularDetectionSet(frame_count=2)
+        detections.set_detections(
+            0,
+            [MolecularDetection(frame_index=0, bbox_xyxy=(0, 0, 2, 2), confidence=0.9)],
+            source_view="raw",
+            frame_shape=(4, 4),
+        )
+        detections.set_detections(
+            1,
+            [
+                MolecularDetection(frame_index=1, bbox_xyxy=(0, 0, 2, 2), confidence=0.8),
+                MolecularDetection(frame_index=1, bbox_xyxy=(2, 2, 4, 4), confidence=0.7),
+            ],
+            source_view="raw",
+            frame_shape=(4, 4),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((2, 4, 4), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+        self.window.chk_show_centroids.setChecked(True)
+        self.__class__._app.processEvents()
+
+        self.assertEqual(self.window.viewer.visible_molecular_centroid_count(), 1)
+
+        self.window.slider_bbox_opacity.setValue(0)
+        self.__class__._app.processEvents()
+
+        self.assertEqual(self.window.viewer.visible_molecular_detection_opacities(), [0.0])
+        self.assertEqual(self.window.viewer.visible_molecular_centroid_count(), 1)
+
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+
+        self.assertEqual(self.window.viewer.visible_molecular_centroid_count(), 2)
+        self.window.chk_show_centroids.setChecked(False)
+        self.__class__._app.processEvents()
+        self.assertEqual(self.window.viewer.visible_molecular_centroid_count(), 0)
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 2)
+
+    def test_save_then_open_state_restores_bbox_opacity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"fake mpp bytes")
+            session_path = tmp_path / "state.moltrack.json"
+            frames = np.arange(16, dtype=np.float32).reshape(1, 4, 4)
+
+            def fake_series_loader(source_path_arg, *, reverse_frame_order=False):
+                detections = MolecularDetectionSet(frame_count=1)
+                detections.set_detections(
+                    0,
+                    [
+                        MolecularDetection(
+                            frame_index=0,
+                            bbox_xyxy=(1, 1, 3, 3),
+                            confidence=0.9,
+                            source_view="raw",
+                        )
+                    ],
+                    source_view="raw",
+                    frame_shape=(4, 4),
+                )
+                return MolTrackImageSeries(
+                    source_path=str(source_path_arg),
+                    raw_frames=frames.copy(),
+                    metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+                    reverse_frame_order=reverse_frame_order,
+                    molecular_detections=detections,
+                )
+
+            self.window = MolTrackMainWindow(
+                series_loader=fake_series_loader,
+                yolo_model_discovery=lambda: [],
+            )
+            self.window.set_image_series(fake_series_loader(source_path))
+            self.window.slider_bbox_opacity.setValue(35)
+            self.window.save_state(session_path)
+
+            self.window.slider_bbox_opacity.setValue(100)
+            self.window.open_state(session_path)
+            self.__class__._app.processEvents()
+
+            self.assertEqual(self.window.slider_bbox_opacity.value(), 35)
+            self.assertEqual(self.window.lbl_bbox_opacity.text(), "BBox opacity: 35%")
+            self.assertEqual(self.window.viewer.visible_molecular_detection_opacities(), [0.35])
 
     def test_selecting_molecular_detection_by_pixel_tracks_active_raw_bbox(self) -> None:
         self.window = MolTrackMainWindow()

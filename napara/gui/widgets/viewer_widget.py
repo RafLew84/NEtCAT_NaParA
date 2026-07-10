@@ -200,7 +200,8 @@ class ViewerWidget(QWidget):
         item = PlotDataItem(pts_nm[:, 0], pts_nm[:, 1], pen=pen, name=name)
         # zapamiętaj pióra do highlightu
         item._base_pen = pen
-        item._hl_pen = mkPen((255, 220, 0), width=max(width * 1.8, width + 1))
+        highlight_color = (255, 220, 0, color[3]) if len(color) == 4 else (255, 220, 0)
+        item._hl_pen = mkPen(highlight_color, width=max(width * 1.8, width + 1))
         self.plot_item.addItem(item)
         self._overlay_items.add(item)
         return item
@@ -213,6 +214,22 @@ class ViewerWidget(QWidget):
         self.plot_item.addItem(ti)
         self._overlay_items.add(ti)
         return ti
+
+    def add_points_nm(self, points_nm, *, color=(0, 255, 120), size: float = 7.0):
+        """Add one scatter overlay for points expressed in viewer coordinates."""
+        points = np.asarray(points_nm, dtype=np.float64)
+        if points.ndim != 2 or points.shape[1] != 2 or points.shape[0] == 0:
+            return None
+        item = pg.ScatterPlotItem(
+            x=points[:, 0],
+            y=points[:, 1],
+            size=float(size),
+            pen=pg.mkPen((20, 20, 20, 220), width=1.0),
+            brush=pg.mkBrush((*color, 230)),
+        )
+        self.plot_item.addItem(item)
+        self._overlay_items.add(item)
+        return item
 
     def add_mask_overlay_px(
         self,

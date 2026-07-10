@@ -579,6 +579,13 @@ class MolTrackMainWindow(QMainWindow):
         self.lbl_bbox_edit_status = QLabel("No BBox selected", self.bbox_edit_group)
         self.lbl_bbox_edit_status.setWordWrap(True)
         bbox_edit_layout.addWidget(self.lbl_bbox_edit_status)
+        self.lbl_bbox_opacity = QLabel("BBox opacity: 100%", self.bbox_edit_group)
+        bbox_edit_layout.addWidget(self.lbl_bbox_opacity)
+        self.slider_bbox_opacity = QSlider(Qt.Orientation.Horizontal, self.bbox_edit_group)
+        self.slider_bbox_opacity.setRange(0, 100)
+        self.slider_bbox_opacity.setValue(100)
+        self.slider_bbox_opacity.setTracking(True)
+        bbox_edit_layout.addWidget(self.slider_bbox_opacity)
         sidebar_layout.addWidget(self.bbox_edit_group)
 
         self.segmentation_group = QGroupBox("Segmentation", sidebar_content)
@@ -704,6 +711,13 @@ class MolTrackMainWindow(QMainWindow):
         segmentation_layout.addWidget(self.lbl_segmentation_status)
         sidebar_layout.addWidget(self.segmentation_group)
 
+        self.position_analysis_group = QGroupBox("Position Analysis", sidebar_content)
+        position_analysis_layout = QVBoxLayout(self.position_analysis_group)
+        self.chk_show_centroids = QCheckBox("Show centroids", self.position_analysis_group)
+        self.chk_show_centroids.setChecked(False)
+        position_analysis_layout.addWidget(self.chk_show_centroids)
+        sidebar_layout.addWidget(self.position_analysis_group)
+
         sidebar_layout.addStretch(1)
 
         self.sidebar_scroll_area = QScrollArea(self)
@@ -742,6 +756,8 @@ class MolTrackMainWindow(QMainWindow):
         self.btn_bbox_reset.clicked.connect(self._on_bbox_reset_requested)
         self.btn_bbox_add.toggled.connect(self._on_bbox_add_toggled)
         self.btn_bbox_delete_selected.clicked.connect(self._on_bbox_delete_selected_requested)
+        self.slider_bbox_opacity.valueChanged.connect(self._on_bbox_opacity_changed)
+        self.chk_show_centroids.toggled.connect(self._on_show_centroids_toggled)
         self.cmb_segmentation_backend.currentTextChanged.connect(self._on_segmentation_backend_changed)
         self.cmb_active_segmentation.currentIndexChanged.connect(self._on_active_segmentation_combo_changed)
         self.btn_edit_mask.toggled.connect(self._on_edit_mask_toggled)
@@ -1884,6 +1900,18 @@ class MolTrackMainWindow(QMainWindow):
         self.viewer.set_molecular_bbox_add_mode_enabled(bool(checked))
         self._sync_bbox_edit_controls()
 
+    def _on_bbox_opacity_changed(self, value: int) -> None:
+        opacity_percent = min(100, max(0, int(value)))
+        self.lbl_bbox_opacity.setText(f"BBox opacity: {opacity_percent}%")
+        self.viewer.set_molecular_detection_overlay_opacity(opacity_percent / 100.0)
+        if self._series is not None:
+            self._show_current_frame()
+
+    def _on_show_centroids_toggled(self, checked: bool) -> None:
+        self.viewer.set_molecular_centroid_overlay_visible(bool(checked))
+        if self._series is not None:
+            self._show_current_frame()
+
     def _on_sam3_add_positive_prompt_toggled(self, checked: bool) -> None:
         if checked:
             self._set_sam3_prompt_draw_mode("positive")
@@ -2714,9 +2742,10 @@ class MolTrackMainWindow(QMainWindow):
         self._session_path = str(path)
         self.statusBar().showMessage(f"Saved state {path}", 5000)
 
-    def _current_ui_state(self) -> dict[str, str]:
+    def _current_ui_state(self) -> dict[str, str | int]:
         return {
             "registration_view_mode": self.cmb_registration_view_mode.currentText(),
+            "bbox_opacity_percent": self.slider_bbox_opacity.value(),
         }
 
     def _choose_and_open_state(self) -> None:
@@ -2741,9 +2770,11 @@ class MolTrackMainWindow(QMainWindow):
             return
 
         registration_view_mode = getattr(session, "registration_view_mode", "Show raw")
+        bbox_opacity_percent = getattr(session, "bbox_opacity_percent", 100)
         self.set_image_series(series)
         self._session_path = str(path)
         self._set_registration_view_mode(registration_view_mode)
+        self.slider_bbox_opacity.setValue(int(bbox_opacity_percent))
         self._sync_navigation_controls()
         self._show_current_frame()
         self.metadata_panel.set_image_series(series)

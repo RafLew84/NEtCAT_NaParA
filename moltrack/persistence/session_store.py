@@ -35,9 +35,11 @@ def save_moltrack_session(path: str | Path, series: MolTrackImageSeries, ui_stat
     source_path = Path(series.source_path).expanduser().resolve()
     source_stat = _stat_existing_source_file(source_path)
     registration_view_mode = _registration_view_mode_from_ui_state(ui_state)
+    bbox_opacity_percent = _bbox_opacity_percent_from_ui_state(ui_state)
     session = MolTrackSession.from_image_series(
         series,
         registration_view_mode=registration_view_mode,
+        bbox_opacity_percent=bbox_opacity_percent,
         source_size_bytes=source_stat.st_size,
         source_mtime_ns=source_stat.st_mtime_ns,
     )
@@ -96,6 +98,7 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
         active_frame_index=int(working_series_payload["active_frame_index"]),
         reverse_frame_order=bool(working_series_payload.get("reverse_frame_order", False)),
         registration_view_mode=str(ui_payload.get("registration_view_mode", "Show raw")),
+        bbox_opacity_percent=int(ui_payload.get("bbox_opacity_percent", 100)),
         registration_settings=registration_settings,
         registration_results=registration_results,
         molecular_detections=molecular_detections,
@@ -174,6 +177,7 @@ def _session_to_payload(
         },
         "ui": {
             "registration_view_mode": session.registration_view_mode,
+            "bbox_opacity_percent": session.bbox_opacity_percent,
         },
         "registration": _registration_to_payload(session.registration_results),
         "molecular_detections": _molecular_detections_to_payload(session.molecular_detections),
@@ -445,6 +449,14 @@ def _registration_view_mode_from_ui_state(ui_state: Any | None) -> str:
     if isinstance(ui_state, Mapping):
         return str(ui_state.get("registration_view_mode", "Show raw"))
     return str(getattr(ui_state, "registration_view_mode", "Show raw"))
+
+
+def _bbox_opacity_percent_from_ui_state(ui_state: Any | None) -> int:
+    if ui_state is None or isinstance(ui_state, str):
+        return 100
+    if isinstance(ui_state, Mapping):
+        return int(ui_state.get("bbox_opacity_percent", 100))
+    return int(getattr(ui_state, "bbox_opacity_percent", 100))
 
 
 def _resolve_source_path(source_payload: Mapping[str, Any], *, session_path: Path) -> Path:

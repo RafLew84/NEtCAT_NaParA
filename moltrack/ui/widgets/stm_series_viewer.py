@@ -7,6 +7,7 @@ import numpy as np
 from PyQt6.QtCore import QEvent, Qt, pyqtSignal
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
+from moltrack.core import build_molecular_centroids
 from napara.gui.widgets.viewer_widget import ViewerWidget
 
 
@@ -25,8 +26,13 @@ class STMSeriesViewer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._series = None
+        self._molecular_detection_overlay_opacity = 1.0
         self._visible_molecular_detection_count = 0
         self._visible_molecular_detection_colors: list[tuple[int, int, int]] = []
+        self._visible_molecular_detection_opacities: list[float] = []
+        self._molecular_centroid_overlay_visible = False
+        self._visible_molecular_centroid_count = 0
+        self._molecular_centroid_overlay_item = None
         self._visible_molecular_segmentation_count = 0
         self._visible_molecular_segmentation_ids: list[str] = []
         self._highlighted_molecular_segmentation_ids: list[str] = []
@@ -153,6 +159,9 @@ class STMSeriesViewer(QWidget):
         self.viewer.clear_overlay()
         self._visible_molecular_detection_count = 0
         self._visible_molecular_detection_colors = []
+        self._visible_molecular_detection_opacities = []
+        self._visible_molecular_centroid_count = 0
+        self._molecular_centroid_overlay_item = None
         self._visible_molecular_segmentation_count = 0
         self._visible_molecular_segmentation_ids = []
         self._highlighted_molecular_segmentation_ids = []
@@ -170,6 +179,18 @@ class STMSeriesViewer(QWidget):
 
     def visible_molecular_detection_colors(self) -> list[tuple[int, int, int]]:
         return list(self._visible_molecular_detection_colors)
+
+    def visible_molecular_detection_opacities(self) -> list[float]:
+        return list(self._visible_molecular_detection_opacities)
+
+    def set_molecular_detection_overlay_opacity(self, opacity: float) -> None:
+        self._molecular_detection_overlay_opacity = min(1.0, max(0.0, float(opacity)))
+
+    def set_molecular_centroid_overlay_visible(self, visible: bool) -> None:
+        self._molecular_centroid_overlay_visible = bool(visible)
+
+    def visible_molecular_centroid_count(self) -> int:
+        return int(self._visible_molecular_centroid_count)
 
     def selected_molecular_detection_id(self) -> str | None:
         return self._selected_molecular_detection_id
@@ -344,6 +365,7 @@ class STMSeriesViewer(QWidget):
         self._current_scale_nm_per_px = (sx, sy)
         count = 0
         colors: list[tuple[int, int, int]] = []
+        opacities: list[float] = []
         visible_ids: set[str] = set()
         if detection_set is not None:
             detections = detection_set.get_detections(
@@ -352,9 +374,10 @@ class STMSeriesViewer(QWidget):
             )
             for detection in detections:
                 color = (255, 0, 255) if detection.selected else (255, 140, 0)
+                draw_color = (*color, round(255 * self._molecular_detection_overlay_opacity))
                 polyline = self.viewer.add_polyline_nm(
                     self._bbox_polyline_nm(detection.bbox_xyxy, scale_nm_per_px=(sx, sy)),
-                    color=color,
+                    color=draw_color,
                     width=1.8,
                 )
                 if polyline is None:
@@ -362,17 +385,20 @@ class STMSeriesViewer(QWidget):
                 visible_ids.add(detection.detection_id)
                 self._molecular_detection_overlay_items_by_id[detection.detection_id] = [polyline]
                 colors.append(color)
+                opacities.append(self._molecular_detection_overlay_opacity)
                 x0, y0, x1, y1 = detection.bbox_xyxy
                 self.viewer.add_text_nm(
                     f"{detection.confidence:.2f}",
                     (((x0 + x1) / 2.0) * sx, ((y0 + y1) / 2.0) * sy),
-                    color=color,
+                    color=draw_color,
                 )
                 count += 1
         self._visible_molecular_detection_count = count
         self._visible_molecular_detection_colors = colors
+        self._visible_molecular_detection_opacities = opacities
         self._show_molecular_segmentations(source_view=source_view, scale_nm_per_px=(sx, sy))
         self._show_sam3_preview(source_view=source_view, scale_nm_per_px=(sx, sy))
+        self._show_molecular_centroids(source_view=source_view, scale_nm_per_px=(sx, sy))
         if self._selected_molecular_detection_id not in visible_ids:
             self._set_selected_molecular_detection_id(None)
         else:
@@ -381,6 +407,32 @@ class STMSeriesViewer(QWidget):
             self._set_selected_molecular_segmentation_id(None)
         else:
             self._apply_molecular_detection_highlight()
+
+    def _show_molecular_centroids(
+        self,
+        *,
+        source_view: str,
+        scale_nm_per_px: tuple[float, float],
+    ) -> None:
+        self._visible_molecular_centroid_count = 0
+        self._molecular_centroid_overlay_item = None
+        if self._series is None or not self._molecular_centroid_overlay_visible:
+            return
+        centroids = build_molecular_centroids(
+            self._series,
+            frame_index=self._series.active_frame_index,
+            source_view=source_view,
+        )
+        sx, sy = scale_nm_per_px
+        points_nm = np.asarray(
+            [(centroid.x_px * sx, centroid.y_px * sy) for centroid in centroids],
+            dtype=np.float64,
+        )
+        item = self.viewer.add_points_nm(points_nm, color=(0, 255, 120), size=7.0)
+        if item is None:
+            return
+        self._molecular_centroid_overlay_item = item
+        self._visible_molecular_centroid_count = len(centroids)
 
     def show_sam3_manual_prompts(
         self,

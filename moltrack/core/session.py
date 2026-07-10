@@ -21,6 +21,7 @@ class MolTrackSession:
     active_frame_index: int
     reverse_frame_order: bool = False
     registration_view_mode: str = "Show raw"
+    bbox_opacity_percent: int = 100
     registration_settings: MolTrackRegistrationSettings | None = None
     registration_results: MolTrackRegistrationResultSet | None = None
     molecular_detections: MolecularDetectionSet | None = None
@@ -49,6 +50,10 @@ class MolTrackSession:
         if registration_view_mode not in SUPPORTED_SESSION_REGISTRATION_VIEW_MODES:
             supported = ", ".join(SUPPORTED_SESSION_REGISTRATION_VIEW_MODES)
             raise ValueError(f"Unsupported registration_view_mode: {registration_view_mode!r}. Supported: {supported}.")
+
+        bbox_opacity_percent = int(self.bbox_opacity_percent)
+        if not 0 <= bbox_opacity_percent <= 100:
+            raise ValueError("bbox_opacity_percent must be between 0 and 100.")
 
         schema_version = int(self.schema_version)
         if schema_version != MOLTRACK_SESSION_SCHEMA_VERSION:
@@ -92,6 +97,7 @@ class MolTrackSession:
         object.__setattr__(self, "active_frame_index", active_frame_index)
         object.__setattr__(self, "reverse_frame_order", bool(self.reverse_frame_order))
         object.__setattr__(self, "registration_view_mode", registration_view_mode)
+        object.__setattr__(self, "bbox_opacity_percent", bbox_opacity_percent)
         object.__setattr__(self, "source_size_bytes", source_size_bytes)
         object.__setattr__(self, "source_mtime_ns", source_mtime_ns)
         object.__setattr__(self, "schema_version", schema_version)
@@ -102,6 +108,7 @@ class MolTrackSession:
         series: MolTrackImageSeries,
         *,
         registration_view_mode: str = "Show raw",
+        bbox_opacity_percent: int = 100,
         source_size_bytes: int | None = None,
         source_mtime_ns: int | None = None,
     ) -> "MolTrackSession":
@@ -115,6 +122,7 @@ class MolTrackSession:
             active_frame_index=series.active_frame_index,
             reverse_frame_order=series.reverse_frame_order,
             registration_view_mode=registration_view_mode,
+            bbox_opacity_percent=bbox_opacity_percent,
             registration_settings=registration_settings,
             registration_results=registration_results,
             molecular_detections=series.molecular_detections,
