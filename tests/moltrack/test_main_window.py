@@ -2930,6 +2930,183 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.viewer.visible_molecular_centroid_count(), 0)
         self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 2)
 
+    def test_position_analysis_button_opens_scatter_plot_for_current_frame(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        detections = MolecularDetectionSet(frame_count=1)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(frame_index=0, bbox_xyxy=(1, 1, 3, 3), confidence=0.9),
+                MolecularDetection(frame_index=0, bbox_xyxy=(6, 2, 8, 4), confidence=0.8),
+            ],
+            source_view="raw",
+            frame_shape=(5, 10),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((1, 5, 10), dtype=np.float32),
+            metadata=STMSequenceMetadata(
+                pixels_x=10,
+                pixels_y=5,
+                size_nm_x=20.0,
+                size_nm_y=5.0,
+            ),
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+
+        self.assertEqual(self.window.btn_position_analysis.text(), "Position Analysis...")
+        self.assertTrue(self.window.btn_position_analysis.isEnabled())
+
+        self.window.btn_position_analysis.click()
+        self.__class__._app.processEvents()
+
+        dialog = self.window.position_analysis_dialog()
+        self.assertIsNotNone(dialog)
+        self.assertTrue(dialog.isVisible())
+        self.assertEqual(dialog.windowTitle(), "Position Analysis")
+        self.assertEqual(dialog.point_count(), 2)
+        self.assertEqual(dialog.displayed_points_xy(), ((4.0, 2.0), (14.0, 3.0)))
+        self.assertEqual(dialog.axis_unit(), "nm")
+        self.assertEqual(dialog.axis_labels(), ("x [nm]", "y [nm]"))
+        self.assertEqual(dialog.axis_ranges(), ((0.0, 20.0), (0.0, 5.0)))
+        self.assertEqual(dialog.lbl_status.text(), "Points: 2")
+
+    def test_position_analysis_dialog_shows_empty_current_frame_without_error(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((1, 3, 4), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=3),
+        )
+        self.window.set_image_series(series)
+
+        self.window.btn_position_analysis.click()
+        self.__class__._app.processEvents()
+
+        dialog = self.window.position_analysis_dialog()
+        self.assertIsNotNone(dialog)
+        self.assertTrue(dialog.isVisible())
+        self.assertEqual(dialog.point_count(), 0)
+        self.assertEqual(dialog.displayed_points_xy(), ())
+        self.assertEqual(dialog.axis_unit(), "px")
+        self.assertEqual(dialog.axis_ranges(), ((0.0, 4.0), (0.0, 3.0)))
+        self.assertEqual(dialog.lbl_status.text(), "Points: 0")
+
+    def test_open_position_analysis_dialog_refreshes_when_frame_changes(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        detections = MolecularDetectionSet(frame_count=2)
+        detections.set_detections(
+            0,
+            [MolecularDetection(frame_index=0, bbox_xyxy=(0, 0, 2, 2), confidence=0.9)],
+            source_view="raw",
+            frame_shape=(4, 4),
+        )
+        detections.set_detections(
+            1,
+            [
+                MolecularDetection(frame_index=1, bbox_xyxy=(1, 1, 3, 3), confidence=0.8),
+                MolecularDetection(frame_index=1, bbox_xyxy=(2, 2, 4, 4), confidence=0.7),
+            ],
+            source_view="raw",
+            frame_shape=(4, 4),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((2, 4, 4), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+        self.window.btn_position_analysis.click()
+        self.__class__._app.processEvents()
+        dialog = self.window.position_analysis_dialog()
+
+        self.assertEqual(dialog.displayed_points_xy(), ((1.0, 1.0),))
+
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+
+        self.assertIs(self.window.position_analysis_dialog(), dialog)
+        self.assertEqual(dialog.displayed_points_xy(), ((2.0, 2.0), (3.0, 3.0)))
+        self.assertEqual(dialog.point_count(), 2)
+        self.assertEqual(dialog.lbl_status.text(), "Points: 2")
+
+    def test_open_position_analysis_dialog_refreshes_when_source_view_changes(self) -> None:
+        expanded_stack = SimpleNamespace(
+            frames=np.zeros((1, 6, 6), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=6, pixels_y=6),
+            padding_ltrb=(1, 1, 1, 1),
+            frame_origins_xy=np.zeros((1, 2), dtype=np.float64),
+        )
+
+        def fake_expanded_builder(series):
+            series.expanded_aligned_stack = expanded_stack
+            return expanded_stack
+
+        self.window = MolTrackMainWindow(
+            expanded_aligned_builder=fake_expanded_builder,
+            yolo_model_discovery=lambda: [],
+        )
+        detections = MolecularDetectionSet(frame_count=1)
+        detections.set_detections(
+            0,
+            [MolecularDetection(frame_index=0, bbox_xyxy=(0, 0, 2, 2), confidence=0.9)],
+            source_view="raw",
+            frame_shape=(4, 4),
+        )
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(2, 2, 4, 4),
+                    confidence=0.8,
+                    source_view="expanded_aligned",
+                ),
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(4, 4, 6, 6),
+                    confidence=0.7,
+                    source_view="expanded_aligned",
+                ),
+            ],
+            source_view="expanded_aligned",
+            frame_shape=(6, 6),
+        )
+        settings = MolTrackRegistrationSettings()
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((1, 4, 4), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            molecular_detections=detections,
+            registration_results=MolTrackRegistrationResultSet(
+                settings=settings,
+                results_by_frame={
+                    0: MolTrackRegistrationFrameResult(
+                        frame_index=0,
+                        shift_xy=(0.0, 0.0),
+                        method="identity",
+                        quality_score=1.0,
+                    )
+                },
+            ),
+        )
+        self.window.set_image_series(series)
+        self.window.btn_position_analysis.click()
+        self.__class__._app.processEvents()
+        dialog = self.window.position_analysis_dialog()
+
+        self.assertEqual(dialog.displayed_points_xy(), ((1.0, 1.0),))
+
+        self.window.cmb_registration_view_mode.setCurrentText("Show expanded aligned")
+        self.__class__._app.processEvents()
+
+        self.assertIs(self.window.position_analysis_dialog(), dialog)
+        self.assertEqual(dialog.displayed_points_xy(), ((3.0, 3.0), (5.0, 5.0)))
+        self.assertEqual(dialog.axis_ranges(), ((0.0, 6.0), (0.0, 6.0)))
+        self.assertEqual(dialog.point_count(), 2)
+
     def test_save_then_open_state_restores_bbox_opacity(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_path = Path(tmpdir)

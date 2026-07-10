@@ -29,12 +29,14 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from moltrack.analysis import build_molecular_position_plot_data
 from moltrack.core import (
     MolecularDetectionSet,
     MolecularSegmentationSet,
     MolTrackRegistrationSettings,
     SUPPORTED_REGISTRATION_BACKENDS,
     build_moltrack_expanded_aligned_stack,
+    build_molecular_centroids,
     run_moltrack_registration,
 )
 from moltrack.io import load_moltrack_image_series
@@ -43,6 +45,7 @@ from moltrack.persistence import (
     restore_moltrack_image_series_from_session,
     save_moltrack_session,
 )
+from moltrack.ui.dialogs import PositionAnalysisDialog
 from moltrack.ui.widgets import STMSeriesViewer, SeriesMetadataPanel
 from moltrack.yolo import MolTrackYoloDetector, discover_yolo_models
 from moltrack.sam2 import MolTrackSam2Segmenter, discover_sam2_checkpoints, select_default_sam2_checkpoint
@@ -414,6 +417,7 @@ class MolTrackMainWindow(QMainWindow):
             tuple[int, str], list[tuple[float, float, float, float]]
         ] = {}
         self._sam3_prompt_draw_mode: str | None = None
+        self._position_analysis_dialog: PositionAnalysisDialog | None = None
         self._registration_running = False
         self._registration_progress_dialog: QProgressDialog | None = None
         self._registration_thread: QThread | None = None
@@ -716,6 +720,9 @@ class MolTrackMainWindow(QMainWindow):
         self.chk_show_centroids = QCheckBox("Show centroids", self.position_analysis_group)
         self.chk_show_centroids.setChecked(False)
         position_analysis_layout.addWidget(self.chk_show_centroids)
+        self.btn_position_analysis = QPushButton("Position Analysis...", self.position_analysis_group)
+        self.btn_position_analysis.setEnabled(False)
+        position_analysis_layout.addWidget(self.btn_position_analysis)
         sidebar_layout.addWidget(self.position_analysis_group)
 
         sidebar_layout.addStretch(1)
@@ -758,6 +765,7 @@ class MolTrackMainWindow(QMainWindow):
         self.btn_bbox_delete_selected.clicked.connect(self._on_bbox_delete_selected_requested)
         self.slider_bbox_opacity.valueChanged.connect(self._on_bbox_opacity_changed)
         self.chk_show_centroids.toggled.connect(self._on_show_centroids_toggled)
+        self.btn_position_analysis.clicked.connect(self._on_position_analysis_requested)
         self.cmb_segmentation_backend.currentTextChanged.connect(self._on_segmentation_backend_changed)
         self.cmb_active_segmentation.currentIndexChanged.connect(self._on_active_segmentation_combo_changed)
         self.btn_edit_mask.toggled.connect(self._on_edit_mask_toggled)
@@ -804,6 +812,7 @@ class MolTrackMainWindow(QMainWindow):
             self.cmb_registration_backend.setEnabled(False)
             self.btn_run_registration.setEnabled(False)
             self.cmb_registration_view_mode.setEnabled(False)
+            self.btn_position_analysis.setEnabled(False)
             self._set_registration_view_mode("Show raw")
             self.lbl_registration_status.setText("No registration results")
             self._sync_yolo_controls()
@@ -814,6 +823,7 @@ class MolTrackMainWindow(QMainWindow):
         self.btn_remove_current_frame.setEnabled(controls_enabled and self._series.frame_count > 1)
         self.cmb_registration_backend.setEnabled(controls_enabled)
         self.btn_run_registration.setEnabled(controls_enabled)
+        self.btn_position_analysis.setEnabled(controls_enabled)
         has_registration = self._series.registration_results is not None
         self.cmb_registration_view_mode.setEnabled(controls_enabled and has_registration)
         if not has_registration:
@@ -1912,6 +1922,65 @@ class MolTrackMainWindow(QMainWindow):
         if self._series is not None:
             self._show_current_frame()
 
+    def position_analysis_dialog(self) -> PositionAnalysisDialog | None:
+        return self._position_analysis_dialog
+
+    def _on_position_analysis_requested(self) -> None:
+        if self._series is None:
+            return
+        plot_data = self._build_current_position_plot_data()
+        if self._position_analysis_dialog is None:
+            dialog = PositionAnalysisDialog(self)
+            dialog.destroyed.connect(self._on_position_analysis_dialog_destroyed)
+            self._position_analysis_dialog = dialog
+        self._position_analysis_dialog.set_plot_data(plot_data)
+        self._position_analysis_dialog.show()
+        self._position_analysis_dialog.raise_()
+        self._position_analysis_dialog.activateWindow()
+
+    def _on_position_analysis_dialog_destroyed(self, _object=None) -> None:
+        self._position_analysis_dialog = None
+
+    def _build_current_position_plot_data(self):
+        if self._series is None:
+            raise RuntimeError("Position analysis requires a loaded series.")
+        frame_index = self._series.active_frame_index
+        source_view = self._current_yolo_source_view()
+        centroids = build_molecular_centroids(
+            self._series,
+            frame_index=frame_index,
+            source_view=source_view,
+        )
+        frame_shape = self._current_bbox_frame_shape(source_view)
+        scale_nm_per_px = self._current_position_scale_nm_per_px(source_view)
+        return build_molecular_position_plot_data(
+            centroids,
+            frame_index=frame_index,
+            source_view=source_view,
+            frame_shape=frame_shape,
+            scale_nm_per_px=scale_nm_per_px,
+        )
+
+    def _current_position_scale_nm_per_px(self, source_view: str) -> tuple[float, float] | None:
+        if self._series is None:
+            return None
+        metadata = self._series.metadata
+        if source_view == "expanded_aligned":
+            expanded = self._ensure_expanded_aligned_stack()
+            metadata = getattr(expanded, "metadata", metadata)
+        get_pixel_size = getattr(metadata, "get_pixel_size_nm", None)
+        if not callable(get_pixel_size):
+            return None
+        try:
+            scale_x, scale_y = get_pixel_size()
+            scale_x = float(scale_x)
+            scale_y = float(scale_y)
+        except (TypeError, ValueError):
+            return None
+        if not np.isfinite(scale_x) or not np.isfinite(scale_y) or scale_x <= 0.0 or scale_y <= 0.0:
+            return None
+        return scale_x, scale_y
+
     def _on_sam3_add_positive_prompt_toggled(self, checked: bool) -> None:
         if checked:
             self._set_sam3_prompt_draw_mode("positive")
@@ -2534,9 +2603,16 @@ class MolTrackMainWindow(QMainWindow):
                 )
                 self._show_current_sam3_manual_prompt_overlays()
                 self.metadata_panel.set_image_series(self._series)
+                self._refresh_position_analysis_dialog_if_open()
                 return
         self.viewer.show_frame(self._series.active_frame_index)
         self._show_current_sam3_manual_prompt_overlays()
+        self._refresh_position_analysis_dialog_if_open()
+
+    def _refresh_position_analysis_dialog_if_open(self) -> None:
+        if self._position_analysis_dialog is None or self._series is None:
+            return
+        self._position_analysis_dialog.set_plot_data(self._build_current_position_plot_data())
 
     def _show_current_sam3_manual_prompt_overlays(self) -> None:
         if self._series is None:
