@@ -3033,6 +3033,120 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(dialog.histogram_counts(), (3,) + (0,) * 17)
         self.assertEqual(dialog.histogram_axis_labels(), ("Angle [deg]", "Count"))
 
+    def test_position_analysis_dialog_edits_two_frame_ranges_independently(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((12, 3, 4), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=3),
+        )
+        self.window.set_image_series(series)
+
+        self.window.btn_position_analysis.click()
+        self.__class__._app.processEvents()
+
+        dialog = self.window.position_analysis_dialog()
+        dialog.edit_first_range_name.setText("before desorption")
+        dialog.sp_first_range_start.setValue(1)
+        dialog.sp_first_range_end.setValue(4)
+        dialog.edit_second_range_name.setText("after adsorption")
+        dialog.sp_second_range_start.setValue(9)
+        dialog.sp_second_range_end.setValue(12)
+
+        selection = dialog.frame_range_selection()
+        self.assertEqual(selection.source_view, "raw")
+        self.assertEqual(selection.first_range.frame_indices, (0, 1, 2, 3))
+        self.assertEqual(selection.second_range.frame_indices, (8, 9, 10, 11))
+
+        dialog.sp_first_range_end.setValue(3)
+        edited_selection = dialog.frame_range_selection()
+        self.assertEqual(edited_selection.first_range.frame_indices, (0, 1, 2))
+        self.assertEqual(edited_selection.second_range, selection.second_range)
+
+    def test_position_analysis_dialog_reports_reversed_frame_range(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((6, 3, 4), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=3),
+        )
+        self.window.set_image_series(series)
+        self.window.btn_position_analysis.click()
+
+        dialog = self.window.position_analysis_dialog()
+        dialog.sp_first_range_start.setValue(5)
+        dialog.sp_first_range_end.setValue(3)
+        self.__class__._app.processEvents()
+
+        self.assertFalse(dialog.has_valid_frame_range_selection())
+        self.assertIn("Start frame must not exceed end frame", dialog.range_validation_message())
+
+    def test_position_analysis_dialog_compares_ranges_on_three_trend_plots(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        detections = MolecularDetectionSet(frame_count=2)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(frame_index=0, bbox_xyxy=(0, 0, 2, 2), confidence=0.9),
+                MolecularDetection(frame_index=0, bbox_xyxy=(2, 0, 4, 2), confidence=0.8),
+            ],
+            source_view="raw",
+            frame_shape=(8, 8),
+        )
+        detections.set_detections(
+            1,
+            [
+                MolecularDetection(frame_index=1, bbox_xyxy=(0, 0, 2, 2), confidence=0.9),
+                MolecularDetection(frame_index=1, bbox_xyxy=(3, 0, 5, 2), confidence=0.8),
+                MolecularDetection(frame_index=1, bbox_xyxy=(0, 3, 2, 5), confidence=0.7),
+                MolecularDetection(frame_index=1, bbox_xyxy=(3, 3, 5, 5), confidence=0.6),
+            ],
+            source_view="raw",
+            frame_shape=(8, 8),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((2, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+        self.window.btn_position_analysis.click()
+        dialog = self.window.position_analysis_dialog()
+
+        dialog.btn_compare_ranges.click()
+        self.__class__._app.processEvents()
+
+        trend_data = dialog.range_trend_data()
+        self.assertEqual(
+            dialog.analysis_tab_labels(),
+            ("Current frame", "Range trends", "Spatial comparison"),
+        )
+        self.assertEqual(dialog.active_analysis_tab(), "Range trends")
+        self.assertEqual(dialog.trend_legend_labels(), ("before desorption", "after adsorption"))
+        self.assertEqual(trend_data.first.molecule_counts, (2,))
+        self.assertEqual(trend_data.second.molecule_counts, (4,))
+        self.assertEqual(
+            dialog.trend_axis_labels(),
+            (
+                ("Frame", "Molecules"),
+                ("Frame", "Nearest neighbor [px]"),
+                ("Frame", "Line order score"),
+            ),
+        )
+        spatial_data = dialog.range_spatial_data()
+        self.assertEqual(spatial_data.first.points_xy, ((1.0, 1.0), (3.0, 1.0)))
+        self.assertEqual(
+            spatial_data.second.points_xy,
+            ((1.0, 1.0), (4.0, 1.0), (1.0, 4.0), (4.0, 4.0)),
+        )
+        self.assertEqual(dialog.spatial_condition_names(), ("before desorption", "after adsorption"))
+        self.assertEqual(dialog.spatial_axis_ranges(), ((0.0, 8.0), (0.0, 8.0)))
+        first_scale, second_scale = dialog.spatial_density_value_ranges()
+        self.assertEqual(first_scale, second_scale)
+        dialog.activate_analysis_tab("Spatial comparison")
+        self.assertEqual(dialog.active_analysis_tab(), "Spatial comparison")
+
     def test_open_position_analysis_dialog_refreshes_when_frame_changes(self) -> None:
         self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
         detections = MolecularDetectionSet(frame_count=2)
@@ -3063,6 +3177,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
         dialog = self.window.position_analysis_dialog()
 
         self.assertEqual(dialog.displayed_points_xy(), ((1.0, 1.0),))
+        self.assertEqual(dialog.frame_range_selection().source_view, "raw")
 
         self.window.slider_frame.setValue(1)
         self.__class__._app.processEvents()
@@ -3145,6 +3260,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertIs(self.window.position_analysis_dialog(), dialog)
         self.assertEqual(dialog.displayed_points_xy(), ((3.0, 3.0), (5.0, 5.0)))
         self.assertEqual(dialog.axis_ranges(), ((0.0, 6.0), (0.0, 6.0)))
+        self.assertEqual(dialog.frame_range_selection().source_view, "expanded_aligned")
         self.assertEqual(dialog.point_count(), 2)
 
     def test_save_then_open_state_restores_bbox_opacity(self) -> None:

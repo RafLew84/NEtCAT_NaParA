@@ -29,7 +29,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from moltrack.analysis import build_molecular_position_plot_data
+from moltrack.analysis import build_molecular_position_plot_data, compare_molecular_frame_ranges
 from moltrack.core import (
     MolecularDetectionSet,
     MolecularSegmentationSet,
@@ -1932,7 +1932,12 @@ class MolTrackMainWindow(QMainWindow):
         if self._position_analysis_dialog is None:
             dialog = PositionAnalysisDialog(self)
             dialog.destroyed.connect(self._on_position_analysis_dialog_destroyed)
+            dialog.compare_ranges_requested.connect(self._on_position_range_comparison_requested)
             self._position_analysis_dialog = dialog
+        self._position_analysis_dialog.configure_frame_ranges(
+            frame_count=self._series.frame_count,
+            source_view=plot_data.source_view,
+        )
         self._position_analysis_dialog.set_plot_data(plot_data)
         self._position_analysis_dialog.show()
         self._position_analysis_dialog.raise_()
@@ -1940,6 +1945,16 @@ class MolTrackMainWindow(QMainWindow):
 
     def _on_position_analysis_dialog_destroyed(self, _object=None) -> None:
         self._position_analysis_dialog = None
+
+    def _on_position_range_comparison_requested(self, selection) -> None:
+        if self._series is None or self._position_analysis_dialog is None:
+            return
+        try:
+            comparison = compare_molecular_frame_ranges(self._series, selection)
+        except (TypeError, ValueError) as exc:
+            QMessageBox.critical(self, "Position analysis failed", str(exc))
+            return
+        self._position_analysis_dialog.set_range_comparison(comparison)
 
     def _build_current_position_plot_data(self):
         if self._series is None:
