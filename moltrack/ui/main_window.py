@@ -1968,13 +1968,28 @@ class MolTrackMainWindow(QMainWindow):
         )
         frame_shape = self._current_bbox_frame_shape(source_view)
         scale_nm_per_px = self._current_position_scale_nm_per_px(source_view)
+        coordinate_origin_px = self._current_position_coordinate_origin_px(source_view)
         return build_molecular_position_plot_data(
             centroids,
             frame_index=frame_index,
             source_view=source_view,
             frame_shape=frame_shape,
             scale_nm_per_px=scale_nm_per_px,
+            coordinate_origin_px=coordinate_origin_px,
         )
+
+    def _current_position_coordinate_origin_px(self, source_view: str) -> tuple[float, float]:
+        if source_view != "expanded_aligned":
+            return 0.0, 0.0
+        expanded = self._ensure_expanded_aligned_stack()
+        canvas_offset = getattr(expanded, "canvas_offset_xy", None)
+        if canvas_offset is None:
+            left, top, _right, _bottom = getattr(expanded, "padding_ltrb", (0, 0, 0, 0))
+            canvas_offset = (left, top)
+        origin_x, origin_y = (float(value) for value in canvas_offset)
+        if not np.isfinite(origin_x) or not np.isfinite(origin_y):
+            raise ValueError("expanded_aligned canvas offset must be finite.")
+        return origin_x, origin_y
 
     def _current_position_scale_nm_per_px(self, source_view: str) -> tuple[float, float] | None:
         if self._series is None:

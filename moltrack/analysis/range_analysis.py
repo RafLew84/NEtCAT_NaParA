@@ -69,7 +69,10 @@ def analyze_molecular_frame_range(
     if frame_range.start_frame < 0 or frame_range.end_frame >= series.frame_count:
         raise ValueError("frame_range must fit within the working series.")
     source_view = str(source_view).strip()
-    frame_shape, scale_nm_per_px = _position_context(series, source_view=source_view)
+    frame_shape, scale_nm_per_px, coordinate_origin_px = _position_context(
+        series,
+        source_view=source_view,
+    )
 
     frame_results = []
     for frame_index in frame_range.frame_indices:
@@ -86,6 +89,7 @@ def analyze_molecular_frame_range(
             source_view=source_view,
             frame_shape=frame_shape,
             scale_nm_per_px=scale_nm_per_px,
+            coordinate_origin_px=coordinate_origin_px,
         )
         frame_results.append(
             MolecularFrameAnalysisResult(
@@ -148,9 +152,9 @@ def _position_context(
     series: MolTrackImageSeries,
     *,
     source_view: str,
-) -> tuple[tuple[int, int], tuple[float, float] | None]:
+) -> tuple[tuple[int, int], tuple[float, float] | None, tuple[float, float]]:
     if source_view == "raw":
-        return series.frame_shape, _normalize_scale_nm_per_px(series.pixel_size_nm)
+        return series.frame_shape, _normalize_scale_nm_per_px(series.pixel_size_nm), (0.0, 0.0)
     if source_view != "expanded_aligned":
         raise ValueError(f"Unsupported source_view: {source_view!r}.")
 
@@ -163,4 +167,15 @@ def _position_context(
     metadata = getattr(expanded_stack, "metadata", series.metadata)
     get_pixel_size = getattr(metadata, "get_pixel_size_nm", None)
     scale_nm_per_px = (None, None) if not callable(get_pixel_size) else get_pixel_size()
-    return (int(frames.shape[1]), int(frames.shape[2])), _normalize_scale_nm_per_px(scale_nm_per_px)
+    canvas_offset = getattr(expanded_stack, "canvas_offset_xy", None)
+    if canvas_offset is None:
+        padding = getattr(expanded_stack, "padding_ltrb", (0, 0, 0, 0))
+        canvas_offset = (padding[0], padding[1])
+    origin_x, origin_y = (float(value) for value in canvas_offset)
+    if not np.isfinite(origin_x) or not np.isfinite(origin_y):
+        raise ValueError("expanded_aligned canvas offset must be finite.")
+    return (
+        (int(frames.shape[1]), int(frames.shape[2])),
+        _normalize_scale_nm_per_px(scale_nm_per_px),
+        (origin_x, origin_y),
+    )

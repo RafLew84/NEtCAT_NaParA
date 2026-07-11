@@ -3258,8 +3258,8 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.__class__._app.processEvents()
 
         self.assertIs(self.window.position_analysis_dialog(), dialog)
-        self.assertEqual(dialog.displayed_points_xy(), ((3.0, 3.0), (5.0, 5.0)))
-        self.assertEqual(dialog.axis_ranges(), ((0.0, 6.0), (0.0, 6.0)))
+        self.assertEqual(dialog.displayed_points_xy(), ((2.0, 2.0), (4.0, 4.0)))
+        self.assertEqual(dialog.axis_ranges(), ((-1.0, 5.0), (-1.0, 5.0)))
         self.assertEqual(dialog.frame_range_selection().source_view, "expanded_aligned")
         self.assertEqual(dialog.point_count(), 2)
 

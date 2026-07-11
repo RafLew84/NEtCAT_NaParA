@@ -54,6 +54,59 @@ class MolecularFrameRangeSelectionTests(unittest.TestCase):
 
 
 class MolecularFrameRangeAnalysisTests(unittest.TestCase):
+    def test_expanded_analysis_uses_reference_coordinates_after_registration_shift(self) -> None:
+        detections = MolecularDetectionSet(frame_count=2)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(0, 3, 2, 5),
+                    confidence=0.9,
+                    source_view="expanded_aligned",
+                )
+            ],
+            source_view="expanded_aligned",
+            frame_shape=(6, 4),
+        )
+        detections.set_detections(
+            1,
+            [
+                MolecularDetection(
+                    frame_index=1,
+                    bbox_xyxy=(0, 1, 2, 3),
+                    confidence=0.9,
+                    source_view="expanded_aligned",
+                )
+            ],
+            source_view="expanded_aligned",
+            frame_shape=(6, 4),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((2, 4, 4), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            molecular_detections=detections,
+            expanded_aligned_stack=SimpleNamespace(
+                frames=np.zeros((2, 6, 4), dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=4, pixels_y=6),
+                canvas_offset_xy=(0.0, 2.0),
+                padding_ltrb=(0, 2, 0, 0),
+                frame_origins_xy=np.asarray(((0.0, 2.0), (0.0, 0.0))),
+            ),
+        )
+
+        analysis = analyze_molecular_frame_range(
+            series,
+            MolecularFrameRange("registered", 0, 1),
+            source_view="expanded_aligned",
+        )
+
+        self.assertEqual(analysis.frame_results[0].plot_data.points_xy, ((1.0, 2.0),))
+        self.assertEqual(analysis.frame_results[1].plot_data.points_xy, ((1.0, 0.0),))
+        self.assertEqual(analysis.frame_results[0].plot_data.x_range, (0.0, 4.0))
+        self.assertEqual(analysis.frame_results[0].plot_data.y_range, (-2.0, 4.0))
+
     def test_analysis_keeps_centroids_and_metrics_separate_for_each_frame(self) -> None:
         detections = MolecularDetectionSet(frame_count=2)
         detections.set_detections(
@@ -233,6 +286,8 @@ class MolecularFrameRangeAnalysisTests(unittest.TestCase):
             expanded_aligned_stack=SimpleNamespace(
                 frames=np.zeros((1, 8, 10), dtype=np.float32),
                 metadata=expanded_metadata,
+                canvas_offset_xy=(2.0, 1.0),
+                padding_ltrb=(2, 1, 0, 0),
             ),
         )
 
@@ -245,8 +300,9 @@ class MolecularFrameRangeAnalysisTests(unittest.TestCase):
         result = analysis.frame_results[0]
         self.assertEqual(tuple(centroid.source_id for centroid in result.centroids), ("expanded-a", "expanded-b"))
         self.assertEqual(result.plot_data.unit, "nm")
-        self.assertEqual(result.plot_data.x_range, (0.0, 20.0))
-        self.assertEqual(result.plot_data.y_range, (0.0, 8.0))
+        self.assertEqual(result.plot_data.points_xy, ((2.0, 1.0), (10.0, 1.0)))
+        self.assertEqual(result.plot_data.x_range, (-4.0, 16.0))
+        self.assertEqual(result.plot_data.y_range, (-1.0, 7.0))
         self.assertEqual(result.distance_metrics.mean_distance, 8.0)
         self.assertEqual(analysis.aggregates.distance_unit, "nm")
 
