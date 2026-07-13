@@ -3622,6 +3622,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
         with patch.object(QFileDialog, "getSaveFileName", return_value=("state.moltrack.json", "")) as dialog:
             self.window.action_save_state_as.trigger()
             self.__class__._app.processEvents()
+            self.process_events_until(lambda: not self.window._state_io_running)
 
         dialog.assert_called_once()
         expected_saved_state = [
@@ -3642,9 +3643,49 @@ class MolTrackMainWindowTests(unittest.TestCase):
         with patch.object(QFileDialog, "getSaveFileName", return_value=("other.moltrack.json", "")) as dialog:
             self.window.action_save_state.trigger()
             self.__class__._app.processEvents()
+            self.process_events_until(lambda: not self.window._state_io_running)
 
         dialog.assert_not_called()
         self.assertEqual(saved, expected_saved_state)
+
+    def test_save_state_from_menu_runs_in_worker_and_shows_progress(self) -> None:
+        saver_started = threading.Event()
+        release_saver = threading.Event()
+
+        def blocking_saver(path, series, ui_state):
+            saver_started.set()
+            release_saver.wait(timeout=1.0)
+
+        self.window = MolTrackMainWindow(session_saver=blocking_saver)
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((1, 2, 4), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+        )
+        self.window.set_image_series(series)
+        self.window._session_path = "state.moltrack.json"
+
+        started_at = time.monotonic()
+        self.window.action_save_state.trigger()
+        elapsed = time.monotonic() - started_at
+
+        try:
+            self.assertLess(elapsed, 0.2)
+            self.process_events_until(saver_started.is_set)
+            self.assertTrue(self.window._state_io_running)
+            self.assertIsNotNone(self.window._state_io_progress_dialog)
+            self.assertIn(
+                "Saving state",
+                self.window._state_io_progress_dialog.labelText(),
+            )
+            self.assertFalse(self.window.action_open_state.isEnabled())
+        finally:
+            release_saver.set()
+
+        self.process_events_until(lambda: not self.window._state_io_running)
+        self.assertIsNone(self.window._state_io_progress_dialog)
+        self.assertTrue(self.window.action_open_state.isEnabled())
+        self.assertIn("Saved state state.moltrack.json", self.window.statusBar().currentMessage())
 
     def test_open_state_uses_dialog_and_restores_working_series(self) -> None:
         loaded_session = SimpleNamespace(registration_view_mode="Show raw")
@@ -3673,6 +3714,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
         with patch.object(QFileDialog, "getOpenFileName", return_value=("state.moltrack.json", "")) as dialog:
             self.window.action_open_state.trigger()
             self.__class__._app.processEvents()
+            self.process_events_until(lambda: not self.window._state_io_running)
 
         dialog.assert_called_once()
         self.assertEqual(load_calls, ["state.moltrack.json"])
@@ -3682,6 +3724,59 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertIn("Source: movie.mpp", self.window.metadata_panel.metadata_text())
         self.assertIn("Loaded state state.moltrack.json", self.window.statusBar().currentMessage())
         self.assertTrue(self.window.action_save_state.isEnabled())
+
+    def test_open_state_from_menu_runs_in_worker_and_preserves_series_until_finished(self) -> None:
+        loader_started = threading.Event()
+        release_loader = threading.Event()
+        loaded_session = SimpleNamespace(registration_view_mode="Show raw")
+        old_series = MolTrackImageSeries(
+            source_path="old.mpp",
+            raw_frames=np.zeros((1, 2, 4), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+        )
+        new_series = MolTrackImageSeries(
+            source_path="new.mpp",
+            raw_frames=np.ones((1, 2, 4), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+        )
+
+        def blocking_loader(path):
+            loader_started.set()
+            release_loader.wait(timeout=1.0)
+            return loaded_session
+
+        self.window = MolTrackMainWindow(
+            session_loader=blocking_loader,
+            session_restorer=lambda session: new_series,
+        )
+        self.window.set_image_series(old_series)
+
+        with patch.object(
+            QFileDialog,
+            "getOpenFileName",
+            return_value=("state.moltrack.json", ""),
+        ):
+            started_at = time.monotonic()
+            self.window.action_open_state.trigger()
+            elapsed = time.monotonic() - started_at
+
+        try:
+            self.assertLess(elapsed, 0.2)
+            self.process_events_until(loader_started.is_set)
+            self.assertIs(self.window._series, old_series)
+            self.assertTrue(self.window._state_io_running)
+            self.assertIsNotNone(self.window._state_io_progress_dialog)
+            self.assertIn(
+                "Opening state",
+                self.window._state_io_progress_dialog.labelText(),
+            )
+        finally:
+            release_loader.set()
+
+        self.process_events_until(lambda: not self.window._state_io_running)
+        self.assertIs(self.window._series, new_series)
+        self.assertIsNone(self.window._state_io_progress_dialog)
+        self.assertIn("Loaded state state.moltrack.json", self.window.statusBar().currentMessage())
 
     def test_save_then_open_state_round_trip_restores_working_series_and_expanded_view(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -3771,6 +3866,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
             with patch.object(QFileDialog, "getSaveFileName", return_value=(str(session_path), "")):
                 self.window.action_save_state_as.trigger()
                 self.__class__._app.processEvents()
+                self.process_events_until(lambda: not self.window._state_io_running)
 
             self.window.close()
             self.window.deleteLater()
@@ -3784,6 +3880,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
             with patch.object(QFileDialog, "getOpenFileName", return_value=(str(session_path), "")):
                 self.window.action_open_state.trigger()
                 self.__class__._app.processEvents()
+                self.process_events_until(lambda: not self.window._state_io_running)
 
             self.assertEqual(loader_calls, [(str(source_path.resolve()), False)])
             self.assertEqual(expanded_builder_calls, [3])
@@ -3883,6 +3980,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
             with patch.object(QFileDialog, "getSaveFileName", return_value=(str(session_path), "")):
                 self.window.action_save_state_as.trigger()
                 self.__class__._app.processEvents()
+                self.process_events_until(lambda: not self.window._state_io_running)
 
             self.window.close()
             self.window.deleteLater()
@@ -3895,6 +3993,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
             with patch.object(QFileDialog, "getOpenFileName", return_value=(str(session_path), "")):
                 self.window.action_open_state.trigger()
                 self.__class__._app.processEvents()
+                self.process_events_until(lambda: not self.window._state_io_running)
 
             self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
             self.assertEqual(self.window.viewer.visible_molecular_segmentation_count(), 1)
@@ -3945,6 +4044,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
             with patch.object(QFileDialog, "getSaveFileName", return_value=(str(session_path), "")):
                 self.window.action_save_state_as.trigger()
                 self.__class__._app.processEvents()
+                self.process_events_until(lambda: not self.window._state_io_running)
 
             self.window.close()
             self.window.deleteLater()
@@ -3957,6 +4057,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
             with patch.object(QFileDialog, "getOpenFileName", return_value=(str(session_path), "")):
                 self.window.action_open_state.trigger()
                 self.__class__._app.processEvents()
+                self.process_events_until(lambda: not self.window._state_io_running)
 
             self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
             self.assertIsNotNone(self.window._series.molecular_detections)
@@ -4014,6 +4115,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
             ):
                 self.window.action_open_state.trigger()
                 self.__class__._app.processEvents()
+                self.process_events_until(lambda: not self.window._state_io_running)
 
             self.assertEqual(self.window.lbl_frame.text(), "Frame: 2 / 2")
             np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, current_frames[1])

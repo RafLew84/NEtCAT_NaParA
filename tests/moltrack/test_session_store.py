@@ -58,6 +58,93 @@ class MolTrackSessionStoreTests(unittest.TestCase):
         self.assertEqual(loaded.active_frame_index, 0)
         self.assertIsNone(loaded.molecular_segmentations)
 
+    def test_new_state_uses_compact_masks_and_reuses_identical_original_mask(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"mask state source")
+            session_path = tmp_path / "masks.moltrack.json"
+            mask = np.zeros((408, 480), dtype=bool)
+            mask[30:70, 100:160] = True
+            segmentations = MolecularSegmentationSet(frame_count=1)
+            segmentations.add_segmentation(
+                MolecularSegmentation(
+                    frame_index=0,
+                    bbox_xyxy=(100, 30, 160, 70),
+                    mask=mask,
+                    original_mask=mask,
+                    origin="sam2",
+                    segmentation_id="compact-mask",
+                )
+            )
+            series = MolTrackImageSeries(
+                source_path=source_path,
+                raw_frames=np.zeros((1, 408, 480), dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=480, pixels_y=408),
+                molecular_segmentations=segmentations,
+            )
+
+            save_moltrack_session(session_path, series)
+            payload = json.loads(session_path.read_text(encoding="utf-8"))
+            segmentation_payload = payload["molecular_segmentations"]["segmentations"][0]
+            loaded = load_moltrack_session(session_path)
+
+        self.assertEqual(
+            segmentation_payload["mask"]["encoding"],
+            "packbits-zlib-base64",
+        )
+        self.assertEqual(
+            segmentation_payload["original_mask"],
+            {"encoding": "same-as-mask"},
+        )
+        restored = loaded.molecular_segmentations.get_segmentation("compact-mask")
+        np.testing.assert_array_equal(restored.mask, mask)
+        np.testing.assert_array_equal(restored.original_mask, mask)
+
+    def test_load_state_preserves_backward_compatibility_with_rle_masks(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"old mask state source")
+            session_path = tmp_path / "old-masks.moltrack.json"
+            mask = np.array(
+                [[False, True, True], [False, False, True]],
+                dtype=bool,
+            )
+            segmentations = MolecularSegmentationSet(frame_count=1)
+            segmentations.add_segmentation(
+                MolecularSegmentation(
+                    frame_index=0,
+                    mask=mask,
+                    original_mask=mask,
+                    origin="sam2",
+                    segmentation_id="old-rle-mask",
+                )
+            )
+            series = MolTrackImageSeries(
+                source_path=source_path,
+                raw_frames=np.zeros((1, 2, 3), dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=3, pixels_y=2),
+                molecular_segmentations=segmentations,
+            )
+            save_moltrack_session(session_path, series)
+            payload = json.loads(session_path.read_text(encoding="utf-8"))
+            segmentation_payload = payload["molecular_segmentations"]["segmentations"][0]
+            old_rle_payload = {
+                "encoding": "rle",
+                "shape": [2, 3],
+                "counts": [1, 2, 2, 1],
+            }
+            segmentation_payload["mask"] = old_rle_payload
+            segmentation_payload["original_mask"] = old_rle_payload
+            session_path.write_text(json.dumps(payload), encoding="utf-8")
+
+            loaded = load_moltrack_session(session_path)
+
+        restored = loaded.molecular_segmentations.get_segmentation("old-rle-mask")
+        np.testing.assert_array_equal(restored.mask, mask)
+        np.testing.assert_array_equal(restored.original_mask, mask)
+
     def test_save_and_load_session_round_trip_writes_readable_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_path = Path(tmpdir)
@@ -441,11 +528,20 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             self.assertEqual(segmentation_payload["origin"], "sam2")
             self.assertEqual(segmentation_payload["model_name"], "missing-sam2.pt")
             self.assertEqual(segmentation_payload["prompt_detection_ids"], ["bbox-1"])
-            self.assertEqual(segmentation_payload["mask"]["encoding"], "rle")
+            self.assertEqual(
+                segmentation_payload["mask"]["encoding"],
+                "packbits-zlib-base64",
+            )
             self.assertEqual(segmentation_payload["mask"]["shape"], [4, 5])
-            self.assertEqual(segmentation_payload["original_mask"]["encoding"], "rle")
+            self.assertEqual(
+                segmentation_payload["original_mask"]["encoding"],
+                "packbits-zlib-base64",
+            )
             self.assertEqual(segmentation_payload["original_mask"]["shape"], [4, 5])
-            self.assertNotEqual(segmentation_payload["mask"]["counts"], segmentation_payload["original_mask"]["counts"])
+            self.assertNotEqual(
+                segmentation_payload["mask"]["data"],
+                segmentation_payload["original_mask"]["data"],
+            )
 
             loaded = load_moltrack_session(session_path)
 

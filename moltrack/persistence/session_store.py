@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import base64
 import json
 import os
 from pathlib import Path
 from typing import Any, Callable, Mapping
+import zlib
 
 import numpy as np
 
@@ -325,13 +327,18 @@ def _molecular_segmentations_to_payload(
     items: list[dict[str, Any]] = []
     for frame_index in range(segmentation_set.frame_count):
         for segmentation in segmentation_set.get_segmentations(frame_index):
+            mask_payload = _mask_to_payload(segmentation.mask)
+            original_mask_payload = _original_mask_to_payload(
+                segmentation.original_mask,
+                segmentation.mask,
+            )
             items.append(
                 {
                     "frame_index": segmentation.frame_index,
                     "source_view": segmentation.source_view,
                     "bbox_xyxy": None if segmentation.bbox_xyxy is None else list(segmentation.bbox_xyxy),
-                    "mask": _mask_to_payload(segmentation.mask),
-                    "original_mask": _mask_to_payload(segmentation.original_mask),
+                    "mask": mask_payload,
+                    "original_mask": original_mask_payload,
                     "polygon_xy": _polygon_to_payload(segmentation.polygon_xy),
                     "score": segmentation.score,
                     "origin": segmentation.origin,
@@ -365,6 +372,7 @@ def _molecular_segmentations_from_payload(
     segmentation_set = MolecularSegmentationSet(frame_count=frame_count)
     for item in items:
         item_payload = _require_mapping(item, "molecular segmentation")
+        mask = _mask_from_payload(item_payload.get("mask"))
         segmentation = MolecularSegmentation(
             frame_index=int(item_payload["frame_index"]),
             source_view=str(item_payload.get("source_view", "raw")),
@@ -373,8 +381,11 @@ def _molecular_segmentations_from_payload(
                 if item_payload.get("bbox_xyxy") is None
                 else tuple(item_payload.get("bbox_xyxy"))
             ),
-            mask=_mask_from_payload(item_payload.get("mask")),
-            original_mask=_mask_from_payload(item_payload.get("original_mask")),
+            mask=mask,
+            original_mask=_mask_from_payload(
+                item_payload.get("original_mask"),
+                reference_mask=mask,
+            ),
             polygon_xy=_polygon_from_payload(item_payload.get("polygon_xy")),
             score=item_payload.get("score"),
             origin=str(item_payload.get("origin", "manual")),
@@ -393,49 +404,76 @@ def _mask_to_payload(mask) -> dict[str, Any] | None:
     mask_array = np.asarray(mask, dtype=bool)
     if mask_array.ndim != 2:
         raise ValueError("molecular segmentation mask must be a 2D array.")
-    flat = mask_array.ravel(order="C")
-    counts: list[int] = []
-    expected_value = False
-    run_length = 0
-    for value in flat:
-        value = bool(value)
-        if value == expected_value:
-            run_length += 1
-            continue
-        counts.append(run_length)
-        expected_value = value
-        run_length = 1
-    counts.append(run_length)
+    packed = np.packbits(mask_array.ravel(order="C"), bitorder="little")
+    compressed = zlib.compress(packed.tobytes(), level=1)
     return {
-        "encoding": "rle",
+        "encoding": "packbits-zlib-base64",
         "shape": [int(mask_array.shape[0]), int(mask_array.shape[1])],
-        "counts": counts,
+        "data": base64.b64encode(compressed).decode("ascii"),
     }
 
 
-def _mask_from_payload(payload: Any) -> np.ndarray | None:
+def _original_mask_to_payload(original_mask, mask) -> dict[str, Any] | None:
+    if original_mask is None:
+        return None
+    if mask is not None and np.array_equal(
+        np.asarray(original_mask, dtype=bool),
+        np.asarray(mask, dtype=bool),
+    ):
+        return {"encoding": "same-as-mask"}
+    return _mask_to_payload(original_mask)
+
+
+def _mask_from_payload(
+    payload: Any,
+    *,
+    reference_mask: np.ndarray | None = None,
+) -> np.ndarray | None:
     if payload is None:
         return None
     mask_payload = _require_mapping(payload, "molecular segmentation mask")
     encoding = str(mask_payload.get("encoding", ""))
-    if encoding != "rle":
-        raise ValueError(f"Unsupported molecular segmentation mask encoding: {encoding!r}.")
+    if encoding == "same-as-mask":
+        if reference_mask is None:
+            raise ValueError("same-as-mask encoding requires a decoded mask.")
+        return np.asarray(reference_mask, dtype=bool).copy()
     shape = tuple(int(value) for value in mask_payload.get("shape", ()))
     if len(shape) != 2 or shape[0] <= 0 or shape[1] <= 0:
         raise ValueError("molecular segmentation mask shape must contain positive height and width.")
+    total = shape[0] * shape[1]
+    if encoding == "packbits-zlib-base64":
+        try:
+            compressed = base64.b64decode(
+                str(mask_payload.get("data", "")),
+                validate=True,
+            )
+            packed_bytes = zlib.decompress(compressed)
+        except (ValueError, zlib.error) as exc:
+            raise ValueError("Invalid compressed molecular segmentation mask.") from exc
+        expected_byte_count = (total + 7) // 8
+        if len(packed_bytes) != expected_byte_count:
+            raise ValueError(
+                "Compressed molecular segmentation mask does not match mask shape."
+            )
+        unpacked = np.unpackbits(
+            np.frombuffer(packed_bytes, dtype=np.uint8),
+            count=total,
+            bitorder="little",
+        )
+        return np.asarray(unpacked, dtype=bool).reshape(shape)
+    if encoding != "rle":
+        raise ValueError(f"Unsupported molecular segmentation mask encoding: {encoding!r}.")
     counts = [int(value) for value in mask_payload.get("counts", [])]
     if any(count < 0 for count in counts):
         raise ValueError("molecular segmentation mask RLE counts must be non-negative.")
 
-    total = shape[0] * shape[1]
-    values: list[bool] = []
-    current_value = False
-    for count in counts:
-        values.extend([current_value] * count)
-        current_value = not current_value
-    if len(values) != total:
+    if sum(counts) != total:
         raise ValueError("molecular segmentation mask RLE counts do not match mask shape.")
-    return np.asarray(values, dtype=bool).reshape(shape)
+    values = np.arange(len(counts), dtype=np.uint8) % 2
+    return np.repeat(values, np.asarray(counts, dtype=np.int64)).astype(
+        bool,
+        copy=False,
+    ).reshape(shape)
 
 
 def _polygon_to_payload(polygon_xy) -> list[list[float]] | None:

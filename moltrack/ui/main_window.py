@@ -102,6 +102,54 @@ class _RegistrationRunWorker(QObject):
         self.finished.emit(result_set)
 
 
+@dataclass(frozen=True)
+class _StateOpenResult:
+    session: object
+    series: object
+
+
+class _StateSaveWorker(QObject):
+    finished = pyqtSignal()
+    failed = pyqtSignal(str)
+
+    def __init__(self, session_saver, path, series, ui_state):
+        super().__init__()
+        self._session_saver = session_saver
+        self._path = path
+        self._series = series
+        self._ui_state = ui_state
+
+    @pyqtSlot()
+    def run(self) -> None:
+        try:
+            self._session_saver(self._path, self._series, self._ui_state)
+        except Exception as exc:
+            self.failed.emit(str(exc) or exc.__class__.__name__)
+            return
+        self.finished.emit()
+
+
+class _StateOpenWorker(QObject):
+    finished = pyqtSignal(object)
+    failed = pyqtSignal(str)
+
+    def __init__(self, session_loader, session_restorer, path):
+        super().__init__()
+        self._session_loader = session_loader
+        self._session_restorer = session_restorer
+        self._path = path
+
+    @pyqtSlot()
+    def run(self) -> None:
+        try:
+            session = self._session_loader(self._path)
+            series = self._session_restorer(session)
+        except Exception as exc:
+            self.failed.emit(str(exc) or exc.__class__.__name__)
+            return
+        self.finished.emit(_StateOpenResult(session=session, series=series))
+
+
 class _YoloDetectAllWorker(QObject):
     progress = pyqtSignal(int, int)
     finished = pyqtSignal(object)
@@ -675,6 +723,12 @@ class MolTrackMainWindow(QMainWindow):
             )
         )
         self._session_path: str | None = None
+        self._state_io_running = False
+        self._state_io_operation = ""
+        self._state_io_path: str | None = None
+        self._state_io_progress_dialog: QProgressDialog | None = None
+        self._state_io_thread: QThread | None = None
+        self._state_io_worker: QObject | None = None
         self._yolo_model_discovery = yolo_model_discovery
         self._yolo_detector = yolo_detector if yolo_detector is not None else MolTrackYoloDetector()
         self._sam2_checkpoint_discovery = sam2_checkpoint_discovery
@@ -2093,7 +2147,8 @@ class MolTrackMainWindow(QMainWindow):
 
     def _is_processing(self) -> bool:
         return (
-            self._registration_running
+            self._state_io_running
+            or self._registration_running
             or self._yolo_detection_running
             or self._sam2_segmentation_running
             or self._sam3_concept_running
@@ -3614,7 +3669,7 @@ class MolTrackMainWindow(QMainWindow):
         if self._session_path is None:
             self._choose_and_save_state()
             return
-        self.save_state(self._session_path)
+        self._start_save_state(self._session_path)
 
     def _on_save_state_as_requested(self) -> None:
         self._choose_and_save_state()
@@ -3628,7 +3683,38 @@ class MolTrackMainWindow(QMainWindow):
         )
         if not path:
             return
-        self.save_state(path)
+        self._start_save_state(path)
+
+    def _start_save_state(self, path) -> None:
+        if self._series is None or self._state_io_running:
+            return
+        self._state_io_running = True
+        self._state_io_operation = "save"
+        self._state_io_path = str(path)
+        self._state_io_progress_dialog = self._show_state_io_progress_dialog(
+            title="Saving State",
+            label="Saving state and segmentation masks...",
+        )
+        self._sync_navigation_controls()
+        self.statusBar().showMessage(f"Saving state {path}...", 0)
+
+        thread = QThread(self)
+        worker = _StateSaveWorker(
+            self._session_saver,
+            path,
+            self._series,
+            self._current_ui_state(),
+        )
+        self._state_io_thread = thread
+        self._state_io_worker = worker
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.finished.connect(self._on_state_save_finished)
+        worker.failed.connect(self._on_state_io_failed)
+        worker.finished.connect(thread.quit)
+        worker.failed.connect(thread.quit)
+        thread.finished.connect(self._cleanup_state_io_worker)
+        thread.start()
 
     def save_state(self, path) -> None:
         if self._series is None:
@@ -3680,7 +3766,37 @@ class MolTrackMainWindow(QMainWindow):
         )
         if not path:
             return
-        self.open_state(path)
+        self._start_open_state(path)
+
+    def _start_open_state(self, path) -> None:
+        if self._state_io_running:
+            return
+        self._state_io_running = True
+        self._state_io_operation = "open"
+        self._state_io_path = str(path)
+        self._state_io_progress_dialog = self._show_state_io_progress_dialog(
+            title="Opening State",
+            label="Opening state and restoring the STM series...",
+        )
+        self._sync_navigation_controls()
+        self.statusBar().showMessage(f"Opening state {path}...", 0)
+
+        thread = QThread(self)
+        worker = _StateOpenWorker(
+            self._session_loader,
+            self._session_restorer,
+            path,
+        )
+        self._state_io_thread = thread
+        self._state_io_worker = worker
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.finished.connect(self._on_state_open_finished)
+        worker.failed.connect(self._on_state_io_failed)
+        worker.finished.connect(thread.quit)
+        worker.failed.connect(thread.quit)
+        thread.finished.connect(self._cleanup_state_io_worker)
+        thread.start()
 
     def open_state(self, path) -> None:
         try:
@@ -3692,6 +3808,66 @@ class MolTrackMainWindow(QMainWindow):
             QMessageBox.critical(self, "Open State failed", message)
             return
 
+        self._apply_loaded_state(path, session, series)
+
+    def _on_state_save_finished(self) -> None:
+        path = self._state_io_path
+        if path is None:
+            return
+        self._session_path = path
+        self.statusBar().showMessage(f"Saved state {path}", 5000)
+
+    def _on_state_open_finished(self, result: _StateOpenResult) -> None:
+        path = self._state_io_path
+        if path is None:
+            return
+        try:
+            self._apply_loaded_state(path, result.session, result.series)
+        except Exception as exc:
+            message = str(exc) or exc.__class__.__name__
+            self.statusBar().showMessage(f"Open State failed: {message}", 5000)
+            QMessageBox.critical(self, "Open State failed", message)
+
+    def _on_state_io_failed(self, message: str) -> None:
+        if self._state_io_operation == "save":
+            title = "Save State failed"
+        else:
+            title = "Open State failed"
+        self.statusBar().showMessage(f"{title}: {message}", 5000)
+        QMessageBox.critical(self, title, message)
+
+    def _show_state_io_progress_dialog(self, *, title: str, label: str) -> QProgressDialog:
+        progress_dialog = QProgressDialog(label, None, 0, 0, self)
+        progress_dialog.setWindowTitle(title)
+        progress_dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
+        progress_dialog.setCancelButton(None)
+        progress_dialog.setMinimumDuration(0)
+        progress_dialog.setAutoClose(False)
+        progress_dialog.setAutoReset(False)
+        progress_dialog.show()
+        QApplication.processEvents()
+        return progress_dialog
+
+    def _close_state_io_progress_dialog(self) -> None:
+        if self._state_io_progress_dialog is None:
+            return
+        self._state_io_progress_dialog.close()
+        self._state_io_progress_dialog = None
+
+    def _cleanup_state_io_worker(self) -> None:
+        if self._state_io_worker is not None:
+            self._state_io_worker.deleteLater()
+            self._state_io_worker = None
+        if self._state_io_thread is not None:
+            self._state_io_thread.deleteLater()
+            self._state_io_thread = None
+        self._close_state_io_progress_dialog()
+        self._state_io_running = False
+        self._state_io_operation = ""
+        self._state_io_path = None
+        self._sync_navigation_controls()
+
+    def _apply_loaded_state(self, path, session, series) -> None:
         registration_view_mode = getattr(session, "registration_view_mode", "Show raw")
         bbox_opacity_percent = getattr(session, "bbox_opacity_percent", 100)
         mask_opacity_percent = getattr(session, "mask_opacity_percent", 30)
