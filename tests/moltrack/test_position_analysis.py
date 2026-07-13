@@ -19,6 +19,8 @@ from moltrack.core import (
     MolecularCentroid,
     MolecularDetection,
     MolecularDetectionSet,
+    MolecularSegmentation,
+    MolecularSegmentationSet,
     MolTrackImageSeries,
 )
 from nanotrack.core import STMSequenceMetadata
@@ -355,6 +357,63 @@ class MolecularFrameRangeComparisonTests(unittest.TestCase):
         self.assertEqual(comparison.first_analysis.frame_results[0].point_count, 2)
         self.assertEqual(comparison.second_analysis.frame_range.name, "after adsorption")
         self.assertEqual(comparison.second_analysis.frame_results[0].point_count, 4)
+
+    def test_comparison_can_use_bbox_centers_instead_of_linked_segmentation_centroids(self) -> None:
+        detections = MolecularDetectionSet(frame_count=2)
+        segmentations = MolecularSegmentationSet(frame_count=2)
+        for frame_index in range(2):
+            detection_id = f"bbox-{frame_index}"
+            detections.set_detections(
+                frame_index,
+                [
+                    MolecularDetection(
+                        frame_index=frame_index,
+                        bbox_xyxy=(0, 0, 4, 4),
+                        confidence=0.9,
+                        detection_id=detection_id,
+                    )
+                ],
+                source_view="raw",
+                frame_shape=(6, 6),
+            )
+            mask = np.zeros((6, 6), dtype=bool)
+            mask[frame_index, frame_index] = True
+            segmentations.add_segmentation(
+                MolecularSegmentation(
+                    frame_index=frame_index,
+                    source_view="raw",
+                    mask=mask,
+                    prompt_detection_ids=(detection_id,),
+                    segmentation_id=f"seg-{frame_index}",
+                    origin="sam2",
+                )
+            )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((2, 6, 6), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=6, pixels_y=6),
+            molecular_detections=detections,
+            molecular_segmentations=segmentations,
+        )
+        selection = MolecularFrameRangeSelection(
+            frame_count=2,
+            source_view="raw",
+            first_range=MolecularFrameRange("before", 0, 0),
+            second_range=MolecularFrameRange("after", 1, 1),
+        )
+
+        comparison = compare_molecular_frame_ranges(
+            series,
+            selection,
+            use_segmentation_centroids=False,
+        )
+
+        first_centroid = comparison.first_analysis.frame_results[0].centroids[0]
+        second_centroid = comparison.second_analysis.frame_results[0].centroids[0]
+        self.assertEqual(first_centroid.source_kind, "bbox_center")
+        self.assertEqual(second_centroid.source_kind, "bbox_center")
+        self.assertEqual(comparison.first_analysis.frame_results[0].plot_data.points_xy, ((2.0, 2.0),))
+        self.assertEqual(comparison.second_analysis.frame_results[0].plot_data.points_xy, ((2.0, 2.0),))
 
     def test_comparison_reports_second_minus_first_aggregate_differences(self) -> None:
         series, selection = self._build_two_condition_series_and_selection()

@@ -282,6 +282,46 @@ class STMSeriesViewerTests(unittest.TestCase):
         self.assertIsNone(series.sam3_preview)
         self.assertEqual(self.viewer.visible_sam3_preview_count(), 0)
 
+    def test_viewer_applies_shared_opacity_to_committed_and_sam3_preview_masks(self) -> None:
+        mask = np.zeros((4, 4), dtype=bool)
+        mask[1:3, 1:3] = True
+        segmentations = MolecularSegmentationSet(frame_count=1)
+        segmentations.add_segmentation(
+            MolecularSegmentation(
+                frame_index=0,
+                mask=mask,
+                origin="sam2",
+                segmentation_id="sam2-mask",
+            )
+        )
+        preview = build_moltrack_sam3_preview(
+            [
+                MolTrackSam3Proposal(
+                    frame_index=0,
+                    source_view="raw",
+                    bbox_xyxy=(1, 1, 3, 3),
+                    score=0.9,
+                    mask=mask,
+                )
+            ],
+            frame_index=0,
+            source_view="raw",
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((1, 4, 4), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            molecular_segmentations=segmentations,
+            sam3_preview=preview,
+        )
+        self.viewer = STMSeriesViewer()
+
+        self.viewer.set_molecular_segmentation_overlay_opacity(0.15)
+        self.viewer.set_image_series(series)
+
+        self.assertEqual(self.viewer.visible_molecular_segmentation_opacities(), [0.15])
+        self.assertEqual(self.viewer.visible_sam3_preview_opacities(), [0.15])
+
 
 if __name__ == "__main__":
     unittest.main()

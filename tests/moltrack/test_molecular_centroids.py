@@ -135,6 +135,63 @@ class MolecularCentroidModelTests(unittest.TestCase):
         )
         self.assertEqual([centroid.area_px for centroid in centroids], [4.0, None])
 
+    def test_build_centroids_can_use_bbox_centers_even_when_linked_masks_exist(self) -> None:
+        detections = MolecularDetectionSet(frame_count=1)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(0, 0, 4, 4),
+                    confidence=0.9,
+                    detection_id="bbox-with-mask",
+                ),
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(4, 0, 6, 2),
+                    confidence=0.8,
+                    detection_id="bbox-only",
+                ),
+            ],
+            source_view="raw",
+            frame_shape=(6, 6),
+        )
+        mask = np.zeros((6, 6), dtype=bool)
+        mask[0, 0] = True
+        segmentations = MolecularSegmentationSet(frame_count=1)
+        segmentations.add_segmentation(
+            MolecularSegmentation(
+                frame_index=0,
+                source_view="raw",
+                mask=mask,
+                prompt_detection_ids=("bbox-with-mask",),
+                segmentation_id="seg-1",
+                origin="sam2",
+            )
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((1, 6, 6), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=6, pixels_y=6),
+            molecular_detections=detections,
+            molecular_segmentations=segmentations,
+        )
+
+        centroids = build_molecular_centroids(
+            series,
+            source_view="raw",
+            use_segmentation_centroids=False,
+        )
+
+        self.assertEqual(
+            [(centroid.source_kind, centroid.source_id) for centroid in centroids],
+            [("bbox_center", "bbox-with-mask"), ("bbox_center", "bbox-only")],
+        )
+        self.assertEqual(
+            [(centroid.x_px, centroid.y_px) for centroid in centroids],
+            [(2.0, 2.0), (5.0, 1.0)],
+        )
+
     def test_build_centroids_isolates_frame_and_expanded_view_and_uses_physical_scale(self) -> None:
         detections = MolecularDetectionSet(frame_count=2)
         detections.set_detections(

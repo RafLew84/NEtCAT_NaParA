@@ -27,6 +27,7 @@ class STMSeriesViewer(QWidget):
         super().__init__(parent)
         self._series = None
         self._molecular_detection_overlay_opacity = 1.0
+        self._molecular_segmentation_overlay_opacity = 0.30
         self._visible_molecular_detection_count = 0
         self._visible_molecular_detection_colors: list[tuple[int, int, int]] = []
         self._visible_molecular_detection_opacities: list[float] = []
@@ -35,9 +36,11 @@ class STMSeriesViewer(QWidget):
         self._molecular_centroid_overlay_item = None
         self._visible_molecular_segmentation_count = 0
         self._visible_molecular_segmentation_ids: list[str] = []
+        self._visible_molecular_segmentation_opacities: list[float] = []
         self._highlighted_molecular_segmentation_ids: list[str] = []
         self._visible_sam3_preview_count = 0
         self._visible_sam3_preview_ids: list[str] = []
+        self._visible_sam3_preview_opacities: list[float] = []
         self._visible_sam3_manual_prompt_count = 0
         self._visible_sam3_manual_prompt_colors: list[tuple[int, int, int]] = []
         self._selected_molecular_detection_id: str | None = None
@@ -164,9 +167,11 @@ class STMSeriesViewer(QWidget):
         self._molecular_centroid_overlay_item = None
         self._visible_molecular_segmentation_count = 0
         self._visible_molecular_segmentation_ids = []
+        self._visible_molecular_segmentation_opacities = []
         self._highlighted_molecular_segmentation_ids = []
         self._visible_sam3_preview_count = 0
         self._visible_sam3_preview_ids = []
+        self._visible_sam3_preview_opacities = []
         self._molecular_detection_overlay_items_by_id = {}
         self._molecular_segmentation_overlay_items_by_id = {}
         self._molecular_segmentation_prompt_ids_by_id = {}
@@ -186,6 +191,9 @@ class STMSeriesViewer(QWidget):
     def set_molecular_detection_overlay_opacity(self, opacity: float) -> None:
         self._molecular_detection_overlay_opacity = min(1.0, max(0.0, float(opacity)))
 
+    def set_molecular_segmentation_overlay_opacity(self, opacity: float) -> None:
+        self._molecular_segmentation_overlay_opacity = min(1.0, max(0.0, float(opacity)))
+
     def set_molecular_centroid_overlay_visible(self, visible: bool) -> None:
         self._molecular_centroid_overlay_visible = bool(visible)
 
@@ -204,6 +212,9 @@ class STMSeriesViewer(QWidget):
     def visible_molecular_segmentation_ids(self) -> list[str]:
         return list(self._visible_molecular_segmentation_ids)
 
+    def visible_molecular_segmentation_opacities(self) -> list[float]:
+        return list(self._visible_molecular_segmentation_opacities)
+
     def highlighted_molecular_detection_ids(self) -> list[str]:
         selected_id = self._selected_molecular_detection_id
         if selected_id is None or selected_id not in self._molecular_detection_overlay_items_by_id:
@@ -218,6 +229,9 @@ class STMSeriesViewer(QWidget):
 
     def visible_sam3_preview_ids(self) -> list[str]:
         return list(self._visible_sam3_preview_ids)
+
+    def visible_sam3_preview_opacities(self) -> list[float]:
+        return list(self._visible_sam3_preview_opacities)
 
     def visible_sam3_manual_prompt_count(self) -> int:
         return int(self._visible_sam3_manual_prompt_count)
@@ -481,6 +495,7 @@ class STMSeriesViewer(QWidget):
     ) -> None:
         self._visible_molecular_segmentation_count = 0
         self._visible_molecular_segmentation_ids = []
+        self._visible_molecular_segmentation_opacities = []
         self._molecular_segmentation_overlay_items_by_id = {}
         self._molecular_segmentation_prompt_ids_by_id = {}
         self._highlighted_molecular_segmentation_ids = []
@@ -503,11 +518,14 @@ class STMSeriesViewer(QWidget):
                 mask_item = self.viewer.add_mask_overlay_px(
                     mask,
                     color=(0, 200, 255),
-                    alpha=80,
+                    alpha=round(255 * self._molecular_segmentation_overlay_opacity),
                     scale_nm_per_px=(sx, sy),
                 )
                 if mask_item is not None:
                     items.append(mask_item)
+                    self._visible_molecular_segmentation_opacities.append(
+                        self._molecular_segmentation_overlay_opacity
+                    )
             if segmentation.polygon_xy is not None:
                 polyline = self.viewer.add_polyline_nm(
                     self._polygon_polyline_nm(segmentation.polygon_xy, scale_nm_per_px=(sx, sy)),
@@ -535,6 +553,7 @@ class STMSeriesViewer(QWidget):
     ) -> None:
         self._visible_sam3_preview_count = 0
         self._visible_sam3_preview_ids = []
+        self._visible_sam3_preview_opacities = []
         self._sam3_preview_overlay_items_by_id = {}
         if self._series is None:
             return
@@ -561,11 +580,14 @@ class STMSeriesViewer(QWidget):
                 mask_item = self.viewer.add_mask_overlay_px(
                     mask,
                     color=(0, 255, 120),
-                    alpha=70,
+                    alpha=round(255 * self._molecular_segmentation_overlay_opacity),
                     scale_nm_per_px=(sx, sy),
                 )
                 if mask_item is not None:
                     items.append(mask_item)
+                    self._visible_sam3_preview_opacities.append(
+                        self._molecular_segmentation_overlay_opacity
+                    )
             if proposal.polygon_xy:
                 polyline = self.viewer.add_polyline_nm(
                     self._polygon_polyline_nm(proposal.polygon_xy, scale_nm_per_px=(sx, sy)),

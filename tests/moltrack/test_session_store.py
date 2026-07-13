@@ -25,6 +25,39 @@ from nanotrack.core import STMSequenceMetadata
 
 
 class MolTrackSessionStoreTests(unittest.TestCase):
+    def test_load_older_state_without_sam2_backend_configuration(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"old state source")
+            source_stat = source_path.stat()
+            session_path = tmp_path / "old-state.moltrack.json"
+            payload = {
+                "schema_version": 1,
+                "source": {
+                    "path": str(source_path),
+                    "size_bytes": source_stat.st_size,
+                    "mtime_ns": source_stat.st_mtime_ns,
+                },
+                "working_series": {
+                    "source_frame_indices": [0, 1],
+                    "active_frame_index": 0,
+                    "reverse_frame_order": False,
+                },
+                "ui": {"registration_view_mode": "Show raw"},
+                "registration": None,
+                "molecular_detections": None,
+                "molecular_segmentations": None,
+            }
+            self.assertNotIn("sam2_backend", payload)
+            session_path.write_text(json.dumps(payload), encoding="utf-8")
+
+            loaded = load_moltrack_session(session_path)
+
+        self.assertEqual(loaded.source_frame_indices, (0, 1))
+        self.assertEqual(loaded.active_frame_index, 0)
+        self.assertIsNone(loaded.molecular_segmentations)
+
     def test_save_and_load_session_round_trip_writes_readable_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_path = Path(tmpdir)
@@ -101,7 +134,10 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             save_moltrack_session(
                 session_path,
                 series,
-                {"registration_view_mode": "Show expanded aligned"},
+                {
+                    "registration_view_mode": "Show expanded aligned",
+                    "mask_opacity_percent": 42,
+                },
             )
 
             payload = json.loads(session_path.read_text(encoding="utf-8"))
@@ -112,6 +148,7 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             self.assertEqual(payload["working_series"]["active_frame_index"], 1)
             self.assertFalse(payload["working_series"]["reverse_frame_order"])
             self.assertEqual(payload["ui"]["registration_view_mode"], "Show expanded aligned")
+            self.assertEqual(payload["ui"]["mask_opacity_percent"], 42)
             self.assertEqual(payload["registration"]["settings"]["backend"], "optical_flow_median")
             self.assertEqual(payload["registration"]["settings"]["backend_params"]["method"], "ilk")
             self.assertEqual(payload["registration"]["results_by_frame"][1]["shift_xy"], [1.0, -1.0])
@@ -144,6 +181,7 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             self.assertEqual(loaded.active_frame_index, 1)
             self.assertFalse(loaded.reverse_frame_order)
             self.assertEqual(loaded.registration_view_mode, "Show expanded aligned")
+            self.assertEqual(loaded.mask_opacity_percent, 42)
             self.assertEqual(loaded.registration_settings.backend, "optical_flow_median")
             self.assertEqual(loaded.registration_settings.backend_params["method"], "ilk")
             self.assertEqual(loaded.registration_results.result_count, 3)
@@ -176,6 +214,49 @@ class MolTrackSessionStoreTests(unittest.TestCase):
 
             with self.assertRaisesRegex(ValueError, "Unsupported MolTrack session schema_version"):
                 load_moltrack_session(session_path)
+
+    def test_save_and_load_session_round_trips_position_analysis_configuration(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"fake mpp bytes")
+            session_path = tmp_path / "state.moltrack.json"
+            series = MolTrackImageSeries(
+                source_path=str(source_path),
+                raw_frames=np.zeros((6, 2, 4), dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+            )
+
+            save_moltrack_session(
+                session_path,
+                series,
+                {
+                    "position_analysis": {
+                        "source_view": "raw",
+                        "first_range": {"name": "before", "start_frame": 0, "end_frame": 2},
+                        "second_range": {"name": "after", "start_frame": 3, "end_frame": 5},
+                        "comparison_completed": True,
+                        "active_tab": "Spatial comparison",
+                        "density_grid_shape": [24, 32],
+                        "use_segmentation_centroids": False,
+                    }
+                },
+            )
+
+            payload = json.loads(session_path.read_text(encoding="utf-8"))
+            loaded = load_moltrack_session(session_path)
+
+            self.assertEqual(payload["position_analysis"]["first_range"]["name"], "before")
+            self.assertEqual(payload["position_analysis"]["density_grid_shape"], [24, 32])
+            self.assertFalse(payload["position_analysis"]["use_segmentation_centroids"])
+            self.assertEqual(loaded.position_analysis.source_view, "raw")
+            self.assertEqual(loaded.position_analysis.first_range.name, "before")
+            self.assertEqual(loaded.position_analysis.first_range.frame_indices, (0, 1, 2))
+            self.assertEqual(loaded.position_analysis.second_range.frame_indices, (3, 4, 5))
+            self.assertTrue(loaded.position_analysis.comparison_completed)
+            self.assertEqual(loaded.position_analysis.active_tab, "Spatial comparison")
+            self.assertEqual(loaded.position_analysis.density_grid_shape, (24, 32))
+            self.assertFalse(loaded.position_analysis.use_segmentation_centroids)
 
     def test_load_session_rejects_missing_or_changed_source_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

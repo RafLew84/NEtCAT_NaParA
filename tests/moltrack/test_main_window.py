@@ -1,5 +1,6 @@
 import os
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -20,8 +21,13 @@ from moltrack.core import (
     MolTrackRegistrationResultSet,
     MolTrackRegistrationSettings,
 )
-from moltrack.persistence import save_moltrack_session
-from moltrack.sam3 import MolTrackSam3Preview, MolTrackSam3PreviewProposal, MolTrackSam3Proposal
+from moltrack.persistence import load_moltrack_session, save_moltrack_session
+from moltrack.sam3 import (
+    MolTrackSam3Preview,
+    MolTrackSam3PreviewProposal,
+    MolTrackSam3Proposal,
+    build_moltrack_sam3_preview,
+)
 from nanotrack.core import STMSequenceMetadata
 
 try:
@@ -31,7 +37,14 @@ except ImportError:  # pragma: no cover - optional outside target GUI env
 
 if QApplication is not None:
     from PyQt6.QtCore import QThread
-    from PyQt6.QtWidgets import QFileDialog, QGroupBox, QMessageBox, QDialog, QScrollArea
+    from PyQt6.QtWidgets import (
+        QDialog,
+        QFileDialog,
+        QGroupBox,
+        QMessageBox,
+        QPushButton,
+        QScrollArea,
+    )
 
     from moltrack.ui import MolTrackMainWindow
 else:  # pragma: no cover - optional outside target GUI env
@@ -431,6 +444,90 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertIsNone(series.molecular_detections)
         self.assertEqual(series.sam3_preview.proposal_count, 1)
 
+    def test_sam3_expanded_prompts_run_on_raw_and_transform_proposals_back_to_expanded(self) -> None:
+        calls = []
+
+        class FakeSam3Adapter:
+            def segment_prompts(self, frame, prompts, *, frame_index, source_view, model_id, **_kwargs):
+                calls.append((np.asarray(frame).copy(), tuple(prompts), frame_index, source_view))
+                mask = np.zeros(frame.shape[:2], dtype=bool)
+                mask[1:3, 1:3] = True
+                return [
+                    MolTrackSam3Proposal(
+                        frame_index=frame_index,
+                        source_view=source_view,
+                        bbox_xyxy=(1, 1, 3, 3),
+                        score=0.9,
+                        mask=mask,
+                        polygon_xy=((1, 1), (3, 1), (3, 3), (1, 3)),
+                        model_name=model_id,
+                    )
+                ]
+
+        raw_frame = np.arange(25, dtype=np.float32).reshape(5, 5)
+        expanded_frame = np.full((8, 9), np.nan, dtype=np.float32)
+        expanded_frame[1:6, 2:7] = raw_frame
+
+        def fake_expanded_builder(series):
+            stack = SimpleNamespace(
+                frames=expanded_frame[np.newaxis, ...],
+                metadata=STMSequenceMetadata(pixels_x=9, pixels_y=8),
+                padding_ltrb=(2, 1, 2, 2),
+                frame_origins_xy=np.asarray(((2.0, 1.0),), dtype=np.float64),
+            )
+            series.expanded_aligned_stack = stack
+            return stack
+
+        settings = MolTrackRegistrationSettings()
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=raw_frame[np.newaxis, ...],
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=5),
+            registration_results=MolTrackRegistrationResultSet(
+                settings=settings,
+                results_by_frame={
+                    0: MolTrackRegistrationFrameResult(
+                        frame_index=0,
+                        shift_xy=(0.0, 0.0),
+                        method="identity",
+                    )
+                },
+            ),
+        )
+        self.window = MolTrackMainWindow(
+            expanded_aligned_builder=fake_expanded_builder,
+            yolo_model_discovery=lambda: [],
+            sam3_adapter=FakeSam3Adapter(),
+        )
+        self.window.set_image_series(series)
+        self.window.cmb_registration_view_mode.setCurrentText("Show expanded aligned")
+        self.window.cmb_segmentation_backend.setCurrentText("SAM3")
+        self.window.add_sam3_manual_prompt_bbox((3, 2, 5, 4), label=1)
+        self.window.add_sam3_manual_prompt_bbox((5, 3, 7, 5), label=0)
+        self.window.cmb_sam3_prompt_source.setCurrentText("Manual prompt BBoxes")
+
+        self.window.btn_sam3_run_concepts.click()
+        self.process_events_until(lambda: series.sam3_preview is not None and len(calls) == 1)
+
+        np.testing.assert_array_equal(calls[0][0], raw_frame)
+        self.assertEqual(calls[0][2], 0)
+        self.assertEqual(calls[0][3], "raw")
+        self.assertEqual([prompt.label for prompt in calls[0][1]], [1, 0])
+        self.assertEqual(
+            [prompt.bbox_xyxy for prompt in calls[0][1]],
+            [(1.0, 1.0, 3.0, 3.0), (3.0, 2.0, 5.0, 4.0)],
+        )
+        preview = series.sam3_preview
+        self.assertEqual(preview.source_view, "expanded_aligned")
+        self.assertEqual(preview.proposals[0].bbox_xyxy, (3.0, 2.0, 5.0, 4.0))
+        self.assertEqual(
+            preview.proposals[0].polygon_xy,
+            ((3.0, 2.0), (5.0, 2.0), (5.0, 4.0), (3.0, 4.0)),
+        )
+        expected_mask = np.zeros(expanded_frame.shape, dtype=bool)
+        expected_mask[2:4, 3:5] = True
+        np.testing.assert_array_equal(preview.proposals[0].mask, expected_mask)
+
     def test_sam3_run_concepts_rejects_manual_negative_prompts_without_positive_prompt(self) -> None:
         class FakeSam3Adapter:
             def __init__(self) -> None:
@@ -588,7 +685,11 @@ class MolTrackMainWindowTests(unittest.TestCase):
                 (
                     "state.moltrack.json",
                     series,
-                    {"registration_view_mode": "Show raw", "bbox_opacity_percent": 100},
+                    {
+                        "registration_view_mode": "Show raw",
+                        "bbox_opacity_percent": 100,
+                        "mask_opacity_percent": 30,
+                    },
                 )
             ],
         )
@@ -1191,6 +1292,109 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.viewer.visible_molecular_segmentation_ids(), ["sam2-seg-1"])
         self.assertIn("SAM2 segmented selected BBox", self.window.statusBar().currentMessage())
 
+    def test_sam2_segment_selected_bbox_uses_one_item_batch_not_legacy_call(self) -> None:
+        class FakeBatchSam2Segmenter:
+            def __init__(self) -> None:
+                self.batch_calls = []
+                self.legacy_calls = []
+
+            def segment_frame_detections(self, frame, detections, **kwargs):
+                detections = list(detections)
+                self.batch_calls.append((np.asarray(frame).copy(), detections, dict(kwargs)))
+                detection = detections[0]
+                mask = np.zeros(frame.shape[:2], dtype=bool)
+                mask[1:3, 1:3] = True
+                return [
+                    MolecularSegmentation(
+                        frame_index=detection.frame_index,
+                        source_view=detection.source_view,
+                        bbox_xyxy=(1, 1, 3, 3),
+                        mask=mask,
+                        origin="sam2",
+                        prompt_detection_ids=(detection.detection_id,),
+                        segmentation_id="sam2-selected-batch",
+                    )
+                ]
+
+            def segment_detection(self, frame, detection, **kwargs):
+                self.legacy_calls.append((frame, detection, kwargs))
+                raise AssertionError("Selected BBox must use the frame batch adapter")
+
+        segmenter = FakeBatchSam2Segmenter()
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            sam2_checkpoint_discovery=lambda: [Path(r"C:\models\sam2.pt")],
+            sam2_segmenter=segmenter,
+            sam2_settings_dialog_factory=self.sam2_dialog_factory(threshold=0.62),
+        )
+        series, detection, frames = self.load_single_bbox_series()
+
+        with patch.object(
+            QMessageBox,
+            "critical",
+            return_value=QMessageBox.StandardButton.Ok,
+        ):
+            self.window.btn_sam2_segment_selected.click()
+            self.process_events_until(
+                lambda: series.molecular_segmentations is not None
+                and series.molecular_segmentations.get_segmentation("sam2-selected-batch")
+                is not None,
+            )
+
+        self.assertEqual(len(segmenter.batch_calls), 1)
+        np.testing.assert_array_equal(segmenter.batch_calls[0][0], frames[0])
+        self.assertEqual(segmenter.batch_calls[0][1], [detection])
+        self.assertAlmostEqual(
+            segmenter.batch_calls[0][2]["mask_probability_threshold"],
+            0.62,
+        )
+        self.assertEqual(segmenter.legacy_calls, [])
+
+    def test_sam2_batch_backend_can_be_disabled_for_legacy_diagnostics(self) -> None:
+        class DualPathSam2Segmenter:
+            def __init__(self) -> None:
+                self.batch_calls = []
+                self.legacy_calls = []
+
+            def segment_frame_detections(self, frame, detections, **kwargs):
+                self.batch_calls.append((frame, list(detections), kwargs))
+                raise AssertionError("Diagnostic fallback must not use batch SAM2")
+
+            def segment_detection(self, frame, detection, **kwargs):
+                self.legacy_calls.append((np.asarray(frame).copy(), detection, dict(kwargs)))
+                mask = np.zeros(frame.shape[:2], dtype=bool)
+                mask[1:3, 1:3] = True
+                return MolecularSegmentation(
+                    frame_index=detection.frame_index,
+                    source_view=detection.source_view,
+                    bbox_xyxy=(1, 1, 3, 3),
+                    mask=mask,
+                    origin="sam2",
+                    prompt_detection_ids=(detection.detection_id,),
+                    segmentation_id="sam2-legacy-diagnostic",
+                )
+
+        segmenter = DualPathSam2Segmenter()
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            sam2_checkpoint_discovery=lambda: [Path(r"C:\models\sam2.pt")],
+            sam2_segmenter=segmenter,
+            sam2_settings_dialog_factory=self.sam2_dialog_factory(),
+            sam2_use_batch_backend=False,
+        )
+        series, detection, _frames = self.load_single_bbox_series()
+
+        self.window.btn_sam2_segment_selected.click()
+        self.process_events_until(
+            lambda: series.molecular_segmentations is not None
+            and series.molecular_segmentations.get_segmentation("sam2-legacy-diagnostic")
+            is not None,
+        )
+
+        self.assertEqual(segmenter.batch_calls, [])
+        self.assertEqual(len(segmenter.legacy_calls), 1)
+        self.assertIs(segmenter.legacy_calls[0][1], detection)
+
     def test_selecting_sam2_segmentation_by_mask_pixel_updates_segmentation_panel(self) -> None:
         self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
         frames = np.zeros((1, 5, 5), dtype=np.float32)
@@ -1240,6 +1444,60 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertIn("bbox-1", panel_text)
         self.assertIn("area 4", panel_text)
         self.assertIn("bbox 1.0,1.0,3.0,3.0", panel_text)
+
+    def test_delete_active_segmentation_removes_mask_but_keeps_prompt_bbox(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        frames = np.zeros((1, 5, 5), dtype=np.float32)
+        detections = MolecularDetectionSet(frame_count=1)
+        detection = MolecularDetection(
+            frame_index=0,
+            bbox_xyxy=(1, 1, 4, 4),
+            confidence=0.9,
+            source_view="raw",
+            detection_id="bbox-1",
+        )
+        detections.set_detections(0, [detection], source_view="raw", frame_shape=(5, 5))
+        mask = np.zeros((5, 5), dtype=bool)
+        mask[1:3, 1:3] = True
+        segmentations = MolecularSegmentationSet(frame_count=1)
+        segmentations.add_segmentation(
+            MolecularSegmentation(
+                frame_index=0,
+                source_view="raw",
+                bbox_xyxy=(1, 1, 3, 3),
+                mask=mask,
+                origin="sam2",
+                prompt_detection_ids=("bbox-1",),
+                segmentation_id="sam2-seg-1",
+            )
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=5),
+            molecular_detections=detections,
+            molecular_segmentations=segmentations,
+        )
+        self.window.set_image_series(series)
+
+        self.assertFalse(self.window.btn_delete_active_segmentation.isEnabled())
+        self.assertEqual(
+            self.window.select_molecular_segmentation_at_pixel(1.0, 1.0),
+            "sam2-seg-1",
+        )
+        self.assertTrue(self.window.btn_delete_active_segmentation.isEnabled())
+
+        self.window.btn_delete_active_segmentation.click()
+        self.__class__._app.processEvents()
+
+        self.assertIsNone(segmentations.get_segmentation("sam2-seg-1"))
+        self.assertIs(detections.get_detection("bbox-1"), detection)
+        self.assertEqual(self.window.viewer.visible_molecular_segmentation_ids(), [])
+        self.assertIsNone(self.window.selected_molecular_segmentation_id())
+        self.assertIsNone(self.window.viewer.selected_molecular_segmentation_id())
+        self.assertFalse(self.window.btn_delete_active_segmentation.isEnabled())
+        self.assertEqual(self.window.lbl_active_segmentation_status.text(), "No active segmentation")
+        self.assertIn("Deleted segmentation", self.window.statusBar().currentMessage())
 
     def test_segmentation_panel_combo_selects_specific_mask_for_same_bbox(self) -> None:
         self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
@@ -2094,6 +2352,966 @@ class MolTrackMainWindowTests(unittest.TestCase):
         )
         self.assertIn("SAM2 segmented 2 BBox(es)", self.window.statusBar().currentMessage())
 
+    def test_sam2_all_current_uses_one_frame_batch_and_reports_chunk_progress(self) -> None:
+        class SlowBatchSam2Segmenter:
+            def __init__(self) -> None:
+                self.batch_calls = []
+                self.legacy_calls = []
+
+            def segment_frame_detections(self, frame, detections, **kwargs):
+                detections = list(detections)
+                self.batch_calls.append((np.asarray(frame).copy(), detections, dict(kwargs)))
+                time.sleep(0.2)
+                results = []
+                for detection in detections:
+                    mask = np.zeros(frame.shape[:2], dtype=bool)
+                    x1, y1, x2, y2 = (int(value) for value in detection.bbox_xyxy)
+                    mask[y1:y2, x1:x2] = True
+                    results.append(
+                        MolecularSegmentation(
+                            frame_index=detection.frame_index,
+                            source_view=detection.source_view,
+                            bbox_xyxy=detection.bbox_xyxy,
+                            mask=mask,
+                            origin="sam2",
+                            prompt_detection_ids=(detection.detection_id,),
+                            segmentation_id=f"sam2-batch-{detection.detection_id}",
+                        )
+                    )
+                return results
+
+            def segment_detection(self, frame, detection, **kwargs):
+                self.legacy_calls.append((frame, detection, kwargs))
+                raise AssertionError("All BBoxes In Image must use one frame batch")
+
+        segmenter = SlowBatchSam2Segmenter()
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            sam2_checkpoint_discovery=lambda: [Path(r"C:\models\sam2.pt")],
+            sam2_segmenter=segmenter,
+            sam2_settings_dialog_factory=self.sam2_dialog_factory(threshold=0.71),
+        )
+        frames = np.arange(36, dtype=np.float32).reshape(1, 6, 6)
+        detections = MolecularDetectionSet(frame_count=1)
+        frame_detections = [
+            MolecularDetection(
+                frame_index=0,
+                bbox_xyxy=(1, 1, 3, 3),
+                confidence=0.9,
+                detection_id="one",
+            ),
+            MolecularDetection(
+                frame_index=0,
+                bbox_xyxy=(3, 2, 5, 5),
+                confidence=0.8,
+                detection_id="two",
+            ),
+        ]
+        detections.set_detections(
+            0,
+            frame_detections,
+            source_view="raw",
+            frame_shape=(6, 6),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=6, pixels_y=6),
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+
+        self.window.btn_sam2_segment_all_current.click()
+        self.process_events_until(
+            lambda: self.window._sam2_segmentation_progress_dialog is not None
+            and "Chunks 0/1"
+            in self.window._sam2_segmentation_progress_dialog.labelText(),
+        )
+        progress_label = self.window._sam2_segmentation_progress_dialog.labelText()
+        self.assertIn("BBox 1/2", progress_label)
+        self.assertIn("Chunks 0/1", progress_label)
+        self.process_events_until(
+            lambda: series.molecular_segmentations is not None
+            and series.molecular_segmentations.segmentation_count == 2,
+        )
+
+        self.assertEqual(len(segmenter.batch_calls), 1)
+        self.assertEqual(segmenter.batch_calls[0][1], frame_detections)
+        self.assertAlmostEqual(
+            segmenter.batch_calls[0][2]["mask_probability_threshold"],
+            0.71,
+        )
+        self.assertEqual(segmenter.legacy_calls, [])
+        self.assertEqual(
+            [item.segmentation_id for item in series.molecular_segmentations.get_segmentations(0)],
+            ["sam2-batch-one", "sam2-batch-two"],
+        )
+
+    def test_sam2_segment_all_bboxes_in_inclusive_frame_range(self) -> None:
+        class FakeSam2Segmenter:
+            def __init__(self) -> None:
+                self.calls = []
+
+            def segment_detection(self, frame, detection, **_kwargs):
+                self.calls.append((np.asarray(frame).copy(), detection))
+                mask = np.zeros(frame.shape[:2], dtype=bool)
+                x0, y0, x1, y1 = (int(value) for value in detection.bbox_xyxy)
+                mask[y0:y1, x0:x1] = True
+                return MolecularSegmentation(
+                    frame_index=detection.frame_index,
+                    source_view=detection.source_view,
+                    bbox_xyxy=detection.bbox_xyxy,
+                    mask=mask,
+                    origin="sam2",
+                    prompt_detection_ids=(detection.detection_id,),
+                    segmentation_id=f"sam2-{detection.detection_id}",
+                )
+
+        dialog_calls = []
+        segmenter = FakeSam2Segmenter()
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            sam2_checkpoint_discovery=lambda: [Path(r"C:\models\sam2.pt")],
+            sam2_segmenter=segmenter,
+            sam2_settings_dialog_factory=self.sam2_dialog_factory(calls=dialog_calls),
+        )
+        frames = np.stack(
+            [np.full((6, 6), frame_index, dtype=np.float32) for frame_index in range(4)]
+        )
+        detections = MolecularDetectionSet(frame_count=4)
+        detections.set_detections(
+            0,
+            [MolecularDetection(0, (0, 0, 2, 2), 0.9, detection_id="outside-range")],
+            source_view="raw",
+            frame_shape=(6, 6),
+        )
+        detections.set_detections(
+            1,
+            [
+                MolecularDetection(1, (1, 1, 3, 3), 0.9, detection_id="frame-2-a"),
+                MolecularDetection(1, (3, 1, 5, 3), 0.8, detection_id="frame-2-b"),
+            ],
+            source_view="raw",
+            frame_shape=(6, 6),
+        )
+        detections.set_detections(
+            3,
+            [MolecularDetection(3, (2, 2, 4, 4), 0.7, detection_id="frame-4-a")],
+            source_view="raw",
+            frame_shape=(6, 6),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=6, pixels_y=6),
+            active_frame_index=1,
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+
+        self.assertEqual(self.window.sp_sam2_range_end_frame.minimum(), 2)
+        self.assertEqual(self.window.sp_sam2_range_end_frame.maximum(), 4)
+        self.window.sp_sam2_range_end_frame.setValue(4)
+        self.assertTrue(self.window.btn_sam2_segment_range.isEnabled())
+        self.window.btn_sam2_segment_range.click()
+        self.process_events_until(
+            lambda: series.molecular_segmentations is not None
+            and series.molecular_segmentations.segmentation_count == 3,
+            timeout_s=3.0,
+        )
+        self.process_events_until(
+            lambda: self.window._sam2_segmentation_progress_dialog is None,
+            timeout_s=3.0,
+        )
+
+        self.assertEqual(dialog_calls[0]["bbox_count"], 3)
+        self.assertEqual(
+            [call[1].detection_id for call in segmenter.calls],
+            ["frame-2-a", "frame-2-b", "frame-4-a"],
+        )
+        self.assertEqual([float(call[0][0, 0]) for call in segmenter.calls], [1.0, 1.0, 3.0])
+        self.assertEqual(series.active_frame_index, 1)
+        self.assertIsNone(series.molecular_segmentations.get_segmentation("sam2-outside-range"))
+        self.assertEqual(
+            [
+                segmentation.segmentation_id
+                for segmentation in series.molecular_segmentations.get_segmentations(1)
+            ],
+            ["sam2-frame-2-a", "sam2-frame-2-b"],
+        )
+        self.process_events_until(
+            lambda: "frames 2-4" in self.window.statusBar().currentMessage(),
+            timeout_s=3.0,
+        )
+        self.assertIn("frames 2-4", self.window.statusBar().currentMessage())
+
+    def test_sam2_range_uses_one_persistent_session_and_skips_empty_frames(self) -> None:
+        class ProgressRecordingWindow(MolTrackMainWindow):
+            def __init__(self, *args, **kwargs) -> None:
+                self.sam2_progress_events = []
+                super().__init__(*args, **kwargs)
+
+            def _on_sam2_segmentation_progress(self, progress) -> None:
+                self.sam2_progress_events.append(progress)
+                super()._on_sam2_segmentation_progress(progress)
+
+        class FakePersistentSession:
+            def __init__(self, owner) -> None:
+                self.owner = owner
+
+            def __enter__(self):
+                self.owner.enter_count += 1
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback) -> None:
+                self.owner.exit_count += 1
+
+            def segment_frame_detections(self, frame, detections, **kwargs):
+                detections = list(detections)
+                segmentation_set = self.owner.series.molecular_segmentations
+                self.owner.saved_counts_before_frame.append(
+                    0 if segmentation_set is None else segmentation_set.segmentation_count
+                )
+                self.owner.frame_calls.append(
+                    (
+                        detections[0].frame_index,
+                        np.asarray(frame).copy(),
+                        [detection.detection_id for detection in detections],
+                        dict(kwargs),
+                    )
+                )
+                results = []
+                for detection in detections:
+                    mask = np.zeros(frame.shape[:2], dtype=bool)
+                    x0, y0, x1, y1 = (int(value) for value in detection.bbox_xyxy)
+                    mask[y0:y1, x0:x1] = True
+                    results.append(
+                        MolecularSegmentation(
+                            frame_index=detection.frame_index,
+                            source_view=detection.source_view,
+                            bbox_xyxy=detection.bbox_xyxy,
+                            mask=mask,
+                            origin="sam2",
+                            prompt_detection_ids=(detection.detection_id,),
+                            segmentation_id=f"sam2-{detection.detection_id}",
+                        )
+                    )
+                return results
+
+        class FakePersistentSegmenter:
+            def __init__(self) -> None:
+                self.open_checkpoints = []
+                self.enter_count = 0
+                self.exit_count = 0
+                self.frame_calls = []
+                self.saved_counts_before_frame = []
+                self.series = None
+
+            def open_persistent_image_session(self, *, checkpoint_path=None):
+                self.open_checkpoints.append(Path(checkpoint_path))
+                return FakePersistentSession(self)
+
+        segmenter = FakePersistentSegmenter()
+        checkpoint_path = Path(r"C:\models\sam2.pt")
+        self.window = ProgressRecordingWindow(
+            yolo_model_discovery=lambda: [],
+            sam2_checkpoint_discovery=lambda: [checkpoint_path],
+            sam2_segmenter=segmenter,
+            sam2_settings_dialog_factory=self.sam2_dialog_factory(
+                threshold=0.67,
+                checkpoint_path=checkpoint_path,
+            ),
+        )
+        frames = np.stack(
+            [np.full((6, 6), frame_index, dtype=np.float32) for frame_index in range(3)]
+        )
+        detections = MolecularDetectionSet(frame_count=3)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(0, (1, 1, 3, 3), 0.9, detection_id="frame-1-a"),
+                MolecularDetection(0, (3, 1, 5, 3), 0.8, detection_id="frame-1-b"),
+            ],
+            source_view="raw",
+            frame_shape=(6, 6),
+        )
+        detections.set_detections(
+            2,
+            [MolecularDetection(2, (2, 2, 4, 4), 0.7, detection_id="frame-3-a")],
+            source_view="raw",
+            frame_shape=(6, 6),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=6, pixels_y=6),
+            active_frame_index=0,
+            molecular_detections=detections,
+        )
+        segmenter.series = series
+        self.window.set_image_series(series)
+        self.window.sp_sam2_range_end_frame.setValue(3)
+
+        self.window.btn_sam2_segment_range.click()
+        self.process_events_until(
+            lambda: series.molecular_segmentations is not None
+            and series.molecular_segmentations.segmentation_count == 3,
+            timeout_s=3.0,
+        )
+
+        self.process_events_until(
+            lambda: self.window._sam2_segmentation_progress_dialog is None,
+            timeout_s=3.0,
+        )
+        self.assertEqual(segmenter.open_checkpoints, [checkpoint_path])
+        self.assertEqual(segmenter.enter_count, 1)
+        self.assertEqual(segmenter.exit_count, 1)
+        self.assertEqual(
+            [(call[0], call[2]) for call in segmenter.frame_calls],
+            [
+                (0, ["frame-1-a", "frame-1-b"]),
+                (2, ["frame-3-a"]),
+            ],
+        )
+        self.assertEqual([float(call[1][0, 0]) for call in segmenter.frame_calls], [0.0, 2.0])
+        self.assertEqual(segmenter.saved_counts_before_frame, [0, 2])
+        self.assertTrue(
+            all(call[3]["mask_probability_threshold"] == 0.67 for call in segmenter.frame_calls)
+        )
+        self.assertEqual(series.active_frame_index, 0)
+        progress_events = self.window.sam2_progress_events
+        self.assertEqual(
+            [event.phase for event in progress_events],
+            [
+                "Loading model",
+                "Embedding frame",
+                "Segmenting chunk",
+                "Saving frame results",
+                "Embedding frame",
+                "Segmenting chunk",
+                "Saving frame results",
+            ],
+        )
+        self.assertTrue(all(event.total_bbox_count == 3 for event in progress_events))
+        self.assertTrue(all(event.total_chunk_count == 2 for event in progress_events))
+        self.assertEqual(
+            [event.completed_bbox_count for event in progress_events],
+            [0, 0, 0, 2, 2, 2, 3],
+        )
+        self.assertEqual(
+            [event.completed_chunk_count for event in progress_events],
+            [0, 0, 0, 1, 1, 1, 2],
+        )
+
+    def test_sam2_persistent_range_does_not_send_frame_emptied_by_skip_existing(self) -> None:
+        class FakeSession:
+            def __init__(self, owner) -> None:
+                self.owner = owner
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback) -> None:
+                pass
+
+            def segment_frame_detections(self, frame, detections, **_kwargs):
+                detections = list(detections)
+                self.owner.frame_indices.append(detections[0].frame_index)
+                detection = detections[0]
+                mask = np.zeros(frame.shape[:2], dtype=bool)
+                mask[1:3, 1:3] = True
+                return [
+                    MolecularSegmentation(
+                        frame_index=detection.frame_index,
+                        source_view=detection.source_view,
+                        bbox_xyxy=(1, 1, 3, 3),
+                        mask=mask,
+                        origin="sam2",
+                        prompt_detection_ids=(detection.detection_id,),
+                        segmentation_id=f"sam2-{detection.detection_id}",
+                    )
+                ]
+
+        class FakeSegmenter:
+            def __init__(self) -> None:
+                self.frame_indices = []
+                self.open_count = 0
+
+            def open_persistent_image_session(self, *, checkpoint_path=None):
+                self.open_count += 1
+                return FakeSession(self)
+
+        segmenter = FakeSegmenter()
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            sam2_checkpoint_discovery=lambda: [Path(r"C:\models\sam2.pt")],
+            sam2_segmenter=segmenter,
+            sam2_settings_dialog_factory=self.sam2_dialog_factory(existing_policy="skip"),
+        )
+        frames = np.zeros((2, 4, 4), dtype=np.float32)
+        detections = MolecularDetectionSet(frame_count=2)
+        first_detection = MolecularDetection(
+            0,
+            (1, 1, 3, 3),
+            0.9,
+            detection_id="already-segmented",
+        )
+        second_detection = MolecularDetection(
+            1,
+            (1, 1, 3, 3),
+            0.8,
+            detection_id="needs-segmentation",
+        )
+        detections.set_detections(
+            0,
+            [first_detection],
+            source_view="raw",
+            frame_shape=(4, 4),
+        )
+        detections.set_detections(
+            1,
+            [second_detection],
+            source_view="raw",
+            frame_shape=(4, 4),
+        )
+        segmentations = MolecularSegmentationSet(frame_count=2)
+        existing_mask = np.zeros((4, 4), dtype=bool)
+        existing_mask[1:3, 1:3] = True
+        segmentations.add_segmentation(
+            MolecularSegmentation(
+                frame_index=0,
+                source_view="raw",
+                bbox_xyxy=(1, 1, 3, 3),
+                mask=existing_mask,
+                origin="sam2",
+                prompt_detection_ids=(first_detection.detection_id,),
+                segmentation_id="existing-sam2",
+            )
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            molecular_detections=detections,
+            molecular_segmentations=segmentations,
+        )
+        self.window.set_image_series(series)
+        self.window.sp_sam2_range_end_frame.setValue(2)
+
+        self.window.btn_sam2_segment_range.click()
+        self.process_events_until(
+            lambda: series.molecular_segmentations.segmentation_count == 2,
+            timeout_s=3.0,
+        )
+
+        self.assertEqual(segmenter.open_count, 1)
+        self.assertEqual(segmenter.frame_indices, [1])
+        self.assertIsNotNone(
+            series.molecular_segmentations.get_segmentation("existing-sam2")
+        )
+        self.assertIsNotNone(
+            series.molecular_segmentations.get_segmentation("sam2-needs-segmentation")
+        )
+
+    def test_cancel_sam2_persistent_range_keeps_completed_frames_and_restores_ui(self) -> None:
+        class FakeSession:
+            def __init__(self, owner) -> None:
+                self.owner = owner
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback) -> None:
+                self.owner.session_closed = True
+
+            def cancel(self) -> None:
+                self.owner.cancel_requested.set()
+
+            def segment_frame_detections(self, frame, detections, **_kwargs):
+                detection = list(detections)[0]
+                if detection.frame_index == 1:
+                    self.owner.second_frame_started.set()
+                    self.owner.cancel_requested.wait(timeout=2.0)
+                    if self.owner.cancel_requested.is_set():
+                        raise RuntimeError("persistent session canceled")
+                mask = np.zeros(frame.shape[:2], dtype=bool)
+                mask[1:3, 1:3] = True
+                return [
+                    MolecularSegmentation(
+                        frame_index=detection.frame_index,
+                        source_view=detection.source_view,
+                        bbox_xyxy=(1, 1, 3, 3),
+                        mask=mask,
+                        origin="sam2",
+                        prompt_detection_ids=(detection.detection_id,),
+                        segmentation_id=f"sam2-{detection.detection_id}",
+                    )
+                ]
+
+        class FakeSegmenter:
+            def __init__(self) -> None:
+                self.cancel_requested = threading.Event()
+                self.second_frame_started = threading.Event()
+                self.session_closed = False
+                self.session = FakeSession(self)
+
+            def open_persistent_image_session(self, *, checkpoint_path=None):
+                return self.session
+
+        segmenter = FakeSegmenter()
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            sam2_checkpoint_discovery=lambda: [Path(r"C:\models\sam2.pt")],
+            sam2_segmenter=segmenter,
+            sam2_settings_dialog_factory=self.sam2_dialog_factory(),
+        )
+        frames = np.zeros((2, 4, 4), dtype=np.float32)
+        detections = MolecularDetectionSet(frame_count=2)
+        for frame_index in range(2):
+            detections.set_detections(
+                frame_index,
+                [
+                    MolecularDetection(
+                        frame_index,
+                        (1, 1, 3, 3),
+                        0.9,
+                        detection_id=f"bbox-{frame_index}",
+                    )
+                ],
+                source_view="raw",
+                frame_shape=(4, 4),
+            )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+        self.window.sp_sam2_range_end_frame.setValue(2)
+
+        with patch.object(QMessageBox, "critical"):
+            self.window.btn_sam2_segment_range.click()
+            self.process_events_until(
+                lambda: series.molecular_segmentations is not None
+                and series.molecular_segmentations.segmentation_count == 1
+                and segmenter.second_frame_started.is_set(),
+                timeout_s=3.0,
+            )
+            progress_dialog = self.window._sam2_segmentation_progress_dialog
+            cancel_button = next(
+                (
+                    button
+                    for button in progress_dialog.findChildren(QPushButton)
+                    if button.text() == "Cancel"
+                ),
+                None,
+            )
+            if cancel_button is None:
+                segmenter.cancel_requested.set()
+            else:
+                cancel_button.click()
+            self.process_events_until(
+                lambda: not self.window._sam2_segmentation_running,
+                timeout_s=3.0,
+            )
+
+        self.assertIsNotNone(cancel_button)
+        self.assertTrue(segmenter.cancel_requested.is_set())
+        self.assertTrue(segmenter.session_closed)
+        self.assertEqual(series.molecular_segmentations.segmentation_count, 1)
+        self.assertIsNotNone(series.molecular_segmentations.get_segmentation("sam2-bbox-0"))
+        self.assertIsNone(series.molecular_segmentations.get_segmentation("sam2-bbox-1"))
+        self.assertIsNone(self.window._sam2_segmentation_progress_dialog)
+        self.assertTrue(self.window.btn_sam2_segment_range.isEnabled())
+        self.assertIn("canceled", self.window.statusBar().currentMessage().lower())
+
+    def test_sam2_range_oom_keeps_completed_frames_and_explains_chunk_recovery(self) -> None:
+        class FakeSession:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback) -> None:
+                pass
+
+            def segment_frame_detections(self, frame, detections, **_kwargs):
+                detection = list(detections)[0]
+                if detection.frame_index == 1:
+                    raise RuntimeError("CUDA out of memory while decoding SAM2 chunk")
+                mask = np.zeros(frame.shape[:2], dtype=bool)
+                mask[1:3, 1:3] = True
+                return [
+                    MolecularSegmentation(
+                        frame_index=0,
+                        source_view="raw",
+                        bbox_xyxy=(1, 1, 3, 3),
+                        mask=mask,
+                        origin="sam2",
+                        prompt_detection_ids=(detection.detection_id,),
+                        segmentation_id="sam2-first-complete",
+                    )
+                ]
+
+        class FakeSegmenter:
+            def open_persistent_image_session(self, *, checkpoint_path=None):
+                return FakeSession()
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            sam2_checkpoint_discovery=lambda: [Path(r"C:\models\sam2.pt")],
+            sam2_segmenter=FakeSegmenter(),
+            sam2_settings_dialog_factory=self.sam2_dialog_factory(),
+        )
+        frames = np.zeros((2, 4, 4), dtype=np.float32)
+        detections = MolecularDetectionSet(frame_count=2)
+        for frame_index in range(2):
+            detections.set_detections(
+                frame_index,
+                [
+                    MolecularDetection(
+                        frame_index,
+                        (1, 1, 3, 3),
+                        0.9,
+                        detection_id=f"bbox-{frame_index}",
+                    )
+                ],
+                source_view="raw",
+                frame_shape=(4, 4),
+            )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+        self.window.sp_sam2_range_end_frame.setValue(2)
+        error_messages = []
+
+        with patch.object(
+            QMessageBox,
+            "critical",
+            side_effect=lambda _parent, _title, message: error_messages.append(str(message)),
+        ):
+            self.window.btn_sam2_segment_range.click()
+            self.process_events_until(
+                lambda: not self.window._sam2_segmentation_running,
+                timeout_s=3.0,
+            )
+
+        self.assertEqual(series.molecular_segmentations.segmentation_count, 1)
+        self.assertIsNotNone(
+            series.molecular_segmentations.get_segmentation("sam2-first-complete")
+        )
+        self.assertEqual(len(error_messages), 1)
+        self.assertIn("CUDA out of memory", error_messages[0])
+        self.assertIn("smaller SAM2 chunk", error_messages[0])
+        self.assertIn("checkpoint was not changed", error_messages[0])
+        self.assertTrue(self.window.btn_sam2_segment_range.isEnabled())
+
+    def test_sam2_range_progress_shows_frame_and_bbox_positions(self) -> None:
+        class SlowSam2Segmenter:
+            def segment_detection(self, frame, detection, **_kwargs):
+                time.sleep(0.15)
+                mask = np.zeros(frame.shape[:2], dtype=bool)
+                mask[1:3, 1:3] = True
+                return MolecularSegmentation(
+                    frame_index=detection.frame_index,
+                    source_view=detection.source_view,
+                    bbox_xyxy=(1, 1, 3, 3),
+                    mask=mask,
+                    origin="sam2",
+                    prompt_detection_ids=(detection.detection_id,),
+                    segmentation_id=f"sam2-{detection.detection_id}",
+                )
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            sam2_checkpoint_discovery=lambda: [Path(r"C:\models\sam2.pt")],
+            sam2_segmenter=SlowSam2Segmenter(),
+            sam2_settings_dialog_factory=self.sam2_dialog_factory(),
+        )
+        frames = np.zeros((3, 4, 4), dtype=np.float32)
+        detections = MolecularDetectionSet(frame_count=3)
+        for frame_index in (1, 2):
+            detections.set_detections(
+                frame_index,
+                [
+                    MolecularDetection(
+                        frame_index,
+                        (1, 1, 3, 3),
+                        0.9,
+                        detection_id=f"bbox-{frame_index + 1}",
+                    )
+                ],
+                source_view="raw",
+                frame_shape=(4, 4),
+            )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            active_frame_index=1,
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+        self.window.sp_sam2_range_end_frame.setValue(3)
+
+        self.window.btn_sam2_segment_range.click()
+        self.process_events_until(
+            lambda: (
+                self.window._sam2_segmentation_progress_dialog is not None
+                and "Frame 2/3" in self.window._sam2_segmentation_progress_dialog.labelText()
+                and "BBox 1/2" in self.window._sam2_segmentation_progress_dialog.labelText()
+            ),
+            timeout_s=3.0,
+        )
+
+        label = self.window._sam2_segmentation_progress_dialog.labelText()
+        self.assertIn("Frame 2/3", label)
+        self.assertIn("BBox 1/2", label)
+        self.assertIn("1/1 in frame", label)
+        self.assertFalse(self.window.btn_sam2_segment_range.isEnabled())
+        self.process_events_until(
+            lambda: series.molecular_segmentations is not None
+            and series.molecular_segmentations.segmentation_count == 2,
+            timeout_s=3.0,
+        )
+        self.process_events_until(
+            lambda: self.window._sam2_segmentation_progress_dialog is None,
+            timeout_s=3.0,
+        )
+        self.assertTrue(self.window.btn_sam2_segment_range.isEnabled())
+
+    def test_sam2_expanded_range_runs_each_frame_on_raw_and_transforms_results_back(self) -> None:
+        calls = []
+
+        class FakeSam2Segmenter:
+            def __init__(self) -> None:
+                self.open_count = 0
+
+            def open_persistent_image_session(self, *, checkpoint_path=None):
+                self.open_count += 1
+                return self
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback) -> None:
+                pass
+
+            def segment_frame_detections(self, frame, detections, **_kwargs):
+                return [
+                    self.segment_detection(frame, detection)
+                    for detection in detections
+                ]
+
+            def segment_detection(self, frame, detection, **_kwargs):
+                calls.append((np.asarray(frame).copy(), detection))
+                mask = np.zeros(frame.shape[:2], dtype=bool)
+                x0, y0, x1, y1 = (int(value) for value in detection.bbox_xyxy)
+                mask[y0:y1, x0:x1] = True
+                return MolecularSegmentation(
+                    frame_index=detection.frame_index,
+                    source_view=detection.source_view,
+                    bbox_xyxy=detection.bbox_xyxy,
+                    mask=mask,
+                    original_mask=mask,
+                    origin="sam2",
+                    prompt_detection_ids=(detection.detection_id,),
+                    segmentation_id=f"sam2-{detection.detection_id}",
+                )
+
+        raw_frames = np.stack(
+            [
+                np.full((4, 5), 1.0, dtype=np.float32),
+                np.full((4, 5), 2.0, dtype=np.float32),
+            ]
+        )
+        expanded_frames = np.full((2, 6, 8), np.nan, dtype=np.float32)
+        expanded_frames[0, 1:5, 1:6] = raw_frames[0]
+        expanded_frames[1, 0:4, 2:7] = raw_frames[1]
+
+        def fake_expanded_builder(series):
+            stack = SimpleNamespace(
+                frames=expanded_frames,
+                metadata=STMSequenceMetadata(pixels_x=8, pixels_y=6),
+                padding_ltrb=(1, 1, 2, 1),
+                frame_origins_xy=np.asarray(((1.0, 1.0), (2.0, 0.0))),
+            )
+            series.expanded_aligned_stack = stack
+            return stack
+
+        detections = MolecularDetectionSet(frame_count=2)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(
+                    0,
+                    (2, 2, 4, 4),
+                    0.9,
+                    source_view="expanded_aligned",
+                    detection_id="expanded-1",
+                )
+            ],
+            source_view="expanded_aligned",
+            frame_shape=(6, 8),
+        )
+        detections.set_detections(
+            1,
+            [
+                MolecularDetection(
+                    1,
+                    (2, 1, 4, 3),
+                    0.8,
+                    source_view="expanded_aligned",
+                    detection_id="expanded-2",
+                )
+            ],
+            source_view="expanded_aligned",
+            frame_shape=(6, 8),
+        )
+        registration_settings = MolTrackRegistrationSettings()
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=raw_frames,
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4),
+            registration_results=MolTrackRegistrationResultSet(
+                settings=registration_settings,
+                results_by_frame={
+                    0: MolTrackRegistrationFrameResult(0, (0.0, 0.0), "identity"),
+                    1: MolTrackRegistrationFrameResult(1, (1.0, -1.0), "test"),
+                },
+            ),
+            molecular_detections=detections,
+        )
+        segmenter = FakeSam2Segmenter()
+        self.window = MolTrackMainWindow(
+            expanded_aligned_builder=fake_expanded_builder,
+            yolo_model_discovery=lambda: [],
+            sam2_checkpoint_discovery=lambda: [Path(r"C:\models\sam2.pt")],
+            sam2_segmenter=segmenter,
+            sam2_settings_dialog_factory=self.sam2_dialog_factory(),
+        )
+        self.window.set_image_series(series)
+        self.window.cmb_registration_view_mode.setCurrentText("Show expanded aligned")
+        self.window.sp_sam2_range_end_frame.setValue(2)
+
+        self.window.btn_sam2_segment_range.click()
+        self.process_events_until(
+            lambda: series.molecular_segmentations is not None
+            and series.molecular_segmentations.segmentation_count == 2,
+            timeout_s=3.0,
+        )
+
+        self.assertEqual(segmenter.open_count, 1)
+        self.assertEqual([call[1].source_view for call in calls], ["raw", "raw"])
+        self.assertEqual([call[1].bbox_xyxy for call in calls], [(1.0, 1.0, 3.0, 3.0), (0.0, 1.0, 2.0, 3.0)])
+        self.assertEqual([float(call[0][0, 0]) for call in calls], [1.0, 2.0])
+        first = series.molecular_segmentations.get_segmentation("sam2-expanded-1")
+        second = series.molecular_segmentations.get_segmentation("sam2-expanded-2")
+        self.assertEqual(first.source_view, "expanded_aligned")
+        self.assertEqual(first.bbox_xyxy, (2.0, 2.0, 4.0, 4.0))
+        self.assertEqual(second.source_view, "expanded_aligned")
+        self.assertEqual(second.bbox_xyxy, (2.0, 1.0, 4.0, 3.0))
+
+    def test_sam2_expanded_bbox_runs_on_raw_and_transforms_mask_back_to_expanded(self) -> None:
+        calls = []
+
+        class FakeSam2Segmenter:
+            def segment_detection(self, frame, detection, **_kwargs):
+                calls.append((np.asarray(frame).copy(), detection))
+                mask = np.zeros(frame.shape[:2], dtype=bool)
+                mask[1:3, 1:4] = True
+                return MolecularSegmentation(
+                    frame_index=detection.frame_index,
+                    source_view=detection.source_view,
+                    bbox_xyxy=(1, 1, 4, 3),
+                    mask=mask,
+                    original_mask=mask,
+                    score=0.8,
+                    origin="sam2",
+                    prompt_detection_ids=(detection.detection_id,),
+                    model_name="fake-sam2",
+                    segmentation_id="sam2-expanded",
+                )
+
+        raw_frame = np.arange(20, dtype=np.float32).reshape(4, 5)
+        expanded_frame = np.full((7, 8), np.nan, dtype=np.float32)
+        expanded_frame[1:5, 2:7] = raw_frame
+
+        def fake_expanded_builder(series):
+            stack = SimpleNamespace(
+                frames=expanded_frame[np.newaxis, ...],
+                metadata=STMSequenceMetadata(pixels_x=8, pixels_y=7),
+                padding_ltrb=(2, 1, 1, 2),
+                frame_origins_xy=np.asarray(((2.0, 1.0),), dtype=np.float64),
+            )
+            series.expanded_aligned_stack = stack
+            return stack
+
+        detections = MolecularDetectionSet(frame_count=1)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(3, 2, 6, 4),
+                    confidence=0.9,
+                    source_view="expanded_aligned",
+                    detection_id="expanded-bbox",
+                )
+            ],
+            source_view="expanded_aligned",
+            frame_shape=expanded_frame.shape,
+        )
+        settings = MolTrackRegistrationSettings()
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=raw_frame[np.newaxis, ...],
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4),
+            registration_results=MolTrackRegistrationResultSet(
+                settings=settings,
+                results_by_frame={
+                    0: MolTrackRegistrationFrameResult(
+                        frame_index=0,
+                        shift_xy=(0.0, 0.0),
+                        method="identity",
+                    )
+                },
+            ),
+            molecular_detections=detections,
+        )
+        self.window = MolTrackMainWindow(
+            expanded_aligned_builder=fake_expanded_builder,
+            yolo_model_discovery=lambda: [],
+            sam2_segmenter=FakeSam2Segmenter(),
+            sam2_settings_dialog_factory=self.sam2_dialog_factory(),
+        )
+        self.window.set_image_series(series)
+        self.window.cmb_registration_view_mode.setCurrentText("Show expanded aligned")
+        self.window.select_molecular_detection_at_pixel(4.0, 3.0)
+
+        self.window.btn_sam2_segment_selected.click()
+        self.process_events_until(
+            lambda: series.molecular_segmentations is not None
+            and series.molecular_segmentations.get_segmentation("sam2-expanded") is not None,
+        )
+
+        self.assertEqual(len(calls), 1)
+        np.testing.assert_array_equal(calls[0][0], raw_frame)
+        self.assertEqual(calls[0][1].source_view, "raw")
+        self.assertEqual(calls[0][1].bbox_xyxy, (1.0, 1.0, 4.0, 3.0))
+        self.assertEqual(calls[0][1].detection_id, "expanded-bbox")
+        segmentation = series.molecular_segmentations.get_segmentation("sam2-expanded")
+        self.assertEqual(segmentation.source_view, "expanded_aligned")
+        self.assertEqual(segmentation.bbox_xyxy, (3.0, 2.0, 6.0, 4.0))
+        self.assertEqual(segmentation.prompt_detection_ids, ("expanded-bbox",))
+        expected_mask = np.zeros(expanded_frame.shape, dtype=bool)
+        expected_mask[2:4, 3:6] = True
+        np.testing.assert_array_equal(segmentation.mask, expected_mask)
+        np.testing.assert_array_equal(segmentation.original_mask, expected_mask)
+
     def test_sam2_segment_selected_bbox_runs_in_worker_with_progress_dialog_and_threshold(self) -> None:
         class SlowSam2Segmenter:
             def __init__(self) -> None:
@@ -2230,6 +3448,91 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(self.window.btn_sam2_segment_all_current.isEnabled())
         self.assertIsNone(self.window._sam2_segmentation_progress_dialog)
 
+    def test_sam2_batch_failure_keeps_existing_masks_and_all_bboxes(self) -> None:
+        class FailingBatchSam2Segmenter:
+            def __init__(self) -> None:
+                self.batch_calls = []
+
+            def segment_frame_detections(self, frame, detections, **kwargs):
+                self.batch_calls.append((np.asarray(frame).copy(), list(detections), dict(kwargs)))
+                raise RuntimeError("SAM2 batch worker failed")
+
+            def segment_detection(self, *_args, **_kwargs):
+                raise AssertionError("Batch failure test must not use legacy SAM2")
+
+        segmenter = FailingBatchSam2Segmenter()
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            sam2_checkpoint_discovery=lambda: [Path(r"C:\models\sam2.pt")],
+            sam2_segmenter=segmenter,
+            sam2_settings_dialog_factory=self.sam2_dialog_factory(existing_policy="replace"),
+        )
+        frames = np.zeros((1, 5, 5), dtype=np.float32)
+        detections = MolecularDetectionSet(frame_count=1)
+        frame_detections = [
+            MolecularDetection(
+                frame_index=0,
+                bbox_xyxy=(0, 0, 2, 2),
+                confidence=0.9,
+                detection_id="bbox-existing",
+            ),
+            MolecularDetection(
+                frame_index=0,
+                bbox_xyxy=(2, 2, 5, 5),
+                confidence=0.8,
+                detection_id="bbox-new",
+            ),
+        ]
+        detections.set_detections(
+            0,
+            frame_detections,
+            source_view="raw",
+            frame_shape=(5, 5),
+        )
+        old_mask = np.zeros((5, 5), dtype=bool)
+        old_mask[0:2, 0:2] = True
+        old_segmentation = MolecularSegmentation(
+            frame_index=0,
+            source_view="raw",
+            bbox_xyxy=(0, 0, 2, 2),
+            mask=old_mask,
+            origin="sam2",
+            prompt_detection_ids=("bbox-existing",),
+            segmentation_id="existing-before-failure",
+        )
+        segmentations = MolecularSegmentationSet(frame_count=1)
+        segmentations.add_segmentation(old_segmentation)
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=5),
+            molecular_detections=detections,
+            molecular_segmentations=segmentations,
+        )
+        self.window.set_image_series(series)
+
+        with patch.object(
+            QMessageBox,
+            "critical",
+            return_value=QMessageBox.StandardButton.Ok,
+        ) as critical:
+            self.window.btn_sam2_segment_all_current.click()
+            self.process_events_until(
+                lambda: "SAM2 segmentation failed" in self.window.statusBar().currentMessage(),
+            )
+
+        self.assertEqual(len(segmenter.batch_calls), 1)
+        critical.assert_called_once()
+        self.assertEqual(series.molecular_segmentations.segmentation_count, 1)
+        self.assertIs(
+            series.molecular_segmentations.get_segmentation("existing-before-failure"),
+            old_segmentation,
+        )
+        self.assertEqual(
+            [item.detection_id for item in series.molecular_detections.get_detections(0)],
+            ["bbox-existing", "bbox-new"],
+        )
+
     def test_canceling_open_dialog_keeps_loaded_series_unchanged(self) -> None:
         calls = []
 
@@ -2325,7 +3628,11 @@ class MolTrackMainWindowTests(unittest.TestCase):
             (
                 "state.moltrack.json",
                 series,
-                {"registration_view_mode": "Show raw", "bbox_opacity_percent": 100},
+                {
+                    "registration_view_mode": "Show raw",
+                    "bbox_opacity_percent": 100,
+                    "mask_opacity_percent": 30,
+                },
             )
         ]
         self.assertEqual(saved, expected_saved_state)
@@ -2827,6 +4134,57 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
         self.assertEqual((first_detection.bbox_xyxy, second_detection.bbox_xyxy), original_bboxes)
 
+    def test_mask_opacity_slider_controls_sam2_and_sam3_overlays_without_changing_masks(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        mask = np.zeros((4, 4), dtype=bool)
+        mask[1:3, 1:3] = True
+        segmentations = MolecularSegmentationSet(frame_count=1)
+        segmentations.add_segmentation(
+            MolecularSegmentation(
+                frame_index=0,
+                mask=mask,
+                origin="sam2",
+                segmentation_id="sam2-mask",
+            )
+        )
+        preview = build_moltrack_sam3_preview(
+            [
+                MolTrackSam3Proposal(
+                    frame_index=0,
+                    source_view="raw",
+                    bbox_xyxy=(1, 1, 3, 3),
+                    score=0.9,
+                    mask=mask,
+                )
+            ],
+            frame_index=0,
+            source_view="raw",
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((1, 4, 4), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            molecular_segmentations=segmentations,
+            sam3_preview=preview,
+        )
+        original_mask = segmentations.get_segmentation("sam2-mask").mask.copy()
+
+        self.window.set_image_series(series)
+
+        self.assertEqual(self.window.slider_mask_opacity.minimum(), 0)
+        self.assertEqual(self.window.slider_mask_opacity.maximum(), 100)
+        self.assertEqual(self.window.slider_mask_opacity.value(), 30)
+        self.assertEqual(self.window.viewer.visible_molecular_segmentation_opacities(), [0.3])
+        self.assertEqual(self.window.viewer.visible_sam3_preview_opacities(), [0.3])
+
+        self.window.slider_mask_opacity.setValue(12)
+        self.__class__._app.processEvents()
+
+        self.assertEqual(self.window.lbl_mask_opacity.text(), "Mask opacity: 12%")
+        self.assertEqual(self.window.viewer.visible_molecular_segmentation_opacities(), [0.12])
+        self.assertEqual(self.window.viewer.visible_sam3_preview_opacities(), [0.12])
+        np.testing.assert_array_equal(segmentations.get_segmentation("sam2-mask").mask, original_mask)
+
     def test_show_centroids_toggle_adds_positions_without_hiding_bbox_and_mask_overlays(self) -> None:
         self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
         detections = MolecularDetectionSet(frame_count=1)
@@ -2972,6 +4330,69 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(dialog.axis_ranges(), ((0.0, 20.0), (0.0, 5.0)))
         self.assertIn("Nearest neighbor [nm]:", dialog.metrics_summary_text())
         self.assertEqual(dialog.lbl_status.text(), "Points: 2")
+
+    def test_position_analysis_switches_between_segmentation_centroids_and_bbox_centers(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        detections = MolecularDetectionSet(frame_count=2)
+        segmentations = MolecularSegmentationSet(frame_count=2)
+        for frame_index in range(2):
+            detection_id = f"bbox-{frame_index}"
+            detections.set_detections(
+                frame_index,
+                [
+                    MolecularDetection(
+                        frame_index=frame_index,
+                        bbox_xyxy=(0, 0, 4, 4),
+                        confidence=0.9,
+                        detection_id=detection_id,
+                    )
+                ],
+                source_view="raw",
+                frame_shape=(6, 6),
+            )
+            mask = np.zeros((6, 6), dtype=bool)
+            mask[frame_index, frame_index] = True
+            segmentations.add_segmentation(
+                MolecularSegmentation(
+                    frame_index=frame_index,
+                    source_view="raw",
+                    mask=mask,
+                    prompt_detection_ids=(detection_id,),
+                    segmentation_id=f"seg-{frame_index}",
+                    origin="sam2",
+                )
+            )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((2, 6, 6), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=6, pixels_y=6),
+            molecular_detections=detections,
+            molecular_segmentations=segmentations,
+        )
+        self.window.set_image_series(series)
+        self.window.btn_position_analysis.click()
+        self.__class__._app.processEvents()
+        dialog = self.window.position_analysis_dialog()
+
+        self.assertEqual(dialog.chk_use_segmentation_centroids.text(), "Use segmentation centroids")
+        self.assertTrue(dialog.chk_use_segmentation_centroids.isChecked())
+        self.assertEqual(dialog.displayed_points_xy(), ((0.5, 0.5),))
+
+        dialog.chk_use_segmentation_centroids.setChecked(False)
+        self.__class__._app.processEvents()
+
+        self.assertEqual(dialog.displayed_points_xy(), ((2.0, 2.0),))
+        dialog.btn_compare_ranges.click()
+        self.__class__._app.processEvents()
+        self.assertEqual(dialog.range_spatial_data().first.points_xy, ((2.0, 2.0),))
+        self.assertEqual(dialog.range_spatial_data().second.points_xy, ((2.0, 2.0),))
+
+        dialog.chk_use_segmentation_centroids.setChecked(True)
+        self.__class__._app.processEvents()
+
+        self.assertEqual(dialog.displayed_points_xy(), ((0.5, 0.5),))
+        self.assertEqual(dialog.range_spatial_data().first.points_xy, ((0.5, 0.5),))
+        self.assertEqual(dialog.range_spatial_data().second.points_xy, ((1.5, 1.5),))
 
     def test_position_analysis_dialog_shows_empty_current_frame_without_error(self) -> None:
         self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
@@ -3147,6 +4568,127 @@ class MolTrackMainWindowTests(unittest.TestCase):
         dialog.activate_analysis_tab("Spatial comparison")
         self.assertEqual(dialog.active_analysis_tab(), "Spatial comparison")
 
+    def test_save_state_captures_position_analysis_configuration(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"fake mpp bytes")
+            session_path = tmp_path / "state.moltrack.json"
+            self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+            self.window.set_image_series(
+                MolTrackImageSeries(
+                    source_path=str(source_path),
+                    raw_frames=np.zeros((4, 3, 4), dtype=np.float32),
+                    metadata=STMSequenceMetadata(pixels_x=4, pixels_y=3),
+                )
+            )
+            self.window.btn_position_analysis.click()
+            dialog = self.window.position_analysis_dialog()
+            dialog.edit_first_range_name.setText("before desorption")
+            dialog.sp_first_range_start.setValue(1)
+            dialog.sp_first_range_end.setValue(2)
+            dialog.edit_second_range_name.setText("after adsorption")
+            dialog.sp_second_range_start.setValue(3)
+            dialog.sp_second_range_end.setValue(4)
+            dialog.chk_use_segmentation_centroids.setChecked(False)
+            dialog.btn_compare_ranges.click()
+            dialog.activate_analysis_tab("Spatial comparison")
+            dialog.close()
+            self.__class__._app.processEvents()
+
+            self.window.save_state(session_path)
+            loaded = load_moltrack_session(session_path)
+
+            self.assertIsNotNone(loaded.position_analysis)
+            self.assertEqual(loaded.position_analysis.first_range.name, "before desorption")
+            self.assertEqual(loaded.position_analysis.first_range.frame_indices, (0, 1))
+            self.assertEqual(loaded.position_analysis.second_range.name, "after adsorption")
+            self.assertEqual(loaded.position_analysis.second_range.frame_indices, (2, 3))
+            self.assertTrue(loaded.position_analysis.comparison_completed)
+            self.assertEqual(loaded.position_analysis.active_tab, "Spatial comparison")
+            self.assertEqual(loaded.position_analysis.density_grid_shape, (32, 32))
+            self.assertFalse(loaded.position_analysis.use_segmentation_centroids)
+
+    def test_open_state_restores_position_analysis_and_recomputes_comparison(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"fake mpp bytes")
+            session_path = tmp_path / "state.moltrack.json"
+            frames = np.zeros((4, 4, 4), dtype=np.float32)
+
+            def fake_series_loader(source_path_arg, *, reverse_frame_order=False):
+                return MolTrackImageSeries(
+                    source_path=str(source_path_arg),
+                    raw_frames=frames.copy(),
+                    metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+                    reverse_frame_order=reverse_frame_order,
+                )
+
+            detections = MolecularDetectionSet(frame_count=4)
+            detections.set_detections(
+                0,
+                [MolecularDetection(frame_index=0, bbox_xyxy=(0, 0, 2, 2), confidence=0.9)],
+                source_view="raw",
+                frame_shape=(4, 4),
+            )
+            detections.set_detections(
+                2,
+                [
+                    MolecularDetection(frame_index=2, bbox_xyxy=(0, 0, 2, 2), confidence=0.9),
+                    MolecularDetection(frame_index=2, bbox_xyxy=(2, 2, 4, 4), confidence=0.8),
+                ],
+                source_view="raw",
+                frame_shape=(4, 4),
+            )
+            self.window = MolTrackMainWindow(
+                series_loader=fake_series_loader,
+                yolo_model_discovery=lambda: [],
+            )
+            self.window.set_image_series(
+                MolTrackImageSeries(
+                    source_path=str(source_path),
+                    raw_frames=frames.copy(),
+                    metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+                    molecular_detections=detections,
+                )
+            )
+            self.window.btn_position_analysis.click()
+            dialog = self.window.position_analysis_dialog()
+            dialog.edit_first_range_name.setText("before")
+            dialog.edit_second_range_name.setText("after")
+            dialog.chk_use_segmentation_centroids.setChecked(False)
+            dialog.btn_compare_ranges.click()
+            dialog.activate_analysis_tab("Spatial comparison")
+            self.window.save_state(session_path)
+
+            self.window.close()
+            self.window.deleteLater()
+            self.__class__._app.processEvents()
+            self.window = MolTrackMainWindow(
+                series_loader=fake_series_loader,
+                yolo_model_discovery=lambda: [],
+            )
+
+            self.window.open_state(session_path)
+            self.__class__._app.processEvents()
+
+            restored_dialog = self.window.position_analysis_dialog()
+            self.assertIsNotNone(restored_dialog)
+            self.assertTrue(restored_dialog.isVisible())
+            restored_selection = restored_dialog.frame_range_selection()
+            self.assertEqual(restored_selection.first_range.name, "before")
+            self.assertEqual(restored_selection.first_range.frame_indices, (0, 1))
+            self.assertEqual(restored_selection.second_range.name, "after")
+            self.assertEqual(restored_selection.second_range.frame_indices, (2, 3))
+            self.assertTrue(restored_dialog.has_range_comparison())
+            self.assertEqual(restored_dialog.active_analysis_tab(), "Spatial comparison")
+            self.assertFalse(restored_dialog.chk_use_segmentation_centroids.isChecked())
+            self.assertEqual(restored_dialog.range_trend_data().first.molecule_counts, (1, 0))
+            self.assertEqual(restored_dialog.range_trend_data().second.molecule_counts, (2, 0))
+            self.assertEqual(len(restored_dialog.range_spatial_data().first.points_xy), 1)
+            self.assertEqual(len(restored_dialog.range_spatial_data().second.points_xy), 2)
+
     def test_open_position_analysis_dialog_refreshes_when_frame_changes(self) -> None:
         self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
         detections = MolecularDetectionSet(frame_count=2)
@@ -3286,12 +4828,24 @@ class MolTrackMainWindowTests(unittest.TestCase):
                     source_view="raw",
                     frame_shape=(4, 4),
                 )
+                segmentations = MolecularSegmentationSet(frame_count=1)
+                mask = np.zeros((4, 4), dtype=bool)
+                mask[1:3, 1:3] = True
+                segmentations.add_segmentation(
+                    MolecularSegmentation(
+                        frame_index=0,
+                        mask=mask,
+                        origin="sam2",
+                        segmentation_id="saved-mask",
+                    )
+                )
                 return MolTrackImageSeries(
                     source_path=str(source_path_arg),
                     raw_frames=frames.copy(),
                     metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
                     reverse_frame_order=reverse_frame_order,
                     molecular_detections=detections,
+                    molecular_segmentations=segmentations,
                 )
 
             self.window = MolTrackMainWindow(
@@ -3300,15 +4854,20 @@ class MolTrackMainWindowTests(unittest.TestCase):
             )
             self.window.set_image_series(fake_series_loader(source_path))
             self.window.slider_bbox_opacity.setValue(35)
+            self.window.slider_mask_opacity.setValue(18)
             self.window.save_state(session_path)
 
             self.window.slider_bbox_opacity.setValue(100)
+            self.window.slider_mask_opacity.setValue(90)
             self.window.open_state(session_path)
             self.__class__._app.processEvents()
 
             self.assertEqual(self.window.slider_bbox_opacity.value(), 35)
             self.assertEqual(self.window.lbl_bbox_opacity.text(), "BBox opacity: 35%")
             self.assertEqual(self.window.viewer.visible_molecular_detection_opacities(), [0.35])
+            self.assertEqual(self.window.slider_mask_opacity.value(), 18)
+            self.assertEqual(self.window.lbl_mask_opacity.text(), "Mask opacity: 18%")
+            self.assertEqual(self.window.viewer.visible_molecular_segmentation_opacities(), [0.18])
 
     def test_selecting_molecular_detection_by_pixel_tracks_active_raw_bbox(self) -> None:
         self.window = MolTrackMainWindow()
@@ -3674,6 +5233,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
                 confidence_threshold,
                 iou_threshold,
                 source_view,
+                size_filter=None,
             ):
                 calls.append(
                     {
@@ -3683,6 +5243,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
                         "confidence_threshold": confidence_threshold,
                         "iou_threshold": iou_threshold,
                         "source_view": source_view,
+                        "size_filter": size_filter,
                     }
                 )
                 return [
@@ -3733,6 +5294,61 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertIn("1 detection", self.window.statusBar().currentMessage())
         self.assertIn("frame 2", self.window.statusBar().currentMessage())
 
+    def test_yolo_size_filter_controls_are_optional_and_enable_together(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        self.window.set_image_series(
+            MolTrackImageSeries(
+                source_path="movie.mpp",
+                raw_frames=np.zeros((1, 8, 8), dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+            )
+        )
+
+        self.assertEqual(self.window.chk_yolo_size_filter.text(), "Enable size filter")
+        self.assertFalse(self.window.chk_yolo_size_filter.isChecked())
+        self.assertFalse(self.window.sp_yolo_min_area_px2.isEnabled())
+        self.assertFalse(self.window.sp_yolo_max_area_px2.isEnabled())
+        self.assertFalse(self.window.sp_yolo_max_aspect_ratio.isEnabled())
+
+        self.window.chk_yolo_size_filter.setChecked(True)
+
+        self.assertTrue(self.window.sp_yolo_min_area_px2.isEnabled())
+        self.assertTrue(self.window.sp_yolo_max_area_px2.isEnabled())
+        self.assertTrue(self.window.sp_yolo_max_aspect_ratio.isEnabled())
+
+    def test_yolo_detect_current_frame_passes_enabled_size_filter(self) -> None:
+        calls = []
+        checkpoint = Path("model-a.pt")
+
+        class FakeYoloDetector:
+            def detect_frame(self, frame, **kwargs):
+                calls.append(kwargs)
+                return []
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [SimpleNamespace(name="model-a.pt", path=checkpoint)],
+            yolo_detector=FakeYoloDetector(),
+        )
+        self.window.set_image_series(
+            MolTrackImageSeries(
+                source_path="movie.mpp",
+                raw_frames=np.zeros((1, 16, 16), dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=16, pixels_y=16),
+            )
+        )
+        self.window.chk_yolo_size_filter.setChecked(True)
+        self.window.sp_yolo_min_area_px2.setValue(12.0)
+        self.window.sp_yolo_max_area_px2.setValue(80.0)
+        self.window.sp_yolo_max_aspect_ratio.setValue(2.5)
+
+        self.window.btn_yolo_detect_current.click()
+
+        self.assertEqual(len(calls), 1)
+        size_filter = calls[0]["size_filter"]
+        self.assertEqual(size_filter.min_area_px2, 12.0)
+        self.assertEqual(size_filter.max_area_px2, 80.0)
+        self.assertEqual(size_filter.max_aspect_ratio, 2.5)
+
     def test_yolo_detect_all_frames_stores_raw_detections_from_worker_thread(self) -> None:
         calls = []
         thread_ids = []
@@ -3749,6 +5365,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
                 confidence_threshold,
                 iou_threshold,
                 source_view,
+                size_filter=None,
             ):
                 thread_ids.append(int(QThread.currentThreadId()))
                 calls.append(
@@ -3759,6 +5376,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
                         "confidence_threshold": confidence_threshold,
                         "iou_threshold": iou_threshold,
                         "source_view": source_view,
+                        "size_filter": size_filter,
                     }
                 )
                 return [
@@ -3807,6 +5425,10 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.window.set_image_series(series)
         self.window.sp_yolo_confidence.setValue(0.4)
         self.window.sp_yolo_iou.setValue(0.6)
+        self.window.chk_yolo_size_filter.setChecked(True)
+        self.window.sp_yolo_min_area_px2.setValue(3.0)
+        self.window.sp_yolo_max_area_px2.setValue(9.0)
+        self.window.sp_yolo_max_aspect_ratio.setValue(1.5)
 
         self.window.btn_yolo_detect_all_frames.click()
         deadline = time.monotonic() + 2.0
@@ -3836,6 +5458,9 @@ class MolTrackMainWindowTests(unittest.TestCase):
             self.assertAlmostEqual(call["confidence_threshold"], 0.4)
             self.assertAlmostEqual(call["iou_threshold"], 0.6)
             self.assertEqual(call["source_view"], "raw")
+            self.assertEqual(call["size_filter"].min_area_px2, 3.0)
+            self.assertEqual(call["size_filter"].max_area_px2, 9.0)
+            self.assertEqual(call["size_filter"].max_aspect_ratio, 1.5)
             current = series.molecular_detections.get_detections(frame_index, source_view="raw")
             self.assertEqual(len(current), 1)
             self.assertEqual(current[0].model_name, "model-a.pt")
@@ -3937,7 +5562,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertIn("close", events)
         self.assertTrue(self.window.action_open_stm.isEnabled())
 
-    def test_yolo_detect_all_frames_uses_expanded_aligned_active_view(self) -> None:
+    def test_yolo_detect_all_frames_uses_raw_inference_and_transforms_results_to_expanded_view(self) -> None:
         calls = []
         checkpoint = Path("expanded-model.pt")
         expanded_frames = (np.arange(2 * 5 * 6, dtype=np.float32).reshape(2, 5, 6) + 100.0)
@@ -3957,7 +5582,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
                 return [
                     MolecularDetection(
                         frame_index=frame_index,
-                        bbox_xyxy=(1, 1, 5, 4),
+                        bbox_xyxy=(1, 1, 3, 3),
                         confidence=0.7,
                         model_name="expanded-model.pt",
                         checkpoint_path=str(checkpoint_path),
@@ -3970,7 +5595,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
                 frames=expanded_frames,
                 metadata=STMSequenceMetadata(pixels_x=6, pixels_y=5),
                 padding_ltrb=(1, 1, 1, 2),
-                frame_origins_xy=np.zeros((series.frame_count, 2), dtype=np.float64),
+                frame_origins_xy=np.asarray(((1.0, 1.0), (2.5, 0.5)), dtype=np.float64),
             )
             series.expanded_aligned_stack = expanded_stack
             return expanded_stack
@@ -4018,14 +5643,20 @@ class MolTrackMainWindowTests(unittest.TestCase):
 
         self.assertEqual(len(calls), 2)
         for frame_index, call in enumerate(calls):
-            np.testing.assert_array_equal(call[0], expanded_frames[frame_index])
+            np.testing.assert_array_equal(call[0], series.raw_frames[frame_index])
             self.assertEqual(call[1], frame_index)
             self.assertEqual(call[2], checkpoint)
-            self.assertEqual(call[3], "expanded_aligned")
-            self.assertEqual(
-                len(series.molecular_detections.get_detections(frame_index, source_view="expanded_aligned")),
-                1,
-            )
+            self.assertEqual(call[3], "raw")
+            expanded = series.molecular_detections.get_detections(frame_index, source_view="expanded_aligned")
+            self.assertEqual(len(expanded), 1)
+        self.assertEqual(
+            series.molecular_detections.get_detections(0, source_view="expanded_aligned")[0].bbox_xyxy,
+            (2.0, 2.0, 4.0, 4.0),
+        )
+        self.assertEqual(
+            series.molecular_detections.get_detections(1, source_view="expanded_aligned")[0].bbox_xyxy,
+            (3.5, 1.5, 5.5, 3.5),
+        )
         self.assertEqual(len(series.molecular_detections.get_detections(0, source_view="raw")), 1)
         np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, expanded_frames[0])
         self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
@@ -4348,7 +5979,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(self.window.btn_yolo_clear_current.isEnabled())
         self.assertTrue(self.window.btn_bbox_increase.isEnabled())
 
-    def test_yolo_detect_current_frame_uses_expanded_aligned_active_view(self) -> None:
+    def test_yolo_detect_current_frame_uses_raw_inference_and_transforms_result_to_expanded_view(self) -> None:
         calls = []
         checkpoint = Path("expanded-model.pt")
         expanded_frames = (np.arange(2 * 5 * 6, dtype=np.float32).reshape(2, 5, 6) + 100.0)
@@ -4368,7 +5999,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
                 return [
                     MolecularDetection(
                         frame_index=frame_index,
-                        bbox_xyxy=(1, 1, 5, 4),
+                        bbox_xyxy=(1, 1, 3, 3),
                         confidence=0.75,
                         model_name="expanded-model.pt",
                         checkpoint_path=str(checkpoint_path),
@@ -4381,7 +6012,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
                 frames=expanded_frames,
                 metadata=STMSequenceMetadata(pixels_x=6, pixels_y=5),
                 padding_ltrb=(1, 1, 1, 2),
-                frame_origins_xy=np.zeros((series.frame_count, 2), dtype=np.float64),
+                frame_origins_xy=np.asarray(((1.0, 1.0), (2.5, 1.25)), dtype=np.float64),
             )
             series.expanded_aligned_stack = expanded_stack
             return expanded_stack
@@ -4426,12 +6057,15 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.__class__._app.processEvents()
 
         self.assertEqual(len(calls), 1)
-        np.testing.assert_array_equal(calls[0][0], expanded_frames[1])
+        np.testing.assert_array_equal(calls[0][0], raw_frames[1])
         self.assertEqual(calls[0][1], 1)
         self.assertEqual(calls[0][2], checkpoint)
-        self.assertEqual(calls[0][3], "expanded_aligned")
+        self.assertEqual(calls[0][3], "raw")
         self.assertEqual(len(series.molecular_detections.get_detections(1, source_view="raw")), 1)
-        self.assertEqual(len(series.molecular_detections.get_detections(1, source_view="expanded_aligned")), 1)
+        expanded = series.molecular_detections.get_detections(1, source_view="expanded_aligned")
+        self.assertEqual(len(expanded), 1)
+        self.assertEqual(expanded[0].bbox_xyxy, (3.5, 2.25, 5.5, 4.25))
+        self.assertEqual(expanded[0].original_bbox_xyxy, (3.5, 2.25, 5.5, 4.25))
         np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, expanded_frames[1])
         self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
         self.assertIn("current 1", self.window.lbl_yolo_status.text())

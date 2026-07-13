@@ -5,8 +5,18 @@ from pathlib import Path
 
 import numpy as np
 
-from moltrack.core import MolecularSegmentation
-from nanotrack.sam2 import Sam2BackendConfig, Sam2RunInput, Sam2SubprocessBackend
+from moltrack.core import MolecularDetection, MolecularSegmentation, RegisteredFrameTransform
+from nanotrack.sam2 import (
+    Sam2BackendConfig,
+    Sam2ImageBatchBackendConfig,
+    Sam2ImageBatchInput,
+    Sam2ImageBatchSubprocessBackend,
+    Sam2PersistentImageBatchBackend,
+    Sam2PersistentImageBatchBackendConfig,
+    Sam2RunInput,
+    Sam2SubprocessBackend,
+    validate_sam2_image_batch_pair,
+)
 
 
 DEFAULT_SAM2_CHECKPOINT_DIR = Path(
@@ -49,13 +59,233 @@ class MolTrackSam2SegmentationError(RuntimeError):
     """Raised when SAM2 does not return a usable single-frame segmentation."""
 
 
+class MolTrackSam2PersistentImageSession:
+    """Map one NanoTrack persistent backend session into MolTrack segmentations."""
+
+    def __init__(self, segmenter, backend, checkpoint_path: Path | None) -> None:
+        self._segmenter = segmenter
+        self._backend = backend
+        self._checkpoint_path = checkpoint_path
+        self._backend_context = None
+        self._backend_session = None
+
+    def __enter__(self) -> "MolTrackSam2PersistentImageSession":
+        self._backend_context = self._backend.open_session()
+        self._backend_session = self._backend_context.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        if self._backend_context is not None:
+            self._backend_context.__exit__(exc_type, exc_value, traceback)
+        self._backend_session = None
+        self._backend_context = None
+
+    def segment_frame_detections(self, frame, detections, **kwargs):
+        if self._backend_session is None:
+            raise RuntimeError("SAM2 persistent image session is not open.")
+        kwargs.setdefault("chunk_size", 1)
+        return self._segmenter._segment_frame_detections_using_backend(
+            frame,
+            detections,
+            backend=self._backend,
+            run_batch=self._backend_session.segment_frame,
+            selected_checkpoint_path=self._checkpoint_path,
+            **kwargs,
+        )
+
+    def cancel(self) -> None:
+        target = self._backend_session or self._backend_context
+        cancel = getattr(target, "cancel", None)
+        if callable(cancel):
+            cancel()
+
+    @property
+    def last_diagnostics(self):
+        if self._backend_session is None:
+            return None
+        return getattr(self._backend_session, "last_diagnostics", None)
+
+
 class MolTrackSam2Segmenter:
     """Adapter that uses NanoTrack SAM2 as single-frame MolTrack segmentation."""
 
-    def __init__(self, backend=None, *, model_name: str | None = None, backend_factory=None):
+    def __init__(
+        self,
+        backend=None,
+        *,
+        model_name: str | None = None,
+        backend_factory=None,
+        image_batch_backend=None,
+        image_batch_backend_factory=None,
+        persistent_image_batch_backend=None,
+        persistent_image_batch_backend_factory=None,
+    ):
         self._backend = backend if backend is not None else Sam2SubprocessBackend()
         self._model_name = model_name
         self._backend_factory = backend_factory
+        self._image_batch_backend = (
+            image_batch_backend
+            if image_batch_backend is not None
+            else Sam2ImageBatchSubprocessBackend()
+        )
+        self._image_batch_backend_factory = image_batch_backend_factory
+        self._persistent_image_batch_backend = (
+            persistent_image_batch_backend
+            if persistent_image_batch_backend is not None
+            else Sam2PersistentImageBatchBackend()
+        )
+        self._persistent_image_batch_backend_factory = (
+            persistent_image_batch_backend_factory
+        )
+
+    def segment_frame_detections(
+        self,
+        frame,
+        detections,
+        *,
+        mask_probability_threshold: float = 0.5,
+        checkpoint_path=None,
+        keep_largest_component: bool = False,
+        min_mask_area_px: int = 0,
+        existing_masks_policy: str | None = None,
+        registered_transform: RegisteredFrameTransform | None = None,
+        chunk_size: int = 32,
+    ) -> list[MolecularSegmentation]:
+        selected_checkpoint_path = (
+            Path(checkpoint_path) if checkpoint_path is not None else None
+        )
+        backend = self._image_batch_backend_for_checkpoint(selected_checkpoint_path)
+        return self._segment_frame_detections_using_backend(
+            frame,
+            detections,
+            backend=backend,
+            run_batch=backend.run,
+            selected_checkpoint_path=selected_checkpoint_path,
+            mask_probability_threshold=mask_probability_threshold,
+            keep_largest_component=keep_largest_component,
+            min_mask_area_px=min_mask_area_px,
+            existing_masks_policy=existing_masks_policy,
+            registered_transform=registered_transform,
+            chunk_size=chunk_size,
+        )
+
+    def open_persistent_image_session(
+        self,
+        *,
+        checkpoint_path=None,
+    ) -> MolTrackSam2PersistentImageSession:
+        selected_checkpoint_path = (
+            Path(checkpoint_path) if checkpoint_path is not None else None
+        )
+        backend = self._persistent_image_batch_backend_for_checkpoint(
+            selected_checkpoint_path
+        )
+        return MolTrackSam2PersistentImageSession(
+            self,
+            backend,
+            selected_checkpoint_path,
+        )
+
+    def _segment_frame_detections_using_backend(
+        self,
+        frame,
+        detections,
+        *,
+        backend,
+        run_batch,
+        selected_checkpoint_path: Path | None,
+        mask_probability_threshold: float = 0.5,
+        keep_largest_component: bool = False,
+        min_mask_area_px: int = 0,
+        existing_masks_policy: str | None = None,
+        registered_transform: RegisteredFrameTransform | None = None,
+        chunk_size: int = 32,
+    ) -> list[MolecularSegmentation]:
+        detections = list(detections)
+        if not detections:
+            return []
+        if any(not isinstance(detection, MolecularDetection) for detection in detections):
+            raise TypeError("detections must contain MolecularDetection instances.")
+        frame_index = detections[0].frame_index
+        source_view = detections[0].source_view
+        if any(detection.frame_index != frame_index for detection in detections):
+            raise ValueError("SAM2 frame batch detections must use one frame_index.")
+        if any(detection.source_view != source_view for detection in detections):
+            raise ValueError("SAM2 frame batch detections must use one source_view.")
+
+        inference_detections = detections
+        inference_source_view = source_view
+        if source_view == "expanded_aligned":
+            if registered_transform is None:
+                raise ValueError(
+                    "registered_transform is required for expanded_aligned SAM2 detections."
+                )
+            inference_detections = [
+                registered_transform.expanded_detection_to_raw_prompt(detection)
+                for detection in detections
+            ]
+            inference_source_view = "raw"
+
+        frame_array = np.asarray(frame, dtype=np.float32)
+        if frame_array.ndim not in (2, 3):
+            raise ValueError("SAM2 segmentation frame must have shape [H, W] or [H, W, C].")
+        run_input = Sam2ImageBatchInput(
+            frame=frame_array,
+            frame_index=frame_index,
+            source_view=inference_source_view,
+            boxes_xyxy=np.asarray(
+                [detection.bbox_xyxy for detection in inference_detections],
+                dtype=np.float32,
+            ),
+            prompt_detection_ids=tuple(
+                detection.detection_id for detection in inference_detections
+            ),
+            mask_probability_threshold=mask_probability_threshold,
+            chunk_size=int(chunk_size),
+        )
+        output = run_batch(run_input)
+        validate_sam2_image_batch_pair(run_input, output)
+        masks = np.asarray(output.masks, dtype=bool)
+        if masks.shape[0] != len(inference_detections):
+            raise MolTrackSam2SegmentationError(
+                "SAM2 frame batch mask count does not match the prompt count."
+            )
+
+        segmentations = []
+        for result_index, detection in enumerate(inference_detections):
+            mask = self._postprocess_mask(
+                masks[result_index],
+                keep_largest_component=bool(keep_largest_component),
+                min_mask_area_px=int(min_mask_area_px),
+            )
+            segmentation = MolecularSegmentation(
+                frame_index=detection.frame_index,
+                source_view="raw" if source_view == "expanded_aligned" else detection.source_view,
+                bbox_xyxy=self._bbox_from_mask(mask),
+                mask=mask,
+                original_mask=mask.copy(),
+                score=self._optional_index_float(output.mask_scores, result_index),
+                origin="sam2",
+                prompt_detection_ids=(detection.detection_id,),
+                model_name=self._model_name_or_backend_checkpoint(
+                    backend,
+                    selected_checkpoint_path,
+                ),
+                metadata=self._metadata_from_batch_output(
+                    output,
+                    result_index,
+                    selected_checkpoint_path,
+                    mask=mask,
+                    mask_probability_threshold=mask_probability_threshold,
+                    keep_largest_component=bool(keep_largest_component),
+                    min_mask_area_px=int(min_mask_area_px),
+                    existing_masks_policy=existing_masks_policy,
+                ),
+            )
+            if source_view == "expanded_aligned":
+                segmentation = registered_transform.raw_segmentation_to_expanded(segmentation)
+            segmentations.append(segmentation)
+        return segmentations
 
     def segment_detection(
         self,
@@ -115,6 +345,29 @@ class MolTrackSam2Segmenter:
         if self._backend_factory is not None:
             return self._backend_factory(checkpoint_path)
         return Sam2SubprocessBackend(config=Sam2BackendConfig(checkpoint_path=checkpoint_path))
+
+    def _image_batch_backend_for_checkpoint(self, checkpoint_path: Path | None):
+        if checkpoint_path is None:
+            return self._image_batch_backend
+        if self._image_batch_backend_factory is not None:
+            return self._image_batch_backend_factory(checkpoint_path)
+        return Sam2ImageBatchSubprocessBackend(
+            config=Sam2ImageBatchBackendConfig(checkpoint_path=checkpoint_path)
+        )
+
+    def _persistent_image_batch_backend_for_checkpoint(
+        self,
+        checkpoint_path: Path | None,
+    ):
+        if checkpoint_path is None:
+            return self._persistent_image_batch_backend
+        if self._persistent_image_batch_backend_factory is not None:
+            return self._persistent_image_batch_backend_factory(checkpoint_path)
+        return Sam2PersistentImageBatchBackend(
+            config=Sam2PersistentImageBatchBackendConfig(
+                checkpoint_path=checkpoint_path
+            )
+        )
 
     def _build_run_input(
         self,
@@ -226,6 +479,52 @@ class MolTrackSam2Segmenter:
         min_mask_area_px: int,
         existing_masks_policy: str | None,
     ) -> dict[str, float | int | str | bool]:
+        return self._build_metadata(
+            checkpoint_path,
+            mask=mask,
+            mask_probability_threshold=mask_probability_threshold,
+            keep_largest_component=keep_largest_component,
+            min_mask_area_px=min_mask_area_px,
+            existing_masks_policy=existing_masks_policy,
+            component_count=self._optional_first_int(output.mask_component_counts),
+        )
+
+    def _metadata_from_batch_output(
+        self,
+        output,
+        result_index: int,
+        checkpoint_path: Path | None = None,
+        *,
+        mask,
+        mask_probability_threshold: float,
+        keep_largest_component: bool,
+        min_mask_area_px: int,
+        existing_masks_policy: str | None,
+    ) -> dict[str, float | int | str | bool]:
+        return self._build_metadata(
+            checkpoint_path,
+            mask=mask,
+            mask_probability_threshold=mask_probability_threshold,
+            keep_largest_component=keep_largest_component,
+            min_mask_area_px=min_mask_area_px,
+            existing_masks_policy=existing_masks_policy,
+            component_count=self._optional_index_int(
+                output.mask_component_counts,
+                result_index,
+            ),
+        )
+
+    def _build_metadata(
+        self,
+        checkpoint_path: Path | None,
+        *,
+        mask,
+        mask_probability_threshold: float,
+        keep_largest_component: bool,
+        min_mask_area_px: int,
+        existing_masks_policy: str | None,
+        component_count: int | None,
+    ) -> dict[str, float | int | str | bool]:
         metadata: dict[str, float | int | str | bool] = {}
         if checkpoint_path is not None:
             metadata["checkpoint_name"] = checkpoint_path.name
@@ -236,7 +535,6 @@ class MolTrackSam2Segmenter:
         if existing_masks_policy is not None:
             metadata["existing_sam2_masks_policy"] = str(existing_masks_policy)
         metadata["mask_area_px"] = float(np.count_nonzero(mask))
-        component_count = self._optional_first_int(output.mask_component_counts)
         if component_count is not None:
             metadata["mask_component_count"] = component_count
         return metadata
@@ -256,3 +554,19 @@ class MolTrackSam2Segmenter:
         if array.shape[0] == 0:
             return None
         return int(array[0])
+
+    def _optional_index_float(self, values, index: int) -> float | None:
+        if values is None:
+            return None
+        array = np.asarray(values)
+        if not 0 <= int(index) < array.shape[0]:
+            return None
+        return float(array[int(index)])
+
+    def _optional_index_int(self, values, index: int) -> int | None:
+        if values is None:
+            return None
+        array = np.asarray(values)
+        if not 0 <= int(index) < array.shape[0]:
+            return None
+        return int(array[int(index)])

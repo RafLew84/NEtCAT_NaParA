@@ -17,6 +17,8 @@ from moltrack.core import (
     MolTrackRegistrationFrameResult,
     MolTrackRegistrationResultSet,
     MolTrackRegistrationSettings,
+    MolTrackPositionAnalysisRange,
+    MolTrackPositionAnalysisState,
     MolTrackSession,
 )
 from moltrack.io import load_moltrack_image_series
@@ -36,10 +38,14 @@ def save_moltrack_session(path: str | Path, series: MolTrackImageSeries, ui_stat
     source_stat = _stat_existing_source_file(source_path)
     registration_view_mode = _registration_view_mode_from_ui_state(ui_state)
     bbox_opacity_percent = _bbox_opacity_percent_from_ui_state(ui_state)
+    mask_opacity_percent = _mask_opacity_percent_from_ui_state(ui_state)
+    position_analysis = _position_analysis_from_ui_state(ui_state)
     session = MolTrackSession.from_image_series(
         series,
         registration_view_mode=registration_view_mode,
         bbox_opacity_percent=bbox_opacity_percent,
+        mask_opacity_percent=mask_opacity_percent,
+        position_analysis=position_analysis,
         source_size_bytes=source_stat.st_size,
         source_mtime_ns=source_stat.st_mtime_ns,
     )
@@ -78,6 +84,7 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
     registration_payload = payload.get("registration")
     molecular_detections_payload = payload.get("molecular_detections")
     molecular_segmentations_payload = payload.get("molecular_segmentations")
+    position_analysis_payload = payload.get("position_analysis")
 
     registration_settings: MolTrackRegistrationSettings | None = None
     registration_results: MolTrackRegistrationResultSet | None = None
@@ -99,10 +106,12 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
         reverse_frame_order=bool(working_series_payload.get("reverse_frame_order", False)),
         registration_view_mode=str(ui_payload.get("registration_view_mode", "Show raw")),
         bbox_opacity_percent=int(ui_payload.get("bbox_opacity_percent", 100)),
+        mask_opacity_percent=int(ui_payload.get("mask_opacity_percent", 30)),
         registration_settings=registration_settings,
         registration_results=registration_results,
         molecular_detections=molecular_detections,
         molecular_segmentations=molecular_segmentations,
+        position_analysis=_position_analysis_from_payload(position_analysis_payload),
         source_size_bytes=int(source_payload["size_bytes"]),
         source_mtime_ns=int(source_payload["mtime_ns"]),
         schema_version=schema_version,
@@ -178,10 +187,12 @@ def _session_to_payload(
         "ui": {
             "registration_view_mode": session.registration_view_mode,
             "bbox_opacity_percent": session.bbox_opacity_percent,
+            "mask_opacity_percent": session.mask_opacity_percent,
         },
         "registration": _registration_to_payload(session.registration_results),
         "molecular_detections": _molecular_detections_to_payload(session.molecular_detections),
         "molecular_segmentations": _molecular_segmentations_to_payload(session.molecular_segmentations),
+        "position_analysis": _position_analysis_to_payload(session.position_analysis),
     }
 
 
@@ -441,6 +452,69 @@ def _polygon_from_payload(payload: Any) -> tuple[tuple[float, float], ...] | Non
     return tuple((float(point[0]), float(point[1])) for point in payload)
 
 
+def _position_analysis_to_payload(
+    state: MolTrackPositionAnalysisState | None,
+) -> dict[str, Any] | None:
+    if state is None:
+        return None
+    return {
+        "source_view": state.source_view,
+        "first_range": _position_analysis_range_to_payload(state.first_range),
+        "second_range": _position_analysis_range_to_payload(state.second_range),
+        "comparison_completed": state.comparison_completed,
+        "active_tab": state.active_tab,
+        "density_grid_shape": list(state.density_grid_shape),
+        "use_segmentation_centroids": state.use_segmentation_centroids,
+    }
+
+
+def _position_analysis_range_to_payload(
+    frame_range: MolTrackPositionAnalysisRange,
+) -> dict[str, Any]:
+    return {
+        "name": frame_range.name,
+        "start_frame": frame_range.start_frame,
+        "end_frame": frame_range.end_frame,
+    }
+
+
+def _position_analysis_from_payload(payload: Any) -> MolTrackPositionAnalysisState | None:
+    if payload is None:
+        return None
+    state_payload = _require_mapping(payload, "position_analysis")
+    first_payload = _require_mapping(state_payload.get("first_range"), "position_analysis.first_range")
+    second_payload = _require_mapping(state_payload.get("second_range"), "position_analysis.second_range")
+    return MolTrackPositionAnalysisState(
+        source_view=str(state_payload.get("source_view", "raw")),
+        first_range=MolTrackPositionAnalysisRange(
+            name=str(first_payload.get("name", "")),
+            start_frame=int(first_payload.get("start_frame", 0)),
+            end_frame=int(first_payload.get("end_frame", 0)),
+        ),
+        second_range=MolTrackPositionAnalysisRange(
+            name=str(second_payload.get("name", "")),
+            start_frame=int(second_payload.get("start_frame", 0)),
+            end_frame=int(second_payload.get("end_frame", 0)),
+        ),
+        comparison_completed=bool(state_payload.get("comparison_completed", False)),
+        active_tab=str(state_payload.get("active_tab", "Current frame")),
+        density_grid_shape=tuple(state_payload.get("density_grid_shape", (32, 32))),
+        use_segmentation_centroids=bool(state_payload.get("use_segmentation_centroids", True)),
+    )
+
+
+def _position_analysis_from_ui_state(ui_state: Any | None) -> MolTrackPositionAnalysisState | None:
+    if ui_state is None or isinstance(ui_state, str):
+        return None
+    if isinstance(ui_state, Mapping):
+        payload = ui_state.get("position_analysis")
+    else:
+        payload = getattr(ui_state, "position_analysis", None)
+    if isinstance(payload, MolTrackPositionAnalysisState):
+        return payload
+    return _position_analysis_from_payload(payload)
+
+
 def _registration_view_mode_from_ui_state(ui_state: Any | None) -> str:
     if ui_state is None:
         return "Show raw"
@@ -457,6 +531,14 @@ def _bbox_opacity_percent_from_ui_state(ui_state: Any | None) -> int:
     if isinstance(ui_state, Mapping):
         return int(ui_state.get("bbox_opacity_percent", 100))
     return int(getattr(ui_state, "bbox_opacity_percent", 100))
+
+
+def _mask_opacity_percent_from_ui_state(ui_state: Any | None) -> int:
+    if ui_state is None or isinstance(ui_state, str):
+        return 30
+    if isinstance(ui_state, Mapping):
+        return int(ui_state.get("mask_opacity_percent", 30))
+    return int(getattr(ui_state, "mask_opacity_percent", 30))
 
 
 def _resolve_source_path(source_payload: Mapping[str, Any], *, session_path: Path) -> Path:

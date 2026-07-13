@@ -59,6 +59,7 @@ def analyze_molecular_frame_range(
     frame_range: MolecularFrameRange,
     *,
     source_view: str,
+    use_segmentation_centroids: bool = True,
 ) -> MolecularFrameRangeAnalysis:
     """Analyze every frame in one named range without linking molecules across frames."""
 
@@ -81,6 +82,7 @@ def analyze_molecular_frame_range(
                 series,
                 frame_index=frame_index,
                 source_view=source_view,
+                use_segmentation_centroids=use_segmentation_centroids,
             )
         )
         plot_data = build_molecular_position_plot_data(

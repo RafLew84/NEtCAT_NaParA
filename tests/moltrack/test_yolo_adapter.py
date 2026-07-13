@@ -5,7 +5,13 @@ from pathlib import Path
 import numpy as np
 
 from moltrack.core import MolecularDetection
-from moltrack.yolo import MolTrackYoloDetector, MolTrackYoloError, YoloModelInfo, discover_yolo_models
+from moltrack.yolo import (
+    MolTrackYoloDetector,
+    MolTrackYoloError,
+    YoloBBoxSizeFilter,
+    YoloModelInfo,
+    discover_yolo_models,
+)
 from nanotrack.core import BBoxXYXY
 from nanotrack.yolo import YoloRuntimeDetection
 from nanotrack.yolo import discover_yolo_models as discover_nanotrack_yolo_models
@@ -83,6 +89,53 @@ class MolTrackYoloAdapterTests(unittest.TestCase):
         self.assertEqual(runtime.calls[0]["conf_threshold"], 0.3)
         self.assertEqual(runtime.calls[0]["iou_threshold"], 0.4)
         np.testing.assert_array_equal(runtime.calls[0]["frame"], frame)
+
+    def test_detector_filters_runtime_detections_by_bbox_area(self) -> None:
+        class FakeRuntime:
+            def predict_frame(self, frame, *, model_path, conf_threshold, iou_threshold):
+                return [
+                    YoloRuntimeDetection(BBoxXYXY(0.0, 0.0, 2.0, 2.0), 0.9, "model.pt"),
+                    YoloRuntimeDetection(BBoxXYXY(1.0, 1.0, 5.0, 6.0), 0.8, "model.pt"),
+                    YoloRuntimeDetection(BBoxXYXY(0.0, 0.0, 10.0, 10.0), 0.7, "model.pt"),
+                ]
+
+        detector = MolTrackYoloDetector(runtime=FakeRuntime())
+
+        detections = detector.detect_frame(
+            np.zeros((12, 12), dtype=np.float32),
+            frame_index=0,
+            checkpoint_path="model.pt",
+            size_filter=YoloBBoxSizeFilter(
+                min_area_px2=10.0,
+                max_area_px2=50.0,
+                max_aspect_ratio=10.0,
+            ),
+        )
+
+        self.assertEqual([detection.bbox_xyxy for detection in detections], [(1.0, 1.0, 5.0, 6.0)])
+
+    def test_detector_filters_runtime_detections_by_maximum_aspect_ratio(self) -> None:
+        class FakeRuntime:
+            def predict_frame(self, frame, *, model_path, conf_threshold, iou_threshold):
+                return [
+                    YoloRuntimeDetection(BBoxXYXY(0.0, 0.0, 10.0, 2.0), 0.9, "model.pt"),
+                    YoloRuntimeDetection(BBoxXYXY(1.0, 1.0, 5.0, 6.0), 0.8, "model.pt"),
+                ]
+
+        detector = MolTrackYoloDetector(runtime=FakeRuntime())
+
+        detections = detector.detect_frame(
+            np.zeros((12, 12), dtype=np.float32),
+            frame_index=0,
+            checkpoint_path="model.pt",
+            size_filter=YoloBBoxSizeFilter(
+                min_area_px2=20.0,
+                max_area_px2=20.0,
+                max_aspect_ratio=2.0,
+            ),
+        )
+
+        self.assertEqual([detection.bbox_xyxy for detection in detections], [(1.0, 1.0, 5.0, 6.0)])
 
     def test_detector_reports_missing_checkpoint_with_moltrack_error(self) -> None:
         detector = MolTrackYoloDetector()

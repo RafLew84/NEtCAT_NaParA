@@ -4,6 +4,7 @@ import numpy as np
 import pyqtgraph as pg
 from PyQt6.QtCore import QRectF, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QDialog,
     QGridLayout,
     QGroupBox,
@@ -36,6 +37,7 @@ class PositionAnalysisDialog(QDialog):
     """Scatter view of molecular positions for one frame and source view."""
 
     compare_ranges_requested = pyqtSignal(object)
+    centroid_source_mode_changed = pyqtSignal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -45,15 +47,20 @@ class PositionAnalysisDialog(QDialog):
         self._angle_metrics: MolecularNearestNeighborAngleMetrics | None = None
         self._range_trend_data: MolecularRangeComparisonTrendData | None = None
         self._range_spatial_data: MolecularRangeSpatialComparisonData | None = None
+        self._density_grid_shape = (32, 32)
         self._first_density_levels = (0.0, 1.0)
         self._second_density_levels = (0.0, 1.0)
         self._range_frame_count: int | None = None
         self._range_source_view = "raw"
-        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
         self.setWindowTitle("Position Analysis")
         self.resize(760, 820)
 
         layout = QVBoxLayout(self)
+        self.chk_use_segmentation_centroids = QCheckBox("Use segmentation centroids", self)
+        self.chk_use_segmentation_centroids.setChecked(True)
+        self.chk_use_segmentation_centroids.toggled.connect(self.centroid_source_mode_changed.emit)
+        layout.addWidget(self.chk_use_segmentation_centroids)
         self.range_group = QGroupBox("Comparison ranges", self)
         range_layout = QGridLayout(self.range_group)
         self.lbl_range_source_view = QLabel("Source view: raw", self.range_group)
@@ -190,6 +197,12 @@ class PositionAnalysisDialog(QDialog):
         self.tabs.addTab(self.spatial_comparison_tab, "Spatial comparison")
         layout.addWidget(self.tabs, 1)
 
+    def use_segmentation_centroids(self) -> bool:
+        return self.chk_use_segmentation_centroids.isChecked()
+
+    def set_use_segmentation_centroids(self, enabled: bool) -> None:
+        self.chk_use_segmentation_centroids.setChecked(bool(enabled))
+
     def set_plot_data(self, plot_data: MolecularPositionPlotData) -> None:
         if not isinstance(plot_data, MolecularPositionPlotData):
             raise TypeError("plot_data must be MolecularPositionPlotData.")
@@ -258,13 +271,40 @@ class PositionAnalysisDialog(QDialog):
             ),
         )
 
-    def set_range_comparison(self, comparison: MolecularFrameRangeComparison) -> None:
+    def apply_frame_range_selection(self, selection: MolecularFrameRangeSelection) -> None:
+        if not isinstance(selection, MolecularFrameRangeSelection):
+            raise TypeError("selection must be a MolecularFrameRangeSelection instance.")
+        if self._range_frame_count is None or selection.frame_count != self._range_frame_count:
+            raise ValueError("selection frame_count must match the configured series.")
+        self._range_source_view = selection.source_view
+        self.lbl_range_source_view.setText(f"Source view: {selection.source_view}")
+        self.edit_first_range_name.setText(selection.first_range.name)
+        self.sp_first_range_start.setValue(selection.first_range.start_frame + 1)
+        self.sp_first_range_end.setValue(selection.first_range.end_frame + 1)
+        self.edit_second_range_name.setText(selection.second_range.name)
+        self.sp_second_range_start.setValue(selection.second_range.start_frame + 1)
+        self.sp_second_range_end.setValue(selection.second_range.end_frame + 1)
+        self._refresh_range_validation()
+
+    def set_range_comparison(
+        self,
+        comparison: MolecularFrameRangeComparison,
+        *,
+        density_grid_shape: tuple[int, int] = (32, 32),
+    ) -> None:
         if not isinstance(comparison, MolecularFrameRangeComparison):
             raise TypeError("comparison must be a MolecularFrameRangeComparison instance.")
         trend_data = build_molecular_range_comparison_trend_data(comparison)
-        spatial_data = build_molecular_range_spatial_comparison_data(comparison)
+        spatial_data = build_molecular_range_spatial_comparison_data(
+            comparison,
+            density_grid_shape=density_grid_shape,
+        )
         self._range_trend_data = trend_data
         self._range_spatial_data = spatial_data
+        self._density_grid_shape = (
+            len(spatial_data.density_y_edges) - 1,
+            len(spatial_data.density_x_edges) - 1,
+        )
         self._set_trend_plot_data(
             self.molecule_count_trend_plot,
             trend_data,
@@ -298,6 +338,12 @@ class PositionAnalysisDialog(QDialog):
 
     def range_spatial_data(self) -> MolecularRangeSpatialComparisonData | None:
         return self._range_spatial_data
+
+    def has_range_comparison(self) -> bool:
+        return self._range_trend_data is not None and self._range_spatial_data is not None
+
+    def density_grid_shape(self) -> tuple[int, int]:
+        return self._density_grid_shape
 
     def analysis_tab_labels(self) -> tuple[str, ...]:
         return tuple(self.tabs.tabText(index) for index in range(self.tabs.count()))
@@ -464,6 +510,12 @@ class PositionAnalysisDialog(QDialog):
             [np.nan if value is None else float(value) for value in second_values],
             dtype=np.float64,
         )
+        if not np.any(np.isfinite(first_y)):
+            first_x = np.asarray([], dtype=np.float64)
+            first_y = np.asarray([], dtype=np.float64)
+        if not np.any(np.isfinite(second_y)):
+            second_x = np.asarray([], dtype=np.float64)
+            second_y = np.asarray([], dtype=np.float64)
         plot.plot(
             first_x,
             first_y,

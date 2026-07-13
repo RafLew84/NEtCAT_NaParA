@@ -18,8 +18,9 @@ def build_molecular_centroids(
     *,
     frame_index: int | None = None,
     source_view: str = "raw",
+    use_segmentation_centroids: bool = True,
 ) -> list["MolecularCentroid"]:
-    """Build molecule positions for one frame/view, preferring masks over linked bboxes."""
+    """Build molecule positions from linked masks or exclusively from bbox centers."""
 
     if not isinstance(series, MolTrackImageSeries):
         raise TypeError("series must be a MolTrackImageSeries instance.")
@@ -34,7 +35,7 @@ def build_molecular_centroids(
     centroids: list[MolecularCentroid] = []
     linked_detection_ids: set[str] = set()
     segmentation_set = series.molecular_segmentations
-    if segmentation_set is not None:
+    if bool(use_segmentation_centroids) and segmentation_set is not None:
         for segmentation in segmentation_set.get_segmentations(frame_index, source_view=source_view):
             if segmentation.mask is None:
                 continue

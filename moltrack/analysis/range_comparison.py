@@ -34,6 +34,8 @@ class MolecularFrameRangeComparison:
 def compare_molecular_frame_ranges(
     series: MolTrackImageSeries,
     selection: MolecularFrameRangeSelection,
+    *,
+    use_segmentation_centroids: bool = True,
 ) -> MolecularFrameRangeComparison:
     """Analyze two selected conditions independently for later comparison."""
 
@@ -47,11 +49,13 @@ def compare_molecular_frame_ranges(
         series,
         selection.first_range,
         source_view=selection.source_view,
+        use_segmentation_centroids=use_segmentation_centroids,
     )
     second_analysis = analyze_molecular_frame_range(
         series,
         selection.second_range,
         source_view=selection.source_view,
+        use_segmentation_centroids=use_segmentation_centroids,
     )
     return MolecularFrameRangeComparison(
         source_view=selection.source_view,
