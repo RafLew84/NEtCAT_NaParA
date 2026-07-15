@@ -8,6 +8,7 @@ from .intensity import (
     measure_molecular_intensity,
     restore_molecular_intensity_cache_records,
 )
+from .m6_settings import MolecularM6OrientationAnalysisSettings
 from .nearest_neighbors import (
     NEAREST_NEIGHBOR_ANGLE_BIN_EDGES_DEGREES,
     MolecularNearestNeighborAngleMetrics,
@@ -49,6 +50,7 @@ __all__ = [
     "MolecularIntensityMeasurement",
     "MolecularIntensityCacheStats",
     "MolecularIntensityMeasurementCache",
+    "MolecularM6OrientationAnalysisSettings",
     "MolecularFrameAnalysisResult",
     "MolecularNearestNeighborAngleMetrics",
     "MolecularNearestNeighborMetrics",
