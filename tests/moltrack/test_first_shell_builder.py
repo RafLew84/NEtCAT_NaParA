@@ -11,6 +11,64 @@ from moltrack.analysis import (
 
 
 class FirstShellGraphBuilderTests(unittest.TestCase):
+    def test_filters_first_shell_boundaries_and_marks_short_candidate_pairs(self) -> None:
+        settings = MolecularM6OrientationAnalysisSettings(
+            duplicate_max_distance_nm=0.5,
+            first_shell_r_min_nm=1.0,
+            first_shell_r_max_nm=2.0,
+            geometry_absolute_tolerance_nm=0.01,
+            geometry_relative_tolerance=1e-12,
+        )
+        cases = (
+            (np.nextafter(0.5, np.inf), False, True),
+            (np.nextafter(1.0, 0.0), False, True),
+            (1.0, True, False),
+            (np.nextafter(1.0, np.inf), True, False),
+            (np.nextafter(2.0, 0.0), True, False),
+            (2.0, True, False),
+            (np.nextafter(2.0, np.inf), False, False),
+        )
+
+        for distance, expected_edge, expected_short_qc in cases:
+            with self.subTest(distance=distance):
+                graph = build_first_shell_graph(
+                    np.asarray(((0.0, 0.0), (distance, 0.0))),
+                    point_ids=("point-a", "point-b"),
+                    settings=settings,
+                )
+                self.assertEqual(graph.edges_ij == ((0, 1),), expected_edge)
+                self.assertEqual(
+                    graph.short_non_shell_pair_qc,
+                    (expected_short_qc, expected_short_qc),
+                )
+                self.assertEqual(
+                    graph.degree,
+                    (1, 1) if expected_edge else (0, 0),
+                )
+                self.assertEqual(graph.candidate_edges_ij, ((0, 1),))
+
+    def test_disabled_physical_duplicate_threshold_does_not_classify_pair_as_duplicate(self) -> None:
+        graph = build_first_shell_graph(
+            np.asarray(((0.0, 0.0), (0.5, 0.0), (1.5, 0.0))),
+            point_ids=("point-a", "point-b", "point-c"),
+            settings=MolecularM6OrientationAnalysisSettings(
+                duplicate_detection_enabled=False,
+                duplicate_max_distance_nm=0.5,
+                first_shell_r_min_nm=1.0,
+                first_shell_r_max_nm=2.0,
+                geometry_absolute_tolerance_nm=0.01,
+                geometry_relative_tolerance=1e-12,
+            ),
+        )
+
+        self.assertFalse(graph.duplicate_detection_enabled)
+        self.assertEqual(graph.physical_duplicate_qc, (False, False, False))
+        self.assertEqual(graph.geometry_duplicate_qc, (False, False, False))
+        self.assertEqual(graph.short_non_shell_pair_qc, (True, True, False))
+        self.assertEqual(graph.candidate_edges_ij, ((0, 1), (1, 2)))
+        self.assertEqual(graph.edges_ij, ((1, 2),))
+        self.assertEqual(graph.degree, (0, 1, 1))
+
     def test_builds_rank_zero_and_two_point_graph_without_mutating_input(self) -> None:
         settings = MolecularM6OrientationAnalysisSettings(
             geometry_absolute_tolerance_nm=1e-6,
@@ -150,6 +208,10 @@ class FirstShellGraphBuilderTests(unittest.TestCase):
                     settings=settings,
                 )
                 self.assertEqual(graph.geometry_duplicate_qc[1], expected_duplicate)
+                self.assertEqual(
+                    graph.short_non_shell_pair_qc[1],
+                    not expected_duplicate,
+                )
 
         invalid_scale_settings = MolecularM6OrientationAnalysisSettings(
             geometry_absolute_tolerance_nm=1e-6,
@@ -162,6 +224,19 @@ class FirstShellGraphBuilderTests(unittest.TestCase):
             build_first_shell_graph(
                 np.asarray(((0.0, 0.0), (1.5, 0.0))),
                 settings=invalid_scale_settings,
+            )
+
+        disabled_overlap_settings = MolecularM6OrientationAnalysisSettings(
+            duplicate_detection_enabled=False,
+            geometry_absolute_tolerance_nm=1.0,
+            geometry_relative_tolerance=1e-12,
+            first_shell_r_min_nm=1.0,
+            first_shell_r_max_nm=2.6,
+        )
+        with self.assertRaisesRegex(ValueError, "geometry_collision_epsilon_nm"):
+            build_first_shell_graph(
+                np.asarray(((0.0, 0.0), (1.5, 0.0))),
+                settings=disabled_overlap_settings,
             )
 
     def test_geometry_collision_chain_leaves_no_colliding_representatives(self) -> None:
@@ -205,6 +280,10 @@ class FirstShellGraphBuilderTests(unittest.TestCase):
                     settings=settings,
                 )
                 self.assertEqual(graph.physical_duplicate_qc[1], expected_duplicate)
+                self.assertEqual(
+                    graph.short_non_shell_pair_qc[1],
+                    not expected_duplicate,
+                )
 
     def test_physical_duplicate_chain_uses_complete_linkage_and_quality_representative(self) -> None:
         settings = MolecularM6OrientationAnalysisSettings(

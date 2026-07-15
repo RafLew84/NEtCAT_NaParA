@@ -23,6 +23,7 @@ def _graph(**overrides: object) -> FirstShellGraph:
         "registration_fingerprint": "registration-v1",
         "construction_method": "delaunay_first_shell",
         "qc_status": "valid",
+        "duplicate_detection_enabled": True,
     }
     payload.update(overrides)
     return FirstShellGraph(**payload)
@@ -201,11 +202,86 @@ class FirstShellGraphTests(unittest.TestCase):
         self.assertEqual(split_chain.duplicate_parent_component_ids, ("parent-1",) * 3)
         self.assertEqual(split_chain.representative_source_ids, ("point-a", "point-a", "point-c"))
 
+    def test_validates_short_non_shell_qc_against_candidate_edges(self) -> None:
+        graph = _graph(
+            edges_ij=((1, 2),),
+            distances_nm=(1.5,),
+            angles_rad=(math.pi / 2.0,),
+            degree=(0, 1, 1),
+            candidate_edges_ij=((0, 1), (1, 2)),
+            candidate_distances_nm=(0.75, 1.5),
+            candidate_angles_rad=(0.0, math.pi / 2.0),
+            short_non_shell_pair_qc=(True, True, False),
+        )
+
+        self.assertTrue(graph.duplicate_detection_enabled)
+        self.assertEqual(graph.short_non_shell_pair_qc, (True, True, False))
+
+        equivalent_angles = _graph(
+            angles_rad=(0.1, 0.2),
+            candidate_edges_ij=((0, 1), (1, 2)),
+            candidate_distances_nm=(1.25, 1.5),
+            candidate_angles_rad=(0.1 + 2.0 * math.pi, 0.2 + 2.0 * math.pi),
+        )
+        self.assertAlmostEqual(equivalent_angles.angles_rad[0], 0.1)
+        self.assertAlmostEqual(equivalent_angles.angles_rad[1], 0.2)
+
+        invalid_payloads = (
+            {"short_non_shell_pair_qc": (True, False)},
+            {
+                "candidate_edges_ij": ((0, 1), (1, 2)),
+                "candidate_distances_nm": (0.75, 1.5),
+                "candidate_angles_rad": (0.0, math.pi / 2.0),
+            },
+            {
+                "candidate_edges_ij": ((0, 1), (1, 2)),
+                "candidate_distances_nm": (0.5, 1.5),
+                "candidate_angles_rad": (0.0, math.pi / 2.0),
+                "short_non_shell_pair_qc": (True, True, False),
+            },
+            {
+                "candidate_edges_ij": ((0, 1), (1, 2)),
+                "candidate_distances_nm": (0.75, 1.5),
+                "candidate_angles_rad": (0.0, math.pi / 2.0),
+                "short_non_shell_pair_qc": (True, True, False),
+            },
+            {
+                "edges_ij": ((1, 2),),
+                "distances_nm": (1.5,),
+                "angles_rad": (math.pi / 2.0,),
+                "degree": (0, 1, 1),
+                "candidate_edges_ij": ((0, 1), (1, 2)),
+                "candidate_distances_nm": (1.25, 1.5),
+                "candidate_angles_rad": (0.0, math.pi / 2.0),
+            },
+            {
+                "candidate_edges_ij": ((0, 1), (1, 2)),
+                "candidate_distances_nm": (1.2, 1.5),
+                "candidate_angles_rad": (0.0, math.pi / 2.0),
+            },
+            {
+                "duplicate_detection_enabled": False,
+                "geometry_collision_epsilon_nm": 1.3,
+            },
+            {"duplicate_detection_enabled": 1},
+        )
+        for payload in invalid_payloads:
+            with self.subTest(payload=payload):
+                with self.assertRaises((TypeError, ValueError)):
+                    _graph(**payload)
+
     def test_rejects_invalid_physical_context_and_provenance(self) -> None:
         invalid_payloads = (
             {"geometry_collision_epsilon_nm": 0.0},
             {"geometry_collision_epsilon_nm": math.inf},
             {"duplicate_max_distance_nm": 0.0},
+            {"geometry_collision_epsilon_nm": 0.5},
+            {"duplicate_max_distance_nm": 1.0},
+            {"duplicate_max_distance_nm": 1.1},
+            {
+                "duplicate_detection_enabled": False,
+                "geometry_collision_epsilon_nm": 1.0,
+            },
             {"first_shell_r_min_nm": 0.0},
             {"first_shell_r_max_nm": 0.0},
             {"first_shell_r_min_nm": 2.6, "first_shell_r_max_nm": 2.6},

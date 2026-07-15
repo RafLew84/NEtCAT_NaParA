@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from math import isfinite, pi
 from typing import Literal
 
+from ._first_shell_filtering import _FirstShellDistancePolicy
+
 
 OrientationReference = Literal[
     "+x_sample_axis",
@@ -15,6 +17,7 @@ FirstShellConstructionMethod = Literal[
     "delaunay_first_shell",
     "rank2_radius_fallback",
 ]
+
 
 _ORIENTATION_REFERENCES = {
     "+x_sample_axis",
@@ -48,6 +51,7 @@ class FirstShellGraph:
     registration_fingerprint: str
     construction_method: FirstShellConstructionMethod
     qc_status: str
+    duplicate_detection_enabled: bool = True
     representative_source_ids: tuple[str, ...] = ()
     duplicate_parent_component_ids: tuple[str | None, ...] = ()
     duplicate_parent_component_diameters_nm: tuple[float | None, ...] = ()
@@ -56,6 +60,7 @@ class FirstShellGraph:
     duplicate_chain_qc: tuple[bool, ...] = ()
     physical_duplicate_qc: tuple[bool, ...] = ()
     geometry_duplicate_qc: tuple[bool, ...] = ()
+    short_non_shell_pair_qc: tuple[bool, ...] = ()
     ambiguous_edges_ij: tuple[tuple[int, int], ...] = ()
     delaunay_degeneracy_qc: bool = False
     candidate_edges_ij: tuple[tuple[int, int], ...] = ()
@@ -109,6 +114,16 @@ class FirstShellGraph:
         if construction_method not in _CONSTRUCTION_METHODS:
             raise ValueError(f"Unsupported construction_method: {construction_method!r}.")
         qc_status = _non_empty_string(self.qc_status, "qc_status")
+        if not isinstance(self.duplicate_detection_enabled, bool):
+            raise TypeError("duplicate_detection_enabled must be a boolean.")
+        duplicate_detection_enabled = self.duplicate_detection_enabled
+        distance_policy = _FirstShellDistancePolicy(
+            geometry_collision_epsilon_nm=geometry_epsilon,
+            duplicate_detection_enabled=duplicate_detection_enabled,
+            duplicate_max_distance_nm=duplicate_max_distance,
+            first_shell_r_min_nm=first_shell_r_min,
+            first_shell_r_max_nm=first_shell_r_max,
+        )
 
         raw_edges = tuple(self.edges_ij)
         raw_distances = tuple(self.distances_nm)
@@ -135,7 +150,7 @@ class FirstShellGraph:
             distance = _as_finite_float(raw_distance, f"distances_nm[{edge_index}]")
             if distance <= 0.0:
                 raise ValueError("Edge distances must be positive.")
-            if not first_shell_r_min <= distance <= first_shell_r_max:
+            if distance_policy.classify(distance) != "first_shell":
                 raise ValueError("Edge distances must lie within the first-shell bounds.")
             angle = _as_finite_float(raw_angle, f"angles_rad[{edge_index}]") % (2.0 * pi)
             normalized_edges.append((i, j))
@@ -155,8 +170,26 @@ class FirstShellGraph:
             ),
         )
         candidate_edges = tuple(record[0] for record in candidate_records)
-        if not set(normalized_edges).issubset(candidate_edges):
-            raise ValueError("Every retained edge must also be present in candidate_edges_ij.")
+        retained_records = tuple(
+            sorted(
+                zip(normalized_edges, normalized_distances, normalized_angles),
+                key=lambda record: record[0],
+            )
+        )
+        expected_retained_records = tuple(
+            record
+            for record in candidate_records
+            if distance_policy.classify(record[1]) == "first_shell"
+        )
+        if not _edge_records_match(retained_records, expected_retained_records):
+            raise ValueError(
+                "Retained edge records must exactly match first-shell candidate records."
+            )
+
+        short_pair_point_indices: set[int] = set()
+        for (i, j), distance, _angle in candidate_records:
+            if distance_policy.classify(distance) == "short_non_shell_pair":
+                short_pair_point_indices.update((i, j))
 
         ambiguous_edges = _normalize_index_edges(
             self.ambiguous_edges_ij,
@@ -232,6 +265,19 @@ class FirstShellGraph:
             point_count=point_count,
             field_name="geometry_duplicate_qc",
         )
+        short_pair_qc = _boolean_tuple(
+            self.short_non_shell_pair_qc,
+            point_count=point_count,
+            field_name="short_non_shell_pair_qc",
+        )
+        expected_short_pair_qc = tuple(
+            index in short_pair_point_indices for index in range(point_count)
+        )
+        if short_pair_qc != expected_short_pair_qc:
+            raise ValueError(
+                "short_non_shell_pair_qc must identify endpoints of candidate pairs "
+                "between the active duplicate boundary and first_shell_r_min_nm."
+            )
 
         _validate_id_diameter_pairs(
             parent_ids,
@@ -291,10 +337,7 @@ class FirstShellGraph:
                     "duplicate_chain_qc must identify physical parent components above the duplicate threshold."
                 )
 
-        records = sorted(
-            zip(normalized_edges, normalized_distances, normalized_angles),
-            key=lambda record: record[0],
-        )
+        records = retained_records
         object.__setattr__(self, "point_ids", point_ids)
         object.__setattr__(self, "point_count", point_count)
         object.__setattr__(self, "degree", degree)
@@ -308,6 +351,11 @@ class FirstShellGraph:
         object.__setattr__(self, "registration_fingerprint", registration_fingerprint)
         object.__setattr__(self, "construction_method", construction_method)
         object.__setattr__(self, "qc_status", qc_status)
+        object.__setattr__(
+            self,
+            "duplicate_detection_enabled",
+            duplicate_detection_enabled,
+        )
         object.__setattr__(self, "edges_ij", tuple(tuple(edge) for edge, _, _ in records))
         object.__setattr__(self, "distances_nm", tuple(distance for _, distance, _ in records))
         object.__setattr__(self, "angles_rad", tuple(angle for _, _, angle in records))
@@ -319,6 +367,7 @@ class FirstShellGraph:
         object.__setattr__(self, "duplicate_chain_qc", chain_qc)
         object.__setattr__(self, "physical_duplicate_qc", physical_qc)
         object.__setattr__(self, "geometry_duplicate_qc", geometry_qc)
+        object.__setattr__(self, "short_non_shell_pair_qc", short_pair_qc)
         object.__setattr__(self, "ambiguous_edges_ij", ambiguous_edges)
         object.__setattr__(self, "candidate_edges_ij", candidate_edges)
         object.__setattr__(
@@ -378,6 +427,21 @@ def _as_integer(value: object, field_name: str) -> int:
     if not isfinite(numeric) or numeric != normalized:
         raise ValueError(f"{field_name} must be an integer.")
     return normalized
+
+
+def _edge_records_match(
+    retained_records: tuple[tuple[tuple[int, int], float, float], ...],
+    expected_records: tuple[tuple[tuple[int, int], float, float], ...],
+) -> bool:
+    if len(retained_records) != len(expected_records):
+        return False
+    for retained, expected in zip(retained_records, expected_records):
+        if retained[:2] != expected[:2]:
+            return False
+        angle_difference = abs((retained[2] - expected[2] + pi) % (2.0 * pi) - pi)
+        if angle_difference > 1e-12:
+            return False
+    return True
 
 
 def _normalize_index_edges(

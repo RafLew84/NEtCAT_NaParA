@@ -11,6 +11,7 @@ from ._first_shell_deduplication import (
     _deduplicate_points,
     _normalize_point_quality,
 )
+from ._first_shell_filtering import _FirstShellDistancePolicy
 from .first_shell_graph import FirstShellGraph
 from .m6_settings import MolecularM6OrientationAnalysisSettings
 
@@ -56,14 +57,13 @@ def build_first_shell_graph(
         settings.geometry_absolute_tolerance_nm,
         settings.geometry_relative_tolerance * scale_nm,
     )
-    if (
-        settings.duplicate_detection_enabled
-        and geometry_epsilon_nm >= settings.duplicate_max_distance_nm
-    ):
-        raise ValueError(
-            "Effective geometry_collision_epsilon_nm must be less than "
-            "duplicate_max_distance_nm when duplicate detection is enabled."
-        )
+    distance_policy = _FirstShellDistancePolicy(
+        geometry_collision_epsilon_nm=geometry_epsilon_nm,
+        duplicate_detection_enabled=settings.duplicate_detection_enabled,
+        duplicate_max_distance_nm=settings.duplicate_max_distance_nm,
+        first_shell_r_min_nm=settings.first_shell_r_min_nm,
+        first_shell_r_max_nm=settings.first_shell_r_max_nm,
+    )
 
     deduplication = _deduplicate_points(
         points,
@@ -83,6 +83,7 @@ def build_first_shell_graph(
             candidate_edges=(),
             geometry_epsilon_nm=geometry_epsilon_nm,
             settings=settings,
+            distance_policy=distance_policy,
             orientation_reference=orientation_reference,
             spatial_calibration_fingerprint=spatial_calibration_fingerprint,
             registration_fingerprint=registration_fingerprint,
@@ -140,6 +141,7 @@ def build_first_shell_graph(
         candidate_edges=candidate_edges,
         geometry_epsilon_nm=geometry_epsilon_nm,
         settings=settings,
+        distance_policy=distance_policy,
         orientation_reference=orientation_reference,
         spatial_calibration_fingerprint=spatial_calibration_fingerprint,
         registration_fingerprint=registration_fingerprint,
@@ -174,6 +176,7 @@ def _make_graph(
     candidate_edges: tuple[tuple[int, int], ...],
     geometry_epsilon_nm: float,
     settings: MolecularM6OrientationAnalysisSettings,
+    distance_policy: _FirstShellDistancePolicy,
     orientation_reference: str,
     spatial_calibration_fingerprint: str,
     registration_fingerprint: str,
@@ -197,14 +200,17 @@ def _make_graph(
     retained = [
         record
         for record in candidate_records
-        if settings.first_shell_r_min_nm <= record[1] <= settings.first_shell_r_max_nm
+        if distance_policy.classify(record[1]) == "first_shell"
     ]
-    if construction_method not in ("delaunay_first_shell", "rank2_radius_fallback"):
-        candidate_records = list(retained)
     degree = [0] * len(point_ids)
     for (i, j), _distance, _angle in retained:
         degree[i] += 1
         degree[j] += 1
+    short_pair_qc = [False] * len(point_ids)
+    for (i, j), distance_nm, _angle in candidate_records:
+        if distance_policy.classify(distance_nm) == "short_non_shell_pair":
+            short_pair_qc[i] = True
+            short_pair_qc[j] = True
     return FirstShellGraph(
         point_ids=point_ids,
         point_count=len(point_ids),
@@ -222,6 +228,7 @@ def _make_graph(
         registration_fingerprint=registration_fingerprint,
         construction_method=construction_method,
         qc_status=qc_status,
+        duplicate_detection_enabled=settings.duplicate_detection_enabled,
         representative_source_ids=deduplication.representative_source_ids,
         duplicate_parent_component_ids=deduplication.parent_component_ids,
         duplicate_parent_component_diameters_nm=deduplication.parent_component_diameters_nm,
@@ -230,6 +237,7 @@ def _make_graph(
         duplicate_chain_qc=deduplication.chain_qc,
         physical_duplicate_qc=deduplication.physical_duplicate_qc,
         geometry_duplicate_qc=deduplication.geometry_duplicate_qc,
+        short_non_shell_pair_qc=tuple(short_pair_qc),
         ambiguous_edges_ij=ambiguous_edges,
         delaunay_degeneracy_qc=bool(ambiguous_edges),
         candidate_edges_ij=tuple(record[0] for record in candidate_records),
