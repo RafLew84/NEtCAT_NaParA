@@ -56,6 +56,11 @@ class FirstShellGraph:
     duplicate_chain_qc: tuple[bool, ...] = ()
     physical_duplicate_qc: tuple[bool, ...] = ()
     geometry_duplicate_qc: tuple[bool, ...] = ()
+    ambiguous_edges_ij: tuple[tuple[int, int], ...] = ()
+    delaunay_degeneracy_qc: bool = False
+    candidate_edges_ij: tuple[tuple[int, int], ...] = ()
+    candidate_distances_nm: tuple[float, ...] = ()
+    candidate_angles_rad: tuple[float, ...] = ()
 
     def __post_init__(self) -> None:
         point_count = _as_integer(self.point_count, "point_count")
@@ -140,6 +145,35 @@ class FirstShellGraph:
         if len(set(normalized_edges)) != len(normalized_edges):
             raise ValueError("edges_ij must not contain duplicate edges.")
 
+        candidate_records = _normalize_candidate_edges(
+            self.candidate_edges_ij,
+            self.candidate_distances_nm,
+            self.candidate_angles_rad,
+            point_count=point_count,
+            fallback_records=tuple(
+                zip(normalized_edges, normalized_distances, normalized_angles)
+            ),
+        )
+        candidate_edges = tuple(record[0] for record in candidate_records)
+        if not set(normalized_edges).issubset(candidate_edges):
+            raise ValueError("Every retained edge must also be present in candidate_edges_ij.")
+
+        ambiguous_edges = _normalize_index_edges(
+            self.ambiguous_edges_ij,
+            point_count=point_count,
+            field_name="ambiguous_edges_ij",
+        )
+        if set(ambiguous_edges).intersection(normalized_edges):
+            raise ValueError("ambiguous_edges_ij must be excluded from edges_ij.")
+        if set(ambiguous_edges).intersection(candidate_edges):
+            raise ValueError("ambiguous_edges_ij must be excluded from candidate_edges_ij.")
+        if not isinstance(self.delaunay_degeneracy_qc, bool):
+            raise TypeError("delaunay_degeneracy_qc must be a boolean.")
+        if self.delaunay_degeneracy_qc != bool(ambiguous_edges):
+            raise ValueError(
+                "delaunay_degeneracy_qc must indicate whether ambiguous edges are present."
+            )
+
         degree = tuple(_as_integer(value, f"degree[{index}]") for index, value in enumerate(self.degree))
         if len(degree) != point_count:
             raise ValueError("degree must contain one value per point.")
@@ -223,7 +257,14 @@ class FirstShellGraph:
             group_ids=group_ids,
             group_diameters_nm=group_diameters,
             duplicate_max_distance_nm=duplicate_max_distance,
+            geometry_collision_epsilon_nm=geometry_epsilon,
+            physical_duplicate_qc=physical_qc,
         )
+        physical_parent_ids = {
+            parent_ids[index]
+            for index in range(point_count)
+            if physical_qc[index] and parent_ids[index] is not None
+        }
         for index in range(point_count):
             is_rejected_duplicate = physical_qc[index] or geometry_qc[index]
             if physical_qc[index] and geometry_qc[index]:
@@ -240,19 +281,14 @@ class FirstShellGraph:
                 )
             if is_rejected_duplicate and group_ids[index] is None:
                 raise ValueError("Rejected duplicate points must retain complete duplicate metadata.")
-            if chain_qc[index]:
-                if parent_diameters[index] is None:
-                    raise ValueError("duplicate_chain_qc requires parent component metadata.")
-                if parent_diameters[index] <= duplicate_max_distance:
-                    raise ValueError(
-                        "duplicate_chain_qc requires parent component diameter above the duplicate threshold."
-                    )
-            elif (
-                parent_diameters[index] is not None
+            expected_chain_qc = (
+                parent_ids[index] in physical_parent_ids
+                and parent_diameters[index] is not None
                 and parent_diameters[index] > duplicate_max_distance
-            ):
+            )
+            if chain_qc[index] != expected_chain_qc:
                 raise ValueError(
-                    "Parent components above the duplicate threshold must set duplicate_chain_qc."
+                    "duplicate_chain_qc must identify physical parent components above the duplicate threshold."
                 )
 
         records = sorted(
@@ -283,6 +319,18 @@ class FirstShellGraph:
         object.__setattr__(self, "duplicate_chain_qc", chain_qc)
         object.__setattr__(self, "physical_duplicate_qc", physical_qc)
         object.__setattr__(self, "geometry_duplicate_qc", geometry_qc)
+        object.__setattr__(self, "ambiguous_edges_ij", ambiguous_edges)
+        object.__setattr__(self, "candidate_edges_ij", candidate_edges)
+        object.__setattr__(
+            self,
+            "candidate_distances_nm",
+            tuple(record[1] for record in candidate_records),
+        )
+        object.__setattr__(
+            self,
+            "candidate_angles_rad",
+            tuple(record[2] for record in candidate_records),
+        )
 
     def neighbors_for_point(self, point: int | str) -> tuple[int, ...]:
         """Return neighboring original point indices in deterministic order."""
@@ -330,6 +378,67 @@ def _as_integer(value: object, field_name: str) -> int:
     if not isfinite(numeric) or numeric != normalized:
         raise ValueError(f"{field_name} must be an integer.")
     return normalized
+
+
+def _normalize_index_edges(
+    values: tuple[tuple[int, int], ...],
+    *,
+    point_count: int,
+    field_name: str,
+) -> tuple[tuple[int, int], ...]:
+    normalized: list[tuple[int, int]] = []
+    for edge_index, raw_edge in enumerate(values):
+        try:
+            edge = tuple(raw_edge)
+        except TypeError as exc:
+            raise TypeError(f"{field_name}[{edge_index}] must contain two indices.") from exc
+        if len(edge) != 2:
+            raise ValueError(f"{field_name}[{edge_index}] must contain two indices.")
+        i = _as_integer(edge[0], f"{field_name}[{edge_index}][0]")
+        j = _as_integer(edge[1], f"{field_name}[{edge_index}][1]")
+        if not 0 <= i < j < point_count:
+            raise ValueError(f"Each {field_name} edge must satisfy 0 <= i < j < point_count.")
+        normalized.append((i, j))
+    if len(set(normalized)) != len(normalized):
+        raise ValueError(f"{field_name} must not contain duplicate edges.")
+    return tuple(sorted(normalized))
+
+
+def _normalize_candidate_edges(
+    edges: tuple[tuple[int, int], ...],
+    distances_nm: tuple[float, ...],
+    angles_rad: tuple[float, ...],
+    *,
+    point_count: int,
+    fallback_records: tuple[tuple[tuple[int, int], float, float], ...],
+) -> tuple[tuple[tuple[int, int], float, float], ...]:
+    if not edges and not distances_nm and not angles_rad:
+        return tuple(sorted(fallback_records, key=lambda record: record[0]))
+    raw_edges = tuple(edges)
+    raw_distances = tuple(distances_nm)
+    raw_angles = tuple(angles_rad)
+    if not len(raw_edges) == len(raw_distances) == len(raw_angles):
+        raise ValueError(
+            "candidate_edges_ij, candidate_distances_nm, and candidate_angles_rad "
+            "must have equal lengths."
+        )
+    records: list[tuple[tuple[int, int], float, float]] = []
+    for index, (raw_edge, raw_distance, raw_angle) in enumerate(
+        zip(raw_edges, raw_distances, raw_angles)
+    ):
+        edge = _normalize_index_edges(
+            (raw_edge,),
+            point_count=point_count,
+            field_name="candidate_edges_ij",
+        )[0]
+        distance = _as_finite_float(raw_distance, f"candidate_distances_nm[{index}]")
+        if distance <= 0.0:
+            raise ValueError("Candidate edge distances must be positive.")
+        angle = _as_finite_float(raw_angle, f"candidate_angles_rad[{index}]") % (2.0 * pi)
+        records.append((edge, distance, angle))
+    if len({record[0] for record in records}) != len(records):
+        raise ValueError("candidate_edges_ij must not contain duplicate edges.")
+    return tuple(sorted(records, key=lambda record: record[0]))
 
 
 def _as_finite_float(value: object, field_name: str) -> float:
@@ -465,6 +574,8 @@ def _validate_duplicate_groups(
     group_ids: tuple[str | None, ...],
     group_diameters_nm: tuple[float | None, ...],
     duplicate_max_distance_nm: float,
+    geometry_collision_epsilon_nm: float,
+    physical_duplicate_qc: tuple[bool, ...],
 ) -> None:
     group_members: dict[str, list[int]] = {}
     for index, group_id in enumerate(group_ids):
@@ -479,8 +590,14 @@ def _validate_duplicate_groups(
         if group_ids[representative_index] != group_id:
             raise ValueError("Duplicate group representative must belong to the same final group.")
         diameter = group_diameters_nm[member_indices[0]]
-        if diameter is not None and diameter > duplicate_max_distance_nm:
-            raise ValueError("Final duplicate group diameter must not exceed duplicate_max_distance_nm.")
+        has_physical_duplicate = any(physical_duplicate_qc[index] for index in member_indices)
+        max_diameter = (
+            duplicate_max_distance_nm
+            if has_physical_duplicate
+            else max(duplicate_max_distance_nm, geometry_collision_epsilon_nm)
+        )
+        if diameter is not None and diameter > max_diameter:
+            raise ValueError("Final duplicate group diameter exceeds its active duplicate threshold.")
 
 
 def _validate_duplicate_hierarchy(
