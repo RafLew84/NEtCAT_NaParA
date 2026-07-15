@@ -7,6 +7,7 @@ import numpy as np
 from moltrack.core import MolecularCentroid, MolTrackImageSeries, build_molecular_centroids
 
 from .frame_ranges import MolecularFrameRange
+from .intensity import MolecularIntensityMeasurement, build_molecular_intensity_measurements
 from .nearest_neighbors import (
     MolecularNearestNeighborAngleMetrics,
     MolecularNearestNeighborMetrics,
@@ -26,6 +27,11 @@ class MolecularFrameAnalysisResult:
     plot_data: MolecularPositionPlotData
     distance_metrics: MolecularNearestNeighborMetrics
     angle_metrics: MolecularNearestNeighborAngleMetrics
+    mean_intensity: float | None
+    median_intensity: float | None
+    intensity_metric: str = "background_corrected_median"
+    intensity_unit: str = "a.u."
+    intensity_measurements: tuple[MolecularIntensityMeasurement, ...] = ()
 
     @property
     def point_count(self) -> int:
@@ -42,6 +48,8 @@ class MolecularFrameRangeAggregates:
     mean_molecule_count: float
     mean_nearest_neighbor_distance: float | None
     mean_line_order_score: float | None
+    mean_intensity: float | None
+    median_intensity: float | None
 
 
 @dataclass(frozen=True)
@@ -52,6 +60,8 @@ class MolecularFrameRangeAnalysis:
     source_view: str
     frame_results: tuple[MolecularFrameAnalysisResult, ...]
     aggregates: MolecularFrameRangeAggregates
+    intensity_metric: str
+    intensity_unit: str
 
 
 def analyze_molecular_frame_range(
@@ -60,6 +70,11 @@ def analyze_molecular_frame_range(
     *,
     source_view: str,
     use_segmentation_centroids: bool = True,
+    intensity_metric: str = "background_corrected_median",
+    intensity_unit: str = "a.u.",
+    background_inner_radius_px: int = 1,
+    background_outer_radius_px: int = 3,
+    progress_callback=None,
 ) -> MolecularFrameRangeAnalysis:
     """Analyze every frame in one named range without linking molecules across frames."""
 
@@ -76,7 +91,9 @@ def analyze_molecular_frame_range(
     )
 
     frame_results = []
-    for frame_index in frame_range.frame_indices:
+    frame_indices = frame_range.frame_indices
+    total_count = len(frame_indices)
+    for completed_count, frame_index in enumerate(frame_indices, start=1):
         centroids = tuple(
             build_molecular_centroids(
                 series,
@@ -85,6 +102,14 @@ def analyze_molecular_frame_range(
                 use_segmentation_centroids=use_segmentation_centroids,
             )
         )
+        intensity_measurements = build_molecular_intensity_measurements(
+            series,
+            frame_index=frame_index,
+            source_view=source_view,
+            unit=intensity_unit,
+            background_inner_radius_px=background_inner_radius_px,
+            background_outer_radius_px=background_outer_radius_px,
+        )
         plot_data = build_molecular_position_plot_data(
             centroids,
             frame_index=frame_index,
@@ -92,6 +117,11 @@ def analyze_molecular_frame_range(
             frame_shape=frame_shape,
             scale_nm_per_px=scale_nm_per_px,
             coordinate_origin_px=coordinate_origin_px,
+            intensity_measurements=intensity_measurements,
+            intensity_metric=intensity_metric,
+        )
+        mean_intensity, median_intensity = _frame_intensity_aggregates(
+            plot_data.intensity_values
         )
         frame_results.append(
             MolecularFrameAnalysisResult(
@@ -101,14 +131,39 @@ def analyze_molecular_frame_range(
                 plot_data=plot_data,
                 distance_metrics=compute_molecular_nearest_neighbor_metrics(plot_data),
                 angle_metrics=compute_molecular_nearest_neighbor_angle_metrics(plot_data),
+                mean_intensity=mean_intensity,
+                median_intensity=median_intensity,
+                intensity_metric=str(intensity_metric).strip(),
+                intensity_unit=str(intensity_unit),
+                intensity_measurements=tuple(intensity_measurements),
             )
         )
+        if progress_callback is not None:
+            progress_callback(completed_count, total_count, frame_index)
     return MolecularFrameRangeAnalysis(
         frame_range=frame_range,
         source_view=source_view,
         frame_results=tuple(frame_results),
         aggregates=_aggregate_frame_results(frame_results),
+        intensity_metric=str(intensity_metric).strip(),
+        intensity_unit=str(intensity_unit),
     )
+
+
+def _frame_intensity_aggregates(
+    intensity_values: tuple[float | None, ...],
+) -> tuple[float | None, float | None]:
+    finite_values = np.asarray(
+        [
+            float(value)
+            for value in intensity_values
+            if value is not None and np.isfinite(float(value))
+        ],
+        dtype=np.float64,
+    )
+    if finite_values.size == 0:
+        return None, None
+    return float(np.mean(finite_values)), float(np.median(finite_values))
 
 
 def _aggregate_frame_results(
@@ -125,6 +180,16 @@ def _aggregate_frame_results(
         for result in frame_results
         if result.angle_metrics.line_order_score is not None
     ]
+    mean_intensities = [
+        result.mean_intensity
+        for result in frame_results
+        if result.mean_intensity is not None
+    ]
+    median_intensities = [
+        result.median_intensity
+        for result in frame_results
+        if result.median_intensity is not None
+    ]
     return MolecularFrameRangeAggregates(
         analyzed_frame_count=len(frame_results),
         distance_unit=frame_results[0].distance_metrics.unit,
@@ -132,6 +197,8 @@ def _aggregate_frame_results(
         mean_molecule_count=sum(molecule_counts) / len(molecule_counts),
         mean_nearest_neighbor_distance=_optional_mean(distance_means),
         mean_line_order_score=_optional_mean(line_order_scores),
+        mean_intensity=_optional_mean(mean_intensities),
+        median_intensity=_optional_mean(median_intensities),
     )
 
 

@@ -1,4 +1,13 @@
 from .frame_ranges import MolecularFrameRange, MolecularFrameRangeSelection
+from .intensity import (
+    MolecularIntensityCacheStats,
+    MolecularIntensityMeasurement,
+    MolecularIntensityMeasurementCache,
+    build_molecular_intensity_measurements,
+    export_molecular_intensity_cache_records,
+    measure_molecular_intensity,
+    restore_molecular_intensity_cache_records,
+)
 from .nearest_neighbors import (
     NEAREST_NEIGHBOR_ANGLE_BIN_EDGES_DEGREES,
     MolecularNearestNeighborAngleMetrics,
@@ -37,6 +46,9 @@ __all__ = [
     "MolecularFrameRangeComparison",
     "MolecularFrameRangeDifferences",
     "MolecularFrameRangeSelection",
+    "MolecularIntensityMeasurement",
+    "MolecularIntensityCacheStats",
+    "MolecularIntensityMeasurementCache",
     "MolecularFrameAnalysisResult",
     "MolecularNearestNeighborAngleMetrics",
     "MolecularNearestNeighborMetrics",
@@ -47,9 +59,13 @@ __all__ = [
     "MolecularRangeSpatialComparisonData",
     "analyze_molecular_frame_range",
     "build_molecular_position_plot_data",
+    "build_molecular_intensity_measurements",
+    "export_molecular_intensity_cache_records",
     "build_molecular_range_comparison_trend_data",
     "build_molecular_range_spatial_comparison_data",
     "compare_molecular_frame_ranges",
     "compute_molecular_nearest_neighbor_angle_metrics",
     "compute_molecular_nearest_neighbor_metrics",
+    "measure_molecular_intensity",
+    "restore_molecular_intensity_cache_records",
 ]

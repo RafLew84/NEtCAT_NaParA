@@ -172,6 +172,53 @@ class MolTrackSam2AdapterTests(unittest.TestCase):
         self.assertAlmostEqual(results[0].score, 0.91)
         self.assertAlmostEqual(results[1].score, 0.82)
 
+    def test_frame_batch_preserves_valid_mask_when_another_prompt_is_empty(self) -> None:
+        class FakeImageBatchBackend:
+            def run(self, run_input):
+                masks = np.zeros((2, 6, 8), dtype=bool)
+                masks[0, 1:3, 2:4] = True
+                return Sam2ImageBatchOutput(
+                    frame_index=run_input.frame_index,
+                    source_view=run_input.source_view,
+                    prompt_detection_ids=run_input.prompt_detection_ids,
+                    masks=masks,
+                    mask_scores=np.asarray((0.91, 0.12), dtype=np.float32),
+                    mask_bboxes_xyxy=np.asarray(
+                        ((2.0, 1.0, 4.0, 3.0), (0.0, 0.0, 0.0, 0.0)),
+                        dtype=np.float32,
+                    ),
+                    mask_component_counts=np.asarray((1, 0), dtype=np.int64),
+                )
+
+        detections = [
+            MolecularDetection(
+                frame_index=0,
+                bbox_xyxy=(1.0, 1.0, 4.0, 4.0),
+                confidence=0.9,
+                detection_id="valid-prompt",
+            ),
+            MolecularDetection(
+                frame_index=0,
+                bbox_xyxy=(4.0, 1.0, 7.0, 4.0),
+                confidence=0.8,
+                detection_id="empty-prompt",
+            ),
+        ]
+        segmenter = MolTrackSam2Segmenter(
+            image_batch_backend=FakeImageBatchBackend(),
+        )
+
+        outcomes = segmenter.segment_frame_detections(
+            np.zeros((6, 8), dtype=np.float32),
+            detections,
+            mask_probability_threshold=0.95,
+        )
+
+        self.assertEqual(len(outcomes), 2)
+        self.assertEqual(outcomes[0].prompt_detection_ids, ("valid-prompt",))
+        self.assertEqual(outcomes[1].prompt_detection_id, "empty-prompt")
+        self.assertIn("empty mask", outcomes[1].reason.lower())
+
     def test_frame_batch_postprocesses_each_mask_independently(self) -> None:
         class FakeImageBatchBackend:
             def run(self, run_input):

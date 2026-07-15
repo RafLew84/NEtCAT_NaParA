@@ -16,6 +16,10 @@ class MolecularRangeTrendSeries:
     nearest_neighbor_distances: tuple[float | None, ...]
     line_order_scores: tuple[float | None, ...]
     distance_unit: str
+    mean_intensities: tuple[float | None, ...]
+    median_intensities: tuple[float | None, ...]
+    intensity_metric: str
+    intensity_unit: str
 
 
 @dataclass(frozen=True)
@@ -51,4 +55,12 @@ def _build_range_trend_series(analysis: MolecularFrameRangeAnalysis) -> Molecula
             result.angle_metrics.line_order_score for result in analysis.frame_results
         ),
         distance_unit=analysis.aggregates.distance_unit,
+        mean_intensities=tuple(
+            result.mean_intensity for result in analysis.frame_results
+        ),
+        median_intensities=tuple(
+            result.median_intensity for result in analysis.frame_results
+        ),
+        intensity_metric=analysis.intensity_metric,
+        intensity_unit=analysis.intensity_unit,
     )

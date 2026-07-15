@@ -85,6 +85,23 @@ class RegisteredFrameTransform:
         )
         return np.asarray(expanded, dtype=bool)
 
+    def expanded_mask_to_raw(self, mask: np.ndarray) -> np.ndarray:
+        expanded_mask = np.asarray(mask, dtype=bool)
+        if expanded_mask.shape != self.expanded_shape:
+            raise ValueError("Expanded mask shape must match expanded_shape.")
+        origin_x, origin_y = self.frame_origin_xy
+        raw = affine_transform(
+            expanded_mask.astype(np.uint8),
+            matrix=np.eye(2, dtype=np.float64),
+            offset=(origin_y, origin_x),
+            output_shape=self.raw_shape,
+            order=0,
+            mode="constant",
+            cval=0,
+            prefilter=False,
+        )
+        return np.asarray(raw, dtype=bool)
+
     def raw_detection_to_expanded(self, detection: MolecularDetection) -> MolecularDetection:
         if not isinstance(detection, MolecularDetection):
             raise TypeError("detection must be a MolecularDetection instance.")

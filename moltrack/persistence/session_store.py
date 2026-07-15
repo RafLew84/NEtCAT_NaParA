@@ -1,14 +1,20 @@
 from __future__ import annotations
 
 import base64
+from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
+import tempfile
 from typing import Any, Callable, Mapping
 import zlib
 
 import numpy as np
 
+from moltrack.analysis import (
+    export_molecular_intensity_cache_records,
+    restore_molecular_intensity_cache_records,
+)
 from moltrack.core import (
     MOLTRACK_SESSION_SCHEMA_VERSION,
     MolecularDetection,
@@ -16,6 +22,7 @@ from moltrack.core import (
     MolecularSegmentation,
     MolecularSegmentationSet,
     MolTrackImageSeries,
+    MolTrackIntensityCacheRecord,
     MolTrackRegistrationFrameResult,
     MolTrackRegistrationResultSet,
     MolTrackRegistrationSettings,
@@ -27,9 +34,25 @@ from moltrack.io import load_moltrack_image_series
 
 
 SeriesLoader = Callable[..., MolTrackImageSeries]
+StateSaveProgressCallback = Callable[["MolTrackStateSaveProgress"], None]
+_JSON_WRITE_BUFFER_CHARS = 1024 * 1024
+_MAX_SEGMENTATION_PROGRESS_EVENTS = 200
 
 
-def save_moltrack_session(path: str | Path, series: MolTrackImageSeries, ui_state: Any | None = None) -> MolTrackSession:
+@dataclass(frozen=True)
+class MolTrackStateSaveProgress:
+    phase: str
+    completed_count: int
+    total_count: int
+
+
+def save_moltrack_session(
+    path: str | Path,
+    series: MolTrackImageSeries,
+    ui_state: Any | None = None,
+    *,
+    progress_callback: StateSaveProgressCallback | None = None,
+) -> MolTrackSession:
     """Save a MolTrack working-session descriptor as human-readable JSON."""
 
     if not isinstance(series, MolTrackImageSeries):
@@ -39,29 +62,88 @@ def save_moltrack_session(path: str | Path, series: MolTrackImageSeries, ui_stat
     source_path = Path(series.source_path).expanduser().resolve()
     source_stat = _stat_existing_source_file(source_path)
     registration_view_mode = _registration_view_mode_from_ui_state(ui_state)
+    bbox_overlay_visible = _bbox_overlay_visible_from_ui_state(ui_state)
     bbox_opacity_percent = _bbox_opacity_percent_from_ui_state(ui_state)
     mask_opacity_percent = _mask_opacity_percent_from_ui_state(ui_state)
     position_analysis = _position_analysis_from_ui_state(ui_state)
+    intensity_cache_records = export_molecular_intensity_cache_records(series)
     session = MolTrackSession.from_image_series(
         series,
         registration_view_mode=registration_view_mode,
+        bbox_overlay_visible=bbox_overlay_visible,
         bbox_opacity_percent=bbox_opacity_percent,
         mask_opacity_percent=mask_opacity_percent,
         position_analysis=position_analysis,
+        intensity_cache_records=intensity_cache_records,
         source_size_bytes=source_stat.st_size,
         source_mtime_ns=source_stat.st_mtime_ns,
+    )
+    segmentation_count = (
+        0
+        if session.molecular_segmentations is None
+        else session.molecular_segmentations.segmentation_count
+    )
+    _report_save_progress(
+        progress_callback,
+        phase="preparing",
+        completed_count=0,
+        total_count=segmentation_count,
     )
     payload = _session_to_payload(
         session,
         source_path=source_path,
         session_path=session_path,
+        progress_callback=progress_callback,
     )
     session_path.parent.mkdir(parents=True, exist_ok=True)
-    session_path.write_text(
-        json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
+    _report_save_progress(
+        progress_callback,
+        phase="writing",
+        completed_count=segmentation_count,
+        total_count=segmentation_count,
+    )
+    _write_json_atomically(session_path, payload)
+    _report_save_progress(
+        progress_callback,
+        phase="complete",
+        completed_count=segmentation_count,
+        total_count=segmentation_count,
     )
     return session
+
+
+def _write_json_atomically(path: Path, payload: Mapping[str, Any]) -> None:
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            newline="\n",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary_path = Path(handle.name)
+            encoder = json.JSONEncoder(indent=2, ensure_ascii=False)
+            buffered_chunks: list[str] = []
+            buffered_character_count = 0
+            for chunk in encoder.iterencode(payload):
+                buffered_chunks.append(chunk)
+                buffered_character_count += len(chunk)
+                if buffered_character_count < _JSON_WRITE_BUFFER_CHARS:
+                    continue
+                handle.write("".join(buffered_chunks))
+                buffered_chunks.clear()
+                buffered_character_count = 0
+            if buffered_chunks:
+                handle.write("".join(buffered_chunks))
+            handle.write("\n")
+        os.replace(temporary_path, path)
+    except Exception:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+        raise
 
 
 def load_moltrack_session(path: str | Path) -> MolTrackSession:
@@ -87,6 +169,7 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
     molecular_detections_payload = payload.get("molecular_detections")
     molecular_segmentations_payload = payload.get("molecular_segmentations")
     position_analysis_payload = payload.get("position_analysis")
+    intensity_cache_payload = payload.get("molecular_intensity_cache", [])
 
     registration_settings: MolTrackRegistrationSettings | None = None
     registration_results: MolTrackRegistrationResultSet | None = None
@@ -107,6 +190,7 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
         active_frame_index=int(working_series_payload["active_frame_index"]),
         reverse_frame_order=bool(working_series_payload.get("reverse_frame_order", False)),
         registration_view_mode=str(ui_payload.get("registration_view_mode", "Show raw")),
+        bbox_overlay_visible=bool(ui_payload.get("bbox_overlay_visible", True)),
         bbox_opacity_percent=int(ui_payload.get("bbox_opacity_percent", 100)),
         mask_opacity_percent=int(ui_payload.get("mask_opacity_percent", 30)),
         registration_settings=registration_settings,
@@ -114,6 +198,9 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
         molecular_detections=molecular_detections,
         molecular_segmentations=molecular_segmentations,
         position_analysis=_position_analysis_from_payload(position_analysis_payload),
+        intensity_cache_records=_intensity_cache_records_from_payload(
+            intensity_cache_payload
+        ),
         source_size_bytes=int(source_payload["size_bytes"]),
         source_mtime_ns=int(source_payload["mtime_ns"]),
         schema_version=schema_version,
@@ -160,6 +247,10 @@ def restore_moltrack_image_series_from_session(
         molecular_detections=session.molecular_detections,
         molecular_segmentations=session.molecular_segmentations,
     )
+    restore_molecular_intensity_cache_records(
+        restored,
+        session.intensity_cache_records,
+    )
     if restored.registration_results is not None:
         expected = tuple(range(restored.frame_count))
         if restored.registration_results.frame_indices != expected:
@@ -172,6 +263,7 @@ def _session_to_payload(
     *,
     source_path: Path,
     session_path: Path,
+    progress_callback: StateSaveProgressCallback | None = None,
 ) -> dict[str, Any]:
     return {
         "schema_version": session.schema_version,
@@ -188,13 +280,20 @@ def _session_to_payload(
         },
         "ui": {
             "registration_view_mode": session.registration_view_mode,
+            "bbox_overlay_visible": session.bbox_overlay_visible,
             "bbox_opacity_percent": session.bbox_opacity_percent,
             "mask_opacity_percent": session.mask_opacity_percent,
         },
         "registration": _registration_to_payload(session.registration_results),
         "molecular_detections": _molecular_detections_to_payload(session.molecular_detections),
-        "molecular_segmentations": _molecular_segmentations_to_payload(session.molecular_segmentations),
+        "molecular_segmentations": _molecular_segmentations_to_payload(
+            session.molecular_segmentations,
+            progress_callback=progress_callback,
+        ),
         "position_analysis": _position_analysis_to_payload(session.position_analysis),
+        "molecular_intensity_cache": _intensity_cache_records_to_payload(
+            session.intensity_cache_records
+        ),
     }
 
 
@@ -321,16 +420,45 @@ def _molecular_detections_from_payload(
 
 def _molecular_segmentations_to_payload(
     segmentation_set: MolecularSegmentationSet | None,
+    *,
+    progress_callback: StateSaveProgressCallback | None = None,
 ) -> dict[str, Any] | None:
     if segmentation_set is None:
+        _report_save_progress(
+            progress_callback,
+            phase="segmentations",
+            completed_count=0,
+            total_count=0,
+        )
         return None
     items: list[dict[str, Any]] = []
+    total_count = segmentation_set.segmentation_count
+    completed_count = 0
+    progress_interval = max(
+        1,
+        (total_count + _MAX_SEGMENTATION_PROGRESS_EVENTS - 1)
+        // _MAX_SEGMENTATION_PROGRESS_EVENTS,
+    )
+    _report_save_progress(
+        progress_callback,
+        phase="segmentations",
+        completed_count=0,
+        total_count=total_count,
+    )
     for frame_index in range(segmentation_set.frame_count):
         for segmentation in segmentation_set.get_segmentations(frame_index):
-            mask_payload = _mask_to_payload(segmentation.mask)
+            metadata = dict(segmentation.metadata)
+            mask_payload = _mask_to_payload(
+                segmentation.mask,
+                bbox_xyxy=segmentation.bbox_xyxy,
+            )
             original_mask_payload = _original_mask_to_payload(
                 segmentation.original_mask,
                 segmentation.mask,
+                assume_identical=(
+                    segmentation.origin == "sam2"
+                    and not bool(metadata.get("edited", False))
+                ),
             )
             items.append(
                 {
@@ -344,14 +472,40 @@ def _molecular_segmentations_to_payload(
                     "origin": segmentation.origin,
                     "prompt_detection_ids": list(segmentation.prompt_detection_ids),
                     "model_name": segmentation.model_name,
-                    "metadata": dict(segmentation.metadata),
+                    "metadata": metadata,
                     "segmentation_id": segmentation.segmentation_id,
                 }
             )
+            completed_count += 1
+            if completed_count == total_count or completed_count % progress_interval == 0:
+                _report_save_progress(
+                    progress_callback,
+                    phase="segmentations",
+                    completed_count=completed_count,
+                    total_count=total_count,
+                )
     return {
         "frame_count": segmentation_set.frame_count,
         "segmentations": items,
     }
+
+
+def _report_save_progress(
+    callback: StateSaveProgressCallback | None,
+    *,
+    phase: str,
+    completed_count: int,
+    total_count: int,
+) -> None:
+    if callback is None:
+        return
+    callback(
+        MolTrackStateSaveProgress(
+            phase=str(phase),
+            completed_count=int(completed_count),
+            total_count=int(total_count),
+        )
+    )
 
 
 def _molecular_segmentations_from_payload(
@@ -398,12 +552,25 @@ def _molecular_segmentations_from_payload(
     return segmentation_set
 
 
-def _mask_to_payload(mask) -> dict[str, Any] | None:
+def _mask_to_payload(mask, *, bbox_xyxy=None) -> dict[str, Any] | None:
     if mask is None:
         return None
     mask_array = np.asarray(mask, dtype=bool)
     if mask_array.ndim != 2:
         raise ValueError("molecular segmentation mask must be a 2D array.")
+    crop_bounds = _mask_crop_bounds(bbox_xyxy, mask_array.shape)
+    if crop_bounds is not None:
+        x0, y0, x1, y1 = crop_bounds
+        cropped_mask = mask_array[y0:y1, x0:x1]
+        if bool(np.any(cropped_mask)):
+            packed = np.packbits(cropped_mask.ravel(order="C"), bitorder="little")
+            compressed = zlib.compress(packed.tobytes(), level=1)
+            return {
+                "encoding": "bbox-packbits-zlib-base64",
+                "shape": [int(mask_array.shape[0]), int(mask_array.shape[1])],
+                "bbox_xyxy": [x0, y0, x1, y1],
+                "data": base64.b64encode(compressed).decode("ascii"),
+            }
     packed = np.packbits(mask_array.ravel(order="C"), bitorder="little")
     compressed = zlib.compress(packed.tobytes(), level=1)
     return {
@@ -413,15 +580,57 @@ def _mask_to_payload(mask) -> dict[str, Any] | None:
     }
 
 
-def _original_mask_to_payload(original_mask, mask) -> dict[str, Any] | None:
+def _original_mask_to_payload(
+    original_mask,
+    mask,
+    *,
+    assume_identical: bool = False,
+) -> dict[str, Any] | None:
     if original_mask is None:
         return None
-    if mask is not None and np.array_equal(
-        np.asarray(original_mask, dtype=bool),
-        np.asarray(mask, dtype=bool),
+    original_mask_array = np.asarray(original_mask, dtype=bool)
+    if mask is not None and (
+        bool(assume_identical)
+        or original_mask is mask
+        or np.array_equal(original_mask_array, np.asarray(mask, dtype=bool))
     ):
         return {"encoding": "same-as-mask"}
-    return _mask_to_payload(original_mask)
+    return _mask_to_payload(
+        original_mask_array,
+        bbox_xyxy=_active_mask_bbox(original_mask_array),
+    )
+
+
+def _mask_crop_bounds(bbox_xyxy, shape: tuple[int, int]) -> tuple[int, int, int, int] | None:
+    if bbox_xyxy is None:
+        return None
+    try:
+        values = np.asarray(tuple(bbox_xyxy), dtype=np.float64)
+    except (TypeError, ValueError):
+        return None
+    if values.shape != (4,) or not bool(np.all(np.isfinite(values))):
+        return None
+    height, width = (int(value) for value in shape)
+    x0 = max(0, min(width, int(np.floor(values[0]))))
+    y0 = max(0, min(height, int(np.floor(values[1]))))
+    x1 = max(0, min(width, int(np.ceil(values[2]))))
+    y1 = max(0, min(height, int(np.ceil(values[3]))))
+    if x1 <= x0 or y1 <= y0:
+        return None
+    return x0, y0, x1, y1
+
+
+def _active_mask_bbox(mask: np.ndarray) -> tuple[int, int, int, int] | None:
+    active_rows = np.flatnonzero(np.any(mask, axis=1))
+    active_columns = np.flatnonzero(np.any(mask, axis=0))
+    if active_rows.size == 0 or active_columns.size == 0:
+        return None
+    return (
+        int(active_columns[0]),
+        int(active_rows[0]),
+        int(active_columns[-1] + 1),
+        int(active_rows[-1] + 1),
+    )
 
 
 def _mask_from_payload(
@@ -441,7 +650,7 @@ def _mask_from_payload(
     if len(shape) != 2 or shape[0] <= 0 or shape[1] <= 0:
         raise ValueError("molecular segmentation mask shape must contain positive height and width.")
     total = shape[0] * shape[1]
-    if encoding == "packbits-zlib-base64":
+    if encoding in ("packbits-zlib-base64", "bbox-packbits-zlib-base64"):
         try:
             compressed = base64.b64decode(
                 str(mask_payload.get("data", "")),
@@ -450,17 +659,31 @@ def _mask_from_payload(
             packed_bytes = zlib.decompress(compressed)
         except (ValueError, zlib.error) as exc:
             raise ValueError("Invalid compressed molecular segmentation mask.") from exc
-        expected_byte_count = (total + 7) // 8
+        crop_bounds = None
+        encoded_pixel_count = total
+        if encoding == "bbox-packbits-zlib-base64":
+            crop_bounds = _mask_crop_bounds(mask_payload.get("bbox_xyxy"), shape)
+            if crop_bounds is None:
+                raise ValueError("Compressed molecular segmentation mask has an invalid bbox_xyxy.")
+            x0, y0, x1, y1 = crop_bounds
+            encoded_pixel_count = (y1 - y0) * (x1 - x0)
+        expected_byte_count = (encoded_pixel_count + 7) // 8
         if len(packed_bytes) != expected_byte_count:
             raise ValueError(
                 "Compressed molecular segmentation mask does not match mask shape."
             )
         unpacked = np.unpackbits(
             np.frombuffer(packed_bytes, dtype=np.uint8),
-            count=total,
+            count=encoded_pixel_count,
             bitorder="little",
         )
-        return np.asarray(unpacked, dtype=bool).reshape(shape)
+        decoded = np.asarray(unpacked, dtype=bool)
+        if crop_bounds is None:
+            return decoded.reshape(shape)
+        x0, y0, x1, y1 = crop_bounds
+        restored = np.zeros(shape, dtype=bool)
+        restored[y0:y1, x0:x1] = decoded.reshape((y1 - y0, x1 - x0))
+        return restored
     if encoding != "rle":
         raise ValueError(f"Unsupported molecular segmentation mask encoding: {encoding!r}.")
     counts = [int(value) for value in mask_payload.get("counts", [])]
@@ -490,6 +713,79 @@ def _polygon_from_payload(payload: Any) -> tuple[tuple[float, float], ...] | Non
     return tuple((float(point[0]), float(point[1])) for point in payload)
 
 
+def _intensity_cache_records_to_payload(
+    records: tuple[MolTrackIntensityCacheRecord, ...],
+) -> list[dict[str, Any]]:
+    return [
+        {
+            "frame_index": record.frame_index,
+            "source_view": record.source_view,
+            "source_kind": record.source_kind,
+            "source_id": record.source_id,
+            "unit": record.unit,
+            "background_inner_radius_px": record.background_inner_radius_px,
+            "background_outer_radius_px": record.background_outer_radius_px,
+            "annotation_fingerprint": record.annotation_fingerprint,
+            "pixel_count": record.pixel_count,
+            "sum": record.sum,
+            "mean": record.mean,
+            "median": record.median,
+            "max": record.max,
+            "local_background_median": record.local_background_median,
+            "background_corrected_mean": record.background_corrected_mean,
+            "background_corrected_median": record.background_corrected_median,
+        }
+        for record in records
+    ]
+
+
+def _intensity_cache_records_from_payload(
+    payload: Any,
+) -> tuple[MolTrackIntensityCacheRecord, ...]:
+    if payload is None:
+        return ()
+    if not isinstance(payload, list):
+        raise ValueError("molecular_intensity_cache must be a list.")
+    records = []
+    for index, item in enumerate(payload):
+        record = _require_mapping(item, f"molecular_intensity_cache[{index}]")
+        records.append(
+            MolTrackIntensityCacheRecord(
+                frame_index=int(record.get("frame_index", -1)),
+                source_view=str(record.get("source_view", "raw")),
+                source_kind=str(record.get("source_kind", "")),
+                source_id=str(record.get("source_id", "")),
+                unit=str(record.get("unit", "a.u.")),
+                background_inner_radius_px=int(
+                    record.get("background_inner_radius_px", 1)
+                ),
+                background_outer_radius_px=int(
+                    record.get("background_outer_radius_px", 3)
+                ),
+                annotation_fingerprint=str(record.get("annotation_fingerprint", "")),
+                pixel_count=int(record.get("pixel_count", 0)),
+                sum=_optional_float_from_payload(record.get("sum")),
+                mean=_optional_float_from_payload(record.get("mean")),
+                median=_optional_float_from_payload(record.get("median")),
+                max=_optional_float_from_payload(record.get("max")),
+                local_background_median=_optional_float_from_payload(
+                    record.get("local_background_median")
+                ),
+                background_corrected_mean=_optional_float_from_payload(
+                    record.get("background_corrected_mean")
+                ),
+                background_corrected_median=_optional_float_from_payload(
+                    record.get("background_corrected_median")
+                ),
+            )
+        )
+    return tuple(records)
+
+
+def _optional_float_from_payload(value: Any) -> float | None:
+    return None if value is None else float(value)
+
+
 def _position_analysis_to_payload(
     state: MolTrackPositionAnalysisState | None,
 ) -> dict[str, Any] | None:
@@ -503,6 +799,11 @@ def _position_analysis_to_payload(
         "active_tab": state.active_tab,
         "density_grid_shape": list(state.density_grid_shape),
         "use_segmentation_centroids": state.use_segmentation_centroids,
+        "intensity_metric": state.intensity_metric,
+        "color_points_by_intensity": state.color_points_by_intensity,
+        "background_inner_radius_px": state.background_inner_radius_px,
+        "background_outer_radius_px": state.background_outer_radius_px,
+        "shared_intensity_scale": state.shared_intensity_scale,
     }
 
 
@@ -538,6 +839,19 @@ def _position_analysis_from_payload(payload: Any) -> MolTrackPositionAnalysisSta
         active_tab=str(state_payload.get("active_tab", "Current frame")),
         density_grid_shape=tuple(state_payload.get("density_grid_shape", (32, 32))),
         use_segmentation_centroids=bool(state_payload.get("use_segmentation_centroids", True)),
+        intensity_metric=str(
+            state_payload.get("intensity_metric", "background_corrected_median")
+        ),
+        color_points_by_intensity=bool(
+            state_payload.get("color_points_by_intensity", True)
+        ),
+        background_inner_radius_px=int(
+            state_payload.get("background_inner_radius_px", 1)
+        ),
+        background_outer_radius_px=int(
+            state_payload.get("background_outer_radius_px", 3)
+        ),
+        shared_intensity_scale=bool(state_payload.get("shared_intensity_scale", True)),
     )
 
 
@@ -569,6 +883,14 @@ def _bbox_opacity_percent_from_ui_state(ui_state: Any | None) -> int:
     if isinstance(ui_state, Mapping):
         return int(ui_state.get("bbox_opacity_percent", 100))
     return int(getattr(ui_state, "bbox_opacity_percent", 100))
+
+
+def _bbox_overlay_visible_from_ui_state(ui_state: Any | None) -> bool:
+    if ui_state is None or isinstance(ui_state, str):
+        return True
+    if isinstance(ui_state, Mapping):
+        return bool(ui_state.get("bbox_overlay_visible", True))
+    return bool(getattr(ui_state, "bbox_overlay_visible", True))
 
 
 def _mask_opacity_percent_from_ui_state(ui_state: Any | None) -> int:

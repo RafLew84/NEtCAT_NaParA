@@ -20,6 +20,7 @@ class MolTrackImageSeries:
     expanded_aligned_stack: Any | None = None
     molecular_detections: Any | None = None
     molecular_segmentations: Any | None = None
+    molecular_intensity_cache: Any | None = None
     sam3_preview: Any | None = None
 
     @classmethod
@@ -99,6 +100,7 @@ class MolTrackImageSeries:
         self.expanded_aligned_stack = None
         self.molecular_detections = None
         self.molecular_segmentations = None
+        self.molecular_intensity_cache = None
         self.sam3_preview = None
 
     def clear_sam3_preview_if_context_changed(self, *, source_view: str) -> None:

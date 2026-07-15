@@ -56,6 +56,52 @@ class MolecularFrameRangeSelectionTests(unittest.TestCase):
 
 
 class MolecularFrameRangeAnalysisTests(unittest.TestCase):
+    def test_range_analysis_aggregates_selected_intensity_per_frame_and_preserves_gap(self) -> None:
+        frames = np.zeros((3, 8, 12), dtype=np.float32)
+        frames[0, 1:3, 1:3] = 2.0
+        frames[2, 1:3, 1:3] = 6.0
+        frames[2, 1:3, 8:10] = 10.0
+        detections = MolecularDetectionSet(frame_count=3)
+        detections.set_detections(
+            0,
+            [MolecularDetection(0, (1, 1, 3, 3), 0.9, detection_id="frame-0")],
+            source_view="raw",
+            frame_shape=(8, 12),
+        )
+        detections.set_detections(
+            2,
+            [
+                MolecularDetection(2, (1, 1, 3, 3), 0.9, detection_id="frame-2-a"),
+                MolecularDetection(2, (8, 1, 10, 3), 0.8, detection_id="frame-2-b"),
+            ],
+            source_view="raw",
+            frame_shape=(8, 12),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=12, pixels_y=8),
+            molecular_detections=detections,
+        )
+
+        analysis = analyze_molecular_frame_range(
+            series,
+            MolecularFrameRange("condition", 0, 2),
+            source_view="raw",
+            intensity_metric="mean",
+        )
+
+        self.assertEqual(
+            tuple(result.mean_intensity for result in analysis.frame_results),
+            (2.0, None, 8.0),
+        )
+        self.assertEqual(
+            tuple(result.median_intensity for result in analysis.frame_results),
+            (2.0, None, 8.0),
+        )
+        self.assertEqual(analysis.intensity_metric, "mean")
+        self.assertEqual(analysis.intensity_unit, "a.u.")
+
     def test_expanded_analysis_uses_reference_coordinates_after_registration_shift(self) -> None:
         detections = MolecularDetectionSet(frame_count=2)
         detections.set_detections(
@@ -289,6 +335,7 @@ class MolecularFrameRangeAnalysisTests(unittest.TestCase):
                 frames=np.zeros((1, 8, 10), dtype=np.float32),
                 metadata=expanded_metadata,
                 canvas_offset_xy=(2.0, 1.0),
+                frame_origins_xy=np.asarray(((2.0, 1.0),)),
                 padding_ltrb=(2, 1, 0, 0),
             ),
         )
@@ -468,6 +515,57 @@ class MolecularFrameRangeComparisonTests(unittest.TestCase):
         self.assertEqual(trend_data.second.frame_indices, (1,))
         self.assertEqual(trend_data.second.molecule_counts, (4,))
 
+    def test_intensity_trends_keep_named_ranges_separate_and_preserve_missing_frame(self) -> None:
+        frames = np.zeros((4, 6, 6), dtype=np.float32)
+        frames[0, 1:3, 1:3] = 2.0
+        frames[2, 1:3, 1:3] = 6.0
+        frames[3, 1:3, 1:3] = 10.0
+        detections = MolecularDetectionSet(frame_count=4)
+        for frame_index in (0, 2, 3):
+            detections.set_detections(
+                frame_index,
+                [
+                    MolecularDetection(
+                        frame_index,
+                        (1, 1, 3, 3),
+                        0.9,
+                        detection_id=f"bbox-{frame_index}",
+                    )
+                ],
+                source_view="raw",
+                frame_shape=(6, 6),
+            )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=6, pixels_y=6),
+            molecular_detections=detections,
+        )
+        selection = MolecularFrameRangeSelection(
+            frame_count=4,
+            source_view="raw",
+            first_range=MolecularFrameRange("before", 0, 1),
+            second_range=MolecularFrameRange("after", 2, 3),
+        )
+
+        comparison = compare_molecular_frame_ranges(
+            series,
+            selection,
+            intensity_metric="mean",
+        )
+        trend_data = build_molecular_range_comparison_trend_data(comparison)
+
+        self.assertEqual(trend_data.first.condition_name, "before")
+        self.assertEqual(trend_data.first.frame_indices, (0, 1))
+        self.assertEqual(trend_data.first.mean_intensities, (2.0, None))
+        self.assertEqual(trend_data.first.median_intensities, (2.0, None))
+        self.assertEqual(trend_data.second.condition_name, "after")
+        self.assertEqual(trend_data.second.frame_indices, (2, 3))
+        self.assertEqual(trend_data.second.mean_intensities, (6.0, 10.0))
+        self.assertEqual(trend_data.second.median_intensities, (6.0, 10.0))
+        self.assertEqual(trend_data.first.intensity_metric, "mean")
+        self.assertEqual(trend_data.first.intensity_unit, "a.u.")
+
     def test_trend_data_preserves_distance_and_line_order_gaps_per_frame(self) -> None:
         detections = MolecularDetectionSet(frame_count=4)
         detections.set_detections(
@@ -555,6 +653,81 @@ class MolecularFrameRangeComparisonTests(unittest.TestCase):
         self.assertEqual(spatial_data.second.density_grid, ((1.0, 1.0), (1.0, 1.0)))
         self.assertEqual(spatial_data.density_value_range, (0.0, 2.0))
         self.assertEqual(spatial_data.density_unit, "molecules_per_frame_per_bin")
+
+    def test_spatial_data_uses_one_intensity_scale_for_both_conditions(self) -> None:
+        frames = np.zeros((2, 8, 8), dtype=np.float32)
+        frames[0, 1:3, 1:3] = 2.0
+        frames[0, 1:3, 5:7] = 4.0
+        frames[1, 5:7, 1:3] = 10.0
+        detections = MolecularDetectionSet(frame_count=2)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(0, (1, 1, 3, 3), 0.9, detection_id="before-a"),
+                MolecularDetection(0, (5, 1, 7, 3), 0.8, detection_id="before-b"),
+            ],
+            source_view="raw",
+            frame_shape=(8, 8),
+        )
+        detections.set_detections(
+            1,
+            [MolecularDetection(1, (1, 5, 3, 7), 0.9, detection_id="after-a")],
+            source_view="raw",
+            frame_shape=(8, 8),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+            molecular_detections=detections,
+        )
+        comparison = compare_molecular_frame_ranges(
+            series,
+            MolecularFrameRangeSelection(
+                frame_count=2,
+                source_view="raw",
+                first_range=MolecularFrameRange("before", 0, 0),
+                second_range=MolecularFrameRange("after", 1, 1),
+            ),
+            intensity_metric="mean",
+        )
+
+        spatial_data = build_molecular_range_spatial_comparison_data(comparison)
+
+        self.assertEqual(spatial_data.first.intensity_values, (2.0, 4.0))
+        self.assertEqual(spatial_data.second.intensity_values, (10.0,))
+        self.assertEqual(spatial_data.intensity_value_range, (2.0, 10.0))
+        self.assertEqual(spatial_data.intensity_metric, "mean")
+        self.assertEqual(spatial_data.intensity_unit, "a.u.")
+
+    def test_spatial_data_maps_mean_intensity_without_changing_density(self) -> None:
+        series, selection = self._build_two_condition_series_and_selection()
+        series.raw_frames[0, 0:2, 0:2] = 2.0
+        series.raw_frames[0, 0:2, 2:4] = 4.0
+        series.raw_frames[1, 0:2, 0:2] = 10.0
+        series.raw_frames[1, 0:2, 3:5] = 20.0
+        series.raw_frames[1, 3:5, 0:2] = 30.0
+        series.raw_frames[1, 3:5, 3:5] = 40.0
+        comparison = compare_molecular_frame_ranges(
+            series,
+            selection,
+            intensity_metric="mean",
+        )
+
+        spatial_data = build_molecular_range_spatial_comparison_data(
+            comparison,
+            density_grid_shape=(2, 2),
+        )
+
+        self.assertEqual(spatial_data.first.density_grid, ((2.0, 0.0), (0.0, 0.0)))
+        self.assertEqual(spatial_data.second.density_grid, ((1.0, 1.0), (1.0, 1.0)))
+        first_intensity = np.asarray(spatial_data.first.intensity_grid, dtype=np.float64)
+        second_intensity = np.asarray(spatial_data.second.intensity_grid, dtype=np.float64)
+        np.testing.assert_allclose(first_intensity[0, 0], 3.0)
+        self.assertTrue(np.isnan(first_intensity[0, 1]))
+        self.assertTrue(np.isnan(first_intensity[1, 0]))
+        self.assertTrue(np.isnan(first_intensity[1, 1]))
+        np.testing.assert_allclose(second_intensity, ((10.0, 20.0), (30.0, 40.0)))
 
 
 class MolecularPositionPlotDataTests(unittest.TestCase):

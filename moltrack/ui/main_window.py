@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import inspect
 from pathlib import Path
 from threading import Event, Lock
 
@@ -34,6 +35,7 @@ from PyQt6.QtWidgets import (
 from moltrack.analysis import (
     MolecularFrameRange,
     MolecularFrameRangeSelection,
+    build_molecular_intensity_measurements,
     build_molecular_position_plot_data,
     compare_molecular_frame_ranges,
 )
@@ -50,14 +52,20 @@ from moltrack.core import (
 )
 from moltrack.io import load_moltrack_image_series
 from moltrack.persistence import (
+    export_analysis_package,
     load_moltrack_session,
     restore_moltrack_image_series_from_session,
     save_moltrack_session,
 )
-from moltrack.ui.dialogs import PositionAnalysisDialog
+from moltrack.ui.dialogs import ExportAnalysisDialog, PositionAnalysisDialog
 from moltrack.ui.widgets import STMSeriesViewer, SeriesMetadataPanel
 from moltrack.yolo import MolTrackYoloDetector, YoloBBoxSizeFilter, discover_yolo_models
-from moltrack.sam2 import MolTrackSam2Segmenter, discover_sam2_checkpoints, select_default_sam2_checkpoint
+from moltrack.sam2 import (
+    MolTrackSam2PromptRejection,
+    MolTrackSam2Segmenter,
+    discover_sam2_checkpoints,
+    select_default_sam2_checkpoint,
+)
 from moltrack.sam3 import (
     MolTrackSam3BoxPrompt,
     MolTrackSam3ConceptAdapter,
@@ -109,6 +117,7 @@ class _StateOpenResult:
 
 
 class _StateSaveWorker(QObject):
+    progress = pyqtSignal(object)
     finished = pyqtSignal()
     failed = pyqtSignal(str)
 
@@ -122,7 +131,27 @@ class _StateSaveWorker(QObject):
     @pyqtSlot()
     def run(self) -> None:
         try:
-            self._session_saver(self._path, self._series, self._ui_state)
+            try:
+                parameters = inspect.signature(
+                    self._session_saver
+                ).parameters.values()
+            except (TypeError, ValueError):
+                supports_progress = False
+            else:
+                supports_progress = any(
+                    parameter.name == "progress_callback"
+                    or parameter.kind == inspect.Parameter.VAR_KEYWORD
+                    for parameter in parameters
+                )
+            if supports_progress:
+                self._session_saver(
+                    self._path,
+                    self._series,
+                    self._ui_state,
+                    progress_callback=self.progress.emit,
+                )
+            else:
+                self._session_saver(self._path, self._series, self._ui_state)
         except Exception as exc:
             self.failed.emit(str(exc) or exc.__class__.__name__)
             return
@@ -150,7 +179,45 @@ class _StateOpenWorker(QObject):
         self.finished.emit(_StateOpenResult(session=session, series=series))
 
 
-class _YoloDetectAllWorker(QObject):
+class _AnalysisExportWorker(QObject):
+    progress = pyqtSignal(object)
+    finished = pyqtSignal(object)
+    failed = pyqtSignal(str)
+
+    def __init__(self, exporter, series, settings):
+        super().__init__()
+        self._exporter = exporter
+        self._series = series
+        self._settings = settings
+
+    @pyqtSlot()
+    def run(self) -> None:
+        try:
+            try:
+                parameters = inspect.signature(self._exporter).parameters.values()
+            except (TypeError, ValueError):
+                supports_progress = False
+            else:
+                supports_progress = any(
+                    parameter.name == "progress_callback"
+                    or parameter.kind == inspect.Parameter.VAR_KEYWORD
+                    for parameter in parameters
+                )
+            if supports_progress:
+                result = self._exporter(
+                    self._series,
+                    self._settings,
+                    progress_callback=self.progress.emit,
+                )
+            else:
+                result = self._exporter(self._series, self._settings)
+        except Exception as exc:
+            self.failed.emit(str(exc) or exc.__class__.__name__)
+            return
+        self.finished.emit(result)
+
+
+class _YoloDetectFramesWorker(QObject):
     progress = pyqtSignal(int, int)
     finished = pyqtSignal(object)
     failed = pyqtSignal(str)
@@ -321,6 +388,7 @@ class _Sam2SegmentationProgress:
 @dataclass
 class _Sam2FrameResultCommit:
     results: list[tuple[object, MolecularSegmentation]]
+    rejected_count: int = 0
     saved_count: int = 0
     error: str | None = None
 
@@ -329,6 +397,16 @@ class _Sam2FrameResultCommit:
 class _Sam2SegmentationRunSummary:
     completed_bbox_count: int
     last_frame_index: int
+    saved_bbox_count: int
+    rejected_bbox_count: int
+
+
+@dataclass(frozen=True)
+class _Sam2SegmentationBatchResult:
+    results: list[tuple[object, MolecularSegmentation]]
+    completed_bbox_count: int
+    last_frame_index: int
+    rejected_bbox_count: int
 
 
 class _Sam2SegmentationCancelled(RuntimeError):
@@ -451,7 +529,12 @@ class _Sam2SegmentWorker(QObject):
         for detection in self._detections:
             detections_by_frame.setdefault(detection.frame_index, []).append(detection)
         if not detections_by_frame:
-            return _Sam2SegmentationRunSummary(0, self._range_end_frame_index)
+            return _Sam2SegmentationRunSummary(
+                completed_bbox_count=0,
+                last_frame_index=self._range_end_frame_index,
+                saved_bbox_count=0,
+                rejected_bbox_count=0,
+            )
 
         total_bbox_count = len(self._detections)
         total_chunk_count = sum(
@@ -470,6 +553,8 @@ class _Sam2SegmentWorker(QObject):
         )
 
         completed_bbox_count = 0
+        saved_bbox_count = 0
+        rejected_bbox_count = 0
         completed_chunk_count = 0
         last_frame_index = first_frame_index
         session_context = open_session_method(checkpoint_path=self._checkpoint_path)
@@ -507,7 +592,7 @@ class _Sam2SegmentWorker(QObject):
                         completed_chunk_count=completed_chunk_count,
                         total_chunk_count=total_chunk_count,
                     )
-                    segmentations = list(
+                    outcomes = list(
                         segment_frame(
                             self._frames_by_index[frame_index],
                             frame_detections,
@@ -519,22 +604,29 @@ class _Sam2SegmentWorker(QObject):
                     )
                     if self._cancel_requested.is_set():
                         raise _Sam2SegmentationCancelled()
-                    if len(segmentations) != frame_bbox_count:
+                    if len(outcomes) != frame_bbox_count:
                         raise ValueError(
                             "SAM2 persistent frame result count does not match the BBox count."
                         )
+                    frame_results, frame_rejected_count = self._partition_batch_outcomes(
+                        frame_detections,
+                        outcomes,
+                    )
                     commit = _Sam2FrameResultCommit(
-                        results=list(zip(frame_detections, segmentations))
+                        results=frame_results,
+                        rejected_count=frame_rejected_count,
                     )
                     self.frame_finished.emit(commit)
                     if commit.error is not None:
                         raise RuntimeError(commit.error)
-                    if commit.saved_count != frame_bbox_count:
+                    if commit.saved_count != len(frame_results):
                         raise RuntimeError(
                             "SAM2 frame results were not completely saved before the next frame."
                         )
+                    saved_bbox_count += commit.saved_count
+                    rejected_bbox_count += frame_rejected_count
                     commit.results.clear()
-                    segmentations.clear()
+                    outcomes.clear()
                     completed_bbox_count += frame_bbox_count
                     completed_chunk_count += frame_chunk_count
                     last_frame_index = frame_index
@@ -550,7 +642,12 @@ class _Sam2SegmentWorker(QObject):
         finally:
             with self._active_session_lock:
                 self._active_persistent_session = None
-        return _Sam2SegmentationRunSummary(completed_bbox_count, last_frame_index)
+        return _Sam2SegmentationRunSummary(
+            completed_bbox_count=completed_bbox_count,
+            last_frame_index=last_frame_index,
+            saved_bbox_count=saved_bbox_count,
+            rejected_bbox_count=rejected_bbox_count,
+        )
 
     def _emit_persistent_progress(
         self,
@@ -586,9 +683,14 @@ class _Sam2SegmentWorker(QObject):
             )
         )
 
-    def _run_frame_batch(self, batch_method) -> list[tuple[object, MolecularSegmentation]]:
+    def _run_frame_batch(self, batch_method) -> _Sam2SegmentationBatchResult:
         if not self._detections:
-            return []
+            return _Sam2SegmentationBatchResult(
+                results=[],
+                completed_bbox_count=0,
+                last_frame_index=self._range_end_frame_index,
+                rejected_bbox_count=0,
+            )
         total = len(self._detections)
         frame_index = self._detections[0].frame_index
         if any(detection.frame_index != frame_index for detection in self._detections):
@@ -607,7 +709,7 @@ class _Sam2SegmentWorker(QObject):
                 total_chunk_count=planned_chunk_count,
             )
         )
-        segmentations = list(
+        outcomes = list(
             batch_method(
                 self._frames_by_index[frame_index],
                 self._detections,
@@ -618,8 +720,12 @@ class _Sam2SegmentWorker(QObject):
                 min_mask_area_px=self._min_mask_area_px,
             )
         )
-        if len(segmentations) != total:
+        if len(outcomes) != total:
             raise ValueError("SAM2 frame batch result count does not match the BBox count.")
+        results, rejected_count = self._partition_batch_outcomes(
+            self._detections,
+            outcomes,
+        )
         self.progress.emit(
             _Sam2SegmentationProgress(
                 completed_bbox_count=total,
@@ -633,7 +739,31 @@ class _Sam2SegmentWorker(QObject):
                 total_chunk_count=planned_chunk_count,
             )
         )
-        return list(zip(self._detections, segmentations))
+        return _Sam2SegmentationBatchResult(
+            results=results,
+            completed_bbox_count=total,
+            last_frame_index=frame_index,
+            rejected_bbox_count=rejected_count,
+        )
+
+    @staticmethod
+    def _partition_batch_outcomes(detections, outcomes):
+        results = []
+        rejected_count = 0
+        for detection, outcome in zip(detections, outcomes):
+            if isinstance(outcome, MolTrackSam2PromptRejection):
+                if outcome.prompt_detection_id != detection.detection_id:
+                    raise ValueError(
+                        "SAM2 rejected prompt ID does not match the input BBox."
+                    )
+                rejected_count += 1
+                continue
+            if not isinstance(outcome, MolecularSegmentation):
+                raise TypeError(
+                    "SAM2 batch result must contain segmentations or prompt rejections."
+                )
+            results.append((detection, outcome))
+        return results, rejected_count
 
 
 class _Sam3ConceptWorker(QObject):
@@ -688,6 +818,7 @@ class MolTrackMainWindow(QMainWindow):
     _yolo_apply_detection_progress = pyqtSignal(int, int)
     _yolo_apply_detection_finished = pyqtSignal(object)
     _yolo_apply_detection_failed = pyqtSignal(str)
+    analysis_export_requested = pyqtSignal(object)
 
     def __init__(
         self,
@@ -706,6 +837,8 @@ class MolTrackMainWindow(QMainWindow):
         sam2_settings_dialog_factory=None,
         sam2_use_batch_backend: bool = True,
         sam3_adapter=None,
+        analysis_export_dialog_factory=None,
+        analysis_exporter=None,
     ):
         super().__init__(parent)
         self._series = None
@@ -736,13 +869,28 @@ class MolTrackMainWindow(QMainWindow):
         self._sam2_settings_dialog_factory = sam2_settings_dialog_factory
         self._sam2_use_batch_backend = bool(sam2_use_batch_backend)
         self._sam3_adapter = sam3_adapter if sam3_adapter is not None else MolTrackSam3ConceptAdapter()
+        self._analysis_export_dialog_factory = (
+            analysis_export_dialog_factory
+            if analysis_export_dialog_factory is not None
+            else ExportAnalysisDialog
+        )
+        self._analysis_exporter = (
+            analysis_exporter
+            if analysis_exporter is not None
+            else export_analysis_package
+        )
+        self._analysis_export_running = False
+        self._analysis_export_settings = None
+        self._analysis_export_progress_dialog: QProgressDialog | None = None
+        self._analysis_export_thread: QThread | None = None
+        self._analysis_export_worker: _AnalysisExportWorker | None = None
         self._yolo_models = []
         self._sam2_checkpoints = []
         self._selected_sam2_checkpoint_path = None
         self._yolo_detection_running = False
         self._yolo_detection_progress_dialog: QProgressDialog | None = None
         self._yolo_detection_thread: QThread | None = None
-        self._yolo_detection_worker: _YoloDetectAllWorker | None = None
+        self._yolo_detection_worker: _YoloDetectFramesWorker | None = None
         self._yolo_detection_model_name = ""
         self._yolo_detection_source_view = "raw"
         self._selected_molecular_detection_id: str | None = None
@@ -913,6 +1061,13 @@ class MolTrackMainWindow(QMainWindow):
         self.btn_yolo_detect_current = QPushButton("Detect Current Frame", self.yolo_group)
         self.btn_yolo_detect_current.setEnabled(False)
         yolo_layout.addWidget(self.btn_yolo_detect_current)
+        self.sp_yolo_range_end_frame = QSpinBox(self.yolo_group)
+        self.sp_yolo_range_end_frame.setPrefix("End frame ")
+        self.sp_yolo_range_end_frame.setEnabled(False)
+        yolo_layout.addWidget(self.sp_yolo_range_end_frame)
+        self.btn_yolo_detect_range = QPushButton("Detect Frames In Range", self.yolo_group)
+        self.btn_yolo_detect_range.setEnabled(False)
+        yolo_layout.addWidget(self.btn_yolo_detect_range)
         self.btn_yolo_detect_all_frames = QPushButton("Detect All Frames", self.yolo_group)
         self.btn_yolo_detect_all_frames.setEnabled(False)
         yolo_layout.addWidget(self.btn_yolo_detect_all_frames)
@@ -960,6 +1115,9 @@ class MolTrackMainWindow(QMainWindow):
         self.lbl_bbox_edit_status = QLabel("No BBox selected", self.bbox_edit_group)
         self.lbl_bbox_edit_status.setWordWrap(True)
         bbox_edit_layout.addWidget(self.lbl_bbox_edit_status)
+        self.chk_show_bboxes = QCheckBox("Show BBoxes", self.bbox_edit_group)
+        self.chk_show_bboxes.setChecked(True)
+        bbox_edit_layout.addWidget(self.chk_show_bboxes)
         self.lbl_bbox_opacity = QLabel("BBox opacity: 100%", self.bbox_edit_group)
         bbox_edit_layout.addWidget(self.lbl_bbox_opacity)
         self.slider_bbox_opacity = QSlider(Qt.Orientation.Horizontal, self.bbox_edit_group)
@@ -1157,6 +1315,7 @@ class MolTrackMainWindow(QMainWindow):
         self.btn_yolo_refresh_models.clicked.connect(self._refresh_yolo_models)
         self.chk_yolo_size_filter.toggled.connect(self._sync_yolo_controls)
         self.btn_yolo_detect_current.clicked.connect(self._on_yolo_detect_current_requested)
+        self.btn_yolo_detect_range.clicked.connect(self._on_yolo_detect_range_requested)
         self.btn_yolo_detect_all_frames.clicked.connect(self._on_yolo_detect_all_frames_requested)
         self.btn_yolo_clear_current.clicked.connect(self._on_yolo_clear_current_requested)
         self.btn_bbox_increase.clicked.connect(self._on_bbox_increase_requested)
@@ -1164,6 +1323,7 @@ class MolTrackMainWindow(QMainWindow):
         self.btn_bbox_reset.clicked.connect(self._on_bbox_reset_requested)
         self.btn_bbox_add.toggled.connect(self._on_bbox_add_toggled)
         self.btn_bbox_delete_selected.clicked.connect(self._on_bbox_delete_selected_requested)
+        self.chk_show_bboxes.toggled.connect(self._on_show_bboxes_toggled)
         self.slider_bbox_opacity.valueChanged.connect(self._on_bbox_opacity_changed)
         self.slider_mask_opacity.valueChanged.connect(self._on_mask_opacity_changed)
         self.chk_show_centroids.toggled.connect(self._on_show_centroids_toggled)
@@ -1291,6 +1451,18 @@ class MolTrackMainWindow(QMainWindow):
         self.sp_yolo_max_area_px2.setEnabled(size_filter_enabled)
         self.sp_yolo_max_aspect_ratio.setEnabled(size_filter_enabled)
         self.btn_yolo_detect_current.setEnabled(controls_enabled and has_models)
+        if self._series is not None:
+            start_frame_number = self._series.active_frame_index + 1
+            previous_end_frame_number = self.sp_yolo_range_end_frame.value()
+            self.sp_yolo_range_end_frame.setRange(
+                start_frame_number,
+                self._series.frame_count,
+            )
+            self.sp_yolo_range_end_frame.setValue(
+                max(start_frame_number, previous_end_frame_number)
+            )
+        self.sp_yolo_range_end_frame.setEnabled(controls_enabled)
+        self.btn_yolo_detect_range.setEnabled(controls_enabled and has_models)
         self.btn_yolo_detect_all_frames.setEnabled(controls_enabled and has_models)
         current_count = self._current_molecular_detection_count()
         self.btn_yolo_clear_current.setEnabled(controls_enabled and current_count > 0)
@@ -2152,6 +2324,7 @@ class MolTrackMainWindow(QMainWindow):
             or self._yolo_detection_running
             or self._sam2_segmentation_running
             or self._sam3_concept_running
+            or self._analysis_export_running
         )
 
     def _yolo_model_display_name(self, model) -> str:
@@ -2274,6 +2447,23 @@ class MolTrackMainWindow(QMainWindow):
     def _on_yolo_detect_all_frames_requested(self) -> None:
         if self._series is None or self._is_processing():
             return
+        self._start_yolo_detection(list(range(self._series.frame_count)))
+
+    def _on_yolo_detect_range_requested(self) -> None:
+        if self._series is None or self._is_processing():
+            return
+        start_frame_index = self._series.active_frame_index
+        end_frame_index = self.sp_yolo_range_end_frame.value() - 1
+        if end_frame_index < start_frame_index:
+            self.statusBar().showMessage("YOLO end frame must not precede the current frame.", 3000)
+            return
+        self._start_yolo_detection(
+            list(range(start_frame_index, end_frame_index + 1))
+        )
+
+    def _start_yolo_detection(self, frame_indices: list[int]) -> None:
+        if self._series is None or self._is_processing() or not frame_indices:
+            return
         model = self._current_yolo_model()
         if model is None:
             self.statusBar().showMessage("No YOLO model selected.", 3000)
@@ -2282,7 +2472,10 @@ class MolTrackMainWindow(QMainWindow):
         source_view = self._current_yolo_source_view()
         try:
             inference_source_view = "raw" if source_view == "expanded_aligned" else source_view
-            frames = self._current_yolo_frames(inference_source_view)
+            frames = self._current_yolo_frames(
+                inference_source_view,
+                frame_indices=frame_indices,
+            )
             size_filter = self._current_yolo_size_filter()
         except Exception as exc:
             message = str(exc) or exc.__class__.__name__
@@ -2290,7 +2483,6 @@ class MolTrackMainWindow(QMainWindow):
             self.statusBar().showMessage("YOLO detection failed.", 3000)
             return
 
-        frame_indices = list(range(self._series.frame_count))
         model_path = self._current_yolo_model_path(model)
         self._yolo_detection_running = True
         self._yolo_detection_model_name = self._yolo_model_display_name(model)
@@ -2307,7 +2499,7 @@ class MolTrackMainWindow(QMainWindow):
         )
 
         self._yolo_detection_thread = QThread(self)
-        self._yolo_detection_worker = _YoloDetectAllWorker(
+        self._yolo_detection_worker = _YoloDetectFramesWorker(
             self._yolo_detector,
             frames,
             frame_indices,
@@ -2327,12 +2519,21 @@ class MolTrackMainWindow(QMainWindow):
         self._yolo_detection_thread.finished.connect(self._cleanup_yolo_detection_worker)
         self._yolo_detection_thread.start()
 
-    def _current_yolo_frames(self, source_view: str):
+    def _current_yolo_frames(
+        self,
+        source_view: str,
+        *,
+        frame_indices: list[int] | None = None,
+    ):
         if self._series is None:
             raise RuntimeError("YOLO detection requires a loaded series.")
         if source_view == "expanded_aligned":
-            return self._ensure_expanded_aligned_stack().frames.copy()
-        return self._series.raw_frames.copy()
+            frames = self._ensure_expanded_aligned_stack().frames
+        else:
+            frames = self._series.raw_frames
+        if frame_indices is None:
+            return frames.copy()
+        return frames[np.asarray(frame_indices, dtype=np.int64)].copy()
 
     def _show_yolo_detection_progress_dialog(self, model_name: str, *, total: int) -> QProgressDialog:
         progress_dialog = QProgressDialog(
@@ -2464,6 +2665,14 @@ class MolTrackMainWindow(QMainWindow):
         if self._series is not None:
             self._show_current_frame()
 
+    def _on_show_bboxes_toggled(self, checked: bool) -> None:
+        visible = bool(checked)
+        self.lbl_bbox_opacity.setEnabled(visible)
+        self.slider_bbox_opacity.setEnabled(visible)
+        self.viewer.set_molecular_detection_overlay_visible(visible)
+        if self._series is not None:
+            self._show_current_frame()
+
     def _on_mask_opacity_changed(self, value: int) -> None:
         opacity_percent = min(100, max(0, int(value)))
         self.lbl_mask_opacity.setText(f"Mask opacity: {opacity_percent}%")
@@ -2489,6 +2698,15 @@ class MolTrackMainWindow(QMainWindow):
             dialog.centroid_source_mode_changed.connect(
                 self._on_position_analysis_centroid_source_mode_changed
             )
+            dialog.intensity_metric_changed.connect(
+                self._on_position_analysis_intensity_metric_changed
+            )
+            dialog.intensity_background_changed.connect(
+                self._on_position_analysis_background_changed
+            )
+            dialog.export_analysis_requested.connect(
+                self._on_position_analysis_export_requested
+            )
             self._position_analysis_dialog = dialog
         plot_data = self._build_current_position_plot_data()
         self._position_analysis_dialog.configure_frame_ranges(
@@ -2503,6 +2721,166 @@ class MolTrackMainWindow(QMainWindow):
     def _on_position_analysis_dialog_destroyed(self, _object=None) -> None:
         self._position_analysis_dialog = None
 
+    def _on_position_analysis_export_requested(self) -> None:
+        series = self._series
+        position_dialog = self._position_analysis_dialog
+        if series is None or position_dialog is None or self._analysis_export_running:
+            return
+        selected_ranges = None
+        if (
+            position_dialog.has_range_comparison()
+            and position_dialog.has_valid_frame_range_selection()
+        ):
+            selected_ranges = position_dialog.frame_range_selection()
+        inner_radius, outer_radius = position_dialog.intensity_background_radii()
+        export_dialog = self._analysis_export_dialog_factory(
+            parent=self,
+            frame_count=series.frame_count,
+            active_frame_index=series.active_frame_index,
+            source_view=position_dialog.source_view(),
+            use_segmentation_centroids=position_dialog.use_segmentation_centroids(),
+            intensity_metric=position_dialog.intensity_metric(),
+            intensity_unit=position_dialog.intensity_unit(),
+            background_inner_radius_px=inner_radius,
+            background_outer_radius_px=outer_radius,
+            density_grid_shape=position_dialog.density_grid_shape(),
+            selected_ranges=selected_ranges,
+        )
+        if export_dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        try:
+            settings = export_dialog.export_settings()
+            self.analysis_export_requested.emit(settings)
+            if self._analysis_exporter is not None:
+                self._start_analysis_export(settings)
+        except (OSError, TypeError, ValueError) as exc:
+            QMessageBox.critical(self, "Analysis export error", str(exc))
+
+    def analysis_export_running(self) -> bool:
+        return self._analysis_export_running
+
+    def analysis_export_progress_dialog(self) -> QProgressDialog | None:
+        return self._analysis_export_progress_dialog
+
+    def _start_analysis_export(self, settings) -> None:
+        if (
+            self._series is None
+            or self._analysis_export_running
+            or self._analysis_exporter is None
+        ):
+            return
+        self._analysis_export_running = True
+        self._analysis_export_settings = settings
+        self._analysis_export_progress_dialog = self._show_analysis_export_progress_dialog()
+        if self._position_analysis_dialog is not None:
+            self._position_analysis_dialog.setEnabled(False)
+        self._sync_navigation_controls()
+        self.statusBar().showMessage(f"Exporting analysis to {settings.destination}...", 0)
+
+        thread = QThread(self)
+        worker = _AnalysisExportWorker(
+            self._analysis_exporter,
+            self._series,
+            settings,
+        )
+        self._analysis_export_thread = thread
+        self._analysis_export_worker = worker
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.progress.connect(self._on_analysis_export_progress)
+        worker.finished.connect(self._on_analysis_export_finished)
+        worker.failed.connect(self._on_analysis_export_failed)
+        worker.finished.connect(thread.quit)
+        worker.failed.connect(thread.quit)
+        thread.finished.connect(self._cleanup_analysis_export_worker)
+        thread.start()
+
+    def _show_analysis_export_progress_dialog(self) -> QProgressDialog:
+        progress_dialog = QProgressDialog(
+            "Preparing analysis export...",
+            None,
+            0,
+            0,
+            self,
+        )
+        progress_dialog.setWindowTitle("Exporting Analysis")
+        progress_dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
+        progress_dialog.setCancelButton(None)
+        progress_dialog.setMinimumDuration(0)
+        progress_dialog.setAutoClose(False)
+        progress_dialog.setAutoReset(False)
+        progress_dialog.show()
+        QApplication.processEvents()
+        return progress_dialog
+
+    @pyqtSlot(object)
+    def _on_analysis_export_progress(self, progress) -> None:
+        progress_dialog = self._analysis_export_progress_dialog
+        if progress_dialog is None:
+            return
+        phase = str(getattr(progress, "phase", ""))
+        completed_count = int(getattr(progress, "completed_count", 0))
+        total_count = int(getattr(progress, "total_count", 0))
+        if phase == "analyzing_frames" and total_count > 0:
+            progress_dialog.setRange(0, total_count)
+            progress_dialog.setValue(completed_count)
+            progress_dialog.setLabelText(
+                f"Analyzing frames... {completed_count}/{total_count}"
+            )
+            return
+        progress_dialog.setRange(0, 0)
+        labels = {
+            "writing_tables": "Writing analysis tables...",
+            "rendering_plots": "Rendering SVG/PNG plots...",
+            "packaging_zip": "Packaging ZIP archive...",
+            "publishing": "Publishing analysis package...",
+            "complete": "Finalizing analysis export...",
+        }
+        progress_dialog.setLabelText(labels.get(phase, "Preparing analysis export..."))
+
+    @pyqtSlot(object)
+    def _on_analysis_export_finished(self, result) -> None:
+        self._close_analysis_export_progress_dialog()
+        settings = self._analysis_export_settings
+        destination = getattr(result, "package_path", None)
+        if destination is None and settings is not None:
+            destination = settings.destination
+        record_counts = tuple(getattr(result, "record_counts", ()))
+        summary = ", ".join(
+            f"{Path(path).stem}: {int(count)}" for path, count in record_counts
+        )
+        message = f"Analysis exported to:\n{destination}"
+        if summary:
+            message += f"\n\nRecords: {summary}"
+        self.statusBar().showMessage(f"Exported analysis to {destination}", 5000)
+        QMessageBox.information(self, "Analysis export complete", message)
+
+    @pyqtSlot(str)
+    def _on_analysis_export_failed(self, message: str) -> None:
+        self._close_analysis_export_progress_dialog()
+        self.statusBar().showMessage(f"Analysis export failed: {message}", 5000)
+        QMessageBox.critical(self, "Analysis export error", message)
+
+    def _close_analysis_export_progress_dialog(self) -> None:
+        if self._analysis_export_progress_dialog is None:
+            return
+        self._analysis_export_progress_dialog.close()
+        self._analysis_export_progress_dialog = None
+
+    def _cleanup_analysis_export_worker(self) -> None:
+        if self._analysis_export_worker is not None:
+            self._analysis_export_worker.deleteLater()
+            self._analysis_export_worker = None
+        if self._analysis_export_thread is not None:
+            self._analysis_export_thread.deleteLater()
+            self._analysis_export_thread = None
+        self._close_analysis_export_progress_dialog()
+        self._analysis_export_running = False
+        self._analysis_export_settings = None
+        if self._position_analysis_dialog is not None:
+            self._position_analysis_dialog.setEnabled(True)
+        self._sync_navigation_controls()
+
     def _on_position_range_comparison_requested(self, selection) -> None:
         if self._series is None or self._position_analysis_dialog is None:
             return
@@ -2512,6 +2890,15 @@ class MolTrackMainWindow(QMainWindow):
                 selection,
                 use_segmentation_centroids=(
                     self._position_analysis_dialog.use_segmentation_centroids()
+                ),
+                intensity_metric=str(
+                    self._position_analysis_dialog.cmb_intensity_metric.currentData()
+                ),
+                background_inner_radius_px=(
+                    self._position_analysis_dialog.intensity_background_radii()[0]
+                ),
+                background_outer_radius_px=(
+                    self._position_analysis_dialog.intensity_background_radii()[1]
                 ),
             )
         except (TypeError, ValueError) as exc:
@@ -2535,6 +2922,60 @@ class MolTrackMainWindow(QMainWindow):
             self._series,
             dialog.frame_range_selection(),
             use_segmentation_centroids=bool(enabled),
+            intensity_metric=str(dialog.cmb_intensity_metric.currentData()),
+            background_inner_radius_px=dialog.intensity_background_radii()[0],
+            background_outer_radius_px=dialog.intensity_background_radii()[1],
+        )
+        dialog.set_range_comparison(
+            comparison,
+            density_grid_shape=dialog.density_grid_shape(),
+        )
+        dialog.activate_analysis_tab(active_tab)
+
+    def _on_position_analysis_intensity_metric_changed(self, metric: str) -> None:
+        dialog = self._position_analysis_dialog
+        if self._series is None or dialog is None:
+            return
+        dialog.set_plot_data(
+            self._build_current_position_plot_data(intensity_metric=str(metric))
+        )
+        if not dialog.has_range_comparison() or not dialog.has_valid_frame_range_selection():
+            return
+        active_tab = dialog.active_analysis_tab()
+        comparison = compare_molecular_frame_ranges(
+            self._series,
+            dialog.frame_range_selection(),
+            use_segmentation_centroids=dialog.use_segmentation_centroids(),
+            intensity_metric=str(metric),
+            background_inner_radius_px=dialog.intensity_background_radii()[0],
+            background_outer_radius_px=dialog.intensity_background_radii()[1],
+        )
+        dialog.set_range_comparison(
+            comparison,
+            density_grid_shape=dialog.density_grid_shape(),
+        )
+        dialog.activate_analysis_tab(active_tab)
+
+    def _on_position_analysis_background_changed(
+        self,
+        _inner_radius_px: int,
+        _outer_radius_px: int,
+    ) -> None:
+        dialog = self._position_analysis_dialog
+        if self._series is None or dialog is None:
+            return
+        dialog.set_plot_data(self._build_current_position_plot_data())
+        if not dialog.has_range_comparison() or not dialog.has_valid_frame_range_selection():
+            return
+        active_tab = dialog.active_analysis_tab()
+        inner_radius_px, outer_radius_px = dialog.intensity_background_radii()
+        comparison = compare_molecular_frame_ranges(
+            self._series,
+            dialog.frame_range_selection(),
+            use_segmentation_centroids=dialog.use_segmentation_centroids(),
+            intensity_metric=str(dialog.cmb_intensity_metric.currentData()),
+            background_inner_radius_px=inner_radius_px,
+            background_outer_radius_px=outer_radius_px,
         )
         dialog.set_range_comparison(
             comparison,
@@ -2546,6 +2987,7 @@ class MolTrackMainWindow(QMainWindow):
         self,
         *,
         use_segmentation_centroids: bool | None = None,
+        intensity_metric: str | None = None,
     ):
         if self._series is None:
             raise RuntimeError("Position analysis requires a loaded series.")
@@ -2565,6 +3007,28 @@ class MolTrackMainWindow(QMainWindow):
         frame_shape = self._current_bbox_frame_shape(source_view)
         scale_nm_per_px = self._current_position_scale_nm_per_px(source_view)
         coordinate_origin_px = self._current_position_coordinate_origin_px(source_view)
+        intensity_measurements = build_molecular_intensity_measurements(
+            self._series,
+            frame_index=frame_index,
+            source_view=source_view,
+            background_inner_radius_px=(
+                1
+                if self._position_analysis_dialog is None
+                else self._position_analysis_dialog.intensity_background_radii()[0]
+            ),
+            background_outer_radius_px=(
+                3
+                if self._position_analysis_dialog is None
+                else self._position_analysis_dialog.intensity_background_radii()[1]
+            ),
+        )
+        if intensity_metric is None:
+            dialog = self._position_analysis_dialog
+            intensity_metric = (
+                "background_corrected_median"
+                if dialog is None
+                else str(dialog.cmb_intensity_metric.currentData())
+            )
         return build_molecular_position_plot_data(
             centroids,
             frame_index=frame_index,
@@ -2572,6 +3036,8 @@ class MolTrackMainWindow(QMainWindow):
             frame_shape=frame_shape,
             scale_nm_per_px=scale_nm_per_px,
             coordinate_origin_px=coordinate_origin_px,
+            intensity_measurements=intensity_measurements,
+            intensity_metric=intensity_metric,
         )
 
     def _current_position_coordinate_origin_px(self, source_view: str) -> tuple[float, float]:
@@ -3256,13 +3722,27 @@ class MolTrackMainWindow(QMainWindow):
         selected_detection_id = self._selected_molecular_detection_id
         try:
             if isinstance(results, _Sam2SegmentationRunSummary):
-                count = int(results.completed_bbox_count)
+                count = int(results.saved_bbox_count)
+                rejected_count = int(results.rejected_bbox_count)
                 frame_index = int(results.last_frame_index)
                 if count != self._sam2_segmentation_completed_count:
                     raise RuntimeError("SAM2 saved frame count does not match the completed run.")
+                if count + rejected_count != int(results.completed_bbox_count):
+                    raise RuntimeError(
+                        "SAM2 saved and rejected counts do not match the completed run."
+                    )
+            elif isinstance(results, _Sam2SegmentationBatchResult):
+                count = self._apply_sam2_segmentation_results(results.results)
+                rejected_count = int(results.rejected_bbox_count)
+                frame_index = int(results.last_frame_index)
+                if count + rejected_count != int(results.completed_bbox_count):
+                    raise RuntimeError(
+                        "SAM2 saved and rejected counts do not match the completed batch."
+                    )
             else:
                 results = list(results)
                 count = self._apply_sam2_segmentation_results(results)
+                rejected_count = 0
                 frame_index = (
                     results[0][0].frame_index
                     if results
@@ -3281,12 +3761,27 @@ class MolTrackMainWindow(QMainWindow):
         self._show_current_frame()
         if selected_detection_id is not None:
             self.viewer.select_molecular_detection_by_id(selected_detection_id)
-        if scope == "selected" and count == 1:
+        if scope == "selected" and rejected_count > 0:
+            final_message = (
+                "SAM2 skipped the selected BBox because its mask was empty or filtered out."
+            )
+        elif scope == "selected" and count == 1:
             final_message = f"SAM2 segmented selected BBox on frame {frame_index + 1}."
+        elif scope == "frame_range" and rejected_count > 0:
+            final_message = (
+                f"SAM2 segmented {count} BBox(es) and skipped {rejected_count} "
+                f"empty or filtered mask(s) in frames "
+                f"{frame_range[0] + 1}-{frame_range[1] + 1}."
+            )
         elif scope == "frame_range":
             final_message = (
                 f"SAM2 segmented {count} BBox(es) in frames "
                 f"{frame_range[0] + 1}-{frame_range[1] + 1}."
+            )
+        elif rejected_count > 0:
+            final_message = (
+                f"SAM2 segmented {count} BBox(es) and skipped {rejected_count} "
+                f"empty or filtered mask(s) on frame {frame_index + 1}."
             )
         else:
             final_message = f"SAM2 segmented {count} BBox(es) on frame {frame_index + 1}."
@@ -3319,6 +3814,8 @@ class MolTrackMainWindow(QMainWindow):
                     "SAM2 segmentation source_view does not match the prompt BBox."
                 )
             transformed_results.append((target_detection, segmentation))
+        if not transformed_results:
+            return 0
         segmentation_set = self._ensure_molecular_segmentation_set()
         for _detection, segmentation in transformed_results:
             self._ensure_sam2_original_mask(segmentation)
@@ -3709,6 +4206,7 @@ class MolTrackMainWindow(QMainWindow):
         self._state_io_worker = worker
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
+        worker.progress.connect(self._on_state_save_progress)
         worker.finished.connect(self._on_state_save_finished)
         worker.failed.connect(self._on_state_io_failed)
         worker.finished.connect(thread.quit)
@@ -3732,6 +4230,7 @@ class MolTrackMainWindow(QMainWindow):
     def _current_ui_state(self) -> dict[str, object]:
         ui_state: dict[str, object] = {
             "registration_view_mode": self.cmb_registration_view_mode.currentText(),
+            "bbox_overlay_visible": self.chk_show_bboxes.isChecked(),
             "bbox_opacity_percent": self.slider_bbox_opacity.value(),
             "mask_opacity_percent": self.slider_mask_opacity.value(),
         }
@@ -3754,6 +4253,11 @@ class MolTrackMainWindow(QMainWindow):
                 "active_tab": dialog.active_analysis_tab(),
                 "density_grid_shape": list(dialog.density_grid_shape()),
                 "use_segmentation_centroids": dialog.use_segmentation_centroids(),
+                "intensity_metric": str(dialog.cmb_intensity_metric.currentData()),
+                "color_points_by_intensity": dialog.chk_color_by_intensity.isChecked(),
+                "background_inner_radius_px": dialog.intensity_background_radii()[0],
+                "background_outer_radius_px": dialog.intensity_background_radii()[1],
+                "shared_intensity_scale": dialog.shared_intensity_scale_enabled(),
             }
         return ui_state
 
@@ -3817,6 +4321,29 @@ class MolTrackMainWindow(QMainWindow):
         self._session_path = path
         self.statusBar().showMessage(f"Saved state {path}", 5000)
 
+    @pyqtSlot(object)
+    def _on_state_save_progress(self, progress) -> None:
+        progress_dialog = self._state_io_progress_dialog
+        if progress_dialog is None or self._state_io_operation != "save":
+            return
+        phase = str(getattr(progress, "phase", ""))
+        completed_count = int(getattr(progress, "completed_count", 0))
+        total_count = int(getattr(progress, "total_count", 0))
+        if phase == "segmentations" and total_count > 0:
+            progress_dialog.setRange(0, total_count)
+            progress_dialog.setValue(completed_count)
+            progress_dialog.setLabelText(
+                f"Encoding segmentation masks... {completed_count}/{total_count}"
+            )
+            return
+        progress_dialog.setRange(0, 0)
+        if phase == "writing":
+            progress_dialog.setLabelText("Writing state file...")
+        elif phase == "complete":
+            progress_dialog.setLabelText("Finalizing saved state...")
+        else:
+            progress_dialog.setLabelText("Preparing state data...")
+
     def _on_state_open_finished(self, result: _StateOpenResult) -> None:
         path = self._state_io_path
         if path is None:
@@ -3869,12 +4396,14 @@ class MolTrackMainWindow(QMainWindow):
 
     def _apply_loaded_state(self, path, session, series) -> None:
         registration_view_mode = getattr(session, "registration_view_mode", "Show raw")
+        bbox_overlay_visible = getattr(session, "bbox_overlay_visible", True)
         bbox_opacity_percent = getattr(session, "bbox_opacity_percent", 100)
         mask_opacity_percent = getattr(session, "mask_opacity_percent", 30)
         position_analysis_state = getattr(session, "position_analysis", None)
         self.set_image_series(series)
         self._session_path = str(path)
         self._set_registration_view_mode(registration_view_mode)
+        self.chk_show_bboxes.setChecked(bool(bbox_overlay_visible))
         self.slider_bbox_opacity.setValue(int(bbox_opacity_percent))
         self.slider_mask_opacity.setValue(int(mask_opacity_percent))
         self._sync_navigation_controls()
@@ -3901,6 +4430,19 @@ class MolTrackMainWindow(QMainWindow):
             getattr(state, "use_segmentation_centroids", True)
         )
         dialog.set_use_segmentation_centroids(use_segmentation_centroids)
+        dialog.set_intensity_background_radii(
+            int(getattr(state, "background_inner_radius_px", 1)),
+            int(getattr(state, "background_outer_radius_px", 3)),
+        )
+        intensity_metric = str(
+            getattr(state, "intensity_metric", "background_corrected_median")
+        )
+        intensity_metric_index = dialog.cmb_intensity_metric.findData(intensity_metric)
+        if intensity_metric_index >= 0:
+            dialog.cmb_intensity_metric.setCurrentIndex(intensity_metric_index)
+        dialog.chk_color_by_intensity.setChecked(
+            bool(getattr(state, "color_points_by_intensity", True))
+        )
         selection = MolecularFrameRangeSelection(
             frame_count=self._series.frame_count,
             source_view=state.source_view,
@@ -3921,6 +4463,9 @@ class MolTrackMainWindow(QMainWindow):
                 self._series,
                 selection,
                 use_segmentation_centroids=use_segmentation_centroids,
+                intensity_metric=intensity_metric,
+                background_inner_radius_px=dialog.intensity_background_radii()[0],
+                background_outer_radius_px=dialog.intensity_background_radii()[1],
             )
             dialog.set_range_comparison(
                 comparison,

@@ -1,4 +1,5 @@
 import os
+import time
 import unittest
 from types import SimpleNamespace
 
@@ -61,6 +62,129 @@ class STMSeriesViewerTests(unittest.TestCase):
         self.assertEqual(self.viewer.lbl_title.text(), "movie.mpp | Frame 2/3")
         self.assertIn("Shape: 4x2 px", self.viewer.lbl_meta.text())
         self.assertIn("Channel: Topo", self.viewer.lbl_meta.text())
+
+    def test_navigation_with_many_sam2_masks_stays_interactive(self) -> None:
+        frame_count = 2
+        segmentation_count = 300
+        height = width = 128
+        segmentations = MolecularSegmentationSet(frame_count=frame_count)
+        for frame_index in range(frame_count):
+            for segmentation_index in range(segmentation_count):
+                x = 1 + (segmentation_index % 20) * 6
+                y = 1 + ((segmentation_index // 20) % 15) * 8
+                mask = np.zeros((height, width), dtype=bool)
+                mask[y : y + 4, x : x + 4] = True
+                segmentations.add_segmentation(
+                    MolecularSegmentation(
+                        frame_index=frame_index,
+                        source_view="raw",
+                        mask=mask,
+                        bbox_xyxy=(x, y, x + 4, y + 4),
+                        origin="sam2",
+                        segmentation_id=f"sam2-{frame_index}-{segmentation_index}",
+                    )
+                )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((frame_count, height, width), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=width, pixels_y=height),
+            molecular_segmentations=segmentations,
+        )
+        self.viewer = STMSeriesViewer()
+        self.viewer.set_image_series(series)
+        self.__class__._app.processEvents()
+
+        started_at = time.perf_counter()
+        self.viewer.show_frame(1)
+        self.__class__._app.processEvents()
+        elapsed = time.perf_counter() - started_at
+
+        self.assertLess(elapsed, 0.12)
+        self.assertEqual(self.viewer.visible_molecular_segmentation_count(), 300)
+        self.assertEqual(len(self.viewer.visible_molecular_segmentation_ids()), 300)
+
+    def test_many_small_sam2_masks_use_bbox_regions_on_large_frame(self) -> None:
+        size = 1024
+        segmentation_count = 300
+        segmentations = MolecularSegmentationSet(frame_count=1)
+        for segmentation_index in range(segmentation_count):
+            x = 1 + (segmentation_index % 20) * 24
+            y = 1 + (segmentation_index // 20) * 32
+            mask = np.zeros((size, size), dtype=bool)
+            mask[y : y + 8, x : x + 8] = True
+            segmentations.add_segmentation(
+                MolecularSegmentation(
+                    frame_index=0,
+                    source_view="raw",
+                    mask=mask,
+                    bbox_xyxy=(x, y, x + 8, y + 8),
+                    origin="sam2",
+                    segmentation_id=f"sam2-large-{segmentation_index}",
+                )
+            )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((1, size, size), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=size, pixels_y=size),
+            molecular_segmentations=segmentations,
+        )
+        self.viewer = STMSeriesViewer()
+        self.viewer.set_image_series(series)
+        self.__class__._app.processEvents()
+
+        started_at = time.perf_counter()
+        self.viewer.show_frame(0)
+        self.__class__._app.processEvents()
+        elapsed = time.perf_counter() - started_at
+
+        self.assertLess(elapsed, 0.03)
+        self.assertEqual(self.viewer.visible_molecular_segmentation_count(), segmentation_count)
+        self.assertEqual(len(self.viewer.visible_molecular_segmentation_ids()), segmentation_count)
+
+    def test_navigation_skips_rendering_when_bbox_overlay_is_hidden(self) -> None:
+        frame_count = 2
+        detection_count = 300
+        height = width = 128
+        detections = MolecularDetectionSet(frame_count=frame_count)
+        for frame_index in range(frame_count):
+            frame_detections = []
+            for detection_index in range(detection_count):
+                x = 1 + (detection_index % 20) * 6
+                y = 1 + (detection_index // 20) * 8
+                frame_detections.append(
+                    MolecularDetection(
+                        frame_index=frame_index,
+                        bbox_xyxy=(x, y, x + 4, y + 4),
+                        confidence=0.9,
+                        source_view="raw",
+                        detection_id=f"bbox-{frame_index}-{detection_index}",
+                    )
+                )
+            detections.set_detections(
+                frame_index,
+                frame_detections,
+                source_view="raw",
+                frame_shape=(height, width),
+            )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((frame_count, height, width), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=width, pixels_y=height),
+            molecular_detections=detections,
+        )
+        self.viewer = STMSeriesViewer()
+        self.viewer.set_molecular_detection_overlay_visible(False)
+        self.viewer.set_image_series(series)
+        self.__class__._app.processEvents()
+
+        started_at = time.perf_counter()
+        self.viewer.show_frame(1)
+        self.__class__._app.processEvents()
+        elapsed = time.perf_counter() - started_at
+
+        self.assertLess(elapsed, 0.08)
+        self.assertEqual(self.viewer.visible_molecular_detection_count(), 0)
+        self.assertEqual(detections.detection_count, frame_count * detection_count)
 
     def test_viewer_maps_pixels_to_physical_nanometers(self) -> None:
         series = MolTrackImageSeries(

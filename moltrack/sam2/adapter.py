@@ -59,6 +59,22 @@ class MolTrackSam2SegmentationError(RuntimeError):
     """Raised when SAM2 does not return a usable single-frame segmentation."""
 
 
+class MolTrackSam2MaskRejectedError(MolTrackSam2SegmentationError):
+    """Raised when one SAM2 prompt produces no mask that passes post-processing."""
+
+
+@dataclass(frozen=True)
+class MolTrackSam2PromptRejection:
+    prompt_detection_id: str
+    reason: str
+
+    def __post_init__(self) -> None:
+        if not str(self.prompt_detection_id).strip():
+            raise ValueError("prompt_detection_id must not be empty.")
+        if not str(self.reason).strip():
+            raise ValueError("reason must not be empty.")
+
+
 class MolTrackSam2PersistentImageSession:
     """Map one NanoTrack persistent backend session into MolTrack segmentations."""
 
@@ -150,7 +166,7 @@ class MolTrackSam2Segmenter:
         existing_masks_policy: str | None = None,
         registered_transform: RegisteredFrameTransform | None = None,
         chunk_size: int = 32,
-    ) -> list[MolecularSegmentation]:
+    ) -> list[MolecularSegmentation | MolTrackSam2PromptRejection]:
         selected_checkpoint_path = (
             Path(checkpoint_path) if checkpoint_path is not None else None
         )
@@ -200,7 +216,7 @@ class MolTrackSam2Segmenter:
         existing_masks_policy: str | None = None,
         registered_transform: RegisteredFrameTransform | None = None,
         chunk_size: int = 32,
-    ) -> list[MolecularSegmentation]:
+    ) -> list[MolecularSegmentation | MolTrackSam2PromptRejection]:
         detections = list(detections)
         if not detections:
             return []
@@ -253,11 +269,20 @@ class MolTrackSam2Segmenter:
 
         segmentations = []
         for result_index, detection in enumerate(inference_detections):
-            mask = self._postprocess_mask(
-                masks[result_index],
-                keep_largest_component=bool(keep_largest_component),
-                min_mask_area_px=int(min_mask_area_px),
-            )
+            try:
+                mask = self._postprocess_mask(
+                    masks[result_index],
+                    keep_largest_component=bool(keep_largest_component),
+                    min_mask_area_px=int(min_mask_area_px),
+                )
+            except MolTrackSam2MaskRejectedError as exc:
+                segmentations.append(
+                    MolTrackSam2PromptRejection(
+                        prompt_detection_id=detection.detection_id,
+                        reason=str(exc),
+                    )
+                )
+                continue
             segmentation = MolecularSegmentation(
                 frame_index=detection.frame_index,
                 source_view="raw" if source_view == "expanded_aligned" else detection.source_view,
@@ -415,9 +440,11 @@ class MolTrackSam2Segmenter:
             processed = self._largest_component_mask(processed)
         area = int(np.count_nonzero(processed))
         if area == 0:
-            raise MolTrackSam2SegmentationError("SAM2 returned an empty mask after post-processing.")
+            raise MolTrackSam2MaskRejectedError(
+                "SAM2 returned an empty mask after post-processing."
+            )
         if min_mask_area_px > 0 and area < min_mask_area_px:
-            raise MolTrackSam2SegmentationError(
+            raise MolTrackSam2MaskRejectedError(
                 f"SAM2 mask area {area} px is below Min mask area px {min_mask_area_px}."
             )
         return processed

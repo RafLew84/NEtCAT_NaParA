@@ -26,6 +26,7 @@ class STMSeriesViewer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._series = None
+        self._molecular_detection_overlay_visible = True
         self._molecular_detection_overlay_opacity = 1.0
         self._molecular_segmentation_overlay_opacity = 0.30
         self._visible_molecular_detection_count = 0
@@ -190,6 +191,12 @@ class STMSeriesViewer(QWidget):
 
     def set_molecular_detection_overlay_opacity(self, opacity: float) -> None:
         self._molecular_detection_overlay_opacity = min(1.0, max(0.0, float(opacity)))
+
+    def set_molecular_detection_overlay_visible(self, visible: bool) -> None:
+        self._molecular_detection_overlay_visible = bool(visible)
+
+    def molecular_detection_overlay_visible(self) -> bool:
+        return bool(self._molecular_detection_overlay_visible)
 
     def set_molecular_segmentation_overlay_opacity(self, opacity: float) -> None:
         self._molecular_segmentation_overlay_opacity = min(1.0, max(0.0, float(opacity)))
@@ -380,42 +387,43 @@ class STMSeriesViewer(QWidget):
         count = 0
         colors: list[tuple[int, int, int]] = []
         opacities: list[float] = []
-        visible_ids: set[str] = set()
+        active_detection_ids: set[str] = set()
         if detection_set is not None:
             detections = detection_set.get_detections(
                 self._series.active_frame_index,
                 source_view=source_view,
             )
-            for detection in detections:
-                color = (255, 0, 255) if detection.selected else (255, 140, 0)
-                draw_color = (*color, round(255 * self._molecular_detection_overlay_opacity))
-                polyline = self.viewer.add_polyline_nm(
-                    self._bbox_polyline_nm(detection.bbox_xyxy, scale_nm_per_px=(sx, sy)),
-                    color=draw_color,
-                    width=1.8,
-                )
-                if polyline is None:
-                    continue
-                visible_ids.add(detection.detection_id)
-                self._molecular_detection_overlay_items_by_id[detection.detection_id] = [polyline]
-                colors.append(color)
-                opacities.append(self._molecular_detection_overlay_opacity)
-                x0, y0, x1, y1 = detection.bbox_xyxy
-                self.viewer.add_text_nm(
-                    f"{detection.confidence:.2f}",
-                    (((x0 + x1) / 2.0) * sx, ((y0 + y1) / 2.0) * sy),
-                    color=draw_color,
-                )
-                count += 1
+            active_detection_ids = {detection.detection_id for detection in detections}
+            if self._molecular_detection_overlay_visible:
+                for detection in detections:
+                    color = (255, 0, 255) if detection.selected else (255, 140, 0)
+                    draw_color = (*color, round(255 * self._molecular_detection_overlay_opacity))
+                    polyline = self.viewer.add_polyline_nm(
+                        self._bbox_polyline_nm(detection.bbox_xyxy, scale_nm_per_px=(sx, sy)),
+                        color=draw_color,
+                        width=1.8,
+                    )
+                    if polyline is None:
+                        continue
+                    self._molecular_detection_overlay_items_by_id[detection.detection_id] = [polyline]
+                    colors.append(color)
+                    opacities.append(self._molecular_detection_overlay_opacity)
+                    x0, y0, x1, y1 = detection.bbox_xyxy
+                    self.viewer.add_text_nm(
+                        f"{detection.confidence:.2f}",
+                        (((x0 + x1) / 2.0) * sx, ((y0 + y1) / 2.0) * sy),
+                        color=draw_color,
+                    )
+                    count += 1
         self._visible_molecular_detection_count = count
         self._visible_molecular_detection_colors = colors
         self._visible_molecular_detection_opacities = opacities
         self._show_molecular_segmentations(source_view=source_view, scale_nm_per_px=(sx, sy))
         self._show_sam3_preview(source_view=source_view, scale_nm_per_px=(sx, sy))
         self._show_molecular_centroids(source_view=source_view, scale_nm_per_px=(sx, sy))
-        if self._selected_molecular_detection_id not in visible_ids:
+        if self._selected_molecular_detection_id not in active_detection_ids:
             self._set_selected_molecular_detection_id(None)
-        else:
+        elif self._molecular_detection_overlay_visible:
             self._apply_molecular_detection_highlight()
         if self._selected_molecular_segmentation_id not in self._visible_molecular_segmentation_ids:
             self._set_selected_molecular_segmentation_id(None)
@@ -511,21 +519,25 @@ class STMSeriesViewer(QWidget):
         count = 0
         visible_ids: list[str] = []
         sx, sy = scale_nm_per_px
+        combined_mask: np.ndarray | None = None
         for segmentation in segmentations:
             items = []
-            mask = self._full_frame_mask_for_segmentation(segmentation)
-            if mask is not None:
-                mask_item = self.viewer.add_mask_overlay_px(
-                    mask,
-                    color=(0, 200, 255),
-                    alpha=round(255 * self._molecular_segmentation_overlay_opacity),
-                    scale_nm_per_px=(sx, sy),
+            has_mask = False
+            if self._molecular_segmentation_overlay_opacity > 0.0:
+                mask_region = self._mask_region_for_segmentation(segmentation)
+                if mask_region is not None and np.any(mask_region[0]):
+                    mask, (x0, y0, x1, y1), full_shape = mask_region
+                    if combined_mask is None:
+                        combined_mask = np.zeros(full_shape, dtype=bool)
+                    combined_region = combined_mask[y0:y1, x0:x1]
+                    np.logical_or(combined_region, mask, out=combined_region)
+                    has_mask = True
+            elif segmentation.mask is not None:
+                has_mask = bool(np.any(np.asarray(segmentation.mask, dtype=bool)))
+            if has_mask:
+                self._visible_molecular_segmentation_opacities.append(
+                    self._molecular_segmentation_overlay_opacity
                 )
-                if mask_item is not None:
-                    items.append(mask_item)
-                    self._visible_molecular_segmentation_opacities.append(
-                        self._molecular_segmentation_overlay_opacity
-                    )
             if segmentation.polygon_xy is not None:
                 polyline = self.viewer.add_polyline_nm(
                     self._polygon_polyline_nm(segmentation.polygon_xy, scale_nm_per_px=(sx, sy)),
@@ -534,7 +546,7 @@ class STMSeriesViewer(QWidget):
                 )
                 if polyline is not None:
                     items.append(polyline)
-            if not items:
+            if not has_mask and not items:
                 continue
             self._molecular_segmentation_overlay_items_by_id[segmentation.segmentation_id] = items
             self._molecular_segmentation_prompt_ids_by_id[segmentation.segmentation_id] = tuple(
@@ -542,6 +554,13 @@ class STMSeriesViewer(QWidget):
             )
             visible_ids.append(segmentation.segmentation_id)
             count += 1
+        if combined_mask is not None:
+            self.viewer.add_mask_overlay_px(
+                combined_mask,
+                color=(0, 200, 255),
+                alpha=round(255 * self._molecular_segmentation_overlay_opacity),
+                scale_nm_per_px=(sx, sy),
+            )
         self._visible_molecular_segmentation_count = count
         self._visible_molecular_segmentation_ids = visible_ids
 
@@ -703,7 +722,7 @@ class STMSeriesViewer(QWidget):
         *,
         source_view: str,
     ) -> str | None:
-        if self._series is None:
+        if self._series is None or not self._molecular_detection_overlay_visible:
             return None
         detection_set = getattr(self._series, "molecular_detections", None)
         if detection_set is None:
@@ -922,6 +941,48 @@ class STMSeriesViewer(QWidget):
         full_mask = np.zeros((image_height, image_width), dtype=bool)
         full_mask[y0:y1, x0:x1] = mask
         return full_mask
+
+    def _mask_region_for_segmentation(
+        self,
+        segmentation,
+    ) -> tuple[np.ndarray, tuple[int, int, int, int], tuple[int, int]] | None:
+        if segmentation.mask is None:
+            return None
+        mask = np.asarray(segmentation.mask, dtype=bool)
+        if self._current_image_shape_px is None:
+            height, width = mask.shape
+            return mask, (0, 0, width, height), (height, width)
+
+        image_height, image_width = self._current_image_shape_px
+        if segmentation.bbox_xyxy is not None:
+            x0, y0, x1, y1 = (
+                int(round(float(value))) for value in segmentation.bbox_xyxy
+            )
+            x0 = min(max(x0, 0), image_width)
+            x1 = min(max(x1, 0), image_width)
+            y0 = min(max(y0, 0), image_height)
+            y1 = min(max(y1, 0), image_height)
+            target_shape = (y1 - y0, x1 - x0)
+            if x1 > x0 and y1 > y0:
+                if mask.shape == target_shape:
+                    return mask, (x0, y0, x1, y1), (image_height, image_width)
+                if mask.shape == (image_height, image_width) and str(
+                    segmentation.origin
+                ).startswith("sam2"):
+                    return (
+                        mask[y0:y1, x0:x1],
+                        (x0, y0, x1, y1),
+                        (image_height, image_width),
+                    )
+
+        full_mask = self._full_frame_mask_for_segmentation(segmentation)
+        if full_mask is None:
+            return None
+        return (
+            full_mask,
+            (0, 0, image_width, image_height),
+            (image_height, image_width),
+        )
 
     def _full_frame_mask_for_sam3_preview_proposal(self, proposal) -> np.ndarray | None:
         if proposal.mask is None:

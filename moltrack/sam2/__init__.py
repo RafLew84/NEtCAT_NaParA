@@ -1,6 +1,8 @@
 from .adapter import (
     DEFAULT_SAM2_CHECKPOINT_DIR,
     DEFAULT_SAM2_CHECKPOINT_NAME,
+    MolTrackSam2MaskRejectedError,
+    MolTrackSam2PromptRejection,
     MolTrackSam2SegmentationError,
     MolTrackSam2PersistentImageSession,
     MolTrackSam2Segmenter,
@@ -23,6 +25,8 @@ from .benchmark import (
 __all__ = [
     "DEFAULT_SAM2_CHECKPOINT_DIR",
     "DEFAULT_SAM2_CHECKPOINT_NAME",
+    "MolTrackSam2MaskRejectedError",
+    "MolTrackSam2PromptRejection",
     "MolTrackSam2SegmentationError",
     "MolTrackSam2PersistentImageSession",
     "MolTrackSam2Segmenter",

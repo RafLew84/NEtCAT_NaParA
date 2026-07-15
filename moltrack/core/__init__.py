@@ -22,6 +22,7 @@ from .segmentations import (
 )
 from .session import (
     MOLTRACK_SESSION_SCHEMA_VERSION,
+    MolTrackIntensityCacheRecord,
     MolTrackPositionAnalysisRange,
     MolTrackPositionAnalysisState,
     MolTrackSession,
@@ -45,6 +46,7 @@ __all__ = [
     "SUPPORTED_SEGMENTATION_SOURCE_VIEWS",
     "MOLTRACK_SESSION_SCHEMA_VERSION",
     "MolTrackSession",
+    "MolTrackIntensityCacheRecord",
     "MolTrackPositionAnalysisRange",
     "MolTrackPositionAnalysisState",
     "build_moltrack_expanded_aligned_stack",

@@ -12,6 +12,14 @@ MOLTRACK_SESSION_SCHEMA_VERSION = 1
 SUPPORTED_SESSION_REGISTRATION_VIEW_MODES = ("Show raw", "Show expanded aligned")
 SUPPORTED_POSITION_ANALYSIS_SOURCE_VIEWS = ("raw", "expanded_aligned")
 SUPPORTED_POSITION_ANALYSIS_TABS = ("Current frame", "Range trends", "Spatial comparison")
+SUPPORTED_POSITION_ANALYSIS_INTENSITY_METRICS = (
+    "background_corrected_median",
+    "background_corrected_mean",
+    "mean",
+    "median",
+    "max",
+    "sum",
+)
 
 
 @dataclass(frozen=True)
@@ -50,6 +58,11 @@ class MolTrackPositionAnalysisState:
     active_tab: str = "Current frame"
     density_grid_shape: tuple[int, int] = (32, 32)
     use_segmentation_centroids: bool = True
+    intensity_metric: str = "background_corrected_median"
+    color_points_by_intensity: bool = True
+    background_inner_radius_px: int = 1
+    background_outer_radius_px: int = 3
+    shared_intensity_scale: bool = True
 
     def __post_init__(self) -> None:
         source_view = str(self.source_view).strip()
@@ -68,6 +81,19 @@ class MolTrackPositionAnalysisState:
             raise ValueError("density_grid_shape must contain rows and columns.") from exc
         if rows <= 0 or columns <= 0:
             raise ValueError("density_grid_shape values must be positive.")
+        intensity_metric = str(self.intensity_metric).strip()
+        if intensity_metric not in SUPPORTED_POSITION_ANALYSIS_INTENSITY_METRICS:
+            raise ValueError(
+                f"Unsupported Position Analysis intensity_metric: {intensity_metric!r}."
+            )
+        background_inner_radius_px = int(self.background_inner_radius_px)
+        background_outer_radius_px = int(self.background_outer_radius_px)
+        if background_inner_radius_px < 0:
+            raise ValueError("background_inner_radius_px must be non-negative.")
+        if background_outer_radius_px <= background_inner_radius_px:
+            raise ValueError(
+                "background_outer_radius_px must be greater than background_inner_radius_px."
+            )
         object.__setattr__(self, "source_view", source_view)
         object.__setattr__(self, "comparison_completed", bool(self.comparison_completed))
         object.__setattr__(self, "active_tab", active_tab)
@@ -77,6 +103,68 @@ class MolTrackPositionAnalysisState:
             "use_segmentation_centroids",
             bool(self.use_segmentation_centroids),
         )
+        object.__setattr__(self, "intensity_metric", intensity_metric)
+        object.__setattr__(
+            self,
+            "color_points_by_intensity",
+            bool(self.color_points_by_intensity),
+        )
+        object.__setattr__(self, "background_inner_radius_px", background_inner_radius_px)
+        object.__setattr__(self, "background_outer_radius_px", background_outer_radius_px)
+        object.__setattr__(self, "shared_intensity_scale", bool(self.shared_intensity_scale))
+
+
+@dataclass(frozen=True)
+class MolTrackIntensityCacheRecord:
+    """Serializable numeric intensity result guarded by an annotation fingerprint."""
+
+    frame_index: int
+    source_view: str
+    source_kind: str
+    source_id: str
+    unit: str
+    background_inner_radius_px: int
+    background_outer_radius_px: int
+    annotation_fingerprint: str
+    pixel_count: int
+    sum: float | None
+    mean: float | None
+    median: float | None
+    max: float | None
+    local_background_median: float | None
+    background_corrected_mean: float | None
+    background_corrected_median: float | None
+
+    def __post_init__(self) -> None:
+        frame_index = int(self.frame_index)
+        if frame_index < 0:
+            raise ValueError("Intensity cache frame_index must be non-negative.")
+        source_view = str(self.source_view).strip()
+        if source_view not in SUPPORTED_POSITION_ANALYSIS_SOURCE_VIEWS:
+            raise ValueError(f"Unsupported intensity cache source_view: {source_view!r}.")
+        source_kind = str(self.source_kind).strip()
+        if source_kind not in ("segmentation", "bbox"):
+            raise ValueError(f"Unsupported intensity cache source_kind: {source_kind!r}.")
+        source_id = str(self.source_id).strip()
+        annotation_fingerprint = str(self.annotation_fingerprint).strip()
+        if not source_id or not annotation_fingerprint:
+            raise ValueError("Intensity cache source_id and annotation_fingerprint must not be empty.")
+        inner_radius = int(self.background_inner_radius_px)
+        outer_radius = int(self.background_outer_radius_px)
+        if inner_radius < 0 or outer_radius <= inner_radius:
+            raise ValueError("Intensity cache background radii are invalid.")
+        pixel_count = int(self.pixel_count)
+        if pixel_count < 0:
+            raise ValueError("Intensity cache pixel_count must be non-negative.")
+        object.__setattr__(self, "frame_index", frame_index)
+        object.__setattr__(self, "source_view", source_view)
+        object.__setattr__(self, "source_kind", source_kind)
+        object.__setattr__(self, "source_id", source_id)
+        object.__setattr__(self, "unit", str(self.unit))
+        object.__setattr__(self, "background_inner_radius_px", inner_radius)
+        object.__setattr__(self, "background_outer_radius_px", outer_radius)
+        object.__setattr__(self, "annotation_fingerprint", annotation_fingerprint)
+        object.__setattr__(self, "pixel_count", pixel_count)
 
 
 @dataclass(frozen=True)
@@ -88,6 +176,7 @@ class MolTrackSession:
     active_frame_index: int
     reverse_frame_order: bool = False
     registration_view_mode: str = "Show raw"
+    bbox_overlay_visible: bool = True
     bbox_opacity_percent: int = 100
     mask_opacity_percent: int = 30
     registration_settings: MolTrackRegistrationSettings | None = None
@@ -95,6 +184,7 @@ class MolTrackSession:
     molecular_detections: MolecularDetectionSet | None = None
     molecular_segmentations: MolecularSegmentationSet | None = None
     position_analysis: MolTrackPositionAnalysisState | None = None
+    intensity_cache_records: tuple[MolTrackIntensityCacheRecord, ...] = ()
     source_size_bytes: int | None = None
     source_mtime_ns: int | None = None
     schema_version: int = MOLTRACK_SESSION_SCHEMA_VERSION
@@ -154,6 +244,16 @@ class MolTrackSession:
             self.position_analysis, MolTrackPositionAnalysisState
         ):
             raise TypeError("position_analysis must be a MolTrackPositionAnalysisState instance.")
+        intensity_cache_records = tuple(self.intensity_cache_records)
+        if not all(
+            isinstance(record, MolTrackIntensityCacheRecord)
+            for record in intensity_cache_records
+        ):
+            raise TypeError(
+                "intensity_cache_records must contain MolTrackIntensityCacheRecord instances."
+            )
+        if any(record.frame_index >= len(source_frame_indices) for record in intensity_cache_records):
+            raise ValueError("Intensity cache record exceeds source_frame_indices length.")
         if self.registration_results is not None:
             expected = tuple(range(len(source_frame_indices)))
             if self.registration_results.frame_indices != expected:
@@ -180,10 +280,12 @@ class MolTrackSession:
         object.__setattr__(self, "active_frame_index", active_frame_index)
         object.__setattr__(self, "reverse_frame_order", bool(self.reverse_frame_order))
         object.__setattr__(self, "registration_view_mode", registration_view_mode)
+        object.__setattr__(self, "bbox_overlay_visible", bool(self.bbox_overlay_visible))
         object.__setattr__(self, "bbox_opacity_percent", bbox_opacity_percent)
         object.__setattr__(self, "mask_opacity_percent", mask_opacity_percent)
         object.__setattr__(self, "source_size_bytes", source_size_bytes)
         object.__setattr__(self, "source_mtime_ns", source_mtime_ns)
+        object.__setattr__(self, "intensity_cache_records", intensity_cache_records)
         object.__setattr__(self, "schema_version", schema_version)
 
     @classmethod
@@ -192,9 +294,11 @@ class MolTrackSession:
         series: MolTrackImageSeries,
         *,
         registration_view_mode: str = "Show raw",
+        bbox_overlay_visible: bool = True,
         bbox_opacity_percent: int = 100,
         mask_opacity_percent: int = 30,
         position_analysis: MolTrackPositionAnalysisState | None = None,
+        intensity_cache_records: tuple[MolTrackIntensityCacheRecord, ...] = (),
         source_size_bytes: int | None = None,
         source_mtime_ns: int | None = None,
     ) -> "MolTrackSession":
@@ -208,6 +312,7 @@ class MolTrackSession:
             active_frame_index=series.active_frame_index,
             reverse_frame_order=series.reverse_frame_order,
             registration_view_mode=registration_view_mode,
+            bbox_overlay_visible=bbox_overlay_visible,
             bbox_opacity_percent=bbox_opacity_percent,
             mask_opacity_percent=mask_opacity_percent,
             registration_settings=registration_settings,
@@ -215,6 +320,7 @@ class MolTrackSession:
             molecular_detections=series.molecular_detections,
             molecular_segmentations=series.molecular_segmentations,
             position_analysis=position_analysis,
+            intensity_cache_records=intensity_cache_records,
             source_size_bytes=source_size_bytes,
             source_mtime_ns=source_mtime_ns,
         )

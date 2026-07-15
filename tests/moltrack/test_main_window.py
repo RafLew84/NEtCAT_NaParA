@@ -11,7 +11,9 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import numpy as np
 
+from moltrack.analysis import MolecularIntensityMeasurement, build_molecular_position_plot_data
 from moltrack.core import (
+    MolecularCentroid,
     MolecularDetection,
     MolecularDetectionSet,
     MolecularSegmentation,
@@ -21,7 +23,14 @@ from moltrack.core import (
     MolTrackRegistrationResultSet,
     MolTrackRegistrationSettings,
 )
-from moltrack.persistence import load_moltrack_session, save_moltrack_session
+from moltrack.persistence import (
+    AnalysisExportProgress,
+    AnalysisExportSettings,
+    MolTrackStateSaveProgress,
+    load_moltrack_session,
+    save_moltrack_session,
+)
+from moltrack.sam2 import MolTrackSam2PromptRejection
 from moltrack.sam3 import (
     MolTrackSam3Preview,
     MolTrackSam3PreviewProposal,
@@ -47,6 +56,7 @@ if QApplication is not None:
     )
 
     from moltrack.ui import MolTrackMainWindow
+    from moltrack.ui.dialogs import PositionAnalysisDialog
 else:  # pragma: no cover - optional outside target GUI env
     QFileDialog = None
     QMessageBox = None
@@ -160,6 +170,9 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.cmb_yolo_model.count(), 0)
         self.assertIn("No YOLO models found in nanotrack/yolo_models", self.window.lbl_yolo_models.text())
         self.assertFalse(self.window.btn_yolo_detect_current.isEnabled())
+        self.assertEqual(self.window.btn_yolo_detect_range.text(), "Detect Frames In Range")
+        self.assertFalse(self.window.sp_yolo_range_end_frame.isEnabled())
+        self.assertFalse(self.window.btn_yolo_detect_range.isEnabled())
         self.assertEqual(self.window.btn_yolo_detect_all_frames.text(), "Detect All Frames")
         self.assertFalse(self.window.btn_yolo_detect_all_frames.isEnabled())
         self.assertFalse(self.window.btn_yolo_clear_current.isEnabled())
@@ -687,6 +700,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
                     series,
                     {
                         "registration_view_mode": "Show raw",
+                        "bbox_overlay_visible": True,
                         "bbox_opacity_percent": 100,
                         "mask_opacity_percent": 30,
                     },
@@ -2703,6 +2717,109 @@ class MolTrackMainWindowTests(unittest.TestCase):
             [0, 0, 0, 1, 1, 1, 2],
         )
 
+    def test_sam2_range_skips_rejected_prompt_and_saves_other_masks(self) -> None:
+        class FakeSession:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback) -> None:
+                return None
+
+            def segment_frame_detections(self, frame, detections, **kwargs):
+                self.test_case.assertAlmostEqual(
+                    kwargs["mask_probability_threshold"],
+                    0.95,
+                )
+                outcomes = []
+                for detection in detections:
+                    if detection.detection_id == "empty-prompt":
+                        outcomes.append(
+                            MolTrackSam2PromptRejection(
+                                prompt_detection_id=detection.detection_id,
+                                reason="SAM2 returned an empty mask after post-processing.",
+                            )
+                        )
+                        continue
+                    mask = np.zeros(frame.shape[:2], dtype=bool)
+                    x0, y0, x1, y1 = (int(value) for value in detection.bbox_xyxy)
+                    mask[y0:y1, x0:x1] = True
+                    outcomes.append(
+                        MolecularSegmentation(
+                            frame_index=detection.frame_index,
+                            source_view=detection.source_view,
+                            bbox_xyxy=detection.bbox_xyxy,
+                            mask=mask,
+                            origin="sam2",
+                            prompt_detection_ids=(detection.detection_id,),
+                            segmentation_id=f"sam2-{detection.detection_id}",
+                        )
+                    )
+                return outcomes
+
+        class FakeSegmenter:
+            def open_persistent_image_session(self, *, checkpoint_path=None):
+                session = FakeSession()
+                session.test_case = self.test_case
+                return session
+
+        segmenter = FakeSegmenter()
+        segmenter.test_case = self
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            sam2_checkpoint_discovery=lambda: [Path(r"C:\models\sam2.pt")],
+            sam2_segmenter=segmenter,
+            sam2_settings_dialog_factory=self.sam2_dialog_factory(threshold=0.95),
+        )
+        frames = np.zeros((2, 6, 6), dtype=np.float32)
+        detections = MolecularDetectionSet(frame_count=2)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(0, (1, 1, 3, 3), 0.9, detection_id="valid-first"),
+                MolecularDetection(0, (3, 1, 5, 3), 0.8, detection_id="empty-prompt"),
+            ],
+            source_view="raw",
+            frame_shape=(6, 6),
+        )
+        detections.set_detections(
+            1,
+            [MolecularDetection(1, (2, 2, 4, 4), 0.7, detection_id="valid-second")],
+            source_view="raw",
+            frame_shape=(6, 6),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=6, pixels_y=6),
+            active_frame_index=0,
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+        self.window.sp_sam2_range_end_frame.setValue(2)
+
+        with patch.object(QMessageBox, "critical") as critical:
+            self.window.btn_sam2_segment_range.click()
+            self.process_events_until(
+                lambda: self.window._sam2_segmentation_progress_dialog is None,
+                timeout_s=3.0,
+            )
+
+        critical.assert_not_called()
+        self.assertIsNotNone(series.molecular_segmentations)
+        self.assertEqual(series.molecular_segmentations.segmentation_count, 2)
+        self.assertEqual(
+            {
+                segmentation.prompt_detection_ids[0]
+                for frame_index in range(2)
+                for segmentation in series.molecular_segmentations.get_segmentations(frame_index)
+            },
+            {"valid-first", "valid-second"},
+        )
+        self.process_events_until(
+            lambda: "skipped 1" in self.window.statusBar().currentMessage(),
+            timeout_s=3.0,
+        )
+
     def test_sam2_persistent_range_does_not_send_frame_emptied_by_skip_existing(self) -> None:
         class FakeSession:
             def __init__(self, owner) -> None:
@@ -3631,6 +3748,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
                 series,
                 {
                     "registration_view_mode": "Show raw",
+                    "bbox_overlay_visible": True,
                     "bbox_opacity_percent": 100,
                     "mask_opacity_percent": 30,
                 },
@@ -3686,6 +3804,50 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertIsNone(self.window._state_io_progress_dialog)
         self.assertTrue(self.window.action_open_state.isEnabled())
         self.assertIn("Saved state state.moltrack.json", self.window.statusBar().currentMessage())
+
+    def test_save_state_dialog_reports_segmentation_encoding_progress(self) -> None:
+        saver_started = threading.Event()
+        release_saver = threading.Event()
+        received_callbacks = []
+
+        def progress_saver(path, series, ui_state, *, progress_callback=None):
+            received_callbacks.append(progress_callback)
+            if progress_callback is not None:
+                progress_callback(
+                    MolTrackStateSaveProgress(
+                        phase="segmentations",
+                        completed_count=25,
+                        total_count=100,
+                    )
+                )
+            saver_started.set()
+            release_saver.wait(timeout=1.0)
+
+        self.window = MolTrackMainWindow(session_saver=progress_saver)
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((1, 2, 4), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=2),
+        )
+        self.window.set_image_series(series)
+        self.window._session_path = "state.moltrack.json"
+
+        self.window.action_save_state.trigger()
+        try:
+            self.process_events_until(saver_started.is_set)
+            self.assertIsNotNone(received_callbacks[0])
+            self.process_events_until(
+                lambda: self.window._state_io_progress_dialog is not None
+                and self.window._state_io_progress_dialog.maximum() == 100
+            )
+            progress_dialog = self.window._state_io_progress_dialog
+            self.assertEqual(progress_dialog.maximum(), 100)
+            self.assertEqual(progress_dialog.value(), 25)
+            self.assertIn("25/100", progress_dialog.labelText())
+        finally:
+            release_saver.set()
+
+        self.process_events_until(lambda: not self.window._state_io_running)
 
     def test_open_state_uses_dialog_and_restores_working_series(self) -> None:
         loaded_session = SimpleNamespace(registration_view_mode="Show raw")
@@ -4236,6 +4398,67 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
         self.assertEqual((first_detection.bbox_xyxy, second_detection.bbox_xyxy), original_bboxes)
 
+    def test_show_bboxes_toggle_skips_bbox_rendering_without_changing_detections(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        frames = np.arange(32, dtype=np.float32).reshape(2, 4, 4)
+        detections = MolecularDetectionSet(frame_count=2)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(0, 0, 2, 2),
+                    confidence=0.9,
+                    source_view="raw",
+                )
+            ],
+            source_view="raw",
+            frame_shape=(4, 4),
+        )
+        detections.set_detections(
+            1,
+            [
+                MolecularDetection(
+                    frame_index=1,
+                    bbox_xyxy=(1, 1, 3, 3),
+                    confidence=0.8,
+                    source_view="raw",
+                )
+            ],
+            source_view="raw",
+            frame_shape=(4, 4),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames,
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            molecular_detections=detections,
+        )
+
+        self.window.set_image_series(series)
+
+        self.assertTrue(self.window.chk_show_bboxes.isChecked())
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
+
+        self.window.chk_show_bboxes.setChecked(False)
+        self.__class__._app.processEvents()
+
+        self.assertFalse(self.window.slider_bbox_opacity.isEnabled())
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 0)
+        self.assertEqual(detections.detection_count, 2)
+
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 0)
+        self.assertEqual(detections.detection_count, 2)
+
+        self.window.chk_show_bboxes.setChecked(True)
+        self.__class__._app.processEvents()
+
+        self.assertTrue(self.window.slider_bbox_opacity.isEnabled())
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), 1)
+
     def test_mask_opacity_slider_controls_sam2_and_sam3_overlays_without_changing_masks(self) -> None:
         self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
         mask = np.zeros((4, 4), dtype=bool)
@@ -4433,6 +4656,210 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertIn("Nearest neighbor [nm]:", dialog.metrics_summary_text())
         self.assertEqual(dialog.lbl_status.text(), "Points: 2")
 
+    def test_position_analysis_colors_points_by_intensity_with_shared_colorbar(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        frame = np.ones((8, 12), dtype=np.float32)
+        frame[1:3, 1:3] = 6.0
+        frame[1:3, 8:10] = 11.0
+        detections = MolecularDetectionSet(frame_count=1)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(1, 1, 3, 3),
+                    confidence=0.9,
+                    detection_id="low-signal",
+                ),
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(8, 1, 10, 3),
+                    confidence=0.8,
+                    detection_id="high-signal",
+                ),
+            ],
+            source_view="raw",
+            frame_shape=frame.shape,
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frame[np.newaxis, ...],
+            metadata=STMSequenceMetadata(pixels_x=12, pixels_y=8),
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+
+        self.window.btn_position_analysis.click()
+        self.__class__._app.processEvents()
+
+        dialog = self.window.position_analysis_dialog()
+        self.assertEqual(dialog.chk_color_by_intensity.text(), "Color points by intensity")
+        self.assertTrue(dialog.chk_color_by_intensity.isChecked())
+        self.assertTrue(dialog.chk_color_by_intensity.isEnabled())
+        self.assertEqual(dialog.cmb_intensity_metric.currentData(), "background_corrected_median")
+        self.assertEqual(
+            dialog.intensity_metric_options(),
+            (
+                "Background-corrected median",
+                "Mean",
+                "Maximum",
+                "Integrated",
+            ),
+        )
+        self.assertEqual(dialog.displayed_intensity_values(), (5.0, 10.0))
+        self.assertNotEqual(dialog.displayed_point_colors()[0], dialog.displayed_point_colors()[1])
+        self.assertEqual(dialog.displayed_point_sizes(), (8.0, 8.0))
+        self.assertEqual(dialog.intensity_color_range(), (5.0, 10.0))
+        self.assertEqual(
+            dialog.intensity_colorbar_label(),
+            "Background-corrected median [a.u.]",
+        )
+
+    def test_position_analysis_switches_intensity_metric_without_moving_points(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        frame = np.ones((8, 12), dtype=np.float32)
+        frame[1:3, 1:3] = np.asarray(((4.0, 6.0), (8.0, 10.0)), dtype=np.float32)
+        frame[1:3, 8:10] = np.asarray(((12.0, 14.0), (16.0, 18.0)), dtype=np.float32)
+        detections = MolecularDetectionSet(frame_count=1)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(1, 1, 3, 3),
+                    confidence=0.9,
+                    detection_id="first",
+                ),
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(8, 1, 10, 3),
+                    confidence=0.8,
+                    detection_id="second",
+                ),
+            ],
+            source_view="raw",
+            frame_shape=frame.shape,
+        )
+        self.window.set_image_series(
+            MolTrackImageSeries(
+                source_path="movie.mpp",
+                raw_frames=frame[np.newaxis, ...],
+                metadata=STMSequenceMetadata(pixels_x=12, pixels_y=8),
+                molecular_detections=detections,
+            )
+        )
+        self.window.btn_position_analysis.click()
+        self.__class__._app.processEvents()
+        dialog = self.window.position_analysis_dialog()
+        original_points = dialog.displayed_points_xy()
+
+        dialog.cmb_intensity_metric.setCurrentText("Maximum")
+        self.__class__._app.processEvents()
+
+        self.assertEqual(dialog.cmb_intensity_metric.currentData(), "max")
+        self.assertEqual(dialog.displayed_intensity_values(), (10.0, 18.0))
+        self.assertEqual(dialog.intensity_color_range(), (10.0, 18.0))
+        self.assertEqual(dialog.intensity_colorbar_label(), "Maximum [a.u.]")
+        self.assertEqual(dialog.displayed_points_xy(), original_points)
+        self.assertEqual(dialog.displayed_point_sizes(), (8.0, 8.0))
+
+    def test_position_analysis_uses_neutral_color_for_missing_intensity_and_descriptive_tooltips(self) -> None:
+        self.window = PositionAnalysisDialog()
+        centroids = [
+            MolecularCentroid(0, "raw", 1.0, 2.0, "bbox_center", "bbox-low"),
+            MolecularCentroid(
+                0,
+                "raw",
+                3.0,
+                4.0,
+                "segmentation",
+                "seg-high",
+                area_px=3,
+            ),
+            MolecularCentroid(0, "raw", 5.0, 6.0, "bbox_center", "bbox-missing"),
+        ]
+        measurements = [
+            MolecularIntensityMeasurement(
+                frame_index=0,
+                source_id="bbox-low",
+                source_kind="bbox",
+                pixel_count=4,
+                sum=8.0,
+                mean=2.0,
+                median=2.0,
+                max=3.0,
+            ),
+            MolecularIntensityMeasurement(
+                frame_index=0,
+                source_id="seg-high",
+                source_kind="segmentation",
+                pixel_count=3,
+                sum=24.0,
+                mean=8.0,
+                median=8.0,
+                max=9.0,
+            ),
+        ]
+        plot_data = build_molecular_position_plot_data(
+            centroids,
+            frame_index=0,
+            source_view="raw",
+            frame_shape=(8, 8),
+            intensity_measurements=measurements,
+            intensity_metric="mean",
+        )
+
+        self.window.set_plot_data(plot_data)
+
+        self.assertEqual(self.window.intensity_color_range(), (2.0, 8.0))
+        self.assertEqual(
+            self.window.displayed_point_colors()[2],
+            self.window.missing_intensity_color(),
+        )
+        self.assertIn("x: 1.000 px", self.window.point_tooltip(0))
+        self.assertIn("Mean: 2.000 a.u.", self.window.point_tooltip(0))
+        self.assertIn("Area: 4 px^2", self.window.point_tooltip(0))
+        self.assertIn("Source: bbox", self.window.point_tooltip(0))
+        self.assertIn("Source: segmentation", self.window.point_tooltip(1))
+        self.assertIn("Intensity: unavailable", self.window.point_tooltip(2))
+
+    def test_position_analysis_can_select_raw_metric_when_local_background_is_unavailable(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        frame = np.full((4, 4), 7.0, dtype=np.float32)
+        detections = MolecularDetectionSet(frame_count=1)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(0, 0, 4, 4),
+                    confidence=0.9,
+                    detection_id="full-frame",
+                )
+            ],
+            source_view="raw",
+            frame_shape=frame.shape,
+        )
+        self.window.set_image_series(
+            MolTrackImageSeries(
+                source_path="movie.mpp",
+                raw_frames=frame[np.newaxis, ...],
+                metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+                molecular_detections=detections,
+            )
+        )
+        self.window.btn_position_analysis.click()
+        self.__class__._app.processEvents()
+        dialog = self.window.position_analysis_dialog()
+
+        self.assertEqual(dialog.displayed_intensity_values(), (None,))
+        self.assertTrue(dialog.cmb_intensity_metric.isEnabled())
+        dialog.cmb_intensity_metric.setCurrentText("Mean")
+        self.__class__._app.processEvents()
+
+        self.assertEqual(dialog.displayed_intensity_values(), (7.0,))
+        self.assertEqual(dialog.intensity_color_range(), (7.0, 7.0))
+
     def test_position_analysis_switches_between_segmentation_centroids_and_bbox_centers(self) -> None:
         self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
         detections = MolecularDetectionSet(frame_count=2)
@@ -4521,6 +4948,384 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(dialog.histogram_counts(), (0,) * 18)
         self.assertEqual(dialog.lbl_status.text(), "Points: 0")
 
+    def test_position_analysis_passes_one_public_export_settings_model_to_persistence(self) -> None:
+        settings = AnalysisExportSettings(
+            scope="current_frame",
+            destination=Path("analysis-package"),
+            package_format="directory",
+            include_tables=True,
+            include_spatial_grids=False,
+            include_plots=True,
+            frame_count=2,
+            active_frame_index=0,
+            source_view="raw",
+            use_segmentation_centroids=True,
+            intensity_metric="mean",
+            intensity_unit="a.u.",
+            background_inner_radius_px=1,
+            background_outer_radius_px=3,
+            density_grid_shape=(32, 32),
+        )
+        dialog_calls = []
+        export_calls = []
+
+        class FakeExportAnalysisDialog:
+            def exec(self):
+                return QDialog.DialogCode.Accepted
+
+            def export_settings(self):
+                return settings
+
+        def export_dialog_factory(**kwargs):
+            dialog_calls.append(dict(kwargs))
+            return FakeExportAnalysisDialog()
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            analysis_export_dialog_factory=export_dialog_factory,
+            analysis_exporter=lambda series, request: export_calls.append((series, request)),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((2, 4, 5), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4),
+        )
+        self.window.set_image_series(series)
+
+        self.window.btn_position_analysis.click()
+        position_dialog = self.window.position_analysis_dialog()
+        self.assertIsNotNone(position_dialog)
+        self.assertEqual(position_dialog.btn_export_analysis.text(), "Export Analysis...")
+
+        with patch.object(QMessageBox, "information"):
+            position_dialog.btn_export_analysis.click()
+            self.process_events_until(
+                lambda: len(export_calls) == 1
+                and not self.window.analysis_export_running()
+            )
+
+        self.assertEqual(len(dialog_calls), 1)
+        self.assertEqual(dialog_calls[0]["frame_count"], 2)
+        self.assertEqual(dialog_calls[0]["active_frame_index"], 0)
+        self.assertEqual(dialog_calls[0]["source_view"], "raw")
+        self.assertIsNone(dialog_calls[0]["selected_ranges"])
+        self.assertEqual(export_calls, [(series, settings)])
+
+    def test_analysis_export_runs_without_blocking_ui_and_blocks_a_second_export(self) -> None:
+        exporter_started = threading.Event()
+        release_exporter = threading.Event()
+        export_calls = []
+        settings = AnalysisExportSettings(
+            scope="current_frame",
+            destination=Path("analysis-package"),
+            package_format="directory",
+            include_tables=True,
+            include_spatial_grids=False,
+            include_plots=False,
+            frame_count=2,
+            active_frame_index=0,
+            source_view="raw",
+            use_segmentation_centroids=True,
+            intensity_metric="mean",
+            intensity_unit="a.u.",
+            background_inner_radius_px=1,
+            background_outer_radius_px=3,
+            density_grid_shape=(32, 32),
+        )
+
+        class FakeExportAnalysisDialog:
+            def exec(self):
+                return QDialog.DialogCode.Accepted
+
+            def export_settings(self):
+                return settings
+
+        def blocking_exporter(series, request, *, progress_callback=None):
+            export_calls.append((series, request, progress_callback))
+            exporter_started.set()
+            release_exporter.wait(timeout=2.0)
+            return SimpleNamespace(
+                package_path=request.destination,
+                relative_files=("molecules.csv", "frames.csv"),
+                record_counts=(("molecules.csv", 3), ("frames.csv", 2)),
+            )
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            analysis_export_dialog_factory=lambda **_kwargs: FakeExportAnalysisDialog(),
+            analysis_exporter=blocking_exporter,
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((2, 4, 5), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4),
+        )
+        self.window.set_image_series(series)
+        self.window.btn_position_analysis.click()
+        position_dialog = self.window.position_analysis_dialog()
+        release_timer = threading.Timer(0.5, release_exporter.set)
+        release_timer.start()
+
+        try:
+            with patch.object(QMessageBox, "information") as information:
+                started_at = time.monotonic()
+                position_dialog.btn_export_analysis.click()
+                elapsed = time.monotonic() - started_at
+
+                self.assertLess(elapsed, 0.2)
+                self.process_events_until(exporter_started.is_set)
+                self.assertTrue(self.window.analysis_export_running())
+                progress_dialog = self.window.analysis_export_progress_dialog()
+                self.assertIsNotNone(progress_dialog)
+                self.assertTrue(progress_dialog.isVisible())
+                self.assertFalse(position_dialog.isEnabled())
+                self.assertFalse(self.window.action_open_stm.isEnabled())
+                position_dialog.btn_export_analysis.click()
+                self.__class__._app.processEvents()
+                self.assertEqual(len(export_calls), 1)
+                self.assertIsNotNone(export_calls[0][2])
+                release_exporter.set()
+                self.process_events_until(lambda: not self.window.analysis_export_running())
+
+                self.assertTrue(position_dialog.isEnabled())
+                self.assertTrue(self.window.action_open_stm.isEnabled())
+                information.assert_called_once()
+        finally:
+            release_exporter.set()
+            release_timer.cancel()
+
+    def test_default_analysis_exporter_publishes_a_full_series_package(self) -> None:
+        frame_count = 20
+        detections = MolecularDetectionSet(frame_count=frame_count)
+        for frame_index in range(frame_count):
+            detections.set_detections(
+                frame_index,
+                [
+                    MolecularDetection(
+                        frame_index,
+                        (1, 1, 3, 3),
+                        0.9,
+                        detection_id=f"molecule-{frame_index}",
+                    )
+                ],
+                source_view="raw",
+                frame_shape=(5, 5),
+            )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((frame_count, 5, 5), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=5, pixels_y=5),
+            molecular_detections=detections,
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            destination = Path(tmpdir) / "full-series-analysis"
+            settings = AnalysisExportSettings(
+                scope="full_working_series",
+                destination=destination,
+                package_format="directory",
+                include_tables=True,
+                include_spatial_grids=False,
+                include_plots=False,
+                frame_count=frame_count,
+                active_frame_index=0,
+                source_view="raw",
+                use_segmentation_centroids=True,
+                intensity_metric="mean",
+                intensity_unit="a.u.",
+                background_inner_radius_px=1,
+                background_outer_radius_px=3,
+                density_grid_shape=(8, 8),
+            )
+
+            class FakeExportAnalysisDialog:
+                def exec(self):
+                    return QDialog.DialogCode.Accepted
+
+                def export_settings(self):
+                    return settings
+
+            self.window = MolTrackMainWindow(
+                yolo_model_discovery=lambda: [],
+                analysis_export_dialog_factory=lambda **_kwargs: FakeExportAnalysisDialog(),
+            )
+            self.window.set_image_series(series)
+            self.window.btn_position_analysis.click()
+
+            with patch.object(QMessageBox, "information") as information:
+                self.window.position_analysis_dialog().btn_export_analysis.click()
+
+                self.assertTrue(self.window.analysis_export_running())
+                self.process_events_until(
+                    lambda: not self.window.analysis_export_running(),
+                    timeout_s=5.0,
+                )
+
+            self.assertTrue((destination / "molecules.csv").is_file())
+            self.assertTrue((destination / "frames.csv").is_file())
+            self.assertTrue((destination / "manifest.json").is_file())
+            success_message = information.call_args.args[2]
+            self.assertIn(str(destination), success_message)
+            self.assertIn("molecules: 20", success_message)
+            self.assertIn("frames: 20", success_message)
+
+    def test_analysis_export_failure_closes_progress_and_preserves_position_analysis(self) -> None:
+        settings = AnalysisExportSettings(
+            scope="current_frame",
+            destination=Path("failed-analysis"),
+            package_format="directory",
+            include_tables=True,
+            include_spatial_grids=False,
+            include_plots=False,
+            frame_count=1,
+            active_frame_index=0,
+            source_view="raw",
+            use_segmentation_centroids=True,
+            intensity_metric="mean",
+            intensity_unit="a.u.",
+            background_inner_radius_px=1,
+            background_outer_radius_px=3,
+            density_grid_shape=(4, 4),
+        )
+
+        class FakeExportAnalysisDialog:
+            def exec(self):
+                return QDialog.DialogCode.Accepted
+
+            def export_settings(self):
+                return settings
+
+        def failing_exporter(_series, _request, *, progress_callback=None):
+            raise RuntimeError("controlled export failure")
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            analysis_export_dialog_factory=lambda **_kwargs: FakeExportAnalysisDialog(),
+            analysis_exporter=failing_exporter,
+        )
+        self.window.set_image_series(
+            MolTrackImageSeries(
+                source_path="movie.mpp",
+                raw_frames=np.zeros((1, 4, 5), dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4),
+            )
+        )
+        self.window.btn_position_analysis.click()
+        position_dialog = self.window.position_analysis_dialog()
+        error_observations = []
+
+        def capture_error(_parent, title, message):
+            error_observations.append(
+                (
+                    title,
+                    message,
+                    self.window.analysis_export_progress_dialog() is None,
+                    position_dialog.isVisible(),
+                )
+            )
+
+        with patch.object(QMessageBox, "critical", side_effect=capture_error):
+            position_dialog.btn_export_analysis.click()
+            self.process_events_until(lambda: bool(error_observations))
+            self.process_events_until(lambda: not self.window.analysis_export_running())
+
+        self.assertEqual(
+            error_observations,
+            [
+                (
+                    "Analysis export error",
+                    "controlled export failure",
+                    True,
+                    True,
+                )
+            ],
+        )
+        self.assertIsNone(self.window.analysis_export_progress_dialog())
+        self.assertTrue(position_dialog.isVisible())
+        self.assertTrue(position_dialog.isEnabled())
+        self.assertTrue(self.window.action_open_stm.isEnabled())
+        self.assertIn("controlled export failure", self.window.statusBar().currentMessage())
+
+    def test_analysis_export_dialog_reports_frame_and_table_progress(self) -> None:
+        frame_progress_sent = threading.Event()
+        continue_to_tables = threading.Event()
+        table_progress_sent = threading.Event()
+        release_exporter = threading.Event()
+        settings = AnalysisExportSettings(
+            scope="full_working_series",
+            destination=Path("progress-analysis"),
+            package_format="directory",
+            include_tables=True,
+            include_spatial_grids=False,
+            include_plots=False,
+            frame_count=7,
+            active_frame_index=0,
+            source_view="raw",
+            use_segmentation_centroids=True,
+            intensity_metric="mean",
+            intensity_unit="a.u.",
+            background_inner_radius_px=1,
+            background_outer_radius_px=3,
+            density_grid_shape=(4, 4),
+        )
+
+        class FakeExportAnalysisDialog:
+            def exec(self):
+                return QDialog.DialogCode.Accepted
+
+            def export_settings(self):
+                return settings
+
+        def progress_exporter(_series, request, *, progress_callback=None):
+            progress_callback(AnalysisExportProgress("analyzing_frames", 3, 7))
+            frame_progress_sent.set()
+            continue_to_tables.wait(timeout=2.0)
+            progress_callback(AnalysisExportProgress("writing_tables"))
+            table_progress_sent.set()
+            release_exporter.wait(timeout=2.0)
+            return SimpleNamespace(
+                package_path=request.destination,
+                relative_files=("molecules.csv", "frames.csv"),
+                record_counts=(("molecules.csv", 12), ("frames.csv", 7)),
+            )
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            analysis_export_dialog_factory=lambda **_kwargs: FakeExportAnalysisDialog(),
+            analysis_exporter=progress_exporter,
+        )
+        self.window.set_image_series(
+            MolTrackImageSeries(
+                source_path="movie.mpp",
+                raw_frames=np.zeros((7, 4, 5), dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=5, pixels_y=4),
+            )
+        )
+        self.window.btn_position_analysis.click()
+
+        try:
+            with patch.object(QMessageBox, "information"):
+                self.window.position_analysis_dialog().btn_export_analysis.click()
+                self.process_events_until(frame_progress_sent.is_set)
+                self.process_events_until(
+                    lambda: self.window.analysis_export_progress_dialog().maximum() == 7
+                )
+                progress_dialog = self.window.analysis_export_progress_dialog()
+                self.assertEqual(progress_dialog.value(), 3)
+                self.assertEqual(progress_dialog.labelText(), "Analyzing frames... 3/7")
+
+                continue_to_tables.set()
+                self.process_events_until(table_progress_sent.is_set)
+                self.process_events_until(
+                    lambda: self.window.analysis_export_progress_dialog().labelText()
+                    == "Writing analysis tables..."
+                )
+                release_exporter.set()
+                self.process_events_until(lambda: not self.window.analysis_export_running())
+        finally:
+            continue_to_tables.set()
+            release_exporter.set()
+
     def test_position_analysis_dialog_presents_nearest_neighbor_metrics_and_angle_histogram(self) -> None:
         self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
         detections = MolecularDetectionSet(frame_count=1)
@@ -4604,7 +5409,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertFalse(dialog.has_valid_frame_range_selection())
         self.assertIn("Start frame must not exceed end frame", dialog.range_validation_message())
 
-    def test_position_analysis_dialog_compares_ranges_on_three_trend_plots(self) -> None:
+    def test_position_analysis_dialog_compares_ranges_on_four_trend_plots(self) -> None:
         self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
         detections = MolecularDetectionSet(frame_count=2)
         detections.set_detections(
@@ -4649,14 +5454,18 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(dialog.trend_legend_labels(), ("before desorption", "after adsorption"))
         self.assertEqual(trend_data.first.molecule_counts, (2,))
         self.assertEqual(trend_data.second.molecule_counts, (4,))
+        self.assertEqual(trend_data.first.median_intensities, (0.0,))
+        self.assertEqual(trend_data.second.median_intensities, (0.0,))
         self.assertEqual(
             dialog.trend_axis_labels(),
             (
                 ("Frame", "Molecules"),
                 ("Frame", "Nearest neighbor [px]"),
                 ("Frame", "Line order score"),
+                ("Frame", "Median intensity [a.u.]"),
             ),
         )
+        self.assertIsNotNone(dialog.intensity_trend_plot)
         spatial_data = dialog.range_spatial_data()
         self.assertEqual(spatial_data.first.points_xy, ((1.0, 1.0), (3.0, 1.0)))
         self.assertEqual(
@@ -4669,6 +5478,60 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(first_scale, second_scale)
         dialog.activate_analysis_tab("Spatial comparison")
         self.assertEqual(dialog.active_analysis_tab(), "Spatial comparison")
+
+        dialog.cmb_intensity_metric.setCurrentText("Maximum")
+        self.__class__._app.processEvents()
+
+        self.assertEqual(dialog.range_trend_data().first.intensity_metric, "max")
+        self.assertEqual(dialog.range_trend_data().second.intensity_metric, "max")
+        self.assertEqual(dialog.active_analysis_tab(), "Spatial comparison")
+
+    def test_position_analysis_spatial_comparison_uses_shared_intensity_scale(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        frames = np.zeros((2, 8, 8), dtype=np.float32)
+        frames[0, 1:3, 1:3] = 2.0
+        frames[1, 5:7, 5:7] = 10.0
+        detections = MolecularDetectionSet(frame_count=2)
+        detections.set_detections(
+            0,
+            [MolecularDetection(0, (1, 1, 3, 3), 0.9, detection_id="before")],
+            source_view="raw",
+            frame_shape=(8, 8),
+        )
+        detections.set_detections(
+            1,
+            [MolecularDetection(1, (5, 5, 7, 7), 0.9, detection_id="after")],
+            source_view="raw",
+            frame_shape=(8, 8),
+        )
+        self.window.set_image_series(
+            MolTrackImageSeries(
+                source_path="movie.mpp",
+                raw_frames=frames,
+                metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+                molecular_detections=detections,
+            )
+        )
+        self.window.btn_position_analysis.click()
+        dialog = self.window.position_analysis_dialog()
+        dialog.cmb_intensity_metric.setCurrentText("Mean")
+
+        dialog.btn_compare_ranges.click()
+        self.__class__._app.processEvents()
+
+        expected_levels = ((2.0, 10.0), (2.0, 10.0))
+        self.assertEqual(dialog.spatial_scatter_intensity_value_ranges(), expected_levels)
+        first_colors, second_colors = dialog.spatial_scatter_point_colors()
+        self.assertNotEqual(first_colors[0], second_colors[0])
+        self.assertEqual(dialog.spatial_intensity_value_ranges(), expected_levels)
+        self.assertIsNotNone(dialog.first_intensity_plot)
+        self.assertIsNotNone(dialog.second_intensity_plot)
+        self.assertEqual(
+            dialog.spatial_intensity_condition_names(),
+            ("before desorption", "after adsorption"),
+        )
+        first_density, second_density = dialog.spatial_density_value_ranges()
+        self.assertEqual(first_density, second_density)
 
     def test_save_state_captures_position_analysis_configuration(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -4693,6 +5556,9 @@ class MolTrackMainWindowTests(unittest.TestCase):
             dialog.sp_second_range_start.setValue(3)
             dialog.sp_second_range_end.setValue(4)
             dialog.chk_use_segmentation_centroids.setChecked(False)
+            dialog.cmb_intensity_metric.setCurrentText("Maximum")
+            dialog.chk_color_by_intensity.setChecked(False)
+            dialog.set_intensity_background_radii(2, 5)
             dialog.btn_compare_ranges.click()
             dialog.activate_analysis_tab("Spatial comparison")
             dialog.close()
@@ -4710,6 +5576,11 @@ class MolTrackMainWindowTests(unittest.TestCase):
             self.assertEqual(loaded.position_analysis.active_tab, "Spatial comparison")
             self.assertEqual(loaded.position_analysis.density_grid_shape, (32, 32))
             self.assertFalse(loaded.position_analysis.use_segmentation_centroids)
+            self.assertEqual(loaded.position_analysis.intensity_metric, "max")
+            self.assertFalse(loaded.position_analysis.color_points_by_intensity)
+            self.assertEqual(loaded.position_analysis.background_inner_radius_px, 2)
+            self.assertEqual(loaded.position_analysis.background_outer_radius_px, 5)
+            self.assertTrue(loaded.position_analysis.shared_intensity_scale)
 
     def test_open_state_restores_position_analysis_and_recomputes_comparison(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -4760,6 +5631,9 @@ class MolTrackMainWindowTests(unittest.TestCase):
             dialog.edit_first_range_name.setText("before")
             dialog.edit_second_range_name.setText("after")
             dialog.chk_use_segmentation_centroids.setChecked(False)
+            dialog.cmb_intensity_metric.setCurrentText("Maximum")
+            dialog.chk_color_by_intensity.setChecked(False)
+            dialog.set_intensity_background_radii(2, 5)
             dialog.btn_compare_ranges.click()
             dialog.activate_analysis_tab("Spatial comparison")
             self.window.save_state(session_path)
@@ -4786,10 +5660,15 @@ class MolTrackMainWindowTests(unittest.TestCase):
             self.assertTrue(restored_dialog.has_range_comparison())
             self.assertEqual(restored_dialog.active_analysis_tab(), "Spatial comparison")
             self.assertFalse(restored_dialog.chk_use_segmentation_centroids.isChecked())
+            self.assertEqual(restored_dialog.cmb_intensity_metric.currentData(), "max")
+            self.assertFalse(restored_dialog.chk_color_by_intensity.isChecked())
+            self.assertEqual(restored_dialog.intensity_background_radii(), (2, 5))
             self.assertEqual(restored_dialog.range_trend_data().first.molecule_counts, (1, 0))
             self.assertEqual(restored_dialog.range_trend_data().second.molecule_counts, (2, 0))
+            self.assertEqual(restored_dialog.range_trend_data().first.intensity_metric, "max")
             self.assertEqual(len(restored_dialog.range_spatial_data().first.points_xy), 1)
             self.assertEqual(len(restored_dialog.range_spatial_data().second.points_xy), 2)
+            self.assertEqual(restored_dialog.range_spatial_data().intensity_metric, "max")
 
     def test_open_position_analysis_dialog_refreshes_when_frame_changes(self) -> None:
         self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
@@ -4957,16 +5836,19 @@ class MolTrackMainWindowTests(unittest.TestCase):
             self.window.set_image_series(fake_series_loader(source_path))
             self.window.slider_bbox_opacity.setValue(35)
             self.window.slider_mask_opacity.setValue(18)
+            self.window.chk_show_bboxes.setChecked(False)
             self.window.save_state(session_path)
 
             self.window.slider_bbox_opacity.setValue(100)
             self.window.slider_mask_opacity.setValue(90)
+            self.window.chk_show_bboxes.setChecked(True)
             self.window.open_state(session_path)
             self.__class__._app.processEvents()
 
+            self.assertFalse(self.window.chk_show_bboxes.isChecked())
             self.assertEqual(self.window.slider_bbox_opacity.value(), 35)
             self.assertEqual(self.window.lbl_bbox_opacity.text(), "BBox opacity: 35%")
-            self.assertEqual(self.window.viewer.visible_molecular_detection_opacities(), [0.35])
+            self.assertEqual(self.window.viewer.visible_molecular_detection_opacities(), [])
             self.assertEqual(self.window.slider_mask_opacity.value(), 18)
             self.assertEqual(self.window.lbl_mask_opacity.text(), "Mask opacity: 18%")
             self.assertEqual(self.window.viewer.visible_molecular_segmentation_opacities(), [0.18])
@@ -5572,6 +6454,80 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertIn("current 1", self.window.lbl_yolo_status.text())
         self.assertIn("series 4", self.window.lbl_yolo_status.text())
         self.assertIn("model-a.pt", self.window.statusBar().currentMessage())
+        self.assertIn("3 detections", self.window.statusBar().currentMessage())
+        self.assertIn("3 frames", self.window.statusBar().currentMessage())
+
+    def test_yolo_detect_range_uses_current_and_inclusive_end_frame(self) -> None:
+        calls = []
+        checkpoint = Path("model-a.pt")
+
+        class FakeYoloDetector:
+            def detect_frame(
+                self,
+                frame,
+                *,
+                frame_index,
+                checkpoint_path,
+                confidence_threshold,
+                iou_threshold,
+                source_view,
+                size_filter=None,
+            ):
+                calls.append((frame_index, np.asarray(frame).copy()))
+                return [
+                    MolecularDetection(
+                        frame_index=frame_index,
+                        bbox_xyxy=(0, 0, 2, 2),
+                        confidence=0.8,
+                        source_view=source_view,
+                    )
+                ]
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [SimpleNamespace(name="model-a.pt", path=checkpoint)],
+            yolo_detector=FakeYoloDetector(),
+        )
+        frames = np.arange(4 * 4 * 4, dtype=np.float32).reshape(4, 4, 4)
+        detections = MolecularDetectionSet(frame_count=4)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(1, 1, 3, 3),
+                    confidence=0.5,
+                    source_view="raw",
+                )
+            ],
+            source_view="raw",
+            frame_shape=(4, 4),
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=frames.copy(),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            active_frame_index=1,
+            molecular_detections=detections,
+        )
+        self.window.set_image_series(series)
+
+        self.assertEqual(self.window.sp_yolo_range_end_frame.minimum(), 2)
+        self.assertEqual(self.window.sp_yolo_range_end_frame.maximum(), 4)
+        self.window.sp_yolo_range_end_frame.setValue(4)
+        self.window.btn_yolo_detect_range.click()
+        self.process_events_until(
+            lambda: (
+                self.window._yolo_detection_thread is None
+                and series.molecular_detections.detection_count == 4
+                and "3 detections" in self.window.statusBar().currentMessage()
+            )
+        )
+
+        self.assertEqual([frame_index for frame_index, _frame in calls], [1, 2, 3])
+        for frame_index, frame in calls:
+            np.testing.assert_array_equal(frame, frames[frame_index])
+        self.assertEqual(len(series.molecular_detections.get_detections(0, source_view="raw")), 1)
+        self.assertEqual(series.active_frame_index, 1)
         self.assertIn("3 detections", self.window.statusBar().currentMessage())
         self.assertIn("3 frames", self.window.statusBar().currentMessage())
 

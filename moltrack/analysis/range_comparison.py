@@ -17,6 +17,8 @@ class MolecularFrameRangeDifferences:
     mean_molecule_count_delta: float
     mean_nearest_neighbor_distance_delta: float | None
     mean_line_order_score_delta: float | None
+    mean_intensity_delta: float | None
+    median_intensity_delta: float | None
 
 
 @dataclass(frozen=True)
@@ -36,6 +38,11 @@ def compare_molecular_frame_ranges(
     selection: MolecularFrameRangeSelection,
     *,
     use_segmentation_centroids: bool = True,
+    intensity_metric: str = "background_corrected_median",
+    intensity_unit: str = "a.u.",
+    background_inner_radius_px: int = 1,
+    background_outer_radius_px: int = 3,
+    progress_callback=None,
 ) -> MolecularFrameRangeComparison:
     """Analyze two selected conditions independently for later comparison."""
 
@@ -45,17 +52,39 @@ def compare_molecular_frame_ranges(
         raise TypeError("selection must be a MolecularFrameRangeSelection instance.")
     if selection.frame_count != series.frame_count:
         raise ValueError("selection frame_count must match the working series.")
+    first_count = len(selection.first_range.frame_indices)
+    second_count = len(selection.second_range.frame_indices)
+    total_count = first_count + second_count
+
+    def first_progress(completed_count, _range_total, frame_index) -> None:
+        if progress_callback is not None:
+            progress_callback(completed_count, total_count, frame_index)
+
+    def second_progress(completed_count, _range_total, frame_index) -> None:
+        if progress_callback is not None:
+            progress_callback(first_count + completed_count, total_count, frame_index)
+
     first_analysis = analyze_molecular_frame_range(
         series,
         selection.first_range,
         source_view=selection.source_view,
         use_segmentation_centroids=use_segmentation_centroids,
+        intensity_metric=intensity_metric,
+        intensity_unit=intensity_unit,
+        background_inner_radius_px=background_inner_radius_px,
+        background_outer_radius_px=background_outer_radius_px,
+        progress_callback=first_progress,
     )
     second_analysis = analyze_molecular_frame_range(
         series,
         selection.second_range,
         source_view=selection.source_view,
         use_segmentation_centroids=use_segmentation_centroids,
+        intensity_metric=intensity_metric,
+        intensity_unit=intensity_unit,
+        background_inner_radius_px=background_inner_radius_px,
+        background_outer_radius_px=background_outer_radius_px,
+        progress_callback=second_progress,
     )
     return MolecularFrameRangeComparison(
         source_view=selection.source_view,
@@ -75,6 +104,14 @@ def compare_molecular_frame_ranges(
             mean_line_order_score_delta=_optional_delta(
                 second_analysis.aggregates.mean_line_order_score,
                 first_analysis.aggregates.mean_line_order_score,
+            ),
+            mean_intensity_delta=_optional_delta(
+                second_analysis.aggregates.mean_intensity,
+                first_analysis.aggregates.mean_intensity,
+            ),
+            median_intensity_delta=_optional_delta(
+                second_analysis.aggregates.median_intensity,
+                first_analysis.aggregates.median_intensity,
             ),
         ),
     )

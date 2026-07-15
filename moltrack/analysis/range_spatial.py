@@ -14,7 +14,9 @@ class MolecularConditionSpatialData:
 
     condition_name: str
     points_xy: tuple[tuple[float, float], ...]
+    intensity_values: tuple[float | None, ...]
     density_grid: tuple[tuple[float, ...], ...]
+    intensity_grid: tuple[tuple[float, ...], ...]
 
 
 @dataclass(frozen=True)
@@ -30,6 +32,9 @@ class MolecularRangeSpatialComparisonData:
     density_y_edges: tuple[float, ...]
     density_value_range: tuple[float, float]
     density_unit: str
+    intensity_value_range: tuple[float, float] | None
+    intensity_metric: str
+    intensity_unit: str
     aggregation_mode: str = "pooled_positions_without_tracking"
 
 
@@ -76,6 +81,17 @@ def build_molecular_range_spatial_comparison_data(
         _maximum_density(first.density_grid),
         _maximum_density(second.density_grid),
     )
+    finite_intensities = tuple(
+        float(value)
+        for condition in (first, second)
+        for value in condition.intensity_values
+        if value is not None and np.isfinite(float(value))
+    )
+    intensity_value_range = (
+        None
+        if not finite_intensities
+        else (min(finite_intensities), max(finite_intensities))
+    )
     return MolecularRangeSpatialComparisonData(
         first=first,
         second=second,
@@ -86,6 +102,9 @@ def build_molecular_range_spatial_comparison_data(
         density_y_edges=tuple(float(value) for value in y_edges),
         density_value_range=(0.0, maximum_density),
         density_unit="molecules_per_frame_per_bin",
+        intensity_value_range=intensity_value_range,
+        intensity_metric=comparison.first_analysis.intensity_metric,
+        intensity_unit=comparison.first_analysis.intensity_unit,
     )
 
 
@@ -100,6 +119,11 @@ def _build_condition_spatial_data(
         for frame_result in analysis.frame_results
         for point in frame_result.plot_data.points_xy
     )
+    intensity_values = tuple(
+        value
+        for frame_result in analysis.frame_results
+        for value in frame_result.plot_data.intensity_values
+    )
     if points_xy:
         points = np.asarray(points_xy, dtype=np.float64)
         counts, _y_edges, _x_edges = np.histogram2d(
@@ -108,12 +132,40 @@ def _build_condition_spatial_data(
             bins=(y_edges, x_edges),
         )
     else:
+        points = np.empty((0, 2), dtype=np.float64)
         counts = np.zeros((len(y_edges) - 1, len(x_edges) - 1), dtype=np.float64)
     density = counts / len(analysis.frame_results)
+    intensity_array = np.asarray(
+        [np.nan if value is None else float(value) for value in intensity_values],
+        dtype=np.float64,
+    )
+    finite = np.isfinite(intensity_array)
+    intensity_sums, _y_edges, _x_edges = np.histogram2d(
+        points[finite, 1],
+        points[finite, 0],
+        bins=(y_edges, x_edges),
+        weights=intensity_array[finite],
+    )
+    intensity_counts, _y_edges, _x_edges = np.histogram2d(
+        points[finite, 1],
+        points[finite, 0],
+        bins=(y_edges, x_edges),
+    )
+    intensity_grid = np.full(intensity_sums.shape, np.nan, dtype=np.float64)
+    np.divide(
+        intensity_sums,
+        intensity_counts,
+        out=intensity_grid,
+        where=intensity_counts > 0.0,
+    )
     return MolecularConditionSpatialData(
         condition_name=analysis.frame_range.name,
         points_xy=points_xy,
+        intensity_values=intensity_values,
         density_grid=tuple(tuple(float(value) for value in row) for row in density),
+        intensity_grid=tuple(
+            tuple(float(value) for value in row) for row in intensity_grid
+        ),
     )
 
 

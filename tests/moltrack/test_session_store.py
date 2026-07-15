@@ -1,10 +1,14 @@
+import base64
 import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
+import zlib
 
 import numpy as np
 
+from moltrack.analysis import build_molecular_intensity_measurements
 from moltrack.core import (
     MolecularDetection,
     MolecularDetectionSet,
@@ -25,6 +29,100 @@ from nanotrack.core import STMSequenceMetadata
 
 
 class MolTrackSessionStoreTests(unittest.TestCase):
+    def test_save_streams_json_without_building_complete_output_string(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"streamed state source")
+            session_path = tmp_path / "streamed.moltrack.json"
+            series = MolTrackImageSeries(
+                source_path=source_path,
+                raw_frames=np.zeros((1, 8, 8), dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+            )
+
+            with patch(
+                "moltrack.persistence.session_store.json.dumps",
+                side_effect=AssertionError("save must not build the complete JSON string"),
+            ):
+                save_moltrack_session(session_path, series)
+
+            payload = json.loads(session_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(payload["schema_version"], 1)
+
+    def test_save_reports_throttled_segmentation_progress(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"progress state source")
+            session_path = tmp_path / "progress.moltrack.json"
+            mask = np.zeros((8, 8), dtype=bool)
+            mask[2:5, 3:6] = True
+            segmentations = MolecularSegmentationSet(frame_count=1)
+            for index in range(3):
+                segmentations.add_segmentation(
+                    MolecularSegmentation(
+                        frame_index=0,
+                        bbox_xyxy=(3, 2, 6, 5),
+                        mask=mask,
+                        original_mask=mask,
+                        origin="sam2",
+                        segmentation_id=f"mask-{index}",
+                    )
+                )
+            series = MolTrackImageSeries(
+                source_path=source_path,
+                raw_frames=np.zeros((1, 8, 8), dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+                molecular_segmentations=segmentations,
+            )
+            progress_events = []
+
+            save_moltrack_session(
+                session_path,
+                series,
+                progress_callback=progress_events.append,
+            )
+
+        segmentation_events = [
+            event for event in progress_events if event.phase == "segmentations"
+        ]
+        self.assertGreaterEqual(len(segmentation_events), 2)
+        self.assertEqual(segmentation_events[0].completed_count, 0)
+        self.assertEqual(segmentation_events[-1].completed_count, 3)
+        self.assertTrue(all(event.total_count == 3 for event in segmentation_events))
+        self.assertEqual(progress_events[-1].phase, "complete")
+
+    def test_failed_streaming_save_preserves_previous_state_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"atomic state source")
+            session_path = tmp_path / "state.moltrack.json"
+            session_path.write_text("previous valid state", encoding="utf-8")
+            series = MolTrackImageSeries(
+                source_path=source_path,
+                raw_frames=np.zeros((1, 8, 8), dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+            )
+
+            def failing_iterencode(_encoder, _payload):
+                yield '{"partial":'
+                raise RuntimeError("simulated streaming failure")
+
+            with (
+                patch.object(json.JSONEncoder, "iterencode", failing_iterencode),
+                self.assertRaisesRegex(RuntimeError, "simulated streaming failure"),
+            ):
+                save_moltrack_session(session_path, series)
+
+            saved_text = session_path.read_text(encoding="utf-8")
+            temporary_files = list(tmp_path.glob(f".{session_path.name}.*.tmp"))
+
+        self.assertEqual(saved_text, "previous valid state")
+        self.assertEqual(temporary_files, [])
+
     def test_load_older_state_without_sam2_backend_configuration(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_path = Path(tmpdir)
@@ -91,8 +189,13 @@ class MolTrackSessionStoreTests(unittest.TestCase):
 
         self.assertEqual(
             segmentation_payload["mask"]["encoding"],
-            "packbits-zlib-base64",
+            "bbox-packbits-zlib-base64",
         )
+        self.assertEqual(segmentation_payload["mask"]["bbox_xyxy"], [100, 30, 160, 70])
+        packed_crop = zlib.decompress(
+            base64.b64decode(segmentation_payload["mask"]["data"])
+        )
+        self.assertEqual(len(packed_crop), (40 * 60 + 7) // 8)
         self.assertEqual(
             segmentation_payload["original_mask"],
             {"encoding": "same-as-mask"},
@@ -142,6 +245,51 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             loaded = load_moltrack_session(session_path)
 
         restored = loaded.molecular_segmentations.get_segmentation("old-rle-mask")
+        np.testing.assert_array_equal(restored.mask, mask)
+        np.testing.assert_array_equal(restored.original_mask, mask)
+
+    def test_load_state_preserves_backward_compatibility_with_full_packbits_masks(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"old packbits source")
+            session_path = tmp_path / "old-packbits.moltrack.json"
+            mask = np.zeros((8, 9), dtype=bool)
+            mask[2:5, 3:7] = True
+            segmentations = MolecularSegmentationSet(frame_count=1)
+            segmentations.add_segmentation(
+                MolecularSegmentation(
+                    frame_index=0,
+                    bbox_xyxy=(3, 2, 7, 5),
+                    mask=mask,
+                    original_mask=mask,
+                    origin="sam2",
+                    segmentation_id="old-packbits-mask",
+                )
+            )
+            series = MolTrackImageSeries(
+                source_path=source_path,
+                raw_frames=np.zeros((1, 8, 9), dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=9, pixels_y=8),
+                molecular_segmentations=segmentations,
+            )
+            save_moltrack_session(session_path, series)
+            payload = json.loads(session_path.read_text(encoding="utf-8"))
+            packed = np.packbits(mask.ravel(order="C"), bitorder="little")
+            payload["molecular_segmentations"]["segmentations"][0]["mask"] = {
+                "encoding": "packbits-zlib-base64",
+                "shape": [8, 9],
+                "data": base64.b64encode(
+                    zlib.compress(packed.tobytes(), level=1)
+                ).decode("ascii"),
+            }
+            session_path.write_text(json.dumps(payload), encoding="utf-8")
+
+            loaded = load_moltrack_session(session_path)
+
+        restored = loaded.molecular_segmentations.get_segmentation(
+            "old-packbits-mask"
+        )
         np.testing.assert_array_equal(restored.mask, mask)
         np.testing.assert_array_equal(restored.original_mask, mask)
 
@@ -223,6 +371,7 @@ class MolTrackSessionStoreTests(unittest.TestCase):
                 series,
                 {
                     "registration_view_mode": "Show expanded aligned",
+                    "bbox_overlay_visible": False,
                     "mask_opacity_percent": 42,
                 },
             )
@@ -235,6 +384,7 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             self.assertEqual(payload["working_series"]["active_frame_index"], 1)
             self.assertFalse(payload["working_series"]["reverse_frame_order"])
             self.assertEqual(payload["ui"]["registration_view_mode"], "Show expanded aligned")
+            self.assertFalse(payload["ui"]["bbox_overlay_visible"])
             self.assertEqual(payload["ui"]["mask_opacity_percent"], 42)
             self.assertEqual(payload["registration"]["settings"]["backend"], "optical_flow_median")
             self.assertEqual(payload["registration"]["settings"]["backend_params"]["method"], "ilk")
@@ -268,6 +418,7 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             self.assertEqual(loaded.active_frame_index, 1)
             self.assertFalse(loaded.reverse_frame_order)
             self.assertEqual(loaded.registration_view_mode, "Show expanded aligned")
+            self.assertFalse(loaded.bbox_overlay_visible)
             self.assertEqual(loaded.mask_opacity_percent, 42)
             self.assertEqual(loaded.registration_settings.backend, "optical_flow_median")
             self.assertEqual(loaded.registration_settings.backend_params["method"], "ilk")
@@ -344,6 +495,235 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             self.assertEqual(loaded.position_analysis.active_tab, "Spatial comparison")
             self.assertEqual(loaded.position_analysis.density_grid_shape, (24, 32))
             self.assertFalse(loaded.position_analysis.use_segmentation_centroids)
+            self.assertEqual(
+                loaded.position_analysis.intensity_metric,
+                "background_corrected_median",
+            )
+            self.assertTrue(loaded.position_analysis.color_points_by_intensity)
+            self.assertEqual(loaded.position_analysis.background_inner_radius_px, 1)
+            self.assertEqual(loaded.position_analysis.background_outer_radius_px, 3)
+            self.assertTrue(loaded.position_analysis.shared_intensity_scale)
+
+    def test_position_analysis_intensity_settings_round_trip_through_session_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"fake mpp bytes")
+            session_path = tmp_path / "state.moltrack.json"
+            series = MolTrackImageSeries(
+                source_path=str(source_path),
+                raw_frames=np.zeros((2, 4, 4), dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            )
+
+            save_moltrack_session(
+                session_path,
+                series,
+                {
+                    "position_analysis": {
+                        "source_view": "raw",
+                        "first_range": {"name": "before", "start_frame": 0, "end_frame": 0},
+                        "second_range": {"name": "after", "start_frame": 1, "end_frame": 1},
+                        "intensity_metric": "max",
+                        "color_points_by_intensity": False,
+                        "background_inner_radius_px": 2,
+                        "background_outer_radius_px": 5,
+                        "shared_intensity_scale": True,
+                    }
+                },
+            )
+
+            payload = json.loads(session_path.read_text(encoding="utf-8"))
+            loaded = load_moltrack_session(session_path)
+
+            self.assertEqual(payload["position_analysis"]["intensity_metric"], "max")
+            self.assertFalse(payload["position_analysis"]["color_points_by_intensity"])
+            self.assertEqual(payload["position_analysis"]["background_inner_radius_px"], 2)
+            self.assertEqual(payload["position_analysis"]["background_outer_radius_px"], 5)
+            self.assertTrue(payload["position_analysis"]["shared_intensity_scale"])
+            self.assertEqual(loaded.position_analysis.intensity_metric, "max")
+            self.assertFalse(loaded.position_analysis.color_points_by_intensity)
+            self.assertEqual(loaded.position_analysis.background_inner_radius_px, 2)
+            self.assertEqual(loaded.position_analysis.background_outer_radius_px, 5)
+            self.assertTrue(loaded.position_analysis.shared_intensity_scale)
+
+    def test_intensity_cache_round_trip_restores_numeric_record_without_mask_payload(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"fake mpp bytes")
+            session_path = tmp_path / "state.moltrack.json"
+            frame = np.arange(64, dtype=np.float32).reshape(8, 8)
+            detections = MolecularDetectionSet(frame_count=1)
+            detections.set_detections(
+                0,
+                [MolecularDetection(0, (2, 2, 4, 4), 0.9, detection_id="bbox-a")],
+                source_view="raw",
+                frame_shape=frame.shape,
+            )
+            series = MolTrackImageSeries(
+                source_path=str(source_path),
+                raw_frames=frame[np.newaxis, ...],
+                metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+                molecular_detections=detections,
+            )
+            original = build_molecular_intensity_measurements(
+                series,
+                background_inner_radius_px=0,
+                background_outer_radius_px=2,
+            )[0]
+
+            save_moltrack_session(session_path, series)
+            payload = json.loads(session_path.read_text(encoding="utf-8"))
+            loaded = load_moltrack_session(session_path)
+            restored = restore_moltrack_image_series_from_session(
+                loaded,
+                series_loader=lambda *_args, **_kwargs: MolTrackImageSeries(
+                    source_path=str(source_path),
+                    raw_frames=frame[np.newaxis, ...].copy(),
+                    metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+                ),
+            )
+            restored_measurement = build_molecular_intensity_measurements(
+                restored,
+                background_inner_radius_px=0,
+                background_outer_radius_px=2,
+            )[0]
+
+            cache_payload = payload["molecular_intensity_cache"]
+            self.assertEqual(len(cache_payload), 1)
+            self.assertNotIn("mask", cache_payload[0])
+            self.assertEqual(cache_payload[0]["source_id"], "bbox-a")
+            self.assertEqual(restored_measurement, original)
+            stats = restored.molecular_intensity_cache.stats()
+            self.assertEqual(stats.hit_count, 1)
+            self.assertEqual(stats.miss_count, 0)
+
+    def test_restored_intensity_cache_rejects_record_after_bbox_change(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"fake mpp bytes")
+            session_path = tmp_path / "state.moltrack.json"
+            frame = np.zeros((8, 8), dtype=np.float32)
+            frame[1:3, 1:3] = 2.0
+            frame[4:6, 4:6] = 9.0
+            detections = MolecularDetectionSet(frame_count=1)
+            detections.set_detections(
+                0,
+                [MolecularDetection(0, (1, 1, 3, 3), 0.9, detection_id="bbox-a")],
+                source_view="raw",
+                frame_shape=frame.shape,
+            )
+            series = MolTrackImageSeries(
+                source_path=str(source_path),
+                raw_frames=frame[np.newaxis, ...],
+                metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+                molecular_detections=detections,
+            )
+            build_molecular_intensity_measurements(series)
+            save_moltrack_session(session_path, series)
+            loaded = load_moltrack_session(session_path)
+            loaded.molecular_detections.update_detection_bbox(
+                "bbox-a",
+                (4, 4, 6, 6),
+                frame_shape=frame.shape,
+            )
+            restored = restore_moltrack_image_series_from_session(
+                loaded,
+                series_loader=lambda *_args, **_kwargs: MolTrackImageSeries(
+                    source_path=str(source_path),
+                    raw_frames=frame[np.newaxis, ...].copy(),
+                    metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+                ),
+            )
+
+            measurement = build_molecular_intensity_measurements(restored)[0]
+
+            self.assertEqual(measurement.mean, 9.0)
+            stats = restored.molecular_intensity_cache.stats()
+            self.assertEqual(stats.hit_count, 0)
+            self.assertEqual(stats.miss_count, 1)
+
+    def test_save_does_not_relabel_stale_intensity_measurement_after_bbox_change(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"fake mpp bytes")
+            session_path = tmp_path / "state.moltrack.json"
+            frame = np.zeros((8, 8), dtype=np.float32)
+            frame[1:3, 1:3] = 2.0
+            frame[4:6, 4:6] = 9.0
+            detections = MolecularDetectionSet(frame_count=1)
+            detections.set_detections(
+                0,
+                [MolecularDetection(0, (1, 1, 3, 3), 0.9, detection_id="bbox-a")],
+                source_view="raw",
+                frame_shape=frame.shape,
+            )
+            series = MolTrackImageSeries(
+                source_path=str(source_path),
+                raw_frames=frame[np.newaxis, ...],
+                metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+                molecular_detections=detections,
+            )
+            build_molecular_intensity_measurements(series)
+            detections.update_detection_bbox(
+                "bbox-a",
+                (4, 4, 6, 6),
+                frame_shape=frame.shape,
+            )
+
+            save_moltrack_session(session_path, series)
+
+            payload = json.loads(session_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["molecular_intensity_cache"], [])
+
+    def test_restored_intensity_cache_rejects_record_for_different_background_radii(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            source_path = tmp_path / "movie.mpp"
+            source_path.write_bytes(b"fake mpp bytes")
+            session_path = tmp_path / "state.moltrack.json"
+            frame = np.arange(64, dtype=np.float32).reshape(8, 8)
+            detections = MolecularDetectionSet(frame_count=1)
+            detections.set_detections(
+                0,
+                [MolecularDetection(0, (2, 2, 4, 4), 0.9, detection_id="bbox-a")],
+                source_view="raw",
+                frame_shape=frame.shape,
+            )
+            series = MolTrackImageSeries(
+                source_path=str(source_path),
+                raw_frames=frame[np.newaxis, ...],
+                metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+                molecular_detections=detections,
+            )
+            build_molecular_intensity_measurements(
+                series,
+                background_inner_radius_px=0,
+                background_outer_radius_px=2,
+            )
+            save_moltrack_session(session_path, series)
+            loaded = load_moltrack_session(session_path)
+            restored = restore_moltrack_image_series_from_session(
+                loaded,
+                series_loader=lambda *_args, **_kwargs: MolTrackImageSeries(
+                    source_path=str(source_path),
+                    raw_frames=frame[np.newaxis, ...].copy(),
+                    metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+                ),
+            )
+
+            build_molecular_intensity_measurements(
+                restored,
+                background_inner_radius_px=0,
+                background_outer_radius_px=3,
+            )
+
+            stats = restored.molecular_intensity_cache.stats()
+            self.assertEqual(stats.hit_count, 0)
+            self.assertEqual(stats.miss_count, 1)
 
     def test_load_session_rejects_missing_or_changed_source_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -530,12 +910,12 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             self.assertEqual(segmentation_payload["prompt_detection_ids"], ["bbox-1"])
             self.assertEqual(
                 segmentation_payload["mask"]["encoding"],
-                "packbits-zlib-base64",
+                "bbox-packbits-zlib-base64",
             )
             self.assertEqual(segmentation_payload["mask"]["shape"], [4, 5])
             self.assertEqual(
                 segmentation_payload["original_mask"]["encoding"],
-                "packbits-zlib-base64",
+                "bbox-packbits-zlib-base64",
             )
             self.assertEqual(segmentation_payload["original_mask"]["shape"], [4, 5])
             self.assertNotEqual(
