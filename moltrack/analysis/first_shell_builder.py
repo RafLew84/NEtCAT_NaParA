@@ -12,6 +12,7 @@ from ._first_shell_deduplication import (
     _normalize_point_quality,
 )
 from ._first_shell_filtering import _FirstShellDistancePolicy
+from ._coordinate_fingerprint import point_coordinate_fingerprint
 from .first_shell_graph import FirstShellGraph
 from .m6_settings import MolecularM6OrientationAnalysisSettings
 
@@ -226,6 +227,7 @@ def _make_graph(
         orientation_reference=orientation_reference,
         spatial_calibration_fingerprint=spatial_calibration_fingerprint,
         registration_fingerprint=registration_fingerprint,
+        point_coordinate_fingerprint=point_coordinate_fingerprint(points, point_ids),
         construction_method=construction_method,
         qc_status=qc_status,
         duplicate_detection_enabled=settings.duplicate_detection_enabled,

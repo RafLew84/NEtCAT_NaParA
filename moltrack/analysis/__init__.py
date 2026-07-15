@@ -11,6 +11,7 @@ from .intensity import (
     restore_molecular_intensity_cache_records,
 )
 from .m6_settings import MolecularM6OrientationAnalysisSettings
+from .pair_correlation import PairCorrelationResult, compute_pair_correlation
 from .nearest_neighbors import (
     NEAREST_NEIGHBOR_ANGLE_BIN_EDGES_DEGREES,
     MolecularNearestNeighborAngleMetrics,
@@ -55,6 +56,7 @@ __all__ = [
     "MolecularIntensityCacheStats",
     "MolecularIntensityMeasurementCache",
     "MolecularM6OrientationAnalysisSettings",
+    "PairCorrelationResult",
     "MolecularFrameAnalysisResult",
     "MolecularNearestNeighborAngleMetrics",
     "MolecularNearestNeighborMetrics",
@@ -72,6 +74,7 @@ __all__ = [
     "compare_molecular_frame_ranges",
     "compute_molecular_nearest_neighbor_angle_metrics",
     "compute_molecular_nearest_neighbor_metrics",
+    "compute_pair_correlation",
     "measure_molecular_intensity",
     "restore_molecular_intensity_cache_records",
 ]

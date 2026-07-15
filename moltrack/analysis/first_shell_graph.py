@@ -49,6 +49,7 @@ class FirstShellGraph:
     orientation_reference: OrientationReference
     spatial_calibration_fingerprint: str
     registration_fingerprint: str
+    point_coordinate_fingerprint: str
     construction_method: FirstShellConstructionMethod
     qc_status: str
     duplicate_detection_enabled: bool = True
@@ -106,6 +107,10 @@ class FirstShellGraph:
         registration_fingerprint = _non_empty_string(
             self.registration_fingerprint,
             "registration_fingerprint",
+        )
+        coordinate_fingerprint = _non_empty_string(
+            self.point_coordinate_fingerprint,
+            "point_coordinate_fingerprint",
         )
         construction_method = _non_empty_string(
             self.construction_method,
@@ -349,6 +354,7 @@ class FirstShellGraph:
         object.__setattr__(self, "orientation_reference", orientation_reference)
         object.__setattr__(self, "spatial_calibration_fingerprint", calibration_fingerprint)
         object.__setattr__(self, "registration_fingerprint", registration_fingerprint)
+        object.__setattr__(self, "point_coordinate_fingerprint", coordinate_fingerprint)
         object.__setattr__(self, "construction_method", construction_method)
         object.__setattr__(self, "qc_status", qc_status)
         object.__setattr__(
