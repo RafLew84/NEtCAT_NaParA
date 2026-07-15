@@ -9,6 +9,7 @@ import numpy as np
 from scipy.spatial.distance import pdist
 
 from ._coordinate_fingerprint import point_coordinate_fingerprint
+from ._pair_correlation_binning import pair_correlation_bin_edges
 from .first_shell_graph import FirstShellGraph
 from .m6_settings import MolecularM6OrientationAnalysisSettings
 from ._pair_correlation_windows import (
@@ -286,7 +287,7 @@ def compute_pair_correlation(
     geometry = str(window_geometry).strip().lower()
     if geometry not in ("rectangular", "irregular"):
         raise ValueError(f"Unsupported window_geometry: {window_geometry!r}.")
-    edges = _bin_edges(settings.gr_bin_width_nm, settings.gr_max_nm)
+    edges = pair_correlation_bin_edges(settings.gr_bin_width_nm, settings.gr_max_nm)
     distances = (
         pdist(representative_points, metric="euclidean")
         if len(representative_points) > 1
@@ -403,16 +404,6 @@ def _build_result(
         point_coordinate_fingerprint=context.point_coordinate_fingerprint,
         window_origin_nm=context.window_origin_nm,
     )
-
-
-def _bin_edges(bin_width_nm: float, maximum_nm: float) -> tuple[float, ...]:
-    full_bin_count = int(np.floor(maximum_nm / bin_width_nm))
-    edges = [float(index * bin_width_nm) for index in range(full_bin_count + 1)]
-    if not np.isclose(edges[-1], maximum_nm, rtol=1e-12, atol=1e-12):
-        edges.append(float(maximum_nm))
-    else:
-        edges[-1] = float(maximum_nm)
-    return tuple(edges)
 
 
 def _normalize_window_size(
