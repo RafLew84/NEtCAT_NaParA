@@ -1,4 +1,5 @@
 from .frame_ranges import MolecularFrameRange, MolecularFrameRangeSelection
+from .first_shell_graph import FirstShellGraph
 from .intensity import (
     MolecularIntensityCacheStats,
     MolecularIntensityMeasurement,
@@ -41,6 +42,7 @@ from .range_analysis import (
 
 __all__ = [
     "NEAREST_NEIGHBOR_ANGLE_BIN_EDGES_DEGREES",
+    "FirstShellGraph",
     "MolecularFrameRange",
     "MolecularFrameRangeAggregates",
     "MolecularFrameRangeAnalysis",
