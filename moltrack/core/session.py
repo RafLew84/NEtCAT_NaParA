@@ -18,7 +18,12 @@ if TYPE_CHECKING:
 MOLTRACK_SESSION_SCHEMA_VERSION = 1
 SUPPORTED_SESSION_REGISTRATION_VIEW_MODES = ("Show raw", "Show expanded aligned")
 SUPPORTED_POSITION_ANALYSIS_SOURCE_VIEWS = ("raw", "expanded_aligned")
-SUPPORTED_POSITION_ANALYSIS_TABS = ("Current frame", "Range trends", "Spatial comparison")
+SUPPORTED_POSITION_ANALYSIS_TABS = (
+    "Current frame",
+    "Range trends",
+    "Spatial comparison",
+    "Sixfold Bond Order",
+)
 SUPPORTED_POSITION_ANALYSIS_INTENSITY_METRICS = (
     "background_corrected_median",
     "background_corrected_mean",

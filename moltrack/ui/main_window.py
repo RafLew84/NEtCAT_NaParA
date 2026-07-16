@@ -33,11 +33,16 @@ from PyQt6.QtWidgets import (
 )
 
 from moltrack.analysis import (
+    MolecularM6OrientationAnalysisSettings,
+    MolecularM6SessionState,
+    MolecularM6ViewSettings,
     MolecularFrameRange,
     MolecularFrameRangeSelection,
+    aggregate_pair_correlation_results,
     build_molecular_intensity_measurements,
     build_molecular_position_plot_data,
     compare_molecular_frame_ranges,
+    suggest_shared_first_shell_r_max,
 )
 from moltrack.core import (
     MolecularDetectionSet,
@@ -215,6 +220,68 @@ class _AnalysisExportWorker(QObject):
             self.failed.emit(str(exc) or exc.__class__.__name__)
             return
         self.finished.emit(result)
+
+
+@dataclass(frozen=True)
+class _M6AnalysisProgress:
+    completed_count: int
+    total_count: int
+    frame_index: int
+
+
+class _M6PositionAnalysisWorker(QObject):
+    progress = pyqtSignal(object)
+    finished = pyqtSignal(object)
+    failed = pyqtSignal(str)
+
+    def __init__(
+        self,
+        comparator,
+        series,
+        selection,
+        *,
+        use_segmentation_centroids: bool,
+        intensity_metric: str,
+        background_inner_radius_px: int,
+        background_outer_radius_px: int,
+        settings: MolecularM6OrientationAnalysisSettings,
+    ) -> None:
+        super().__init__()
+        self._comparator = comparator
+        self._series = series
+        self._selection = selection
+        self._use_segmentation_centroids = bool(use_segmentation_centroids)
+        self._intensity_metric = str(intensity_metric)
+        self._background_inner_radius_px = int(background_inner_radius_px)
+        self._background_outer_radius_px = int(background_outer_radius_px)
+        self._settings = settings
+
+    @pyqtSlot()
+    def run(self) -> None:
+        def report_progress(completed_count, total_count, frame_index) -> None:
+            self.progress.emit(
+                _M6AnalysisProgress(
+                    completed_count=int(completed_count),
+                    total_count=int(total_count),
+                    frame_index=int(frame_index),
+                )
+            )
+
+        try:
+            comparison = self._comparator(
+                self._series,
+                self._selection,
+                use_segmentation_centroids=self._use_segmentation_centroids,
+                intensity_metric=self._intensity_metric,
+                background_inner_radius_px=self._background_inner_radius_px,
+                background_outer_radius_px=self._background_outer_radius_px,
+                progress_callback=report_progress,
+                m6_orientation_settings=self._settings,
+            )
+        except Exception as exc:
+            self.failed.emit(str(exc) or exc.__class__.__name__)
+            return
+        self.finished.emit(comparison)
 
 
 class _YoloDetectFramesWorker(QObject):
@@ -839,6 +906,7 @@ class MolTrackMainWindow(QMainWindow):
         sam3_adapter=None,
         analysis_export_dialog_factory=None,
         analysis_exporter=None,
+        position_range_comparator=compare_molecular_frame_ranges,
     ):
         super().__init__(parent)
         self._series = None
@@ -884,6 +952,18 @@ class MolTrackMainWindow(QMainWindow):
         self._analysis_export_progress_dialog: QProgressDialog | None = None
         self._analysis_export_thread: QThread | None = None
         self._analysis_export_worker: _AnalysisExportWorker | None = None
+        self._position_range_comparator = position_range_comparator
+        self._m6_analysis_running = False
+        self._m6_analysis_thread: QThread | None = None
+        self._m6_analysis_worker: _M6PositionAnalysisWorker | None = None
+        self._m6_analysis_series = None
+        self._m6_pending_context = None
+        self._m6_completed_context = None
+        self._m6_pending_session_state: MolecularM6SessionState | None = None
+        self._m6_enable_on_success = True
+        self._m6_suggestion_after_analysis = False
+        self._m6_target_tab = "Sixfold Bond Order"
+        self._m6_density_grid_shape = (32, 32)
         self._yolo_models = []
         self._sam2_checkpoints = []
         self._selected_sam2_checkpoint_path = None
@@ -1355,6 +1435,12 @@ class MolTrackMainWindow(QMainWindow):
         self.viewer.manual_molecular_mask_brush_dragged.connect(self._on_manual_mask_brush_dragged)
 
     def set_image_series(self, series) -> None:
+        if self._position_analysis_dialog is not None:
+            previous_dialog = self._position_analysis_dialog
+            self._position_analysis_dialog = None
+            previous_dialog.close()
+            previous_dialog.deleteLater()
+        self._m6_completed_context = None
         self._clear_sam3_prompt_draw_mode()
         self._sam3_manual_positive_bboxes_by_context.clear()
         self._sam3_manual_negative_bboxes_by_context.clear()
@@ -1363,6 +1449,16 @@ class MolTrackMainWindow(QMainWindow):
         self._sync_navigation_controls()
         self.viewer.set_image_series(series)
         self.metadata_panel.set_image_series(series)
+
+    def closeEvent(self, event) -> None:
+        if self._is_processing():
+            self.statusBar().showMessage(
+                "Wait for the active operation to finish before closing.",
+                0,
+            )
+            event.ignore()
+            return
+        super().closeEvent(event)
 
     def open_stm_source(self, source_path, *, reverse_frame_order: bool = False) -> None:
         series = self._series_loader(source_path, reverse_frame_order=reverse_frame_order)
@@ -2325,6 +2421,7 @@ class MolTrackMainWindow(QMainWindow):
             or self._sam2_segmentation_running
             or self._sam3_concept_running
             or self._analysis_export_running
+            or self._m6_analysis_running
         )
 
     def _yolo_model_display_name(self, model) -> str:
@@ -2693,7 +2790,11 @@ class MolTrackMainWindow(QMainWindow):
             return
         if self._position_analysis_dialog is None:
             dialog = PositionAnalysisDialog(self)
-            dialog.destroyed.connect(self._on_position_analysis_dialog_destroyed)
+            dialog.destroyed.connect(
+                lambda _object=None, expected=dialog: (
+                    self._on_position_analysis_dialog_destroyed(expected)
+                )
+            )
             dialog.compare_ranges_requested.connect(self._on_position_range_comparison_requested)
             dialog.centroid_source_mode_changed.connect(
                 self._on_position_analysis_centroid_source_mode_changed
@@ -2707,7 +2808,16 @@ class MolTrackMainWindow(QMainWindow):
             dialog.export_analysis_requested.connect(
                 self._on_position_analysis_export_requested
             )
+            dialog.m6_analysis_requested.connect(
+                self._on_m6_analysis_requested
+            )
+            dialog.m6_first_shell_suggestion_requested.connect(
+                self._on_m6_first_shell_suggestion_requested
+            )
             self._position_analysis_dialog = dialog
+            state = getattr(self._series, "m6_analysis_state", None)
+            if isinstance(state, MolecularM6SessionState):
+                dialog.set_m6_analysis_settings(state.settings)
         plot_data = self._build_current_position_plot_data()
         self._position_analysis_dialog.configure_frame_ranges(
             frame_count=self._series.frame_count,
@@ -2718,8 +2828,238 @@ class MolTrackMainWindow(QMainWindow):
         self._position_analysis_dialog.raise_()
         self._position_analysis_dialog.activateWindow()
 
-    def _on_position_analysis_dialog_destroyed(self, _object=None) -> None:
-        self._position_analysis_dialog = None
+    def _on_position_analysis_dialog_destroyed(self, expected_dialog=None) -> None:
+        if self._position_analysis_dialog is expected_dialog:
+            self._position_analysis_dialog = None
+
+    def _on_m6_analysis_requested(self, settings) -> None:
+        self._start_m6_analysis(settings, enable_on_success=True)
+
+    def _start_m6_analysis(
+        self,
+        settings,
+        *,
+        enable_on_success: bool,
+        density_grid_shape: tuple[int, int] | None = None,
+        allow_during_state_open: bool = False,
+    ) -> None:
+        dialog = self._position_analysis_dialog
+        series = self._series
+        if (
+            dialog is None
+            or series is None
+            or self._m6_analysis_running
+            or (
+                self._is_processing()
+                and not (
+                    allow_during_state_open
+                    and self._state_io_running
+                    and self._state_io_operation == "open"
+                )
+            )
+            or not isinstance(settings, MolecularM6OrientationAnalysisSettings)
+        ):
+            return
+        if not dialog.has_valid_frame_range_selection():
+            return
+        inner_radius, outer_radius = dialog.intensity_background_radii()
+        selection = dialog.frame_range_selection()
+        use_segmentation_centroids = dialog.use_segmentation_centroids()
+        previous_state = getattr(series, "m6_analysis_state", None)
+        view_settings = (
+            previous_state.view_settings
+            if isinstance(previous_state, MolecularM6SessionState)
+            else MolecularM6ViewSettings()
+        )
+        self._m6_pending_session_state = MolecularM6SessionState(
+            enabled=True,
+            source_view=selection.source_view,
+            use_segmentation_centroids=use_segmentation_centroids,
+            settings=settings,
+            view_settings=view_settings,
+        )
+        self._m6_enable_on_success = bool(enable_on_success)
+        self._m6_target_tab = dialog.active_analysis_tab()
+        self._m6_density_grid_shape = (
+            dialog.density_grid_shape()
+            if density_grid_shape is None
+            else tuple(density_grid_shape)
+        )
+        self._m6_pending_context = (
+            selection,
+            use_segmentation_centroids,
+            settings,
+        )
+        self._m6_analysis_running = True
+        dialog.set_m6_analysis_running(True)
+        self._sync_navigation_controls()
+        self.statusBar().showMessage("Running M6 orientation analysis...", 0)
+
+        thread = QThread(self)
+        worker = _M6PositionAnalysisWorker(
+            self._position_range_comparator,
+            series,
+            selection,
+            use_segmentation_centroids=use_segmentation_centroids,
+            intensity_metric=dialog.intensity_metric(),
+            background_inner_radius_px=inner_radius,
+            background_outer_radius_px=outer_radius,
+            settings=settings,
+        )
+        self._m6_analysis_thread = thread
+        self._m6_analysis_worker = worker
+        self._m6_analysis_series = series
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.progress.connect(self._on_m6_analysis_progress)
+        worker.finished.connect(self._on_m6_analysis_finished)
+        worker.failed.connect(self._on_m6_analysis_failed)
+        worker.finished.connect(worker.deleteLater)
+        worker.failed.connect(worker.deleteLater)
+        worker.finished.connect(thread.quit)
+        worker.failed.connect(thread.quit)
+        thread.finished.connect(self._cleanup_m6_analysis_worker)
+        thread.start()
+
+    @pyqtSlot(object)
+    def _on_m6_analysis_progress(self, progress) -> None:
+        dialog = self._position_analysis_dialog
+        if dialog is None:
+            return
+        dialog.set_m6_analysis_progress(
+            int(getattr(progress, "completed_count", 0)),
+            int(getattr(progress, "total_count", 0)),
+            int(getattr(progress, "frame_index", 0)),
+        )
+
+    @pyqtSlot(object)
+    def _on_m6_analysis_finished(self, comparison) -> None:
+        dialog = self._position_analysis_dialog
+        if self._m6_pending_context is not None:
+            self._m6_completed_context = (
+                comparison,
+                *self._m6_pending_context,
+            )
+        if (
+            self._m6_enable_on_success
+            and self._series is self._m6_analysis_series
+            and self._m6_pending_session_state is not None
+        ):
+            self._series.m6_analysis_state = self._m6_pending_session_state
+        if dialog is not None:
+            dialog.set_range_comparison(
+                comparison,
+                density_grid_shape=self._m6_density_grid_shape,
+            )
+            dialog.activate_analysis_tab(self._m6_target_tab)
+            if self._m6_suggestion_after_analysis:
+                self._m6_suggestion_after_analysis = False
+                self._set_m6_first_shell_suggestion_from_comparison(
+                    dialog,
+                    comparison,
+                    self._m6_pending_session_state.settings,
+                )
+        self.statusBar().showMessage("M6 orientation analysis complete", 5000)
+
+    @pyqtSlot(str)
+    def _on_m6_analysis_failed(self, message: str) -> None:
+        self._m6_suggestion_after_analysis = False
+        self.statusBar().showMessage(f"M6 orientation analysis failed: {message}", 5000)
+        QMessageBox.critical(self, "M6 orientation analysis error", message)
+
+    def _cleanup_m6_analysis_worker(self) -> None:
+        self._m6_analysis_worker = None
+        if self._m6_analysis_thread is not None:
+            self._m6_analysis_thread.deleteLater()
+            self._m6_analysis_thread = None
+        self._m6_analysis_running = False
+        self._m6_pending_session_state = None
+        self._m6_analysis_series = None
+        self._m6_pending_context = None
+        if self._position_analysis_dialog is not None:
+            self._position_analysis_dialog.set_m6_analysis_running(False)
+        self._sync_navigation_controls()
+
+    def _on_m6_first_shell_suggestion_requested(self, settings) -> None:
+        dialog = self._position_analysis_dialog
+        if dialog is None or not isinstance(
+            settings,
+            MolecularM6OrientationAnalysisSettings,
+        ):
+            return
+        comparison = dialog.range_comparison()
+        if not self._comparison_has_m6_results(dialog, comparison, settings):
+            dialog.set_m6_suggestion_unavailable(
+                "Calculating g(r) before proposing first-shell r_max..."
+            )
+            self._m6_suggestion_after_analysis = True
+            self._start_m6_analysis(settings, enable_on_success=False)
+            return
+        self._set_m6_first_shell_suggestion_from_comparison(
+            dialog,
+            comparison,
+            settings,
+        )
+
+    def _set_m6_first_shell_suggestion_from_comparison(
+        self,
+        dialog,
+        comparison,
+        settings: MolecularM6OrientationAnalysisSettings,
+    ) -> None:
+        try:
+            first_pair_results = tuple(
+                frame.m6_orientation_analysis.pair_correlation
+                for frame in comparison.first_analysis.frame_results
+                if frame.m6_orientation_analysis is not None
+            )
+            second_pair_results = tuple(
+                frame.m6_orientation_analysis.pair_correlation
+                for frame in comparison.second_analysis.frame_results
+                if frame.m6_orientation_analysis is not None
+            )
+            first_pair_correlation = aggregate_pair_correlation_results(
+                first_pair_results,
+                frame_range=comparison.first_analysis.frame_range,
+                settings=settings,
+            )
+            second_pair_correlation = aggregate_pair_correlation_results(
+                second_pair_results,
+                frame_range=comparison.second_analysis.frame_range,
+                settings=settings,
+            )
+            suggestion = suggest_shared_first_shell_r_max(
+                first_pair_correlation,
+                second_pair_correlation,
+                settings=settings,
+            )
+        except (TypeError, ValueError) as exc:
+            dialog.set_m6_suggestion_unavailable(str(exc))
+            return
+        dialog.set_m6_first_shell_suggestion(suggestion)
+
+    def _comparison_has_m6_results(self, dialog, comparison, settings) -> bool:
+        if comparison is None or self._m6_completed_context is None:
+            return False
+        completed_comparison, selection, centroid_mode, completed_settings = (
+            self._m6_completed_context
+        )
+        if (
+            comparison is not completed_comparison
+            or dialog.frame_range_selection() != selection
+            or dialog.use_segmentation_centroids() != centroid_mode
+            or settings != completed_settings
+        ):
+            return False
+        frame_results = (
+            tuple(comparison.first_analysis.frame_results)
+            + tuple(comparison.second_analysis.frame_results)
+        )
+        return bool(frame_results) and all(
+            frame.m6_orientation_analysis is not None
+            and frame.m6_orientation_analysis.settings == settings
+            for frame in frame_results
+        )
 
     def _on_position_analysis_export_requested(self) -> None:
         series = self._series
@@ -4185,6 +4525,13 @@ class MolTrackMainWindow(QMainWindow):
     def _start_save_state(self, path) -> None:
         if self._series is None or self._state_io_running:
             return
+        try:
+            ui_state = self._current_ui_state()
+        except Exception as exc:
+            message = str(exc) or exc.__class__.__name__
+            self.statusBar().showMessage(f"Save State failed: {message}", 5000)
+            QMessageBox.critical(self, "Save State failed", message)
+            return
         self._state_io_running = True
         self._state_io_operation = "save"
         self._state_io_path = str(path)
@@ -4200,7 +4547,7 @@ class MolTrackMainWindow(QMainWindow):
             self._session_saver,
             path,
             self._series,
-            self._current_ui_state(),
+            ui_state,
         )
         self._state_io_thread = thread
         self._state_io_worker = worker
@@ -4235,7 +4582,11 @@ class MolTrackMainWindow(QMainWindow):
             "mask_opacity_percent": self.slider_mask_opacity.value(),
         }
         dialog = self._position_analysis_dialog
-        if dialog is not None and dialog.has_valid_frame_range_selection():
+        if dialog is not None and not dialog.has_valid_frame_range_selection():
+            raise ValueError(
+                "Position Analysis frame ranges must be valid before saving state."
+            )
+        if dialog is not None:
             selection = dialog.frame_range_selection()
             ui_state["position_analysis"] = {
                 "source_view": selection.source_view,
@@ -4259,6 +4610,34 @@ class MolTrackMainWindow(QMainWindow):
                 "background_outer_radius_px": dialog.intensity_background_radii()[1],
                 "shared_intensity_scale": dialog.shared_intensity_scale_enabled(),
             }
+            previous_m6_state = (
+                None
+                if self._series is None
+                else getattr(self._series, "m6_analysis_state", None)
+            )
+            current_m6_settings = dialog.m6_analysis_settings()
+            current_centroid_mode = dialog.use_segmentation_centroids()
+            ui_state["molecular_m6_analysis"] = MolecularM6SessionState(
+                enabled=(
+                    previous_m6_state.enabled
+                    if isinstance(previous_m6_state, MolecularM6SessionState)
+                    and previous_m6_state.settings == current_m6_settings
+                    and previous_m6_state.source_view == selection.source_view
+                    and (
+                        previous_m6_state.use_segmentation_centroids
+                        == current_centroid_mode
+                    )
+                    else False
+                ),
+                source_view=selection.source_view,
+                use_segmentation_centroids=current_centroid_mode,
+                settings=current_m6_settings,
+                view_settings=(
+                    previous_m6_state.view_settings
+                    if isinstance(previous_m6_state, MolecularM6SessionState)
+                    else MolecularM6ViewSettings()
+                ),
+            )
         return ui_state
 
     def _choose_and_open_state(self) -> None:
@@ -4458,6 +4837,20 @@ class MolTrackMainWindow(QMainWindow):
             ),
         )
         dialog.apply_frame_range_selection(selection)
+        m6_state = getattr(self._series, "m6_analysis_state", None)
+        if (
+            state.comparison_completed
+            and isinstance(m6_state, MolecularM6SessionState)
+            and m6_state.enabled
+        ):
+            dialog.activate_analysis_tab(state.active_tab)
+            self._start_m6_analysis(
+                m6_state.settings,
+                enable_on_success=True,
+                density_grid_shape=state.density_grid_shape,
+                allow_during_state_open=True,
+            )
+            return
         if state.comparison_completed:
             comparison = compare_molecular_frame_ranges(
                 self._series,

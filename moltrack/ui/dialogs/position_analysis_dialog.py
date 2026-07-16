@@ -19,11 +19,13 @@ from PyQt6.QtWidgets import (
 )
 
 from moltrack.analysis import (
+    FirstShellSuggestionResult,
     MolecularFrameRange,
     MolecularFrameRangeComparison,
     MolecularFrameRangeSelection,
     MolecularNearestNeighborAngleMetrics,
     MolecularNearestNeighborMetrics,
+    MolecularM6OrientationAnalysisSettings,
     MolecularPositionPlotData,
     MolecularRangeComparisonTrendData,
     MolecularRangeSpatialComparisonData,
@@ -32,6 +34,8 @@ from moltrack.analysis import (
     compute_molecular_nearest_neighbor_angle_metrics,
     compute_molecular_nearest_neighbor_metrics,
 )
+
+from .m6_settings_panel import M6SettingsPanel
 
 
 class PositionAnalysisDialog(QDialog):
@@ -42,6 +46,8 @@ class PositionAnalysisDialog(QDialog):
     intensity_metric_changed = pyqtSignal(str)
     intensity_background_changed = pyqtSignal(int, int)
     export_analysis_requested = pyqtSignal()
+    m6_analysis_requested = pyqtSignal(object)
+    m6_first_shell_suggestion_requested = pyqtSignal(object)
 
     _INTENSITY_METRIC_OPTIONS = (
         ("Background-corrected median", "background_corrected_median"),
@@ -65,6 +71,7 @@ class PositionAnalysisDialog(QDialog):
         self._angle_metrics: MolecularNearestNeighborAngleMetrics | None = None
         self._range_trend_data: MolecularRangeComparisonTrendData | None = None
         self._range_spatial_data: MolecularRangeSpatialComparisonData | None = None
+        self._range_comparison: MolecularFrameRangeComparison | None = None
         self._density_grid_shape = (32, 32)
         self._first_density_levels = (0.0, 1.0)
         self._second_density_levels = (0.0, 1.0)
@@ -76,6 +83,7 @@ class PositionAnalysisDialog(QDialog):
         self._second_spatial_intensity_levels: tuple[float, float] | None = None
         self._range_frame_count: int | None = None
         self._range_source_view = "raw"
+        self._m6_context_enabled_states: dict[QWidget, bool] | None = None
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
         self.setWindowTitle("Position Analysis")
         self.resize(760, 820)
@@ -181,7 +189,7 @@ class PositionAnalysisDialog(QDialog):
         current_frame_layout.addWidget(self.plot, 1)
 
         self.lbl_metrics = QLabel(
-            "Molecules: 0\nNearest neighbor: unavailable\nLine order score: unavailable",
+            "Molecules: 0\nNearest neighbor: unavailable\nAngular coherence: unavailable",
             self.current_frame_tab,
         )
         self.lbl_metrics.setWordWrap(True)
@@ -219,7 +227,7 @@ class PositionAnalysisDialog(QDialog):
         )
         self.line_order_trend_plot = self._create_trend_plot(
             self.range_trends_tab,
-            y_label="Line order score",
+            y_label="Angular coherence",
         )
         self.intensity_trend_plot = self._create_trend_plot(
             self.range_trends_tab,
@@ -276,6 +284,28 @@ class PositionAnalysisDialog(QDialog):
         self.lbl_spatial_status = QLabel("No spatial comparison.", self.spatial_comparison_tab)
         spatial_layout.addWidget(self.lbl_spatial_status, 3, 0, 1, 2)
         self.tabs.addTab(self.spatial_comparison_tab, "Spatial comparison")
+
+        self.m6_settings_panel = M6SettingsPanel(self.tabs)
+        self.m6_settings_panel.analysis_requested.connect(
+            self.m6_analysis_requested.emit
+        )
+        self.m6_settings_panel.first_shell_suggestion_requested.connect(
+            self.m6_first_shell_suggestion_requested.emit
+        )
+        self.tabs.addTab(self.m6_settings_panel, "Sixfold Bond Order")
+        self.m6_advanced_group = self.m6_settings_panel.advanced_group
+        self.m6_min_neighbors_for_seed_spin = (
+            self.m6_settings_panel.min_neighbors_for_seed
+        )
+        self.m6_first_shell_r_min_spin = self.m6_settings_panel.first_shell_r_min_nm
+        self.m6_first_shell_r_max_spin = self.m6_settings_panel.first_shell_r_max_nm
+        self.m6_run_button = self.m6_settings_panel.run_button
+        self.m6_apply_suggestion_button = (
+            self.m6_settings_panel.apply_suggestion_button
+        )
+        self.chk_use_segmentation_centroids.toggled.connect(
+            lambda _checked: self.m6_settings_panel.invalidate_first_shell_suggestion()
+        )
         layout.addWidget(self.tabs, 1)
         self.btn_export_analysis = QPushButton("Export Analysis...", self)
         self.btn_export_analysis.clicked.connect(self.export_analysis_requested.emit)
@@ -286,6 +316,67 @@ class PositionAnalysisDialog(QDialog):
 
     def set_use_segmentation_centroids(self, enabled: bool) -> None:
         self.chk_use_segmentation_centroids.setChecked(bool(enabled))
+
+    def m6_analysis_settings(self) -> MolecularM6OrientationAnalysisSettings:
+        return self.m6_settings_panel.settings()
+
+    def set_m6_analysis_settings(
+        self,
+        settings: MolecularM6OrientationAnalysisSettings,
+    ) -> None:
+        self.m6_settings_panel.set_settings(settings)
+
+    def m6_validation_message(self) -> str:
+        return self.m6_settings_panel.validation_message()
+
+    def set_m6_first_shell_suggestion(
+        self,
+        suggestion: FirstShellSuggestionResult,
+    ) -> None:
+        self.m6_settings_panel.set_first_shell_suggestion(suggestion)
+
+    def m6_suggestion_status_text(self) -> str:
+        return self.m6_settings_panel.suggestion_status_text()
+
+    def set_m6_suggestion_unavailable(self, message: str) -> None:
+        self.m6_settings_panel.set_suggestion_unavailable(message)
+
+    def apply_m6_first_shell_suggestion(self) -> None:
+        self.m6_settings_panel.apply_first_shell_suggestion()
+
+    def set_m6_analysis_running(self, running: bool) -> None:
+        self.m6_settings_panel.set_analysis_running(running)
+        context_widgets = (
+            self.chk_use_segmentation_centroids,
+            self.range_group,
+            self.cmb_intensity_metric,
+            self.sp_background_inner_radius,
+            self.sp_background_outer_radius,
+            self.btn_export_analysis,
+        )
+        if running:
+            self._m6_context_enabled_states = {
+                widget: widget.isEnabled() for widget in context_widgets
+            }
+            for widget in context_widgets:
+                widget.setEnabled(False)
+            return
+        if self._m6_context_enabled_states is not None:
+            for widget, enabled in self._m6_context_enabled_states.items():
+                widget.setEnabled(enabled)
+        self._m6_context_enabled_states = None
+
+    def set_m6_analysis_progress(
+        self,
+        completed_count: int,
+        total_count: int,
+        frame_index: int,
+    ) -> None:
+        self.m6_settings_panel.set_analysis_progress(
+            completed_count,
+            total_count,
+            frame_index,
+        )
 
     def set_plot_data(self, plot_data: MolecularPositionPlotData) -> None:
         if not isinstance(plot_data, MolecularPositionPlotData):
@@ -389,6 +480,7 @@ class PositionAnalysisDialog(QDialog):
         )
         self._range_trend_data = trend_data
         self._range_spatial_data = spatial_data
+        self._range_comparison = comparison
         self._density_grid_shape = (
             len(spatial_data.density_y_edges) - 1,
             len(spatial_data.density_x_edges) - 1,
@@ -433,6 +525,9 @@ class PositionAnalysisDialog(QDialog):
 
     def range_trend_data(self) -> MolecularRangeComparisonTrendData | None:
         return self._range_trend_data
+
+    def range_comparison(self) -> MolecularFrameRangeComparison | None:
+        return self._range_comparison
 
     def range_spatial_data(self) -> MolecularRangeSpatialComparisonData | None:
         return self._range_spatial_data
@@ -484,7 +579,7 @@ class PositionAnalysisDialog(QDialog):
         return (
             ("Frame", "Molecules"),
             ("Frame", f"Nearest neighbor [{distance_unit}]"),
-            ("Frame", "Line order score"),
+            ("Frame", "Angular coherence"),
             ("Frame", f"Median intensity [{intensity_unit}]"),
         )
 
@@ -622,7 +717,7 @@ class PositionAnalysisDialog(QDialog):
 
     def _format_metrics_summary(self) -> str:
         if self._distance_metrics is None or self._angle_metrics is None:
-            return "Molecules: 0\nNearest neighbor: unavailable\nLine order score: unavailable"
+            return "Molecules: 0\nNearest neighbor: unavailable\nAngular coherence: unavailable"
         distance_metrics = self._distance_metrics
         angle_metrics = self._angle_metrics
         lines = [f"Molecules: {distance_metrics.point_count}"]
@@ -637,9 +732,9 @@ class PositionAnalysisDialog(QDialog):
                 f"max {distance_metrics.max_distance:.3f}"
             )
         if angle_metrics.line_order_score is None:
-            lines.append("Line order score: unavailable")
+            lines.append("Angular coherence: unavailable")
         else:
-            lines.append(f"Line order score: {angle_metrics.line_order_score:.3f}")
+            lines.append(f"Angular coherence: {angle_metrics.line_order_score:.3f}")
         return "\n".join(lines)
 
     def _on_intensity_metric_changed(self, _index: int) -> None:
@@ -744,6 +839,9 @@ class PositionAnalysisDialog(QDialog):
         return "\n".join(lines)
 
     def _refresh_range_validation(self, _value=None) -> None:
+        if hasattr(self, "m6_settings_panel"):
+            self.m6_settings_panel.invalidate_first_shell_suggestion()
+        valid = False
         try:
             self.frame_range_selection()
         except RuntimeError:
@@ -758,6 +856,8 @@ class PositionAnalysisDialog(QDialog):
         else:
             self.lbl_range_validation.setText("")
             self.btn_compare_ranges.setEnabled(True)
+            valid = True
+        self.m6_settings_panel.set_analysis_context_enabled(valid)
 
     def _request_range_comparison(self) -> None:
         if not self.has_valid_frame_range_selection():

@@ -11,7 +11,13 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import numpy as np
 
-from moltrack.analysis import MolecularIntensityMeasurement, build_molecular_position_plot_data
+from moltrack.analysis import (
+    MolecularIntensityMeasurement,
+    MolecularM6OrientationAnalysisSettings,
+    MolecularM6SessionState,
+    build_molecular_position_plot_data,
+    compare_molecular_frame_ranges,
+)
 from moltrack.core import (
     MolecularCentroid,
     MolecularDetection,
@@ -19,6 +25,8 @@ from moltrack.core import (
     MolecularSegmentation,
     MolecularSegmentationSet,
     MolTrackImageSeries,
+    MolTrackPositionAnalysisRange,
+    MolTrackPositionAnalysisState,
     MolTrackRegistrationFrameResult,
     MolTrackRegistrationResultSet,
     MolTrackRegistrationSettings,
@@ -4944,7 +4952,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(dialog.axis_ranges(), ((0.0, 4.0), (0.0, 3.0)))
         self.assertIn("Molecules: 0", dialog.metrics_summary_text())
         self.assertIn("Nearest neighbor [px]: unavailable", dialog.metrics_summary_text())
-        self.assertIn("Line order score: unavailable", dialog.metrics_summary_text())
+        self.assertIn("Angular coherence: unavailable", dialog.metrics_summary_text())
         self.assertEqual(dialog.histogram_counts(), (0,) * 18)
         self.assertEqual(dialog.lbl_status.text(), "Points: 0")
 
@@ -5357,7 +5365,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
             "Nearest neighbor [px]: mean 2.333 | median 2.000 | min 2.000 | max 3.000",
             summary,
         )
-        self.assertIn("Line order score: 1.000", summary)
+        self.assertIn("Angular coherence: 1.000", summary)
         self.assertEqual(dialog.histogram_counts(), (3,) + (0,) * 17)
         self.assertEqual(dialog.histogram_axis_labels(), ("Angle [deg]", "Count"))
 
@@ -5448,7 +5456,12 @@ class MolTrackMainWindowTests(unittest.TestCase):
         trend_data = dialog.range_trend_data()
         self.assertEqual(
             dialog.analysis_tab_labels(),
-            ("Current frame", "Range trends", "Spatial comparison"),
+            (
+                "Current frame",
+                "Range trends",
+                "Spatial comparison",
+                "Sixfold Bond Order",
+            ),
         )
         self.assertEqual(dialog.active_analysis_tab(), "Range trends")
         self.assertEqual(dialog.trend_legend_labels(), ("before desorption", "after adsorption"))
@@ -5461,7 +5474,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
             (
                 ("Frame", "Molecules"),
                 ("Frame", "Nearest neighbor [px]"),
-                ("Frame", "Line order score"),
+                ("Frame", "Angular coherence"),
                 ("Frame", "Median intensity [a.u.]"),
             ),
         )
@@ -5485,6 +5498,273 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(dialog.range_trend_data().first.intensity_metric, "max")
         self.assertEqual(dialog.range_trend_data().second.intensity_metric, "max")
         self.assertEqual(dialog.active_analysis_tab(), "Spatial comparison")
+
+    def test_m6_run_uses_worker_and_reports_frame_progress_without_blocking_qt(self) -> None:
+        worker_started = threading.Event()
+        release_worker = threading.Event()
+        received_settings = []
+
+        def blocking_comparator(series, selection, **kwargs):
+            received_settings.append(kwargs.get("m6_orientation_settings"))
+            progress_callback = kwargs.get("progress_callback")
+            if progress_callback is not None:
+                progress_callback(1, 2, 0)
+            worker_started.set()
+            release_worker.wait(timeout=2.0)
+            return compare_molecular_frame_ranges(series, selection, **kwargs)
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            position_range_comparator=blocking_comparator,
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((2, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(
+                pixels_x=8,
+                pixels_y=8,
+                size_nm_x=8.0,
+                size_nm_y=8.0,
+                scan_angle_deg=0.0,
+            ),
+        )
+        self.window.set_image_series(series)
+        self.window.btn_position_analysis.click()
+        dialog = self.window.position_analysis_dialog()
+        dialog.activate_analysis_tab("Sixfold Bond Order")
+
+        started_at = time.monotonic()
+        dialog.m6_run_button.click()
+        elapsed = time.monotonic() - started_at
+
+        try:
+            self.assertLess(elapsed, 0.2)
+            self.process_events_until(worker_started.is_set)
+            self.assertTrue(self.window._m6_analysis_running)
+            self.assertFalse(dialog.m6_run_button.isEnabled())
+            self.assertFalse(dialog.range_group.isEnabled())
+            self.assertFalse(dialog.chk_use_segmentation_centroids.isEnabled())
+            self.process_events_until(
+                lambda: "1/2" in dialog.m6_settings_panel.progress_label.text()
+            )
+            self.assertIsNone(series.m6_analysis_state)
+            self.assertEqual(received_settings, [dialog.m6_analysis_settings()])
+        finally:
+            release_worker.set()
+
+        self.process_events_until(lambda: not self.window._m6_analysis_running)
+        self.assertTrue(dialog.m6_run_button.isEnabled())
+        self.assertTrue(series.m6_analysis_state.enabled)
+        self.assertEqual(dialog.active_analysis_tab(), "Sixfold Bond Order")
+        self.assertIn("complete", self.window.statusBar().currentMessage().lower())
+
+    def test_replacing_series_recreates_position_dialog_with_new_m6_settings(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        first = MolTrackImageSeries(
+            source_path="first.mpp",
+            raw_frames=np.zeros((2, 4, 4), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+        )
+        second_settings = MolecularM6OrientationAnalysisSettings(q_seed=0.8, q_grow=0.4)
+        second = MolTrackImageSeries(
+            source_path="second.mpp",
+            raw_frames=np.zeros((2, 4, 4), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            m6_analysis_state=MolecularM6SessionState(settings=second_settings),
+        )
+        self.window.set_image_series(first)
+        self.window.btn_position_analysis.click()
+        first_dialog = self.window.position_analysis_dialog()
+        first_dialog.m6_settings_panel.q_seed.setValue(0.7)
+
+        self.window.set_image_series(second)
+        self.window.btn_position_analysis.click()
+        second_dialog = self.window.position_analysis_dialog()
+
+        self.assertIsNot(second_dialog, first_dialog)
+        self.assertEqual(second_dialog.m6_analysis_settings(), second_settings)
+
+    def test_m6_first_shell_suggestion_can_start_before_a_previous_m6_run(self) -> None:
+        comparator_started = threading.Event()
+        received_settings = []
+
+        def comparator(series, selection, **kwargs):
+            received_settings.append(kwargs.get("m6_orientation_settings"))
+            comparator_started.set()
+            return compare_molecular_frame_ranges(series, selection, **kwargs)
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            position_range_comparator=comparator,
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((2, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(
+                pixels_x=8,
+                pixels_y=8,
+                size_nm_x=8.0,
+                size_nm_y=8.0,
+            ),
+        )
+        self.window.set_image_series(series)
+        self.window.btn_position_analysis.click()
+        dialog = self.window.position_analysis_dialog()
+        dialog.btn_compare_ranges.click()
+        self.assertIsNotNone(dialog.range_comparison())
+        self.assertTrue(
+            all(
+                frame.m6_orientation_analysis is None
+                for frame in dialog.range_comparison().first_analysis.frame_results
+            )
+        )
+        first_settings = dialog.m6_analysis_settings()
+
+        dialog.m6_settings_panel.suggest_button.click()
+
+        self.process_events_until(comparator_started.is_set)
+        self.assertEqual(received_settings, [first_settings])
+        self.process_events_until(lambda: not self.window._m6_analysis_running)
+        self.assertIsNone(series.m6_analysis_state)
+        self.assertIsNotNone(dialog.range_comparison())
+
+        comparator_started.clear()
+        dialog.edit_first_range_name.setText("changed range")
+        dialog.m6_settings_panel.suggest_button.click()
+
+        self.process_events_until(comparator_started.is_set)
+        self.process_events_until(lambda: not self.window._m6_analysis_running)
+
+        comparator_started.clear()
+        dialog.chk_use_segmentation_centroids.setChecked(False)
+        dialog.m6_settings_panel.suggest_button.click()
+
+        self.process_events_until(comparator_started.is_set)
+        self.process_events_until(lambda: not self.window._m6_analysis_running)
+
+        comparator_started.clear()
+        dialog.m6_settings_panel.q_seed.setValue(0.7)
+        second_settings = dialog.m6_analysis_settings()
+        dialog.m6_settings_panel.suggest_button.click()
+
+        self.process_events_until(comparator_started.is_set)
+        self.process_events_until(lambda: not self.window._m6_analysis_running)
+        self.assertEqual(
+            received_settings,
+            [first_settings, first_settings, first_settings, second_settings],
+        )
+
+    def test_m6_does_not_start_during_conflicting_state_io_operations(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        self.window.set_image_series(
+            MolTrackImageSeries(
+                source_path="movie.mpp",
+                raw_frames=np.zeros((2, 4, 4), dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            )
+        )
+        self.window.btn_position_analysis.click()
+        dialog = self.window.position_analysis_dialog()
+        try:
+            for operation in ("save", "open"):
+                self.window._state_io_running = True
+                self.window._state_io_operation = operation
+                dialog.m6_run_button.click()
+                self.assertFalse(self.window._m6_analysis_running)
+                self.assertIsNone(self.window._m6_analysis_thread)
+        finally:
+            self.window._state_io_running = False
+            self.window._state_io_operation = ""
+
+    def test_failed_m6_worker_preserves_previous_state_and_reenables_controls(self) -> None:
+        previous_state = MolecularM6SessionState(
+            enabled=True,
+            settings=MolecularM6OrientationAnalysisSettings(q_seed=0.7, q_grow=0.3),
+        )
+
+        def failing_comparator(_series, _selection, **_kwargs):
+            raise RuntimeError("synthetic M6 failure")
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            position_range_comparator=failing_comparator,
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((2, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(
+                pixels_x=8,
+                pixels_y=8,
+                size_nm_x=8.0,
+                size_nm_y=8.0,
+            ),
+            m6_analysis_state=previous_state,
+        )
+        self.window.set_image_series(series)
+        self.window.btn_position_analysis.click()
+        dialog = self.window.position_analysis_dialog()
+        dialog.activate_analysis_tab("Sixfold Bond Order")
+        dialog.m6_settings_panel.q_seed.setValue(0.8)
+
+        with patch.object(QMessageBox, "critical") as critical:
+            dialog.m6_run_button.click()
+            self.process_events_until(lambda: not self.window._m6_analysis_running)
+
+        self.assertEqual(series.m6_analysis_state, previous_state)
+        self.assertTrue(dialog.m6_run_button.isEnabled())
+        critical.assert_called_once()
+
+    def test_restoring_completed_m6_analysis_recomputes_in_worker(self) -> None:
+        comparator_started = threading.Event()
+        received_settings = []
+
+        def comparator(series, selection, **kwargs):
+            received_settings.append(kwargs.get("m6_orientation_settings"))
+            comparator_started.set()
+            return compare_molecular_frame_ranges(series, selection, **kwargs)
+
+        settings = MolecularM6OrientationAnalysisSettings(q_seed=0.7, q_grow=0.3)
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            position_range_comparator=comparator,
+        )
+        self.window.set_image_series(
+            MolTrackImageSeries(
+                source_path="movie.mpp",
+                raw_frames=np.zeros((2, 8, 8), dtype=np.float32),
+                metadata=STMSequenceMetadata(
+                    pixels_x=8,
+                    pixels_y=8,
+                    size_nm_x=8.0,
+                    size_nm_y=8.0,
+                ),
+                m6_analysis_state=MolecularM6SessionState(
+                    enabled=True,
+                    settings=settings,
+                ),
+            )
+        )
+        state = MolTrackPositionAnalysisState(
+            source_view="raw",
+            first_range=MolTrackPositionAnalysisRange("before", 0, 0),
+            second_range=MolTrackPositionAnalysisRange("after", 1, 1),
+            comparison_completed=True,
+            active_tab="Sixfold Bond Order",
+            density_grid_shape=(12, 18),
+        )
+
+        started_at = time.monotonic()
+        self.window._restore_position_analysis_state(state)
+        elapsed = time.monotonic() - started_at
+
+        self.assertLess(elapsed, 0.2)
+        self.process_events_until(comparator_started.is_set)
+        self.assertEqual(received_settings, [settings])
+        self.process_events_until(lambda: not self.window._m6_analysis_running)
+        dialog = self.window.position_analysis_dialog()
+        self.assertEqual(dialog.active_analysis_tab(), "Sixfold Bond Order")
+        self.assertEqual(dialog.density_grid_shape(), (12, 18))
+        self.assertIsNotNone(dialog.range_comparison())
 
     def test_position_analysis_spatial_comparison_uses_shared_intensity_scale(self) -> None:
         self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
@@ -5559,6 +5839,8 @@ class MolTrackMainWindowTests(unittest.TestCase):
             dialog.cmb_intensity_metric.setCurrentText("Maximum")
             dialog.chk_color_by_intensity.setChecked(False)
             dialog.set_intensity_background_radii(2, 5)
+            dialog.m6_settings_panel.q_seed.setValue(0.7)
+            dialog.m6_settings_panel.q_grow.setValue(0.3)
             dialog.btn_compare_ranges.click()
             dialog.activate_analysis_tab("Spatial comparison")
             dialog.close()
@@ -5581,6 +5863,36 @@ class MolTrackMainWindowTests(unittest.TestCase):
             self.assertEqual(loaded.position_analysis.background_inner_radius_px, 2)
             self.assertEqual(loaded.position_analysis.background_outer_radius_px, 5)
             self.assertTrue(loaded.position_analysis.shared_intensity_scale)
+            self.assertIsNotNone(loaded.m6_analysis_state)
+            self.assertFalse(loaded.m6_analysis_state.enabled)
+            self.assertEqual(loaded.m6_analysis_state.settings.q_seed, 0.7)
+            self.assertEqual(loaded.m6_analysis_state.settings.q_grow, 0.3)
+            self.assertFalse(loaded.m6_analysis_state.use_segmentation_centroids)
+
+    def test_async_save_rejects_invalid_m6_settings_without_entering_io_state(self) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        self.window.set_image_series(
+            MolTrackImageSeries(
+                source_path="movie.mpp",
+                raw_frames=np.zeros((2, 4, 4), dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            )
+        )
+        self.window.btn_position_analysis.click()
+        dialog = self.window.position_analysis_dialog()
+        dialog.m6_first_shell_r_min_spin.setValue(3.0)
+        dialog.m6_first_shell_r_max_spin.setValue(2.0)
+
+        with tempfile.TemporaryDirectory() as tmpdir, patch.object(
+            QMessageBox,
+            "critical",
+        ) as critical:
+            self.window._start_save_state(Path(tmpdir) / "invalid.moltrack.json")
+
+        self.assertFalse(self.window._state_io_running)
+        self.assertIsNone(self.window._state_io_thread)
+        self.assertIsNone(self.window._state_io_progress_dialog)
+        critical.assert_called_once()
 
     def test_open_state_restores_position_analysis_and_recomputes_comparison(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
