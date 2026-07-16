@@ -13,6 +13,7 @@ from ._orientation_domain_common import (
     component_m6_orientation_deg,
     initial_m6_assignment_status,
     m6_similarity_threshold,
+    normalize_m6_point_state,
     point_pair_m6_similarity,
     validate_m6_domain_analysis_inputs,
 )
@@ -119,69 +120,27 @@ class M6OrientationDomainSeedDetection:
     point_coordinate_fingerprint: str
 
     def __post_init__(self) -> None:
-        point_count = _as_non_negative_integer(self.point_count, "point_count")
-        source_ids = _per_point_tuple(self.source_ids, point_count, "source_ids")
-        if any(not isinstance(source_id, str) or not source_id for source_id in source_ids):
-            raise TypeError("source_ids must contain non-empty strings.")
-        if len(set(source_ids)) != point_count:
-            raise ValueError("source_ids must be unique.")
-        eligible = _boolean_tuple(self.seed_eligible, point_count, "seed_eligible")
-        ordered_ids = tuple(
-            _as_label(value, f"ordered_component_id[{index}]")
-            for index, value in enumerate(
-                _per_point_tuple(
-                    self.ordered_component_id,
-                    point_count,
-                    "ordered_component_id",
-                )
-            )
+        point_state = normalize_m6_point_state(
+            point_count=self.point_count,
+            source_ids=self.source_ids,
+            seed_eligible=self.seed_eligible,
+            ordered_component_id=self.ordered_component_id,
+            component_types=self.component_type,
+            component_type_field_name="component_type",
+            assignment_status=self.assignment_status,
+            edge_truncated_neighborhood=self.edge_truncated_neighborhood,
+            physical_duplicate_qc=self.physical_duplicate_qc,
+            geometry_duplicate_qc=self.geometry_duplicate_qc,
         )
-        component_types = _per_point_tuple(
-            self.component_type,
-            point_count,
-            "component_type",
-        )
-        supported_types = {"growth_seed", "small_ordered_island", "unassigned"}
-        if any(value not in supported_types for value in component_types):
-            raise ValueError("component_type contains an unsupported value.")
-        statuses = _per_point_tuple(
-            self.assignment_status,
-            point_count,
-            "assignment_status",
-        )
-        supported_statuses = {
-            "assigned",
-            "boundary_or_disordered",
-            "insufficient_neighbors",
-            "duplicate_excluded",
-            "invalid_position",
-        }
-        if any(value not in supported_statuses for value in statuses):
-            raise ValueError("assignment_status contains an unsupported value.")
-        edge_qc = _boolean_tuple(
-            self.edge_truncated_neighborhood,
-            point_count,
-            "edge_truncated_neighborhood",
-        )
-        physical_qc = _boolean_tuple(
-            self.physical_duplicate_qc,
-            point_count,
-            "physical_duplicate_qc",
-        )
-        geometry_qc = _boolean_tuple(
-            self.geometry_duplicate_qc,
-            point_count,
-            "geometry_duplicate_qc",
-        )
-        for index, status in enumerate(statuses):
-            if physical_qc[index] and geometry_qc[index]:
-                raise ValueError("A point cannot be both a physical and geometry duplicate.")
-            if (physical_qc[index] or geometry_qc[index]) != (
-                status == "duplicate_excluded"
-            ):
-                raise ValueError(
-                    "Duplicate QC flags must correspond to duplicate_excluded status."
-                )
+        point_count = point_state.point_count
+        source_ids = point_state.source_ids
+        eligible = point_state.seed_eligible
+        ordered_ids = point_state.ordered_component_id
+        component_types = point_state.component_types
+        statuses = point_state.assignment_status
+        edge_qc = point_state.edge_truncated_neighborhood
+        physical_qc = point_state.physical_duplicate_qc
+        geometry_qc = point_state.geometry_duplicate_qc
         if not isinstance(self.settings, MolecularM6OrientationAnalysisSettings):
             raise TypeError("settings must be MolecularM6OrientationAnalysisSettings.")
 
@@ -449,30 +408,6 @@ def _build_candidate(
             else "small_ordered_island"
         ),
     )
-
-
-def _per_point_tuple(values: object, point_count: int, field_name: str) -> tuple:
-    try:
-        normalized = tuple(values)  # type: ignore[arg-type]
-    except TypeError as exc:
-        raise TypeError(f"{field_name} must be an iterable.") from exc
-    if len(normalized) != point_count:
-        raise ValueError(f"{field_name} must contain one value per point.")
-    return normalized
-
-
-def _boolean_tuple(values: object, point_count: int, field_name: str) -> tuple[bool, ...]:
-    normalized = _per_point_tuple(values, point_count, field_name)
-    if any(not isinstance(value, bool) for value in normalized):
-        raise TypeError(f"{field_name} must contain only booleans.")
-    return normalized
-
-
-def _as_label(value: object, field_name: str) -> int:
-    normalized = _as_integer(value, field_name)
-    if normalized < -1:
-        raise ValueError(f"{field_name} must be -1 or a non-negative ID.")
-    return normalized
 
 
 def _as_non_negative_integer(value: object, field_name: str) -> int:

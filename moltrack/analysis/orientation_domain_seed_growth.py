@@ -14,6 +14,7 @@ from ._orientation_domain_common import (
     component_m6_unit_orientation,
     initial_m6_assignment_status,
     m6_similarity_threshold,
+    normalize_m6_point_state,
     point_domain_m6_similarity,
     validate_m6_domain_analysis_inputs,
 )
@@ -114,38 +115,51 @@ class M6OrientationDomainGrowthState:
     point_coordinate_fingerprint: str
 
     def __post_init__(self) -> None:
-        if not isinstance(self.point_count, int) or isinstance(self.point_count, bool):
-            raise TypeError("point_count must be an integer.")
-        if self.point_count < 0:
-            raise ValueError("point_count must be non-negative.")
-        source_ids = tuple(self.source_ids)
-        if (
-            len(source_ids) != self.point_count
-            or len(set(source_ids)) != self.point_count
-            or any(not isinstance(value, str) or not value for value in source_ids)
-        ):
-            raise ValueError("source_ids must contain one unique ID per point.")
-        per_point_fields = (
-            "seed_eligible",
-            "ordered_component_id",
-            "seed_component_type",
-            "assignment_status",
-            "edge_truncated_neighborhood",
-            "physical_duplicate_qc",
-            "geometry_duplicate_qc",
+        point_state = normalize_m6_point_state(
+            point_count=self.point_count,
+            source_ids=self.source_ids,
+            seed_eligible=self.seed_eligible,
+            ordered_component_id=self.ordered_component_id,
+            component_types=self.seed_component_type,
+            component_type_field_name="seed_component_type",
+            assignment_status=self.assignment_status,
+            edge_truncated_neighborhood=self.edge_truncated_neighborhood,
+            physical_duplicate_qc=self.physical_duplicate_qc,
+            geometry_duplicate_qc=self.geometry_duplicate_qc,
         )
-        for field_name in per_point_fields:
-            if len(tuple(getattr(self, field_name))) != self.point_count:
-                raise ValueError(f"{field_name} must contain one value per point.")
-        if any(not isinstance(value, bool) for value in self.seed_eligible):
-            raise TypeError("seed_eligible must contain only booleans.")
-        for field_name in (
+        object.__setattr__(self, "point_count", point_state.point_count)
+        object.__setattr__(self, "source_ids", point_state.source_ids)
+        object.__setattr__(self, "seed_eligible", point_state.seed_eligible)
+        object.__setattr__(
+            self,
+            "ordered_component_id",
+            point_state.ordered_component_id,
+        )
+        object.__setattr__(
+            self,
+            "seed_component_type",
+            point_state.component_types,
+        )
+        object.__setattr__(
+            self,
+            "assignment_status",
+            point_state.assignment_status,
+        )
+        object.__setattr__(
+            self,
             "edge_truncated_neighborhood",
+            point_state.edge_truncated_neighborhood,
+        )
+        object.__setattr__(
+            self,
             "physical_duplicate_qc",
+            point_state.physical_duplicate_qc,
+        )
+        object.__setattr__(
+            self,
             "geometry_duplicate_qc",
-        ):
-            if any(not isinstance(value, bool) for value in getattr(self, field_name)):
-                raise TypeError(f"{field_name} must contain only booleans.")
+            point_state.geometry_duplicate_qc,
+        )
         if not isinstance(self.settings, MolecularM6OrientationAnalysisSettings):
             raise TypeError("settings must be MolecularM6OrientationAnalysisSettings.")
         if (
@@ -178,7 +192,7 @@ class M6OrientationDomainGrowthState:
                 if point_index >= self.point_count or point_index in covered:
                     raise ValueError("Component point indices must be in range and disjoint.")
                 covered.add(point_index)
-                if source_ids[point_index] != source_id:
+                if self.source_ids[point_index] != source_id:
                     raise ValueError("Component source_ids must match point indices.")
                 if self.ordered_component_id[point_index] != component.ordered_component_id:
                     raise ValueError("Point ordered_component_id must match its component.")
@@ -201,11 +215,6 @@ class M6OrientationDomainGrowthState:
         if assigned != covered:
             raise ValueError("Every assigned point must belong to exactly one component.")
         for index in range(self.point_count):
-            duplicate = self.physical_duplicate_qc[index] or self.geometry_duplicate_qc[index]
-            if self.physical_duplicate_qc[index] and self.geometry_duplicate_qc[index]:
-                raise ValueError("A point cannot have both duplicate QC flags.")
-            if duplicate != (self.assignment_status[index] == "duplicate_excluded"):
-                raise ValueError("Duplicate QC must correspond to duplicate_excluded status.")
             if index not in covered and (
                 self.ordered_component_id[index] != -1
                 or self.seed_component_type[index] != "unassigned"
@@ -213,7 +222,6 @@ class M6OrientationDomainGrowthState:
                 raise ValueError(
                     "Unassigned points must use label=-1 and seed type='unassigned'."
                 )
-        object.__setattr__(self, "source_ids", source_ids)
         object.__setattr__(self, "components", components)
 
     @property

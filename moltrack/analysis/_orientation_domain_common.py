@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from cmath import phase
+from dataclasses import dataclass
 from math import cos, degrees, fsum, pi
 
 import numpy as np
@@ -10,6 +11,118 @@ from .first_shell_graph import FirstShellGraph
 from .local_sixfold_bond_order import LocalSixfoldBondOrderField
 from .m6_settings import MolecularM6OrientationAnalysisSettings
 from .orientation_domain_models import M6AssignmentStatus
+
+
+@dataclass(frozen=True)
+class NormalizedM6PointState:
+    point_count: int
+    source_ids: tuple[str, ...]
+    seed_eligible: tuple[bool, ...]
+    ordered_component_id: tuple[int, ...]
+    component_types: tuple[str, ...]
+    assignment_status: tuple[M6AssignmentStatus, ...]
+    edge_truncated_neighborhood: tuple[bool, ...]
+    physical_duplicate_qc: tuple[bool, ...]
+    geometry_duplicate_qc: tuple[bool, ...]
+
+
+def normalize_m6_point_state(
+    *,
+    point_count: object,
+    source_ids: object,
+    seed_eligible: object,
+    ordered_component_id: object,
+    component_types: object,
+    component_type_field_name: str,
+    assignment_status: object,
+    edge_truncated_neighborhood: object,
+    physical_duplicate_qc: object,
+    geometry_duplicate_qc: object,
+) -> NormalizedM6PointState:
+    """Normalize the shared point-level invariants of seed and growth results."""
+
+    normalized_count = _non_negative_integer(point_count, "point_count")
+    normalized_source_ids = _per_point_values(
+        source_ids,
+        normalized_count,
+        "source_ids",
+    )
+    if (
+        len(set(normalized_source_ids)) != normalized_count
+        or any(not isinstance(value, str) or not value for value in normalized_source_ids)
+    ):
+        raise ValueError("source_ids must contain one unique non-empty ID per point.")
+    eligible = _boolean_values(seed_eligible, normalized_count, "seed_eligible")
+    ordered_ids = tuple(
+        _point_label(value, f"ordered_component_id[{index}]")
+        for index, value in enumerate(
+            _per_point_values(
+                ordered_component_id,
+                normalized_count,
+                "ordered_component_id",
+            )
+        )
+    )
+    normalized_component_types = _per_point_values(
+        component_types,
+        normalized_count,
+        component_type_field_name,
+    )
+    if any(
+        value not in {"growth_seed", "small_ordered_island", "unassigned"}
+        for value in normalized_component_types
+    ):
+        raise ValueError(f"{component_type_field_name} contains an unsupported value.")
+    statuses = _per_point_values(
+        assignment_status,
+        normalized_count,
+        "assignment_status",
+    )
+    if any(
+        value
+        not in {
+            "assigned",
+            "boundary_or_disordered",
+            "insufficient_neighbors",
+            "duplicate_excluded",
+            "invalid_position",
+        }
+        for value in statuses
+    ):
+        raise ValueError("assignment_status contains an unsupported value.")
+    edge_qc = _boolean_values(
+        edge_truncated_neighborhood,
+        normalized_count,
+        "edge_truncated_neighborhood",
+    )
+    physical_qc = _boolean_values(
+        physical_duplicate_qc,
+        normalized_count,
+        "physical_duplicate_qc",
+    )
+    geometry_qc = _boolean_values(
+        geometry_duplicate_qc,
+        normalized_count,
+        "geometry_duplicate_qc",
+    )
+    for index, status in enumerate(statuses):
+        if physical_qc[index] and geometry_qc[index]:
+            raise ValueError("A point cannot have both duplicate QC flags.")
+        if (physical_qc[index] or geometry_qc[index]) != (
+            status == "duplicate_excluded"
+        ):
+            raise ValueError("Duplicate QC must correspond to duplicate_excluded status.")
+    return NormalizedM6PointState(
+        point_count=normalized_count,
+        source_ids=normalized_source_ids,  # type: ignore[arg-type]
+        seed_eligible=eligible,
+        ordered_component_id=ordered_ids,
+        component_types=normalized_component_types,  # type: ignore[arg-type]
+        assignment_status=statuses,  # type: ignore[arg-type]
+        edge_truncated_neighborhood=edge_qc,
+        physical_duplicate_qc=physical_qc,
+        geometry_duplicate_qc=geometry_qc,
+    )
 
 
 def validate_m6_domain_analysis_inputs(
@@ -191,3 +304,55 @@ def _canonical_m6_medoid_orientation(
         key=lambda index: (-scores[index], local_order.source_ids[index]),
     )
     return vectors[best_index]
+
+
+def _per_point_values(
+    values: object,
+    point_count: int,
+    field_name: str,
+) -> tuple[object, ...]:
+    try:
+        normalized = tuple(values)  # type: ignore[arg-type]
+    except TypeError as exc:
+        raise TypeError(f"{field_name} must be an iterable.") from exc
+    if len(normalized) != point_count:
+        raise ValueError(f"{field_name} must contain one value per point.")
+    return normalized
+
+
+def _boolean_values(
+    values: object,
+    point_count: int,
+    field_name: str,
+) -> tuple[bool, ...]:
+    normalized = _per_point_values(values, point_count, field_name)
+    if any(not isinstance(value, bool) for value in normalized):
+        raise TypeError(f"{field_name} must contain only booleans.")
+    return normalized  # type: ignore[return-value]
+
+
+def _point_label(value: object, field_name: str) -> int:
+    normalized = _integer(value, field_name)
+    if normalized < -1:
+        raise ValueError(f"{field_name} must be -1 or a non-negative ID.")
+    return normalized
+
+
+def _non_negative_integer(value: object, field_name: str) -> int:
+    normalized = _integer(value, field_name)
+    if normalized < 0:
+        raise ValueError(f"{field_name} must be non-negative.")
+    return normalized
+
+
+def _integer(value: object, field_name: str) -> int:
+    if isinstance(value, bool):
+        raise TypeError(f"{field_name} must be an integer.")
+    try:
+        normalized = int(value)
+        numeric = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise TypeError(f"{field_name} must be an integer.") from exc
+    if not np.isfinite(numeric) or numeric != normalized:
+        raise ValueError(f"{field_name} must be an integer.")
+    return normalized

@@ -420,6 +420,13 @@ class OrientationDomainGrowthTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "ordered_component_id"):
             replace(result, ordered_component_id=())
+        normalized = replace(result, seed_eligible=list(result.seed_eligible))
+        self.assertIsInstance(normalized.seed_eligible, tuple)
+        with self.assertRaisesRegex(ValueError, "assignment_status"):
+            replace(
+                result,
+                assignment_status=("unknown",) + result.assignment_status[1:],
+            )
         with self.assertRaisesRegex(ValueError, "retain every seed"):
             replace(result.components[0], point_indices=(1, 2), source_ids=("p01", "p02"))
 
