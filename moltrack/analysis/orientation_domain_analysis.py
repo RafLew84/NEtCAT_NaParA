@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Literal
 
 import numpy as np
 
@@ -17,6 +18,10 @@ from .orientation_domain_metrics import (
     M6OrientationDomainMetrics,
     compute_m6_orientation_domain_metrics,
 )
+from .orientation_domain_footprint import (
+    M6OrientationFootprintPartition,
+    compute_m6_orientation_footprint_partition,
+)
 from .orientation_domain_models import M6OrientationDomainSegmentation
 from .orientation_domain_seed_growth import grow_m6_orientation_domains
 from .orientation_domain_seeds import detect_m6_orientation_domain_seeds
@@ -31,6 +36,7 @@ class M6OrientationDomainAnalysis:
     segmentation: M6OrientationDomainSegmentation
     domain_metrics: M6OrientationDomainMetrics
     settings: MolecularM6OrientationAnalysisSettings
+    footprint_partition: M6OrientationFootprintPartition | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.first_shell_graph, FirstShellGraph):
@@ -47,6 +53,16 @@ class M6OrientationDomainAnalysis:
             raise ValueError("Segmentation must use the analysis settings.")
         if self.domain_metrics.segmentation != self.segmentation:
             raise ValueError("Domain metrics must use the analysis segmentation.")
+        if self.footprint_partition is not None:
+            if not isinstance(
+                self.footprint_partition,
+                M6OrientationFootprintPartition,
+            ):
+                raise TypeError(
+                    "footprint_partition must be M6OrientationFootprintPartition or None."
+                )
+            if self.footprint_partition.domain_metrics != self.domain_metrics:
+                raise ValueError("Footprint partition must use the analysis domain metrics.")
 
         source_ids = self.first_shell_graph.point_ids
         point_count = self.first_shell_graph.point_count
@@ -180,6 +196,12 @@ def analyze_m6_orientation_domains(
     orientation_reference: str = "+x_sample_axis",
     spatial_calibration_fingerprint: str = "unspecified_calibration",
     registration_fingerprint: str = "unregistered",
+    window_geometry: Literal["rectangular", "irregular"] | None = None,
+    window_size_nm: tuple[float, float] | None = None,
+    valid_fov_mask: object | None = None,
+    valid_fov_pixel_size_nm: tuple[float, float] | None = None,
+    window_origin_nm: tuple[float, float] = (0.0, 0.0),
+    molecular_mask_area_nm2: Sequence[float | None] | None = None,
 ) -> M6OrientationDomainAnalysis:
     """Run deterministic M6 orientation-domain analysis from calibrated centroids."""
 
@@ -234,12 +256,27 @@ def analyze_m6_orientation_domains(
         segmentation=segmentation,
         settings=settings,
     )
+    footprint_partition = (
+        None
+        if window_geometry is None
+        else compute_m6_orientation_footprint_partition(
+            points,
+            domain_metrics=domain_metrics,
+            window_geometry=window_geometry,
+            window_size_nm=window_size_nm,
+            valid_fov_mask=valid_fov_mask,
+            valid_fov_pixel_size_nm=valid_fov_pixel_size_nm,
+            window_origin_nm=window_origin_nm,
+            molecular_mask_area_nm2=molecular_mask_area_nm2,
+        )
+    )
     return M6OrientationDomainAnalysis(
         first_shell_graph=graph,
         local_order=local_order,
         segmentation=segmentation,
         domain_metrics=domain_metrics,
         settings=settings,
+        footprint_partition=footprint_partition,
     )
 
 

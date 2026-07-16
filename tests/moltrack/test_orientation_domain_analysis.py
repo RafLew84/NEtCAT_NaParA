@@ -133,6 +133,34 @@ def _canonical_result(result: M6OrientationDomainAnalysis) -> tuple[object, ...]
 
 
 class OrientationDomainAnalysisTests(unittest.TestCase):
+    def test_optionally_builds_the_global_footprint_end_to_end(self) -> None:
+        points = _triangular_patch(0.0, (2.0, 2.0), width=4, height=4)
+
+        result = analyze_m6_orientation_domains(
+            points,
+            point_ids=tuple(f"point-{index}" for index in range(len(points))),
+            distance_to_valid_fov_boundary_nm=(100.0,) * len(points),
+            settings=_settings(),
+            window_geometry="rectangular",
+            window_size_nm=(12.0, 12.0),
+            molecular_mask_area_nm2=(0.25,) * len(points),
+        )
+
+        self.assertIsNotNone(result.footprint_partition)
+        footprint = result.footprint_partition
+        assert footprint is not None
+        self.assertEqual(footprint.domain_metrics, result.domain_metrics)
+        self.assertEqual(len(footprint.cells), len(points))
+        self.assertAlmostEqual(footprint.valid_fov_area_nm2, 144.0)
+        self.assertAlmostEqual(footprint.total_molecular_mask_area_nm2, 4.0)
+        self.assertAlmostEqual(
+            footprint.full_domain_footprint_fraction
+            + footprint.small_island_footprint_fraction
+            + footprint.unassigned_supported_footprint_fraction
+            + footprint.unsupported_background_fraction,
+            1.0,
+        )
+
     def test_two_rotated_triangular_domains_end_to_end_and_permuted(self) -> None:
         left = _triangular_patch(0.0, (0.0, 0.0))
         right = _triangular_patch(22.0, (22.0, 0.0))

@@ -32,6 +32,13 @@ from .orientation_domain_metrics import (
     M6OrientationDomainMetrics,
     compute_m6_orientation_domain_metrics,
 )
+from .orientation_domain_footprint import (
+    M6OrientationComponentFootprint,
+    M6OrientationFootprintCell,
+    M6OrientationFootprintPartition,
+    M6SupportedFootprintFragment,
+    compute_m6_orientation_footprint_partition,
+)
 from .orientation_domain_seeds import (
     M6OrientationDomainSeedDetection,
     M6OrientationSeedComponent,
@@ -123,6 +130,10 @@ __all__ = [
     "M6OrientationComponentMetrics",
     "M6OrientationDomainMetrics",
     "M6OrientationDomainSegmentation",
+    "M6OrientationComponentFootprint",
+    "M6OrientationFootprintCell",
+    "M6OrientationFootprintPartition",
+    "M6SupportedFootprintFragment",
     "M6OrientationDomainSeedDetection",
     "M6OrientationSeedComponent",
     "M6SeedComponentType",
@@ -139,6 +150,7 @@ __all__ = [
     "M6OrientationDomainAnalysis",
     "analyze_m6_orientation_domains",
     "compute_m6_orientation_domain_metrics",
+    "compute_m6_orientation_footprint_partition",
     "PairCorrelationResult",
     "MolecularFrameAnalysisResult",
     "MolecularNearestNeighborAngleMetrics",

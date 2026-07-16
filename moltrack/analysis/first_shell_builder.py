@@ -13,6 +13,10 @@ from ._first_shell_deduplication import (
 )
 from ._first_shell_filtering import _FirstShellDistancePolicy
 from ._coordinate_fingerprint import point_coordinate_fingerprint
+from ._deterministic_affine_rank import (
+    deterministic_affine_rank_and_axis,
+    deterministic_affine_rank_scale_nm,
+)
 from .first_shell_graph import FirstShellGraph
 from .m6_settings import MolecularM6OrientationAnalysisSettings
 from ._m6_settings_fingerprint import m6_settings_fingerprint
@@ -52,9 +56,10 @@ def build_first_shell_graph(
         detection_confidences=detection_confidences,
     )
 
-    extent_x = float(np.ptp(points[:, 0])) if count else 0.0
-    extent_y = float(np.ptp(points[:, 1])) if count else 0.0
-    scale_nm = max(settings.first_shell_r_max_nm, extent_x, extent_y)
+    scale_nm = deterministic_affine_rank_scale_nm(
+        points,
+        minimum_scale_nm=settings.first_shell_r_max_nm,
+    )
     geometry_epsilon_nm = max(
         settings.geometry_absolute_tolerance_nm,
         settings.geometry_relative_tolerance * scale_nm,
@@ -96,20 +101,17 @@ def build_first_shell_graph(
         )
 
     representative_points = points[np.asarray(representative_indices, dtype=np.int64)]
-    centered = representative_points - np.mean(representative_points, axis=0)
-    _u, singular_values, vh = np.linalg.svd(centered, full_matrices=False)
-    affine_rank = int(np.count_nonzero(singular_values > settings.geometry_relative_tolerance * scale_nm))
+    affine_rank, projection_axis = deterministic_affine_rank_and_axis(
+        representative_points,
+        scale_nm=scale_nm,
+        relative_tolerance=settings.geometry_relative_tolerance,
+    )
     if affine_rank == 0:
         candidate_edges: tuple[tuple[int, int], ...] = ()
         construction_method = "rank0_empty"
     elif affine_rank == 1:
-        axis = np.array(vh[0], dtype=np.float64, copy=True)
-        for component in axis:
-            if abs(float(component)) > settings.geometry_relative_tolerance:
-                if component < 0.0:
-                    axis *= -1.0
-                break
-        projections = points @ axis
+        assert projection_axis is not None
+        projections = points @ projection_axis
         ordered = sorted(
             representative_indices,
             key=lambda index: (float(projections[index]), normalized_ids[index]),
