@@ -21,6 +21,12 @@ from .sixfold_bond_order_aggregates import (
     SixfoldBondOrderAggregates,
     aggregate_local_sixfold_bond_order,
 )
+from .orientation_domain_models import (
+    LatticeOrientationDomain,
+    M6AssignmentStatus,
+    M6ComponentType,
+    M6OrientationDomainSegmentation,
+)
 from .first_shell_suggestion import (
     FirstShellSuggestionResult,
     suggest_first_shell_r_max,
@@ -83,6 +89,10 @@ __all__ = [
     "compute_local_sixfold_bond_order",
     "SixfoldBondOrderAggregates",
     "aggregate_local_sixfold_bond_order",
+    "LatticeOrientationDomain",
+    "M6AssignmentStatus",
+    "M6ComponentType",
+    "M6OrientationDomainSegmentation",
     "PairCorrelationResult",
     "MolecularFrameAnalysisResult",
     "MolecularNearestNeighborAngleMetrics",
