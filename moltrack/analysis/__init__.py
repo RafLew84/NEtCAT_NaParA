@@ -66,6 +66,23 @@ from .orientation_domain_analysis import (
     M6OrientationDomainAnalysis,
     analyze_m6_orientation_domains,
 )
+from .m6_headless_validation import (
+    load_m6_headless_validation_manifest,
+    run_m6_headless_validation,
+)
+from .m6_headless_validation_manifest import (
+    M6_ORIENTATION_ALGORITHM_VERSION,
+    M6HeadlessValidationFrame,
+    M6HeadlessValidationManifest,
+    M6HeadlessValidationProvenance,
+)
+from .m6_headless_validation_results import (
+    M6ConditionOrientationSummary,
+    M6HeadlessValidationFrameResult,
+    M6HeadlessValidationFrameSummary,
+    M6HeadlessValidationReport,
+    M6HeadlessValidationWarning,
+)
 from .first_shell_suggestion import (
     FirstShellSuggestionResult,
     suggest_first_shell_r_max,
@@ -153,7 +170,18 @@ __all__ = [
     "merge_and_grow_m6_orientation_domains",
     "finalize_m6_orientation_domains",
     "M6OrientationDomainAnalysis",
+    "M6_ORIENTATION_ALGORITHM_VERSION",
+    "M6ConditionOrientationSummary",
+    "M6HeadlessValidationFrame",
+    "M6HeadlessValidationFrameResult",
+    "M6HeadlessValidationFrameSummary",
+    "M6HeadlessValidationManifest",
+    "M6HeadlessValidationProvenance",
+    "M6HeadlessValidationReport",
+    "M6HeadlessValidationWarning",
     "analyze_m6_orientation_domains",
+    "load_m6_headless_validation_manifest",
+    "run_m6_headless_validation",
     "compute_m6_orientation_domain_metrics",
     "compute_m6_orientation_footprint_partition",
     "aggregate_m6_orientation_frame",

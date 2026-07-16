@@ -52,6 +52,7 @@ class PairCorrelationResult:
     point_coordinate_fingerprint: str
     window_origin_nm: tuple[float, float]
     distance_unit: Literal["nm"] = "nm"
+    window_size_nm: tuple[float, float] | None = None
 
     def __post_init__(self) -> None:
         point_count = _as_non_negative_integer(self.point_count, "point_count")
@@ -96,6 +97,11 @@ class PairCorrelationResult:
             self.window_origin_nm,
             "window_origin_nm",
         )
+        window_size_nm = (
+            None
+            if self.window_size_nm is None
+            else _normalize_positive_pair(self.window_size_nm, "window_size_nm")
+        )
         if self.window_geometry_status not in PAIR_CORRELATION_WINDOW_STATUSES:
             raise ValueError("Unsupported window_geometry_status.")
         bins = normalize_pair_correlation_bins(
@@ -125,6 +131,22 @@ class PairCorrelationResult:
             window_area_nm2 = None
         else:
             window_area_nm2 = _as_positive_float(self.window_area_nm2, "window_area_nm2")
+        if (
+            self.window_geometry_status == "rectangular_translation_correction"
+            and window_size_nm is not None
+            and not np.isclose(
+                window_size_nm[0] * window_size_nm[1],
+                window_area_nm2,
+                rtol=1e-12,
+                atol=1e-12,
+            )
+        ):
+            raise ValueError("Rectangular window_size_nm must match window_area_nm2.")
+        if (
+            self.window_geometry_status != "rectangular_translation_correction"
+            and window_size_nm is not None
+        ):
+            raise ValueError("window_size_nm is only supported for rectangular windows.")
         for index, (count, expected, g_value, status, contribution) in enumerate(
             zip(observed, exposure, g_values, statuses, contributions)
         ):
@@ -173,6 +195,7 @@ class PairCorrelationResult:
         object.__setattr__(self, "registration_fingerprint", registration_fingerprint)
         object.__setattr__(self, "point_coordinate_fingerprint", coordinate_fingerprint)
         object.__setattr__(self, "window_origin_nm", window_origin_nm)
+        object.__setattr__(self, "window_size_nm", window_size_nm)
 
 
 @dataclass(frozen=True)
@@ -272,6 +295,7 @@ def compute_pair_correlation(
             minimum_exposure=settings.gr_min_expected_pair_exposure,
             window_area_nm2=None,
             window_geometry_status="unsupported_window_geometry",
+            window_size_nm=None,
             context=context,
         )
     if geometry == "rectangular":
@@ -316,6 +340,7 @@ def compute_pair_correlation(
         minimum_exposure=settings.gr_min_expected_pair_exposure,
         window_area_nm2=area_nm2,
         window_geometry_status=geometry_status,
+        window_size_nm=(width_nm, height_nm) if geometry == "rectangular" else None,
         context=context,
     )
 
@@ -329,6 +354,7 @@ def _build_result(
     minimum_exposure: float,
     window_area_nm2: float | None,
     window_geometry_status: PairCorrelationWindowGeometryStatus,
+    window_size_nm: tuple[float, float] | None,
     context: _PairCorrelationFrameContext,
 ) -> PairCorrelationResult:
     unsupported = window_geometry_status == "unsupported_window_geometry"
@@ -368,6 +394,7 @@ def _build_result(
         registration_fingerprint=context.registration_fingerprint,
         point_coordinate_fingerprint=context.point_coordinate_fingerprint,
         window_origin_nm=context.window_origin_nm,
+        window_size_nm=window_size_nm,
     )
 
 
