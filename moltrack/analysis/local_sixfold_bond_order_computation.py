@@ -13,6 +13,7 @@ from .local_sixfold_bond_order import (
     LocalSixfoldBondOrderField,
 )
 from .m6_settings import MolecularM6OrientationAnalysisSettings
+from ._m6_settings_fingerprint import m6_settings_fingerprint
 
 
 def compute_local_sixfold_bond_order(
@@ -147,6 +148,7 @@ def compute_local_sixfold_bond_order(
         min_neighbors_for_local_order=settings.min_neighbors_for_local_order,
         symmetry_m=settings.symmetry_m,
         bond_weighting=settings.bond_weighting,
+        analysis_settings_fingerprint=m6_settings_fingerprint(settings),
     )
 
 
@@ -229,3 +231,9 @@ def _validate_graph_settings(
     )
     if graph_contract != settings_contract:
         raise ValueError("first_shell_graph must use the supplied settings.")
+    expected_fingerprint = m6_settings_fingerprint(settings)
+    if graph.analysis_settings_fingerprint not in {
+        "unspecified_settings",
+        expected_fingerprint,
+    }:
+        raise ValueError("first_shell_graph must use the complete supplied settings.")

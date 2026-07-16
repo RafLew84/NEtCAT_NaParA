@@ -67,6 +67,7 @@ class FirstShellGraph:
     candidate_edges_ij: tuple[tuple[int, int], ...] = ()
     candidate_distances_nm: tuple[float, ...] = ()
     candidate_angles_rad: tuple[float, ...] = ()
+    analysis_settings_fingerprint: str = "unspecified_settings"
 
     def __post_init__(self) -> None:
         point_count = _as_integer(self.point_count, "point_count")
@@ -111,6 +112,10 @@ class FirstShellGraph:
         coordinate_fingerprint = _non_empty_string(
             self.point_coordinate_fingerprint,
             "point_coordinate_fingerprint",
+        )
+        settings_fingerprint = _non_empty_string(
+            self.analysis_settings_fingerprint,
+            "analysis_settings_fingerprint",
         )
         construction_method = _non_empty_string(
             self.construction_method,
@@ -355,6 +360,7 @@ class FirstShellGraph:
         object.__setattr__(self, "spatial_calibration_fingerprint", calibration_fingerprint)
         object.__setattr__(self, "registration_fingerprint", registration_fingerprint)
         object.__setattr__(self, "point_coordinate_fingerprint", coordinate_fingerprint)
+        object.__setattr__(self, "analysis_settings_fingerprint", settings_fingerprint)
         object.__setattr__(self, "construction_method", construction_method)
         object.__setattr__(self, "qc_status", qc_status)
         object.__setattr__(

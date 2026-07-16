@@ -15,6 +15,7 @@ from ._first_shell_filtering import _FirstShellDistancePolicy
 from ._coordinate_fingerprint import point_coordinate_fingerprint
 from .first_shell_graph import FirstShellGraph
 from .m6_settings import MolecularM6OrientationAnalysisSettings
+from ._m6_settings_fingerprint import m6_settings_fingerprint
 
 
 def build_first_shell_graph(
@@ -245,6 +246,7 @@ def _make_graph(
         candidate_edges_ij=tuple(record[0] for record in candidate_records),
         candidate_distances_nm=tuple(record[1] for record in candidate_records),
         candidate_angles_rad=tuple(record[2] for record in candidate_records),
+        analysis_settings_fingerprint=m6_settings_fingerprint(settings),
     )
 
 

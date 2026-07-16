@@ -65,6 +65,7 @@ class LocalSixfoldBondOrderField:
     min_neighbors_for_local_order: int = 3
     symmetry_m: Literal[6] = 6
     bond_weighting: Literal["uniform"] = "uniform"
+    analysis_settings_fingerprint: str = "unspecified_settings"
 
     def __post_init__(self) -> None:
         point_count = _as_non_negative_integer(self.point_count, "point_count")
@@ -99,6 +100,10 @@ class LocalSixfoldBondOrderField:
         registration_fingerprint = _as_non_empty_string(
             self.registration_fingerprint,
             "registration_fingerprint",
+        )
+        settings_fingerprint = _as_non_empty_string(
+            self.analysis_settings_fingerprint,
+            "analysis_settings_fingerprint",
         )
 
         psi6 = _optional_complex_tuple(self.psi6, point_count=point_count, field_name="psi6")
@@ -289,6 +294,7 @@ class LocalSixfoldBondOrderField:
         object.__setattr__(self, "spatial_calibration_fingerprint", calibration_fingerprint)
         object.__setattr__(self, "registration_fingerprint", registration_fingerprint)
         object.__setattr__(self, "min_neighbors_for_local_order", minimum_neighbors)
+        object.__setattr__(self, "analysis_settings_fingerprint", settings_fingerprint)
 
     def index_for_source_id(self, source_id: str) -> int:
         """Return the input-order index linked to a molecular source ID."""
