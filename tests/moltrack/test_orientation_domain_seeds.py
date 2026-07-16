@@ -9,6 +9,8 @@ from moltrack.analysis import (
     FirstShellGraph,
     LocalSixfoldBondOrderField,
     MolecularM6OrientationAnalysisSettings,
+    build_first_shell_graph,
+    compute_local_sixfold_bond_order,
     detect_m6_orientation_domain_seeds,
 )
 from moltrack.analysis._coordinate_fingerprint import point_coordinate_fingerprint
@@ -198,6 +200,25 @@ class OrientationDomainSeedDetectionTests(unittest.TestCase):
             settings.min_domain_size,
         )
 
+    def test_component_above_domain_size_is_still_a_growth_seed_before_final_sizing(self) -> None:
+        settings = _settings()
+        points, graph, field = _inputs(
+            edges=((0, 1), (1, 2), (2, 3), (3, 4)),
+            orientations_deg=(4.0,) * 5,
+            settings=settings,
+        )
+
+        result = detect_m6_orientation_domain_seeds(
+            points,
+            first_shell_graph=graph,
+            local_order=field,
+            settings=settings,
+        )
+
+        self.assertGreater(result.components[0].molecule_count, settings.min_domain_size)
+        self.assertEqual(result.components[0].component_type, "growth_seed")
+        self.assertTrue(result.components[0].can_initiate_growth)
+
     def test_requires_five_neighbors_defined_orientation_and_interior_qc(self) -> None:
         settings = _settings(
             min_neighbors_for_seed=5,
@@ -237,6 +258,43 @@ class OrientationDomainSeedDetectionTests(unittest.TestCase):
         self.assertEqual(result.assignment_status[9], "boundary_or_disordered")
         self.assertEqual(result.assignment_status[14], "boundary_or_disordered")
         self.assertEqual(result.components[0].point_indices, (10, 11, 12, 13))
+
+    def test_keeps_rejected_physical_duplicate_out_of_seed_components(self) -> None:
+        settings = _settings(
+            min_ordered_component_size=1,
+            min_seed_size=1,
+            min_domain_size=1,
+        )
+        points = np.asarray(
+            ((0.0, 0.0), (0.2, 0.0), (1.5, 0.0), (0.75, 1.3)),
+            dtype=np.float64,
+        )
+        graph = build_first_shell_graph(
+            points,
+            point_ids=("representative", "duplicate", "east", "north"),
+            settings=settings,
+            detection_confidences=(1.0, 0.1, 1.0, 1.0),
+            spatial_calibration_fingerprint="calibration-v1",
+            registration_fingerprint="registration-v1",
+        )
+        field = compute_local_sixfold_bond_order(
+            graph,
+            distance_to_valid_fov_boundary_nm=(10.0,) * 4,
+            settings=settings,
+        )
+
+        result = detect_m6_orientation_domain_seeds(
+            points,
+            first_shell_graph=graph,
+            local_order=field,
+            settings=settings,
+        )
+        duplicate_index = graph.physical_duplicate_qc.index(True)
+
+        self.assertFalse(result.seed_eligible[duplicate_index])
+        self.assertEqual(result.ordered_component_id[duplicate_index], -1)
+        self.assertEqual(result.assignment_status[duplicate_index], "duplicate_excluded")
+        self.assertTrue(result.physical_duplicate_qc[duplicate_index])
 
     def test_rejects_mismatched_graph_local_field_coordinates_and_settings(self) -> None:
         settings = _settings(min_ordered_component_size=1, min_seed_size=1, min_domain_size=1)

@@ -1,16 +1,22 @@
 from __future__ import annotations
 
-from cmath import phase
 from dataclasses import dataclass
-from math import cos, degrees, fsum, isfinite, pi
+from math import fsum, isfinite
 from typing import Literal
 
 import numpy as np
 
-from ._coordinate_fingerprint import point_coordinate_fingerprint
 from .first_shell_graph import FirstShellGraph, OrientationReference
 from .local_sixfold_bond_order import LocalSixfoldBondOrderField
 from .m6_settings import MolecularM6OrientationAnalysisSettings
+from ._orientation_domain_common import (
+    component_m6_orientation_deg,
+    component_m6_unit_orientation,
+    initial_m6_assignment_status,
+    m6_similarity_threshold,
+    point_domain_m6_similarity,
+    validate_m6_domain_analysis_inputs,
+)
 from .orientation_domain_models import M6AssignmentStatus
 from .orientation_domain_seeds import (
     M6OrientationDomainSeedDetection,
@@ -69,7 +75,7 @@ class M6OrientationGrownComponent:
         return self.seed_component.ordered_component_id
 
     @property
-    def component_type(self) -> Literal["growth_seed", "small_ordered_island"]:
+    def seed_component_type(self) -> Literal["growth_seed", "small_ordered_island"]:
         return self.seed_component.component_type
 
     @property
@@ -93,7 +99,7 @@ class M6OrientationDomainGrowthState:
     point_count: int
     seed_eligible: tuple[bool, ...]
     ordered_component_id: tuple[int, ...]
-    component_type: tuple[M6SeedPointComponentType, ...]
+    seed_component_type: tuple[M6SeedPointComponentType, ...]
     assignment_status: tuple[M6AssignmentStatus, ...]
     edge_truncated_neighborhood: tuple[bool, ...]
     physical_duplicate_qc: tuple[bool, ...]
@@ -122,7 +128,7 @@ class M6OrientationDomainGrowthState:
         per_point_fields = (
             "seed_eligible",
             "ordered_component_id",
-            "component_type",
+            "seed_component_type",
             "assignment_status",
             "edge_truncated_neighborhood",
             "physical_duplicate_qc",
@@ -176,8 +182,13 @@ class M6OrientationDomainGrowthState:
                     raise ValueError("Component source_ids must match point indices.")
                 if self.ordered_component_id[point_index] != component.ordered_component_id:
                     raise ValueError("Point ordered_component_id must match its component.")
-                if self.component_type[point_index] != component.component_type:
-                    raise ValueError("Point component_type must match its component.")
+                if (
+                    self.seed_component_type[point_index]
+                    != component.seed_component_type
+                ):
+                    raise ValueError(
+                        "Point seed_component_type must match its seed component."
+                    )
                 if self.assignment_status[point_index] != "assigned":
                     raise ValueError("Component points must have assignment_status='assigned'.")
             if any(not self.seed_eligible[index] for index in component.seed_point_indices):
@@ -197,9 +208,11 @@ class M6OrientationDomainGrowthState:
                 raise ValueError("Duplicate QC must correspond to duplicate_excluded status.")
             if index not in covered and (
                 self.ordered_component_id[index] != -1
-                or self.component_type[index] != "unassigned"
+                or self.seed_component_type[index] != "unassigned"
             ):
-                raise ValueError("Unassigned points must use label=-1 and type='unassigned'.")
+                raise ValueError(
+                    "Unassigned points must use label=-1 and seed type='unassigned'."
+                )
         object.__setattr__(self, "source_ids", source_ids)
         object.__setattr__(self, "components", components)
 
@@ -240,7 +253,7 @@ def grow_m6_orientation_domains(
     """Grow eligible M6 seeds in frozen-orientation synchronous batches."""
 
     settings = _normalize_settings(settings)
-    points = _validate_analysis_inputs(
+    points = validate_m6_domain_analysis_inputs(
         points_xy_nm,
         first_shell_graph=first_shell_graph,
         local_order=local_order,
@@ -252,20 +265,19 @@ def grow_m6_orientation_domains(
         settings=settings,
     )
     labels = list(seeds.ordered_component_id)
-    growth_component_ids = {
+    growth_component_ids = tuple(
         component.ordered_component_id
-        for component in seeds.components
-        if component.can_initiate_growth
-    }
+        for component in _growth_seed_components(seeds)
+    )
     adjacency = _graph_adjacency(first_shell_graph)
-    similarity_threshold = _orientation_similarity_threshold(
+    similarity_threshold = m6_similarity_threshold(
         settings.grow_angle_tolerance_deg
     )
     iteration_count = 0
 
     while True:
         domain_vectors = {
-            component_id: _component_unit_orientation(
+            component_id: component_m6_unit_orientation(
                 tuple(
                     point_index
                     for point_index, label in enumerate(labels)
@@ -291,7 +303,7 @@ def grow_m6_orientation_domains(
             scored_domains = sorted(
                 (
                     (
-                        _point_domain_similarity(
+                        point_domain_m6_similarity(
                             point_index,
                             domain_vectors[component_id],
                             local_order,
@@ -345,84 +357,6 @@ def _normalize_settings(
     if not isinstance(settings, MolecularM6OrientationAnalysisSettings):
         raise TypeError("settings must be MolecularM6OrientationAnalysisSettings.")
     return settings
-
-
-def _validate_analysis_inputs(
-    points_xy_nm: object,
-    *,
-    first_shell_graph: FirstShellGraph,
-    local_order: LocalSixfoldBondOrderField,
-    settings: MolecularM6OrientationAnalysisSettings,
-) -> np.ndarray:
-    if not isinstance(first_shell_graph, FirstShellGraph):
-        raise TypeError("first_shell_graph must be a FirstShellGraph.")
-    if not isinstance(local_order, LocalSixfoldBondOrderField):
-        raise TypeError("local_order must be a LocalSixfoldBondOrderField.")
-    points = np.asarray(points_xy_nm, dtype=np.float64)
-    if points.ndim != 2 or points.shape[1] != 2:
-        raise ValueError("points_xy_nm must have shape [N, 2].")
-    if not bool(np.all(np.isfinite(points))):
-        raise ValueError("points_xy_nm must contain only finite coordinates.")
-    if len(points) != first_shell_graph.point_count:
-        raise ValueError("points_xy_nm must contain one point per graph node.")
-    if (
-        first_shell_graph.point_ids != local_order.source_ids
-        or first_shell_graph.point_count != local_order.point_count
-    ):
-        raise ValueError("first_shell_graph and local_order must use the same points and order.")
-    if first_shell_graph.degree != local_order.neighbor_count:
-        raise ValueError("first_shell_graph degree must match local_order neighbor_count.")
-    if (
-        first_shell_graph.physical_duplicate_qc != local_order.physical_duplicate_qc
-        or first_shell_graph.geometry_duplicate_qc != local_order.geometry_duplicate_qc
-    ):
-        raise ValueError("first_shell_graph and local_order duplicate QC must match.")
-    graph_provenance = (
-        first_shell_graph.coordinate_frame,
-        first_shell_graph.orientation_reference,
-        first_shell_graph.spatial_calibration_fingerprint,
-        first_shell_graph.registration_fingerprint,
-    )
-    local_provenance = (
-        local_order.coordinate_frame,
-        local_order.orientation_reference,
-        local_order.spatial_calibration_fingerprint,
-        local_order.registration_fingerprint,
-    )
-    if graph_provenance != local_provenance:
-        raise ValueError("first_shell_graph and local_order provenance must match.")
-    graph_settings = (
-        first_shell_graph.duplicate_detection_enabled,
-        first_shell_graph.duplicate_max_distance_nm,
-        first_shell_graph.first_shell_r_min_nm,
-        first_shell_graph.first_shell_r_max_nm,
-    )
-    expected_graph_settings = (
-        settings.duplicate_detection_enabled,
-        settings.duplicate_max_distance_nm,
-        settings.first_shell_r_min_nm,
-        settings.first_shell_r_max_nm,
-    )
-    if graph_settings != expected_graph_settings:
-        raise ValueError("first_shell_graph must use the supplied settings.")
-    local_settings = (
-        local_order.min_neighbors_for_local_order,
-        local_order.symmetry_m,
-        local_order.bond_weighting,
-    )
-    expected_local_settings = (
-        settings.min_neighbors_for_local_order,
-        settings.symmetry_m,
-        settings.bond_weighting,
-    )
-    if local_settings != expected_local_settings:
-        raise ValueError("local_order must use the supplied settings.")
-    if (
-        point_coordinate_fingerprint(points, first_shell_graph.point_ids)
-        != first_shell_graph.point_coordinate_fingerprint
-    ):
-        raise ValueError("first_shell_graph coordinate fingerprint must match points_xy_nm.")
-    return points
 
 
 def _validate_seed_detection(
@@ -480,6 +414,14 @@ def _graph_adjacency(graph: FirstShellGraph) -> tuple[tuple[int, ...], ...]:
     return tuple(tuple(neighbors) for neighbors in adjacency)
 
 
+def _growth_seed_components(
+    seeds: M6OrientationDomainSeedDetection,
+) -> tuple[M6OrientationSeedComponent, ...]:
+    return tuple(
+        component for component in seeds.components if component.can_initiate_growth
+    )
+
+
 def _grown_component(
     seed_component: M6OrientationSeedComponent,
     members: tuple[int, ...],
@@ -499,7 +441,7 @@ def _grown_component(
         centroid_y_nm=(
             fsum(float(points[index, 1]) for index in ordered_members) / count
         ),
-        orientation_deg=_component_orientation(members, local_order),
+        orientation_deg=component_m6_orientation_deg(members, local_order),
     )
 
 
@@ -512,18 +454,21 @@ def _build_growth_state(
 ) -> M6OrientationDomainGrowthState:
     labels = [-1] * seeds.point_count
     component_types: list[M6SeedPointComponentType] = ["unassigned"] * seeds.point_count
-    statuses = [_base_assignment_status(value) for value in local_order.computation_status]
+    statuses = [
+        initial_m6_assignment_status(value)
+        for value in local_order.computation_status
+    ]
     for component in components:
         for point_index in component.point_indices:
             labels[point_index] = component.ordered_component_id
-            component_types[point_index] = component.component_type
+            component_types[point_index] = component.seed_component_type
             statuses[point_index] = "assigned"
     return M6OrientationDomainGrowthState(
         source_ids=seeds.source_ids,
         point_count=seeds.point_count,
         seed_eligible=seeds.seed_eligible,
         ordered_component_id=tuple(labels),
-        component_type=tuple(component_types),
+        seed_component_type=tuple(component_types),
         assignment_status=tuple(statuses),
         edge_truncated_neighborhood=seeds.edge_truncated_neighborhood,
         physical_duplicate_qc=seeds.physical_duplicate_qc,
@@ -537,67 +482,6 @@ def _build_growth_state(
         registration_fingerprint=seeds.registration_fingerprint,
         point_coordinate_fingerprint=seeds.point_coordinate_fingerprint,
     )
-
-
-def _base_assignment_status(status: str) -> M6AssignmentStatus:
-    if status == "insufficient_neighbors":
-        return "insufficient_neighbors"
-    if status == "duplicate_excluded":
-        return "duplicate_excluded"
-    if status == "invalid_position":
-        return "invalid_position"
-    return "boundary_or_disordered"
-
-
-def _component_orientation(
-    members: tuple[int, ...],
-    local_order: LocalSixfoldBondOrderField,
-) -> float:
-    vector = _component_complex_sum(members, local_order)
-    if abs(vector) <= 1e-15:
-        raise ValueError("An M6 component has numerically undefined mean orientation.")
-    return degrees(phase(vector) / 6.0) % 60.0
-
-
-def _component_unit_orientation(
-    members: tuple[int, ...],
-    local_order: LocalSixfoldBondOrderField,
-) -> complex:
-    vector = _component_complex_sum(members, local_order)
-    magnitude = abs(vector)
-    if magnitude <= 1e-15:
-        raise ValueError("An M6 component has numerically undefined mean orientation.")
-    return vector / magnitude
-
-
-def _component_complex_sum(
-    members: tuple[int, ...],
-    local_order: LocalSixfoldBondOrderField,
-) -> complex:
-    ordered_members = sorted(members, key=lambda index: local_order.source_ids[index])
-    values = tuple(local_order.psi6[index] for index in ordered_members)
-    if any(value is None for value in values):
-        raise ValueError("Assigned M6 component points require psi6 values.")
-    return complex(
-        fsum(value.real for value in values if value is not None),
-        fsum(value.imag for value in values if value is not None),
-    )
-
-
-def _point_domain_similarity(
-    point_index: int,
-    domain_vector: complex,
-    local_order: LocalSixfoldBondOrderField,
-) -> float:
-    point_value = local_order.psi6[point_index]
-    point_q6 = local_order.q6[point_index]
-    if point_value is None or point_q6 is None or point_q6 <= 0.0:
-        raise ValueError("A compared M6 orientation must be defined and non-zero.")
-    return float(((point_value / point_q6) * domain_vector.conjugate()).real)
-
-
-def _orientation_similarity_threshold(tolerance_deg: float) -> float:
-    return cos(6.0 * tolerance_deg * pi / 180.0)
 
 
 def _finite_float(value: object, field_name: str) -> float:

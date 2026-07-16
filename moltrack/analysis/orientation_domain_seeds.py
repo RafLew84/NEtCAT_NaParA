@@ -1,16 +1,21 @@
 from __future__ import annotations
 
-from cmath import phase
 from dataclasses import dataclass
-from math import cos, degrees, fsum, isfinite, radians
+from math import fsum, isfinite
 from typing import Literal
 
 import numpy as np
 
-from ._coordinate_fingerprint import point_coordinate_fingerprint
 from .first_shell_graph import FirstShellGraph, OrientationReference
 from .local_sixfold_bond_order import LocalSixfoldBondOrderField
 from .m6_settings import MolecularM6OrientationAnalysisSettings
+from ._orientation_domain_common import (
+    component_m6_orientation_deg,
+    initial_m6_assignment_status,
+    m6_similarity_threshold,
+    point_pair_m6_similarity,
+    validate_m6_domain_analysis_inputs,
+)
 from .orientation_domain_models import M6AssignmentStatus
 
 
@@ -320,12 +325,12 @@ def detect_m6_orientation_domain_seeds(
         raise TypeError("first_shell_graph must be a FirstShellGraph.")
     if not isinstance(local_order, LocalSixfoldBondOrderField):
         raise TypeError("local_order must be a LocalSixfoldBondOrderField.")
-    points = np.array(points_xy_nm, dtype=np.float64, copy=True)
-    if points.ndim != 2 or points.shape[1] != 2:
-        raise ValueError("points_xy_nm must have shape [N, 2].")
-    if not bool(np.all(np.isfinite(points))):
-        raise ValueError("points_xy_nm must contain only finite coordinates.")
-    _validate_inputs(points, first_shell_graph, local_order, settings)
+    points = validate_m6_domain_analysis_inputs(
+        points_xy_nm,
+        first_shell_graph=first_shell_graph,
+        local_order=local_order,
+        settings=settings,
+    )
 
     eligible = tuple(
         local_order.computation_status[index] == "valid_order"
@@ -339,11 +344,11 @@ def detect_m6_orientation_domain_seeds(
         for index in range(local_order.point_count)
     )
     adjacency: list[list[int]] = [[] for _ in range(local_order.point_count)]
-    similarity_limit = _m6_tolerance_similarity(settings.seed_angle_tolerance_deg)
+    similarity_limit = m6_similarity_threshold(settings.seed_angle_tolerance_deg)
     for left, right in first_shell_graph.edges_ij:
         if not eligible[left] or not eligible[right]:
             continue
-        if _m6_similarity(local_order, left, right) + 1e-15 < similarity_limit:
+        if point_pair_m6_similarity(local_order, left, right) + 1e-15 < similarity_limit:
             continue
         adjacency[left].append(right)
         adjacency[right].append(left)
@@ -361,7 +366,7 @@ def detect_m6_orientation_domain_seeds(
         "unassigned"
     ] * local_order.point_count
     statuses: list[M6AssignmentStatus] = [
-        _initial_assignment_status(status)
+        initial_m6_assignment_status(status)
         for status in local_order.computation_status
     ]
     components: list[M6OrientationSeedComponent] = []
@@ -402,25 +407,6 @@ def detect_m6_orientation_domain_seeds(
     )
 
 
-def _m6_tolerance_similarity(tolerance_deg: float) -> float:
-    return cos(radians(6.0 * tolerance_deg))
-
-
-def _m6_similarity(
-    local_order: LocalSixfoldBondOrderField,
-    left: int,
-    right: int,
-) -> float:
-    left_psi = local_order.psi6[left]
-    right_psi = local_order.psi6[right]
-    left_q = local_order.q6[left]
-    right_q = local_order.q6[right]
-    if left_psi is None or right_psi is None or left_q is None or right_q is None:
-        raise ValueError("Seed-eligible points require finite psi6 and q6 values.")
-    similarity = (left_psi * right_psi.conjugate()).real / (left_q * right_q)
-    return min(1.0, max(-1.0, float(similarity)))
-
-
 def _connected_eligible_components(
     eligible: tuple[bool, ...],
     adjacency: list[list[int]],
@@ -451,89 +437,18 @@ def _build_candidate(
     settings: MolecularM6OrientationAnalysisSettings,
 ) -> _SeedCandidate:
     source_order = tuple(sorted(members, key=lambda index: local_order.source_ids[index]))
-    real = fsum(local_order.psi6[index].real for index in source_order)  # type: ignore[union-attr]
-    imaginary = fsum(local_order.psi6[index].imag for index in source_order)  # type: ignore[union-attr]
-    orientation = degrees(phase(complex(real, imaginary)) / 6.0) % 60.0
     return _SeedCandidate(
         point_indices=members,
         source_ids=tuple(local_order.source_ids[index] for index in members),
         centroid_x_nm=fsum(float(points[index, 0]) for index in source_order) / len(members),
         centroid_y_nm=fsum(float(points[index, 1]) for index in source_order) / len(members),
-        orientation_deg=orientation,
+        orientation_deg=component_m6_orientation_deg(members, local_order),
         component_type=(
             "growth_seed"
             if len(members) >= settings.min_seed_size
             else "small_ordered_island"
         ),
     )
-
-
-def _initial_assignment_status(status: str) -> M6AssignmentStatus:
-    if status == "duplicate_excluded":
-        return "duplicate_excluded"
-    if status == "invalid_position":
-        return "invalid_position"
-    if status == "insufficient_neighbors":
-        return "insufficient_neighbors"
-    return "boundary_or_disordered"
-
-
-def _validate_inputs(
-    points: np.ndarray,
-    graph: FirstShellGraph,
-    local_order: LocalSixfoldBondOrderField,
-    settings: MolecularM6OrientationAnalysisSettings,
-) -> None:
-    if len(points) != graph.point_count:
-        raise ValueError("points_xy_nm must contain one coordinate per graph point.")
-    if point_coordinate_fingerprint(points, graph.point_ids) != graph.point_coordinate_fingerprint:
-        raise ValueError("first_shell_graph coordinate fingerprint must match points_xy_nm.")
-    if graph.qc_status.startswith("blocking_"):
-        raise ValueError("first_shell_graph has blocking QC and cannot initiate domains.")
-    graph_settings = (
-        graph.duplicate_detection_enabled,
-        graph.duplicate_max_distance_nm,
-        graph.first_shell_r_min_nm,
-        graph.first_shell_r_max_nm,
-    )
-    requested_settings = (
-        settings.duplicate_detection_enabled,
-        settings.duplicate_max_distance_nm,
-        settings.first_shell_r_min_nm,
-        settings.first_shell_r_max_nm,
-    )
-    if graph_settings != requested_settings:
-        raise ValueError("first_shell_graph must use the supplied settings.")
-    if (
-        local_order.source_ids != graph.point_ids
-        or local_order.point_count != graph.point_count
-        or local_order.neighbor_count != graph.degree
-        or local_order.physical_duplicate_qc != graph.physical_duplicate_qc
-        or local_order.geometry_duplicate_qc != graph.geometry_duplicate_qc
-    ):
-        raise ValueError("local_order must match first_shell_graph point order and QC.")
-    local_context = (
-        local_order.coordinate_frame,
-        local_order.orientation_reference,
-        local_order.spatial_calibration_fingerprint,
-        local_order.registration_fingerprint,
-        local_order.first_shell_r_max_nm,
-        local_order.min_neighbors_for_local_order,
-        local_order.symmetry_m,
-        local_order.bond_weighting,
-    )
-    expected_context = (
-        graph.coordinate_frame,
-        graph.orientation_reference,
-        graph.spatial_calibration_fingerprint,
-        graph.registration_fingerprint,
-        graph.first_shell_r_max_nm,
-        settings.min_neighbors_for_local_order,
-        settings.symmetry_m,
-        settings.bond_weighting,
-    )
-    if local_context != expected_context:
-        raise ValueError("local_order metadata must match graph and settings.")
 
 
 def _per_point_tuple(values: object, point_count: int, field_name: str) -> tuple:

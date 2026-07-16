@@ -2,6 +2,7 @@ import cmath
 import math
 import unittest
 from dataclasses import replace
+from unittest.mock import patch
 
 import numpy as np
 
@@ -331,10 +332,75 @@ class OrientationDomainGrowthTests(unittest.TestCase):
             seeds=seeds,
             settings=settings,
         )
+        with patch(
+            "moltrack.analysis.orientation_domain_seed_growth._growth_seed_components",
+            return_value=tuple(
+                component
+                for component in reversed(seeds.components)
+                if component.can_initiate_growth
+            ),
+        ):
+            reversed_domain_order = grow_m6_orientation_domains(
+                inputs[0],
+                first_shell_graph=inputs[1],
+                local_order=inputs[2],
+                seeds=seeds,
+                settings=settings,
+            )
 
         self.assertEqual(seeds.growth_seed_count, 3)
         self.assertEqual(result.ordered_component_id[6], -1)
         self.assertEqual(result.assignment_status[6], "boundary_or_disordered")
+        self.assertEqual(reversed_domain_order, result)
+
+    def test_conflict_margin_uses_second_neighbor_even_below_growth_tolerance(self) -> None:
+        settings = _settings(
+            seed_angle_tolerance_deg=2.0,
+            grow_angle_tolerance_deg=8.0,
+            domain_conflict_margin=0.45,
+        )
+        inputs = _analysis_inputs(
+            orientations_deg=(0.0, 0.0, 9.0, 9.0, 0.0),
+            q6=(0.9, 0.9, 0.9, 0.9, 0.5),
+            edges_ij=((0, 1), (2, 3), (1, 4), (3, 4)),
+            settings=settings,
+        )
+        seeds = _detect(inputs, settings)
+
+        result = grow_m6_orientation_domains(
+            inputs[0],
+            first_shell_graph=inputs[1],
+            local_order=inputs[2],
+            seeds=seeds,
+            settings=settings,
+        )
+
+        self.assertEqual(result.ordered_component_id[4], -1)
+        self.assertEqual(result.assignment_status[4], "boundary_or_disordered")
+
+    def test_exactly_cancelling_seed_orientation_uses_deterministic_medoid(self) -> None:
+        settings = _settings(
+            seed_angle_tolerance_deg=30.0,
+            grow_angle_tolerance_deg=30.0,
+        )
+        inputs = _analysis_inputs(
+            orientations_deg=(0.0, 30.0, 0.0),
+            q6=(0.9, 0.9, 0.5),
+            edges_ij=((0, 1), (0, 2)),
+            settings=settings,
+        )
+        seeds = _detect(inputs, settings)
+
+        result = grow_m6_orientation_domains(
+            inputs[0],
+            first_shell_graph=inputs[1],
+            local_order=inputs[2],
+            seeds=seeds,
+            settings=settings,
+        )
+
+        self.assertAlmostEqual(seeds.components[0].orientation_deg, 0.0)
+        self.assertEqual(result.ordered_component_id, (0, 0, 0))
 
     def test_growth_result_rejects_inconsistent_parallel_labels(self) -> None:
         settings = _settings()

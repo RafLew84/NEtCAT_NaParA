@@ -194,6 +194,40 @@ class OrientationDomainModelTests(unittest.TestCase):
                 with self.assertRaises((TypeError, ValueError)):
                     replace(domain, **changes)
 
+        undersized_domain = _full_domain(
+            molecule_count=2,
+            point_indices=(0, 1),
+            source_ids=("a", "b"),
+        )
+        with self.assertRaisesRegex(ValueError, "min_domain_size"):
+            _segmentation(
+                components=(undersized_domain, _small_island()),
+                ordered_component_id=(0, 0, -1, 1, 1, -1, -1, -1, -1),
+                m6_orientation_domain_id=(0, 0, -1, -1, -1, -1, -1, -1, -1),
+                component_type=(
+                    "full_domain",
+                    "full_domain",
+                    "unassigned",
+                    "small_ordered_island",
+                    "small_ordered_island",
+                    "unassigned",
+                    "unassigned",
+                    "unassigned",
+                    "unassigned",
+                ),
+                assignment_status=(
+                    "assigned",
+                    "assigned",
+                    "boundary_or_disordered",
+                    "assigned",
+                    "assigned",
+                    "boundary_or_disordered",
+                    "insufficient_neighbors",
+                    "duplicate_excluded",
+                    "invalid_position",
+                ),
+            )
+
     def test_enforces_lexicographic_stable_ids(self) -> None:
         settings = MolecularM6OrientationAnalysisSettings(
             min_ordered_component_size=1,
