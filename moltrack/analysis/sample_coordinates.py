@@ -37,6 +37,7 @@ class MolecularSampleCoordinates:
     scan_angle_missing_qc: bool
     coordinate_frame: str = "sample_nm"
     orientation_reference: str = "+x_sample_axis"
+    point_annotation_fingerprints: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if isinstance(self.frame_index, bool) or int(self.frame_index) < 0:
@@ -72,6 +73,32 @@ class MolecularSampleCoordinates:
         points = tuple(_finite_pair(point, "points_xy_nm") for point in self.points_xy_nm)
         if not len(point_source_ids) == len(point_source_kinds) == len(source_points) == len(points):
             raise ValueError("Point IDs, kinds, source pixels, and sample coordinates must align.")
+        annotation_fingerprints = tuple(self.point_annotation_fingerprints)
+        if not annotation_fingerprints:
+            annotation_fingerprints = tuple(
+                _fingerprint(
+                    {
+                        "source_id": source_id,
+                        "source_kind": source_kind,
+                        "source_point_xy_px": source_point,
+                    }
+                )
+                for source_id, source_kind, source_point in zip(
+                    point_source_ids,
+                    point_source_kinds,
+                    source_points,
+                )
+            )
+        if (
+            len(annotation_fingerprints) != len(points)
+            or any(
+                not isinstance(value, str) or not value
+                for value in annotation_fingerprints
+            )
+        ):
+            raise ValueError(
+                "point_annotation_fingerprints must align with non-empty point IDs."
+            )
         distances = tuple(
             _finite_float(value, "distance_to_valid_fov_boundary_nm")
             for value in self.distance_to_valid_fov_boundary_nm
@@ -117,6 +144,11 @@ class MolecularSampleCoordinates:
         object.__setattr__(self, "point_source_kinds", point_source_kinds)
         object.__setattr__(self, "source_points_xy_px", source_points)
         object.__setattr__(self, "points_xy_nm", points)
+        object.__setattr__(
+            self,
+            "point_annotation_fingerprints",
+            annotation_fingerprints,
+        )
         object.__setattr__(self, "distance_to_valid_fov_boundary_nm", distances)
         object.__setattr__(self, "valid_fov_polygon_xy_nm", polygon)
         object.__setattr__(self, "plot_canvas_polygon_xy_nm", plot_polygon)
@@ -277,6 +309,17 @@ def build_molecular_sample_coordinates(
         scan_angle_deg=scan_angle_deg,
         scan_angle_missing_qc=scan_angle_missing_qc,
         orientation_reference=orientation_reference,
+        point_annotation_fingerprints=tuple(
+            centroid.annotation_fingerprint
+            or _fingerprint(
+                {
+                    "source_id": centroid.source_id,
+                    "source_kind": centroid.source_kind,
+                    "source_point_xy_px": (centroid.x_px, centroid.y_px),
+                }
+            )
+            for centroid in centroids
+        ),
     )
 
 

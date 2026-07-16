@@ -27,6 +27,7 @@ from .m6_range_analysis import (
     aggregate_molecular_m6_frame_range,
 )
 from .sample_coordinates import build_molecular_sample_coordinates
+from .structural_analysis_cache import _get_or_compute_molecular_m6_orientation
 
 
 MolecularM6FrameAvailabilityStatus = Literal[
@@ -239,9 +240,12 @@ def analyze_molecular_frame_range(
         m6_orientation_unavailability_reason = None
         if sample_coordinates is not None:
             try:
-                m6_orientation_analysis = analyze_molecular_m6_orientation(
+                m6_orientation_analysis = _get_or_compute_molecular_m6_orientation(
+                    series,
                     sample_coordinates,
+                    use_segmentation_centroids=use_segmentation_centroids,
                     settings=m6_orientation_settings,
+                    analysis_factory=analyze_molecular_m6_orientation,
                 )
                 m6_orientation_availability_status = "available"
             except M6BlockingGraphQCError as error:

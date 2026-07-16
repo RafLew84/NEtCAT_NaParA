@@ -118,6 +118,10 @@ from .m6_range_analysis import (
     build_molecular_m6_frame_trend_series,
     compare_molecular_m6_range_aggregates,
 )
+from .structural_analysis_cache import (
+    StructuralAnalysisCacheKey,
+    build_structural_analysis_cache_key,
+)
 from .range_comparison import (
     MolecularFrameRangeComparison,
     MolecularFrameRangeDifferences,
@@ -161,6 +165,7 @@ __all__ = [
     "MolecularM6FrameTrendSeries",
     "MolecularM6RangeAggregates",
     "MolecularM6RangeDifferences",
+    "StructuralAnalysisCacheKey",
     "LocalOrderComputationStatus",
     "LocalOrientationStatus",
     "LocalSixfoldBondOrderField",
@@ -230,6 +235,7 @@ __all__ = [
     "build_molecular_range_comparison_trend_data",
     "build_molecular_m6_frame_trend_series",
     "build_molecular_range_spatial_comparison_data",
+    "build_structural_analysis_cache_key",
     "compare_molecular_frame_ranges",
     "compare_molecular_m6_range_aggregates",
     "compute_molecular_nearest_neighbor_angle_metrics",

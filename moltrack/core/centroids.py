@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
 from math import isfinite
 
 import numpy as np
@@ -111,6 +112,7 @@ class MolecularCentroid:
     y_nm: float | None = None
     area_px: float | None = None
     origin: str | None = None
+    annotation_fingerprint: str | None = None
 
     def __post_init__(self) -> None:
         frame_index = int(self.frame_index)
@@ -137,6 +139,13 @@ class MolecularCentroid:
         origin = None if self.origin is None else str(self.origin).strip()
         if origin == "":
             raise ValueError("origin must be a non-empty string when provided.")
+        annotation_fingerprint = (
+            None
+            if self.annotation_fingerprint is None
+            else str(self.annotation_fingerprint).strip()
+        )
+        if annotation_fingerprint == "":
+            raise ValueError("annotation_fingerprint must be non-empty when provided.")
 
         object.__setattr__(self, "frame_index", frame_index)
         object.__setattr__(self, "source_view", source_view)
@@ -148,6 +157,7 @@ class MolecularCentroid:
         object.__setattr__(self, "y_nm", y_nm)
         object.__setattr__(self, "area_px", area_px)
         object.__setattr__(self, "origin", origin)
+        object.__setattr__(self, "annotation_fingerprint", annotation_fingerprint)
 
     @classmethod
     def from_segmentation(
@@ -183,6 +193,11 @@ class MolecularCentroid:
             source_id=segmentation.segmentation_id,
             area_px=int(x_indices.size),
             origin=segmentation.origin,
+            annotation_fingerprint=_mask_annotation_fingerprint(
+                mask.shape,
+                y_indices,
+                x_indices,
+            ),
         )
         centroid.validate_within_frame((height, width))
         return centroid
@@ -214,6 +229,9 @@ class MolecularCentroid:
             source_id=detection.detection_id,
             area_px=None,
             origin=detection.origin,
+            annotation_fingerprint=_bbox_annotation_fingerprint(
+                detection.bbox_xyxy
+            ),
         )
         centroid.validate_within_frame((height, width))
         return centroid
@@ -232,6 +250,25 @@ def _normalize_frame_shape(frame_shape: tuple[int, int]) -> tuple[int, int]:
     if height <= 0 or width <= 0:
         raise ValueError("frame_shape height and width must be positive.")
     return height, width
+
+
+def _mask_annotation_fingerprint(
+    shape: tuple[int, int],
+    y_indices: np.ndarray,
+    x_indices: np.ndarray,
+) -> str:
+    digest = hashlib.sha256()
+    digest.update(f"mask-v1:{shape[0]}x{shape[1]}:".encode("ascii"))
+    digest.update(np.asarray(y_indices, dtype="<i8").tobytes())
+    digest.update(np.asarray(x_indices, dtype="<i8").tobytes())
+    return digest.hexdigest()
+
+
+def _bbox_annotation_fingerprint(
+    bbox_xyxy: tuple[float, float, float, float],
+) -> str:
+    payload = "bbox-v1:" + ",".join(float(value).hex() for value in bbox_xyxy)
+    return hashlib.sha256(payload.encode("ascii")).hexdigest()
 
 
 def _normalize_non_negative_finite(value: float, name: str) -> float:
