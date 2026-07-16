@@ -39,6 +39,12 @@ from .orientation_domain_seed_growth import (
     M6OrientationGrownComponent,
     grow_m6_orientation_domains,
 )
+from .orientation_domain_merge import (
+    M6OrientationDomainMergeState,
+    M6OrientationMergeConstituent,
+    M6OrientationMergedComponent,
+    merge_and_grow_m6_orientation_domains,
+)
 from .first_shell_suggestion import (
     FirstShellSuggestionResult,
     suggest_first_shell_r_max,
@@ -113,6 +119,10 @@ __all__ = [
     "M6OrientationDomainGrowthState",
     "M6OrientationGrownComponent",
     "grow_m6_orientation_domains",
+    "M6OrientationDomainMergeState",
+    "M6OrientationMergeConstituent",
+    "M6OrientationMergedComponent",
+    "merge_and_grow_m6_orientation_domains",
     "PairCorrelationResult",
     "MolecularFrameAnalysisResult",
     "MolecularNearestNeighborAngleMetrics",

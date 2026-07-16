@@ -216,6 +216,13 @@ def m6_similarity_threshold(tolerance_deg: float) -> float:
     return cos(6.0 * tolerance_deg * pi / 180.0)
 
 
+def m6_orientation_distance_deg(left_deg: float, right_deg: float) -> float:
+    """Return the shortest angular distance for a 60-degree-periodic orientation."""
+
+    delta = abs(float(left_deg) - float(right_deg)) % 60.0
+    return min(delta, 60.0 - delta)
+
+
 def point_pair_m6_similarity(
     local_order: LocalSixfoldBondOrderField,
     left: int,

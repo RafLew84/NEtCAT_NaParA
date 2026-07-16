@@ -11,13 +11,11 @@ from .local_sixfold_bond_order import LocalSixfoldBondOrderField
 from .m6_settings import MolecularM6OrientationAnalysisSettings
 from ._orientation_domain_common import (
     component_m6_orientation_deg,
-    component_m6_unit_orientation,
     initial_m6_assignment_status,
-    m6_similarity_threshold,
     normalize_m6_point_state,
-    point_domain_m6_similarity,
     validate_m6_domain_analysis_inputs,
 )
+from ._orientation_domain_growth import grow_m6_labels_to_fixed_point
 from .orientation_domain_models import M6AssignmentStatus
 from .orientation_domain_seeds import (
     M6OrientationDomainSeedDetection,
@@ -277,64 +275,13 @@ def grow_m6_orientation_domains(
         component.ordered_component_id
         for component in _growth_seed_components(seeds)
     )
-    adjacency = _graph_adjacency(first_shell_graph)
-    similarity_threshold = m6_similarity_threshold(
-        settings.grow_angle_tolerance_deg
+    labels, iteration_count = grow_m6_labels_to_fixed_point(
+        labels,
+        growth_component_ids,
+        first_shell_graph=first_shell_graph,
+        local_order=local_order,
+        settings=settings,
     )
-    iteration_count = 0
-
-    while True:
-        domain_vectors = {
-            component_id: component_m6_unit_orientation(
-                tuple(
-                    point_index
-                    for point_index, label in enumerate(labels)
-                    if label == component_id
-                ),
-                local_order,
-            )
-            for component_id in growth_component_ids
-        }
-        proposals: list[tuple[int, int]] = []
-        for point_index in range(first_shell_graph.point_count):
-            if labels[point_index] >= 0 or not _is_growth_candidate(
-                point_index,
-                local_order=local_order,
-                settings=settings,
-            ):
-                continue
-            neighboring_domains = {
-                labels[neighbor]
-                for neighbor in adjacency[point_index]
-                if labels[neighbor] in growth_component_ids
-            }
-            scored_domains = sorted(
-                (
-                    (
-                        point_domain_m6_similarity(
-                            point_index,
-                            domain_vectors[component_id],
-                            local_order,
-                        ),
-                        component_id,
-                    )
-                    for component_id in neighboring_domains
-                ),
-                key=lambda value: (-value[0], value[1]),
-            )
-            if not scored_domains or scored_domains[0][0] + 1e-12 < similarity_threshold:
-                continue
-            if len(scored_domains) > 1 and (
-                scored_domains[0][0] - scored_domains[1][0] + 1e-12
-                < settings.domain_conflict_margin
-            ):
-                continue
-            proposals.append((point_index, scored_domains[0][1]))
-        if not proposals:
-            break
-        for point_index, component_id in proposals:
-            labels[point_index] = component_id
-        iteration_count += 1
 
     components = tuple(
         _grown_component(
@@ -395,31 +342,6 @@ def _validate_seed_detection(
     )
     if seed_provenance != graph_provenance:
         raise ValueError("seeds and first_shell_graph provenance must match.")
-
-
-def _is_growth_candidate(
-    point_index: int,
-    *,
-    local_order: LocalSixfoldBondOrderField,
-    settings: MolecularM6OrientationAnalysisSettings,
-) -> bool:
-    point_q6 = local_order.q6[point_index]
-    return (
-        local_order.computation_status[point_index] == "valid_order"
-        and local_order.orientation_status[point_index] == "defined"
-        and point_q6 is not None
-        and point_q6 >= settings.q_grow
-        and not local_order.physical_duplicate_qc[point_index]
-        and not local_order.geometry_duplicate_qc[point_index]
-    )
-
-
-def _graph_adjacency(graph: FirstShellGraph) -> tuple[tuple[int, ...], ...]:
-    adjacency: list[list[int]] = [[] for _ in range(graph.point_count)]
-    for left, right in graph.edges_ij:
-        adjacency[left].append(right)
-        adjacency[right].append(left)
-    return tuple(tuple(neighbors) for neighbors in adjacency)
 
 
 def _growth_seed_components(
