@@ -96,6 +96,7 @@ def _segmentation(**overrides: object) -> M6OrientationDomainSegmentation:
         "orientation_reference": "+x_sample_axis",
         "spatial_calibration_fingerprint": "calibration-v1",
         "registration_fingerprint": "registration-v1",
+        "point_coordinate_fingerprint": "coordinates-v1",
     }
     payload.update(overrides)
     return M6OrientationDomainSegmentation(**payload)
@@ -132,6 +133,7 @@ class OrientationDomainModelTests(unittest.TestCase):
         self.assertEqual(result.settings, _settings())
         self.assertEqual(result.coordinate_frame, "sample_nm")
         self.assertEqual(result.orientation_reference, "+x_sample_axis")
+        self.assertEqual(result.point_coordinate_fingerprint, "coordinates-v1")
         self.assertEqual(result.component_for_source_id("b"), result.components[0])
         self.assertIsNone(result.component_for_source_id("boundary"))
         with self.assertRaises(KeyError):
@@ -157,6 +159,7 @@ class OrientationDomainModelTests(unittest.TestCase):
             {"source_ids": ("a",) * 9},
             {"components": (_full_domain(source_ids=("a", "b", "missing")), _small_island())},
             {"components": (_full_domain(point_indices=(0, 1, 3)), _small_island())},
+            {"point_coordinate_fingerprint": ""},
         )
         for payload in invalid_payloads:
             with self.subTest(payload=payload):
@@ -272,6 +275,7 @@ class OrientationDomainModelTests(unittest.TestCase):
             "orientation_reference": "+x_sample_axis",
             "spatial_calibration_fingerprint": "calibration-v1",
             "registration_fingerprint": "registration-v1",
+            "point_coordinate_fingerprint": "coordinates-v1",
         }
 
         with self.assertRaisesRegex(ValueError, "stable"):

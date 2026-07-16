@@ -144,6 +144,7 @@ class M6OrientationDomainSegmentation:
     orientation_reference: OrientationReference
     spatial_calibration_fingerprint: str
     registration_fingerprint: str
+    point_coordinate_fingerprint: str
 
     def __post_init__(self) -> None:
         point_count = _as_non_negative_integer(self.point_count, "point_count")
@@ -257,6 +258,10 @@ class M6OrientationDomainSegmentation:
             self.registration_fingerprint,
             "registration_fingerprint",
         )
+        coordinate_fingerprint = _as_non_empty_string(
+            self.point_coordinate_fingerprint,
+            "point_coordinate_fingerprint",
+        )
 
         object.__setattr__(self, "source_ids", source_ids)
         object.__setattr__(self, "point_count", point_count)
@@ -270,6 +275,7 @@ class M6OrientationDomainSegmentation:
         object.__setattr__(self, "components", components)
         object.__setattr__(self, "spatial_calibration_fingerprint", calibration_fingerprint)
         object.__setattr__(self, "registration_fingerprint", registration_fingerprint)
+        object.__setattr__(self, "point_coordinate_fingerprint", coordinate_fingerprint)
 
     def _validate_components(
         self,

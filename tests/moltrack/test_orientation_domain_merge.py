@@ -7,11 +7,13 @@ import numpy as np
 
 from moltrack.analysis import (
     FirstShellGraph,
+    M6OrientationDomainSegmentation,
     LocalSixfoldBondOrderField,
     MolecularM6OrientationAnalysisSettings,
     M6OrientationDomainMergeState,
     detect_m6_orientation_domain_seeds,
     grow_m6_orientation_domains,
+    finalize_m6_orientation_domains,
     merge_and_grow_m6_orientation_domains,
 )
 from moltrack.analysis._coordinate_fingerprint import point_coordinate_fingerprint
@@ -187,6 +189,52 @@ def _canonical_result(result: M6OrientationDomainMergeState) -> tuple[object, ..
         result.growth_iteration_count,
         result.merge_iteration_count,
         result.post_merge_growth_iteration_count,
+        result.settings,
+        result.coordinate_frame,
+        result.orientation_reference,
+        result.spatial_calibration_fingerprint,
+        result.registration_fingerprint,
+    )
+
+
+def _canonical_segmentation(
+    result: M6OrientationDomainSegmentation,
+) -> tuple[object, ...]:
+    point_state = {
+        source_id: (
+            result.ordered_component_id[index],
+            result.m6_orientation_domain_id[index],
+            result.component_type[index],
+            result.assignment_status[index],
+            result.edge_truncated_neighborhood[index],
+            result.physical_duplicate_qc[index],
+            result.geometry_duplicate_qc[index],
+            (
+                None
+                if result.component_for_source_id(source_id) is None
+                else frozenset(result.component_for_source_id(source_id).source_ids)
+            ),
+        )
+        for index, source_id in enumerate(result.source_ids)
+    }
+    components = {
+        frozenset(component.source_ids): (
+            component.ordered_component_id,
+            component.m6_orientation_domain_id,
+            component.component_type,
+            component.molecule_count,
+            component.centroid_x_nm,
+            component.centroid_y_nm,
+            component.orientation_deg,
+        )
+        for component in result.components
+    }
+    return (
+        point_state,
+        components,
+        result.ordered_component_count,
+        result.full_domain_count,
+        result.small_ordered_island_count,
         result.settings,
         result.coordinate_frame,
         result.orientation_reference,
@@ -443,6 +491,10 @@ class OrientationDomainMergeTests(unittest.TestCase):
 
         self.assertEqual(_partition_by_source_id(original), _partition_by_source_id(permuted))
         self.assertEqual(_canonical_result(original), _canonical_result(permuted))
+        self.assertEqual(
+            _canonical_segmentation(finalize_m6_orientation_domains(original)),
+            _canonical_segmentation(finalize_m6_orientation_domains(permuted)),
+        )
 
     def test_source_id_changes_preserve_physical_partition_and_metrics(self) -> None:
         settings = _settings(domain_merge_angle_tolerance_deg=8.0)
@@ -481,6 +533,167 @@ class OrientationDomainMergeTests(unittest.TestCase):
                 for component in renamed.components
             },
         )
+
+
+class OrientationDomainFinalizationTests(unittest.TestCase):
+    def test_classifies_all_size_intervals_independently_of_seed_rights(self) -> None:
+        settings = _settings(
+            min_ordered_component_size=2,
+            min_seed_size=3,
+            min_domain_size=5,
+        )
+        orientations = (
+            (0.0,) * 2
+            + (10.0,) * 3
+            + (20.0,) * 5
+            + (30.0, 45.0)
+        )
+        edges = (
+            (0, 1),
+            (2, 3),
+            (3, 4),
+            (5, 6),
+            (6, 7),
+            (7, 8),
+            (8, 9),
+            (10, 11),
+        )
+        inputs = _inputs(
+            orientations_deg=orientations,
+            edges_ij=edges,
+            settings=settings,
+        )
+        merged = _merge(inputs, settings)
+        result = finalize_m6_orientation_domains(merged)
+
+        self.assertEqual(
+            result.point_coordinate_fingerprint,
+            merged.point_coordinate_fingerprint,
+        )
+        self.assertFalse(merged.component_for_source_id("p00").can_initiate_growth)
+        self.assertTrue(merged.component_for_source_id("p02").can_initiate_growth)
+        self.assertTrue(merged.component_for_source_id("p05").can_initiate_growth)
+        self.assertEqual(result.ordered_component_count, 3)
+        self.assertEqual(result.full_domain_count, 1)
+        self.assertEqual(result.small_ordered_island_count, 2)
+        self.assertEqual(result.component_type[:2], ("small_ordered_island",) * 2)
+        self.assertEqual(result.component_type[2:5], ("small_ordered_island",) * 3)
+        self.assertEqual(result.component_type[5:10], ("full_domain",) * 5)
+        self.assertEqual(result.assignment_status[10:], ("boundary_or_disordered",) * 2)
+        self.assertEqual(result.assignment_status[:10], ("assigned",) * 10)
+        self.assertEqual(result.ordered_component_id[10:], (-1, -1))
+        self.assertEqual(result.m6_orientation_domain_id[10:], (-1, -1))
+        self.assertEqual(result.m6_orientation_domain_id[5:10], (0,) * 5)
+        self.assertEqual(result.m6_orientation_domain_id[:5], (-1,) * 5)
+        self.assertEqual(
+            tuple(component.molecule_count for component in result.components),
+            (5, 3, 2),
+        )
+        self.assertEqual(
+            tuple(component.ordered_component_id for component in result.components),
+            (0, 1, 2),
+        )
+
+        permutation = tuple(reversed(range(len(orientations))))
+        old_to_new = {old: new for new, old in enumerate(permutation)}
+        permuted_inputs = _inputs(
+            orientations_deg=tuple(orientations[index] for index in permutation),
+            edges_ij=tuple(
+                sorted((old_to_new[left], old_to_new[right]))
+                for left, right in reversed(edges)
+            ),
+            settings=settings,
+            point_ids=tuple(inputs[1].point_ids[index] for index in permutation),
+            points_xy_nm=inputs[0][np.asarray(permutation)],
+        )
+        permuted_result = finalize_m6_orientation_domains(
+            _merge(permuted_inputs, settings)
+        )
+        self.assertEqual(
+            _canonical_segmentation(result),
+            _canonical_segmentation(permuted_result),
+        )
+
+        stricter_seed_settings = replace(settings, min_seed_size=4)
+        stricter_inputs = _inputs(
+            orientations_deg=(
+                (0.0,) * 2
+                + (10.0,) * 3
+                + (20.0,) * 5
+                + (30.0, 45.0)
+            ),
+            edges_ij=inputs[1].edges_ij,
+            settings=stricter_seed_settings,
+        )
+        stricter_merged = _merge(stricter_inputs, stricter_seed_settings)
+        stricter_result = finalize_m6_orientation_domains(stricter_merged)
+
+        self.assertFalse(
+            stricter_merged.component_for_source_id("p02").can_initiate_growth
+        )
+        self.assertEqual(result.component_type, stricter_result.component_type)
+        self.assertEqual(
+            result.m6_orientation_domain_id,
+            stricter_result.m6_orientation_domain_id,
+        )
+
+    def test_distant_same_orientation_components_remain_distinct_full_domains(self) -> None:
+        settings = _settings(
+            min_ordered_component_size=2,
+            min_seed_size=2,
+            min_domain_size=2,
+        )
+        result = finalize_m6_orientation_domains(
+            _merge(
+                _inputs(
+                    orientations_deg=(0.0, 0.0, 0.0, 0.0),
+                    edges_ij=((0, 1), (2, 3)),
+                    settings=settings,
+                ),
+                settings,
+            )
+        )
+
+        self.assertEqual(result.full_domain_count, 2)
+        self.assertEqual(
+            tuple(component.m6_orientation_domain_id for component in result.domains),
+            (0, 1),
+        )
+        self.assertNotEqual(result.ordered_component_id[0], result.ordered_component_id[2])
+        self.assertEqual(result.ordered_component_id, (0, 0, 1, 1))
+
+    def test_preserves_non_assignment_statuses_and_duplicate_qc(self) -> None:
+        settings = _settings(
+            min_ordered_component_size=2,
+            min_seed_size=2,
+            min_domain_size=2,
+        )
+        merged = _merge(
+            _inputs(
+                orientations_deg=(0.0, 0.0, 10.0, 30.0, 15.0, 35.0),
+                edges_ij=((0, 1), (2, 3), (4, 5)),
+                settings=settings,
+            ),
+            settings,
+        )
+        altered = replace(
+            merged,
+            assignment_status=(
+                "assigned",
+                "assigned",
+                "insufficient_neighbors",
+                "duplicate_excluded",
+                "invalid_position",
+                "boundary_or_disordered",
+            ),
+            physical_duplicate_qc=(False, False, False, True, False, False),
+        )
+
+        result = finalize_m6_orientation_domains(altered)
+
+        self.assertEqual(result.assignment_status, altered.assignment_status)
+        self.assertEqual(result.physical_duplicate_qc, altered.physical_duplicate_qc)
+        self.assertEqual(result.geometry_duplicate_qc, altered.geometry_duplicate_qc)
 
 
 if __name__ == "__main__":
