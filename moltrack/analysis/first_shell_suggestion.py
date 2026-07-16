@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import fsum, isfinite
 from typing import Literal
 
 import numpy as np
@@ -9,6 +10,7 @@ from scipy.signal import convolve, find_peaks
 from ._pair_correlation_binning import pair_correlation_bin_edges
 from .m6_settings import MolecularM6OrientationAnalysisSettings
 from .pair_correlation import PairCorrelationResult
+from .pair_correlation_aggregation import AggregatedPairCorrelationResult
 
 
 FirstShellSuggestionQualityStatus = Literal[
@@ -49,19 +51,49 @@ class FirstShellSuggestionResult:
     distance_unit: Literal["nm"] = "nm"
 
 
+@dataclass(frozen=True)
+class _PooledPairCorrelationSuggestionInput:
+    bin_edges_nm: tuple[float, ...]
+    bin_centers_nm: tuple[float, ...]
+    g_r: tuple[float, ...]
+    expected_pair_exposure: tuple[float, ...]
+    bin_status: tuple[str, ...]
+    contributing_frame_count: tuple[int, ...]
+    total_unordered_pair_count: int
+    min_expected_pair_exposure: float
+    window_geometry_status: str
+
+
 def suggest_first_shell_r_max(
-    pair_correlation: PairCorrelationResult,
+    pair_correlation: PairCorrelationResult | AggregatedPairCorrelationResult,
     *,
     settings: MolecularM6OrientationAnalysisSettings | None = None,
 ) -> FirstShellSuggestionResult:
     """Suggest the first local minimum after the first reliable g(r) peak."""
 
-    if not isinstance(pair_correlation, PairCorrelationResult):
-        raise TypeError("pair_correlation must be a PairCorrelationResult.")
+    if not isinstance(
+        pair_correlation,
+        (PairCorrelationResult, AggregatedPairCorrelationResult),
+    ):
+        raise TypeError(
+            "pair_correlation must be a one-frame or aggregated pair-correlation result."
+        )
     if settings is None:
         settings = MolecularM6OrientationAnalysisSettings()
     if not isinstance(settings, MolecularM6OrientationAnalysisSettings):
         raise TypeError("settings must be MolecularM6OrientationAnalysisSettings.")
+    return _suggest_first_shell_r_max(pair_correlation, settings=settings)
+
+
+def _suggest_first_shell_r_max(
+    pair_correlation: (
+        PairCorrelationResult
+        | AggregatedPairCorrelationResult
+        | _PooledPairCorrelationSuggestionInput
+    ),
+    *,
+    settings: MolecularM6OrientationAnalysisSettings,
+) -> FirstShellSuggestionResult:
     _validate_pair_correlation_settings(pair_correlation, settings)
 
     centers = np.asarray(pair_correlation.bin_centers_nm, dtype=np.float64)
@@ -187,6 +219,124 @@ def suggest_first_shell_r_max(
     )
 
 
+def suggest_shared_first_shell_r_max(
+    first_range: AggregatedPairCorrelationResult,
+    second_range: AggregatedPairCorrelationResult,
+    *,
+    settings: MolecularM6OrientationAnalysisSettings | None = None,
+) -> FirstShellSuggestionResult:
+    """Suggest one shell radius from pooled histograms of two compared ranges."""
+
+    if not isinstance(first_range, AggregatedPairCorrelationResult) or not isinstance(
+        second_range,
+        AggregatedPairCorrelationResult,
+    ):
+        raise TypeError("Compared ranges must be aggregated pair-correlation results.")
+    if settings is None:
+        settings = MolecularM6OrientationAnalysisSettings()
+    if not isinstance(settings, MolecularM6OrientationAnalysisSettings):
+        raise TypeError("settings must be MolecularM6OrientationAnalysisSettings.")
+    _validate_pair_correlation_settings(first_range, settings)
+    _validate_pair_correlation_settings(second_range, settings)
+    if set(first_range.frame_indices) & set(second_range.frame_indices):
+        raise ValueError("Compared frame ranges must not overlap for a shared suggestion.")
+    if (
+        first_range.spatial_calibration_fingerprint
+        != second_range.spatial_calibration_fingerprint
+    ):
+        raise ValueError("Compared ranges must share one spatial calibration fingerprint.")
+    if first_range.registration_fingerprint != second_range.registration_fingerprint:
+        raise ValueError("Compared ranges must share one registration fingerprint.")
+
+    observed = tuple(
+        first + second
+        for first, second in zip(
+            first_range.observed_unordered_pair_count,
+            second_range.observed_unordered_pair_count,
+        )
+    )
+    try:
+        exposure = tuple(
+            fsum((first, second))
+            for first, second in zip(
+                first_range.expected_pair_exposure,
+                second_range.expected_pair_exposure,
+            )
+        )
+    except OverflowError as exc:
+        raise ValueError("Compared ranges produce a non-finite pooled exposure.") from exc
+    if any(not isfinite(value) for value in exposure):
+        raise ValueError("Compared ranges produce a non-finite pooled exposure.")
+    contributions = tuple(
+        first + second
+        for first, second in zip(
+            first_range.contributing_frame_count,
+            second_range.contributing_frame_count,
+        )
+    )
+    shared_geometry_unsupported = (
+        first_range.window_geometry_status == "unsupported_window_geometry"
+        or second_range.window_geometry_status == "unsupported_window_geometry"
+    )
+    if shared_geometry_unsupported:
+        statuses = ("unsupported_window_geometry",) * len(observed)
+        g_values = (float("nan"),) * len(observed)
+        geometry_status = "unsupported_window_geometry"
+    else:
+        valid = tuple(
+            expected >= settings.gr_min_expected_pair_exposure
+            and contribution >= settings.gr_min_contributing_frames
+            and first_expected > 0.0
+            and second_expected > 0.0
+            for expected, contribution, first_expected, second_expected in zip(
+                exposure,
+                contributions,
+                first_range.expected_pair_exposure,
+                second_range.expected_pair_exposure,
+            )
+        )
+        statuses = tuple(
+            "valid" if is_valid else "insufficient_exposure"
+            for is_valid in valid
+        )
+        g_values_list: list[float] = []
+        for count, expected, is_valid in zip(observed, exposure, valid):
+            if not is_valid:
+                g_values_list.append(float("nan"))
+                continue
+            try:
+                value = count / expected
+            except OverflowError as exc:
+                raise ValueError("Pooled g(r) is not finite.") from exc
+            if not isfinite(value):
+                raise ValueError("Pooled g(r) is not finite.")
+            g_values_list.append(float(value))
+        g_values = tuple(g_values_list)
+        geometry_status = (
+            "partially_unsupported_frame_windows"
+            if (
+                first_range.window_geometry_status != "supported_frame_windows"
+                or second_range.window_geometry_status != "supported_frame_windows"
+            )
+            else "supported_frame_windows"
+        )
+    pooled = _PooledPairCorrelationSuggestionInput(
+        bin_edges_nm=first_range.bin_edges_nm,
+        bin_centers_nm=first_range.bin_centers_nm,
+        g_r=g_values,
+        expected_pair_exposure=exposure,
+        bin_status=statuses,
+        contributing_frame_count=contributions,
+        total_unordered_pair_count=(
+            first_range.total_unordered_pair_count
+            + second_range.total_unordered_pair_count
+        ),
+        min_expected_pair_exposure=settings.gr_min_expected_pair_exposure,
+        window_geometry_status=geometry_status,
+    )
+    return _suggest_first_shell_r_max(pooled, settings=settings)
+
+
 def _normalized_gaussian_convolution(
     values: np.ndarray,
     valid: np.ndarray,
@@ -301,7 +451,11 @@ def _peak_only_result(
 
 
 def _validate_pair_correlation_settings(
-    pair_correlation: PairCorrelationResult,
+    pair_correlation: (
+        PairCorrelationResult
+        | AggregatedPairCorrelationResult
+        | _PooledPairCorrelationSuggestionInput
+    ),
     settings: MolecularM6OrientationAnalysisSettings,
 ) -> None:
     expected_edges = pair_correlation_bin_edges(
@@ -319,4 +473,13 @@ def _validate_pair_correlation_settings(
         raise ValueError(
             "settings minimum exposure cannot be lower than the threshold used "
             "to compute pair_correlation."
+        )
+    if (
+        isinstance(pair_correlation, AggregatedPairCorrelationResult)
+        and settings.gr_min_contributing_frames
+        < pair_correlation.min_contributing_frames
+    ):
+        raise ValueError(
+            "settings contributing-frame minimum cannot be lower than the threshold "
+            "used to compute the aggregated pair correlation."
         )

@@ -14,8 +14,13 @@ from .m6_settings import MolecularM6OrientationAnalysisSettings
 from .first_shell_suggestion import (
     FirstShellSuggestionResult,
     suggest_first_shell_r_max,
+    suggest_shared_first_shell_r_max,
 )
 from .pair_correlation import PairCorrelationResult, compute_pair_correlation
+from .pair_correlation_aggregation import (
+    AggregatedPairCorrelationResult,
+    aggregate_pair_correlation_results,
+)
 from .nearest_neighbors import (
     NEAREST_NEIGHBOR_ANGLE_BIN_EDGES_DEGREES,
     MolecularNearestNeighborAngleMetrics,
@@ -47,6 +52,7 @@ from .range_analysis import (
 )
 
 __all__ = [
+    "AggregatedPairCorrelationResult",
     "NEAREST_NEIGHBOR_ANGLE_BIN_EDGES_DEGREES",
     "FirstShellGraph",
     "FirstShellSuggestionResult",
@@ -71,6 +77,7 @@ __all__ = [
     "MolecularRangeTrendSeries",
     "MolecularRangeSpatialComparisonData",
     "analyze_molecular_frame_range",
+    "aggregate_pair_correlation_results",
     "build_molecular_position_plot_data",
     "build_molecular_intensity_measurements",
     "export_molecular_intensity_cache_records",
@@ -83,4 +90,5 @@ __all__ = [
     "measure_molecular_intensity",
     "restore_molecular_intensity_cache_records",
     "suggest_first_shell_r_max",
+    "suggest_shared_first_shell_r_max",
 ]
