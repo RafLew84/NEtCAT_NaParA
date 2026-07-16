@@ -302,19 +302,14 @@ def grow_m6_orientation_domains(
                 ),
                 key=lambda value: (-value[0], value[1]),
             )
-            qualifying = tuple(
-                value
-                for value in scored_domains
-                if value[0] + 1e-12 >= similarity_threshold
-            )
-            if not qualifying:
+            if not scored_domains or scored_domains[0][0] + 1e-12 < similarity_threshold:
                 continue
-            if len(qualifying) > 1 and (
-                qualifying[0][0] - qualifying[1][0] + 1e-12
+            if len(scored_domains) > 1 and (
+                scored_domains[0][0] - scored_domains[1][0] + 1e-12
                 < settings.domain_conflict_margin
             ):
                 continue
-            proposals.append((point_index, qualifying[0][1]))
+            proposals.append((point_index, scored_domains[0][1]))
         if not proposals:
             break
         for point_index, component_id in proposals:
