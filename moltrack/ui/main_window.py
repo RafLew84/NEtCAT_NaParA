@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import inspect
 from pathlib import Path
 from threading import Event, Lock
@@ -39,8 +39,11 @@ from moltrack.analysis import (
     MolecularFrameRange,
     MolecularFrameRangeSelection,
     aggregate_pair_correlation_results,
+    build_m6_point_overlay_from_analysis,
     build_molecular_intensity_measurements,
     build_molecular_position_plot_data,
+    build_molecular_sample_coordinates,
+    build_structural_analysis_cache_key,
     compare_molecular_frame_ranges,
     suggest_shared_first_shell_r_max,
 )
@@ -960,6 +963,8 @@ class MolTrackMainWindow(QMainWindow):
         self._m6_analysis_series = None
         self._m6_pending_context = None
         self._m6_completed_context = None
+        self._m6_rendered_analysis = None
+        self._m6_rendered_view_settings: MolecularM6ViewSettings | None = None
         self._m6_pending_session_state: MolecularM6SessionState | None = None
         self._m6_enable_on_success = True
         self._m6_target_tab = "Sixfold Bond Order"
@@ -1441,6 +1446,8 @@ class MolTrackMainWindow(QMainWindow):
             previous_dialog.close()
             previous_dialog.deleteLater()
         self._m6_completed_context = None
+        self._m6_rendered_analysis = None
+        self._m6_rendered_view_settings = None
         self._clear_sam3_prompt_draw_mode()
         self._sam3_manual_positive_bboxes_by_context.clear()
         self._sam3_manual_negative_bboxes_by_context.clear()
@@ -2814,10 +2821,14 @@ class MolTrackMainWindow(QMainWindow):
             dialog.m6_first_shell_suggestion_requested.connect(
                 self._on_m6_first_shell_suggestion_requested
             )
+            dialog.m6_view_settings_changed.connect(
+                self._on_m6_view_settings_changed
+            )
             self._position_analysis_dialog = dialog
             state = getattr(self._series, "m6_analysis_state", None)
             if isinstance(state, MolecularM6SessionState):
                 dialog.set_m6_analysis_settings(state.settings)
+                dialog.set_m6_view_settings(state.view_settings)
         plot_data = self._build_current_position_plot_data()
         self._position_analysis_dialog.configure_frame_ranges(
             frame_count=self._series.frame_count,
@@ -2834,6 +2845,48 @@ class MolTrackMainWindow(QMainWindow):
 
     def _on_m6_analysis_requested(self, settings) -> None:
         self._start_m6_analysis(settings, enable_on_success=True)
+
+    def _on_m6_view_settings_changed(self, view_settings) -> None:
+        series = self._series
+        dialog = self._position_analysis_dialog
+        if (
+            series is None
+            or dialog is None
+            or not isinstance(view_settings, MolecularM6ViewSettings)
+        ):
+            return
+        previous_state = getattr(series, "m6_analysis_state", None)
+        previous_view_settings = (
+            previous_state.view_settings
+            if isinstance(previous_state, MolecularM6SessionState)
+            else None
+        )
+        if isinstance(previous_state, MolecularM6SessionState):
+            series.m6_analysis_state = replace(
+                previous_state,
+                view_settings=view_settings,
+            )
+        else:
+            series.m6_analysis_state = MolecularM6SessionState(
+                enabled=False,
+                source_view=self._current_yolo_source_view(),
+                use_segmentation_centroids=dialog.use_segmentation_centroids(),
+                settings=dialog.m6_analysis_settings(),
+                view_settings=view_settings,
+            )
+        if (
+            self._m6_pending_session_state is not None
+            and series is self._m6_analysis_series
+        ):
+            self._m6_pending_session_state = replace(
+                self._m6_pending_session_state,
+                view_settings=view_settings,
+            )
+        if not self._update_current_m6_overlay_opacity(
+            previous_view_settings,
+            view_settings,
+        ):
+            self._render_current_m6_overlay()
 
     def _start_m6_analysis(
         self,
@@ -2866,11 +2919,7 @@ class MolTrackMainWindow(QMainWindow):
         selection = dialog.frame_range_selection()
         use_segmentation_centroids = dialog.use_segmentation_centroids()
         previous_state = getattr(series, "m6_analysis_state", None)
-        view_settings = (
-            previous_state.view_settings
-            if isinstance(previous_state, MolecularM6SessionState)
-            else MolecularM6ViewSettings()
-        )
+        view_settings = dialog.m6_view_settings()
         self._m6_pending_session_state = MolecularM6SessionState(
             enabled=True,
             source_view=selection.source_view,
@@ -2958,6 +3007,7 @@ class MolTrackMainWindow(QMainWindow):
                     comparison,
                     self._m6_pending_session_state.settings,
                 )
+        self._render_current_m6_overlay()
         self.statusBar().showMessage("M6 orientation analysis complete", 5000)
 
     @pyqtSlot(str)
@@ -3252,6 +3302,7 @@ class MolTrackMainWindow(QMainWindow):
                 use_segmentation_centroids=bool(enabled),
             )
         )
+        self._render_current_m6_overlay()
         if not dialog.has_range_comparison() or not dialog.has_valid_frame_range_selection():
             return
         active_tab = dialog.active_analysis_tab()
@@ -4316,12 +4367,135 @@ class MolTrackMainWindow(QMainWindow):
                     self._series.active_frame_index,
                 )
                 self._show_current_sam3_manual_prompt_overlays()
+                self._render_current_m6_overlay()
                 self.metadata_panel.set_image_series(self._series)
                 self._refresh_position_analysis_dialog_if_open()
                 return
         self.viewer.show_frame(self._series.active_frame_index)
         self._show_current_sam3_manual_prompt_overlays()
+        self._render_current_m6_overlay()
         self._refresh_position_analysis_dialog_if_open()
+
+    def _render_current_m6_overlay(self) -> None:
+        series = self._series
+        if series is None:
+            self.viewer.clear_m6_point_overlay()
+            self._m6_rendered_analysis = None
+            self._m6_rendered_view_settings = None
+            return
+        state = getattr(series, "m6_analysis_state", None)
+        analysis = self._current_m6_analysis_result()
+        if (
+            not isinstance(state, MolecularM6SessionState)
+            or not state.enabled
+            or not state.view_settings.show_domain_overlay
+            or analysis is None
+        ):
+            self.viewer.clear_m6_point_overlay()
+            self._m6_rendered_analysis = None
+            self._m6_rendered_view_settings = None
+            return
+        view = state.view_settings
+        overlay = build_m6_point_overlay_from_analysis(
+            analysis,
+            mode=view.overlay_mode,
+            opacity_percent=view.overlay_opacity_percent,
+            show_unassigned_points=view.show_unassigned_points,
+        )
+        self.viewer.show_m6_point_overlay(overlay)
+        self._m6_rendered_analysis = analysis
+        self._m6_rendered_view_settings = view
+
+    def _update_current_m6_overlay_opacity(
+        self,
+        previous: MolecularM6ViewSettings | None,
+        current: MolecularM6ViewSettings,
+    ) -> bool:
+        analysis = self._m6_rendered_analysis
+        if (
+            previous is None
+            or analysis is None
+            or self._m6_rendered_view_settings != previous
+            or not previous.show_domain_overlay
+            or not current.show_domain_overlay
+            or replace(previous, overlay_opacity_percent=current.overlay_opacity_percent)
+            != current
+        ):
+            return False
+        overlay = build_m6_point_overlay_from_analysis(
+            analysis,
+            mode=current.overlay_mode,
+            opacity_percent=current.overlay_opacity_percent,
+            show_unassigned_points=current.show_unassigned_points,
+        )
+        if not self.viewer.update_m6_point_overlay_colors(overlay):
+            return False
+        self._m6_rendered_view_settings = current
+        return True
+
+    def _current_m6_analysis_result(self):
+        series = self._series
+        if series is None or self._m6_completed_context is None:
+            return None
+        comparison, _selection, centroid_mode, completed_settings = (
+            self._m6_completed_context
+        )
+        state = getattr(series, "m6_analysis_state", None)
+        if (
+            not isinstance(state, MolecularM6SessionState)
+            or state.source_view != self._current_yolo_source_view()
+            or state.use_segmentation_centroids != centroid_mode
+            or state.settings != completed_settings
+        ):
+            return None
+        dialog = self._position_analysis_dialog
+        if (
+            dialog is not None
+            and dialog.use_segmentation_centroids() != centroid_mode
+        ):
+            return None
+        frame_index = series.active_frame_index
+        source_view = self._current_yolo_source_view()
+        frame_results = (
+            tuple(comparison.first_analysis.frame_results)
+            + tuple(comparison.second_analysis.frame_results)
+        )
+        for frame_result in frame_results:
+            if (
+                frame_result.frame_index == frame_index
+                and frame_result.source_view == source_view
+            ):
+                analysis = frame_result.m6_orientation_analysis
+                if analysis is None:
+                    return None
+                current_centroids = tuple(
+                    build_molecular_centroids(
+                        series,
+                        frame_index=frame_index,
+                        source_view=source_view,
+                        use_segmentation_centroids=centroid_mode,
+                    )
+                )
+                current_sample = build_molecular_sample_coordinates(
+                    series,
+                    current_centroids,
+                    frame_index=frame_index,
+                    source_view=source_view,
+                )
+                current_key = build_structural_analysis_cache_key(
+                    series,
+                    current_sample,
+                    use_segmentation_centroids=centroid_mode,
+                    settings=completed_settings,
+                )
+                analyzed_key = build_structural_analysis_cache_key(
+                    series,
+                    analysis.sample_coordinates,
+                    use_segmentation_centroids=centroid_mode,
+                    settings=completed_settings,
+                )
+                return analysis if current_key == analyzed_key else None
+        return None
 
     def _refresh_position_analysis_dialog_if_open(self) -> None:
         if self._position_analysis_dialog is None or self._series is None:

@@ -3,10 +3,12 @@ from __future__ import annotations
 import os
 
 import numpy as np
+import pyqtgraph as pg
 
 from PyQt6.QtCore import QEvent, Qt, pyqtSignal
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
+from moltrack.analysis import M6PointOverlay
 from moltrack.core import build_molecular_centroids
 from napara.gui.widgets.viewer_widget import ViewerWidget
 
@@ -35,6 +37,9 @@ class STMSeriesViewer(QWidget):
         self._molecular_centroid_overlay_visible = False
         self._visible_molecular_centroid_count = 0
         self._molecular_centroid_overlay_item = None
+        self._m6_point_overlay_item = None
+        self._visible_m6_overlay_source_ids: tuple[str, ...] = ()
+        self._visible_m6_overlay_colors: tuple[tuple[int, int, int, int], ...] = ()
         self._visible_molecular_segmentation_count = 0
         self._visible_molecular_segmentation_ids: list[str] = []
         self._visible_molecular_segmentation_opacities: list[float] = []
@@ -166,6 +171,9 @@ class STMSeriesViewer(QWidget):
         self._visible_molecular_detection_opacities = []
         self._visible_molecular_centroid_count = 0
         self._molecular_centroid_overlay_item = None
+        self._m6_point_overlay_item = None
+        self._visible_m6_overlay_source_ids = ()
+        self._visible_m6_overlay_colors = ()
         self._visible_molecular_segmentation_count = 0
         self._visible_molecular_segmentation_ids = []
         self._visible_molecular_segmentation_opacities = []
@@ -206,6 +214,69 @@ class STMSeriesViewer(QWidget):
 
     def visible_molecular_centroid_count(self) -> int:
         return int(self._visible_molecular_centroid_count)
+
+    def visible_m6_overlay_count(self) -> int:
+        return len(self._visible_m6_overlay_source_ids)
+
+    def visible_m6_overlay_source_ids(self) -> tuple[str, ...]:
+        return self._visible_m6_overlay_source_ids
+
+    def visible_m6_overlay_colors(self) -> tuple[tuple[int, int, int, int], ...]:
+        return self._visible_m6_overlay_colors
+
+    def m6_overlay_graphics_item_count(self) -> int:
+        return int(self._m6_point_overlay_item is not None)
+
+    def show_m6_point_overlay(
+        self,
+        overlay: M6PointOverlay,
+        *,
+        scale_nm_per_px: tuple[float | None, float | None] | None = None,
+    ) -> None:
+        if not isinstance(overlay, M6PointOverlay):
+            raise TypeError("overlay must be an M6PointOverlay.")
+        self.clear_m6_point_overlay()
+        if overlay.point_count == 0:
+            return
+        sx, sy = self._effective_scale_nm_per_px(
+            scale_nm_per_px or self._current_scale_nm_per_px
+        )
+        points_nm = np.asarray(
+            [(x_px * sx, y_px * sy) for x_px, y_px in overlay.points_xy_px],
+            dtype=np.float64,
+        )
+        item = self.viewer.add_colored_points_nm(
+            points_nm,
+            overlay.colors_rgba,
+            size=8.0,
+        )
+        if item is None:
+            return
+        self._m6_point_overlay_item = item
+        self._visible_m6_overlay_source_ids = overlay.source_ids
+        self._visible_m6_overlay_colors = overlay.colors_rgba
+
+    def update_m6_point_overlay_colors(self, overlay: M6PointOverlay) -> bool:
+        """Update one existing M6 batch without replacing its graphics item."""
+        if not isinstance(overlay, M6PointOverlay):
+            raise TypeError("overlay must be an M6PointOverlay.")
+        if (
+            self._m6_point_overlay_item is None
+            or overlay.source_ids != self._visible_m6_overlay_source_ids
+        ):
+            return False
+        self._m6_point_overlay_item.setBrush(
+            [pg.mkBrush(color) for color in overlay.colors_rgba]
+        )
+        self._visible_m6_overlay_colors = overlay.colors_rgba
+        return True
+
+    def clear_m6_point_overlay(self) -> None:
+        if self._m6_point_overlay_item is not None:
+            self.viewer.remove_item(self._m6_point_overlay_item)
+        self._m6_point_overlay_item = None
+        self._visible_m6_overlay_source_ids = ()
+        self._visible_m6_overlay_colors = ()
 
     def selected_molecular_detection_id(self) -> str | None:
         return self._selected_molecular_detection_id

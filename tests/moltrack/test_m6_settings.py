@@ -2,7 +2,10 @@ import json
 import unittest
 from dataclasses import FrozenInstanceError
 
-from moltrack.analysis import MolecularM6OrientationAnalysisSettings
+from moltrack.analysis import (
+    MolecularM6OrientationAnalysisSettings,
+    MolecularM6ViewSettings,
+)
 
 
 class MolecularM6OrientationAnalysisSettingsTests(unittest.TestCase):
@@ -286,6 +289,21 @@ class MolecularM6OrientationAnalysisSettingsTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "unknown_setting"):
             MolecularM6OrientationAnalysisSettings.from_dict({"unknown_setting": 1})
+
+
+class MolecularM6ViewSettingsTests(unittest.TestCase):
+    def test_overlay_mode_and_opacity_are_validated_and_immutable(self) -> None:
+        settings = MolecularM6ViewSettings(
+            overlay_mode="Orientation",
+            overlay_opacity_percent=47,
+        )
+
+        self.assertEqual(settings.overlay_mode, "orientation")
+        self.assertEqual(settings.overlay_opacity_percent, 47)
+        with self.assertRaisesRegex(ValueError, "overlay_mode"):
+            MolecularM6ViewSettings(overlay_mode="rows")
+        with self.assertRaisesRegex(ValueError, "between 0 and 100"):
+            MolecularM6ViewSettings(overlay_opacity_percent=101)
 
 
 if __name__ == "__main__":

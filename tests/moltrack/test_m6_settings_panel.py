@@ -7,6 +7,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from moltrack.analysis import (
     FirstShellSuggestionResult,
     MolecularM6OrientationAnalysisSettings,
+    MolecularM6ViewSettings,
 )
 
 try:
@@ -96,6 +97,31 @@ class MolecularM6SettingsPanelTests(unittest.TestCase):
         self.assertNotIn("Line order", visible_text)
         self.assertNotIn("Molecular row direction", visible_text)
         self.assertTrue(self.dialog.m6_advanced_group.isCheckable())
+
+    def test_overlay_controls_round_trip_segmented_mode_opacity_and_visibility(self) -> None:
+        received = []
+        self.dialog.m6_view_settings_changed.connect(received.append)
+        expected = MolecularM6ViewSettings(
+            show_domain_overlay=True,
+            overlay_mode="orientation",
+            show_unassigned_points=False,
+            overlay_opacity_percent=47,
+        )
+
+        self.dialog.set_m6_view_settings(expected)
+
+        self.assertEqual(
+            self.dialog.m6_overlay_mode_options(),
+            ("none", "q6", "orientation", "domain_id"),
+        )
+        self.assertEqual(self.dialog.m6_view_settings(), expected)
+        self.dialog.set_m6_overlay_mode("q6")
+        self.dialog.m6_settings_panel.overlay_opacity.setValue(63)
+
+        self.assertEqual(received[-1].overlay_mode, "q6")
+        self.assertEqual(received[-1].overlay_opacity_percent, 63)
+        self.dialog.set_m6_overlay_mode("none")
+        self.assertFalse(self.dialog.m6_view_settings().show_domain_overlay)
 
     def test_validation_blocks_run_and_explains_default_seed_neighbor_threshold(self) -> None:
         self.assertEqual(self.dialog.m6_min_neighbors_for_seed_spin.value(), 5)

@@ -115,6 +115,14 @@ from .molecular_m6_analysis import (
     MolecularM6OrientationAnalysis,
     analyze_molecular_m6_orientation,
 )
+from .m6_point_overlay import (
+    M6_OVERLAY_MODES,
+    M6OverlayMode,
+    M6OverlayPointState,
+    M6PointOverlay,
+    build_m6_point_overlay,
+    build_m6_point_overlay_from_analysis,
+)
 from .m6_range_analysis import (
     MolecularM6FrameTrendSeries,
     MolecularM6RangeAggregates,
@@ -176,6 +184,10 @@ __all__ = [
     "MolecularM6SessionState",
     "MolecularM6ViewSettings",
     "MolecularM6OrientationAnalysis",
+    "M6_OVERLAY_MODES",
+    "M6OverlayMode",
+    "M6OverlayPointState",
+    "M6PointOverlay",
     "MolecularM6FrameTrendSeries",
     "MolecularM6RangeAggregates",
     "MolecularM6RangeDifferences",
@@ -241,6 +253,8 @@ __all__ = [
     "MolecularRangeSpatialComparisonData",
     "analyze_molecular_frame_range",
     "analyze_molecular_m6_orientation",
+    "build_m6_point_overlay",
+    "build_m6_point_overlay_from_analysis",
     "aggregate_molecular_m6_frame_range",
     "aggregate_pair_correlation_results",
     "build_molecular_position_plot_data",

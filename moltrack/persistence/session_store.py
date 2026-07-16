@@ -380,6 +380,7 @@ def _m6_analysis_to_payload(
         "settings": state.settings.to_dict(),
         "view_settings": {
             "show_domain_overlay": view.show_domain_overlay,
+            "overlay_mode": view.overlay_mode,
             "show_first_shell_graph": view.show_first_shell_graph,
             "show_unassigned_points": view.show_unassigned_points,
             "overlay_opacity_percent": view.overlay_opacity_percent,
@@ -436,6 +437,9 @@ def _m6_session_state_from_mapping(payload: Mapping[str, Any]) -> MolecularM6Ses
                     "show_domain_overlay", default_view.show_domain_overlay
                 ),
                 "view_settings.show_domain_overlay",
+            ),
+            overlay_mode=str(
+                view_payload.get("overlay_mode", default_view.overlay_mode)
             ),
             show_first_shell_graph=_m6_bool(
                 view_payload.get(

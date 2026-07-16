@@ -231,6 +231,27 @@ class ViewerWidget(QWidget):
         self._overlay_items.add(item)
         return item
 
+    def add_colored_points_nm(self, points_nm, colors_rgba, *, size: float = 7.0):
+        """Add one scatter overlay with one RGBA color per point."""
+        points = np.asarray(points_nm, dtype=np.float64)
+        colors = tuple(tuple(int(channel) for channel in color) for color in colors_rgba)
+        if points.ndim != 2 or points.shape[1] != 2 or points.shape[0] == 0:
+            return None
+        if len(colors) != points.shape[0]:
+            raise ValueError("colors_rgba must contain one color per point.")
+        if any(len(color) != 4 or any(not 0 <= channel <= 255 for channel in color) for color in colors):
+            raise ValueError("colors_rgba must contain RGBA byte values.")
+        item = pg.ScatterPlotItem(
+            x=points[:, 0],
+            y=points[:, 1],
+            size=float(size),
+            pen=pg.mkPen((20, 20, 20, 180), width=0.8),
+            brush=[pg.mkBrush(color) for color in colors],
+        )
+        self.plot_item.addItem(item)
+        self._overlay_items.add(item)
+        return item
+
     def add_mask_overlay_px(
         self,
         mask,

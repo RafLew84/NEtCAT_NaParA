@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from PyQt6.QtCore import QSignalBlocker, pyqtSignal
+from PyQt6.QtCore import QSignalBlocker, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
+    QButtonGroup,
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
@@ -13,14 +14,17 @@ from PyQt6.QtWidgets import (
     QLabel,
     QPushButton,
     QScrollArea,
+    QSlider,
     QSpinBox,
     QVBoxLayout,
     QWidget,
 )
 
 from moltrack.analysis import (
+    M6_OVERLAY_MODES,
     FirstShellSuggestionResult,
     MolecularM6OrientationAnalysisSettings,
+    MolecularM6ViewSettings,
 )
 
 from .m6_pair_correlation_plot import M6PairCorrelationPlot
@@ -35,10 +39,12 @@ class M6SettingsPanel(QScrollArea):
 
     analysis_requested = pyqtSignal(object)
     first_shell_suggestion_requested = pyqtSignal(object)
+    view_settings_changed = pyqtSignal(object)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._base_settings = MolecularM6OrientationAnalysisSettings()
+        self._base_view_settings = MolecularM6ViewSettings()
         self._pending_suggestion: FirstShellSuggestionResult | None = None
         self._analysis_context_enabled = False
         self._analysis_running = False
@@ -53,6 +59,42 @@ class M6SettingsPanel(QScrollArea):
         )
         terminology.setWordWrap(True)
         layout.addWidget(terminology)
+
+        overlay_group = QGroupBox("M6 point overlay", content)
+        overlay_layout = QVBoxLayout(overlay_group)
+        overlay_mode_row = QHBoxLayout()
+        self.overlay_mode_group = QButtonGroup(self)
+        self.overlay_mode_group.setExclusive(True)
+        self._overlay_mode_buttons: dict[str, QPushButton] = {}
+        for button_id, (mode, label) in enumerate(
+            (
+                ("none", "None"),
+                ("q6", "q6"),
+                ("orientation", "Orientation"),
+                ("domain_id", "Domain ID"),
+            )
+        ):
+            button = QPushButton(label, overlay_group)
+            button.setCheckable(True)
+            self.overlay_mode_group.addButton(button, button_id)
+            self._overlay_mode_buttons[mode] = button
+            overlay_mode_row.addWidget(button)
+        overlay_layout.addLayout(overlay_mode_row)
+        opacity_row = QHBoxLayout()
+        opacity_row.addWidget(QLabel("Opacity", overlay_group))
+        self.overlay_opacity = QSlider(Qt.Orientation.Horizontal, overlay_group)
+        self.overlay_opacity.setRange(0, 100)
+        self.overlay_opacity.setSingleStep(1)
+        self.overlay_opacity_value = QLabel("60%", overlay_group)
+        opacity_row.addWidget(self.overlay_opacity, 1)
+        opacity_row.addWidget(self.overlay_opacity_value)
+        overlay_layout.addLayout(opacity_row)
+        self.show_unassigned_points = QCheckBox(
+            "Show unassigned and QC points",
+            overlay_group,
+        )
+        overlay_layout.addWidget(self.show_unassigned_points)
+        layout.addWidget(overlay_group)
 
         neighborhood_group = QGroupBox("Neighbors and first shell", content)
         neighborhood_form = QFormLayout(neighborhood_group)
@@ -249,6 +291,10 @@ class M6SettingsPanel(QScrollArea):
         self.apply_suggestion_button.clicked.connect(self.apply_first_shell_suggestion)
         self.run_button.clicked.connect(self._request_analysis)
         self.set_settings(self._base_settings)
+        self.overlay_mode_group.idClicked.connect(self._emit_view_settings_changed)
+        self.overlay_opacity.valueChanged.connect(self._on_overlay_opacity_changed)
+        self.show_unassigned_points.toggled.connect(self._emit_view_settings_changed)
+        self.set_view_settings(self._base_view_settings)
 
     @staticmethod
     def _distance_spin(parent) -> QDoubleSpinBox:
@@ -349,6 +395,57 @@ class M6SettingsPanel(QScrollArea):
         if settings.first_shell_r_max_nm > settings.gr_max_nm:
             raise ValueError("first_shell_r_max_nm must not exceed gr_max_nm.")
         return settings
+
+    def overlay_mode_options(self) -> tuple[str, ...]:
+        return M6_OVERLAY_MODES
+
+    def overlay_mode(self) -> str:
+        for mode, button in self._overlay_mode_buttons.items():
+            if button.isChecked():
+                return mode
+        return "none"
+
+    def set_overlay_mode(self, mode: str) -> None:
+        normalized = str(mode).strip().lower()
+        if normalized not in self._overlay_mode_buttons:
+            raise ValueError(f"Unsupported M6 overlay mode: {mode!r}.")
+        self._overlay_mode_buttons[normalized].setChecked(True)
+        self._emit_view_settings_changed()
+
+    def view_settings(self) -> MolecularM6ViewSettings:
+        selected_mode = self.overlay_mode()
+        stored_mode = (
+            self._base_view_settings.overlay_mode
+            if selected_mode == "none"
+            else selected_mode
+        )
+        return replace(
+            self._base_view_settings,
+            show_domain_overlay=selected_mode != "none",
+            overlay_mode=stored_mode,
+            show_unassigned_points=self.show_unassigned_points.isChecked(),
+            overlay_opacity_percent=self.overlay_opacity.value(),
+        )
+
+    def set_view_settings(self, settings: MolecularM6ViewSettings) -> None:
+        if not isinstance(settings, MolecularM6ViewSettings):
+            raise TypeError("settings must be MolecularM6ViewSettings.")
+        self._base_view_settings = settings
+        selected_mode = settings.overlay_mode if settings.show_domain_overlay else "none"
+        blockers = [
+            QSignalBlocker(self.overlay_mode_group),
+            QSignalBlocker(self.overlay_opacity),
+            QSignalBlocker(self.show_unassigned_points),
+        ]
+        try:
+            self._overlay_mode_buttons[selected_mode].setChecked(True)
+            self.overlay_opacity.setValue(settings.overlay_opacity_percent)
+            self.show_unassigned_points.setChecked(settings.show_unassigned_points)
+            self.overlay_opacity_value.setText(
+                f"{settings.overlay_opacity_percent}%"
+            )
+        finally:
+            del blockers
 
     def set_settings(self, settings: MolecularM6OrientationAnalysisSettings) -> None:
         if not isinstance(settings, MolecularM6OrientationAnalysisSettings):
@@ -473,6 +570,15 @@ class M6SettingsPanel(QScrollArea):
                 "First-shell suggestion is out of date; request a new suggestion."
             )
         self._refresh_validation()
+
+    def _on_overlay_opacity_changed(self, opacity_percent: int) -> None:
+        self.overlay_opacity_value.setText(f"{int(opacity_percent)}%")
+        self._emit_view_settings_changed()
+
+    def _emit_view_settings_changed(self, _value=None) -> None:
+        settings = self.view_settings()
+        self._base_view_settings = settings
+        self.view_settings_changed.emit(settings)
 
     def suggestion_status_text(self) -> str:
         return self.suggestion_label.text()

@@ -3,6 +3,7 @@ import tempfile
 import threading
 import time
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -12,9 +13,12 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 import numpy as np
 
 from moltrack.analysis import (
+    MolecularFrameRange,
+    MolecularFrameRangeSelection,
     MolecularIntensityMeasurement,
     MolecularM6OrientationAnalysisSettings,
     MolecularM6SessionState,
+    MolecularM6ViewSettings,
     build_molecular_position_plot_data,
     compare_molecular_frame_ranges,
 )
@@ -5552,6 +5556,11 @@ class MolTrackMainWindowTests(unittest.TestCase):
             )
             self.assertIsNone(series.m6_analysis_state)
             self.assertEqual(received_settings, [dialog.m6_analysis_settings()])
+            dialog.m6_settings_panel.overlay_opacity.setValue(37)
+            self.assertEqual(
+                self.window._m6_pending_session_state.view_settings.overlay_opacity_percent,
+                37,
+            )
         finally:
             release_worker.set()
 
@@ -5561,11 +5570,134 @@ class MolTrackMainWindowTests(unittest.TestCase):
             dialog.m6_settings_panel.pair_correlation_plot.current_r_max_line.movable
         )
         self.assertTrue(series.m6_analysis_state.enabled)
+        self.assertEqual(
+            series.m6_analysis_state.view_settings.overlay_opacity_percent,
+            37,
+        )
         self.assertEqual(dialog.active_analysis_tab(), "Sixfold Bond Order")
         self.assertTrue(
             dialog.m6_settings_panel.pair_correlation_plot.has_result()
         )
         self.assertIn("complete", self.window.statusBar().currentMessage().lower())
+
+    def test_m6_overlay_tracks_active_frame_controls_and_keeps_bbox_layer_independent(self) -> None:
+        frame_size = 32
+        points = tuple(
+            (
+                6.0 + 2.0 * (column + 0.5 * (row % 2)),
+                6.0 + np.sqrt(3.0) * row,
+            )
+            for row in range(4)
+            for column in range(4)
+        )
+        detections = MolecularDetectionSet(frame_count=2)
+        for frame_index in range(2):
+            detections.set_detections(
+                frame_index,
+                [
+                    MolecularDetection(
+                        frame_index=frame_index,
+                        bbox_xyxy=(
+                            x - 0.2,
+                            frame_size - y - 0.2,
+                            x + 0.2,
+                            frame_size - y + 0.2,
+                        ),
+                        confidence=0.9,
+                        detection_id=f"molecule-{frame_index}-{index}",
+                    )
+                    for index, (x, y) in enumerate(points)
+                ],
+                source_view="raw",
+                frame_shape=(frame_size, frame_size),
+            )
+        settings = MolecularM6OrientationAnalysisSettings(
+            first_shell_r_min_nm=1.5,
+            first_shell_r_max_nm=2.3,
+            gr_max_nm=12.0,
+            min_ordered_component_size=3,
+            min_seed_size=5,
+            min_domain_size=8,
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((2, frame_size, frame_size), dtype=np.float32),
+            metadata=STMSequenceMetadata(
+                pixels_x=frame_size,
+                pixels_y=frame_size,
+                size_nm_x=float(frame_size),
+                size_nm_y=float(frame_size),
+                scan_angle_deg=0.0,
+            ),
+            molecular_detections=detections,
+            m6_analysis_state=MolecularM6SessionState(
+                enabled=True,
+                settings=settings,
+                view_settings=MolecularM6ViewSettings(
+                    overlay_mode="domain_id",
+                    overlay_opacity_percent=60,
+                ),
+            ),
+        )
+        selection = MolecularFrameRangeSelection(
+            frame_count=2,
+            source_view="raw",
+            first_range=MolecularFrameRange("first", 0, 0),
+            second_range=MolecularFrameRange("second", 1, 1),
+        )
+        comparison = compare_molecular_frame_ranges(
+            series,
+            selection,
+            m6_orientation_settings=settings,
+        )
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        self.window.set_image_series(series)
+        self.window.btn_position_analysis.click()
+        dialog = self.window.position_analysis_dialog()
+        self.window._m6_completed_context = (
+            comparison,
+            selection,
+            True,
+            settings,
+        )
+
+        self.window._render_current_m6_overlay()
+
+        self.assertEqual(self.window.viewer.visible_m6_overlay_count(), len(points))
+        self.assertEqual(self.window.viewer.m6_overlay_graphics_item_count(), 1)
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), len(points))
+        self.assertTrue(
+            all(color[3] == 153 for color in self.window.viewer.visible_m6_overlay_colors())
+        )
+
+        dialog.set_m6_overlay_mode("none")
+
+        self.assertEqual(self.window.viewer.visible_m6_overlay_count(), 0)
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), len(points))
+
+        dialog.set_m6_overlay_mode("domain_id")
+        graphics_item = self.window.viewer._m6_point_overlay_item
+        dialog.m6_settings_panel.overlay_opacity.setValue(40)
+        self.assertIs(self.window.viewer._m6_point_overlay_item, graphics_item)
+        self.window.slider_frame.setValue(1)
+        self.__class__._app.processEvents()
+
+        self.assertEqual(self.window.viewer.visible_m6_overlay_count(), len(points))
+        self.assertTrue(
+            all(color[3] == 102 for color in self.window.viewer.visible_m6_overlay_colors())
+        )
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), len(points))
+
+        series.metadata = replace(series.metadata, scan_angle_deg=15.0)
+        self.window._render_current_m6_overlay()
+
+        self.assertEqual(self.window.viewer.visible_m6_overlay_count(), 0)
+
+        dialog.chk_use_segmentation_centroids.setChecked(False)
+        self.__class__._app.processEvents()
+
+        self.assertEqual(self.window.viewer.visible_m6_overlay_count(), 0)
+        self.assertEqual(self.window.viewer.visible_molecular_detection_count(), len(points))
 
     def test_replacing_series_recreates_position_dialog_with_new_m6_settings(self) -> None:
         self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])

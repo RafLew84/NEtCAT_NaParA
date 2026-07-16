@@ -7,6 +7,8 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import numpy as np
 
+from moltrack.analysis import M6PointOverlay
+
 from moltrack.core import (
     MolecularDetection,
     MolecularDetectionSet,
@@ -102,6 +104,91 @@ class STMSeriesViewerTests(unittest.TestCase):
         self.assertLess(elapsed, 0.12)
         self.assertEqual(self.viewer.visible_molecular_segmentation_count(), 300)
         self.assertEqual(len(self.viewer.visible_molecular_segmentation_ids()), 300)
+
+    def test_m6_overlay_renders_hundreds_of_colored_points_as_one_independent_batch(self) -> None:
+        point_count = 600
+        detections = MolecularDetectionSet(frame_count=1)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(1, 1, 4, 4),
+                    confidence=0.9,
+                    detection_id="bbox-independent",
+                )
+            ],
+            source_view="raw",
+            frame_shape=(128, 128),
+        )
+        segmentations = MolecularSegmentationSet(frame_count=1)
+        mask = np.zeros((128, 128), dtype=bool)
+        mask[1:4, 1:4] = True
+        segmentations.add_segmentation(
+            MolecularSegmentation(
+                frame_index=0,
+                source_view="raw",
+                mask=mask,
+                bbox_xyxy=(1, 1, 4, 4),
+                prompt_detection_ids=("bbox-independent",),
+                origin="sam2",
+                segmentation_id="mask-independent",
+            )
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((1, 128, 128), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=128, pixels_y=128),
+            molecular_detections=detections,
+            molecular_segmentations=segmentations,
+        )
+        self.viewer = STMSeriesViewer()
+        self.viewer.set_image_series(series)
+        overlay = M6PointOverlay(
+            mode="domain_id",
+            source_ids=tuple(f"point-{index}" for index in range(point_count)),
+            points_xy_px=tuple(
+                (float(index % 100), float(index // 100))
+                for index in range(point_count)
+            ),
+            colors_rgba=tuple(
+                (20 + index % 200, 100, 180, 153) for index in range(point_count)
+            ),
+            point_statuses=("domain",) * point_count,
+        )
+
+        started_at = time.perf_counter()
+        self.viewer.show_m6_point_overlay(overlay)
+        self.__class__._app.processEvents()
+        elapsed = time.perf_counter() - started_at
+
+        self.assertLess(elapsed, 0.5)
+        self.assertEqual(self.viewer.visible_m6_overlay_count(), point_count)
+        self.assertEqual(self.viewer.m6_overlay_graphics_item_count(), 1)
+        self.assertEqual(self.viewer.visible_m6_overlay_colors()[0], (20, 100, 180, 153))
+        self.assertEqual(self.viewer.visible_molecular_detection_count(), 1)
+        self.assertEqual(self.viewer.visible_molecular_segmentation_count(), 1)
+
+        graphics_item = self.viewer._m6_point_overlay_item
+        recolored = M6PointOverlay(
+            mode=overlay.mode,
+            source_ids=overlay.source_ids,
+            points_xy_px=overlay.points_xy_px,
+            colors_rgba=tuple((*color[:3], 77) for color in overlay.colors_rgba),
+            point_statuses=overlay.point_statuses,
+        )
+        self.assertTrue(self.viewer.update_m6_point_overlay_colors(recolored))
+        self.assertIs(self.viewer._m6_point_overlay_item, graphics_item)
+        self.assertTrue(
+            all(color[3] == 77 for color in self.viewer.visible_m6_overlay_colors())
+        )
+
+        self.viewer.clear_m6_point_overlay()
+
+        self.assertEqual(self.viewer.visible_m6_overlay_count(), 0)
+        self.assertEqual(self.viewer.m6_overlay_graphics_item_count(), 0)
+        self.assertEqual(self.viewer.visible_molecular_detection_count(), 1)
+        self.assertEqual(self.viewer.visible_molecular_segmentation_count(), 1)
 
     def test_many_small_sam2_masks_use_bbox_regions_on_large_frame(self) -> None:
         size = 1024

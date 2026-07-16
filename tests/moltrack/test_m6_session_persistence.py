@@ -153,6 +153,7 @@ class MolecularM6SessionPersistenceTests(unittest.TestCase):
                 settings=settings,
                 view_settings=MolecularM6ViewSettings(
                     show_domain_overlay=True,
+                    overlay_mode="orientation",
                     show_first_shell_graph=True,
                     show_unassigned_points=False,
                     overlay_opacity_percent=47,
@@ -181,6 +182,15 @@ class MolecularM6SessionPersistenceTests(unittest.TestCase):
             self.assertEqual(cache_payload[0]["sample_coordinates"]["valid_fov_polygon_xy_nm"], [list(point) for point in sample.valid_fov_polygon_xy_nm])
             self.assertTrue(loaded.m6_analysis_state.enabled)
             self.assertEqual(loaded.m6_analysis_state.view_settings.overlay_opacity_percent, 47)
+            self.assertEqual(loaded.m6_analysis_state.view_settings.overlay_mode, "orientation")
+
+            m6_payload["view_settings"].pop("overlay_mode")
+            session_path.write_text(json.dumps(payload), encoding="utf-8")
+            legacy_view = load_moltrack_session(session_path)
+            self.assertEqual(
+                legacy_view.m6_analysis_state.view_settings.overlay_mode,
+                "domain_id",
+            )
 
             def loader(path, *, reverse_frame_order=False):
                 restored_source = _series(Path(path))
