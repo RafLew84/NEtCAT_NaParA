@@ -149,10 +149,17 @@ class OrientationDomainAnalysisTests(unittest.TestCase):
         self.assertIsNotNone(result.footprint_partition)
         footprint = result.footprint_partition
         assert footprint is not None
+        self.assertIsNotNone(result.frame_aggregates)
+        frame_aggregates = result.frame_aggregates
+        assert frame_aggregates is not None
         self.assertEqual(footprint.domain_metrics, result.domain_metrics)
+        self.assertEqual(frame_aggregates.domain_metrics, result.domain_metrics)
+        self.assertEqual(frame_aggregates.footprint_partition, footprint)
         self.assertEqual(len(footprint.cells), len(points))
         self.assertAlmostEqual(footprint.valid_fov_area_nm2, 144.0)
         self.assertAlmostEqual(footprint.total_molecular_mask_area_nm2, 4.0)
+        self.assertEqual(frame_aggregates.original_observation_count, len(points))
+        self.assertEqual(frame_aggregates.valid_representative_count, len(points))
         self.assertAlmostEqual(
             footprint.full_domain_footprint_fraction
             + footprint.small_island_footprint_fraction

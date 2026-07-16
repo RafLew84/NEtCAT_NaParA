@@ -22,6 +22,10 @@ from .orientation_domain_footprint import (
     M6OrientationFootprintPartition,
     compute_m6_orientation_footprint_partition,
 )
+from .orientation_domain_frame_aggregates import (
+    M6OrientationFrameAggregates,
+    aggregate_m6_orientation_frame,
+)
 from .orientation_domain_models import M6OrientationDomainSegmentation
 from .orientation_domain_seed_growth import grow_m6_orientation_domains
 from .orientation_domain_seeds import detect_m6_orientation_domain_seeds
@@ -37,6 +41,7 @@ class M6OrientationDomainAnalysis:
     domain_metrics: M6OrientationDomainMetrics
     settings: MolecularM6OrientationAnalysisSettings
     footprint_partition: M6OrientationFootprintPartition | None = None
+    frame_aggregates: M6OrientationFrameAggregates | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.first_shell_graph, FirstShellGraph):
@@ -63,6 +68,17 @@ class M6OrientationDomainAnalysis:
                 )
             if self.footprint_partition.domain_metrics != self.domain_metrics:
                 raise ValueError("Footprint partition must use the analysis domain metrics.")
+        if self.frame_aggregates is not None:
+            if not isinstance(self.frame_aggregates, M6OrientationFrameAggregates):
+                raise TypeError(
+                    "frame_aggregates must be M6OrientationFrameAggregates or None."
+                )
+            if (
+                self.frame_aggregates.domain_metrics != self.domain_metrics
+                or self.frame_aggregates.footprint_partition
+                != self.footprint_partition
+            ):
+                raise ValueError("Frame aggregates must use this analysis state.")
 
         source_ids = self.first_shell_graph.point_ids
         point_count = self.first_shell_graph.point_count
@@ -270,6 +286,15 @@ def analyze_m6_orientation_domains(
             molecular_mask_area_nm2=molecular_mask_area_nm2,
         )
     )
+    frame_aggregates = (
+        None
+        if footprint_partition is None
+        else aggregate_m6_orientation_frame(
+            local_order=local_order,
+            domain_metrics=domain_metrics,
+            footprint_partition=footprint_partition,
+        )
+    )
     return M6OrientationDomainAnalysis(
         first_shell_graph=graph,
         local_order=local_order,
@@ -277,6 +302,7 @@ def analyze_m6_orientation_domains(
         domain_metrics=domain_metrics,
         settings=settings,
         footprint_partition=footprint_partition,
+        frame_aggregates=frame_aggregates,
     )
 
 
