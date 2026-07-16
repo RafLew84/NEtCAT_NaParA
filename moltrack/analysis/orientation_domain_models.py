@@ -298,17 +298,6 @@ class M6OrientationDomainSegmentation:
 
         assigned_indices: set[int] = set()
         for component in components:
-            if component.component_type == "full_domain":
-                if component.molecule_count < self.settings.min_domain_size:
-                    raise ValueError("full_domain size must reach min_domain_size.")
-            elif not (
-                self.settings.min_ordered_component_size
-                <= component.molecule_count
-                < self.settings.min_domain_size
-            ):
-                raise ValueError(
-                    "small_ordered_island size must lie between ordered and domain thresholds."
-                )
             for point_index, component_source_id in zip(
                 component.point_indices,
                 component.source_ids,
