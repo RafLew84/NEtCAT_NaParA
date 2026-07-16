@@ -17,6 +17,10 @@ from .local_sixfold_bond_order import (
     LocalSixfoldBondOrderField,
 )
 from .local_sixfold_bond_order_computation import compute_local_sixfold_bond_order
+from .sixfold_bond_order_aggregates import (
+    SixfoldBondOrderAggregates,
+    aggregate_local_sixfold_bond_order,
+)
 from .first_shell_suggestion import (
     FirstShellSuggestionResult,
     suggest_first_shell_r_max,
@@ -77,6 +81,8 @@ __all__ = [
     "LocalOrientationStatus",
     "LocalSixfoldBondOrderField",
     "compute_local_sixfold_bond_order",
+    "SixfoldBondOrderAggregates",
+    "aggregate_local_sixfold_bond_order",
     "PairCorrelationResult",
     "MolecularFrameAnalysisResult",
     "MolecularNearestNeighborAngleMetrics",
