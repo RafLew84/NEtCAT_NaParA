@@ -229,6 +229,28 @@ class OrientationDomainFootprintTests(unittest.TestCase):
         self.assertEqual(result.footprint_support_radius_nm, 1.0)
         self.assertFractionsSumToOne(result)
 
+    def test_single_point_preserves_an_oriented_rectangular_valid_fov(self) -> None:
+        root_two = math.sqrt(2.0)
+        polygon = (
+            (0.0, 0.0),
+            (2.0 * root_two, 2.0 * root_two),
+            (root_two, 3.0 * root_two),
+            (-root_two, root_two),
+        )
+        points = np.asarray(((root_two / 2.0, 3.0 * root_two / 2.0),))
+
+        result = compute_m6_orientation_footprint_partition(
+            points,
+            domain_metrics=_metrics(points, support_radius_nm=10.0),
+            window_geometry="convex_polygon",
+            valid_fov_polygon_xy_nm=polygon,
+        )
+
+        self.assertAlmostEqual(result.valid_fov_area_nm2, 8.0)
+        self.assertAlmostEqual(result.cells[0].bounded_cell_area_nm2, 8.0)
+        self.assertAlmostEqual(result.supported_area_nm2, 8.0)
+        self.assertAlmostEqual(result.footprint_overlap_error_nm2, 0.0)
+
     def test_two_points_are_split_by_the_perpendicular_bisector(self) -> None:
         points = np.asarray(((1.0, 2.0), (3.0, 2.0)))
         result = _partition(

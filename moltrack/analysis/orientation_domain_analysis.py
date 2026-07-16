@@ -6,6 +6,7 @@ from typing import Literal
 
 import numpy as np
 
+from ._boundary_distances import normalize_boundary_distances
 from ._m6_settings_fingerprint import m6_settings_fingerprint
 from .first_shell_builder import build_first_shell_graph
 from .first_shell_graph import FirstShellGraph
@@ -212,10 +213,11 @@ def analyze_m6_orientation_domains(
     orientation_reference: str = "+x_sample_axis",
     spatial_calibration_fingerprint: str = "unspecified_calibration",
     registration_fingerprint: str = "unregistered",
-    window_geometry: Literal["rectangular", "irregular"] | None = None,
+    window_geometry: Literal["rectangular", "irregular", "convex_polygon"] | None = None,
     window_size_nm: tuple[float, float] | None = None,
     valid_fov_mask: object | None = None,
     valid_fov_pixel_size_nm: tuple[float, float] | None = None,
+    valid_fov_polygon_xy_nm: Sequence[tuple[float, float]] | None = None,
     window_origin_nm: tuple[float, float] = (0.0, 0.0),
     molecular_mask_area_nm2: Sequence[float | None] | None = None,
 ) -> M6OrientationDomainAnalysis:
@@ -226,6 +228,10 @@ def analyze_m6_orientation_domains(
     if not isinstance(settings, MolecularM6OrientationAnalysisSettings):
         raise TypeError("settings must be MolecularM6OrientationAnalysisSettings.")
     points = _materialize_points(points_xy_nm)
+    boundary_distances = normalize_boundary_distances(
+        distance_to_valid_fov_boundary_nm,
+        point_count=len(points),
+    )
 
     graph = build_first_shell_graph(
         points,
@@ -235,13 +241,16 @@ def analyze_m6_orientation_domains(
         segmentation_quality_scores=segmentation_quality_scores,
         topography_peak_matches=topography_peak_matches,
         detection_confidences=detection_confidences,
+        invalid_position_qc=tuple(
+            distance is None for distance in boundary_distances
+        ),
         orientation_reference=orientation_reference,
         spatial_calibration_fingerprint=spatial_calibration_fingerprint,
         registration_fingerprint=registration_fingerprint,
     )
     local_order = compute_local_sixfold_bond_order(
         graph,
-        distance_to_valid_fov_boundary_nm=distance_to_valid_fov_boundary_nm,
+        distance_to_valid_fov_boundary_nm=boundary_distances,
         settings=settings,
     )
     seeds = detect_m6_orientation_domain_seeds(
@@ -282,6 +291,7 @@ def analyze_m6_orientation_domains(
             window_size_nm=window_size_nm,
             valid_fov_mask=valid_fov_mask,
             valid_fov_pixel_size_nm=valid_fov_pixel_size_nm,
+            valid_fov_polygon_xy_nm=valid_fov_polygon_xy_nm,
             window_origin_nm=window_origin_nm,
             molecular_mask_area_nm2=molecular_mask_area_nm2,
         )

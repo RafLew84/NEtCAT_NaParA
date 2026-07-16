@@ -132,6 +132,55 @@ class PairCorrelationTests(unittest.TestCase):
         self.assertEqual(result.bin_status, ("insufficient_exposure",) * 3)
         self.assertEqual(result.contributing_frame_count, (1, 1, 1))
 
+    def test_rectangular_exposure_accepts_an_oriented_validation_polygon(self) -> None:
+        root_two = math.sqrt(2.0)
+        polygon = (
+            (0.0, 0.0),
+            (2.0 * root_two, 2.0 * root_two),
+            (root_two, 3.0 * root_two),
+            (-root_two, root_two),
+        )
+
+        result = _compute_pair_correlation(
+            np.asarray(((root_two / 2.0, 3.0 * root_two / 2.0),)),
+            settings=_settings(),
+            window_geometry="rectangular",
+            window_size_nm=(4.0, 2.0),
+            valid_fov_polygon_xy_nm=polygon,
+        )
+
+        self.assertEqual(result.point_count, 1)
+        self.assertEqual(result.window_area_nm2, 8.0)
+        self.assertEqual(result.window_size_nm, (4.0, 2.0))
+        self.assertEqual(result.window_geometry_status, "rectangular_translation_correction")
+        cyclic_polygon = polygon[1:] + polygon[:1]
+        cyclic = _compute_pair_correlation(
+            np.asarray(((root_two / 2.0, 3.0 * root_two / 2.0),)),
+            settings=_settings(),
+            window_geometry="rectangular",
+            window_size_nm=(4.0, 2.0),
+            window_origin_nm=cyclic_polygon[0],
+            valid_fov_polygon_xy_nm=cyclic_polygon,
+        )
+        self.assertEqual(cyclic.window_polygon_xy_nm, cyclic_polygon)
+        with self.assertRaisesRegex(ValueError, "window_origin_nm"):
+            _compute_pair_correlation(
+                np.asarray(((root_two / 2.0, 3.0 * root_two / 2.0),)),
+                settings=_settings(),
+                window_geometry="rectangular",
+                window_size_nm=(4.0, 2.0),
+                window_origin_nm=(1.0, 1.0),
+                valid_fov_polygon_xy_nm=polygon,
+            )
+        malformed = (
+            ((0.0, 0.0), (4.0, 0.0), (0.0, 4.0)),
+            ((0.0, 0.0), (4.0, 0.0), (5.0, 2.0), (1.0, 2.0)),
+        )
+        for polygon_value in malformed:
+            with self.subTest(polygon=polygon_value):
+                with self.assertRaisesRegex(ValueError, "window_polygon_xy_nm"):
+                    replace(result, window_polygon_xy_nm=polygon_value)
+
     def test_nonfinite_exposure_is_insufficient_in_supported_geometry(self) -> None:
         result = _compute_pair_correlation(
             np.asarray(((0.0, 0.0), (1.5, 0.0))),
@@ -203,6 +252,33 @@ class PairCorrelationTests(unittest.TestCase):
         self.assertEqual(result.point_count, 2)
         self.assertEqual(result.total_unordered_pair_count, 1)
         self.assertEqual(sum(result.observed_unordered_pair_count), 1)
+
+    def test_explicitly_excludes_invalid_positions_from_pair_population(self) -> None:
+        points = np.asarray(((0.0, 0.0), (1.0, 0.0), (2.0, 0.0)))
+        point_ids = ("point-a", "invalid-padding", "point-b")
+        settings = _settings()
+        graph = build_first_shell_graph(
+            points,
+            point_ids=point_ids,
+            settings=settings,
+            invalid_position_qc=(False, True, False),
+        )
+
+        result = compute_pair_correlation(
+            points,
+            point_ids=point_ids,
+            point_frame_indices=(0, 0, 0),
+            first_shell_graph=graph,
+            frame_index=0,
+            settings=settings,
+            window_geometry="rectangular",
+            window_size_nm=(10.0, 10.0),
+            excluded_point_ids=("invalid-padding",),
+        )
+
+        self.assertEqual(result.representative_point_ids, ("point-a", "point-b"))
+        self.assertEqual(result.point_count, 2)
+        self.assertEqual(result.total_unordered_pair_count, 1)
 
     def test_irregular_mask_uses_binary_autocorrelation_exposure(self) -> None:
         result = _compute_pair_correlation(

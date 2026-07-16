@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from math import isfinite
+from math import isclose, isfinite
 from typing import Literal
 
 import numpy as np
@@ -10,6 +10,7 @@ from scipy.spatial.distance import pdist
 
 from ._coordinate_fingerprint import point_coordinate_fingerprint
 from ._pair_correlation_binning import pair_correlation_bin_edges
+from ._oriented_rectangle import normalize_oriented_rectangle
 from ._pair_correlation_validation import (
     PAIR_CORRELATION_WINDOW_STATUSES,
     PairCorrelationBinStatus,
@@ -22,6 +23,9 @@ from ._pair_correlation_validation import (
 )
 from .first_shell_graph import FirstShellGraph
 from .m6_settings import MolecularM6OrientationAnalysisSettings
+from ._orientation_footprint_geometry import (
+    point_in_polygon_window,
+)
 from ._pair_correlation_windows import (
     masked_annulus_overlap_integrals,
     rectangular_annulus_overlap_integrals,
@@ -53,6 +57,7 @@ class PairCorrelationResult:
     window_origin_nm: tuple[float, float]
     distance_unit: Literal["nm"] = "nm"
     window_size_nm: tuple[float, float] | None = None
+    window_polygon_xy_nm: tuple[tuple[float, float], ...] | None = None
 
     def __post_init__(self) -> None:
         point_count = _as_non_negative_integer(self.point_count, "point_count")
@@ -102,6 +107,17 @@ class PairCorrelationResult:
             if self.window_size_nm is None
             else _normalize_positive_pair(self.window_size_nm, "window_size_nm")
         )
+        window_polygon_xy_nm = (
+            None
+            if self.window_polygon_xy_nm is None or window_size_nm is None
+            else normalize_oriented_rectangle(
+                self.window_polygon_xy_nm,
+                side_lengths=window_size_nm,
+                field_name="window_polygon_xy_nm",
+            )
+        )
+        if self.window_polygon_xy_nm is not None and window_size_nm is None:
+            raise ValueError("window_polygon_xy_nm requires window_size_nm.")
         if self.window_geometry_status not in PAIR_CORRELATION_WINDOW_STATUSES:
             raise ValueError("Unsupported window_geometry_status.")
         bins = normalize_pair_correlation_bins(
@@ -147,6 +163,11 @@ class PairCorrelationResult:
             and window_size_nm is not None
         ):
             raise ValueError("window_size_nm is only supported for rectangular windows.")
+        if window_polygon_xy_nm is not None:
+            if self.window_geometry_status != "rectangular_translation_correction":
+                raise ValueError(
+                    "window_polygon_xy_nm is only supported for rectangular windows."
+                )
         for index, (count, expected, g_value, status, contribution) in enumerate(
             zip(observed, exposure, g_values, statuses, contributions)
         ):
@@ -196,6 +217,7 @@ class PairCorrelationResult:
         object.__setattr__(self, "point_coordinate_fingerprint", coordinate_fingerprint)
         object.__setattr__(self, "window_origin_nm", window_origin_nm)
         object.__setattr__(self, "window_size_nm", window_size_nm)
+        object.__setattr__(self, "window_polygon_xy_nm", window_polygon_xy_nm)
 
 
 @dataclass(frozen=True)
@@ -221,6 +243,8 @@ def compute_pair_correlation(
     valid_fov_mask: object | None = None,
     valid_fov_pixel_size_nm: tuple[float, float] | None = None,
     window_origin_nm: tuple[float, float] = (0.0, 0.0),
+    valid_fov_polygon_xy_nm: Sequence[tuple[float, float]] | None = None,
+    excluded_point_ids: Sequence[str] = (),
 ) -> PairCorrelationResult:
     """Compute one-frame g(r) from registered, representative points in sample_nm."""
 
@@ -234,6 +258,7 @@ def compute_pair_correlation(
     if not bool(np.all(np.isfinite(points))):
         raise ValueError("points_xy_nm must contain only finite coordinates.")
     normalized_point_ids = tuple(point_ids)
+    excluded_ids = tuple(excluded_point_ids)
     normalized_frame_index = _as_non_negative_integer(frame_index, "frame_index")
     normalized_point_frame_indices = tuple(
         _as_non_negative_integer(value, "point_frame_indices")
@@ -252,12 +277,21 @@ def compute_pair_correlation(
         or len(points) != first_shell_graph.point_count
     ):
         raise ValueError("first_shell_graph must match input point IDs and order.")
+    if (
+        len(set(excluded_ids)) != len(excluded_ids)
+        or any(point_id not in normalized_point_ids for point_id in excluded_ids)
+    ):
+        raise ValueError("excluded_point_ids must be unique input point IDs.")
+    excluded_id_set = set(excluded_ids)
     _validate_graph_settings(first_shell_graph, settings)
     _validate_graph_coordinates(points, first_shell_graph)
     representative_indices = tuple(
         index
         for index, point_id in enumerate(normalized_point_ids)
-        if first_shell_graph.representative_source_ids[index] == point_id
+        if (
+            first_shell_graph.representative_source_ids[index] == point_id
+            and point_id not in excluded_id_set
+        )
     )
     representative_points = points[np.asarray(representative_indices, dtype=np.int64)]
     representative_point_ids = tuple(
@@ -296,15 +330,40 @@ def compute_pair_correlation(
             window_area_nm2=None,
             window_geometry_status="unsupported_window_geometry",
             window_size_nm=None,
+            window_polygon_xy_nm=None,
             context=context,
         )
     if geometry == "rectangular":
         width_nm, height_nm = _normalize_window_size(window_size_nm)
-        _validate_points_in_rectangular_window(
-            representative_points,
-            origin_nm=origin_nm,
-            window_size_nm=(width_nm, height_nm),
+        window_polygon_xy_nm = (
+            None
+            if valid_fov_polygon_xy_nm is None
+            else normalize_oriented_rectangle(
+                valid_fov_polygon_xy_nm,
+                side_lengths=(width_nm, height_nm),
+                field_name="valid_fov_polygon_xy_nm",
+            )
         )
+        if window_polygon_xy_nm is None:
+            _validate_points_in_rectangular_window(
+                representative_points,
+                origin_nm=origin_nm,
+                window_size_nm=(width_nm, height_nm),
+            )
+        else:
+            if not np.allclose(
+                origin_nm,
+                window_polygon_xy_nm[0],
+                rtol=1e-10,
+                atol=1e-10 * max(width_nm, height_nm, 1.0),
+            ):
+                raise ValueError(
+                    "window_origin_nm must equal the first valid FOV polygon vertex."
+                )
+            _validate_points_in_polygon(
+                representative_points,
+                window_polygon_xy_nm,
+            )
         overlap_integrals = rectangular_annulus_overlap_integrals(
             width_nm,
             height_nm,
@@ -315,6 +374,9 @@ def compute_pair_correlation(
             "rectangular_translation_correction"
         )
     else:
+        if valid_fov_polygon_xy_nm is not None:
+            raise ValueError("valid_fov_polygon_xy_nm requires rectangular geometry.")
+        window_polygon_xy_nm = None
         mask = _normalize_valid_fov_mask(valid_fov_mask)
         pixel_size_nm = _normalize_pixel_size(valid_fov_pixel_size_nm)
         _validate_points_in_mask(
@@ -330,8 +392,11 @@ def compute_pair_correlation(
         )
         geometry_status = "irregular_mask_autocorrelation"
 
-    density_factor = point_count * (point_count - 1) / (2.0 * area_nm2**2)
-    exposure = tuple(density_factor * integral for integral in overlap_integrals)
+    exposure = _pair_exposure(
+        point_count=point_count,
+        window_area_nm2=area_nm2,
+        overlap_integrals=overlap_integrals,
+    )
     return _build_result(
         edges=edges,
         observed=tuple(int(value) for value in observed),
@@ -341,8 +406,102 @@ def compute_pair_correlation(
         window_area_nm2=area_nm2,
         window_geometry_status=geometry_status,
         window_size_nm=(width_nm, height_nm) if geometry == "rectangular" else None,
+        window_polygon_xy_nm=window_polygon_xy_nm,
         context=context,
     )
+
+
+def validate_pair_correlation_result_context(
+    result: PairCorrelationResult,
+    *,
+    first_shell_graph: FirstShellGraph,
+    frame_index: int,
+    settings: MolecularM6OrientationAnalysisSettings,
+    window_size_nm: tuple[float, float],
+    window_origin_nm: tuple[float, float],
+    valid_fov_polygon_xy_nm: tuple[tuple[float, float], ...],
+    excluded_point_ids: Sequence[str] = (),
+) -> None:
+    """Verify that a stored g(r) result belongs to one graph and FOV context."""
+
+    excluded_ids = set(excluded_point_ids)
+    representative_ids = tuple(
+        point_id
+        for point_id, representative_id in zip(
+            first_shell_graph.point_ids,
+            first_shell_graph.representative_source_ids,
+        )
+        if point_id == representative_id and point_id not in excluded_ids
+    )
+    expected_context = (
+        int(frame_index),
+        representative_ids,
+        first_shell_graph.spatial_calibration_fingerprint,
+        first_shell_graph.registration_fingerprint,
+        first_shell_graph.point_coordinate_fingerprint,
+        valid_fov_polygon_xy_nm,
+        window_size_nm,
+        window_origin_nm,
+        "rectangular_translation_correction",
+    )
+    actual_context = (
+        result.frame_index,
+        result.representative_point_ids,
+        result.spatial_calibration_fingerprint,
+        result.registration_fingerprint,
+        result.point_coordinate_fingerprint,
+        result.window_polygon_xy_nm,
+        result.window_size_nm,
+        result.window_origin_nm,
+        result.window_geometry_status,
+    )
+    if actual_context != expected_context:
+        raise ValueError("M6 g(r) must use this frame and valid FOV graph context.")
+    expected_edges = pair_correlation_bin_edges(
+        settings.gr_bin_width_nm,
+        settings.gr_max_nm,
+    )
+    width_nm, height_nm = window_size_nm
+    expected_exposure = _pair_exposure(
+        point_count=len(representative_ids),
+        window_area_nm2=width_nm * height_nm,
+        overlap_integrals=rectangular_annulus_overlap_integrals(
+            width_nm,
+            height_nm,
+            expected_edges,
+        ),
+    )
+    if (
+        result.bin_edges_nm != expected_edges
+        or not isclose(
+            result.min_expected_pair_exposure,
+            settings.gr_min_expected_pair_exposure,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
+        or len(result.expected_pair_exposure) != len(expected_exposure)
+        or any(
+            not isclose(actual, expected, rel_tol=1e-12, abs_tol=1e-12)
+            for actual, expected in zip(
+                result.expected_pair_exposure,
+                expected_exposure,
+            )
+        )
+    ):
+        raise ValueError("M6 g(r) must use the supplied settings and exposure.")
+
+
+def _pair_exposure(
+    *,
+    point_count: int,
+    window_area_nm2: float,
+    overlap_integrals: Sequence[float],
+) -> tuple[float, ...]:
+    density_factor = (
+        point_count * (point_count - 1)
+        / (2.0 * window_area_nm2**2)
+    )
+    return tuple(density_factor * integral for integral in overlap_integrals)
 
 
 def _build_result(
@@ -355,6 +514,7 @@ def _build_result(
     window_area_nm2: float | None,
     window_geometry_status: PairCorrelationWindowGeometryStatus,
     window_size_nm: tuple[float, float] | None,
+    window_polygon_xy_nm: tuple[tuple[float, float], ...] | None,
     context: _PairCorrelationFrameContext,
 ) -> PairCorrelationResult:
     unsupported = window_geometry_status == "unsupported_window_geometry"
@@ -395,6 +555,7 @@ def _build_result(
         point_coordinate_fingerprint=context.point_coordinate_fingerprint,
         window_origin_nm=context.window_origin_nm,
         window_size_nm=window_size_nm,
+        window_polygon_xy_nm=window_polygon_xy_nm,
     )
 
 
@@ -402,6 +563,22 @@ def _normalize_window_size(
     window_size_nm: tuple[float, float] | None,
 ) -> tuple[float, float]:
     return _normalize_positive_pair(window_size_nm, "window_size_nm")
+
+
+def _validate_points_in_polygon(
+    points: np.ndarray,
+    polygon: tuple[tuple[float, float], ...],
+) -> None:
+    coordinate_scale = max(
+        1.0,
+        *(abs(value) for point in polygon for value in point),
+    )
+    tolerance = 1e-10 * coordinate_scale
+    if any(
+        not point_in_polygon_window(point, (polygon,), tolerance=tolerance)
+        for point in points
+    ):
+        raise ValueError("Representative points must lie inside valid FOV W.")
 
 
 def _normalize_valid_fov_mask(valid_fov_mask: object) -> np.ndarray:

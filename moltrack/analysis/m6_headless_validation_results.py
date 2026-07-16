@@ -236,6 +236,7 @@ def _validate_pair_correlation_context(
         graph.point_coordinate_fingerprint,
         frame.window_origin_nm,
         frame.window_size_nm,
+        None,
         frame.window_size_nm[0] * frame.window_size_nm[1],
         "rectangular_translation_correction",
     )
@@ -247,6 +248,7 @@ def _validate_pair_correlation_context(
         pair_correlation.point_coordinate_fingerprint,
         pair_correlation.window_origin_nm,
         pair_correlation.window_size_nm,
+        pair_correlation.window_polygon_xy_nm,
         pair_correlation.window_area_nm2,
         pair_correlation.window_geometry_status,
     )

@@ -103,6 +103,31 @@ def point_in_window(
     )
 
 
+def point_in_polygon_window(
+    point: np.ndarray,
+    polygons: tuple[Polygon, ...],
+    *,
+    tolerance: float,
+) -> bool:
+    """Return whether a point lies in any convex window fragment."""
+
+    point_xy = np.asarray(point, dtype=np.float64)
+    for polygon in polygons:
+        signed_area = _signed_polygon_area(polygon)
+        orientation = 1.0 if signed_area >= 0.0 else -1.0
+        inside = True
+        for start, end in zip(polygon, polygon[1:] + polygon[:1]):
+            edge = np.asarray((end[0] - start[0], end[1] - start[1]))
+            relative = point_xy - np.asarray(start, dtype=np.float64)
+            cross = orientation * float(edge[0] * relative[1] - edge[1] * relative[0])
+            if cross < -tolerance * max(1.0, float(np.linalg.norm(edge))):
+                inside = False
+                break
+        if inside:
+            return True
+    return False
+
+
 def clip_polygon_halfplane(
     polygon: Polygon,
     *,

@@ -31,6 +31,7 @@ def build_first_shell_graph(
     segmentation_quality_scores: Sequence[float | None] | None = None,
     topography_peak_matches: Sequence[bool | None] | None = None,
     detection_confidences: Sequence[float | None] | None = None,
+    invalid_position_qc: Sequence[bool] | None = None,
     orientation_reference: str = "+x_sample_axis",
     spatial_calibration_fingerprint: str = "unspecified_calibration",
     registration_fingerprint: str = "unregistered",
@@ -55,6 +56,40 @@ def build_first_shell_graph(
         topography_peak_matches=topography_peak_matches,
         detection_confidences=detection_confidences,
     )
+    invalid_positions = _normalize_invalid_position_qc(invalid_position_qc, count)
+    if any(invalid_positions):
+        valid_indices = tuple(
+            index for index, is_invalid in enumerate(invalid_positions) if not is_invalid
+        )
+        core_graph = build_first_shell_graph(
+            points[np.asarray(valid_indices, dtype=np.int64)],
+            point_ids=tuple(normalized_ids[index] for index in valid_indices),
+            settings=settings,
+            mask_blocking_qc=tuple(
+                point_quality.mask_blocking_qc[index] for index in valid_indices
+            ),
+            segmentation_quality_scores=tuple(
+                point_quality.segmentation_quality_scores[index]
+                for index in valid_indices
+            ),
+            topography_peak_matches=tuple(
+                point_quality.topography_peak_matches[index] for index in valid_indices
+            ),
+            detection_confidences=tuple(
+                point_quality.detection_confidences[index] for index in valid_indices
+            ),
+            orientation_reference=orientation_reference,
+            spatial_calibration_fingerprint=spatial_calibration_fingerprint,
+            registration_fingerprint=registration_fingerprint,
+        )
+        return core_graph._expanded_with_isolated_points(
+            point_ids=normalized_ids,
+            point_coordinate_fingerprint=point_coordinate_fingerprint(
+                points,
+                normalized_ids,
+            ),
+            retained_indices=valid_indices,
+        )
 
     scale_nm = deterministic_affine_rank_scale_nm(
         points,
@@ -170,6 +205,20 @@ def _normalize_point_ids(point_ids: Sequence[str] | None, points: np.ndarray) ->
     normalized = tuple(point_ids)
     if len(normalized) != point_count:
         raise ValueError("point_ids must contain one value per point.")
+    return normalized
+
+
+def _normalize_invalid_position_qc(
+    values: Sequence[bool] | None,
+    point_count: int,
+) -> tuple[bool, ...]:
+    if values is None:
+        return (False,) * point_count
+    normalized = tuple(values)
+    if len(normalized) != point_count:
+        raise ValueError("invalid_position_qc must contain one value per point.")
+    if any(not isinstance(value, bool) for value in normalized):
+        raise TypeError("invalid_position_qc values must be booleans.")
     return normalized
 
 

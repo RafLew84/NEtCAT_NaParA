@@ -18,7 +18,7 @@ from ._orientation_footprint_geometry import (
     clip_polygon_halfplane,
     convex_polygon_intersection,
     masked_window,
-    point_in_window,
+    point_in_polygon_window,
     polygon_area,
     rectangle_polygon,
     rectangular_window,
@@ -416,10 +416,11 @@ def compute_m6_orientation_footprint_partition(
     points_xy_nm: object,
     *,
     domain_metrics: M6OrientationDomainMetrics,
-    window_geometry: Literal["rectangular", "irregular"],
+    window_geometry: Literal["rectangular", "irregular", "convex_polygon"],
     window_size_nm: tuple[float, float] | None = None,
     valid_fov_mask: object | None = None,
     valid_fov_pixel_size_nm: tuple[float, float] | None = None,
+    valid_fov_polygon_xy_nm: Sequence[tuple[float, float]] | None = None,
     window_origin_nm: tuple[float, float] = (0.0, 0.0),
     molecular_mask_area_nm2: Sequence[float | None] | None = None,
 ) -> M6OrientationFootprintPartition:
@@ -432,17 +433,15 @@ def compute_m6_orientation_footprint_partition(
         raise ValueError("points_xy_nm must have shape [N, 2].")
     if len(points) != domain_metrics.point_count:
         raise ValueError("points_xy_nm must match domain_metrics point count.")
-    rectangles = _window_rectangles(
+    window_polygons = _window_polygons(
         window_geometry,
         window_size_nm=window_size_nm,
         valid_fov_mask=valid_fov_mask,
         valid_fov_pixel_size_nm=valid_fov_pixel_size_nm,
+        valid_fov_polygon_xy_nm=valid_fov_polygon_xy_nm,
         window_origin_nm=window_origin_nm,
     )
-    valid_fov_area = fsum(
-        (max_x - min_x) * (max_y - min_y)
-        for min_x, min_y, max_x, max_y in rectangles
-    )
+    valid_fov_area = fsum(polygon_area(polygon) for polygon in window_polygons)
     settings = domain_metrics.settings
     rank_scale = deterministic_affine_rank_scale_nm(
         points,
@@ -461,7 +460,11 @@ def compute_m6_orientation_footprint_partition(
     for index in valid_indices:
         if not bool(np.all(np.isfinite(points[index]))):
             raise ValueError("Valid representatives must have finite positions.")
-        if not point_in_window(points[index], rectangles, tolerance=tolerance):
+        if not point_in_polygon_window(
+            points[index],
+            window_polygons,
+            tolerance=tolerance,
+        ):
             raise ValueError("Valid representatives must lie inside valid FOV W.")
     mask_areas = _normalize_mask_areas(molecular_mask_area_nm2, point_count=len(points))
     method, constraints, voronoi_degenerate = _partition_constraints(
@@ -477,7 +480,7 @@ def compute_m6_orientation_footprint_partition(
             point_index,
             points=points,
             domain_metrics=domain_metrics,
-            rectangles=rectangles,
+            window_polygons=window_polygons,
             constraints=constraints[position],
             radius=radius,
             tolerance=tolerance,
@@ -573,25 +576,70 @@ def compute_m6_orientation_footprint_partition(
     )
 
 
-def _window_rectangles(
+def _window_polygons(
     window_geometry: object,
     *,
     window_size_nm: object,
     valid_fov_mask: object,
     valid_fov_pixel_size_nm: object,
+    valid_fov_polygon_xy_nm: object,
     window_origin_nm: object,
-) -> tuple[Rectangle, ...]:
+) -> tuple[Polygon, ...]:
     if window_geometry == "rectangular":
         if window_size_nm is None:
             raise ValueError("Rectangular valid FOV requires window_size_nm.")
-        return rectangular_window(window_size_nm, window_origin_nm)
+        return tuple(
+            rectangle_polygon(rectangle)
+            for rectangle in rectangular_window(window_size_nm, window_origin_nm)
+        )
     if window_geometry == "irregular":
         if valid_fov_mask is None or valid_fov_pixel_size_nm is None:
             raise ValueError(
                 "Irregular valid FOV requires valid_fov_mask and valid_fov_pixel_size_nm."
             )
-        return masked_window(valid_fov_mask, valid_fov_pixel_size_nm, window_origin_nm)
-    raise ValueError("window_geometry must be 'rectangular' or 'irregular'.")
+        return tuple(
+            rectangle_polygon(rectangle)
+            for rectangle in masked_window(
+                valid_fov_mask,
+                valid_fov_pixel_size_nm,
+                window_origin_nm,
+            )
+        )
+    if window_geometry == "convex_polygon":
+        return (_normalize_convex_window_polygon(valid_fov_polygon_xy_nm),)
+    raise ValueError(
+        "window_geometry must be 'rectangular', 'irregular', or 'convex_polygon'."
+    )
+
+
+def _normalize_convex_window_polygon(value: object) -> Polygon:
+    if value is None:
+        raise ValueError("Convex-polygon valid FOV requires valid_fov_polygon_xy_nm.")
+    try:
+        polygon = tuple(
+            (
+                _finite_float(point[0], "valid FOV polygon x"),
+                _finite_float(point[1], "valid FOV polygon y"),
+            )
+            for point in value  # type: ignore[union-attr]
+        )
+    except (TypeError, IndexError) as exc:
+        raise ValueError("valid_fov_polygon_xy_nm must contain xy vertices.") from exc
+    if len(polygon) < 3 or polygon_area(polygon) <= 0.0:
+        raise ValueError("valid_fov_polygon_xy_nm must have positive area.")
+    cross_products = tuple(
+        (middle[0] - start[0]) * (end[1] - middle[1])
+        - (middle[1] - start[1]) * (end[0] - middle[0])
+        for start, middle, end in zip(
+            polygon,
+            polygon[1:] + polygon[:1],
+            polygon[2:] + polygon[:2],
+        )
+    )
+    nonzero_signs = {1 if value > 0.0 else -1 for value in cross_products if value != 0.0}
+    if len(nonzero_signs) != 1:
+        raise ValueError("valid_fov_polygon_xy_nm must be convex and non-degenerate.")
+    return polygon
 
 
 def _partition_constraints(
@@ -691,18 +739,19 @@ def _build_cell(
     *,
     points: np.ndarray,
     domain_metrics: M6OrientationDomainMetrics,
-    rectangles: tuple[Rectangle, ...],
+    window_polygons: tuple[Polygon, ...],
     constraints: tuple[tuple[np.ndarray, float], ...],
     radius: float,
     tolerance: float,
     mask_area: float | None,
 ) -> M6OrientationFootprintCell:
-    if rectangles:
+    if window_polygons:
+        vertices = tuple(point for polygon in window_polygons for point in polygon)
         bounding_rectangle = (
-            min(value[0] for value in rectangles),
-            min(value[1] for value in rectangles),
-            max(value[2] for value in rectangles),
-            max(value[3] for value in rectangles),
+            min(value[0] for value in vertices),
+            min(value[1] for value in vertices),
+            max(value[0] for value in vertices),
+            max(value[1] for value in vertices),
         )
         bounded_cell = rectangle_polygon(bounding_rectangle)
     else:
@@ -717,10 +766,10 @@ def _build_cell(
         if not bounded_cell:
             break
     fragments: list[M6SupportedFootprintFragment] = []
-    for window_fragment_index, rectangle in enumerate(rectangles):
-        polygon = _clip_polygon_to_rectangle(
+    for window_fragment_index, window_polygon in enumerate(window_polygons):
+        polygon = convex_polygon_intersection(
             bounded_cell,
-            rectangle=rectangle,
+            window_polygon,
             tolerance=tolerance,
         )
         if polygon_area(polygon) > tolerance * tolerance:
@@ -749,12 +798,12 @@ def _build_cell(
     supported_area = fsum(fragment.area_nm2 for fragment in fragments)
     disk_in_window_area = fsum(
         circle_polygon_intersection_area(
-            rectangle_polygon(rectangle),
+            window_polygon,
             center=points[point_index],
             radius=radius,
             tolerance=tolerance,
         )
-        for rectangle in rectangles
+        for window_polygon in window_polygons
     )
     segmentation = domain_metrics.segmentation
     category = segmentation.component_type[point_index]

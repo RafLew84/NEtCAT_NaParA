@@ -1,0 +1,186 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+import numpy as np
+
+from ._coordinate_fingerprint import point_coordinate_fingerprint
+from .first_shell_graph import FirstShellGraph
+from .local_sixfold_bond_order import LocalSixfoldBondOrderField
+from .m6_settings import MolecularM6OrientationAnalysisSettings
+from .orientation_domain_analysis import (
+    M6OrientationDomainAnalysis,
+    analyze_m6_orientation_domains,
+)
+from .orientation_domain_frame_aggregates import M6OrientationFrameAggregates
+from .orientation_domain_models import M6OrientationDomainSegmentation
+from .pair_correlation import (
+    PairCorrelationResult,
+    compute_pair_correlation,
+    validate_pair_correlation_result_context,
+)
+from .sample_coordinates import MolecularSampleCoordinates
+
+
+@dataclass(frozen=True)
+class MolecularM6OrientationAnalysis:
+    """Full M6 structural result for one Position Analysis frame."""
+
+    source_view: str
+    sample_coordinates: MolecularSampleCoordinates
+    domain_analysis: M6OrientationDomainAnalysis
+    pair_correlation: PairCorrelationResult
+
+    def __post_init__(self) -> None:
+        if self.source_view != self.sample_coordinates.source_view:
+            raise ValueError("M6 source_view must match sample coordinates.")
+        graph = self.domain_analysis.first_shell_graph
+        if graph.point_ids != self.point_source_ids:
+            raise ValueError("M6 graph IDs must match Position Analysis centroids.")
+        analysis_points = np.asarray(self.points_xy_nm, dtype=np.float64).reshape((-1, 2))
+        if (
+            point_coordinate_fingerprint(analysis_points, graph.point_ids)
+            != graph.point_coordinate_fingerprint
+        ):
+            raise ValueError("M6 graph coordinates must match Position Analysis points.")
+        expected_provenance = (
+            self.sample_coordinates.spatial_calibration_fingerprint,
+            self.sample_coordinates.registration_fingerprint,
+        )
+        if (
+            graph.spatial_calibration_fingerprint,
+            graph.registration_fingerprint,
+        ) != expected_provenance:
+            raise ValueError("M6 graph must preserve the coordinate transform provenance.")
+        sample = self.sample_coordinates
+        validate_pair_correlation_result_context(
+            self.pair_correlation,
+            first_shell_graph=graph,
+            frame_index=sample.frame_index,
+            settings=self.settings,
+            window_size_nm=sample.window_side_lengths_nm,
+            window_origin_nm=sample.valid_fov_polygon_xy_nm[0],
+            valid_fov_polygon_xy_nm=sample.valid_fov_polygon_xy_nm,
+            excluded_point_ids=self.invalid_position_point_ids,
+        )
+        if self.domain_analysis.frame_aggregates is None:
+            raise ValueError("M6 Position Analysis requires frame aggregates.")
+
+    @property
+    def settings(self) -> MolecularM6OrientationAnalysisSettings:
+        return self.domain_analysis.settings
+
+    @property
+    def first_shell_graph(self) -> FirstShellGraph:
+        return self.domain_analysis.first_shell_graph
+
+    @property
+    def local_order(self) -> LocalSixfoldBondOrderField:
+        return self.domain_analysis.local_order
+
+    @property
+    def psi6(self) -> tuple[complex | None, ...]:
+        return self.local_order.psi6
+
+    @property
+    def segmentation(self) -> M6OrientationDomainSegmentation:
+        return self.domain_analysis.segmentation
+
+    @property
+    def frame_aggregates(self) -> M6OrientationFrameAggregates:
+        aggregates = self.domain_analysis.frame_aggregates
+        if aggregates is None:  # guarded by __post_init__
+            raise RuntimeError("M6 frame aggregates are unavailable.")
+        return aggregates
+
+    @property
+    def aggregates(self) -> M6OrientationFrameAggregates:
+        return self.frame_aggregates
+
+    @property
+    def point_source_ids(self) -> tuple[str, ...]:
+        return self.sample_coordinates.point_source_ids
+
+    @property
+    def points_xy_nm(self) -> tuple[tuple[float, float], ...]:
+        return self.sample_coordinates.points_xy_nm
+
+    @property
+    def invalid_position_point_ids(self) -> tuple[str, ...]:
+        return self.sample_coordinates.invalid_position_point_ids
+
+    @property
+    def coordinate_transform_fingerprint(self) -> str:
+        return self.sample_coordinates.coordinate_transform_fingerprint
+
+    @property
+    def coordinate_frame(self) -> str:
+        return self.sample_coordinates.coordinate_frame
+
+    @property
+    def orientation_reference(self) -> str:
+        return self.sample_coordinates.orientation_reference
+
+    @property
+    def spatial_calibration_fingerprint(self) -> str:
+        return self.sample_coordinates.spatial_calibration_fingerprint
+
+    @property
+    def registration_fingerprint(self) -> str:
+        return self.sample_coordinates.registration_fingerprint
+
+    @property
+    def scan_angle_missing_qc(self) -> bool:
+        return self.sample_coordinates.scan_angle_missing_qc
+
+
+def analyze_molecular_m6_orientation(
+    sample_coordinates: MolecularSampleCoordinates,
+    *,
+    settings: MolecularM6OrientationAnalysisSettings,
+) -> MolecularM6OrientationAnalysis:
+    """Run the complete M6 core for one transformed Position Analysis frame."""
+
+    if not isinstance(sample_coordinates, MolecularSampleCoordinates):
+        raise TypeError("sample_coordinates must be MolecularSampleCoordinates.")
+    if not isinstance(settings, MolecularM6OrientationAnalysisSettings):
+        raise TypeError("settings must be MolecularM6OrientationAnalysisSettings.")
+    points = np.asarray(sample_coordinates.points_xy_nm, dtype=np.float64).reshape((-1, 2))
+    point_ids = sample_coordinates.point_source_ids
+    boundary_distances = tuple(
+        None if distance < 0.0 else distance
+        for distance in sample_coordinates.distance_to_valid_fov_boundary_nm
+    )
+    analysis = analyze_m6_orientation_domains(
+        points,
+        point_ids=point_ids,
+        distance_to_valid_fov_boundary_nm=boundary_distances,
+        settings=settings,
+        orientation_reference=sample_coordinates.orientation_reference,
+        spatial_calibration_fingerprint=(
+            sample_coordinates.spatial_calibration_fingerprint
+        ),
+        registration_fingerprint=sample_coordinates.registration_fingerprint,
+        window_geometry="convex_polygon",
+        valid_fov_polygon_xy_nm=sample_coordinates.valid_fov_polygon_xy_nm,
+    )
+    polygon_origin = sample_coordinates.valid_fov_polygon_xy_nm[0]
+    pair_correlation = compute_pair_correlation(
+        points,
+        point_ids=point_ids,
+        point_frame_indices=(sample_coordinates.frame_index,) * len(points),
+        first_shell_graph=analysis.first_shell_graph,
+        frame_index=sample_coordinates.frame_index,
+        settings=settings,
+        window_geometry="rectangular",
+        window_size_nm=sample_coordinates.window_side_lengths_nm,
+        window_origin_nm=polygon_origin,
+        valid_fov_polygon_xy_nm=sample_coordinates.valid_fov_polygon_xy_nm,
+        excluded_point_ids=sample_coordinates.invalid_position_point_ids,
+    )
+    return MolecularM6OrientationAnalysis(
+        source_view=sample_coordinates.source_view,
+        sample_coordinates=sample_coordinates,
+        domain_analysis=analysis,
+        pair_correlation=pair_correlation,
+    )

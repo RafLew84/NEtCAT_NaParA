@@ -101,6 +101,15 @@ from .nearest_neighbors import (
     compute_molecular_nearest_neighbor_metrics,
 )
 from .position_plot import MolecularPositionPlotData, build_molecular_position_plot_data
+from .sample_coordinates import (
+    SAMPLE_COORDINATE_TRANSFORM_VERSION,
+    MolecularSampleCoordinates,
+    build_molecular_sample_coordinates,
+)
+from .molecular_m6_analysis import (
+    MolecularM6OrientationAnalysis,
+    analyze_molecular_m6_orientation,
+)
 from .range_comparison import (
     MolecularFrameRangeComparison,
     MolecularFrameRangeDifferences,
@@ -139,6 +148,7 @@ __all__ = [
     "MolecularIntensityCacheStats",
     "MolecularIntensityMeasurementCache",
     "MolecularM6OrientationAnalysisSettings",
+    "MolecularM6OrientationAnalysis",
     "LocalOrderComputationStatus",
     "LocalOrientationStatus",
     "LocalSixfoldBondOrderField",
@@ -191,12 +201,16 @@ __all__ = [
     "MolecularNearestNeighborMetrics",
     "MolecularConditionSpatialData",
     "MolecularPositionPlotData",
+    "MolecularSampleCoordinates",
     "MolecularRangeComparisonTrendData",
     "MolecularRangeTrendSeries",
     "MolecularRangeSpatialComparisonData",
     "analyze_molecular_frame_range",
+    "analyze_molecular_m6_orientation",
     "aggregate_pair_correlation_results",
     "build_molecular_position_plot_data",
+    "build_molecular_sample_coordinates",
+    "SAMPLE_COORDINATE_TRANSFORM_VERSION",
     "build_molecular_intensity_measurements",
     "export_molecular_intensity_cache_records",
     "build_molecular_range_comparison_trend_data",

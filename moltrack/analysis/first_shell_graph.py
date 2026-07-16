@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from math import isfinite, pi
-from typing import Literal
+from typing import Literal, TypeVar
 
 from ._first_shell_filtering import _FirstShellDistancePolicy
 
@@ -29,6 +29,7 @@ _CONSTRUCTION_METHODS = {
     "delaunay_first_shell",
     "rank2_radius_fallback",
 }
+_T = TypeVar("_T")
 
 
 @dataclass(frozen=True)
@@ -426,6 +427,93 @@ class FirstShellGraph:
         if point_index < 0 or point_index >= self.point_count:
             raise IndexError(f"Point index out of range: {point_index}.")
         return point_index
+
+    def _expanded_with_isolated_points(
+        self,
+        *,
+        point_ids: tuple[str, ...],
+        point_coordinate_fingerprint: str,
+        retained_indices: tuple[int, ...],
+    ) -> "FirstShellGraph":
+        """Insert rejected observations while preserving every graph-indexed field."""
+
+        def map_edges(
+            edges: tuple[tuple[int, int], ...],
+        ) -> tuple[tuple[int, int], ...]:
+            return tuple(
+                (retained_indices[left], retained_indices[right])
+                for left, right in edges
+            )
+
+        point_count = len(point_ids)
+        degree = [0] * point_count
+        for core_index, full_index in enumerate(retained_indices):
+            degree[full_index] = self.degree[core_index]
+        return replace(
+            self,
+            point_ids=point_ids,
+            point_count=point_count,
+            edges_ij=map_edges(self.edges_ij),
+            degree=tuple(degree),
+            point_coordinate_fingerprint=point_coordinate_fingerprint,
+            representative_source_ids=_expand_indexed_values(
+                self.representative_source_ids,
+                list(point_ids),
+                retained_indices,
+            ),
+            duplicate_parent_component_ids=_expand_indexed_values(
+                self.duplicate_parent_component_ids,
+                [None] * point_count,
+                retained_indices,
+            ),
+            duplicate_parent_component_diameters_nm=_expand_indexed_values(
+                self.duplicate_parent_component_diameters_nm,
+                [None] * point_count,
+                retained_indices,
+            ),
+            duplicate_group_ids=_expand_indexed_values(
+                self.duplicate_group_ids,
+                [None] * point_count,
+                retained_indices,
+            ),
+            duplicate_group_diameters_nm=_expand_indexed_values(
+                self.duplicate_group_diameters_nm,
+                [None] * point_count,
+                retained_indices,
+            ),
+            duplicate_chain_qc=_expand_indexed_values(
+                self.duplicate_chain_qc,
+                [False] * point_count,
+                retained_indices,
+            ),
+            physical_duplicate_qc=_expand_indexed_values(
+                self.physical_duplicate_qc,
+                [False] * point_count,
+                retained_indices,
+            ),
+            geometry_duplicate_qc=_expand_indexed_values(
+                self.geometry_duplicate_qc,
+                [False] * point_count,
+                retained_indices,
+            ),
+            short_non_shell_pair_qc=_expand_indexed_values(
+                self.short_non_shell_pair_qc,
+                [False] * point_count,
+                retained_indices,
+            ),
+            ambiguous_edges_ij=map_edges(self.ambiguous_edges_ij),
+            candidate_edges_ij=map_edges(self.candidate_edges_ij),
+        )
+
+
+def _expand_indexed_values(
+    values: tuple[_T, ...],
+    defaults: list[_T],
+    retained_indices: tuple[int, ...],
+) -> tuple[_T, ...]:
+    for core_index, full_index in enumerate(retained_indices):
+        defaults[full_index] = values[core_index]
+    return tuple(defaults)
 
 
 def _as_integer(value: object, field_name: str) -> int:

@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from cmath import exp, phase
 from collections.abc import Sequence
-from math import degrees, fsum, isclose, isfinite, pi
+from math import degrees, fsum, isclose, pi
 
 import numpy as np
 
+from ._boundary_distances import normalize_boundary_distances
+from ._m6_settings_fingerprint import m6_settings_fingerprint
 from .first_shell_graph import FirstShellGraph
 from .local_sixfold_bond_order import (
     LocalOrderComputationStatus,
@@ -13,7 +15,6 @@ from .local_sixfold_bond_order import (
     LocalSixfoldBondOrderField,
 )
 from .m6_settings import MolecularM6OrientationAnalysisSettings
-from ._m6_settings_fingerprint import m6_settings_fingerprint
 
 
 def compute_local_sixfold_bond_order(
@@ -31,7 +32,7 @@ def compute_local_sixfold_bond_order(
     if not isinstance(settings, MolecularM6OrientationAnalysisSettings):
         raise TypeError("settings must be MolecularM6OrientationAnalysisSettings.")
     _validate_graph_settings(first_shell_graph, settings)
-    boundary_distances = _normalize_boundary_distances(
+    boundary_distances = normalize_boundary_distances(
         distance_to_valid_fov_boundary_nm,
         point_count=first_shell_graph.point_count,
     )
@@ -173,44 +174,6 @@ def _bond_length_statistics(
     quartile_25, quartile_75 = np.percentile(distances, (25.0, 75.0))
     iqr = float(quartile_75 - quartile_25)
     return median, mad, iqr, 1.4826 * mad / median
-
-
-def _normalize_boundary_distances(
-    values: Sequence[float | None],
-    *,
-    point_count: int,
-) -> tuple[float | None, ...]:
-    try:
-        raw_values = tuple(values)
-    except TypeError as exc:
-        raise TypeError(
-            "distance_to_valid_fov_boundary_nm must be an iterable."
-        ) from exc
-    if len(raw_values) != point_count:
-        raise ValueError(
-            "distance_to_valid_fov_boundary_nm must contain one value per point."
-        )
-    normalized: list[float | None] = []
-    for index, value in enumerate(raw_values):
-        if value is None:
-            normalized.append(None)
-            continue
-        if isinstance(value, bool):
-            raise TypeError(
-                f"distance_to_valid_fov_boundary_nm[{index}] must be a number or None."
-            )
-        try:
-            distance = float(value)
-        except (TypeError, ValueError, OverflowError) as exc:
-            raise TypeError(
-                f"distance_to_valid_fov_boundary_nm[{index}] must be a number or None."
-            ) from exc
-        if not isfinite(distance) or distance < 0.0:
-            raise ValueError(
-                "distance_to_valid_fov_boundary_nm values must be finite and non-negative."
-            )
-        normalized.append(distance)
-    return tuple(normalized)
 
 
 def _validate_graph_settings(

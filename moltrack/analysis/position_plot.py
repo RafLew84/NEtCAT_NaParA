@@ -6,6 +6,7 @@ from math import isfinite
 from moltrack.core import MolecularCentroid
 
 from .intensity import MolecularIntensityMeasurement
+from .sample_coordinates import MolecularSampleCoordinates
 
 
 SUPPORTED_INTENSITY_METRICS = (
@@ -34,8 +35,19 @@ class MolecularPositionPlotData:
     point_source_ids: tuple[str, ...] = ()
     point_source_kinds: tuple[str, ...] = ()
     point_areas_px: tuple[float | None, ...] = ()
+    coordinate_frame: str = "image_xy"
+    coordinate_transform_fingerprint: str | None = None
 
     def __post_init__(self) -> None:
+        if self.coordinate_frame not in {"image_xy", "sample_nm"}:
+            raise ValueError("Unsupported coordinate_frame.")
+        if self.coordinate_frame == "sample_nm":
+            if self.unit != "nm" or not self.coordinate_transform_fingerprint:
+                raise ValueError(
+                    "sample_nm plot data requires nm and a transform fingerprint."
+                )
+        elif self.coordinate_transform_fingerprint is not None:
+            raise ValueError("Legacy image_xy plot data cannot have a transform fingerprint.")
         intensity_values = tuple(self.intensity_values)
         if not intensity_values and self.points_xy:
             intensity_values = (None,) * len(self.points_xy)
@@ -70,6 +82,7 @@ def build_molecular_position_plot_data(
     intensity_measurements: list[MolecularIntensityMeasurement]
     | tuple[MolecularIntensityMeasurement, ...] = (),
     intensity_metric: str = "background_corrected_median",
+    sample_coordinates: MolecularSampleCoordinates | None = None,
 ) -> MolecularPositionPlotData:
     """Build scatter data for one frame and source view."""
 
@@ -91,7 +104,23 @@ def build_molecular_position_plot_data(
         raise ValueError(f"Unsupported intensity_metric: {intensity_metric!r}. Supported: {supported}.")
     if not isfinite(origin_x) or not isfinite(origin_y):
         raise ValueError("coordinate_origin_px values must be finite.")
-    if scale_nm_per_px is None:
+    if sample_coordinates is not None:
+        if not isinstance(sample_coordinates, MolecularSampleCoordinates):
+            raise TypeError("sample_coordinates must be MolecularSampleCoordinates.")
+        if (
+            sample_coordinates.frame_index != frame_index
+            or sample_coordinates.source_view != source_view
+            or sample_coordinates.point_source_ids
+            != tuple(centroid.source_id for centroid in centroids)
+        ):
+            raise ValueError("sample_coordinates must align with plot centroids.")
+        points_xy = sample_coordinates.points_xy_nm
+        unit = "nm"
+        x_range = sample_coordinates.x_range_nm
+        y_range = sample_coordinates.y_range_nm
+        coordinate_frame = sample_coordinates.coordinate_frame
+        transform_fingerprint = sample_coordinates.coordinate_transform_fingerprint
+    elif scale_nm_per_px is None:
         points_xy = tuple(
             (float(centroid.x_px - origin_x), float(centroid.y_px - origin_y))
             for centroid in centroids
@@ -99,6 +128,8 @@ def build_molecular_position_plot_data(
         unit = "px"
         x_range = (-origin_x, float(width) - origin_x)
         y_range = (-origin_y, float(height) - origin_y)
+        coordinate_frame = "image_xy"
+        transform_fingerprint = None
     else:
         scale_x, scale_y = (float(value) for value in scale_nm_per_px)
         if not isfinite(scale_x) or not isfinite(scale_y) or scale_x <= 0.0 or scale_y <= 0.0:
@@ -113,6 +144,8 @@ def build_molecular_position_plot_data(
         unit = "nm"
         x_range = (-origin_x * scale_x, (float(width) - origin_x) * scale_x)
         y_range = (-origin_y * scale_y, (float(height) - origin_y) * scale_y)
+        coordinate_frame = "image_xy"
+        transform_fingerprint = None
     aligned_measurements, intensity_unit = _aligned_intensity_measurements(
         centroids,
         intensity_measurements,
@@ -151,6 +184,8 @@ def build_molecular_position_plot_data(
             )
             for centroid, measurement in zip(centroids, aligned_measurements)
         ),
+        coordinate_frame=coordinate_frame,
+        coordinate_transform_fingerprint=transform_fingerprint,
     )
 
 

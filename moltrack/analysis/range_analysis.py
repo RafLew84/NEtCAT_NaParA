@@ -15,6 +15,12 @@ from .nearest_neighbors import (
     compute_molecular_nearest_neighbor_metrics,
 )
 from .position_plot import MolecularPositionPlotData, build_molecular_position_plot_data
+from .m6_settings import MolecularM6OrientationAnalysisSettings
+from .molecular_m6_analysis import (
+    MolecularM6OrientationAnalysis,
+    analyze_molecular_m6_orientation,
+)
+from .sample_coordinates import build_molecular_sample_coordinates
 
 
 @dataclass(frozen=True)
@@ -32,6 +38,45 @@ class MolecularFrameAnalysisResult:
     intensity_metric: str = "background_corrected_median"
     intensity_unit: str = "a.u."
     intensity_measurements: tuple[MolecularIntensityMeasurement, ...] = ()
+    m6_orientation_analysis: MolecularM6OrientationAnalysis | None = None
+
+    def __post_init__(self) -> None:
+        m6 = self.m6_orientation_analysis
+        if m6 is None:
+            return
+        if not isinstance(m6, MolecularM6OrientationAnalysis):
+            raise TypeError("m6_orientation_analysis must be M6 analysis or None.")
+        centroid_context = tuple(
+            (
+                centroid.source_id,
+                centroid.source_kind,
+                (centroid.x_px, centroid.y_px),
+            )
+            for centroid in self.centroids
+        )
+        sample = m6.sample_coordinates
+        sample_centroid_context = tuple(
+            zip(
+                sample.point_source_ids,
+                sample.point_source_kinds,
+                sample.source_points_xy_px,
+            )
+        )
+        if (
+            sample.frame_index != self.frame_index
+            or m6.source_view != self.source_view
+            or self.plot_data.frame_index != self.frame_index
+            or self.plot_data.source_view != self.source_view
+            or sample_centroid_context != centroid_context
+            or m6.point_source_ids != self.plot_data.point_source_ids
+            or self.plot_data.coordinate_frame != "sample_nm"
+            or m6.points_xy_nm != self.plot_data.points_xy
+            or m6.coordinate_transform_fingerprint
+            != self.plot_data.coordinate_transform_fingerprint
+        ):
+            raise ValueError(
+                "m6_orientation_analysis must use this frame's Position Analysis points."
+            )
 
     @property
     def point_count(self) -> int:
@@ -75,6 +120,7 @@ def analyze_molecular_frame_range(
     background_inner_radius_px: int = 1,
     background_outer_radius_px: int = 3,
     progress_callback=None,
+    m6_orientation_settings: MolecularM6OrientationAnalysisSettings | None = None,
 ) -> MolecularFrameRangeAnalysis:
     """Analyze every frame in one named range without linking molecules across frames."""
 
@@ -85,6 +131,11 @@ def analyze_molecular_frame_range(
     if frame_range.start_frame < 0 or frame_range.end_frame >= series.frame_count:
         raise ValueError("frame_range must fit within the working series.")
     source_view = str(source_view).strip()
+    if m6_orientation_settings is not None and not isinstance(
+        m6_orientation_settings,
+        MolecularM6OrientationAnalysisSettings,
+    ):
+        raise TypeError("m6_orientation_settings must be M6 settings or None.")
     frame_shape, scale_nm_per_px, coordinate_origin_px = _position_context(
         series,
         source_view=source_view,
@@ -110,7 +161,17 @@ def analyze_molecular_frame_range(
             background_inner_radius_px=background_inner_radius_px,
             background_outer_radius_px=background_outer_radius_px,
         )
-        plot_data = build_molecular_position_plot_data(
+        sample_coordinates = (
+            None
+            if m6_orientation_settings is None
+            else build_molecular_sample_coordinates(
+                series,
+                centroids,
+                frame_index=frame_index,
+                source_view=source_view,
+            )
+        )
+        legacy_plot_data = build_molecular_position_plot_data(
             centroids,
             frame_index=frame_index,
             source_view=source_view,
@@ -119,6 +180,21 @@ def analyze_molecular_frame_range(
             coordinate_origin_px=coordinate_origin_px,
             intensity_measurements=intensity_measurements,
             intensity_metric=intensity_metric,
+        )
+        plot_data = (
+            legacy_plot_data
+            if sample_coordinates is None
+            else build_molecular_position_plot_data(
+                centroids,
+                frame_index=frame_index,
+                source_view=source_view,
+                frame_shape=frame_shape,
+                scale_nm_per_px=scale_nm_per_px,
+                coordinate_origin_px=coordinate_origin_px,
+                intensity_measurements=intensity_measurements,
+                intensity_metric=intensity_metric,
+                sample_coordinates=sample_coordinates,
+            )
         )
         mean_intensity, median_intensity = _frame_intensity_aggregates(
             plot_data.intensity_values
@@ -129,13 +205,25 @@ def analyze_molecular_frame_range(
                 source_view=source_view,
                 centroids=centroids,
                 plot_data=plot_data,
-                distance_metrics=compute_molecular_nearest_neighbor_metrics(plot_data),
-                angle_metrics=compute_molecular_nearest_neighbor_angle_metrics(plot_data),
+                distance_metrics=compute_molecular_nearest_neighbor_metrics(
+                    legacy_plot_data
+                ),
+                angle_metrics=compute_molecular_nearest_neighbor_angle_metrics(
+                    legacy_plot_data
+                ),
                 mean_intensity=mean_intensity,
                 median_intensity=median_intensity,
                 intensity_metric=str(intensity_metric).strip(),
                 intensity_unit=str(intensity_unit),
                 intensity_measurements=tuple(intensity_measurements),
+                m6_orientation_analysis=(
+                    None
+                    if sample_coordinates is None
+                    else analyze_molecular_m6_orientation(
+                        sample_coordinates,
+                        settings=m6_orientation_settings,
+                    )
+                ),
             )
         )
         if progress_callback is not None:

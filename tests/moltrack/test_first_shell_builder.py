@@ -558,6 +558,31 @@ class FirstShellGraphBuilderTests(unittest.TestCase):
         self.assertFalse(graph.delaunay_degeneracy_qc)
         self.assertEqual(graph.ambiguous_edges_ij, ())
 
+    def test_invalid_positions_remain_in_graph_without_edges_or_duplicate_qc(self) -> None:
+        graph = build_first_shell_graph(
+            np.asarray(((0.0, 0.0), (0.05, 0.0), (1.0, 0.0))),
+            point_ids=("valid-a", "invalid-padding", "valid-b"),
+            invalid_position_qc=(False, True, False),
+            settings=MolecularM6OrientationAnalysisSettings(
+                duplicate_max_distance_nm=0.2,
+                first_shell_r_min_nm=0.5,
+                first_shell_r_max_nm=1.5,
+            ),
+        )
+
+        self.assertEqual(
+            graph.point_ids,
+            ("valid-a", "invalid-padding", "valid-b"),
+        )
+        self.assertEqual(graph.edges_ij, ((0, 2),))
+        self.assertEqual(graph.degree, (1, 0, 1))
+        self.assertEqual(
+            graph.representative_source_ids,
+            graph.point_ids,
+        )
+        self.assertEqual(graph.physical_duplicate_qc, (False, False, False))
+        self.assertEqual(graph.geometry_duplicate_qc, (False, False, False))
+
 
 if __name__ == "__main__":
     unittest.main()
