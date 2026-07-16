@@ -10,7 +10,11 @@ from .intensity import (
     measure_molecular_intensity,
     restore_molecular_intensity_cache_records,
 )
-from .m6_settings import MolecularM6OrientationAnalysisSettings
+from .m6_settings import (
+    MolecularM6OrientationAnalysisSettings,
+    MolecularM6SessionState,
+    MolecularM6ViewSettings,
+)
 from .local_sixfold_bond_order import (
     LocalOrderComputationStatus,
     LocalOrientationStatus,
@@ -122,6 +126,12 @@ from .structural_analysis_cache import (
     StructuralAnalysisCacheKey,
     build_structural_analysis_cache_key,
 )
+from .structural_analysis_persistence import (
+    StructuralAnalysisCacheRecord,
+    StructuralAnalysisCacheRestoreStats,
+    export_structural_analysis_cache_records,
+    restore_structural_analysis_cache_records,
+)
 from .range_comparison import (
     MolecularFrameRangeComparison,
     MolecularFrameRangeDifferences,
@@ -161,11 +171,15 @@ __all__ = [
     "MolecularIntensityCacheStats",
     "MolecularIntensityMeasurementCache",
     "MolecularM6OrientationAnalysisSettings",
+    "MolecularM6SessionState",
+    "MolecularM6ViewSettings",
     "MolecularM6OrientationAnalysis",
     "MolecularM6FrameTrendSeries",
     "MolecularM6RangeAggregates",
     "MolecularM6RangeDifferences",
     "StructuralAnalysisCacheKey",
+    "StructuralAnalysisCacheRecord",
+    "StructuralAnalysisCacheRestoreStats",
     "LocalOrderComputationStatus",
     "LocalOrientationStatus",
     "LocalSixfoldBondOrderField",
@@ -232,6 +246,7 @@ __all__ = [
     "SAMPLE_COORDINATE_TRANSFORM_VERSION",
     "build_molecular_intensity_measurements",
     "export_molecular_intensity_cache_records",
+    "export_structural_analysis_cache_records",
     "build_molecular_range_comparison_trend_data",
     "build_molecular_m6_frame_trend_series",
     "build_molecular_range_spatial_comparison_data",
@@ -243,6 +258,7 @@ __all__ = [
     "compute_pair_correlation",
     "measure_molecular_intensity",
     "restore_molecular_intensity_cache_records",
+    "restore_structural_analysis_cache_records",
     "suggest_first_shell_r_max",
     "suggest_shared_first_shell_r_max",
 ]

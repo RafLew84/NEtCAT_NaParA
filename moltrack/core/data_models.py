@@ -22,6 +22,7 @@ class MolTrackImageSeries:
     molecular_segmentations: Any | None = None
     molecular_intensity_cache: Any | None = None
     structural_analysis_cache: Any | None = None
+    m6_analysis_state: Any | None = None
     sam3_preview: Any | None = None
 
     @classmethod

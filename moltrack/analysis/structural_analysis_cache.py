@@ -106,11 +106,26 @@ class StructuralAnalysisCacheStats:
 class _StructuralAnalysisCacheEntry:
     analysis: MolecularM6OrientationAnalysis | None
     blocking_qc_status: str | None
+    reproducible_sample: MolecularSampleCoordinates | None
+    reproducible_settings: MolecularM6OrientationAnalysisSettings | None
     estimated_bytes: int
 
     def __post_init__(self) -> None:
-        if (self.analysis is None) == (self.blocking_qc_status is None):
-            raise ValueError("Cache entry requires analysis or blocking QC, not both.")
+        modes = (
+            self.analysis is not None,
+            self.blocking_qc_status is not None,
+            self.reproducible_sample is not None,
+        )
+        if sum(modes) != 1:
+            raise ValueError(
+                "Cache entry requires analysis, blocking QC, or reproducible input."
+            )
+        if (self.reproducible_sample is None) != (
+            self.reproducible_settings is None
+        ):
+            raise ValueError(
+                "Reproducible sample and settings must be stored together."
+            )
 
 
 class StructuralAnalysisCache:
@@ -152,6 +167,9 @@ class StructuralAnalysisCache:
         if entry is None:
             self._miss_count += 1
             return None
+        if entry.reproducible_sample is not None:
+            self._miss_count += 1
+            return None
         self._entries.move_to_end(key)
         self._hit_count += 1
         if entry.blocking_qc_status is not None:
@@ -175,6 +193,8 @@ class StructuralAnalysisCache:
             _StructuralAnalysisCacheEntry(
                 analysis=analysis,
                 blocking_qc_status=None,
+                reproducible_sample=None,
+                reproducible_settings=None,
                 estimated_bytes=estimated_bytes,
             ),
         )
@@ -194,7 +214,36 @@ class StructuralAnalysisCache:
             _StructuralAnalysisCacheEntry(
                 analysis=None,
                 blocking_qc_status=qc_status,
+                reproducible_sample=None,
+                reproducible_settings=None,
                 estimated_bytes=_estimate_blocking_entry_bytes(key, qc_status),
+            ),
+        )
+
+    def _put_reproducible(
+        self,
+        key: StructuralAnalysisCacheKey,
+        sample_coordinates: MolecularSampleCoordinates,
+        settings: MolecularM6OrientationAnalysisSettings,
+    ) -> bool:
+        if not isinstance(key, StructuralAnalysisCacheKey):
+            raise TypeError("key must be a StructuralAnalysisCacheKey.")
+        if not isinstance(sample_coordinates, MolecularSampleCoordinates):
+            raise TypeError("sample_coordinates must be MolecularSampleCoordinates.")
+        if not isinstance(settings, MolecularM6OrientationAnalysisSettings):
+            raise TypeError("settings must be MolecularM6OrientationAnalysisSettings.")
+        return self._store(
+            key,
+            _StructuralAnalysisCacheEntry(
+                analysis=None,
+                blocking_qc_status=None,
+                reproducible_sample=sample_coordinates,
+                reproducible_settings=settings,
+                estimated_bytes=_estimate_reproducible_entry_bytes(
+                    key,
+                    sample_coordinates,
+                    settings,
+                ),
             ),
         )
 
@@ -204,6 +253,32 @@ class StructuralAnalysisCache:
 
     def keys(self) -> tuple[StructuralAnalysisCacheKey, ...]:
         return tuple(self._entries)
+
+    def _successful_entries(
+        self,
+    ) -> tuple[tuple[StructuralAnalysisCacheKey, MolecularM6OrientationAnalysis], ...]:
+        return tuple(
+            (key, entry.analysis)
+            for key, entry in self._entries.items()
+            if entry.analysis is not None
+        )
+
+    def _reproducible_entries(
+        self,
+    ) -> tuple[
+        tuple[
+            StructuralAnalysisCacheKey,
+            MolecularSampleCoordinates,
+            MolecularM6OrientationAnalysisSettings,
+        ],
+        ...,
+    ]:
+        return tuple(
+            (key, entry.reproducible_sample, entry.reproducible_settings)
+            for key, entry in self._entries.items()
+            if entry.reproducible_sample is not None
+            and entry.reproducible_settings is not None
+        )
 
     def stats(self) -> StructuralAnalysisCacheStats:
         return StructuralAnalysisCacheStats(
@@ -400,6 +475,20 @@ def _estimate_blocking_entry_bytes(
     return (
         _deep_size_bytes(key, seen)
         + _deep_size_bytes(qc_status, seen)
+        + 256
+    )
+
+
+def _estimate_reproducible_entry_bytes(
+    key: StructuralAnalysisCacheKey,
+    sample_coordinates: MolecularSampleCoordinates,
+    settings: MolecularM6OrientationAnalysisSettings,
+) -> int:
+    seen: set[int] = set()
+    return (
+        _deep_size_bytes(key, seen)
+        + _deep_size_bytes(sample_coordinates, seen)
+        + _deep_size_bytes(settings, seen)
         + 256
     )
 

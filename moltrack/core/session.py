@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from .data_models import MolTrackImageSeries
 from .detections import MolecularDetectionSet
 from .registration import MolTrackRegistrationResultSet, MolTrackRegistrationSettings
 from .segmentations import MolecularSegmentationSet
+
+if TYPE_CHECKING:
+    from moltrack.analysis import (
+        MolecularM6SessionState,
+        StructuralAnalysisCacheRecord,
+    )
 
 
 MOLTRACK_SESSION_SCHEMA_VERSION = 1
@@ -185,6 +192,10 @@ class MolTrackSession:
     molecular_segmentations: MolecularSegmentationSet | None = None
     position_analysis: MolTrackPositionAnalysisState | None = None
     intensity_cache_records: tuple[MolTrackIntensityCacheRecord, ...] = ()
+    m6_analysis_state: MolecularM6SessionState | None = None
+    structural_analysis_cache_records: tuple[
+        StructuralAnalysisCacheRecord, ...
+    ] = ()
     source_size_bytes: int | None = None
     source_mtime_ns: int | None = None
     schema_version: int = MOLTRACK_SESSION_SCHEMA_VERSION
@@ -254,6 +265,18 @@ class MolTrackSession:
             )
         if any(record.frame_index >= len(source_frame_indices) for record in intensity_cache_records):
             raise ValueError("Intensity cache record exceeds source_frame_indices length.")
+        structural_analysis_cache_records = tuple(
+            self.structural_analysis_cache_records
+        )
+        if any(
+            not hasattr(record, "cache_key")
+            or not hasattr(record, "sample_coordinates")
+            or not hasattr(record, "settings")
+            for record in structural_analysis_cache_records
+        ):
+            raise TypeError(
+                "structural_analysis_cache_records must contain M6 cache records."
+            )
         if self.registration_results is not None:
             expected = tuple(range(len(source_frame_indices)))
             if self.registration_results.frame_indices != expected:
@@ -286,6 +309,11 @@ class MolTrackSession:
         object.__setattr__(self, "source_size_bytes", source_size_bytes)
         object.__setattr__(self, "source_mtime_ns", source_mtime_ns)
         object.__setattr__(self, "intensity_cache_records", intensity_cache_records)
+        object.__setattr__(
+            self,
+            "structural_analysis_cache_records",
+            structural_analysis_cache_records,
+        )
         object.__setattr__(self, "schema_version", schema_version)
 
     @classmethod
@@ -299,11 +327,17 @@ class MolTrackSession:
         mask_opacity_percent: int = 30,
         position_analysis: MolTrackPositionAnalysisState | None = None,
         intensity_cache_records: tuple[MolTrackIntensityCacheRecord, ...] = (),
+        m6_analysis_state: MolecularM6SessionState | None = None,
+        structural_analysis_cache_records: tuple[
+            StructuralAnalysisCacheRecord, ...
+        ] = (),
         source_size_bytes: int | None = None,
         source_mtime_ns: int | None = None,
     ) -> "MolTrackSession":
         if not isinstance(series, MolTrackImageSeries):
             raise TypeError("series must be a MolTrackImageSeries instance.")
+        if m6_analysis_state is None:
+            m6_analysis_state = series.m6_analysis_state
         registration_results = series.registration_results
         registration_settings = registration_results.settings if registration_results is not None else None
         return cls(
@@ -321,6 +355,8 @@ class MolTrackSession:
             molecular_segmentations=series.molecular_segmentations,
             position_analysis=position_analysis,
             intensity_cache_records=intensity_cache_records,
+            m6_analysis_state=m6_analysis_state,
+            structural_analysis_cache_records=structural_analysis_cache_records,
             source_size_bytes=source_size_bytes,
             source_mtime_ns=source_mtime_ns,
         )

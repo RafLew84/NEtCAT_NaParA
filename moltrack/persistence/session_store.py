@@ -12,9 +12,17 @@ import zlib
 import numpy as np
 
 from moltrack.analysis import (
+    MolecularM6OrientationAnalysisSettings,
+    MolecularM6SessionState,
+    MolecularM6ViewSettings,
+    StructuralAnalysisCacheKey,
+    StructuralAnalysisCacheRecord,
     export_molecular_intensity_cache_records,
+    export_structural_analysis_cache_records,
     restore_molecular_intensity_cache_records,
+    restore_structural_analysis_cache_records,
 )
+from moltrack.analysis.sample_coordinates import MolecularSampleCoordinates
 from moltrack.core import (
     MOLTRACK_SESSION_SCHEMA_VERSION,
     MolecularDetection,
@@ -67,6 +75,12 @@ def save_moltrack_session(
     mask_opacity_percent = _mask_opacity_percent_from_ui_state(ui_state)
     position_analysis = _position_analysis_from_ui_state(ui_state)
     intensity_cache_records = export_molecular_intensity_cache_records(series)
+    structural_cache_records = export_structural_analysis_cache_records(series)
+    m6_analysis_state = _m6_analysis_state_from_ui_or_series(
+        ui_state,
+        series=series,
+        cache_records=structural_cache_records,
+    )
     session = MolTrackSession.from_image_series(
         series,
         registration_view_mode=registration_view_mode,
@@ -75,6 +89,8 @@ def save_moltrack_session(
         mask_opacity_percent=mask_opacity_percent,
         position_analysis=position_analysis,
         intensity_cache_records=intensity_cache_records,
+        m6_analysis_state=m6_analysis_state,
+        structural_analysis_cache_records=structural_cache_records,
         source_size_bytes=source_stat.st_size,
         source_mtime_ns=source_stat.st_mtime_ns,
     )
@@ -170,6 +186,10 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
     molecular_segmentations_payload = payload.get("molecular_segmentations")
     position_analysis_payload = payload.get("position_analysis")
     intensity_cache_payload = payload.get("molecular_intensity_cache", [])
+    m6_analysis_payload = payload.get("molecular_m6_analysis")
+    m6_analysis_state, structural_cache_records = _m6_analysis_from_payload(
+        m6_analysis_payload
+    )
 
     registration_settings: MolTrackRegistrationSettings | None = None
     registration_results: MolTrackRegistrationResultSet | None = None
@@ -201,6 +221,8 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
         intensity_cache_records=_intensity_cache_records_from_payload(
             intensity_cache_payload
         ),
+        m6_analysis_state=m6_analysis_state,
+        structural_analysis_cache_records=structural_cache_records,
         source_size_bytes=int(source_payload["size_bytes"]),
         source_mtime_ns=int(source_payload["mtime_ns"]),
         schema_version=schema_version,
@@ -246,10 +268,15 @@ def restore_moltrack_image_series_from_session(
         expanded_aligned_stack=None,
         molecular_detections=session.molecular_detections,
         molecular_segmentations=session.molecular_segmentations,
+        m6_analysis_state=session.m6_analysis_state,
     )
     restore_molecular_intensity_cache_records(
         restored,
         session.intensity_cache_records,
+    )
+    restore_structural_analysis_cache_records(
+        restored,
+        session.structural_analysis_cache_records,
     )
     if restored.registration_results is not None:
         expected = tuple(range(restored.frame_count))
@@ -294,7 +321,298 @@ def _session_to_payload(
         "molecular_intensity_cache": _intensity_cache_records_to_payload(
             session.intensity_cache_records
         ),
+        "molecular_m6_analysis": _m6_analysis_to_payload(
+            session.m6_analysis_state,
+            session.structural_analysis_cache_records,
+        ),
     }
+
+
+def _m6_analysis_state_from_ui_or_series(
+    ui_state: Any | None,
+    *,
+    series: MolTrackImageSeries,
+    cache_records: tuple[StructuralAnalysisCacheRecord, ...],
+) -> MolecularM6SessionState:
+    candidate = None
+    if isinstance(ui_state, Mapping):
+        candidate = ui_state.get("molecular_m6_analysis", ui_state.get("m6_analysis"))
+    elif ui_state is not None and not isinstance(ui_state, str):
+        candidate = getattr(
+            ui_state,
+            "molecular_m6_analysis",
+            getattr(ui_state, "m6_analysis", None),
+        )
+    if isinstance(candidate, MolecularM6SessionState):
+        return candidate
+    if isinstance(candidate, Mapping):
+        return _m6_session_state_from_mapping(candidate)
+    series_state = getattr(series, "m6_analysis_state", None)
+    if isinstance(series_state, MolecularM6SessionState):
+        return series_state
+    if cache_records:
+        latest = cache_records[-1]
+        return MolecularM6SessionState(
+            enabled=False,
+            source_view=latest.cache_key.source_view,
+            use_segmentation_centroids=(
+                latest.cache_key.centroid_mode == "segmentation_preferred"
+            ),
+            settings=latest.settings,
+        )
+    return MolecularM6SessionState()
+
+
+def _m6_analysis_to_payload(
+    state: Any | None,
+    records: tuple[Any, ...],
+) -> dict[str, Any]:
+    if not isinstance(state, MolecularM6SessionState):
+        state = MolecularM6SessionState()
+    cache_records = tuple(records)
+    if not all(isinstance(record, StructuralAnalysisCacheRecord) for record in cache_records):
+        raise TypeError("M6 cache records must be StructuralAnalysisCacheRecord instances.")
+    view = state.view_settings
+    return {
+        "enabled": state.enabled,
+        "source_view": state.source_view,
+        "use_segmentation_centroids": state.use_segmentation_centroids,
+        "settings": state.settings.to_dict(),
+        "view_settings": {
+            "show_domain_overlay": view.show_domain_overlay,
+            "show_first_shell_graph": view.show_first_shell_graph,
+            "show_unassigned_points": view.show_unassigned_points,
+            "overlay_opacity_percent": view.overlay_opacity_percent,
+        },
+        "reproducible_cache": [
+            _structural_cache_record_to_payload(record) for record in cache_records
+        ],
+    }
+
+
+def _m6_analysis_from_payload(
+    payload: Any,
+) -> tuple[MolecularM6SessionState, tuple[StructuralAnalysisCacheRecord, ...]]:
+    if payload is None:
+        return MolecularM6SessionState(), ()
+    analysis_payload = _require_mapping(payload, "molecular_m6_analysis")
+    state = _m6_session_state_from_mapping(analysis_payload)
+    records_payload = analysis_payload.get("reproducible_cache", [])
+    if not isinstance(records_payload, list):
+        raise ValueError("molecular_m6_analysis.reproducible_cache must be a list.")
+    records = []
+    for index, item in enumerate(records_payload):
+        try:
+            record = _structural_cache_record_from_payload(item, index=index)
+        except (KeyError, TypeError, ValueError):
+            continue
+        records.append(record)
+    return state, tuple(records)
+
+
+def _m6_session_state_from_mapping(payload: Mapping[str, Any]) -> MolecularM6SessionState:
+    default_settings = MolecularM6OrientationAnalysisSettings().to_dict()
+    settings_payload = _require_mapping(
+        payload.get("settings", default_settings),
+        "molecular_m6_analysis.settings",
+    )
+    settings_values = {**default_settings, **dict(settings_payload)}
+    default_view = MolecularM6ViewSettings()
+    view_payload = _require_mapping(
+        payload.get("view_settings", {}),
+        "molecular_m6_analysis.view_settings",
+    )
+    return MolecularM6SessionState(
+        enabled=_m6_bool(payload.get("enabled", False), "enabled"),
+        source_view=str(payload.get("source_view", "raw")),
+        use_segmentation_centroids=_m6_bool(
+            payload.get("use_segmentation_centroids", True),
+            "use_segmentation_centroids",
+        ),
+        settings=MolecularM6OrientationAnalysisSettings.from_dict(settings_values),
+        view_settings=MolecularM6ViewSettings(
+            show_domain_overlay=_m6_bool(
+                view_payload.get(
+                    "show_domain_overlay", default_view.show_domain_overlay
+                ),
+                "view_settings.show_domain_overlay",
+            ),
+            show_first_shell_graph=_m6_bool(
+                view_payload.get(
+                    "show_first_shell_graph", default_view.show_first_shell_graph
+                ),
+                "view_settings.show_first_shell_graph",
+            ),
+            show_unassigned_points=_m6_bool(
+                view_payload.get(
+                    "show_unassigned_points", default_view.show_unassigned_points
+                ),
+                "view_settings.show_unassigned_points",
+            ),
+            overlay_opacity_percent=int(
+                view_payload.get(
+                    "overlay_opacity_percent", default_view.overlay_opacity_percent
+                )
+            ),
+        ),
+    )
+
+
+def _structural_cache_record_to_payload(
+    record: StructuralAnalysisCacheRecord,
+) -> dict[str, Any]:
+    key = record.cache_key
+    sample = record.sample_coordinates
+    return {
+        "cache_record_schema_version": 1,
+        "cache_key": {
+            "frame_id": key.frame_id,
+            "source_view": key.source_view,
+            "centroid_mode": key.centroid_mode,
+            "annotation_fingerprint": key.annotation_fingerprint,
+            "registration_fingerprint": key.registration_fingerprint,
+            "spatial_calibration_fingerprint": key.spatial_calibration_fingerprint,
+            "coordinate_transform_fingerprint": key.coordinate_transform_fingerprint,
+            "sample_geometry_fingerprint": key.sample_geometry_fingerprint,
+            "valid_fov_fingerprint": key.valid_fov_fingerprint,
+            "settings_hash": key.settings_hash,
+            "algorithm_version": key.algorithm_version,
+        },
+        "settings": record.settings.to_dict(),
+        "sample_coordinates": {
+            "frame_index": sample.frame_index,
+            "source_view": sample.source_view,
+            "point_source_ids": list(sample.point_source_ids),
+            "point_source_kinds": list(sample.point_source_kinds),
+            "point_annotation_fingerprints": list(
+                sample.point_annotation_fingerprints
+            ),
+            "source_points_xy_px": [list(point) for point in sample.source_points_xy_px],
+            "points_xy_nm": [list(point) for point in sample.points_xy_nm],
+            "distance_to_valid_fov_boundary_nm": list(
+                sample.distance_to_valid_fov_boundary_nm
+            ),
+            "valid_fov_polygon_xy_nm": [
+                list(point) for point in sample.valid_fov_polygon_xy_nm
+            ],
+            "plot_canvas_polygon_xy_nm": [
+                list(point) for point in sample.plot_canvas_polygon_xy_nm
+            ],
+            "window_side_lengths_nm": list(sample.window_side_lengths_nm),
+            "coordinate_transform_fingerprint": (
+                sample.coordinate_transform_fingerprint
+            ),
+            "spatial_calibration_fingerprint": (
+                sample.spatial_calibration_fingerprint
+            ),
+            "registration_fingerprint": sample.registration_fingerprint,
+            "scan_angle_deg": sample.scan_angle_deg,
+            "scan_angle_missing_qc": sample.scan_angle_missing_qc,
+            "coordinate_frame": sample.coordinate_frame,
+            "orientation_reference": sample.orientation_reference,
+        },
+    }
+
+
+def _structural_cache_record_from_payload(
+    payload: Any,
+    *,
+    index: int,
+) -> StructuralAnalysisCacheRecord:
+    prefix = f"molecular_m6_analysis.reproducible_cache[{index}]"
+    record = _require_mapping(payload, prefix)
+    if int(record.get("cache_record_schema_version", -1)) != 1:
+        raise ValueError(f"Unsupported {prefix} schema version.")
+    key_payload = _require_mapping(record.get("cache_key"), f"{prefix}.cache_key")
+    settings_payload = _require_mapping(record.get("settings"), f"{prefix}.settings")
+    sample_payload = _require_mapping(
+        record.get("sample_coordinates"),
+        f"{prefix}.sample_coordinates",
+    )
+    return StructuralAnalysisCacheRecord(
+        cache_key=StructuralAnalysisCacheKey(
+            frame_id=str(key_payload.get("frame_id", "")),
+            source_view=str(key_payload.get("source_view", "")),
+            centroid_mode=str(key_payload.get("centroid_mode", "")),
+            annotation_fingerprint=str(
+                key_payload.get("annotation_fingerprint", "")
+            ),
+            registration_fingerprint=str(
+                key_payload.get("registration_fingerprint", "")
+            ),
+            spatial_calibration_fingerprint=str(
+                key_payload.get("spatial_calibration_fingerprint", "")
+            ),
+            coordinate_transform_fingerprint=str(
+                key_payload.get("coordinate_transform_fingerprint", "")
+            ),
+            sample_geometry_fingerprint=str(
+                key_payload.get("sample_geometry_fingerprint", "")
+            ),
+            valid_fov_fingerprint=str(
+                key_payload.get("valid_fov_fingerprint", "")
+            ),
+            settings_hash=str(key_payload.get("settings_hash", "")),
+            algorithm_version=str(key_payload.get("algorithm_version", "")),
+        ),
+        settings=MolecularM6OrientationAnalysisSettings.from_dict(settings_payload),
+        sample_coordinates=MolecularSampleCoordinates(
+            frame_index=int(sample_payload.get("frame_index", -1)),
+            source_view=str(sample_payload.get("source_view", "")),
+            point_source_ids=tuple(sample_payload.get("point_source_ids", ())),
+            point_source_kinds=tuple(sample_payload.get("point_source_kinds", ())),
+            point_annotation_fingerprints=tuple(
+                sample_payload.get("point_annotation_fingerprints", ())
+            ),
+            source_points_xy_px=tuple(
+                tuple(point)
+                for point in sample_payload.get("source_points_xy_px", ())
+            ),
+            points_xy_nm=tuple(
+                tuple(point) for point in sample_payload.get("points_xy_nm", ())
+            ),
+            distance_to_valid_fov_boundary_nm=tuple(
+                sample_payload.get("distance_to_valid_fov_boundary_nm", ())
+            ),
+            valid_fov_polygon_xy_nm=tuple(
+                tuple(point)
+                for point in sample_payload.get("valid_fov_polygon_xy_nm", ())
+            ),
+            plot_canvas_polygon_xy_nm=tuple(
+                tuple(point)
+                for point in sample_payload.get("plot_canvas_polygon_xy_nm", ())
+            ),
+            window_side_lengths_nm=tuple(
+                sample_payload.get("window_side_lengths_nm", ())
+            ),
+            coordinate_transform_fingerprint=str(
+                sample_payload.get("coordinate_transform_fingerprint", "")
+            ),
+            spatial_calibration_fingerprint=str(
+                sample_payload.get("spatial_calibration_fingerprint", "")
+            ),
+            registration_fingerprint=str(
+                sample_payload.get("registration_fingerprint", "")
+            ),
+            scan_angle_deg=float(sample_payload.get("scan_angle_deg", 0.0)),
+            scan_angle_missing_qc=_m6_bool(
+                sample_payload.get("scan_angle_missing_qc", False),
+                "reproducible_cache.sample_coordinates.scan_angle_missing_qc",
+            ),
+            coordinate_frame=str(
+                sample_payload.get("coordinate_frame", "sample_nm")
+            ),
+            orientation_reference=str(
+                sample_payload.get("orientation_reference", "+x_sample_axis")
+            ),
+        ),
+    )
+
+
+def _m6_bool(value: Any, field_name: str) -> bool:
+    if not isinstance(value, bool):
+        raise ValueError(f"molecular_m6_analysis.{field_name} must be boolean.")
+    return value
 
 
 def _registration_to_payload(result_set: MolTrackRegistrationResultSet | None) -> dict[str, Any] | None:

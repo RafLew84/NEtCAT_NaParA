@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, field, fields
 from math import isfinite
 from typing import Literal
 
@@ -216,6 +216,56 @@ class MolecularM6OrientationAnalysisSettings:
         if missing_fields:
             raise ValueError(f"Missing M6 setting fields: {', '.join(missing_fields)}")
         return cls(**dict(payload))
+
+
+@dataclass(frozen=True)
+class MolecularM6ViewSettings:
+    """Serializable choices controlling the future M6 domain overlays."""
+
+    show_domain_overlay: bool = True
+    show_first_shell_graph: bool = False
+    show_unassigned_points: bool = True
+    overlay_opacity_percent: int = 60
+
+    def __post_init__(self) -> None:
+        opacity = int(self.overlay_opacity_percent)
+        if not 0 <= opacity <= 100:
+            raise ValueError("overlay_opacity_percent must be between 0 and 100.")
+        object.__setattr__(self, "show_domain_overlay", bool(self.show_domain_overlay))
+        object.__setattr__(self, "show_first_shell_graph", bool(self.show_first_shell_graph))
+        object.__setattr__(self, "show_unassigned_points", bool(self.show_unassigned_points))
+        object.__setattr__(self, "overlay_opacity_percent", opacity)
+
+
+@dataclass(frozen=True)
+class MolecularM6SessionState:
+    """Serializable M6 analysis configuration independent of derived results."""
+
+    enabled: bool = False
+    source_view: str = "raw"
+    use_segmentation_centroids: bool = True
+    settings: MolecularM6OrientationAnalysisSettings = field(
+        default_factory=MolecularM6OrientationAnalysisSettings
+    )
+    view_settings: MolecularM6ViewSettings = field(
+        default_factory=MolecularM6ViewSettings
+    )
+
+    def __post_init__(self) -> None:
+        source_view = str(self.source_view).strip()
+        if source_view not in {"raw", "expanded_aligned"}:
+            raise ValueError("Unsupported M6 source_view.")
+        if not isinstance(self.settings, MolecularM6OrientationAnalysisSettings):
+            raise TypeError("settings must be MolecularM6OrientationAnalysisSettings.")
+        if not isinstance(self.view_settings, MolecularM6ViewSettings):
+            raise TypeError("view_settings must be MolecularM6ViewSettings.")
+        object.__setattr__(self, "enabled", bool(self.enabled))
+        object.__setattr__(self, "source_view", source_view)
+        object.__setattr__(
+            self,
+            "use_segmentation_centroids",
+            bool(self.use_segmentation_centroids),
+        )
 
 
 def _normalize_bool(value: object, field_name: str) -> bool:
