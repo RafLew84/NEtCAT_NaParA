@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 import numpy as np
 
@@ -16,11 +17,24 @@ from .nearest_neighbors import (
 )
 from .position_plot import MolecularPositionPlotData, build_molecular_position_plot_data
 from .m6_settings import MolecularM6OrientationAnalysisSettings
+from .m6_errors import M6BlockingGraphQCError
 from .molecular_m6_analysis import (
     MolecularM6OrientationAnalysis,
     analyze_molecular_m6_orientation,
 )
+from .m6_range_analysis import (
+    MolecularM6RangeAggregates,
+    aggregate_molecular_m6_frame_range,
+)
 from .sample_coordinates import build_molecular_sample_coordinates
+
+
+MolecularM6FrameAvailabilityStatus = Literal[
+    "disabled",
+    "available",
+    "unavailable_missing_analysis",
+    "unavailable_blocking_graph_qc",
+]
 
 
 @dataclass(frozen=True)
@@ -39,13 +53,33 @@ class MolecularFrameAnalysisResult:
     intensity_unit: str = "a.u."
     intensity_measurements: tuple[MolecularIntensityMeasurement, ...] = ()
     m6_orientation_analysis: MolecularM6OrientationAnalysis | None = None
+    m6_orientation_availability_status: MolecularM6FrameAvailabilityStatus = "disabled"
+    m6_orientation_unavailability_reason: str | None = None
 
     def __post_init__(self) -> None:
         m6 = self.m6_orientation_analysis
+        status = self.m6_orientation_availability_status
+        reason = self.m6_orientation_unavailability_reason
+        allowed_statuses = {
+            "disabled",
+            "available",
+            "unavailable_missing_analysis",
+            "unavailable_blocking_graph_qc",
+        }
+        if status not in allowed_statuses:
+            raise ValueError("Unsupported M6 frame availability status.")
         if m6 is None:
+            if status == "available":
+                raise ValueError("Available M6 frame status requires an analysis result.")
+            if status == "disabled" and reason is not None:
+                raise ValueError("Disabled M6 analysis cannot have an unavailable reason.")
+            if status.startswith("unavailable_") and not reason:
+                raise ValueError("Unavailable M6 frame status requires a reason.")
             return
         if not isinstance(m6, MolecularM6OrientationAnalysis):
             raise TypeError("m6_orientation_analysis must be M6 analysis or None.")
+        if status != "available" or reason is not None:
+            raise ValueError("M6 analysis result requires available status without a reason.")
         centroid_context = tuple(
             (
                 centroid.source_id,
@@ -95,6 +129,7 @@ class MolecularFrameRangeAggregates:
     mean_line_order_score: float | None
     mean_intensity: float | None
     median_intensity: float | None
+    m6_orientation: MolecularM6RangeAggregates | None = None
 
 
 @dataclass(frozen=True)
@@ -199,6 +234,19 @@ def analyze_molecular_frame_range(
         mean_intensity, median_intensity = _frame_intensity_aggregates(
             plot_data.intensity_values
         )
+        m6_orientation_analysis = None
+        m6_orientation_availability_status = "disabled"
+        m6_orientation_unavailability_reason = None
+        if sample_coordinates is not None:
+            try:
+                m6_orientation_analysis = analyze_molecular_m6_orientation(
+                    sample_coordinates,
+                    settings=m6_orientation_settings,
+                )
+                m6_orientation_availability_status = "available"
+            except M6BlockingGraphQCError as error:
+                m6_orientation_availability_status = "unavailable_blocking_graph_qc"
+                m6_orientation_unavailability_reason = error.qc_status
         frame_results.append(
             MolecularFrameAnalysisResult(
                 frame_index=frame_index,
@@ -216,13 +264,12 @@ def analyze_molecular_frame_range(
                 intensity_metric=str(intensity_metric).strip(),
                 intensity_unit=str(intensity_unit),
                 intensity_measurements=tuple(intensity_measurements),
-                m6_orientation_analysis=(
-                    None
-                    if sample_coordinates is None
-                    else analyze_molecular_m6_orientation(
-                        sample_coordinates,
-                        settings=m6_orientation_settings,
-                    )
+                m6_orientation_analysis=m6_orientation_analysis,
+                m6_orientation_availability_status=(
+                    m6_orientation_availability_status
+                ),
+                m6_orientation_unavailability_reason=(
+                    m6_orientation_unavailability_reason
                 ),
             )
         )
@@ -232,7 +279,10 @@ def analyze_molecular_frame_range(
         frame_range=frame_range,
         source_view=source_view,
         frame_results=tuple(frame_results),
-        aggregates=_aggregate_frame_results(frame_results),
+        aggregates=_aggregate_frame_results(
+            frame_results,
+            m6_enabled=m6_orientation_settings is not None,
+        ),
         intensity_metric=str(intensity_metric).strip(),
         intensity_unit=str(intensity_unit),
     )
@@ -256,6 +306,8 @@ def _frame_intensity_aggregates(
 
 def _aggregate_frame_results(
     frame_results: list[MolecularFrameAnalysisResult],
+    *,
+    m6_enabled: bool = False,
 ) -> MolecularFrameRangeAggregates:
     molecule_counts = [result.point_count for result in frame_results]
     distance_means = [
@@ -287,6 +339,10 @@ def _aggregate_frame_results(
         mean_line_order_score=_optional_mean(line_order_scores),
         mean_intensity=_optional_mean(mean_intensities),
         median_intensity=_optional_mean(median_intensities),
+        m6_orientation=aggregate_molecular_m6_frame_range(
+            frame_results,
+            enabled=m6_enabled,
+        ),
     )
 
 

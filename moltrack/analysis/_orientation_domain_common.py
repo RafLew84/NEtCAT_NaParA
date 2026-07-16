@@ -9,6 +9,7 @@ import numpy as np
 from ._coordinate_fingerprint import point_coordinate_fingerprint
 from .first_shell_graph import FirstShellGraph
 from .local_sixfold_bond_order import LocalSixfoldBondOrderField
+from .m6_errors import M6BlockingGraphQCError
 from .m6_settings import MolecularM6OrientationAnalysisSettings
 from .orientation_domain_models import M6AssignmentStatus
 
@@ -151,7 +152,7 @@ def validate_m6_domain_analysis_inputs(
     ):
         raise ValueError("first_shell_graph coordinate fingerprint must match points_xy_nm.")
     if first_shell_graph.qc_status.startswith("blocking_"):
-        raise ValueError("first_shell_graph has blocking QC and cannot construct domains.")
+        raise M6BlockingGraphQCError(first_shell_graph.qc_status)
 
     graph_settings = (
         first_shell_graph.duplicate_detection_enabled,

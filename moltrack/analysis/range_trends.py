@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .m6_range_analysis import (
+    MolecularM6FrameTrendSeries,
+    build_molecular_m6_frame_trend_series,
+)
 from .range_analysis import MolecularFrameRangeAnalysis
 from .range_comparison import MolecularFrameRangeComparison
 
@@ -20,6 +24,7 @@ class MolecularRangeTrendSeries:
     median_intensities: tuple[float | None, ...]
     intensity_metric: str
     intensity_unit: str
+    m6_orientation: MolecularM6FrameTrendSeries | None = None
 
 
 @dataclass(frozen=True)
@@ -63,4 +68,9 @@ def _build_range_trend_series(analysis: MolecularFrameRangeAnalysis) -> Molecula
         ),
         intensity_metric=analysis.intensity_metric,
         intensity_unit=analysis.intensity_unit,
+        m6_orientation=(
+            None
+            if analysis.aggregates.m6_orientation is None
+            else build_molecular_m6_frame_trend_series(analysis.frame_results)
+        ),
     )

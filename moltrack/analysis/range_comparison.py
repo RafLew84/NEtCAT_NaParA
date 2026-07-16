@@ -5,6 +5,11 @@ from dataclasses import dataclass
 from moltrack.core import MolTrackImageSeries
 
 from .frame_ranges import MolecularFrameRangeSelection
+from .m6_range_analysis import (
+    MolecularM6RangeDifferences,
+    compare_molecular_m6_range_aggregates,
+)
+from .m6_settings import MolecularM6OrientationAnalysisSettings
 from .range_analysis import MolecularFrameRangeAnalysis, analyze_molecular_frame_range
 
 
@@ -19,6 +24,7 @@ class MolecularFrameRangeDifferences:
     mean_line_order_score_delta: float | None
     mean_intensity_delta: float | None
     median_intensity_delta: float | None
+    m6_orientation: MolecularM6RangeDifferences | None = None
 
 
 @dataclass(frozen=True)
@@ -43,6 +49,7 @@ def compare_molecular_frame_ranges(
     background_inner_radius_px: int = 1,
     background_outer_radius_px: int = 3,
     progress_callback=None,
+    m6_orientation_settings: MolecularM6OrientationAnalysisSettings | None = None,
 ) -> MolecularFrameRangeComparison:
     """Analyze two selected conditions independently for later comparison."""
 
@@ -74,6 +81,7 @@ def compare_molecular_frame_ranges(
         background_inner_radius_px=background_inner_radius_px,
         background_outer_radius_px=background_outer_radius_px,
         progress_callback=first_progress,
+        m6_orientation_settings=m6_orientation_settings,
     )
     second_analysis = analyze_molecular_frame_range(
         series,
@@ -85,6 +93,7 @@ def compare_molecular_frame_ranges(
         background_inner_radius_px=background_inner_radius_px,
         background_outer_radius_px=background_outer_radius_px,
         progress_callback=second_progress,
+        m6_orientation_settings=m6_orientation_settings,
     )
     return MolecularFrameRangeComparison(
         source_view=selection.source_view,
@@ -112,6 +121,10 @@ def compare_molecular_frame_ranges(
             median_intensity_delta=_optional_delta(
                 second_analysis.aggregates.median_intensity,
                 first_analysis.aggregates.median_intensity,
+            ),
+            m6_orientation=compare_molecular_m6_range_aggregates(
+                second_analysis.aggregates.m6_orientation,
+                first_analysis.aggregates.m6_orientation,
             ),
         ),
     )

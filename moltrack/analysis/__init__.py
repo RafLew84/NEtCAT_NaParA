@@ -110,6 +110,14 @@ from .molecular_m6_analysis import (
     MolecularM6OrientationAnalysis,
     analyze_molecular_m6_orientation,
 )
+from .m6_range_analysis import (
+    MolecularM6FrameTrendSeries,
+    MolecularM6RangeAggregates,
+    MolecularM6RangeDifferences,
+    aggregate_molecular_m6_frame_range,
+    build_molecular_m6_frame_trend_series,
+    compare_molecular_m6_range_aggregates,
+)
 from .range_comparison import (
     MolecularFrameRangeComparison,
     MolecularFrameRangeDifferences,
@@ -127,6 +135,7 @@ from .range_spatial import (
 )
 from .range_analysis import (
     MolecularFrameAnalysisResult,
+    MolecularM6FrameAvailabilityStatus,
     MolecularFrameRangeAggregates,
     MolecularFrameRangeAnalysis,
     analyze_molecular_frame_range,
@@ -149,6 +158,9 @@ __all__ = [
     "MolecularIntensityMeasurementCache",
     "MolecularM6OrientationAnalysisSettings",
     "MolecularM6OrientationAnalysis",
+    "MolecularM6FrameTrendSeries",
+    "MolecularM6RangeAggregates",
+    "MolecularM6RangeDifferences",
     "LocalOrderComputationStatus",
     "LocalOrientationStatus",
     "LocalSixfoldBondOrderField",
@@ -197,6 +209,7 @@ __all__ = [
     "aggregate_m6_orientation_frame",
     "PairCorrelationResult",
     "MolecularFrameAnalysisResult",
+    "MolecularM6FrameAvailabilityStatus",
     "MolecularNearestNeighborAngleMetrics",
     "MolecularNearestNeighborMetrics",
     "MolecularConditionSpatialData",
@@ -207,6 +220,7 @@ __all__ = [
     "MolecularRangeSpatialComparisonData",
     "analyze_molecular_frame_range",
     "analyze_molecular_m6_orientation",
+    "aggregate_molecular_m6_frame_range",
     "aggregate_pair_correlation_results",
     "build_molecular_position_plot_data",
     "build_molecular_sample_coordinates",
@@ -214,8 +228,10 @@ __all__ = [
     "build_molecular_intensity_measurements",
     "export_molecular_intensity_cache_records",
     "build_molecular_range_comparison_trend_data",
+    "build_molecular_m6_frame_trend_series",
     "build_molecular_range_spatial_comparison_data",
     "compare_molecular_frame_ranges",
+    "compare_molecular_m6_range_aggregates",
     "compute_molecular_nearest_neighbor_angle_metrics",
     "compute_molecular_nearest_neighbor_metrics",
     "compute_pair_correlation",
