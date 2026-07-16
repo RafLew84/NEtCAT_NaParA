@@ -106,7 +106,30 @@ def _canonical_result(result: M6OrientationDomainAnalysis) -> tuple[object, ...]
         )
         for component in result.segmentation.components
     }
-    return graph_edges, point_state, components
+    metrics = {
+        frozenset(component.source_ids): (
+            component.ordered_component_id,
+            _canonical_float(component.molecule_fraction_of_valid_representatives),
+            _canonical_orientation(component.orientation_deg),
+            _canonical_float(component.domain_mean_local_q6),
+            _canonical_float(component.domain_coherent_q6),
+            _canonical_float(component.centroid_x_nm),
+            _canonical_float(component.centroid_y_nm),
+            _canonical_float(component.min_x_nm),
+            _canonical_float(component.min_y_nm),
+            _canonical_float(component.max_x_nm),
+            _canonical_float(component.max_y_nm),
+            component.internal_first_shell_bond_count,
+            _canonical_float(component.domain_median_bond_length_nm),
+            _canonical_float(component.domain_bond_length_mad_nm),
+            _canonical_float(component.domain_bond_length_iqr_nm),
+            _canonical_float(component.domain_bond_length_robust_cv),
+            component.insufficient_bonds_for_length_stats_qc,
+            component.bond_length_heterogeneity_qc,
+        )
+        for component in result.domain_metrics.components
+    }
+    return graph_edges, point_state, components, metrics
 
 
 class OrientationDomainAnalysisTests(unittest.TestCase):
@@ -133,9 +156,30 @@ class OrientationDomainAnalysisTests(unittest.TestCase):
         self.assertEqual(result.settings, settings)
         self.assertEqual(result.segmentation.full_domain_count, 2)
         self.assertEqual(result.segmentation.small_ordered_island_count, 0)
+        self.assertEqual(result.domain_metrics.valid_representative_count, 128)
+        self.assertEqual(len(result.domain_metrics.components), 2)
         self.assertEqual(
             tuple(component.molecule_count for component in result.segmentation.domains),
             (62, 62),
+        )
+        self.assertEqual(
+            tuple(component.molecule_count for component in result.domain_metrics.components),
+            (62, 62),
+        )
+        self.assertTrue(
+            all(
+                math.isclose(
+                    component.molecule_fraction_of_valid_representatives,
+                    62 / 128,
+                )
+                for component in result.domain_metrics.components
+            )
+        )
+        self.assertTrue(
+            all(
+                component.domain_coherent_q6 <= component.domain_mean_local_q6
+                for component in result.domain_metrics.components
+            )
         )
         self.assertAlmostEqual(result.segmentation.domains[0].orientation_deg, 0.0)
         self.assertAlmostEqual(result.segmentation.domains[1].orientation_deg, 22.0)
@@ -188,20 +232,30 @@ class OrientationDomainAnalysisTests(unittest.TestCase):
 
         self.assertEqual(_canonical_result(result), _canonical_result(permuted))
 
+        changed_registration_segmentation = replace(
+            result.segmentation,
+            registration_fingerprint="different-registration",
+        )
         with self.assertRaisesRegex(ValueError, "coordinate provenance"):
             replace(
                 result,
-                segmentation=replace(
-                    result.segmentation,
-                    registration_fingerprint="different-registration",
+                segmentation=changed_registration_segmentation,
+                domain_metrics=replace(
+                    result.domain_metrics,
+                    segmentation=changed_registration_segmentation,
                 ),
             )
+        changed_segmentation_settings = replace(
+            result.segmentation,
+            settings=replace(settings, orientation_zero_tolerance=1e-6),
+        )
         with self.assertRaisesRegex(ValueError, "analysis settings"):
             replace(
                 result,
-                segmentation=replace(
-                    result.segmentation,
-                    settings=replace(settings, orientation_zero_tolerance=1e-6),
+                segmentation=changed_segmentation_settings,
+                domain_metrics=replace(
+                    result.domain_metrics,
+                    segmentation=changed_segmentation_settings,
                 ),
             )
         changed_settings = replace(settings, orientation_zero_tolerance=1e-6)
@@ -213,15 +267,27 @@ class OrientationDomainAnalysisTests(unittest.TestCase):
                     result.segmentation,
                     settings=changed_settings,
                 ),
+                domain_metrics=replace(
+                    result.domain_metrics,
+                    segmentation=replace(
+                        result.domain_metrics.segmentation,
+                        settings=changed_settings,
+                    ),
+                ),
             )
         altered_statuses = list(result.segmentation.assignment_status)
         altered_statuses[0] = "boundary_or_disordered"
+        altered_status_segmentation = replace(
+            result.segmentation,
+            assignment_status=tuple(altered_statuses),
+        )
         with self.assertRaisesRegex(ValueError, "statuses"):
             replace(
                 result,
-                segmentation=replace(
-                    result.segmentation,
-                    assignment_status=tuple(altered_statuses),
+                segmentation=altered_status_segmentation,
+                domain_metrics=replace(
+                    result.domain_metrics,
+                    segmentation=altered_status_segmentation,
                 ),
             )
         assigned_index = 1

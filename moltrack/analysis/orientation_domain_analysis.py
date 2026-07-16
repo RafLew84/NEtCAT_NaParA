@@ -13,6 +13,10 @@ from .local_sixfold_bond_order_computation import compute_local_sixfold_bond_ord
 from .m6_settings import MolecularM6OrientationAnalysisSettings
 from .orientation_domain_finalization import finalize_m6_orientation_domains
 from .orientation_domain_merge import merge_and_grow_m6_orientation_domains
+from .orientation_domain_metrics import (
+    M6OrientationDomainMetrics,
+    compute_m6_orientation_domain_metrics,
+)
 from .orientation_domain_models import M6OrientationDomainSegmentation
 from .orientation_domain_seed_growth import grow_m6_orientation_domains
 from .orientation_domain_seeds import detect_m6_orientation_domain_seeds
@@ -20,11 +24,12 @@ from .orientation_domain_seeds import detect_m6_orientation_domain_seeds
 
 @dataclass(frozen=True)
 class M6OrientationDomainAnalysis:
-    """End-to-end M6 graph, local-order field, and final domain segmentation."""
+    """End-to-end M6 graph, local order, segmentation, and domain metrics."""
 
     first_shell_graph: FirstShellGraph
     local_order: LocalSixfoldBondOrderField
     segmentation: M6OrientationDomainSegmentation
+    domain_metrics: M6OrientationDomainMetrics
     settings: MolecularM6OrientationAnalysisSettings
 
     def __post_init__(self) -> None:
@@ -34,10 +39,14 @@ class M6OrientationDomainAnalysis:
             raise TypeError("local_order must be a LocalSixfoldBondOrderField.")
         if not isinstance(self.segmentation, M6OrientationDomainSegmentation):
             raise TypeError("segmentation must be an M6OrientationDomainSegmentation.")
+        if not isinstance(self.domain_metrics, M6OrientationDomainMetrics):
+            raise TypeError("domain_metrics must be M6OrientationDomainMetrics.")
         if not isinstance(self.settings, MolecularM6OrientationAnalysisSettings):
             raise TypeError("settings must be MolecularM6OrientationAnalysisSettings.")
         if self.segmentation.settings != self.settings:
             raise ValueError("Segmentation must use the analysis settings.")
+        if self.domain_metrics.segmentation != self.segmentation:
+            raise ValueError("Domain metrics must use the analysis segmentation.")
 
         source_ids = self.first_shell_graph.point_ids
         point_count = self.first_shell_graph.point_count
@@ -218,10 +227,18 @@ def analyze_m6_orientation_domains(
         settings=settings,
     )
     segmentation = finalize_m6_orientation_domains(merged)
+    domain_metrics = compute_m6_orientation_domain_metrics(
+        points,
+        first_shell_graph=graph,
+        local_order=local_order,
+        segmentation=segmentation,
+        settings=settings,
+    )
     return M6OrientationDomainAnalysis(
         first_shell_graph=graph,
         local_order=local_order,
         segmentation=segmentation,
+        domain_metrics=domain_metrics,
         settings=settings,
     )
 

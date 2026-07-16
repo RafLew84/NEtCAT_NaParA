@@ -27,6 +27,11 @@ from .orientation_domain_models import (
     M6ComponentType,
     M6OrientationDomainSegmentation,
 )
+from .orientation_domain_metrics import (
+    M6OrientationComponentMetrics,
+    M6OrientationDomainMetrics,
+    compute_m6_orientation_domain_metrics,
+)
 from .orientation_domain_seeds import (
     M6OrientationDomainSeedDetection,
     M6OrientationSeedComponent,
@@ -115,6 +120,8 @@ __all__ = [
     "LatticeOrientationDomain",
     "M6AssignmentStatus",
     "M6ComponentType",
+    "M6OrientationComponentMetrics",
+    "M6OrientationDomainMetrics",
     "M6OrientationDomainSegmentation",
     "M6OrientationDomainSeedDetection",
     "M6OrientationSeedComponent",
@@ -131,6 +138,7 @@ __all__ = [
     "finalize_m6_orientation_domains",
     "M6OrientationDomainAnalysis",
     "analyze_m6_orientation_domains",
+    "compute_m6_orientation_domain_metrics",
     "PairCorrelationResult",
     "MolecularFrameAnalysisResult",
     "MolecularNearestNeighborAngleMetrics",
