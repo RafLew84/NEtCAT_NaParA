@@ -250,6 +250,12 @@ class MolecularM6OrientationAnalysisSettingsTests(unittest.TestCase):
         self.assertEqual(settings.gr_max_nm, 1.0)
         self.assertEqual(settings.gr_peak_prominence, 0.0)
 
+        with self.assertRaisesRegex(ValueError, "bin count"):
+            MolecularM6OrientationAnalysisSettings(
+                gr_bin_width_nm=1e-6,
+                gr_max_nm=100.0,
+            )
+
     def test_round_trips_through_a_stable_json_compatible_dictionary(self) -> None:
         settings = MolecularM6OrientationAnalysisSettings(
             duplicate_detection_enabled=False,

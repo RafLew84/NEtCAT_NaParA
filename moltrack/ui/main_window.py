@@ -63,6 +63,7 @@ from moltrack.persistence import (
     save_moltrack_session,
 )
 from moltrack.ui.dialogs import ExportAnalysisDialog, PositionAnalysisDialog
+from moltrack.ui.dialogs.m6_settings_panel import M6SettingsPanel
 from moltrack.ui.widgets import STMSeriesViewer, SeriesMetadataPanel
 from moltrack.yolo import MolTrackYoloDetector, YoloBBoxSizeFilter, discover_yolo_models
 from moltrack.sam2 import (
@@ -961,7 +962,6 @@ class MolTrackMainWindow(QMainWindow):
         self._m6_completed_context = None
         self._m6_pending_session_state: MolecularM6SessionState | None = None
         self._m6_enable_on_success = True
-        self._m6_suggestion_after_analysis = False
         self._m6_target_tab = "Sixfold Bond Order"
         self._m6_density_grid_shape = (32, 32)
         self._yolo_models = []
@@ -2952,8 +2952,7 @@ class MolTrackMainWindow(QMainWindow):
                 density_grid_shape=self._m6_density_grid_shape,
             )
             dialog.activate_analysis_tab(self._m6_target_tab)
-            if self._m6_suggestion_after_analysis:
-                self._m6_suggestion_after_analysis = False
+            if self._m6_pending_session_state is not None:
                 self._set_m6_first_shell_suggestion_from_comparison(
                     dialog,
                     comparison,
@@ -2963,7 +2962,6 @@ class MolTrackMainWindow(QMainWindow):
 
     @pyqtSlot(str)
     def _on_m6_analysis_failed(self, message: str) -> None:
-        self._m6_suggestion_after_analysis = False
         self.statusBar().showMessage(f"M6 orientation analysis failed: {message}", 5000)
         QMessageBox.critical(self, "M6 orientation analysis error", message)
 
@@ -2992,7 +2990,6 @@ class MolTrackMainWindow(QMainWindow):
             dialog.set_m6_suggestion_unavailable(
                 "Calculating g(r) before proposing first-shell r_max..."
             )
-            self._m6_suggestion_after_analysis = True
             self._start_m6_analysis(settings, enable_on_success=False)
             return
         self._set_m6_first_shell_suggestion_from_comparison(
@@ -4685,13 +4682,12 @@ class MolTrackMainWindow(QMainWindow):
         try:
             session = self._session_loader(path)
             series = self._session_restorer(session)
+            self._apply_loaded_state(path, session, series)
         except Exception as exc:
             message = str(exc) or exc.__class__.__name__
             self.statusBar().showMessage(f"Open State failed: {message}", 5000)
             QMessageBox.critical(self, "Open State failed", message)
             return
-
-        self._apply_loaded_state(path, session, series)
 
     def _on_state_save_finished(self) -> None:
         path = self._state_io_path
@@ -4779,6 +4775,9 @@ class MolTrackMainWindow(QMainWindow):
         bbox_opacity_percent = getattr(session, "bbox_opacity_percent", 100)
         mask_opacity_percent = getattr(session, "mask_opacity_percent", 30)
         position_analysis_state = getattr(session, "position_analysis", None)
+        m6_state = getattr(series, "m6_analysis_state", None)
+        if isinstance(m6_state, MolecularM6SessionState):
+            M6SettingsPanel.validate_gr_settings_representable(m6_state.settings)
         self.set_image_series(series)
         self._session_path = str(path)
         self._set_registration_view_mode(registration_view_mode)

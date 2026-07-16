@@ -5,6 +5,7 @@ from dataclasses import replace
 from PyQt6.QtCore import QSignalBlocker, pyqtSignal
 from PyQt6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDoubleSpinBox,
     QFormLayout,
     QGroupBox,
@@ -22,9 +23,15 @@ from moltrack.analysis import (
     MolecularM6OrientationAnalysisSettings,
 )
 
+from .m6_pair_correlation_plot import M6PairCorrelationPlot
+
 
 class M6SettingsPanel(QScrollArea):
     """Validated controls for one M6 orientation-domain analysis run."""
+
+    _GR_FLOAT_CONTROL_MAXIMUM = 1e12
+    _GR_FLOAT_CONTROL_DECIMALS = 12
+    _GR_CONTRIBUTING_FRAMES_MAXIMUM = 1_000_000
 
     analysis_requested = pyqtSignal(object)
     first_shell_suggestion_requested = pyqtSignal(object)
@@ -72,6 +79,47 @@ class M6SettingsPanel(QScrollArea):
             "Min neighbors for domain seed", self.min_neighbors_for_seed
         )
         layout.addWidget(neighborhood_group)
+
+        pair_correlation_group = QGroupBox("Pair correlation g(r)", content)
+        pair_correlation_layout = QVBoxLayout(pair_correlation_group)
+        pair_correlation_form = QFormLayout()
+        self.gr_bin_width_nm = self._distance_spin(pair_correlation_group)
+        pair_correlation_form.addRow("Bin width [nm]", self.gr_bin_width_nm)
+        self.gr_max_nm = self._distance_spin(pair_correlation_group)
+        pair_correlation_form.addRow("Maximum radius [nm]", self.gr_max_nm)
+        self.gr_min_expected_pair_exposure = self._positive_spin(
+            pair_correlation_group
+        )
+        pair_correlation_form.addRow(
+            "Min expected pair exposure",
+            self.gr_min_expected_pair_exposure,
+        )
+        self.gr_min_contributing_frames = self._integer_spin(
+            pair_correlation_group,
+            1,
+            1_000_000,
+        )
+        pair_correlation_form.addRow(
+            "Min contributing frames",
+            self.gr_min_contributing_frames,
+        )
+        self.gr_smoothing_method = QComboBox(pair_correlation_group)
+        self.gr_smoothing_method.addItem("Gaussian (bins)", "gaussian_bins")
+        pair_correlation_form.addRow("Smoothing method", self.gr_smoothing_method)
+        self.gr_smoothing_width = self._positive_spin(pair_correlation_group)
+        pair_correlation_form.addRow(
+            "Smoothing width [bins]",
+            self.gr_smoothing_width,
+        )
+        self.gr_peak_prominence = self._nonnegative_spin(pair_correlation_group)
+        pair_correlation_form.addRow(
+            "Required peak prominence",
+            self.gr_peak_prominence,
+        )
+        pair_correlation_layout.addLayout(pair_correlation_form)
+        self.pair_correlation_plot = M6PairCorrelationPlot(pair_correlation_group)
+        pair_correlation_layout.addWidget(self.pair_correlation_plot)
+        layout.addWidget(pair_correlation_group)
 
         domain_group = QGroupBox("M6 orientation domains", content)
         domain_form = QFormLayout(domain_group)
@@ -161,6 +209,13 @@ class M6SettingsPanel(QScrollArea):
             self.duplicate_max_distance_nm,
             self.first_shell_r_min_nm,
             self.first_shell_r_max_nm,
+            self.gr_bin_width_nm,
+            self.gr_max_nm,
+            self.gr_min_expected_pair_exposure,
+            self.gr_min_contributing_frames,
+            self.gr_smoothing_method,
+            self.gr_smoothing_width,
+            self.gr_peak_prominence,
             self.min_neighbors_for_local_order,
             self.min_neighbors_for_seed,
             self.q_seed,
@@ -180,8 +235,16 @@ class M6SettingsPanel(QScrollArea):
             self.domain_conflict_margin,
         )
         for widget in self._settings_widgets:
-            signal = widget.toggled if isinstance(widget, QCheckBox) else widget.valueChanged
+            if isinstance(widget, QCheckBox):
+                signal = widget.toggled
+            elif isinstance(widget, QComboBox):
+                signal = widget.currentIndexChanged
+            else:
+                signal = widget.valueChanged
             signal.connect(self._on_settings_changed)
+        self.pair_correlation_plot.current_r_max_changed.connect(
+            self._on_plot_r_max_changed
+        )
         self.suggest_button.clicked.connect(self._request_suggestion)
         self.apply_suggestion_button.clicked.connect(self.apply_first_shell_suggestion)
         self.run_button.clicked.connect(self._request_analysis)
@@ -228,18 +291,35 @@ class M6SettingsPanel(QScrollArea):
         return spin
 
     @staticmethod
+    def _positive_spin(parent) -> QDoubleSpinBox:
+        spin = QDoubleSpinBox(parent)
+        spin.setDecimals(12)
+        spin.setRange(1e-12, 1e12)
+        spin.setSingleStep(0.1)
+        return spin
+
+    @staticmethod
     def _integer_spin(parent, minimum: int, maximum: int) -> QSpinBox:
         spin = QSpinBox(parent)
         spin.setRange(minimum, maximum)
         return spin
 
     def settings(self) -> MolecularM6OrientationAnalysisSettings:
-        return replace(
+        settings = replace(
             self._base_settings,
             duplicate_detection_enabled=self.duplicate_detection_enabled.isChecked(),
             duplicate_max_distance_nm=self.duplicate_max_distance_nm.value(),
             first_shell_r_min_nm=self.first_shell_r_min_nm.value(),
             first_shell_r_max_nm=self.first_shell_r_max_nm.value(),
+            gr_bin_width_nm=self.gr_bin_width_nm.value(),
+            gr_max_nm=self.gr_max_nm.value(),
+            gr_min_expected_pair_exposure=(
+                self.gr_min_expected_pair_exposure.value()
+            ),
+            gr_min_contributing_frames=self.gr_min_contributing_frames.value(),
+            gr_smoothing_method=str(self.gr_smoothing_method.currentData()),
+            gr_smoothing_width=self.gr_smoothing_width.value(),
+            gr_peak_prominence=self.gr_peak_prominence.value(),
             min_neighbors_for_local_order=self.min_neighbors_for_local_order.value(),
             min_neighbors_for_seed=self.min_neighbors_for_seed.value(),
             q_seed=self.q_seed.value(),
@@ -264,16 +344,31 @@ class M6SettingsPanel(QScrollArea):
             orientation_zero_tolerance=self.orientation_zero_tolerance.value(),
             domain_conflict_margin=self.domain_conflict_margin.value(),
         )
+        if settings.gr_bin_width_nm >= settings.gr_max_nm:
+            raise ValueError("gr_bin_width_nm must be less than gr_max_nm.")
+        if settings.first_shell_r_max_nm > settings.gr_max_nm:
+            raise ValueError("first_shell_r_max_nm must not exceed gr_max_nm.")
+        return settings
 
     def set_settings(self, settings: MolecularM6OrientationAnalysisSettings) -> None:
         if not isinstance(settings, MolecularM6OrientationAnalysisSettings):
             raise TypeError("settings must be MolecularM6OrientationAnalysisSettings.")
+        self._validate_gr_control_representation(settings)
         self._base_settings = settings
         values = {
             self.duplicate_detection_enabled: settings.duplicate_detection_enabled,
             self.duplicate_max_distance_nm: settings.duplicate_max_distance_nm,
             self.first_shell_r_min_nm: settings.first_shell_r_min_nm,
             self.first_shell_r_max_nm: settings.first_shell_r_max_nm,
+            self.gr_bin_width_nm: settings.gr_bin_width_nm,
+            self.gr_max_nm: settings.gr_max_nm,
+            self.gr_min_expected_pair_exposure: (
+                settings.gr_min_expected_pair_exposure
+            ),
+            self.gr_min_contributing_frames: settings.gr_min_contributing_frames,
+            self.gr_smoothing_method: settings.gr_smoothing_method,
+            self.gr_smoothing_width: settings.gr_smoothing_width,
+            self.gr_peak_prominence: settings.gr_peak_prominence,
             self.min_neighbors_for_local_order: settings.min_neighbors_for_local_order,
             self.min_neighbors_for_seed: settings.min_neighbors_for_seed,
             self.q_seed: settings.q_seed,
@@ -303,6 +398,12 @@ class M6SettingsPanel(QScrollArea):
             for widget, value in values.items():
                 if isinstance(widget, QCheckBox):
                     widget.setChecked(bool(value))
+                elif isinstance(widget, QComboBox):
+                    index = widget.findData(str(value))
+                    if index < 0:
+                        widget.addItem(str(value), str(value))
+                        index = widget.findData(str(value))
+                    widget.setCurrentIndex(index)
                 else:
                     widget.setValue(value)
         finally:
@@ -310,6 +411,8 @@ class M6SettingsPanel(QScrollArea):
         self._pending_suggestion = None
         self.apply_suggestion_button.setEnabled(False)
         self.suggestion_label.setText("No first-shell suggestion.")
+        self.pair_correlation_plot.clear_result()
+        self._sync_pair_correlation_shell_markers()
         self._refresh_validation()
 
     def validation_message(self) -> str:
@@ -321,6 +424,9 @@ class M6SettingsPanel(QScrollArea):
 
     def set_analysis_running(self, running: bool) -> None:
         self._analysis_running = bool(running)
+        self.pair_correlation_plot.set_current_r_max_movable(
+            not self._analysis_running
+        )
         self.advanced_group.setEnabled(not self._analysis_running)
         for widget in self._settings_widgets:
             widget.setEnabled(not self._analysis_running)
@@ -343,6 +449,7 @@ class M6SettingsPanel(QScrollArea):
         if not isinstance(suggestion, FirstShellSuggestionResult):
             raise TypeError("suggestion must be FirstShellSuggestionResult.")
         self._pending_suggestion = suggestion
+        self.pair_correlation_plot.set_suggestion_result(suggestion)
         radius = suggestion.suggested_first_shell_r_max_nm
         if suggestion.quality_status == "valid_suggestion" and radius is not None:
             self.suggestion_label.setText(
@@ -357,6 +464,9 @@ class M6SettingsPanel(QScrollArea):
         self.apply_suggestion_button.setEnabled(False)
 
     def _on_settings_changed(self, _value=None) -> None:
+        self._sync_pair_correlation_shell_markers()
+        if self.sender() is not self.first_shell_r_max_nm:
+            self.pair_correlation_plot.mark_result_stale()
         if self._pending_suggestion is not None:
             self._pending_suggestion = None
             self.suggestion_label.setText(
@@ -371,8 +481,10 @@ class M6SettingsPanel(QScrollArea):
         self._pending_suggestion = None
         self.apply_suggestion_button.setEnabled(False)
         self.suggestion_label.setText(str(message))
+        self.pair_correlation_plot.clear_result(str(message))
 
     def invalidate_first_shell_suggestion(self) -> None:
+        self.pair_correlation_plot.mark_result_stale()
         if self._pending_suggestion is None:
             return
         self.set_suggestion_unavailable(
@@ -441,3 +553,62 @@ class M6SettingsPanel(QScrollArea):
         if not self.suggest_button.isEnabled():
             return
         self.first_shell_suggestion_requested.emit(settings)
+
+    def _on_plot_r_max_changed(self, radius_nm: float) -> None:
+        self.first_shell_r_max_nm.setValue(float(radius_nm))
+
+    def _sync_pair_correlation_shell_markers(self) -> None:
+        self.pair_correlation_plot.set_shell_bounds(
+            self.first_shell_r_min_nm.value(),
+            self.first_shell_r_max_nm.value(),
+            gr_max_nm=self.gr_max_nm.value(),
+        )
+
+    def _validate_gr_control_representation(
+        self,
+        settings: MolecularM6OrientationAnalysisSettings,
+    ) -> None:
+        self.validate_gr_settings_representable(settings)
+
+    @classmethod
+    def validate_gr_settings_representable(
+        cls,
+        settings: MolecularM6OrientationAnalysisSettings,
+    ) -> None:
+        if not isinstance(settings, MolecularM6OrientationAnalysisSettings):
+            raise TypeError("settings must be MolecularM6OrientationAnalysisSettings.")
+        float_controls = (
+            ("gr_bin_width_nm", 1e-12, settings.gr_bin_width_nm),
+            ("gr_max_nm", 1e-12, settings.gr_max_nm),
+            (
+                "gr_min_expected_pair_exposure",
+                1e-12,
+                settings.gr_min_expected_pair_exposure,
+            ),
+            (
+                "gr_smoothing_width",
+                1e-12,
+                settings.gr_smoothing_width,
+            ),
+            (
+                "gr_peak_prominence",
+                0.0,
+                settings.gr_peak_prominence,
+            ),
+        )
+        for field_name, minimum, value in float_controls:
+            if not minimum <= value <= cls._GR_FLOAT_CONTROL_MAXIMUM or (
+                round(value, cls._GR_FLOAT_CONTROL_DECIMALS) != value
+            ):
+                raise ValueError(
+                    f"{field_name} cannot be represented exactly by this UI control."
+                )
+        contributing_frames = settings.gr_min_contributing_frames
+        if not (
+            1
+            <= contributing_frames
+            <= cls._GR_CONTRIBUTING_FRAMES_MAXIMUM
+        ):
+            raise ValueError(
+                "gr_min_contributing_frames cannot be represented by this UI control."
+            )

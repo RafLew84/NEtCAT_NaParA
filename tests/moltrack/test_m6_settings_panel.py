@@ -156,6 +156,9 @@ class MolecularM6SettingsPanelTests(unittest.TestCase):
 
         self.assertFalse(self.dialog.m6_apply_suggestion_button.isEnabled())
         self.assertIn("out of date", self.dialog.m6_suggestion_status_text().lower())
+        self.assertFalse(
+            self.dialog.m6_settings_panel.pair_correlation_plot.has_result()
+        )
 
         self.dialog.set_m6_first_shell_suggestion(_suggestion(3.15))
         self.dialog.edit_first_range_name.setText("changed condition")
@@ -181,6 +184,50 @@ class MolecularM6SettingsPanelTests(unittest.TestCase):
         self.dialog.m6_run_button.click()
 
         self.assertEqual(received, [self.dialog.m6_analysis_settings()])
+
+    def test_pair_correlation_controls_round_trip_and_sync_r_max_marker(self) -> None:
+        settings = replace(
+            MolecularM6OrientationAnalysisSettings(),
+            gr_bin_width_nm=0.2,
+            gr_max_nm=12.0,
+            gr_min_expected_pair_exposure=8.5,
+            gr_min_contributing_frames=3,
+            gr_smoothing_method="gaussian_bins",
+            gr_smoothing_width=1.5,
+            gr_peak_prominence=0.22,
+        )
+        self.dialog.set_m6_analysis_settings(settings)
+
+        self.assertEqual(self.dialog.m6_analysis_settings(), settings)
+        plot = self.dialog.m6_settings_panel.pair_correlation_plot
+        plot.current_r_max_line.setValue(3.4)
+        self.__class__._app.processEvents()
+        self.assertEqual(self.dialog.m6_analysis_settings().first_shell_r_max_nm, 3.4)
+        self.assertEqual(self.dialog.m6_first_shell_r_max_spin.value(), 3.4)
+
+        self.dialog.m6_first_shell_r_max_spin.setValue(2.9)
+
+        self.assertEqual(
+            plot.marker_positions_nm()["current_first_shell_r_max"],
+            2.9,
+        )
+
+    def test_pair_correlation_range_validation_blocks_unjustified_shell_radius(self) -> None:
+        panel = self.dialog.m6_settings_panel
+        panel.gr_max_nm.setValue(2.0)
+
+        self.assertIn("gr_max_nm", self.dialog.m6_validation_message())
+        self.assertFalse(self.dialog.m6_run_button.isEnabled())
+
+    def test_pair_correlation_controls_reject_unrepresentable_persisted_values(self) -> None:
+        settings = replace(
+            MolecularM6OrientationAnalysisSettings(),
+            gr_bin_width_nm=1e9,
+            gr_max_nm=1e13,
+        )
+
+        with self.assertRaisesRegex(ValueError, "gr_max_nm"):
+            self.dialog.set_m6_analysis_settings(settings)
 
 
 if __name__ == "__main__":

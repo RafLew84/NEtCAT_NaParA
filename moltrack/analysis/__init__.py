@@ -11,6 +11,7 @@ from .intensity import (
     restore_molecular_intensity_cache_records,
 )
 from .m6_settings import (
+    MAX_PAIR_CORRELATION_BIN_COUNT,
     MolecularM6OrientationAnalysisSettings,
     MolecularM6SessionState,
     MolecularM6ViewSettings,
@@ -171,6 +172,7 @@ __all__ = [
     "MolecularIntensityCacheStats",
     "MolecularIntensityMeasurementCache",
     "MolecularM6OrientationAnalysisSettings",
+    "MAX_PAIR_CORRELATION_BIN_COUNT",
     "MolecularM6SessionState",
     "MolecularM6ViewSettings",
     "MolecularM6OrientationAnalysis",

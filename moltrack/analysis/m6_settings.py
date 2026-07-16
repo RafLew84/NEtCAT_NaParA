@@ -77,6 +77,8 @@ _POSITIVE_GR_FIELDS = (
     "gr_smoothing_width",
 )
 
+MAX_PAIR_CORRELATION_BIN_COUNT = 10_000
+
 
 @dataclass(frozen=True)
 class MolecularM6OrientationAnalysisSettings:
@@ -159,6 +161,15 @@ class MolecularM6OrientationAnalysisSettings:
         for field_name in _POSITIVE_GR_FIELDS:
             if getattr(self, field_name) <= 0.0:
                 raise ValueError(f"{field_name} must be positive.")
+        pair_correlation_bin_count = self.gr_max_nm / self.gr_bin_width_nm
+        if (
+            not isfinite(pair_correlation_bin_count)
+            or pair_correlation_bin_count > MAX_PAIR_CORRELATION_BIN_COUNT
+        ):
+            raise ValueError(
+                "Pair-correlation bin count must not exceed "
+                f"{MAX_PAIR_CORRELATION_BIN_COUNT}."
+            )
         if self.first_shell_r_min_nm >= self.first_shell_r_max_nm:
             raise ValueError("first_shell_r_min_nm must be less than first_shell_r_max_nm.")
         if self.duplicate_detection_enabled and not (
