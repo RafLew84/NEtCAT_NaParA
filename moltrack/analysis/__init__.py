@@ -27,6 +27,13 @@ from .orientation_domain_models import (
     M6ComponentType,
     M6OrientationDomainSegmentation,
 )
+from .orientation_domain_seeds import (
+    M6OrientationDomainSeedDetection,
+    M6OrientationSeedComponent,
+    M6SeedComponentType,
+    M6SeedPointComponentType,
+    detect_m6_orientation_domain_seeds,
+)
 from .first_shell_suggestion import (
     FirstShellSuggestionResult,
     suggest_first_shell_r_max,
@@ -93,6 +100,11 @@ __all__ = [
     "M6AssignmentStatus",
     "M6ComponentType",
     "M6OrientationDomainSegmentation",
+    "M6OrientationDomainSeedDetection",
+    "M6OrientationSeedComponent",
+    "M6SeedComponentType",
+    "M6SeedPointComponentType",
+    "detect_m6_orientation_domain_seeds",
     "PairCorrelationResult",
     "MolecularFrameAnalysisResult",
     "MolecularNearestNeighborAngleMetrics",
