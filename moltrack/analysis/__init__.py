@@ -11,6 +11,11 @@ from .intensity import (
     restore_molecular_intensity_cache_records,
 )
 from .m6_settings import MolecularM6OrientationAnalysisSettings
+from .local_sixfold_bond_order import (
+    LocalOrderComputationStatus,
+    LocalOrientationStatus,
+    LocalSixfoldBondOrderField,
+)
 from .first_shell_suggestion import (
     FirstShellSuggestionResult,
     suggest_first_shell_r_max,
@@ -67,6 +72,9 @@ __all__ = [
     "MolecularIntensityCacheStats",
     "MolecularIntensityMeasurementCache",
     "MolecularM6OrientationAnalysisSettings",
+    "LocalOrderComputationStatus",
+    "LocalOrientationStatus",
+    "LocalSixfoldBondOrderField",
     "PairCorrelationResult",
     "MolecularFrameAnalysisResult",
     "MolecularNearestNeighborAngleMetrics",
