@@ -296,7 +296,7 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
             with paths["manifest_json"].open("r", encoding="utf-8") as handle:
                 manifest = json.load(handle)
 
-        self.assertEqual(manifest["export_schema_version"], 1)
+        self.assertEqual(manifest["export_schema_version"], 2)
         created_at = datetime.fromisoformat(manifest["created_at_utc"])
         self.assertIsNotNone(created_at.tzinfo)
         self.assertEqual(created_at.utcoffset().total_seconds(), 0.0)
@@ -307,6 +307,7 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
             [
                 {"path": "molecules.csv", "record_count": 6},
                 {"path": "frames.csv", "record_count": 2},
+                {"path": "domains.csv", "record_count": 0},
                 {"path": "ranges.csv", "record_count": 2},
                 {"path": "comparison.csv", "record_count": 1},
                 {"path": "spatial_bins.csv", "record_count": 8},
@@ -707,6 +708,7 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
 
         expected_files = (
             "comparison.csv",
+            "domains.csv",
             "frames.csv",
             "manifest.json",
             "molecules.csv",
@@ -752,6 +754,7 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
                     for name in (
                         "molecules.csv",
                         "frames.csv",
+                        "domains.csv",
                         "ranges.csv",
                         "comparison.csv",
                         "spatial_bins.csv",
@@ -933,11 +936,11 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
 
         self.assertEqual(
             result.relative_files,
-            ("frames.csv", "manifest.json", "molecules.csv"),
+            ("domains.csv", "frames.csv", "manifest.json", "molecules.csv"),
         )
         self.assertEqual(
             result.record_counts,
-            (("frames.csv", 6), ("molecules.csv", 6)),
+            (("domains.csv", 0), ("frames.csv", 6), ("molecules.csv", 6)),
         )
         self.assertEqual(manifest["scope"], "full_working_series")
         self.assertEqual(
@@ -992,6 +995,7 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
         self.assertEqual(
             result.relative_files,
             (
+                "domains.csv",
                 "frames.csv",
                 "manifest.json",
                 "molecules.csv",
@@ -1001,7 +1005,7 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
         )
         self.assertEqual(
             result.record_counts,
-            (("frames.csv", 1), ("molecules.csv", 4)),
+            (("domains.csv", 0), ("frames.csv", 1), ("molecules.csv", 4)),
         )
         self.assertIn("Current frame positions - frame 2", svg_text)
         self.assertEqual(

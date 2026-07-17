@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from .analysis_plots import AnalysisPlotExportResult
 
 
-ANALYSIS_EXPORT_SCHEMA_VERSION = 1
+ANALYSIS_EXPORT_SCHEMA_VERSION = 2
 
 
 _MOLECULES_CSV_FIELDS = (
@@ -130,7 +130,104 @@ _FRAMES_CSV_FIELDS = (
     "intensity_unit",
     "mean_intensity",
     "median_intensity",
+) + (
+    "m6_analysis_availability_status",
+    "m6_analysis_unavailability_reason",
+    "full_domain_count",
+    "small_ordered_island_count",
+    "ordered_component_count",
+    "original_observation_count",
+    "valid_representative_count",
+    "duplicate_excluded_count",
+    "invalid_position_count",
+    "valid_fov_area_nm2",
+    "supported_area_nm2",
+    "mean_local_q6_interior",
+    "global_q6_interior",
+    "mean_local_q6_all_valid",
+    "global_q6_all_valid",
+    "edge_truncated_fraction_of_valid_representatives",
+    "full_domain_molecule_fraction",
+    "small_island_molecule_fraction",
+    "unassigned_molecule_fraction",
+    "assigned_molecule_fraction",
+    "largest_domain_molecule_fraction",
+    "duplicate_excluded_fraction_of_original",
+    "invalid_position_fraction_of_original",
+    "full_domain_footprint_fraction",
+    "small_island_footprint_fraction",
+    "unassigned_supported_footprint_fraction",
+    "unsupported_background_fraction",
+    "assigned_footprint_fraction",
+    "largest_domain_footprint_fraction",
+    "footprint_overlap_error_nm2",
+    "full_domain_molecule_weighted_coherent_q6",
+    "full_domain_footprint_weighted_coherent_q6",
+    "mean_full_domain_footprint_area_nm2",
+    "median_full_domain_footprint_area_nm2",
+    "domain_molecule_entropy",
+    "domain_footprint_entropy",
+    "construction_method",
+    "footprint_construction_method",
+    "geometry_collision_epsilon_nm",
+    "delaunay_degeneracy_qc",
+    "graph_qc_status",
+    "coordinate_frame",
+    "orientation_reference",
+    "spatial_calibration_fingerprint",
+    "registration_fingerprint",
+    "point_coordinate_fingerprint",
+    "pair_correlation_window_geometry_status",
+    "non_positive_valid_fov_area_qc",
+    "fewer_than_3_noncollinear_points_qc",
+    "voronoi_degenerate_qc",
+    "footprint_clipped_by_fov_qc",
+    "footprint_disconnected_qc",
+    "footprint_overlap_error_qc",
 )
+
+_DOMAINS_CSV_FIELDS = (
+    "working_frame_index",
+    "working_frame_number",
+    "source_frame_index",
+    "source_frame_number",
+    "time_s",
+    "source_view",
+    "ordered_component_id",
+    "m6_orientation_domain_id",
+    "component_type",
+    "molecule_count",
+    "molecule_fraction_of_valid_representatives",
+    "footprint_area_nm2",
+    "footprint_fraction_of_valid_fov",
+    "orientation_deg",
+    "centroid_x_nm",
+    "centroid_y_nm",
+    "min_x_nm",
+    "min_y_nm",
+    "max_x_nm",
+    "max_y_nm",
+    "domain_mean_local_q6",
+    "domain_coherent_q6",
+    "internal_first_shell_bond_count",
+    "domain_median_bond_length_nm",
+    "domain_bond_length_mad_nm",
+    "domain_bond_length_iqr_nm",
+    "domain_bond_length_robust_cv",
+    "edge_truncated",
+    "insufficient_bonds_for_length_stats_qc",
+    "bond_length_heterogeneity_qc",
+    "footprint_disconnected_qc",
+    "coordinate_frame",
+    "orientation_reference",
+    "spatial_calibration_fingerprint",
+    "registration_fingerprint",
+    "point_coordinate_fingerprint",
+)
+
+_M6_FRAMES_CSV_FIELDS = _FRAMES_CSV_FIELDS[
+    _FRAMES_CSV_FIELDS.index("m6_analysis_availability_status") :
+]
 
 _RANGES_CSV_FIELDS = (
     "condition_order",
@@ -227,6 +324,7 @@ def export_selected_ranges_analysis_csv(
         phase_callback("writing_tables")
     molecule_rows = []
     frame_rows = []
+    domain_rows = []
     range_rows = []
     for condition_order, analysis in (
         ("first", comparison.first_analysis),
@@ -241,7 +339,13 @@ def export_selected_ranges_analysis_csv(
             frame_row = _frame_row(series, frame_analysis)
             frame_row["condition_name"] = condition_name
             frame_rows.append(frame_row)
+            analyzed_domain_rows = _ordered_component_rows(series, frame_analysis)
+            for row in analyzed_domain_rows:
+                row["condition_name"] = condition_name
+            domain_rows.extend(analyzed_domain_rows)
         range_rows.append(_range_row(condition_order, analysis))
+
+    domain_rows.sort(key=_ordered_component_row_sort_key)
 
     destination = Path(destination_dir)
     destination.mkdir(parents=True, exist_ok=True)
@@ -256,6 +360,12 @@ def export_selected_ranges_analysis_csv(
         frames_path,
         frame_rows,
         fieldnames=("condition_name",) + _FRAMES_CSV_FIELDS,
+    )
+    domains_path = destination / "domains.csv"
+    _write_csv(
+        domains_path,
+        domain_rows,
+        fieldnames=("condition_name",) + _DOMAINS_CSV_FIELDS,
     )
     ranges_path = destination / "ranges.csv"
     _write_csv(ranges_path, range_rows, fieldnames=_RANGES_CSV_FIELDS)
@@ -300,6 +410,7 @@ def export_selected_ranges_analysis_csv(
     file_entries = [
         {"path": molecules_path.name, "record_count": len(molecule_rows)},
         {"path": frames_path.name, "record_count": len(frame_rows)},
+        {"path": domains_path.name, "record_count": len(domain_rows)},
         {"path": ranges_path.name, "record_count": len(range_rows)},
         {"path": comparison_path.name, "record_count": 1},
         {
@@ -342,6 +453,7 @@ def export_selected_ranges_analysis_csv(
     paths = {
         "molecules_csv": molecules_path,
         "frames_csv": frames_path,
+        "domains_csv": domains_path,
         "ranges_csv": ranges_path,
         "comparison_csv": comparison_path,
         "spatial_bins_csv": spatial_bins_path,
@@ -956,9 +1068,11 @@ def export_full_working_series_analysis_csv(
         analysis_results_callback(tuple(analysis.frame_results))
     molecule_rows = []
     frame_rows = []
+    domain_rows = []
     for frame_analysis in analysis.frame_results:
         molecule_rows.extend(_analyzed_molecule_rows(series, frame_analysis))
         frame_rows.append(_frame_row(series, frame_analysis))
+        domain_rows.extend(_ordered_component_rows(series, frame_analysis))
     molecule_rows.sort(
         key=lambda row: (
             int(row["working_frame_index"]),
@@ -967,9 +1081,15 @@ def export_full_working_series_analysis_csv(
         )
     )
     frame_rows.sort(key=lambda row: int(row["working_frame_index"]))
+    domain_rows.sort(key=_ordered_component_row_sort_key)
     if phase_callback is not None:
         phase_callback("writing_tables")
-    return _write_analysis_tables(destination_dir, molecule_rows, frame_rows)
+    return _write_analysis_tables(
+        destination_dir,
+        molecule_rows,
+        frame_rows,
+        domain_rows,
+    )
 
 
 def export_current_frame_analysis_csv(
@@ -986,6 +1106,7 @@ def export_current_frame_analysis_csv(
         destination_dir,
         rows,
         [_frame_row(series, frame_analysis)],
+        _ordered_component_rows(series, frame_analysis),
     )
 
 
@@ -1105,6 +1226,7 @@ def _write_analysis_tables(
     destination_dir: str | Path,
     molecule_rows: list[dict[str, object]],
     frame_rows: list[dict[str, object]],
+    domain_rows: list[dict[str, object]],
 ) -> dict[str, Path]:
     destination = Path(destination_dir)
     destination.mkdir(parents=True, exist_ok=True)
@@ -1112,7 +1234,13 @@ def _write_analysis_tables(
     _write_csv(molecules_path, molecule_rows, fieldnames=_FULL_MOLECULES_CSV_FIELDS)
     frames_path = destination / "frames.csv"
     _write_csv(frames_path, frame_rows, fieldnames=_FRAMES_CSV_FIELDS)
-    return {"molecules_csv": molecules_path, "frames_csv": frames_path}
+    domains_path = destination / "domains.csv"
+    _write_csv(domains_path, domain_rows, fieldnames=_DOMAINS_CSV_FIELDS)
+    return {
+        "molecules_csv": molecules_path,
+        "frames_csv": frames_path,
+        "domains_csv": domains_path,
+    }
 
 
 def export_current_frame_molecules_csv(
@@ -1292,7 +1420,7 @@ def _frame_row(
     frame_index = frame_analysis.frame_index
     source_frame_index = series.source_frame_indices[frame_index]
     distance_metrics = frame_analysis.distance_metrics
-    return {
+    row = {
         "working_frame_index": frame_index,
         "working_frame_number": frame_index + 1,
         "source_frame_index": source_frame_index,
@@ -1311,6 +1439,191 @@ def _frame_row(
         "mean_intensity": frame_analysis.mean_intensity,
         "median_intensity": frame_analysis.median_intensity,
     }
+    row.update(_m6_frame_fields(frame_analysis))
+    return row
+
+
+def _m6_frame_fields(
+    frame_analysis: MolecularFrameAnalysisResult,
+) -> dict[str, object]:
+    fields = {field_name: None for field_name in _M6_FRAMES_CSV_FIELDS}
+    fields["m6_analysis_availability_status"] = (
+        frame_analysis.m6_orientation_availability_status
+    )
+    fields["m6_analysis_unavailability_reason"] = (
+        frame_analysis.m6_orientation_unavailability_reason
+    )
+    m6 = frame_analysis.m6_orientation_analysis
+    if m6 is None:
+        return fields
+
+    aggregates = m6.frame_aggregates
+    aggregate_field_names = (
+        "full_domain_count",
+        "small_ordered_island_count",
+        "ordered_component_count",
+        "original_observation_count",
+        "valid_representative_count",
+        "duplicate_excluded_count",
+        "invalid_position_count",
+        "valid_fov_area_nm2",
+        "supported_area_nm2",
+        "mean_local_q6_interior",
+        "global_q6_interior",
+        "mean_local_q6_all_valid",
+        "global_q6_all_valid",
+        "edge_truncated_fraction_of_valid_representatives",
+        "full_domain_molecule_fraction",
+        "small_island_molecule_fraction",
+        "unassigned_molecule_fraction",
+        "assigned_molecule_fraction",
+        "largest_domain_molecule_fraction",
+        "duplicate_excluded_fraction_of_original",
+        "invalid_position_fraction_of_original",
+        "full_domain_footprint_fraction",
+        "small_island_footprint_fraction",
+        "unassigned_supported_footprint_fraction",
+        "unsupported_background_fraction",
+        "assigned_footprint_fraction",
+        "largest_domain_footprint_fraction",
+        "footprint_overlap_error_nm2",
+        "full_domain_molecule_weighted_coherent_q6",
+        "full_domain_footprint_weighted_coherent_q6",
+        "mean_full_domain_footprint_area_nm2",
+        "median_full_domain_footprint_area_nm2",
+        "domain_molecule_entropy",
+        "domain_footprint_entropy",
+        "non_positive_valid_fov_area_qc",
+    )
+    fields.update(
+        {
+            field_name: getattr(aggregates, field_name)
+            for field_name in aggregate_field_names
+        }
+    )
+    graph = m6.first_shell_graph
+    footprint = aggregates.footprint_partition
+    fields.update(
+        {
+            "construction_method": graph.construction_method,
+            "footprint_construction_method": footprint.footprint_construction_method,
+            "geometry_collision_epsilon_nm": graph.geometry_collision_epsilon_nm,
+            "delaunay_degeneracy_qc": graph.delaunay_degeneracy_qc,
+            "graph_qc_status": graph.qc_status,
+            "coordinate_frame": m6.coordinate_frame,
+            "orientation_reference": m6.orientation_reference,
+            "spatial_calibration_fingerprint": m6.spatial_calibration_fingerprint,
+            "registration_fingerprint": m6.registration_fingerprint,
+            "point_coordinate_fingerprint": graph.point_coordinate_fingerprint,
+            "pair_correlation_window_geometry_status": (
+                m6.pair_correlation.window_geometry_status
+            ),
+            "fewer_than_3_noncollinear_points_qc": (
+                footprint.fewer_than_3_noncollinear_points_qc
+            ),
+            "voronoi_degenerate_qc": footprint.voronoi_degenerate_qc,
+            "footprint_clipped_by_fov_qc": footprint.footprint_clipped_by_fov_qc,
+            "footprint_disconnected_qc": footprint.footprint_disconnected_qc,
+            "footprint_overlap_error_qc": footprint.footprint_overlap_error_qc,
+        }
+    )
+    return fields
+
+
+def _ordered_component_rows(
+    series: MolTrackImageSeries,
+    frame_analysis: MolecularFrameAnalysisResult,
+) -> list[dict[str, object]]:
+    m6 = frame_analysis.m6_orientation_analysis
+    if m6 is None:
+        return []
+
+    frame_index = frame_analysis.frame_index
+    source_frame_index = series.source_frame_indices[frame_index]
+    frame_fields = {
+        "working_frame_index": frame_index,
+        "working_frame_number": frame_index + 1,
+        "source_frame_index": source_frame_index,
+        "source_frame_number": source_frame_index + 1,
+        "time_s": _source_frame_time_s(series, frame_index),
+        "source_view": frame_analysis.source_view,
+    }
+    metrics_by_id = {
+        component.ordered_component_id: component
+        for component in m6.frame_aggregates.domain_metrics.components
+    }
+    footprints_by_id = {
+        component.ordered_component_id: component
+        for component in m6.frame_aggregates.footprint_partition.components
+    }
+    if metrics_by_id.keys() != footprints_by_id.keys():
+        raise ValueError("M6 domain metrics and footprints must describe the same components.")
+
+    rows = []
+    for component_id in sorted(metrics_by_id):
+        component = metrics_by_id[component_id]
+        footprint = footprints_by_id[component_id]
+        rows.append(
+            {
+                **frame_fields,
+                "ordered_component_id": component.ordered_component_id,
+                "m6_orientation_domain_id": component.m6_orientation_domain_id,
+                "component_type": component.component_type,
+                "molecule_count": component.molecule_count,
+                "molecule_fraction_of_valid_representatives": (
+                    component.molecule_fraction_of_valid_representatives
+                ),
+                "footprint_area_nm2": footprint.footprint_area_nm2,
+                "footprint_fraction_of_valid_fov": (
+                    footprint.footprint_fraction_of_valid_fov
+                ),
+                "orientation_deg": component.orientation_deg,
+                "centroid_x_nm": component.centroid_x_nm,
+                "centroid_y_nm": component.centroid_y_nm,
+                "min_x_nm": component.min_x_nm,
+                "min_y_nm": component.min_y_nm,
+                "max_x_nm": component.max_x_nm,
+                "max_y_nm": component.max_y_nm,
+                "domain_mean_local_q6": component.domain_mean_local_q6,
+                "domain_coherent_q6": component.domain_coherent_q6,
+                "internal_first_shell_bond_count": (
+                    component.internal_first_shell_bond_count
+                ),
+                "domain_median_bond_length_nm": (
+                    component.domain_median_bond_length_nm
+                ),
+                "domain_bond_length_mad_nm": component.domain_bond_length_mad_nm,
+                "domain_bond_length_iqr_nm": component.domain_bond_length_iqr_nm,
+                "domain_bond_length_robust_cv": component.domain_bond_length_robust_cv,
+                "edge_truncated": footprint.edge_truncated,
+                "insufficient_bonds_for_length_stats_qc": (
+                    component.insufficient_bonds_for_length_stats_qc
+                ),
+                "bond_length_heterogeneity_qc": (
+                    component.bond_length_heterogeneity_qc
+                ),
+                "footprint_disconnected_qc": footprint.footprint_disconnected_qc,
+                "coordinate_frame": m6.coordinate_frame,
+                "orientation_reference": m6.orientation_reference,
+                "spatial_calibration_fingerprint": m6.spatial_calibration_fingerprint,
+                "registration_fingerprint": m6.registration_fingerprint,
+                "point_coordinate_fingerprint": (
+                    m6.first_shell_graph.point_coordinate_fingerprint
+                ),
+            }
+        )
+    return rows
+
+
+def _ordered_component_row_sort_key(
+    row: Mapping[str, object],
+) -> tuple[int, int, int]:
+    domain_id = row["m6_orientation_domain_id"]
+    return (
+        int(row["working_frame_index"]),
+        int(row["ordered_component_id"]),
+        -1 if domain_id is None else int(domain_id),
+    )
 
 
 def _write_csv(

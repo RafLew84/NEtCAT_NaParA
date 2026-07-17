@@ -275,6 +275,7 @@ def export_analysis_package(
                 for key in (
                     "molecules_csv",
                     "frames_csv",
+                    "domains_csv",
                     "ranges_csv",
                     "comparison_csv",
                 ):
