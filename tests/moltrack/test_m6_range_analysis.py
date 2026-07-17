@@ -137,6 +137,7 @@ class MolecularM6RangeAnalysisTests(unittest.TestCase):
         self.assertIsNone(trends.second.m6_orientation)
 
     def test_exposes_frame_trends_range_means_and_second_minus_first_deltas(self) -> None:
+        self.series.source_frame_indices = (10, 20, 30, 40)
         comparison = compare_molecular_frame_ranges(
             self.series,
             _selection(),
@@ -150,6 +151,9 @@ class MolecularM6RangeAnalysisTests(unittest.TestCase):
         self.assertIsNotNone(second_trends)
         assert first_trends is not None and second_trends is not None
         self.assertEqual(first_trends.availability_statuses, ("available", "available"))
+        self.assertEqual(first_trends.frame_indices, (0, 1))
+        self.assertEqual(first_trends.source_frame_indices, (10, 20))
+        self.assertEqual(second_trends.source_frame_indices, (30, 40))
         self.assertEqual(first_trends.full_domain_counts, (1, 1))
         self.assertEqual(second_trends.full_domain_counts, (2, 2))
         self.assertEqual(second_trends.ordered_component_counts, (2, 2))

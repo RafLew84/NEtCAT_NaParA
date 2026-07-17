@@ -505,6 +505,7 @@ class PositionAnalysisDialog(QDialog):
         self._range_trend_data = trend_data
         self._range_spatial_data = spatial_data
         self._range_comparison = comparison
+        self.m6_settings_panel.set_range_trend_data(trend_data)
         self._density_grid_shape = (
             len(spatial_data.density_y_edges) - 1,
             len(spatial_data.density_x_edges) - 1,
@@ -549,6 +550,33 @@ class PositionAnalysisDialog(QDialog):
 
     def range_trend_data(self) -> MolecularRangeComparisonTrendData | None:
         return self._range_trend_data
+
+    def m6_trend_data(self) -> MolecularRangeComparisonTrendData | None:
+        return self.m6_settings_panel.range_trend_data()
+
+    def m6_trend_metric_options(self) -> tuple[str, ...]:
+        return self.m6_settings_panel.range_trend_metric_options()
+
+    def set_m6_trend_metric(self, metric: str) -> None:
+        self.m6_settings_panel.set_range_trend_metric(metric)
+
+    def set_m6_trend_frame_axis(self, axis: str) -> None:
+        self.m6_settings_panel.set_range_trend_frame_axis(axis)
+
+    def m6_trend_legend_labels(self) -> tuple[str, str] | None:
+        return self.m6_settings_panel.range_trend_legend_labels()
+
+    def m6_trend_axis_labels(self) -> tuple[str, str]:
+        return self.m6_settings_panel.range_trend_axis_labels()
+
+    def m6_trend_plot_values(self):
+        return self.m6_settings_panel.range_trend_plot_values()
+
+    def m6_trend_frame_values(self):
+        return self.m6_settings_panel.range_trend_frame_values()
+
+    def m6_trend_status_text(self) -> str:
+        return self.m6_settings_panel.range_trend_status_text()
 
     def range_comparison(self) -> MolecularFrameRangeComparison | None:
         return self._range_comparison

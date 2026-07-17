@@ -16,6 +16,7 @@ class MolecularM6FrameTrendSeries:
     """Reliable per-frame M6 values without cross-frame domain matching."""
 
     frame_indices: tuple[int, ...]
+    source_frame_indices: tuple[int, ...]
     availability_statuses: tuple[str, ...]
     unavailability_reasons: tuple[str | None, ...]
     mean_local_q6_interior: tuple[float | None, ...]
@@ -183,6 +184,33 @@ _METRIC_FIELDS = (
     ),
 )
 
+M6_DOMAIN_TREND_FIELD_NAMES = (
+    "mean_local_q6_interior",
+    "mean_local_q6_all_valid",
+    "global_q6_interior",
+    "edge_truncated_fraction_of_valid_representatives",
+    "full_domain_counts",
+    "small_ordered_island_counts",
+    "largest_domain_molecule_fraction",
+    "largest_domain_footprint_fraction",
+    "full_domain_molecule_fraction",
+    "small_island_molecule_fraction",
+    "unassigned_molecule_fraction",
+    "full_domain_footprint_fraction",
+    "small_island_footprint_fraction",
+    "unassigned_supported_footprint_fraction",
+    "unsupported_background_fraction",
+    "full_domain_molecule_weighted_coherent_q6",
+    "full_domain_footprint_weighted_coherent_q6",
+    "domain_molecule_entropy",
+    "domain_footprint_entropy",
+)
+
+if not set(M6_DOMAIN_TREND_FIELD_NAMES).issubset(
+    {trend_name for trend_name, _aggregate_name, _source_name in _METRIC_FIELDS}
+):
+    raise RuntimeError("Public M6 domain trends must come from the metric registry.")
+
 
 def build_molecular_m6_frame_trend_series(
     frame_results: Sequence[MolecularFrameAnalysisResult],
@@ -199,6 +227,9 @@ def build_molecular_m6_frame_trend_series(
     }
     return MolecularM6FrameTrendSeries(
         frame_indices=tuple(result.frame_index for result in frame_results),
+        source_frame_indices=tuple(
+            int(result.source_frame_index) for result in frame_results
+        ),
         availability_statuses=tuple(status for status, _, _ in extracted),
         unavailability_reasons=tuple(reason for _, reason, _ in extracted),
         **values,

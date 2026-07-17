@@ -131,6 +131,7 @@ from .m6_current_frame_results import (
     build_m6_current_frame_results,
 )
 from .m6_range_analysis import (
+    M6_DOMAIN_TREND_FIELD_NAMES,
     MolecularM6FrameTrendSeries,
     MolecularM6RangeAggregates,
     MolecularM6RangeDifferences,
@@ -200,6 +201,7 @@ __all__ = [
     "M6CurrentFrameResults",
     "M6CurrentFrameSummary",
     "MolecularM6FrameTrendSeries",
+    "M6_DOMAIN_TREND_FIELD_NAMES",
     "MolecularM6RangeAggregates",
     "MolecularM6RangeDifferences",
     "StructuralAnalysisCacheKey",

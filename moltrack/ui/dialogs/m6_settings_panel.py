@@ -29,6 +29,7 @@ from moltrack.analysis import (
 
 from .m6_pair_correlation_plot import M6PairCorrelationPlot
 from .m6_current_frame_results_panel import M6CurrentFrameResultsPanel
+from .m6_range_trends_panel import M6RangeTrendsPanel
 
 
 class M6SettingsPanel(QScrollArea):
@@ -103,6 +104,9 @@ class M6SettingsPanel(QScrollArea):
             self.domain_selection_changed.emit
         )
         layout.addWidget(self.current_frame_results_panel)
+
+        self.range_trends_panel = M6RangeTrendsPanel(content)
+        layout.addWidget(self.range_trends_panel)
 
         neighborhood_group = QGroupBox("Neighbors and first shell", content)
         neighborhood_form = QFormLayout(neighborhood_group)
@@ -410,6 +414,36 @@ class M6SettingsPanel(QScrollArea):
     def set_current_frame_results(self, results) -> None:
         self.current_frame_results_panel.set_results(results)
 
+    def set_range_trend_data(self, trend_data) -> None:
+        self.range_trends_panel.set_trend_data(trend_data)
+
+    def range_trend_data(self):
+        return self.range_trends_panel.trend_data()
+
+    def range_trend_metric_options(self) -> tuple[str, ...]:
+        return self.range_trends_panel.metric_options()
+
+    def set_range_trend_metric(self, metric: str) -> None:
+        self.range_trends_panel.set_metric(metric)
+
+    def set_range_trend_frame_axis(self, axis: str) -> None:
+        self.range_trends_panel.set_frame_axis(axis)
+
+    def range_trend_legend_labels(self) -> tuple[str, str] | None:
+        return self.range_trends_panel.legend_labels()
+
+    def range_trend_axis_labels(self) -> tuple[str, str]:
+        return self.range_trends_panel.axis_labels()
+
+    def range_trend_plot_values(self):
+        return self.range_trends_panel.plot_values()
+
+    def range_trend_frame_values(self):
+        return self.range_trends_panel.frame_values()
+
+    def range_trend_status_text(self) -> str:
+        return self.range_trends_panel.status_text()
+
     def overlay_mode(self) -> str:
         for mode, button in self._overlay_mode_buttons.items():
             if button.isChecked():
@@ -572,6 +606,7 @@ class M6SettingsPanel(QScrollArea):
         self.apply_suggestion_button.setEnabled(False)
 
     def _on_settings_changed(self, _value=None) -> None:
+        self.range_trends_panel.invalidate_for_settings_change()
         self._sync_pair_correlation_shell_markers()
         if self.sender() is not self.first_shell_r_max_nm:
             self.pair_correlation_plot.mark_result_stale()

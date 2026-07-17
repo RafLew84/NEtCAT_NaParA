@@ -56,8 +56,17 @@ class MolecularFrameAnalysisResult:
     m6_orientation_analysis: MolecularM6OrientationAnalysis | None = None
     m6_orientation_availability_status: MolecularM6FrameAvailabilityStatus = "disabled"
     m6_orientation_unavailability_reason: str | None = None
+    source_frame_index: int | None = None
 
     def __post_init__(self) -> None:
+        source_frame_index = (
+            self.frame_index
+            if self.source_frame_index is None
+            else int(self.source_frame_index)
+        )
+        if source_frame_index < 0:
+            raise ValueError("source_frame_index must be non-negative.")
+        object.__setattr__(self, "source_frame_index", source_frame_index)
         m6 = self.m6_orientation_analysis
         status = self.m6_orientation_availability_status
         reason = self.m6_orientation_unavailability_reason
@@ -275,6 +284,7 @@ def analyze_molecular_frame_range(
                 m6_orientation_unavailability_reason=(
                     m6_orientation_unavailability_reason
                 ),
+                source_frame_index=series.source_frame_indices[frame_index],
             )
         )
         if progress_callback is not None:
