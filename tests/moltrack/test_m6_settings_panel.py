@@ -11,7 +11,7 @@ from moltrack.analysis import (
 )
 
 try:
-    from PyQt6.QtWidgets import QApplication, QAbstractButton, QLabel
+    from PyQt6.QtWidgets import QApplication, QAbstractButton, QLabel, QWidget
 except ImportError:  # pragma: no cover - optional outside target GUI env
     QApplication = None
 
@@ -96,6 +96,19 @@ class MolecularM6SettingsPanelTests(unittest.TestCase):
         self.assertNotIn("Row order", visible_text)
         self.assertNotIn("Line order", visible_text)
         self.assertNotIn("Molecular row direction", visible_text)
+        ui_text = [visible_text, self.dialog.windowTitle()]
+        for widget in self.dialog.findChildren(QWidget):
+            for property_name in ("title", "toolTip", "statusTip"):
+                getter = getattr(widget, property_name, None)
+                if callable(getter):
+                    ui_text.append(getter())
+        visible_text_lower = "\n".join(ui_text).lower()
+        for unsupported_claim in (
+            "all structural phases",
+            "complete phase classification",
+            "phase map",
+        ):
+            self.assertNotIn(unsupported_claim, visible_text_lower)
         self.assertTrue(self.dialog.m6_advanced_group.isCheckable())
 
     def test_overlay_controls_round_trip_segmented_mode_opacity_and_visibility(self) -> None:

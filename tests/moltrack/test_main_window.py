@@ -5936,11 +5936,14 @@ class MolTrackMainWindowTests(unittest.TestCase):
 
     def test_restoring_completed_m6_analysis_recomputes_in_worker(self) -> None:
         comparator_started = threading.Event()
+        release_comparator = threading.Event()
         received_settings = []
 
         def comparator(series, selection, **kwargs):
             received_settings.append(kwargs.get("m6_orientation_settings"))
             comparator_started.set()
+            if not release_comparator.wait(timeout=2.0):
+                raise RuntimeError("Test did not release the M6 comparator.")
             return compare_molecular_frame_ranges(series, selection, **kwargs)
 
         settings = MolecularM6OrientationAnalysisSettings(q_seed=0.7, q_grow=0.3)
@@ -5973,13 +5976,13 @@ class MolTrackMainWindowTests(unittest.TestCase):
             density_grid_shape=(12, 18),
         )
 
-        started_at = time.monotonic()
         self.window._restore_position_analysis_state(state)
-        elapsed = time.monotonic() - started_at
 
-        self.assertLess(elapsed, 0.2)
         self.process_events_until(comparator_started.is_set)
+        self.assertTrue(self.window._m6_analysis_running)
+        self.assertTrue(self.window._m6_analysis_thread.isRunning())
         self.assertEqual(received_settings, [settings])
+        release_comparator.set()
         self.process_events_until(lambda: not self.window._m6_analysis_running)
         dialog = self.window.position_analysis_dialog()
         self.assertEqual(dialog.active_analysis_tab(), "Sixfold Bond Order")
