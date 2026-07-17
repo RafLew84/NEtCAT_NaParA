@@ -6,25 +6,35 @@ import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+from collections.abc import Callable, Mapping, Sequence
 from typing import TYPE_CHECKING
 
 import numpy as np
 
 from moltrack import __version__ as moltrack_version
 from moltrack.analysis import (
+    M6_ORIENTATION_ALGORITHM_VERSION,
+    SAMPLE_COORDINATE_TRANSFORM_VERSION,
+    StructuralAnalysisCacheKey,
     MolecularFrameAnalysisResult,
     MolecularFrameRange,
     MolecularFrameRangeAnalysis,
     MolecularFrameRangeComparison,
     MolecularFrameRangeSelection,
     MolecularIntensityMeasurement,
+    MolecularM6OrientationAnalysisSettings,
     MolecularPositionPlotData,
     MolecularRangeSpatialComparisonData,
     analyze_molecular_frame_range,
     build_molecular_range_spatial_comparison_data,
+    build_structural_analysis_cache_key,
     compare_molecular_frame_ranges,
 )
 from moltrack.core import MolTrackImageSeries, MolecularCentroid, build_molecular_centroids
+
+from .analysis_environment import (
+    resolve_analysis_export_environment,
+)
 
 if TYPE_CHECKING:
     from .analysis_plots import AnalysisPlotExportResult
@@ -52,6 +62,33 @@ _MOLECULES_CSV_FIELDS = (
     "y_nm",
 )
 
+_M6_MOLECULES_CSV_FIELDS = (
+    "neighbor_count",
+    "psi6_real",
+    "psi6_imag",
+    "q6",
+    "lattice_orientation_deg",
+    "orientation_status",
+    "ordered_component_id",
+    "m6_orientation_domain_id",
+    "component_type",
+    "order_qc",
+    "local_median_bond_length_nm",
+    "local_bond_length_mad_nm",
+    "local_bond_length_iqr_nm",
+    "local_bond_length_robust_cv",
+    "representative_source_id",
+    "duplicate_parent_component_id",
+    "duplicate_parent_component_diameter_nm",
+    "duplicate_group_id",
+    "duplicate_group_diameter_nm",
+    "duplicate_chain_qc",
+    "physical_duplicate_qc",
+    "geometry_duplicate_qc",
+    "coordinate_frame",
+    "orientation_reference",
+)
+
 _FULL_MOLECULES_CSV_FIELDS = _MOLECULES_CSV_FIELDS + (
     "detection_id",
     "segmentation_id",
@@ -73,7 +110,7 @@ _FULL_MOLECULES_CSV_FIELDS = _MOLECULES_CSV_FIELDS + (
     "local_background_median",
     "background_corrected_mean",
     "background_corrected_median",
-)
+) + _M6_MOLECULES_CSV_FIELDS
 
 _FRAMES_CSV_FIELDS = (
     "working_frame_index",
@@ -166,6 +203,8 @@ def export_selected_ranges_analysis_csv(
     plot_size_inches: tuple[float, float] = (8.0, 6.0),
     progress_callback=None,
     phase_callback=None,
+    m6_orientation_settings: MolecularM6OrientationAnalysisSettings | None = None,
+    environment_provider: Callable[[], Mapping[str, object]] | None = None,
 ) -> dict[str, Path]:
     """Analyze and export two named frame ranges without creating tracks."""
 
@@ -178,6 +217,7 @@ def export_selected_ranges_analysis_csv(
         background_inner_radius_px=background_inner_radius_px,
         background_outer_radius_px=background_outer_radius_px,
         progress_callback=progress_callback,
+        m6_orientation_settings=m6_orientation_settings,
     )
     spatial_data = build_molecular_range_spatial_comparison_data(
         comparison,
@@ -276,6 +316,7 @@ def export_selected_ranges_analysis_csv(
             "export_schema_version": ANALYSIS_EXPORT_SCHEMA_VERSION,
             "created_at_utc": datetime.now(timezone.utc).isoformat(),
             "application": {"name": "MolTrack", "version": moltrack_version},
+            "environment": resolve_analysis_export_environment(environment_provider),
             "source": _source_manifest(series, destination),
             "stm_metadata": _stm_metadata_manifest(series),
             "working_series": {
@@ -291,6 +332,7 @@ def export_selected_ranges_analysis_csv(
                 use_segmentation_centroids=use_segmentation_centroids,
                 background_inner_radius_px=background_inner_radius_px,
                 background_outer_radius_px=background_outer_radius_px,
+                m6_orientation_settings=m6_orientation_settings,
             ),
             "registration": _registration_manifest(series),
             "plots": _plots_manifest(plot_export, destination),
@@ -601,11 +643,18 @@ def _analysis_manifest(
     use_segmentation_centroids: bool,
     background_inner_radius_px: int,
     background_outer_radius_px: int,
+    m6_orientation_settings: MolecularM6OrientationAnalysisSettings | None,
 ) -> dict[str, object]:
+    frame_results = tuple(comparison.first_analysis.frame_results) + tuple(
+        comparison.second_analysis.frame_results
+    )
     return {
         "analysis_mode": comparison.analysis_mode,
         "uses_tracking": comparison.uses_tracking,
         "source_view": comparison.source_view,
+        "analysis_coordinate_context": _analysis_coordinate_context(
+            comparison.source_view
+        ),
         "centroid_mode": (
             "segmentation_centroids_with_bbox_center_fallback"
             if use_segmentation_centroids
@@ -626,7 +675,173 @@ def _analysis_manifest(
             spatial_data,
             source_view=comparison.source_view,
         ),
+        "m6_orientation": build_m6_analysis_manifest(
+            series,
+            frame_results,
+            requested_settings=m6_orientation_settings,
+            use_segmentation_centroids=use_segmentation_centroids,
+            source_view=comparison.source_view,
+        ),
     }
+
+
+def build_m6_analysis_manifest(
+    series: MolTrackImageSeries,
+    frame_results: Sequence[MolecularFrameAnalysisResult],
+    *,
+    requested_settings: MolecularM6OrientationAnalysisSettings | None,
+    use_segmentation_centroids: bool,
+    source_view: str,
+) -> dict[str, object]:
+    """Build one reproducible M6 manifest without globalizing frame fallbacks."""
+
+    if requested_settings is not None and not isinstance(
+        requested_settings,
+        MolecularM6OrientationAnalysisSettings,
+    ):
+        raise TypeError("requested_settings must be M6 settings or None.")
+    results = tuple(frame_results)
+    orientation_references = sorted(
+        {
+            result.m6_orientation_analysis.orientation_reference
+            for result in results
+            if result.m6_orientation_analysis is not None
+        }
+    )
+    frame_entries = []
+    for result in results:
+        m6 = result.m6_orientation_analysis
+        graph = None if m6 is None else m6.first_shell_graph
+        cache_key = (
+            None
+            if m6 is None
+            else build_structural_analysis_cache_key(
+                series,
+                m6.sample_coordinates,
+                use_segmentation_centroids=use_segmentation_centroids,
+                settings=m6.settings,
+            )
+        )
+        frame_entries.append(
+            {
+                "working_frame_index": result.frame_index,
+                "source_frame_index": result.source_frame_index,
+                "availability_status": result.m6_orientation_availability_status,
+                "unavailability_reason": result.m6_orientation_unavailability_reason,
+                "construction_method": None if graph is None else graph.construction_method,
+                "cache_fingerprints": {
+                    "coordinate_transform": (
+                        None if m6 is None else m6.coordinate_transform_fingerprint
+                    ),
+                    "spatial_calibration": (
+                        None if graph is None else graph.spatial_calibration_fingerprint
+                    ),
+                    "registration": (
+                        None if graph is None else graph.registration_fingerprint
+                    ),
+                    "point_coordinates": (
+                        None if graph is None else graph.point_coordinate_fingerprint
+                    ),
+                    "settings": (
+                        None if cache_key is None else cache_key.settings_hash
+                    ),
+                    "annotations": (
+                        None if cache_key is None else cache_key.annotation_fingerprint
+                    ),
+                    "sample_geometry": (
+                        None if cache_key is None else cache_key.sample_geometry_fingerprint
+                    ),
+                    "valid_fov": (
+                        None if cache_key is None else cache_key.valid_fov_fingerprint
+                    ),
+                },
+                "cache_key": _structural_cache_key_manifest(cache_key),
+            }
+        )
+    settings_payload = (
+        None if requested_settings is None else requested_settings.to_dict()
+    )
+    return {
+        "enabled": requested_settings is not None,
+        "algorithm_version": M6_ORIENTATION_ALGORITHM_VERSION,
+        "settings": settings_payload,
+        "symmetry_m": (
+            None if requested_settings is None else requested_settings.symmetry_m
+        ),
+        "bond_weighting": (
+            None if requested_settings is None else requested_settings.bond_weighting
+        ),
+        "duplicate_policy": (
+            None
+            if requested_settings is None
+            else {
+                "enabled": requested_settings.duplicate_detection_enabled,
+                "max_distance_nm": requested_settings.duplicate_max_distance_nm,
+                "representative": requested_settings.duplicate_policy,
+                "chain": requested_settings.duplicate_chain_policy,
+                "geometry_collision": requested_settings.geometry_collision_policy,
+                "geometry_absolute_tolerance_nm": (
+                    requested_settings.geometry_absolute_tolerance_nm
+                ),
+                "geometry_relative_tolerance": (
+                    requested_settings.geometry_relative_tolerance
+                ),
+            }
+        ),
+        "delaunay_policy": (
+            None
+            if requested_settings is None
+            else {"degeneracy": requested_settings.delaunay_degeneracy_policy}
+        ),
+        "pair_correlation": (
+            None
+            if requested_settings is None
+            else {
+                "bin_width_nm": requested_settings.gr_bin_width_nm,
+                "max_nm": requested_settings.gr_max_nm,
+                "min_expected_pair_exposure": (
+                    requested_settings.gr_min_expected_pair_exposure
+                ),
+                "min_contributing_frames": (
+                    requested_settings.gr_min_contributing_frames
+                ),
+                "smoothing_method": requested_settings.gr_smoothing_method,
+                "smoothing_width": requested_settings.gr_smoothing_width,
+                "peak_prominence": requested_settings.gr_peak_prominence,
+            }
+        ),
+        "coordinate_convention": {
+            "coordinate_frame": "sample_nm" if requested_settings is not None else None,
+            "analysis_coordinate_context": _analysis_coordinate_context(source_view),
+            "orientation_references": orientation_references,
+            "coordinate_transform_version": SAMPLE_COORDINATE_TRANSFORM_VERSION,
+        },
+        "frame_results": frame_entries,
+    }
+
+
+def _structural_cache_key_manifest(
+    cache_key: StructuralAnalysisCacheKey | None,
+) -> dict[str, object] | None:
+    if cache_key is None:
+        return None
+    return {
+        "frame_id": cache_key.frame_id,
+        "source_view": cache_key.source_view,
+        "centroid_mode": cache_key.centroid_mode,
+        "annotation_fingerprint": cache_key.annotation_fingerprint,
+        "registration_fingerprint": cache_key.registration_fingerprint,
+        "spatial_calibration_fingerprint": cache_key.spatial_calibration_fingerprint,
+        "coordinate_transform_fingerprint": cache_key.coordinate_transform_fingerprint,
+        "sample_geometry_fingerprint": cache_key.sample_geometry_fingerprint,
+        "valid_fov_fingerprint": cache_key.valid_fov_fingerprint,
+        "settings_hash": cache_key.settings_hash,
+        "algorithm_version": cache_key.algorithm_version,
+    }
+
+
+def _analysis_coordinate_context(source_view: str) -> str:
+    return "registered" if source_view == "expanded_aligned" else "native"
 
 
 def _coordinate_system_manifest(
@@ -715,6 +930,11 @@ def export_full_working_series_analysis_csv(
     background_outer_radius_px: int = 3,
     progress_callback=None,
     phase_callback=None,
+    m6_orientation_settings: MolecularM6OrientationAnalysisSettings | None = None,
+    analysis_results_callback: Callable[
+        [tuple[MolecularFrameAnalysisResult, ...]], None
+    ]
+    | None = None,
 ) -> dict[str, Path]:
     """Analyze and export every frame remaining in the working series."""
 
@@ -730,7 +950,10 @@ def export_full_working_series_analysis_csv(
         background_inner_radius_px=background_inner_radius_px,
         background_outer_radius_px=background_outer_radius_px,
         progress_callback=progress_callback,
+        m6_orientation_settings=m6_orientation_settings,
     )
+    if analysis_results_callback is not None:
+        analysis_results_callback(tuple(analysis.frame_results))
     molecule_rows = []
     frame_rows = []
     for frame_analysis in analysis.frame_results:
@@ -773,22 +996,109 @@ def _analyzed_molecule_rows(
     rows = _molecule_rows(series, frame_analysis.plot_data)
     distances = frame_analysis.distance_metrics.nearest_neighbor_distances
     angles = frame_analysis.angle_metrics.nearest_neighbor_angles_degrees
+    point_index_by_source = {
+        (source_kind, source_id): point_index
+        for point_index, (source_kind, source_id) in enumerate(
+            zip(
+                frame_analysis.plot_data.point_source_kinds,
+                frame_analysis.plot_data.point_source_ids,
+            )
+        )
+    }
     intensity_by_source = {
         (measurement.source_kind, measurement.source_id): measurement
         for measurement in frame_analysis.intensity_measurements
     }
-    for point_index, row in enumerate(rows):
+    m6_by_source_id = _m6_fields_by_source_id(frame_analysis)
+    for row in rows:
+        source_key = (str(row["source_kind"]), str(row["source_id"]))
+        try:
+            point_index = point_index_by_source[source_key]
+        except KeyError as exc:
+            raise ValueError(
+                "Export row source is not available in Position Analysis: "
+                f"{source_key[0]}:{source_key[1]}."
+            ) from exc
         row.update(_annotation_fields(series, frame_analysis.plot_data, point_index))
         row["nearest_neighbor_distance"] = (
             None if not distances else distances[point_index]
         )
         row["nearest_neighbor_distance_unit"] = frame_analysis.distance_metrics.unit
         row["nearest_neighbor_angle_deg"] = None if not angles else angles[point_index]
-        measurement = intensity_by_source.get(
-            (str(row["source_kind"]), str(row["source_id"]))
-        )
+        measurement = intensity_by_source.get(source_key)
         row.update(_intensity_fields(measurement))
+        row.update(
+            m6_by_source_id.get(
+                str(row["source_id"]),
+                _empty_m6_molecule_fields(),
+            )
+        )
     return rows
+
+
+def _m6_fields_by_source_id(
+    frame_analysis: MolecularFrameAnalysisResult,
+) -> dict[str, dict[str, object]]:
+    m6 = frame_analysis.m6_orientation_analysis
+    if m6 is None:
+        return {}
+    local = m6.local_order
+    segmentation = m6.segmentation
+    graph = m6.first_shell_graph
+    local_indices = {source_id: index for index, source_id in enumerate(local.source_ids)}
+    segmentation_indices = {
+        source_id: index for index, source_id in enumerate(segmentation.source_ids)
+    }
+    graph_indices = {source_id: index for index, source_id in enumerate(graph.point_ids)}
+    fields_by_source_id = {}
+    for source_id in m6.point_source_ids:
+        local_index = local_indices[source_id]
+        segmentation_index = segmentation_indices[source_id]
+        graph_index = graph_indices[source_id]
+        psi6 = local.psi6[local_index]
+        ordered_component_id = segmentation.ordered_component_id[segmentation_index]
+        domain_id = segmentation.m6_orientation_domain_id[segmentation_index]
+        fields_by_source_id[source_id] = {
+            "neighbor_count": local.neighbor_count[local_index],
+            "psi6_real": None if psi6 is None else psi6.real,
+            "psi6_imag": None if psi6 is None else psi6.imag,
+            "q6": local.q6[local_index],
+            "lattice_orientation_deg": local.lattice_orientation_deg[local_index],
+            "orientation_status": local.orientation_status[local_index],
+            "ordered_component_id": (
+                None if ordered_component_id < 0 else ordered_component_id
+            ),
+            "m6_orientation_domain_id": None if domain_id < 0 else domain_id,
+            "component_type": segmentation.component_type[segmentation_index],
+            "order_qc": local.computation_status[local_index],
+            "local_median_bond_length_nm": (
+                local.local_median_bond_length_nm[local_index]
+            ),
+            "local_bond_length_mad_nm": local.local_bond_length_mad_nm[local_index],
+            "local_bond_length_iqr_nm": local.local_bond_length_iqr_nm[local_index],
+            "local_bond_length_robust_cv": (
+                local.local_bond_length_robust_cv[local_index]
+            ),
+            "representative_source_id": graph.representative_source_ids[graph_index],
+            "duplicate_parent_component_id": (
+                graph.duplicate_parent_component_ids[graph_index]
+            ),
+            "duplicate_parent_component_diameter_nm": (
+                graph.duplicate_parent_component_diameters_nm[graph_index]
+            ),
+            "duplicate_group_id": graph.duplicate_group_ids[graph_index],
+            "duplicate_group_diameter_nm": graph.duplicate_group_diameters_nm[graph_index],
+            "duplicate_chain_qc": graph.duplicate_chain_qc[graph_index],
+            "physical_duplicate_qc": graph.physical_duplicate_qc[graph_index],
+            "geometry_duplicate_qc": graph.geometry_duplicate_qc[graph_index],
+            "coordinate_frame": m6.coordinate_frame,
+            "orientation_reference": m6.orientation_reference,
+        }
+    return fields_by_source_id
+
+
+def _empty_m6_molecule_fields() -> dict[str, object]:
+    return {field_name: None for field_name in _M6_MOLECULES_CSV_FIELDS}
 
 
 def _write_analysis_tables(
@@ -821,10 +1131,16 @@ def export_current_frame_molecules_csv(
         raise RuntimeError("No molecular positions are available for the current frame.")
 
     rows = _molecule_rows(series, plot_data)
+    for row in rows:
+        row.update(_empty_m6_molecule_fields())
     destination = Path(destination_dir)
     destination.mkdir(parents=True, exist_ok=True)
     output_path = destination / "molecules.csv"
-    _write_csv(output_path, rows, fieldnames=_MOLECULES_CSV_FIELDS)
+    _write_csv(
+        output_path,
+        rows,
+        fieldnames=_MOLECULES_CSV_FIELDS + _M6_MOLECULES_CSV_FIELDS,
+    )
     return output_path
 
 

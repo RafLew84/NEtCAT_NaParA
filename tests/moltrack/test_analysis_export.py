@@ -460,12 +460,21 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
                 },
             ],
         )
+        analysis_manifest = dict(manifest["analysis"])
+        m6_manifest = analysis_manifest.pop("m6_orientation")
+        self.assertFalse(m6_manifest["enabled"])
+        self.assertIsNone(m6_manifest["settings"])
         self.assertEqual(
-            manifest["analysis"],
+            [entry["availability_status"] for entry in m6_manifest["frame_results"]],
+            ["disabled", "disabled"],
+        )
+        self.assertEqual(
+            analysis_manifest,
             {
                 "analysis_mode": "frame_position_distributions_without_tracking",
                 "uses_tracking": False,
                 "source_view": "expanded_aligned",
+                "analysis_coordinate_context": "registered",
                 "centroid_mode": "bbox_centers",
                 "density_grid_shape": {"rows": 3, "columns": 4},
                 "intensity": {
@@ -1525,7 +1534,35 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
             "x_nm",
             "y_nm",
         }
+        m6_fields = {
+            "neighbor_count",
+            "psi6_real",
+            "psi6_imag",
+            "q6",
+            "lattice_orientation_deg",
+            "orientation_status",
+            "ordered_component_id",
+            "m6_orientation_domain_id",
+            "component_type",
+            "order_qc",
+            "local_median_bond_length_nm",
+            "local_bond_length_mad_nm",
+            "local_bond_length_iqr_nm",
+            "local_bond_length_robust_cv",
+            "representative_source_id",
+            "duplicate_parent_component_id",
+            "duplicate_parent_component_diameter_nm",
+            "duplicate_group_id",
+            "duplicate_group_diameter_nm",
+            "duplicate_chain_qc",
+            "physical_duplicate_qc",
+            "geometry_duplicate_qc",
+            "coordinate_frame",
+            "orientation_reference",
+        }
+        expected_fields.update(m6_fields)
         self.assertEqual(set(rows["seg-sam2"]), expected_fields)
+        self.assertTrue(all(rows["seg-sam2"][field] == "" for field in m6_fields))
         self.assertEqual(rows["seg-sam2"]["working_frame_index"], "1")
         self.assertEqual(rows["seg-sam2"]["working_frame_number"], "2")
         self.assertEqual(rows["seg-sam2"]["source_frame_index"], "1")

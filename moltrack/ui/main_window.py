@@ -3196,6 +3196,18 @@ class MolTrackMainWindow(QMainWindow):
         ):
             selected_ranges = position_dialog.frame_range_selection()
         inner_radius, outer_radius = position_dialog.intensity_background_radii()
+        m6_state = getattr(series, "m6_analysis_state", None)
+        m6_orientation_settings = (
+            m6_state.settings
+            if (
+                isinstance(m6_state, MolecularM6SessionState)
+                and m6_state.enabled
+                and m6_state.source_view == position_dialog.source_view()
+                and m6_state.use_segmentation_centroids
+                == position_dialog.use_segmentation_centroids()
+            )
+            else None
+        )
         export_dialog = self._analysis_export_dialog_factory(
             parent=self,
             frame_count=series.frame_count,
@@ -3208,6 +3220,7 @@ class MolTrackMainWindow(QMainWindow):
             background_outer_radius_px=outer_radius,
             density_grid_shape=position_dialog.density_grid_shape(),
             selected_ranges=selected_ranges,
+            m6_orientation_settings=m6_orientation_settings,
         )
         if export_dialog.exec() != QDialog.DialogCode.Accepted:
             return

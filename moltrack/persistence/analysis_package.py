@@ -6,23 +6,30 @@ import os
 import shutil
 import tempfile
 import zipfile
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
 from moltrack import __version__ as moltrack_version
 from moltrack.analysis import (
+    MolecularFrameAnalysisResult,
     MolecularFrameRange,
     MolecularFrameRangeSelection,
+    MolecularM6OrientationAnalysisSettings,
     analyze_molecular_frame_range,
 )
 from moltrack.core import MolTrackImageSeries
 
 from .analysis_export import (
     ANALYSIS_EXPORT_SCHEMA_VERSION,
+    build_m6_analysis_manifest,
     export_current_frame_analysis_csv,
     export_full_working_series_analysis_csv,
     export_selected_ranges_analysis_csv,
+)
+from .analysis_environment import (
+    resolve_analysis_export_environment,
 )
 
 
@@ -78,6 +85,7 @@ class AnalysisExportSettings:
     density_grid_shape: tuple[int, int]
     selected_ranges: MolecularFrameRangeSelection | None = None
     overwrite: bool = False
+    m6_orientation_settings: MolecularM6OrientationAnalysisSettings | None = None
 
     def __post_init__(self) -> None:
         scope = str(self.scope).strip().lower()
@@ -127,6 +135,12 @@ class AnalysisExportSettings:
                 raise ValueError("selected_ranges frame_count must match frame_count.")
             if selected_ranges.source_view != source_view:
                 raise ValueError("selected_ranges source_view must match source_view.")
+        m6_settings = self.m6_orientation_settings
+        if m6_settings is not None and not isinstance(
+            m6_settings,
+            MolecularM6OrientationAnalysisSettings,
+        ):
+            raise TypeError("m6_orientation_settings must be M6 settings or None.")
 
         object.__setattr__(self, "scope", scope)
         object.__setattr__(self, "destination", Path(destination_text))
@@ -155,6 +169,7 @@ def export_analysis_package(
     settings: AnalysisExportSettings,
     *,
     progress_callback=None,
+    environment_provider: Callable[[], Mapping[str, object]] | None = None,
 ) -> AnalysisExportPackageResult:
     """Build and atomically publish one package from an immutable UI request."""
 
@@ -195,7 +210,14 @@ def export_analysis_package(
             emit("analyzing_frames", completed, total)
 
         current_analysis = None
+        manifest_frame_results: tuple[MolecularFrameAnalysisResult, ...] = ()
         if settings.scope == "full_working_series":
+            def capture_frame_results(
+                frame_results: tuple[MolecularFrameAnalysisResult, ...],
+            ) -> None:
+                nonlocal manifest_frame_results
+                manifest_frame_results = frame_results
+
             paths = export_full_working_series_analysis_csv(
                 series,
                 staging,
@@ -207,6 +229,8 @@ def export_analysis_package(
                 background_outer_radius_px=settings.background_outer_radius_px,
                 progress_callback=analysis_progress,
                 phase_callback=emit,
+                m6_orientation_settings=settings.m6_orientation_settings,
+                analysis_results_callback=capture_frame_results,
             )
             if not settings.include_tables:
                 for path in paths.values():
@@ -218,6 +242,7 @@ def export_analysis_package(
                 settings,
                 progress_callback=analysis_progress,
             )
+            manifest_frame_results = (current_analysis,)
             paths = {}
             if settings.include_tables:
                 emit("writing_tables")
@@ -243,6 +268,8 @@ def export_analysis_package(
                 include_plots=settings.include_plots,
                 progress_callback=analysis_progress,
                 phase_callback=emit,
+                m6_orientation_settings=settings.m6_orientation_settings,
+                environment_provider=environment_provider,
             )
             if not settings.include_tables:
                 for key in (
@@ -284,6 +311,8 @@ def export_analysis_package(
                 series,
                 settings,
                 record_counts=record_counts,
+                frame_results=manifest_frame_results,
+                environment_provider=environment_provider,
             )
         relative_files = _relative_package_files(staging)
         if settings.package_format == "directory":
@@ -346,6 +375,7 @@ def _analyze_current_frame(
         background_inner_radius_px=settings.background_inner_radius_px,
         background_outer_radius_px=settings.background_outer_radius_px,
         progress_callback=progress_callback,
+        m6_orientation_settings=settings.m6_orientation_settings,
     ).frame_results[0]
 
 
@@ -367,11 +397,14 @@ def _write_scope_manifest(
     settings: AnalysisExportSettings,
     *,
     record_counts: tuple[tuple[str, int], ...],
+    frame_results: tuple[MolecularFrameAnalysisResult, ...],
+    environment_provider: Callable[[], Mapping[str, object]] | None,
 ) -> None:
     payload = {
         "export_schema_version": ANALYSIS_EXPORT_SCHEMA_VERSION,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "application": {"name": "MolTrack", "version": moltrack_version},
+        "environment": resolve_analysis_export_environment(environment_provider),
         "scope": settings.scope,
         "source": {"format": "MPP", "file_name": Path(series.source_path).name},
         "working_series": {
@@ -384,6 +417,11 @@ def _write_scope_manifest(
             "analysis_mode": "frame_position_distributions_without_tracking",
             "uses_tracking": False,
             "source_view": settings.source_view,
+            "analysis_coordinate_context": (
+                "registered"
+                if settings.source_view == "expanded_aligned"
+                else "native"
+            ),
             "centroid_mode": (
                 "segmentation_centroids_with_bbox_center_fallback"
                 if settings.use_segmentation_centroids
@@ -395,6 +433,13 @@ def _write_scope_manifest(
                 "background_inner_radius_px": settings.background_inner_radius_px,
                 "background_outer_radius_px": settings.background_outer_radius_px,
             },
+            "m6_orientation": build_m6_analysis_manifest(
+                series,
+                frame_results,
+                requested_settings=settings.m6_orientation_settings,
+                use_segmentation_centroids=settings.use_segmentation_centroids,
+                source_view=settings.source_view,
+            ),
         },
         "files": _package_file_entries(path.parent, record_counts),
     }
@@ -454,6 +499,8 @@ def export_selected_ranges_analysis_package(
     include_plots: bool = False,
     plot_dpi: int = 150,
     plot_size_inches: tuple[float, float] = (8.0, 6.0),
+    m6_orientation_settings: MolecularM6OrientationAnalysisSettings | None = None,
+    environment_provider: Callable[[], Mapping[str, object]] | None = None,
 ) -> AnalysisExportPackageResult:
     """Build an analysis package in staging and publish it after success."""
 
@@ -487,6 +534,8 @@ def export_selected_ranges_analysis_package(
             include_plots=include_plots,
             plot_dpi=plot_dpi,
             plot_size_inches=plot_size_inches,
+            m6_orientation_settings=m6_orientation_settings,
+            environment_provider=environment_provider,
         )
         relative_files = _relative_package_files(staging)
         if package_format == "directory":

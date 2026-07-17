@@ -2,7 +2,11 @@ import os
 import unittest
 from pathlib import Path
 
-from moltrack.analysis import MolecularFrameRange, MolecularFrameRangeSelection
+from moltrack.analysis import (
+    MolecularFrameRange,
+    MolecularFrameRangeSelection,
+    MolecularM6OrientationAnalysisSettings,
+)
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -88,6 +92,7 @@ class ExportAnalysisDialogTests(unittest.TestCase):
             first_range=MolecularFrameRange("before", 0, 1),
             second_range=MolecularFrameRange("after", 3, 4),
         )
+        m6_settings = MolecularM6OrientationAnalysisSettings(q_seed=0.7)
         self.dialog = ExportAnalysisDialog(
             frame_count=5,
             active_frame_index=3,
@@ -99,6 +104,7 @@ class ExportAnalysisDialogTests(unittest.TestCase):
             background_outer_radius_px=5,
             density_grid_shape=(3, 4),
             selected_ranges=selection,
+            m6_orientation_settings=m6_settings,
         )
 
         self.dialog.set_scope("selected_ranges")
@@ -141,6 +147,7 @@ class ExportAnalysisDialogTests(unittest.TestCase):
         self.assertEqual(settings.background_outer_radius_px, 5)
         self.assertEqual(settings.density_grid_shape, (3, 4))
         self.assertIs(settings.selected_ranges, selection)
+        self.assertIs(settings.m6_orientation_settings, m6_settings)
 
 
 if __name__ == "__main__":

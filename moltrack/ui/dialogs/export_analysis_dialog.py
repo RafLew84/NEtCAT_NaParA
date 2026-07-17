@@ -17,7 +17,10 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from moltrack.analysis import MolecularFrameRangeSelection
+from moltrack.analysis import (
+    MolecularFrameRangeSelection,
+    MolecularM6OrientationAnalysisSettings,
+)
 from moltrack.persistence import AnalysisExportSettings
 
 
@@ -44,6 +47,7 @@ class ExportAnalysisDialog(QDialog):
         background_outer_radius_px: int,
         density_grid_shape: tuple[int, int],
         selected_ranges: MolecularFrameRangeSelection | None,
+        m6_orientation_settings: MolecularM6OrientationAnalysisSettings | None = None,
         parent=None,
     ) -> None:
         super().__init__(parent)
@@ -57,6 +61,7 @@ class ExportAnalysisDialog(QDialog):
         self._background_outer_radius_px = int(background_outer_radius_px)
         self._density_grid_shape = tuple(int(value) for value in density_grid_shape)
         self._selected_ranges = selected_ranges
+        self._m6_orientation_settings = m6_orientation_settings
 
         self.setWindowTitle("Export Analysis")
         self.setMinimumWidth(440)
@@ -247,6 +252,7 @@ class ExportAnalysisDialog(QDialog):
                 else None
             ),
             overwrite=self.chk_overwrite.isChecked(),
+            m6_orientation_settings=self._m6_orientation_settings,
         )
 
     def _refresh_options_and_validation(self) -> None:

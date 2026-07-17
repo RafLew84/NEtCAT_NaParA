@@ -5023,6 +5023,46 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertIsNone(dialog_calls[0]["selected_ranges"])
         self.assertEqual(export_calls, [(series, settings)])
 
+    def test_position_analysis_export_inherits_active_m6_settings(self) -> None:
+        m6_settings = MolecularM6OrientationAnalysisSettings(q_seed=0.7)
+        dialog_calls = []
+
+        class CancelledExportAnalysisDialog:
+            def exec(self):
+                return QDialog.DialogCode.Rejected
+
+        def export_dialog_factory(**kwargs):
+            dialog_calls.append(dict(kwargs))
+            return CancelledExportAnalysisDialog()
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            analysis_export_dialog_factory=export_dialog_factory,
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((2, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(
+                pixels_x=8,
+                pixels_y=8,
+                size_nm_x=8.0,
+                size_nm_y=8.0,
+            ),
+            m6_analysis_state=MolecularM6SessionState(
+                enabled=True,
+                source_view="raw",
+                use_segmentation_centroids=True,
+                settings=m6_settings,
+            ),
+        )
+        self.window.set_image_series(series)
+        self.window.btn_position_analysis.click()
+
+        self.window._on_position_analysis_export_requested()
+
+        self.assertEqual(len(dialog_calls), 1)
+        self.assertIs(dialog_calls[0]["m6_orientation_settings"], m6_settings)
+
     def test_analysis_export_runs_without_blocking_ui_and_blocks_a_second_export(self) -> None:
         exporter_started = threading.Event()
         release_exporter = threading.Event()
