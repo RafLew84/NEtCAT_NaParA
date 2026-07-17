@@ -50,6 +50,7 @@ class PositionAnalysisDialog(QDialog):
     m6_analysis_requested = pyqtSignal(object)
     m6_first_shell_suggestion_requested = pyqtSignal(object)
     m6_view_settings_changed = pyqtSignal(object)
+    m6_domain_selection_changed = pyqtSignal(object)
 
     _INTENSITY_METRIC_OPTIONS = (
         ("Background-corrected median", "background_corrected_median"),
@@ -297,6 +298,9 @@ class PositionAnalysisDialog(QDialog):
         self.m6_settings_panel.view_settings_changed.connect(
             self.m6_view_settings_changed.emit
         )
+        self.m6_settings_panel.domain_selection_changed.connect(
+            self.m6_domain_selection_changed.emit
+        )
         self.tabs.addTab(self.m6_settings_panel, "Sixfold Bond Order")
         self.m6_advanced_group = self.m6_settings_panel.advanced_group
         self.m6_min_neighbors_for_seed_spin = (
@@ -342,6 +346,9 @@ class PositionAnalysisDialog(QDialog):
 
     def set_m6_view_settings(self, settings: MolecularM6ViewSettings) -> None:
         self.m6_settings_panel.set_view_settings(settings)
+
+    def set_m6_current_frame_results(self, results) -> None:
+        self.m6_settings_panel.set_current_frame_results(results)
 
     def m6_validation_message(self) -> str:
         return self.m6_settings_panel.validation_message()

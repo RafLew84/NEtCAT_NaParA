@@ -33,6 +33,7 @@ from PyQt6.QtWidgets import (
 )
 
 from moltrack.analysis import (
+    M6PointOverlay,
     MolecularM6OrientationAnalysisSettings,
     MolecularM6SessionState,
     MolecularM6ViewSettings,
@@ -40,6 +41,7 @@ from moltrack.analysis import (
     MolecularFrameRangeSelection,
     aggregate_pair_correlation_results,
     build_m6_point_overlay_from_analysis,
+    build_m6_current_frame_results,
     build_molecular_intensity_measurements,
     build_molecular_position_plot_data,
     build_molecular_sample_coordinates,
@@ -965,6 +967,8 @@ class MolTrackMainWindow(QMainWindow):
         self._m6_completed_context = None
         self._m6_rendered_analysis = None
         self._m6_rendered_view_settings: MolecularM6ViewSettings | None = None
+        self._m6_current_results_analysis = None
+        self._m6_selected_ordered_component_id: int | None = None
         self._m6_pending_session_state: MolecularM6SessionState | None = None
         self._m6_enable_on_success = True
         self._m6_target_tab = "Sixfold Bond Order"
@@ -2824,6 +2828,9 @@ class MolTrackMainWindow(QMainWindow):
             dialog.m6_view_settings_changed.connect(
                 self._on_m6_view_settings_changed
             )
+            dialog.m6_domain_selection_changed.connect(
+                self._on_m6_domain_selection_changed
+            )
             self._position_analysis_dialog = dialog
             state = getattr(self._series, "m6_analysis_state", None)
             if isinstance(state, MolecularM6SessionState):
@@ -2835,6 +2842,7 @@ class MolTrackMainWindow(QMainWindow):
             source_view=plot_data.source_view,
         )
         self._position_analysis_dialog.set_plot_data(plot_data)
+        self._sync_current_m6_results(force=True)
         self._position_analysis_dialog.show()
         self._position_analysis_dialog.raise_()
         self._position_analysis_dialog.activateWindow()
@@ -2887,6 +2895,74 @@ class MolTrackMainWindow(QMainWindow):
             view_settings,
         ):
             self._render_current_m6_overlay()
+
+    def _on_m6_domain_selection_changed(self, ordered_component_id) -> None:
+        if ordered_component_id is None:
+            self._m6_selected_ordered_component_id = None
+            state = getattr(self._series, "m6_analysis_state", None)
+            if (
+                isinstance(state, MolecularM6SessionState)
+                and state.view_settings.show_domain_overlay
+            ):
+                self.viewer.highlight_m6_overlay_source_ids(())
+            else:
+                self.viewer.clear_m6_point_overlay()
+            return
+        analysis = self._current_m6_analysis_result()
+        if analysis is None:
+            self._m6_selected_ordered_component_id = None
+            self.viewer.clear_m6_point_overlay()
+            return
+        try:
+            component = analysis.frame_aggregates.domain_metrics.component_for_ordered_id(
+                int(ordered_component_id)
+            )
+        except (KeyError, TypeError, ValueError):
+            self._m6_selected_ordered_component_id = None
+            self.viewer.highlight_m6_overlay_source_ids(())
+            return
+        self._m6_selected_ordered_component_id = component.ordered_component_id
+        state = getattr(self._series, "m6_analysis_state", None)
+        if (
+            not isinstance(state, MolecularM6SessionState)
+            or not state.view_settings.show_domain_overlay
+        ):
+            self._show_selected_m6_component(analysis, component.source_ids)
+            return
+        self.viewer.highlight_m6_overlay_source_ids(component.source_ids)
+
+    def _show_selected_m6_component(self, analysis, source_ids) -> None:
+        state = getattr(self._series, "m6_analysis_state", None)
+        view = (
+            state.view_settings
+            if isinstance(state, MolecularM6SessionState)
+            else MolecularM6ViewSettings()
+        )
+        overlay = build_m6_point_overlay_from_analysis(
+            analysis,
+            mode="domain_id",
+            opacity_percent=max(70, view.overlay_opacity_percent),
+            show_unassigned_points=True,
+        )
+        selected_ids = set(source_ids)
+        selected_indices = tuple(
+            index
+            for index, source_id in enumerate(overlay.source_ids)
+            if source_id in selected_ids
+        )
+        selected_overlay = M6PointOverlay(
+            mode=overlay.mode,
+            source_ids=tuple(overlay.source_ids[index] for index in selected_indices),
+            points_xy_px=tuple(
+                overlay.points_xy_px[index] for index in selected_indices
+            ),
+            colors_rgba=tuple(overlay.colors_rgba[index] for index in selected_indices),
+            point_statuses=tuple(
+                overlay.point_statuses[index] for index in selected_indices
+            ),
+        )
+        self.viewer.show_m6_point_overlay(selected_overlay)
+        self.viewer.highlight_m6_overlay_source_ids(selected_overlay.source_ids)
 
     def _start_m6_analysis(
         self,
@@ -4379,12 +4455,14 @@ class MolTrackMainWindow(QMainWindow):
     def _render_current_m6_overlay(self) -> None:
         series = self._series
         if series is None:
+            self._sync_current_m6_results(force=True)
             self.viewer.clear_m6_point_overlay()
             self._m6_rendered_analysis = None
             self._m6_rendered_view_settings = None
             return
         state = getattr(series, "m6_analysis_state", None)
         analysis = self._current_m6_analysis_result()
+        self._sync_current_m6_results(analysis=analysis)
         if (
             not isinstance(state, MolecularM6SessionState)
             or not state.enabled
@@ -4394,6 +4472,10 @@ class MolTrackMainWindow(QMainWindow):
             self.viewer.clear_m6_point_overlay()
             self._m6_rendered_analysis = None
             self._m6_rendered_view_settings = None
+            if analysis is not None and self._m6_selected_ordered_component_id is not None:
+                self._on_m6_domain_selection_changed(
+                    self._m6_selected_ordered_component_id
+                )
             return
         view = state.view_settings
         overlay = build_m6_point_overlay_from_analysis(
@@ -4403,6 +4485,10 @@ class MolTrackMainWindow(QMainWindow):
             show_unassigned_points=view.show_unassigned_points,
         )
         self.viewer.show_m6_point_overlay(overlay)
+        if self._m6_selected_ordered_component_id is not None:
+            self._on_m6_domain_selection_changed(
+                self._m6_selected_ordered_component_id
+            )
         self._m6_rendered_analysis = analysis
         self._m6_rendered_view_settings = view
 
@@ -4496,6 +4582,22 @@ class MolTrackMainWindow(QMainWindow):
                 )
                 return analysis if current_key == analyzed_key else None
         return None
+
+    def _sync_current_m6_results(self, *, analysis=None, force: bool = False) -> None:
+        if analysis is None and self._series is not None:
+            analysis = self._current_m6_analysis_result()
+        if not force and analysis is self._m6_current_results_analysis:
+            return
+        self._m6_current_results_analysis = analysis
+        self._m6_selected_ordered_component_id = None
+        self.viewer.highlight_m6_overlay_source_ids(())
+        dialog = self._position_analysis_dialog
+        if dialog is not None:
+            dialog.set_m6_current_frame_results(
+                None
+                if analysis is None
+                else build_m6_current_frame_results(analysis.frame_aggregates)
+            )
 
     def _refresh_position_analysis_dialog_if_open(self) -> None:
         if self._position_analysis_dialog is None or self._series is None:

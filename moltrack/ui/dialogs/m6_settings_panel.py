@@ -28,6 +28,7 @@ from moltrack.analysis import (
 )
 
 from .m6_pair_correlation_plot import M6PairCorrelationPlot
+from .m6_current_frame_results_panel import M6CurrentFrameResultsPanel
 
 
 class M6SettingsPanel(QScrollArea):
@@ -40,6 +41,7 @@ class M6SettingsPanel(QScrollArea):
     analysis_requested = pyqtSignal(object)
     first_shell_suggestion_requested = pyqtSignal(object)
     view_settings_changed = pyqtSignal(object)
+    domain_selection_changed = pyqtSignal(object)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -95,6 +97,12 @@ class M6SettingsPanel(QScrollArea):
         )
         overlay_layout.addWidget(self.show_unassigned_points)
         layout.addWidget(overlay_group)
+
+        self.current_frame_results_panel = M6CurrentFrameResultsPanel(content)
+        self.current_frame_results_panel.domain_selection_changed.connect(
+            self.domain_selection_changed.emit
+        )
+        layout.addWidget(self.current_frame_results_panel)
 
         neighborhood_group = QGroupBox("Neighbors and first shell", content)
         neighborhood_form = QFormLayout(neighborhood_group)
@@ -398,6 +406,9 @@ class M6SettingsPanel(QScrollArea):
 
     def overlay_mode_options(self) -> tuple[str, ...]:
         return M6_OVERLAY_MODES
+
+    def set_current_frame_results(self, results) -> None:
+        self.current_frame_results_panel.set_results(results)
 
     def overlay_mode(self) -> str:
         for mode, button in self._overlay_mode_buttons.items():

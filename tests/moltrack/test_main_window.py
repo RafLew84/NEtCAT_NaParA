@@ -5669,11 +5669,50 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(
             all(color[3] == 153 for color in self.window.viewer.visible_m6_overlay_colors())
         )
+        analysis = self.window._current_m6_analysis_result()
+        self.assertIsNotNone(analysis)
+        component = analysis.frame_aggregates.domain_metrics.components[0]
+        original_domain_ids = analysis.segmentation.m6_orientation_domain_id
+        self.assertEqual(
+            dialog.m6_settings_panel.current_frame_results_panel.domain_row_count(),
+            len(analysis.frame_aggregates.domain_metrics.components),
+        )
+
+        dialog.m6_settings_panel.current_frame_results_panel.domain_table.setCurrentCell(
+            0,
+            0,
+        )
+
+        self.assertEqual(
+            self.window.viewer.highlighted_m6_overlay_source_ids(),
+            component.source_ids,
+        )
+        self.assertEqual(
+            analysis.segmentation.m6_orientation_domain_id,
+            original_domain_ids,
+        )
 
         dialog.set_m6_overlay_mode("none")
 
-        self.assertEqual(self.window.viewer.visible_m6_overlay_count(), 0)
+        self.assertEqual(
+            self.window.viewer.visible_m6_overlay_source_ids(),
+            component.source_ids,
+        )
         self.assertEqual(self.window.viewer.visible_molecular_detection_count(), len(points))
+
+        dialog.m6_settings_panel.current_frame_results_panel.domain_table.setCurrentCell(
+            -1,
+            -1,
+        )
+        self.assertEqual(self.window.viewer.visible_m6_overlay_count(), 0)
+        dialog.m6_settings_panel.current_frame_results_panel.domain_table.setCurrentCell(
+            0,
+            0,
+        )
+        self.assertEqual(
+            self.window.viewer.highlighted_m6_overlay_source_ids(),
+            component.source_ids,
+        )
 
         dialog.set_m6_overlay_mode("domain_id")
         graphics_item = self.window.viewer._m6_point_overlay_item

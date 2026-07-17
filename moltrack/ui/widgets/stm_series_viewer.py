@@ -40,6 +40,8 @@ class STMSeriesViewer(QWidget):
         self._m6_point_overlay_item = None
         self._visible_m6_overlay_source_ids: tuple[str, ...] = ()
         self._visible_m6_overlay_colors: tuple[tuple[int, int, int, int], ...] = ()
+        self._visible_m6_overlay_points_nm: tuple[tuple[float, float], ...] = ()
+        self._highlighted_m6_overlay_source_ids: tuple[str, ...] = ()
         self._visible_molecular_segmentation_count = 0
         self._visible_molecular_segmentation_ids: list[str] = []
         self._visible_molecular_segmentation_opacities: list[float] = []
@@ -224,6 +226,9 @@ class STMSeriesViewer(QWidget):
     def visible_m6_overlay_colors(self) -> tuple[tuple[int, int, int, int], ...]:
         return self._visible_m6_overlay_colors
 
+    def highlighted_m6_overlay_source_ids(self) -> tuple[str, ...]:
+        return self._highlighted_m6_overlay_source_ids
+
     def m6_overlay_graphics_item_count(self) -> int:
         return int(self._m6_point_overlay_item is not None)
 
@@ -255,6 +260,10 @@ class STMSeriesViewer(QWidget):
         self._m6_point_overlay_item = item
         self._visible_m6_overlay_source_ids = overlay.source_ids
         self._visible_m6_overlay_colors = overlay.colors_rgba
+        self._visible_m6_overlay_points_nm = tuple(
+            (float(point[0]), float(point[1])) for point in points_nm
+        )
+        self._highlighted_m6_overlay_source_ids = ()
 
     def update_m6_point_overlay_colors(self, overlay: M6PointOverlay) -> bool:
         """Update one existing M6 batch without replacing its graphics item."""
@@ -265,11 +274,37 @@ class STMSeriesViewer(QWidget):
             or overlay.source_ids != self._visible_m6_overlay_source_ids
         ):
             return False
-        self._m6_point_overlay_item.setBrush(
-            [pg.mkBrush(color) for color in overlay.colors_rgba]
-        )
         self._visible_m6_overlay_colors = overlay.colors_rgba
+        self._apply_m6_point_overlay_style()
         return True
+
+    def highlight_m6_overlay_source_ids(self, source_ids) -> None:
+        requested = set(str(source_id) for source_id in source_ids)
+        self._highlighted_m6_overlay_source_ids = tuple(
+            source_id
+            for source_id in self._visible_m6_overlay_source_ids
+            if source_id in requested
+        )
+        self._apply_m6_point_overlay_style()
+
+    def _apply_m6_point_overlay_style(self) -> None:
+        if self._m6_point_overlay_item is None:
+            return
+        highlighted = set(self._highlighted_m6_overlay_source_ids)
+        self._m6_point_overlay_item.setData(
+            pos=np.asarray(self._visible_m6_overlay_points_nm, dtype=np.float64),
+            brush=[pg.mkBrush(color) for color in self._visible_m6_overlay_colors],
+            pen=[
+                pg.mkPen((255, 255, 255, 255), width=2.0)
+                if source_id in highlighted
+                else pg.mkPen((20, 20, 20, 180), width=0.8)
+                for source_id in self._visible_m6_overlay_source_ids
+            ],
+            size=[
+                12.0 if source_id in highlighted else 8.0
+                for source_id in self._visible_m6_overlay_source_ids
+            ],
+        )
 
     def clear_m6_point_overlay(self) -> None:
         if self._m6_point_overlay_item is not None:
@@ -277,6 +312,8 @@ class STMSeriesViewer(QWidget):
         self._m6_point_overlay_item = None
         self._visible_m6_overlay_source_ids = ()
         self._visible_m6_overlay_colors = ()
+        self._visible_m6_overlay_points_nm = ()
+        self._highlighted_m6_overlay_source_ids = ()
 
     def selected_molecular_detection_id(self) -> str | None:
         return self._selected_molecular_detection_id
