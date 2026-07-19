@@ -206,6 +206,13 @@ from .m6_single_range_domain_type_summary import (
     M6SingleRangeFrameMapping,
     build_m6_single_range_domain_type_summary,
 )
+from .m6_domain_type_range_comparison import (
+    M6DomainTypeRangeComparison,
+    M6DomainTypeRangeComparisonRow,
+    M6DomainTypeRangeDeltas,
+    M6DomainTypeRangeSide,
+    build_m6_domain_type_range_comparison,
+)
 
 __all__ = [
     "AggregatedPairCorrelationResult",
@@ -238,6 +245,11 @@ __all__ = [
     "M6SingleRangeDomainTypeSummary",
     "M6SingleRangeFrameMapping",
     "build_m6_single_range_domain_type_summary",
+    "M6DomainTypeRangeComparison",
+    "M6DomainTypeRangeComparisonRow",
+    "M6DomainTypeRangeDeltas",
+    "M6DomainTypeRangeSide",
+    "build_m6_domain_type_range_comparison",
     "MolecularIntensityMeasurement",
     "MolecularIntensityCacheStats",
     "MolecularIntensityMeasurementCache",
