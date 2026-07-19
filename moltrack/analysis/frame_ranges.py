@@ -5,6 +5,9 @@ from dataclasses import dataclass
 from typing import Literal
 
 
+MolecularFrameRangeAnalysisMode = Literal["single_range", "compare_ranges"]
+
+
 @dataclass(frozen=True)
 class MolecularFrameRange:
     """One named, inclusive frame range used as an experimental condition."""
@@ -52,7 +55,7 @@ class MolecularFrameRangeSelection:
 class MolecularFrameRangeAnalysisScope:
     """One or two named frame ranges selected for analysis in one source view."""
 
-    analysis_mode: Literal["single_range", "compare_ranges"]
+    analysis_mode: MolecularFrameRangeAnalysisMode
     frame_count: int
     source_view: str
     ranges: tuple[MolecularFrameRange, ...]

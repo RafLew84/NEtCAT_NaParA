@@ -5029,6 +5029,21 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(dialog.range_spatial_data().first.points_xy, ((0.5, 0.5),))
         self.assertEqual(dialog.range_spatial_data().second.points_xy, ((1.5, 1.5),))
 
+        previous_comparison = dialog.range_comparison()
+        dialog.btn_range_mode_single.click()
+        with patch(
+            "moltrack.ui.main_window.compare_molecular_frame_ranges",
+            wraps=compare_molecular_frame_ranges,
+        ) as comparison_spy:
+            dialog.btn_compare_ranges.click()
+            dialog.chk_use_segmentation_centroids.setChecked(False)
+            dialog.cmb_intensity_metric.setCurrentText("Maximum")
+            dialog.sp_background_outer_radius.setValue(4)
+            self.__class__._app.processEvents()
+
+        comparison_spy.assert_not_called()
+        self.assertIs(dialog.range_comparison(), previous_comparison)
+
     def test_position_analysis_dialog_shows_empty_current_frame_without_error(self) -> None:
         self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
         series = MolTrackImageSeries(

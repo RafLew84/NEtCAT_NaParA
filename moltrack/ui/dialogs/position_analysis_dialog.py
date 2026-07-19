@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+from typing import cast
+
 import numpy as np
 import pyqtgraph as pg
 from PyQt6.QtCore import QSignalBlocker, QRectF, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
+    QButtonGroup,
     QCheckBox,
     QComboBox,
     QDialog,
     QGridLayout,
     QGroupBox,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
@@ -21,6 +25,8 @@ from PyQt6.QtWidgets import (
 from moltrack.analysis import (
     FirstShellSuggestionResult,
     MolecularFrameRange,
+    MolecularFrameRangeAnalysisMode,
+    MolecularFrameRangeAnalysisScope,
     MolecularFrameRangeComparison,
     MolecularFrameRangeSelection,
     MolecularNearestNeighborAngleMetrics,
@@ -43,6 +49,7 @@ class PositionAnalysisDialog(QDialog):
     """Scatter view of molecular positions for one frame and source view."""
 
     compare_ranges_requested = pyqtSignal(object)
+    range_analysis_requested = pyqtSignal(object)
     analysis_context_changed = pyqtSignal(str)
     analysis_mode_changed = pyqtSignal(str)
     centroid_source_mode_changed = pyqtSignal(bool)
@@ -89,6 +96,7 @@ class PositionAnalysisDialog(QDialog):
         self._second_spatial_intensity_levels: tuple[float, float] | None = None
         self._range_frame_count: int | None = None
         self._range_source_view = "raw"
+        self._analysis_mode: MolecularFrameRangeAnalysisMode = "compare_ranges"
         self._m6_context_enabled_states: dict[QWidget, bool] | None = None
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
         self.setWindowTitle("Position Analysis")
@@ -99,32 +107,46 @@ class PositionAnalysisDialog(QDialog):
         self.chk_use_segmentation_centroids.setChecked(True)
         self.chk_use_segmentation_centroids.toggled.connect(self.centroid_source_mode_changed.emit)
         layout.addWidget(self.chk_use_segmentation_centroids)
-        self.range_group = QGroupBox("Comparison ranges", self)
+        self.range_group = QGroupBox("Frame ranges", self)
         range_layout = QGridLayout(self.range_group)
+        range_mode_row = QHBoxLayout()
+        self.range_mode_group = QButtonGroup(self)
+        self.range_mode_group.setExclusive(True)
+        self.btn_range_mode_single = QPushButton("Single range", self.range_group)
+        self.btn_range_mode_single.setCheckable(True)
+        self.btn_range_mode_compare = QPushButton("Compare two ranges", self.range_group)
+        self.btn_range_mode_compare.setCheckable(True)
+        self.range_mode_group.addButton(self.btn_range_mode_single)
+        self.range_mode_group.addButton(self.btn_range_mode_compare)
+        self.btn_range_mode_compare.setChecked(True)
+        range_mode_row.addWidget(self.btn_range_mode_single)
+        range_mode_row.addWidget(self.btn_range_mode_compare)
+        range_layout.addLayout(range_mode_row, 0, 0, 1, 3)
         self.lbl_range_source_view = QLabel("Source view: raw", self.range_group)
-        range_layout.addWidget(self.lbl_range_source_view, 0, 0, 1, 3)
-        range_layout.addWidget(QLabel("Condition", self.range_group), 1, 0)
-        range_layout.addWidget(QLabel("Start frame", self.range_group), 1, 1)
-        range_layout.addWidget(QLabel("End frame", self.range_group), 1, 2)
+        range_layout.addWidget(self.lbl_range_source_view, 1, 0, 1, 3)
+        range_layout.addWidget(QLabel("Condition", self.range_group), 2, 0)
+        range_layout.addWidget(QLabel("Start frame", self.range_group), 2, 1)
+        range_layout.addWidget(QLabel("End frame", self.range_group), 2, 2)
         self.edit_first_range_name = QLineEdit("before desorption", self.range_group)
         self.sp_first_range_start = QSpinBox(self.range_group)
         self.sp_first_range_end = QSpinBox(self.range_group)
-        range_layout.addWidget(self.edit_first_range_name, 2, 0)
-        range_layout.addWidget(self.sp_first_range_start, 2, 1)
-        range_layout.addWidget(self.sp_first_range_end, 2, 2)
+        range_layout.addWidget(self.edit_first_range_name, 3, 0)
+        range_layout.addWidget(self.sp_first_range_start, 3, 1)
+        range_layout.addWidget(self.sp_first_range_end, 3, 2)
         self.edit_second_range_name = QLineEdit("after adsorption", self.range_group)
         self.sp_second_range_start = QSpinBox(self.range_group)
         self.sp_second_range_end = QSpinBox(self.range_group)
-        range_layout.addWidget(self.edit_second_range_name, 3, 0)
-        range_layout.addWidget(self.sp_second_range_start, 3, 1)
-        range_layout.addWidget(self.sp_second_range_end, 3, 2)
+        range_layout.addWidget(self.edit_second_range_name, 4, 0)
+        range_layout.addWidget(self.sp_second_range_start, 4, 1)
+        range_layout.addWidget(self.sp_second_range_end, 4, 2)
         self.lbl_range_validation = QLabel("", self.range_group)
         self.lbl_range_validation.setWordWrap(True)
         self.lbl_range_validation.setStyleSheet("color: #b42318;")
-        range_layout.addWidget(self.lbl_range_validation, 4, 0, 1, 3)
-        self.btn_compare_ranges = QPushButton("Compare ranges", self.range_group)
-        self.btn_compare_ranges.setEnabled(False)
-        range_layout.addWidget(self.btn_compare_ranges, 5, 0, 1, 3)
+        range_layout.addWidget(self.lbl_range_validation, 5, 0, 1, 3)
+        self.btn_run_range_analysis = QPushButton("Compare ranges", self.range_group)
+        self.btn_run_range_analysis.setEnabled(False)
+        self.btn_compare_ranges = self.btn_run_range_analysis
+        range_layout.addWidget(self.btn_run_range_analysis, 6, 0, 1, 3)
         for spin_box in (
             self.sp_first_range_start,
             self.sp_first_range_end,
@@ -138,7 +160,13 @@ class PositionAnalysisDialog(QDialog):
         self.edit_second_range_name.textChanged.connect(
             self._on_frame_range_context_changed
         )
-        self.btn_compare_ranges.clicked.connect(self._request_range_comparison)
+        self.btn_range_mode_single.clicked.connect(
+            lambda: self.set_analysis_mode("single_range")
+        )
+        self.btn_range_mode_compare.clicked.connect(
+            lambda: self.set_analysis_mode("compare_ranges")
+        )
+        self.btn_run_range_analysis.clicked.connect(self._request_range_analysis)
         layout.addWidget(self.range_group)
 
         self.tabs = QTabWidget(self)
@@ -483,16 +511,86 @@ class PositionAnalysisDialog(QDialog):
         return MolecularFrameRangeSelection(
             frame_count=self._range_frame_count,
             source_view=self._range_source_view,
-            first_range=MolecularFrameRange(
-                self.edit_first_range_name.text(),
-                self.sp_first_range_start.value() - 1,
-                self.sp_first_range_end.value() - 1,
+            first_range=self._frame_range_from_controls(
+                self.edit_first_range_name,
+                self.sp_first_range_start,
+                self.sp_first_range_end,
             ),
-            second_range=MolecularFrameRange(
-                self.edit_second_range_name.text(),
-                self.sp_second_range_start.value() - 1,
-                self.sp_second_range_end.value() - 1,
+            second_range=self._frame_range_from_controls(
+                self.edit_second_range_name,
+                self.sp_second_range_start,
+                self.sp_second_range_end,
             ),
+        )
+
+    def analysis_mode(self) -> MolecularFrameRangeAnalysisMode:
+        return self._analysis_mode
+
+    def set_analysis_mode(
+        self,
+        mode: MolecularFrameRangeAnalysisMode,
+        *,
+        notify: bool = True,
+    ) -> None:
+        normalized_mode = str(mode).strip().lower()
+        if normalized_mode not in {"single_range", "compare_ranges"}:
+            raise ValueError(
+                "analysis mode must be 'single_range' or 'compare_ranges'."
+            )
+        changed = normalized_mode != self._analysis_mode
+        self._analysis_mode = cast(MolecularFrameRangeAnalysisMode, normalized_mode)
+        single_range = normalized_mode == "single_range"
+        with QSignalBlocker(self.range_mode_group):
+            self.btn_range_mode_single.setChecked(single_range)
+            self.btn_range_mode_compare.setChecked(not single_range)
+        for widget in (
+            self.edit_second_range_name,
+            self.sp_second_range_start,
+            self.sp_second_range_end,
+        ):
+            widget.setVisible(not single_range)
+        self.btn_run_range_analysis.setText(
+            "Analyze range" if single_range else "Compare ranges"
+        )
+        self._refresh_range_validation()
+        if changed and notify:
+            self.analysis_mode_changed.emit(normalized_mode)
+
+    def frame_range_analysis_scope(self) -> MolecularFrameRangeAnalysisScope:
+        if self._range_frame_count is None:
+            raise RuntimeError("Frame range context has not been configured.")
+        ranges = [
+            self._frame_range_from_controls(
+                self.edit_first_range_name,
+                self.sp_first_range_start,
+                self.sp_first_range_end,
+            )
+        ]
+        if self._analysis_mode == "compare_ranges":
+            ranges.append(
+                self._frame_range_from_controls(
+                    self.edit_second_range_name,
+                    self.sp_second_range_start,
+                    self.sp_second_range_end,
+                )
+            )
+        return MolecularFrameRangeAnalysisScope(
+            analysis_mode=self._analysis_mode,
+            frame_count=self._range_frame_count,
+            source_view=self._range_source_view,
+            ranges=tuple(ranges),
+        )
+
+    @staticmethod
+    def _frame_range_from_controls(
+        name_edit: QLineEdit,
+        start_spin: QSpinBox,
+        end_spin: QSpinBox,
+    ) -> MolecularFrameRange:
+        return MolecularFrameRange(
+            name_edit.text(),
+            start_spin.value() - 1,
+            end_spin.value() - 1,
         )
 
     def apply_frame_range_selection(
@@ -633,6 +731,13 @@ class PositionAnalysisDialog(QDialog):
     def has_range_comparison(self) -> bool:
         return self._range_trend_data is not None and self._range_spatial_data is not None
 
+    def has_active_range_comparison(self) -> bool:
+        return (
+            self._analysis_mode == "compare_ranges"
+            and self.has_range_comparison()
+            and self.has_valid_frame_range_selection()
+        )
+
     def density_grid_shape(self) -> tuple[int, int]:
         return self._density_grid_shape
 
@@ -721,6 +826,13 @@ class PositionAnalysisDialog(QDialog):
     def has_valid_frame_range_selection(self) -> bool:
         try:
             self.frame_range_selection()
+        except (RuntimeError, ValueError):
+            return False
+        return True
+
+    def has_valid_frame_range_analysis_scope(self) -> bool:
+        try:
+            self.frame_range_analysis_scope()
         except (RuntimeError, ValueError):
             return False
         return True
@@ -941,30 +1053,35 @@ class PositionAnalysisDialog(QDialog):
             self.m6_settings_panel.invalidate_first_shell_suggestion()
         valid = False
         try:
-            self.frame_range_selection()
+            self.frame_range_analysis_scope()
         except RuntimeError:
             self.lbl_range_validation.setText("")
-            self.btn_compare_ranges.setEnabled(False)
+            self.btn_run_range_analysis.setEnabled(False)
         except ValueError as exc:
             if "start_frame" in str(exc):
                 self.lbl_range_validation.setText("Start frame must not exceed end frame.")
             else:
                 self.lbl_range_validation.setText(str(exc))
-            self.btn_compare_ranges.setEnabled(False)
+            self.btn_run_range_analysis.setEnabled(False)
         else:
             self.lbl_range_validation.setText("")
-            self.btn_compare_ranges.setEnabled(True)
+            self.btn_run_range_analysis.setEnabled(True)
             valid = True
-        self.m6_settings_panel.set_analysis_context_enabled(valid)
+        self.m6_settings_panel.set_analysis_context_enabled(
+            valid and self._analysis_mode == "compare_ranges"
+        )
 
     def _on_frame_range_context_changed(self, _value=None) -> None:
         self._refresh_range_validation()
         self.analysis_context_changed.emit("frame_ranges")
 
-    def _request_range_comparison(self) -> None:
-        if not self.has_valid_frame_range_selection():
+    def _request_range_analysis(self) -> None:
+        if not self.has_valid_frame_range_analysis_scope():
             return
-        self.compare_ranges_requested.emit(self.frame_range_selection())
+        scope = self.frame_range_analysis_scope()
+        self.range_analysis_requested.emit(scope)
+        if scope.analysis_mode == "compare_ranges":
+            self.compare_ranges_requested.emit(scope.to_frame_range_selection())
 
     @staticmethod
     def _create_trend_plot(parent: QWidget, *, y_label: str) -> pg.PlotWidget:

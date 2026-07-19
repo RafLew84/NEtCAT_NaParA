@@ -3082,6 +3082,8 @@ class MolTrackMainWindow(QMainWindow):
             return
         if not dialog.has_valid_frame_range_selection():
             return
+        if dialog.analysis_mode() != "compare_ranges":
+            return
         self._m6_domain_type_controller.invalidate("m6_recalculation")
         inner_radius, outer_radius = dialog.intensity_background_radii()
         selection = dialog.frame_range_selection()
@@ -3485,7 +3487,7 @@ class MolTrackMainWindow(QMainWindow):
             )
         )
         self._render_current_m6_overlay()
-        if not dialog.has_range_comparison() or not dialog.has_valid_frame_range_selection():
+        if not dialog.has_active_range_comparison():
             return
         active_tab = dialog.active_analysis_tab()
         comparison = compare_molecular_frame_ranges(
@@ -3509,7 +3511,7 @@ class MolTrackMainWindow(QMainWindow):
         dialog.set_plot_data(
             self._build_current_position_plot_data(intensity_metric=str(metric))
         )
-        if not dialog.has_range_comparison() or not dialog.has_valid_frame_range_selection():
+        if not dialog.has_active_range_comparison():
             return
         active_tab = dialog.active_analysis_tab()
         comparison = compare_molecular_frame_ranges(
@@ -3535,7 +3537,7 @@ class MolTrackMainWindow(QMainWindow):
         if self._series is None or dialog is None:
             return
         dialog.set_plot_data(self._build_current_position_plot_data())
-        if not dialog.has_range_comparison() or not dialog.has_valid_frame_range_selection():
+        if not dialog.has_active_range_comparison():
             return
         active_tab = dialog.active_analysis_tab()
         inner_radius_px, outer_radius_px = dialog.intensity_background_radii()

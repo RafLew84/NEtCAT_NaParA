@@ -1,5 +1,6 @@
 from .frame_ranges import (
     MolecularFrameRange,
+    MolecularFrameRangeAnalysisMode,
     MolecularFrameRangeAnalysisScope,
     MolecularFrameRangeSelection,
 )
@@ -236,6 +237,7 @@ __all__ = [
     "FirstShellSuggestionResult",
     "build_first_shell_graph",
     "MolecularFrameRange",
+    "MolecularFrameRangeAnalysisMode",
     "MolecularFrameRangeAnalysisScope",
     "MolecularFrameRangeAggregates",
     "MolecularFrameRangeAnalysis",
