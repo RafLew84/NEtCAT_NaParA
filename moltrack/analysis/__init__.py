@@ -1,4 +1,8 @@
-from .frame_ranges import MolecularFrameRange, MolecularFrameRangeSelection
+from .frame_ranges import (
+    MolecularFrameRange,
+    MolecularFrameRangeAnalysisScope,
+    MolecularFrameRangeSelection,
+)
 from .first_shell_graph import FirstShellGraph
 from .first_shell_builder import build_first_shell_graph
 from .intensity import (
@@ -180,6 +184,7 @@ __all__ = [
     "FirstShellSuggestionResult",
     "build_first_shell_graph",
     "MolecularFrameRange",
+    "MolecularFrameRangeAnalysisScope",
     "MolecularFrameRangeAggregates",
     "MolecularFrameRangeAnalysis",
     "MolecularFrameRangeComparison",
