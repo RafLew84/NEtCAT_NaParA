@@ -195,6 +195,11 @@ from .m6_domain_type_similarity import (
     m6_orientation_distance_deg,
 )
 from .m6_domain_type_classifier import classify_m6_domain_types
+from .m6_domain_type_aggregates import (
+    M6DomainTypeRangeAggregate,
+    M6DomainTypeRangeAggregates,
+    aggregate_m6_domain_types_for_range,
+)
 
 __all__ = [
     "AggregatedPairCorrelationResult",
@@ -220,6 +225,9 @@ __all__ = [
     "m6_bond_length_difference",
     "m6_orientation_distance_deg",
     "classify_m6_domain_types",
+    "M6DomainTypeRangeAggregate",
+    "M6DomainTypeRangeAggregates",
+    "aggregate_m6_domain_types_for_range",
     "MolecularIntensityMeasurement",
     "MolecularIntensityCacheStats",
     "MolecularIntensityMeasurementCache",
