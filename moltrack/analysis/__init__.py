@@ -213,6 +213,16 @@ from .m6_domain_type_range_comparison import (
     M6DomainTypeRangeSide,
     build_m6_domain_type_range_comparison,
 )
+from .m6_domain_type_lifecycle import (
+    M6DomainTypeAnalysisContext,
+    M6DomainTypeAnalysisOutcome,
+    M6DomainTypeAnalysisSource,
+    M6DomainTypeAnalysisStore,
+    M6DomainTypeFrameResultFingerprint,
+    M6DomainTypeNamedRangeResult,
+    adapt_m6_domain_type_analysis_source,
+    build_m6_domain_type_analysis_context,
+)
 
 __all__ = [
     "AggregatedPairCorrelationResult",
@@ -250,6 +260,14 @@ __all__ = [
     "M6DomainTypeRangeDeltas",
     "M6DomainTypeRangeSide",
     "build_m6_domain_type_range_comparison",
+    "M6DomainTypeAnalysisContext",
+    "M6DomainTypeAnalysisOutcome",
+    "M6DomainTypeAnalysisSource",
+    "M6DomainTypeAnalysisStore",
+    "M6DomainTypeFrameResultFingerprint",
+    "M6DomainTypeNamedRangeResult",
+    "adapt_m6_domain_type_analysis_source",
+    "build_m6_domain_type_analysis_context",
     "MolecularIntensityMeasurement",
     "MolecularIntensityCacheStats",
     "MolecularIntensityMeasurementCache",

@@ -152,6 +152,8 @@ class MolecularFrameRangeAnalysis:
     aggregates: MolecularFrameRangeAggregates
     intensity_metric: str
     intensity_unit: str
+    use_segmentation_centroids: bool = True
+    m6_orientation_settings: MolecularM6OrientationAnalysisSettings | None = None
 
 
 def analyze_molecular_frame_range(
@@ -299,6 +301,8 @@ def analyze_molecular_frame_range(
         ),
         intensity_metric=str(intensity_metric).strip(),
         intensity_unit=str(intensity_unit),
+        use_segmentation_centroids=bool(use_segmentation_centroids),
+        m6_orientation_settings=m6_orientation_settings,
     )
 
 
