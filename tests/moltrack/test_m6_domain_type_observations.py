@@ -1,7 +1,7 @@
 from dataclasses import FrozenInstanceError, replace
 import math
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import numpy as np
 
@@ -10,11 +10,14 @@ from moltrack.analysis import (
     M6DomainTypeObservation,
     MolecularFrameRange,
     MolecularFrameRangeSelection,
+    MolecularM6OrientationAnalysis,
     MolecularM6OrientationAnalysisSettings,
     analyze_molecular_frame_range,
     compare_molecular_frame_ranges,
     extract_m6_domain_type_observations,
 )
+from moltrack.analysis._m6_context_fingerprint import m6_context_fingerprint
+from moltrack.analysis._m6_settings_fingerprint import m6_settings_fingerprint
 from moltrack.core import MolecularDetection, MolecularDetectionSet, MolTrackImageSeries
 from nanotrack.core import STMSequenceMetadata
 
@@ -150,6 +153,20 @@ def _observation_numeric_signature(
 
 
 class M6DomainTypeObservationTests(unittest.TestCase):
+    def test_m6_context_excludes_frame_local_registration_provenance(self) -> None:
+        analysis = Mock(spec=MolecularM6OrientationAnalysis)
+        analysis.source_view = "expanded_aligned"
+        analysis.coordinate_frame = "sample_nm"
+        analysis.orientation_reference = "+x_sample_axis"
+        analysis.spatial_calibration_fingerprint = "calibration-v1"
+        analysis.settings = _m6_settings()
+        analysis.registration_fingerprint = "frame-registration-1"
+        first_fingerprint = m6_context_fingerprint(analysis)
+
+        analysis.registration_fingerprint = "frame-registration-2"
+
+        self.assertEqual(m6_context_fingerprint(analysis), first_fingerprint)
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.frame_points = (
@@ -227,6 +244,12 @@ class M6DomainTypeObservationTests(unittest.TestCase):
         self.assertEqual(full_heterogeneous.range_name, "all conditions")
         self.assertEqual(full_heterogeneous.range_start_frame, 0)
         self.assertEqual(full_heterogeneous.range_end_frame, 2)
+        self.assertEqual(full_heterogeneous.source_view, "raw")
+        self.assertEqual(
+            full_heterogeneous.m6_settings_fingerprint,
+            m6_settings_fingerprint(m6.settings),
+        )
+        self.assertTrue(full_heterogeneous.m6_context_fingerprint)
         self.assertEqual(full_heterogeneous.ordered_component_id, 0)
         self.assertEqual(full_heterogeneous.m6_orientation_domain_id, 0)
         self.assertEqual(full_heterogeneous.orientation_deg, metrics.orientation_deg)

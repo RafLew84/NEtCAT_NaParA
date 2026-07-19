@@ -181,6 +181,11 @@ from .m6_domain_type_observations import (
     M6DomainTypeObservation,
     extract_m6_domain_type_observations,
 )
+from .m6_domain_type_results import (
+    M6DomainType,
+    M6DomainTypeAssignment,
+    M6DomainTypeClassificationResult,
+)
 
 __all__ = [
     "AggregatedPairCorrelationResult",
@@ -196,6 +201,9 @@ __all__ = [
     "MolecularFrameRangeDifferences",
     "MolecularFrameRangeSelection",
     "M6DomainTypeObservation",
+    "M6DomainType",
+    "M6DomainTypeAssignment",
+    "M6DomainTypeClassificationResult",
     "MolecularIntensityMeasurement",
     "MolecularIntensityCacheStats",
     "MolecularIntensityMeasurementCache",

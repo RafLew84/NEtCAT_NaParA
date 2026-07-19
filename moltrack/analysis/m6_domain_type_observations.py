@@ -1,10 +1,23 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isclose, isfinite
-from numbers import Real
+from math import isclose
 from typing import Literal
 
+from ._m6_domain_type_validation import (
+    finite_float as _finite_float,
+    non_empty_string as _non_empty_string,
+    non_negative_float as _non_negative_float,
+    non_negative_int as _non_negative_int,
+    normalize_m6_orientation as _normalize_m6_orientation,
+    optional_non_negative_float as _optional_non_negative_float,
+    optional_unit_float as _optional_unit_float,
+    positive_float as _positive_float,
+    positive_int as _positive_int,
+    unit_float as _unit_float,
+)
+from ._m6_context_fingerprint import m6_context_fingerprint
+from ._m6_settings_fingerprint import m6_settings_fingerprint
 from .m6_domain_type_settings import M6DomainTypeClassificationSettings
 from .range_analysis import MolecularFrameRangeAnalysis
 from .range_comparison import MolecularFrameRangeComparison
@@ -16,6 +29,7 @@ M6DomainTypeUnclassifiedReason = Literal[
     "missing_bond_length_statistics",
     "bond_length_heterogeneity_qc",
 ]
+M6DomainTypeObservationKey = tuple[str, int, int, int, int, int, int | None]
 
 _COMPONENT_TYPES = {"full_domain", "small_ordered_island"}
 _UNCLASSIFIED_REASONS = {
@@ -32,6 +46,9 @@ class M6DomainTypeObservation:
     range_name: str
     range_start_frame: int
     range_end_frame: int
+    source_view: str
+    m6_settings_fingerprint: str
+    m6_context_fingerprint: str
     frame_index: int
     source_frame_index: int
     ordered_component_id: int
@@ -75,6 +92,17 @@ class M6DomainTypeObservation:
         )
         if range_start_frame > range_end_frame:
             raise ValueError("range_start_frame must not exceed range_end_frame.")
+        source_view = _non_empty_string(self.source_view, "source_view")
+        if source_view not in {"raw", "expanded_aligned"}:
+            raise ValueError("Unsupported observation source_view.")
+        settings_fingerprint = _non_empty_string(
+            self.m6_settings_fingerprint,
+            "m6_settings_fingerprint",
+        )
+        context_fingerprint = _non_empty_string(
+            self.m6_context_fingerprint,
+            "m6_context_fingerprint",
+        )
         frame_index = _non_negative_int(self.frame_index, "frame_index")
         if not range_start_frame <= frame_index <= range_end_frame:
             raise ValueError("frame_index must lie within the observation range.")
@@ -189,6 +217,9 @@ class M6DomainTypeObservation:
             "range_name": range_name,
             "range_start_frame": range_start_frame,
             "range_end_frame": range_end_frame,
+            "source_view": source_view,
+            "m6_settings_fingerprint": settings_fingerprint,
+            "m6_context_fingerprint": context_fingerprint,
             "frame_index": frame_index,
             "source_frame_index": source_frame_index,
             "ordered_component_id": ordered_component_id,
@@ -217,7 +248,7 @@ class M6DomainTypeObservation:
             object.__setattr__(self, field_name, value)
 
     @property
-    def stable_key(self) -> tuple[str, int, int, int, int, int, int | None]:
+    def stable_key(self) -> M6DomainTypeObservationKey:
         return (
             self.range_name,
             self.range_start_frame,
@@ -231,6 +262,19 @@ class M6DomainTypeObservation:
     @property
     def bounds_xyxy_nm(self) -> tuple[float, float, float, float]:
         return self.min_x_nm, self.min_y_nm, self.max_x_nm, self.max_y_nm
+
+    def qualification_for(
+        self,
+        settings: M6DomainTypeClassificationSettings,
+    ) -> tuple[M6DomainTypeQualificationStatus, M6DomainTypeUnclassifiedReason | None]:
+        if not isinstance(settings, M6DomainTypeClassificationSettings):
+            raise TypeError("settings must be M6DomainTypeClassificationSettings.")
+        return _qualification(
+            component_type=self.component_type,
+            missing_bond_statistics=self.domain_median_bond_length_nm is None,
+            bond_length_heterogeneity_qc=self.bond_length_heterogeneity_qc,
+            settings=settings,
+        )
 
 
 def extract_m6_domain_type_observations(
@@ -258,6 +302,7 @@ def extract_m6_domain_type_observations(
             m6_analysis = frame_result.m6_orientation_analysis
             if m6_analysis is None:
                 continue
+            settings_fingerprint = m6_settings_fingerprint(m6_analysis.settings)
             frame_aggregates = m6_analysis.frame_aggregates
             footprint_partition = frame_aggregates.footprint_partition
             for component in sorted(
@@ -282,6 +327,11 @@ def extract_m6_domain_type_observations(
                         range_name=range_analysis.frame_range.name,
                         range_start_frame=range_analysis.frame_range.start_frame,
                         range_end_frame=range_analysis.frame_range.end_frame,
+                        source_view=range_analysis.source_view,
+                        m6_settings_fingerprint=settings_fingerprint,
+                        m6_context_fingerprint=m6_context_fingerprint(
+                            m6_analysis
+                        ),
                         frame_index=frame_result.frame_index,
                         source_frame_index=frame_result.source_frame_index,
                         ordered_component_id=component.ordered_component_id,
@@ -378,73 +428,3 @@ def _bond_statistics(
         _non_negative_float(iqr, "domain_bond_length_iqr_nm"),
         _non_negative_float(robust_cv, "domain_bond_length_robust_cv"),
     )
-
-
-def _non_empty_string(value: object, field_name: str) -> str:
-    if not isinstance(value, str) or not value.strip():
-        raise TypeError(f"{field_name} must be a non-empty string.")
-    return value.strip()
-
-
-def _non_negative_int(value: object, field_name: str) -> int:
-    if isinstance(value, bool) or not isinstance(value, int):
-        raise TypeError(f"{field_name} must be an integer.")
-    if value < 0:
-        raise ValueError(f"{field_name} must be non-negative.")
-    return value
-
-
-def _positive_int(value: object, field_name: str) -> int:
-    normalized = _non_negative_int(value, field_name)
-    if normalized == 0:
-        raise ValueError(f"{field_name} must be positive.")
-    return normalized
-
-
-def _finite_float(value: object, field_name: str) -> float:
-    if isinstance(value, bool) or not isinstance(value, Real):
-        raise TypeError(f"{field_name} must be a real number.")
-    normalized = float(value)
-    if not isfinite(normalized):
-        raise ValueError(f"{field_name} must be finite.")
-    return normalized
-
-
-def _normalize_m6_orientation(value: object) -> float:
-    orientation = _finite_float(value, "orientation_deg") % 60.0
-    if isclose(orientation, 0.0, abs_tol=1e-12) or isclose(
-        orientation,
-        60.0,
-        abs_tol=1e-12,
-    ):
-        return 0.0
-    return orientation
-
-
-def _positive_float(value: object, field_name: str) -> float:
-    normalized = _finite_float(value, field_name)
-    if normalized <= 0.0:
-        raise ValueError(f"{field_name} must be positive.")
-    return normalized
-
-
-def _non_negative_float(value: object, field_name: str) -> float:
-    normalized = _finite_float(value, field_name)
-    if normalized < 0.0:
-        raise ValueError(f"{field_name} must be non-negative.")
-    return normalized
-
-
-def _unit_float(value: object, field_name: str) -> float:
-    normalized = _finite_float(value, field_name)
-    if not 0.0 <= normalized <= 1.0:
-        raise ValueError(f"{field_name} must be between 0 and 1.")
-    return normalized
-
-
-def _optional_unit_float(value: object, field_name: str) -> float | None:
-    return None if value is None else _unit_float(value, field_name)
-
-
-def _optional_non_negative_float(value: object, field_name: str) -> float | None:
-    return None if value is None else _non_negative_float(value, field_name)
