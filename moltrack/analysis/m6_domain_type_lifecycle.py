@@ -3,7 +3,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 import hashlib
 import json
-from typing import Literal
+from threading import RLock
+from typing import Callable, Literal
 
 from ._m6_context_fingerprint import m6_context_fingerprint
 from .frame_ranges import MolecularFrameRange, MolecularFrameRangeAnalysisScope
@@ -36,6 +37,23 @@ M6DomainTypeAnalysisStatus = Literal[
 M6DomainTypeTableResult = (
     M6SingleRangeDomainTypeSummary | M6DomainTypeRangeComparison
 )
+M6DomainTypeAnalysisComputePhase = Literal[
+    "extracting_observations",
+    "complete_linkage",
+    "aggregating",
+]
+M6_DOMAIN_TYPE_ANALYSIS_COMPUTE_PHASES: tuple[
+    M6DomainTypeAnalysisComputePhase,
+    ...,
+] = (
+    "extracting_observations",
+    "complete_linkage",
+    "aggregating",
+)
+M6DomainTypeAnalysisProgressCallback = Callable[
+    [M6DomainTypeAnalysisComputePhase],
+    None,
+]
 
 _FINGERPRINT_VERSION = "m6-domain-type-analysis-context-v1"
 
@@ -292,20 +310,41 @@ class M6DomainTypeAnalysisOutcome:
         object.__setattr__(self, "uses_tracking", False)
 
 
+@dataclass(frozen=True)
+class M6DomainTypeAnalysisComputation:
+    """A complete result that has not yet been published to the active store."""
+
+    context: M6DomainTypeAnalysisContext
+    outcome: M6DomainTypeAnalysisOutcome
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.context, M6DomainTypeAnalysisContext):
+            raise TypeError("context must be an M6 domain type analysis context.")
+        if not isinstance(self.outcome, M6DomainTypeAnalysisOutcome):
+            raise TypeError("outcome must be an M6 domain type analysis outcome.")
+        if self.outcome.context_fingerprint != self.context.fingerprint:
+            raise ValueError("Outcome and context fingerprints must match.")
+        if self.outcome.analysis_scope != self.context.analysis_scope:
+            raise ValueError("Outcome and context scopes must match.")
+
+
 class M6DomainTypeAnalysisStore:
     """Keep at most one type result and expose it only for its exact context."""
 
     def __init__(self) -> None:
+        self._lock = RLock()
         self._current: M6DomainTypeAnalysisOutcome | None = None
         self._current_context: M6DomainTypeAnalysisContext | None = None
 
     @property
     def current(self) -> M6DomainTypeAnalysisOutcome | None:
-        return self._current
+        with self._lock:
+            return self._current
 
     def clear(self) -> None:
-        self._current = None
-        self._current_context = None
+        with self._lock:
+            self._current = None
+            self._current_context = None
 
     def current_for(
         self,
@@ -313,54 +352,112 @@ class M6DomainTypeAnalysisStore:
         *,
         classification_settings: M6DomainTypeClassificationSettings,
     ) -> M6DomainTypeAnalysisOutcome | None:
-        if self._matches_current_source(source, classification_settings):
-            return self._current
+        current, _ = self._snapshot_for_source(source, classification_settings)
+        if current is not None:
+            return current
         context = build_m6_domain_type_analysis_context(
             source,
             classification_settings=classification_settings,
         )
-        if self._current is None or (
-            self._current.context_fingerprint != context.fingerprint
-        ):
-            return None
-        self._current_context = context
-        return self._current
+        with self._lock:
+            if self._current is None or (
+                self._current.context_fingerprint != context.fingerprint
+            ):
+                return None
+            self._current_context = context
+            return self._current
 
     def analyze(
         self,
         source: M6DomainTypeAnalysisSource,
         *,
         classification_settings: M6DomainTypeClassificationSettings,
+        progress_callback: M6DomainTypeAnalysisProgressCallback | None = None,
     ) -> M6DomainTypeAnalysisOutcome:
-        if self._matches_current_source(source, classification_settings):
-            assert self._current is not None
-            return self._current
+        computation = self.compute(
+            source,
+            classification_settings=classification_settings,
+            progress_callback=progress_callback,
+        )
+        return self.publish(computation)
+
+    def compute(
+        self,
+        source: M6DomainTypeAnalysisSource,
+        *,
+        classification_settings: M6DomainTypeClassificationSettings,
+        progress_callback: M6DomainTypeAnalysisProgressCallback | None = None,
+    ) -> M6DomainTypeAnalysisComputation:
+        """Build a complete immutable result without changing the published result."""
+
+        _report_compute_phase(progress_callback, "extracting_observations")
+        current, current_context = self._snapshot_for_source(
+            source,
+            classification_settings,
+        )
+        if current is not None:
+            assert current_context is not None
+            _report_compute_phase(progress_callback, "complete_linkage")
+            _report_compute_phase(progress_callback, "aggregating")
+            return M6DomainTypeAnalysisComputation(
+                context=current_context,
+                outcome=current,
+            )
         context = build_m6_domain_type_analysis_context(
             source,
             classification_settings=classification_settings,
         )
-        if self._current is not None and (
-            self._current.context_fingerprint == context.fingerprint
+        with self._lock:
+            current = self._current
+        if current is not None and (
+            current.context_fingerprint == context.fingerprint
         ):
-            self._current_context = context
-            return self._current
-        outcome = _analyze_context(context)
-        self._current = outcome
-        self._current_context = context
-        return outcome
+            _report_compute_phase(progress_callback, "complete_linkage")
+            _report_compute_phase(progress_callback, "aggregating")
+            return M6DomainTypeAnalysisComputation(
+                context=context,
+                outcome=current,
+            )
+        outcome = _analyze_context(
+            context,
+            progress_callback=progress_callback,
+        )
+        return M6DomainTypeAnalysisComputation(
+            context=context,
+            outcome=outcome,
+        )
 
-    def _matches_current_source(
+    def publish(
+        self,
+        computation: M6DomainTypeAnalysisComputation,
+    ) -> M6DomainTypeAnalysisOutcome:
+        """Atomically replace the visible result with one completed computation."""
+
+        if not isinstance(computation, M6DomainTypeAnalysisComputation):
+            raise TypeError("computation must be an M6 domain type computation.")
+        with self._lock:
+            self._current = computation.outcome
+            self._current_context = computation.context
+            return computation.outcome
+
+    def _snapshot_for_source(
         self,
         source: M6DomainTypeAnalysisSource,
         classification_settings: M6DomainTypeClassificationSettings,
-    ) -> bool:
-        return (
-            self._current is not None
-            and self._current_context is not None
-            and source is self._current_context.source
-            and classification_settings
-            == self._current_context.classification_settings
-        )
+    ) -> tuple[
+        M6DomainTypeAnalysisOutcome | None,
+        M6DomainTypeAnalysisContext | None,
+    ]:
+        with self._lock:
+            if (
+                self._current is not None
+                and self._current_context is not None
+                and source is self._current_context.source
+                and classification_settings
+                == self._current_context.classification_settings
+            ):
+                return self._current, self._current_context
+            return None, None
 
 
 def adapt_m6_domain_type_analysis_source(
@@ -482,8 +579,12 @@ def build_m6_domain_type_analysis_context(
 
 def _analyze_context(
     context: M6DomainTypeAnalysisContext,
+    *,
+    progress_callback: M6DomainTypeAnalysisProgressCallback | None = None,
 ) -> M6DomainTypeAnalysisOutcome:
+    _report_compute_phase(progress_callback, "complete_linkage")
     if context.available_m6_frame_count == 0:
+        _report_compute_phase(progress_callback, "aggregating")
         return M6DomainTypeAnalysisOutcome(
             status="m6_unavailable",
             status_message="No completed M6 frame is available for domain types.",
@@ -504,6 +605,7 @@ def _analyze_context(
         m6_settings=m6_settings,
         m6_context_fingerprint=m6_context,
     )
+    _report_compute_phase(progress_callback, "aggregating")
     if context.source.analysis_mode == "single_range":
         table_result: M6DomainTypeTableResult = (
             build_m6_single_range_domain_type_summary(
@@ -532,6 +634,14 @@ def _analyze_context(
         classification=classification,
         table_result=table_result,
     )
+
+
+def _report_compute_phase(
+    callback: M6DomainTypeAnalysisProgressCallback | None,
+    phase: M6DomainTypeAnalysisComputePhase,
+) -> None:
+    if callback is not None:
+        callback(phase)
 
 
 def _table_has_domain_types(table_result: M6DomainTypeTableResult) -> bool:

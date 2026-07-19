@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from moltrack.analysis import (
+    M6DomainTypeAnalysisComputation,
     M6DomainTypeAnalysisStore,
     M6DomainTypeClassificationSettings,
     M6DomainTypeRangeComparison,
@@ -192,6 +193,72 @@ def _comparison(
 
 
 class M6DomainTypeLifecycleTests(unittest.TestCase):
+    def test_computation_is_staged_and_published_atomically(self) -> None:
+        settings = _type_settings()
+        initial_source = adapt_m6_domain_type_analysis_source(
+            _range_analysis(MolecularFrameRange("initial", 0, 0)),
+            frame_count=2,
+        )
+        replacement_source = adapt_m6_domain_type_analysis_source(
+            _range_analysis(
+                MolecularFrameRange("replacement", 1, 1),
+                component=_component(11, orientation_deg=23.0),
+            ),
+            frame_count=2,
+        )
+        store = M6DomainTypeAnalysisStore()
+        previous = store.analyze(
+            initial_source,
+            classification_settings=settings,
+        )
+        phases = []
+
+        computation = store.compute(
+            replacement_source,
+            classification_settings=settings,
+            progress_callback=phases.append,
+        )
+
+        self.assertIsInstance(computation, M6DomainTypeAnalysisComputation)
+        self.assertEqual(
+            phases,
+            ["extracting_observations", "complete_linkage", "aggregating"],
+        )
+        self.assertIs(store.current, previous)
+
+        published = store.publish(computation)
+
+        self.assertIs(published, computation.outcome)
+        self.assertIs(store.current, computation.outcome)
+
+    def test_failed_staged_computation_preserves_previous_result(self) -> None:
+        settings = _type_settings()
+        initial_source = adapt_m6_domain_type_analysis_source(
+            _range_analysis(MolecularFrameRange("initial", 0, 0)),
+            frame_count=2,
+        )
+        replacement_source = adapt_m6_domain_type_analysis_source(
+            _range_analysis(MolecularFrameRange("replacement", 1, 1)),
+            frame_count=2,
+        )
+        store = M6DomainTypeAnalysisStore()
+        previous = store.analyze(
+            initial_source,
+            classification_settings=settings,
+        )
+
+        with patch(
+            "moltrack.analysis.m6_domain_type_lifecycle.classify_m6_domain_types",
+            side_effect=RuntimeError("synthetic classification failure"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "synthetic classification failure"):
+                store.compute(
+                    replacement_source,
+                    classification_settings=settings,
+                )
+
+        self.assertIs(store.current, previous)
+
     def test_adapter_exposes_named_ranges_and_reuses_completed_m6_only(self) -> None:
         single_analysis = _range_analysis(MolecularFrameRange("single", 0, 0))
         first = _range_analysis(MolecularFrameRange("before", 0, 0))

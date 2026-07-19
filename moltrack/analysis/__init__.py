@@ -214,6 +214,9 @@ from .m6_domain_type_range_comparison import (
     build_m6_domain_type_range_comparison,
 )
 from .m6_domain_type_lifecycle import (
+    M6_DOMAIN_TYPE_ANALYSIS_COMPUTE_PHASES,
+    M6DomainTypeAnalysisComputation,
+    M6DomainTypeAnalysisComputePhase,
     M6DomainTypeAnalysisContext,
     M6DomainTypeAnalysisOutcome,
     M6DomainTypeAnalysisSource,
@@ -261,6 +264,9 @@ __all__ = [
     "M6DomainTypeRangeSide",
     "build_m6_domain_type_range_comparison",
     "M6DomainTypeAnalysisContext",
+    "M6_DOMAIN_TYPE_ANALYSIS_COMPUTE_PHASES",
+    "M6DomainTypeAnalysisComputation",
+    "M6DomainTypeAnalysisComputePhase",
     "M6DomainTypeAnalysisOutcome",
     "M6DomainTypeAnalysisSource",
     "M6DomainTypeAnalysisStore",

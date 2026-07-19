@@ -33,6 +33,7 @@ from PyQt6.QtWidgets import (
 )
 
 from moltrack.analysis import (
+    M6DomainTypeAnalysisStore,
     M6PointOverlay,
     MolecularM6OrientationAnalysisSettings,
     MolecularM6SessionState,
@@ -70,6 +71,7 @@ from moltrack.persistence import (
 )
 from moltrack.ui.dialogs import ExportAnalysisDialog, PositionAnalysisDialog
 from moltrack.ui.dialogs.m6_settings_panel import M6SettingsPanel
+from moltrack.ui.m6_domain_type_worker import M6DomainTypeAnalysisController
 from moltrack.ui.widgets import STMSeriesViewer, SeriesMetadataPanel
 from moltrack.yolo import MolTrackYoloDetector, YoloBBoxSizeFilter, discover_yolo_models
 from moltrack.sam2 import (
@@ -914,6 +916,7 @@ class MolTrackMainWindow(QMainWindow):
         analysis_export_dialog_factory=None,
         analysis_exporter=None,
         position_range_comparator=compare_molecular_frame_ranges,
+        m6_domain_type_store=None,
     ):
         super().__init__(parent)
         self._series = None
@@ -961,6 +964,15 @@ class MolTrackMainWindow(QMainWindow):
         self._analysis_export_worker: _AnalysisExportWorker | None = None
         self._position_range_comparator = position_range_comparator
         self._m6_analysis_running = False
+        self._m6_domain_type_store = (
+            m6_domain_type_store
+            if m6_domain_type_store is not None
+            else M6DomainTypeAnalysisStore()
+        )
+        self._m6_domain_type_controller = M6DomainTypeAnalysisController(
+            self._m6_domain_type_store,
+            self,
+        )
         self._m6_analysis_thread: QThread | None = None
         self._m6_analysis_worker: _M6PositionAnalysisWorker | None = None
         self._m6_analysis_series = None
@@ -1457,6 +1469,8 @@ class MolTrackMainWindow(QMainWindow):
         self.viewer.manual_molecular_mask_brush_dragged.connect(self._on_manual_mask_brush_dragged)
 
     def set_image_series(self, series) -> None:
+        self._m6_domain_type_controller.cancel_for_series_change()
+        self._m6_domain_type_store.clear()
         if self._position_analysis_dialog is not None:
             previous_dialog = self._position_analysis_dialog
             self._position_analysis_dialog = None
@@ -1475,7 +1489,7 @@ class MolTrackMainWindow(QMainWindow):
         self.metadata_panel.set_image_series(series)
 
     def closeEvent(self, event) -> None:
-        if self._is_processing():
+        if self._is_processing() or self._m6_domain_type_controller.is_running:
             self.statusBar().showMessage(
                 "Wait for the active operation to finish before closing.",
                 0,
