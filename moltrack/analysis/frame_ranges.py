@@ -14,7 +14,10 @@ class MolecularFrameRange:
     end_frame: int
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "name", str(self.name).strip())
+        name = str(self.name).strip()
+        if not name:
+            raise ValueError("name must not be empty.")
+        object.__setattr__(self, "name", name)
         object.__setattr__(self, "start_frame", int(self.start_frame))
         object.__setattr__(self, "end_frame", int(self.end_frame))
         if self.start_frame > self.end_frame:

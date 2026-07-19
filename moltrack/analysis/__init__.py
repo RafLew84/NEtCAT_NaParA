@@ -177,6 +177,10 @@ from .range_analysis import (
     MolecularFrameRangeAnalysis,
     analyze_molecular_frame_range,
 )
+from .m6_domain_type_observations import (
+    M6DomainTypeObservation,
+    extract_m6_domain_type_observations,
+)
 
 __all__ = [
     "AggregatedPairCorrelationResult",
@@ -191,6 +195,7 @@ __all__ = [
     "MolecularFrameRangeComparison",
     "MolecularFrameRangeDifferences",
     "MolecularFrameRangeSelection",
+    "M6DomainTypeObservation",
     "MolecularIntensityMeasurement",
     "MolecularIntensityCacheStats",
     "MolecularIntensityMeasurementCache",
@@ -297,6 +302,7 @@ __all__ = [
     "measure_molecular_intensity",
     "restore_molecular_intensity_cache_records",
     "restore_structural_analysis_cache_records",
+    "extract_m6_domain_type_observations",
     "suggest_first_shell_r_max",
     "suggest_shared_first_shell_r_max",
 ]

@@ -10,6 +10,12 @@ from moltrack.analysis import (
 
 
 class MolecularFrameRangeAnalysisScopeTests(unittest.TestCase):
+    def test_named_frame_range_rejects_an_empty_name(self) -> None:
+        for name in ("", "   "):
+            with self.subTest(name=name):
+                with self.assertRaisesRegex(ValueError, "name"):
+                    MolecularFrameRange(name, 0, 0)
+
     def test_single_range_scope_exposes_one_inclusive_named_range(self) -> None:
         frame_range = MolecularFrameRange("stable condition", 2, 5)
 
