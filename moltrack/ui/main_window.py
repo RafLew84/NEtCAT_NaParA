@@ -37,6 +37,7 @@ from moltrack.analysis import (
     MolecularM6OrientationAnalysisSettings,
     MolecularM6SessionState,
     MolecularM6ViewSettings,
+    TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET,
     MolecularFrameRange,
     MolecularFrameRangeSelection,
     aggregate_pair_correlation_results,
@@ -1057,6 +1058,15 @@ class MolTrackMainWindow(QMainWindow):
         file_menu.addAction(self.action_save_state)
         file_menu.addAction(self.action_save_state_as)
 
+        self.parameters_menu = self.menuBar().addMenu("Parameters")
+        self.m6_presets_menu = self.parameters_menu.addMenu("M6 presets")
+        self.action_m6_preset_ttmapp = QAction("TTMAPP", self)
+        self.action_m6_preset_ttmapp.setToolTip(
+            "Apply validated TTMAPP parameters to sixfold bond-order analysis"
+        )
+        self.action_m6_preset_ttmapp.setEnabled(False)
+        self.m6_presets_menu.addAction(self.action_m6_preset_ttmapp)
+
     def _build_central_widget(self) -> None:
         central = QSplitter(Qt.Orientation.Horizontal, self)
 
@@ -1397,6 +1407,9 @@ class MolTrackMainWindow(QMainWindow):
         self.action_open_state.triggered.connect(self._on_open_state_requested)
         self.action_save_state.triggered.connect(self._on_save_state_requested)
         self.action_save_state_as.triggered.connect(self._on_save_state_as_requested)
+        self.action_m6_preset_ttmapp.triggered.connect(
+            self._on_m6_ttmapp_preset_requested
+        )
         self.slider_frame.valueChanged.connect(self._on_frame_selected)
         self.btn_remove_current_frame.clicked.connect(self._on_remove_current_frame_requested)
         self.btn_run_registration.clicked.connect(self._on_run_registration_requested)
@@ -1479,6 +1492,9 @@ class MolTrackMainWindow(QMainWindow):
 
     def _sync_navigation_controls(self) -> None:
         self._set_file_actions_enabled(not self._is_processing())
+        self.action_m6_preset_ttmapp.setEnabled(
+            self._series is not None and not self._is_processing()
+        )
         if self._series is None:
             self.lbl_frame.setText("Frame: - / -")
             self._update_navigation_enabled(False)
@@ -2853,6 +2869,46 @@ class MolTrackMainWindow(QMainWindow):
 
     def _on_m6_analysis_requested(self, settings) -> None:
         self._start_m6_analysis(settings, enable_on_success=True)
+
+    def _on_m6_ttmapp_preset_requested(self) -> None:
+        series = self._series
+        if series is None or self._is_processing():
+            return
+        settings = TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
+        dialog = self._position_analysis_dialog
+        previous_state = getattr(series, "m6_analysis_state", None)
+        if isinstance(previous_state, MolecularM6SessionState):
+            source_view = previous_state.source_view
+            use_segmentation_centroids = previous_state.use_segmentation_centroids
+            view_settings = previous_state.view_settings
+        else:
+            source_view = self._current_yolo_source_view()
+            use_segmentation_centroids = (
+                dialog.use_segmentation_centroids() if dialog is not None else True
+            )
+            view_settings = (
+                dialog.m6_view_settings()
+                if dialog is not None
+                else MolecularM6ViewSettings()
+            )
+        series.m6_analysis_state = MolecularM6SessionState(
+            enabled=False,
+            source_view=source_view,
+            use_segmentation_centroids=use_segmentation_centroids,
+            settings=settings,
+            view_settings=view_settings,
+        )
+        self._m6_completed_context = None
+        self._m6_pending_context = None
+        self._m6_pending_session_state = None
+        self._m6_selected_ordered_component_id = None
+        if dialog is not None:
+            dialog.set_m6_analysis_settings(settings)
+        self._render_current_m6_overlay()
+        self.statusBar().showMessage(
+            "Applied TTMAPP preset to M6 orientation analysis",
+            5000,
+        )
 
     def _on_m6_view_settings_changed(self, view_settings) -> None:
         series = self._series

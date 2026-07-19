@@ -16,6 +16,7 @@ from .m6_settings import (
     MolecularM6SessionState,
     MolecularM6ViewSettings,
 )
+from .m6_presets import TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
 from .local_sixfold_bond_order import (
     LocalOrderComputationStatus,
     LocalOrientationStatus,

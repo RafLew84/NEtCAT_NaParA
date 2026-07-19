@@ -554,6 +554,7 @@ class M6SettingsPanel(QScrollArea):
         self.apply_suggestion_button.setEnabled(False)
         self.suggestion_label.setText("No first-shell suggestion.")
         self.pair_correlation_plot.clear_result()
+        self.range_trends_panel.invalidate_for_settings_change()
         self._sync_pair_correlation_shell_markers()
         self._refresh_validation()
 

@@ -19,6 +19,7 @@ from moltrack.analysis import (
     MolecularM6OrientationAnalysisSettings,
     MolecularM6SessionState,
     MolecularM6ViewSettings,
+    TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET,
     build_molecular_position_plot_data,
     compare_molecular_frame_ranges,
 )
@@ -166,6 +167,14 @@ class MolTrackMainWindowTests(unittest.TestCase):
     def test_empty_workspace_exposes_file_actions_and_disables_frame_navigation(self) -> None:
         self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
 
+        self.assertEqual(
+            tuple(action.text() for action in self.window.menuBar().actions()),
+            ("File", "Parameters"),
+        )
+        self.assertEqual(self.window.parameters_menu.title(), "Parameters")
+        self.assertEqual(self.window.m6_presets_menu.title(), "M6 presets")
+        self.assertEqual(self.window.action_m6_preset_ttmapp.text(), "TTMAPP")
+        self.assertFalse(self.window.action_m6_preset_ttmapp.isEnabled())
         self.assertEqual(self.window.action_open_stm.text(), "Open STM...")
         self.assertEqual(self.window.action_open_stm_reverse.text(), "Open STM Reverse...")
         self.assertEqual(self.window.action_open_state.text(), "Open State...")
@@ -216,6 +225,91 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.btn_sam3_commit_proposals.text(), "Commit Proposals")
         self.assertFalse(self.window.btn_sam3_commit_proposals.isEnabled())
         self.assertEqual(self.window.lbl_segmentation_status.text(), "No series loaded")
+
+    def test_ttmapp_parameter_preset_updates_m6_dialog_and_session_configuration(self) -> None:
+        previous_settings = MolecularM6OrientationAnalysisSettings(
+            first_shell_r_min_nm=1.5,
+            first_shell_r_max_nm=2.5,
+        )
+        previous_view_settings = MolecularM6ViewSettings(
+            overlay_mode="orientation",
+            overlay_opacity_percent=37,
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((2, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(
+                pixels_x=8,
+                pixels_y=8,
+                size_nm_x=800.0,
+                size_nm_y=800.0,
+            ),
+            m6_analysis_state=MolecularM6SessionState(
+                enabled=True,
+                source_view="raw",
+                use_segmentation_centroids=False,
+                settings=previous_settings,
+                view_settings=previous_view_settings,
+            ),
+        )
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        self.window.set_image_series(series)
+        self.window.btn_position_analysis.click()
+
+        self.assertTrue(self.window.action_m6_preset_ttmapp.isEnabled())
+        self.window.action_m6_preset_ttmapp.trigger()
+
+        dialog = self.window.position_analysis_dialog()
+        self.assertEqual(
+            dialog.m6_analysis_settings(),
+            TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET,
+        )
+        self.assertEqual(
+            series.m6_analysis_state.settings,
+            TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET,
+        )
+        self.assertFalse(series.m6_analysis_state.enabled)
+        self.assertEqual(series.m6_analysis_state.source_view, "raw")
+        self.assertFalse(series.m6_analysis_state.use_segmentation_centroids)
+        self.assertEqual(series.m6_analysis_state.view_settings, previous_view_settings)
+        self.assertIn("TTMAPP", self.window.statusBar().currentMessage())
+
+    def test_ttmapp_parameter_preset_contains_validated_dataset_values(self) -> None:
+        settings = TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
+
+        self.assertEqual(settings.duplicate_max_distance_nm, 10.0)
+        self.assertEqual(settings.first_shell_r_min_nm, 30.0)
+        self.assertEqual(settings.first_shell_r_max_nm, 70.0)
+        self.assertEqual(settings.footprint_support_radius_nm, 35.0)
+        self.assertEqual(settings.min_neighbors_for_local_order, 3)
+        self.assertEqual(settings.min_neighbors_for_seed, 5)
+        self.assertEqual(settings.min_ordered_component_size, 3)
+        self.assertEqual(settings.min_seed_size, 5)
+        self.assertEqual(settings.min_domain_size, 12)
+        self.assertEqual(settings.gr_bin_width_nm, 5.0)
+        self.assertEqual(settings.gr_max_nm, 250.0)
+
+    def test_ttmapp_parameter_preset_applies_before_position_dialog_is_opened(self) -> None:
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((2, 8, 8), dtype=np.float32),
+            metadata=STMSequenceMetadata(pixels_x=8, pixels_y=8),
+        )
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        self.window.set_image_series(series)
+
+        self.window.action_m6_preset_ttmapp.trigger()
+
+        self.assertIsNone(self.window.position_analysis_dialog())
+        self.assertEqual(
+            series.m6_analysis_state.settings,
+            TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET,
+        )
+        self.window.btn_position_analysis.click()
+        self.assertEqual(
+            self.window.position_analysis_dialog().m6_analysis_settings(),
+            TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET,
+        )
 
     def test_right_control_panel_is_scrollable_and_contains_control_groups(self) -> None:
         self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
