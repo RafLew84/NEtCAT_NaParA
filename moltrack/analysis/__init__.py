@@ -20,6 +20,7 @@ from .m6_settings import (
     MolecularM6SessionState,
     MolecularM6ViewSettings,
 )
+from .m6_domain_type_settings import M6DomainTypeClassificationSettings
 from .m6_presets import TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
 from .local_sixfold_bond_order import (
     LocalOrderComputationStatus,
@@ -194,6 +195,7 @@ __all__ = [
     "MolecularIntensityCacheStats",
     "MolecularIntensityMeasurementCache",
     "MolecularM6OrientationAnalysisSettings",
+    "M6DomainTypeClassificationSettings",
     "MAX_PAIR_CORRELATION_BIN_COUNT",
     "MolecularM6SessionState",
     "MolecularM6ViewSettings",
