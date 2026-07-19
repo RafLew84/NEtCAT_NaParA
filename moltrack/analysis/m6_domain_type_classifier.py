@@ -17,6 +17,7 @@ from .m6_domain_type_observations import (
 from .m6_domain_type_results import (
     M6DomainType,
     M6DomainTypeAssignment,
+    M6DomainTypeClassificationQcReport,
     M6DomainTypeClassificationResult,
 )
 from .m6_domain_type_settings import M6DomainTypeClassificationSettings
@@ -117,7 +118,6 @@ def classify_m6_domain_types(
         )
         for observation in ordered_observations
     )
-    classified_count = len(type_id_by_observation_key)
     return M6DomainTypeClassificationResult(
         analysis_scope=analysis_scope,
         classification_settings=classification_settings,
@@ -127,11 +127,7 @@ def classify_m6_domain_types(
         observations=ordered_observations,
         domain_types=domain_types,
         assignments=assignments,
-        observation_count=len(ordered_observations),
-        classified_observation_count=classified_count,
-        unclassified_observation_count=(
-            len(ordered_observations) - classified_count
-        ),
+        qc_report=M6DomainTypeClassificationQcReport.from_assignments(assignments),
     )
 
 

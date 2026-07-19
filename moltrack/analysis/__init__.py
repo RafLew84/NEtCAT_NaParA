@@ -184,6 +184,7 @@ from .m6_domain_type_observations import (
 from .m6_domain_type_results import (
     M6DomainType,
     M6DomainTypeAssignment,
+    M6DomainTypeClassificationQcReport,
     M6DomainTypeClassificationResult,
 )
 from .m6_domain_type_similarity import (
@@ -211,6 +212,7 @@ __all__ = [
     "M6DomainTypeObservation",
     "M6DomainType",
     "M6DomainTypeAssignment",
+    "M6DomainTypeClassificationQcReport",
     "M6DomainTypeClassificationResult",
     "M6DomainTypeDistance",
     "compute_m6_domain_type_distance",

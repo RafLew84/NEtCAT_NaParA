@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 from ._m6_domain_type_validation import (
@@ -22,6 +22,10 @@ from .m6_settings import MolecularM6OrientationAnalysisSettings
 
 
 M6DomainTypeAssignmentStatus = Literal["classified", "unclassified"]
+M6DomainTypeClassificationMode = Literal[
+    "single_range_structural_domain_type_classification",
+    "joint_structural_domain_type_classification",
+]
 M6DomainTypeAssignmentReason = Literal[
     "small_ordered_island_excluded",
     "missing_bond_length_statistics",
@@ -29,12 +33,16 @@ M6DomainTypeAssignmentReason = Literal[
     "below_minimum_observations_per_type",
 ]
 
-_UNCLASSIFIED_REASONS = {
+M6_DOMAIN_TYPE_UNCLASSIFIED_REASONS: tuple[
+    M6DomainTypeAssignmentReason,
+    ...,
+] = (
     "small_ordered_island_excluded",
     "missing_bond_length_statistics",
     "bond_length_heterogeneity_qc",
     "below_minimum_observations_per_type",
-}
+)
+_UNCLASSIFIED_REASONS = set(M6_DOMAIN_TYPE_UNCLASSIFIED_REASONS)
 
 
 @dataclass(frozen=True)
@@ -152,6 +160,112 @@ class M6DomainTypeAssignment:
 
 
 @dataclass(frozen=True)
+class M6DomainTypeClassificationQcReport:
+    """Auditable classification counts, including every rejection reason."""
+
+    observation_count: int
+    classified_observation_count: int
+    unclassified_observation_count: int
+    unclassified_reason_counts: tuple[
+        tuple[M6DomainTypeAssignmentReason, int],
+        ...,
+    ]
+
+    def __post_init__(self) -> None:
+        observation_count = _non_negative_int(
+            self.observation_count,
+            "observation_count",
+        )
+        classified_count = _non_negative_int(
+            self.classified_observation_count,
+            "classified_observation_count",
+        )
+        unclassified_count = _non_negative_int(
+            self.unclassified_observation_count,
+            "unclassified_observation_count",
+        )
+        if observation_count != classified_count + unclassified_count:
+            raise ValueError("QC observation counts must balance.")
+
+        try:
+            entries = tuple(self.unclassified_reason_counts)
+        except TypeError as exc:
+            raise TypeError(
+                "unclassified_reason_counts must be an iterable of pairs."
+            ) from exc
+        counts: dict[M6DomainTypeAssignmentReason, int] = {}
+        for entry in entries:
+            if not isinstance(entry, (tuple, list)) or len(entry) != 2:
+                raise TypeError(
+                    "unclassified_reason_counts must contain reason/count pairs."
+                )
+            reason, raw_count = entry
+            if reason not in _UNCLASSIFIED_REASONS:
+                raise ValueError("Unsupported unclassified reason in QC report.")
+            if reason in counts:
+                raise ValueError("QC report cannot repeat an unclassified reason.")
+            counts[reason] = _non_negative_int(
+                raw_count,
+                f"unclassified count for {reason}",
+            )
+        if set(counts) != _UNCLASSIFIED_REASONS:
+            raise ValueError("QC report must contain every unclassified reason.")
+        normalized_counts = tuple(
+            (reason, counts[reason])
+            for reason in M6_DOMAIN_TYPE_UNCLASSIFIED_REASONS
+        )
+        if sum(count for _, count in normalized_counts) != unclassified_count:
+            raise ValueError("QC unclassified reason counts must balance.")
+
+        object.__setattr__(self, "observation_count", observation_count)
+        object.__setattr__(
+            self,
+            "classified_observation_count",
+            classified_count,
+        )
+        object.__setattr__(
+            self,
+            "unclassified_observation_count",
+            unclassified_count,
+        )
+        object.__setattr__(
+            self,
+            "unclassified_reason_counts",
+            normalized_counts,
+        )
+
+    @classmethod
+    def from_assignments(
+        cls,
+        assignments: tuple[M6DomainTypeAssignment, ...],
+    ) -> "M6DomainTypeClassificationQcReport":
+        normalized_assignments = tuple(assignments)
+        if any(
+            not isinstance(assignment, M6DomainTypeAssignment)
+            for assignment in normalized_assignments
+        ):
+            raise TypeError("assignments must contain M6DomainTypeAssignment values.")
+        counts = {reason: 0 for reason in M6_DOMAIN_TYPE_UNCLASSIFIED_REASONS}
+        classified_count = 0
+        for assignment in normalized_assignments:
+            if assignment.status == "classified":
+                classified_count += 1
+            else:
+                reason = assignment.unclassified_reason
+                if reason is None:  # guarded by M6DomainTypeAssignment
+                    raise ValueError("Unclassified assignment is missing its reason.")
+                counts[reason] += 1
+        return cls(
+            observation_count=len(normalized_assignments),
+            classified_observation_count=classified_count,
+            unclassified_observation_count=(
+                len(normalized_assignments) - classified_count
+            ),
+            unclassified_reason_counts=tuple(counts.items()),
+        )
+
+
+@dataclass(frozen=True)
 class M6DomainTypeClassificationResult:
     """Validated partition of range observations into structural domain types."""
 
@@ -163,9 +277,9 @@ class M6DomainTypeClassificationResult:
     observations: tuple[M6DomainTypeObservation, ...]
     domain_types: tuple[M6DomainType, ...]
     assignments: tuple[M6DomainTypeAssignment, ...]
-    observation_count: int
-    classified_observation_count: int
-    unclassified_observation_count: int
+    qc_report: M6DomainTypeClassificationQcReport
+    classification_mode: M6DomainTypeClassificationMode = field(init=False)
+    uses_tracking: bool = field(default=False, init=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.analysis_scope, MolecularFrameRangeAnalysisScope):
@@ -243,41 +357,38 @@ class M6DomainTypeClassificationResult:
             ):
                 raise ValueError("Domain type observation_count is inconsistent.")
 
-        observation_count = _non_negative_int(
-            self.observation_count,
-            "observation_count",
+        expected_mode: M6DomainTypeClassificationMode = (
+            "single_range_structural_domain_type_classification"
+            if self.analysis_scope.analysis_mode == "single_range"
+            else "joint_structural_domain_type_classification"
         )
-        classified_count = _non_negative_int(
-            self.classified_observation_count,
-            "classified_observation_count",
+        if not isinstance(self.qc_report, M6DomainTypeClassificationQcReport):
+            raise TypeError("qc_report must be M6DomainTypeClassificationQcReport.")
+        expected_qc_report = M6DomainTypeClassificationQcReport.from_assignments(
+            assignments
         )
-        unclassified_count = _non_negative_int(
-            self.unclassified_observation_count,
-            "unclassified_observation_count",
-        )
-        actual_classified_count = sum(
-            assignment.status == "classified" for assignment in assignments
-        )
-        actual_counts = (
-            len(observations),
-            actual_classified_count,
-            len(observations) - actual_classified_count,
-        )
-        if (
-            observation_count,
-            classified_count,
-            unclassified_count,
-        ) != actual_counts:
-            raise ValueError("Classification result counters are inconsistent.")
+        if self.qc_report != expected_qc_report:
+            raise ValueError("Classification QC report is inconsistent.")
 
         object.__setattr__(self, "m6_context_fingerprint", m6_context_fingerprint)
         object.__setattr__(self, "input_fingerprint", input_fingerprint)
         object.__setattr__(self, "observations", observations)
         object.__setattr__(self, "domain_types", domain_types)
         object.__setattr__(self, "assignments", assignments)
-        object.__setattr__(self, "observation_count", observation_count)
-        object.__setattr__(self, "classified_observation_count", classified_count)
-        object.__setattr__(self, "unclassified_observation_count", unclassified_count)
+        object.__setattr__(self, "classification_mode", expected_mode)
+        object.__setattr__(self, "uses_tracking", False)
+
+    @property
+    def observation_count(self) -> int:
+        return self.qc_report.observation_count
+
+    @property
+    def classified_observation_count(self) -> int:
+        return self.qc_report.classified_observation_count
+
+    @property
+    def unclassified_observation_count(self) -> int:
+        return self.qc_report.unclassified_observation_count
 
     @property
     def analysis_mode(self) -> Literal["single_range", "compare_ranges"]:

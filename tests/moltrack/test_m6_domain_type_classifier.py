@@ -127,6 +127,79 @@ def _assignment_signature(result):
 
 
 class M6DomainTypeClassifierTests(unittest.TestCase):
+    def test_prototypes_labels_modes_and_qc_are_stable_across_input_order(self) -> None:
+        observations = (
+            _observation(0, 0, 59.0, 1.8),
+            _observation(1, 0, 1.0, 2.0),
+            _observation(2, 0, 0.0, 2.2),
+            _observation(3, 0, 20.0, 4.0),
+            _observation(4, 0, 21.0, 4.2),
+            _observation(5, 0, 40.0, 8.0),
+            _observation(
+                6,
+                0,
+                5.0,
+                None,
+                qualification_status="unclassified",
+                unclassified_reason="missing_bond_length_statistics",
+            ),
+        )
+        settings = M6DomainTypeClassificationSettings(
+            orientation_tolerance_deg=5.0,
+            bond_length_tolerance_mode="absolute_nm",
+            bond_length_tolerance_value=0.5,
+            minimum_observations_per_type=2,
+        )
+
+        forward = _classify(observations, settings=settings)
+        reverse = _classify(tuple(reversed(observations)), settings=settings)
+
+        self.assertEqual(forward, reverse)
+        self.assertEqual(
+            forward.classification_mode,
+            "single_range_structural_domain_type_classification",
+        )
+        self.assertFalse(forward.uses_tracking)
+        self.assertEqual(
+            tuple(item.label for item in forward.domain_types),
+            ("A", "B"),
+        )
+        boundary_type = forward.domain_types[0]
+        self.assertAlmostEqual(boundary_type.prototype_orientation_deg, 0.0)
+        self.assertAlmostEqual(boundary_type.prototype_bond_length_nm, 2.0)
+        self.assertAlmostEqual(boundary_type.orientation_circular_spread_deg, 1.0)
+        self.assertAlmostEqual(boundary_type.bond_length_iqr_nm, 0.2)
+        self.assertEqual(forward.observation_count, 7)
+        self.assertEqual(forward.classified_observation_count, 5)
+        self.assertEqual(forward.unclassified_observation_count, 2)
+        self.assertEqual(
+            dict(forward.qc_report.unclassified_reason_counts),
+            {
+                "small_ordered_island_excluded": 0,
+                "missing_bond_length_statistics": 1,
+                "bond_length_heterogeneity_qc": 0,
+                "below_minimum_observations_per_type": 1,
+            },
+        )
+
+    def test_no_valid_type_has_complete_qc_report(self) -> None:
+        observations = (
+            _observation(0, 0, 0.0, 2.0),
+            _observation(1, 0, 20.0, 4.0),
+        )
+
+        result = _classify(observations)
+
+        self.assertEqual(result.domain_types, ())
+        self.assertEqual(result.classified_observation_count, 0)
+        self.assertEqual(result.unclassified_observation_count, 2)
+        self.assertEqual(
+            dict(result.qc_report.unclassified_reason_counts)[
+                "below_minimum_observations_per_type"
+            ],
+            2,
+        )
+
     def test_complete_linkage_prevents_chain_and_is_permutation_invariant(self) -> None:
         observations = (
             _observation(0, 0, 0.0, 2.0),
@@ -205,6 +278,11 @@ class M6DomainTypeClassifierTests(unittest.TestCase):
         result = _classify((after, before), scope=_compare_scope())
 
         self.assertEqual(result.analysis_mode, "compare_ranges")
+        self.assertEqual(
+            result.classification_mode,
+            "joint_structural_domain_type_classification",
+        )
+        self.assertFalse(result.uses_tracking)
         self.assertEqual(len(result.domain_types), 1)
         self.assertEqual(result.domain_types[0].observation_count, 2)
         self.assertEqual(

@@ -5,6 +5,7 @@ from moltrack.analysis import (
     M6DomainType,
     M6DomainTypeAssignment,
     M6DomainTypeClassificationResult,
+    M6DomainTypeClassificationQcReport,
     M6DomainTypeClassificationSettings,
     M6DomainTypeObservation,
     MolecularFrameRange,
@@ -89,6 +90,26 @@ def _domain_type(
     )
 
 
+def _qc_report(
+    *,
+    observation_count: int,
+    classified_count: int,
+    missing_count: int = 0,
+    below_minimum_count: int = 0,
+) -> M6DomainTypeClassificationQcReport:
+    return M6DomainTypeClassificationQcReport(
+        observation_count=observation_count,
+        classified_observation_count=classified_count,
+        unclassified_observation_count=observation_count - classified_count,
+        unclassified_reason_counts=(
+            ("small_ordered_island_excluded", 0),
+            ("missing_bond_length_statistics", missing_count),
+            ("bond_length_heterogeneity_qc", 0),
+            ("below_minimum_observations_per_type", below_minimum_count),
+        ),
+    )
+
+
 class M6DomainTypeResultModelsTests(unittest.TestCase):
     def test_result_is_a_complete_immutable_partition_of_observations(self) -> None:
         first = _observation(0, 0)
@@ -120,9 +141,11 @@ class M6DomainTypeResultModelsTests(unittest.TestCase):
             observations=(first, second, missing),
             domain_types=(domain_type,),
             assignments=assignments,
-            observation_count=3,
-            classified_observation_count=2,
-            unclassified_observation_count=1,
+            qc_report=_qc_report(
+                observation_count=3,
+                classified_count=2,
+                missing_count=1,
+            ),
         )
 
         self.assertEqual(result.analysis_mode, "single_range")
@@ -171,18 +194,18 @@ class M6DomainTypeResultModelsTests(unittest.TestCase):
                 M6DomainTypeAssignment.classified(first.stable_key, domain_type_id=0),
                 M6DomainTypeAssignment.classified(second.stable_key, domain_type_id=0),
             ),
-            "observation_count": 2,
-            "classified_observation_count": 2,
-            "unclassified_observation_count": 0,
+            "qc_report": _qc_report(observation_count=2, classified_count=2),
         }
 
         invalid_overrides = (
             {
                 "observations": (first, first),
                 "assignments": base["assignments"][:1],
-                "observation_count": 2,
-                "classified_observation_count": 1,
-                "unclassified_observation_count": 1,
+                "qc_report": _qc_report(
+                    observation_count=2,
+                    classified_count=1,
+                    below_minimum_count=1,
+                ),
             },
             {"assignments": base["assignments"][:1]},
             {"assignments": (base["assignments"][0], base["assignments"][0])},
@@ -196,7 +219,13 @@ class M6DomainTypeResultModelsTests(unittest.TestCase):
                 )
             },
             {"domain_types": (_domain_type(0, 1),)},
-            {"observation_count": 3},
+            {
+                "qc_report": _qc_report(
+                    observation_count=3,
+                    classified_count=2,
+                    below_minimum_count=1,
+                )
+            },
         )
         for overrides in invalid_overrides:
             with self.subTest(overrides=overrides):
@@ -232,9 +261,11 @@ class M6DomainTypeResultModelsTests(unittest.TestCase):
                     reason="missing_bond_length_statistics",
                 ),
             ),
-            "observation_count": 2,
-            "classified_observation_count": 1,
-            "unclassified_observation_count": 1,
+            "qc_report": _qc_report(
+                observation_count=2,
+                classified_count=1,
+                missing_count=1,
+            ),
         }
 
         mismatched_scope_observation = replace(qualified, source_view="expanded_aligned")
