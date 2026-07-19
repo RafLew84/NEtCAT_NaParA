@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pyqtgraph as pg
-from PyQt6.QtCore import QRectF, Qt, pyqtSignal
+from PyQt6.QtCore import QSignalBlocker, QRectF, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -43,11 +43,14 @@ class PositionAnalysisDialog(QDialog):
     """Scatter view of molecular positions for one frame and source view."""
 
     compare_ranges_requested = pyqtSignal(object)
+    analysis_context_changed = pyqtSignal(str)
+    analysis_mode_changed = pyqtSignal(str)
     centroid_source_mode_changed = pyqtSignal(bool)
     intensity_metric_changed = pyqtSignal(str)
     intensity_background_changed = pyqtSignal(int, int)
     export_analysis_requested = pyqtSignal()
     m6_analysis_requested = pyqtSignal(object)
+    m6_analysis_settings_changed = pyqtSignal()
     m6_first_shell_suggestion_requested = pyqtSignal(object)
     m6_view_settings_changed = pyqtSignal(object)
     m6_domain_selection_changed = pyqtSignal(object)
@@ -128,9 +131,13 @@ class PositionAnalysisDialog(QDialog):
             self.sp_second_range_start,
             self.sp_second_range_end,
         ):
-            spin_box.valueChanged.connect(self._refresh_range_validation)
-        self.edit_first_range_name.textChanged.connect(self._refresh_range_validation)
-        self.edit_second_range_name.textChanged.connect(self._refresh_range_validation)
+            spin_box.valueChanged.connect(self._on_frame_range_context_changed)
+        self.edit_first_range_name.textChanged.connect(
+            self._on_frame_range_context_changed
+        )
+        self.edit_second_range_name.textChanged.connect(
+            self._on_frame_range_context_changed
+        )
         self.btn_compare_ranges.clicked.connect(self._request_range_comparison)
         layout.addWidget(self.range_group)
 
@@ -292,6 +299,9 @@ class PositionAnalysisDialog(QDialog):
         self.m6_settings_panel.analysis_requested.connect(
             self.m6_analysis_requested.emit
         )
+        self.m6_settings_panel.analysis_settings_changed.connect(
+            self.m6_analysis_settings_changed.emit
+        )
         self.m6_settings_panel.first_shell_suggestion_requested.connect(
             self.m6_first_shell_suggestion_requested.emit
         )
@@ -405,6 +415,9 @@ class PositionAnalysisDialog(QDialog):
     def set_plot_data(self, plot_data: MolecularPositionPlotData) -> None:
         if not isinstance(plot_data, MolecularPositionPlotData):
             raise TypeError("plot_data must be MolecularPositionPlotData.")
+        previous_source_view = (
+            None if self._plot_data is None else self._plot_data.source_view
+        )
         self._plot_data = plot_data
         self._range_source_view = plot_data.source_view
         self.lbl_range_source_view.setText(f"Source view: {self._range_source_view}")
@@ -418,6 +431,11 @@ class PositionAnalysisDialog(QDialog):
         self.chk_color_by_intensity.setEnabled(has_measurements)
         self.cmb_intensity_metric.setEnabled(has_measurements)
         self._render_current_scatter()
+        if (
+            previous_source_view is not None
+            and previous_source_view != plot_data.source_view
+        ):
+            self.analysis_context_changed.emit("source_view")
         x_label, y_label = self.axis_labels()
         self.plot.setLabel("bottom", x_label)
         self.plot.setLabel("left", y_label)
@@ -437,6 +455,7 @@ class PositionAnalysisDialog(QDialog):
         if frame_count <= 0:
             raise ValueError("frame_count must be positive.")
         first_configuration = self._range_frame_count is None
+        previous_source_view = self._range_source_view
         self._range_frame_count = frame_count
         self._range_source_view = str(source_view).strip()
         self.lbl_range_source_view.setText(f"Source view: {self._range_source_view}")
@@ -455,6 +474,8 @@ class PositionAnalysisDialog(QDialog):
             self.sp_second_range_start.setValue(second_start)
             self.sp_second_range_end.setValue(frame_count)
         self._refresh_range_validation()
+        if not first_configuration and self._range_source_view != previous_source_view:
+            self.analysis_context_changed.emit("source_view")
 
     def frame_range_selection(self) -> MolecularFrameRangeSelection:
         if self._range_frame_count is None:
@@ -474,20 +495,45 @@ class PositionAnalysisDialog(QDialog):
             ),
         )
 
-    def apply_frame_range_selection(self, selection: MolecularFrameRangeSelection) -> None:
+    def apply_frame_range_selection(
+        self,
+        selection: MolecularFrameRangeSelection,
+        *,
+        notify: bool = True,
+    ) -> None:
         if not isinstance(selection, MolecularFrameRangeSelection):
             raise TypeError("selection must be a MolecularFrameRangeSelection instance.")
         if self._range_frame_count is None or selection.frame_count != self._range_frame_count:
             raise ValueError("selection frame_count must match the configured series.")
-        self._range_source_view = selection.source_view
-        self.lbl_range_source_view.setText(f"Source view: {selection.source_view}")
-        self.edit_first_range_name.setText(selection.first_range.name)
-        self.sp_first_range_start.setValue(selection.first_range.start_frame + 1)
-        self.sp_first_range_end.setValue(selection.first_range.end_frame + 1)
-        self.edit_second_range_name.setText(selection.second_range.name)
-        self.sp_second_range_start.setValue(selection.second_range.start_frame + 1)
-        self.sp_second_range_end.setValue(selection.second_range.end_frame + 1)
+        previous_selection = self.frame_range_selection()
+        widgets = (
+            self.edit_first_range_name,
+            self.sp_first_range_start,
+            self.sp_first_range_end,
+            self.edit_second_range_name,
+            self.sp_second_range_start,
+            self.sp_second_range_end,
+        )
+        blockers = [QSignalBlocker(widget) for widget in widgets]
+        try:
+            self._range_source_view = selection.source_view
+            self.lbl_range_source_view.setText(f"Source view: {selection.source_view}")
+            self.edit_first_range_name.setText(selection.first_range.name)
+            self.sp_first_range_start.setValue(selection.first_range.start_frame + 1)
+            self.sp_first_range_end.setValue(selection.first_range.end_frame + 1)
+            self.edit_second_range_name.setText(selection.second_range.name)
+            self.sp_second_range_start.setValue(selection.second_range.start_frame + 1)
+            self.sp_second_range_end.setValue(selection.second_range.end_frame + 1)
+        finally:
+            del blockers
         self._refresh_range_validation()
+        if notify and selection != previous_selection:
+            reason = (
+                "source_view"
+                if selection.source_view != previous_selection.source_view
+                else "frame_ranges"
+            )
+            self.analysis_context_changed.emit(reason)
 
     def set_range_comparison(
         self,
@@ -910,6 +956,10 @@ class PositionAnalysisDialog(QDialog):
             self.btn_compare_ranges.setEnabled(True)
             valid = True
         self.m6_settings_panel.set_analysis_context_enabled(valid)
+
+    def _on_frame_range_context_changed(self, _value=None) -> None:
+        self._refresh_range_validation()
+        self.analysis_context_changed.emit("frame_ranges")
 
     def _request_range_comparison(self) -> None:
         if not self.has_valid_frame_range_selection():

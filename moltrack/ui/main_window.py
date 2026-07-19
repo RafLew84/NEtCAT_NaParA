@@ -1469,8 +1469,7 @@ class MolTrackMainWindow(QMainWindow):
         self.viewer.manual_molecular_mask_brush_dragged.connect(self._on_manual_mask_brush_dragged)
 
     def set_image_series(self, series) -> None:
-        self._m6_domain_type_controller.cancel_for_series_change()
-        self._m6_domain_type_store.clear()
+        self._m6_domain_type_controller.clear_for_series_change()
         if self._position_analysis_dialog is not None:
             previous_dialog = self._position_analysis_dialog
             self._position_analysis_dialog = None
@@ -2837,6 +2836,12 @@ class MolTrackMainWindow(QMainWindow):
                 )
             )
             dialog.compare_ranges_requested.connect(self._on_position_range_comparison_requested)
+            dialog.analysis_context_changed.connect(
+                self._on_position_analysis_context_changed
+            )
+            dialog.analysis_mode_changed.connect(
+                self._on_position_analysis_mode_changed
+            )
             dialog.centroid_source_mode_changed.connect(
                 self._on_position_analysis_centroid_source_mode_changed
             )
@@ -2851,6 +2856,9 @@ class MolTrackMainWindow(QMainWindow):
             )
             dialog.m6_analysis_requested.connect(
                 self._on_m6_analysis_requested
+            )
+            dialog.m6_analysis_settings_changed.connect(
+                self._on_m6_analysis_settings_changed
             )
             dialog.m6_first_shell_suggestion_requested.connect(
                 self._on_m6_first_shell_suggestion_requested
@@ -2884,10 +2892,23 @@ class MolTrackMainWindow(QMainWindow):
     def _on_m6_analysis_requested(self, settings) -> None:
         self._start_m6_analysis(settings, enable_on_success=True)
 
+    def _on_position_analysis_context_changed(self, reason: str) -> None:
+        self._m6_domain_type_controller.invalidate(str(reason))
+
+    def _on_position_analysis_mode_changed(self, _mode: str) -> None:
+        self._m6_domain_type_controller.invalidate("analysis_mode")
+
+    def _on_m6_analysis_settings_changed(self) -> None:
+        self._m6_domain_type_controller.invalidate("m6_settings")
+
+    def _on_m6_domain_type_settings_changed(self, _settings) -> None:
+        self._m6_domain_type_controller.invalidate("classification_settings")
+
     def _on_m6_ttmapp_preset_requested(self) -> None:
         series = self._series
         if series is None or self._is_processing():
             return
+        self._m6_domain_type_controller.invalidate("m6_settings")
         settings = TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
         dialog = self._position_analysis_dialog
         previous_state = getattr(series, "m6_analysis_state", None)
@@ -3061,6 +3082,7 @@ class MolTrackMainWindow(QMainWindow):
             return
         if not dialog.has_valid_frame_range_selection():
             return
+        self._m6_domain_type_controller.invalidate("m6_recalculation")
         inner_radius, outer_radius = dialog.intensity_background_radii()
         selection = dialog.frame_range_selection()
         use_segmentation_centroids = dialog.use_segmentation_centroids()
@@ -3456,6 +3478,7 @@ class MolTrackMainWindow(QMainWindow):
         dialog = self._position_analysis_dialog
         if self._series is None or dialog is None:
             return
+        self._m6_domain_type_controller.invalidate("centroid_source")
         dialog.set_plot_data(
             self._build_current_position_plot_data(
                 use_segmentation_centroids=bool(enabled),
@@ -5194,7 +5217,7 @@ class MolTrackMainWindow(QMainWindow):
                 state.second_range.end_frame,
             ),
         )
-        dialog.apply_frame_range_selection(selection)
+        dialog.apply_frame_range_selection(selection, notify=False)
         m6_state = getattr(self._series, "m6_analysis_state", None)
         if (
             state.comparison_completed

@@ -40,6 +40,7 @@ class M6SettingsPanel(QScrollArea):
     _GR_CONTRIBUTING_FRAMES_MAXIMUM = 1_000_000
 
     analysis_requested = pyqtSignal(object)
+    analysis_settings_changed = pyqtSignal()
     first_shell_suggestion_requested = pyqtSignal(object)
     view_settings_changed = pyqtSignal(object)
     domain_selection_changed = pyqtSignal(object)
@@ -616,6 +617,7 @@ class M6SettingsPanel(QScrollArea):
             self.suggestion_label.setText(
                 "First-shell suggestion is out of date; request a new suggestion."
             )
+        self.analysis_settings_changed.emit()
         self._refresh_validation()
 
     def _on_overlay_opacity_changed(self, opacity_percent: int) -> None:

@@ -27,6 +27,16 @@ class _BlockingStore:
         self.release = threading.Event()
         self.worker_thread_ids = []
         self.publish_calls = []
+        self.invalidation_reasons = []
+        self.state = "initial state"
+
+    def invalidate(self, reason):
+        self.invalidation_reasons.append(reason)
+        self.state = f"out_of_date:{reason}"
+        return True
+
+    def clear(self):
+        self.state = "empty"
 
     def compute(self, source, *, classification_settings, progress_callback):
         del source, classification_settings
@@ -192,6 +202,27 @@ class M6DomainTypeAnalysisControllerTests(unittest.TestCase):
         self.assertEqual(finished, [])
         self.assertEqual(store.publish_calls, [])
         self.assertIs(store.current, store.previous)
+
+    def test_invalidation_cancels_active_run_and_emits_out_of_date_state(self) -> None:
+        store = _BlockingStore()
+        self.controller = M6DomainTypeAnalysisController(store)
+        states = []
+        canceled = []
+        self.controller.state_changed.connect(states.append)
+        self.controller.canceled.connect(lambda: canceled.append(True))
+        self.assertTrue(
+            self.controller.start(object(), classification_settings=object())
+        )
+        self.process_events_until(store.started.is_set)
+
+        self.assertTrue(self.controller.invalidate("classification_settings"))
+        store.release.set()
+        self.process_events_until(lambda: bool(canceled))
+        self.process_events_until(lambda: not self.controller.is_running)
+
+        self.assertEqual(store.invalidation_reasons, ["classification_settings"])
+        self.assertEqual(states, ["out_of_date:classification_settings"])
+        self.assertEqual(store.publish_calls, [])
 
 
 if __name__ == "__main__":

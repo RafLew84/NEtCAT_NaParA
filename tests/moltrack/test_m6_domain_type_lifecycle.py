@@ -6,6 +6,8 @@ from unittest.mock import Mock, patch
 from moltrack.analysis import (
     M6DomainTypeAnalysisComputation,
     M6DomainTypeAnalysisStore,
+    M6DomainTypeAnalysisStoreState,
+    M6DomainTypeAnalysisSupersededError,
     M6DomainTypeClassificationSettings,
     M6DomainTypeRangeComparison,
     M6SingleRangeDomainTypeSummary,
@@ -193,6 +195,102 @@ def _comparison(
 
 
 class M6DomainTypeLifecycleTests(unittest.TestCase):
+    def test_explicit_invalidation_requires_recalculation_before_result_is_current(self) -> None:
+        source = adapt_m6_domain_type_analysis_source(
+            _range_analysis(MolecularFrameRange("condition", 0, 0)),
+            frame_count=1,
+        )
+        settings = _type_settings()
+        store = M6DomainTypeAnalysisStore()
+        original = store.analyze(source, classification_settings=settings)
+
+        self.assertEqual(
+            store.state,
+            M6DomainTypeAnalysisStoreState(
+                status="current",
+                outcome=original,
+            ),
+        )
+        self.assertTrue(store.invalidate("frame_ranges"))
+        self.assertEqual(store.state.status, "out_of_date")
+        self.assertEqual(store.state.invalidation_reason, "frame_ranges")
+        self.assertIs(store.state.outcome, original)
+        self.assertIsNone(store.current)
+        self.assertIsNone(
+            store.current_for(source, classification_settings=settings)
+        )
+
+        with patch(
+            "moltrack.analysis.m6_domain_type_lifecycle.classify_m6_domain_types",
+            wraps=classify_m6_domain_types,
+        ) as classifier:
+            recalculated = store.analyze(
+                source,
+                classification_settings=settings,
+            )
+
+        self.assertEqual(classifier.call_count, 1)
+        self.assertEqual(store.state.status, "current")
+        self.assertIs(store.current, recalculated)
+
+        store.clear()
+
+        self.assertEqual(store.state.status, "empty")
+        self.assertIsNone(store.state.outcome)
+        self.assertFalse(store.invalidate("m6_settings"))
+
+    def test_every_scientific_context_reason_can_mark_result_out_of_date(self) -> None:
+        source = adapt_m6_domain_type_analysis_source(
+            _range_analysis(MolecularFrameRange("condition", 0, 0)),
+            frame_count=1,
+        )
+        settings = _type_settings()
+        store = M6DomainTypeAnalysisStore()
+        reasons = (
+            "analysis_mode",
+            "frame_ranges",
+            "m6_settings",
+            "classification_settings",
+            "centroid_source",
+            "source_view",
+            "m6_recalculation",
+        )
+
+        for reason in reasons:
+            with self.subTest(reason=reason):
+                store.analyze(source, classification_settings=settings)
+                self.assertTrue(store.invalidate(reason))
+                self.assertEqual(store.state.status, "out_of_date")
+                self.assertEqual(store.state.invalidation_reason, reason)
+
+    def test_stale_computation_cannot_overwrite_a_later_invalidation(self) -> None:
+        settings = _type_settings()
+        original_source = adapt_m6_domain_type_analysis_source(
+            _range_analysis(MolecularFrameRange("original", 0, 0)),
+            frame_count=2,
+        )
+        replacement_source = adapt_m6_domain_type_analysis_source(
+            _range_analysis(MolecularFrameRange("replacement", 1, 1)),
+            frame_count=2,
+        )
+        store = M6DomainTypeAnalysisStore()
+        original = store.analyze(
+            original_source,
+            classification_settings=settings,
+        )
+        stale_computation = store.compute(
+            replacement_source,
+            classification_settings=settings,
+        )
+
+        store.invalidate("source_view")
+
+        with self.assertRaises(M6DomainTypeAnalysisSupersededError):
+            store.publish(stale_computation)
+        self.assertEqual(store.state.status, "out_of_date")
+        self.assertIs(store.state.outcome, original)
+        self.assertIsNone(store.current)
+
     def test_computation_is_staged_and_published_atomically(self) -> None:
         settings = _type_settings()
         initial_source = adapt_m6_domain_type_analysis_source(

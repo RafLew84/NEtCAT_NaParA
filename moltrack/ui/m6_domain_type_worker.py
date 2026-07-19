@@ -116,6 +116,7 @@ class M6DomainTypeAnalysisController(QObject):
     failed = pyqtSignal(str)
     canceled = pyqtSignal()
     running_changed = pyqtSignal(bool)
+    state_changed = pyqtSignal(object)
 
     def __init__(
         self,
@@ -167,6 +168,18 @@ class M6DomainTypeAnalysisController(QObject):
     def cancel_for_series_change(self) -> bool:
         return self._cancel_active()
 
+    def clear_for_series_change(self) -> None:
+        self._cancel_active()
+        self._store.clear()
+        self.state_changed.emit(self._store.state)
+
+    def invalidate(self, reason: str) -> bool:
+        canceled = self._cancel_active()
+        invalidated = self._store.invalidate(reason)
+        if invalidated:
+            self.state_changed.emit(self._store.state)
+        return canceled or invalidated
+
     def shutdown(self) -> bool:
         return not self.is_running
 
@@ -191,6 +204,7 @@ class M6DomainTypeAnalysisController(QObject):
         except Exception as exc:
             self.failed.emit(str(exc) or exc.__class__.__name__)
             return
+        self.state_changed.emit(self._store.state)
         self.finished.emit(outcome)
 
     @pyqtSlot()

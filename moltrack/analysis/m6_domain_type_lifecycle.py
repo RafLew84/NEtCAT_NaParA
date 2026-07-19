@@ -34,6 +34,11 @@ M6DomainTypeAnalysisStatus = Literal[
     "m6_unavailable",
     "no_valid_domain_types",
 ]
+M6DomainTypeAnalysisStoreStatus = Literal[
+    "empty",
+    "current",
+    "out_of_date",
+]
 M6DomainTypeTableResult = (
     M6SingleRangeDomainTypeSummary | M6DomainTypeRangeComparison
 )
@@ -316,6 +321,7 @@ class M6DomainTypeAnalysisComputation:
 
     context: M6DomainTypeAnalysisContext
     outcome: M6DomainTypeAnalysisOutcome
+    store_revision: int
 
     def __post_init__(self) -> None:
         if not isinstance(self.context, M6DomainTypeAnalysisContext):
@@ -326,6 +332,43 @@ class M6DomainTypeAnalysisComputation:
             raise ValueError("Outcome and context fingerprints must match.")
         if self.outcome.analysis_scope != self.context.analysis_scope:
             raise ValueError("Outcome and context scopes must match.")
+        if (
+            isinstance(self.store_revision, bool)
+            or not isinstance(self.store_revision, int)
+            or self.store_revision < 0
+        ):
+            raise ValueError("store_revision must be a non-negative integer.")
+
+
+class M6DomainTypeAnalysisSupersededError(RuntimeError):
+    """Raised when publication lost a race with context invalidation."""
+
+
+@dataclass(frozen=True)
+class M6DomainTypeAnalysisStoreState:
+    """Freshness of the last published domain-type result."""
+
+    status: M6DomainTypeAnalysisStoreStatus
+    outcome: M6DomainTypeAnalysisOutcome | None
+    invalidation_reason: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.status not in {"empty", "current", "out_of_date"}:
+            raise ValueError("Unsupported M6 domain type store status.")
+        if self.status == "empty":
+            if self.outcome is not None or self.invalidation_reason is not None:
+                raise ValueError("An empty store cannot expose a result or reason.")
+            return
+        if not isinstance(self.outcome, M6DomainTypeAnalysisOutcome):
+            raise TypeError("A non-empty store requires an analysis outcome.")
+        if self.status == "current":
+            if self.invalidation_reason is not None:
+                raise ValueError("A current result cannot have an invalidation reason.")
+            return
+        reason = str(self.invalidation_reason or "").strip()
+        if not reason:
+            raise ValueError("An out-of-date result requires an invalidation reason.")
+        object.__setattr__(self, "invalidation_reason", reason)
 
 
 class M6DomainTypeAnalysisStore:
@@ -335,16 +378,40 @@ class M6DomainTypeAnalysisStore:
         self._lock = RLock()
         self._current: M6DomainTypeAnalysisOutcome | None = None
         self._current_context: M6DomainTypeAnalysisContext | None = None
+        self._invalidation_reason: str | None = None
+        self._revision = 0
 
     @property
     def current(self) -> M6DomainTypeAnalysisOutcome | None:
         with self._lock:
-            return self._current
+            return (
+                self._current
+                if self._invalidation_reason is None
+                else None
+            )
+
+    @property
+    def state(self) -> M6DomainTypeAnalysisStoreState:
+        with self._lock:
+            return self._state_locked()
 
     def clear(self) -> None:
         with self._lock:
             self._current = None
             self._current_context = None
+            self._invalidation_reason = None
+            self._revision += 1
+
+    def invalidate(self, reason: str) -> bool:
+        reason = str(reason).strip()
+        if not reason:
+            raise ValueError("invalidation reason must not be empty.")
+        with self._lock:
+            self._revision += 1
+            if self._current is None:
+                return False
+            self._invalidation_reason = reason
+            return True
 
     def current_for(
         self,
@@ -352,7 +419,10 @@ class M6DomainTypeAnalysisStore:
         *,
         classification_settings: M6DomainTypeClassificationSettings,
     ) -> M6DomainTypeAnalysisOutcome | None:
-        current, _ = self._snapshot_for_source(source, classification_settings)
+        current, _, _ = self._snapshot_for_source(
+            source,
+            classification_settings,
+        )
         if current is not None:
             return current
         context = build_m6_domain_type_analysis_context(
@@ -360,9 +430,11 @@ class M6DomainTypeAnalysisStore:
             classification_settings=classification_settings,
         )
         with self._lock:
-            if self._current is None or (
-                self._current.context_fingerprint != context.fingerprint
-            ):
+            if self._current is None or self._invalidation_reason is not None:
+                return None
+            if self._current.context_fingerprint != context.fingerprint:
+                self._invalidation_reason = "analysis_context_changed"
+                self._revision += 1
                 return None
             self._current_context = context
             return self._current
@@ -391,7 +463,7 @@ class M6DomainTypeAnalysisStore:
         """Build a complete immutable result without changing the published result."""
 
         _report_compute_phase(progress_callback, "extracting_observations")
-        current, current_context = self._snapshot_for_source(
+        current, current_context, store_revision = self._snapshot_for_source(
             source,
             classification_settings,
         )
@@ -402,6 +474,7 @@ class M6DomainTypeAnalysisStore:
             return M6DomainTypeAnalysisComputation(
                 context=current_context,
                 outcome=current,
+                store_revision=store_revision,
             )
         context = build_m6_domain_type_analysis_context(
             source,
@@ -409,14 +482,20 @@ class M6DomainTypeAnalysisStore:
         )
         with self._lock:
             current = self._current
-        if current is not None and (
-            current.context_fingerprint == context.fingerprint
+            invalidation_reason = self._invalidation_reason
+            current_revision = self._revision
+        if (
+            current_revision == store_revision
+            and current is not None
+            and invalidation_reason is None
+            and current.context_fingerprint == context.fingerprint
         ):
             _report_compute_phase(progress_callback, "complete_linkage")
             _report_compute_phase(progress_callback, "aggregating")
             return M6DomainTypeAnalysisComputation(
                 context=context,
                 outcome=current,
+                store_revision=store_revision,
             )
         outcome = _analyze_context(
             context,
@@ -425,6 +504,7 @@ class M6DomainTypeAnalysisStore:
         return M6DomainTypeAnalysisComputation(
             context=context,
             outcome=outcome,
+            store_revision=store_revision,
         )
 
     def publish(
@@ -436,8 +516,14 @@ class M6DomainTypeAnalysisStore:
         if not isinstance(computation, M6DomainTypeAnalysisComputation):
             raise TypeError("computation must be an M6 domain type computation.")
         with self._lock:
+            if computation.store_revision != self._revision:
+                raise M6DomainTypeAnalysisSupersededError(
+                    "M6 domain type computation is out of date."
+                )
             self._current = computation.outcome
             self._current_context = computation.context
+            self._invalidation_reason = None
+            self._revision += 1
             return computation.outcome
 
     def _snapshot_for_source(
@@ -447,17 +533,36 @@ class M6DomainTypeAnalysisStore:
     ) -> tuple[
         M6DomainTypeAnalysisOutcome | None,
         M6DomainTypeAnalysisContext | None,
+        int,
     ]:
         with self._lock:
             if (
                 self._current is not None
                 and self._current_context is not None
+                and self._invalidation_reason is None
                 and source is self._current_context.source
                 and classification_settings
                 == self._current_context.classification_settings
             ):
-                return self._current, self._current_context
-            return None, None
+                return self._current, self._current_context, self._revision
+            return None, None, self._revision
+
+    def _state_locked(self) -> M6DomainTypeAnalysisStoreState:
+        if self._current is None:
+            return M6DomainTypeAnalysisStoreState(
+                status="empty",
+                outcome=None,
+            )
+        if self._invalidation_reason is not None:
+            return M6DomainTypeAnalysisStoreState(
+                status="out_of_date",
+                outcome=self._current,
+                invalidation_reason=self._invalidation_reason,
+            )
+        return M6DomainTypeAnalysisStoreState(
+            status="current",
+            outcome=self._current,
+        )
 
 
 def adapt_m6_domain_type_analysis_source(
