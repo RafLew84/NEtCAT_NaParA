@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import fsum, isclose
+from typing import Literal
 
 from ._m6_context_fingerprint import m6_context_fingerprint
 from ._m6_domain_type_validation import (
@@ -219,6 +220,7 @@ class M6DomainTypeRangeAggregates:
     frame_range: MolecularFrameRange
     source_view: str
     classification_input_fingerprint: str
+    component_scope: Literal["all", "full_domain"]
     analyzed_frame_count: int
     available_frame_count: int
     valid_representative_fraction_frame_count: int
@@ -234,6 +236,8 @@ class M6DomainTypeRangeAggregates:
             self.classification_input_fingerprint,
             "classification_input_fingerprint",
         )
+        if self.component_scope not in {"all", "full_domain"}:
+            raise ValueError("Unsupported component_scope.")
         analyzed_count = _non_negative_int(
             self.analyzed_frame_count,
             "analyzed_frame_count",
@@ -320,6 +324,8 @@ class M6DomainTypeRangeAggregates:
 def aggregate_m6_domain_types_for_range(
     classification: M6DomainTypeClassificationResult,
     range_analysis: MolecularFrameRangeAnalysis,
+    *,
+    component_scope: Literal["all", "full_domain"] = "all",
 ) -> M6DomainTypeRangeAggregates:
     """Aggregate shared structural types within one range without tracking."""
 
@@ -332,19 +338,26 @@ def aggregate_m6_domain_types_for_range(
         raise ValueError("range_analysis does not belong to the classification scope.")
     if range_analysis.source_view != classification.source_view:
         raise ValueError("range_analysis source_view does not match classification.")
+    if component_scope not in {"all", "full_domain"}:
+        raise ValueError("Unsupported component_scope.")
 
     denominators = _range_frame_denominators(
         range_analysis,
         expected_m6_context_fingerprint=classification.m6_context_fingerprint,
     )
-    range_observations = tuple(
+    all_range_observations = tuple(
         observation
         for observation in classification.observations
         if _observation_belongs_to_range(observation, frame_range)
     )
     _validate_observation_denominators(
-        range_observations,
+        all_range_observations,
         denominators=denominators,
+    )
+    range_observations = tuple(
+        observation
+        for observation in all_range_observations
+        if component_scope == "all" or observation.component_type == "full_domain"
     )
     assignment_by_key = {
         assignment.observation_key: assignment
@@ -378,6 +391,7 @@ def aggregate_m6_domain_types_for_range(
         frame_range=frame_range,
         source_view=range_analysis.source_view,
         classification_input_fingerprint=classification.input_fingerprint,
+        component_scope=component_scope,
         analyzed_frame_count=len(frame_range.frame_indices),
         available_frame_count=denominators.counts[0],
         valid_representative_fraction_frame_count=denominators.counts[1],
