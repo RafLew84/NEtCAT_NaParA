@@ -219,6 +219,7 @@ from .m6_domain_type_range_comparison import (
     M6DomainTypeRangeSide,
     build_m6_domain_type_range_comparison,
 )
+from .m6_domain_type_table_validation import validate_m6_domain_type_table_result
 from .m6_domain_type_lifecycle import (
     M6_DOMAIN_TYPE_ANALYSIS_COMPUTE_PHASES,
     M6DomainTypeAnalysisComputation,
@@ -280,6 +281,7 @@ __all__ = [
     "M6DomainTypeRangeDeltas",
     "M6DomainTypeRangeSide",
     "build_m6_domain_type_range_comparison",
+    "validate_m6_domain_type_table_result",
     "M6DomainTypeAnalysisContext",
     "M6_DOMAIN_TYPE_ANALYSIS_COMPUTE_PHASES",
     "M6DomainTypeAnalysisComputation",

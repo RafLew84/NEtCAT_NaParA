@@ -679,7 +679,15 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
                     {
                         "kind": "intensity_maps",
                         "reason": "No finite intensity values are available.",
-                    }
+                    },
+                    {
+                        "kind": "domain_type_scatter",
+                        "reason": "Domain type classification is not available.",
+                    },
+                    {
+                        "kind": "domain_type_shares",
+                        "reason": "Domain type classification is not available.",
+                    },
                 ],
             },
         )

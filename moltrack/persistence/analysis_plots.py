@@ -7,14 +7,25 @@ import numpy as np
 from matplotlib import rc_context
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 
 from moltrack.analysis import (
+    M6DomainTypeClassificationResult,
+    M6DomainTypeRangeComparison,
+    M6SingleRangeDomainTypeSummary,
     MolecularFrameAnalysisResult,
     MolecularFrameRangeComparison,
     MolecularRangeSpatialComparisonData,
     build_molecular_range_comparison_trend_data,
+    validate_m6_domain_type_table_result,
 )
-
+from moltrack.visualization.m6_domain_type_plot_data import (
+    M6_DOMAIN_TYPE_SHARE_METRICS,
+    M6DomainTypePlotSymbol,
+    build_m6_domain_type_scatter_data,
+    build_m6_domain_type_share_plot_data,
+)
 
 @dataclass(frozen=True)
 class AnalysisPlotExportResult:
@@ -32,6 +43,10 @@ def export_selected_range_analysis_plots(
     *,
     dpi: int,
     size_inches: tuple[float, float],
+    m6_domain_type_classification: M6DomainTypeClassificationResult | None = None,
+    m6_domain_type_table_result: (
+        M6SingleRangeDomainTypeSummary | M6DomainTypeRangeComparison | None
+    ) = None,
 ) -> AnalysisPlotExportResult:
     """Render every available selected-range analysis plot."""
 
@@ -92,12 +107,215 @@ def export_selected_range_analysis_plots(
         skipped.append(
             ("intensity_maps", "No finite intensity values are available.")
         )
+    domain_type_plots = export_m6_domain_type_plots(
+        m6_domain_type_classification,
+        m6_domain_type_table_result,
+        destination,
+        dpi=dpi,
+        size_inches=size_inches,
+    )
+    generated.extend(domain_type_plots.generated)
+    skipped.extend(domain_type_plots.skipped)
     return AnalysisPlotExportResult(
         generated=tuple(generated),
         skipped=tuple(skipped),
         dpi=dpi,
         size_inches=size_inches,
     )
+
+
+def export_m6_domain_type_plots(
+    classification: M6DomainTypeClassificationResult | None,
+    table_result: (
+        M6SingleRangeDomainTypeSummary | M6DomainTypeRangeComparison | None
+    ),
+    destination_dir: str | Path,
+    *,
+    dpi: int,
+    size_inches: tuple[float, float],
+) -> AnalysisPlotExportResult:
+    """Render domain-type model data without accessing any GUI widget."""
+
+    dpi, size_inches = _normalize_render_settings(dpi, size_inches)
+    if classification is None or table_result is None:
+        if classification is not None or table_result is not None:
+            raise ValueError(
+                "Domain type plot export requires classification and table result."
+            )
+        reason = "Domain type classification is not available."
+        return AnalysisPlotExportResult(
+            generated=(),
+            skipped=(
+                ("domain_type_scatter", reason),
+                ("domain_type_shares", reason),
+            ),
+            dpi=dpi,
+            size_inches=size_inches,
+        )
+    validate_m6_domain_type_table_result(classification, table_result)
+    destination = Path(destination_dir)
+    scatter_data = build_m6_domain_type_scatter_data(classification)
+    generated = (
+        (
+            "domain_type_scatter",
+            _export_m6_domain_type_scatter_plot(
+                scatter_data,
+                classification,
+                destination,
+                dpi=dpi,
+                size_inches=size_inches,
+            ),
+        ),
+        (
+            "domain_type_shares",
+            _export_m6_domain_type_shares_plot(
+                table_result,
+                destination,
+                dpi=dpi,
+                size_inches=size_inches,
+            ),
+        ),
+    )
+    return AnalysisPlotExportResult(
+        generated=generated,
+        skipped=(),
+        dpi=dpi,
+        size_inches=size_inches,
+    )
+
+
+def _export_m6_domain_type_scatter_plot(
+    data,
+    classification: M6DomainTypeClassificationResult,
+    destination: Path,
+    *,
+    dpi: int,
+    size_inches: tuple[float, float],
+) -> tuple[Path, Path]:
+    figure = _new_figure(size_inches, dpi)
+    axes = figure.add_subplot(1, 1, 1)
+    grouped = {}
+    for point in data.points:
+        grouped.setdefault((point.type_label, point.range_index), []).append(point)
+    for points in grouped.values():
+        first = points[0]
+        axes.scatter(
+            [point.orientation_deg for point in points],
+            [point.median_bond_length_nm for point in points],
+            s=36,
+            marker=_matplotlib_marker(first.symbol),
+            facecolor=_rgba(first.color),
+            edgecolor=(0.12, 0.12, 0.12, 0.7),
+            linewidth=0.7,
+        )
+    range_names = tuple(value.name for value in classification.analysis_scope.ranges)
+    axes.set_title(f"Domain type separation - {' vs '.join(range_names)}")
+    axes.set_xlabel(data.axis_labels[0])
+    axes.set_ylabel(data.axis_labels[1])
+    axes.set_xlim(0.0, 60.0)
+    axes.grid(True, alpha=0.25)
+    legend_handles = [
+        Line2D(
+            [],
+            [],
+            linestyle="none",
+            marker="o",
+            markersize=7,
+            markerfacecolor=_rgba(entry.color),
+            markeredgecolor=(0.12, 0.12, 0.12, 0.7),
+            label=entry.label,
+        )
+        for entry in data.type_legend
+    ]
+    legend_handles.extend(
+        Line2D(
+            [],
+            [],
+            linestyle="none",
+            marker=_matplotlib_marker(entry.symbol),
+            markersize=7,
+            markerfacecolor=_rgba(entry.color),
+            markeredgecolor=(0.2, 0.2, 0.2, 1.0),
+            label=entry.label,
+        )
+        for entry in data.range_legend
+    )
+    if legend_handles:
+        axes.legend(handles=legend_handles)
+    if data.omitted_missing_bond_length_count:
+        axes.text(
+            0.01,
+            0.01,
+            f"Missing bond length omitted: {data.omitted_missing_bond_length_count}",
+            transform=axes.transAxes,
+            fontsize="small",
+        )
+    return _save_figure(figure, destination, "domain_type_scatter", dpi=dpi)
+
+
+def _export_m6_domain_type_shares_plot(
+    table_result: M6SingleRangeDomainTypeSummary | M6DomainTypeRangeComparison,
+    destination: Path,
+    *,
+    dpi: int,
+    size_inches: tuple[float, float],
+) -> tuple[Path, Path]:
+    figure = Figure(figsize=size_inches, dpi=dpi)
+    FigureCanvasAgg(figure)
+    figure.subplots_adjust(
+        left=0.1,
+        right=0.98,
+        bottom=0.28,
+        top=0.78,
+        wspace=0.55,
+    )
+    axes_items = figure.subplots(1, len(M6_DOMAIN_TYPE_SHARE_METRICS), squeeze=False)[0]
+    figure.suptitle("Domain type shares")
+    for axes, metric in zip(axes_items, M6_DOMAIN_TYPE_SHARE_METRICS, strict=True):
+        data = build_m6_domain_type_share_plot_data(table_result, metric.key)
+        positions = np.arange(len(data.type_labels), dtype=np.float64)
+        series_count = len(data.series)
+        width = 0.7 if series_count == 1 else 0.36
+        offsets = (0.0,) if series_count == 1 else (-0.2, 0.2)
+        hatches = ("", "//")
+        for series_index, (series, offset) in enumerate(zip(data.series, offsets)):
+            values = [np.nan if value is None else float(value) for value in series.values]
+            axes.bar(
+                positions + offset,
+                values,
+                width=width,
+                color=[_rgba(color) for color in data.type_colors],
+                edgecolor=(0.12, 0.12, 0.12, 0.8),
+                linewidth=0.6,
+                hatch=hatches[series_index],
+            )
+        axes.set_title(metric.label)
+        axes.set_ylabel(data.axis_label)
+        axes.set_xticks(positions, data.type_labels, rotation=30, ha="right")
+        axes.grid(True, axis="y", alpha=0.25)
+        axes.legend(
+            handles=[
+                Patch(
+                    facecolor=(0.7, 0.7, 0.7, 0.8),
+                    edgecolor=(0.12, 0.12, 0.12, 0.8),
+                    hatch=hatches[index],
+                    label=series.name,
+                )
+                for index, series in enumerate(data.series)
+            ]
+        )
+    return _save_figure(figure, destination, "domain_type_shares", dpi=dpi)
+
+
+def _rgba(color: tuple[int, int, int, int]) -> tuple[float, float, float, float]:
+    return tuple(channel / 255.0 for channel in color)
+
+
+def _matplotlib_marker(symbol: M6DomainTypePlotSymbol) -> str:
+    try:
+        return {"o": "o", "s": "s", "t": "^", "d": "D"}[symbol]
+    except KeyError as exc:
+        raise ValueError(f"Unsupported domain type plot symbol: {symbol!r}.") from exc
 
 
 def export_current_frame_position_plot(

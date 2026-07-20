@@ -29,6 +29,7 @@ from moltrack.core import MolTrackImageSeries
 
 from .analysis_export import (
     ANALYSIS_EXPORT_SCHEMA_VERSION,
+    build_analysis_plots_manifest,
     build_m6_analysis_manifest,
     export_current_frame_analysis_csv,
     export_full_working_series_analysis_csv,
@@ -340,6 +341,8 @@ def export_analysis_package(
         emit("preparing")
 
         domain_type_export = None
+        domain_type_table_result = None
+        effective_domain_type_classification = None
         if settings.scope != "selected_ranges":
             domain_type_table_result = _resolve_domain_type_table_result(
                 series,
@@ -460,15 +463,36 @@ def export_analysis_package(
             raise ValueError(
                 f"Analysis export scope is not implemented yet: {settings.scope!r}."
             )
+        plot_export = None
         if settings.include_plots and settings.scope != "selected_ranges":
             if current_analysis is None:
                 current_analysis = _analyze_current_frame(series, settings)
             emit("rendering_plots")
-            from .analysis_plots import export_current_frame_position_plot
+            from .analysis_plots import (
+                AnalysisPlotExportResult,
+                export_current_frame_position_plot,
+                export_m6_domain_type_plots,
+            )
 
-            export_current_frame_position_plot(
+            position_paths = export_current_frame_position_plot(
                 current_analysis,
                 staging / "plots",
+                dpi=150,
+                size_inches=(8.0, 6.0),
+            )
+            domain_type_plots = export_m6_domain_type_plots(
+                effective_domain_type_classification,
+                domain_type_table_result,
+                staging / "plots",
+                dpi=150,
+                size_inches=(8.0, 6.0),
+            )
+            plot_export = AnalysisPlotExportResult(
+                generated=(
+                    ("current_frame_positions", position_paths),
+                    *domain_type_plots.generated,
+                ),
+                skipped=domain_type_plots.skipped,
                 dpi=150,
                 size_inches=(8.0, 6.0),
             )
@@ -496,6 +520,7 @@ def export_analysis_package(
                 record_counts=record_counts,
                 frame_results=manifest_frame_results,
                 domain_type_export=domain_type_export,
+                plot_export=plot_export,
                 environment_provider=environment_provider,
             )
         relative_files = _relative_package_files(staging)
@@ -583,6 +608,7 @@ def _write_scope_manifest(
     record_counts: tuple[tuple[str, int], ...],
     frame_results: tuple[MolecularFrameAnalysisResult, ...],
     domain_type_export: M6DomainTypeExportData,
+    plot_export,
     environment_provider: Callable[[], Mapping[str, object]] | None,
 ) -> None:
     payload = {
@@ -627,6 +653,7 @@ def _write_scope_manifest(
             ),
             "m6_domain_types": dict(domain_type_export.manifest),
         },
+        "plots": build_analysis_plots_manifest(plot_export, path.parent),
         "files": _package_file_entries(path.parent, record_counts),
     }
     path.write_text(

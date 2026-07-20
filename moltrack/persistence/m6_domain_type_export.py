@@ -14,6 +14,7 @@ from moltrack.analysis import (
     M6DomainTypeRangeComparison,
     M6DomainTypeRangeSide,
     M6SingleRangeDomainTypeSummary,
+    validate_m6_domain_type_table_result,
 )
 
 
@@ -176,7 +177,7 @@ def build_m6_domain_type_export_data(
         raise TypeError("classification must be a domain type result or None.")
     if table_result is None:
         raise ValueError("A classification requires its range table result.")
-    _validate_table_result(classification, table_result)
+    validate_m6_domain_type_table_result(classification, table_result)
 
     summaries = _ordered_summaries(table_result)
     return M6DomainTypeExportData(
@@ -220,33 +221,6 @@ def write_m6_domain_type_tables(
         DOMAIN_TYPE_COMPARISON_CSV_FIELDS,
     )
     return paths
-
-
-def _validate_table_result(
-    classification: M6DomainTypeClassificationResult,
-    table_result: M6SingleRangeDomainTypeSummary | M6DomainTypeRangeComparison,
-) -> None:
-    if not isinstance(
-        table_result,
-        (M6SingleRangeDomainTypeSummary, M6DomainTypeRangeComparison),
-    ):
-        raise TypeError("table_result must be a domain type summary or comparison.")
-    if table_result.classification_input_fingerprint != classification.input_fingerprint:
-        raise ValueError("Domain type table result uses a different classification.")
-    if table_result.source_view != classification.source_view:
-        raise ValueError("Domain type table result uses a different source view.")
-    if isinstance(table_result, M6SingleRangeDomainTypeSummary):
-        actual_ranges = (table_result.frame_range,)
-        expected_mode = "single_range"
-    else:
-        actual_ranges = (table_result.first_range, table_result.second_range)
-        expected_mode = "compare_ranges"
-    if classification.analysis_scope.analysis_mode != expected_mode:
-        raise ValueError("Domain type table result uses a different analysis mode.")
-    if actual_ranges != classification.analysis_scope.ranges:
-        raise ValueError("Domain type table result uses different frame ranges.")
-    if table_result.uses_tracking is not False:
-        raise ValueError("Domain type export does not support tracking results.")
 
 
 def _domain_type_rows(

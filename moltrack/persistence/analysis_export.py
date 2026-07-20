@@ -518,6 +518,10 @@ def export_selected_ranges_analysis_csv(
             plots_dir,
             dpi=plot_dpi,
             size_inches=plot_size_inches,
+            m6_domain_type_classification=(
+                effective_domain_type_classification
+            ),
+            m6_domain_type_table_result=domain_type_table_result,
         )
     file_entries = [
         {"path": molecules_path.name, "record_count": len(molecule_rows)},
@@ -573,7 +577,7 @@ def export_selected_ranges_analysis_csv(
                 "m6_domain_types": dict(domain_type_export.manifest),
             },
             "registration": _registration_manifest(series),
-            "plots": _plots_manifest(plot_export, destination),
+            "plots": build_analysis_plots_manifest(plot_export, destination),
             "files": file_entries,
         },
     )
@@ -622,7 +626,7 @@ def _current_frame_analysis(
     ).frame_results[0]
 
 
-def _plots_manifest(
+def build_analysis_plots_manifest(
     plot_export: AnalysisPlotExportResult | None,
     destination: Path,
 ) -> dict[str, object]:

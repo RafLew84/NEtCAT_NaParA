@@ -3,6 +3,7 @@ import json
 import math
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from unittest.mock import patch
 
@@ -34,6 +35,11 @@ from moltrack.persistence import (
 )
 from moltrack.persistence import analysis_export as analysis_export_module
 from moltrack.persistence import analysis_environment as analysis_environment_module
+from moltrack.persistence.analysis_plots import export_m6_domain_type_plots
+from moltrack.visualization.m6_domain_type_colors import (
+    M6_DOMAIN_TYPE_UNCLASSIFIED_COLOR,
+    m6_domain_type_color,
+)
 from nanotrack.core import STMSequenceMetadata
 
 
@@ -479,6 +485,20 @@ def _read_csv_table(path: Path) -> tuple[tuple[str, ...], list[dict[str, str]]]:
         return tuple(reader.fieldnames or ()), list(reader)
 
 
+def _rgb_hex(color: tuple[int, int, int, int]) -> str:
+    return "#{:02x}{:02x}{:02x}".format(*color[:3])
+
+
+def _svg_group_text(svg_text: str, group_id: str) -> str:
+    root = ET.fromstring(svg_text)
+    group = next(
+        element
+        for element in root.iter()
+        if element.attrib.get("id") == group_id
+    )
+    return " ".join(value.strip() for value in group.itertext() if value.strip())
+
+
 class M6AnalysisExportTests(unittest.TestCase):
     @staticmethod
     def _analyze_domain_types(series, frame_range, *, minimum_observations=1):
@@ -718,7 +738,7 @@ class M6AnalysisExportTests(unittest.TestCase):
                     package_format="directory",
                     include_tables=True,
                     include_spatial_grids=False,
-                    include_plots=False,
+                    include_plots=True,
                     frame_count=series.frame_count,
                     active_frame_index=series.active_frame_index,
                     source_view="raw",
@@ -786,6 +806,15 @@ class M6AnalysisExportTests(unittest.TestCase):
             domain_manifest["ranges"][0]["source_frame_indices"],
             [0, 1, 2],
         )
+        self.assertEqual(
+            [entry["kind"] for entry in manifest["plots"]["generated"]],
+            [
+                "current_frame_positions",
+                "domain_type_scatter",
+                "domain_type_shares",
+            ],
+        )
+        self.assertEqual(manifest["plots"]["skipped"], [])
 
     def test_comparison_package_exports_ordered_range_rows_and_deltas(self) -> None:
         series = _domain_export_series()
@@ -940,6 +969,208 @@ class M6AnalysisExportTests(unittest.TestCase):
             "domain_type_classification_not_available",
         )
         self.assertEqual(domain_manifest["ranges"], [])
+
+    def test_single_range_domain_type_plots_are_headless_labeled_and_sized(self) -> None:
+        series = _domain_export_series()
+        outcome = self._analyze_domain_types(
+            series,
+            MolecularFrameRange("whole experiment", 0, 2),
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = export_m6_domain_type_plots(
+                outcome.classification,
+                outcome.table_result,
+                tmpdir,
+                dpi=100,
+                size_inches=(4.0, 3.0),
+            )
+            generated = dict(result.generated)
+            scatter_svg = generated["domain_type_scatter"][0].read_text(
+                encoding="utf-8"
+            )
+            scatter_png_bytes = generated["domain_type_scatter"][1].read_bytes()
+            shares_svg = generated["domain_type_shares"][0].read_text(
+                encoding="utf-8"
+            )
+            png_bytes = generated["domain_type_shares"][1].read_bytes()
+
+        self.assertEqual(
+            tuple(generated),
+            ("domain_type_scatter", "domain_type_shares"),
+        )
+        self.assertEqual(result.skipped, ())
+        self.assertIn("M6 orientation [deg]", scatter_svg)
+        self.assertIn("Median bond length [nm]", scatter_svg)
+        self.assertIn("whole experiment", scatter_svg)
+        for domain_type in outcome.classification.domain_types:
+            expected_color = _rgb_hex(
+                m6_domain_type_color(domain_type.domain_type_id)
+            )
+            self.assertIn(expected_color, scatter_svg.lower())
+            self.assertIn(expected_color, shares_svg.lower())
+        self.assertIn("Instances/frame", shares_svg)
+        self.assertIn("Molecule fraction [%]", shares_svg)
+        self.assertIn("Footprint fraction [%]", shares_svg)
+        self.assertIn("whole experiment", shares_svg)
+        self.assertEqual(png_bytes[:8], b"\x89PNG\r\n\x1a\n")
+        self.assertEqual(scatter_png_bytes[:8], b"\x89PNG\r\n\x1a\n")
+        self.assertEqual(
+            (
+                int.from_bytes(scatter_png_bytes[16:20], "big"),
+                int.from_bytes(scatter_png_bytes[20:24], "big"),
+            ),
+            (400, 300),
+        )
+        self.assertEqual(
+            (
+                int.from_bytes(png_bytes[16:20], "big"),
+                int.from_bytes(png_bytes[20:24], "big"),
+            ),
+            (400, 300),
+        )
+
+    def test_comparison_package_exports_two_series_domain_type_plots(self) -> None:
+        series = _domain_export_series()
+        selection = MolecularFrameRangeSelection(
+            frame_count=series.frame_count,
+            source_view="raw",
+            first_range=MolecularFrameRange("before", 0, 0),
+            second_range=MolecularFrameRange("after", 2, 2),
+        )
+        comparison = compare_molecular_frame_ranges(
+            series,
+            selection,
+            m6_orientation_settings=_settings(),
+        )
+        outcome = M6DomainTypeAnalysisStore().analyze(
+            adapt_m6_domain_type_analysis_source(
+                comparison,
+                frame_count=series.frame_count,
+            ),
+            classification_settings=M6DomainTypeClassificationSettings(
+                orientation_tolerance_deg=5.0,
+                bond_length_tolerance_mode="absolute_nm",
+                bond_length_tolerance_value=0.5,
+                minimum_observations_per_type=1,
+            ),
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            destination = Path(tmpdir) / "comparison-plots-package"
+            export_analysis_package(
+                series,
+                AnalysisExportSettings(
+                    scope="selected_ranges",
+                    destination=destination,
+                    package_format="directory",
+                    include_tables=True,
+                    include_spatial_grids=False,
+                    include_plots=True,
+                    frame_count=series.frame_count,
+                    active_frame_index=series.active_frame_index,
+                    source_view="raw",
+                    use_segmentation_centroids=True,
+                    intensity_metric="mean",
+                    intensity_unit="a.u.",
+                    background_inner_radius_px=1,
+                    background_outer_radius_px=3,
+                    density_grid_shape=(4, 4),
+                    selected_ranges=selection,
+                    m6_orientation_settings=_settings(),
+                    m6_domain_type_classification=outcome.classification,
+                    m6_domain_type_table_result=outcome.table_result,
+                ),
+                environment_provider=lambda: {},
+            )
+            shares_svg = (
+                destination / "plots" / "domain_type_shares.svg"
+            ).read_text(encoding="utf-8")
+            scatter_svg = (
+                destination / "plots" / "domain_type_scatter.svg"
+            ).read_text(encoding="utf-8")
+            scatter_png_bytes = (
+                destination / "plots" / "domain_type_scatter.png"
+            ).read_bytes()
+            manifest = json.loads(
+                (destination / "manifest.json").read_text(encoding="utf-8")
+            )
+
+        self.assertIn("before", shares_svg)
+        self.assertIn("after", shares_svg)
+        self.assertIn("before", scatter_svg)
+        self.assertIn("after", scatter_svg)
+        scatter_legend_text = _svg_group_text(scatter_svg, "legend_1")
+        self.assertIn("before", scatter_legend_text)
+        self.assertIn("after", scatter_legend_text)
+        for domain_type in outcome.classification.domain_types:
+            self.assertIn(domain_type.label, scatter_svg)
+            expected_color = _rgb_hex(
+                m6_domain_type_color(domain_type.domain_type_id)
+            )
+            self.assertIn(expected_color, scatter_svg.lower())
+            self.assertIn(expected_color, shares_svg.lower())
+        self.assertIn(
+            _rgb_hex(M6_DOMAIN_TYPE_UNCLASSIFIED_COLOR),
+            scatter_svg.lower(),
+        )
+        self.assertEqual(
+            (
+                int.from_bytes(scatter_png_bytes[16:20], "big"),
+                int.from_bytes(scatter_png_bytes[20:24], "big"),
+            ),
+            (1200, 900),
+        )
+        generated = {
+            entry["kind"]: entry["files"] for entry in manifest["plots"]["generated"]
+        }
+        self.assertEqual(
+            generated["domain_type_scatter"],
+            [
+                "plots/domain_type_scatter.svg",
+                "plots/domain_type_scatter.png",
+            ],
+        )
+        self.assertEqual(
+            generated["domain_type_shares"],
+            [
+                "plots/domain_type_shares.svg",
+                "plots/domain_type_shares.png",
+            ],
+        )
+
+    def test_plot_manifest_reports_skipped_domain_type_plots_without_classification(self) -> None:
+        series = _domain_export_series()
+        selection = MolecularFrameRangeSelection(
+            frame_count=series.frame_count,
+            source_view="raw",
+            first_range=MolecularFrameRange("before", 0, 0),
+            second_range=MolecularFrameRange("after", 2, 2),
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            paths = export_selected_ranges_analysis_csv(
+                series,
+                selection,
+                tmpdir,
+                include_plots=True,
+                m6_orientation_settings=_settings(),
+            )
+            manifest = json.loads(
+                paths["manifest_json"].read_text(encoding="utf-8")
+            )
+
+        skipped = {
+            entry["kind"]: entry["reason"] for entry in manifest["plots"]["skipped"]
+        }
+        self.assertEqual(
+            skipped["domain_type_scatter"],
+            "Domain type classification is not available.",
+        )
+        self.assertEqual(
+            skipped["domain_type_shares"],
+            "Domain type classification is not available.",
+        )
 
     def test_selected_range_export_rejects_orphaned_domain_type_table(self) -> None:
         series = _domain_export_series()
