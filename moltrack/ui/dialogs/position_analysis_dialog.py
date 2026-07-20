@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
 from moltrack.analysis import (
     FirstShellSuggestionResult,
     MolecularFrameRange,
+    MolecularFrameRangeAnalysis,
     MolecularFrameRangeAnalysisMode,
     MolecularFrameRangeAnalysisScope,
     MolecularFrameRangeComparison,
@@ -85,6 +86,9 @@ class PositionAnalysisDialog(QDialog):
         self._range_trend_data: MolecularRangeComparisonTrendData | None = None
         self._range_spatial_data: MolecularRangeSpatialComparisonData | None = None
         self._range_comparison: MolecularFrameRangeComparison | None = None
+        self._range_analysis_result: (
+            MolecularFrameRangeAnalysis | MolecularFrameRangeComparison | None
+        ) = None
         self._density_grid_shape = (32, 32)
         self._first_density_levels = (0.0, 1.0)
         self._second_density_levels = (0.0, 1.0)
@@ -649,6 +653,7 @@ class PositionAnalysisDialog(QDialog):
         self._range_trend_data = trend_data
         self._range_spatial_data = spatial_data
         self._range_comparison = comparison
+        self._range_analysis_result = comparison
         self.m6_settings_panel.set_range_trend_data(trend_data)
         self._density_grid_shape = (
             len(spatial_data.density_y_edges) - 1,
@@ -724,6 +729,64 @@ class PositionAnalysisDialog(QDialog):
 
     def range_comparison(self) -> MolecularFrameRangeComparison | None:
         return self._range_comparison
+
+    def set_range_analysis_result(
+        self,
+        result: MolecularFrameRangeAnalysis | MolecularFrameRangeComparison,
+        *,
+        density_grid_shape: tuple[int, int] = (32, 32),
+    ) -> None:
+        if isinstance(result, MolecularFrameRangeComparison):
+            self.set_range_comparison(
+                result,
+                density_grid_shape=density_grid_shape,
+            )
+            return
+        if not isinstance(result, MolecularFrameRangeAnalysis):
+            raise TypeError("result must be a frame range analysis or comparison.")
+        self._clear_range_comparison_result()
+        self._range_analysis_result = result
+
+    def range_analysis_result(
+        self,
+    ) -> MolecularFrameRangeAnalysis | MolecularFrameRangeComparison | None:
+        return self._range_analysis_result
+
+    def _clear_range_comparison_result(self) -> None:
+        self._range_comparison = None
+        self._range_trend_data = None
+        self._range_spatial_data = None
+        self.m6_settings_panel.set_range_trend_data(None)
+        for plot in (
+            self.molecule_count_trend_plot,
+            self.nearest_neighbor_trend_plot,
+            self.line_order_trend_plot,
+            self.intensity_trend_plot,
+        ):
+            plot.clear()
+            legend = plot.getPlotItem().legend
+            if legend is not None:
+                legend.clear()
+        self.lbl_range_trend_status.setText("Single-range analysis complete.")
+        self.first_spatial_scatter.setData(x=[], y=[])
+        self.second_spatial_scatter.setData(x=[], y=[])
+        for image in (
+            self.first_density_image,
+            self.second_density_image,
+            self.first_intensity_image,
+            self.second_intensity_image,
+        ):
+            image.clear()
+        for plot in (
+            self.first_spatial_scatter_plot,
+            self.second_spatial_scatter_plot,
+            self.first_density_plot,
+            self.second_density_plot,
+            self.first_intensity_plot,
+            self.second_intensity_plot,
+        ):
+            plot.setTitle("")
+        self.lbl_spatial_status.setText("Spatial comparison requires two ranges.")
 
     def range_spatial_data(self) -> MolecularRangeSpatialComparisonData | None:
         return self._range_spatial_data
@@ -1067,9 +1130,7 @@ class PositionAnalysisDialog(QDialog):
             self.lbl_range_validation.setText("")
             self.btn_run_range_analysis.setEnabled(True)
             valid = True
-        self.m6_settings_panel.set_analysis_context_enabled(
-            valid and self._analysis_mode == "compare_ranges"
-        )
+        self.m6_settings_panel.set_analysis_context_enabled(valid)
 
     def _on_frame_range_context_changed(self, _value=None) -> None:
         self._refresh_range_validation()

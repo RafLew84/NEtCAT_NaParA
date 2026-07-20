@@ -5042,7 +5042,8 @@ class MolTrackMainWindowTests(unittest.TestCase):
             self.__class__._app.processEvents()
 
         comparison_spy.assert_not_called()
-        self.assertIs(dialog.range_comparison(), previous_comparison)
+        self.assertIsNotNone(previous_comparison)
+        self.assertIsNone(dialog.range_comparison())
 
     def test_position_analysis_dialog_shows_empty_current_frame_without_error(self) -> None:
         self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
@@ -5803,11 +5804,12 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.window.set_image_series(series)
         self.window.btn_position_analysis.click()
         dialog = self.window.position_analysis_dialog()
-        self.window._m6_completed_context = (
-            comparison,
-            selection,
-            True,
-            settings,
+        dialog.apply_frame_range_selection(selection, notify=False)
+        self.window._m6_completed_context = SimpleNamespace(
+            result=comparison,
+            scope=selection.to_analysis_scope(),
+            use_segmentation_centroids=True,
+            settings=settings,
         )
 
         self.window._render_current_m6_overlay()
@@ -5947,6 +5949,8 @@ class MolTrackMainWindowTests(unittest.TestCase):
                 for frame in dialog.range_comparison().first_analysis.frame_results
             )
         )
+        received_settings.clear()
+        comparator_started.clear()
         first_settings = dialog.m6_analysis_settings()
 
         dialog.m6_settings_panel.suggest_button.click()

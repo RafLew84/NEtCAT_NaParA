@@ -47,7 +47,7 @@ class PositionAnalysisRangeModeTests(unittest.TestCase):
         self.assertFalse(self.dialog.edit_first_range_name.isHidden())
         self.assertEqual(self.dialog.btn_run_range_analysis.text(), "Analyze range")
         self.assertTrue(self.dialog.has_valid_frame_range_analysis_scope())
-        self.assertFalse(self.dialog.m6_run_button.isEnabled())
+        self.assertTrue(self.dialog.m6_run_button.isEnabled())
 
         scope = self.dialog.frame_range_analysis_scope()
         self.assertIsInstance(scope, MolecularFrameRangeAnalysisScope)
