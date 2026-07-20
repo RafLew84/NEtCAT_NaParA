@@ -3689,6 +3689,14 @@ class MolTrackMainWindow(QMainWindow):
             return
         try:
             settings = export_dialog.export_settings()
+            domain_type_classification = (
+                self._current_m6_domain_type_classification()
+            )
+            if domain_type_classification is not None:
+                settings = replace(
+                    settings,
+                    m6_domain_type_classification=domain_type_classification,
+                )
             self.analysis_export_requested.emit(settings)
             if self._analysis_exporter is not None:
                 self._start_analysis_export(settings)

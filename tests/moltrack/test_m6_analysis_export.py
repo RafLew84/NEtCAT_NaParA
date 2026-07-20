@@ -9,11 +9,15 @@ from unittest.mock import patch
 import numpy as np
 
 from moltrack.analysis import (
+    M6DomainTypeAnalysisStore,
+    M6DomainTypeClassificationSettings,
     M6_ORIENTATION_ALGORITHM_VERSION,
     MolecularFrameRange,
     MolecularFrameRangeSelection,
     MolecularM6OrientationAnalysisSettings,
+    adapt_m6_domain_type_analysis_source,
     analyze_molecular_frame_range,
+    compare_molecular_frame_ranges,
 )
 from moltrack.core import (
     MolTrackImageSeries,
@@ -129,6 +133,7 @@ _DOMAIN_FIELDS = (
     "molecule_fraction_of_valid_representatives",
     "footprint_area_nm2",
     "footprint_fraction_of_valid_fov",
+    "molecular_mask_area_nm2",
     "orientation_deg",
     "centroid_x_nm",
     "centroid_y_nm",
@@ -149,9 +154,18 @@ _DOMAIN_FIELDS = (
     "footprint_disconnected_qc",
     "coordinate_frame",
     "orientation_reference",
+    "m6_settings_fingerprint",
+    "m6_context_fingerprint",
     "spatial_calibration_fingerprint",
     "registration_fingerprint",
     "point_coordinate_fingerprint",
+    "domain_type_range_name",
+    "domain_type_range_start_frame",
+    "domain_type_range_end_frame",
+    "domain_type_id",
+    "domain_type_label",
+    "domain_type_qualification_status",
+    "domain_type_unclassified_reason",
 )
 
 
@@ -242,7 +256,11 @@ def _triangular_patch(
     return points @ rotation.T + np.asarray(shift_xy_nm)
 
 
-def _domain_export_series() -> MolTrackImageSeries:
+def _domain_export_series(
+    *,
+    x_offset_nm: float = 0.0,
+    frame_x_offsets_nm: tuple[float, ...] | None = None,
+) -> MolTrackImageSeries:
     two_domains = np.vstack(
         (
             _triangular_patch(0.0, (6.0, 6.0)),
@@ -258,12 +276,22 @@ def _domain_export_series() -> MolTrackImageSeries:
     frame_size = 72
     detections = MolecularDetectionSet(frame_count=len(frame_points))
     for frame_index, points in enumerate(frame_points):
+        frame_x_offset_nm = (
+            x_offset_nm
+            if frame_x_offsets_nm is None
+            else frame_x_offsets_nm[frame_index]
+        )
         detections.set_detections(
             frame_index,
             [
                 MolecularDetection(
                     frame_index,
-                    (x - 0.2, frame_size - y - 0.2, x + 0.2, frame_size - y + 0.2),
+                    (
+                        x + frame_x_offset_nm - 0.2,
+                        frame_size - y - 0.2,
+                        x + frame_x_offset_nm + 0.2,
+                        frame_size - y + 0.2,
+                    ),
                     0.9,
                     detection_id=f"frame-{frame_index}-point-{point_index:03d}",
                 )
@@ -342,6 +370,387 @@ def _assert_csv_value(
 
 
 class M6AnalysisExportTests(unittest.TestCase):
+    @staticmethod
+    def _classify_domain_types(series, frame_range, *, minimum_observations=1):
+        analysis = analyze_molecular_frame_range(
+            series,
+            frame_range,
+            source_view="raw",
+            m6_orientation_settings=_settings(),
+        )
+        source = adapt_m6_domain_type_analysis_source(
+            analysis,
+            frame_count=series.frame_count,
+        )
+        return M6DomainTypeAnalysisStore().analyze(
+            source,
+            classification_settings=M6DomainTypeClassificationSettings(
+                orientation_tolerance_deg=5.0,
+                bond_length_tolerance_mode="absolute_nm",
+                bond_length_tolerance_value=0.5,
+                minimum_observations_per_type=minimum_observations,
+            ),
+        ).classification
+
+    def test_domain_type_assignments_follow_component_keys_after_row_permutation(self) -> None:
+        series = _domain_export_series()
+        classification = self._classify_domain_types(
+            series,
+            MolecularFrameRange("all domains", 0, 2),
+        )
+        original_builder = analysis_export_module._ordered_component_rows
+
+        def permuted_rows(*args, **kwargs):
+            return list(reversed(original_builder(*args, **kwargs)))
+
+        with tempfile.TemporaryDirectory() as tmpdir, patch.object(
+            analysis_export_module,
+            "_ordered_component_rows",
+            side_effect=permuted_rows,
+        ):
+            paths = export_full_working_series_analysis_csv(
+                series,
+                tmpdir,
+                m6_orientation_settings=_settings(),
+                m6_domain_type_classification=classification,
+            )
+            with paths["domains_csv"].open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                rows = list(csv.DictReader(handle))
+
+        assignments = {
+            assignment.observation_key: assignment
+            for assignment in classification.assignments
+        }
+        observations = {
+            (
+                observation.frame_index,
+                observation.source_frame_index,
+                observation.ordered_component_id,
+                observation.m6_orientation_domain_id,
+            ): observation
+            for observation in classification.observations
+        }
+        labels = {
+            domain_type.domain_type_id: domain_type.label
+            for domain_type in classification.domain_types
+        }
+        self.assertEqual(len(rows), len(observations))
+        for row in rows:
+            key = (
+                int(row["working_frame_index"]),
+                int(row["source_frame_index"]),
+                int(row["ordered_component_id"]),
+                (
+                    None
+                    if row["m6_orientation_domain_id"] == ""
+                    else int(row["m6_orientation_domain_id"])
+                ),
+            )
+            observation = observations[key]
+            assignment = assignments[observation.stable_key]
+            self.assertEqual(
+                row["domain_type_id"],
+                (
+                    ""
+                    if assignment.domain_type_id is None
+                    else str(assignment.domain_type_id)
+                ),
+            )
+            self.assertEqual(
+                row["domain_type_label"],
+                "Unclassified"
+                if assignment.domain_type_id is None
+                else labels[assignment.domain_type_id],
+            )
+            self.assertEqual(
+                row["domain_type_qualification_status"],
+                observation.qualification_status,
+            )
+            self.assertEqual(
+                row["domain_type_unclassified_reason"],
+                assignment.unclassified_reason or "",
+            )
+            _assert_csv_value(
+                self,
+                row["molecular_mask_area_nm2"],
+                observation.molecular_mask_area_nm2,
+            )
+            self.assertEqual(
+                row["m6_settings_fingerprint"],
+                observation.m6_settings_fingerprint,
+            )
+            self.assertEqual(
+                row["m6_context_fingerprint"],
+                observation.m6_context_fingerprint,
+            )
+
+    def test_domain_type_export_keeps_outside_and_absent_analysis_fields_empty(self) -> None:
+        series = _domain_export_series()
+        classification = self._classify_domain_types(
+            series,
+            MolecularFrameRange("first frame", 0, 0),
+            minimum_observations=2,
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            typed_paths = export_full_working_series_analysis_csv(
+                series,
+                Path(tmpdir) / "typed",
+                m6_orientation_settings=_settings(),
+                m6_domain_type_classification=classification,
+            )
+            plain_paths = export_full_working_series_analysis_csv(
+                series,
+                Path(tmpdir) / "plain",
+                m6_orientation_settings=_settings(),
+            )
+            with typed_paths["domains_csv"].open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                typed_rows = list(csv.DictReader(handle))
+            with plain_paths["domains_csv"].open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                plain_rows = list(csv.DictReader(handle))
+
+        type_fields = _DOMAIN_FIELDS[-7:]
+        first_frame_rows = [
+            row for row in typed_rows if row["working_frame_index"] == "0"
+        ]
+        outside_rows = [
+            row for row in typed_rows if row["working_frame_index"] != "0"
+        ]
+        self.assertTrue(first_frame_rows)
+        self.assertTrue(outside_rows)
+        self.assertTrue(
+            all(
+                row["domain_type_label"] == "Unclassified"
+                for row in first_frame_rows
+            )
+        )
+        self.assertTrue(
+            all(row["domain_type_unclassified_reason"] for row in first_frame_rows)
+        )
+        self.assertTrue(
+            all(row[field] == "" for row in outside_rows for field in type_fields)
+        )
+        self.assertTrue(
+            all(row[field] == "" for row in plain_rows for field in type_fields)
+        )
+
+    def test_analysis_package_forwards_domain_type_snapshot_to_domains_csv(self) -> None:
+        series = _domain_export_series()
+        classification = self._classify_domain_types(
+            series,
+            MolecularFrameRange("all domains", 0, 2),
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            destination = Path(tmpdir) / "package"
+            export_analysis_package(
+                series,
+                AnalysisExportSettings(
+                    scope="full_working_series",
+                    destination=destination,
+                    package_format="directory",
+                    include_tables=True,
+                    include_spatial_grids=False,
+                    include_plots=False,
+                    frame_count=series.frame_count,
+                    active_frame_index=series.active_frame_index,
+                    source_view="raw",
+                    use_segmentation_centroids=True,
+                    intensity_metric="mean",
+                    intensity_unit="a.u.",
+                    background_inner_radius_px=1,
+                    background_outer_radius_px=3,
+                    density_grid_shape=(4, 4),
+                    m6_orientation_settings=_settings(),
+                    m6_domain_type_classification=classification,
+                ),
+                environment_provider=lambda: {},
+            )
+            with (destination / "domains.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                rows = list(csv.DictReader(handle))
+
+        self.assertTrue(rows)
+        self.assertTrue(all(row["domain_type_label"] for row in rows))
+
+    def test_selected_ranges_join_uses_exact_range_and_component_identity(self) -> None:
+        series = _domain_export_series()
+        selection = MolecularFrameRangeSelection(
+            frame_count=series.frame_count,
+            source_view="raw",
+            first_range=MolecularFrameRange("before", 0, 0),
+            second_range=MolecularFrameRange("after", 2, 2),
+        )
+        comparison = compare_molecular_frame_ranges(
+            series,
+            selection,
+            m6_orientation_settings=_settings(),
+        )
+        classification = M6DomainTypeAnalysisStore().analyze(
+            adapt_m6_domain_type_analysis_source(
+                comparison,
+                frame_count=series.frame_count,
+            ),
+            classification_settings=M6DomainTypeClassificationSettings(
+                orientation_tolerance_deg=5.0,
+                bond_length_tolerance_mode="absolute_nm",
+                bond_length_tolerance_value=0.5,
+                minimum_observations_per_type=1,
+            ),
+        ).classification
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            paths = export_selected_ranges_analysis_csv(
+                series,
+                selection,
+                tmpdir,
+                m6_orientation_settings=_settings(),
+                m6_domain_type_classification=classification,
+            )
+            with paths["domains_csv"].open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                rows = list(csv.DictReader(handle))
+
+        self.assertTrue(rows)
+        self.assertEqual(
+            {row["condition_name"] for row in rows},
+            {"before", "after"},
+        )
+        self.assertEqual(
+            {row["condition_order"] for row in rows},
+            {"first", "second"},
+        )
+        self.assertEqual(
+            {
+                (
+                    row["domain_type_range_name"],
+                    row["domain_type_range_start_frame"],
+                    row["domain_type_range_end_frame"],
+                )
+                for row in rows
+            },
+            {("before", "0", "0"), ("after", "2", "2")},
+        )
+        self.assertTrue(all(row["domain_type_label"] for row in rows))
+
+    def test_overlapping_ranges_keep_each_observation_identity_in_full_export(self) -> None:
+        series = _domain_export_series()
+        selection = MolecularFrameRangeSelection(
+            frame_count=series.frame_count,
+            source_view="raw",
+            first_range=MolecularFrameRange("condition", 0, 2),
+            second_range=MolecularFrameRange("condition", 1, 2),
+        )
+        comparison = compare_molecular_frame_ranges(
+            series,
+            selection,
+            m6_orientation_settings=_settings(),
+        )
+        classification = M6DomainTypeAnalysisStore().analyze(
+            adapt_m6_domain_type_analysis_source(
+                comparison,
+                frame_count=series.frame_count,
+            ),
+            classification_settings=M6DomainTypeClassificationSettings(
+                orientation_tolerance_deg=5.0,
+                bond_length_tolerance_mode="absolute_nm",
+                bond_length_tolerance_value=0.5,
+                minimum_observations_per_type=1,
+            ),
+        ).classification
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            paths = export_full_working_series_analysis_csv(
+                series,
+                tmpdir,
+                m6_orientation_settings=_settings(),
+                m6_domain_type_classification=classification,
+            )
+            with paths["domains_csv"].open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                rows = list(csv.DictReader(handle))
+
+        overlapping_rows = [
+            row for row in rows if row["working_frame_index"] == "2"
+        ]
+        observation_count = sum(
+            observation.frame_index == 2
+            for observation in classification.observations
+        )
+        self.assertEqual(len(overlapping_rows), observation_count)
+        self.assertEqual(
+            {row["domain_type_range_start_frame"] for row in overlapping_rows},
+            {"0", "1"},
+        )
+        self.assertTrue(all(row["domain_type_label"] for row in overlapping_rows))
+
+    def test_stale_domain_type_snapshot_does_not_assign_types_to_new_domains(self) -> None:
+        original_series = _domain_export_series()
+        classification = self._classify_domain_types(
+            original_series,
+            MolecularFrameRange("all domains", 0, 2),
+        )
+        shifted_series = _domain_export_series(x_offset_nm=1.0)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            paths = export_full_working_series_analysis_csv(
+                shifted_series,
+                tmpdir,
+                m6_orientation_settings=_settings(),
+                m6_domain_type_classification=classification,
+            )
+            with paths["domains_csv"].open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                rows = list(csv.DictReader(handle))
+
+        self.assertTrue(rows)
+        self.assertTrue(
+            all(row[field] == "" for row in rows for field in _DOMAIN_FIELDS[-7:])
+        )
+
+    def test_current_frame_export_rejects_snapshot_stale_in_another_frame(self) -> None:
+        original_series = _domain_export_series()
+        classification = self._classify_domain_types(
+            original_series,
+            MolecularFrameRange("all domains", 0, 2),
+        )
+        changed_series = _domain_export_series(
+            frame_x_offsets_nm=(0.0, 0.0, 1.0),
+        )
+        current_analysis = analyze_molecular_frame_range(
+            changed_series,
+            MolecularFrameRange("current", 0, 0),
+            source_view="raw",
+            m6_orientation_settings=_settings(),
+        ).frame_results[0]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            paths = export_current_frame_analysis_csv(
+                changed_series,
+                current_analysis,
+                tmpdir,
+                m6_domain_type_classification=classification,
+            )
+            with paths["domains_csv"].open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                rows = list(csv.DictReader(handle))
+
+        self.assertTrue(rows)
+        self.assertTrue(
+            all(row[field] == "" for row in rows for field in _DOMAIN_FIELDS[-7:])
+        )
+
     def test_molecule_fields_are_aligned_by_source_id_after_row_permutation(self) -> None:
         series = _series(frame_count=1)
         frame_analysis = analyze_molecular_frame_range(

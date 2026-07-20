@@ -29,10 +29,11 @@ from moltrack.core import (
     MolTrackPositionAnalysisRange,
     MolTrackPositionAnalysisState,
 )
+from moltrack.persistence import AnalysisExportSettings
 from nanotrack.core import STMSequenceMetadata
 
 try:
-    from PyQt6.QtWidgets import QApplication, QMessageBox
+    from PyQt6.QtWidgets import QApplication, QDialog, QMessageBox
 except ImportError:  # pragma: no cover - optional outside target GUI env
     QApplication = None
 
@@ -132,6 +133,73 @@ class M6DomainTypeMainWindowLifecycleTests(unittest.TestCase):
             classification_settings=settings,
         )
         return result, M6DomainTypeSessionState.from_outcome(outcome)
+
+    def test_analysis_export_request_captures_current_domain_type_classification(
+        self,
+    ) -> None:
+        result, domain_state = self._restorable_domain_type_state()
+        classification = domain_state.cache_record.outcome.classification
+        settings = AnalysisExportSettings(
+            scope="current_frame",
+            destination=Path("analysis-package"),
+            package_format="directory",
+            include_tables=True,
+            include_spatial_grids=False,
+            include_plots=False,
+            frame_count=2,
+            active_frame_index=0,
+            source_view="raw",
+            use_segmentation_centroids=True,
+            intensity_metric="mean",
+            intensity_unit="a.u.",
+            background_inner_radius_px=1,
+            background_outer_radius_px=3,
+            density_grid_shape=(4, 4),
+            m6_orientation_settings=_m6_settings(),
+        )
+
+        class AcceptedExportDialog:
+            def exec(self):
+                return QDialog.DialogCode.Accepted
+
+            def export_settings(self):
+                return settings
+
+        store = M6DomainTypeAnalysisStore()
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            m6_domain_type_store=store,
+            analysis_export_dialog_factory=lambda **_kwargs: AcceptedExportDialog(),
+            analysis_exporter=lambda _series, request: SimpleNamespace(
+                package_path=request.destination,
+                relative_files=("domains.csv",),
+                record_counts=(("domains.csv", 1),),
+            ),
+        )
+        series = _series("movie.mpp")
+        self.window.set_image_series(series)
+        self.window._on_position_analysis_requested()
+        store.restore(
+            build_m6_domain_type_analysis_context(
+                adapt_m6_domain_type_analysis_source(result, frame_count=2),
+                classification_settings=domain_state.classification_settings,
+            ),
+            domain_state.cache_record.outcome,
+        )
+        requests = []
+        self.window.analysis_export_requested.connect(requests.append)
+
+        with patch.object(QMessageBox, "information"):
+            self.window._on_position_analysis_export_requested()
+            self.process_events_until(
+                lambda: not self.window.analysis_export_running()
+            )
+
+        self.assertEqual(len(requests), 1)
+        self.assertIs(
+            requests[0].m6_domain_type_classification,
+            classification,
+        )
 
     def _saved_position_state(self) -> MolTrackPositionAnalysisState:
         return MolTrackPositionAnalysisState(

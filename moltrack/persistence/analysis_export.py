@@ -4,7 +4,9 @@ import csv
 import hashlib
 import json
 import os
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
+from math import isclose
 from pathlib import Path
 from collections.abc import Callable, Mapping, Sequence
 from typing import TYPE_CHECKING
@@ -12,7 +14,12 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from moltrack import __version__ as moltrack_version
+from moltrack.analysis._m6_context_fingerprint import m6_context_fingerprint
+from moltrack.analysis._m6_settings_fingerprint import m6_settings_fingerprint
 from moltrack.analysis import (
+    M6DomainTypeAssignment,
+    M6DomainTypeClassificationResult,
+    M6DomainTypeObservation,
     M6_ORIENTATION_ALGORITHM_VERSION,
     SAMPLE_COORDINATE_TRANSFORM_VERSION,
     StructuralAnalysisCacheKey,
@@ -29,6 +36,7 @@ from moltrack.analysis import (
     build_molecular_range_spatial_comparison_data,
     build_structural_analysis_cache_key,
     compare_molecular_frame_ranges,
+    extract_m6_domain_type_observations,
 )
 from moltrack.core import MolTrackImageSeries, MolecularCentroid, build_molecular_centroids
 
@@ -200,6 +208,7 @@ _DOMAINS_CSV_FIELDS = (
     "molecule_fraction_of_valid_representatives",
     "footprint_area_nm2",
     "footprint_fraction_of_valid_fov",
+    "molecular_mask_area_nm2",
     "orientation_deg",
     "centroid_x_nm",
     "centroid_y_nm",
@@ -220,10 +229,56 @@ _DOMAINS_CSV_FIELDS = (
     "footprint_disconnected_qc",
     "coordinate_frame",
     "orientation_reference",
+    "m6_settings_fingerprint",
+    "m6_context_fingerprint",
     "spatial_calibration_fingerprint",
     "registration_fingerprint",
     "point_coordinate_fingerprint",
+    "domain_type_range_name",
+    "domain_type_range_start_frame",
+    "domain_type_range_end_frame",
+    "domain_type_id",
+    "domain_type_label",
+    "domain_type_qualification_status",
+    "domain_type_unclassified_reason",
 )
+
+_DOMAIN_TYPE_CSV_FIELDS = (
+    "domain_type_range_name",
+    "domain_type_range_start_frame",
+    "domain_type_range_end_frame",
+    "domain_type_id",
+    "domain_type_label",
+    "domain_type_qualification_status",
+    "domain_type_unclassified_reason",
+)
+
+
+@dataclass(frozen=True)
+class _DomainComponentExportKey:
+    source_view: str
+    working_frame_index: int
+    source_frame_index: int
+    ordered_component_id: int
+    m6_orientation_domain_id: int | None
+
+
+@dataclass(frozen=True)
+class _DomainTypeExportRecord:
+    observation: M6DomainTypeObservation
+    assignment: M6DomainTypeAssignment
+    label: str
+
+
+@dataclass(frozen=True)
+class _DomainTypeExportLookup:
+    source_view: str
+    by_observation_key: Mapping[tuple[object, ...], _DomainTypeExportRecord]
+    by_component_key: Mapping[
+        _DomainComponentExportKey,
+        tuple[_DomainTypeExportRecord, ...],
+    ]
+
 
 _M6_FRAMES_CSV_FIELDS = _FRAMES_CSV_FIELDS[
     _FRAMES_CSV_FIELDS.index("m6_analysis_availability_status") :
@@ -301,6 +356,7 @@ def export_selected_ranges_analysis_csv(
     progress_callback=None,
     phase_callback=None,
     m6_orientation_settings: MolecularM6OrientationAnalysisSettings | None = None,
+    m6_domain_type_classification: M6DomainTypeClassificationResult | None = None,
     environment_provider: Callable[[], Mapping[str, object]] | None = None,
 ) -> dict[str, Path]:
     """Analyze and export two named frame ranges without creating tracks."""
@@ -326,6 +382,10 @@ def export_selected_ranges_analysis_csv(
     frame_rows = []
     domain_rows = []
     range_rows = []
+    domain_type_lookup = _validated_domain_type_export_lookup(
+        m6_domain_type_classification,
+        (comparison.first_analysis, comparison.second_analysis),
+    )
     for condition_order, analysis in (
         ("first", comparison.first_analysis),
         ("second", comparison.second_analysis),
@@ -341,7 +401,13 @@ def export_selected_ranges_analysis_csv(
             frame_rows.append(frame_row)
             analyzed_domain_rows = _ordered_component_rows(series, frame_analysis)
             for row in analyzed_domain_rows:
+                row["condition_order"] = condition_order
                 row["condition_name"] = condition_name
+            _apply_domain_type_export_fields(
+                analyzed_domain_rows,
+                domain_type_lookup,
+                frame_range=analysis.frame_range,
+            )
             domain_rows.extend(analyzed_domain_rows)
         range_rows.append(_range_row(condition_order, analysis))
 
@@ -365,7 +431,7 @@ def export_selected_ranges_analysis_csv(
     _write_csv(
         domains_path,
         domain_rows,
-        fieldnames=("condition_name",) + _DOMAINS_CSV_FIELDS,
+        fieldnames=("condition_order", "condition_name") + _DOMAINS_CSV_FIELDS,
     )
     ranges_path = destination / "ranges.csv"
     _write_csv(ranges_path, range_rows, fieldnames=_RANGES_CSV_FIELDS)
@@ -1043,6 +1109,7 @@ def export_full_working_series_analysis_csv(
     progress_callback=None,
     phase_callback=None,
     m6_orientation_settings: MolecularM6OrientationAnalysisSettings | None = None,
+    m6_domain_type_classification: M6DomainTypeClassificationResult | None = None,
     analysis_results_callback: Callable[
         [tuple[MolecularFrameAnalysisResult, ...]], None
     ]
@@ -1069,10 +1136,22 @@ def export_full_working_series_analysis_csv(
     molecule_rows = []
     frame_rows = []
     domain_rows = []
+    domain_type_lookup = _validated_domain_type_export_lookup(
+        m6_domain_type_classification,
+        _domain_type_range_slices(
+            analysis,
+            m6_domain_type_classification,
+        ),
+    )
     for frame_analysis in analysis.frame_results:
         molecule_rows.extend(_analyzed_molecule_rows(series, frame_analysis))
         frame_rows.append(_frame_row(series, frame_analysis))
-        domain_rows.extend(_ordered_component_rows(series, frame_analysis))
+        analyzed_domain_rows = _ordered_component_rows(series, frame_analysis)
+        _apply_domain_type_export_fields(
+            analyzed_domain_rows,
+            domain_type_lookup,
+        )
+        domain_rows.extend(analyzed_domain_rows)
     molecule_rows.sort(
         key=lambda row: (
             int(row["working_frame_index"]),
@@ -1096,17 +1175,33 @@ def export_current_frame_analysis_csv(
     series: MolTrackImageSeries,
     frame_analysis: MolecularFrameAnalysisResult,
     destination_dir: str | Path,
+    *,
+    use_segmentation_centroids: bool = True,
+    m6_domain_type_classification: M6DomainTypeClassificationResult | None = None,
 ) -> dict[str, Path]:
     """Export full per-molecule analysis for one working-series frame."""
 
     if not isinstance(frame_analysis, MolecularFrameAnalysisResult):
         raise TypeError("frame_analysis must be a MolecularFrameAnalysisResult instance.")
     rows = _analyzed_molecule_rows(series, frame_analysis)
+    domain_rows = _ordered_component_rows(series, frame_analysis)
+    _apply_domain_type_export_fields(
+        domain_rows,
+        _validated_domain_type_export_lookup(
+            m6_domain_type_classification,
+            _domain_type_range_analyses_from_series(
+                series,
+                m6_domain_type_classification,
+                expected_source_view=frame_analysis.source_view,
+                use_segmentation_centroids=use_segmentation_centroids,
+            ),
+        ),
+    )
     return _write_analysis_tables(
         destination_dir,
         rows,
         [_frame_row(series, frame_analysis)],
-        _ordered_component_rows(series, frame_analysis),
+        domain_rows,
     )
 
 
@@ -1577,6 +1672,7 @@ def _ordered_component_rows(
                 "footprint_fraction_of_valid_fov": (
                     footprint.footprint_fraction_of_valid_fov
                 ),
+                "molecular_mask_area_nm2": footprint.molecular_mask_area_nm2,
                 "orientation_deg": component.orientation_deg,
                 "centroid_x_nm": component.centroid_x_nm,
                 "centroid_y_nm": component.centroid_y_nm,
@@ -1605,6 +1701,8 @@ def _ordered_component_rows(
                 "footprint_disconnected_qc": footprint.footprint_disconnected_qc,
                 "coordinate_frame": m6.coordinate_frame,
                 "orientation_reference": m6.orientation_reference,
+                "m6_settings_fingerprint": m6_settings_fingerprint(m6.settings),
+                "m6_context_fingerprint": m6_context_fingerprint(m6),
                 "spatial_calibration_fingerprint": m6.spatial_calibration_fingerprint,
                 "registration_fingerprint": m6.registration_fingerprint,
                 "point_coordinate_fingerprint": (
@@ -1617,12 +1715,302 @@ def _ordered_component_rows(
 
 def _ordered_component_row_sort_key(
     row: Mapping[str, object],
-) -> tuple[int, int, int]:
+) -> tuple[int, int, int, str, int, int]:
     domain_id = row["m6_orientation_domain_id"]
     return (
         int(row["working_frame_index"]),
         int(row["ordered_component_id"]),
         -1 if domain_id is None else int(domain_id),
+        str(row.get("domain_type_range_name") or ""),
+        int(row.get("domain_type_range_start_frame") or -1),
+        int(row.get("domain_type_range_end_frame") or -1),
+    )
+
+
+def _domain_type_range_slices(
+    full_analysis: MolecularFrameRangeAnalysis,
+    classification: M6DomainTypeClassificationResult | None,
+) -> tuple[MolecularFrameRangeAnalysis, ...]:
+    if classification is None:
+        return ()
+    if not isinstance(classification, M6DomainTypeClassificationResult):
+        raise TypeError(
+            "m6_domain_type_classification must be a domain type result or None."
+        )
+    return tuple(
+        replace(
+            full_analysis,
+            frame_range=frame_range,
+            frame_results=tuple(
+                frame_result
+                for frame_result in full_analysis.frame_results
+                if frame_range.start_frame
+                <= frame_result.frame_index
+                <= frame_range.end_frame
+            ),
+        )
+        for frame_range in classification.analysis_scope.ranges
+    )
+
+
+def _domain_type_range_analyses_from_series(
+    series: MolTrackImageSeries,
+    classification: M6DomainTypeClassificationResult | None,
+    *,
+    expected_source_view: str,
+    use_segmentation_centroids: bool,
+) -> tuple[MolecularFrameRangeAnalysis, ...]:
+    if classification is None:
+        return ()
+    if not isinstance(classification, M6DomainTypeClassificationResult):
+        raise TypeError(
+            "m6_domain_type_classification must be a domain type result or None."
+        )
+    if (
+        classification.analysis_scope.frame_count != series.frame_count
+        or classification.source_view != expected_source_view
+    ):
+        return ()
+    return tuple(
+        analyze_molecular_frame_range(
+            series,
+            frame_range,
+            source_view=classification.source_view,
+            use_segmentation_centroids=use_segmentation_centroids,
+            m6_orientation_settings=classification.m6_settings,
+        )
+        for frame_range in classification.analysis_scope.ranges
+    )
+
+
+def _validated_domain_type_export_lookup(
+    classification: M6DomainTypeClassificationResult | None,
+    range_analyses: Sequence[MolecularFrameRangeAnalysis],
+) -> _DomainTypeExportLookup | None:
+    lookup = _build_domain_type_export_lookup(classification)
+    if lookup is None:
+        return None
+    normalized_analyses = tuple(range_analyses)
+    if (
+        tuple(value.frame_range for value in normalized_analyses)
+        != classification.analysis_scope.ranges
+        or any(value.source_view != classification.source_view for value in normalized_analyses)
+    ):
+        return None
+    current_observations = tuple(
+        sorted(
+            (
+                observation
+                for analysis in normalized_analyses
+                for observation in extract_m6_domain_type_observations(
+                    analysis,
+                    settings=classification.classification_settings,
+                )
+            ),
+            key=lambda value: value.stable_key,
+        )
+    )
+    if current_observations != classification.observations:
+        return None
+    return lookup
+
+
+def _build_domain_type_export_lookup(
+    classification: M6DomainTypeClassificationResult | None,
+) -> _DomainTypeExportLookup | None:
+    if classification is None:
+        return None
+    if not isinstance(classification, M6DomainTypeClassificationResult):
+        raise TypeError(
+            "m6_domain_type_classification must be a domain type result or None."
+        )
+    observations = {
+        observation.stable_key: observation
+        for observation in classification.observations
+    }
+    labels = {
+        domain_type.domain_type_id: domain_type.label
+        for domain_type in classification.domain_types
+    }
+    by_observation_key = {}
+    component_records: dict[
+        _DomainComponentExportKey,
+        list[_DomainTypeExportRecord],
+    ] = {}
+    for assignment in classification.assignments:
+        observation = observations[assignment.observation_key]
+        label = (
+            "Unclassified"
+            if assignment.domain_type_id is None
+            else labels[assignment.domain_type_id]
+        )
+        record = _DomainTypeExportRecord(observation, assignment, label)
+        by_observation_key[observation.stable_key] = record
+        component_key = _domain_component_export_key(
+            source_view=observation.source_view,
+            working_frame_index=observation.frame_index,
+            source_frame_index=observation.source_frame_index,
+            ordered_component_id=observation.ordered_component_id,
+            m6_orientation_domain_id=observation.m6_orientation_domain_id,
+        )
+        component_records.setdefault(component_key, []).append(record)
+    return _DomainTypeExportLookup(
+        source_view=classification.source_view,
+        by_observation_key=by_observation_key,
+        by_component_key={
+            key: tuple(records) for key, records in component_records.items()
+        },
+    )
+
+
+def _apply_domain_type_export_fields(
+    rows: list[dict[str, object]],
+    lookup: _DomainTypeExportLookup | None,
+    *,
+    frame_range: MolecularFrameRange | None = None,
+) -> None:
+    expanded_rows = []
+    for row in rows:
+        row.update({field_name: None for field_name in _DOMAIN_TYPE_CSV_FIELDS})
+        if lookup is None or str(row["source_view"]) != lookup.source_view:
+            expanded_rows.append(row)
+            continue
+        component_key = _domain_component_export_key(
+            source_view=str(row["source_view"]),
+            working_frame_index=int(row["working_frame_index"]),
+            source_frame_index=int(row["source_frame_index"]),
+            ordered_component_id=int(row["ordered_component_id"]),
+            m6_orientation_domain_id=(
+                None
+                if row["m6_orientation_domain_id"] is None
+                else int(row["m6_orientation_domain_id"])
+            ),
+        )
+        if frame_range is None:
+            candidates = lookup.by_component_key.get(component_key, ())
+        else:
+            record = lookup.by_observation_key.get(
+                (
+                    frame_range.name,
+                    frame_range.start_frame,
+                    frame_range.end_frame,
+                    component_key.working_frame_index,
+                    component_key.source_frame_index,
+                    component_key.ordered_component_id,
+                    component_key.m6_orientation_domain_id,
+                )
+            )
+            candidates = () if record is None else (record,)
+        matching_records = tuple(
+            record
+            for record in candidates
+            if _domain_row_matches_observation(row, record.observation)
+        )
+        if not matching_records:
+            expanded_rows.append(row)
+            continue
+        for record in matching_records:
+            assigned_row = dict(row)
+            assignment = record.assignment
+            observation = record.observation
+            assigned_row.update(
+                {
+                    "domain_type_range_name": observation.range_name,
+                    "domain_type_range_start_frame": observation.range_start_frame,
+                    "domain_type_range_end_frame": observation.range_end_frame,
+                    "domain_type_id": assignment.domain_type_id,
+                    "domain_type_label": record.label,
+                    "domain_type_qualification_status": (
+                        observation.qualification_status
+                    ),
+                    "domain_type_unclassified_reason": (
+                        assignment.unclassified_reason
+                    ),
+                }
+            )
+            expanded_rows.append(assigned_row)
+    rows[:] = expanded_rows
+
+
+def _domain_row_matches_observation(
+    row: Mapping[str, object],
+    observation: M6DomainTypeObservation,
+) -> bool:
+    expected_values = {
+        "component_type": observation.component_type,
+        "molecule_count": observation.molecule_count,
+        "molecule_fraction_of_valid_representatives": (
+            observation.molecule_fraction_of_valid_representatives
+        ),
+        "footprint_area_nm2": observation.footprint_area_nm2,
+        "footprint_fraction_of_valid_fov": (
+            observation.footprint_fraction_of_valid_fov
+        ),
+        "molecular_mask_area_nm2": observation.molecular_mask_area_nm2,
+        "orientation_deg": observation.orientation_deg,
+        "centroid_x_nm": observation.centroid_x_nm,
+        "centroid_y_nm": observation.centroid_y_nm,
+        "min_x_nm": observation.min_x_nm,
+        "min_y_nm": observation.min_y_nm,
+        "max_x_nm": observation.max_x_nm,
+        "max_y_nm": observation.max_y_nm,
+        "domain_mean_local_q6": observation.domain_mean_local_q6,
+        "domain_coherent_q6": observation.domain_coherent_q6,
+        "internal_first_shell_bond_count": (
+            observation.internal_first_shell_bond_count
+        ),
+        "domain_median_bond_length_nm": (
+            observation.domain_median_bond_length_nm
+        ),
+        "domain_bond_length_mad_nm": observation.domain_bond_length_mad_nm,
+        "domain_bond_length_iqr_nm": observation.domain_bond_length_iqr_nm,
+        "domain_bond_length_robust_cv": (
+            observation.domain_bond_length_robust_cv
+        ),
+        "edge_truncated": observation.edge_truncated,
+        "insufficient_bonds_for_length_stats_qc": (
+            observation.insufficient_bonds_for_length_stats_qc
+        ),
+        "bond_length_heterogeneity_qc": (
+            observation.bond_length_heterogeneity_qc
+        ),
+        "footprint_disconnected_qc": observation.footprint_disconnected_qc,
+        "m6_settings_fingerprint": observation.m6_settings_fingerprint,
+        "m6_context_fingerprint": observation.m6_context_fingerprint,
+    }
+    for field_name, expected in expected_values.items():
+        actual = row[field_name]
+        if isinstance(expected, float):
+            if actual is None or not isclose(
+                float(actual),
+                expected,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            ):
+                return False
+        elif actual != expected:
+            return False
+    return True
+
+
+def _domain_component_export_key(
+    *,
+    source_view: str,
+    working_frame_index: int,
+    source_frame_index: int,
+    ordered_component_id: int,
+    m6_orientation_domain_id: int | None,
+) -> _DomainComponentExportKey:
+    return _DomainComponentExportKey(
+        source_view=str(source_view),
+        working_frame_index=int(working_frame_index),
+        source_frame_index=int(source_frame_index),
+        ordered_component_id=int(ordered_component_id),
+        m6_orientation_domain_id=(
+            None
+            if m6_orientation_domain_id is None
+            else int(m6_orientation_domain_id)
+        ),
     )
 
 

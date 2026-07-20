@@ -13,6 +13,7 @@ from pathlib import Path
 
 from moltrack import __version__ as moltrack_version
 from moltrack.analysis import (
+    M6DomainTypeClassificationResult,
     MolecularFrameAnalysisResult,
     MolecularFrameRange,
     MolecularFrameRangeSelection,
@@ -64,6 +65,36 @@ class AnalysisExportProgress:
         object.__setattr__(self, "total_count", total_count)
 
 
+def _validated_domain_type_m6_settings(
+    classification: M6DomainTypeClassificationResult | None,
+    *,
+    frame_count: int,
+    source_view: str,
+    m6_settings: MolecularM6OrientationAnalysisSettings | None,
+) -> MolecularM6OrientationAnalysisSettings | None:
+    if classification is None:
+        return m6_settings
+    if not isinstance(classification, M6DomainTypeClassificationResult):
+        raise TypeError(
+            "m6_domain_type_classification must be a domain type result or None."
+        )
+    if classification.analysis_scope.frame_count != frame_count:
+        raise ValueError(
+            "Domain type classification frame_count must match the export series."
+        )
+    if classification.source_view != source_view:
+        raise ValueError(
+            "Domain type classification source_view must match the export view."
+        )
+    if m6_settings is None:
+        return classification.m6_settings
+    if m6_settings != classification.m6_settings:
+        raise ValueError(
+            "M6 export settings must match the domain type classification."
+        )
+    return m6_settings
+
+
 @dataclass(frozen=True)
 class AnalysisExportSettings:
     """Immutable UI-to-persistence request for one analysis package."""
@@ -86,6 +117,7 @@ class AnalysisExportSettings:
     selected_ranges: MolecularFrameRangeSelection | None = None
     overwrite: bool = False
     m6_orientation_settings: MolecularM6OrientationAnalysisSettings | None = None
+    m6_domain_type_classification: M6DomainTypeClassificationResult | None = None
 
     def __post_init__(self) -> None:
         scope = str(self.scope).strip().lower()
@@ -141,6 +173,12 @@ class AnalysisExportSettings:
             MolecularM6OrientationAnalysisSettings,
         ):
             raise TypeError("m6_orientation_settings must be M6 settings or None.")
+        m6_settings = _validated_domain_type_m6_settings(
+            self.m6_domain_type_classification,
+            frame_count=frame_count,
+            source_view=source_view,
+            m6_settings=m6_settings,
+        )
 
         object.__setattr__(self, "scope", scope)
         object.__setattr__(self, "destination", Path(destination_text))
@@ -162,6 +200,7 @@ class AnalysisExportSettings:
         object.__setattr__(self, "background_outer_radius_px", outer_radius)
         object.__setattr__(self, "density_grid_shape", (rows, columns))
         object.__setattr__(self, "overwrite", bool(self.overwrite))
+        object.__setattr__(self, "m6_orientation_settings", m6_settings)
 
 
 def export_analysis_package(
@@ -230,6 +269,9 @@ def export_analysis_package(
                 progress_callback=analysis_progress,
                 phase_callback=emit,
                 m6_orientation_settings=settings.m6_orientation_settings,
+                m6_domain_type_classification=(
+                    settings.m6_domain_type_classification
+                ),
                 analysis_results_callback=capture_frame_results,
             )
             if not settings.include_tables:
@@ -250,6 +292,12 @@ def export_analysis_package(
                     series,
                     current_analysis,
                     staging,
+                    use_segmentation_centroids=(
+                        settings.use_segmentation_centroids
+                    ),
+                    m6_domain_type_classification=(
+                        settings.m6_domain_type_classification
+                    ),
                 )
         elif settings.scope == "selected_ranges":
             selection = settings.selected_ranges
@@ -269,6 +317,9 @@ def export_analysis_package(
                 progress_callback=analysis_progress,
                 phase_callback=emit,
                 m6_orientation_settings=settings.m6_orientation_settings,
+                m6_domain_type_classification=(
+                    settings.m6_domain_type_classification
+                ),
                 environment_provider=environment_provider,
             )
             if not settings.include_tables:
@@ -501,6 +552,7 @@ def export_selected_ranges_analysis_package(
     plot_dpi: int = 150,
     plot_size_inches: tuple[float, float] = (8.0, 6.0),
     m6_orientation_settings: MolecularM6OrientationAnalysisSettings | None = None,
+    m6_domain_type_classification: M6DomainTypeClassificationResult | None = None,
     environment_provider: Callable[[], Mapping[str, object]] | None = None,
 ) -> AnalysisExportPackageResult:
     """Build an analysis package in staging and publish it after success."""
@@ -508,6 +560,12 @@ def export_selected_ranges_analysis_package(
     package_format = str(package_format).strip().lower()
     if package_format not in ("directory", "zip"):
         raise ValueError("package_format must be 'directory' or 'zip'.")
+    m6_orientation_settings = _validated_domain_type_m6_settings(
+        m6_domain_type_classification,
+        frame_count=series.frame_count,
+        source_view=selection.source_view,
+        m6_settings=m6_orientation_settings,
+    )
     destination = Path(destination)
     overwrite = bool(overwrite)
     if _path_exists(destination) and not overwrite:
@@ -536,6 +594,7 @@ def export_selected_ranges_analysis_package(
             plot_dpi=plot_dpi,
             plot_size_inches=plot_size_inches,
             m6_orientation_settings=m6_orientation_settings,
+            m6_domain_type_classification=m6_domain_type_classification,
             environment_provider=environment_provider,
         )
         relative_files = _relative_package_files(staging)
