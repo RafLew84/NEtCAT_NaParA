@@ -20,6 +20,8 @@ from moltrack.analysis import (
     M6DomainTypeAssignment,
     M6DomainTypeClassificationResult,
     M6DomainTypeObservation,
+    M6DomainTypeRangeComparison,
+    M6SingleRangeDomainTypeSummary,
     M6_ORIENTATION_ALGORITHM_VERSION,
     SAMPLE_COORDINATE_TRANSFORM_VERSION,
     StructuralAnalysisCacheKey,
@@ -34,6 +36,7 @@ from moltrack.analysis import (
     MolecularRangeSpatialComparisonData,
     analyze_molecular_frame_range,
     build_molecular_range_spatial_comparison_data,
+    build_m6_domain_type_range_comparison,
     build_structural_analysis_cache_key,
     compare_molecular_frame_ranges,
     extract_m6_domain_type_observations,
@@ -43,12 +46,16 @@ from moltrack.core import MolTrackImageSeries, MolecularCentroid, build_molecula
 from .analysis_environment import (
     resolve_analysis_export_environment,
 )
+from .m6_domain_type_export import (
+    build_m6_domain_type_export_data,
+    write_m6_domain_type_tables,
+)
 
 if TYPE_CHECKING:
     from .analysis_plots import AnalysisPlotExportResult
 
 
-ANALYSIS_EXPORT_SCHEMA_VERSION = 2
+ANALYSIS_EXPORT_SCHEMA_VERSION = 3
 
 
 _MOLECULES_CSV_FIELDS = (
@@ -357,10 +364,18 @@ def export_selected_ranges_analysis_csv(
     phase_callback=None,
     m6_orientation_settings: MolecularM6OrientationAnalysisSettings | None = None,
     m6_domain_type_classification: M6DomainTypeClassificationResult | None = None,
+    m6_domain_type_table_result: (
+        M6SingleRangeDomainTypeSummary | M6DomainTypeRangeComparison | None
+    ) = None,
     environment_provider: Callable[[], Mapping[str, object]] | None = None,
 ) -> dict[str, Path]:
     """Analyze and export two named frame ranges without creating tracks."""
 
+    if (
+        m6_domain_type_table_result is not None
+        and m6_domain_type_classification is None
+    ):
+        raise ValueError("A domain type table result requires a classification.")
     comparison = compare_molecular_frame_ranges(
         series,
         selection,
@@ -385,6 +400,33 @@ def export_selected_ranges_analysis_csv(
     domain_type_lookup = _validated_domain_type_export_lookup(
         m6_domain_type_classification,
         (comparison.first_analysis, comparison.second_analysis),
+    )
+    effective_domain_type_classification = (
+        m6_domain_type_classification
+        if domain_type_lookup is not None
+        else None
+    )
+    rebuilt_domain_type_table_result = (
+        None
+        if effective_domain_type_classification is None
+        else build_m6_domain_type_range_comparison(
+            effective_domain_type_classification,
+            comparison.first_analysis,
+            comparison.second_analysis,
+        )
+    )
+    domain_type_table_result = (
+        m6_domain_type_table_result
+        if (
+            m6_domain_type_table_result is not None
+            and m6_domain_type_table_result == rebuilt_domain_type_table_result
+        )
+        else rebuilt_domain_type_table_result
+    )
+    domain_type_export = build_m6_domain_type_export_data(
+        effective_domain_type_classification,
+        domain_type_table_result,
+        tables_included=True,
     )
     for condition_order, analysis in (
         ("first", comparison.first_analysis),
@@ -448,6 +490,10 @@ def export_selected_ranges_analysis_csv(
         spatial_bin_rows,
         fieldnames=_SPATIAL_BINS_CSV_FIELDS,
     )
+    domain_type_paths = write_m6_domain_type_tables(
+        destination,
+        domain_type_export,
+    )
     plots_dir = None
     plot_export = None
     if include_plots:
@@ -483,6 +529,18 @@ def export_selected_ranges_analysis_csv(
             "path": spatial_bins_path.name,
             "record_count": len(spatial_bin_rows),
         },
+        {
+            "path": domain_type_paths["domain_types_csv"].name,
+            "record_count": len(domain_type_export.domain_type_rows),
+        },
+        {
+            "path": domain_type_paths["domain_type_ranges_csv"].name,
+            "record_count": len(domain_type_export.range_rows),
+        },
+        {
+            "path": domain_type_paths["domain_type_comparison_csv"].name,
+            "record_count": len(domain_type_export.comparison_rows),
+        },
     ]
     if plot_export is not None:
         file_entries.extend(_plot_file_entries(plot_export, destination))
@@ -502,15 +560,18 @@ def export_selected_ranges_analysis_csv(
                 "reverse_frame_order": series.reverse_frame_order,
             },
             "ranges": _ranges_manifest(selection),
-            "analysis": _analysis_manifest(
-                series,
-                comparison,
-                spatial_data,
-                use_segmentation_centroids=use_segmentation_centroids,
-                background_inner_radius_px=background_inner_radius_px,
-                background_outer_radius_px=background_outer_radius_px,
-                m6_orientation_settings=m6_orientation_settings,
-            ),
+            "analysis": {
+                **_analysis_manifest(
+                    series,
+                    comparison,
+                    spatial_data,
+                    use_segmentation_centroids=use_segmentation_centroids,
+                    background_inner_radius_px=background_inner_radius_px,
+                    background_outer_radius_px=background_outer_radius_px,
+                    m6_orientation_settings=m6_orientation_settings,
+                ),
+                "m6_domain_types": dict(domain_type_export.manifest),
+            },
             "registration": _registration_manifest(series),
             "plots": _plots_manifest(plot_export, destination),
             "files": file_entries,
@@ -523,6 +584,7 @@ def export_selected_ranges_analysis_csv(
         "ranges_csv": ranges_path,
         "comparison_csv": comparison_path,
         "spatial_bins_csv": spatial_bins_path,
+        **domain_type_paths,
         "manifest_json": manifest_path,
     }
     if plots_dir is not None:

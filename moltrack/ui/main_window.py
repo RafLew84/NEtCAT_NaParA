@@ -3696,6 +3696,9 @@ class MolTrackMainWindow(QMainWindow):
                 settings = replace(
                     settings,
                     m6_domain_type_classification=domain_type_classification,
+                    m6_domain_type_table_result=(
+                        self._current_m6_domain_type_table_result()
+                    ),
                 )
             self.analysis_export_requested.emit(settings)
             if self._analysis_exporter is not None:
@@ -5073,6 +5076,18 @@ class MolTrackMainWindow(QMainWindow):
             self._m6_domain_type_overlay_index = None
             return None
         return classification
+
+    def _current_m6_domain_type_table_result(self):
+        classification = self._current_m6_domain_type_classification()
+        state = getattr(self._m6_domain_type_store, "state", None)
+        if (
+            classification is None
+            or not isinstance(state, M6DomainTypeAnalysisStoreState)
+            or state.outcome is None
+            or state.outcome.classification is not classification
+        ):
+            return None
+        return state.outcome.table_result
 
     def _current_m6_analysis_result(self):
         series = self._series

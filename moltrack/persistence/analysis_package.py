@@ -14,11 +14,16 @@ from pathlib import Path
 from moltrack import __version__ as moltrack_version
 from moltrack.analysis import (
     M6DomainTypeClassificationResult,
+    M6DomainTypeRangeComparison,
+    M6SingleRangeDomainTypeSummary,
     MolecularFrameAnalysisResult,
     MolecularFrameRange,
     MolecularFrameRangeSelection,
     MolecularM6OrientationAnalysisSettings,
     analyze_molecular_frame_range,
+    build_m6_domain_type_range_comparison,
+    build_m6_single_range_domain_type_summary,
+    extract_m6_domain_type_observations,
 )
 from moltrack.core import MolTrackImageSeries
 
@@ -31,6 +36,12 @@ from .analysis_export import (
 )
 from .analysis_environment import (
     resolve_analysis_export_environment,
+)
+from .m6_domain_type_export import (
+    DOMAIN_TYPE_TABLE_FILES,
+    M6DomainTypeExportData,
+    build_m6_domain_type_export_data,
+    write_m6_domain_type_tables,
 )
 
 
@@ -95,6 +106,23 @@ def _validated_domain_type_m6_settings(
     return m6_settings
 
 
+def _validate_domain_type_table_result(
+    classification: M6DomainTypeClassificationResult | None,
+    table_result: (
+        M6SingleRangeDomainTypeSummary | M6DomainTypeRangeComparison | None
+    ),
+    *,
+    tables_included: bool,
+) -> None:
+    if table_result is None:
+        return
+    build_m6_domain_type_export_data(
+        classification,
+        table_result,
+        tables_included=tables_included,
+    )
+
+
 @dataclass(frozen=True)
 class AnalysisExportSettings:
     """Immutable UI-to-persistence request for one analysis package."""
@@ -118,6 +146,9 @@ class AnalysisExportSettings:
     overwrite: bool = False
     m6_orientation_settings: MolecularM6OrientationAnalysisSettings | None = None
     m6_domain_type_classification: M6DomainTypeClassificationResult | None = None
+    m6_domain_type_table_result: (
+        M6SingleRangeDomainTypeSummary | M6DomainTypeRangeComparison | None
+    ) = None
 
     def __post_init__(self) -> None:
         scope = str(self.scope).strip().lower()
@@ -179,6 +210,11 @@ class AnalysisExportSettings:
             source_view=source_view,
             m6_settings=m6_settings,
         )
+        _validate_domain_type_table_result(
+            self.m6_domain_type_classification,
+            self.m6_domain_type_table_result,
+            tables_included=include_tables,
+        )
 
         object.__setattr__(self, "scope", scope)
         object.__setattr__(self, "destination", Path(destination_text))
@@ -201,6 +237,64 @@ class AnalysisExportSettings:
         object.__setattr__(self, "density_grid_shape", (rows, columns))
         object.__setattr__(self, "overwrite", bool(self.overwrite))
         object.__setattr__(self, "m6_orientation_settings", m6_settings)
+
+
+def _resolve_domain_type_table_result(
+    series: MolTrackImageSeries,
+    *,
+    classification: M6DomainTypeClassificationResult | None,
+    table_result: (
+        M6SingleRangeDomainTypeSummary | M6DomainTypeRangeComparison | None
+    ),
+    use_segmentation_centroids: bool,
+    intensity_metric: str,
+    intensity_unit: str,
+    background_inner_radius_px: int,
+    background_outer_radius_px: int,
+) -> M6SingleRangeDomainTypeSummary | M6DomainTypeRangeComparison | None:
+    if classification is None:
+        return None
+    analyses = tuple(
+        analyze_molecular_frame_range(
+            series,
+            frame_range,
+            source_view=classification.source_view,
+            use_segmentation_centroids=use_segmentation_centroids,
+            intensity_metric=intensity_metric,
+            intensity_unit=intensity_unit,
+            background_inner_radius_px=background_inner_radius_px,
+            background_outer_radius_px=background_outer_radius_px,
+            m6_orientation_settings=classification.m6_settings,
+        )
+        for frame_range in classification.analysis_scope.ranges
+    )
+    current_observations = tuple(
+        sorted(
+            (
+                observation
+                for analysis in analyses
+                for observation in extract_m6_domain_type_observations(
+                    analysis,
+                    settings=classification.classification_settings,
+                )
+            ),
+            key=lambda value: value.stable_key,
+        )
+    )
+    if current_observations != classification.observations:
+        return None
+    if classification.analysis_scope.analysis_mode == "single_range":
+        rebuilt_result = build_m6_single_range_domain_type_summary(
+            classification,
+            analyses[0],
+        )
+    else:
+        rebuilt_result = build_m6_domain_type_range_comparison(
+            classification,
+            analyses[0],
+            analyses[1],
+        )
+    return table_result if table_result == rebuilt_result else rebuilt_result
 
 
 def export_analysis_package(
@@ -244,6 +338,29 @@ def export_analysis_package(
                 )
 
         emit("preparing")
+
+        domain_type_export = None
+        if settings.scope != "selected_ranges":
+            domain_type_table_result = _resolve_domain_type_table_result(
+                series,
+                classification=settings.m6_domain_type_classification,
+                table_result=settings.m6_domain_type_table_result,
+                use_segmentation_centroids=settings.use_segmentation_centroids,
+                intensity_metric=settings.intensity_metric,
+                intensity_unit=settings.intensity_unit,
+                background_inner_radius_px=settings.background_inner_radius_px,
+                background_outer_radius_px=settings.background_outer_radius_px,
+            )
+            effective_domain_type_classification = (
+                settings.m6_domain_type_classification
+                if domain_type_table_result is not None
+                else None
+            )
+            domain_type_export = build_m6_domain_type_export_data(
+                effective_domain_type_classification,
+                domain_type_table_result,
+                tables_included=settings.include_tables,
+            )
 
         def analysis_progress(completed, total, _frame_index) -> None:
             emit("analyzing_frames", completed, total)
@@ -320,6 +437,9 @@ def export_analysis_package(
                 m6_domain_type_classification=(
                     settings.m6_domain_type_classification
                 ),
+                m6_domain_type_table_result=(
+                    settings.m6_domain_type_table_result
+                ),
                 environment_provider=environment_provider,
             )
             if not settings.include_tables:
@@ -329,6 +449,9 @@ def export_analysis_package(
                     "domains_csv",
                     "ranges_csv",
                     "comparison_csv",
+                    "domain_types_csv",
+                    "domain_type_ranges_csv",
+                    "domain_type_comparison_csv",
                 ):
                     Path(paths.pop(key)).unlink()
             if not settings.include_spatial_grids:
@@ -349,6 +472,12 @@ def export_analysis_package(
                 dpi=150,
                 size_inches=(8.0, 6.0),
             )
+        if settings.include_tables and settings.scope != "selected_ranges":
+            if domain_type_export is None:
+                raise RuntimeError("Domain type export data was not prepared.")
+            paths.update(
+                write_m6_domain_type_tables(staging, domain_type_export)
+            )
         record_counts = _record_counts(paths.values())
         manifest_path = staging / "manifest.json"
         if settings.scope == "selected_ranges":
@@ -358,12 +487,15 @@ def export_analysis_package(
                 record_counts=record_counts,
             )
         else:
+            if domain_type_export is None:
+                raise RuntimeError("Domain type export data was not prepared.")
             _write_scope_manifest(
                 manifest_path,
                 series,
                 settings,
                 record_counts=record_counts,
                 frame_results=manifest_frame_results,
+                domain_type_export=domain_type_export,
                 environment_provider=environment_provider,
             )
         relative_files = _relative_package_files(staging)
@@ -450,6 +582,7 @@ def _write_scope_manifest(
     *,
     record_counts: tuple[tuple[str, int], ...],
     frame_results: tuple[MolecularFrameAnalysisResult, ...],
+    domain_type_export: M6DomainTypeExportData,
     environment_provider: Callable[[], Mapping[str, object]] | None,
 ) -> None:
     payload = {
@@ -492,6 +625,7 @@ def _write_scope_manifest(
                 use_segmentation_centroids=settings.use_segmentation_centroids,
                 source_view=settings.source_view,
             ),
+            "m6_domain_types": dict(domain_type_export.manifest),
         },
         "files": _package_file_entries(path.parent, record_counts),
     }
@@ -510,6 +644,13 @@ def _update_existing_manifest(
     with path.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
     payload["scope"] = settings.scope
+    domain_type_manifest = payload["analysis"]["m6_domain_types"]
+    domain_type_manifest["tables_included"] = settings.include_tables
+    domain_type_manifest["table_files"] = (
+        list(DOMAIN_TYPE_TABLE_FILES)
+        if settings.include_tables
+        else []
+    )
     payload["files"] = _package_file_entries(path.parent, record_counts)
     path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
@@ -553,6 +694,9 @@ def export_selected_ranges_analysis_package(
     plot_size_inches: tuple[float, float] = (8.0, 6.0),
     m6_orientation_settings: MolecularM6OrientationAnalysisSettings | None = None,
     m6_domain_type_classification: M6DomainTypeClassificationResult | None = None,
+    m6_domain_type_table_result: (
+        M6SingleRangeDomainTypeSummary | M6DomainTypeRangeComparison | None
+    ) = None,
     environment_provider: Callable[[], Mapping[str, object]] | None = None,
 ) -> AnalysisExportPackageResult:
     """Build an analysis package in staging and publish it after success."""
@@ -565,6 +709,11 @@ def export_selected_ranges_analysis_package(
         frame_count=series.frame_count,
         source_view=selection.source_view,
         m6_settings=m6_orientation_settings,
+    )
+    _validate_domain_type_table_result(
+        m6_domain_type_classification,
+        m6_domain_type_table_result,
+        tables_included=True,
     )
     destination = Path(destination)
     overwrite = bool(overwrite)
@@ -595,8 +744,10 @@ def export_selected_ranges_analysis_package(
             plot_size_inches=plot_size_inches,
             m6_orientation_settings=m6_orientation_settings,
             m6_domain_type_classification=m6_domain_type_classification,
+            m6_domain_type_table_result=m6_domain_type_table_result,
             environment_provider=environment_provider,
         )
+        record_counts = _record_counts(staging.rglob("*.csv"))
         relative_files = _relative_package_files(staging)
         if package_format == "directory":
             _publish_path(staging, destination, overwrite=overwrite)
@@ -626,6 +777,7 @@ def export_selected_ranges_analysis_package(
         package_path=destination,
         package_format=package_format,
         relative_files=relative_files,
+        record_counts=record_counts,
     )
 
 

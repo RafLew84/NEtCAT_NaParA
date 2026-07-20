@@ -139,6 +139,7 @@ class M6DomainTypeMainWindowLifecycleTests(unittest.TestCase):
     ) -> None:
         result, domain_state = self._restorable_domain_type_state()
         classification = domain_state.cache_record.outcome.classification
+        table_result = domain_state.cache_record.outcome.table_result
         settings = AnalysisExportSettings(
             scope="current_frame",
             destination=Path("analysis-package"),
@@ -199,6 +200,10 @@ class M6DomainTypeMainWindowLifecycleTests(unittest.TestCase):
         self.assertIs(
             requests[0].m6_domain_type_classification,
             classification,
+        )
+        self.assertIs(
+            requests[0].m6_domain_type_table_result,
+            table_result,
         )
 
     def _saved_position_state(self) -> MolTrackPositionAnalysisState:

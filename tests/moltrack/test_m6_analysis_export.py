@@ -11,6 +11,7 @@ import numpy as np
 from moltrack.analysis import (
     M6DomainTypeAnalysisStore,
     M6DomainTypeClassificationSettings,
+    M6_DOMAIN_TYPE_ALGORITHM_VERSION,
     M6_ORIENTATION_ALGORITHM_VERSION,
     MolecularFrameRange,
     MolecularFrameRangeSelection,
@@ -166,6 +167,109 @@ _DOMAIN_FIELDS = (
     "domain_type_label",
     "domain_type_qualification_status",
     "domain_type_unclassified_reason",
+)
+
+_DOMAIN_TYPES_FIELDS = (
+    "domain_type_id",
+    "domain_type_label",
+    "prototype_orientation_deg",
+    "prototype_bond_length_nm",
+    "orientation_circular_spread_deg",
+    "bond_length_iqr_nm",
+    "observation_count",
+    "classification_observation_count",
+    "classified_observation_count",
+    "unclassified_observation_count",
+    "unclassified_small_ordered_island_excluded_count",
+    "unclassified_missing_bond_length_statistics_count",
+    "unclassified_bond_length_heterogeneity_qc_count",
+    "unclassified_below_minimum_observations_per_type_count",
+)
+
+_DOMAIN_TYPE_RANGES_FIELDS = (
+    "condition_order",
+    "range_name",
+    "range_start_working_frame_index",
+    "range_start_working_frame_number",
+    "range_end_working_frame_index",
+    "range_end_working_frame_number",
+    "working_frame_indices_json",
+    "source_frame_indices_json",
+    "available_working_frame_indices_json",
+    "available_source_frame_indices_json",
+    "source_view",
+    "component_scope",
+    "domain_type_id",
+    "domain_type_label",
+    "classification_status",
+    "analyzed_frame_count",
+    "available_frame_count",
+    "valid_representative_fraction_frame_count",
+    "valid_fov_fraction_frame_count",
+    "frames_with_full_domain_count",
+    "frames_with_full_domain_percent",
+    "mean_full_domains_per_available_frame",
+    "median_full_domains_per_available_frame",
+    "max_full_domains_per_available_frame",
+    "domain_observation_count",
+    "domain_type_count",
+    "unclassified_observation_count",
+    "full_domain_molecule_fraction",
+    "full_domain_footprint_fraction",
+    "observation_count",
+    "frames_with_type_count",
+    "frames_with_type_percent",
+    "mean_instances_per_available_frame",
+    "mean_molecule_fraction_of_valid_representatives",
+    "mean_footprint_fraction_of_valid_fov",
+    "mean_domain_coherent_q6",
+    "mean_molecule_count",
+    "mean_footprint_area_nm2",
+)
+
+_DOMAIN_TYPE_COMPARISON_FIELDS = (
+    "direction",
+    "domain_type_id",
+    "domain_type_label",
+    "prototype_orientation_deg",
+    "prototype_bond_length_nm",
+    "orientation_circular_spread_deg",
+    "bond_length_iqr_nm",
+    "first_range_name",
+    "second_range_name",
+    "first_domain_instance_count",
+    "first_frames_with_type_count",
+    "first_frames_with_type_percent",
+    "first_mean_domain_instances_per_available_frame",
+    "first_mean_molecule_fraction",
+    "first_mean_footprint_fraction",
+    "first_mean_domain_coherent_q6",
+    "first_mean_molecule_count",
+    "first_mean_footprint_area_nm2",
+    "first_available_frame_count",
+    "first_valid_representative_fraction_frame_count",
+    "first_valid_fov_fraction_frame_count",
+    "second_domain_instance_count",
+    "second_frames_with_type_count",
+    "second_frames_with_type_percent",
+    "second_mean_domain_instances_per_available_frame",
+    "second_mean_molecule_fraction",
+    "second_mean_footprint_fraction",
+    "second_mean_domain_coherent_q6",
+    "second_mean_molecule_count",
+    "second_mean_footprint_area_nm2",
+    "second_available_frame_count",
+    "second_valid_representative_fraction_frame_count",
+    "second_valid_fov_fraction_frame_count",
+    "domain_instance_count_delta",
+    "frames_with_type_count_delta",
+    "frames_with_type_percentage_points_delta",
+    "mean_domain_instances_per_available_frame_delta",
+    "mean_molecule_fraction_percentage_points_delta",
+    "mean_footprint_fraction_percentage_points_delta",
+    "mean_domain_coherent_q6_delta",
+    "mean_molecule_count_delta",
+    "mean_footprint_area_nm2_delta",
 )
 
 
@@ -369,9 +473,15 @@ def _assert_csv_value(
         test_case.assertEqual(actual, str(expected))
 
 
+def _read_csv_table(path: Path) -> tuple[tuple[str, ...], list[dict[str, str]]]:
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        return tuple(reader.fieldnames or ()), list(reader)
+
+
 class M6AnalysisExportTests(unittest.TestCase):
     @staticmethod
-    def _classify_domain_types(series, frame_range, *, minimum_observations=1):
+    def _analyze_domain_types(series, frame_range, *, minimum_observations=1):
         analysis = analyze_molecular_frame_range(
             series,
             frame_range,
@@ -390,6 +500,14 @@ class M6AnalysisExportTests(unittest.TestCase):
                 bond_length_tolerance_value=0.5,
                 minimum_observations_per_type=minimum_observations,
             ),
+        )
+
+    @classmethod
+    def _classify_domain_types(cls, series, frame_range, *, minimum_observations=1):
+        return cls._analyze_domain_types(
+            series,
+            frame_range,
+            minimum_observations=minimum_observations,
         ).classification
 
     def test_domain_type_assignments_follow_component_keys_after_row_permutation(self) -> None:
@@ -580,6 +698,274 @@ class M6AnalysisExportTests(unittest.TestCase):
         self.assertTrue(rows)
         self.assertTrue(all(row["domain_type_label"] for row in rows))
 
+    def test_single_range_package_exports_domain_type_tables_and_manifest(self) -> None:
+        series = _domain_export_series()
+        outcome = self._analyze_domain_types(
+            series,
+            MolecularFrameRange("whole experiment", 0, 2),
+        )
+        classification = outcome.classification
+        self.assertIsNotNone(classification)
+        self.assertIsNotNone(outcome.table_result)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            destination = Path(tmpdir) / "single-range-package"
+            export_analysis_package(
+                series,
+                AnalysisExportSettings(
+                    scope="full_working_series",
+                    destination=destination,
+                    package_format="directory",
+                    include_tables=True,
+                    include_spatial_grids=False,
+                    include_plots=False,
+                    frame_count=series.frame_count,
+                    active_frame_index=series.active_frame_index,
+                    source_view="raw",
+                    use_segmentation_centroids=True,
+                    intensity_metric="mean",
+                    intensity_unit="a.u.",
+                    background_inner_radius_px=1,
+                    background_outer_radius_px=3,
+                    density_grid_shape=(4, 4),
+                    m6_orientation_settings=_settings(),
+                    m6_domain_type_classification=classification,
+                    m6_domain_type_table_result=outcome.table_result,
+                ),
+                environment_provider=lambda: {},
+            )
+            type_fields, type_rows = _read_csv_table(
+                destination / "domain_types.csv"
+            )
+            range_fields, range_rows = _read_csv_table(
+                destination / "domain_type_ranges.csv"
+            )
+            comparison_fields, comparison_rows = _read_csv_table(
+                destination / "domain_type_comparison.csv"
+            )
+            manifest = json.loads(
+                (destination / "manifest.json").read_text(encoding="utf-8")
+            )
+
+        self.assertEqual(type_fields, _DOMAIN_TYPES_FIELDS)
+        self.assertEqual(range_fields, _DOMAIN_TYPE_RANGES_FIELDS)
+        self.assertEqual(comparison_fields, _DOMAIN_TYPE_COMPARISON_FIELDS)
+        self.assertEqual(
+            [int(row["domain_type_id"]) for row in type_rows],
+            list(range(len(classification.domain_types))),
+        )
+        self.assertEqual(
+            [row["domain_type_label"] for row in range_rows],
+            [
+                *(domain_type.label for domain_type in classification.domain_types),
+                "Unclassified",
+            ],
+        )
+        self.assertTrue(all(row["condition_order"] == "single" for row in range_rows))
+        self.assertEqual(comparison_rows, [])
+        domain_manifest = manifest["analysis"]["m6_domain_types"]
+        self.assertEqual(manifest["export_schema_version"], 3)
+        self.assertTrue(domain_manifest["available"])
+        self.assertEqual(domain_manifest["algorithm"], "deterministic_complete_linkage")
+        self.assertEqual(
+            domain_manifest["algorithm_version"],
+            M6_DOMAIN_TYPE_ALGORITHM_VERSION,
+        )
+        self.assertEqual(domain_manifest["analysis_mode"], "single_range")
+        self.assertFalse(domain_manifest["uses_tracking"])
+        self.assertEqual(
+            domain_manifest["classification_input_fingerprint"],
+            classification.input_fingerprint,
+        )
+        self.assertEqual(
+            domain_manifest["classification_settings"],
+            classification.classification_settings.to_dict(),
+        )
+        self.assertEqual(len(domain_manifest["ranges"]), 1)
+        self.assertEqual(
+            domain_manifest["ranges"][0]["source_frame_indices"],
+            [0, 1, 2],
+        )
+
+    def test_comparison_package_exports_ordered_range_rows_and_deltas(self) -> None:
+        series = _domain_export_series()
+        selection = MolecularFrameRangeSelection(
+            frame_count=series.frame_count,
+            source_view="raw",
+            first_range=MolecularFrameRange("before", 0, 0),
+            second_range=MolecularFrameRange("after", 2, 2),
+        )
+        comparison = compare_molecular_frame_ranges(
+            series,
+            selection,
+            m6_orientation_settings=_settings(),
+        )
+        outcome = M6DomainTypeAnalysisStore().analyze(
+            adapt_m6_domain_type_analysis_source(
+                comparison,
+                frame_count=series.frame_count,
+            ),
+            classification_settings=M6DomainTypeClassificationSettings(
+                orientation_tolerance_deg=5.0,
+                bond_length_tolerance_mode="absolute_nm",
+                bond_length_tolerance_value=0.5,
+                minimum_observations_per_type=1,
+            ),
+        )
+        classification = outcome.classification
+        self.assertIsNotNone(classification)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            destination = Path(tmpdir) / "comparison-package"
+            export_analysis_package(
+                series,
+                AnalysisExportSettings(
+                    scope="selected_ranges",
+                    destination=destination,
+                    package_format="directory",
+                    include_tables=True,
+                    include_spatial_grids=False,
+                    include_plots=False,
+                    frame_count=series.frame_count,
+                    active_frame_index=series.active_frame_index,
+                    source_view="raw",
+                    use_segmentation_centroids=True,
+                    intensity_metric="mean",
+                    intensity_unit="a.u.",
+                    background_inner_radius_px=1,
+                    background_outer_radius_px=3,
+                    density_grid_shape=(4, 4),
+                    selected_ranges=selection,
+                    m6_orientation_settings=_settings(),
+                    m6_domain_type_classification=classification,
+                    m6_domain_type_table_result=outcome.table_result,
+                ),
+                environment_provider=lambda: {},
+            )
+            _, range_rows = _read_csv_table(
+                destination / "domain_type_ranges.csv"
+            )
+            _, comparison_rows = _read_csv_table(
+                destination / "domain_type_comparison.csv"
+            )
+            manifest = json.loads(
+                (destination / "manifest.json").read_text(encoding="utf-8")
+            )
+
+        expected_labels = [
+            *(domain_type.label for domain_type in classification.domain_types),
+            "Unclassified",
+        ]
+        self.assertEqual(
+            [
+                (row["condition_order"], row["domain_type_label"])
+                for row in range_rows
+            ],
+            [
+                *(("first", label) for label in expected_labels),
+                *(("second", label) for label in expected_labels),
+            ],
+        )
+        self.assertEqual(len(comparison_rows), len(classification.domain_types))
+        self.assertTrue(
+            all(row["direction"] == "second_minus_first" for row in comparison_rows)
+        )
+        for row in comparison_rows:
+            self.assertEqual(
+                int(row["domain_instance_count_delta"]),
+                int(row["second_domain_instance_count"])
+                - int(row["first_domain_instance_count"]),
+            )
+        domain_manifest = manifest["analysis"]["m6_domain_types"]
+        self.assertEqual(domain_manifest["analysis_mode"], "compare_ranges")
+        self.assertEqual(
+            [entry["condition_order"] for entry in domain_manifest["ranges"]],
+            ["first", "second"],
+        )
+        self.assertEqual(
+            [entry["source_frame_indices"] for entry in domain_manifest["ranges"]],
+            [[0], [2]],
+        )
+
+    def test_package_without_domain_types_writes_stable_empty_tables(self) -> None:
+        series = _domain_export_series()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            destination = Path(tmpdir) / "plain-package"
+            export_analysis_package(
+                series,
+                AnalysisExportSettings(
+                    scope="full_working_series",
+                    destination=destination,
+                    package_format="directory",
+                    include_tables=True,
+                    include_spatial_grids=False,
+                    include_plots=False,
+                    frame_count=series.frame_count,
+                    active_frame_index=series.active_frame_index,
+                    source_view="raw",
+                    use_segmentation_centroids=True,
+                    intensity_metric="mean",
+                    intensity_unit="a.u.",
+                    background_inner_radius_px=1,
+                    background_outer_radius_px=3,
+                    density_grid_shape=(4, 4),
+                    m6_orientation_settings=_settings(),
+                ),
+                environment_provider=lambda: {},
+            )
+            type_fields, type_rows = _read_csv_table(
+                destination / "domain_types.csv"
+            )
+            range_fields, range_rows = _read_csv_table(
+                destination / "domain_type_ranges.csv"
+            )
+            comparison_fields, comparison_rows = _read_csv_table(
+                destination / "domain_type_comparison.csv"
+            )
+            manifest = json.loads(
+                (destination / "manifest.json").read_text(encoding="utf-8")
+            )
+
+        self.assertEqual(type_fields, _DOMAIN_TYPES_FIELDS)
+        self.assertEqual(range_fields, _DOMAIN_TYPE_RANGES_FIELDS)
+        self.assertEqual(comparison_fields, _DOMAIN_TYPE_COMPARISON_FIELDS)
+        self.assertEqual(type_rows, [])
+        self.assertEqual(range_rows, [])
+        self.assertEqual(comparison_rows, [])
+        domain_manifest = manifest["analysis"]["m6_domain_types"]
+        self.assertFalse(domain_manifest["available"])
+        self.assertEqual(
+            domain_manifest["reason"],
+            "domain_type_classification_not_available",
+        )
+        self.assertEqual(domain_manifest["ranges"], [])
+
+    def test_selected_range_export_rejects_orphaned_domain_type_table(self) -> None:
+        series = _domain_export_series()
+        outcome = self._analyze_domain_types(
+            series,
+            MolecularFrameRange("whole experiment", 0, 2),
+        )
+        selection = MolecularFrameRangeSelection(
+            frame_count=series.frame_count,
+            source_view="raw",
+            first_range=MolecularFrameRange("before", 0, 0),
+            second_range=MolecularFrameRange("after", 2, 2),
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir, self.assertRaisesRegex(
+            ValueError,
+            "requires a classification",
+        ):
+            export_selected_ranges_analysis_csv(
+                series,
+                selection,
+                tmpdir,
+                m6_orientation_settings=_settings(),
+                m6_domain_type_table_result=outcome.table_result,
+            )
+
     def test_selected_ranges_join_uses_exact_range_and_component_identity(self) -> None:
         series = _domain_export_series()
         selection = MolecularFrameRangeSelection(
@@ -716,6 +1102,114 @@ class M6AnalysisExportTests(unittest.TestCase):
         self.assertTrue(rows)
         self.assertTrue(
             all(row[field] == "" for row in rows for field in _DOMAIN_FIELDS[-7:])
+        )
+
+    def test_package_rejects_stale_domain_type_summary_snapshot(self) -> None:
+        original_series = _domain_export_series()
+        outcome = self._analyze_domain_types(
+            original_series,
+            MolecularFrameRange("all domains", 0, 2),
+        )
+        changed_series = _domain_export_series(x_offset_nm=1.0)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            destination = Path(tmpdir) / "stale-domain-type-package"
+            export_analysis_package(
+                changed_series,
+                AnalysisExportSettings(
+                    scope="full_working_series",
+                    destination=destination,
+                    package_format="directory",
+                    include_tables=True,
+                    include_spatial_grids=False,
+                    include_plots=False,
+                    frame_count=changed_series.frame_count,
+                    active_frame_index=changed_series.active_frame_index,
+                    source_view="raw",
+                    use_segmentation_centroids=True,
+                    intensity_metric="mean",
+                    intensity_unit="a.u.",
+                    background_inner_radius_px=1,
+                    background_outer_radius_px=3,
+                    density_grid_shape=(4, 4),
+                    m6_orientation_settings=_settings(),
+                    m6_domain_type_classification=outcome.classification,
+                    m6_domain_type_table_result=outcome.table_result,
+                ),
+                environment_provider=lambda: {},
+            )
+            _, type_rows = _read_csv_table(destination / "domain_types.csv")
+            _, range_rows = _read_csv_table(
+                destination / "domain_type_ranges.csv"
+            )
+            _, comparison_rows = _read_csv_table(
+                destination / "domain_type_comparison.csv"
+            )
+            manifest = json.loads(
+                (destination / "manifest.json").read_text(encoding="utf-8")
+            )
+
+        self.assertEqual(type_rows, [])
+        self.assertEqual(range_rows, [])
+        self.assertEqual(comparison_rows, [])
+        domain_manifest = manifest["analysis"]["m6_domain_types"]
+        self.assertFalse(domain_manifest["available"])
+        self.assertEqual(
+            domain_manifest["reason"],
+            "domain_type_classification_not_available",
+        )
+
+    def test_package_refreshes_domain_type_range_denominators(self) -> None:
+        original_series = _domain_export_series()
+        outcome = self._analyze_domain_types(
+            original_series,
+            MolecularFrameRange("all domains", 0, 2),
+        )
+        changed_series = _domain_export_series()
+        changed_series.molecular_detections.set_detections(
+            1,
+            (),
+            source_view="raw",
+            frame_shape=(72, 72),
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            destination = Path(tmpdir) / "refreshed-domain-type-package"
+            export_analysis_package(
+                changed_series,
+                AnalysisExportSettings(
+                    scope="full_working_series",
+                    destination=destination,
+                    package_format="directory",
+                    include_tables=True,
+                    include_spatial_grids=False,
+                    include_plots=False,
+                    frame_count=changed_series.frame_count,
+                    active_frame_index=changed_series.active_frame_index,
+                    source_view="raw",
+                    use_segmentation_centroids=True,
+                    intensity_metric="mean",
+                    intensity_unit="a.u.",
+                    background_inner_radius_px=1,
+                    background_outer_radius_px=3,
+                    density_grid_shape=(4, 4),
+                    m6_orientation_settings=_settings(),
+                    m6_domain_type_classification=outcome.classification,
+                    m6_domain_type_table_result=outcome.table_result,
+                ),
+                environment_provider=lambda: {},
+            )
+            _, range_rows = _read_csv_table(
+                destination / "domain_type_ranges.csv"
+            )
+
+        self.assertTrue(range_rows)
+        self.assertEqual(
+            {
+                int(row["valid_representative_fraction_frame_count"])
+                for row in range_rows
+            },
+            {2},
         )
 
     def test_current_frame_export_rejects_snapshot_stale_in_another_frame(self) -> None:
