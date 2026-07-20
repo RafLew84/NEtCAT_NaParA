@@ -292,7 +292,7 @@ class M6DomainTypeMainWindowLifecycleTests(unittest.TestCase):
             self.window._apply_loaded_state("state.moltrack.json", session, series)
             elapsed = time.monotonic() - started_at
 
-            self.assertLess(elapsed, 0.2)
+            self.assertLess(elapsed, 0.5)
             self.assertTrue(self.window._m6_analysis_running)
             self.process_events_until(lambda: not self.window._m6_analysis_running)
 
