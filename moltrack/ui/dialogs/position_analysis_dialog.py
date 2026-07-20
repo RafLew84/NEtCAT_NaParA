@@ -29,6 +29,7 @@ from moltrack.analysis import (
     MolecularFrameRangeAnalysisMode,
     MolecularFrameRangeAnalysisScope,
     MolecularFrameRangeComparison,
+    MolecularFrameRangeDifferences,
     MolecularFrameRangeSelection,
     MolecularNearestNeighborAngleMetrics,
     MolecularNearestNeighborMetrics,
@@ -36,11 +37,15 @@ from moltrack.analysis import (
     MolecularM6ViewSettings,
     MolecularPositionPlotData,
     MolecularRangeComparisonTrendData,
+    MolecularRangeTrendData,
+    MolecularRangeTrendSeries,
     MolecularRangeSpatialComparisonData,
     build_molecular_range_comparison_trend_data,
+    build_molecular_range_trend_series,
     build_molecular_range_spatial_comparison_data,
     compute_molecular_nearest_neighbor_angle_metrics,
     compute_molecular_nearest_neighbor_metrics,
+    unpack_molecular_range_trend_data,
 )
 
 from .m6_settings_panel import M6SettingsPanel
@@ -83,7 +88,7 @@ class PositionAnalysisDialog(QDialog):
         self._intensity_colorbar_label = ""
         self._distance_metrics: MolecularNearestNeighborMetrics | None = None
         self._angle_metrics: MolecularNearestNeighborAngleMetrics | None = None
-        self._range_trend_data: MolecularRangeComparisonTrendData | None = None
+        self._range_trend_data: MolecularRangeTrendData | None = None
         self._range_spatial_data: MolecularRangeSpatialComparisonData | None = None
         self._range_comparison: MolecularFrameRangeComparison | None = None
         self._range_analysis_result: (
@@ -556,6 +561,9 @@ class PositionAnalysisDialog(QDialog):
         self.btn_run_range_analysis.setText(
             "Analyze range" if single_range else "Compare ranges"
         )
+        self._set_spatial_comparison_enabled(not single_range)
+        if changed:
+            self._clear_range_dependent_result()
         self._refresh_range_validation()
         if changed and notify:
             self.analysis_mode_changed.emit(normalized_mode)
@@ -655,52 +663,26 @@ class PositionAnalysisDialog(QDialog):
         self._range_comparison = comparison
         self._range_analysis_result = comparison
         self.m6_settings_panel.set_range_trend_data(trend_data)
+        self._set_spatial_comparison_enabled(True)
         self._density_grid_shape = (
             len(spatial_data.density_y_edges) - 1,
             len(spatial_data.density_x_edges) - 1,
         )
-        self._set_trend_plot_data(
-            self.molecule_count_trend_plot,
-            trend_data,
-            first_values=trend_data.first.molecule_counts,
-            second_values=trend_data.second.molecule_counts,
-        )
-        self.nearest_neighbor_trend_plot.setLabel(
-            "left",
-            f"Nearest neighbor [{trend_data.first.distance_unit}]",
-        )
-        self._set_trend_plot_data(
-            self.nearest_neighbor_trend_plot,
-            trend_data,
-            first_values=trend_data.first.nearest_neighbor_distances,
-            second_values=trend_data.second.nearest_neighbor_distances,
-        )
-        self._set_trend_plot_data(
-            self.line_order_trend_plot,
-            trend_data,
-            first_values=trend_data.first.line_order_scores,
-            second_values=trend_data.second.line_order_scores,
-        )
-        self.intensity_trend_plot.setLabel(
-            "left",
-            f"Median intensity [{trend_data.first.intensity_unit}]",
-        )
-        self._set_trend_plot_data(
-            self.intensity_trend_plot,
-            trend_data,
-            first_values=trend_data.first.median_intensities,
-            second_values=trend_data.second.median_intensities,
-        )
+        self._set_range_trend_plots(trend_data)
         self.lbl_range_trend_status.setText(
             f"Compared {trend_data.first.condition_name} and {trend_data.second.condition_name}."
         )
         self._set_spatial_comparison_data(spatial_data)
         self.tabs.setCurrentWidget(self.range_trends_tab)
 
-    def range_trend_data(self) -> MolecularRangeComparisonTrendData | None:
+    def range_trend_data(
+        self,
+    ) -> MolecularRangeTrendData | None:
         return self._range_trend_data
 
-    def m6_trend_data(self) -> MolecularRangeComparisonTrendData | None:
+    def m6_trend_data(
+        self,
+    ) -> MolecularRangeTrendData | None:
         return self.m6_settings_panel.range_trend_data()
 
     def m6_trend_metric_options(self) -> tuple[str, ...]:
@@ -712,7 +694,7 @@ class PositionAnalysisDialog(QDialog):
     def set_m6_trend_frame_axis(self, axis: str) -> None:
         self.m6_settings_panel.set_range_trend_frame_axis(axis)
 
-    def m6_trend_legend_labels(self) -> tuple[str, str] | None:
+    def m6_trend_legend_labels(self) -> tuple[str, ...] | None:
         return self.m6_settings_panel.range_trend_legend_labels()
 
     def m6_trend_axis_labels(self) -> tuple[str, str]:
@@ -744,18 +726,34 @@ class PositionAnalysisDialog(QDialog):
             return
         if not isinstance(result, MolecularFrameRangeAnalysis):
             raise TypeError("result must be a frame range analysis or comparison.")
-        self._clear_range_comparison_result()
+        self._clear_range_dependent_result()
+        trend_data = build_molecular_range_trend_series(result)
         self._range_analysis_result = result
+        self._range_trend_data = trend_data
+        self.m6_settings_panel.set_range_trend_data(trend_data)
+        self._set_range_trend_plots(trend_data)
+        self.lbl_range_trend_status.setText(self._format_range_summary(result))
+        self._set_spatial_comparison_enabled(False)
+        self.tabs.setCurrentWidget(self.range_trends_tab)
 
     def range_analysis_result(
         self,
     ) -> MolecularFrameRangeAnalysis | MolecularFrameRangeComparison | None:
         return self._range_analysis_result
 
-    def _clear_range_comparison_result(self) -> None:
+    def _clear_range_dependent_result(self) -> None:
+        self._range_analysis_result = None
         self._range_comparison = None
         self._range_trend_data = None
         self._range_spatial_data = None
+        self._first_density_levels = (0.0, 1.0)
+        self._second_density_levels = (0.0, 1.0)
+        self._first_spatial_scatter_intensity_levels = None
+        self._second_spatial_scatter_intensity_levels = None
+        self._first_spatial_scatter_colors = ()
+        self._second_spatial_scatter_colors = ()
+        self._first_spatial_intensity_levels = None
+        self._second_spatial_intensity_levels = None
         self.m6_settings_panel.set_range_trend_data(None)
         for plot in (
             self.molecule_count_trend_plot,
@@ -767,7 +765,7 @@ class PositionAnalysisDialog(QDialog):
             legend = plot.getPlotItem().legend
             if legend is not None:
                 legend.clear()
-        self.lbl_range_trend_status.setText("Single-range analysis complete.")
+        self.lbl_range_trend_status.setText("Run range analysis to show trends.")
         self.first_spatial_scatter.setData(x=[], y=[])
         self.second_spatial_scatter.setData(x=[], y=[])
         for image in (
@@ -786,7 +784,24 @@ class PositionAnalysisDialog(QDialog):
             self.second_intensity_plot,
         ):
             plot.setTitle("")
-        self.lbl_spatial_status.setText("Spatial comparison requires two ranges.")
+        self.lbl_spatial_status.setText(
+            "Spatial comparison and range deltas require two ranges."
+        )
+
+    def invalidate_range_analysis_result(self, reason: str) -> None:
+        self._clear_range_dependent_result()
+        self.lbl_range_trend_status.setText(str(reason))
+
+    def range_summary_text(self) -> str:
+        return self.lbl_range_trend_status.text()
+
+    def range_differences(self) -> MolecularFrameRangeDifferences | None:
+        if self._range_comparison is None:
+            return None
+        return self._range_comparison.differences
+
+    def spatial_status_text(self) -> str:
+        return self.lbl_spatial_status.text()
 
     def range_spatial_data(self) -> MolecularRangeSpatialComparisonData | None:
         return self._range_spatial_data
@@ -794,11 +809,30 @@ class PositionAnalysisDialog(QDialog):
     def has_range_comparison(self) -> bool:
         return self._range_trend_data is not None and self._range_spatial_data is not None
 
+    def has_active_range_analysis(self) -> bool:
+        if not self.has_valid_frame_range_analysis_scope():
+            return False
+        scope = self.frame_range_analysis_scope()
+        result = self._range_analysis_result
+        if scope.analysis_mode == "single_range":
+            return (
+                isinstance(result, MolecularFrameRangeAnalysis)
+                and result.frame_range == scope.single_range
+                and result.source_view == scope.source_view
+            )
+        return (
+            isinstance(result, MolecularFrameRangeComparison)
+            and result.first_analysis.frame_range == scope.comparison_ranges[0]
+            and result.second_analysis.frame_range == scope.comparison_ranges[1]
+            and result.source_view == scope.source_view
+        )
+
     def has_active_range_comparison(self) -> bool:
         return (
             self._analysis_mode == "compare_ranges"
             and self.has_range_comparison()
             and self.has_valid_frame_range_selection()
+            and self.has_active_range_analysis()
         )
 
     def density_grid_shape(self) -> tuple[int, int]:
@@ -818,6 +852,12 @@ class PositionAnalysisDialog(QDialog):
     def analysis_tab_labels(self) -> tuple[str, ...]:
         return tuple(self.tabs.tabText(index) for index in range(self.tabs.count()))
 
+    def analysis_tab_enabled(self, tab_label: str) -> bool:
+        for index in range(self.tabs.count()):
+            if self.tabs.tabText(index) == str(tab_label):
+                return self.tabs.isTabEnabled(index)
+        raise ValueError(f"Unknown analysis tab: {tab_label!r}.")
+
     def active_analysis_tab(self) -> str:
         return self.tabs.tabText(self.tabs.currentIndex())
 
@@ -828,20 +868,19 @@ class PositionAnalysisDialog(QDialog):
                 return
         raise ValueError(f"Unknown analysis tab: {tab_label!r}.")
 
-    def trend_legend_labels(self) -> tuple[str, str] | None:
-        if self._range_trend_data is None:
+    def trend_legend_labels(self) -> tuple[str, ...] | None:
+        series = self._range_trend_series()
+        if not series:
             return None
-        return (
-            self._range_trend_data.first.condition_name,
-            self._range_trend_data.second.condition_name,
-        )
+        return tuple(item.condition_name for item in series)
 
     def trend_axis_labels(self) -> tuple[tuple[str, str], ...]:
         distance_unit = "px"
         intensity_unit = "a.u."
-        if self._range_trend_data is not None:
-            distance_unit = self._range_trend_data.first.distance_unit
-            intensity_unit = self._range_trend_data.first.intensity_unit
+        series = self._range_trend_series()
+        if series:
+            distance_unit = series[0].distance_unit
+            intensity_unit = series[0].intensity_unit
         return (
             ("Frame", "Molecules"),
             ("Frame", f"Nearest neighbor [{distance_unit}]"),
@@ -1154,13 +1193,45 @@ class PositionAnalysisDialog(QDialog):
         plot.addLegend()
         return plot
 
+    def _set_range_trend_plots(
+        self,
+        trend_data: MolecularRangeTrendData,
+    ) -> None:
+        series = unpack_molecular_range_trend_data(trend_data)
+        self._set_trend_plot_data(
+            self.molecule_count_trend_plot,
+            series,
+            tuple(item.molecule_counts for item in series),
+        )
+        self.nearest_neighbor_trend_plot.setLabel(
+            "left",
+            f"Nearest neighbor [{series[0].distance_unit}]",
+        )
+        self._set_trend_plot_data(
+            self.nearest_neighbor_trend_plot,
+            series,
+            tuple(item.nearest_neighbor_distances for item in series),
+        )
+        self._set_trend_plot_data(
+            self.line_order_trend_plot,
+            series,
+            tuple(item.line_order_scores for item in series),
+        )
+        self.intensity_trend_plot.setLabel(
+            "left",
+            f"Median intensity [{series[0].intensity_unit}]",
+        )
+        self._set_trend_plot_data(
+            self.intensity_trend_plot,
+            series,
+            tuple(item.median_intensities for item in series),
+        )
+
     @staticmethod
     def _set_trend_plot_data(
         plot: pg.PlotWidget,
-        trend_data: MolecularRangeComparisonTrendData,
-        *,
-        first_values: tuple[int | float | None, ...],
-        second_values: tuple[int | float | None, ...],
+        series: tuple[MolecularRangeTrendSeries, ...],
+        values: tuple[tuple[int | float | None, ...], ...],
     ) -> None:
         plot.clear()
         legend = plot.getPlotItem().legend
@@ -1168,39 +1239,55 @@ class PositionAnalysisDialog(QDialog):
             legend = plot.addLegend()
         else:
             legend.clear()
-        first_x = np.asarray(trend_data.first.frame_indices, dtype=np.float64) + 1.0
-        second_x = np.asarray(trend_data.second.frame_indices, dtype=np.float64) + 1.0
-        first_y = np.asarray(
-            [np.nan if value is None else float(value) for value in first_values],
-            dtype=np.float64,
+        styles = (
+            ((0, 140, 90), "o"),
+            ((40, 100, 190), "s"),
         )
-        second_y = np.asarray(
-            [np.nan if value is None else float(value) for value in second_values],
-            dtype=np.float64,
-        )
-        if not np.any(np.isfinite(first_y)):
-            first_x = np.asarray([], dtype=np.float64)
-            first_y = np.asarray([], dtype=np.float64)
-        if not np.any(np.isfinite(second_y)):
-            second_x = np.asarray([], dtype=np.float64)
-            second_y = np.asarray([], dtype=np.float64)
-        plot.plot(
-            first_x,
-            first_y,
-            pen=pg.mkPen((0, 140, 90), width=2.0),
-            symbol="o",
-            symbolBrush=pg.mkBrush((0, 140, 90)),
-            name=trend_data.first.condition_name,
-            connect="finite",
-        )
-        plot.plot(
-            second_x,
-            second_y,
-            pen=pg.mkPen((40, 100, 190), width=2.0),
-            symbol="s",
-            symbolBrush=pg.mkBrush((40, 100, 190)),
-            name=trend_data.second.condition_name,
-            connect="finite",
+        for item, y_values, (color, symbol) in zip(series, values, styles):
+            x_array = np.asarray(item.frame_indices, dtype=np.float64) + 1.0
+            y_array = np.asarray(
+                [np.nan if value is None else float(value) for value in y_values],
+                dtype=np.float64,
+            )
+            if not np.any(np.isfinite(y_array)):
+                x_array = np.asarray([], dtype=np.float64)
+                y_array = np.asarray([], dtype=np.float64)
+            plot.plot(
+                x_array,
+                y_array,
+                pen=pg.mkPen(color, width=2.0),
+                symbol=symbol,
+                symbolBrush=pg.mkBrush(color),
+                name=item.condition_name,
+                connect="finite",
+            )
+
+    def _range_trend_series(self) -> tuple[MolecularRangeTrendSeries, ...]:
+        return unpack_molecular_range_trend_data(self._range_trend_data)
+
+    def _set_spatial_comparison_enabled(self, enabled: bool) -> None:
+        index = self.tabs.indexOf(self.spatial_comparison_tab)
+        if index < 0:
+            return
+        if not enabled and self.tabs.currentWidget() is self.spatial_comparison_tab:
+            self.tabs.setCurrentWidget(self.range_trends_tab)
+        self.tabs.setTabEnabled(index, bool(enabled))
+
+    @staticmethod
+    def _format_range_summary(analysis: MolecularFrameRangeAnalysis) -> str:
+        aggregates = analysis.aggregates
+
+        def optional(value: float | None) -> str:
+            return "unavailable" if value is None else f"{value:.3f}"
+
+        return (
+            f"{analysis.frame_range.name} | Frames: {aggregates.analyzed_frame_count} | "
+            f"Mean molecules: {aggregates.mean_molecule_count:.3f} | "
+            "Mean nearest neighbor: "
+            f"{optional(aggregates.mean_nearest_neighbor_distance)} "
+            f"{aggregates.distance_unit} | Mean angular coherence: "
+            f"{optional(aggregates.mean_line_order_score)} | Median intensity: "
+            f"{optional(aggregates.median_intensity)} {analysis.intensity_unit}"
         )
 
     @staticmethod

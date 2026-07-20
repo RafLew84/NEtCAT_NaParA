@@ -163,8 +163,11 @@ from .range_comparison import (
 )
 from .range_trends import (
     MolecularRangeComparisonTrendData,
+    MolecularRangeTrendData,
     MolecularRangeTrendSeries,
     build_molecular_range_comparison_trend_data,
+    build_molecular_range_trend_series,
+    unpack_molecular_range_trend_data,
 )
 from .range_spatial import (
     MolecularConditionSpatialData,
@@ -359,6 +362,7 @@ __all__ = [
     "MolecularPositionPlotData",
     "MolecularSampleCoordinates",
     "MolecularRangeComparisonTrendData",
+    "MolecularRangeTrendData",
     "MolecularRangeTrendSeries",
     "MolecularRangeSpatialComparisonData",
     "analyze_molecular_frame_range",
@@ -375,6 +379,8 @@ __all__ = [
     "export_molecular_intensity_cache_records",
     "export_structural_analysis_cache_records",
     "build_molecular_range_comparison_trend_data",
+    "build_molecular_range_trend_series",
+    "unpack_molecular_range_trend_data",
     "build_molecular_m6_frame_trend_series",
     "build_molecular_range_spatial_comparison_data",
     "build_structural_analysis_cache_key",

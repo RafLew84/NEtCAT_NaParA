@@ -2998,6 +2998,18 @@ class MolTrackMainWindow(QMainWindow):
 
     def _on_position_analysis_context_changed(self, reason: str) -> None:
         self._m6_domain_type_controller.invalidate(str(reason))
+        dialog = self._position_analysis_dialog
+        if (
+            dialog is not None
+            and dialog.analysis_mode() == "single_range"
+            and isinstance(
+                dialog.range_analysis_result(),
+                MolecularFrameRangeAnalysis,
+            )
+        ):
+            dialog.invalidate_range_analysis_result(
+                "Range definition changed. Run Analyze range or Run/Recalculate M6."
+            )
 
     def _on_position_analysis_mode_changed(self, _mode: str) -> None:
         self._m6_domain_type_controller.invalidate("analysis_mode")
@@ -3631,6 +3643,7 @@ class MolTrackMainWindow(QMainWindow):
         )
         self._render_current_m6_overlay()
         if not dialog.has_active_range_comparison():
+            self._invalidate_active_single_range_analysis(dialog)
             return
         active_tab = dialog.active_analysis_tab()
         comparison = compare_molecular_frame_ranges(
@@ -3655,6 +3668,7 @@ class MolTrackMainWindow(QMainWindow):
             self._build_current_position_plot_data(intensity_metric=str(metric))
         )
         if not dialog.has_active_range_comparison():
+            self._invalidate_active_single_range_analysis(dialog)
             return
         active_tab = dialog.active_analysis_tab()
         comparison = compare_molecular_frame_ranges(
@@ -3681,6 +3695,7 @@ class MolTrackMainWindow(QMainWindow):
             return
         dialog.set_plot_data(self._build_current_position_plot_data())
         if not dialog.has_active_range_comparison():
+            self._invalidate_active_single_range_analysis(dialog)
             return
         active_tab = dialog.active_analysis_tab()
         inner_radius_px, outer_radius_px = dialog.intensity_background_radii()
@@ -3697,6 +3712,17 @@ class MolTrackMainWindow(QMainWindow):
             density_grid_shape=dialog.density_grid_shape(),
         )
         dialog.activate_analysis_tab(active_tab)
+
+    @staticmethod
+    def _invalidate_active_single_range_analysis(dialog) -> None:
+        if (
+            dialog.analysis_mode() != "single_range"
+            or not dialog.has_active_range_analysis()
+        ):
+            return
+        dialog.invalidate_range_analysis_result(
+            "Range context changed. Run Analyze range or Run/Recalculate M6."
+        )
 
     def _build_current_position_plot_data(
         self,

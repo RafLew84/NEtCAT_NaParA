@@ -18,6 +18,9 @@ from PyQt6.QtWidgets import (
 from moltrack.analysis import (
     M6_DOMAIN_TREND_FIELD_NAMES,
     MolecularRangeComparisonTrendData,
+    MolecularRangeTrendData,
+    MolecularRangeTrendSeries,
+    unpack_molecular_range_trend_data,
 )
 
 
@@ -131,15 +134,15 @@ _METRICS_BY_NAME = {metric.field_name: metric for metric in M6_TREND_METRICS}
 
 
 class M6RangeTrendsPanel(QWidget):
-    """Independent-frame M6 trends for two named experimental ranges."""
+    """Independent-frame M6 trends for one or two named ranges."""
 
     _MAX_STATUS_DETAILS = 6
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self._trend_data: MolecularRangeComparisonTrendData | None = None
+        self._trend_data: MolecularRangeTrendData | None = None
         self._empty_status = "No M6 range analysis."
-        self._legend_labels: tuple[str, str] | None = None
+        self._legend_labels: tuple[str, ...] | None = None
 
         group = QGroupBox("M6 range trends", self)
         group_layout = QVBoxLayout(group)
@@ -195,14 +198,14 @@ class M6RangeTrendsPanel(QWidget):
 
     def set_trend_data(
         self,
-        trend_data: MolecularRangeComparisonTrendData | None,
+        trend_data: MolecularRangeTrendData | None,
     ) -> None:
         if trend_data is not None and not isinstance(
             trend_data,
-            MolecularRangeComparisonTrendData,
+            (MolecularRangeTrendSeries, MolecularRangeComparisonTrendData),
         ):
             raise TypeError(
-                "trend_data must be MolecularRangeComparisonTrendData or None."
+                "trend_data must be a range trend series, comparison, or None."
             )
         self._trend_data = trend_data
         self._empty_status = "No M6 range analysis."
@@ -217,7 +220,9 @@ class M6RangeTrendsPanel(QWidget):
         )
         self._refresh_plot()
 
-    def trend_data(self) -> MolecularRangeComparisonTrendData | None:
+    def trend_data(
+        self,
+    ) -> MolecularRangeTrendData | None:
         return self._trend_data
 
     def metric_options(self) -> tuple[str, ...]:
@@ -238,14 +243,10 @@ class M6RangeTrendsPanel(QWidget):
             raise ValueError(f"Unsupported M6 frame axis: {axis!r}.")
         self.frame_axis_combo.setCurrentIndex(index)
 
-    def legend_labels(self) -> tuple[str, str] | None:
+    def legend_labels(self) -> tuple[str, ...] | None:
         if not self._has_m6_data():
             return None
-        assert self._trend_data is not None
-        return (
-            self._trend_data.first.condition_name,
-            self._trend_data.second.condition_name,
-        )
+        return tuple(series.condition_name for series in self._trend_series())
 
     def axis_labels(self) -> tuple[str, str]:
         axis_label = (
@@ -259,15 +260,13 @@ class M6RangeTrendsPanel(QWidget):
         series = self._m6_series()
         if series is None:
             return None
-        first, second = series
         metric = self.current_metric()
-        return getattr(first, metric), getattr(second, metric)
+        return tuple(getattr(values, metric) for values in series)
 
     def frame_values(self):
         series = self._m6_series()
         if series is None:
             return None
-        first, second = series
         field_name = (
             "source_frame_indices"
             if self.frame_axis_combo.currentData() == "source"
@@ -275,7 +274,7 @@ class M6RangeTrendsPanel(QWidget):
         )
         return tuple(
             tuple(int(value) + 1 for value in getattr(values, field_name))
-            for values in (first, second)
+            for values in series
         )
 
     def status_text(self) -> str:
@@ -285,13 +284,16 @@ class M6RangeTrendsPanel(QWidget):
         return self._m6_series() is not None
 
     def _m6_series(self):
-        if self._trend_data is None:
+        trend_series = self._trend_series()
+        if not trend_series:
             return None
-        first = self._trend_data.first.m6_orientation
-        second = self._trend_data.second.m6_orientation
-        if first is None or second is None:
+        m6_series = tuple(series.m6_orientation for series in trend_series)
+        if any(series is None for series in m6_series):
             return None
-        return first, second
+        return m6_series
+
+    def _trend_series(self) -> tuple[MolecularRangeTrendSeries, ...]:
+        return unpack_molecular_range_trend_data(self._trend_data)
 
     def _refresh_plot(self, _index: int | None = None) -> None:
         legend = self.plot.getPlotItem().legend
@@ -307,7 +309,6 @@ class M6RangeTrendsPanel(QWidget):
             self._legend_labels = None
             self.status_label.setText(self._empty_status)
             return
-        assert self._trend_data is not None
         frame_values = self.frame_values()
         plot_values = self.plot_values()
         assert frame_values is not None and plot_values is not None
@@ -316,19 +317,20 @@ class M6RangeTrendsPanel(QWidget):
             frame_values[0],
             plot_values[0],
         )
-        self._set_curve_data(
-            self.second_curve,
-            frame_values[1],
-            plot_values[1],
-        )
-        labels = (
-            self._trend_data.first.condition_name,
-            self._trend_data.second.condition_name,
-        )
+        if len(series) == 2:
+            self._set_curve_data(
+                self.second_curve,
+                frame_values[1],
+                plot_values[1],
+            )
+        else:
+            self.second_curve.setData([], [])
+        labels = tuple(item.condition_name for item in self._trend_series())
         if labels != self._legend_labels:
             legend.clear()
             legend.addItem(self.first_curve, labels[0])
-            legend.addItem(self.second_curve, labels[1])
+            if len(labels) == 2:
+                legend.addItem(self.second_curve, labels[1])
             self._legend_labels = labels
         self.status_label.setText(self._availability_status(plot_values))
 
@@ -345,13 +347,15 @@ class M6RangeTrendsPanel(QWidget):
         curve.setData(x_array, y_array, connect="finite")
 
     def _availability_status(self, plot_values) -> str:
-        assert self._trend_data is not None
-        first, second = self._m6_series()
+        m6_series = self._m6_series()
+        assert m6_series is not None
         messages = []
-        for condition_name, values, y_values in (
-            (self._trend_data.first.condition_name, first, plot_values[0]),
-            (self._trend_data.second.condition_name, second, plot_values[1]),
+        for trend, values, y_values in zip(
+            self._trend_series(),
+            m6_series,
+            plot_values,
         ):
+            condition_name = trend.condition_name
             for position, (status, reason, value) in enumerate(
                 zip(
                     values.availability_statuses,

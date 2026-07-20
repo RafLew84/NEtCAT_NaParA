@@ -35,6 +35,23 @@ class MolecularRangeComparisonTrendData:
     second: MolecularRangeTrendSeries
 
 
+MolecularRangeTrendData = MolecularRangeTrendSeries | MolecularRangeComparisonTrendData
+
+
+def unpack_molecular_range_trend_data(
+    trend_data: MolecularRangeTrendData | None,
+) -> tuple[MolecularRangeTrendSeries, ...]:
+    """Return the real one- or two-series content of range trend data."""
+
+    if isinstance(trend_data, MolecularRangeTrendSeries):
+        return (trend_data,)
+    if isinstance(trend_data, MolecularRangeComparisonTrendData):
+        return (trend_data.first, trend_data.second)
+    if trend_data is None:
+        return ()
+    raise TypeError("trend_data must be a range trend series, comparison, or None.")
+
+
 def build_molecular_range_comparison_trend_data(
     comparison: MolecularFrameRangeComparison,
 ) -> MolecularRangeComparisonTrendData:
@@ -43,12 +60,18 @@ def build_molecular_range_comparison_trend_data(
     if not isinstance(comparison, MolecularFrameRangeComparison):
         raise TypeError("comparison must be a MolecularFrameRangeComparison instance.")
     return MolecularRangeComparisonTrendData(
-        first=_build_range_trend_series(comparison.first_analysis),
-        second=_build_range_trend_series(comparison.second_analysis),
+        first=build_molecular_range_trend_series(comparison.first_analysis),
+        second=build_molecular_range_trend_series(comparison.second_analysis),
     )
 
 
-def _build_range_trend_series(analysis: MolecularFrameRangeAnalysis) -> MolecularRangeTrendSeries:
+def build_molecular_range_trend_series(
+    analysis: MolecularFrameRangeAnalysis,
+) -> MolecularRangeTrendSeries:
+    """Build plotting data for one analyzed frame range."""
+
+    if not isinstance(analysis, MolecularFrameRangeAnalysis):
+        raise TypeError("analysis must be a MolecularFrameRangeAnalysis instance.")
     return MolecularRangeTrendSeries(
         condition_name=analysis.frame_range.name,
         frame_indices=tuple(result.frame_index for result in analysis.frame_results),
