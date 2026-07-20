@@ -143,11 +143,24 @@ class M6DomainTypesPanelTests(unittest.TestCase):
         self.assertIn("two domains: 2/2", status)
         self.assertEqual(self.panel.classify_button.text(), "Recalculate Types")
         self.assertIs(self.panel.outcome(), outcome)
+        self.assertIs(
+            self.panel.results_table.table_result(),
+            outcome.table_result,
+        )
+        self.assertEqual(
+            self.panel.results_table.row_labels()[-1],
+            "Unclassified",
+        )
 
         store.invalidate("classification_settings")
         self.panel.set_store_state(store.state)
         self.assertIn("out of date", self.panel.status_text().lower())
         self.assertTrue(self.panel.classify_button.isEnabled())
+        self.assertIsNone(self.panel.results_table.table_result())
+        self.assertIn(
+            "out of date",
+            self.panel.results_table.empty_state_text().lower(),
+        )
 
         self.panel.set_error("synthetic classification failure")
         self.assertIn("synthetic classification failure", self.panel.status_text())
@@ -223,6 +236,10 @@ class M6DomainTypesPanelMainWindowTests(unittest.TestCase):
         self.assertEqual(requested_settings[0], panel.settings())
         self.assertIn("Classified observations:", panel.status_text())
         self.assertIn("stable phase", panel.status_text())
+        self.assertEqual(
+            panel.results_table.row_labels()[-1],
+            "Unclassified",
+        )
 
         panel.orientation_tolerance_deg.setValue(8.0)
         self.__class__._app.processEvents()

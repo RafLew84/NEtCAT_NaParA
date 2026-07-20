@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -23,11 +25,24 @@ from moltrack.analysis import (
 )
 from moltrack.ui.m6_domain_type_worker import M6DomainTypeAnalysisProgress
 
+from .m6_domain_type_results_table import M6DomainTypeResultsTable
+
 
 _NON_TRACKING_TOOLTIP = (
     "Classifies shared structural types from independent domain observations; "
     "this does not track domains between frames."
 )
+
+_PanelPresentationState = Literal[
+    "running",
+    "error",
+    "override",
+    "missing_source",
+    "invalid_settings",
+    "out_of_date",
+    "current",
+    "ready",
+]
 
 
 class M6DomainTypesPanel(QScrollArea):
@@ -104,6 +119,9 @@ class M6DomainTypesPanel(QScrollArea):
         self.status_label.setWordWrap(True)
         self.status_label.setToolTip(_NON_TRACKING_TOOLTIP)
         layout.addWidget(self.status_label)
+
+        self.results_table = M6DomainTypeResultsTable(content)
+        layout.addWidget(self.results_table)
         layout.addStretch(1)
         self.setWidget(content)
 
@@ -284,19 +302,16 @@ class M6DomainTypesPanel(QScrollArea):
         self.classification_requested.emit(settings)
 
     def _refresh_state(self) -> None:
+        presentation_state = self._presentation_state()
         valid = self._validation_error is None
         self.classify_button.setEnabled(
             self._source is not None and valid and not self._running
         )
-        current = (
-            self._store_state is not None
-            and self._store_state.status == "current"
-            and self._store_state.outcome is not None
-        )
+        current = presentation_state == "current"
         self.classify_button.setText(
             "Recalculate Types" if current else "Classify Types"
         )
-        if self._running:
+        if presentation_state == "running":
             if self._progress is None:
                 status = "Starting structural type classification..."
             else:
@@ -304,15 +319,15 @@ class M6DomainTypesPanel(QScrollArea):
                     f"Phase {self._progress.phase_number}/"
                     f"{self._progress.total_phase_count}: {self._progress.message}"
                 )
-        elif self._error_message is not None:
+        elif presentation_state == "error":
             status = f"Classification error: {self._error_message}"
-        elif self._status_override is not None:
+        elif presentation_state == "override":
             status = self._status_override
-        elif self._source is None:
+        elif presentation_state == "missing_source":
             status = "Run/Recalculate M6 for the active range mode before classifying types."
-        elif self._validation_error is not None:
+        elif presentation_state == "invalid_settings":
             status = "Correct the classification settings before running."
-        elif self._store_state is not None and self._store_state.status == "out_of_date":
+        elif presentation_state == "out_of_date":
             status = (
                 "Structural type result is out of date: "
                 f"{self._store_state.invalidation_reason}. Reclassify types."
@@ -324,6 +339,51 @@ class M6DomainTypesPanel(QScrollArea):
                 f"Ready to classify shared structural types. {self._frame_status()}"
             )
         self.status_label.setText(status)
+        self._refresh_results(presentation_state)
+
+    def _presentation_state(self) -> _PanelPresentationState:
+        if self._running:
+            return "running"
+        if self._error_message is not None:
+            return "error"
+        if self._status_override is not None:
+            return "override"
+        if self._source is None:
+            return "missing_source"
+        if self._validation_error is not None:
+            return "invalid_settings"
+        if self._store_state is not None:
+            if self._store_state.status == "out_of_date":
+                return "out_of_date"
+            if (
+                self._store_state.status == "current"
+                and self._store_state.outcome is not None
+            ):
+                return "current"
+        return "ready"
+
+    def _refresh_results(self, presentation_state: _PanelPresentationState) -> None:
+        if presentation_state == "running":
+            message = "Structural type classification is running."
+        elif presentation_state == "error":
+            message = f"Classification failed: {self._error_message}"
+        elif presentation_state == "override":
+            message = self._status_override
+        elif presentation_state == "missing_source":
+            message = "Run/Recalculate M6 before showing domain types."
+        elif presentation_state == "invalid_settings":
+            message = "Correct the classification settings before showing results."
+        elif presentation_state == "out_of_date":
+            message = "Domain type result is out of date. Reclassify types."
+        elif presentation_state == "current":
+            outcome = self._store_state.outcome
+            if outcome.table_result is not None:
+                self.results_table.set_table_result(outcome.table_result)
+                return
+            message = outcome.status_message
+        else:
+            message = "Classify domain types to show the result table."
+        self.results_table.set_table_result(None, empty_message=message)
 
     def _completed_status(self, outcome: M6DomainTypeAnalysisOutcome) -> str:
         classification = outcome.classification
