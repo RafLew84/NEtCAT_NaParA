@@ -48,6 +48,7 @@ from moltrack.analysis import (
     unpack_molecular_range_trend_data,
 )
 
+from .m6_domain_types_panel import M6DomainTypesPanel
 from .m6_settings_panel import M6SettingsPanel
 
 
@@ -67,6 +68,8 @@ class PositionAnalysisDialog(QDialog):
     m6_first_shell_suggestion_requested = pyqtSignal(object)
     m6_view_settings_changed = pyqtSignal(object)
     m6_domain_selection_changed = pyqtSignal(object)
+    m6_domain_type_classification_requested = pyqtSignal(object)
+    m6_domain_type_settings_changed = pyqtSignal(object)
 
     _INTENSITY_METRIC_OPTIONS = (
         ("Background-corrected median", "background_corrected_median"),
@@ -349,6 +352,14 @@ class PositionAnalysisDialog(QDialog):
             self.m6_domain_selection_changed.emit
         )
         self.tabs.addTab(self.m6_settings_panel, "Sixfold Bond Order")
+        self.domain_types_panel = M6DomainTypesPanel(self.tabs)
+        self.domain_types_panel.classification_requested.connect(
+            self.m6_domain_type_classification_requested.emit
+        )
+        self.domain_types_panel.settings_changed.connect(
+            self.m6_domain_type_settings_changed.emit
+        )
+        self.tabs.addTab(self.domain_types_panel, "Domain Types")
         self.m6_advanced_group = self.m6_settings_panel.advanced_group
         self.m6_min_neighbors_for_seed_spin = (
             self.m6_settings_panel.min_neighbors_for_seed
@@ -381,6 +392,24 @@ class PositionAnalysisDialog(QDialog):
         settings: MolecularM6OrientationAnalysisSettings,
     ) -> None:
         self.m6_settings_panel.set_settings(settings)
+
+    def set_m6_domain_type_analysis_source(self, source) -> None:
+        self.domain_types_panel.set_analysis_source(source)
+
+    def set_m6_domain_type_store_state(self, state) -> None:
+        self.domain_types_panel.set_store_state(state)
+
+    def set_m6_domain_type_running(self, running: bool) -> None:
+        self.domain_types_panel.set_running(running)
+
+    def set_m6_domain_type_progress(self, progress) -> None:
+        self.domain_types_panel.set_progress(progress)
+
+    def set_m6_domain_type_error(self, message: str) -> None:
+        self.domain_types_panel.set_error(message)
+
+    def set_m6_domain_type_canceled(self) -> None:
+        self.domain_types_panel.set_canceled()
 
     def m6_overlay_mode_options(self) -> tuple[str, ...]:
         return self.m6_settings_panel.overlay_mode_options()

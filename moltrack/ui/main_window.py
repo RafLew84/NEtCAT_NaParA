@@ -33,8 +33,10 @@ from PyQt6.QtWidgets import (
 )
 
 from moltrack.analysis import (
+    M6DomainTypeAnalysisStoreState,
     M6DomainTypeAnalysisStore,
     M6DomainTypeAnalysisSource,
+    M6DomainTypeClassificationSettings,
     M6PointOverlay,
     MolecularFrameRangeAnalysis,
     MolecularFrameRangeAnalysisScope,
@@ -1074,6 +1076,24 @@ class MolTrackMainWindow(QMainWindow):
         self._m6_domain_type_controller = M6DomainTypeAnalysisController(
             self._m6_domain_type_store,
             self,
+        )
+        self._m6_domain_type_controller.progress.connect(
+            self._on_m6_domain_type_progress
+        )
+        self._m6_domain_type_controller.finished.connect(
+            self._on_m6_domain_type_finished
+        )
+        self._m6_domain_type_controller.failed.connect(
+            self._on_m6_domain_type_failed
+        )
+        self._m6_domain_type_controller.canceled.connect(
+            self._on_m6_domain_type_canceled
+        )
+        self._m6_domain_type_controller.running_changed.connect(
+            self._on_m6_domain_type_running_changed
+        )
+        self._m6_domain_type_controller.state_changed.connect(
+            self._on_m6_domain_type_state_changed
         )
         self._m6_analysis_thread: QThread | None = None
         self._m6_analysis_worker: _M6PositionAnalysisWorker | None = None
@@ -2973,6 +2993,12 @@ class MolTrackMainWindow(QMainWindow):
             dialog.m6_domain_selection_changed.connect(
                 self._on_m6_domain_selection_changed
             )
+            dialog.m6_domain_type_classification_requested.connect(
+                self._on_m6_domain_type_classification_requested
+            )
+            dialog.m6_domain_type_settings_changed.connect(
+                self._on_m6_domain_type_settings_changed
+            )
             self._position_analysis_dialog = dialog
             state = getattr(self._series, "m6_analysis_state", None)
             if isinstance(state, MolecularM6SessionState):
@@ -2985,6 +3011,7 @@ class MolTrackMainWindow(QMainWindow):
         )
         self._position_analysis_dialog.set_plot_data(plot_data)
         self._sync_current_m6_results(force=True)
+        self._sync_m6_domain_type_panel()
         self._position_analysis_dialog.show()
         self._position_analysis_dialog.raise_()
         self._position_analysis_dialog.activateWindow()
@@ -3010,15 +3037,124 @@ class MolTrackMainWindow(QMainWindow):
             dialog.invalidate_range_analysis_result(
                 "Range definition changed. Run Analyze range or Run/Recalculate M6."
             )
+        self._sync_m6_domain_type_panel()
 
     def _on_position_analysis_mode_changed(self, _mode: str) -> None:
         self._m6_domain_type_controller.invalidate("analysis_mode")
+        self._sync_m6_domain_type_panel()
 
     def _on_m6_analysis_settings_changed(self) -> None:
         self._m6_domain_type_controller.invalidate("m6_settings")
+        self._sync_m6_domain_type_panel()
 
     def _on_m6_domain_type_settings_changed(self, _settings) -> None:
         self._m6_domain_type_controller.invalidate("classification_settings")
+        self._sync_m6_domain_type_panel()
+
+    def _current_m6_domain_type_analysis_source(
+        self,
+    ) -> M6DomainTypeAnalysisSource | None:
+        context = self._m6_completed_context
+        dialog = self._position_analysis_dialog
+        if (
+            self._m6_analysis_running
+            or context is None
+            or dialog is None
+            or not isinstance(context, _M6CompletedAnalysisContext)
+            or self._series is not context.launch.series
+            or dialog is not context.launch.dialog
+            or dialog.range_analysis_result() is not context.result
+        ):
+            return None
+        try:
+            active_scope = dialog.frame_range_analysis_scope()
+            active_m6_settings = dialog.m6_analysis_settings()
+        except (RuntimeError, TypeError, ValueError):
+            return None
+        if (
+            active_scope != context.scope
+            or dialog.use_segmentation_centroids()
+            != context.use_segmentation_centroids
+            or active_m6_settings != context.settings
+            or context.source.m6_settings is None
+        ):
+            return None
+        return context.source
+
+    def _sync_m6_domain_type_panel(self) -> None:
+        dialog = self._position_analysis_dialog
+        if dialog is None:
+            return
+        dialog.set_m6_domain_type_analysis_source(
+            self._current_m6_domain_type_analysis_source()
+        )
+        state = getattr(self._m6_domain_type_store, "state", None)
+        dialog.set_m6_domain_type_store_state(
+            state if isinstance(state, M6DomainTypeAnalysisStoreState) else None
+        )
+        dialog.set_m6_domain_type_running(
+            self._m6_domain_type_controller.is_running
+        )
+
+    @pyqtSlot(object)
+    def _on_m6_domain_type_classification_requested(self, settings) -> None:
+        source = self._current_m6_domain_type_analysis_source()
+        if (
+            source is None
+            or not isinstance(settings, M6DomainTypeClassificationSettings)
+        ):
+            self._sync_m6_domain_type_panel()
+            return
+        if not self._m6_domain_type_controller.start(
+            source,
+            classification_settings=settings,
+        ):
+            self._sync_m6_domain_type_panel()
+
+    @pyqtSlot(object)
+    def _on_m6_domain_type_progress(self, progress) -> None:
+        dialog = self._position_analysis_dialog
+        if dialog is not None:
+            dialog.set_m6_domain_type_progress(progress)
+
+    @pyqtSlot(object)
+    def _on_m6_domain_type_finished(self, _outcome) -> None:
+        self._sync_m6_domain_type_panel()
+        self.statusBar().showMessage(
+            "Structural domain type classification complete",
+            5000,
+        )
+
+    @pyqtSlot(str)
+    def _on_m6_domain_type_failed(self, message: str) -> None:
+        dialog = self._position_analysis_dialog
+        if dialog is not None:
+            dialog.set_m6_domain_type_error(message)
+        self.statusBar().showMessage(
+            f"Structural domain type classification failed: {message}",
+            5000,
+        )
+
+    @pyqtSlot()
+    def _on_m6_domain_type_canceled(self) -> None:
+        dialog = self._position_analysis_dialog
+        if dialog is not None:
+            dialog.set_m6_domain_type_canceled()
+
+    @pyqtSlot(bool)
+    def _on_m6_domain_type_running_changed(self, running: bool) -> None:
+        dialog = self._position_analysis_dialog
+        if dialog is not None:
+            dialog.set_m6_domain_type_running(running)
+
+    @pyqtSlot(object)
+    def _on_m6_domain_type_state_changed(self, state) -> None:
+        dialog = self._position_analysis_dialog
+        if dialog is not None and isinstance(
+            state,
+            M6DomainTypeAnalysisStoreState,
+        ):
+            dialog.set_m6_domain_type_store_state(state)
 
     def _on_m6_ttmapp_preset_requested(self) -> None:
         series = self._series
@@ -3225,6 +3361,7 @@ class MolTrackMainWindow(QMainWindow):
             settings=settings,
         )
         self._m6_analysis_running = True
+        self._sync_m6_domain_type_panel()
         dialog.set_m6_analysis_running(True)
         self._sync_navigation_controls()
         self.statusBar().showMessage("Running M6 orientation analysis...", 0)
@@ -3308,6 +3445,7 @@ class MolTrackMainWindow(QMainWindow):
                     self._m6_pending_session_state.settings,
                 )
         self._render_current_m6_overlay()
+        self._sync_m6_domain_type_panel()
         self.statusBar().showMessage("M6 orientation analysis complete", 5000)
 
     def _is_m6_launch_context_current(
@@ -3352,6 +3490,7 @@ class MolTrackMainWindow(QMainWindow):
         self._m6_pending_context = None
         if self._position_analysis_dialog is not None:
             self._position_analysis_dialog.set_m6_analysis_running(False)
+        self._sync_m6_domain_type_panel()
         self._sync_navigation_controls()
 
     def _on_m6_first_shell_suggestion_requested(self, settings) -> None:
@@ -3630,12 +3769,14 @@ class MolTrackMainWindow(QMainWindow):
             QMessageBox.critical(self, "Position analysis failed", str(exc))
             return
         self._position_analysis_dialog.set_range_analysis_result(execution.result)
+        self._sync_m6_domain_type_panel()
 
     def _on_position_analysis_centroid_source_mode_changed(self, enabled: bool) -> None:
         dialog = self._position_analysis_dialog
         if self._series is None or dialog is None:
             return
         self._m6_domain_type_controller.invalidate("centroid_source")
+        self._sync_m6_domain_type_panel()
         dialog.set_plot_data(
             self._build_current_position_plot_data(
                 use_segmentation_centroids=bool(enabled),
