@@ -234,6 +234,14 @@ from .m6_domain_type_lifecycle import (
     adapt_m6_domain_type_analysis_source,
     build_m6_domain_type_analysis_context,
 )
+from .m6_domain_type_persistence import (
+    M6_DOMAIN_TYPE_ALGORITHM_VERSION,
+    M6_DOMAIN_TYPE_CACHE_RECORD_SCHEMA_VERSION,
+    M6_DOMAIN_TYPE_CONFIGURATION_SCHEMA_VERSION,
+    M6DomainTypeCacheDecodeError,
+    M6DomainTypeCacheRecord,
+    M6DomainTypeSessionState,
+)
 
 __all__ = [
     "AggregatedPairCorrelationResult",
@@ -285,6 +293,12 @@ __all__ = [
     "M6DomainTypeNamedRangeResult",
     "adapt_m6_domain_type_analysis_source",
     "build_m6_domain_type_analysis_context",
+    "M6_DOMAIN_TYPE_ALGORITHM_VERSION",
+    "M6_DOMAIN_TYPE_CACHE_RECORD_SCHEMA_VERSION",
+    "M6_DOMAIN_TYPE_CONFIGURATION_SCHEMA_VERSION",
+    "M6DomainTypeCacheDecodeError",
+    "M6DomainTypeCacheRecord",
+    "M6DomainTypeSessionState",
     "MolecularIntensityMeasurement",
     "MolecularIntensityCacheStats",
     "MolecularIntensityMeasurementCache",

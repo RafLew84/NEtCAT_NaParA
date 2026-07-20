@@ -37,6 +37,7 @@ from moltrack.analysis import (
     M6DomainTypeAnalysisStore,
     M6DomainTypeAnalysisSource,
     M6DomainTypeClassificationSettings,
+    M6DomainTypeSessionState,
     M6PointOverlay,
     MolecularFrameRangeAnalysis,
     MolecularFrameRangeAnalysisScope,
@@ -5419,6 +5420,33 @@ class MolTrackMainWindow(QMainWindow):
                     else MolecularM6ViewSettings()
                 ),
             )
+            domain_type_scope = dialog.frame_range_analysis_scope()
+            domain_type_settings = dialog.domain_types_panel.settings()
+            domain_type_store_state = self._m6_domain_type_store.state
+            domain_type_outcome = (
+                domain_type_store_state.outcome
+                if isinstance(
+                    domain_type_store_state,
+                    M6DomainTypeAnalysisStoreState,
+                )
+                and domain_type_store_state.status == "current"
+                else None
+            )
+            if (
+                domain_type_outcome is not None
+                and domain_type_outcome.analysis_scope == domain_type_scope
+                and domain_type_outcome.classification is not None
+                and domain_type_outcome.classification.classification_settings
+                == domain_type_settings
+            ):
+                ui_state["m6_domain_type_analysis"] = (
+                    M6DomainTypeSessionState.from_outcome(domain_type_outcome)
+                )
+            else:
+                ui_state["m6_domain_type_analysis"] = M6DomainTypeSessionState(
+                    analysis_scope=domain_type_scope,
+                    classification_settings=domain_type_settings,
+                )
         return ui_state
 
     def _choose_and_open_state(self) -> None:

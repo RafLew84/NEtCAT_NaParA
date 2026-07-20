@@ -12,6 +12,7 @@ import zlib
 import numpy as np
 
 from moltrack.analysis import (
+    M6DomainTypeSessionState,
     MolecularM6OrientationAnalysisSettings,
     MolecularM6SessionState,
     MolecularM6ViewSettings,
@@ -81,6 +82,7 @@ def save_moltrack_session(
         series=series,
         cache_records=structural_cache_records,
     )
+    m6_domain_type_analysis_state = _m6_domain_type_state_from_ui_state(ui_state)
     session = MolTrackSession.from_image_series(
         series,
         registration_view_mode=registration_view_mode,
@@ -90,6 +92,7 @@ def save_moltrack_session(
         position_analysis=position_analysis,
         intensity_cache_records=intensity_cache_records,
         m6_analysis_state=m6_analysis_state,
+        m6_domain_type_analysis_state=m6_domain_type_analysis_state,
         structural_analysis_cache_records=structural_cache_records,
         source_size_bytes=source_stat.st_size,
         source_mtime_ns=source_stat.st_mtime_ns,
@@ -190,6 +193,9 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
     m6_analysis_state, structural_cache_records = _m6_analysis_from_payload(
         m6_analysis_payload
     )
+    m6_domain_type_analysis_state = _m6_domain_type_state_from_payload(
+        payload.get("m6_domain_type_analysis")
+    )
 
     registration_settings: MolTrackRegistrationSettings | None = None
     registration_results: MolTrackRegistrationResultSet | None = None
@@ -222,6 +228,7 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
             intensity_cache_payload
         ),
         m6_analysis_state=m6_analysis_state,
+        m6_domain_type_analysis_state=m6_domain_type_analysis_state,
         structural_analysis_cache_records=structural_cache_records,
         source_size_bytes=int(source_payload["size_bytes"]),
         source_mtime_ns=int(source_payload["mtime_ns"]),
@@ -325,7 +332,41 @@ def _session_to_payload(
             session.m6_analysis_state,
             session.structural_analysis_cache_records,
         ),
+        "m6_domain_type_analysis": (
+            None
+            if session.m6_domain_type_analysis_state is None
+            else session.m6_domain_type_analysis_state.to_dict()
+        ),
     }
+
+
+def _m6_domain_type_state_from_ui_state(
+    ui_state: Any | None,
+) -> M6DomainTypeSessionState | None:
+    candidate = None
+    if isinstance(ui_state, Mapping):
+        candidate = ui_state.get("m6_domain_type_analysis")
+    elif ui_state is not None and not isinstance(ui_state, str):
+        candidate = getattr(ui_state, "m6_domain_type_analysis", None)
+    if candidate is None:
+        return None
+    if isinstance(candidate, M6DomainTypeSessionState):
+        return candidate
+    if isinstance(candidate, Mapping):
+        return M6DomainTypeSessionState.from_dict(candidate)
+    raise TypeError(
+        "m6_domain_type_analysis must be an M6DomainTypeSessionState or mapping."
+    )
+
+
+def _m6_domain_type_state_from_payload(
+    payload: Any,
+) -> M6DomainTypeSessionState | None:
+    if payload is None:
+        return None
+    return M6DomainTypeSessionState.from_dict(
+        _require_mapping(payload, "m6_domain_type_analysis")
+    )
 
 
 def _m6_analysis_state_from_ui_or_series(

@@ -10,6 +10,7 @@ from .segmentations import MolecularSegmentationSet
 
 if TYPE_CHECKING:
     from moltrack.analysis import (
+        M6DomainTypeSessionState,
         MolecularM6SessionState,
         StructuralAnalysisCacheRecord,
     )
@@ -198,6 +199,7 @@ class MolTrackSession:
     position_analysis: MolTrackPositionAnalysisState | None = None
     intensity_cache_records: tuple[MolTrackIntensityCacheRecord, ...] = ()
     m6_analysis_state: MolecularM6SessionState | None = None
+    m6_domain_type_analysis_state: M6DomainTypeSessionState | None = None
     structural_analysis_cache_records: tuple[
         StructuralAnalysisCacheRecord, ...
     ] = ()
@@ -333,6 +335,7 @@ class MolTrackSession:
         position_analysis: MolTrackPositionAnalysisState | None = None,
         intensity_cache_records: tuple[MolTrackIntensityCacheRecord, ...] = (),
         m6_analysis_state: MolecularM6SessionState | None = None,
+        m6_domain_type_analysis_state: M6DomainTypeSessionState | None = None,
         structural_analysis_cache_records: tuple[
             StructuralAnalysisCacheRecord, ...
         ] = (),
@@ -361,6 +364,7 @@ class MolTrackSession:
             position_analysis=position_analysis,
             intensity_cache_records=intensity_cache_records,
             m6_analysis_state=m6_analysis_state,
+            m6_domain_type_analysis_state=m6_domain_type_analysis_state,
             structural_analysis_cache_records=structural_analysis_cache_records,
             source_size_bytes=source_size_bytes,
             source_mtime_ns=source_mtime_ns,
