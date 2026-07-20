@@ -145,7 +145,7 @@ class STMSeriesViewerTests(unittest.TestCase):
         self.viewer = STMSeriesViewer()
         self.viewer.set_image_series(series)
         overlay = M6PointOverlay(
-            mode="domain_id",
+            mode="domain_type",
             source_ids=tuple(f"point-{index}" for index in range(point_count)),
             points_xy_px=tuple(
                 (float(index % 100), float(index // 100))
@@ -154,7 +154,7 @@ class STMSeriesViewerTests(unittest.TestCase):
             colors_rgba=tuple(
                 (20 + index % 200, 100, 180, 153) for index in range(point_count)
             ),
-            point_statuses=("domain",) * point_count,
+            point_statuses=("domain_type",) * point_count,
         )
 
         started_at = time.perf_counter()
@@ -189,6 +189,21 @@ class STMSeriesViewerTests(unittest.TestCase):
         self.assertEqual(self.viewer.m6_overlay_graphics_item_count(), 0)
         self.assertEqual(self.viewer.visible_molecular_detection_count(), 1)
         self.assertEqual(self.viewer.visible_molecular_segmentation_count(), 1)
+
+    def test_domain_type_overlay_exposes_non_tracking_tooltip(self) -> None:
+        self.viewer = STMSeriesViewer()
+        overlay = M6PointOverlay(
+            mode="domain_type",
+            source_ids=("molecule-a",),
+            points_xy_px=((1.0, 2.0),),
+            colors_rgba=((20, 100, 180, 153),),
+            point_statuses=("domain_type",),
+        )
+
+        self.viewer.show_m6_point_overlay(overlay)
+
+        self.assertIn("structural type", self.viewer.m6_overlay_tooltip().lower())
+        self.assertIn("domain id", self.viewer.m6_overlay_tooltip().lower())
 
     def test_many_small_sam2_masks_use_bbox_regions_on_large_frame(self) -> None:
         size = 1024

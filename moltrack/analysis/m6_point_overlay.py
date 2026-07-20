@@ -8,11 +8,20 @@ from typing import Literal, Sequence
 from .molecular_m6_analysis import MolecularM6OrientationAnalysis
 
 
-M6OverlayMode = Literal["none", "q6", "orientation", "domain_id"]
+M6AnalysisOverlayMode = Literal["none", "q6", "orientation", "domain_id"]
+M6OverlayMode = Literal[
+    "none",
+    "q6",
+    "orientation",
+    "domain_id",
+    "domain_type",
+]
 M6OverlayPointStatus = Literal[
     "q6",
     "orientation",
     "domain",
+    "domain_type",
+    "unclassified_domain",
     "small_ordered_island",
     "unassigned",
     "undefined_orientation",
@@ -21,11 +30,15 @@ M6OverlayPointStatus = Literal[
     "invalid_position",
 ]
 
-M6_OVERLAY_MODES: tuple[M6OverlayMode, ...] = (
+M6_ANALYSIS_OVERLAY_MODES: tuple[M6AnalysisOverlayMode, ...] = (
     "none",
     "q6",
     "orientation",
     "domain_id",
+)
+M6_OVERLAY_MODES: tuple[M6OverlayMode, ...] = (
+    *M6_ANALYSIS_OVERLAY_MODES,
+    "domain_type",
 )
 
 _UNASSIGNED_COLOR = (145, 155, 165)
@@ -108,13 +121,13 @@ class M6PointOverlay:
 def build_m6_point_overlay(
     point_states: Sequence[M6OverlayPointState],
     *,
-    mode: M6OverlayMode,
+    mode: M6AnalysisOverlayMode,
     opacity_percent: int,
     show_unassigned_points: bool = True,
 ) -> M6PointOverlay:
     """Map immutable M6 point states to one deterministic render batch."""
 
-    if mode not in M6_OVERLAY_MODES:
+    if mode not in M6_ANALYSIS_OVERLAY_MODES:
         raise ValueError(f"Unsupported M6 overlay mode: {mode!r}.")
     opacity = int(opacity_percent)
     if not 0 <= opacity <= 100:
@@ -150,7 +163,7 @@ def build_m6_point_overlay(
 def build_m6_point_overlay_from_analysis(
     analysis: MolecularM6OrientationAnalysis,
     *,
-    mode: M6OverlayMode,
+    mode: M6AnalysisOverlayMode,
     opacity_percent: int,
     show_unassigned_points: bool = True,
 ) -> M6PointOverlay:
@@ -189,7 +202,7 @@ def build_m6_point_overlay_from_analysis(
 def _point_color(
     point: M6OverlayPointState,
     *,
-    mode: M6OverlayMode,
+    mode: M6AnalysisOverlayMode,
 ) -> tuple[tuple[int, int, int], M6OverlayPointStatus, float]:
     if point.computation_status != "valid_order":
         status = point.computation_status

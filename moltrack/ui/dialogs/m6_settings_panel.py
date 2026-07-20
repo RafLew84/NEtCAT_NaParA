@@ -76,6 +76,7 @@ class M6SettingsPanel(QScrollArea):
                 ("q6", "q6"),
                 ("orientation", "Orientation"),
                 ("domain_id", "Domain ID"),
+                ("domain_type", "Domain Type"),
             )
         ):
             button = QPushButton(label, overlay_group)
@@ -83,6 +84,10 @@ class M6SettingsPanel(QScrollArea):
             self.overlay_mode_group.addButton(button, button_id)
             self._overlay_mode_buttons[mode] = button
             overlay_mode_row.addWidget(button)
+        self._overlay_mode_buttons["domain_type"].setToolTip(
+            "Color by shared structural type across classified ranges; unlike "
+            "Domain ID, this is not a tracked domain identity."
+        )
         overlay_layout.addLayout(overlay_mode_row)
         opacity_row = QHBoxLayout()
         opacity_row.addWidget(QLabel("Opacity", overlay_group))

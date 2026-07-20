@@ -123,7 +123,9 @@ from .molecular_m6_analysis import (
     analyze_molecular_m6_orientation,
 )
 from .m6_point_overlay import (
+    M6_ANALYSIS_OVERLAY_MODES,
     M6_OVERLAY_MODES,
+    M6AnalysisOverlayMode,
     M6OverlayMode,
     M6OverlayPointState,
     M6PointOverlay,
@@ -293,6 +295,8 @@ __all__ = [
     "MolecularM6ViewSettings",
     "MolecularM6OrientationAnalysis",
     "M6_OVERLAY_MODES",
+    "M6_ANALYSIS_OVERLAY_MODES",
+    "M6AnalysisOverlayMode",
     "M6OverlayMode",
     "M6OverlayPointState",
     "M6PointOverlay",

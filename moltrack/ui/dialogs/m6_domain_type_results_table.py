@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QSignalBlocker, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QHeaderView,
@@ -19,6 +19,7 @@ from moltrack.analysis import (
     M6DomainTypeRangeComparisonRow,
     M6SingleRangeDomainTypeSummary,
 )
+from moltrack.ui.m6_domain_type_selection import M6DomainTypeSelection
 
 
 _SINGLE_HEADERS = (
@@ -53,6 +54,7 @@ class _TablePresentation:
     summary: str
     headers: tuple[str, ...]
     rows: tuple[tuple[str, ...], ...]
+    selection_keys: tuple[M6DomainTypeSelection, ...]
     empty_message: str = ""
 
 
@@ -161,6 +163,8 @@ _COMPARISON_METRICS = (
 class M6DomainTypeResultsTable(QWidget):
     """Adaptive table for one-range summaries and joint range comparisons."""
 
+    domain_type_selection_changed = pyqtSignal(object)
+
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._table_result: (
@@ -205,6 +209,7 @@ class M6DomainTypeResultsTable(QWidget):
         self.table.setMinimumHeight(260)
         self.table.hide()
         layout.addWidget(self.table)
+        self.table.itemSelectionChanged.connect(self._emit_selection_changed)
 
     def set_table_result(
         self,
@@ -217,13 +222,20 @@ class M6DomainTypeResultsTable(QWidget):
             (M6SingleRangeDomainTypeSummary, M6DomainTypeRangeComparison),
         ):
             raise TypeError("result must be a domain type table result or None.")
+        previous_selection = self.selected_domain_type_key()
         self._table_result = result
         if result is None:
-            self._clear_table()
+            blocker = QSignalBlocker(self.table)
+            try:
+                self._clear_table()
+            finally:
+                del blocker
             self.summary_label.hide()
             self.empty_label.setText(str(empty_message))
             self.empty_label.show()
             self.table.hide()
+            if previous_selection is not None:
+                self.domain_type_selection_changed.emit(None)
             return
 
         presentation = (
@@ -235,8 +247,19 @@ class M6DomainTypeResultsTable(QWidget):
         self.summary_label.show()
         self.empty_label.setText(presentation.empty_message)
         self.empty_label.setVisible(bool(presentation.empty_message))
-        self._populate_table(presentation)
+        blocker = QSignalBlocker(self.table)
+        try:
+            self._populate_table(presentation)
+            if previous_selection in presentation.selection_keys:
+                self._select_key(previous_selection)
+        finally:
+            del blocker
         self.table.show()
+        if (
+            previous_selection is not None
+            and previous_selection not in presentation.selection_keys
+        ):
+            self.domain_type_selection_changed.emit(None)
 
     def table_result(
         self,
@@ -272,6 +295,25 @@ class M6DomainTypeResultsTable(QWidget):
             raise KeyError(f"Unknown domain type column: {header!r}.") from exc
         return self.table.item(row_index, column_index).text()
 
+    def selected_domain_type_key(self) -> M6DomainTypeSelection | None:
+        rows = self.table.selectionModel().selectedRows()
+        if not rows:
+            return None
+        return self.table.item(rows[0].row(), 0).data(Qt.ItemDataRole.UserRole)
+
+    def select_domain_type_key(
+        self,
+        key: M6DomainTypeSelection | None,
+    ) -> None:
+        if key is None:
+            self.table.clearSelection()
+            return
+        if not isinstance(key, M6DomainTypeSelection):
+            raise TypeError("key must be an M6 domain type selection or None.")
+        if key not in self._current_selection_keys():
+            raise KeyError(f"Unknown domain type selection key: {key!r}.")
+        self._select_key(key)
+
     def _clear_table(self) -> None:
         self.table.clear()
         self.table.setRowCount(0)
@@ -288,6 +330,17 @@ class M6DomainTypeResultsTable(QWidget):
         for row_index, values in enumerate(presentation.rows):
             for column_index, value in enumerate(values):
                 item = QTableWidgetItem(value)
+                if column_index == 0:
+                    key = presentation.selection_keys[row_index]
+                    item.setData(Qt.ItemDataRole.UserRole, key)
+                    item.setToolTip(
+                        "Unclassified structural domain; not a tracked domain."
+                        if key.is_unclassified
+                        else (
+                            f"Shared structural type {value}; not a tracked domain "
+                            "identity."
+                        )
+                    )
                 if column_index > 0:
                     item.setTextAlignment(
                         Qt.AlignmentFlag.AlignRight
@@ -295,6 +348,19 @@ class M6DomainTypeResultsTable(QWidget):
                     )
                 self.table.setItem(row_index, column_index, item)
         self.table.resizeRowsToContents()
+
+    def _current_selection_keys(self) -> tuple[M6DomainTypeSelection, ...]:
+        return tuple(
+            self.table.item(row_index, 0).data(Qt.ItemDataRole.UserRole)
+            for row_index in range(self.table.rowCount())
+        )
+
+    def _select_key(self, key: M6DomainTypeSelection) -> None:
+        row_index = self._current_selection_keys().index(key)
+        self.table.setCurrentCell(row_index, 0)
+
+    def _emit_selection_changed(self) -> None:
+        self.domain_type_selection_changed.emit(self.selected_domain_type_key())
 
 
 def _single_range_presentation(
@@ -357,6 +423,13 @@ def _single_range_presentation(
         summary=summary,
         headers=_SINGLE_HEADERS,
         rows=tuple(rows),
+        selection_keys=(
+            *tuple(
+                M6DomainTypeSelection.classified(row.domain_type_id)
+                for row in result.type_summaries
+            ),
+            M6DomainTypeSelection.unclassified(),
+        ),
         empty_message=(
             "No classified domain types. Unclassified observations are listed below."
             if not result.type_summaries
@@ -412,6 +485,13 @@ def _comparison_presentation(
         ),
         headers=tuple(headers),
         rows=tuple(rows),
+        selection_keys=(
+            *tuple(
+                M6DomainTypeSelection.classified(row.domain_type_id)
+                for row in result.rows
+            ),
+            M6DomainTypeSelection.unclassified(),
+        ),
         empty_message=(
             "No classified domain types. Unclassified observations are listed below."
             if not result.rows

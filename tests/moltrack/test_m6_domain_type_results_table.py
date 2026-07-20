@@ -285,6 +285,34 @@ class M6DomainTypeResultsTableTests(unittest.TestCase):
         self.assertIn("No classified domain types", self.widget.empty_state_text())
         self.assertFalse(self.widget.table.isHidden())
 
+    def test_row_selection_exposes_structural_type_without_tracking_semantics(self) -> None:
+        from moltrack.ui.m6_domain_type_selection import M6DomainTypeSelection
+
+        selected = []
+        self.widget.domain_type_selection_changed.connect(selected.append)
+        self.widget.set_table_result(_single_result())
+
+        classified = M6DomainTypeSelection.classified(0)
+        self.widget.select_domain_type_key(classified)
+
+        self.assertEqual(self.widget.selected_domain_type_key(), classified)
+        self.assertEqual(selected[-1], classified)
+        self.assertIn(
+            "not a tracked domain",
+            self.widget.table.item(0, 0).toolTip().lower(),
+        )
+
+        unclassified = M6DomainTypeSelection.unclassified()
+        self.widget.select_domain_type_key(unclassified)
+
+        self.assertEqual(self.widget.selected_domain_type_key(), unclassified)
+        self.assertEqual(selected[-1], unclassified)
+
+        self.widget.set_table_result(None)
+
+        self.assertIsNone(self.widget.selected_domain_type_key())
+        self.assertIsNone(selected[-1])
+
 
 if __name__ == "__main__":
     unittest.main()

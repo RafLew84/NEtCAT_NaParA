@@ -125,8 +125,13 @@ class MolecularM6SettingsPanelTests(unittest.TestCase):
 
         self.assertEqual(
             self.dialog.m6_overlay_mode_options(),
-            ("none", "q6", "orientation", "domain_id"),
+            ("none", "q6", "orientation", "domain_id", "domain_type"),
         )
+        domain_type_button = self.dialog.m6_settings_panel._overlay_mode_buttons[
+            "domain_type"
+        ]
+        self.assertIn("structural type", domain_type_button.toolTip().lower())
+        self.assertIn("domain id", domain_type_button.toolTip().lower())
         self.assertEqual(self.dialog.m6_view_settings(), expected)
         self.dialog.set_m6_overlay_mode("q6")
         self.dialog.m6_settings_panel.overlay_opacity.setValue(63)
@@ -135,6 +140,13 @@ class MolecularM6SettingsPanelTests(unittest.TestCase):
         self.assertEqual(received[-1].overlay_opacity_percent, 63)
         self.dialog.set_m6_overlay_mode("none")
         self.assertFalse(self.dialog.m6_view_settings().show_domain_overlay)
+
+        selected_types = []
+        self.dialog.m6_domain_type_selection_changed.connect(selected_types.append)
+        from moltrack.ui.m6_domain_type_selection import M6DomainTypeSelection
+        selection = M6DomainTypeSelection.classified(2)
+        self.dialog.domain_types_panel.domain_type_selection_changed.emit(selection)
+        self.assertEqual(selected_types, [selection])
 
     def test_validation_blocks_run_and_explains_default_seed_neighbor_threshold(self) -> None:
         self.assertEqual(self.dialog.m6_min_neighbors_for_seed_spin.value(), 5)

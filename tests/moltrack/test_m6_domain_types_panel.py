@@ -13,6 +13,7 @@ from moltrack.analysis import (
     compare_molecular_frame_ranges,
 )
 from moltrack.ui.m6_domain_type_worker import M6DomainTypeAnalysisProgress
+from moltrack.ui.m6_domain_type_selection import M6DomainTypeSelection
 from test_m6_range_analysis import _m6_settings, _selection
 from test_m6_range_trends_panel import _series
 
@@ -158,6 +159,14 @@ class M6DomainTypesPanelTests(unittest.TestCase):
             ("one domain", "two domains"),
         )
 
+        selected_types = []
+        self.panel.domain_type_selection_changed.connect(selected_types.append)
+        first_type = M6DomainTypeSelection.classified(
+            outcome.classification.domain_types[0].domain_type_id
+        )
+        self.panel.results_table.select_domain_type_key(first_type)
+        self.assertEqual(selected_types[-1], first_type)
+
         store.invalidate("classification_settings")
         self.panel.set_store_state(store.state)
         self.assertIn("out of date", self.panel.status_text().lower())
@@ -170,6 +179,7 @@ class M6DomainTypesPanelTests(unittest.TestCase):
         self.assertIsNone(self.panel.plots_panel.outcome())
         self.assertEqual(self.panel.plots_panel.scatter_point_count(), 0)
         self.assertIn("out of date", self.panel.plots_panel.status_text().lower())
+        self.assertIsNone(selected_types[-1])
 
         self.panel.set_error("synthetic classification failure")
         self.assertIn("synthetic classification failure", self.panel.status_text())
@@ -251,10 +261,37 @@ class M6DomainTypesPanelMainWindowTests(unittest.TestCase):
         )
         self.assertEqual(panel.plots_panel.share_legend_labels(), ("stable phase",))
 
+        detection_count = self.window.viewer.visible_molecular_detection_count()
+        first_type = M6DomainTypeSelection.classified(
+            store.current.classification.domain_types[0].domain_type_id
+        )
+        panel.results_table.select_domain_type_key(first_type)
+        self.__class__._app.processEvents()
+
+        self.assertEqual(dialog.m6_view_settings().overlay_mode, "domain_type")
+        self.assertGreater(self.window.viewer.visible_m6_overlay_count(), 0)
+        self.assertGreater(
+            len(self.window.viewer.highlighted_m6_overlay_source_ids()),
+            0,
+        )
+        self.assertEqual(
+            self.window.viewer.visible_molecular_detection_count(),
+            detection_count,
+        )
+        self.assertEqual(self.window._m6_selected_domain_type_key, first_type)
+        overlay_index = self.window._m6_domain_type_overlay_index
+
+        self.window._on_frame_selected(1)
+        self.__class__._app.processEvents()
+
+        self.assertIs(self.window._m6_domain_type_overlay_index, overlay_index)
+        self.assertGreater(self.window.viewer.visible_m6_overlay_count(), 0)
+
         panel.orientation_tolerance_deg.setValue(8.0)
         self.__class__._app.processEvents()
         self.assertIn("out of date", panel.status_text().lower())
         self.assertTrue(panel.classify_button.isEnabled())
+        self.assertEqual(self.window.viewer.visible_m6_overlay_count(), 0)
 
 
 if __name__ == "__main__":

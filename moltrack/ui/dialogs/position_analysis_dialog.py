@@ -70,6 +70,7 @@ class PositionAnalysisDialog(QDialog):
     m6_domain_selection_changed = pyqtSignal(object)
     m6_domain_type_classification_requested = pyqtSignal(object)
     m6_domain_type_settings_changed = pyqtSignal(object)
+    m6_domain_type_selection_changed = pyqtSignal(object)
 
     _INTENSITY_METRIC_OPTIONS = (
         ("Background-corrected median", "background_corrected_median"),
@@ -358,6 +359,9 @@ class PositionAnalysisDialog(QDialog):
         )
         self.domain_types_panel.settings_changed.connect(
             self.m6_domain_type_settings_changed.emit
+        )
+        self.domain_types_panel.domain_type_selection_changed.connect(
+            self.m6_domain_type_selection_changed.emit
         )
         self.tabs.addTab(self.domain_types_panel, "Domain Types")
         self.m6_advanced_group = self.m6_settings_panel.advanced_group

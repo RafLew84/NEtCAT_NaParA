@@ -42,6 +42,7 @@ class STMSeriesViewer(QWidget):
         self._visible_m6_overlay_colors: tuple[tuple[int, int, int, int], ...] = ()
         self._visible_m6_overlay_points_nm: tuple[tuple[float, float], ...] = ()
         self._highlighted_m6_overlay_source_ids: tuple[str, ...] = ()
+        self._m6_overlay_tooltip = ""
         self._visible_molecular_segmentation_count = 0
         self._visible_molecular_segmentation_ids: list[str] = []
         self._visible_molecular_segmentation_opacities: list[float] = []
@@ -232,6 +233,9 @@ class STMSeriesViewer(QWidget):
     def m6_overlay_graphics_item_count(self) -> int:
         return int(self._m6_point_overlay_item is not None)
 
+    def m6_overlay_tooltip(self) -> str:
+        return self._m6_overlay_tooltip
+
     def show_m6_point_overlay(
         self,
         overlay: M6PointOverlay,
@@ -258,6 +262,14 @@ class STMSeriesViewer(QWidget):
         if item is None:
             return
         self._m6_point_overlay_item = item
+        self._m6_overlay_tooltip = (
+            "Domain Type overlay: shared structural type across classified "
+            "frames, not the frame-local Domain ID."
+            if overlay.mode == "domain_type"
+            else ""
+        )
+        if self._m6_overlay_tooltip:
+            item.setToolTip(self._m6_overlay_tooltip)
         self._visible_m6_overlay_source_ids = overlay.source_ids
         self._visible_m6_overlay_colors = overlay.colors_rgba
         self._visible_m6_overlay_points_nm = tuple(
@@ -314,6 +326,7 @@ class STMSeriesViewer(QWidget):
         self._visible_m6_overlay_colors = ()
         self._visible_m6_overlay_points_nm = ()
         self._highlighted_m6_overlay_source_ids = ()
+        self._m6_overlay_tooltip = ""
 
     def selected_molecular_detection_id(self) -> str | None:
         return self._selected_molecular_detection_id

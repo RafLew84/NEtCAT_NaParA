@@ -81,6 +81,12 @@ from moltrack.persistence import (
 from moltrack.ui.dialogs import ExportAnalysisDialog, PositionAnalysisDialog
 from moltrack.ui.dialogs.m6_settings_panel import M6SettingsPanel
 from moltrack.ui.m6_domain_type_worker import M6DomainTypeAnalysisController
+from moltrack.ui.m6_domain_type_overlay import (
+    M6DomainTypeOverlayIndex,
+    build_m6_domain_type_frame_overlay,
+    build_m6_domain_type_overlay_index,
+)
+from moltrack.ui.m6_domain_type_selection import M6DomainTypeSelection
 from moltrack.ui.widgets import STMSeriesViewer, SeriesMetadataPanel
 from moltrack.yolo import MolTrackYoloDetector, YoloBBoxSizeFilter, discover_yolo_models
 from moltrack.sam2 import (
@@ -1104,6 +1110,8 @@ class MolTrackMainWindow(QMainWindow):
         self._m6_rendered_view_settings: MolecularM6ViewSettings | None = None
         self._m6_current_results_analysis = None
         self._m6_selected_ordered_component_id: int | None = None
+        self._m6_selected_domain_type_key: M6DomainTypeSelection | None = None
+        self._m6_domain_type_overlay_index: M6DomainTypeOverlayIndex | None = None
         self._m6_pending_session_state: MolecularM6SessionState | None = None
         self._m6_enable_on_success = True
         self._m6_target_tab = "Sixfold Bond Order"
@@ -1592,6 +1600,8 @@ class MolTrackMainWindow(QMainWindow):
 
     def set_image_series(self, series) -> None:
         self._m6_domain_type_controller.clear_for_series_change()
+        self._m6_selected_domain_type_key = None
+        self._m6_domain_type_overlay_index = None
         if self._position_analysis_dialog is not None:
             previous_dialog = self._position_analysis_dialog
             self._position_analysis_dialog = None
@@ -2999,6 +3009,9 @@ class MolTrackMainWindow(QMainWindow):
             dialog.m6_domain_type_settings_changed.connect(
                 self._on_m6_domain_type_settings_changed
             )
+            dialog.m6_domain_type_selection_changed.connect(
+                self._on_m6_domain_type_selection_changed
+            )
             self._position_analysis_dialog = dialog
             state = getattr(self._series, "m6_analysis_state", None)
             if isinstance(state, MolecularM6SessionState):
@@ -3050,6 +3063,23 @@ class MolTrackMainWindow(QMainWindow):
     def _on_m6_domain_type_settings_changed(self, _settings) -> None:
         self._m6_domain_type_controller.invalidate("classification_settings")
         self._sync_m6_domain_type_panel()
+        self._render_current_m6_overlay()
+
+    def _on_m6_domain_type_selection_changed(self, type_key) -> None:
+        if type_key is not None and not isinstance(
+            type_key,
+            M6DomainTypeSelection,
+        ):
+            return
+        self._m6_selected_domain_type_key = type_key
+        self._m6_selected_ordered_component_id = None
+        dialog = self._position_analysis_dialog
+        if type_key is not None and dialog is not None:
+            view = dialog.m6_view_settings()
+            if not view.show_domain_overlay or view.overlay_mode != "domain_type":
+                dialog.set_m6_overlay_mode("domain_type")
+                return
+        self._render_current_m6_overlay()
 
     def _current_m6_domain_type_analysis_source(
         self,
@@ -3120,6 +3150,7 @@ class MolTrackMainWindow(QMainWindow):
     @pyqtSlot(object)
     def _on_m6_domain_type_finished(self, _outcome) -> None:
         self._sync_m6_domain_type_panel()
+        self._render_current_m6_overlay()
         self.statusBar().showMessage(
             "Structural domain type classification complete",
             5000,
@@ -3155,6 +3186,7 @@ class MolTrackMainWindow(QMainWindow):
             M6DomainTypeAnalysisStoreState,
         ):
             dialog.set_m6_domain_type_store_state(state)
+        self._render_current_m6_overlay()
 
     def _on_m6_ttmapp_preset_requested(self) -> None:
         series = self._series
@@ -4896,14 +4928,44 @@ class MolTrackMainWindow(QMainWindow):
                 )
             return
         view = state.view_settings
-        overlay = build_m6_point_overlay_from_analysis(
-            analysis,
-            mode=view.overlay_mode,
-            opacity_percent=view.overlay_opacity_percent,
-            show_unassigned_points=view.show_unassigned_points,
-        )
+        if view.overlay_mode == "domain_type":
+            classification = self._current_m6_domain_type_classification()
+            if classification is None:
+                self.viewer.clear_m6_point_overlay()
+                self._m6_rendered_analysis = None
+                self._m6_rendered_view_settings = None
+                return
+            overlay_index = self._m6_domain_type_overlay_index
+            if (
+                overlay_index is None
+                or overlay_index.classification is not classification
+            ):
+                overlay_index = build_m6_domain_type_overlay_index(
+                    classification
+                )
+                self._m6_domain_type_overlay_index = overlay_index
+            projection = build_m6_domain_type_frame_overlay(
+                analysis,
+                overlay_index,
+                frame_index=series.active_frame_index,
+                opacity_percent=view.overlay_opacity_percent,
+                selection=self._m6_selected_domain_type_key,
+            )
+            overlay = projection.overlay
+        else:
+            projection = None
+            overlay = build_m6_point_overlay_from_analysis(
+                analysis,
+                mode=view.overlay_mode,
+                opacity_percent=view.overlay_opacity_percent,
+                show_unassigned_points=view.show_unassigned_points,
+            )
         self.viewer.show_m6_point_overlay(overlay)
-        if self._m6_selected_ordered_component_id is not None:
+        if projection is not None:
+            self.viewer.highlight_m6_overlay_source_ids(
+                projection.highlighted_source_ids
+            )
+        elif self._m6_selected_ordered_component_id is not None:
             self._on_m6_domain_selection_changed(
                 self._m6_selected_ordered_component_id
             )
@@ -4924,6 +4986,7 @@ class MolTrackMainWindow(QMainWindow):
             or not current.show_domain_overlay
             or replace(previous, overlay_opacity_percent=current.overlay_opacity_percent)
             != current
+            or current.overlay_mode == "domain_type"
         ):
             return False
         overlay = build_m6_point_overlay_from_analysis(
@@ -4936,6 +4999,27 @@ class MolTrackMainWindow(QMainWindow):
             return False
         self._m6_rendered_view_settings = current
         return True
+
+    def _current_m6_domain_type_classification(self):
+        state = getattr(self._m6_domain_type_store, "state", None)
+        if (
+            not isinstance(state, M6DomainTypeAnalysisStoreState)
+            or state.status != "current"
+            or state.outcome is None
+        ):
+            self._m6_domain_type_overlay_index = None
+            return None
+        classification = state.outcome.classification
+        if (
+            classification is None
+            or self._series is None
+            or classification.analysis_scope.frame_count != self._series.frame_count
+            or classification.analysis_scope.source_view
+            != self._current_yolo_source_view()
+        ):
+            self._m6_domain_type_overlay_index = None
+            return None
+        return classification
 
     def _current_m6_analysis_result(self):
         series = self._series

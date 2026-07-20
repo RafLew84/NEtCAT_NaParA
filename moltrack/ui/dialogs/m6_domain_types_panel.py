@@ -51,6 +51,7 @@ class M6DomainTypesPanel(QScrollArea):
 
     classification_requested = pyqtSignal(object)
     settings_changed = pyqtSignal(object)
+    domain_type_selection_changed = pyqtSignal(object)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -122,6 +123,9 @@ class M6DomainTypesPanel(QScrollArea):
         layout.addWidget(self.status_label)
 
         self.results_table = M6DomainTypeResultsTable(content)
+        self.results_table.domain_type_selection_changed.connect(
+            self.domain_type_selection_changed.emit
+        )
         layout.addWidget(self.results_table)
 
         self.plots_panel = M6DomainTypePlotsPanel(content)
