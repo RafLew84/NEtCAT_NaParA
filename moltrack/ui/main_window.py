@@ -33,6 +33,7 @@ from PyQt6.QtWidgets import (
 )
 
 from moltrack.analysis import (
+    M6DomainTypeAnalysisContext,
     M6DomainTypeAnalysisStoreState,
     M6DomainTypeAnalysisStore,
     M6DomainTypeAnalysisSource,
@@ -51,6 +52,7 @@ from moltrack.analysis import (
     aggregate_pair_correlation_results,
     adapt_m6_domain_type_analysis_source,
     analyze_molecular_frame_range,
+    build_m6_domain_type_analysis_context,
     build_m6_point_overlay_from_analysis,
     build_m6_current_frame_results,
     build_molecular_intensity_measurements,
@@ -258,6 +260,7 @@ class _M6AnalysisProgress:
 class _PositionRangeAnalysisExecution:
     result: MolecularFrameRangeAnalysis | MolecularFrameRangeComparison
     source: M6DomainTypeAnalysisSource
+    domain_type_restore_context: M6DomainTypeAnalysisContext | None = None
 
 
 @dataclass(frozen=True)
@@ -307,6 +310,9 @@ def _execute_position_range_analysis(
     comparator,
     series,
     scope: MolecularFrameRangeAnalysisScope,
+    domain_type_classification_settings: (
+        M6DomainTypeClassificationSettings | None
+    ) = None,
     **kwargs,
 ) -> _PositionRangeAnalysisExecution:
     if not isinstance(scope, MolecularFrameRangeAnalysisScope):
@@ -340,7 +346,21 @@ def _execute_position_range_analysis(
         and source.m6_settings != kwargs["m6_orientation_settings"]
     ):
         raise ValueError("Range analysis backend returned another M6 settings context.")
-    return _PositionRangeAnalysisExecution(result=result, source=source)
+    domain_type_restore_context = None
+    if domain_type_classification_settings is not None:
+        try:
+            domain_type_restore_context = build_m6_domain_type_analysis_context(
+                source,
+                classification_settings=domain_type_classification_settings,
+            )
+        except Exception:
+            # Optional cache validation cannot invalidate a completed M6 result.
+            domain_type_restore_context = None
+    return _PositionRangeAnalysisExecution(
+        result=result,
+        source=source,
+        domain_type_restore_context=domain_type_restore_context,
+    )
 
 
 class _M6PositionAnalysisWorker(QObject):
@@ -360,6 +380,9 @@ class _M6PositionAnalysisWorker(QObject):
         background_inner_radius_px: int,
         background_outer_radius_px: int,
         settings: MolecularM6OrientationAnalysisSettings,
+        domain_type_classification_settings: (
+            M6DomainTypeClassificationSettings | None
+        ) = None,
     ) -> None:
         super().__init__()
         self._analyzer = analyzer
@@ -371,6 +394,9 @@ class _M6PositionAnalysisWorker(QObject):
         self._background_inner_radius_px = int(background_inner_radius_px)
         self._background_outer_radius_px = int(background_outer_radius_px)
         self._settings = settings
+        self._domain_type_classification_settings = (
+            domain_type_classification_settings
+        )
 
     @pyqtSlot()
     def run(self) -> None:
@@ -389,6 +415,9 @@ class _M6PositionAnalysisWorker(QObject):
                 self._comparator,
                 self._series,
                 self._scope,
+                domain_type_classification_settings=(
+                    self._domain_type_classification_settings
+                ),
                 use_segmentation_centroids=self._use_segmentation_centroids,
                 intensity_metric=self._intensity_metric,
                 background_inner_radius_px=self._background_inner_radius_px,
@@ -1114,6 +1143,9 @@ class MolTrackMainWindow(QMainWindow):
         self._m6_selected_domain_type_key: M6DomainTypeSelection | None = None
         self._m6_domain_type_overlay_index: M6DomainTypeOverlayIndex | None = None
         self._m6_pending_session_state: MolecularM6SessionState | None = None
+        self._m6_pending_domain_type_session_state: (
+            M6DomainTypeSessionState | None
+        ) = None
         self._m6_enable_on_success = True
         self._m6_target_tab = "Sixfold Bond Order"
         self._m6_density_grid_shape = (32, 32)
@@ -1603,6 +1635,7 @@ class MolTrackMainWindow(QMainWindow):
         self._m6_domain_type_controller.clear_for_series_change()
         self._m6_selected_domain_type_key = None
         self._m6_domain_type_overlay_index = None
+        self._m6_pending_domain_type_session_state = None
         if self._position_analysis_dialog is not None:
             previous_dialog = self._position_analysis_dialog
             self._position_analysis_dialog = None
@@ -3178,6 +3211,7 @@ class MolTrackMainWindow(QMainWindow):
         dialog = self._position_analysis_dialog
         if dialog is not None:
             dialog.set_m6_domain_type_running(running)
+        self._sync_navigation_controls()
 
     @pyqtSlot(object)
     def _on_m6_domain_type_state_changed(self, state) -> None:
@@ -3410,6 +3444,12 @@ class MolTrackMainWindow(QMainWindow):
             background_inner_radius_px=inner_radius,
             background_outer_radius_px=outer_radius,
             settings=settings,
+            domain_type_classification_settings=(
+                self._m6_pending_domain_type_session_state.classification_settings
+                if self._m6_pending_domain_type_session_state is not None
+                and self._m6_pending_domain_type_session_state.cache_record is not None
+                else None
+            ),
         )
         self._m6_analysis_thread = thread
         self._m6_analysis_worker = worker
@@ -3477,6 +3517,10 @@ class MolTrackMainWindow(QMainWindow):
                     execution.result,
                     self._m6_pending_session_state.settings,
                 )
+        self._restore_pending_m6_domain_type_state(
+            execution.source,
+            context=execution.domain_type_restore_context,
+        )
         self._render_current_m6_overlay()
         self._sync_m6_domain_type_panel()
         self.statusBar().showMessage("M6 orientation analysis complete", 5000)
@@ -5234,7 +5278,11 @@ class MolTrackMainWindow(QMainWindow):
         self.action_open_stm.setEnabled(enabled)
         self.action_open_stm_reverse.setEnabled(enabled)
         self.action_open_state.setEnabled(enabled)
-        can_save_state = enabled and self._series is not None
+        can_save_state = (
+            enabled
+            and self._series is not None
+            and not self._m6_domain_type_controller.is_running
+        )
         self.action_save_state.setEnabled(can_save_state)
         self.action_save_state_as.setEnabled(can_save_state)
 
@@ -5305,7 +5353,11 @@ class MolTrackMainWindow(QMainWindow):
         self._start_save_state(path)
 
     def _start_save_state(self, path) -> None:
-        if self._series is None or self._state_io_running:
+        if (
+            self._series is None
+            or self._state_io_running
+            or self._m6_domain_type_controller.is_running
+        ):
             return
         try:
             ui_state = self._current_ui_state()
@@ -5344,7 +5396,10 @@ class MolTrackMainWindow(QMainWindow):
         thread.start()
 
     def save_state(self, path) -> None:
-        if self._series is None:
+        if (
+            self._series is None
+            or self._m6_domain_type_controller.is_running
+        ):
             return
         try:
             self._session_saver(path, self._series, self._current_ui_state())
@@ -5382,7 +5437,7 @@ class MolTrackMainWindow(QMainWindow):
                     "start_frame": selection.second_range.start_frame,
                     "end_frame": selection.second_range.end_frame,
                 },
-                "comparison_completed": dialog.has_range_comparison(),
+                "comparison_completed": dialog.has_active_range_analysis(),
                 "active_tab": dialog.active_analysis_tab(),
                 "density_grid_shape": list(dialog.density_grid_shape()),
                 "use_segmentation_centroids": dialog.use_segmentation_centroids(),
@@ -5587,10 +5642,17 @@ class MolTrackMainWindow(QMainWindow):
         bbox_opacity_percent = getattr(session, "bbox_opacity_percent", 100)
         mask_opacity_percent = getattr(session, "mask_opacity_percent", 30)
         position_analysis_state = getattr(session, "position_analysis", None)
+        domain_type_state = getattr(
+            session,
+            "m6_domain_type_analysis_state",
+            None,
+        )
         m6_state = getattr(series, "m6_analysis_state", None)
         if isinstance(m6_state, MolecularM6SessionState):
             M6SettingsPanel.validate_gr_settings_representable(m6_state.settings)
         self.set_image_series(series)
+        if isinstance(domain_type_state, M6DomainTypeSessionState):
+            self._prepare_loaded_m6_domain_type_state(domain_type_state)
         self._session_path = str(path)
         self._set_registration_view_mode(registration_view_mode)
         self.chk_show_bboxes.setChecked(bool(bbox_overlay_visible))
@@ -5600,10 +5662,22 @@ class MolTrackMainWindow(QMainWindow):
         self._show_current_frame()
         self.metadata_panel.set_image_series(series)
         if position_analysis_state is not None:
-            self._restore_position_analysis_state(position_analysis_state)
+            self._restore_position_analysis_state(
+                position_analysis_state,
+                domain_type_state=domain_type_state,
+            )
+        elif isinstance(domain_type_state, M6DomainTypeSessionState):
+            self._restore_domain_type_state_without_position_analysis(
+                domain_type_state
+            )
         self.statusBar().showMessage(f"Loaded state {path}", 5000)
 
-    def _restore_position_analysis_state(self, state) -> None:
+    def _restore_position_analysis_state(
+        self,
+        state,
+        *,
+        domain_type_state: M6DomainTypeSessionState | None = None,
+    ) -> None:
         if self._series is None:
             return
         expected_view_mode = (
@@ -5648,6 +5722,11 @@ class MolTrackMainWindow(QMainWindow):
             ),
         )
         dialog.apply_frame_range_selection(selection, notify=False)
+        if isinstance(domain_type_state, M6DomainTypeSessionState):
+            self._restore_m6_domain_type_configuration(
+                dialog,
+                domain_type_state,
+            )
         m6_state = getattr(self._series, "m6_analysis_state", None)
         if (
             state.comparison_completed
@@ -5663,19 +5742,131 @@ class MolTrackMainWindow(QMainWindow):
             )
             return
         if state.comparison_completed:
-            comparison = compare_molecular_frame_ranges(
+            execution = _execute_position_range_analysis(
+                self._position_range_analyzer,
+                self._position_range_comparator,
                 self._series,
-                selection,
+                dialog.frame_range_analysis_scope(),
                 use_segmentation_centroids=use_segmentation_centroids,
                 intensity_metric=intensity_metric,
                 background_inner_radius_px=dialog.intensity_background_radii()[0],
                 background_outer_radius_px=dialog.intensity_background_radii()[1],
             )
-            dialog.set_range_comparison(
-                comparison,
+            dialog.set_range_analysis_result(
+                execution.result,
                 density_grid_shape=state.density_grid_shape,
             )
         dialog.activate_analysis_tab(state.active_tab)
+
+    def _prepare_loaded_m6_domain_type_state(
+        self,
+        state: M6DomainTypeSessionState,
+    ) -> None:
+        series = self._series
+        if series is None:
+            return
+        if state.analysis_scope.frame_count != series.frame_count:
+            self._m6_domain_type_controller.mark_out_of_date(
+                "restored_scope_mismatch"
+            )
+            return
+        self._m6_pending_domain_type_session_state = state
+        self._m6_domain_type_controller.mark_out_of_date(
+            "restored_cache_missing"
+            if state.cache_record is None
+            else "restored_cache_pending_validation"
+        )
+
+    def _restore_m6_domain_type_configuration(
+        self,
+        dialog,
+        state: M6DomainTypeSessionState,
+    ) -> None:
+        scope = state.analysis_scope
+        if self._series is None or scope.frame_count != self._series.frame_count:
+            return
+        current_selection = dialog.frame_range_selection()
+        if scope.analysis_mode == "single_range":
+            first_range = scope.single_range
+            second_range = current_selection.second_range
+        else:
+            first_range, second_range = scope.comparison_ranges
+        dialog.set_analysis_mode(scope.analysis_mode, notify=False)
+        dialog.apply_frame_range_selection(
+            MolecularFrameRangeSelection(
+                frame_count=scope.frame_count,
+                source_view=scope.source_view,
+                first_range=first_range,
+                second_range=second_range,
+            ),
+            notify=False,
+        )
+        dialog.domain_types_panel.set_settings(
+            state.classification_settings,
+            notify=False,
+        )
+        self._sync_m6_domain_type_panel()
+
+    def _restore_domain_type_state_without_position_analysis(
+        self,
+        state: M6DomainTypeSessionState,
+    ) -> None:
+        self._on_position_analysis_requested()
+        dialog = self._position_analysis_dialog
+        if dialog is None:
+            return
+        self._restore_m6_domain_type_configuration(dialog, state)
+        m6_state = getattr(self._series, "m6_analysis_state", None)
+        if isinstance(m6_state, MolecularM6SessionState) and m6_state.enabled:
+            dialog.activate_analysis_tab("Domain Types")
+            self._start_m6_analysis(
+                m6_state.settings,
+                enable_on_success=True,
+                allow_during_state_open=True,
+            )
+
+    def _restore_pending_m6_domain_type_state(
+        self,
+        source: M6DomainTypeAnalysisSource,
+        *,
+        context: M6DomainTypeAnalysisContext | None,
+    ) -> None:
+        state = self._m6_pending_domain_type_session_state
+        if state is None:
+            return
+        try:
+            if state.cache_record is None:
+                self._m6_domain_type_controller.mark_out_of_date(
+                    "restored_cache_missing"
+                )
+                return
+            if context is None or context.source != source:
+                raise ValueError("Restored cache context was not reconstructed.")
+            m6_context_fingerprint = context.shared_m6_context_fingerprint
+            outcome = (
+                None
+                if m6_context_fingerprint is None
+                else state.restore_outcome_for(
+                    analysis_scope=context.analysis_scope,
+                    m6_context_fingerprint=m6_context_fingerprint,
+                    context_fingerprint=context.fingerprint,
+                )
+            )
+            if outcome is None:
+                self._m6_domain_type_controller.mark_out_of_date(
+                    "restored_cache_mismatch"
+                )
+            else:
+                self._m6_domain_type_controller.restore_persisted(
+                    context,
+                    outcome,
+                )
+        except (TypeError, ValueError):
+            self._m6_domain_type_controller.mark_out_of_date(
+                "restored_cache_mismatch"
+            )
+        finally:
+            self._m6_pending_domain_type_session_state = None
 
     def _choose_and_open_stm(self, *, reverse_frame_order: bool) -> None:
         path, _selected_filter = QFileDialog.getOpenFileName(

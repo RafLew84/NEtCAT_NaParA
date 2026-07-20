@@ -27,6 +27,7 @@ class _BlockingStore:
         self.release = threading.Event()
         self.worker_thread_ids = []
         self.publish_calls = []
+        self.restore_calls = []
         self.invalidation_reasons = []
         self.state = "initial state"
 
@@ -55,6 +56,11 @@ class _BlockingStore:
         self.publish_calls.append(computation)
         self.current = computation
         return computation
+
+    def restore(self, context, outcome):
+        self.restore_calls.append((context, outcome))
+        self.current = outcome
+        self.state = "restored"
 
 
 @unittest.skipUnless(QApplication is not None, "PyQt6 is required for worker tests")
@@ -223,6 +229,46 @@ class M6DomainTypeAnalysisControllerTests(unittest.TestCase):
         self.assertEqual(store.invalidation_reasons, ["classification_settings"])
         self.assertEqual(states, ["out_of_date:classification_settings"])
         self.assertEqual(store.publish_calls, [])
+
+    def test_restore_waits_for_canceled_previous_series_worker(self) -> None:
+        store = _BlockingStore()
+        self.controller = M6DomainTypeAnalysisController(store)
+        states = []
+        self.controller.state_changed.connect(states.append)
+        self.assertTrue(
+            self.controller.start(object(), classification_settings=object())
+        )
+        self.process_events_until(store.started.is_set)
+
+        context = object()
+        outcome = object()
+        self.controller.clear_for_series_change()
+        self.controller.restore_persisted(context, outcome)
+
+        self.assertEqual(store.restore_calls, [])
+        store.release.set()
+        self.process_events_until(lambda: not self.controller.is_running)
+
+        self.assertEqual(store.publish_calls, [])
+        self.assertEqual(store.restore_calls, [(context, outcome)])
+        self.assertIs(store.current, outcome)
+        self.assertEqual(states[-1], "restored")
+
+    def test_invalidation_discards_a_queued_restored_result(self) -> None:
+        store = _BlockingStore()
+        self.controller = M6DomainTypeAnalysisController(store)
+        self.assertTrue(
+            self.controller.start(object(), classification_settings=object())
+        )
+        self.process_events_until(store.started.is_set)
+
+        self.controller.restore_persisted(object(), object())
+        self.controller.invalidate("classification_settings")
+        store.release.set()
+        self.process_events_until(lambda: not self.controller.is_running)
+
+        self.assertEqual(store.restore_calls, [])
+        self.assertEqual(store.state, "out_of_date:classification_settings")
 
 
 if __name__ == "__main__":

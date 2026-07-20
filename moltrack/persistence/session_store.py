@@ -364,9 +364,13 @@ def _m6_domain_type_state_from_payload(
 ) -> M6DomainTypeSessionState | None:
     if payload is None:
         return None
-    return M6DomainTypeSessionState.from_dict(
-        _require_mapping(payload, "m6_domain_type_analysis")
-    )
+    try:
+        return M6DomainTypeSessionState.from_dict(
+            _require_mapping(payload, "m6_domain_type_analysis")
+        )
+    except (TypeError, ValueError):
+        # Domain-type analysis is optional and must not block core session data.
+        return None
 
 
 def _m6_analysis_state_from_ui_or_series(

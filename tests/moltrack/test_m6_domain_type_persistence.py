@@ -211,6 +211,27 @@ class M6DomainTypePersistenceTests(unittest.TestCase):
 
         self.assertIsNone(legacy.m6_domain_type_analysis_state)
 
+    def test_incompatible_domain_type_configuration_does_not_block_session_load(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            directory = Path(tmpdir)
+            source_path = directory / "movie.mpp"
+            source_path.write_bytes(b"domain type persistence source")
+            session_path = directory / "state.moltrack.json"
+            state = M6DomainTypeSessionState.from_outcome(_single_outcome())
+            save_moltrack_session(
+                session_path,
+                _series(source_path),
+                {"m6_domain_type_analysis": state},
+            )
+            payload = json.loads(session_path.read_text(encoding="utf-8"))
+            payload["m6_domain_type_analysis"]["configuration_schema_version"] = 999
+            session_path.write_text(json.dumps(payload), encoding="utf-8")
+
+            loaded = load_moltrack_session(session_path)
+
+        self.assertIsNone(loaded.m6_domain_type_analysis_state)
+        self.assertEqual(loaded.source_frame_indices, (0,))
+
 
 if __name__ == "__main__":
     unittest.main()

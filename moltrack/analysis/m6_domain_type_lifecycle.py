@@ -359,12 +359,17 @@ class M6DomainTypeAnalysisStoreState:
             if self.outcome is not None or self.invalidation_reason is not None:
                 raise ValueError("An empty store cannot expose a result or reason.")
             return
-        if not isinstance(self.outcome, M6DomainTypeAnalysisOutcome):
-            raise TypeError("A non-empty store requires an analysis outcome.")
         if self.status == "current":
+            if not isinstance(self.outcome, M6DomainTypeAnalysisOutcome):
+                raise TypeError("A current store requires an analysis outcome.")
             if self.invalidation_reason is not None:
                 raise ValueError("A current result cannot have an invalidation reason.")
             return
+        if self.outcome is not None and not isinstance(
+            self.outcome,
+            M6DomainTypeAnalysisOutcome,
+        ):
+            raise TypeError("An out-of-date outcome must be an analysis outcome or None.")
         reason = str(self.invalidation_reason or "").strip()
         if not reason:
             raise ValueError("An out-of-date result requires an invalidation reason.")
@@ -400,6 +405,46 @@ class M6DomainTypeAnalysisStore:
             self._current = None
             self._current_context = None
             self._invalidation_reason = None
+            self._revision += 1
+
+    def restore(
+        self,
+        context: M6DomainTypeAnalysisContext,
+        outcome: M6DomainTypeAnalysisOutcome,
+    ) -> None:
+        """Publish a persisted result only after exact context reconstruction."""
+
+        if not isinstance(context, M6DomainTypeAnalysisContext):
+            raise TypeError("context must be an M6 domain type analysis context.")
+        if not isinstance(outcome, M6DomainTypeAnalysisOutcome):
+            raise TypeError("outcome must be an M6 domain type analysis outcome.")
+        if (
+            outcome.context_fingerprint != context.fingerprint
+            or outcome.analysis_scope != context.analysis_scope
+        ):
+            raise ValueError("Restored outcome does not match the reconstructed context.")
+        classification = outcome.classification
+        if classification is not None and (
+            classification.classification_settings
+            != context.classification_settings
+        ):
+            raise ValueError("Restored outcome settings do not match the context.")
+        with self._lock:
+            self._current = outcome
+            self._current_context = context
+            self._invalidation_reason = None
+            self._revision += 1
+
+    def mark_out_of_date(self, reason: str) -> None:
+        """Record that persisted settings need an explicit recalculation."""
+
+        reason = str(reason).strip()
+        if not reason:
+            raise ValueError("invalidation reason must not be empty.")
+        with self._lock:
+            self._current = None
+            self._current_context = None
+            self._invalidation_reason = reason
             self._revision += 1
 
     def invalidate(self, reason: str) -> bool:
@@ -549,6 +594,12 @@ class M6DomainTypeAnalysisStore:
 
     def _state_locked(self) -> M6DomainTypeAnalysisStoreState:
         if self._current is None:
+            if self._invalidation_reason is not None:
+                return M6DomainTypeAnalysisStoreState(
+                    status="out_of_date",
+                    outcome=None,
+                    invalidation_reason=self._invalidation_reason,
+                )
             return M6DomainTypeAnalysisStoreState(
                 status="empty",
                 outcome=None,

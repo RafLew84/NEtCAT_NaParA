@@ -17,6 +17,7 @@ from moltrack.analysis import (
     MolecularFrameRangeDifferences,
     MolecularM6OrientationAnalysisSettings,
     adapt_m6_domain_type_analysis_source,
+    build_m6_domain_type_analysis_context,
     classify_m6_domain_types,
     extract_m6_domain_type_observations,
 )
@@ -195,6 +196,68 @@ def _comparison(
 
 
 class M6DomainTypeLifecycleTests(unittest.TestCase):
+    def test_restored_outcome_is_current_only_with_its_exact_context(self) -> None:
+        source = adapt_m6_domain_type_analysis_source(
+            _range_analysis(MolecularFrameRange("condition", 0, 0)),
+            frame_count=1,
+        )
+        settings = _type_settings()
+        original_store = M6DomainTypeAnalysisStore()
+        outcome = original_store.analyze(
+            source,
+            classification_settings=settings,
+        )
+        context = build_m6_domain_type_analysis_context(
+            source,
+            classification_settings=settings,
+        )
+        restored_store = M6DomainTypeAnalysisStore()
+
+        restored_store.restore(context, outcome)
+
+        self.assertEqual(restored_store.state.status, "current")
+        self.assertIs(restored_store.current, outcome)
+        self.assertIs(
+            restored_store.current_for(
+                source,
+                classification_settings=settings,
+            ),
+            outcome,
+        )
+
+        incompatible_source = adapt_m6_domain_type_analysis_source(
+            _range_analysis(
+                MolecularFrameRange("condition", 0, 0),
+                component=_component(99, orientation_deg=25.0),
+            ),
+            frame_count=1,
+        )
+        incompatible_context = build_m6_domain_type_analysis_context(
+            incompatible_source,
+            classification_settings=settings,
+        )
+        with self.assertRaisesRegex(ValueError, "context"):
+            M6DomainTypeAnalysisStore().restore(incompatible_context, outcome)
+
+    def test_restore_mismatch_can_be_marked_out_of_date_without_stale_result(self) -> None:
+        store = M6DomainTypeAnalysisStore()
+
+        store.mark_out_of_date("restored_cache_mismatch")
+
+        self.assertEqual(
+            store.state,
+            M6DomainTypeAnalysisStoreState(
+                status="out_of_date",
+                outcome=None,
+                invalidation_reason="restored_cache_mismatch",
+            ),
+        )
+        self.assertIsNone(store.current)
+
+        store.clear()
+
+        self.assertEqual(store.state.status, "empty")
+
     def test_explicit_invalidation_requires_recalculation_before_result_is_current(self) -> None:
         source = adapt_m6_domain_type_analysis_source(
             _range_analysis(MolecularFrameRange("condition", 0, 0)),

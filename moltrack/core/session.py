@@ -24,6 +24,7 @@ SUPPORTED_POSITION_ANALYSIS_TABS = (
     "Range trends",
     "Spatial comparison",
     "Sixfold Bond Order",
+    "Domain Types",
 )
 SUPPORTED_POSITION_ANALYSIS_INTENSITY_METRICS = (
     "background_corrected_median",

@@ -10,6 +10,8 @@ from moltrack.analysis import (
     M6_DOMAIN_TYPE_ANALYSIS_COMPUTE_PHASES,
     M6DomainTypeAnalysisComputation,
     M6DomainTypeAnalysisComputePhase,
+    M6DomainTypeAnalysisContext,
+    M6DomainTypeAnalysisOutcome,
     M6DomainTypeAnalysisSource,
     M6DomainTypeAnalysisStore,
     M6DomainTypeClassificationSettings,
@@ -127,6 +129,10 @@ class M6DomainTypeAnalysisController(QObject):
         self._store = store
         self._thread: QThread | None = None
         self._worker: _M6DomainTypeAnalysisWorker | None = None
+        self._pending_restore: tuple[
+            M6DomainTypeAnalysisContext,
+            M6DomainTypeAnalysisOutcome,
+        ] | None = None
 
     @property
     def is_running(self) -> bool:
@@ -170,15 +176,36 @@ class M6DomainTypeAnalysisController(QObject):
 
     def clear_for_series_change(self) -> None:
         self._cancel_active()
+        self._pending_restore = None
         self._store.clear()
         self.state_changed.emit(self._store.state)
 
     def invalidate(self, reason: str) -> bool:
+        self._pending_restore = None
         canceled = self._cancel_active()
         invalidated = self._store.invalidate(reason)
         if invalidated:
             self.state_changed.emit(self._store.state)
         return canceled or invalidated
+
+    def restore_persisted(
+        self,
+        context: M6DomainTypeAnalysisContext,
+        outcome: M6DomainTypeAnalysisOutcome,
+    ) -> None:
+        if self.is_running:
+            self._cancel_active()
+            self._pending_restore = (context, outcome)
+            return
+        self._store.restore(context, outcome)
+        self.state_changed.emit(self._store.state)
+
+    def mark_out_of_date(self, reason: str) -> None:
+        self._pending_restore = None
+        if self.is_running:
+            self._cancel_active()
+        self._store.mark_out_of_date(reason)
+        self.state_changed.emit(self._store.state)
 
     def shutdown(self) -> bool:
         return not self.is_running
@@ -213,6 +240,15 @@ class M6DomainTypeAnalysisController(QObject):
         if self._thread is not None:
             self._thread.deleteLater()
             self._thread = None
+        pending_restore = self._pending_restore
+        self._pending_restore = None
+        if pending_restore is not None:
+            try:
+                self._store.restore(*pending_restore)
+            except Exception as exc:
+                self.failed.emit(str(exc) or exc.__class__.__name__)
+            else:
+                self.state_changed.emit(self._store.state)
         self.running_changed.emit(False)
 
 
