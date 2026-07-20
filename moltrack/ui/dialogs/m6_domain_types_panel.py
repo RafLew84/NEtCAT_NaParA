@@ -25,6 +25,7 @@ from moltrack.analysis import (
 )
 from moltrack.ui.m6_domain_type_worker import M6DomainTypeAnalysisProgress
 
+from .m6_domain_type_plots_panel import M6DomainTypePlotsPanel
 from .m6_domain_type_results_table import M6DomainTypeResultsTable
 
 
@@ -122,6 +123,9 @@ class M6DomainTypesPanel(QScrollArea):
 
         self.results_table = M6DomainTypeResultsTable(content)
         layout.addWidget(self.results_table)
+
+        self.plots_panel = M6DomainTypePlotsPanel(content)
+        layout.addWidget(self.plots_panel)
         layout.addStretch(1)
         self.setWidget(content)
 
@@ -379,11 +383,13 @@ class M6DomainTypesPanel(QScrollArea):
             outcome = self._store_state.outcome
             if outcome.table_result is not None:
                 self.results_table.set_table_result(outcome.table_result)
+                self.plots_panel.set_outcome(outcome)
                 return
             message = outcome.status_message
         else:
             message = "Classify domain types to show the result table."
         self.results_table.set_table_result(None, empty_message=message)
+        self.plots_panel.set_outcome(None, empty_message=message)
 
     def _completed_status(self, outcome: M6DomainTypeAnalysisOutcome) -> str:
         classification = outcome.classification

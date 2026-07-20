@@ -273,6 +273,19 @@ class M6SingleRangeDomainTypeSummaryTests(unittest.TestCase):
         self.assertEqual(result.domain_observation_count, 5)
         self.assertEqual(result.domain_type_count, 2)
         self.assertEqual(result.unclassified_observation_count, 1)
+        self.assertEqual(result.unclassified_aggregate.observation_count, 1)
+        self.assertAlmostEqual(
+            result.unclassified_aggregate.mean_instances_per_available_frame,
+            1.0 / 3.0,
+        )
+        self.assertAlmostEqual(
+            result.unclassified_aggregate.mean_molecule_fraction_of_valid_representatives,
+            0.1 / 3.0,
+        )
+        self.assertEqual(
+            result.unclassified_aggregate.mean_footprint_fraction_of_valid_fov,
+            0.0,
+        )
         self.assertAlmostEqual(
             result.mean_full_domains_per_available_frame,
             5.0 / 3.0,

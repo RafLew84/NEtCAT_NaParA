@@ -196,6 +196,7 @@ class M6SingleRangeDomainTypeSummary:
     domain_observation_count: int
     domain_type_count: int
     unclassified_observation_count: int
+    unclassified_aggregate: M6DomainTypeRangeAggregate
     full_domain_molecule_fraction: float | None
     full_domain_footprint_fraction: float | None
     type_summaries: tuple[M6SingleRangeDomainTypeRow, ...]
@@ -301,6 +302,21 @@ class M6SingleRangeDomainTypeSummary:
             self.unclassified_observation_count,
             "unclassified_observation_count",
         )
+        unclassified_aggregate = self.unclassified_aggregate
+        if not isinstance(unclassified_aggregate, M6DomainTypeRangeAggregate):
+            raise TypeError("unclassified_aggregate must be a range aggregate.")
+        if (
+            unclassified_aggregate.domain_type_id is not None
+            or unclassified_aggregate.label != "Unclassified"
+            or unclassified_aggregate.observation_count != unclassified_count
+        ):
+            raise ValueError("unclassified_aggregate has inconsistent identity or count.")
+        if (
+            unclassified_aggregate.available_frame_count,
+            unclassified_aggregate.valid_representative_fraction_frame_count,
+            unclassified_aggregate.valid_fov_fraction_frame_count,
+        ) != (available_count, representative_count, valid_fov_count):
+            raise ValueError("unclassified_aggregate uses inconsistent denominators.")
         type_summaries = tuple(self.type_summaries)
         if any(not isinstance(value, M6SingleRangeDomainTypeRow) for value in type_summaries):
             raise TypeError("type_summaries must contain type rows.")
@@ -359,6 +375,7 @@ class M6SingleRangeDomainTypeSummary:
             "domain_observation_count": domain_observation_count,
             "domain_type_count": domain_type_count,
             "unclassified_observation_count": unclassified_count,
+            "unclassified_aggregate": unclassified_aggregate,
             "full_domain_molecule_fraction": molecule_fraction,
             "full_domain_footprint_fraction": footprint_fraction,
             "type_summaries": type_summaries,
@@ -503,6 +520,7 @@ def build_m6_single_range_domain_type_summary(
         unclassified_observation_count=(
             range_aggregates.unclassified_aggregate.observation_count
         ),
+        unclassified_aggregate=range_aggregates.unclassified_aggregate,
         full_domain_molecule_fraction=_mean(molecule_fractions),
         full_domain_footprint_fraction=_mean(footprint_fractions),
         type_summaries=type_summaries,
