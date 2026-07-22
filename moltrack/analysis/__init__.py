@@ -28,6 +28,19 @@ from .local_sixfold_bond_order import (
     LocalOrientationStatus,
     LocalSixfoldBondOrderField,
 )
+from .local_multisymmetry_bond_order import (
+    LOCAL_MULTI_SYMMETRY_BOND_ORDER_SCHEMA_VERSION,
+    LocalMultiSymmetryBondOrderField,
+    LocalMultiSymmetryBondOrderProvenance,
+    LocalMultiSymmetryOrientationStatus,
+    M3SublatticePhaseStatus,
+    SymmetryResolvabilityStatus,
+    m3_lattice_orientation_distance_deg,
+)
+from .m3_sublattice_gauge import (
+    M3SublatticeGaugeAssignment,
+    build_m3_sublattice_gauge_assignment,
+)
 from .local_sixfold_bond_order_computation import compute_local_sixfold_bond_order
 from .sixfold_bond_order_aggregates import (
     SixfoldBondOrderAggregates,
@@ -330,6 +343,15 @@ __all__ = [
     "LocalOrderComputationStatus",
     "LocalOrientationStatus",
     "LocalSixfoldBondOrderField",
+    "LOCAL_MULTI_SYMMETRY_BOND_ORDER_SCHEMA_VERSION",
+    "LocalMultiSymmetryBondOrderField",
+    "LocalMultiSymmetryBondOrderProvenance",
+    "LocalMultiSymmetryOrientationStatus",
+    "M3SublatticePhaseStatus",
+    "SymmetryResolvabilityStatus",
+    "m3_lattice_orientation_distance_deg",
+    "M3SublatticeGaugeAssignment",
+    "build_m3_sublattice_gauge_assignment",
     "compute_local_sixfold_bond_order",
     "SixfoldBondOrderAggregates",
     "aggregate_local_sixfold_bond_order",
