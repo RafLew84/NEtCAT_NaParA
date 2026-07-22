@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
     QFormLayout,
+    QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -22,7 +23,9 @@ from PyQt6.QtWidgets import (
 
 from moltrack.analysis import (
     M6_OVERLAY_MODES,
+    M6_SYMMETRY_EVIDENCE_LEGEND,
     FirstShellSuggestionResult,
+    LocalSymmetryPointInspection,
     MolecularM6OrientationAnalysisSettings,
     MolecularM6ViewSettings,
 )
@@ -58,15 +61,15 @@ class M6SettingsPanel(QScrollArea):
         content = QWidget(self)
         layout = QVBoxLayout(content)
         terminology = QLabel(
-            "Local q6 | Global q6 coherence | M6 orientation domains",
+            "Local M3/M6 evidence | Global q6 coherence | M6 orientation domains",
             content,
         )
         terminology.setWordWrap(True)
         layout.addWidget(terminology)
 
-        overlay_group = QGroupBox("M6 point overlay", content)
+        overlay_group = QGroupBox("M3/M6 point overlay", content)
         overlay_layout = QVBoxLayout(overlay_group)
-        overlay_mode_row = QHBoxLayout()
+        overlay_mode_grid = QGridLayout()
         self.overlay_mode_group = QButtonGroup(self)
         self.overlay_mode_group.setExclusive(True)
         self._overlay_mode_buttons: dict[str, QPushButton] = {}
@@ -74,7 +77,10 @@ class M6SettingsPanel(QScrollArea):
             (
                 ("none", "None"),
                 ("q6", "q6"),
-                ("orientation", "Orientation"),
+                ("orientation", "M6 orientation"),
+                ("q3", "q3"),
+                ("m3_orientation", "M3 orientation"),
+                ("symmetry_evidence", "Symmetry evidence"),
                 ("domain_id", "Domain ID"),
                 ("domain_type", "Domain Type"),
             )
@@ -83,12 +89,31 @@ class M6SettingsPanel(QScrollArea):
             button.setCheckable(True)
             self.overlay_mode_group.addButton(button, button_id)
             self._overlay_mode_buttons[mode] = button
-            overlay_mode_row.addWidget(button)
+            overlay_mode_grid.addWidget(button, button_id // 4, button_id % 4)
         self._overlay_mode_buttons["domain_type"].setToolTip(
             "Color by shared structural type across classified ranges; unlike "
             "Domain ID, this is not a tracked domain identity."
         )
-        overlay_layout.addLayout(overlay_mode_row)
+        self._overlay_mode_buttons["symmetry_evidence"].setToolTip(
+            "Color by local trifold, sixfold, mixed, disordered, or ambiguous evidence."
+        )
+        overlay_layout.addLayout(overlay_mode_grid)
+        self.symmetry_evidence_legend = QWidget(overlay_group)
+        legend_grid = QGridLayout(self.symmetry_evidence_legend)
+        legend_grid.setContentsMargins(0, 0, 0, 0)
+        for index, (label, color) in enumerate(M6_SYMMETRY_EVIDENCE_LEGEND):
+            swatch = QLabel("", overlay_group)
+            swatch.setFixedSize(12, 12)
+            swatch.setStyleSheet(
+                f"background-color: rgb({color[0]}, {color[1]}, {color[2]});"
+            )
+            legend_grid.addWidget(swatch, index // 3, 2 * (index % 3))
+            legend_grid.addWidget(
+                QLabel(label, overlay_group),
+                index // 3,
+                2 * (index % 3) + 1,
+            )
+        overlay_layout.addWidget(self.symmetry_evidence_legend)
         opacity_row = QHBoxLayout()
         opacity_row.addWidget(QLabel("Opacity", overlay_group))
         self.overlay_opacity = QSlider(Qt.Orientation.Horizontal, overlay_group)
@@ -104,6 +129,19 @@ class M6SettingsPanel(QScrollArea):
         )
         overlay_layout.addWidget(self.show_unassigned_points)
         layout.addWidget(overlay_group)
+
+        selected_point_group = QGroupBox("Selected molecule M3/M6", content)
+        selected_point_layout = QVBoxLayout(selected_point_group)
+        self.selected_point_label = QLabel(
+            "Select a molecule in the image to inspect its local symmetry.",
+            selected_point_group,
+        )
+        self.selected_point_label.setWordWrap(True)
+        self.selected_point_label.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        selected_point_layout.addWidget(self.selected_point_label)
+        layout.addWidget(selected_point_group)
 
         self.current_frame_results_panel = M6CurrentFrameResultsPanel(content)
         self.current_frame_results_panel.domain_selection_changed.connect(
@@ -417,8 +455,57 @@ class M6SettingsPanel(QScrollArea):
     def overlay_mode_options(self) -> tuple[str, ...]:
         return M6_OVERLAY_MODES
 
+    def symmetry_evidence_legend_entries(
+        self,
+    ) -> tuple[tuple[str, tuple[int, int, int]], ...]:
+        return M6_SYMMETRY_EVIDENCE_LEGEND
+
     def set_current_frame_results(self, results) -> None:
         self.current_frame_results_panel.set_results(results)
+
+    def set_selected_point_inspection(
+        self,
+        inspection: LocalSymmetryPointInspection | None,
+    ) -> None:
+        if inspection is None:
+            self.selected_point_label.setText(
+                "Select a molecule in the image to inspect its local symmetry."
+            )
+            return
+        if not isinstance(inspection, LocalSymmetryPointInspection):
+            raise TypeError("inspection must be LocalSymmetryPointInspection or None.")
+        m3_angle = self._format_optional(inspection.m3_orientation_deg, " deg")
+        m6_angle = self._format_optional(inspection.m6_orientation_deg, " deg")
+        phase = (
+            "n/a"
+            if inspection.m3_sublattice_phase is None
+            else (
+                f"{inspection.m3_sublattice_phase} @ "
+                f"{inspection.m3_phase_gauge_anchor}"
+            )
+        )
+        edge_qc = "edge-truncated" if inspection.edge_truncated_neighborhood else "interior"
+        self.selected_point_label.setText(
+            f"{inspection.source_id}\n"
+            f"q3 {self._format_optional(inspection.q3)} | M3 {m3_angle} "
+            f"({inspection.m3_orientation_status}) | phase {phase} "
+            f"({inspection.m3_sublattice_phase_status})\n"
+            f"q6 {self._format_optional(inspection.q6)} | M6 {m6_angle} "
+            f"({inspection.m6_orientation_status})\n"
+            f"Evidence {inspection.symmetry_model} | confidence "
+            f"{self._format_optional(inspection.symmetry_confidence)} | "
+            f"margin {self._format_optional(inspection.symmetry_margin)}\n"
+            f"QC {inspection.computation_status} | neighbors "
+            f"{inspection.neighbor_count} | {edge_qc} | "
+            f"{inspection.symmetry_resolvability_status}"
+        )
+
+    def selected_point_text(self) -> str:
+        return self.selected_point_label.text()
+
+    @staticmethod
+    def _format_optional(value: float | None, suffix: str = "") -> str:
+        return "n/a" if value is None else f"{float(value):.3f}{suffix}"
 
     def set_range_trend_data(self, trend_data) -> None:
         self.range_trends_panel.set_trend_data(trend_data)
@@ -495,6 +582,7 @@ class M6SettingsPanel(QScrollArea):
             self.overlay_opacity_value.setText(
                 f"{settings.overlay_opacity_percent}%"
             )
+            self._sync_symmetry_evidence_legend()
         finally:
             del blockers
 
@@ -632,7 +720,13 @@ class M6SettingsPanel(QScrollArea):
     def _emit_view_settings_changed(self, _value=None) -> None:
         settings = self.view_settings()
         self._base_view_settings = settings
+        self._sync_symmetry_evidence_legend()
         self.view_settings_changed.emit(settings)
+
+    def _sync_symmetry_evidence_legend(self) -> None:
+        self.symmetry_evidence_legend.setVisible(
+            self.overlay_mode() == "symmetry_evidence"
+        )
 
     def suggestion_status_text(self) -> str:
         return self.suggestion_label.text()

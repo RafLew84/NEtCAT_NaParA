@@ -8,17 +8,36 @@ from typing import Literal, Sequence
 from .molecular_m6_analysis import MolecularM6OrientationAnalysis
 
 
-M6AnalysisOverlayMode = Literal["none", "q6", "orientation", "domain_id"]
+M6AnalysisOverlayMode = Literal[
+    "none",
+    "q6",
+    "orientation",
+    "q3",
+    "m3_orientation",
+    "symmetry_evidence",
+    "domain_id",
+]
 M6OverlayMode = Literal[
     "none",
     "q6",
     "orientation",
+    "q3",
+    "m3_orientation",
+    "symmetry_evidence",
     "domain_id",
     "domain_type",
 ]
 M6OverlayPointStatus = Literal[
     "q6",
     "orientation",
+    "q3",
+    "m3_orientation",
+    "symmetry_trifold",
+    "symmetry_sixfold",
+    "symmetry_mixed",
+    "symmetry_disordered",
+    "symmetry_ambiguous",
+    "symmetry_unavailable",
     "domain",
     "domain_type",
     "unclassified_domain",
@@ -34,6 +53,9 @@ M6_ANALYSIS_OVERLAY_MODES: tuple[M6AnalysisOverlayMode, ...] = (
     "none",
     "q6",
     "orientation",
+    "q3",
+    "m3_orientation",
+    "symmetry_evidence",
     "domain_id",
 )
 M6_OVERLAY_MODES: tuple[M6OverlayMode, ...] = (
@@ -48,6 +70,27 @@ _QC_COLORS = {
     "insufficient_neighbors": (135, 145, 150),
     "duplicate_excluded": (100, 110, 120),
     "invalid_position": (80, 85, 90),
+}
+M6_SYMMETRY_EVIDENCE_LEGEND: tuple[
+    tuple[str, tuple[int, int, int]], ...
+] = (
+    ("Trifold", (0, 150, 136)),
+    ("Sixfold", (40, 105, 205)),
+    ("Mixed", (180, 70, 170)),
+    ("Disordered", (220, 135, 35)),
+    ("Ambiguous", (135, 125, 150)),
+    ("Unavailable", (105, 110, 115)),
+)
+_SYMMETRY_COLORS = {
+    label.lower(): color for label, color in M6_SYMMETRY_EVIDENCE_LEGEND
+}
+_SYMMETRY_STATUSES: dict[str, M6OverlayPointStatus] = {
+    "trifold": "symmetry_trifold",
+    "sixfold": "symmetry_sixfold",
+    "mixed": "symmetry_mixed",
+    "disordered": "symmetry_disordered",
+    "ambiguous": "symmetry_ambiguous",
+    "unavailable": "symmetry_unavailable",
 }
 _VIRIDIS_STOPS = (
     (68, 1, 84),
@@ -72,6 +115,11 @@ class M6OverlayPointState:
     m6_orientation_domain_id: int
     ordered_component_id: int
     component_type: str
+    q3: float | None = None
+    m3_orientation_deg: float | None = None
+    m3_orientation_status: str = "unavailable"
+    symmetry_model: str | None = None
+    symmetry_confidence: float | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.source_id, str) or not self.source_id:
@@ -83,6 +131,25 @@ class M6OverlayPointState:
             raise ValueError("q6 must be None or lie between 0 and 1.")
         if self.orientation_deg is not None and not isfinite(float(self.orientation_deg)):
             raise ValueError("orientation_deg must be None or finite.")
+        if self.q3 is not None and not 0.0 <= float(self.q3) <= 1.0:
+            raise ValueError("q3 must be None or lie between 0 and 1.")
+        if self.m3_orientation_deg is not None and not isfinite(
+            float(self.m3_orientation_deg)
+        ):
+            raise ValueError("m3_orientation_deg must be None or finite.")
+        if self.symmetry_model is not None and self.symmetry_model not in {
+            "trifold",
+            "sixfold",
+            "mixed",
+            "disordered",
+            "ambiguous",
+            "unavailable",
+        }:
+            raise ValueError("symmetry_model is unsupported.")
+        if self.symmetry_confidence is not None and not 0.0 <= float(
+            self.symmetry_confidence
+        ) <= 1.0:
+            raise ValueError("symmetry_confidence must lie between 0 and 1.")
         object.__setattr__(self, "source_xy_px", point)
 
 
@@ -144,7 +211,7 @@ def build_m6_point_overlay(
     statuses: list[M6OverlayPointStatus] = []
     base_alpha = round(255 * opacity / 100.0)
     for point in states:
-        if point.assignment_status != "assigned" and not show_unassigned_points:
+        if not show_unassigned_points and not _is_available_for_mode(point, mode):
             continue
         rgb, status, alpha_scale = _point_color(point, mode=mode)
         source_ids.append(point.source_id)
@@ -160,6 +227,24 @@ def build_m6_point_overlay(
     )
 
 
+def _is_available_for_mode(
+    point: M6OverlayPointState,
+    mode: M6AnalysisOverlayMode,
+) -> bool:
+    if point.computation_status != "valid_order":
+        return False
+    if mode == "q3":
+        return point.q3 is not None
+    if mode == "m3_orientation":
+        return (
+            point.m3_orientation_status == "defined"
+            and point.m3_orientation_deg is not None
+        )
+    if mode == "symmetry_evidence":
+        return point.symmetry_model not in {None, "unavailable"}
+    return point.assignment_status == "assigned"
+
+
 def build_m6_point_overlay_from_analysis(
     analysis: MolecularM6OrientationAnalysis,
     *,
@@ -173,6 +258,8 @@ def build_m6_point_overlay_from_analysis(
         raise TypeError("analysis must be MolecularM6OrientationAnalysis.")
     sample = analysis.sample_coordinates
     local = analysis.local_order
+    multisymmetry = analysis.local_multisymmetry_order
+    evidence = analysis.local_symmetry_evidence
     segmentation = analysis.segmentation
     states = tuple(
         M6OverlayPointState(
@@ -186,6 +273,21 @@ def build_m6_point_overlay_from_analysis(
             m6_orientation_domain_id=segmentation.m6_orientation_domain_id[index],
             ordered_component_id=segmentation.ordered_component_id[index],
             component_type=segmentation.component_type[index],
+            q3=None if multisymmetry is None else multisymmetry.q3[index],
+            m3_orientation_deg=(
+                None
+                if multisymmetry is None
+                else multisymmetry.theta3_lattice_deg[index]
+            ),
+            m3_orientation_status=(
+                "unavailable"
+                if multisymmetry is None
+                else multisymmetry.m3_orientation_status[index]
+            ),
+            symmetry_model=None if evidence is None else evidence.best_model[index],
+            symmetry_confidence=(
+                None if evidence is None else evidence.classification_confidence[index]
+            ),
         )
         for index, (source_id, source_xy_px) in enumerate(
             zip(sample.point_source_ids, sample.source_points_xy_px)
@@ -208,6 +310,34 @@ def _point_color(
         status = point.computation_status
         color = _QC_COLORS.get(status, _UNASSIGNED_COLOR)
         return color, status, 1.0
+    if mode == "q3":
+        if point.q3 is None:
+            return _UNASSIGNED_COLOR, "unassigned", 1.0
+        return _interpolate_viridis(float(point.q3)), "q3", 1.0
+    if mode == "m3_orientation":
+        if (
+            point.m3_orientation_status != "defined"
+            or point.m3_orientation_deg is None
+        ):
+            return _UNDEFINED_ORIENTATION_COLOR, "undefined_orientation", 1.0
+        q3 = 0.0 if point.q3 is None else float(point.q3)
+        return (
+            _orientation_color(float(point.m3_orientation_deg)),
+            "m3_orientation",
+            0.35 + 0.65 * q3,
+        )
+    if mode == "symmetry_evidence":
+        model = point.symmetry_model or "unavailable"
+        confidence = (
+            0.0
+            if point.symmetry_confidence is None
+            else float(point.symmetry_confidence)
+        )
+        return (
+            _SYMMETRY_COLORS[model],
+            _SYMMETRY_STATUSES[model],
+            0.3 + 0.7 * confidence,
+        )
     if point.assignment_status != "assigned":
         return _UNASSIGNED_COLOR, "unassigned", 1.0
     if mode == "q6":

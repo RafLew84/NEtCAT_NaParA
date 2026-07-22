@@ -6,6 +6,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from moltrack.analysis import (
     FirstShellSuggestionResult,
+    LocalSymmetryPointInspection,
     MolecularM6OrientationAnalysisSettings,
     MolecularM6ViewSettings,
 )
@@ -125,7 +126,16 @@ class MolecularM6SettingsPanelTests(unittest.TestCase):
 
         self.assertEqual(
             self.dialog.m6_overlay_mode_options(),
-            ("none", "q6", "orientation", "domain_id", "domain_type"),
+            (
+                "none",
+                "q6",
+                "orientation",
+                "q3",
+                "m3_orientation",
+                "symmetry_evidence",
+                "domain_id",
+                "domain_type",
+            ),
         )
         domain_type_button = self.dialog.m6_settings_panel._overlay_mode_buttons[
             "domain_type"
@@ -140,6 +150,18 @@ class MolecularM6SettingsPanelTests(unittest.TestCase):
         self.assertEqual(received[-1].overlay_opacity_percent, 63)
         self.dialog.set_m6_overlay_mode("none")
         self.assertFalse(self.dialog.m6_view_settings().show_domain_overlay)
+        self.assertTrue(
+            self.dialog.m6_settings_panel.symmetry_evidence_legend.isHidden()
+        )
+
+        self.dialog.set_m6_overlay_mode("symmetry_evidence")
+        self.assertEqual(
+            self.dialog.m6_view_settings().overlay_mode,
+            "symmetry_evidence",
+        )
+        self.assertFalse(
+            self.dialog.m6_settings_panel.symmetry_evidence_legend.isHidden()
+        )
 
         selected_types = []
         self.dialog.m6_domain_type_selection_changed.connect(selected_types.append)
@@ -147,6 +169,57 @@ class MolecularM6SettingsPanelTests(unittest.TestCase):
         selection = M6DomainTypeSelection.classified(2)
         self.dialog.domain_types_panel.domain_type_selection_changed.emit(selection)
         self.assertEqual(selected_types, [selection])
+
+    def test_selected_molecule_panel_shows_m3_m6_and_qc_together(self) -> None:
+        selected = LocalSymmetryPointInspection(
+            source_id="molecule-7",
+            source_xy_px=(12.5, 8.0),
+            q3=0.8123,
+            m3_orientation_deg=27.25,
+            m3_orientation_status="defined",
+            m3_orientation_confidence=0.81,
+            m3_sublattice_phase=1,
+            m3_sublattice_phase_status="defined",
+            m3_phase_gauge_anchor="molecule-2",
+            q6=0.633,
+            m6_orientation_deg=28.0,
+            m6_orientation_status="defined",
+            m6_orientation_confidence=0.63,
+            symmetry_model="trifold",
+            trifold_model_score=0.88,
+            sixfold_model_score=0.45,
+            mixed_model_score=0.52,
+            disordered_model_score=0.11,
+            symmetry_confidence=0.79,
+            symmetry_margin=0.31,
+            symmetry_reason="classified_trifold",
+            observed_direction_count=3,
+            expected_direction_coverage=0.75,
+            neighbor_count=5,
+            computation_status="valid_order",
+            edge_truncated_neighborhood=False,
+            symmetry_resolvability_status="resolvable",
+        )
+
+        self.dialog.set_local_symmetry_point_inspection(selected)
+
+        text = self.dialog.m6_settings_panel.selected_point_text()
+        self.assertIn("molecule-7", text)
+        self.assertIn("q3 0.812", text)
+        self.assertIn("M3 27.250 deg", text)
+        self.assertIn("phase 1 @ molecule-2", text)
+        self.assertIn("q6 0.633", text)
+        self.assertIn("trifold", text)
+        self.assertIn("neighbors 5", text)
+        self.assertEqual(
+            tuple(label for label, _color in self.dialog.m6_settings_panel.symmetry_evidence_legend_entries()),
+            ("Trifold", "Sixfold", "Mixed", "Disordered", "Ambiguous", "Unavailable"),
+        )
+        self.dialog.set_local_symmetry_point_inspection(None)
+        self.assertIn(
+            "Select a molecule",
+            self.dialog.m6_settings_panel.selected_point_text(),
+        )
 
     def test_validation_blocks_run_and_explains_default_seed_neighbor_threshold(self) -> None:
         self.assertEqual(self.dialog.m6_min_neighbors_for_seed_spin.value(), 5)

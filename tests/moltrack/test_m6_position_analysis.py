@@ -1,6 +1,7 @@
 import unittest
 from dataclasses import replace
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import numpy as np
 
@@ -9,7 +10,9 @@ from moltrack.analysis import (
     MolecularM6OrientationAnalysis,
     MolecularM6OrientationAnalysisSettings,
     analyze_molecular_frame_range,
+    build_local_symmetry_point_inspection,
     build_molecular_sample_coordinates,
+    compute_local_multisymmetry_bond_order,
 )
 from moltrack.core import (
     MolecularDetection,
@@ -275,12 +278,16 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
             gr_min_expected_pair_exposure=0.1,
         )
 
-        result = analyze_molecular_frame_range(
-            series,
-            MolecularFrameRange("condition", 0, 0),
-            source_view="raw",
-            m6_orientation_settings=settings,
-        ).frame_results[0]
+        with patch(
+            "moltrack.analysis.molecular_m6_analysis.compute_local_multisymmetry_bond_order",
+            wraps=compute_local_multisymmetry_bond_order,
+        ) as local_compute:
+            result = analyze_molecular_frame_range(
+                series,
+                MolecularFrameRange("condition", 0, 0),
+                source_view="raw",
+                m6_orientation_settings=settings,
+            ).frame_results[0]
         legacy_result = analyze_molecular_frame_range(
             series,
             MolecularFrameRange("condition", 0, 0),
@@ -290,6 +297,7 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
         m6 = result.m6_orientation_analysis
         self.assertIsInstance(m6, MolecularM6OrientationAnalysis)
         assert m6 is not None
+        self.assertEqual(local_compute.call_count, 1)
         self.assertEqual(m6.settings, settings)
         self.assertEqual(m6.source_view, "raw")
         self.assertEqual(m6.point_source_ids, result.plot_data.point_source_ids)
@@ -304,12 +312,79 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
         self.assertEqual(m6.orientation_reference, "+x_sample_axis")
         self.assertFalse(m6.scan_angle_missing_qc)
         self.assertIsNotNone(m6.local_order)
+        self.assertIsNotNone(m6.local_multisymmetry_order)
+        self.assertIsNotNone(m6.local_symmetry_evidence)
+        self.assertIsNotNone(m6.local_symmetry_evidence_settings)
+        assert m6.local_multisymmetry_order is not None
+        assert m6.local_symmetry_evidence is not None
+        self.assertEqual(
+            m6.local_multisymmetry_order.source_ids,
+            m6.point_source_ids,
+        )
+        self.assertEqual(
+            m6.local_symmetry_evidence.source_ids,
+            m6.point_source_ids,
+        )
+        self.assertEqual(m6.local_multisymmetry_order.q6, m6.local_order.q6)
+        self.assertEqual(
+            m6.local_multisymmetry_order.computation_status,
+            m6.local_order.computation_status,
+        )
+        self.assertNotIn(
+            "not_evaluated",
+            m6.local_multisymmetry_order.symmetry_resolvability_status,
+        )
+        for model, reason, status in zip(
+            m6.local_symmetry_evidence.best_model,
+            m6.local_symmetry_evidence.classification_reason,
+            m6.local_multisymmetry_order.symmetry_resolvability_status,
+        ):
+            if model == "ambiguous" and reason == "below_minimum_margin":
+                self.assertEqual(
+                    status,
+                    "symmetry_alias_unresolvable_from_centroids",
+                )
+            elif model == "ambiguous":
+                self.assertEqual(status, "unavailable")
         self.assertIsNotNone(m6.segmentation)
         self.assertIsNotNone(m6.pair_correlation)
         self.assertIsNotNone(m6.frame_aggregates)
+        selected = build_local_symmetry_point_inspection(
+            m6,
+            m6.point_source_ids[12],
+        )
+        self.assertIsNotNone(selected)
+        assert selected is not None
+        self.assertEqual(selected.source_id, m6.point_source_ids[12])
+        self.assertEqual(selected.q3, m6.local_multisymmetry_order.q3[12])
+        self.assertEqual(selected.q6, m6.local_order.q6[12])
+        self.assertEqual(
+            selected.symmetry_model,
+            m6.local_symmetry_evidence.best_model[12],
+        )
+        self.assertEqual(
+            selected.computation_status,
+            m6.local_order.computation_status[12],
+        )
+        self.assertIsNone(
+            build_local_symmetry_point_inspection(m6, "unknown-molecule")
+        )
         self.assertEqual(result.distance_metrics, legacy_result.distance_metrics)
         self.assertEqual(result.angle_metrics, legacy_result.angle_metrics)
         self.assertIsNotNone(result.angle_metrics.line_order_score)
+        legacy_m6_only = replace(
+            m6,
+            local_multisymmetry_order=None,
+            local_symmetry_evidence=None,
+            local_symmetry_evidence_settings=None,
+        )
+        self.assertIsNone(legacy_m6_only.local_multisymmetry_order)
+        self.assertIsNone(
+            build_local_symmetry_point_inspection(
+                legacy_m6_only,
+                legacy_m6_only.point_source_ids[0],
+            )
+        )
         with self.assertRaisesRegex(ValueError, "this frame and valid FOV"):
             replace(
                 m6,
@@ -343,6 +418,82 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
                 result,
                 centroids=(shifted_centroid,) + result.centroids[1:],
             )
+
+    def test_integrated_trifold_classification_builds_relative_phase_gauge(self) -> None:
+        bond_length = 2.0
+        first_vector = np.asarray((3.0, np.sqrt(3.0)))
+        second_vector = np.asarray((3.0, -np.sqrt(3.0)))
+        points = []
+        for first_index in range(5):
+            for second_index in range(5):
+                origin = (
+                    np.asarray((10.0, 20.0))
+                    + first_index * first_vector
+                    + second_index * second_vector
+                )
+                points.extend((origin, origin + (bond_length, 0.0)))
+        detections = MolecularDetectionSet(frame_count=1)
+        detections.set_detections(
+            0,
+            [
+                MolecularDetection(
+                    frame_index=0,
+                    bbox_xyxy=(x - 0.2, 50.0 - y - 0.2, x + 0.2, 50.0 - y + 0.2),
+                    confidence=0.9,
+                    detection_id=f"honeycomb-{index:03d}",
+                )
+                for index, (x, y) in enumerate(points)
+            ],
+            source_view="raw",
+            frame_shape=(50, 50),
+        )
+        series = MolTrackImageSeries(
+            source_path="honeycomb.mpp",
+            raw_frames=np.zeros((1, 50, 50), dtype=np.float32),
+            metadata=STMSequenceMetadata(
+                pixels_x=50,
+                pixels_y=50,
+                size_nm_x=50.0,
+                size_nm_y=50.0,
+                scan_angle_deg=0.0,
+            ),
+            molecular_detections=detections,
+        )
+        settings = MolecularM6OrientationAnalysisSettings(
+            first_shell_r_min_nm=1.5,
+            first_shell_r_max_nm=2.3,
+            min_ordered_component_size=3,
+            min_seed_size=3,
+            min_domain_size=3,
+            gr_bin_width_nm=0.25,
+            gr_max_nm=10.0,
+            gr_min_expected_pair_exposure=0.1,
+        )
+
+        frame = analyze_molecular_frame_range(
+            series,
+            MolecularFrameRange("trifold", 0, 0),
+            source_view="raw",
+            m6_orientation_settings=settings,
+        ).frame_results[0]
+        analysis = frame.m6_orientation_analysis
+        assert analysis is not None
+        local = analysis.local_multisymmetry_order
+        evidence = analysis.local_symmetry_evidence
+        assert local is not None and evidence is not None
+        trifold_indices = tuple(
+            index for index, model in enumerate(evidence.best_model)
+            if model == "trifold"
+        )
+        self.assertTrue(trifold_indices)
+        self.assertTrue(all(local.m3_qualified_trifold[index] for index in trifold_indices))
+        self.assertTrue(
+            any(local.m3_sublattice_phase_status[index] == "defined" for index in trifold_indices)
+        )
+        self.assertTrue(
+            all(local.m3_phase_gauge_anchor[index] for index in trifold_indices)
+        )
+        self.assertNotIn("not_evaluated", local.symmetry_resolvability_status)
 
     def test_missing_scan_angle_is_an_explicit_m6_qc_assumption(self) -> None:
         detections = MolecularDetectionSet(frame_count=1)

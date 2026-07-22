@@ -1,12 +1,27 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 
 from ._coordinate_fingerprint import point_coordinate_fingerprint
 from .first_shell_graph import FirstShellGraph
+from .local_multisymmetry_bond_order import (
+    LocalMultiSymmetryBondOrderField,
+    SymmetryResolvabilityStatus,
+)
+from .local_multisymmetry_bond_order_computation import (
+    apply_m3_sublattice_gauge,
+    compute_local_multisymmetry_bond_order,
+)
 from .local_sixfold_bond_order import LocalSixfoldBondOrderField
+from .local_symmetry_evidence_classifier import classify_local_symmetry_evidence
+from .local_symmetry_evidence_models import (
+    LocalSymmetryEvidenceField,
+    LocalSymmetryEvidenceSettings,
+    LocalSymmetryModel,
+    local_symmetry_evidence_settings_fingerprint,
+)
 from .m6_settings import MolecularM6OrientationAnalysisSettings
 from .orientation_domain_analysis import (
     M6OrientationDomainAnalysis,
@@ -30,6 +45,9 @@ class MolecularM6OrientationAnalysis:
     sample_coordinates: MolecularSampleCoordinates
     domain_analysis: M6OrientationDomainAnalysis
     pair_correlation: PairCorrelationResult
+    local_multisymmetry_order: LocalMultiSymmetryBondOrderField | None = None
+    local_symmetry_evidence: LocalSymmetryEvidenceField | None = None
+    local_symmetry_evidence_settings: LocalSymmetryEvidenceSettings | None = None
 
     def __post_init__(self) -> None:
         if self.source_view != self.sample_coordinates.source_view:
@@ -65,6 +83,51 @@ class MolecularM6OrientationAnalysis:
         )
         if self.domain_analysis.frame_aggregates is None:
             raise ValueError("M6 Position Analysis requires frame aggregates.")
+        self._validate_local_symmetry_extension(graph)
+
+    def _validate_local_symmetry_extension(self, graph: FirstShellGraph) -> None:
+        extension = (
+            self.local_multisymmetry_order,
+            self.local_symmetry_evidence,
+            self.local_symmetry_evidence_settings,
+        )
+        if all(value is None for value in extension):
+            return
+        if any(value is None for value in extension):
+            raise ValueError("Local M3/M6 analysis fields must be present together.")
+        multisymmetry = self.local_multisymmetry_order
+        evidence = self.local_symmetry_evidence
+        evidence_settings = self.local_symmetry_evidence_settings
+        if not isinstance(multisymmetry, LocalMultiSymmetryBondOrderField):
+            raise TypeError("local_multisymmetry_order has an invalid type.")
+        if not isinstance(evidence, LocalSymmetryEvidenceField):
+            raise TypeError("local_symmetry_evidence has an invalid type.")
+        if not isinstance(evidence_settings, LocalSymmetryEvidenceSettings):
+            raise TypeError("local_symmetry_evidence_settings has an invalid type.")
+        if (
+            multisymmetry.source_ids != graph.point_ids
+            or evidence.source_ids != graph.point_ids
+            or multisymmetry.point_count != graph.point_count
+            or evidence.point_count != graph.point_count
+        ):
+            raise ValueError("Local M3/M6 analysis must preserve graph point order.")
+        if (
+            multisymmetry.psi6 != self.local_order.psi6
+            or multisymmetry.q6 != self.local_order.q6
+            or multisymmetry.theta6_deg != self.local_order.lattice_orientation_deg
+            or multisymmetry.neighbor_count != self.local_order.neighbor_count
+            or multisymmetry.computation_status != self.local_order.computation_status
+        ):
+            raise ValueError("Local multisymmetry M6 must match the domain M6 channel.")
+        if (
+            evidence.first_shell_graph_fingerprint
+            != multisymmetry.provenance.first_shell_graph_fingerprint
+            or evidence.local_order_analysis_fingerprint
+            != multisymmetry.provenance.analysis_settings_fingerprint
+            or evidence.settings_fingerprint
+            != local_symmetry_evidence_settings_fingerprint(evidence_settings)
+        ):
+            raise ValueError("Local symmetry evidence must preserve its analysis provenance.")
 
     @property
     def settings(self) -> MolecularM6OrientationAnalysisSettings:
@@ -164,6 +227,39 @@ def analyze_molecular_m6_orientation(
         window_geometry="convex_polygon",
         valid_fov_polygon_xy_nm=sample_coordinates.valid_fov_polygon_xy_nm,
     )
+    local_multisymmetry_order = compute_local_multisymmetry_bond_order(
+        analysis.first_shell_graph,
+        distance_to_valid_fov_boundary_nm=boundary_distances,
+        settings=settings,
+    )
+    local_symmetry_evidence_settings = LocalSymmetryEvidenceSettings()
+    local_symmetry_evidence = classify_local_symmetry_evidence(
+        analysis.first_shell_graph,
+        local_multisymmetry_order,
+        settings=local_symmetry_evidence_settings,
+    )
+    qualified_trifold_indices = tuple(
+        index
+        for index, model in enumerate(local_symmetry_evidence.best_model)
+        if model == "trifold"
+        and local_multisymmetry_order.m3_orientation_status[index] == "defined"
+    )
+    local_multisymmetry_order = apply_m3_sublattice_gauge(
+        analysis.first_shell_graph,
+        local_multisymmetry_order,
+        qualified_trifold_point_indices=qualified_trifold_indices,
+    )
+    local_multisymmetry_order = replace(
+        local_multisymmetry_order,
+        symmetry_resolvability_status=tuple(
+            _symmetry_resolvability_status(computation_status, model, reason)
+            for computation_status, model, reason in zip(
+                local_multisymmetry_order.computation_status,
+                local_symmetry_evidence.best_model,
+                local_symmetry_evidence.classification_reason,
+            )
+        ),
+    )
     polygon_origin = sample_coordinates.valid_fov_polygon_xy_nm[0]
     pair_correlation = compute_pair_correlation(
         points,
@@ -183,4 +279,21 @@ def analyze_molecular_m6_orientation(
         sample_coordinates=sample_coordinates,
         domain_analysis=analysis,
         pair_correlation=pair_correlation,
+        local_multisymmetry_order=local_multisymmetry_order,
+        local_symmetry_evidence=local_symmetry_evidence,
+        local_symmetry_evidence_settings=local_symmetry_evidence_settings,
     )
+
+
+def _symmetry_resolvability_status(
+    computation_status: str,
+    model: LocalSymmetryModel,
+    reason: str,
+) -> SymmetryResolvabilityStatus:
+    if computation_status != "valid_order" or model == "unavailable":
+        return "unavailable"
+    if model == "ambiguous" and reason == "below_minimum_margin":
+        return "symmetry_alias_unresolvable_from_centroids"
+    if model == "ambiguous":
+        return "unavailable"
+    return "resolvable"

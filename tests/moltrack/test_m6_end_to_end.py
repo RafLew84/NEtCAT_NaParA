@@ -769,7 +769,7 @@ class M6EndToEndRegressionTests(
                 *_DOMAIN_EXPORT_FIELDS,
             }.issubset(domain_rows[0])
         )
-        self.assertEqual(export_manifest["export_schema_version"], 3)
+        self.assertEqual(export_manifest["export_schema_version"], 4)
         exported_m6 = export_manifest["analysis"]["m6_orientation"]
         self.assertEqual(exported_m6["settings"], settings.to_dict())
         self.assertEqual(exported_m6["coordinate_convention"]["coordinate_frame"], "sample_nm")

@@ -33,6 +33,7 @@ from moltrack.analysis import (
     MolecularFrameRangeSelection,
     MolecularNearestNeighborAngleMetrics,
     MolecularNearestNeighborMetrics,
+    LocalSymmetryPointInspection,
     MolecularM6OrientationAnalysisSettings,
     MolecularM6ViewSettings,
     MolecularPositionPlotData,
@@ -429,6 +430,12 @@ class PositionAnalysisDialog(QDialog):
 
     def set_m6_current_frame_results(self, results) -> None:
         self.m6_settings_panel.set_current_frame_results(results)
+
+    def set_local_symmetry_point_inspection(
+        self,
+        inspection: LocalSymmetryPointInspection | None,
+    ) -> None:
+        self.m6_settings_panel.set_selected_point_inspection(inspection)
 
     def m6_validation_message(self) -> str:
         return self.m6_settings_panel.validation_message()

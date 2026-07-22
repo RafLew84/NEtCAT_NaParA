@@ -234,7 +234,15 @@ class MolecularM6ViewSettings:
     """Serializable choices controlling M6 point overlays."""
 
     show_domain_overlay: bool = True
-    overlay_mode: Literal["q6", "orientation", "domain_id", "domain_type"] = (
+    overlay_mode: Literal[
+        "q6",
+        "orientation",
+        "q3",
+        "m3_orientation",
+        "symmetry_evidence",
+        "domain_id",
+        "domain_type",
+    ] = (
         "domain_id"
     )
     show_first_shell_graph: bool = False
@@ -246,7 +254,15 @@ class MolecularM6ViewSettings:
         if not 0 <= opacity <= 100:
             raise ValueError("overlay_opacity_percent must be between 0 and 100.")
         mode = str(self.overlay_mode).strip().lower()
-        if mode not in {"q6", "orientation", "domain_id", "domain_type"}:
+        if mode not in {
+            "q6",
+            "orientation",
+            "q3",
+            "m3_orientation",
+            "symmetry_evidence",
+            "domain_id",
+            "domain_type",
+        }:
             raise ValueError(f"Unsupported M6 overlay_mode: {self.overlay_mode!r}.")
         object.__setattr__(self, "show_domain_overlay", bool(self.show_domain_overlay))
         object.__setattr__(self, "overlay_mode", mode)

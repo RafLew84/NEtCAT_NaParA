@@ -4,12 +4,16 @@ import math
 import tempfile
 import unittest
 import xml.etree.ElementTree as ET
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
 
 from moltrack.analysis import (
+    LOCAL_MULTI_SYMMETRY_BOND_ORDER_SCHEMA_VERSION,
+    LOCAL_SYMMETRY_EVIDENCE_ALGORITHM_VERSION,
+    LOCAL_SYMMETRY_EVIDENCE_SCHEMA_VERSION,
     M6DomainTypeAnalysisStore,
     M6DomainTypeClassificationSettings,
     M6_DOMAIN_TYPE_ALGORITHM_VERSION,
@@ -45,11 +49,37 @@ from nanotrack.core import STMSequenceMetadata
 
 _M6_MOLECULE_FIELDS = (
     "neighbor_count",
+    "psi3_real",
+    "psi3_imag",
+    "q3",
+    "m3_lattice_orientation_deg",
+    "m3_orientation_status",
+    "m3_orientation_confidence",
+    "m3_sublattice_phase",
+    "m3_sublattice_phase_status",
+    "m3_phase_gauge_anchor",
+    "m3_qualified_trifold",
+    "m3_sublattice_assignment_ambiguous",
+    "m3_gauge_inconsistent_cycle",
+    "m3_gauge_frustration_qc",
+    "symmetry_resolvability_status",
+    "edge_truncated_neighborhood",
     "psi6_real",
     "psi6_imag",
     "q6",
     "lattice_orientation_deg",
     "orientation_status",
+    "m6_orientation_confidence",
+    "trifold_model_score",
+    "sixfold_model_score",
+    "mixed_model_score",
+    "disordered_model_score",
+    "symmetry_best_model",
+    "symmetry_second_best_margin",
+    "symmetry_observed_direction_count",
+    "symmetry_expected_direction_coverage",
+    "symmetry_classification_confidence",
+    "symmetry_classification_reason",
     "ordered_component_id",
     "m6_orientation_domain_id",
     "component_type",
@@ -430,19 +460,52 @@ def _expected_m6_fields(analysis, source_id: str) -> dict[str, object | None]:
     local = m6.local_order
     segmentation = m6.segmentation
     graph = m6.first_shell_graph
+    multisymmetry = m6.local_multisymmetry_order
+    evidence = m6.local_symmetry_evidence
+    assert multisymmetry is not None
+    assert evidence is not None
     local_index = local.source_ids.index(source_id)
     segmentation_index = segmentation.source_ids.index(source_id)
     graph_index = graph.point_ids.index(source_id)
     psi6 = local.psi6[local_index]
+    psi3 = multisymmetry.psi3[local_index]
     ordered_component_id = segmentation.ordered_component_id[segmentation_index]
     domain_id = segmentation.m6_orientation_domain_id[segmentation_index]
     return {
         "neighbor_count": local.neighbor_count[local_index],
+        "psi3_real": None if psi3 is None else psi3.real,
+        "psi3_imag": None if psi3 is None else psi3.imag,
+        "q3": multisymmetry.q3[local_index],
+        "m3_lattice_orientation_deg": multisymmetry.theta3_lattice_deg[local_index],
+        "m3_orientation_status": multisymmetry.m3_orientation_status[local_index],
+        "m3_orientation_confidence": multisymmetry.m3_orientation_confidence[local_index],
+        "m3_sublattice_phase": multisymmetry.m3_sublattice_phase[local_index],
+        "m3_sublattice_phase_status": multisymmetry.m3_sublattice_phase_status[local_index],
+        "m3_phase_gauge_anchor": multisymmetry.m3_phase_gauge_anchor[local_index],
+        "m3_qualified_trifold": multisymmetry.m3_qualified_trifold[local_index],
+        "m3_sublattice_assignment_ambiguous": (
+            multisymmetry.m3_sublattice_assignment_ambiguous[local_index]
+        ),
+        "m3_gauge_inconsistent_cycle": multisymmetry.m3_gauge_inconsistent_cycle[local_index],
+        "m3_gauge_frustration_qc": multisymmetry.m3_gauge_frustration_qc[local_index],
+        "symmetry_resolvability_status": multisymmetry.symmetry_resolvability_status[local_index],
+        "edge_truncated_neighborhood": multisymmetry.edge_truncated_neighborhood[local_index],
         "psi6_real": None if psi6 is None else psi6.real,
         "psi6_imag": None if psi6 is None else psi6.imag,
         "q6": local.q6[local_index],
         "lattice_orientation_deg": local.lattice_orientation_deg[local_index],
         "orientation_status": local.orientation_status[local_index],
+        "m6_orientation_confidence": multisymmetry.m6_orientation_confidence[local_index],
+        "trifold_model_score": evidence.trifold_model_score[local_index],
+        "sixfold_model_score": evidence.sixfold_model_score[local_index],
+        "mixed_model_score": evidence.mixed_model_score[local_index],
+        "disordered_model_score": evidence.disordered_model_score[local_index],
+        "symmetry_best_model": evidence.best_model[local_index],
+        "symmetry_second_best_margin": evidence.second_best_margin[local_index],
+        "symmetry_observed_direction_count": evidence.observed_direction_count[local_index],
+        "symmetry_expected_direction_coverage": evidence.expected_direction_coverage[local_index],
+        "symmetry_classification_confidence": evidence.classification_confidence[local_index],
+        "symmetry_classification_reason": evidence.classification_reason[local_index],
         "ordered_component_id": None if ordered_component_id < 0 else ordered_component_id,
         "m6_orientation_domain_id": None if domain_id < 0 else domain_id,
         "component_type": segmentation.component_type[segmentation_index],
@@ -784,7 +847,7 @@ class M6AnalysisExportTests(unittest.TestCase):
         self.assertTrue(all(row["condition_order"] == "single" for row in range_rows))
         self.assertEqual(comparison_rows, [])
         domain_manifest = manifest["analysis"]["m6_domain_types"]
-        self.assertEqual(manifest["export_schema_version"], 3)
+        self.assertEqual(manifest["export_schema_version"], 4)
         self.assertTrue(domain_manifest["available"])
         self.assertEqual(domain_manifest["algorithm"], "deterministic_complete_linkage")
         self.assertEqual(
@@ -1561,6 +1624,37 @@ class M6AnalysisExportTests(unittest.TestCase):
             )
         )
 
+    def test_legacy_m6_only_result_exports_old_fields_and_empty_m3_fields(self) -> None:
+        series = _series(frame_count=1)
+        frame_analysis = analyze_molecular_frame_range(
+            series,
+            MolecularFrameRange("legacy", 0, 0),
+            source_view="raw",
+            m6_orientation_settings=_settings(),
+        ).frame_results[0]
+        assert frame_analysis.m6_orientation_analysis is not None
+        legacy_m6 = replace(
+            frame_analysis.m6_orientation_analysis,
+            local_multisymmetry_order=None,
+            local_symmetry_evidence=None,
+            local_symmetry_evidence_settings=None,
+        )
+        legacy_frame = replace(
+            frame_analysis,
+            m6_orientation_analysis=legacy_m6,
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            paths = export_current_frame_analysis_csv(series, legacy_frame, tmpdir)
+            with paths["molecules_csv"].open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                rows = list(csv.DictReader(handle))
+
+        self.assertTrue(any(row["q6"] for row in rows))
+        self.assertTrue(all(row["q3"] == "" for row in rows))
+        self.assertTrue(all(row["symmetry_best_model"] == "" for row in rows))
+
     def test_full_series_exports_domains_and_complete_frame_aggregates(self) -> None:
         series = _domain_export_series()
         captured_results = []
@@ -1771,6 +1865,21 @@ class M6AnalysisExportTests(unittest.TestCase):
         self.assertEqual(m6_manifest["settings"], settings.to_dict())
         self.assertEqual(m6_manifest["symmetry_m"], 6)
         self.assertEqual(m6_manifest["bond_weighting"], "uniform")
+        multisymmetry_manifest = m6_manifest["local_multisymmetry"]
+        self.assertTrue(multisymmetry_manifest["enabled"])
+        self.assertEqual(multisymmetry_manifest["symmetry_channels"], [3, 6])
+        self.assertEqual(
+            multisymmetry_manifest["bond_order_schema_version"],
+            LOCAL_MULTI_SYMMETRY_BOND_ORDER_SCHEMA_VERSION,
+        )
+        self.assertEqual(
+            multisymmetry_manifest["evidence_algorithm_version"],
+            LOCAL_SYMMETRY_EVIDENCE_ALGORITHM_VERSION,
+        )
+        self.assertEqual(
+            multisymmetry_manifest["evidence_schema_version"],
+            LOCAL_SYMMETRY_EVIDENCE_SCHEMA_VERSION,
+        )
         self.assertEqual(
             m6_manifest["duplicate_policy"]["representative"],
             settings.duplicate_policy,
@@ -1801,6 +1910,15 @@ class M6AnalysisExportTests(unittest.TestCase):
             self.assertTrue(frame_result["cache_fingerprints"]["annotations"])
             self.assertTrue(frame_result["cache_fingerprints"]["sample_geometry"])
             self.assertTrue(frame_result["cache_fingerprints"]["valid_fov"])
+            self.assertTrue(
+                frame_result["cache_fingerprints"]["multisymmetry_settings"]
+            )
+            self.assertTrue(
+                frame_result["cache_fingerprints"]["symmetry_evidence_settings"]
+            )
+            self.assertTrue(
+                frame_result["cache_fingerprints"]["symmetry_bond_evidence"]
+            )
             self.assertEqual(
                 frame_result["cache_key"]["settings_hash"],
                 frame_result["cache_fingerprints"]["settings"],

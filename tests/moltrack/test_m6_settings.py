@@ -305,6 +305,14 @@ class MolecularM6ViewSettingsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "between 0 and 100"):
             MolecularM6ViewSettings(overlay_opacity_percent=101)
 
+    def test_multisymmetry_overlay_modes_are_supported(self) -> None:
+        for mode in ("q3", "m3_orientation", "symmetry_evidence"):
+            with self.subTest(mode=mode):
+                self.assertEqual(
+                    MolecularM6ViewSettings(overlay_mode=mode).overlay_mode,
+                    mode,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

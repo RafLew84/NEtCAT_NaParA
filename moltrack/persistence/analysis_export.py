@@ -17,6 +17,9 @@ from moltrack import __version__ as moltrack_version
 from moltrack.analysis._m6_context_fingerprint import m6_context_fingerprint
 from moltrack.analysis._m6_settings_fingerprint import m6_settings_fingerprint
 from moltrack.analysis import (
+    LOCAL_MULTI_SYMMETRY_BOND_ORDER_SCHEMA_VERSION,
+    LOCAL_SYMMETRY_EVIDENCE_ALGORITHM_VERSION,
+    LOCAL_SYMMETRY_EVIDENCE_SCHEMA_VERSION,
     M6DomainTypeAssignment,
     M6DomainTypeClassificationResult,
     M6DomainTypeObservation,
@@ -55,7 +58,7 @@ if TYPE_CHECKING:
     from .analysis_plots import AnalysisPlotExportResult
 
 
-ANALYSIS_EXPORT_SCHEMA_VERSION = 3
+ANALYSIS_EXPORT_SCHEMA_VERSION = 4
 
 
 _MOLECULES_CSV_FIELDS = (
@@ -79,11 +82,37 @@ _MOLECULES_CSV_FIELDS = (
 
 _M6_MOLECULES_CSV_FIELDS = (
     "neighbor_count",
+    "psi3_real",
+    "psi3_imag",
+    "q3",
+    "m3_lattice_orientation_deg",
+    "m3_orientation_status",
+    "m3_orientation_confidence",
+    "m3_sublattice_phase",
+    "m3_sublattice_phase_status",
+    "m3_phase_gauge_anchor",
+    "m3_qualified_trifold",
+    "m3_sublattice_assignment_ambiguous",
+    "m3_gauge_inconsistent_cycle",
+    "m3_gauge_frustration_qc",
+    "symmetry_resolvability_status",
+    "edge_truncated_neighborhood",
     "psi6_real",
     "psi6_imag",
     "q6",
     "lattice_orientation_deg",
     "orientation_status",
+    "m6_orientation_confidence",
+    "trifold_model_score",
+    "sixfold_model_score",
+    "mixed_model_score",
+    "disordered_model_score",
+    "symmetry_best_model",
+    "symmetry_second_best_margin",
+    "symmetry_observed_direction_count",
+    "symmetry_expected_direction_coverage",
+    "symmetry_classification_confidence",
+    "symmetry_classification_reason",
     "ordered_component_id",
     "m6_orientation_domain_id",
     "component_type",
@@ -956,6 +985,8 @@ def build_m6_analysis_manifest(
     for result in results:
         m6 = result.m6_orientation_analysis
         graph = None if m6 is None else m6.first_shell_graph
+        multisymmetry = None if m6 is None else m6.local_multisymmetry_order
+        evidence = None if m6 is None else m6.local_symmetry_evidence
         cache_key = (
             None
             if m6 is None
@@ -998,6 +1029,27 @@ def build_m6_analysis_manifest(
                     "valid_fov": (
                         None if cache_key is None else cache_key.valid_fov_fingerprint
                     ),
+                    "multisymmetry_settings": (
+                        None
+                        if multisymmetry is None
+                        else multisymmetry.provenance.analysis_settings_fingerprint
+                    ),
+                    "qualified_trifold_subgraph": (
+                        None
+                        if multisymmetry is None
+                        else multisymmetry.provenance.qualified_trifold_subgraph_fingerprint
+                    ),
+                    "m3_phase_assignment": (
+                        None
+                        if multisymmetry is None
+                        else multisymmetry.provenance.m3_phase_assignment_fingerprint
+                    ),
+                    "symmetry_evidence_settings": (
+                        None if evidence is None else evidence.settings_fingerprint
+                    ),
+                    "symmetry_bond_evidence": (
+                        None if evidence is None else evidence.bond_evidence_fingerprint
+                    ),
                 },
                 "cache_key": _structural_cache_key_manifest(cache_key),
             }
@@ -1005,6 +1057,25 @@ def build_m6_analysis_manifest(
     settings_payload = (
         None if requested_settings is None else requested_settings.to_dict()
     )
+    multisymmetry_analyses = tuple(
+        result.m6_orientation_analysis
+        for result in results
+        if result.m6_orientation_analysis is not None
+        and result.m6_orientation_analysis.local_multisymmetry_order is not None
+        and result.m6_orientation_analysis.local_symmetry_evidence is not None
+        and result.m6_orientation_analysis.local_symmetry_evidence_settings is not None
+    )
+    evidence_settings = (
+        None
+        if not multisymmetry_analyses
+        else multisymmetry_analyses[0].local_symmetry_evidence_settings
+    )
+    evidence_settings_fingerprints = []
+    for analysis in multisymmetry_analyses:
+        evidence = analysis.local_symmetry_evidence
+        if evidence is not None:
+            evidence_settings_fingerprints.append(evidence.settings_fingerprint)
+    evidence_settings_fingerprints = sorted(set(evidence_settings_fingerprints))
     return {
         "enabled": requested_settings is not None,
         "algorithm_version": M6_ORIENTATION_ALGORITHM_VERSION,
@@ -1015,6 +1086,21 @@ def build_m6_analysis_manifest(
         "bond_weighting": (
             None if requested_settings is None else requested_settings.bond_weighting
         ),
+        "local_multisymmetry": {
+            "enabled": bool(multisymmetry_analyses),
+            "symmetry_channels": [3, 6],
+            "bond_order_schema_version": (
+                LOCAL_MULTI_SYMMETRY_BOND_ORDER_SCHEMA_VERSION
+            ),
+            "evidence_algorithm_version": (
+                LOCAL_SYMMETRY_EVIDENCE_ALGORITHM_VERSION
+            ),
+            "evidence_schema_version": LOCAL_SYMMETRY_EVIDENCE_SCHEMA_VERSION,
+            "evidence_settings": (
+                None if evidence_settings is None else evidence_settings.to_dict()
+            ),
+            "evidence_settings_fingerprints": evidence_settings_fingerprints,
+        },
         "duplicate_policy": (
             None
             if requested_settings is None
@@ -1325,6 +1411,8 @@ def _m6_fields_by_source_id(
     if m6 is None:
         return {}
     local = m6.local_order
+    multisymmetry = m6.local_multisymmetry_order
+    evidence = m6.local_symmetry_evidence
     segmentation = m6.segmentation
     graph = m6.first_shell_graph
     local_indices = {source_id: index for index, source_id in enumerate(local.source_ids)}
@@ -1338,15 +1426,118 @@ def _m6_fields_by_source_id(
         segmentation_index = segmentation_indices[source_id]
         graph_index = graph_indices[source_id]
         psi6 = local.psi6[local_index]
+        psi3 = None if multisymmetry is None else multisymmetry.psi3[local_index]
         ordered_component_id = segmentation.ordered_component_id[segmentation_index]
         domain_id = segmentation.m6_orientation_domain_id[segmentation_index]
         fields_by_source_id[source_id] = {
             "neighbor_count": local.neighbor_count[local_index],
+            "psi3_real": None if psi3 is None else psi3.real,
+            "psi3_imag": None if psi3 is None else psi3.imag,
+            "q3": None if multisymmetry is None else multisymmetry.q3[local_index],
+            "m3_lattice_orientation_deg": (
+                None
+                if multisymmetry is None
+                else multisymmetry.theta3_lattice_deg[local_index]
+            ),
+            "m3_orientation_status": (
+                None
+                if multisymmetry is None
+                else multisymmetry.m3_orientation_status[local_index]
+            ),
+            "m3_orientation_confidence": (
+                None
+                if multisymmetry is None
+                else multisymmetry.m3_orientation_confidence[local_index]
+            ),
+            "m3_sublattice_phase": (
+                None
+                if multisymmetry is None
+                else multisymmetry.m3_sublattice_phase[local_index]
+            ),
+            "m3_sublattice_phase_status": (
+                None
+                if multisymmetry is None
+                else multisymmetry.m3_sublattice_phase_status[local_index]
+            ),
+            "m3_phase_gauge_anchor": (
+                None
+                if multisymmetry is None
+                else multisymmetry.m3_phase_gauge_anchor[local_index]
+            ),
+            "m3_qualified_trifold": (
+                None
+                if multisymmetry is None
+                else multisymmetry.m3_qualified_trifold[local_index]
+            ),
+            "m3_sublattice_assignment_ambiguous": (
+                None
+                if multisymmetry is None
+                else multisymmetry.m3_sublattice_assignment_ambiguous[local_index]
+            ),
+            "m3_gauge_inconsistent_cycle": (
+                None
+                if multisymmetry is None
+                else multisymmetry.m3_gauge_inconsistent_cycle[local_index]
+            ),
+            "m3_gauge_frustration_qc": (
+                None
+                if multisymmetry is None
+                else multisymmetry.m3_gauge_frustration_qc[local_index]
+            ),
+            "symmetry_resolvability_status": (
+                None
+                if multisymmetry is None
+                else multisymmetry.symmetry_resolvability_status[local_index]
+            ),
+            "edge_truncated_neighborhood": (
+                None
+                if multisymmetry is None
+                else multisymmetry.edge_truncated_neighborhood[local_index]
+            ),
             "psi6_real": None if psi6 is None else psi6.real,
             "psi6_imag": None if psi6 is None else psi6.imag,
             "q6": local.q6[local_index],
             "lattice_orientation_deg": local.lattice_orientation_deg[local_index],
             "orientation_status": local.orientation_status[local_index],
+            "m6_orientation_confidence": (
+                None
+                if multisymmetry is None
+                else multisymmetry.m6_orientation_confidence[local_index]
+            ),
+            "trifold_model_score": (
+                None if evidence is None else evidence.trifold_model_score[local_index]
+            ),
+            "sixfold_model_score": (
+                None if evidence is None else evidence.sixfold_model_score[local_index]
+            ),
+            "mixed_model_score": (
+                None if evidence is None else evidence.mixed_model_score[local_index]
+            ),
+            "disordered_model_score": (
+                None if evidence is None else evidence.disordered_model_score[local_index]
+            ),
+            "symmetry_best_model": (
+                None if evidence is None else evidence.best_model[local_index]
+            ),
+            "symmetry_second_best_margin": (
+                None if evidence is None else evidence.second_best_margin[local_index]
+            ),
+            "symmetry_observed_direction_count": (
+                None if evidence is None else evidence.observed_direction_count[local_index]
+            ),
+            "symmetry_expected_direction_coverage": (
+                None
+                if evidence is None
+                else evidence.expected_direction_coverage[local_index]
+            ),
+            "symmetry_classification_confidence": (
+                None
+                if evidence is None
+                else evidence.classification_confidence[local_index]
+            ),
+            "symmetry_classification_reason": (
+                None if evidence is None else evidence.classification_reason[local_index]
+            ),
             "ordered_component_id": (
                 None if ordered_component_id < 0 else ordered_component_id
             ),

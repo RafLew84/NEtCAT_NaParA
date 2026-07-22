@@ -55,6 +55,7 @@ from moltrack.analysis import (
     build_m6_domain_type_analysis_context,
     build_m6_point_overlay_from_analysis,
     build_m6_current_frame_results,
+    build_local_symmetry_point_inspection,
     build_molecular_intensity_measurements,
     build_molecular_position_plot_data,
     build_molecular_sample_coordinates,
@@ -2349,10 +2350,16 @@ class MolTrackMainWindow(QMainWindow):
     def _on_molecular_detection_selection_changed(self, detection_id) -> None:
         self._selected_molecular_detection_id = str(detection_id) if detection_id is not None else None
         self._sync_bbox_edit_controls()
+        self._sync_selected_local_symmetry_point(
+            preferred_source_id=self._selected_molecular_detection_id
+        )
 
     def _on_molecular_segmentation_selection_changed(self, segmentation_id) -> None:
         self._selected_molecular_segmentation_id = str(segmentation_id) if segmentation_id is not None else None
         self._sync_active_segmentation_panel()
+        self._sync_selected_local_symmetry_point(
+            preferred_source_id=self._selected_molecular_segmentation_id
+        )
 
     def _on_active_segmentation_combo_changed(self, _index: int) -> None:
         segmentation_id = self.cmb_active_segmentation.currentData()
@@ -5174,6 +5181,75 @@ class MolTrackMainWindow(QMainWindow):
                 if analysis is None
                 else build_m6_current_frame_results(analysis.frame_aggregates)
             )
+        self._sync_selected_local_symmetry_point(analysis=analysis)
+
+    def _sync_selected_local_symmetry_point(
+        self,
+        *,
+        preferred_source_id: str | None = None,
+        analysis=None,
+    ) -> None:
+        dialog = self._position_analysis_dialog
+        if dialog is None:
+            return
+        if analysis is None:
+            analysis = self._current_m6_analysis_result()
+        if analysis is None:
+            dialog.set_local_symmetry_point_inspection(None)
+            return
+        candidates = (
+            (preferred_source_id,)
+            if preferred_source_id is not None
+            else (
+                self._selected_molecular_segmentation_id,
+                self._selected_molecular_detection_id,
+            )
+        )
+        inspection = None
+        for source_id in candidates:
+            if source_id is None:
+                continue
+            analysis_source_id = self._local_symmetry_source_id_for_selection(
+                analysis,
+                source_id,
+            )
+            if analysis_source_id is None:
+                continue
+            inspection = build_local_symmetry_point_inspection(
+                analysis,
+                analysis_source_id,
+            )
+            if inspection is not None:
+                break
+        dialog.set_local_symmetry_point_inspection(inspection)
+
+    def _local_symmetry_source_id_for_selection(
+        self,
+        analysis,
+        selected_source_id: str,
+    ) -> str | None:
+        selected_source_id = str(selected_source_id)
+        available_ids = set(analysis.point_source_ids)
+        if selected_source_id in available_ids:
+            return selected_source_id
+        series = self._series
+        segmentation_set = (
+            None if series is None else series.molecular_segmentations
+        )
+        if series is None or segmentation_set is None:
+            return None
+        linked_ids = sorted(
+            segmentation.segmentation_id
+            for segmentation in segmentation_set.get_segmentations(
+                series.active_frame_index,
+                source_view=self._current_yolo_source_view(),
+            )
+            if selected_source_id in segmentation.prompt_detection_ids
+            and segmentation.segmentation_id in available_ids
+        )
+        if self._selected_molecular_segmentation_id in linked_ids:
+            return self._selected_molecular_segmentation_id
+        return None if not linked_ids else linked_ids[0]
 
     def _refresh_position_analysis_dialog_if_open(self) -> None:
         if self._position_analysis_dialog is None or self._series is None:

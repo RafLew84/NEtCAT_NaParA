@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, fields
+from hashlib import sha256
 from math import isfinite
 from typing import Literal, Mapping, get_args
 
 
 LOCAL_SYMMETRY_EVIDENCE_SCHEMA_VERSION = 1
+LOCAL_SYMMETRY_EVIDENCE_ALGORITHM_VERSION = "moltrack-local-symmetry-evidence-v1"
 
 LocalSymmetryModel = Literal[
     "trifold",
@@ -270,6 +273,25 @@ class LocalSymmetryEvidenceField:
             return self.source_ids.index(source_id)
         except ValueError as exc:
             raise KeyError(f"Unknown source_id: {source_id!r}.") from exc
+
+
+def local_symmetry_evidence_settings_fingerprint(
+    settings: LocalSymmetryEvidenceSettings,
+) -> str:
+    if not isinstance(settings, LocalSymmetryEvidenceSettings):
+        raise TypeError("settings must be LocalSymmetryEvidenceSettings.")
+    payload = {
+        "schema": LOCAL_SYMMETRY_EVIDENCE_ALGORITHM_VERSION,
+        "settings": settings.to_dict(),
+    }
+    return sha256(
+        json.dumps(
+            payload,
+            allow_nan=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
 
 
 def _optional_unit_tuple(values: tuple[object, ...], field_name: str) -> tuple[float | None, ...]:

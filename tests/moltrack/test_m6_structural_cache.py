@@ -292,6 +292,42 @@ class StructuralAnalysisCacheKeyTests(unittest.TestCase):
 
 
 class StructuralAnalysisCacheIntegrationTests(unittest.TestCase):
+    def test_recomputes_legacy_m6_only_in_memory_cache_entry(self) -> None:
+        series = _build_series(frame_count=1)
+        settings = _settings()
+        sample = _sample(series)
+        complete = analyze_molecular_m6_orientation(sample, settings=settings)
+        legacy = replace(
+            complete,
+            local_multisymmetry_order=None,
+            local_symmetry_evidence=None,
+            local_symmetry_evidence_settings=None,
+        )
+        key = build_structural_analysis_cache_key(
+            series,
+            sample,
+            use_segmentation_centroids=True,
+            settings=settings,
+        )
+        cache = StructuralAnalysisCache()
+        self.assertTrue(cache._put(key, legacy))
+        series.structural_analysis_cache = cache
+        compute = Mock(wraps=analyze_molecular_m6_orientation)
+
+        restored = _get_or_compute_molecular_m6_orientation(
+            series,
+            sample,
+            use_segmentation_centroids=True,
+            settings=settings,
+            analysis_factory=compute,
+        )
+
+        self.assertEqual(compute.call_count, 1)
+        self.assertIsNot(restored, legacy)
+        self.assertIsNotNone(restored.local_multisymmetry_order)
+        self.assertEqual(cache.stats().hit_count, 0)
+        self.assertEqual(cache.stats().miss_count, 1)
+
     def test_recomputes_for_transform_fov_settings_and_version_changes(self) -> None:
         series = _build_series(frame_count=1)
         settings = _settings()
@@ -395,6 +431,10 @@ class StructuralAnalysisCacheIntegrationTests(unittest.TestCase):
             first.frame_results[0].m6_orientation_analysis,
             repeated.frame_results[0].m6_orientation_analysis,
         )
+        cached_analysis = repeated.frame_results[0].m6_orientation_analysis
+        assert cached_analysis is not None
+        self.assertIsNotNone(cached_analysis.local_multisymmetry_order)
+        self.assertIsNotNone(cached_analysis.local_symmetry_evidence)
         self.assertIsNot(
             first.frame_results[0].m6_orientation_analysis,
             changed.frame_results[0].m6_orientation_analysis,

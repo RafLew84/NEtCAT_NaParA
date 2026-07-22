@@ -42,6 +42,7 @@ from .m3_sublattice_gauge import (
     build_m3_sublattice_gauge_assignment,
 )
 from .local_multisymmetry_bond_order_computation import (
+    apply_m3_sublattice_gauge,
     compute_local_multisymmetry_bond_order,
 )
 from .local_symmetry_confusion import (
@@ -52,11 +53,13 @@ from .local_symmetry_confusion import (
 )
 from .local_symmetry_evidence_classifier import classify_local_symmetry_evidence
 from .local_symmetry_evidence_models import (
+    LOCAL_SYMMETRY_EVIDENCE_ALGORITHM_VERSION,
     LOCAL_SYMMETRY_EVIDENCE_SCHEMA_VERSION,
     LocalSymmetryClassificationReason,
     LocalSymmetryEvidenceField,
     LocalSymmetryEvidenceSettings,
     LocalSymmetryModel,
+    local_symmetry_evidence_settings_fingerprint,
 )
 from .local_sixfold_bond_order_computation import compute_local_sixfold_bond_order
 from .sixfold_bond_order_aggregates import (
@@ -155,12 +158,17 @@ from .molecular_m6_analysis import (
 from .m6_point_overlay import (
     M6_ANALYSIS_OVERLAY_MODES,
     M6_OVERLAY_MODES,
+    M6_SYMMETRY_EVIDENCE_LEGEND,
     M6AnalysisOverlayMode,
     M6OverlayMode,
     M6OverlayPointState,
     M6PointOverlay,
     build_m6_point_overlay,
     build_m6_point_overlay_from_analysis,
+)
+from .local_symmetry_point_inspection import (
+    LocalSymmetryPointInspection,
+    build_local_symmetry_point_inspection,
 )
 from .m6_current_frame_results import (
     M6CurrentFrameDomainRow,
@@ -343,6 +351,8 @@ __all__ = [
     "M6_OVERLAY_MODES",
     "M6_ANALYSIS_OVERLAY_MODES",
     "M6AnalysisOverlayMode",
+    "M6_SYMMETRY_EVIDENCE_LEGEND",
+    "LocalSymmetryPointInspection",
     "M6OverlayMode",
     "M6OverlayPointState",
     "M6PointOverlay",
@@ -372,6 +382,7 @@ __all__ = [
     "compute_local_multisymmetry_bond_order",
     "LOCAL_SYMMETRY_CONFUSION_LABELS",
     "LOCAL_SYMMETRY_EVIDENCE_SCHEMA_VERSION",
+    "LOCAL_SYMMETRY_EVIDENCE_ALGORITHM_VERSION",
     "LocalSymmetryClassificationReason",
     "LocalSymmetryConfusionReport",
     "LocalSymmetryEvidenceField",
@@ -380,9 +391,11 @@ __all__ = [
     "LocalSymmetryValidationError",
     "build_local_symmetry_confusion_report",
     "classify_local_symmetry_evidence",
+    "local_symmetry_evidence_settings_fingerprint",
     "compute_local_sixfold_bond_order",
     "SixfoldBondOrderAggregates",
     "aggregate_local_sixfold_bond_order",
+    "apply_m3_sublattice_gauge",
     "LatticeOrientationDomain",
     "M6AssignmentStatus",
     "M6ComponentType",
@@ -439,6 +452,7 @@ __all__ = [
     "analyze_molecular_m6_orientation",
     "build_m6_point_overlay",
     "build_m6_point_overlay_from_analysis",
+    "build_local_symmetry_point_inspection",
     "build_m6_current_frame_results",
     "aggregate_molecular_m6_frame_range",
     "aggregate_pair_correlation_results",

@@ -153,7 +153,7 @@ class MolecularM6SessionPersistenceTests(unittest.TestCase):
                 settings=settings,
                 view_settings=MolecularM6ViewSettings(
                     show_domain_overlay=True,
-                    overlay_mode="orientation",
+                    overlay_mode="symmetry_evidence",
                     show_first_shell_graph=True,
                     show_unassigned_points=False,
                     overlay_opacity_percent=47,
@@ -182,7 +182,10 @@ class MolecularM6SessionPersistenceTests(unittest.TestCase):
             self.assertEqual(cache_payload[0]["sample_coordinates"]["valid_fov_polygon_xy_nm"], [list(point) for point in sample.valid_fov_polygon_xy_nm])
             self.assertTrue(loaded.m6_analysis_state.enabled)
             self.assertEqual(loaded.m6_analysis_state.view_settings.overlay_opacity_percent, 47)
-            self.assertEqual(loaded.m6_analysis_state.view_settings.overlay_mode, "orientation")
+            self.assertEqual(
+                loaded.m6_analysis_state.view_settings.overlay_mode,
+                "symmetry_evidence",
+            )
 
             m6_payload["view_settings"].pop("overlay_mode")
             session_path.write_text(json.dumps(payload), encoding="utf-8")
@@ -231,6 +234,8 @@ class MolecularM6SessionPersistenceTests(unittest.TestCase):
         self.assertIsNotNone(restored)
         self.assertIs(repeated, restored)
         self.assertEqual(recompute.call_count, 1)
+        self.assertIsNotNone(restored.local_multisymmetry_order)
+        self.assertIsNotNone(restored.local_symmetry_evidence)
         self.assertEqual(restored.segmentation.full_domain_count, 2)
         self.assertEqual(restored.segmentation.domains, original.segmentation.domains)
         self.assertEqual(

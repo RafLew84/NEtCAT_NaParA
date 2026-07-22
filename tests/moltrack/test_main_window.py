@@ -5762,6 +5762,19 @@ class MolTrackMainWindowTests(unittest.TestCase):
                 source_view="raw",
                 frame_shape=(frame_size, frame_size),
             )
+        linked_mask = np.zeros((frame_size, frame_size), dtype=bool)
+        linked_mask[26, 6] = True
+        segmentations = MolecularSegmentationSet(frame_count=2)
+        segmentations.add_segmentation(
+            MolecularSegmentation(
+                frame_index=0,
+                source_view="raw",
+                mask=linked_mask,
+                prompt_detection_ids=("molecule-0-0",),
+                segmentation_id="segmentation-0-0",
+                origin="sam2",
+            )
+        )
         settings = MolecularM6OrientationAnalysisSettings(
             first_shell_r_min_nm=1.5,
             first_shell_r_max_nm=2.3,
@@ -5781,6 +5794,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
                 scan_angle_deg=0.0,
             ),
             molecular_detections=detections,
+            molecular_segmentations=segmentations,
             m6_analysis_state=MolecularM6SessionState(
                 enabled=True,
                 settings=settings,
@@ -5829,6 +5843,24 @@ class MolTrackMainWindowTests(unittest.TestCase):
             dialog.m6_settings_panel.current_frame_results_panel.domain_row_count(),
             len(analysis.frame_aggregates.domain_metrics.components),
         )
+        selected_source_id = analysis.point_source_ids[5]
+        self.window.viewer.select_molecular_detection_by_id(selected_source_id)
+        selected_text = dialog.m6_settings_panel.selected_point_text()
+        self.assertIn(selected_source_id, selected_text)
+        self.assertIn("q3", selected_text)
+        self.assertIn("q6", selected_text)
+        self.window.viewer.select_molecular_detection_by_id("molecule-0-0")
+        self.assertIn(
+            "segmentation-0-0",
+            dialog.m6_settings_panel.selected_point_text(),
+        )
+
+        with patch("moltrack.ui.main_window.analyze_molecular_frame_range") as compute:
+            dialog.set_m6_overlay_mode("q3")
+            dialog.set_m6_overlay_mode("m3_orientation")
+            dialog.set_m6_overlay_mode("symmetry_evidence")
+        compute.assert_not_called()
+        self.assertEqual(self.window.viewer.visible_m6_overlay_count(), len(points))
 
         dialog.m6_settings_panel.current_frame_results_panel.domain_table.setCurrentCell(
             0,

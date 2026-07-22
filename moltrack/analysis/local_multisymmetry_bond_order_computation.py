@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from cmath import phase
 from collections.abc import Sequence
+from dataclasses import replace
 from hashlib import sha256
 from math import degrees, isfinite
 
@@ -169,6 +170,58 @@ def compute_local_multisymmetry_bond_order(
         m3_orientation_zero_tolerance=m3_tolerance,
         m6_orientation_zero_tolerance=m6_tolerance,
         bond_weighting=settings.bond_weighting,
+    )
+
+
+def apply_m3_sublattice_gauge(
+    first_shell_graph: FirstShellGraph,
+    local_order: LocalMultiSymmetryBondOrderField,
+    *,
+    qualified_trifold_point_indices: Sequence[int],
+    ambiguous_trifold_point_indices: Sequence[int] = (),
+    trifold_edge_qualified: Sequence[bool] | None = None,
+) -> LocalMultiSymmetryBondOrderField:
+    """Attach a classified trifold gauge without recomputing bond order."""
+
+    if not isinstance(first_shell_graph, FirstShellGraph):
+        raise TypeError("first_shell_graph must be a FirstShellGraph.")
+    if not isinstance(local_order, LocalMultiSymmetryBondOrderField):
+        raise TypeError("local_order must be LocalMultiSymmetryBondOrderField.")
+    if (
+        local_order.source_ids != first_shell_graph.point_ids
+        or local_order.provenance.first_shell_graph_fingerprint
+        != first_shell_graph_fingerprint(first_shell_graph)
+    ):
+        raise ValueError("local_order must belong to first_shell_graph.")
+    gauge = build_m3_sublattice_gauge_assignment(
+        first_shell_graph=first_shell_graph,
+        m3_orientation_status=local_order.m3_orientation_status,
+        qualified_trifold_point_indices=tuple(qualified_trifold_point_indices),
+        ambiguous_trifold_point_indices=tuple(ambiguous_trifold_point_indices),
+        trifold_edge_qualified=(
+            None if trifold_edge_qualified is None else tuple(trifold_edge_qualified)
+        ),
+    )
+    return replace(
+        local_order,
+        m3_sublattice_phase=gauge.m3_sublattice_phase,
+        m3_sublattice_phase_status=gauge.m3_sublattice_phase_status,
+        m3_phase_gauge_anchor=gauge.m3_phase_gauge_anchor,
+        m3_qualified_trifold=gauge.m3_qualified_trifold,
+        m3_sublattice_assignment_ambiguous=(
+            gauge.m3_sublattice_assignment_ambiguous
+        ),
+        m3_gauge_inconsistent_cycle=gauge.m3_gauge_inconsistent_cycle,
+        m3_gauge_frustration_qc=gauge.m3_gauge_frustration_qc,
+        provenance=replace(
+            local_order.provenance,
+            qualified_trifold_subgraph_fingerprint=(
+                gauge.qualified_trifold_subgraph_fingerprint
+            ),
+            m3_phase_assignment_fingerprint=(
+                gauge.m3_phase_assignment_fingerprint
+            ),
+        ),
     )
 
 

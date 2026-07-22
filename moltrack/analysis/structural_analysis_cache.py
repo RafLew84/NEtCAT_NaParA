@@ -170,6 +170,14 @@ class StructuralAnalysisCache:
         if entry.reproducible_sample is not None:
             self._miss_count += 1
             return None
+        if (
+            entry.analysis is not None
+            and entry.analysis.local_multisymmetry_order is None
+        ):
+            self._entries.pop(key)
+            self._estimated_bytes -= entry.estimated_bytes
+            self._miss_count += 1
+            return None
         self._entries.move_to_end(key)
         self._hit_count += 1
         if entry.blocking_qc_status is not None:

@@ -296,7 +296,7 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
             with paths["manifest_json"].open("r", encoding="utf-8") as handle:
                 manifest = json.load(handle)
 
-        self.assertEqual(manifest["export_schema_version"], 3)
+        self.assertEqual(manifest["export_schema_version"], 4)
         created_at = datetime.fromisoformat(manifest["created_at_utc"])
         self.assertIsNotNone(created_at.tzinfo)
         self.assertEqual(created_at.utcoffset().total_seconds(), 0.0)
@@ -1583,11 +1583,37 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
         }
         m6_fields = {
             "neighbor_count",
+            "psi3_real",
+            "psi3_imag",
+            "q3",
+            "m3_lattice_orientation_deg",
+            "m3_orientation_status",
+            "m3_orientation_confidence",
+            "m3_sublattice_phase",
+            "m3_sublattice_phase_status",
+            "m3_phase_gauge_anchor",
+            "m3_qualified_trifold",
+            "m3_sublattice_assignment_ambiguous",
+            "m3_gauge_inconsistent_cycle",
+            "m3_gauge_frustration_qc",
+            "symmetry_resolvability_status",
+            "edge_truncated_neighborhood",
             "psi6_real",
             "psi6_imag",
             "q6",
             "lattice_orientation_deg",
             "orientation_status",
+            "m6_orientation_confidence",
+            "trifold_model_score",
+            "sixfold_model_score",
+            "mixed_model_score",
+            "disordered_model_score",
+            "symmetry_best_model",
+            "symmetry_second_best_margin",
+            "symmetry_observed_direction_count",
+            "symmetry_expected_direction_coverage",
+            "symmetry_classification_confidence",
+            "symmetry_classification_reason",
             "ordered_component_id",
             "m6_orientation_domain_id",
             "component_type",

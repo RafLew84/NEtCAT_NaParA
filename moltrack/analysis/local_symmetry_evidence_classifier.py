@@ -16,6 +16,7 @@ from .local_symmetry_evidence_models import (
     LocalSymmetryEvidenceField,
     LocalSymmetryEvidenceSettings,
     LocalSymmetryModel,
+    local_symmetry_evidence_settings_fingerprint,
 )
 
 
@@ -153,7 +154,7 @@ def classify_local_symmetry_evidence(
         local_order_analysis_fingerprint=(
             local_order.provenance.analysis_settings_fingerprint
         ),
-        settings_fingerprint=_settings_fingerprint(settings),
+        settings_fingerprint=local_symmetry_evidence_settings_fingerprint(settings),
         bond_evidence_fingerprint=_bond_evidence_fingerprint(
             weights=weights,
             uncertainties=uncertainties,
@@ -643,21 +644,6 @@ def _normalized_edge_values(
             )
         result.append(number)
     return tuple(result)
-
-
-def _settings_fingerprint(settings: LocalSymmetryEvidenceSettings) -> str:
-    payload = {
-        "schema": "moltrack-local-symmetry-evidence-settings-v1",
-        "settings": settings.to_dict(),
-    }
-    return sha256(
-        json.dumps(
-            payload,
-            allow_nan=False,
-            separators=(",", ":"),
-            sort_keys=True,
-        ).encode("utf-8")
-    ).hexdigest()
 
 
 def _bond_evidence_fingerprint(
