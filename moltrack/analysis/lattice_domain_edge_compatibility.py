@@ -9,6 +9,7 @@ from typing import Literal, cast
 from ._first_shell_graph_fingerprint import first_shell_graph_fingerprint
 from .first_shell_graph import FirstShellGraph
 from .lattice_domain_edge_models import (
+    LatticeDomainCompatibilityChannel,
     LatticeDomainEdgeCompatibilityField,
     LatticeDomainEdgeCompatibilitySettings,
     LatticeDomainEdgeDecision,
@@ -147,6 +148,17 @@ def build_lattice_domain_edge_compatibility(
             for left, right in graph.edges_ij
         ),
         decision=edge_decisions,
+        compatible_channels=tuple(
+            _compatible_channels(
+                left,
+                right,
+                decision=item.decision,
+                metrics=item.metrics,
+                local_evidence=local_evidence,
+                settings=settings,
+            )
+            for (left, right), item in zip(graph.edges_ij, decisions)
+        ),
         retained_for_domain_growth=tuple(
             lattice_domain_edge_is_retained(decision)
             for decision in edge_decisions
@@ -195,6 +207,48 @@ def build_lattice_domain_edge_compatibility(
         ),
         settings_fingerprint=lattice_domain_edge_settings_fingerprint(settings),
     )
+
+
+def _compatible_channels(
+    left: int,
+    right: int,
+    *,
+    decision: LatticeDomainEdgeDecision,
+    metrics: _EdgeMetrics,
+    local_evidence: LocalSymmetryEvidenceField,
+    settings: LatticeDomainEdgeCompatibilitySettings,
+) -> tuple[LatticeDomainCompatibilityChannel, ...]:
+    direct_channels: dict[
+        LatticeDomainEdgeDecision,
+        tuple[LatticeDomainCompatibilityChannel, ...],
+    ] = {
+        "compatible_trifold": ("m3",),
+        "compatible_sixfold": ("m6",),
+        "compatible_mixed": ("m3", "m6"),
+    }
+    if decision in direct_channels:
+        return direct_channels[decision]
+    if decision != "conditional_halo_edge":
+        return ()
+    left_model = local_evidence.best_model[left]
+    right_model = local_evidence.best_model[right]
+    model_pair = {left_model, right_model}
+    if "trifold" in model_pair:
+        return ("m3",)
+    if "sixfold" in model_pair:
+        return ("m6",)
+    channels: list[LatticeDomainCompatibilityChannel] = []
+    if (
+        metrics.theta3_delta_deg is not None
+        and metrics.theta3_delta_deg <= settings.trifold_orientation_tolerance_deg
+    ):
+        channels.append("m3")
+    if (
+        metrics.theta6_delta_deg is not None
+        and metrics.theta6_delta_deg <= settings.sixfold_orientation_tolerance_deg
+    ):
+        channels.append("m6")
+    return tuple(channels)
 
 
 def _classify_edge(

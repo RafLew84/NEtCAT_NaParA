@@ -303,6 +303,7 @@ class StructuralAnalysisCacheIntegrationTests(unittest.TestCase):
             local_symmetry_evidence=None,
             local_symmetry_evidence_settings=None,
             lattice_domain_edge_compatibility=None,
+            lattice_domain_seed_growth=None,
         )
         key = build_structural_analysis_cache_key(
             series,
@@ -337,6 +338,7 @@ class StructuralAnalysisCacheIntegrationTests(unittest.TestCase):
         pre_edge_compatibility = replace(
             complete,
             lattice_domain_edge_compatibility=None,
+            lattice_domain_seed_growth=None,
         )
         key = build_structural_analysis_cache_key(
             series,
@@ -368,6 +370,42 @@ class StructuralAnalysisCacheIntegrationTests(unittest.TestCase):
             pre_edge_compatibility.local_symmetry_evidence,
         )
         self.assertIsNotNone(restored.lattice_domain_edge_compatibility)
+        self.assertIsNotNone(restored.lattice_domain_seed_growth)
+        self.assertEqual(cache.stats().hit_count, 1)
+        self.assertEqual(cache.stats().miss_count, 0)
+
+    def test_upgrades_pre_seed_growth_in_memory_cache_entry(self) -> None:
+        series = _build_series(frame_count=1)
+        settings = _settings()
+        sample = _sample(series)
+        complete = analyze_molecular_m6_orientation(sample, settings=settings)
+        pre_seed_growth = replace(complete, lattice_domain_seed_growth=None)
+        key = build_structural_analysis_cache_key(
+            series,
+            sample,
+            use_segmentation_centroids=True,
+            settings=settings,
+        )
+        cache = StructuralAnalysisCache()
+        self.assertTrue(cache._put(key, pre_seed_growth))
+        series.structural_analysis_cache = cache
+        compute = Mock(wraps=analyze_molecular_m6_orientation)
+
+        restored = _get_or_compute_molecular_m6_orientation(
+            series,
+            sample,
+            use_segmentation_centroids=True,
+            settings=settings,
+            analysis_factory=compute,
+        )
+
+        self.assertEqual(compute.call_count, 0)
+        self.assertIsNot(restored, pre_seed_growth)
+        self.assertIs(
+            restored.lattice_domain_edge_compatibility,
+            pre_seed_growth.lattice_domain_edge_compatibility,
+        )
+        self.assertIsNotNone(restored.lattice_domain_seed_growth)
         self.assertEqual(cache.stats().hit_count, 1)
         self.assertEqual(cache.stats().miss_count, 0)
 

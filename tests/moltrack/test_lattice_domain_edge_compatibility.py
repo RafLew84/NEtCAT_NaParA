@@ -226,6 +226,7 @@ class LatticeDomainEdgeCompatibilityTests(unittest.TestCase):
         )
 
         self.assertEqual(accepted.decision, ("compatible_trifold",))
+        self.assertEqual(accepted.compatible_channels, (("m3",),))
         self.assertEqual(accepted.theta3_delta_deg, (2.0,))
         self.assertEqual(accepted.retained_edges_ij, ((0, 1),))
         self.assertEqual(accepted.rejection_reason, (None,))
@@ -236,6 +237,7 @@ class LatticeDomainEdgeCompatibilityTests(unittest.TestCase):
         self.assertEqual(accepted.minimum_endpoint_m3_orientation_confidence, (0.8,))
         self.assertEqual(accepted.minimum_endpoint_m6_orientation_confidence, (0.8,))
         self.assertEqual(rejected.decision, ("conflict_boundary",))
+        self.assertEqual(rejected.compatible_channels, ((),))
         self.assertEqual(
             rejected.rejection_reason,
             ("trifold_orientation_mismatch",),
@@ -331,6 +333,7 @@ class LatticeDomainEdgeCompatibilityTests(unittest.TestCase):
                 evidence,
             )
             decisions.append(result.decision)
+            self.assertEqual(result.compatible_channels, (("m3",),))
             self.assertFalse(result.core_connectivity_eligible[0])
 
         self.assertEqual(decisions, [("conditional_halo_edge",)] * 2)
@@ -470,7 +473,7 @@ class LatticeDomainEdgeCompatibilityTests(unittest.TestCase):
             settings,
         )
         self.assertEqual(len(lattice_domain_edge_settings_fingerprint(settings)), 64)
-        self.assertEqual(LATTICE_DOMAIN_EDGE_COMPATIBILITY_SCHEMA_VERSION, 1)
+        self.assertEqual(LATTICE_DOMAIN_EDGE_COMPATIBILITY_SCHEMA_VERSION, 2)
         with self.assertRaises(ValueError):
             LatticeDomainEdgeCompatibilitySettings(
                 trifold_orientation_tolerance_deg=30.01,

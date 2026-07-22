@@ -1639,6 +1639,7 @@ class M6AnalysisExportTests(unittest.TestCase):
             local_symmetry_evidence=None,
             local_symmetry_evidence_settings=None,
             lattice_domain_edge_compatibility=None,
+            lattice_domain_seed_growth=None,
         )
         legacy_frame = replace(
             frame_analysis,

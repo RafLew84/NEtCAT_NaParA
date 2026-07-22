@@ -66,6 +66,7 @@ from .lattice_domain_edge_models import (
     LATTICE_DOMAIN_EDGE_COMPATIBILITY_SCHEMA_VERSION,
     LatticeDomainEdgeCompatibilityField,
     LatticeDomainEdgeCompatibilitySettings,
+    LatticeDomainCompatibilityChannel,
     LatticeDomainEdgeDecision,
     LatticeDomainEdgeRejectionReason,
     lattice_domain_edge_settings_from_m6,
@@ -74,6 +75,21 @@ from .lattice_domain_edge_models import (
 from .lattice_domain_edge_compatibility import (
     build_lattice_domain_edge_compatibility,
 )
+from .lattice_domain_seed_growth_models import (
+    LATTICE_DOMAIN_SEED_GROWTH_ALGORITHM_VERSION,
+    LATTICE_DOMAIN_SEED_GROWTH_SCHEMA_VERSION,
+    LatticeDomainBoundaryReason,
+    LatticeDomainPointRole,
+    LatticeDomainSeedComponent,
+    LatticeDomainSeedGrowthResult,
+    LatticeDomainSeedGrowthSettings,
+    LatticeDomainSeedState,
+    LatticeDomainSeedSupportStability,
+    LatticeDomainSymmetry,
+    lattice_domain_seed_growth_settings_from_m6,
+    lattice_domain_seed_growth_settings_fingerprint,
+)
+from .lattice_domain_seed_growth import build_lattice_domain_seed_growth
 from .local_sixfold_bond_order_computation import compute_local_sixfold_bond_order
 from .sixfold_bond_order_aggregates import (
     SixfoldBondOrderAggregates,
@@ -168,6 +184,7 @@ from .molecular_m6_analysis import (
     MolecularM6OrientationAnalysis,
     analyze_molecular_m6_orientation,
     attach_lattice_domain_edge_compatibility,
+    attach_lattice_domain_seed_growth,
 )
 from .m6_point_overlay import (
     M6_ANALYSIS_OVERLAY_MODES,
@@ -305,12 +322,27 @@ __all__ = [
     "LATTICE_DOMAIN_EDGE_COMPATIBILITY_SCHEMA_VERSION",
     "LatticeDomainEdgeCompatibilityField",
     "LatticeDomainEdgeCompatibilitySettings",
+    "LatticeDomainCompatibilityChannel",
     "LatticeDomainEdgeDecision",
     "LatticeDomainEdgeRejectionReason",
     "lattice_domain_edge_settings_from_m6",
     "build_lattice_domain_edge_compatibility",
     "lattice_domain_edge_settings_fingerprint",
     "attach_lattice_domain_edge_compatibility",
+    "attach_lattice_domain_seed_growth",
+    "LATTICE_DOMAIN_SEED_GROWTH_ALGORITHM_VERSION",
+    "LATTICE_DOMAIN_SEED_GROWTH_SCHEMA_VERSION",
+    "LatticeDomainBoundaryReason",
+    "LatticeDomainPointRole",
+    "LatticeDomainSeedComponent",
+    "LatticeDomainSeedGrowthResult",
+    "LatticeDomainSeedGrowthSettings",
+    "LatticeDomainSeedState",
+    "LatticeDomainSeedSupportStability",
+    "LatticeDomainSymmetry",
+    "build_lattice_domain_seed_growth",
+    "lattice_domain_seed_growth_settings_from_m6",
+    "lattice_domain_seed_growth_settings_fingerprint",
     "build_first_shell_graph",
     "MolecularFrameRange",
     "MolecularFrameRangeAnalysisMode",

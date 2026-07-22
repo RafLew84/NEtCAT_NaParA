@@ -25,6 +25,8 @@ _FLOAT_FIELDS = (
     "lattice_edge_conditional_channel_minimum_score",
     "lattice_edge_minimum_classification_confidence",
     "lattice_edge_minimum_orientation_confidence",
+    "lattice_seed_min_model_score",
+    "lattice_halo_min_model_score",
     "gr_bin_width_nm",
     "gr_max_nm",
     "gr_min_expected_pair_exposure",
@@ -92,6 +94,8 @@ _LATTICE_EDGE_MIGRATION_FIELDS = {
     "lattice_edge_conditional_channel_minimum_score",
     "lattice_edge_minimum_classification_confidence",
     "lattice_edge_minimum_orientation_confidence",
+    "lattice_seed_min_model_score",
+    "lattice_halo_min_model_score",
 }
 
 
@@ -130,6 +134,8 @@ class MolecularM6OrientationAnalysisSettings:
     lattice_edge_conditional_channel_minimum_score: float = 0.5
     lattice_edge_minimum_classification_confidence: float = 0.5
     lattice_edge_minimum_orientation_confidence: float = 0.5
+    lattice_seed_min_model_score: float = 0.65
+    lattice_halo_min_model_score: float = 0.25
     delaunay_degeneracy_policy: Literal[
         "exclude_ambiguous_edges"
     ] = "exclude_ambiguous_edges"
@@ -219,9 +225,16 @@ class MolecularM6OrientationAnalysisSettings:
             "lattice_edge_conditional_channel_minimum_score",
             "lattice_edge_minimum_classification_confidence",
             "lattice_edge_minimum_orientation_confidence",
+            "lattice_seed_min_model_score",
+            "lattice_halo_min_model_score",
         ):
             if not 0.0 <= getattr(self, field_name) <= 1.0:
                 raise ValueError(f"{field_name} must lie between 0 and 1.")
+        if self.lattice_halo_min_model_score > self.lattice_seed_min_model_score:
+            raise ValueError(
+                "lattice_halo_min_model_score must not exceed "
+                "lattice_seed_min_model_score."
+            )
         if not 0.0 <= self.domain_merge_angle_tolerance_deg <= 30.0:
             raise ValueError("domain_merge_angle_tolerance_deg must be between 0 and 30.")
         if self.domain_conflict_margin < 0.0:

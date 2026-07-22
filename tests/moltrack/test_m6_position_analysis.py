@@ -317,6 +317,7 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
         self.assertIsNotNone(m6.local_symmetry_evidence)
         self.assertIsNotNone(m6.local_symmetry_evidence_settings)
         self.assertIsNotNone(m6.lattice_domain_edge_compatibility)
+        self.assertIsNotNone(m6.lattice_domain_seed_growth)
         assert m6.local_multisymmetry_order is not None
         assert m6.local_symmetry_evidence is not None
         self.assertEqual(
@@ -389,6 +390,7 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
             local_symmetry_evidence=None,
             local_symmetry_evidence_settings=None,
             lattice_domain_edge_compatibility=None,
+            lattice_domain_seed_growth=None,
         )
         self.assertIsNone(legacy_m6_only.local_multisymmetry_order)
         self.assertIsNone(

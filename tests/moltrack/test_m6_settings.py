@@ -35,6 +35,8 @@ class MolecularM6OrientationAnalysisSettingsTests(unittest.TestCase):
         self.assertEqual(settings.q_grow, 0.25)
         self.assertEqual(settings.seed_angle_tolerance_deg, 8.0)
         self.assertEqual(settings.grow_angle_tolerance_deg, 12.0)
+        self.assertEqual(settings.lattice_seed_min_model_score, 0.65)
+        self.assertEqual(settings.lattice_halo_min_model_score, 0.25)
         self.assertEqual(settings.delaunay_degeneracy_policy, "exclude_ambiguous_edges")
         self.assertEqual(settings.gr_bin_width_nm, 0.1)
         self.assertEqual(settings.gr_max_nm, 10.0)
@@ -119,6 +121,8 @@ class MolecularM6OrientationAnalysisSettingsTests(unittest.TestCase):
             "q_grow",
             "seed_angle_tolerance_deg",
             "grow_angle_tolerance_deg",
+            "lattice_seed_min_model_score",
+            "lattice_halo_min_model_score",
             "gr_bin_width_nm",
             "gr_max_nm",
             "gr_min_expected_pair_exposure",
@@ -168,6 +172,12 @@ class MolecularM6OrientationAnalysisSettingsTests(unittest.TestCase):
             {"q_grow": 0.7, "q_seed": 0.6},
             {"seed_angle_tolerance_deg": -0.01},
             {"grow_angle_tolerance_deg": 30.01},
+            {"lattice_seed_min_model_score": 1.01},
+            {"lattice_halo_min_model_score": -0.01},
+            {
+                "lattice_seed_min_model_score": 0.5,
+                "lattice_halo_min_model_score": 0.6,
+            },
             {"domain_merge_angle_tolerance_deg": -0.01},
             {"domain_merge_angle_tolerance_deg": 30.01},
             {"domain_conflict_margin": -0.01},
@@ -275,6 +285,8 @@ class MolecularM6OrientationAnalysisSettingsTests(unittest.TestCase):
             lattice_edge_conditional_channel_minimum_score=0.6,
             lattice_edge_minimum_classification_confidence=0.55,
             lattice_edge_minimum_orientation_confidence=0.65,
+            lattice_seed_min_model_score=0.75,
+            lattice_halo_min_model_score=0.35,
         )
 
         payload = settings.to_dict()
@@ -301,6 +313,8 @@ class MolecularM6OrientationAnalysisSettingsTests(unittest.TestCase):
             "lattice_edge_conditional_channel_minimum_score",
             "lattice_edge_minimum_classification_confidence",
             "lattice_edge_minimum_orientation_confidence",
+            "lattice_seed_min_model_score",
+            "lattice_halo_min_model_score",
         ):
             legacy_payload.pop(field_name)
         legacy_restored = MolecularM6OrientationAnalysisSettings.from_dict(

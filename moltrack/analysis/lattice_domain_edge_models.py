@@ -12,10 +12,12 @@ from .local_symmetry_evidence_models import LocalSymmetryModel
 from .m6_settings import MolecularM6OrientationAnalysisSettings
 
 
-LATTICE_DOMAIN_EDGE_COMPATIBILITY_SCHEMA_VERSION = 1
+LATTICE_DOMAIN_EDGE_COMPATIBILITY_SCHEMA_VERSION = 2
 LATTICE_DOMAIN_EDGE_COMPATIBILITY_ALGORITHM_VERSION = (
-    "moltrack-lattice-domain-edge-compatibility-v1"
+    "moltrack-lattice-domain-edge-compatibility-v2"
 )
+
+LatticeDomainCompatibilityChannel = Literal["m3", "m6"]
 
 LatticeDomainEdgeDecision = Literal[
     "compatible_trifold",
@@ -60,6 +62,12 @@ _CORE_CONFIDENCE_CHANNELS = {
     "compatible_mixed": ("m3", "m6"),
 }
 _BOUNDARY_DECISIONS = {"conflict_boundary", "boundary_unassigned"}
+_COMPATIBILITY_CHANNELS = set(get_args(LatticeDomainCompatibilityChannel))
+_DIRECT_COMPATIBILITY_CHANNELS = {
+    "compatible_trifold": ("m3",),
+    "compatible_sixfold": ("m6",),
+    "compatible_mixed": ("m3", "m6"),
+}
 
 
 @dataclass(frozen=True)
@@ -204,6 +212,7 @@ class LatticeDomainEdgeCompatibilityField:
     edges_ij: tuple[tuple[int, int], ...]
     endpoint_models: tuple[tuple[LocalSymmetryModel, LocalSymmetryModel], ...]
     decision: tuple[LatticeDomainEdgeDecision, ...]
+    compatible_channels: tuple[tuple[LatticeDomainCompatibilityChannel, ...], ...]
     retained_for_domain_growth: tuple[bool, ...]
     core_connectivity_eligible: tuple[bool, ...]
     rejection_reason: tuple[LatticeDomainEdgeRejectionReason | None, ...]
@@ -243,12 +252,14 @@ class LatticeDomainEdgeCompatibilityField:
         edge_count = len(edges)
         endpoint_models = tuple(self.endpoint_models)
         decisions = tuple(self.decision)
+        compatible_channels = tuple(tuple(value) for value in self.compatible_channels)
         retained = tuple(self.retained_for_domain_growth)
         core_eligible = tuple(self.core_connectivity_eligible)
         reasons = tuple(self.rejection_reason)
         per_edge_values = (
             endpoint_models,
             decisions,
+            compatible_channels,
             retained,
             core_eligible,
             reasons,
@@ -268,6 +279,12 @@ class LatticeDomainEdgeCompatibilityField:
             raise ValueError("endpoint_models contains an unsupported model pair.")
         if any(decision not in _DECISIONS for decision in decisions):
             raise ValueError("decision contains an unsupported edge decision.")
+        if any(
+            channels != tuple(dict.fromkeys(channels))
+            or any(channel not in _COMPATIBILITY_CHANNELS for channel in channels)
+            for channels in compatible_channels
+        ):
+            raise ValueError("compatible_channels contains unsupported channel data.")
         if any(not isinstance(value, bool) for value in retained + core_eligible):
             raise TypeError("Edge eligibility fields must contain booleans.")
         if any(reason is not None and reason not in _REJECTION_REASONS for reason in reasons):
@@ -321,6 +338,14 @@ class LatticeDomainEdgeCompatibilityField:
                 raise ValueError("core_connectivity_eligible must match decision.")
             if expected_retained != (reasons[index] is None):
                 raise ValueError("Only rejected edges may contain rejection_reason.")
+            channels = compatible_channels[index]
+            if expected_retained != bool(channels):
+                raise ValueError("Only retained edges may expose compatible channels.")
+            expected_channels = _DIRECT_COMPATIBILITY_CHANNELS.get(decision)
+            if expected_channels is not None and channels != expected_channels:
+                raise ValueError(
+                    "Direct compatibility decisions require their canonical channels."
+                )
 
         for field_name in (
             "first_shell_graph_fingerprint",
@@ -338,6 +363,7 @@ class LatticeDomainEdgeCompatibilityField:
         object.__setattr__(self, "edges_ij", edges)
         object.__setattr__(self, "endpoint_models", endpoint_models)
         object.__setattr__(self, "decision", decisions)
+        object.__setattr__(self, "compatible_channels", compatible_channels)
         object.__setattr__(self, "retained_for_domain_growth", retained)
         object.__setattr__(self, "core_connectivity_eligible", core_eligible)
         object.__setattr__(self, "rejection_reason", reasons)

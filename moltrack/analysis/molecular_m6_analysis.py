@@ -14,6 +14,12 @@ from .lattice_domain_edge_models import (
     lattice_domain_edge_settings_from_m6,
     lattice_domain_edge_settings_fingerprint,
 )
+from .lattice_domain_seed_growth import build_lattice_domain_seed_growth
+from .lattice_domain_seed_growth_models import (
+    LatticeDomainSeedGrowthResult,
+    lattice_domain_seed_growth_settings_from_m6,
+    lattice_domain_seed_growth_settings_fingerprint,
+)
 from .local_multisymmetry_bond_order import (
     LocalMultiSymmetryBondOrderField,
     SymmetryResolvabilityStatus,
@@ -57,6 +63,7 @@ class MolecularM6OrientationAnalysis:
     local_symmetry_evidence: LocalSymmetryEvidenceField | None = None
     local_symmetry_evidence_settings: LocalSymmetryEvidenceSettings | None = None
     lattice_domain_edge_compatibility: LatticeDomainEdgeCompatibilityField | None = None
+    lattice_domain_seed_growth: LatticeDomainSeedGrowthResult | None = None
 
     def __post_init__(self) -> None:
         if self.source_view != self.sample_coordinates.source_view:
@@ -94,6 +101,7 @@ class MolecularM6OrientationAnalysis:
             raise ValueError("M6 Position Analysis requires frame aggregates.")
         self._validate_local_symmetry_extension(graph)
         self._validate_lattice_domain_edge_extension(graph)
+        self._validate_lattice_domain_seed_growth_extension(graph)
 
     def _validate_local_symmetry_extension(self, graph: FirstShellGraph) -> None:
         extension = (
@@ -171,6 +179,47 @@ class MolecularM6OrientationAnalysis:
             != lattice_domain_edge_settings_fingerprint(expected_settings)
         ):
             raise ValueError("Lattice-domain edge settings must match their result.")
+
+    def _validate_lattice_domain_seed_growth_extension(
+        self,
+        graph: FirstShellGraph,
+    ) -> None:
+        if self.lattice_domain_seed_growth is None:
+            return
+        seed_growth = self.lattice_domain_seed_growth
+        edge_field = self.lattice_domain_edge_compatibility
+        local_order = self.local_multisymmetry_order
+        local_evidence = self.local_symmetry_evidence
+        if not isinstance(seed_growth, LatticeDomainSeedGrowthResult):
+            raise TypeError("lattice_domain_seed_growth has an invalid type.")
+        if not isinstance(edge_field, LatticeDomainEdgeCompatibilityField):
+            raise ValueError("Lattice-domain seed/growth requires edge compatibility.")
+        if not isinstance(local_order, LocalMultiSymmetryBondOrderField) or not isinstance(
+            local_evidence,
+            LocalSymmetryEvidenceField,
+        ):
+            raise ValueError("Lattice-domain seed/growth requires local M3/M6 evidence.")
+        if seed_growth.source_ids != graph.point_ids:
+            raise ValueError("Lattice-domain seed/growth must preserve graph point order.")
+        if (
+            seed_growth.first_shell_graph_fingerprint
+            != local_order.provenance.first_shell_graph_fingerprint
+            or seed_growth.local_order_analysis_fingerprint
+            != local_order.provenance.analysis_settings_fingerprint
+            or seed_growth.local_symmetry_evidence_settings_fingerprint
+            != local_evidence.settings_fingerprint
+            or seed_growth.local_symmetry_bond_evidence_fingerprint
+            != local_evidence.bond_evidence_fingerprint
+            or seed_growth.edge_compatibility_settings_fingerprint
+            != edge_field.settings_fingerprint
+        ):
+            raise ValueError("Lattice-domain seed/growth must preserve input provenance.")
+        expected_settings = lattice_domain_seed_growth_settings_from_m6(self.settings)
+        if seed_growth.settings != expected_settings or (
+            seed_growth.settings_fingerprint
+            != lattice_domain_seed_growth_settings_fingerprint(expected_settings)
+        ):
+            raise ValueError("Lattice-domain seed/growth settings must match their result.")
 
     @property
     def settings(self) -> MolecularM6OrientationAnalysisSettings:
@@ -326,7 +375,7 @@ def analyze_molecular_m6_orientation(
         local_symmetry_evidence=local_symmetry_evidence,
         local_symmetry_evidence_settings=local_symmetry_evidence_settings,
     )
-    return attach_lattice_domain_edge_compatibility(result)
+    return attach_lattice_domain_seed_growth(result)
 
 
 def attach_lattice_domain_edge_compatibility(
@@ -355,6 +404,39 @@ def attach_lattice_domain_edge_compatibility(
     return replace(
         analysis,
         lattice_domain_edge_compatibility=edge_compatibility,
+    )
+
+
+def attach_lattice_domain_seed_growth(
+    analysis: MolecularM6OrientationAnalysis,
+) -> MolecularM6OrientationAnalysis:
+    """Add 86.2 seed/grow output without recomputing local evidence or edges."""
+
+    if not isinstance(analysis, MolecularM6OrientationAnalysis):
+        raise TypeError("analysis must be a MolecularM6OrientationAnalysis.")
+    if analysis.lattice_domain_seed_growth is not None:
+        return analysis
+    if analysis.lattice_domain_edge_compatibility is None:
+        analysis = attach_lattice_domain_edge_compatibility(analysis)
+    local_order = analysis.local_multisymmetry_order
+    local_evidence = analysis.local_symmetry_evidence
+    edge_compatibility = analysis.lattice_domain_edge_compatibility
+    if not isinstance(local_order, LocalMultiSymmetryBondOrderField) or not isinstance(
+        local_evidence,
+        LocalSymmetryEvidenceField,
+    ) or not isinstance(edge_compatibility, LatticeDomainEdgeCompatibilityField):
+        raise ValueError("Lattice-domain seed/growth requires completed edge evidence.")
+    settings = lattice_domain_seed_growth_settings_from_m6(analysis.settings)
+    seed_growth = build_lattice_domain_seed_growth(
+        analysis.first_shell_graph,
+        local_order,
+        local_evidence,
+        edge_compatibility,
+        settings=settings,
+    )
+    return replace(
+        analysis,
+        lattice_domain_seed_growth=seed_growth,
     )
 
 
