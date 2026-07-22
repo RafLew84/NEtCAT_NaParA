@@ -19,7 +19,7 @@ from .m6_settings import MolecularM6OrientationAnalysisSettings
 from .molecular_m6_analysis import (
     MolecularM6OrientationAnalysis,
     analyze_molecular_m6_orientation,
-    attach_lattice_domain_seed_growth,
+    attach_lattice_domain_analysis,
 )
 from .sample_coordinates import (
     SAMPLE_COORDINATE_TRANSFORM_VERSION,
@@ -178,9 +178,12 @@ class StructuralAnalysisCache:
             return None
         if (
             entry.analysis is not None
-            and entry.analysis.lattice_domain_seed_growth is None
+            and (
+                entry.analysis.lattice_domain_seed_growth is None
+                or entry.analysis.lattice_domain_analysis is None
+            )
         ):
-            upgraded = attach_lattice_domain_seed_growth(entry.analysis)
+            upgraded = attach_lattice_domain_analysis(entry.analysis)
             upgraded_size = _estimate_cache_entry_bytes(key, upgraded)
             self._estimated_bytes -= entry.estimated_bytes
             if upgraded_size > self.max_bytes:

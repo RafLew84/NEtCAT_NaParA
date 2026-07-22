@@ -88,8 +88,27 @@ from .lattice_domain_seed_growth_models import (
     LatticeDomainSymmetry,
     lattice_domain_seed_growth_settings_from_m6,
     lattice_domain_seed_growth_settings_fingerprint,
+    lattice_domain_seed_growth_result_fingerprint,
 )
 from .lattice_domain_seed_growth import build_lattice_domain_seed_growth
+from .lattice_domain_models import (
+    LATTICE_DOMAIN_ANALYSIS_ALGORITHM_VERSION,
+    LATTICE_DOMAIN_ANALYSIS_SCHEMA_VERSION,
+    LatticeDomain,
+    LatticeDomainAnalysis,
+    LatticeDomainAnalysisSettings,
+    LatticeDomainComponentType,
+    LatticeDomainDominantSymmetry,
+    LatticeDomainGeometry,
+    LatticeDomainInternalBond,
+    LatticeDomainOrientationReferenceChannel,
+    LatticeDomainQc,
+    M3M6OrientationRelationStatus,
+    lattice_domain_analysis_settings_fingerprint,
+    lattice_domain_analysis_settings_from_m6,
+    lattice_domain_id_from_members,
+)
+from .lattice_domain_analysis import build_lattice_domain_analysis
 from .local_sixfold_bond_order_computation import compute_local_sixfold_bond_order
 from .sixfold_bond_order_aggregates import (
     SixfoldBondOrderAggregates,
@@ -183,6 +202,7 @@ from .sample_coordinates import (
 from .molecular_m6_analysis import (
     MolecularM6OrientationAnalysis,
     analyze_molecular_m6_orientation,
+    attach_lattice_domain_analysis,
     attach_lattice_domain_edge_compatibility,
     attach_lattice_domain_seed_growth,
 )
@@ -328,6 +348,7 @@ __all__ = [
     "lattice_domain_edge_settings_from_m6",
     "build_lattice_domain_edge_compatibility",
     "lattice_domain_edge_settings_fingerprint",
+    "attach_lattice_domain_analysis",
     "attach_lattice_domain_edge_compatibility",
     "attach_lattice_domain_seed_growth",
     "LATTICE_DOMAIN_SEED_GROWTH_ALGORITHM_VERSION",
@@ -343,6 +364,23 @@ __all__ = [
     "build_lattice_domain_seed_growth",
     "lattice_domain_seed_growth_settings_from_m6",
     "lattice_domain_seed_growth_settings_fingerprint",
+    "lattice_domain_seed_growth_result_fingerprint",
+    "LATTICE_DOMAIN_ANALYSIS_ALGORITHM_VERSION",
+    "LATTICE_DOMAIN_ANALYSIS_SCHEMA_VERSION",
+    "LatticeDomain",
+    "LatticeDomainAnalysis",
+    "LatticeDomainAnalysisSettings",
+    "LatticeDomainComponentType",
+    "LatticeDomainDominantSymmetry",
+    "LatticeDomainGeometry",
+    "LatticeDomainInternalBond",
+    "LatticeDomainOrientationReferenceChannel",
+    "LatticeDomainQc",
+    "M3M6OrientationRelationStatus",
+    "build_lattice_domain_analysis",
+    "lattice_domain_analysis_settings_fingerprint",
+    "lattice_domain_analysis_settings_from_m6",
+    "lattice_domain_id_from_members",
     "build_first_shell_graph",
     "MolecularFrameRange",
     "MolecularFrameRangeAnalysisMode",

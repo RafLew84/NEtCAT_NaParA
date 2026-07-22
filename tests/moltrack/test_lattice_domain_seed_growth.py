@@ -2,13 +2,17 @@ import unittest
 from dataclasses import replace
 from math import cos, radians, sin
 
+import numpy as np
+
 from moltrack.analysis import (
+    LatticeDomainAnalysisSettings,
     LatticeDomainEdgeCompatibilitySettings,
     LatticeDomainSeedGrowthSettings,
     LocalMultiSymmetryBondOrderField,
     LocalMultiSymmetryBondOrderProvenance,
     LocalSymmetryEvidenceField,
     build_first_shell_graph,
+    build_lattice_domain_analysis,
     build_lattice_domain_edge_compatibility,
     build_lattice_domain_seed_growth,
 )
@@ -45,8 +49,13 @@ def _inputs(
             source_id: (1.5 * index, 0.0)
             for index, source_id in enumerate(sorted(source_ids))
         }
+    graph_points = (
+        tuple(positions[source_id] for source_id in source_ids)
+        if source_ids
+        else np.empty((0, 2), dtype=np.float64)
+    )
     graph = build_first_shell_graph(
-        tuple(positions[source_id] for source_id in source_ids),
+        graph_points,
         point_ids=source_ids,
     )
     graph_fingerprint = first_shell_graph_fingerprint(graph)
@@ -553,6 +562,258 @@ class LatticeDomainSeedGrowthTests(unittest.TestCase):
             ),
             ((-1, 1), (0, 2), (1, 3)),
         )
+
+
+class LatticeDomainAnalysisTests(unittest.TestCase):
+    def _analyze(
+        self,
+        records,
+        *,
+        positions=None,
+        final_minimum_size=2,
+        point_footprint_area_nm2=None,
+        valid_fov_area_nm2=None,
+        seed_settings=None,
+    ):
+        graph, local_order, evidence, edges = _inputs(
+            records,
+            positions=positions,
+        )
+        seed_growth = build_lattice_domain_seed_growth(
+            graph,
+            local_order,
+            evidence,
+            edges,
+            settings=seed_settings
+            or LatticeDomainSeedGrowthSettings(
+                min_ordered_component_size=1,
+                min_seed_size=2,
+            ),
+        )
+        return build_lattice_domain_analysis(
+            tuple(positions[source_id] for source_id in graph.point_ids)
+            if positions is not None
+            else tuple((1.5 * index, 0.0) for index in range(graph.point_count)),
+            first_shell_graph=graph,
+            local_order=local_order,
+            local_evidence=evidence,
+            seed_growth=seed_growth,
+            settings=LatticeDomainAnalysisSettings(
+                min_domain_size=final_minimum_size,
+                min_bonds_for_length_stats=1,
+            ),
+            point_footprint_area_nm2=point_footprint_area_nm2,
+            valid_fov_area_nm2=valid_fov_area_nm2,
+        )
+
+    def test_preserves_separate_m3_and_m6_prototypes_for_mixed_domain(self) -> None:
+        result = self._analyze(
+            (
+                ("a", 0.9, 0.9, "mixed", 4.0, 16.0),
+                ("b", 0.9, 0.9, "mixed", 6.0, 18.0),
+            )
+        )
+
+        domain = result.domains[0]
+        self.assertEqual(domain.dominant_symmetry, "mixed")
+        self.assertEqual(domain.orientation_reference_channel, "joint")
+        self.assertAlmostEqual(domain.theta3_lattice_prototype_deg, 5.0)
+        self.assertAlmostEqual(domain.theta6_prototype_deg, 17.0)
+        self.assertAlmostEqual(domain.m3_m6_orientation_offset_deg, 12.0)
+        self.assertEqual(domain.m3_m6_orientation_relation_status, "available")
+
+    def test_uses_symmetry_specific_orientation_reference_channels(self) -> None:
+        trifold = self._analyze(
+            (
+                ("a", 0.9, 0.4, "trifold", 4.0, 24.0),
+                ("b", 0.9, 0.4, "trifold", 6.0, 26.0),
+            )
+        ).domains[0]
+        sixfold = self._analyze(
+            (
+                ("a", 0.4, 0.9, "sixfold", 4.0, 24.0),
+                ("b", 0.4, 0.9, "sixfold", 6.0, 26.0),
+            )
+        ).domains[0]
+
+        self.assertEqual(trifold.dominant_symmetry, "trifold")
+        self.assertEqual(trifold.orientation_reference_channel, "m3_lattice")
+        self.assertIsNotNone(trifold.theta3_lattice_prototype_deg)
+        self.assertIsNone(trifold.theta6_prototype_deg)
+        self.assertEqual(sixfold.dominant_symmetry, "sixfold")
+        self.assertEqual(sixfold.orientation_reference_channel, "m6")
+        self.assertIsNone(sixfold.theta3_lattice_prototype_deg)
+        self.assertIsNotNone(sixfold.theta6_prototype_deg)
+
+    def test_aggregates_geometry_footprint_population_and_boundary_fraction(self) -> None:
+        result = self._analyze(
+            (
+                ("a", 0.4, 0.9, "sixfold", 0.0, 0.0),
+                ("b", 0.4, 0.5, "sixfold", 5.0, 5.0),
+                ("c", 0.4, 0.9, "sixfold", 10.0, 10.0),
+            ),
+            positions={"a": (0.0, 0.0), "b": (1.5, 0.0), "c": (0.75, 1.3)},
+            point_footprint_area_nm2=(2.0, 3.0, 5.0),
+            valid_fov_area_nm2=20.0,
+            final_minimum_size=1,
+            seed_settings=LatticeDomainSeedGrowthSettings(
+                seed_max_orientation_spread_deg=4.0,
+                grow_max_orientation_spread_deg=8.0,
+                min_ordered_component_size=1,
+                min_seed_size=1,
+                conflict_margin=0.05,
+            ),
+        )
+
+        domain = next(value for value in result.domains if value.source_ids == ("a",))
+        self.assertEqual(domain.molecule_count, 1)
+        self.assertAlmostEqual(domain.molecule_fraction_of_valid_representatives, 1.0 / 3.0)
+        self.assertAlmostEqual(domain.geometry.footprint_area_nm2, 2.0)
+        self.assertAlmostEqual(domain.geometry.footprint_fraction_of_valid_fov, 0.1)
+        self.assertEqual(domain.adjacent_boundary_point_count, 1)
+        self.assertAlmostEqual(domain.adjacent_boundary_point_fraction, 0.5)
+        self.assertEqual(result.boundary_point_count, 1)
+        self.assertAlmostEqual(result.boundary_point_fraction, 1.0 / 3.0)
+
+    def test_marks_an_assigned_centroid_alias_without_splitting_the_domain(self) -> None:
+        records = (
+            ("a", 0.9, 0.9, "mixed", 4.0, 16.0),
+            ("b", 0.9, 0.9, "mixed", 6.0, 18.0),
+            ("c", 0.5, 0.5, "ambiguous", 5.0, 17.0),
+        )
+        positions = {"a": (0.0, 0.0), "b": (1.5, 0.0), "c": (3.0, 0.0)}
+        graph, local_order, evidence, edges = _inputs(records, positions=positions)
+        candidate = graph.point_ids.index("c")
+        local_order = replace(
+            local_order,
+            symmetry_resolvability_status=tuple(
+                "symmetry_alias_unresolvable_from_centroids"
+                if index == candidate
+                else value
+                for index, value in enumerate(
+                    local_order.symmetry_resolvability_status
+                )
+            ),
+        )
+        edges = build_lattice_domain_edge_compatibility(
+            graph,
+            local_order,
+            evidence,
+        )
+        seed_growth = build_lattice_domain_seed_growth(
+            graph,
+            local_order,
+            evidence,
+            edges,
+            settings=LatticeDomainSeedGrowthSettings(
+                min_ordered_component_size=1,
+                min_seed_size=2,
+            ),
+        )
+
+        result = build_lattice_domain_analysis(
+            tuple(positions[source_id] for source_id in graph.point_ids),
+            first_shell_graph=graph,
+            local_order=local_order,
+            local_evidence=evidence,
+            seed_growth=seed_growth,
+            settings=LatticeDomainAnalysisSettings(
+                min_domain_size=2,
+                min_bonds_for_length_stats=1,
+            ),
+        )
+
+        self.assertEqual(len(result.domains), 1)
+        self.assertEqual(result.domains[0].source_ids, ("a", "b", "c"))
+        self.assertEqual(result.domains[0].dominant_symmetry, "mixed")
+        self.assertEqual(result.domains[0].orientation_reference_channel, "joint")
+        self.assertTrue(
+            result.domains[0].qc.symmetry_alias_unresolvable_from_centroids
+        )
+
+    def test_domain_id_is_invariant_to_input_order(self) -> None:
+        records = (
+            ("a", 0.4, 0.9, "sixfold", 0.0, 0.0),
+            ("b", 0.4, 0.9, "sixfold", 2.0, 2.0),
+        )
+        positions = {"a": (0.0, 0.0), "b": (1.5, 0.0)}
+
+        first = self._analyze(records, positions=positions)
+        second = self._analyze(tuple(reversed(records)), positions=positions)
+
+        self.assertEqual(
+            first.domains[0].lattice_domain_id,
+            second.domains[0].lattice_domain_id,
+        )
+        self.assertEqual(
+            first.domains[0].source_ids,
+            second.domains[0].source_ids,
+        )
+        self.assertEqual(
+            first.domains[0].theta6_prototype_deg,
+            second.domains[0].theta6_prototype_deg,
+        )
+        self.assertEqual(first.points_xy_nm, ((0.0, 0.0), (1.5, 0.0)))
+        self.assertEqual(
+            first.domains[0].geometry.internal_first_shell_bonds[0].source_ids,
+            ("a", "b"),
+        )
+        self.assertTrue(first.seed_growth_result_fingerprint)
+
+    def test_rejects_inconsistent_member_identity_and_frame_counts(self) -> None:
+        result = self._analyze(
+            (
+                ("a", 0.4, 0.9, "sixfold", 0.0, 0.0),
+                ("b", 0.4, 0.9, "sixfold", 2.0, 2.0),
+            )
+        )
+        domain = result.domains[0]
+
+        with self.assertRaisesRegex(ValueError, "member identity"):
+            replace(domain, core_source_ids=("a", "c"))
+        with self.assertRaisesRegex(ValueError, "valid_representative_count"):
+            replace(result, valid_representative_count=1)
+        with self.assertRaisesRegex(ValueError, "point_coordinate_fingerprint"):
+            replace(result, point_coordinate_fingerprint="wrong-coordinate-fingerprint")
+        bad_fraction = replace(
+            domain,
+            molecule_fraction_of_valid_representatives=0.5,
+        )
+        with self.assertRaisesRegex(ValueError, "molecule fraction"):
+            replace(result, domains=(bad_fraction,))
+        bond = result.first_shell_bonds[0]
+        with self.assertRaisesRegex(ValueError, "bond distance"):
+            replace(
+                result,
+                first_shell_bonds=(replace(bond, distance_nm=1.25),),
+            )
+        with self.assertRaisesRegex(ValueError, "first-shell graph subset"):
+            replace(result, first_shell_bonds=())
+
+    def test_keeps_component_below_domain_size_as_small_ordered_island(self) -> None:
+        result = self._analyze(
+            (
+                ("a", 0.4, 0.9, "sixfold", 0.0, 0.0),
+                ("b", 0.4, 0.9, "sixfold", 2.0, 2.0),
+            ),
+            final_minimum_size=3,
+        )
+
+        self.assertEqual(result.domains, ())
+        self.assertEqual(len(result.small_ordered_islands), 1)
+        self.assertEqual(
+            result.small_ordered_islands[0].component_type,
+            "small_ordered_island",
+        )
+
+    def test_empty_frame_is_a_valid_auditable_result(self) -> None:
+        result = self._analyze(())
+
+        self.assertEqual(result.point_count, 0)
+        self.assertEqual(result.domains, ())
+        self.assertEqual(result.small_ordered_islands, ())
+        self.assertEqual(result.classified_molecule_fraction, 0.0)
+        self.assertEqual(result.boundary_point_fraction, 0.0)
 
 
 if __name__ == "__main__":

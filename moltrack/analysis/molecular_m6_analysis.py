@@ -14,9 +14,19 @@ from .lattice_domain_edge_models import (
     lattice_domain_edge_settings_from_m6,
     lattice_domain_edge_settings_fingerprint,
 )
+from .lattice_domain_analysis import (
+    _build_frame_first_shell_bonds,
+    build_lattice_domain_analysis,
+)
+from .lattice_domain_models import (
+    LatticeDomainAnalysis,
+    lattice_domain_analysis_settings_fingerprint,
+    lattice_domain_analysis_settings_from_m6,
+)
 from .lattice_domain_seed_growth import build_lattice_domain_seed_growth
 from .lattice_domain_seed_growth_models import (
     LatticeDomainSeedGrowthResult,
+    lattice_domain_seed_growth_result_fingerprint,
     lattice_domain_seed_growth_settings_from_m6,
     lattice_domain_seed_growth_settings_fingerprint,
 )
@@ -64,6 +74,7 @@ class MolecularM6OrientationAnalysis:
     local_symmetry_evidence_settings: LocalSymmetryEvidenceSettings | None = None
     lattice_domain_edge_compatibility: LatticeDomainEdgeCompatibilityField | None = None
     lattice_domain_seed_growth: LatticeDomainSeedGrowthResult | None = None
+    lattice_domain_analysis: LatticeDomainAnalysis | None = None
 
     def __post_init__(self) -> None:
         if self.source_view != self.sample_coordinates.source_view:
@@ -102,6 +113,7 @@ class MolecularM6OrientationAnalysis:
         self._validate_local_symmetry_extension(graph)
         self._validate_lattice_domain_edge_extension(graph)
         self._validate_lattice_domain_seed_growth_extension(graph)
+        self._validate_lattice_domain_analysis_extension(graph)
 
     def _validate_local_symmetry_extension(self, graph: FirstShellGraph) -> None:
         extension = (
@@ -220,6 +232,72 @@ class MolecularM6OrientationAnalysis:
             != lattice_domain_seed_growth_settings_fingerprint(expected_settings)
         ):
             raise ValueError("Lattice-domain seed/growth settings must match their result.")
+
+    def _validate_lattice_domain_analysis_extension(
+        self,
+        graph: FirstShellGraph,
+    ) -> None:
+        if self.lattice_domain_analysis is None:
+            return
+        result = self.lattice_domain_analysis
+        seed_growth = self.lattice_domain_seed_growth
+        local_order = self.local_multisymmetry_order
+        local_evidence = self.local_symmetry_evidence
+        if not isinstance(result, LatticeDomainAnalysis):
+            raise TypeError("lattice_domain_analysis has an invalid type.")
+        if not isinstance(seed_growth, LatticeDomainSeedGrowthResult):
+            raise ValueError("Lattice-domain analysis requires seed/growth output.")
+        if not isinstance(local_order, LocalMultiSymmetryBondOrderField) or not isinstance(
+            local_evidence,
+            LocalSymmetryEvidenceField,
+        ):
+            raise ValueError("Lattice-domain analysis requires local M3/M6 evidence.")
+        if (
+            result.source_ids != graph.point_ids
+            or result.point_role != seed_growth.point_role
+            or result.first_shell_graph_fingerprint
+            != seed_growth.first_shell_graph_fingerprint
+            or result.local_order_analysis_fingerprint
+            != local_order.provenance.analysis_settings_fingerprint
+            or result.local_symmetry_evidence_settings_fingerprint
+            != local_evidence.settings_fingerprint
+            or result.local_symmetry_bond_evidence_fingerprint
+            != local_evidence.bond_evidence_fingerprint
+            or result.seed_growth_settings_fingerprint
+            != seed_growth.settings_fingerprint
+            or result.seed_growth_result_fingerprint
+            != lattice_domain_seed_growth_result_fingerprint(seed_growth)
+        ):
+            raise ValueError("Lattice-domain analysis must preserve input provenance.")
+        expected_settings = lattice_domain_analysis_settings_from_m6(self.settings)
+        if result.settings != expected_settings or (
+            result.settings_fingerprint
+            != lattice_domain_analysis_settings_fingerprint(expected_settings)
+        ):
+            raise ValueError("Lattice-domain analysis settings must match their result.")
+        result_context = (
+            result.coordinate_frame,
+            result.orientation_reference,
+            result.spatial_calibration_fingerprint,
+            result.registration_fingerprint,
+            result.point_coordinate_fingerprint,
+        )
+        graph_context = (
+            graph.coordinate_frame,
+            graph.orientation_reference,
+            graph.spatial_calibration_fingerprint,
+            graph.registration_fingerprint,
+            graph.point_coordinate_fingerprint,
+        )
+        if result_context != graph_context:
+            raise ValueError("Lattice-domain analysis must preserve coordinate provenance.")
+        if result.first_shell_bonds != _build_frame_first_shell_bonds(
+            self.points_xy_nm,
+            graph=graph,
+        ):
+            raise ValueError(
+                "Lattice-domain first-shell bonds must match the source graph."
+            )
 
     @property
     def settings(self) -> MolecularM6OrientationAnalysisSettings:
@@ -375,7 +453,7 @@ def analyze_molecular_m6_orientation(
         local_symmetry_evidence=local_symmetry_evidence,
         local_symmetry_evidence_settings=local_symmetry_evidence_settings,
     )
-    return attach_lattice_domain_seed_growth(result)
+    return attach_lattice_domain_analysis(result)
 
 
 def attach_lattice_domain_edge_compatibility(
@@ -438,6 +516,51 @@ def attach_lattice_domain_seed_growth(
         analysis,
         lattice_domain_seed_growth=seed_growth,
     )
+
+
+def attach_lattice_domain_analysis(
+    analysis: MolecularM6OrientationAnalysis,
+) -> MolecularM6OrientationAnalysis:
+    """Add the 86.3 final per-frame domain model without recomputing prior stages."""
+
+    if not isinstance(analysis, MolecularM6OrientationAnalysis):
+        raise TypeError("analysis must be a MolecularM6OrientationAnalysis.")
+    if analysis.lattice_domain_analysis is not None:
+        return analysis
+    if analysis.lattice_domain_seed_growth is None:
+        analysis = attach_lattice_domain_seed_growth(analysis)
+    seed_growth = analysis.lattice_domain_seed_growth
+    local_order = analysis.local_multisymmetry_order
+    local_evidence = analysis.local_symmetry_evidence
+    if not isinstance(seed_growth, LatticeDomainSeedGrowthResult) or not isinstance(
+        local_order,
+        LocalMultiSymmetryBondOrderField,
+    ) or not isinstance(local_evidence, LocalSymmetryEvidenceField):
+        raise ValueError("Lattice-domain analysis requires completed seed/growth evidence.")
+    footprint = analysis.domain_analysis.footprint_partition
+    point_areas: list[float | None] = [None] * analysis.first_shell_graph.point_count
+    point_clipped = [False] * analysis.first_shell_graph.point_count
+    valid_fov_area_nm2: float | None = None
+    if footprint is not None:
+        valid_fov_area_nm2 = footprint.valid_fov_area_nm2
+        for cell in footprint.cells:
+            point_areas[cell.point_index] = cell.supported_area_nm2
+            point_clipped[cell.point_index] = cell.edge_truncated
+    settings = lattice_domain_analysis_settings_from_m6(analysis.settings)
+    result = build_lattice_domain_analysis(
+        analysis.points_xy_nm,
+        first_shell_graph=analysis.first_shell_graph,
+        local_order=local_order,
+        local_evidence=local_evidence,
+        seed_growth=seed_growth,
+        settings=settings,
+        point_footprint_area_nm2=(tuple(point_areas) if footprint is not None else None),
+        point_footprint_clipped_by_fov=(
+            tuple(point_clipped) if footprint is not None else None
+        ),
+        valid_fov_area_nm2=valid_fov_area_nm2,
+    )
+    return replace(analysis, lattice_domain_analysis=result)
 
 
 def _symmetry_resolvability_status(

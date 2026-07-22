@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, fields
+from dataclasses import asdict, dataclass, fields
 from hashlib import sha256
 from math import isfinite
 from typing import Literal, Mapping, get_args
@@ -495,6 +495,26 @@ class LatticeDomainSeedGrowthResult:
                 for value in assigned_spreads
             ):
                 raise ValueError("Component assignment exceeds the configured grow spread.")
+
+
+def lattice_domain_seed_growth_result_fingerprint(
+    result: LatticeDomainSeedGrowthResult,
+) -> str:
+    """Fingerprint the complete normalized seed/grow partition and provenance."""
+
+    if not isinstance(result, LatticeDomainSeedGrowthResult):
+        raise TypeError("result must be LatticeDomainSeedGrowthResult.")
+    return sha256(
+        json.dumps(
+            {
+                "algorithm": LATTICE_DOMAIN_SEED_GROWTH_ALGORITHM_VERSION,
+                "result": asdict(result),
+            },
+            allow_nan=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
 
 
 def _validate_component_member(
