@@ -44,6 +44,20 @@ from .m3_sublattice_gauge import (
 from .local_multisymmetry_bond_order_computation import (
     compute_local_multisymmetry_bond_order,
 )
+from .local_symmetry_confusion import (
+    LOCAL_SYMMETRY_CONFUSION_LABELS,
+    LocalSymmetryConfusionReport,
+    LocalSymmetryValidationError,
+    build_local_symmetry_confusion_report,
+)
+from .local_symmetry_evidence_classifier import classify_local_symmetry_evidence
+from .local_symmetry_evidence_models import (
+    LOCAL_SYMMETRY_EVIDENCE_SCHEMA_VERSION,
+    LocalSymmetryClassificationReason,
+    LocalSymmetryEvidenceField,
+    LocalSymmetryEvidenceSettings,
+    LocalSymmetryModel,
+)
 from .local_sixfold_bond_order_computation import compute_local_sixfold_bond_order
 from .sixfold_bond_order_aggregates import (
     SixfoldBondOrderAggregates,
@@ -356,6 +370,16 @@ __all__ = [
     "M3SublatticeGaugeAssignment",
     "build_m3_sublattice_gauge_assignment",
     "compute_local_multisymmetry_bond_order",
+    "LOCAL_SYMMETRY_CONFUSION_LABELS",
+    "LOCAL_SYMMETRY_EVIDENCE_SCHEMA_VERSION",
+    "LocalSymmetryClassificationReason",
+    "LocalSymmetryConfusionReport",
+    "LocalSymmetryEvidenceField",
+    "LocalSymmetryEvidenceSettings",
+    "LocalSymmetryModel",
+    "LocalSymmetryValidationError",
+    "build_local_symmetry_confusion_report",
+    "classify_local_symmetry_evidence",
     "compute_local_sixfold_bond_order",
     "SixfoldBondOrderAggregates",
     "aggregate_local_sixfold_bond_order",
