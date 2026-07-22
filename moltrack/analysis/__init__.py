@@ -41,6 +41,9 @@ from .m3_sublattice_gauge import (
     M3SublatticeGaugeAssignment,
     build_m3_sublattice_gauge_assignment,
 )
+from .local_multisymmetry_bond_order_computation import (
+    compute_local_multisymmetry_bond_order,
+)
 from .local_sixfold_bond_order_computation import compute_local_sixfold_bond_order
 from .sixfold_bond_order_aggregates import (
     SixfoldBondOrderAggregates,
@@ -352,6 +355,7 @@ __all__ = [
     "m3_lattice_orientation_distance_deg",
     "M3SublatticeGaugeAssignment",
     "build_m3_sublattice_gauge_assignment",
+    "compute_local_multisymmetry_bond_order",
     "compute_local_sixfold_bond_order",
     "SixfoldBondOrderAggregates",
     "aggregate_local_sixfold_bond_order",

@@ -86,6 +86,7 @@ class LocalMultiSymmetryBondOrderProvenance:
     point_coordinate_fingerprint: str
     first_shell_graph_fingerprint: str
     qualified_trifold_subgraph_fingerprint: str
+    m3_phase_assignment_fingerprint: str
     analysis_settings_fingerprint: str
 
     def __post_init__(self) -> None:
@@ -101,6 +102,7 @@ class LocalMultiSymmetryBondOrderProvenance:
             "point_coordinate_fingerprint",
             "first_shell_graph_fingerprint",
             "qualified_trifold_subgraph_fingerprint",
+            "m3_phase_assignment_fingerprint",
             "analysis_settings_fingerprint",
         ):
             value = getattr(self, field_name)

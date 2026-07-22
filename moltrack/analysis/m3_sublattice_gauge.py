@@ -36,6 +36,7 @@ class M3SublatticeGaugeAssignment:
     m3_gauge_frustration_qc: tuple[bool, ...]
     qualified_trifold_edges_ij: tuple[tuple[int, int], ...] = ()
     qualified_trifold_subgraph_fingerprint: str = field(init=False)
+    m3_phase_assignment_fingerprint: str = field(init=False)
 
     def __post_init__(self) -> None:
         source_ids = tuple(self.source_ids)
@@ -120,6 +121,16 @@ class M3SublatticeGaugeAssignment:
         validate_m3_gauge_component_qc(
             anchors=self.m3_phase_gauge_anchor,
             ambiguity_flags=self.m3_sublattice_assignment_ambiguous,
+        )
+        object.__setattr__(
+            self,
+            "m3_phase_assignment_fingerprint",
+            _m3_phase_assignment_fingerprint(
+                qualified_trifold_subgraph_fingerprint=(
+                    self.qualified_trifold_subgraph_fingerprint
+                ),
+                ambiguity_flags=self.m3_sublattice_assignment_ambiguous,
+            ),
         )
 
 
@@ -303,6 +314,24 @@ def _qualified_trifold_subgraph_fingerprint(
             index for index, is_qualified in enumerate(qualified) if is_qualified
         ),
         "edges_ij": edges_ij,
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode(
+        "utf-8"
+    )
+    return sha256(encoded).hexdigest()
+
+
+def _m3_phase_assignment_fingerprint(
+    *,
+    qualified_trifold_subgraph_fingerprint: str,
+    ambiguity_flags: tuple[bool, ...],
+) -> str:
+    payload = {
+        "schema": "moltrack-m3-phase-assignment-v1",
+        "qualified_trifold_subgraph_fingerprint": (
+            qualified_trifold_subgraph_fingerprint
+        ),
+        "ambiguity_flags": ambiguity_flags,
     }
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode(
         "utf-8"

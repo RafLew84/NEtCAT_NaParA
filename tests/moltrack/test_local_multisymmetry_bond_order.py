@@ -21,6 +21,7 @@ def _provenance() -> LocalMultiSymmetryBondOrderProvenance:
         point_coordinate_fingerprint="coordinates-v1",
         first_shell_graph_fingerprint="first-shell-v1",
         qualified_trifold_subgraph_fingerprint="trifold-subgraph-v1",
+        m3_phase_assignment_fingerprint="m3-phase-assignment-v1",
         analysis_settings_fingerprint="settings-v1",
     )
 
