@@ -61,6 +61,19 @@ from .local_symmetry_evidence_models import (
     LocalSymmetryModel,
     local_symmetry_evidence_settings_fingerprint,
 )
+from .lattice_domain_edge_models import (
+    LATTICE_DOMAIN_EDGE_COMPATIBILITY_ALGORITHM_VERSION,
+    LATTICE_DOMAIN_EDGE_COMPATIBILITY_SCHEMA_VERSION,
+    LatticeDomainEdgeCompatibilityField,
+    LatticeDomainEdgeCompatibilitySettings,
+    LatticeDomainEdgeDecision,
+    LatticeDomainEdgeRejectionReason,
+    lattice_domain_edge_settings_from_m6,
+    lattice_domain_edge_settings_fingerprint,
+)
+from .lattice_domain_edge_compatibility import (
+    build_lattice_domain_edge_compatibility,
+)
 from .local_sixfold_bond_order_computation import compute_local_sixfold_bond_order
 from .sixfold_bond_order_aggregates import (
     SixfoldBondOrderAggregates,
@@ -154,6 +167,7 @@ from .sample_coordinates import (
 from .molecular_m6_analysis import (
     MolecularM6OrientationAnalysis,
     analyze_molecular_m6_orientation,
+    attach_lattice_domain_edge_compatibility,
 )
 from .m6_point_overlay import (
     M6_ANALYSIS_OVERLAY_MODES,
@@ -287,6 +301,16 @@ __all__ = [
     "NEAREST_NEIGHBOR_ANGLE_BIN_EDGES_DEGREES",
     "FirstShellGraph",
     "FirstShellSuggestionResult",
+    "LATTICE_DOMAIN_EDGE_COMPATIBILITY_ALGORITHM_VERSION",
+    "LATTICE_DOMAIN_EDGE_COMPATIBILITY_SCHEMA_VERSION",
+    "LatticeDomainEdgeCompatibilityField",
+    "LatticeDomainEdgeCompatibilitySettings",
+    "LatticeDomainEdgeDecision",
+    "LatticeDomainEdgeRejectionReason",
+    "lattice_domain_edge_settings_from_m6",
+    "build_lattice_domain_edge_compatibility",
+    "lattice_domain_edge_settings_fingerprint",
+    "attach_lattice_domain_edge_compatibility",
     "build_first_shell_graph",
     "MolecularFrameRange",
     "MolecularFrameRangeAnalysisMode",

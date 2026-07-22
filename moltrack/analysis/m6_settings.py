@@ -19,6 +19,12 @@ _FLOAT_FIELDS = (
     "q_grow",
     "seed_angle_tolerance_deg",
     "grow_angle_tolerance_deg",
+    "lattice_edge_trifold_orientation_tolerance_deg",
+    "lattice_edge_sixfold_orientation_tolerance_deg",
+    "lattice_edge_mixed_model_profile_tolerance",
+    "lattice_edge_conditional_channel_minimum_score",
+    "lattice_edge_minimum_classification_confidence",
+    "lattice_edge_minimum_orientation_confidence",
     "gr_bin_width_nm",
     "gr_max_nm",
     "gr_min_expected_pair_exposure",
@@ -79,6 +85,15 @@ _POSITIVE_GR_FIELDS = (
 
 MAX_PAIR_CORRELATION_BIN_COUNT = 10_000
 
+_LATTICE_EDGE_MIGRATION_FIELDS = {
+    "lattice_edge_trifold_orientation_tolerance_deg",
+    "lattice_edge_sixfold_orientation_tolerance_deg",
+    "lattice_edge_mixed_model_profile_tolerance",
+    "lattice_edge_conditional_channel_minimum_score",
+    "lattice_edge_minimum_classification_confidence",
+    "lattice_edge_minimum_orientation_confidence",
+}
+
 
 @dataclass(frozen=True)
 class MolecularM6OrientationAnalysisSettings:
@@ -109,6 +124,12 @@ class MolecularM6OrientationAnalysisSettings:
     q_grow: float = 0.25
     seed_angle_tolerance_deg: float = 8.0
     grow_angle_tolerance_deg: float = 12.0
+    lattice_edge_trifold_orientation_tolerance_deg: float = 8.0
+    lattice_edge_sixfold_orientation_tolerance_deg: float = 8.0
+    lattice_edge_mixed_model_profile_tolerance: float = 0.2
+    lattice_edge_conditional_channel_minimum_score: float = 0.5
+    lattice_edge_minimum_classification_confidence: float = 0.5
+    lattice_edge_minimum_orientation_confidence: float = 0.5
     delaunay_degeneracy_policy: Literal[
         "exclude_ambiguous_edges"
     ] = "exclude_ambiguous_edges"
@@ -187,6 +208,20 @@ class MolecularM6OrientationAnalysisSettings:
             raise ValueError("seed_angle_tolerance_deg must be between 0 and 30.")
         if not 0.0 <= self.grow_angle_tolerance_deg <= 30.0:
             raise ValueError("grow_angle_tolerance_deg must be between 0 and 30.")
+        for field_name in (
+            "lattice_edge_trifold_orientation_tolerance_deg",
+            "lattice_edge_sixfold_orientation_tolerance_deg",
+        ):
+            if not 0.0 <= getattr(self, field_name) <= 30.0:
+                raise ValueError(f"{field_name} must be between 0 and 30.")
+        for field_name in (
+            "lattice_edge_mixed_model_profile_tolerance",
+            "lattice_edge_conditional_channel_minimum_score",
+            "lattice_edge_minimum_classification_confidence",
+            "lattice_edge_minimum_orientation_confidence",
+        ):
+            if not 0.0 <= getattr(self, field_name) <= 1.0:
+                raise ValueError(f"{field_name} must lie between 0 and 1.")
         if not 0.0 <= self.domain_merge_angle_tolerance_deg <= 30.0:
             raise ValueError("domain_merge_angle_tolerance_deg must be between 0 and 30.")
         if self.domain_conflict_margin < 0.0:
@@ -223,10 +258,20 @@ class MolecularM6OrientationAnalysisSettings:
         unknown_fields = sorted(set(payload) - field_names)
         if unknown_fields:
             raise ValueError(f"Unknown M6 setting fields: {', '.join(unknown_fields)}")
-        missing_fields = sorted(field_names - set(payload))
+        missing_fields = field_names - set(payload)
+        unsupported_missing_fields = sorted(
+            missing_fields - _LATTICE_EDGE_MIGRATION_FIELDS
+        )
+        if unsupported_missing_fields:
+            raise ValueError(
+                f"Missing M6 setting fields: {', '.join(unsupported_missing_fields)}"
+            )
+        values = dict(payload)
         if missing_fields:
-            raise ValueError(f"Missing M6 setting fields: {', '.join(missing_fields)}")
-        return cls(**dict(payload))
+            defaults = cls()
+            for field_name in missing_fields:
+                values[field_name] = getattr(defaults, field_name)
+        return cls(**values)
 
 
 @dataclass(frozen=True)

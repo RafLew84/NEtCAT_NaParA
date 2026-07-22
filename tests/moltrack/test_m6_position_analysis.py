@@ -9,6 +9,7 @@ from moltrack.analysis import (
     MolecularFrameRange,
     MolecularM6OrientationAnalysis,
     MolecularM6OrientationAnalysisSettings,
+    analyze_molecular_m6_orientation,
     analyze_molecular_frame_range,
     build_local_symmetry_point_inspection,
     build_molecular_sample_coordinates,
@@ -315,6 +316,7 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
         self.assertIsNotNone(m6.local_multisymmetry_order)
         self.assertIsNotNone(m6.local_symmetry_evidence)
         self.assertIsNotNone(m6.local_symmetry_evidence_settings)
+        self.assertIsNotNone(m6.lattice_domain_edge_compatibility)
         assert m6.local_multisymmetry_order is not None
         assert m6.local_symmetry_evidence is not None
         self.assertEqual(
@@ -324,6 +326,15 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
         self.assertEqual(
             m6.local_symmetry_evidence.source_ids,
             m6.point_source_ids,
+        )
+        assert m6.lattice_domain_edge_compatibility is not None
+        self.assertEqual(
+            m6.lattice_domain_edge_compatibility.source_ids,
+            m6.point_source_ids,
+        )
+        self.assertEqual(
+            m6.lattice_domain_edge_compatibility.edges_ij,
+            m6.first_shell_graph.edges_ij,
         )
         self.assertEqual(m6.local_multisymmetry_order.q6, m6.local_order.q6)
         self.assertEqual(
@@ -377,6 +388,7 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
             local_multisymmetry_order=None,
             local_symmetry_evidence=None,
             local_symmetry_evidence_settings=None,
+            lattice_domain_edge_compatibility=None,
         )
         self.assertIsNone(legacy_m6_only.local_multisymmetry_order)
         self.assertIsNone(
@@ -384,6 +396,24 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
                 legacy_m6_only,
                 legacy_m6_only.point_source_ids[0],
             )
+        )
+        custom_settings = replace(
+            settings,
+            lattice_edge_trifold_orientation_tolerance_deg=5.0,
+            lattice_edge_sixfold_orientation_tolerance_deg=7.0,
+        )
+        custom_edge_analysis = analyze_molecular_m6_orientation(
+            m6.sample_coordinates,
+            settings=custom_settings,
+        )
+        assert custom_edge_analysis.lattice_domain_edge_compatibility is not None
+        self.assertEqual(
+            custom_edge_analysis.lattice_domain_edge_compatibility.settings.trifold_orientation_tolerance_deg,
+            5.0,
+        )
+        self.assertEqual(
+            custom_edge_analysis.lattice_domain_edge_compatibility.settings.sixfold_orientation_tolerance_deg,
+            7.0,
         )
         with self.assertRaisesRegex(ValueError, "this frame and valid FOV"):
             replace(

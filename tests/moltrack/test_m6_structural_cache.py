@@ -302,6 +302,7 @@ class StructuralAnalysisCacheIntegrationTests(unittest.TestCase):
             local_multisymmetry_order=None,
             local_symmetry_evidence=None,
             local_symmetry_evidence_settings=None,
+            lattice_domain_edge_compatibility=None,
         )
         key = build_structural_analysis_cache_key(
             series,
@@ -327,6 +328,48 @@ class StructuralAnalysisCacheIntegrationTests(unittest.TestCase):
         self.assertIsNotNone(restored.local_multisymmetry_order)
         self.assertEqual(cache.stats().hit_count, 0)
         self.assertEqual(cache.stats().miss_count, 1)
+
+    def test_recomputes_pre_edge_compatibility_in_memory_cache_entry(self) -> None:
+        series = _build_series(frame_count=1)
+        settings = _settings()
+        sample = _sample(series)
+        complete = analyze_molecular_m6_orientation(sample, settings=settings)
+        pre_edge_compatibility = replace(
+            complete,
+            lattice_domain_edge_compatibility=None,
+        )
+        key = build_structural_analysis_cache_key(
+            series,
+            sample,
+            use_segmentation_centroids=True,
+            settings=settings,
+        )
+        cache = StructuralAnalysisCache()
+        self.assertTrue(cache._put(key, pre_edge_compatibility))
+        series.structural_analysis_cache = cache
+        compute = Mock(wraps=analyze_molecular_m6_orientation)
+
+        restored = _get_or_compute_molecular_m6_orientation(
+            series,
+            sample,
+            use_segmentation_centroids=True,
+            settings=settings,
+            analysis_factory=compute,
+        )
+
+        self.assertEqual(compute.call_count, 0)
+        self.assertIsNot(restored, pre_edge_compatibility)
+        self.assertIs(
+            restored.local_multisymmetry_order,
+            pre_edge_compatibility.local_multisymmetry_order,
+        )
+        self.assertIs(
+            restored.local_symmetry_evidence,
+            pre_edge_compatibility.local_symmetry_evidence,
+        )
+        self.assertIsNotNone(restored.lattice_domain_edge_compatibility)
+        self.assertEqual(cache.stats().hit_count, 1)
+        self.assertEqual(cache.stats().miss_count, 0)
 
     def test_recomputes_for_transform_fov_settings_and_version_changes(self) -> None:
         series = _build_series(frame_count=1)
@@ -356,6 +399,14 @@ class StructuralAnalysisCacheIntegrationTests(unittest.TestCase):
             (changed_fov, settings, M6_ORIENTATION_ALGORITHM_VERSION),
             (base_sample, settings, "m6-orientation-domains-v2-test"),
             (base_sample, replace(settings, q_seed=0.7), M6_ORIENTATION_ALGORITHM_VERSION),
+            (
+                base_sample,
+                replace(
+                    settings,
+                    lattice_edge_trifold_orientation_tolerance_deg=7.0,
+                ),
+                M6_ORIENTATION_ALGORITHM_VERSION,
+            ),
         )
         for sample_coordinates, variant_settings, algorithm_version in variants:
             _get_or_compute_molecular_m6_orientation(

@@ -6,6 +6,14 @@ import numpy as np
 
 from ._coordinate_fingerprint import point_coordinate_fingerprint
 from .first_shell_graph import FirstShellGraph
+from .lattice_domain_edge_compatibility import (
+    build_lattice_domain_edge_compatibility,
+)
+from .lattice_domain_edge_models import (
+    LatticeDomainEdgeCompatibilityField,
+    lattice_domain_edge_settings_from_m6,
+    lattice_domain_edge_settings_fingerprint,
+)
 from .local_multisymmetry_bond_order import (
     LocalMultiSymmetryBondOrderField,
     SymmetryResolvabilityStatus,
@@ -48,6 +56,7 @@ class MolecularM6OrientationAnalysis:
     local_multisymmetry_order: LocalMultiSymmetryBondOrderField | None = None
     local_symmetry_evidence: LocalSymmetryEvidenceField | None = None
     local_symmetry_evidence_settings: LocalSymmetryEvidenceSettings | None = None
+    lattice_domain_edge_compatibility: LatticeDomainEdgeCompatibilityField | None = None
 
     def __post_init__(self) -> None:
         if self.source_view != self.sample_coordinates.source_view:
@@ -84,6 +93,7 @@ class MolecularM6OrientationAnalysis:
         if self.domain_analysis.frame_aggregates is None:
             raise ValueError("M6 Position Analysis requires frame aggregates.")
         self._validate_local_symmetry_extension(graph)
+        self._validate_lattice_domain_edge_extension(graph)
 
     def _validate_local_symmetry_extension(self, graph: FirstShellGraph) -> None:
         extension = (
@@ -128,6 +138,39 @@ class MolecularM6OrientationAnalysis:
             != local_symmetry_evidence_settings_fingerprint(evidence_settings)
         ):
             raise ValueError("Local symmetry evidence must preserve its analysis provenance.")
+
+    def _validate_lattice_domain_edge_extension(self, graph: FirstShellGraph) -> None:
+        if self.lattice_domain_edge_compatibility is None:
+            return
+        edge_field = self.lattice_domain_edge_compatibility
+        local_order = self.local_multisymmetry_order
+        local_evidence = self.local_symmetry_evidence
+        if not isinstance(edge_field, LatticeDomainEdgeCompatibilityField):
+            raise TypeError("lattice_domain_edge_compatibility has an invalid type.")
+        if not isinstance(local_order, LocalMultiSymmetryBondOrderField) or not isinstance(
+            local_evidence,
+            LocalSymmetryEvidenceField,
+        ):
+            raise ValueError("Lattice-domain edges require completed local M3/M6 evidence.")
+        if edge_field.source_ids != graph.point_ids or edge_field.edges_ij != graph.edges_ij:
+            raise ValueError("Lattice-domain edges must preserve first-shell graph order.")
+        if (
+            edge_field.first_shell_graph_fingerprint
+            != local_order.provenance.first_shell_graph_fingerprint
+            or edge_field.local_order_analysis_fingerprint
+            != local_order.provenance.analysis_settings_fingerprint
+            or edge_field.local_symmetry_evidence_settings_fingerprint
+            != local_evidence.settings_fingerprint
+            or edge_field.local_symmetry_bond_evidence_fingerprint
+            != local_evidence.bond_evidence_fingerprint
+        ):
+            raise ValueError("Lattice-domain edges must preserve local evidence provenance.")
+        expected_settings = lattice_domain_edge_settings_from_m6(self.settings)
+        if edge_field.settings != expected_settings or (
+            edge_field.settings_fingerprint
+            != lattice_domain_edge_settings_fingerprint(expected_settings)
+        ):
+            raise ValueError("Lattice-domain edge settings must match their result.")
 
     @property
     def settings(self) -> MolecularM6OrientationAnalysisSettings:
@@ -274,7 +317,7 @@ def analyze_molecular_m6_orientation(
         valid_fov_polygon_xy_nm=sample_coordinates.valid_fov_polygon_xy_nm,
         excluded_point_ids=sample_coordinates.invalid_position_point_ids,
     )
-    return MolecularM6OrientationAnalysis(
+    result = MolecularM6OrientationAnalysis(
         source_view=sample_coordinates.source_view,
         sample_coordinates=sample_coordinates,
         domain_analysis=analysis,
@@ -282,6 +325,36 @@ def analyze_molecular_m6_orientation(
         local_multisymmetry_order=local_multisymmetry_order,
         local_symmetry_evidence=local_symmetry_evidence,
         local_symmetry_evidence_settings=local_symmetry_evidence_settings,
+    )
+    return attach_lattice_domain_edge_compatibility(result)
+
+
+def attach_lattice_domain_edge_compatibility(
+    analysis: MolecularM6OrientationAnalysis,
+) -> MolecularM6OrientationAnalysis:
+    """Add 86.1 edge decisions without recomputing completed local evidence."""
+
+    if not isinstance(analysis, MolecularM6OrientationAnalysis):
+        raise TypeError("analysis must be MolecularM6OrientationAnalysis.")
+    if analysis.lattice_domain_edge_compatibility is not None:
+        return analysis
+    local_order = analysis.local_multisymmetry_order
+    local_evidence = analysis.local_symmetry_evidence
+    if not isinstance(local_order, LocalMultiSymmetryBondOrderField) or not isinstance(
+        local_evidence,
+        LocalSymmetryEvidenceField,
+    ):
+        raise ValueError("Lattice-domain edges require completed local M3/M6 evidence.")
+    edge_settings = lattice_domain_edge_settings_from_m6(analysis.settings)
+    edge_compatibility = build_lattice_domain_edge_compatibility(
+        analysis.first_shell_graph,
+        local_order,
+        local_evidence,
+        settings=edge_settings,
+    )
+    return replace(
+        analysis,
+        lattice_domain_edge_compatibility=edge_compatibility,
     )
 
 

@@ -19,6 +19,7 @@ from .m6_settings import MolecularM6OrientationAnalysisSettings
 from .molecular_m6_analysis import (
     MolecularM6OrientationAnalysis,
     analyze_molecular_m6_orientation,
+    attach_lattice_domain_edge_compatibility,
 )
 from .sample_coordinates import (
     SAMPLE_COORDINATE_TRANSFORM_VERSION,
@@ -170,14 +171,33 @@ class StructuralAnalysisCache:
         if entry.reproducible_sample is not None:
             self._miss_count += 1
             return None
-        if (
-            entry.analysis is not None
-            and entry.analysis.local_multisymmetry_order is None
-        ):
+        if entry.analysis is not None and entry.analysis.local_multisymmetry_order is None:
             self._entries.pop(key)
             self._estimated_bytes -= entry.estimated_bytes
             self._miss_count += 1
             return None
+        if (
+            entry.analysis is not None
+            and entry.analysis.lattice_domain_edge_compatibility is None
+        ):
+            upgraded = attach_lattice_domain_edge_compatibility(entry.analysis)
+            upgraded_size = _estimate_cache_entry_bytes(key, upgraded)
+            self._estimated_bytes -= entry.estimated_bytes
+            if upgraded_size > self.max_bytes:
+                self._entries.pop(key)
+                self._oversized_rejection_count += 1
+                self._hit_count += 1
+                return upgraded
+            else:
+                entry = _StructuralAnalysisCacheEntry(
+                    analysis=upgraded,
+                    blocking_qc_status=None,
+                    reproducible_sample=None,
+                    reproducible_settings=None,
+                    estimated_bytes=upgraded_size,
+                )
+                self._entries[key] = entry
+                self._estimated_bytes += upgraded_size
         self._entries.move_to_end(key)
         self._hit_count += 1
         if entry.blocking_qc_status is not None:

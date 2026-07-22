@@ -269,6 +269,12 @@ class MolecularM6OrientationAnalysisSettingsTests(unittest.TestCase):
             min_ordered_component_size=4,
             min_seed_size=6,
             min_domain_size=10,
+            lattice_edge_trifold_orientation_tolerance_deg=6.0,
+            lattice_edge_sixfold_orientation_tolerance_deg=7.0,
+            lattice_edge_mixed_model_profile_tolerance=0.15,
+            lattice_edge_conditional_channel_minimum_score=0.6,
+            lattice_edge_minimum_classification_confidence=0.55,
+            lattice_edge_minimum_orientation_confidence=0.65,
         )
 
         payload = settings.to_dict()
@@ -286,6 +292,29 @@ class MolecularM6OrientationAnalysisSettingsTests(unittest.TestCase):
         truncated.pop("q_seed")
         with self.assertRaisesRegex(ValueError, "q_seed"):
             MolecularM6OrientationAnalysisSettings.from_dict(truncated)
+
+        legacy_payload = dict(payload)
+        for field_name in (
+            "lattice_edge_trifold_orientation_tolerance_deg",
+            "lattice_edge_sixfold_orientation_tolerance_deg",
+            "lattice_edge_mixed_model_profile_tolerance",
+            "lattice_edge_conditional_channel_minimum_score",
+            "lattice_edge_minimum_classification_confidence",
+            "lattice_edge_minimum_orientation_confidence",
+        ):
+            legacy_payload.pop(field_name)
+        legacy_restored = MolecularM6OrientationAnalysisSettings.from_dict(
+            legacy_payload
+        )
+        defaults = MolecularM6OrientationAnalysisSettings()
+        self.assertEqual(
+            legacy_restored.lattice_edge_trifold_orientation_tolerance_deg,
+            defaults.lattice_edge_trifold_orientation_tolerance_deg,
+        )
+        self.assertEqual(
+            legacy_restored.lattice_edge_minimum_orientation_confidence,
+            defaults.lattice_edge_minimum_orientation_confidence,
+        )
 
         with self.assertRaisesRegex(ValueError, "unknown_setting"):
             MolecularM6OrientationAnalysisSettings.from_dict({"unknown_setting": 1})
