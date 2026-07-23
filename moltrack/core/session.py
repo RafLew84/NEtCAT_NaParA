@@ -11,6 +11,7 @@ from .segmentations import MolecularSegmentationSet
 if TYPE_CHECKING:
     from moltrack.analysis import (
         M6DomainTypeSessionState,
+        MolecularOrientationStore,
         MolecularM6SessionState,
         StructuralAnalysisCacheRecord,
     )
@@ -197,6 +198,7 @@ class MolTrackSession:
     registration_results: MolTrackRegistrationResultSet | None = None
     molecular_detections: MolecularDetectionSet | None = None
     molecular_segmentations: MolecularSegmentationSet | None = None
+    molecular_orientations: MolecularOrientationStore | None = None
     position_analysis: MolTrackPositionAnalysisState | None = None
     intensity_cache_records: tuple[MolTrackIntensityCacheRecord, ...] = ()
     m6_analysis_state: MolecularM6SessionState | None = None
@@ -259,6 +261,16 @@ class MolTrackSession:
             self.molecular_segmentations, MolecularSegmentationSet
         ):
             raise TypeError("molecular_segmentations must be a MolecularSegmentationSet instance.")
+        if self.molecular_orientations is not None:
+            from moltrack.analysis import MolecularOrientationStore
+
+            if not isinstance(
+                self.molecular_orientations,
+                MolecularOrientationStore,
+            ):
+                raise TypeError(
+                    "molecular_orientations must be a MolecularOrientationStore."
+                )
         if self.position_analysis is not None and not isinstance(
             self.position_analysis, MolTrackPositionAnalysisState
         ):
@@ -298,6 +310,14 @@ class MolTrackSession:
             and self.molecular_segmentations.frame_count != len(source_frame_indices)
         ):
             raise ValueError("molecular_segmentations do not match source_frame_indices length.")
+        if (
+            self.molecular_orientations is not None
+            and int(self.molecular_orientations.frame_count)
+            != len(source_frame_indices)
+        ):
+            raise ValueError(
+                "molecular_orientations do not match source_frame_indices length."
+            )
         if self.position_analysis is not None:
             for frame_range in (
                 self.position_analysis.first_range,
@@ -362,6 +382,7 @@ class MolTrackSession:
             registration_results=registration_results,
             molecular_detections=series.molecular_detections,
             molecular_segmentations=series.molecular_segmentations,
+            molecular_orientations=series.molecular_orientations,
             position_analysis=position_analysis,
             intensity_cache_records=intensity_cache_records,
             m6_analysis_state=m6_analysis_state,

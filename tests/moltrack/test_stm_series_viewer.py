@@ -7,7 +7,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import numpy as np
 
-from moltrack.analysis import M6PointOverlay
+from moltrack.analysis import M6PointOverlay, MolecularOrientationAxis
 
 from moltrack.core import (
     MolecularDetection,
@@ -189,6 +189,43 @@ class STMSeriesViewerTests(unittest.TestCase):
         self.assertEqual(self.viewer.m6_overlay_graphics_item_count(), 0)
         self.assertEqual(self.viewer.visible_molecular_detection_count(), 1)
         self.assertEqual(self.viewer.visible_molecular_segmentation_count(), 1)
+
+    def test_molecular_orientation_axes_render_as_batched_overlay(self) -> None:
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((1, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(
+                pixels_x=32,
+                pixels_y=32,
+                size_nm_x=64.0,
+                size_nm_y=64.0,
+            ),
+        )
+        self.viewer = STMSeriesViewer()
+        self.viewer.set_image_series(series)
+        axes = tuple(
+            MolecularOrientationAxis(
+                source_id=f"mask-{index}",
+                center_xy_px=(float(index + 5), 10.0),
+                endpoints_xy_px=(
+                    (float(index + 2), 10.0),
+                    (float(index + 8), 10.0),
+                ),
+                angle_deg=0.0,
+                confidence=0.9,
+                method="mask_principal_axis",
+                selected=index == 3,
+            )
+            for index in range(20)
+        )
+
+        self.viewer.show_molecular_orientation_axes(axes)
+
+        self.assertEqual(self.viewer.visible_molecular_orientation_axis_count(), 20)
+        self.assertEqual(
+            self.viewer.molecular_orientation_axis_graphics_item_count(),
+            2,
+        )
 
     def test_domain_type_overlay_exposes_non_tracking_tooltip(self) -> None:
         self.viewer = STMSeriesViewer()

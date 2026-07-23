@@ -14,6 +14,9 @@ import numpy as np
 from moltrack.analysis import (
     MolecularFrameRange,
     MolecularFrameRangeSelection,
+    MolecularOrientationMeasurement,
+    MolecularOrientationProvenance,
+    MolecularOrientationStore,
     analyze_molecular_frame_range,
     build_molecular_position_plot_data,
 )
@@ -296,7 +299,7 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
             with paths["manifest_json"].open("r", encoding="utf-8") as handle:
                 manifest = json.load(handle)
 
-        self.assertEqual(manifest["export_schema_version"], 5)
+        self.assertEqual(manifest["export_schema_version"], 6)
         created_at = datetime.fromisoformat(manifest["created_at_utc"])
         self.assertIsNotNone(created_at.tzinfo)
         self.assertEqual(created_at.utcoffset().total_seconds(), 0.0)
@@ -1551,6 +1554,40 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
             source_frame_indices=(3, 1),
             molecular_detections=detections,
             molecular_segmentations=segmentations,
+            molecular_orientations=MolecularOrientationStore(
+                frame_count=2,
+                measurements=(
+                    MolecularOrientationMeasurement(
+                        measurement_id="orientation:segmentation:seg-sam2",
+                        status="available",
+                        angle_deg=25.0,
+                        periodicity_deg=180.0,
+                        confidence=0.8,
+                        method="mask_principal_axis",
+                        patch_shape_px=(8, 10),
+                        provenance=MolecularOrientationProvenance(
+                            source_file_name="movie.mpp",
+                            source_file_sha256="a" * 64,
+                            source_session_file_name=None,
+                            source_session_sha256=None,
+                            frame_index=1,
+                            source_view="raw",
+                            source_kind="segmentation",
+                            source_id="seg-sam2",
+                            patch_bbox_xyxy=(0.0, 0.0, 10.0, 8.0),
+                            orientation_reference=(
+                                "sample_x_axis_counterclockwise"
+                            ),
+                        ),
+                    ).with_manual_correction(
+                        status="available",
+                        angle_deg=35.0,
+                        confidence=1.0,
+                        reviewer="MolTrack user",
+                        note="Checked in viewer.",
+                    ),
+                ),
+            ),
         )
         centroids = build_molecular_centroids(series, frame_index=1)
         plot_data = build_molecular_position_plot_data(
@@ -1586,6 +1623,19 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
             "y_px",
             "x_nm",
             "y_nm",
+            "molecular_orientation_status",
+            "molecular_orientation_angle_deg",
+            "molecular_orientation_periodicity_deg",
+            "molecular_orientation_confidence",
+            "molecular_orientation_method",
+            "molecular_orientation_manual_corrected",
+            "molecular_orientation_reviewer",
+            "molecular_orientation_note",
+            "molecular_orientation_automatic_status",
+            "molecular_orientation_automatic_angle_deg",
+            "molecular_orientation_automatic_confidence",
+            "molecular_orientation_automatic_method",
+            "molecular_orientation_reference",
         }
         m6_fields = {
             "neighbor_count",
@@ -1662,6 +1712,32 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
         self.assertEqual(rows["seg-sam2"]["y_px"], "6.0")
         self.assertEqual(rows["seg-sam2"]["x_nm"], "14.0")
         self.assertEqual(rows["seg-sam2"]["y_nm"], "6.0")
+        self.assertEqual(
+            rows["seg-sam2"]["molecular_orientation_angle_deg"],
+            "35.0",
+        )
+        self.assertEqual(
+            rows["seg-sam2"]["molecular_orientation_method"],
+            "manual_correction",
+        )
+        self.assertEqual(
+            rows["seg-sam2"]["molecular_orientation_manual_corrected"],
+            "True",
+        )
+        self.assertEqual(
+            rows["seg-sam2"][
+                "molecular_orientation_automatic_angle_deg"
+            ],
+            "25.0",
+        )
+        self.assertEqual(
+            rows["seg-sam2"]["molecular_orientation_reviewer"],
+            "MolTrack user",
+        )
+        self.assertEqual(
+            rows["bbox-manual"]["molecular_orientation_angle_deg"],
+            "",
+        )
         self.assertEqual(rows["bbox-manual"]["source_kind"], "bbox")
         self.assertEqual(rows["bbox-manual"]["origin"], "manual")
         self.assertEqual(rows["bbox-manual"]["x_px"], "4.0")

@@ -261,6 +261,17 @@ from .molecular_orientation_estimator import (
     MolecularOrientationEstimationResult,
     estimate_molecular_orientation,
 )
+from .molecular_orientation_store import (
+    MolecularOrientationAxis,
+    MolecularOrientationBatchResult,
+    MolecularOrientationEstimationCancelled,
+    MolecularOrientationEstimationFailure,
+    MolecularOrientationEstimationProgress,
+    MolecularOrientationStore,
+    build_manual_molecular_orientation_measurement,
+    build_molecular_orientation_axes,
+    estimate_series_molecular_orientations,
+)
 from .molecular_orientation_method_validation import (
     MolecularOrientationMethodAgreementStatus,
     MolecularOrientationMethodMergeAssessment,
@@ -574,6 +585,15 @@ __all__ = [
     "estimate_molecular_orientation_from_topography",
     "MolecularOrientationEstimationResult",
     "estimate_molecular_orientation",
+    "MolecularOrientationAxis",
+    "MolecularOrientationBatchResult",
+    "MolecularOrientationEstimationCancelled",
+    "MolecularOrientationEstimationFailure",
+    "MolecularOrientationEstimationProgress",
+    "MolecularOrientationStore",
+    "build_manual_molecular_orientation_measurement",
+    "build_molecular_orientation_axes",
+    "estimate_series_molecular_orientations",
     "MolecularOrientationMethodAgreementStatus",
     "MolecularOrientationMethodMergeAssessment",
     "MolecularOrientationMethodMergeStatus",

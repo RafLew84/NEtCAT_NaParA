@@ -20,6 +20,7 @@ class MolTrackImageSeries:
     expanded_aligned_stack: Any | None = None
     molecular_detections: Any | None = None
     molecular_segmentations: Any | None = None
+    molecular_orientations: Any | None = None
     molecular_intensity_cache: Any | None = None
     structural_analysis_cache: Any | None = None
     m6_analysis_state: Any | None = None
@@ -102,6 +103,7 @@ class MolTrackImageSeries:
         self.expanded_aligned_stack = None
         self.molecular_detections = None
         self.molecular_segmentations = None
+        self.molecular_orientations = None
         self.molecular_intensity_cache = None
         self.structural_analysis_cache = None
         self.sam3_preview = None

@@ -8,7 +8,7 @@ import pyqtgraph as pg
 from PyQt6.QtCore import QEvent, Qt, pyqtSignal
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
-from moltrack.analysis import M6PointOverlay
+from moltrack.analysis import M6PointOverlay, MolecularOrientationAxis
 from moltrack.core import build_molecular_centroids
 from napara.gui.widgets.viewer_widget import ViewerWidget
 
@@ -43,6 +43,8 @@ class STMSeriesViewer(QWidget):
         self._visible_m6_overlay_points_nm: tuple[tuple[float, float], ...] = ()
         self._highlighted_m6_overlay_source_ids: tuple[str, ...] = ()
         self._m6_overlay_tooltip = ""
+        self._molecular_orientation_axis_items: list[object] = []
+        self._visible_molecular_orientation_axis_ids: tuple[str, ...] = ()
         self._visible_molecular_segmentation_count = 0
         self._visible_molecular_segmentation_ids: list[str] = []
         self._visible_molecular_segmentation_opacities: list[float] = []
@@ -177,6 +179,8 @@ class STMSeriesViewer(QWidget):
         self._m6_point_overlay_item = None
         self._visible_m6_overlay_source_ids = ()
         self._visible_m6_overlay_colors = ()
+        self._molecular_orientation_axis_items = []
+        self._visible_molecular_orientation_axis_ids = ()
         self._visible_molecular_segmentation_count = 0
         self._visible_molecular_segmentation_ids = []
         self._visible_molecular_segmentation_opacities = []
@@ -235,6 +239,65 @@ class STMSeriesViewer(QWidget):
 
     def m6_overlay_tooltip(self) -> str:
         return self._m6_overlay_tooltip
+
+    def visible_molecular_orientation_axis_count(self) -> int:
+        return len(self._visible_molecular_orientation_axis_ids)
+
+    def molecular_orientation_axis_graphics_item_count(self) -> int:
+        return len(self._molecular_orientation_axis_items)
+
+    def show_molecular_orientation_axes(
+        self,
+        axes: tuple[MolecularOrientationAxis, ...],
+        *,
+        scale_nm_per_px: tuple[float | None, float | None] | None = None,
+    ) -> None:
+        self.clear_molecular_orientation_axes()
+        normalized_axes = tuple(axes)
+        if not all(
+            isinstance(axis, MolecularOrientationAxis)
+            for axis in normalized_axes
+        ):
+            raise TypeError(
+                "axes must contain MolecularOrientationAxis instances."
+            )
+        sx, sy = self._effective_scale_nm_per_px(
+            scale_nm_per_px or self._current_scale_nm_per_px
+        )
+        for selected, color, width in (
+            (False, (80, 255, 120, 220), 1.8),
+            (True, (255, 220, 0, 255), 3.0),
+        ):
+            points = []
+            for axis in normalized_axes:
+                if axis.selected != selected:
+                    continue
+                start, end = axis.endpoints_xy_px
+                points.extend(
+                    (
+                        (start[0] * sx, start[1] * sy),
+                        (end[0] * sx, end[1] * sy),
+                        (np.nan, np.nan),
+                    )
+                )
+            if not points:
+                continue
+            item = self.viewer.add_polyline_nm(
+                np.asarray(points, dtype=np.float64),
+                color=color,
+                width=width,
+            )
+            if item is not None:
+                self._molecular_orientation_axis_items.append(item)
+        self._visible_molecular_orientation_axis_ids = tuple(
+            axis.source_id for axis in normalized_axes
+        )
+
+    def clear_molecular_orientation_axes(self) -> None:
+        for item in self._molecular_orientation_axis_items:
+            self.viewer.remove_item(item)
+        self._molecular_orientation_axis_items = []
+        self._visible_molecular_orientation_axis_ids = ()
 
     def show_m6_point_overlay(
         self,

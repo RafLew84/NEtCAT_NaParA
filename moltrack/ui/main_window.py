@@ -46,6 +46,9 @@ from moltrack.analysis import (
     MolecularM6OrientationAnalysisSettings,
     MolecularM6SessionState,
     MolecularM6ViewSettings,
+    MolecularOrientationBatchResult,
+    MolecularOrientationEstimationCancelled,
+    MolecularOrientationStore,
     TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET,
     MolecularFrameRange,
     MolecularFrameRangeSelection,
@@ -57,10 +60,13 @@ from moltrack.analysis import (
     build_m6_current_frame_results,
     build_local_symmetry_point_inspection,
     build_molecular_intensity_measurements,
+    build_manual_molecular_orientation_measurement,
     build_molecular_position_plot_data,
+    build_molecular_orientation_axes,
     build_molecular_sample_coordinates,
     build_structural_analysis_cache_key,
     compare_molecular_frame_ranges,
+    estimate_series_molecular_orientations,
     suggest_first_shell_r_max,
     suggest_shared_first_shell_r_max,
 )
@@ -95,7 +101,11 @@ from moltrack.ui.m6_domain_type_overlay import (
     build_m6_domain_type_overlay_index,
 )
 from moltrack.ui.m6_domain_type_selection import M6DomainTypeSelection
-from moltrack.ui.widgets import STMSeriesViewer, SeriesMetadataPanel
+from moltrack.ui.widgets import (
+    MolecularOrientationPanel,
+    STMSeriesViewer,
+    SeriesMetadataPanel,
+)
 from moltrack.yolo import MolTrackYoloDetector, YoloBBoxSizeFilter, discover_yolo_models
 from moltrack.sam2 import (
     MolTrackSam2PromptRejection,
@@ -1050,6 +1060,54 @@ class _Sam3ConceptWorker(QObject):
         self.finished.emit(proposals)
 
 
+class _MolecularOrientationWorker(QObject):
+    progress = pyqtSignal(object)
+    finished = pyqtSignal(object)
+    failed = pyqtSignal(str)
+    canceled = pyqtSignal()
+
+    def __init__(
+        self,
+        estimator,
+        series,
+        *,
+        frame_indices: tuple[int, ...],
+        source_view: str,
+    ) -> None:
+        super().__init__()
+        self._estimator = estimator
+        self._series = series
+        self._frame_indices = tuple(int(index) for index in frame_indices)
+        self._source_view = str(source_view)
+        self._cancel_requested = Event()
+
+    def cancel(self) -> None:
+        self._cancel_requested.set()
+
+    def run(self) -> None:
+        try:
+            result = self._estimator(
+                self._series,
+                frame_indices=self._frame_indices,
+                source_view=self._source_view,
+                progress_callback=self.progress.emit,
+                should_cancel=self._cancel_requested.is_set,
+            )
+        except MolecularOrientationEstimationCancelled:
+            self.canceled.emit()
+            return
+        except Exception as exc:
+            if self._cancel_requested.is_set():
+                self.canceled.emit()
+                return
+            self.failed.emit(str(exc) or exc.__class__.__name__)
+            return
+        if self._cancel_requested.is_set():
+            self.canceled.emit()
+            return
+        self.finished.emit(result)
+
+
 class MolTrackMainWindow(QMainWindow):
     """Initial empty workspace for MolTrack."""
 
@@ -1080,6 +1138,7 @@ class MolTrackMainWindow(QMainWindow):
         position_range_analyzer=analyze_molecular_frame_range,
         position_range_comparator=compare_molecular_frame_ranges,
         m6_domain_type_store=None,
+        molecular_orientation_estimator=estimate_series_molecular_orientations,
     ):
         super().__init__(parent)
         self._series = None
@@ -1127,6 +1186,18 @@ class MolTrackMainWindow(QMainWindow):
         self._analysis_export_worker: _AnalysisExportWorker | None = None
         self._position_range_analyzer = position_range_analyzer
         self._position_range_comparator = position_range_comparator
+        self._molecular_orientation_estimator = (
+            molecular_orientation_estimator
+        )
+        self._molecular_orientation_running = False
+        self._molecular_orientation_progress_dialog: (
+            QProgressDialog | None
+        ) = None
+        self._molecular_orientation_thread: QThread | None = None
+        self._molecular_orientation_worker: (
+            _MolecularOrientationWorker | None
+        ) = None
+        self._molecular_orientation_series = None
         self._m6_analysis_running = False
         self._m6_domain_type_store = (
             m6_domain_type_store
@@ -1574,6 +1645,9 @@ class MolTrackMainWindow(QMainWindow):
         segmentation_layout.addWidget(self.lbl_segmentation_status)
         sidebar_layout.addWidget(self.segmentation_group)
 
+        self.orientation_panel = MolecularOrientationPanel(sidebar_content)
+        sidebar_layout.addWidget(self.orientation_panel)
+
         self.position_analysis_group = QGroupBox("Position Analysis", sidebar_content)
         position_analysis_layout = QVBoxLayout(self.position_analysis_group)
         self.chk_show_centroids = QCheckBox("Show centroids", self.position_analysis_group)
@@ -1657,6 +1731,27 @@ class MolTrackMainWindow(QMainWindow):
         self.viewer.molecular_segmentation_selection_changed.connect(self._on_molecular_segmentation_selection_changed)
         self.viewer.manual_molecular_bbox_drawn.connect(self._on_manual_molecular_bbox_drawn)
         self.viewer.manual_molecular_mask_brush_dragged.connect(self._on_manual_mask_brush_dragged)
+        self.orientation_panel.estimate_current_requested.connect(
+            self._on_molecular_orientation_estimate_current_requested
+        )
+        self.orientation_panel.estimate_range_requested.connect(
+            self._on_molecular_orientation_estimate_range_requested
+        )
+        self.orientation_panel.estimate_all_requested.connect(
+            self._on_molecular_orientation_estimate_all_requested
+        )
+        self.orientation_panel.set_angle_requested.connect(
+            self._on_molecular_orientation_set_angle_requested
+        )
+        self.orientation_panel.rotate_requested.connect(
+            self._on_molecular_orientation_rotate_requested
+        )
+        self.orientation_panel.reset_requested.connect(
+            self._on_molecular_orientation_reset_requested
+        )
+        self.orientation_panel.chk_show_axes.toggled.connect(
+            self._render_current_molecular_orientation_overlay
+        )
 
     def set_image_series(self, series) -> None:
         calibration_dialog = self._lattice_domain_calibration_dialog
@@ -1721,6 +1816,7 @@ class MolTrackMainWindow(QMainWindow):
             self._set_registration_view_mode("Show raw")
             self.lbl_registration_status.setText("No registration results")
             self._sync_yolo_controls()
+            self._sync_molecular_orientation_panel()
             return
 
         controls_enabled = not self._is_processing()
@@ -1743,6 +1839,7 @@ class MolTrackMainWindow(QMainWindow):
         self.lbl_frame.setText(f"Frame: {self._series.active_frame_index + 1} / {self._series.frame_count}")
         self._sync_yolo_controls()
         self._sync_segmentation_controls()
+        self._sync_molecular_orientation_panel()
 
     def _refresh_yolo_models(self) -> None:
         self._yolo_models = list(self._yolo_model_discovery())
@@ -2311,6 +2408,9 @@ class MolTrackMainWindow(QMainWindow):
         polygon_xy = state.get("polygon_xy")
         segmentation.polygon_xy = None if polygon_xy is None else tuple(polygon_xy)
         segmentation.metadata = dict(state.get("metadata", {}))
+        self._invalidate_molecular_orientation_for_segmentation(
+            segmentation.segmentation_id
+        )
 
     def reset_active_segmentation_to_sam2_result(self) -> bool:
         segmentation = self._current_selected_molecular_segmentation()
@@ -2392,6 +2492,8 @@ class MolTrackMainWindow(QMainWindow):
     def _on_molecular_segmentation_selection_changed(self, segmentation_id) -> None:
         self._selected_molecular_segmentation_id = str(segmentation_id) if segmentation_id is not None else None
         self._sync_active_segmentation_panel()
+        self._sync_molecular_orientation_panel()
+        self._render_current_molecular_orientation_overlay()
         self._sync_selected_local_symmetry_point(
             preferred_source_id=self._selected_molecular_segmentation_id
         )
@@ -2427,6 +2529,9 @@ class MolTrackMainWindow(QMainWindow):
             self.viewer.set_mask_brush_edit_mode_enabled(False)
 
         self._series.molecular_segmentations.remove_segmentation(segmentation_id)
+        self._invalidate_molecular_orientation_for_segmentation(
+            segmentation_id
+        )
         self.viewer.select_molecular_segmentation_by_id(None)
         self._show_current_frame()
         self._sync_segmentation_controls()
@@ -2593,6 +2698,436 @@ class MolTrackMainWindow(QMainWindow):
             f"{segmentation.origin} | prompt {prompt} | area {area} | bbox {bbox_text}"
         )
 
+    def _ensure_molecular_orientation_store(
+        self,
+    ) -> MolecularOrientationStore:
+        if self._series is None:
+            raise RuntimeError(
+                "Molecular orientation requires a loaded series."
+            )
+        store = getattr(self._series, "molecular_orientations", None)
+        if store is None:
+            store = MolecularOrientationStore(
+                frame_count=self._series.frame_count
+            )
+            self._series.molecular_orientations = store
+        if not isinstance(store, MolecularOrientationStore):
+            raise TypeError(
+                "Invalid molecular orientation state on the image series."
+            )
+        return store
+
+    def _invalidate_molecular_orientation_for_segmentation(
+        self,
+        segmentation_id: str,
+    ) -> None:
+        if self._series is None:
+            return
+        store = getattr(self._series, "molecular_orientations", None)
+        if isinstance(store, MolecularOrientationStore):
+            store.remove("segmentation", str(segmentation_id))
+
+    def _prune_orphaned_molecular_orientations(self) -> None:
+        if self._series is None:
+            return
+        store = getattr(self._series, "molecular_orientations", None)
+        segmentation_set = self._series.molecular_segmentations
+        if (
+            not isinstance(store, MolecularOrientationStore)
+            or segmentation_set is None
+        ):
+            return
+        current_ids = {
+            segmentation.segmentation_id
+            for frame_index in range(self._series.frame_count)
+            for segmentation in segmentation_set.get_segmentations(
+                frame_index
+            )
+        }
+        for measurement in store.measurements:
+            if (
+                measurement.provenance.source_kind == "segmentation"
+                and measurement.provenance.source_id not in current_ids
+            ):
+                store.remove(
+                    measurement.provenance.source_kind,
+                    measurement.provenance.source_id,
+                )
+
+    def _current_selected_molecular_orientation(self):
+        segmentation = self._current_selected_molecular_segmentation()
+        if segmentation is None or self._series is None:
+            return None
+        store = getattr(self._series, "molecular_orientations", None)
+        if not isinstance(store, MolecularOrientationStore):
+            return None
+        return store.get("segmentation", segmentation.segmentation_id)
+
+    def _sync_molecular_orientation_panel(self) -> None:
+        if self._series is None:
+            self.orientation_panel.set_context(
+                frame_count=0,
+                active_frame_index=0,
+                current_segmentation_count=0,
+                total_segmentation_count=0,
+                selected_segmentation_available=False,
+                running=self._molecular_orientation_running,
+            )
+            self.orientation_panel.set_measurement(None)
+            return
+        source_view = self._current_yolo_source_view()
+        segmentation_set = self._series.molecular_segmentations
+        if segmentation_set is None:
+            current_count = 0
+            total_count = 0
+        else:
+            current_count = len(
+                segmentation_set.get_segmentations(
+                    self._series.active_frame_index,
+                    source_view=source_view,
+                )
+            )
+            total_count = sum(
+                len(
+                    segmentation_set.get_segmentations(
+                        frame_index,
+                        source_view=source_view,
+                    )
+                )
+                for frame_index in range(self._series.frame_count)
+            )
+        self.orientation_panel.set_context(
+            frame_count=self._series.frame_count,
+            active_frame_index=self._series.active_frame_index,
+            current_segmentation_count=current_count,
+            total_segmentation_count=total_count,
+            selected_segmentation_available=(
+                self._current_selected_molecular_segmentation() is not None
+            ),
+            running=self._molecular_orientation_running,
+        )
+        self.orientation_panel.set_measurement(
+            self._current_selected_molecular_orientation()
+        )
+
+    def _render_current_molecular_orientation_overlay(
+        self,
+        _checked: bool | None = None,
+    ) -> None:
+        if (
+            self._series is None
+            or not self.orientation_panel.chk_show_axes.isChecked()
+        ):
+            self.viewer.clear_molecular_orientation_axes()
+            return
+        axes = build_molecular_orientation_axes(
+            self._series,
+            frame_index=self._series.active_frame_index,
+            source_view=self._current_yolo_source_view(),
+            selected_source_id=self._selected_molecular_segmentation_id,
+        )
+        self.viewer.show_molecular_orientation_axes(
+            axes,
+            scale_nm_per_px=self._series.pixel_size_nm,
+        )
+
+    def _on_molecular_orientation_estimate_current_requested(self) -> None:
+        if self._series is None:
+            return
+        self._start_molecular_orientation_estimation(
+            (self._series.active_frame_index,)
+        )
+
+    def _on_molecular_orientation_estimate_range_requested(
+        self,
+        end_frame_index: int,
+    ) -> None:
+        if self._series is None:
+            return
+        start_frame_index = self._series.active_frame_index
+        end_frame_index = int(end_frame_index)
+        if not start_frame_index <= end_frame_index < self._series.frame_count:
+            self.statusBar().showMessage(
+                "Molecular orientation range is invalid.",
+                3000,
+            )
+            return
+        self._start_molecular_orientation_estimation(
+            tuple(range(start_frame_index, end_frame_index + 1))
+        )
+
+    def _on_molecular_orientation_estimate_all_requested(self) -> None:
+        if self._series is None:
+            return
+        self._start_molecular_orientation_estimation(
+            tuple(range(self._series.frame_count))
+        )
+
+    def _start_molecular_orientation_estimation(
+        self,
+        frame_indices: tuple[int, ...],
+    ) -> None:
+        if (
+            self._series is None
+            or self._is_processing()
+            or not frame_indices
+        ):
+            return
+        source_view = self._current_yolo_source_view()
+        if source_view == "expanded_aligned":
+            try:
+                self._ensure_expanded_aligned_stack()
+            except Exception as exc:
+                QMessageBox.critical(
+                    self,
+                    "Molecular orientation error",
+                    str(exc) or exc.__class__.__name__,
+                )
+                return
+        segmentation_set = self._series.molecular_segmentations
+        segmentation_count = (
+            0
+            if segmentation_set is None
+            else sum(
+                len(
+                    segmentation_set.get_segmentations(
+                        frame_index,
+                        source_view=source_view,
+                    )
+                )
+                for frame_index in frame_indices
+            )
+        )
+        if segmentation_count == 0:
+            self.statusBar().showMessage(
+                "No segmentation masks in the selected frame range.",
+                3000,
+            )
+            return
+
+        self._molecular_orientation_running = True
+        self._molecular_orientation_series = self._series
+        self._molecular_orientation_progress_dialog = QProgressDialog(
+            "Estimating molecular orientations...",
+            "Cancel",
+            0,
+            segmentation_count,
+            self,
+        )
+        self._molecular_orientation_progress_dialog.setWindowTitle(
+            "Molecular Orientation"
+        )
+        self._molecular_orientation_progress_dialog.setWindowModality(
+            Qt.WindowModality.ApplicationModal
+        )
+        self._molecular_orientation_progress_dialog.setMinimumDuration(0)
+        self._molecular_orientation_progress_dialog.setAutoClose(False)
+        self._molecular_orientation_progress_dialog.setAutoReset(False)
+        self._molecular_orientation_progress_dialog.setValue(0)
+        self._molecular_orientation_progress_dialog.canceled.connect(
+            self._on_molecular_orientation_cancel_requested
+        )
+        self._molecular_orientation_progress_dialog.show()
+
+        thread = QThread(self)
+        worker = _MolecularOrientationWorker(
+            self._molecular_orientation_estimator,
+            self._series,
+            frame_indices=frame_indices,
+            source_view=source_view,
+        )
+        self._molecular_orientation_thread = thread
+        self._molecular_orientation_worker = worker
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.progress.connect(
+            self._on_molecular_orientation_progress
+        )
+        worker.finished.connect(
+            self._on_molecular_orientation_finished
+        )
+        worker.failed.connect(self._on_molecular_orientation_failed)
+        worker.canceled.connect(self._on_molecular_orientation_canceled)
+        worker.finished.connect(thread.quit)
+        worker.failed.connect(thread.quit)
+        worker.canceled.connect(thread.quit)
+        thread.finished.connect(
+            self._cleanup_molecular_orientation_worker
+        )
+        self._sync_navigation_controls()
+        self.statusBar().showMessage(
+            f"Estimating {segmentation_count} molecular orientation(s)...",
+            0,
+        )
+        thread.start()
+
+    @pyqtSlot(object)
+    def _on_molecular_orientation_progress(self, progress) -> None:
+        if not self._molecular_orientation_running:
+            return
+        completed = int(getattr(progress, "completed_count", 0))
+        total = int(getattr(progress, "total_count", 0))
+        frame_index = getattr(progress, "frame_index", None)
+        frame_text = (
+            ""
+            if frame_index is None
+            else f" | Frame {int(frame_index) + 1}"
+        )
+        label = (
+            f"Estimating molecular orientations: {completed}/{total}"
+            f"{frame_text}"
+        )
+        dialog = self._molecular_orientation_progress_dialog
+        if dialog is not None:
+            dialog.setRange(0, max(0, total))
+            dialog.setValue(completed)
+            dialog.setLabelText(label)
+        self.statusBar().showMessage(label, 0)
+
+    @pyqtSlot(object)
+    def _on_molecular_orientation_finished(self, result) -> None:
+        if not isinstance(result, MolecularOrientationBatchResult):
+            self._on_molecular_orientation_failed(
+                "Orientation estimator returned an invalid result."
+            )
+            return
+        if (
+            self._series is None
+            or self._series is not self._molecular_orientation_series
+        ):
+            return
+        store = self._ensure_molecular_orientation_store()
+        saved_count = (
+            store.put_automatic_measurements_preserving_manual(
+                result.measurements
+            )
+        )
+        failure_count = result.failure_count
+        self._close_molecular_orientation_progress_dialog()
+        self._show_current_frame()
+        self._sync_molecular_orientation_panel()
+        self.statusBar().showMessage(
+            f"Estimated {saved_count} molecular orientation(s); "
+            f"{failure_count} failed.",
+            5000,
+        )
+
+    @pyqtSlot(str)
+    def _on_molecular_orientation_failed(self, message: str) -> None:
+        self._close_molecular_orientation_progress_dialog()
+        QMessageBox.critical(
+            self,
+            "Molecular orientation error",
+            str(message),
+        )
+        self.statusBar().showMessage(
+            "Molecular orientation estimation failed.",
+            5000,
+        )
+
+    @pyqtSlot()
+    def _on_molecular_orientation_cancel_requested(self) -> None:
+        worker = self._molecular_orientation_worker
+        if worker is not None:
+            worker.cancel()
+        dialog = self._molecular_orientation_progress_dialog
+        if dialog is not None:
+            dialog.setLabelText(
+                "Canceling molecular orientation estimation..."
+            )
+
+    @pyqtSlot()
+    def _on_molecular_orientation_canceled(self) -> None:
+        self._close_molecular_orientation_progress_dialog()
+        self.statusBar().showMessage(
+            "Molecular orientation estimation canceled.",
+            5000,
+        )
+
+    def _close_molecular_orientation_progress_dialog(self) -> None:
+        if self._molecular_orientation_progress_dialog is None:
+            return
+        self._molecular_orientation_progress_dialog.close()
+        self._molecular_orientation_progress_dialog = None
+
+    def _cleanup_molecular_orientation_worker(self) -> None:
+        if self._molecular_orientation_worker is not None:
+            self._molecular_orientation_worker.deleteLater()
+            self._molecular_orientation_worker = None
+        if self._molecular_orientation_thread is not None:
+            self._molecular_orientation_thread.deleteLater()
+            self._molecular_orientation_thread = None
+        self._close_molecular_orientation_progress_dialog()
+        self._molecular_orientation_series = None
+        self._molecular_orientation_running = False
+        self._sync_navigation_controls()
+
+    def _on_molecular_orientation_set_angle_requested(
+        self,
+        angle_deg: float,
+    ) -> None:
+        segmentation = self._current_selected_molecular_segmentation()
+        if segmentation is None:
+            return
+        try:
+            store = self._ensure_molecular_orientation_store()
+            if store.get("segmentation", segmentation.segmentation_id) is None:
+                store.put(
+                    build_manual_molecular_orientation_measurement(
+                        self._series,
+                        segmentation,
+                        source_view=self._current_yolo_source_view(),
+                        angle_deg=float(angle_deg),
+                    )
+                )
+            else:
+                store.set_manual_angle(
+                    "segmentation",
+                    segmentation.segmentation_id,
+                    angle_deg=float(angle_deg),
+                    reviewer="MolTrack user",
+                )
+        except (KeyError, OSError, TypeError, ValueError) as exc:
+            self.statusBar().showMessage(str(exc), 3000)
+            return
+        self._sync_molecular_orientation_panel()
+        self._render_current_molecular_orientation_overlay()
+
+    def _on_molecular_orientation_rotate_requested(
+        self,
+        delta_deg: float,
+    ) -> None:
+        segmentation = self._current_selected_molecular_segmentation()
+        if segmentation is None:
+            return
+        try:
+            self._ensure_molecular_orientation_store().rotate_manual_angle(
+                "segmentation",
+                segmentation.segmentation_id,
+                delta_deg=float(delta_deg),
+                reviewer="MolTrack user",
+            )
+        except (KeyError, ValueError) as exc:
+            self.statusBar().showMessage(str(exc), 3000)
+            return
+        self._sync_molecular_orientation_panel()
+        self._render_current_molecular_orientation_overlay()
+
+    def _on_molecular_orientation_reset_requested(self) -> None:
+        segmentation = self._current_selected_molecular_segmentation()
+        if segmentation is None:
+            return
+        try:
+            self._ensure_molecular_orientation_store().reset_manual_angle(
+                "segmentation",
+                segmentation.segmentation_id,
+            )
+        except KeyError as exc:
+            self.statusBar().showMessage(str(exc), 3000)
+            return
+        self._sync_molecular_orientation_panel()
+        self._render_current_molecular_orientation_overlay()
+
     def _apply_segmentation_mask_update(self, segmentation, mask, *, metadata: dict | None = None) -> None:
         mask_array = np.asarray(mask, dtype=bool)
         if not bool(np.any(mask_array)):
@@ -2608,6 +3143,9 @@ class MolTrackMainWindow(QMainWindow):
         )
         if metadata:
             segmentation.metadata.update(dict(metadata))
+        self._invalidate_molecular_orientation_for_segmentation(
+            segmentation.segmentation_id
+        )
 
     def _mask_brush_pixels(
         self,
@@ -2671,6 +3209,7 @@ class MolTrackMainWindow(QMainWindow):
             or self._sam3_concept_running
             or self._analysis_export_running
             or self._m6_analysis_running
+            or self._molecular_orientation_running
             or (
                 calibration_dialog is not None
                 and calibration_dialog.is_running
@@ -4476,6 +5015,7 @@ class MolTrackMainWindow(QMainWindow):
             mode="both",
             duplicate_iou_threshold=float(self.sp_sam3_duplicate_iou.value()),
         )
+        self._prune_orphaned_molecular_orientations()
         self._series.sam3_preview = None
         self._show_current_frame()
         self._sync_yolo_controls()
@@ -4985,6 +5525,9 @@ class MolTrackMainWindow(QMainWindow):
         ]
         for segmentation_id in to_remove:
             segmentation_set.remove_segmentation(segmentation_id)
+            self._invalidate_molecular_orientation_for_segmentation(
+                segmentation_id
+            )
         return len(to_remove)
 
     def _close_sam2_segmentation_progress_dialog(self) -> None:
@@ -5059,14 +5602,18 @@ class MolTrackMainWindow(QMainWindow):
                     self._series.active_frame_index,
                 )
                 self._show_current_sam3_manual_prompt_overlays()
+                self._render_current_molecular_orientation_overlay()
                 self._render_current_m6_overlay()
                 self.metadata_panel.set_image_series(self._series)
                 self._refresh_position_analysis_dialog_if_open()
+                self._sync_molecular_orientation_panel()
                 return
         self.viewer.show_frame(self._series.active_frame_index)
         self._show_current_sam3_manual_prompt_overlays()
+        self._render_current_molecular_orientation_overlay()
         self._render_current_m6_overlay()
         self._refresh_position_analysis_dialog_if_open()
+        self._sync_molecular_orientation_panel()
 
     def _render_current_m6_overlay(self) -> None:
         series = self._series

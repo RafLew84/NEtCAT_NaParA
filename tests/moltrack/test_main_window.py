@@ -13,6 +13,10 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 import numpy as np
 
 from moltrack.analysis import (
+    MolecularOrientationBatchResult,
+    MolecularOrientationEstimationProgress,
+    MolecularOrientationMeasurement,
+    MolecularOrientationProvenance,
     MolecularFrameRange,
     MolecularFrameRangeSelection,
     MolecularIntensityMeasurement,
@@ -225,6 +229,268 @@ class MolTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.btn_sam3_commit_proposals.text(), "Commit Proposals")
         self.assertFalse(self.window.btn_sam3_commit_proposals.isEnabled())
         self.assertEqual(self.window.lbl_segmentation_status.text(), "No series loaded")
+
+    def test_molecular_orientation_runs_async_and_supports_manual_reset(
+        self,
+    ) -> None:
+        scopes = []
+
+        def orientation_estimator(
+            series,
+            *,
+            frame_indices,
+            source_view,
+            progress_callback,
+            should_cancel,
+        ):
+            frame_indices = tuple(frame_indices)
+            scopes.append(frame_indices)
+            measurements = []
+            segmentations = [
+                segmentation
+                for frame_index in frame_indices
+                for segmentation in series.molecular_segmentations.get_segmentations(
+                    frame_index,
+                    source_view=source_view,
+                )
+            ]
+            progress_callback(
+                MolecularOrientationEstimationProgress(
+                    completed_count=0,
+                    total_count=len(segmentations),
+                    frame_index=None,
+                    source_id=None,
+                )
+            )
+            for completed, segmentation in enumerate(segmentations, start=1):
+                measurements.append(
+                    MolecularOrientationMeasurement(
+                        measurement_id=(
+                            "orientation:segmentation:"
+                            f"{segmentation.segmentation_id}"
+                        ),
+                        status="available",
+                        angle_deg=25.0,
+                        periodicity_deg=180.0,
+                        confidence=0.8,
+                        method="mask_principal_axis",
+                        patch_shape_px=(12, 14),
+                        provenance=MolecularOrientationProvenance(
+                            source_file_name="movie.mpp",
+                            source_file_sha256="a" * 64,
+                            source_session_file_name=None,
+                            source_session_sha256=None,
+                            frame_index=segmentation.frame_index,
+                            source_view=source_view,
+                            source_kind="segmentation",
+                            source_id=segmentation.segmentation_id,
+                            patch_bbox_xyxy=(3.0, 4.0, 17.0, 16.0),
+                            orientation_reference=(
+                                "sample_x_axis_counterclockwise"
+                            ),
+                        ),
+                    )
+                )
+                progress_callback(
+                    MolecularOrientationEstimationProgress(
+                        completed_count=completed,
+                        total_count=len(segmentations),
+                        frame_index=segmentation.frame_index,
+                        source_id=segmentation.segmentation_id,
+                    )
+                )
+            return MolecularOrientationBatchResult(
+                measurements=tuple(measurements),
+                failures=(),
+                completed_count=len(segmentations),
+                total_count=len(segmentations),
+            )
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            molecular_orientation_estimator=orientation_estimator,
+        )
+        masks = MolecularSegmentationSet(frame_count=2)
+        mask = np.zeros((20, 20), dtype=bool)
+        mask[7:13, 4:16] = True
+        for frame_index in range(2):
+            masks.add_segmentation(
+                MolecularSegmentation(
+                    frame_index=frame_index,
+                    source_view="raw",
+                    bbox_xyxy=(4, 7, 16, 13),
+                    mask=mask,
+                    origin="sam2",
+                    segmentation_id=f"mask-{frame_index}",
+                )
+            )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((2, 20, 20), dtype=np.float32),
+            metadata=STMSequenceMetadata(
+                pixels_x=20,
+                pixels_y=20,
+                size_nm_x=40.0,
+                size_nm_y=40.0,
+                scan_angle_deg=0.0,
+            ),
+            molecular_segmentations=masks,
+        )
+        self.window.set_image_series(series)
+        self.window.select_molecular_segmentation_at_pixel(8.0, 9.0)
+
+        self.window.orientation_panel.btn_estimate_current.click()
+        self.process_events_until(
+            lambda: not self.window._molecular_orientation_running
+        )
+
+        automatic = series.molecular_orientations.get(
+            "segmentation",
+            "mask-0",
+        )
+        self.assertEqual(scopes, [(0,)])
+        self.assertAlmostEqual(automatic.angle_deg, 25.0)
+        self.assertIn(
+            "mask_principal_axis",
+            self.window.orientation_panel.lbl_result.text(),
+        )
+        self.assertEqual(
+            self.window.viewer.visible_molecular_orientation_axis_count(),
+            1,
+        )
+
+        self.window.orientation_panel.sp_manual_angle_deg.setValue(42.0)
+        self.window.orientation_panel.btn_set_angle.click()
+        corrected = series.molecular_orientations.get(
+            "segmentation",
+            "mask-0",
+        )
+        self.assertTrue(corrected.is_manually_corrected)
+        self.assertAlmostEqual(corrected.angle_deg, 42.0)
+        self.assertAlmostEqual(
+            corrected.manual_correction.original_result.angle_deg,
+            25.0,
+        )
+
+        self.window.orientation_panel.btn_reset.click()
+        reset = series.molecular_orientations.get(
+            "segmentation",
+            "mask-0",
+        )
+        self.assertFalse(reset.is_manually_corrected)
+        self.assertAlmostEqual(reset.angle_deg, 25.0)
+
+        self.window.orientation_panel.sp_range_end_frame.setValue(2)
+        self.window.orientation_panel.btn_estimate_range.click()
+        self.process_events_until(
+            lambda: not self.window._molecular_orientation_running
+        )
+        self.window.orientation_panel.btn_estimate_all.click()
+        self.process_events_until(
+            lambda: not self.window._molecular_orientation_running
+        )
+
+        self.assertEqual(scopes, [(0,), (0, 1), (0, 1)])
+        self.assertEqual(series.molecular_orientations.measurement_count, 2)
+
+        edited_mask = mask.copy()
+        edited_mask[7, 4] = False
+        self.window._remember_mask_edit_state(
+            masks.get_segmentation("mask-0")
+        )
+        self.window._apply_segmentation_mask_update(
+            masks.get_segmentation("mask-0"),
+            edited_mask,
+        )
+        self.window._show_current_frame()
+
+        self.assertIsNone(
+            series.molecular_orientations.get(
+                "segmentation",
+                "mask-0",
+            )
+        )
+        series.molecular_orientations.put(automatic)
+        self.assertTrue(self.window.undo_last_mask_edit())
+        self.assertIsNone(
+            series.molecular_orientations.get(
+                "segmentation",
+                "mask-0",
+            )
+        )
+        self.assertEqual(
+            self.window.orientation_panel.lbl_result.text(),
+            "No orientation selected",
+        )
+        series.molecular_orientations.put(automatic)
+        masks.remove_segmentation("mask-0")
+        self.window._prune_orphaned_molecular_orientations()
+        self.assertIsNone(
+            series.molecular_orientations.get(
+                "segmentation",
+                "mask-0",
+            )
+        )
+
+    def test_selected_segmentation_accepts_first_manual_orientation(
+        self,
+    ) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        mask = np.zeros((20, 20), dtype=bool)
+        mask[7:13, 4:16] = True
+        segmentations = MolecularSegmentationSet(frame_count=1)
+        segmentations.add_segmentation(
+            MolecularSegmentation(
+                frame_index=0,
+                source_view="raw",
+                bbox_xyxy=(4, 7, 16, 13),
+                mask=mask,
+                origin="sam2",
+                segmentation_id="manual-angle-mask",
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_path = Path(tmpdir) / "movie.mpp"
+            source_path.write_bytes(b"manual orientation source")
+            series = MolTrackImageSeries(
+                source_path=source_path,
+                raw_frames=np.zeros((1, 20, 20), dtype=np.float32),
+                metadata=STMSequenceMetadata(
+                    pixels_x=20,
+                    pixels_y=20,
+                    size_nm_x=40.0,
+                    size_nm_y=40.0,
+                    scan_angle_deg=0.0,
+                ),
+                molecular_segmentations=segmentations,
+            )
+            original_mask = mask.copy()
+            original_bbox = segmentations.get_segmentation(
+                "manual-angle-mask"
+            ).bbox_xyxy
+            self.window.set_image_series(series)
+            self.window.select_molecular_segmentation_at_pixel(8.0, 9.0)
+
+            self.assertTrue(
+                self.window.orientation_panel.btn_set_angle.isEnabled()
+            )
+            self.window.orientation_panel.sp_manual_angle_deg.setValue(55.0)
+            self.window.orientation_panel.btn_set_angle.click()
+
+        measurement = series.molecular_orientations.get(
+            "segmentation",
+            "manual-angle-mask",
+        )
+        self.assertEqual(measurement.method, "manual")
+        self.assertAlmostEqual(measurement.angle_deg, 55.0)
+        np.testing.assert_array_equal(
+            segmentations.get_segmentation("manual-angle-mask").mask,
+            original_mask,
+        )
+        self.assertEqual(
+            segmentations.get_segmentation("manual-angle-mask").bbox_xyxy,
+            original_bbox,
+        )
 
     def test_ttmapp_parameter_preset_updates_m6_dialog_and_session_configuration(self) -> None:
         previous_settings = MolecularM6OrientationAnalysisSettings(

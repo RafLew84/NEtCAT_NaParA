@@ -35,6 +35,7 @@ from moltrack.analysis import (
     MolecularFrameRangeSelection,
     MolecularIntensityMeasurement,
     MolecularM6OrientationAnalysisSettings,
+    MolecularOrientationStore,
     MolecularPositionPlotData,
     MolecularRangeSpatialComparisonData,
     analyze_molecular_frame_range,
@@ -58,7 +59,7 @@ if TYPE_CHECKING:
     from .analysis_plots import AnalysisPlotExportResult
 
 
-ANALYSIS_EXPORT_SCHEMA_VERSION = 5
+ANALYSIS_EXPORT_SCHEMA_VERSION = 6
 
 
 _MOLECULES_CSV_FIELDS = (
@@ -78,6 +79,19 @@ _MOLECULES_CSV_FIELDS = (
     "y_px",
     "x_nm",
     "y_nm",
+    "molecular_orientation_status",
+    "molecular_orientation_angle_deg",
+    "molecular_orientation_periodicity_deg",
+    "molecular_orientation_confidence",
+    "molecular_orientation_method",
+    "molecular_orientation_manual_corrected",
+    "molecular_orientation_reviewer",
+    "molecular_orientation_note",
+    "molecular_orientation_automatic_status",
+    "molecular_orientation_automatic_angle_deg",
+    "molecular_orientation_automatic_confidence",
+    "molecular_orientation_automatic_method",
+    "molecular_orientation_reference",
 )
 
 _M6_MOLECULES_CSV_FIELDS = (
@@ -1796,8 +1810,7 @@ def _molecule_rows(
             raise ValueError(
                 f"Plot point source is not available in the series: {source_kind}:{source_id}."
             ) from exc
-        rows.append(
-            {
+        row = {
                 "working_frame_index": frame_index,
                 "working_frame_number": frame_index + 1,
                 "source_frame_index": source_frame_index,
@@ -1815,8 +1828,74 @@ def _molecule_rows(
                 "x_nm": centroid.x_nm,
                 "y_nm": centroid.y_nm,
             }
+        row.update(
+            _molecular_orientation_fields(
+                series,
+                source_kind=source_kind,
+                source_id=source_id,
+            )
         )
+        rows.append(row)
     return rows
+
+
+def _molecular_orientation_fields(
+    series: MolTrackImageSeries,
+    *,
+    source_kind: str,
+    source_id: str,
+) -> dict[str, object]:
+    empty = {
+        "molecular_orientation_status": None,
+        "molecular_orientation_angle_deg": None,
+        "molecular_orientation_periodicity_deg": None,
+        "molecular_orientation_confidence": None,
+        "molecular_orientation_method": None,
+        "molecular_orientation_manual_corrected": None,
+        "molecular_orientation_reviewer": None,
+        "molecular_orientation_note": None,
+        "molecular_orientation_automatic_status": None,
+        "molecular_orientation_automatic_angle_deg": None,
+        "molecular_orientation_automatic_confidence": None,
+        "molecular_orientation_automatic_method": None,
+        "molecular_orientation_reference": None,
+    }
+    store = getattr(series, "molecular_orientations", None)
+    if not isinstance(store, MolecularOrientationStore):
+        return empty
+    orientation_source_kind = (
+        "detection" if source_kind == "bbox" else source_kind
+    )
+    measurement = store.get(orientation_source_kind, source_id)
+    if measurement is None:
+        return empty
+    correction = measurement.manual_correction
+    automatic = (
+        correction.original_result if correction is not None else measurement
+    )
+    return {
+        "molecular_orientation_status": measurement.status,
+        "molecular_orientation_angle_deg": measurement.angle_deg,
+        "molecular_orientation_periodicity_deg": measurement.periodicity_deg,
+        "molecular_orientation_confidence": measurement.confidence,
+        "molecular_orientation_method": measurement.method,
+        "molecular_orientation_manual_corrected": (
+            measurement.is_manually_corrected
+        ),
+        "molecular_orientation_reviewer": (
+            None if correction is None else correction.reviewer
+        ),
+        "molecular_orientation_note": (
+            None if correction is None else correction.note
+        ),
+        "molecular_orientation_automatic_status": automatic.status,
+        "molecular_orientation_automatic_angle_deg": automatic.angle_deg,
+        "molecular_orientation_automatic_confidence": automatic.confidence,
+        "molecular_orientation_automatic_method": automatic.method,
+        "molecular_orientation_reference": (
+            measurement.provenance.orientation_reference
+        ),
+    }
 
 
 def _annotation_fields(

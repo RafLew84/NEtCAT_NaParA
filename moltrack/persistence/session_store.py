@@ -16,6 +16,8 @@ from moltrack.analysis import (
     MolecularM6OrientationAnalysisSettings,
     MolecularM6SessionState,
     MolecularM6ViewSettings,
+    MolecularOrientationMeasurement,
+    MolecularOrientationStore,
     StructuralAnalysisCacheKey,
     StructuralAnalysisCacheRecord,
     export_molecular_intensity_cache_records,
@@ -187,6 +189,7 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
     registration_payload = payload.get("registration")
     molecular_detections_payload = payload.get("molecular_detections")
     molecular_segmentations_payload = payload.get("molecular_segmentations")
+    molecular_orientations_payload = payload.get("molecular_orientations")
     position_analysis_payload = payload.get("position_analysis")
     intensity_cache_payload = payload.get("molecular_intensity_cache", [])
     m6_analysis_payload = payload.get("molecular_m6_analysis")
@@ -209,6 +212,10 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
         molecular_segmentations_payload,
         expected_frame_count=len(working_series_payload["source_frame_indices"]),
     )
+    molecular_orientations = _molecular_orientations_from_payload(
+        molecular_orientations_payload,
+        expected_frame_count=len(working_series_payload["source_frame_indices"]),
+    )
 
     return MolTrackSession(
         source_path=str(source_path),
@@ -223,6 +230,7 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
         registration_results=registration_results,
         molecular_detections=molecular_detections,
         molecular_segmentations=molecular_segmentations,
+        molecular_orientations=molecular_orientations,
         position_analysis=_position_analysis_from_payload(position_analysis_payload),
         intensity_cache_records=_intensity_cache_records_from_payload(
             intensity_cache_payload
@@ -275,6 +283,7 @@ def restore_moltrack_image_series_from_session(
         expanded_aligned_stack=None,
         molecular_detections=session.molecular_detections,
         molecular_segmentations=session.molecular_segmentations,
+        molecular_orientations=session.molecular_orientations,
         m6_analysis_state=session.m6_analysis_state,
     )
     restore_molecular_intensity_cache_records(
@@ -323,6 +332,9 @@ def _session_to_payload(
         "molecular_segmentations": _molecular_segmentations_to_payload(
             session.molecular_segmentations,
             progress_callback=progress_callback,
+        ),
+        "molecular_orientations": _molecular_orientations_to_payload(
+            session.molecular_orientations
         ),
         "position_analysis": _position_analysis_to_payload(session.position_analysis),
         "molecular_intensity_cache": _intensity_cache_records_to_payload(
@@ -953,6 +965,60 @@ def _molecular_segmentations_from_payload(
         )
         segmentation_set.add_segmentation(segmentation)
     return segmentation_set
+
+
+def _molecular_orientations_to_payload(
+    store: object | None,
+) -> dict[str, Any] | None:
+    if store is None:
+        return None
+    if not isinstance(store, MolecularOrientationStore):
+        raise TypeError(
+            "molecular_orientations must be a MolecularOrientationStore."
+        )
+    return {
+        "frame_count": store.frame_count,
+        "measurements": [
+            measurement.to_dict() for measurement in store.measurements
+        ],
+    }
+
+
+def _molecular_orientations_from_payload(
+    payload: Any,
+    *,
+    expected_frame_count: int,
+) -> MolecularOrientationStore | None:
+    if payload is None:
+        return None
+    orientation_payload = _require_mapping(
+        payload,
+        "molecular_orientations",
+    )
+    frame_count = int(orientation_payload.get("frame_count", -1))
+    if frame_count != int(expected_frame_count):
+        raise ValueError(
+            "molecular_orientations frame_count does not match working "
+            "series frame count."
+        )
+    raw_measurements = orientation_payload.get("measurements", [])
+    if not isinstance(raw_measurements, list):
+        raise ValueError(
+            "molecular_orientations.measurements must be a list."
+        )
+    measurements = []
+    for index, raw_measurement in enumerate(raw_measurements):
+        measurement_payload = _require_mapping(
+            raw_measurement,
+            f"molecular_orientations.measurements[{index}]",
+        )
+        measurements.append(
+            MolecularOrientationMeasurement.from_dict(measurement_payload)
+        )
+    return MolecularOrientationStore(
+        frame_count=frame_count,
+        measurements=measurements,
+    )
 
 
 def _mask_to_payload(mask, *, bbox_xyxy=None) -> dict[str, Any] | None:
