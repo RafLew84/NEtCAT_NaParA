@@ -65,6 +65,7 @@ class PositionAnalysisDialog(QDialog):
     intensity_background_changed = pyqtSignal(int, int)
     export_analysis_requested = pyqtSignal()
     m6_analysis_requested = pyqtSignal(object)
+    m6_analysis_cancel_requested = pyqtSignal()
     m6_analysis_settings_changed = pyqtSignal()
     m6_first_shell_suggestion_requested = pyqtSignal(object)
     m6_view_settings_changed = pyqtSignal(object)
@@ -340,6 +341,9 @@ class PositionAnalysisDialog(QDialog):
         self.m6_settings_panel = M6SettingsPanel(self.tabs)
         self.m6_settings_panel.analysis_requested.connect(
             self.m6_analysis_requested.emit
+        )
+        self.m6_settings_panel.analysis_cancel_requested.connect(
+            self.m6_analysis_cancel_requested.emit
         )
         self.m6_settings_panel.analysis_settings_changed.connect(
             self.m6_analysis_settings_changed.emit

@@ -450,6 +450,7 @@ def export_analysis_package(
                     "molecules_csv",
                     "frames_csv",
                     "domains_csv",
+                    "lattice_domains_csv",
                     "ranges_csv",
                     "comparison_csv",
                     "domain_types_csv",

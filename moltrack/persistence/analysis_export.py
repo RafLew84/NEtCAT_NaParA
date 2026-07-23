@@ -58,7 +58,7 @@ if TYPE_CHECKING:
     from .analysis_plots import AnalysisPlotExportResult
 
 
-ANALYSIS_EXPORT_SCHEMA_VERSION = 4
+ANALYSIS_EXPORT_SCHEMA_VERSION = 5
 
 
 _MOLECULES_CSV_FIELDS = (
@@ -131,6 +131,11 @@ _M6_MOLECULES_CSV_FIELDS = (
     "geometry_duplicate_qc",
     "coordinate_frame",
     "orientation_reference",
+    "lattice_domain_id",
+    "lattice_point_role",
+    "lattice_boundary_reason",
+    "lattice_domain_dominant_symmetry",
+    "lattice_domain_confidence",
 )
 
 _FULL_MOLECULES_CSV_FIELDS = _MOLECULES_CSV_FIELDS + (
@@ -279,6 +284,66 @@ _DOMAINS_CSV_FIELDS = (
     "domain_type_unclassified_reason",
 )
 
+_LATTICE_DOMAINS_CSV_FIELDS = (
+    "working_frame_index",
+    "working_frame_number",
+    "source_frame_index",
+    "source_frame_number",
+    "time_s",
+    "source_view",
+    "lattice_domain_id",
+    "source_component_id",
+    "component_type",
+    "dominant_symmetry",
+    "molecule_count",
+    "core_size",
+    "halo_size",
+    "molecule_fraction_of_valid_representatives",
+    "adjacent_boundary_point_count",
+    "adjacent_boundary_point_fraction",
+    "theta3_lattice_prototype_deg",
+    "theta6_prototype_deg",
+    "theta3_lattice_spread_deg",
+    "theta6_spread_deg",
+    "orientation_reference_channel",
+    "m3_m6_orientation_relation_status",
+    "m3_m6_orientation_offset_deg",
+    "confidence",
+    "centroid_x_nm",
+    "centroid_y_nm",
+    "min_x_nm",
+    "min_y_nm",
+    "max_x_nm",
+    "max_y_nm",
+    "internal_first_shell_bond_count",
+    "median_bond_length_nm",
+    "bond_length_mad_nm",
+    "bond_length_iqr_nm",
+    "bond_length_robust_cv",
+    "footprint_area_nm2",
+    "footprint_fraction_of_valid_fov",
+    "edge_truncated_neighborhood_qc",
+    "graph_disconnected_qc",
+    "insufficient_bonds_for_length_stats_qc",
+    "bond_length_heterogeneity_qc",
+    "footprint_unavailable_qc",
+    "footprint_clipped_by_fov_qc",
+    "symmetry_alias_unresolvable_from_centroids_qc",
+    "coordinate_frame",
+    "orientation_reference",
+    "spatial_calibration_fingerprint",
+    "registration_fingerprint",
+    "point_coordinate_fingerprint",
+    "first_shell_graph_fingerprint",
+    "local_order_analysis_fingerprint",
+    "local_symmetry_evidence_settings_fingerprint",
+    "local_symmetry_bond_evidence_fingerprint",
+    "seed_growth_settings_fingerprint",
+    "seed_growth_result_fingerprint",
+    "settings_fingerprint",
+    "schema_version",
+)
+
 _DOMAIN_TYPE_CSV_FIELDS = (
     "domain_type_range_name",
     "domain_type_range_start_frame",
@@ -425,6 +490,7 @@ def export_selected_ranges_analysis_csv(
     molecule_rows = []
     frame_rows = []
     domain_rows = []
+    lattice_domain_rows = []
     range_rows = []
     domain_type_lookup = _validated_domain_type_export_lookup(
         m6_domain_type_classification,
@@ -480,9 +546,20 @@ def export_selected_ranges_analysis_csv(
                 frame_range=analysis.frame_range,
             )
             domain_rows.extend(analyzed_domain_rows)
+            analyzed_lattice_rows = _lattice_domain_rows(series, frame_analysis)
+            for row in analyzed_lattice_rows:
+                row["condition_order"] = condition_order
+                row["condition_name"] = condition_name
+            lattice_domain_rows.extend(analyzed_lattice_rows)
         range_rows.append(_range_row(condition_order, analysis))
 
     domain_rows.sort(key=_ordered_component_row_sort_key)
+    lattice_domain_rows.sort(
+        key=lambda row: (
+            int(row["working_frame_index"]),
+            str(row["lattice_domain_id"]),
+        )
+    )
 
     destination = Path(destination_dir)
     destination.mkdir(parents=True, exist_ok=True)
@@ -503,6 +580,13 @@ def export_selected_ranges_analysis_csv(
         domains_path,
         domain_rows,
         fieldnames=("condition_order", "condition_name") + _DOMAINS_CSV_FIELDS,
+    )
+    lattice_domains_path = destination / "lattice_domains.csv"
+    _write_csv(
+        lattice_domains_path,
+        lattice_domain_rows,
+        fieldnames=("condition_order", "condition_name")
+        + _LATTICE_DOMAINS_CSV_FIELDS,
     )
     ranges_path = destination / "ranges.csv"
     _write_csv(ranges_path, range_rows, fieldnames=_RANGES_CSV_FIELDS)
@@ -556,6 +640,10 @@ def export_selected_ranges_analysis_csv(
         {"path": molecules_path.name, "record_count": len(molecule_rows)},
         {"path": frames_path.name, "record_count": len(frame_rows)},
         {"path": domains_path.name, "record_count": len(domain_rows)},
+        {
+            "path": lattice_domains_path.name,
+            "record_count": len(lattice_domain_rows),
+        },
         {"path": ranges_path.name, "record_count": len(range_rows)},
         {"path": comparison_path.name, "record_count": 1},
         {
@@ -614,6 +702,7 @@ def export_selected_ranges_analysis_csv(
         "molecules_csv": molecules_path,
         "frames_csv": frames_path,
         "domains_csv": domains_path,
+        "lattice_domains_csv": lattice_domains_path,
         "ranges_csv": ranges_path,
         "comparison_csv": comparison_path,
         "spatial_bins_csv": spatial_bins_path,
@@ -1288,6 +1377,7 @@ def export_full_working_series_analysis_csv(
     molecule_rows = []
     frame_rows = []
     domain_rows = []
+    lattice_domain_rows = []
     domain_type_lookup = _validated_domain_type_export_lookup(
         m6_domain_type_classification,
         _domain_type_range_slices(
@@ -1304,6 +1394,7 @@ def export_full_working_series_analysis_csv(
             domain_type_lookup,
         )
         domain_rows.extend(analyzed_domain_rows)
+        lattice_domain_rows.extend(_lattice_domain_rows(series, frame_analysis))
     molecule_rows.sort(
         key=lambda row: (
             int(row["working_frame_index"]),
@@ -1313,6 +1404,12 @@ def export_full_working_series_analysis_csv(
     )
     frame_rows.sort(key=lambda row: int(row["working_frame_index"]))
     domain_rows.sort(key=_ordered_component_row_sort_key)
+    lattice_domain_rows.sort(
+        key=lambda row: (
+            int(row["working_frame_index"]),
+            str(row["lattice_domain_id"]),
+        )
+    )
     if phase_callback is not None:
         phase_callback("writing_tables")
     return _write_analysis_tables(
@@ -1320,6 +1417,7 @@ def export_full_working_series_analysis_csv(
         molecule_rows,
         frame_rows,
         domain_rows,
+        lattice_domain_rows,
     )
 
 
@@ -1337,6 +1435,7 @@ def export_current_frame_analysis_csv(
         raise TypeError("frame_analysis must be a MolecularFrameAnalysisResult instance.")
     rows = _analyzed_molecule_rows(series, frame_analysis)
     domain_rows = _ordered_component_rows(series, frame_analysis)
+    lattice_domain_rows = _lattice_domain_rows(series, frame_analysis)
     _apply_domain_type_export_fields(
         domain_rows,
         _validated_domain_type_export_lookup(
@@ -1354,6 +1453,7 @@ def export_current_frame_analysis_csv(
         rows,
         [_frame_row(series, frame_analysis)],
         domain_rows,
+        lattice_domain_rows,
     )
 
 
@@ -1415,6 +1515,22 @@ def _m6_fields_by_source_id(
     evidence = m6.local_symmetry_evidence
     segmentation = m6.segmentation
     graph = m6.first_shell_graph
+    lattice = m6.lattice_domain_analysis
+    lattice_indices = (
+        {}
+        if lattice is None
+        else {
+            source_id: index for index, source_id in enumerate(lattice.source_ids)
+        }
+    )
+    lattice_components = (
+        {}
+        if lattice is None
+        else {
+            component.lattice_domain_id: component
+            for component in lattice.components
+        }
+    )
     local_indices = {source_id: index for index, source_id in enumerate(local.source_ids)}
     segmentation_indices = {
         source_id: index for index, source_id in enumerate(segmentation.source_ids)
@@ -1429,6 +1545,13 @@ def _m6_fields_by_source_id(
         psi3 = None if multisymmetry is None else multisymmetry.psi3[local_index]
         ordered_component_id = segmentation.ordered_component_id[segmentation_index]
         domain_id = segmentation.m6_orientation_domain_id[segmentation_index]
+        lattice_index = lattice_indices.get(source_id)
+        lattice_domain_id = (
+            None
+            if lattice is None or lattice_index is None
+            else lattice.point_lattice_domain_id[lattice_index]
+        )
+        lattice_component = lattice_components.get(lattice_domain_id)
         fields_by_source_id[source_id] = {
             "neighbor_count": local.neighbor_count[local_index],
             "psi3_real": None if psi3 is None else psi3.real,
@@ -1566,6 +1689,25 @@ def _m6_fields_by_source_id(
             "geometry_duplicate_qc": graph.geometry_duplicate_qc[graph_index],
             "coordinate_frame": m6.coordinate_frame,
             "orientation_reference": m6.orientation_reference,
+            "lattice_domain_id": lattice_domain_id,
+            "lattice_point_role": (
+                None
+                if lattice is None or lattice_index is None
+                else lattice.point_role[lattice_index]
+            ),
+            "lattice_boundary_reason": (
+                None
+                if lattice is None or lattice_index is None
+                else lattice.boundary_reason[lattice_index]
+            ),
+            "lattice_domain_dominant_symmetry": (
+                None
+                if lattice_component is None
+                else lattice_component.dominant_symmetry
+            ),
+            "lattice_domain_confidence": (
+                None if lattice_component is None else lattice_component.confidence
+            ),
         }
     return fields_by_source_id
 
@@ -1579,6 +1721,7 @@ def _write_analysis_tables(
     molecule_rows: list[dict[str, object]],
     frame_rows: list[dict[str, object]],
     domain_rows: list[dict[str, object]],
+    lattice_domain_rows: list[dict[str, object]],
 ) -> dict[str, Path]:
     destination = Path(destination_dir)
     destination.mkdir(parents=True, exist_ok=True)
@@ -1588,10 +1731,17 @@ def _write_analysis_tables(
     _write_csv(frames_path, frame_rows, fieldnames=_FRAMES_CSV_FIELDS)
     domains_path = destination / "domains.csv"
     _write_csv(domains_path, domain_rows, fieldnames=_DOMAINS_CSV_FIELDS)
+    lattice_domains_path = destination / "lattice_domains.csv"
+    _write_csv(
+        lattice_domains_path,
+        lattice_domain_rows,
+        fieldnames=_LATTICE_DOMAINS_CSV_FIELDS,
+    )
     return {
         "molecules_csv": molecules_path,
         "frames_csv": frames_path,
         "domains_csv": domains_path,
+        "lattice_domains_csv": lattice_domains_path,
     }
 
 
@@ -1965,6 +2115,125 @@ def _ordered_component_rows(
                 "point_coordinate_fingerprint": (
                     m6.first_shell_graph.point_coordinate_fingerprint
                 ),
+            }
+        )
+    return rows
+
+
+def _lattice_domain_rows(
+    series: MolTrackImageSeries,
+    frame_analysis: MolecularFrameAnalysisResult,
+) -> list[dict[str, object]]:
+    m6 = frame_analysis.m6_orientation_analysis
+    if m6 is None or m6.lattice_domain_analysis is None:
+        return []
+    lattice = m6.lattice_domain_analysis
+    frame_index = frame_analysis.frame_index
+    source_frame_index = series.source_frame_indices[frame_index]
+    frame_fields = {
+        "working_frame_index": frame_index,
+        "working_frame_number": frame_index + 1,
+        "source_frame_index": source_frame_index,
+        "source_frame_number": source_frame_index + 1,
+        "time_s": _source_frame_time_s(series, frame_index),
+        "source_view": frame_analysis.source_view,
+    }
+    rows: list[dict[str, object]] = []
+    for component in lattice.components:
+        geometry = component.geometry
+        qc = component.qc
+        rows.append(
+            {
+                **frame_fields,
+                "lattice_domain_id": component.lattice_domain_id,
+                "source_component_id": component.source_component_id,
+                "component_type": component.component_type,
+                "dominant_symmetry": component.dominant_symmetry,
+                "molecule_count": component.molecule_count,
+                "core_size": component.core_size,
+                "halo_size": component.halo_size,
+                "molecule_fraction_of_valid_representatives": (
+                    component.molecule_fraction_of_valid_representatives
+                ),
+                "adjacent_boundary_point_count": (
+                    component.adjacent_boundary_point_count
+                ),
+                "adjacent_boundary_point_fraction": (
+                    component.adjacent_boundary_point_fraction
+                ),
+                "theta3_lattice_prototype_deg": (
+                    component.theta3_lattice_prototype_deg
+                ),
+                "theta6_prototype_deg": component.theta6_prototype_deg,
+                "theta3_lattice_spread_deg": component.theta3_lattice_spread_deg,
+                "theta6_spread_deg": component.theta6_spread_deg,
+                "orientation_reference_channel": (
+                    component.orientation_reference_channel
+                ),
+                "m3_m6_orientation_relation_status": (
+                    component.m3_m6_orientation_relation_status
+                ),
+                "m3_m6_orientation_offset_deg": (
+                    component.m3_m6_orientation_offset_deg
+                ),
+                "confidence": component.confidence,
+                "centroid_x_nm": geometry.centroid_x_nm,
+                "centroid_y_nm": geometry.centroid_y_nm,
+                "min_x_nm": geometry.min_x_nm,
+                "min_y_nm": geometry.min_y_nm,
+                "max_x_nm": geometry.max_x_nm,
+                "max_y_nm": geometry.max_y_nm,
+                "internal_first_shell_bond_count": (
+                    geometry.internal_first_shell_bond_count
+                ),
+                "median_bond_length_nm": geometry.median_bond_length_nm,
+                "bond_length_mad_nm": geometry.bond_length_mad_nm,
+                "bond_length_iqr_nm": geometry.bond_length_iqr_nm,
+                "bond_length_robust_cv": geometry.bond_length_robust_cv,
+                "footprint_area_nm2": geometry.footprint_area_nm2,
+                "footprint_fraction_of_valid_fov": (
+                    geometry.footprint_fraction_of_valid_fov
+                ),
+                "edge_truncated_neighborhood_qc": qc.edge_truncated_neighborhood,
+                "graph_disconnected_qc": qc.graph_disconnected,
+                "insufficient_bonds_for_length_stats_qc": (
+                    qc.insufficient_bonds_for_length_stats
+                ),
+                "bond_length_heterogeneity_qc": qc.bond_length_heterogeneity,
+                "footprint_unavailable_qc": qc.footprint_unavailable,
+                "footprint_clipped_by_fov_qc": qc.footprint_clipped_by_fov,
+                "symmetry_alias_unresolvable_from_centroids_qc": (
+                    qc.symmetry_alias_unresolvable_from_centroids
+                ),
+                "coordinate_frame": lattice.coordinate_frame,
+                "orientation_reference": lattice.orientation_reference,
+                "spatial_calibration_fingerprint": (
+                    lattice.spatial_calibration_fingerprint
+                ),
+                "registration_fingerprint": lattice.registration_fingerprint,
+                "point_coordinate_fingerprint": (
+                    lattice.point_coordinate_fingerprint
+                ),
+                "first_shell_graph_fingerprint": (
+                    lattice.first_shell_graph_fingerprint
+                ),
+                "local_order_analysis_fingerprint": (
+                    lattice.local_order_analysis_fingerprint
+                ),
+                "local_symmetry_evidence_settings_fingerprint": (
+                    lattice.local_symmetry_evidence_settings_fingerprint
+                ),
+                "local_symmetry_bond_evidence_fingerprint": (
+                    lattice.local_symmetry_bond_evidence_fingerprint
+                ),
+                "seed_growth_settings_fingerprint": (
+                    lattice.seed_growth_settings_fingerprint
+                ),
+                "seed_growth_result_fingerprint": (
+                    lattice.seed_growth_result_fingerprint
+                ),
+                "settings_fingerprint": lattice.settings_fingerprint,
+                "schema_version": lattice.schema_version,
             }
         )
     return rows

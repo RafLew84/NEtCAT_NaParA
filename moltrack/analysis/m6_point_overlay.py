@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import colorsys
+import hashlib
 from dataclasses import dataclass
 from math import isfinite
 from typing import Literal, Sequence
@@ -16,6 +17,8 @@ M6AnalysisOverlayMode = Literal[
     "m3_orientation",
     "symmetry_evidence",
     "domain_id",
+    "lattice_domains",
+    "domain_boundaries",
 ]
 M6OverlayMode = Literal[
     "none",
@@ -25,6 +28,8 @@ M6OverlayMode = Literal[
     "m3_orientation",
     "symmetry_evidence",
     "domain_id",
+    "lattice_domains",
+    "domain_boundaries",
     "domain_type",
 ]
 M6OverlayPointStatus = Literal[
@@ -39,6 +44,9 @@ M6OverlayPointStatus = Literal[
     "symmetry_ambiguous",
     "symmetry_unavailable",
     "domain",
+    "lattice_domain_core",
+    "lattice_domain_halo",
+    "lattice_boundary",
     "domain_type",
     "unclassified_domain",
     "small_ordered_island",
@@ -57,6 +65,8 @@ M6_ANALYSIS_OVERLAY_MODES: tuple[M6AnalysisOverlayMode, ...] = (
     "m3_orientation",
     "symmetry_evidence",
     "domain_id",
+    "lattice_domains",
+    "domain_boundaries",
 )
 M6_OVERLAY_MODES: tuple[M6OverlayMode, ...] = (
     *M6_ANALYSIS_OVERLAY_MODES,
@@ -66,6 +76,7 @@ M6_OVERLAY_MODES: tuple[M6OverlayMode, ...] = (
 _UNASSIGNED_COLOR = (145, 155, 165)
 _UNDEFINED_ORIENTATION_COLOR = (160, 135, 175)
 _SMALL_ISLAND_COLOR = (165, 145, 95)
+_LATTICE_BOUNDARY_COLOR = (220, 70, 55)
 _QC_COLORS = {
     "insufficient_neighbors": (135, 145, 150),
     "duplicate_excluded": (100, 110, 120),
@@ -120,6 +131,9 @@ class M6OverlayPointState:
     m3_orientation_status: str = "unavailable"
     symmetry_model: str | None = None
     symmetry_confidence: float | None = None
+    lattice_domain_id: str | None = None
+    lattice_point_role: str = "unassigned"
+    lattice_boundary_reason: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.source_id, str) or not self.source_id:
@@ -150,6 +164,16 @@ class M6OverlayPointState:
             self.symmetry_confidence
         ) <= 1.0:
             raise ValueError("symmetry_confidence must lie between 0 and 1.")
+        if self.lattice_domain_id is not None and (
+            not isinstance(self.lattice_domain_id, str) or not self.lattice_domain_id
+        ):
+            raise ValueError("lattice_domain_id must be None or a non-empty string.")
+        if self.lattice_point_role not in {"core", "halo", "boundary", "unassigned"}:
+            raise ValueError("lattice_point_role is unsupported.")
+        if (self.lattice_point_role == "boundary") != (
+            self.lattice_boundary_reason is not None
+        ):
+            raise ValueError("Only lattice boundary points require a boundary reason.")
         object.__setattr__(self, "source_xy_px", point)
 
 
@@ -242,6 +266,10 @@ def _is_available_for_mode(
         )
     if mode == "symmetry_evidence":
         return point.symmetry_model not in {None, "unavailable"}
+    if mode == "lattice_domains":
+        return point.lattice_domain_id is not None
+    if mode == "domain_boundaries":
+        return point.lattice_point_role == "boundary"
     return point.assignment_status == "assigned"
 
 
@@ -261,6 +289,7 @@ def build_m6_point_overlay_from_analysis(
     multisymmetry = analysis.local_multisymmetry_order
     evidence = analysis.local_symmetry_evidence
     segmentation = analysis.segmentation
+    lattice = analysis.lattice_domain_analysis
     states = tuple(
         M6OverlayPointState(
             source_id=source_id,
@@ -287,6 +316,15 @@ def build_m6_point_overlay_from_analysis(
             symmetry_model=None if evidence is None else evidence.best_model[index],
             symmetry_confidence=(
                 None if evidence is None else evidence.classification_confidence[index]
+            ),
+            lattice_domain_id=(
+                None if lattice is None else lattice.point_lattice_domain_id[index]
+            ),
+            lattice_point_role=(
+                "unassigned" if lattice is None else lattice.point_role[index]
+            ),
+            lattice_boundary_reason=(
+                None if lattice is None else lattice.boundary_reason[index]
             ),
         )
         for index, (source_id, source_xy_px) in enumerate(
@@ -338,6 +376,22 @@ def _point_color(
             _SYMMETRY_STATUSES[model],
             0.3 + 0.7 * confidence,
         )
+    if mode == "lattice_domains":
+        if point.lattice_domain_id is None:
+            if point.lattice_point_role == "boundary":
+                return _LATTICE_BOUNDARY_COLOR, "lattice_boundary", 0.8
+            return _UNASSIGNED_COLOR, "unassigned", 0.35
+        status: M6OverlayPointStatus = (
+            "lattice_domain_core"
+            if point.lattice_point_role == "core"
+            else "lattice_domain_halo"
+        )
+        alpha_scale = 1.0 if point.lattice_point_role == "core" else 0.55
+        return _lattice_domain_color(point.lattice_domain_id), status, alpha_scale
+    if mode == "domain_boundaries":
+        if point.lattice_point_role == "boundary":
+            return _LATTICE_BOUNDARY_COLOR, "lattice_boundary", 1.0
+        return _UNASSIGNED_COLOR, "unassigned", 0.15
     if point.assignment_status != "assigned":
         return _UNASSIGNED_COLOR, "unassigned", 1.0
     if mode == "q6":
@@ -376,3 +430,9 @@ def _orientation_color(orientation_deg: float) -> tuple[int, int, int]:
 def _domain_color(domain_id: int) -> tuple[int, int, int]:
     hue = (0.08 + int(domain_id) * 0.6180339887498949) % 1.0
     return tuple(round(255 * value) for value in colorsys.hsv_to_rgb(hue, 0.62, 0.88))
+
+
+def _lattice_domain_color(domain_id: str) -> tuple[int, int, int]:
+    digest = hashlib.sha256(domain_id.encode("utf-8")).digest()
+    hue = int.from_bytes(digest[:4], "big") / float(2**32)
+    return tuple(round(255 * value) for value in colorsys.hsv_to_rgb(hue, 0.66, 0.9))

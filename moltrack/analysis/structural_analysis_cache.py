@@ -21,6 +21,7 @@ from .molecular_m6_analysis import (
     analyze_molecular_m6_orientation,
     attach_lattice_domain_analysis,
 )
+from .lattice_domain_models import lattice_domain_analysis_fingerprint
 from .sample_coordinates import (
     SAMPLE_COORDINATE_TRANSFORM_VERSION,
     MolecularSampleCoordinates,
@@ -109,6 +110,7 @@ class _StructuralAnalysisCacheEntry:
     blocking_qc_status: str | None
     reproducible_sample: MolecularSampleCoordinates | None
     reproducible_settings: MolecularM6OrientationAnalysisSettings | None
+    expected_lattice_domain_result_fingerprint: str | None
     estimated_bytes: int
 
     def __post_init__(self) -> None:
@@ -126,6 +128,15 @@ class _StructuralAnalysisCacheEntry:
         ):
             raise ValueError(
                 "Reproducible sample and settings must be stored together."
+            )
+        expected = self.expected_lattice_domain_result_fingerprint
+        if expected is not None and (
+            self.reproducible_sample is None
+            or len(expected) != 64
+            or any(character not in "0123456789abcdef" for character in expected)
+        ):
+            raise ValueError(
+                "Expected lattice-domain fingerprint requires reproducible input."
             )
 
 
@@ -197,6 +208,7 @@ class StructuralAnalysisCache:
                     blocking_qc_status=None,
                     reproducible_sample=None,
                     reproducible_settings=None,
+                    expected_lattice_domain_result_fingerprint=None,
                     estimated_bytes=upgraded_size,
                 )
                 self._entries[key] = entry
@@ -226,6 +238,7 @@ class StructuralAnalysisCache:
                 blocking_qc_status=None,
                 reproducible_sample=None,
                 reproducible_settings=None,
+                expected_lattice_domain_result_fingerprint=None,
                 estimated_bytes=estimated_bytes,
             ),
         )
@@ -247,6 +260,7 @@ class StructuralAnalysisCache:
                 blocking_qc_status=qc_status,
                 reproducible_sample=None,
                 reproducible_settings=None,
+                expected_lattice_domain_result_fingerprint=None,
                 estimated_bytes=_estimate_blocking_entry_bytes(key, qc_status),
             ),
         )
@@ -256,6 +270,8 @@ class StructuralAnalysisCache:
         key: StructuralAnalysisCacheKey,
         sample_coordinates: MolecularSampleCoordinates,
         settings: MolecularM6OrientationAnalysisSettings,
+        *,
+        expected_lattice_domain_result_fingerprint: str | None = None,
     ) -> bool:
         if not isinstance(key, StructuralAnalysisCacheKey):
             raise TypeError("key must be a StructuralAnalysisCacheKey.")
@@ -270,6 +286,9 @@ class StructuralAnalysisCache:
                 blocking_qc_status=None,
                 reproducible_sample=sample_coordinates,
                 reproducible_settings=settings,
+                expected_lattice_domain_result_fingerprint=(
+                    expected_lattice_domain_result_fingerprint
+                ),
                 estimated_bytes=_estimate_reproducible_entry_bytes(
                     key,
                     sample_coordinates,
@@ -284,6 +303,15 @@ class StructuralAnalysisCache:
 
     def keys(self) -> tuple[StructuralAnalysisCacheKey, ...]:
         return tuple(self._entries)
+
+    def _expected_lattice_domain_result_fingerprint(
+        self,
+        key: StructuralAnalysisCacheKey,
+    ) -> str | None:
+        entry = self._entries.get(key)
+        if entry is None:
+            return None
+        return entry.expected_lattice_domain_result_fingerprint
 
     def _successful_entries(
         self,
@@ -301,11 +329,17 @@ class StructuralAnalysisCache:
             StructuralAnalysisCacheKey,
             MolecularSampleCoordinates,
             MolecularM6OrientationAnalysisSettings,
+            str | None,
         ],
         ...,
     ]:
         return tuple(
-            (key, entry.reproducible_sample, entry.reproducible_settings)
+            (
+                key,
+                entry.reproducible_sample,
+                entry.reproducible_settings,
+                entry.expected_lattice_domain_result_fingerprint,
+            )
             for key, entry in self._entries.items()
             if entry.reproducible_sample is not None
             and entry.reproducible_settings is not None
@@ -452,11 +486,25 @@ def _get_or_compute_molecular_m6_orientation(
     cached = cache.get(key)
     if cached is not None:
         return cached
+    expected_lattice_fingerprint = (
+        cache._expected_lattice_domain_result_fingerprint(key)
+    )
     try:
         analysis = analysis_factory(sample_coordinates, settings=settings)
     except M6BlockingGraphQCError as error:
         cache._put_blocking(key, error.qc_status)
         raise
+    if expected_lattice_fingerprint is not None:
+        lattice_analysis = analysis.lattice_domain_analysis
+        if (
+            lattice_analysis is None
+            or lattice_domain_analysis_fingerprint(lattice_analysis)
+            != expected_lattice_fingerprint
+        ):
+            cache._remove(key)
+            raise ValueError(
+                "Recomputed lattice-domain result does not match the saved cache fingerprint."
+            )
     cache._put(key, analysis)
     return analysis
 

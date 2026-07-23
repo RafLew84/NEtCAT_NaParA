@@ -299,6 +299,8 @@ class MolecularM6ViewSettings:
         "m3_orientation",
         "symmetry_evidence",
         "domain_id",
+        "lattice_domains",
+        "domain_boundaries",
         "domain_type",
     ] = (
         "domain_id"
@@ -319,6 +321,8 @@ class MolecularM6ViewSettings:
             "m3_orientation",
             "symmetry_evidence",
             "domain_id",
+            "lattice_domains",
+            "domain_boundaries",
             "domain_type",
         }:
             raise ValueError(f"Unsupported M6 overlay_mode: {self.overlay_mode!r}.")

@@ -98,6 +98,11 @@ _M6_MOLECULE_FIELDS = (
     "geometry_duplicate_qc",
     "coordinate_frame",
     "orientation_reference",
+    "lattice_domain_id",
+    "lattice_point_role",
+    "lattice_boundary_reason",
+    "lattice_domain_dominant_symmetry",
+    "lattice_domain_confidence",
 )
 
 _M6_FRAME_FIELDS = (
@@ -847,7 +852,7 @@ class M6AnalysisExportTests(unittest.TestCase):
         self.assertTrue(all(row["condition_order"] == "single" for row in range_rows))
         self.assertEqual(comparison_rows, [])
         domain_manifest = manifest["analysis"]["m6_domain_types"]
-        self.assertEqual(manifest["export_schema_version"], 4)
+        self.assertEqual(manifest["export_schema_version"], 5)
         self.assertTrue(domain_manifest["available"])
         self.assertEqual(domain_manifest["algorithm"], "deterministic_complete_linkage")
         self.assertEqual(
@@ -1681,6 +1686,10 @@ class M6AnalysisExportTests(unittest.TestCase):
                 frame_reader = csv.DictReader(handle)
                 frame_fields = tuple(frame_reader.fieldnames or ())
                 frame_rows = list(frame_reader)
+            with paths["lattice_domains_csv"].open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                lattice_rows = list(csv.DictReader(handle))
 
         self.assertEqual(len(captured_results), 3)
         self.assertEqual(
@@ -1691,6 +1700,18 @@ class M6AnalysisExportTests(unittest.TestCase):
             [2, 0, 1],
         )
         self.assertEqual(domain_fields, _DOMAIN_FIELDS)
+        self.assertTrue(lattice_rows)
+        self.assertTrue(
+            {
+                "lattice_domain_id",
+                "dominant_symmetry",
+                "core_size",
+                "halo_size",
+                "confidence",
+                "seed_growth_result_fingerprint",
+            }.issubset(lattice_rows[0])
+        )
+        self.assertTrue(all(row["lattice_domain_id"] for row in lattice_rows))
         self.assertTrue(set(_M6_FRAME_FIELDS).issubset(frame_fields))
         self.assertEqual(
             [

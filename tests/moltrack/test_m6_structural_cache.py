@@ -450,6 +450,37 @@ class StructuralAnalysisCacheIntegrationTests(unittest.TestCase):
         self.assertEqual(cache.stats().hit_count, 1)
         self.assertEqual(cache.stats().miss_count, 0)
 
+    def test_rejects_recomputed_result_that_disagrees_with_saved_lattice_fingerprint(
+        self,
+    ) -> None:
+        series = _build_series(frame_count=1)
+        settings = _settings()
+        sample = _sample(series)
+        key = build_structural_analysis_cache_key(
+            series,
+            sample,
+            use_segmentation_centroids=True,
+            settings=settings,
+        )
+        cache = StructuralAnalysisCache()
+        cache._put_reproducible(
+            key,
+            sample,
+            settings,
+            expected_lattice_domain_result_fingerprint="0" * 64,
+        )
+        series.structural_analysis_cache = cache
+
+        with self.assertRaisesRegex(ValueError, "saved cache fingerprint"):
+            _get_or_compute_molecular_m6_orientation(
+                series,
+                sample,
+                use_segmentation_centroids=True,
+                settings=settings,
+            )
+
+        self.assertEqual(cache.keys(), ())
+
     def test_recomputes_for_transform_fov_settings_and_version_changes(self) -> None:
         series = _build_series(frame_count=1)
         settings = _settings()

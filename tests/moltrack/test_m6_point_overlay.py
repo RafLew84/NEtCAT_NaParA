@@ -23,6 +23,9 @@ def _point(
     m3_orientation_status: str = "defined",
     symmetry_model: str | None = "trifold",
     symmetry_confidence: float | None = 0.8,
+    lattice_domain_id: str | None = "lattice-domain-a",
+    lattice_point_role: str = "core",
+    lattice_boundary_reason: str | None = None,
 ) -> M6OverlayPointState:
     return M6OverlayPointState(
         source_id=source_id,
@@ -40,6 +43,9 @@ def _point(
         m3_orientation_status=m3_orientation_status,
         symmetry_model=symmetry_model,
         symmetry_confidence=symmetry_confidence,
+        lattice_domain_id=lattice_domain_id,
+        lattice_point_role=lattice_point_role,
+        lattice_boundary_reason=lattice_boundary_reason,
     )
 
 
@@ -55,8 +61,90 @@ class M6PointOverlayTests(unittest.TestCase):
                 "m3_orientation",
                 "symmetry_evidence",
                 "domain_id",
+                "lattice_domains",
+                "domain_boundaries",
             ),
         )
+
+    def test_lattice_domains_color_final_ids_and_distinguish_core_from_halo(self) -> None:
+        points = (
+            _point("a-core", lattice_domain_id="lattice-a", lattice_point_role="core"),
+            _point("a-halo", lattice_domain_id="lattice-a", lattice_point_role="halo"),
+            _point("b-core", lattice_domain_id="lattice-b", lattice_point_role="core"),
+            _point(
+                "boundary",
+                lattice_domain_id=None,
+                lattice_point_role="boundary",
+                lattice_boundary_reason="incompatible_domain_edge",
+            ),
+        )
+
+        overlay = build_m6_point_overlay(
+            points,
+            mode="lattice_domains",
+            opacity_percent=80,
+        )
+
+        self.assertEqual(
+            overlay.point_statuses,
+            (
+                "lattice_domain_core",
+                "lattice_domain_halo",
+                "lattice_domain_core",
+                "lattice_boundary",
+            ),
+        )
+        self.assertEqual(overlay.colors_rgba[0][:3], overlay.colors_rgba[1][:3])
+        self.assertGreater(overlay.colors_rgba[0][3], overlay.colors_rgba[1][3])
+        self.assertNotEqual(overlay.colors_rgba[0][:3], overlay.colors_rgba[2][:3])
+
+    def test_lattice_domains_keep_proto_seed_without_final_id_unassigned(self) -> None:
+        proto_seed = _point(
+            "proto-seed",
+            lattice_domain_id=None,
+            lattice_point_role="core",
+        )
+
+        overlay = build_m6_point_overlay(
+            (proto_seed,),
+            mode="lattice_domains",
+            opacity_percent=100,
+        )
+        hidden = build_m6_point_overlay(
+            (proto_seed,),
+            mode="lattice_domains",
+            opacity_percent=100,
+            show_unassigned_points=False,
+        )
+
+        self.assertEqual(overlay.point_statuses, ("unassigned",))
+        self.assertEqual(hidden.point_count, 0)
+
+    def test_domain_boundaries_can_hide_non_boundary_points(self) -> None:
+        points = (
+            _point("core", lattice_domain_id="lattice-a", lattice_point_role="core"),
+            _point(
+                "boundary",
+                lattice_domain_id=None,
+                lattice_point_role="boundary",
+                lattice_boundary_reason="competing_domain_claim",
+            ),
+            _point(
+                "unassigned",
+                lattice_domain_id=None,
+                lattice_point_role="unassigned",
+            ),
+        )
+
+        overlay = build_m6_point_overlay(
+            points,
+            mode="domain_boundaries",
+            opacity_percent=100,
+            show_unassigned_points=False,
+        )
+
+        self.assertEqual(overlay.source_ids, ("boundary",))
+        self.assertEqual(overlay.point_statuses, ("lattice_boundary",))
 
     def test_domain_colors_are_stable_and_qc_and_unassigned_are_muted(self) -> None:
         points = (

@@ -134,6 +134,8 @@ class MolecularM6SettingsPanelTests(unittest.TestCase):
                 "m3_orientation",
                 "symmetry_evidence",
                 "domain_id",
+                "lattice_domains",
+                "domain_boundaries",
                 "domain_type",
             ),
         )

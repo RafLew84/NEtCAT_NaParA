@@ -264,6 +264,10 @@ class _PositionRangeAnalysisExecution:
     domain_type_restore_context: M6DomainTypeAnalysisContext | None = None
 
 
+class _M6PositionAnalysisCanceled(RuntimeError):
+    pass
+
+
 @dataclass(frozen=True)
 class _M6PendingAnalysisContext:
     series: object
@@ -368,6 +372,7 @@ class _M6PositionAnalysisWorker(QObject):
     progress = pyqtSignal(object)
     finished = pyqtSignal(object)
     failed = pyqtSignal(str)
+    canceled = pyqtSignal()
 
     def __init__(
         self,
@@ -398,6 +403,10 @@ class _M6PositionAnalysisWorker(QObject):
         self._domain_type_classification_settings = (
             domain_type_classification_settings
         )
+        self._cancel_requested = Event()
+
+    def cancel(self) -> None:
+        self._cancel_requested.set()
 
     @pyqtSlot()
     def run(self) -> None:
@@ -409,8 +418,12 @@ class _M6PositionAnalysisWorker(QObject):
                     frame_index=int(frame_index),
                 )
             )
+            if self._cancel_requested.is_set():
+                raise _M6PositionAnalysisCanceled()
 
         try:
+            if self._cancel_requested.is_set():
+                raise _M6PositionAnalysisCanceled()
             execution = _execute_position_range_analysis(
                 self._analyzer,
                 self._comparator,
@@ -426,8 +439,14 @@ class _M6PositionAnalysisWorker(QObject):
                 progress_callback=report_progress,
                 m6_orientation_settings=self._settings,
             )
+        except _M6PositionAnalysisCanceled:
+            self.canceled.emit()
+            return
         except Exception as exc:
             self.failed.emit(str(exc) or exc.__class__.__name__)
+            return
+        if self._cancel_requested.is_set():
+            self.canceled.emit()
             return
         self.finished.emit(execution)
 
@@ -3032,6 +3051,9 @@ class MolTrackMainWindow(QMainWindow):
             dialog.m6_analysis_requested.connect(
                 self._on_m6_analysis_requested
             )
+            dialog.m6_analysis_cancel_requested.connect(
+                self._on_m6_analysis_cancel_requested
+            )
             dialog.m6_analysis_settings_changed.connect(
                 self._on_m6_analysis_settings_changed
             )
@@ -3466,10 +3488,13 @@ class MolTrackMainWindow(QMainWindow):
         worker.progress.connect(self._on_m6_analysis_progress)
         worker.finished.connect(self._on_m6_analysis_finished)
         worker.failed.connect(self._on_m6_analysis_failed)
+        worker.canceled.connect(self._on_m6_analysis_canceled)
         worker.finished.connect(worker.deleteLater)
         worker.failed.connect(worker.deleteLater)
+        worker.canceled.connect(worker.deleteLater)
         worker.finished.connect(thread.quit)
         worker.failed.connect(thread.quit)
+        worker.canceled.connect(thread.quit)
         thread.finished.connect(self._cleanup_m6_analysis_worker)
         thread.start()
 
@@ -3484,6 +3509,20 @@ class MolTrackMainWindow(QMainWindow):
             int(getattr(progress, "total_count", 0)),
             int(getattr(progress, "frame_index", 0)),
         )
+
+    @pyqtSlot()
+    def _on_m6_analysis_cancel_requested(self) -> None:
+        if not self._m6_analysis_running or self._m6_analysis_worker is None:
+            return
+        self._m6_analysis_worker.cancel()
+        self.statusBar().showMessage(
+            "Canceling M6 analysis after the current frame...",
+            0,
+        )
+
+    @pyqtSlot()
+    def _on_m6_analysis_canceled(self) -> None:
+        self.statusBar().showMessage("M6 orientation analysis canceled.", 5000)
 
     @pyqtSlot(object)
     def _on_m6_analysis_finished(self, execution) -> None:

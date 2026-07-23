@@ -174,6 +174,11 @@ class MolecularM6SessionPersistenceTests(unittest.TestCase):
             )
             cache_payload = m6_payload["reproducible_cache"]
             self.assertEqual(len(cache_payload), 1)
+            self.assertEqual(cache_payload[0]["cache_record_schema_version"], 2)
+            lattice_descriptor = cache_payload[0]["lattice_domain_result"]
+            self.assertEqual(lattice_descriptor["schema_version"], 1)
+            self.assertEqual(len(lattice_descriptor["fingerprint"]), 64)
+            self.assertIn("lattice-domain-analysis", lattice_descriptor["algorithm_version"])
             self.assertEqual(cache_payload[0]["cache_key"]["coordinate_transform_fingerprint"], sample.coordinate_transform_fingerprint)
             self.assertEqual(cache_payload[0]["cache_key"]["spatial_calibration_fingerprint"], sample.spatial_calibration_fingerprint)
             self.assertEqual(cache_payload[0]["cache_key"]["registration_fingerprint"], "unregistered")
@@ -187,12 +192,34 @@ class MolecularM6SessionPersistenceTests(unittest.TestCase):
                 "symmetry_evidence",
             )
 
+            m6_payload["view_settings"]["overlay_mode"] = "lattice_domains"
+            session_path.write_text(json.dumps(payload), encoding="utf-8")
+            lattice_view = load_moltrack_session(session_path)
+            self.assertEqual(
+                lattice_view.m6_analysis_state.view_settings.overlay_mode,
+                "lattice_domains",
+            )
+
             m6_payload["view_settings"].pop("overlay_mode")
             session_path.write_text(json.dumps(payload), encoding="utf-8")
             legacy_view = load_moltrack_session(session_path)
             self.assertEqual(
                 legacy_view.m6_analysis_state.view_settings.overlay_mode,
                 "domain_id",
+            )
+
+            cache_payload[0]["cache_record_schema_version"] = 1
+            cache_payload[0].pop("lattice_domain_result")
+            session_path.write_text(json.dumps(payload), encoding="utf-8")
+            legacy_cache = load_moltrack_session(session_path)
+            self.assertEqual(
+                legacy_cache.structural_analysis_cache_records[0].record_schema_version,
+                1,
+            )
+            self.assertIsNone(
+                legacy_cache.structural_analysis_cache_records[
+                    0
+                ].lattice_domain_result_fingerprint
             )
 
             def loader(path, *, reverse_frame_order=False):
@@ -215,6 +242,15 @@ class MolecularM6SessionPersistenceTests(unittest.TestCase):
                 restored_series.structural_analysis_cache.keys(),
                 (restored_key,),
             )
+            resaved_path = directory / "resaved-state.moltrack.json"
+            save_moltrack_session(resaved_path, restored_series)
+            resaved_payload = json.loads(resaved_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                resaved_payload["molecular_m6_analysis"]["reproducible_cache"][0][
+                    "lattice_domain_result"
+                ]["fingerprint"],
+                lattice_descriptor["fingerprint"],
+            )
             recompute = Mock(wraps=analyze_molecular_m6_orientation)
             restored = _get_or_compute_molecular_m6_orientation(
                 restored_series,
@@ -231,9 +267,25 @@ class MolecularM6SessionPersistenceTests(unittest.TestCase):
                 analysis_factory=recompute,
             )
 
+            legacy_restored_series = restore_moltrack_image_series_from_session(
+                legacy_cache,
+                series_loader=loader,
+            )
+            legacy_sample = _sample(legacy_restored_series)
+            legacy_recompute = Mock(wraps=analyze_molecular_m6_orientation)
+            migrated = _get_or_compute_molecular_m6_orientation(
+                legacy_restored_series,
+                legacy_sample,
+                use_segmentation_centroids=True,
+                settings=settings,
+                analysis_factory=legacy_recompute,
+            )
+
         self.assertIsNotNone(restored)
         self.assertIs(repeated, restored)
         self.assertEqual(recompute.call_count, 1)
+        self.assertEqual(legacy_recompute.call_count, 1)
+        self.assertIsNotNone(migrated.lattice_domain_analysis)
         self.assertIsNotNone(restored.local_multisymmetry_order)
         self.assertIsNotNone(restored.local_symmetry_evidence)
         self.assertEqual(restored.segmentation.full_domain_count, 2)

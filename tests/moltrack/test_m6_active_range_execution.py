@@ -145,6 +145,13 @@ class M6ActiveRangeExecutionTests(unittest.TestCase):
         self.assertIsNotNone(analyzer_calls[0][1]["m6_orientation_settings"])
         comparator.assert_not_called()
         self.assertIsInstance(dialog.range_analysis_result(), MolecularFrameRangeAnalysis)
+        self.assertTrue(
+            all(
+                frame.m6_orientation_analysis is not None
+                and frame.m6_orientation_analysis.lattice_domain_analysis is not None
+                for frame in dialog.range_analysis_result().frame_results
+            )
+        )
         self.assertEqual(self.window._m6_completed_context.analysis_mode, "single_range")
         self.assertEqual(
             self.window._m6_completed_context.source.analysis_mode,
@@ -188,11 +195,100 @@ class M6ActiveRangeExecutionTests(unittest.TestCase):
             4,
         )
         self.assertIsInstance(dialog.range_analysis_result(), MolecularFrameRangeComparison)
+        comparison_result = dialog.range_analysis_result()
+        self.assertTrue(
+            all(
+                frame.m6_orientation_analysis is not None
+                and frame.m6_orientation_analysis.lattice_domain_analysis is not None
+                for analysis in (
+                    comparison_result.first_analysis,
+                    comparison_result.second_analysis,
+                )
+                for frame in analysis.frame_results
+            )
+        )
         self.assertEqual(self.window._m6_completed_context.analysis_mode, "compare_ranges")
         self.assertEqual(
             self.window._m6_completed_context.source.analysis_mode,
             "compare_ranges",
         )
+
+    def test_m6_worker_cancels_between_frames_without_publishing_partial_result(self) -> None:
+        first_frame_complete = threading.Event()
+        release_next_progress = threading.Event()
+
+        def cancellable_analyzer(_series, frame_range, **kwargs):
+            callback = kwargs["progress_callback"]
+            callback(1, len(frame_range.frame_indices), frame_range.start_frame)
+            first_frame_complete.set()
+            if not release_next_progress.wait(timeout=2.0):
+                raise RuntimeError("Test did not release the next progress callback.")
+            callback(2, len(frame_range.frame_indices), frame_range.start_frame + 1)
+            raise AssertionError("Canceled analysis continued after a frame boundary.")
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            position_range_analyzer=cancellable_analyzer,
+        )
+        series = _series()
+        self.window.set_image_series(series)
+        self.window.btn_position_analysis.click()
+        dialog = self.window.position_analysis_dialog()
+        dialog.btn_range_mode_single.click()
+
+        dialog.m6_run_button.click()
+        self.process_events_until(first_frame_complete.is_set)
+        self.process_events_until(
+            lambda: dialog.m6_run_button.text() == "Cancel analysis"
+        )
+        dialog.m6_run_button.click()
+        release_next_progress.set()
+        self.process_events_until(lambda: not self.window._m6_analysis_running)
+
+        self.assertIsNone(series.m6_analysis_state)
+        self.assertIsNone(dialog.range_analysis_result())
+        self.assertIsNone(self.window._m6_completed_context)
+        self.assertIn("canceled", self.window.statusBar().currentMessage().lower())
+
+    def test_m6_worker_honors_cancellation_racing_with_backend_return(self) -> None:
+        worker_started = threading.Event()
+        release_worker = threading.Event()
+
+        def late_returning_analyzer(series, frame_range, **kwargs):
+            worker_started.set()
+            if not release_worker.wait(timeout=2.0):
+                raise RuntimeError("Test did not release the backend.")
+            return analyze_molecular_frame_range(
+                series,
+                frame_range,
+                source_view=kwargs["source_view"],
+                use_segmentation_centroids=kwargs["use_segmentation_centroids"],
+                intensity_metric=kwargs["intensity_metric"],
+                background_inner_radius_px=kwargs["background_inner_radius_px"],
+                background_outer_radius_px=kwargs["background_outer_radius_px"],
+                m6_orientation_settings=kwargs["m6_orientation_settings"],
+            )
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            position_range_analyzer=late_returning_analyzer,
+        )
+        series = _series()
+        self.window.set_image_series(series)
+        self.window.btn_position_analysis.click()
+        dialog = self.window.position_analysis_dialog()
+        dialog.btn_range_mode_single.click()
+
+        dialog.m6_run_button.click()
+        self.process_events_until(worker_started.is_set)
+        dialog.m6_run_button.click()
+        release_worker.set()
+        self.process_events_until(lambda: not self.window._m6_analysis_running)
+
+        self.assertIsNone(series.m6_analysis_state)
+        self.assertIsNone(dialog.range_analysis_result())
+        self.assertIsNone(self.window._m6_completed_context)
+        self.assertIn("canceled", self.window.statusBar().currentMessage().lower())
 
     def test_single_range_worker_failure_preserves_state_and_reenables_controls(self) -> None:
         previous_state = MolecularM6SessionState(enabled=True)

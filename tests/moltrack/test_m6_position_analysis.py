@@ -319,6 +319,19 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
         self.assertIsNotNone(m6.lattice_domain_edge_compatibility)
         self.assertIsNotNone(m6.lattice_domain_seed_growth)
         self.assertIsNotNone(m6.lattice_domain_analysis)
+        assert m6.lattice_domain_analysis is not None
+        self.assertEqual(
+            m6.lattice_domain_analysis.source_ids,
+            m6.point_source_ids,
+        )
+        self.assertTrue(m6.lattice_domain_analysis.domains)
+        self.assertIn(
+            "sixfold",
+            {
+                domain.dominant_symmetry
+                for domain in m6.lattice_domain_analysis.domains
+            },
+        )
         assert m6.local_multisymmetry_order is not None
         assert m6.local_symmetry_evidence is not None
         self.assertEqual(
@@ -497,8 +510,13 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
             first_shell_r_min_nm=1.5,
             first_shell_r_max_nm=2.3,
             min_ordered_component_size=3,
+            min_neighbors_for_seed=3,
             min_seed_size=3,
             min_domain_size=3,
+            lattice_edge_minimum_classification_confidence=0.0,
+            lattice_edge_minimum_orientation_confidence=0.0,
+            lattice_seed_min_model_score=0.4,
+            lattice_halo_min_model_score=0.2,
             gr_bin_width_nm=0.25,
             gr_max_nm=10.0,
             gr_min_expected_pair_exposure=0.1,
@@ -514,7 +532,8 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
         assert analysis is not None
         local = analysis.local_multisymmetry_order
         evidence = analysis.local_symmetry_evidence
-        assert local is not None and evidence is not None
+        lattice = analysis.lattice_domain_analysis
+        assert local is not None and evidence is not None and lattice is not None
         trifold_indices = tuple(
             index for index, model in enumerate(evidence.best_model)
             if model == "trifold"
@@ -528,6 +547,14 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
             all(local.m3_phase_gauge_anchor[index] for index in trifold_indices)
         )
         self.assertNotIn("not_evaluated", local.symmetry_resolvability_status)
+        self.assertEqual(lattice.source_ids, analysis.point_source_ids)
+        self.assertIn(
+            "trifold",
+            {
+                component.dominant_symmetry
+                for component in lattice.domains + lattice.small_ordered_islands
+            },
+        )
 
     def test_missing_scan_angle_is_an_explicit_m6_qc_assumption(self) -> None:
         detections = MolecularDetectionSet(frame_count=1)

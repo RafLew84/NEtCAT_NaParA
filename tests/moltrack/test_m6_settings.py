@@ -349,7 +349,13 @@ class MolecularM6ViewSettingsTests(unittest.TestCase):
             MolecularM6ViewSettings(overlay_opacity_percent=101)
 
     def test_multisymmetry_overlay_modes_are_supported(self) -> None:
-        for mode in ("q3", "m3_orientation", "symmetry_evidence"):
+        for mode in (
+            "q3",
+            "m3_orientation",
+            "symmetry_evidence",
+            "lattice_domains",
+            "domain_boundaries",
+        ):
             with self.subTest(mode=mode):
                 self.assertEqual(
                     MolecularM6ViewSettings(overlay_mode=mode).overlay_mode,

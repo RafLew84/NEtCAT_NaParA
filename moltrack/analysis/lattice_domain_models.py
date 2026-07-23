@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, fields
+from dataclasses import asdict, dataclass, fields
 from hashlib import sha256
 from math import atan2, degrees, fsum, hypot, isclose, isfinite
 from typing import Literal, Mapping, get_args
@@ -713,6 +713,19 @@ class LatticeDomainAnalysis:
             if component.lattice_domain_id == normalized:
                 return component
         raise KeyError(f"Unknown lattice_domain_id: {normalized!r}.")
+
+
+def lattice_domain_analysis_fingerprint(analysis: LatticeDomainAnalysis) -> str:
+    """Fingerprint the complete final partition, metrics, QC, and provenance."""
+
+    if not isinstance(analysis, LatticeDomainAnalysis):
+        raise TypeError("analysis must be LatticeDomainAnalysis.")
+    return _fingerprint(
+        {
+            "algorithm": LATTICE_DOMAIN_ANALYSIS_ALGORITHM_VERSION,
+            "analysis": asdict(analysis),
+        }
+    )
 
 
 def _validate_component_metrics(

@@ -296,7 +296,7 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
             with paths["manifest_json"].open("r", encoding="utf-8") as handle:
                 manifest = json.load(handle)
 
-        self.assertEqual(manifest["export_schema_version"], 4)
+        self.assertEqual(manifest["export_schema_version"], 5)
         created_at = datetime.fromisoformat(manifest["created_at_utc"])
         self.assertIsNotNone(created_at.tzinfo)
         self.assertEqual(created_at.utcoffset().total_seconds(), 0.0)
@@ -308,6 +308,7 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
                 {"path": "molecules.csv", "record_count": 6},
                 {"path": "frames.csv", "record_count": 2},
                 {"path": "domains.csv", "record_count": 0},
+                {"path": "lattice_domains.csv", "record_count": 0},
                 {"path": "ranges.csv", "record_count": 2},
                 {"path": "comparison.csv", "record_count": 1},
                 {"path": "spatial_bins.csv", "record_count": 8},
@@ -728,6 +729,7 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
             "domain_types.csv",
             "domains.csv",
             "frames.csv",
+            "lattice_domains.csv",
             "manifest.json",
             "molecules.csv",
             "ranges.csv",
@@ -960,6 +962,7 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
                 "domain_types.csv",
                 "domains.csv",
                 "frames.csv",
+                "lattice_domains.csv",
                 "manifest.json",
                 "molecules.csv",
             ),
@@ -972,6 +975,7 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
                 ("domain_types.csv", 0),
                 ("domains.csv", 0),
                 ("frames.csv", 6),
+                ("lattice_domains.csv", 0),
                 ("molecules.csv", 6),
             ),
         )
@@ -1033,6 +1037,7 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
                 "domain_types.csv",
                 "domains.csv",
                 "frames.csv",
+                "lattice_domains.csv",
                 "manifest.json",
                 "molecules.csv",
                 "plots/current_frame_positions.png",
@@ -1047,6 +1052,7 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
                 ("domain_types.csv", 0),
                 ("domains.csv", 0),
                 ("frames.csv", 1),
+                ("lattice_domains.csv", 0),
                 ("molecules.csv", 4),
             ),
         )
@@ -1632,6 +1638,11 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
             "geometry_duplicate_qc",
             "coordinate_frame",
             "orientation_reference",
+            "lattice_domain_id",
+            "lattice_point_role",
+            "lattice_boundary_reason",
+            "lattice_domain_dominant_symmetry",
+            "lattice_domain_confidence",
         }
         expected_fields.update(m6_fields)
         self.assertEqual(set(rows["seg-sam2"]), expected_fields)

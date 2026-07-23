@@ -5696,7 +5696,8 @@ class MolTrackMainWindowTests(unittest.TestCase):
             self.assertLess(elapsed, 0.2)
             self.process_events_until(worker_started.is_set)
             self.assertTrue(self.window._m6_analysis_running)
-            self.assertFalse(dialog.m6_run_button.isEnabled())
+            self.assertTrue(dialog.m6_run_button.isEnabled())
+            self.assertEqual(dialog.m6_run_button.text(), "Cancel analysis")
             self.assertFalse(dialog.range_group.isEnabled())
             self.assertFalse(dialog.chk_use_segmentation_centroids.isEnabled())
             self.assertFalse(

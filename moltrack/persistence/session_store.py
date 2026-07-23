@@ -513,7 +513,7 @@ def _structural_cache_record_to_payload(
     key = record.cache_key
     sample = record.sample_coordinates
     return {
-        "cache_record_schema_version": 1,
+        "cache_record_schema_version": record.record_schema_version,
         "cache_key": {
             "frame_id": key.frame_id,
             "source_view": key.source_view,
@@ -528,6 +528,17 @@ def _structural_cache_record_to_payload(
             "algorithm_version": key.algorithm_version,
         },
         "settings": record.settings.to_dict(),
+        "lattice_domain_result": (
+            None
+            if record.lattice_domain_result_fingerprint is None
+            else {
+                "schema_version": record.lattice_domain_analysis_schema_version,
+                "algorithm_version": (
+                    record.lattice_domain_analysis_algorithm_version
+                ),
+                "fingerprint": record.lattice_domain_result_fingerprint,
+            }
+        ),
         "sample_coordinates": {
             "frame_index": sample.frame_index,
             "source_view": sample.source_view,
@@ -570,7 +581,8 @@ def _structural_cache_record_from_payload(
 ) -> StructuralAnalysisCacheRecord:
     prefix = f"molecular_m6_analysis.reproducible_cache[{index}]"
     record = _require_mapping(payload, prefix)
-    if int(record.get("cache_record_schema_version", -1)) != 1:
+    record_schema_version = int(record.get("cache_record_schema_version", -1))
+    if record_schema_version not in {1, 2}:
         raise ValueError(f"Unsupported {prefix} schema version.")
     key_payload = _require_mapping(record.get("cache_key"), f"{prefix}.cache_key")
     settings_payload = _require_mapping(record.get("settings"), f"{prefix}.settings")
@@ -578,6 +590,14 @@ def _structural_cache_record_from_payload(
         record.get("sample_coordinates"),
         f"{prefix}.sample_coordinates",
     )
+    lattice_payload = record.get("lattice_domain_result")
+    if record_schema_version == 1:
+        lattice_payload = None
+    elif lattice_payload is not None:
+        lattice_payload = _require_mapping(
+            lattice_payload,
+            f"{prefix}.lattice_domain_result",
+        )
     return StructuralAnalysisCacheRecord(
         cache_key=StructuralAnalysisCacheKey(
             frame_id=str(key_payload.get("frame_id", "")),
@@ -605,6 +625,22 @@ def _structural_cache_record_from_payload(
             algorithm_version=str(key_payload.get("algorithm_version", "")),
         ),
         settings=MolecularM6OrientationAnalysisSettings.from_dict(settings_payload),
+        record_schema_version=record_schema_version,
+        lattice_domain_analysis_schema_version=(
+            None
+            if lattice_payload is None
+            else int(lattice_payload.get("schema_version", -1))
+        ),
+        lattice_domain_analysis_algorithm_version=(
+            None
+            if lattice_payload is None
+            else str(lattice_payload.get("algorithm_version", ""))
+        ),
+        lattice_domain_result_fingerprint=(
+            None
+            if lattice_payload is None
+            else str(lattice_payload.get("fingerprint", ""))
+        ),
         sample_coordinates=MolecularSampleCoordinates(
             frame_index=int(sample_payload.get("frame_index", -1)),
             source_view=str(sample_payload.get("source_view", "")),

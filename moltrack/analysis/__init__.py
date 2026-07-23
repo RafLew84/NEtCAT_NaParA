@@ -105,10 +105,18 @@ from .lattice_domain_models import (
     LatticeDomainQc,
     M3M6OrientationRelationStatus,
     lattice_domain_analysis_settings_fingerprint,
+    lattice_domain_analysis_fingerprint,
     lattice_domain_analysis_settings_from_m6,
     lattice_domain_id_from_members,
 )
 from .lattice_domain_analysis import build_lattice_domain_analysis
+from .lattice_domain_validation import (
+    LatticeDomainPartitionLabels,
+    LatticeDomainValidationReport,
+    evaluate_lattice_domain_analysis,
+    evaluate_lattice_domain_partition,
+    lattice_domain_partition_labels_from_analysis,
+)
 from .local_sixfold_bond_order_computation import compute_local_sixfold_bond_order
 from .sixfold_bond_order_aggregates import (
     SixfoldBondOrderAggregates,
@@ -242,6 +250,7 @@ from .structural_analysis_cache import (
     build_structural_analysis_cache_key,
 )
 from .structural_analysis_persistence import (
+    STRUCTURAL_ANALYSIS_CACHE_RECORD_SCHEMA_VERSION,
     StructuralAnalysisCacheRecord,
     StructuralAnalysisCacheRestoreStats,
     export_structural_analysis_cache_records,
@@ -378,7 +387,13 @@ __all__ = [
     "LatticeDomainQc",
     "M3M6OrientationRelationStatus",
     "build_lattice_domain_analysis",
+    "LatticeDomainPartitionLabels",
+    "LatticeDomainValidationReport",
+    "evaluate_lattice_domain_analysis",
+    "evaluate_lattice_domain_partition",
+    "lattice_domain_partition_labels_from_analysis",
     "lattice_domain_analysis_settings_fingerprint",
+    "lattice_domain_analysis_fingerprint",
     "lattice_domain_analysis_settings_from_m6",
     "lattice_domain_id_from_members",
     "build_first_shell_graph",
@@ -459,6 +474,7 @@ __all__ = [
     "MolecularM6RangeAggregates",
     "MolecularM6RangeDifferences",
     "StructuralAnalysisCacheKey",
+    "STRUCTURAL_ANALYSIS_CACHE_RECORD_SCHEMA_VERSION",
     "StructuralAnalysisCacheRecord",
     "StructuralAnalysisCacheRestoreStats",
     "LocalOrderComputationStatus",

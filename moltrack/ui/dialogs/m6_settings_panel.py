@@ -43,6 +43,7 @@ class M6SettingsPanel(QScrollArea):
     _GR_CONTRIBUTING_FRAMES_MAXIMUM = 1_000_000
 
     analysis_requested = pyqtSignal(object)
+    analysis_cancel_requested = pyqtSignal()
     analysis_settings_changed = pyqtSignal()
     first_shell_suggestion_requested = pyqtSignal(object)
     view_settings_changed = pyqtSignal(object)
@@ -82,6 +83,8 @@ class M6SettingsPanel(QScrollArea):
                 ("m3_orientation", "M3 orientation"),
                 ("symmetry_evidence", "Symmetry evidence"),
                 ("domain_id", "Domain ID"),
+                ("lattice_domains", "Lattice domains"),
+                ("domain_boundaries", "Domain boundaries"),
                 ("domain_type", "Domain Type"),
             )
         ):
@@ -661,6 +664,9 @@ class M6SettingsPanel(QScrollArea):
 
     def set_analysis_running(self, running: bool) -> None:
         self._analysis_running = bool(running)
+        self.run_button.setText(
+            "Cancel analysis" if self._analysis_running else "Run/Recalculate"
+        )
         self.pair_correlation_plot.set_current_r_max_movable(
             not self._analysis_running
         )
@@ -780,7 +786,8 @@ class M6SettingsPanel(QScrollArea):
             "color: #b42318;" if not valid else "color: #344054;"
         )
         self.run_button.setEnabled(
-            valid and self._analysis_context_enabled and not self._analysis_running
+            self._analysis_running
+            or (valid and self._analysis_context_enabled)
         )
         suggestion_enabled = (
             valid and self._analysis_context_enabled and not self._analysis_running
@@ -791,6 +798,9 @@ class M6SettingsPanel(QScrollArea):
         )
 
     def _request_analysis(self) -> None:
+        if self._analysis_running:
+            self.analysis_cancel_requested.emit()
+            return
         try:
             settings = self.settings()
         except ValueError:
