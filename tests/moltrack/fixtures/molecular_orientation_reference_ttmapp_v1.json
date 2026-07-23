@@ -1,0 +1,259 @@
+{
+  "dataset_id": "ttmapp-molecular-orientation-v1",
+  "reviewed": true,
+  "reviewed_by": "MolTrack step 87.1 manual curation",
+  "samples": [
+    {
+      "domain_context": {
+        "domain_id": "ttmapp-before-desorption-trifold-1",
+        "lattice_rotation": "reference",
+        "lattice_symmetry": "trifold",
+        "stacking": "unknown"
+      },
+      "measurement": {
+        "angle_deg": 15.0,
+        "confidence": 1.0,
+        "manual_correction": null,
+        "measurement_id": "ttmapp-frame-186-c8c59e41",
+        "method": "manual",
+        "patch_shape_px": [
+          31,
+          31
+        ],
+        "periodicity_deg": 180.0,
+        "provenance": {
+          "frame_index": 185,
+          "orientation_reference": "image_x_axis_counterclockwise",
+          "patch_bbox_xyxy": [
+            96.0,
+            52.0,
+            127.0,
+            83.0
+          ],
+          "source_file_name": "MOVIE_23raw_TTMAPP_I_AU111.MPP",
+          "source_file_sha256": "8fbbfa5d515a90552c13cee2dbd289ff5cc16f000315547185c2a57bfe9f7c66",
+          "source_id": "c8c59e41887c4d13b4622a05e816233a",
+          "source_kind": "segmentation",
+          "source_session_file_name": "m6_state.moltrack.json",
+          "source_session_sha256": "925a3355c7caf0daa76e1142796dc3c62bf07fbef4400714955eef86b282b85f",
+          "source_view": "expanded_aligned"
+        },
+        "schema_version": 1,
+        "status": "available"
+      },
+      "sample_id": "ttmapp-reference-001",
+      "split": "development"
+    },
+    {
+      "domain_context": {
+        "domain_id": "ttmapp-before-desorption-rotated-1",
+        "lattice_rotation": "rotated",
+        "lattice_symmetry": "sixfold",
+        "stacking": "uniform"
+      },
+      "measurement": {
+        "angle_deg": 45.0,
+        "confidence": 1.0,
+        "manual_correction": null,
+        "measurement_id": "ttmapp-frame-186-4fa75da8",
+        "method": "manual",
+        "patch_shape_px": [
+          31,
+          31
+        ],
+        "periodicity_deg": 180.0,
+        "provenance": {
+          "frame_index": 185,
+          "orientation_reference": "image_x_axis_counterclockwise",
+          "patch_bbox_xyxy": [
+            123.0,
+            78.0,
+            154.0,
+            109.0
+          ],
+          "source_file_name": "MOVIE_23raw_TTMAPP_I_AU111.MPP",
+          "source_file_sha256": "8fbbfa5d515a90552c13cee2dbd289ff5cc16f000315547185c2a57bfe9f7c66",
+          "source_id": "4fa75da8775f48a2b555eeae78fdde2a",
+          "source_kind": "segmentation",
+          "source_session_file_name": "m6_state.moltrack.json",
+          "source_session_sha256": "925a3355c7caf0daa76e1142796dc3c62bf07fbef4400714955eef86b282b85f",
+          "source_view": "expanded_aligned"
+        },
+        "schema_version": 1,
+        "status": "available"
+      },
+      "sample_id": "ttmapp-reference-002",
+      "split": "development"
+    },
+    {
+      "domain_context": {
+        "domain_id": "ttmapp-after-adsorption-abab-1",
+        "lattice_rotation": "rotated",
+        "lattice_symmetry": "trifold",
+        "stacking": "abab"
+      },
+      "measurement": {
+        "angle_deg": null,
+        "confidence": 0.25,
+        "manual_correction": null,
+        "measurement_id": "ttmapp-frame-259-750b0fb8",
+        "method": "manual",
+        "patch_shape_px": [
+          31,
+          31
+        ],
+        "periodicity_deg": 180.0,
+        "provenance": {
+          "frame_index": 258,
+          "orientation_reference": "image_x_axis_counterclockwise",
+          "patch_bbox_xyxy": [
+            131.0,
+            24.0,
+            162.0,
+            55.0
+          ],
+          "source_file_name": "MOVIE_23raw_TTMAPP_I_AU111.MPP",
+          "source_file_sha256": "8fbbfa5d515a90552c13cee2dbd289ff5cc16f000315547185c2a57bfe9f7c66",
+          "source_id": "750b0fb833474f1fbd1bc63532b4ad7c",
+          "source_kind": "segmentation",
+          "source_session_file_name": "m6_state.moltrack.json",
+          "source_session_sha256": "925a3355c7caf0daa76e1142796dc3c62bf07fbef4400714955eef86b282b85f",
+          "source_view": "expanded_aligned"
+        },
+        "schema_version": 1,
+        "status": "ambiguous"
+      },
+      "sample_id": "ttmapp-reference-003",
+      "split": "development"
+    },
+    {
+      "domain_context": {
+        "domain_id": "ttmapp-after-adsorption-abab-1",
+        "lattice_rotation": "rotated",
+        "lattice_symmetry": "trifold",
+        "stacking": "abab"
+      },
+      "measurement": {
+        "angle_deg": 15.0,
+        "confidence": 1.0,
+        "manual_correction": null,
+        "measurement_id": "ttmapp-frame-259-f14d403a",
+        "method": "manual",
+        "patch_shape_px": [
+          31,
+          31
+        ],
+        "periodicity_deg": 180.0,
+        "provenance": {
+          "frame_index": 258,
+          "orientation_reference": "image_x_axis_counterclockwise",
+          "patch_bbox_xyxy": [
+            130.0,
+            84.0,
+            161.0,
+            115.0
+          ],
+          "source_file_name": "MOVIE_23raw_TTMAPP_I_AU111.MPP",
+          "source_file_sha256": "8fbbfa5d515a90552c13cee2dbd289ff5cc16f000315547185c2a57bfe9f7c66",
+          "source_id": "f14d403a4d2749d198f55fb9fd1b3088",
+          "source_kind": "segmentation",
+          "source_session_file_name": "m6_state.moltrack.json",
+          "source_session_sha256": "925a3355c7caf0daa76e1142796dc3c62bf07fbef4400714955eef86b282b85f",
+          "source_view": "expanded_aligned"
+        },
+        "schema_version": 1,
+        "status": "available"
+      },
+      "sample_id": "ttmapp-reference-004",
+      "split": "holdout"
+    },
+    {
+      "domain_context": {
+        "domain_id": "ttmapp-after-adsorption-rotated-2",
+        "lattice_rotation": "rotated",
+        "lattice_symmetry": "sixfold",
+        "stacking": "uniform"
+      },
+      "measurement": {
+        "angle_deg": 75.0,
+        "confidence": 1.0,
+        "manual_correction": null,
+        "measurement_id": "ttmapp-frame-260-d75d68f8",
+        "method": "manual",
+        "patch_shape_px": [
+          31,
+          31
+        ],
+        "periodicity_deg": 180.0,
+        "provenance": {
+          "frame_index": 259,
+          "orientation_reference": "image_x_axis_counterclockwise",
+          "patch_bbox_xyxy": [
+            64.0,
+            52.0,
+            95.0,
+            83.0
+          ],
+          "source_file_name": "MOVIE_23raw_TTMAPP_I_AU111.MPP",
+          "source_file_sha256": "8fbbfa5d515a90552c13cee2dbd289ff5cc16f000315547185c2a57bfe9f7c66",
+          "source_id": "d75d68f835134f68bfa044bfeac9ead8",
+          "source_kind": "segmentation",
+          "source_session_file_name": "m6_state.moltrack.json",
+          "source_session_sha256": "925a3355c7caf0daa76e1142796dc3c62bf07fbef4400714955eef86b282b85f",
+          "source_view": "expanded_aligned"
+        },
+        "schema_version": 1,
+        "status": "available"
+      },
+      "sample_id": "ttmapp-reference-005",
+      "split": "holdout"
+    },
+    {
+      "domain_context": {
+        "domain_id": null,
+        "lattice_rotation": "unknown",
+        "lattice_symmetry": "unknown",
+        "stacking": "unknown"
+      },
+      "measurement": {
+        "angle_deg": null,
+        "confidence": null,
+        "manual_correction": null,
+        "measurement_id": "ttmapp-frame-260-f153bc92",
+        "method": "manual",
+        "patch_shape_px": [
+          31,
+          31
+        ],
+        "periodicity_deg": 180.0,
+        "provenance": {
+          "frame_index": 259,
+          "orientation_reference": "image_x_axis_counterclockwise",
+          "patch_bbox_xyxy": [
+            247.0,
+            107.0,
+            278.0,
+            138.0
+          ],
+          "source_file_name": "MOVIE_23raw_TTMAPP_I_AU111.MPP",
+          "source_file_sha256": "8fbbfa5d515a90552c13cee2dbd289ff5cc16f000315547185c2a57bfe9f7c66",
+          "source_id": "f153bc9200744dc4a2e2fc641fa09987",
+          "source_kind": "segmentation",
+          "source_session_file_name": "m6_state.moltrack.json",
+          "source_session_sha256": "925a3355c7caf0daa76e1142796dc3c62bf07fbef4400714955eef86b282b85f",
+          "source_view": "expanded_aligned"
+        },
+        "schema_version": 1,
+        "status": "unavailable"
+      },
+      "sample_id": "ttmapp-reference-006",
+      "split": "holdout"
+    }
+  ],
+  "schema_version": 1,
+  "source_file_name": "MOVIE_23raw_TTMAPP_I_AU111.MPP",
+  "source_file_sha256": "8fbbfa5d515a90552c13cee2dbd289ff5cc16f000315547185c2a57bfe9f7c66",
+  "source_session_file_name": "m6_state.moltrack.json",
+  "source_session_sha256": "925a3355c7caf0daa76e1142796dc3c62bf07fbef4400714955eef86b282b85f",
+  "uses_tracking": false
+}
