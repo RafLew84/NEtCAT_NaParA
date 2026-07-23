@@ -250,6 +250,25 @@ from .molecular_orientation_mask import (
     MolecularMaskOrientationSettings,
     estimate_molecular_orientation_from_mask,
 )
+from .molecular_orientation_topography import (
+    MolecularTopographyOrientationRejectionReason,
+    MolecularTopographyOrientationResult,
+    MolecularTopographyOrientationScoreCurve,
+    MolecularTopographyOrientationSettings,
+    estimate_molecular_orientation_from_topography,
+)
+from .molecular_orientation_estimator import (
+    MolecularOrientationEstimationResult,
+    estimate_molecular_orientation,
+)
+from .molecular_orientation_method_validation import (
+    MolecularOrientationMethodAgreementStatus,
+    MolecularOrientationMethodMergeAssessment,
+    MolecularOrientationMethodMergeStatus,
+    MolecularOrientationMethodValidation,
+    assess_molecular_orientation_method_merge,
+    evaluate_molecular_orientation_method_against_reference,
+)
 from .molecular_orientation_reference import (
     MolecularOrientationDomainContext,
     MolecularOrientationLatticeRotation,
@@ -548,6 +567,19 @@ __all__ = [
     "MolecularMaskOrientationResult",
     "MolecularMaskOrientationSettings",
     "estimate_molecular_orientation_from_mask",
+    "MolecularTopographyOrientationRejectionReason",
+    "MolecularTopographyOrientationResult",
+    "MolecularTopographyOrientationScoreCurve",
+    "MolecularTopographyOrientationSettings",
+    "estimate_molecular_orientation_from_topography",
+    "MolecularOrientationEstimationResult",
+    "estimate_molecular_orientation",
+    "MolecularOrientationMethodAgreementStatus",
+    "MolecularOrientationMethodMergeAssessment",
+    "MolecularOrientationMethodMergeStatus",
+    "MolecularOrientationMethodValidation",
+    "assess_molecular_orientation_method_merge",
+    "evaluate_molecular_orientation_method_against_reference",
     "MolecularOrientationDomainContext",
     "MolecularOrientationLatticeRotation",
     "MolecularOrientationLatticeSymmetry",
