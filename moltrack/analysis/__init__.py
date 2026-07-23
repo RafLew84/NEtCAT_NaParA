@@ -244,6 +244,12 @@ from .molecular_orientation_models import (
     MolecularOrientationSourceKind,
     MolecularOrientationStatus,
 )
+from .molecular_orientation_mask import (
+    MolecularMaskOrientationRejectionReason,
+    MolecularMaskOrientationResult,
+    MolecularMaskOrientationSettings,
+    estimate_molecular_orientation_from_mask,
+)
 from .molecular_orientation_reference import (
     MolecularOrientationDomainContext,
     MolecularOrientationLatticeRotation,
@@ -538,6 +544,10 @@ __all__ = [
     "MolecularOrientationResultSnapshot",
     "MolecularOrientationSourceKind",
     "MolecularOrientationStatus",
+    "MolecularMaskOrientationRejectionReason",
+    "MolecularMaskOrientationResult",
+    "MolecularMaskOrientationSettings",
+    "estimate_molecular_orientation_from_mask",
     "MolecularOrientationDomainContext",
     "MolecularOrientationLatticeRotation",
     "MolecularOrientationLatticeSymmetry",
