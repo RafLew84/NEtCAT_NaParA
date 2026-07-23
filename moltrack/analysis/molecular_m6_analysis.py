@@ -402,7 +402,9 @@ def analyze_molecular_m6_orientation(
         distance_to_valid_fov_boundary_nm=boundary_distances,
         settings=settings,
     )
-    local_symmetry_evidence_settings = LocalSymmetryEvidenceSettings()
+    local_symmetry_evidence_settings = _local_symmetry_evidence_settings_from_m6(
+        settings
+    )
     local_symmetry_evidence = classify_local_symmetry_evidence(
         analysis.first_shell_graph,
         local_multisymmetry_order,
@@ -561,6 +563,28 @@ def attach_lattice_domain_analysis(
         valid_fov_area_nm2=valid_fov_area_nm2,
     )
     return replace(analysis, lattice_domain_analysis=result)
+
+
+def _local_symmetry_evidence_settings_from_m6(
+    settings: MolecularM6OrientationAnalysisSettings,
+) -> LocalSymmetryEvidenceSettings:
+    return LocalSymmetryEvidenceSettings(
+        trifold_minimum_model_score=(
+            settings.local_symmetry_trifold_minimum_model_score
+        ),
+        sixfold_minimum_model_score=(
+            settings.local_symmetry_sixfold_minimum_model_score
+        ),
+        mixed_minimum_model_score=(
+            settings.local_symmetry_mixed_minimum_model_score
+        ),
+        minimum_second_best_margin=(
+            settings.local_symmetry_minimum_second_best_margin
+        ),
+        minimum_expected_direction_coverage=(
+            settings.local_symmetry_minimum_expected_direction_coverage
+        ),
+    )
 
 
 def _symmetry_resolvability_status(

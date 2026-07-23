@@ -8,7 +8,6 @@ from hashlib import sha256
 from math import isfinite
 from typing import Literal, Mapping, get_args
 
-
 LOCAL_SYMMETRY_EVIDENCE_SCHEMA_VERSION = 1
 LOCAL_SYMMETRY_EVIDENCE_ALGORITHM_VERSION = "moltrack-local-symmetry-evidence-v1"
 
@@ -47,6 +46,9 @@ class LocalSymmetryEvidenceSettings:
     mixed_complexity_penalty: float = 0.15
     mixed_minimum_improvement: float = 0.08
     minimum_model_score: float = 0.5
+    trifold_minimum_model_score: float | None = None
+    sixfold_minimum_model_score: float | None = None
+    mixed_minimum_model_score: float | None = None
     minimum_second_best_margin: float = 0.08
     confident_margin: float = 0.2
     minimum_expected_direction_coverage: float = 0.45
@@ -85,6 +87,18 @@ class LocalSymmetryEvidenceSettings:
                 raise ValueError(f"{field_name} must lie between 0 and 1.")
             object.__setattr__(self, field_name, value)
         for field_name in (
+            "trifold_minimum_model_score",
+            "sixfold_minimum_model_score",
+            "mixed_minimum_model_score",
+        ):
+            value = getattr(self, field_name)
+            if value is None:
+                continue
+            normalized = _finite_float(value, field_name)
+            if not 0.0 <= normalized <= 1.0:
+                raise ValueError(f"{field_name} must lie between 0 and 1.")
+            object.__setattr__(self, field_name, normalized)
+        for field_name in (
             "minimum_observed_directions",
             "disordered_reference_direction_count",
         ):
@@ -99,17 +113,37 @@ class LocalSymmetryEvidenceSettings:
                 "disordered_periodic_rejection_power must not exceed 16."
             )
 
-    def to_dict(self) -> dict[str, int | float]:
+    def to_dict(self) -> dict[str, int | float | None]:
         return {field.name: getattr(self, field.name) for field in fields(self)}
+
+    def minimum_model_score_for(self, model: LocalSymmetryModel) -> float:
+        override_name = {
+            "trifold": "trifold_minimum_model_score",
+            "sixfold": "sixfold_minimum_model_score",
+            "mixed": "mixed_minimum_model_score",
+        }.get(model)
+        if override_name is None:
+            return self.minimum_model_score
+        override = getattr(self, override_name)
+        return self.minimum_model_score if override is None else override
 
     @classmethod
     def from_dict(cls, payload: Mapping[str, object]) -> "LocalSymmetryEvidenceSettings":
         if not isinstance(payload, Mapping):
             raise TypeError("Local symmetry evidence settings must be a mapping.")
         names = {field.name for field in fields(cls)}
-        if set(payload) != names:
+        migration_fields = {
+            "trifold_minimum_model_score",
+            "sixfold_minimum_model_score",
+            "mixed_minimum_model_score",
+        }
+        missing = names.difference(payload)
+        if set(payload).difference(names) or not missing.issubset(migration_fields):
             raise ValueError("Local symmetry evidence settings fields must match the schema.")
-        return cls(**dict(payload))
+        values = dict(payload)
+        for field_name in missing:
+            values[field_name] = None
+        return cls(**values)
 
 
 @dataclass(frozen=True)

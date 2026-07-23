@@ -50,6 +50,7 @@ class M6DomainTypesPanel(QScrollArea):
     """Settings and lifecycle status for structural domain-type classification."""
 
     classification_requested = pyqtSignal(object)
+    calibration_requested = pyqtSignal()
     settings_changed = pyqtSignal(object)
     domain_type_selection_changed = pyqtSignal(object)
 
@@ -116,6 +117,11 @@ class M6DomainTypesPanel(QScrollArea):
         self.classify_button = QPushButton("Classify Types", content)
         self.classify_button.setToolTip(_NON_TRACKING_TOOLTIP)
         layout.addWidget(self.classify_button)
+        self.calibration_button = QPushButton("Calibrate M3/M6 Domains...", content)
+        self.calibration_button.setToolTip(
+            "Calibrate final per-frame domains against reviewed manual labels."
+        )
+        layout.addWidget(self.calibration_button)
 
         self.status_label = QLabel("Run/Recalculate M6 before classifying types.", content)
         self.status_label.setWordWrap(True)
@@ -149,6 +155,7 @@ class M6DomainTypesPanel(QScrollArea):
             self._on_settings_changed
         )
         self.classify_button.clicked.connect(self._request_classification)
+        self.calibration_button.clicked.connect(self.calibration_requested.emit)
 
         self.set_settings(M6DomainTypeClassificationSettings(), notify=False)
 
@@ -314,6 +321,9 @@ class M6DomainTypesPanel(QScrollArea):
         valid = self._validation_error is None
         self.classify_button.setEnabled(
             self._source is not None and valid and not self._running
+        )
+        self.calibration_button.setEnabled(
+            self._source is not None and not self._running
         )
         current = presentation_state == "current"
         self.classify_button.setText(

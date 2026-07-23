@@ -266,7 +266,7 @@ def _classify_point(
             reason="order_amplitudes_below_threshold",
             **common,
         )
-    if winner_fit.score < settings.minimum_model_score:
+    if winner_fit.score < settings.minimum_model_score_for(winner_model):
         return _ambiguous_point(
             reason="below_minimum_model_score",
             **common,

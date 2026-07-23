@@ -71,6 +71,7 @@ class PositionAnalysisDialog(QDialog):
     m6_view_settings_changed = pyqtSignal(object)
     m6_domain_selection_changed = pyqtSignal(object)
     m6_domain_type_classification_requested = pyqtSignal(object)
+    m6_lattice_domain_calibration_requested = pyqtSignal()
     m6_domain_type_settings_changed = pyqtSignal(object)
     m6_domain_type_selection_changed = pyqtSignal(object)
 
@@ -361,6 +362,9 @@ class PositionAnalysisDialog(QDialog):
         self.domain_types_panel = M6DomainTypesPanel(self.tabs)
         self.domain_types_panel.classification_requested.connect(
             self.m6_domain_type_classification_requested.emit
+        )
+        self.domain_types_panel.calibration_requested.connect(
+            self.m6_lattice_domain_calibration_requested.emit
         )
         self.domain_types_panel.settings_changed.connect(
             self.m6_domain_type_settings_changed.emit

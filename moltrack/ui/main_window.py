@@ -82,7 +82,11 @@ from moltrack.persistence import (
     restore_moltrack_image_series_from_session,
     save_moltrack_session,
 )
-from moltrack.ui.dialogs import ExportAnalysisDialog, PositionAnalysisDialog
+from moltrack.ui.dialogs import (
+    ExportAnalysisDialog,
+    LatticeDomainCalibrationDialog,
+    PositionAnalysisDialog,
+)
 from moltrack.ui.dialogs.m6_settings_panel import M6SettingsPanel
 from moltrack.ui.m6_domain_type_worker import M6DomainTypeAnalysisController
 from moltrack.ui.m6_domain_type_overlay import (
@@ -1166,6 +1170,9 @@ class MolTrackMainWindow(QMainWindow):
         self._m6_pending_domain_type_session_state: (
             M6DomainTypeSessionState | None
         ) = None
+        self._lattice_domain_calibration_dialog: (
+            LatticeDomainCalibrationDialog | None
+        ) = None
         self._m6_enable_on_success = True
         self._m6_target_tab = "Sixfold Bond Order"
         self._m6_density_grid_shape = (32, 32)
@@ -1652,6 +1659,15 @@ class MolTrackMainWindow(QMainWindow):
         self.viewer.manual_molecular_mask_brush_dragged.connect(self._on_manual_mask_brush_dragged)
 
     def set_image_series(self, series) -> None:
+        calibration_dialog = self._lattice_domain_calibration_dialog
+        if calibration_dialog is not None:
+            if calibration_dialog.is_running:
+                raise RuntimeError(
+                    "Wait for M3/M6 domain calibration before changing the series."
+                )
+            self._lattice_domain_calibration_dialog = None
+            calibration_dialog.close()
+            calibration_dialog.deleteLater()
         self._m6_domain_type_controller.clear_for_series_change()
         self._m6_selected_domain_type_key = None
         self._m6_domain_type_overlay_index = None
@@ -2646,6 +2662,7 @@ class MolTrackMainWindow(QMainWindow):
         return total
 
     def _is_processing(self) -> bool:
+        calibration_dialog = self._lattice_domain_calibration_dialog
         return (
             self._state_io_running
             or self._registration_running
@@ -2654,6 +2671,10 @@ class MolTrackMainWindow(QMainWindow):
             or self._sam3_concept_running
             or self._analysis_export_running
             or self._m6_analysis_running
+            or (
+                calibration_dialog is not None
+                and calibration_dialog.is_running
+            )
         )
 
     def _yolo_model_display_name(self, model) -> str:
@@ -3069,6 +3090,9 @@ class MolTrackMainWindow(QMainWindow):
             dialog.m6_domain_type_classification_requested.connect(
                 self._on_m6_domain_type_classification_requested
             )
+            dialog.m6_lattice_domain_calibration_requested.connect(
+                self._on_lattice_domain_calibration_requested
+            )
             dialog.m6_domain_type_settings_changed.connect(
                 self._on_m6_domain_type_settings_changed
             )
@@ -3203,6 +3227,46 @@ class MolTrackMainWindow(QMainWindow):
             classification_settings=settings,
         ):
             self._sync_m6_domain_type_panel()
+
+    @pyqtSlot()
+    def _on_lattice_domain_calibration_requested(self) -> None:
+        source = self._current_m6_domain_type_analysis_source()
+        series = self._series
+        dialog = self._position_analysis_dialog
+        if (
+            source is None
+            or series is None
+            or dialog is None
+            or source.m6_settings is None
+        ):
+            self._sync_m6_domain_type_panel()
+            return
+        existing = self._lattice_domain_calibration_dialog
+        if existing is not None:
+            existing.show()
+            existing.raise_()
+            existing.activateWindow()
+            return
+        calibration_dialog = LatticeDomainCalibrationDialog(
+            source,
+            source_file_name=Path(series.source_path).name,
+            baseline_settings=source.m6_settings,
+            parent=self,
+        )
+        calibration_dialog.destroyed.connect(
+            lambda _object=None, expected=calibration_dialog: (
+                self._on_lattice_domain_calibration_dialog_destroyed(expected)
+            )
+        )
+        calibration_dialog.running_changed.connect(
+            lambda _running: self._sync_navigation_controls()
+        )
+        self._lattice_domain_calibration_dialog = calibration_dialog
+        calibration_dialog.show()
+
+    def _on_lattice_domain_calibration_dialog_destroyed(self, expected) -> None:
+        if self._lattice_domain_calibration_dialog is expected:
+            self._lattice_domain_calibration_dialog = None
 
     @pyqtSlot(object)
     def _on_m6_domain_type_progress(self, progress) -> None:

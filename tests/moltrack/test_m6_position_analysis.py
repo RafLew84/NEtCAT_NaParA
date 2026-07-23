@@ -274,6 +274,11 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
             min_seed_size=5,
             min_domain_size=8,
             footprint_support_radius_nm=1.2,
+            local_symmetry_trifold_minimum_model_score=0.41,
+            local_symmetry_sixfold_minimum_model_score=0.42,
+            local_symmetry_mixed_minimum_model_score=0.43,
+            local_symmetry_minimum_second_best_margin=0.07,
+            local_symmetry_minimum_expected_direction_coverage=0.44,
             gr_bin_width_nm=0.25,
             gr_max_nm=10.0,
             gr_min_expected_pair_exposure=0.1,
@@ -316,6 +321,27 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
         self.assertIsNotNone(m6.local_multisymmetry_order)
         self.assertIsNotNone(m6.local_symmetry_evidence)
         self.assertIsNotNone(m6.local_symmetry_evidence_settings)
+        assert m6.local_symmetry_evidence_settings is not None
+        self.assertEqual(
+            m6.local_symmetry_evidence_settings.trifold_minimum_model_score,
+            0.41,
+        )
+        self.assertEqual(
+            m6.local_symmetry_evidence_settings.sixfold_minimum_model_score,
+            0.42,
+        )
+        self.assertEqual(
+            m6.local_symmetry_evidence_settings.mixed_minimum_model_score,
+            0.43,
+        )
+        self.assertEqual(
+            m6.local_symmetry_evidence_settings.minimum_second_best_margin,
+            0.07,
+        )
+        self.assertEqual(
+            m6.local_symmetry_evidence_settings.minimum_expected_direction_coverage,
+            0.44,
+        )
         self.assertIsNotNone(m6.lattice_domain_edge_compatibility)
         self.assertIsNotNone(m6.lattice_domain_seed_growth)
         self.assertIsNotNone(m6.lattice_domain_analysis)

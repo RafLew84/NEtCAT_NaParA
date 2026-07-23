@@ -35,6 +35,26 @@ class MolecularM6OrientationAnalysisSettingsTests(unittest.TestCase):
         self.assertEqual(settings.q_grow, 0.25)
         self.assertEqual(settings.seed_angle_tolerance_deg, 8.0)
         self.assertEqual(settings.grow_angle_tolerance_deg, 12.0)
+        self.assertEqual(
+            settings.local_symmetry_trifold_minimum_model_score,
+            0.5,
+        )
+        self.assertEqual(
+            settings.local_symmetry_sixfold_minimum_model_score,
+            0.5,
+        )
+        self.assertEqual(
+            settings.local_symmetry_mixed_minimum_model_score,
+            0.5,
+        )
+        self.assertEqual(
+            settings.local_symmetry_minimum_second_best_margin,
+            0.08,
+        )
+        self.assertEqual(
+            settings.local_symmetry_minimum_expected_direction_coverage,
+            0.45,
+        )
         self.assertEqual(settings.lattice_seed_min_model_score, 0.65)
         self.assertEqual(settings.lattice_halo_min_model_score, 0.25)
         self.assertEqual(settings.delaunay_degeneracy_policy, "exclude_ambiguous_edges")
@@ -121,6 +141,11 @@ class MolecularM6OrientationAnalysisSettingsTests(unittest.TestCase):
             "q_grow",
             "seed_angle_tolerance_deg",
             "grow_angle_tolerance_deg",
+            "local_symmetry_trifold_minimum_model_score",
+            "local_symmetry_sixfold_minimum_model_score",
+            "local_symmetry_mixed_minimum_model_score",
+            "local_symmetry_minimum_second_best_margin",
+            "local_symmetry_minimum_expected_direction_coverage",
             "lattice_seed_min_model_score",
             "lattice_halo_min_model_score",
             "gr_bin_width_nm",
@@ -281,6 +306,11 @@ class MolecularM6OrientationAnalysisSettingsTests(unittest.TestCase):
             min_domain_size=10,
             lattice_edge_trifold_orientation_tolerance_deg=6.0,
             lattice_edge_sixfold_orientation_tolerance_deg=7.0,
+            local_symmetry_trifold_minimum_model_score=0.6,
+            local_symmetry_sixfold_minimum_model_score=0.55,
+            local_symmetry_mixed_minimum_model_score=0.65,
+            local_symmetry_minimum_second_best_margin=0.1,
+            local_symmetry_minimum_expected_direction_coverage=0.6,
             lattice_edge_mixed_model_profile_tolerance=0.15,
             lattice_edge_conditional_channel_minimum_score=0.6,
             lattice_edge_minimum_classification_confidence=0.55,
@@ -309,6 +339,11 @@ class MolecularM6OrientationAnalysisSettingsTests(unittest.TestCase):
         for field_name in (
             "lattice_edge_trifold_orientation_tolerance_deg",
             "lattice_edge_sixfold_orientation_tolerance_deg",
+            "local_symmetry_trifold_minimum_model_score",
+            "local_symmetry_sixfold_minimum_model_score",
+            "local_symmetry_mixed_minimum_model_score",
+            "local_symmetry_minimum_second_best_margin",
+            "local_symmetry_minimum_expected_direction_coverage",
             "lattice_edge_mixed_model_profile_tolerance",
             "lattice_edge_conditional_channel_minimum_score",
             "lattice_edge_minimum_classification_confidence",
@@ -328,6 +363,10 @@ class MolecularM6OrientationAnalysisSettingsTests(unittest.TestCase):
         self.assertEqual(
             legacy_restored.lattice_edge_minimum_orientation_confidence,
             defaults.lattice_edge_minimum_orientation_confidence,
+        )
+        self.assertEqual(
+            legacy_restored.local_symmetry_trifold_minimum_model_score,
+            defaults.local_symmetry_trifold_minimum_model_score,
         )
 
         with self.assertRaisesRegex(ValueError, "unknown_setting"):

@@ -85,6 +85,35 @@ class LocalSymmetryEvidenceClassifierTests(unittest.TestCase):
         self.assertAlmostEqual(result.expected_direction_coverage[0], 1.0)
         self.assertEqual(result.classification_reason[0], "classified_sixfold")
 
+    def test_model_specific_minimum_score_only_gates_the_winning_model(self) -> None:
+        directions = (2.0, 118.0, 244.0)
+        _local_order, baseline = _classification(directions)
+        self.assertEqual(baseline.best_model[0], "trifold")
+        trifold_score = baseline.trifold_model_score[0]
+        assert trifold_score is not None
+
+        _local_order, rejected = _classification(
+            directions,
+            settings=LocalSymmetryEvidenceSettings(
+                trifold_minimum_model_score=min(1.0, trifold_score + 0.01),
+                sixfold_minimum_model_score=1.0,
+            ),
+        )
+        _local_order, accepted = _classification(
+            directions,
+            settings=LocalSymmetryEvidenceSettings(
+                trifold_minimum_model_score=max(0.0, trifold_score - 0.01),
+                sixfold_minimum_model_score=1.0,
+            ),
+        )
+
+        self.assertEqual(rejected.best_model[0], "ambiguous")
+        self.assertEqual(
+            rejected.classification_reason[0],
+            "below_minimum_model_score",
+        )
+        self.assertEqual(accepted.best_model[0], "trifold")
+
     def test_mixed_requires_a_significant_gain_over_both_single_models(self) -> None:
         directions = (
             0.0,
@@ -252,6 +281,17 @@ class LocalSymmetryEvidenceClassifierTests(unittest.TestCase):
 
         self.assertEqual(
             LocalSymmetryEvidenceSettings.from_dict(settings.to_dict()),
+            settings,
+        )
+        legacy_payload = settings.to_dict()
+        for field_name in (
+            "trifold_minimum_model_score",
+            "sixfold_minimum_model_score",
+            "mixed_minimum_model_score",
+        ):
+            legacy_payload.pop(field_name)
+        self.assertEqual(
+            LocalSymmetryEvidenceSettings.from_dict(legacy_payload),
             settings,
         )
         with self.assertRaises(ValueError):

@@ -19,6 +19,11 @@ _FLOAT_FIELDS = (
     "q_grow",
     "seed_angle_tolerance_deg",
     "grow_angle_tolerance_deg",
+    "local_symmetry_trifold_minimum_model_score",
+    "local_symmetry_sixfold_minimum_model_score",
+    "local_symmetry_mixed_minimum_model_score",
+    "local_symmetry_minimum_second_best_margin",
+    "local_symmetry_minimum_expected_direction_coverage",
     "lattice_edge_trifold_orientation_tolerance_deg",
     "lattice_edge_sixfold_orientation_tolerance_deg",
     "lattice_edge_mixed_model_profile_tolerance",
@@ -87,7 +92,12 @@ _POSITIVE_GR_FIELDS = (
 
 MAX_PAIR_CORRELATION_BIN_COUNT = 10_000
 
-_LATTICE_EDGE_MIGRATION_FIELDS = {
+_MULTISYMMETRY_MIGRATION_FIELDS = {
+    "local_symmetry_trifold_minimum_model_score",
+    "local_symmetry_sixfold_minimum_model_score",
+    "local_symmetry_mixed_minimum_model_score",
+    "local_symmetry_minimum_second_best_margin",
+    "local_symmetry_minimum_expected_direction_coverage",
     "lattice_edge_trifold_orientation_tolerance_deg",
     "lattice_edge_sixfold_orientation_tolerance_deg",
     "lattice_edge_mixed_model_profile_tolerance",
@@ -128,6 +138,11 @@ class MolecularM6OrientationAnalysisSettings:
     q_grow: float = 0.25
     seed_angle_tolerance_deg: float = 8.0
     grow_angle_tolerance_deg: float = 12.0
+    local_symmetry_trifold_minimum_model_score: float = 0.5
+    local_symmetry_sixfold_minimum_model_score: float = 0.5
+    local_symmetry_mixed_minimum_model_score: float = 0.5
+    local_symmetry_minimum_second_best_margin: float = 0.08
+    local_symmetry_minimum_expected_direction_coverage: float = 0.45
     lattice_edge_trifold_orientation_tolerance_deg: float = 8.0
     lattice_edge_sixfold_orientation_tolerance_deg: float = 8.0
     lattice_edge_mixed_model_profile_tolerance: float = 0.2
@@ -221,6 +236,11 @@ class MolecularM6OrientationAnalysisSettings:
             if not 0.0 <= getattr(self, field_name) <= 30.0:
                 raise ValueError(f"{field_name} must be between 0 and 30.")
         for field_name in (
+            "local_symmetry_trifold_minimum_model_score",
+            "local_symmetry_sixfold_minimum_model_score",
+            "local_symmetry_mixed_minimum_model_score",
+            "local_symmetry_minimum_second_best_margin",
+            "local_symmetry_minimum_expected_direction_coverage",
             "lattice_edge_mixed_model_profile_tolerance",
             "lattice_edge_conditional_channel_minimum_score",
             "lattice_edge_minimum_classification_confidence",
@@ -273,7 +293,7 @@ class MolecularM6OrientationAnalysisSettings:
             raise ValueError(f"Unknown M6 setting fields: {', '.join(unknown_fields)}")
         missing_fields = field_names - set(payload)
         unsupported_missing_fields = sorted(
-            missing_fields - _LATTICE_EDGE_MIGRATION_FIELDS
+            missing_fields - _MULTISYMMETRY_MIGRATION_FIELDS
         )
         if unsupported_missing_fields:
             raise ValueError(
