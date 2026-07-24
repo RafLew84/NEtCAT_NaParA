@@ -8,8 +8,10 @@ from moltrack.analysis import (
     MolecularOrientationFrameData,
     MolecularOrientationStore,
     MolecularStackingDisplayResult,
+    MolecularStackingSessionState,
     analyze_molecular_stacking,
     build_molecular_orientation_prototype_analysis,
+    restore_molecular_stacking_display_result,
 )
 
 
@@ -173,6 +175,32 @@ class MolecularStackingAnalysisController(QObject):
         thread.finished.connect(self._cleanup)
         self.running_changed.emit(True)
         thread.start()
+        return True
+
+    def restore(
+        self,
+        state: MolecularStackingSessionState,
+        frames: tuple[MolecularOrientationFrameData, ...],
+        *,
+        series,
+        m6_context,
+    ) -> bool:
+        if self._running or series is None or m6_context is None:
+            return False
+        current_frames = tuple(frames)
+        result = restore_molecular_stacking_display_result(
+            state,
+            tuple(
+                measurement
+                for frame in current_frames
+                for measurement in frame.measurements
+            ),
+        )
+        if result is None or result.frames != current_frames:
+            return False
+        self._series = series
+        self._m6_context = m6_context
+        self._display_result = result
         return True
 
     def invalidate(self) -> None:

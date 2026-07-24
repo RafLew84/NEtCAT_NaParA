@@ -101,6 +101,9 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
                 frame_rows = list(csv.DictReader(handle))
             with paths["ranges_csv"].open("r", encoding="utf-8", newline="") as handle:
                 range_rows = list(csv.DictReader(handle))
+            manifest = json.loads(
+                paths["manifest_json"].read_text(encoding="utf-8")
+            )
 
         self.assertEqual(
             [row["condition_name"] for row in molecule_rows],
@@ -125,6 +128,9 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
         self.assertEqual(
             [row["end_frame_index"] for row in range_rows],
             ["0", "1"],
+        )
+        self.assertFalse(
+            manifest["analysis"]["molecular_stacking"]["available"]
         )
         self.assertEqual(
             [row["total_molecule_count"] for row in range_rows],
@@ -299,7 +305,7 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
             with paths["manifest_json"].open("r", encoding="utf-8") as handle:
                 manifest = json.load(handle)
 
-        self.assertEqual(manifest["export_schema_version"], 6)
+        self.assertEqual(manifest["export_schema_version"], 7)
         created_at = datetime.fromisoformat(manifest["created_at_utc"])
         self.assertIsNotNone(created_at.tzinfo)
         self.assertEqual(created_at.utcoffset().total_seconds(), 0.0)
@@ -471,6 +477,7 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
         analysis_manifest = dict(manifest["analysis"])
         m6_manifest = analysis_manifest.pop("m6_orientation")
         domain_type_manifest = analysis_manifest.pop("m6_domain_types")
+        stacking_manifest = analysis_manifest.pop("molecular_stacking")
         self.assertFalse(m6_manifest["enabled"])
         self.assertIsNone(m6_manifest["settings"])
         self.assertEqual(
@@ -480,6 +487,12 @@ class MolTrackAnalysisExportTests(unittest.TestCase):
         self.assertFalse(domain_type_manifest["available"])
         self.assertFalse(domain_type_manifest["uses_tracking"])
         self.assertEqual(domain_type_manifest["ranges"], [])
+        self.assertFalse(stacking_manifest["available"])
+        self.assertEqual(
+            stacking_manifest["reason"],
+            "stacking_analysis_not_computed",
+        )
+        self.assertFalse(stacking_manifest["uses_tracking"])
         self.assertEqual(
             analysis_manifest,
             {

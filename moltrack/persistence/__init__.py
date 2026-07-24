@@ -17,6 +17,12 @@ from .session_store import (
     restore_moltrack_image_series_from_session,
     save_moltrack_session,
 )
+from .molecular_stacking_export import (
+    MOLECULAR_STACKING_TABLE_FILES,
+    MolecularStackingExportData,
+    build_molecular_stacking_export_data,
+    write_molecular_stacking_tables,
+)
 
 __all__ = [
     "export_current_frame_molecules_csv",
@@ -32,4 +38,8 @@ __all__ = [
     "load_moltrack_session",
     "restore_moltrack_image_series_from_session",
     "save_moltrack_session",
+    "MOLECULAR_STACKING_TABLE_FILES",
+    "MolecularStackingExportData",
+    "build_molecular_stacking_export_data",
+    "write_molecular_stacking_tables",
 ]

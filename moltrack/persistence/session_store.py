@@ -18,6 +18,7 @@ from moltrack.analysis import (
     MolecularM6ViewSettings,
     MolecularOrientationMeasurement,
     MolecularOrientationStore,
+    MolecularStackingSessionState,
     StructuralAnalysisCacheKey,
     StructuralAnalysisCacheRecord,
     export_molecular_intensity_cache_records,
@@ -199,6 +200,9 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
     m6_domain_type_analysis_state = _m6_domain_type_state_from_payload(
         payload.get("m6_domain_type_analysis")
     )
+    molecular_stacking_state = _molecular_stacking_state_from_payload(
+        payload.get("molecular_stacking_analysis")
+    )
 
     registration_settings: MolTrackRegistrationSettings | None = None
     registration_results: MolTrackRegistrationResultSet | None = None
@@ -237,6 +241,7 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
         ),
         m6_analysis_state=m6_analysis_state,
         m6_domain_type_analysis_state=m6_domain_type_analysis_state,
+        molecular_stacking_state=molecular_stacking_state,
         structural_analysis_cache_records=structural_cache_records,
         source_size_bytes=int(source_payload["size_bytes"]),
         source_mtime_ns=int(source_payload["mtime_ns"]),
@@ -285,6 +290,7 @@ def restore_moltrack_image_series_from_session(
         molecular_segmentations=session.molecular_segmentations,
         molecular_orientations=session.molecular_orientations,
         m6_analysis_state=session.m6_analysis_state,
+        molecular_stacking_state=session.molecular_stacking_state,
     )
     restore_molecular_intensity_cache_records(
         restored,
@@ -349,7 +355,26 @@ def _session_to_payload(
             if session.m6_domain_type_analysis_state is None
             else session.m6_domain_type_analysis_state.to_dict()
         ),
+        "molecular_stacking_analysis": (
+            MolecularStackingSessionState().to_dict()
+            if session.molecular_stacking_state is None
+            else session.molecular_stacking_state.to_dict()
+        ),
     }
+
+
+def _molecular_stacking_state_from_payload(
+    payload: Any,
+) -> MolecularStackingSessionState:
+    if payload is None:
+        return MolecularStackingSessionState()
+    try:
+        return MolecularStackingSessionState.from_dict(
+            _require_mapping(payload, "molecular_stacking_analysis")
+        )
+    except (TypeError, ValueError):
+        # This reproducible cache is optional and must not block core state.
+        return MolecularStackingSessionState()
 
 
 def _m6_domain_type_state_from_ui_state(

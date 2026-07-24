@@ -333,6 +333,20 @@ from .molecular_stacking_overlay import (
     build_molecular_stacking_inspection,
     build_molecular_stacking_point_overlay,
 )
+from .molecular_stacking_persistence import (
+    MOLECULAR_STACKING_SESSION_SCHEMA_VERSION,
+    MolecularStackingSessionState,
+    MolecularStackingSessionStatus,
+    restore_molecular_stacking_display_result,
+)
+from .molecular_stacking_range_comparison import (
+    MolecularStackingRangeComparison,
+    MolecularStackingRangeComparisonRow,
+    MolecularStackingRangeSummary,
+    StackingComparedPattern,
+    build_molecular_stacking_range_comparison,
+    build_molecular_stacking_range_summary,
+)
 from .molecular_orientation_method_validation import (
     MolecularOrientationMethodAgreementStatus,
     MolecularOrientationMethodMergeAssessment,
@@ -706,6 +720,16 @@ __all__ = [
     "MolecularStackingPointOverlay",
     "build_molecular_stacking_inspection",
     "build_molecular_stacking_point_overlay",
+    "MOLECULAR_STACKING_SESSION_SCHEMA_VERSION",
+    "MolecularStackingSessionState",
+    "MolecularStackingSessionStatus",
+    "restore_molecular_stacking_display_result",
+    "MolecularStackingRangeComparison",
+    "MolecularStackingRangeComparisonRow",
+    "MolecularStackingRangeSummary",
+    "StackingComparedPattern",
+    "build_molecular_stacking_range_comparison",
+    "build_molecular_stacking_range_summary",
     "molecular_stacking_analysis_fingerprint",
     "molecular_stacking_settings_fingerprint",
     "MolecularOrientationMethodAgreementStatus",

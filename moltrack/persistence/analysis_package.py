@@ -20,6 +20,7 @@ from moltrack.analysis import (
     MolecularFrameRange,
     MolecularFrameRangeSelection,
     MolecularM6OrientationAnalysisSettings,
+    MolecularStackingSessionState,
     analyze_molecular_frame_range,
     build_m6_domain_type_range_comparison,
     build_m6_single_range_domain_type_summary,
@@ -29,6 +30,7 @@ from moltrack.core import MolTrackImageSeries
 
 from .analysis_export import (
     ANALYSIS_EXPORT_SCHEMA_VERSION,
+    build_analysis_source_manifest,
     build_analysis_plots_manifest,
     build_m6_analysis_manifest,
     export_current_frame_analysis_csv,
@@ -43,6 +45,12 @@ from .m6_domain_type_export import (
     M6DomainTypeExportData,
     build_m6_domain_type_export_data,
     write_m6_domain_type_tables,
+)
+from .molecular_stacking_export import (
+    MOLECULAR_STACKING_TABLE_FILES,
+    MolecularStackingExportData,
+    build_molecular_stacking_export_data,
+    write_molecular_stacking_tables,
 )
 
 
@@ -150,6 +158,7 @@ class AnalysisExportSettings:
     m6_domain_type_table_result: (
         M6SingleRangeDomainTypeSummary | M6DomainTypeRangeComparison | None
     ) = None
+    molecular_stacking_state: MolecularStackingSessionState | None = None
 
     def __post_init__(self) -> None:
         scope = str(self.scope).strip().lower()
@@ -216,6 +225,17 @@ class AnalysisExportSettings:
             self.m6_domain_type_table_result,
             tables_included=include_tables,
         )
+        if (
+            self.molecular_stacking_state is not None
+            and not isinstance(
+                self.molecular_stacking_state,
+                MolecularStackingSessionState,
+            )
+        ):
+            raise TypeError(
+                "molecular_stacking_state must be a stacking session state "
+                "or None."
+            )
 
         object.__setattr__(self, "scope", scope)
         object.__setattr__(self, "destination", Path(destination_text))
@@ -443,6 +463,7 @@ def export_analysis_package(
                 m6_domain_type_table_result=(
                     settings.m6_domain_type_table_result
                 ),
+                molecular_stacking_state=settings.molecular_stacking_state,
                 environment_provider=environment_provider,
             )
             if not settings.include_tables:
@@ -456,8 +477,13 @@ def export_analysis_package(
                     "domain_types_csv",
                     "domain_type_ranges_csv",
                     "domain_type_comparison_csv",
+                    "stacking_molecules_csv",
+                    "stacking_domains_csv",
+                    "stacking_subdomains_csv",
                 ):
-                    Path(paths.pop(key)).unlink()
+                    path = paths.pop(key, None)
+                    if path is not None:
+                        Path(path).unlink()
             if not settings.include_spatial_grids:
                 Path(paths.pop("spatial_bins_csv")).unlink()
         else:
@@ -503,6 +529,25 @@ def export_analysis_package(
             paths.update(
                 write_m6_domain_type_tables(staging, domain_type_export)
             )
+        stacking_export = build_molecular_stacking_export_data(
+            series,
+            settings.molecular_stacking_state,
+            frame_indices=_stacking_export_frame_indices(settings),
+            comparison_ranges=_stacking_export_comparison_ranges(settings),
+            expected_source_view=settings.source_view,
+        )
+        if (
+            settings.include_tables
+            and stacking_export.available
+            and settings.scope != "selected_ranges"
+        ):
+            paths.update(
+                write_molecular_stacking_tables(staging, stacking_export)
+            )
+        stacking_manifest = _stacking_export_manifest(
+            stacking_export,
+            tables_included=settings.include_tables,
+        )
         record_counts = _record_counts(paths.values())
         manifest_path = staging / "manifest.json"
         if settings.scope == "selected_ranges":
@@ -510,6 +555,7 @@ def export_analysis_package(
                 manifest_path,
                 settings,
                 record_counts=record_counts,
+                stacking_manifest=stacking_manifest,
             )
         else:
             if domain_type_export is None:
@@ -521,6 +567,7 @@ def export_analysis_package(
                 record_counts=record_counts,
                 frame_results=manifest_frame_results,
                 domain_type_export=domain_type_export,
+                stacking_manifest=stacking_manifest,
                 plot_export=plot_export,
                 environment_provider=environment_provider,
             )
@@ -609,6 +656,7 @@ def _write_scope_manifest(
     record_counts: tuple[tuple[str, int], ...],
     frame_results: tuple[MolecularFrameAnalysisResult, ...],
     domain_type_export: M6DomainTypeExportData,
+    stacking_manifest: Mapping[str, object],
     plot_export,
     environment_provider: Callable[[], Mapping[str, object]] | None,
 ) -> None:
@@ -618,7 +666,7 @@ def _write_scope_manifest(
         "application": {"name": "MolTrack", "version": moltrack_version},
         "environment": resolve_analysis_export_environment(environment_provider),
         "scope": settings.scope,
-        "source": {"format": "MPP", "file_name": Path(series.source_path).name},
+        "source": build_analysis_source_manifest(series, path.parent),
         "working_series": {
             "frame_count": series.frame_count,
             "source_frame_indices": list(series.source_frame_indices),
@@ -653,6 +701,7 @@ def _write_scope_manifest(
                 source_view=settings.source_view,
             ),
             "m6_domain_types": dict(domain_type_export.manifest),
+            "molecular_stacking": dict(stacking_manifest),
         },
         "plots": build_analysis_plots_manifest(plot_export, path.parent),
         "files": _package_file_entries(path.parent, record_counts),
@@ -668,10 +717,12 @@ def _update_existing_manifest(
     settings: AnalysisExportSettings,
     *,
     record_counts: tuple[tuple[str, int], ...],
+    stacking_manifest: Mapping[str, object],
 ) -> None:
     with path.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
     payload["scope"] = settings.scope
+    payload["export_schema_version"] = ANALYSIS_EXPORT_SCHEMA_VERSION
     domain_type_manifest = payload["analysis"]["m6_domain_types"]
     domain_type_manifest["tables_included"] = settings.include_tables
     domain_type_manifest["table_files"] = (
@@ -679,11 +730,58 @@ def _update_existing_manifest(
         if settings.include_tables
         else []
     )
+    payload["analysis"]["molecular_stacking"] = dict(stacking_manifest)
     payload["files"] = _package_file_entries(path.parent, record_counts)
     path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+
+
+def _stacking_export_frame_indices(
+    settings: AnalysisExportSettings,
+) -> tuple[int, ...]:
+    if settings.scope == "current_frame":
+        return (settings.active_frame_index,)
+    if settings.scope == "full_working_series":
+        return tuple(range(settings.frame_count))
+    selection = settings.selected_ranges
+    if selection is None:
+        raise ValueError("selected_ranges stacking export requires ranges.")
+    return tuple(
+        sorted(
+            {
+                *selection.first_range.frame_indices,
+                *selection.second_range.frame_indices,
+            }
+        )
+    )
+
+
+def _stacking_export_comparison_ranges(
+    settings: AnalysisExportSettings,
+) -> tuple[MolecularFrameRange, MolecularFrameRange] | None:
+    selection = settings.selected_ranges
+    if settings.scope != "selected_ranges" or selection is None:
+        return None
+    return selection.first_range, selection.second_range
+
+
+def _stacking_export_manifest(
+    export_data: MolecularStackingExportData,
+    *,
+    tables_included: bool,
+) -> dict[str, object]:
+    manifest = dict(export_data.manifest)
+    manifest["tables_included"] = bool(
+        tables_included and export_data.available
+    )
+    manifest["tables"] = (
+        list(MOLECULAR_STACKING_TABLE_FILES)
+        if tables_included and export_data.available
+        else []
+    )
+    return manifest
 
 
 def _package_file_entries(
@@ -725,6 +823,7 @@ def export_selected_ranges_analysis_package(
     m6_domain_type_table_result: (
         M6SingleRangeDomainTypeSummary | M6DomainTypeRangeComparison | None
     ) = None,
+    molecular_stacking_state: MolecularStackingSessionState | None = None,
     environment_provider: Callable[[], Mapping[str, object]] | None = None,
 ) -> AnalysisExportPackageResult:
     """Build an analysis package in staging and publish it after success."""
@@ -773,6 +872,7 @@ def export_selected_ranges_analysis_package(
             m6_orientation_settings=m6_orientation_settings,
             m6_domain_type_classification=m6_domain_type_classification,
             m6_domain_type_table_result=m6_domain_type_table_result,
+            molecular_stacking_state=molecular_stacking_state,
             environment_provider=environment_provider,
         )
         record_counts = _record_counts(staging.rglob("*.csv"))

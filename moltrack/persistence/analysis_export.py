@@ -38,6 +38,7 @@ from moltrack.analysis import (
     MolecularOrientationStore,
     MolecularPositionPlotData,
     MolecularRangeSpatialComparisonData,
+    MolecularStackingSessionState,
     analyze_molecular_frame_range,
     build_molecular_range_spatial_comparison_data,
     build_m6_domain_type_range_comparison,
@@ -54,12 +55,16 @@ from .m6_domain_type_export import (
     build_m6_domain_type_export_data,
     write_m6_domain_type_tables,
 )
+from .molecular_stacking_export import (
+    build_molecular_stacking_export_data,
+    write_molecular_stacking_tables,
+)
 
 if TYPE_CHECKING:
     from .analysis_plots import AnalysisPlotExportResult
 
 
-ANALYSIS_EXPORT_SCHEMA_VERSION = 6
+ANALYSIS_EXPORT_SCHEMA_VERSION = 7
 
 
 _MOLECULES_CSV_FIELDS = (
@@ -475,6 +480,7 @@ def export_selected_ranges_analysis_csv(
     m6_domain_type_table_result: (
         M6SingleRangeDomainTypeSummary | M6DomainTypeRangeComparison | None
     ) = None,
+    molecular_stacking_state: MolecularStackingSessionState | None = None,
     environment_provider: Callable[[], Mapping[str, object]] | None = None,
 ) -> dict[str, Path]:
     """Analyze and export two named frame ranges without creating tracks."""
@@ -621,6 +627,27 @@ def export_selected_ranges_analysis_csv(
         destination,
         domain_type_export,
     )
+    stacking_export = build_molecular_stacking_export_data(
+        series,
+        molecular_stacking_state,
+        frame_indices=tuple(
+            sorted(
+                {
+                    *selection.first_range.frame_indices,
+                    *selection.second_range.frame_indices,
+                }
+            )
+        ),
+        comparison_ranges=(
+            selection.first_range,
+            selection.second_range,
+        ),
+        expected_source_view=selection.source_view,
+    )
+    stacking_paths = write_molecular_stacking_tables(
+        destination,
+        stacking_export,
+    )
     plots_dir = None
     plot_export = None
     if include_plots:
@@ -677,6 +704,23 @@ def export_selected_ranges_analysis_csv(
             "record_count": len(domain_type_export.comparison_rows),
         },
     ]
+    if stacking_export.available:
+        file_entries.extend(
+            (
+                {
+                    "path": stacking_paths["stacking_molecules_csv"].name,
+                    "record_count": len(stacking_export.molecule_rows),
+                },
+                {
+                    "path": stacking_paths["stacking_domains_csv"].name,
+                    "record_count": len(stacking_export.domain_rows),
+                },
+                {
+                    "path": stacking_paths["stacking_subdomains_csv"].name,
+                    "record_count": len(stacking_export.subdomain_rows),
+                },
+            )
+        )
     if plot_export is not None:
         file_entries.extend(_plot_file_entries(plot_export, destination))
     manifest_path = destination / "manifest.json"
@@ -706,6 +750,7 @@ def export_selected_ranges_analysis_csv(
                     m6_orientation_settings=m6_orientation_settings,
                 ),
                 "m6_domain_types": dict(domain_type_export.manifest),
+                "molecular_stacking": dict(stacking_export.manifest),
             },
             "registration": _registration_manifest(series),
             "plots": build_analysis_plots_manifest(plot_export, destination),
@@ -721,6 +766,7 @@ def export_selected_ranges_analysis_csv(
         "comparison_csv": comparison_path,
         "spatial_bins_csv": spatial_bins_path,
         **domain_type_paths,
+        **stacking_paths,
         "manifest_json": manifest_path,
     }
     if plots_dir is not None:
@@ -932,6 +978,15 @@ def _source_manifest(
         "modified_time_ns": modified_time_ns,
         "integrity": integrity,
     }
+
+
+def build_analysis_source_manifest(
+    series: MolTrackImageSeries,
+    destination: str | Path,
+) -> dict[str, object]:
+    """Build the portable source identity used by every analysis manifest."""
+
+    return _source_manifest(series, Path(destination))
 
 
 def _sha256_file(path: Path) -> str:

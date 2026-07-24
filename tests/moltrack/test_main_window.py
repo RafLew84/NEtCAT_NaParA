@@ -19,6 +19,7 @@ from moltrack.analysis import (
     MolecularOrientationProvenance,
     MolecularOrientationStore,
     MolecularStackingDisplayResult,
+    MolecularStackingSessionState,
     MolecularFrameRange,
     MolecularFrameRangeSelection,
     MolecularIntensityMeasurement,
@@ -521,6 +522,11 @@ class MolTrackMainWindowTests(unittest.TestCase):
             self.window._current_molecular_stacking_display_result(),
             MolecularStackingDisplayResult,
         )
+        self.assertIsInstance(
+            series.molecular_stacking_state,
+            MolecularStackingSessionState,
+        )
+        self.assertEqual(series.molecular_stacking_state.status, "computed")
         self.assertIn(
             "2 frame",
             self.window.orientation_panel.lbl_stacking_status.text(),
@@ -565,6 +571,111 @@ class MolTrackMainWindowTests(unittest.TestCase):
             collected[0].measurements,
             frames[0].measurements,
         )
+
+    def test_pending_stacking_cache_survives_restore_controls_and_validates_m6_rows(
+        self,
+    ) -> None:
+        frames, prototypes = _prototype_analysis(
+            state_for_site=lambda row, column: (row + column) % 2,
+        )
+        display = MolecularStackingDisplayResult(
+            frames=frames,
+            prototype_analysis=prototypes,
+            stacking_analysis=analyze_molecular_stacking(
+                frames,
+                prototypes,
+            ),
+        )
+        state = MolecularStackingSessionState.from_display_result(display)
+        store = MolecularOrientationStore(frame_count=2)
+        for frame in frames:
+            for measurement in frame.measurements:
+                store.put(measurement)
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((2, 20, 20), dtype=np.float32),
+            metadata=STMSequenceMetadata(
+                pixels_x=20,
+                pixels_y=20,
+                size_nm_x=40.0,
+                size_nm_y=40.0,
+            ),
+            molecular_orientations=store,
+            molecular_stacking_state=state,
+        )
+        session = SimpleNamespace(
+            registration_view_mode="Show raw",
+            bbox_overlay_visible=True,
+            bbox_opacity_percent=100,
+            mask_opacity_percent=30,
+            position_analysis=None,
+            m6_domain_type_analysis_state=None,
+            molecular_stacking_state=state,
+        )
+        self.window._apply_loaded_state(
+            "stacking.moltrack.json",
+            session,
+            series,
+        )
+        self.assertEqual(
+            self.window._molecular_stacking_pending_session_state,
+            state,
+        )
+        self.window._m6_completed_context = object()
+
+        with patch.object(
+            self.window,
+            "_molecular_stacking_input_frames",
+            return_value=frames,
+        ):
+            restored = self.window._restore_saved_molecular_stacking_result()
+
+        self.assertTrue(restored)
+        self.assertIsNone(
+            self.window._molecular_stacking_pending_session_state
+        )
+        self.assertEqual(series.molecular_stacking_state, state)
+
+        self.window._molecular_stacking_controller.invalidate()
+        changed_frames = (
+            replace(
+                frames[0],
+                row_assignment=replace(
+                    frames[0].row_assignment,
+                    registration_fingerprint="changed-registration",
+                ),
+            ),
+            frames[1],
+        )
+        self.assertFalse(
+            self.window._molecular_stacking_controller.restore(
+                state,
+                changed_frames,
+                series=series,
+                m6_context=object(),
+            )
+        )
+
+    def test_stacking_render_skips_m6_lookup_without_stacking_result(
+        self,
+    ) -> None:
+        self.window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+        self.window.set_image_series(
+            MolTrackImageSeries(
+                source_path="movie.mpp",
+                raw_frames=np.zeros((1, 4, 4), dtype=np.float32),
+                metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+            )
+        )
+
+        with patch.object(
+            self.window,
+            "_current_m6_analysis_result",
+        ) as m6_lookup:
+            self.window._render_current_molecular_stacking_overlays()
+
+        m6_lookup.assert_not_called()
 
     def test_selected_segmentation_accepts_first_manual_orientation(
         self,

@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (
 from moltrack.analysis import (
     MolecularOrientationMeasurement,
     MolecularStackingInspection,
+    MolecularStackingRangeComparison,
 )
 
 
@@ -140,6 +141,15 @@ class MolecularOrientationPanel(QGroupBox):
         self.lbl_stacking_status = QLabel("Stacking not computed", self)
         self.lbl_stacking_status.setWordWrap(True)
         layout.addWidget(self.lbl_stacking_status)
+        self.lbl_stacking_range_comparison = QLabel(
+            "Range comparison not available",
+            self,
+        )
+        self.lbl_stacking_range_comparison.setWordWrap(True)
+        self.lbl_stacking_range_comparison.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        layout.addWidget(self.lbl_stacking_range_comparison)
         self.lbl_stacking_selection = QLabel(
             "No stacking selection",
             self,
@@ -339,6 +349,23 @@ class MolecularOrientationPanel(QGroupBox):
             else _format_stacking_inspection(inspection)
         )
 
+    def set_stacking_range_comparison(
+        self,
+        comparison: MolecularStackingRangeComparison | None,
+    ) -> None:
+        if comparison is not None and not isinstance(
+            comparison,
+            MolecularStackingRangeComparison,
+        ):
+            raise TypeError(
+                "comparison must be MolecularStackingRangeComparison or None."
+            )
+        self.lbl_stacking_range_comparison.setText(
+            "Range comparison not available"
+            if comparison is None
+            else _format_stacking_range_comparison(comparison)
+        )
+
     def orientation_overlay_visible(self) -> bool:
         return self.chk_show_axes.isChecked()
 
@@ -482,3 +509,42 @@ def _format_stacking_inspection(
             )
         )
     return "\n".join(lines)
+
+
+def _format_stacking_range_comparison(
+    comparison: MolecularStackingRangeComparison,
+) -> str:
+    def side_text(summary) -> str:
+        shares = " | ".join(
+            (
+                f"{pattern} n/a"
+                if share is None
+                else f"{pattern} {share:.1f}%"
+            )
+            for pattern, share in summary.pattern_shares_percent
+        )
+        return (
+            f"{summary.frame_range.name}: {shares} "
+            f"(n={summary.classified_domain_count}, "
+            f"QC excluded={summary.excluded_domain_count})"
+        )
+
+    deltas = " | ".join(
+        (
+            f"{row.pattern} n/a"
+            if row.share_delta_percentage_points is None
+            else (
+                f"{row.pattern} "
+                f"{row.share_delta_percentage_points:+.1f} pp"
+            )
+        )
+        for row in comparison.rows
+    )
+    return "\n".join(
+        (
+            side_text(comparison.first),
+            side_text(comparison.second),
+            f"After - before: {deltas}",
+            "Domain instances per frame; no tracking.",
+        )
+    )

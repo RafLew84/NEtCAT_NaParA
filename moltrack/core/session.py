@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from moltrack.analysis import (
         M6DomainTypeSessionState,
         MolecularOrientationStore,
+        MolecularStackingSessionState,
         MolecularM6SessionState,
         StructuralAnalysisCacheRecord,
     )
@@ -203,6 +204,7 @@ class MolTrackSession:
     intensity_cache_records: tuple[MolTrackIntensityCacheRecord, ...] = ()
     m6_analysis_state: MolecularM6SessionState | None = None
     m6_domain_type_analysis_state: M6DomainTypeSessionState | None = None
+    molecular_stacking_state: MolecularStackingSessionState | None = None
     structural_analysis_cache_records: tuple[
         StructuralAnalysisCacheRecord, ...
     ] = ()
@@ -275,6 +277,17 @@ class MolTrackSession:
             self.position_analysis, MolTrackPositionAnalysisState
         ):
             raise TypeError("position_analysis must be a MolTrackPositionAnalysisState instance.")
+        if self.molecular_stacking_state is not None:
+            from moltrack.analysis import MolecularStackingSessionState
+
+            if not isinstance(
+                self.molecular_stacking_state,
+                MolecularStackingSessionState,
+            ):
+                raise TypeError(
+                    "molecular_stacking_state must be a "
+                    "MolecularStackingSessionState."
+                )
         intensity_cache_records = tuple(self.intensity_cache_records)
         if not all(
             isinstance(record, MolTrackIntensityCacheRecord)
@@ -325,6 +338,20 @@ class MolTrackSession:
             ):
                 if frame_range.end_frame >= len(source_frame_indices):
                     raise ValueError("Position Analysis range exceeds source_frame_indices length.")
+        if (
+            self.molecular_stacking_state is not None
+            and self.molecular_stacking_state.status == "computed"
+        ):
+            prototype = self.molecular_stacking_state.prototype_analysis
+            assert prototype is not None
+            if any(
+                frame_index >= len(source_frame_indices)
+                for frame_index in prototype.input_frame_indices
+            ):
+                raise ValueError(
+                    "Molecular stacking frame exceeds "
+                    "source_frame_indices length."
+                )
 
         object.__setattr__(self, "source_path", source_path)
         object.__setattr__(self, "source_frame_indices", source_frame_indices)
@@ -357,6 +384,7 @@ class MolTrackSession:
         intensity_cache_records: tuple[MolTrackIntensityCacheRecord, ...] = (),
         m6_analysis_state: MolecularM6SessionState | None = None,
         m6_domain_type_analysis_state: M6DomainTypeSessionState | None = None,
+        molecular_stacking_state: MolecularStackingSessionState | None = None,
         structural_analysis_cache_records: tuple[
             StructuralAnalysisCacheRecord, ...
         ] = (),
@@ -367,6 +395,8 @@ class MolTrackSession:
             raise TypeError("series must be a MolTrackImageSeries instance.")
         if m6_analysis_state is None:
             m6_analysis_state = series.m6_analysis_state
+        if molecular_stacking_state is None:
+            molecular_stacking_state = series.molecular_stacking_state
         registration_results = series.registration_results
         registration_settings = registration_results.settings if registration_results is not None else None
         return cls(
@@ -387,6 +417,7 @@ class MolTrackSession:
             intensity_cache_records=intensity_cache_records,
             m6_analysis_state=m6_analysis_state,
             m6_domain_type_analysis_state=m6_domain_type_analysis_state,
+            molecular_stacking_state=molecular_stacking_state,
             structural_analysis_cache_records=structural_analysis_cache_records,
             source_size_bytes=source_size_bytes,
             source_mtime_ns=source_mtime_ns,

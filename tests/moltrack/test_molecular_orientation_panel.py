@@ -4,10 +4,13 @@ import unittest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from moltrack.analysis import (
+    MolecularFrameRange,
     MolecularOrientationMeasurement,
     MolecularOrientationProvenance,
     MolecularStackingInspection,
+    build_molecular_stacking_range_comparison,
 )
+from test_molecular_stacking_range_comparison import _stacking_with_patterns
 
 try:
     from PyQt6.QtWidgets import QApplication
@@ -217,6 +220,28 @@ class MolecularOrientationPanelTests(unittest.TestCase):
         self.assertIn("Subdomain score: 0.910", text)
         self.assertIn("coverage 0.750", text)
         self.assertIn("Subdomain QC: phase_boundary", text)
+
+    def test_stacking_range_comparison_reports_shares_qc_and_no_tracking(
+        self,
+    ) -> None:
+        self.panel = MolecularOrientationPanel()
+        comparison = build_molecular_stacking_range_comparison(
+            _stacking_with_patterns(
+                ("ABAB", "uniform", "mixed", "mixed", "unavailable")
+            ),
+            MolecularFrameRange("Before desorption", 0, 1),
+            MolecularFrameRange("After adsorption", 2, 4),
+        )
+
+        self.panel.set_stacking_range_comparison(comparison)
+
+        text = self.panel.lbl_stacking_range_comparison.text()
+        self.assertIn("Before desorption: ABAB 50.0%", text)
+        self.assertIn("After adsorption: ABAB 0.0%", text)
+        self.assertIn("mixed 100.0%", text)
+        self.assertIn("QC excluded=1", text)
+        self.assertIn("After - before:", text)
+        self.assertIn("no tracking", text)
 
 
 if __name__ == "__main__":
