@@ -26,6 +26,7 @@ def _row_analysis(
     row_count: int = 4,
     column_count: int = 4,
     column_start: int = 0,
+    missing_sites: frozenset[tuple[int, int]] = frozenset(),
 ) -> LatticeRowAssignmentAnalysis:
     spacing_nm = 10.0
     row_spacing_nm = spacing_nm * sqrt(3.0) * 0.5
@@ -33,6 +34,7 @@ def _row_analysis(
         f"f{frame_index:02d}-r{row:02d}-c{column:02d}"
         for row in range(row_count)
         for column in range(column_start, column_start + column_count)
+        if (row, column) not in missing_sites
     )
     point_index_by_id = {
         source_id: index for index, source_id in enumerate(source_ids)
@@ -56,6 +58,7 @@ def _row_analysis(
                 column_start,
                 column_start + column_count,
             )
+            if (row, column) not in missing_sites
             for source_id in (
                 f"f{frame_index:02d}-r{row:02d}-c{column:02d}",
             )
@@ -72,6 +75,7 @@ def _row_analysis(
                         column_start,
                         column_start + column_count,
                     )
+                    if (row, column) not in missing_sites
                 ),
                 source_ids=tuple(
                     f"f{frame_index:02d}-r{row:02d}-c{column:02d}"
@@ -79,6 +83,7 @@ def _row_analysis(
                         column_start,
                         column_start + column_count,
                     )
+                    if (row, column) not in missing_sites
                 ),
                 normal_coordinate_nm=row * row_spacing_nm,
                 maximum_residual_nm=0.0,
@@ -171,17 +176,23 @@ def _frame_data(
     state_for_site,
     prototype_angles: tuple[float, ...],
     confidence: float = 1.0,
+    row_count: int = 4,
     column_count: int = 4,
     column_start: int = 0,
+    missing_sites: frozenset[tuple[int, int]] = frozenset(),
 ) -> MolecularOrientationFrameData:
     rows = _row_analysis(
         frame_index,
+        row_count=row_count,
         column_count=column_count,
         column_start=column_start,
+        missing_sites=missing_sites,
     )
     measurements = []
-    for row in range(4):
+    for row in range(row_count):
         for column in range(column_start, column_start + column_count):
+            if (row, column) in missing_sites:
+                continue
             source_id = f"f{frame_index:02d}-r{row:02d}-c{column:02d}"
             state_index = int(state_for_site(row, column))
             measurements.append(

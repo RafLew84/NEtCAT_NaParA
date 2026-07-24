@@ -309,6 +309,20 @@ from .molecular_orientation_prototype_models import (
 from .molecular_orientation_prototypes import (
     build_molecular_orientation_prototype_analysis,
 )
+from .molecular_stacking_models import (
+    MOLECULAR_STACKING_ALGORITHM_VERSION,
+    MOLECULAR_STACKING_SCHEMA_VERSION,
+    MolecularStackingAnalysis,
+    MolecularStackingSettings,
+    OrientationalSubdomain,
+    StackingOrder,
+    StackingPattern,
+    StackingQCReason,
+    StackingSubdomainPattern,
+    molecular_stacking_analysis_fingerprint,
+    molecular_stacking_settings_fingerprint,
+)
+from .molecular_stacking_analysis import analyze_molecular_stacking
 from .molecular_orientation_method_validation import (
     MolecularOrientationMethodAgreementStatus,
     MolecularOrientationMethodMergeAssessment,
@@ -664,6 +678,18 @@ __all__ = [
     "build_molecular_orientation_prototype_analysis",
     "molecular_orientation_prototype_analysis_fingerprint",
     "molecular_orientation_prototype_settings_fingerprint",
+    "MOLECULAR_STACKING_ALGORITHM_VERSION",
+    "MOLECULAR_STACKING_SCHEMA_VERSION",
+    "MolecularStackingAnalysis",
+    "MolecularStackingSettings",
+    "OrientationalSubdomain",
+    "StackingOrder",
+    "StackingPattern",
+    "StackingQCReason",
+    "StackingSubdomainPattern",
+    "analyze_molecular_stacking",
+    "molecular_stacking_analysis_fingerprint",
+    "molecular_stacking_settings_fingerprint",
     "MolecularOrientationMethodAgreementStatus",
     "MolecularOrientationMethodMergeAssessment",
     "MolecularOrientationMethodMergeStatus",
