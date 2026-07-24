@@ -1646,6 +1646,7 @@ class M6AnalysisExportTests(unittest.TestCase):
             lattice_domain_edge_compatibility=None,
             lattice_domain_seed_growth=None,
             lattice_domain_analysis=None,
+            lattice_row_assignment_analysis=None,
         )
         legacy_frame = replace(
             frame_analysis,

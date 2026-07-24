@@ -20,6 +20,7 @@ from .molecular_m6_analysis import (
     MolecularM6OrientationAnalysis,
     analyze_molecular_m6_orientation,
     attach_lattice_domain_analysis,
+    attach_lattice_row_assignment_analysis,
 )
 from .lattice_domain_models import lattice_domain_analysis_fingerprint
 from .sample_coordinates import (
@@ -192,9 +193,12 @@ class StructuralAnalysisCache:
             and (
                 entry.analysis.lattice_domain_seed_growth is None
                 or entry.analysis.lattice_domain_analysis is None
+                or entry.analysis.lattice_row_assignment_analysis is None
             )
         ):
-            upgraded = attach_lattice_domain_analysis(entry.analysis)
+            upgraded = attach_lattice_row_assignment_analysis(
+                attach_lattice_domain_analysis(entry.analysis)
+            )
             upgraded_size = _estimate_cache_entry_bytes(key, upgraded)
             self._estimated_bytes -= entry.estimated_bytes
             if upgraded_size > self.max_bytes:

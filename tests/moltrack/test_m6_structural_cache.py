@@ -305,6 +305,7 @@ class StructuralAnalysisCacheIntegrationTests(unittest.TestCase):
             lattice_domain_edge_compatibility=None,
             lattice_domain_seed_growth=None,
             lattice_domain_analysis=None,
+            lattice_row_assignment_analysis=None,
         )
         key = build_structural_analysis_cache_key(
             series,
@@ -341,6 +342,7 @@ class StructuralAnalysisCacheIntegrationTests(unittest.TestCase):
             lattice_domain_edge_compatibility=None,
             lattice_domain_seed_growth=None,
             lattice_domain_analysis=None,
+            lattice_row_assignment_analysis=None,
         )
         key = build_structural_analysis_cache_key(
             series,
@@ -385,6 +387,7 @@ class StructuralAnalysisCacheIntegrationTests(unittest.TestCase):
             complete,
             lattice_domain_seed_growth=None,
             lattice_domain_analysis=None,
+            lattice_row_assignment_analysis=None,
         )
         key = build_structural_analysis_cache_key(
             series,
@@ -420,7 +423,11 @@ class StructuralAnalysisCacheIntegrationTests(unittest.TestCase):
         settings = _settings()
         sample = _sample(series)
         complete = analyze_molecular_m6_orientation(sample, settings=settings)
-        pre_domain_analysis = replace(complete, lattice_domain_analysis=None)
+        pre_domain_analysis = replace(
+            complete,
+            lattice_domain_analysis=None,
+            lattice_row_assignment_analysis=None,
+        )
         key = build_structural_analysis_cache_key(
             series,
             sample,
@@ -447,6 +454,47 @@ class StructuralAnalysisCacheIntegrationTests(unittest.TestCase):
             pre_domain_analysis.lattice_domain_seed_growth,
         )
         self.assertIsNotNone(restored.lattice_domain_analysis)
+        self.assertIsNotNone(restored.lattice_row_assignment_analysis)
+        self.assertEqual(cache.stats().hit_count, 1)
+        self.assertEqual(cache.stats().miss_count, 0)
+
+    def test_upgrades_pre_lattice_row_assignment_in_memory_cache_entry(
+        self,
+    ) -> None:
+        series = _build_series(frame_count=1)
+        settings = _settings()
+        sample = _sample(series)
+        complete = analyze_molecular_m6_orientation(sample, settings=settings)
+        pre_rows = replace(
+            complete,
+            lattice_row_assignment_analysis=None,
+        )
+        key = build_structural_analysis_cache_key(
+            series,
+            sample,
+            use_segmentation_centroids=True,
+            settings=settings,
+        )
+        cache = StructuralAnalysisCache()
+        self.assertTrue(cache._put(key, pre_rows))
+        series.structural_analysis_cache = cache
+        compute = Mock(wraps=analyze_molecular_m6_orientation)
+
+        restored = _get_or_compute_molecular_m6_orientation(
+            series,
+            sample,
+            use_segmentation_centroids=True,
+            settings=settings,
+            analysis_factory=compute,
+        )
+
+        self.assertEqual(compute.call_count, 0)
+        self.assertIsNot(restored, pre_rows)
+        self.assertIs(
+            restored.lattice_domain_analysis,
+            pre_rows.lattice_domain_analysis,
+        )
+        self.assertIsNotNone(restored.lattice_row_assignment_analysis)
         self.assertEqual(cache.stats().hit_count, 1)
         self.assertEqual(cache.stats().miss_count, 0)
 

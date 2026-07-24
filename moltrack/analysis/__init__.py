@@ -109,6 +109,21 @@ from .lattice_domain_models import (
     lattice_domain_analysis_settings_from_m6,
     lattice_domain_id_from_members,
 )
+from .lattice_row_assignment import build_lattice_row_assignment_analysis
+from .lattice_row_models import (
+    LATTICE_ROW_ASSIGNMENT_ALGORITHM_VERSION,
+    LATTICE_ROW_ASSIGNMENT_SCHEMA_VERSION,
+    LatticeDomainRowAssignment,
+    LatticeRow,
+    LatticeRowAssignmentAnalysis,
+    LatticeRowAssignmentReason,
+    LatticeRowAssignmentSettings,
+    LatticeRowAssignmentStatus,
+    LatticeRowAxisCandidate,
+    LatticeRowMemberAssignment,
+    lattice_row_assignment_analysis_fingerprint,
+    lattice_row_assignment_settings_fingerprint,
+)
 from .lattice_domain_analysis import build_lattice_domain_analysis
 from .lattice_domain_validation import (
     LatticeDomainPartitionLabels,
@@ -302,6 +317,7 @@ from .molecular_m6_analysis import (
     analyze_molecular_m6_orientation,
     attach_lattice_domain_analysis,
     attach_lattice_domain_edge_compatibility,
+    attach_lattice_row_assignment_analysis,
     attach_lattice_domain_seed_growth,
 )
 from .m6_point_overlay import (
@@ -449,6 +465,7 @@ __all__ = [
     "lattice_domain_edge_settings_fingerprint",
     "attach_lattice_domain_analysis",
     "attach_lattice_domain_edge_compatibility",
+    "attach_lattice_row_assignment_analysis",
     "attach_lattice_domain_seed_growth",
     "LATTICE_DOMAIN_SEED_GROWTH_ALGORITHM_VERSION",
     "LATTICE_DOMAIN_SEED_GROWTH_SCHEMA_VERSION",
@@ -513,6 +530,19 @@ __all__ = [
     "lattice_domain_analysis_fingerprint",
     "lattice_domain_analysis_settings_from_m6",
     "lattice_domain_id_from_members",
+    "LATTICE_ROW_ASSIGNMENT_ALGORITHM_VERSION",
+    "LATTICE_ROW_ASSIGNMENT_SCHEMA_VERSION",
+    "LatticeDomainRowAssignment",
+    "LatticeRow",
+    "LatticeRowAssignmentAnalysis",
+    "LatticeRowAssignmentReason",
+    "LatticeRowAssignmentSettings",
+    "LatticeRowAssignmentStatus",
+    "LatticeRowAxisCandidate",
+    "LatticeRowMemberAssignment",
+    "build_lattice_row_assignment_analysis",
+    "lattice_row_assignment_analysis_fingerprint",
+    "lattice_row_assignment_settings_fingerprint",
     "build_first_shell_graph",
     "MolecularFrameRange",
     "MolecularFrameRangeAnalysisMode",

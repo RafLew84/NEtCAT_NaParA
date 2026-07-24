@@ -345,10 +345,26 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
         self.assertIsNotNone(m6.lattice_domain_edge_compatibility)
         self.assertIsNotNone(m6.lattice_domain_seed_growth)
         self.assertIsNotNone(m6.lattice_domain_analysis)
+        self.assertIsNotNone(m6.lattice_row_assignment_analysis)
         assert m6.lattice_domain_analysis is not None
+        assert m6.lattice_row_assignment_analysis is not None
         self.assertEqual(
             m6.lattice_domain_analysis.source_ids,
             m6.point_source_ids,
+        )
+        self.assertEqual(
+            m6.lattice_row_assignment_analysis.source_ids,
+            m6.point_source_ids,
+        )
+        self.assertEqual(
+            {
+                value.lattice_domain_id
+                for value in m6.lattice_row_assignment_analysis.domain_assignments
+            },
+            {
+                value.lattice_domain_id
+                for value in m6.lattice_domain_analysis.components
+            },
         )
         self.assertTrue(m6.lattice_domain_analysis.domains)
         self.assertIn(
@@ -432,6 +448,7 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
             lattice_domain_edge_compatibility=None,
             lattice_domain_seed_growth=None,
             lattice_domain_analysis=None,
+            lattice_row_assignment_analysis=None,
         )
         self.assertIsNone(legacy_m6_only.local_multisymmetry_order)
         self.assertIsNone(
@@ -866,6 +883,31 @@ class MolecularM6FrameAnalysisTests(unittest.TestCase):
         self.assertEqual(
             raw_m6.first_shell_graph.edges_ij,
             expanded_m6.first_shell_graph.edges_ij,
+        )
+        assert raw_m6.lattice_row_assignment_analysis is not None
+        assert expanded_m6.lattice_row_assignment_analysis is not None
+
+        def row_partitions(analysis):
+            return {
+                frozenset(
+                    frozenset(row.source_ids)
+                    for row in candidate.rows
+                )
+                for assignment in analysis.domain_assignments
+                for candidate in assignment.candidates
+            }
+
+        self.assertEqual(
+            row_partitions(raw_m6.lattice_row_assignment_analysis),
+            row_partitions(expanded_m6.lattice_row_assignment_analysis),
+        )
+        self.assertEqual(
+            raw_m6.lattice_row_assignment_analysis.registration_fingerprint,
+            raw_m6.registration_fingerprint,
+        )
+        self.assertEqual(
+            expanded_m6.lattice_row_assignment_analysis.registration_fingerprint,
+            expanded_m6.registration_fingerprint,
         )
         np.testing.assert_allclose(
             raw_m6.first_shell_graph.distances_nm,

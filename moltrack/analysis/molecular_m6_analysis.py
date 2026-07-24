@@ -20,6 +20,7 @@ from .lattice_domain_analysis import (
 )
 from .lattice_domain_models import (
     LatticeDomainAnalysis,
+    lattice_domain_analysis_fingerprint,
     lattice_domain_analysis_settings_fingerprint,
     lattice_domain_analysis_settings_from_m6,
 )
@@ -29,6 +30,12 @@ from .lattice_domain_seed_growth_models import (
     lattice_domain_seed_growth_result_fingerprint,
     lattice_domain_seed_growth_settings_from_m6,
     lattice_domain_seed_growth_settings_fingerprint,
+)
+from .lattice_row_assignment import build_lattice_row_assignment_analysis
+from .lattice_row_models import (
+    LatticeRowAssignmentAnalysis,
+    LatticeRowAssignmentSettings,
+    lattice_row_assignment_settings_fingerprint,
 )
 from .local_multisymmetry_bond_order import (
     LocalMultiSymmetryBondOrderField,
@@ -75,6 +82,7 @@ class MolecularM6OrientationAnalysis:
     lattice_domain_edge_compatibility: LatticeDomainEdgeCompatibilityField | None = None
     lattice_domain_seed_growth: LatticeDomainSeedGrowthResult | None = None
     lattice_domain_analysis: LatticeDomainAnalysis | None = None
+    lattice_row_assignment_analysis: LatticeRowAssignmentAnalysis | None = None
 
     def __post_init__(self) -> None:
         if self.source_view != self.sample_coordinates.source_view:
@@ -114,6 +122,7 @@ class MolecularM6OrientationAnalysis:
         self._validate_lattice_domain_edge_extension(graph)
         self._validate_lattice_domain_seed_growth_extension(graph)
         self._validate_lattice_domain_analysis_extension(graph)
+        self._validate_lattice_row_assignment_extension()
 
     def _validate_local_symmetry_extension(self, graph: FirstShellGraph) -> None:
         extension = (
@@ -299,6 +308,71 @@ class MolecularM6OrientationAnalysis:
                 "Lattice-domain first-shell bonds must match the source graph."
             )
 
+    def _validate_lattice_row_assignment_extension(self) -> None:
+        if self.lattice_row_assignment_analysis is None:
+            return
+        rows = self.lattice_row_assignment_analysis
+        lattice = self.lattice_domain_analysis
+        if not isinstance(rows, LatticeRowAssignmentAnalysis):
+            raise TypeError(
+                "lattice_row_assignment_analysis has an invalid type."
+            )
+        if not isinstance(lattice, LatticeDomainAnalysis):
+            raise ValueError(
+                "Lattice-row assignment requires lattice-domain analysis."
+            )
+        if (
+            rows.source_ids != lattice.source_ids
+            or rows.coordinate_frame != lattice.coordinate_frame
+            or rows.orientation_reference != lattice.orientation_reference
+            or rows.spatial_calibration_fingerprint
+            != lattice.spatial_calibration_fingerprint
+            or rows.registration_fingerprint
+            != lattice.registration_fingerprint
+            or rows.point_coordinate_fingerprint
+            != lattice.point_coordinate_fingerprint
+            or rows.lattice_domain_analysis_fingerprint
+            != lattice_domain_analysis_fingerprint(lattice)
+        ):
+            raise ValueError(
+                "Lattice-row assignment must preserve domain provenance."
+            )
+        expected_domain_ids = tuple(
+            sorted(
+                component.lattice_domain_id
+                for component in lattice.components
+            )
+        )
+        if tuple(
+            value.lattice_domain_id
+            for value in rows.domain_assignments
+        ) != expected_domain_ids:
+            raise ValueError(
+                "Lattice-row assignments must cover every lattice component."
+            )
+        assignment_by_domain_id = {
+            value.lattice_domain_id: value
+            for value in rows.domain_assignments
+        }
+        if any(
+            assignment_by_domain_id[component.lattice_domain_id].source_ids
+            != component.source_ids
+            for component in lattice.components
+        ):
+            raise ValueError(
+                "Lattice-row assignments must preserve domain membership."
+            )
+        expected_settings = LatticeRowAssignmentSettings()
+        if rows.settings != expected_settings or (
+            rows.settings_fingerprint
+            != lattice_row_assignment_settings_fingerprint(
+                expected_settings
+            )
+        ):
+            raise ValueError(
+                "Lattice-row assignment settings must match their result."
+            )
+
     @property
     def settings(self) -> MolecularM6OrientationAnalysisSettings:
         return self.domain_analysis.settings
@@ -455,7 +529,7 @@ def analyze_molecular_m6_orientation(
         local_symmetry_evidence=local_symmetry_evidence,
         local_symmetry_evidence_settings=local_symmetry_evidence_settings,
     )
-    return attach_lattice_domain_analysis(result)
+    return attach_lattice_row_assignment_analysis(result)
 
 
 def attach_lattice_domain_edge_compatibility(
@@ -563,6 +637,34 @@ def attach_lattice_domain_analysis(
         valid_fov_area_nm2=valid_fov_area_nm2,
     )
     return replace(analysis, lattice_domain_analysis=result)
+
+
+def attach_lattice_row_assignment_analysis(
+    analysis: MolecularM6OrientationAnalysis,
+) -> MolecularM6OrientationAnalysis:
+    """Add geometry-only row hypotheses without recomputing lattice domains."""
+
+    if not isinstance(analysis, MolecularM6OrientationAnalysis):
+        raise TypeError(
+            "analysis must be a MolecularM6OrientationAnalysis."
+        )
+    if analysis.lattice_row_assignment_analysis is not None:
+        return analysis
+    if analysis.lattice_domain_analysis is None:
+        analysis = attach_lattice_domain_analysis(analysis)
+    lattice = analysis.lattice_domain_analysis
+    if not isinstance(lattice, LatticeDomainAnalysis):
+        raise ValueError(
+            "Lattice-row assignment requires lattice-domain analysis."
+        )
+    rows = build_lattice_row_assignment_analysis(
+        lattice,
+        settings=LatticeRowAssignmentSettings(),
+    )
+    return replace(
+        analysis,
+        lattice_row_assignment_analysis=rows,
+    )
 
 
 def _local_symmetry_evidence_settings_from_m6(
