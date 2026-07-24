@@ -295,6 +295,37 @@ class MolecularOrderTypesPanel(QScrollArea):
             minimum_observations_per_type=self.minimum_observations.value(),
         )
 
+    def set_settings(
+        self,
+        settings: MolecularOrderTypeClassificationSettings,
+    ) -> None:
+        if not isinstance(
+            settings,
+            MolecularOrderTypeClassificationSettings,
+        ):
+            raise TypeError(
+                "settings must be MolecularOrderTypeClassificationSettings."
+            )
+        geometry = set(settings.geometry_features)
+        self.chk_dominant_symmetry.setChecked(
+            "dominant_symmetry" in geometry
+        )
+        self.chk_theta3.setChecked("theta3_lattice" in geometry)
+        self.chk_theta6.setChecked("theta6_lattice" in geometry)
+        stacking = set(settings.stacking_features)
+        self.chk_stacking_pattern.setChecked("pattern" in stacking)
+        self.chk_stacking_mode.setChecked("mode" in stacking)
+        self.chk_stacking_phase.setChecked("phase" in stacking)
+        self.lattice_tolerance_deg.setValue(
+            settings.lattice_orientation_tolerance_deg
+        )
+        self.molecular_tolerance_deg.setValue(
+            settings.molecular_orientation_tolerance_deg
+        )
+        self.minimum_observations.setValue(
+            settings.minimum_observations_per_type
+        )
+
     def set_summary(
         self,
         summary: MolecularOrderTypeSummary | None,

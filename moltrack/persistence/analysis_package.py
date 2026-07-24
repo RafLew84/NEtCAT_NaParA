@@ -20,6 +20,8 @@ from moltrack.analysis import (
     MolecularFrameRange,
     MolecularFrameRangeSelection,
     MolecularM6OrientationAnalysisSettings,
+    MolecularOrderHierarchy,
+    MolecularOrderTypeClassificationResult,
     MolecularStackingSessionState,
     analyze_molecular_frame_range,
     build_m6_domain_type_range_comparison,
@@ -51,6 +53,10 @@ from .molecular_stacking_export import (
     MolecularStackingExportData,
     build_molecular_stacking_export_data,
     write_molecular_stacking_tables,
+)
+from .molecular_order_type_export import (
+    build_molecular_order_type_export_data,
+    write_molecular_order_type_tables,
 )
 
 
@@ -159,6 +165,10 @@ class AnalysisExportSettings:
         M6SingleRangeDomainTypeSummary | M6DomainTypeRangeComparison | None
     ) = None
     molecular_stacking_state: MolecularStackingSessionState | None = None
+    molecular_order_hierarchy: MolecularOrderHierarchy | None = None
+    molecular_order_type_classification: (
+        MolecularOrderTypeClassificationResult | None
+    ) = None
 
     def __post_init__(self) -> None:
         scope = str(self.scope).strip().lower()
@@ -236,6 +246,64 @@ class AnalysisExportSettings:
                 "molecular_stacking_state must be a stacking session state "
                 "or None."
             )
+        order_hierarchy = self.molecular_order_hierarchy
+        order_classification = self.molecular_order_type_classification
+        if (order_hierarchy is None) != (order_classification is None):
+            raise ValueError(
+                "Molecular-order hierarchy and classification must be "
+                "exported together."
+            )
+        if order_hierarchy is not None:
+            if not isinstance(order_hierarchy, MolecularOrderHierarchy):
+                raise TypeError(
+                    "molecular_order_hierarchy must be a hierarchy or None."
+                )
+            if not isinstance(
+                order_classification,
+                MolecularOrderTypeClassificationResult,
+            ):
+                raise TypeError(
+                    "molecular_order_type_classification must be a "
+                    "classification result or None."
+                )
+            if any(
+                value >= frame_count
+                for value in order_hierarchy.input_frame_indices
+            ):
+                raise ValueError(
+                    "Molecular-order hierarchy exceeds the export series."
+                )
+            build_molecular_order_type_export_data(
+                order_hierarchy,
+                order_classification,
+                frame_indices=order_hierarchy.input_frame_indices,
+                tables_included=include_tables,
+            )
+            if order_hierarchy.source_view != source_view:
+                raise ValueError(
+                    "Molecular-order hierarchy source_view must match "
+                    "the export view."
+                )
+            if order_classification.analysis_scope.frame_count != frame_count:
+                raise ValueError(
+                    "Molecular-order classification frame_count must match "
+                    "the export series."
+                )
+            if order_classification.analysis_scope.source_view != source_view:
+                raise ValueError(
+                    "Molecular-order classification source_view must match "
+                    "the export view."
+                )
+            if (
+                scope == "selected_ranges"
+                and selected_ranges is not None
+                and order_classification.analysis_scope
+                != selected_ranges.to_analysis_scope()
+            ):
+                raise ValueError(
+                    "Molecular-order classification scope must match the "
+                    "exported frame ranges."
+                )
 
         object.__setattr__(self, "scope", scope)
         object.__setattr__(self, "destination", Path(destination_text))
@@ -548,6 +616,19 @@ def export_analysis_package(
             stacking_export,
             tables_included=settings.include_tables,
         )
+        order_type_export = build_molecular_order_type_export_data(
+            settings.molecular_order_hierarchy,
+            settings.molecular_order_type_classification,
+            frame_indices=_molecular_order_export_frame_indices(settings),
+            tables_included=settings.include_tables,
+        )
+        if settings.include_tables and order_type_export.available:
+            paths.update(
+                write_molecular_order_type_tables(
+                    staging,
+                    order_type_export,
+                )
+            )
         record_counts = _record_counts(paths.values())
         manifest_path = staging / "manifest.json"
         if settings.scope == "selected_ranges":
@@ -556,6 +637,7 @@ def export_analysis_package(
                 settings,
                 record_counts=record_counts,
                 stacking_manifest=stacking_manifest,
+                order_type_manifest=order_type_export.manifest,
             )
         else:
             if domain_type_export is None:
@@ -568,6 +650,7 @@ def export_analysis_package(
                 frame_results=manifest_frame_results,
                 domain_type_export=domain_type_export,
                 stacking_manifest=stacking_manifest,
+                order_type_manifest=order_type_export.manifest,
                 plot_export=plot_export,
                 environment_provider=environment_provider,
             )
@@ -657,6 +740,7 @@ def _write_scope_manifest(
     frame_results: tuple[MolecularFrameAnalysisResult, ...],
     domain_type_export: M6DomainTypeExportData,
     stacking_manifest: Mapping[str, object],
+    order_type_manifest: Mapping[str, object],
     plot_export,
     environment_provider: Callable[[], Mapping[str, object]] | None,
 ) -> None:
@@ -702,6 +786,7 @@ def _write_scope_manifest(
             ),
             "m6_domain_types": dict(domain_type_export.manifest),
             "molecular_stacking": dict(stacking_manifest),
+            "molecular_order_types": dict(order_type_manifest),
         },
         "plots": build_analysis_plots_manifest(plot_export, path.parent),
         "files": _package_file_entries(path.parent, record_counts),
@@ -718,6 +803,7 @@ def _update_existing_manifest(
     *,
     record_counts: tuple[tuple[str, int], ...],
     stacking_manifest: Mapping[str, object],
+    order_type_manifest: Mapping[str, object],
 ) -> None:
     with path.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
@@ -731,6 +817,9 @@ def _update_existing_manifest(
         else []
     )
     payload["analysis"]["molecular_stacking"] = dict(stacking_manifest)
+    payload["analysis"]["molecular_order_types"] = dict(
+        order_type_manifest
+    )
     payload["files"] = _package_file_entries(path.parent, record_counts)
     path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
@@ -765,6 +854,20 @@ def _stacking_export_comparison_ranges(
     if settings.scope != "selected_ranges" or selection is None:
         return None
     return selection.first_range, selection.second_range
+
+
+def _molecular_order_export_frame_indices(
+    settings: AnalysisExportSettings,
+) -> tuple[int, ...]:
+    hierarchy = settings.molecular_order_hierarchy
+    if hierarchy is None:
+        return _stacking_export_frame_indices(settings)
+    requested = set(_stacking_export_frame_indices(settings))
+    return tuple(
+        value
+        for value in hierarchy.input_frame_indices
+        if value in requested
+    )
 
 
 def _stacking_export_manifest(

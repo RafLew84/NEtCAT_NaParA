@@ -3,7 +3,10 @@ import unittest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from moltrack.analysis import build_molecular_order_type_summary
+from moltrack.analysis import (
+    MolecularOrderTypeClassificationSettings,
+    build_molecular_order_type_summary,
+)
 from test_molecular_order_type_summary import _comparison_classification
 
 try:
@@ -128,6 +131,19 @@ class MolecularOrderTypesPanelTests(unittest.TestCase):
 
         self.assertFalse(self.panel.chk_stacking_phase.isChecked())
         self.assertFalse(self.panel.chk_stacking_phase.isEnabled())
+
+    def test_set_settings_round_trip_restores_every_control(self) -> None:
+        settings = MolecularOrderTypeClassificationSettings(
+            geometry_features=("dominant_symmetry", "theta6_lattice"),
+            stacking_features=("pattern", "mode", "phase"),
+            lattice_orientation_tolerance_deg=3.5,
+            molecular_orientation_tolerance_deg=8.0,
+            minimum_observations_per_type=4,
+        )
+
+        self.panel.set_settings(settings)
+
+        self.assertEqual(self.panel.settings(), settings)
 
     def test_position_dialog_hosts_panel_and_forwards_requests(self) -> None:
         dialog = PositionAnalysisDialog()

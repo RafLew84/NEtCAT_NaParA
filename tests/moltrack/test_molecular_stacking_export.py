@@ -335,7 +335,7 @@ class MolecularStackingExportTests(unittest.TestCase):
             self.assertTrue(
                 manifest["analysis"]["molecular_stacking"]["available"]
             )
-            self.assertEqual(manifest["export_schema_version"], 7)
+            self.assertEqual(manifest["export_schema_version"], 8)
             self.assertEqual(
                 manifest["source"]["integrity"]["algorithm"],
                 "sha256",

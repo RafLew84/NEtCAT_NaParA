@@ -18,6 +18,7 @@ from moltrack.analysis import (
     MolecularM6ViewSettings,
     MolecularOrientationMeasurement,
     MolecularOrientationStore,
+    MolecularOrderTypeSessionState,
     MolecularStackingSessionState,
     StructuralAnalysisCacheKey,
     StructuralAnalysisCacheRecord,
@@ -86,6 +87,9 @@ def save_moltrack_session(
         cache_records=structural_cache_records,
     )
     m6_domain_type_analysis_state = _m6_domain_type_state_from_ui_state(ui_state)
+    molecular_order_type_analysis_state = (
+        _molecular_order_type_state_from_ui_state(ui_state)
+    )
     session = MolTrackSession.from_image_series(
         series,
         registration_view_mode=registration_view_mode,
@@ -96,6 +100,9 @@ def save_moltrack_session(
         intensity_cache_records=intensity_cache_records,
         m6_analysis_state=m6_analysis_state,
         m6_domain_type_analysis_state=m6_domain_type_analysis_state,
+        molecular_order_type_analysis_state=(
+            molecular_order_type_analysis_state
+        ),
         structural_analysis_cache_records=structural_cache_records,
         source_size_bytes=source_stat.st_size,
         source_mtime_ns=source_stat.st_mtime_ns,
@@ -203,6 +210,11 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
     molecular_stacking_state = _molecular_stacking_state_from_payload(
         payload.get("molecular_stacking_analysis")
     )
+    molecular_order_type_analysis_state = (
+        _molecular_order_type_state_from_payload(
+            payload.get("molecular_order_type_analysis")
+        )
+    )
 
     registration_settings: MolTrackRegistrationSettings | None = None
     registration_results: MolTrackRegistrationResultSet | None = None
@@ -242,6 +254,9 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
         m6_analysis_state=m6_analysis_state,
         m6_domain_type_analysis_state=m6_domain_type_analysis_state,
         molecular_stacking_state=molecular_stacking_state,
+        molecular_order_type_analysis_state=(
+            molecular_order_type_analysis_state
+        ),
         structural_analysis_cache_records=structural_cache_records,
         source_size_bytes=int(source_payload["size_bytes"]),
         source_mtime_ns=int(source_payload["mtime_ns"]),
@@ -291,6 +306,9 @@ def restore_moltrack_image_series_from_session(
         molecular_orientations=session.molecular_orientations,
         m6_analysis_state=session.m6_analysis_state,
         molecular_stacking_state=session.molecular_stacking_state,
+        molecular_order_type_state=(
+            session.molecular_order_type_analysis_state
+        ),
     )
     restore_molecular_intensity_cache_records(
         restored,
@@ -360,6 +378,11 @@ def _session_to_payload(
             if session.molecular_stacking_state is None
             else session.molecular_stacking_state.to_dict()
         ),
+        "molecular_order_type_analysis": (
+            None
+            if session.molecular_order_type_analysis_state is None
+            else session.molecular_order_type_analysis_state.to_dict()
+        ),
     }
 
 
@@ -375,6 +398,44 @@ def _molecular_stacking_state_from_payload(
     except (TypeError, ValueError):
         # This reproducible cache is optional and must not block core state.
         return MolecularStackingSessionState()
+
+
+def _molecular_order_type_state_from_ui_state(
+    ui_state: Any | None,
+) -> MolecularOrderTypeSessionState | None:
+    candidate = None
+    if isinstance(ui_state, Mapping):
+        candidate = ui_state.get("molecular_order_type_analysis")
+    elif ui_state is not None and not isinstance(ui_state, str):
+        candidate = getattr(
+            ui_state,
+            "molecular_order_type_analysis",
+            None,
+        )
+    if candidate is None:
+        return None
+    if isinstance(candidate, MolecularOrderTypeSessionState):
+        return candidate
+    if isinstance(candidate, Mapping):
+        return MolecularOrderTypeSessionState.from_dict(candidate)
+    raise TypeError(
+        "molecular_order_type_analysis must be a "
+        "MolecularOrderTypeSessionState or mapping."
+    )
+
+
+def _molecular_order_type_state_from_payload(
+    payload: Any,
+) -> MolecularOrderTypeSessionState | None:
+    if payload is None:
+        return None
+    try:
+        return MolecularOrderTypeSessionState.from_dict(
+            _require_mapping(payload, "molecular_order_type_analysis")
+        )
+    except (TypeError, ValueError):
+        # The derived cache is optional and must not block core session data.
+        return None
 
 
 def _m6_domain_type_state_from_ui_state(

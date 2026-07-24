@@ -852,7 +852,7 @@ class M6AnalysisExportTests(unittest.TestCase):
         self.assertTrue(all(row["condition_order"] == "single" for row in range_rows))
         self.assertEqual(comparison_rows, [])
         domain_manifest = manifest["analysis"]["m6_domain_types"]
-        self.assertEqual(manifest["export_schema_version"], 7)
+        self.assertEqual(manifest["export_schema_version"], 8)
         self.assertTrue(domain_manifest["available"])
         self.assertEqual(domain_manifest["algorithm"], "deterministic_complete_linkage")
         self.assertEqual(

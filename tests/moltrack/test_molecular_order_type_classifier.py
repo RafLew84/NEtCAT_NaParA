@@ -136,12 +136,61 @@ def _domain_frame(
                 periodicity_deg=180.0,
                 subdomain_ids=(subdomain_id,),
             )
+            source_subdomains = (source_subdomain,)
+        elif stacking_pattern == "mixed":
+            source_ids = source_subdomain.source_ids
+            split_index = len(source_ids) // 2
+            subdomain_specs = (
+                (
+                    f"{domain_id}:orient-0001",
+                    source_ids[:split_index],
+                    "ABAB",
+                ),
+                (
+                    f"{domain_id}:orient-0002",
+                    source_ids[split_index:],
+                    "BABA",
+                ),
+            )
+            source_subdomains = tuple(
+                replace(
+                    source_subdomain,
+                    subdomain_id=value_id,
+                    frame_index=frame_index,
+                    parent_lattice_domain_id=domain_id,
+                    pattern="ABAB",
+                    mode=stacking_mode,
+                    phase=value_phase,
+                    source_ids=value_source_ids,
+                    molecule_count=len(value_source_ids),
+                    coverage_fraction=(
+                        len(value_source_ids) / len(source_ids)
+                    ),
+                )
+                for value_id, value_source_ids, value_phase
+                in subdomain_specs
+            )
+            stacking_order = replace(
+                template.stacking_order,
+                frame_index=frame_index,
+                lattice_domain_id=domain_id,
+                pattern="mixed",
+                mode=stacking_mode,
+                phase=stacking_phase,
+                prototype_a_angle_deg=orientation_angles[0],
+                prototype_b_angle_deg=orientation_angles[1],
+                subdomain_ids=tuple(
+                    value.subdomain_id for value in source_subdomains
+                ),
+                qc_reasons=("phase_boundary",),
+            )
         else:
             source_subdomain = replace(
                 source_subdomain,
                 subdomain_id=subdomain_id,
                 frame_index=frame_index,
                 parent_lattice_domain_id=domain_id,
+                pattern=stacking_pattern,
                 mode=stacking_mode,
                 phase=stacking_phase,
             )
@@ -149,30 +198,34 @@ def _domain_frame(
                 template.stacking_order,
                 frame_index=frame_index,
                 lattice_domain_id=domain_id,
+                pattern=stacking_pattern,
                 mode=stacking_mode,
                 phase=stacking_phase,
                 prototype_a_angle_deg=orientation_angles[0],
                 prototype_b_angle_deg=orientation_angles[1],
                 subdomain_ids=(subdomain_id,),
             )
-        local_stacking = MolecularOrderStacking(
-            frame_index=frame_index,
-            parent_lattice_domain_id=domain_id,
-            parent_orientational_subdomain_id=subdomain_id,
-            subdomain=source_subdomain,
-        )
-        orientational = MolecularOrderOrientationalSubdomain(
-            frame_index=frame_index,
-            parent_lattice_domain_id=domain_id,
-            orientational_subdomain_id=subdomain_id,
-            source_ids=source_subdomain.source_ids,
-            stacking_order=local_stacking,
+            source_subdomains = (source_subdomain,)
+        orientational_subdomains = tuple(
+            MolecularOrderOrientationalSubdomain(
+                frame_index=frame_index,
+                parent_lattice_domain_id=domain_id,
+                orientational_subdomain_id=value.subdomain_id,
+                source_ids=value.source_ids,
+                stacking_order=MolecularOrderStacking(
+                    frame_index=frame_index,
+                    parent_lattice_domain_id=domain_id,
+                    parent_orientational_subdomain_id=value.subdomain_id,
+                    subdomain=value,
+                ),
+            )
+            for value in source_subdomains
         )
         hierarchy_domain = MolecularOrderLatticeDomain(
             frame_index=frame_index,
             lattice_domain=lattice_domain,
             stacking_order=stacking_order,
-            orientational_subdomains=(orientational,),
+            orientational_subdomains=orientational_subdomains,
             unresolved_source_ids=(),
         )
     return MolecularOrderFrame(

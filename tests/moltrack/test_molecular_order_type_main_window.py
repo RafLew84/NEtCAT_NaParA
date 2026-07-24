@@ -1,5 +1,6 @@
 import os
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -10,13 +11,15 @@ from moltrack.analysis import (
     MolecularFrameRange,
     MolecularFrameRangeAnalysisScope,
     MolecularOrderTypeClassificationSettings,
+    MolecularOrderTypeSessionState,
 )
 from moltrack.core import MolTrackImageSeries
+from moltrack.persistence import AnalysisExportSettings
 from nanotrack.core import STMSequenceMetadata
 from test_molecular_order_type_classifier import _domain_frame, _hierarchy
 
 try:
-    from PyQt6.QtWidgets import QApplication
+    from PyQt6.QtWidgets import QApplication, QDialog
 except ImportError:  # pragma: no cover - optional outside target GUI env
     QApplication = None
 
@@ -154,6 +157,98 @@ class MolecularOrderTypeMainWindowTests(unittest.TestCase):
         self.assertEqual(
             ui_state["position_analysis"]["active_tab"],
             "Current frame",
+        )
+
+    def test_current_ui_state_persists_reproducible_order_type_cache(
+        self,
+    ) -> None:
+        result = _comparison_result()
+        display_token = object()
+        self.window._on_position_analysis_requested()
+        dialog = self.window.position_analysis_dialog()
+        controller = self.window._molecular_order_type_controller
+        controller._context_token = display_token
+        controller._result = result
+
+        with patch.object(
+            self.window,
+            "_current_molecular_stacking_display_result",
+            return_value=display_token,
+        ), patch.object(
+            dialog,
+            "frame_range_analysis_scope",
+            return_value=result.classification.analysis_scope,
+        ):
+            self.assertIs(
+                self.window._current_molecular_order_type_result(),
+                result,
+            )
+            self.assertEqual(
+                dialog.molecular_order_types_panel.settings(),
+                result.classification.settings,
+            )
+            ui_state = self.window._current_ui_state()
+
+        state = ui_state["molecular_order_type_analysis"]
+        self.assertIsInstance(state, MolecularOrderTypeSessionState)
+        self.assertEqual(
+            state.cache_record.classification,
+            result.classification,
+        )
+
+    def test_analysis_export_request_captures_current_order_hierarchy(
+        self,
+    ) -> None:
+        result = _comparison_result()
+        display_token = object()
+        export_settings = AnalysisExportSettings(
+            scope="current_frame",
+            destination=Path("analysis-package"),
+            package_format="directory",
+            include_tables=True,
+            include_spatial_grids=False,
+            include_plots=False,
+            frame_count=3,
+            active_frame_index=0,
+            source_view="expanded_aligned",
+            use_segmentation_centroids=True,
+            intensity_metric="mean",
+            intensity_unit="a.u.",
+            background_inner_radius_px=1,
+            background_outer_radius_px=3,
+            density_grid_shape=(4, 4),
+        )
+
+        class AcceptedExportDialog:
+            def exec(self):
+                return QDialog.DialogCode.Accepted
+
+            def export_settings(self):
+                return export_settings
+
+        self.window._analysis_export_dialog_factory = (
+            lambda **_kwargs: AcceptedExportDialog()
+        )
+        self.window._analysis_exporter = None
+        self.window._on_position_analysis_requested()
+        controller = self.window._molecular_order_type_controller
+        controller._context_token = display_token
+        controller._result = result
+        requests = []
+        self.window.analysis_export_requested.connect(requests.append)
+
+        with patch.object(
+            self.window,
+            "_current_molecular_stacking_display_result",
+            return_value=display_token,
+        ):
+            self.window._on_position_analysis_export_requested()
+
+        self.assertEqual(len(requests), 1)
+        self.assertIs(requests[0].molecular_order_hierarchy, result.hierarchy)
+        self.assertIs(
+            requests[0].molecular_order_type_classification,
+            result.classification,
         )
 
 

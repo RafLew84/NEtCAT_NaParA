@@ -11,6 +11,7 @@ from moltrack.analysis import (
     MolecularOrderHierarchy,
     MolecularOrderTypeClassificationResult,
     MolecularOrderTypeClassificationSettings,
+    MolecularOrderTypeSessionState,
     MolecularOrderTypeSummary,
     MolecularStackingDisplayResult,
     build_molecular_order_hierarchy,
@@ -158,7 +159,10 @@ class _MolecularOrderTypeWorker(QObject):
     def __init__(
         self,
         analyzer,
-        hierarchy: MolecularOrderHierarchy,
+        hierarchy: MolecularOrderHierarchy | None,
+        frame_results: tuple[object, ...],
+        hierarchy_builder,
+        restore_state: MolecularOrderTypeSessionState | None,
         analysis_scope: MolecularFrameRangeAnalysisScope,
         settings: MolecularOrderTypeClassificationSettings,
         context_token: object,
@@ -167,6 +171,9 @@ class _MolecularOrderTypeWorker(QObject):
         super().__init__()
         self._analyzer = analyzer
         self._hierarchy = hierarchy
+        self._frame_results = frame_results
+        self._hierarchy_builder = hierarchy_builder
+        self._restore_state = restore_state
         self._analysis_scope = analysis_scope
         self._settings = settings
         self._context_token = context_token
@@ -174,12 +181,41 @@ class _MolecularOrderTypeWorker(QObject):
 
     def run(self) -> None:
         try:
-            result = self._analyzer(
-                self._hierarchy,
-                self._analysis_scope,
-                self._settings,
-                self._display_result,
-            )
+            hierarchy = self._hierarchy
+            if hierarchy is None:
+                hierarchy = self._hierarchy_builder(
+                    self._frame_results,
+                    self._display_result,
+                )
+            if self._restore_state is None:
+                result = self._analyzer(
+                    hierarchy,
+                    self._analysis_scope,
+                    self._settings,
+                    self._display_result,
+                )
+            else:
+                classification = (
+                    self._restore_state.restore_classification_for(hierarchy)
+                )
+                if classification is None:
+                    raise ValueError(
+                        "Saved hierarchical type result does not match "
+                        "the current M6 and stacking dependencies."
+                    )
+                result = MolecularOrderTypeAnalysisResult(
+                    hierarchy=hierarchy,
+                    classification=classification,
+                    summary=build_molecular_order_type_summary(
+                        classification
+                    ),
+                    orientation_distribution=(
+                        build_molecular_order_orientation_distribution_data(
+                            classification,
+                            display_result=self._display_result,
+                        )
+                    ),
+                )
             if not isinstance(result, MolecularOrderTypeAnalysisResult):
                 raise TypeError(
                     "Molecular-order analyzer returned an invalid result."
@@ -206,10 +242,14 @@ class MolecularOrderTypeAnalysisController(QObject):
         self,
         *,
         analyzer=analyze_molecular_order_types,
+        hierarchy_builder=(
+            build_molecular_order_hierarchy_from_frame_results
+        ),
         parent=None,
     ) -> None:
         super().__init__(parent)
         self._analyzer = analyzer
+        self._hierarchy_builder = hierarchy_builder
         self._running = False
         self._context_token = None
         self._result: MolecularOrderTypeAnalysisResult | None = None
@@ -237,7 +277,106 @@ class MolecularOrderTypeAnalysisController(QObject):
         context_token: object,
         display_result: MolecularStackingDisplayResult | None = None,
     ) -> bool:
+        return self._start(
+            hierarchy=hierarchy,
+            frame_results=(),
+            analysis_scope=analysis_scope,
+            settings=settings,
+            context_token=context_token,
+            display_result=display_result,
+            restore_state=None,
+        )
+
+    def start_from_frame_results(
+        self,
+        frame_results,
+        analysis_scope: MolecularFrameRangeAnalysisScope,
+        settings: MolecularOrderTypeClassificationSettings,
+        *,
+        context_token: object,
+        display_result: MolecularStackingDisplayResult,
+    ) -> bool:
+        return self._start(
+            hierarchy=None,
+            frame_results=tuple(frame_results),
+            analysis_scope=analysis_scope,
+            settings=settings,
+            context_token=context_token,
+            display_result=display_result,
+            restore_state=None,
+        )
+
+    def restore_from_frame_results(
+        self,
+        state: MolecularOrderTypeSessionState,
+        frame_results,
+        *,
+        context_token: object,
+        display_result: MolecularStackingDisplayResult,
+    ) -> bool:
+        if (
+            not isinstance(state, MolecularOrderTypeSessionState)
+            or state.cache_record is None
+        ):
+            return False
+        return self._start(
+            hierarchy=None,
+            frame_results=tuple(frame_results),
+            analysis_scope=state.analysis_scope,
+            settings=state.classification_settings,
+            context_token=context_token,
+            display_result=display_result,
+            restore_state=state,
+        )
+
+    def restore(
+        self,
+        state: MolecularOrderTypeSessionState,
+        hierarchy: MolecularOrderHierarchy,
+        *,
+        context_token: object,
+        display_result: MolecularStackingDisplayResult | None = None,
+    ) -> bool:
+        if (
+            self._running
+            or context_token is None
+            or not isinstance(state, MolecularOrderTypeSessionState)
+        ):
+            return False
+        classification = state.restore_classification_for(hierarchy)
+        if classification is None:
+            return False
+        self._context_token = context_token
+        self._result = MolecularOrderTypeAnalysisResult(
+            hierarchy=hierarchy,
+            classification=classification,
+            summary=build_molecular_order_type_summary(classification),
+            orientation_distribution=(
+                build_molecular_order_orientation_distribution_data(
+                    classification,
+                    display_result=display_result,
+                )
+            ),
+        )
+        return True
+
+    def _start(
+        self,
+        *,
+        hierarchy: MolecularOrderHierarchy | None,
+        frame_results: tuple[object, ...],
+        analysis_scope: MolecularFrameRangeAnalysisScope,
+        settings: MolecularOrderTypeClassificationSettings,
+        context_token: object,
+        display_result: MolecularStackingDisplayResult | None,
+        restore_state: MolecularOrderTypeSessionState | None,
+    ) -> bool:
         if self._running or context_token is None:
+            return False
+        if hierarchy is None and (
+            not frame_results
+            or not isinstance(display_result, MolecularStackingDisplayResult)
+        ):
             return False
         self._running = True
         self._context_token = context_token
@@ -246,6 +385,9 @@ class MolecularOrderTypeAnalysisController(QObject):
         worker = _MolecularOrderTypeWorker(
             self._analyzer,
             hierarchy,
+            frame_results,
+            self._hierarchy_builder,
+            restore_state,
             analysis_scope,
             settings,
             context_token,

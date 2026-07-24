@@ -376,6 +376,13 @@ from .molecular_order_type_summary import (
     MolecularOrderTypeSummaryRowKey,
     build_molecular_order_type_summary,
 )
+from .molecular_order_type_persistence import (
+    MOLECULAR_ORDER_TYPE_CACHE_RECORD_SCHEMA_VERSION,
+    MOLECULAR_ORDER_TYPE_CONFIGURATION_SCHEMA_VERSION,
+    MolecularOrderTypeCacheDecodeError,
+    MolecularOrderTypeCacheRecord,
+    MolecularOrderTypeSessionState,
+)
 from .molecular_stacking_overlay import (
     MolecularStackingDisplayResult,
     MolecularStackingFrameGeometry,
@@ -809,6 +816,11 @@ __all__ = [
     "MolecularOrderTypeSummaryRow",
     "MolecularOrderTypeSummaryRowKey",
     "build_molecular_order_type_summary",
+    "MOLECULAR_ORDER_TYPE_CACHE_RECORD_SCHEMA_VERSION",
+    "MOLECULAR_ORDER_TYPE_CONFIGURATION_SCHEMA_VERSION",
+    "MolecularOrderTypeCacheDecodeError",
+    "MolecularOrderTypeCacheRecord",
+    "MolecularOrderTypeSessionState",
     "MolecularStackingDisplayResult",
     "MolecularStackingFrameGeometry",
     "MolecularStackingInspection",

@@ -51,6 +51,7 @@ from moltrack.analysis import (
     MolecularOrientationFrameData,
     MolecularOrientationStore,
     MolecularOrderTypeClassificationSettings,
+    MolecularOrderTypeSessionState,
     MolecularStackingDisplayResult,
     MolecularStackingFrameGeometry,
     MolecularStackingOverlayLayer,
@@ -113,7 +114,6 @@ from moltrack.ui.molecular_order_type_worker import (
     MolecularOrderTypeAnalysisController,
     MolecularOrderTypeAnalysisResult,
     analyze_molecular_order_types,
-    build_molecular_order_hierarchy_from_frame_results,
 )
 from moltrack.ui.m6_domain_type_overlay import (
     M6DomainTypeOverlayIndex,
@@ -1257,6 +1257,9 @@ class MolTrackMainWindow(QMainWindow):
         self._molecular_stacking_pending_session_state: (
             MolecularStackingSessionState | None
         ) = None
+        self._molecular_order_type_pending_session_state: (
+            MolecularOrderTypeSessionState | None
+        ) = None
         self._m6_analysis_running = False
         self._m6_domain_type_store = (
             m6_domain_type_store
@@ -1851,6 +1854,7 @@ class MolTrackMainWindow(QMainWindow):
         self._molecular_order_type_controller.invalidate()
         self._molecular_order_type_error_message = None
         self._molecular_stacking_pending_session_state = None
+        self._molecular_order_type_pending_session_state = None
         self.viewer.clear_molecular_stacking_point_overlays()
         self._clear_sam3_prompt_draw_mode()
         self._sam3_manual_positive_bboxes_by_context.clear()
@@ -3107,30 +3111,24 @@ class MolTrackMainWindow(QMainWindow):
         ):
             self._sync_molecular_order_type_panel()
             return
-        try:
-            hierarchy = build_molecular_order_hierarchy_from_frame_results(
-                tuple(
-                    frame_result
-                    for range_analysis in _range_analyses(context.result)
-                    for frame_result in range_analysis.frame_results
-                ),
-                display,
-            )
-        except Exception as exc:
-            message = str(exc) or exc.__class__.__name__
-            self._molecular_order_type_error_message = message
-            if self._position_analysis_dialog is not None:
-                self._position_analysis_dialog.set_molecular_order_type_summary(
-                    None,
-                    status_message=message,
-                )
+        cached = self._current_molecular_order_type_result()
+        if (
+            cached is not None
+            and cached.classification.analysis_scope == context.scope
+            and cached.classification.settings == settings
+        ):
+            self._sync_molecular_order_type_panel()
             self.statusBar().showMessage(
-                f"Hierarchical type classification failed: {message}",
-                5000,
+                "Hierarchical type classification is already current.",
+                3000,
             )
             return
-        if not self._molecular_order_type_controller.start(
-            hierarchy,
+        if not self._molecular_order_type_controller.start_from_frame_results(
+            tuple(
+                frame_result
+                for range_analysis in _range_analyses(context.result)
+                for frame_result in range_analysis.frame_results
+            ),
             context.scope,
             settings,
             context_token=display,
@@ -3151,6 +3149,13 @@ class MolTrackMainWindow(QMainWindow):
         result = self._current_molecular_order_type_result()
         if result is None:
             return
+        if self._series is not None:
+            self._series.molecular_order_type_state = (
+                MolecularOrderTypeSessionState.from_classification(
+                    result.classification
+                )
+            )
+        self._molecular_order_type_pending_session_state = None
         summary = result.summary
         self.statusBar().showMessage(
             "Hierarchical type classification complete: "
@@ -3164,6 +3169,7 @@ class MolTrackMainWindow(QMainWindow):
     @pyqtSlot(str)
     def _on_molecular_order_type_failed(self, message: str) -> None:
         self._molecular_order_type_error_message = str(message)
+        self._molecular_order_type_pending_session_state = None
         dialog = self._position_analysis_dialog
         if dialog is not None:
             dialog.set_molecular_order_type_summary(
@@ -3235,6 +3241,8 @@ class MolTrackMainWindow(QMainWindow):
         self.viewer.clear_molecular_stacking_point_overlays()
         self._molecular_order_type_controller.invalidate()
         self._molecular_order_type_error_message = None
+        self._molecular_order_type_pending_session_state = None
+        self._series.molecular_order_type_state = None
         self._sync_molecular_order_type_panel()
         self._molecular_stacking_progress_dialog = QProgressDialog(
             "Classifying molecular stacking...",
@@ -3286,6 +3294,7 @@ class MolTrackMainWindow(QMainWindow):
             f"{len(result.stacking_analysis.subdomains)} subdomain(s).",
             5000,
         )
+        self._restore_saved_molecular_order_type_result()
 
     @pyqtSlot(str)
     def _on_molecular_stacking_failed(self, message: str) -> None:
@@ -3512,10 +3521,12 @@ class MolTrackMainWindow(QMainWindow):
         self._molecular_stacking_controller.invalidate()
         self._molecular_order_type_controller.invalidate()
         self._molecular_order_type_error_message = None
+        self._molecular_order_type_pending_session_state = None
         if self._series is not None:
             self._series.molecular_stacking_state = (
                 MolecularStackingSessionState()
             )
+            self._series.molecular_order_type_state = None
         self.viewer.clear_molecular_stacking_point_overlays()
         self.orientation_panel.set_stacking_context(
             can_analyze=self._molecular_stacking_inputs_available(),
@@ -4902,6 +4913,7 @@ class MolTrackMainWindow(QMainWindow):
             context=execution.domain_type_restore_context,
         )
         self._restore_saved_molecular_stacking_result()
+        self._restore_saved_molecular_order_type_result()
         self._render_current_m6_overlay()
         self._render_current_molecular_stacking_overlays()
         self._sync_molecular_stacking_panel()
@@ -4937,6 +4949,55 @@ class MolTrackMainWindow(QMainWindow):
             series.molecular_stacking_state = MolecularStackingSessionState()
         else:
             series.molecular_stacking_state = state
+        return restored
+
+    def _restore_saved_molecular_order_type_result(self) -> bool:
+        series = self._series
+        context = self._m6_completed_context
+        display = self._current_molecular_stacking_display_result()
+        state = (
+            self._molecular_order_type_pending_session_state
+            or (
+                None
+                if series is None
+                else getattr(series, "molecular_order_type_state", None)
+            )
+        )
+        if not isinstance(state, MolecularOrderTypeSessionState):
+            return False
+        dialog = self._position_analysis_dialog
+        if dialog is not None:
+            dialog.molecular_order_types_panel.set_settings(
+                state.classification_settings
+            )
+        if (
+            state.cache_record is None
+            or series is None
+            or display is None
+            or not isinstance(context, _M6CompletedAnalysisContext)
+            or state.analysis_scope != context.scope
+        ):
+            self._molecular_order_type_pending_session_state = None
+            return False
+        frame_results = tuple(
+            frame_result
+            for range_analysis in _range_analyses(context.result)
+            for frame_result in range_analysis.frame_results
+        )
+        restored = (
+            self._molecular_order_type_controller.restore_from_frame_results(
+                state,
+                frame_results,
+                context_token=display,
+                display_result=display,
+            )
+        )
+        if restored:
+            self.statusBar().showMessage(
+                "Restoring hierarchical molecular-order types...",
+                0,
+            )
+        self._molecular_order_type_pending_session_state = None
         return restored
 
     def _is_m6_launch_context_current(
@@ -5126,6 +5187,15 @@ class MolTrackMainWindow(QMainWindow):
                 settings = replace(
                     settings,
                     molecular_stacking_state=stacking_state,
+                )
+            order_type_result = self._current_molecular_order_type_result()
+            if order_type_result is not None:
+                settings = replace(
+                    settings,
+                    molecular_order_hierarchy=order_type_result.hierarchy,
+                    molecular_order_type_classification=(
+                        order_type_result.classification
+                    ),
                 )
             self.analysis_export_requested.emit(settings)
             if self._analysis_exporter is not None:
@@ -7037,6 +7107,30 @@ class MolTrackMainWindow(QMainWindow):
                     analysis_scope=domain_type_scope,
                     classification_settings=domain_type_settings,
                 )
+            order_type_scope = dialog.frame_range_analysis_scope()
+            order_type_settings = (
+                dialog.molecular_order_types_panel.settings()
+            )
+            order_type_result = self._current_molecular_order_type_result()
+            if (
+                order_type_result is not None
+                and order_type_result.classification.analysis_scope
+                == order_type_scope
+                and order_type_result.classification.settings
+                == order_type_settings
+            ):
+                ui_state["molecular_order_type_analysis"] = (
+                    MolecularOrderTypeSessionState.from_classification(
+                        order_type_result.classification
+                    )
+                )
+            else:
+                ui_state["molecular_order_type_analysis"] = (
+                    MolecularOrderTypeSessionState(
+                        analysis_scope=order_type_scope,
+                        classification_settings=order_type_settings,
+                    )
+                )
         return ui_state
 
     def _choose_and_open_state(self) -> None:
@@ -7182,6 +7276,11 @@ class MolTrackMainWindow(QMainWindow):
             "m6_domain_type_analysis_state",
             None,
         )
+        order_type_state = getattr(
+            session,
+            "molecular_order_type_analysis_state",
+            None,
+        )
         m6_state = getattr(series, "m6_analysis_state", None)
         if isinstance(m6_state, MolecularM6SessionState):
             M6SettingsPanel.validate_gr_settings_representable(m6_state.settings)
@@ -7196,6 +7295,10 @@ class MolTrackMainWindow(QMainWindow):
             and stacking_state.status == "computed"
         ):
             self._molecular_stacking_pending_session_state = stacking_state
+        if isinstance(order_type_state, MolecularOrderTypeSessionState):
+            self._molecular_order_type_pending_session_state = (
+                order_type_state
+            )
         if isinstance(domain_type_state, M6DomainTypeSessionState):
             self._prepare_loaded_m6_domain_type_state(domain_type_state)
         self._session_path = str(path)
@@ -7214,6 +7317,13 @@ class MolTrackMainWindow(QMainWindow):
         elif isinstance(domain_type_state, M6DomainTypeSessionState):
             self._restore_domain_type_state_without_position_analysis(
                 domain_type_state
+            )
+        if (
+            isinstance(order_type_state, MolecularOrderTypeSessionState)
+            and self._position_analysis_dialog is not None
+        ):
+            self._position_analysis_dialog.molecular_order_types_panel.set_settings(
+                order_type_state.classification_settings
             )
         self.statusBar().showMessage(f"Loaded state {path}", 5000)
 

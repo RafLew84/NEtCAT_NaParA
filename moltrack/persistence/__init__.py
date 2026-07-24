@@ -23,6 +23,12 @@ from .molecular_stacking_export import (
     build_molecular_stacking_export_data,
     write_molecular_stacking_tables,
 )
+from .molecular_order_type_export import (
+    MOLECULAR_ORDER_TYPE_TABLE_FILES,
+    MolecularOrderTypeExportData,
+    build_molecular_order_type_export_data,
+    write_molecular_order_type_tables,
+)
 
 __all__ = [
     "export_current_frame_molecules_csv",
@@ -42,4 +48,8 @@ __all__ = [
     "MolecularStackingExportData",
     "build_molecular_stacking_export_data",
     "write_molecular_stacking_tables",
+    "MOLECULAR_ORDER_TYPE_TABLE_FILES",
+    "MolecularOrderTypeExportData",
+    "build_molecular_order_type_export_data",
+    "write_molecular_order_type_tables",
 ]

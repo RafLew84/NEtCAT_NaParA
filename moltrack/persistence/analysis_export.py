@@ -64,7 +64,7 @@ if TYPE_CHECKING:
     from .analysis_plots import AnalysisPlotExportResult
 
 
-ANALYSIS_EXPORT_SCHEMA_VERSION = 7
+ANALYSIS_EXPORT_SCHEMA_VERSION = 8
 
 
 _MOLECULES_CSV_FIELDS = (
