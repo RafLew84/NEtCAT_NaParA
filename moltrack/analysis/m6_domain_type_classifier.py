@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import hashlib
-import heapq
 import json
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
-from itertools import combinations
 
 import numpy as np
 
+from ._deterministic_complete_linkage import (
+    deterministic_complete_linkage_clusters,
+)
 from ._m6_domain_type_validation import non_empty_string as _non_empty_string
 from .frame_ranges import MolecularFrameRangeAnalysisScope
 from .m6_domain_type_observations import (
@@ -32,7 +33,6 @@ from .m6_settings import MolecularM6OrientationAnalysisSettings
 
 _Cluster = tuple[M6DomainTypeObservation, ...]
 _ObservationStructuralKey = tuple[object, ...]
-_ClusterStructuralKey = tuple[_ObservationStructuralKey, ...]
 
 
 @dataclass(frozen=True)
@@ -139,118 +139,16 @@ def _complete_linkage_clusters(
     *,
     settings: M6DomainTypeClassificationSettings,
 ) -> tuple[_Cluster, ...]:
-    active = {
-        cluster_id: (observation,)
-        for cluster_id, observation in enumerate(observations)
-    }
-    active_keys = {
-        cluster_id: (_observation_structural_key(observation),)
-        for cluster_id, observation in enumerate(observations)
-    }
-    compatible: dict[int, dict[int, float]] = {
-        cluster_id: {} for cluster_id in active
-    }
-    candidates: list[tuple[float, tuple[object, ...], int, int]] = []
-    for left_id, right_id in combinations(active, 2):
-        left = active[left_id]
-        right = active[right_id]
-        distance = _complete_linkage_distance(left, right, settings=settings)
-        if distance > 1.0:
-            continue
-        compatible[left_id][right_id] = distance
-        compatible[right_id][left_id] = distance
-        merged_key = _merge_cluster_structural_keys(
-            active_keys[left_id],
-            active_keys[right_id],
-        )
-        candidates.append(
-            (
-                distance,
-                merged_key,
-                left_id,
-                right_id,
-            )
-        )
-    heapq.heapify(candidates)
-
-    next_cluster_id = len(active)
-    while candidates:
-        distance, merged_key, left_id, right_id = heapq.heappop(candidates)
-        if left_id not in active or right_id not in active:
-            continue
-        if compatible[left_id].get(right_id) != distance:
-            continue
-        merged = _merge_clusters(active[left_id], active[right_id])
-
-        left_neighbors = compatible.pop(left_id)
-        right_neighbors = compatible.pop(right_id)
-        common_neighbors = (
-            set(left_neighbors).intersection(right_neighbors).intersection(active)
-            - {left_id, right_id}
-        )
-        for neighbor_id in set(left_neighbors).union(right_neighbors):
-            if neighbor_id in compatible:
-                compatible[neighbor_id].pop(left_id, None)
-                compatible[neighbor_id].pop(right_id, None)
-        del active[left_id]
-        del active[right_id]
-        del active_keys[left_id]
-        del active_keys[right_id]
-
-        merged_id = next_cluster_id
-        next_cluster_id += 1
-        active[merged_id] = merged
-        active_keys[merged_id] = merged_key
-        compatible[merged_id] = {}
-        for neighbor_id in common_neighbors:
-            neighbor_distance = max(
-                left_neighbors[neighbor_id],
-                right_neighbors[neighbor_id],
-            )
-            compatible[merged_id][neighbor_id] = neighbor_distance
-            compatible[neighbor_id][merged_id] = neighbor_distance
-            heapq.heappush(
-                candidates,
-                (
-                    neighbor_distance,
-                    _merge_cluster_structural_keys(
-                        merged_key,
-                        active_keys[neighbor_id],
-                    ),
-                    merged_id,
-                    neighbor_id,
-                ),
-            )
-    return tuple(active[key] for key in sorted(active, key=active_keys.__getitem__))
-
-
-def _merge_clusters(left: _Cluster, right: _Cluster) -> _Cluster:
-    return tuple(sorted((*left, *right), key=_observation_structural_key))
-
-
-def _merge_cluster_structural_keys(
-    left: _ClusterStructuralKey,
-    right: _ClusterStructuralKey,
-) -> _ClusterStructuralKey:
-    return tuple(sorted((*left, *right)))
-
-
-def _complete_linkage_distance(
-    left: _Cluster,
-    right: _Cluster,
-    *,
-    settings: M6DomainTypeClassificationSettings,
-) -> float:
-    return max(
-        compute_m6_domain_type_distance(
-            left_observation.orientation_deg,
-            _required_bond_length(left_observation),
-            right_observation.orientation_deg,
-            _required_bond_length(right_observation),
+    return deterministic_complete_linkage_clusters(
+        observations,
+        distance=lambda left, right: compute_m6_domain_type_distance(
+            left.orientation_deg,
+            _required_bond_length(left),
+            right.orientation_deg,
+            _required_bond_length(right),
             settings=settings,
-        ).normalized_distance
-        for left_observation in left
-        for right_observation in right
+        ).normalized_distance,
+        structural_key=_observation_structural_key,
     )
 
 
