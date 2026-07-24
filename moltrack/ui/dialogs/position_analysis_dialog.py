@@ -51,6 +51,7 @@ from moltrack.analysis import (
 
 from .m6_domain_types_panel import M6DomainTypesPanel
 from .m6_settings_panel import M6SettingsPanel
+from .molecular_order_types_panel import MolecularOrderTypesPanel
 
 
 class PositionAnalysisDialog(QDialog):
@@ -74,6 +75,8 @@ class PositionAnalysisDialog(QDialog):
     m6_lattice_domain_calibration_requested = pyqtSignal()
     m6_domain_type_settings_changed = pyqtSignal(object)
     m6_domain_type_selection_changed = pyqtSignal(object)
+    molecular_order_type_classification_requested = pyqtSignal(object)
+    molecular_order_representative_requested = pyqtSignal(object)
 
     _INTENSITY_METRIC_OPTIONS = (
         ("Background-corrected median", "background_corrected_median"),
@@ -373,6 +376,17 @@ class PositionAnalysisDialog(QDialog):
             self.m6_domain_type_selection_changed.emit
         )
         self.tabs.addTab(self.domain_types_panel, "Domain Types")
+        self.molecular_order_types_panel = MolecularOrderTypesPanel(self.tabs)
+        self.molecular_order_types_panel.classification_requested.connect(
+            self.molecular_order_type_classification_requested.emit
+        )
+        self.molecular_order_types_panel.representative_requested.connect(
+            self.molecular_order_representative_requested.emit
+        )
+        self.tabs.addTab(
+            self.molecular_order_types_panel,
+            "Order Hierarchy",
+        )
         self.m6_advanced_group = self.m6_settings_panel.advanced_group
         self.m6_min_neighbors_for_seed_spin = (
             self.m6_settings_panel.min_neighbors_for_seed
@@ -423,6 +437,22 @@ class PositionAnalysisDialog(QDialog):
 
     def set_m6_domain_type_canceled(self) -> None:
         self.domain_types_panel.set_canceled()
+
+    def set_molecular_order_type_summary(
+        self,
+        summary,
+        *,
+        status_message: str | None = None,
+        orientation_distribution=None,
+    ) -> None:
+        self.molecular_order_types_panel.set_summary(
+            summary,
+            status_message=status_message,
+            orientation_distribution=orientation_distribution,
+        )
+
+    def set_molecular_order_type_running(self, running: bool) -> None:
+        self.molecular_order_types_panel.set_running(running)
 
     def m6_overlay_mode_options(self) -> tuple[str, ...]:
         return self.m6_settings_panel.overlay_mode_options()

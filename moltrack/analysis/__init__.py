@@ -366,6 +366,16 @@ from .molecular_order_type_classifier import (
     extract_molecular_order_type_observations,
     periodic_orientation_distance_deg,
 )
+from .molecular_order_type_summary import (
+    MolecularOrderShareDeltaDirection,
+    MolecularOrderSummaryLayer,
+    MolecularOrderTypeRangeShare,
+    MolecularOrderTypeRangeSummary,
+    MolecularOrderTypeSummary,
+    MolecularOrderTypeSummaryRow,
+    MolecularOrderTypeSummaryRowKey,
+    build_molecular_order_type_summary,
+)
 from .molecular_stacking_overlay import (
     MolecularStackingDisplayResult,
     MolecularStackingFrameGeometry,
@@ -791,6 +801,14 @@ __all__ = [
     "molecular_order_type_observations_fingerprint",
     "molecular_order_type_settings_fingerprint",
     "periodic_orientation_distance_deg",
+    "MolecularOrderShareDeltaDirection",
+    "MolecularOrderSummaryLayer",
+    "MolecularOrderTypeRangeShare",
+    "MolecularOrderTypeRangeSummary",
+    "MolecularOrderTypeSummary",
+    "MolecularOrderTypeSummaryRow",
+    "MolecularOrderTypeSummaryRowKey",
+    "build_molecular_order_type_summary",
     "MolecularStackingDisplayResult",
     "MolecularStackingFrameGeometry",
     "MolecularStackingInspection",

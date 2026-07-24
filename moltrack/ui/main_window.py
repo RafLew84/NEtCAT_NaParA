@@ -50,6 +50,7 @@ from moltrack.analysis import (
     MolecularOrientationEstimationCancelled,
     MolecularOrientationFrameData,
     MolecularOrientationStore,
+    MolecularOrderTypeClassificationSettings,
     MolecularStackingDisplayResult,
     MolecularStackingFrameGeometry,
     MolecularStackingOverlayLayer,
@@ -107,6 +108,12 @@ from moltrack.ui.molecular_stacking_controller import (
     MolecularStackingAnalysisController,
     analyze_molecular_stacking_display,
     build_molecular_stacking_input_frames,
+)
+from moltrack.ui.molecular_order_type_worker import (
+    MolecularOrderTypeAnalysisController,
+    MolecularOrderTypeAnalysisResult,
+    analyze_molecular_order_types,
+    build_molecular_order_hierarchy_from_frame_results,
 )
 from moltrack.ui.m6_domain_type_overlay import (
     M6DomainTypeOverlayIndex,
@@ -1153,6 +1160,7 @@ class MolTrackMainWindow(QMainWindow):
         m6_domain_type_store=None,
         molecular_orientation_estimator=estimate_series_molecular_orientations,
         molecular_stacking_analyzer=analyze_molecular_stacking_display,
+        molecular_order_type_analyzer=analyze_molecular_order_types,
     ):
         super().__init__(parent)
         self._series = None
@@ -1229,6 +1237,22 @@ class MolTrackMainWindow(QMainWindow):
         )
         self._molecular_stacking_controller.failed.connect(
             self._on_molecular_stacking_failed
+        )
+        self._molecular_order_type_controller = (
+            MolecularOrderTypeAnalysisController(
+                analyzer=molecular_order_type_analyzer,
+                parent=self,
+            )
+        )
+        self._molecular_order_type_error_message: str | None = None
+        self._molecular_order_type_controller.running_changed.connect(
+            self._on_molecular_order_type_running_changed
+        )
+        self._molecular_order_type_controller.finished.connect(
+            self._on_molecular_order_type_finished
+        )
+        self._molecular_order_type_controller.failed.connect(
+            self._on_molecular_order_type_failed
         )
         self._molecular_stacking_pending_session_state: (
             MolecularStackingSessionState | None
@@ -1824,6 +1848,8 @@ class MolTrackMainWindow(QMainWindow):
         self._m6_rendered_analysis = None
         self._m6_rendered_view_settings = None
         self._molecular_stacking_controller.invalidate()
+        self._molecular_order_type_controller.invalidate()
+        self._molecular_order_type_error_message = None
         self._molecular_stacking_pending_session_state = None
         self.viewer.clear_molecular_stacking_point_overlays()
         self._clear_sam3_prompt_draw_mode()
@@ -2928,6 +2954,7 @@ class MolTrackMainWindow(QMainWindow):
             self._current_molecular_stacking_range_comparison()
         )
         self._sync_current_molecular_stacking_inspection()
+        self._sync_molecular_order_type_panel()
 
     def _current_molecular_stacking_range_comparison(self):
         result = self._current_molecular_stacking_display_result()
@@ -3007,6 +3034,193 @@ class MolTrackMainWindow(QMainWindow):
             m6_context=self._m6_completed_context,
         )
 
+    def _current_molecular_order_type_result(
+        self,
+    ) -> MolecularOrderTypeAnalysisResult | None:
+        display = self._current_molecular_stacking_display_result()
+        if display is None:
+            return None
+        return self._molecular_order_type_controller.current_result(display)
+
+    def _sync_molecular_order_type_panel(self) -> None:
+        dialog = self._position_analysis_dialog
+        if dialog is None:
+            return
+        display = self._current_molecular_stacking_display_result()
+        result = self._current_molecular_order_type_result()
+        running = self._molecular_order_type_controller.is_running
+        dialog.set_molecular_order_type_running(running)
+        if result is not None:
+            dialog.set_molecular_order_type_summary(
+                result.summary,
+                orientation_distribution=result.orientation_distribution,
+            )
+            return
+        if running:
+            dialog.set_molecular_order_type_summary(
+                None,
+                status_message=(
+                    "Classifying hierarchical molecular-order types..."
+                ),
+            )
+            dialog.set_molecular_order_type_running(True)
+            return
+        if self._molecular_order_type_error_message is not None:
+            message = self._molecular_order_type_error_message
+        elif self._m6_completed_context is None:
+            message = "Run M6 analysis first."
+        elif display is None:
+            message = (
+                "Estimate molecular orientations and analyze stacking first."
+            )
+        else:
+            message = (
+                "Ready to classify geometry, molecular orientation, "
+                "stacking, and their combinations."
+            )
+        dialog.set_molecular_order_type_summary(
+            None,
+            status_message=message,
+        )
+
+    @pyqtSlot(object)
+    def _on_molecular_order_type_classification_requested(
+        self,
+        settings,
+    ) -> None:
+        if (
+            self._series is None
+            or self._is_processing()
+            or not isinstance(
+                settings,
+                MolecularOrderTypeClassificationSettings,
+            )
+        ):
+            self._sync_molecular_order_type_panel()
+            return
+        self._molecular_order_type_error_message = None
+        display = self._current_molecular_stacking_display_result()
+        context = self._m6_completed_context
+        if (
+            display is None
+            or not isinstance(context, _M6CompletedAnalysisContext)
+        ):
+            self._sync_molecular_order_type_panel()
+            return
+        try:
+            hierarchy = build_molecular_order_hierarchy_from_frame_results(
+                tuple(
+                    frame_result
+                    for range_analysis in _range_analyses(context.result)
+                    for frame_result in range_analysis.frame_results
+                ),
+                display,
+            )
+        except Exception as exc:
+            message = str(exc) or exc.__class__.__name__
+            self._molecular_order_type_error_message = message
+            if self._position_analysis_dialog is not None:
+                self._position_analysis_dialog.set_molecular_order_type_summary(
+                    None,
+                    status_message=message,
+                )
+            self.statusBar().showMessage(
+                f"Hierarchical type classification failed: {message}",
+                5000,
+            )
+            return
+        if not self._molecular_order_type_controller.start(
+            hierarchy,
+            context.scope,
+            settings,
+            context_token=display,
+            display_result=display,
+        ):
+            self._sync_molecular_order_type_panel()
+            return
+        self._sync_molecular_order_type_panel()
+        self.statusBar().showMessage(
+            "Classifying hierarchical molecular-order types...",
+            0,
+        )
+
+    @pyqtSlot(object)
+    def _on_molecular_order_type_finished(self, _result) -> None:
+        self._molecular_order_type_error_message = None
+        self._sync_molecular_order_type_panel()
+        result = self._current_molecular_order_type_result()
+        if result is None:
+            return
+        summary = result.summary
+        self.statusBar().showMessage(
+            "Hierarchical type classification complete: "
+            f"{len(summary.rows_for_layer('geometry'))} geometry, "
+            f"{len(summary.rows_for_layer('orientation'))} orientation, "
+            f"{len(summary.rows_for_layer('stacking'))} stacking, "
+            f"{len(summary.rows_for_layer('combination'))} combined type(s).",
+            5000,
+        )
+
+    @pyqtSlot(str)
+    def _on_molecular_order_type_failed(self, message: str) -> None:
+        self._molecular_order_type_error_message = str(message)
+        dialog = self._position_analysis_dialog
+        if dialog is not None:
+            dialog.set_molecular_order_type_summary(
+                None,
+                status_message=message,
+            )
+        self.statusBar().showMessage(
+            f"Hierarchical type classification failed: {message}",
+            5000,
+        )
+
+    @pyqtSlot(bool)
+    def _on_molecular_order_type_running_changed(
+        self,
+        _running: bool,
+    ) -> None:
+        self._sync_molecular_order_type_panel()
+        self._sync_navigation_controls()
+
+    @pyqtSlot(object)
+    def _on_molecular_order_representative_requested(
+        self,
+        observation_key,
+    ) -> None:
+        result = self._current_molecular_order_type_result()
+        if result is None:
+            self._sync_molecular_order_type_panel()
+            return
+        try:
+            result.classification.assignment_for_observation_key(
+                observation_key
+            )
+            observation = next(
+                value
+                for value in result.classification.observations
+                if value.stable_key == observation_key
+            )
+            domain = result.hierarchy.frame_for_index(
+                observation.frame_index
+            ).domain_for_id(observation.lattice_domain_id)
+        except (KeyError, StopIteration, TypeError, ValueError):
+            return
+        self._m6_selected_domain_type_key = None
+        self._m6_selected_ordered_component_id = None
+        self._on_frame_selected(observation.frame_index)
+        analysis = self._current_m6_analysis_result()
+        if analysis is not None:
+            self._show_selected_m6_component(
+                analysis,
+                domain.lattice_domain.source_ids,
+            )
+        self.statusBar().showMessage(
+            f"Representative domain: frame {observation.frame_index + 1}, "
+            f"{observation.lattice_domain_id}",
+            5000,
+        )
+
     def _on_molecular_stacking_analyze_requested(self) -> None:
         if self._series is None or self._is_processing():
             return
@@ -3019,6 +3233,9 @@ class MolTrackMainWindow(QMainWindow):
             )
             return
         self.viewer.clear_molecular_stacking_point_overlays()
+        self._molecular_order_type_controller.invalidate()
+        self._molecular_order_type_error_message = None
+        self._sync_molecular_order_type_panel()
         self._molecular_stacking_progress_dialog = QProgressDialog(
             "Classifying molecular stacking...",
             None,
@@ -3293,6 +3510,8 @@ class MolTrackMainWindow(QMainWindow):
         status_text: str = "Stacking not computed",
     ) -> None:
         self._molecular_stacking_controller.invalidate()
+        self._molecular_order_type_controller.invalidate()
+        self._molecular_order_type_error_message = None
         if self._series is not None:
             self._series.molecular_stacking_state = (
                 MolecularStackingSessionState()
@@ -3305,6 +3524,7 @@ class MolTrackMainWindow(QMainWindow):
             status_text=status_text,
         )
         self.orientation_panel.set_stacking_range_comparison(None)
+        self._sync_molecular_order_type_panel()
 
     def _on_molecular_orientation_estimate_current_requested(self) -> None:
         if self._series is None:
@@ -3698,6 +3918,7 @@ class MolTrackMainWindow(QMainWindow):
             or self._m6_analysis_running
             or self._molecular_orientation_running
             or self._molecular_stacking_controller.running
+            or self._molecular_order_type_controller.is_running
             or (
                 calibration_dialog is not None
                 and calibration_dialog.is_running
@@ -4126,6 +4347,12 @@ class MolTrackMainWindow(QMainWindow):
             dialog.m6_domain_type_selection_changed.connect(
                 self._on_m6_domain_type_selection_changed
             )
+            dialog.molecular_order_type_classification_requested.connect(
+                self._on_molecular_order_type_classification_requested
+            )
+            dialog.molecular_order_representative_requested.connect(
+                self._on_molecular_order_representative_requested
+            )
             self._position_analysis_dialog = dialog
             state = getattr(self._series, "m6_analysis_state", None)
             if isinstance(state, MolecularM6SessionState):
@@ -4139,6 +4366,7 @@ class MolTrackMainWindow(QMainWindow):
         self._position_analysis_dialog.set_plot_data(plot_data)
         self._sync_current_m6_results(force=True)
         self._sync_m6_domain_type_panel()
+        self._sync_molecular_order_type_panel()
         self._position_analysis_dialog.show()
         self._position_analysis_dialog.raise_()
         self._position_analysis_dialog.activateWindow()
@@ -6583,6 +6811,7 @@ class MolTrackMainWindow(QMainWindow):
             enabled
             and self._series is not None
             and not self._m6_domain_type_controller.is_running
+            and not self._molecular_order_type_controller.is_running
         )
         self.action_save_state.setEnabled(can_save_state)
         self.action_save_state_as.setEnabled(can_save_state)
@@ -6658,6 +6887,7 @@ class MolTrackMainWindow(QMainWindow):
             self._series is None
             or self._state_io_running
             or self._m6_domain_type_controller.is_running
+            or self._molecular_order_type_controller.is_running
         ):
             return
         try:
@@ -6700,6 +6930,7 @@ class MolTrackMainWindow(QMainWindow):
         if (
             self._series is None
             or self._m6_domain_type_controller.is_running
+            or self._molecular_order_type_controller.is_running
         ):
             return
         try:
@@ -6726,6 +6957,9 @@ class MolTrackMainWindow(QMainWindow):
             )
         if dialog is not None:
             selection = dialog.frame_range_selection()
+            active_tab = dialog.active_analysis_tab()
+            if active_tab == "Order Hierarchy":
+                active_tab = "Current frame"
             ui_state["position_analysis"] = {
                 "source_view": selection.source_view,
                 "first_range": {
@@ -6739,7 +6973,7 @@ class MolTrackMainWindow(QMainWindow):
                     "end_frame": selection.second_range.end_frame,
                 },
                 "comparison_completed": dialog.has_active_range_analysis(),
-                "active_tab": dialog.active_analysis_tab(),
+                "active_tab": active_tab,
                 "density_grid_shape": list(dialog.density_grid_shape()),
                 "use_segmentation_centroids": dialog.use_segmentation_centroids(),
                 "intensity_metric": str(dialog.cmb_intensity_metric.currentData()),

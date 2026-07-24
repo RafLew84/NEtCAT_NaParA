@@ -6127,6 +6127,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
                 "Spatial comparison",
                 "Sixfold Bond Order",
                 "Domain Types",
+                "Order Hierarchy",
             ),
         )
         self.assertEqual(dialog.active_analysis_tab(), "Range trends")
