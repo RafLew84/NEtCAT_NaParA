@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, replace
-from hashlib import sha256
 from math import atan2, cos, pi, sin, sqrt
 
 import numpy as np
@@ -30,6 +28,7 @@ from .molecular_orientation_prototype_models import (
     MolecularOrientationRangeAxisEvidence,
     MolecularOrientationStateLabel,
     MolecularOrientationStateAssignment,
+    molecular_orientation_frames_measurement_fingerprint,
     molecular_orientation_prototype_settings_fingerprint,
 )
 
@@ -1045,9 +1044,8 @@ def _common_result_fields(
             )
             for value in frames
         ),
-        measurement_fingerprint=_measurement_fingerprint(
-            frames,
-            all_measurements,
+        measurement_fingerprint=(
+            molecular_orientation_frames_measurement_fingerprint(frames)
         ),
         settings=settings,
         settings_fingerprint=(
@@ -1109,33 +1107,6 @@ def _unavailable(
         periodicity_deg=periodicity_deg,
         common=common,
     )
-
-
-def _measurement_fingerprint(
-    frames: tuple[MolecularOrientationFrameData, ...],
-    measurements: tuple[MolecularOrientationMeasurement, ...],
-) -> str:
-    payload = {
-        "frames": tuple(value.frame_index for value in frames),
-        "measurements": tuple(
-            value.to_dict()
-            for value in sorted(
-                measurements,
-                key=lambda item: (
-                    item.provenance.frame_index,
-                    item.provenance.source_id,
-                    item.measurement_id,
-                ),
-            )
-        ),
-    }
-    encoded = json.dumps(
-        payload,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=True,
-    ).encode("utf-8")
-    return sha256(encoded).hexdigest()
 
 
 __all__ = ["build_molecular_orientation_prototype_analysis"]

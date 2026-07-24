@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QCheckBox,
     QDoubleSpinBox,
@@ -10,11 +10,15 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QSlider,
     QSpinBox,
     QVBoxLayout,
 )
 
-from moltrack.analysis import MolecularOrientationMeasurement
+from moltrack.analysis import (
+    MolecularOrientationMeasurement,
+    MolecularStackingInspection,
+)
 
 
 class MolecularOrientationPanel(QGroupBox):
@@ -26,6 +30,10 @@ class MolecularOrientationPanel(QGroupBox):
     set_angle_requested = pyqtSignal(float)
     rotate_requested = pyqtSignal(float)
     reset_requested = pyqtSignal()
+    analyze_stacking_requested = pyqtSignal()
+    orientation_view_changed = pyqtSignal()
+    ab_states_view_changed = pyqtSignal()
+    stacking_subdomains_view_changed = pyqtSignal()
 
     def __init__(self, parent=None) -> None:
         super().__init__("Molecular Orientation", parent)
@@ -36,15 +44,23 @@ class MolecularOrientationPanel(QGroupBox):
         self._current_segmentation_count = 0
         self._total_segmentation_count = 0
         self._selected_segmentation_available = False
+        self._stacking_can_analyze = False
+        self._stacking_computed = False
+        self._stacking_running = False
+        self._stacking_inspection: MolecularStackingInspection | None = None
         self._build()
         self._connect()
         self._sync_controls()
 
     def _build(self) -> None:
         layout = QVBoxLayout(self)
-        self.chk_show_axes = QCheckBox("Show molecular axes", self)
+        self.chk_show_axes = QCheckBox("Molecular orientation", self)
         self.chk_show_axes.setChecked(True)
-        layout.addWidget(self.chk_show_axes)
+        self.slider_orientation_opacity = self._overlay_row(
+            layout,
+            self.chk_show_axes,
+            value=85,
+        )
 
         self.btn_estimate_current = QPushButton("Estimate Current Frame", self)
         layout.addWidget(self.btn_estimate_current)
@@ -94,6 +110,63 @@ class MolecularOrientationPanel(QGroupBox):
         self.btn_reset = QPushButton("Reset Selected To Automatic", self)
         layout.addWidget(self.btn_reset)
 
+        stacking_title = QLabel("Stacking", self)
+        font = stacking_title.font()
+        font.setBold(True)
+        stacking_title.setFont(font)
+        layout.addWidget(stacking_title)
+
+        self.chk_show_ab_states = QCheckBox("AB states", self)
+        self.chk_show_ab_states.setChecked(True)
+        self.slider_ab_states_opacity = self._overlay_row(
+            layout,
+            self.chk_show_ab_states,
+            value=70,
+        )
+
+        self.chk_show_stacking_subdomains = QCheckBox(
+            "Stacking subdomains",
+            self,
+        )
+        self.chk_show_stacking_subdomains.setChecked(True)
+        self.slider_stacking_subdomains_opacity = self._overlay_row(
+            layout,
+            self.chk_show_stacking_subdomains,
+            value=30,
+        )
+
+        self.btn_analyze_stacking = QPushButton("Analyze Stacking", self)
+        layout.addWidget(self.btn_analyze_stacking)
+        self.lbl_stacking_status = QLabel("Stacking not computed", self)
+        self.lbl_stacking_status.setWordWrap(True)
+        layout.addWidget(self.lbl_stacking_status)
+        self.lbl_stacking_selection = QLabel(
+            "No stacking selection",
+            self,
+        )
+        self.lbl_stacking_selection.setWordWrap(True)
+        self.lbl_stacking_selection.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        layout.addWidget(self.lbl_stacking_selection)
+
+    def _overlay_row(
+        self,
+        layout: QVBoxLayout,
+        checkbox: QCheckBox,
+        *,
+        value: int,
+    ) -> QSlider:
+        row = QHBoxLayout()
+        row.addWidget(checkbox)
+        slider = QSlider(Qt.Orientation.Horizontal, self)
+        slider.setRange(0, 100)
+        slider.setValue(int(value))
+        slider.setToolTip(f"{checkbox.text()} opacity")
+        row.addWidget(slider, 1)
+        layout.addLayout(row)
+        return slider
+
     def _connect(self) -> None:
         self.btn_estimate_current.clicked.connect(
             self.estimate_current_requested
@@ -120,6 +193,27 @@ class MolecularOrientationPanel(QGroupBox):
             )
         )
         self.btn_reset.clicked.connect(self.reset_requested)
+        self.btn_analyze_stacking.clicked.connect(
+            self.analyze_stacking_requested
+        )
+        self.chk_show_axes.toggled.connect(
+            self.orientation_view_changed
+        )
+        self.slider_orientation_opacity.valueChanged.connect(
+            self.orientation_view_changed
+        )
+        self.chk_show_ab_states.toggled.connect(
+            self.ab_states_view_changed
+        )
+        self.slider_ab_states_opacity.valueChanged.connect(
+            self.ab_states_view_changed
+        )
+        self.chk_show_stacking_subdomains.toggled.connect(
+            self.stacking_subdomains_view_changed
+        )
+        self.slider_stacking_subdomains_opacity.valueChanged.connect(
+            self.stacking_subdomains_view_changed
+        )
 
     def set_context(
         self,
@@ -211,6 +305,58 @@ class MolecularOrientationPanel(QGroupBox):
                 self.sp_manual_angle_deg.setValue(measurement.angle_deg)
         self._sync_controls()
 
+    def set_stacking_context(
+        self,
+        *,
+        can_analyze: bool,
+        computed: bool,
+        running: bool,
+        status_text: str,
+    ) -> None:
+        self._stacking_can_analyze = bool(can_analyze)
+        self._stacking_computed = bool(computed)
+        self._stacking_running = bool(running)
+        self.lbl_stacking_status.setText(str(status_text))
+        if not self._stacking_computed:
+            self.set_stacking_inspection(None)
+        self._sync_controls()
+
+    def set_stacking_inspection(
+        self,
+        inspection: MolecularStackingInspection | None,
+    ) -> None:
+        if inspection is not None and not isinstance(
+            inspection,
+            MolecularStackingInspection,
+        ):
+            raise TypeError(
+                "inspection must be MolecularStackingInspection or None."
+            )
+        self._stacking_inspection = inspection
+        self.lbl_stacking_selection.setText(
+            "No stacking selection"
+            if inspection is None
+            else _format_stacking_inspection(inspection)
+        )
+
+    def orientation_overlay_visible(self) -> bool:
+        return self.chk_show_axes.isChecked()
+
+    def orientation_opacity_percent(self) -> int:
+        return self.slider_orientation_opacity.value()
+
+    def ab_states_overlay_visible(self) -> bool:
+        return self.chk_show_ab_states.isChecked()
+
+    def ab_states_opacity_percent(self) -> int:
+        return self.slider_ab_states_opacity.value()
+
+    def stacking_subdomains_overlay_visible(self) -> bool:
+        return self.chk_show_stacking_subdomains.isChecked()
+
+    def stacking_subdomains_opacity_percent(self) -> int:
+        return self.slider_stacking_subdomains_opacity.value()
+
     def _sync_controls(self) -> None:
         has_series = self._frame_count > 0
         has_current = self._current_segmentation_count > 0
@@ -240,3 +386,99 @@ class MolecularOrientationPanel(QGroupBox):
         self.btn_reset.setEnabled(
             editable and bool(self._measurement.is_manually_corrected)
         )
+        stacking_busy = self._running or self._stacking_running
+        self.btn_analyze_stacking.setEnabled(
+            self._stacking_can_analyze and not stacking_busy
+        )
+        self.btn_analyze_stacking.setText(
+            "Analyzing Stacking..."
+            if self._stacking_running
+            else "Analyze Stacking"
+        )
+        self.chk_show_axes.setEnabled(has_series)
+        self.slider_orientation_opacity.setEnabled(has_series)
+        for control in (
+            self.chk_show_ab_states,
+            self.slider_ab_states_opacity,
+            self.chk_show_stacking_subdomains,
+            self.slider_stacking_subdomains_opacity,
+        ):
+            control.setEnabled(self._stacking_computed)
+
+
+def _format_stacking_inspection(
+    inspection: MolecularStackingInspection,
+) -> str:
+    state = inspection.state_label or "n/a"
+    axis = (
+        "n/a"
+        if inspection.axis_angle_deg is None
+        else (
+            f"{inspection.axis_angle_deg:.1f} deg "
+            f"(candidate {inspection.axis_candidate_index})"
+        )
+    )
+    prototypes = (
+        "n/a"
+        if inspection.prototype_a_angle_deg is None
+        else (
+            f"A {inspection.prototype_a_angle_deg:.1f} deg"
+            + (
+                ""
+                if inspection.prototype_b_angle_deg is None
+                else f", B {inspection.prototype_b_angle_deg:.1f} deg"
+            )
+        )
+    )
+    parent_score = (
+        "n/a"
+        if inspection.parent_score is None
+        else f"{inspection.parent_score:.3f}"
+    )
+    parent_qc = ", ".join(inspection.parent_qc_reasons) or "OK"
+    score = (
+        "n/a"
+        if inspection.score is None
+        else f"{inspection.score:.3f}"
+    )
+    qc = ", ".join(inspection.qc_reasons) or "OK"
+    mode_phase = "/".join(
+        value
+        for value in (inspection.mode, inspection.phase)
+        if value is not None
+    ) or "n/a"
+    lines = [
+        (
+            f"Parent: {inspection.parent_lattice_domain_id} | "
+            f"{inspection.parent_pattern}"
+        ),
+        (
+            f"Parent score: {parent_score} | confidence "
+            f"{inspection.parent_confidence:.3f} | coverage "
+            f"{inspection.parent_coverage_fraction:.3f}"
+        ),
+        f"Parent QC: {parent_qc}",
+        (
+            "Subdomain: n/a"
+            if inspection.subdomain_id is None
+            else (
+                f"Subdomain: {inspection.subdomain_id} | "
+                f"{inspection.pattern} | {mode_phase}"
+            )
+        ),
+        f"A/B state: {state}",
+        f"Row axis: {axis}",
+        f"Prototypes: {prototypes}",
+    ]
+    if inspection.subdomain_id is not None:
+        lines.extend(
+            (
+                (
+                    f"Subdomain score: {score} | confidence "
+                    f"{inspection.confidence:.3f} | coverage "
+                    f"{inspection.coverage_fraction:.3f}"
+                ),
+                f"Subdomain QC: {qc}",
+            )
+        )
+    return "\n".join(lines)

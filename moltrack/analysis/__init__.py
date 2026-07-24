@@ -303,6 +303,7 @@ from .molecular_orientation_prototype_models import (
     MolecularOrientationRangeAxisEvidence,
     MolecularOrientationStateAssignment,
     MolecularOrientationStateLabel,
+    molecular_orientation_frames_measurement_fingerprint,
     molecular_orientation_prototype_analysis_fingerprint,
     molecular_orientation_prototype_settings_fingerprint,
 )
@@ -323,6 +324,15 @@ from .molecular_stacking_models import (
     molecular_stacking_settings_fingerprint,
 )
 from .molecular_stacking_analysis import analyze_molecular_stacking
+from .molecular_stacking_overlay import (
+    MolecularStackingDisplayResult,
+    MolecularStackingFrameGeometry,
+    MolecularStackingInspection,
+    MolecularStackingOverlayLayer,
+    MolecularStackingPointOverlay,
+    build_molecular_stacking_inspection,
+    build_molecular_stacking_point_overlay,
+)
 from .molecular_orientation_method_validation import (
     MolecularOrientationMethodAgreementStatus,
     MolecularOrientationMethodMergeAssessment,
@@ -675,6 +685,7 @@ __all__ = [
     "MolecularOrientationRangeAxisEvidence",
     "MolecularOrientationStateAssignment",
     "MolecularOrientationStateLabel",
+    "molecular_orientation_frames_measurement_fingerprint",
     "build_molecular_orientation_prototype_analysis",
     "molecular_orientation_prototype_analysis_fingerprint",
     "molecular_orientation_prototype_settings_fingerprint",
@@ -688,6 +699,13 @@ __all__ = [
     "StackingQCReason",
     "StackingSubdomainPattern",
     "analyze_molecular_stacking",
+    "MolecularStackingDisplayResult",
+    "MolecularStackingFrameGeometry",
+    "MolecularStackingInspection",
+    "MolecularStackingOverlayLayer",
+    "MolecularStackingPointOverlay",
+    "build_molecular_stacking_inspection",
+    "build_molecular_stacking_point_overlay",
     "molecular_stacking_analysis_fingerprint",
     "molecular_stacking_settings_fingerprint",
     "MolecularOrientationMethodAgreementStatus",

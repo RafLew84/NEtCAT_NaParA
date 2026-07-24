@@ -8,7 +8,12 @@ import pyqtgraph as pg
 from PyQt6.QtCore import QEvent, Qt, pyqtSignal
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
-from moltrack.analysis import M6PointOverlay, MolecularOrientationAxis
+from moltrack.analysis import (
+    M6PointOverlay,
+    MolecularOrientationAxis,
+    MolecularStackingOverlayLayer,
+    MolecularStackingPointOverlay,
+)
 from moltrack.core import build_molecular_centroids
 from napara.gui.widgets.viewer_widget import ViewerWidget
 
@@ -45,6 +50,20 @@ class STMSeriesViewer(QWidget):
         self._m6_overlay_tooltip = ""
         self._molecular_orientation_axis_items: list[object] = []
         self._visible_molecular_orientation_axis_ids: tuple[str, ...] = ()
+        self._molecular_stacking_overlay_items: dict[
+            MolecularStackingOverlayLayer,
+            object | None,
+        ] = {
+            "ab_states": None,
+            "stacking_subdomains": None,
+        }
+        self._visible_molecular_stacking_source_ids: dict[
+            MolecularStackingOverlayLayer,
+            tuple[str, ...],
+        ] = {
+            "ab_states": (),
+            "stacking_subdomains": (),
+        }
         self._visible_molecular_segmentation_count = 0
         self._visible_molecular_segmentation_ids: list[str] = []
         self._visible_molecular_segmentation_opacities: list[float] = []
@@ -181,6 +200,14 @@ class STMSeriesViewer(QWidget):
         self._visible_m6_overlay_colors = ()
         self._molecular_orientation_axis_items = []
         self._visible_molecular_orientation_axis_ids = ()
+        self._molecular_stacking_overlay_items = {
+            "ab_states": None,
+            "stacking_subdomains": None,
+        }
+        self._visible_molecular_stacking_source_ids = {
+            "ab_states": (),
+            "stacking_subdomains": (),
+        }
         self._visible_molecular_segmentation_count = 0
         self._visible_molecular_segmentation_ids = []
         self._visible_molecular_segmentation_opacities = []
@@ -251,6 +278,7 @@ class STMSeriesViewer(QWidget):
         axes: tuple[MolecularOrientationAxis, ...],
         *,
         scale_nm_per_px: tuple[float | None, float | None] | None = None,
+        opacity_percent: int = 100,
     ) -> None:
         self.clear_molecular_orientation_axes()
         normalized_axes = tuple(axes)
@@ -261,12 +289,26 @@ class STMSeriesViewer(QWidget):
             raise TypeError(
                 "axes must contain MolecularOrientationAxis instances."
             )
+        opacity = int(opacity_percent)
+        if not 0 <= opacity <= 100:
+            raise ValueError(
+                "opacity_percent must be between 0 and 100."
+            )
+        alpha_scale = opacity / 100.0
         sx, sy = self._effective_scale_nm_per_px(
             scale_nm_per_px or self._current_scale_nm_per_px
         )
         for selected, color, width in (
-            (False, (80, 255, 120, 220), 1.8),
-            (True, (255, 220, 0, 255), 3.0),
+            (
+                False,
+                (80, 255, 120, round(220 * alpha_scale)),
+                1.8,
+            ),
+            (
+                True,
+                (255, 220, 0, round(255 * alpha_scale)),
+                3.0,
+            ),
         ):
             points = []
             for axis in normalized_axes:
@@ -298,6 +340,93 @@ class STMSeriesViewer(QWidget):
             self.viewer.remove_item(item)
         self._molecular_orientation_axis_items = []
         self._visible_molecular_orientation_axis_ids = ()
+
+    def show_molecular_stacking_point_overlay(
+        self,
+        overlay: MolecularStackingPointOverlay,
+        *,
+        scale_nm_per_px: tuple[float | None, float | None] | None = None,
+    ) -> None:
+        if not isinstance(overlay, MolecularStackingPointOverlay):
+            raise TypeError(
+                "overlay must be a MolecularStackingPointOverlay."
+            )
+        layer = overlay.layer
+        self.clear_molecular_stacking_point_overlay(layer)
+        if overlay.point_count == 0:
+            return
+        sx, sy = self._effective_scale_nm_per_px(
+            scale_nm_per_px or self._current_scale_nm_per_px
+        )
+        points_nm = np.asarray(
+            [
+                (x_px * sx, y_px * sy)
+                for x_px, y_px in overlay.points_xy_px
+            ],
+            dtype=np.float64,
+        )
+        item = self.viewer.add_colored_points_nm(
+            points_nm,
+            overlay.colors_rgba,
+            size=(
+                7.0
+                if layer == "ab_states"
+                else 13.0
+            ),
+        )
+        if item is None:
+            return
+        overlay_alpha = max(
+            color[3] for color in overlay.colors_rgba
+        )
+        item.setPen(
+            pg.mkPen(
+                (20, 20, 20, round(180 * overlay_alpha / 255.0)),
+                width=0.8,
+            )
+        )
+        self._molecular_stacking_overlay_items[layer] = item
+        self._visible_molecular_stacking_source_ids[layer] = (
+            overlay.source_ids
+        )
+
+    def clear_molecular_stacking_point_overlay(
+        self,
+        layer: MolecularStackingOverlayLayer,
+    ) -> None:
+        if layer not in self._molecular_stacking_overlay_items:
+            raise ValueError(
+                f"Unsupported stacking overlay layer: {layer!r}."
+            )
+        item = self._molecular_stacking_overlay_items[layer]
+        if item is not None:
+            self.viewer.remove_item(item)
+        self._molecular_stacking_overlay_items[layer] = None
+        self._visible_molecular_stacking_source_ids[layer] = ()
+
+    def clear_molecular_stacking_point_overlays(self) -> None:
+        for layer in ("ab_states", "stacking_subdomains"):
+            self.clear_molecular_stacking_point_overlay(layer)
+
+    def visible_molecular_stacking_overlay_count(
+        self,
+        layer: MolecularStackingOverlayLayer,
+    ) -> int:
+        try:
+            source_ids = self._visible_molecular_stacking_source_ids[
+                layer
+            ]
+        except KeyError as exc:
+            raise ValueError(
+                f"Unsupported stacking overlay layer: {layer!r}."
+            ) from exc
+        return len(source_ids)
+
+    def molecular_stacking_graphics_item_count(self) -> int:
+        return sum(
+            item is not None
+            for item in self._molecular_stacking_overlay_items.values()
+        )
 
     def show_m6_point_overlay(
         self,

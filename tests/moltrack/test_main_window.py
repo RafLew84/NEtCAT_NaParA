@@ -17,6 +17,8 @@ from moltrack.analysis import (
     MolecularOrientationEstimationProgress,
     MolecularOrientationMeasurement,
     MolecularOrientationProvenance,
+    MolecularOrientationStore,
+    MolecularStackingDisplayResult,
     MolecularFrameRange,
     MolecularFrameRangeSelection,
     MolecularIntensityMeasurement,
@@ -24,6 +26,8 @@ from moltrack.analysis import (
     MolecularM6SessionState,
     MolecularM6ViewSettings,
     TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET,
+    analyze_molecular_stacking,
+    build_molecular_orientation_prototype_analysis,
     build_molecular_position_plot_data,
     compare_molecular_frame_ranges,
 )
@@ -55,6 +59,7 @@ from moltrack.sam3 import (
     build_moltrack_sam3_preview,
 )
 from nanotrack.core import STMSequenceMetadata
+from test_molecular_stacking_analysis import _prototype_analysis
 
 try:
     from PyQt6.QtWidgets import QApplication
@@ -73,11 +78,15 @@ if QApplication is not None:
     )
 
     from moltrack.ui import MolTrackMainWindow
+    from moltrack.ui.molecular_stacking_controller import (
+        build_molecular_stacking_input_frames,
+    )
     from moltrack.ui.dialogs import PositionAnalysisDialog
 else:  # pragma: no cover - optional outside target GUI env
     QFileDialog = None
     QMessageBox = None
     MolTrackMainWindow = None
+    build_molecular_stacking_input_frames = None
 
 
 @unittest.skipUnless(QApplication is not None, "PyQt6 is required for MolTrack GUI tests")
@@ -430,6 +439,131 @@ class MolTrackMainWindowTests(unittest.TestCase):
                 "segmentation",
                 "mask-0",
             )
+        )
+
+    def test_stacking_analysis_runs_once_and_view_changes_only_render(
+        self,
+    ) -> None:
+        frames, _prototypes = _prototype_analysis(
+            state_for_site=lambda row, column: (row + column) % 2,
+        )
+        calls = []
+
+        def stacking_analyzer(input_frames):
+            input_frames = tuple(input_frames)
+            calls.append(input_frames)
+            prototypes = build_molecular_orientation_prototype_analysis(
+                input_frames
+            )
+            return MolecularStackingDisplayResult(
+                frames=input_frames,
+                prototype_analysis=prototypes,
+                stacking_analysis=analyze_molecular_stacking(
+                    input_frames,
+                    prototypes,
+                ),
+            )
+
+        self.window = MolTrackMainWindow(
+            yolo_model_discovery=lambda: [],
+            molecular_stacking_analyzer=stacking_analyzer,
+        )
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((2, 20, 20), dtype=np.float32),
+            metadata=STMSequenceMetadata(
+                pixels_x=20,
+                pixels_y=20,
+                size_nm_x=40.0,
+                size_nm_y=40.0,
+            ),
+        )
+        self.window.set_image_series(series)
+        completed_m6_context = object()
+        self.window._m6_completed_context = completed_m6_context
+
+        with patch.object(
+            self.window,
+            "_molecular_stacking_input_frames",
+            return_value=frames,
+        ), patch.object(
+            self.window,
+            "_molecular_stacking_inputs_available",
+            return_value=True,
+        ), patch.object(
+            self.window,
+            "_current_m6_analysis_result",
+            return_value=None,
+        ):
+            self.window._sync_molecular_orientation_panel()
+            self.window.orientation_panel.btn_analyze_stacking.click()
+            self.process_events_until(
+                lambda: not (
+                    self.window._molecular_stacking_controller.running
+                )
+            )
+            self.window.orientation_panel.chk_show_ab_states.setChecked(
+                False
+            )
+            self.window.orientation_panel.slider_ab_states_opacity.setValue(
+                40
+            )
+            self.window.orientation_panel.chk_show_stacking_subdomains.setChecked(
+                False
+            )
+
+        self.assertEqual(calls, [frames])
+        self.assertIs(
+            self.window._molecular_stacking_controller.bound_m6_context,
+            completed_m6_context,
+        )
+        self.assertIsInstance(
+            self.window._current_molecular_stacking_display_result(),
+            MolecularStackingDisplayResult,
+        )
+        self.assertIn(
+            "2 frame",
+            self.window.orientation_panel.lbl_stacking_status.text(),
+        )
+
+    def test_stacking_input_adapter_joins_m6_rows_with_saved_orientations(
+        self,
+    ) -> None:
+        frames, _prototypes = _prototype_analysis(
+            state_for_site=lambda row, column: (row + column) % 2,
+        )
+        store = MolecularOrientationStore(frame_count=2)
+        for frame in frames:
+            for measurement in frame.measurements:
+                store.put(measurement)
+        frame_results = tuple(
+            SimpleNamespace(
+                frame_index=frame.frame_index,
+                source_view="expanded_aligned",
+                m6_orientation_analysis=SimpleNamespace(
+                    lattice_row_assignment_analysis=frame.row_assignment,
+                ),
+            )
+            for frame in frames
+        )
+
+        collected = build_molecular_stacking_input_frames(
+            frame_results,
+            store,
+            source_view="expanded_aligned",
+        )
+
+        self.assertEqual(
+            tuple(frame.frame_index for frame in collected),
+            (0, 1),
+        )
+        self.assertEqual(
+            collected[0].row_assignment,
+            frames[0].row_assignment,
+        )
+        self.assertEqual(
+            collected[0].measurements,
+            frames[0].measurements,
         )
 
     def test_selected_segmentation_accepts_first_manual_orientation(

@@ -7,7 +7,11 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import numpy as np
 
-from moltrack.analysis import M6PointOverlay, MolecularOrientationAxis
+from moltrack.analysis import (
+    M6PointOverlay,
+    MolecularOrientationAxis,
+    MolecularStackingPointOverlay,
+)
 
 from moltrack.core import (
     MolecularDetection,
@@ -224,6 +228,66 @@ class STMSeriesViewerTests(unittest.TestCase):
         self.assertEqual(self.viewer.visible_molecular_orientation_axis_count(), 20)
         self.assertEqual(
             self.viewer.molecular_orientation_axis_graphics_item_count(),
+            2,
+        )
+
+    def test_stacking_layers_render_as_independent_batched_overlays(self) -> None:
+        self.viewer = STMSeriesViewer()
+        ab_overlay = MolecularStackingPointOverlay(
+            layer="ab_states",
+            source_ids=("a", "b"),
+            points_xy_px=((1.0, 2.0), (3.0, 4.0)),
+            colors_rgba=((0, 180, 255, 128), (240, 80, 150, 128)),
+            point_statuses=("A", "B"),
+        )
+        subdomain_overlay = MolecularStackingPointOverlay(
+            layer="stacking_subdomains",
+            source_ids=("a", "b"),
+            points_xy_px=((1.0, 2.0), (3.0, 4.0)),
+            colors_rgba=((25, 170, 120, 64), (235, 145, 35, 64)),
+            point_statuses=("checkerboard/ABAB", "checkerboard/BABA"),
+        )
+
+        self.viewer.show_molecular_stacking_point_overlay(subdomain_overlay)
+        self.viewer.show_molecular_stacking_point_overlay(ab_overlay)
+
+        self.assertEqual(
+            self.viewer.visible_molecular_stacking_overlay_count(
+                "ab_states"
+            ),
+            2,
+        )
+        self.assertEqual(
+            self.viewer.visible_molecular_stacking_overlay_count(
+                "stacking_subdomains"
+            ),
+            2,
+        )
+        self.assertEqual(
+            self.viewer.molecular_stacking_graphics_item_count(),
+            2,
+        )
+        ab_item = self.viewer._molecular_stacking_overlay_items[
+            "ab_states"
+        ]
+        subdomain_item = self.viewer._molecular_stacking_overlay_items[
+            "stacking_subdomains"
+        ]
+        self.assertEqual(ab_item.opts["pen"].color().alpha(), 90)
+        self.assertEqual(subdomain_item.opts["pen"].color().alpha(), 45)
+
+        self.viewer.clear_molecular_stacking_point_overlay("ab_states")
+
+        self.assertEqual(
+            self.viewer.visible_molecular_stacking_overlay_count(
+                "ab_states"
+            ),
+            0,
+        )
+        self.assertEqual(
+            self.viewer.visible_molecular_stacking_overlay_count(
+                "stacking_subdomains"
+            ),
             2,
         )
 

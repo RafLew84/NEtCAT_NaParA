@@ -6,6 +6,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from moltrack.analysis import (
     MolecularOrientationMeasurement,
     MolecularOrientationProvenance,
+    MolecularStackingInspection,
 )
 
 try:
@@ -97,6 +98,125 @@ class MolecularOrientationPanelTests(unittest.TestCase):
         self.panel.btn_rotate_positive.click()
 
         self.assertEqual(emitted, [7, 7.5])
+
+    def test_stacking_layers_have_independent_visibility_and_opacity(self) -> None:
+        self.panel = MolecularOrientationPanel()
+        changed = []
+        requested = []
+        self.panel.orientation_view_changed.connect(
+            lambda: changed.append("orientation")
+        )
+        self.panel.ab_states_view_changed.connect(
+            lambda: changed.append("ab")
+        )
+        self.panel.stacking_subdomains_view_changed.connect(
+            lambda: changed.append("subdomains")
+        )
+        self.panel.analyze_stacking_requested.connect(
+            lambda: requested.append("analyze")
+        )
+
+        self.panel.set_stacking_context(
+            can_analyze=True,
+            computed=True,
+            running=False,
+            status_text="2 frames | 1 domain",
+        )
+        self.panel.chk_show_axes.setChecked(False)
+        self.panel.slider_orientation_opacity.setValue(45)
+        self.panel.chk_show_ab_states.setChecked(False)
+        self.panel.chk_show_ab_states.setChecked(True)
+        self.panel.slider_ab_states_opacity.setValue(55)
+        self.panel.chk_show_stacking_subdomains.setChecked(False)
+        self.panel.chk_show_stacking_subdomains.setChecked(True)
+        self.panel.slider_stacking_subdomains_opacity.setValue(35)
+        self.panel.btn_analyze_stacking.click()
+
+        self.assertTrue(self.panel.btn_analyze_stacking.isEnabled())
+        self.assertFalse(self.panel.orientation_overlay_visible())
+        self.assertEqual(self.panel.orientation_opacity_percent(), 45)
+        self.assertTrue(self.panel.ab_states_overlay_visible())
+        self.assertEqual(self.panel.ab_states_opacity_percent(), 55)
+        self.assertTrue(self.panel.stacking_subdomains_overlay_visible())
+        self.assertEqual(
+            self.panel.stacking_subdomains_opacity_percent(),
+            35,
+        )
+        self.assertEqual(
+            changed,
+            [
+                "orientation",
+                "orientation",
+                "ab",
+                "ab",
+                "ab",
+                "subdomains",
+                "subdomains",
+                "subdomains",
+            ],
+        )
+        self.assertEqual(requested, ["analyze"])
+        self.assertEqual(
+            self.panel.lbl_stacking_status.text(),
+            "2 frames | 1 domain",
+        )
+
+    def test_selected_stacking_molecule_shows_hierarchical_audit(self) -> None:
+        self.panel = MolecularOrientationPanel()
+        self.panel.set_stacking_context(
+            can_analyze=True,
+            computed=True,
+            running=False,
+            status_text="computed",
+        )
+
+        self.panel.set_stacking_inspection(
+            MolecularStackingInspection(
+                frame_index=3,
+                source_id="mask-12",
+                parent_lattice_domain_id="domain-4",
+                subdomain_id="domain-4:subdomain-2",
+                state_label="B",
+                pattern="ABAB",
+                mode="between_rows",
+                phase="BABA",
+                axis_candidate_index=1,
+                axis_angle_deg=31.5,
+                prototype_a_angle_deg=22.0,
+                prototype_b_angle_deg=82.0,
+                score=0.91,
+                confidence=0.88,
+                coverage_fraction=0.75,
+                qc_reasons=("phase_boundary",),
+                parent_pattern="mixed",
+                parent_score=0.76,
+                parent_confidence=0.71,
+                parent_coverage_fraction=0.82,
+                parent_qc_reasons=(
+                    "phase_boundary",
+                    "incomplete_coverage",
+                ),
+            )
+        )
+
+        text = self.panel.lbl_stacking_selection.text()
+        self.assertIn("Parent: domain-4 | mixed", text)
+        self.assertIn("Parent score: 0.760", text)
+        self.assertIn(
+            "Parent QC: phase_boundary, incomplete_coverage",
+            text,
+        )
+        self.assertIn(
+            "Subdomain: domain-4:subdomain-2 | ABAB",
+            text,
+        )
+        self.assertIn("A/B state: B", text)
+        self.assertIn("between_rows/BABA", text)
+        self.assertIn("31.5 deg", text)
+        self.assertIn("A 22.0 deg, B 82.0 deg", text)
+        self.assertIn("Subdomain score: 0.910", text)
+        self.assertIn("coverage 0.750", text)
+        self.assertIn("Subdomain QC: phase_boundary", text)
 
 
 if __name__ == "__main__":

@@ -48,7 +48,11 @@ from moltrack.analysis import (
     MolecularM6ViewSettings,
     MolecularOrientationBatchResult,
     MolecularOrientationEstimationCancelled,
+    MolecularOrientationFrameData,
     MolecularOrientationStore,
+    MolecularStackingDisplayResult,
+    MolecularStackingFrameGeometry,
+    MolecularStackingOverlayLayer,
     TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET,
     MolecularFrameRange,
     MolecularFrameRangeSelection,
@@ -63,6 +67,8 @@ from moltrack.analysis import (
     build_manual_molecular_orientation_measurement,
     build_molecular_position_plot_data,
     build_molecular_orientation_axes,
+    build_molecular_stacking_inspection,
+    build_molecular_stacking_point_overlay,
     build_molecular_sample_coordinates,
     build_structural_analysis_cache_key,
     compare_molecular_frame_ranges,
@@ -95,6 +101,11 @@ from moltrack.ui.dialogs import (
 )
 from moltrack.ui.dialogs.m6_settings_panel import M6SettingsPanel
 from moltrack.ui.m6_domain_type_worker import M6DomainTypeAnalysisController
+from moltrack.ui.molecular_stacking_controller import (
+    MolecularStackingAnalysisController,
+    analyze_molecular_stacking_display,
+    build_molecular_stacking_input_frames,
+)
 from moltrack.ui.m6_domain_type_overlay import (
     M6DomainTypeOverlayIndex,
     build_m6_domain_type_frame_overlay,
@@ -1139,6 +1150,7 @@ class MolTrackMainWindow(QMainWindow):
         position_range_comparator=compare_molecular_frame_ranges,
         m6_domain_type_store=None,
         molecular_orientation_estimator=estimate_series_molecular_orientations,
+        molecular_stacking_analyzer=analyze_molecular_stacking_display,
     ):
         super().__init__(parent)
         self._series = None
@@ -1198,6 +1210,24 @@ class MolTrackMainWindow(QMainWindow):
             _MolecularOrientationWorker | None
         ) = None
         self._molecular_orientation_series = None
+        self._molecular_stacking_progress_dialog: (
+            QProgressDialog | None
+        ) = None
+        self._molecular_stacking_controller = (
+            MolecularStackingAnalysisController(
+                analyzer=molecular_stacking_analyzer,
+                parent=self,
+            )
+        )
+        self._molecular_stacking_controller.running_changed.connect(
+            self._on_molecular_stacking_running_changed
+        )
+        self._molecular_stacking_controller.finished.connect(
+            self._on_molecular_stacking_finished
+        )
+        self._molecular_stacking_controller.failed.connect(
+            self._on_molecular_stacking_failed
+        )
         self._m6_analysis_running = False
         self._m6_domain_type_store = (
             m6_domain_type_store
@@ -1749,8 +1779,21 @@ class MolTrackMainWindow(QMainWindow):
         self.orientation_panel.reset_requested.connect(
             self._on_molecular_orientation_reset_requested
         )
-        self.orientation_panel.chk_show_axes.toggled.connect(
+        self.orientation_panel.analyze_stacking_requested.connect(
+            self._on_molecular_stacking_analyze_requested
+        )
+        self.orientation_panel.orientation_view_changed.connect(
             self._render_current_molecular_orientation_overlay
+        )
+        self.orientation_panel.ab_states_view_changed.connect(
+            lambda: self._render_current_molecular_stacking_layer(
+                "ab_states"
+            )
+        )
+        self.orientation_panel.stacking_subdomains_view_changed.connect(
+            lambda: self._render_current_molecular_stacking_layer(
+                "stacking_subdomains"
+            )
         )
 
     def set_image_series(self, series) -> None:
@@ -1775,6 +1818,8 @@ class MolTrackMainWindow(QMainWindow):
         self._m6_completed_context = None
         self._m6_rendered_analysis = None
         self._m6_rendered_view_settings = None
+        self._molecular_stacking_controller.invalidate()
+        self.viewer.clear_molecular_stacking_point_overlays()
         self._clear_sam3_prompt_draw_mode()
         self._sam3_manual_positive_bboxes_by_context.clear()
         self._sam3_manual_negative_bboxes_by_context.clear()
@@ -2488,6 +2533,7 @@ class MolTrackMainWindow(QMainWindow):
         self._sync_selected_local_symmetry_point(
             preferred_source_id=self._selected_molecular_detection_id
         )
+        self._sync_current_molecular_stacking_inspection()
 
     def _on_molecular_segmentation_selection_changed(self, segmentation_id) -> None:
         self._selected_molecular_segmentation_id = str(segmentation_id) if segmentation_id is not None else None
@@ -2497,6 +2543,7 @@ class MolTrackMainWindow(QMainWindow):
         self._sync_selected_local_symmetry_point(
             preferred_source_id=self._selected_molecular_segmentation_id
         )
+        self._sync_current_molecular_stacking_inspection()
 
     def _on_active_segmentation_combo_changed(self, _index: int) -> None:
         segmentation_id = self.cmb_active_segmentation.currentData()
@@ -2726,6 +2773,9 @@ class MolTrackMainWindow(QMainWindow):
         store = getattr(self._series, "molecular_orientations", None)
         if isinstance(store, MolecularOrientationStore):
             store.remove("segmentation", str(segmentation_id))
+        self._invalidate_molecular_stacking_result(
+            "Stacking invalidated by a segmentation change"
+        )
 
     def _prune_orphaned_molecular_orientations(self) -> None:
         if self._series is None:
@@ -2744,15 +2794,20 @@ class MolTrackMainWindow(QMainWindow):
                 frame_index
             )
         }
+        removed = False
         for measurement in store.measurements:
             if (
                 measurement.provenance.source_kind == "segmentation"
                 and measurement.provenance.source_id not in current_ids
             ):
-                store.remove(
+                removed = store.remove(
                     measurement.provenance.source_kind,
                     measurement.provenance.source_id,
-                )
+                ) or removed
+        if removed:
+            self._invalidate_molecular_stacking_result(
+                "Stacking invalidated by removed segmentations"
+            )
 
     def _current_selected_molecular_orientation(self):
         segmentation = self._current_selected_molecular_segmentation()
@@ -2774,6 +2829,7 @@ class MolTrackMainWindow(QMainWindow):
                 running=self._molecular_orientation_running,
             )
             self.orientation_panel.set_measurement(None)
+            self._sync_molecular_stacking_panel()
             return
         source_view = self._current_yolo_source_view()
         segmentation_set = self._series.molecular_segmentations
@@ -2809,6 +2865,7 @@ class MolTrackMainWindow(QMainWindow):
         self.orientation_panel.set_measurement(
             self._current_selected_molecular_orientation()
         )
+        self._sync_molecular_stacking_panel()
 
     def _render_current_molecular_orientation_overlay(
         self,
@@ -2816,7 +2873,7 @@ class MolTrackMainWindow(QMainWindow):
     ) -> None:
         if (
             self._series is None
-            or not self.orientation_panel.chk_show_axes.isChecked()
+            or not self.orientation_panel.orientation_overlay_visible()
         ):
             self.viewer.clear_molecular_orientation_axes()
             return
@@ -2829,6 +2886,391 @@ class MolTrackMainWindow(QMainWindow):
         self.viewer.show_molecular_orientation_axes(
             axes,
             scale_nm_per_px=self._series.pixel_size_nm,
+            opacity_percent=(
+                self.orientation_panel.orientation_opacity_percent()
+            ),
+        )
+
+    def _sync_molecular_stacking_panel(self) -> None:
+        result = self._current_molecular_stacking_display_result()
+        can_analyze = self._molecular_stacking_inputs_available()
+        if self._molecular_stacking_controller.running:
+            status = "Analyzing molecular stacking..."
+        elif result is None:
+            if self._series is None:
+                status = "No series loaded"
+            elif can_analyze:
+                status = "Stacking not computed"
+            else:
+                status = (
+                    "Run M6 and sample-axis molecular orientation first"
+                )
+        else:
+            analysis = result.stacking_analysis
+            status = (
+                f"{len(result.frames)} frame(s) | "
+                f"{len(analysis.orders)} lattice domain result(s) | "
+                f"{len(analysis.subdomains)} stacking subdomain(s)"
+            )
+        self.orientation_panel.set_stacking_context(
+            can_analyze=can_analyze,
+            computed=result is not None,
+            running=self._molecular_stacking_controller.running,
+            status_text=status,
+        )
+        self._sync_current_molecular_stacking_inspection()
+
+    def _molecular_stacking_inputs_available(self) -> bool:
+        series = self._series
+        context = self._m6_completed_context
+        store = (
+            None
+            if series is None
+            else getattr(series, "molecular_orientations", None)
+        )
+        if (
+            series is None
+            or not isinstance(context, _M6CompletedAnalysisContext)
+            or context.launch.series is not series
+            or not isinstance(store, MolecularOrientationStore)
+            or store.measurement_count == 0
+        ):
+            return False
+        return any(
+            getattr(
+                frame_result.m6_orientation_analysis,
+                "lattice_row_assignment_analysis",
+                None,
+            )
+            is not None
+            for analysis in _range_analyses(context.result)
+            for frame_result in analysis.frame_results
+        )
+
+    def _molecular_stacking_input_frames(
+        self,
+    ) -> tuple[MolecularOrientationFrameData, ...]:
+        series = self._series
+        context = self._m6_completed_context
+        store = (
+            None
+            if series is None
+            else getattr(series, "molecular_orientations", None)
+        )
+        if (
+            series is None
+            or not isinstance(context, _M6CompletedAnalysisContext)
+            or context.launch.series is not series
+            or not isinstance(store, MolecularOrientationStore)
+        ):
+            return ()
+        return build_molecular_stacking_input_frames(
+            tuple(
+                frame_result
+                for range_analysis in _range_analyses(context.result)
+                for frame_result in range_analysis.frame_results
+            ),
+            store,
+            source_view=context.scope.source_view,
+        )
+
+    def _current_molecular_stacking_display_result(
+        self,
+    ) -> MolecularStackingDisplayResult | None:
+        return self._molecular_stacking_controller.current_result(
+            series=self._series,
+            m6_context=self._m6_completed_context,
+        )
+
+    def _on_molecular_stacking_analyze_requested(self) -> None:
+        if self._series is None or self._is_processing():
+            return
+        frames = self._molecular_stacking_input_frames()
+        if not frames or not any(frame.measurements for frame in frames):
+            self.statusBar().showMessage(
+                "M6 row assignments and sample-axis molecular "
+                "orientations are required.",
+                5000,
+            )
+            return
+        self.viewer.clear_molecular_stacking_point_overlays()
+        self._molecular_stacking_progress_dialog = QProgressDialog(
+            "Classifying molecular stacking...",
+            None,
+            0,
+            0,
+            self,
+        )
+        self._molecular_stacking_progress_dialog.setWindowTitle(
+            "Molecular Stacking"
+        )
+        self._molecular_stacking_progress_dialog.setWindowModality(
+            Qt.WindowModality.ApplicationModal
+        )
+        self._molecular_stacking_progress_dialog.setMinimumDuration(0)
+        self._molecular_stacking_progress_dialog.setAutoClose(False)
+        self._molecular_stacking_progress_dialog.setAutoReset(False)
+        self._molecular_stacking_progress_dialog.show()
+        if not self._molecular_stacking_controller.start(
+            frames,
+            series=self._series,
+            m6_context=self._m6_completed_context,
+        ):
+            self._close_molecular_stacking_progress_dialog()
+            return
+        self.statusBar().showMessage(
+            f"Analyzing molecular stacking in {len(frames)} frame(s)...",
+            0,
+        )
+
+    @pyqtSlot(object)
+    def _on_molecular_stacking_finished(self, result) -> None:
+        if self._current_molecular_stacking_display_result() is not result:
+            self.statusBar().showMessage(
+                "Discarded stacking result because the M6 context changed.",
+                5000,
+            )
+            return
+        self._close_molecular_stacking_progress_dialog()
+        self._render_current_molecular_stacking_overlays()
+        self._sync_molecular_stacking_panel()
+        self.statusBar().showMessage(
+            f"Stacking analysis complete: "
+            f"{len(result.stacking_analysis.orders)} domain result(s), "
+            f"{len(result.stacking_analysis.subdomains)} subdomain(s).",
+            5000,
+        )
+
+    @pyqtSlot(str)
+    def _on_molecular_stacking_failed(self, message: str) -> None:
+        self._close_molecular_stacking_progress_dialog()
+        QMessageBox.critical(
+            self,
+            "Molecular stacking error",
+            str(message),
+        )
+        self.statusBar().showMessage(
+            "Molecular stacking analysis failed.",
+            5000,
+        )
+
+    def _close_molecular_stacking_progress_dialog(self) -> None:
+        dialog = self._molecular_stacking_progress_dialog
+        if dialog is None:
+            return
+        dialog.close()
+        self._molecular_stacking_progress_dialog = None
+
+    @pyqtSlot(bool)
+    def _on_molecular_stacking_running_changed(
+        self,
+        running: bool,
+    ) -> None:
+        if not running:
+            self._close_molecular_stacking_progress_dialog()
+        self._sync_navigation_controls()
+
+    def _molecular_stacking_render_context(self):
+        display = self._current_molecular_stacking_display_result()
+        analysis = self._m6_current_results_analysis
+        if (
+            analysis is None
+            or self._series is None
+            or analysis.sample_coordinates.frame_index
+            != self._series.active_frame_index
+        ):
+            analysis = self._current_m6_analysis_result()
+        rows = (
+            None
+            if analysis is None
+            else analysis.lattice_row_assignment_analysis
+        )
+        if (
+            display is None
+            or analysis is None
+            or rows is None
+            or self._series is None
+        ):
+            return None
+        try:
+            frame_data = display.frame_data(
+                self._series.active_frame_index
+            )
+        except KeyError:
+            return None
+        if frame_data.row_assignment != rows:
+            return None
+        sample = analysis.sample_coordinates
+        return (
+            display,
+            analysis,
+            MolecularStackingFrameGeometry(
+                frame_index=sample.frame_index,
+                source_ids=sample.point_source_ids,
+                points_xy_px=sample.source_points_xy_px,
+            ),
+        )
+
+    def _render_current_molecular_stacking_overlays(self) -> None:
+        context = self._molecular_stacking_render_context()
+        if context is None:
+            self.viewer.clear_molecular_stacking_point_overlays()
+            self.orientation_panel.set_stacking_inspection(None)
+            return
+        display, analysis, geometry = context
+        for layer in ("stacking_subdomains", "ab_states"):
+            self._render_molecular_stacking_layer(
+                layer,
+                display=display,
+                geometry=geometry,
+            )
+        self._sync_current_molecular_stacking_inspection(
+            analysis=analysis
+        )
+
+    def _render_current_molecular_stacking_layer(
+        self,
+        layer: MolecularStackingOverlayLayer,
+    ) -> None:
+        context = self._molecular_stacking_render_context()
+        if context is None:
+            self.viewer.clear_molecular_stacking_point_overlay(layer)
+            self.orientation_panel.set_stacking_inspection(None)
+            return
+        display, analysis, geometry = context
+        self._render_molecular_stacking_layer(
+            layer,
+            display=display,
+            geometry=geometry,
+        )
+        self._sync_current_molecular_stacking_inspection(
+            analysis=analysis
+        )
+
+    def _render_molecular_stacking_layer(
+        self,
+        layer: MolecularStackingOverlayLayer,
+        *,
+        display: MolecularStackingDisplayResult,
+        geometry: MolecularStackingFrameGeometry,
+    ) -> None:
+        if layer == "ab_states":
+            visible = (
+                self.orientation_panel.ab_states_overlay_visible()
+            )
+            opacity = (
+                self.orientation_panel.ab_states_opacity_percent()
+            )
+        elif layer == "stacking_subdomains":
+            visible = (
+                self.orientation_panel
+                .stacking_subdomains_overlay_visible()
+            )
+            opacity = (
+                self.orientation_panel
+                .stacking_subdomains_opacity_percent()
+            )
+        else:
+            raise ValueError(
+                f"Unsupported stacking overlay layer: {layer!r}."
+            )
+        if not visible:
+            self.viewer.clear_molecular_stacking_point_overlay(layer)
+            return
+        overlay = build_molecular_stacking_point_overlay(
+            display,
+            geometry,
+            layer=layer,
+            opacity_percent=opacity,
+        )
+        self.viewer.show_molecular_stacking_point_overlay(
+            overlay,
+            scale_nm_per_px=self._series.pixel_size_nm,
+        )
+
+    def _sync_current_molecular_stacking_inspection(
+        self,
+        *,
+        analysis=None,
+    ) -> None:
+        display = self._current_molecular_stacking_display_result()
+        if display is None or self._series is None:
+            self.orientation_panel.set_stacking_inspection(None)
+            return
+        if analysis is None:
+            analysis = self._m6_current_results_analysis
+        if analysis is None:
+            analysis = self._current_m6_analysis_result()
+        if analysis is None:
+            self.orientation_panel.set_stacking_inspection(None)
+            return
+        inspection = None
+        for source_id in (
+            self._selected_molecular_segmentation_id,
+            self._selected_molecular_detection_id,
+        ):
+            if source_id is None:
+                continue
+            analysis_source_id = self._molecular_stacking_source_id_for_selection(
+                analysis,
+                source_id,
+            )
+            if analysis_source_id is None:
+                continue
+            inspection = build_molecular_stacking_inspection(
+                display,
+                frame_index=self._series.active_frame_index,
+                source_id=analysis_source_id,
+            )
+            if inspection is not None:
+                break
+        self.orientation_panel.set_stacking_inspection(inspection)
+
+    def _molecular_stacking_source_id_for_selection(
+        self,
+        analysis,
+        selected_source_id: str,
+    ) -> str | None:
+        selected_source_id = str(selected_source_id)
+        available_ids = set(analysis.point_source_ids)
+        if selected_source_id in available_ids:
+            return selected_source_id
+        segmentation_set = (
+            None
+            if self._series is None
+            else self._series.molecular_segmentations
+        )
+        if segmentation_set is None:
+            return None
+        selected_segmentation = segmentation_set.get_segmentation(
+            selected_source_id
+        )
+        if selected_segmentation is not None:
+            for detection_id in selected_segmentation.prompt_detection_ids:
+                if detection_id in available_ids:
+                    return detection_id
+        linked_ids = sorted(
+            segmentation.segmentation_id
+            for segmentation in segmentation_set.get_segmentations(
+                self._series.active_frame_index,
+                source_view=self._current_yolo_source_view(),
+            )
+            if selected_source_id in segmentation.prompt_detection_ids
+            and segmentation.segmentation_id in available_ids
+        )
+        return None if not linked_ids else linked_ids[0]
+
+    def _invalidate_molecular_stacking_result(
+        self,
+        status_text: str = "Stacking not computed",
+    ) -> None:
+        self._molecular_stacking_controller.invalidate()
+        self.viewer.clear_molecular_stacking_point_overlays()
+        self.orientation_panel.set_stacking_context(
+            can_analyze=self._molecular_stacking_inputs_available(),
+            computed=False,
+            running=self._molecular_stacking_controller.running,
+            status_text=status_text,
         )
 
     def _on_molecular_orientation_estimate_current_requested(self) -> None:
@@ -3002,6 +3444,9 @@ class MolTrackMainWindow(QMainWindow):
                 result.measurements
             )
         )
+        self._invalidate_molecular_stacking_result(
+            "Stacking invalidated by updated orientations"
+        )
         failure_count = result.failure_count
         self._close_molecular_orientation_progress_dialog()
         self._show_current_frame()
@@ -3090,6 +3535,9 @@ class MolTrackMainWindow(QMainWindow):
         except (KeyError, OSError, TypeError, ValueError) as exc:
             self.statusBar().showMessage(str(exc), 3000)
             return
+        self._invalidate_molecular_stacking_result(
+            "Stacking invalidated by a manual orientation"
+        )
         self._sync_molecular_orientation_panel()
         self._render_current_molecular_orientation_overlay()
 
@@ -3110,6 +3558,9 @@ class MolTrackMainWindow(QMainWindow):
         except (KeyError, ValueError) as exc:
             self.statusBar().showMessage(str(exc), 3000)
             return
+        self._invalidate_molecular_stacking_result(
+            "Stacking invalidated by a manual orientation"
+        )
         self._sync_molecular_orientation_panel()
         self._render_current_molecular_orientation_overlay()
 
@@ -3125,6 +3576,9 @@ class MolTrackMainWindow(QMainWindow):
         except KeyError as exc:
             self.statusBar().showMessage(str(exc), 3000)
             return
+        self._invalidate_molecular_stacking_result(
+            "Stacking invalidated by an orientation reset"
+        )
         self._sync_molecular_orientation_panel()
         self._render_current_molecular_orientation_overlay()
 
@@ -3210,6 +3664,7 @@ class MolTrackMainWindow(QMainWindow):
             or self._analysis_export_running
             or self._m6_analysis_running
             or self._molecular_orientation_running
+            or self._molecular_stacking_controller.running
             or (
                 calibration_dialog is not None
                 and calibration_dialog.is_running
@@ -3663,6 +4118,9 @@ class MolTrackMainWindow(QMainWindow):
         self._start_m6_analysis(settings, enable_on_success=True)
 
     def _on_position_analysis_context_changed(self, reason: str) -> None:
+        self._invalidate_molecular_stacking_result(
+            "Stacking invalidated by a changed analysis range"
+        )
         self._m6_domain_type_controller.invalidate(str(reason))
         dialog = self._position_analysis_dialog
         if (
@@ -3679,10 +4137,16 @@ class MolTrackMainWindow(QMainWindow):
         self._sync_m6_domain_type_panel()
 
     def _on_position_analysis_mode_changed(self, _mode: str) -> None:
+        self._invalidate_molecular_stacking_result(
+            "Stacking invalidated by a changed analysis mode"
+        )
         self._m6_domain_type_controller.invalidate("analysis_mode")
         self._sync_m6_domain_type_panel()
 
     def _on_m6_analysis_settings_changed(self) -> None:
+        self._invalidate_molecular_stacking_result(
+            "Stacking invalidated by changed M6 settings"
+        )
         self._m6_domain_type_controller.invalidate("m6_settings")
         self._sync_m6_domain_type_panel()
 
@@ -3884,6 +4348,9 @@ class MolTrackMainWindow(QMainWindow):
             settings=settings,
             view_settings=view_settings,
         )
+        self._invalidate_molecular_stacking_result(
+            "Stacking invalidated by changed M6 settings"
+        )
         self._m6_completed_context = None
         self._m6_pending_context = None
         self._m6_pending_session_state = None
@@ -4033,6 +4500,9 @@ class MolTrackMainWindow(QMainWindow):
             return
         if not dialog.has_valid_frame_range_analysis_scope():
             return
+        self._invalidate_molecular_stacking_result(
+            "Stacking invalidated by a new M6 analysis"
+        )
         self._m6_domain_type_controller.invalidate("m6_recalculation")
         inner_radius, outer_radius = dialog.intensity_background_radii()
         scope = dialog.frame_range_analysis_scope()
@@ -5604,6 +6074,7 @@ class MolTrackMainWindow(QMainWindow):
                 self._show_current_sam3_manual_prompt_overlays()
                 self._render_current_molecular_orientation_overlay()
                 self._render_current_m6_overlay()
+                self._render_current_molecular_stacking_overlays()
                 self.metadata_panel.set_image_series(self._series)
                 self._refresh_position_analysis_dialog_if_open()
                 self._sync_molecular_orientation_panel()
@@ -5612,6 +6083,7 @@ class MolTrackMainWindow(QMainWindow):
         self._show_current_sam3_manual_prompt_overlays()
         self._render_current_molecular_orientation_overlay()
         self._render_current_m6_overlay()
+        self._render_current_molecular_stacking_overlays()
         self._refresh_position_analysis_dialog_if_open()
         self._sync_molecular_orientation_panel()
 

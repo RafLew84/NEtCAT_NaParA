@@ -241,6 +241,40 @@ class MolecularOrientationFrameData:
         object.__setattr__(self, "measurements", measurements)
 
 
+def molecular_orientation_frames_measurement_fingerprint(
+    frames: tuple[MolecularOrientationFrameData, ...],
+) -> str:
+    frame_data = tuple(frames)
+    if any(
+        not isinstance(value, MolecularOrientationFrameData)
+        for value in frame_data
+    ):
+        raise TypeError(
+            "frames must contain MolecularOrientationFrameData."
+        )
+    measurements = tuple(
+        measurement
+        for frame in frame_data
+        for measurement in frame.measurements
+    )
+    return _fingerprint(
+        {
+            "frames": tuple(value.frame_index for value in frame_data),
+            "measurements": tuple(
+                value.to_dict()
+                for value in sorted(
+                    measurements,
+                    key=lambda item: (
+                        item.provenance.frame_index,
+                        item.provenance.source_id,
+                        item.measurement_id,
+                    ),
+                )
+            ),
+        }
+    )
+
+
 @dataclass(frozen=True)
 class MolecularOrientationPrototype:
     """One confidence-weighted circular cluster."""
@@ -1176,6 +1210,7 @@ __all__ = [
     "MolecularOrientationRangeAxisEvidence",
     "MolecularOrientationStateAssignment",
     "MolecularOrientationStateLabel",
+    "molecular_orientation_frames_measurement_fingerprint",
     "molecular_orientation_prototype_analysis_fingerprint",
     "molecular_orientation_prototype_settings_fingerprint",
 ]
