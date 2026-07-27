@@ -57,6 +57,9 @@ from moltrack.analysis import (
     MolecularStackingOverlayLayer,
     MolecularStackingSessionState,
     TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET,
+    TTMAPP_TEXTURE_DOMAIN_PRESET,
+    TextureDomainSessionState,
+    TextureDomainViewSettings,
     MolecularFrameRange,
     MolecularFrameRangeSelection,
     aggregate_pair_correlation_results,
@@ -79,6 +82,8 @@ from moltrack.analysis import (
     estimate_series_molecular_orientations,
     suggest_first_shell_r_max,
     suggest_shared_first_shell_r_max,
+    analyze_texture_domain_range,
+    build_texture_domain_point_overlay,
 )
 from moltrack.core import (
     MolecularDetectionSet,
@@ -121,6 +126,10 @@ from moltrack.ui.m6_domain_type_overlay import (
     build_m6_domain_type_overlay_index,
 )
 from moltrack.ui.m6_domain_type_selection import M6DomainTypeSelection
+from moltrack.ui.texture_domain_worker import (
+    TextureDomainAnalysisController,
+    TextureDomainAnalysisProgress,
+)
 from moltrack.ui.widgets import (
     MolecularOrientationPanel,
     STMSeriesViewer,
@@ -1161,6 +1170,7 @@ class MolTrackMainWindow(QMainWindow):
         molecular_orientation_estimator=estimate_series_molecular_orientations,
         molecular_stacking_analyzer=analyze_molecular_stacking_display,
         molecular_order_type_analyzer=analyze_molecular_order_types,
+        texture_domain_analyzer=analyze_texture_domain_range,
     ):
         super().__init__(parent)
         self._series = None
@@ -1254,6 +1264,30 @@ class MolTrackMainWindow(QMainWindow):
         self._molecular_order_type_controller.failed.connect(
             self._on_molecular_order_type_failed
         )
+        self._texture_domain_controller = TextureDomainAnalysisController(
+            analyzer=texture_domain_analyzer,
+            parent=self,
+        )
+        self._texture_domain_controller.progress.connect(
+            self._on_texture_domain_progress
+        )
+        self._texture_domain_controller.finished.connect(
+            self._on_texture_domain_finished
+        )
+        self._texture_domain_controller.failed.connect(
+            self._on_texture_domain_failed
+        )
+        self._texture_domain_controller.canceled.connect(
+            self._on_texture_domain_canceled
+        )
+        self._texture_domain_controller.running_changed.connect(
+            self._on_texture_domain_running_changed
+        )
+        self._texture_domain_analysis_series = None
+        self._texture_domain_pending_view_settings: (
+            TextureDomainViewSettings | None
+        ) = None
+        self._texture_domain_status_message: str | None = None
         self._molecular_stacking_pending_session_state: (
             MolecularStackingSessionState | None
         ) = None
@@ -1401,6 +1435,20 @@ class MolTrackMainWindow(QMainWindow):
         )
         self.action_m6_preset_ttmapp.setEnabled(False)
         self.m6_presets_menu.addAction(self.action_m6_preset_ttmapp)
+        self.texture_domain_presets_menu = self.parameters_menu.addMenu(
+            "Texture domain presets"
+        )
+        self.action_texture_domain_preset_ttmapp = QAction(
+            "TTMAPP local texture v1 (experimental)",
+            self,
+        )
+        self.action_texture_domain_preset_ttmapp.setToolTip(
+            TTMAPP_TEXTURE_DOMAIN_PRESET.calibration_note
+        )
+        self.action_texture_domain_preset_ttmapp.setEnabled(False)
+        self.texture_domain_presets_menu.addAction(
+            self.action_texture_domain_preset_ttmapp
+        )
 
     def _build_central_widget(self) -> None:
         central = QSplitter(Qt.Orientation.Horizontal, self)
@@ -1748,6 +1796,9 @@ class MolTrackMainWindow(QMainWindow):
         self.action_m6_preset_ttmapp.triggered.connect(
             self._on_m6_ttmapp_preset_requested
         )
+        self.action_texture_domain_preset_ttmapp.triggered.connect(
+            self._on_texture_domain_ttmapp_preset_requested
+        )
         self.slider_frame.valueChanged.connect(self._on_frame_selected)
         self.btn_remove_current_frame.clicked.connect(self._on_remove_current_frame_requested)
         self.btn_run_registration.clicked.connect(self._on_run_registration_requested)
@@ -1829,6 +1880,10 @@ class MolTrackMainWindow(QMainWindow):
         )
 
     def set_image_series(self, series) -> None:
+        if self._texture_domain_controller.is_running:
+            raise RuntimeError(
+                "Wait for texture-domain analysis before changing the series."
+            )
         calibration_dialog = self._lattice_domain_calibration_dialog
         if calibration_dialog is not None:
             if calibration_dialog.is_running:
@@ -1855,7 +1910,10 @@ class MolTrackMainWindow(QMainWindow):
         self._molecular_order_type_error_message = None
         self._molecular_stacking_pending_session_state = None
         self._molecular_order_type_pending_session_state = None
+        self._texture_domain_analysis_series = None
+        self._texture_domain_status_message = None
         self.viewer.clear_molecular_stacking_point_overlays()
+        self.viewer.clear_texture_domain_point_overlay()
         self._clear_sam3_prompt_draw_mode()
         self._sam3_manual_positive_bboxes_by_context.clear()
         self._sam3_manual_negative_bboxes_by_context.clear()
@@ -1884,6 +1942,9 @@ class MolTrackMainWindow(QMainWindow):
     def _sync_navigation_controls(self) -> None:
         self._set_file_actions_enabled(not self._is_processing())
         self.action_m6_preset_ttmapp.setEnabled(
+            self._series is not None and not self._is_processing()
+        )
+        self.action_texture_domain_preset_ttmapp.setEnabled(
             self._series is not None and not self._is_processing()
         )
         if self._series is None:
@@ -2553,6 +2614,11 @@ class MolTrackMainWindow(QMainWindow):
             checkpoint_path="",
             origin="manual",
         )
+        self._invalidate_texture_domain_analysis(
+            "Texture-domain analysis invalidated by a BBox change.",
+            frame_indices=(detection.frame_index,),
+            source_view=detection.source_view,
+        )
         self._show_current_frame()
         self.viewer.select_molecular_detection_by_id(detection.detection_id)
         self._sync_yolo_controls()
@@ -2613,7 +2679,9 @@ class MolTrackMainWindow(QMainWindow):
 
         self._series.molecular_segmentations.remove_segmentation(segmentation_id)
         self._invalidate_molecular_orientation_for_segmentation(
-            segmentation_id
+            segmentation_id,
+            frame_index=frame_index,
+            source_view=source_view,
         )
         self.viewer.select_molecular_segmentation_by_id(None)
         self._show_current_frame()
@@ -2803,14 +2871,36 @@ class MolTrackMainWindow(QMainWindow):
     def _invalidate_molecular_orientation_for_segmentation(
         self,
         segmentation_id: str,
+        *,
+        frame_index: int | None = None,
+        source_view: str | None = None,
     ) -> None:
         if self._series is None:
             return
+        segmentation_set = self._series.molecular_segmentations
+        segmentation = (
+            None
+            if segmentation_set is None
+            else segmentation_set.get_segmentation(str(segmentation_id))
+        )
+        if segmentation is not None:
+            if frame_index is None:
+                frame_index = segmentation.frame_index
+            if source_view is None:
+                source_view = segmentation.source_view
         store = getattr(self._series, "molecular_orientations", None)
         if isinstance(store, MolecularOrientationStore):
             store.remove("segmentation", str(segmentation_id))
         self._invalidate_molecular_stacking_result(
             "Stacking invalidated by a segmentation change"
+        )
+        self._invalidate_texture_domain_analysis(
+            "Texture-domain analysis invalidated by a segmentation change.",
+            frame_indices=(
+                None if frame_index is None else (frame_index,)
+            ),
+            source_view=source_view,
+            segmentation_only=True,
         )
 
     def _prune_orphaned_molecular_orientations(self) -> None:
@@ -3930,6 +4020,7 @@ class MolTrackMainWindow(QMainWindow):
             or self._molecular_orientation_running
             or self._molecular_stacking_controller.running
             or self._molecular_order_type_controller.is_running
+            or self._texture_domain_controller.is_running
             or (
                 calibration_dialog is not None
                 and calibration_dialog.is_running
@@ -4035,6 +4126,11 @@ class MolTrackMainWindow(QMainWindow):
                 detections,
                 source_view=source_view,
                 frame_shape=self._current_bbox_frame_shape(source_view),
+            )
+            self._invalidate_texture_domain_analysis(
+                "Texture-domain analysis invalidated by YOLO detections.",
+                frame_indices=(frame_index,),
+                source_view=source_view,
             )
         except Exception as exc:
             message = str(exc) or exc.__class__.__name__
@@ -4196,6 +4292,15 @@ class MolTrackMainWindow(QMainWindow):
                         frame_shape=frame_shape,
                     )
                     total_detections += len(detections)
+                if results:
+                    self._invalidate_texture_domain_analysis(
+                        "Texture-domain analysis invalidated by YOLO detections.",
+                        frame_indices=tuple(
+                            frame_index
+                            for frame_index, _frame_shape, _detections in results
+                        ),
+                        source_view=self._yolo_detection_source_view,
+                    )
         except Exception as exc:
             self._finish_yolo_detection_run()
             message = str(exc) or exc.__class__.__name__
@@ -4245,7 +4350,21 @@ class MolTrackMainWindow(QMainWindow):
             return
         frame_index = self._series.active_frame_index
         source_view = self._current_yolo_source_view()
+        removed_detection_ids = tuple(
+            detection.detection_id
+            for detection in self._series.molecular_detections.get_detections(
+                frame_index,
+                source_view=source_view,
+            )
+        )
         removed = self._series.molecular_detections.clear_frame(frame_index, source_view=source_view)
+        if removed:
+            self._invalidate_texture_domain_analysis(
+                "Texture-domain analysis invalidated by cleared BBoxes.",
+                frame_indices=(frame_index,),
+                source_view=source_view,
+                source_ids=removed_detection_ids,
+            )
         self._show_current_frame()
         self._sync_yolo_controls()
         self.statusBar().showMessage(
@@ -4364,6 +4483,15 @@ class MolTrackMainWindow(QMainWindow):
             dialog.molecular_order_representative_requested.connect(
                 self._on_molecular_order_representative_requested
             )
+            dialog.texture_domain_analysis_requested.connect(
+                self._on_texture_domain_analysis_requested
+            )
+            dialog.texture_domain_cancel_requested.connect(
+                self._texture_domain_controller.cancel
+            )
+            dialog.texture_domain_view_settings_changed.connect(
+                self._on_texture_domain_view_settings_changed
+            )
             self._position_analysis_dialog = dialog
             state = getattr(self._series, "m6_analysis_state", None)
             if isinstance(state, MolecularM6SessionState):
@@ -4373,8 +4501,10 @@ class MolTrackMainWindow(QMainWindow):
         self._position_analysis_dialog.configure_frame_ranges(
             frame_count=self._series.frame_count,
             source_view=plot_data.source_view,
+            active_frame_index=self._series.active_frame_index,
         )
         self._position_analysis_dialog.set_plot_data(plot_data)
+        self._sync_texture_domain_panel()
         self._sync_current_m6_results(force=True)
         self._sync_m6_domain_type_panel()
         self._sync_molecular_order_type_panel()
@@ -4634,6 +4764,265 @@ class MolTrackMainWindow(QMainWindow):
             "Applied TTMAPP preset to M6 orientation analysis",
             5000,
         )
+
+    def _on_texture_domain_ttmapp_preset_requested(self) -> None:
+        series = self._series
+        if series is None or self._is_processing():
+            return
+        self._on_position_analysis_requested()
+        dialog = self._position_analysis_dialog
+        previous = getattr(series, "texture_domain_state", None)
+        view_settings = (
+            previous.view_settings
+            if isinstance(previous, TextureDomainSessionState)
+            else TextureDomainViewSettings()
+        )
+        frame_index = series.active_frame_index
+        self._texture_domain_status_message = None
+        series.texture_domain_state = TextureDomainSessionState(
+            settings=TTMAPP_TEXTURE_DOMAIN_PRESET,
+            source_view=self._current_yolo_source_view(),
+            view_settings=view_settings,
+            use_segmentation_centroids=(
+                dialog.use_segmentation_centroids()
+                if dialog is not None
+                else True
+            ),
+            range_start_frame=frame_index,
+            range_end_frame=frame_index,
+        )
+        self._sync_texture_domain_panel()
+        if dialog is not None:
+            for tab_index in range(dialog.tabs.count()):
+                if dialog.tabs.tabText(tab_index) == "Texture Domains":
+                    dialog.tabs.setCurrentIndex(tab_index)
+                    break
+        self._render_current_texture_domain_overlay()
+        self.statusBar().showMessage(
+            "Applied experimental TTMAPP local-texture preset",
+            5000,
+        )
+
+    @pyqtSlot(object)
+    def _on_texture_domain_analysis_requested(self, request) -> None:
+        series = self._series
+        dialog = self._position_analysis_dialog
+        if (
+            series is None
+            or dialog is None
+            or self._texture_domain_controller.is_running
+        ):
+            return
+        try:
+            frame_range = request.frame_range
+            source_view = str(request.source_view)
+            settings = request.settings
+            if source_view == "expanded_aligned":
+                self._ensure_expanded_aligned_stack()
+            view_settings = dialog.texture_domains_panel.view_settings()
+        except Exception as exc:
+            dialog.set_texture_domain_error(str(exc))
+            return
+        self._texture_domain_analysis_series = series
+        self._texture_domain_status_message = None
+        self._texture_domain_pending_view_settings = view_settings
+        if not self._texture_domain_controller.start(
+            series,
+            frame_range,
+            source_view=source_view,
+            settings=settings,
+            use_segmentation_centroids=(
+                dialog.use_segmentation_centroids()
+            ),
+        ):
+            self._texture_domain_analysis_series = None
+            self._texture_domain_pending_view_settings = None
+
+    @pyqtSlot(object)
+    def _on_texture_domain_progress(
+        self,
+        progress: TextureDomainAnalysisProgress,
+    ) -> None:
+        dialog = self._position_analysis_dialog
+        if dialog is not None:
+            dialog.set_texture_domain_progress(progress)
+
+    @pyqtSlot(object)
+    def _on_texture_domain_finished(self, state) -> None:
+        series = self._series
+        if (
+            series is not self._texture_domain_analysis_series
+            or not isinstance(state, TextureDomainSessionState)
+        ):
+            return
+        view_settings = self._texture_domain_pending_view_settings
+        if view_settings is not None:
+            state = replace(state, view_settings=view_settings)
+        series.texture_domain_state = state
+        self._texture_domain_status_message = None
+        self._sync_texture_domain_panel()
+        self._render_current_texture_domain_overlay()
+        self.statusBar().showMessage(
+            f"Texture-domain analysis completed for "
+            f"{len(state.frame_results)} frame(s)",
+            5000,
+        )
+
+    @pyqtSlot(str)
+    def _on_texture_domain_failed(self, message: str) -> None:
+        dialog = self._position_analysis_dialog
+        if dialog is not None:
+            dialog.set_texture_domain_error(message)
+        self._texture_domain_status_message = str(message)
+        self.statusBar().showMessage(
+            f"Texture-domain analysis failed: {message}",
+            5000,
+        )
+
+    @pyqtSlot()
+    def _on_texture_domain_canceled(self) -> None:
+        dialog = self._position_analysis_dialog
+        if dialog is not None:
+            dialog.set_texture_domain_error("Texture-domain analysis canceled.")
+        self.statusBar().showMessage(
+            "Texture-domain analysis canceled",
+            3000,
+        )
+
+    @pyqtSlot(bool)
+    def _on_texture_domain_running_changed(self, running: bool) -> None:
+        dialog = self._position_analysis_dialog
+        if dialog is not None:
+            dialog.set_texture_domain_running(running)
+        if not running:
+            self._texture_domain_analysis_series = None
+            self._texture_domain_pending_view_settings = None
+        self._sync_navigation_controls()
+
+    @pyqtSlot(object)
+    def _on_texture_domain_view_settings_changed(
+        self,
+        view_settings,
+    ) -> None:
+        series = self._series
+        if (
+            series is None
+            or not isinstance(view_settings, TextureDomainViewSettings)
+        ):
+            return
+        state = getattr(series, "texture_domain_state", None)
+        if not isinstance(state, TextureDomainSessionState):
+            state = TextureDomainSessionState(
+                settings=TTMAPP_TEXTURE_DOMAIN_PRESET,
+                source_view=self._current_yolo_source_view(),
+                use_segmentation_centroids=(
+                    self._position_analysis_dialog.use_segmentation_centroids()
+                    if self._position_analysis_dialog is not None
+                    else True
+                ),
+                range_start_frame=series.active_frame_index,
+                range_end_frame=series.active_frame_index,
+            )
+        series.texture_domain_state = replace(
+            state,
+            view_settings=view_settings,
+        )
+        self._render_current_texture_domain_overlay()
+
+    def _sync_texture_domain_panel(self) -> None:
+        dialog = self._position_analysis_dialog
+        series = self._series
+        if dialog is None or series is None:
+            return
+        state = getattr(series, "texture_domain_state", None)
+        dialog.set_texture_domain_session_state(
+            state
+            if (
+                isinstance(state, TextureDomainSessionState)
+                and state.source_view == self._current_yolo_source_view()
+                and state.use_segmentation_centroids
+                == dialog.use_segmentation_centroids()
+            )
+            else None
+        )
+        if (
+            (
+                state is None
+                or (
+                    isinstance(state, TextureDomainSessionState)
+                    and not state.computed
+                )
+            )
+            and self._texture_domain_status_message
+        ):
+            dialog.set_texture_domain_error(
+                self._texture_domain_status_message
+            )
+        if isinstance(state, TextureDomainSessionState) and (
+            state.source_view != self._current_yolo_source_view()
+            or state.use_segmentation_centroids
+            != dialog.use_segmentation_centroids()
+        ):
+            dialog.set_texture_domain_error(
+                "Saved result belongs to another image view or centroid mode."
+            )
+        dialog.set_texture_domain_current_frame(series.active_frame_index)
+        dialog.set_texture_domain_running(
+            self._texture_domain_controller.is_running
+        )
+
+    def _invalidate_texture_domain_analysis(
+        self,
+        reason: str,
+        *,
+        frame_indices=None,
+        source_view: str | None = None,
+        source_ids=None,
+        segmentation_only: bool = False,
+    ) -> None:
+        series = self._series
+        if series is None or not isinstance(
+            getattr(series, "texture_domain_state", None),
+            TextureDomainSessionState,
+        ):
+            return
+        previous = series.texture_domain_state
+        if not previous.computed:
+            return
+        if source_view is not None and previous.source_view != source_view:
+            return
+        if segmentation_only and not previous.use_segmentation_centroids:
+            return
+        affected_results = (
+            previous.frame_results
+            if frame_indices is None
+            else tuple(
+                result
+                for frame_index in frame_indices
+                if (result := previous.frame_result(frame_index)) is not None
+            )
+        )
+        if not affected_results:
+            return
+        if source_ids is not None:
+            changed_source_ids = {
+                str(source_id) for source_id in source_ids
+            }
+            if not any(
+                point.source_id in changed_source_ids
+                for result in affected_results
+                for point in result.points
+            ):
+                return
+        series.texture_domain_state = replace(previous, frame_results=())
+        self._texture_domain_status_message = str(reason)
+        self.viewer.clear_texture_domain_point_overlay()
+        dialog = self._position_analysis_dialog
+        if dialog is not None:
+            dialog.set_texture_domain_session_state(
+                series.texture_domain_state
+            )
+            dialog.set_texture_domain_error(str(reason))
 
     def _on_m6_view_settings_changed(self, view_settings) -> None:
         series = self._series
@@ -5368,6 +5757,8 @@ class MolTrackMainWindow(QMainWindow):
             )
         )
         self._render_current_m6_overlay()
+        self._sync_texture_domain_panel()
+        self._render_current_texture_domain_overlay()
         if not dialog.has_active_range_comparison():
             self._invalidate_active_single_range_analysis(dialog)
             return
@@ -5569,6 +5960,22 @@ class MolTrackMainWindow(QMainWindow):
         if self._series is None or self._series.molecular_detections is None:
             return
         source_view = self._current_yolo_source_view()
+        affected_frame_indices = tuple(
+            frame_index
+            for frame_index in range(self._series.frame_count)
+            if self._series.molecular_detections.get_detections(
+                frame_index,
+                source_view=source_view,
+            )
+        )
+        affected_detection_ids = tuple(
+            detection.detection_id
+            for frame_index in affected_frame_indices
+            for detection in self._series.molecular_detections.get_detections(
+                frame_index,
+                source_view=source_view,
+            )
+        )
         try:
             changed = self._series.molecular_detections.reset_all_to_original(
                 source_view=source_view,
@@ -5577,12 +5984,33 @@ class MolTrackMainWindow(QMainWindow):
         except Exception as exc:
             self._show_bbox_resize_error(exc)
             return
-        self._finish_bbox_resize(changed, verb="Reset")
+        self._finish_bbox_resize(
+            changed,
+            verb="Reset",
+            affected_frame_indices=affected_frame_indices,
+            affected_detection_ids=affected_detection_ids,
+        )
 
     def _resize_current_view_bboxes(self, *, margin_px: float) -> None:
         if self._series is None or self._series.molecular_detections is None:
             return
         source_view = self._current_yolo_source_view()
+        affected_frame_indices = tuple(
+            frame_index
+            for frame_index in range(self._series.frame_count)
+            if self._series.molecular_detections.get_detections(
+                frame_index,
+                source_view=source_view,
+            )
+        )
+        affected_detection_ids = tuple(
+            detection.detection_id
+            for frame_index in affected_frame_indices
+            for detection in self._series.molecular_detections.get_detections(
+                frame_index,
+                source_view=source_view,
+            )
+        )
         try:
             changed = self._series.molecular_detections.resize_all(
                 margin_px=margin_px,
@@ -5592,7 +6020,12 @@ class MolTrackMainWindow(QMainWindow):
         except Exception as exc:
             self._show_bbox_resize_error(exc)
             return
-        self._finish_bbox_resize(changed, verb="Resized")
+        self._finish_bbox_resize(
+            changed,
+            verb="Resized",
+            affected_frame_indices=affected_frame_indices,
+            affected_detection_ids=affected_detection_ids,
+        )
 
     def _on_bbox_delete_selected_requested(self) -> None:
         if self._series is None or self._series.molecular_detections is None:
@@ -5609,6 +6042,12 @@ class MolTrackMainWindow(QMainWindow):
         frame_index = detection.frame_index
         source_view = detection.source_view
         self._series.molecular_detections.remove_detection(detection.detection_id)
+        self._invalidate_texture_domain_analysis(
+            "Texture-domain analysis invalidated by a deleted BBox.",
+            frame_indices=(frame_index,),
+            source_view=source_view,
+            source_ids=(detection.detection_id,),
+        )
         self._show_current_frame()
         self._sync_yolo_controls()
         view_label = "expanded aligned" if source_view == "expanded_aligned" else "raw"
@@ -5863,6 +6302,12 @@ class MolTrackMainWindow(QMainWindow):
             mode="both",
             duplicate_iou_threshold=float(self.sp_sam3_duplicate_iou.value()),
         )
+        if result.added_bbox_count or result.added_segmentation_count:
+            self._invalidate_texture_domain_analysis(
+                "Texture-domain analysis invalidated by SAM3 results.",
+                frame_indices=(preview.frame_index,),
+                source_view=preview.source_view,
+            )
         self._prune_orphaned_molecular_orientations()
         self._series.sam3_preview = None
         self._show_current_frame()
@@ -6296,6 +6741,15 @@ class MolTrackMainWindow(QMainWindow):
                     segmentation,
                 )
             segmentation_set.add_segmentation(segmentation)
+        self._invalidate_texture_domain_analysis(
+            "Texture-domain analysis invalidated by SAM2 results.",
+            frame_indices=tuple(
+                segmentation.frame_index
+                for _detection, segmentation in transformed_results
+            ),
+            source_view=transformed_results[0][1].source_view,
+            segmentation_only=True,
+        )
         return len(transformed_results)
 
     def _ensure_sam2_original_mask(self, segmentation) -> None:
@@ -6374,7 +6828,9 @@ class MolTrackMainWindow(QMainWindow):
         for segmentation_id in to_remove:
             segmentation_set.remove_segmentation(segmentation_id)
             self._invalidate_molecular_orientation_for_segmentation(
-                segmentation_id
+                segmentation_id,
+                frame_index=new_segmentation.frame_index,
+                source_view=new_segmentation.source_view,
             )
         return len(to_remove)
 
@@ -6421,7 +6877,21 @@ class MolTrackMainWindow(QMainWindow):
             return int(expanded.frames.shape[1]), int(expanded.frames.shape[2])
         return self._series.frame_shape
 
-    def _finish_bbox_resize(self, changed: int, *, verb: str) -> None:
+    def _finish_bbox_resize(
+        self,
+        changed: int,
+        *,
+        verb: str,
+        affected_frame_indices,
+        affected_detection_ids,
+    ) -> None:
+        if changed:
+            self._invalidate_texture_domain_analysis(
+                "Texture-domain analysis invalidated by resized BBoxes.",
+                frame_indices=affected_frame_indices,
+                source_view=self._current_yolo_source_view(),
+                source_ids=affected_detection_ids,
+            )
         self._show_current_frame()
         self._sync_yolo_controls()
         source_label = "expanded aligned" if self._current_yolo_source_view() == "expanded_aligned" else "raw"
@@ -6453,6 +6923,7 @@ class MolTrackMainWindow(QMainWindow):
                 self._render_current_molecular_orientation_overlay()
                 self._render_current_m6_overlay()
                 self._render_current_molecular_stacking_overlays()
+                self._render_current_texture_domain_overlay()
                 self.metadata_panel.set_image_series(self._series)
                 self._refresh_position_analysis_dialog_if_open()
                 self._sync_molecular_orientation_panel()
@@ -6462,8 +6933,47 @@ class MolTrackMainWindow(QMainWindow):
         self._render_current_molecular_orientation_overlay()
         self._render_current_m6_overlay()
         self._render_current_molecular_stacking_overlays()
+        self._render_current_texture_domain_overlay()
         self._refresh_position_analysis_dialog_if_open()
         self._sync_molecular_orientation_panel()
+
+    def _render_current_texture_domain_overlay(self) -> None:
+        series = self._series
+        if series is None:
+            self.viewer.clear_texture_domain_point_overlay()
+            return
+        state = getattr(series, "texture_domain_state", None)
+        if not isinstance(state, TextureDomainSessionState):
+            self.viewer.clear_texture_domain_point_overlay()
+            return
+        frame_result = state.frame_result(series.active_frame_index)
+        source_view = self._current_yolo_source_view()
+        dialog = self._position_analysis_dialog
+        if (
+            frame_result is None
+            or state.source_view != source_view
+            or (
+                dialog is not None
+                and dialog.use_segmentation_centroids()
+                != state.use_segmentation_centroids
+            )
+        ):
+            self.viewer.clear_texture_domain_point_overlay()
+            return
+        if not state.view_settings.show_overlay:
+            self.viewer.clear_texture_domain_point_overlay()
+            return
+        overlay = build_texture_domain_point_overlay(
+            frame_result,
+            settings=state.settings,
+            view_settings=state.view_settings,
+        )
+        self.viewer.show_texture_domain_point_overlay(
+            overlay,
+            scale_nm_per_px=self._current_position_scale_nm_per_px(
+                source_view
+            ),
+        )
 
     def _render_current_m6_overlay(self) -> None:
         series = self._series
@@ -6755,6 +7265,10 @@ class MolTrackMainWindow(QMainWindow):
         if self._position_analysis_dialog is None or self._series is None:
             return
         self._position_analysis_dialog.set_plot_data(self._build_current_position_plot_data())
+        self._position_analysis_dialog.set_texture_domain_current_frame(
+            self._series.active_frame_index
+        )
+        self._sync_texture_domain_panel()
 
     def _show_current_sam3_manual_prompt_overlays(self) -> None:
         if self._series is None:
@@ -6818,6 +7332,10 @@ class MolTrackMainWindow(QMainWindow):
     def _on_registration_finished(self, result_set) -> None:
         if self._series is not None and self._series.registration_results is None:
             self._series.registration_results = result_set
+            self._invalidate_texture_domain_analysis(
+                "Texture-domain analysis invalidated by registration.",
+                source_view="expanded_aligned",
+            )
         self._registration_running = False
         self._set_file_actions_enabled(True)
         self._close_registration_progress_dialog()
@@ -7001,6 +7519,7 @@ class MolTrackMainWindow(QMainWindow):
             self._series is None
             or self._m6_domain_type_controller.is_running
             or self._molecular_order_type_controller.is_running
+            or self._texture_domain_controller.is_running
         ):
             return
         try:

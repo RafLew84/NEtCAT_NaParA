@@ -11,6 +11,7 @@ from moltrack.analysis import (
     M6PointOverlay,
     MolecularOrientationAxis,
     MolecularStackingPointOverlay,
+    TextureDomainPointOverlay,
 )
 
 from moltrack.core import (
@@ -486,6 +487,50 @@ class STMSeriesViewerTests(unittest.TestCase):
 
         self.assertEqual(self.viewer.visible_molecular_detection_count(), 0)
         self.assertEqual(self.viewer.visible_molecular_segmentation_ids(), ["seg-other-frame"])
+
+    def test_texture_domain_overlay_uses_one_independent_graphics_item(self) -> None:
+        series = MolTrackImageSeries(
+            source_path="movie.mpp",
+            raw_frames=np.zeros((1, 32, 32), dtype=np.float32),
+            metadata=STMSequenceMetadata(
+                pixels_x=32,
+                pixels_y=32,
+                size_nm_x=64.0,
+                size_nm_y=64.0,
+            ),
+        )
+        self.viewer = STMSeriesViewer()
+        self.viewer.set_image_series(series)
+        overlay = TextureDomainPointOverlay(
+            source_ids=("a", "b", "c"),
+            points_xy_px=((2.0, 3.0), (4.0, 5.0), (6.0, 7.0)),
+            colors_rgba=(
+                (0, 180, 255, 204),
+                (240, 45, 40, 204),
+                (245, 205, 0, 204),
+            ),
+        )
+
+        self.viewer.show_texture_domain_point_overlay(overlay)
+
+        self.assertEqual(self.viewer.visible_texture_domain_overlay_count(), 3)
+        self.assertEqual(
+            self.viewer.texture_domain_overlay_graphics_item_count(),
+            1,
+        )
+        self.assertEqual(
+            self.viewer.visible_texture_domain_overlay_colors(),
+            overlay.colors_rgba,
+        )
+        self.assertEqual(self.viewer.visible_m6_overlay_count(), 0)
+
+        self.viewer.clear_texture_domain_point_overlay()
+
+        self.assertEqual(self.viewer.visible_texture_domain_overlay_count(), 0)
+        self.assertEqual(
+            self.viewer.texture_domain_overlay_graphics_item_count(),
+            0,
+        )
 
     def test_viewer_selects_specific_segmentation_by_mask_pixel(self) -> None:
         frames = np.zeros((1, 5, 5), dtype=np.float32)

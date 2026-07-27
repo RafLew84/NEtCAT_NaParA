@@ -22,10 +22,12 @@ from moltrack.analysis import (
     MolecularStackingSessionState,
     StructuralAnalysisCacheKey,
     StructuralAnalysisCacheRecord,
+    TextureDomainSessionState,
     export_molecular_intensity_cache_records,
     export_structural_analysis_cache_records,
     restore_molecular_intensity_cache_records,
     restore_structural_analysis_cache_records,
+    texture_domain_state_matches_series,
 )
 from moltrack.analysis.sample_coordinates import MolecularSampleCoordinates
 from moltrack.core import (
@@ -50,6 +52,8 @@ SeriesLoader = Callable[..., MolTrackImageSeries]
 StateSaveProgressCallback = Callable[["MolTrackStateSaveProgress"], None]
 _JSON_WRITE_BUFFER_CHARS = 1024 * 1024
 _MAX_SEGMENTATION_PROGRESS_EVENTS = 200
+_MASK_CENTROID_X_METADATA_KEY = "_moltrack_loaded_mask_centroid_x_px"
+_MASK_CENTROID_Y_METADATA_KEY = "_moltrack_loaded_mask_centroid_y_px"
 
 
 @dataclass(frozen=True)
@@ -215,6 +219,10 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
             payload.get("molecular_order_type_analysis")
         )
     )
+    texture_domain_analysis_state = _texture_domain_state_from_payload(
+        payload.get("texture_domain_analysis"),
+        expected_frame_count=len(working_series_payload["source_frame_indices"]),
+    )
 
     registration_settings: MolTrackRegistrationSettings | None = None
     registration_results: MolTrackRegistrationResultSet | None = None
@@ -257,6 +265,7 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
         molecular_order_type_analysis_state=(
             molecular_order_type_analysis_state
         ),
+        texture_domain_analysis_state=texture_domain_analysis_state,
         structural_analysis_cache_records=structural_cache_records,
         source_size_bytes=int(source_payload["size_bytes"]),
         source_mtime_ns=int(source_payload["mtime_ns"]),
@@ -309,6 +318,7 @@ def restore_moltrack_image_series_from_session(
         molecular_order_type_state=(
             session.molecular_order_type_analysis_state
         ),
+        texture_domain_state=None,
     )
     restore_molecular_intensity_cache_records(
         restored,
@@ -318,6 +328,12 @@ def restore_moltrack_image_series_from_session(
         restored,
         session.structural_analysis_cache_records,
     )
+    texture_state = session.texture_domain_analysis_state
+    if isinstance(
+        texture_state,
+        TextureDomainSessionState,
+    ) and texture_domain_state_matches_series(restored, texture_state):
+        restored.texture_domain_state = texture_state
     if restored.registration_results is not None:
         expected = tuple(range(restored.frame_count))
         if restored.registration_results.frame_indices != expected:
@@ -383,7 +399,31 @@ def _session_to_payload(
             if session.molecular_order_type_analysis_state is None
             else session.molecular_order_type_analysis_state.to_dict()
         ),
+        "texture_domain_analysis": (
+            None
+            if session.texture_domain_analysis_state is None
+            else session.texture_domain_analysis_state.to_dict()
+        ),
     }
+
+
+def _texture_domain_state_from_payload(
+    payload: Any,
+    *,
+    expected_frame_count: int,
+) -> TextureDomainSessionState | None:
+    if payload is None:
+        return None
+    try:
+        state = TextureDomainSessionState.from_dict(
+            dict(_require_mapping(payload, "texture_domain_analysis"))
+        )
+        if state.range_end_frame >= int(expected_frame_count):
+            return None
+        return state
+    except (KeyError, OverflowError, TypeError, ValueError):
+        # This derived experimental result is optional for older sessions.
+        return None
 
 
 def _molecular_stacking_state_from_payload(
@@ -1027,7 +1067,13 @@ def _molecular_segmentations_from_payload(
     segmentation_set = MolecularSegmentationSet(frame_count=frame_count)
     for item in items:
         item_payload = _require_mapping(item, "molecular segmentation")
-        mask = _mask_from_payload(item_payload.get("mask"))
+        metadata = dict(item_payload.get("metadata", {}))
+        mask_statistics: dict[str, float] = {}
+        mask = _mask_from_payload(
+            item_payload.get("mask"),
+            statistics_out=mask_statistics,
+        )
+        metadata.update(mask_statistics)
         segmentation = MolecularSegmentation(
             frame_index=int(item_payload["frame_index"]),
             source_view=str(item_payload.get("source_view", "raw")),
@@ -1046,7 +1092,7 @@ def _molecular_segmentations_from_payload(
             origin=str(item_payload.get("origin", "manual")),
             prompt_detection_ids=tuple(item_payload.get("prompt_detection_ids", ())),
             model_name=str(item_payload.get("model_name", "")),
-            metadata=dict(item_payload.get("metadata", {})),
+            metadata=metadata,
             segmentation_id=item_payload.get("segmentation_id"),
         )
         segmentation_set.add_segmentation(segmentation)
@@ -1192,6 +1238,7 @@ def _mask_from_payload(
     payload: Any,
     *,
     reference_mask: np.ndarray | None = None,
+    statistics_out: dict[str, float] | None = None,
 ) -> np.ndarray | None:
     if payload is None:
         return None
@@ -1234,8 +1281,22 @@ def _mask_from_payload(
         )
         decoded = np.asarray(unpacked, dtype=bool)
         if crop_bounds is None:
+            _record_decoded_mask_centroid(
+                decoded,
+                row_width=shape[1],
+                offset_x=0,
+                offset_y=0,
+                statistics_out=statistics_out,
+            )
             return decoded.reshape(shape)
         x0, y0, x1, y1 = crop_bounds
+        _record_decoded_mask_centroid(
+            decoded,
+            row_width=x1 - x0,
+            offset_x=x0,
+            offset_y=y0,
+            statistics_out=statistics_out,
+        )
         restored = np.zeros(shape, dtype=bool)
         restored[y0:y1, x0:x1] = decoded.reshape((y1 - y0, x1 - x0))
         return restored
@@ -1248,10 +1309,45 @@ def _mask_from_payload(
     if sum(counts) != total:
         raise ValueError("molecular segmentation mask RLE counts do not match mask shape.")
     values = np.arange(len(counts), dtype=np.uint8) % 2
-    return np.repeat(values, np.asarray(counts, dtype=np.int64)).astype(
+    decoded = np.repeat(values, np.asarray(counts, dtype=np.int64)).astype(
         bool,
         copy=False,
     ).reshape(shape)
+    _record_decoded_mask_centroid(
+        decoded,
+        row_width=shape[1],
+        offset_x=0,
+        offset_y=0,
+        statistics_out=statistics_out,
+    )
+    return decoded
+
+
+def _record_decoded_mask_centroid(
+    decoded: np.ndarray,
+    *,
+    row_width: int,
+    offset_x: int,
+    offset_y: int,
+    statistics_out: dict[str, float] | None,
+) -> None:
+    if statistics_out is None:
+        return
+    active = np.flatnonzero(np.asarray(decoded, dtype=bool).reshape(-1))
+    if active.size == 0:
+        return
+    x_indices = active % int(row_width)
+    y_indices = active // int(row_width)
+    statistics_out[_MASK_CENTROID_X_METADATA_KEY] = (
+        float(np.mean(x_indices, dtype=np.float64))
+        + float(offset_x)
+        + 0.5
+    )
+    statistics_out[_MASK_CENTROID_Y_METADATA_KEY] = (
+        float(np.mean(y_indices, dtype=np.float64))
+        + float(offset_y)
+        + 0.5
+    )
 
 
 def _polygon_to_payload(polygon_xy) -> list[list[float]] | None:

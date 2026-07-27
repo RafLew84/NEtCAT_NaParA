@@ -13,6 +13,7 @@ from moltrack.analysis import (
     MolecularOrientationAxis,
     MolecularStackingOverlayLayer,
     MolecularStackingPointOverlay,
+    TextureDomainPointOverlay,
 )
 from moltrack.core import build_molecular_centroids
 from napara.gui.widgets.viewer_widget import ViewerWidget
@@ -48,6 +49,11 @@ class STMSeriesViewer(QWidget):
         self._visible_m6_overlay_points_nm: tuple[tuple[float, float], ...] = ()
         self._highlighted_m6_overlay_source_ids: tuple[str, ...] = ()
         self._m6_overlay_tooltip = ""
+        self._texture_domain_overlay_item = None
+        self._visible_texture_domain_overlay_source_ids: tuple[str, ...] = ()
+        self._visible_texture_domain_overlay_colors: tuple[
+            tuple[int, int, int, int], ...
+        ] = ()
         self._molecular_orientation_axis_items: list[object] = []
         self._visible_molecular_orientation_axis_ids: tuple[str, ...] = ()
         self._molecular_stacking_overlay_items: dict[
@@ -198,6 +204,9 @@ class STMSeriesViewer(QWidget):
         self._m6_point_overlay_item = None
         self._visible_m6_overlay_source_ids = ()
         self._visible_m6_overlay_colors = ()
+        self._texture_domain_overlay_item = None
+        self._visible_texture_domain_overlay_source_ids = ()
+        self._visible_texture_domain_overlay_colors = ()
         self._molecular_orientation_axis_items = []
         self._visible_molecular_orientation_axis_ids = ()
         self._molecular_stacking_overlay_items = {
@@ -266,6 +275,17 @@ class STMSeriesViewer(QWidget):
 
     def m6_overlay_tooltip(self) -> str:
         return self._m6_overlay_tooltip
+
+    def visible_texture_domain_overlay_count(self) -> int:
+        return len(self._visible_texture_domain_overlay_source_ids)
+
+    def visible_texture_domain_overlay_colors(
+        self,
+    ) -> tuple[tuple[int, int, int, int], ...]:
+        return self._visible_texture_domain_overlay_colors
+
+    def texture_domain_overlay_graphics_item_count(self) -> int:
+        return int(self._texture_domain_overlay_item is not None)
 
     def visible_molecular_orientation_axis_count(self) -> int:
         return len(self._visible_molecular_orientation_axis_ids)
@@ -407,6 +427,60 @@ class STMSeriesViewer(QWidget):
     def clear_molecular_stacking_point_overlays(self) -> None:
         for layer in ("ab_states", "stacking_subdomains"):
             self.clear_molecular_stacking_point_overlay(layer)
+
+    def show_texture_domain_point_overlay(
+        self,
+        overlay: TextureDomainPointOverlay,
+        *,
+        scale_nm_per_px: tuple[float | None, float | None] | None = None,
+    ) -> None:
+        if not isinstance(overlay, TextureDomainPointOverlay):
+            raise TypeError(
+                "overlay must be a TextureDomainPointOverlay."
+            )
+        if not (
+            len(overlay.source_ids)
+            == len(overlay.points_xy_px)
+            == len(overlay.colors_rgba)
+        ):
+            raise ValueError(
+                "Texture-domain overlay arrays must have equal lengths."
+            )
+        self.clear_texture_domain_point_overlay()
+        if overlay.point_count == 0:
+            return
+        sx, sy = self._effective_scale_nm_per_px(
+            scale_nm_per_px or self._current_scale_nm_per_px
+        )
+        points_nm = np.asarray(
+            [
+                (x_px * sx, y_px * sy)
+                for x_px, y_px in overlay.points_xy_px
+            ],
+            dtype=np.float64,
+        )
+        item = self.viewer.add_colored_points_nm(
+            points_nm,
+            overlay.colors_rgba,
+            size=9.0,
+        )
+        if item is None:
+            return
+        item.setPen(pg.mkPen((20, 20, 20, 180), width=0.8))
+        item.setToolTip(
+            "Experimental local-texture orientation class; "
+            "frame-local domain component."
+        )
+        self._texture_domain_overlay_item = item
+        self._visible_texture_domain_overlay_source_ids = overlay.source_ids
+        self._visible_texture_domain_overlay_colors = overlay.colors_rgba
+
+    def clear_texture_domain_point_overlay(self) -> None:
+        if self._texture_domain_overlay_item is not None:
+            self.viewer.remove_item(self._texture_domain_overlay_item)
+        self._texture_domain_overlay_item = None
+        self._visible_texture_domain_overlay_source_ids = ()
+        self._visible_texture_domain_overlay_colors = ()
 
     def visible_molecular_stacking_overlay_count(
         self,

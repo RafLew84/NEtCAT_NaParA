@@ -78,9 +78,10 @@ class M6DomainTypesPanelTests(unittest.TestCase):
     def test_position_dialog_places_scrollable_domain_types_after_m6(self) -> None:
         dialog = PositionAnalysisDialog()
         try:
-            self.assertEqual(dialog.analysis_tab_labels()[-3:], (
+            self.assertEqual(dialog.analysis_tab_labels()[-4:], (
                 "Sixfold Bond Order",
                 "Domain Types",
+                "Texture Domains",
                 "Order Hierarchy",
             ))
             self.assertIsInstance(dialog.domain_types_panel, QScrollArea)

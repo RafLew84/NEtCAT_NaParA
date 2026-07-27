@@ -23,6 +23,29 @@ from .m6_settings import (
 )
 from .m6_domain_type_settings import M6DomainTypeClassificationSettings
 from .m6_presets import TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
+from .texture_domain_analysis import (
+    TEXTURE_DOMAIN_ANALYSIS_ALGORITHM_VERSION,
+    TEXTURE_DOMAIN_ANALYSIS_SCHEMA_VERSION,
+    TEXTURE_DOMAIN_UNKNOWN_CLASS_KEY,
+    TTMAPP_TEXTURE_DOMAIN_PRESET,
+    TextureDomainAnalysisSettings,
+    TextureDomainClassDefinition,
+    TextureDomainComponent,
+    TextureDomainFrameResult,
+    TextureDomainPointInput,
+    TextureDomainPointOverlay,
+    TextureDomainPointResult,
+    TextureDomainSessionState,
+    TextureDomainViewSettings,
+    analyze_texture_domain_descriptors,
+    analyze_texture_domain_frame,
+    analyze_texture_domain_range,
+    build_texture_domain_point_overlay,
+    extract_texture_domain_descriptors,
+    texture_domain_frame_fingerprint,
+    texture_domain_input_fingerprint,
+    texture_domain_state_matches_series,
+)
 from .local_sixfold_bond_order import (
     LocalOrderComputationStatus,
     LocalOrientationStatus,

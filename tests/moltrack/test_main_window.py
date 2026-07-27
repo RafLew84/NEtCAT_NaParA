@@ -6127,6 +6127,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
                 "Spatial comparison",
                 "Sixfold Bond Order",
                 "Domain Types",
+                "Texture Domains",
                 "Order Hierarchy",
             ),
         )

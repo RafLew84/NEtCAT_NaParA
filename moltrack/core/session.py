@@ -16,6 +16,7 @@ if TYPE_CHECKING:
         MolecularStackingSessionState,
         MolecularM6SessionState,
         StructuralAnalysisCacheRecord,
+        TextureDomainSessionState,
     )
 
 
@@ -28,6 +29,7 @@ SUPPORTED_POSITION_ANALYSIS_TABS = (
     "Spatial comparison",
     "Sixfold Bond Order",
     "Domain Types",
+    "Texture Domains",
 )
 SUPPORTED_POSITION_ANALYSIS_INTENSITY_METRICS = (
     "background_corrected_median",
@@ -209,6 +211,7 @@ class MolTrackSession:
     molecular_order_type_analysis_state: (
         MolecularOrderTypeSessionState | None
     ) = None
+    texture_domain_analysis_state: TextureDomainSessionState | None = None
     structural_analysis_cache_records: tuple[
         StructuralAnalysisCacheRecord, ...
     ] = ()
@@ -303,6 +306,17 @@ class MolTrackSession:
                     "molecular_order_type_analysis_state must be a "
                     "MolecularOrderTypeSessionState."
                 )
+        if self.texture_domain_analysis_state is not None:
+            from moltrack.analysis import TextureDomainSessionState
+
+            if not isinstance(
+                self.texture_domain_analysis_state,
+                TextureDomainSessionState,
+            ):
+                raise TypeError(
+                    "texture_domain_analysis_state must be a "
+                    "TextureDomainSessionState."
+                )
         intensity_cache_records = tuple(self.intensity_cache_records)
         if not all(
             isinstance(record, MolTrackIntensityCacheRecord)
@@ -374,6 +388,13 @@ class MolTrackSession:
                     "Molecular-order type scope does not match "
                     "source_frame_indices length."
                 )
+        if self.texture_domain_analysis_state is not None:
+            if self.texture_domain_analysis_state.range_end_frame >= len(
+                source_frame_indices
+            ):
+                raise ValueError(
+                    "Texture-domain range exceeds source_frame_indices length."
+                )
 
         object.__setattr__(self, "source_path", source_path)
         object.__setattr__(self, "source_frame_indices", source_frame_indices)
@@ -410,6 +431,7 @@ class MolTrackSession:
         molecular_order_type_analysis_state: (
             MolecularOrderTypeSessionState | None
         ) = None,
+        texture_domain_analysis_state: TextureDomainSessionState | None = None,
         structural_analysis_cache_records: tuple[
             StructuralAnalysisCacheRecord, ...
         ] = (),
@@ -426,6 +448,8 @@ class MolTrackSession:
             molecular_order_type_analysis_state = (
                 series.molecular_order_type_state
             )
+        if texture_domain_analysis_state is None:
+            texture_domain_analysis_state = series.texture_domain_state
         registration_results = series.registration_results
         registration_settings = registration_results.settings if registration_results is not None else None
         return cls(
@@ -450,6 +474,7 @@ class MolTrackSession:
             molecular_order_type_analysis_state=(
                 molecular_order_type_analysis_state
             ),
+            texture_domain_analysis_state=texture_domain_analysis_state,
             structural_analysis_cache_records=structural_analysis_cache_records,
             source_size_bytes=source_size_bytes,
             source_mtime_ns=source_mtime_ns,

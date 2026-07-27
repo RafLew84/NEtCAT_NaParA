@@ -52,6 +52,7 @@ from moltrack.analysis import (
 from .m6_domain_types_panel import M6DomainTypesPanel
 from .m6_settings_panel import M6SettingsPanel
 from .molecular_order_types_panel import MolecularOrderTypesPanel
+from .texture_domains_panel import TextureDomainsPanel
 
 
 class PositionAnalysisDialog(QDialog):
@@ -77,6 +78,9 @@ class PositionAnalysisDialog(QDialog):
     m6_domain_type_selection_changed = pyqtSignal(object)
     molecular_order_type_classification_requested = pyqtSignal(object)
     molecular_order_representative_requested = pyqtSignal(object)
+    texture_domain_analysis_requested = pyqtSignal(object)
+    texture_domain_cancel_requested = pyqtSignal()
+    texture_domain_view_settings_changed = pyqtSignal(object)
 
     _INTENSITY_METRIC_OPTIONS = (
         ("Background-corrected median", "background_corrected_median"),
@@ -376,6 +380,17 @@ class PositionAnalysisDialog(QDialog):
             self.m6_domain_type_selection_changed.emit
         )
         self.tabs.addTab(self.domain_types_panel, "Domain Types")
+        self.texture_domains_panel = TextureDomainsPanel(self.tabs)
+        self.texture_domains_panel.analysis_requested.connect(
+            self.texture_domain_analysis_requested.emit
+        )
+        self.texture_domains_panel.cancel_requested.connect(
+            self.texture_domain_cancel_requested.emit
+        )
+        self.texture_domains_panel.view_settings_changed.connect(
+            self.texture_domain_view_settings_changed.emit
+        )
+        self.tabs.addTab(self.texture_domains_panel, "Texture Domains")
         self.molecular_order_types_panel = MolecularOrderTypesPanel(self.tabs)
         self.molecular_order_types_panel.classification_requested.connect(
             self.molecular_order_type_classification_requested.emit
@@ -527,6 +542,25 @@ class PositionAnalysisDialog(QDialog):
             frame_index,
         )
 
+    def set_texture_domain_session_state(self, state) -> None:
+        self.texture_domains_panel.set_session_state(state)
+
+    def set_texture_domain_current_frame(self, frame_index: int) -> None:
+        self.texture_domains_panel.set_current_frame(frame_index)
+
+    def set_texture_domain_running(self, running: bool) -> None:
+        self.texture_domains_panel.set_running(running)
+
+    def set_texture_domain_progress(self, progress) -> None:
+        self.texture_domains_panel.set_progress(
+            progress.completed_count,
+            progress.total_count,
+            progress.frame_index,
+        )
+
+    def set_texture_domain_error(self, message: str) -> None:
+        self.texture_domains_panel.set_error(message)
+
     def set_plot_data(self, plot_data: MolecularPositionPlotData) -> None:
         if not isinstance(plot_data, MolecularPositionPlotData):
             raise TypeError("plot_data must be MolecularPositionPlotData.")
@@ -534,8 +568,15 @@ class PositionAnalysisDialog(QDialog):
             None if self._plot_data is None else self._plot_data.source_view
         )
         self._plot_data = plot_data
+        self.texture_domains_panel.set_current_frame(plot_data.frame_index)
         self._range_source_view = plot_data.source_view
         self.lbl_range_source_view.setText(f"Source view: {self._range_source_view}")
+        if self._range_frame_count is not None:
+            self.texture_domains_panel.configure(
+                frame_count=self._range_frame_count,
+                source_view=plot_data.source_view,
+                active_frame_index=plot_data.frame_index,
+            )
         self._displayed_points_xy = tuple(plot_data.points_xy)
         metric_index = self.cmb_intensity_metric.findData(plot_data.intensity_metric)
         if metric_index >= 0 and metric_index != self.cmb_intensity_metric.currentIndex():
@@ -565,7 +606,13 @@ class PositionAnalysisDialog(QDialog):
         self.histogram_plot.setYRange(0.0, float(max(1, maximum_count)), padding=0.05)
         self.lbl_status.setText(f"Points: {plot_data.point_count}")
 
-    def configure_frame_ranges(self, *, frame_count: int, source_view: str) -> None:
+    def configure_frame_ranges(
+        self,
+        *,
+        frame_count: int,
+        source_view: str,
+        active_frame_index: int | None = None,
+    ) -> None:
         frame_count = int(frame_count)
         if frame_count <= 0:
             raise ValueError("frame_count must be positive.")
@@ -574,6 +621,15 @@ class PositionAnalysisDialog(QDialog):
         self._range_frame_count = frame_count
         self._range_source_view = str(source_view).strip()
         self.lbl_range_source_view.setText(f"Source view: {self._range_source_view}")
+        if active_frame_index is None:
+            active_frame_index = (
+                0 if self._plot_data is None else self._plot_data.frame_index
+            )
+        self.texture_domains_panel.configure(
+            frame_count=frame_count,
+            source_view=self._range_source_view,
+            active_frame_index=int(active_frame_index),
+        )
         for spin_box in (
             self.sp_first_range_start,
             self.sp_first_range_end,
