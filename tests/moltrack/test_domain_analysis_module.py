@@ -6,11 +6,14 @@ from math import isclose
 import pytest
 
 from moltrack.analysis.domain_analysis import (
+    DomainAnalysisFailure,
     DomainAnalysisModule,
     DomainAnalysisRequest,
+    DomainAnalysisResult,
     M6AnalyzedMolecule,
     M6ComponentMembership,
     M6FrameComputation,
+    M6FrameAnalysisError,
 )
 
 
@@ -23,12 +26,14 @@ class _DeterministicM6Adapter:
         overlap_categories: bool = False,
         overlap_full_domains: bool = False,
         leave_pixel_uncovered: bool = False,
+        fail_frame_index: int | None = None,
     ) -> None:
         self._reorder_adapter_output = reorder_adapter_output
         self._alternate_pixel_geometry = alternate_pixel_geometry
         self._overlap_categories = overlap_categories
         self._overlap_full_domains = overlap_full_domains
         self._leave_pixel_uncovered = leave_pixel_uncovered
+        self._fail_frame_index = fail_frame_index
 
     def analyze_frame(
         self,
@@ -38,6 +43,8 @@ class _DeterministicM6Adapter:
         geometry_mode: str,
     ) -> M6FrameComputation:
         del series, geometry_mode
+        if frame_index == self._fail_frame_index:
+            raise M6FrameAnalysisError("synthetic M6 backend failure")
         first_pixels = (
             ((0, 0), (1, 0))
             if self._alternate_pixel_geometry
@@ -197,6 +204,125 @@ def test_run_publishes_immutable_deterministic_single_frame_m6_partition() -> No
         request.classifier_ids = ("abc_orientation",)  # type: ignore[misc]
     with pytest.raises(FrozenInstanceError):
         frame.frame_index = 8  # type: ignore[misc]
+
+
+def test_result_rejects_impossible_success_states() -> None:
+    completed = DomainAnalysisModule(
+        _DeterministicM6Adapter(reorder_adapter_output=False),
+        classifier_adapters={},
+    ).run(object(), DomainAnalysisRequest(frame_range=range(1)))
+
+    with pytest.raises(ValueError, match="successful Domain Analysis"):
+        DomainAnalysisResult(
+            run_status="completed_with_errors",
+            m6_gate=None,
+            classifier_status="not_requested",
+        )
+    with pytest.raises(ValueError, match="requires requested classifiers"):
+        DomainAnalysisResult(
+            run_status="completed_with_errors",
+            m6_gate=completed.m6_gate,
+            classifier_status="not_requested",
+        )
+
+
+def test_run_publishes_complete_frame_range_once_in_canonical_order() -> None:
+    events = []
+    request = DomainAnalysisRequest(
+        frame_range=range(3, 6),
+        classifier_ids=(),
+    )
+
+    result = DomainAnalysisModule(
+        _DeterministicM6Adapter(reorder_adapter_output=True),
+        classifier_adapters={},
+    ).run(object(), request, on_event=events.append)
+
+    assert result.run_status == "completed"
+    assert result.classifier_status == "not_requested"
+    assert result.classifier_outcomes is None
+    assert result.m6_gate is not None
+    assert tuple(frame.frame_index for frame in result.m6_gate.frames) == (3, 4, 5)
+    assert all(
+        frame.analyzed_source_ids == ("m-a", "m-b", "m-c", "m-d")
+        and frame.outside_source_ids == ("m-d",)
+        for frame in result.m6_gate.frames
+    )
+    assert [
+        (event.stage_id, event.status, event.frame_index)
+        for event in events
+    ] == [
+        ("run", "started", None),
+        ("m6", "progress", 3),
+        ("m6", "progress", 4),
+        ("m6", "progress", 5),
+        ("m6", "published", None),
+        ("run", "completed", None),
+    ]
+
+
+def test_run_reports_frame_failure_without_publishing_partial_range() -> None:
+    events = []
+    request = DomainAnalysisRequest(frame_range=range(2, 6))
+
+    result = DomainAnalysisModule(
+        _DeterministicM6Adapter(
+            reorder_adapter_output=False,
+            fail_frame_index=3,
+        ),
+        classifier_adapters={},
+    ).run(object(), request, on_event=events.append)
+
+    assert result.run_status == "failed"
+    assert result.m6_gate is None
+    assert result.m6_result_published is False
+    assert result.classifier_status == "not_requested"
+    assert result.classifier_outcomes is None
+    assert result.failure == DomainAnalysisFailure(
+        stage_id="m6",
+        frame_index=3,
+        message="synthetic M6 backend failure",
+    )
+    assert [
+        (event.stage_id, event.status, event.frame_index)
+        for event in events
+    ] == [
+        ("run", "started", None),
+        ("m6", "progress", 2),
+        ("m6", "failed", 3),
+        ("run", "failed", None),
+    ]
+
+
+def test_run_cancels_range_without_publishing_or_starting_later_frames() -> None:
+    events = []
+    request = DomainAnalysisRequest(frame_range=range(5, 8))
+
+    result = DomainAnalysisModule(
+        _DeterministicM6Adapter(reorder_adapter_output=False),
+        classifier_adapters={},
+    ).run(
+        object(),
+        request,
+        on_event=events.append,
+        is_cancelled=lambda: any(event.status == "progress" for event in events),
+    )
+
+    assert result.run_status == "canceled"
+    assert result.m6_gate is None
+    assert result.m6_result_published is False
+    assert result.failure is None
+    assert result.classifier_status == "not_requested"
+    assert result.classifier_outcomes is None
+    assert [
+        (event.stage_id, event.status, event.frame_index)
+        for event in events
+    ] == [
+        ("run", "started", None),
+        ("m6", "progress", 5),
+        ("m6", "canceled", None),
+        ("run", "canceled", None),
+    ]
 
 
 @pytest.mark.parametrize(

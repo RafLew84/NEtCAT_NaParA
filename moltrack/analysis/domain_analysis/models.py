@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import isclose, isfinite
-from typing import Literal
+from typing import Literal, TypeVar
 
 
 GeometryMode = Literal["segmentation_preferred", "bbox_centers"]
@@ -24,6 +24,7 @@ DomainAnalysisRunStatus = Literal[
     "canceled",
     "failed",
 ]
+_PartitionItem = TypeVar("_PartitionItem")
 
 
 @dataclass(frozen=True)
@@ -211,11 +212,6 @@ class M6PublishedComponent:
             "bounds_xyxy_nm",
         ))
 
-    @property
-    def molecule_count(self) -> int:
-        return len(self.source_ids)
-
-
 @dataclass(frozen=True)
 class M6FrameGate:
     """Published disjoint M6 partition for one frame."""
@@ -328,6 +324,29 @@ class M6Gate:
 
 
 @dataclass(frozen=True)
+class DomainAnalysisFailure:
+    """Expected backend failure that prevented atomic M6 publication."""
+
+    stage_id: Literal["m6"]
+    frame_index: int
+    message: str
+
+    def __post_init__(self) -> None:
+        if self.stage_id != "m6":
+            raise ValueError("Only the M6 stage can fail in this milestone.")
+        object.__setattr__(
+            self,
+            "frame_index",
+            _non_negative_integer(self.frame_index, "frame_index"),
+        )
+        object.__setattr__(
+            self,
+            "message",
+            _non_empty_string(self.message, "message"),
+        )
+
+
+@dataclass(frozen=True)
 class DomainAnalysisResult:
     """Immutable final snapshot returned from DomainAnalysisModule.run."""
 
@@ -335,6 +354,27 @@ class DomainAnalysisResult:
     m6_gate: M6Gate | None
     classifier_status: Literal["not_requested"]
     classifier_outcomes: None = None
+    failure: DomainAnalysisFailure | None = None
+
+    def __post_init__(self) -> None:
+        if (
+            self.run_status in {"completed", "completed_with_errors"}
+            and self.m6_gate is None
+        ):
+            raise ValueError(
+                "A successful Domain Analysis must publish its M6 gate."
+            )
+        if (
+            self.run_status == "completed_with_errors"
+            and self.classifier_status == "not_requested"
+        ):
+            raise ValueError(
+                "completed_with_errors requires requested classifiers."
+            )
+        if self.run_status in {"failed", "canceled"} and self.m6_gate is not None:
+            raise ValueError("A failed or canceled run cannot publish an M6 gate.")
+        if (self.run_status == "failed") != (self.failure is not None):
+            raise ValueError("Only a failed run must contain failure details.")
 
     @property
     def m6_result_published(self) -> bool:
@@ -417,8 +457,8 @@ def _validate_molecule_pixel_coverage(
 
 
 def _validate_disjoint_cover(
-    partitions: list[set[object]],
-    expected: set[object],
+    partitions: list[set[_PartitionItem]],
+    expected: set[_PartitionItem],
     label: str,
 ) -> None:
     combined = set().union(*partitions)

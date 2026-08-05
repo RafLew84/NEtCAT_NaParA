@@ -9,6 +9,7 @@ from typing import Protocol
 from .models import (
     DomainAnalysisEvent,
     DomainAnalysisEventStatus,
+    DomainAnalysisFailure,
     DomainAnalysisRequest,
     DomainAnalysisResult,
     GeometryMode,
@@ -32,6 +33,10 @@ class M6Adapter(Protocol):
     ) -> M6FrameComputation: ...
 
 
+class M6FrameAnalysisError(RuntimeError):
+    """Expected M6 backend failure for the frame currently being analyzed."""
+
+
 class DomainAnalysisModule:
     """Synchronous seam that owns M6 gate construction and publication."""
 
@@ -53,37 +58,100 @@ class DomainAnalysisModule:
     ) -> DomainAnalysisResult:
         if not isinstance(request, DomainAnalysisRequest):
             raise TypeError("request must be a DomainAnalysisRequest.")
-        if len(request.frame_indices) != 1:
-            raise ValueError("This milestone supports exactly one analysis frame.")
         if request.classifier_ids:
             raise ValueError("Classifiers are unavailable in the M6-only milestone.")
-        del is_cancelled
-        frame_index = request.frame_indices[0]
         _emit(on_event, "run", "started", "Domain Analysis started.")
-        computation = self._m6_adapter.analyze_frame(
-            series,
-            frame_index=frame_index,
-            geometry_mode=request.geometry_mode,
-        )
-        if not isinstance(computation, M6FrameComputation):
-            raise TypeError("M6 adapter must return M6FrameComputation.")
-        if computation.frame_index != frame_index:
-            raise ValueError("M6 adapter returned a result for another frame.")
-        frame = _publish_frame(computation)
+        frames = []
+        for frame_index in request.frame_indices:
+            if _cancellation_requested(is_cancelled):
+                return _canceled_result(on_event)
+            try:
+                computation = self._m6_adapter.analyze_frame(
+                    series,
+                    frame_index=frame_index,
+                    geometry_mode=request.geometry_mode,
+                )
+            except M6FrameAnalysisError as exc:
+                return _failed_result(
+                    exc,
+                    frame_index=frame_index,
+                    on_event=on_event,
+                )
+            if not isinstance(computation, M6FrameComputation):
+                raise TypeError("M6 adapter must return M6FrameComputation.")
+            if computation.frame_index != frame_index:
+                raise ValueError("M6 adapter returned a result for another frame.")
+            frames.append(_publish_frame(computation))
+            _emit(
+                on_event,
+                "m6",
+                "progress",
+                "M6 frame completed without publishing a partial gate.",
+                frame_index=frame_index,
+            )
+            if _cancellation_requested(is_cancelled):
+                return _canceled_result(on_event)
+        gate = M6Gate(frames=tuple(frames))
         _emit(
             on_event,
             "m6",
             "published",
             "Complete M6 gate published.",
-            frame_index=frame_index,
         )
         _emit(on_event, "run", "completed", "M6-only request completed.")
         return DomainAnalysisResult(
             run_status="completed",
-            m6_gate=M6Gate(frames=(frame,)),
+            m6_gate=gate,
             classifier_status="not_requested",
             classifier_outcomes=None,
         )
+
+
+def _failed_result(
+    error: M6FrameAnalysisError,
+    *,
+    frame_index: int,
+    on_event: Callable[[DomainAnalysisEvent], None] | None,
+) -> DomainAnalysisResult:
+    message = str(error).strip() or error.__class__.__name__
+    _emit(on_event, "m6", "failed", message, frame_index=frame_index)
+    _emit(on_event, "run", "failed", "Domain Analysis failed.")
+    return DomainAnalysisResult(
+        run_status="failed",
+        m6_gate=None,
+        classifier_status="not_requested",
+        classifier_outcomes=None,
+        failure=DomainAnalysisFailure(
+            stage_id="m6",
+            frame_index=frame_index,
+            message=message,
+        ),
+    )
+
+
+def _canceled_result(
+    on_event: Callable[[DomainAnalysisEvent], None] | None,
+) -> DomainAnalysisResult:
+    _emit(
+        on_event,
+        "m6",
+        "canceled",
+        "M6 range canceled before atomic publication.",
+    )
+    _emit(on_event, "run", "canceled", "Domain Analysis canceled.")
+    return DomainAnalysisResult(
+        run_status="canceled",
+        m6_gate=None,
+        classifier_status="not_requested",
+        classifier_outcomes=None,
+        failure=None,
+    )
+
+
+def _cancellation_requested(
+    is_cancelled: Callable[[], bool] | None,
+) -> bool:
+    return is_cancelled is not None and bool(is_cancelled())
 
 
 def _publish_frame(computation: M6FrameComputation) -> M6FrameGate:
