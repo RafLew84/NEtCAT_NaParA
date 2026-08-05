@@ -3,15 +3,21 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Callable, Mapping
+from dataclasses import replace
 from math import fsum
 from typing import Protocol
 
+from .cache import (
+    DEFAULT_M6_CACHE_MAX_ENTRIES,
+    M6CacheDisposition,
+    M6FrameCache,
+    m6_frame_cache_key,
+)
 from .canonical_geometry import canonicalize_frame
 from .geometry import (
     DomainAnalysisSeries,
     M6AnalyzedMolecule,
     M6CanonicalFrame,
-    M6PresentationProvenance,
 )
 from .models import (
     DomainAnalysisEvent,
@@ -30,6 +36,9 @@ from .models import (
 
 
 class M6Adapter(Protocol):
+    m6_settings_fingerprint: str
+    m6_algorithm_version: str
+
     def analyze_frame(
         self,
         frame: M6CanonicalFrame,
@@ -50,9 +59,12 @@ class DomainAnalysisModule:
         self,
         m6_adapter: M6Adapter,
         classifier_adapters: Mapping[str, object],
+        *,
+        m6_cache_max_entries: int = DEFAULT_M6_CACHE_MAX_ENTRIES,
     ) -> None:
         self._m6_adapter = m6_adapter
         self._classifier_adapters = dict(classifier_adapters)
+        self._m6_cache = M6FrameCache(max_entries=m6_cache_max_entries)
 
     def run(
         self,
@@ -66,21 +78,26 @@ class DomainAnalysisModule:
             raise TypeError("request must be a DomainAnalysisRequest.")
         if request.classifier_ids:
             raise ValueError("Classifiers are unavailable in the M6-only milestone.")
+        settings_fingerprint = _adapter_identity(
+            self._m6_adapter.m6_settings_fingerprint,
+            "m6_settings_fingerprint",
+        )
+        algorithm_version = _adapter_identity(
+            self._m6_adapter.m6_algorithm_version,
+            "m6_algorithm_version",
+        )
         _emit(on_event, "run", "started", "Domain Analysis started.")
         frames = []
         for frame_index in request.frame_indices:
             if _cancellation_requested(is_cancelled):
                 return _canceled_result(on_event)
-            canonical_frame = canonicalize_frame(
-                series,
-                frame_index=frame_index,
-                geometry_mode=request.geometry_mode,
-            )
             try:
-                computation = self._m6_adapter.analyze_frame(
-                    canonical_frame,
+                published_frame, disposition = self._run_m6_frame(
+                    series,
+                    request,
                     frame_index=frame_index,
-                    geometry_mode=request.geometry_mode,
+                    settings_fingerprint=settings_fingerprint,
+                    algorithm_version=algorithm_version,
                 )
             except M6FrameAnalysisError as exc:
                 return _failed_result(
@@ -88,29 +105,16 @@ class DomainAnalysisModule:
                     frame_index=frame_index,
                     on_event=on_event,
                 )
-            if not isinstance(computation, M6FrameComputation):
-                raise TypeError("M6 adapter must return M6FrameComputation.")
-            if computation.frame_index != frame_index:
-                raise ValueError("M6 adapter returned a result for another frame.")
-            if (
-                computation.molecules != canonical_frame.molecules
-                or computation.analyzed_pixels_xy
-                != canonical_frame.analyzed_pixels_xy
-                or computation.pixel_area_nm2 != canonical_frame.pixel_area_nm2
-                or computation.coordinate_frame != canonical_frame.coordinate_frame
-                or computation.coordinate_transform_fingerprint
-                != canonical_frame.coordinate_transform_fingerprint
-            ):
-                raise ValueError("M6 adapter changed canonical frame geometry.")
-            frames.append(_publish_frame(
-                computation,
-                canonical_frame.presentation_provenance,
-            ))
+            frames.append(published_frame)
             _emit(
                 on_event,
                 "m6",
                 "progress",
-                "M6 frame completed without publishing a partial gate.",
+                (
+                    "M6 frame reused from cache."
+                    if disposition == "available"
+                    else "M6 frame completed without publishing a partial gate."
+                ),
                 frame_index=frame_index,
             )
             if _cancellation_requested(is_cancelled):
@@ -129,6 +133,80 @@ class DomainAnalysisModule:
             classifier_status="not_requested",
             classifier_outcomes=None,
         )
+
+    def _run_m6_frame(
+        self,
+        series: DomainAnalysisSeries,
+        request: DomainAnalysisRequest,
+        *,
+        frame_index: int,
+        settings_fingerprint: str,
+        algorithm_version: str,
+    ) -> tuple[M6FrameGate, M6CacheDisposition]:
+        canonical_frame = canonicalize_frame(
+            series,
+            frame_index=frame_index,
+            geometry_mode=request.geometry_mode,
+        )
+        cache_key = m6_frame_cache_key(
+            canonical_frame,
+            geometry_mode=request.geometry_mode,
+            m6_settings_fingerprint=settings_fingerprint,
+            m6_algorithm_version=algorithm_version,
+        )
+        disposition, cached = self._m6_cache.lookup(cache_key)
+        if cached is None:
+            computation = self._m6_adapter.analyze_frame(
+                canonical_frame,
+                frame_index=frame_index,
+                geometry_mode=request.geometry_mode,
+            )
+            _validate_computation(
+                computation,
+                canonical_frame,
+                frame_index=frame_index,
+                settings_fingerprint=settings_fingerprint,
+            )
+        else:
+            computation = replace(cached, frame_index=frame_index)
+        published = _publish_frame(
+            computation,
+            canonical_frame,
+            m6_algorithm_version=algorithm_version,
+        )
+        if cached is None:
+            self._m6_cache.put(cache_key, computation)
+        return published, disposition
+
+
+def _validate_computation(
+    computation: M6FrameComputation,
+    canonical_frame: M6CanonicalFrame,
+    *,
+    frame_index: int,
+    settings_fingerprint: str,
+) -> None:
+    if not isinstance(computation, M6FrameComputation):
+        raise TypeError("M6 adapter must return M6FrameComputation.")
+    if computation.frame_index != frame_index:
+        raise ValueError("M6 adapter returned a result for another frame.")
+    if computation.m6_settings_fingerprint != settings_fingerprint:
+        raise ValueError("M6 adapter settings fingerprint changed during the run.")
+    if (
+        computation.molecules != canonical_frame.molecules
+        or computation.analyzed_pixels_xy != canonical_frame.analyzed_pixels_xy
+        or computation.pixel_area_nm2 != canonical_frame.pixel_area_nm2
+        or computation.coordinate_frame != canonical_frame.coordinate_frame
+        or computation.coordinate_transform_fingerprint
+        != canonical_frame.coordinate_transform_fingerprint
+    ):
+        raise ValueError("M6 adapter changed canonical frame geometry.")
+
+
+def _adapter_identity(value: str, name: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"M6 adapter {name} must be a non-empty string.")
+    return value.strip()
 
 
 def _failed_result(
@@ -180,7 +258,9 @@ def _cancellation_requested(
 
 def _publish_frame(
     computation: M6FrameComputation,
-    presentation_provenance: M6PresentationProvenance,
+    canonical_frame: M6CanonicalFrame,
+    *,
+    m6_algorithm_version: str,
 ) -> M6FrameGate:
     molecule_by_id = {value.source_id: value for value in computation.molecules}
     memberships = computation.full_domains + computation.small_ordered_islands
@@ -213,14 +293,16 @@ def _publish_frame(
     outside_pixels = _molecule_pixels(outside)
     return M6FrameGate(
         frame_index=computation.frame_index,
+        physical_frame_id=canonical_frame.physical_frame_id,
         coordinate_frame=computation.coordinate_frame,
         coordinate_transform_fingerprint=computation.coordinate_transform_fingerprint,
-        presentation_provenance=presentation_provenance,
+        presentation_provenance=canonical_frame.presentation_provenance,
         source_geometry_fingerprint=_source_geometry_fingerprint(
             computation.molecules,
             pixel_area_nm2=computation.pixel_area_nm2,
         ),
         m6_settings_fingerprint=computation.m6_settings_fingerprint,
+        m6_algorithm_version=m6_algorithm_version,
         pixel_area_nm2=computation.pixel_area_nm2,
         full_domains=full_domains,
         small_ordered_islands=islands,

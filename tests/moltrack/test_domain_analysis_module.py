@@ -34,13 +34,18 @@ class _DeterministicM6Adapter:
             "lattice-0001",
             "lattice-0002",
         ),
+        m6_settings_fingerprint: str = "m6-settings-v1",
+        m6_algorithm_version: str = "m6-algorithm-v1",
     ) -> None:
         self._reorder_adapter_output = reorder_adapter_output
         self._overlap_categories = overlap_categories
         self._overlap_full_domains = overlap_full_domains
         self._leave_pixel_uncovered = leave_pixel_uncovered
-        self._fail_frame_index = fail_frame_index
+        self.fail_frame_index = fail_frame_index
         self._backend_component_ids = backend_component_ids
+        self.m6_settings_fingerprint = m6_settings_fingerprint
+        self.m6_algorithm_version = m6_algorithm_version
+        self.analyzed_frame_indices: list[int] = []
 
     def analyze_frame(
         self,
@@ -50,7 +55,8 @@ class _DeterministicM6Adapter:
         geometry_mode: str,
     ) -> M6FrameComputation:
         del geometry_mode
-        if frame_index == self._fail_frame_index:
+        self.analyzed_frame_indices.append(frame_index)
+        if frame_index == self.fail_frame_index:
             raise M6FrameAnalysisError("synthetic M6 backend failure")
         molecules = series.molecules
         full_domain_id, island_id = self._backend_component_ids
@@ -89,7 +95,7 @@ class _DeterministicM6Adapter:
             small_ordered_islands=islands,
             coordinate_frame=series.coordinate_frame,
             coordinate_transform_fingerprint=series.coordinate_transform_fingerprint,
-            m6_settings_fingerprint="m6-settings-v1",
+            m6_settings_fingerprint=self.m6_settings_fingerprint,
         )
 
 
@@ -175,10 +181,8 @@ def _geometry_series(
 
 def test_run_canonicalizes_equivalent_raw_and_registered_geometry() -> None:
     request = DomainAnalysisRequest(frame_range=range(1))
-    module = DomainAnalysisModule(
-        _DeterministicM6Adapter(reorder_adapter_output=False),
-        classifier_adapters={},
-    )
+    adapter = _DeterministicM6Adapter(reorder_adapter_output=False)
+    module = DomainAnalysisModule(adapter, classifier_adapters={})
 
     raw = module.run(_geometry_series("raw"), request)
     registered = module.run(_geometry_series("expanded_aligned"), request)
@@ -204,6 +208,144 @@ def test_run_canonicalizes_equivalent_raw_and_registered_geometry() -> None:
     assert registered_frame.presentation_provenance.source_view == (
         "expanded_aligned"
     )
+    assert frame.m6_gate_fingerprint == registered_frame.m6_gate_fingerprint
+    assert adapter.analyzed_frame_indices == [0]
+
+
+def test_run_recomputes_only_stale_and_missing_m6_frames() -> None:
+    adapter = _DeterministicM6Adapter(reorder_adapter_output=False)
+    module = DomainAnalysisModule(adapter, classifier_adapters={})
+    original = _geometry_series(frame_indices=range(3))
+    changed = _geometry_series(frame_indices=range(3), alternate_geometry=True)
+
+    module.run(original, DomainAnalysisRequest(frame_range=range(2)))
+    adapter.analyzed_frame_indices.clear()
+    mixed = DomainAnalysisSeries(frames=(
+        original.frames[0],
+        changed.frames[1],
+        original.frames[2],
+    ))
+
+    result = module.run(mixed, DomainAnalysisRequest(frame_range=range(3)))
+
+    assert adapter.analyzed_frame_indices == [1, 2]
+    assert result.m6_gate is not None
+    assert tuple(frame.frame_index for frame in result.m6_gate.frames) == (0, 1, 2)
+
+
+def test_run_fingerprints_m6_gate_with_versioned_configuration() -> None:
+    adapter = _DeterministicM6Adapter(reorder_adapter_output=False)
+    module = DomainAnalysisModule(adapter, classifier_adapters={})
+    series = _geometry_series(frame_indices=range(2))
+    request = DomainAnalysisRequest(frame_range=range(2))
+
+    first = module.run(series, request)
+    adapter.analyzed_frame_indices.clear()
+    adapter.m6_settings_fingerprint = "m6-settings-v2"
+    changed_settings = module.run(series, request)
+
+    assert adapter.analyzed_frame_indices == [0, 1]
+    assert first.m6_gate is not None
+    assert changed_settings.m6_gate is not None
+    assert tuple(frame.m6_gate_fingerprint for frame in first.m6_gate.frames) != (
+        tuple(
+            frame.m6_gate_fingerprint
+            for frame in changed_settings.m6_gate.frames
+        )
+    )
+    assert all(
+        frame.m6_settings_fingerprint == "m6-settings-v2"
+        for frame in changed_settings.m6_gate.frames
+    )
+    assert all(
+        len(frame.m6_gate_fingerprint) == 64
+        for frame in changed_settings.m6_gate.frames
+    )
+
+    adapter.analyzed_frame_indices.clear()
+    adapter.m6_algorithm_version = "m6-algorithm-v2"
+    changed_algorithm = module.run(series, request)
+
+    assert adapter.analyzed_frame_indices == [0, 1]
+    assert changed_algorithm.m6_gate is not None
+    assert all(
+        frame.m6_algorithm_version == "m6-algorithm-v2"
+        for frame in changed_algorithm.m6_gate.frames
+    )
+    assert tuple(
+        frame.m6_gate_fingerprint
+        for frame in changed_settings.m6_gate.frames
+    ) != tuple(
+        frame.m6_gate_fingerprint
+        for frame in changed_algorithm.m6_gate.frames
+    )
+
+    adapter.analyzed_frame_indices.clear()
+    repeated = module.run(series, request)
+
+    assert adapter.analyzed_frame_indices == []
+    assert repeated == changed_algorithm
+
+
+def test_run_evicts_the_least_recently_used_complete_m6_frame() -> None:
+    adapter = _DeterministicM6Adapter(reorder_adapter_output=False)
+    module = DomainAnalysisModule(
+        adapter,
+        classifier_adapters={},
+        m6_cache_max_entries=2,
+    )
+    series = _geometry_series(frame_indices=range(3))
+
+    first_snapshot = module.run(
+        series,
+        DomainAnalysisRequest(frame_range=range(1)),
+    )
+    module.run(series, DomainAnalysisRequest(frame_range=range(1, 2)))
+    module.run(series, DomainAnalysisRequest(frame_range=range(1)))
+    module.run(series, DomainAnalysisRequest(frame_range=range(2, 3)))
+    adapter.analyzed_frame_indices.clear()
+
+    retained = module.run(series, DomainAnalysisRequest(frame_range=range(1)))
+    evicted = module.run(series, DomainAnalysisRequest(frame_range=range(1, 2)))
+
+    assert adapter.analyzed_frame_indices == [1]
+    assert retained == first_snapshot
+    assert evicted.m6_gate is not None
+    assert first_snapshot.m6_gate is not None
+    assert first_snapshot.m6_gate.frames[0].frame_index == 0
+
+
+def test_run_never_reuses_failed_or_not_started_m6_frames() -> None:
+    series = _geometry_series(frame_indices=range(2))
+    request = DomainAnalysisRequest(frame_range=range(2))
+    failing_adapter = _DeterministicM6Adapter(
+        reorder_adapter_output=False,
+        fail_frame_index=1,
+    )
+    failing_module = DomainAnalysisModule(failing_adapter, classifier_adapters={})
+
+    failed = failing_module.run(series, request)
+    failing_adapter.fail_frame_index = None
+    failing_adapter.analyzed_frame_indices.clear()
+    recovered = failing_module.run(series, request)
+
+    assert failed.run_status == "failed"
+    assert recovered.run_status == "completed"
+    assert failing_adapter.analyzed_frame_indices == [1]
+
+    canceled_adapter = _DeterministicM6Adapter(reorder_adapter_output=False)
+    canceled_module = DomainAnalysisModule(canceled_adapter, classifier_adapters={})
+    canceled = canceled_module.run(
+        series,
+        request,
+        is_cancelled=lambda: canceled_adapter.analyzed_frame_indices == [0],
+    )
+    canceled_adapter.analyzed_frame_indices.clear()
+    retried = canceled_module.run(series, request)
+
+    assert canceled.run_status == "canceled"
+    assert retried.run_status == "completed"
+    assert canceled_adapter.analyzed_frame_indices == [1]
 
 
 def test_run_owns_stable_component_ids_instead_of_backend_ordering_ids() -> None:

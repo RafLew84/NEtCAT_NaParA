@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import isclose, isfinite
 from typing import Literal, TypeVar
 
+from .fingerprints import m6_frame_gate_fingerprint
 from .geometry import GeometryMode, M6AnalyzedMolecule, M6PresentationProvenance
 
 
@@ -197,11 +198,13 @@ class M6FrameGate:
     """Published disjoint M6 partition for one frame."""
 
     frame_index: int
+    physical_frame_id: str
     coordinate_frame: str
     coordinate_transform_fingerprint: str
     presentation_provenance: M6PresentationProvenance
     source_geometry_fingerprint: str
     m6_settings_fingerprint: str
+    m6_algorithm_version: str
     pixel_area_nm2: float
     full_domains: tuple[M6PublishedComponent, ...]
     small_ordered_islands: tuple[M6PublishedComponent, ...]
@@ -212,12 +215,26 @@ class M6FrameGate:
     analyzed_source_ids: tuple[str, ...]
     analyzed_pixels_xy: tuple[tuple[int, int], ...]
     analyzed_area_nm2: float
+    m6_gate_fingerprint: str = field(init=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "frame_index", _non_negative_integer(
             self.frame_index,
             "frame_index",
         ))
+        for field_name in (
+            "physical_frame_id",
+            "coordinate_frame",
+            "coordinate_transform_fingerprint",
+            "source_geometry_fingerprint",
+            "m6_settings_fingerprint",
+            "m6_algorithm_version",
+        ):
+            object.__setattr__(
+                self,
+                field_name,
+                _non_empty_string(getattr(self, field_name), field_name),
+            )
         if not isinstance(self.presentation_provenance, M6PresentationProvenance):
             raise TypeError(
                 "presentation_provenance must be M6PresentationProvenance."
@@ -275,6 +292,11 @@ class M6FrameGate:
         object.__setattr__(self, "pixel_area_nm2", pixel_area)
         object.__setattr__(self, "outside_area_nm2", outside_area)
         object.__setattr__(self, "analyzed_area_nm2", analyzed_area)
+        object.__setattr__(
+            self,
+            "m6_gate_fingerprint",
+            m6_frame_gate_fingerprint(self),
+        )
 
     @property
     def analyzed_molecule_count(self) -> int:
