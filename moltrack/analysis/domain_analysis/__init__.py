@@ -1,13 +1,21 @@
 """Public synchronous interface for unified M6-gated Domain Analysis."""
 
+from .geometry import (
+    DomainAnalysisFrame,
+    DomainAnalysisSeries,
+    GeometryMode,
+    M6AnalyzedMolecule,
+    M6CanonicalFrame,
+    M6FrameGeometry,
+    M6PresentationProvenance,
+    M6SourceAnnotation,
+)
 from .models import (
     DomainAnalysisEvent,
     DomainAnalysisEventStatus,
     DomainAnalysisFailure,
     DomainAnalysisRequest,
     DomainAnalysisResult,
-    GeometryMode,
-    M6AnalyzedMolecule,
     M6ComponentMembership,
     M6FrameComputation,
     M6FrameGate,
@@ -17,19 +25,25 @@ from .models import (
 from .module import DomainAnalysisModule, M6Adapter, M6FrameAnalysisError
 
 __all__ = [
+    "DomainAnalysisFrame",
     "DomainAnalysisEvent",
     "DomainAnalysisEventStatus",
     "DomainAnalysisFailure",
     "DomainAnalysisModule",
     "DomainAnalysisRequest",
     "DomainAnalysisResult",
+    "DomainAnalysisSeries",
     "GeometryMode",
     "M6Adapter",
     "M6AnalyzedMolecule",
+    "M6CanonicalFrame",
     "M6ComponentMembership",
     "M6FrameComputation",
     "M6FrameAnalysisError",
     "M6FrameGate",
+    "M6FrameGeometry",
     "M6Gate",
     "M6PublishedComponent",
+    "M6PresentationProvenance",
+    "M6SourceAnnotation",
 ]

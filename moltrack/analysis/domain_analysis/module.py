@@ -6,6 +6,13 @@ from collections.abc import Callable, Mapping
 from math import fsum
 from typing import Protocol
 
+from .canonical_geometry import canonicalize_frame
+from .geometry import (
+    DomainAnalysisSeries,
+    M6AnalyzedMolecule,
+    M6CanonicalFrame,
+    M6PresentationProvenance,
+)
 from .models import (
     DomainAnalysisEvent,
     DomainAnalysisEventStatus,
@@ -13,7 +20,6 @@ from .models import (
     DomainAnalysisRequest,
     DomainAnalysisResult,
     GeometryMode,
-    M6AnalyzedMolecule,
     M6ComponentMembership,
     M6ComponentType,
     M6FrameComputation,
@@ -26,7 +32,7 @@ from .models import (
 class M6Adapter(Protocol):
     def analyze_frame(
         self,
-        series: object,
+        frame: M6CanonicalFrame,
         *,
         frame_index: int,
         geometry_mode: GeometryMode,
@@ -50,7 +56,7 @@ class DomainAnalysisModule:
 
     def run(
         self,
-        series: object,
+        series: DomainAnalysisSeries,
         request: DomainAnalysisRequest,
         *,
         on_event: Callable[[DomainAnalysisEvent], None] | None = None,
@@ -65,9 +71,14 @@ class DomainAnalysisModule:
         for frame_index in request.frame_indices:
             if _cancellation_requested(is_cancelled):
                 return _canceled_result(on_event)
+            canonical_frame = canonicalize_frame(
+                series,
+                frame_index=frame_index,
+                geometry_mode=request.geometry_mode,
+            )
             try:
                 computation = self._m6_adapter.analyze_frame(
-                    series,
+                    canonical_frame,
                     frame_index=frame_index,
                     geometry_mode=request.geometry_mode,
                 )
@@ -81,7 +92,20 @@ class DomainAnalysisModule:
                 raise TypeError("M6 adapter must return M6FrameComputation.")
             if computation.frame_index != frame_index:
                 raise ValueError("M6 adapter returned a result for another frame.")
-            frames.append(_publish_frame(computation))
+            if (
+                computation.molecules != canonical_frame.molecules
+                or computation.analyzed_pixels_xy
+                != canonical_frame.analyzed_pixels_xy
+                or computation.pixel_area_nm2 != canonical_frame.pixel_area_nm2
+                or computation.coordinate_frame != canonical_frame.coordinate_frame
+                or computation.coordinate_transform_fingerprint
+                != canonical_frame.coordinate_transform_fingerprint
+            ):
+                raise ValueError("M6 adapter changed canonical frame geometry.")
+            frames.append(_publish_frame(
+                computation,
+                canonical_frame.presentation_provenance,
+            ))
             _emit(
                 on_event,
                 "m6",
@@ -154,7 +178,10 @@ def _cancellation_requested(
     return is_cancelled is not None and bool(is_cancelled())
 
 
-def _publish_frame(computation: M6FrameComputation) -> M6FrameGate:
+def _publish_frame(
+    computation: M6FrameComputation,
+    presentation_provenance: M6PresentationProvenance,
+) -> M6FrameGate:
     molecule_by_id = {value.source_id: value for value in computation.molecules}
     memberships = computation.full_domains + computation.small_ordered_islands
     _validate_membership_source_ids(memberships, known_ids=set(molecule_by_id))
@@ -188,6 +215,7 @@ def _publish_frame(computation: M6FrameComputation) -> M6FrameGate:
         frame_index=computation.frame_index,
         coordinate_frame=computation.coordinate_frame,
         coordinate_transform_fingerprint=computation.coordinate_transform_fingerprint,
+        presentation_provenance=presentation_provenance,
         source_geometry_fingerprint=_source_geometry_fingerprint(
             computation.molecules,
             pixel_area_nm2=computation.pixel_area_nm2,
@@ -220,8 +248,23 @@ def _publish_component(
     x_values = tuple(value[0] for value in points)
     y_values = tuple(value[1] for value in points)
     count = len(molecules)
+    identity_payload = json.dumps(
+        {
+            "component_type": component_type,
+            "source_ids": membership.source_ids,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    component_prefix = (
+        "m6-full"
+        if component_type == "full_domain"
+        else "m6-island"
+    )
     return M6PublishedComponent(
-        lattice_domain_id=membership.lattice_domain_id,
+        lattice_domain_id=(
+            f"{component_prefix}-{hashlib.sha256(identity_payload).hexdigest()[:12]}"
+        ),
         component_type=component_type,
         source_ids=membership.source_ids,
         core_source_ids=membership.core_source_ids,

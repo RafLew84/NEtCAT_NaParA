@@ -4,8 +4,9 @@ from dataclasses import dataclass
 from math import isclose, isfinite
 from typing import Literal, TypeVar
 
+from .geometry import GeometryMode, M6AnalyzedMolecule, M6PresentationProvenance
 
-GeometryMode = Literal["segmentation_preferred", "bbox_centers"]
+
 M6ComponentType = Literal["full_domain", "small_ordered_island"]
 DomainAnalysisEventStatus = Literal[
     "started",
@@ -64,27 +65,6 @@ class DomainAnalysisEvent:
     status: DomainAnalysisEventStatus
     message: str
     frame_index: int | None = None
-
-
-@dataclass(frozen=True)
-class M6AnalyzedMolecule:
-    """Canonical molecule geometry supplied by an M6 adapter."""
-
-    source_id: str
-    centroid_xy_nm: tuple[float, float]
-    footprint_pixels_xy: tuple[tuple[int, int], ...]
-
-    def __post_init__(self) -> None:
-        source_id = _non_empty_string(self.source_id, "source_id")
-        centroid = _finite_pair(self.centroid_xy_nm, "centroid_xy_nm")
-        pixels = _sorted_unique_pixels(
-            self.footprint_pixels_xy,
-            "footprint_pixels_xy",
-            allow_empty=False,
-        )
-        object.__setattr__(self, "source_id", source_id)
-        object.__setattr__(self, "centroid_xy_nm", centroid)
-        object.__setattr__(self, "footprint_pixels_xy", pixels)
 
 
 @dataclass(frozen=True)
@@ -219,6 +199,7 @@ class M6FrameGate:
     frame_index: int
     coordinate_frame: str
     coordinate_transform_fingerprint: str
+    presentation_provenance: M6PresentationProvenance
     source_geometry_fingerprint: str
     m6_settings_fingerprint: str
     pixel_area_nm2: float
@@ -237,6 +218,10 @@ class M6FrameGate:
             self.frame_index,
             "frame_index",
         ))
+        if not isinstance(self.presentation_provenance, M6PresentationProvenance):
+            raise TypeError(
+                "presentation_provenance must be M6PresentationProvenance."
+            )
         full_domains = _published_components(
             self.full_domains,
             "full_domain",
