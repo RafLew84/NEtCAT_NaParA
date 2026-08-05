@@ -1,0 +1,230 @@
+from __future__ import annotations
+
+import hashlib
+import json
+from collections.abc import Callable, Mapping
+from math import fsum
+from typing import Protocol
+
+from .models import (
+    DomainAnalysisEvent,
+    DomainAnalysisEventStatus,
+    DomainAnalysisRequest,
+    DomainAnalysisResult,
+    GeometryMode,
+    M6AnalyzedMolecule,
+    M6ComponentMembership,
+    M6ComponentType,
+    M6FrameComputation,
+    M6FrameGate,
+    M6Gate,
+    M6PublishedComponent,
+)
+
+
+class M6Adapter(Protocol):
+    def analyze_frame(
+        self,
+        series: object,
+        *,
+        frame_index: int,
+        geometry_mode: GeometryMode,
+    ) -> M6FrameComputation: ...
+
+
+class DomainAnalysisModule:
+    """Synchronous seam that owns M6 gate construction and publication."""
+
+    def __init__(
+        self,
+        m6_adapter: M6Adapter,
+        classifier_adapters: Mapping[str, object],
+    ) -> None:
+        self._m6_adapter = m6_adapter
+        self._classifier_adapters = dict(classifier_adapters)
+
+    def run(
+        self,
+        series: object,
+        request: DomainAnalysisRequest,
+        *,
+        on_event: Callable[[DomainAnalysisEvent], None] | None = None,
+        is_cancelled: Callable[[], bool] | None = None,
+    ) -> DomainAnalysisResult:
+        if not isinstance(request, DomainAnalysisRequest):
+            raise TypeError("request must be a DomainAnalysisRequest.")
+        if len(request.frame_indices) != 1:
+            raise ValueError("This milestone supports exactly one analysis frame.")
+        if request.classifier_ids:
+            raise ValueError("Classifiers are unavailable in the M6-only milestone.")
+        del is_cancelled
+        frame_index = request.frame_indices[0]
+        _emit(on_event, "run", "started", "Domain Analysis started.")
+        computation = self._m6_adapter.analyze_frame(
+            series,
+            frame_index=frame_index,
+            geometry_mode=request.geometry_mode,
+        )
+        if not isinstance(computation, M6FrameComputation):
+            raise TypeError("M6 adapter must return M6FrameComputation.")
+        if computation.frame_index != frame_index:
+            raise ValueError("M6 adapter returned a result for another frame.")
+        frame = _publish_frame(computation)
+        _emit(
+            on_event,
+            "m6",
+            "published",
+            "Complete M6 gate published.",
+            frame_index=frame_index,
+        )
+        _emit(on_event, "run", "completed", "M6-only request completed.")
+        return DomainAnalysisResult(
+            run_status="completed",
+            m6_gate=M6Gate(frames=(frame,)),
+            classifier_status="not_requested",
+            classifier_outcomes=None,
+        )
+
+
+def _publish_frame(computation: M6FrameComputation) -> M6FrameGate:
+    molecule_by_id = {value.source_id: value for value in computation.molecules}
+    memberships = computation.full_domains + computation.small_ordered_islands
+    _validate_membership_source_ids(memberships, known_ids=set(molecule_by_id))
+    full_domains = tuple(
+        _publish_component(
+            value,
+            "full_domain",
+            molecule_by_id,
+            computation.pixel_area_nm2,
+        )
+        for value in computation.full_domains
+    )
+    islands = tuple(
+        _publish_component(
+            value,
+            "small_ordered_island",
+            molecule_by_id,
+            computation.pixel_area_nm2,
+        )
+        for value in computation.small_ordered_islands
+    )
+    assigned_ids = {
+        source_id
+        for membership in memberships
+        for source_id in membership.source_ids
+    }
+    outside_ids = tuple(sorted(set(molecule_by_id).difference(assigned_ids)))
+    outside = tuple(molecule_by_id[source_id] for source_id in outside_ids)
+    outside_pixels = _molecule_pixels(outside)
+    return M6FrameGate(
+        frame_index=computation.frame_index,
+        coordinate_frame=computation.coordinate_frame,
+        coordinate_transform_fingerprint=computation.coordinate_transform_fingerprint,
+        source_geometry_fingerprint=_source_geometry_fingerprint(
+            computation.molecules,
+            pixel_area_nm2=computation.pixel_area_nm2,
+        ),
+        m6_settings_fingerprint=computation.m6_settings_fingerprint,
+        pixel_area_nm2=computation.pixel_area_nm2,
+        full_domains=full_domains,
+        small_ordered_islands=islands,
+        outside_source_ids=outside_ids,
+        outside_points_xy_nm=tuple(value.centroid_xy_nm for value in outside),
+        outside_pixels_xy=outside_pixels,
+        outside_area_nm2=len(outside_pixels) * computation.pixel_area_nm2,
+        analyzed_source_ids=tuple(molecule_by_id),
+        analyzed_pixels_xy=computation.analyzed_pixels_xy,
+        analyzed_area_nm2=(
+            len(computation.analyzed_pixels_xy) * computation.pixel_area_nm2
+        ),
+    )
+
+
+def _publish_component(
+    membership: M6ComponentMembership,
+    component_type: M6ComponentType,
+    molecule_by_id: dict[str, M6AnalyzedMolecule],
+    pixel_area_nm2: float,
+) -> M6PublishedComponent:
+    molecules = tuple(molecule_by_id[source_id] for source_id in membership.source_ids)
+    points = tuple(value.centroid_xy_nm for value in molecules)
+    footprint_pixels = _molecule_pixels(molecules)
+    x_values = tuple(value[0] for value in points)
+    y_values = tuple(value[1] for value in points)
+    count = len(molecules)
+    return M6PublishedComponent(
+        lattice_domain_id=membership.lattice_domain_id,
+        component_type=component_type,
+        source_ids=membership.source_ids,
+        core_source_ids=membership.core_source_ids,
+        halo_source_ids=membership.halo_source_ids,
+        points_xy_nm=points,
+        footprint_pixels_xy=footprint_pixels,
+        footprint_area_nm2=len(footprint_pixels) * pixel_area_nm2,
+        centroid_xy_nm=(fsum(x_values) / count, fsum(y_values) / count),
+        bounds_xyxy_nm=(min(x_values), min(y_values), max(x_values), max(y_values)),
+    )
+
+
+def _validate_membership_source_ids(
+    memberships: tuple[M6ComponentMembership, ...],
+    *,
+    known_ids: set[str],
+) -> None:
+    for membership in memberships:
+        member_ids = set(membership.source_ids)
+        unknown_ids = member_ids.difference(known_ids)
+        if unknown_ids:
+            raise ValueError(
+                "M6 component references unknown source IDs: "
+                f"{sorted(unknown_ids)!r}."
+            )
+
+
+def _molecule_pixels(
+    molecules: tuple[M6AnalyzedMolecule, ...],
+) -> tuple[tuple[int, int], ...]:
+    return tuple(sorted({
+        pixel
+        for molecule in molecules
+        for pixel in molecule.footprint_pixels_xy
+    }))
+
+
+def _source_geometry_fingerprint(
+    molecules: tuple[M6AnalyzedMolecule, ...],
+    *,
+    pixel_area_nm2: float,
+) -> str:
+    payload = {
+        "pixel_area_nm2": pixel_area_nm2,
+        "molecules": [
+            {
+                "source_id": value.source_id,
+                "centroid_xy_nm": value.centroid_xy_nm,
+                "footprint_pixels_xy": value.footprint_pixels_xy,
+            }
+            for value in molecules
+        ],
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _emit(
+    on_event: Callable[[DomainAnalysisEvent], None] | None,
+    stage_id: str,
+    status: DomainAnalysisEventStatus,
+    message: str,
+    *,
+    frame_index: int | None = None,
+) -> None:
+    if on_event is not None:
+        on_event(
+            DomainAnalysisEvent(
+                stage_id=stage_id,
+                status=status,
+                message=message,
+                frame_index=frame_index,
+            )
+        )
