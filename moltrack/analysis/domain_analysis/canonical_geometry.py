@@ -117,6 +117,7 @@ def _canonical_annotation(
     centroid_nm = _raw_point_to_sample(centroid_px, geometry)
     molecule = M6AnalyzedMolecule(
         source_id=annotation.source_id,
+        raw_centroid_xy=centroid_px,
         centroid_xy_nm=centroid_nm,
         footprint_pixels_xy=footprint,
     )
@@ -124,6 +125,7 @@ def _canonical_annotation(
         "source_id": annotation.source_id,
         "source_kind": source_kind,
         "geometry": annotation_geometry,
+        "raw_centroid_xy": centroid_px,
         "centroid_xy_nm": centroid_nm,
     }
     return molecule, payload

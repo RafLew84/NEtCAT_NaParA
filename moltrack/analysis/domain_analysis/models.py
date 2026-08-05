@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass, field
 from math import isclose, isfinite
 from typing import Literal, TypeVar
 
+from .classifier_models import ClassifierOutcome
 from .fingerprints import canonical_sha256
 from .geometry import GeometryMode, M6AnalyzedMolecule, M6PresentationProvenance
 
@@ -347,8 +348,12 @@ class DomainAnalysisResult:
 
     run_status: DomainAnalysisRunStatus
     m6_gate: M6Gate | None
-    classifier_status: Literal["not_requested"]
-    classifier_outcomes: None = None
+    classifier_status: Literal[
+        "not_requested",
+        "completed",
+        "completed_with_errors",
+    ]
+    classifier_outcomes: tuple[ClassifierOutcome, ...] | None = None
     failure: DomainAnalysisFailure | None = None
 
     def __post_init__(self) -> None:
@@ -366,6 +371,34 @@ class DomainAnalysisResult:
             raise ValueError(
                 "completed_with_errors requires requested classifiers."
             )
+        if (
+            self.run_status == "completed_with_errors"
+        ) != (
+            self.classifier_status == "completed_with_errors"
+        ):
+            raise ValueError(
+                "Domain Analysis run and classifier statuses must agree."
+            )
+        if self.classifier_status == "not_requested":
+            if self.classifier_outcomes is not None:
+                raise ValueError(
+                    "A request without classifiers cannot contain outcomes."
+                )
+        else:
+            outcomes = tuple(self.classifier_outcomes or ())
+            if not outcomes:
+                raise ValueError("Requested classifiers require outcomes.")
+            if any(not isinstance(value, ClassifierOutcome) for value in outcomes):
+                raise TypeError("classifier_outcomes contain an invalid value.")
+            if self.classifier_status == "completed" and any(
+                value.status != "completed" for value in outcomes
+            ):
+                raise ValueError("Completed classifiers cannot contain failures.")
+            if self.classifier_status == "completed_with_errors" and not any(
+                value.status == "failed" for value in outcomes
+            ):
+                raise ValueError("completed_with_errors requires a failed outcome.")
+            object.__setattr__(self, "classifier_outcomes", outcomes)
         if self.run_status in {"failed", "canceled"} and self.m6_gate is not None:
             raise ValueError("A failed or canceled run cannot publish an M6 gate.")
         if (self.run_status == "failed") != (self.failure is not None):

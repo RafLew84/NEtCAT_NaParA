@@ -12,6 +12,11 @@ from .cache import (
     m6_frame_cache_key,
 )
 from .canonical_geometry import canonicalize_frame
+from .classifier_runner import (
+    MoleculeClassifierAdapter,
+    run_gated_classifier,
+)
+from .events import emit_event
 from .fingerprints import canonical_sha256
 from .geometry import (
     DomainAnalysisSeries,
@@ -20,7 +25,6 @@ from .geometry import (
 )
 from .models import (
     DomainAnalysisEvent,
-    DomainAnalysisEventStatus,
     DomainAnalysisFailure,
     DomainAnalysisRequest,
     DomainAnalysisResult,
@@ -57,7 +61,7 @@ class DomainAnalysisModule:
     def __init__(
         self,
         m6_adapter: M6Adapter,
-        classifier_adapters: Mapping[str, object],
+        classifier_adapters: Mapping[str, MoleculeClassifierAdapter],
         *,
         m6_cache_max_entries: int = DEFAULT_M6_CACHE_MAX_ENTRIES,
     ) -> None:
@@ -73,10 +77,7 @@ class DomainAnalysisModule:
         on_event: Callable[[DomainAnalysisEvent], None] | None = None,
         is_cancelled: Callable[[], bool] | None = None,
     ) -> DomainAnalysisResult:
-        if not isinstance(request, DomainAnalysisRequest):
-            raise TypeError("request must be a DomainAnalysisRequest.")
-        if request.classifier_ids:
-            raise ValueError("Classifiers are unavailable in the M6-only milestone.")
+        _validate_run_request(request, self._classifier_adapters)
         settings_fingerprint = _adapter_identity(
             self._m6_adapter.m6_settings_fingerprint,
             "m6_settings_fingerprint",
@@ -85,13 +86,14 @@ class DomainAnalysisModule:
             self._m6_adapter.m6_algorithm_version,
             "m6_algorithm_version",
         )
-        _emit(on_event, "run", "started", "Domain Analysis started.")
+        emit_event(on_event, "run", "started", "Domain Analysis started.")
         frames = []
+        canonical_frames = []
         for frame_index in request.frame_indices:
             if _cancellation_requested(is_cancelled):
                 return _canceled_result(on_event)
             try:
-                published_frame, disposition = self._run_m6_frame(
+                published_frame, disposition, canonical_frame = self._run_m6_frame(
                     series,
                     request,
                     frame_index=frame_index,
@@ -105,7 +107,8 @@ class DomainAnalysisModule:
                     on_event=on_event,
                 )
             frames.append(published_frame)
-            _emit(
+            canonical_frames.append(canonical_frame)
+            emit_event(
                 on_event,
                 "m6",
                 "progress",
@@ -119,13 +122,22 @@ class DomainAnalysisModule:
             if _cancellation_requested(is_cancelled):
                 return _canceled_result(on_event)
         gate = M6Gate(frames=tuple(frames))
-        _emit(
+        emit_event(
             on_event,
             "m6",
             "published",
             "Complete M6 gate published.",
         )
-        _emit(on_event, "run", "completed", "M6-only request completed.")
+        if request.classifier_ids:
+            return run_gated_classifier(
+                series,
+                request.classifier_ids[0],
+                gate,
+                tuple(canonical_frames),
+                self._classifier_adapters[request.classifier_ids[0]],
+                on_event=on_event,
+            )
+        emit_event(on_event, "run", "completed", "M6-only request completed.")
         return DomainAnalysisResult(
             run_status="completed",
             m6_gate=gate,
@@ -141,7 +153,7 @@ class DomainAnalysisModule:
         frame_index: int,
         settings_fingerprint: str,
         algorithm_version: str,
-    ) -> tuple[M6FrameGate, M6CacheDisposition]:
+    ) -> tuple[M6FrameGate, M6CacheDisposition, M6CanonicalFrame]:
         canonical_frame = canonicalize_frame(
             series,
             frame_index=frame_index,
@@ -175,7 +187,23 @@ class DomainAnalysisModule:
         )
         if cached is None:
             self._m6_cache.put(cache_key, computation)
-        return published, disposition
+        return published, disposition, canonical_frame
+
+def _validate_run_request(
+    request: DomainAnalysisRequest,
+    classifier_adapters: Mapping[str, MoleculeClassifierAdapter],
+) -> None:
+    if not isinstance(request, DomainAnalysisRequest):
+        raise TypeError("request must be a DomainAnalysisRequest.")
+    if len(request.classifier_ids) > 1:
+        raise ValueError("Only one classifier is supported in this milestone.")
+    unknown_classifiers = set(request.classifier_ids).difference(
+        classifier_adapters
+    )
+    if unknown_classifiers:
+        raise ValueError(
+            f"Unavailable classifier IDs: {sorted(unknown_classifiers)!r}."
+        )
 
 
 def _validate_computation(
@@ -215,8 +243,8 @@ def _failed_result(
     on_event: Callable[[DomainAnalysisEvent], None] | None,
 ) -> DomainAnalysisResult:
     message = str(error).strip() or error.__class__.__name__
-    _emit(on_event, "m6", "failed", message, frame_index=frame_index)
-    _emit(on_event, "run", "failed", "Domain Analysis failed.")
+    emit_event(on_event, "m6", "failed", message, frame_index=frame_index)
+    emit_event(on_event, "run", "failed", "Domain Analysis failed.")
     return DomainAnalysisResult(
         run_status="failed",
         m6_gate=None,
@@ -233,13 +261,13 @@ def _failed_result(
 def _canceled_result(
     on_event: Callable[[DomainAnalysisEvent], None] | None,
 ) -> DomainAnalysisResult:
-    _emit(
+    emit_event(
         on_event,
         "m6",
         "canceled",
         "M6 range canceled before atomic publication.",
     )
-    _emit(on_event, "run", "canceled", "Domain Analysis canceled.")
+    emit_event(on_event, "run", "canceled", "Domain Analysis canceled.")
     return DomainAnalysisResult(
         run_status="canceled",
         m6_gate=None,
@@ -396,22 +424,3 @@ def _source_geometry_fingerprint(
         ],
     }
     return canonical_sha256(payload)
-
-
-def _emit(
-    on_event: Callable[[DomainAnalysisEvent], None] | None,
-    stage_id: str,
-    status: DomainAnalysisEventStatus,
-    message: str,
-    *,
-    frame_index: int | None = None,
-) -> None:
-    if on_event is not None:
-        on_event(
-            DomainAnalysisEvent(
-                stage_id=stage_id,
-                status=status,
-                message=message,
-                frame_index=frame_index,
-            )
-        )

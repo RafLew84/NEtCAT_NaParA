@@ -1,5 +1,16 @@
 """Public synchronous interface for unified M6-gated Domain Analysis."""
 
+from .classifier_models import (
+    ClassifierMoleculeInput,
+    ClassifierMoleculePrediction,
+    ClassifierOutcome,
+    MoleculeClassification,
+)
+from .classifier_runner import (
+    ClassifierAnalysisError,
+    MoleculeClassifierAdapter,
+)
+
 from .geometry import (
     DomainAnalysisFrame,
     DomainAnalysisSeries,
@@ -23,9 +34,18 @@ from .models import (
     M6PublishedComponent,
 )
 from .module import DomainAnalysisModule, M6Adapter, M6FrameAnalysisError
+from .texture_abc_adapter import (
+    ABC_ORIENTATION_CLASSIFIER_ID,
+    TextureABCClassifierAdapter,
+)
 
 __all__ = [
     "DomainAnalysisFrame",
+    "ABC_ORIENTATION_CLASSIFIER_ID",
+    "ClassifierAnalysisError",
+    "ClassifierMoleculeInput",
+    "ClassifierMoleculePrediction",
+    "ClassifierOutcome",
     "DomainAnalysisEvent",
     "DomainAnalysisEventStatus",
     "DomainAnalysisFailure",
@@ -46,4 +66,7 @@ __all__ = [
     "M6PublishedComponent",
     "M6PresentationProvenance",
     "M6SourceAnnotation",
+    "MoleculeClassification",
+    "MoleculeClassifierAdapter",
+    "TextureABCClassifierAdapter",
 ]

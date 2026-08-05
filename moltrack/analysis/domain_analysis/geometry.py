@@ -1,6 +1,8 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import isfinite
 from typing import Literal
+
+import numpy as np
 
 CoordinateView = Literal["raw", "expanded_aligned"]
 GeometryMode = Literal["segmentation_preferred", "bbox_centers"]
@@ -87,6 +89,7 @@ class M6AnalyzedMolecule:
     """Canonical raw footprint and Series Physical Coordinates used by M6."""
 
     source_id: str
+    raw_centroid_xy: tuple[float, float]
     centroid_xy_nm: tuple[float, float]
     footprint_pixels_xy: tuple[tuple[int, int], ...]
 
@@ -95,6 +98,11 @@ class M6AnalyzedMolecule:
         if not pixels:
             raise ValueError("footprint_pixels_xy cannot be empty.")
         object.__setattr__(self, "source_id", _text(self.source_id, "source_id"))
+        object.__setattr__(
+            self,
+            "raw_centroid_xy",
+            _pair(self.raw_centroid_xy, "raw_centroid_xy"),
+        )
         object.__setattr__(
             self,
             "centroid_xy_nm",
@@ -111,6 +119,7 @@ class DomainAnalysisFrame:
     source_view: CoordinateView
     geometry: M6FrameGeometry
     annotations: tuple[M6SourceAnnotation, ...]
+    raw_frame: np.ndarray | None = field(default=None, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         if isinstance(self.frame_index, bool) or int(self.frame_index) < 0:
@@ -126,6 +135,12 @@ class DomainAnalysisFrame:
             raise ValueError("annotation source IDs must be unique within a frame.")
         if any(value.source_view != self.source_view for value in annotations):
             raise ValueError("annotation source_view must match its frame.")
+        raw_frame = self.raw_frame
+        if raw_frame is not None:
+            values = np.asarray(raw_frame)
+            if values.ndim != 2 or values.shape != self.geometry.raw_shape:
+                raise ValueError("raw_frame must match geometry.raw_shape.")
+            object.__setattr__(self, "raw_frame", values)
         object.__setattr__(self, "frame_index", int(self.frame_index))
         object.__setattr__(self, "annotations", annotations)
 
