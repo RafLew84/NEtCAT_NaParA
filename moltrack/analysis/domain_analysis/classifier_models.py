@@ -4,6 +4,11 @@ from dataclasses import dataclass
 from math import isfinite
 from typing import Literal
 
+from .domain_label_models import (
+    DomainLabelSummary,
+    classifier_configuration_fingerprint,
+)
+
 
 OrientationLabel = Literal["A", "B", "C", "Unknown orientation"]
 MoleculeClassificationStatus = Literal[
@@ -153,7 +158,11 @@ class ClassifierOutcome:
     status: ClassifierOutcomeStatus
     classifier_settings_fingerprint: str
     classifier_algorithm_version: str
+    aggregation_preset_id: str
+    aggregation_preset_fingerprint: str
+    classifier_configuration_fingerprint: str
     molecule_classifications: tuple[MoleculeClassification, ...]
+    domain_summaries: tuple[DomainLabelSummary, ...] = ()
     error_message: str | None = None
 
     def __post_init__(self) -> None:
@@ -161,12 +170,26 @@ class ClassifierOutcome:
             "classifier_id",
             "classifier_settings_fingerprint",
             "classifier_algorithm_version",
+            "aggregation_preset_id",
+            "aggregation_preset_fingerprint",
+            "classifier_configuration_fingerprint",
         ):
             object.__setattr__(
                 self,
                 field_name,
                 _text(getattr(self, field_name), field_name),
             )
+        expected_configuration_fingerprint = classifier_configuration_fingerprint(
+            classifier_id=self.classifier_id,
+            classifier_settings_fingerprint=self.classifier_settings_fingerprint,
+            classifier_algorithm_version=self.classifier_algorithm_version,
+            aggregation_preset_id=self.aggregation_preset_id,
+            aggregation_preset_fingerprint=self.aggregation_preset_fingerprint,
+        )
+        if self.classifier_configuration_fingerprint != (
+            expected_configuration_fingerprint
+        ):
+            raise ValueError("Classifier configuration fingerprint does not match.")
         if self.status not in {"completed", "failed"}:
             raise ValueError(f"Unsupported classifier outcome: {self.status!r}.")
         values = tuple(self.molecule_classifications)
@@ -183,10 +206,21 @@ class ClassifierOutcome:
             raise ValueError("Molecule classification keys must be unique.")
         if any(value.classifier_id != self.classifier_id for value in values):
             raise ValueError("Molecule classifier IDs must match their outcome.")
+        summaries = _validated_domain_summaries(
+            self.domain_summaries,
+            values,
+            ClassifierIdentity(
+                classifier_id=self.classifier_id,
+                settings_fingerprint=self.classifier_settings_fingerprint,
+                algorithm_version=self.classifier_algorithm_version,
+            ),
+            self.aggregation_preset_id,
+            self.aggregation_preset_fingerprint,
+        )
         if self.status == "completed" and self.error_message is not None:
             raise ValueError("A completed classifier cannot contain an error.")
         if self.status == "failed":
-            if values:
+            if values or summaries:
                 raise ValueError("A failed classifier cannot publish a partial payload.")
             object.__setattr__(
                 self,
@@ -194,6 +228,59 @@ class ClassifierOutcome:
                 _text(self.error_message, "error_message"),
             )
         object.__setattr__(self, "molecule_classifications", values)
+        object.__setattr__(self, "domain_summaries", summaries)
+
+
+def _validated_domain_summaries(
+    summaries: tuple[DomainLabelSummary, ...],
+    classifications: tuple[MoleculeClassification, ...],
+    identity: ClassifierIdentity,
+    aggregation_preset_id: str,
+    aggregation_preset_fingerprint: str,
+) -> tuple[DomainLabelSummary, ...]:
+    values = tuple(summaries)
+    if any(not isinstance(value, DomainLabelSummary) for value in values):
+        raise TypeError("domain_summaries must contain DomainLabelSummary values.")
+    values = tuple(sorted(
+        values,
+        key=lambda value: (value.frame_index, value.lattice_domain_id),
+    ))
+    keys = tuple((value.frame_index, value.lattice_domain_id) for value in values)
+    if len(set(keys)) != len(keys):
+        raise ValueError("Domain summary keys must be unique.")
+    for value in values:
+        if (
+            value.classifier_id != identity.classifier_id
+            or value.classifier_settings_fingerprint != identity.settings_fingerprint
+            or value.classifier_algorithm_version != identity.algorithm_version
+            or value.aggregation_preset_id != aggregation_preset_id
+            or value.aggregation_preset_fingerprint
+            != aggregation_preset_fingerprint
+        ):
+            raise ValueError("Domain summary configuration must match its outcome.")
+    preset_versions = {
+        (value.aggregation_preset_id, value.aggregation_preset_fingerprint)
+        for value in values
+    }
+    if len(preset_versions) > 1:
+        raise ValueError("One classifier outcome requires one aggregation preset.")
+    full_domain_counts: dict[tuple[int, str], int] = {}
+    for classification in classifications:
+        if classification.m6_partition != "full_domain":
+            continue
+        if classification.lattice_domain_id is None:
+            raise ValueError("Full-domain classifications require a domain ID.")
+        key = (classification.frame_index, classification.lattice_domain_id)
+        full_domain_counts[key] = full_domain_counts.get(key, 0) + 1
+    if set(keys) != set(full_domain_counts):
+        raise ValueError("Domain summaries must cover exactly the full M6 domains.")
+    if any(
+        value.molecule_count
+        != full_domain_counts[(value.frame_index, value.lattice_domain_id)]
+        for value in values
+    ):
+        raise ValueError("Domain summary denominators must match gated molecules.")
+    return values
 
 
 def _validate_classification(value: MoleculeClassification) -> None:

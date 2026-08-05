@@ -18,6 +18,10 @@ from .classifier_models import (
     ClassifierMoleculeInput,
     ClassifierMoleculePrediction,
 )
+from .domain_label_models import (
+    ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
+    DomainAggregationPreset,
+)
 
 
 ABC_ORIENTATION_CLASSIFIER_ID = "abc_orientation"
@@ -32,14 +36,24 @@ class TextureABCClassifierAdapter:
     def __init__(
         self,
         settings: TextureDomainAnalysisSettings = TTMAPP_TEXTURE_DOMAIN_PRESET,
+        aggregation_preset: DomainAggregationPreset = (
+            ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1
+        ),
     ) -> None:
         if not isinstance(settings, TextureDomainAnalysisSettings):
             raise TypeError("settings must be TextureDomainAnalysisSettings.")
+        if not isinstance(aggregation_preset, DomainAggregationPreset):
+            raise TypeError("aggregation_preset must be DomainAggregationPreset.")
         self._settings = settings
+        self._aggregation_preset = aggregation_preset
 
     @property
     def classifier_settings_fingerprint(self) -> str:
         return self._settings.fingerprint
+
+    @property
+    def domain_aggregation_preset(self) -> DomainAggregationPreset:
+        return self._aggregation_preset
 
     def classify_domain(
         self,

@@ -10,6 +10,11 @@ from .classifier_runner import (
     ClassifierAnalysisError,
     MoleculeClassifierAdapter,
 )
+from .domain_label_models import (
+    ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
+    DomainAggregationPreset,
+    DomainLabelSummary,
+)
 
 from .geometry import (
     DomainAnalysisFrame,
@@ -40,12 +45,14 @@ from .texture_abc_adapter import (
 )
 
 __all__ = [
-    "DomainAnalysisFrame",
+    "ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1",
     "ABC_ORIENTATION_CLASSIFIER_ID",
     "ClassifierAnalysisError",
     "ClassifierMoleculeInput",
     "ClassifierMoleculePrediction",
     "ClassifierOutcome",
+    "DomainAggregationPreset",
+    "DomainAnalysisFrame",
     "DomainAnalysisEvent",
     "DomainAnalysisEventStatus",
     "DomainAnalysisFailure",
@@ -53,6 +60,7 @@ __all__ = [
     "DomainAnalysisRequest",
     "DomainAnalysisResult",
     "DomainAnalysisSeries",
+    "DomainLabelSummary",
     "GeometryMode",
     "M6Adapter",
     "M6AnalyzedMolecule",

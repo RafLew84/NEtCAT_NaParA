@@ -7,8 +7,10 @@ import numpy as np
 import pytest
 
 from moltrack.analysis.domain_analysis import (
+    ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
     ClassifierMoleculePrediction,
     ClassifierMoleculeInput,
+    DomainAggregationPreset,
     DomainAnalysisFrame,
     DomainAnalysisModule,
     DomainAnalysisRequest,
@@ -64,6 +66,7 @@ class _RecordingABCClassifier:
     classifier_id = "abc_orientation"
     classifier_settings_fingerprint = "abc-settings-v1"
     classifier_algorithm_version = "abc-algorithm-v1"
+    domain_aggregation_preset = ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1
 
     def __init__(self) -> None:
         self.calls: list[
@@ -151,6 +154,80 @@ class _TwoFullDomainsM6Adapter(_FullDomainM6Adapter):
         )
 
 
+class _AllMoleculesFullDomainM6Adapter(_FullDomainM6Adapter):
+    def analyze_frame(
+        self,
+        frame: M6CanonicalFrame,
+        *,
+        frame_index: int,
+        geometry_mode: str,
+    ) -> M6FrameComputation:
+        result = super().analyze_frame(
+            frame,
+            frame_index=frame_index,
+            geometry_mode=geometry_mode,
+        )
+        return replace(
+            result,
+            full_domains=(
+                M6ComponentMembership(
+                    lattice_domain_id="backend-domain",
+                    source_ids=tuple(
+                        molecule.source_id for molecule in frame.molecules
+                    ),
+                ),
+            ),
+            small_ordered_islands=(),
+        )
+
+
+class _ScenarioABCClassifier:
+    classifier_id = "abc_orientation"
+    classifier_settings_fingerprint = "abc-settings-v1"
+    classifier_algorithm_version = "abc-algorithm-v1"
+
+    def __init__(
+        self,
+        labels: tuple[Literal["A", "B", "C"] | None, ...],
+        *,
+        split_components: bool = False,
+        aggregation_preset: DomainAggregationPreset = (
+            ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1
+        ),
+    ) -> None:
+        self._labels = labels
+        self._split_components = split_components
+        self.domain_aggregation_preset = aggregation_preset
+
+    def classify_domain(
+        self,
+        raw_frame: np.ndarray,
+        *,
+        frame_index: int,
+        physical_frame_id: str,
+        lattice_domain_id: str,
+        molecules: tuple[ClassifierMoleculeInput, ...],
+    ) -> tuple[ClassifierMoleculePrediction, ...]:
+        del raw_frame, frame_index, physical_frame_id, lattice_domain_id
+        return tuple(
+            ClassifierMoleculePrediction(
+                source_id=molecule.source_id,
+                orientation_label=label,
+                evidence_strength=0.8 if label is not None else 0.0,
+                component_id=(
+                    None
+                    if label is None
+                    else (
+                        f"component-{molecule.source_id}"
+                        if self._split_components
+                        else f"component-{label}"
+                    )
+                ),
+            )
+            for molecule, label in reversed(tuple(zip(molecules, self._labels)))
+        )
+
+
 def _series(
     source_view: Literal["raw", "expanded_aligned"],
     *,
@@ -200,6 +277,123 @@ def _series(
     ))
 
 
+@pytest.mark.parametrize(
+    (
+        "labels",
+        "split_components",
+        "expected_label",
+        "expected_counts",
+        "resolved_evidence",
+    ),
+    (
+        (("A", "A", "A", None), False, "A", (3, 0, 0, 1), 0.6),
+        (("B", "B", "B", None), False, "B", (0, 3, 0, 1), 0.6),
+        (("C", "C", "C", None), False, "C", (0, 0, 3, 1), 0.6),
+        (("A", "A", "B", "B"), False, "Mixed", (2, 2, 0, 0), 0.8),
+        (
+            ("A", None, None, None),
+            False,
+            "Unknown orientation",
+            (1, 0, 0, 3),
+            0.2,
+        ),
+        (
+            ("A", "A", "A", None),
+            True,
+            "Unknown orientation",
+            (3, 0, 0, 1),
+            0.6,
+        ),
+    ),
+)
+def test_run_publishes_conservative_full_domain_label_summary(
+    labels: tuple[Literal["A", "B", "C"] | None, ...],
+    split_components: bool,
+    expected_label: str,
+    expected_counts: tuple[int, int, int, int],
+    resolved_evidence: float,
+) -> None:
+    classifier = _ScenarioABCClassifier(
+        labels,
+        split_components=split_components,
+    )
+
+    result = DomainAnalysisModule(
+        _AllMoleculesFullDomainM6Adapter(),
+        classifier_adapters={classifier.classifier_id: classifier},
+    ).run(
+        _series("raw", raw_frame=np.arange(16).reshape(4, 4)),
+        DomainAnalysisRequest(
+            frame_range=range(1),
+            classifier_ids=(classifier.classifier_id,),
+        ),
+    )
+
+    assert result.classifier_outcomes is not None
+    outcome = result.classifier_outcomes[0]
+    assert len(outcome.domain_summaries) == 1
+    summary = outcome.domain_summaries[0]
+    assert summary.label == expected_label
+    assert summary.molecule_count == 4
+    assert summary.counts == tuple(zip(
+        ("A", "B", "C", "Unknown orientation"),
+        expected_counts,
+    ))
+    assert summary.resolved_evidence == pytest.approx(resolved_evidence)
+    assert summary.aggregation_preset_id == "abc-domain-summary-conservative-v1"
+    assert summary.aggregation_preset_fingerprint == (
+        "982f1b73869dac84f411307beb75b2961509db010af7f45ba3f3592ebb30d7c7"
+    )
+    assert summary.frame_index == 0
+    assert summary.physical_frame_id == "physical-frame-0"
+    assert result.m6_gate is not None
+    assert summary.lattice_domain_id == (
+        result.m6_gate.frames[0].full_domains[0].lattice_domain_id
+    )
+
+
+def test_run_binds_classifier_and_aggregation_as_one_configuration() -> None:
+    revised_preset = replace(
+        ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
+        preset_id="abc-domain-summary-conservative-v2",
+        minimum_resolved_evidence=0.41,
+    )
+
+    outcomes = []
+    for preset in (ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1, revised_preset):
+        classifier = _ScenarioABCClassifier(
+            ("A", "A", "A", None),
+            aggregation_preset=preset,
+        )
+        result = DomainAnalysisModule(
+            _AllMoleculesFullDomainM6Adapter(),
+            classifier_adapters={classifier.classifier_id: classifier},
+        ).run(
+            _series("raw", raw_frame=np.arange(16).reshape(4, 4)),
+            DomainAnalysisRequest(
+                frame_range=range(1),
+                classifier_ids=(classifier.classifier_id,),
+            ),
+        )
+        assert result.classifier_outcomes is not None
+        outcomes.append(result.classifier_outcomes[0])
+
+    default, revised = outcomes
+    assert default.classifier_settings_fingerprint == (
+        revised.classifier_settings_fingerprint
+    )
+    assert default.aggregation_preset_fingerprint != (
+        revised.aggregation_preset_fingerprint
+    )
+    assert default.classifier_configuration_fingerprint != (
+        revised.classifier_configuration_fingerprint
+    )
+    assert revised.aggregation_preset_id == revised_preset.preset_id
+    assert revised.domain_summaries[0].aggregation_preset_fingerprint == (
+        revised_preset.fingerprint
+    )
+
+
 def test_run_gates_classifier_to_full_domains_and_exact_raw_pixels() -> None:
     raw_pixels = np.arange(16, dtype=np.uint16).reshape(4, 4)
     classifier = _RecordingABCClassifier()
@@ -233,6 +427,9 @@ def test_run_gates_classifier_to_full_domains_and_exact_raw_pixels() -> None:
     outcome = result.classifier_outcomes[0]
     assert outcome.status == "completed"
     assert outcome.classifier_id == classifier.classifier_id
+    assert len(outcome.domain_summaries) == 1
+    assert outcome.domain_summaries[0].molecule_count == 2
+    assert outcome.domain_summaries[0].label == "Mixed"
     assert [
         (value.source_id, value.classification_status, value.orientation_label)
         for value in outcome.molecule_classifications
@@ -264,6 +461,9 @@ def test_run_gates_classifier_to_full_domains_and_exact_raw_pixels() -> None:
     assert raw_result.classifier_outcomes is not None
     assert raw_result.classifier_outcomes[0].molecule_classifications == (
         outcome.molecule_classifications
+    )
+    assert raw_result.classifier_outcomes[0].domain_summaries == (
+        outcome.domain_summaries
     )
     assert np.array_equal(raw_classifier.calls[0][0], classifier_frame)
 
@@ -362,6 +562,9 @@ def test_adjacent_full_domains_are_classified_in_isolated_calls() -> None:
         calls_by_source_ids[("m-b",)][3]
     )
     assert result.classifier_outcomes is not None
+    assert sorted(
+        summary.label for summary in result.classifier_outcomes[0].domain_summaries
+    ) == ["A", "B"]
     classified = {
         value.source_id: (value.orientation_label, value.lattice_domain_id)
         for value in result.classifier_outcomes[0].molecule_classifications
@@ -408,6 +611,7 @@ def test_missing_raw_frame_fails_classifier_without_corrupting_m6() -> None:
     outcome = result.classifier_outcomes[0]
     assert outcome.status == "failed"
     assert outcome.molecule_classifications == ()
+    assert outcome.domain_summaries == ()
     assert outcome.error_message is not None
     assert "exact raw frame" in outcome.error_message
     assert "physical-frame-1" in outcome.error_message
@@ -429,6 +633,7 @@ def test_missing_raw_is_allowed_when_a_frame_has_no_full_domains() -> None:
     assert result.run_status == "completed"
     assert classifier.calls == []
     assert result.classifier_outcomes is not None
+    assert result.classifier_outcomes[0].domain_summaries == ()
     assert {
         value.classification_status
         for value in result.classifier_outcomes[0].molecule_classifications

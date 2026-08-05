@@ -16,6 +16,12 @@ from .classifier_models import (
     MoleculeClassificationStatus,
     OrientationLabel,
 )
+from .domain_label_aggregation import aggregate_domain_summaries
+from .domain_label_models import (
+    DomainAggregationPreset,
+    DomainLabelSummary,
+    classifier_configuration_fingerprint,
+)
 from .events import emit_event
 from .geometry import DomainAnalysisSeries, M6AnalyzedMolecule, M6CanonicalFrame
 from .models import (
@@ -36,6 +42,9 @@ class MoleculeClassifierAdapter(Protocol):
 
     @property
     def classifier_algorithm_version(self) -> str: ...
+
+    @property
+    def domain_aggregation_preset(self) -> DomainAggregationPreset: ...
 
     def classify_domain(
         self,
@@ -68,6 +77,11 @@ def run_gated_classifier(
     )
     if identity.classifier_id != classifier_id:
         raise ValueError("Classifier adapter ID does not match its registry key.")
+    preset = adapter.domain_aggregation_preset
+    if not isinstance(preset, DomainAggregationPreset):
+        raise TypeError(
+            "Classifier adapters require a DomainAggregationPreset configuration."
+        )
     emit_event(
         on_event,
         classifier_id,
@@ -83,11 +97,19 @@ def run_gated_classifier(
             identity,
         )
     except ClassifierAnalysisError as exc:
-        return _failed_result(gate, identity, exc, on_event=on_event)
+        return _failed_result(gate, identity, preset, exc, on_event=on_event)
+    domain_summaries = aggregate_domain_summaries(
+        gate,
+        classifications,
+        identity,
+        preset,
+    )
     return _completed_result(
         gate,
         identity,
         classifications,
+        domain_summaries,
+        preset,
         on_event=on_event,
     )
 
@@ -95,12 +117,19 @@ def run_gated_classifier(
 def _failed_result(
     gate: M6Gate,
     identity: ClassifierIdentity,
+    preset: DomainAggregationPreset,
     error: ClassifierAnalysisError,
     *,
     on_event: Callable[[DomainAnalysisEvent], None] | None,
 ) -> DomainAnalysisResult:
     message = str(error).strip() or error.__class__.__name__
-    outcome = _outcome(identity, "failed", (), error_message=message)
+    outcome = _outcome(
+        identity,
+        preset,
+        "failed",
+        (),
+        error_message=message,
+    )
     emit_event(on_event, identity.classifier_id, "failed", message)
     emit_event(
         on_event,
@@ -120,10 +149,18 @@ def _completed_result(
     gate: M6Gate,
     identity: ClassifierIdentity,
     classifications: tuple[MoleculeClassification, ...],
+    domain_summaries: tuple[DomainLabelSummary, ...],
+    preset: DomainAggregationPreset,
     *,
     on_event: Callable[[DomainAnalysisEvent], None] | None,
 ) -> DomainAnalysisResult:
-    outcome = _outcome(identity, "completed", classifications)
+    outcome = _outcome(
+        identity,
+        preset,
+        "completed",
+        classifications,
+        domain_summaries=domain_summaries,
+    )
     emit_event(
         on_event,
         identity.classifier_id,
@@ -141,9 +178,11 @@ def _completed_result(
 
 def _outcome(
     identity: ClassifierIdentity,
+    preset: DomainAggregationPreset,
     status: ClassifierOutcomeStatus,
     classifications: tuple[MoleculeClassification, ...],
     *,
+    domain_summaries: tuple[DomainLabelSummary, ...] = (),
     error_message: str | None = None,
 ) -> ClassifierOutcome:
     return ClassifierOutcome(
@@ -151,7 +190,17 @@ def _outcome(
         status=status,
         classifier_settings_fingerprint=identity.settings_fingerprint,
         classifier_algorithm_version=identity.algorithm_version,
+        aggregation_preset_id=preset.preset_id,
+        aggregation_preset_fingerprint=preset.fingerprint,
+        classifier_configuration_fingerprint=classifier_configuration_fingerprint(
+            classifier_id=identity.classifier_id,
+            classifier_settings_fingerprint=identity.settings_fingerprint,
+            classifier_algorithm_version=identity.algorithm_version,
+            aggregation_preset_id=preset.preset_id,
+            aggregation_preset_fingerprint=preset.fingerprint,
+        ),
         molecule_classifications=classifications,
+        domain_summaries=domain_summaries,
         error_message=error_message,
     )
 
