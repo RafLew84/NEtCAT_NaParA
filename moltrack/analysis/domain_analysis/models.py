@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from math import isclose, isfinite
 from typing import Literal, TypeVar
 
-from .fingerprints import m6_frame_gate_fingerprint
+from .fingerprints import canonical_sha256
 from .geometry import GeometryMode, M6AnalyzedMolecule, M6PresentationProvenance
 
 
@@ -235,67 +235,18 @@ class M6FrameGate:
                 field_name,
                 _non_empty_string(getattr(self, field_name), field_name),
             )
-        if not isinstance(self.presentation_provenance, M6PresentationProvenance):
-            raise TypeError(
-                "presentation_provenance must be M6PresentationProvenance."
-            )
-        full_domains = _published_components(
-            self.full_domains,
-            "full_domain",
-            "full_domains",
-        )
-        islands = _published_components(
-            self.small_ordered_islands,
-            "small_ordered_island",
-            "small_ordered_islands",
-        )
-        outside_ids = _sorted_unique_ids(self.outside_source_ids, "outside_source_ids")
-        analyzed_ids = _sorted_unique_ids(self.analyzed_source_ids, "analyzed_source_ids")
-        _validate_membership_partition(full_domains, islands, outside_ids, analyzed_ids)
-        outside_points = tuple(
-            _finite_pair(value, "outside_points_xy_nm")
-            for value in self.outside_points_xy_nm
-        )
-        if len(outside_points) != len(outside_ids):
-            raise ValueError("Outside points must align with outside source IDs.")
-        outside_pixels = _sorted_unique_pixels(
-            self.outside_pixels_xy,
-            "outside_pixels_xy",
-        )
-        analyzed_pixels = _sorted_unique_pixels(
-            self.analyzed_pixels_xy,
-            "analyzed_pixels_xy",
-        )
-        _validate_published_pixel_partition(
-            full_domains,
-            islands,
-            outside_pixels,
-            analyzed_pixels,
-        )
-        pixel_area = _positive_float(self.pixel_area_nm2, "pixel_area_nm2")
-        outside_area, analyzed_area = _validated_frame_areas(
-            full_domains,
-            islands,
-            outside_pixels,
-            analyzed_pixels,
-            pixel_area,
-            self.outside_area_nm2,
-            self.analyzed_area_nm2,
-        )
-        object.__setattr__(self, "full_domains", full_domains)
-        object.__setattr__(self, "small_ordered_islands", islands)
-        object.__setattr__(self, "outside_source_ids", outside_ids)
-        object.__setattr__(self, "outside_points_xy_nm", outside_points)
-        object.__setattr__(self, "outside_pixels_xy", outside_pixels)
-        object.__setattr__(self, "analyzed_source_ids", analyzed_ids)
-        object.__setattr__(self, "analyzed_pixels_xy", analyzed_pixels)
-        object.__setattr__(self, "pixel_area_nm2", pixel_area)
-        object.__setattr__(self, "outside_area_nm2", outside_area)
-        object.__setattr__(self, "analyzed_area_nm2", analyzed_area)
+        normalized = _normalized_frame_gate_values(self)
+        for field_name, value in normalized.items():
+            object.__setattr__(self, field_name, value)
+        object.__setattr__(self, "m6_gate_fingerprint", "")
+        fingerprint_payload = asdict(self)
+        fingerprint_payload.pop("presentation_provenance")
+        fingerprint_payload.pop("m6_gate_fingerprint")
+        fingerprint_payload["schema_version"] = "domain-analysis-m6-gate-v1"
         object.__setattr__(
             self,
             "m6_gate_fingerprint",
-            m6_frame_gate_fingerprint(self),
+            canonical_sha256(fingerprint_payload),
         )
 
     @property
@@ -312,6 +263,43 @@ class M6FrameGate:
             value.footprint_area_nm2
             for value in self.small_ordered_islands
         )
+
+
+def _normalized_frame_gate_values(frame: M6FrameGate) -> dict[str, object]:
+    if not isinstance(frame.presentation_provenance, M6PresentationProvenance):
+        raise TypeError("presentation_provenance must be M6PresentationProvenance.")
+    full_domains = _published_components(
+        frame.full_domains, "full_domain", "full_domains"
+    )
+    islands = _published_components(
+        frame.small_ordered_islands, "small_ordered_island", "small_ordered_islands"
+    )
+    outside_ids = _sorted_unique_ids(frame.outside_source_ids, "outside_source_ids")
+    analyzed_ids = _sorted_unique_ids(frame.analyzed_source_ids, "analyzed_source_ids")
+    _validate_membership_partition(full_domains, islands, outside_ids, analyzed_ids)
+    outside_points = tuple(
+        _finite_pair(value, "outside_points_xy_nm")
+        for value in frame.outside_points_xy_nm
+    )
+    if len(outside_points) != len(outside_ids):
+        raise ValueError("Outside points must align with outside source IDs.")
+    outside_pixels = _sorted_unique_pixels(frame.outside_pixels_xy, "outside_pixels_xy")
+    analyzed_pixels = _sorted_unique_pixels(frame.analyzed_pixels_xy, "analyzed_pixels_xy")
+    _validate_published_pixel_partition(
+        full_domains, islands, outside_pixels, analyzed_pixels
+    )
+    pixel_area = _positive_float(frame.pixel_area_nm2, "pixel_area_nm2")
+    outside_area, analyzed_area = _validated_frame_areas(
+        full_domains, islands, outside_pixels, analyzed_pixels, pixel_area,
+        frame.outside_area_nm2, frame.analyzed_area_nm2,
+    )
+    return {
+        "full_domains": full_domains, "small_ordered_islands": islands,
+        "outside_source_ids": outside_ids, "outside_points_xy_nm": outside_points,
+        "outside_pixels_xy": outside_pixels, "analyzed_source_ids": analyzed_ids,
+        "analyzed_pixels_xy": analyzed_pixels, "pixel_area_nm2": pixel_area,
+        "outside_area_nm2": outside_area, "analyzed_area_nm2": analyzed_area,
+    }
 
 
 @dataclass(frozen=True)

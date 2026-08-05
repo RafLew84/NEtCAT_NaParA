@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-import json
 from collections.abc import Callable, Mapping
 from dataclasses import replace
 from math import fsum
@@ -14,6 +12,7 @@ from .cache import (
     m6_frame_cache_key,
 )
 from .canonical_geometry import canonicalize_frame
+from .fingerprints import canonical_sha256
 from .geometry import (
     DomainAnalysisSeries,
     M6AnalyzedMolecule,
@@ -330,14 +329,10 @@ def _publish_component(
     x_values = tuple(value[0] for value in points)
     y_values = tuple(value[1] for value in points)
     count = len(molecules)
-    identity_payload = json.dumps(
-        {
-            "component_type": component_type,
-            "source_ids": membership.source_ids,
-        },
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
+    identity_fingerprint = canonical_sha256({
+        "component_type": component_type,
+        "source_ids": membership.source_ids,
+    })
     component_prefix = (
         "m6-full"
         if component_type == "full_domain"
@@ -345,7 +340,7 @@ def _publish_component(
     )
     return M6PublishedComponent(
         lattice_domain_id=(
-            f"{component_prefix}-{hashlib.sha256(identity_payload).hexdigest()[:12]}"
+            f"{component_prefix}-{identity_fingerprint[:12]}"
         ),
         component_type=component_type,
         source_ids=membership.source_ids,
@@ -400,8 +395,7 @@ def _source_geometry_fingerprint(
             for value in molecules
         ],
     }
-    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
+    return canonical_sha256(payload)
 
 
 def _emit(

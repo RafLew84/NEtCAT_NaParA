@@ -1,11 +1,10 @@
-import hashlib
-import json
 from math import ceil, cos, floor, radians, sin
 from typing import Any
 
 import numpy as np
 from scipy.ndimage import affine_transform
 
+from .fingerprints import canonical_sha256
 from .geometry import (
     CoordinateView,
     DomainAnalysisSeries,
@@ -44,7 +43,7 @@ def canonicalize_frame(
     }))
     geometry_payloads = tuple(value[1] for value in canonical)
     geometry = frame.geometry
-    transform_fingerprint = _fingerprint({
+    transform_fingerprint = canonical_sha256({
         "adapter_version": _ADAPTER_VERSION,
         "physical_frame_id": geometry.physical_frame_id,
         "geometry_mode": geometry_mode,
@@ -215,13 +214,3 @@ def _raw_point_to_sample(
 def _q(value: float) -> float:
     normalized = round(float(value), 12)
     return 0.0 if normalized == 0.0 else normalized
-
-
-def _fingerprint(payload: object) -> str:
-    encoded = json.dumps(
-        payload,
-        sort_keys=True,
-        separators=(",", ":"),
-        allow_nan=False,
-    ).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
