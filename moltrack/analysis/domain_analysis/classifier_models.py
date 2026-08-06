@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isfinite
 from typing import Literal
 
-from .domain_label_models import (
+from .classifier_contract import (
+    ClassifierConfiguration,
+    ClassifierIdentity,
     DomainLabelSummary,
-    classifier_configuration_fingerprint,
+    validated_finite_pair,
+    validated_non_negative_integer,
+    validated_text,
+    validated_unit_interval,
 )
 
 
@@ -21,27 +25,6 @@ M6Partition = Literal["full_domain", "small_ordered_island", "outside"]
 
 
 @dataclass(frozen=True)
-class ClassifierIdentity:
-    """Versioned classifier identity copied into every published record."""
-
-    classifier_id: str
-    settings_fingerprint: str
-    algorithm_version: str
-
-    def __post_init__(self) -> None:
-        for field_name in (
-            "classifier_id",
-            "settings_fingerprint",
-            "algorithm_version",
-        ):
-            object.__setattr__(
-                self,
-                field_name,
-                _text(getattr(self, field_name), field_name),
-            )
-
-
-@dataclass(frozen=True)
 class ClassifierMoleculeInput:
     """Canonical detection geometry supplied to one gated classifier call."""
 
@@ -49,11 +32,15 @@ class ClassifierMoleculeInput:
     raw_centroid_xy: tuple[float, float]
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "source_id", _text(self.source_id, "source_id"))
+        object.__setattr__(
+            self,
+            "source_id",
+            validated_text(self.source_id, "source_id"),
+        )
         object.__setattr__(
             self,
             "raw_centroid_xy",
-            _finite_pair(self.raw_centroid_xy, "raw_centroid_xy"),
+            validated_finite_pair(self.raw_centroid_xy, "raw_centroid_xy"),
         )
 
 
@@ -67,12 +54,19 @@ class ClassifierMoleculePrediction:
     component_id: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "source_id", _text(self.source_id, "source_id"))
+        object.__setattr__(
+            self,
+            "source_id",
+            validated_text(self.source_id, "source_id"),
+        )
         if self.orientation_label not in {"A", "B", "C", None}:
             raise ValueError(
                 f"Unsupported orientation_label: {self.orientation_label!r}."
             )
-        strength = _evidence_strength(self.evidence_strength)
+        strength = validated_unit_interval(
+            self.evidence_strength,
+            "evidence_strength",
+        )
         component_id = self.component_id
         if self.orientation_label is None:
             if strength != 0.0 or component_id is not None:
@@ -103,35 +97,32 @@ class MoleculeClassification:
     orientation_label: OrientationLabel | None
     evidence_strength: float
     component_id: str | None
-    classifier_id: str
-    classifier_settings_fingerprint: str
-    classifier_algorithm_version: str
+    identity: ClassifierIdentity
 
     def __post_init__(self) -> None:
         object.__setattr__(
             self,
             "frame_index",
-            _frame_index(self.frame_index),
+            validated_non_negative_integer(self.frame_index, "frame_index"),
         )
         for field_name in (
             "physical_frame_id",
             "m6_gate_fingerprint",
             "source_id",
-            "classifier_id",
-            "classifier_settings_fingerprint",
-            "classifier_algorithm_version",
         ):
             object.__setattr__(
                 self,
                 field_name,
-                _text(getattr(self, field_name), field_name),
+                validated_text(getattr(self, field_name), field_name),
             )
         if self.lattice_domain_id is not None:
             object.__setattr__(
                 self,
                 "lattice_domain_id",
-                _text(self.lattice_domain_id, "lattice_domain_id"),
+                validated_text(self.lattice_domain_id, "lattice_domain_id"),
             )
+        if not isinstance(self.identity, ClassifierIdentity):
+            raise TypeError("identity must be ClassifierIdentity.")
         if self.m6_partition not in {
             "full_domain",
             "small_ordered_island",
@@ -149,94 +140,110 @@ class MoleculeClassification:
             )
         _validate_classification(self)
 
+    @property
+    def classifier_id(self) -> str:
+        return self.identity.classifier_id
+
+    @property
+    def classifier_settings_fingerprint(self) -> str:
+        return self.identity.settings_fingerprint
+
+    @property
+    def classifier_algorithm_version(self) -> str:
+        return self.identity.algorithm_version
+
 
 @dataclass(frozen=True)
 class ClassifierOutcome:
     """Atomic payload or readable failure for one requested classifier."""
 
-    classifier_id: str
     status: ClassifierOutcomeStatus
-    classifier_settings_fingerprint: str
-    classifier_algorithm_version: str
-    aggregation_preset_id: str
-    aggregation_preset_fingerprint: str
-    classifier_configuration_fingerprint: str
+    configuration: ClassifierConfiguration
     molecule_classifications: tuple[MoleculeClassification, ...]
     domain_summaries: tuple[DomainLabelSummary, ...] = ()
     error_message: str | None = None
 
     def __post_init__(self) -> None:
-        for field_name in (
-            "classifier_id",
-            "classifier_settings_fingerprint",
-            "classifier_algorithm_version",
-            "aggregation_preset_id",
-            "aggregation_preset_fingerprint",
-            "classifier_configuration_fingerprint",
-        ):
-            object.__setattr__(
-                self,
-                field_name,
-                _text(getattr(self, field_name), field_name),
-            )
-        expected_configuration_fingerprint = classifier_configuration_fingerprint(
-            classifier_id=self.classifier_id,
-            classifier_settings_fingerprint=self.classifier_settings_fingerprint,
-            classifier_algorithm_version=self.classifier_algorithm_version,
-            aggregation_preset_id=self.aggregation_preset_id,
-            aggregation_preset_fingerprint=self.aggregation_preset_fingerprint,
-        )
-        if self.classifier_configuration_fingerprint != (
-            expected_configuration_fingerprint
-        ):
-            raise ValueError("Classifier configuration fingerprint does not match.")
+        if not isinstance(self.configuration, ClassifierConfiguration):
+            raise TypeError("configuration must be ClassifierConfiguration.")
         if self.status not in {"completed", "failed"}:
             raise ValueError(f"Unsupported classifier outcome: {self.status!r}.")
-        values = tuple(self.molecule_classifications)
-        if any(not isinstance(value, MoleculeClassification) for value in values):
-            raise TypeError(
-                "molecule_classifications must contain MoleculeClassification values."
-            )
-        values = tuple(sorted(
-            values,
-            key=lambda value: (value.frame_index, value.source_id),
-        ))
-        keys = tuple((value.frame_index, value.source_id) for value in values)
-        if len(set(keys)) != len(keys):
-            raise ValueError("Molecule classification keys must be unique.")
-        if any(value.classifier_id != self.classifier_id for value in values):
-            raise ValueError("Molecule classifier IDs must match their outcome.")
+        classifications = _validated_classifications(
+            self.molecule_classifications,
+            self.configuration,
+        )
         summaries = _validated_domain_summaries(
             self.domain_summaries,
-            values,
-            ClassifierIdentity(
-                classifier_id=self.classifier_id,
-                settings_fingerprint=self.classifier_settings_fingerprint,
-                algorithm_version=self.classifier_algorithm_version,
-            ),
-            self.aggregation_preset_id,
-            self.aggregation_preset_fingerprint,
+            classifications,
+            self.configuration,
         )
         if self.status == "completed" and self.error_message is not None:
             raise ValueError("A completed classifier cannot contain an error.")
         if self.status == "failed":
-            if values or summaries:
+            if classifications or summaries:
                 raise ValueError("A failed classifier cannot publish a partial payload.")
             object.__setattr__(
                 self,
                 "error_message",
-                _text(self.error_message, "error_message"),
+                validated_text(self.error_message, "error_message"),
             )
-        object.__setattr__(self, "molecule_classifications", values)
+        object.__setattr__(self, "molecule_classifications", classifications)
         object.__setattr__(self, "domain_summaries", summaries)
+
+    @property
+    def classifier_id(self) -> str:
+        return self.configuration.identity.classifier_id
+
+    @property
+    def classifier_settings_fingerprint(self) -> str:
+        return self.configuration.identity.settings_fingerprint
+
+    @property
+    def classifier_algorithm_version(self) -> str:
+        return self.configuration.identity.algorithm_version
+
+    @property
+    def aggregation_preset_id(self) -> str:
+        return self.configuration.aggregation_preset.preset_id
+
+    @property
+    def aggregation_preset_fingerprint(self) -> str:
+        return self.configuration.aggregation_preset.fingerprint
+
+    @property
+    def classifier_configuration_fingerprint(self) -> str:
+        return self.configuration.fingerprint
+
+
+def _validated_classifications(
+    values: tuple[MoleculeClassification, ...],
+    configuration: ClassifierConfiguration,
+) -> tuple[MoleculeClassification, ...]:
+    classifications = tuple(values)
+    if any(not isinstance(value, MoleculeClassification) for value in classifications):
+        raise TypeError(
+            "molecule_classifications must contain MoleculeClassification values."
+        )
+    classifications = tuple(sorted(
+        classifications,
+        key=lambda value: (value.frame_index, value.source_id),
+    ))
+    keys = tuple(
+        (value.frame_index, value.source_id) for value in classifications
+    )
+    if len(set(keys)) != len(keys):
+        raise ValueError("Molecule classification keys must be unique.")
+    if any(
+        value.identity != configuration.identity for value in classifications
+    ):
+        raise ValueError("Molecule classifier identity must match its outcome.")
+    return classifications
 
 
 def _validated_domain_summaries(
     summaries: tuple[DomainLabelSummary, ...],
     classifications: tuple[MoleculeClassification, ...],
-    identity: ClassifierIdentity,
-    aggregation_preset_id: str,
-    aggregation_preset_fingerprint: str,
+    configuration: ClassifierConfiguration,
 ) -> tuple[DomainLabelSummary, ...]:
     values = tuple(summaries)
     if any(not isinstance(value, DomainLabelSummary) for value in values):
@@ -248,22 +255,8 @@ def _validated_domain_summaries(
     keys = tuple((value.frame_index, value.lattice_domain_id) for value in values)
     if len(set(keys)) != len(keys):
         raise ValueError("Domain summary keys must be unique.")
-    for value in values:
-        if (
-            value.classifier_id != identity.classifier_id
-            or value.classifier_settings_fingerprint != identity.settings_fingerprint
-            or value.classifier_algorithm_version != identity.algorithm_version
-            or value.aggregation_preset_id != aggregation_preset_id
-            or value.aggregation_preset_fingerprint
-            != aggregation_preset_fingerprint
-        ):
-            raise ValueError("Domain summary configuration must match its outcome.")
-    preset_versions = {
-        (value.aggregation_preset_id, value.aggregation_preset_fingerprint)
-        for value in values
-    }
-    if len(preset_versions) > 1:
-        raise ValueError("One classifier outcome requires one aggregation preset.")
+    if any(value.configuration != configuration for value in values):
+        raise ValueError("Domain summary configuration must match its outcome.")
     full_domain_counts: dict[tuple[int, str], int] = {}
     for classification in classifications:
         if classification.m6_partition != "full_domain":
@@ -284,7 +277,10 @@ def _validated_domain_summaries(
 
 
 def _validate_classification(value: MoleculeClassification) -> None:
-    strength = _evidence_strength(value.evidence_strength)
+    strength = validated_unit_interval(
+        value.evidence_strength,
+        "evidence_strength",
+    )
     component_id = value.component_id
     if value.classification_status == "classified":
         if (
@@ -325,31 +321,9 @@ def _validate_classification(value: MoleculeClassification) -> None:
     object.__setattr__(
         value,
         "component_id",
-        None if component_id is None else _text(component_id, "component_id"),
+        (
+            None
+            if component_id is None
+            else validated_text(component_id, "component_id")
+        ),
     )
-
-
-def _evidence_strength(value: float) -> float:
-    normalized = float(value)
-    if not isfinite(normalized) or not 0.0 <= normalized <= 1.0:
-        raise ValueError("evidence_strength must lie between 0 and 1.")
-    return normalized
-
-
-def _finite_pair(value: tuple[float, float], name: str) -> tuple[float, float]:
-    pair = tuple(float(item) for item in value)
-    if len(pair) != 2 or not all(isfinite(item) for item in pair):
-        raise ValueError(f"{name} must be a finite pair.")
-    return pair
-
-
-def _frame_index(value: int) -> int:
-    if isinstance(value, bool) or int(value) != value or int(value) < 0:
-        raise ValueError("frame_index must be a non-negative integer.")
-    return int(value)
-
-
-def _text(value: str | None, name: str) -> str:
-    if not isinstance(value, str) or not value.strip():
-        raise ValueError(f"{name} must be a non-empty string.")
-    return value.strip()

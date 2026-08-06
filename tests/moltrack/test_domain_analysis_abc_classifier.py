@@ -283,7 +283,7 @@ def _series(
         "split_components",
         "expected_label",
         "expected_counts",
-        "resolved_evidence",
+        "expected_resolved_evidence_fraction",
     ),
     (
         (("A", "A", "A", None), False, "A", (3, 0, 0, 1), 0.6),
@@ -311,7 +311,7 @@ def test_run_publishes_conservative_full_domain_label_summary(
     split_components: bool,
     expected_label: str,
     expected_counts: tuple[int, int, int, int],
-    resolved_evidence: float,
+    expected_resolved_evidence_fraction: float,
 ) -> None:
     classifier = _ScenarioABCClassifier(
         labels,
@@ -339,7 +339,9 @@ def test_run_publishes_conservative_full_domain_label_summary(
         ("A", "B", "C", "Unknown orientation"),
         expected_counts,
     ))
-    assert summary.resolved_evidence == pytest.approx(resolved_evidence)
+    assert summary.resolved_evidence_fraction_of_domain == pytest.approx(
+        expected_resolved_evidence_fraction
+    )
     assert summary.aggregation_preset_id == "abc-domain-summary-conservative-v1"
     assert summary.aggregation_preset_fingerprint == (
         "982f1b73869dac84f411307beb75b2961509db010af7f45ba3f3592ebb30d7c7"
@@ -392,6 +394,41 @@ def test_run_binds_classifier_and_aggregation_as_one_configuration() -> None:
     assert revised.domain_summaries[0].aggregation_preset_fingerprint == (
         revised_preset.fingerprint
     )
+
+
+def test_run_publishes_a_deep_auditable_classifier_contract() -> None:
+    classifier = _ScenarioABCClassifier(("A", "A", "A", None))
+    result = DomainAnalysisModule(
+        _AllMoleculesFullDomainM6Adapter(),
+        classifier_adapters={classifier.classifier_id: classifier},
+    ).run(
+        _series("raw", raw_frame=np.arange(16).reshape(4, 4)),
+        DomainAnalysisRequest(
+            frame_range=range(1),
+            classifier_ids=(classifier.classifier_id,),
+        ),
+    )
+
+    assert result.classifier_outcomes is not None
+    outcome = result.classifier_outcomes[0]
+    summary = outcome.domain_summaries[0]
+    assert outcome.configuration.identity.classifier_id == "abc_orientation"
+    assert outcome.configuration.aggregation_preset.preset_id == (
+        "abc-domain-summary-conservative-v1"
+    )
+    assert summary.configuration == outcome.configuration
+    assert dict(summary.evidence_fraction_of_domain) == pytest.approx({
+        "A": 0.6,
+        "B": 0.0,
+        "C": 0.0,
+    })
+    assert dict(summary.coherent_evidence_fraction_of_domain) == pytest.approx({
+        "A": 0.6,
+        "B": 0.0,
+        "C": 0.0,
+    })
+    assert summary.resolved_evidence_fraction_of_domain == pytest.approx(0.6)
+    assert summary.reason == "dominant_class_passed"
 
 
 def test_run_gates_classifier_to_full_domains_and_exact_raw_pixels() -> None:

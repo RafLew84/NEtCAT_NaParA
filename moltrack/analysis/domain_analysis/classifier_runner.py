@@ -6,7 +6,6 @@ from typing import Protocol
 import numpy as np
 
 from .classifier_models import (
-    ClassifierIdentity,
     ClassifierMoleculeInput,
     ClassifierMoleculePrediction,
     ClassifierOutcome,
@@ -16,11 +15,12 @@ from .classifier_models import (
     MoleculeClassificationStatus,
     OrientationLabel,
 )
-from .domain_label_aggregation import aggregate_domain_summaries
-from .domain_label_models import (
+from .classifier_contract import (
+    ClassifierConfiguration,
+    ClassifierIdentity,
     DomainAggregationPreset,
     DomainLabelSummary,
-    classifier_configuration_fingerprint,
+    aggregate_domain_summaries,
 )
 from .events import emit_event
 from .geometry import DomainAnalysisSeries, M6AnalyzedMolecule, M6CanonicalFrame
@@ -82,6 +82,10 @@ def run_gated_classifier(
         raise TypeError(
             "Classifier adapters require a DomainAggregationPreset configuration."
         )
+    configuration = ClassifierConfiguration(
+        identity=identity,
+        aggregation_preset=preset,
+    )
     emit_event(
         on_event,
         classifier_id,
@@ -97,40 +101,36 @@ def run_gated_classifier(
             identity,
         )
     except ClassifierAnalysisError as exc:
-        return _failed_result(gate, identity, preset, exc, on_event=on_event)
+        return _failed_result(gate, configuration, exc, on_event=on_event)
     domain_summaries = aggregate_domain_summaries(
         gate,
         classifications,
-        identity,
-        preset,
+        configuration,
     )
     return _completed_result(
         gate,
-        identity,
+        configuration,
         classifications,
         domain_summaries,
-        preset,
         on_event=on_event,
     )
 
 
 def _failed_result(
     gate: M6Gate,
-    identity: ClassifierIdentity,
-    preset: DomainAggregationPreset,
+    configuration: ClassifierConfiguration,
     error: ClassifierAnalysisError,
     *,
     on_event: Callable[[DomainAnalysisEvent], None] | None,
 ) -> DomainAnalysisResult:
     message = str(error).strip() or error.__class__.__name__
     outcome = _outcome(
-        identity,
-        preset,
+        configuration,
         "failed",
         (),
         error_message=message,
     )
-    emit_event(on_event, identity.classifier_id, "failed", message)
+    emit_event(on_event, configuration.identity.classifier_id, "failed", message)
     emit_event(
         on_event,
         "run",
@@ -147,23 +147,21 @@ def _failed_result(
 
 def _completed_result(
     gate: M6Gate,
-    identity: ClassifierIdentity,
+    configuration: ClassifierConfiguration,
     classifications: tuple[MoleculeClassification, ...],
     domain_summaries: tuple[DomainLabelSummary, ...],
-    preset: DomainAggregationPreset,
     *,
     on_event: Callable[[DomainAnalysisEvent], None] | None,
 ) -> DomainAnalysisResult:
     outcome = _outcome(
-        identity,
-        preset,
+        configuration,
         "completed",
         classifications,
         domain_summaries=domain_summaries,
     )
     emit_event(
         on_event,
-        identity.classifier_id,
+        configuration.identity.classifier_id,
         "published",
         "Full classifier payload published atomically.",
     )
@@ -177,8 +175,7 @@ def _completed_result(
 
 
 def _outcome(
-    identity: ClassifierIdentity,
-    preset: DomainAggregationPreset,
+    configuration: ClassifierConfiguration,
     status: ClassifierOutcomeStatus,
     classifications: tuple[MoleculeClassification, ...],
     *,
@@ -186,19 +183,8 @@ def _outcome(
     error_message: str | None = None,
 ) -> ClassifierOutcome:
     return ClassifierOutcome(
-        classifier_id=identity.classifier_id,
         status=status,
-        classifier_settings_fingerprint=identity.settings_fingerprint,
-        classifier_algorithm_version=identity.algorithm_version,
-        aggregation_preset_id=preset.preset_id,
-        aggregation_preset_fingerprint=preset.fingerprint,
-        classifier_configuration_fingerprint=classifier_configuration_fingerprint(
-            classifier_id=identity.classifier_id,
-            classifier_settings_fingerprint=identity.settings_fingerprint,
-            classifier_algorithm_version=identity.algorithm_version,
-            aggregation_preset_id=preset.preset_id,
-            aggregation_preset_fingerprint=preset.fingerprint,
-        ),
+        configuration=configuration,
         molecule_classifications=classifications,
         domain_summaries=domain_summaries,
         error_message=error_message,
@@ -405,7 +391,5 @@ def _classification(
         orientation_label=label,
         evidence_strength=evidence_strength,
         component_id=component_id,
-        classifier_id=identity.classifier_id,
-        classifier_settings_fingerprint=identity.settings_fingerprint,
-        classifier_algorithm_version=identity.algorithm_version,
+        identity=identity,
     )

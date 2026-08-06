@@ -18,7 +18,7 @@ from .classifier_models import (
     ClassifierMoleculeInput,
     ClassifierMoleculePrediction,
 )
-from .domain_label_models import (
+from .classifier_contract import (
     ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
     DomainAggregationPreset,
 )
