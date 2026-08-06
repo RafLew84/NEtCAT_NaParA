@@ -200,12 +200,30 @@ def _migrate_m6_cache(
             "molecular_m6_analysis.reproducible_cache",
             "molecular_m6_analysis.reproducible_cache must be a list.",
         )]
+    candidates = []
+    candidate_positions = []
+    migrated_diagnostics: list[DomainAnalysisSessionDiagnostic] = []
+    for index, record in enumerate(records):
+        identifier = f"molecular_m6_analysis.reproducible_cache[{index}]"
+        if _is_v1_reproducible_m6_input(record):
+            migrated_diagnostics.append(_m6_diagnostic(
+                identifier,
+                "Legacy reproducible M6 input does not contain a completed "
+                "M6 computation required by v2 and was skipped without "
+                "running M6.",
+            ))
+            continue
+        candidates.append(record)
+        candidate_positions.append(index)
     restored, _, diagnostics = domain_analysis_cache_from_payload({
         "schema_version": 1,
-        "m6_frames": records,
+        "m6_frames": candidates,
         "classifier_frames": [],
     })
-    migrated_diagnostics = [_legacy_m6_diagnostic(value) for value in diagnostics]
+    migrated_diagnostics.extend(
+        _legacy_m6_diagnostic(value, candidate_positions=candidate_positions)
+        for value in diagnostics
+    )
     expected_frame_ids = dict(zip(frame_range, physical_frame_ids, strict=True))
     compatible = []
     for index, record in enumerate(restored):
@@ -226,15 +244,33 @@ def _migrate_m6_cache(
 
 def _legacy_m6_diagnostic(
     diagnostic: DomainAnalysisSessionDiagnostic,
+    *,
+    candidate_positions: list[int],
 ) -> DomainAnalysisSessionDiagnostic:
     current = "domain_analysis.cache.m6_frames"
     legacy = "molecular_m6_analysis.reproducible_cache"
+    identifier = diagnostic.identifier
+    reason = diagnostic.reason
+    for candidate_index, original_index in enumerate(candidate_positions):
+        candidate = f"{current}[{candidate_index}]"
+        original = f"{legacy}[{original_index}]"
+        identifier = identifier.replace(candidate, original)
+        reason = reason.replace(candidate, original)
     return DomainAnalysisSessionDiagnostic(
         component="m6_cache",
-        identifier=diagnostic.identifier.replace(current, legacy),
+        identifier=identifier.replace(current, legacy),
         schema_version="1",
-        reason=diagnostic.reason.replace(current, legacy),
+        reason=reason.replace(current, legacy),
     )
+
+
+def _is_v1_reproducible_m6_input(value: Any) -> bool:
+    return isinstance(value, Mapping) and {
+        "cache_record_schema_version",
+        "cache_key",
+        "settings",
+        "sample_coordinates",
+    }.issubset(value)
 
 
 def _m6_diagnostic(

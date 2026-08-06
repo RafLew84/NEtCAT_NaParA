@@ -11,8 +11,10 @@ import pytest
 from moltrack.analysis import (
     MolecularFrameRange,
     MolecularFrameRangeAnalysisScope,
+    MolecularM6OrientationAnalysisSettings,
     MolecularOrderTypeClassificationSettings,
     MolecularOrderTypeSessionState,
+    analyze_molecular_frame_range,
 )
 from moltrack.analysis.domain_analysis import (
     DomainAnalysisM6CacheRecord,
@@ -203,6 +205,39 @@ def _m6_cache_record() -> DomainAnalysisM6CacheRecord:
     )
 
 
+def _legacy_m6_series(source_path: Path) -> MolTrackImageSeries:
+    detections = MolecularDetectionSet(frame_count=1)
+    detections.set_detections(
+        0,
+        [
+            MolecularDetection(
+                frame_index=0,
+                bbox_xyxy=(x - 0.2, y - 0.2, x + 0.2, y + 0.2),
+                confidence=0.9,
+                detection_id=f"molecule-{row}-{column}",
+            )
+            for row in range(5)
+            for column in range(5)
+            for x, y in ((4.0 + 2.0 * column, 4.0 + 2.0 * row),)
+        ],
+        source_view="raw",
+        frame_shape=(20, 20),
+    )
+    return MolTrackImageSeries(
+        source_path=source_path,
+        raw_frames=np.zeros((1, 20, 20), dtype=np.float32),
+        metadata=STMSequenceMetadata(
+            raw_header={"General Info": {"Angle": "0.0"}},
+            pixels_x=20,
+            pixels_y=20,
+            size_nm_x=20.0,
+            size_nm_y=20.0,
+            scan_angle_deg=0.0,
+        ),
+        molecular_detections=detections,
+    )
+
+
 def _assert_load_error(
     session_path: Path,
     *,
@@ -318,6 +353,38 @@ def test_v1_routes_compatible_m6_entries_through_v2_cache_validation(
         == "molecular_m6_analysis.reproducible_cache[1]"
         for diagnostic in loaded.domain_analysis_state.diagnostics
     )
+
+
+def test_real_v1_m6_input_is_diagnosed_without_recomputation(tmp_path) -> None:
+    source_path = tmp_path / "legacy-m6-source.mpp"
+    source_path.write_bytes(b"legacy m6 cache source")
+    session_path = tmp_path / "legacy-m6.moltrack.json"
+    series = _legacy_m6_series(source_path)
+    analyze_molecular_frame_range(
+        series,
+        MolecularFrameRange("All", 0, 0),
+        source_view="raw",
+        m6_orientation_settings=MolecularM6OrientationAnalysisSettings(),
+    )
+    save_moltrack_session(session_path, series)
+    payload = json.loads(session_path.read_text(encoding="utf-8"))
+    legacy_records = payload["molecular_m6_analysis"]["reproducible_cache"]
+    assert legacy_records[0]["cache_record_schema_version"] == 2
+    assert "sample_coordinates" in legacy_records[0]
+    payload["schema_version"] = 1
+    payload.pop("domain_analysis")
+    session_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    loaded = load_moltrack_session(session_path)
+
+    assert loaded.domain_analysis_state is not None
+    assert loaded.domain_analysis_state.m6_cache_records == ()
+    diagnostic = loaded.domain_analysis_state.diagnostics[0]
+    assert diagnostic.identifier == (
+        "molecular_m6_analysis.reproducible_cache[0]"
+    )
+    assert "does not contain a completed M6 computation" in diagnostic.reason
+    assert loaded.structural_analysis_cache_records == ()
 
 
 def test_v1_preserves_independent_molecular_order_configuration(tmp_path) -> None:
