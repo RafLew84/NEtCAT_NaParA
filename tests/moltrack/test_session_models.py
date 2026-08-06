@@ -62,7 +62,7 @@ class MolTrackSessionTests(unittest.TestCase):
             source_mtime_ns=5678,
         )
 
-        self.assertEqual(session.schema_version, 1)
+        self.assertEqual(session.schema_version, 2)
         self.assertEqual(session.source_path, "movie.mpp")
         self.assertEqual(session.source_size_bytes, 1234)
         self.assertEqual(session.source_mtime_ns, 5678)

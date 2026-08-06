@@ -5,7 +5,6 @@ from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
-import tempfile
 from typing import Any, Callable, Mapping
 import zlib
 
@@ -32,6 +31,7 @@ from moltrack.analysis import (
 from moltrack.analysis.sample_coordinates import MolecularSampleCoordinates
 from moltrack.core import (
     MOLTRACK_SESSION_SCHEMA_VERSION,
+    SUPPORTED_MOLTRACK_SESSION_SCHEMA_VERSIONS,
     MolecularDetection,
     MolecularDetectionSet,
     MolecularSegmentation,
@@ -46,11 +46,16 @@ from moltrack.core import (
     MolTrackSession,
 )
 from moltrack.io import load_moltrack_image_series
+from .atomic_json import write_json_atomically
+from .domain_analysis_session import (
+    domain_analysis_state_from_payload,
+    domain_analysis_state_from_ui_state,
+    domain_analysis_state_to_payload,
+)
 
 
 SeriesLoader = Callable[..., MolTrackImageSeries]
 StateSaveProgressCallback = Callable[["MolTrackStateSaveProgress"], None]
-_JSON_WRITE_BUFFER_CHARS = 1024 * 1024
 _MAX_SEGMENTATION_PROGRESS_EVENTS = 200
 _MASK_CENTROID_X_METADATA_KEY = "_moltrack_loaded_mask_centroid_x_px"
 _MASK_CENTROID_Y_METADATA_KEY = "_moltrack_loaded_mask_centroid_y_px"
@@ -71,10 +76,8 @@ def save_moltrack_session(
     progress_callback: StateSaveProgressCallback | None = None,
 ) -> MolTrackSession:
     """Save a MolTrack working-session descriptor as human-readable JSON."""
-
     if not isinstance(series, MolTrackImageSeries):
         raise TypeError("series must be a MolTrackImageSeries instance.")
-
     session_path = Path(path)
     source_path = Path(series.source_path).expanduser().resolve()
     source_stat = _stat_existing_source_file(source_path)
@@ -83,6 +86,7 @@ def save_moltrack_session(
     bbox_opacity_percent = _bbox_opacity_percent_from_ui_state(ui_state)
     mask_opacity_percent = _mask_opacity_percent_from_ui_state(ui_state)
     position_analysis = _position_analysis_from_ui_state(ui_state)
+    domain_analysis_state = domain_analysis_state_from_ui_state(ui_state)
     intensity_cache_records = export_molecular_intensity_cache_records(series)
     structural_cache_records = export_structural_analysis_cache_records(series)
     m6_analysis_state = _m6_analysis_state_from_ui_or_series(
@@ -102,6 +106,7 @@ def save_moltrack_session(
         mask_opacity_percent=mask_opacity_percent,
         position_analysis=position_analysis,
         intensity_cache_records=intensity_cache_records,
+        domain_analysis_state=domain_analysis_state,
         m6_analysis_state=m6_analysis_state,
         m6_domain_type_analysis_state=m6_domain_type_analysis_state,
         molecular_order_type_analysis_state=(
@@ -135,7 +140,7 @@ def save_moltrack_session(
         completed_count=segmentation_count,
         total_count=segmentation_count,
     )
-    _write_json_atomically(session_path, payload)
+    write_json_atomically(session_path, payload)
     _report_save_progress(
         progress_callback,
         phase="complete",
@@ -143,40 +148,6 @@ def save_moltrack_session(
         total_count=segmentation_count,
     )
     return session
-
-
-def _write_json_atomically(path: Path, payload: Mapping[str, Any]) -> None:
-    temporary_path: Path | None = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            mode="w",
-            encoding="utf-8",
-            newline="\n",
-            dir=path.parent,
-            prefix=f".{path.name}.",
-            suffix=".tmp",
-            delete=False,
-        ) as handle:
-            temporary_path = Path(handle.name)
-            encoder = json.JSONEncoder(indent=2, ensure_ascii=False)
-            buffered_chunks: list[str] = []
-            buffered_character_count = 0
-            for chunk in encoder.iterencode(payload):
-                buffered_chunks.append(chunk)
-                buffered_character_count += len(chunk)
-                if buffered_character_count < _JSON_WRITE_BUFFER_CHARS:
-                    continue
-                handle.write("".join(buffered_chunks))
-                buffered_chunks.clear()
-                buffered_character_count = 0
-            if buffered_chunks:
-                handle.write("".join(buffered_chunks))
-            handle.write("\n")
-        os.replace(temporary_path, path)
-    except Exception:
-        if temporary_path is not None:
-            temporary_path.unlink(missing_ok=True)
-        raise
 
 
 def load_moltrack_session(path: str | Path) -> MolTrackSession:
@@ -187,9 +158,7 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
     if not isinstance(payload, dict):
         raise ValueError("MolTrack session file must contain a JSON object.")
 
-    schema_version = int(payload.get("schema_version", -1))
-    if schema_version != MOLTRACK_SESSION_SCHEMA_VERSION:
-        raise ValueError(f"Unsupported MolTrack session schema_version: {schema_version}.")
+    schema_version, domain_analysis_state = _session_schema(payload)
 
     source_payload = _require_mapping(payload.get("source"), "source")
     source_path = _resolve_source_path(source_payload, session_path=session_path)
@@ -259,6 +228,7 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
         intensity_cache_records=_intensity_cache_records_from_payload(
             intensity_cache_payload
         ),
+        domain_analysis_state=domain_analysis_state,
         m6_analysis_state=m6_analysis_state,
         m6_domain_type_analysis_state=m6_domain_type_analysis_state,
         molecular_stacking_state=molecular_stacking_state,
@@ -271,6 +241,20 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
         source_mtime_ns=int(source_payload["mtime_ns"]),
         schema_version=schema_version,
     )
+
+
+def _session_schema(payload: Mapping[str, Any]) -> tuple[int, Any]:
+    schema_version = payload.get("schema_version")
+    if isinstance(schema_version, bool) or not isinstance(schema_version, int):
+        raise ValueError("MolTrack session schema_version must be an integer.")
+    if schema_version not in SUPPORTED_MOLTRACK_SESSION_SCHEMA_VERSIONS:
+        raise ValueError(f"Unsupported MolTrack session schema_version: {schema_version}.")
+    domain_analysis_state = None
+    if schema_version == MOLTRACK_SESSION_SCHEMA_VERSION:
+        domain_analysis_state = domain_analysis_state_from_payload(
+            payload.get("domain_analysis")
+        )
+    return schema_version, domain_analysis_state
 
 
 def restore_moltrack_image_series_from_session(
@@ -348,7 +332,7 @@ def _session_to_payload(
     session_path: Path,
     progress_callback: StateSaveProgressCallback | None = None,
 ) -> dict[str, Any]:
-    return {
+    payload = {
         "schema_version": session.schema_version,
         "source": {
             "path": str(source_path),
@@ -380,6 +364,9 @@ def _session_to_payload(
         "molecular_intensity_cache": _intensity_cache_records_to_payload(
             session.intensity_cache_records
         ),
+        "domain_analysis": domain_analysis_state_to_payload(
+            session.domain_analysis_state
+        ),
         "molecular_m6_analysis": _m6_analysis_to_payload(
             session.m6_analysis_state,
             session.structural_analysis_cache_records,
@@ -405,6 +392,10 @@ def _session_to_payload(
             else session.texture_domain_analysis_state.to_dict()
         ),
     }
+    if session.domain_analysis_state is not None:
+        payload.pop("molecular_m6_analysis")
+        payload.pop("texture_domain_analysis")
+    return payload
 
 
 def _texture_domain_state_from_payload(

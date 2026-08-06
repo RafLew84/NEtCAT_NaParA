@@ -43,6 +43,10 @@ from .models import (
     M6PublishedComponent,
 )
 from .module import DomainAnalysisModule, M6Adapter, M6FrameAnalysisError
+from .session_state import (
+    DOMAIN_ANALYSIS_SESSION_SCHEMA_VERSION,
+    DomainAnalysisSessionState,
+)
 from .texture_abc_adapter import (
     ABC_ORIENTATION_CLASSIFIER_ID,
     ABC_ORIENTATION_CLASSIFIER_SCHEMA_VERSION,
@@ -99,6 +103,8 @@ __all__ = [
     "DomainAnalysisPublication",
     "DomainAnalysisRequest",
     "DomainAnalysisResult",
+    "DOMAIN_ANALYSIS_SESSION_SCHEMA_VERSION",
+    "DomainAnalysisSessionState",
     "DomainAnalysisSeries",
     "DomainAnalysisWorkspaceController",
     "DomainAnalysisWorkspaceExecution",

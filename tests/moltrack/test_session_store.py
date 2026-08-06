@@ -49,7 +49,7 @@ class MolTrackSessionStoreTests(unittest.TestCase):
 
             payload = json.loads(session_path.read_text(encoding="utf-8"))
 
-        self.assertEqual(payload["schema_version"], 1)
+        self.assertEqual(payload["schema_version"], 2)
 
     def test_save_reports_throttled_segmentation_progress(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -377,7 +377,7 @@ class MolTrackSessionStoreTests(unittest.TestCase):
             )
 
             payload = json.loads(session_path.read_text(encoding="utf-8"))
-            self.assertEqual(payload["schema_version"], 1)
+            self.assertEqual(payload["schema_version"], 2)
             self.assertEqual(payload["source"]["path"], str(source_path.resolve()))
             self.assertEqual(payload["source"]["path_relative_to_session"], "movie.mpp")
             self.assertEqual(payload["working_series"]["source_frame_indices"], [0, 2, 3])

@@ -18,9 +18,13 @@ if TYPE_CHECKING:
         StructuralAnalysisCacheRecord,
         TextureDomainSessionState,
     )
+    from moltrack.analysis.domain_analysis.session_state import (
+        DomainAnalysisSessionState,
+    )
 
 
-MOLTRACK_SESSION_SCHEMA_VERSION = 1
+MOLTRACK_SESSION_SCHEMA_VERSION = 2
+SUPPORTED_MOLTRACK_SESSION_SCHEMA_VERSIONS = (1, 2)
 SUPPORTED_SESSION_REGISTRATION_VIEW_MODES = ("Show raw", "Show expanded aligned")
 SUPPORTED_POSITION_ANALYSIS_SOURCE_VIEWS = ("raw", "expanded_aligned")
 SUPPORTED_POSITION_ANALYSIS_TABS = (
@@ -205,6 +209,7 @@ class MolTrackSession:
     molecular_orientations: MolecularOrientationStore | None = None
     position_analysis: MolTrackPositionAnalysisState | None = None
     intensity_cache_records: tuple[MolTrackIntensityCacheRecord, ...] = ()
+    domain_analysis_state: DomainAnalysisSessionState | None = None
     m6_analysis_state: MolecularM6SessionState | None = None
     m6_domain_type_analysis_state: M6DomainTypeSessionState | None = None
     molecular_stacking_state: MolecularStackingSessionState | None = None
@@ -248,9 +253,8 @@ class MolTrackSession:
             raise ValueError("mask_opacity_percent must be between 0 and 100.")
 
         schema_version = int(self.schema_version)
-        if schema_version != MOLTRACK_SESSION_SCHEMA_VERSION:
+        if schema_version not in SUPPORTED_MOLTRACK_SESSION_SCHEMA_VERSIONS:
             raise ValueError(f"Unsupported MolTrack session schema_version: {schema_version}.")
-
         source_size_bytes = _normalize_optional_non_negative_int(self.source_size_bytes, "source_size_bytes")
         source_mtime_ns = _normalize_optional_non_negative_int(self.source_mtime_ns, "source_mtime_ns")
 
@@ -284,6 +288,7 @@ class MolTrackSession:
             self.position_analysis, MolTrackPositionAnalysisState
         ):
             raise TypeError("position_analysis must be a MolTrackPositionAnalysisState instance.")
+        _validate_domain_analysis_state(self.domain_analysis_state, schema_version=schema_version, frame_count=len(source_frame_indices))
         if self.molecular_stacking_state is not None:
             from moltrack.analysis import MolecularStackingSessionState
 
@@ -425,6 +430,7 @@ class MolTrackSession:
         mask_opacity_percent: int = 30,
         position_analysis: MolTrackPositionAnalysisState | None = None,
         intensity_cache_records: tuple[MolTrackIntensityCacheRecord, ...] = (),
+        domain_analysis_state: DomainAnalysisSessionState | None = None,
         m6_analysis_state: MolecularM6SessionState | None = None,
         m6_domain_type_analysis_state: M6DomainTypeSessionState | None = None,
         molecular_stacking_state: MolecularStackingSessionState | None = None,
@@ -450,11 +456,16 @@ class MolTrackSession:
             )
         if texture_domain_analysis_state is None:
             texture_domain_analysis_state = series.texture_domain_state
+        source_frame_indices = series.source_frame_indices
+        if source_frame_indices is None:
+            raise RuntimeError(
+                "MolTrackImageSeries did not normalize source_frame_indices."
+            )
         registration_results = series.registration_results
         registration_settings = registration_results.settings if registration_results is not None else None
         return cls(
             source_path=series.source_path,
-            source_frame_indices=series.source_frame_indices,
+            source_frame_indices=source_frame_indices,
             active_frame_index=series.active_frame_index,
             reverse_frame_order=series.reverse_frame_order,
             registration_view_mode=registration_view_mode,
@@ -468,6 +479,7 @@ class MolTrackSession:
             molecular_orientations=series.molecular_orientations,
             position_analysis=position_analysis,
             intensity_cache_records=intensity_cache_records,
+            domain_analysis_state=domain_analysis_state,
             m6_analysis_state=m6_analysis_state,
             m6_domain_type_analysis_state=m6_domain_type_analysis_state,
             molecular_stacking_state=molecular_stacking_state,
@@ -478,6 +490,36 @@ class MolTrackSession:
             structural_analysis_cache_records=structural_analysis_cache_records,
             source_size_bytes=source_size_bytes,
             source_mtime_ns=source_mtime_ns,
+        )
+
+
+def _validate_domain_analysis_state(
+    state: DomainAnalysisSessionState | None,
+    *,
+    schema_version: int,
+    frame_count: int,
+) -> None:
+    if state is None:
+        return
+    from moltrack.analysis.domain_analysis.session_state import (
+        DomainAnalysisSessionState,
+    )
+
+    if not isinstance(state, DomainAnalysisSessionState):
+        raise TypeError(
+            "domain_analysis_state must be a DomainAnalysisSessionState."
+        )
+    if schema_version == 1:
+        raise ValueError(
+            "MolTrack session schema v1 cannot own Domain Analysis state."
+        )
+    publication = state.published_result
+    if (
+        publication is not None
+        and publication.request.frame_range.stop > frame_count
+    ):
+        raise ValueError(
+            "Domain Analysis range exceeds source_frame_indices length."
         )
 
 

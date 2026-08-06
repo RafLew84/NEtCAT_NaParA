@@ -146,6 +146,14 @@ class M6PublishedComponent:
         if self.component_type not in {"full_domain", "small_ordered_island"}:
             raise ValueError(f"Unsupported component_type: {self.component_type!r}.")
         source_ids = _sorted_unique_ids(self.source_ids, "source_ids", allow_empty=False)
+        core_ids = _sorted_unique_ids(self.core_source_ids, "core_source_ids")
+        halo_ids = _sorted_unique_ids(self.halo_source_ids, "halo_source_ids")
+        if set(core_ids).intersection(halo_ids):
+            raise ValueError("Core and halo memberships must be disjoint.")
+        if (core_ids or halo_ids) and set(core_ids).union(halo_ids) != set(
+            source_ids
+        ):
+            raise ValueError("Core and halo memberships must cover the component.")
         points = tuple(_finite_pair(value, "points_xy_nm") for value in self.points_xy_nm)
         if len(points) != len(source_ids):
             raise ValueError("Published component points must align with source IDs.")
@@ -159,6 +167,8 @@ class M6PublishedComponent:
             "lattice_domain_id",
         ))
         object.__setattr__(self, "source_ids", source_ids)
+        object.__setattr__(self, "core_source_ids", core_ids)
+        object.__setattr__(self, "halo_source_ids", halo_ids)
         object.__setattr__(self, "points_xy_nm", points)
         object.__setattr__(self, "footprint_pixels_xy", footprint_pixels)
         object.__setattr__(self, "footprint_area_nm2", _non_negative_float(
@@ -296,6 +306,11 @@ class M6Gate:
         frame_indices = tuple(value.frame_index for value in frames)
         if len(set(frame_indices)) != len(frame_indices):
             raise ValueError("M6 gate frame indexes must be unique.")
+        physical_frame_ids = tuple(
+            value.physical_frame_id for value in frames
+        )
+        if len(set(physical_frame_ids)) != len(physical_frame_ids):
+            raise ValueError("M6 gate physical_frame_id values must be unique.")
         object.__setattr__(self, "frames", frames)
 
 

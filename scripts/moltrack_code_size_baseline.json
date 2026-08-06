@@ -78,7 +78,7 @@
       "physical_lines": 1058
     },
     "moltrack/persistence/session_store.py": {
-      "physical_lines": 1594,
+      "physical_lines": 1585,
       "definitions": 51
     },
     "moltrack/sam2/adapter.py": {
@@ -401,7 +401,7 @@
     "moltrack/persistence/session_store.py": {
       "_mask_from_payload": 87,
       "_structural_cache_record_from_payload": 118,
-      "load_moltrack_session": 92
+      "load_moltrack_session": 91
     },
     "moltrack/sam2/adapter.py": {
       "MolTrackSam2Segmenter._segment_frame_detections_using_backend": 109
