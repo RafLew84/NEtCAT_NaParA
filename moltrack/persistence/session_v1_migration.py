@@ -203,6 +203,7 @@ def _migrate_m6_cache(
     candidates = []
     candidate_positions = []
     migrated_diagnostics: list[DomainAnalysisSessionDiagnostic] = []
+    expected_frame_ids = dict(zip(frame_range, physical_frame_ids, strict=True))
     for index, record in enumerate(records):
         identifier = f"molecular_m6_analysis.reproducible_cache[{index}]"
         if _is_v1_reproducible_m6_input(record):
@@ -213,6 +214,18 @@ def _migrate_m6_cache(
                 "running M6.",
             ))
             continue
+        scope = _v2_m6_cache_scope(record)
+        if scope is not None:
+            frame_index, record_geometry_mode, physical_frame_id = scope
+            if (
+                record_geometry_mode != geometry_mode
+                or expected_frame_ids.get(frame_index) != physical_frame_id
+            ):
+                migrated_diagnostics.append(_m6_diagnostic(
+                    identifier,
+                    "M6 cache key is outside the migrated v2 workspace.",
+                ))
+                continue
         candidates.append(record)
         candidate_positions.append(index)
     restored, _, diagnostics = domain_analysis_cache_from_payload({
@@ -224,22 +237,7 @@ def _migrate_m6_cache(
         _legacy_m6_diagnostic(value, candidate_positions=candidate_positions)
         for value in diagnostics
     )
-    expected_frame_ids = dict(zip(frame_range, physical_frame_ids, strict=True))
-    compatible = []
-    for index, record in enumerate(restored):
-        frame_index = record.computation.frame_index
-        if (
-            record.key.geometry_mode == geometry_mode
-            and expected_frame_ids.get(frame_index)
-            == record.key.physical_frame_id
-        ):
-            compatible.append(record)
-            continue
-        migrated_diagnostics.append(_m6_diagnostic(
-            f"molecular_m6_analysis.reproducible_cache[{index}]",
-            "M6 cache key is outside the migrated v2 workspace.",
-        ))
-    return tuple(compatible), migrated_diagnostics
+    return restored, migrated_diagnostics
 
 
 def _legacy_m6_diagnostic(
@@ -271,6 +269,26 @@ def _is_v1_reproducible_m6_input(value: Any) -> bool:
         "settings",
         "sample_coordinates",
     }.issubset(value)
+
+
+def _v2_m6_cache_scope(value: Any) -> tuple[int, str, str] | None:
+    if not isinstance(value, Mapping):
+        return None
+    key = value.get("key")
+    computation = value.get("computation")
+    if not isinstance(key, Mapping) or not isinstance(computation, Mapping):
+        return None
+    frame_index = computation.get("frame_index")
+    geometry_mode = key.get("geometry_mode")
+    physical_frame_id = key.get("physical_frame_id")
+    if (
+        isinstance(frame_index, bool)
+        or not isinstance(frame_index, int)
+        or not isinstance(geometry_mode, str)
+        or not isinstance(physical_frame_id, str)
+    ):
+        return None
+    return frame_index, geometry_mode, physical_frame_id
 
 
 def _m6_diagnostic(

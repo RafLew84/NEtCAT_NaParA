@@ -337,10 +337,14 @@ def test_v1_routes_compatible_m6_entries_through_v2_cache_validation(
     )
     payload = json.loads(session_path.read_text(encoding="utf-8"))
     compatible = payload["domain_analysis"]["cache"]["m6_frames"][0]
+    outside_scope = json.loads(json.dumps(compatible))
+    outside_scope["key"]["physical_frame_id"] = "source-frame-999"
     payload["schema_version"] = 1
     payload.pop("domain_analysis")
     payload["molecular_m6_analysis"] = {
-        "reproducible_cache": [compatible, {"status": "partial"}],
+        "reproducible_cache": [
+            {"status": "partial"}, compatible, outside_scope,
+        ],
     }
     session_path.write_text(json.dumps(payload), encoding="utf-8")
 
@@ -350,7 +354,12 @@ def test_v1_routes_compatible_m6_entries_through_v2_cache_validation(
     assert loaded.domain_analysis_state.m6_cache_records == (record,)
     assert any(
         diagnostic.identifier
-        == "molecular_m6_analysis.reproducible_cache[1]"
+        == "molecular_m6_analysis.reproducible_cache[0]"
+        for diagnostic in loaded.domain_analysis_state.diagnostics
+    )
+    assert any(
+        diagnostic.identifier
+        == "molecular_m6_analysis.reproducible_cache[2]"
         for diagnostic in loaded.domain_analysis_state.diagnostics
     )
 
