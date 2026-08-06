@@ -1,18 +1,26 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from copy import deepcopy
+from dataclasses import replace
 from typing import Any, cast
 
 from moltrack.analysis.domain_analysis import (
+    DOMAIN_ANALYSIS_RETRY_REQUIRED_DIAGNOSIS,
     DOMAIN_ANALYSIS_SESSION_SCHEMA_VERSION,
+    ClassifierConfiguration,
     DomainAnalysisPublication,
     DomainAnalysisRequest,
     DomainAnalysisResult,
     DomainAnalysisSessionState,
+    DomainAnalysisSessionDiagnostic,
+    DomainAnalysisViewSettings,
+    DomainComponentKey,
     M6FrameGate,
     M6Gate,
     M6PresentationProvenance,
     M6PublishedComponent,
+    validate_classifier_outcome_for_gate,
 )
 from moltrack.analysis.domain_analysis.events import (
     ClassifierStatus,
@@ -24,10 +32,46 @@ from moltrack.analysis.domain_analysis.geometry import (
 )
 from moltrack.analysis.domain_analysis.models import M6ComponentType
 
+from .domain_analysis_cache_payload import (
+    domain_analysis_cache_from_payload,
+    domain_analysis_cache_to_payload,
+)
+from .domain_analysis_classifier_payload import (
+    classifier_configuration_from_payload,
+    classifier_configuration_to_payload,
+    classifier_outcomes_from_payload,
+    classifier_outcomes_to_payload,
+)
+from .domain_analysis_opaque_payload import opaque_components_from_payload
+from .domain_analysis_payload_validation import (
+    float_pair_field as _float_pair,
+    float_pairs_field as _float_pairs,
+    float_quad_field as _float_quad,
+    integer_field as _require_integer,
+    integer_pair_field as _integer_pair,
+    integer_pairs_field as _integer_pairs,
+    list_field as _require_list,
+    mapping as _require_mapping,
+    number_field as _require_number,
+    pairs_to_lists as _pairs_to_lists,
+    required as _required,
+    text_field as _require_text,
+    text_list_field as _require_text_list,
+)
+
 
 _PUBLISHED_RESULT_SCHEMA_VERSION = 1
 _M6_GATE_SCHEMA_VERSION = 1
-_CACHE_SCHEMA_VERSION = 1
+_DOMAIN_ANALYSIS_KNOWN_FIELDS = frozenset({
+    "schema_version",
+    "classifier_status",
+    "draft",
+    "view_settings",
+    "selected_component",
+    "run",
+    "published_result",
+    "cache",
+})
 
 
 def domain_analysis_state_from_ui_state(
@@ -50,20 +94,69 @@ def domain_analysis_state_to_payload(
     state: DomainAnalysisSessionState | None,
 ) -> dict[str, Any]:
     saved = DomainAnalysisSessionState() if state is None else state
-    return {
+    draft = saved.draft
+    selected = saved.selected_component
+    # Ticket 13 explicitly persists the stable published-component selection
+    # and terminal/retry status. Worker progress and cancellation tokens remain
+    # transient and have no representation in this schema.
+    run_status = (
+        "retry_required" if saved.run_status == "running" else saved.run_status
+    )
+    run_diagnosis = (
+        DOMAIN_ANALYSIS_RETRY_REQUIRED_DIAGNOSIS
+        if saved.run_status == "running"
+        else saved.run_diagnosis
+    )
+    payload = {
         "schema_version": saved.schema_version,
         "classifier_status": saved.classifier_status,
+        "draft": (
+            None
+            if draft is None
+            else {
+                "frame_start": draft.frame_range.start,
+                "frame_stop": draft.frame_range.stop,
+                "geometry_mode": draft.geometry_mode,
+                "classifier_ids": list(draft.classifier_ids),
+                "physical_frame_ids": list(saved.draft_physical_frame_ids),
+                "classifier_configurations": [
+                    classifier_configuration_to_payload(value)
+                    for value in saved.draft_classifier_configurations
+                ],
+            }
+        ),
+        "view_settings": {
+            "overlay_visible": saved.view_settings.overlay_visible,
+            "overlay_opacity_percent": (
+                saved.view_settings.overlay_opacity_percent
+            ),
+        },
+        "selected_component": (
+            None
+            if selected is None
+            else {
+                "physical_frame_id": selected.physical_frame_id,
+                "lattice_domain_id": selected.lattice_domain_id,
+            }
+        ),
+        "run": {
+            "status": run_status,
+            "diagnosis": run_diagnosis,
+        },
         "published_result": (
             None
             if saved.published_result is None
             else _publication_to_payload(saved.published_result)
         ),
-        "cache": {
-            "schema_version": _CACHE_SCHEMA_VERSION,
-            "m6_frames": [],
-            "classifier_frames": [],
-        },
+        "cache": domain_analysis_cache_to_payload(
+            saved.m6_cache_records,
+            saved.classifier_cache_records,
+        ),
     }
+    payload.update({
+        key: deepcopy(value) for key, value in saved.opaque_components
+    })
+    return payload
 
 
 def domain_analysis_state_from_payload(
@@ -75,28 +168,88 @@ def domain_analysis_state_from_payload(
         DOMAIN_ANALYSIS_SESSION_SCHEMA_VERSION,
         "domain_analysis",
     )
-    _validate_empty_cache(section.get("cache"))
+    draft, draft_configurations, draft_physical_frame_ids = (
+        _draft_from_payload(section)
+    )
+    m6_cache_records, classifier_cache_records, cache_diagnostics = (
+        _cache_from_payload(section)
+    )
     classifier_status = _require_text(
         section,
         "classifier_status",
         "domain_analysis",
     )
     publication_payload = _required(section, "published_result", "domain_analysis")
-    if publication_payload is None:
-        if classifier_status != "not_run":
-            raise ValueError(
-                "domain_analysis.classifier_status must be 'not_run' when "
-                "there is no published result."
+    publication = None
+    publication_diagnostics: tuple[DomainAnalysisSessionDiagnostic, ...] = ()
+    publication_was_rejected = False
+    if publication_payload is not None:
+        try:
+            publication, publication_diagnostics = _publication_from_payload(
+                publication_payload,
+                fallback_configurations=draft_configurations,
             )
-        return DomainAnalysisSessionState()
-    if classifier_status != "not_requested":
-        raise ValueError(
-            "An M6-only published result requires classifier_status "
-            "'not_requested'."
-        )
-    return DomainAnalysisSessionState(
-        published_result=_publication_from_payload(publication_payload)
+        except (TypeError, ValueError) as exc:
+            publication_was_rejected = True
+            publication_diagnostics = (DomainAnalysisSessionDiagnostic(
+                component="published_result",
+                identifier="domain-analysis-publication",
+                schema_version=str(_PUBLISHED_RESULT_SCHEMA_VERSION),
+                reason=str(exc),
+            ),)
+    state = _workspace_state_from_payload(
+        section,
+        draft=draft,
+        draft_configurations=draft_configurations,
+        draft_physical_frame_ids=draft_physical_frame_ids,
+        publication=publication,
+        ignore_selected_component=publication_was_rejected,
     )
+    opaque_components, opaque_diagnostics = opaque_components_from_payload(
+        section,
+        known_fields=_DOMAIN_ANALYSIS_KNOWN_FIELDS,
+    )
+    state = replace(
+        state,
+        opaque_components=opaque_components,
+        diagnostics=(
+            publication_diagnostics
+            + cache_diagnostics
+            + opaque_diagnostics
+        ),
+    )
+    state = _restore_compatible_cache(
+        state,
+        m6_cache_records=m6_cache_records,
+        classifier_cache_records=classifier_cache_records,
+    )
+    if (
+        state.classifier_status != classifier_status
+        and not publication_diagnostics
+    ):
+        raise ValueError(
+            "domain_analysis.classifier_status does not match its published "
+            "result."
+        )
+    return state
+
+
+def _cache_from_payload(
+    section: Mapping[str, Any],
+) -> tuple[
+    tuple[Any, ...],
+    tuple[Any, ...],
+    tuple[DomainAnalysisSessionDiagnostic, ...],
+]:
+    try:
+        return domain_analysis_cache_from_payload(section.get("cache"))
+    except (TypeError, ValueError) as exc:
+        return (), (), (DomainAnalysisSessionDiagnostic(
+            component="cache",
+            identifier="domain-analysis-cache",
+            schema_version="unknown",
+            reason=str(exc),
+        ),)
 
 
 def _publication_to_payload(
@@ -118,60 +271,59 @@ def _publication_to_payload(
         "run_status": publication.result.run_status,
         "classifier_status": publication.result.classifier_status,
         "m6_gate": _gate_to_payload(gate),
+        "classifier_outcomes": classifier_outcomes_to_payload(
+            publication.result.classifier_outcomes
+        ),
     }
 
 
-def _publication_from_payload(payload: Any) -> DomainAnalysisPublication:
+def _publication_from_payload(
+    payload: Any,
+    *,
+    fallback_configurations: tuple[ClassifierConfiguration, ...],
+) -> tuple[
+    DomainAnalysisPublication,
+    tuple[DomainAnalysisSessionDiagnostic, ...],
+]:
     saved = _require_mapping(payload, "domain_analysis.published_result")
     _require_version(
         saved,
         _PUBLISHED_RESULT_SCHEMA_VERSION,
         "domain_analysis.published_result",
     )
-    request_payload = _require_mapping(
-        _required(saved, "request", "domain_analysis.published_result"),
-        "domain_analysis.published_result.request",
+    request = _publication_request_from_payload(saved)
+    classifier_ids = request.classifier_ids
+    gate = _gate_from_payload(
+        _required(saved, "m6_gate", "domain_analysis.published_result")
     )
-    classifier_ids = tuple(_require_text_list(
-        request_payload,
-        "classifier_ids",
-        "domain_analysis.published_result.request",
-    ))
-    request = DomainAnalysisRequest(
-        frame_range=range(
-            _require_integer(
-                request_payload,
-                "frame_start",
-                "domain_analysis.published_result.request",
-            ),
-            _require_integer(
-                request_payload,
-                "frame_stop",
-                "domain_analysis.published_result.request",
-            ),
+    outcomes, diagnostics = classifier_outcomes_from_payload(
+        saved.get("classifier_outcomes"),
+        path="domain_analysis.published_result.classifier_outcomes",
+        requested_classifier_ids=classifier_ids,
+        fallback_configurations=fallback_configurations,
+        failure_frame_index=request.frame_range.start,
+        validate_outcome=lambda outcome: (
+            validate_classifier_outcome_for_gate(outcome, gate)
         ),
-        geometry_mode=cast(GeometryMode, _require_text(
-            request_payload,
-            "geometry_mode",
-            "domain_analysis.published_result.request",
-        )),
-        classifier_ids=classifier_ids,
     )
-    result = DomainAnalysisResult(
-        run_status=cast(DomainAnalysisRunStatus, _require_text(
+    run_status = _require_text(
             saved,
             "run_status",
             "domain_analysis.published_result",
-        )),
-        m6_gate=_gate_from_payload(
-            _required(saved, "m6_gate", "domain_analysis.published_result")
-        ),
-        classifier_status=cast(ClassifierStatus, _require_text(
+        )
+    classifier_status = _require_text(
             saved,
             "classifier_status",
             "domain_analysis.published_result",
-        )),
-        classifier_outcomes=None,
+        )
+    if diagnostics and classifier_ids:
+        run_status = "completed_with_errors"
+        classifier_status = "completed_with_errors"
+    result = DomainAnalysisResult(
+        run_status=cast(DomainAnalysisRunStatus, run_status),
+        m6_gate=gate,
+        classifier_status=cast(ClassifierStatus, classifier_status),
+        classifier_outcomes=outcomes,
     )
     publication = DomainAnalysisPublication(request=request, result=result)
     expected_fingerprint = _require_text(
@@ -184,7 +336,30 @@ def _publication_from_payload(payload: Any) -> DomainAnalysisPublication:
             "domain_analysis.published_result request_fingerprint does not "
             "match its request."
         )
-    return publication
+    return publication, diagnostics
+
+
+def _publication_request_from_payload(
+    saved: Mapping[str, Any],
+) -> DomainAnalysisRequest:
+    path = "domain_analysis.published_result.request"
+    payload = _require_mapping(
+        _required(saved, "request", "domain_analysis.published_result"),
+        path,
+    )
+    return DomainAnalysisRequest(
+        frame_range=range(
+            _require_integer(payload, "frame_start", path),
+            _require_integer(payload, "frame_stop", path),
+        ),
+        geometry_mode=cast(
+            GeometryMode,
+            _require_text(payload, "geometry_mode", path),
+        ),
+        classifier_ids=tuple(
+            _require_text_list(payload, "classifier_ids", path)
+        ),
+    )
 
 
 def _gate_to_payload(gate: M6Gate) -> dict[str, Any]:
@@ -386,15 +561,182 @@ def _component_from_payload(
     )
 
 
-def _validate_empty_cache(payload: Any) -> None:
-    cache = _require_mapping(payload, "domain_analysis.cache")
-    _require_version(cache, _CACHE_SCHEMA_VERSION, "domain_analysis.cache")
-    for field_name in ("m6_frames", "classifier_frames"):
-        if _require_list(cache, field_name, "domain_analysis.cache"):
+def _workspace_state_from_payload(
+    section: Mapping[str, Any],
+    *,
+    draft: DomainAnalysisRequest | None,
+    draft_configurations: tuple[ClassifierConfiguration, ...],
+    draft_physical_frame_ids: tuple[str, ...],
+    publication: DomainAnalysisPublication | None,
+    ignore_selected_component: bool,
+) -> DomainAnalysisSessionState:
+    path = "domain_analysis"
+    view_payload = section.get("view_settings")
+    view_settings = DomainAnalysisViewSettings()
+    if view_payload is not None:
+        saved_view = _require_mapping(view_payload, f"{path}.view_settings")
+        visible = _required(
+            saved_view, "overlay_visible", f"{path}.view_settings"
+        )
+        if not isinstance(visible, bool):
             raise ValueError(
-                f"domain_analysis.cache.{field_name} is not supported by the "
-                "minimal M6-only schema."
+                "domain_analysis.view_settings.overlay_visible must be a bool."
             )
+        view_settings = DomainAnalysisViewSettings(
+            overlay_visible=visible,
+            overlay_opacity_percent=_require_integer(
+                saved_view,
+                "overlay_opacity_percent",
+                f"{path}.view_settings",
+            ),
+        )
+    selected_payload = section.get("selected_component")
+    selected = None
+    if selected_payload is not None and not ignore_selected_component:
+        saved_selected = _require_mapping(
+            selected_payload,
+            f"{path}.selected_component",
+        )
+        selected = DomainComponentKey(
+            physical_frame_id=_require_text(
+                saved_selected, "physical_frame_id", f"{path}.selected_component"
+            ),
+            lattice_domain_id=_require_text(
+                saved_selected, "lattice_domain_id", f"{path}.selected_component"
+            ),
+        )
+    run_payload = section.get("run")
+    run_status = "idle"
+    run_diagnosis = None
+    if run_payload is not None:
+        saved_run = _require_mapping(run_payload, f"{path}.run")
+        run_status = _require_text(saved_run, "status", f"{path}.run")
+        run_diagnosis = _required(saved_run, "diagnosis", f"{path}.run")
+        if run_diagnosis is not None and not isinstance(run_diagnosis, str):
+            raise ValueError("domain_analysis.run.diagnosis must be text or null.")
+    if run_status == "running":
+        run_status = "retry_required"
+        run_diagnosis = DOMAIN_ANALYSIS_RETRY_REQUIRED_DIAGNOSIS
+    return DomainAnalysisSessionState(
+        draft=draft,
+        draft_classifier_configurations=draft_configurations,
+        draft_physical_frame_ids=draft_physical_frame_ids,
+        published_result=publication,
+        view_settings=view_settings,
+        selected_component=selected,
+        run_status=cast(Any, run_status),
+        run_diagnosis=run_diagnosis,
+    )
+
+
+def _draft_from_payload(
+    section: Mapping[str, Any],
+) -> tuple[
+    DomainAnalysisRequest | None,
+    tuple[ClassifierConfiguration, ...],
+    tuple[str, ...],
+]:
+    payload = section.get("draft")
+    if payload is None:
+        return None, (), ()
+    path = "domain_analysis.draft"
+    saved = _require_mapping(payload, path)
+    classifier_ids = tuple(_require_text_list(saved, "classifier_ids", path))
+    request = DomainAnalysisRequest(
+        frame_range=range(
+            _require_integer(saved, "frame_start", path),
+            _require_integer(saved, "frame_stop", path),
+        ),
+        geometry_mode=cast(
+            GeometryMode,
+            _require_text(saved, "geometry_mode", path),
+        ),
+        classifier_ids=classifier_ids,
+    )
+    configuration_payloads = saved.get("classifier_configurations")
+    if configuration_payloads is None:
+        if classifier_ids:
+            raise ValueError(
+                "domain_analysis.draft.classifier_configurations are required "
+                "for active classifiers."
+            )
+        return request, (), tuple(
+            _require_text_list(saved, "physical_frame_ids", path)
+            if "physical_frame_ids" in saved
+            else ()
+        )
+    configurations = tuple(
+        classifier_configuration_from_payload(
+            value,
+            path=f"{path}.classifier_configurations[{index}]",
+        )
+        for index, value in enumerate(
+            _require_list(saved, "classifier_configurations", path)
+        )
+    )
+    return request, configurations, tuple(
+        _require_text_list(saved, "physical_frame_ids", path)
+        if "physical_frame_ids" in saved
+        else ()
+    )
+
+
+def _restore_compatible_cache(
+    state: DomainAnalysisSessionState,
+    *,
+    m6_cache_records: tuple[Any, ...],
+    classifier_cache_records: tuple[Any, ...],
+) -> DomainAnalysisSessionState:
+    restored = state
+    for index, record in enumerate(m6_cache_records):
+        try:
+            restored = replace(
+                restored,
+                m6_cache_records=restored.m6_cache_records + (record,),
+            )
+        except (TypeError, ValueError) as exc:
+            restored = _with_diagnostic(
+                restored,
+                component="m6_cache",
+                identifier=f"domain_analysis.cache.m6_frames[{index}]",
+                reason=str(exc),
+            )
+    for index, record in enumerate(classifier_cache_records):
+        try:
+            restored = replace(
+                restored,
+                classifier_cache_records=(
+                    restored.classifier_cache_records + (record,)
+                ),
+            )
+        except (TypeError, ValueError) as exc:
+            restored = _with_diagnostic(
+                restored,
+                component="classifier_cache",
+                identifier=(
+                    f"domain_analysis.cache.classifier_frames[{index}]"
+                ),
+                reason=str(exc),
+            )
+    return restored
+
+
+def _with_diagnostic(
+    state: DomainAnalysisSessionState,
+    *,
+    component: str,
+    identifier: str,
+    reason: str,
+) -> DomainAnalysisSessionState:
+    return replace(
+        state,
+        diagnostics=state.diagnostics + (DomainAnalysisSessionDiagnostic(
+            component=component,
+            identifier=identifier,
+            schema_version="1",
+            reason=reason,
+        ),),
+    )
 
 
 def _require_version(
@@ -405,168 +747,3 @@ def _require_version(
     version = _require_integer(payload, "schema_version", path)
     if version != expected:
         raise ValueError(f"Unsupported {path} schema_version: {version}.")
-
-
-def _required(payload: Mapping[str, Any], field_name: str, path: str) -> Any:
-    if field_name not in payload:
-        raise ValueError(f"{path}.{field_name} is required.")
-    return payload[field_name]
-
-
-def _require_mapping(value: Any, path: str) -> Mapping[str, Any]:
-    if not isinstance(value, Mapping):
-        raise ValueError(f"{path} must be an object.")
-    return value
-
-
-def _require_list(
-    payload: Mapping[str, Any],
-    field_name: str,
-    path: str,
-) -> list[Any]:
-    value = _required(payload, field_name, path)
-    if not isinstance(value, list):
-        raise ValueError(f"{path}.{field_name} must be a list.")
-    return value
-
-
-def _require_text(
-    payload: Mapping[str, Any],
-    field_name: str,
-    path: str,
-) -> str:
-    value = _required(payload, field_name, path)
-    if not isinstance(value, str) or not value.strip():
-        raise ValueError(f"{path}.{field_name} must be a non-empty string.")
-    return value
-
-
-def _require_text_list(
-    payload: Mapping[str, Any],
-    field_name: str,
-    path: str,
-) -> list[str]:
-    values = _require_list(payload, field_name, path)
-    if any(not isinstance(value, str) or not value.strip() for value in values):
-        raise ValueError(
-            f"{path}.{field_name} must contain non-empty strings."
-        )
-    return cast(list[str], values)
-
-
-def _require_integer(
-    payload: Mapping[str, Any],
-    field_name: str,
-    path: str,
-) -> int:
-    value = _required(payload, field_name, path)
-    if isinstance(value, bool) or not isinstance(value, int):
-        raise ValueError(f"{path}.{field_name} must be an integer.")
-    return value
-
-
-def _require_number(
-    payload: Mapping[str, Any],
-    field_name: str,
-    path: str,
-) -> float:
-    value = _required(payload, field_name, path)
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise ValueError(f"{path}.{field_name} must be numeric.")
-    return float(value)
-
-
-def _integer_pair(
-    payload: Mapping[str, Any],
-    field_name: str,
-    path: str,
-) -> tuple[int, int]:
-    values = _require_list(payload, field_name, path)
-    if len(values) != 2 or any(
-        isinstance(value, bool) or not isinstance(value, int)
-        for value in values
-    ):
-        raise ValueError(f"{path}.{field_name} must be an integer pair.")
-    return cast(tuple[int, int], tuple(values))
-
-
-def _float_pair(
-    payload: Mapping[str, Any],
-    field_name: str,
-    path: str,
-) -> tuple[float, float]:
-    return cast(
-        tuple[float, float],
-        _float_values(payload, field_name, path, length=2),
-    )
-
-
-def _float_quad(
-    payload: Mapping[str, Any],
-    field_name: str,
-    path: str,
-) -> tuple[float, float, float, float]:
-    return cast(
-        tuple[float, float, float, float],
-        _float_values(payload, field_name, path, length=4),
-    )
-
-
-def _float_values(
-    payload: Mapping[str, Any],
-    field_name: str,
-    path: str,
-    *,
-    length: int,
-) -> tuple[float, ...]:
-    values = _require_list(payload, field_name, path)
-    if len(values) != length or any(
-        isinstance(value, bool) or not isinstance(value, (int, float))
-        for value in values
-    ):
-        raise ValueError(
-            f"{path}.{field_name} must contain {length} numeric values."
-        )
-    return tuple(float(value) for value in values)
-
-
-def _integer_pairs(
-    payload: Mapping[str, Any],
-    field_name: str,
-    path: str,
-) -> tuple[tuple[int, int], ...]:
-    values = _require_list(payload, field_name, path)
-    pairs: list[tuple[int, int]] = []
-    for index, value in enumerate(values):
-        if not isinstance(value, list) or len(value) != 2 or any(
-            isinstance(item, bool) or not isinstance(item, int)
-            for item in value
-        ):
-            raise ValueError(
-                f"{path}.{field_name}[{index}] must be an integer pair."
-            )
-        pairs.append((value[0], value[1]))
-    return tuple(pairs)
-
-
-def _float_pairs(
-    payload: Mapping[str, Any],
-    field_name: str,
-    path: str,
-) -> tuple[tuple[float, float], ...]:
-    values = _require_list(payload, field_name, path)
-    pairs: list[tuple[float, float]] = []
-    for index, value in enumerate(values):
-        if not isinstance(value, list) or len(value) != 2 or any(
-            isinstance(item, bool) or not isinstance(item, (int, float))
-            for item in value
-        ):
-            raise ValueError(
-                f"{path}.{field_name}[{index}] must be a numeric pair."
-            )
-        pairs.append((float(value[0]), float(value[1])))
-    return tuple(pairs)
-
-
-def _pairs_to_lists(values: tuple[tuple[Any, Any], ...]) -> list[list[Any]]:
-    return [[first, second] for first, second in values]

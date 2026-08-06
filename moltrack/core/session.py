@@ -513,6 +513,11 @@ def _validate_domain_analysis_state(
         raise ValueError(
             "MolTrack session schema v1 cannot own Domain Analysis state."
         )
+    draft = state.draft
+    if draft is not None and draft.frame_range.stop > frame_count:
+        raise ValueError(
+            "Domain Analysis draft range exceeds source_frame_indices length."
+        )
     publication = state.published_result
     if (
         publication is not None

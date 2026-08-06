@@ -173,8 +173,14 @@ def test_load_rejects_duplicate_physical_frame_identity_before_activation(
     )
     session_path.write_text(json.dumps(payload), encoding="utf-8")
 
-    with pytest.raises(ValueError, match="physical_frame_id values must be unique"):
-        load_moltrack_session(session_path)
+    loaded = load_moltrack_session(session_path)
+
+    assert loaded.domain_analysis_state is not None
+    assert loaded.domain_analysis_state.published_result is None
+    assert any(
+        "physical_frame_id values must be unique" in diagnostic.reason
+        for diagnostic in loaded.domain_analysis_state.diagnostics
+    )
 
 
 def test_load_rejects_invalid_core_halo_membership_before_activation(
@@ -214,8 +220,14 @@ def test_load_rejects_invalid_core_halo_membership_before_activation(
     frame["m6_gate_fingerprint"] = canonical_sha256(fingerprint_payload)
     session_path.write_text(json.dumps(payload), encoding="utf-8")
 
-    with pytest.raises(ValueError, match="Core and halo memberships"):
-        load_moltrack_session(session_path)
+    loaded = load_moltrack_session(session_path)
+
+    assert loaded.domain_analysis_state is not None
+    assert loaded.domain_analysis_state.published_result is None
+    assert any(
+        "Core and halo memberships" in diagnostic.reason
+        for diagnostic in loaded.domain_analysis_state.diagnostics
+    )
 
 
 @pytest.mark.parametrize("invalid_schema_version", [2.5, "2", True])

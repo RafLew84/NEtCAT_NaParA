@@ -44,8 +44,14 @@ from .models import (
 )
 from .module import DomainAnalysisModule, M6Adapter, M6FrameAnalysisError
 from .session_state import (
+    DOMAIN_ANALYSIS_RETRY_REQUIRED_DIAGNOSIS,
     DOMAIN_ANALYSIS_SESSION_SCHEMA_VERSION,
+    DomainAnalysisClassifierCacheRecord,
+    DomainAnalysisM6CacheRecord,
+    DomainAnalysisSessionDiagnostic,
     DomainAnalysisSessionState,
+    DomainAnalysisViewSettings,
+    validate_classifier_outcome_for_gate,
 )
 from .texture_abc_adapter import (
     ABC_ORIENTATION_CLASSIFIER_ID,
@@ -103,8 +109,14 @@ __all__ = [
     "DomainAnalysisPublication",
     "DomainAnalysisRequest",
     "DomainAnalysisResult",
+    "DOMAIN_ANALYSIS_RETRY_REQUIRED_DIAGNOSIS",
     "DOMAIN_ANALYSIS_SESSION_SCHEMA_VERSION",
+    "DomainAnalysisClassifierCacheRecord",
+    "DomainAnalysisM6CacheRecord",
+    "DomainAnalysisSessionDiagnostic",
     "DomainAnalysisSessionState",
+    "DomainAnalysisViewSettings",
+    "validate_classifier_outcome_for_gate",
     "DomainAnalysisSeries",
     "DomainAnalysisWorkspaceController",
     "DomainAnalysisWorkspaceExecution",
