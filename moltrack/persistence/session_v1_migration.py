@@ -6,6 +6,7 @@ from typing import Any
 
 from moltrack.analysis.domain_analysis import (
     DomainAnalysisRequest,
+    DomainAnalysisM6CacheRecord,
     DomainAnalysisSessionDiagnostic,
     DomainAnalysisSessionState,
     GeometryMode,
@@ -16,6 +17,7 @@ from moltrack.core import (
 )
 
 from .domain_analysis_session import domain_analysis_state_from_payload
+from .domain_analysis_cache_payload import domain_analysis_cache_from_payload
 
 
 @dataclass(frozen=True)
@@ -65,12 +67,24 @@ def migrate_v1_session_payload(
         position_analysis,
         frame_count=frame_count,
     )
+    physical_frame_ids = tuple(
+        f"source-frame-{source_frame_indices[index]}" for index in frame_range
+    )
+    m6_records, m6_diagnostics = _migrate_m6_cache(
+        payload.get("molecular_m6_analysis"),
+        frame_range=frame_range,
+        geometry_mode=geometry_mode,
+        physical_frame_ids=physical_frame_ids,
+    )
+    diagnostics.extend(m6_diagnostics)
     diagnostics.extend(_legacy_result_diagnostics(payload))
     state = DomainAnalysisSessionState(
         draft=DomainAnalysisRequest(
             frame_range=frame_range,
             geometry_mode=geometry_mode,
         ),
+        draft_physical_frame_ids=physical_frame_ids,
+        m6_cache_records=m6_records,
         diagnostics=tuple(diagnostics),
     )
     migrated = dict(payload)
@@ -79,8 +93,6 @@ def migrate_v1_session_payload(
         "position_analysis": None,
         "molecular_m6_analysis": None,
         "m6_domain_type_analysis": None,
-        "molecular_stacking_analysis": None,
-        "molecular_order_type_analysis": None,
         "texture_domain_analysis": None,
     })
     return MigratedV1Session(
@@ -114,9 +126,16 @@ def _migrate_position_analysis(
             "position_analysis.first_range must be within the Working Image "
             "Series."
         )
-    geometry_mode = (
+    use_segmentation_centroids = position.get(
+        "use_segmentation_centroids", True
+    )
+    if not isinstance(use_segmentation_centroids, bool):
+        raise ValueError(
+            "position_analysis.use_segmentation_centroids must be boolean."
+        )
+    geometry_mode: GeometryMode = (
         "segmentation_preferred"
-        if position.get("use_segmentation_centroids", True) is not False
+        if use_segmentation_centroids
         else "bbox_centers"
     )
     diagnostics: list[DomainAnalysisSessionDiagnostic] = []
@@ -141,7 +160,6 @@ def _legacy_result_diagnostics(
 ) -> list[DomainAnalysisSessionDiagnostic]:
     diagnostics: list[DomainAnalysisSessionDiagnostic] = []
     for component, description in (
-        ("molecular_m6_analysis", "legacy M6 result"),
         ("m6_domain_type_analysis", "legacy domain-type result"),
         ("texture_domain_analysis", "legacy ungated Texture Domains result"),
     ):
@@ -157,6 +175,78 @@ def _legacy_result_diagnostics(
             ),
         ))
     return diagnostics
+
+
+def _migrate_m6_cache(
+    payload: Any,
+    *,
+    frame_range: range,
+    geometry_mode: GeometryMode,
+    physical_frame_ids: tuple[str, ...],
+) -> tuple[
+    tuple[DomainAnalysisM6CacheRecord, ...],
+    list[DomainAnalysisSessionDiagnostic],
+]:
+    if payload is None:
+        return (), []
+    if not isinstance(payload, Mapping):
+        return (), [_m6_diagnostic(
+            "molecular_m6_analysis",
+            "molecular_m6_analysis must be a JSON object.",
+        )]
+    records = payload.get("reproducible_cache", [])
+    if not isinstance(records, list):
+        return (), [_m6_diagnostic(
+            "molecular_m6_analysis.reproducible_cache",
+            "molecular_m6_analysis.reproducible_cache must be a list.",
+        )]
+    restored, _, diagnostics = domain_analysis_cache_from_payload({
+        "schema_version": 1,
+        "m6_frames": records,
+        "classifier_frames": [],
+    })
+    migrated_diagnostics = [_legacy_m6_diagnostic(value) for value in diagnostics]
+    expected_frame_ids = dict(zip(frame_range, physical_frame_ids, strict=True))
+    compatible = []
+    for index, record in enumerate(restored):
+        frame_index = record.computation.frame_index
+        if (
+            record.key.geometry_mode == geometry_mode
+            and expected_frame_ids.get(frame_index)
+            == record.key.physical_frame_id
+        ):
+            compatible.append(record)
+            continue
+        migrated_diagnostics.append(_m6_diagnostic(
+            f"molecular_m6_analysis.reproducible_cache[{index}]",
+            "M6 cache key is outside the migrated v2 workspace.",
+        ))
+    return tuple(compatible), migrated_diagnostics
+
+
+def _legacy_m6_diagnostic(
+    diagnostic: DomainAnalysisSessionDiagnostic,
+) -> DomainAnalysisSessionDiagnostic:
+    current = "domain_analysis.cache.m6_frames"
+    legacy = "molecular_m6_analysis.reproducible_cache"
+    return DomainAnalysisSessionDiagnostic(
+        component="m6_cache",
+        identifier=diagnostic.identifier.replace(current, legacy),
+        schema_version="1",
+        reason=diagnostic.reason.replace(current, legacy),
+    )
+
+
+def _m6_diagnostic(
+    identifier: str,
+    reason: str,
+) -> DomainAnalysisSessionDiagnostic:
+    return DomainAnalysisSessionDiagnostic(
+        component="m6_cache",
+        identifier=identifier,
+        schema_version="1",
+        reason=reason,
+    )
 
 
 def _mapping(value: Any, field_name: str) -> Mapping[str, Any]:
@@ -177,5 +267,18 @@ def _source_frame_indices(payload: Mapping[str, Any]) -> list[Any]:
     if not isinstance(source_frame_indices, list) or not source_frame_indices:
         raise ValueError(
             "working_series.source_frame_indices must be a non-empty list."
+        )
+    if (
+        any(
+            isinstance(value, bool)
+            or not isinstance(value, int)
+            or value < 0
+            for value in source_frame_indices
+        )
+        or len(set(source_frame_indices)) != len(source_frame_indices)
+    ):
+        raise ValueError(
+            "working_series.source_frame_indices must contain unique "
+            "non-negative integers."
         )
     return source_frame_indices

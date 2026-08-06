@@ -8,6 +8,21 @@ from typing import Any
 import numpy as np
 import pytest
 
+from moltrack.analysis import (
+    MolecularFrameRange,
+    MolecularFrameRangeAnalysisScope,
+    MolecularOrderTypeClassificationSettings,
+    MolecularOrderTypeSessionState,
+)
+from moltrack.analysis.domain_analysis import (
+    DomainAnalysisM6CacheRecord,
+    DomainAnalysisRequest,
+    DomainAnalysisSessionState,
+    M6AnalyzedMolecule,
+    M6ComponentMembership,
+    M6FrameComputation,
+)
+from moltrack.analysis.domain_analysis.cache import M6FrameCacheKey
 from moltrack.core import (
     MolecularDetection,
     MolecularDetectionSet,
@@ -155,6 +170,39 @@ def _saved_v2_payload(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
     return session_path, json.loads(session_path.read_text(encoding="utf-8"))
 
 
+def _m6_cache_record() -> DomainAnalysisM6CacheRecord:
+    molecule = M6AnalyzedMolecule(
+        source_id="molecule-1",
+        raw_centroid_xy=(0.5, 0.5),
+        centroid_xy_nm=(0.5, 0.5),
+        footprint_pixels_xy=((0, 0),),
+    )
+    return DomainAnalysisM6CacheRecord(
+        key=M6FrameCacheKey(
+            physical_frame_id="source-frame-0",
+            geometry_mode="segmentation_preferred",
+            coordinate_transform_fingerprint="transform-v1",
+            m6_settings_fingerprint="m6-settings-v1",
+            m6_algorithm_version="m6-algorithm-v1",
+        ),
+        computation=M6FrameComputation(
+            frame_index=0,
+            molecules=(molecule,),
+            analyzed_pixels_xy=((0, 0),),
+            pixel_area_nm2=1.0,
+            full_domains=(M6ComponentMembership(
+                lattice_domain_id="domain-1",
+                source_ids=("molecule-1",),
+                core_source_ids=("molecule-1",),
+            ),),
+            small_ordered_islands=(),
+            coordinate_frame="series_physical_nm",
+            coordinate_transform_fingerprint="transform-v1",
+            m6_settings_fingerprint="m6-settings-v1",
+        ),
+    )
+
+
 def _assert_load_error(
     session_path: Path,
     *,
@@ -212,6 +260,86 @@ def test_open_reports_corrupt_structure_without_activation_or_write(
     )
 
     assert "list" in error.reason
+
+
+def test_v1_rejects_a_non_boolean_centroid_mode_as_corrupt(tmp_path) -> None:
+    session_path, payload = _saved_v2_payload(tmp_path)
+    payload["schema_version"] = 1
+    payload.pop("domain_analysis")
+    payload["position_analysis"] = {
+        "first_range": {"name": "All", "start_frame": 0, "end_frame": 1},
+        "second_range": {"name": "Old", "start_frame": 0, "end_frame": 0},
+        "use_segmentation_centroids": "false",
+    }
+    session_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    error = _assert_load_error(
+        session_path,
+        kind="corrupt",
+        component="position_analysis",
+    )
+
+    assert "use_segmentation_centroids must be boolean" in error.reason
+
+
+def test_v1_routes_compatible_m6_entries_through_v2_cache_validation(
+    tmp_path,
+) -> None:
+    session_path, payload = _saved_v2_payload(tmp_path)
+    record = _m6_cache_record()
+    series = MolTrackImageSeries(
+        source_path=Path(payload["source"]["path"]),
+        raw_frames=np.zeros((2, 2, 2), dtype=np.float32),
+        metadata=STMSequenceMetadata(pixels_x=2, pixels_y=2),
+    )
+    state = DomainAnalysisSessionState(
+        draft=DomainAnalysisRequest(frame_range=range(2)),
+        draft_physical_frame_ids=("source-frame-0", "source-frame-1"),
+        m6_cache_records=(record,),
+    )
+    save_moltrack_session(
+        session_path, series, ui_state={"domain_analysis": state}
+    )
+    payload = json.loads(session_path.read_text(encoding="utf-8"))
+    compatible = payload["domain_analysis"]["cache"]["m6_frames"][0]
+    payload["schema_version"] = 1
+    payload.pop("domain_analysis")
+    payload["molecular_m6_analysis"] = {
+        "reproducible_cache": [compatible, {"status": "partial"}],
+    }
+    session_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    loaded = load_moltrack_session(session_path)
+
+    assert loaded.domain_analysis_state is not None
+    assert loaded.domain_analysis_state.m6_cache_records == (record,)
+    assert any(
+        diagnostic.identifier
+        == "molecular_m6_analysis.reproducible_cache[1]"
+        for diagnostic in loaded.domain_analysis_state.diagnostics
+    )
+
+
+def test_v1_preserves_independent_molecular_order_configuration(tmp_path) -> None:
+    session_path, payload = _saved_v2_payload(tmp_path)
+    scope = MolecularFrameRangeAnalysisScope(
+        analysis_mode="single_range",
+        frame_count=2,
+        source_view="raw",
+        ranges=(MolecularFrameRange("All", 0, 1),),
+    )
+    order_state = MolecularOrderTypeSessionState(
+        analysis_scope=scope,
+        classification_settings=MolecularOrderTypeClassificationSettings(),
+    )
+    payload["schema_version"] = 1
+    payload.pop("domain_analysis")
+    payload["molecular_order_type_analysis"] = order_state.to_dict()
+    session_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    loaded = load_moltrack_session(session_path)
+
+    assert loaded.molecular_order_type_analysis_state == order_state
 
 
 def test_v1_without_position_state_defaults_to_whole_series_and_saves_v2(
