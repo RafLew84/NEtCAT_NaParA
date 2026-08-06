@@ -10,6 +10,7 @@ from moltrack.analysis.domain_analysis.cache import (
 from moltrack.analysis.domain_analysis.geometry import (
     GeometryMode,
     M6AnalyzedMolecule,
+    MoleculeSourceKind,
 )
 from moltrack.analysis.domain_analysis.fingerprints import canonical_sha256
 from moltrack.analysis.domain_analysis.models import (
@@ -43,7 +44,7 @@ from .domain_analysis_payload_validation import (
 )
 
 
-CACHE_SCHEMA_VERSION = 1
+CACHE_SCHEMA_VERSION = 2
 
 
 def domain_analysis_cache_to_payload(
@@ -70,6 +71,11 @@ def domain_analysis_cache_from_payload(
     path = "domain_analysis.cache"
     saved = mapping(payload, path)
     version = integer_field(saved, "schema_version", path)
+    if version == 1:
+        raise ValueError(
+            "Domain Analysis cache schema_version 1 lacks source-kind "
+            "provenance and was discarded."
+        )
     if version != CACHE_SCHEMA_VERSION:
         raise ValueError(f"Unsupported {path} schema_version: {version}.")
     diagnostics: list[DomainAnalysisSessionDiagnostic] = []
@@ -305,6 +311,7 @@ def _m6_computation_from_payload(
 def _molecule_to_payload(value: M6AnalyzedMolecule) -> dict[str, Any]:
     return {
         "source_id": value.source_id,
+        "source_kind": value.source_kind,
         "raw_centroid_xy": list(value.raw_centroid_xy),
         "centroid_xy_nm": list(value.centroid_xy_nm),
         "footprint_pixels_xy": pairs_to_lists(value.footprint_pixels_xy),
@@ -315,6 +322,10 @@ def _molecule_from_payload(payload: Any, *, path: str) -> M6AnalyzedMolecule:
     saved = mapping(payload, path)
     return M6AnalyzedMolecule(
         source_id=text_field(saved, "source_id", path),
+        source_kind=cast(
+            MoleculeSourceKind,
+            text_field(saved, "source_kind", path),
+        ),
         raw_centroid_xy=float_pair_field(saved, "raw_centroid_xy", path),
         centroid_xy_nm=float_pair_field(saved, "centroid_xy_nm", path),
         footprint_pixels_xy=integer_pairs_field(
@@ -329,6 +340,7 @@ def _membership_to_payload(value: M6ComponentMembership) -> dict[str, Any]:
         "source_ids": list(value.source_ids),
         "core_source_ids": list(value.core_source_ids),
         "halo_source_ids": list(value.halo_source_ids),
+        "qc_flags": list(value.qc_flags),
     }
 
 
@@ -347,6 +359,7 @@ def _membership_from_payload(
         halo_source_ids=tuple(
             text_list_field(saved, "halo_source_ids", path)
         ),
+        qc_flags=tuple(text_list_field(saved, "qc_flags", path)),
     )
 
 

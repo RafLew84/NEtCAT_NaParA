@@ -29,6 +29,7 @@ from moltrack.analysis.domain_analysis import (
     M6Gate,
     M6PresentationProvenance,
     M6PublishedComponent,
+    M6PublishedMolecule,
     MoleculeClassification,
 )
 from moltrack.analysis.domain_analysis.cache import (
@@ -60,10 +61,13 @@ def _published_gate() -> M6Gate:
     component = M6PublishedComponent(
         lattice_domain_id="domain-1",
         component_type="full_domain",
-        source_ids=("molecule-1",),
+        members=(M6PublishedMolecule(
+            source_id="molecule-1",
+            source_kind="segmentation",
+            point_xy_nm=(0.5, 0.5),
+        ),),
         core_source_ids=("molecule-1",),
         halo_source_ids=(),
-        points_xy_nm=((0.5, 0.5),),
         footprint_pixels_xy=((0, 0),),
         footprint_area_nm2=1.0,
         centroid_xy_nm=(0.5, 0.5),
@@ -88,8 +92,7 @@ def _published_gate() -> M6Gate:
         pixel_area_nm2=1.0,
         full_domains=(component,),
         small_ordered_islands=(),
-        outside_source_ids=(),
-        outside_points_xy_nm=(),
+        outside_members=(),
         outside_pixels_xy=(),
         outside_area_nm2=0.0,
         analyzed_source_ids=("molecule-1",),
@@ -152,6 +155,7 @@ def _completed_outcome(
 def _m6_cache_record() -> DomainAnalysisM6CacheRecord:
     molecule = M6AnalyzedMolecule(
         source_id="molecule-1",
+        source_kind="segmentation",
         raw_centroid_xy=(0.5, 0.5),
         centroid_xy_nm=(0.5, 0.5),
         footprint_pixels_xy=((0, 0),),

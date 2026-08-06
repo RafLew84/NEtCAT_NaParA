@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import csv
-import hashlib
 import json
 import os
 from dataclasses import dataclass, replace
@@ -59,6 +58,7 @@ from .molecular_stacking_export import (
     build_molecular_stacking_export_data,
     write_molecular_stacking_tables,
 )
+from .package_io import file_sha256 as _sha256_file
 
 if TYPE_CHECKING:
     from .analysis_plots import AnalysisPlotExportResult
@@ -987,14 +987,6 @@ def build_analysis_source_manifest(
     """Build the portable source identity used by every analysis manifest."""
 
     return _source_manifest(series, Path(destination))
-
-
-def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def _stm_metadata_manifest(series: MolTrackImageSeries) -> dict[str, object]:

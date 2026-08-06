@@ -43,6 +43,10 @@ from .domain_analysis_classifier_payload import (
     classifier_outcomes_to_payload,
 )
 from .domain_analysis_opaque_payload import opaque_components_from_payload
+from .domain_analysis_membership_payload import (
+    published_molecule_from_payload,
+    published_molecule_to_payload,
+)
 from .domain_analysis_payload_validation import (
     float_pair_field as _float_pair,
     float_pairs_field as _float_pairs,
@@ -61,7 +65,7 @@ from .domain_analysis_payload_validation import (
 
 
 _PUBLISHED_RESULT_SCHEMA_VERSION = 1
-_M6_GATE_SCHEMA_VERSION = 1
+_M6_GATE_SCHEMA_VERSION = 2
 _DOMAIN_ANALYSIS_KNOWN_FIELDS = frozenset({
     "schema_version",
     "classifier_status",
@@ -371,6 +375,16 @@ def _gate_to_payload(gate: M6Gate) -> dict[str, Any]:
 
 def _gate_from_payload(payload: Any) -> M6Gate:
     saved = _require_mapping(payload, "domain_analysis.published_result.m6_gate")
+    version = _require_integer(
+        saved,
+        "schema_version",
+        "domain_analysis.published_result.m6_gate",
+    )
+    if version == 1:
+        raise ValueError(
+            "M6 gate schema_version 1 lacks atomic source-kind provenance; "
+            "the published result was rejected instead of guessing it."
+        )
     _require_version(
         saved,
         _M6_GATE_SCHEMA_VERSION,
@@ -415,8 +429,10 @@ def _frame_to_payload(frame: M6FrameGate) -> dict[str, Any]:
             _component_to_payload(value)
             for value in frame.small_ordered_islands
         ],
-        "outside_source_ids": list(frame.outside_source_ids),
-        "outside_points_xy_nm": _pairs_to_lists(frame.outside_points_xy_nm),
+        "outside_members": [
+            published_molecule_to_payload(value)
+            for value in frame.outside_members
+        ],
         "outside_pixels_xy": _pairs_to_lists(frame.outside_pixels_xy),
         "outside_area_nm2": frame.outside_area_nm2,
         "analyzed_source_ids": list(frame.analyzed_source_ids),
@@ -458,10 +474,15 @@ def _frame_from_payload(payload: Any, *, index: int) -> M6FrameGate:
         small_ordered_islands=_components_from_payload(
             saved, "small_ordered_islands", path
         ),
-        outside_source_ids=tuple(_require_text_list(
-            saved, "outside_source_ids", path
-        )),
-        outside_points_xy_nm=_float_pairs(saved, "outside_points_xy_nm", path),
+        outside_members=tuple(
+            published_molecule_from_payload(
+                value,
+                path=f"{path}.outside_members[{member_index}]",
+            )
+            for member_index, value in enumerate(
+                _require_list(saved, "outside_members", path)
+            )
+        ),
         outside_pixels_xy=_integer_pairs(saved, "outside_pixels_xy", path),
         outside_area_nm2=_require_number(saved, "outside_area_nm2", path),
         analyzed_source_ids=tuple(_require_text_list(
@@ -502,16 +523,19 @@ def _component_to_payload(component: M6PublishedComponent) -> dict[str, Any]:
     return {
         "lattice_domain_id": component.lattice_domain_id,
         "component_type": component.component_type,
-        "source_ids": list(component.source_ids),
+        "members": [
+            published_molecule_to_payload(value)
+            for value in component.members
+        ],
         "core_source_ids": list(component.core_source_ids),
         "halo_source_ids": list(component.halo_source_ids),
-        "points_xy_nm": _pairs_to_lists(component.points_xy_nm),
         "footprint_pixels_xy": _pairs_to_lists(
             component.footprint_pixels_xy
         ),
         "footprint_area_nm2": component.footprint_area_nm2,
         "centroid_xy_nm": list(component.centroid_xy_nm),
         "bounds_xyxy_nm": list(component.bounds_xyxy_nm),
+        "qc_flags": list(component.qc_flags),
     }
 
 
@@ -542,14 +566,21 @@ def _component_from_payload(
             M6ComponentType,
             _require_text(saved, "component_type", path),
         ),
-        source_ids=tuple(_require_text_list(saved, "source_ids", path)),
+        members=tuple(
+            published_molecule_from_payload(
+                value,
+                path=f"{path}.members[{member_index}]",
+            )
+            for member_index, value in enumerate(
+                _require_list(saved, "members", path)
+            )
+        ),
         core_source_ids=tuple(_require_text_list(
             saved, "core_source_ids", path
         )),
         halo_source_ids=tuple(_require_text_list(
             saved, "halo_source_ids", path
         )),
-        points_xy_nm=_float_pairs(saved, "points_xy_nm", path),
         footprint_pixels_xy=_integer_pairs(
             saved, "footprint_pixels_xy", path
         ),
@@ -558,6 +589,7 @@ def _component_from_payload(
         ),
         centroid_xy_nm=_float_pair(saved, "centroid_xy_nm", path),
         bounds_xyxy_nm=_float_quad(saved, "bounds_xyxy_nm", path),
+        qc_flags=tuple(_require_text_list(saved, "qc_flags", path)),
     )
 
 

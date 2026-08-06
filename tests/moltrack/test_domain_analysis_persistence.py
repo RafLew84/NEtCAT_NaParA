@@ -15,6 +15,7 @@ from moltrack.analysis.domain_analysis import (
     M6Gate,
     M6PresentationProvenance,
     M6PublishedComponent,
+    M6PublishedMolecule,
 )
 from moltrack.analysis.domain_analysis.fingerprints import canonical_sha256
 from moltrack.analysis.domain_analysis.models import M6ComponentType
@@ -34,10 +35,13 @@ def _component(
     return M6PublishedComponent(
         lattice_domain_id=f"{component_type}-{frame_index}",
         component_type=component_type,
-        source_ids=(source_id,),
+        members=(M6PublishedMolecule(
+            source_id=source_id,
+            source_kind="segmentation",
+            point_xy_nm=point,
+        ),),
         core_source_ids=(source_id,),
         halo_source_ids=(),
-        points_xy_nm=(point,),
         footprint_pixels_xy=((pixel_x, 0),),
         footprint_area_nm2=1.0,
         centroid_xy_nm=point,
@@ -78,8 +82,11 @@ def _frame_gate(frame_index: int) -> M6FrameGate:
             source_id=island_source_id,
             pixel_x=1,
         ),),
-        outside_source_ids=(outside_source_id,),
-        outside_points_xy_nm=((2.0, float(frame_index)),),
+        outside_members=(M6PublishedMolecule(
+            source_id=outside_source_id,
+            source_kind="bbox_center",
+            point_xy_nm=(2.0, float(frame_index)),
+        ),),
         outside_pixels_xy=((2, 0),),
         outside_area_nm2=1.0,
         analyzed_source_ids=(
@@ -126,14 +133,61 @@ def test_m6_only_published_result_round_trips_through_public_session_seams(
     assert payload["schema_version"] == 2
     assert payload["domain_analysis"]["schema_version"] == 1
     assert payload["domain_analysis"]["classifier_status"] == "not_requested"
+    assert payload["domain_analysis"]["published_result"]["m6_gate"][
+        "schema_version"
+    ] == 2
     assert payload["domain_analysis"]["cache"] == {
-        "schema_version": 1,
+        "schema_version": 2,
         "m6_frames": [],
         "classifier_frames": [],
     }
     assert "molecular_m6_analysis" not in payload
     assert "texture_domain_analysis" not in payload
     assert "raw_frame" not in session_path.read_text(encoding="utf-8")
+
+
+def test_load_diagnoses_v1_gate_and_cache_without_guessing_provenance(
+    tmp_path,
+) -> None:
+    source_path = tmp_path / "series.mpp"
+    source_path.write_bytes(b"domain analysis v1 source")
+    session_path = tmp_path / "state.moltrack.json"
+    series = MolTrackImageSeries(
+        source_path=source_path,
+        raw_frames=np.zeros((1, 1, 3), dtype=np.float32),
+        metadata=STMSequenceMetadata(pixels_x=3, pixels_y=1),
+    )
+    state = DomainAnalysisSessionState(published_result=DomainAnalysisPublication(
+        request=DomainAnalysisRequest(frame_range=range(1)),
+        result=DomainAnalysisResult(
+            run_status="completed",
+            m6_gate=M6Gate(frames=(_frame_gate(0),)),
+            classifier_status="not_requested",
+        ),
+    ))
+    save_moltrack_session(
+        session_path,
+        series,
+        ui_state={"domain_analysis": state},
+    )
+    payload = json.loads(session_path.read_text(encoding="utf-8"))
+    payload["domain_analysis"]["published_result"]["m6_gate"][
+        "schema_version"
+    ] = 1
+    payload["domain_analysis"]["cache"]["schema_version"] = 1
+    session_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    loaded = load_moltrack_session(session_path)
+
+    assert loaded.domain_analysis_state is not None
+    assert loaded.domain_analysis_state.published_result is None
+    assert loaded.domain_analysis_state.m6_cache_records == ()
+    reasons = tuple(
+        diagnostic.reason
+        for diagnostic in loaded.domain_analysis_state.diagnostics
+    )
+    assert any("instead of guessing" in reason for reason in reasons)
+    assert any("cache schema_version 1" in reason for reason in reasons)
 
 
 def test_load_rejects_duplicate_physical_frame_identity_before_activation(

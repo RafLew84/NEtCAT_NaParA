@@ -28,7 +28,9 @@ from .geometry import (
     M6CanonicalFrame,
     M6FrameGeometry,
     M6PresentationProvenance,
+    M6PublishedMolecule,
     M6SourceAnnotation,
+    MoleculeSourceKind,
 )
 from .models import (
     DomainAnalysisEvent,
@@ -141,8 +143,10 @@ __all__ = [
     "M6FrameGeometry",
     "M6Gate",
     "M6PublishedComponent",
+    "M6PublishedMolecule",
     "M6PresentationProvenance",
     "M6SourceAnnotation",
+    "MoleculeSourceKind",
     "MoleculeClassification",
     "MoleculeClassifierAdapter",
     "PublishDomainAnalysisResult",

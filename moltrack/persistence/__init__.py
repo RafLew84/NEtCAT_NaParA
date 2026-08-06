@@ -8,9 +8,11 @@ from .analysis_package import (
     AnalysisExportPackageResult,
     AnalysisExportProgress,
     AnalysisExportSettings,
-    export_analysis_package,
     export_selected_ranges_analysis_package,
 )
+from .analysis_package_dispatch import export_analysis_package
+from .domain_analysis_export import DomainAnalysisExportSettings
+from .domain_analysis_export_schema import CanonicalJsonObject
 from .session_store import (
     MolTrackStateSaveProgress,
     load_moltrack_session,
@@ -39,6 +41,8 @@ __all__ = [
     "AnalysisExportPackageResult",
     "AnalysisExportProgress",
     "AnalysisExportSettings",
+    "DomainAnalysisExportSettings",
+    "CanonicalJsonObject",
     "export_analysis_package",
     "export_selected_ranges_analysis_package",
     "MolTrackStateSaveProgress",

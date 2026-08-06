@@ -13,7 +13,12 @@ from .events import (
     validate_domain_analysis_lifecycle,
 )
 from .fingerprints import canonical_sha256
-from .geometry import GeometryMode, M6AnalyzedMolecule, M6PresentationProvenance
+from .geometry import (
+    GeometryMode,
+    M6AnalyzedMolecule,
+    M6PresentationProvenance,
+    M6PublishedMolecule,
+)
 
 
 M6ComponentType = Literal["full_domain", "small_ordered_island"]
@@ -57,6 +62,7 @@ class M6ComponentMembership:
     source_ids: tuple[str, ...]
     core_source_ids: tuple[str, ...] = ()
     halo_source_ids: tuple[str, ...] = ()
+    qc_flags: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         domain_id = _non_empty_string(self.lattice_domain_id, "lattice_domain_id")
@@ -72,6 +78,11 @@ class M6ComponentMembership:
         object.__setattr__(self, "source_ids", source_ids)
         object.__setattr__(self, "core_source_ids", core_ids)
         object.__setattr__(self, "halo_source_ids", halo_ids)
+        object.__setattr__(
+            self,
+            "qc_flags",
+            _sorted_unique_ids(self.qc_flags, "qc_flags"),
+        )
 
 
 @dataclass(frozen=True)
@@ -133,19 +144,28 @@ class M6PublishedComponent:
 
     lattice_domain_id: str
     component_type: M6ComponentType
-    source_ids: tuple[str, ...]
+    members: tuple[M6PublishedMolecule, ...]
     core_source_ids: tuple[str, ...]
     halo_source_ids: tuple[str, ...]
-    points_xy_nm: tuple[tuple[float, float], ...]
     footprint_pixels_xy: tuple[tuple[int, int], ...]
     footprint_area_nm2: float
     centroid_xy_nm: tuple[float, float]
     bounds_xyxy_nm: tuple[float, float, float, float]
+    qc_flags: tuple[str, ...] = ()
+    source_ids: tuple[str, ...] = field(init=False)
+    points_xy_nm: tuple[tuple[float, float], ...] = field(init=False)
 
     def __post_init__(self) -> None:
         if self.component_type not in {"full_domain", "small_ordered_island"}:
             raise ValueError(f"Unsupported component_type: {self.component_type!r}.")
-        source_ids = _sorted_unique_ids(self.source_ids, "source_ids", allow_empty=False)
+        members = tuple(sorted(self.members, key=lambda value: value.source_id))
+        if not members or any(
+            not isinstance(value, M6PublishedMolecule) for value in members
+        ):
+            raise TypeError("members must contain M6PublishedMolecule values.")
+        source_ids = tuple(value.source_id for value in members)
+        if len(set(source_ids)) != len(source_ids):
+            raise ValueError("Published component source IDs must be unique.")
         core_ids = _sorted_unique_ids(self.core_source_ids, "core_source_ids")
         halo_ids = _sorted_unique_ids(self.halo_source_ids, "halo_source_ids")
         if set(core_ids).intersection(halo_ids):
@@ -154,9 +174,6 @@ class M6PublishedComponent:
             source_ids
         ):
             raise ValueError("Core and halo memberships must cover the component.")
-        points = tuple(_finite_pair(value, "points_xy_nm") for value in self.points_xy_nm)
-        if len(points) != len(source_ids):
-            raise ValueError("Published component points must align with source IDs.")
         footprint_pixels = _sorted_unique_pixels(
             self.footprint_pixels_xy,
             "footprint_pixels_xy",
@@ -166,10 +183,15 @@ class M6PublishedComponent:
             self.lattice_domain_id,
             "lattice_domain_id",
         ))
+        object.__setattr__(self, "members", members)
         object.__setattr__(self, "source_ids", source_ids)
+        object.__setattr__(
+            self,
+            "points_xy_nm",
+            tuple(value.point_xy_nm for value in members),
+        )
         object.__setattr__(self, "core_source_ids", core_ids)
         object.__setattr__(self, "halo_source_ids", halo_ids)
-        object.__setattr__(self, "points_xy_nm", points)
         object.__setattr__(self, "footprint_pixels_xy", footprint_pixels)
         object.__setattr__(self, "footprint_area_nm2", _non_negative_float(
             self.footprint_area_nm2,
@@ -183,6 +205,11 @@ class M6PublishedComponent:
             self.bounds_xyxy_nm,
             "bounds_xyxy_nm",
         ))
+        object.__setattr__(
+            self,
+            "qc_flags",
+            _sorted_unique_ids(self.qc_flags, "qc_flags"),
+        )
 
 @dataclass(frozen=True)
 class M6FrameGate:
@@ -199,13 +226,13 @@ class M6FrameGate:
     pixel_area_nm2: float
     full_domains: tuple[M6PublishedComponent, ...]
     small_ordered_islands: tuple[M6PublishedComponent, ...]
-    outside_source_ids: tuple[str, ...]
-    outside_points_xy_nm: tuple[tuple[float, float], ...]
+    outside_members: tuple[M6PublishedMolecule, ...]
     outside_pixels_xy: tuple[tuple[int, int], ...]
     outside_area_nm2: float
     analyzed_source_ids: tuple[str, ...]
     analyzed_pixels_xy: tuple[tuple[int, int], ...]
     analyzed_area_nm2: float
+    outside_source_ids: tuple[str, ...] = field(init=False)
     m6_gate_fingerprint: str = field(init=False)
 
     def __post_init__(self) -> None:
@@ -265,15 +292,18 @@ def _normalized_frame_gate_values(frame: M6FrameGate) -> dict[str, object]:
     islands = _published_components(
         frame.small_ordered_islands, "small_ordered_island", "small_ordered_islands"
     )
-    outside_ids = _sorted_unique_ids(frame.outside_source_ids, "outside_source_ids")
+    outside_members = tuple(
+        sorted(frame.outside_members, key=lambda value: value.source_id)
+    )
+    if any(
+        not isinstance(value, M6PublishedMolecule) for value in outside_members
+    ):
+        raise TypeError("outside_members must contain M6PublishedMolecule values.")
+    outside_ids = tuple(value.source_id for value in outside_members)
+    if len(set(outside_ids)) != len(outside_ids):
+        raise ValueError("Outside source IDs must be unique.")
     analyzed_ids = _sorted_unique_ids(frame.analyzed_source_ids, "analyzed_source_ids")
     _validate_membership_partition(full_domains, islands, outside_ids, analyzed_ids)
-    outside_points = tuple(
-        _finite_pair(value, "outside_points_xy_nm")
-        for value in frame.outside_points_xy_nm
-    )
-    if len(outside_points) != len(outside_ids):
-        raise ValueError("Outside points must align with outside source IDs.")
     outside_pixels = _sorted_unique_pixels(frame.outside_pixels_xy, "outside_pixels_xy")
     analyzed_pixels = _sorted_unique_pixels(frame.analyzed_pixels_xy, "analyzed_pixels_xy")
     _validate_published_pixel_partition(
@@ -286,7 +316,7 @@ def _normalized_frame_gate_values(frame: M6FrameGate) -> dict[str, object]:
     )
     return {
         "full_domains": full_domains, "small_ordered_islands": islands,
-        "outside_source_ids": outside_ids, "outside_points_xy_nm": outside_points,
+        "outside_members": outside_members, "outside_source_ids": outside_ids,
         "outside_pixels_xy": outside_pixels, "analyzed_source_ids": analyzed_ids,
         "analyzed_pixels_xy": analyzed_pixels, "pixel_area_nm2": pixel_area,
         "outside_area_nm2": outside_area, "analyzed_area_nm2": analyzed_area,

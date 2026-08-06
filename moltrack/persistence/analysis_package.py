@@ -58,6 +58,11 @@ from .molecular_order_type_export import (
     build_molecular_order_type_export_data,
     write_molecular_order_type_tables,
 )
+from .package_io import (
+    path_exists as _path_exists,
+    publish_path as _publish_path,
+    relative_package_files as _relative_package_files,
+)
 
 
 @dataclass(frozen=True)
@@ -1010,49 +1015,3 @@ def export_selected_ranges_analysis_package(
         relative_files=relative_files,
         record_counts=record_counts,
     )
-
-
-def _relative_package_files(root: Path) -> tuple[str, ...]:
-    return tuple(
-        sorted(
-            path.relative_to(root).as_posix()
-            for path in root.rglob("*")
-            if path.is_file()
-        )
-    )
-
-
-def _publish_path(staged: Path, destination: Path, *, overwrite: bool) -> None:
-    if not _path_exists(destination):
-        os.replace(staged, destination)
-        return
-    if not overwrite:
-        raise FileExistsError(f"Analysis package destination already exists: {destination}")
-
-    file_descriptor, backup_name = tempfile.mkstemp(
-        prefix=f".{destination.name}.",
-        suffix=".backup",
-        dir=destination.parent,
-    )
-    os.close(file_descriptor)
-    backup = Path(backup_name)
-    backup.unlink()
-    os.replace(destination, backup)
-    try:
-        os.replace(staged, destination)
-    except BaseException:
-        os.replace(backup, destination)
-        raise
-    else:
-        _remove_path(backup)
-
-
-def _remove_path(path: Path) -> None:
-    if path.is_dir() and not path.is_symlink():
-        shutil.rmtree(path)
-    elif _path_exists(path):
-        path.unlink()
-
-
-def _path_exists(path: Path) -> bool:
-    return path.exists() or path.is_symlink()

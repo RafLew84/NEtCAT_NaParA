@@ -71,11 +71,11 @@
       "definitions": 48
     },
     "moltrack/persistence/analysis_export.py": {
-      "physical_lines": 2727,
-      "definitions": 47
+      "physical_lines": 2719,
+      "definitions": 46
     },
     "moltrack/persistence/analysis_package.py": {
-      "physical_lines": 1058
+      "physical_lines": 1017
     },
     "moltrack/persistence/session_store.py": {
       "physical_lines": 1569,

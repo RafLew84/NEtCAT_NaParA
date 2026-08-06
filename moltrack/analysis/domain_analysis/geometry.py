@@ -6,6 +6,7 @@ import numpy as np
 
 CoordinateView = Literal["raw", "expanded_aligned"]
 GeometryMode = Literal["segmentation_preferred", "bbox_centers"]
+MoleculeSourceKind = Literal["segmentation", "bbox_center"]
 
 
 @dataclass(frozen=True)
@@ -89,6 +90,7 @@ class M6AnalyzedMolecule:
     """Canonical raw footprint and Series Physical Coordinates used by M6."""
 
     source_id: str
+    source_kind: MoleculeSourceKind
     raw_centroid_xy: tuple[float, float]
     centroid_xy_nm: tuple[float, float]
     footprint_pixels_xy: tuple[tuple[int, int], ...]
@@ -98,6 +100,8 @@ class M6AnalyzedMolecule:
         if not pixels:
             raise ValueError("footprint_pixels_xy cannot be empty.")
         object.__setattr__(self, "source_id", _text(self.source_id, "source_id"))
+        if self.source_kind not in {"segmentation", "bbox_center"}:
+            raise ValueError(f"Unsupported source_kind: {self.source_kind!r}.")
         object.__setattr__(
             self,
             "raw_centroid_xy",
@@ -109,6 +113,25 @@ class M6AnalyzedMolecule:
             _pair(self.centroid_xy_nm, "centroid_xy_nm"),
         )
         object.__setattr__(self, "footprint_pixels_xy", pixels)
+
+
+@dataclass(frozen=True, order=True)
+class M6PublishedMolecule:
+    """Atomic published membership provenance used by tables and persistence."""
+
+    source_id: str
+    source_kind: MoleculeSourceKind
+    point_xy_nm: tuple[float, float]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "source_id", _text(self.source_id, "source_id"))
+        if self.source_kind not in {"segmentation", "bbox_center"}:
+            raise ValueError(f"Unsupported source_kind: {self.source_kind!r}.")
+        object.__setattr__(
+            self,
+            "point_xy_nm",
+            _pair(self.point_xy_nm, "point_xy_nm"),
+        )
 
 
 @dataclass(frozen=True)

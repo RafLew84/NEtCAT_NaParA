@@ -17,7 +17,10 @@ from moltrack.core import (
 )
 
 from .domain_analysis_session import domain_analysis_state_from_payload
-from .domain_analysis_cache_payload import domain_analysis_cache_from_payload
+from .domain_analysis_cache_payload import (
+    CACHE_SCHEMA_VERSION,
+    domain_analysis_cache_from_payload,
+)
 
 
 @dataclass(frozen=True)
@@ -229,7 +232,7 @@ def _migrate_m6_cache(
         candidates.append(record)
         candidate_positions.append(index)
     restored, _, diagnostics = domain_analysis_cache_from_payload({
-        "schema_version": 1,
+        "schema_version": CACHE_SCHEMA_VERSION,
         "m6_frames": candidates,
         "classifier_frames": [],
     })

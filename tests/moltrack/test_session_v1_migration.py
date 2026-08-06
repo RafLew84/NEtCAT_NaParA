@@ -175,6 +175,7 @@ def _saved_v2_payload(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
 def _m6_cache_record() -> DomainAnalysisM6CacheRecord:
     molecule = M6AnalyzedMolecule(
         source_id="molecule-1",
+        source_kind="segmentation",
         raw_centroid_xy=(0.5, 0.5),
         centroid_xy_nm=(0.5, 0.5),
         footprint_pixels_xy=((0, 0),),

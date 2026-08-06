@@ -26,6 +26,7 @@ from .geometry import (
     DomainAnalysisSeries,
     M6AnalyzedMolecule,
     M6CanonicalFrame,
+    M6PublishedMolecule,
 )
 from .models import (
     DomainAnalysisEvent,
@@ -399,8 +400,14 @@ def _publish_frame(
         pixel_area_nm2=computation.pixel_area_nm2,
         full_domains=full_domains,
         small_ordered_islands=islands,
-        outside_source_ids=outside_ids,
-        outside_points_xy_nm=tuple(value.centroid_xy_nm for value in outside),
+        outside_members=tuple(
+            M6PublishedMolecule(
+                source_id=value.source_id,
+                source_kind=value.source_kind,
+                point_xy_nm=value.centroid_xy_nm,
+            )
+            for value in outside
+        ),
         outside_pixels_xy=outside_pixels,
         outside_area_nm2=len(outside_pixels) * computation.pixel_area_nm2,
         analyzed_source_ids=tuple(molecule_by_id),
@@ -437,14 +444,21 @@ def _publish_component(
             f"{component_prefix}-{identity_fingerprint[:12]}"
         ),
         component_type=component_type,
-        source_ids=membership.source_ids,
+        members=tuple(
+            M6PublishedMolecule(
+                source_id=value.source_id,
+                source_kind=value.source_kind,
+                point_xy_nm=value.centroid_xy_nm,
+            )
+            for value in molecules
+        ),
         core_source_ids=membership.core_source_ids,
         halo_source_ids=membership.halo_source_ids,
-        points_xy_nm=points,
         footprint_pixels_xy=footprint_pixels,
         footprint_area_nm2=len(footprint_pixels) * pixel_area_nm2,
         centroid_xy_nm=(fsum(x_values) / count, fsum(y_values) / count),
         bounds_xyxy_nm=(min(x_values), min(y_values), max(x_values), max(y_values)),
+        qc_flags=membership.qc_flags,
     )
 
 
