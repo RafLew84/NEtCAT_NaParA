@@ -17,9 +17,10 @@ from .cache import (
 from .canonical_geometry import canonicalize_frame
 from .classifier_runner import (
     MoleculeClassifierAdapter,
-    run_gated_classifier,
+    not_run_classifier_outcomes,
+    run_requested_classifiers,
 )
-from .events import emit_event
+from .events import cancellation_requested, emit_event
 from .fingerprints import canonical_sha256
 from .geometry import (
     DomainAnalysisSeries,
@@ -125,8 +126,12 @@ class DomainAnalysisModule:
         frames: list[M6FrameGate] = []
         canonical_frames: list[M6CanonicalFrame] = []
         for frame_index in request.frame_indices:
-            if _cancellation_requested(is_cancelled):
-                return _canceled_result(on_event)
+            if cancellation_requested(is_cancelled):
+                return _canceled_result(
+                    request.classifier_ids,
+                    self._classifier_adapters,
+                    on_event=on_event,
+                )
             try:
                 published_frame, disposition, canonical_frame = self._run_m6_frame(
                     series,
@@ -139,13 +144,19 @@ class DomainAnalysisModule:
                 return _failed_result(
                     exc,
                     frame_index=frame_index,
+                    classifier_ids=request.classifier_ids,
+                    classifier_adapters=self._classifier_adapters,
                     on_event=on_event,
                 )
             frames.append(published_frame)
             canonical_frames.append(canonical_frame)
             _emit_m6_frame_progress(on_event, disposition, frame_index)
-            if _cancellation_requested(is_cancelled):
-                return _canceled_result(on_event)
+            if cancellation_requested(is_cancelled):
+                return _canceled_result(
+                    request.classifier_ids,
+                    self._classifier_adapters,
+                    on_event=on_event,
+                )
         return M6Gate(frames=tuple(frames)), tuple(canonical_frames)
 
     def _complete_run(
@@ -159,12 +170,12 @@ class DomainAnalysisModule:
         is_cancelled: Callable[[], bool] | None,
     ) -> DomainAnalysisResult:
         if request.classifier_ids:
-            return run_gated_classifier(
+            return run_requested_classifiers(
                 series,
-                request.classifier_ids[0],
+                request.classifier_ids,
                 gate,
                 canonical_frames,
-                self._classifier_adapters[request.classifier_ids[0]],
+                self._classifier_adapters,
                 geometry_mode=request.geometry_mode,
                 frame_cache=self._classifier_cache,
                 raw_fingerprint_memo=self._raw_frame_fingerprints,
@@ -247,8 +258,6 @@ def _validate_run_request(
 ) -> None:
     if not isinstance(request, DomainAnalysisRequest):
         raise TypeError("request must be a DomainAnalysisRequest.")
-    if len(request.classifier_ids) > 1:
-        raise ValueError("Only one classifier is supported in this milestone.")
     unknown_classifiers = set(request.classifier_ids).difference(
         classifier_adapters
     )
@@ -292,16 +301,21 @@ def _failed_result(
     error: M6FrameAnalysisError,
     *,
     frame_index: int,
+    classifier_ids: tuple[str, ...],
+    classifier_adapters: Mapping[str, MoleculeClassifierAdapter],
     on_event: Callable[[DomainAnalysisEvent], None] | None,
 ) -> DomainAnalysisResult:
     message = str(error).strip() or error.__class__.__name__
     emit_event(on_event, "m6", "failed", message, frame_index=frame_index)
+    outcomes = not_run_classifier_outcomes(
+        classifier_ids, classifier_adapters, on_event=on_event,
+    )
     emit_event(on_event, "run", "failed", "Domain Analysis failed.")
     return DomainAnalysisResult(
         run_status="failed",
         m6_gate=None,
-        classifier_status="not_requested",
-        classifier_outcomes=None,
+        classifier_status="not_run" if outcomes is not None else "not_requested",
+        classifier_outcomes=outcomes,
         failure=DomainAnalysisFailure(
             stage_id="m6",
             frame_index=frame_index,
@@ -311,6 +325,9 @@ def _failed_result(
 
 
 def _canceled_result(
+    classifier_ids: tuple[str, ...],
+    classifier_adapters: Mapping[str, MoleculeClassifierAdapter],
+    *,
     on_event: Callable[[DomainAnalysisEvent], None] | None,
 ) -> DomainAnalysisResult:
     emit_event(
@@ -319,20 +336,17 @@ def _canceled_result(
         "canceled",
         "M6 range canceled before atomic publication.",
     )
+    outcomes = not_run_classifier_outcomes(
+        classifier_ids, classifier_adapters, on_event=on_event,
+    )
     emit_event(on_event, "run", "canceled", "Domain Analysis canceled.")
     return DomainAnalysisResult(
         run_status="canceled",
         m6_gate=None,
-        classifier_status="not_requested",
-        classifier_outcomes=None,
+        classifier_status="not_run" if outcomes is not None else "not_requested",
+        classifier_outcomes=outcomes,
         failure=None,
     )
-
-
-def _cancellation_requested(
-    is_cancelled: Callable[[], bool] | None,
-) -> bool:
-    return is_cancelled is not None and bool(is_cancelled())
 
 
 def _publish_frame(

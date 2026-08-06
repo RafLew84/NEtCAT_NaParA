@@ -20,6 +20,7 @@ from .classifier_contract import (
     ClassifierConfiguration,
     ClassifierIdentity,
     DomainAggregationPreset,
+    validated_non_negative_integer,
 )
 from .classifier_models import (
     ClassifierFrameResultProvenance,
@@ -68,6 +69,14 @@ class MoleculeClassifierAdapter(Protocol):
 
 class ClassifierAnalysisError(RuntimeError):
     """Expected classifier failure that must preserve the published M6 gate."""
+
+    def __init__(self, message: str, *, frame_index: int | None = None) -> None:
+        super().__init__(message)
+        self.frame_index = (
+            None
+            if frame_index is None
+            else validated_non_negative_integer(frame_index, "frame_index")
+        )
 
 
 class ClassifierCancellationRequested(RuntimeError):
@@ -178,7 +187,8 @@ def _required_raw_frame(
     if raw_frame is None:
         raise ClassifierAnalysisError(
             "Classifier requires the exact raw frame for physical frame "
-            f"{gate_frame.physical_frame_id!r}."
+            f"{gate_frame.physical_frame_id!r}.",
+            frame_index=gate_frame.frame_index,
         )
     return raw_frame
 

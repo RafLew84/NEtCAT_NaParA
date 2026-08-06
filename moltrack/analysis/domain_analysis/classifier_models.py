@@ -12,6 +12,7 @@ from .classifier_contract import (
     validated_text,
     validated_unit_interval,
 )
+from .events import ClassifierOutcomeStatus
 from .fingerprints import canonical_sha256
 
 
@@ -21,7 +22,6 @@ MoleculeClassificationStatus = Literal[
     "unknown_orientation",
     "not_gated",
 ]
-ClassifierOutcomeStatus = Literal["completed", "canceled", "failed"]
 M6Partition = Literal["full_domain", "small_ordered_island", "outside"]
 
 
@@ -191,12 +191,13 @@ class ClassifierOutcome:
     frame_result_provenance: tuple[ClassifierFrameResultProvenance, ...] = ()
     domain_summaries: tuple[DomainLabelSummary, ...] = ()
     error_message: str | None = None
+    failure_frame_index: int | None = None
     classifier_result_fingerprint: str | None = field(init=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.configuration, ClassifierConfiguration):
             raise TypeError("configuration must be ClassifierConfiguration.")
-        if self.status not in {"completed", "canceled", "failed"}:
+        if self.status not in {"completed", "canceled", "failed", "not_run"}:
             raise ValueError(f"Unsupported classifier outcome: {self.status!r}.")
         classifications = _validated_classifications(
             self.molecule_classifications,
@@ -211,14 +212,15 @@ class ClassifierOutcome:
             classifications,
             self.configuration,
         )
-        error_message = _validated_outcome_error(
-            self.status, self.error_message,
+        error_message, failure_frame_index = _validated_outcome_error(
+            self.status, self.error_message, self.failure_frame_index,
             classifications, summaries, provenance,
         )
         object.__setattr__(self, "molecule_classifications", classifications)
         object.__setattr__(self, "frame_result_provenance", provenance)
         object.__setattr__(self, "domain_summaries", summaries)
         object.__setattr__(self, "error_message", error_message)
+        object.__setattr__(self, "failure_frame_index", failure_frame_index)
         object.__setattr__(
             self,
             "classifier_result_fingerprint",
@@ -253,27 +255,36 @@ class ClassifierOutcome:
 def _validated_outcome_error(
     status: ClassifierOutcomeStatus,
     error_message: str | None,
+    failure_frame_index: int | None,
     classifications: tuple[MoleculeClassification, ...],
     summaries: tuple[DomainLabelSummary, ...],
     provenance: tuple[ClassifierFrameResultProvenance, ...],
-) -> str | None:
+) -> tuple[str | None, int | None]:
     if status == "completed" and error_message is not None:
         raise ValueError("A completed classifier cannot contain an error.")
-    if status in {"canceled", "failed"} and (
+    if status in {"canceled", "failed", "not_run"} and (
         classifications or summaries or provenance
     ):
         raise ValueError(
-            "A canceled or failed classifier cannot publish a partial payload."
+            "An incomplete classifier cannot publish a partial payload."
         )
-    if status == "canceled" and error_message is not None:
-        raise ValueError("A canceled classifier cannot contain an error.")
+    if status != "failed" and error_message is not None:
+        raise ValueError("Only a failed classifier can contain an error.")
     if status == "completed" and not provenance:
         raise ValueError("A completed classifier requires frame provenance.")
-    return (
-        validated_text(error_message, "error_message")
-        if status == "failed"
-        else None
-    )
+    if status == "failed":
+        if failure_frame_index is None:
+            raise ValueError("A failed classifier requires a failure frame index.")
+        return (
+            validated_text(error_message, "error_message"),
+            validated_non_negative_integer(
+                failure_frame_index,
+                "failure_frame_index",
+            ),
+        )
+    if failure_frame_index is not None:
+        raise ValueError("Only a failed classifier can identify a failure frame.")
+    return None, None
 
 
 def _validated_classifications(

@@ -3,9 +3,14 @@ from __future__ import annotations
 from dataclasses import FrozenInstanceError, replace
 from math import isclose
 
+import numpy as np
 import pytest
 
 from moltrack.analysis.domain_analysis import (
+    ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
+    ClassifierAnalysisError,
+    ClassifierMoleculeInput,
+    ClassifierMoleculePrediction,
     DomainAnalysisFrame,
     DomainAnalysisFailure,
     DomainAnalysisModule,
@@ -99,6 +104,67 @@ class _DeterministicM6Adapter:
         )
 
 
+class _ControlledClassifier:
+    classifier_schema_version = "test-classifier-schema-v1"
+    classifier_settings_fingerprint = "test-classifier-settings-v1"
+    classifier_algorithm_version = "test-classifier-algorithm-v1"
+    domain_aggregation_preset = ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1
+
+    def __init__(
+        self,
+        classifier_id: str,
+        execution_order: list[tuple[str, int]],
+        activity: dict[str, int],
+        *,
+        fail_frame_index: int | None = None,
+        cancel_after_frame_index: int | None = None,
+        cancel_signal: dict[str, bool] | None = None,
+    ) -> None:
+        self.classifier_id = classifier_id
+        self.execution_order = execution_order
+        self.activity = activity
+        self.fail_frame_index = fail_frame_index
+        self.cancel_after_frame_index = cancel_after_frame_index
+        self.cancel_signal = cancel_signal
+
+    def classify_domain(
+        self,
+        raw_frame: np.ndarray,
+        *,
+        frame_index: int,
+        physical_frame_id: str,
+        lattice_domain_id: str,
+        molecules: tuple[ClassifierMoleculeInput, ...],
+    ) -> tuple[ClassifierMoleculePrediction, ...]:
+        del raw_frame, physical_frame_id, lattice_domain_id
+        self.activity["active"] += 1
+        self.activity["max_active"] = max(
+            self.activity["max_active"],
+            self.activity["active"],
+        )
+        self.execution_order.append((self.classifier_id, frame_index))
+        try:
+            if frame_index == self.fail_frame_index:
+                raise ClassifierAnalysisError("controlled classifier failure")
+            predictions = tuple(
+                ClassifierMoleculePrediction(
+                    source_id=molecule.source_id,
+                    orientation_label="A",
+                    evidence_strength=0.8,
+                    component_id="component-A",
+                )
+                for molecule in molecules
+            )
+            if frame_index == self.cancel_after_frame_index:
+                if self.cancel_signal is None:
+                    raise AssertionError("cancel_signal is required")
+                self.cancel_signal["requested"] = True
+                self.cancel_after_frame_index = None
+            return predictions
+        finally:
+            self.activity["active"] -= 1
+
+
 def _geometry_series(
     source_view: str = "raw",
     frame_indices: range = range(10),
@@ -177,6 +243,17 @@ def _geometry_series(
             for frame_index in frame_indices
         ),
     )
+
+
+def _classifier_series(frame_indices: range) -> DomainAnalysisSeries:
+    series = _geometry_series(frame_indices=frame_indices)
+    return DomainAnalysisSeries(frames=tuple(
+        replace(
+            frame,
+            raw_frame=np.full((4, 4), frame.frame_index, dtype=np.uint16),
+        )
+        for frame in series.frames
+    ))
 
 
 def test_run_canonicalizes_equivalent_raw_and_registered_geometry() -> None:
@@ -710,3 +787,192 @@ def test_run_rejects_an_invalid_m6_pixel_partition(
             ),
             request,
         )
+
+
+def test_run_continues_classifiers_in_request_order_after_a_failure() -> None:
+    execution_order: list[tuple[str, int]] = []
+    activity = {"active": 0, "max_active": 0}
+    failing = _ControlledClassifier(
+        "first_classifier",
+        execution_order,
+        activity,
+        fail_frame_index=0,
+    )
+    succeeding = _ControlledClassifier(
+        "second_classifier",
+        execution_order,
+        activity,
+    )
+    events = []
+
+    result = DomainAnalysisModule(
+        _DeterministicM6Adapter(reorder_adapter_output=False),
+        classifier_adapters={
+            succeeding.classifier_id: succeeding,
+            failing.classifier_id: failing,
+        },
+    ).run(
+        _classifier_series(range(1)),
+        DomainAnalysisRequest(
+            frame_range=range(1),
+            classifier_ids=(failing.classifier_id, succeeding.classifier_id),
+        ),
+        on_event=events.append,
+    )
+
+    assert result.run_status == "completed_with_errors"
+    assert result.classifier_status == "completed_with_errors"
+    assert result.m6_gate is not None
+    assert result.classifier_outcomes is not None
+    assert tuple(outcome.classifier_id for outcome in result.classifier_outcomes) == (
+        "first_classifier",
+        "second_classifier",
+    )
+    assert tuple(outcome.status for outcome in result.classifier_outcomes) == (
+        "failed",
+        "completed",
+    )
+    assert result.classifier_outcomes[0].failure_frame_index == 0
+    assert result.classifier_outcomes[0].molecule_classifications == ()
+    assert result.classifier_outcomes[1].molecule_classifications
+    assert execution_order == [
+        ("first_classifier", 0),
+        ("second_classifier", 0),
+    ]
+    assert activity == {"active": 0, "max_active": 1}
+    assert [
+        (event.stage_id, event.status, event.frame_index)
+        for event in events
+        if event.stage_id != "m6"
+    ] == [
+        ("run", "started", None),
+        ("first_classifier", "started", None),
+        ("first_classifier", "failed", 0),
+        ("second_classifier", "started", None),
+        ("second_classifier", "progress", 0),
+        ("second_classifier", "published", None),
+        ("run", "completed_with_errors", None),
+    ]
+
+
+def test_run_cancels_later_classifiers_and_retries_complete_cache_entries() -> None:
+    execution_order: list[tuple[str, int]] = []
+    activity = {"active": 0, "max_active": 0}
+    cancel_signal = {"requested": False}
+    first = _ControlledClassifier("first_classifier", execution_order, activity)
+    canceling = _ControlledClassifier(
+        "canceling_classifier",
+        execution_order,
+        activity,
+        cancel_after_frame_index=0,
+        cancel_signal=cancel_signal,
+    )
+    later = _ControlledClassifier("later_classifier", execution_order, activity)
+    module = DomainAnalysisModule(
+        _DeterministicM6Adapter(reorder_adapter_output=False),
+        classifier_adapters={
+            first.classifier_id: first,
+            canceling.classifier_id: canceling,
+            later.classifier_id: later,
+        },
+    )
+    request = DomainAnalysisRequest(
+        frame_range=range(2),
+        classifier_ids=(
+            first.classifier_id,
+            canceling.classifier_id,
+            later.classifier_id,
+        ),
+    )
+
+    canceled = module.run(
+        _classifier_series(range(2)),
+        request,
+        is_cancelled=lambda: cancel_signal["requested"],
+    )
+
+    assert canceled.run_status == "canceled"
+    assert canceled.classifier_status == "canceled"
+    assert canceled.m6_gate is not None
+    assert canceled.classifier_outcomes is not None
+    assert tuple(value.status for value in canceled.classifier_outcomes) == (
+        "completed",
+        "canceled",
+        "not_run",
+    )
+    assert canceled.classifier_outcomes[0].molecule_classifications
+    assert canceled.classifier_outcomes[1].molecule_classifications == ()
+    assert canceled.classifier_outcomes[2].molecule_classifications == ()
+    assert execution_order == [
+        ("first_classifier", 0),
+        ("first_classifier", 1),
+        ("canceling_classifier", 0),
+    ]
+    assert activity == {"active": 0, "max_active": 1}
+
+    execution_order.clear()
+    cancel_signal["requested"] = False
+    retried = module.run(_classifier_series(range(2)), request)
+
+    assert retried.run_status == "completed"
+    assert retried.classifier_outcomes is not None
+    assert tuple(value.status for value in retried.classifier_outcomes) == (
+        "completed",
+        "completed",
+        "completed",
+    )
+    assert execution_order == [
+        ("canceling_classifier", 1),
+        ("later_classifier", 0),
+        ("later_classifier", 1),
+    ]
+
+
+def test_run_marks_requested_classifiers_not_run_after_m6_failure() -> None:
+    execution_order: list[tuple[str, int]] = []
+    activity = {"active": 0, "max_active": 0}
+    first = _ControlledClassifier("first_classifier", execution_order, activity)
+    second = _ControlledClassifier("second_classifier", execution_order, activity)
+    events = []
+
+    result = DomainAnalysisModule(
+        _DeterministicM6Adapter(
+            reorder_adapter_output=False,
+            fail_frame_index=0,
+        ),
+        classifier_adapters={
+            first.classifier_id: first,
+            second.classifier_id: second,
+        },
+    ).run(
+        _classifier_series(range(1)),
+        DomainAnalysisRequest(
+            frame_range=range(1),
+            classifier_ids=(first.classifier_id, second.classifier_id),
+        ),
+        on_event=events.append,
+    )
+
+    assert result.run_status == "failed"
+    assert result.classifier_status == "not_run"
+    assert result.m6_gate is None
+    assert result.classifier_outcomes is not None
+    assert tuple(value.classifier_id for value in result.classifier_outcomes) == (
+        "first_classifier",
+        "second_classifier",
+    )
+    assert tuple(value.status for value in result.classifier_outcomes) == (
+        "not_run",
+        "not_run",
+    )
+    assert execution_order == []
+    assert [
+        (event.stage_id, event.status, event.frame_index)
+        for event in events
+    ] == [
+        ("run", "started", None),
+        ("m6", "failed", 0),
+        ("first_classifier", "not_run", None),
+        ("second_classifier", "not_run", None),
+        ("run", "failed", None),
+    ]
