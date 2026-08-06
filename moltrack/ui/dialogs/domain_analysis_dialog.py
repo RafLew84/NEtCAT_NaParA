@@ -27,9 +27,16 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisRequest,
     DomainAnalysisWorkspaceController,
     DomainAnalysisWorkspaceSnapshot,
+    DomainComponentKey,
     ReplaceDomainAnalysisDraft,
+    SelectDomainComponent,
     StartDomainAnalysis,
 )
+from moltrack.analysis.m6_current_frame_results import (
+    build_domain_analysis_current_frame_results,
+)
+
+from .m6_current_frame_results_panel import M6CurrentFrameResultsPanel
 
 
 ExportPublished = Callable[[DomainAnalysisPublication], None]
@@ -93,6 +100,8 @@ class DomainAnalysisDialog(QDialog):
             classifier_preset_name,
         ))
         layout.addWidget(self._build_status_group())
+        self.current_frame_results_panel = M6CurrentFrameResultsPanel(self)
+        layout.addWidget(self.current_frame_results_panel)
         layout.addStretch(1)
         layout.addLayout(self._build_action_row())
 
@@ -181,6 +190,14 @@ class DomainAnalysisDialog(QDialog):
             lambda: self._controller.dispatch(CancelDomainAnalysis())
         )
         self.export_button.clicked.connect(self._export_last_publication)
+        self.current_frame_results_panel.domain_selection_changed.connect(
+            self._select_component
+        )
+
+    def _select_component(self, value: object) -> None:
+        if value is not None and not isinstance(value, DomainComponentKey):
+            raise TypeError("Domain Analysis selection must be canonical.")
+        self._controller.dispatch(SelectDomainComponent(value))
 
     def _replace_draft(self, changed: str) -> None:
         start = self.range_start_spin.value()
@@ -241,6 +258,15 @@ class DomainAnalysisDialog(QDialog):
         finally:
             del blockers
         presentation = _dialog_presentation(value)
+        self.current_frame_results_panel.set_results(
+            build_domain_analysis_current_frame_results(
+                value.published,
+                physical_frame_id=value.active_physical_frame_id,
+            )
+        )
+        self.current_frame_results_panel.set_selected_component(
+            value.selected_component
+        )
         self._render_controls(presentation)
         self._render_status(presentation)
 

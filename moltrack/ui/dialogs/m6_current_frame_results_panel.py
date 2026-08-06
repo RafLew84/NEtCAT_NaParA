@@ -14,7 +14,12 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from moltrack.analysis import M6CurrentFrameResults, M6CurrentFrameSummary
+from moltrack.analysis import (
+    M6CurrentFrameDomainRow,
+    M6CurrentFrameResults,
+    M6CurrentFrameSummary,
+)
+from moltrack.analysis.domain_analysis import DomainComponentKey
 
 
 _DOMAIN_COLUMNS = (
@@ -33,6 +38,16 @@ _DOMAIN_COLUMNS = (
     ("domain_bond_length_iqr_nm", "Bond IQR [nm]"),
     ("domain_bond_length_robust_cv", "Bond robust CV"),
     ("qc_statuses", "QC"),
+)
+
+_DOMAIN_ANALYSIS_COLUMNS = (
+    ("stable_id", "Stable ID"),
+    ("component_type", "Type"),
+    ("molecule_count", "Count"),
+    ("footprint_area_nm2", "Area [nm2]"),
+    ("centroid_xy_nm", "Centroid [nm]"),
+    ("classification", "M6-Gated A/B/C"),
+    ("qc_statuses", "Status"),
 )
 
 _SUMMARY_LABELS = {
@@ -83,10 +98,14 @@ class M6CurrentFrameResultsPanel(QWidget):
         )
         self.domain_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.domain_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.domain_table.verticalHeader().setVisible(False)
-        self.domain_table.horizontalHeader().setSectionResizeMode(
-            QHeaderView.ResizeMode.ResizeToContents
-        )
+        vertical_header = self.domain_table.verticalHeader()
+        if vertical_header is not None:
+            vertical_header.setVisible(False)
+        horizontal_header = self.domain_table.horizontalHeader()
+        if horizontal_header is not None:
+            horizontal_header.setSectionResizeMode(
+                QHeaderView.ResizeMode.ResizeToContents
+            )
         self.domain_table.setMinimumHeight(180)
         self.domain_table.hide()
         table_layout.addWidget(self.domain_table)
@@ -112,15 +131,21 @@ class M6CurrentFrameResultsPanel(QWidget):
         if results is not None and not isinstance(results, M6CurrentFrameResults):
             raise TypeError("results must be M6CurrentFrameResults or None.")
         self._results = results
+        columns = _columns_for_results(results)
         blocker = QSignalBlocker(self.domain_table)
         try:
             self.domain_table.clearContents()
+            self.domain_table.setColumnCount(len(columns))
+            self.domain_table.setHorizontalHeaderLabels(
+                [label for _field_name, label in columns]
+            )
             self.domain_table.setRowCount(0 if results is None else len(results.domains))
             if results is not None:
                 for row_index, row in enumerate(results.domains):
-                    for column_index, (field_name, _label) in enumerate(_DOMAIN_COLUMNS):
-                        item = QTableWidgetItem(_format_value(getattr(row, field_name)))
-                        if isinstance(getattr(row, field_name), (int, float)):
+                    for column_index, (field_name, _label) in enumerate(columns):
+                        value = _row_value(row, field_name)
+                        item = QTableWidgetItem(_format_value(value))
+                        if isinstance(value, (int, float)):
                             item.setTextAlignment(
                                 Qt.AlignmentFlag.AlignRight
                                 | Qt.AlignmentFlag.AlignVCenter
@@ -136,11 +161,37 @@ class M6CurrentFrameResultsPanel(QWidget):
             if results is None
             else (results.empty_message or "")
         )
-        self.summary_group.setVisible(results is not None)
-        if results is not None:
+        summary = None if results is None else results.summary
+        self.summary_group.setVisible(summary is not None)
+        if summary is not None:
             for field_name, label in self.summary_value_labels.items():
-                label.setText(_format_value(getattr(results.summary, field_name)))
-        self.domain_selection_changed.emit(None)
+                label.setText(_format_value(getattr(summary, field_name)))
+        if results is None or results.presentation_kind == "legacy_m6":
+            self.domain_selection_changed.emit(None)
+
+    def set_selected_component(
+        self,
+        component: DomainComponentKey | None,
+    ) -> None:
+        if component is not None and not isinstance(component, DomainComponentKey):
+            raise TypeError("component must be a DomainComponentKey or None.")
+        row_index = -1
+        if component is not None and self._results is not None:
+            row_index = next(
+                (
+                    index
+                    for index, row in enumerate(self._results.domains)
+                    if row.component_key == component
+                ),
+                -1,
+            )
+        blocker = QSignalBlocker(self.domain_table)
+        try:
+            self.domain_table.setCurrentCell(row_index, 0 if row_index >= 0 else -1)
+            if row_index < 0:
+                self.domain_table.clearSelection()
+        finally:
+            del blocker
 
     def current_results(self) -> M6CurrentFrameResults | None:
         return self._results
@@ -158,9 +209,32 @@ class M6CurrentFrameResultsPanel(QWidget):
         if self._results is None or not 0 <= current_row < len(self._results.domains):
             self.domain_selection_changed.emit(None)
             return
-        self.domain_selection_changed.emit(
-            self._results.domains[current_row].ordered_component_id
-        )
+        row = self._results.domains[current_row]
+        self.domain_selection_changed.emit(row.selection_key)
+
+
+def _columns_for_results(
+    results: M6CurrentFrameResults | None,
+) -> tuple[tuple[str, str], ...]:
+    if results is not None and results.presentation_kind == "domain_analysis":
+        return _DOMAIN_ANALYSIS_COLUMNS
+    return _DOMAIN_COLUMNS
+
+
+def _row_value(row: M6CurrentFrameDomainRow, field_name: str) -> object:
+    if field_name == "classification":
+        return _classification_text(row)
+    return getattr(row, field_name)
+
+
+def _classification_text(row: M6CurrentFrameDomainRow) -> str:
+    if row.classification_status == "available":
+        return str(row.classification_label)
+    if row.classification_status == "not_applicable":
+        return "Not applicable"
+    if row.classification_status == "not_requested":
+        return "Not requested"
+    return f"Unavailable — {row.classification_error}"
 
 
 def _format_value(value: object) -> str:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from dataclasses import replace
 
 import pytest
 
@@ -14,10 +15,16 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisModule,
     DomainAnalysisPublication,
     DomainAnalysisRequest,
+    DomainAnalysisResult,
     DomainAnalysisSessionState,
     DomainAnalysisWorkspaceController,
     DomainAnalysisWorkspaceExecution,
+    DomainComponentKey,
+    M6Gate,
+    PublishDomainAnalysisResult,
     ReceiveDomainAnalysisEvent,
+    SelectDomainComponent,
+    SetDomainAnalysisFrame,
 )
 from moltrack.analysis.domain_analysis.fingerprints import canonical_sha256
 from moltrack.persistence import (
@@ -31,6 +38,7 @@ from test_domain_analysis_module import (
     _classifier_series,
 )
 from test_domain_analysis_workspace_lifecycle import _ManualExecutor
+from test_domain_analysis_export import _frame_gate as _export_frame_gate
 
 try:
     from PyQt6.QtWidgets import QApplication, QSpinBox
@@ -131,6 +139,220 @@ def test_dialog_runs_one_range_and_exports_exact_publication(qt_app) -> None:
     dialog.close()
     dialog.deleteLater()
     qt_app.processEvents()
+
+
+def test_domain_table_selects_canonical_key_and_tracks_external_selection(
+    qt_app,
+) -> None:
+    executor = _ManualExecutor()
+    controller = _workspace(executor)
+    dialog = _dialog(controller, lambda publication: None)
+    dialog.analyze_button.click()
+    executor.run_next()
+    qt_app.processEvents()
+
+    panel = dialog.current_frame_results_panel
+    table = panel.domain_table
+    columns = {
+        table.horizontalHeaderItem(index).text(): index
+        for index in range(table.columnCount())
+    }
+    publication = controller.snapshot.published
+    assert publication is not None
+    gate = publication.result.m6_gate
+    assert gate is not None
+    full_domain_id = gate.frames[0].full_domains[0].lattice_domain_id
+    island_id = gate.frames[0].small_ordered_islands[0].lattice_domain_id
+    assert table.rowCount() == 2
+    assert table.item(0, columns["Stable ID"]).text() == full_domain_id
+    assert table.item(0, columns["Type"]).text() == "full_domain"
+    assert table.item(0, columns["Area [nm2]"]).text() != "n/a"
+    assert table.item(0, columns["Centroid [nm]"]).text() != "n/a"
+    assert table.item(1, columns["Type"]).text() == "small_ordered_island"
+
+    table.setCurrentCell(1, 0)
+
+    assert controller.snapshot.selected_component == DomainComponentKey(
+        "physical-frame-0",
+        island_id,
+    )
+
+    controller.dispatch(SelectDomainComponent(DomainComponentKey(
+        "physical-frame-0",
+        full_domain_id,
+    )))
+    qt_app.processEvents()
+
+    assert table.currentRow() == 0
+    assert controller.snapshot.selected_component == DomainComponentKey(
+        "physical-frame-0",
+        full_domain_id,
+    )
+    _dispose(dialog, qt_app)
+
+
+def test_domain_table_selection_is_frame_local(qt_app) -> None:
+    executor = _ManualExecutor()
+    controller = _workspace(executor)
+    dialog = _dialog(controller, lambda publication: None)
+    dialog.range_end_spin.setValue(3)
+    dialog.analyze_button.click()
+    executor.run_next()
+    qt_app.processEvents()
+    table = dialog.current_frame_results_panel.domain_table
+    table.setCurrentCell(0, 0)
+    frame_zero_selection = controller.snapshot.selected_component
+    assert frame_zero_selection is not None
+
+    controller.dispatch(SetDomainAnalysisFrame(1))
+    qt_app.processEvents()
+
+    assert controller.snapshot.selected_component is None
+    assert not table.selectedItems()
+    frame_one_rows = dialog.current_frame_results_panel.current_results()
+    assert frame_one_rows is not None
+    frame_one_key = frame_one_rows.domains[0].component_key
+    assert frame_one_key is not None
+    assert frame_one_key.physical_frame_id == "physical-frame-1"
+    controller.dispatch(SelectDomainComponent(frame_one_key))
+    qt_app.processEvents()
+    assert table.currentRow() == 0
+
+    controller.dispatch(SetDomainAnalysisFrame(0))
+    qt_app.processEvents()
+
+    assert controller.snapshot.selected_component is None
+    assert not table.selectedItems()
+    assert frame_zero_selection.physical_frame_id == "physical-frame-0"
+    _dispose(dialog, qt_app)
+
+
+def test_domain_table_keeps_last_publication_during_draft_and_run(qt_app) -> None:
+    executor = _ManualExecutor()
+    controller = _workspace(executor)
+    dialog = _dialog(controller, lambda publication: None)
+    dialog.analyze_button.click()
+    executor.run_next()
+    qt_app.processEvents()
+    publication = controller.snapshot.published
+    assert publication is not None
+    table = dialog.current_frame_results_panel.domain_table
+    published_cells = _table_cells(table)
+
+    dialog.range_end_spin.setValue(2)
+
+    assert controller.snapshot.published is publication
+    assert _table_cells(table) == published_cells
+    dialog.analyze_button.click()
+    assert controller.snapshot.run.status == "running"
+    assert controller.snapshot.published is publication
+    assert _table_cells(table) == published_cells
+    dialog.cancel_button.click()
+    _dispose(dialog, qt_app)
+
+
+def test_domain_table_classifies_full_domains_but_not_islands(qt_app) -> None:
+    executor = _ManualExecutor()
+    controller = _workspace(executor)
+    dialog = _dialog(controller, lambda publication: None)
+    dialog.analyze_button.click()
+    executor.run_next()
+    qt_app.processEvents()
+    table = dialog.current_frame_results_panel.domain_table
+    classification = _column_index(table, "M6-Gated A/B/C")
+    status = _column_index(table, "Status")
+    results = dialog.current_frame_results_panel.current_results()
+    assert results is not None
+
+    assert results.domains[0].classification_status == "available"
+    assert results.domains[0].classification_label == "A"
+    assert results.domains[0].classification_error is None
+    assert results.domains[1].classification_status == "not_applicable"
+    assert table.item(0, classification).text() == "A"
+    assert table.item(1, classification).text() == "Not applicable"
+    assert table.item(0, status).text() == "OK"
+    assert table.item(1, status).text() == "OK"
+    _dispose(dialog, qt_app)
+
+
+def test_domain_table_distinguishes_missing_classifier(qt_app) -> None:
+    executor = _ManualExecutor()
+    controller = _workspace(executor)
+    dialog = _dialog(controller, lambda publication: None)
+    dialog.classify_abc_checkbox.setChecked(False)
+    dialog.analyze_button.click()
+    executor.run_next()
+    qt_app.processEvents()
+    table = dialog.current_frame_results_panel.domain_table
+    classification = _column_index(table, "M6-Gated A/B/C")
+
+    assert table.item(0, classification).text() == "Not requested"
+    assert table.item(1, classification).text() == "Not applicable"
+    _dispose(dialog, qt_app)
+
+
+def test_domain_table_keeps_rows_when_classifier_partially_fails(qt_app) -> None:
+    executor = _ManualExecutor()
+    controller = _workspace(executor, classifier_failure_frame=0)
+    dialog = _dialog(controller, lambda publication: None)
+    dialog.analyze_button.click()
+    executor.run_next()
+    qt_app.processEvents()
+    table = dialog.current_frame_results_panel.domain_table
+    classification = _column_index(table, "M6-Gated A/B/C")
+
+    assert table.rowCount() == 2
+    assert "unavailable" in table.item(0, classification).text().lower()
+    assert "controlled classifier failure" in (
+        table.item(0, classification).text().lower()
+    )
+    assert table.item(1, classification).text() == "Not applicable"
+    _dispose(dialog, qt_app)
+
+
+def test_domain_table_distinguishes_no_publication_and_empty_result(qt_app) -> None:
+    request = DomainAnalysisRequest(frame_range=range(1))
+    controller = DomainAnalysisWorkspaceController(
+        request,
+        physical_frame_ids=("physical-frame-0",),
+    )
+    dialog = _dialog(controller, lambda publication: None)
+    dialog.show()
+    qt_app.processEvents()
+
+    assert dialog.current_frame_results_panel.domain_table.rowCount() == 0
+    assert dialog.current_frame_results_panel.empty_label.text() == (
+        "No published Domain Analysis result."
+    )
+
+    original = _export_frame_gate(0)
+    components = original.full_domains + original.small_ordered_islands
+    empty_frame = replace(
+        original,
+        full_domains=(),
+        small_ordered_islands=(),
+        outside_members=(
+            tuple(member for component in components for member in component.members)
+            + original.outside_members
+        ),
+        outside_pixels_xy=original.analyzed_pixels_xy,
+        outside_area_nm2=original.analyzed_area_nm2,
+    )
+    controller.dispatch(PublishDomainAnalysisResult(
+        request,
+        DomainAnalysisResult(
+            run_status="completed",
+            m6_gate=M6Gate(frames=(empty_frame,)),
+            classifier_status="not_requested",
+        ),
+    ))
+    qt_app.processEvents()
+
+    assert dialog.current_frame_results_panel.domain_table.rowCount() == 0
+    assert dialog.current_frame_results_panel.empty_label.text() == (
+        "No M6 domains or small ordered islands in current frame."
+    )
+    _dispose(dialog, qt_app)
 
 
 def test_cancel_preserves_and_exports_previous_publication(qt_app) -> None:
@@ -289,3 +511,21 @@ def _dispose(dialog, qt_app) -> None:
     dialog.close()
     dialog.deleteLater()
     qt_app.processEvents()
+
+
+def _table_cells(table) -> tuple[tuple[str, ...], ...]:
+    return tuple(
+        tuple(
+            table.item(row, column).text()
+            for column in range(table.columnCount())
+        )
+        for row in range(table.rowCount())
+    )
+
+
+def _column_index(table, label: str) -> int:
+    return next(
+        index
+        for index in range(table.columnCount())
+        if table.horizontalHeaderItem(index).text() == label
+    )

@@ -171,6 +171,17 @@ class M6CurrentFrameResultsPanelTests(unittest.TestCase):
         self.assertTrue(self.panel.empty_label.isVisibleTo(self.panel))
         self.assertEqual(self.panel.empty_label.text(), "No M6 domains in current frame.")
 
+    def test_legacy_refresh_emits_selection_reset(self) -> None:
+        result = build_m6_current_frame_results(_two_domain_aggregates())
+        selected = []
+        self.panel.domain_selection_changed.connect(selected.append)
+        self.panel.set_results(result)
+        self.panel.domain_table.setCurrentCell(0, 0)
+
+        self.panel.set_results(result)
+
+        self.assertIsNone(selected[-1])
+
 
 if __name__ == "__main__":
     unittest.main()
