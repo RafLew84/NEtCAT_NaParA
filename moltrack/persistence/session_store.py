@@ -30,8 +30,6 @@ from moltrack.analysis import (
 )
 from moltrack.analysis.sample_coordinates import MolecularSampleCoordinates
 from moltrack.core import (
-    MOLTRACK_SESSION_SCHEMA_VERSION,
-    SUPPORTED_MOLTRACK_SESSION_SCHEMA_VERSIONS,
     MolecularDetection,
     MolecularDetectionSet,
     MolecularSegmentation,
@@ -48,10 +46,11 @@ from moltrack.core import (
 from moltrack.io import load_moltrack_image_series
 from .atomic_json import write_json_atomically
 from .domain_analysis_session import (
-    domain_analysis_state_from_payload,
     domain_analysis_state_from_ui_state,
     domain_analysis_state_to_payload,
 )
+from .session_load_diagnostics import diagnose_session_load_errors
+from .session_v1_migration import resolve_session_load_payload
 
 
 SeriesLoader = Callable[..., MolTrackImageSeries]
@@ -150,6 +149,7 @@ def save_moltrack_session(
     return session
 
 
+@diagnose_session_load_errors
 def load_moltrack_session(path: str | Path) -> MolTrackSession:
     """Load and validate a MolTrack working-session descriptor."""
 
@@ -158,7 +158,7 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
     if not isinstance(payload, dict):
         raise ValueError("MolTrack session file must contain a JSON object.")
 
-    schema_version, domain_analysis_state = _session_schema(payload)
+    schema_version, domain_analysis_state, payload = resolve_session_load_payload(payload)
 
     source_payload = _require_mapping(payload.get("source"), "source")
     source_path = _resolve_source_path(source_payload, session_path=session_path)
@@ -174,9 +174,7 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
     position_analysis_payload = payload.get("position_analysis")
     intensity_cache_payload = payload.get("molecular_intensity_cache", [])
     m6_analysis_payload = payload.get("molecular_m6_analysis")
-    m6_analysis_state, structural_cache_records = _m6_analysis_from_payload(
-        m6_analysis_payload
-    )
+    m6_analysis_state, structural_cache_records = _m6_analysis_from_payload(m6_analysis_payload)
     m6_domain_type_analysis_state = _m6_domain_type_state_from_payload(
         payload.get("m6_domain_type_analysis")
     )
@@ -241,20 +239,6 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
         source_mtime_ns=int(source_payload["mtime_ns"]),
         schema_version=schema_version,
     )
-
-
-def _session_schema(payload: Mapping[str, Any]) -> tuple[int, Any]:
-    schema_version = payload.get("schema_version")
-    if isinstance(schema_version, bool) or not isinstance(schema_version, int):
-        raise ValueError("MolTrack session schema_version must be an integer.")
-    if schema_version not in SUPPORTED_MOLTRACK_SESSION_SCHEMA_VERSIONS:
-        raise ValueError(f"Unsupported MolTrack session schema_version: {schema_version}.")
-    domain_analysis_state = None
-    if schema_version == MOLTRACK_SESSION_SCHEMA_VERSION:
-        domain_analysis_state = domain_analysis_state_from_payload(
-            payload.get("domain_analysis")
-        )
-    return schema_version, domain_analysis_state
 
 
 def restore_moltrack_image_series_from_session(

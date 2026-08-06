@@ -17,6 +17,7 @@ from .session_store import (
     restore_moltrack_image_series_from_session,
     save_moltrack_session,
 )
+from .session_load_diagnostics import MolTrackSessionLoadError
 from .molecular_stacking_export import (
     MOLECULAR_STACKING_TABLE_FILES,
     MolecularStackingExportData,
@@ -41,6 +42,7 @@ __all__ = [
     "export_analysis_package",
     "export_selected_ranges_analysis_package",
     "MolTrackStateSaveProgress",
+    "MolTrackSessionLoadError",
     "load_moltrack_session",
     "restore_moltrack_image_series_from_session",
     "save_moltrack_session",
