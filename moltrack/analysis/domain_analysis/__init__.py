@@ -48,6 +48,18 @@ from .texture_abc_adapter import (
     ABC_ORIENTATION_CLASSIFIER_SCHEMA_VERSION,
     TextureABCClassifierAdapter,
 )
+from .workspace_controller import (
+    DomainAnalysisPublication,
+    DomainAnalysisWorkspaceController,
+    DomainAnalysisWorkspaceIntentError,
+    DomainAnalysisWorkspaceNotificationError,
+    DomainAnalysisWorkspaceSnapshot,
+    DomainComponentKey,
+    PublishDomainAnalysisResult,
+    ReplaceDomainAnalysisDraft,
+    SelectDomainComponent,
+    SetDomainAnalysisFrame,
+)
 
 __all__ = [
     "ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1",
@@ -66,9 +78,15 @@ __all__ = [
     "DomainAnalysisEventStatus",
     "DomainAnalysisFailure",
     "DomainAnalysisModule",
+    "DomainAnalysisPublication",
     "DomainAnalysisRequest",
     "DomainAnalysisResult",
     "DomainAnalysisSeries",
+    "DomainAnalysisWorkspaceController",
+    "DomainAnalysisWorkspaceIntentError",
+    "DomainAnalysisWorkspaceNotificationError",
+    "DomainAnalysisWorkspaceSnapshot",
+    "DomainComponentKey",
     "DomainLabelSummary",
     "DomainLabelReason",
     "GeometryMode",
@@ -86,5 +104,9 @@ __all__ = [
     "M6SourceAnnotation",
     "MoleculeClassification",
     "MoleculeClassifierAdapter",
+    "PublishDomainAnalysisResult",
+    "ReplaceDomainAnalysisDraft",
+    "SelectDomainComponent",
+    "SetDomainAnalysisFrame",
     "TextureABCClassifierAdapter",
 ]
