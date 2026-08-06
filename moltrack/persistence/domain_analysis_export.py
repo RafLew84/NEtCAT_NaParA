@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import csv
-import json
 import shutil
 import tempfile
 from pathlib import Path
 from typing import Any
 
 from moltrack.analysis.domain_analysis import (
+    ClassifierOutcome,
     DOMAIN_ANALYSIS_SESSION_SCHEMA_VERSION,
     DomainAnalysisSessionState,
     M6FrameGate,
@@ -16,6 +16,7 @@ from moltrack.analysis.domain_analysis import (
 from moltrack.analysis.domain_analysis.fingerprints import canonical_sha256
 
 from .analysis_package import AnalysisExportPackageResult
+from .domain_analysis_classifier_export import classifier_export_tables
 from .domain_analysis_export_manifest import (
     domain_analysis_frame_identity,
     write_domain_analysis_manifest,
@@ -25,7 +26,12 @@ from .domain_analysis_export_schema import (
     DOMAIN_ANALYSIS_TABLE_HEADERS,
     DomainAnalysisExportSettings,
 )
-from .package_io import path_exists, publish_path, relative_package_files
+from .package_io import (
+    csv_json_cell,
+    path_exists,
+    publish_path,
+    relative_package_files,
+)
 
 
 def export_domain_analysis_package(
@@ -37,10 +43,11 @@ def export_domain_analysis_package(
     publication = _validated_publication(snapshot, settings)
     gate = publication.result.m6_gate
     assert gate is not None
-    tables = _m6_only_tables(
+    tables = _analysis_tables(
         gate.frames,
-        settings.source_frame_indices,
+        settings,
         publication.result.classifier_status,
+        publication.result.classifier_outcomes,
     )
     destination = settings.destination
     if path_exists(destination) and not settings.overwrite:
@@ -87,20 +94,16 @@ def _validated_publication(snapshot, settings):
         raise ValueError(
             "Domain Analysis export requires a published M6 result."
         )
-    if (
-        publication.request.classifier_ids
-        or publication.result.classifier_status != "not_requested"
-        or publication.result.classifier_outcomes is not None
-    ):
-        raise ValueError(
-            "Schema v9 M6-only export does not yet support classifier results."
-        )
     frame_indices = publication.request.frame_indices
     if not frame_indices or frame_indices[-1] >= len(settings.source_frame_indices):
         raise ValueError(
             "source_frame_indices do not cover the published frame range."
         )
     gate = publication.result.m6_gate
+    _validate_classifier_failure_frames(
+        publication.result.classifier_outcomes,
+        gate.frames,
+    )
     for frame in gate.frames:
         if settings.physical_frame_ids[frame.frame_index] != frame.physical_frame_id:
             raise ValueError(
@@ -115,16 +118,17 @@ def _validated_publication(snapshot, settings):
     return publication
 
 
-def _m6_only_tables(
+def _analysis_tables(
     frames: tuple[M6FrameGate, ...],
-    source_frame_indices: tuple[int, ...],
+    settings: DomainAnalysisExportSettings,
     classifier_status: str,
+    classifier_outcomes: tuple[ClassifierOutcome, ...] | None,
 ) -> dict[str, list[dict[str, Any]]]:
     tables: dict[str, list[dict[str, Any]]] = {
         name: [] for name in DOMAIN_ANALYSIS_TABLE_FILES
     }
     for frame in frames:
-        source_frame_index = source_frame_indices[frame.frame_index]
+        source_frame_index = settings.source_frame_indices[frame.frame_index]
         tables["domain_analysis_frames.csv"].append(
             _frame_row(frame, source_frame_index, classifier_status)
         )
@@ -138,7 +142,26 @@ def _m6_only_tables(
         tables["domain_analysis_memberships.csv"].extend(
             _outside_membership_rows(frame, source_frame_index)
         )
+    tables.update(classifier_export_tables(
+        classifier_outcomes,
+        settings,
+    ))
     return tables
+
+
+def _validate_classifier_failure_frames(
+    outcomes: tuple[ClassifierOutcome, ...] | None,
+    frames: tuple[M6FrameGate, ...],
+) -> None:
+    frame_indices = {frame.frame_index for frame in frames}
+    for outcome in outcomes or ():
+        if (
+            outcome.failure_frame_index is not None
+            and outcome.failure_frame_index not in frame_indices
+        ):
+            raise ValueError(
+                "Classifier failure frame is outside the published M6 gate."
+            )
 
 
 def _frame_row(
@@ -166,8 +189,8 @@ def _frame_row(
         "small_ordered_island_area_nm2": frame.small_ordered_island_area_nm2,
         "outside_area_nm2": frame.outside_area_nm2,
         "pixel_area_nm2": frame.pixel_area_nm2,
-        "analyzed_pixels_xy": _json_cell(frame.analyzed_pixels_xy),
-        "outside_pixels_xy": _json_cell(frame.outside_pixels_xy),
+        "analyzed_pixels_xy": csv_json_cell(frame.analyzed_pixels_xy),
+        "outside_pixels_xy": csv_json_cell(frame.outside_pixels_xy),
         "raw_height_px": provenance.raw_shape[0],
         "raw_width_px": provenance.raw_shape[1],
         "expanded_height_px": provenance.expanded_shape[0],
@@ -198,11 +221,11 @@ def _domain_row(
         "bounds_y1_nm": component.bounds_xyxy_nm[1],
         "bounds_x2_nm": component.bounds_xyxy_nm[2],
         "bounds_y2_nm": component.bounds_xyxy_nm[3],
-        "points_xy_nm": _json_cell(
+        "points_xy_nm": csv_json_cell(
             tuple(value.point_xy_nm for value in component.members)
         ),
-        "footprint_pixels_xy": _json_cell(component.footprint_pixels_xy),
-        "m6_qc_flags": _json_cell(component.qc_flags),
+        "footprint_pixels_xy": csv_json_cell(component.footprint_pixels_xy),
+        "m6_qc_flags": csv_json_cell(component.qc_flags),
         "m6_gate_fingerprint": frame.m6_gate_fingerprint,
     }
 
@@ -289,7 +312,3 @@ def _write_tables(
             writer.writeheader()
             writer.writerows(tables[name])
     return tuple(sorted((name, len(rows)) for name, rows in tables.items()))
-
-
-def _json_cell(value: Any) -> str:
-    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))

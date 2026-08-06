@@ -70,9 +70,22 @@ DOMAIN_ANALYSIS_TABLE_HEADERS = {
         "classifier_id", "status", "classifier_schema_version",
         "classifier_algorithm_version", "classifier_settings_fingerprint",
         "aggregation_policy_version", "result_fingerprint",
-        "failure_frame_index", "error_message",
+        "failure_physical_frame_id", "failure_frame_index",
+        "failure_source_frame_index", "error_message",
     ),
 }
+
+
+def exported_frame_identity(
+    physical_frame_id: str,
+    working_frame_index: int,
+    source_frame_index: int,
+) -> dict[str, str | int]:
+    return {
+        "physical_frame_id": physical_frame_id,
+        "working_frame_index": working_frame_index,
+        "source_frame_index": source_frame_index,
+    }
 
 
 @dataclass(frozen=True)

@@ -10,17 +10,24 @@ import pytest
 from moltrack.analysis.domain_analysis import (
     ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
     ClassifierConfiguration,
+    ClassifierFrameResultProvenance,
     ClassifierIdentity,
     ClassifierOutcome,
     DomainAnalysisPublication,
     DomainAnalysisRequest,
     DomainAnalysisResult,
     DomainAnalysisSessionState,
+    DomainComponentKey,
+    DomainLabelSummary,
     M6FrameGate,
     M6Gate,
     M6PresentationProvenance,
     M6PublishedComponent,
     M6PublishedMolecule,
+    MoleculeClassification,
+)
+from moltrack.analysis.domain_analysis.classifier_models import (
+    classifier_frame_result_fingerprint,
 )
 from moltrack.analysis.domain_analysis.fingerprints import canonical_sha256
 from moltrack.persistence import (
@@ -147,13 +154,22 @@ def _package_contents(path):
     }
 
 
-def _export_settings(destination, source_frame_indices=(17, 23)):
+def _export_settings(
+    destination,
+    source_frame_indices=(17, 23),
+    *,
+    physical_frame_ids=None,
+):
     return DomainAnalysisExportSettings(
         destination=destination,
         source_frame_indices=source_frame_indices,
-        physical_frame_ids=tuple(
-            f"physical-frame-{index}"
-            for index in range(len(source_frame_indices))
+        physical_frame_ids=(
+            tuple(physical_frame_ids)
+            if physical_frame_ids is not None
+            else tuple(
+                f"physical-frame-{index}"
+                for index in range(len(source_frame_indices))
+            )
         ),
         source_identity=CanonicalJsonObject(_SOURCE_IDENTITY),
         m6_settings=CanonicalJsonObject(_M6_SETTINGS),
@@ -268,12 +284,26 @@ def test_export_uses_published_request_and_is_deterministic(tmp_path) -> None:
             geometry_mode="bbox_centers",
         ),
         draft_physical_frame_ids=("physical-frame-0",),
+        selected_component=DomainComponentKey(
+            physical_frame_id="physical-frame-1",
+            lattice_domain_id="full_domain-1",
+        ),
     )
     destinations = (tmp_path / "first", tmp_path / "second")
-
-    for destination in destinations:
-        export_analysis_package(
+    states = (
+        state,
+        replace(
             state,
+            selected_component=DomainComponentKey(
+                physical_frame_id="physical-frame-0",
+                lattice_domain_id="full_domain-0",
+            ),
+        ),
+    )
+
+    for destination, snapshot in zip(destinations, states):
+        export_analysis_package(
+            snapshot,
             _export_settings(destination),
         )
 
@@ -363,12 +393,290 @@ def test_export_keeps_unsorted_membership_provenance_bound_to_source_id(
     ]
 
 
-def test_m6_only_export_rejects_classifier_results_without_partial_package(
+def test_export_completed_with_errors_keeps_results_and_atomic_failure(
     tmp_path,
 ) -> None:
+    completed_configuration = ClassifierConfiguration(
+        identity=ClassifierIdentity(
+            classifier_id="classifier-completed",
+            schema_version="classifier-schema-v1",
+            settings_fingerprint="completed-settings-v1",
+            algorithm_version="classifier-algorithm-v1",
+        ),
+        aggregation_preset=ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
+    )
+    failed_configuration = ClassifierConfiguration(
+        identity=ClassifierIdentity(
+            classifier_id="classifier-failed",
+            schema_version="classifier-schema-v2",
+            settings_fingerprint="failed-settings-v2",
+            algorithm_version="classifier-algorithm-v2",
+        ),
+        aggregation_preset=ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
+    )
+    frame = _frame_gate(0)
+    classifications = (
+        MoleculeClassification(
+            frame_index=0,
+            physical_frame_id=frame.physical_frame_id,
+            m6_gate_fingerprint=frame.m6_gate_fingerprint,
+            lattice_domain_id="full_domain-0",
+            source_id="molecule-full-0",
+            m6_partition="full_domain",
+            classification_status="classified",
+            orientation_label="A",
+            evidence_strength=0.75,
+            component_id="component-a",
+            identity=completed_configuration.identity,
+        ),
+        MoleculeClassification(
+            frame_index=0,
+            physical_frame_id=frame.physical_frame_id,
+            m6_gate_fingerprint=frame.m6_gate_fingerprint,
+            lattice_domain_id="small_ordered_island-0",
+            source_id="molecule-island-0",
+            m6_partition="small_ordered_island",
+            classification_status="not_gated",
+            orientation_label=None,
+            evidence_strength=0.0,
+            component_id=None,
+            identity=completed_configuration.identity,
+        ),
+        MoleculeClassification(
+            frame_index=0,
+            physical_frame_id=frame.physical_frame_id,
+            m6_gate_fingerprint=frame.m6_gate_fingerprint,
+            lattice_domain_id=None,
+            source_id="molecule-outside-0",
+            m6_partition="outside",
+            classification_status="not_gated",
+            orientation_label=None,
+            evidence_strength=0.0,
+            component_id=None,
+            identity=completed_configuration.identity,
+        ),
+    )
+    completed_outcome = ClassifierOutcome(
+        status="completed",
+        configuration=completed_configuration,
+        molecule_classifications=classifications,
+        frame_result_provenance=(ClassifierFrameResultProvenance(
+            frame_index=0,
+            physical_frame_id=frame.physical_frame_id,
+            cache_key_fingerprint="classifier-frame-cache-key-v1",
+            frame_result_fingerprint=classifier_frame_result_fingerprint(
+                classifications
+            ),
+        ),),
+        domain_summaries=(DomainLabelSummary(
+            frame_index=0,
+            physical_frame_id=frame.physical_frame_id,
+            m6_gate_fingerprint=frame.m6_gate_fingerprint,
+            lattice_domain_id="full_domain-0",
+            label="A",
+            molecule_count=1,
+            counts=(("A", 1), ("B", 0), ("C", 0), ("Unknown orientation", 0)),
+            evidence_fraction_of_domain=(("A", 0.75), ("B", 0.0), ("C", 0.0)),
+            coherent_evidence_fraction_of_domain=(
+                ("A", 0.75), ("B", 0.0), ("C", 0.0)
+            ),
+            resolved_fraction=1.0,
+            resolved_evidence_fraction_of_domain=0.75,
+            dominant_class="A",
+            dominance_margin=0.75,
+            reason="dominant_class_passed",
+            configuration=completed_configuration,
+        ),),
+    )
+    failed_outcome = ClassifierOutcome(
+        status="failed",
+        configuration=failed_configuration,
+        molecule_classifications=(),
+        error_message="classifier unavailable",
+        failure_frame_index=0,
+    )
+    publication = DomainAnalysisPublication(
+        request=DomainAnalysisRequest(
+            frame_range=range(1),
+            classifier_ids=("classifier-completed", "classifier-failed"),
+        ),
+        result=DomainAnalysisResult(
+            run_status="completed_with_errors",
+            m6_gate=M6Gate(frames=(frame,)),
+            classifier_status="completed_with_errors",
+            classifier_outcomes=(completed_outcome, failed_outcome),
+        ),
+    )
+    destination = tmp_path / "classified-domain-analysis"
+
+    result = export_analysis_package(
+        DomainAnalysisSessionState(published_result=publication),
+        _export_settings(destination, (17,)),
+    )
+
+    molecule_rows = _csv_rows(
+        destination / "domain_analysis_molecule_classifications.csv"
+    )
+    domain_rows = _csv_rows(
+        destination / "domain_analysis_domain_classifications.csv"
+    )
+    outcome_rows = _csv_rows(
+        destination / "domain_analysis_classifier_outcomes.csv"
+    )
+    manifest = json.loads((destination / "manifest.json").read_text(encoding="utf-8"))
+    assert result.record_counts[-1] == (
+        "domain_analysis_molecule_classifications.csv",
+        1,
+    )
+    assert molecule_rows == [{
+        "physical_frame_id": "physical-frame-0",
+        "working_frame_index": "0",
+        "source_frame_index": "17",
+        "classifier_id": "classifier-completed",
+        "lattice_domain_id": "full_domain-0",
+        "source_id": "molecule-full-0",
+        "classification_status": "classified",
+        "orientation_label": "A",
+        "evidence_strength": "0.75",
+        "component_id": "component-a",
+        "m6_gate_fingerprint": frame.m6_gate_fingerprint,
+        "classifier_schema_version": "classifier-schema-v1",
+        "classifier_algorithm_version": "classifier-algorithm-v1",
+        "classifier_settings_fingerprint": "completed-settings-v1",
+    }]
+    assert len(domain_rows) == 1
+    assert domain_rows[0]["label"] == "A"
+    assert domain_rows[0]["molecule_count"] == "1"
+    assert json.loads(domain_rows[0]["counts"]) == [
+        ["A", 1], ["B", 0], ["C", 0], ["Unknown orientation", 0]
+    ]
+    assert json.loads(domain_rows[0]["evidence_fraction_of_domain"]) == [
+        ["A", 0.75], ["B", 0.0], ["C", 0.0]
+    ]
+    assert domain_rows[0]["aggregation_policy_version"] == (
+        ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1.preset_id
+    )
+    assert [row["classifier_id"] for row in outcome_rows] == [
+        "classifier-completed",
+        "classifier-failed",
+    ]
+    assert [row["status"] for row in outcome_rows] == ["completed", "failed"]
+    assert outcome_rows[0]["result_fingerprint"] == (
+        completed_outcome.classifier_result_fingerprint
+    )
+    assert outcome_rows[1]["failure_frame_index"] == "0"
+    assert outcome_rows[1]["error_message"] == "classifier unavailable"
+    classifier_manifests = manifest["analysis"]["domain_analysis"][
+        "classifier_outcomes"
+    ]
+    assert classifier_manifests[0]["configuration"]["identity"] == {
+        "algorithm_version": "classifier-algorithm-v1",
+        "classifier_id": "classifier-completed",
+        "schema_version": "classifier-schema-v1",
+        "settings_fingerprint": "completed-settings-v1",
+    }
+    assert classifier_manifests[0]["configuration"]["aggregation_preset"] == {
+        **ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1.as_dict(),
+        "fingerprint": ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1.fingerprint,
+    }
+    assert classifier_manifests[0]["frame_outcomes"] == [{
+        "cache_key_fingerprint": "classifier-frame-cache-key-v1",
+        "frame_result_fingerprint": (
+            completed_outcome.frame_result_provenance[0].frame_result_fingerprint
+        ),
+        "physical_frame_id": "physical-frame-0",
+        "source_frame_index": 17,
+        "status": "completed",
+        "working_frame_index": 0,
+    }]
+    assert classifier_manifests[0]["failure"] is None
+    assert classifier_manifests[1]["status"] == "failed"
+    assert classifier_manifests[1]["frame_outcomes"] == [{
+        "error_message": "classifier unavailable",
+        "physical_frame_id": "physical-frame-0",
+        "source_frame_index": 17,
+        "status": "failed",
+        "working_frame_index": 0,
+    }]
+    assert classifier_manifests[1]["failure"] == {
+        "error_message": "classifier unavailable",
+        "physical_frame_id": "physical-frame-0",
+        "source_frame_index": 17,
+        "working_frame_index": 0,
+    }
+
+
+def test_export_marks_frames_after_classifier_failure_as_not_run(tmp_path) -> None:
     configuration = ClassifierConfiguration(
         identity=ClassifierIdentity(
-            classifier_id="classifier-a",
+            classifier_id="classifier-failed",
+            schema_version="classifier-schema-v1",
+            settings_fingerprint="classifier-settings-v1",
+            algorithm_version="classifier-algorithm-v1",
+        ),
+        aggregation_preset=ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
+    )
+    frames = (
+        replace(_frame_gate(0), physical_frame_id="physical-frame-b"),
+        replace(_frame_gate(1), physical_frame_id="physical-frame-a"),
+    )
+    publication = DomainAnalysisPublication(
+        request=DomainAnalysisRequest(
+            frame_range=range(2),
+            classifier_ids=("classifier-failed",),
+        ),
+        result=DomainAnalysisResult(
+            run_status="completed_with_errors",
+            m6_gate=M6Gate(frames=frames),
+            classifier_status="completed_with_errors",
+            classifier_outcomes=(ClassifierOutcome(
+                status="failed",
+                configuration=configuration,
+                molecule_classifications=(),
+                error_message="classifier unavailable",
+                failure_frame_index=1,
+            ),),
+        ),
+    )
+    destination = tmp_path / "failed-frame-outcomes"
+
+    export_analysis_package(
+        DomainAnalysisSessionState(published_result=publication),
+        _export_settings(
+            destination,
+            physical_frame_ids=("physical-frame-b", "physical-frame-a"),
+        ),
+    )
+
+    manifest = json.loads((destination / "manifest.json").read_text(encoding="utf-8"))
+    outcome = manifest["analysis"]["domain_analysis"]["classifier_outcomes"][0]
+    csv_outcome = _csv_rows(
+        destination / "domain_analysis_classifier_outcomes.csv"
+    )[0]
+    assert csv_outcome["failure_physical_frame_id"] == "physical-frame-a"
+    assert csv_outcome["failure_frame_index"] == "1"
+    assert csv_outcome["failure_source_frame_index"] == "23"
+    assert outcome["frame_outcomes"] == [
+        {
+            "error_message": "classifier unavailable",
+            "physical_frame_id": "physical-frame-a",
+            "source_frame_index": 23,
+            "status": "failed",
+            "working_frame_index": 1,
+        },
+        {
+            "physical_frame_id": "physical-frame-b",
+            "source_frame_index": 17,
+            "status": "not_run",
+            "working_frame_index": 0,
+        },
+    ]
+
+
+def test_export_rejects_classifier_failure_outside_published_gate(tmp_path) -> None:
+    configuration = ClassifierConfiguration(
+        identity=ClassifierIdentity(
+            classifier_id="classifier-failed",
             schema_version="classifier-schema-v1",
             settings_fingerprint="classifier-settings-v1",
             algorithm_version="classifier-algorithm-v1",
@@ -378,7 +686,7 @@ def test_m6_only_export_rejects_classifier_results_without_partial_package(
     publication = DomainAnalysisPublication(
         request=DomainAnalysisRequest(
             frame_range=range(1),
-            classifier_ids=("classifier-a",),
+            classifier_ids=("classifier-failed",),
         ),
         result=DomainAnalysisResult(
             run_status="completed_with_errors",
@@ -389,13 +697,13 @@ def test_m6_only_export_rejects_classifier_results_without_partial_package(
                 configuration=configuration,
                 molecule_classifications=(),
                 error_message="classifier unavailable",
-                failure_frame_index=0,
+                failure_frame_index=1,
             ),),
         ),
     )
-    destination = tmp_path / "classified-domain-analysis"
+    destination = tmp_path / "invalid-failure-frame"
 
-    with pytest.raises(ValueError, match="M6-only"):
+    with pytest.raises(ValueError, match="failure frame"):
         export_analysis_package(
             DomainAnalysisSessionState(published_result=publication),
             _export_settings(destination, (17,)),

@@ -8,6 +8,7 @@ from moltrack import __version__ as moltrack_version
 from moltrack.analysis.domain_analysis import DomainAnalysisSessionState, M6FrameGate
 from moltrack.analysis.domain_analysis.fingerprints import canonical_sha256
 
+from .domain_analysis_classifier_export import classifier_outcomes_manifest
 from .domain_analysis_export_schema import (
     DOMAIN_ANALYSIS_EXPORT_SCHEMA_VERSION,
     DOMAIN_ANALYSIS_PUBLISHED_RESULT_SCHEMA_VERSION,
@@ -15,6 +16,7 @@ from .domain_analysis_export_schema import (
     DOMAIN_ANALYSIS_TABLE_HEADERS,
     DOMAIN_ANALYSIS_TABLE_SCHEMA_VERSION,
     DomainAnalysisExportSettings,
+    exported_frame_identity,
 )
 from .package_io import file_sha256
 
@@ -59,11 +61,11 @@ def domain_analysis_frame_identity(
     frame: M6FrameGate,
     source_frame_index: int,
 ) -> dict[str, Any]:
-    return {
-        "physical_frame_id": frame.physical_frame_id,
-        "working_frame_index": frame.frame_index,
-        "source_frame_index": source_frame_index,
-    }
+    return exported_frame_identity(
+        frame.physical_frame_id,
+        frame.frame_index,
+        source_frame_index,
+    )
 
 
 def _source_manifest(settings: DomainAnalysisExportSettings) -> dict[str, Any]:
@@ -114,6 +116,11 @@ def _domain_analysis_manifest(
             "run_status": publication.result.run_status,
             "classifier_status": publication.result.classifier_status,
         },
+        "classifier_outcomes": classifier_outcomes_manifest(
+            publication.result.classifier_outcomes,
+            publication.result.m6_gate.frames,
+            settings,
+        ),
         "m6_gate": _m6_gate_manifest(
             publication.result.m6_gate.frames,
             settings.source_frame_indices,

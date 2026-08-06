@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import shutil
 import tempfile
 from pathlib import Path
+from typing import Any
+
+
+def csv_json_cell(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
 
 
 def file_sha256(path: Path) -> str:
