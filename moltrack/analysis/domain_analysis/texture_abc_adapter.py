@@ -25,12 +25,14 @@ from .classifier_contract import (
 
 
 ABC_ORIENTATION_CLASSIFIER_ID = "abc_orientation"
+ABC_ORIENTATION_CLASSIFIER_SCHEMA_VERSION = "m6-gated-abc-classifier-v1"
 
 
 class TextureABCClassifierAdapter:
     """Adapt the existing raw texture backend to M6-gated A/B/C evidence."""
 
     classifier_id = ABC_ORIENTATION_CLASSIFIER_ID
+    classifier_schema_version = ABC_ORIENTATION_CLASSIFIER_SCHEMA_VERSION
     classifier_algorithm_version = TEXTURE_DOMAIN_ANALYSIS_ALGORITHM_VERSION
 
     def __init__(

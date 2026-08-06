@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Literal
 
 from .classifier_contract import (
@@ -12,6 +12,7 @@ from .classifier_contract import (
     validated_text,
     validated_unit_interval,
 )
+from .fingerprints import canonical_sha256
 
 
 OrientationLabel = Literal["A", "B", "C", "Unknown orientation"]
@@ -20,7 +21,7 @@ MoleculeClassificationStatus = Literal[
     "unknown_orientation",
     "not_gated",
 ]
-ClassifierOutcomeStatus = Literal["completed", "failed"]
+ClassifierOutcomeStatus = Literal["completed", "canceled", "failed"]
 M6Partition = Literal["full_domain", "small_ordered_island", "outside"]
 
 
@@ -154,41 +155,75 @@ class MoleculeClassification:
 
 
 @dataclass(frozen=True)
+class ClassifierFrameResultProvenance:
+    """One ordered frame key and complete frame-result fingerprint."""
+
+    frame_index: int
+    physical_frame_id: str
+    cache_key_fingerprint: str
+    frame_result_fingerprint: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "frame_index",
+            validated_non_negative_integer(self.frame_index, "frame_index"),
+        )
+        for field_name in (
+            "physical_frame_id",
+            "cache_key_fingerprint",
+            "frame_result_fingerprint",
+        ):
+            object.__setattr__(
+                self,
+                field_name,
+                validated_text(getattr(self, field_name), field_name),
+            )
+
+
+@dataclass(frozen=True)
 class ClassifierOutcome:
     """Atomic payload or readable failure for one requested classifier."""
 
     status: ClassifierOutcomeStatus
     configuration: ClassifierConfiguration
     molecule_classifications: tuple[MoleculeClassification, ...]
+    frame_result_provenance: tuple[ClassifierFrameResultProvenance, ...] = ()
     domain_summaries: tuple[DomainLabelSummary, ...] = ()
     error_message: str | None = None
+    classifier_result_fingerprint: str | None = field(init=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.configuration, ClassifierConfiguration):
             raise TypeError("configuration must be ClassifierConfiguration.")
-        if self.status not in {"completed", "failed"}:
+        if self.status not in {"completed", "canceled", "failed"}:
             raise ValueError(f"Unsupported classifier outcome: {self.status!r}.")
         classifications = _validated_classifications(
             self.molecule_classifications,
             self.configuration,
+        )
+        provenance = _validated_frame_result_provenance(
+            self.frame_result_provenance,
+            classifications,
         )
         summaries = _validated_domain_summaries(
             self.domain_summaries,
             classifications,
             self.configuration,
         )
-        if self.status == "completed" and self.error_message is not None:
-            raise ValueError("A completed classifier cannot contain an error.")
-        if self.status == "failed":
-            if classifications or summaries:
-                raise ValueError("A failed classifier cannot publish a partial payload.")
-            object.__setattr__(
-                self,
-                "error_message",
-                validated_text(self.error_message, "error_message"),
-            )
+        error_message = _validated_outcome_error(
+            self.status, self.error_message,
+            classifications, summaries, provenance,
+        )
         object.__setattr__(self, "molecule_classifications", classifications)
+        object.__setattr__(self, "frame_result_provenance", provenance)
         object.__setattr__(self, "domain_summaries", summaries)
+        object.__setattr__(self, "error_message", error_message)
+        object.__setattr__(
+            self,
+            "classifier_result_fingerprint",
+            _classifier_result_fingerprint(self, provenance),
+        )
 
     @property
     def classifier_id(self) -> str:
@@ -215,6 +250,32 @@ class ClassifierOutcome:
         return self.configuration.fingerprint
 
 
+def _validated_outcome_error(
+    status: ClassifierOutcomeStatus,
+    error_message: str | None,
+    classifications: tuple[MoleculeClassification, ...],
+    summaries: tuple[DomainLabelSummary, ...],
+    provenance: tuple[ClassifierFrameResultProvenance, ...],
+) -> str | None:
+    if status == "completed" and error_message is not None:
+        raise ValueError("A completed classifier cannot contain an error.")
+    if status in {"canceled", "failed"} and (
+        classifications or summaries or provenance
+    ):
+        raise ValueError(
+            "A canceled or failed classifier cannot publish a partial payload."
+        )
+    if status == "canceled" and error_message is not None:
+        raise ValueError("A canceled classifier cannot contain an error.")
+    if status == "completed" and not provenance:
+        raise ValueError("A completed classifier requires frame provenance.")
+    return (
+        validated_text(error_message, "error_message")
+        if status == "failed"
+        else None
+    )
+
+
 def _validated_classifications(
     values: tuple[MoleculeClassification, ...],
     configuration: ClassifierConfiguration,
@@ -238,6 +299,95 @@ def _validated_classifications(
     ):
         raise ValueError("Molecule classifier identity must match its outcome.")
     return classifications
+
+
+def _validated_frame_result_provenance(
+    values: tuple[ClassifierFrameResultProvenance, ...],
+    classifications: tuple[MoleculeClassification, ...],
+) -> tuple[ClassifierFrameResultProvenance, ...]:
+    provenance = tuple(values)
+    if any(
+        not isinstance(value, ClassifierFrameResultProvenance)
+        for value in provenance
+    ):
+        raise TypeError(
+            "frame_result_provenance must contain provenance values."
+        )
+    if provenance != tuple(sorted(
+        provenance,
+        key=lambda value: value.physical_frame_id,
+    )):
+        raise ValueError("Frame result provenance must use physical-frame order.")
+    frame_keys = tuple(
+        (value.frame_index, value.physical_frame_id) for value in provenance
+    )
+    if len(set(frame_keys)) != len(frame_keys):
+        raise ValueError("Frame result provenance keys must be unique.")
+    if any(
+        (value.frame_index, value.physical_frame_id) not in frame_keys
+        for value in classifications
+    ):
+        raise ValueError("Classifier results require matching frame provenance.")
+    _validate_frame_result_fingerprints(provenance, classifications)
+    return provenance
+
+
+def _validate_frame_result_fingerprints(
+    provenance: tuple[ClassifierFrameResultProvenance, ...],
+    classifications: tuple[MoleculeClassification, ...],
+) -> None:
+    for value in provenance:
+        frame_classifications = tuple(
+            classification
+            for classification in classifications
+            if classification.frame_index == value.frame_index
+            and classification.physical_frame_id == value.physical_frame_id
+        )
+        if (
+            classifier_frame_result_fingerprint(frame_classifications)
+            != value.frame_result_fingerprint
+        ):
+            raise ValueError(
+                "Frame result fingerprint must match classifier results."
+            )
+
+
+def classifier_frame_result_fingerprint(
+    classifications: tuple[MoleculeClassification, ...],
+) -> str:
+    payload = []
+    for value in classifications:
+        item = asdict(value)
+        item.pop("frame_index")
+        payload.append(item)
+    return canonical_sha256({
+        "schema_version": "domain-analysis-classifier-frame-v1",
+        "classifications": payload,
+    })
+
+
+def _classifier_result_fingerprint(
+    outcome: ClassifierOutcome,
+    provenance: tuple[ClassifierFrameResultProvenance, ...],
+) -> str | None:
+    if outcome.status != "completed":
+        return None
+    return canonical_sha256({
+        "schema_version": "domain-analysis-classifier-range-v1",
+        "classifier_configuration_fingerprint": outcome.configuration.fingerprint,
+        "requested_frame_indices": sorted(
+            value.frame_index for value in provenance
+        ),
+        "ordered_frame_results": [
+            {
+                "frame_index": value.frame_index,
+                "physical_frame_id": value.physical_frame_id,
+                "cache_key_fingerprint": value.cache_key_fingerprint,
+                "frame_result_fingerprint": value.frame_result_fingerprint,
+            }
+            for value in provenance
+        ],
+    })
 
 
 def _validated_domain_summaries(

@@ -6,9 +6,12 @@ from math import fsum
 from typing import Protocol
 
 from .cache import (
+    DEFAULT_CLASSIFIER_CACHE_MAX_ENTRIES,
     DEFAULT_M6_CACHE_MAX_ENTRIES,
+    ClassifierFrameCache,
     M6CacheDisposition,
     M6FrameCache,
+    RawFrameFingerprintMemo,
     m6_frame_cache_key,
 )
 from .canonical_geometry import canonicalize_frame
@@ -64,10 +67,19 @@ class DomainAnalysisModule:
         classifier_adapters: Mapping[str, MoleculeClassifierAdapter],
         *,
         m6_cache_max_entries: int = DEFAULT_M6_CACHE_MAX_ENTRIES,
+        classifier_cache_max_entries: int = (
+            DEFAULT_CLASSIFIER_CACHE_MAX_ENTRIES
+        ),
     ) -> None:
         self._m6_adapter = m6_adapter
         self._classifier_adapters = dict(classifier_adapters)
         self._m6_cache = M6FrameCache(max_entries=m6_cache_max_entries)
+        self._classifier_cache = ClassifierFrameCache(
+            max_entries=classifier_cache_max_entries,
+        )
+        self._raw_frame_fingerprints = RawFrameFingerprintMemo(
+            max_entries=classifier_cache_max_entries,
+        )
 
     def run(
         self,
@@ -87,8 +99,31 @@ class DomainAnalysisModule:
             "m6_algorithm_version",
         )
         emit_event(on_event, "run", "started", "Domain Analysis started.")
-        frames = []
-        canonical_frames = []
+        m6_range = self._run_m6_range(
+            series, request, settings_fingerprint, algorithm_version,
+            on_event=on_event, is_cancelled=is_cancelled,
+        )
+        if isinstance(m6_range, DomainAnalysisResult):
+            return m6_range
+        gate, canonical_frames = m6_range
+        emit_event(on_event, "m6", "published", "Complete M6 gate published.")
+        return self._complete_run(
+            series, request, gate, canonical_frames,
+            on_event=on_event, is_cancelled=is_cancelled,
+        )
+
+    def _run_m6_range(
+        self,
+        series: DomainAnalysisSeries,
+        request: DomainAnalysisRequest,
+        settings_fingerprint: str,
+        algorithm_version: str,
+        *,
+        on_event: Callable[[DomainAnalysisEvent], None] | None,
+        is_cancelled: Callable[[], bool] | None,
+    ) -> tuple[M6Gate, tuple[M6CanonicalFrame, ...]] | DomainAnalysisResult:
+        frames: list[M6FrameGate] = []
+        canonical_frames: list[M6CanonicalFrame] = []
         for frame_index in request.frame_indices:
             if _cancellation_requested(is_cancelled):
                 return _canceled_result(on_event)
@@ -108,34 +143,33 @@ class DomainAnalysisModule:
                 )
             frames.append(published_frame)
             canonical_frames.append(canonical_frame)
-            emit_event(
-                on_event,
-                "m6",
-                "progress",
-                (
-                    "M6 frame reused from cache."
-                    if disposition == "available"
-                    else "M6 frame completed without publishing a partial gate."
-                ),
-                frame_index=frame_index,
-            )
+            _emit_m6_frame_progress(on_event, disposition, frame_index)
             if _cancellation_requested(is_cancelled):
                 return _canceled_result(on_event)
-        gate = M6Gate(frames=tuple(frames))
-        emit_event(
-            on_event,
-            "m6",
-            "published",
-            "Complete M6 gate published.",
-        )
+        return M6Gate(frames=tuple(frames)), tuple(canonical_frames)
+
+    def _complete_run(
+        self,
+        series: DomainAnalysisSeries,
+        request: DomainAnalysisRequest,
+        gate: M6Gate,
+        canonical_frames: tuple[M6CanonicalFrame, ...],
+        *,
+        on_event: Callable[[DomainAnalysisEvent], None] | None,
+        is_cancelled: Callable[[], bool] | None,
+    ) -> DomainAnalysisResult:
         if request.classifier_ids:
             return run_gated_classifier(
                 series,
                 request.classifier_ids[0],
                 gate,
-                tuple(canonical_frames),
+                canonical_frames,
                 self._classifier_adapters[request.classifier_ids[0]],
+                geometry_mode=request.geometry_mode,
+                frame_cache=self._classifier_cache,
+                raw_fingerprint_memo=self._raw_frame_fingerprints,
                 on_event=on_event,
+                is_cancelled=is_cancelled,
             )
         emit_event(on_event, "run", "completed", "M6-only request completed.")
         return DomainAnalysisResult(
@@ -188,6 +222,24 @@ class DomainAnalysisModule:
         if cached is None:
             self._m6_cache.put(cache_key, computation)
         return published, disposition, canonical_frame
+
+
+def _emit_m6_frame_progress(
+    on_event: Callable[[DomainAnalysisEvent], None] | None,
+    disposition: M6CacheDisposition,
+    frame_index: int,
+) -> None:
+    emit_event(
+        on_event,
+        "m6",
+        "progress",
+        (
+            "M6 frame reused from cache."
+            if disposition == "available"
+            else "M6 frame completed without publishing a partial gate."
+        ),
+        frame_index=frame_index,
+    )
 
 def _validate_run_request(
     request: DomainAnalysisRequest,

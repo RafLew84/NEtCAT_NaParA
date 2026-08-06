@@ -40,9 +40,7 @@ def validated_non_negative_integer(value: int, name: str) -> int:
     return int(value)
 
 
-def validated_finite_pair(
-    value: tuple[float, float], name: str
-) -> tuple[float, float]:
+def validated_finite_pair(value: tuple[float, float], name: str) -> tuple[float, float]:
     pair = tuple(float(item) for item in value)
     if len(pair) != 2 or not all(isfinite(item) for item in pair):
         raise ValueError(f"{name} must be a finite pair.")
@@ -54,12 +52,14 @@ class ClassifierIdentity:
     """Versioned molecule-classifier identity."""
 
     classifier_id: str
+    schema_version: str
     settings_fingerprint: str
     algorithm_version: str
 
     def __post_init__(self) -> None:
         for field_name in (
             "classifier_id",
+            "schema_version",
             "settings_fingerprint",
             "algorithm_version",
         ):
@@ -142,6 +142,7 @@ class ClassifierConfiguration:
     def fingerprint(self) -> str:
         return canonical_sha256({
             "classifier_id": self.identity.classifier_id,
+            "classifier_schema_version": self.identity.schema_version,
             "classifier_settings_fingerprint": self.identity.settings_fingerprint,
             "classifier_algorithm_version": self.identity.algorithm_version,
             "aggregation_preset_id": self.aggregation_preset.preset_id,

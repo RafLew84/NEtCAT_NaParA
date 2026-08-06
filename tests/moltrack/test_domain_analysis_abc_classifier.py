@@ -8,6 +8,7 @@ import pytest
 
 from moltrack.analysis.domain_analysis import (
     ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
+    ClassifierAnalysisError,
     ClassifierMoleculePrediction,
     ClassifierMoleculeInput,
     DomainAggregationPreset,
@@ -64,6 +65,7 @@ class _FullDomainM6Adapter:
 
 class _RecordingABCClassifier:
     classifier_id = "abc_orientation"
+    classifier_schema_version = "abc-classifier-schema-v1"
     classifier_settings_fingerprint = "abc-settings-v1"
     classifier_algorithm_version = "abc-algorithm-v1"
     domain_aggregation_preset = ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1
@@ -183,6 +185,7 @@ class _AllMoleculesFullDomainM6Adapter(_FullDomainM6Adapter):
 
 class _ScenarioABCClassifier:
     classifier_id = "abc_orientation"
+    classifier_schema_version = "abc-classifier-schema-v1"
     classifier_settings_fingerprint = "abc-settings-v1"
     classifier_algorithm_version = "abc-algorithm-v1"
 
@@ -274,6 +277,24 @@ def _series(
             ),
             raw_frame=raw_frame,
         ),
+    ))
+
+
+def _range_series(
+    raw_frames: tuple[np.ndarray, ...],
+) -> DomainAnalysisSeries:
+    first = _series("raw", raw_frame=raw_frames[0]).frames[0]
+    return DomainAnalysisSeries(frames=tuple(
+        replace(
+            first,
+            frame_index=frame_index,
+            geometry=replace(
+                first.geometry,
+                physical_frame_id=f"physical-frame-{frame_index}",
+            ),
+            raw_frame=raw_frame,
+        )
+        for frame_index, raw_frame in enumerate(raw_frames)
     ))
 
 
@@ -413,6 +434,9 @@ def test_run_publishes_a_deep_auditable_classifier_contract() -> None:
     outcome = result.classifier_outcomes[0]
     summary = outcome.domain_summaries[0]
     assert outcome.configuration.identity.classifier_id == "abc_orientation"
+    assert outcome.configuration.identity.schema_version == (
+        "abc-classifier-schema-v1"
+    )
     assert outcome.configuration.aggregation_preset.preset_id == (
         "abc-domain-summary-conservative-v1"
     )
@@ -429,6 +453,9 @@ def test_run_publishes_a_deep_auditable_classifier_contract() -> None:
     })
     assert summary.resolved_evidence_fraction_of_domain == pytest.approx(0.6)
     assert summary.reason == "dominant_class_passed"
+    assert outcome.classifier_result_fingerprint is not None
+    assert len(outcome.classifier_result_fingerprint) == 64
+    assert len(outcome.frame_result_provenance) == 1
 
 
 def test_run_gates_classifier_to_full_domains_and_exact_raw_pixels() -> None:
@@ -455,6 +482,7 @@ def test_run_gates_classifier_to_full_domains_and_exact_raw_pixels() -> None:
     assert classifier_frame is raw_pixels
     assert np.array_equal(classifier_frame, raw_pixels)
     assert classifier_frame.dtype == raw_pixels.dtype
+    assert classifier_frame.flags.writeable is False
     assert frame_index == 0
     assert physical_id == "physical-frame-0"
     assert domain_id == result.m6_gate.frames[0].full_domains[0].lattice_domain_id
@@ -697,3 +725,275 @@ def test_result_rejects_mismatched_run_and_classifier_statuses() -> None:
         replace(completed, run_status="completed_with_errors")
     with pytest.raises(ValueError, match="run and classifier statuses"):
         replace(failed, run_status="completed")
+
+
+def test_run_reclassifies_only_stale_and_missing_frames() -> None:
+    classifier = _RecordingABCClassifier()
+    module = DomainAnalysisModule(
+        _FullDomainM6Adapter(),
+        classifier_adapters={classifier.classifier_id: classifier},
+    )
+    original = _range_series((
+        np.full((4, 4), 11, dtype=np.uint16),
+        np.full((4, 4), 22, dtype=np.uint16),
+        np.full((4, 4), 33, dtype=np.uint16),
+    ))
+    physical_ids = ("physical-c", "physical-b", "physical-a")
+    original = DomainAnalysisSeries(frames=tuple(
+        replace(
+            frame,
+            geometry=replace(
+                frame.geometry,
+                physical_frame_id=physical_ids[frame.frame_index],
+            ),
+        )
+        for frame in original.frames
+    ))
+    request = DomainAnalysisRequest(
+        frame_range=range(2),
+        classifier_ids=(classifier.classifier_id,),
+    )
+    module.run(original, request)
+    classifier.calls.clear()
+    changed_second = replace(
+        original.frames[1],
+        raw_frame=np.full((4, 4), 44, dtype=np.uint16),
+    )
+    mixed = DomainAnalysisSeries(frames=(
+        original.frames[0],
+        changed_second,
+        original.frames[2],
+    ))
+
+    result = module.run(
+        mixed,
+        replace(request, frame_range=range(3)),
+    )
+
+    assert [call[1] for call in classifier.calls] == [2, 1]
+    assert result.run_status == "completed"
+    assert result.classifier_outcomes is not None
+    assert {
+        value.frame_index
+        for value in result.classifier_outcomes[0].molecule_classifications
+    } == {0, 1, 2}
+
+
+def test_run_repeats_identical_range_without_reclassification() -> None:
+    classifier = _RecordingABCClassifier()
+    module = DomainAnalysisModule(
+        _FullDomainM6Adapter(),
+        classifier_adapters={classifier.classifier_id: classifier},
+    )
+    series = _range_series((
+        np.full((4, 4), 11, dtype=np.uint16),
+        np.full((4, 4), 22, dtype=np.uint16),
+    ))
+    request = DomainAnalysisRequest(
+        frame_range=range(2),
+        classifier_ids=(classifier.classifier_id,),
+    )
+    first = module.run(series, request)
+    classifier.calls.clear()
+
+    repeated = module.run(series, request)
+
+    assert repeated == first
+    assert classifier.calls == []
+
+    copied = DomainAnalysisSeries(frames=tuple(
+        replace(frame, raw_frame=np.array(frame.raw_frame, copy=True))
+        for frame in series.frames
+    ))
+    copied_result = module.run(copied, request)
+    assert copied_result == first
+    assert classifier.calls == []
+
+    changed_dtype = replace(
+        copied.frames[0],
+        raw_frame=np.asarray(copied.frames[0].raw_frame, dtype=np.int16),
+    )
+    module.run(
+        DomainAnalysisSeries(frames=(changed_dtype, copied.frames[1])),
+        request,
+    )
+    assert [call[1] for call in classifier.calls] == [0]
+
+
+def test_run_does_not_hash_raw_pixels_without_full_m6_domains() -> None:
+    classifier = _RecordingABCClassifier()
+    raw_frame = np.full((4, 4), object(), dtype=object)
+
+    result = DomainAnalysisModule(
+        _NoFullDomainM6Adapter(),
+        classifier_adapters={classifier.classifier_id: classifier},
+    ).run(
+        _series("raw", raw_frame=raw_frame),
+        DomainAnalysisRequest(
+            frame_range=range(1),
+            classifier_ids=(classifier.classifier_id,),
+        ),
+    )
+
+    assert result.run_status == "completed"
+    assert classifier.calls == []
+
+
+def test_run_cancels_classifier_without_publishing_a_partial_payload() -> None:
+    classifier = _RecordingABCClassifier()
+    module = DomainAnalysisModule(
+        _FullDomainM6Adapter(),
+        classifier_adapters={classifier.classifier_id: classifier},
+    )
+    series = _range_series((
+        np.full((4, 4), 11, dtype=np.uint16),
+        np.full((4, 4), 22, dtype=np.uint16),
+    ))
+    request = DomainAnalysisRequest(
+        frame_range=range(2),
+        classifier_ids=(classifier.classifier_id,),
+    )
+
+    canceled = module.run(
+        series,
+        request,
+        is_cancelled=lambda: len(classifier.calls) == 1,
+    )
+
+    assert canceled.run_status == "canceled"
+    assert canceled.m6_gate is not None
+    assert canceled.classifier_status == "canceled"
+    assert canceled.classifier_outcomes is not None
+    assert canceled.classifier_outcomes[0].status == "canceled"
+    assert canceled.classifier_outcomes[0].molecule_classifications == ()
+    assert canceled.classifier_outcomes[0].domain_summaries == ()
+    assert [call[1] for call in classifier.calls] == [0]
+
+    classifier.calls.clear()
+    retried = module.run(series, request)
+
+    assert retried.run_status == "completed"
+    assert [call[1] for call in classifier.calls] == [1]
+
+
+def test_run_keys_classifier_cache_by_every_versioned_dependency() -> None:
+    classifier = _RecordingABCClassifier()
+    m6_adapter = _FullDomainM6Adapter()
+    module = DomainAnalysisModule(
+        m6_adapter,
+        classifier_adapters={classifier.classifier_id: classifier},
+    )
+    series = _range_series((np.full((4, 4), 11, dtype=np.uint16),))
+    request = DomainAnalysisRequest(
+        frame_range=range(1),
+        classifier_ids=(classifier.classifier_id,),
+    )
+    module.run(series, request)
+
+    classifier.calls.clear()
+    classifier.classifier_schema_version = "abc-classifier-schema-v2"
+    module.run(series, request)
+    assert [call[1] for call in classifier.calls] == [0]
+
+    classifier.calls.clear()
+    classifier.classifier_settings_fingerprint = "abc-settings-v2"
+    changed_classifier = module.run(series, request)
+    assert [call[1] for call in classifier.calls] == [0]
+
+    classifier.calls.clear()
+    classifier.domain_aggregation_preset = replace(
+        ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
+        preset_id="abc-domain-summary-conservative-v2",
+    )
+    changed_aggregation = module.run(series, request)
+    assert [call[1] for call in classifier.calls] == [0]
+
+    classifier.calls.clear()
+    m6_adapter.m6_algorithm_version = "m6-algorithm-v2"
+    changed_m6 = module.run(series, request)
+    assert [call[1] for call in classifier.calls] == [0]
+    assert changed_classifier != changed_aggregation
+    assert changed_aggregation != changed_m6
+
+
+def test_run_evicts_least_recently_used_complete_classifier_frame() -> None:
+    classifier = _RecordingABCClassifier()
+    module = DomainAnalysisModule(
+        _FullDomainM6Adapter(),
+        classifier_adapters={classifier.classifier_id: classifier},
+        classifier_cache_max_entries=2,
+    )
+    series = _range_series((
+        np.full((4, 4), 11, dtype=np.uint16),
+        np.full((4, 4), 22, dtype=np.uint16),
+        np.full((4, 4), 33, dtype=np.uint16),
+    ))
+
+    def run_frame(frame_index: int) -> None:
+        module.run(
+            series,
+            DomainAnalysisRequest(
+                frame_range=range(frame_index, frame_index + 1),
+                classifier_ids=(classifier.classifier_id,),
+            ),
+        )
+
+    run_frame(0)
+    run_frame(1)
+    run_frame(0)
+    run_frame(2)
+    classifier.calls.clear()
+
+    run_frame(0)
+    run_frame(1)
+
+    assert [call[1] for call in classifier.calls] == [1]
+
+
+def test_run_never_reuses_an_incomplete_classifier_frame() -> None:
+    class FailingClassifier(_RecordingABCClassifier):
+        should_fail = True
+
+        def classify_domain(
+            self,
+            raw_frame: np.ndarray,
+            *,
+            frame_index: int,
+            physical_frame_id: str,
+            lattice_domain_id: str,
+            molecules: tuple[ClassifierMoleculeInput, ...],
+        ) -> tuple[ClassifierMoleculePrediction, ...]:
+            predictions = super().classify_domain(
+                raw_frame,
+                frame_index=frame_index,
+                physical_frame_id=physical_frame_id,
+                lattice_domain_id=lattice_domain_id,
+                molecules=molecules,
+            )
+            if self.should_fail:
+                raise ClassifierAnalysisError("synthetic classifier failure")
+            return predictions
+
+    classifier = FailingClassifier()
+    module = DomainAnalysisModule(
+        _TwoFullDomainsM6Adapter(),
+        classifier_adapters={classifier.classifier_id: classifier},
+    )
+    series = _range_series((np.full((4, 4), 11, dtype=np.uint16),))
+    request = DomainAnalysisRequest(
+        frame_range=range(1),
+        classifier_ids=(classifier.classifier_id,),
+    )
+
+    failed = module.run(series, request)
+
+    assert failed.run_status == "completed_with_errors"
+    assert failed.classifier_outcomes is not None
+    assert failed.classifier_outcomes[0].molecule_classifications == ()
+    classifier.should_fail = False
+    classifier.calls.clear()
+
+    recovered = module.run(series, request)
+
+    assert recovered.run_status == "completed"
+    assert len(classifier.calls) == 2

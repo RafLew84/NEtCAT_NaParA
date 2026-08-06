@@ -140,6 +140,7 @@ class DomainAnalysisFrame:
             values = np.asarray(raw_frame)
             if values.ndim != 2 or values.shape != self.geometry.raw_shape:
                 raise ValueError("raw_frame must match geometry.raw_shape.")
+            values.setflags(write=False)
             object.__setattr__(self, "raw_frame", values)
         object.__setattr__(self, "frame_index", int(self.frame_index))
         object.__setattr__(self, "annotations", annotations)

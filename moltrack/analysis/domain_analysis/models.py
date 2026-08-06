@@ -352,55 +352,48 @@ class DomainAnalysisResult:
         "not_requested",
         "completed",
         "completed_with_errors",
+        "canceled",
     ]
     classifier_outcomes: tuple[ClassifierOutcome, ...] | None = None
     failure: DomainAnalysisFailure | None = None
 
     def __post_init__(self) -> None:
-        if (
-            self.run_status in {"completed", "completed_with_errors"}
-            and self.m6_gate is None
-        ):
-            raise ValueError(
-                "A successful Domain Analysis must publish its M6 gate."
-            )
-        if (
-            self.run_status == "completed_with_errors"
-            and self.classifier_status == "not_requested"
-        ):
-            raise ValueError(
-                "completed_with_errors requires requested classifiers."
-            )
-        if (
-            self.run_status == "completed_with_errors"
-        ) != (
-            self.classifier_status == "completed_with_errors"
-        ):
-            raise ValueError(
-                "Domain Analysis run and classifier statuses must agree."
-            )
+        successful = self.run_status in {"completed", "completed_with_errors"}
+        if successful and self.m6_gate is None:
+            raise ValueError("A successful Domain Analysis must publish its M6 gate.")
+        if self.run_status == "completed_with_errors" and self.classifier_status == "not_requested":
+            raise ValueError("completed_with_errors requires requested classifiers.")
+        run_has_errors = self.run_status == "completed_with_errors"
+        classifiers_have_errors = self.classifier_status == "completed_with_errors"
+        if run_has_errors != classifiers_have_errors:
+            raise ValueError("Domain Analysis run and classifier statuses must agree.")
         if self.classifier_status == "not_requested":
             if self.classifier_outcomes is not None:
-                raise ValueError(
-                    "A request without classifiers cannot contain outcomes."
-                )
+                raise ValueError("A request without classifiers cannot contain outcomes.")
         else:
             outcomes = tuple(self.classifier_outcomes or ())
             if not outcomes:
                 raise ValueError("Requested classifiers require outcomes.")
             if any(not isinstance(value, ClassifierOutcome) for value in outcomes):
                 raise TypeError("classifier_outcomes contain an invalid value.")
-            if self.classifier_status == "completed" and any(
-                value.status != "completed" for value in outcomes
-            ):
+            all_completed = all(value.status == "completed" for value in outcomes)
+            if self.classifier_status == "completed" and not all_completed:
                 raise ValueError("Completed classifiers cannot contain failures.")
-            if self.classifier_status == "completed_with_errors" and not any(
-                value.status == "failed" for value in outcomes
-            ):
+            any_failed = any(value.status == "failed" for value in outcomes)
+            if self.classifier_status == "completed_with_errors" and not any_failed:
                 raise ValueError("completed_with_errors requires a failed outcome.")
+            all_canceled = all(value.status == "canceled" for value in outcomes)
+            if self.classifier_status == "canceled" and (
+                self.run_status != "canceled" or not all_canceled
+            ):
+                raise ValueError("Canceled classifier status requires canceled outcomes.")
             object.__setattr__(self, "classifier_outcomes", outcomes)
-        if self.run_status in {"failed", "canceled"} and self.m6_gate is not None:
-            raise ValueError("A failed or canceled run cannot publish an M6 gate.")
+        if self.run_status == "failed" and self.m6_gate is not None:
+            raise ValueError("A failed run cannot publish an M6 gate.")
+        if self.run_status == "canceled":
+            expected_status = "canceled" if self.m6_gate is not None else "not_requested"
+            if self.classifier_status != expected_status:
+                raise ValueError("Canceled run status must match its publication stage.")
         if (self.run_status == "failed") != (self.failure is not None):
             raise ValueError("Only a failed run must contain failure details.")
 

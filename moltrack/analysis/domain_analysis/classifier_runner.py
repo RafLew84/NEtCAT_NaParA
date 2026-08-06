@@ -1,19 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Protocol
+from dataclasses import dataclass
 
-import numpy as np
-
-from .classifier_models import (
-    ClassifierMoleculeInput,
-    ClassifierMoleculePrediction,
-    ClassifierOutcome,
-    ClassifierOutcomeStatus,
-    M6Partition,
-    MoleculeClassification,
-    MoleculeClassificationStatus,
-    OrientationLabel,
+from .cache import (
+    ClassifierCacheDisposition,
+    ClassifierFrameCache,
+    RawFrameFingerprintMemo,
 )
 from .classifier_contract import (
     ClassifierConfiguration,
@@ -22,43 +15,28 @@ from .classifier_contract import (
     DomainLabelSummary,
     aggregate_domain_summaries,
 )
-from .events import emit_event
-from .geometry import DomainAnalysisSeries, M6AnalyzedMolecule, M6CanonicalFrame
-from .models import (
-    DomainAnalysisEvent,
-    DomainAnalysisResult,
-    M6FrameGate,
-    M6Gate,
-    M6PublishedComponent,
+from .classifier_frame_execution import (
+    ClassifierAnalysisError,
+    ClassifierCancellationRequested,
+    MoleculeClassifierAdapter,
+    classify_or_reuse_frame,
+    validate_required_raw_frames,
 )
+from .classifier_models import (
+    ClassifierFrameResultProvenance,
+    ClassifierOutcome,
+    ClassifierOutcomeStatus,
+    MoleculeClassification,
+)
+from .events import emit_event
+from .geometry import DomainAnalysisSeries, GeometryMode, M6CanonicalFrame
+from .models import DomainAnalysisEvent, DomainAnalysisResult, M6FrameGate, M6Gate
 
 
-class MoleculeClassifierAdapter(Protocol):
-    @property
-    def classifier_id(self) -> str: ...
-
-    @property
-    def classifier_settings_fingerprint(self) -> str: ...
-
-    @property
-    def classifier_algorithm_version(self) -> str: ...
-
-    @property
-    def domain_aggregation_preset(self) -> DomainAggregationPreset: ...
-
-    def classify_domain(
-        self,
-        raw_frame: np.ndarray,
-        *,
-        frame_index: int,
-        physical_frame_id: str,
-        lattice_domain_id: str,
-        molecules: tuple[ClassifierMoleculeInput, ...],
-    ) -> tuple[ClassifierMoleculePrediction, ...]: ...
-
-
-class ClassifierAnalysisError(RuntimeError):
-    """Expected classifier failure that must preserve the published M6 gate."""
+@dataclass(frozen=True)
+class _ClassifierGateComputation:
+    classifications: tuple[MoleculeClassification, ...]
+    frame_result_provenance: tuple[ClassifierFrameResultProvenance, ...]
 
 
 def run_gated_classifier(
@@ -68,10 +46,119 @@ def run_gated_classifier(
     canonical_frames: tuple[M6CanonicalFrame, ...],
     adapter: MoleculeClassifierAdapter,
     *,
+    geometry_mode: GeometryMode,
+    frame_cache: ClassifierFrameCache,
+    raw_fingerprint_memo: RawFrameFingerprintMemo,
     on_event: Callable[[DomainAnalysisEvent], None] | None,
+    is_cancelled: Callable[[], bool] | None,
 ) -> DomainAnalysisResult:
+    configuration = _classifier_configuration(adapter, classifier_id)
+    emit_event(
+        on_event,
+        classifier_id,
+        "started",
+        "Classifier received the immutable published M6 gate.",
+    )
+    try:
+        computation = _classify_gate(
+            series, gate, canonical_frames, adapter, configuration,
+            geometry_mode=geometry_mode, frame_cache=frame_cache,
+            raw_fingerprint_memo=raw_fingerprint_memo,
+            on_event=on_event, is_cancelled=is_cancelled,
+        )
+    except ClassifierCancellationRequested:
+        return _canceled_result(gate, configuration, on_event=on_event)
+    except ClassifierAnalysisError as exc:
+        return _failed_result(gate, configuration, exc, on_event=on_event)
+    domain_summaries = aggregate_domain_summaries(
+        gate, computation.classifications, configuration,
+    )
+    return _completed_result(
+        gate, configuration, computation.classifications,
+        computation.frame_result_provenance, domain_summaries,
+        on_event=on_event,
+    )
+
+
+def _classify_gate(
+    series: DomainAnalysisSeries,
+    gate: M6Gate,
+    canonical_frames: tuple[M6CanonicalFrame, ...],
+    adapter: MoleculeClassifierAdapter,
+    configuration: ClassifierConfiguration,
+    *,
+    geometry_mode: GeometryMode,
+    frame_cache: ClassifierFrameCache,
+    raw_fingerprint_memo: RawFrameFingerprintMemo,
+    on_event: Callable[[DomainAnalysisEvent], None] | None,
+    is_cancelled: Callable[[], bool] | None,
+) -> _ClassifierGateComputation:
+    canonical_by_index = {
+        value.frame_index: value for value in canonical_frames
+    }
+    validate_required_raw_frames(series, gate)
+    results: list[MoleculeClassification] = []
+    provenance: list[ClassifierFrameResultProvenance] = []
+    for gate_frame in _ordered_gate_frames(gate):
+        _raise_if_canceled(is_cancelled)
+        frame_results, frame_provenance, disposition = classify_or_reuse_frame(
+            series, gate_frame, canonical_by_index[gate_frame.frame_index],
+            adapter, configuration, geometry_mode=geometry_mode,
+            frame_cache=frame_cache, raw_fingerprint_memo=raw_fingerprint_memo,
+        )
+        results.extend(frame_results)
+        provenance.append(frame_provenance)
+        _emit_frame_progress(
+            on_event, configuration.identity.classifier_id,
+            disposition, gate_frame.frame_index,
+        )
+        _raise_if_canceled(is_cancelled)
+    return _ClassifierGateComputation(
+        classifications=tuple(sorted(
+            results,
+            key=lambda value: (value.frame_index, value.source_id),
+        )),
+        frame_result_provenance=tuple(provenance),
+    )
+
+
+def _ordered_gate_frames(gate: M6Gate) -> tuple[M6FrameGate, ...]:
+    return tuple(sorted(gate.frames, key=lambda value: value.physical_frame_id))
+
+
+def _emit_frame_progress(
+    on_event: Callable[[DomainAnalysisEvent], None] | None,
+    classifier_id: str,
+    disposition: ClassifierCacheDisposition,
+    frame_index: int,
+) -> None:
+    emit_event(
+        on_event,
+        classifier_id,
+        "progress",
+        (
+            "Classifier frame reused from cache."
+            if disposition == "available"
+            else "Classifier frame completed without partial publication."
+        ),
+        frame_index=frame_index,
+    )
+
+
+def _raise_if_canceled(
+    is_cancelled: Callable[[], bool] | None,
+) -> None:
+    if is_cancelled is not None and bool(is_cancelled()):
+        raise ClassifierCancellationRequested
+
+
+def _classifier_configuration(
+    adapter: MoleculeClassifierAdapter,
+    classifier_id: str,
+) -> ClassifierConfiguration:
     identity = ClassifierIdentity(
         classifier_id=adapter.classifier_id,
+        schema_version=adapter.classifier_schema_version,
         settings_fingerprint=adapter.classifier_settings_fingerprint,
         algorithm_version=adapter.classifier_algorithm_version,
     )
@@ -82,37 +169,28 @@ def run_gated_classifier(
         raise TypeError(
             "Classifier adapters require a DomainAggregationPreset configuration."
         )
-    configuration = ClassifierConfiguration(
-        identity=identity,
-        aggregation_preset=preset,
-    )
+    return ClassifierConfiguration(identity=identity, aggregation_preset=preset)
+
+
+def _canceled_result(
+    gate: M6Gate,
+    configuration: ClassifierConfiguration,
+    *,
+    on_event: Callable[[DomainAnalysisEvent], None] | None,
+) -> DomainAnalysisResult:
+    outcome = _outcome(configuration, "canceled", ())
     emit_event(
         on_event,
-        classifier_id,
-        "started",
-        "Classifier received the immutable published M6 gate.",
+        configuration.identity.classifier_id,
+        "canceled",
+        "Classifier canceled before atomic range publication.",
     )
-    try:
-        classifications = _classify_gate(
-            series,
-            gate,
-            canonical_frames,
-            adapter,
-            identity,
-        )
-    except ClassifierAnalysisError as exc:
-        return _failed_result(gate, configuration, exc, on_event=on_event)
-    domain_summaries = aggregate_domain_summaries(
-        gate,
-        classifications,
-        configuration,
-    )
-    return _completed_result(
-        gate,
-        configuration,
-        classifications,
-        domain_summaries,
-        on_event=on_event,
+    emit_event(on_event, "run", "canceled", "Domain Analysis canceled.")
+    return DomainAnalysisResult(
+        run_status="canceled",
+        m6_gate=gate,
+        classifier_status="canceled",
+        classifier_outcomes=(outcome,),
     )
 
 
@@ -149,6 +227,7 @@ def _completed_result(
     gate: M6Gate,
     configuration: ClassifierConfiguration,
     classifications: tuple[MoleculeClassification, ...],
+    frame_result_provenance: tuple[ClassifierFrameResultProvenance, ...],
     domain_summaries: tuple[DomainLabelSummary, ...],
     *,
     on_event: Callable[[DomainAnalysisEvent], None] | None,
@@ -157,6 +236,7 @@ def _completed_result(
         configuration,
         "completed",
         classifications,
+        frame_result_provenance=frame_result_provenance,
         domain_summaries=domain_summaries,
     )
     emit_event(
@@ -179,6 +259,7 @@ def _outcome(
     status: ClassifierOutcomeStatus,
     classifications: tuple[MoleculeClassification, ...],
     *,
+    frame_result_provenance: tuple[ClassifierFrameResultProvenance, ...] = (),
     domain_summaries: tuple[DomainLabelSummary, ...] = (),
     error_message: str | None = None,
 ) -> ClassifierOutcome:
@@ -186,210 +267,7 @@ def _outcome(
         status=status,
         configuration=configuration,
         molecule_classifications=classifications,
+        frame_result_provenance=frame_result_provenance,
         domain_summaries=domain_summaries,
         error_message=error_message,
-    )
-
-
-def _classify_gate(
-    series: DomainAnalysisSeries,
-    gate: M6Gate,
-    canonical_frames: tuple[M6CanonicalFrame, ...],
-    adapter: MoleculeClassifierAdapter,
-    identity: ClassifierIdentity,
-) -> tuple[MoleculeClassification, ...]:
-    canonical_by_index = {
-        value.frame_index: value for value in canonical_frames
-    }
-    raw_by_index = _required_raw_frames(series, gate)
-    results = tuple(
-        classification
-        for gate_frame in gate.frames
-        for classification in _classify_frame(
-            gate_frame,
-            canonical_by_index[gate_frame.frame_index],
-            raw_by_index.get(gate_frame.frame_index),
-            adapter,
-            identity,
-        )
-    )
-    return tuple(sorted(
-        results,
-        key=lambda value: (value.frame_index, value.source_id),
-    ))
-
-
-def _required_raw_frames(
-    series: DomainAnalysisSeries,
-    gate: M6Gate,
-) -> dict[int, np.ndarray]:
-    frames: dict[int, np.ndarray] = {}
-    for gate_frame in gate.frames:
-        if not gate_frame.full_domains:
-            continue
-        raw_frame = series.frame(gate_frame.frame_index).raw_frame
-        if raw_frame is None:
-            raise ClassifierAnalysisError(
-                "Classifier requires the exact raw frame for physical frame "
-                f"{gate_frame.physical_frame_id!r}."
-            )
-        frames[gate_frame.frame_index] = raw_frame
-    return frames
-
-
-def _classify_frame(
-    gate_frame: M6FrameGate,
-    canonical_frame: M6CanonicalFrame,
-    raw_frame: np.ndarray | None,
-    adapter: MoleculeClassifierAdapter,
-    identity: ClassifierIdentity,
-) -> tuple[MoleculeClassification, ...]:
-    not_gated = _not_gated_classifications(gate_frame, identity)
-    if not gate_frame.full_domains:
-        return not_gated
-    if raw_frame is None:
-        raise ClassifierAnalysisError("Gated classification requires a raw frame.")
-    molecule_by_id = {
-        value.source_id: value for value in canonical_frame.molecules
-    }
-    classified = tuple(
-        value
-        for domain in gate_frame.full_domains
-        for value in _classify_domain(
-            gate_frame,
-            domain,
-            molecule_by_id,
-            raw_frame,
-            adapter,
-            identity,
-        )
-    )
-    return classified + not_gated
-
-
-def _classify_domain(
-    gate_frame: M6FrameGate,
-    domain: M6PublishedComponent,
-    molecule_by_id: dict[str, M6AnalyzedMolecule],
-    raw_frame: np.ndarray,
-    adapter: MoleculeClassifierAdapter,
-    identity: ClassifierIdentity,
-) -> tuple[MoleculeClassification, ...]:
-    inputs = tuple(
-        ClassifierMoleculeInput(
-            source_id=source_id,
-            raw_centroid_xy=molecule_by_id[source_id].raw_centroid_xy,
-        )
-        for source_id in domain.source_ids
-    )
-    predictions = adapter.classify_domain(
-        raw_frame,
-        frame_index=gate_frame.frame_index,
-        physical_frame_id=gate_frame.physical_frame_id,
-        lattice_domain_id=domain.lattice_domain_id,
-        molecules=inputs,
-    )
-    prediction_by_id = _validated_predictions(predictions, inputs)
-    return tuple(
-        _classification_from_prediction(
-            gate_frame,
-            domain.lattice_domain_id,
-            prediction_by_id[source_id],
-            identity,
-        )
-        for source_id in domain.source_ids
-    )
-
-
-def _not_gated_classifications(
-    gate_frame: M6FrameGate,
-    identity: ClassifierIdentity,
-) -> tuple[MoleculeClassification, ...]:
-    island_by_source_id = {
-        source_id: island.lattice_domain_id
-        for island in gate_frame.small_ordered_islands
-        for source_id in island.source_ids
-    }
-    return tuple(
-        _classification(
-            gate_frame,
-            source_id,
-            identity,
-            partition=(
-                "small_ordered_island"
-                if source_id in island_by_source_id
-                else "outside"
-            ),
-            lattice_domain_id=island_by_source_id.get(source_id),
-        )
-        for source_id in sorted(
-            set(island_by_source_id).union(gate_frame.outside_source_ids)
-        )
-    )
-
-
-def _validated_predictions(
-    predictions: tuple[ClassifierMoleculePrediction, ...],
-    inputs: tuple[ClassifierMoleculeInput, ...],
-) -> dict[str, ClassifierMoleculePrediction]:
-    values = tuple(predictions)
-    if any(not isinstance(value, ClassifierMoleculePrediction) for value in values):
-        raise TypeError(
-            "Classifier adapter must return ClassifierMoleculePrediction values."
-        )
-    prediction_by_id = {value.source_id: value for value in values}
-    if len(prediction_by_id) != len(values):
-        raise ValueError("Classifier predictions must have unique source IDs.")
-    expected_ids = {value.source_id for value in inputs}
-    if set(prediction_by_id) != expected_ids:
-        raise ValueError(
-            "Classifier predictions must cover exactly the gated molecules."
-        )
-    return prediction_by_id
-
-
-def _classification_from_prediction(
-    gate_frame: M6FrameGate,
-    lattice_domain_id: str,
-    prediction: ClassifierMoleculePrediction,
-    identity: ClassifierIdentity,
-) -> MoleculeClassification:
-    label = prediction.orientation_label
-    return _classification(
-        gate_frame,
-        prediction.source_id,
-        identity,
-        partition="full_domain",
-        lattice_domain_id=lattice_domain_id,
-        status="classified" if label is not None else "unknown_orientation",
-        label=label if label is not None else "Unknown orientation",
-        evidence_strength=prediction.evidence_strength,
-        component_id=prediction.component_id,
-    )
-
-
-def _classification(
-    gate_frame: M6FrameGate,
-    source_id: str,
-    identity: ClassifierIdentity,
-    *,
-    partition: M6Partition,
-    lattice_domain_id: str | None = None,
-    status: MoleculeClassificationStatus = "not_gated",
-    label: OrientationLabel | None = None,
-    evidence_strength: float = 0.0,
-    component_id: str | None = None,
-) -> MoleculeClassification:
-    return MoleculeClassification(
-        frame_index=gate_frame.frame_index,
-        physical_frame_id=gate_frame.physical_frame_id,
-        m6_gate_fingerprint=gate_frame.m6_gate_fingerprint,
-        lattice_domain_id=lattice_domain_id,
-        source_id=source_id,
-        m6_partition=partition,
-        classification_status=status,
-        orientation_label=label,
-        evidence_strength=evidence_strength,
-        component_id=component_id,
-        identity=identity,
     )
