@@ -97,8 +97,8 @@ def test_workspace_dispatch_keeps_draft_publication_and_selection_separate() -> 
         published_request,
         physical_frame_ids=("physical-frame-0", "physical-frame-1"),
         series_generation=7,
-        state_changed=changed.append,
     )
+    controller.state_changed.connect(changed.append)
 
     published = controller.dispatch(PublishDomainAnalysisResult(
         request=published_request,
@@ -170,8 +170,8 @@ def test_workspace_rejects_invalid_references_without_partial_state() -> None:
     controller = DomainAnalysisWorkspaceController(
         initial_request,
         physical_frame_ids=("physical-frame-0", "physical-frame-1"),
-        state_changed=changed.append,
     )
+    controller.state_changed.connect(changed.append)
     initial = controller.snapshot
 
     with pytest.raises(
@@ -224,8 +224,8 @@ def test_workspace_reports_notification_failure_after_committing_state() -> None
     controller = DomainAnalysisWorkspaceController(
         request,
         physical_frame_ids=("physical-frame-0",),
-        state_changed=fail_notification,
     )
+    controller.state_changed.connect(fail_notification)
 
     with pytest.raises(
         DomainAnalysisWorkspaceNotificationError,
