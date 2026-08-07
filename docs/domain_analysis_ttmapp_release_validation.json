@@ -1,0 +1,245 @@
+{
+  "analysis": {
+    "classifier": {
+      "classifier_id": "abc_orientation",
+      "classifier_result_fingerprint": "249e8d5d22bbf4a57330e379ae3dcc1c1cef4941d64df51985ae929028aba2fe",
+      "domain_count": 15,
+      "domain_label_counts": {
+        "A": 7,
+        "C": 2,
+        "Mixed": 3,
+        "Unknown orientation": 3
+      },
+      "molecule_count": 1761,
+      "molecule_label_counts": {
+        "A": 586,
+        "B": 14,
+        "C": 263,
+        "Unknown orientation": 179,
+        "not_gated": 719
+      },
+      "status": "completed"
+    },
+    "classifier_status": "completed",
+    "frames": [
+      {
+        "analyzed_molecule_count": 292,
+        "analyzed_pixel_count": 49895,
+        "display_frame_number": 263,
+        "full_domain_count": 2,
+        "full_domain_molecule_count": 161,
+        "m6_gate_fingerprint": "1bd2c0f721162291a5f18c088ccde354b059091408569d81bb20e1bb77d5182f",
+        "outside_molecule_count": 121,
+        "partition_is_disjoint_and_complete": true,
+        "physical_frame_id": "source-frame-262",
+        "small_ordered_island_count": 3,
+        "small_ordered_island_molecule_count": 10,
+        "source_geometry_fingerprint": "e97a43aa0594633943d91374798f44f2d2b574548e4e683e75262aff442aa17d",
+        "working_frame_index": 262
+      },
+      {
+        "analyzed_molecule_count": 296,
+        "analyzed_pixel_count": 50989,
+        "display_frame_number": 264,
+        "full_domain_count": 3,
+        "full_domain_molecule_count": 164,
+        "m6_gate_fingerprint": "e53a9ad8afdbad08357ab6630ebd9b1080226c14851be85099891055b7e0c8ae",
+        "outside_molecule_count": 114,
+        "partition_is_disjoint_and_complete": true,
+        "physical_frame_id": "source-frame-263",
+        "small_ordered_island_count": 5,
+        "small_ordered_island_molecule_count": 18,
+        "source_geometry_fingerprint": "44f89b256a64b23f65a136ce915b4d536652f2cac749c30c63cc13080586b01f",
+        "working_frame_index": 263
+      },
+      {
+        "analyzed_molecule_count": 295,
+        "analyzed_pixel_count": 50519,
+        "display_frame_number": 265,
+        "full_domain_count": 4,
+        "full_domain_molecule_count": 217,
+        "m6_gate_fingerprint": "f438b864b2eb0fea4040555f14bbed966232fe6b697622bb2d864703578a0b03",
+        "outside_molecule_count": 71,
+        "partition_is_disjoint_and_complete": true,
+        "physical_frame_id": "source-frame-264",
+        "small_ordered_island_count": 2,
+        "small_ordered_island_molecule_count": 7,
+        "source_geometry_fingerprint": "5930a119e5a9a72aa5b02c79288679903afdc7f3ce3921e2b005a52286fae7d3",
+        "working_frame_index": 264
+      },
+      {
+        "analyzed_molecule_count": 293,
+        "analyzed_pixel_count": 49628,
+        "display_frame_number": 266,
+        "full_domain_count": 2,
+        "full_domain_molecule_count": 163,
+        "m6_gate_fingerprint": "1c3ba84a3a2ef9a1a2bef7a9bbba9180bfa6f761d47a3531b740db1c5ee082f4",
+        "outside_molecule_count": 112,
+        "partition_is_disjoint_and_complete": true,
+        "physical_frame_id": "source-frame-265",
+        "small_ordered_island_count": 4,
+        "small_ordered_island_molecule_count": 18,
+        "source_geometry_fingerprint": "704c8a7e952782c4defceb362809c8603947b74582f7801847a67a76c3dd4305",
+        "working_frame_index": 265
+      },
+      {
+        "analyzed_molecule_count": 297,
+        "analyzed_pixel_count": 50121,
+        "display_frame_number": 267,
+        "full_domain_count": 2,
+        "full_domain_molecule_count": 171,
+        "m6_gate_fingerprint": "c38f40b52cfbda6a0268f05f887bfd4709a2246b8658167f24fbb206fab9b5cc",
+        "outside_molecule_count": 123,
+        "partition_is_disjoint_and_complete": true,
+        "physical_frame_id": "source-frame-266",
+        "small_ordered_island_count": 1,
+        "small_ordered_island_molecule_count": 3,
+        "source_geometry_fingerprint": "45f3b83361f1e1ccce21f27cae4b7c6e4701d138625c51d3e76bfea27f224276",
+        "working_frame_index": 266
+      },
+      {
+        "analyzed_molecule_count": 288,
+        "analyzed_pixel_count": 48724,
+        "display_frame_number": 268,
+        "full_domain_count": 2,
+        "full_domain_molecule_count": 166,
+        "m6_gate_fingerprint": "c5e546a90d509a3723ed4e866188db1e02f97b33adcc6981753e089f41f42633",
+        "outside_molecule_count": 119,
+        "partition_is_disjoint_and_complete": true,
+        "physical_frame_id": "source-frame-267",
+        "small_ordered_island_count": 1,
+        "small_ordered_island_molecule_count": 3,
+        "source_geometry_fingerprint": "e6952a877ee96563f9c7057bb15dbfd66c5958128c05c1e1052f31a3ee399350",
+        "working_frame_index": 267
+      }
+    ],
+    "run_status": "completed",
+    "snapshot_fingerprint": "c4d9fdcc92d67d15db885422230c6a21c0ed3ffc5c420a12701fb81469d5d617"
+  },
+  "configuration": {
+    "classifier": {
+      "aggregation_preset_fingerprint": "982f1b73869dac84f411307beb75b2961509db010af7f45ba3f3592ebb30d7c7",
+      "aggregation_preset_id": "abc-domain-summary-conservative-v1",
+      "algorithm_version": "local-gradient-histogram-v1",
+      "classifier_id": "abc_orientation",
+      "schema_version": "m6-gated-abc-classifier-v1",
+      "settings_fingerprint": "3ff57bd3a1557b1420db59fa394b4e79425a01c89c9e811695ad2ac1eedc1481"
+    },
+    "m6_algorithm_version": "moltrack-m6-orientation-v1",
+    "m6_preset": "TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET",
+    "m6_settings": {
+      "bond_weighting": "uniform",
+      "delaunay_degeneracy_policy": "exclude_ambiguous_edges",
+      "domain_bond_length_robust_cv_qc_threshold": 0.2,
+      "domain_conflict_margin": 0.05,
+      "domain_merge_angle_tolerance_deg": 8.0,
+      "duplicate_chain_policy": "deterministic_complete_linkage",
+      "duplicate_detection_enabled": true,
+      "duplicate_max_distance_nm": 10.0,
+      "duplicate_policy": "best_quality_representative",
+      "first_shell_r_max_nm": 70.0,
+      "first_shell_r_min_nm": 30.0,
+      "footprint_support_radius_nm": 35.0,
+      "geometry_absolute_tolerance_nm": 1e-09,
+      "geometry_collision_policy": "always_deduplicate_with_tolerance",
+      "geometry_relative_tolerance": 1e-10,
+      "gr_bin_width_nm": 5.0,
+      "gr_max_nm": 250.0,
+      "gr_min_contributing_frames": 1,
+      "gr_min_expected_pair_exposure": 5.0,
+      "gr_peak_prominence": 0.1,
+      "gr_smoothing_method": "gaussian_bins",
+      "gr_smoothing_width": 2.0,
+      "grow_angle_tolerance_deg": 12.0,
+      "lattice_edge_conditional_channel_minimum_score": 0.5,
+      "lattice_edge_minimum_classification_confidence": 0.5,
+      "lattice_edge_minimum_orientation_confidence": 0.5,
+      "lattice_edge_mixed_model_profile_tolerance": 0.2,
+      "lattice_edge_sixfold_orientation_tolerance_deg": 8.0,
+      "lattice_edge_trifold_orientation_tolerance_deg": 8.0,
+      "lattice_halo_min_model_score": 0.25,
+      "lattice_seed_min_model_score": 0.65,
+      "local_symmetry_minimum_expected_direction_coverage": 0.45,
+      "local_symmetry_minimum_second_best_margin": 0.08,
+      "local_symmetry_mixed_minimum_model_score": 0.5,
+      "local_symmetry_sixfold_minimum_model_score": 0.5,
+      "local_symmetry_trifold_minimum_model_score": 0.5,
+      "min_bonds_for_domain_length_stats": 5,
+      "min_domain_size": 12,
+      "min_neighbors_for_local_order": 3,
+      "min_neighbors_for_seed": 5,
+      "min_ordered_component_size": 3,
+      "min_seed_size": 5,
+      "orientation_zero_tolerance": 1e-12,
+      "q_grow": 0.25,
+      "q_seed": 0.65,
+      "seed_angle_tolerance_deg": 8.0,
+      "symmetry_m": 6
+    },
+    "m6_settings_fingerprint": "a970539e28ecb57f767fad401b56f228ce0cb9c0ab87ef6d8436fc59b1ebcc43"
+  },
+  "export": {
+    "analysis_mode": "domain_analysis_published_snapshot",
+    "export_schema_version": 9,
+    "manifest_sha256": "afe610d013fdf501508908a6182fbfaca011fdf9827819900acc4ea00536b36e",
+    "published_snapshot_unchanged": true,
+    "record_counts": {
+      "domain_analysis_classifier_outcomes.csv": 1,
+      "domain_analysis_domain_classifications.csv": 15,
+      "domain_analysis_domains.csv": 31,
+      "domain_analysis_frames.csv": 6,
+      "domain_analysis_memberships.csv": 1761,
+      "domain_analysis_molecule_classifications.csv": 1042
+    },
+    "relative_files": [
+      "domain_analysis_classifier_outcomes.csv",
+      "domain_analysis_domain_classifications.csv",
+      "domain_analysis_domains.csv",
+      "domain_analysis_frames.csv",
+      "domain_analysis_memberships.csv",
+      "domain_analysis_molecule_classifications.csv",
+      "manifest.json"
+    ],
+    "snapshot_fingerprint": "c4d9fdcc92d67d15db885422230c6a21c0ed3ffc5c420a12701fb81469d5d617"
+  },
+  "inputs": {
+    "moltrack_session": {
+      "path": "data/TTMAPP/detection250.moltrack.json",
+      "sha256": "3aa3d05969f88153da16947c52fa95ab10ca25cdf4f8485b741dfad7995a5810",
+      "size_bytes": 58660999
+    },
+    "source_mpp": {
+      "path": "data/TTMAPP/MOVIE_23raw_TTMAPP_I_AU111.MPP",
+      "sha256": "8fbbfa5d515a90552c13cee2dbd289ff5cc16f000315547185c2a57bfe9f7c66",
+      "size_bytes": 140518099
+    }
+  },
+  "reproduction": {
+    "command": "python scripts/validate_ttmapp_domain_analysis_release.py --session data/TTMAPP/detection250.moltrack.json --frame-start 262 --frame-stop 268",
+    "working_directory": "repository_root"
+  },
+  "request": {
+    "classifier_ids": [
+      "abc_orientation"
+    ],
+    "display_frame_start": 263,
+    "display_frame_stop_inclusive": 268,
+    "geometry_mode": "segmentation_preferred",
+    "request_fingerprint": "e6e0811510f1543cb3aa7e482e4933a41db4aece6d908347326cc7ba45a15613",
+    "working_frame_start": 262,
+    "working_frame_stop": 268
+  },
+  "session_round_trip": {
+    "classifier_cache_record_count": 6,
+    "domain_analysis_schema_version": 1,
+    "m6_cache_record_count": 6,
+    "moltrack_session_schema_version": 2,
+    "published_snapshot_unchanged": true,
+    "raw_frames_embedded": false,
+    "round_trip_session_sha256": "c825d7b275296fb9f9d1546fe2d781ad99096b30b39f3544f85220376d044c31",
+    "snapshot_fingerprint": "c4d9fdcc92d67d15db885422230c6a21c0ed3ffc5c420a12701fb81469d5d617"
+  },
+  "validated_code_commit": "35c552049fced3dfa515fc1a3a84c18cd59f03c0",
+  "validation_schema_version": 1,
+  "validator_sha256": "e8fb6157cc75e377fa79390fa9b8d3570a045b209c30dd3c7c190b5d0f6172de"
+}
