@@ -21,6 +21,7 @@ DomainAnalysisWorkspaceRunStatus = Literal[
     "completed_with_errors",
     "canceled",
     "failed",
+    "retry_required",
 ]
 
 
@@ -73,6 +74,7 @@ class DomainAnalysisWorkspaceRunState:
             "completed_with_errors",
             "canceled",
             "failed",
+            "retry_required",
         }:
             raise ValueError(f"Unsupported workspace run status: {self.status!r}.")
         if self.status == "idle":

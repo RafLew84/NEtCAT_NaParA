@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 import os
 
+import numpy as np
 import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -9,17 +11,27 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from moltrack.analysis.domain_analysis import (
     ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
     ABC_ORIENTATION_CLASSIFIER_ID,
+    ClassifierConfiguration,
     ClassifierAnalysisError,
+    ClassifierIdentity,
     ClassifierMoleculeInput,
     ClassifierMoleculePrediction,
     DomainAnalysisModule,
     DomainAnalysisRequest,
+    DomainAnalysisSessionCacheRecords,
     DomainAnalysisWorkspaceController,
     DomainAnalysisWorkspaceExecution,
     DomainComponentKey,
     SelectDomainComponent,
     SetDomainAnalysisFrame,
 )
+from moltrack.core import MolTrackImageSeries
+from moltrack.persistence import (
+    CanonicalJsonObject,
+    DomainAnalysisExportSettings,
+    load_moltrack_session,
+)
+from nanotrack.core import STMSequenceMetadata
 from test_domain_analysis_module import (
     _DeterministicM6Adapter,
     _classifier_series,
@@ -34,8 +46,12 @@ except ImportError:  # pragma: no cover - optional outside target GUI env
 if QApplication is not None:
     from moltrack.ui import MolTrackMainWindow
     from moltrack.ui.dialogs.domain_analysis_dialog import DomainAnalysisDialog
+    from moltrack.ui.dialogs.position_analysis_dialog import PositionAnalysisDialog
     from moltrack.ui.dialogs.position_analysis_workspace_dialog import (
         PositionAnalysisWorkspaceDialog,
+    )
+    from moltrack.ui.domain_analysis_composition import (
+        DomainAnalysisMainWindowComposition,
     )
     from moltrack.ui.domain_analysis_overlay import DomainAnalysisOverlayPresenter
 
@@ -383,3 +399,166 @@ def test_position_analysis_actions_share_workspace_lifecycle(
 
     reopened.close()
     reopened.deleteLater()
+
+
+def test_main_window_cutover_preflight_runs_complete_new_path(
+    qt_app,
+    tmp_path,
+) -> None:
+    source_path = tmp_path / "preflight.mpp"
+    source_path.write_bytes(b"domain analysis cutover preflight")
+    analysis_series = _classifier_series(range(2))
+    image_series = MolTrackImageSeries(
+        source_path=str(source_path),
+        raw_frames=np.zeros((2, 4, 4), dtype=np.uint16),
+        metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+    )
+    executor = _ManualExecutor()
+    classifier = _MixedAndUnknownABCClassifier()
+    module = DomainAnalysisModule(
+        _DeterministicM6Adapter(
+            reorder_adapter_output=False,
+            m6_settings_fingerprint=(
+                "2056dfb4496987f99bdd695b7f5064b6"
+                "00154c8fe5b43d002a5aaffceefd0b67"
+            ),
+        ),
+        classifier_adapters={
+            ABC_ORIENTATION_CLASSIFIER_ID: classifier,
+        },
+    )
+    controller = DomainAnalysisWorkspaceController(
+        DomainAnalysisRequest(
+            frame_range=range(1),
+            classifier_ids=(ABC_ORIENTATION_CLASSIFIER_ID,),
+        ),
+        physical_frame_ids=tuple(
+            frame.geometry.physical_frame_id for frame in analysis_series.frames
+        ),
+        execution=DomainAnalysisWorkspaceExecution(
+            module,
+            analysis_series,
+            executor,
+        ),
+    )
+    classifier_configuration = ClassifierConfiguration(
+        identity=ClassifierIdentity(
+            classifier_id=classifier.classifier_id,
+            schema_version=classifier.classifier_schema_version,
+            settings_fingerprint=(classifier.classifier_settings_fingerprint),
+            algorithm_version=classifier.classifier_algorithm_version,
+        ),
+        aggregation_preset=classifier.domain_aggregation_preset,
+    )
+    export_destination = tmp_path / "preflight-export"
+    export_settings = DomainAnalysisExportSettings(
+        destination=export_destination,
+        source_frame_indices=image_series.source_frame_indices,
+        physical_frame_ids=controller.snapshot.physical_frame_ids,
+        source_identity=CanonicalJsonObject({"source": source_path.name}),
+        m6_settings=CanonicalJsonObject({"preset": "preflight-m6"}),
+    )
+    window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+    window.set_image_series(image_series)
+    try:
+        assert window.btn_position_analysis.text() == "Position Analysis..."
+        assert "Analysis" not in (
+            action.text().replace("&", "") for action in window.menuBar().actions()
+        )
+        window.btn_position_analysis.click()
+        legacy_dialog = window.position_analysis_dialog()
+        assert isinstance(legacy_dialog, PositionAnalysisDialog)
+        legacy_dialog.close()
+        legacy_dialog.deleteLater()
+        qt_app.processEvents()
+
+        composition = DomainAnalysisMainWindowComposition(
+            window,
+            controller,
+            session_series=image_series,
+            classifier_configurations=(classifier_configuration,),
+            m6_preset_name="TTMAPP M6 approved",
+            classifier_preset_name="TTMAPP A/B/C approved",
+            export_settings_for=lambda _publication: export_settings,
+        )
+        simple = composition.open_domain_analysis()
+        advanced = composition.open_position_analysis()
+        simple.range_end_spin.setValue(2)
+        simple.analyze_button.click()
+        executor.run_next()
+        qt_app.processEvents()
+
+        publication = controller.snapshot.published
+        assert publication is not None
+        cache_records = module.session_cache_records()
+        assert len(cache_records.m6_records) == 2
+        assert len(cache_records.classifier_records) == 2
+        simple.range_end_spin.setValue(1)
+        simple.analyze_button.click()
+        executor.run_next()
+        qt_app.processEvents()
+        publication = controller.snapshot.published
+        assert publication is not None
+        assert publication.request.frame_indices == (0,)
+        cache_records = module.session_cache_records()
+        assert len(cache_records.m6_records) == 2
+        assert len(cache_records.classifier_records) == 2
+        advanced.current_frame_results_panel.domain_table.setCurrentCell(0, 0)
+        qt_app.processEvents()
+        selection = controller.snapshot.selected_component
+        assert selection is not None
+        assert window.viewer.highlighted_m6_overlay_source_ids() == (
+            "m-a",
+            "m-b",
+        )
+
+        session_path = tmp_path / "preflight.moltrack.json"
+        saved_state = composition.save_session(session_path)
+        loaded = load_moltrack_session(session_path)
+        session_payload = json.loads(session_path.read_text(encoding="utf-8"))
+        assert loaded.domain_analysis_state == saved_state.domain_analysis_state
+        assert loaded.domain_analysis_state is not None
+        assert loaded.domain_analysis_state.published_result == publication
+        assert loaded.domain_analysis_state.selected_component == selection
+        assert len(loaded.domain_analysis_state.m6_cache_records) == 1
+        assert len(loaded.domain_analysis_state.classifier_cache_records) == 1
+        assert session_payload["schema_version"] == 2
+        assert "molecular_m6_analysis" not in session_payload
+        assert "texture_domain_analysis" not in session_payload
+
+        controller.dispatch(SetDomainAnalysisFrame(1))
+        module.restore_session_cache_records(DomainAnalysisSessionCacheRecords())
+        assert controller.snapshot.selected_component is None
+        assert module.session_cache_records() == DomainAnalysisSessionCacheRecords()
+        composition.restore_session(loaded.domain_analysis_state)
+        assert composition.session_state() == loaded.domain_analysis_state
+        assert controller.snapshot.published == publication
+        assert controller.snapshot.selected_component == selection
+        assert controller.snapshot.run.status == "completed"
+        assert window.viewer.highlighted_m6_overlay_source_ids() == (
+            "m-a",
+            "m-b",
+        )
+
+        simple.export_button.click()
+        assert (export_destination / "manifest.json").is_file(), (
+            simple.diagnosis_label.text()
+        )
+        export_manifest = json.loads(
+            (export_destination / "manifest.json").read_text(encoding="utf-8")
+        )
+        assert export_manifest["export_schema_version"] == 9
+        assert export_manifest["analysis"]["analysis_mode"] == (
+            "domain_analysis_published_snapshot"
+        )
+        assert "domain_analysis" in export_manifest["analysis"]
+        assert "m6_orientation" not in export_manifest["analysis"]
+        assert "m6_domain_types" not in export_manifest["analysis"]
+        assert all(
+            path.name == "manifest.json" or path.name.startswith("domain_analysis_")
+            for path in export_destination.iterdir()
+        )
+    finally:
+        window.close()
+        window.deleteLater()
+        qt_app.processEvents()

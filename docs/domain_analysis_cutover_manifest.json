@@ -1,0 +1,363 @@
+{
+  "schema_version": 1,
+  "preflight_composition": "moltrack.ui.domain_analysis_composition.DomainAnalysisMainWindowComposition",
+  "invariants": [
+    "Public routing remains on the legacy Position Analysis dialog until ticket 23.",
+    "Ticket 23 replaces every entry in one checkpoint without a feature flag, shadow execution, or dual-write.",
+    "Low-level M6 and texture descriptor mathematics remain only where used by the new Domain Analysis adapters."
+  ],
+  "entries": [
+    {
+      "id": "routing.position_analysis_public_entry",
+      "category": "routing",
+      "legacy": [
+        {
+          "path": "moltrack/ui/main_window.py",
+          "anchors": [
+            "self.btn_position_analysis = QPushButton(\"Position Analysis...\"",
+            "self.btn_position_analysis.clicked.connect(self._on_position_analysis_requested)",
+            "def position_analysis_dialog(self)",
+            "def _on_position_analysis_requested(self)"
+          ]
+        },
+        {
+          "path": "moltrack/ui/dialogs/position_analysis_dialog.py",
+          "anchors": ["class PositionAnalysisDialog(QDialog)"]
+        }
+      ],
+      "disposition": "replace",
+      "replacement": [
+        {
+          "path": "moltrack/ui/domain_analysis_composition.py",
+          "anchors": [
+            "class DomainAnalysisMainWindowComposition(QObject)",
+            "def open_domain_analysis(self)",
+            "def open_position_analysis(self)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "state.position_range_compare_spatial",
+      "category": "state_fields",
+      "legacy": [
+        {
+          "path": "moltrack/ui/main_window.py",
+          "anchors": [
+            "self._position_range_analyzer = position_range_analyzer",
+            "self._position_range_comparator = position_range_comparator",
+            "self._position_analysis_dialog: PositionAnalysisDialog | None = None"
+          ]
+        },
+        {
+          "path": "moltrack/ui/dialogs/position_analysis_dialog.py",
+          "anchors": [
+            "self._analysis_mode: MolecularFrameRangeAnalysisMode = \"compare_ranges\"",
+            "self.sp_second_range_start = QSpinBox",
+            "self.spatial_comparison_tab = QWidget",
+            "self.tabs.addTab(self.spatial_comparison_tab, \"Spatial comparison\")"
+          ]
+        }
+      ],
+      "disposition": "replace",
+      "replacement": [
+        {
+          "path": "moltrack/analysis/domain_analysis/workspace_controller.py",
+          "anchors": ["class DomainAnalysisWorkspaceController", "snapshot", "dispatch"]
+        },
+        {
+          "path": "moltrack/ui/dialogs/position_analysis_workspace_dialog.py",
+          "anchors": ["class PositionAnalysisWorkspaceDialog", "self.range_start_spin", "self.range_end_spin"]
+        }
+      ]
+    },
+    {
+      "id": "state.main_window_m6_owner",
+      "category": "state_fields",
+      "legacy": [
+        {
+          "path": "moltrack/ui/main_window.py",
+          "anchors": [
+            "self._m6_analysis_running = False",
+            "self._m6_analysis_thread: QThread | None = None",
+            "self._m6_analysis_worker: _M6PositionAnalysisWorker | None = None",
+            "self._m6_pending_context = None",
+            "self._m6_completed_context = None",
+            "self._m6_rendered_analysis = None",
+            "self._m6_selected_ordered_component_id: int | None = None"
+          ]
+        }
+      ],
+      "disposition": "replace",
+      "replacement": [
+        {
+          "path": "moltrack/analysis/domain_analysis/workspace_controller.py",
+          "anchors": ["class DomainAnalysisWorkspaceSnapshot", "class DomainAnalysisWorkspaceController"]
+        },
+        {
+          "path": "moltrack/ui/domain_analysis_overlay.py",
+          "anchors": ["class DomainAnalysisOverlayPresenter"]
+        }
+      ]
+    },
+    {
+      "id": "state.main_window_m6_domain_type_owner",
+      "category": "state_fields",
+      "legacy": [
+        {
+          "path": "moltrack/ui/main_window.py",
+          "anchors": [
+            "self._m6_domain_type_store = (",
+            "self._m6_domain_type_controller = M6DomainTypeAnalysisController(",
+            "self._m6_selected_domain_type_key: M6DomainTypeSelection | None = None",
+            "self._m6_domain_type_overlay_index: M6DomainTypeOverlayIndex | None = None"
+          ]
+        }
+      ],
+      "disposition": "replace",
+      "replacement": [
+        {
+          "path": "moltrack/ui/domain_analysis_workspace_view.py",
+          "anchors": ["class DomainAnalysisWorkspaceViewBinding"]
+        },
+        {
+          "path": "moltrack/ui/dialogs/m6_current_frame_results_panel.py",
+          "anchors": ["class M6CurrentFrameResultsPanel"]
+        }
+      ]
+    },
+    {
+      "id": "state.main_window_ungated_texture_owner",
+      "category": "state_fields",
+      "legacy": [
+        {
+          "path": "moltrack/ui/main_window.py",
+          "anchors": [
+            "self._texture_domain_controller = TextureDomainAnalysisController(",
+            "self._texture_domain_analysis_series = None",
+            "self._texture_domain_status_message: str | None = None"
+          ]
+        }
+      ],
+      "disposition": "replace",
+      "replacement": [
+        {
+          "path": "moltrack/analysis/domain_analysis/texture_abc_adapter.py",
+          "anchors": ["class TextureABCClassifierAdapter", "ABC_ORIENTATION_CLASSIFIER_ID"]
+        },
+        {
+          "path": "moltrack/analysis/domain_analysis/module.py",
+          "anchors": ["class DomainAnalysisModule"]
+        }
+      ]
+    },
+    {
+      "id": "workers.position_and_m6",
+      "category": "workers",
+      "legacy": [
+        {
+          "path": "moltrack/ui/main_window.py",
+          "anchors": [
+            "class _PositionRangeAnalysisExecution",
+            "def _execute_position_range_analysis(",
+            "class _M6PositionAnalysisWorker(QObject)",
+            "class _M6PendingAnalysisContext",
+            "class _M6CompletedAnalysisContext"
+          ]
+        }
+      ],
+      "disposition": "replace",
+      "replacement": [
+        {
+          "path": "moltrack/analysis/domain_analysis/workspace_lifecycle.py",
+          "anchors": ["class DomainAnalysisWorkspaceExecution", "def perform("]
+        }
+      ]
+    },
+    {
+      "id": "workers.m6_domain_type",
+      "category": "workers",
+      "legacy": [
+        {
+          "path": "moltrack/ui/m6_domain_type_worker.py",
+          "anchors": ["class _M6DomainTypeAnalysisWorker(QObject)", "class M6DomainTypeAnalysisController(QObject)"]
+        }
+      ],
+      "disposition": "replace",
+      "replacement": [
+        {
+          "path": "moltrack/analysis/domain_analysis/classifier_runner.py",
+          "anchors": ["def run_requested_classifiers("]
+        },
+        {
+          "path": "moltrack/analysis/domain_analysis/workspace_lifecycle.py",
+          "anchors": ["class DomainAnalysisWorkspaceExecution"]
+        }
+      ]
+    },
+    {
+      "id": "workers.ungated_texture",
+      "category": "workers",
+      "legacy": [
+        {
+          "path": "moltrack/ui/texture_domain_worker.py",
+          "anchors": ["class _TextureDomainAnalysisWorker(QObject)", "class TextureDomainAnalysisController(QObject)"]
+        }
+      ],
+      "disposition": "remove",
+      "replacement": [],
+      "decision": "Remove the public ungated Texture Domains worker; retained descriptor mathematics is invoked only through TextureABCClassifierAdapter behind a complete M6 gate."
+    },
+    {
+      "id": "persistence.legacy_workspace_fields",
+      "category": "persistence_export",
+      "legacy": [
+        {
+          "path": "moltrack/core/session.py",
+          "anchors": [
+            "position_analysis: MolTrackPositionAnalysisState | None = None",
+            "m6_analysis_state: MolecularM6SessionState | None = None",
+            "m6_domain_type_analysis_state: M6DomainTypeSessionState | None = None",
+            "molecular_order_type_analysis_state: (",
+            "texture_domain_analysis_state: TextureDomainSessionState | None = None"
+          ]
+        },
+        {
+          "path": "moltrack/persistence/session_store.py",
+          "anchors": [
+            "def _position_analysis_to_payload(",
+            "def _position_analysis_from_payload(",
+            "def _position_analysis_from_ui_state(",
+            "def _m6_analysis_state_from_ui_or_series(",
+            "def _m6_analysis_to_payload(",
+            "def _m6_analysis_from_payload(",
+            "def _m6_domain_type_state_from_ui_state(",
+            "def _m6_domain_type_state_from_payload(",
+            "def _molecular_order_type_state_from_ui_state(",
+            "def _molecular_order_type_state_from_payload(",
+            "def _texture_domain_state_from_payload(",
+            "\"m6_domain_type_analysis\": (",
+            "\"molecular_order_type_analysis\": (",
+            "\"texture_domain_analysis\": ("
+          ]
+        }
+      ],
+      "disposition": "replace",
+      "replacement": [
+        {
+          "path": "moltrack/persistence/domain_analysis_session.py",
+          "anchors": ["def domain_analysis_state_from_ui_state(", "def domain_analysis_state_to_payload("]
+        },
+        {
+          "path": "moltrack/ui/domain_analysis_composition.py",
+          "anchors": ["def session_state(self)", "def save_session(self"]
+        }
+      ]
+    },
+    {
+      "id": "export.legacy_position_package",
+      "category": "persistence_export",
+      "legacy": [
+        {
+          "path": "moltrack/ui/main_window.py",
+          "anchors": ["def _on_position_analysis_export_requested(self)", "class _AnalysisExportWorker(QObject)"]
+        },
+        {
+          "path": "moltrack/persistence/analysis_package_dispatch.py",
+          "anchors": ["export_legacy_analysis_package", "if isinstance(settings, AnalysisExportSettings)"]
+        },
+        {
+          "path": "moltrack/persistence/analysis_package.py",
+          "anchors": [
+            "class AnalysisExportSettings:",
+            "def export_analysis_package("
+          ]
+        }
+      ],
+      "disposition": "replace",
+      "replacement": [
+        {
+          "path": "moltrack/persistence/domain_analysis_export.py",
+          "anchors": ["def export_domain_analysis_package("]
+        },
+        {
+          "path": "moltrack/ui/domain_analysis_composition.py",
+          "anchors": ["def _export_published(self"]
+        }
+      ]
+    },
+    {
+      "id": "tests.legacy_position_dialog",
+      "category": "tests",
+      "legacy": [
+        {
+          "path": "tests/moltrack/test_position_analysis_range_modes.py",
+          "scope": "file",
+          "anchors": ["test_switching_back_to_compare_preserves_and_emits_both_ranges", "test_validation_ignores_hidden_second_range_only_in_single_mode"]
+        },
+        {
+          "path": "tests/moltrack/test_position_analysis_single_range_presentation.py",
+          "scope": "file",
+          "anchors": [
+            "class PositionAnalysisSingleRangePresentationTests(unittest.TestCase)",
+            "test_comparison_after_single_restores_two_series_deltas_and_spatial_tab",
+            "test_mode_change_invalidates_range_result_but_preserves_current_frame_data"
+          ]
+        },
+        {
+          "path": "tests/moltrack/test_main_window.py",
+          "scope": "anchors",
+          "anchors": [
+            "test_position_analysis_dialog_edits_two_frame_ranges_independently",
+            "test_position_analysis_dialog_compares_ranges_on_four_trend_plots",
+            "test_position_analysis_spatial_comparison_uses_shared_intensity_scale",
+            "test_open_state_restores_position_analysis_and_recomputes_comparison"
+          ]
+        }
+      ],
+      "disposition": "replace",
+      "replacement": [
+        {
+          "path": "tests/moltrack/test_domain_analysis_ui_end_to_end.py",
+          "anchors": ["test_main_window_cutover_preflight_runs_complete_new_path", "test_position_analysis_actions_share_workspace_lifecycle"]
+        }
+      ]
+    },
+    {
+      "id": "tests.legacy_workers_and_ungated_classification",
+      "category": "tests",
+      "legacy": [
+        {
+          "path": "tests/moltrack/test_m6_active_range_execution.py",
+          "scope": "file",
+          "anchors": ["test_m6_worker_keeps_comparison_backend_for_compare_mode", "test_worker_discards_result_after_series_and_dialog_replacement"]
+        },
+        {
+          "path": "tests/moltrack/test_m6_domain_type_compare_ranges_end_to_end.py",
+          "scope": "file",
+          "anchors": ["test_joint_result_is_identical_across_ui_overlay_state_plots_and_csv"]
+        },
+        {
+          "path": "tests/moltrack/test_texture_domain_main_window.py",
+          "scope": "file",
+          "anchors": ["test_menu_preset_opens_texture_tab_and_range_analysis_renders_result"]
+        }
+      ],
+      "disposition": "replace",
+      "replacement": [
+        {
+          "path": "tests/moltrack/test_domain_analysis_workspace_lifecycle.py",
+          "anchors": ["test_cancel"]
+        },
+        {
+          "path": "tests/moltrack/test_domain_analysis_module.py",
+          "anchors": ["test_run"]
+        },
+        {
+          "path": "tests/moltrack/test_domain_analysis_export.py",
+          "anchors": ["test_export_analysis_package"]
+        }
+      ]
+    }
+  ]
+}

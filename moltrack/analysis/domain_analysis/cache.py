@@ -48,6 +48,9 @@ class _BoundedLru(Generic[_Key, _Value]):
     def keys(self) -> tuple[_Key, ...]:
         return tuple(self._entries)
 
+    def items(self) -> tuple[tuple[_Key, _Value], ...]:
+        return tuple(self._entries.items())
+
     def remove(self, key: _Key) -> None:
         self._entries.pop(key, None)
 
@@ -102,6 +105,11 @@ class M6FrameCache:
         computation: M6FrameComputation,
     ) -> None:
         self._entries.put(key, computation)
+
+    def records(
+        self,
+    ) -> tuple[tuple[M6FrameCacheKey, M6FrameComputation], ...]:
+        return self._entries.items()
 
 
 def m6_frame_cache_key(
@@ -183,6 +191,13 @@ class ClassifierFrameCache:
                 "Classifier cache key produced a different result fingerprint."
             )
         self._entries.put(key, record)
+
+    def records(
+        self,
+    ) -> tuple[
+        tuple[ClassifierFrameCacheKey, ClassifierFrameCacheRecord], ...
+    ]:
+        return self._entries.items()
 
 
 @dataclass(frozen=True)

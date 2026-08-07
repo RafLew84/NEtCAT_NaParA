@@ -26,6 +26,7 @@ from .workspace_lifecycle_actions import (
 )
 
 if TYPE_CHECKING:
+    from .session_cache_scope import DomainAnalysisSessionCacheRecords
     from .workspace_controller import DomainAnalysisWorkspaceSnapshot
 
 
@@ -82,6 +83,17 @@ class DomainAnalysisWorkspaceExecution:
                 self._cancel(snapshot.run.identity)
         elif isinstance(action, ShutdownDomainAnalysis):
             self._shutdown()
+
+    def session_cache_records(
+        self,
+    ) -> DomainAnalysisSessionCacheRecords:
+        return self._module.session_cache_records()
+
+    def restore_session_cache_records(
+        self,
+        records: DomainAnalysisSessionCacheRecords,
+    ) -> None:
+        self._module.restore_session_cache_records(records)
 
     def _start(
         self,

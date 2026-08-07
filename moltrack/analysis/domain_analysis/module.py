@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from dataclasses import replace
 from math import fsum
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from .cache import (
     DEFAULT_CLASSIFIER_CACHE_MAX_ENTRIES,
@@ -41,6 +41,9 @@ from .models import (
     M6Gate,
     M6PublishedComponent,
 )
+
+if TYPE_CHECKING:
+    from .session_cache_scope import DomainAnalysisSessionCacheRecords
 
 
 class M6Adapter(Protocol):
@@ -113,6 +116,50 @@ class DomainAnalysisModule:
             series, request, gate, canonical_frames,
             on_event=on_event, is_cancelled=is_cancelled,
         )
+
+    def session_cache_records(
+        self,
+    ) -> DomainAnalysisSessionCacheRecords:
+        """Return the complete bounded caches in schema-v2 record form."""
+        from .session_cache_scope import DomainAnalysisSessionCacheRecords
+        from .session_state import (
+            DomainAnalysisClassifierCacheRecord,
+            DomainAnalysisM6CacheRecord,
+        )
+
+        return DomainAnalysisSessionCacheRecords(
+            m6_records=tuple(
+                DomainAnalysisM6CacheRecord(key=key, computation=computation)
+                for key, computation in self._m6_cache.records()
+            ),
+            classifier_records=tuple(
+                DomainAnalysisClassifierCacheRecord(key=key, record=record)
+                for key, record in self._classifier_cache.records()
+            ),
+        )
+
+    def restore_session_cache_records(
+        self,
+        records: DomainAnalysisSessionCacheRecords,
+    ) -> None:
+        """Atomically replace the module caches from validated schema-v2 state."""
+        from .session_cache_scope import DomainAnalysisSessionCacheRecords
+
+        if not isinstance(records, DomainAnalysisSessionCacheRecords):
+            raise TypeError("records must be DomainAnalysisSessionCacheRecords.")
+        restored_m6 = M6FrameCache(max_entries=self._m6_cache.max_entries)
+        restored_classifier = ClassifierFrameCache(
+            max_entries=self._classifier_cache.max_entries,
+        )
+        for m6_record in records.m6_records:
+            restored_m6.put(m6_record.key, m6_record.computation)
+        for classifier_record in records.classifier_records:
+            restored_classifier.put(
+                classifier_record.key,
+                classifier_record.record,
+            )
+        self._m6_cache = restored_m6
+        self._classifier_cache = restored_classifier
 
     def _run_m6_range(
         self,

@@ -55,6 +55,10 @@ from .session_state import (
     DomainAnalysisViewSettings,
     validate_classifier_outcome_for_gate,
 )
+from .session_cache_scope import (
+    DomainAnalysisSessionCacheRecords,
+    with_scoped_domain_analysis_cache,
+)
 from .texture_abc_adapter import (
     ABC_ORIENTATION_CLASSIFIER_ID,
     ABC_ORIENTATION_CLASSIFIER_SCHEMA_VERSION,
@@ -69,6 +73,7 @@ from .workspace_controller import (
     DomainComponentKey,
     PublishDomainAnalysisResult,
     ReplaceDomainAnalysisDraft,
+    RestoreDomainAnalysisWorkspace,
     SelectDomainComponent,
     SetDomainAnalysisFrame,
 )
@@ -116,9 +121,11 @@ __all__ = [
     "DomainAnalysisClassifierCacheRecord",
     "DomainAnalysisM6CacheRecord",
     "DomainAnalysisSessionDiagnostic",
+    "DomainAnalysisSessionCacheRecords",
     "DomainAnalysisSessionState",
     "DomainAnalysisViewSettings",
     "validate_classifier_outcome_for_gate",
+    "with_scoped_domain_analysis_cache",
     "DomainAnalysisSeries",
     "DomainAnalysisWorkspaceController",
     "DomainAnalysisWorkspaceExecution",
@@ -154,6 +161,7 @@ __all__ = [
     "ReceiveDomainAnalysisFailure",
     "ReceiveDomainAnalysisResult",
     "ReplaceDomainAnalysisDraft",
+    "RestoreDomainAnalysisWorkspace",
     "SelectDomainComponent",
     "SetDomainAnalysisFrame",
     "ShutdownDomainAnalysis",

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
 from threading import RLock
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from .classifier_contract import (
     validated_non_negative_integer,
@@ -21,11 +21,16 @@ from .workspace_lifecycle_actions import (
     CancelDomainAnalysis,
     DomainAnalysisLifecycleAction,
     DomainAnalysisWorkspaceIntentError,
+    DomainAnalysisWorkspaceRunIdentity,
     DomainAnalysisWorkspaceRunState,
+    DomainAnalysisWorkspaceRunStatus,
     ShutdownDomainAnalysis,
     StartDomainAnalysis,
 )
 from .workspace_notifications import DomainAnalysisWorkspaceStateChanged
+
+if TYPE_CHECKING:
+    from .session_cache_scope import DomainAnalysisSessionCacheRecords
 
 
 class DomainAnalysisWorkspaceNotificationError(RuntimeError):
@@ -180,11 +185,24 @@ class SetDomainAnalysisFrame:
     frame_index: int
 
 
+@dataclass(frozen=True)
+class RestoreDomainAnalysisWorkspace:
+    """Replace persisted workspace values without restoring transient work."""
+
+    draft: DomainAnalysisRequest
+    published: DomainAnalysisPublication | None
+    active_frame_index: int
+    selected_component: DomainComponentKey | None
+    run_status: DomainAnalysisWorkspaceRunStatus
+    run_diagnosis: str | None = None
+
+
 DomainAnalysisWorkspaceAction = (
     ReplaceDomainAnalysisDraft
     | PublishDomainAnalysisResult
     | SelectDomainComponent
     | SetDomainAnalysisFrame
+    | RestoreDomainAnalysisWorkspace
     | DomainAnalysisLifecycleAction
 )
 class DomainAnalysisWorkspaceController:
@@ -229,6 +247,29 @@ class DomainAnalysisWorkspaceController:
         self,
     ) -> DomainAnalysisWorkspaceStateChanged[DomainAnalysisWorkspaceSnapshot]:
         return self._state_changed
+
+    def session_cache_records(
+        self,
+    ) -> DomainAnalysisSessionCacheRecords:
+        with self._lock:
+            execution = self._execution
+        if execution is None:
+            raise DomainAnalysisWorkspaceIntentError(
+                "Domain Analysis execution is not configured."
+            )
+        return execution.session_cache_records()
+
+    def restore_session_cache_records(
+        self,
+        records: DomainAnalysisSessionCacheRecords,
+    ) -> None:
+        with self._lock:
+            execution = self._execution
+        if execution is None:
+            raise DomainAnalysisWorkspaceIntentError(
+                "Domain Analysis execution is not configured."
+            )
+        execution.restore_session_cache_records(records)
 
     def dispatch(
         self,
@@ -299,10 +340,67 @@ def _reduce_workspace(
         return _select_component(snapshot, action.component)
     if isinstance(action, SetDomainAnalysisFrame):
         return _set_active_frame(snapshot, action.frame_index)
+    if isinstance(action, RestoreDomainAnalysisWorkspace):
+        return _restore_workspace(snapshot, action)
     return reduce_domain_analysis_lifecycle(
         snapshot,
         cast(DomainAnalysisLifecycleAction, action),
         _publish_result,
+    )
+
+
+def _restore_workspace(
+    snapshot: DomainAnalysisWorkspaceSnapshot,
+    action: RestoreDomainAnalysisWorkspace,
+) -> DomainAnalysisWorkspaceSnapshot:
+    if snapshot.run.status == "running":
+        raise DomainAnalysisWorkspaceIntentError(
+            "A running Domain Analysis workspace cannot be restored."
+        )
+    if action.run_status == "running":
+        raise DomainAnalysisWorkspaceIntentError(
+            "Transient Domain Analysis work must restore as retry_required."
+        )
+    if action.run_status == "retry_required" and action.run_diagnosis is None:
+        raise DomainAnalysisWorkspaceIntentError(
+            "retry_required must explain that an explicit retry is needed."
+        )
+    restored_request = (
+        action.published.request
+        if action.published is not None
+        and action.run_status in {"completed", "completed_with_errors"}
+        else action.draft
+    )
+    if action.run_status == "idle":
+        restored_run = DomainAnalysisWorkspaceRunState(
+            diagnosis=action.run_diagnosis,
+        )
+    else:
+        previous_identity = snapshot.run.identity
+        restored_run = DomainAnalysisWorkspaceRunState(
+            status=action.run_status,
+            identity=DomainAnalysisWorkspaceRunIdentity(
+                series_generation=snapshot.series_generation,
+                run_id=(
+                    1
+                    if previous_identity is None
+                    else previous_identity.run_id + 1
+                ),
+                request_fingerprint=_request_fingerprint(restored_request),
+            ),
+            request=restored_request,
+            diagnosis=action.run_diagnosis,
+        )
+    return replace(
+        snapshot,
+        revision=snapshot.revision + 1,
+        draft_revision=snapshot.draft_revision + 1,
+        published_revision=snapshot.published_revision + 1,
+        draft=action.draft,
+        published=action.published,
+        active_frame_index=action.active_frame_index,
+        selected_component=action.selected_component,
+        run=restored_run,
     )
 
 
