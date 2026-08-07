@@ -406,11 +406,21 @@ def _publish_frame(
     molecule_by_id = {value.source_id: value for value in computation.molecules}
     memberships = computation.full_domains + computation.small_ordered_islands
     _validate_membership_source_ids(memberships, known_ids=set(molecule_by_id))
+    assigned_ids = {
+        source_id
+        for membership in memberships
+        for source_id in membership.source_ids
+    }
+    partition_pixels = _partition_pixels_by_nearest_molecule(
+        computation.molecules,
+        assigned_ids=assigned_ids,
+    )
     full_domains = tuple(
         _publish_component(
             value,
             "full_domain",
             molecule_by_id,
+            partition_pixels,
             computation.pixel_area_nm2,
         )
         for value in computation.full_domains
@@ -420,18 +430,14 @@ def _publish_frame(
             value,
             "small_ordered_island",
             molecule_by_id,
+            partition_pixels,
             computation.pixel_area_nm2,
         )
         for value in computation.small_ordered_islands
     )
-    assigned_ids = {
-        source_id
-        for membership in memberships
-        for source_id in membership.source_ids
-    }
     outside_ids = tuple(sorted(set(molecule_by_id).difference(assigned_ids)))
     outside = tuple(molecule_by_id[source_id] for source_id in outside_ids)
-    outside_pixels = _molecule_pixels(outside)
+    outside_pixels = _partition_pixels(outside, partition_pixels)
     return M6FrameGate(
         frame_index=computation.frame_index,
         physical_frame_id=canonical_frame.physical_frame_id,
@@ -470,11 +476,12 @@ def _publish_component(
     membership: M6ComponentMembership,
     component_type: M6ComponentType,
     molecule_by_id: dict[str, M6AnalyzedMolecule],
+    partition_pixels: dict[str, tuple[tuple[int, int], ...]],
     pixel_area_nm2: float,
 ) -> M6PublishedComponent:
     molecules = tuple(molecule_by_id[source_id] for source_id in membership.source_ids)
     points = tuple(value.centroid_xy_nm for value in molecules)
-    footprint_pixels = _molecule_pixels(molecules)
+    footprint_pixels = _partition_pixels(molecules, partition_pixels)
     x_values = tuple(value[0] for value in points)
     y_values = tuple(value[1] for value in points)
     count = len(molecules)
@@ -526,13 +533,47 @@ def _validate_membership_source_ids(
             )
 
 
-def _molecule_pixels(
+def _partition_pixels_by_nearest_molecule(
     molecules: tuple[M6AnalyzedMolecule, ...],
+    *,
+    assigned_ids: set[str],
+) -> dict[str, tuple[tuple[int, int], ...]]:
+    candidates_by_pixel: dict[
+        tuple[int, int],
+        list[M6AnalyzedMolecule],
+    ] = {}
+    for molecule in molecules:
+        for pixel in molecule.footprint_pixels_xy:
+            candidates_by_pixel.setdefault(pixel, []).append(molecule)
+    owned: dict[str, list[tuple[int, int]]] = {
+        molecule.source_id: [] for molecule in molecules
+    }
+    for pixel, candidates in candidates_by_pixel.items():
+        pixel_center = (pixel[0] + 0.5, pixel[1] + 0.5)
+        owner = min(
+            candidates,
+            key=lambda molecule: (
+                (molecule.raw_centroid_xy[0] - pixel_center[0]) ** 2
+                + (molecule.raw_centroid_xy[1] - pixel_center[1]) ** 2,
+                molecule.source_id not in assigned_ids,
+                molecule.source_id,
+            ),
+        )
+        owned[owner.source_id].append(pixel)
+    return {
+        source_id: tuple(sorted(pixels))
+        for source_id, pixels in owned.items()
+    }
+
+
+def _partition_pixels(
+    molecules: tuple[M6AnalyzedMolecule, ...],
+    partition_pixels: dict[str, tuple[tuple[int, int], ...]],
 ) -> tuple[tuple[int, int], ...]:
     return tuple(sorted({
         pixel
         for molecule in molecules
-        for pixel in molecule.footprint_pixels_xy
+        for pixel in partition_pixels[molecule.source_id]
     }))
 
 

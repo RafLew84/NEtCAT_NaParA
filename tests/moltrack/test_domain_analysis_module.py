@@ -31,8 +31,6 @@ class _DeterministicM6Adapter:
         self,
         *,
         reorder_adapter_output: bool,
-        overlap_categories: bool = False,
-        overlap_full_domains: bool = False,
         leave_pixel_uncovered: bool = False,
         fail_frame_index: int | None = None,
         backend_component_ids: tuple[str, str] = (
@@ -43,8 +41,6 @@ class _DeterministicM6Adapter:
         m6_algorithm_version: str = "m6-algorithm-v1",
     ) -> None:
         self._reorder_adapter_output = reorder_adapter_output
-        self._overlap_categories = overlap_categories
-        self._overlap_full_domains = overlap_full_domains
         self._leave_pixel_uncovered = leave_pixel_uncovered
         self.fail_frame_index = fail_frame_index
         self._backend_component_ids = backend_component_ids
@@ -80,9 +76,6 @@ class _DeterministicM6Adapter:
                 core_source_ids=("m-c",),
             ),
         )
-        if self._overlap_full_domains:
-            full_domains += islands
-            islands = ()
         analyzed_pixels = series.analyzed_pixels_xy
         if self._leave_pixel_uncovered:
             analyzed_pixels += ((9, 9),)
@@ -170,7 +163,6 @@ def _geometry_series(
     frame_indices: range = range(10),
     *,
     alternate_geometry: bool = False,
-    overlap_pixel_geometry: bool = False,
     frame_origin: tuple[float, float] = (2.0, 1.0),
     canvas_offset: tuple[float, float] = (11.0, 13.0),
     registration_fingerprint: str = "registration-v1",
@@ -187,11 +179,7 @@ def _geometry_series(
     bboxes = {
         "m-a": (0.0, 0.0, 2.0, 1.0),
         "m-b": (0.0, 1.0, 2.0, 2.0),
-        "m-c": (
-            (0.0, 0.0, 3.0, 1.0)
-            if overlap_pixel_geometry
-            else (2.0, 0.0, 3.0, 1.0)
-        ),
+        "m-c": (2.0, 0.0, 3.0, 1.0),
         "m-d": (3.0, 0.0, 4.0, 3.0),
     }
     if source_view == "expanded_aligned":
@@ -763,31 +751,16 @@ def test_run_cancels_range_without_publishing_or_starting_later_frames() -> None
     ]
 
 
-@pytest.mark.parametrize(
-    ("adapter_options", "message"),
-    (
-        ({"overlap_categories": True}, "pixel partition categories must be disjoint"),
-        ({"overlap_full_domains": True}, "pixel partition categories must be disjoint"),
-        ({"leave_pixel_uncovered": True}, "footprints must cover"),
-    ),
-)
-def test_run_rejects_an_invalid_m6_pixel_partition(
-    adapter_options: dict[str, bool],
-    message: str,
-) -> None:
+def test_run_rejects_an_uncovered_m6_pixel_partition() -> None:
     request = DomainAnalysisRequest(frame_range=range(0, 1))
     adapter = _DeterministicM6Adapter(
         reorder_adapter_output=False,
-        **adapter_options,
+        leave_pixel_uncovered=True,
     )
 
-    with pytest.raises(ValueError, match=message):
+    with pytest.raises(ValueError, match="footprints must cover"):
         DomainAnalysisModule(adapter, classifier_adapters={}).run(
-            _geometry_series(
-                overlap_pixel_geometry=(
-                    "pixel partition" in message
-                ),
-            ),
+            _geometry_series(),
             request,
         )
 
