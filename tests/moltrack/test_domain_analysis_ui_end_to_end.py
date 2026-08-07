@@ -9,6 +9,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from moltrack.analysis.domain_analysis import (
     ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
     ABC_ORIENTATION_CLASSIFIER_ID,
+    ClassifierAnalysisError,
     ClassifierMoleculeInput,
     ClassifierMoleculePrediction,
     DomainAnalysisModule,
@@ -33,6 +34,9 @@ except ImportError:  # pragma: no cover - optional outside target GUI env
 if QApplication is not None:
     from moltrack.ui import MolTrackMainWindow
     from moltrack.ui.dialogs.domain_analysis_dialog import DomainAnalysisDialog
+    from moltrack.ui.dialogs.position_analysis_workspace_dialog import (
+        PositionAnalysisWorkspaceDialog,
+    )
     from moltrack.ui.domain_analysis_overlay import DomainAnalysisOverlayPresenter
 
 
@@ -53,6 +57,8 @@ class _MixedAndUnknownABCClassifier:
         molecules: tuple[ClassifierMoleculeInput, ...],
     ) -> tuple[ClassifierMoleculePrediction, ...]:
         del raw_frame, physical_frame_id, lattice_domain_id
+        if frame_index == 2:
+            raise ClassifierAnalysisError("controlled A/B/C failure")
         if frame_index == 1:
             return tuple(
                 ClassifierMoleculePrediction(
@@ -209,3 +215,101 @@ def test_domain_analysis_ui_shares_published_overlay_and_selection(
     assert controller.snapshot.run.status == "running"
     assert controller.snapshot.published is publication
     assert viewer.visible_m6_overlay_colors() == published_colors
+
+
+def test_position_analysis_adapter_reads_the_shared_workspace(
+    qt_app,
+    domain_ui,
+) -> None:
+    controller, executor, simple, window, _presenter = domain_ui
+    advanced = PositionAnalysisWorkspaceDialog(controller)
+    simple.range_end_spin.setValue(2)
+    simple.analyze_button.click()
+    executor.run_next()
+    qt_app.processEvents()
+
+    assert (
+        advanced.current_frame_results_panel.current_results()
+        == simple.current_frame_results_panel.current_results()
+    )
+    first_publication = controller.snapshot.published
+    assert first_publication is not None
+    first_gate = first_publication.result.m6_gate
+    assert first_gate is not None
+    assert "Frame 2" in advanced.range_trends_view.toPlainText()
+    assert (
+        first_gate.frames[0].m6_gate_fingerprint
+        in advanced.sixfold_bond_order_view.toPlainText()
+    )
+    assert "Full Domain" in advanced.domain_types_view.toPlainText()
+    assert "Mixed" in advanced.classifier_view.toPlainText()
+    assert "m-a" in advanced.order_hierarchy_view.toPlainText()
+    advanced.current_frame_results_panel.domain_table.setCurrentCell(0, 0)
+    qt_app.processEvents()
+    selection = controller.snapshot.selected_component
+    assert selection is not None
+    assert simple.current_frame_results_panel.domain_table.currentRow() == 0
+    assert window.viewer.highlighted_m6_overlay_source_ids() == ("m-a", "m-b")
+
+    simple.range_end_spin.setValue(3)
+    simple.analyze_button.click()
+    executor.run_next()
+    qt_app.processEvents()
+
+    assert controller.snapshot.run.status == "completed_with_errors", (
+        controller.snapshot.run.diagnosis
+    )
+    assert advanced.frame_range() == (1, 3)
+    assert advanced.analysis_tab_labels() == (
+        "Current frame",
+        "Range trends",
+        "Sixfold Bond Order",
+        "Domain Types",
+        "M6-Gated A/B/C",
+        "Order Hierarchy",
+    )
+    assert "Spatial comparison" not in advanced.analysis_tab_labels()
+    assert advanced.overall_status_label.text() == simple.overall_status_label.text()
+    assert advanced.m6_status_label.text() == simple.m6_status_label.text()
+    assert (
+        advanced.classifier_status_label.text() == simple.classifier_status_label.text()
+    )
+    assert advanced.diagnosis_label.text() == simple.diagnosis_label.text()
+    assert (
+        advanced.current_frame_results_panel.current_results()
+        == simple.current_frame_results_panel.current_results()
+    )
+
+    controller.dispatch(SetDomainAnalysisFrame(2))
+    qt_app.processEvents()
+    assert (
+        advanced.current_frame_results_panel.current_results()
+        == simple.current_frame_results_panel.current_results()
+    )
+    abc_column = _abc_column(advanced.current_frame_results_panel.domain_table)
+    assert "Unavailable" in (
+        advanced.current_frame_results_panel.domain_table.item(0, abc_column).text()
+    )
+    assert "controlled A/B/C failure" in advanced.classifier_view.toPlainText()
+    assert "Frame 3" in advanced.range_trends_view.toPlainText()
+
+    advanced.current_frame_results_panel.domain_table.setCurrentCell(0, 0)
+    qt_app.processEvents()
+    publication = controller.snapshot.published
+    selection = controller.snapshot.selected_component
+    assert selection is not None
+    advanced.close()
+    advanced.deleteLater()
+    qt_app.processEvents()
+    reopened = PositionAnalysisWorkspaceDialog(controller)
+    qt_app.processEvents()
+    assert controller.snapshot.published is publication
+    assert controller.snapshot.selected_component == selection
+    assert reopened.current_frame_results_panel.domain_table.currentRow() == 0
+    assert reopened.frame_range() == (1, 3)
+    assert (
+        reopened.current_frame_results_panel.current_results()
+        == simple.current_frame_results_panel.current_results()
+    )
+    reopened.close()
+    reopened.deleteLater()

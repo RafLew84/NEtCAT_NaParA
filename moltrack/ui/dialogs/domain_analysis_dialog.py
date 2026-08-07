@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from PyQt6.QtCore import QSignalBlocker, pyqtSignal
+from PyQt6.QtCore import QSignalBlocker
 from PyQt6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -27,13 +27,11 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisRequest,
     DomainAnalysisWorkspaceController,
     DomainAnalysisWorkspaceSnapshot,
-    DomainComponentKey,
     ReplaceDomainAnalysisDraft,
-    SelectDomainComponent,
     StartDomainAnalysis,
 )
-from moltrack.analysis.m6_current_frame_results import (
-    build_domain_analysis_current_frame_results,
+from moltrack.ui.domain_analysis_workspace_view import (
+    DomainAnalysisWorkspaceViewBinding,
 )
 
 from .m6_current_frame_results_panel import M6CurrentFrameResultsPanel
@@ -43,7 +41,7 @@ ExportPublished = Callable[[DomainAnalysisPublication], None]
 
 
 @dataclass(frozen=True)
-class _DialogPresentation:
+class DomainAnalysisDialogPresentation:
     request_enabled: bool
     cancel_enabled: bool
     export_enabled: bool
@@ -55,8 +53,6 @@ class _DialogPresentation:
 
 class DomainAnalysisDialog(QDialog):
     """Thin, modeless adapter for one Domain Analysis workspace."""
-
-    _snapshot_received = pyqtSignal(object)
 
     def __init__(
         self,
@@ -80,13 +76,13 @@ class DomainAnalysisDialog(QDialog):
             _required_name(m6_preset_name, "m6_preset_name"),
             _required_name(classifier_preset_name, "classifier_preset_name"),
         )
-        self._connect_controls()
-        self._snapshot_received.connect(self._render_snapshot)
-        subscription = controller.state_changed.connect(
-            self._snapshot_received.emit
+        self._workspace_view = DomainAnalysisWorkspaceViewBinding(
+            controller,
+            owner=self,
+            render_snapshot=self._render_snapshot,
         )
-        self.destroyed.connect(lambda _object=None: subscription.disconnect())
-        self._render_snapshot(controller.snapshot)
+        self._connect_controls()
+        self._workspace_view.render_initial()
 
     def _build_ui(
         self,
@@ -191,13 +187,8 @@ class DomainAnalysisDialog(QDialog):
         )
         self.export_button.clicked.connect(self._export_last_publication)
         self.current_frame_results_panel.domain_selection_changed.connect(
-            self._select_component
+            self._workspace_view.select_component
         )
-
-    def _select_component(self, value: object) -> None:
-        if value is not None and not isinstance(value, DomainComponentKey):
-            raise TypeError("Domain Analysis selection must be canonical.")
-        self._controller.dispatch(SelectDomainComponent(value))
 
     def _replace_draft(self, changed: str) -> None:
         start = self.range_start_spin.value()
@@ -257,15 +248,10 @@ class DomainAnalysisDialog(QDialog):
             self._render_request(value)
         finally:
             del blockers
-        presentation = _dialog_presentation(value)
-        self.current_frame_results_panel.set_results(
-            build_domain_analysis_current_frame_results(
-                value.published,
-                physical_frame_id=value.active_physical_frame_id,
-            )
-        )
-        self.current_frame_results_panel.set_selected_component(
-            value.selected_component
+        presentation = domain_analysis_dialog_presentation(value)
+        self._workspace_view.render_current_frame(
+            self.current_frame_results_panel,
+            value,
         )
         self._render_controls(presentation)
         self._render_status(presentation)
@@ -283,7 +269,10 @@ class DomainAnalysisDialog(QDialog):
             ABC_ORIENTATION_CLASSIFIER_ID in snapshot.draft.classifier_ids
         )
 
-    def _render_controls(self, presentation: _DialogPresentation) -> None:
+    def _render_controls(
+        self,
+        presentation: DomainAnalysisDialogPresentation,
+    ) -> None:
         for widget in (
             self.range_start_spin,
             self.range_end_spin,
@@ -295,11 +284,17 @@ class DomainAnalysisDialog(QDialog):
         self.cancel_button.setEnabled(presentation.cancel_enabled)
         self.export_button.setEnabled(presentation.export_enabled)
 
-    def _render_status(self, presentation: _DialogPresentation) -> None:
-        self.overall_status_label.setText(presentation.overall_status)
-        self.m6_status_label.setText(presentation.m6_status)
-        self.classifier_status_label.setText(presentation.classifier_status)
-        self.diagnosis_label.setText(presentation.diagnosis)
+    def _render_status(
+        self,
+        presentation: DomainAnalysisDialogPresentation,
+    ) -> None:
+        self._workspace_view.render_status(
+            presentation,
+            overall_label=self.overall_status_label,
+            m6_label=self.m6_status_label,
+            classifier_label=self.classifier_status_label,
+            diagnosis_label=self.diagnosis_label,
+        )
 
 
 def _required_name(value: str, field_name: str) -> str:
@@ -314,12 +309,12 @@ def _read_only_edit(value: str, parent: QWidget) -> QLineEdit:
     return edit
 
 
-def _dialog_presentation(
+def domain_analysis_dialog_presentation(
     snapshot: DomainAnalysisWorkspaceSnapshot,
-) -> _DialogPresentation:
+) -> DomainAnalysisDialogPresentation:
     overall, m6, classifier = _status_texts(snapshot)
     running = snapshot.run.status == "running"
-    return _DialogPresentation(
+    return DomainAnalysisDialogPresentation(
         request_enabled=not running and not snapshot.is_shutdown,
         cancel_enabled=running and not snapshot.is_shutdown,
         export_enabled=snapshot.published is not None,
