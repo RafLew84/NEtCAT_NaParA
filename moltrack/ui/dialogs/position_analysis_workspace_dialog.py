@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from PyQt6.QtCore import QSignalBlocker
+from dataclasses import replace
+
 from PyQt6.QtWidgets import (
     QDialog,
     QFormLayout,
@@ -18,13 +19,20 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisWorkspaceSnapshot,
 )
 from moltrack.ui.domain_analysis_workspace_view import (
+    DomainAnalysisActionRow,
+    DomainAnalysisFrameRangeBinding,
+    DomainAnalysisWorkspaceActionBinding,
     DomainAnalysisWorkspaceViewBinding,
+    ExportPublished,
 )
 from moltrack.ui.position_analysis_workspace_presentation import (
     position_analysis_advanced_tab_text,
 )
 
-from .domain_analysis_dialog import domain_analysis_dialog_presentation
+from .domain_analysis_dialog import (
+    DomainAnalysisDialogPresentation,
+    domain_analysis_dialog_presentation,
+)
 from .m6_current_frame_results_panel import M6CurrentFrameResultsPanel
 
 
@@ -45,6 +53,7 @@ class PositionAnalysisWorkspaceDialog(QDialog):
         self,
         controller: DomainAnalysisWorkspaceController,
         *,
+        export_published: ExportPublished,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -58,6 +67,20 @@ class PositionAnalysisWorkspaceDialog(QDialog):
             controller,
             owner=self,
             render_snapshot=self._render_snapshot,
+        )
+        self._range_binding = DomainAnalysisFrameRangeBinding(
+            self.range_start_spin,
+            self.range_end_spin,
+            draft_changed=self._replace_draft,
+        )
+        self._workspace_actions = DomainAnalysisWorkspaceActionBinding(
+            controller,
+            export_published=export_published,
+            sync_draft=self._replace_draft,
+            analyze_button=self.analyze_button,
+            cancel_button=self.cancel_button,
+            export_button=self.export_button,
+            diagnosis_label=self.diagnosis_label,
         )
         self.current_frame_results_panel.domain_selection_changed.connect(
             self._workspace_view.select_component
@@ -84,6 +107,7 @@ class PositionAnalysisWorkspaceDialog(QDialog):
         self.classifier_view = self._add_read_only_tab(_POSITION_ANALYSIS_TABS[4])
         self.order_hierarchy_view = self._add_read_only_tab(_POSITION_ANALYSIS_TABS[5])
         layout.addWidget(self.analysis_tabs)
+        layout.addLayout(self._build_action_row())
 
     def _add_read_only_tab(self, label: str) -> QPlainTextEdit:
         view = QPlainTextEdit(self.analysis_tabs)
@@ -96,9 +120,6 @@ class PositionAnalysisWorkspaceDialog(QDialog):
         form = QFormLayout(group)
         self.range_start_spin = QSpinBox(group)
         self.range_end_spin = QSpinBox(group)
-        for spin in (self.range_start_spin, self.range_end_spin):
-            spin.setReadOnly(True)
-            spin.setEnabled(False)
         form.addRow("Start frame", self.range_start_spin)
         form.addRow("End frame", self.range_end_spin)
         return group
@@ -117,6 +138,19 @@ class PositionAnalysisWorkspaceDialog(QDialog):
         form.addRow("Diagnosis", self.diagnosis_label)
         return group
 
+    def _build_action_row(self) -> DomainAnalysisActionRow:
+        row = DomainAnalysisActionRow(self)
+        self.analyze_button = row.analyze_button
+        self.cancel_button = row.cancel_button
+        self.export_button = row.export_button
+        return row
+
+    def _replace_draft(self) -> None:
+        current = self._controller.snapshot.draft
+        self._workspace_actions.replace_draft(
+            replace(current, frame_range=self._range_binding.frame_range)
+        )
+
     def frame_range(self) -> tuple[int, int]:
         return self.range_start_spin.value(), self.range_end_spin.value()
 
@@ -129,17 +163,10 @@ class PositionAnalysisWorkspaceDialog(QDialog):
     def _render_snapshot(self, value: object) -> None:
         if not isinstance(value, DomainAnalysisWorkspaceSnapshot):
             raise TypeError("snapshot must be a DomainAnalysisWorkspaceSnapshot.")
-        blockers = [
-            QSignalBlocker(self.range_start_spin),
-            QSignalBlocker(self.range_end_spin),
-        ]
-        try:
-            self.range_start_spin.setRange(1, value.frame_count)
-            self.range_end_spin.setRange(1, value.frame_count)
-            self.range_start_spin.setValue(value.draft.frame_range.start + 1)
-            self.range_end_spin.setValue(value.draft.frame_range.stop)
-        finally:
-            del blockers
+        self._range_binding.render(
+            frame_count=value.frame_count,
+            frame_range=value.draft.frame_range,
+        )
         self._workspace_view.render_current_frame(
             self.current_frame_results_panel,
             value,
@@ -153,6 +180,14 @@ class PositionAnalysisWorkspaceDialog(QDialog):
             classifier_label=self.classifier_status_label,
             diagnosis_label=self.diagnosis_label,
         )
+        self._render_controls(presentation)
+
+    def _render_controls(
+        self,
+        presentation: DomainAnalysisDialogPresentation,
+    ) -> None:
+        self._range_binding.set_enabled(presentation.request_enabled)
+        self._workspace_actions.render_controls(presentation)
 
     def _render_advanced_tabs(
         self,

@@ -222,7 +222,10 @@ def test_position_analysis_adapter_reads_the_shared_workspace(
     domain_ui,
 ) -> None:
     controller, executor, simple, window, _presenter = domain_ui
-    advanced = PositionAnalysisWorkspaceDialog(controller)
+    advanced = PositionAnalysisWorkspaceDialog(
+        controller,
+        export_published=lambda publication: None,
+    )
     simple.range_end_spin.setValue(2)
     simple.analyze_button.click()
     executor.run_next()
@@ -301,7 +304,10 @@ def test_position_analysis_adapter_reads_the_shared_workspace(
     advanced.close()
     advanced.deleteLater()
     qt_app.processEvents()
-    reopened = PositionAnalysisWorkspaceDialog(controller)
+    reopened = PositionAnalysisWorkspaceDialog(
+        controller,
+        export_published=lambda publication: None,
+    )
     qt_app.processEvents()
     assert controller.snapshot.published is publication
     assert controller.snapshot.selected_component == selection
@@ -311,5 +317,69 @@ def test_position_analysis_adapter_reads_the_shared_workspace(
         reopened.current_frame_results_panel.current_results()
         == simple.current_frame_results_panel.current_results()
     )
+    reopened.close()
+    reopened.deleteLater()
+
+
+def test_position_analysis_actions_share_workspace_lifecycle(
+    qt_app,
+    domain_ui,
+) -> None:
+    controller, executor, simple, _window, _presenter = domain_ui
+    exported = []
+    advanced = PositionAnalysisWorkspaceDialog(
+        controller,
+        export_published=exported.append,
+    )
+
+    advanced.range_end_spin.setValue(2)
+    advanced.analyze_button.click()
+    qt_app.processEvents()
+    assert controller.snapshot.draft.frame_range == range(0, 2)
+    assert controller.snapshot.run.status == "running"
+    assert simple.range_end_spin.value() == 2
+    assert simple.cancel_button.isEnabled()
+
+    advanced.close()
+    advanced.deleteLater()
+    qt_app.processEvents()
+    assert controller.snapshot.run.status == "running"
+    executor.run_next()
+    qt_app.processEvents()
+    publication = controller.snapshot.published
+    assert publication is not None
+    assert simple.current_frame_results_panel.current_results() is not None
+
+    reopened = PositionAnalysisWorkspaceDialog(
+        controller,
+        export_published=exported.append,
+    )
+    qt_app.processEvents()
+    assert reopened.frame_range() == (1, 2)
+    assert (
+        reopened.current_frame_results_panel.current_results()
+        == simple.current_frame_results_panel.current_results()
+    )
+    assert not hasattr(reopened, "second_range_start_spin")
+
+    reopened.range_end_spin.setValue(3)
+    reopened.analyze_button.click()
+    qt_app.processEvents()
+    assert controller.snapshot.run.status == "running"
+    assert controller.snapshot.published is publication
+    reopened.export_button.click()
+    assert exported == [publication]
+
+    reopened.cancel_button.click()
+    qt_app.processEvents()
+    assert controller.snapshot.run.status == "canceled"
+    assert controller.snapshot.published is publication
+    assert not simple.cancel_button.isEnabled()
+    assert simple.range_end_spin.isEnabled()
+    reopened.export_button.click()
+    assert exported == [publication, publication]
+    executor.run_next()
+    assert controller.snapshot.published is publication
+
     reopened.close()
     reopened.deleteLater()

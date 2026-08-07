@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
 
 from PyQt6.QtCore import QSignalBlocker
@@ -10,10 +9,8 @@ from PyQt6.QtWidgets import (
     QFormLayout,
     QGridLayout,
     QGroupBox,
-    QHBoxLayout,
     QLabel,
     QLineEdit,
-    QPushButton,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -22,22 +19,19 @@ from PyQt6.QtWidgets import (
 from moltrack.analysis.domain_analysis import (
     ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
     ABC_ORIENTATION_CLASSIFIER_ID,
-    CancelDomainAnalysis,
-    DomainAnalysisPublication,
     DomainAnalysisRequest,
     DomainAnalysisWorkspaceController,
     DomainAnalysisWorkspaceSnapshot,
-    ReplaceDomainAnalysisDraft,
-    StartDomainAnalysis,
 )
 from moltrack.ui.domain_analysis_workspace_view import (
+    DomainAnalysisActionRow,
+    DomainAnalysisFrameRangeBinding,
+    DomainAnalysisWorkspaceActionBinding,
     DomainAnalysisWorkspaceViewBinding,
+    ExportPublished,
 )
 
 from .m6_current_frame_results_panel import M6CurrentFrameResultsPanel
-
-
-ExportPublished = Callable[[DomainAnalysisPublication], None]
 
 
 @dataclass(frozen=True)
@@ -66,10 +60,7 @@ class DomainAnalysisDialog(QDialog):
         super().__init__(parent)
         if not isinstance(controller, DomainAnalysisWorkspaceController):
             raise TypeError("controller must be a DomainAnalysisWorkspaceController.")
-        if not callable(export_published):
-            raise TypeError("export_published must be callable.")
         self._controller = controller
-        self._export_published = export_published
         self.setWindowTitle("Domain Analysis")
         self.resize(620, 470)
         self._build_ui(
@@ -81,6 +72,20 @@ class DomainAnalysisDialog(QDialog):
             owner=self,
             render_snapshot=self._render_snapshot,
         )
+        self._range_binding = DomainAnalysisFrameRangeBinding(
+            self.range_start_spin,
+            self.range_end_spin,
+            draft_changed=self._replace_draft,
+        )
+        self._workspace_actions = DomainAnalysisWorkspaceActionBinding(
+            controller,
+            export_published=export_published,
+            sync_draft=self._replace_draft,
+            analyze_button=self.analyze_button,
+            cancel_button=self.cancel_button,
+            export_button=self.export_button,
+            diagnosis_label=self.diagnosis_label,
+        )
         self._connect_controls()
         self._workspace_view.render_initial()
 
@@ -91,10 +96,12 @@ class DomainAnalysisDialog(QDialog):
     ) -> None:
         layout = QVBoxLayout(self)
         layout.addWidget(self._build_range_group())
-        layout.addWidget(self._build_policy_group(
-            m6_preset_name,
-            classifier_preset_name,
-        ))
+        layout.addWidget(
+            self._build_policy_group(
+                m6_preset_name,
+                classifier_preset_name,
+            )
+        )
         layout.addWidget(self._build_status_group())
         self.current_frame_results_panel = M6CurrentFrameResultsPanel(self)
         layout.addWidget(self.current_frame_results_panel)
@@ -157,53 +164,23 @@ class DomainAnalysisDialog(QDialog):
         form.addRow("Diagnosis", self.diagnosis_label)
         return group
 
-    def _build_action_row(self) -> QHBoxLayout:
-        row = QHBoxLayout()
-        self.analyze_button = QPushButton("Analyze range", self)
-        self.cancel_button = QPushButton("Cancel", self)
-        self.export_button = QPushButton("Export results...", self)
-        row.addWidget(self.analyze_button)
-        row.addWidget(self.cancel_button)
-        row.addStretch(1)
-        row.addWidget(self.export_button)
+    def _build_action_row(self) -> DomainAnalysisActionRow:
+        row = DomainAnalysisActionRow(self)
+        self.analyze_button = row.analyze_button
+        self.cancel_button = row.cancel_button
+        self.export_button = row.export_button
         return row
 
     def _connect_controls(self) -> None:
-        self.range_start_spin.valueChanged.connect(
-            lambda: self._replace_draft("start")
-        )
-        self.range_end_spin.valueChanged.connect(
-            lambda: self._replace_draft("end")
-        )
-        self.use_segmentation_centroids_checkbox.toggled.connect(
-            lambda: self._replace_draft("geometry")
-        )
-        self.classify_abc_checkbox.toggled.connect(
-            lambda: self._replace_draft("classifier")
-        )
-        self.analyze_button.clicked.connect(self._start_analysis)
-        self.cancel_button.clicked.connect(
-            lambda: self._controller.dispatch(CancelDomainAnalysis())
-        )
-        self.export_button.clicked.connect(self._export_last_publication)
+        self.use_segmentation_centroids_checkbox.toggled.connect(self._replace_draft)
+        self.classify_abc_checkbox.toggled.connect(self._replace_draft)
         self.current_frame_results_panel.domain_selection_changed.connect(
             self._workspace_view.select_component
         )
 
-    def _replace_draft(self, changed: str) -> None:
-        start = self.range_start_spin.value()
-        end = self.range_end_spin.value()
-        if start > end:
-            if changed == "start":
-                end = start
-                with QSignalBlocker(self.range_end_spin):
-                    self.range_end_spin.setValue(end)
-            else:
-                start = end
-                with QSignalBlocker(self.range_start_spin):
-                    self.range_start_spin.setValue(start)
+    def _replace_draft(self) -> None:
         draft = DomainAnalysisRequest(
-            frame_range=range(start - 1, end),
+            frame_range=self._range_binding.frame_range,
             geometry_mode=(
                 "segmentation_preferred"
                 if self.use_segmentation_centroids_checkbox.isChecked()
@@ -215,22 +192,7 @@ class DomainAnalysisDialog(QDialog):
                 else ()
             ),
         )
-        self._controller.dispatch(ReplaceDomainAnalysisDraft(draft))
-
-    def _start_analysis(self) -> None:
-        self._replace_draft("analyze")
-        self._controller.dispatch(StartDomainAnalysis())
-
-    def _export_last_publication(self) -> None:
-        publication = self._controller.snapshot.published
-        if publication is None:
-            return
-        try:
-            self._export_published(publication)
-        except Exception as error:
-            self.diagnosis_label.setText(
-                f"Export failed: {str(error) or error.__class__.__name__}"
-            )
+        self._workspace_actions.replace_draft(draft)
 
     def _render_snapshot(self, value: object) -> None:
         if not isinstance(value, DomainAnalysisWorkspaceSnapshot):
@@ -238,8 +200,6 @@ class DomainAnalysisDialog(QDialog):
         blockers = [
             QSignalBlocker(widget)
             for widget in (
-                self.range_start_spin,
-                self.range_end_spin,
                 self.use_segmentation_centroids_checkbox,
                 self.classify_abc_checkbox,
             )
@@ -257,11 +217,10 @@ class DomainAnalysisDialog(QDialog):
         self._render_status(presentation)
 
     def _render_request(self, snapshot: DomainAnalysisWorkspaceSnapshot) -> None:
-        frame_count = snapshot.frame_count
-        self.range_start_spin.setRange(1, frame_count)
-        self.range_end_spin.setRange(1, frame_count)
-        self.range_start_spin.setValue(snapshot.draft.frame_range.start + 1)
-        self.range_end_spin.setValue(snapshot.draft.frame_range.stop)
+        self._range_binding.render(
+            frame_count=snapshot.frame_count,
+            frame_range=snapshot.draft.frame_range,
+        )
         self.use_segmentation_centroids_checkbox.setChecked(
             snapshot.draft.geometry_mode == "segmentation_preferred"
         )
@@ -273,16 +232,13 @@ class DomainAnalysisDialog(QDialog):
         self,
         presentation: DomainAnalysisDialogPresentation,
     ) -> None:
+        self._range_binding.set_enabled(presentation.request_enabled)
         for widget in (
-            self.range_start_spin,
-            self.range_end_spin,
             self.use_segmentation_centroids_checkbox,
             self.classify_abc_checkbox,
         ):
             widget.setEnabled(presentation.request_enabled)
-        self.analyze_button.setEnabled(presentation.request_enabled)
-        self.cancel_button.setEnabled(presentation.cancel_enabled)
-        self.export_button.setEnabled(presentation.export_enabled)
+        self._workspace_actions.render_controls(presentation)
 
     def _render_status(
         self,
@@ -334,9 +290,7 @@ def _status_texts(
     if status == "running":
         return _running_status_texts(snapshot)
     if status in {"completed", "completed_with_errors"}:
-        overall = (
-            "Completed" if status == "completed" else "Completed with errors"
-        )
+        overall = "Completed" if status == "completed" else "Completed with errors"
         return overall, "Completed", _completed_classifier_text(snapshot)
     if status == "canceled":
         return "Canceled", "Canceled", "Canceled"
@@ -352,8 +306,7 @@ def _running_status_texts(
     overall = "Running" if event is None else f"Running — {event.message}"
     request = snapshot.run.request
     classifier_waiting = (
-        "Waiting" if request is not None and request.classifier_ids
-        else "Not requested"
+        "Waiting" if request is not None and request.classifier_ids else "Not requested"
     )
     if event is None or event.stage_id == "run":
         return overall, "Waiting", classifier_waiting
