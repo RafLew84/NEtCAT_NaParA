@@ -15,11 +15,14 @@ from .domain_analysis_payload_validation import (
 def published_molecule_to_payload(
     value: M6PublishedMolecule,
 ) -> dict[str, Any]:
-    return {
+    payload = {
         "source_id": value.source_id,
         "source_kind": value.source_kind,
         "point_xy_nm": list(value.point_xy_nm),
     }
+    if value.raw_centroid_xy is not None:
+        payload["raw_centroid_xy"] = list(value.raw_centroid_xy)
+    return payload
 
 
 def published_molecule_from_payload(
@@ -35,4 +38,9 @@ def published_molecule_from_payload(
             text_field(saved, "source_kind", path),
         ),
         point_xy_nm=float_pair_field(saved, "point_xy_nm", path),
+        raw_centroid_xy=(
+            float_pair_field(saved, "raw_centroid_xy", path)
+            if "raw_centroid_xy" in saved
+            else None
+        ),
     )

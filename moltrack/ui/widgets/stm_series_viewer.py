@@ -30,6 +30,7 @@ class STMSeriesViewer(QWidget):
     molecular_segmentation_selection_changed = pyqtSignal(object)
     manual_molecular_bbox_drawn = pyqtSignal(object)
     manual_molecular_mask_brush_dragged = pyqtSignal(object)
+    image_pixel_clicked = pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -51,9 +52,7 @@ class STMSeriesViewer(QWidget):
         self._m6_overlay_tooltip = ""
         self._texture_domain_overlay_item = None
         self._visible_texture_domain_overlay_source_ids: tuple[str, ...] = ()
-        self._visible_texture_domain_overlay_colors: tuple[
-            tuple[int, int, int, int], ...
-        ] = ()
+        self._visible_texture_domain_overlay_colors: tuple[tuple[int, int, int, int], ...] = ()
         self._molecular_orientation_axis_items: list[object] = []
         self._visible_molecular_orientation_axis_ids: tuple[str, ...] = ()
         self._molecular_stacking_overlay_items: dict[
@@ -528,12 +527,10 @@ class STMSeriesViewer(QWidget):
         if item is None:
             return
         self._m6_point_overlay_item = item
-        self._m6_overlay_tooltip = (
-            "Domain Type overlay: shared structural type across classified "
-            "frames, not the frame-local Domain ID."
-            if overlay.mode == "domain_type"
-            else ""
-        )
+        self._m6_overlay_tooltip = {
+            "domain_type": "Shared structural type, not frame-local Domain ID.",
+            "domain_abc": "M6-gated per-molecule A/B/C orientation.",
+        }.get(overlay.mode, "")
         if self._m6_overlay_tooltip:
             item.setToolTip(self._m6_overlay_tooltip)
         self._visible_m6_overlay_source_ids = overlay.source_ids
@@ -1035,6 +1032,7 @@ class STMSeriesViewer(QWidget):
 
         view_pos = self.viewer.plot_item.getViewBox().mapSceneToView(event.scenePos())
         x_px, y_px = self._view_to_pixel_coords(view_pos.x(), view_pos.y())
+        self.image_pixel_clicked.emit((x_px, y_px))
         self.select_molecular_segmentation_at_pixel(x_px, y_px)
         self.select_molecular_detection_at_pixel(x_px, y_px)
         event.accept()

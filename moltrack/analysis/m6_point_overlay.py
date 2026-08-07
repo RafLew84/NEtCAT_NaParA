@@ -4,7 +4,7 @@ import colorsys
 import hashlib
 from dataclasses import dataclass
 from math import isfinite
-from typing import Literal, Sequence
+from typing import Literal, Sequence, cast
 
 from .molecular_m6_analysis import MolecularM6OrientationAnalysis
 
@@ -31,6 +31,7 @@ M6OverlayMode = Literal[
     "lattice_domains",
     "domain_boundaries",
     "domain_type",
+    "domain_abc",
 ]
 M6OverlayPointStatus = Literal[
     "q6",
@@ -49,6 +50,10 @@ M6OverlayPointStatus = Literal[
     "lattice_boundary",
     "domain_type",
     "unclassified_domain",
+    "abc_a",
+    "abc_b",
+    "abc_c",
+    "abc_unknown",
     "small_ordered_island",
     "unassigned",
     "undefined_orientation",
@@ -71,6 +76,10 @@ M6_ANALYSIS_OVERLAY_MODES: tuple[M6AnalysisOverlayMode, ...] = (
 M6_OVERLAY_MODES: tuple[M6OverlayMode, ...] = (
     *M6_ANALYSIS_OVERLAY_MODES,
     "domain_type",
+)
+_SUPPORTED_M6_OVERLAY_MODES: tuple[M6OverlayMode, ...] = (
+    *M6_OVERLAY_MODES,
+    "domain_abc",
 )
 
 _UNASSIGNED_COLOR = (145, 155, 165)
@@ -188,7 +197,7 @@ class M6PointOverlay:
     point_statuses: tuple[M6OverlayPointStatus, ...]
 
     def __post_init__(self) -> None:
-        if self.mode not in M6_OVERLAY_MODES:
+        if self.mode not in _SUPPORTED_M6_OVERLAY_MODES:
             raise ValueError(f"Unsupported M6 overlay mode: {self.mode!r}.")
         count = len(self.source_ids)
         if not (
@@ -345,7 +354,7 @@ def _point_color(
     mode: M6AnalysisOverlayMode,
 ) -> tuple[tuple[int, int, int], M6OverlayPointStatus, float]:
     if point.computation_status != "valid_order":
-        status = point.computation_status
+        status = cast(M6OverlayPointStatus, point.computation_status)
         color = _QC_COLORS.get(status, _UNASSIGNED_COLOR)
         return color, status, 1.0
     if mode == "q3":
@@ -381,13 +390,13 @@ def _point_color(
             if point.lattice_point_role == "boundary":
                 return _LATTICE_BOUNDARY_COLOR, "lattice_boundary", 0.8
             return _UNASSIGNED_COLOR, "unassigned", 0.35
-        status: M6OverlayPointStatus = (
+        lattice_status: M6OverlayPointStatus = (
             "lattice_domain_core"
             if point.lattice_point_role == "core"
             else "lattice_domain_halo"
         )
         alpha_scale = 1.0 if point.lattice_point_role == "core" else 0.55
-        return _lattice_domain_color(point.lattice_domain_id), status, alpha_scale
+        return _lattice_domain_color(point.lattice_domain_id), lattice_status, alpha_scale
     if mode == "domain_boundaries":
         if point.lattice_point_role == "boundary":
             return _LATTICE_BOUNDARY_COLOR, "lattice_boundary", 1.0
@@ -416,23 +425,29 @@ def _interpolate_viridis(value: float) -> tuple[int, int, int]:
     fraction = scaled - left_index
     left = _VIRIDIS_STOPS[left_index]
     right = _VIRIDIS_STOPS[left_index + 1]
-    return tuple(
+    return cast(tuple[int, int, int], tuple(
         round(left[channel] + fraction * (right[channel] - left[channel]))
         for channel in range(3)
-    )
+    ))
 
 
 def _orientation_color(orientation_deg: float) -> tuple[int, int, int]:
     hue = (orientation_deg % 60.0) / 60.0
-    return tuple(round(255 * value) for value in colorsys.hsv_to_rgb(hue, 0.72, 0.95))
+    return cast(tuple[int, int, int], tuple(
+        round(255 * value) for value in colorsys.hsv_to_rgb(hue, 0.72, 0.95)
+    ))
 
 
 def _domain_color(domain_id: int) -> tuple[int, int, int]:
     hue = (0.08 + int(domain_id) * 0.6180339887498949) % 1.0
-    return tuple(round(255 * value) for value in colorsys.hsv_to_rgb(hue, 0.62, 0.88))
+    return cast(tuple[int, int, int], tuple(
+        round(255 * value) for value in colorsys.hsv_to_rgb(hue, 0.62, 0.88)
+    ))
 
 
 def _lattice_domain_color(domain_id: str) -> tuple[int, int, int]:
     digest = hashlib.sha256(domain_id.encode("utf-8")).digest()
     hue = int.from_bytes(digest[:4], "big") / float(2**32)
-    return tuple(round(255 * value) for value in colorsys.hsv_to_rgb(hue, 0.66, 0.9))
+    return cast(tuple[int, int, int], tuple(
+        round(255 * value) for value in colorsys.hsv_to_rgb(hue, 0.66, 0.9)
+    ))

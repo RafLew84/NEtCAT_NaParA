@@ -275,6 +275,9 @@ def test_run_canonicalizes_equivalent_raw_and_registered_geometry() -> None:
     assert frame.coordinate_frame == "series_physical_nm"
     assert frame.full_domains[0].source_ids == ("m-a", "m-b")
     assert frame.full_domains[0].points_xy_nm == ((0.5, 3.0), (1.5, 3.0))
+    assert tuple(
+        member.raw_centroid_xy for member in frame.full_domains[0].members
+    ) == ((0.5, 1.0), (1.5, 1.0))
     assert frame.full_domains[0].footprint_area_nm2 == 4.0
     assert frame.full_domains[0].centroid_xy_nm == (1.0, 3.0)
     assert frame.presentation_provenance.raw_shape == (4, 4)

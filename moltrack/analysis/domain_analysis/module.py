@@ -405,6 +405,7 @@ def _publish_frame(
                 source_id=value.source_id,
                 source_kind=value.source_kind,
                 point_xy_nm=value.centroid_xy_nm,
+                raw_centroid_xy=value.raw_centroid_xy,
             )
             for value in outside
         ),
@@ -449,6 +450,7 @@ def _publish_component(
                 source_id=value.source_id,
                 source_kind=value.source_kind,
                 point_xy_nm=value.centroid_xy_nm,
+                raw_centroid_xy=value.raw_centroid_xy,
             )
             for value in molecules
         ),

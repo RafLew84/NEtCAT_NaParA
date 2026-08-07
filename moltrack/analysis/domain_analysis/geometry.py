@@ -122,6 +122,7 @@ class M6PublishedMolecule:
     source_id: str
     source_kind: MoleculeSourceKind
     point_xy_nm: tuple[float, float]
+    raw_centroid_xy: tuple[float, float] | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "source_id", _text(self.source_id, "source_id"))
@@ -132,6 +133,12 @@ class M6PublishedMolecule:
             "point_xy_nm",
             _pair(self.point_xy_nm, "point_xy_nm"),
         )
+        if self.raw_centroid_xy is not None:
+            object.__setattr__(
+                self,
+                "raw_centroid_xy",
+                _pair(self.raw_centroid_xy, "raw_centroid_xy"),
+            )
 
 
 @dataclass(frozen=True)

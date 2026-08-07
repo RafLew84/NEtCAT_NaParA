@@ -102,7 +102,7 @@
       "classes": 22
     },
     "moltrack/ui/widgets/stm_series_viewer.py": {
-      "physical_lines": 1383,
+      "physical_lines": 1381,
       "definitions": 95
     },
     "tests/moltrack/test_analysis_export.py": {

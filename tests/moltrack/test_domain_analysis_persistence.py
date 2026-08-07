@@ -146,6 +146,48 @@ def test_m6_only_published_result_round_trips_through_public_session_seams(
     assert "raw_frame" not in session_path.read_text(encoding="utf-8")
 
 
+def test_loads_legacy_v2_gate_fingerprint_without_raw_centroids(tmp_path) -> None:
+    source_path = tmp_path / "series.mpp"
+    source_path.write_bytes(b"domain analysis legacy centroid source")
+    session_path = tmp_path / "state.moltrack.json"
+    series = MolTrackImageSeries(
+        source_path=source_path,
+        raw_frames=np.zeros((1, 1, 3), dtype=np.float32),
+        metadata=STMSequenceMetadata(pixels_x=3, pixels_y=1),
+    )
+    state = DomainAnalysisSessionState(published_result=DomainAnalysisPublication(
+        request=DomainAnalysisRequest(frame_range=range(1)),
+        result=DomainAnalysisResult(
+            run_status="completed",
+            m6_gate=M6Gate(frames=(_frame_gate(0),)),
+            classifier_status="not_requested",
+        ),
+    ))
+    save_moltrack_session(
+        session_path,
+        series,
+        ui_state={"domain_analysis": state},
+    )
+    payload = json.loads(session_path.read_text(encoding="utf-8"))
+    frame = payload["domain_analysis"]["published_result"]["m6_gate"][
+        "frames"
+    ][0]
+    frame["m6_gate_fingerprint"] = (
+        "8ec0e49f1bb0a060c335972845ca57aebe1e023180ce3c5d0c907d325e3d8df1"
+    )
+    session_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    loaded = load_moltrack_session(session_path)
+
+    assert loaded.domain_analysis_state is not None
+    publication = loaded.domain_analysis_state.published_result
+    assert publication is not None
+    assert publication.result.m6_gate is not None
+    assert publication.result.m6_gate.frames[0].m6_gate_fingerprint == (
+        frame["m6_gate_fingerprint"]
+    )
+
+
 def test_load_diagnoses_v1_gate_and_cache_without_guessing_provenance(
     tmp_path,
 ) -> None:

@@ -7,8 +7,8 @@ from typing import Literal, TypeVar
 from .classifier_models import ClassifierOutcome
 from .events import (
     ClassifierStatus,
-    DomainAnalysisEvent,
-    DomainAnalysisEventStatus,
+    DomainAnalysisEvent as DomainAnalysisEvent,
+    DomainAnalysisEventStatus as DomainAnalysisEventStatus,
     DomainAnalysisRunStatus,
     validate_domain_analysis_lifecycle,
 )
@@ -260,6 +260,12 @@ class M6FrameGate:
         fingerprint_payload = asdict(self)
         fingerprint_payload.pop("presentation_provenance")
         fingerprint_payload.pop("m6_gate_fingerprint")
+        for component_group in ("full_domains", "small_ordered_islands"):
+            for component in fingerprint_payload[component_group]:
+                for member in component["members"]:
+                    member.pop("raw_centroid_xy", None)
+        for member in fingerprint_payload["outside_members"]:
+            member.pop("raw_centroid_xy", None)
         fingerprint_payload["schema_version"] = "domain-analysis-m6-gate-v1"
         object.__setattr__(
             self,
