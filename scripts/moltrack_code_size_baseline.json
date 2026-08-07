@@ -12,7 +12,7 @@
   },
   "files": {
     "moltrack/analysis/__init__.py": {
-      "physical_lines": 1021
+      "physical_lines": 967
     },
     "moltrack/analysis/lattice_domain_calibration.py": {
       "physical_lines": 1019
@@ -32,9 +32,6 @@
     "moltrack/analysis/m6_domain_type_lifecycle.py": {
       "physical_lines": 950,
       "definitions": 38
-    },
-    "moltrack/analysis/m6_domain_type_persistence.py": {
-      "definitions": 33
     },
     "moltrack/analysis/m6_domain_type_range_comparison.py": {
       "definitions": 34
@@ -67,59 +64,28 @@
       "definitions": 31
     },
     "moltrack/analysis/texture_domain_analysis.py": {
-      "physical_lines": 1355,
-      "definitions": 48
-    },
-    "moltrack/persistence/analysis_export.py": {
-      "physical_lines": 2719,
-      "definitions": 46
-    },
-    "moltrack/persistence/analysis_package.py": {
-      "physical_lines": 1017
+      "physical_lines": 1091,
+      "definitions": 40
     },
     "moltrack/persistence/session_store.py": {
-      "physical_lines": 1569,
-      "definitions": 50
+      "physical_lines": 959,
+      "definitions": 33
     },
     "moltrack/sam2/adapter.py": {
       "definitions": 32
     },
-    "moltrack/ui/dialogs/m6_settings_panel.py": {
-      "physical_lines": 878,
-      "definitions": 50
-    },
-    "moltrack/ui/dialogs/molecular_order_types_panel.py": {
-      "physical_lines": 843,
-      "definitions": 41
-    },
-    "moltrack/ui/dialogs/position_analysis_dialog.py": {
-      "physical_lines": 1573,
-      "definitions": 120
-    },
     "moltrack/ui/main_window.py": {
-      "physical_lines": 8059,
-      "definitions": 335,
-      "classes": 22
+      "physical_lines": 4745,
+      "definitions": 226,
+      "classes": 15
     },
     "moltrack/ui/widgets/stm_series_viewer.py": {
       "physical_lines": 1381,
       "definitions": 95
     },
-    "tests/moltrack/test_analysis_export.py": {
-      "physical_lines": 1782
-    },
-    "tests/moltrack/test_m6_analysis_export.py": {
-      "physical_lines": 2071
-    },
     "tests/moltrack/test_main_window.py": {
-      "physical_lines": 8903,
-      "tests": 145
-    },
-    "tests/moltrack/test_position_analysis.py": {
-      "physical_lines": 1040
-    },
-    "tests/moltrack/test_session_store.py": {
-      "physical_lines": 1066
+      "physical_lines": 6754,
+      "tests": 107
     }
   },
   "functions": {
@@ -257,9 +223,6 @@
       "MolecularOrderTypeClassificationResult.__post_init__": 135,
       "MolecularOrderTypeObservation.__post_init__": 119
     },
-    "moltrack/analysis/molecular_order_type_persistence.py": {
-      "_classification_from_payload": 87
-    },
     "moltrack/analysis/molecular_order_type_summary.py": {
       "build_molecular_order_type_summary": 94
     },
@@ -369,39 +332,10 @@
       "analyze_texture_domain_descriptors": 81
     },
     "moltrack/core/session.py": {
-      "MolTrackSession.__post_init__": 194
-    },
-    "moltrack/persistence/analysis_export.py": {
-      "_lattice_domain_rows": 117,
-      "_m6_fields_by_source_id": 206,
-      "_m6_frame_fields": 85,
-      "_ordered_component_rows": 86,
-      "build_m6_analysis_manifest": 190,
-      "export_full_working_series_analysis_csv": 82,
-      "export_selected_ranges_analysis_csv": 313
-    },
-    "moltrack/persistence/analysis_package.py": {
-      "AnalysisExportSettings.__post_init__": 156,
-      "export_analysis_package": 307,
-      "export_selected_ranges_analysis_package": 105
-    },
-    "moltrack/persistence/analysis_plots.py": {
-      "export_selected_range_analysis_plots": 87
-    },
-    "moltrack/persistence/m6_domain_type_export.py": {
-      "_range_rows": 87
-    },
-    "moltrack/persistence/molecular_order_type_export.py": {
-      "build_molecular_order_type_export_data": 138
-    },
-    "moltrack/persistence/molecular_stacking_export.py": {
-      "_molecule_rows": 251,
-      "build_molecular_stacking_export_data": 149
+      "MolTrackSession.__post_init__": 121
     },
     "moltrack/persistence/session_store.py": {
-      "_mask_from_payload": 87,
-      "_structural_cache_record_from_payload": 118,
-      "load_moltrack_session": 90
+      "_mask_from_payload": 87
     },
     "moltrack/sam2/adapter.py": {
       "MolTrackSam2Segmenter._segment_frame_detections_using_backend": 109
@@ -409,37 +343,10 @@
     "moltrack/sam2/benchmark.py": {
       "benchmark_sam2_optimization": 83
     },
-    "moltrack/ui/dialogs/export_analysis_dialog.py": {
-      "ExportAnalysisDialog.__init__": 121
-    },
-    "moltrack/ui/dialogs/lattice_domain_calibration_dialog.py": {
-      "LatticeDomainCalibrationDialog.__init__": 176
-    },
-    "moltrack/ui/dialogs/m6_domain_types_panel.py": {
-      "M6DomainTypesPanel.__init__": 104
-    },
-    "moltrack/ui/dialogs/m6_pair_correlation_plot.py": {
-      "M6PairCorrelationPlot.__init__": 87
-    },
-    "moltrack/ui/dialogs/m6_settings_panel.py": {
-      "M6SettingsPanel.__init__": 305
-    },
-    "moltrack/ui/dialogs/position_analysis_dialog.py": {
-      "PositionAnalysisDialog.__init__": 327,
-      "PositionAnalysisDialog._set_spatial_comparison_data": 116
-    },
-    "moltrack/ui/dialogs/texture_domains_panel.py": {
-      "TextureDomainsPanel.__init__": 86
-    },
     "moltrack/ui/main_window.py": {
-      "MolTrackMainWindow.__init__": 260,
+      "MolTrackMainWindow.__init__": 126,
       "MolTrackMainWindow._build_central_widget": 333,
-      "MolTrackMainWindow._connect_signals": 91,
-      "MolTrackMainWindow._current_ui_state": 119,
-      "MolTrackMainWindow._on_position_analysis_requested": 95,
-      "MolTrackMainWindow._restore_position_analysis_state": 85,
-      "MolTrackMainWindow._start_m6_analysis": 97,
-      "MolTrackMainWindow._start_molecular_orientation_estimation": 97,
+      "MolTrackMainWindow._start_molecular_orientation_estimation": 93,
       "MolTrackMainWindow._start_sam2_segmentation": 120,
       "MolTrackMainWindow._sync_segmentation_controls": 93,
       "Sam2SegmentationSettingsDialog.__init__": 82,

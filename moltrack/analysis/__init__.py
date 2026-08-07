@@ -35,16 +35,13 @@ from .texture_domain_analysis import (
     TextureDomainPointInput,
     TextureDomainPointOverlay,
     TextureDomainPointResult,
-    TextureDomainSessionState,
     TextureDomainViewSettings,
     analyze_texture_domain_descriptors,
     analyze_texture_domain_frame,
-    analyze_texture_domain_range,
     build_texture_domain_point_overlay,
     extract_texture_domain_descriptors,
     texture_domain_frame_fingerprint,
     texture_domain_input_fingerprint,
-    texture_domain_state_matches_series,
 )
 from .local_sixfold_bond_order import (
     LocalOrderComputationStatus,
@@ -399,13 +396,6 @@ from .molecular_order_type_summary import (
     MolecularOrderTypeSummaryRowKey,
     build_molecular_order_type_summary,
 )
-from .molecular_order_type_persistence import (
-    MOLECULAR_ORDER_TYPE_CACHE_RECORD_SCHEMA_VERSION,
-    MOLECULAR_ORDER_TYPE_CONFIGURATION_SCHEMA_VERSION,
-    MolecularOrderTypeCacheDecodeError,
-    MolecularOrderTypeCacheRecord,
-    MolecularOrderTypeSessionState,
-)
 from .molecular_stacking_overlay import (
     MolecularStackingDisplayResult,
     MolecularStackingFrameGeometry,
@@ -414,12 +404,6 @@ from .molecular_stacking_overlay import (
     MolecularStackingPointOverlay,
     build_molecular_stacking_inspection,
     build_molecular_stacking_point_overlay,
-)
-from .molecular_stacking_persistence import (
-    MOLECULAR_STACKING_SESSION_SCHEMA_VERSION,
-    MolecularStackingSessionState,
-    MolecularStackingSessionStatus,
-    restore_molecular_stacking_display_result,
 )
 from .molecular_stacking_range_comparison import (
     MolecularStackingRangeComparison,
@@ -504,23 +488,11 @@ from .structural_analysis_persistence import (
     export_structural_analysis_cache_records,
     restore_structural_analysis_cache_records,
 )
-from .range_comparison import (
-    MolecularFrameRangeComparison,
-    MolecularFrameRangeDifferences,
-    compare_molecular_frame_ranges,
-)
 from .range_trends import (
-    MolecularRangeComparisonTrendData,
     MolecularRangeTrendData,
     MolecularRangeTrendSeries,
-    build_molecular_range_comparison_trend_data,
     build_molecular_range_trend_series,
     unpack_molecular_range_trend_data,
-)
-from .range_spatial import (
-    MolecularConditionSpatialData,
-    MolecularRangeSpatialComparisonData,
-    build_molecular_range_spatial_comparison_data,
 )
 from .range_analysis import (
     MolecularFrameAnalysisResult,
@@ -558,14 +530,6 @@ from .m6_single_range_domain_type_summary import (
     M6SingleRangeFrameMapping,
     build_m6_single_range_domain_type_summary,
 )
-from .m6_domain_type_range_comparison import (
-    M6DomainTypeRangeComparison,
-    M6DomainTypeRangeComparisonRow,
-    M6DomainTypeRangeDeltas,
-    M6DomainTypeRangeSide,
-    build_m6_domain_type_range_comparison,
-)
-from .m6_domain_type_table_validation import validate_m6_domain_type_table_result
 from .m6_domain_type_lifecycle import (
     M6_DOMAIN_TYPE_ANALYSIS_COMPUTE_PHASES,
     M6DomainTypeAnalysisComputation,
@@ -581,17 +545,28 @@ from .m6_domain_type_lifecycle import (
     adapt_m6_domain_type_analysis_source,
     build_m6_domain_type_analysis_context,
 )
-from .m6_domain_type_persistence import (
-    M6_DOMAIN_TYPE_ALGORITHM_VERSION,
-    M6_DOMAIN_TYPE_CACHE_RECORD_SCHEMA_VERSION,
-    M6_DOMAIN_TYPE_CONFIGURATION_SCHEMA_VERSION,
-    M6DomainTypeCacheDecodeError,
-    M6DomainTypeCacheRecord,
-    M6DomainTypeSessionState,
-)
 
 __all__ = [
     "AggregatedPairCorrelationResult",
+    "TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET",
+    "TEXTURE_DOMAIN_ANALYSIS_ALGORITHM_VERSION",
+    "TEXTURE_DOMAIN_ANALYSIS_SCHEMA_VERSION",
+    "TEXTURE_DOMAIN_UNKNOWN_CLASS_KEY",
+    "TTMAPP_TEXTURE_DOMAIN_PRESET",
+    "TextureDomainAnalysisSettings",
+    "TextureDomainClassDefinition",
+    "TextureDomainComponent",
+    "TextureDomainFrameResult",
+    "TextureDomainPointInput",
+    "TextureDomainPointOverlay",
+    "TextureDomainPointResult",
+    "TextureDomainViewSettings",
+    "analyze_texture_domain_descriptors",
+    "analyze_texture_domain_frame",
+    "build_texture_domain_point_overlay",
+    "extract_texture_domain_descriptors",
+    "texture_domain_frame_fingerprint",
+    "texture_domain_input_fingerprint",
     "NEAREST_NEIGHBOR_ANGLE_BIN_EDGES_DEGREES",
     "FirstShellGraph",
     "FirstShellSuggestionResult",
@@ -691,8 +666,6 @@ __all__ = [
     "MolecularFrameRangeAnalysisScope",
     "MolecularFrameRangeAggregates",
     "MolecularFrameRangeAnalysis",
-    "MolecularFrameRangeComparison",
-    "MolecularFrameRangeDifferences",
     "MolecularFrameRangeSelection",
     "M6DomainTypeObservation",
     "M6DomainType",
@@ -712,12 +685,6 @@ __all__ = [
     "M6SingleRangeDomainTypeSummary",
     "M6SingleRangeFrameMapping",
     "build_m6_single_range_domain_type_summary",
-    "M6DomainTypeRangeComparison",
-    "M6DomainTypeRangeComparisonRow",
-    "M6DomainTypeRangeDeltas",
-    "M6DomainTypeRangeSide",
-    "build_m6_domain_type_range_comparison",
-    "validate_m6_domain_type_table_result",
     "M6DomainTypeAnalysisContext",
     "M6_DOMAIN_TYPE_ANALYSIS_COMPUTE_PHASES",
     "M6DomainTypeAnalysisComputation",
@@ -731,12 +698,6 @@ __all__ = [
     "M6DomainTypeNamedRangeResult",
     "adapt_m6_domain_type_analysis_source",
     "build_m6_domain_type_analysis_context",
-    "M6_DOMAIN_TYPE_ALGORITHM_VERSION",
-    "M6_DOMAIN_TYPE_CACHE_RECORD_SCHEMA_VERSION",
-    "M6_DOMAIN_TYPE_CONFIGURATION_SCHEMA_VERSION",
-    "M6DomainTypeCacheDecodeError",
-    "M6DomainTypeCacheRecord",
-    "M6DomainTypeSessionState",
     "MolecularIntensityMeasurement",
     "MOLECULAR_ORIENTATION_SCHEMA_VERSION",
     "MolecularOrientationManualCorrection",
@@ -839,11 +800,6 @@ __all__ = [
     "MolecularOrderTypeSummaryRow",
     "MolecularOrderTypeSummaryRowKey",
     "build_molecular_order_type_summary",
-    "MOLECULAR_ORDER_TYPE_CACHE_RECORD_SCHEMA_VERSION",
-    "MOLECULAR_ORDER_TYPE_CONFIGURATION_SCHEMA_VERSION",
-    "MolecularOrderTypeCacheDecodeError",
-    "MolecularOrderTypeCacheRecord",
-    "MolecularOrderTypeSessionState",
     "MolecularStackingDisplayResult",
     "MolecularStackingFrameGeometry",
     "MolecularStackingInspection",
@@ -851,10 +807,6 @@ __all__ = [
     "MolecularStackingPointOverlay",
     "build_molecular_stacking_inspection",
     "build_molecular_stacking_point_overlay",
-    "MOLECULAR_STACKING_SESSION_SCHEMA_VERSION",
-    "MolecularStackingSessionState",
-    "MolecularStackingSessionStatus",
-    "restore_molecular_stacking_display_result",
     "MolecularStackingRangeComparison",
     "MolecularStackingRangeComparisonRow",
     "MolecularStackingRangeSummary",
@@ -980,13 +932,10 @@ __all__ = [
     "MolecularM6FrameAvailabilityStatus",
     "MolecularNearestNeighborAngleMetrics",
     "MolecularNearestNeighborMetrics",
-    "MolecularConditionSpatialData",
     "MolecularPositionPlotData",
     "MolecularSampleCoordinates",
-    "MolecularRangeComparisonTrendData",
     "MolecularRangeTrendData",
     "MolecularRangeTrendSeries",
-    "MolecularRangeSpatialComparisonData",
     "analyze_molecular_frame_range",
     "analyze_molecular_m6_orientation",
     "build_m6_point_overlay",
@@ -1001,13 +950,10 @@ __all__ = [
     "build_molecular_intensity_measurements",
     "export_molecular_intensity_cache_records",
     "export_structural_analysis_cache_records",
-    "build_molecular_range_comparison_trend_data",
     "build_molecular_range_trend_series",
     "unpack_molecular_range_trend_data",
     "build_molecular_m6_frame_trend_series",
-    "build_molecular_range_spatial_comparison_data",
     "build_structural_analysis_cache_key",
-    "compare_molecular_frame_ranges",
     "compare_molecular_m6_range_aggregates",
     "compute_molecular_nearest_neighbor_angle_metrics",
     "compute_molecular_nearest_neighbor_metrics",

@@ -96,6 +96,7 @@ def migrate_v1_session_payload(
         "position_analysis": None,
         "molecular_m6_analysis": None,
         "m6_domain_type_analysis": None,
+        "molecular_order_type_analysis": None,
         "texture_domain_analysis": None,
     })
     return MigratedV1Session(
@@ -164,6 +165,7 @@ def _legacy_result_diagnostics(
     diagnostics: list[DomainAnalysisSessionDiagnostic] = []
     for component, description in (
         ("m6_domain_type_analysis", "legacy domain-type result"),
+        ("molecular_order_type_analysis", "legacy molecular-order result"),
         ("texture_domain_analysis", "legacy ungated Texture Domains result"),
     ):
         if payload.get(component) is None:

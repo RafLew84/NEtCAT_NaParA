@@ -11,24 +11,13 @@ import zlib
 import numpy as np
 
 from moltrack.analysis import (
-    M6DomainTypeSessionState,
-    MolecularM6OrientationAnalysisSettings,
-    MolecularM6SessionState,
-    MolecularM6ViewSettings,
     MolecularOrientationMeasurement,
     MolecularOrientationStore,
-    MolecularOrderTypeSessionState,
-    MolecularStackingSessionState,
-    StructuralAnalysisCacheKey,
-    StructuralAnalysisCacheRecord,
-    TextureDomainSessionState,
     export_molecular_intensity_cache_records,
     export_structural_analysis_cache_records,
     restore_molecular_intensity_cache_records,
     restore_structural_analysis_cache_records,
-    texture_domain_state_matches_series,
 )
-from moltrack.analysis.sample_coordinates import MolecularSampleCoordinates
 from moltrack.core import (
     MolecularDetection,
     MolecularDetectionSet,
@@ -39,8 +28,6 @@ from moltrack.core import (
     MolTrackRegistrationFrameResult,
     MolTrackRegistrationResultSet,
     MolTrackRegistrationSettings,
-    MolTrackPositionAnalysisRange,
-    MolTrackPositionAnalysisState,
     MolTrackSession,
 )
 from moltrack.io import load_moltrack_image_series
@@ -84,33 +71,17 @@ def save_moltrack_session(
     bbox_overlay_visible = _bbox_overlay_visible_from_ui_state(ui_state)
     bbox_opacity_percent = _bbox_opacity_percent_from_ui_state(ui_state)
     mask_opacity_percent = _mask_opacity_percent_from_ui_state(ui_state)
-    position_analysis = _position_analysis_from_ui_state(ui_state)
     domain_analysis_state = domain_analysis_state_from_ui_state(ui_state)
     intensity_cache_records = export_molecular_intensity_cache_records(series)
     structural_cache_records = export_structural_analysis_cache_records(series)
-    m6_analysis_state = _m6_analysis_state_from_ui_or_series(
-        ui_state,
-        series=series,
-        cache_records=structural_cache_records,
-    )
-    m6_domain_type_analysis_state = _m6_domain_type_state_from_ui_state(ui_state)
-    molecular_order_type_analysis_state = (
-        _molecular_order_type_state_from_ui_state(ui_state)
-    )
     session = MolTrackSession.from_image_series(
         series,
         registration_view_mode=registration_view_mode,
         bbox_overlay_visible=bbox_overlay_visible,
         bbox_opacity_percent=bbox_opacity_percent,
         mask_opacity_percent=mask_opacity_percent,
-        position_analysis=position_analysis,
         intensity_cache_records=intensity_cache_records,
         domain_analysis_state=domain_analysis_state,
-        m6_analysis_state=m6_analysis_state,
-        m6_domain_type_analysis_state=m6_domain_type_analysis_state,
-        molecular_order_type_analysis_state=(
-            molecular_order_type_analysis_state
-        ),
         structural_analysis_cache_records=structural_cache_records,
         source_size_bytes=source_stat.st_size,
         source_mtime_ns=source_stat.st_mtime_ns,
@@ -171,25 +142,7 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
     molecular_detections_payload = payload.get("molecular_detections")
     molecular_segmentations_payload = payload.get("molecular_segmentations")
     molecular_orientations_payload = payload.get("molecular_orientations")
-    position_analysis_payload = payload.get("position_analysis")
     intensity_cache_payload = payload.get("molecular_intensity_cache", [])
-    m6_analysis_payload = payload.get("molecular_m6_analysis")
-    m6_analysis_state, structural_cache_records = _m6_analysis_from_payload(m6_analysis_payload)
-    m6_domain_type_analysis_state = _m6_domain_type_state_from_payload(
-        payload.get("m6_domain_type_analysis")
-    )
-    molecular_stacking_state = _molecular_stacking_state_from_payload(
-        payload.get("molecular_stacking_analysis")
-    )
-    molecular_order_type_analysis_state = (
-        _molecular_order_type_state_from_payload(
-            payload.get("molecular_order_type_analysis")
-        )
-    )
-    texture_domain_analysis_state = _texture_domain_state_from_payload(
-        payload.get("texture_domain_analysis"),
-        expected_frame_count=len(working_series_payload["source_frame_indices"]),
-    )
 
     registration_settings: MolTrackRegistrationSettings | None = None
     registration_results: MolTrackRegistrationResultSet | None = None
@@ -222,19 +175,11 @@ def load_moltrack_session(path: str | Path) -> MolTrackSession:
         molecular_detections=molecular_detections,
         molecular_segmentations=molecular_segmentations,
         molecular_orientations=molecular_orientations,
-        position_analysis=_position_analysis_from_payload(position_analysis_payload),
         intensity_cache_records=_intensity_cache_records_from_payload(
             intensity_cache_payload
         ),
         domain_analysis_state=domain_analysis_state,
-        m6_analysis_state=m6_analysis_state,
-        m6_domain_type_analysis_state=m6_domain_type_analysis_state,
-        molecular_stacking_state=molecular_stacking_state,
-        molecular_order_type_analysis_state=(
-            molecular_order_type_analysis_state
-        ),
-        texture_domain_analysis_state=texture_domain_analysis_state,
-        structural_analysis_cache_records=structural_cache_records,
+        structural_analysis_cache_records=(),
         source_size_bytes=int(source_payload["size_bytes"]),
         source_mtime_ns=int(source_payload["mtime_ns"]),
         schema_version=schema_version,
@@ -281,12 +226,6 @@ def restore_moltrack_image_series_from_session(
         molecular_detections=session.molecular_detections,
         molecular_segmentations=session.molecular_segmentations,
         molecular_orientations=session.molecular_orientations,
-        m6_analysis_state=session.m6_analysis_state,
-        molecular_stacking_state=session.molecular_stacking_state,
-        molecular_order_type_state=(
-            session.molecular_order_type_analysis_state
-        ),
-        texture_domain_state=None,
     )
     restore_molecular_intensity_cache_records(
         restored,
@@ -296,12 +235,6 @@ def restore_moltrack_image_series_from_session(
         restored,
         session.structural_analysis_cache_records,
     )
-    texture_state = session.texture_domain_analysis_state
-    if isinstance(
-        texture_state,
-        TextureDomainSessionState,
-    ) and texture_domain_state_matches_series(restored, texture_state):
-        restored.texture_domain_state = texture_state
     if restored.registration_results is not None:
         expected = tuple(range(restored.frame_count))
         if restored.registration_results.frame_indices != expected:
@@ -344,476 +277,19 @@ def _session_to_payload(
         "molecular_orientations": _molecular_orientations_to_payload(
             session.molecular_orientations
         ),
-        "position_analysis": _position_analysis_to_payload(session.position_analysis),
         "molecular_intensity_cache": _intensity_cache_records_to_payload(
             session.intensity_cache_records
         ),
         "domain_analysis": domain_analysis_state_to_payload(
             session.domain_analysis_state
         ),
-        "molecular_m6_analysis": _m6_analysis_to_payload(
-            session.m6_analysis_state,
-            session.structural_analysis_cache_records,
-        ),
-        "m6_domain_type_analysis": (
-            None
-            if session.m6_domain_type_analysis_state is None
-            else session.m6_domain_type_analysis_state.to_dict()
-        ),
-        "molecular_stacking_analysis": (
-            MolecularStackingSessionState().to_dict()
-            if session.molecular_stacking_state is None
-            else session.molecular_stacking_state.to_dict()
-        ),
-        "molecular_order_type_analysis": (
-            None
-            if session.molecular_order_type_analysis_state is None
-            else session.molecular_order_type_analysis_state.to_dict()
-        ),
-        "texture_domain_analysis": (
-            None
-            if session.texture_domain_analysis_state is None
-            else session.texture_domain_analysis_state.to_dict()
-        ),
     }
-    if session.domain_analysis_state is not None:
-        payload.pop("molecular_m6_analysis")
-        payload.pop("texture_domain_analysis")
     return payload
 
 
-def _texture_domain_state_from_payload(
-    payload: Any,
-    *,
-    expected_frame_count: int,
-) -> TextureDomainSessionState | None:
-    if payload is None:
-        return None
-    try:
-        state = TextureDomainSessionState.from_dict(
-            dict(_require_mapping(payload, "texture_domain_analysis"))
-        )
-        if state.range_end_frame >= int(expected_frame_count):
-            return None
-        return state
-    except (KeyError, OverflowError, TypeError, ValueError):
-        # This derived experimental result is optional for older sessions.
-        return None
-
-
-def _molecular_stacking_state_from_payload(
-    payload: Any,
-) -> MolecularStackingSessionState:
-    if payload is None:
-        return MolecularStackingSessionState()
-    try:
-        return MolecularStackingSessionState.from_dict(
-            _require_mapping(payload, "molecular_stacking_analysis")
-        )
-    except (TypeError, ValueError):
-        # This reproducible cache is optional and must not block core state.
-        return MolecularStackingSessionState()
-
-
-def _molecular_order_type_state_from_ui_state(
-    ui_state: Any | None,
-) -> MolecularOrderTypeSessionState | None:
-    candidate = None
-    if isinstance(ui_state, Mapping):
-        candidate = ui_state.get("molecular_order_type_analysis")
-    elif ui_state is not None and not isinstance(ui_state, str):
-        candidate = getattr(
-            ui_state,
-            "molecular_order_type_analysis",
-            None,
-        )
-    if candidate is None:
-        return None
-    if isinstance(candidate, MolecularOrderTypeSessionState):
-        return candidate
-    if isinstance(candidate, Mapping):
-        return MolecularOrderTypeSessionState.from_dict(candidate)
-    raise TypeError(
-        "molecular_order_type_analysis must be a "
-        "MolecularOrderTypeSessionState or mapping."
-    )
-
-
-def _molecular_order_type_state_from_payload(
-    payload: Any,
-) -> MolecularOrderTypeSessionState | None:
-    if payload is None:
-        return None
-    try:
-        return MolecularOrderTypeSessionState.from_dict(
-            _require_mapping(payload, "molecular_order_type_analysis")
-        )
-    except (TypeError, ValueError):
-        # The derived cache is optional and must not block core session data.
-        return None
-
-
-def _m6_domain_type_state_from_ui_state(
-    ui_state: Any | None,
-) -> M6DomainTypeSessionState | None:
-    candidate = None
-    if isinstance(ui_state, Mapping):
-        candidate = ui_state.get("m6_domain_type_analysis")
-    elif ui_state is not None and not isinstance(ui_state, str):
-        candidate = getattr(ui_state, "m6_domain_type_analysis", None)
-    if candidate is None:
-        return None
-    if isinstance(candidate, M6DomainTypeSessionState):
-        return candidate
-    if isinstance(candidate, Mapping):
-        return M6DomainTypeSessionState.from_dict(candidate)
-    raise TypeError(
-        "m6_domain_type_analysis must be an M6DomainTypeSessionState or mapping."
-    )
-
-
-def _m6_domain_type_state_from_payload(
-    payload: Any,
-) -> M6DomainTypeSessionState | None:
-    if payload is None:
-        return None
-    try:
-        return M6DomainTypeSessionState.from_dict(
-            _require_mapping(payload, "m6_domain_type_analysis")
-        )
-    except (TypeError, ValueError):
-        # Domain-type analysis is optional and must not block core session data.
-        return None
-
-
-def _m6_analysis_state_from_ui_or_series(
-    ui_state: Any | None,
-    *,
-    series: MolTrackImageSeries,
-    cache_records: tuple[StructuralAnalysisCacheRecord, ...],
-) -> MolecularM6SessionState:
-    candidate = None
-    if isinstance(ui_state, Mapping):
-        candidate = ui_state.get("molecular_m6_analysis", ui_state.get("m6_analysis"))
-    elif ui_state is not None and not isinstance(ui_state, str):
-        candidate = getattr(
-            ui_state,
-            "molecular_m6_analysis",
-            getattr(ui_state, "m6_analysis", None),
-        )
-    if isinstance(candidate, MolecularM6SessionState):
-        return candidate
-    if isinstance(candidate, Mapping):
-        return _m6_session_state_from_mapping(candidate)
-    series_state = getattr(series, "m6_analysis_state", None)
-    if isinstance(series_state, MolecularM6SessionState):
-        return series_state
-    if cache_records:
-        latest = cache_records[-1]
-        return MolecularM6SessionState(
-            enabled=False,
-            source_view=latest.cache_key.source_view,
-            use_segmentation_centroids=(
-                latest.cache_key.centroid_mode == "segmentation_preferred"
-            ),
-            settings=latest.settings,
-        )
-    return MolecularM6SessionState()
-
-
-def _m6_analysis_to_payload(
-    state: Any | None,
-    records: tuple[Any, ...],
-) -> dict[str, Any]:
-    if not isinstance(state, MolecularM6SessionState):
-        state = MolecularM6SessionState()
-    cache_records = tuple(records)
-    if not all(isinstance(record, StructuralAnalysisCacheRecord) for record in cache_records):
-        raise TypeError("M6 cache records must be StructuralAnalysisCacheRecord instances.")
-    view = state.view_settings
-    return {
-        "enabled": state.enabled,
-        "source_view": state.source_view,
-        "use_segmentation_centroids": state.use_segmentation_centroids,
-        "settings": state.settings.to_dict(),
-        "view_settings": {
-            "show_domain_overlay": view.show_domain_overlay,
-            "overlay_mode": view.overlay_mode,
-            "show_first_shell_graph": view.show_first_shell_graph,
-            "show_unassigned_points": view.show_unassigned_points,
-            "overlay_opacity_percent": view.overlay_opacity_percent,
-        },
-        "reproducible_cache": [
-            _structural_cache_record_to_payload(record) for record in cache_records
-        ],
-    }
-
-
-def _m6_analysis_from_payload(
-    payload: Any,
-) -> tuple[MolecularM6SessionState, tuple[StructuralAnalysisCacheRecord, ...]]:
-    if payload is None:
-        return MolecularM6SessionState(), ()
-    analysis_payload = _require_mapping(payload, "molecular_m6_analysis")
-    state = _m6_session_state_from_mapping(analysis_payload)
-    records_payload = analysis_payload.get("reproducible_cache", [])
-    if not isinstance(records_payload, list):
-        raise ValueError("molecular_m6_analysis.reproducible_cache must be a list.")
-    records = []
-    for index, item in enumerate(records_payload):
-        try:
-            record = _structural_cache_record_from_payload(item, index=index)
-        except (KeyError, TypeError, ValueError):
-            continue
-        records.append(record)
-    return state, tuple(records)
-
-
-def _m6_session_state_from_mapping(payload: Mapping[str, Any]) -> MolecularM6SessionState:
-    default_settings = MolecularM6OrientationAnalysisSettings().to_dict()
-    settings_payload = _require_mapping(
-        payload.get("settings", default_settings),
-        "molecular_m6_analysis.settings",
-    )
-    settings_values = {**default_settings, **dict(settings_payload)}
-    default_view = MolecularM6ViewSettings()
-    view_payload = _require_mapping(
-        payload.get("view_settings", {}),
-        "molecular_m6_analysis.view_settings",
-    )
-    return MolecularM6SessionState(
-        enabled=_m6_bool(payload.get("enabled", False), "enabled"),
-        source_view=str(payload.get("source_view", "raw")),
-        use_segmentation_centroids=_m6_bool(
-            payload.get("use_segmentation_centroids", True),
-            "use_segmentation_centroids",
-        ),
-        settings=MolecularM6OrientationAnalysisSettings.from_dict(settings_values),
-        view_settings=MolecularM6ViewSettings(
-            show_domain_overlay=_m6_bool(
-                view_payload.get(
-                    "show_domain_overlay", default_view.show_domain_overlay
-                ),
-                "view_settings.show_domain_overlay",
-            ),
-            overlay_mode=str(
-                view_payload.get("overlay_mode", default_view.overlay_mode)
-            ),
-            show_first_shell_graph=_m6_bool(
-                view_payload.get(
-                    "show_first_shell_graph", default_view.show_first_shell_graph
-                ),
-                "view_settings.show_first_shell_graph",
-            ),
-            show_unassigned_points=_m6_bool(
-                view_payload.get(
-                    "show_unassigned_points", default_view.show_unassigned_points
-                ),
-                "view_settings.show_unassigned_points",
-            ),
-            overlay_opacity_percent=int(
-                view_payload.get(
-                    "overlay_opacity_percent", default_view.overlay_opacity_percent
-                )
-            ),
-        ),
-    )
-
-
-def _structural_cache_record_to_payload(
-    record: StructuralAnalysisCacheRecord,
-) -> dict[str, Any]:
-    key = record.cache_key
-    sample = record.sample_coordinates
-    return {
-        "cache_record_schema_version": record.record_schema_version,
-        "cache_key": {
-            "frame_id": key.frame_id,
-            "source_view": key.source_view,
-            "centroid_mode": key.centroid_mode,
-            "annotation_fingerprint": key.annotation_fingerprint,
-            "registration_fingerprint": key.registration_fingerprint,
-            "spatial_calibration_fingerprint": key.spatial_calibration_fingerprint,
-            "coordinate_transform_fingerprint": key.coordinate_transform_fingerprint,
-            "sample_geometry_fingerprint": key.sample_geometry_fingerprint,
-            "valid_fov_fingerprint": key.valid_fov_fingerprint,
-            "settings_hash": key.settings_hash,
-            "algorithm_version": key.algorithm_version,
-        },
-        "settings": record.settings.to_dict(),
-        "lattice_domain_result": (
-            None
-            if record.lattice_domain_result_fingerprint is None
-            else {
-                "schema_version": record.lattice_domain_analysis_schema_version,
-                "algorithm_version": (
-                    record.lattice_domain_analysis_algorithm_version
-                ),
-                "fingerprint": record.lattice_domain_result_fingerprint,
-            }
-        ),
-        "sample_coordinates": {
-            "frame_index": sample.frame_index,
-            "source_view": sample.source_view,
-            "point_source_ids": list(sample.point_source_ids),
-            "point_source_kinds": list(sample.point_source_kinds),
-            "point_annotation_fingerprints": list(
-                sample.point_annotation_fingerprints
-            ),
-            "source_points_xy_px": [list(point) for point in sample.source_points_xy_px],
-            "points_xy_nm": [list(point) for point in sample.points_xy_nm],
-            "distance_to_valid_fov_boundary_nm": list(
-                sample.distance_to_valid_fov_boundary_nm
-            ),
-            "valid_fov_polygon_xy_nm": [
-                list(point) for point in sample.valid_fov_polygon_xy_nm
-            ],
-            "plot_canvas_polygon_xy_nm": [
-                list(point) for point in sample.plot_canvas_polygon_xy_nm
-            ],
-            "window_side_lengths_nm": list(sample.window_side_lengths_nm),
-            "coordinate_transform_fingerprint": (
-                sample.coordinate_transform_fingerprint
-            ),
-            "spatial_calibration_fingerprint": (
-                sample.spatial_calibration_fingerprint
-            ),
-            "registration_fingerprint": sample.registration_fingerprint,
-            "scan_angle_deg": sample.scan_angle_deg,
-            "scan_angle_missing_qc": sample.scan_angle_missing_qc,
-            "coordinate_frame": sample.coordinate_frame,
-            "orientation_reference": sample.orientation_reference,
-        },
-    }
-
-
-def _structural_cache_record_from_payload(
-    payload: Any,
-    *,
-    index: int,
-) -> StructuralAnalysisCacheRecord:
-    prefix = f"molecular_m6_analysis.reproducible_cache[{index}]"
-    record = _require_mapping(payload, prefix)
-    record_schema_version = int(record.get("cache_record_schema_version", -1))
-    if record_schema_version not in {1, 2}:
-        raise ValueError(f"Unsupported {prefix} schema version.")
-    key_payload = _require_mapping(record.get("cache_key"), f"{prefix}.cache_key")
-    settings_payload = _require_mapping(record.get("settings"), f"{prefix}.settings")
-    sample_payload = _require_mapping(
-        record.get("sample_coordinates"),
-        f"{prefix}.sample_coordinates",
-    )
-    lattice_payload = record.get("lattice_domain_result")
-    if record_schema_version == 1:
-        lattice_payload = None
-    elif lattice_payload is not None:
-        lattice_payload = _require_mapping(
-            lattice_payload,
-            f"{prefix}.lattice_domain_result",
-        )
-    return StructuralAnalysisCacheRecord(
-        cache_key=StructuralAnalysisCacheKey(
-            frame_id=str(key_payload.get("frame_id", "")),
-            source_view=str(key_payload.get("source_view", "")),
-            centroid_mode=str(key_payload.get("centroid_mode", "")),
-            annotation_fingerprint=str(
-                key_payload.get("annotation_fingerprint", "")
-            ),
-            registration_fingerprint=str(
-                key_payload.get("registration_fingerprint", "")
-            ),
-            spatial_calibration_fingerprint=str(
-                key_payload.get("spatial_calibration_fingerprint", "")
-            ),
-            coordinate_transform_fingerprint=str(
-                key_payload.get("coordinate_transform_fingerprint", "")
-            ),
-            sample_geometry_fingerprint=str(
-                key_payload.get("sample_geometry_fingerprint", "")
-            ),
-            valid_fov_fingerprint=str(
-                key_payload.get("valid_fov_fingerprint", "")
-            ),
-            settings_hash=str(key_payload.get("settings_hash", "")),
-            algorithm_version=str(key_payload.get("algorithm_version", "")),
-        ),
-        settings=MolecularM6OrientationAnalysisSettings.from_dict(settings_payload),
-        record_schema_version=record_schema_version,
-        lattice_domain_analysis_schema_version=(
-            None
-            if lattice_payload is None
-            else int(lattice_payload.get("schema_version", -1))
-        ),
-        lattice_domain_analysis_algorithm_version=(
-            None
-            if lattice_payload is None
-            else str(lattice_payload.get("algorithm_version", ""))
-        ),
-        lattice_domain_result_fingerprint=(
-            None
-            if lattice_payload is None
-            else str(lattice_payload.get("fingerprint", ""))
-        ),
-        sample_coordinates=MolecularSampleCoordinates(
-            frame_index=int(sample_payload.get("frame_index", -1)),
-            source_view=str(sample_payload.get("source_view", "")),
-            point_source_ids=tuple(sample_payload.get("point_source_ids", ())),
-            point_source_kinds=tuple(sample_payload.get("point_source_kinds", ())),
-            point_annotation_fingerprints=tuple(
-                sample_payload.get("point_annotation_fingerprints", ())
-            ),
-            source_points_xy_px=tuple(
-                tuple(point)
-                for point in sample_payload.get("source_points_xy_px", ())
-            ),
-            points_xy_nm=tuple(
-                tuple(point) for point in sample_payload.get("points_xy_nm", ())
-            ),
-            distance_to_valid_fov_boundary_nm=tuple(
-                sample_payload.get("distance_to_valid_fov_boundary_nm", ())
-            ),
-            valid_fov_polygon_xy_nm=tuple(
-                tuple(point)
-                for point in sample_payload.get("valid_fov_polygon_xy_nm", ())
-            ),
-            plot_canvas_polygon_xy_nm=tuple(
-                tuple(point)
-                for point in sample_payload.get("plot_canvas_polygon_xy_nm", ())
-            ),
-            window_side_lengths_nm=tuple(
-                sample_payload.get("window_side_lengths_nm", ())
-            ),
-            coordinate_transform_fingerprint=str(
-                sample_payload.get("coordinate_transform_fingerprint", "")
-            ),
-            spatial_calibration_fingerprint=str(
-                sample_payload.get("spatial_calibration_fingerprint", "")
-            ),
-            registration_fingerprint=str(
-                sample_payload.get("registration_fingerprint", "")
-            ),
-            scan_angle_deg=float(sample_payload.get("scan_angle_deg", 0.0)),
-            scan_angle_missing_qc=_m6_bool(
-                sample_payload.get("scan_angle_missing_qc", False),
-                "reproducible_cache.sample_coordinates.scan_angle_missing_qc",
-            ),
-            coordinate_frame=str(
-                sample_payload.get("coordinate_frame", "sample_nm")
-            ),
-            orientation_reference=str(
-                sample_payload.get("orientation_reference", "+x_sample_axis")
-            ),
-        ),
-    )
-
-
-def _m6_bool(value: Any, field_name: str) -> bool:
-    if not isinstance(value, bool):
-        raise ValueError(f"molecular_m6_analysis.{field_name} must be boolean.")
-    return value
-
-
-def _registration_to_payload(result_set: MolTrackRegistrationResultSet | None) -> dict[str, Any] | None:
+def _registration_to_payload(
+    result_set: MolTrackRegistrationResultSet | None,
+) -> dict[str, Any] | None:
     if result_set is None:
         return None
     settings = result_set.settings
@@ -1412,87 +888,6 @@ def _optional_float_from_payload(value: Any) -> float | None:
     return None if value is None else float(value)
 
 
-def _position_analysis_to_payload(
-    state: MolTrackPositionAnalysisState | None,
-) -> dict[str, Any] | None:
-    if state is None:
-        return None
-    return {
-        "source_view": state.source_view,
-        "first_range": _position_analysis_range_to_payload(state.first_range),
-        "second_range": _position_analysis_range_to_payload(state.second_range),
-        "comparison_completed": state.comparison_completed,
-        "active_tab": state.active_tab,
-        "density_grid_shape": list(state.density_grid_shape),
-        "use_segmentation_centroids": state.use_segmentation_centroids,
-        "intensity_metric": state.intensity_metric,
-        "color_points_by_intensity": state.color_points_by_intensity,
-        "background_inner_radius_px": state.background_inner_radius_px,
-        "background_outer_radius_px": state.background_outer_radius_px,
-        "shared_intensity_scale": state.shared_intensity_scale,
-    }
-
-
-def _position_analysis_range_to_payload(
-    frame_range: MolTrackPositionAnalysisRange,
-) -> dict[str, Any]:
-    return {
-        "name": frame_range.name,
-        "start_frame": frame_range.start_frame,
-        "end_frame": frame_range.end_frame,
-    }
-
-
-def _position_analysis_from_payload(payload: Any) -> MolTrackPositionAnalysisState | None:
-    if payload is None:
-        return None
-    state_payload = _require_mapping(payload, "position_analysis")
-    first_payload = _require_mapping(state_payload.get("first_range"), "position_analysis.first_range")
-    second_payload = _require_mapping(state_payload.get("second_range"), "position_analysis.second_range")
-    return MolTrackPositionAnalysisState(
-        source_view=str(state_payload.get("source_view", "raw")),
-        first_range=MolTrackPositionAnalysisRange(
-            name=str(first_payload.get("name", "")),
-            start_frame=int(first_payload.get("start_frame", 0)),
-            end_frame=int(first_payload.get("end_frame", 0)),
-        ),
-        second_range=MolTrackPositionAnalysisRange(
-            name=str(second_payload.get("name", "")),
-            start_frame=int(second_payload.get("start_frame", 0)),
-            end_frame=int(second_payload.get("end_frame", 0)),
-        ),
-        comparison_completed=bool(state_payload.get("comparison_completed", False)),
-        active_tab=str(state_payload.get("active_tab", "Current frame")),
-        density_grid_shape=tuple(state_payload.get("density_grid_shape", (32, 32))),
-        use_segmentation_centroids=bool(state_payload.get("use_segmentation_centroids", True)),
-        intensity_metric=str(
-            state_payload.get("intensity_metric", "background_corrected_median")
-        ),
-        color_points_by_intensity=bool(
-            state_payload.get("color_points_by_intensity", True)
-        ),
-        background_inner_radius_px=int(
-            state_payload.get("background_inner_radius_px", 1)
-        ),
-        background_outer_radius_px=int(
-            state_payload.get("background_outer_radius_px", 3)
-        ),
-        shared_intensity_scale=bool(state_payload.get("shared_intensity_scale", True)),
-    )
-
-
-def _position_analysis_from_ui_state(ui_state: Any | None) -> MolTrackPositionAnalysisState | None:
-    if ui_state is None or isinstance(ui_state, str):
-        return None
-    if isinstance(ui_state, Mapping):
-        payload = ui_state.get("position_analysis")
-    else:
-        payload = getattr(ui_state, "position_analysis", None)
-    if isinstance(payload, MolTrackPositionAnalysisState):
-        return payload
-    return _position_analysis_from_payload(payload)
-
-
 def _registration_view_mode_from_ui_state(ui_state: Any | None) -> str:
     if ui_state is None:
         return "Show raw"
@@ -1525,13 +920,10 @@ def _mask_opacity_percent_from_ui_state(ui_state: Any | None) -> int:
     if isinstance(ui_state, Mapping):
         return int(ui_state.get("mask_opacity_percent", 30))
     return int(getattr(ui_state, "mask_opacity_percent", 30))
-
-
 def _resolve_source_path(source_payload: Mapping[str, Any], *, session_path: Path) -> Path:
     source_path = Path(str(source_payload.get("path", ""))).expanduser()
     if source_path.exists():
         return source_path.resolve()
-
     relative_path = source_payload.get("path_relative_to_session")
     if relative_path:
         candidate = (session_path.parent / str(relative_path)).expanduser()
@@ -1539,8 +931,6 @@ def _resolve_source_path(source_payload: Mapping[str, Any], *, session_path: Pat
             return candidate.resolve()
 
     raise FileNotFoundError(f"MolTrack source file does not exist: {source_path}")
-
-
 def _validate_source_file_matches_payload(source_payload: Mapping[str, Any], source_stat: os.stat_result) -> None:
     expected_size = int(source_payload["size_bytes"])
     expected_mtime_ns = int(source_payload["mtime_ns"])

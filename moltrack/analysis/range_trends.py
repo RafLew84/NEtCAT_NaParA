@@ -7,7 +7,6 @@ from .m6_range_analysis import (
     build_molecular_m6_frame_trend_series,
 )
 from .range_analysis import MolecularFrameRangeAnalysis
-from .range_comparison import MolecularFrameRangeComparison
 
 
 @dataclass(frozen=True)
@@ -27,15 +26,7 @@ class MolecularRangeTrendSeries:
     m6_orientation: MolecularM6FrameTrendSeries | None = None
 
 
-@dataclass(frozen=True)
-class MolecularRangeComparisonTrendData:
-    """Two separate condition trends ready for comparison plots."""
-
-    first: MolecularRangeTrendSeries
-    second: MolecularRangeTrendSeries
-
-
-MolecularRangeTrendData = MolecularRangeTrendSeries | MolecularRangeComparisonTrendData
+MolecularRangeTrendData = MolecularRangeTrendSeries
 
 
 def unpack_molecular_range_trend_data(
@@ -45,24 +36,9 @@ def unpack_molecular_range_trend_data(
 
     if isinstance(trend_data, MolecularRangeTrendSeries):
         return (trend_data,)
-    if isinstance(trend_data, MolecularRangeComparisonTrendData):
-        return (trend_data.first, trend_data.second)
     if trend_data is None:
         return ()
-    raise TypeError("trend_data must be a range trend series, comparison, or None.")
-
-
-def build_molecular_range_comparison_trend_data(
-    comparison: MolecularFrameRangeComparison,
-) -> MolecularRangeComparisonTrendData:
-    """Build plotting data without joining observations across frames."""
-
-    if not isinstance(comparison, MolecularFrameRangeComparison):
-        raise TypeError("comparison must be a MolecularFrameRangeComparison instance.")
-    return MolecularRangeComparisonTrendData(
-        first=build_molecular_range_trend_series(comparison.first_analysis),
-        second=build_molecular_range_trend_series(comparison.second_analysis),
-    )
+    raise TypeError("trend_data must be a range trend series or None.")
 
 
 def build_molecular_range_trend_series(

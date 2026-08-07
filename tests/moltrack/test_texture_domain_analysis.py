@@ -8,7 +8,6 @@ from moltrack.analysis import (
     TextureDomainAnalysisSettings,
     TextureDomainClassDefinition,
     TextureDomainPointInput,
-    TextureDomainSessionState,
     TextureDomainViewSettings,
     analyze_texture_domain_descriptors,
     build_texture_domain_point_overlay,
@@ -159,34 +158,6 @@ class TextureDomainAnalysisTests(unittest.TestCase):
             ("unknown", "unknown"),
         )
         self.assertEqual(frame.components, ())
-
-    def test_session_round_trip_preserves_result_and_view_settings(self):
-        frame = analyze_texture_domain_descriptors(
-            frame_index=0,
-            source_view="raw",
-            points=(
-                TextureDomainPointInput("a", 0.0, 0.0),
-                TextureDomainPointInput("b", 1.0, 0.0),
-            ),
-            descriptors=np.asarray(((1.0, 0.0, 0.0),) * 2),
-            settings=_settings(),
-        )
-        state = TextureDomainSessionState(
-            settings=_settings(),
-            view_settings=TextureDomainViewSettings(
-                show_overlay=True,
-                opacity_percent=65,
-                show_unknown=True,
-            ),
-            frame_results=(frame,),
-            range_start_frame=0,
-            range_end_frame=0,
-        )
-
-        restored = TextureDomainSessionState.from_dict(state.to_dict())
-
-        self.assertEqual(restored, state)
-        self.assertEqual(restored.frame_result(0), frame)
 
     def test_overlay_is_one_projection_with_configured_opacity(self):
         frame = analyze_texture_domain_descriptors(

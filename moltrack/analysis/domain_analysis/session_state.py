@@ -16,6 +16,7 @@ from .classifier_models import (
     MoleculeClassification,
     classifier_frame_result_fingerprint,
 )
+from .geometry import GeometryMode
 from .models import (
     DomainAnalysisRequest,
     M6FrameComputation,
@@ -503,7 +504,7 @@ def _validate_m6_cache_scope(
     state: DomainAnalysisSessionState,
     *,
     allowed_indices: set[int],
-    allowed_geometry_modes: set[str],
+    allowed_geometry_modes: set[GeometryMode],
     published_frames: tuple[M6FrameGate, ...],
     draft_frame_ids: dict[int, str],
 ) -> None:

@@ -17,8 +17,8 @@ REQUIRED_CATEGORIES = {
 
 def validate_cutover_manifest(root: Path, manifest_path: Path) -> int:
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if payload.get("schema_version") != 1:
-        raise ValueError("Cutover manifest schema_version must be 1.")
+    if payload.get("schema_version") != 2:
+        raise ValueError("Completed cutover manifest schema_version must be 2.")
     _validate_preflight_composition(root, payload.get("preflight_composition"))
     _validate_invariants(payload.get("invariants"))
     entries = payload.get("entries")
@@ -73,7 +73,7 @@ def _validate_entry(root: Path, entry: dict[str, Any]) -> None:
     if not isinstance(legacy, list) or not legacy:
         raise ValueError(f"{identifier}: legacy locators are required.")
     for locator in legacy:
-        _validate_locator(
+        _validate_removed_locator(
             root,
             locator,
             f"{identifier}: legacy",
@@ -101,6 +101,35 @@ def _validate_entry(root: Path, entry: dict[str, Any]) -> None:
     raise ValueError(f"{identifier}: unsupported disposition {disposition!r}.")
 
 
+def _validate_removed_locator(
+    root: Path,
+    locator: object,
+    label: str,
+    *,
+    test_locator: bool = False,
+) -> None:
+    relative_path, anchors = _locator_fields(
+        root,
+        locator,
+        label,
+        test_locator=test_locator,
+    )
+    assert isinstance(locator, dict)
+    path = (root / relative_path).resolve()
+    if not path.is_file():
+        return
+    if test_locator and locator.get("scope") == "file":
+        raise ValueError(
+            f"{label}: legacy test file still exists: {relative_path}."
+        )
+    text = path.read_text(encoding="utf-8")
+    remaining = [anchor for anchor in anchors if anchor in text]
+    if remaining:
+        raise ValueError(
+            f"{label}: legacy anchors remain in {relative_path}: {remaining!r}."
+        )
+
+
 def _validate_locator(
     root: Path,
     locator: object,
@@ -108,6 +137,40 @@ def _validate_locator(
     *,
     test_locator: bool = False,
 ) -> None:
+    relative_path, anchors = _locator_fields(
+        root,
+        locator,
+        label,
+        test_locator=test_locator,
+    )
+    assert isinstance(locator, dict)
+    path = (root / relative_path).resolve()
+    if not path.is_file():
+        raise ValueError(f"{label}: file does not exist: {relative_path}.")
+    text = path.read_text(encoding="utf-8")
+    missing = [anchor for anchor in anchors if anchor not in text]
+    if missing:
+        raise ValueError(f"{label}: missing anchors in {relative_path}: {missing!r}.")
+    if (
+        test_locator
+        and locator.get("scope") == "file"
+        and re.search(
+            r"^\s*(?:async\s+)?def\s+test_",
+            text,
+            re.MULTILINE,
+        )
+        is None
+    ):
+        raise ValueError(f"{label}: file scope does not contain tests.")
+
+
+def _locator_fields(
+    root: Path,
+    locator: object,
+    label: str,
+    *,
+    test_locator: bool,
+) -> tuple[str, list[str]]:
     if not isinstance(locator, dict):
         raise ValueError(f"{label}: locator must be an object.")
     relative_path = locator.get("path")
@@ -123,27 +186,14 @@ def _validate_locator(
     path = (root / relative_path).resolve()
     if root.resolve() not in path.parents:
         raise ValueError(f"{label}: path escapes the repository root.")
-    if not path.is_file():
-        raise ValueError(f"{label}: file does not exist: {relative_path}.")
-    text = path.read_text(encoding="utf-8")
-    missing = [anchor for anchor in anchors if anchor not in text]
-    if missing:
-        raise ValueError(f"{label}: missing anchors in {relative_path}: {missing!r}.")
     scope = locator.get("scope")
     if not test_locator:
         if scope is not None:
             raise ValueError(f"{label}: scope is only valid for legacy tests.")
-        return
+        return relative_path, anchors
     if scope not in {"file", "anchors"}:
-        raise ValueError(
-            f"{label}: legacy test scope must be 'file' or 'anchors'."
-        )
-    if scope == "file" and re.search(
-        r"^\s*(?:async\s+)?def\s+test_",
-        text,
-        re.MULTILINE,
-    ) is None:
-        raise ValueError(f"{label}: file scope does not contain tests.")
+        raise ValueError(f"{label}: legacy test scope must be 'file' or 'anchors'.")
+    return relative_path, anchors
 
 
 def main() -> None:

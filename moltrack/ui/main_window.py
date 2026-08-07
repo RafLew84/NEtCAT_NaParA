@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 import inspect
 from pathlib import Path
 from threading import Event, Lock
@@ -33,57 +33,12 @@ from PyQt6.QtWidgets import (
 )
 
 from moltrack.analysis import (
-    M6DomainTypeAnalysisContext,
-    M6DomainTypeAnalysisStoreState,
-    M6DomainTypeAnalysisStore,
-    M6DomainTypeAnalysisSource,
-    M6DomainTypeClassificationSettings,
-    M6DomainTypeSessionState,
-    M6PointOverlay,
-    MolecularFrameRangeAnalysis,
-    MolecularFrameRangeAnalysisScope,
-    MolecularFrameRangeComparison,
-    MolecularM6OrientationAnalysisSettings,
-    MolecularM6SessionState,
-    MolecularM6ViewSettings,
     MolecularOrientationBatchResult,
     MolecularOrientationEstimationCancelled,
-    MolecularOrientationFrameData,
     MolecularOrientationStore,
-    MolecularOrderTypeClassificationSettings,
-    MolecularOrderTypeSessionState,
-    MolecularStackingDisplayResult,
-    MolecularStackingFrameGeometry,
-    MolecularStackingOverlayLayer,
-    MolecularStackingSessionState,
-    TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET,
-    TTMAPP_TEXTURE_DOMAIN_PRESET,
-    TextureDomainSessionState,
-    TextureDomainViewSettings,
-    MolecularFrameRange,
-    MolecularFrameRangeSelection,
-    aggregate_pair_correlation_results,
-    adapt_m6_domain_type_analysis_source,
-    analyze_molecular_frame_range,
-    build_m6_domain_type_analysis_context,
-    build_m6_point_overlay_from_analysis,
-    build_m6_current_frame_results,
-    build_local_symmetry_point_inspection,
-    build_molecular_intensity_measurements,
     build_manual_molecular_orientation_measurement,
-    build_molecular_position_plot_data,
     build_molecular_orientation_axes,
-    build_molecular_stacking_inspection,
-    build_molecular_stacking_point_overlay,
-    build_molecular_stacking_range_comparison,
-    build_molecular_sample_coordinates,
-    build_structural_analysis_cache_key,
-    compare_molecular_frame_ranges,
     estimate_series_molecular_orientations,
-    suggest_first_shell_r_max,
-    suggest_shared_first_shell_r_max,
-    analyze_texture_domain_range,
-    build_texture_domain_point_overlay,
 )
 from moltrack.core import (
     MolecularDetectionSet,
@@ -93,47 +48,21 @@ from moltrack.core import (
     MolTrackRegistrationSettings,
     SUPPORTED_REGISTRATION_BACKENDS,
     build_moltrack_expanded_aligned_stack,
-    build_molecular_centroids,
     run_moltrack_registration,
 )
 from moltrack.io import load_moltrack_image_series
 from moltrack.persistence import (
-    export_analysis_package,
     load_moltrack_session,
     restore_moltrack_image_series_from_session,
     save_moltrack_session,
-)
-from moltrack.ui.dialogs import (
-    ExportAnalysisDialog,
-    LatticeDomainCalibrationDialog,
-    PositionAnalysisDialog,
-)
-from moltrack.ui.dialogs.m6_settings_panel import M6SettingsPanel
-from moltrack.ui.m6_domain_type_worker import M6DomainTypeAnalysisController
-from moltrack.ui.molecular_stacking_controller import (
-    MolecularStackingAnalysisController,
-    analyze_molecular_stacking_display,
-    build_molecular_stacking_input_frames,
-)
-from moltrack.ui.molecular_order_type_worker import (
-    MolecularOrderTypeAnalysisController,
-    MolecularOrderTypeAnalysisResult,
-    analyze_molecular_order_types,
-)
-from moltrack.ui.m6_domain_type_overlay import (
-    M6DomainTypeOverlayIndex,
-    build_m6_domain_type_frame_overlay,
-    build_m6_domain_type_overlay_index,
-)
-from moltrack.ui.m6_domain_type_selection import M6DomainTypeSelection
-from moltrack.ui.texture_domain_worker import (
-    TextureDomainAnalysisController,
-    TextureDomainAnalysisProgress,
 )
 from moltrack.ui.widgets import (
     MolecularOrientationPanel,
     STMSeriesViewer,
     SeriesMetadataPanel,
+)
+from moltrack.ui.domain_analysis_composition import (
+    DomainAnalysisMainWindowComposition,
 )
 from moltrack.yolo import MolTrackYoloDetector, YoloBBoxSizeFilter, discover_yolo_models
 from moltrack.sam2 import (
@@ -253,245 +182,6 @@ class _StateOpenWorker(QObject):
             self.failed.emit(str(exc) or exc.__class__.__name__)
             return
         self.finished.emit(_StateOpenResult(session=session, series=series))
-
-
-class _AnalysisExportWorker(QObject):
-    progress = pyqtSignal(object)
-    finished = pyqtSignal(object)
-    failed = pyqtSignal(str)
-
-    def __init__(self, exporter, series, settings):
-        super().__init__()
-        self._exporter = exporter
-        self._series = series
-        self._settings = settings
-
-    @pyqtSlot()
-    def run(self) -> None:
-        try:
-            try:
-                parameters = inspect.signature(self._exporter).parameters.values()
-            except (TypeError, ValueError):
-                supports_progress = False
-            else:
-                supports_progress = any(
-                    parameter.name == "progress_callback"
-                    or parameter.kind == inspect.Parameter.VAR_KEYWORD
-                    for parameter in parameters
-                )
-            if supports_progress:
-                result = self._exporter(
-                    self._series,
-                    self._settings,
-                    progress_callback=self.progress.emit,
-                )
-            else:
-                result = self._exporter(self._series, self._settings)
-        except Exception as exc:
-            self.failed.emit(str(exc) or exc.__class__.__name__)
-            return
-        self.finished.emit(result)
-
-
-@dataclass(frozen=True)
-class _M6AnalysisProgress:
-    completed_count: int
-    total_count: int
-    frame_index: int
-
-
-@dataclass(frozen=True)
-class _PositionRangeAnalysisExecution:
-    result: MolecularFrameRangeAnalysis | MolecularFrameRangeComparison
-    source: M6DomainTypeAnalysisSource
-    domain_type_restore_context: M6DomainTypeAnalysisContext | None = None
-
-
-class _M6PositionAnalysisCanceled(RuntimeError):
-    pass
-
-
-@dataclass(frozen=True)
-class _M6PendingAnalysisContext:
-    series: object
-    dialog: object
-    scope: MolecularFrameRangeAnalysisScope
-    use_segmentation_centroids: bool
-    settings: MolecularM6OrientationAnalysisSettings
-
-
-@dataclass(frozen=True)
-class _M6CompletedAnalysisContext:
-    result: MolecularFrameRangeAnalysis | MolecularFrameRangeComparison
-    source: M6DomainTypeAnalysisSource
-    launch: _M6PendingAnalysisContext
-
-    @property
-    def scope(self) -> MolecularFrameRangeAnalysisScope:
-        return self.launch.scope
-
-    @property
-    def use_segmentation_centroids(self) -> bool:
-        return self.launch.use_segmentation_centroids
-
-    @property
-    def settings(self) -> MolecularM6OrientationAnalysisSettings:
-        return self.launch.settings
-
-    @property
-    def analysis_mode(self) -> str:
-        return self.scope.analysis_mode
-
-
-def _range_analyses(
-    result: MolecularFrameRangeAnalysis | MolecularFrameRangeComparison,
-) -> tuple[MolecularFrameRangeAnalysis, ...]:
-    if isinstance(result, MolecularFrameRangeAnalysis):
-        return (result,)
-    if isinstance(result, MolecularFrameRangeComparison):
-        return (result.first_analysis, result.second_analysis)
-    raise TypeError("result must be a frame range analysis or comparison.")
-
-
-def _execute_position_range_analysis(
-    analyzer,
-    comparator,
-    series,
-    scope: MolecularFrameRangeAnalysisScope,
-    domain_type_classification_settings: (
-        M6DomainTypeClassificationSettings | None
-    ) = None,
-    **kwargs,
-) -> _PositionRangeAnalysisExecution:
-    if not isinstance(scope, MolecularFrameRangeAnalysisScope):
-        raise TypeError("scope must be a MolecularFrameRangeAnalysisScope.")
-    if scope.frame_count != series.frame_count:
-        raise ValueError("scope frame_count must match the working series.")
-    if scope.analysis_mode == "single_range":
-        result = analyzer(
-            series,
-            scope.single_range,
-            source_view=scope.source_view,
-            **kwargs,
-        )
-    else:
-        result = comparator(
-            series,
-            scope.to_frame_range_selection(),
-            **kwargs,
-        )
-    source = adapt_m6_domain_type_analysis_source(
-        result,
-        frame_count=scope.frame_count,
-    )
-    if source.analysis_scope != scope:
-        raise ValueError("Range analysis backend returned a result for another scope.")
-    expected_centroid_mode = bool(kwargs.get("use_segmentation_centroids", True))
-    if source.use_segmentation_centroids != expected_centroid_mode:
-        raise ValueError("Range analysis backend returned another centroid mode.")
-    if (
-        "m6_orientation_settings" in kwargs
-        and source.m6_settings != kwargs["m6_orientation_settings"]
-    ):
-        raise ValueError("Range analysis backend returned another M6 settings context.")
-    domain_type_restore_context = None
-    if domain_type_classification_settings is not None:
-        try:
-            domain_type_restore_context = build_m6_domain_type_analysis_context(
-                source,
-                classification_settings=domain_type_classification_settings,
-            )
-        except Exception:
-            # Optional cache validation cannot invalidate a completed M6 result.
-            domain_type_restore_context = None
-    return _PositionRangeAnalysisExecution(
-        result=result,
-        source=source,
-        domain_type_restore_context=domain_type_restore_context,
-    )
-
-
-class _M6PositionAnalysisWorker(QObject):
-    progress = pyqtSignal(object)
-    finished = pyqtSignal(object)
-    failed = pyqtSignal(str)
-    canceled = pyqtSignal()
-
-    def __init__(
-        self,
-        analyzer,
-        comparator,
-        series,
-        scope,
-        *,
-        use_segmentation_centroids: bool,
-        intensity_metric: str,
-        background_inner_radius_px: int,
-        background_outer_radius_px: int,
-        settings: MolecularM6OrientationAnalysisSettings,
-        domain_type_classification_settings: (
-            M6DomainTypeClassificationSettings | None
-        ) = None,
-    ) -> None:
-        super().__init__()
-        self._analyzer = analyzer
-        self._comparator = comparator
-        self._series = series
-        self._scope = scope
-        self._use_segmentation_centroids = bool(use_segmentation_centroids)
-        self._intensity_metric = str(intensity_metric)
-        self._background_inner_radius_px = int(background_inner_radius_px)
-        self._background_outer_radius_px = int(background_outer_radius_px)
-        self._settings = settings
-        self._domain_type_classification_settings = (
-            domain_type_classification_settings
-        )
-        self._cancel_requested = Event()
-
-    def cancel(self) -> None:
-        self._cancel_requested.set()
-
-    @pyqtSlot()
-    def run(self) -> None:
-        def report_progress(completed_count, total_count, frame_index) -> None:
-            self.progress.emit(
-                _M6AnalysisProgress(
-                    completed_count=int(completed_count),
-                    total_count=int(total_count),
-                    frame_index=int(frame_index),
-                )
-            )
-            if self._cancel_requested.is_set():
-                raise _M6PositionAnalysisCanceled()
-
-        try:
-            if self._cancel_requested.is_set():
-                raise _M6PositionAnalysisCanceled()
-            execution = _execute_position_range_analysis(
-                self._analyzer,
-                self._comparator,
-                self._series,
-                self._scope,
-                domain_type_classification_settings=(
-                    self._domain_type_classification_settings
-                ),
-                use_segmentation_centroids=self._use_segmentation_centroids,
-                intensity_metric=self._intensity_metric,
-                background_inner_radius_px=self._background_inner_radius_px,
-                background_outer_radius_px=self._background_outer_radius_px,
-                progress_callback=report_progress,
-                m6_orientation_settings=self._settings,
-            )
-        except _M6PositionAnalysisCanceled:
-            self.canceled.emit()
-            return
-        except Exception as exc:
-            self.failed.emit(str(exc) or exc.__class__.__name__)
-            return
-        if self._cancel_requested.is_set():
-            self.canceled.emit()
-            return
-        self.finished.emit(execution)
 
 
 class _YoloDetectFramesWorker(QObject):
@@ -1143,7 +833,6 @@ class MolTrackMainWindow(QMainWindow):
     _yolo_apply_detection_progress = pyqtSignal(int, int)
     _yolo_apply_detection_finished = pyqtSignal(object)
     _yolo_apply_detection_failed = pyqtSignal(str)
-    analysis_export_requested = pyqtSignal(object)
 
     def __init__(
         self,
@@ -1162,15 +851,8 @@ class MolTrackMainWindow(QMainWindow):
         sam2_settings_dialog_factory=None,
         sam2_use_batch_backend: bool = True,
         sam3_adapter=None,
-        analysis_export_dialog_factory=None,
-        analysis_exporter=None,
-        position_range_analyzer=analyze_molecular_frame_range,
-        position_range_comparator=compare_molecular_frame_ranges,
-        m6_domain_type_store=None,
         molecular_orientation_estimator=estimate_series_molecular_orientations,
-        molecular_stacking_analyzer=analyze_molecular_stacking_display,
-        molecular_order_type_analyzer=analyze_molecular_order_types,
-        texture_domain_analyzer=analyze_texture_domain_range,
+        domain_analysis_composition_factory=None,
     ):
         super().__init__(parent)
         self._series = None
@@ -1188,6 +870,10 @@ class MolTrackMainWindow(QMainWindow):
             )
         )
         self._session_path: str | None = None
+        self._domain_analysis_composition_factory = domain_analysis_composition_factory
+        self._domain_analysis_composition: (
+            DomainAnalysisMainWindowComposition | None
+        ) = None
         self._state_io_running = False
         self._state_io_operation = ""
         self._state_io_path: str | None = None
@@ -1200,27 +886,10 @@ class MolTrackMainWindow(QMainWindow):
         self._sam2_segmenter = sam2_segmenter if sam2_segmenter is not None else MolTrackSam2Segmenter()
         self._sam2_settings_dialog_factory = sam2_settings_dialog_factory
         self._sam2_use_batch_backend = bool(sam2_use_batch_backend)
-        self._sam3_adapter = sam3_adapter if sam3_adapter is not None else MolTrackSam3ConceptAdapter()
-        self._analysis_export_dialog_factory = (
-            analysis_export_dialog_factory
-            if analysis_export_dialog_factory is not None
-            else ExportAnalysisDialog
+        self._sam3_adapter = (
+            sam3_adapter if sam3_adapter is not None else MolTrackSam3ConceptAdapter()
         )
-        self._analysis_exporter = (
-            analysis_exporter
-            if analysis_exporter is not None
-            else export_analysis_package
-        )
-        self._analysis_export_running = False
-        self._analysis_export_settings = None
-        self._analysis_export_progress_dialog: QProgressDialog | None = None
-        self._analysis_export_thread: QThread | None = None
-        self._analysis_export_worker: _AnalysisExportWorker | None = None
-        self._position_range_analyzer = position_range_analyzer
-        self._position_range_comparator = position_range_comparator
-        self._molecular_orientation_estimator = (
-            molecular_orientation_estimator
-        )
+        self._molecular_orientation_estimator = molecular_orientation_estimator
         self._molecular_orientation_running = False
         self._molecular_orientation_progress_dialog: (
             QProgressDialog | None
@@ -1230,119 +899,6 @@ class MolTrackMainWindow(QMainWindow):
             _MolecularOrientationWorker | None
         ) = None
         self._molecular_orientation_series = None
-        self._molecular_stacking_progress_dialog: (
-            QProgressDialog | None
-        ) = None
-        self._molecular_stacking_controller = (
-            MolecularStackingAnalysisController(
-                analyzer=molecular_stacking_analyzer,
-                parent=self,
-            )
-        )
-        self._molecular_stacking_controller.running_changed.connect(
-            self._on_molecular_stacking_running_changed
-        )
-        self._molecular_stacking_controller.finished.connect(
-            self._on_molecular_stacking_finished
-        )
-        self._molecular_stacking_controller.failed.connect(
-            self._on_molecular_stacking_failed
-        )
-        self._molecular_order_type_controller = (
-            MolecularOrderTypeAnalysisController(
-                analyzer=molecular_order_type_analyzer,
-                parent=self,
-            )
-        )
-        self._molecular_order_type_error_message: str | None = None
-        self._molecular_order_type_controller.running_changed.connect(
-            self._on_molecular_order_type_running_changed
-        )
-        self._molecular_order_type_controller.finished.connect(
-            self._on_molecular_order_type_finished
-        )
-        self._molecular_order_type_controller.failed.connect(
-            self._on_molecular_order_type_failed
-        )
-        self._texture_domain_controller = TextureDomainAnalysisController(
-            analyzer=texture_domain_analyzer,
-            parent=self,
-        )
-        self._texture_domain_controller.progress.connect(
-            self._on_texture_domain_progress
-        )
-        self._texture_domain_controller.finished.connect(
-            self._on_texture_domain_finished
-        )
-        self._texture_domain_controller.failed.connect(
-            self._on_texture_domain_failed
-        )
-        self._texture_domain_controller.canceled.connect(
-            self._on_texture_domain_canceled
-        )
-        self._texture_domain_controller.running_changed.connect(
-            self._on_texture_domain_running_changed
-        )
-        self._texture_domain_analysis_series = None
-        self._texture_domain_pending_view_settings: (
-            TextureDomainViewSettings | None
-        ) = None
-        self._texture_domain_status_message: str | None = None
-        self._molecular_stacking_pending_session_state: (
-            MolecularStackingSessionState | None
-        ) = None
-        self._molecular_order_type_pending_session_state: (
-            MolecularOrderTypeSessionState | None
-        ) = None
-        self._m6_analysis_running = False
-        self._m6_domain_type_store = (
-            m6_domain_type_store
-            if m6_domain_type_store is not None
-            else M6DomainTypeAnalysisStore()
-        )
-        self._m6_domain_type_controller = M6DomainTypeAnalysisController(
-            self._m6_domain_type_store,
-            self,
-        )
-        self._m6_domain_type_controller.progress.connect(
-            self._on_m6_domain_type_progress
-        )
-        self._m6_domain_type_controller.finished.connect(
-            self._on_m6_domain_type_finished
-        )
-        self._m6_domain_type_controller.failed.connect(
-            self._on_m6_domain_type_failed
-        )
-        self._m6_domain_type_controller.canceled.connect(
-            self._on_m6_domain_type_canceled
-        )
-        self._m6_domain_type_controller.running_changed.connect(
-            self._on_m6_domain_type_running_changed
-        )
-        self._m6_domain_type_controller.state_changed.connect(
-            self._on_m6_domain_type_state_changed
-        )
-        self._m6_analysis_thread: QThread | None = None
-        self._m6_analysis_worker: _M6PositionAnalysisWorker | None = None
-        self._m6_analysis_series = None
-        self._m6_pending_context = None
-        self._m6_completed_context = None
-        self._m6_rendered_analysis = None
-        self._m6_rendered_view_settings: MolecularM6ViewSettings | None = None
-        self._m6_current_results_analysis = None
-        self._m6_selected_ordered_component_id: int | None = None
-        self._m6_selected_domain_type_key: M6DomainTypeSelection | None = None
-        self._m6_domain_type_overlay_index: M6DomainTypeOverlayIndex | None = None
-        self._m6_pending_session_state: MolecularM6SessionState | None = None
-        self._m6_pending_domain_type_session_state: (
-            M6DomainTypeSessionState | None
-        ) = None
-        self._lattice_domain_calibration_dialog: (
-            LatticeDomainCalibrationDialog | None
-        ) = None
-        self._m6_enable_on_success = True
-        self._m6_target_tab = "Sixfold Bond Order"
-        self._m6_density_grid_shape = (32, 32)
         self._yolo_models = []
         self._sam2_checkpoints = []
         self._selected_sam2_checkpoint_path = None
@@ -1379,7 +935,6 @@ class MolTrackMainWindow(QMainWindow):
             tuple[int, str], list[tuple[float, float, float, float]]
         ] = {}
         self._sam3_prompt_draw_mode: str | None = None
-        self._position_analysis_dialog: PositionAnalysisDialog | None = None
         self._registration_running = False
         self._registration_progress_dialog: QProgressDialog | None = None
         self._registration_thread: QThread | None = None
@@ -1427,37 +982,17 @@ class MolTrackMainWindow(QMainWindow):
         file_menu.addAction(self.action_save_state)
         file_menu.addAction(self.action_save_state_as)
 
-        self.parameters_menu = self.menuBar().addMenu("Parameters")
-        self.m6_presets_menu = self.parameters_menu.addMenu("M6 presets")
-        self.action_m6_preset_ttmapp = QAction("TTMAPP", self)
-        self.action_m6_preset_ttmapp.setToolTip(
-            "Apply validated TTMAPP parameters to sixfold bond-order analysis"
-        )
-        self.action_m6_preset_ttmapp.setEnabled(False)
-        self.m6_presets_menu.addAction(self.action_m6_preset_ttmapp)
-        self.texture_domain_presets_menu = self.parameters_menu.addMenu(
-            "Texture domain presets"
-        )
-        self.action_texture_domain_preset_ttmapp = QAction(
-            "TTMAPP local texture v1 (experimental)",
-            self,
-        )
-        self.action_texture_domain_preset_ttmapp.setToolTip(
-            TTMAPP_TEXTURE_DOMAIN_PRESET.calibration_note
-        )
-        self.action_texture_domain_preset_ttmapp.setEnabled(False)
-        self.texture_domain_presets_menu.addAction(
-            self.action_texture_domain_preset_ttmapp
-        )
+        self.analysis_menu = self.menuBar().addMenu("Analysis")
+        self.action_position_analysis = QAction("Position Analysis...", self)
+        self.action_position_analysis.setEnabled(False)
+        self.analysis_menu.addAction(self.action_position_analysis)
 
     def _build_central_widget(self) -> None:
         central = QSplitter(Qt.Orientation.Horizontal, self)
-
         viewer_container = QWidget(self)
         viewer_layout = QVBoxLayout(viewer_container)
         self.viewer = STMSeriesViewer(viewer_container)
         viewer_layout.addWidget(self.viewer, 1)
-
         self.lbl_frame = QLabel("Frame: - / -", viewer_container)
         self.lbl_frame.setAlignment(Qt.AlignmentFlag.AlignCenter)
         viewer_layout.addWidget(self.lbl_frame)
@@ -1758,12 +1293,14 @@ class MolTrackMainWindow(QMainWindow):
         self.orientation_panel = MolecularOrientationPanel(sidebar_content)
         sidebar_layout.addWidget(self.orientation_panel)
 
-        self.position_analysis_group = QGroupBox("Position Analysis", sidebar_content)
+        self.position_analysis_group = QGroupBox("Domain Analysis", sidebar_content)
         position_analysis_layout = QVBoxLayout(self.position_analysis_group)
         self.chk_show_centroids = QCheckBox("Show centroids", self.position_analysis_group)
         self.chk_show_centroids.setChecked(False)
         position_analysis_layout.addWidget(self.chk_show_centroids)
-        self.btn_position_analysis = QPushButton("Position Analysis...", self.position_analysis_group)
+        self.btn_position_analysis = QPushButton(
+            "Domain Analysis...", self.position_analysis_group
+        )
         self.btn_position_analysis.setEnabled(False)
         position_analysis_layout.addWidget(self.btn_position_analysis)
         sidebar_layout.addWidget(self.position_analysis_group)
@@ -1793,11 +1330,8 @@ class MolTrackMainWindow(QMainWindow):
         self.action_open_state.triggered.connect(self._on_open_state_requested)
         self.action_save_state.triggered.connect(self._on_save_state_requested)
         self.action_save_state_as.triggered.connect(self._on_save_state_as_requested)
-        self.action_m6_preset_ttmapp.triggered.connect(
-            self._on_m6_ttmapp_preset_requested
-        )
-        self.action_texture_domain_preset_ttmapp.triggered.connect(
-            self._on_texture_domain_ttmapp_preset_requested
+        self.action_position_analysis.triggered.connect(
+            self._on_position_analysis_requested
         )
         self.slider_frame.valueChanged.connect(self._on_frame_selected)
         self.btn_remove_current_frame.clicked.connect(self._on_remove_current_frame_requested)
@@ -1818,9 +1352,13 @@ class MolTrackMainWindow(QMainWindow):
         self.slider_bbox_opacity.valueChanged.connect(self._on_bbox_opacity_changed)
         self.slider_mask_opacity.valueChanged.connect(self._on_mask_opacity_changed)
         self.chk_show_centroids.toggled.connect(self._on_show_centroids_toggled)
-        self.btn_position_analysis.clicked.connect(self._on_position_analysis_requested)
-        self.cmb_segmentation_backend.currentTextChanged.connect(self._on_segmentation_backend_changed)
-        self.cmb_active_segmentation.currentIndexChanged.connect(self._on_active_segmentation_combo_changed)
+        self.btn_position_analysis.clicked.connect(self._on_domain_analysis_requested)
+        self.cmb_segmentation_backend.currentTextChanged.connect(
+            self._on_segmentation_backend_changed
+        )
+        self.cmb_active_segmentation.currentIndexChanged.connect(
+            self._on_active_segmentation_combo_changed
+        )
         self.btn_delete_active_segmentation.clicked.connect(
             self._on_delete_active_segmentation_requested
         )
@@ -1862,58 +1400,12 @@ class MolTrackMainWindow(QMainWindow):
         self.orientation_panel.reset_requested.connect(
             self._on_molecular_orientation_reset_requested
         )
-        self.orientation_panel.analyze_stacking_requested.connect(
-            self._on_molecular_stacking_analyze_requested
-        )
         self.orientation_panel.orientation_view_changed.connect(
             self._render_current_molecular_orientation_overlay
         )
-        self.orientation_panel.ab_states_view_changed.connect(
-            lambda: self._render_current_molecular_stacking_layer(
-                "ab_states"
-            )
-        )
-        self.orientation_panel.stacking_subdomains_view_changed.connect(
-            lambda: self._render_current_molecular_stacking_layer(
-                "stacking_subdomains"
-            )
-        )
 
     def set_image_series(self, series) -> None:
-        if self._texture_domain_controller.is_running:
-            raise RuntimeError(
-                "Wait for texture-domain analysis before changing the series."
-            )
-        calibration_dialog = self._lattice_domain_calibration_dialog
-        if calibration_dialog is not None:
-            if calibration_dialog.is_running:
-                raise RuntimeError(
-                    "Wait for M3/M6 domain calibration before changing the series."
-                )
-            self._lattice_domain_calibration_dialog = None
-            calibration_dialog.close()
-            calibration_dialog.deleteLater()
-        self._m6_domain_type_controller.clear_for_series_change()
-        self._m6_selected_domain_type_key = None
-        self._m6_domain_type_overlay_index = None
-        self._m6_pending_domain_type_session_state = None
-        if self._position_analysis_dialog is not None:
-            previous_dialog = self._position_analysis_dialog
-            self._position_analysis_dialog = None
-            previous_dialog.close()
-            previous_dialog.deleteLater()
-        self._m6_completed_context = None
-        self._m6_rendered_analysis = None
-        self._m6_rendered_view_settings = None
-        self._molecular_stacking_controller.invalidate()
-        self._molecular_order_type_controller.invalidate()
-        self._molecular_order_type_error_message = None
-        self._molecular_stacking_pending_session_state = None
-        self._molecular_order_type_pending_session_state = None
-        self._texture_domain_analysis_series = None
-        self._texture_domain_status_message = None
-        self.viewer.clear_molecular_stacking_point_overlays()
-        self.viewer.clear_texture_domain_point_overlay()
+        self._discard_domain_analysis_composition()
         self._clear_sam3_prompt_draw_mode()
         self._sam3_manual_positive_bboxes_by_context.clear()
         self._sam3_manual_negative_bboxes_by_context.clear()
@@ -1924,13 +1416,14 @@ class MolTrackMainWindow(QMainWindow):
         self.metadata_panel.set_image_series(series)
 
     def closeEvent(self, event) -> None:
-        if self._is_processing() or self._m6_domain_type_controller.is_running:
+        if self._is_processing():
             self.statusBar().showMessage(
                 "Wait for the active operation to finish before closing.",
                 0,
             )
             event.ignore()
             return
+        self._discard_domain_analysis_composition()
         super().closeEvent(event)
 
     def open_stm_source(self, source_path, *, reverse_frame_order: bool = False) -> None:
@@ -1941,10 +1434,7 @@ class MolTrackMainWindow(QMainWindow):
 
     def _sync_navigation_controls(self) -> None:
         self._set_file_actions_enabled(not self._is_processing())
-        self.action_m6_preset_ttmapp.setEnabled(
-            self._series is not None and not self._is_processing()
-        )
-        self.action_texture_domain_preset_ttmapp.setEnabled(
+        self.action_position_analysis.setEnabled(
             self._series is not None and not self._is_processing()
         )
         if self._series is None:
@@ -2614,8 +2104,8 @@ class MolTrackMainWindow(QMainWindow):
             checkpoint_path="",
             origin="manual",
         )
-        self._invalidate_texture_domain_analysis(
-            "Texture-domain analysis invalidated by a BBox change.",
+        self._invalidate_domain_analysis(
+            "Domain Analysis invalidated by a BBox change.",
             frame_indices=(detection.frame_index,),
             source_view=detection.source_view,
         )
@@ -2632,20 +2122,12 @@ class MolTrackMainWindow(QMainWindow):
     def _on_molecular_detection_selection_changed(self, detection_id) -> None:
         self._selected_molecular_detection_id = str(detection_id) if detection_id is not None else None
         self._sync_bbox_edit_controls()
-        self._sync_selected_local_symmetry_point(
-            preferred_source_id=self._selected_molecular_detection_id
-        )
-        self._sync_current_molecular_stacking_inspection()
 
     def _on_molecular_segmentation_selection_changed(self, segmentation_id) -> None:
         self._selected_molecular_segmentation_id = str(segmentation_id) if segmentation_id is not None else None
         self._sync_active_segmentation_panel()
         self._sync_molecular_orientation_panel()
         self._render_current_molecular_orientation_overlay()
-        self._sync_selected_local_symmetry_point(
-            preferred_source_id=self._selected_molecular_segmentation_id
-        )
-        self._sync_current_molecular_stacking_inspection()
 
     def _on_active_segmentation_combo_changed(self, _index: int) -> None:
         segmentation_id = self.cmb_active_segmentation.currentData()
@@ -2891,11 +2373,8 @@ class MolTrackMainWindow(QMainWindow):
         store = getattr(self._series, "molecular_orientations", None)
         if isinstance(store, MolecularOrientationStore):
             store.remove("segmentation", str(segmentation_id))
-        self._invalidate_molecular_stacking_result(
-            "Stacking invalidated by a segmentation change"
-        )
-        self._invalidate_texture_domain_analysis(
-            "Texture-domain analysis invalidated by a segmentation change.",
+        self._invalidate_domain_analysis(
+            "Domain Analysis invalidated by a segmentation change.",
             frame_indices=(
                 None if frame_index is None else (frame_index,)
             ),
@@ -2930,10 +2409,6 @@ class MolTrackMainWindow(QMainWindow):
                     measurement.provenance.source_kind,
                     measurement.provenance.source_id,
                 ) or removed
-        if removed:
-            self._invalidate_molecular_stacking_result(
-                "Stacking invalidated by removed segmentations"
-            )
 
     def _current_selected_molecular_orientation(self):
         segmentation = self._current_selected_molecular_segmentation()
@@ -2955,7 +2430,6 @@ class MolTrackMainWindow(QMainWindow):
                 running=self._molecular_orientation_running,
             )
             self.orientation_panel.set_measurement(None)
-            self._sync_molecular_stacking_panel()
             return
         source_view = self._current_yolo_source_view()
         segmentation_set = self._series.molecular_segmentations
@@ -2991,7 +2465,6 @@ class MolTrackMainWindow(QMainWindow):
         self.orientation_panel.set_measurement(
             self._current_selected_molecular_orientation()
         )
-        self._sync_molecular_stacking_panel()
 
     def _render_current_molecular_orientation_overlay(
         self,
@@ -3017,622 +2490,10 @@ class MolTrackMainWindow(QMainWindow):
             ),
         )
 
-    def _sync_molecular_stacking_panel(self) -> None:
-        result = self._current_molecular_stacking_display_result()
-        can_analyze = self._molecular_stacking_inputs_available()
-        if self._molecular_stacking_controller.running:
-            status = "Analyzing molecular stacking..."
-        elif result is None:
-            if self._series is None:
-                status = "No series loaded"
-            elif can_analyze:
-                status = "Stacking not computed"
-            else:
-                status = (
-                    "Run M6 and sample-axis molecular orientation first"
-                )
-        else:
-            analysis = result.stacking_analysis
-            status = (
-                f"{len(result.frames)} frame(s) | "
-                f"{len(analysis.orders)} lattice domain result(s) | "
-                f"{len(analysis.subdomains)} stacking subdomain(s)"
-            )
-        self.orientation_panel.set_stacking_context(
-            can_analyze=can_analyze,
-            computed=result is not None,
-            running=self._molecular_stacking_controller.running,
-            status_text=status,
-        )
-        self.orientation_panel.set_stacking_range_comparison(
-            self._current_molecular_stacking_range_comparison()
-        )
-        self._sync_current_molecular_stacking_inspection()
-        self._sync_molecular_order_type_panel()
-
-    def _current_molecular_stacking_range_comparison(self):
-        result = self._current_molecular_stacking_display_result()
-        context = self._m6_completed_context
-        if (
-            result is None
-            or not isinstance(context, _M6CompletedAnalysisContext)
-            or context.scope.analysis_mode != "compare_ranges"
-        ):
-            return None
-        first_range, second_range = context.scope.comparison_ranges
-        return build_molecular_stacking_range_comparison(
-            result.stacking_analysis,
-            first_range,
-            second_range,
-        )
-
-    def _molecular_stacking_inputs_available(self) -> bool:
-        series = self._series
-        context = self._m6_completed_context
-        store = (
-            None
-            if series is None
-            else getattr(series, "molecular_orientations", None)
-        )
-        if (
-            series is None
-            or not isinstance(context, _M6CompletedAnalysisContext)
-            or context.launch.series is not series
-            or not isinstance(store, MolecularOrientationStore)
-            or store.measurement_count == 0
-        ):
-            return False
-        return any(
-            getattr(
-                frame_result.m6_orientation_analysis,
-                "lattice_row_assignment_analysis",
-                None,
-            )
-            is not None
-            for analysis in _range_analyses(context.result)
-            for frame_result in analysis.frame_results
-        )
-
-    def _molecular_stacking_input_frames(
-        self,
-    ) -> tuple[MolecularOrientationFrameData, ...]:
-        series = self._series
-        context = self._m6_completed_context
-        store = (
-            None
-            if series is None
-            else getattr(series, "molecular_orientations", None)
-        )
-        if (
-            series is None
-            or not isinstance(context, _M6CompletedAnalysisContext)
-            or context.launch.series is not series
-            or not isinstance(store, MolecularOrientationStore)
-        ):
-            return ()
-        return build_molecular_stacking_input_frames(
-            tuple(
-                frame_result
-                for range_analysis in _range_analyses(context.result)
-                for frame_result in range_analysis.frame_results
-            ),
-            store,
-            source_view=context.scope.source_view,
-        )
-
-    def _current_molecular_stacking_display_result(
-        self,
-    ) -> MolecularStackingDisplayResult | None:
-        return self._molecular_stacking_controller.current_result(
-            series=self._series,
-            m6_context=self._m6_completed_context,
-        )
-
-    def _current_molecular_order_type_result(
-        self,
-    ) -> MolecularOrderTypeAnalysisResult | None:
-        display = self._current_molecular_stacking_display_result()
-        if display is None:
-            return None
-        return self._molecular_order_type_controller.current_result(display)
-
-    def _sync_molecular_order_type_panel(self) -> None:
-        dialog = self._position_analysis_dialog
-        if dialog is None:
-            return
-        display = self._current_molecular_stacking_display_result()
-        result = self._current_molecular_order_type_result()
-        running = self._molecular_order_type_controller.is_running
-        dialog.set_molecular_order_type_running(running)
-        if result is not None:
-            dialog.set_molecular_order_type_summary(
-                result.summary,
-                orientation_distribution=result.orientation_distribution,
-            )
-            return
-        if running:
-            dialog.set_molecular_order_type_summary(
-                None,
-                status_message=(
-                    "Classifying hierarchical molecular-order types..."
-                ),
-            )
-            dialog.set_molecular_order_type_running(True)
-            return
-        if self._molecular_order_type_error_message is not None:
-            message = self._molecular_order_type_error_message
-        elif self._m6_completed_context is None:
-            message = "Run M6 analysis first."
-        elif display is None:
-            message = (
-                "Estimate molecular orientations and analyze stacking first."
-            )
-        else:
-            message = (
-                "Ready to classify geometry, molecular orientation, "
-                "stacking, and their combinations."
-            )
-        dialog.set_molecular_order_type_summary(
-            None,
-            status_message=message,
-        )
-
-    @pyqtSlot(object)
-    def _on_molecular_order_type_classification_requested(
-        self,
-        settings,
-    ) -> None:
-        if (
-            self._series is None
-            or self._is_processing()
-            or not isinstance(
-                settings,
-                MolecularOrderTypeClassificationSettings,
-            )
-        ):
-            self._sync_molecular_order_type_panel()
-            return
-        self._molecular_order_type_error_message = None
-        display = self._current_molecular_stacking_display_result()
-        context = self._m6_completed_context
-        if (
-            display is None
-            or not isinstance(context, _M6CompletedAnalysisContext)
-        ):
-            self._sync_molecular_order_type_panel()
-            return
-        cached = self._current_molecular_order_type_result()
-        if (
-            cached is not None
-            and cached.classification.analysis_scope == context.scope
-            and cached.classification.settings == settings
-        ):
-            self._sync_molecular_order_type_panel()
-            self.statusBar().showMessage(
-                "Hierarchical type classification is already current.",
-                3000,
-            )
-            return
-        if not self._molecular_order_type_controller.start_from_frame_results(
-            tuple(
-                frame_result
-                for range_analysis in _range_analyses(context.result)
-                for frame_result in range_analysis.frame_results
-            ),
-            context.scope,
-            settings,
-            context_token=display,
-            display_result=display,
-        ):
-            self._sync_molecular_order_type_panel()
-            return
-        self._sync_molecular_order_type_panel()
-        self.statusBar().showMessage(
-            "Classifying hierarchical molecular-order types...",
-            0,
-        )
-
-    @pyqtSlot(object)
-    def _on_molecular_order_type_finished(self, _result) -> None:
-        self._molecular_order_type_error_message = None
-        self._sync_molecular_order_type_panel()
-        result = self._current_molecular_order_type_result()
-        if result is None:
-            return
-        if self._series is not None:
-            self._series.molecular_order_type_state = (
-                MolecularOrderTypeSessionState.from_classification(
-                    result.classification
-                )
-            )
-        self._molecular_order_type_pending_session_state = None
-        summary = result.summary
-        self.statusBar().showMessage(
-            "Hierarchical type classification complete: "
-            f"{len(summary.rows_for_layer('geometry'))} geometry, "
-            f"{len(summary.rows_for_layer('orientation'))} orientation, "
-            f"{len(summary.rows_for_layer('stacking'))} stacking, "
-            f"{len(summary.rows_for_layer('combination'))} combined type(s).",
-            5000,
-        )
-
-    @pyqtSlot(str)
-    def _on_molecular_order_type_failed(self, message: str) -> None:
-        self._molecular_order_type_error_message = str(message)
-        self._molecular_order_type_pending_session_state = None
-        dialog = self._position_analysis_dialog
-        if dialog is not None:
-            dialog.set_molecular_order_type_summary(
-                None,
-                status_message=message,
-            )
-        self.statusBar().showMessage(
-            f"Hierarchical type classification failed: {message}",
-            5000,
-        )
-
-    @pyqtSlot(bool)
-    def _on_molecular_order_type_running_changed(
-        self,
-        _running: bool,
-    ) -> None:
-        self._sync_molecular_order_type_panel()
-        self._sync_navigation_controls()
-
-    @pyqtSlot(object)
-    def _on_molecular_order_representative_requested(
-        self,
-        observation_key,
-    ) -> None:
-        result = self._current_molecular_order_type_result()
-        if result is None:
-            self._sync_molecular_order_type_panel()
-            return
-        try:
-            result.classification.assignment_for_observation_key(
-                observation_key
-            )
-            observation = next(
-                value
-                for value in result.classification.observations
-                if value.stable_key == observation_key
-            )
-            domain = result.hierarchy.frame_for_index(
-                observation.frame_index
-            ).domain_for_id(observation.lattice_domain_id)
-        except (KeyError, StopIteration, TypeError, ValueError):
-            return
-        self._m6_selected_domain_type_key = None
-        self._m6_selected_ordered_component_id = None
-        self._on_frame_selected(observation.frame_index)
-        analysis = self._current_m6_analysis_result()
-        if analysis is not None:
-            self._show_selected_m6_component(
-                analysis,
-                domain.lattice_domain.source_ids,
-            )
-        self.statusBar().showMessage(
-            f"Representative domain: frame {observation.frame_index + 1}, "
-            f"{observation.lattice_domain_id}",
-            5000,
-        )
-
-    def _on_molecular_stacking_analyze_requested(self) -> None:
-        if self._series is None or self._is_processing():
-            return
-        frames = self._molecular_stacking_input_frames()
-        if not frames or not any(frame.measurements for frame in frames):
-            self.statusBar().showMessage(
-                "M6 row assignments and sample-axis molecular "
-                "orientations are required.",
-                5000,
-            )
-            return
-        self.viewer.clear_molecular_stacking_point_overlays()
-        self._molecular_order_type_controller.invalidate()
-        self._molecular_order_type_error_message = None
-        self._molecular_order_type_pending_session_state = None
-        self._series.molecular_order_type_state = None
-        self._sync_molecular_order_type_panel()
-        self._molecular_stacking_progress_dialog = QProgressDialog(
-            "Classifying molecular stacking...",
-            None,
-            0,
-            0,
-            self,
-        )
-        self._molecular_stacking_progress_dialog.setWindowTitle(
-            "Molecular Stacking"
-        )
-        self._molecular_stacking_progress_dialog.setWindowModality(
-            Qt.WindowModality.ApplicationModal
-        )
-        self._molecular_stacking_progress_dialog.setMinimumDuration(0)
-        self._molecular_stacking_progress_dialog.setAutoClose(False)
-        self._molecular_stacking_progress_dialog.setAutoReset(False)
-        self._molecular_stacking_progress_dialog.show()
-        if not self._molecular_stacking_controller.start(
-            frames,
-            series=self._series,
-            m6_context=self._m6_completed_context,
-        ):
-            self._close_molecular_stacking_progress_dialog()
-            return
-        self.statusBar().showMessage(
-            f"Analyzing molecular stacking in {len(frames)} frame(s)...",
-            0,
-        )
-
-    @pyqtSlot(object)
-    def _on_molecular_stacking_finished(self, result) -> None:
-        if self._current_molecular_stacking_display_result() is not result:
-            self.statusBar().showMessage(
-                "Discarded stacking result because the M6 context changed.",
-                5000,
-            )
-            return
-        if self._series is not None:
-            self._series.molecular_stacking_state = (
-                MolecularStackingSessionState.from_display_result(result)
-            )
-        self._close_molecular_stacking_progress_dialog()
-        self._render_current_molecular_stacking_overlays()
-        self._sync_molecular_stacking_panel()
-        self.statusBar().showMessage(
-            f"Stacking analysis complete: "
-            f"{len(result.stacking_analysis.orders)} domain result(s), "
-            f"{len(result.stacking_analysis.subdomains)} subdomain(s).",
-            5000,
-        )
-        self._restore_saved_molecular_order_type_result()
-
-    @pyqtSlot(str)
-    def _on_molecular_stacking_failed(self, message: str) -> None:
-        self._close_molecular_stacking_progress_dialog()
-        QMessageBox.critical(
-            self,
-            "Molecular stacking error",
-            str(message),
-        )
-        self.statusBar().showMessage(
-            "Molecular stacking analysis failed.",
-            5000,
-        )
-
-    def _close_molecular_stacking_progress_dialog(self) -> None:
-        dialog = self._molecular_stacking_progress_dialog
-        if dialog is None:
-            return
-        dialog.close()
-        self._molecular_stacking_progress_dialog = None
-
-    @pyqtSlot(bool)
-    def _on_molecular_stacking_running_changed(
-        self,
-        running: bool,
-    ) -> None:
-        if not running:
-            self._close_molecular_stacking_progress_dialog()
-        self._sync_navigation_controls()
-
-    def _molecular_stacking_render_context(self):
-        display = self._current_molecular_stacking_display_result()
-        if display is None or self._series is None:
-            return None
-        analysis = self._m6_current_results_analysis
-        if (
-            analysis is None
-            or analysis.sample_coordinates.frame_index
-            != self._series.active_frame_index
-        ):
-            analysis = self._current_m6_analysis_result()
-        rows = (
-            None
-            if analysis is None
-            else analysis.lattice_row_assignment_analysis
-        )
-        if (
-            analysis is None
-            or rows is None
-        ):
-            return None
-        try:
-            frame_data = display.frame_data(
-                self._series.active_frame_index
-            )
-        except KeyError:
-            return None
-        if frame_data.row_assignment != rows:
-            return None
-        sample = analysis.sample_coordinates
-        return (
-            display,
-            analysis,
-            MolecularStackingFrameGeometry(
-                frame_index=sample.frame_index,
-                source_ids=sample.point_source_ids,
-                points_xy_px=sample.source_points_xy_px,
-            ),
-        )
-
-    def _render_current_molecular_stacking_overlays(self) -> None:
-        context = self._molecular_stacking_render_context()
-        if context is None:
-            self.viewer.clear_molecular_stacking_point_overlays()
-            self.orientation_panel.set_stacking_inspection(None)
-            return
-        display, analysis, geometry = context
-        for layer in ("stacking_subdomains", "ab_states"):
-            self._render_molecular_stacking_layer(
-                layer,
-                display=display,
-                geometry=geometry,
-            )
-        self._sync_current_molecular_stacking_inspection(
-            analysis=analysis
-        )
-
-    def _render_current_molecular_stacking_layer(
-        self,
-        layer: MolecularStackingOverlayLayer,
-    ) -> None:
-        context = self._molecular_stacking_render_context()
-        if context is None:
-            self.viewer.clear_molecular_stacking_point_overlay(layer)
-            self.orientation_panel.set_stacking_inspection(None)
-            return
-        display, analysis, geometry = context
-        self._render_molecular_stacking_layer(
-            layer,
-            display=display,
-            geometry=geometry,
-        )
-        self._sync_current_molecular_stacking_inspection(
-            analysis=analysis
-        )
-
-    def _render_molecular_stacking_layer(
-        self,
-        layer: MolecularStackingOverlayLayer,
-        *,
-        display: MolecularStackingDisplayResult,
-        geometry: MolecularStackingFrameGeometry,
-    ) -> None:
-        if layer == "ab_states":
-            visible = (
-                self.orientation_panel.ab_states_overlay_visible()
-            )
-            opacity = (
-                self.orientation_panel.ab_states_opacity_percent()
-            )
-        elif layer == "stacking_subdomains":
-            visible = (
-                self.orientation_panel
-                .stacking_subdomains_overlay_visible()
-            )
-            opacity = (
-                self.orientation_panel
-                .stacking_subdomains_opacity_percent()
-            )
-        else:
-            raise ValueError(
-                f"Unsupported stacking overlay layer: {layer!r}."
-            )
-        if not visible:
-            self.viewer.clear_molecular_stacking_point_overlay(layer)
-            return
-        overlay = build_molecular_stacking_point_overlay(
-            display,
-            geometry,
-            layer=layer,
-            opacity_percent=opacity,
-        )
-        self.viewer.show_molecular_stacking_point_overlay(
-            overlay,
-            scale_nm_per_px=self._series.pixel_size_nm,
-        )
-
-    def _sync_current_molecular_stacking_inspection(
-        self,
-        *,
-        analysis=None,
-    ) -> None:
-        display = self._current_molecular_stacking_display_result()
-        if display is None or self._series is None:
-            self.orientation_panel.set_stacking_inspection(None)
-            return
-        if analysis is None:
-            analysis = self._m6_current_results_analysis
-        if analysis is None:
-            analysis = self._current_m6_analysis_result()
-        if analysis is None:
-            self.orientation_panel.set_stacking_inspection(None)
-            return
-        inspection = None
-        for source_id in (
-            self._selected_molecular_segmentation_id,
-            self._selected_molecular_detection_id,
-        ):
-            if source_id is None:
-                continue
-            analysis_source_id = self._molecular_stacking_source_id_for_selection(
-                analysis,
-                source_id,
-            )
-            if analysis_source_id is None:
-                continue
-            inspection = build_molecular_stacking_inspection(
-                display,
-                frame_index=self._series.active_frame_index,
-                source_id=analysis_source_id,
-            )
-            if inspection is not None:
-                break
-        self.orientation_panel.set_stacking_inspection(inspection)
-
-    def _molecular_stacking_source_id_for_selection(
-        self,
-        analysis,
-        selected_source_id: str,
-    ) -> str | None:
-        selected_source_id = str(selected_source_id)
-        available_ids = set(analysis.point_source_ids)
-        if selected_source_id in available_ids:
-            return selected_source_id
-        segmentation_set = (
-            None
-            if self._series is None
-            else self._series.molecular_segmentations
-        )
-        if segmentation_set is None:
-            return None
-        selected_segmentation = segmentation_set.get_segmentation(
-            selected_source_id
-        )
-        if selected_segmentation is not None:
-            for detection_id in selected_segmentation.prompt_detection_ids:
-                if detection_id in available_ids:
-                    return detection_id
-        linked_ids = sorted(
-            segmentation.segmentation_id
-            for segmentation in segmentation_set.get_segmentations(
-                self._series.active_frame_index,
-                source_view=self._current_yolo_source_view(),
-            )
-            if selected_source_id in segmentation.prompt_detection_ids
-            and segmentation.segmentation_id in available_ids
-        )
-        return None if not linked_ids else linked_ids[0]
-
-    def _invalidate_molecular_stacking_result(
-        self,
-        status_text: str = "Stacking not computed",
-    ) -> None:
-        self._molecular_stacking_controller.invalidate()
-        self._molecular_order_type_controller.invalidate()
-        self._molecular_order_type_error_message = None
-        self._molecular_order_type_pending_session_state = None
-        if self._series is not None:
-            self._series.molecular_stacking_state = (
-                MolecularStackingSessionState()
-            )
-            self._series.molecular_order_type_state = None
-        self.viewer.clear_molecular_stacking_point_overlays()
-        self.orientation_panel.set_stacking_context(
-            can_analyze=self._molecular_stacking_inputs_available(),
-            computed=False,
-            running=self._molecular_stacking_controller.running,
-            status_text=status_text,
-        )
-        self.orientation_panel.set_stacking_range_comparison(None)
-        self._sync_molecular_order_type_panel()
-
     def _on_molecular_orientation_estimate_current_requested(self) -> None:
         if self._series is None:
             return
-        self._start_molecular_orientation_estimation(
-            (self._series.active_frame_index,)
-        )
+        self._start_molecular_orientation_estimation((self._series.active_frame_index,))
 
     def _on_molecular_orientation_estimate_range_requested(
         self,
@@ -3663,11 +2524,7 @@ class MolTrackMainWindow(QMainWindow):
         self,
         frame_indices: tuple[int, ...],
     ) -> None:
-        if (
-            self._series is None
-            or self._is_processing()
-            or not frame_indices
-        ):
+        if self._series is None or self._is_processing() or not frame_indices:
             return
         source_view = self._current_yolo_source_view()
         if source_view == "expanded_aligned":
@@ -3798,9 +2655,6 @@ class MolTrackMainWindow(QMainWindow):
                 result.measurements
             )
         )
-        self._invalidate_molecular_stacking_result(
-            "Stacking invalidated by updated orientations"
-        )
         failure_count = result.failure_count
         self._close_molecular_orientation_progress_dialog()
         self._show_current_frame()
@@ -3889,9 +2743,6 @@ class MolTrackMainWindow(QMainWindow):
         except (KeyError, OSError, TypeError, ValueError) as exc:
             self.statusBar().showMessage(str(exc), 3000)
             return
-        self._invalidate_molecular_stacking_result(
-            "Stacking invalidated by a manual orientation"
-        )
         self._sync_molecular_orientation_panel()
         self._render_current_molecular_orientation_overlay()
 
@@ -3912,9 +2763,6 @@ class MolTrackMainWindow(QMainWindow):
         except (KeyError, ValueError) as exc:
             self.statusBar().showMessage(str(exc), 3000)
             return
-        self._invalidate_molecular_stacking_result(
-            "Stacking invalidated by a manual orientation"
-        )
         self._sync_molecular_orientation_panel()
         self._render_current_molecular_orientation_overlay()
 
@@ -3930,9 +2778,6 @@ class MolTrackMainWindow(QMainWindow):
         except KeyError as exc:
             self.statusBar().showMessage(str(exc), 3000)
             return
-        self._invalidate_molecular_stacking_result(
-            "Stacking invalidated by an orientation reset"
-        )
         self._sync_molecular_orientation_panel()
         self._render_current_molecular_orientation_overlay()
 
@@ -4008,23 +2853,13 @@ class MolTrackMainWindow(QMainWindow):
         return total
 
     def _is_processing(self) -> bool:
-        calibration_dialog = self._lattice_domain_calibration_dialog
         return (
             self._state_io_running
             or self._registration_running
             or self._yolo_detection_running
             or self._sam2_segmentation_running
             or self._sam3_concept_running
-            or self._analysis_export_running
-            or self._m6_analysis_running
             or self._molecular_orientation_running
-            or self._molecular_stacking_controller.running
-            or self._molecular_order_type_controller.is_running
-            or self._texture_domain_controller.is_running
-            or (
-                calibration_dialog is not None
-                and calibration_dialog.is_running
-            )
         )
 
     def _yolo_model_display_name(self, model) -> str:
@@ -4127,8 +2962,8 @@ class MolTrackMainWindow(QMainWindow):
                 source_view=source_view,
                 frame_shape=self._current_bbox_frame_shape(source_view),
             )
-            self._invalidate_texture_domain_analysis(
-                "Texture-domain analysis invalidated by YOLO detections.",
+            self._invalidate_domain_analysis(
+                "Domain Analysis invalidated by YOLO detections.",
                 frame_indices=(frame_index,),
                 source_view=source_view,
             )
@@ -4293,8 +3128,8 @@ class MolTrackMainWindow(QMainWindow):
                     )
                     total_detections += len(detections)
                 if results:
-                    self._invalidate_texture_domain_analysis(
-                        "Texture-domain analysis invalidated by YOLO detections.",
+                    self._invalidate_domain_analysis(
+                        "Domain Analysis invalidated by YOLO detections.",
                         frame_indices=tuple(
                             frame_index
                             for frame_index, _frame_shape, _detections in results
@@ -4359,8 +3194,8 @@ class MolTrackMainWindow(QMainWindow):
         )
         removed = self._series.molecular_detections.clear_frame(frame_index, source_view=source_view)
         if removed:
-            self._invalidate_texture_domain_analysis(
-                "Texture-domain analysis invalidated by cleared BBoxes.",
+            self._invalidate_domain_analysis(
+                "Domain Analysis invalidated by cleared BBoxes.",
                 frame_indices=(frame_index,),
                 source_view=source_view,
                 source_ids=removed_detection_ids,
@@ -4413,1523 +3248,66 @@ class MolTrackMainWindow(QMainWindow):
         if self._series is not None:
             self._show_current_frame()
 
-    def position_analysis_dialog(self) -> PositionAnalysisDialog | None:
-        return self._position_analysis_dialog
+    def domain_analysis_dialog(self):
+        composition = self._domain_analysis_composition
+        return None if composition is None else composition.domain_analysis_dialog
+
+    def position_analysis_dialog(self):
+        composition = self._domain_analysis_composition
+        return None if composition is None else composition.position_analysis_dialog
+
+    def _ensure_domain_analysis_composition(
+        self,
+    ) -> DomainAnalysisMainWindowComposition:
+        if self._series is None:
+            raise RuntimeError("Domain Analysis requires a loaded series.")
+        composition = self._domain_analysis_composition
+        if composition is None:
+            factory = self._domain_analysis_composition_factory
+            if factory is None:
+                from moltrack.ui.domain_analysis_runtime import (
+                    build_domain_analysis_main_window_composition,
+                )
+
+                factory = build_domain_analysis_main_window_composition
+            composition = factory(self, self._series)
+            if not isinstance(composition, DomainAnalysisMainWindowComposition):
+                raise TypeError(
+                    "domain_analysis_composition_factory must return "
+                    "DomainAnalysisMainWindowComposition."
+                )
+            self._domain_analysis_composition = composition
+            composition.set_active_frame(self._series.active_frame_index)
+            composition.set_target_view(
+                "expanded_aligned"
+                if self._is_expanded_aligned_view_requested()
+                else "raw"
+            )
+        return composition
+
+    def _discard_domain_analysis_composition(self) -> None:
+        composition = self._domain_analysis_composition
+        self._domain_analysis_composition = None
+        if composition is not None:
+            composition.shutdown()
+            composition.deleteLater()
+
+    def _invalidate_domain_analysis(
+        self,
+        message: str,
+        *_args: object,
+        **_kwargs: object,
+    ) -> None:
+        self._discard_domain_analysis_composition()
+        self.statusBar().showMessage(message, 3000)
+
+    def _on_domain_analysis_requested(self) -> None:
+        if self._series is not None:
+            self._ensure_domain_analysis_composition().open_domain_analysis()
 
     def _on_position_analysis_requested(self) -> None:
-        if self._series is None:
-            return
-        if self._position_analysis_dialog is None:
-            dialog = PositionAnalysisDialog(self)
-            dialog.destroyed.connect(
-                lambda _object=None, expected=dialog: (
-                    self._on_position_analysis_dialog_destroyed(expected)
-                )
-            )
-            dialog.range_analysis_requested.connect(
-                self._on_position_range_analysis_requested
-            )
-            dialog.analysis_context_changed.connect(
-                self._on_position_analysis_context_changed
-            )
-            dialog.analysis_mode_changed.connect(
-                self._on_position_analysis_mode_changed
-            )
-            dialog.centroid_source_mode_changed.connect(
-                self._on_position_analysis_centroid_source_mode_changed
-            )
-            dialog.intensity_metric_changed.connect(
-                self._on_position_analysis_intensity_metric_changed
-            )
-            dialog.intensity_background_changed.connect(
-                self._on_position_analysis_background_changed
-            )
-            dialog.export_analysis_requested.connect(
-                self._on_position_analysis_export_requested
-            )
-            dialog.m6_analysis_requested.connect(
-                self._on_m6_analysis_requested
-            )
-            dialog.m6_analysis_cancel_requested.connect(
-                self._on_m6_analysis_cancel_requested
-            )
-            dialog.m6_analysis_settings_changed.connect(
-                self._on_m6_analysis_settings_changed
-            )
-            dialog.m6_first_shell_suggestion_requested.connect(
-                self._on_m6_first_shell_suggestion_requested
-            )
-            dialog.m6_view_settings_changed.connect(
-                self._on_m6_view_settings_changed
-            )
-            dialog.m6_domain_selection_changed.connect(
-                self._on_m6_domain_selection_changed
-            )
-            dialog.m6_domain_type_classification_requested.connect(
-                self._on_m6_domain_type_classification_requested
-            )
-            dialog.m6_lattice_domain_calibration_requested.connect(
-                self._on_lattice_domain_calibration_requested
-            )
-            dialog.m6_domain_type_settings_changed.connect(
-                self._on_m6_domain_type_settings_changed
-            )
-            dialog.m6_domain_type_selection_changed.connect(
-                self._on_m6_domain_type_selection_changed
-            )
-            dialog.molecular_order_type_classification_requested.connect(
-                self._on_molecular_order_type_classification_requested
-            )
-            dialog.molecular_order_representative_requested.connect(
-                self._on_molecular_order_representative_requested
-            )
-            dialog.texture_domain_analysis_requested.connect(
-                self._on_texture_domain_analysis_requested
-            )
-            dialog.texture_domain_cancel_requested.connect(
-                self._texture_domain_controller.cancel
-            )
-            dialog.texture_domain_view_settings_changed.connect(
-                self._on_texture_domain_view_settings_changed
-            )
-            self._position_analysis_dialog = dialog
-            state = getattr(self._series, "m6_analysis_state", None)
-            if isinstance(state, MolecularM6SessionState):
-                dialog.set_m6_analysis_settings(state.settings)
-                dialog.set_m6_view_settings(state.view_settings)
-        plot_data = self._build_current_position_plot_data()
-        self._position_analysis_dialog.configure_frame_ranges(
-            frame_count=self._series.frame_count,
-            source_view=plot_data.source_view,
-            active_frame_index=self._series.active_frame_index,
-        )
-        self._position_analysis_dialog.set_plot_data(plot_data)
-        self._sync_texture_domain_panel()
-        self._sync_current_m6_results(force=True)
-        self._sync_m6_domain_type_panel()
-        self._sync_molecular_order_type_panel()
-        self._position_analysis_dialog.show()
-        self._position_analysis_dialog.raise_()
-        self._position_analysis_dialog.activateWindow()
-
-    def _on_position_analysis_dialog_destroyed(self, expected_dialog=None) -> None:
-        if self._position_analysis_dialog is expected_dialog:
-            self._position_analysis_dialog = None
-
-    def _on_m6_analysis_requested(self, settings) -> None:
-        self._start_m6_analysis(settings, enable_on_success=True)
-
-    def _on_position_analysis_context_changed(self, reason: str) -> None:
-        self._invalidate_molecular_stacking_result(
-            "Stacking invalidated by a changed analysis range"
-        )
-        self._m6_domain_type_controller.invalidate(str(reason))
-        dialog = self._position_analysis_dialog
-        if (
-            dialog is not None
-            and dialog.analysis_mode() == "single_range"
-            and isinstance(
-                dialog.range_analysis_result(),
-                MolecularFrameRangeAnalysis,
-            )
-        ):
-            dialog.invalidate_range_analysis_result(
-                "Range definition changed. Run Analyze range or Run/Recalculate M6."
-            )
-        self._sync_m6_domain_type_panel()
-
-    def _on_position_analysis_mode_changed(self, _mode: str) -> None:
-        self._invalidate_molecular_stacking_result(
-            "Stacking invalidated by a changed analysis mode"
-        )
-        self._m6_domain_type_controller.invalidate("analysis_mode")
-        self._sync_m6_domain_type_panel()
-
-    def _on_m6_analysis_settings_changed(self) -> None:
-        self._invalidate_molecular_stacking_result(
-            "Stacking invalidated by changed M6 settings"
-        )
-        self._m6_domain_type_controller.invalidate("m6_settings")
-        self._sync_m6_domain_type_panel()
-
-    def _on_m6_domain_type_settings_changed(self, _settings) -> None:
-        self._m6_domain_type_controller.invalidate("classification_settings")
-        self._sync_m6_domain_type_panel()
-        self._render_current_m6_overlay()
-
-    def _on_m6_domain_type_selection_changed(self, type_key) -> None:
-        if type_key is not None and not isinstance(
-            type_key,
-            M6DomainTypeSelection,
-        ):
-            return
-        self._m6_selected_domain_type_key = type_key
-        self._m6_selected_ordered_component_id = None
-        dialog = self._position_analysis_dialog
-        if type_key is not None and dialog is not None:
-            view = dialog.m6_view_settings()
-            if not view.show_domain_overlay or view.overlay_mode != "domain_type":
-                dialog.set_m6_overlay_mode("domain_type")
-                return
-        self._render_current_m6_overlay()
-
-    def _current_m6_domain_type_analysis_source(
-        self,
-    ) -> M6DomainTypeAnalysisSource | None:
-        context = self._m6_completed_context
-        dialog = self._position_analysis_dialog
-        if (
-            self._m6_analysis_running
-            or context is None
-            or dialog is None
-            or not isinstance(context, _M6CompletedAnalysisContext)
-            or self._series is not context.launch.series
-            or dialog is not context.launch.dialog
-            or dialog.range_analysis_result() is not context.result
-        ):
-            return None
-        try:
-            active_scope = dialog.frame_range_analysis_scope()
-            active_m6_settings = dialog.m6_analysis_settings()
-        except (RuntimeError, TypeError, ValueError):
-            return None
-        if (
-            active_scope != context.scope
-            or dialog.use_segmentation_centroids()
-            != context.use_segmentation_centroids
-            or active_m6_settings != context.settings
-            or context.source.m6_settings is None
-        ):
-            return None
-        return context.source
-
-    def _sync_m6_domain_type_panel(self) -> None:
-        dialog = self._position_analysis_dialog
-        if dialog is None:
-            return
-        dialog.set_m6_domain_type_analysis_source(
-            self._current_m6_domain_type_analysis_source()
-        )
-        state = getattr(self._m6_domain_type_store, "state", None)
-        dialog.set_m6_domain_type_store_state(
-            state if isinstance(state, M6DomainTypeAnalysisStoreState) else None
-        )
-        dialog.set_m6_domain_type_running(
-            self._m6_domain_type_controller.is_running
-        )
-
-    @pyqtSlot(object)
-    def _on_m6_domain_type_classification_requested(self, settings) -> None:
-        source = self._current_m6_domain_type_analysis_source()
-        if (
-            source is None
-            or not isinstance(settings, M6DomainTypeClassificationSettings)
-        ):
-            self._sync_m6_domain_type_panel()
-            return
-        if not self._m6_domain_type_controller.start(
-            source,
-            classification_settings=settings,
-        ):
-            self._sync_m6_domain_type_panel()
-
-    @pyqtSlot()
-    def _on_lattice_domain_calibration_requested(self) -> None:
-        source = self._current_m6_domain_type_analysis_source()
-        series = self._series
-        dialog = self._position_analysis_dialog
-        if (
-            source is None
-            or series is None
-            or dialog is None
-            or source.m6_settings is None
-        ):
-            self._sync_m6_domain_type_panel()
-            return
-        existing = self._lattice_domain_calibration_dialog
-        if existing is not None:
-            existing.show()
-            existing.raise_()
-            existing.activateWindow()
-            return
-        calibration_dialog = LatticeDomainCalibrationDialog(
-            source,
-            source_file_name=Path(series.source_path).name,
-            baseline_settings=source.m6_settings,
-            parent=self,
-        )
-        calibration_dialog.destroyed.connect(
-            lambda _object=None, expected=calibration_dialog: (
-                self._on_lattice_domain_calibration_dialog_destroyed(expected)
-            )
-        )
-        calibration_dialog.running_changed.connect(
-            lambda _running: self._sync_navigation_controls()
-        )
-        self._lattice_domain_calibration_dialog = calibration_dialog
-        calibration_dialog.show()
-
-    def _on_lattice_domain_calibration_dialog_destroyed(self, expected) -> None:
-        if self._lattice_domain_calibration_dialog is expected:
-            self._lattice_domain_calibration_dialog = None
-
-    @pyqtSlot(object)
-    def _on_m6_domain_type_progress(self, progress) -> None:
-        dialog = self._position_analysis_dialog
-        if dialog is not None:
-            dialog.set_m6_domain_type_progress(progress)
-
-    @pyqtSlot(object)
-    def _on_m6_domain_type_finished(self, _outcome) -> None:
-        self._sync_m6_domain_type_panel()
-        self._render_current_m6_overlay()
-        self.statusBar().showMessage(
-            "Structural domain type classification complete",
-            5000,
-        )
-
-    @pyqtSlot(str)
-    def _on_m6_domain_type_failed(self, message: str) -> None:
-        dialog = self._position_analysis_dialog
-        if dialog is not None:
-            dialog.set_m6_domain_type_error(message)
-        self.statusBar().showMessage(
-            f"Structural domain type classification failed: {message}",
-            5000,
-        )
-
-    @pyqtSlot()
-    def _on_m6_domain_type_canceled(self) -> None:
-        dialog = self._position_analysis_dialog
-        if dialog is not None:
-            dialog.set_m6_domain_type_canceled()
-
-    @pyqtSlot(bool)
-    def _on_m6_domain_type_running_changed(self, running: bool) -> None:
-        dialog = self._position_analysis_dialog
-        if dialog is not None:
-            dialog.set_m6_domain_type_running(running)
-        self._sync_navigation_controls()
-
-    @pyqtSlot(object)
-    def _on_m6_domain_type_state_changed(self, state) -> None:
-        dialog = self._position_analysis_dialog
-        if dialog is not None and isinstance(
-            state,
-            M6DomainTypeAnalysisStoreState,
-        ):
-            dialog.set_m6_domain_type_store_state(state)
-        self._render_current_m6_overlay()
-
-    def _on_m6_ttmapp_preset_requested(self) -> None:
-        series = self._series
-        if series is None or self._is_processing():
-            return
-        self._m6_domain_type_controller.invalidate("m6_settings")
-        settings = TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
-        dialog = self._position_analysis_dialog
-        previous_state = getattr(series, "m6_analysis_state", None)
-        if isinstance(previous_state, MolecularM6SessionState):
-            source_view = previous_state.source_view
-            use_segmentation_centroids = previous_state.use_segmentation_centroids
-            view_settings = previous_state.view_settings
-        else:
-            source_view = self._current_yolo_source_view()
-            use_segmentation_centroids = (
-                dialog.use_segmentation_centroids() if dialog is not None else True
-            )
-            view_settings = (
-                dialog.m6_view_settings()
-                if dialog is not None
-                else MolecularM6ViewSettings()
-            )
-        series.m6_analysis_state = MolecularM6SessionState(
-            enabled=False,
-            source_view=source_view,
-            use_segmentation_centroids=use_segmentation_centroids,
-            settings=settings,
-            view_settings=view_settings,
-        )
-        self._invalidate_molecular_stacking_result(
-            "Stacking invalidated by changed M6 settings"
-        )
-        self._m6_completed_context = None
-        self._m6_pending_context = None
-        self._m6_pending_session_state = None
-        self._m6_selected_ordered_component_id = None
-        if dialog is not None:
-            dialog.set_m6_analysis_settings(settings)
-        self._render_current_m6_overlay()
-        self.statusBar().showMessage(
-            "Applied TTMAPP preset to M6 orientation analysis",
-            5000,
-        )
-
-    def _on_texture_domain_ttmapp_preset_requested(self) -> None:
-        series = self._series
-        if series is None or self._is_processing():
-            return
-        self._on_position_analysis_requested()
-        dialog = self._position_analysis_dialog
-        previous = getattr(series, "texture_domain_state", None)
-        view_settings = (
-            previous.view_settings
-            if isinstance(previous, TextureDomainSessionState)
-            else TextureDomainViewSettings()
-        )
-        frame_index = series.active_frame_index
-        self._texture_domain_status_message = None
-        series.texture_domain_state = TextureDomainSessionState(
-            settings=TTMAPP_TEXTURE_DOMAIN_PRESET,
-            source_view=self._current_yolo_source_view(),
-            view_settings=view_settings,
-            use_segmentation_centroids=(
-                dialog.use_segmentation_centroids()
-                if dialog is not None
-                else True
-            ),
-            range_start_frame=frame_index,
-            range_end_frame=frame_index,
-        )
-        self._sync_texture_domain_panel()
-        if dialog is not None:
-            for tab_index in range(dialog.tabs.count()):
-                if dialog.tabs.tabText(tab_index) == "Texture Domains":
-                    dialog.tabs.setCurrentIndex(tab_index)
-                    break
-        self._render_current_texture_domain_overlay()
-        self.statusBar().showMessage(
-            "Applied experimental TTMAPP local-texture preset",
-            5000,
-        )
-
-    @pyqtSlot(object)
-    def _on_texture_domain_analysis_requested(self, request) -> None:
-        series = self._series
-        dialog = self._position_analysis_dialog
-        if (
-            series is None
-            or dialog is None
-            or self._texture_domain_controller.is_running
-        ):
-            return
-        try:
-            frame_range = request.frame_range
-            source_view = str(request.source_view)
-            settings = request.settings
-            if source_view == "expanded_aligned":
-                self._ensure_expanded_aligned_stack()
-            view_settings = dialog.texture_domains_panel.view_settings()
-        except Exception as exc:
-            dialog.set_texture_domain_error(str(exc))
-            return
-        self._texture_domain_analysis_series = series
-        self._texture_domain_status_message = None
-        self._texture_domain_pending_view_settings = view_settings
-        if not self._texture_domain_controller.start(
-            series,
-            frame_range,
-            source_view=source_view,
-            settings=settings,
-            use_segmentation_centroids=(
-                dialog.use_segmentation_centroids()
-            ),
-        ):
-            self._texture_domain_analysis_series = None
-            self._texture_domain_pending_view_settings = None
-
-    @pyqtSlot(object)
-    def _on_texture_domain_progress(
-        self,
-        progress: TextureDomainAnalysisProgress,
-    ) -> None:
-        dialog = self._position_analysis_dialog
-        if dialog is not None:
-            dialog.set_texture_domain_progress(progress)
-
-    @pyqtSlot(object)
-    def _on_texture_domain_finished(self, state) -> None:
-        series = self._series
-        if (
-            series is not self._texture_domain_analysis_series
-            or not isinstance(state, TextureDomainSessionState)
-        ):
-            return
-        view_settings = self._texture_domain_pending_view_settings
-        if view_settings is not None:
-            state = replace(state, view_settings=view_settings)
-        series.texture_domain_state = state
-        self._texture_domain_status_message = None
-        self._sync_texture_domain_panel()
-        self._render_current_texture_domain_overlay()
-        self.statusBar().showMessage(
-            f"Texture-domain analysis completed for "
-            f"{len(state.frame_results)} frame(s)",
-            5000,
-        )
-
-    @pyqtSlot(str)
-    def _on_texture_domain_failed(self, message: str) -> None:
-        dialog = self._position_analysis_dialog
-        if dialog is not None:
-            dialog.set_texture_domain_error(message)
-        self._texture_domain_status_message = str(message)
-        self.statusBar().showMessage(
-            f"Texture-domain analysis failed: {message}",
-            5000,
-        )
-
-    @pyqtSlot()
-    def _on_texture_domain_canceled(self) -> None:
-        dialog = self._position_analysis_dialog
-        if dialog is not None:
-            dialog.set_texture_domain_error("Texture-domain analysis canceled.")
-        self.statusBar().showMessage(
-            "Texture-domain analysis canceled",
-            3000,
-        )
-
-    @pyqtSlot(bool)
-    def _on_texture_domain_running_changed(self, running: bool) -> None:
-        dialog = self._position_analysis_dialog
-        if dialog is not None:
-            dialog.set_texture_domain_running(running)
-        if not running:
-            self._texture_domain_analysis_series = None
-            self._texture_domain_pending_view_settings = None
-        self._sync_navigation_controls()
-
-    @pyqtSlot(object)
-    def _on_texture_domain_view_settings_changed(
-        self,
-        view_settings,
-    ) -> None:
-        series = self._series
-        if (
-            series is None
-            or not isinstance(view_settings, TextureDomainViewSettings)
-        ):
-            return
-        state = getattr(series, "texture_domain_state", None)
-        if not isinstance(state, TextureDomainSessionState):
-            state = TextureDomainSessionState(
-                settings=TTMAPP_TEXTURE_DOMAIN_PRESET,
-                source_view=self._current_yolo_source_view(),
-                use_segmentation_centroids=(
-                    self._position_analysis_dialog.use_segmentation_centroids()
-                    if self._position_analysis_dialog is not None
-                    else True
-                ),
-                range_start_frame=series.active_frame_index,
-                range_end_frame=series.active_frame_index,
-            )
-        series.texture_domain_state = replace(
-            state,
-            view_settings=view_settings,
-        )
-        self._render_current_texture_domain_overlay()
-
-    def _sync_texture_domain_panel(self) -> None:
-        dialog = self._position_analysis_dialog
-        series = self._series
-        if dialog is None or series is None:
-            return
-        state = getattr(series, "texture_domain_state", None)
-        dialog.set_texture_domain_session_state(
-            state
-            if (
-                isinstance(state, TextureDomainSessionState)
-                and state.source_view == self._current_yolo_source_view()
-                and state.use_segmentation_centroids
-                == dialog.use_segmentation_centroids()
-            )
-            else None
-        )
-        if (
-            (
-                state is None
-                or (
-                    isinstance(state, TextureDomainSessionState)
-                    and not state.computed
-                )
-            )
-            and self._texture_domain_status_message
-        ):
-            dialog.set_texture_domain_error(
-                self._texture_domain_status_message
-            )
-        if isinstance(state, TextureDomainSessionState) and (
-            state.source_view != self._current_yolo_source_view()
-            or state.use_segmentation_centroids
-            != dialog.use_segmentation_centroids()
-        ):
-            dialog.set_texture_domain_error(
-                "Saved result belongs to another image view or centroid mode."
-            )
-        dialog.set_texture_domain_current_frame(series.active_frame_index)
-        dialog.set_texture_domain_running(
-            self._texture_domain_controller.is_running
-        )
-
-    def _invalidate_texture_domain_analysis(
-        self,
-        reason: str,
-        *,
-        frame_indices=None,
-        source_view: str | None = None,
-        source_ids=None,
-        segmentation_only: bool = False,
-    ) -> None:
-        series = self._series
-        if series is None or not isinstance(
-            getattr(series, "texture_domain_state", None),
-            TextureDomainSessionState,
-        ):
-            return
-        previous = series.texture_domain_state
-        if not previous.computed:
-            return
-        if source_view is not None and previous.source_view != source_view:
-            return
-        if segmentation_only and not previous.use_segmentation_centroids:
-            return
-        affected_results = (
-            previous.frame_results
-            if frame_indices is None
-            else tuple(
-                result
-                for frame_index in frame_indices
-                if (result := previous.frame_result(frame_index)) is not None
-            )
-        )
-        if not affected_results:
-            return
-        if source_ids is not None:
-            changed_source_ids = {
-                str(source_id) for source_id in source_ids
-            }
-            if not any(
-                point.source_id in changed_source_ids
-                for result in affected_results
-                for point in result.points
-            ):
-                return
-        series.texture_domain_state = replace(previous, frame_results=())
-        self._texture_domain_status_message = str(reason)
-        self.viewer.clear_texture_domain_point_overlay()
-        dialog = self._position_analysis_dialog
-        if dialog is not None:
-            dialog.set_texture_domain_session_state(
-                series.texture_domain_state
-            )
-            dialog.set_texture_domain_error(str(reason))
-
-    def _on_m6_view_settings_changed(self, view_settings) -> None:
-        series = self._series
-        dialog = self._position_analysis_dialog
-        if (
-            series is None
-            or dialog is None
-            or not isinstance(view_settings, MolecularM6ViewSettings)
-        ):
-            return
-        previous_state = getattr(series, "m6_analysis_state", None)
-        previous_view_settings = (
-            previous_state.view_settings
-            if isinstance(previous_state, MolecularM6SessionState)
-            else None
-        )
-        if isinstance(previous_state, MolecularM6SessionState):
-            series.m6_analysis_state = replace(
-                previous_state,
-                view_settings=view_settings,
-            )
-        else:
-            series.m6_analysis_state = MolecularM6SessionState(
-                enabled=False,
-                source_view=self._current_yolo_source_view(),
-                use_segmentation_centroids=dialog.use_segmentation_centroids(),
-                settings=dialog.m6_analysis_settings(),
-                view_settings=view_settings,
-            )
-        if (
-            self._m6_pending_session_state is not None
-            and series is self._m6_analysis_series
-        ):
-            self._m6_pending_session_state = replace(
-                self._m6_pending_session_state,
-                view_settings=view_settings,
-            )
-        if not self._update_current_m6_overlay_opacity(
-            previous_view_settings,
-            view_settings,
-        ):
-            self._render_current_m6_overlay()
-
-    def _on_m6_domain_selection_changed(self, ordered_component_id) -> None:
-        if ordered_component_id is None:
-            self._m6_selected_ordered_component_id = None
-            state = getattr(self._series, "m6_analysis_state", None)
-            if (
-                isinstance(state, MolecularM6SessionState)
-                and state.view_settings.show_domain_overlay
-            ):
-                self.viewer.highlight_m6_overlay_source_ids(())
-            else:
-                self.viewer.clear_m6_point_overlay()
-            return
-        analysis = self._current_m6_analysis_result()
-        if analysis is None:
-            self._m6_selected_ordered_component_id = None
-            self.viewer.clear_m6_point_overlay()
-            return
-        try:
-            component = analysis.frame_aggregates.domain_metrics.component_for_ordered_id(
-                int(ordered_component_id)
-            )
-        except (KeyError, TypeError, ValueError):
-            self._m6_selected_ordered_component_id = None
-            self.viewer.highlight_m6_overlay_source_ids(())
-            return
-        self._m6_selected_ordered_component_id = component.ordered_component_id
-        state = getattr(self._series, "m6_analysis_state", None)
-        if (
-            not isinstance(state, MolecularM6SessionState)
-            or not state.view_settings.show_domain_overlay
-        ):
-            self._show_selected_m6_component(analysis, component.source_ids)
-            return
-        self.viewer.highlight_m6_overlay_source_ids(component.source_ids)
-
-    def _show_selected_m6_component(self, analysis, source_ids) -> None:
-        state = getattr(self._series, "m6_analysis_state", None)
-        view = (
-            state.view_settings
-            if isinstance(state, MolecularM6SessionState)
-            else MolecularM6ViewSettings()
-        )
-        overlay = build_m6_point_overlay_from_analysis(
-            analysis,
-            mode="domain_id",
-            opacity_percent=max(70, view.overlay_opacity_percent),
-            show_unassigned_points=True,
-        )
-        selected_ids = set(source_ids)
-        selected_indices = tuple(
-            index
-            for index, source_id in enumerate(overlay.source_ids)
-            if source_id in selected_ids
-        )
-        selected_overlay = M6PointOverlay(
-            mode=overlay.mode,
-            source_ids=tuple(overlay.source_ids[index] for index in selected_indices),
-            points_xy_px=tuple(
-                overlay.points_xy_px[index] for index in selected_indices
-            ),
-            colors_rgba=tuple(overlay.colors_rgba[index] for index in selected_indices),
-            point_statuses=tuple(
-                overlay.point_statuses[index] for index in selected_indices
-            ),
-        )
-        self.viewer.show_m6_point_overlay(selected_overlay)
-        self.viewer.highlight_m6_overlay_source_ids(selected_overlay.source_ids)
-
-    def _start_m6_analysis(
-        self,
-        settings,
-        *,
-        enable_on_success: bool,
-        density_grid_shape: tuple[int, int] | None = None,
-        allow_during_state_open: bool = False,
-    ) -> None:
-        dialog = self._position_analysis_dialog
-        series = self._series
-        if (
-            dialog is None
-            or series is None
-            or self._m6_analysis_running
-            or (
-                self._is_processing()
-                and not (
-                    allow_during_state_open
-                    and self._state_io_running
-                    and self._state_io_operation == "open"
-                )
-            )
-            or not isinstance(settings, MolecularM6OrientationAnalysisSettings)
-        ):
-            return
-        if not dialog.has_valid_frame_range_analysis_scope():
-            return
-        self._invalidate_molecular_stacking_result(
-            "Stacking invalidated by a new M6 analysis"
-        )
-        self._m6_domain_type_controller.invalidate("m6_recalculation")
-        inner_radius, outer_radius = dialog.intensity_background_radii()
-        scope = dialog.frame_range_analysis_scope()
-        use_segmentation_centroids = dialog.use_segmentation_centroids()
-        view_settings = dialog.m6_view_settings()
-        self._m6_pending_session_state = MolecularM6SessionState(
-            enabled=True,
-            source_view=scope.source_view,
-            use_segmentation_centroids=use_segmentation_centroids,
-            settings=settings,
-            view_settings=view_settings,
-        )
-        self._m6_enable_on_success = bool(enable_on_success)
-        self._m6_target_tab = dialog.active_analysis_tab()
-        self._m6_density_grid_shape = (
-            dialog.density_grid_shape()
-            if density_grid_shape is None
-            else tuple(density_grid_shape)
-        )
-        self._m6_pending_context = _M6PendingAnalysisContext(
-            series=series,
-            dialog=dialog,
-            scope=scope,
-            use_segmentation_centroids=use_segmentation_centroids,
-            settings=settings,
-        )
-        self._m6_analysis_running = True
-        self._sync_m6_domain_type_panel()
-        dialog.set_m6_analysis_running(True)
-        self._sync_navigation_controls()
-        self.statusBar().showMessage("Running M6 orientation analysis...", 0)
-
-        thread = QThread(self)
-        worker = _M6PositionAnalysisWorker(
-            self._position_range_analyzer,
-            self._position_range_comparator,
-            series,
-            scope,
-            use_segmentation_centroids=use_segmentation_centroids,
-            intensity_metric=dialog.intensity_metric(),
-            background_inner_radius_px=inner_radius,
-            background_outer_radius_px=outer_radius,
-            settings=settings,
-            domain_type_classification_settings=(
-                self._m6_pending_domain_type_session_state.classification_settings
-                if self._m6_pending_domain_type_session_state is not None
-                and self._m6_pending_domain_type_session_state.cache_record is not None
-                else None
-            ),
-        )
-        self._m6_analysis_thread = thread
-        self._m6_analysis_worker = worker
-        self._m6_analysis_series = series
-        worker.moveToThread(thread)
-        thread.started.connect(worker.run)
-        worker.progress.connect(self._on_m6_analysis_progress)
-        worker.finished.connect(self._on_m6_analysis_finished)
-        worker.failed.connect(self._on_m6_analysis_failed)
-        worker.canceled.connect(self._on_m6_analysis_canceled)
-        worker.finished.connect(worker.deleteLater)
-        worker.failed.connect(worker.deleteLater)
-        worker.canceled.connect(worker.deleteLater)
-        worker.finished.connect(thread.quit)
-        worker.failed.connect(thread.quit)
-        worker.canceled.connect(thread.quit)
-        thread.finished.connect(self._cleanup_m6_analysis_worker)
-        thread.start()
-
-    @pyqtSlot(object)
-    def _on_m6_analysis_progress(self, progress) -> None:
-        pending = self._m6_pending_context
-        if pending is None or not self._is_m6_launch_context_current(pending):
-            return
-        dialog = pending.dialog
-        dialog.set_m6_analysis_progress(
-            int(getattr(progress, "completed_count", 0)),
-            int(getattr(progress, "total_count", 0)),
-            int(getattr(progress, "frame_index", 0)),
-        )
-
-    @pyqtSlot()
-    def _on_m6_analysis_cancel_requested(self) -> None:
-        if not self._m6_analysis_running or self._m6_analysis_worker is None:
-            return
-        self._m6_analysis_worker.cancel()
-        self.statusBar().showMessage(
-            "Canceling M6 analysis after the current frame...",
-            0,
-        )
-
-    @pyqtSlot()
-    def _on_m6_analysis_canceled(self) -> None:
-        self.statusBar().showMessage("M6 orientation analysis canceled.", 5000)
-
-    @pyqtSlot(object)
-    def _on_m6_analysis_finished(self, execution) -> None:
-        dialog = self._position_analysis_dialog
-        pending = self._m6_pending_context
-        if not isinstance(execution, _PositionRangeAnalysisExecution):
-            self._on_m6_analysis_failed("M6 worker returned an invalid result.")
-            return
-        if (
-            pending is None
-            or not self._is_m6_launch_context_current(pending)
-        ):
-            self.statusBar().showMessage(
-                "Discarded M6 result because the analysis context changed.",
-                5000,
-            )
-            return
-        self._m6_completed_context = _M6CompletedAnalysisContext(
-            result=execution.result,
-            source=execution.source,
-            launch=pending,
-        )
-        if (
-            self._m6_enable_on_success
-            and self._series is self._m6_analysis_series
-            and self._m6_pending_session_state is not None
-        ):
-            self._series.m6_analysis_state = self._m6_pending_session_state
-        if dialog is not None:
-            dialog.set_range_analysis_result(
-                execution.result,
-                density_grid_shape=self._m6_density_grid_shape,
-            )
-            dialog.activate_analysis_tab(self._m6_target_tab)
-            if self._m6_pending_session_state is not None:
-                self._set_m6_first_shell_suggestion_from_result(
-                    dialog,
-                    execution.result,
-                    self._m6_pending_session_state.settings,
-                )
-        self._restore_pending_m6_domain_type_state(
-            execution.source,
-            context=execution.domain_type_restore_context,
-        )
-        self._restore_saved_molecular_stacking_result()
-        self._restore_saved_molecular_order_type_result()
-        self._render_current_m6_overlay()
-        self._render_current_molecular_stacking_overlays()
-        self._sync_molecular_stacking_panel()
-        self._sync_m6_domain_type_panel()
-        self.statusBar().showMessage("M6 orientation analysis complete", 5000)
-
-    def _restore_saved_molecular_stacking_result(self) -> bool:
-        series = self._series
-        if series is None:
-            return False
-        state = (
-            self._molecular_stacking_pending_session_state
-            or getattr(series, "molecular_stacking_state", None)
-        )
-        frames = self._molecular_stacking_input_frames()
-        if (
-            not isinstance(state, MolecularStackingSessionState)
-            or state.status != "computed"
-        ):
-            return False
-        if not frames:
-            self._molecular_stacking_pending_session_state = None
-            series.molecular_stacking_state = MolecularStackingSessionState()
-            return False
-        restored = self._molecular_stacking_controller.restore(
-            state,
-            frames,
-            series=series,
-            m6_context=self._m6_completed_context,
-        )
-        self._molecular_stacking_pending_session_state = None
-        if not restored:
-            series.molecular_stacking_state = MolecularStackingSessionState()
-        else:
-            series.molecular_stacking_state = state
-        return restored
-
-    def _restore_saved_molecular_order_type_result(self) -> bool:
-        series = self._series
-        context = self._m6_completed_context
-        display = self._current_molecular_stacking_display_result()
-        state = (
-            self._molecular_order_type_pending_session_state
-            or (
-                None
-                if series is None
-                else getattr(series, "molecular_order_type_state", None)
-            )
-        )
-        if not isinstance(state, MolecularOrderTypeSessionState):
-            return False
-        dialog = self._position_analysis_dialog
-        if dialog is not None:
-            dialog.molecular_order_types_panel.set_settings(
-                state.classification_settings
-            )
-        if (
-            state.cache_record is None
-            or series is None
-            or display is None
-            or not isinstance(context, _M6CompletedAnalysisContext)
-            or state.analysis_scope != context.scope
-        ):
-            self._molecular_order_type_pending_session_state = None
-            return False
-        frame_results = tuple(
-            frame_result
-            for range_analysis in _range_analyses(context.result)
-            for frame_result in range_analysis.frame_results
-        )
-        restored = (
-            self._molecular_order_type_controller.restore_from_frame_results(
-                state,
-                frame_results,
-                context_token=display,
-                display_result=display,
-            )
-        )
-        if restored:
-            self.statusBar().showMessage(
-                "Restoring hierarchical molecular-order types...",
-                0,
-            )
-        self._molecular_order_type_pending_session_state = None
-        return restored
-
-    def _is_m6_launch_context_current(
-        self,
-        pending: _M6PendingAnalysisContext,
-    ) -> bool:
-        dialog = self._position_analysis_dialog
-        if self._series is not pending.series or dialog is not pending.dialog:
-            return False
-        try:
-            active_scope = dialog.frame_range_analysis_scope()
-            active_settings = dialog.m6_analysis_settings()
-        except (RuntimeError, ValueError):
-            return False
-        return (
-            active_scope == pending.scope
-            and dialog.use_segmentation_centroids()
-            == pending.use_segmentation_centroids
-            and active_settings == pending.settings
-        )
-
-    @pyqtSlot(str)
-    def _on_m6_analysis_failed(self, message: str) -> None:
-        pending = self._m6_pending_context
-        if pending is None or not self._is_m6_launch_context_current(pending):
-            self.statusBar().showMessage(
-                "Discarded M6 failure because the analysis context changed.",
-                5000,
-            )
-            return
-        self.statusBar().showMessage(f"M6 orientation analysis failed: {message}", 5000)
-        QMessageBox.critical(self, "M6 orientation analysis error", message)
-
-    def _cleanup_m6_analysis_worker(self) -> None:
-        self._m6_analysis_worker = None
-        if self._m6_analysis_thread is not None:
-            self._m6_analysis_thread.deleteLater()
-            self._m6_analysis_thread = None
-        self._m6_analysis_running = False
-        self._m6_pending_session_state = None
-        self._m6_analysis_series = None
-        self._m6_pending_context = None
-        if self._position_analysis_dialog is not None:
-            self._position_analysis_dialog.set_m6_analysis_running(False)
-        self._sync_m6_domain_type_panel()
-        self._sync_navigation_controls()
-
-    def _on_m6_first_shell_suggestion_requested(self, settings) -> None:
-        dialog = self._position_analysis_dialog
-        if dialog is None or not isinstance(
-            settings,
-            MolecularM6OrientationAnalysisSettings,
-        ):
-            return
-        result = dialog.range_analysis_result()
-        if not self._analysis_result_has_m6_results(dialog, result, settings):
-            dialog.set_m6_suggestion_unavailable(
-                "Calculating g(r) before proposing first-shell r_max..."
-            )
-            self._start_m6_analysis(settings, enable_on_success=False)
-            return
-        self._set_m6_first_shell_suggestion_from_result(
-            dialog,
-            result,
-            settings,
-        )
-
-    def _set_m6_first_shell_suggestion_from_result(
-        self,
-        dialog,
-        result,
-        settings: MolecularM6OrientationAnalysisSettings,
-    ) -> None:
-        try:
-            analyses = _range_analyses(result)
-            pair_correlations = tuple(
-                aggregate_pair_correlation_results(
-                    tuple(
-                        frame.m6_orientation_analysis.pair_correlation
-                        for frame in analysis.frame_results
-                        if frame.m6_orientation_analysis is not None
-                    ),
-                    frame_range=analysis.frame_range,
-                    settings=settings,
-                )
-                for analysis in analyses
-            )
-            suggestion = (
-                suggest_first_shell_r_max(pair_correlations[0], settings=settings)
-                if len(pair_correlations) == 1
-                else suggest_shared_first_shell_r_max(
-                    pair_correlations[0],
-                    pair_correlations[1],
-                    settings=settings,
-                )
-            )
-        except (TypeError, ValueError) as exc:
-            dialog.set_m6_suggestion_unavailable(str(exc))
-            return
-        dialog.set_m6_first_shell_suggestion(suggestion)
-
-    def _analysis_result_has_m6_results(self, dialog, result, settings) -> bool:
-        context = self._m6_completed_context
-        if result is None or context is None:
-            return False
-        if (
-            result is not context.result
-            or dialog.frame_range_analysis_scope() != context.scope
-            or dialog.use_segmentation_centroids()
-            != context.use_segmentation_centroids
-            or settings != context.settings
-        ):
-            return False
-        frame_results = tuple(
-            frame
-            for analysis in _range_analyses(result)
-            for frame in analysis.frame_results
-        )
-        return bool(frame_results) and all(
-            frame.m6_orientation_analysis is not None
-            and frame.m6_orientation_analysis.settings == settings
-            for frame in frame_results
-        )
-
-    def _on_position_analysis_export_requested(self) -> None:
-        series = self._series
-        position_dialog = self._position_analysis_dialog
-        if series is None or position_dialog is None or self._analysis_export_running:
-            return
-        selected_ranges = None
-        if (
-            position_dialog.has_range_comparison()
-            and position_dialog.has_valid_frame_range_selection()
-        ):
-            selected_ranges = position_dialog.frame_range_selection()
-        inner_radius, outer_radius = position_dialog.intensity_background_radii()
-        m6_state = getattr(series, "m6_analysis_state", None)
-        m6_orientation_settings = (
-            m6_state.settings
-            if (
-                isinstance(m6_state, MolecularM6SessionState)
-                and m6_state.enabled
-                and m6_state.source_view == position_dialog.source_view()
-                and m6_state.use_segmentation_centroids
-                == position_dialog.use_segmentation_centroids()
-            )
-            else None
-        )
-        export_dialog = self._analysis_export_dialog_factory(
-            parent=self,
-            frame_count=series.frame_count,
-            active_frame_index=series.active_frame_index,
-            source_view=position_dialog.source_view(),
-            use_segmentation_centroids=position_dialog.use_segmentation_centroids(),
-            intensity_metric=position_dialog.intensity_metric(),
-            intensity_unit=position_dialog.intensity_unit(),
-            background_inner_radius_px=inner_radius,
-            background_outer_radius_px=outer_radius,
-            density_grid_shape=position_dialog.density_grid_shape(),
-            selected_ranges=selected_ranges,
-            m6_orientation_settings=m6_orientation_settings,
-        )
-        if export_dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        try:
-            settings = export_dialog.export_settings()
-            domain_type_classification = (
-                self._current_m6_domain_type_classification()
-            )
-            if domain_type_classification is not None:
-                settings = replace(
-                    settings,
-                    m6_domain_type_classification=domain_type_classification,
-                    m6_domain_type_table_result=(
-                        self._current_m6_domain_type_table_result()
-                    ),
-                )
-            stacking_state = getattr(
-                series,
-                "molecular_stacking_state",
-                None,
-            )
-            if (
-                isinstance(stacking_state, MolecularStackingSessionState)
-                and stacking_state.status == "computed"
-            ):
-                settings = replace(
-                    settings,
-                    molecular_stacking_state=stacking_state,
-                )
-            order_type_result = self._current_molecular_order_type_result()
-            if order_type_result is not None:
-                settings = replace(
-                    settings,
-                    molecular_order_hierarchy=order_type_result.hierarchy,
-                    molecular_order_type_classification=(
-                        order_type_result.classification
-                    ),
-                )
-            self.analysis_export_requested.emit(settings)
-            if self._analysis_exporter is not None:
-                self._start_analysis_export(settings)
-        except (OSError, TypeError, ValueError) as exc:
-            QMessageBox.critical(self, "Analysis export error", str(exc))
-
-    def analysis_export_running(self) -> bool:
-        return self._analysis_export_running
-
-    def analysis_export_progress_dialog(self) -> QProgressDialog | None:
-        return self._analysis_export_progress_dialog
-
-    def _start_analysis_export(self, settings) -> None:
-        if (
-            self._series is None
-            or self._analysis_export_running
-            or self._analysis_exporter is None
-        ):
-            return
-        self._analysis_export_running = True
-        self._analysis_export_settings = settings
-        self._analysis_export_progress_dialog = self._show_analysis_export_progress_dialog()
-        if self._position_analysis_dialog is not None:
-            self._position_analysis_dialog.setEnabled(False)
-        self._sync_navigation_controls()
-        self.statusBar().showMessage(f"Exporting analysis to {settings.destination}...", 0)
-
-        thread = QThread(self)
-        worker = _AnalysisExportWorker(
-            self._analysis_exporter,
-            self._series,
-            settings,
-        )
-        self._analysis_export_thread = thread
-        self._analysis_export_worker = worker
-        worker.moveToThread(thread)
-        thread.started.connect(worker.run)
-        worker.progress.connect(self._on_analysis_export_progress)
-        worker.finished.connect(self._on_analysis_export_finished)
-        worker.failed.connect(self._on_analysis_export_failed)
-        worker.finished.connect(thread.quit)
-        worker.failed.connect(thread.quit)
-        thread.finished.connect(self._cleanup_analysis_export_worker)
-        thread.start()
-
-    def _show_analysis_export_progress_dialog(self) -> QProgressDialog:
-        progress_dialog = QProgressDialog(
-            "Preparing analysis export...",
-            None,
-            0,
-            0,
-            self,
-        )
-        progress_dialog.setWindowTitle("Exporting Analysis")
-        progress_dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
-        progress_dialog.setCancelButton(None)
-        progress_dialog.setMinimumDuration(0)
-        progress_dialog.setAutoClose(False)
-        progress_dialog.setAutoReset(False)
-        progress_dialog.show()
-        QApplication.processEvents()
-        return progress_dialog
-
-    @pyqtSlot(object)
-    def _on_analysis_export_progress(self, progress) -> None:
-        progress_dialog = self._analysis_export_progress_dialog
-        if progress_dialog is None:
-            return
-        phase = str(getattr(progress, "phase", ""))
-        completed_count = int(getattr(progress, "completed_count", 0))
-        total_count = int(getattr(progress, "total_count", 0))
-        if phase == "analyzing_frames" and total_count > 0:
-            progress_dialog.setRange(0, total_count)
-            progress_dialog.setValue(completed_count)
-            progress_dialog.setLabelText(
-                f"Analyzing frames... {completed_count}/{total_count}"
-            )
-            return
-        progress_dialog.setRange(0, 0)
-        labels = {
-            "writing_tables": "Writing analysis tables...",
-            "rendering_plots": "Rendering SVG/PNG plots...",
-            "packaging_zip": "Packaging ZIP archive...",
-            "publishing": "Publishing analysis package...",
-            "complete": "Finalizing analysis export...",
-        }
-        progress_dialog.setLabelText(labels.get(phase, "Preparing analysis export..."))
-
-    @pyqtSlot(object)
-    def _on_analysis_export_finished(self, result) -> None:
-        self._close_analysis_export_progress_dialog()
-        settings = self._analysis_export_settings
-        destination = getattr(result, "package_path", None)
-        if destination is None and settings is not None:
-            destination = settings.destination
-        record_counts = tuple(getattr(result, "record_counts", ()))
-        summary = ", ".join(
-            f"{Path(path).stem}: {int(count)}" for path, count in record_counts
-        )
-        message = f"Analysis exported to:\n{destination}"
-        if summary:
-            message += f"\n\nRecords: {summary}"
-        self.statusBar().showMessage(f"Exported analysis to {destination}", 5000)
-        QMessageBox.information(self, "Analysis export complete", message)
-
-    @pyqtSlot(str)
-    def _on_analysis_export_failed(self, message: str) -> None:
-        self._close_analysis_export_progress_dialog()
-        self.statusBar().showMessage(f"Analysis export failed: {message}", 5000)
-        QMessageBox.critical(self, "Analysis export error", message)
-
-    def _close_analysis_export_progress_dialog(self) -> None:
-        if self._analysis_export_progress_dialog is None:
-            return
-        self._analysis_export_progress_dialog.close()
-        self._analysis_export_progress_dialog = None
-
-    def _cleanup_analysis_export_worker(self) -> None:
-        if self._analysis_export_worker is not None:
-            self._analysis_export_worker.deleteLater()
-            self._analysis_export_worker = None
-        if self._analysis_export_thread is not None:
-            self._analysis_export_thread.deleteLater()
-            self._analysis_export_thread = None
-        self._close_analysis_export_progress_dialog()
-        self._analysis_export_running = False
-        self._analysis_export_settings = None
-        if self._position_analysis_dialog is not None:
-            self._position_analysis_dialog.setEnabled(True)
-        self._sync_navigation_controls()
-
-    def _on_position_range_analysis_requested(self, scope) -> None:
-        if self._series is None or self._position_analysis_dialog is None:
-            return
-        try:
-            execution = _execute_position_range_analysis(
-                self._position_range_analyzer,
-                self._position_range_comparator,
-                self._series,
-                scope,
-                use_segmentation_centroids=(
-                    self._position_analysis_dialog.use_segmentation_centroids()
-                ),
-                intensity_metric=str(
-                    self._position_analysis_dialog.cmb_intensity_metric.currentData()
-                ),
-                background_inner_radius_px=(
-                    self._position_analysis_dialog.intensity_background_radii()[0]
-                ),
-                background_outer_radius_px=(
-                    self._position_analysis_dialog.intensity_background_radii()[1]
-                ),
-            )
-        except Exception as exc:
-            QMessageBox.critical(self, "Position analysis failed", str(exc))
-            return
-        self._position_analysis_dialog.set_range_analysis_result(execution.result)
-        self._sync_m6_domain_type_panel()
-
-    def _on_position_analysis_centroid_source_mode_changed(self, enabled: bool) -> None:
-        dialog = self._position_analysis_dialog
-        if self._series is None or dialog is None:
-            return
-        self._m6_domain_type_controller.invalidate("centroid_source")
-        self._sync_m6_domain_type_panel()
-        dialog.set_plot_data(
-            self._build_current_position_plot_data(
-                use_segmentation_centroids=bool(enabled),
-            )
-        )
-        self._render_current_m6_overlay()
-        self._sync_texture_domain_panel()
-        self._render_current_texture_domain_overlay()
-        if not dialog.has_active_range_comparison():
-            self._invalidate_active_single_range_analysis(dialog)
-            return
-        active_tab = dialog.active_analysis_tab()
-        comparison = compare_molecular_frame_ranges(
-            self._series,
-            dialog.frame_range_selection(),
-            use_segmentation_centroids=bool(enabled),
-            intensity_metric=str(dialog.cmb_intensity_metric.currentData()),
-            background_inner_radius_px=dialog.intensity_background_radii()[0],
-            background_outer_radius_px=dialog.intensity_background_radii()[1],
-        )
-        dialog.set_range_comparison(
-            comparison,
-            density_grid_shape=dialog.density_grid_shape(),
-        )
-        dialog.activate_analysis_tab(active_tab)
-
-    def _on_position_analysis_intensity_metric_changed(self, metric: str) -> None:
-        dialog = self._position_analysis_dialog
-        if self._series is None or dialog is None:
-            return
-        dialog.set_plot_data(
-            self._build_current_position_plot_data(intensity_metric=str(metric))
-        )
-        if not dialog.has_active_range_comparison():
-            self._invalidate_active_single_range_analysis(dialog)
-            return
-        active_tab = dialog.active_analysis_tab()
-        comparison = compare_molecular_frame_ranges(
-            self._series,
-            dialog.frame_range_selection(),
-            use_segmentation_centroids=dialog.use_segmentation_centroids(),
-            intensity_metric=str(metric),
-            background_inner_radius_px=dialog.intensity_background_radii()[0],
-            background_outer_radius_px=dialog.intensity_background_radii()[1],
-        )
-        dialog.set_range_comparison(
-            comparison,
-            density_grid_shape=dialog.density_grid_shape(),
-        )
-        dialog.activate_analysis_tab(active_tab)
-
-    def _on_position_analysis_background_changed(
-        self,
-        _inner_radius_px: int,
-        _outer_radius_px: int,
-    ) -> None:
-        dialog = self._position_analysis_dialog
-        if self._series is None or dialog is None:
-            return
-        dialog.set_plot_data(self._build_current_position_plot_data())
-        if not dialog.has_active_range_comparison():
-            self._invalidate_active_single_range_analysis(dialog)
-            return
-        active_tab = dialog.active_analysis_tab()
-        inner_radius_px, outer_radius_px = dialog.intensity_background_radii()
-        comparison = compare_molecular_frame_ranges(
-            self._series,
-            dialog.frame_range_selection(),
-            use_segmentation_centroids=dialog.use_segmentation_centroids(),
-            intensity_metric=str(dialog.cmb_intensity_metric.currentData()),
-            background_inner_radius_px=inner_radius_px,
-            background_outer_radius_px=outer_radius_px,
-        )
-        dialog.set_range_comparison(
-            comparison,
-            density_grid_shape=dialog.density_grid_shape(),
-        )
-        dialog.activate_analysis_tab(active_tab)
-
-    @staticmethod
-    def _invalidate_active_single_range_analysis(dialog) -> None:
-        if (
-            dialog.analysis_mode() != "single_range"
-            or not dialog.has_active_range_analysis()
-        ):
-            return
-        dialog.invalidate_range_analysis_result(
-            "Range context changed. Run Analyze range or Run/Recalculate M6."
-        )
-
-    def _build_current_position_plot_data(
-        self,
-        *,
-        use_segmentation_centroids: bool | None = None,
-        intensity_metric: str | None = None,
-    ):
-        if self._series is None:
-            raise RuntimeError("Position analysis requires a loaded series.")
-        if use_segmentation_centroids is None:
-            dialog = self._position_analysis_dialog
-            use_segmentation_centroids = (
-                True if dialog is None else dialog.use_segmentation_centroids()
-            )
-        frame_index = self._series.active_frame_index
-        source_view = self._current_yolo_source_view()
-        centroids = build_molecular_centroids(
-            self._series,
-            frame_index=frame_index,
-            source_view=source_view,
-            use_segmentation_centroids=use_segmentation_centroids,
-        )
-        frame_shape = self._current_bbox_frame_shape(source_view)
-        scale_nm_per_px = self._current_position_scale_nm_per_px(source_view)
-        coordinate_origin_px = self._current_position_coordinate_origin_px(source_view)
-        intensity_measurements = build_molecular_intensity_measurements(
-            self._series,
-            frame_index=frame_index,
-            source_view=source_view,
-            background_inner_radius_px=(
-                1
-                if self._position_analysis_dialog is None
-                else self._position_analysis_dialog.intensity_background_radii()[0]
-            ),
-            background_outer_radius_px=(
-                3
-                if self._position_analysis_dialog is None
-                else self._position_analysis_dialog.intensity_background_radii()[1]
-            ),
-        )
-        if intensity_metric is None:
-            dialog = self._position_analysis_dialog
-            intensity_metric = (
-                "background_corrected_median"
-                if dialog is None
-                else str(dialog.cmb_intensity_metric.currentData())
-            )
-        return build_molecular_position_plot_data(
-            centroids,
-            frame_index=frame_index,
-            source_view=source_view,
-            frame_shape=frame_shape,
-            scale_nm_per_px=scale_nm_per_px,
-            coordinate_origin_px=coordinate_origin_px,
-            intensity_measurements=intensity_measurements,
-            intensity_metric=intensity_metric,
-        )
-
-    def _current_position_coordinate_origin_px(self, source_view: str) -> tuple[float, float]:
-        if source_view != "expanded_aligned":
-            return 0.0, 0.0
-        expanded = self._ensure_expanded_aligned_stack()
-        canvas_offset = getattr(expanded, "canvas_offset_xy", None)
-        if canvas_offset is None:
-            left, top, _right, _bottom = getattr(expanded, "padding_ltrb", (0, 0, 0, 0))
-            canvas_offset = (left, top)
-        origin_x, origin_y = (float(value) for value in canvas_offset)
-        if not np.isfinite(origin_x) or not np.isfinite(origin_y):
-            raise ValueError("expanded_aligned canvas offset must be finite.")
-        return origin_x, origin_y
-
-    def _current_position_scale_nm_per_px(self, source_view: str) -> tuple[float, float] | None:
-        if self._series is None:
-            return None
-        metadata = self._series.metadata
-        if source_view == "expanded_aligned":
-            expanded = self._ensure_expanded_aligned_stack()
-            metadata = getattr(expanded, "metadata", metadata)
-        get_pixel_size = getattr(metadata, "get_pixel_size_nm", None)
-        if not callable(get_pixel_size):
-            return None
-        try:
-            scale_x, scale_y = get_pixel_size()
-            scale_x = float(scale_x)
-            scale_y = float(scale_y)
-        except (TypeError, ValueError):
-            return None
-        if not np.isfinite(scale_x) or not np.isfinite(scale_y) or scale_x <= 0.0 or scale_y <= 0.0:
-            return None
-        return scale_x, scale_y
+        if self._series is not None:
+            self._ensure_domain_analysis_composition().open_position_analysis()
 
     def _on_sam3_add_positive_prompt_toggled(self, checked: bool) -> None:
         if checked:
@@ -6042,8 +3420,8 @@ class MolTrackMainWindow(QMainWindow):
         frame_index = detection.frame_index
         source_view = detection.source_view
         self._series.molecular_detections.remove_detection(detection.detection_id)
-        self._invalidate_texture_domain_analysis(
-            "Texture-domain analysis invalidated by a deleted BBox.",
+        self._invalidate_domain_analysis(
+            "Domain Analysis invalidated by a deleted BBox.",
             frame_indices=(frame_index,),
             source_view=source_view,
             source_ids=(detection.detection_id,),
@@ -6303,8 +3681,8 @@ class MolTrackMainWindow(QMainWindow):
             duplicate_iou_threshold=float(self.sp_sam3_duplicate_iou.value()),
         )
         if result.added_bbox_count or result.added_segmentation_count:
-            self._invalidate_texture_domain_analysis(
-                "Texture-domain analysis invalidated by SAM3 results.",
+            self._invalidate_domain_analysis(
+                "Domain Analysis invalidated by SAM3 results.",
                 frame_indices=(preview.frame_index,),
                 source_view=preview.source_view,
             )
@@ -6741,8 +4119,8 @@ class MolTrackMainWindow(QMainWindow):
                     segmentation,
                 )
             segmentation_set.add_segmentation(segmentation)
-        self._invalidate_texture_domain_analysis(
-            "Texture-domain analysis invalidated by SAM2 results.",
+        self._invalidate_domain_analysis(
+            "Domain Analysis invalidated by SAM2 results.",
             frame_indices=tuple(
                 segmentation.frame_index
                 for _detection, segmentation in transformed_results
@@ -6886,8 +4264,8 @@ class MolTrackMainWindow(QMainWindow):
         affected_detection_ids,
     ) -> None:
         if changed:
-            self._invalidate_texture_domain_analysis(
-                "Texture-domain analysis invalidated by resized BBoxes.",
+            self._invalidate_domain_analysis(
+                "Domain Analysis invalidated by resized BBoxes.",
                 frame_indices=affected_frame_indices,
                 source_view=self._current_yolo_source_view(),
                 source_ids=affected_detection_ids,
@@ -6921,354 +4299,13 @@ class MolTrackMainWindow(QMainWindow):
                 )
                 self._show_current_sam3_manual_prompt_overlays()
                 self._render_current_molecular_orientation_overlay()
-                self._render_current_m6_overlay()
-                self._render_current_molecular_stacking_overlays()
-                self._render_current_texture_domain_overlay()
                 self.metadata_panel.set_image_series(self._series)
-                self._refresh_position_analysis_dialog_if_open()
                 self._sync_molecular_orientation_panel()
                 return
         self.viewer.show_frame(self._series.active_frame_index)
         self._show_current_sam3_manual_prompt_overlays()
         self._render_current_molecular_orientation_overlay()
-        self._render_current_m6_overlay()
-        self._render_current_molecular_stacking_overlays()
-        self._render_current_texture_domain_overlay()
-        self._refresh_position_analysis_dialog_if_open()
         self._sync_molecular_orientation_panel()
-
-    def _render_current_texture_domain_overlay(self) -> None:
-        series = self._series
-        if series is None:
-            self.viewer.clear_texture_domain_point_overlay()
-            return
-        state = getattr(series, "texture_domain_state", None)
-        if not isinstance(state, TextureDomainSessionState):
-            self.viewer.clear_texture_domain_point_overlay()
-            return
-        frame_result = state.frame_result(series.active_frame_index)
-        source_view = self._current_yolo_source_view()
-        dialog = self._position_analysis_dialog
-        if (
-            frame_result is None
-            or state.source_view != source_view
-            or (
-                dialog is not None
-                and dialog.use_segmentation_centroids()
-                != state.use_segmentation_centroids
-            )
-        ):
-            self.viewer.clear_texture_domain_point_overlay()
-            return
-        if not state.view_settings.show_overlay:
-            self.viewer.clear_texture_domain_point_overlay()
-            return
-        overlay = build_texture_domain_point_overlay(
-            frame_result,
-            settings=state.settings,
-            view_settings=state.view_settings,
-        )
-        self.viewer.show_texture_domain_point_overlay(
-            overlay,
-            scale_nm_per_px=self._current_position_scale_nm_per_px(
-                source_view
-            ),
-        )
-
-    def _render_current_m6_overlay(self) -> None:
-        series = self._series
-        if series is None:
-            self._sync_current_m6_results(force=True)
-            self.viewer.clear_m6_point_overlay()
-            self._m6_rendered_analysis = None
-            self._m6_rendered_view_settings = None
-            return
-        state = getattr(series, "m6_analysis_state", None)
-        analysis = self._current_m6_analysis_result()
-        self._sync_current_m6_results(analysis=analysis)
-        if (
-            not isinstance(state, MolecularM6SessionState)
-            or not state.enabled
-            or not state.view_settings.show_domain_overlay
-            or analysis is None
-        ):
-            self.viewer.clear_m6_point_overlay()
-            self._m6_rendered_analysis = None
-            self._m6_rendered_view_settings = None
-            if analysis is not None and self._m6_selected_ordered_component_id is not None:
-                self._on_m6_domain_selection_changed(
-                    self._m6_selected_ordered_component_id
-                )
-            return
-        view = state.view_settings
-        if view.overlay_mode == "domain_type":
-            classification = self._current_m6_domain_type_classification()
-            if classification is None:
-                self.viewer.clear_m6_point_overlay()
-                self._m6_rendered_analysis = None
-                self._m6_rendered_view_settings = None
-                return
-            overlay_index = self._m6_domain_type_overlay_index
-            if (
-                overlay_index is None
-                or overlay_index.classification is not classification
-            ):
-                overlay_index = build_m6_domain_type_overlay_index(
-                    classification
-                )
-                self._m6_domain_type_overlay_index = overlay_index
-            projection = build_m6_domain_type_frame_overlay(
-                analysis,
-                overlay_index,
-                frame_index=series.active_frame_index,
-                opacity_percent=view.overlay_opacity_percent,
-                selection=self._m6_selected_domain_type_key,
-            )
-            overlay = projection.overlay
-        else:
-            projection = None
-            overlay = build_m6_point_overlay_from_analysis(
-                analysis,
-                mode=view.overlay_mode,
-                opacity_percent=view.overlay_opacity_percent,
-                show_unassigned_points=view.show_unassigned_points,
-            )
-        self.viewer.show_m6_point_overlay(overlay)
-        if projection is not None:
-            self.viewer.highlight_m6_overlay_source_ids(
-                projection.highlighted_source_ids
-            )
-        elif self._m6_selected_ordered_component_id is not None:
-            self._on_m6_domain_selection_changed(
-                self._m6_selected_ordered_component_id
-            )
-        self._m6_rendered_analysis = analysis
-        self._m6_rendered_view_settings = view
-
-    def _update_current_m6_overlay_opacity(
-        self,
-        previous: MolecularM6ViewSettings | None,
-        current: MolecularM6ViewSettings,
-    ) -> bool:
-        analysis = self._m6_rendered_analysis
-        if (
-            previous is None
-            or analysis is None
-            or self._m6_rendered_view_settings != previous
-            or not previous.show_domain_overlay
-            or not current.show_domain_overlay
-            or replace(previous, overlay_opacity_percent=current.overlay_opacity_percent)
-            != current
-            or current.overlay_mode == "domain_type"
-        ):
-            return False
-        overlay = build_m6_point_overlay_from_analysis(
-            analysis,
-            mode=current.overlay_mode,
-            opacity_percent=current.overlay_opacity_percent,
-            show_unassigned_points=current.show_unassigned_points,
-        )
-        if not self.viewer.update_m6_point_overlay_colors(overlay):
-            return False
-        self._m6_rendered_view_settings = current
-        return True
-
-    def _current_m6_domain_type_classification(self):
-        state = getattr(self._m6_domain_type_store, "state", None)
-        if (
-            not isinstance(state, M6DomainTypeAnalysisStoreState)
-            or state.status != "current"
-            or state.outcome is None
-        ):
-            self._m6_domain_type_overlay_index = None
-            return None
-        classification = state.outcome.classification
-        if (
-            classification is None
-            or self._series is None
-            or classification.analysis_scope.frame_count != self._series.frame_count
-            or classification.analysis_scope.source_view
-            != self._current_yolo_source_view()
-        ):
-            self._m6_domain_type_overlay_index = None
-            return None
-        return classification
-
-    def _current_m6_domain_type_table_result(self):
-        classification = self._current_m6_domain_type_classification()
-        state = getattr(self._m6_domain_type_store, "state", None)
-        if (
-            classification is None
-            or not isinstance(state, M6DomainTypeAnalysisStoreState)
-            or state.outcome is None
-            or state.outcome.classification is not classification
-        ):
-            return None
-        return state.outcome.table_result
-
-    def _current_m6_analysis_result(self):
-        series = self._series
-        context = self._m6_completed_context
-        if series is None or context is None:
-            return None
-        centroid_mode = context.use_segmentation_centroids
-        completed_settings = context.settings
-        state = getattr(series, "m6_analysis_state", None)
-        if (
-            not isinstance(state, MolecularM6SessionState)
-            or state.source_view != self._current_yolo_source_view()
-            or state.use_segmentation_centroids != centroid_mode
-            or state.settings != completed_settings
-        ):
-            return None
-        dialog = self._position_analysis_dialog
-        if dialog is not None:
-            try:
-                active_scope = dialog.frame_range_analysis_scope()
-            except (RuntimeError, ValueError):
-                return None
-            if (
-                dialog.use_segmentation_centroids() != centroid_mode
-                or active_scope != context.scope
-            ):
-                return None
-        frame_index = series.active_frame_index
-        source_view = self._current_yolo_source_view()
-        frame_results = tuple(
-            frame_result
-            for analysis in _range_analyses(context.result)
-            for frame_result in analysis.frame_results
-        )
-        for frame_result in frame_results:
-            if (
-                frame_result.frame_index == frame_index
-                and frame_result.source_view == source_view
-            ):
-                analysis = frame_result.m6_orientation_analysis
-                if analysis is None:
-                    return None
-                current_centroids = tuple(
-                    build_molecular_centroids(
-                        series,
-                        frame_index=frame_index,
-                        source_view=source_view,
-                        use_segmentation_centroids=centroid_mode,
-                    )
-                )
-                current_sample = build_molecular_sample_coordinates(
-                    series,
-                    current_centroids,
-                    frame_index=frame_index,
-                    source_view=source_view,
-                )
-                current_key = build_structural_analysis_cache_key(
-                    series,
-                    current_sample,
-                    use_segmentation_centroids=centroid_mode,
-                    settings=completed_settings,
-                )
-                analyzed_key = build_structural_analysis_cache_key(
-                    series,
-                    analysis.sample_coordinates,
-                    use_segmentation_centroids=centroid_mode,
-                    settings=completed_settings,
-                )
-                return analysis if current_key == analyzed_key else None
-        return None
-
-    def _sync_current_m6_results(self, *, analysis=None, force: bool = False) -> None:
-        if analysis is None and self._series is not None:
-            analysis = self._current_m6_analysis_result()
-        if not force and analysis is self._m6_current_results_analysis:
-            return
-        self._m6_current_results_analysis = analysis
-        self._m6_selected_ordered_component_id = None
-        self.viewer.highlight_m6_overlay_source_ids(())
-        dialog = self._position_analysis_dialog
-        if dialog is not None:
-            dialog.set_m6_current_frame_results(
-                None
-                if analysis is None
-                else build_m6_current_frame_results(analysis.frame_aggregates)
-            )
-        self._sync_selected_local_symmetry_point(analysis=analysis)
-
-    def _sync_selected_local_symmetry_point(
-        self,
-        *,
-        preferred_source_id: str | None = None,
-        analysis=None,
-    ) -> None:
-        dialog = self._position_analysis_dialog
-        if dialog is None:
-            return
-        if analysis is None:
-            analysis = self._current_m6_analysis_result()
-        if analysis is None:
-            dialog.set_local_symmetry_point_inspection(None)
-            return
-        candidates = (
-            (preferred_source_id,)
-            if preferred_source_id is not None
-            else (
-                self._selected_molecular_segmentation_id,
-                self._selected_molecular_detection_id,
-            )
-        )
-        inspection = None
-        for source_id in candidates:
-            if source_id is None:
-                continue
-            analysis_source_id = self._local_symmetry_source_id_for_selection(
-                analysis,
-                source_id,
-            )
-            if analysis_source_id is None:
-                continue
-            inspection = build_local_symmetry_point_inspection(
-                analysis,
-                analysis_source_id,
-            )
-            if inspection is not None:
-                break
-        dialog.set_local_symmetry_point_inspection(inspection)
-
-    def _local_symmetry_source_id_for_selection(
-        self,
-        analysis,
-        selected_source_id: str,
-    ) -> str | None:
-        selected_source_id = str(selected_source_id)
-        available_ids = set(analysis.point_source_ids)
-        if selected_source_id in available_ids:
-            return selected_source_id
-        series = self._series
-        segmentation_set = (
-            None if series is None else series.molecular_segmentations
-        )
-        if series is None or segmentation_set is None:
-            return None
-        linked_ids = sorted(
-            segmentation.segmentation_id
-            for segmentation in segmentation_set.get_segmentations(
-                series.active_frame_index,
-                source_view=self._current_yolo_source_view(),
-            )
-            if selected_source_id in segmentation.prompt_detection_ids
-            and segmentation.segmentation_id in available_ids
-        )
-        if self._selected_molecular_segmentation_id in linked_ids:
-            return self._selected_molecular_segmentation_id
-        return None if not linked_ids else linked_ids[0]
-
-    def _refresh_position_analysis_dialog_if_open(self) -> None:
-        if self._position_analysis_dialog is None or self._series is None:
-            return
-        self._position_analysis_dialog.set_plot_data(self._build_current_position_plot_data())
-        self._position_analysis_dialog.set_texture_domain_current_frame(
-            self._series.active_frame_index
-        )
-        self._sync_texture_domain_panel()
 
     def _show_current_sam3_manual_prompt_overlays(self) -> None:
         if self._series is None:
@@ -7289,6 +4326,8 @@ class MolTrackMainWindow(QMainWindow):
         self._sync_navigation_controls()
         self._show_current_frame()
         self.metadata_panel.set_active_frame(int(frame_index))
+        if self._domain_analysis_composition is not None:
+            self._domain_analysis_composition.set_active_frame(int(frame_index))
 
     def _on_remove_current_frame_requested(self) -> None:
         if self._series is None:
@@ -7332,8 +4371,8 @@ class MolTrackMainWindow(QMainWindow):
     def _on_registration_finished(self, result_set) -> None:
         if self._series is not None and self._series.registration_results is None:
             self._series.registration_results = result_set
-            self._invalidate_texture_domain_analysis(
-                "Texture-domain analysis invalidated by registration.",
+            self._invalidate_domain_analysis(
+                "Domain Analysis invalidated by registration.",
                 source_view="expanded_aligned",
             )
         self._registration_running = False
@@ -7395,12 +4434,7 @@ class MolTrackMainWindow(QMainWindow):
         self.action_open_stm.setEnabled(enabled)
         self.action_open_stm_reverse.setEnabled(enabled)
         self.action_open_state.setEnabled(enabled)
-        can_save_state = (
-            enabled
-            and self._series is not None
-            and not self._m6_domain_type_controller.is_running
-            and not self._molecular_order_type_controller.is_running
-        )
+        can_save_state = enabled and self._series is not None
         self.action_save_state.setEnabled(can_save_state)
         self.action_save_state_as.setEnabled(can_save_state)
 
@@ -7413,12 +4447,16 @@ class MolTrackMainWindow(QMainWindow):
             f"Registered {result_set.result_count} frames with {result_set.settings.backend}"
         )
 
-    def _on_registration_view_mode_changed(self, _mode: str) -> None:
+    def _on_registration_view_mode_changed(self, mode: str) -> None:
         if self._series is None:
             return
         self._clear_sam3_prompt_draw_mode()
         self._show_current_frame()
         self._sync_yolo_controls()
+        if self._domain_analysis_composition is not None:
+            self._domain_analysis_composition.set_target_view(
+                "expanded_aligned" if mode == "Show expanded aligned" else "raw"
+            )
 
     def _is_expanded_aligned_view_requested(self) -> bool:
         return self.cmb_registration_view_mode.currentText() == "Show expanded aligned"
@@ -7471,12 +4509,7 @@ class MolTrackMainWindow(QMainWindow):
         self._start_save_state(path)
 
     def _start_save_state(self, path) -> None:
-        if (
-            self._series is None
-            or self._state_io_running
-            or self._m6_domain_type_controller.is_running
-            or self._molecular_order_type_controller.is_running
-        ):
+        if self._series is None or self._state_io_running:
             return
         try:
             ui_state = self._current_ui_state()
@@ -7515,12 +4548,7 @@ class MolTrackMainWindow(QMainWindow):
         thread.start()
 
     def save_state(self, path) -> None:
-        if (
-            self._series is None
-            or self._m6_domain_type_controller.is_running
-            or self._molecular_order_type_controller.is_running
-            or self._texture_domain_controller.is_running
-        ):
+        if self._series is None:
             return
         try:
             self._session_saver(path, self._series, self._current_ui_state())
@@ -7539,117 +4567,9 @@ class MolTrackMainWindow(QMainWindow):
             "bbox_opacity_percent": self.slider_bbox_opacity.value(),
             "mask_opacity_percent": self.slider_mask_opacity.value(),
         }
-        dialog = self._position_analysis_dialog
-        if dialog is not None and not dialog.has_valid_frame_range_selection():
-            raise ValueError(
-                "Position Analysis frame ranges must be valid before saving state."
-            )
-        if dialog is not None:
-            selection = dialog.frame_range_selection()
-            active_tab = dialog.active_analysis_tab()
-            if active_tab == "Order Hierarchy":
-                active_tab = "Current frame"
-            ui_state["position_analysis"] = {
-                "source_view": selection.source_view,
-                "first_range": {
-                    "name": selection.first_range.name,
-                    "start_frame": selection.first_range.start_frame,
-                    "end_frame": selection.first_range.end_frame,
-                },
-                "second_range": {
-                    "name": selection.second_range.name,
-                    "start_frame": selection.second_range.start_frame,
-                    "end_frame": selection.second_range.end_frame,
-                },
-                "comparison_completed": dialog.has_active_range_analysis(),
-                "active_tab": active_tab,
-                "density_grid_shape": list(dialog.density_grid_shape()),
-                "use_segmentation_centroids": dialog.use_segmentation_centroids(),
-                "intensity_metric": str(dialog.cmb_intensity_metric.currentData()),
-                "color_points_by_intensity": dialog.chk_color_by_intensity.isChecked(),
-                "background_inner_radius_px": dialog.intensity_background_radii()[0],
-                "background_outer_radius_px": dialog.intensity_background_radii()[1],
-                "shared_intensity_scale": dialog.shared_intensity_scale_enabled(),
-            }
-            previous_m6_state = (
-                None
-                if self._series is None
-                else getattr(self._series, "m6_analysis_state", None)
-            )
-            current_m6_settings = dialog.m6_analysis_settings()
-            current_centroid_mode = dialog.use_segmentation_centroids()
-            ui_state["molecular_m6_analysis"] = MolecularM6SessionState(
-                enabled=(
-                    previous_m6_state.enabled
-                    if isinstance(previous_m6_state, MolecularM6SessionState)
-                    and previous_m6_state.settings == current_m6_settings
-                    and previous_m6_state.source_view == selection.source_view
-                    and (
-                        previous_m6_state.use_segmentation_centroids
-                        == current_centroid_mode
-                    )
-                    else False
-                ),
-                source_view=selection.source_view,
-                use_segmentation_centroids=current_centroid_mode,
-                settings=current_m6_settings,
-                view_settings=(
-                    previous_m6_state.view_settings
-                    if isinstance(previous_m6_state, MolecularM6SessionState)
-                    else MolecularM6ViewSettings()
-                ),
-            )
-            domain_type_scope = dialog.frame_range_analysis_scope()
-            domain_type_settings = dialog.domain_types_panel.settings()
-            domain_type_store_state = self._m6_domain_type_store.state
-            domain_type_outcome = (
-                domain_type_store_state.outcome
-                if isinstance(
-                    domain_type_store_state,
-                    M6DomainTypeAnalysisStoreState,
-                )
-                and domain_type_store_state.status == "current"
-                else None
-            )
-            if (
-                domain_type_outcome is not None
-                and domain_type_outcome.analysis_scope == domain_type_scope
-                and domain_type_outcome.classification is not None
-                and domain_type_outcome.classification.classification_settings
-                == domain_type_settings
-            ):
-                ui_state["m6_domain_type_analysis"] = (
-                    M6DomainTypeSessionState.from_outcome(domain_type_outcome)
-                )
-            else:
-                ui_state["m6_domain_type_analysis"] = M6DomainTypeSessionState(
-                    analysis_scope=domain_type_scope,
-                    classification_settings=domain_type_settings,
-                )
-            order_type_scope = dialog.frame_range_analysis_scope()
-            order_type_settings = (
-                dialog.molecular_order_types_panel.settings()
-            )
-            order_type_result = self._current_molecular_order_type_result()
-            if (
-                order_type_result is not None
-                and order_type_result.classification.analysis_scope
-                == order_type_scope
-                and order_type_result.classification.settings
-                == order_type_settings
-            ):
-                ui_state["molecular_order_type_analysis"] = (
-                    MolecularOrderTypeSessionState.from_classification(
-                        order_type_result.classification
-                    )
-                )
-            else:
-                ui_state["molecular_order_type_analysis"] = (
-                    MolecularOrderTypeSessionState(
-                        analysis_scope=order_type_scope,
-                        classification_settings=order_type_settings,
-                    )
-                )
+        composition = self._domain_analysis_composition
+        if composition is not None:
+            ui_state["domain_analysis"] = composition.session_state()
         return ui_state
 
     def _choose_and_open_state(self) -> None:
@@ -7789,37 +4709,7 @@ class MolTrackMainWindow(QMainWindow):
         bbox_overlay_visible = getattr(session, "bbox_overlay_visible", True)
         bbox_opacity_percent = getattr(session, "bbox_opacity_percent", 100)
         mask_opacity_percent = getattr(session, "mask_opacity_percent", 30)
-        position_analysis_state = getattr(session, "position_analysis", None)
-        domain_type_state = getattr(
-            session,
-            "m6_domain_type_analysis_state",
-            None,
-        )
-        order_type_state = getattr(
-            session,
-            "molecular_order_type_analysis_state",
-            None,
-        )
-        m6_state = getattr(series, "m6_analysis_state", None)
-        if isinstance(m6_state, MolecularM6SessionState):
-            M6SettingsPanel.validate_gr_settings_representable(m6_state.settings)
         self.set_image_series(series)
-        stacking_state = getattr(
-            session,
-            "molecular_stacking_state",
-            None,
-        )
-        if (
-            isinstance(stacking_state, MolecularStackingSessionState)
-            and stacking_state.status == "computed"
-        ):
-            self._molecular_stacking_pending_session_state = stacking_state
-        if isinstance(order_type_state, MolecularOrderTypeSessionState):
-            self._molecular_order_type_pending_session_state = (
-                order_type_state
-            )
-        if isinstance(domain_type_state, M6DomainTypeSessionState):
-            self._prepare_loaded_m6_domain_type_state(domain_type_state)
         self._session_path = str(path)
         self._set_registration_view_mode(registration_view_mode)
         self.chk_show_bboxes.setChecked(bool(bbox_overlay_visible))
@@ -7828,219 +4718,15 @@ class MolTrackMainWindow(QMainWindow):
         self._sync_navigation_controls()
         self._show_current_frame()
         self.metadata_panel.set_image_series(series)
-        if position_analysis_state is not None:
-            self._restore_position_analysis_state(
-                position_analysis_state,
-                domain_type_state=domain_type_state,
-            )
-        elif isinstance(domain_type_state, M6DomainTypeSessionState):
-            self._restore_domain_type_state_without_position_analysis(
-                domain_type_state
-            )
+        domain_analysis_state = getattr(session, "domain_analysis_state", None)
         if (
-            isinstance(order_type_state, MolecularOrderTypeSessionState)
-            and self._position_analysis_dialog is not None
+            domain_analysis_state is not None
+            and domain_analysis_state.draft is not None
         ):
-            self._position_analysis_dialog.molecular_order_types_panel.set_settings(
-                order_type_state.classification_settings
-            )
+            composition = self._ensure_domain_analysis_composition()
+            composition.restore_session(domain_analysis_state)
+            composition.set_active_frame(series.active_frame_index)
         self.statusBar().showMessage(f"Loaded state {path}", 5000)
-
-    def _restore_position_analysis_state(
-        self,
-        state,
-        *,
-        domain_type_state: M6DomainTypeSessionState | None = None,
-    ) -> None:
-        if self._series is None:
-            return
-        expected_view_mode = (
-            "Show expanded aligned" if state.source_view == "expanded_aligned" else "Show raw"
-        )
-        if self.cmb_registration_view_mode.currentText() != expected_view_mode:
-            self._set_registration_view_mode(expected_view_mode)
-            self._show_current_frame()
-        self._on_position_analysis_requested()
-        dialog = self._position_analysis_dialog
-        if dialog is None:
-            return
-        use_segmentation_centroids = bool(
-            getattr(state, "use_segmentation_centroids", True)
-        )
-        dialog.set_use_segmentation_centroids(use_segmentation_centroids)
-        dialog.set_intensity_background_radii(
-            int(getattr(state, "background_inner_radius_px", 1)),
-            int(getattr(state, "background_outer_radius_px", 3)),
-        )
-        intensity_metric = str(
-            getattr(state, "intensity_metric", "background_corrected_median")
-        )
-        intensity_metric_index = dialog.cmb_intensity_metric.findData(intensity_metric)
-        if intensity_metric_index >= 0:
-            dialog.cmb_intensity_metric.setCurrentIndex(intensity_metric_index)
-        dialog.chk_color_by_intensity.setChecked(
-            bool(getattr(state, "color_points_by_intensity", True))
-        )
-        selection = MolecularFrameRangeSelection(
-            frame_count=self._series.frame_count,
-            source_view=state.source_view,
-            first_range=MolecularFrameRange(
-                state.first_range.name,
-                state.first_range.start_frame,
-                state.first_range.end_frame,
-            ),
-            second_range=MolecularFrameRange(
-                state.second_range.name,
-                state.second_range.start_frame,
-                state.second_range.end_frame,
-            ),
-        )
-        dialog.apply_frame_range_selection(selection, notify=False)
-        if isinstance(domain_type_state, M6DomainTypeSessionState):
-            self._restore_m6_domain_type_configuration(
-                dialog,
-                domain_type_state,
-            )
-        m6_state = getattr(self._series, "m6_analysis_state", None)
-        if (
-            state.comparison_completed
-            and isinstance(m6_state, MolecularM6SessionState)
-            and m6_state.enabled
-        ):
-            dialog.activate_analysis_tab(state.active_tab)
-            self._start_m6_analysis(
-                m6_state.settings,
-                enable_on_success=True,
-                density_grid_shape=state.density_grid_shape,
-                allow_during_state_open=True,
-            )
-            return
-        if state.comparison_completed:
-            execution = _execute_position_range_analysis(
-                self._position_range_analyzer,
-                self._position_range_comparator,
-                self._series,
-                dialog.frame_range_analysis_scope(),
-                use_segmentation_centroids=use_segmentation_centroids,
-                intensity_metric=intensity_metric,
-                background_inner_radius_px=dialog.intensity_background_radii()[0],
-                background_outer_radius_px=dialog.intensity_background_radii()[1],
-            )
-            dialog.set_range_analysis_result(
-                execution.result,
-                density_grid_shape=state.density_grid_shape,
-            )
-        dialog.activate_analysis_tab(state.active_tab)
-
-    def _prepare_loaded_m6_domain_type_state(
-        self,
-        state: M6DomainTypeSessionState,
-    ) -> None:
-        series = self._series
-        if series is None:
-            return
-        if state.analysis_scope.frame_count != series.frame_count:
-            self._m6_domain_type_controller.mark_out_of_date(
-                "restored_scope_mismatch"
-            )
-            return
-        self._m6_pending_domain_type_session_state = state
-        self._m6_domain_type_controller.mark_out_of_date(
-            "restored_cache_missing"
-            if state.cache_record is None
-            else "restored_cache_pending_validation"
-        )
-
-    def _restore_m6_domain_type_configuration(
-        self,
-        dialog,
-        state: M6DomainTypeSessionState,
-    ) -> None:
-        scope = state.analysis_scope
-        if self._series is None or scope.frame_count != self._series.frame_count:
-            return
-        current_selection = dialog.frame_range_selection()
-        if scope.analysis_mode == "single_range":
-            first_range = scope.single_range
-            second_range = current_selection.second_range
-        else:
-            first_range, second_range = scope.comparison_ranges
-        dialog.set_analysis_mode(scope.analysis_mode, notify=False)
-        dialog.apply_frame_range_selection(
-            MolecularFrameRangeSelection(
-                frame_count=scope.frame_count,
-                source_view=scope.source_view,
-                first_range=first_range,
-                second_range=second_range,
-            ),
-            notify=False,
-        )
-        dialog.domain_types_panel.set_settings(
-            state.classification_settings,
-            notify=False,
-        )
-        self._sync_m6_domain_type_panel()
-
-    def _restore_domain_type_state_without_position_analysis(
-        self,
-        state: M6DomainTypeSessionState,
-    ) -> None:
-        self._on_position_analysis_requested()
-        dialog = self._position_analysis_dialog
-        if dialog is None:
-            return
-        self._restore_m6_domain_type_configuration(dialog, state)
-        m6_state = getattr(self._series, "m6_analysis_state", None)
-        if isinstance(m6_state, MolecularM6SessionState) and m6_state.enabled:
-            dialog.activate_analysis_tab("Domain Types")
-            self._start_m6_analysis(
-                m6_state.settings,
-                enable_on_success=True,
-                allow_during_state_open=True,
-            )
-
-    def _restore_pending_m6_domain_type_state(
-        self,
-        source: M6DomainTypeAnalysisSource,
-        *,
-        context: M6DomainTypeAnalysisContext | None,
-    ) -> None:
-        state = self._m6_pending_domain_type_session_state
-        if state is None:
-            return
-        try:
-            if state.cache_record is None:
-                self._m6_domain_type_controller.mark_out_of_date(
-                    "restored_cache_missing"
-                )
-                return
-            if context is None or context.source != source:
-                raise ValueError("Restored cache context was not reconstructed.")
-            m6_context_fingerprint = context.shared_m6_context_fingerprint
-            outcome = (
-                None
-                if m6_context_fingerprint is None
-                else state.restore_outcome_for(
-                    analysis_scope=context.analysis_scope,
-                    m6_context_fingerprint=m6_context_fingerprint,
-                    context_fingerprint=context.fingerprint,
-                )
-            )
-            if outcome is None:
-                self._m6_domain_type_controller.mark_out_of_date(
-                    "restored_cache_mismatch"
-                )
-            else:
-                self._m6_domain_type_controller.restore_persisted(
-                    context,
-                    outcome,
-                )
-        except (TypeError, ValueError):
-            self._m6_domain_type_controller.mark_out_of_date(
-                "restored_cache_mismatch"
-            )
-        finally:
-            self._m6_pending_domain_type_session_state = None
 
     def _choose_and_open_stm(self, *, reverse_frame_order: bool) -> None:
         path, _selected_filter = QFileDialog.getOpenFileName(

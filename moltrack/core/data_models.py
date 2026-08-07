@@ -23,10 +23,6 @@ class MolTrackImageSeries:
     molecular_orientations: Any | None = None
     molecular_intensity_cache: Any | None = None
     structural_analysis_cache: Any | None = None
-    m6_analysis_state: Any | None = None
-    molecular_stacking_state: Any | None = None
-    molecular_order_type_state: Any | None = None
-    texture_domain_state: Any | None = None
     sam3_preview: Any | None = None
 
     @classmethod
@@ -109,9 +105,6 @@ class MolTrackImageSeries:
         self.molecular_orientations = None
         self.molecular_intensity_cache = None
         self.structural_analysis_cache = None
-        self.molecular_stacking_state = None
-        self.molecular_order_type_state = None
-        self.texture_domain_state = None
         self.sam3_preview = None
 
     def clear_sam3_preview_if_context_changed(self, *, source_view: str) -> None:

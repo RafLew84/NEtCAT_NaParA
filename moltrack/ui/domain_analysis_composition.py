@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from pathlib import Path
+from threading import Lock, Thread
+from typing import Literal
 
-from PyQt6.QtCore import QObject
+from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtWidgets import QMainWindow
 
 from moltrack.analysis.domain_analysis import (
@@ -14,6 +16,8 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisViewSettings,
     DomainAnalysisWorkspaceController,
     RestoreDomainAnalysisWorkspace,
+    SetDomainAnalysisFrame,
+    ShutdownDomainAnalysis,
     with_scoped_domain_analysis_cache,
 )
 from moltrack.core import MolTrackImageSeries
@@ -37,7 +41,10 @@ ExportSettingsFor = Callable[
 
 
 class DomainAnalysisMainWindowComposition(QObject):
-    """Unrouted target composition for one MainWindow Domain Analysis workspace."""
+    """Own one MainWindow Domain Analysis workspace and its two views."""
+
+    _export_completed = pyqtSignal(str)
+    _export_failed = pyqtSignal(str)
 
     def __init__(
         self,
@@ -81,6 +88,33 @@ class DomainAnalysisMainWindowComposition(QObject):
         self._overlay = DomainAnalysisOverlayPresenter(controller, viewer)
         self._domain_dialog: DomainAnalysisDialog | None = None
         self._position_dialog: PositionAnalysisWorkspaceDialog | None = None
+        self._export_lock = Lock()
+        self._export_running = False
+        self._export_thread: Thread | None = None
+        self._shutting_down = False
+        self._export_completed.connect(self._on_export_completed)
+        self._export_failed.connect(self._on_export_failed)
+
+    @property
+    def domain_analysis_dialog(self) -> DomainAnalysisDialog | None:
+        return self._domain_dialog
+
+    @property
+    def position_analysis_dialog(self) -> PositionAnalysisWorkspaceDialog | None:
+        return self._position_dialog
+
+    @property
+    def target_view(self) -> Literal["raw", "expanded_aligned"]:
+        return self._overlay.target_view
+
+    def set_active_frame(self, frame_index: int) -> None:
+        self._controller.dispatch(SetDomainAnalysisFrame(frame_index))
+
+    def set_target_view(
+        self,
+        target_view: Literal["raw", "expanded_aligned"],
+    ) -> None:
+        self._overlay.set_target_view(target_view)
 
     def open_domain_analysis(self) -> DomainAnalysisDialog:
         dialog = self._domain_dialog
@@ -209,6 +243,25 @@ class DomainAnalysisMainWindowComposition(QObject):
             {"domain_analysis": self.session_state()},
         )
 
+    def shutdown(self) -> None:
+        with self._export_lock:
+            self._shutting_down = True
+            export_thread = self._export_thread
+        if export_thread is not None:
+            export_thread.join()
+        with self._export_lock:
+            self._export_thread = None
+            self._export_running = False
+        self._controller.dispatch(ShutdownDomainAnalysis())
+        for dialog in (self._domain_dialog, self._position_dialog):
+            if dialog is not None:
+                dialog.close()
+                dialog.deleteLater()
+        self._domain_dialog = None
+        self._position_dialog = None
+        self._overlay.shutdown()
+        self._overlay.deleteLater()
+
     def _export_published(self, publication: DomainAnalysisPublication) -> None:
         if self._controller.snapshot.published is not publication:
             raise ValueError("Export requires the current published snapshot.")
@@ -217,7 +270,58 @@ class DomainAnalysisMainWindowComposition(QObject):
             raise TypeError(
                 "export_settings_for must return DomainAnalysisExportSettings."
             )
-        export_analysis_package(self.session_state(), settings)
+        with self._export_lock:
+            if self._shutting_down:
+                raise RuntimeError("Domain Analysis workspace is shutting down.")
+            if self._export_running:
+                raise RuntimeError("Domain Analysis export is already running.")
+            self._export_running = True
+        state = self.session_state()
+        export_thread = Thread(
+            target=self._run_export,
+            args=(state, settings),
+            name="moltrack-domain-analysis-export",
+        )
+        with self._export_lock:
+            self._export_thread = export_thread
+        export_thread.start()
+
+    def _run_export(self, state, settings) -> None:
+        try:
+            result = export_analysis_package(state, settings)
+        except Exception as error:
+            signal = self._export_failed
+            payload = str(error) or error.__class__.__name__
+        else:
+            signal = self._export_completed
+            payload = str(result.package_path)
+        with self._export_lock:
+            if self._shutting_down:
+                self._export_running = False
+                return
+        signal.emit(payload)
+
+    def _on_export_completed(self, destination: str) -> None:
+        with self._export_lock:
+            self._export_running = False
+            self._export_thread = None
+        status_bar = self._owner.statusBar()
+        assert status_bar is not None
+        status_bar.showMessage(
+            f"Exported Domain Analysis to {destination}",
+            5000,
+        )
+
+    def _on_export_failed(self, message: str) -> None:
+        with self._export_lock:
+            self._export_running = False
+            self._export_thread = None
+        status_bar = self._owner.statusBar()
+        assert status_bar is not None
+        status_bar.showMessage(
+            f"Domain Analysis export failed: {message}",
+            5000,
+        )
 
     def _clear_domain_dialog(self, expected: object) -> None:
         if self._domain_dialog is expected:

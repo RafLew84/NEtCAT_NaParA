@@ -1,9 +1,9 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "preflight_composition": "moltrack.ui.domain_analysis_composition.DomainAnalysisMainWindowComposition",
   "invariants": [
-    "Public routing remains on the legacy Position Analysis dialog until ticket 23.",
-    "Ticket 23 replaces every entry in one checkpoint without a feature flag, shadow execution, or dual-write.",
+    "Public routing uses one Domain Analysis workspace through both simple and advanced views.",
+    "Every legacy locator is absent after the cutover, without a feature flag, shadow execution, or dual-write.",
     "Low-level M6 and texture descriptor mathematics remain only where used by the new Domain Analysis adapters."
   ],
   "entries": [
@@ -15,9 +15,7 @@
           "path": "moltrack/ui/main_window.py",
           "anchors": [
             "self.btn_position_analysis = QPushButton(\"Position Analysis...\"",
-            "self.btn_position_analysis.clicked.connect(self._on_position_analysis_requested)",
-            "def position_analysis_dialog(self)",
-            "def _on_position_analysis_requested(self)"
+            "self.btn_position_analysis.clicked.connect(self._on_position_analysis_requested)"
           ]
         },
         {
@@ -319,7 +317,7 @@
       "replacement": [
         {
           "path": "tests/moltrack/test_domain_analysis_ui_end_to_end.py",
-          "anchors": ["test_main_window_cutover_preflight_runs_complete_new_path", "test_position_analysis_actions_share_workspace_lifecycle"]
+          "anchors": ["test_main_window_routes_save_open_and_export_through_one_domain_workspace", "test_position_analysis_actions_share_workspace_lifecycle"]
         }
       ]
     },

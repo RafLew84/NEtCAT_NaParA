@@ -12,6 +12,7 @@ from .geometry import (
     M6AnalyzedMolecule,
     M6CanonicalFrame,
     M6FrameGeometry,
+    MoleculeSourceKind,
     M6PresentationProvenance,
     M6SourceAnnotation,
 )
@@ -104,7 +105,7 @@ def _canonical_annotation(
             _q(float(np.mean(x_indices, dtype=np.float64) + 0.5)),
             _q(float(np.mean(y_indices, dtype=np.float64) + 0.5)),
         )
-        source_kind = "segmentation"
+        source_kind: MoleculeSourceKind = "segmentation"
         annotation_geometry: object = footprint
     else:
         footprint = _bbox_pixels(raw_bbox, geometry.raw_shape)

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import os
+import time
+from threading import Event, Thread
 
 import numpy as np
 import pytest
@@ -46,7 +48,6 @@ except ImportError:  # pragma: no cover - optional outside target GUI env
 if QApplication is not None:
     from moltrack.ui import MolTrackMainWindow
     from moltrack.ui.dialogs.domain_analysis_dialog import DomainAnalysisDialog
-    from moltrack.ui.dialogs.position_analysis_dialog import PositionAnalysisDialog
     from moltrack.ui.dialogs.position_analysis_workspace_dialog import (
         PositionAnalysisWorkspaceDialog,
     )
@@ -401,7 +402,76 @@ def test_position_analysis_actions_share_workspace_lifecycle(
     reopened.deleteLater()
 
 
-def test_main_window_cutover_preflight_runs_complete_new_path(
+def test_composition_waits_for_owned_export_before_shutdown(
+    qt_app,
+    domain_ui,
+    tmp_path,
+    monkeypatch,
+) -> None:
+    controller, executor, simple, window, _presenter = domain_ui
+    simple.analyze_button.click()
+    executor.run_next()
+    qt_app.processEvents()
+    publication = controller.snapshot.published
+    assert publication is not None
+    session_series = MolTrackImageSeries(
+        source_path=tmp_path / "source.mpp",
+        raw_frames=np.zeros((3, 4, 4), dtype=np.float32),
+        metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
+    )
+    classifier = _MixedAndUnknownABCClassifier()
+    configuration = ClassifierConfiguration(
+        identity=ClassifierIdentity(
+            classifier_id=classifier.classifier_id,
+            schema_version=classifier.classifier_schema_version,
+            settings_fingerprint=classifier.classifier_settings_fingerprint,
+            algorithm_version=classifier.classifier_algorithm_version,
+        ),
+        aggregation_preset=classifier.domain_aggregation_preset,
+    )
+    settings = DomainAnalysisExportSettings(
+        destination=tmp_path / "export",
+        source_frame_indices=session_series.source_frame_indices,
+        physical_frame_ids=controller.snapshot.physical_frame_ids,
+        source_identity=CanonicalJsonObject({"source": "test"}),
+        m6_settings=CanonicalJsonObject({"preset": "test"}),
+    )
+    composition = DomainAnalysisMainWindowComposition(
+        window,
+        controller,
+        session_series=session_series,
+        classifier_configurations=(configuration,),
+        m6_preset_name="M6",
+        classifier_preset_name="A/B/C",
+        export_settings_for=lambda _publication: settings,
+    )
+    started = Event()
+    release = Event()
+
+    def blocked_export(_state, export_settings):
+        started.set()
+        release.wait()
+        return type("Result", (), {"package_path": export_settings.destination})()
+
+    monkeypatch.setattr(
+        "moltrack.ui.domain_analysis_composition.export_analysis_package",
+        blocked_export,
+    )
+    try:
+        composition._export_published(publication)
+        assert started.wait(timeout=1.0)
+        releaser = Thread(target=lambda: release.wait(timeout=0.05) or release.set())
+        releaser.start()
+        composition.shutdown()
+        releaser.join(timeout=1.0)
+        assert not composition._export_running
+        assert composition._export_thread is None
+    finally:
+        release.set()
+        composition.shutdown()
+
+
+def test_main_window_routes_save_open_and_export_through_one_domain_workspace(
     qt_app,
     tmp_path,
 ) -> None:
@@ -413,6 +483,7 @@ def test_main_window_cutover_preflight_runs_complete_new_path(
         raw_frames=np.zeros((2, 4, 4), dtype=np.uint16),
         metadata=STMSequenceMetadata(pixels_x=4, pixels_y=4),
     )
+    image_series.set_active_frame(1)
     executor = _ManualExecutor()
     classifier = _MixedAndUnknownABCClassifier()
     module = DomainAnalysisModule(
@@ -458,31 +529,50 @@ def test_main_window_cutover_preflight_runs_complete_new_path(
         source_identity=CanonicalJsonObject({"source": source_path.name}),
         m6_settings=CanonicalJsonObject({"preset": "preflight-m6"}),
     )
-    window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
-    window.set_image_series(image_series)
-    try:
-        assert window.btn_position_analysis.text() == "Position Analysis..."
-        assert "Analysis" not in (
-            action.text().replace("&", "") for action in window.menuBar().actions()
-        )
-        window.btn_position_analysis.click()
-        legacy_dialog = window.position_analysis_dialog()
-        assert isinstance(legacy_dialog, PositionAnalysisDialog)
-        legacy_dialog.close()
-        legacy_dialog.deleteLater()
-        qt_app.processEvents()
+    compositions = []
 
+    def build_composition(owner, session_series):
+        assert session_series is image_series
         composition = DomainAnalysisMainWindowComposition(
-            window,
+            owner,
             controller,
-            session_series=image_series,
+            session_series=session_series,
             classifier_configurations=(classifier_configuration,),
             m6_preset_name="TTMAPP M6 approved",
             classifier_preset_name="TTMAPP A/B/C approved",
             export_settings_for=lambda _publication: export_settings,
         )
-        simple = composition.open_domain_analysis()
-        advanced = composition.open_position_analysis()
+        compositions.append(composition)
+        return composition
+
+    window = MolTrackMainWindow(
+        yolo_model_discovery=lambda: [],
+        session_restorer=lambda _session: image_series,
+        domain_analysis_composition_factory=build_composition,
+    )
+    window.set_image_series(image_series)
+    try:
+        assert window.btn_position_analysis.text() == "Domain Analysis..."
+        window.btn_position_analysis.click()
+        simple = window.domain_analysis_dialog()
+        assert isinstance(simple, DomainAnalysisDialog)
+        assert controller.snapshot.active_frame_index == 1
+
+        analysis_menu = next(
+            action.menu()
+            for action in window.menuBar().actions()
+            if action.text().replace("&", "") == "Analysis"
+        )
+        position_action = next(
+            action
+            for action in analysis_menu.actions()
+            if action.text().replace("&", "") == "Position Analysis..."
+        )
+        position_action.trigger()
+        qt_app.processEvents()
+        advanced = window.position_analysis_dialog()
+        assert isinstance(advanced, PositionAnalysisWorkspaceDialog)
+        assert len(compositions) == 1
         simple.range_end_spin.setValue(2)
         simple.analyze_button.click()
         executor.run_next()
@@ -490,6 +580,16 @@ def test_main_window_cutover_preflight_runs_complete_new_path(
 
         publication = controller.snapshot.published
         assert publication is not None
+        window.slider_frame.setValue(0)
+        qt_app.processEvents()
+        assert controller.snapshot.active_frame_index == 0
+        window.slider_frame.setValue(1)
+        qt_app.processEvents()
+        assert controller.snapshot.active_frame_index == 1
+        window._on_registration_view_mode_changed("Show expanded aligned")
+        assert compositions[0].target_view == "expanded_aligned"
+        window._on_registration_view_mode_changed("Show raw")
+        assert compositions[0].target_view == "raw"
         cache_records = module.session_cache_records()
         assert len(cache_records.m6_records) == 2
         assert len(cache_records.classifier_records) == 2
@@ -500,6 +600,8 @@ def test_main_window_cutover_preflight_runs_complete_new_path(
         publication = controller.snapshot.published
         assert publication is not None
         assert publication.request.frame_indices == (0,)
+        window.slider_frame.setValue(0)
+        qt_app.processEvents()
         cache_records = module.session_cache_records()
         assert len(cache_records.m6_records) == 2
         assert len(cache_records.classifier_records) == 2
@@ -513,10 +615,9 @@ def test_main_window_cutover_preflight_runs_complete_new_path(
         )
 
         session_path = tmp_path / "preflight.moltrack.json"
-        saved_state = composition.save_session(session_path)
+        window.save_state(session_path)
         loaded = load_moltrack_session(session_path)
         session_payload = json.loads(session_path.read_text(encoding="utf-8"))
-        assert loaded.domain_analysis_state == saved_state.domain_analysis_state
         assert loaded.domain_analysis_state is not None
         assert loaded.domain_analysis_state.published_result == publication
         assert loaded.domain_analysis_state.selected_component == selection
@@ -530,8 +631,9 @@ def test_main_window_cutover_preflight_runs_complete_new_path(
         module.restore_session_cache_records(DomainAnalysisSessionCacheRecords())
         assert controller.snapshot.selected_component is None
         assert module.session_cache_records() == DomainAnalysisSessionCacheRecords()
-        composition.restore_session(loaded.domain_analysis_state)
-        assert composition.session_state() == loaded.domain_analysis_state
+        window.open_state(session_path)
+        assert len(compositions) == 2
+        assert compositions[-1].session_state() == loaded.domain_analysis_state
         assert controller.snapshot.published == publication
         assert controller.snapshot.selected_component == selection
         assert controller.snapshot.run.status == "completed"
@@ -540,7 +642,17 @@ def test_main_window_cutover_preflight_runs_complete_new_path(
             "m-b",
         )
 
-        simple.export_button.click()
+        window.btn_position_analysis.click()
+        reopened = window.domain_analysis_dialog()
+        assert isinstance(reopened, DomainAnalysisDialog)
+        reopened.export_button.click()
+        deadline = time.monotonic() + 2.0
+        while (
+            not (export_destination / "manifest.json").is_file()
+            and time.monotonic() < deadline
+        ):
+            qt_app.processEvents()
+            time.sleep(0.01)
         assert (export_destination / "manifest.json").is_file(), (
             simple.diagnosis_label.text()
         )

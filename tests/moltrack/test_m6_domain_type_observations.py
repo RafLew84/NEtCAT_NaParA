@@ -9,11 +9,9 @@ from moltrack.analysis import (
     M6DomainTypeClassificationSettings,
     M6DomainTypeObservation,
     MolecularFrameRange,
-    MolecularFrameRangeSelection,
     MolecularM6OrientationAnalysis,
     MolecularM6OrientationAnalysisSettings,
     analyze_molecular_frame_range,
-    compare_molecular_frame_ranges,
     extract_m6_domain_type_observations,
 )
 from moltrack.analysis._m6_context_fingerprint import m6_context_fingerprint
@@ -287,75 +285,6 @@ class M6DomainTypeObservationTests(unittest.TestCase):
             excluded_heterogeneity[1].unclassified_reason,
             "missing_bond_length_statistics",
         )
-
-    def test_extracts_one_or_two_ranges_in_range_frame_component_order(self) -> None:
-        comparison = compare_molecular_frame_ranges(
-            self.series,
-            MolecularFrameRangeSelection(
-                frame_count=3,
-                source_view="raw",
-                first_range=MolecularFrameRange("later", 1, 2),
-                second_range=MolecularFrameRange("early", 0, 0),
-            ),
-            m6_orientation_settings=_m6_settings(),
-        )
-        settings = M6DomainTypeClassificationSettings(
-            exclude_bond_length_heterogeneity_qc=False
-        )
-
-        observations = extract_m6_domain_type_observations(
-            comparison,
-            settings=settings,
-        )
-        permuted_single = replace(
-            self.range_analysis,
-            frame_results=tuple(reversed(self.range_analysis.frame_results)),
-        )
-
-        self.assertEqual(
-            tuple(
-                (observation.range_name, observation.frame_index)
-                for observation in observations
-            ),
-            (("later", 1), ("later", 2), ("early", 0)),
-        )
-        self.assertEqual(
-            extract_m6_domain_type_observations(
-                permuted_single,
-                settings=settings,
-            ),
-            extract_m6_domain_type_observations(
-                self.range_analysis,
-                settings=settings,
-            ),
-        )
-
-    def test_overlapping_same_named_ranges_keep_unique_stable_keys(self) -> None:
-        comparison = compare_molecular_frame_ranges(
-            self.series,
-            MolecularFrameRangeSelection(
-                frame_count=3,
-                source_view="raw",
-                first_range=MolecularFrameRange("same", 0, 1),
-                second_range=MolecularFrameRange("same", 1, 2),
-            ),
-            m6_orientation_settings=_m6_settings(),
-        )
-
-        observations = extract_m6_domain_type_observations(
-            comparison,
-            settings=M6DomainTypeClassificationSettings(
-                exclude_bond_length_heterogeneity_qc=False
-            ),
-        )
-
-        self.assertEqual(len(observations), 4)
-        self.assertEqual(len({observation.stable_key for observation in observations}), 4)
-        shared_frame = tuple(
-            observation for observation in observations if observation.frame_index == 1
-        )
-        self.assertEqual(len(shared_frame), 2)
-        self.assertNotEqual(shared_frame[0].stable_key, shared_frame[1].stable_key)
 
     def test_observation_features_are_stable_after_molecule_input_permutation(self) -> None:
         two_domains = np.vstack(

@@ -9,12 +9,9 @@ from moltrack.analysis import (
     M6DomainTypeAnalysisStoreState,
     M6DomainTypeAnalysisSupersededError,
     M6DomainTypeClassificationSettings,
-    M6DomainTypeRangeComparison,
     M6SingleRangeDomainTypeSummary,
     MolecularFrameRange,
     MolecularFrameRangeAnalysis,
-    MolecularFrameRangeComparison,
-    MolecularFrameRangeDifferences,
     MolecularM6OrientationAnalysisSettings,
     adapt_m6_domain_type_analysis_source,
     build_m6_domain_type_analysis_context,
@@ -172,26 +169,6 @@ def _range_analysis(
         intensity_unit="a.u.",
         use_segmentation_centroids=use_segmentation_centroids,
         m6_orientation_settings=settings,
-    )
-
-
-def _comparison(
-    first: MolecularFrameRangeAnalysis,
-    second: MolecularFrameRangeAnalysis,
-) -> MolecularFrameRangeComparison:
-    return MolecularFrameRangeComparison(
-        source_view=first.source_view,
-        first_analysis=first,
-        second_analysis=second,
-        differences=MolecularFrameRangeDifferences(
-            direction="second_minus_first",
-            distance_unit="nm",
-            mean_molecule_count_delta=0.0,
-            mean_nearest_neighbor_distance_delta=None,
-            mean_line_order_score_delta=None,
-            mean_intensity_delta=None,
-            median_intensity_delta=None,
-        ),
     )
 
 
@@ -420,16 +397,10 @@ class M6DomainTypeLifecycleTests(unittest.TestCase):
 
         self.assertIs(store.current, previous)
 
-    def test_adapter_exposes_named_ranges_and_reuses_completed_m6_only(self) -> None:
+    def test_adapter_exposes_single_range_and_reuses_completed_m6_only(self) -> None:
         single_analysis = _range_analysis(MolecularFrameRange("single", 0, 0))
-        first = _range_analysis(MolecularFrameRange("before", 0, 0))
-        second = _range_analysis(MolecularFrameRange("after", 1, 1))
         single_source = adapt_m6_domain_type_analysis_source(
             single_analysis,
-            frame_count=2,
-        )
-        comparison_source = adapt_m6_domain_type_analysis_source(
-            _comparison(first, second),
             frame_count=2,
         )
 
@@ -439,13 +410,6 @@ class M6DomainTypeLifecycleTests(unittest.TestCase):
             ("single",),
         )
         self.assertIs(single_source.named_ranges[0].analysis, single_analysis)
-        self.assertEqual(comparison_source.analysis_mode, "compare_ranges")
-        self.assertEqual(
-            tuple(value.name for value in comparison_source.named_ranges),
-            ("before", "after"),
-        )
-        self.assertIs(comparison_source.named_ranges[0].analysis, first)
-        self.assertIs(comparison_source.named_ranges[1].analysis, second)
 
         store = M6DomainTypeAnalysisStore()
         with (
@@ -462,20 +426,11 @@ class M6DomainTypeLifecycleTests(unittest.TestCase):
                 single_source,
                 classification_settings=_type_settings(),
             )
-            comparison = store.analyze(
-                comparison_source,
-                classification_settings=_type_settings(),
-            )
 
         graph_builder.assert_not_called()
         m6_backend.assert_not_called()
         self.assertEqual(single.status, "ready")
         self.assertIsInstance(single.table_result, M6SingleRangeDomainTypeSummary)
-        self.assertEqual(comparison.status, "ready")
-        self.assertIsInstance(
-            comparison.table_result,
-            M6DomainTypeRangeComparison,
-        )
 
     def test_store_reuses_exact_context_and_rejects_every_changed_context(self) -> None:
         base_analysis = _range_analysis(MolecularFrameRange("condition", 0, 0))
@@ -518,13 +473,6 @@ class M6DomainTypeLifecycleTests(unittest.TestCase):
             _range_analysis(MolecularFrameRange("other range", 1, 1)),
             frame_count=2,
         )
-        changed_mode = adapt_m6_domain_type_analysis_source(
-            _comparison(
-                _range_analysis(MolecularFrameRange("before", 0, 0)),
-                _range_analysis(MolecularFrameRange("after", 1, 1)),
-            ),
-            frame_count=2,
-        )
         changed_centroids = adapt_m6_domain_type_analysis_source(
             replace(base_analysis, use_segmentation_centroids=False),
             frame_count=2,
@@ -558,7 +506,6 @@ class M6DomainTypeLifecycleTests(unittest.TestCase):
 
         for source in (
             changed_range,
-            changed_mode,
             changed_centroids,
             changed_source_view,
             changed_m6,

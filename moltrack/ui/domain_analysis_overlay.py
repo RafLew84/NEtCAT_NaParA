@@ -14,6 +14,7 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisPublication,
     DomainAnalysisWorkspaceController,
     DomainAnalysisWorkspaceSnapshot,
+    DomainAnalysisWorkspaceSubscription,
     DomainComponentKey,
     M6FrameGate,
     M6PresentationProvenance,
@@ -94,9 +95,23 @@ class DomainAnalysisOverlayPresenter(QObject):
         self._frame_overlay: DomainAnalysisFrameOverlay | None = None
         self._snapshot_received.connect(self._render_snapshot)
         viewer.image_pixel_clicked.connect(self._select_at_pixel)
-        subscription = controller.state_changed.connect(self._snapshot_received.emit)
-        self.destroyed.connect(lambda _object=None: subscription.disconnect())
+        self._subscription: DomainAnalysisWorkspaceSubscription | None = (
+            controller.state_changed.connect(self._snapshot_received.emit)
+        )
         self._render_snapshot(controller.snapshot)
+
+    def shutdown(self) -> None:
+        """Detach callbacks before the Qt object hierarchy is destroyed."""
+
+        subscription = self._subscription
+        self._subscription = None
+        if subscription is not None:
+            subscription.disconnect()
+        self._clear_items()
+
+    @property
+    def target_view(self) -> Literal["raw", "expanded_aligned"]:
+        return self._target_view
 
     def set_target_view(
         self,

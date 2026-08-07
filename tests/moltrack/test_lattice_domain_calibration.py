@@ -1,8 +1,11 @@
 import json
+import math
 import tempfile
 import unittest
 from dataclasses import replace
 from pathlib import Path
+
+import numpy as np
 
 from moltrack.analysis import (
     LATTICE_DOMAIN_CALIBRATION_PARAMETER_SPECS,
@@ -28,8 +31,90 @@ from moltrack.analysis import (
     write_lattice_domain_calibration_report,
     lattice_domain_partition_labels_from_analysis,
 )
-from test_m6_range_analysis import _m6_settings
-from test_m6_range_trends_panel import _series
+from moltrack.core import (
+    MolecularDetection,
+    MolecularDetectionSet,
+    MolTrackImageSeries,
+)
+from nanotrack.core import STMSequenceMetadata
+
+
+def _triangular_patch(
+    angle_deg: float,
+    shift_xy_nm: tuple[float, float],
+    *,
+    width: int = 8,
+    height: int = 8,
+) -> np.ndarray:
+    points = np.asarray([
+        (2.0 * (column + 0.5 * (row % 2)), math.sqrt(3.0) * row)
+        for row in range(height)
+        for column in range(width)
+    ])
+    angle = math.radians(angle_deg)
+    rotation = np.asarray(
+        ((math.cos(angle), -math.sin(angle)), (math.sin(angle), math.cos(angle)))
+    )
+    return points @ rotation.T + np.asarray(shift_xy_nm)
+
+
+def _m6_settings() -> MolecularM6OrientationAnalysisSettings:
+    return MolecularM6OrientationAnalysisSettings(
+        first_shell_r_min_nm=1.5,
+        first_shell_r_max_nm=2.3,
+        min_ordered_component_size=3,
+        min_seed_size=8,
+        min_domain_size=15,
+        q_seed=0.65,
+        q_grow=0.25,
+        seed_angle_tolerance_deg=6.0,
+        grow_angle_tolerance_deg=12.0,
+        domain_merge_angle_tolerance_deg=6.0,
+    )
+
+
+def _build_series(frame_points: tuple[np.ndarray, ...]) -> MolTrackImageSeries:
+    frame_size = 72
+    detections = MolecularDetectionSet(frame_count=len(frame_points))
+    for frame_index, points in enumerate(frame_points):
+        detections.set_detections(
+            frame_index,
+            [MolecularDetection(
+                frame_index=frame_index,
+                bbox_xyxy=(x - 0.2, frame_size - y - 0.2, x + 0.2, frame_size - y + 0.2),
+                confidence=0.9,
+                detection_id=f"frame-{frame_index}-molecule-{point_index}",
+            ) for point_index, (x, y) in enumerate(points)],
+            source_view="raw",
+            frame_shape=(frame_size, frame_size),
+        )
+    return MolTrackImageSeries(
+        source_path="movie.mpp",
+        raw_frames=np.zeros((len(frame_points), frame_size, frame_size), dtype=np.float32),
+        metadata=STMSequenceMetadata(
+            pixels_x=frame_size,
+            pixels_y=frame_size,
+            size_nm_x=float(frame_size),
+            size_nm_y=float(frame_size),
+        ),
+        molecular_detections=detections,
+    )
+
+
+def _series():
+    one_domain = _triangular_patch(0.0, (6.0, 6.0))
+    one_domain_small = _triangular_patch(0.0, (6.0, 6.0), width=6, height=6)
+    two_domains = np.vstack(
+        (
+            _triangular_patch(0.0, (6.0, 6.0)),
+            _triangular_patch(22.0, (38.0, 6.0)),
+        )
+    )
+    series = _build_series(
+        (one_domain, one_domain_small, two_domains, two_domains.copy())
+    )
+    series.source_frame_indices = (10, 20, 30, 40)
+    return series
 
 
 def _labels(prefix: str = "manual") -> LatticeDomainPartitionLabels:

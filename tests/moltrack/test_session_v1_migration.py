@@ -8,14 +8,6 @@ from typing import Any
 import numpy as np
 import pytest
 
-from moltrack.analysis import (
-    MolecularFrameRange,
-    MolecularFrameRangeAnalysisScope,
-    MolecularM6OrientationAnalysisSettings,
-    MolecularOrderTypeClassificationSettings,
-    MolecularOrderTypeSessionState,
-    analyze_molecular_frame_range,
-)
 from moltrack.analysis.domain_analysis import (
     DomainAnalysisM6CacheRecord,
     DomainAnalysisRequest,
@@ -31,8 +23,6 @@ from moltrack.core import (
     MolecularSegmentation,
     MolecularSegmentationSet,
     MolTrackImageSeries,
-    MolTrackPositionAnalysisRange,
-    MolTrackPositionAnalysisState,
     build_molecular_centroids,
 )
 from moltrack.persistence import (
@@ -82,21 +72,25 @@ def _write_real_v1_session(
     session_path: Path,
     series: MolTrackImageSeries,
 ) -> bytes:
-    legacy_position = MolTrackPositionAnalysisState(
-        source_view="raw",
-        first_range=MolTrackPositionAnalysisRange("Primary", 1, 2),
-        second_range=MolTrackPositionAnalysisRange("Comparison", 0, 0),
-        comparison_completed=True,
-        use_segmentation_centroids=True,
-    )
-    save_moltrack_session(
-        session_path,
-        series,
-        ui_state={"position_analysis": legacy_position},
-    )
+    save_moltrack_session(session_path, series)
     payload = json.loads(session_path.read_text(encoding="utf-8"))
     payload["schema_version"] = 1
     payload.pop("domain_analysis")
+    payload["position_analysis"] = {
+        "source_view": "raw",
+        "first_range": {
+            "name": "Primary",
+            "start_frame": 1,
+            "end_frame": 2,
+        },
+        "second_range": {
+            "name": "Comparison",
+            "start_frame": 0,
+            "end_frame": 0,
+        },
+        "comparison_completed": True,
+        "use_segmentation_centroids": True,
+    }
     session_path.write_text(json.dumps(payload), encoding="utf-8")
     return session_path.read_bytes()
 
@@ -125,7 +119,6 @@ def test_open_migrates_real_v1_annotations_and_first_range_in_memory(
 
     assert session_path.read_bytes() == v1_bytes
     assert loaded.schema_version == 2
-    assert loaded.position_analysis is None
     assert loaded.molecular_detections is not None
     assert loaded.molecular_detections.get_detection("detection-v1") is not None
     assert loaded.molecular_segmentations is not None
@@ -203,39 +196,6 @@ def _m6_cache_record() -> DomainAnalysisM6CacheRecord:
             coordinate_transform_fingerprint="transform-v1",
             m6_settings_fingerprint="m6-settings-v1",
         ),
-    )
-
-
-def _legacy_m6_series(source_path: Path) -> MolTrackImageSeries:
-    detections = MolecularDetectionSet(frame_count=1)
-    detections.set_detections(
-        0,
-        [
-            MolecularDetection(
-                frame_index=0,
-                bbox_xyxy=(x - 0.2, y - 0.2, x + 0.2, y + 0.2),
-                confidence=0.9,
-                detection_id=f"molecule-{row}-{column}",
-            )
-            for row in range(5)
-            for column in range(5)
-            for x, y in ((4.0 + 2.0 * column, 4.0 + 2.0 * row),)
-        ],
-        source_view="raw",
-        frame_shape=(20, 20),
-    )
-    return MolTrackImageSeries(
-        source_path=source_path,
-        raw_frames=np.zeros((1, 20, 20), dtype=np.float32),
-        metadata=STMSequenceMetadata(
-            raw_header={"General Info": {"Angle": "0.0"}},
-            pixels_x=20,
-            pixels_y=20,
-            size_nm_x=20.0,
-            size_nm_y=20.0,
-            scan_angle_deg=0.0,
-        ),
-        molecular_detections=detections,
     )
 
 
@@ -366,23 +326,19 @@ def test_v1_routes_compatible_m6_entries_through_v2_cache_validation(
 
 
 def test_real_v1_m6_input_is_diagnosed_without_recomputation(tmp_path) -> None:
-    source_path = tmp_path / "legacy-m6-source.mpp"
-    source_path.write_bytes(b"legacy m6 cache source")
-    session_path = tmp_path / "legacy-m6.moltrack.json"
-    series = _legacy_m6_series(source_path)
-    analyze_molecular_frame_range(
-        series,
-        MolecularFrameRange("All", 0, 0),
-        source_view="raw",
-        m6_orientation_settings=MolecularM6OrientationAnalysisSettings(),
-    )
-    save_moltrack_session(session_path, series)
-    payload = json.loads(session_path.read_text(encoding="utf-8"))
-    legacy_records = payload["molecular_m6_analysis"]["reproducible_cache"]
-    assert legacy_records[0]["cache_record_schema_version"] == 2
-    assert "sample_coordinates" in legacy_records[0]
+    session_path, payload = _saved_v2_payload(tmp_path)
     payload["schema_version"] = 1
     payload.pop("domain_analysis")
+    payload["molecular_m6_analysis"] = {
+        "reproducible_cache": [
+            {
+                "cache_record_schema_version": 2,
+                "cache_key": {"frame_index": 0},
+                "settings": {},
+                "sample_coordinates": [],
+            }
+        ],
+    }
     session_path.write_text(json.dumps(payload), encoding="utf-8")
 
     loaded = load_moltrack_session(session_path)
@@ -397,28 +353,6 @@ def test_real_v1_m6_input_is_diagnosed_without_recomputation(tmp_path) -> None:
     assert loaded.structural_analysis_cache_records == ()
 
 
-def test_v1_preserves_independent_molecular_order_configuration(tmp_path) -> None:
-    session_path, payload = _saved_v2_payload(tmp_path)
-    scope = MolecularFrameRangeAnalysisScope(
-        analysis_mode="single_range",
-        frame_count=2,
-        source_view="raw",
-        ranges=(MolecularFrameRange("All", 0, 1),),
-    )
-    order_state = MolecularOrderTypeSessionState(
-        analysis_scope=scope,
-        classification_settings=MolecularOrderTypeClassificationSettings(),
-    )
-    payload["schema_version"] = 1
-    payload.pop("domain_analysis")
-    payload["molecular_order_type_analysis"] = order_state.to_dict()
-    session_path.write_text(json.dumps(payload), encoding="utf-8")
-
-    loaded = load_moltrack_session(session_path)
-
-    assert loaded.molecular_order_type_analysis_state == order_state
-
-
 def test_v1_without_position_state_defaults_to_whole_series_and_saves_v2(
     tmp_path,
 ) -> None:
@@ -427,6 +361,9 @@ def test_v1_without_position_state_defaults_to_whole_series_and_saves_v2(
     payload.pop("domain_analysis")
     payload["position_analysis"] = None
     payload["molecular_m6_analysis"] = {"legacy": "must not activate"}
+    payload["molecular_order_type_analysis"] = {
+        "legacy": "must not activate"
+    }
     payload["texture_domain_analysis"] = {"legacy": "must not activate"}
     session_path.write_text(json.dumps(payload), encoding="utf-8")
 
@@ -436,10 +373,11 @@ def test_v1_without_position_state_defaults_to_whole_series_and_saves_v2(
     assert loaded.domain_analysis_state.draft is not None
     assert loaded.domain_analysis_state.draft.frame_indices == (0, 1)
     assert loaded.domain_analysis_state.classifier_status == "not_run"
-    assert loaded.m6_analysis_state is not None
-    assert loaded.m6_analysis_state.enabled is False
     assert loaded.structural_analysis_cache_records == ()
-    assert loaded.texture_domain_analysis_state is None
+    assert any(
+        value.component == "molecular_order_type_analysis"
+        for value in loaded.domain_analysis_state.diagnostics
+    )
     migrated_path = tmp_path / "explicit-save-v2.moltrack.json"
     series = MolTrackImageSeries(
         source_path=Path(loaded.source_path),
@@ -453,6 +391,7 @@ def test_v1_without_position_state_defaults_to_whole_series_and_saves_v2(
     )
     migrated = json.loads(migrated_path.read_text(encoding="utf-8"))
     assert migrated["schema_version"] == 2
-    assert migrated["position_analysis"] is None
+    assert "position_analysis" not in migrated
     assert "molecular_m6_analysis" not in migrated
+    assert "molecular_order_type_analysis" not in migrated
     assert "texture_domain_analysis" not in migrated
