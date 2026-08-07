@@ -6,12 +6,19 @@ import numpy as np
 
 from moltrack.analysis.domain_analysis import (
     DomainAnalysisFrame,
+    DomainAnalysisModule,
+    DomainAnalysisRequest,
     DomainAnalysisSeries,
     M6FrameGeometry,
     M6SourceAnnotation,
 )
 from moltrack.analysis.domain_analysis.canonical_geometry import canonicalize_frame
-from moltrack.core import MolTrackImageSeries
+from moltrack.core import (
+    MolecularDetectionSet,
+    MolecularSegmentation,
+    MolecularSegmentationSet,
+    MolTrackImageSeries,
+)
 from moltrack.core.registration import (
     MolTrackRegistrationFrameResult,
     MolTrackRegistrationResultSet,
@@ -32,6 +39,56 @@ def _series(tmp_path, *, frame_count: int = 1) -> MolTrackImageSeries:
             size_nm_y=12.0,
         ),
     )
+
+
+def _triangular_detection_series(tmp_path, *, source_view: str) -> MolTrackImageSeries:
+    series = MolTrackImageSeries(
+        source_path=tmp_path / f"{source_view}.mpp",
+        raw_frames=np.zeros((2, 64, 64), dtype=np.float32),
+        metadata=STMSequenceMetadata(
+            pixels_x=64,
+            pixels_y=64,
+            size_nm_x=640.0,
+            size_nm_y=640.0,
+        ),
+    )
+    offset_x = 0.0
+    offset_y = 0.0
+    if source_view == "expanded_aligned":
+        series.registration_results = MolTrackRegistrationResultSet(
+            settings=MolTrackRegistrationSettings(),
+            results_by_frame={
+                0: MolTrackRegistrationFrameResult(
+                    frame_index=0,
+                    shift_xy=(-2.0, 1.0),
+                    method="manual",
+                ),
+                1: MolTrackRegistrationFrameResult(
+                    frame_index=1,
+                    shift_xy=(3.0, -1.0),
+                    method="manual",
+                ),
+            },
+        )
+        offset_y = 2.0
+    detections = MolecularDetectionSet(frame_count=2)
+    for row in range(8):
+        for column in range(8):
+            center_x = 10.0 + 5.0 * column + 2.5 * (row % 2)
+            center_y = 10.0 + (5.0 * np.sqrt(3.0) / 2.0) * row
+            detections.add_detection(
+                0,
+                (
+                    center_x - 1.0 + offset_x,
+                    center_y - 1.0 + offset_y,
+                    center_x + 1.0 + offset_x,
+                    center_y + 1.0 + offset_y,
+                ),
+                source_view=source_view,
+                detection_id=f"molecule-{row:02d}-{column:02d}",
+            )
+    series.molecular_detections = detections
+    return series
 
 
 def test_runtime_m6_uses_calibrated_raw_fov_boundary_distances(monkeypatch) -> None:
@@ -106,6 +163,183 @@ def test_runtime_uses_expanded_registration_provenance(tmp_path) -> None:
     assert analysis_series.frame(0).geometry.frame_origin_xy == (0.0, 2.0)
     assert analysis_series.frame(1).geometry.frame_origin_xy == (5.0, 0.0)
     assert analysis_series.frame(1).geometry.canvas_offset_xy == (2.0, 1.0)
+
+
+def test_runtime_canonicalizes_expanded_only_annotations(tmp_path) -> None:
+    series = _series(tmp_path, frame_count=2)
+    series.registration_results = MolTrackRegistrationResultSet(
+        settings=MolTrackRegistrationSettings(),
+        results_by_frame={
+            0: MolTrackRegistrationFrameResult(
+                frame_index=0,
+                shift_xy=(-2.0, 1.0),
+                method="manual",
+            ),
+            1: MolTrackRegistrationFrameResult(
+                frame_index=1,
+                shift_xy=(3.0, -1.0),
+                method="manual",
+            ),
+        },
+    )
+    detections = MolecularDetectionSet(frame_count=2)
+    detections.add_detection(
+        0,
+        (1.0, 2.0, 3.0, 4.0),
+        source_view="expanded_aligned",
+        frame_shape=(6, 11),
+        detection_id="registered-molecule",
+    )
+    series.molecular_detections = detections
+
+    analysis_series = runtime._domain_analysis_series(series)
+    frame = analysis_series.frame(0)
+    canonical = canonicalize_frame(
+        analysis_series,
+        frame_index=0,
+        geometry_mode="bbox_centers",
+    )
+
+    assert frame.source_view == "expanded_aligned"
+    assert tuple(value.source_id for value in frame.annotations) == (
+        "registered-molecule",
+    )
+    assert canonical.molecules[0].raw_centroid_xy == (2.0, 1.0)
+    assert canonical.molecules[0].centroid_xy_nm == (4.0, 9.0)
+
+
+def test_runtime_uses_one_view_and_deduplicates_segmentation_prompts(
+    tmp_path,
+) -> None:
+    series = _series(tmp_path, frame_count=2)
+    series.registration_results = MolTrackRegistrationResultSet(
+        settings=MolTrackRegistrationSettings(),
+        results_by_frame={
+            0: MolTrackRegistrationFrameResult(
+                frame_index=0,
+                shift_xy=(-2.0, 1.0),
+                method="manual",
+            ),
+            1: MolTrackRegistrationFrameResult(
+                frame_index=1,
+                shift_xy=(3.0, -1.0),
+                method="manual",
+            ),
+        },
+    )
+    detections = MolecularDetectionSet(frame_count=2)
+    detections.add_detection(
+        0,
+        (1.0, 2.0, 3.0, 4.0),
+        source_view="expanded_aligned",
+        detection_id="segmentation-prompt",
+    )
+    detections.add_detection(
+        0,
+        (3.0, 2.0, 5.0, 4.0),
+        source_view="expanded_aligned",
+        detection_id="unmatched-expanded",
+    )
+    detections.add_detection(
+        1,
+        (1.0, 1.0, 3.0, 3.0),
+        source_view="raw",
+        detection_id="raw-wins",
+    )
+    detections.add_detection(
+        1,
+        (6.0, 1.0, 8.0, 3.0),
+        source_view="expanded_aligned",
+        detection_id="ignored-expanded",
+    )
+    mask = np.zeros((6, 11), dtype=bool)
+    mask[2:4, 1:3] = True
+    segmentations = MolecularSegmentationSet(frame_count=2)
+    segmentations.add_segmentation(MolecularSegmentation(
+        frame_index=0,
+        source_view="expanded_aligned",
+        bbox_xyxy=(1.0, 2.0, 3.0, 4.0),
+        mask=mask,
+        prompt_detection_ids=("segmentation-prompt",),
+        segmentation_id="expanded-segmentation",
+    ))
+    series.molecular_detections = detections
+    series.molecular_segmentations = segmentations
+
+    analysis_series = runtime._domain_analysis_series(series)
+    first = analysis_series.frame(0)
+    second = analysis_series.frame(1)
+    canonical = canonicalize_frame(
+        analysis_series,
+        frame_index=0,
+        geometry_mode="segmentation_preferred",
+    )
+
+    assert first.source_view == "expanded_aligned"
+    assert tuple(value.source_id for value in first.annotations) == (
+        "expanded-segmentation",
+        "unmatched-expanded",
+    )
+    assert tuple(value.source_id for value in canonical.molecules) == (
+        "expanded-segmentation",
+        "unmatched-expanded",
+    )
+    assert second.source_view == "raw"
+    assert tuple(value.source_id for value in second.annotations) == ("raw-wins",)
+
+
+def test_runtime_raw_and_expanded_annotations_publish_the_same_m6_membership(
+    tmp_path,
+) -> None:
+    raw_series = runtime._domain_analysis_series(
+        _triangular_detection_series(tmp_path, source_view="raw")
+    )
+    expanded_series = runtime._domain_analysis_series(
+        _triangular_detection_series(tmp_path, source_view="expanded_aligned")
+    )
+    request = DomainAnalysisRequest(frame_range=range(1), classifier_ids=())
+    raw_result = DomainAnalysisModule(
+        runtime._MolTrackM6Adapter(raw_series),
+        classifier_adapters={},
+    ).run(raw_series, request)
+    expanded_result = DomainAnalysisModule(
+        runtime._MolTrackM6Adapter(expanded_series),
+        classifier_adapters={},
+    ).run(expanded_series, request)
+
+    assert raw_result.run_status == "completed"
+    assert expanded_result.run_status == "completed"
+    assert raw_result.m6_gate is not None
+    assert expanded_result.m6_gate is not None
+    raw_frame = raw_result.m6_gate.frames[0]
+    expanded_frame = expanded_result.m6_gate.frames[0]
+    assert raw_frame.full_domains
+    assert expanded_frame.source_geometry_fingerprint == (
+        raw_frame.source_geometry_fingerprint
+    )
+    assert expanded_frame.full_domains == raw_frame.full_domains
+    assert expanded_frame.small_ordered_islands == raw_frame.small_ordered_islands
+    assert expanded_frame.outside_source_ids == raw_frame.outside_source_ids
+    raw_canonical = canonicalize_frame(
+        raw_series,
+        frame_index=0,
+        geometry_mode="segmentation_preferred",
+    )
+    expanded_canonical = canonicalize_frame(
+        expanded_series,
+        frame_index=0,
+        geometry_mode="segmentation_preferred",
+    )
+    assert expanded_canonical.coordinate_transform_fingerprint == (
+        raw_canonical.coordinate_transform_fingerprint
+    )
+    assert tuple(
+        (value.source_id, value.raw_centroid_xy, value.footprint_pixels_xy)
+        for value in expanded_canonical.molecules
+    ) == tuple(
+        (value.source_id, value.raw_centroid_xy, value.footprint_pixels_xy)
+        for value in raw_canonical.molecules
+    )
 
 
 def test_runtime_export_chooses_a_new_package_below_selected_directory(

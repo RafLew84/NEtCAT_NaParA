@@ -4,6 +4,7 @@ from collections.abc import Callable
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Lock, Thread
+from typing import Literal
 
 import numpy as np
 from PyQt6.QtWidgets import QFileDialog, QMainWindow
@@ -254,10 +255,15 @@ def _domain_analysis_series(series: MolTrackImageSeries) -> DomainAnalysisSeries
                 float(expanded.canvas_offset_xy[1]),
             )
         )
+        annotation_view, annotations = _frame_annotations(
+            series,
+            frame_index,
+            expanded_shape=expanded_shape,
+        )
         frames.append(
             DomainAnalysisFrame(
                 frame_index=frame_index,
-                source_view="raw",
+                source_view=annotation_view,
                 geometry=M6FrameGeometry(
                     physical_frame_id=f"source-frame-{source_frame_index}",
                     raw_shape=raw_shape,
@@ -268,16 +274,44 @@ def _domain_analysis_series(series: MolTrackImageSeries) -> DomainAnalysisSeries
                     scan_angle_deg=scan_angle,
                     registration_fingerprint=registration_fingerprint,
                 ),
-                annotations=_raw_annotations(series, frame_index),
+                annotations=annotations,
                 raw_frame=series.get_frame(frame_index),
             )
         )
     return DomainAnalysisSeries(tuple(frames))
 
 
-def _raw_annotations(
+def _frame_annotations(
     series: MolTrackImageSeries,
     frame_index: int,
+    *,
+    expanded_shape: tuple[int, int],
+) -> tuple[
+    Literal["raw", "expanded_aligned"],
+    tuple[M6SourceAnnotation, ...],
+]:
+    for source_view in ("raw", "expanded_aligned"):
+        annotations = _annotations(
+            series,
+            frame_index,
+            source_view=source_view,
+            frame_shape=(
+                series.frame_shape
+                if source_view == "raw"
+                else expanded_shape
+            ),
+        )
+        if annotations:
+            return source_view, annotations
+    return "raw", ()
+
+
+def _annotations(
+    series: MolTrackImageSeries,
+    frame_index: int,
+    *,
+    source_view: Literal["raw", "expanded_aligned"],
+    frame_shape: tuple[int, int],
 ) -> tuple[M6SourceAnnotation, ...]:
     annotations = []
     linked_detection_ids: set[str] = set()
@@ -285,7 +319,7 @@ def _raw_annotations(
     if segmentations is not None:
         for segmentation in segmentations.get_segmentations(
             frame_index,
-            source_view="raw",
+            source_view=source_view,
         ):
             mask = (
                 None
@@ -295,7 +329,7 @@ def _raw_annotations(
                     dtype=bool,
                 )
             )
-            if mask is None or mask.shape != series.frame_shape or not np.any(mask):
+            if mask is None or mask.shape != frame_shape or not np.any(mask):
                 continue
             y_values, x_values = np.nonzero(mask)
             bbox = segmentation.bbox_xyxy or (
@@ -307,9 +341,9 @@ def _raw_annotations(
             annotations.append(
                 M6SourceAnnotation(
                     source_id=segmentation.segmentation_id,
-                    source_view="raw",
+                    source_view=source_view,
                     bbox_xyxy=bbox,
-                    mask_shape=series.frame_shape,
+                    mask_shape=tuple(int(value) for value in mask.shape),
                     mask_pixels_xy=tuple(
                         (int(x), int(y)) for y, x in zip(y_values, x_values)
                     ),
@@ -318,12 +352,15 @@ def _raw_annotations(
             linked_detection_ids.update(segmentation.prompt_detection_ids)
     detections = series.molecular_detections
     if detections is not None:
-        for detection in detections.get_detections(frame_index, source_view="raw"):
+        for detection in detections.get_detections(
+            frame_index,
+            source_view=source_view,
+        ):
             if detection.detection_id not in linked_detection_ids:
                 annotations.append(
                     M6SourceAnnotation(
                         source_id=detection.detection_id,
-                        source_view="raw",
+                        source_view=source_view,
                         bbox_xyxy=detection.bbox_xyxy,
                     )
                 )
