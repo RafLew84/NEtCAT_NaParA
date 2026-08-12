@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, fields
+from dataclasses import asdict, dataclass, fields
 from hashlib import sha256
 from math import isfinite
 from typing import Literal, Mapping, get_args
@@ -326,6 +326,22 @@ def local_symmetry_evidence_settings_fingerprint(
             sort_keys=True,
         ).encode("utf-8")
     ).hexdigest()
+
+
+def local_symmetry_evidence_fingerprint(
+    field: LocalSymmetryEvidenceField,
+) -> str:
+    """Fingerprint the complete normalized local-symmetry result."""
+
+    if not isinstance(field, LocalSymmetryEvidenceField):
+        raise TypeError("field must be LocalSymmetryEvidenceField.")
+    payload = {
+        "schema": LOCAL_SYMMETRY_EVIDENCE_ALGORITHM_VERSION,
+        "result": asdict(field),
+    }
+    return sha256(json.dumps(
+        payload, allow_nan=False, separators=(",", ":"), sort_keys=True
+    ).encode("utf-8")).hexdigest()
 
 
 def _optional_unit_tuple(values: tuple[object, ...], field_name: str) -> tuple[float | None, ...]:

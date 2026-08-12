@@ -24,6 +24,15 @@ from .diagnostic_orientation_evidence import (
     OrientationThresholdEvidence,
     RawOrientationEvidence,
 )
+from .diagnostic_network_evidence import (
+    NetworkDomainEdgesEvidence,
+    NetworkDomainPartitionEvidence,
+    NetworkDomainSizeEvidence,
+    NetworkFirstShellEvidence,
+    NetworkLocalOrderEvidence,
+    NetworkLocalSymmetryEvidence,
+    NetworkSeedGrowthEvidence,
+)
 
 
 MoleculeDiagnosticStageId = Literal[
@@ -62,7 +71,10 @@ DiagnosticReasonCategory = Literal[
     "manual_override",
     "execution_error",
 ]
-DiagnosticEvidenceValue: TypeAlias = str | int | float | bool | None
+DiagnosticEvidenceScalar: TypeAlias = str | int | float | bool | None
+DiagnosticEvidenceValue: TypeAlias = (
+    DiagnosticEvidenceScalar | tuple[DiagnosticEvidenceScalar, ...]
+)
 
 
 DiagnosticEvidencePayload: TypeAlias = (
@@ -81,23 +93,42 @@ DiagnosticEvidencePayload: TypeAlias = (
     | AutomaticOrientationEvidence
     | ManualOrientationDecisionEvidence
     | EffectiveOrientationEvidence
+    | NetworkFirstShellEvidence
+    | NetworkLocalOrderEvidence
+    | NetworkLocalSymmetryEvidence
+    | NetworkDomainEdgesEvidence
+    | NetworkSeedGrowthEvidence
+    | NetworkDomainPartitionEvidence
+    | NetworkDomainSizeEvidence
 )
 
 
 _STAGE_DEFINITIONS: tuple[
-    tuple[MoleculeDiagnosticStageId, str, type[DiagnosticEvidencePayload] | None],
+    tuple[
+        MoleculeDiagnosticStageId,
+        str,
+        type[DiagnosticEvidencePayload]
+        | tuple[type[DiagnosticEvidencePayload], ...]
+        | None,
+    ],
     ...,
 ] = (
     ("source_input", "Detection / segmentation", SourceInputEvidence),
     ("centroid", "Source centroid", CentroidEvidence),
     ("sample_coordinates", "Sample coordinates", SampleCoordinatesEvidence),
-    ("first_shell", "First shell", FirstShellEvidence),
-    ("local_order", "Local M3/M6", LocalOrderEvidence),
-    ("local_symmetry", "Local symmetry model", None),
-    ("domain_edges", "Domain-edge compatibility", None),
-    ("seed_growth", "Seed / growth / role", SeedGrowthEvidence),
-    ("domain_partition", "Domain / island / outside", DomainPartitionEvidence),
-    ("domain_size", "Minimum domain size", DomainSizeEvidence),
+    ("first_shell", "First shell", (FirstShellEvidence, NetworkFirstShellEvidence)),
+    ("local_order", "Local M3/M6", (LocalOrderEvidence, NetworkLocalOrderEvidence)),
+    ("local_symmetry", "Local symmetry model", NetworkLocalSymmetryEvidence),
+    ("domain_edges", "Domain-edge compatibility", NetworkDomainEdgesEvidence),
+    ("seed_growth", "Seed / growth / role", (
+        SeedGrowthEvidence, NetworkSeedGrowthEvidence,
+    )),
+    ("domain_partition", "Domain / island / outside", (
+        DomainPartitionEvidence, NetworkDomainPartitionEvidence,
+    )),
+    ("domain_size", "Minimum domain size", (
+        DomainSizeEvidence, NetworkDomainSizeEvidence,
+    )),
     ("orientation_descriptor", "Orientation descriptor", OrientationDescriptorEvidence),
     ("orientation_raw", "Raw A/B/C", RawOrientationEvidence),
     ("orientation_threshold", "Confidence / margin", OrientationThresholdEvidence),
@@ -112,8 +143,13 @@ MOLECULE_DIAGNOSTIC_STAGE_IDS = tuple(
 MOLECULE_DIAGNOSTIC_STAGE_LABELS = {
     stage_id: label for stage_id, label, _ in _STAGE_DEFINITIONS
 }
-_EVIDENCE_KIND_BY_STAGE = {
-    stage_id: payload_type.evidence_kind
+_EVIDENCE_KINDS_BY_STAGE = {
+    stage_id: tuple(
+        value.evidence_kind
+        for value in (
+            payload_type if isinstance(payload_type, tuple) else (payload_type,)
+        )
+    )
     for stage_id, _, payload_type in _STAGE_DEFINITIONS
     if payload_type is not None
 }
@@ -177,11 +213,13 @@ class DiagnosticProvenanceContext:
     algorithm_version: str | None = None
     settings_fingerprint: str | None = None
     input_fingerprint: str | None = None
+    output_fingerprint: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "producer", _text(self.producer, "producer"))
         for field_name in (
-            "algorithm_version", "settings_fingerprint", "input_fingerprint"
+            "algorithm_version", "settings_fingerprint", "input_fingerprint",
+            "output_fingerprint",
         ):
             value = getattr(self, field_name)
             if value is not None:
@@ -240,8 +278,8 @@ class DiagnosticStageResult:
                 raise TypeError("Completed diagnostic stages require typed evidence.")
             if not isinstance(self.provenance, DiagnosticProvenance):
                 raise TypeError("Completed diagnostic stages require provenance.")
-            expected_kind = _EVIDENCE_KIND_BY_STAGE.get(self.stage_id)
-            if expected_kind != self.evidence.kind:
+            expected_kinds = _EVIDENCE_KINDS_BY_STAGE.get(self.stage_id, ())
+            if self.evidence.kind not in expected_kinds:
                 raise ValueError("Diagnostic evidence kind does not match its stage.")
             if self.decision == "not_evaluated":
                 raise ValueError("A completed stage requires a scientific decision.")
@@ -294,6 +332,26 @@ class MoleculeDiagnosticFunnel:
     def stage(self, stage_id: MoleculeDiagnosticStageId) -> DiagnosticStageResult:
         return self.stages[MOLECULE_DIAGNOSTIC_STAGE_IDS.index(stage_id)]
 
+    @property
+    def terminal_domain_miss(self) -> DiagnosticStageResult | None:
+        """Return the one terminal miss counted for later M6 evaluation."""
+
+        if self.stage("domain_partition").decision == "accepted":
+            return None
+        domain_size = self.stage("domain_size")
+        if domain_size.decision == "filtered":
+            return domain_size
+        for stage_id in (
+            "first_shell", "local_order", "local_symmetry", "domain_edges",
+            "seed_growth", "domain_partition",
+        ):
+            stage = self.stage(stage_id)
+            if stage.execution_status in {"completed", "failed"} and (
+                stage.decision != "accepted"
+            ):
+                return stage
+        return self.stage("domain_partition")
+
 
 def _text(value: object, field_name: str) -> str:
     if not isinstance(value, str) or not value.strip():
@@ -306,4 +364,17 @@ def _evidence_value(value: object) -> DiagnosticEvidenceValue:
         return value
     if isinstance(value, float) and isfinite(value):
         return value
-    raise TypeError("Diagnostic evidence values must be finite scalar values.")
+    if isinstance(value, tuple):
+        normalized = tuple(_evidence_scalar(item) for item in value)
+        return normalized
+    raise TypeError(
+        "Diagnostic evidence values must be finite scalars or flat scalar tuples."
+    )
+
+
+def _evidence_scalar(value: object) -> DiagnosticEvidenceScalar:
+    if value is None or isinstance(value, (str, bool, int)):
+        return value
+    if isinstance(value, float) and isfinite(value):
+        return value
+    raise TypeError("Diagnostic evidence tuples must contain finite scalars.")

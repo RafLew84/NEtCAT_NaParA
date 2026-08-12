@@ -8,6 +8,28 @@ from moltrack.analysis.domain_analysis import (
     MoleculeDiagnosticFunnel,
     MoleculeDiagnosticStageId,
 )
+from moltrack.analysis.domain_analysis.diagnostic_funnel_models import (
+    DiagnosticEvidencePayload,
+)
+
+
+_NATIVE_CAPABILITIES_BY_STAGE: dict[
+    MoleculeDiagnosticStageId, tuple[str, ...]
+] = {
+    "first_shell": ("local_m3_m6", "orientation_components"),
+    "local_order": ("local_m3_m6", "orientation_components"),
+    "local_symmetry": ("local_m3_m6",),
+    "domain_edges": ("typed_domain_edges",),
+    "seed_growth": ("seed_growth_provenance", "orientation_components"),
+    "domain_partition": ("core_halo", "common_partition"),
+    "domain_size": ("domain_qc", "common_partition"),
+}
+
+
+@dataclass(frozen=True)
+class NativeDiagnosticEvidenceView:
+    capability: str
+    payload: DiagnosticEvidencePayload
 
 
 @dataclass(frozen=True)
@@ -46,6 +68,28 @@ class MoleculeDiagnosticView:
 
     def stage(self, stage_id: MoleculeDiagnosticStageId) -> DiagnosticStageResult:
         return self.funnel.stage(stage_id)
+
+    def native_evidence(
+        self,
+        stage_id: MoleculeDiagnosticStageId,
+    ) -> NativeDiagnosticEvidenceView | None:
+        """Open native evidence selected solely by advertised capability."""
+
+        evidence = self.stage(stage_id).evidence
+        if evidence is None:
+            return None
+        capabilities = set(self.funnel.backend_identity.capabilities)
+        capability = next(
+            (
+                value
+                for value in _NATIVE_CAPABILITIES_BY_STAGE.get(stage_id, ())
+                if value in capabilities
+            ),
+            None,
+        )
+        if capability is None:
+            return None
+        return NativeDiagnosticEvidenceView(capability, evidence.payload)
 
 
 def _summarize(funnel: MoleculeDiagnosticFunnel) -> MoleculeDiagnosticSummary:

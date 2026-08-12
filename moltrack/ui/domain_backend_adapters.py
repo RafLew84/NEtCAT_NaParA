@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 from math import cos, radians, sin
 
 from moltrack.analysis import TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
@@ -10,7 +9,6 @@ from moltrack.analysis.domain_analysis import (
     M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     DomainAnalysisSeries,
     DomainBackendIdentity,
-    M3M6LatticeDomainEvidence,
     GeometryMode,
     M3M6LatticeNetworkEvidence,
     M6CanonicalFrame,
@@ -19,11 +17,9 @@ from moltrack.analysis.domain_analysis import (
     M6FrameGeometry,
     M6OrientationComponentsEvidence,
 )
-from moltrack.analysis.domain_analysis.fingerprints import canonical_sha256
 from moltrack.analysis.lattice_domain_models import (
     LATTICE_DOMAIN_ANALYSIS_ALGORITHM_VERSION,
     LatticeDomain,
-    lattice_domain_analysis_fingerprint,
 )
 from moltrack.analysis.molecular_m6_analysis import analyze_molecular_m6_orientation
 from moltrack.analysis.orientation_domain_analysis import (
@@ -32,6 +28,11 @@ from moltrack.analysis.orientation_domain_analysis import (
 )
 from moltrack.analysis.orientation_domain_models import LatticeOrientationDomain
 from moltrack.analysis.sample_coordinates import MolecularSampleCoordinates
+
+from .domain_backend_network_evidence import (
+    lattice_network_evidence,
+    network_qc_flags,
+)
 
 
 class MolTrackOrientationComponentsAdapter:
@@ -130,7 +131,9 @@ class MolTrackLatticeNetworkAdapter:
                 "domain_qc",
                 "dominant_symmetry",
                 "explicit_boundary",
+                "local_m3_m6",
                 "seed_growth_provenance",
+                "typed_domain_edges",
             ),
         )
         self._geometry_by_frame = {
@@ -162,40 +165,7 @@ class MolTrackLatticeNetworkAdapter:
         lattice = analysis.lattice_domain_analysis
         if lattice is None:
             raise RuntimeError("M3/M6 lattice analysis did not publish domains.")
-        evidence = M3M6LatticeNetworkEvidence(
-            point_roles=tuple(zip(lattice.source_ids, lattice.point_role)),
-            boundary_reasons=tuple(zip(
-                lattice.source_ids,
-                lattice.boundary_reason,
-            )),
-            point_domain_ids=tuple(zip(
-                lattice.source_ids,
-                lattice.point_lattice_domain_id,
-            )),
-            domains=tuple(
-                M3M6LatticeDomainEvidence(
-                    lattice_domain_id=component.lattice_domain_id,
-                    dominant_symmetry=component.dominant_symmetry,
-                    confidence=component.confidence,
-                    qc_flags=_network_qc_flags(component),
-                    orientation_reference_channel=(
-                        component.orientation_reference_channel
-                    ),
-                    m3_m6_orientation_relation_status=(
-                        component.m3_m6_orientation_relation_status
-                    ),
-                    provenance_fingerprint=canonical_sha256(asdict(component)),
-                )
-                for component in lattice.components
-            ),
-            producer_fingerprints=(
-                ("first_shell_graph", lattice.first_shell_graph_fingerprint),
-                ("local_order", lattice.local_order_analysis_fingerprint),
-                ("local_symmetry", lattice.local_symmetry_bond_evidence_fingerprint),
-                ("seed_growth", lattice.seed_growth_result_fingerprint),
-                ("lattice_domain", lattice_domain_analysis_fingerprint(lattice)),
-            ),
-        )
+        evidence = lattice_network_evidence(analysis)
         return _computation(
             frame,
             frame_index=frame_index,
@@ -285,7 +255,7 @@ def _network_membership(component: LatticeDomain) -> M6ComponentMembership:
         source_ids=component.source_ids,
         core_source_ids=component.core_source_ids,
         halo_source_ids=component.halo_source_ids,
-        qc_flags=_network_qc_flags(component),
+        qc_flags=network_qc_flags(component),
     )
 
 
@@ -356,9 +326,3 @@ def _boundary_distances(
         )
         for molecule in frame.molecules
     )
-
-
-def _network_qc_flags(component: LatticeDomain) -> tuple[str, ...]:
-    return tuple(sorted(
-        name for name, value in asdict(component.qc).items() if value is True
-    ))

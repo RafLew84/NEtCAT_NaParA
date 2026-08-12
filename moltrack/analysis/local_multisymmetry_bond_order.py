@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+from dataclasses import asdict, dataclass
+from hashlib import sha256
 from math import isfinite
 from typing import Literal, get_args
 
@@ -28,6 +30,9 @@ from .local_sixfold_bond_order import LocalOrderComputationStatus
 
 
 LOCAL_MULTI_SYMMETRY_BOND_ORDER_SCHEMA_VERSION = 1
+LOCAL_MULTI_SYMMETRY_BOND_ORDER_ALGORITHM_VERSION = (
+    "moltrack-local-multisymmetry-bond-order-v1"
+)
 
 LocalMultiSymmetryOrientationStatus = Literal[
     "defined",
@@ -459,3 +464,32 @@ class LocalMultiSymmetryBondOrderField:
             return self.source_ids.index(source_id)
         except ValueError as exc:
             raise KeyError(f"Unknown source_id: {source_id!r}.") from exc
+
+
+def local_multisymmetry_bond_order_fingerprint(
+    field: LocalMultiSymmetryBondOrderField,
+) -> str:
+    """Fingerprint the complete result, including complex harmonics."""
+
+    if not isinstance(field, LocalMultiSymmetryBondOrderField):
+        raise TypeError("field must be LocalMultiSymmetryBondOrderField.")
+    payload = {
+        "schema": LOCAL_MULTI_SYMMETRY_BOND_ORDER_ALGORITHM_VERSION,
+        "result": _fingerprint_json_value(asdict(field)),
+    }
+    return sha256(json.dumps(
+        payload, allow_nan=False, separators=(",", ":"), sort_keys=True
+    ).encode("utf-8")).hexdigest()
+
+
+def _fingerprint_json_value(value: object) -> object:
+    if isinstance(value, complex):
+        return {"real": value.real, "imag": value.imag}
+    if isinstance(value, dict):
+        return {
+            str(key): _fingerprint_json_value(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, (tuple, list)):
+        return [_fingerprint_json_value(item) for item in value]
+    return value

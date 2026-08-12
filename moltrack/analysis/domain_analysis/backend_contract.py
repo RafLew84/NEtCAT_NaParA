@@ -4,6 +4,12 @@ from dataclasses import dataclass
 from math import isfinite
 from typing import Literal, TypeAlias
 
+from .network_backend_evidence import (
+    M3M6LatticeDomainEvidence,
+    M3M6LatticeNetworkEvidence,
+    M3M6LatticePointEvidence,
+)
+
 
 M6_ORIENTATION_COMPONENTS_BACKEND_ID = "m6_orientation_components"
 M3_M6_LATTICE_NETWORK_BACKEND_ID = "m3_m6_lattice_network"
@@ -106,96 +112,6 @@ class M6OrientationComponentsEvidence:
         object.__setattr__(self, "orientation_deg", orientations)
         object.__setattr__(self, "local_order_status", local_statuses)
         object.__setattr__(self, "component_type", component_types)
-
-
-@dataclass(frozen=True)
-class M3M6LatticeDomainEvidence:
-    """Readable native classification and QC for one lattice-domain component."""
-
-    lattice_domain_id: str
-    dominant_symmetry: str
-    confidence: float
-    qc_flags: tuple[str, ...]
-    orientation_reference_channel: str
-    m3_m6_orientation_relation_status: str
-    provenance_fingerprint: str
-
-    def __post_init__(self) -> None:
-        for name in (
-            "lattice_domain_id",
-            "dominant_symmetry",
-            "orientation_reference_channel",
-            "m3_m6_orientation_relation_status",
-            "provenance_fingerprint",
-        ):
-            object.__setattr__(self, name, _text(getattr(self, name), name))
-        confidence = _optional_finite(self.confidence, "confidence")
-        if confidence is None or not 0.0 <= confidence <= 1.0:
-            raise ValueError("confidence must be between zero and one.")
-        object.__setattr__(self, "confidence", confidence)
-        object.__setattr__(
-            self,
-            "qc_flags",
-            tuple(sorted({_text(value, "qc_flag") for value in self.qc_flags})),
-        )
-
-
-@dataclass(frozen=True)
-class M3M6LatticeNetworkEvidence:
-    """Backend-native point, domain, and producer evidence from lattice analysis."""
-
-    point_roles: tuple[tuple[str, str], ...]
-    boundary_reasons: tuple[tuple[str, str | None], ...]
-    point_domain_ids: tuple[tuple[str, str | None], ...]
-    domains: tuple[M3M6LatticeDomainEvidence, ...]
-    producer_fingerprints: tuple[tuple[str, str], ...]
-    kind: Literal["m3_m6_lattice_evidence_v1"] = (
-        "m3_m6_lattice_evidence_v1"
-    )
-
-    def __post_init__(self) -> None:
-        roles = _text_pairs(self.point_roles, "point_roles")
-        reasons = tuple(sorted(
-            (
-                _text(source_id, "boundary source_id"),
-                None if reason is None else _text(reason, "boundary reason"),
-            )
-            for source_id, reason in self.boundary_reasons
-        ))
-        domain_ids = tuple(sorted(
-            (
-                _text(source_id, "point domain source_id"),
-                None if domain_id is None else _text(domain_id, "point domain ID"),
-            )
-            for source_id, domain_id in self.point_domain_ids
-        ))
-        domains = tuple(sorted(self.domains, key=lambda value: value.lattice_domain_id))
-        if any(not isinstance(value, M3M6LatticeDomainEvidence) for value in domains):
-            raise TypeError("domains must contain M3M6LatticeDomainEvidence values.")
-        producer_fingerprints = _text_pairs(
-            self.producer_fingerprints,
-            "producer_fingerprints",
-        )
-        for name, values in (
-            ("point_roles", roles),
-            ("boundary_reasons", reasons),
-            ("point_domain_ids", domain_ids),
-            ("producer_fingerprints", producer_fingerprints),
-        ):
-            _unique_first_values(values, name)
-        point_keys = tuple(value[0] for value in roles)
-        if any(
-            point_keys != tuple(value[0] for value in values)
-            for values in (reasons, domain_ids)
-        ):
-            raise ValueError("Network point evidence fields must align by source ID.")
-        if len({value.lattice_domain_id for value in domains}) != len(domains):
-            raise ValueError("Network domain evidence IDs must be unique.")
-        object.__setattr__(self, "point_roles", roles)
-        object.__setattr__(self, "boundary_reasons", reasons)
-        object.__setattr__(self, "point_domain_ids", domain_ids)
-        object.__setattr__(self, "domains", domains)
-        object.__setattr__(self, "producer_fingerprints", producer_fingerprints)
 
 
 DomainBackendEvidence: TypeAlias = (

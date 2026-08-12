@@ -4,7 +4,7 @@ import json
 from dataclasses import asdict
 from hashlib import sha256
 
-from .first_shell_graph import FirstShellGraph
+from .first_shell_graph import FIRST_SHELL_GRAPH_ALGORITHM_VERSION, FirstShellGraph
 
 
 def first_shell_graph_fingerprint(graph: FirstShellGraph) -> str:
@@ -13,7 +13,7 @@ def first_shell_graph_fingerprint(graph: FirstShellGraph) -> str:
     if not isinstance(graph, FirstShellGraph):
         raise TypeError("graph must be a FirstShellGraph.")
     payload = {
-        "schema": "moltrack-first-shell-graph-v1",
+        "schema": FIRST_SHELL_GRAPH_ALGORITHM_VERSION,
         "graph": asdict(graph),
     }
     encoded = json.dumps(

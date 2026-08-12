@@ -7,6 +7,9 @@ from typing import Literal, TypeVar
 from ._first_shell_filtering import _FirstShellDistancePolicy
 
 
+FIRST_SHELL_GRAPH_ALGORITHM_VERSION = "moltrack-first-shell-graph-v1"
+
+
 OrientationReference = Literal[
     "+x_sample_axis",
     "scan_x_axis_assumed_sample_x",

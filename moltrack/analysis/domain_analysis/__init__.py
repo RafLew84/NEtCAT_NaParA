@@ -7,6 +7,7 @@ from .backend_contract import (
     DomainBackendIdentity,
     M3M6LatticeDomainEvidence,
     M3M6LatticeNetworkEvidence,
+    M3M6LatticePointEvidence,
     M6OrientationComponentsEvidence,
     m6_orientation_components_identity,
 )
@@ -51,6 +52,15 @@ from .diagnostic_orientation_evidence import (
     OrientationDescriptorEvidence,
     OrientationThresholdEvidence,
     RawOrientationEvidence,
+)
+from .diagnostic_network_evidence import (
+    NetworkDomainEdgesEvidence,
+    NetworkDomainPartitionEvidence,
+    NetworkDomainSizeEvidence,
+    NetworkFirstShellEvidence,
+    NetworkLocalOrderEvidence,
+    NetworkLocalSymmetryEvidence,
+    NetworkSeedGrowthEvidence,
 )
 from .classifier_contract import (
     ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
@@ -230,6 +240,14 @@ __all__ = [
     "M3_M6_LATTICE_NETWORK_BACKEND_ID",
     "M3M6LatticeDomainEvidence",
     "M3M6LatticeNetworkEvidence",
+    "M3M6LatticePointEvidence",
+    "NetworkDomainEdgesEvidence",
+    "NetworkDomainPartitionEvidence",
+    "NetworkDomainSizeEvidence",
+    "NetworkFirstShellEvidence",
+    "NetworkLocalOrderEvidence",
+    "NetworkLocalSymmetryEvidence",
+    "NetworkSeedGrowthEvidence",
     "PublishDomainAnalysisResult",
     "ReceiveDomainAnalysisEvent",
     "ReceiveDomainAnalysisFailure",

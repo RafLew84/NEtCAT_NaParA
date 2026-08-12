@@ -12,6 +12,9 @@ from moltrack.analysis import (
     compute_local_sixfold_bond_order,
     m3_lattice_orientation_distance_deg,
 )
+from moltrack.analysis.local_multisymmetry_bond_order import (
+    local_multisymmetry_bond_order_fingerprint,
+)
 
 
 def _star_graph(angles_rad: tuple[float, ...]) -> FirstShellGraph:
@@ -80,6 +83,19 @@ def _compute(
 
 
 class LocalMultiSymmetryBondOrderComputationTests(unittest.TestCase):
+    def test_full_result_fingerprint_serializes_complex_harmonics(self) -> None:
+        result = _compute(
+            _star_graph((0.0, 2.0 * math.pi / 3.0, 4.0 * math.pi / 3.0))
+        )
+
+        self.assertIsInstance(result.psi3[0], complex)
+        fingerprint = local_multisymmetry_bond_order_fingerprint(result)
+        self.assertEqual(len(fingerprint), 64)
+        self.assertEqual(
+            fingerprint,
+            local_multisymmetry_bond_order_fingerprint(result),
+        )
+
     def test_computes_ideal_three_direction_trifold_order(self) -> None:
         result = _compute(
             _star_graph((0.0, 2.0 * math.pi / 3.0, 4.0 * math.pi / 3.0))

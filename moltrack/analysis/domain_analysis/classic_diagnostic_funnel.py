@@ -12,13 +12,14 @@ from .classic_orientation_diagnostic import (
 )
 from .diagnostic_funnel_builders import (
     completed_diagnostic_stage,
+    molecules_by_id,
     not_run_diagnostic_stage,
-    raw_centroid_values,
+    published_partition,
+    source_coordinate_stages,
     unavailable_diagnostic_stage,
 )
 from .diagnostic_funnel_models import (
     DiagnosticDecision,
-    CentroidEvidence,
     DiagnosticEvidence,
     DiagnosticProvenanceContext,
     DiagnosticReason,
@@ -29,9 +30,7 @@ from .diagnostic_funnel_models import (
     FirstShellEvidence,
     LocalOrderEvidence,
     MoleculeDiagnosticFunnel,
-    SampleCoordinatesEvidence,
     SeedGrowthEvidence,
-    SourceInputEvidence,
 )
 from .geometry import M6PublishedMolecule
 from .models import (
@@ -63,7 +62,7 @@ def build_classic_molecule_diagnostic_funnels(
             continue
         if not isinstance(frame.native_evidence, M6OrientationComponentsEvidence):
             raise TypeError("Classic M6 diagnostics require classic native evidence.")
-        molecules = _molecules_by_id(frame)
+        molecules = molecules_by_id(frame)
         for source_id in frame.analyzed_source_ids:
             funnels.append(_build_funnel(
                 frame,
@@ -89,35 +88,9 @@ def _build_funnel(
     q6 = dict(native.q6).get(source_id)
     orientation_deg = dict(native.orientation_deg).get(source_id)
     native_component_type = dict(native.component_type).get(source_id)
-    partition, component = _partition(frame, source_id)
-    raw_centroid_x, raw_centroid_y = raw_centroid_values(molecule)
+    partition, component = published_partition(frame, source_id)
     stages = [
-        completed_diagnostic_stage(
-            frame, "source_input", "accepted",
-            reason=DiagnosticReason("accepted", "accepted_result"),
-            evidence=DiagnosticEvidence(SourceInputEvidence(
-                molecule.source_kind, raw_centroid_x, raw_centroid_y
-            )),
-            provenance=DiagnosticProvenanceContext("canonicalize_frame"),
-        ),
-        completed_diagnostic_stage(
-            frame, "centroid", "accepted",
-            reason=DiagnosticReason("accepted", "accepted_result"),
-            evidence=DiagnosticEvidence(CentroidEvidence(
-                molecule.point_xy_nm[0], molecule.point_xy_nm[1],
-                frame.coordinate_frame,
-            )),
-            provenance=DiagnosticProvenanceContext("canonicalize_frame"),
-        ),
-        completed_diagnostic_stage(
-            frame, "sample_coordinates", "accepted",
-            reason=DiagnosticReason("accepted", "accepted_result"),
-            evidence=DiagnosticEvidence(SampleCoordinatesEvidence(
-                molecule.point_xy_nm[0], molecule.point_xy_nm[1],
-                frame.coordinate_transform_fingerprint,
-            )),
-            provenance=DiagnosticProvenanceContext("canonicalize_frame"),
-        ),
+        *source_coordinate_stages(frame, molecule),
         _first_shell_stage(frame, neighbor_count, local_status),
         _local_order_stage(frame, q6, orientation_deg, local_status),
         unavailable_diagnostic_stage(
@@ -288,30 +261,3 @@ def _domain_size_stage(
             "finalize_m6_orientation_domains"
         ),
     )
-
-
-def _molecules_by_id(frame: M6FrameGate) -> dict[str, M6PublishedMolecule]:
-    return {
-        molecule.source_id: molecule
-        for molecule in (
-            tuple(
-                member
-                for component in frame.full_domains + frame.small_ordered_islands
-                for member in component.members
-            )
-            + frame.outside_members
-        )
-    }
-
-
-def _partition(
-    frame: M6FrameGate,
-    source_id: str,
-) -> tuple[str, M6PublishedComponent | None]:
-    for component in frame.full_domains:
-        if source_id in component.source_ids:
-            return "full_domain", component
-    for component in frame.small_ordered_islands:
-        if source_id in component.source_ids:
-            return "small_ordered_island", component
-    return "outside", None

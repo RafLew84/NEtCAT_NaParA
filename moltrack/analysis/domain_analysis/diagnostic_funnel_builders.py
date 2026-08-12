@@ -11,7 +11,12 @@ from .diagnostic_funnel_models import (
 )
 from .fingerprints import canonical_sha256
 from .geometry import M6PublishedMolecule
-from .models import M6FrameGate
+from .models import M6FrameGate, M6PublishedComponent
+from .diagnostic_m6_evidence import (
+    CentroidEvidence,
+    SampleCoordinatesEvidence,
+    SourceInputEvidence,
+)
 
 
 def completed_diagnostic_stage(
@@ -23,7 +28,7 @@ def completed_diagnostic_stage(
     evidence: DiagnosticEvidence,
     provenance: DiagnosticProvenanceContext,
 ) -> DiagnosticStageResult:
-    output_fingerprint = canonical_sha256({
+    output_fingerprint = provenance.output_fingerprint or canonical_sha256({
         "kind": evidence.kind,
         "values": evidence.values,
     })
@@ -96,3 +101,59 @@ def raw_centroid_values(
     if molecule.raw_centroid_xy is None:
         return None, None
     return molecule.raw_centroid_xy
+
+
+def source_coordinate_stages(
+    frame: M6FrameGate,
+    molecule: M6PublishedMolecule,
+) -> tuple[DiagnosticStageResult, ...]:
+    raw_x, raw_y = raw_centroid_values(molecule)
+    accepted = DiagnosticReason("accepted", "accepted_result")
+    producer = DiagnosticProvenanceContext("canonicalize_frame")
+    return (
+        completed_diagnostic_stage(
+            frame, "source_input", "accepted", reason=accepted,
+            evidence=DiagnosticEvidence(SourceInputEvidence(
+                molecule.source_kind, raw_x, raw_y
+            )),
+            provenance=producer,
+        ),
+        completed_diagnostic_stage(
+            frame, "centroid", "accepted", reason=accepted,
+            evidence=DiagnosticEvidence(CentroidEvidence(
+                molecule.point_xy_nm[0], molecule.point_xy_nm[1],
+                frame.coordinate_frame,
+            )),
+            provenance=producer,
+        ),
+        completed_diagnostic_stage(
+            frame, "sample_coordinates", "accepted", reason=accepted,
+            evidence=DiagnosticEvidence(SampleCoordinatesEvidence(
+                molecule.point_xy_nm[0], molecule.point_xy_nm[1],
+                frame.coordinate_transform_fingerprint,
+            )),
+            provenance=producer,
+        ),
+    )
+
+
+def molecules_by_id(frame: M6FrameGate) -> dict[str, M6PublishedMolecule]:
+    members = tuple(
+        member
+        for component in frame.full_domains + frame.small_ordered_islands
+        for member in component.members
+    ) + frame.outside_members
+    return {molecule.source_id: molecule for molecule in members}
+
+
+def published_partition(
+    frame: M6FrameGate,
+    source_id: str,
+) -> tuple[str, M6PublishedComponent | None]:
+    for component in frame.full_domains:
+        if source_id in component.source_ids:
+            return "full_domain", component
+    for component in frame.small_ordered_islands:
+        if source_id in component.source_ids:
+            return "small_ordered_island", component
+    return "outside", None

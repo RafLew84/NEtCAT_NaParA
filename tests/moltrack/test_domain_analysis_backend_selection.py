@@ -75,7 +75,7 @@ class _BackendAdapter:
                     confidence=0.8,
                     qc_flags=("boundary_adjacent",),
                     orientation_reference_channel="m3_lattice",
-                    m3_m6_orientation_relation_status="consistent",
+                    m3_m6_orientation_relation_status="available",
                     provenance_fingerprint="domain-provenance",
                 ),),
                 producer_fingerprints=(("network", "network-provenance"),),

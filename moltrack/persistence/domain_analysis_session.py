@@ -31,7 +31,7 @@ from moltrack.analysis.domain_analysis.geometry import (
     GeometryMode,
 )
 from moltrack.analysis.domain_analysis.models import M6ComponentType
-from moltrack.analysis.domain_analysis.classic_diagnostic_funnel import build_classic_molecule_diagnostic_funnels
+from moltrack.analysis.domain_analysis.diagnostic_funnel import build_molecule_diagnostic_funnels
 
 from .domain_analysis_cache_payload import (
     domain_analysis_cache_from_payload,
@@ -340,7 +340,7 @@ def _publication_from_payload(
         classifier_outcomes=outcomes,
     )
     result = replace(result, molecule_diagnostic_funnels=(
-        build_classic_molecule_diagnostic_funnels(result)
+        build_molecule_diagnostic_funnels(result)
     ))
     publication = DomainAnalysisPublication(request=request, result=result)
     expected_fingerprint = _require_text(

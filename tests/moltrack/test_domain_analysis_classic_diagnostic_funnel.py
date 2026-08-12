@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 
 from moltrack.analysis.domain_analysis import (
@@ -261,6 +263,7 @@ def test_classic_backend_publishes_complete_honest_molecule_funnels() -> None:
     assert uncertain.stage("domain_partition").reason.code == (
         "boundary_or_disordered"
     )
+    assert uncertain.terminal_domain_miss is uncertain.stage("seed_growth")
 
 
 def test_runtime_classic_adapter_retains_per_molecule_native_evidence() -> None:
@@ -418,6 +421,20 @@ def test_thin_diagnostic_view_summarizes_and_expands_the_same_trace() -> None:
     assert view.summary.effective_orientation_label == "Unknown orientation"
     assert view.expanded_stages is funnel.stages
     assert view.stage("orientation_raw") is funnel.stage("orientation_raw")
+    native_view = view.native_evidence("local_order")
+    assert native_view is not None
+    assert native_view.capability == "orientation_components"
+    assert native_view.payload is funnel.stage("local_order").evidence.payload
+    island = replace(
+        funnel,
+        stages=tuple(
+            replace(stage, decision="filtered")
+            if stage.stage_id in {"domain_partition", "domain_size"}
+            else stage
+            for stage in funnel.stages
+        ),
+    )
+    assert island.terminal_domain_miss is island.stage("domain_size")
 
 
 def _series() -> DomainAnalysisSeries:

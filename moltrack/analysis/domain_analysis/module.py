@@ -16,7 +16,7 @@ from .cache import (
     m6_frame_cache_key,
 )
 from .canonical_geometry import canonicalize_frame
-from .classic_diagnostic_funnel import build_classic_molecule_diagnostic_funnels
+from .diagnostic_funnel import build_molecule_diagnostic_funnels
 from .classifier_runner import (
     MoleculeClassifierAdapter,
     not_run_classifier_outcomes,
@@ -120,7 +120,7 @@ class DomainAnalysisModule:
         return replace(
             result,
             molecule_diagnostic_funnels=(
-                build_classic_molecule_diagnostic_funnels(result)
+                build_molecule_diagnostic_funnels(result)
             ),
         )
 
