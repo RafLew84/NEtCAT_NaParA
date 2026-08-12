@@ -64,7 +64,7 @@
       "definitions": 31
     },
     "moltrack/analysis/texture_domain_analysis.py": {
-      "physical_lines": 1091,
+      "physical_lines": 1090,
       "definitions": 40
     },
     "moltrack/persistence/session_store.py": {
@@ -328,8 +328,7 @@
       "restore_structural_analysis_cache_records": 87
     },
     "moltrack/analysis/texture_domain_analysis.py": {
-      "TextureDomainAnalysisSettings.__post_init__": 81,
-      "analyze_texture_domain_descriptors": 81
+      "TextureDomainAnalysisSettings.__post_init__": 81
     },
     "moltrack/core/session.py": {
       "MolTrackSession.__post_init__": 121

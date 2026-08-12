@@ -27,6 +27,7 @@ from moltrack.analysis.lattice_domain_models import (
 )
 from moltrack.analysis.molecular_m6_analysis import analyze_molecular_m6_orientation
 from moltrack.analysis.orientation_domain_analysis import (
+    M6OrientationDomainAnalysis,
     analyze_m6_orientation_domains,
 )
 from moltrack.analysis.orientation_domain_models import LatticeOrientationDomain
@@ -89,16 +90,7 @@ class MolTrackOrientationComponentsAdapter:
                 geometry.raw_shape[0] * geometry.pixel_size_nm[1],
             ),
         )
-        evidence = M6OrientationComponentsEvidence(
-            assignment_status=tuple(zip(
-                analysis.segmentation.source_ids,
-                analysis.segmentation.assignment_status,
-            )),
-            q6=tuple(zip(
-                analysis.local_order.source_ids,
-                analysis.local_order.q6,
-            )),
-        )
+        evidence = _classic_native_evidence(analysis)
         components = analysis.segmentation.components
         return _computation(
             frame,
@@ -239,6 +231,37 @@ def _computation(
         coordinate_transform_fingerprint=frame.coordinate_transform_fingerprint,
         backend_identity=identity,
         native_evidence=evidence,
+    )
+
+
+def _classic_native_evidence(
+    analysis: M6OrientationDomainAnalysis,
+) -> M6OrientationComponentsEvidence:
+    local = analysis.local_order
+    segmentation = analysis.segmentation
+    local_ids = local.source_ids
+    segmentation_ids = segmentation.source_ids
+    neighbor_counts = getattr(
+        local, "neighbor_count", (None,) * len(local_ids)
+    )
+    orientations = getattr(
+        local, "lattice_orientation_deg", (None,) * len(local_ids)
+    )
+    local_statuses = getattr(
+        local, "computation_status", (None,) * len(local_ids)
+    )
+    component_types = getattr(
+        segmentation, "component_type", (None,) * len(segmentation_ids)
+    )
+    return M6OrientationComponentsEvidence(
+        assignment_status=tuple(zip(
+            segmentation_ids, segmentation.assignment_status
+        )),
+        q6=tuple(zip(local_ids, local.q6)),
+        neighbor_count=tuple(zip(local_ids, neighbor_counts)),
+        orientation_deg=tuple(zip(local_ids, orientations)),
+        local_order_status=tuple(zip(local_ids, local_statuses)),
+        component_type=tuple(zip(segmentation_ids, component_types)),
     )
 
 

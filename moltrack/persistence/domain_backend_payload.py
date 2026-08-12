@@ -59,6 +59,12 @@ def backend_evidence_to_payload(value: DomainBackendEvidence) -> dict[str, Any]:
             "kind": value.kind,
             "assignment_status": [list(item) for item in value.assignment_status],
             "q6": [list(item) for item in value.q6],
+            "neighbor_count": [list(item) for item in value.neighbor_count],
+            "orientation_deg": [list(item) for item in value.orientation_deg],
+            "local_order_status": [
+                list(item) for item in value.local_order_status
+            ],
+            "component_type": [list(item) for item in value.component_type],
         }
     if isinstance(value, M3M6LatticeNetworkEvidence):
         return {
@@ -109,6 +115,18 @@ def backend_evidence_from_payload(
         return M6OrientationComponentsEvidence(
             assignment_status=assignments,
             q6=tuple(q6_values),
+            neighbor_count=_optional_integer_pairs(
+                saved, "neighbor_count", path
+            ),
+            orientation_deg=_optional_number_pairs(
+                saved, "orientation_deg", path
+            ),
+            local_order_status=_missing_allowed_text_pairs(
+                saved, "local_order_status", path
+            ),
+            component_type=_missing_allowed_text_pairs(
+                saved, "component_type", path
+            ),
         )
     if kind == "m3_m6_lattice_evidence_v1":
         roles = _pairs(saved, "point_roles", path)
@@ -152,6 +170,56 @@ def _optional_text_pairs(
             _pair_text(pair[0], f"{item_path}[0]"),
             None if pair[1] is None else _pair_text(pair[1], f"{item_path}[1]"),
         ))
+    return tuple(values)
+
+
+def _missing_allowed_text_pairs(
+    saved: Mapping[str, Any],
+    field: str,
+    path: str,
+) -> tuple[tuple[str, str | None], ...]:
+    if field not in saved:
+        return ()
+    return _optional_text_pairs(saved, field, path)
+
+
+def _optional_number_pairs(
+    saved: Mapping[str, Any],
+    field: str,
+    path: str,
+) -> tuple[tuple[str, float | None], ...]:
+    if field not in saved:
+        return ()
+    values: list[tuple[str, float | None]] = []
+    for index, item in enumerate(list_field(saved, field, path)):
+        item_path = f"{path}.{field}[{index}]"
+        pair = _pair(item, item_path)
+        values.append((
+            _pair_text(pair[0], f"{item_path}[0]"),
+            None
+            if pair[1] is None
+            else number_field({"value": pair[1]}, "value", item_path),
+        ))
+    return tuple(values)
+
+
+def _optional_integer_pairs(
+    saved: Mapping[str, Any],
+    field: str,
+    path: str,
+) -> tuple[tuple[str, int | None], ...]:
+    if field not in saved:
+        return ()
+    values: list[tuple[str, int | None]] = []
+    for index, item in enumerate(list_field(saved, field, path)):
+        item_path = f"{path}.{field}[{index}]"
+        pair = _pair(item, item_path)
+        count = pair[1]
+        if count is not None and (
+            isinstance(count, bool) or not isinstance(count, int) or count < 0
+        ):
+            raise ValueError(f"{item_path}[1] must be a non-negative integer.")
+        values.append((_pair_text(pair[0], f"{item_path}[0]"), count))
     return tuple(values)
 
 

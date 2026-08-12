@@ -15,6 +15,7 @@ from moltrack.analysis.texture_domain_analysis import (
 )
 
 from .classifier_models import (
+    ABCOrientationDiagnosticEvidence,
     ClassifierMoleculeInput,
     ClassifierMoleculePrediction,
 )
@@ -90,7 +91,12 @@ class TextureABCClassifierAdapter:
             for index, value in enumerate(self._settings.classes)
         }
         return tuple(
-            _prediction(value, label_by_key, threshold_by_key)
+            _prediction(
+                value,
+                label_by_key,
+                threshold_by_key,
+                minimum_margin=self._settings.minimum_margin,
+            )
             for value in result.points
         )
 
@@ -99,18 +105,61 @@ def _prediction(
     value: TextureDomainPointResult,
     label_by_key: dict[str, str],
     threshold_by_key: dict[str, float],
+    *,
+    minimum_margin: float,
 ) -> ClassifierMoleculePrediction:
+    raw_label = _orientation_label(value.nearest_class_key, label_by_key)
+    final_label = _orientation_label(value.class_key, label_by_key)
+    threshold_label = _orientation_label(
+        value.threshold_candidate_class_key,
+        label_by_key,
+    )
+    threshold_key = value.threshold_candidate_class_key
+    distance_threshold = (
+        None
+        if threshold_key == TEXTURE_DOMAIN_UNKNOWN_CLASS_KEY
+        else threshold_by_key[threshold_key]
+    )
+    threshold_reason = value.threshold_reason
+    threshold_accepted = threshold_reason == "accepted_result"
+    component_accepted = final_label is not None
+    diagnostic = ABCOrientationDiagnosticEvidence(
+        raw_orientation_label=raw_label,
+        threshold_candidate_label=threshold_label,
+        nearest_distance=value.nearest_distance,
+        threshold_candidate_distance=value.threshold_candidate_distance,
+        margin=value.margin,
+        distance_threshold=distance_threshold,
+        minimum_margin=minimum_margin,
+        threshold_decision="accepted" if threshold_accepted else "rejected",
+        threshold_reason_code=threshold_reason,
+        component_filter_decision=(
+            "accepted"
+            if component_accepted
+            else "filtered"
+            if threshold_accepted
+            else "not_evaluated"
+        ),
+        component_filter_reason_code=(
+            "accepted_result"
+            if component_accepted
+            else "component_below_minimum_size"
+            if threshold_accepted
+            else "upstream_threshold_rejected"
+        ),
+    )
     if value.class_key == TEXTURE_DOMAIN_UNKNOWN_CLASS_KEY:
         return ClassifierMoleculePrediction(
             source_id=value.source_id,
             orientation_label=None,
             evidence_strength=0.0,
             component_id=None,
+            diagnostic_evidence=diagnostic,
         )
     label = label_by_key[value.class_key]
     if label not in {"A", "B", "C"}:
         raise ValueError(f"Unsupported A/B/C preset label: {label!r}.")
-    distance = value.nearest_distance
+    distance = value.threshold_candidate_distance
     if distance is None:
         raise ValueError("A classified texture point requires a distance.")
     threshold = threshold_by_key[value.class_key]
@@ -124,4 +173,17 @@ def _prediction(
         orientation_label=cast(Literal["A", "B", "C"], label),
         evidence_strength=evidence,
         component_id=value.component_id,
+        diagnostic_evidence=diagnostic,
     )
+
+
+def _orientation_label(
+    class_key: str,
+    label_by_key: dict[str, str],
+) -> Literal["A", "B", "C"] | None:
+    if class_key == TEXTURE_DOMAIN_UNKNOWN_CLASS_KEY:
+        return None
+    label = label_by_key[class_key]
+    if label not in {"A", "B", "C"}:
+        raise ValueError(f"Unsupported A/B/C preset label: {label!r}.")
+    return cast(Literal["A", "B", "C"], label)

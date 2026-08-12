@@ -23,6 +23,7 @@ from .classifier_contract import (
     validated_non_negative_integer,
 )
 from .classifier_models import (
+    ABCOrientationDiagnosticEvidence,
     ClassifierFrameResultProvenance,
     ClassifierMoleculeInput,
     ClassifierMoleculePrediction,
@@ -314,6 +315,7 @@ def _classification_from_prediction(
         label=label if label is not None else "Unknown orientation",
         evidence_strength=prediction.evidence_strength,
         component_id=prediction.component_id,
+        diagnostic_evidence=prediction.diagnostic_evidence,
     )
 
 
@@ -328,6 +330,7 @@ def _classification(
     label: OrientationLabel | None = None,
     evidence_strength: float = 0.0,
     component_id: str | None = None,
+    diagnostic_evidence: ABCOrientationDiagnosticEvidence | None = None,
 ) -> MoleculeClassification:
     return MoleculeClassification(
         frame_index=gate_frame.frame_index,
@@ -341,4 +344,5 @@ def _classification(
         evidence_strength=evidence_strength,
         component_id=component_id,
         identity=identity,
+        diagnostic_evidence=diagnostic_evidence,
     )

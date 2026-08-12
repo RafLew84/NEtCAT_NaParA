@@ -8,8 +8,10 @@ from .backend_contract import (
     DomainBackendEvidence,
     DomainBackendIdentity,
     validate_backend_evidence,
+    strip_empty_classic_diagnostic_evidence,
 )
 from .classifier_models import ClassifierOutcome
+from .diagnostic_funnel_models import MoleculeDiagnosticFunnel
 from .events import (
     ClassifierStatus,
     DomainAnalysisEvent as DomainAnalysisEvent,
@@ -151,6 +153,7 @@ class M6FrameComputation:
         payload = asdict(self)
         payload.pop("frame_index")
         payload.pop("result_fingerprint")
+        strip_empty_classic_diagnostic_evidence(payload)
         object.__setattr__(
             self,
             "result_fingerprint",
@@ -278,6 +281,7 @@ class M6FrameGate:
         fingerprint_payload = asdict(self)
         fingerprint_payload.pop("presentation_provenance")
         fingerprint_payload.pop("m6_gate_fingerprint")
+        strip_empty_classic_diagnostic_evidence(fingerprint_payload)
         for component_group in ("full_domains", "small_ordered_islands"):
             for component in fingerprint_payload[component_group]:
                 for member in component["members"]:
@@ -401,6 +405,10 @@ class DomainAnalysisResult:
     classifier_status: ClassifierStatus
     classifier_outcomes: tuple[ClassifierOutcome, ...] | None = None
     failure: DomainAnalysisFailure | None = None
+    molecule_diagnostic_funnels: tuple[MoleculeDiagnosticFunnel, ...] = field(
+        default=(),
+        compare=False,
+    )
 
     def __post_init__(self) -> None:
         successful = self.run_status in {"completed", "completed_with_errors"}
@@ -429,6 +437,17 @@ class DomainAnalysisResult:
             ),
         )
         object.__setattr__(self, "classifier_outcomes", outcomes)
+        funnels = tuple(self.molecule_diagnostic_funnels)
+        if any(not isinstance(value, MoleculeDiagnosticFunnel) for value in funnels):
+            raise TypeError(
+                "molecule_diagnostic_funnels contain an invalid value."
+            )
+        funnel_keys = tuple(
+            (value.frame_index, value.source_id) for value in funnels
+        )
+        if len(set(funnel_keys)) != len(funnel_keys):
+            raise ValueError("Molecule diagnostic funnel keys must be unique.")
+        object.__setattr__(self, "molecule_diagnostic_funnels", funnels)
         if self.run_status == "failed" and self.m6_gate is not None:
             raise ValueError("A failed run cannot publish an M6 gate.")
         if (self.run_status == "failed") != (self.failure is not None):

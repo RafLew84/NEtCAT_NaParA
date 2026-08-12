@@ -14,6 +14,7 @@ from moltrack.analysis.domain_analysis.session_state import (
     DomainAnalysisSessionDiagnostic,
 )
 from moltrack.analysis.domain_analysis.classifier_models import (
+    ABCOrientationDiagnosticEvidence,
     ClassifierFrameResultProvenance,
     ClassifierOutcome,
     MoleculeClassification,
@@ -235,6 +236,9 @@ def molecule_classification_to_payload(
         "orientation_label": value.orientation_label,
         "evidence_strength": value.evidence_strength,
         "component_id": value.component_id,
+        "diagnostic_evidence": _diagnostic_evidence_to_payload(
+            value.diagnostic_evidence
+        ),
     }
 
 
@@ -263,7 +267,81 @@ def molecule_classification_from_payload(
         evidence_strength=number_field(saved, "evidence_strength", path),
         component_id=optional_text_field(saved, "component_id", path),
         identity=configuration.identity,
+        diagnostic_evidence=_diagnostic_evidence_from_payload(
+            saved.get("diagnostic_evidence"),
+            path=f"{path}.diagnostic_evidence",
+        ),
     )
+
+
+def _diagnostic_evidence_to_payload(
+    value: ABCOrientationDiagnosticEvidence | None,
+) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    return {
+        "raw_orientation_label": value.raw_orientation_label,
+        "threshold_candidate_label": value.threshold_candidate_label,
+        "nearest_distance": value.nearest_distance,
+        "threshold_candidate_distance": value.threshold_candidate_distance,
+        "margin": value.margin,
+        "distance_threshold": value.distance_threshold,
+        "minimum_margin": value.minimum_margin,
+        "threshold_decision": value.threshold_decision,
+        "threshold_reason_code": value.threshold_reason_code,
+        "component_filter_decision": value.component_filter_decision,
+        "component_filter_reason_code": value.component_filter_reason_code,
+    }
+
+
+def _diagnostic_evidence_from_payload(
+    payload: Any,
+    *,
+    path: str,
+) -> ABCOrientationDiagnosticEvidence | None:
+    if payload is None:
+        return None
+    saved = mapping(payload, path)
+    return ABCOrientationDiagnosticEvidence(
+        raw_orientation_label=cast(
+            Any, optional_text_field(saved, "raw_orientation_label", path)
+        ),
+        threshold_candidate_label=cast(
+            Any,
+            optional_text_field(saved, "threshold_candidate_label", path),
+        ),
+        nearest_distance=_optional_number_field(saved, "nearest_distance", path),
+        threshold_candidate_distance=_optional_number_field(
+            saved, "threshold_candidate_distance", path
+        ),
+        margin=_optional_number_field(saved, "margin", path),
+        distance_threshold=_optional_number_field(
+            saved, "distance_threshold", path
+        ),
+        minimum_margin=number_field(saved, "minimum_margin", path),
+        threshold_decision=cast(
+            Any, text_field(saved, "threshold_decision", path)
+        ),
+        threshold_reason_code=text_field(
+            saved, "threshold_reason_code", path
+        ),
+        component_filter_decision=cast(
+            Any, text_field(saved, "component_filter_decision", path)
+        ),
+        component_filter_reason_code=text_field(
+            saved, "component_filter_reason_code", path
+        ),
+    )
+
+
+def _optional_number_field(
+    payload: Mapping[str, Any],
+    field_name: str,
+    path: str,
+) -> float | None:
+    if payload.get(field_name) is None:
+        return None
+    return number_field(payload, field_name, path)
 
 
 def _outcome_to_payload(outcome: ClassifierOutcome) -> dict[str, Any]:

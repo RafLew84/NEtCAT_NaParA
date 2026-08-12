@@ -64,6 +64,10 @@ class M6OrientationComponentsEvidence:
 
     assignment_status: tuple[tuple[str, str], ...]
     q6: tuple[tuple[str, float | None], ...]
+    neighbor_count: tuple[tuple[str, int | None], ...] = ()
+    orientation_deg: tuple[tuple[str, float | None], ...] = ()
+    local_order_status: tuple[tuple[str, str | None], ...] = ()
+    component_type: tuple[tuple[str, str | None], ...] = ()
     kind: Literal["m6_orientation_evidence_v1"] = (
         "m6_orientation_evidence_v1"
     )
@@ -83,8 +87,25 @@ class M6OrientationComponentsEvidence:
             value[0] for value in q6_values
         ):
             raise ValueError("Classic native evidence fields must align by source ID.")
+        source_ids = tuple(value[0] for value in assignments)
+        neighbor_counts = _optional_integer_pairs(
+            self.neighbor_count, source_ids, "neighbor_count"
+        )
+        orientations = _optional_float_pairs(
+            self.orientation_deg, source_ids, "orientation_deg"
+        )
+        local_statuses = _optional_text_pairs(
+            self.local_order_status, source_ids, "local_order_status"
+        )
+        component_types = _optional_text_pairs(
+            self.component_type, source_ids, "component_type"
+        )
         object.__setattr__(self, "assignment_status", assignments)
         object.__setattr__(self, "q6", q6_values)
+        object.__setattr__(self, "neighbor_count", neighbor_counts)
+        object.__setattr__(self, "orientation_deg", orientations)
+        object.__setattr__(self, "local_order_status", local_statuses)
+        object.__setattr__(self, "component_type", component_types)
 
 
 @dataclass(frozen=True)
@@ -217,6 +238,26 @@ def validate_backend_evidence(
         raise TypeError("Native evidence type does not match backend identity.")
 
 
+def strip_empty_classic_diagnostic_evidence(
+    payload: dict[str, object],
+) -> None:
+    """Keep legacy classic-M6 fingerprints stable when detail is absent."""
+
+    evidence = payload.get("native_evidence")
+    if not isinstance(evidence, dict) or evidence.get("kind") != (
+        "m6_orientation_evidence_v1"
+    ):
+        return
+    for field_name in (
+        "neighbor_count",
+        "orientation_deg",
+        "local_order_status",
+        "component_type",
+    ):
+        if not evidence.get(field_name):
+            evidence.pop(field_name, None)
+
+
 def _text(value: object, name: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{name} must be non-empty text.")
@@ -248,3 +289,70 @@ def _optional_finite(value: object, name: str) -> float | None:
     if not isfinite(normalized):
         raise ValueError(f"{name} must be finite.")
     return normalized
+
+
+def _optional_float_pairs(
+    values: tuple[tuple[str, float | None], ...],
+    source_ids: tuple[str, ...],
+    name: str,
+) -> tuple[tuple[str, float | None], ...]:
+    if not values:
+        return ()
+    normalized = tuple(sorted(
+        (_text(source_id, f"{name} source_id"), _optional_finite(value, name))
+        for source_id, value in values
+    ))
+    _aligned_source_ids(normalized, source_ids, name)
+    return normalized
+
+
+def _optional_integer_pairs(
+    values: tuple[tuple[str, int | None], ...],
+    source_ids: tuple[str, ...],
+    name: str,
+) -> tuple[tuple[str, int | None], ...]:
+    if not values:
+        return ()
+    normalized = tuple(sorted(
+        (
+            _text(source_id, f"{name} source_id"),
+            None if value is None else _non_negative_integer(value, name),
+        )
+        for source_id, value in values
+    ))
+    _aligned_source_ids(normalized, source_ids, name)
+    return normalized
+
+
+def _optional_text_pairs(
+    values: tuple[tuple[str, str | None], ...],
+    source_ids: tuple[str, ...],
+    name: str,
+) -> tuple[tuple[str, str | None], ...]:
+    if not values:
+        return ()
+    normalized = tuple(sorted(
+        (
+            _text(source_id, f"{name} source_id"),
+            None if value is None else _text(value, name),
+        )
+        for source_id, value in values
+    ))
+    _aligned_source_ids(normalized, source_ids, name)
+    return normalized
+
+
+def _aligned_source_ids(
+    values: tuple[tuple[str, object], ...],
+    source_ids: tuple[str, ...],
+    name: str,
+) -> None:
+    _unique_first_values(values, name)
+    if tuple(source_id for source_id, _ in values) != source_ids:
+        raise ValueError(f"{name} must align with assignment_status.")
+
+
+def _non_negative_integer(value: object, name: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError(f"{name} must be a non-negative integer or None.")
+    return value

@@ -159,6 +159,44 @@ class TextureDomainAnalysisTests(unittest.TestCase):
         )
         self.assertEqual(frame.components, ())
 
+    def test_threshold_evidence_uses_candidate_selected_by_smoothing(self):
+        points = (
+            TextureDomainPointInput("target", 1.0, 0.0),
+            TextureDomainPointInput("neighbor-b-1", 0.0, 0.0),
+            TextureDomainPointInput("neighbor-b-2", 2.0, 0.0),
+        )
+        descriptors = np.asarray(
+            (
+                (1.0, 0.2, 0.0),
+                (0.0, 1.0, 0.0),
+                (0.0, 1.0, 0.0),
+            ),
+            dtype=np.float64,
+        )
+
+        frame = analyze_texture_domain_descriptors(
+            frame_index=0,
+            source_view="raw",
+            points=points,
+            descriptors=descriptors,
+            settings=replace(
+                _settings(minimum_component_size=1),
+                neighbor_weight=1.0,
+            ),
+        )
+
+        target = frame.points[0]
+        self.assertEqual(target.nearest_class_key, "orientation_a")
+        self.assertEqual(
+            target.threshold_candidate_class_key,
+            "orientation_b",
+        )
+        self.assertIsNotNone(target.threshold_candidate_distance)
+        assert target.threshold_candidate_distance is not None
+        self.assertGreater(target.threshold_candidate_distance, 0.4)
+        self.assertEqual(target.threshold_reason, "below_distance_threshold")
+        self.assertEqual(target.class_key, "unknown")
+
     def test_overlay_is_one_projection_with_configured_opacity(self):
         frame = analyze_texture_domain_descriptors(
             frame_index=0,

@@ -16,6 +16,7 @@ from .cache import (
     m6_frame_cache_key,
 )
 from .canonical_geometry import canonicalize_frame
+from .classic_diagnostic_funnel import build_classic_molecule_diagnostic_funnels
 from .classifier_runner import (
     MoleculeClassifierAdapter,
     not_run_classifier_outcomes,
@@ -112,9 +113,15 @@ class DomainAnalysisModule:
             return m6_range
         gate, canonical_frames = m6_range
         emit_event(on_event, "m6", "published", "Complete M6 gate published.")
-        return self._complete_run(
+        result = self._complete_run(
             series, request, gate, canonical_frames,
             on_event=on_event, is_cancelled=is_cancelled,
+        )
+        return replace(
+            result,
+            molecule_diagnostic_funnels=(
+                build_classic_molecule_diagnostic_funnels(result)
+            ),
         )
 
     def session_cache_records(

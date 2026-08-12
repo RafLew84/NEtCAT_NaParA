@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
+from math import isfinite
 from typing import Literal
 
 from .classifier_contract import (
@@ -23,6 +24,10 @@ MoleculeClassificationStatus = Literal[
     "not_gated",
 ]
 M6Partition = Literal["full_domain", "small_ordered_island", "outside"]
+OrientationThresholdDecision = Literal["accepted", "rejected"]
+OrientationComponentFilterDecision = Literal[
+    "accepted", "filtered", "not_evaluated"
+]
 
 
 @dataclass(frozen=True)
@@ -46,6 +51,70 @@ class ClassifierMoleculeInput:
 
 
 @dataclass(frozen=True)
+class ABCOrientationDiagnosticEvidence:
+    """Raw A/B/C evidence and the two independent rejection decisions."""
+
+    raw_orientation_label: Literal["A", "B", "C"] | None
+    threshold_candidate_label: Literal["A", "B", "C"] | None
+    nearest_distance: float | None
+    threshold_candidate_distance: float | None
+    margin: float | None
+    distance_threshold: float | None
+    minimum_margin: float
+    threshold_decision: OrientationThresholdDecision
+    threshold_reason_code: str
+    component_filter_decision: OrientationComponentFilterDecision
+    component_filter_reason_code: str
+
+    def __post_init__(self) -> None:
+        for field_name in (
+            "raw_orientation_label",
+            "threshold_candidate_label",
+        ):
+            if getattr(self, field_name) not in {"A", "B", "C", None}:
+                raise ValueError(f"Unsupported {field_name}.")
+        for field_name in (
+            "nearest_distance", "threshold_candidate_distance", "margin",
+            "distance_threshold",
+        ):
+            object.__setattr__(
+                self,
+                field_name,
+                _optional_non_negative_float(getattr(self, field_name), field_name),
+            )
+        object.__setattr__(
+            self,
+            "minimum_margin",
+            _non_negative_float(self.minimum_margin, "minimum_margin"),
+        )
+        if self.threshold_decision not in {"accepted", "rejected"}:
+            raise ValueError("Unsupported threshold_decision.")
+        if self.component_filter_decision not in {
+            "accepted", "filtered", "not_evaluated"
+        }:
+            raise ValueError("Unsupported component_filter_decision.")
+        for field_name in (
+            "threshold_reason_code", "component_filter_reason_code"
+        ):
+            object.__setattr__(
+                self,
+                field_name,
+                validated_text(getattr(self, field_name), field_name),
+            )
+        if self.threshold_decision == "accepted" and (
+            self.threshold_candidate_label is None
+            or self.component_filter_decision == "not_evaluated"
+        ):
+            raise ValueError(
+                "Accepted threshold evidence must reach the component filter."
+            )
+        if self.threshold_decision == "rejected" and (
+            self.component_filter_decision != "not_evaluated"
+        ):
+            raise ValueError("Rejected threshold evidence cannot be component-filtered.")
+
+
+@dataclass(frozen=True)
 class ClassifierMoleculePrediction:
     """Adapter-owned A/B/C evidence before result provenance is attached."""
 
@@ -53,6 +122,7 @@ class ClassifierMoleculePrediction:
     orientation_label: Literal["A", "B", "C"] | None
     evidence_strength: float
     component_id: str | None = None
+    diagnostic_evidence: ABCOrientationDiagnosticEvidence | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -82,6 +152,22 @@ class ClassifierMoleculePrediction:
             "component_id",
             None if component_id is None else str(component_id).strip(),
         )
+        diagnostic = self.diagnostic_evidence
+        if diagnostic is not None and not isinstance(
+            diagnostic, ABCOrientationDiagnosticEvidence
+        ):
+            raise TypeError(
+                "diagnostic_evidence must be ABCOrientationDiagnosticEvidence."
+            )
+        if diagnostic is not None:
+            accepted = (
+                diagnostic.threshold_decision == "accepted"
+                and diagnostic.component_filter_decision == "accepted"
+            )
+            if (self.orientation_label is not None) != accepted:
+                raise ValueError(
+                    "Accepted diagnostic decisions must match the final prediction."
+                )
 
 
 @dataclass(frozen=True)
@@ -99,6 +185,7 @@ class MoleculeClassification:
     evidence_strength: float
     component_id: str | None
     identity: ClassifierIdentity
+    diagnostic_evidence: ABCOrientationDiagnosticEvidence | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -370,6 +457,8 @@ def classifier_frame_result_fingerprint(
     for value in classifications:
         item = asdict(value)
         item.pop("frame_index")
+        if item.get("diagnostic_evidence") is None:
+            item.pop("diagnostic_evidence")
         payload.append(item)
     return canonical_sha256({
         "schema_version": "domain-analysis-classifier-frame-v1",
@@ -443,6 +532,13 @@ def _validate_classification(value: MoleculeClassification) -> None:
         "evidence_strength",
     )
     component_id = value.component_id
+    diagnostic = value.diagnostic_evidence
+    if diagnostic is not None and not isinstance(
+        diagnostic, ABCOrientationDiagnosticEvidence
+    ):
+        raise TypeError(
+            "diagnostic_evidence must be ABCOrientationDiagnosticEvidence."
+        )
     if value.classification_status == "classified":
         if (
             value.m6_partition != "full_domain"
@@ -476,6 +572,7 @@ def _validate_classification(value: MoleculeClassification) -> None:
             or value.orientation_label is not None
             or strength != 0.0
             or component_id is not None
+            or diagnostic is not None
         ):
             raise ValueError("Not-gated molecules cannot carry classifier evidence.")
     object.__setattr__(value, "evidence_strength", strength)
@@ -488,3 +585,18 @@ def _validate_classification(value: MoleculeClassification) -> None:
             else validated_text(component_id, "component_id")
         ),
     )
+
+
+def _optional_non_negative_float(value: object, field_name: str) -> float | None:
+    if value is None:
+        return None
+    return _non_negative_float(value, field_name)
+
+
+def _non_negative_float(value: object, field_name: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise TypeError(f"{field_name} must be numeric.")
+    normalized = float(value)
+    if not isfinite(normalized) or normalized < 0.0:
+        raise ValueError(f"{field_name} must be finite and non-negative.")
+    return normalized

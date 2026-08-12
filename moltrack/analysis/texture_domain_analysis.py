@@ -304,6 +304,9 @@ class TextureDomainPointResult:
     y_px: float
     class_key: str
     nearest_class_key: str
+    threshold_candidate_class_key: str
+    threshold_candidate_distance: float | None
+    threshold_reason: str
     component_id: str
     nearest_distance: float | None
     margin: float | None
@@ -312,30 +315,28 @@ class TextureDomainPointResult:
         source_id = str(self.source_id).strip()
         class_key = str(self.class_key).strip()
         nearest_class_key = str(self.nearest_class_key).strip()
+        threshold_candidate_class_key = str(self.threshold_candidate_class_key).strip()
+        threshold_reason = str(self.threshold_reason).strip()
         component_id = str(self.component_id).strip()
-        if not source_id or not class_key or not nearest_class_key:
+        if not source_id or not class_key or not nearest_class_key or not threshold_candidate_class_key or not threshold_reason:
             raise ValueError("Texture-domain point labels must not be empty.")
         x_px = _finite_float(self.x_px, "x_px")
         y_px = _finite_float(self.y_px, "y_px")
         if x_px < 0.0 or y_px < 0.0:
             raise ValueError("Texture-domain point coordinates must be non-negative.")
-        nearest_distance = (
-            None
-            if self.nearest_distance is None
-            else _finite_float(self.nearest_distance, "nearest_distance")
-        )
-        margin = (
-            None
-            if self.margin is None
-            else _finite_float(self.margin, "margin")
-        )
-        if nearest_distance is not None and nearest_distance < 0.0:
-            raise ValueError("nearest_distance must be non-negative.")
+        nearest_distance = None if self.nearest_distance is None else _finite_float(self.nearest_distance, "nearest_distance")
+        candidate_distance = None if self.threshold_candidate_distance is None else _finite_float(self.threshold_candidate_distance, "threshold_candidate_distance")
+        margin = None if self.margin is None else _finite_float(self.margin, "margin")
+        if any(value is not None and value < 0.0 for value in (nearest_distance, candidate_distance)):
+            raise ValueError("Texture-domain distances must be non-negative.")
         object.__setattr__(self, "source_id", source_id)
         object.__setattr__(self, "x_px", x_px)
         object.__setattr__(self, "y_px", y_px)
         object.__setattr__(self, "class_key", class_key)
         object.__setattr__(self, "nearest_class_key", nearest_class_key)
+        object.__setattr__(self, "threshold_candidate_class_key", threshold_candidate_class_key)
+        object.__setattr__(self, "threshold_candidate_distance", candidate_distance)
+        object.__setattr__(self, "threshold_reason", threshold_reason)
         object.__setattr__(self, "component_id", component_id)
         object.__setattr__(self, "nearest_distance", nearest_distance)
         object.__setattr__(self, "margin", margin)
@@ -347,6 +348,9 @@ class TextureDomainPointResult:
             "y_px": self.y_px,
             "class_key": self.class_key,
             "nearest_class_key": self.nearest_class_key,
+            "threshold_candidate_class_key": self.threshold_candidate_class_key,
+            "threshold_candidate_distance": self.threshold_candidate_distance,
+            "threshold_reason": self.threshold_reason,
             "component_id": self.component_id,
             "nearest_distance": self.nearest_distance,
             "margin": self.margin,
@@ -360,15 +364,16 @@ class TextureDomainPointResult:
             y_px=float(payload["y_px"]),
             class_key=str(payload["class_key"]),
             nearest_class_key=str(payload["nearest_class_key"]),
-            component_id=str(payload.get("component_id", "")),
-            nearest_distance=(
+            threshold_candidate_class_key=str(payload.get("threshold_candidate_class_key", payload["nearest_class_key"])),
+            threshold_candidate_distance=(
                 None
-                if payload.get("nearest_distance") is None
-                else float(payload["nearest_distance"])
+                if payload.get("threshold_candidate_distance", payload.get("nearest_distance")) is None
+                else float(payload.get("threshold_candidate_distance", payload["nearest_distance"]))
             ),
-            margin=(
-                None if payload.get("margin") is None else float(payload["margin"])
-            ),
+            threshold_reason=str(payload.get("threshold_reason", "legacy_rejection_reason_unavailable")),
+            component_id=str(payload.get("component_id", "")),
+            nearest_distance=None if payload.get("nearest_distance") is None else float(payload["nearest_distance"]),
+            margin=None if payload.get("margin") is None else float(payload["margin"]),
         )
 
 
@@ -741,21 +746,26 @@ def _apply_unknown(
     predictions: np.ndarray,
     distances: np.ndarray,
     settings: TextureDomainAnalysisSettings,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, tuple[str, ...]]:
     result = predictions.copy()
     margins = np.full(len(predictions), np.nan, dtype=np.float64)
+    reasons = []
     for index, predicted in enumerate(predictions):
         if predicted < 0:
+            reasons.append("insufficient_descriptor_evidence")
             continue
         ordered = np.sort(distances[index])
         margin = float(ordered[1] - ordered[0])
         margins[index] = margin
-        if (
-            distances[index, predicted] > settings.distance_thresholds[predicted]
-            or margin < settings.minimum_margin
-        ):
+        if distances[index, predicted] > settings.distance_thresholds[predicted]:
             result[index] = -1
-    return result, margins
+            reasons.append("below_distance_threshold")
+        elif margin < settings.minimum_margin:
+            result[index] = -1
+            reasons.append("below_minimum_margin")
+        else:
+            reasons.append("accepted_result")
+    return result, margins, tuple(reasons)
 
 
 def _component_assignments(
@@ -843,15 +853,11 @@ def analyze_texture_domain_descriptors(
         )
     distances = _cosine_distances(descriptor_array, settings)
     neighbors = _neighbor_graph(points, settings)
-    nearest = (
-        np.argmin(distances, axis=1)
-        if len(points)
-        else np.empty(0, dtype=np.int64)
-    )
+    nearest = np.argmin(distances, axis=1) if len(points) else np.empty(0, dtype=np.int64)
     if len(points):
         nearest[~np.any(np.isfinite(distances), axis=1)] = -1
     smoothed = _smoothed_predictions(distances, neighbors, settings)
-    with_unknown, margins = _apply_unknown(smoothed, distances, settings)
+    with_unknown, margins, threshold_reasons = _apply_unknown(smoothed, distances, settings)
     filtered, assignments, components = _component_assignments(
         points,
         with_unknown,
@@ -862,28 +868,21 @@ def analyze_texture_domain_descriptors(
     point_results = []
     for index, point in enumerate(points):
         nearest_index = int(nearest[index])
+        threshold_index = int(smoothed[index])
         final_index = int(filtered[index])
-        nearest_distance = (
-            None
-            if nearest_index < 0
-            else float(distances[index, nearest_index])
-        )
+        nearest_distance = None if nearest_index < 0 else float(distances[index, nearest_index])
+        threshold_distance = None if threshold_index < 0 else float(distances[index, threshold_index])
         margin = None if not np.isfinite(margins[index]) else float(margins[index])
         point_results.append(
             TextureDomainPointResult(
                 source_id=point.source_id,
                 x_px=point.x_px,
                 y_px=point.y_px,
-                class_key=(
-                    TEXTURE_DOMAIN_UNKNOWN_CLASS_KEY
-                    if final_index < 0
-                    else class_keys[final_index]
-                ),
-                nearest_class_key=(
-                    TEXTURE_DOMAIN_UNKNOWN_CLASS_KEY
-                    if nearest_index < 0
-                    else class_keys[nearest_index]
-                ),
+                class_key=TEXTURE_DOMAIN_UNKNOWN_CLASS_KEY if final_index < 0 else class_keys[final_index],
+                nearest_class_key=TEXTURE_DOMAIN_UNKNOWN_CLASS_KEY if nearest_index < 0 else class_keys[nearest_index],
+                threshold_candidate_class_key=TEXTURE_DOMAIN_UNKNOWN_CLASS_KEY if threshold_index < 0 else class_keys[threshold_index],
+                threshold_candidate_distance=threshold_distance,
+                threshold_reason=threshold_reasons[index],
                 component_id=assignments[index],
                 nearest_distance=nearest_distance,
                 margin=margin,
