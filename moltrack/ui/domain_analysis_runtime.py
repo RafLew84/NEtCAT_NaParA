@@ -343,7 +343,7 @@ def _annotations(
                     source_id=segmentation.segmentation_id,
                     source_view=source_view,
                     bbox_xyxy=bbox,
-                    mask_shape=tuple(int(value) for value in mask.shape),
+                    mask_shape=(int(mask.shape[0]), int(mask.shape[1])),
                     mask_pixels_xy=tuple(
                         (int(x), int(y)) for y, x in zip(y_values, x_values)
                     ),
