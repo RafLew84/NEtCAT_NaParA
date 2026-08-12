@@ -4,6 +4,7 @@ import csv
 import hashlib
 import json
 from dataclasses import replace
+from functools import partial
 
 import pytest
 
@@ -17,17 +18,24 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisRequest,
     DomainAnalysisResult,
     DomainAnalysisSessionState,
+    DomainBackendIdentity,
     DomainComponentKey,
     DomainLabelSummary,
+    M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     M6FrameGate,
     M6Gate,
     M6PresentationProvenance,
+    M6OrientationComponentsEvidence,
     M6PublishedComponent,
     M6PublishedMolecule,
     MoleculeClassification,
 )
 from moltrack.analysis.domain_analysis.classifier_models import (
     classifier_frame_result_fingerprint,
+)
+
+DomainAnalysisRequest = partial(
+    DomainAnalysisRequest, backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID
 )
 from moltrack.analysis.domain_analysis.fingerprints import canonical_sha256
 from moltrack.persistence import (
@@ -94,8 +102,16 @@ def _frame_gate(frame_index: int) -> M6FrameGate:
             registration_fingerprint=f"registration-{frame_index}",
         ),
         source_geometry_fingerprint=f"geometry-{frame_index}",
-        m6_settings_fingerprint=_M6_SETTINGS_FINGERPRINT,
-        m6_algorithm_version="m6-algorithm-v1",
+        backend_identity=DomainBackendIdentity(
+            backend_id="m6_orientation_components",
+            result_schema_version="domain-backend-result-v1",
+            algorithm_version="m6-algorithm-v1",
+            settings_fingerprint=_M6_SETTINGS_FINGERPRINT,
+            adapter_owner="export-test",
+            native_evidence_kind="m6_orientation_evidence_v1",
+            capabilities=("common_partition",),
+        ),
+        native_evidence=M6OrientationComponentsEvidence((), ()),
         pixel_area_nm2=0.5,
         full_domains=(
             _component(

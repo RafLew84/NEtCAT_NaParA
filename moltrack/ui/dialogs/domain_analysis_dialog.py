@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from PyQt6.QtCore import QSignalBlocker
 from PyQt6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QFormLayout,
     QGridLayout,
@@ -19,6 +20,8 @@ from PyQt6.QtWidgets import (
 from moltrack.analysis.domain_analysis import (
     ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
     ABC_ORIENTATION_CLASSIFIER_ID,
+    M3_M6_LATTICE_NETWORK_BACKEND_ID,
+    M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     DomainAnalysisRequest,
     DomainAnalysisWorkspaceController,
     DomainAnalysisWorkspaceSnapshot,
@@ -117,16 +120,24 @@ class DomainAnalysisDialog(QDialog):
         grid.addWidget(QLabel("End frame", group), 0, 1)
         grid.addWidget(self.range_start_spin, 1, 0)
         grid.addWidget(self.range_end_spin, 1, 1)
+        self.domain_backend_combo = QComboBox(group)
+        for backend_id in (
+            M6_ORIENTATION_COMPONENTS_BACKEND_ID,
+            M3_M6_LATTICE_NETWORK_BACKEND_ID,
+        ):
+            self.domain_backend_combo.addItem(backend_id, backend_id)
+        grid.addWidget(QLabel("Domain backend", group), 2, 0)
+        grid.addWidget(self.domain_backend_combo, 2, 1)
         self.use_segmentation_centroids_checkbox = QCheckBox(
             "Use segmentation centroids when available",
             group,
         )
-        grid.addWidget(self.use_segmentation_centroids_checkbox, 2, 0, 1, 2)
+        grid.addWidget(self.use_segmentation_centroids_checkbox, 3, 0, 1, 2)
         self.classify_abc_checkbox = QCheckBox(
             "Run M6-Gated A/B/C Classification",
             group,
         )
-        grid.addWidget(self.classify_abc_checkbox, 3, 0, 1, 2)
+        grid.addWidget(self.classify_abc_checkbox, 4, 0, 1, 2)
         return group
 
     def _build_policy_group(
@@ -172,6 +183,7 @@ class DomainAnalysisDialog(QDialog):
         return row
 
     def _connect_controls(self) -> None:
+        self.domain_backend_combo.currentIndexChanged.connect(self._replace_draft)
         self.use_segmentation_centroids_checkbox.toggled.connect(self._replace_draft)
         self.classify_abc_checkbox.toggled.connect(self._replace_draft)
         self.current_frame_results_panel.domain_selection_changed.connect(
@@ -179,8 +191,12 @@ class DomainAnalysisDialog(QDialog):
         )
 
     def _replace_draft(self) -> None:
+        selected_backend = self.domain_backend_combo.currentData()
         draft = DomainAnalysisRequest(
             frame_range=self._range_binding.frame_range,
+            backend_id=(
+                selected_backend if isinstance(selected_backend, str) else None
+            ),
             geometry_mode=(
                 "segmentation_preferred"
                 if self.use_segmentation_centroids_checkbox.isChecked()
@@ -200,6 +216,7 @@ class DomainAnalysisDialog(QDialog):
         blockers = [
             QSignalBlocker(widget)
             for widget in (
+                self.domain_backend_combo,
                 self.use_segmentation_centroids_checkbox,
                 self.classify_abc_checkbox,
             )
@@ -221,6 +238,10 @@ class DomainAnalysisDialog(QDialog):
             frame_count=snapshot.frame_count,
             frame_range=snapshot.draft.frame_range,
         )
+        backend_index = self.domain_backend_combo.findData(
+            snapshot.draft.backend_id
+        )
+        self.domain_backend_combo.setCurrentIndex(backend_index)
         self.use_segmentation_centroids_checkbox.setChecked(
             snapshot.draft.geometry_mode == "segmentation_preferred"
         )
@@ -234,6 +255,7 @@ class DomainAnalysisDialog(QDialog):
     ) -> None:
         self._range_binding.set_enabled(presentation.request_enabled)
         for widget in (
+            self.domain_backend_combo,
             self.use_segmentation_centroids_checkbox,
             self.classify_abc_checkbox,
         ):

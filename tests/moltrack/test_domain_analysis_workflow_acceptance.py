@@ -5,6 +5,7 @@ import os
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 from typing import Literal
 from unittest.mock import patch
@@ -24,9 +25,11 @@ from moltrack.analysis.domain_analysis import (
     ClassifierMoleculePrediction,
     DomainAnalysisRequest,
     DomainAnalysisSessionState,
+    M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     M6CanonicalFrame,
     M6ComponentMembership,
     M6FrameComputation,
+    M6OrientationComponentsEvidence,
 )
 from moltrack.core import (
     MolecularDetection,
@@ -43,6 +46,10 @@ from moltrack.persistence import (
 )
 from nanotrack.core import STMSequenceMetadata
 from moltrack.ui import MolTrackMainWindow
+
+DomainAnalysisRequest = partial(
+    DomainAnalysisRequest, backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID
+)
 from moltrack.ui import domain_analysis_runtime as runtime
 from moltrack.ui.domain_analysis_composition import (
     DomainAnalysisMainWindowComposition,
@@ -114,7 +121,13 @@ def _stub_m6_analysis(
         ),),
         coordinate_frame=frame.coordinate_frame,
         coordinate_transform_fingerprint=frame.coordinate_transform_fingerprint,
-        m6_settings_fingerprint=adapter.m6_settings_fingerprint,
+        backend_identity=adapter.backend_identity,
+        native_evidence=M6OrientationComponentsEvidence(
+            assignment_status=tuple(
+                (value.source_id, "assigned") for value in frame.molecules
+            ),
+            q6=tuple((value.source_id, None) for value in frame.molecules),
+        ),
     )
 
 

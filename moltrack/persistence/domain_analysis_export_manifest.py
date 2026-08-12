@@ -154,8 +154,8 @@ def _m6_frame_manifest(
         **domain_analysis_frame_identity(frame, source_frame_index),
         "m6_gate_fingerprint": frame.m6_gate_fingerprint,
         "source_geometry_fingerprint": frame.source_geometry_fingerprint,
-        "m6_settings_fingerprint": frame.m6_settings_fingerprint,
-        "m6_algorithm_version": frame.m6_algorithm_version,
+        "m6_settings_fingerprint": frame.backend_identity.settings_fingerprint,
+        "m6_algorithm_version": frame.backend_identity.algorithm_version,
         "coordinate_frame": frame.coordinate_frame,
         "coordinate_transform_fingerprint": frame.coordinate_transform_fingerprint,
         "presentation_provenance": {

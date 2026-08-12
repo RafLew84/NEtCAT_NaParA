@@ -5,6 +5,7 @@ from dataclasses import replace
 from math import fsum
 from typing import TYPE_CHECKING, Protocol
 
+from .backend_contract import DomainBackendIdentity
 from .cache import (
     DEFAULT_CLASSIFIER_CACHE_MAX_ENTRIES,
     DEFAULT_M6_CACHE_MAX_ENTRIES,
@@ -47,8 +48,7 @@ if TYPE_CHECKING:
 
 
 class M6Adapter(Protocol):
-    m6_settings_fingerprint: str
-    m6_algorithm_version: str
+    backend_identity: DomainBackendIdentity
 
     def analyze_frame(
         self,
@@ -68,7 +68,7 @@ class DomainAnalysisModule:
 
     def __init__(
         self,
-        m6_adapter: M6Adapter,
+        backend_adapters: Mapping[str, M6Adapter],
         classifier_adapters: Mapping[str, MoleculeClassifierAdapter],
         *,
         m6_cache_max_entries: int = DEFAULT_M6_CACHE_MAX_ENTRIES,
@@ -76,7 +76,8 @@ class DomainAnalysisModule:
             DEFAULT_CLASSIFIER_CACHE_MAX_ENTRIES
         ),
     ) -> None:
-        self._m6_adapter = m6_adapter
+        self._backend_adapters = dict(backend_adapters)
+        _validate_backend_registry(self._backend_adapters)
         self._classifier_adapters = dict(classifier_adapters)
         self._m6_cache = M6FrameCache(max_entries=m6_cache_max_entries)
         self._classifier_cache = ClassifierFrameCache(
@@ -94,18 +95,17 @@ class DomainAnalysisModule:
         on_event: Callable[[DomainAnalysisEvent], None] | None = None,
         is_cancelled: Callable[[], bool] | None = None,
     ) -> DomainAnalysisResult:
-        _validate_run_request(request, self._classifier_adapters)
-        settings_fingerprint = _adapter_identity(
-            self._m6_adapter.m6_settings_fingerprint,
-            "m6_settings_fingerprint",
+        _validate_run_request(
+            request,
+            self._backend_adapters,
+            self._classifier_adapters,
         )
-        algorithm_version = _adapter_identity(
-            self._m6_adapter.m6_algorithm_version,
-            "m6_algorithm_version",
-        )
+        assert request.backend_id is not None
+        adapter = self._backend_adapters[request.backend_id]
+        identity = adapter.backend_identity
         emit_event(on_event, "run", "started", "Domain Analysis started.")
         m6_range = self._run_m6_range(
-            series, request, settings_fingerprint, algorithm_version,
+            series, request, adapter, identity,
             on_event=on_event, is_cancelled=is_cancelled,
         )
         if isinstance(m6_range, DomainAnalysisResult):
@@ -165,8 +165,8 @@ class DomainAnalysisModule:
         self,
         series: DomainAnalysisSeries,
         request: DomainAnalysisRequest,
-        settings_fingerprint: str,
-        algorithm_version: str,
+        adapter: M6Adapter,
+        identity: DomainBackendIdentity,
         *,
         on_event: Callable[[DomainAnalysisEvent], None] | None,
         is_cancelled: Callable[[], bool] | None,
@@ -184,9 +184,9 @@ class DomainAnalysisModule:
                 published_frame, disposition, canonical_frame = self._run_m6_frame(
                     series,
                     request,
+                    adapter,
+                    identity,
                     frame_index=frame_index,
-                    settings_fingerprint=settings_fingerprint,
-                    algorithm_version=algorithm_version,
                 )
             except M6FrameAnalysisError as exc:
                 return _failed_result(
@@ -242,10 +242,10 @@ class DomainAnalysisModule:
         self,
         series: DomainAnalysisSeries,
         request: DomainAnalysisRequest,
+        adapter: M6Adapter,
+        identity: DomainBackendIdentity,
         *,
         frame_index: int,
-        settings_fingerprint: str,
-        algorithm_version: str,
     ) -> tuple[M6FrameGate, M6CacheDisposition, M6CanonicalFrame]:
         canonical_frame = canonicalize_frame(
             series,
@@ -255,12 +255,11 @@ class DomainAnalysisModule:
         cache_key = m6_frame_cache_key(
             canonical_frame,
             geometry_mode=request.geometry_mode,
-            m6_settings_fingerprint=settings_fingerprint,
-            m6_algorithm_version=algorithm_version,
+            backend_identity=identity,
         )
         disposition, cached = self._m6_cache.lookup(cache_key)
         if cached is None:
-            computation = self._m6_adapter.analyze_frame(
+            computation = adapter.analyze_frame(
                 canonical_frame,
                 frame_index=frame_index,
                 geometry_mode=request.geometry_mode,
@@ -269,14 +268,14 @@ class DomainAnalysisModule:
                 computation,
                 canonical_frame,
                 frame_index=frame_index,
-                settings_fingerprint=settings_fingerprint,
+                backend_identity=identity,
             )
         else:
             computation = replace(cached, frame_index=frame_index)
         published = _publish_frame(
             computation,
             canonical_frame,
-            m6_algorithm_version=algorithm_version,
+            backend_identity=identity,
         )
         if cached is None:
             self._m6_cache.put(cache_key, computation)
@@ -302,10 +301,15 @@ def _emit_m6_frame_progress(
 
 def _validate_run_request(
     request: DomainAnalysisRequest,
+    backend_adapters: Mapping[str, M6Adapter],
     classifier_adapters: Mapping[str, MoleculeClassifierAdapter],
 ) -> None:
     if not isinstance(request, DomainAnalysisRequest):
         raise TypeError("request must be a DomainAnalysisRequest.")
+    if request.backend_id is None:
+        raise ValueError("Domain Analysis requires an explicit domain backend.")
+    if request.backend_id is not None and request.backend_id not in backend_adapters:
+        raise ValueError(f"Unavailable domain backend: {request.backend_id!r}.")
     unknown_classifiers = set(request.classifier_ids).difference(
         classifier_adapters
     )
@@ -315,19 +319,31 @@ def _validate_run_request(
         )
 
 
+def _validate_backend_registry(
+    adapters: Mapping[str, M6Adapter],
+) -> None:
+    if not adapters:
+        raise ValueError("Domain backend registry cannot be empty.")
+    for backend_id, adapter in adapters.items():
+        if not isinstance(adapter.backend_identity, DomainBackendIdentity):
+            raise TypeError("Domain adapter must expose DomainBackendIdentity.")
+        if backend_id != adapter.backend_identity.backend_id:
+            raise ValueError("Domain backend registry key does not match its adapter.")
+
+
 def _validate_computation(
     computation: M6FrameComputation,
     canonical_frame: M6CanonicalFrame,
     *,
     frame_index: int,
-    settings_fingerprint: str,
+    backend_identity: DomainBackendIdentity,
 ) -> None:
     if not isinstance(computation, M6FrameComputation):
         raise TypeError("M6 adapter must return M6FrameComputation.")
     if computation.frame_index != frame_index:
         raise ValueError("M6 adapter returned a result for another frame.")
-    if computation.m6_settings_fingerprint != settings_fingerprint:
-        raise ValueError("M6 adapter settings fingerprint changed during the run.")
+    if computation.backend_identity != backend_identity:
+        raise ValueError("Domain backend identity changed during the run.")
     if (
         computation.molecules != canonical_frame.molecules
         or computation.analyzed_pixels_xy != canonical_frame.analyzed_pixels_xy
@@ -337,12 +353,6 @@ def _validate_computation(
         != canonical_frame.coordinate_transform_fingerprint
     ):
         raise ValueError("M6 adapter changed canonical frame geometry.")
-
-
-def _adapter_identity(value: str, name: str) -> str:
-    if not isinstance(value, str) or not value.strip():
-        raise ValueError(f"M6 adapter {name} must be a non-empty string.")
-    return value.strip()
 
 
 def _failed_result(
@@ -401,7 +411,7 @@ def _publish_frame(
     computation: M6FrameComputation,
     canonical_frame: M6CanonicalFrame,
     *,
-    m6_algorithm_version: str,
+    backend_identity: DomainBackendIdentity,
 ) -> M6FrameGate:
     molecule_by_id = {value.source_id: value for value in computation.molecules}
     memberships = computation.full_domains + computation.small_ordered_islands
@@ -448,8 +458,8 @@ def _publish_frame(
             computation.molecules,
             pixel_area_nm2=computation.pixel_area_nm2,
         ),
-        m6_settings_fingerprint=computation.m6_settings_fingerprint,
-        m6_algorithm_version=m6_algorithm_version,
+        backend_identity=backend_identity,
+        native_evidence=computation.native_evidence,
         pixel_area_nm2=computation.pixel_area_nm2,
         full_domains=full_domains,
         small_ordered_islands=islands,

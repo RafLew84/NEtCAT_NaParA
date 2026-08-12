@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from functools import partial
 from typing import Literal
 
 import numpy as np
@@ -16,19 +17,35 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisModule,
     DomainAnalysisRequest,
     DomainAnalysisSeries,
+    M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     M6CanonicalFrame,
     M6ComponentMembership,
     M6FrameComputation,
     M6FrameGeometry,
+    M6OrientationComponentsEvidence,
     M6SourceAnnotation,
     TextureABCClassifierAdapter,
+    m6_orientation_components_identity,
 )
 from moltrack.analysis.texture_domain_analysis import TTMAPP_TEXTURE_DOMAIN_PRESET
+from domain_analysis_test_support import domain_analysis_module as DomainAnalysisModule
+
+DomainAnalysisRequest = partial(
+    DomainAnalysisRequest, backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID
+)
 
 
 class _FullDomainM6Adapter:
     m6_settings_fingerprint = "m6-settings-v1"
     m6_algorithm_version = "m6-algorithm-v1"
+
+    @property
+    def backend_identity(self):
+        return m6_orientation_components_identity(
+            settings_fingerprint=self.m6_settings_fingerprint,
+            algorithm_version=self.m6_algorithm_version,
+            adapter_owner="full-domain-test-adapter",
+        )
 
     def analyze_frame(
         self,
@@ -59,7 +76,13 @@ class _FullDomainM6Adapter:
             coordinate_transform_fingerprint=(
                 frame.coordinate_transform_fingerprint
             ),
-            m6_settings_fingerprint=self.m6_settings_fingerprint,
+            backend_identity=self.backend_identity,
+            native_evidence=M6OrientationComponentsEvidence(
+                assignment_status=tuple(
+                    (value.source_id, "assigned") for value in frame.molecules
+                ),
+                q6=tuple((value.source_id, None) for value in frame.molecules),
+            ),
         )
 
 
@@ -111,7 +134,6 @@ class _RecordingABCClassifier:
             for molecule in reversed(molecules)
         )
 
-
 class _NoFullDomainM6Adapter(_FullDomainM6Adapter):
     def analyze_frame(
         self,
@@ -155,7 +177,6 @@ class _TwoFullDomainsM6Adapter(_FullDomainM6Adapter):
             ),
         )
 
-
 class _AllMoleculesFullDomainM6Adapter(_FullDomainM6Adapter):
     def analyze_frame(
         self,
@@ -181,7 +202,6 @@ class _AllMoleculesFullDomainM6Adapter(_FullDomainM6Adapter):
             ),
             small_ordered_islands=(),
         )
-
 
 class _ScenarioABCClassifier:
     classifier_id = "abc_orientation"
@@ -229,7 +249,6 @@ class _ScenarioABCClassifier:
             )
             for molecule, label in reversed(tuple(zip(molecules, self._labels)))
         )
-
 
 def _series(
     source_view: Literal["raw", "expanded_aligned"],
@@ -279,7 +298,6 @@ def _series(
         ),
     ))
 
-
 def _range_series(
     raw_frames: tuple[np.ndarray, ...],
 ) -> DomainAnalysisSeries:
@@ -296,7 +314,6 @@ def _range_series(
         )
         for frame_index, raw_frame in enumerate(raw_frames)
     ))
-
 
 @pytest.mark.parametrize(
     (
@@ -374,7 +391,6 @@ def test_run_publishes_conservative_full_domain_label_summary(
         result.m6_gate.frames[0].full_domains[0].lattice_domain_id
     )
 
-
 def test_run_binds_classifier_and_aggregation_as_one_configuration() -> None:
     revised_preset = replace(
         ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
@@ -416,7 +432,6 @@ def test_run_binds_classifier_and_aggregation_as_one_configuration() -> None:
         revised_preset.fingerprint
     )
 
-
 def test_run_publishes_a_deep_auditable_classifier_contract() -> None:
     classifier = _ScenarioABCClassifier(("A", "A", "A", None))
     result = DomainAnalysisModule(
@@ -456,7 +471,6 @@ def test_run_publishes_a_deep_auditable_classifier_contract() -> None:
     assert outcome.classifier_result_fingerprint is not None
     assert len(outcome.classifier_result_fingerprint) == 64
     assert len(outcome.frame_result_provenance) == 1
-
 
 def test_run_gates_classifier_to_full_domains_and_exact_raw_pixels() -> None:
     raw_pixels = np.arange(16, dtype=np.uint16).reshape(4, 4)
@@ -540,7 +554,6 @@ def test_run_gates_classifier_to_full_domains_and_exact_raw_pixels() -> None:
     )
     assert reordered.molecule_classifications == outcome.molecule_classifications
 
-
 def test_run_uses_real_texture_adapter_without_forcing_an_abc_label() -> None:
     adapter = TextureABCClassifierAdapter()
     result = DomainAnalysisModule(
@@ -573,7 +586,6 @@ def test_run_uses_real_texture_adapter_without_forcing_an_abc_label() -> None:
         ("m-d", "not_gated", None),
     ]
 
-
 def test_each_physical_frame_uses_its_own_raw_pixels() -> None:
     first_pixels = np.full((4, 4), 11, dtype=np.uint16)
     second_pixels = np.full((4, 4), 22, dtype=np.uint16)
@@ -603,7 +615,6 @@ def test_each_physical_frame_uses_its_own_raw_pixels() -> None:
         (0, "physical-frame-0"),
         (1, "physical-frame-1"),
     ]
-
 
 def test_adjacent_full_domains_are_classified_in_isolated_calls() -> None:
     classifier = _RecordingABCClassifier()
@@ -639,7 +650,6 @@ def test_adjacent_full_domains_are_classified_in_isolated_calls() -> None:
     assert classified["m-b"][0] == "B"
     assert classified["m-a"][1] == calls_by_source_ids[("m-a",)][3]
     assert classified["m-b"][1] == calls_by_source_ids[("m-b",)][3]
-
 
 def test_missing_raw_frame_fails_classifier_without_corrupting_m6() -> None:
     classifier = _RecordingABCClassifier()
@@ -681,7 +691,6 @@ def test_missing_raw_frame_fails_classifier_without_corrupting_m6() -> None:
     assert "exact raw frame" in outcome.error_message
     assert "physical-frame-1" in outcome.error_message
 
-
 def test_missing_raw_is_allowed_when_a_frame_has_no_full_domains() -> None:
     classifier = _RecordingABCClassifier()
     result = DomainAnalysisModule(
@@ -704,7 +713,6 @@ def test_missing_raw_is_allowed_when_a_frame_has_no_full_domains() -> None:
         for value in result.classifier_outcomes[0].molecule_classifications
     } == {"not_gated"}
 
-
 def test_result_rejects_mismatched_run_and_classifier_statuses() -> None:
     classifier = _RecordingABCClassifier()
     module = DomainAnalysisModule(
@@ -725,7 +733,6 @@ def test_result_rejects_mismatched_run_and_classifier_statuses() -> None:
         replace(completed, run_status="completed_with_errors")
     with pytest.raises(ValueError, match="run and classifier statuses"):
         replace(failed, run_status="completed")
-
 
 def test_run_reclassifies_only_stale_and_missing_frames() -> None:
     classifier = _RecordingABCClassifier()
@@ -778,7 +785,6 @@ def test_run_reclassifies_only_stale_and_missing_frames() -> None:
         for value in result.classifier_outcomes[0].molecule_classifications
     } == {0, 1, 2}
 
-
 def test_run_repeats_identical_range_without_reclassification() -> None:
     classifier = _RecordingABCClassifier()
     module = DomainAnalysisModule(
@@ -819,7 +825,6 @@ def test_run_repeats_identical_range_without_reclassification() -> None:
     )
     assert [call[1] for call in classifier.calls] == [0]
 
-
 def test_run_does_not_hash_raw_pixels_without_full_m6_domains() -> None:
     classifier = _RecordingABCClassifier()
     raw_frame = np.full((4, 4), object(), dtype=object)
@@ -837,7 +842,6 @@ def test_run_does_not_hash_raw_pixels_without_full_m6_domains() -> None:
 
     assert result.run_status == "completed"
     assert classifier.calls == []
-
 
 def test_run_cancels_classifier_without_publishing_a_partial_payload() -> None:
     classifier = _RecordingABCClassifier()
@@ -874,7 +878,6 @@ def test_run_cancels_classifier_without_publishing_a_partial_payload() -> None:
 
     assert retried.run_status == "completed"
     assert [call[1] for call in classifier.calls] == [1]
-
 
 def test_run_keys_classifier_cache_by_every_versioned_dependency() -> None:
     classifier = _RecordingABCClassifier()
@@ -915,7 +918,6 @@ def test_run_keys_classifier_cache_by_every_versioned_dependency() -> None:
     assert changed_classifier != changed_aggregation
     assert changed_aggregation != changed_m6
 
-
 def test_run_evicts_least_recently_used_complete_classifier_frame() -> None:
     classifier = _RecordingABCClassifier()
     module = DomainAnalysisModule(
@@ -948,7 +950,6 @@ def test_run_evicts_least_recently_used_complete_classifier_frame() -> None:
     run_frame(1)
 
     assert [call[1] for call in classifier.calls] == [1]
-
 
 def test_run_never_reuses_an_incomplete_classifier_frame() -> None:
     class FailingClassifier(_RecordingABCClassifier):

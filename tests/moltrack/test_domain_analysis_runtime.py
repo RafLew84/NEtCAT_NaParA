@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partial
 from threading import Event
 
 import numpy as np
@@ -9,10 +10,16 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisModule,
     DomainAnalysisRequest,
     DomainAnalysisSeries,
+    M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     M6FrameGeometry,
     M6SourceAnnotation,
 )
 from moltrack.analysis.domain_analysis.canonical_geometry import canonicalize_frame
+from domain_analysis_test_support import domain_analysis_module as DomainAnalysisModule
+
+DomainAnalysisRequest = partial(
+    DomainAnalysisRequest, backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID
+)
 from moltrack.core import (
     MolecularDetectionSet,
     MolecularSegmentation,
@@ -122,10 +129,19 @@ def test_runtime_m6_uses_calibrated_raw_fov_boundary_distances(monkeypatch) -> N
     def analyze(points, **kwargs):
         captured.update(kwargs)
         return type("Analysis", (), {
-            "segmentation": type("Segmentation", (), {"components": ()})(),
+            "segmentation": type("Segmentation", (), {
+                "components": (), "source_ids": ("molecule-1",),
+                "assignment_status": ("outside",),
+            })(),
+            "local_order": type("LocalOrder", (), {
+                "source_ids": ("molecule-1",), "q6": (None,),
+            })(),
         })()
 
-    monkeypatch.setattr(runtime, "analyze_m6_orientation_domains", analyze)
+    monkeypatch.setattr(
+        "moltrack.ui.domain_backend_adapters.analyze_m6_orientation_domains",
+        analyze,
+    )
 
     runtime._MolTrackM6Adapter(series).analyze_frame(
         canonical,

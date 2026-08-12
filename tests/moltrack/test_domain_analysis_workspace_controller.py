@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import FrozenInstanceError
+from functools import partial
 
 import pytest
 
@@ -13,15 +14,22 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisWorkspaceNotificationError,
     DomainAnalysisWorkspaceSnapshot,
     DomainComponentKey,
+    DomainBackendIdentity,
+    M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     M6FrameGate,
     M6Gate,
     M6PresentationProvenance,
+    M6OrientationComponentsEvidence,
     M6PublishedComponent,
     M6PublishedMolecule,
     PublishDomainAnalysisResult,
     ReplaceDomainAnalysisDraft,
     SelectDomainComponent,
     SetDomainAnalysisFrame,
+)
+
+DomainAnalysisRequest = partial(
+    DomainAnalysisRequest, backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID
 )
 
 
@@ -60,8 +68,16 @@ def _frame_gate(
             registration_fingerprint="registration-v1",
         ),
         source_geometry_fingerprint=f"geometry-{frame_index}",
-        m6_settings_fingerprint="m6-settings-v1",
-        m6_algorithm_version="m6-algorithm-v1",
+        backend_identity=DomainBackendIdentity(
+            backend_id="m6_orientation_components",
+            result_schema_version="domain-backend-result-v1",
+            algorithm_version="m6-algorithm-v1",
+            settings_fingerprint="m6-settings-v1",
+            adapter_owner="workspace-controller-test",
+            native_evidence_kind="m6_orientation_evidence_v1",
+            capabilities=("common_partition",),
+        ),
+        native_evidence=M6OrientationComponentsEvidence((), ()),
         pixel_area_nm2=1.0,
         full_domains=(component,),
         small_ordered_islands=(),

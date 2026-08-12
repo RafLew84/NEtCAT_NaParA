@@ -10,6 +10,7 @@ from typing import Generic, Literal, TypeAlias, TypeVar
 
 import numpy as np
 
+from .backend_contract import DomainBackendIdentity
 from .classifier_contract import ClassifierConfiguration
 from .classifier_models import (
     MoleculeClassification,
@@ -68,8 +69,15 @@ class M6FrameCacheKey:
     physical_frame_id: str
     geometry_mode: GeometryMode
     coordinate_transform_fingerprint: str
-    m6_settings_fingerprint: str
-    m6_algorithm_version: str
+    backend_identity: DomainBackendIdentity
+
+    @property
+    def m6_settings_fingerprint(self) -> str:
+        return self.backend_identity.settings_fingerprint
+
+    @property
+    def m6_algorithm_version(self) -> str:
+        return self.backend_identity.algorithm_version
 
 
 class M6FrameCache:
@@ -104,6 +112,14 @@ class M6FrameCache:
         key: M6FrameCacheKey,
         computation: M6FrameComputation,
     ) -> None:
+        existing = self._entries.peek(key)
+        if (
+            existing is not None
+            and existing.result_fingerprint != computation.result_fingerprint
+        ):
+            raise ValueError(
+                "M6 cache key produced a different result fingerprint."
+            )
         self._entries.put(key, computation)
 
     def records(
@@ -116,15 +132,13 @@ def m6_frame_cache_key(
     frame: M6CanonicalFrame,
     *,
     geometry_mode: GeometryMode,
-    m6_settings_fingerprint: str,
-    m6_algorithm_version: str,
+    backend_identity: DomainBackendIdentity,
 ) -> M6FrameCacheKey:
     return M6FrameCacheKey(
         physical_frame_id=frame.physical_frame_id,
         geometry_mode=geometry_mode,
         coordinate_transform_fingerprint=frame.coordinate_transform_fingerprint,
-        m6_settings_fingerprint=m6_settings_fingerprint,
-        m6_algorithm_version=m6_algorithm_version,
+        backend_identity=backend_identity,
     )
 
 

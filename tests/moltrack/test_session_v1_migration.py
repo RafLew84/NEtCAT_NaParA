@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from functools import partial
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -12,9 +14,12 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisM6CacheRecord,
     DomainAnalysisRequest,
     DomainAnalysisSessionState,
+    M6_ORIENTATION_COMPONENTS_BACKEND_ID,
+    DomainBackendIdentity,
     M6AnalyzedMolecule,
     M6ComponentMembership,
     M6FrameComputation,
+    M6OrientationComponentsEvidence,
 )
 from moltrack.analysis.domain_analysis.cache import M6FrameCacheKey
 from moltrack.core import (
@@ -33,6 +38,19 @@ from moltrack.persistence import (
 )
 from nanotrack.core import STMSequenceMetadata
 
+DomainAnalysisRequest = partial(
+    DomainAnalysisRequest, backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID
+)
+
+_BACKEND_IDENTITY = DomainBackendIdentity(
+    backend_id="m6_orientation_components",
+    result_schema_version="domain-backend-result-v1",
+    algorithm_version="m6-algorithm-v1",
+    settings_fingerprint="m6-settings-v1",
+    adapter_owner="session-v1-migration-test",
+    native_evidence_kind="m6_orientation_evidence_v1",
+    capabilities=("common_partition",),
+)
 
 def _annotated_series(source_path: Path) -> tuple[MolTrackImageSeries, np.ndarray]:
     mask = np.zeros((8, 8), dtype=bool)
@@ -119,6 +137,9 @@ def test_open_migrates_real_v1_annotations_and_first_range_in_memory(
 
     assert session_path.read_bytes() == v1_bytes
     assert loaded.schema_version == 2
+    assert loaded.domain_analysis_state is not None
+    assert loaded.domain_analysis_state.draft is not None
+    assert loaded.domain_analysis_state.draft.backend_id is None
     assert loaded.molecular_detections is not None
     assert loaded.molecular_detections.get_detection("detection-v1") is not None
     assert loaded.molecular_segmentations is not None
@@ -178,8 +199,7 @@ def _m6_cache_record() -> DomainAnalysisM6CacheRecord:
             physical_frame_id="source-frame-0",
             geometry_mode="segmentation_preferred",
             coordinate_transform_fingerprint="transform-v1",
-            m6_settings_fingerprint="m6-settings-v1",
-            m6_algorithm_version="m6-algorithm-v1",
+            backend_identity=_BACKEND_IDENTITY,
         ),
         computation=M6FrameComputation(
             frame_index=0,
@@ -194,7 +214,8 @@ def _m6_cache_record() -> DomainAnalysisM6CacheRecord:
             small_ordered_islands=(),
             coordinate_frame="series_physical_nm",
             coordinate_transform_fingerprint="transform-v1",
-            m6_settings_fingerprint="m6-settings-v1",
+            backend_identity=_BACKEND_IDENTITY,
+            native_evidence=M6OrientationComponentsEvidence((), ()),
         ),
     )
 
@@ -387,7 +408,13 @@ def test_v1_without_position_state_defaults_to_whole_series_and_saves_v2(
     save_moltrack_session(
         migrated_path,
         series,
-        ui_state={"domain_analysis": loaded.domain_analysis_state},
+        ui_state={"domain_analysis": replace(
+            loaded.domain_analysis_state,
+            draft=replace(
+                loaded.domain_analysis_state.draft,
+                backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID,
+            ),
+        )},
     )
     migrated = json.loads(migrated_path.read_text(encoding="utf-8"))
     assert migrated["schema_version"] == 2

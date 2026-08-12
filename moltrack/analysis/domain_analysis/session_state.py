@@ -127,8 +127,8 @@ class DomainAnalysisM6CacheRecord:
         if (
             self.key.coordinate_transform_fingerprint
             != self.computation.coordinate_transform_fingerprint
-            or self.key.m6_settings_fingerprint
-            != self.computation.m6_settings_fingerprint
+            or self.key.backend_identity
+            != self.computation.backend_identity
         ):
             raise ValueError("M6 cache key does not match its computation.")
 
@@ -519,9 +519,7 @@ def _validate_m6_cache_scope(
             record.key.physical_frame_id == frame.physical_frame_id
             and record.key.coordinate_transform_fingerprint
             == frame.coordinate_transform_fingerprint
-            and record.key.m6_settings_fingerprint
-            == frame.m6_settings_fingerprint
-            and record.key.m6_algorithm_version == frame.m6_algorithm_version
+            and record.key.backend_identity == frame.backend_identity
             for frame in published_frames
             if frame.frame_index == record.computation.frame_index
             and publication is not None
@@ -529,6 +527,10 @@ def _validate_m6_cache_scope(
         )
         matches_draft = (
             state.draft is not None
+            and (
+                state.draft.backend_id is None
+                or state.draft.backend_id == record.key.backend_identity.backend_id
+            )
             and state.draft.geometry_mode == record.key.geometry_mode
             and draft_frame_ids.get(record.computation.frame_index)
             == record.key.physical_frame_id

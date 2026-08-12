@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import replace
+from functools import partial
 
 import pytest
 
@@ -10,6 +11,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from moltrack.analysis.domain_analysis import (
     ABC_ORIENTATION_CLASSIFIER_ID,
+    M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     CancelDomainAnalysis,
     DomainAnalysisEvent,
     DomainAnalysisModule,
@@ -36,6 +38,11 @@ from test_domain_analysis_module import (
     _ControlledClassifier,
     _DeterministicM6Adapter,
     _classifier_series,
+)
+from domain_analysis_test_support import domain_analysis_module as DomainAnalysisModule
+
+DomainAnalysisRequest = partial(
+    DomainAnalysisRequest, backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID
 )
 from test_domain_analysis_workspace_lifecycle import _ManualExecutor
 from test_domain_analysis_export import _frame_gate as _export_frame_gate
@@ -112,6 +119,10 @@ def test_dialog_runs_one_range_and_exports_exact_publication(qt_app) -> None:
     assert dialog.classifier_preset_edit.isReadOnly()
     assert dialog.aggregation_policy_edit.isReadOnly()
     assert dialog.classify_abc_checkbox.isChecked()
+    assert tuple(
+        dialog.domain_backend_combo.itemData(index)
+        for index in range(dialog.domain_backend_combo.count())
+    ) == ("m6_orientation_components", "m3_m6_lattice_network")
     assert "m6-gated" in dialog.classify_abc_checkbox.text().lower()
     assert "compare" not in dialog.windowTitle().lower()
     dialog.range_start_spin.setValue(2)
@@ -136,6 +147,8 @@ def test_dialog_runs_one_range_and_exports_exact_publication(qt_app) -> None:
 
     assert exported == [publication]
     assert exported[0] is publication
+    dialog.domain_backend_combo.setCurrentIndex(1)
+    assert controller.snapshot.draft.backend_id == "m3_m6_lattice_network"
     dialog.close()
     dialog.deleteLater()
     qt_app.processEvents()

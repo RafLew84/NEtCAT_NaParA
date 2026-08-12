@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import time
+from functools import partial
 from threading import Event, Thread
 
 import numpy as np
@@ -24,6 +25,7 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisWorkspaceController,
     DomainAnalysisWorkspaceExecution,
     DomainComponentKey,
+    M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     SelectDomainComponent,
     SetDomainAnalysisFrame,
 )
@@ -39,6 +41,11 @@ from test_domain_analysis_module import (
     _classifier_series,
 )
 from test_domain_analysis_workspace_lifecycle import _ManualExecutor
+from domain_analysis_test_support import domain_analysis_module as DomainAnalysisModule
+
+DomainAnalysisRequest = partial(
+    DomainAnalysisRequest, backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID
+)
 
 try:
     from PyQt6.QtWidgets import QApplication

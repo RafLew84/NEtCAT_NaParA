@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from functools import partial
 import json
 
 import numpy as np
@@ -20,14 +21,17 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisResult,
     DomainAnalysisSessionState,
     DomainAnalysisViewSettings,
+    DomainBackendIdentity,
     DomainComponentKey,
     DomainLabelSummary,
+    M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     M6AnalyzedMolecule,
     M6ComponentMembership,
     M6FrameComputation,
     M6FrameGate,
     M6Gate,
     M6PresentationProvenance,
+    M6OrientationComponentsEvidence,
     M6PublishedComponent,
     M6PublishedMolecule,
     MoleculeClassification,
@@ -44,7 +48,15 @@ from moltrack.core import MolTrackImageSeries
 from moltrack.persistence import load_moltrack_session, save_moltrack_session
 from nanotrack.core import STMSequenceMetadata
 
-
+DomainAnalysisRequest = partial(
+    DomainAnalysisRequest, backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID
+)
+_BACKEND_IDENTITY = DomainBackendIdentity(
+    backend_id="m6_orientation_components", result_schema_version="domain-backend-result-v1",
+    algorithm_version="m6-algorithm-v1", settings_fingerprint="m6-settings-v1",
+    adapter_owner="full-session-persistence-test", native_evidence_kind="m6_orientation_evidence_v1",
+    capabilities=("common_partition",),
+)
 def _configuration(classifier_id: str) -> ClassifierConfiguration:
     return ClassifierConfiguration(
         identity=ClassifierIdentity(
@@ -55,7 +67,6 @@ def _configuration(classifier_id: str) -> ClassifierConfiguration:
         ),
         aggregation_preset=ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
     )
-
 
 def _published_gate() -> M6Gate:
     component = M6PublishedComponent(
@@ -87,8 +98,8 @@ def _published_gate() -> M6Gate:
             registration_fingerprint="registration-v1",
         ),
         source_geometry_fingerprint="geometry-v1",
-        m6_settings_fingerprint="m6-settings-v1",
-        m6_algorithm_version="m6-algorithm-v1",
+        backend_identity=_BACKEND_IDENTITY,
+        native_evidence=M6OrientationComponentsEvidence((), ()),
         pixel_area_nm2=1.0,
         full_domains=(component,),
         small_ordered_islands=(),
@@ -99,7 +110,6 @@ def _published_gate() -> M6Gate:
         analyzed_pixels_xy=((0, 0),),
         analyzed_area_nm2=1.0,
     ),))
-
 
 def _completed_outcome(
     gate: M6Gate,
@@ -151,7 +161,6 @@ def _completed_outcome(
         ),),
     )
 
-
 def _m6_cache_record() -> DomainAnalysisM6CacheRecord:
     molecule = M6AnalyzedMolecule(
         source_id="molecule-1",
@@ -165,8 +174,7 @@ def _m6_cache_record() -> DomainAnalysisM6CacheRecord:
             physical_frame_id="physical-frame-0",
             geometry_mode="segmentation_preferred",
             coordinate_transform_fingerprint="transform-v1",
-            m6_settings_fingerprint="m6-settings-v1",
-            m6_algorithm_version="m6-algorithm-v1",
+            backend_identity=_BACKEND_IDENTITY,
         ),
         computation=M6FrameComputation(
             frame_index=0,
@@ -181,7 +189,8 @@ def _m6_cache_record() -> DomainAnalysisM6CacheRecord:
             small_ordered_islands=(),
             coordinate_frame="series_physical_nm",
             coordinate_transform_fingerprint="transform-v1",
-            m6_settings_fingerprint="m6-settings-v1",
+            backend_identity=_BACKEND_IDENTITY,
+            native_evidence=M6OrientationComponentsEvidence((), ()),
         ),
     )
 

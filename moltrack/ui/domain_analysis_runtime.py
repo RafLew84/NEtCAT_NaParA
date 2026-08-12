@@ -10,9 +10,9 @@ import numpy as np
 from PyQt6.QtWidgets import QFileDialog, QMainWindow
 
 from moltrack.analysis import TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
-from moltrack.analysis._m6_settings_fingerprint import m6_settings_fingerprint
 from moltrack.analysis.domain_analysis import (
     ABC_ORIENTATION_CLASSIFIER_ID,
+    M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     ClassifierConfiguration,
     ClassifierIdentity,
     DomainAnalysisFrame,
@@ -21,16 +21,11 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisSeries,
     DomainAnalysisWorkspaceController,
     DomainAnalysisWorkspaceExecution,
-    M6ComponentMembership,
-    M6FrameComputation,
     M6FrameGeometry,
     M6SourceAnnotation,
     TextureABCClassifierAdapter,
 )
 from moltrack.analysis.domain_analysis.fingerprints import canonical_sha256
-from moltrack.analysis.orientation_domain_analysis import (
-    analyze_m6_orientation_domains,
-)
 from moltrack.core import (
     MolTrackImageSeries,
     build_moltrack_expanded_aligned_stack,
@@ -39,6 +34,12 @@ from moltrack.persistence import CanonicalJsonObject, DomainAnalysisExportSettin
 from moltrack.ui.domain_analysis_composition import (
     DomainAnalysisMainWindowComposition,
 )
+from moltrack.ui.domain_backend_adapters import (
+    MolTrackLatticeNetworkAdapter,
+    MolTrackOrientationComponentsAdapter,
+)
+
+_MolTrackM6Adapter = MolTrackOrientationComponentsAdapter
 
 
 class _DaemonDomainAnalysisExecutor:
@@ -89,90 +90,18 @@ class _DaemonDomainAnalysisExecutor:
                 self._jobs.task_done()
 
 
-class _MolTrackM6Adapter:
-    m6_algorithm_version = "moltrack-m6-orientation-v1"
-
-    def __init__(self, series: DomainAnalysisSeries) -> None:
-        self._settings = TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
-        self.m6_settings_fingerprint = m6_settings_fingerprint(self._settings)
-        self._geometry_by_frame = {
-            value.frame_index: value.geometry for value in series.frames
-        }
-
-    def analyze_frame(
-        self,
-        frame,
-        *,
-        frame_index: int,
-        geometry_mode: str,
-    ) -> M6FrameComputation:
-        del geometry_mode
-        geometry = self._geometry_by_frame[frame_index]
-        if not frame.molecules:
-            return self._computation(frame, frame_index=frame_index, components=())
-        analysis = analyze_m6_orientation_domains(
-            tuple(value.centroid_xy_nm for value in frame.molecules),
-            distance_to_valid_fov_boundary_nm=_boundary_distances_to_raw_fov(
-                frame.molecules,
-                geometry.raw_shape,
-                geometry.pixel_size_nm,
-            ),
-            point_ids=tuple(value.source_id for value in frame.molecules),
-            settings=self._settings,
-            spatial_calibration_fingerprint=(frame.coordinate_transform_fingerprint),
-            registration_fingerprint=(
-                frame.presentation_provenance.registration_fingerprint
-            ),
-            window_geometry="rectangular",
-            window_size_nm=(
-                geometry.raw_shape[1] * geometry.pixel_size_nm[0],
-                geometry.raw_shape[0] * geometry.pixel_size_nm[1],
-            ),
-        )
-        return self._computation(
-            frame,
-            frame_index=frame_index,
-            components=analysis.segmentation.components,
-        )
-
-    def _computation(
-        self, frame, *, frame_index: int, components
-    ) -> M6FrameComputation:
-        full_domains: list[M6ComponentMembership] = []
-        islands: list[M6ComponentMembership] = []
-        for component in components:
-            membership = M6ComponentMembership(
-                lattice_domain_id=(
-                    f"m6-domain-{component.m6_orientation_domain_id}"
-                    if component.component_type == "full_domain"
-                    else f"m6-island-{component.ordered_component_id}"
-                ),
-                source_ids=component.source_ids,
-            )
-            (
-                full_domains if component.component_type == "full_domain" else islands
-            ).append(membership)
-        return M6FrameComputation(
-            frame_index=frame_index,
-            molecules=frame.molecules,
-            analyzed_pixels_xy=frame.analyzed_pixels_xy,
-            pixel_area_nm2=frame.pixel_area_nm2,
-            full_domains=tuple(full_domains),
-            small_ordered_islands=tuple(islands),
-            coordinate_frame=frame.coordinate_frame,
-            coordinate_transform_fingerprint=(frame.coordinate_transform_fingerprint),
-            m6_settings_fingerprint=self.m6_settings_fingerprint,
-        )
-
-
 def build_domain_analysis_main_window_composition(
     owner: QMainWindow,
     series: MolTrackImageSeries,
 ) -> DomainAnalysisMainWindowComposition:
     analysis_series = _domain_analysis_series(series)
     classifier = TextureABCClassifierAdapter()
+    adapters = (
+        MolTrackOrientationComponentsAdapter(analysis_series),
+        MolTrackLatticeNetworkAdapter(analysis_series),
+    )
     module = DomainAnalysisModule(
-        _MolTrackM6Adapter(analysis_series),
+        {value.backend_identity.backend_id: value for value in adapters},
         {ABC_ORIENTATION_CLASSIFIER_ID: classifier},
     )
     physical_frame_ids = tuple(
@@ -181,6 +110,7 @@ def build_domain_analysis_main_window_composition(
     controller = DomainAnalysisWorkspaceController(
         DomainAnalysisRequest(
             frame_range=range(series.frame_count),
+            backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID,
             classifier_ids=(ABC_ORIENTATION_CLASSIFIER_ID,),
         ),
         physical_frame_ids=physical_frame_ids,
@@ -365,24 +295,6 @@ def _annotations(
                     )
                 )
     return tuple(annotations)
-
-
-def _boundary_distances_to_raw_fov(
-    molecules,
-    raw_shape: tuple[int, int],
-    pixel_size_nm: tuple[float, float],
-) -> tuple[float, ...]:
-    height, width = raw_shape
-    scale_x, scale_y = pixel_size_nm
-    return tuple(
-        min(
-            molecule.raw_centroid_xy[0] * scale_x,
-            (width - molecule.raw_centroid_xy[0]) * scale_x,
-            molecule.raw_centroid_xy[1] * scale_y,
-            (height - molecule.raw_centroid_xy[1]) * scale_y,
-        )
-        for molecule in molecules
-    )
 
 
 def _registration_fingerprint(series: MolTrackImageSeries) -> str:

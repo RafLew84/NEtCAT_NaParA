@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from functools import partial
 import json
 
 import numpy as np
@@ -11,13 +12,20 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisRequest,
     DomainAnalysisResult,
     DomainAnalysisSessionState,
+    M6_ORIENTATION_COMPONENTS_BACKEND_ID,
+    DomainBackendIdentity,
     M6FrameGate,
     M6Gate,
     M6PresentationProvenance,
+    M6OrientationComponentsEvidence,
     M6PublishedComponent,
     M6PublishedMolecule,
 )
 from moltrack.analysis.domain_analysis.fingerprints import canonical_sha256
+
+DomainAnalysisRequest = partial(
+    DomainAnalysisRequest, backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID
+)
 from moltrack.analysis.domain_analysis.models import M6ComponentType
 from moltrack.core import MolTrackImageSeries
 from moltrack.persistence import load_moltrack_session, save_moltrack_session
@@ -67,8 +75,16 @@ def _frame_gate(frame_index: int) -> M6FrameGate:
             registration_fingerprint=f"registration-{frame_index}",
         ),
         source_geometry_fingerprint=f"geometry-{frame_index}",
-        m6_settings_fingerprint="m6-settings-v1",
-        m6_algorithm_version="m6-algorithm-v1",
+        backend_identity=DomainBackendIdentity(
+            backend_id="m6_orientation_components",
+            result_schema_version="domain-backend-result-v1",
+            algorithm_version="m6-algorithm-v1",
+            settings_fingerprint="m6-settings-v1",
+            adapter_owner="persistence-test",
+            native_evidence_kind="m6_orientation_evidence_v1",
+            capabilities=("common_partition",),
+        ),
+        native_evidence=M6OrientationComponentsEvidence((), ()),
         pixel_area_nm2=1.0,
         full_domains=(_component(
             frame_index,
@@ -135,9 +151,9 @@ def test_m6_only_published_result_round_trips_through_public_session_seams(
     assert payload["domain_analysis"]["classifier_status"] == "not_requested"
     assert payload["domain_analysis"]["published_result"]["m6_gate"][
         "schema_version"
-    ] == 2
+    ] == 3
     assert payload["domain_analysis"]["cache"] == {
-        "schema_version": 2,
+        "schema_version": 3,
         "m6_frames": [],
         "classifier_frames": [],
     }
@@ -146,7 +162,7 @@ def test_m6_only_published_result_round_trips_through_public_session_seams(
     assert "raw_frame" not in session_path.read_text(encoding="utf-8")
 
 
-def test_loads_legacy_v2_gate_fingerprint_without_raw_centroids(tmp_path) -> None:
+def test_rejects_backend_unqualified_legacy_gate_fingerprint(tmp_path) -> None:
     source_path = tmp_path / "series.mpp"
     source_path.write_bytes(b"domain analysis legacy centroid source")
     session_path = tmp_path / "state.moltrack.json"
@@ -181,10 +197,11 @@ def test_loads_legacy_v2_gate_fingerprint_without_raw_centroids(tmp_path) -> Non
 
     assert loaded.domain_analysis_state is not None
     publication = loaded.domain_analysis_state.published_result
-    assert publication is not None
-    assert publication.result.m6_gate is not None
-    assert publication.result.m6_gate.frames[0].m6_gate_fingerprint == (
-        frame["m6_gate_fingerprint"]
+    assert publication is None
+    assert any(
+        diagnostic.component == "published_result"
+        and "fingerprint" in diagnostic.reason
+        for diagnostic in loaded.domain_analysis_state.diagnostics
     )
 
 

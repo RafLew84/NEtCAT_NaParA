@@ -4,6 +4,11 @@ from dataclasses import asdict, dataclass, field
 from math import isclose, isfinite
 from typing import Literal, TypeVar
 
+from .backend_contract import (
+    DomainBackendEvidence,
+    DomainBackendIdentity,
+    validate_backend_evidence,
+)
 from .classifier_models import ClassifierOutcome
 from .events import (
     ClassifierStatus,
@@ -30,6 +35,7 @@ class DomainAnalysisRequest:
     """Immutable input snapshot for one Domain Analysis run."""
 
     frame_range: range
+    backend_id: str | None = None
     geometry_mode: GeometryMode = "segmentation_preferred"
     classifier_ids: tuple[str, ...] = ()
 
@@ -42,6 +48,12 @@ class DomainAnalysisRequest:
             raise ValueError("frame_range cannot contain negative frame indexes.")
         if self.geometry_mode not in {"segmentation_preferred", "bbox_centers"}:
             raise ValueError(f"Unsupported geometry_mode: {self.geometry_mode!r}.")
+        if self.backend_id is not None:
+            object.__setattr__(
+                self,
+                "backend_id",
+                _non_empty_string(self.backend_id, "backend_id"),
+            )
         classifier_ids = tuple(self.classifier_ids)
         if any(not isinstance(value, str) or not value.strip() for value in classifier_ids):
             raise ValueError("classifier_ids must contain non-empty strings.")
@@ -97,7 +109,9 @@ class M6FrameComputation:
     small_ordered_islands: tuple[M6ComponentMembership, ...]
     coordinate_frame: str
     coordinate_transform_fingerprint: str
-    m6_settings_fingerprint: str
+    backend_identity: DomainBackendIdentity
+    native_evidence: DomainBackendEvidence
+    result_fingerprint: str = field(init=False)
 
     def __post_init__(self) -> None:
         frame_index = _non_negative_integer(self.frame_index, "frame_index")
@@ -126,17 +140,22 @@ class M6FrameComputation:
         )
         object.__setattr__(self, "full_domains", full_domains)
         object.__setattr__(self, "small_ordered_islands", islands)
-        for field_name in (
-            "coordinate_frame",
-            "coordinate_transform_fingerprint",
-            "m6_settings_fingerprint",
-        ):
+        for field_name in ("coordinate_frame", "coordinate_transform_fingerprint"):
             object.__setattr__(
                 self,
                 field_name,
                 _non_empty_string(getattr(self, field_name), field_name),
             )
-
+        validate_backend_evidence(self.backend_identity, self.native_evidence)
+        object.__setattr__(self, "result_fingerprint", "")
+        payload = asdict(self)
+        payload.pop("frame_index")
+        payload.pop("result_fingerprint")
+        object.__setattr__(
+            self,
+            "result_fingerprint",
+            canonical_sha256(payload),
+        )
 
 @dataclass(frozen=True)
 class M6PublishedComponent:
@@ -221,8 +240,8 @@ class M6FrameGate:
     coordinate_transform_fingerprint: str
     presentation_provenance: M6PresentationProvenance
     source_geometry_fingerprint: str
-    m6_settings_fingerprint: str
-    m6_algorithm_version: str
+    backend_identity: DomainBackendIdentity
+    native_evidence: DomainBackendEvidence
     pixel_area_nm2: float
     full_domains: tuple[M6PublishedComponent, ...]
     small_ordered_islands: tuple[M6PublishedComponent, ...]
@@ -245,14 +264,13 @@ class M6FrameGate:
             "coordinate_frame",
             "coordinate_transform_fingerprint",
             "source_geometry_fingerprint",
-            "m6_settings_fingerprint",
-            "m6_algorithm_version",
         ):
             object.__setattr__(
                 self,
                 field_name,
                 _non_empty_string(getattr(self, field_name), field_name),
             )
+        validate_backend_evidence(self.backend_identity, self.native_evidence)
         normalized = _normalized_frame_gate_values(self)
         for field_name, value in normalized.items():
             object.__setattr__(self, field_name, value)
@@ -266,7 +284,7 @@ class M6FrameGate:
                     member.pop("raw_centroid_xy", None)
         for member in fingerprint_payload["outside_members"]:
             member.pop("raw_centroid_xy", None)
-        fingerprint_payload["schema_version"] = "domain-analysis-m6-gate-v1"
+        fingerprint_payload["schema_version"] = "domain-analysis-m6-gate-v2"
         object.__setattr__(
             self,
             "m6_gate_fingerprint",
@@ -287,7 +305,6 @@ class M6FrameGate:
             value.footprint_area_nm2
             for value in self.small_ordered_islands
         )
-
 
 def _normalized_frame_gate_values(frame: M6FrameGate) -> dict[str, object]:
     if not isinstance(frame.presentation_provenance, M6PresentationProvenance):
@@ -347,6 +364,8 @@ class M6Gate:
         )
         if len(set(physical_frame_ids)) != len(physical_frame_ids):
             raise ValueError("M6 gate physical_frame_id values must be unique.")
+        if len({value.backend_identity for value in frames}) > 1:
+            raise ValueError("All frames in an M6 gate must use one backend identity.")
         object.__setattr__(self, "frames", frames)
 
 

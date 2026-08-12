@@ -29,6 +29,12 @@ from .domain_analysis_classifier_payload import (
     molecule_classification_from_payload,
     molecule_classification_to_payload,
 )
+from .domain_backend_payload import (
+    backend_evidence_from_payload,
+    backend_evidence_to_payload,
+    backend_identity_from_payload,
+    backend_identity_to_payload,
+)
 from .domain_analysis_payload_validation import (
     float_pair_field,
     integer_field,
@@ -44,7 +50,7 @@ from .domain_analysis_payload_validation import (
 )
 
 
-CACHE_SCHEMA_VERSION = 2
+CACHE_SCHEMA_VERSION = 3
 
 
 def domain_analysis_cache_to_payload(
@@ -187,8 +193,9 @@ def _m6_record_to_payload(
             "coordinate_transform_fingerprint": (
                 key.coordinate_transform_fingerprint
             ),
-            "m6_settings_fingerprint": key.m6_settings_fingerprint,
-            "m6_algorithm_version": key.m6_algorithm_version,
+            "backend_identity": backend_identity_to_payload(
+                key.backend_identity
+            ),
         },
         "computation": computation,
         "result_fingerprint": canonical_sha256(computation),
@@ -227,11 +234,9 @@ def _m6_record_from_payload(
                 "coordinate_transform_fingerprint",
                 key_path,
             ),
-            m6_settings_fingerprint=text_field(
-                key_payload, "m6_settings_fingerprint", key_path
-            ),
-            m6_algorithm_version=text_field(
-                key_payload, "m6_algorithm_version", key_path
+            backend_identity=backend_identity_from_payload(
+                required(key_payload, "backend_identity", key_path),
+                path=f"{key_path}.backend_identity",
             ),
         ),
         computation=computation,
@@ -239,6 +244,8 @@ def _m6_record_from_payload(
 
 
 def _m6_computation_to_payload(value: M6FrameComputation) -> dict[str, Any]:
+    if value.backend_identity is None or value.native_evidence is None:
+        raise ValueError("Only backend-qualified M6 computations can be saved.")
     return {
         "frame_index": value.frame_index,
         "molecules": [_molecule_to_payload(item) for item in value.molecules],
@@ -255,7 +262,9 @@ def _m6_computation_to_payload(value: M6FrameComputation) -> dict[str, Any]:
         "coordinate_transform_fingerprint": (
             value.coordinate_transform_fingerprint
         ),
-        "m6_settings_fingerprint": value.m6_settings_fingerprint,
+        "backend_identity": backend_identity_to_payload(value.backend_identity),
+        "native_evidence": backend_evidence_to_payload(value.native_evidence),
+        "result_fingerprint": value.result_fingerprint,
     }
 
 
@@ -302,8 +311,13 @@ def _m6_computation_from_payload(
             "coordinate_transform_fingerprint",
             path,
         ),
-        m6_settings_fingerprint=text_field(
-            saved, "m6_settings_fingerprint", path
+        backend_identity=backend_identity_from_payload(
+            required(saved, "backend_identity", path),
+            path=f"{path}.backend_identity",
+        ),
+        native_evidence=backend_evidence_from_payload(
+            required(saved, "native_evidence", path),
+            path=f"{path}.native_evidence",
         ),
     )
 

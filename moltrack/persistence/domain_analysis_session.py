@@ -36,6 +36,12 @@ from .domain_analysis_cache_payload import (
     domain_analysis_cache_from_payload,
     domain_analysis_cache_to_payload,
 )
+from .domain_backend_payload import (
+    backend_evidence_from_payload,
+    backend_evidence_to_payload,
+    backend_identity_from_payload,
+    backend_identity_to_payload,
+)
 from .domain_analysis_classifier_payload import (
     classifier_configuration_from_payload,
     classifier_configuration_to_payload,
@@ -64,8 +70,8 @@ from .domain_analysis_payload_validation import (
 )
 
 
-_PUBLISHED_RESULT_SCHEMA_VERSION = 1
-_M6_GATE_SCHEMA_VERSION = 2
+_PUBLISHED_RESULT_SCHEMA_VERSION = 2
+_M6_GATE_SCHEMA_VERSION = 3
 _DOMAIN_ANALYSIS_KNOWN_FIELDS = frozenset({
     "schema_version",
     "classifier_status",
@@ -99,10 +105,9 @@ def domain_analysis_state_to_payload(
 ) -> dict[str, Any]:
     saved = DomainAnalysisSessionState() if state is None else state
     draft = saved.draft
+    if draft is not None and draft.backend_id is None:
+        raise ValueError("Domain Analysis draft requires an explicit backend.")
     selected = saved.selected_component
-    # Ticket 13 explicitly persists the stable published-component selection
-    # and terminal/retry status. Worker progress and cancellation tokens remain
-    # transient and have no representation in this schema.
     run_status = (
         "retry_required" if saved.run_status == "running" else saved.run_status
     )
@@ -120,6 +125,7 @@ def domain_analysis_state_to_payload(
             else {
                 "frame_start": draft.frame_range.start,
                 "frame_stop": draft.frame_range.stop,
+                "backend_id": draft.backend_id,
                 "geometry_mode": draft.geometry_mode,
                 "classifier_ids": list(draft.classifier_ids),
                 "physical_frame_ids": list(saved.draft_physical_frame_ids),
@@ -260,6 +266,8 @@ def _publication_to_payload(
     publication: DomainAnalysisPublication,
 ) -> dict[str, Any]:
     request = publication.request
+    if request.backend_id is None:
+        raise ValueError("Published Domain Analysis requires an explicit backend.")
     gate = publication.result.m6_gate
     if gate is None:
         raise ValueError("A published Domain Analysis result requires an M6 gate.")
@@ -268,6 +276,7 @@ def _publication_to_payload(
         "request": {
             "frame_start": request.frame_range.start,
             "frame_stop": request.frame_range.stop,
+            "backend_id": request.backend_id,
             "geometry_mode": request.geometry_mode,
             "classifier_ids": list(request.classifier_ids),
         },
@@ -356,6 +365,7 @@ def _publication_request_from_payload(
             _require_integer(payload, "frame_start", path),
             _require_integer(payload, "frame_stop", path),
         ),
+        backend_id=_require_text(payload, "backend_id", path),
         geometry_mode=cast(
             GeometryMode,
             _require_text(payload, "geometry_mode", path),
@@ -419,8 +429,8 @@ def _frame_to_payload(frame: M6FrameGate) -> dict[str, Any]:
             "registration_fingerprint": provenance.registration_fingerprint,
         },
         "source_geometry_fingerprint": frame.source_geometry_fingerprint,
-        "m6_settings_fingerprint": frame.m6_settings_fingerprint,
-        "m6_algorithm_version": frame.m6_algorithm_version,
+        "backend_identity": backend_identity_to_payload(frame.backend_identity),
+        "native_evidence": backend_evidence_to_payload(frame.native_evidence),
         "pixel_area_nm2": frame.pixel_area_nm2,
         "full_domains": [
             _component_to_payload(value) for value in frame.full_domains
@@ -463,11 +473,13 @@ def _frame_from_payload(payload: Any, *, index: int) -> M6FrameGate:
         source_geometry_fingerprint=_require_text(
             saved, "source_geometry_fingerprint", path
         ),
-        m6_settings_fingerprint=_require_text(
-            saved, "m6_settings_fingerprint", path
+        backend_identity=backend_identity_from_payload(
+            _required(saved, "backend_identity", path),
+            path=f"{path}.backend_identity",
         ),
-        m6_algorithm_version=_require_text(
-            saved, "m6_algorithm_version", path
+        native_evidence=backend_evidence_from_payload(
+            _required(saved, "native_evidence", path),
+            path=f"{path}.native_evidence",
         ),
         pixel_area_nm2=_require_number(saved, "pixel_area_nm2", path),
         full_domains=_components_from_payload(saved, "full_domains", path),
@@ -679,6 +691,7 @@ def _draft_from_payload(
             _require_integer(saved, "frame_start", path),
             _require_integer(saved, "frame_stop", path),
         ),
+        backend_id=_require_text(saved, "backend_id", path),
         geometry_mode=cast(
             GeometryMode,
             _require_text(saved, "geometry_mode", path),

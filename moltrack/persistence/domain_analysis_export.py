@@ -111,7 +111,7 @@ def _validated_publication(snapshot, settings):
             )
     settings_fingerprint = canonical_sha256(settings.m6_settings.to_dict())
     if any(
-        frame.m6_settings_fingerprint != settings_fingerprint
+        frame.backend_identity.settings_fingerprint != settings_fingerprint
         for frame in gate.frames
     ):
         raise ValueError("M6 settings do not match the published M6 snapshot.")
@@ -178,8 +178,8 @@ def _frame_row(
         "source_geometry_fingerprint": frame.source_geometry_fingerprint,
         "coordinate_frame": frame.coordinate_frame,
         "coordinate_transform_fingerprint": frame.coordinate_transform_fingerprint,
-        "m6_settings_fingerprint": frame.m6_settings_fingerprint,
-        "m6_algorithm_version": frame.m6_algorithm_version,
+        "m6_settings_fingerprint": frame.backend_identity.settings_fingerprint,
+        "m6_algorithm_version": frame.backend_identity.algorithm_version,
         "analyzed_molecule_count": frame.analyzed_molecule_count,
         "full_domain_count": len(frame.full_domains),
         "small_ordered_island_count": len(frame.small_ordered_islands),

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import FrozenInstanceError, replace
+from functools import partial
 from math import isclose
 
 import numpy as np
@@ -18,11 +19,20 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisResult,
     DomainAnalysisSeries,
     M6CanonicalFrame,
+    M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     M6ComponentMembership,
     M6FrameComputation,
     M6FrameAnalysisError,
     M6FrameGeometry,
+    DomainBackendIdentity,
+    M6OrientationComponentsEvidence,
     M6SourceAnnotation,
+)
+from domain_analysis_test_support import domain_analysis_module as DomainAnalysisModule
+
+DomainAnalysisRequest = partial(
+    DomainAnalysisRequest,
+    backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID,
 )
 
 
@@ -47,6 +57,18 @@ class _DeterministicM6Adapter:
         self.m6_settings_fingerprint = m6_settings_fingerprint
         self.m6_algorithm_version = m6_algorithm_version
         self.analyzed_frame_indices: list[int] = []
+
+    @property
+    def backend_identity(self) -> DomainBackendIdentity:
+        return DomainBackendIdentity(
+            backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID,
+            result_schema_version="domain-backend-result-v1",
+            algorithm_version=self.m6_algorithm_version,
+            settings_fingerprint=self.m6_settings_fingerprint,
+            adapter_owner="deterministic-test-adapter",
+            native_evidence_kind="m6_orientation_evidence_v1",
+            capabilities=("common_partition",),
+        )
 
     def analyze_frame(
         self,
@@ -93,7 +115,13 @@ class _DeterministicM6Adapter:
             small_ordered_islands=islands,
             coordinate_frame=series.coordinate_frame,
             coordinate_transform_fingerprint=series.coordinate_transform_fingerprint,
-            m6_settings_fingerprint=self.m6_settings_fingerprint,
+            backend_identity=self.backend_identity,
+            native_evidence=M6OrientationComponentsEvidence(
+                assignment_status=tuple(
+                    (value.source_id, "assigned") for value in molecules
+                ),
+                q6=tuple((value.source_id, None) for value in molecules),
+            ),
         )
 
 
@@ -322,7 +350,7 @@ def test_run_fingerprints_m6_gate_with_versioned_configuration() -> None:
         )
     )
     assert all(
-        frame.m6_settings_fingerprint == "m6-settings-v2"
+        frame.backend_identity.settings_fingerprint == "m6-settings-v2"
         for frame in changed_settings.m6_gate.frames
     )
     assert all(
@@ -337,7 +365,7 @@ def test_run_fingerprints_m6_gate_with_versioned_configuration() -> None:
     assert adapter.analyzed_frame_indices == [0, 1]
     assert changed_algorithm.m6_gate is not None
     assert all(
-        frame.m6_algorithm_version == "m6-algorithm-v2"
+        frame.backend_identity.algorithm_version == "m6-algorithm-v2"
         for frame in changed_algorithm.m6_gate.frames
     )
     assert tuple(

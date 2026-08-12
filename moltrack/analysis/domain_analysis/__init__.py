@@ -1,5 +1,15 @@
 """Public synchronous interface for unified M6-gated Domain Analysis."""
 
+from .backend_contract import (
+    M3_M6_LATTICE_NETWORK_BACKEND_ID,
+    M6_ORIENTATION_COMPONENTS_BACKEND_ID,
+    DomainBackendEvidence,
+    DomainBackendIdentity,
+    M3M6LatticeDomainEvidence,
+    M3M6LatticeNetworkEvidence,
+    M6OrientationComponentsEvidence,
+    m6_orientation_components_identity,
+)
 from .classifier_models import (
     ClassifierFrameResultProvenance,
     ClassifierMoleculeInput,
@@ -107,6 +117,8 @@ __all__ = [
     "ClassifierMoleculePrediction",
     "ClassifierOutcome",
     "DomainAggregationPreset",
+    "DomainBackendEvidence",
+    "DomainBackendIdentity",
     "DomainAnalysisFrame",
     "DomainAnalysisEvent",
     "DomainAnalysisEventStatus",
@@ -141,6 +153,9 @@ __all__ = [
     "DomainLabelReason",
     "GeometryMode",
     "M6Adapter",
+    "M6_ORIENTATION_COMPONENTS_BACKEND_ID",
+    "M6OrientationComponentsEvidence",
+    "m6_orientation_components_identity",
     "M6AnalyzedMolecule",
     "M6CanonicalFrame",
     "M6ComponentMembership",
@@ -156,6 +171,9 @@ __all__ = [
     "MoleculeSourceKind",
     "MoleculeClassification",
     "MoleculeClassifierAdapter",
+    "M3_M6_LATTICE_NETWORK_BACKEND_ID",
+    "M3M6LatticeDomainEvidence",
+    "M3M6LatticeNetworkEvidence",
     "PublishDomainAnalysisResult",
     "ReceiveDomainAnalysisEvent",
     "ReceiveDomainAnalysisFailure",

@@ -81,9 +81,20 @@ def migrate_v1_session_payload(
     )
     diagnostics.extend(m6_diagnostics)
     diagnostics.extend(_legacy_result_diagnostics(payload))
+    if m6_records:
+        diagnostics.append(DomainAnalysisSessionDiagnostic(
+            component="domain_backend",
+            identifier="historical-v1-backend",
+            schema_version="1",
+            reason=(
+                "Historical M6 cache was preserved as classic backend evidence, "
+                "but no backend was selected; choose one before running analysis."
+            ),
+        ))
     state = DomainAnalysisSessionState(
         draft=DomainAnalysisRequest(
             frame_range=frame_range,
+            backend_id=None,
             geometry_mode=geometry_mode,
         ),
         draft_physical_frame_ids=physical_frame_ids,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from functools import partial
 
 import pytest
 
@@ -16,17 +17,25 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisWorkspaceIntentError,
     DomainAnalysisWorkspaceSnapshot,
     DomainAnalysisWorkspaceSubscription,
+    M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     M6CanonicalFrame,
     M6ComponentMembership,
     M6FrameComputation,
     M6FrameAnalysisError,
     M6FrameGeometry,
+    M6OrientationComponentsEvidence,
     M6SourceAnnotation,
     PublishDomainAnalysisResult,
     ReceiveDomainAnalysisFailure,
     ReplaceDomainAnalysisDraft,
     ShutdownDomainAnalysis,
     StartDomainAnalysis,
+    m6_orientation_components_identity,
+)
+from domain_analysis_test_support import domain_analysis_module as DomainAnalysisModule
+
+DomainAnalysisRequest = partial(
+    DomainAnalysisRequest, backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID
 )
 
 
@@ -61,6 +70,14 @@ class _SingleDomainM6Adapter:
     m6_settings_fingerprint = "m6-settings-v1"
     m6_algorithm_version = "m6-algorithm-v1"
 
+    @property
+    def backend_identity(self):
+        return m6_orientation_components_identity(
+            settings_fingerprint=self.m6_settings_fingerprint,
+            algorithm_version=self.m6_algorithm_version,
+            adapter_owner="workspace-lifecycle-test-adapter",
+        )
+
     def __init__(self, failure_message: str | None = None) -> None:
         self.failure_message = failure_message
 
@@ -90,7 +107,13 @@ class _SingleDomainM6Adapter:
             coordinate_transform_fingerprint=(
                 frame.coordinate_transform_fingerprint
             ),
-            m6_settings_fingerprint=self.m6_settings_fingerprint,
+            backend_identity=self.backend_identity,
+            native_evidence=M6OrientationComponentsEvidence(
+                assignment_status=tuple(
+                    (value.source_id, "assigned") for value in frame.molecules
+                ),
+                q6=tuple((value.source_id, None) for value in frame.molecules),
+            ),
         )
 
 

@@ -62,7 +62,7 @@ def _m6_gate_text(frame: M6FrameGate | None) -> str:
     return "\n".join(
         (
             f"Frame {frame.frame_index + 1} ({frame.physical_frame_id})",
-            f"Algorithm: {frame.m6_algorithm_version}",
+            f"Algorithm: {frame.backend_identity.algorithm_version}",
             f"Gate fingerprint: {frame.m6_gate_fingerprint}",
             f"Analyzed molecules: {frame.analyzed_molecule_count}",
             f"Full-domain area: {frame.full_domain_area_nm2:.6g} nm²",
