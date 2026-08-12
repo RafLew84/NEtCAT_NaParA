@@ -115,6 +115,10 @@ class DomainAnalysisMainWindowComposition(QObject):
         target_view: Literal["raw", "expanded_aligned"],
     ) -> None:
         self._overlay.set_target_view(target_view)
+        if self._domain_dialog is not None:
+            self._domain_dialog.command_center.render_snapshot(
+                self._controller.snapshot
+            )
 
     def open_domain_analysis(self) -> DomainAnalysisDialog:
         dialog = self._domain_dialog
@@ -124,6 +128,8 @@ class DomainAnalysisMainWindowComposition(QObject):
                 m6_preset_name=self._m6_preset_name,
                 classifier_preset_name=self._classifier_preset_name,
                 export_published=self._export_published,
+                canvas_frame_for=self._canvas_frame_for,
+                canvas_scale_nm_per_px=self._session_series.pixel_size_nm,
                 parent=self._owner,
             )
             dialog.destroyed.connect(
@@ -134,6 +140,13 @@ class DomainAnalysisMainWindowComposition(QObject):
             self._domain_dialog = dialog
         _show_modeless(dialog)
         return dialog
+
+    def _canvas_frame_for(self, frame_index: int) -> object:
+        if self._overlay.target_view == "expanded_aligned":
+            expanded = self._session_series.expanded_aligned_stack
+            if expanded is not None:
+                return expanded.frames[frame_index]
+        return self._session_series.get_frame(frame_index)
 
     def open_position_analysis(self) -> PositionAnalysisWorkspaceDialog:
         dialog = self._position_dialog

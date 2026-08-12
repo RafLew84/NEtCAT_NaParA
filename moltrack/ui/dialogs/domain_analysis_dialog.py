@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from PyQt6.QtCore import QSignalBlocker
@@ -34,6 +35,10 @@ from moltrack.ui.domain_analysis_workspace_view import (
     ExportPublished,
 )
 
+from .domain_analysis_command_center import (
+    DomainAnalysisCommandCenter,
+    DomainAnalysisImageCanvas,
+)
 from .m6_current_frame_results_panel import M6CurrentFrameResultsPanel
 
 
@@ -58,6 +63,8 @@ class DomainAnalysisDialog(QDialog):
         m6_preset_name: str,
         classifier_preset_name: str,
         export_published: ExportPublished,
+        canvas_frame_for: Callable[[int], object] | None = None,
+        canvas_scale_nm_per_px: tuple[float | None, float | None] = (None, None),
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -65,10 +72,12 @@ class DomainAnalysisDialog(QDialog):
             raise TypeError("controller must be a DomainAnalysisWorkspaceController.")
         self._controller = controller
         self.setWindowTitle("Domain Analysis")
-        self.resize(620, 470)
+        self.resize(1100, 760)
         self._build_ui(
             _required_name(m6_preset_name, "m6_preset_name"),
             _required_name(classifier_preset_name, "classifier_preset_name"),
+            canvas_frame_for,
+            canvas_scale_nm_per_px,
         )
         self._workspace_view = DomainAnalysisWorkspaceViewBinding(
             controller,
@@ -96,20 +105,38 @@ class DomainAnalysisDialog(QDialog):
         self,
         m6_preset_name: str,
         classifier_preset_name: str,
+        canvas_frame_for: Callable[[int], object] | None,
+        canvas_scale_nm_per_px: tuple[float | None, float | None],
     ) -> None:
         layout = QVBoxLayout(self)
-        layout.addWidget(self._build_range_group())
-        layout.addWidget(
-            self._build_policy_group(
-                m6_preset_name,
-                classifier_preset_name,
-            )
+        analyze_sheet = QWidget(self)
+        analyze_layout = QGridLayout(analyze_sheet)
+        settings = QWidget(analyze_sheet)
+        settings_layout = QVBoxLayout(settings)
+        settings_layout.setContentsMargins(0, 0, 0, 0)
+        settings_layout.addWidget(self._build_range_group())
+        settings_layout.addWidget(
+            self._build_policy_group(m6_preset_name, classifier_preset_name)
         )
-        layout.addWidget(self._build_status_group())
-        self.current_frame_results_panel = M6CurrentFrameResultsPanel(self)
-        layout.addWidget(self.current_frame_results_panel)
-        layout.addStretch(1)
-        layout.addLayout(self._build_action_row())
+        settings_layout.addLayout(self._build_action_row())
+        settings_layout.addStretch(1)
+        analyze_layout.addWidget(settings, 0, 0)
+        diagnostics = self._build_status_group()
+        self.current_frame_results_panel = M6CurrentFrameResultsPanel(analyze_sheet)
+        analyze_layout.addWidget(self.current_frame_results_panel, 0, 1)
+        analyze_layout.setColumnStretch(1, 1)
+        canvas = DomainAnalysisImageCanvas(
+            canvas_frame_for,
+            scale_nm_per_px=canvas_scale_nm_per_px,
+            parent=self,
+        )
+        self.command_center = DomainAnalysisCommandCenter(
+            canvas=canvas,
+            analyze_sheet=analyze_sheet,
+            diagnostics=diagnostics,
+            parent=self,
+        )
+        layout.addWidget(self.command_center)
 
     def _build_range_group(self) -> QGroupBox:
         group = QGroupBox("Frame range", self)
@@ -213,6 +240,7 @@ class DomainAnalysisDialog(QDialog):
     def _render_snapshot(self, value: object) -> None:
         if not isinstance(value, DomainAnalysisWorkspaceSnapshot):
             raise TypeError("snapshot must be a DomainAnalysisWorkspaceSnapshot.")
+        self.command_center.render_snapshot(value)
         blockers = [
             QSignalBlocker(widget)
             for widget in (

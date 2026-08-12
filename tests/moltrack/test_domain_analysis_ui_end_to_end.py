@@ -564,6 +564,11 @@ def test_main_window_routes_save_open_and_export_through_one_domain_workspace(
         simple = window.domain_analysis_dialog()
         assert isinstance(simple, DomainAnalysisDialog)
         assert controller.snapshot.active_frame_index == 1
+        assert simple.command_center.canvas.has_image
+        np.testing.assert_array_equal(
+            simple.command_center.canvas.viewer.image_item.image,
+            image_series.raw_frames[1],
+        )
 
         analysis_menu = next(
             action.menu()
@@ -590,6 +595,11 @@ def test_main_window_routes_save_open_and_export_through_one_domain_workspace(
         window.slider_frame.setValue(0)
         qt_app.processEvents()
         assert controller.snapshot.active_frame_index == 0
+        assert simple.command_center.canvas.current_frame_index == 0
+        np.testing.assert_array_equal(
+            simple.command_center.canvas.viewer.image_item.image,
+            image_series.raw_frames[0],
+        )
         window.slider_frame.setValue(1)
         qt_app.processEvents()
         assert controller.snapshot.active_frame_index == 1

@@ -5,6 +5,7 @@ import os
 from dataclasses import replace
 from functools import partial
 
+import numpy as np
 import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -100,6 +101,76 @@ def _workspace(
         ),
         execution=execution,
     )
+
+
+def test_dialog_opens_spatial_command_center_over_one_workspace(qt_app) -> None:
+    executor = _ManualExecutor()
+    controller = _workspace(executor)
+    snapshot_before_open = controller.snapshot
+    canvas_frames = np.arange(48, dtype=np.float32).reshape(3, 4, 4)
+
+    dialog = _dialog(
+        controller,
+        lambda publication: None,
+        canvas_frame_for=lambda frame_index: canvas_frames[frame_index],
+    )
+    dialog.show()
+    qt_app.processEvents()
+
+    command_center = dialog.command_center
+    assert controller.snapshot is snapshot_before_open
+    assert command_center.rendered_snapshot is snapshot_before_open
+    assert command_center.canvas.objectName() == "domainAnalysisCanvas"
+    assert command_center.canvas.has_image
+    np.testing.assert_array_equal(
+        command_center.canvas.viewer.image_item.image,
+        canvas_frames[0],
+    )
+    assert command_center.stage_rail.objectName() == "domainAnalysisStageRail"
+    assert command_center.bottom_sheet.objectName() == "domainAnalysisBottomSheet"
+    assert command_center.stage_ids == (
+        "analyze",
+        "correct",
+        "review",
+        "datasets",
+        "presets",
+        "calibrate",
+    )
+    assert command_center.current_stage == "analyze"
+
+    dialog.range_end_spin.setValue(3)
+    dialog.analyze_button.click()
+    executor.run_next()
+    qt_app.processEvents()
+    publication = controller.snapshot.published
+    assert publication is not None
+
+    controller.dispatch(SetDomainAnalysisFrame(1))
+    qt_app.processEvents()
+    frame_snapshot = controller.snapshot
+    assert frame_snapshot.published is publication
+    assert command_center.canvas.current_frame_index == 1
+    np.testing.assert_array_equal(
+        command_center.canvas.viewer.image_item.image,
+        canvas_frames[1],
+    )
+    rendered_frame = command_center.canvas.viewer.image_item.image
+    results = dialog.current_frame_results_panel.current_results()
+    assert results is not None
+    assert results.domains[0].component_key is not None
+    assert results.domains[0].component_key.physical_frame_id == "physical-frame-1"
+
+    command_center.stage_button("review").click()
+    qt_app.processEvents()
+
+    assert command_center.current_stage == "review"
+    assert command_center.current_sheet_stage == "review"
+    assert controller.snapshot is frame_snapshot
+    assert command_center.rendered_snapshot is frame_snapshot
+    assert controller.snapshot.published is publication
+    assert dialog.current_frame_results_panel.current_results() is results
+    assert command_center.canvas.viewer.image_item.image is rendered_frame
+    _dispose(dialog, qt_app)
 
 
 def test_dialog_runs_one_range_and_exports_exact_publication(qt_app) -> None:
@@ -511,12 +582,15 @@ def test_export_callback_can_send_exact_publication_to_schema_v9(
 def _dialog(
     controller: DomainAnalysisWorkspaceController,
     export_published,
+    *,
+    canvas_frame_for=None,
 ):
     return DomainAnalysisDialog(
         controller,
         m6_preset_name="TTMAPP M6 approved",
         classifier_preset_name="TTMAPP A/B/C approved",
         export_published=export_published,
+        canvas_frame_for=canvas_frame_for,
     )
 
 
