@@ -13,8 +13,10 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisWorkspaceController,
     DomainAnalysisWorkspaceSnapshot,
     DomainComponentKey,
+    DomainHierarchyHighlight,
     ReplaceDomainAnalysisDraft,
     SelectDomainComponent,
+    SetDomainHierarchyHighlight,
     StartDomainAnalysis,
 )
 from moltrack.analysis.m6_current_frame_results import (
@@ -212,6 +214,11 @@ class DomainAnalysisWorkspaceViewBinding(QObject):
         if value is not None and not isinstance(value, DomainComponentKey):
             raise TypeError("Domain Analysis selection must be canonical.")
         self._controller.dispatch(SelectDomainComponent(value))
+
+    def highlight_hierarchy(self, value: object) -> None:
+        if value is not None and not isinstance(value, DomainHierarchyHighlight):
+            raise TypeError("Domain Analysis highlight must be canonical.")
+        self._controller.dispatch(SetDomainHierarchyHighlight(value))
 
     @staticmethod
     def render_current_frame(

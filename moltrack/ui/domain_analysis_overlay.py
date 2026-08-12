@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import colorsys
 from dataclasses import dataclass
-import hashlib
 from math import floor, isfinite
 from typing import Literal, cast
 
@@ -16,29 +16,67 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisWorkspaceSnapshot,
     DomainAnalysisWorkspaceSubscription,
     DomainComponentKey,
+    DomainHierarchyHighlight,
     M6FrameGate,
     M6PresentationProvenance,
     SelectDomainComponent,
+    display_orientation_label,
 )
 from moltrack.analysis.m6_point_overlay import M6OverlayPointStatus, M6PointOverlay
 from moltrack.ui.widgets.stm_series_viewer import STMSeriesViewer
+from napara.gui.widgets.viewer_widget import ViewerWidget
 
 
-_SMALL_ISLAND_COLOR = (190, 145, 55)
-_SELECTED_COLOR = (255, 220, 0)
+DOMAIN_ANALYSIS_DOMAIN_BOUNDARY_COLOR = (220, 230, 233)
+DOMAIN_ANALYSIS_SMALL_ISLAND_COLOR = (232, 98, 88)
+DOMAIN_ANALYSIS_HIGHLIGHT_COLOR = (241, 196, 15)
 ABCPointState = Literal["A", "B", "C", "Unknown orientation"]
-_ABC_COLORS: dict[ABCPointState, tuple[int, int, int]] = {
-    "A": (45, 125, 255),
-    "B": (245, 155, 45),
-    "C": (45, 180, 105),
-    "Unknown orientation": (135, 140, 150),
-}
 _ABC_POINT_STATUSES: dict[ABCPointState, M6OverlayPointStatus] = {
     "A": "abc_a",
     "B": "abc_b",
     "C": "abc_c",
     "Unknown orientation": "abc_unknown",
 }
+_PROTOTYPE_MARKER_STYLES = {
+    "A": ((0, 114, 178), "o"),
+    "B": ((230, 159, 0), "t"),
+    "C": ((204, 121, 167), "s"),
+    "D": ((0, 158, 115), "d"),
+    "Unknown": ((124, 133, 141), "x"),
+    "Unresolvable": ((52, 58, 64), "x"),
+}
+_EXTENDED_MARKER_SYMBOLS = ("h", "p", "star", "+", "t1", "t2", "t3")
+
+
+@dataclass(frozen=True)
+class OrientationMarkerStyle:
+    label: str
+    color_rgb: tuple[int, int, int]
+    symbol: str
+
+
+def orientation_marker_style(label: str) -> OrientationMarkerStyle:
+    """Return the approved redundant color/shape encoding for A-Z states."""
+
+    if label == "Unknown orientation":
+        label = "Unknown"
+    if label in _PROTOTYPE_MARKER_STYLES:
+        color, symbol = _PROTOTYPE_MARKER_STYLES[label]
+        return OrientationMarkerStyle(label, color, symbol)
+    if len(label) != 1 or not "E" <= label <= "Z":
+        raise ValueError("Orientation marker label must be A-Z or unresolved.")
+    index = ord(label) - ord("A")
+    hue = (0.17 + index * 0.6180339887498949) % 1.0
+    color = cast(tuple[int, int, int], tuple(
+        round(255 * channel)
+        for channel in colorsys.hsv_to_rgb(hue, 0.68, 0.82)
+    ))
+    symbol = _EXTENDED_MARKER_SYMBOLS[(index - 4) % len(_EXTENDED_MARKER_SYMBOLS)]
+    return OrientationMarkerStyle(
+        label,
+        color,
+        symbol,
+    )
 
 
 @dataclass(frozen=True)
@@ -50,6 +88,7 @@ class DomainAnalysisComponentOverlay:
     shape: tuple[int, int]
     pixels_xy: tuple[tuple[int, int], ...]
     m6_boundary_color_rgb: tuple[int, int, int]
+    is_highlighted: bool
 
 
 @dataclass(frozen=True)
@@ -61,6 +100,7 @@ class DomainAnalysisABCPointOverlay:
     point_xy_px: tuple[float, float]
     state: ABCPointState
     color_rgb: tuple[int, int, int]
+    symbol: str
 
 
 @dataclass(frozen=True)
@@ -71,6 +111,83 @@ class DomainAnalysisFrameOverlay:
     components: tuple[DomainAnalysisComponentOverlay, ...]
     abc_points: tuple[DomainAnalysisABCPointOverlay, ...]
     selected_component: DomainComponentKey | None
+    hierarchy_highlight: DomainHierarchyHighlight | None
+    highlighted_source_ids: tuple[str, ...]
+    unassigned_shape: tuple[int, int]
+    unassigned_pixels_xy: tuple[tuple[int, int], ...]
+    unassigned_is_highlighted: bool
+
+
+class DomainAnalysisGeometryRenderer:
+    """Render shared domain geometry into any MolTrack image canvas."""
+
+    def __init__(self, viewer: ViewerWidget) -> None:
+        if not isinstance(viewer, ViewerWidget):
+            raise TypeError("viewer must be a ViewerWidget.")
+        self._viewer = viewer
+        self._items: list[object] = []
+
+    def render(
+        self,
+        overlay: DomainAnalysisFrameOverlay,
+        *,
+        selected_component: DomainComponentKey | None,
+        fill_alpha: int,
+    ) -> None:
+        if not isinstance(overlay, DomainAnalysisFrameOverlay):
+            raise TypeError("overlay must be a DomainAnalysisFrameOverlay.")
+        if not isinstance(fill_alpha, int) or not 0 <= fill_alpha <= 255:
+            raise ValueError("fill_alpha must be an integer between 0 and 255.")
+        self.clear()
+        for component in overlay.components:
+            self._render_component(component, selected_component, fill_alpha)
+        if overlay.unassigned_is_highlighted:
+            self._append(self._viewer.add_mask_overlay_px(
+                domain_analysis_pixel_mask(
+                    overlay.unassigned_shape,
+                    overlay.unassigned_pixels_xy,
+                ),
+                color=DOMAIN_ANALYSIS_HIGHLIGHT_COLOR,
+                alpha=150,
+            ))
+
+    def clear(self) -> None:
+        for item in self._items:
+            self._viewer.remove_item(item)
+        self._items.clear()
+
+    def _render_component(
+        self,
+        component: DomainAnalysisComponentOverlay,
+        selected_component: DomainComponentKey | None,
+        fill_alpha: int,
+    ) -> None:
+        mask = domain_analysis_pixel_mask(component.shape, component.pixels_xy)
+        boundary = domain_analysis_pixel_mask(
+            component.shape,
+            domain_analysis_boundary_pixels(component.pixels_xy),
+        )
+        self._append(
+            self._viewer.add_mask_overlay_px(
+                mask,
+                color=component.m6_boundary_color_rgb,
+                alpha=fill_alpha,
+            ),
+            self._viewer.add_mask_overlay_px(
+                boundary,
+                color=component.m6_boundary_color_rgb,
+                alpha=220,
+            ),
+        )
+        if component.key == selected_component or component.is_highlighted:
+            self._append(self._viewer.add_mask_overlay_px(
+                boundary,
+                color=DOMAIN_ANALYSIS_HIGHLIGHT_COLOR,
+                alpha=255,
+            ))
+
+    def _append(self, *items: object | None) -> None:
+        self._items.extend(item for item in items if item is not None)
 
 
 class DomainAnalysisOverlayPresenter(QObject):
@@ -90,7 +207,7 @@ class DomainAnalysisOverlayPresenter(QObject):
             raise TypeError("viewer must be an STMSeriesViewer.")
         self._controller = controller
         self._viewer = viewer
-        self._items: list[object] = []
+        self._geometry_renderer = DomainAnalysisGeometryRenderer(viewer.viewer)
         self._target_view: Literal["raw", "expanded_aligned"] = "raw"
         self._frame_overlay: DomainAnalysisFrameOverlay | None = None
         self._snapshot_received.connect(self._render_snapshot)
@@ -128,42 +245,16 @@ class DomainAnalysisOverlayPresenter(QObject):
         if not isinstance(value, DomainAnalysisWorkspaceSnapshot):
             raise TypeError("snapshot must be a DomainAnalysisWorkspaceSnapshot.")
         self._clear_items()
-        overlay = _build_domain_analysis_frame_overlay(value, self._target_view)
+        overlay = build_domain_analysis_frame_overlay(value, self._target_view)
         self._frame_overlay = overlay
         if overlay is None:
             return
-        for component in overlay.components:
-            self._render_component(component, overlay.selected_component)
+        self._geometry_renderer.render(
+            overlay,
+            selected_component=overlay.selected_component,
+            fill_alpha=65,
+        )
         self._render_abc_points(overlay)
-
-    def _render_component(
-        self,
-        component: DomainAnalysisComponentOverlay,
-        selected_component: DomainComponentKey | None,
-    ) -> None:
-        mask = _pixel_mask(component.shape, component.pixels_xy)
-        fill_item = self._viewer.viewer.add_mask_overlay_px(
-            mask,
-            color=component.m6_boundary_color_rgb,
-            alpha=65,
-        )
-        boundary_mask = _pixel_mask(
-            component.shape,
-            _boundary_pixels(component.pixels_xy),
-        )
-        boundary_item = self._viewer.viewer.add_mask_overlay_px(
-            boundary_mask,
-            color=component.m6_boundary_color_rgb,
-            alpha=220,
-        )
-        self._append_items(fill_item, boundary_item)
-        if component.key == selected_component:
-            selected_item = self._viewer.viewer.add_mask_overlay_px(
-                boundary_mask,
-                color=_SELECTED_COLOR,
-                alpha=255,
-            )
-            self._append_items(selected_item)
 
     def _render_abc_points(self, overlay: DomainAnalysisFrameOverlay) -> None:
         points = overlay.abc_points
@@ -178,15 +269,14 @@ class DomainAnalysisOverlayPresenter(QObject):
         )
         self._viewer.show_m6_point_overlay(point_overlay)
         selected = overlay.selected_component
-        if selected is not None:
-            self._viewer.highlight_m6_overlay_source_ids(
-                value.source_id
-                for value in points
-                if value.component_key == selected
-            )
-
-    def _append_items(self, *items: object | None) -> None:
-        self._items.extend(item for item in items if item is not None)
+        selected_ids = {
+            value.source_id
+            for value in points
+            if value.component_key == selected
+        }
+        self._viewer.highlight_m6_overlay_source_ids(
+            selected_ids.union(overlay.highlighted_source_ids)
+        )
 
     def _select_at_pixel(self, value: object) -> None:
         if not isinstance(value, (tuple, list)) or len(value) != 2:
@@ -211,12 +301,10 @@ class DomainAnalysisOverlayPresenter(QObject):
 
     def _clear_items(self) -> None:
         self._viewer.clear_m6_point_overlay()
-        for item in self._items:
-            self._viewer.viewer.remove_item(item)
-        self._items.clear()
+        self._geometry_renderer.clear()
 
 
-def _pixel_mask(
+def domain_analysis_pixel_mask(
     shape: tuple[int, int],
     pixels_xy: tuple[tuple[int, int], ...],
 ) -> np.ndarray:
@@ -233,7 +321,7 @@ def _project_pixels(
 ) -> tuple[tuple[int, int], ...]:
     if target_view == "raw":
         return tuple(raw_pixels_xy)
-    raw_mask = _pixel_mask(provenance.raw_shape, raw_pixels_xy)
+    raw_mask = domain_analysis_pixel_mask(provenance.raw_shape, raw_pixels_xy)
     origin_x, origin_y = provenance.frame_origin_xy
     projected = affine_transform(
         raw_mask.astype(np.uint8),
@@ -268,7 +356,7 @@ def _published_frame(
     return None if frame is None else (publication, frame)
 
 
-def _build_domain_analysis_frame_overlay(
+def build_domain_analysis_frame_overlay(
     snapshot: DomainAnalysisWorkspaceSnapshot,
     target_view: Literal["raw", "expanded_aligned"],
 ) -> DomainAnalysisFrameOverlay | None:
@@ -282,32 +370,67 @@ def _build_domain_analysis_frame_overlay(
     if published_frame is None:
         return None
     publication, frame = published_frame
-    components = _build_component_overlays(frame, target_view)
+    highlight = snapshot.hierarchy_highlight
+    components = _build_component_overlays(frame, target_view, highlight)
     component_keys = tuple(value.key for value in components)
     selected = (
         snapshot.selected_component
         if snapshot.selected_component in component_keys
         else None
     )
+    abc_points = _build_abc_points(publication, frame, target_view)
+    provenance = frame.presentation_provenance
     return DomainAnalysisFrameOverlay(
         target_view=target_view,
         components=components,
-        abc_points=_build_abc_points(publication, frame, target_view),
+        abc_points=abc_points,
         selected_component=selected,
+        hierarchy_highlight=highlight,
+        highlighted_source_ids=_highlighted_source_ids(
+            highlight,
+            abc_points,
+        ),
+        unassigned_shape=(
+            provenance.raw_shape
+            if target_view == "raw"
+            else provenance.expanded_shape
+        ),
+        unassigned_pixels_xy=_project_pixels(
+            frame.outside_pixels_xy,
+            provenance,
+            target_view,
+        ),
+        unassigned_is_highlighted=(
+            highlight is not None
+            and highlight.target_kind == "unassigned"
+        ),
     )
 
 
 def _build_component_overlays(
     frame: M6FrameGate,
     target_view: Literal["raw", "expanded_aligned"],
+    highlight: DomainHierarchyHighlight | None,
 ) -> tuple[DomainAnalysisComponentOverlay, ...]:
     provenance = frame.presentation_provenance
     shape = provenance.raw_shape if target_view == "raw" else provenance.expanded_shape
     overlays = []
     for component in frame.full_domains + frame.small_ordered_islands:
-        boundary_color = _m6_component_color(
-            component.lattice_domain_id,
-            component.component_type,
+        boundary_color = (
+            DOMAIN_ANALYSIS_DOMAIN_BOUNDARY_COLOR
+            if component.component_type == "full_domain"
+            else DOMAIN_ANALYSIS_SMALL_ISLAND_COLOR
+        )
+        is_highlighted = highlight is not None and (
+            (
+                highlight.target_kind == "domain"
+                and component.component_type == "full_domain"
+                and component.lattice_domain_id == highlight.lattice_domain_id
+            )
+            or (
+                highlight.target_kind == "small_ordered_islands"
+                and component.component_type == "small_ordered_island"
+            )
         )
         overlays.append(DomainAnalysisComponentOverlay(
             key=DomainComponentKey(
@@ -322,6 +445,7 @@ def _build_component_overlays(
                 target_view,
             ),
             m6_boundary_color_rgb=boundary_color,
+            is_highlighted=is_highlighted,
         ))
     return tuple(overlays)
 
@@ -356,9 +480,10 @@ def _build_abc_points(
             if classification is None or member.raw_centroid_xy is None:
                 continue
             label = classification.orientation_label
-            if label not in _ABC_COLORS:
+            if label not in _ABC_POINT_STATUSES:
                 continue
             state = cast(ABCPointState, label)
+            style = orientation_marker_style(state)
             points.append(DomainAnalysisABCPointOverlay(
                 source_id=member.source_id,
                 component_key=key,
@@ -368,9 +493,30 @@ def _build_abc_points(
                     target_view,
                 ),
                 state=state,
-                color_rgb=_ABC_COLORS[state],
+                color_rgb=style.color_rgb,
+                symbol=style.symbol,
             ))
     return tuple(points)
+
+
+def _highlighted_source_ids(
+    highlight: DomainHierarchyHighlight | None,
+    points: tuple[DomainAnalysisABCPointOverlay, ...],
+) -> tuple[str, ...]:
+    if highlight is None or highlight.target_kind not in {
+        "domain",
+        "orientation_subdomain",
+    }:
+        return ()
+    return tuple(
+        point.source_id
+        for point in points
+        if point.component_key.lattice_domain_id == highlight.lattice_domain_id
+        and (
+            highlight.target_kind == "domain"
+            or display_orientation_label(point.state) == highlight.orientation_label
+        )
+    )
 
 
 def _project_point(
@@ -384,21 +530,7 @@ def _project_point(
     return raw_point_xy[0] + origin_x, raw_point_xy[1] + origin_y
 
 
-def _m6_component_color(
-    lattice_domain_id: str,
-    component_type: Literal["full_domain", "small_ordered_island"],
-) -> tuple[int, int, int]:
-    if component_type == "small_ordered_island":
-        return _SMALL_ISLAND_COLOR
-    digest = hashlib.sha256(lattice_domain_id.encode("utf-8")).digest()
-    return (
-        55 + digest[0] * 145 // 255,
-        55 + digest[1] * 145 // 255,
-        55 + digest[2] * 145 // 255,
-    )
-
-
-def _boundary_pixels(
+def domain_analysis_boundary_pixels(
     pixels_xy: tuple[tuple[int, int], ...],
 ) -> tuple[tuple[int, int], ...]:
     pixels = set(pixels_xy)
@@ -413,5 +545,15 @@ def _boundary_pixels(
 
 
 __all__ = [
+    "DOMAIN_ANALYSIS_DOMAIN_BOUNDARY_COLOR",
+    "DOMAIN_ANALYSIS_HIGHLIGHT_COLOR",
+    "DOMAIN_ANALYSIS_SMALL_ISLAND_COLOR",
+    "DomainAnalysisFrameOverlay",
+    "DomainAnalysisGeometryRenderer",
     "DomainAnalysisOverlayPresenter",
+    "OrientationMarkerStyle",
+    "build_domain_analysis_frame_overlay",
+    "domain_analysis_boundary_pixels",
+    "domain_analysis_pixel_mask",
+    "orientation_marker_style",
 ]

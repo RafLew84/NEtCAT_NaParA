@@ -23,6 +23,7 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisWorkspaceController,
     DomainAnalysisWorkspaceExecution,
     DomainComponentKey,
+    DomainHierarchyHighlight,
     M6Gate,
     PublishDomainAnalysisResult,
     ReceiveDomainAnalysisEvent,
@@ -49,13 +50,19 @@ from test_domain_analysis_workspace_lifecycle import _ManualExecutor
 from test_domain_analysis_export import _frame_gate as _export_frame_gate
 
 try:
+    from PyQt6.QtCore import Qt
     from PyQt6.QtWidgets import QApplication, QSpinBox
 except ImportError:  # pragma: no cover - optional outside target GUI env
+    Qt = None
     QApplication = None
     QSpinBox = None
 
 if QApplication is not None:
     from moltrack.ui.dialogs.domain_analysis_dialog import DomainAnalysisDialog
+    from moltrack.ui.domain_analysis_overlay import (
+        DOMAIN_ANALYSIS_HIGHLIGHT_COLOR,
+        orientation_marker_style,
+    )
 
 
 @pytest.fixture(scope="module")
@@ -171,6 +178,124 @@ def test_dialog_opens_spatial_command_center_over_one_workspace(qt_app) -> None:
     assert dialog.current_frame_results_panel.current_results() is results
     assert command_center.canvas.viewer.image_item.image is rendered_frame
     _dispose(dialog, qt_app)
+
+
+def test_correct_hierarchy_highlights_without_changing_selection(qt_app) -> None:
+    executor = _ManualExecutor()
+    controller = _workspace(executor)
+    canvas_frames = np.arange(48, dtype=np.float32).reshape(3, 4, 4)
+    dialog = _dialog(
+        controller,
+        lambda publication: None,
+        canvas_frame_for=lambda frame_index: canvas_frames[frame_index],
+    )
+    dialog.analyze_button.click()
+    executor.run_next()
+    qt_app.processEvents()
+    table = dialog.current_frame_results_panel.domain_table
+    table.setCurrentCell(0, 0)
+    selection = controller.snapshot.selected_component
+    publication = controller.snapshot.published
+    assert selection is not None
+    assert publication is not None
+    gate = publication.result.m6_gate
+    assert gate is not None
+    domain_id = gate.frames[0].full_domains[0].lattice_domain_id
+
+    dialog.command_center.stage_button("correct").click()
+    tree = dialog.domain_hierarchy_sheet.tree
+    assert dialog.domain_hierarchy_sheet.ledger_summary_label.text() == (
+        "Ledger: 4 molecules · 2 full-domain · 1 small-island · 1 unassigned"
+    )
+    domain_item = tree.findItems(
+        f"Domain {domain_id}",
+        Qt.MatchFlag.MatchExactly | Qt.MatchFlag.MatchRecursive,
+        0,
+    )[0]
+    orientation_item = tree.findItems(
+        "A",
+        Qt.MatchFlag.MatchExactly | Qt.MatchFlag.MatchRecursive,
+        0,
+    )[0]
+    domain_item.setExpanded(True)
+    tree.setCurrentItem(orientation_item)
+    qt_app.processEvents()
+
+    highlight = controller.snapshot.hierarchy_highlight
+    assert highlight == DomainHierarchyHighlight(
+        physical_frame_id="physical-frame-0",
+        target_kind="orientation_subdomain",
+        lattice_domain_id=domain_id,
+        orientation_label="A",
+    )
+    assert controller.snapshot.selected_component == selection
+    assert controller.snapshot.published is publication
+    overlay = dialog.command_center.canvas.current_overlay
+    assert overlay is not None
+    assert overlay.hierarchy_highlight == highlight
+    assert overlay.highlighted_source_ids == ("m-a", "m-b")
+    assert overlay.components[0].m6_boundary_color_rgb == (220, 230, 233)
+    assert overlay.components[1].m6_boundary_color_rgb == (232, 98, 88)
+    assert {(point.state, point.color_rgb, point.symbol) for point in overlay.abc_points} == {
+        ("A", (0, 114, 178), "o"),
+    }
+
+    islands_item = tree.findItems(
+        "Small ordered islands",
+        Qt.MatchFlag.MatchExactly,
+        0,
+    )[0]
+    tree.setCurrentItem(islands_item)
+    qt_app.processEvents()
+    overlay = dialog.command_center.canvas.current_overlay
+    assert overlay is not None
+    assert controller.snapshot.selected_component == selection
+    assert controller.snapshot.hierarchy_highlight is not None
+    assert controller.snapshot.hierarchy_highlight.target_kind == (
+        "small_ordered_islands"
+    )
+    assert tuple(
+        component.key.lattice_domain_id
+        for component in overlay.components
+        if component.is_highlighted
+    ) == (gate.frames[0].small_ordered_islands[0].lattice_domain_id,)
+
+    unassigned_item = tree.findItems(
+        "Unassigned molecules",
+        Qt.MatchFlag.MatchExactly,
+        0,
+    )[0]
+    tree.setCurrentItem(unassigned_item)
+    qt_app.processEvents()
+    overlay = dialog.command_center.canvas.current_overlay
+    assert overlay is not None
+    assert overlay.unassigned_is_highlighted
+    assert controller.snapshot.selected_component == selection
+
+    controller.dispatch(SetDomainAnalysisFrame(1))
+    qt_app.processEvents()
+
+    assert controller.snapshot.hierarchy_highlight is None
+    assert dialog.domain_hierarchy_sheet.current_highlight is None
+    assert dialog.command_center.canvas.current_overlay is None
+    _dispose(dialog, qt_app)
+
+
+def test_orientation_markers_encode_a_to_z_with_color_and_shape(qt_app) -> None:
+    styles = tuple(
+        orientation_marker_style(chr(ord("A") + index))
+        for index in range(26)
+    )
+
+    assert tuple(style.symbol for style in styles[:4]) == ("o", "t", "s", "d")
+    assert tuple(style.color_rgb for style in styles[:4]) == (
+        (0, 114, 178),
+        (230, 159, 0),
+        (204, 121, 167),
+        (0, 158, 115),
+    )
+    assert DOMAIN_ANALYSIS_HIGHLIGHT_COLOR == (241, 196, 15)
+    assert len({(style.color_rgb, style.symbol) for style in styles}) == 26
 
 
 def test_dialog_runs_one_range_and_exports_exact_publication(qt_app) -> None:

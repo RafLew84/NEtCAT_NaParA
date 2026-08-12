@@ -9,10 +9,7 @@ from .classifier_contract import (
     validated_text,
 )
 from .fingerprints import canonical_sha256
-from .models import (
-    DomainAnalysisRequest,
-    DomainAnalysisResult,
-)
+from .models import DomainAnalysisRequest, DomainAnalysisResult
 from .workspace_lifecycle import (
     DomainAnalysisWorkspaceExecution,
     reduce_domain_analysis_lifecycle,
@@ -28,6 +25,11 @@ from .workspace_lifecycle_actions import (
     StartDomainAnalysis,
 )
 from .workspace_notifications import DomainAnalysisWorkspaceStateChanged
+from .workspace_navigation import (
+    DomainHierarchyHighlight,
+    SetDomainHierarchyHighlight,
+    hierarchy_reference_diagnosis,
+)
 
 if TYPE_CHECKING:
     from .session_cache_scope import DomainAnalysisSessionCacheRecords
@@ -111,6 +113,7 @@ class DomainAnalysisWorkspaceSnapshot:
     published: DomainAnalysisPublication | None
     active_frame_index: int
     selected_component: DomainComponentKey | None = None
+    hierarchy_highlight: DomainHierarchyHighlight | None = None
     run: DomainAnalysisWorkspaceRunState = field(
         default_factory=DomainAnalysisWorkspaceRunState
     )
@@ -201,6 +204,7 @@ DomainAnalysisWorkspaceAction = (
     ReplaceDomainAnalysisDraft
     | PublishDomainAnalysisResult
     | SelectDomainComponent
+    | SetDomainHierarchyHighlight
     | SetDomainAnalysisFrame
     | RestoreDomainAnalysisWorkspace
     | DomainAnalysisLifecycleAction
@@ -338,6 +342,8 @@ def _reduce_workspace(
         return _publish_result(snapshot, action.request, action.result)
     if isinstance(action, SelectDomainComponent):
         return _select_component(snapshot, action.component)
+    if isinstance(action, SetDomainHierarchyHighlight):
+        return _set_hierarchy_highlight(snapshot, action.highlight)
     if isinstance(action, SetDomainAnalysisFrame):
         return _set_active_frame(snapshot, action.frame_index)
     if isinstance(action, RestoreDomainAnalysisWorkspace):
@@ -400,6 +406,7 @@ def _restore_workspace(
         published=action.published,
         active_frame_index=action.active_frame_index,
         selected_component=action.selected_component,
+        hierarchy_highlight=None,
         run=restored_run,
     )
 
@@ -428,6 +435,7 @@ def _publish_result(
         published_revision=snapshot.published_revision + 1,
         published=publication,
         selected_component=selection,
+        hierarchy_highlight=None,
     )
 
 
@@ -466,6 +474,33 @@ def _set_active_frame(
         revision=snapshot.revision + 1,
         active_frame_index=frame_index,
         selected_component=None,
+        hierarchy_highlight=None,
+    )
+
+
+def _set_hierarchy_highlight(
+    snapshot: DomainAnalysisWorkspaceSnapshot,
+    highlight: DomainHierarchyHighlight | None,
+) -> DomainAnalysisWorkspaceSnapshot:
+    if highlight is not None and not isinstance(
+        highlight,
+        DomainHierarchyHighlight,
+    ):
+        raise TypeError("highlight must be a DomainHierarchyHighlight.")
+    if highlight == snapshot.hierarchy_highlight:
+        return snapshot
+    if highlight is not None:
+        diagnosis = hierarchy_reference_diagnosis(
+            snapshot.active_physical_frame_id,
+            None if snapshot.published is None else snapshot.published.result,
+            highlight,
+        )
+        if diagnosis is not None:
+            raise DomainAnalysisWorkspaceIntentError(diagnosis)
+    return replace(
+        snapshot,
+        revision=snapshot.revision + 1,
+        hierarchy_highlight=highlight,
     )
 
 
@@ -488,13 +523,23 @@ def _validate_snapshot_references(
             snapshot.physical_frame_ids,
         )
     selection = snapshot.selected_component
-    if selection is None:
-        return
-    if not isinstance(selection, DomainComponentKey):
-        raise TypeError("selected_component must be a DomainComponentKey.")
-    diagnosis = _component_reference_diagnosis(snapshot, selection)
-    if diagnosis is not None:
-        raise ValueError(diagnosis)
+    if selection is not None:
+        if not isinstance(selection, DomainComponentKey):
+            raise TypeError("selected_component must be a DomainComponentKey.")
+        diagnosis = _component_reference_diagnosis(snapshot, selection)
+        if diagnosis is not None:
+            raise ValueError(diagnosis)
+    highlight = snapshot.hierarchy_highlight
+    if highlight is not None:
+        if not isinstance(highlight, DomainHierarchyHighlight):
+            raise TypeError("hierarchy_highlight must be a DomainHierarchyHighlight.")
+        diagnosis = hierarchy_reference_diagnosis(
+            snapshot.active_physical_frame_id,
+            None if snapshot.published is None else snapshot.published.result,
+            highlight,
+        )
+        if diagnosis is not None:
+            raise ValueError(diagnosis)
 
 
 def _component_reference_diagnosis(

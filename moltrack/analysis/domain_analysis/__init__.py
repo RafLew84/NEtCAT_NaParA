@@ -128,6 +128,12 @@ from .workspace_controller import (
     SelectDomainComponent,
     SetDomainAnalysisFrame,
 )
+from .workspace_navigation import (
+    DomainHierarchyHighlight,
+    DomainHierarchyHighlightKind,
+    SetDomainHierarchyHighlight,
+    display_orientation_label,
+)
 from .workspace_lifecycle import (
     CancelDomainAnalysis,
     DomainAnalysisExecutor,
@@ -212,6 +218,9 @@ __all__ = [
     "DomainAnalysisWorkspaceStateChanged",
     "DomainAnalysisWorkspaceSubscription",
     "DomainComponentKey",
+    "DomainHierarchyHighlight",
+    "DomainHierarchyHighlightKind",
+    "display_orientation_label",
     "DomainLabelSummary",
     "DomainLabelReason",
     "GeometryMode",
@@ -255,6 +264,7 @@ __all__ = [
     "ReplaceDomainAnalysisDraft",
     "RestoreDomainAnalysisWorkspace",
     "SelectDomainComponent",
+    "SetDomainHierarchyHighlight",
     "SetDomainAnalysisFrame",
     "ShutdownDomainAnalysis",
     "StartDomainAnalysis",

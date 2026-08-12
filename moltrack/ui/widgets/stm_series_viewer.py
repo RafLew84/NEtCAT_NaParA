@@ -570,7 +570,7 @@ class STMSeriesViewer(QWidget):
             pos=np.asarray(self._visible_m6_overlay_points_nm, dtype=np.float64),
             brush=[pg.mkBrush(color) for color in self._visible_m6_overlay_colors],
             pen=[
-                pg.mkPen((255, 255, 255, 255), width=2.0)
+                pg.mkPen((241, 196, 15, 255), width=2.0)
                 if source_id in highlighted
                 else pg.mkPen((20, 20, 20, 180), width=0.8)
                 for source_id in self._visible_m6_overlay_source_ids

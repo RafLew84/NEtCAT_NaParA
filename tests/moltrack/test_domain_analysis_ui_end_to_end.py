@@ -27,6 +27,8 @@ from moltrack.analysis.domain_analysis import (
     DomainComponentKey,
     M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     SelectDomainComponent,
+    DomainHierarchyHighlight,
+    SetDomainHierarchyHighlight,
     SetDomainAnalysisFrame,
 )
 from moltrack.core import MolTrackImageSeries
@@ -140,6 +142,7 @@ def domain_ui(qt_app):
         m6_preset_name="TTMAPP M6 approved",
         classifier_preset_name="TTMAPP A/B/C approved",
         export_published=lambda publication: None,
+        canvas_frame_for=lambda _frame_index: np.zeros((4, 4), dtype=np.float32),
     )
     presenter = DomainAnalysisOverlayPresenter(controller, window.viewer)
     yield controller, executor, dialog, window, presenter
@@ -171,16 +174,16 @@ def _assert_mixed_abc(table, viewer, abc_column: int) -> None:
     assert table.item(0, abc_column).text() == "Mixed"
     assert viewer.visible_m6_overlay_source_ids() == ("m-a", "m-b")
     assert viewer.visible_m6_overlay_colors() == (
-        (45, 125, 255, 230),
-        (245, 155, 45, 230),
+        (0, 114, 178, 230),
+        (230, 159, 0, 230),
     )
 
 
 def _assert_unknown_abc(table, viewer, abc_column: int) -> None:
     assert table.item(0, abc_column).text() == "Unknown orientation"
     assert viewer.visible_m6_overlay_colors() == (
-        (135, 140, 150, 230),
-        (135, 140, 150, 230),
+        (124, 133, 141, 230),
+        (124, 133, 141, 230),
     )
 
 
@@ -211,8 +214,24 @@ def test_domain_analysis_ui_shares_published_overlay_and_selection(
     assert controller.snapshot.selected_component == full_key
     assert viewer.highlighted_m6_overlay_source_ids() == ("m-a", "m-b")
 
+    controller.dispatch(SetDomainHierarchyHighlight(DomainHierarchyHighlight(
+        physical_frame_id="physical-frame-0",
+        target_kind="orientation_subdomain",
+        lattice_domain_id=full_domain.lattice_domain_id,
+        orientation_label="A",
+    )))
+    qt_app.processEvents()
+
+    assert controller.snapshot.selected_component == full_key
+    assert viewer.highlighted_m6_overlay_source_ids() == ("m-a", "m-b")
+    assert dialog.command_center.canvas.current_overlay is not None
+    assert dialog.command_center.canvas.current_overlay.highlighted_source_ids == (
+        "m-a",
+    )
+
     controller.dispatch(SetDomainAnalysisFrame(1))
     qt_app.processEvents()
+    assert controller.snapshot.hierarchy_highlight is None
     _assert_unknown_abc(table, viewer, abc_column)
 
     controller.dispatch(SetDomainAnalysisFrame(0))

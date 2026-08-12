@@ -34,8 +34,10 @@ from moltrack.ui.domain_analysis_workspace_view import (
     DomainAnalysisWorkspaceViewBinding,
     ExportPublished,
 )
+from moltrack.ui.domain_analysis_hierarchy import DomainAnalysisHierarchySheet
 
 from .domain_analysis_command_center import (
+    DomainAnalysisCanvasTargetViewFor,
     DomainAnalysisCommandCenter,
     DomainAnalysisImageCanvas,
 )
@@ -65,6 +67,7 @@ class DomainAnalysisDialog(QDialog):
         export_published: ExportPublished,
         canvas_frame_for: Callable[[int], object] | None = None,
         canvas_scale_nm_per_px: tuple[float | None, float | None] = (None, None),
+        canvas_target_view_for: DomainAnalysisCanvasTargetViewFor | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -78,6 +81,7 @@ class DomainAnalysisDialog(QDialog):
             _required_name(classifier_preset_name, "classifier_preset_name"),
             canvas_frame_for,
             canvas_scale_nm_per_px,
+            canvas_target_view_for,
         )
         self._workspace_view = DomainAnalysisWorkspaceViewBinding(
             controller,
@@ -107,6 +111,7 @@ class DomainAnalysisDialog(QDialog):
         classifier_preset_name: str,
         canvas_frame_for: Callable[[int], object] | None,
         canvas_scale_nm_per_px: tuple[float | None, float | None],
+        canvas_target_view_for: DomainAnalysisCanvasTargetViewFor | None,
     ) -> None:
         layout = QVBoxLayout(self)
         analyze_sheet = QWidget(self)
@@ -128,11 +133,14 @@ class DomainAnalysisDialog(QDialog):
         canvas = DomainAnalysisImageCanvas(
             canvas_frame_for,
             scale_nm_per_px=canvas_scale_nm_per_px,
+            target_view_for=canvas_target_view_for,
             parent=self,
         )
+        self.domain_hierarchy_sheet = DomainAnalysisHierarchySheet(self)
         self.command_center = DomainAnalysisCommandCenter(
             canvas=canvas,
             analyze_sheet=analyze_sheet,
+            correct_sheet=self.domain_hierarchy_sheet,
             diagnostics=diagnostics,
             parent=self,
         )
@@ -216,6 +224,9 @@ class DomainAnalysisDialog(QDialog):
         self.current_frame_results_panel.domain_selection_changed.connect(
             self._workspace_view.select_component
         )
+        self.domain_hierarchy_sheet.highlight_requested.connect(
+            self._workspace_view.highlight_hierarchy
+        )
 
     def _replace_draft(self) -> None:
         selected_backend = self.domain_backend_combo.currentData()
@@ -241,6 +252,7 @@ class DomainAnalysisDialog(QDialog):
         if not isinstance(value, DomainAnalysisWorkspaceSnapshot):
             raise TypeError("snapshot must be a DomainAnalysisWorkspaceSnapshot.")
         self.command_center.render_snapshot(value)
+        self.domain_hierarchy_sheet.render_snapshot(value)
         blockers = [
             QSignalBlocker(widget)
             for widget in (

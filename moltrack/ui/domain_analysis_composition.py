@@ -130,6 +130,7 @@ class DomainAnalysisMainWindowComposition(QObject):
                 export_published=self._export_published,
                 canvas_frame_for=self._canvas_frame_for,
                 canvas_scale_nm_per_px=self._session_series.pixel_size_nm,
+                canvas_target_view_for=lambda: self._overlay.target_view,
                 parent=self._owner,
             )
             dialog.destroyed.connect(

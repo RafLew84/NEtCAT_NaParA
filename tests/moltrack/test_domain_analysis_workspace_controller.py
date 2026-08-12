@@ -14,6 +14,7 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisWorkspaceNotificationError,
     DomainAnalysisWorkspaceSnapshot,
     DomainComponentKey,
+    DomainHierarchyHighlight,
     DomainBackendIdentity,
     M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     M6FrameGate,
@@ -25,6 +26,7 @@ from moltrack.analysis.domain_analysis import (
     PublishDomainAnalysisResult,
     ReplaceDomainAnalysisDraft,
     SelectDomainComponent,
+    SetDomainHierarchyHighlight,
     SetDomainAnalysisFrame,
 )
 
@@ -180,6 +182,43 @@ def test_workspace_selection_is_local_to_the_active_frame() -> None:
     assert selected.selected_component == frame_one
     returned = controller.dispatch(SetDomainAnalysisFrame(0))
     assert returned.selected_component is None
+
+
+def test_workspace_highlight_is_navigation_independent_from_selection() -> None:
+    request = DomainAnalysisRequest(frame_range=range(2))
+    controller = DomainAnalysisWorkspaceController(
+        request,
+        physical_frame_ids=("physical-frame-0", "physical-frame-1"),
+    )
+    controller.dispatch(PublishDomainAnalysisResult(
+        request=request,
+        result=_completed_result(range(2)),
+    ))
+    selection = DomainComponentKey("physical-frame-0", "local-domain-1")
+    controller.dispatch(SelectDomainComponent(selection))
+    publication = controller.snapshot.published
+
+    highlighted = controller.dispatch(SetDomainHierarchyHighlight(
+        DomainHierarchyHighlight(
+            physical_frame_id="physical-frame-0",
+            target_kind="domain",
+            lattice_domain_id="local-domain-1",
+        )
+    ))
+
+    assert highlighted.hierarchy_highlight == DomainHierarchyHighlight(
+        physical_frame_id="physical-frame-0",
+        target_kind="domain",
+        lattice_domain_id="local-domain-1",
+    )
+    assert highlighted.selected_component == selection
+    assert highlighted.published is publication
+
+    changed_frame = controller.dispatch(SetDomainAnalysisFrame(1))
+
+    assert changed_frame.hierarchy_highlight is None
+    assert changed_frame.selected_component is None
+    assert changed_frame.published is publication
 
 
 def test_workspace_rejects_invalid_references_without_partial_state() -> None:
