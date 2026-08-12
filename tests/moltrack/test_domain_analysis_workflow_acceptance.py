@@ -16,8 +16,14 @@ from PyQt6.QtWidgets import QApplication, QMessageBox
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from moltrack.analysis.domain_analysis import (
+    ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
+    ABC_ORIENTATION_CLASSIFIER_ID,
+    ClassifierConfiguration,
+    ClassifierIdentity,
     ClassifierMoleculeInput,
     ClassifierMoleculePrediction,
+    DomainAnalysisRequest,
+    DomainAnalysisSessionState,
     M6CanonicalFrame,
     M6ComponentMembership,
     M6FrameComputation,
@@ -425,6 +431,131 @@ def test_one_public_domain_analysis_workflow_survives_round_trip_and_rejects_bad
             for case in invalid_cases
         )
     finally:
+        window.close()
+        window.deleteLater()
+        qt_app.processEvents()
+
+
+def test_open_without_abc_then_enable_save_and_reopen_uses_runtime_capability(
+    qt_app,
+    tmp_path,
+    monkeypatch,
+) -> None:
+    source_path = tmp_path / "capability-catalog.mpp"
+    source_path.write_bytes(b"domain analysis capability catalog source")
+    initial_series = _annotated_series(source_path)
+    initial_path = tmp_path / "initial.moltrack.json"
+    without_abc_path = tmp_path / "without-abc.moltrack.json"
+    enabled_path = tmp_path / "enabled-abc.moltrack.json"
+    save_moltrack_session(initial_path, initial_series)
+    built_compositions: list[_BuiltComposition] = []
+
+    def restore_series(session):
+        return restore_moltrack_image_series_from_session(
+            session,
+            series_loader=lambda *_args, **_kwargs: MolTrackImageSeries(
+                source_path=source_path,
+                raw_frames=initial_series.raw_frames.copy(),
+                metadata=initial_series.metadata,
+            ),
+        )
+
+    def build_composition(owner, session_series):
+        composition = runtime.build_domain_analysis_main_window_composition(
+            owner,
+            session_series,
+        )
+        built_compositions.append(_BuiltComposition(composition, session_series))
+        return composition
+
+    monkeypatch.setattr(QMessageBox, "critical", lambda *_args: None)
+    window = MolTrackMainWindow(
+        yolo_model_discovery=lambda: [],
+        session_restorer=restore_series,
+        domain_analysis_composition_factory=build_composition,
+    )
+    try:
+        window.open_state(initial_path)
+        window.btn_position_analysis.click()
+        dialog = window.domain_analysis_dialog()
+        assert dialog is not None
+        dialog.classify_abc_checkbox.setChecked(False)
+        window.save_state(without_abc_path)
+
+        window.open_state(without_abc_path)
+        assert len(built_compositions) == 2
+        window.btn_position_analysis.click()
+        restored = window.domain_analysis_dialog()
+        assert restored is not None
+        assert not restored.classify_abc_checkbox.isChecked()
+
+        restored.classify_abc_checkbox.setChecked(True)
+        window.save_state(enabled_path)
+        assert enabled_path.is_file()
+
+        enabled = load_moltrack_session(enabled_path).domain_analysis_state
+        assert enabled is not None
+        assert enabled.draft is not None
+        assert enabled.draft.classifier_ids == (ABC_ORIENTATION_CLASSIFIER_ID,)
+        assert tuple(
+            value.identity.classifier_id
+            for value in enabled.draft_classifier_configurations
+        ) == (ABC_ORIENTATION_CLASSIFIER_ID,)
+
+        window.open_state(enabled_path)
+        assert len(built_compositions) == 3
+        assert (
+            built_compositions[-1].composition.session_state().draft
+            == enabled.draft
+        )
+        window.btn_position_analysis.click()
+        reopened = window.domain_analysis_dialog()
+        assert reopened is not None
+        assert reopened.classify_abc_checkbox.isChecked()
+    finally:
+        window.close()
+        window.deleteLater()
+        qt_app.processEvents()
+
+
+def test_restore_reports_classifier_missing_from_runtime_capability_catalog(
+    qt_app,
+    tmp_path,
+) -> None:
+    source_path = tmp_path / "missing-capability.mpp"
+    source_path.write_bytes(b"domain analysis missing capability source")
+    window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+    composition = runtime.build_domain_analysis_main_window_composition(
+        window,
+        _annotated_series(source_path),
+    )
+    initial_draft = composition.session_state().draft
+    missing_id = "missing_classifier_adapter"
+    missing_configuration = ClassifierConfiguration(
+        identity=ClassifierIdentity(
+            classifier_id=missing_id,
+            schema_version="missing-schema-v1",
+            settings_fingerprint="missing-settings-v1",
+            algorithm_version="missing-algorithm-v1",
+        ),
+        aggregation_preset=ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
+    )
+    state = DomainAnalysisSessionState(
+        draft=DomainAnalysisRequest(
+            frame_range=range(1),
+            classifier_ids=(missing_id,),
+        ),
+        draft_classifier_configurations=(missing_configuration,),
+    )
+
+    try:
+        with pytest.raises(ValueError, match="Unavailable classifier IDs") as raised:
+            composition.restore_session(state)
+
+        assert missing_id in str(raised.value)
+        assert composition.session_state().draft == initial_draft
+    finally:
+        composition.shutdown()
         window.close()
         window.deleteLater()
         qt_app.processEvents()

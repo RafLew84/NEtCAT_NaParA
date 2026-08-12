@@ -193,6 +193,14 @@ class DomainAnalysisMainWindowComposition(QObject):
             raise ValueError(
                 "A MainWindow Domain Analysis session must contain a draft."
             )
+        unavailable_classifier_ids = set(state.draft.classifier_ids).difference(
+            self._configurations
+        )
+        if unavailable_classifier_ids:
+            raise ValueError(
+                "Unavailable classifier IDs: "
+                f"{sorted(unavailable_classifier_ids)!r}."
+            )
         snapshot = self._controller.snapshot
         expected_draft_ids = tuple(
             snapshot.physical_frame_ids[index]
@@ -230,9 +238,6 @@ class DomainAnalysisMainWindowComposition(QObject):
                 m6_records=state.m6_cache_records,
                 classifier_records=state.classifier_cache_records,
             )
-        )
-        self._configurations = _configuration_index(
-            state.draft_classifier_configurations
         )
         self._view_settings = state.view_settings
 
