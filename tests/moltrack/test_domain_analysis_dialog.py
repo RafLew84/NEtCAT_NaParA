@@ -340,6 +340,8 @@ def test_correct_sheet_previews_and_applies_manual_orientation_from_canvas(
     assert manual_point.component_key is None
 
     dialog.orientation_reset_button.click()
+    assert not dialog.correction_confirm_impact_checkbox.isHidden()
+    dialog.correction_confirm_impact_checkbox.setChecked(True)
     dialog.orientation_apply_button.click()
     qt_app.processEvents()
     reset = controller.snapshot.domain_corrections.effective_projection

@@ -6,8 +6,11 @@ from collections.abc import Callable
 from uuid import uuid4
 
 from .classifier_models import MoleculeClassification
+from .domain_correction_actions import ApplyPreparedDomainCorrection
 from .domain_correction_models import (
-    ApplyPreparedDomainCorrection,
+    DomainCorrectionAtom,
+    DomainCorrectionConflict,
+    DomainCorrectionReviewTarget,
     DomainCorrectionWorkspace,
     EffectiveDomainProjection,
     EffectiveMoleculeOrientation,
@@ -16,6 +19,10 @@ from .domain_correction_models import (
     ManualOrientationDecision,
     ManualOrientationIntent,
     PreparedDomainCorrection,
+)
+from .domain_correction_policy import (
+    compatible_automatic_orientation,
+    prepared_correction_report,
 )
 from .manual_domain_models import ManualDomainIntent, ManualDomainRecord
 from .manual_domain_projection import (
@@ -35,9 +42,13 @@ class DomainCorrectionModule:
     def __init__(
         self,
         manual_domain_id_factory: Callable[[], str] | None = None,
+        correction_operation_id_factory: Callable[[], str] | None = None,
     ) -> None:
         self._manual_domain_id_factory = manual_domain_id_factory or (
             lambda: str(uuid4())
+        )
+        self._correction_operation_id_factory = (
+            correction_operation_id_factory or (lambda: str(uuid4()))
         )
 
     def initialize(
@@ -60,8 +71,9 @@ class DomainCorrectionModule:
         if not isinstance(intent, (ManualOrientationIntent, ManualDomainIntent)):
             raise TypeError("intent must be a supported Domain Correction intent.")
         frame = _frame(automatic, intent.physical_frame_id)
+        blocked: tuple[DomainCorrectionConflict, ...] = ()
         if isinstance(intent, ManualDomainIntent):
-            intent = _prepared_manual_domain_intent(
+            intent, blocked = _prepared_manual_domain_intent(
                 workspace,
                 intent,
                 self._manual_domain_id_factory,
@@ -70,17 +82,24 @@ class DomainCorrectionModule:
                     for value in frame.full_domains + frame.small_ordered_islands
                 ),
             )
-        available = set(frame.analyzed_source_ids)
-        missing = tuple(value for value in intent.source_ids if value not in available)
+        missing = tuple(
+            value for value in intent.source_ids
+            if value not in set(frame.analyzed_source_ids)
+        )
         if missing:
-            raise ValueError(f"Unknown source_ids for correction: {missing!r}.")
-        if isinstance(intent, ManualDomainIntent):
+            blocked += (DomainCorrectionConflict(
+                "blocked",
+                "unknown_source_ids",
+                "The prepared batch contains unknown source IDs.",
+                missing,
+            ),)
+        if isinstance(intent, ManualDomainIntent) and not blocked:
             prospective = replace(
                 workspace,
                 manual_domains=_apply_manual_domain_intent(workspace, intent),
             )
             self.project(automatic, prospective)
-        changed = (
+        changed = () if blocked else (
             _manual_domain_changed_source_ids(workspace, intent)
             if isinstance(intent, ManualDomainIntent)
             else tuple(
@@ -93,11 +112,14 @@ class DomainCorrectionModule:
                 )
             )
         )
-        return PreparedDomainCorrection(
-            expected_revision=workspace.revision,
-            automatic_fingerprint=workspace.automatic_fingerprint,
-            intent=intent,
-            changed_source_ids=changed,
+        return prepared_correction_report(
+            workspace,
+            frame,
+            intent,
+            changed,
+            self.project(automatic, workspace),
+            source_ids=_manual_domain_source_ids(workspace, intent),
+            blocked=blocked,
         )
 
     def dispatch(
@@ -117,13 +139,37 @@ class DomainCorrectionModule:
             raise ValueError("Prepared Domain Correction is stale.")
         if preview != self.prepare(workspace, automatic, preview.intent):
             raise ValueError("Prepared Domain Correction does not match its intent.")
+        if preview.is_blocked:
+            raise ValueError("Prepared Domain Correction is blocked.")
+        if not preview.changed_source_ids:
+            return workspace
+        if (
+            preview.requires_confirmation
+            and action.confirmed_prepared_fingerprint
+            != preview.prepared_fingerprint
+        ):
+            raise ValueError(
+                "Prepared Domain Correction requires confirmation."
+            )
         intent = preview.intent
         if isinstance(intent, ManualDomainIntent):
-            return replace(
+            boundary_keys = set(workspace.cleared_boundary_source_keys)
+            if intent.operation == "move" and intent.boundary_resolution is not None:
+                intent_keys = {
+                    (intent.physical_frame_id, effect.source_id)
+                    for effect in preview.effects
+                    if effect.before_boundary is True
+                    and effect.after_boundary is not None
+                }
+                if intent.boundary_resolution == "clear":
+                    boundary_keys.update(intent_keys)
+                else:
+                    boundary_keys.difference_update(intent_keys)
+            return self._append_atom(replace(
                 workspace,
-                revision=workspace.revision + 1,
                 manual_domains=_apply_manual_domain_intent(workspace, intent),
-            )
+                cleared_boundary_source_keys=tuple(sorted(boundary_keys)),
+            ), preview)
         decisions = _decision_index(workspace)
         for source_id in intent.source_ids:
             key = (intent.physical_frame_id, source_id)
@@ -137,10 +183,38 @@ class DomainCorrectionModule:
                     orientation_label=intent.orientation_label,
                     reason_code=intent.reason_code,
                 )
+        return self._append_atom(replace(
+            workspace,
+            orientation_decisions=tuple(decisions[key] for key in sorted(decisions)),
+        ), preview)
+
+    def _append_atom(
+        self,
+        workspace: DomainCorrectionWorkspace,
+        preview: PreparedDomainCorrection,
+    ) -> DomainCorrectionWorkspace:
+        targets: tuple[DomainCorrectionReviewTarget, ...] = (
+            ("m6", "orientation")
+            if preview.axis == "m6"
+            else ("orientation",)
+        )
+        revisions = dict(workspace.review_revisions)
+        for target in targets:
+            revisions[target] += 1
+        atom = DomainCorrectionAtom(
+            operation_id=self._correction_operation_id_factory(),
+            prepared_fingerprint=preview.prepared_fingerprint,
+            axis=preview.axis,
+            physical_frame_id=preview.intent.physical_frame_id,
+            source_ids=preview.source_ids,
+            intent=preview.intent,
+            invalidates_review_targets=targets,
+        )
         return replace(
             workspace,
             revision=workspace.revision + 1,
-            orientation_decisions=tuple(decisions[key] for key in sorted(decisions)),
+            atoms=workspace.atoms + (atom,),
+            review_revisions=tuple(sorted(revisions.items())),
         )
 
     def project(
@@ -167,6 +241,7 @@ class DomainCorrectionModule:
             frame.physical_frame_id: _automatic_boundary_source_ids(frame)
             for frame in automatic.m6_gate.frames
         }
+        cleared_boundary_keys = set(workspace.cleared_boundary_source_keys)
         molecules = tuple(
             _project_molecule(
                 frame,
@@ -178,6 +253,8 @@ class DomainCorrectionModule:
                 _effective_boundary_role(
                     boundary_ids[frame.physical_frame_id],
                     source_id,
+                    (frame.physical_frame_id, source_id)
+                    in cleared_boundary_keys,
                 ),
                 footprints[frame.physical_frame_id][source_id],
             )
@@ -220,7 +297,11 @@ def _project_molecule(
             source_id,
         ))
     )
-    automatic_label = _compatible_automatic_label(frame, classification, domain_id)
+    automatic_label = compatible_automatic_orientation(
+        frame,
+        classification,
+        domain_id,
+    )
     if decision is not None:
         label = decision.orientation_label
         source: EffectiveOrientationSource = "manual"
@@ -276,28 +357,15 @@ def _automatic_boundary_source_ids(frame: M6FrameGate) -> set[str] | None:
 def _effective_boundary_role(
     boundary_source_ids: set[str] | None,
     source_id: str,
+    is_cleared: bool,
 ) -> bool | None:
+    if is_cleared:
+        return False
     return (
         None
         if boundary_source_ids is None
         else source_id in boundary_source_ids
     )
-
-
-def _compatible_automatic_label(
-    frame: M6FrameGate,
-    classification: MoleculeClassification | None,
-    effective_domain_id: str | None,
-) -> str | None:
-    if (
-        classification is None
-        or classification.m6_gate_fingerprint != frame.m6_gate_fingerprint
-        or classification.physical_frame_id != frame.physical_frame_id
-        or classification.m6_partition != "full_domain"
-        or classification.lattice_domain_id != effective_domain_id
-    ):
-        return None
-    return classification.orientation_label
 
 
 def _orientation_subdomains(
@@ -352,11 +420,10 @@ def _decision_would_change(
     current = decisions.get((intent.physical_frame_id, source_id))
     if intent.operation == "reset":
         return current is not None
-    return current != ManualOrientationDecision(
-        intent.physical_frame_id,
-        source_id,
-        intent.orientation_label or "",
-        intent.reason_code,
+    return (
+        current is None
+        or current.orientation_label != intent.orientation_label
+        or current.reason_code != intent.reason_code
     )
 
 
@@ -365,33 +432,129 @@ def _prepared_manual_domain_intent(
     intent: ManualDomainIntent,
     id_factory: Callable[[], str],
     automatic_domain_ids: tuple[str, ...],
-) -> ManualDomainIntent:
-    domain_ids = {value.manual_domain_id for value in workspace.manual_domains}
+) -> tuple[
+    ManualDomainIntent,
+    tuple[DomainCorrectionConflict, ...],
+]:
     if intent.operation == "create":
-        domain_id = intent.manual_domain_id or id_factory()
-        if (
-            domain_id in domain_ids
-            or domain_id in automatic_domain_ids
-        ):
-            raise ValueError("Manual domain ID already exists.")
-        return ManualDomainIntent(
-            physical_frame_id=intent.physical_frame_id,
-            operation="create",
-            source_ids=intent.source_ids,
-            manual_domain_id=domain_id,
+        return _prepared_create_domain_intent(
+            workspace,
+            intent,
+            id_factory,
+            automatic_domain_ids,
         )
     assert intent.manual_domain_id is not None
     key = (intent.physical_frame_id, intent.manual_domain_id)
     record = _manual_domain_index(workspace).get(key)
     if record is None:
-        raise ValueError("Manual domain does not exist in this frame.")
+        return intent, (DomainCorrectionConflict(
+            "blocked",
+            "manual_domain_target_missing",
+            "Manual domain does not exist in this frame.",
+            intent.source_ids,
+        ),)
     if intent.operation == "move" and record.is_deleted:
-        raise ValueError("Cannot move molecules into a deleted manual domain.")
+        return intent, (DomainCorrectionConflict(
+            "blocked",
+            "manual_domain_target_deleted",
+            "Cannot move molecules into a deleted manual domain.",
+            intent.source_ids,
+        ),)
     if intent.operation == "delete" and record.is_deleted:
-        raise ValueError("Manual domain is already deleted.")
+        return intent, (DomainCorrectionConflict(
+            "blocked",
+            "manual_domain_already_deleted",
+            "Manual domain is already deleted.",
+            (),
+        ),)
     if intent.operation == "restore" and not record.is_deleted:
-        raise ValueError("Only a manual-domain tombstone can be restored.")
-    return intent
+        return intent, (DomainCorrectionConflict(
+            "blocked",
+            "manual_domain_not_deleted",
+            "Only a manual-domain tombstone can be restored.",
+            (),
+        ),)
+    if intent.operation == "restore":
+        memberships = active_manual_memberships(workspace.manual_domains)
+        resolutions = dict(intent.member_resolutions)
+        invalid_resolutions = tuple(
+            source_id
+            for source_id in resolutions
+            if source_id not in record.restore_source_ids
+        )
+        if invalid_resolutions:
+            return intent, (DomainCorrectionConflict(
+                "blocked",
+                "invalid_restore_resolution",
+                "Restore resolutions must identify saved domain members.",
+                invalid_resolutions,
+            ),)
+        conflicts = tuple(
+            source_id
+            for source_id in record.restore_source_ids
+            if (
+                memberships.get((intent.physical_frame_id, source_id))
+                not in {None, intent.manual_domain_id}
+                and source_id not in resolutions
+            )
+        )
+        if conflicts:
+            return intent, (DomainCorrectionConflict(
+                "blocked",
+                "restore_membership_conflict",
+                "Restore members already belong to another manual domain.",
+                conflicts,
+            ),)
+    return intent, ()
+
+
+def _manual_domain_source_ids(
+    workspace: DomainCorrectionWorkspace,
+    intent: ManualOrientationIntent | ManualDomainIntent,
+) -> tuple[str, ...] | None:
+    if not isinstance(intent, ManualDomainIntent):
+        return None
+    if intent.operation in {"create", "move"}:
+        return intent.source_ids
+    record = _manual_domain_index(workspace).get((
+        intent.physical_frame_id,
+        intent.manual_domain_id or "",
+    ))
+    if record is None:
+        return None
+    return (
+        record.source_ids
+        if intent.operation == "delete"
+        else record.restore_source_ids
+    )
+
+
+def _prepared_create_domain_intent(
+    workspace: DomainCorrectionWorkspace,
+    intent: ManualDomainIntent,
+    id_factory: Callable[[], str],
+    automatic_domain_ids: tuple[str, ...],
+) -> tuple[ManualDomainIntent, tuple[DomainCorrectionConflict, ...]]:
+    domain_id = intent.manual_domain_id or id_factory()
+    prepared = ManualDomainIntent(
+        physical_frame_id=intent.physical_frame_id,
+        operation="create",
+        source_ids=intent.source_ids,
+        manual_domain_id=domain_id,
+        boundary_resolution=intent.boundary_resolution,
+        member_resolutions=intent.member_resolutions,
+    )
+    known_ids = {
+        value.manual_domain_id for value in workspace.manual_domains
+    }.union(automatic_domain_ids)
+    if domain_id not in known_ids:
+        return prepared, ()
+    return prepared, (DomainCorrectionConflict(
+        "blocked",
+        "manual_domain_id_conflict",
+        "Manual domain ID already exists.",
+        intent.source_ids,
+    ),)
 
 
 def _manual_domain_changed_source_ids(
@@ -411,7 +574,14 @@ def _manual_domain_changed_source_ids(
     record = _manual_domain_index(workspace)[
         (intent.physical_frame_id, intent.manual_domain_id or "")
     ]
-    return record.source_ids if intent.operation == "delete" else record.restore_source_ids
+    if intent.operation == "delete":
+        return record.source_ids
+    resolutions = dict(intent.member_resolutions)
+    return tuple(
+        source_id
+        for source_id in record.restore_source_ids
+        if resolutions.get(source_id) != "keep_current"
+    )
 
 
 def _apply_manual_domain_intent(
@@ -458,16 +628,27 @@ def _apply_manual_domain_intent(
         )
     else:
         current = domains[key]
+        resolutions = dict(intent.member_resolutions)
+        restored_source_ids = tuple(
+            source_id
+            for source_id in current.restore_source_ids
+            if resolutions.get(source_id) != "keep_current"
+        )
         domains = _remove_sources_from_manual_domains(
             domains,
             intent.physical_frame_id,
-            current.restore_source_ids,
+            restored_source_ids,
             except_domain_id=domain_id,
         )
         domains[key] = replace(
             current,
-            source_ids=current.restore_source_ids,
-            is_deleted=False,
+            source_ids=restored_source_ids,
+            restore_source_ids=(
+                current.restore_source_ids
+                if not restored_source_ids
+                else restored_source_ids
+            ),
+            is_deleted=not restored_source_ids,
         )
     return tuple(domains[value] for value in sorted(domains))
 

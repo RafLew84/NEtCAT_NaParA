@@ -31,9 +31,15 @@ from moltrack.analysis.domain_analysis import (
     ReplaceDomainAnalysisDraft,
     SelectDomainComponent,
     SelectDomainMolecules,
+    SelectDomainMoleculesByPolygons,
+    ToggleDomainMoleculeSelection,
+    ClearDomainMoleculeSelection,
     SetDomainHierarchyHighlight,
     SetDomainAnalysisFrame,
+    StartDomainAnalysis,
 )
+from moltrack.analysis.domain_analysis.domain_selection import DomainSelectionPolygon
+from test_domain_correction_orientation import _automatic_result
 
 DomainAnalysisRequest = partial(
     DomainAnalysisRequest, backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID
@@ -68,7 +74,7 @@ def test_workspace_owns_manual_orientation_preview_and_effective_projection() ->
     assert preview is not None
     assert preview.changed_source_ids == ("molecule-0",)
 
-    applied = controller.dispatch(ApplyPreparedDomainCorrection(preview))
+    applied = controller.dispatch(ApplyPreparedDomainCorrection.confirmed(preview))
     projection = applied.domain_corrections.effective_projection
     assert projection is not None
     molecule = projection.molecule("physical-frame-0", "molecule-0")
@@ -95,7 +101,7 @@ def test_manual_domain_apply_clears_only_a_highlight_removed_by_projection() -> 
     preview = previewed.domain_corrections.prepared
     assert preview is not None
 
-    applied = controller.dispatch(ApplyPreparedDomainCorrection(preview))
+    applied = controller.dispatch(ApplyPreparedDomainCorrection.confirmed(preview))
 
     assert applied.hierarchy_highlight is None
     projection = applied.domain_corrections.effective_projection
@@ -104,6 +110,61 @@ def test_manual_domain_apply_clears_only_a_highlight_removed_by_projection() -> 
         "physical-frame-0",
         "molecule-0",
     ).effective_domain_id == preview.intent.manual_domain_id
+
+
+def test_polygons_freeze_deduplicated_centroid_selection_until_apply_or_clear() -> None:
+    automatic = _automatic_result()
+    request = DomainAnalysisRequest(frame_range=range(1))
+    controller = DomainAnalysisWorkspaceController(
+        request,
+        physical_frame_ids=("frame-0",),
+    )
+    controller.dispatch(PublishDomainAnalysisResult(request, automatic))
+    controller.dispatch(ToggleDomainMoleculeSelection("outside"))
+
+    selected = controller.dispatch(SelectDomainMoleculesByPolygons(
+        polygons=(
+            ((-0.5, -0.5), (1.5, -0.5), (1.5, 1.5), (-0.5, 1.5)),
+            ((-0.25, -0.25), (0.75, -0.25), (0.75, 1.25), (-0.25, 1.25)),
+        ),
+        target_view="raw",
+    ))
+
+    correction = selected.domain_corrections
+    assert correction.selected_source_ids == ("full", "island", "outside")
+    assert correction.selection_polygons == (
+        DomainSelectionPolygon(
+            ((-0.5, -0.5), (1.5, -0.5), (1.5, 1.5), (-0.5, 1.5)),
+        ),
+        DomainSelectionPolygon(
+            ((-0.25, -0.25), (0.75, -0.25), (0.75, 1.25), (-0.25, 1.25)),
+        ),
+    )
+    previewed = controller.dispatch(PreviewManualOrientation("Z"))
+    preview = previewed.domain_corrections.prepared
+    assert preview is not None
+    assert preview.source_ids == ("full", "island", "outside")
+    assert preview.requires_confirmation
+
+    changed = controller.dispatch(ToggleDomainMoleculeSelection("island"))
+    assert changed.domain_corrections.prepared is None
+    assert changed.domain_corrections.selected_source_ids == (
+        "full",
+        "outside",
+    )
+    previewed = controller.dispatch(PreviewManualOrientation("Z"))
+    preview = previewed.domain_corrections.prepared
+    assert preview is not None
+    applied = controller.dispatch(ApplyPreparedDomainCorrection.confirmed(preview))
+    assert applied.domain_corrections.selected_source_ids == (
+        "full",
+        "outside",
+    )
+    assert applied.domain_corrections.selection_polygons == ()
+    assert len(applied.domain_corrections.correction_set.atoms) == 1
+
+    cleared = controller.dispatch(ClearDomainMoleculeSelection())
+    assert cleared.domain_corrections.selected_source_ids == ()
 
 
 def _frame_gate(

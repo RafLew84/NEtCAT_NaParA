@@ -302,7 +302,7 @@ def test_manual_domain_uses_exact_published_molecule_footprints() -> None:
     workspace = module.dispatch(
         workspace,
         result,
-        ApplyPreparedDomainCorrection(preview),
+        ApplyPreparedDomainCorrection.confirmed(preview),
     )
 
     domain = module.project(result, workspace).domain(

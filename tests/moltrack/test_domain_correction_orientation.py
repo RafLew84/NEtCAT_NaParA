@@ -86,12 +86,19 @@ def test_manual_orientation_has_no_confidence_and_unresolvable_needs_reason() ->
     module = DomainCorrectionModule()
     workspace = module.initialize(automatic)
 
-    with pytest.raises(ValueError, match="requires a reason_code"):
+    blocked = module.prepare(
+        workspace,
+        automatic,
         ManualOrientationIntent.assign(
             physical_frame_id="frame-0",
             source_ids=("island",),
             orientation_label="Unresolvable",
-        )
+        ),
+    )
+    assert blocked.is_blocked
+    assert tuple(
+        value.code for value in blocked.conflicts if value.severity == "blocked"
+    ) == ("reason_required",)
 
     unresolved = module.prepare(
         workspace,
@@ -150,7 +157,37 @@ def test_reset_reveals_only_an_automatic_result_compatible_with_m6() -> None:
     stale_automatic = _automatic_result(
         classification_gate_fingerprint="stale-gate",
     )
-    stale_projection = _assign_then_reset(stale_automatic)
+    module = DomainCorrectionModule()
+    workspace = module.initialize(stale_automatic)
+    assign = module.prepare(
+        workspace,
+        stale_automatic,
+        ManualOrientationIntent.assign(
+            physical_frame_id="frame-0",
+            source_ids=("full",),
+            orientation_label="Z",
+        ),
+    )
+    workspace = module.dispatch(
+        workspace,
+        stale_automatic,
+        ApplyPreparedDomainCorrection(assign),
+    )
+    reset = module.prepare(
+        workspace,
+        stale_automatic,
+        ManualOrientationIntent.reset(
+            physical_frame_id="frame-0",
+            source_ids=("full",),
+        ),
+    )
+    assert reset.effects[0].after_value is None
+    workspace = module.dispatch(
+        workspace,
+        stale_automatic,
+        ApplyPreparedDomainCorrection.confirmed(reset),
+    )
+    stale_projection = module.project(stale_automatic, workspace)
     stale = stale_projection.molecule("frame-0", "full")
     assert stale.effective_orientation is None
     assert stale.effective_orientation_source == "none"
@@ -175,7 +212,7 @@ def test_manual_orientation_subdomain_requires_effective_full_domain() -> None:
     workspace = module.dispatch(
         workspace,
         automatic,
-        ApplyPreparedDomainCorrection(preview),
+        ApplyPreparedDomainCorrection.confirmed(preview),
     )
 
     projection = module.project(automatic, workspace)
@@ -234,7 +271,7 @@ def test_create_manual_domain_assigns_uuid_once_and_recalculates_metrics() -> No
     workspace = module.dispatch(
         workspace,
         automatic,
-        ApplyPreparedDomainCorrection(preview),
+        ApplyPreparedDomainCorrection.confirmed(preview),
     )
     projection = module.project(automatic, workspace)
     domain = projection.domain("frame-0", MANUAL_DOMAIN_1)
@@ -250,6 +287,12 @@ def test_create_manual_domain_assigns_uuid_once_and_recalculates_metrics() -> No
     assert domain.footprint_area_nm2 == 2.0
     assert domain.boundary_source_ids is None
     assert domain.orientation_composition == ()
+    assert workspace.atoms[-1].invalidates_review_targets == (
+        "m6",
+        "orientation",
+    )
+    assert workspace.review_revision("m6") == 1
+    assert workspace.review_revision("orientation") == 1
     assert projection.molecule("frame-0", "island").effective_domain_id == (
         MANUAL_DOMAIN_1
     )
@@ -287,7 +330,8 @@ def test_preview_rejects_splitting_a_legacy_aggregate_without_atomic_geometry() 
         m6_gate=M6Gate((frame,)),
         classifier_status="not_requested",
     )
-    module = DomainCorrectionModule(manual_domain_id_factory=lambda: MANUAL_DOMAIN_1)
+    ids = iter((MANUAL_DOMAIN_1, MANUAL_DOMAIN_2))
+    module = DomainCorrectionModule(manual_domain_id_factory=lambda: next(ids))
     workspace = module.initialize(automatic)
 
     with pytest.raises(ValueError, match="preserved per-molecule footprints"):
@@ -427,12 +471,12 @@ def test_boundary_role_comes_from_automatic_evidence_and_requires_membership() -
         ),
         native_evidence=M3M6LatticeNetworkEvidence(
             point_roles=(
-                ("full", "core"),
+                ("full", "boundary"),
                 ("island", "unassigned"),
                 ("outside", "boundary"),
             ),
             boundary_reasons=(
-                ("full", None),
+                ("full", "competing_domain_claim"),
                 ("island", None),
                 ("outside", "competing_domain_claim"),
             ),
@@ -450,7 +494,8 @@ def test_boundary_role_comes_from_automatic_evidence_and_requires_membership() -
         m6_gate=M6Gate((frame,)),
         classifier_status="not_requested",
     )
-    module = DomainCorrectionModule(manual_domain_id_factory=lambda: MANUAL_DOMAIN_1)
+    ids = iter((MANUAL_DOMAIN_1, MANUAL_DOMAIN_2))
+    module = DomainCorrectionModule(manual_domain_id_factory=lambda: next(ids))
     workspace = module.initialize(automatic)
     workspace = _apply_intent(
         module,
@@ -472,9 +517,65 @@ def test_boundary_role_comes_from_automatic_evidence_and_requires_membership() -
         module,
         automatic,
         workspace,
+        ManualDomainIntent.create(
+            physical_frame_id="frame-0",
+            source_ids=("full",),
+        ),
+    )
+    boundary_move = module.prepare(
+        workspace,
+        automatic,
+        ManualDomainIntent.move(
+            physical_frame_id="frame-0",
+            source_ids=("outside",),
+            manual_domain_id=MANUAL_DOMAIN_2,
+        ),
+    )
+    assert boundary_move.is_blocked
+    assert "boundary_resolution_required" in {
+        value.code for value in boundary_move.conflicts
+        if value.severity == "blocked"
+    }
+    with pytest.raises(ValueError, match="blocked"):
+        module.dispatch(
+            workspace,
+            automatic,
+            ApplyPreparedDomainCorrection.confirmed(boundary_move),
+        )
+
+    resolved_move = module.prepare(
+        workspace,
+        automatic,
+        ManualDomainIntent.move(
+            physical_frame_id="frame-0",
+            source_ids=("full", "outside"),
+            manual_domain_id=MANUAL_DOMAIN_2,
+            boundary_resolution="clear",
+        ),
+    )
+    assert not resolved_move.is_blocked
+    assert resolved_move.changed_source_ids == ("outside",)
+    effects = {value.source_id: value for value in resolved_move.effects}
+    assert effects["outside"].before_boundary is True
+    assert effects["outside"].after_boundary is False
+    assert effects["full"].before_boundary is None
+    assert effects["full"].after_boundary is None
+    workspace = module.dispatch(
+        workspace,
+        automatic,
+        ApplyPreparedDomainCorrection.confirmed(resolved_move),
+    )
+    projection = module.project(automatic, workspace)
+    assert not projection.molecule("frame-0", "outside").is_boundary
+    assert projection.molecule("frame-0", "full").is_boundary
+
+    workspace = _apply_intent(
+        module,
+        automatic,
+        workspace,
         ManualDomainIntent.delete(
             physical_frame_id="frame-0",
-            manual_domain_id=MANUAL_DOMAIN_1,
+            manual_domain_id=MANUAL_DOMAIN_2,
         ),
     )
     deleted = module.project(automatic, workspace).molecule("frame-0", "outside")
@@ -482,12 +583,138 @@ def test_boundary_role_comes_from_automatic_evidence_and_requires_membership() -
     assert not deleted.is_boundary
 
 
+def test_restore_requires_and_applies_explicit_membership_resolutions() -> None:
+    automatic = _automatic_result()
+    ids = iter((MANUAL_DOMAIN_1, MANUAL_DOMAIN_2))
+    module = DomainCorrectionModule(manual_domain_id_factory=lambda: next(ids))
+    workspace = module.initialize(automatic)
+    workspace = _apply_intent(
+        module,
+        automatic,
+        workspace,
+        ManualDomainIntent.create(
+            physical_frame_id="frame-0",
+            source_ids=("full",),
+        ),
+    )
+    workspace = _apply_intent(
+        module,
+        automatic,
+        workspace,
+        ManualDomainIntent.delete(
+            physical_frame_id="frame-0",
+            manual_domain_id=MANUAL_DOMAIN_1,
+        ),
+    )
+    workspace = _apply_intent(
+        module,
+        automatic,
+        workspace,
+        ManualDomainIntent.create(
+            physical_frame_id="frame-0",
+            source_ids=("full",),
+        ),
+    )
+
+    unresolved = module.prepare(
+        workspace,
+        automatic,
+        ManualDomainIntent.restore(
+            physical_frame_id="frame-0",
+            manual_domain_id=MANUAL_DOMAIN_1,
+        ),
+    )
+    assert unresolved.is_blocked
+
+    keep_current = module.prepare(
+        workspace,
+        automatic,
+        ManualDomainIntent.restore(
+            physical_frame_id="frame-0",
+            manual_domain_id=MANUAL_DOMAIN_1,
+            member_resolutions=(("full", "keep_current"),),
+        ),
+    )
+    assert not keep_current.is_blocked
+    assert keep_current.changed_source_ids == ()
+    assert keep_current.source_ids == ("full",)
+    assert keep_current.effects[0].before_value == MANUAL_DOMAIN_2
+    assert keep_current.effects[0].after_value == MANUAL_DOMAIN_2
+    assert module.dispatch(
+        workspace,
+        automatic,
+        ApplyPreparedDomainCorrection(keep_current),
+    ) is workspace
+
+    move_back = module.prepare(
+        workspace,
+        automatic,
+        ManualDomainIntent.restore(
+            physical_frame_id="frame-0",
+            manual_domain_id=MANUAL_DOMAIN_1,
+            member_resolutions=(("full", "move_back"),),
+        ),
+    )
+    workspace = module.dispatch(
+        workspace,
+        automatic,
+        ApplyPreparedDomainCorrection.confirmed(move_back),
+    )
+    projection = module.project(automatic, workspace)
+    assert projection.domain("frame-0", MANUAL_DOMAIN_1).source_ids == ("full",)
+    assert projection.domain("frame-0", MANUAL_DOMAIN_2).is_tombstone
+
+
+def test_network_manual_domain_qc_warning_requires_confirmation() -> None:
+    frame = _frame_gate()
+    network_frame = replace(
+        frame,
+        backend_identity=DomainBackendIdentity(
+            backend_id="m3_m6_lattice_network",
+            result_schema_version="domain-backend-result-v1",
+            algorithm_version="network-v1",
+            settings_fingerprint="network-settings-v1",
+            adapter_owner="correction-test",
+            native_evidence_kind="m3_m6_lattice_evidence_v1",
+            capabilities=("common_partition", "domain_qc"),
+        ),
+        native_evidence=M3M6LatticeNetworkEvidence(
+            point_roles=(("full", "core"), ("island", "halo"), ("outside", "unassigned")),
+            boundary_reasons=(("full", None), ("island", None), ("outside", None)),
+            point_domain_ids=(("full", "domain-1"), ("island", "island-1"), ("outside", None)),
+            domains=(),
+            producer_fingerprints=(),
+        ),
+    )
+    automatic = DomainAnalysisResult(
+        run_status="completed",
+        m6_gate=M6Gate((network_frame,)),
+        classifier_status="not_requested",
+    )
+    module = DomainCorrectionModule(manual_domain_id_factory=lambda: MANUAL_DOMAIN_1)
+    workspace = module.initialize(automatic)
+
+    preview = module.prepare(
+        workspace,
+        automatic,
+        ManualDomainIntent.create(
+            physical_frame_id="frame-0",
+            source_ids=("full", "island"),
+        ),
+    )
+
+    assert "manual_domain_qc_warning" in {
+        value.code for value in preview.conflicts
+        if value.severity == "confirmation_required"
+    }
+
+
 def _apply_intent(module, automatic, workspace, intent):
     preview = module.prepare(workspace, automatic, intent)
     return module.dispatch(
         workspace,
         automatic,
-        ApplyPreparedDomainCorrection(preview),
+        ApplyPreparedDomainCorrection.confirmed(preview),
     )
 
 
@@ -506,7 +733,7 @@ def _assign_then_reset(automatic: DomainAnalysisResult):
     workspace = module.dispatch(
         workspace,
         automatic,
-        ApplyPreparedDomainCorrection(assign),
+        ApplyPreparedDomainCorrection.confirmed(assign),
     )
     reset = module.prepare(
         workspace,
@@ -519,7 +746,7 @@ def _assign_then_reset(automatic: DomainAnalysisResult):
     workspace = module.dispatch(
         workspace,
         automatic,
-        ApplyPreparedDomainCorrection(reset),
+        ApplyPreparedDomainCorrection.confirmed(reset),
     )
     return module.project(automatic, workspace)
 

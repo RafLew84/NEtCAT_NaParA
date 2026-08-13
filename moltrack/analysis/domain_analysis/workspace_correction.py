@@ -3,15 +3,28 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .domain_correction import DomainCorrectionModule
+from .domain_correction_actions import ApplyPreparedDomainCorrection
 from .domain_correction_models import (
-    ApplyPreparedDomainCorrection,
     DomainCorrectionWorkspace,
     EffectiveDomainProjection,
     ManualOrientationIntent,
     PreparedDomainCorrection,
 )
-from .manual_domain_models import ManualDomainIntent
-from .models import DomainAnalysisResult
+from .manual_domain_models import (
+    BoundaryResolution,
+    ManualDomainIntent,
+    RestoreMemberResolution,
+)
+from .domain_selection import (
+    ClearDomainMoleculeSelection,
+    DomainSelectionPolygon,
+    DomainSelectionView,
+    SelectDomainMoleculesByPolygons,
+    ToggleDomainMoleculeSelection,
+    raw_selection_polygon,
+    source_ids_inside_polygons,
+)
+from .models import DomainAnalysisResult, M6FrameGate
 from .workspace_lifecycle_actions import DomainAnalysisWorkspaceIntentError
 
 
@@ -48,6 +61,7 @@ class PreviewCreateManualDomain:
 @dataclass(frozen=True)
 class PreviewMoveToManualDomain:
     manual_domain_id: str
+    boundary_resolution: BoundaryResolution | None = None
 
 
 @dataclass(frozen=True)
@@ -58,10 +72,14 @@ class PreviewDeleteManualDomain:
 @dataclass(frozen=True)
 class PreviewRestoreManualDomain:
     manual_domain_id: str
+    member_resolutions: tuple[tuple[str, RestoreMemberResolution], ...] = ()
 
 
 DomainCorrectionWorkspaceAction = (
     SelectDomainMolecules
+    | ToggleDomainMoleculeSelection
+    | SelectDomainMoleculesByPolygons
+    | ClearDomainMoleculeSelection
     | PreviewManualOrientation
     | PreviewManualOrientationReset
     | DiscardPreparedDomainCorrection
@@ -78,6 +96,7 @@ class DomainCorrectionWorkspaceState:
     correction_set: DomainCorrectionWorkspace | None = None
     effective_projection: EffectiveDomainProjection | None = None
     selected_source_ids: tuple[str, ...] = ()
+    selection_polygons: tuple[DomainSelectionPolygon, ...] = ()
     prepared: PreparedDomainCorrection | None = None
 
     def __post_init__(self) -> None:
@@ -91,6 +110,11 @@ class DomainCorrectionWorkspaceState:
             raise ValueError("Effective projection must match the correction revision.")
         if self.prepared is not None and self.correction_set is None:
             raise ValueError("Prepared correction requires an initialized set.")
+        if any(
+            not isinstance(value, DomainSelectionPolygon)
+            for value in self.selection_polygons
+        ):
+            raise TypeError("selection_polygons must contain selection polygons.")
 
 
 def initialize_domain_corrections(
@@ -118,25 +142,24 @@ def reduce_domain_corrections(
         raise DomainAnalysisWorkspaceIntentError(
             "Manual orientation requires a published automatic result."
         )
-    if isinstance(action, SelectDomainMolecules):
-        available = set(_frame_source_ids(automatic, physical_frame_id))
-        missing = tuple(value for value in action.source_ids if value not in available)
-        if missing:
-            raise DomainAnalysisWorkspaceIntentError(
-                f"Selected molecules do not exist in the active frame: {missing!r}."
-            )
-        if action.source_ids == state.selected_source_ids and state.prepared is None:
-            return state
-        return DomainCorrectionWorkspaceState(
-            correction_set=correction_set,
-            effective_projection=state.effective_projection,
-            selected_source_ids=action.source_ids,
+    if isinstance(action, (
+        SelectDomainMolecules,
+        ToggleDomainMoleculeSelection,
+        SelectDomainMoleculesByPolygons,
+        ClearDomainMoleculeSelection,
+    )):
+        return _reduce_selection(
+            state,
+            automatic,
+            physical_frame_id,
+            action,
         )
     if isinstance(action, DiscardPreparedDomainCorrection):
         return DomainCorrectionWorkspaceState(
             correction_set=correction_set,
             effective_projection=state.effective_projection,
             selected_source_ids=state.selected_source_ids,
+            selection_polygons=state.selection_polygons,
         )
     needs_selection = isinstance(action, (
         PreviewManualOrientation,
@@ -185,6 +208,52 @@ def reduce_domain_corrections(
     )
 
 
+def _reduce_selection(
+    state: DomainCorrectionWorkspaceState,
+    automatic: DomainAnalysisResult,
+    physical_frame_id: str,
+    action: (
+        SelectDomainMolecules
+        | ToggleDomainMoleculeSelection
+        | SelectDomainMoleculesByPolygons
+        | ClearDomainMoleculeSelection
+    ),
+) -> DomainCorrectionWorkspaceState:
+    available = set(_frame_source_ids(automatic, physical_frame_id))
+    if isinstance(action, SelectDomainMolecules):
+        missing = tuple(value for value in action.source_ids if value not in available)
+        if missing:
+            raise DomainAnalysisWorkspaceIntentError(
+                f"Selected molecules do not exist in the active frame: {missing!r}."
+            )
+        if action.source_ids == state.selected_source_ids and state.prepared is None:
+            return state
+        return _selection_state(state, action.source_ids, selection_polygons=())
+    if isinstance(action, ToggleDomainMoleculeSelection):
+        if action.source_id not in available:
+            raise DomainAnalysisWorkspaceIntentError(
+                f"Selected molecule does not exist: {action.source_id!r}."
+            )
+        selected = set(state.selected_source_ids)
+        selected.symmetric_difference_update((action.source_id,))
+        return _selection_state(state, tuple(sorted(selected)))
+    if isinstance(action, ClearDomainMoleculeSelection):
+        return clear_domain_correction_selection(state)
+    frame = _frame(automatic, physical_frame_id)
+    polygons = tuple(
+        raw_selection_polygon(value, action.target_view, frame)
+        for value in action.polygons
+    )
+    selected_ids = tuple(sorted(set(state.selected_source_ids).union(
+        source_ids_inside_polygons(frame, polygons)
+    )))
+    return _selection_state(
+        state,
+        selected_ids,
+        selection_polygons=state.selection_polygons + polygons,
+    )
+
+
 def _manual_domain_intent(
     action: DomainCorrectionWorkspaceAction,
     physical_frame_id: str,
@@ -200,6 +269,7 @@ def _manual_domain_intent(
             physical_frame_id=physical_frame_id,
             source_ids=source_ids,
             manual_domain_id=action.manual_domain_id,
+            boundary_resolution=action.boundary_resolution,
         )
     if isinstance(action, PreviewDeleteManualDomain):
         return ManualDomainIntent.delete(
@@ -210,6 +280,7 @@ def _manual_domain_intent(
         return ManualDomainIntent.restore(
             physical_frame_id=physical_frame_id,
             manual_domain_id=action.manual_domain_id,
+            member_resolutions=action.member_resolutions,
         )
     return None
 
@@ -236,7 +307,11 @@ def _apply_prepared_correction(
 def clear_domain_correction_selection(
     state: DomainCorrectionWorkspaceState,
 ) -> DomainCorrectionWorkspaceState:
-    if not state.selected_source_ids and state.prepared is None:
+    if (
+        not state.selected_source_ids
+        and not state.selection_polygons
+        and state.prepared is None
+    ):
         return state
     return DomainCorrectionWorkspaceState(
         correction_set=state.correction_set,
@@ -252,7 +327,26 @@ def _with_preview(
         correction_set=state.correction_set,
         effective_projection=state.effective_projection,
         selected_source_ids=state.selected_source_ids,
+        selection_polygons=state.selection_polygons,
         prepared=prepared,
+    )
+
+
+def _selection_state(
+    state: DomainCorrectionWorkspaceState,
+    source_ids: tuple[str, ...],
+    *,
+    selection_polygons: tuple[DomainSelectionPolygon, ...] | None = None,
+) -> DomainCorrectionWorkspaceState:
+    return DomainCorrectionWorkspaceState(
+        correction_set=state.correction_set,
+        effective_projection=state.effective_projection,
+        selected_source_ids=source_ids,
+        selection_polygons=(
+            state.selection_polygons
+            if selection_polygons is None
+            else selection_polygons
+        ),
     )
 
 
@@ -267,6 +361,23 @@ def _frame_source_ids(
             frame.analyzed_source_ids
             for frame in gate.frames
             if frame.physical_frame_id == physical_frame_id
+        )
+    except StopIteration as error:
+        raise DomainAnalysisWorkspaceIntentError(
+            "The active frame is absent from the published result."
+        ) from error
+
+
+def _frame(
+    automatic: DomainAnalysisResult,
+    physical_frame_id: str,
+) -> M6FrameGate:
+    gate = automatic.m6_gate
+    assert gate is not None
+    try:
+        return next(
+            value for value in gate.frames
+            if value.physical_frame_id == physical_frame_id
         )
     except StopIteration as error:
         raise DomainAnalysisWorkspaceIntentError(
@@ -290,5 +401,8 @@ __all__ = [
     "PreviewMoveToManualDomain",
     "PreviewDeleteManualDomain",
     "PreviewRestoreManualDomain",
+    "ClearDomainMoleculeSelection",
     "SelectDomainMolecules",
+    "SelectDomainMoleculesByPolygons",
+    "ToggleDomainMoleculeSelection",
 ]

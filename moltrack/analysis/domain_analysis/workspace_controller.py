@@ -11,10 +11,11 @@ from .classifier_contract import (
 from .fingerprints import canonical_sha256
 from .models import DomainAnalysisRequest, DomainAnalysisResult
 from .domain_correction import DomainCorrectionModule
-from .domain_correction_models import ApplyPreparedDomainCorrection
+from .domain_correction_actions import ApplyPreparedDomainCorrection
 from .workspace_correction import (
     DomainCorrectionWorkspaceAction,
     DomainCorrectionWorkspaceState,
+    ClearDomainMoleculeSelection,
     DiscardPreparedDomainCorrection,
     PreviewManualOrientation,
     PreviewManualOrientationReset,
@@ -23,6 +24,8 @@ from .workspace_correction import (
     PreviewDeleteManualDomain,
     PreviewRestoreManualDomain,
     SelectDomainMolecules,
+    SelectDomainMoleculesByPolygons,
+    ToggleDomainMoleculeSelection,
     clear_domain_correction_selection,
     initialize_domain_corrections,
     reduce_domain_corrections,
@@ -390,6 +393,9 @@ def _reduce_workspace(
         return _restore_workspace(snapshot, action, correction_module)
     if isinstance(action, (
         SelectDomainMolecules,
+        SelectDomainMoleculesByPolygons,
+        ToggleDomainMoleculeSelection,
+        ClearDomainMoleculeSelection,
         DiscardPreparedDomainCorrection,
         PreviewManualOrientation,
         PreviewManualOrientationReset,

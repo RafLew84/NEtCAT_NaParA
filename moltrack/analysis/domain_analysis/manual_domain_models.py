@@ -7,6 +7,8 @@ from uuid import UUID
 
 ManualDomainOperation = Literal["create", "move", "delete", "restore"]
 EffectiveDomainKind = Literal["automatic", "manual"]
+BoundaryResolution = Literal["preserve", "clear"]
+RestoreMemberResolution = Literal["move_back", "keep_current"]
 
 
 @dataclass(frozen=True)
@@ -15,6 +17,8 @@ class ManualDomainIntent:
     operation: ManualDomainOperation
     source_ids: tuple[str, ...] = ()
     manual_domain_id: str | None = None
+    boundary_resolution: BoundaryResolution | None = None
+    member_resolutions: tuple[tuple[str, RestoreMemberResolution], ...] = ()
 
     @classmethod
     def create(
@@ -32,8 +36,15 @@ class ManualDomainIntent:
         physical_frame_id: str,
         source_ids: tuple[str, ...],
         manual_domain_id: str,
+        boundary_resolution: BoundaryResolution | None = None,
     ) -> ManualDomainIntent:
-        return cls(physical_frame_id, "move", source_ids, manual_domain_id)
+        return cls(
+            physical_frame_id,
+            "move",
+            source_ids,
+            manual_domain_id,
+            boundary_resolution,
+        )
 
     @classmethod
     def delete(
@@ -50,8 +61,14 @@ class ManualDomainIntent:
         *,
         physical_frame_id: str,
         manual_domain_id: str,
+        member_resolutions: tuple[tuple[str, RestoreMemberResolution], ...] = (),
     ) -> ManualDomainIntent:
-        return cls(physical_frame_id, "restore", manual_domain_id=manual_domain_id)
+        return cls(
+            physical_frame_id,
+            "restore",
+            manual_domain_id=manual_domain_id,
+            member_resolutions=member_resolutions,
+        )
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "physical_frame_id", _text(
@@ -71,8 +88,28 @@ class ManualDomainIntent:
             raise ValueError(f"{self.operation} requires manual_domain_id.")
         if self.operation in {"delete", "restore"} and source_ids:
             raise ValueError(f"{self.operation} cannot carry source_ids.")
+        boundary_resolution = self.boundary_resolution
+        if boundary_resolution is not None and (
+            self.operation != "move"
+            or boundary_resolution not in {"preserve", "clear"}
+        ):
+            raise ValueError(
+                "boundary_resolution must be preserve or clear on a move."
+            )
+        resolutions = tuple(sorted(
+            (_text(source_id, "restore source_id"), resolution)
+            for source_id, resolution in self.member_resolutions
+        ))
+        if len({value[0] for value in resolutions}) != len(resolutions):
+            raise ValueError("Restore member resolutions must have unique source IDs.")
+        if resolutions and self.operation != "restore":
+            raise ValueError("Only restore can carry member resolutions.")
+        if any(value not in {"move_back", "keep_current"} for _, value in resolutions):
+            raise ValueError("Unsupported restore member resolution.")
         object.__setattr__(self, "source_ids", source_ids)
         object.__setattr__(self, "manual_domain_id", domain_id)
+        object.__setattr__(self, "boundary_resolution", boundary_resolution)
+        object.__setattr__(self, "member_resolutions", resolutions)
 
 
 @dataclass(frozen=True)

@@ -162,6 +162,18 @@ class DomainAnalysisDialog(QDialog):
         self.orientation_reset_button = self.domain_correction_sheet.reset_button
         self.orientation_apply_button = self.domain_correction_sheet.apply_button
         self.orientation_effective_label = self.domain_correction_sheet.effective_label
+        self.correction_point_selection_button = (
+            self.domain_correction_sheet.point_selection_button
+        )
+        self.correction_polygon_selection_button = (
+            self.domain_correction_sheet.polygon_selection_button
+        )
+        self.correction_clear_selection_button = (
+            self.domain_correction_sheet.clear_selection_button
+        )
+        self.correction_confirm_impact_checkbox = (
+            self.domain_correction_sheet.confirm_impact_checkbox
+        )
         domain_controls = self.domain_correction_sheet.manual_domain_controls
         self.manual_domain_combo = domain_controls.domain_combo
         self.manual_domain_create_button = domain_controls.create_button
@@ -266,6 +278,15 @@ class DomainAnalysisDialog(QDialog):
         )
         self.command_center.canvas.molecule_selected.connect(
             self._correction_actions.select_molecule
+        )
+        self.command_center.canvas.polygons_selected.connect(
+            self._correction_actions.select_polygons
+        )
+        self.domain_correction_sheet.selection_mode_changed.connect(
+            self.command_center.canvas.set_selection_mode
+        )
+        self.domain_correction_sheet.clear_selection_requested.connect(
+            self._correction_actions.clear_selection
         )
         self.domain_correction_sheet.preview_requested.connect(
             self._correction_actions.preview_manual_orientation

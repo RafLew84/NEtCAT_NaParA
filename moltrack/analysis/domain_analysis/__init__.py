@@ -138,8 +138,14 @@ from .texture_abc_adapter import (
     TextureABCClassifierAdapter,
 )
 from .domain_correction import DomainCorrectionModule
+from .domain_correction_actions import ApplyPreparedDomainCorrection
 from .domain_correction_models import (
-    ApplyPreparedDomainCorrection,
+    DomainCorrectionAtom,
+    DomainCorrectionAxis,
+    DomainCorrectionConflict,
+    DomainCorrectionConflictSeverity,
+    DomainCorrectionEffect,
+    DomainCorrectionReviewTarget,
     DomainCorrectionWorkspace,
     EffectiveDomainProjection,
     EffectiveMoleculeOrientation,
@@ -149,9 +155,11 @@ from .domain_correction_models import (
     PreparedDomainCorrection,
 )
 from .manual_domain_models import (
+    BoundaryResolution,
     EffectiveM6Domain,
     ManualDomainIntent,
     ManualDomainRecord,
+    RestoreMemberResolution,
 )
 from .workspace_correction import (
     DomainCorrectionWorkspaceState,
@@ -163,6 +171,13 @@ from .workspace_correction import (
     PreviewDeleteManualDomain,
     PreviewRestoreManualDomain,
     SelectDomainMolecules,
+)
+from .domain_selection import (
+    ClearDomainMoleculeSelection,
+    DomainSelectionPolygon,
+    DomainSelectionView,
+    SelectDomainMoleculesByPolygons,
+    ToggleDomainMoleculeSelection,
 )
 from .workspace_controller import (
     DomainAnalysisPublication,
@@ -202,10 +217,20 @@ from .workspace_notifications import (
 
 __all__ = [
     "ApplyPreparedDomainCorrection",
+    "BoundaryResolution",
+    "DomainCorrectionAtom",
+    "DomainCorrectionAxis",
+    "DomainCorrectionConflict",
+    "DomainCorrectionConflictSeverity",
+    "DomainCorrectionEffect",
+    "DomainCorrectionReviewTarget",
     "DomainCorrectionModule",
     "DomainCorrectionWorkspace",
     "DomainCorrectionWorkspaceState",
+    "DomainSelectionPolygon",
+    "DomainSelectionView",
     "DiscardPreparedDomainCorrection",
+    "ClearDomainMoleculeSelection",
     "EffectiveDomainProjection",
     "EffectiveMoleculeOrientation",
     "EffectiveM6Domain",
@@ -214,6 +239,7 @@ __all__ = [
     "ManualOrientationIntent",
     "ManualDomainIntent",
     "ManualDomainRecord",
+    "RestoreMemberResolution",
     "PreparedDomainCorrection",
     "PreviewManualOrientation",
     "PreviewManualOrientationReset",
@@ -222,6 +248,8 @@ __all__ = [
     "PreviewDeleteManualDomain",
     "PreviewRestoreManualDomain",
     "SelectDomainMolecules",
+    "SelectDomainMoleculesByPolygons",
+    "ToggleDomainMoleculeSelection",
     "ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1",
     "ABCOrientationDiagnosticEvidence",
     "ABC_ORIENTATION_CLASSIFIER_ID",

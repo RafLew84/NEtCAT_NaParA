@@ -6,7 +6,7 @@ from typing import Literal, cast
 
 import numpy as np
 import pyqtgraph as pg
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QFrame,
@@ -27,6 +27,7 @@ from moltrack.ui.domain_analysis_overlay import (
     DomainAnalysisGeometryRenderer,
     build_domain_analysis_frame_overlay,
 )
+from moltrack.ui.domain_polygon_selection import DomainPolygonSelectionTool
 from napara.gui.widgets.viewer_widget import ViewerWidget
 
 
@@ -70,6 +71,7 @@ class DomainAnalysisImageCanvas(QWidget):
     """Image canvas projected from the active workspace frame."""
 
     molecule_selected = pyqtSignal(str)
+    polygons_selected = pyqtSignal(object, str)
 
     def __init__(
         self,
@@ -94,6 +96,11 @@ class DomainAnalysisImageCanvas(QWidget):
         self.frame_label = QLabel("No active image frame.", self)
         layout.addWidget(self.frame_label)
         self.viewer = ViewerWidget(self)
+        self._polygon_tool = DomainPolygonSelectionTool(
+            self.viewer,
+            scale_nm_per_px,
+            lambda polygon: self.select_polygons((polygon,)),
+        )
         self._geometry_renderer = DomainAnalysisGeometryRenderer(self.viewer)
         self.viewer.setMinimumHeight(260)
         layout.addWidget(self.viewer, 1)
@@ -117,9 +124,33 @@ class DomainAnalysisImageCanvas(QWidget):
             raise ValueError(f"Unknown visible molecule: {source_id!r}.")
         self.molecule_selected.emit(source_id)
 
+    def set_selection_mode(self, mode: str) -> None:
+        self._polygon_tool.set_mode(mode)
+
+    def select_polygons(
+        self,
+        polygons: tuple[tuple[tuple[float, float], ...], ...],
+    ) -> None:
+        if self._current_overlay is None:
+            raise ValueError("Polygon selection requires a visible frame.")
+        if self._polygon_tool.mode != "polygon":
+            raise ValueError("Switch to polygon selection mode first.")
+        self.polygons_selected.emit(
+            polygons,
+            self._current_overlay.target_view,
+        )
+
+    def finish_polygon_selection(self) -> None:
+        self._polygon_tool.finish()
+
     def render_snapshot(self, snapshot: DomainAnalysisWorkspaceSnapshot) -> None:
         if not isinstance(snapshot, DomainAnalysisWorkspaceSnapshot):
             raise TypeError("snapshot must be a DomainAnalysisWorkspaceSnapshot.")
+        if (
+            self._current_frame_index is not None
+            and self._current_frame_index != snapshot.active_frame_index
+        ):
+            self._polygon_tool.clear()
         self._clear_overlay()
         self.frame_label.setText(snapshot.active_physical_frame_id)
         if self._frame_for is None:
@@ -155,6 +186,28 @@ class DomainAnalysisImageCanvas(QWidget):
         )
         self._render_points(overlay)
         self._render_selection_points(overlay)
+        self._render_selection_polygons(overlay)
+        self._polygon_tool.render()
+
+    def _render_selection_polygons(
+        self,
+        overlay: DomainAnalysisFrameOverlay,
+    ) -> None:
+        scale_x = self._scale_nm_per_px[0] or 1.0
+        scale_y = self._scale_nm_per_px[1] or 1.0
+        for polygon in overlay.selection_polygons_xy:
+            closed = polygon + polygon[:1]
+            item = pg.PlotDataItem(
+                [value[0] * scale_x for value in closed],
+                [value[1] * scale_y for value in closed],
+                pen=pg.mkPen(
+                    (58, 178, 187, 240),
+                    width=2.2,
+                    style=Qt.PenStyle.DashLine,
+                ),
+            )
+            self.viewer.get_plot_item().addItem(item)
+            self._overlay_items.append(item)
 
     def _render_points(self, overlay: DomainAnalysisFrameOverlay) -> None:
         points = overlay.orientation_points
@@ -229,7 +282,7 @@ class DomainAnalysisImageCanvas(QWidget):
         points: list[pg.SpotItem],
         *_args: object,
     ) -> None:
-        if not points:
+        if self._polygon_tool.mode != "point" or not points:
             return
         source_id = points[0].data()
         if not isinstance(source_id, str):
@@ -240,6 +293,7 @@ class DomainAnalysisImageCanvas(QWidget):
         for item in self._overlay_items:
             self.viewer.remove_item(item)
         self._overlay_items.clear()
+        self._polygon_tool.detach()
         self._geometry_renderer.clear()
 
 

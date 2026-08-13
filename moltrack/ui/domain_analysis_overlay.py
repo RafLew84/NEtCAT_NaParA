@@ -125,6 +125,7 @@ class DomainAnalysisFrameOverlay:
     components: tuple[DomainAnalysisComponentOverlay, ...]
     orientation_points: tuple[DomainAnalysisOrientationPointOverlay, ...]
     molecule_points: tuple[DomainAnalysisMoleculePointOverlay, ...]
+    selection_polygons_xy: tuple[tuple[tuple[float, float], ...], ...]
     selected_component: DomainComponentKey | None
     hierarchy_highlight: DomainHierarchyHighlight | None
     highlighted_source_ids: tuple[str, ...]
@@ -414,6 +415,13 @@ def build_domain_analysis_frame_overlay(
             frame,
             target_view,
             snapshot.domain_corrections.selected_source_ids,
+        ),
+        selection_polygons_xy=tuple(
+            tuple(
+                _project_point(vertex, frame.presentation_provenance, target_view)
+                for vertex in polygon.vertices_xy
+            )
+            for polygon in snapshot.domain_corrections.selection_polygons
         ),
         selected_component=selected,
         hierarchy_highlight=highlight,
