@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import replace
+from collections.abc import Callable
+from uuid import uuid4
 
 from .classifier_models import MoleculeClassification
 from .domain_correction_models import (
@@ -15,13 +17,28 @@ from .domain_correction_models import (
     ManualOrientationIntent,
     PreparedDomainCorrection,
 )
+from .manual_domain_models import ManualDomainIntent, ManualDomainRecord
+from .manual_domain_projection import (
+    active_manual_memberships,
+    project_effective_domains,
+    source_footprints_for_frame,
+)
 from .fingerprints import canonical_sha256
 from .models import DomainAnalysisResult, M6FrameGate
+from .network_backend_evidence import M3M6LatticeNetworkEvidence
 from .texture_abc_adapter import ABC_ORIENTATION_CLASSIFIER_ID
 
 
 class DomainCorrectionModule:
     """Prepare orientation corrections and derive one effective projection."""
+
+    def __init__(
+        self,
+        manual_domain_id_factory: Callable[[], str] | None = None,
+    ) -> None:
+        self._manual_domain_id_factory = manual_domain_id_factory or (
+            lambda: str(uuid4())
+        )
 
     def initialize(
         self,
@@ -37,21 +54,44 @@ class DomainCorrectionModule:
         self,
         workspace: DomainCorrectionWorkspace,
         automatic: DomainAnalysisResult,
-        intent: ManualOrientationIntent,
+        intent: ManualOrientationIntent | ManualDomainIntent,
     ) -> PreparedDomainCorrection:
         _validate_workspace_anchor(workspace, automatic)
-        if not isinstance(intent, ManualOrientationIntent):
-            raise TypeError("intent must be a ManualOrientationIntent.")
+        if not isinstance(intent, (ManualOrientationIntent, ManualDomainIntent)):
+            raise TypeError("intent must be a supported Domain Correction intent.")
         frame = _frame(automatic, intent.physical_frame_id)
+        if isinstance(intent, ManualDomainIntent):
+            intent = _prepared_manual_domain_intent(
+                workspace,
+                intent,
+                self._manual_domain_id_factory,
+                tuple(
+                    value.lattice_domain_id
+                    for value in frame.full_domains + frame.small_ordered_islands
+                ),
+            )
         available = set(frame.analyzed_source_ids)
         missing = tuple(value for value in intent.source_ids if value not in available)
         if missing:
             raise ValueError(f"Unknown source_ids for correction: {missing!r}.")
-        decisions = _decision_index(workspace)
-        changed = tuple(
-            source_id
-            for source_id in intent.source_ids
-            if _decision_would_change(decisions, intent, source_id)
+        if isinstance(intent, ManualDomainIntent):
+            prospective = replace(
+                workspace,
+                manual_domains=_apply_manual_domain_intent(workspace, intent),
+            )
+            self.project(automatic, prospective)
+        changed = (
+            _manual_domain_changed_source_ids(workspace, intent)
+            if isinstance(intent, ManualDomainIntent)
+            else tuple(
+                source_id
+                for source_id in intent.source_ids
+                if _decision_would_change(
+                    _decision_index(workspace),
+                    intent,
+                    source_id,
+                )
+            )
         )
         return PreparedDomainCorrection(
             expected_revision=workspace.revision,
@@ -77,8 +117,14 @@ class DomainCorrectionModule:
             raise ValueError("Prepared Domain Correction is stale.")
         if preview != self.prepare(workspace, automatic, preview.intent):
             raise ValueError("Prepared Domain Correction does not match its intent.")
-        decisions = _decision_index(workspace)
         intent = preview.intent
+        if isinstance(intent, ManualDomainIntent):
+            return replace(
+                workspace,
+                revision=workspace.revision + 1,
+                manual_domains=_apply_manual_domain_intent(workspace, intent),
+            )
+        decisions = _decision_index(workspace)
         for source_id in intent.source_ids:
             key = (intent.physical_frame_id, source_id)
             if intent.operation == "reset":
@@ -104,18 +150,51 @@ class DomainCorrectionModule:
     ) -> EffectiveDomainProjection:
         _validate_workspace_anchor(workspace, automatic)
         decisions = _decision_index(workspace)
+        manual_memberships = active_manual_memberships(workspace.manual_domains)
+        tombstoned_sources = {
+            (domain.physical_frame_id, source_id)
+            for domain in workspace.manual_domains
+            if domain.is_deleted
+            for source_id in domain.restore_source_ids
+        }.difference(manual_memberships)
         classifications = _classification_index(automatic)
         assert automatic.m6_gate is not None
+        footprints = {
+            frame.physical_frame_id: source_footprints_for_frame(frame)
+            for frame in automatic.m6_gate.frames
+        }
+        boundary_ids = {
+            frame.physical_frame_id: _automatic_boundary_source_ids(frame)
+            for frame in automatic.m6_gate.frames
+        }
         molecules = tuple(
-            _project_molecule(frame, source_id, classifications, decisions)
+            _project_molecule(
+                frame,
+                source_id,
+                classifications,
+                decisions,
+                manual_memberships,
+                (frame.physical_frame_id, source_id) in tombstoned_sources,
+                _effective_boundary_role(
+                    boundary_ids[frame.physical_frame_id],
+                    source_id,
+                ),
+                footprints[frame.physical_frame_id][source_id],
+            )
             for frame in automatic.m6_gate.frames
             for source_id in frame.analyzed_source_ids
+        )
+        domains = project_effective_domains(
+            automatic.m6_gate.frames,
+            workspace.manual_domains,
+            molecules,
         )
         return EffectiveDomainProjection(
             automatic_result=automatic,
             correction_revision=workspace.revision,
             molecules=molecules,
             orientation_subdomains=_orientation_subdomains(molecules),
+            domains=domains,
         )
 
 
@@ -124,11 +203,23 @@ def _project_molecule(
     source_id: str,
     classifications: dict[tuple[str, str], MoleculeClassification],
     decisions: dict[tuple[str, str], ManualOrientationDecision],
+    manual_memberships: dict[tuple[str, str], str],
+    is_tombstoned_member: bool,
+    automatic_boundary: bool | None,
+    footprint_pixels_xy: tuple[tuple[int, int], ...] | None,
 ) -> EffectiveMoleculeOrientation:
     key = (frame.physical_frame_id, source_id)
     classification = classifications.get(key)
     decision = decisions.get(key)
-    partition, domain_id = _membership(frame, source_id)
+    manual_domain_id = manual_memberships.get(key)
+    partition, domain_id = (
+        ("full_domain", manual_domain_id)
+        if manual_domain_id is not None
+        else (("outside", None) if is_tombstoned_member else _membership(
+            frame,
+            source_id,
+        ))
+    )
     automatic_label = _compatible_automatic_label(frame, classification, domain_id)
     if decision is not None:
         label = decision.orientation_label
@@ -155,6 +246,12 @@ def _project_molecule(
         raw_orientation_evidence=(
             None if classification is None else classification.diagnostic_evidence
         ),
+        is_boundary=(
+            None
+            if automatic_boundary is None
+            else automatic_boundary and partition == "full_domain"
+        ),
+        footprint_pixels_xy=footprint_pixels_xy,
     )
 
 
@@ -163,6 +260,28 @@ def _membership(frame: M6FrameGate, source_id: str) -> tuple[str, str | None]:
         if source_id in component.source_ids:
             return component.component_type, component.lattice_domain_id
     return "outside", None
+
+
+def _automatic_boundary_source_ids(frame: M6FrameGate) -> set[str] | None:
+    evidence = frame.native_evidence
+    if not isinstance(evidence, M3M6LatticeNetworkEvidence):
+        return None
+    return {
+        source_id
+        for source_id, point_role in evidence.point_roles
+        if point_role == "boundary"
+    }
+
+
+def _effective_boundary_role(
+    boundary_source_ids: set[str] | None,
+    source_id: str,
+) -> bool | None:
+    return (
+        None
+        if boundary_source_ids is None
+        else source_id in boundary_source_ids
+    )
 
 
 def _compatible_automatic_label(
@@ -239,6 +358,154 @@ def _decision_would_change(
         intent.orientation_label or "",
         intent.reason_code,
     )
+
+
+def _prepared_manual_domain_intent(
+    workspace: DomainCorrectionWorkspace,
+    intent: ManualDomainIntent,
+    id_factory: Callable[[], str],
+    automatic_domain_ids: tuple[str, ...],
+) -> ManualDomainIntent:
+    domain_ids = {value.manual_domain_id for value in workspace.manual_domains}
+    if intent.operation == "create":
+        domain_id = intent.manual_domain_id or id_factory()
+        if (
+            domain_id in domain_ids
+            or domain_id in automatic_domain_ids
+        ):
+            raise ValueError("Manual domain ID already exists.")
+        return ManualDomainIntent(
+            physical_frame_id=intent.physical_frame_id,
+            operation="create",
+            source_ids=intent.source_ids,
+            manual_domain_id=domain_id,
+        )
+    assert intent.manual_domain_id is not None
+    key = (intent.physical_frame_id, intent.manual_domain_id)
+    record = _manual_domain_index(workspace).get(key)
+    if record is None:
+        raise ValueError("Manual domain does not exist in this frame.")
+    if intent.operation == "move" and record.is_deleted:
+        raise ValueError("Cannot move molecules into a deleted manual domain.")
+    if intent.operation == "delete" and record.is_deleted:
+        raise ValueError("Manual domain is already deleted.")
+    if intent.operation == "restore" and not record.is_deleted:
+        raise ValueError("Only a manual-domain tombstone can be restored.")
+    return intent
+
+
+def _manual_domain_changed_source_ids(
+    workspace: DomainCorrectionWorkspace,
+    intent: ManualDomainIntent,
+) -> tuple[str, ...]:
+    if intent.operation == "create":
+        return intent.source_ids
+    if intent.operation == "move":
+        memberships = active_manual_memberships(workspace.manual_domains)
+        return tuple(
+            source_id
+            for source_id in intent.source_ids
+            if memberships.get((intent.physical_frame_id, source_id))
+            != intent.manual_domain_id
+        )
+    record = _manual_domain_index(workspace)[
+        (intent.physical_frame_id, intent.manual_domain_id or "")
+    ]
+    return record.source_ids if intent.operation == "delete" else record.restore_source_ids
+
+
+def _apply_manual_domain_intent(
+    workspace: DomainCorrectionWorkspace,
+    intent: ManualDomainIntent,
+) -> tuple[ManualDomainRecord, ...]:
+    domains = _manual_domain_index(workspace)
+    domain_id = intent.manual_domain_id
+    assert domain_id is not None
+    key = (intent.physical_frame_id, domain_id)
+    if intent.operation == "create":
+        domains = _remove_sources_from_manual_domains(
+            domains,
+            intent.physical_frame_id,
+            intent.source_ids,
+        )
+        domains[key] = ManualDomainRecord(
+            intent.physical_frame_id,
+            domain_id,
+            intent.source_ids,
+            intent.source_ids,
+        )
+    elif intent.operation == "move":
+        domains = _remove_sources_from_manual_domains(
+            domains,
+            intent.physical_frame_id,
+            intent.source_ids,
+            except_domain_id=domain_id,
+        )
+        current = domains[key]
+        source_ids = tuple(sorted(set(current.source_ids).union(intent.source_ids)))
+        domains[key] = replace(
+            current,
+            source_ids=source_ids,
+            restore_source_ids=source_ids,
+        )
+    elif intent.operation == "delete":
+        current = domains[key]
+        domains[key] = replace(
+            current,
+            source_ids=(),
+            restore_source_ids=current.source_ids,
+            is_deleted=True,
+        )
+    else:
+        current = domains[key]
+        domains = _remove_sources_from_manual_domains(
+            domains,
+            intent.physical_frame_id,
+            current.restore_source_ids,
+            except_domain_id=domain_id,
+        )
+        domains[key] = replace(
+            current,
+            source_ids=current.restore_source_ids,
+            is_deleted=False,
+        )
+    return tuple(domains[value] for value in sorted(domains))
+
+
+def _remove_sources_from_manual_domains(
+    domains: dict[tuple[str, str], ManualDomainRecord],
+    physical_frame_id: str,
+    source_ids: tuple[str, ...],
+    *,
+    except_domain_id: str | None = None,
+) -> dict[tuple[str, str], ManualDomainRecord]:
+    updated = dict(domains)
+    removed = set(source_ids)
+    for key, domain in domains.items():
+        if (
+            domain.physical_frame_id != physical_frame_id
+            or domain.manual_domain_id == except_domain_id
+            or domain.is_deleted
+            or removed.isdisjoint(domain.source_ids)
+        ):
+            continue
+        retained = tuple(value for value in domain.source_ids if value not in removed)
+        updated[key] = replace(
+            domain,
+            source_ids=retained,
+            restore_source_ids=(domain.source_ids if not retained else retained),
+            is_deleted=not retained,
+        )
+    return updated
+
+
+def _manual_domain_index(
+    workspace: DomainCorrectionWorkspace,
+) -> dict[tuple[str, str], ManualDomainRecord]:
+    return {
+        (value.physical_frame_id, value.manual_domain_id): value
+        for value in workspace.manual_domains
+    }
 
 
 def _frame(automatic: DomainAnalysisResult, physical_frame_id: str) -> M6FrameGate:

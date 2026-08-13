@@ -123,6 +123,7 @@ class M6PublishedMolecule:
     source_kind: MoleculeSourceKind
     point_xy_nm: tuple[float, float]
     raw_centroid_xy: tuple[float, float] | None = None
+    footprint_pixels_xy: tuple[tuple[int, int], ...] | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "source_id", _text(self.source_id, "source_id"))
@@ -138,6 +139,12 @@ class M6PublishedMolecule:
                 self,
                 "raw_centroid_xy",
                 _pair(self.raw_centroid_xy, "raw_centroid_xy"),
+            )
+        if self.footprint_pixels_xy is not None:
+            object.__setattr__(
+                self,
+                "footprint_pixels_xy",
+                tuple(sorted({_pixel(value) for value in self.footprint_pixels_xy})),
             )
 
 

@@ -295,8 +295,12 @@ class M6FrameGate:
             for component in fingerprint_payload[component_group]:
                 for member in component["members"]:
                     member.pop("raw_centroid_xy", None)
+                    if member["footprint_pixels_xy"] is None:
+                        member.pop("footprint_pixels_xy")
         for member in fingerprint_payload["outside_members"]:
             member.pop("raw_centroid_xy", None)
+            if member["footprint_pixels_xy"] is None:
+                member.pop("footprint_pixels_xy")
         fingerprint_payload["schema_version"] = "domain-analysis-m6-gate-v2"
         object.__setattr__(
             self,
@@ -343,7 +347,7 @@ def _normalized_frame_gate_values(frame: M6FrameGate) -> dict[str, object]:
     outside_pixels = _sorted_unique_pixels(frame.outside_pixels_xy, "outside_pixels_xy")
     analyzed_pixels = _sorted_unique_pixels(frame.analyzed_pixels_xy, "analyzed_pixels_xy")
     _validate_published_pixel_partition(
-        full_domains, islands, outside_pixels, analyzed_pixels
+        full_domains, islands, outside_members, outside_pixels, analyzed_pixels
     )
     pixel_area = _positive_float(frame.pixel_area_nm2, "pixel_area_nm2")
     outside_area, analyzed_area = _validated_frame_areas(
@@ -515,9 +519,35 @@ def _validate_membership_partition(
 def _validate_published_pixel_partition(
     full_domains: tuple[M6PublishedComponent, ...],
     islands: tuple[M6PublishedComponent, ...],
+    outside_members: tuple[M6PublishedMolecule, ...],
     outside_pixels: tuple[tuple[int, int], ...],
     analyzed_pixels: tuple[tuple[int, int], ...],
 ) -> None:
+    for label, members, expected_pixels in (
+        *(
+            ("component", value.members, value.footprint_pixels_xy)
+            for value in full_domains + islands
+        ),
+        ("outside", outside_members, outside_pixels),
+    ):
+        if not members:
+            continue
+        footprints = tuple(value.footprint_pixels_xy for value in members)
+        if all(value is None for value in footprints):
+            continue
+        if any(value is None for value in footprints):
+            raise ValueError(
+                f"M6 {label} molecule footprints must be all present or absent."
+            )
+        published = tuple(
+            pixel for footprint in footprints for pixel in footprint or ()
+        )
+        if len(published) != len(set(published)):
+            raise ValueError(f"M6 {label} molecule footprints must be disjoint.")
+        if set(published) != set(expected_pixels):
+            raise ValueError(
+                f"M6 {label} molecule footprints must reconstruct its footprint."
+            )
     footprint_sets = [
         set(value.footprint_pixels_xy)
         for value in full_domains + islands

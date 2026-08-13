@@ -24,6 +24,9 @@ from moltrack.analysis.domain_analysis import (
     SelectDomainComponent,
     display_orientation_label,
 )
+from moltrack.analysis.domain_analysis.manual_domain_projection import (
+    membership_footprint,
+)
 from moltrack.analysis.m6_point_overlay import M6OverlayPointStatus, M6PointOverlay
 from moltrack.ui.widgets.stm_series_viewer import STMSeriesViewer
 from napara.gui.widgets.viewer_widget import ViewerWidget
@@ -383,7 +386,13 @@ def build_domain_analysis_frame_overlay(
         return None
     publication, frame = published_frame
     highlight = snapshot.hierarchy_highlight
-    components = _build_component_overlays(frame, target_view, highlight)
+    projection = snapshot.domain_corrections.effective_projection
+    components = _build_component_overlays(
+        frame,
+        target_view,
+        highlight,
+        projection,
+    )
     component_keys = tuple(value.key for value in components)
     selected = (
         snapshot.selected_component
@@ -418,7 +427,7 @@ def build_domain_analysis_frame_overlay(
             else provenance.expanded_shape
         ),
         unassigned_pixels_xy=_project_pixels(
-            frame.outside_pixels_xy,
+            _effective_outside_pixels(frame, projection),
             provenance,
             target_view,
         ),
@@ -433,7 +442,15 @@ def _build_component_overlays(
     frame: M6FrameGate,
     target_view: Literal["raw", "expanded_aligned"],
     highlight: DomainHierarchyHighlight | None,
+    projection: EffectiveDomainProjection | None,
 ) -> tuple[DomainAnalysisComponentOverlay, ...]:
+    if projection is not None:
+        return _build_effective_component_overlays(
+            frame,
+            projection,
+            target_view,
+            highlight,
+        )
     provenance = frame.presentation_provenance
     shape = provenance.raw_shape if target_view == "raw" else provenance.expanded_shape
     overlays = []
@@ -470,6 +487,87 @@ def _build_component_overlays(
             is_highlighted=is_highlighted,
         ))
     return tuple(overlays)
+
+
+def _build_effective_component_overlays(
+    frame: M6FrameGate,
+    projection: EffectiveDomainProjection,
+    target_view: Literal["raw", "expanded_aligned"],
+    highlight: DomainHierarchyHighlight | None,
+) -> tuple[DomainAnalysisComponentOverlay, ...]:
+    provenance = frame.presentation_provenance
+    shape = provenance.raw_shape if target_view == "raw" else provenance.expanded_shape
+    overlays = [
+        DomainAnalysisComponentOverlay(
+            key=DomainComponentKey(
+                domain.physical_frame_id,
+                domain.lattice_domain_id,
+            ),
+            component_type="full_domain",
+            shape=shape,
+            pixels_xy=_project_pixels(
+                domain.footprint_pixels_xy,
+                provenance,
+                target_view,
+            ),
+            m6_boundary_color_rgb=DOMAIN_ANALYSIS_DOMAIN_BOUNDARY_COLOR,
+            is_highlighted=(
+                highlight is not None
+                and highlight.target_kind == "domain"
+                and highlight.lattice_domain_id == domain.lattice_domain_id
+            ),
+        )
+        for domain in projection.domains
+        if domain.physical_frame_id == frame.physical_frame_id
+        and not domain.is_tombstone
+    ]
+    molecules = {
+        value.source_id: value
+        for value in projection.molecules
+        if value.physical_frame_id == frame.physical_frame_id
+    }
+    for component in frame.small_ordered_islands:
+        source_ids = tuple(
+            source_id
+            for source_id in component.source_ids
+            if molecules[source_id].m6_partition == "small_ordered_island"
+        )
+        pixels = membership_footprint(frame, source_ids)
+        if not pixels:
+            continue
+        overlays.append(DomainAnalysisComponentOverlay(
+            key=DomainComponentKey(
+                frame.physical_frame_id,
+                component.lattice_domain_id,
+            ),
+            component_type="small_ordered_island",
+            shape=shape,
+            pixels_xy=_project_pixels(pixels, provenance, target_view),
+            m6_boundary_color_rgb=DOMAIN_ANALYSIS_SMALL_ISLAND_COLOR,
+            is_highlighted=(
+                highlight is not None
+                and highlight.target_kind == "small_ordered_islands"
+            ),
+        ))
+    return tuple(overlays)
+
+
+def _effective_outside_pixels(
+    frame: M6FrameGate,
+    projection: EffectiveDomainProjection | None,
+) -> tuple[tuple[int, int], ...]:
+    if projection is None:
+        return frame.outside_pixels_xy
+    source_ids = tuple(
+        value.source_id
+        for value in projection.molecules
+        if value.physical_frame_id == frame.physical_frame_id
+        and value.m6_partition == "outside"
+    )
+    return membership_footprint(
+        frame,
+        source_ids,
+    )
 
 
 def _build_orientation_points(
@@ -537,11 +635,6 @@ def _build_effective_orientation_points(
         and value.effective_orientation is not None
     }
     members = _frame_members(frame)
-    domain_ids = {
-        member.source_id: component.lattice_domain_id
-        for component in frame.full_domains
-        for member in component.members
-    }
     points = []
     for source_id, molecule in sorted(molecules.items()):
         member = members.get(source_id)
@@ -550,7 +643,7 @@ def _build_effective_orientation_points(
         label = molecule.effective_orientation
         assert label is not None
         style = orientation_marker_style(label)
-        domain_id = domain_ids.get(source_id)
+        domain_id = molecule.effective_domain_id
         points.append(DomainAnalysisOrientationPointOverlay(
             source_id=source_id,
             component_key=(

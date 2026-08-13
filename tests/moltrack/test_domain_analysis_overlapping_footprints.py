@@ -9,6 +9,8 @@ from moltrack.analysis.domain_analysis import (
     ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1,
     ClassifierMoleculeInput,
     ClassifierMoleculePrediction,
+    ApplyPreparedDomainCorrection,
+    DomainCorrectionModule,
     DomainAnalysisFrame,
     DomainAnalysisModule,
     DomainAnalysisRequest,
@@ -20,6 +22,7 @@ from moltrack.analysis.domain_analysis import (
     M6FrameGeometry,
     M6OrientationComponentsEvidence,
     M6SourceAnnotation,
+    ManualDomainIntent,
     m6_orientation_components_identity,
 )
 from domain_analysis_test_support import domain_analysis_module as DomainAnalysisModule
@@ -204,6 +207,20 @@ def test_run_spatially_partitions_overlapping_molecule_patches() -> None:
         (2, 0),
     )
     assert frame.outside_pixels_xy == ((3, 0), (3, 1), (3, 2))
+    footprints = {
+        molecule.source_id: molecule.footprint_pixels_xy
+        for component in frame.full_domains + frame.small_ordered_islands
+        for molecule in component.members
+    } | {
+        molecule.source_id: molecule.footprint_pixels_xy
+        for molecule in frame.outside_members
+    }
+    assert footprints == {
+        "m-a": ((0, 0), (0, 1)),
+        "m-b": ((1, 1),),
+        "m-c": ((1, 0), (2, 0)),
+        "m-d": ((3, 0), (3, 1), (3, 2)),
+    }
 
 
 def test_overlapping_partition_is_equivalent_for_registered_input() -> None:
@@ -260,3 +277,37 @@ def test_classifier_keeps_raw_points_when_footprints_are_partitioned() -> None:
         (0, 1),
         (1, 1),
     )
+
+
+def test_manual_domain_uses_exact_published_molecule_footprints() -> None:
+    result = DomainAnalysisModule(
+        _OverlappingM6Adapter(),
+        classifier_adapters={},
+    ).run(
+        _overlapping_series(),
+        DomainAnalysisRequest(frame_range=range(1)),
+    )
+    module = DomainCorrectionModule(
+        manual_domain_id_factory=lambda: "00000000-0000-4000-8000-000000000001"
+    )
+    workspace = module.initialize(result)
+    preview = module.prepare(
+        workspace,
+        result,
+        ManualDomainIntent.create(
+            physical_frame_id="physical-frame-0",
+            source_ids=("m-b", "m-c"),
+        ),
+    )
+    workspace = module.dispatch(
+        workspace,
+        result,
+        ApplyPreparedDomainCorrection(preview),
+    )
+
+    domain = module.project(result, workspace).domain(
+        "physical-frame-0",
+        "00000000-0000-4000-8000-000000000001",
+    )
+    assert domain.footprint_pixels_xy == ((1, 0), (1, 1), (2, 0))
+    assert domain.footprint_area_nm2 == 3.0

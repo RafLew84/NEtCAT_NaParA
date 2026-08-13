@@ -162,6 +162,12 @@ class DomainAnalysisDialog(QDialog):
         self.orientation_reset_button = self.domain_correction_sheet.reset_button
         self.orientation_apply_button = self.domain_correction_sheet.apply_button
         self.orientation_effective_label = self.domain_correction_sheet.effective_label
+        domain_controls = self.domain_correction_sheet.manual_domain_controls
+        self.manual_domain_combo = domain_controls.domain_combo
+        self.manual_domain_create_button = domain_controls.create_button
+        self.manual_domain_move_button = domain_controls.move_button
+        self.manual_domain_delete_button = domain_controls.delete_button
+        self.manual_domain_restore_button = domain_controls.restore_button
         self.m6_preset_sheet = (
             M6PresetSheet(self._m6_preset_library, self)
             if self._m6_preset_library is not None
@@ -272,6 +278,18 @@ class DomainAnalysisDialog(QDialog):
         )
         self.domain_correction_sheet.preview_invalidated.connect(
             self._correction_actions.discard_prepared_correction
+        )
+        self.domain_correction_sheet.create_domain_requested.connect(
+            self._correction_actions.preview_create_manual_domain
+        )
+        self.domain_correction_sheet.move_domain_requested.connect(
+            self._correction_actions.preview_move_to_manual_domain
+        )
+        self.domain_correction_sheet.delete_domain_requested.connect(
+            self._correction_actions.preview_delete_manual_domain
+        )
+        self.domain_correction_sheet.restore_domain_requested.connect(
+            self._correction_actions.preview_restore_manual_domain
         )
         if isinstance(self.m6_preset_sheet, M6PresetSheet):
             self.m6_preset_sheet.active_preset_changed.connect(

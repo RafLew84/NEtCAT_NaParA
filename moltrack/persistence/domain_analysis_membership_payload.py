@@ -7,6 +7,7 @@ from moltrack.analysis.domain_analysis.geometry import MoleculeSourceKind
 
 from .domain_analysis_payload_validation import (
     float_pair_field,
+    integer_pairs_field,
     mapping,
     text_field,
 )
@@ -22,6 +23,10 @@ def published_molecule_to_payload(
     }
     if value.raw_centroid_xy is not None:
         payload["raw_centroid_xy"] = list(value.raw_centroid_xy)
+    if value.footprint_pixels_xy is not None:
+        payload["footprint_pixels_xy"] = [
+            list(pixel) for pixel in value.footprint_pixels_xy
+        ]
     return payload
 
 
@@ -41,6 +46,11 @@ def published_molecule_from_payload(
         raw_centroid_xy=(
             float_pair_field(saved, "raw_centroid_xy", path)
             if "raw_centroid_xy" in saved
+            else None
+        ),
+        footprint_pixels_xy=(
+            integer_pairs_field(saved, "footprint_pixels_xy", path)
+            if "footprint_pixels_xy" in saved
             else None
         ),
     )

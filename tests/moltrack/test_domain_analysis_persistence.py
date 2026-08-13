@@ -47,6 +47,7 @@ def _component(
             source_id=source_id,
             source_kind="segmentation",
             point_xy_nm=point,
+            footprint_pixels_xy=((pixel_x, 0),),
         ),),
         core_source_ids=(source_id,),
         halo_source_ids=(),
@@ -157,6 +158,13 @@ def test_m6_only_published_result_round_trips_through_public_session_seams(
         "m6_frames": [],
         "classifier_frames": [],
     }
+    saved_frame = payload["domain_analysis"]["published_result"]["m6_gate"][
+        "frames"
+    ][0]
+    assert saved_frame["full_domains"][0]["members"][0][
+        "footprint_pixels_xy"
+    ] == [[0, 0]]
+    assert "footprint_pixels_xy" not in saved_frame["outside_members"][0]
     assert "molecular_m6_analysis" not in payload
     assert "texture_domain_analysis" not in payload
     assert "raw_frame" not in session_path.read_text(encoding="utf-8")

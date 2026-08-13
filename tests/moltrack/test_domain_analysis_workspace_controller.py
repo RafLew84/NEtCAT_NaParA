@@ -27,6 +27,7 @@ from moltrack.analysis.domain_analysis import (
     M6PublishedMolecule,
     PublishDomainAnalysisResult,
     PreviewManualOrientation,
+    PreviewCreateManualDomain,
     ReplaceDomainAnalysisDraft,
     SelectDomainComponent,
     SelectDomainMolecules,
@@ -74,6 +75,35 @@ def test_workspace_owns_manual_orientation_preview_and_effective_projection() ->
     assert molecule.effective_orientation == "D"
     assert molecule.effective_confidence is None
     assert projection.automatic_result is automatic
+
+
+def test_manual_domain_apply_clears_only_a_highlight_removed_by_projection() -> None:
+    request = DomainAnalysisRequest(frame_range=range(1))
+    automatic = _completed_result(range(1))
+    controller = DomainAnalysisWorkspaceController(
+        request,
+        physical_frame_ids=("physical-frame-0",),
+    )
+    controller.dispatch(PublishDomainAnalysisResult(request, automatic))
+    controller.dispatch(SelectDomainMolecules(("molecule-0",)))
+    controller.dispatch(SetDomainHierarchyHighlight(DomainHierarchyHighlight(
+        "physical-frame-0",
+        "domain",
+        "local-domain-1",
+    )))
+    previewed = controller.dispatch(PreviewCreateManualDomain())
+    preview = previewed.domain_corrections.prepared
+    assert preview is not None
+
+    applied = controller.dispatch(ApplyPreparedDomainCorrection(preview))
+
+    assert applied.hierarchy_highlight is None
+    projection = applied.domain_corrections.effective_projection
+    assert projection is not None
+    assert projection.molecule(
+        "physical-frame-0",
+        "molecule-0",
+    ).effective_domain_id == preview.intent.manual_domain_id
 
 
 def _frame_gate(

@@ -93,6 +93,15 @@ def hierarchy_reference_diagnosis(
         return "Hierarchy highlight requires a published active-frame result."
     if highlight.target_kind in {"small_ordered_islands", "unassigned"}:
         return None
+    effective_domain = None if effective_projection is None else next(
+        (
+            value
+            for value in effective_projection.domains
+            if value.physical_frame_id == highlight.physical_frame_id
+            and value.lattice_domain_id == highlight.lattice_domain_id
+        ),
+        None,
+    )
     component = next(
         (
             value
@@ -101,7 +110,12 @@ def hierarchy_reference_diagnosis(
         ),
         None,
     )
-    if component is None:
+    domain_exists = (
+        component is not None
+        if effective_projection is None
+        else effective_domain is not None
+    )
+    if not domain_exists:
         return "Highlighted domain does not exist in the published result."
     if highlight.target_kind == "domain":
         return None
@@ -109,19 +123,27 @@ def hierarchy_reference_diagnosis(
         _published_orientation_labels(
             published_result,
             frame.frame_index,
-            component,
+            _required_component(component),
         )
         if effective_projection is None
         else {
             value.orientation_label
             for value in effective_projection.orientation_subdomains
             if value.physical_frame_id == frame.physical_frame_id
-            and value.lattice_domain_id == component.lattice_domain_id
+            and value.lattice_domain_id == highlight.lattice_domain_id
         }
     )
     if highlight.orientation_label not in labels:
         return "Highlighted orientation subdomain does not exist."
     return None
+
+
+def _required_component(
+    component: M6PublishedComponent | None,
+) -> M6PublishedComponent:
+    if component is None:
+        raise ValueError("Automatic orientation requires an automatic domain.")
+    return component
 
 
 def _published_orientation_labels(

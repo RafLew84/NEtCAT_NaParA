@@ -5,6 +5,7 @@ from typing import Literal
 
 from .classifier_models import MoleculeClassification
 from .models import DomainAnalysisResult
+from .manual_domain_models import EffectiveM6Domain, ManualDomainIntent, ManualDomainRecord
 
 
 EffectiveOrientationSource = Literal["automatic", "manual", "none"]
@@ -102,6 +103,7 @@ class DomainCorrectionWorkspace:
     automatic_fingerprint: str
     revision: int
     orientation_decisions: tuple[ManualOrientationDecision, ...] = ()
+    manual_domains: tuple[ManualDomainRecord, ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -121,13 +123,23 @@ class DomainCorrectionWorkspace:
         if len(keys) != len(set(keys)):
             raise ValueError("orientation_decisions must have unique molecule keys.")
         object.__setattr__(self, "orientation_decisions", decisions)
+        domains = tuple(sorted(
+            self.manual_domains,
+            key=lambda value: (value.physical_frame_id, value.manual_domain_id),
+        ))
+        if any(not isinstance(value, ManualDomainRecord) for value in domains):
+            raise TypeError("manual_domains must contain ManualDomainRecord values.")
+        domain_ids = tuple(value.manual_domain_id for value in domains)
+        if len(domain_ids) != len(set(domain_ids)):
+            raise ValueError("manual_domains must have globally unique UUIDs.")
+        object.__setattr__(self, "manual_domains", domains)
 
 
 @dataclass(frozen=True)
 class PreparedDomainCorrection:
     expected_revision: int
     automatic_fingerprint: str
-    intent: ManualOrientationIntent
+    intent: ManualOrientationIntent | ManualDomainIntent
     changed_source_ids: tuple[str, ...]
 
     def __post_init__(self) -> None:
@@ -138,12 +150,18 @@ class PreparedDomainCorrection:
             "automatic_fingerprint",
             _text(self.automatic_fingerprint, "automatic_fingerprint"),
         )
-        if not isinstance(self.intent, ManualOrientationIntent):
-            raise TypeError("intent must be a ManualOrientationIntent.")
+        if not isinstance(self.intent, (ManualOrientationIntent, ManualDomainIntent)):
+            raise TypeError("intent must be a supported Domain Correction intent.")
         changed = tuple(sorted({
             _text(value, "source_id") for value in self.changed_source_ids
         }))
-        if any(value not in self.intent.source_ids for value in changed):
+        validates_selected_sources = (
+            isinstance(self.intent, ManualOrientationIntent)
+            or self.intent.operation in {"create", "move"}
+        )
+        if validates_selected_sources and any(
+            value not in self.intent.source_ids for value in changed
+        ):
             raise ValueError(
                 "changed_source_ids must belong to the prepared intent."
             )
@@ -171,6 +189,8 @@ class EffectiveMoleculeOrientation:
     effective_orientation_source: EffectiveOrientationSource
     effective_confidence: float | None
     raw_orientation_evidence: object | None
+    is_boundary: bool | None
+    footprint_pixels_xy: tuple[tuple[int, int], ...] | None
 
 
 @dataclass(frozen=True)
@@ -187,6 +207,7 @@ class EffectiveDomainProjection:
     correction_revision: int
     molecules: tuple[EffectiveMoleculeOrientation, ...]
     orientation_subdomains: tuple[EffectiveOrientationSubdomain, ...]
+    domains: tuple[EffectiveM6Domain, ...] = ()
 
     def molecule(
         self,
@@ -202,6 +223,21 @@ class EffectiveDomainProjection:
             )
         except StopIteration as error:
             raise ValueError(f"Unknown effective molecule: {key!r}.") from error
+
+    def domain(
+        self,
+        physical_frame_id: str,
+        lattice_domain_id: str,
+    ) -> EffectiveM6Domain:
+        key = (physical_frame_id, lattice_domain_id)
+        try:
+            return next(
+                value
+                for value in self.domains
+                if (value.physical_frame_id, value.lattice_domain_id) == key
+            )
+        except StopIteration as error:
+            raise ValueError(f"Unknown effective domain: {key!r}.") from error
 
 
 def _orientation_label(value: object) -> str:

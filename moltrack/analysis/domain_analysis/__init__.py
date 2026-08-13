@@ -148,11 +148,20 @@ from .domain_correction_models import (
     ManualOrientationIntent,
     PreparedDomainCorrection,
 )
+from .manual_domain_models import (
+    EffectiveM6Domain,
+    ManualDomainIntent,
+    ManualDomainRecord,
+)
 from .workspace_correction import (
     DomainCorrectionWorkspaceState,
     DiscardPreparedDomainCorrection,
     PreviewManualOrientation,
     PreviewManualOrientationReset,
+    PreviewCreateManualDomain,
+    PreviewMoveToManualDomain,
+    PreviewDeleteManualDomain,
+    PreviewRestoreManualDomain,
     SelectDomainMolecules,
 )
 from .workspace_controller import (
@@ -199,12 +208,19 @@ __all__ = [
     "DiscardPreparedDomainCorrection",
     "EffectiveDomainProjection",
     "EffectiveMoleculeOrientation",
+    "EffectiveM6Domain",
     "EffectiveOrientationSubdomain",
     "ManualOrientationDecision",
     "ManualOrientationIntent",
+    "ManualDomainIntent",
+    "ManualDomainRecord",
     "PreparedDomainCorrection",
     "PreviewManualOrientation",
     "PreviewManualOrientationReset",
+    "PreviewCreateManualDomain",
+    "PreviewMoveToManualDomain",
+    "PreviewDeleteManualDomain",
+    "PreviewRestoreManualDomain",
     "SelectDomainMolecules",
     "ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1",
     "ABCOrientationDiagnosticEvidence",

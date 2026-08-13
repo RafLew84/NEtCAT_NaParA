@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from moltrack.analysis.domain_analysis import (
@@ -18,17 +20,23 @@ from moltrack.analysis.domain_analysis import (
     EffectiveOrientationSubdomain,
     M6FrameGate,
     M6Gate,
+    M3M6LatticeNetworkEvidence,
     M6OrientationComponentsEvidence,
     M6PresentationProvenance,
     M6PublishedComponent,
     M6PublishedMolecule,
     ManualOrientationIntent,
+    ManualDomainIntent,
     MoleculeClassification,
     PreparedDomainCorrection,
 )
 from moltrack.analysis.domain_analysis.classifier_models import (
     classifier_frame_result_fingerprint,
 )
+
+
+MANUAL_DOMAIN_1 = "00000000-0000-4000-8000-000000000001"
+MANUAL_DOMAIN_2 = "00000000-0000-4000-8000-000000000002"
 
 
 def test_manual_d_outside_m6_changes_only_effective_orientation() -> None:
@@ -203,6 +211,286 @@ def test_apply_rejects_a_forged_preview_without_changing_the_workspace() -> None
     assert workspace.orientation_decisions == ()
 
 
+def test_create_manual_domain_assigns_uuid_once_and_recalculates_metrics() -> None:
+    automatic = _automatic_result()
+    generated_ids: list[str] = []
+
+    def generate_id() -> str:
+        generated_ids.append(MANUAL_DOMAIN_1)
+        return generated_ids[-1]
+
+    module = DomainCorrectionModule(manual_domain_id_factory=generate_id)
+    workspace = module.initialize(automatic)
+    preview = module.prepare(
+        workspace,
+        automatic,
+        ManualDomainIntent.create(
+            physical_frame_id="frame-0",
+            source_ids=("island", "outside"),
+        ),
+    )
+    assert preview.intent.manual_domain_id == MANUAL_DOMAIN_1
+
+    workspace = module.dispatch(
+        workspace,
+        automatic,
+        ApplyPreparedDomainCorrection(preview),
+    )
+    projection = module.project(automatic, workspace)
+    domain = projection.domain("frame-0", MANUAL_DOMAIN_1)
+
+    assert generated_ids == [MANUAL_DOMAIN_1]
+    assert domain.domain_kind == "manual"
+    assert not domain.is_tombstone
+    assert domain.source_ids == ("island", "outside")
+    assert domain.molecule_count == 2
+    assert domain.centroid_xy_nm == (1.5, 0.0)
+    assert domain.bounds_xyxy_nm == (1.0, 0.0, 2.0, 0.0)
+    assert domain.footprint_pixels_xy == ((1, 0), (2, 0))
+    assert domain.footprint_area_nm2 == 2.0
+    assert domain.boundary_source_ids is None
+    assert domain.orientation_composition == ()
+    assert projection.molecule("frame-0", "island").effective_domain_id == (
+        MANUAL_DOMAIN_1
+    )
+    assert projection.molecule("frame-0", "outside").effective_domain_id == (
+        MANUAL_DOMAIN_1
+    )
+
+
+def test_preview_rejects_splitting_a_legacy_aggregate_without_atomic_geometry() -> None:
+    frame = _frame_gate()
+    first = replace(frame.full_domains[0].members[0], footprint_pixels_xy=None)
+    second = M6PublishedMolecule(
+        source_id="full-2",
+        source_kind="segmentation",
+        point_xy_nm=(1.0, 0.0),
+    )
+    aggregate = replace(
+        frame.full_domains[0],
+        members=(first, second),
+        core_source_ids=("full", "full-2"),
+        footprint_pixels_xy=((0, 0), (1, 0)),
+        footprint_area_nm2=2.0,
+        centroid_xy_nm=(0.5, 0.0),
+        bounds_xyxy_nm=(0.0, 0.0, 1.0, 0.0),
+    )
+    frame = replace(
+        frame,
+        full_domains=(aggregate,),
+        small_ordered_islands=(),
+        analyzed_source_ids=("full", "full-2", "outside"),
+        analyzed_pixels_xy=((0, 0), (1, 0), (2, 0)),
+    )
+    automatic = DomainAnalysisResult(
+        run_status="completed",
+        m6_gate=M6Gate((frame,)),
+        classifier_status="not_requested",
+    )
+    module = DomainCorrectionModule(manual_domain_id_factory=lambda: MANUAL_DOMAIN_1)
+    workspace = module.initialize(automatic)
+
+    with pytest.raises(ValueError, match="preserved per-molecule footprints"):
+        module.prepare(
+            workspace,
+            automatic,
+            ManualDomainIntent.create(
+                physical_frame_id="frame-0",
+                source_ids=("full",),
+            ),
+        )
+
+    intact = module.prepare(
+        workspace,
+        automatic,
+        ManualDomainIntent.create(
+            physical_frame_id="frame-0",
+            source_ids=("full", "full-2"),
+        ),
+    )
+    assert intact.changed_source_ids == ("full", "full-2")
+
+
+def test_move_delete_and_restore_preserve_uuid_orientation_and_one_membership() -> None:
+    automatic = _automatic_result()
+    ids = iter((MANUAL_DOMAIN_1, MANUAL_DOMAIN_2))
+    module = DomainCorrectionModule(manual_domain_id_factory=lambda: next(ids))
+    workspace = module.initialize(automatic)
+    workspace = _apply_intent(
+        module,
+        automatic,
+        workspace,
+        ManualDomainIntent.create(
+            physical_frame_id="frame-0",
+            source_ids=("full",),
+        ),
+    )
+    workspace = _apply_intent(
+        module,
+        automatic,
+        workspace,
+        ManualDomainIntent.create(
+            physical_frame_id="frame-0",
+            source_ids=("outside",),
+        ),
+    )
+    workspace = _apply_intent(
+        module,
+        automatic,
+        workspace,
+        ManualOrientationIntent.assign(
+            physical_frame_id="frame-0",
+            source_ids=("full",),
+            orientation_label="Z",
+        ),
+    )
+
+    workspace = _apply_intent(
+        module,
+        automatic,
+        workspace,
+        ManualDomainIntent.move(
+            physical_frame_id="frame-0",
+            source_ids=("full",),
+            manual_domain_id=MANUAL_DOMAIN_2,
+        ),
+    )
+    moved = module.project(automatic, workspace)
+    assert moved.domain("frame-0", MANUAL_DOMAIN_1).is_tombstone
+    moved_domain = moved.domain("frame-0", MANUAL_DOMAIN_2)
+    assert moved_domain.source_ids == ("full", "outside")
+    assert moved_domain.molecule_count == 2
+    assert moved_domain.centroid_xy_nm == (1.0, 0.0)
+    assert moved_domain.bounds_xyxy_nm == (0.0, 0.0, 2.0, 0.0)
+    assert moved_domain.footprint_pixels_xy == ((0, 0), (2, 0))
+    assert moved_domain.footprint_area_nm2 == 2.0
+    assert moved_domain.boundary_source_ids is None
+    assert moved_domain.orientation_composition == (("Z", 1),)
+    assert moved.molecule("frame-0", "full").effective_orientation == "Z"
+    assert sum(
+        "full" in domain.source_ids for domain in moved.domains
+    ) == 1
+
+    workspace = _apply_intent(
+        module,
+        automatic,
+        workspace,
+        ManualDomainIntent.delete(
+            physical_frame_id="frame-0",
+            manual_domain_id=MANUAL_DOMAIN_2,
+        ),
+    )
+    deleted = module.project(automatic, workspace)
+    assert deleted.domain("frame-0", MANUAL_DOMAIN_2).is_tombstone
+    assert deleted.domain("frame-0", MANUAL_DOMAIN_2).molecule_count == 0
+    assert deleted.domain("frame-0", MANUAL_DOMAIN_2).centroid_xy_nm is None
+    assert deleted.domain("frame-0", MANUAL_DOMAIN_2).footprint_pixels_xy == ()
+    assert deleted.molecule("frame-0", "full").effective_domain_id is None
+    assert deleted.molecule("frame-0", "full").m6_partition == "outside"
+    assert deleted.molecule("frame-0", "full").effective_orientation == "Z"
+    assert deleted.molecule("frame-0", "outside").effective_domain_id is None
+
+    workspace = _apply_intent(
+        module,
+        automatic,
+        workspace,
+        ManualDomainIntent.restore(
+            physical_frame_id="frame-0",
+            manual_domain_id=MANUAL_DOMAIN_2,
+        ),
+    )
+    restored = module.project(automatic, workspace)
+    restored_domain = restored.domain("frame-0", MANUAL_DOMAIN_2)
+    assert restored_domain.source_ids == (
+        "full",
+        "outside",
+    )
+    assert restored_domain.orientation_composition == (("Z", 1),)
+    assert restored_domain.footprint_pixels_xy == ((0, 0), (2, 0))
+    assert not restored_domain.is_tombstone
+    assert restored.domain("frame-0", MANUAL_DOMAIN_1).is_tombstone
+    assert restored.molecule("frame-0", "full").effective_orientation == "Z"
+
+
+def test_boundary_role_comes_from_automatic_evidence_and_requires_membership() -> None:
+    classic = _frame_gate()
+    frame = replace(
+        classic,
+        backend_identity=DomainBackendIdentity(
+            backend_id="m3_m6_lattice_network",
+            result_schema_version="domain-backend-result-v1",
+            algorithm_version="network-v1",
+            settings_fingerprint="network-settings-v1",
+            adapter_owner="correction-test",
+            native_evidence_kind="m3_m6_lattice_evidence_v1",
+            capabilities=("common_partition", "explicit_boundary"),
+        ),
+        native_evidence=M3M6LatticeNetworkEvidence(
+            point_roles=(
+                ("full", "core"),
+                ("island", "unassigned"),
+                ("outside", "boundary"),
+            ),
+            boundary_reasons=(
+                ("full", None),
+                ("island", None),
+                ("outside", "competing_domain_claim"),
+            ),
+            point_domain_ids=(
+                ("full", None),
+                ("island", None),
+                ("outside", None),
+            ),
+            domains=(),
+            producer_fingerprints=(),
+        ),
+    )
+    automatic = DomainAnalysisResult(
+        run_status="completed",
+        m6_gate=M6Gate((frame,)),
+        classifier_status="not_requested",
+    )
+    module = DomainCorrectionModule(manual_domain_id_factory=lambda: MANUAL_DOMAIN_1)
+    workspace = module.initialize(automatic)
+    workspace = _apply_intent(
+        module,
+        automatic,
+        workspace,
+        ManualDomainIntent.create(
+            physical_frame_id="frame-0",
+            source_ids=("outside",),
+        ),
+    )
+
+    created = module.project(automatic, workspace)
+    assert created.molecule("frame-0", "outside").is_boundary
+    assert created.domain(
+        "frame-0", MANUAL_DOMAIN_1
+    ).boundary_source_ids == ("outside",)
+
+    workspace = _apply_intent(
+        module,
+        automatic,
+        workspace,
+        ManualDomainIntent.delete(
+            physical_frame_id="frame-0",
+            manual_domain_id=MANUAL_DOMAIN_1,
+        ),
+    )
+    deleted = module.project(automatic, workspace).molecule("frame-0", "outside")
+    assert deleted.m6_partition == "outside"
+    assert not deleted.is_boundary
+
+
+def _apply_intent(module, automatic, workspace, intent):
+    preview = module.prepare(workspace, automatic, intent)
+    return module.dispatch(
+        workspace,
+        automatic,
+        ApplyPreparedDomainCorrection(preview),
+    )
+
+
 def _assign_then_reset(automatic: DomainAnalysisResult):
     module = DomainCorrectionModule()
     workspace = module.initialize(automatic)
@@ -373,6 +661,7 @@ def _molecule(source_id: str, x: int) -> M6PublishedMolecule:
         source_kind="segmentation",
         point_xy_nm=(float(x), 0.0),
         raw_centroid_xy=(float(x), 0.0),
+        footprint_pixels_xy=((x, 0),),
     )
 
 

@@ -17,6 +17,7 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisPublication,
     DomainAnalysisWorkspaceSnapshot,
     DomainHierarchyHighlight,
+    EffectiveM6Domain,
     M6FrameGate,
     M6PublishedComponent,
     display_orientation_label,
@@ -115,16 +116,44 @@ def build_domain_analysis_hierarchy(
         )
     publication, frame = published_frame
     orientation_by_source = _orientation_by_source(snapshot, publication, frame)
-    nodes = tuple(
-        _domain_node(frame, component, orientation_by_source)
-        for component in frame.full_domains
+    projection = snapshot.domain_corrections.effective_projection
+    effective_domains = () if projection is None else tuple(
+        value
+        for value in projection.domains
+        if value.physical_frame_id == frame.physical_frame_id
+    )
+    effective_molecules = () if projection is None else tuple(
+        value
+        for value in projection.molecules
+        if value.physical_frame_id == frame.physical_frame_id
+    )
+    island_count = (
+        sum(
+            value.m6_partition == "small_ordered_island"
+            for value in effective_molecules
+        )
+        if projection is not None
+        else sum(len(component.members) for component in frame.small_ordered_islands)
+    )
+    outside_count = (
+        sum(value.m6_partition == "outside" for value in effective_molecules)
+        if projection is not None
+        else len(frame.outside_members)
+    )
+    nodes = (
+        tuple(
+            _effective_domain_node(domain, orientation_by_source)
+            for domain in effective_domains
+        )
+        if projection is not None
+        else tuple(
+            _domain_node(frame, component, orientation_by_source)
+            for component in frame.full_domains
+        )
     ) + (
         DomainHierarchyNode(
             label="Small ordered islands",
-            molecule_count=sum(
-                len(component.members)
-                for component in frame.small_ordered_islands
-            ),
+            molecule_count=island_count,
             highlight=DomainHierarchyHighlight(
                 frame.physical_frame_id,
                 "small_ordered_islands",
@@ -132,23 +161,24 @@ def build_domain_analysis_hierarchy(
         ),
         DomainHierarchyNode(
             label="Unassigned molecules",
-            molecule_count=len(frame.outside_members),
+            molecule_count=outside_count,
             highlight=DomainHierarchyHighlight(
                 frame.physical_frame_id,
                 "unassigned",
             ),
         ),
     )
-    full_count = sum(len(component.members) for component in frame.full_domains)
-    island_count = sum(
-        len(component.members) for component in frame.small_ordered_islands
+    full_count = (
+        sum(value.molecule_count for value in effective_domains)
+        if projection is not None
+        else sum(len(component.members) for component in frame.full_domains)
     )
     return DomainAnalysisHierarchyPresentation(
         nodes=nodes,
         ledger_summary=(
             f"Ledger: {len(frame.analyzed_source_ids)} molecules · "
             f"{full_count} full-domain · {island_count} small-island · "
-            f"{len(frame.outside_members)} unassigned"
+            f"{outside_count} unassigned"
         ),
     )
 
@@ -189,6 +219,43 @@ def _domain_node(
     )
 
 
+def _effective_domain_node(
+    domain: EffectiveM6Domain,
+    orientation_by_source: dict[str, str],
+) -> DomainHierarchyNode:
+    counts = Counter(
+        orientation_by_source[source_id]
+        for source_id in domain.source_ids
+        if source_id in orientation_by_source
+    )
+    label = f"Domain {domain.lattice_domain_id}"
+    if domain.is_tombstone:
+        label += " (tombstone)"
+    return DomainHierarchyNode(
+        label=label,
+        molecule_count=domain.molecule_count,
+        highlight=DomainHierarchyHighlight(
+            physical_frame_id=domain.physical_frame_id,
+            target_kind="domain",
+            lattice_domain_id=domain.lattice_domain_id,
+        ),
+        children=tuple(
+            DomainHierarchyNode(
+                label=orientation_label,
+                molecule_count=count,
+                highlight=DomainHierarchyHighlight(
+                    physical_frame_id=domain.physical_frame_id,
+                    target_kind="orientation_subdomain",
+                    lattice_domain_id=domain.lattice_domain_id,
+                    orientation_label=orientation_label,
+                ),
+            )
+            for orientation_label, count in sorted(
+                counts.items(),
+                key=_orientation_sort_key,
+            )
+        ),
+    )
 def _published_frame(
     snapshot: DomainAnalysisWorkspaceSnapshot,
 ) -> tuple[DomainAnalysisPublication, M6FrameGate] | None:

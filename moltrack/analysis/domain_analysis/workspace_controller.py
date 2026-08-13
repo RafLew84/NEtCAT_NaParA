@@ -18,6 +18,10 @@ from .workspace_correction import (
     DiscardPreparedDomainCorrection,
     PreviewManualOrientation,
     PreviewManualOrientationReset,
+    PreviewCreateManualDomain,
+    PreviewMoveToManualDomain,
+    PreviewDeleteManualDomain,
+    PreviewRestoreManualDomain,
     SelectDomainMolecules,
     clear_domain_correction_selection,
     initialize_domain_corrections,
@@ -389,6 +393,10 @@ def _reduce_workspace(
         DiscardPreparedDomainCorrection,
         PreviewManualOrientation,
         PreviewManualOrientationReset,
+        PreviewCreateManualDomain,
+        PreviewMoveToManualDomain,
+        PreviewDeleteManualDomain,
+        PreviewRestoreManualDomain,
         ApplyPreparedDomainCorrection,
     )):
         automatic = (
@@ -403,10 +411,12 @@ def _reduce_workspace(
         )
         if corrected is snapshot.domain_corrections:
             return snapshot
+        highlight = _compatible_correction_highlight(snapshot, corrected)
         return replace(
             snapshot,
             revision=snapshot.revision + 1,
             domain_corrections=corrected,
+            hierarchy_highlight=highlight,
         )
     return reduce_domain_analysis_lifecycle(
         snapshot,
@@ -418,6 +428,22 @@ def _reduce_workspace(
             correction_module,
         ),
     )
+
+
+def _compatible_correction_highlight(
+    snapshot: DomainAnalysisWorkspaceSnapshot,
+    corrected: DomainCorrectionWorkspaceState,
+) -> DomainHierarchyHighlight | None:
+    highlight = snapshot.hierarchy_highlight
+    if highlight is None:
+        return None
+    diagnosis = hierarchy_reference_diagnosis(
+        snapshot.active_physical_frame_id,
+        None if snapshot.published is None else snapshot.published.result,
+        highlight,
+        corrected.effective_projection,
+    )
+    return None if diagnosis is not None else highlight
 
 
 def _restore_workspace(

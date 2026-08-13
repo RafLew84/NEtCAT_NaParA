@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
 
 from moltrack.analysis.domain_analysis import DomainAnalysisWorkspaceSnapshot
 from moltrack.ui.domain_analysis_hierarchy import DomainAnalysisHierarchySheet
+from moltrack.ui.manual_domain_controls import ManualDomainControls
 
 
 class DomainCorrectionSheet(QWidget):
@@ -25,6 +26,10 @@ class DomainCorrectionSheet(QWidget):
     reset_requested = pyqtSignal()
     apply_requested = pyqtSignal()
     preview_invalidated = pyqtSignal()
+    create_domain_requested = pyqtSignal()
+    move_domain_requested = pyqtSignal(str)
+    delete_domain_requested = pyqtSignal(str)
+    restore_domain_requested = pyqtSignal(str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -47,6 +52,8 @@ class DomainCorrectionSheet(QWidget):
         form.addRow("Reason", self.reason_edit)
         form.addRow("Current", self.effective_label)
         editor_layout.addLayout(form)
+        self.manual_domain_controls = ManualDomainControls(editor)
+        editor_layout.addWidget(self.manual_domain_controls)
         buttons = QHBoxLayout()
         self.preview_button = QPushButton("Preview", editor)
         self.reset_button = QPushButton("Reset", editor)
@@ -68,6 +75,21 @@ class DomainCorrectionSheet(QWidget):
         self.preview_button.clicked.connect(self._request_preview)
         self.reset_button.clicked.connect(self.reset_requested.emit)
         self.apply_button.clicked.connect(self.apply_requested.emit)
+        self.manual_domain_controls.create_requested.connect(
+            self.create_domain_requested.emit
+        )
+        self.manual_domain_controls.move_requested.connect(
+            self.move_domain_requested.emit
+        )
+        self.manual_domain_controls.delete_requested.connect(
+            self.delete_domain_requested.emit
+        )
+        self.manual_domain_controls.restore_requested.connect(
+            self.restore_domain_requested.emit
+        )
+        self.manual_domain_controls.preview_invalidated.connect(
+            self.preview_invalidated.emit
+        )
         self._has_selection = False
         self._has_publication = False
         self._render_reason_requirement(self.target_combo.currentText())
@@ -75,6 +97,7 @@ class DomainCorrectionSheet(QWidget):
 
     def render_snapshot(self, snapshot: DomainAnalysisWorkspaceSnapshot) -> None:
         self.hierarchy_sheet.render_snapshot(snapshot)
+        self.manual_domain_controls.render_snapshot(snapshot)
         state = snapshot.domain_corrections
         selected = state.selected_source_ids
         self._has_selection = bool(selected)
@@ -162,7 +185,14 @@ class DomainCorrectionSheet(QWidget):
 
 
 def _preview_text(operation: str, changed_source_ids: tuple[str, ...]) -> str:
-    command = "Reset" if operation == "reset" else "Assign"
+    command = {
+        "assign": "Assign orientation",
+        "reset": "Reset orientation",
+        "create": "Create domain",
+        "move": "Move to domain",
+        "delete": "Delete domain",
+        "restore": "Restore domain",
+    }.get(operation, operation.title())
     count = len(changed_source_ids)
     return f"{command}: {count} molecule{'s' if count != 1 else ''} will change"
 

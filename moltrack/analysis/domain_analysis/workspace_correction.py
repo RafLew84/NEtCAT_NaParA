@@ -10,6 +10,7 @@ from .domain_correction_models import (
     ManualOrientationIntent,
     PreparedDomainCorrection,
 )
+from .manual_domain_models import ManualDomainIntent
 from .models import DomainAnalysisResult
 from .workspace_lifecycle_actions import DomainAnalysisWorkspaceIntentError
 
@@ -39,11 +40,35 @@ class DiscardPreparedDomainCorrection:
     pass
 
 
+@dataclass(frozen=True)
+class PreviewCreateManualDomain:
+    pass
+
+
+@dataclass(frozen=True)
+class PreviewMoveToManualDomain:
+    manual_domain_id: str
+
+
+@dataclass(frozen=True)
+class PreviewDeleteManualDomain:
+    manual_domain_id: str
+
+
+@dataclass(frozen=True)
+class PreviewRestoreManualDomain:
+    manual_domain_id: str
+
+
 DomainCorrectionWorkspaceAction = (
     SelectDomainMolecules
     | PreviewManualOrientation
     | PreviewManualOrientationReset
     | DiscardPreparedDomainCorrection
+    | PreviewCreateManualDomain
+    | PreviewMoveToManualDomain
+    | PreviewDeleteManualDomain
+    | PreviewRestoreManualDomain
     | ApplyPreparedDomainCorrection
 )
 
@@ -113,7 +138,13 @@ def reduce_domain_corrections(
             effective_projection=state.effective_projection,
             selected_source_ids=state.selected_source_ids,
         )
-    if not state.selected_source_ids:
+    needs_selection = isinstance(action, (
+        PreviewManualOrientation,
+        PreviewManualOrientationReset,
+        PreviewCreateManualDomain,
+        PreviewMoveToManualDomain,
+    ))
+    if needs_selection and not state.selected_source_ids:
         raise DomainAnalysisWorkspaceIntentError(
             "Select at least one molecule before previewing a correction."
         )
@@ -126,18 +157,75 @@ def reduce_domain_corrections(
         )
         return _with_preview(state, module.prepare(correction_set, automatic, intent))
     if isinstance(action, PreviewManualOrientationReset):
-        intent = ManualOrientationIntent.reset(
+        reset_intent = ManualOrientationIntent.reset(
             physical_frame_id=physical_frame_id,
             source_ids=state.selected_source_ids,
         )
-        return _with_preview(state, module.prepare(correction_set, automatic, intent))
+        return _with_preview(
+            state,
+            module.prepare(correction_set, automatic, reset_intent),
+        )
+    domain_intent = _manual_domain_intent(
+        action,
+        physical_frame_id,
+        state.selected_source_ids,
+    )
+    if domain_intent is not None:
+        return _with_preview(
+            state,
+            module.prepare(correction_set, automatic, domain_intent),
+        )
     if not isinstance(action, ApplyPreparedDomainCorrection):
         raise TypeError("Unsupported Domain Correction Workspace action.")
+    return _apply_prepared_correction(
+        state,
+        automatic,
+        action,
+        module,
+    )
+
+
+def _manual_domain_intent(
+    action: DomainCorrectionWorkspaceAction,
+    physical_frame_id: str,
+    source_ids: tuple[str, ...],
+) -> ManualDomainIntent | None:
+    if isinstance(action, PreviewCreateManualDomain):
+        return ManualDomainIntent.create(
+            physical_frame_id=physical_frame_id,
+            source_ids=source_ids,
+        )
+    if isinstance(action, PreviewMoveToManualDomain):
+        return ManualDomainIntent.move(
+            physical_frame_id=physical_frame_id,
+            source_ids=source_ids,
+            manual_domain_id=action.manual_domain_id,
+        )
+    if isinstance(action, PreviewDeleteManualDomain):
+        return ManualDomainIntent.delete(
+            physical_frame_id=physical_frame_id,
+            manual_domain_id=action.manual_domain_id,
+        )
+    if isinstance(action, PreviewRestoreManualDomain):
+        return ManualDomainIntent.restore(
+            physical_frame_id=physical_frame_id,
+            manual_domain_id=action.manual_domain_id,
+        )
+    return None
+
+
+def _apply_prepared_correction(
+    state: DomainCorrectionWorkspaceState,
+    automatic: DomainAnalysisResult,
+    action: ApplyPreparedDomainCorrection,
+    module: DomainCorrectionModule,
+) -> DomainCorrectionWorkspaceState:
     if action.preview != state.prepared:
         raise DomainAnalysisWorkspaceIntentError(
             "Apply requires the current prepared Domain Correction."
         )
-    updated_set = module.dispatch(correction_set, automatic, action)
+    assert state.correction_set is not None
+    updated_set = module.dispatch(state.correction_set, automatic, action)
     return DomainCorrectionWorkspaceState(
         correction_set=updated_set,
         effective_projection=module.project(automatic, updated_set),
@@ -198,5 +286,9 @@ __all__ = [
     "DiscardPreparedDomainCorrection",
     "PreviewManualOrientation",
     "PreviewManualOrientationReset",
+    "PreviewCreateManualDomain",
+    "PreviewMoveToManualDomain",
+    "PreviewDeleteManualDomain",
+    "PreviewRestoreManualDomain",
     "SelectDomainMolecules",
 ]

@@ -6,6 +6,10 @@ from moltrack.analysis.domain_analysis import (
     DiscardPreparedDomainCorrection,
     PreviewManualOrientation,
     PreviewManualOrientationReset,
+    PreviewCreateManualDomain,
+    PreviewMoveToManualDomain,
+    PreviewDeleteManualDomain,
+    PreviewRestoreManualDomain,
     SelectDomainMolecules,
 )
 
@@ -43,6 +47,18 @@ class DomainCorrectionActionBinding:
 
     def discard_prepared_correction(self) -> None:
         self._controller.dispatch(DiscardPreparedDomainCorrection())
+
+    def preview_create_manual_domain(self) -> None:
+        self._controller.dispatch(PreviewCreateManualDomain())
+
+    def preview_move_to_manual_domain(self, manual_domain_id: str) -> None:
+        self._controller.dispatch(PreviewMoveToManualDomain(manual_domain_id))
+
+    def preview_delete_manual_domain(self, manual_domain_id: str) -> None:
+        self._controller.dispatch(PreviewDeleteManualDomain(manual_domain_id))
+
+    def preview_restore_manual_domain(self, manual_domain_id: str) -> None:
+        self._controller.dispatch(PreviewRestoreManualDomain(manual_domain_id))
 
 
 __all__ = ["DomainCorrectionActionBinding"]
