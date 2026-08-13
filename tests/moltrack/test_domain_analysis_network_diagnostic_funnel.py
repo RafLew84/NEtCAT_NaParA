@@ -129,6 +129,7 @@ def test_runtime_network_backend_publishes_complete_native_funnel() -> None:
         DomainAnalysisRequest(
             frame_range=range(1),
             backend_id=M3_M6_LATTICE_NETWORK_BACKEND_ID,
+            m6_configuration=adapter.default_run_configuration(),
         ),
     )
 
@@ -188,6 +189,7 @@ def test_network_native_view_is_selected_only_by_capability() -> None:
         DomainAnalysisRequest(
             frame_range=range(1),
             backend_id=M3_M6_LATTICE_NETWORK_BACKEND_ID,
+            m6_configuration=adapter.default_run_configuration(),
         ),
     )
     funnel = result.molecule_diagnostic_funnels[0]
@@ -216,6 +218,7 @@ def test_detailed_network_contract_rejects_broken_references_and_provenance() ->
         DomainAnalysisRequest(
             frame_range=range(1),
             backend_id=M3_M6_LATTICE_NETWORK_BACKEND_ID,
+            m6_configuration=adapter.default_run_configuration(),
         ),
     )
     native = result.m6_gate.frames[0].native_evidence
@@ -276,6 +279,7 @@ def test_network_terminal_misses_count_each_non_domain_molecule_once() -> None:
         DomainAnalysisRequest(
             frame_range=range(1),
             backend_id=M3_M6_LATTICE_NETWORK_BACKEND_ID,
+            m6_configuration=adapter.default_run_configuration(),
         ),
     )
 
@@ -298,6 +302,7 @@ def test_session_restore_rebuilds_network_funnel_from_persisted_evidence() -> No
     request = DomainAnalysisRequest(
         frame_range=range(1),
         backend_id=M3_M6_LATTICE_NETWORK_BACKEND_ID,
+        m6_configuration=adapter.default_run_configuration(),
     )
     result = DomainAnalysisModule(
         {adapter.backend_identity.backend_id: adapter},

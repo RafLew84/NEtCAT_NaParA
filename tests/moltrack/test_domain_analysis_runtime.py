@@ -313,15 +313,26 @@ def test_runtime_raw_and_expanded_annotations_publish_the_same_m6_membership(
     expanded_series = runtime._domain_analysis_series(
         _triangular_detection_series(tmp_path, source_view="expanded_aligned")
     )
-    request = DomainAnalysisRequest(frame_range=range(1), classifier_ids=())
+    raw_adapter = runtime._MolTrackM6Adapter(raw_series)
+    expanded_adapter = runtime._MolTrackM6Adapter(expanded_series)
+    raw_request = DomainAnalysisRequest(
+        frame_range=range(1),
+        classifier_ids=(),
+        m6_configuration=raw_adapter.default_run_configuration(),
+    )
+    expanded_request = DomainAnalysisRequest(
+        frame_range=range(1),
+        classifier_ids=(),
+        m6_configuration=expanded_adapter.default_run_configuration(),
+    )
     raw_result = DomainAnalysisModule(
-        runtime._MolTrackM6Adapter(raw_series),
+        raw_adapter,
         classifier_adapters={},
-    ).run(raw_series, request)
+    ).run(raw_series, raw_request)
     expanded_result = DomainAnalysisModule(
-        runtime._MolTrackM6Adapter(expanded_series),
+        expanded_adapter,
         classifier_adapters={},
-    ).run(expanded_series, request)
+    ).run(expanded_series, expanded_request)
 
     assert raw_result.run_status == "completed"
     assert expanded_result.run_status == "completed"

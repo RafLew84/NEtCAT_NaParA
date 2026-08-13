@@ -15,6 +15,7 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisSessionCacheRecords,
     DomainAnalysisViewSettings,
     DomainAnalysisWorkspaceController,
+    M6PresetLibrary,
     RestoreDomainAnalysisWorkspace,
     SetDomainAnalysisFrame,
     ShutdownDomainAnalysis,
@@ -56,6 +57,7 @@ class DomainAnalysisMainWindowComposition(QObject):
         m6_preset_name: str,
         classifier_preset_name: str,
         export_settings_for: ExportSettingsFor,
+        m6_preset_library: M6PresetLibrary | None = None,
         view_settings: DomainAnalysisViewSettings | None = None,
     ) -> None:
         if not isinstance(owner, QMainWindow):
@@ -72,6 +74,12 @@ class DomainAnalysisMainWindowComposition(QObject):
         self._session_series = session_series
         self._configurations = _configuration_index(classifier_configurations)
         self._m6_preset_name = _required_name(m6_preset_name, "m6_preset_name")
+        if m6_preset_library is not None and not isinstance(
+            m6_preset_library,
+            M6PresetLibrary,
+        ):
+            raise TypeError("m6_preset_library must be an M6PresetLibrary.")
+        self._m6_preset_library = m6_preset_library
         self._classifier_preset_name = _required_name(
             classifier_preset_name,
             "classifier_preset_name",
@@ -128,6 +136,7 @@ class DomainAnalysisMainWindowComposition(QObject):
                 m6_preset_name=self._m6_preset_name,
                 classifier_preset_name=self._classifier_preset_name,
                 export_published=self._export_published,
+                m6_preset_library=self._m6_preset_library,
                 canvas_frame_for=self._canvas_frame_for,
                 canvas_scale_nm_per_px=self._session_series.pixel_size_nm,
                 canvas_target_view_for=lambda: self._overlay.target_view,

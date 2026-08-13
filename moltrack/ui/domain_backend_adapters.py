@@ -16,7 +16,10 @@ from moltrack.analysis.domain_analysis import (
     M6FrameComputation,
     M6FrameGeometry,
     M6OrientationComponentsEvidence,
+    FirstShellGeometryPolicy,
+    M6RunConfiguration,
 )
+from moltrack.analysis.m6_settings import MolecularM6OrientationAnalysisSettings
 from moltrack.analysis.lattice_domain_models import (
     LATTICE_DOMAIN_ANALYSIS_ALGORITHM_VERSION,
     LatticeDomain,
@@ -38,8 +41,16 @@ from .domain_backend_network_evidence import (
 class MolTrackOrientationComponentsAdapter:
     """Expose the existing M6 orientation-component pipeline as a backend."""
 
-    def __init__(self, series: DomainAnalysisSeries) -> None:
-        self._settings = TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
+    def __init__(
+        self,
+        series: DomainAnalysisSeries,
+        *,
+        settings: MolecularM6OrientationAnalysisSettings = (
+            TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
+        ),
+    ) -> None:
+        self._series = series
+        self._settings = settings
         settings_fingerprint = m6_settings_fingerprint(self._settings)
         self.backend_identity = DomainBackendIdentity(
             backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID,
@@ -53,6 +64,20 @@ class MolTrackOrientationComponentsAdapter:
         self._geometry_by_frame = {
             value.frame_index: value.geometry for value in series.frames
         }
+
+    def default_run_configuration(self) -> M6RunConfiguration:
+        return _run_configuration(self.backend_identity, self._settings)
+
+    def for_run(
+        self,
+        configuration: M6RunConfiguration,
+    ) -> MolTrackOrientationComponentsAdapter:
+        configured = MolTrackOrientationComponentsAdapter(
+            self._series,
+            settings=configuration.settings,
+        )
+        _validate_frozen_identity(configured.backend_identity, configuration)
+        return configured
 
     def analyze_frame(
         self,
@@ -114,8 +139,16 @@ class MolTrackOrientationComponentsAdapter:
 class MolTrackLatticeNetworkAdapter:
     """Expose the existing M3/M6 lattice-domain pipeline as a backend."""
 
-    def __init__(self, series: DomainAnalysisSeries) -> None:
-        self._settings = TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
+    def __init__(
+        self,
+        series: DomainAnalysisSeries,
+        *,
+        settings: MolecularM6OrientationAnalysisSettings = (
+            TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
+        ),
+    ) -> None:
+        self._series = series
+        self._settings = settings
         settings_fingerprint = m6_settings_fingerprint(self._settings)
         self.backend_identity = DomainBackendIdentity(
             backend_id=M3_M6_LATTICE_NETWORK_BACKEND_ID,
@@ -139,6 +172,20 @@ class MolTrackLatticeNetworkAdapter:
         self._geometry_by_frame = {
             value.frame_index: value.geometry for value in series.frames
         }
+
+    def default_run_configuration(self) -> M6RunConfiguration:
+        return _run_configuration(self.backend_identity, self._settings)
+
+    def for_run(
+        self,
+        configuration: M6RunConfiguration,
+    ) -> MolTrackLatticeNetworkAdapter:
+        configured = MolTrackLatticeNetworkAdapter(
+            self._series,
+            settings=configuration.settings,
+        )
+        _validate_frozen_identity(configured.backend_identity, configuration)
+        return configured
 
     def analyze_frame(
         self,
@@ -201,6 +248,30 @@ def _computation(
         coordinate_transform_fingerprint=frame.coordinate_transform_fingerprint,
         backend_identity=identity,
         native_evidence=evidence,
+    )
+
+
+def _validate_frozen_identity(
+    identity: DomainBackendIdentity,
+    configuration: M6RunConfiguration,
+) -> None:
+    if identity != configuration.backend_identity:
+        raise ValueError(
+            "Frozen M6 configuration is incompatible with the runtime backend."
+        )
+
+
+def _run_configuration(
+    identity: DomainBackendIdentity,
+    settings: MolecularM6OrientationAnalysisSettings,
+) -> M6RunConfiguration:
+    return M6RunConfiguration(
+        backend_identity=identity,
+        settings=settings,
+        first_shell_geometry=FirstShellGeometryPolicy.fixed(
+            r_min_nm=settings.first_shell_r_min_nm,
+            r_max_nm=settings.first_shell_r_max_nm,
+        ),
     )
 
 

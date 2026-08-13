@@ -70,6 +70,7 @@ class M6FrameCacheKey:
     geometry_mode: GeometryMode
     coordinate_transform_fingerprint: str
     backend_identity: DomainBackendIdentity
+    configuration_fingerprint: str | None = None
 
     @property
     def m6_settings_fingerprint(self) -> str:
@@ -133,12 +134,14 @@ def m6_frame_cache_key(
     *,
     geometry_mode: GeometryMode,
     backend_identity: DomainBackendIdentity,
+    configuration_fingerprint: str | None = None,
 ) -> M6FrameCacheKey:
     return M6FrameCacheKey(
         physical_frame_id=frame.physical_frame_id,
         geometry_mode=geometry_mode,
         coordinate_transform_fingerprint=frame.coordinate_transform_fingerprint,
         backend_identity=backend_identity,
+        configuration_fingerprint=configuration_fingerprint,
     )
 
 

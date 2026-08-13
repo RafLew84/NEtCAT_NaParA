@@ -43,6 +43,7 @@ from .models import (
     M6Gate,
     M6PublishedComponent,
 )
+from .m6_preset_library import M6RunConfiguration
 
 if TYPE_CHECKING:
     from .session_cache_scope import DomainAnalysisSessionCacheRecords
@@ -102,7 +103,10 @@ class DomainAnalysisModule:
             self._classifier_adapters,
         )
         assert request.backend_id is not None
-        adapter = self._backend_adapters[request.backend_id]
+        adapter = _adapter_for_run(
+            self._backend_adapters[request.backend_id],
+            request.m6_configuration,
+        )
         identity = adapter.backend_identity
         emit_event(on_event, "run", "started", "Domain Analysis started.")
         m6_range = self._run_m6_range(
@@ -263,6 +267,11 @@ class DomainAnalysisModule:
             canonical_frame,
             geometry_mode=request.geometry_mode,
             backend_identity=identity,
+            configuration_fingerprint=(
+                request.m6_configuration.configuration_fingerprint
+                if request.m6_configuration is not None
+                else None
+            ),
         )
         disposition, cached = self._m6_cache.lookup(cache_key)
         if cached is None:
@@ -324,6 +333,29 @@ def _validate_run_request(
         raise ValueError(
             f"Unavailable classifier IDs: {sorted(unknown_classifiers)!r}."
         )
+
+
+def _adapter_for_run(
+    adapter: M6Adapter,
+    configuration: M6RunConfiguration | None,
+) -> M6Adapter:
+    factory = getattr(adapter, "for_run", None)
+    if configuration is None:
+        if callable(factory):
+            raise ValueError(
+                "A frozen M6 configuration is required by the selected backend."
+            )
+        return adapter
+    if not callable(factory):
+        if adapter.backend_identity == configuration.backend_identity:
+            return adapter
+        raise ValueError(
+            "Selected domain backend cannot execute the frozen M6 configuration."
+        )
+    configured = factory(configuration)
+    if configured.backend_identity != configuration.backend_identity:
+        raise ValueError("Domain backend did not preserve the frozen configuration.")
+    return configured
 
 
 def _validate_backend_registry(

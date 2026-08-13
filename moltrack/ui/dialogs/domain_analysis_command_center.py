@@ -242,6 +242,7 @@ class DomainAnalysisCommandCenter(QWidget):
         canvas: QWidget,
         analyze_sheet: QWidget,
         correct_sheet: QWidget,
+        presets_sheet: QWidget,
         diagnostics: QWidget,
         parent: QWidget | None = None,
     ) -> None:
@@ -250,6 +251,7 @@ class DomainAnalysisCommandCenter(QWidget):
             (canvas, "canvas"),
             (analyze_sheet, "analyze_sheet"),
             (correct_sheet, "correct_sheet"),
+            (presets_sheet, "presets_sheet"),
             (diagnostics, "diagnostics"),
         ):
             if not isinstance(value, QWidget):
@@ -261,7 +263,12 @@ class DomainAnalysisCommandCenter(QWidget):
         self._current_stage: DomainAnalysisStageId = "analyze"
         self._rendered_snapshot: DomainAnalysisWorkspaceSnapshot | None = None
         self._sheet_indices: dict[DomainAnalysisStageId, int] = {}
-        self._build_ui(analyze_sheet, correct_sheet, diagnostics)
+        self._build_ui(
+            analyze_sheet,
+            correct_sheet,
+            presets_sheet,
+            diagnostics,
+        )
         self.dispatch(SelectDomainAnalysisStage("analyze"))
 
     @property
@@ -309,6 +316,7 @@ class DomainAnalysisCommandCenter(QWidget):
         self,
         analyze_sheet: QWidget,
         correct_sheet: QWidget,
+        presets_sheet: QWidget,
         diagnostics: QWidget,
     ) -> None:
         layout = QGridLayout(self)
@@ -325,7 +333,11 @@ class DomainAnalysisCommandCenter(QWidget):
                 else (
                     correct_sheet
                     if stage.stage_id == "correct"
-                    else _future_stage_sheet(stage, self.bottom_sheet)
+                    else (
+                        presets_sheet
+                        if stage.stage_id == "presets"
+                        else _future_stage_sheet(stage, self.bottom_sheet)
+                    )
                 )
             )
             page.setProperty("domainAnalysisStage", stage.stage_id)

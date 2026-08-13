@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import datetime, timezone
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Lock, Thread
@@ -17,12 +18,15 @@ from moltrack.analysis.domain_analysis import (
     ClassifierIdentity,
     DomainAnalysisFrame,
     DomainAnalysisModule,
+    DomainAnalysisPublication,
     DomainAnalysisRequest,
     DomainAnalysisSeries,
     DomainAnalysisWorkspaceController,
     DomainAnalysisWorkspaceExecution,
     M6FrameGeometry,
     M6SourceAnnotation,
+    M6Preset,
+    M6PresetLibrary,
     TextureABCClassifierAdapter,
 )
 from moltrack.analysis.domain_analysis.fingerprints import canonical_sha256
@@ -100,6 +104,8 @@ def build_domain_analysis_main_window_composition(
         MolTrackOrientationComponentsAdapter(analysis_series),
         MolTrackLatticeNetworkAdapter(analysis_series),
     )
+    preset_library = _m6_preset_library(adapters)
+    active_configuration = preset_library.active_run_configuration()
     module = DomainAnalysisModule(
         {value.backend_identity.backend_id: value for value in adapters},
         {ABC_ORIENTATION_CLASSIFIER_ID: classifier},
@@ -110,8 +116,9 @@ def build_domain_analysis_main_window_composition(
     controller = DomainAnalysisWorkspaceController(
         DomainAnalysisRequest(
             frame_range=range(series.frame_count),
-            backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID,
+            backend_id=active_configuration.backend_id,
             classifier_ids=(ABC_ORIENTATION_CLASSIFIER_ID,),
+            m6_configuration=active_configuration,
         ),
         physical_frame_ids=physical_frame_ids,
         execution=DomainAnalysisWorkspaceExecution(
@@ -135,11 +142,13 @@ def build_domain_analysis_main_window_composition(
         session_series=series,
         classifier_configurations=(configuration,),
         m6_preset_name="TTMAPP M6 approved",
+        m6_preset_library=preset_library,
         classifier_preset_name="TTMAPP M6-gated A/B/C",
-        export_settings_for=lambda _publication: _export_settings(
+        export_settings_for=lambda publication: _export_settings(
             owner,
             series,
             physical_frame_ids,
+            publication,
         ),
     )
 
@@ -328,6 +337,7 @@ def _export_settings(
     owner: QMainWindow,
     series: MolTrackImageSeries,
     physical_frame_ids: tuple[str, ...],
+    publication: DomainAnalysisPublication | None = None,
 ) -> DomainAnalysisExportSettings:
     destination = QFileDialog.getExistingDirectory(
         owner,
@@ -352,9 +362,45 @@ def _export_settings(
                 "source_name": Path(series.source_path).name,
             }
         ),
-        m6_settings=CanonicalJsonObject(
-            TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET.to_dict()
-        ),
+        m6_settings=CanonicalJsonObject(_published_m6_settings(publication)),
+    )
+
+
+def _published_m6_settings(
+    publication: DomainAnalysisPublication | None,
+) -> dict[str, object]:
+    configuration = (
+        None if publication is None else publication.request.m6_configuration
+    )
+    settings = (
+        TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
+        if configuration is None
+        else configuration.settings
+    )
+    return dict(settings.to_dict())
+
+
+def _m6_preset_library(adapters) -> M6PresetLibrary:
+    created_at = datetime(2026, 8, 13, tzinfo=timezone.utc)
+    presets = tuple(
+        M6Preset(
+            name=(
+                "TTMAPP M6 Orientation Components"
+                if adapter.backend_identity.backend_id
+                == M6_ORIENTATION_COMPONENTS_BACKEND_ID
+                else "TTMAPP M3/M6 Lattice Network"
+            ),
+            description="Shipped MolTrack default",
+            configuration=adapter.default_run_configuration(),
+            created_at=created_at,
+            updated_at=created_at,
+            built_in=True,
+        )
+        for adapter in adapters
+    )
+    return M6PresetLibrary(
+        Path.home() / ".moltrack" / "m6-presets.json",
+        built_in_presets=presets,
     )
 
 

@@ -69,6 +69,10 @@ from .domain_analysis_payload_validation import (
     text_field as _require_text,
     text_list_field as _require_text_list,
 )
+from .domain_analysis_request_payload import (
+    domain_analysis_request_from_payload,
+    domain_analysis_request_to_payload,
+)
 
 
 _PUBLISHED_RESULT_SCHEMA_VERSION = 2
@@ -124,11 +128,7 @@ def domain_analysis_state_to_payload(
             None
             if draft is None
             else {
-                "frame_start": draft.frame_range.start,
-                "frame_stop": draft.frame_range.stop,
-                "backend_id": draft.backend_id,
-                "geometry_mode": draft.geometry_mode,
-                "classifier_ids": list(draft.classifier_ids),
+                **domain_analysis_request_to_payload(draft),
                 "physical_frame_ids": list(saved.draft_physical_frame_ids),
                 "classifier_configurations": [
                     classifier_configuration_to_payload(value)
@@ -274,13 +274,7 @@ def _publication_to_payload(
         raise ValueError("A published Domain Analysis result requires an M6 gate.")
     return {
         "schema_version": _PUBLISHED_RESULT_SCHEMA_VERSION,
-        "request": {
-            "frame_start": request.frame_range.start,
-            "frame_stop": request.frame_range.stop,
-            "backend_id": request.backend_id,
-            "geometry_mode": request.geometry_mode,
-            "classifier_ids": list(request.classifier_ids),
-        },
+        "request": domain_analysis_request_to_payload(request),
         "request_fingerprint": publication.request_fingerprint,
         "run_status": publication.result.run_status,
         "classifier_status": publication.result.classifier_status,
@@ -364,20 +358,7 @@ def _publication_request_from_payload(
         _required(saved, "request", "domain_analysis.published_result"),
         path,
     )
-    return DomainAnalysisRequest(
-        frame_range=range(
-            _require_integer(payload, "frame_start", path),
-            _require_integer(payload, "frame_stop", path),
-        ),
-        backend_id=_require_text(payload, "backend_id", path),
-        geometry_mode=cast(
-            GeometryMode,
-            _require_text(payload, "geometry_mode", path),
-        ),
-        classifier_ids=tuple(
-            _require_text_list(payload, "classifier_ids", path)
-        ),
-    )
+    return domain_analysis_request_from_payload(payload, path=path)
 
 
 def _gate_to_payload(gate: M6Gate) -> dict[str, Any]:
@@ -690,18 +671,7 @@ def _draft_from_payload(
     path = "domain_analysis.draft"
     saved = _require_mapping(payload, path)
     classifier_ids = tuple(_require_text_list(saved, "classifier_ids", path))
-    request = DomainAnalysisRequest(
-        frame_range=range(
-            _require_integer(saved, "frame_start", path),
-            _require_integer(saved, "frame_stop", path),
-        ),
-        backend_id=_require_text(saved, "backend_id", path),
-        geometry_mode=cast(
-            GeometryMode,
-            _require_text(saved, "geometry_mode", path),
-        ),
-        classifier_ids=classifier_ids,
-    )
+    request = domain_analysis_request_from_payload(saved, path=path)
     configuration_payloads = saved.get("classifier_configurations")
     if configuration_payloads is None:
         if classifier_ids:

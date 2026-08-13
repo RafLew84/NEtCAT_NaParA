@@ -186,17 +186,20 @@ def _m6_record_to_payload(
 ) -> dict[str, Any]:
     key = value.key
     computation = _m6_computation_to_payload(value.computation)
+    key_payload: dict[str, Any] = {
+        "physical_frame_id": key.physical_frame_id,
+        "geometry_mode": key.geometry_mode,
+        "coordinate_transform_fingerprint": (
+            key.coordinate_transform_fingerprint
+        ),
+        "backend_identity": backend_identity_to_payload(
+            key.backend_identity
+        ),
+    }
+    if key.configuration_fingerprint is not None:
+        key_payload["configuration_fingerprint"] = key.configuration_fingerprint
     return {
-        "key": {
-            "physical_frame_id": key.physical_frame_id,
-            "geometry_mode": key.geometry_mode,
-            "coordinate_transform_fingerprint": (
-                key.coordinate_transform_fingerprint
-            ),
-            "backend_identity": backend_identity_to_payload(
-                key.backend_identity
-            ),
-        },
+        "key": key_payload,
         "computation": computation,
         "result_fingerprint": canonical_sha256(computation),
     }
@@ -237,6 +240,11 @@ def _m6_record_from_payload(
             backend_identity=backend_identity_from_payload(
                 required(key_payload, "backend_identity", key_path),
                 path=f"{key_path}.backend_identity",
+            ),
+            configuration_fingerprint=(
+                text_field(key_payload, "configuration_fingerprint", key_path)
+                if "configuration_fingerprint" in key_payload
+                else None
             ),
         ),
         computation=computation,

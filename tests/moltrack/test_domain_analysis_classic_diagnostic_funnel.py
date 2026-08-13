@@ -277,6 +277,7 @@ def test_runtime_classic_adapter_retains_per_molecule_native_evidence() -> None:
         DomainAnalysisRequest(
             frame_range=range(1),
             backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID,
+            m6_configuration=adapter.default_run_configuration(),
         ),
     )
 

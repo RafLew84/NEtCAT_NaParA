@@ -26,6 +26,7 @@ from .geometry import (
     M6PresentationProvenance,
     M6PublishedMolecule,
 )
+from .m6_preset_library import M6RunConfiguration
 
 
 M6ComponentType = Literal["full_domain", "small_ordered_island"]
@@ -40,6 +41,7 @@ class DomainAnalysisRequest:
     backend_id: str | None = None
     geometry_mode: GeometryMode = "segmentation_preferred"
     classifier_ids: tuple[str, ...] = ()
+    m6_configuration: M6RunConfiguration | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.frame_range, range):
@@ -62,6 +64,13 @@ class DomainAnalysisRequest:
         if len(set(classifier_ids)) != len(classifier_ids):
             raise ValueError("classifier_ids must be unique.")
         object.__setattr__(self, "classifier_ids", classifier_ids)
+        if self.m6_configuration is not None:
+            if not isinstance(self.m6_configuration, M6RunConfiguration):
+                raise TypeError("m6_configuration must be M6RunConfiguration.")
+            if self.backend_id != self.m6_configuration.backend_id:
+                raise ValueError(
+                    "m6_configuration backend must match the requested backend."
+                )
 
     @property
     def frame_indices(self) -> tuple[int, ...]:

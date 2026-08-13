@@ -95,6 +95,15 @@ from .models import (
     M6Gate,
     M6PublishedComponent,
 )
+from .m6_preset_library import (
+    M6_PRESET_LIBRARY_SCHEMA_VERSION,
+    M6_PRESET_SCHEMA_VERSION,
+    FirstShellGeometryPolicy,
+    M6Preset,
+    M6PresetLibrary,
+    M6PresetLibrarySnapshot,
+    M6RunConfiguration,
+)
 from .module import DomainAnalysisModule, M6Adapter, M6FrameAnalysisError
 from .session_state import (
     DOMAIN_ANALYSIS_RETRY_REQUIRED_DIAGNOSIS,
@@ -225,6 +234,13 @@ __all__ = [
     "DomainLabelReason",
     "GeometryMode",
     "M6Adapter",
+    "M6_PRESET_LIBRARY_SCHEMA_VERSION",
+    "M6_PRESET_SCHEMA_VERSION",
+    "FirstShellGeometryPolicy",
+    "M6Preset",
+    "M6PresetLibrary",
+    "M6PresetLibrarySnapshot",
+    "M6RunConfiguration",
     "M6_ORIENTATION_COMPONENTS_BACKEND_ID",
     "M6OrientationComponentsEvidence",
     "m6_orientation_components_identity",

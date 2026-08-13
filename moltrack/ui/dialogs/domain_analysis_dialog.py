@@ -26,6 +26,9 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisRequest,
     DomainAnalysisWorkspaceController,
     DomainAnalysisWorkspaceSnapshot,
+    M6Preset,
+    M6PresetLibrary,
+    M6RunConfiguration,
 )
 from moltrack.ui.domain_analysis_workspace_view import (
     DomainAnalysisActionRow,
@@ -42,6 +45,7 @@ from .domain_analysis_command_center import (
     DomainAnalysisImageCanvas,
 )
 from .m6_current_frame_results_panel import M6CurrentFrameResultsPanel
+from .m6_preset_sheet import M6PresetSheet
 
 
 @dataclass(frozen=True)
@@ -65,6 +69,7 @@ class DomainAnalysisDialog(QDialog):
         m6_preset_name: str,
         classifier_preset_name: str,
         export_published: ExportPublished,
+        m6_preset_library: M6PresetLibrary | None = None,
         canvas_frame_for: Callable[[int], object] | None = None,
         canvas_scale_nm_per_px: tuple[float | None, float | None] = (None, None),
         canvas_target_view_for: DomainAnalysisCanvasTargetViewFor | None = None,
@@ -74,10 +79,20 @@ class DomainAnalysisDialog(QDialog):
         if not isinstance(controller, DomainAnalysisWorkspaceController):
             raise TypeError("controller must be a DomainAnalysisWorkspaceController.")
         self._controller = controller
+        if m6_preset_library is not None and not isinstance(
+            m6_preset_library,
+            M6PresetLibrary,
+        ):
+            raise TypeError("m6_preset_library must be an M6PresetLibrary.")
+        self._m6_preset_library = m6_preset_library
         self.setWindowTitle("Domain Analysis")
         self.resize(1100, 760)
         self._build_ui(
-            _required_name(m6_preset_name, "m6_preset_name"),
+            (
+                _required_name(m6_preset_name, "m6_preset_name")
+                if m6_preset_library is None
+                else m6_preset_library.snapshot.active_preset.name
+            ),
             _required_name(classifier_preset_name, "classifier_preset_name"),
             canvas_frame_for,
             canvas_scale_nm_per_px,
@@ -137,10 +152,16 @@ class DomainAnalysisDialog(QDialog):
             parent=self,
         )
         self.domain_hierarchy_sheet = DomainAnalysisHierarchySheet(self)
+        self.m6_preset_sheet = (
+            M6PresetSheet(self._m6_preset_library, self)
+            if self._m6_preset_library is not None
+            else _unconfigured_preset_sheet(self)
+        )
         self.command_center = DomainAnalysisCommandCenter(
             canvas=canvas,
             analyze_sheet=analyze_sheet,
             correct_sheet=self.domain_hierarchy_sheet,
+            presets_sheet=self.m6_preset_sheet,
             diagnostics=diagnostics,
             parent=self,
         )
@@ -180,7 +201,7 @@ class DomainAnalysisDialog(QDialog):
         m6_preset_name: str,
         classifier_preset_name: str,
     ) -> QGroupBox:
-        group = QGroupBox("Approved presets and policies", self)
+        group = QGroupBox("Analysis presets and policies", self)
         form = QFormLayout(group)
         self.m6_preset_edit = _read_only_edit(m6_preset_name, group)
         self.classifier_preset_edit = _read_only_edit(
@@ -227,9 +248,22 @@ class DomainAnalysisDialog(QDialog):
         self.domain_hierarchy_sheet.highlight_requested.connect(
             self._workspace_view.highlight_hierarchy
         )
+        if isinstance(self.m6_preset_sheet, M6PresetSheet):
+            self.m6_preset_sheet.active_preset_changed.connect(
+                self._activate_m6_preset
+            )
 
     def _replace_draft(self) -> None:
         selected_backend = self.domain_backend_combo.currentData()
+        configuration: M6RunConfiguration | None = None
+        if self._m6_preset_library is not None:
+            configuration = self._m6_preset_library.active_run_configuration()
+            selected_backend = configuration.backend_id
+            blocker = QSignalBlocker(self.domain_backend_combo)
+            self.domain_backend_combo.setCurrentIndex(
+                self.domain_backend_combo.findData(selected_backend)
+            )
+            del blocker
         draft = DomainAnalysisRequest(
             frame_range=self._range_binding.frame_range,
             backend_id=(
@@ -245,8 +279,21 @@ class DomainAnalysisDialog(QDialog):
                 if self.classify_abc_checkbox.isChecked()
                 else ()
             ),
+            m6_configuration=configuration,
         )
         self._workspace_actions.replace_draft(draft)
+
+    def _activate_m6_preset(self, value: object) -> None:
+        if not isinstance(value, M6Preset):
+            raise TypeError("active preset must be an M6Preset.")
+        self.m6_preset_edit.setText(value.name)
+        blocker = QSignalBlocker(self.domain_backend_combo)
+        self.domain_backend_combo.setCurrentIndex(
+            self.domain_backend_combo.findData(value.configuration.backend_id)
+        )
+        del blocker
+        if self._controller.snapshot.run.status != "running":
+            self._replace_draft()
 
     def _render_snapshot(self, value: object) -> None:
         if not isinstance(value, DomainAnalysisWorkspaceSnapshot):
@@ -325,6 +372,15 @@ def _read_only_edit(value: str, parent: QWidget) -> QLineEdit:
     edit = QLineEdit(value, parent)
     edit.setReadOnly(True)
     return edit
+
+
+def _unconfigured_preset_sheet(parent: QWidget) -> QWidget:
+    page = QWidget(parent)
+    page.setObjectName("domainAnalysisSheet_presets")
+    layout = QVBoxLayout(page)
+    layout.addWidget(QLabel("Presets", page))
+    layout.addStretch(1)
+    return page
 
 
 def domain_analysis_dialog_presentation(

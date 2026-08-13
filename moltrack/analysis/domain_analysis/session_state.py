@@ -122,6 +122,12 @@ class DomainAnalysisM6CacheRecord:
                 self.key.m6_settings_fingerprint,
                 self.key.m6_algorithm_version,
             )
+        ) or (
+            self.key.configuration_fingerprint is not None
+            and (
+                not isinstance(self.key.configuration_fingerprint, str)
+                or not self.key.configuration_fingerprint.strip()
+            )
         ):
             raise ValueError("M6 cache key fields must be non-empty strings.")
         if (
@@ -524,6 +530,11 @@ def _validate_m6_cache_scope(
             if frame.frame_index == record.computation.frame_index
             and publication is not None
             and publication.request.geometry_mode == record.key.geometry_mode
+            and (
+                publication.request.m6_configuration is None
+                or record.key.configuration_fingerprint
+                == publication.request.m6_configuration.configuration_fingerprint
+            )
         )
         matches_draft = (
             state.draft is not None
@@ -532,6 +543,11 @@ def _validate_m6_cache_scope(
                 or state.draft.backend_id == record.key.backend_identity.backend_id
             )
             and state.draft.geometry_mode == record.key.geometry_mode
+            and (
+                state.draft.m6_configuration is None
+                or record.key.configuration_fingerprint
+                == state.draft.m6_configuration.configuration_fingerprint
+            )
             and draft_frame_ids.get(record.computation.frame_index)
             == record.key.physical_frame_id
         )

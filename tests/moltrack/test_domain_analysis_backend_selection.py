@@ -4,6 +4,7 @@ from dataclasses import replace
 
 import pytest
 
+from moltrack.analysis import TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
 from moltrack.analysis.domain_analysis import (
     M3_M6_LATTICE_NETWORK_BACKEND_ID,
     M6_ORIENTATION_COMPONENTS_BACKEND_ID,
@@ -12,12 +13,14 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisRequest,
     DomainAnalysisSeries,
     DomainBackendIdentity,
+    FirstShellGeometryPolicy,
     M3M6LatticeDomainEvidence,
     M3M6LatticeNetworkEvidence,
     M6ComponentMembership,
     M6FrameComputation,
     M6FrameGeometry,
     M6OrientationComponentsEvidence,
+    M6RunConfiguration,
     M6SourceAnnotation,
 )
 from moltrack.ui.domain_backend_adapters import (
@@ -171,6 +174,15 @@ def test_run_qualifies_snapshot_and_cache_by_selected_backend() -> None:
 def test_network_runtime_adapter_delegates_to_lattice_pipeline() -> None:
     series = _series()
     adapter = MolTrackLatticeNetworkAdapter(series)
+    settings = TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
+    configuration = M6RunConfiguration(
+        backend_identity=adapter.backend_identity,
+        settings=settings,
+        first_shell_geometry=FirstShellGeometryPolicy.fixed(
+            r_min_nm=settings.first_shell_r_min_nm,
+            r_max_nm=settings.first_shell_r_max_nm,
+        ),
+    )
     result = DomainAnalysisModule(
         {adapter.backend_identity.backend_id: adapter},
         classifier_adapters={},
@@ -179,6 +191,7 @@ def test_network_runtime_adapter_delegates_to_lattice_pipeline() -> None:
         DomainAnalysisRequest(
             frame_range=range(1),
             backend_id=M3_M6_LATTICE_NETWORK_BACKEND_ID,
+            m6_configuration=configuration,
         ),
     )
 
