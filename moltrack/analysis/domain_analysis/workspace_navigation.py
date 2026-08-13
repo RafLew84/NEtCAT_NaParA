@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from .classifier_contract import validated_text
+from .domain_correction_models import EffectiveDomainProjection
 from .models import DomainAnalysisResult, M6PublishedComponent
 from .texture_abc_adapter import ABC_ORIENTATION_CLASSIFIER_ID
 
@@ -71,6 +72,7 @@ def hierarchy_reference_diagnosis(
     active_physical_frame_id: str,
     published_result: DomainAnalysisResult | None,
     highlight: DomainHierarchyHighlight,
+    effective_projection: EffectiveDomainProjection | None = None,
 ) -> str | None:
     """Explain why a frame-local navigation target is invalid, if it is."""
 
@@ -103,10 +105,19 @@ def hierarchy_reference_diagnosis(
         return "Highlighted domain does not exist in the published result."
     if highlight.target_kind == "domain":
         return None
-    labels = _published_orientation_labels(
-        published_result,
-        frame.frame_index,
-        component,
+    labels = (
+        _published_orientation_labels(
+            published_result,
+            frame.frame_index,
+            component,
+        )
+        if effective_projection is None
+        else {
+            value.orientation_label
+            for value in effective_projection.orientation_subdomains
+            if value.physical_frame_id == frame.physical_frame_id
+            and value.lattice_domain_id == component.lattice_domain_id
+        }
     )
     if highlight.orientation_label not in labels:
         return "Highlighted orientation subdomain does not exist."

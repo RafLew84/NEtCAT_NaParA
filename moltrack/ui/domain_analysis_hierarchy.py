@@ -114,7 +114,7 @@ def build_domain_analysis_hierarchy(
             ledger_summary="Ledger: no published result",
         )
     publication, frame = published_frame
-    orientation_by_source = _orientation_by_source(publication, frame)
+    orientation_by_source = _orientation_by_source(snapshot, publication, frame)
     nodes = tuple(
         _domain_node(frame, component, orientation_by_source)
         for component in frame.full_domains
@@ -210,9 +210,18 @@ def _published_frame(
 
 
 def _orientation_by_source(
+    snapshot: DomainAnalysisWorkspaceSnapshot,
     publication: DomainAnalysisPublication,
     frame: M6FrameGate,
 ) -> dict[str, str]:
+    projection = snapshot.domain_corrections.effective_projection
+    if projection is not None:
+        return {
+            source_id: subdomain.orientation_label
+            for subdomain in projection.orientation_subdomains
+            if subdomain.physical_frame_id == frame.physical_frame_id
+            for source_id in subdomain.source_ids
+        }
     return {
         value.source_id: display_orientation_label(value.orientation_label)
         for outcome in (publication.result.classifier_outcomes or ())

@@ -137,6 +137,24 @@ from .texture_abc_adapter import (
     ABC_ORIENTATION_CLASSIFIER_SCHEMA_VERSION,
     TextureABCClassifierAdapter,
 )
+from .domain_correction import DomainCorrectionModule
+from .domain_correction_models import (
+    ApplyPreparedDomainCorrection,
+    DomainCorrectionWorkspace,
+    EffectiveDomainProjection,
+    EffectiveMoleculeOrientation,
+    EffectiveOrientationSubdomain,
+    ManualOrientationDecision,
+    ManualOrientationIntent,
+    PreparedDomainCorrection,
+)
+from .workspace_correction import (
+    DomainCorrectionWorkspaceState,
+    DiscardPreparedDomainCorrection,
+    PreviewManualOrientation,
+    PreviewManualOrientationReset,
+    SelectDomainMolecules,
+)
 from .workspace_controller import (
     DomainAnalysisPublication,
     DomainAnalysisWorkspaceController,
@@ -174,6 +192,20 @@ from .workspace_notifications import (
 )
 
 __all__ = [
+    "ApplyPreparedDomainCorrection",
+    "DomainCorrectionModule",
+    "DomainCorrectionWorkspace",
+    "DomainCorrectionWorkspaceState",
+    "DiscardPreparedDomainCorrection",
+    "EffectiveDomainProjection",
+    "EffectiveMoleculeOrientation",
+    "EffectiveOrientationSubdomain",
+    "ManualOrientationDecision",
+    "ManualOrientationIntent",
+    "PreparedDomainCorrection",
+    "PreviewManualOrientation",
+    "PreviewManualOrientationReset",
+    "SelectDomainMolecules",
     "ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1",
     "ABCOrientationDiagnosticEvidence",
     "ABC_ORIENTATION_CLASSIFIER_ID",

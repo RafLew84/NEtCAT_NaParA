@@ -17,8 +17,10 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisWorkspaceSubscription,
     DomainComponentKey,
     DomainHierarchyHighlight,
+    EffectiveDomainProjection,
     M6FrameGate,
     M6PresentationProvenance,
+    M6PublishedMolecule,
     SelectDomainComponent,
     display_orientation_label,
 )
@@ -30,8 +32,8 @@ from napara.gui.widgets.viewer_widget import ViewerWidget
 DOMAIN_ANALYSIS_DOMAIN_BOUNDARY_COLOR = (220, 230, 233)
 DOMAIN_ANALYSIS_SMALL_ISLAND_COLOR = (232, 98, 88)
 DOMAIN_ANALYSIS_HIGHLIGHT_COLOR = (241, 196, 15)
-ABCPointState = Literal["A", "B", "C", "Unknown orientation"]
-_ABC_POINT_STATUSES: dict[ABCPointState, M6OverlayPointStatus] = {
+OrientationPointState = str
+_ABC_POINT_STATUSES: dict[str, M6OverlayPointStatus] = {
     "A": "abc_a",
     "B": "abc_b",
     "C": "abc_c",
@@ -92,15 +94,24 @@ class DomainAnalysisComponentOverlay:
 
 
 @dataclass(frozen=True)
-class DomainAnalysisABCPointOverlay:
-    """One published, M6-gated molecule classification in the target view."""
+class DomainAnalysisOrientationPointOverlay:
+    """One effective molecule orientation in the target view."""
 
     source_id: str
-    component_key: DomainComponentKey
+    component_key: DomainComponentKey | None
     point_xy_px: tuple[float, float]
-    state: ABCPointState
+    state: OrientationPointState
     color_rgb: tuple[int, int, int]
     symbol: str
+
+
+@dataclass(frozen=True)
+class DomainAnalysisMoleculePointOverlay:
+    """Selectable molecule position independent of M6 membership."""
+
+    source_id: str
+    point_xy_px: tuple[float, float]
+    is_selected: bool
 
 
 @dataclass(frozen=True)
@@ -109,7 +120,8 @@ class DomainAnalysisFrameOverlay:
 
     target_view: Literal["raw", "expanded_aligned"]
     components: tuple[DomainAnalysisComponentOverlay, ...]
-    abc_points: tuple[DomainAnalysisABCPointOverlay, ...]
+    orientation_points: tuple[DomainAnalysisOrientationPointOverlay, ...]
+    molecule_points: tuple[DomainAnalysisMoleculePointOverlay, ...]
     selected_component: DomainComponentKey | None
     hierarchy_highlight: DomainHierarchyHighlight | None
     highlighted_source_ids: tuple[str, ...]
@@ -254,10 +266,10 @@ class DomainAnalysisOverlayPresenter(QObject):
             selected_component=overlay.selected_component,
             fill_alpha=65,
         )
-        self._render_abc_points(overlay)
+        self._render_orientation_points(overlay)
 
-    def _render_abc_points(self, overlay: DomainAnalysisFrameOverlay) -> None:
-        points = overlay.abc_points
+    def _render_orientation_points(self, overlay: DomainAnalysisFrameOverlay) -> None:
+        points = overlay.orientation_points
         point_overlay = M6PointOverlay(
             mode="domain_abc",
             source_ids=tuple(value.source_id for value in points),
@@ -378,17 +390,27 @@ def build_domain_analysis_frame_overlay(
         if snapshot.selected_component in component_keys
         else None
     )
-    abc_points = _build_abc_points(publication, frame, target_view)
+    orientation_points = _build_orientation_points(
+        snapshot,
+        publication,
+        frame,
+        target_view,
+    )
     provenance = frame.presentation_provenance
     return DomainAnalysisFrameOverlay(
         target_view=target_view,
         components=components,
-        abc_points=abc_points,
+        orientation_points=orientation_points,
+        molecule_points=_build_molecule_points(
+            frame,
+            target_view,
+            snapshot.domain_corrections.selected_source_ids,
+        ),
         selected_component=selected,
         hierarchy_highlight=highlight,
         highlighted_source_ids=_highlighted_source_ids(
             highlight,
-            abc_points,
+            orientation_points,
         ),
         unassigned_shape=(
             provenance.raw_shape
@@ -450,11 +472,15 @@ def _build_component_overlays(
     return tuple(overlays)
 
 
-def _build_abc_points(
+def _build_orientation_points(
+    snapshot: DomainAnalysisWorkspaceSnapshot,
     publication: DomainAnalysisPublication,
     frame: M6FrameGate,
     target_view: Literal["raw", "expanded_aligned"],
-) -> tuple[DomainAnalysisABCPointOverlay, ...]:
+) -> tuple[DomainAnalysisOrientationPointOverlay, ...]:
+    projection = snapshot.domain_corrections.effective_projection
+    if projection is not None:
+        return _build_effective_orientation_points(projection, frame, target_view)
     outcome = next(
         (
             value
@@ -482,9 +508,9 @@ def _build_abc_points(
             label = classification.orientation_label
             if label not in _ABC_POINT_STATUSES:
                 continue
-            state = cast(ABCPointState, label)
+            state = cast(OrientationPointState, label)
             style = orientation_marker_style(state)
-            points.append(DomainAnalysisABCPointOverlay(
+            points.append(DomainAnalysisOrientationPointOverlay(
                 source_id=member.source_id,
                 component_key=key,
                 point_xy_px=_project_point(
@@ -499,9 +525,76 @@ def _build_abc_points(
     return tuple(points)
 
 
+def _build_effective_orientation_points(
+    projection: EffectiveDomainProjection,
+    frame: M6FrameGate,
+    target_view: Literal["raw", "expanded_aligned"],
+) -> tuple[DomainAnalysisOrientationPointOverlay, ...]:
+    molecules = {
+        value.source_id: value
+        for value in projection.molecules
+        if value.physical_frame_id == frame.physical_frame_id
+        and value.effective_orientation is not None
+    }
+    members = _frame_members(frame)
+    domain_ids = {
+        member.source_id: component.lattice_domain_id
+        for component in frame.full_domains
+        for member in component.members
+    }
+    points = []
+    for source_id, molecule in sorted(molecules.items()):
+        member = members.get(source_id)
+        if member is None or member.raw_centroid_xy is None:
+            continue
+        label = molecule.effective_orientation
+        assert label is not None
+        style = orientation_marker_style(label)
+        domain_id = domain_ids.get(source_id)
+        points.append(DomainAnalysisOrientationPointOverlay(
+            source_id=source_id,
+            component_key=(
+                None
+                if domain_id is None
+                else DomainComponentKey(frame.physical_frame_id, domain_id)
+            ),
+            point_xy_px=_project_point(
+                member.raw_centroid_xy,
+                frame.presentation_provenance,
+                target_view,
+            ),
+            state=label,
+            color_rgb=style.color_rgb,
+            symbol=style.symbol,
+        ))
+    return tuple(points)
+
+
+def _build_molecule_points(
+    frame: M6FrameGate,
+    target_view: Literal["raw", "expanded_aligned"],
+    selected_source_ids: tuple[str, ...],
+) -> tuple[DomainAnalysisMoleculePointOverlay, ...]:
+    selected = set(selected_source_ids)
+    members = _frame_members(frame)
+    return tuple(
+        DomainAnalysisMoleculePointOverlay(
+            source_id=source_id,
+            point_xy_px=_project_point(
+                member.raw_centroid_xy,
+                frame.presentation_provenance,
+                target_view,
+            ),
+            is_selected=source_id in selected,
+        )
+        for source_id, member in sorted(members.items())
+        if member.raw_centroid_xy is not None
+    )
+
+
 def _highlighted_source_ids(
     highlight: DomainHierarchyHighlight | None,
-    points: tuple[DomainAnalysisABCPointOverlay, ...],
+    points: tuple[DomainAnalysisOrientationPointOverlay, ...],
 ) -> tuple[str, ...]:
     if highlight is None or highlight.target_kind not in {
         "domain",
@@ -511,12 +604,23 @@ def _highlighted_source_ids(
     return tuple(
         point.source_id
         for point in points
-        if point.component_key.lattice_domain_id == highlight.lattice_domain_id
+        if point.component_key is not None
+        and point.component_key.lattice_domain_id == highlight.lattice_domain_id
         and (
             highlight.target_kind == "domain"
             or display_orientation_label(point.state) == highlight.orientation_label
         )
     )
+
+
+def _frame_members(frame: M6FrameGate) -> dict[str, M6PublishedMolecule]:
+    members = {
+        member.source_id: member
+        for component in frame.full_domains + frame.small_ordered_islands
+        for member in component.members
+    }
+    members.update({member.source_id: member for member in frame.outside_members})
+    return members
 
 
 def _project_point(
@@ -549,6 +653,8 @@ __all__ = [
     "DOMAIN_ANALYSIS_HIGHLIGHT_COLOR",
     "DOMAIN_ANALYSIS_SMALL_ISLAND_COLOR",
     "DomainAnalysisFrameOverlay",
+    "DomainAnalysisOrientationPointOverlay",
+    "DomainAnalysisMoleculePointOverlay",
     "DomainAnalysisGeometryRenderer",
     "DomainAnalysisOverlayPresenter",
     "OrientationMarkerStyle",

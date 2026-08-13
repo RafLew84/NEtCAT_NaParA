@@ -6,6 +6,7 @@ from typing import Literal, cast
 
 import numpy as np
 import pyqtgraph as pg
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QFrame,
@@ -66,7 +67,9 @@ DOMAIN_ANALYSIS_STAGES = (
 
 
 class DomainAnalysisImageCanvas(QWidget):
-    """Read-only image canvas projected from the active workspace frame."""
+    """Image canvas projected from the active workspace frame."""
+
+    molecule_selected = pyqtSignal(str)
 
     def __init__(
         self,
@@ -107,6 +110,13 @@ class DomainAnalysisImageCanvas(QWidget):
     def current_overlay(self) -> DomainAnalysisFrameOverlay | None:
         return self._current_overlay
 
+    def select_molecule(self, source_id: str) -> None:
+        if self._current_overlay is None or source_id not in {
+            value.source_id for value in self._current_overlay.molecule_points
+        }:
+            raise ValueError(f"Unknown visible molecule: {source_id!r}.")
+        self.molecule_selected.emit(source_id)
+
     def render_snapshot(self, snapshot: DomainAnalysisWorkspaceSnapshot) -> None:
         if not isinstance(snapshot, DomainAnalysisWorkspaceSnapshot):
             raise TypeError("snapshot must be a DomainAnalysisWorkspaceSnapshot.")
@@ -144,9 +154,10 @@ class DomainAnalysisImageCanvas(QWidget):
             fill_alpha=40,
         )
         self._render_points(overlay)
+        self._render_selection_points(overlay)
 
     def _render_points(self, overlay: DomainAnalysisFrameOverlay) -> None:
-        points = overlay.abc_points
+        points = overlay.orientation_points
         if not points:
             return
         scale_x = self._scale_nm_per_px[0] or 1.0
@@ -184,6 +195,46 @@ class DomainAnalysisImageCanvas(QWidget):
         )
         self.viewer.get_plot_item().addItem(item)
         self._overlay_items.append(item)
+
+    def _render_selection_points(self, overlay: DomainAnalysisFrameOverlay) -> None:
+        if not overlay.molecule_points:
+            return
+        scale_x = self._scale_nm_per_px[0] or 1.0
+        scale_y = self._scale_nm_per_px[1] or 1.0
+        item = pg.ScatterPlotItem(spots=[
+            {
+                "pos": (
+                    point.point_xy_px[0] * scale_x,
+                    point.point_xy_px[1] * scale_y,
+                ),
+                "data": point.source_id,
+                "brush": pg.mkBrush((0, 0, 0, 0)),
+                "pen": pg.mkPen(
+                    (*DOMAIN_ANALYSIS_HIGHLIGHT_COLOR, 255)
+                    if point.is_selected
+                    else (245, 245, 245, 190),
+                    width=2.2 if point.is_selected else 1.0,
+                ),
+                "size": 15.0 if point.is_selected else 12.0,
+            }
+            for point in overlay.molecule_points
+        ])
+        item.sigClicked.connect(self._on_molecule_points_clicked)
+        self.viewer.get_plot_item().addItem(item)
+        self._overlay_items.append(item)
+
+    def _on_molecule_points_clicked(
+        self,
+        _item: object,
+        points: list[pg.SpotItem],
+        *_args: object,
+    ) -> None:
+        if not points:
+            return
+        source_id = points[0].data()
+        if not isinstance(source_id, str):
+            raise TypeError("Selectable point must contain a source_id.")
+        self.select_molecule(source_id)
 
     def _clear_overlay(self) -> None:
         for item in self._overlay_items:

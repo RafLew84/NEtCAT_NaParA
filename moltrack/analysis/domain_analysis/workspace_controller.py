@@ -10,6 +10,19 @@ from .classifier_contract import (
 )
 from .fingerprints import canonical_sha256
 from .models import DomainAnalysisRequest, DomainAnalysisResult
+from .domain_correction import DomainCorrectionModule
+from .domain_correction_models import ApplyPreparedDomainCorrection
+from .workspace_correction import (
+    DomainCorrectionWorkspaceAction,
+    DomainCorrectionWorkspaceState,
+    DiscardPreparedDomainCorrection,
+    PreviewManualOrientation,
+    PreviewManualOrientationReset,
+    SelectDomainMolecules,
+    clear_domain_correction_selection,
+    initialize_domain_corrections,
+    reduce_domain_corrections,
+)
 from .workspace_lifecycle import (
     DomainAnalysisWorkspaceExecution,
     reduce_domain_analysis_lifecycle,
@@ -114,6 +127,9 @@ class DomainAnalysisWorkspaceSnapshot:
     active_frame_index: int
     selected_component: DomainComponentKey | None = None
     hierarchy_highlight: DomainHierarchyHighlight | None = None
+    domain_corrections: DomainCorrectionWorkspaceState = field(
+        default_factory=DomainCorrectionWorkspaceState
+    )
     run: DomainAnalysisWorkspaceRunState = field(
         default_factory=DomainAnalysisWorkspaceRunState
     )
@@ -149,6 +165,13 @@ class DomainAnalysisWorkspaceSnapshot:
         object.__setattr__(self, "active_frame_index", active_frame_index)
         if not isinstance(self.run, DomainAnalysisWorkspaceRunState):
             raise TypeError("run must be a DomainAnalysisWorkspaceRunState.")
+        if not isinstance(
+            self.domain_corrections,
+            DomainCorrectionWorkspaceState,
+        ):
+            raise TypeError(
+                "domain_corrections must be a DomainCorrectionWorkspaceState."
+            )
         if not isinstance(self.is_shutdown, bool):
             raise TypeError("is_shutdown must be a bool.")
         _validate_snapshot_references(self)
@@ -207,6 +230,7 @@ DomainAnalysisWorkspaceAction = (
     | SetDomainHierarchyHighlight
     | SetDomainAnalysisFrame
     | RestoreDomainAnalysisWorkspace
+    | DomainCorrectionWorkspaceAction
     | DomainAnalysisLifecycleAction
 )
 class DomainAnalysisWorkspaceController:
@@ -219,6 +243,7 @@ class DomainAnalysisWorkspaceController:
         physical_frame_ids: tuple[str, ...],
         series_generation: int = 0,
         execution: DomainAnalysisWorkspaceExecution | None = None,
+        correction_module: DomainCorrectionModule | None = None,
     ) -> None:
         self._lock = RLock()
         self._snapshot = DomainAnalysisWorkspaceSnapshot(
@@ -240,6 +265,7 @@ class DomainAnalysisWorkspaceController:
         ):
             raise TypeError("execution must be a DomainAnalysisWorkspaceExecution.")
         self._execution = execution
+        self._correction_module = correction_module or DomainCorrectionModule()
 
     @property
     def snapshot(self) -> DomainAnalysisWorkspaceSnapshot:
@@ -286,7 +312,11 @@ class DomainAnalysisWorkspaceController:
                 raise DomainAnalysisWorkspaceIntentError(
                     "Domain Analysis execution is not configured."
                 )
-            updated = _reduce_workspace(self._snapshot, action)
+            updated = _reduce_workspace(
+                self._snapshot,
+                action,
+                self._correction_module,
+            )
             if updated is self._snapshot:
                 return updated
             self._snapshot = updated
@@ -320,6 +350,7 @@ class DomainAnalysisWorkspaceController:
 def _reduce_workspace(
     snapshot: DomainAnalysisWorkspaceSnapshot,
     action: DomainAnalysisWorkspaceAction,
+    correction_module: DomainCorrectionModule,
 ) -> DomainAnalysisWorkspaceSnapshot:
     if isinstance(action, ReplaceDomainAnalysisDraft):
         if snapshot.run.status == "running":
@@ -339,7 +370,12 @@ def _reduce_workspace(
             raise DomainAnalysisWorkspaceIntentError(
                 "A result cannot be published directly while a run is active."
             )
-        return _publish_result(snapshot, action.request, action.result)
+        return _publish_result(
+            snapshot,
+            action.request,
+            action.result,
+            correction_module,
+        )
     if isinstance(action, SelectDomainComponent):
         return _select_component(snapshot, action.component)
     if isinstance(action, SetDomainHierarchyHighlight):
@@ -347,17 +383,47 @@ def _reduce_workspace(
     if isinstance(action, SetDomainAnalysisFrame):
         return _set_active_frame(snapshot, action.frame_index)
     if isinstance(action, RestoreDomainAnalysisWorkspace):
-        return _restore_workspace(snapshot, action)
+        return _restore_workspace(snapshot, action, correction_module)
+    if isinstance(action, (
+        SelectDomainMolecules,
+        DiscardPreparedDomainCorrection,
+        PreviewManualOrientation,
+        PreviewManualOrientationReset,
+        ApplyPreparedDomainCorrection,
+    )):
+        automatic = (
+            None if snapshot.published is None else snapshot.published.result
+        )
+        corrected = reduce_domain_corrections(
+            snapshot.domain_corrections,
+            automatic,
+            snapshot.active_physical_frame_id,
+            action,
+            correction_module,
+        )
+        if corrected is snapshot.domain_corrections:
+            return snapshot
+        return replace(
+            snapshot,
+            revision=snapshot.revision + 1,
+            domain_corrections=corrected,
+        )
     return reduce_domain_analysis_lifecycle(
         snapshot,
         cast(DomainAnalysisLifecycleAction, action),
-        _publish_result,
+        lambda value, request, result: _publish_result(
+            value,
+            request,
+            result,
+            correction_module,
+        ),
     )
 
 
 def _restore_workspace(
     snapshot: DomainAnalysisWorkspaceSnapshot,
     action: RestoreDomainAnalysisWorkspace,
+    correction_module: DomainCorrectionModule,
 ) -> DomainAnalysisWorkspaceSnapshot:
     if snapshot.run.status == "running":
         raise DomainAnalysisWorkspaceIntentError(
@@ -407,6 +473,14 @@ def _restore_workspace(
         active_frame_index=action.active_frame_index,
         selected_component=action.selected_component,
         hierarchy_highlight=None,
+        domain_corrections=(
+            DomainCorrectionWorkspaceState()
+            if action.published is None
+            else initialize_domain_corrections(
+                correction_module,
+                action.published.result,
+            )
+        ),
         run=restored_run,
     )
 
@@ -415,6 +489,7 @@ def _publish_result(
     snapshot: DomainAnalysisWorkspaceSnapshot,
     request: DomainAnalysisRequest,
     result: DomainAnalysisResult,
+    correction_module: DomainCorrectionModule,
 ) -> DomainAnalysisWorkspaceSnapshot:
     _validate_series_request(
         request,
@@ -436,6 +511,10 @@ def _publish_result(
         published=publication,
         selected_component=selection,
         hierarchy_highlight=None,
+        domain_corrections=initialize_domain_corrections(
+            correction_module,
+            result,
+        ),
     )
 
 
@@ -475,6 +554,9 @@ def _set_active_frame(
         active_frame_index=frame_index,
         selected_component=None,
         hierarchy_highlight=None,
+        domain_corrections=clear_domain_correction_selection(
+            snapshot.domain_corrections
+        ),
     )
 
 
@@ -494,6 +576,7 @@ def _set_hierarchy_highlight(
             snapshot.active_physical_frame_id,
             None if snapshot.published is None else snapshot.published.result,
             highlight,
+            snapshot.domain_corrections.effective_projection,
         )
         if diagnosis is not None:
             raise DomainAnalysisWorkspaceIntentError(diagnosis)
@@ -522,6 +605,15 @@ def _validate_snapshot_references(
             snapshot.published,
             snapshot.physical_frame_ids,
         )
+    correction_state = snapshot.domain_corrections
+    if snapshot.published is None:
+        if correction_state.correction_set is not None:
+            raise ValueError("Domain corrections require a published result.")
+    elif correction_state.effective_projection is not None and (
+        correction_state.effective_projection.automatic_result
+        is not snapshot.published.result
+    ):
+        raise ValueError("Domain corrections must project the published result.")
     selection = snapshot.selected_component
     if selection is not None:
         if not isinstance(selection, DomainComponentKey):
@@ -537,6 +629,7 @@ def _validate_snapshot_references(
             snapshot.active_physical_frame_id,
             None if snapshot.published is None else snapshot.published.result,
             highlight,
+            snapshot.domain_corrections.effective_projection,
         )
         if diagnosis is not None:
             raise ValueError(diagnosis)

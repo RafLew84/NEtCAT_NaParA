@@ -236,7 +236,10 @@ def test_correct_hierarchy_highlights_without_changing_selection(qt_app) -> None
     assert overlay.highlighted_source_ids == ("m-a", "m-b")
     assert overlay.components[0].m6_boundary_color_rgb == (220, 230, 233)
     assert overlay.components[1].m6_boundary_color_rgb == (232, 98, 88)
-    assert {(point.state, point.color_rgb, point.symbol) for point in overlay.abc_points} == {
+    assert {
+        (point.state, point.color_rgb, point.symbol)
+        for point in overlay.orientation_points
+    } == {
         ("A", (0, 114, 178), "o"),
     }
 
@@ -278,6 +281,108 @@ def test_correct_hierarchy_highlights_without_changing_selection(qt_app) -> None
     assert controller.snapshot.hierarchy_highlight is None
     assert dialog.domain_hierarchy_sheet.current_highlight is None
     assert dialog.command_center.canvas.current_overlay is None
+    _dispose(dialog, qt_app)
+
+
+def test_correct_sheet_previews_and_applies_manual_orientation_from_canvas(
+    qt_app,
+) -> None:
+    executor = _ManualExecutor()
+    controller = _workspace(executor)
+    dialog = _dialog(
+        controller,
+        lambda publication: None,
+        canvas_frame_for=lambda _frame_index: np.zeros((4, 4), dtype=np.float32),
+    )
+    dialog.analyze_button.click()
+    executor.run_next()
+    qt_app.processEvents()
+    dialog.command_center.stage_button("correct").click()
+
+    dialog.command_center.canvas.select_molecule("m-d")
+    dialog.orientation_target_combo.setCurrentText("D")
+    dialog.orientation_preview_button.click()
+    qt_app.processEvents()
+
+    prepared = controller.snapshot.domain_corrections.prepared
+    assert prepared is not None
+    assert prepared.changed_source_ids == ("m-d",)
+    assert dialog.orientation_apply_button.isEnabled()
+
+    dialog.orientation_target_combo.setCurrentText("E")
+    qt_app.processEvents()
+    assert controller.snapshot.domain_corrections.prepared is None
+    assert not dialog.orientation_apply_button.isEnabled()
+    dialog.orientation_preview_button.click()
+    qt_app.processEvents()
+
+    dialog.orientation_apply_button.click()
+    qt_app.processEvents()
+    projection = controller.snapshot.domain_corrections.effective_projection
+    assert projection is not None
+    corrected = projection.molecule("physical-frame-0", "m-d")
+    assert corrected.effective_orientation == "E"
+    assert corrected.effective_domain_id is None
+    assert corrected.effective_confidence is None
+    assert all(
+        "m-d" not in subdomain.source_ids
+        for subdomain in projection.orientation_subdomains
+    )
+    assert dialog.orientation_effective_label.text() == "Effective: E (manual)"
+    overlay = dialog.command_center.canvas.current_overlay
+    assert overlay is not None
+    manual_point = next(
+        point
+        for point in overlay.orientation_points
+        if point.source_id == "m-d"
+    )
+    assert manual_point.state == "E"
+    assert manual_point.component_key is None
+
+    dialog.orientation_reset_button.click()
+    dialog.orientation_apply_button.click()
+    qt_app.processEvents()
+    reset = controller.snapshot.domain_corrections.effective_projection
+    assert reset is not None
+    assert reset.molecule("physical-frame-0", "m-d").effective_orientation is None
+    _dispose(dialog, qt_app)
+
+
+def test_correct_hierarchy_uses_effective_orientation_inside_full_domain(
+    qt_app,
+) -> None:
+    executor = _ManualExecutor()
+    controller = _workspace(executor)
+    dialog = _dialog(
+        controller,
+        lambda publication: None,
+        canvas_frame_for=lambda _frame_index: np.zeros((4, 4), dtype=np.float32),
+    )
+    dialog.analyze_button.click()
+    executor.run_next()
+    qt_app.processEvents()
+    dialog.command_center.canvas.select_molecule("m-a")
+    dialog.orientation_target_combo.setCurrentText("D")
+    dialog.orientation_preview_button.click()
+    dialog.orientation_apply_button.click()
+    qt_app.processEvents()
+
+    labels = tuple(
+        dialog.domain_hierarchy_sheet.tree.topLevelItem(0).child(index).text(0)
+        for index in range(
+            dialog.domain_hierarchy_sheet.tree.topLevelItem(0).childCount()
+        )
+    )
+    assert "D" in labels
+    d_item = dialog.domain_hierarchy_sheet.tree.findItems(
+        "D",
+        Qt.MatchFlag.MatchExactly | Qt.MatchFlag.MatchRecursive,
+        0,
+    )[0]
+    dialog.domain_hierarchy_sheet.tree.setCurrentItem(d_item)
+    qt_app.processEvents()
+    assert controller.snapshot.hierarchy_highlight is not None
+    assert controller.snapshot.hierarchy_highlight.orientation_label == "D"
     _dispose(dialog, qt_app)
 
 

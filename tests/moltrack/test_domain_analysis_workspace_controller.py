@@ -6,6 +6,7 @@ from functools import partial
 import pytest
 
 from moltrack.analysis.domain_analysis import (
+    ApplyPreparedDomainCorrection,
     DomainAnalysisPublication,
     DomainAnalysisRequest,
     DomainAnalysisResult,
@@ -15,6 +16,7 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisWorkspaceSnapshot,
     DomainComponentKey,
     DomainHierarchyHighlight,
+    DiscardPreparedDomainCorrection,
     DomainBackendIdentity,
     M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     M6FrameGate,
@@ -24,8 +26,10 @@ from moltrack.analysis.domain_analysis import (
     M6PublishedComponent,
     M6PublishedMolecule,
     PublishDomainAnalysisResult,
+    PreviewManualOrientation,
     ReplaceDomainAnalysisDraft,
     SelectDomainComponent,
+    SelectDomainMolecules,
     SetDomainHierarchyHighlight,
     SetDomainAnalysisFrame,
 )
@@ -33,6 +37,43 @@ from moltrack.analysis.domain_analysis import (
 DomainAnalysisRequest = partial(
     DomainAnalysisRequest, backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID
 )
+
+
+def test_discarding_absent_correction_preview_before_publication_is_a_noop() -> None:
+    request = DomainAnalysisRequest(frame_range=range(1))
+    controller = DomainAnalysisWorkspaceController(
+        request,
+        physical_frame_ids=("physical-frame-0",),
+    )
+
+    assert controller.dispatch(DiscardPreparedDomainCorrection()) is controller.snapshot
+    assert controller.snapshot.revision == 0
+
+
+def test_workspace_owns_manual_orientation_preview_and_effective_projection() -> None:
+    request = DomainAnalysisRequest(frame_range=range(1))
+    automatic = _completed_result(range(1))
+    controller = DomainAnalysisWorkspaceController(
+        request,
+        physical_frame_ids=("physical-frame-0",),
+    )
+    controller.dispatch(PublishDomainAnalysisResult(request, automatic))
+
+    selected = controller.dispatch(SelectDomainMolecules(("molecule-0",)))
+    assert selected.domain_corrections.selected_source_ids == ("molecule-0",)
+
+    previewed = controller.dispatch(PreviewManualOrientation("D"))
+    preview = previewed.domain_corrections.prepared
+    assert preview is not None
+    assert preview.changed_source_ids == ("molecule-0",)
+
+    applied = controller.dispatch(ApplyPreparedDomainCorrection(preview))
+    projection = applied.domain_corrections.effective_projection
+    assert projection is not None
+    molecule = projection.molecule("physical-frame-0", "molecule-0")
+    assert molecule.effective_orientation == "D"
+    assert molecule.effective_confidence is None
+    assert projection.automatic_result is automatic
 
 
 def _frame_gate(
