@@ -104,6 +104,19 @@ from .m6_preset_library import (
     M6PresetLibrarySnapshot,
     M6RunConfiguration,
 )
+from .m6_preset_file import (
+    M6_PRESET_FILE_LEGACY_SCHEMA_VERSION,
+    M6_PRESET_FILE_SCHEMA_VERSION,
+    decode_m6_preset_file,
+    encode_m6_preset_file,
+)
+from .m6_preset_workspace import (
+    M6PresetDifference,
+    M6PresetImportResult,
+    M6PresetWorkingCopy,
+    M6PresetWorkspace,
+    UnsavedM6PresetChanges,
+)
 from .module import DomainAnalysisModule, M6Adapter, M6FrameAnalysisError
 from .session_state import (
     DOMAIN_ANALYSIS_RETRY_REQUIRED_DIAGNOSIS,
@@ -235,11 +248,17 @@ __all__ = [
     "GeometryMode",
     "M6Adapter",
     "M6_PRESET_LIBRARY_SCHEMA_VERSION",
+    "M6_PRESET_FILE_LEGACY_SCHEMA_VERSION",
+    "M6_PRESET_FILE_SCHEMA_VERSION",
     "M6_PRESET_SCHEMA_VERSION",
     "FirstShellGeometryPolicy",
     "M6Preset",
     "M6PresetLibrary",
     "M6PresetLibrarySnapshot",
+    "M6PresetDifference",
+    "M6PresetImportResult",
+    "M6PresetWorkingCopy",
+    "M6PresetWorkspace",
     "M6RunConfiguration",
     "M6_ORIENTATION_COMPONENTS_BACKEND_ID",
     "M6OrientationComponentsEvidence",
@@ -285,4 +304,7 @@ __all__ = [
     "ShutdownDomainAnalysis",
     "StartDomainAnalysis",
     "TextureABCClassifierAdapter",
+    "UnsavedM6PresetChanges",
+    "decode_m6_preset_file",
+    "encode_m6_preset_file",
 ]

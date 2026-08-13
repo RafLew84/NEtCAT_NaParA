@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 import json
 import os
@@ -267,6 +267,16 @@ class M6PresetLibrary:
         self._active_name = active_name or built_ins[0].name
         if self._active_name not in self._all_presets():
             raise ValueError("Active M6 preset is not available.")
+        self._available_backend_ids = frozenset(
+            preset.configuration.backend_id for preset in built_ins
+        )
+        self._available_backend_identities = {
+            preset.configuration.backend_id: _backend_compatibility_identity(
+                preset.configuration.backend_identity
+            )
+            for preset in built_ins
+        }
+        self._ensure_compatible(self._all_presets()[self._active_name])
 
     @property
     def snapshot(self) -> M6PresetLibrarySnapshot:
@@ -307,11 +317,70 @@ class M6PresetLibrary:
         self._users = updated_users
         return preset
 
+    def preset(self, name: str) -> M6Preset:
+        normalized_name = _text(name, "name")
+        try:
+            return self._all_presets()[normalized_name]
+        except KeyError as error:
+            raise ValueError(f"Unknown M6 preset: {normalized_name!r}.") from error
+
+    def overwrite(self, preset: M6Preset) -> M6Preset:
+        if not isinstance(preset, M6Preset):
+            raise TypeError("preset must be an M6Preset.")
+        current = self.preset(preset.name)
+        if current.built_in:
+            raise ValueError("A built-in M6 preset cannot be overwritten.")
+        updated = replace(
+            preset,
+            created_at=current.created_at,
+            updated_at=_timestamp(self._clock(), "clock result"),
+            built_in=False,
+        )
+        if updated.name == self._active_name:
+            self._ensure_compatible(updated)
+        updated_users = {**self._users, updated.name: updated}
+        self._persist(updated_users, self._active_name)
+        self._users = updated_users
+        return updated
+
+    def rename(self, name: str, new_name: str) -> M6Preset:
+        current = self.preset(name)
+        normalized_name = _text(new_name, "new_name")
+        if current.built_in:
+            raise ValueError("A built-in M6 preset cannot be renamed.")
+        if normalized_name != current.name and normalized_name in self._all_presets():
+            raise ValueError(f"M6 preset already exists: {normalized_name!r}.")
+        updated = replace(
+            current,
+            name=normalized_name,
+            updated_at=_timestamp(self._clock(), "clock result"),
+        )
+        users = dict(self._users)
+        del users[current.name]
+        users[updated.name] = updated
+        active_name = updated.name if current.name == self._active_name else self._active_name
+        self._persist(users, active_name)
+        self._users = users
+        self._active_name = active_name
+        return updated
+
+    def delete(self, name: str) -> None:
+        preset = self.preset(name)
+        if preset.built_in:
+            raise ValueError("A built-in M6 preset cannot be deleted.")
+        if preset.name == self._active_name:
+            raise ValueError("The active M6 preset cannot be deleted.")
+        users = dict(self._users)
+        del users[preset.name]
+        self._persist(users, self._active_name)
+        self._users = users
+
     def set_active(self, name: str) -> M6Preset:
         normalized_name = _text(name, "name")
         presets = self._all_presets()
         if normalized_name not in presets:
             raise ValueError(f"Unknown M6 preset: {normalized_name!r}.")
+        self._ensure_compatible(presets[normalized_name])
         self._persist(self._users, normalized_name)
         self._active_name = normalized_name
         return presets[normalized_name]
@@ -321,6 +390,21 @@ class M6PresetLibrary:
 
     def _all_presets(self) -> dict[str, M6Preset]:
         return {**self._built_ins, **self._users}
+
+    def _ensure_compatible(self, preset: M6Preset) -> None:
+        backend_id = preset.configuration.backend_id
+        if backend_id not in self._available_backend_ids:
+            raise ValueError(
+                f"M6 backend is unavailable: {backend_id!r}."
+            )
+        expected = self._available_backend_identities[backend_id]
+        actual = _backend_compatibility_identity(
+            preset.configuration.backend_identity
+        )
+        if actual != expected:
+            raise ValueError(
+                f"M6 backend identity is incompatible: {backend_id!r}."
+            )
 
     def _load(self) -> tuple[dict[str, M6Preset], str | None]:
         if not self._path.exists():
@@ -371,6 +455,19 @@ def _backend_identity(payload: object) -> DomainBackendIdentity:
         adapter_owner=_text(saved.get("adapter_owner"), "adapter_owner"),
         native_evidence_kind=_native_evidence_kind(saved.get("native_evidence_kind")),
         capabilities=tuple(_text(value, "capability") for value in _list(saved.get("capabilities"))),
+    )
+
+
+def _backend_compatibility_identity(
+    identity: DomainBackendIdentity,
+) -> tuple[object, ...]:
+    return (
+        identity.backend_id,
+        identity.result_schema_version,
+        identity.algorithm_version,
+        identity.adapter_owner,
+        identity.native_evidence_kind,
+        identity.capabilities,
     )
 
 
