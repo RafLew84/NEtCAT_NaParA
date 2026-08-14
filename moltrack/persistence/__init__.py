@@ -5,6 +5,7 @@ from .analysis_package import (
 from .analysis_package_dispatch import export_analysis_package
 from .domain_analysis_export import DomainAnalysisExportSettings
 from .domain_analysis_export_schema import CanonicalJsonObject
+from .correction_aware_export_schema import CorrectionAwareExportSettings
 from .session_store import (
     MolTrackStateSaveProgress,
     load_moltrack_session,
@@ -16,6 +17,7 @@ __all__ = [
     "AnalysisExportPackageResult",
     "AnalysisExportProgress",
     "DomainAnalysisExportSettings",
+    "CorrectionAwareExportSettings",
     "CanonicalJsonObject",
     "export_analysis_package",
     "MolTrackStateSaveProgress",
