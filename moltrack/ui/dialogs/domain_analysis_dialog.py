@@ -40,6 +40,8 @@ from moltrack.ui.domain_analysis_workspace_view import (
 from moltrack.ui.domain_analysis_hierarchy import DomainAnalysisHierarchySheet
 from moltrack.ui.domain_correction_sheet import DomainCorrectionSheet
 from moltrack.ui.domain_correction_view import DomainCorrectionActionBinding
+from moltrack.ui.reference_review_sheet import ReferenceReviewSheet
+from moltrack.ui.reference_review_view import ReferenceReviewActionBinding
 
 from .domain_analysis_command_center import (
     DomainAnalysisCanvasTargetViewFor,
@@ -120,6 +122,7 @@ class DomainAnalysisDialog(QDialog):
             diagnosis_label=self.diagnosis_label,
         )
         self._correction_actions = DomainCorrectionActionBinding(controller)
+        self._review_actions = ReferenceReviewActionBinding(controller)
         self._connect_controls()
         self._workspace_view.render_initial()
 
@@ -155,6 +158,7 @@ class DomainAnalysisDialog(QDialog):
             parent=self,
         )
         self.domain_correction_sheet = DomainCorrectionSheet(self)
+        self.reference_review_sheet = ReferenceReviewSheet(self)
         self.domain_hierarchy_sheet = self.domain_correction_sheet.hierarchy_sheet
         self.orientation_target_combo = self.domain_correction_sheet.target_combo
         self.orientation_reason_edit = self.domain_correction_sheet.reason_edit
@@ -191,6 +195,7 @@ class DomainAnalysisDialog(QDialog):
             canvas=canvas,
             analyze_sheet=analyze_sheet,
             correct_sheet=self.domain_correction_sheet,
+            review_sheet=self.reference_review_sheet,
             presets_sheet=self.m6_preset_sheet,
             diagnostics=diagnostics,
             parent=self,
@@ -320,6 +325,12 @@ class DomainAnalysisDialog(QDialog):
         self.domain_correction_sheet.restore_domain_requested.connect(
             self._correction_actions.preview_restore_manual_domain
         )
+        self.reference_review_sheet.decision_requested.connect(
+            self._review_actions.record_decision
+        )
+        self.reference_review_sheet.sign_off_requested.connect(
+            self._review_actions.sign_off
+        )
         if isinstance(self.m6_preset_sheet, M6PresetSheet):
             self.m6_preset_sheet.active_preset_changed.connect(
                 self._activate_m6_preset
@@ -372,6 +383,7 @@ class DomainAnalysisDialog(QDialog):
             raise TypeError("snapshot must be a DomainAnalysisWorkspaceSnapshot.")
         self.command_center.render_snapshot(value)
         self.domain_correction_sheet.render_snapshot(value)
+        self.reference_review_sheet.render_snapshot(value)
         blockers = [
             QSignalBlocker(widget)
             for widget in (

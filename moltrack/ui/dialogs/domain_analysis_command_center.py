@@ -347,6 +347,7 @@ class DomainAnalysisCommandCenter(QWidget):
         canvas: QWidget,
         analyze_sheet: QWidget,
         correct_sheet: QWidget,
+        review_sheet: QWidget,
         presets_sheet: QWidget,
         diagnostics: QWidget,
         parent: QWidget | None = None,
@@ -356,6 +357,7 @@ class DomainAnalysisCommandCenter(QWidget):
             (canvas, "canvas"),
             (analyze_sheet, "analyze_sheet"),
             (correct_sheet, "correct_sheet"),
+            (review_sheet, "review_sheet"),
             (presets_sheet, "presets_sheet"),
             (diagnostics, "diagnostics"),
         ):
@@ -371,6 +373,7 @@ class DomainAnalysisCommandCenter(QWidget):
         self._build_ui(
             analyze_sheet,
             correct_sheet,
+            review_sheet,
             presets_sheet,
             diagnostics,
         )
@@ -421,6 +424,7 @@ class DomainAnalysisCommandCenter(QWidget):
         self,
         analyze_sheet: QWidget,
         correct_sheet: QWidget,
+        review_sheet: QWidget,
         presets_sheet: QWidget,
         diagnostics: QWidget,
     ) -> None:
@@ -439,9 +443,13 @@ class DomainAnalysisCommandCenter(QWidget):
                     correct_sheet
                     if stage.stage_id == "correct"
                     else (
-                        presets_sheet
-                        if stage.stage_id == "presets"
-                        else _future_stage_sheet(stage, self.bottom_sheet)
+                        review_sheet
+                        if stage.stage_id == "review"
+                        else (
+                            presets_sheet
+                            if stage.stage_id == "presets"
+                            else _future_stage_sheet(stage, self.bottom_sheet)
+                        )
                     )
                 )
             )

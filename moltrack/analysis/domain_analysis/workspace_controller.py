@@ -11,26 +11,17 @@ from .classifier_contract import (
 from .fingerprints import canonical_sha256
 from .models import DomainAnalysisRequest, DomainAnalysisResult
 from .domain_correction import DomainCorrectionModule
-from .domain_correction_actions import ApplyPreparedDomainCorrection
+from .reference_review import ReferenceReviewPolicy, ReferenceReviewWorkspace
 from .workspace_correction import (
     DomainCorrectionWorkspaceAction,
     DomainCorrectionWorkspaceState,
-    ClearDomainMoleculeSelection,
-    DiscardPreparedDomainCorrection,
-    PreviewManualOrientation,
-    PreviewManualOrientationReset,
-    PreviewCreateManualDomain,
-    PreviewMoveToManualDomain,
-    PreviewDeleteManualDomain,
-    PreviewRestoreManualDomain,
-    RedoDomainCorrection,
-    SelectDomainMolecules,
-    SelectDomainMoleculesByPolygons,
-    ToggleDomainMoleculeSelection,
-    UndoDomainCorrection,
     clear_domain_correction_selection,
     initialize_domain_corrections,
-    reduce_domain_corrections,
+)
+from .workspace_editing import (
+    is_correction_workspace_action,
+    reduce_workspace_correction_action,
+    reduce_workspace_reference_review_action,
 )
 from .workspace_lifecycle import (
     DomainAnalysisWorkspaceExecution,
@@ -51,6 +42,11 @@ from .workspace_navigation import (
     DomainHierarchyHighlight,
     SetDomainHierarchyHighlight,
     hierarchy_reference_diagnosis,
+)
+from .workspace_review import (
+    ReferenceReviewWorkspaceAction,
+    SetReferenceReviewDecision,
+    SignOffReferenceReview,
 )
 
 if TYPE_CHECKING:
@@ -139,6 +135,9 @@ class DomainAnalysisWorkspaceSnapshot:
     domain_corrections: DomainCorrectionWorkspaceState = field(
         default_factory=DomainCorrectionWorkspaceState
     )
+    reference_reviews: ReferenceReviewWorkspace = field(
+        default_factory=ReferenceReviewWorkspace
+    )
     run: DomainAnalysisWorkspaceRunState = field(
         default_factory=DomainAnalysisWorkspaceRunState
     )
@@ -181,6 +180,8 @@ class DomainAnalysisWorkspaceSnapshot:
             raise TypeError(
                 "domain_corrections must be a DomainCorrectionWorkspaceState."
             )
+        if not isinstance(self.reference_reviews, ReferenceReviewWorkspace):
+            raise TypeError("reference_reviews must be a ReferenceReviewWorkspace.")
         if not isinstance(self.is_shutdown, bool):
             raise TypeError("is_shutdown must be a bool.")
         _validate_snapshot_references(self)
@@ -240,6 +241,7 @@ DomainAnalysisWorkspaceAction = (
     | SetDomainAnalysisFrame
     | RestoreDomainAnalysisWorkspace
     | DomainCorrectionWorkspaceAction
+    | ReferenceReviewWorkspaceAction
     | DomainAnalysisLifecycleAction
 )
 class DomainAnalysisWorkspaceController:
@@ -253,6 +255,7 @@ class DomainAnalysisWorkspaceController:
         series_generation: int = 0,
         execution: DomainAnalysisWorkspaceExecution | None = None,
         correction_module: DomainCorrectionModule | None = None,
+        review_policy: ReferenceReviewPolicy | None = None,
     ) -> None:
         self._lock = RLock()
         self._snapshot = DomainAnalysisWorkspaceSnapshot(
@@ -275,6 +278,7 @@ class DomainAnalysisWorkspaceController:
             raise TypeError("execution must be a DomainAnalysisWorkspaceExecution.")
         self._execution = execution
         self._correction_module = correction_module or DomainCorrectionModule()
+        self._review_policy = review_policy or ReferenceReviewPolicy()
 
     @property
     def snapshot(self) -> DomainAnalysisWorkspaceSnapshot:
@@ -325,6 +329,7 @@ class DomainAnalysisWorkspaceController:
                 self._snapshot,
                 action,
                 self._correction_module,
+                self._review_policy,
             )
             if updated is self._snapshot:
                 return updated
@@ -360,6 +365,7 @@ def _reduce_workspace(
     snapshot: DomainAnalysisWorkspaceSnapshot,
     action: DomainAnalysisWorkspaceAction,
     correction_module: DomainCorrectionModule,
+    review_policy: ReferenceReviewPolicy,
 ) -> DomainAnalysisWorkspaceSnapshot:
     if isinstance(action, ReplaceDomainAnalysisDraft):
         if snapshot.run.status == "running":
@@ -384,6 +390,7 @@ def _reduce_workspace(
             action.request,
             action.result,
             correction_module,
+            review_policy,
         )
     if isinstance(action, SelectDomainComponent):
         return _select_component(snapshot, action.component)
@@ -392,12 +399,24 @@ def _reduce_workspace(
     if isinstance(action, SetDomainAnalysisFrame):
         return _set_active_frame(snapshot, action.frame_index)
     if isinstance(action, RestoreDomainAnalysisWorkspace):
-        return _restore_workspace(snapshot, action, correction_module)
-    if _is_correction_action(action):
-        return _reduce_correction_action(
+        return _restore_workspace(
+            snapshot,
+            action,
+            correction_module,
+            review_policy,
+        )
+    if is_correction_workspace_action(action):
+        return reduce_workspace_correction_action(
             snapshot,
             cast(DomainCorrectionWorkspaceAction, action),
             correction_module,
+            review_policy,
+        )
+    if isinstance(action, (SetReferenceReviewDecision, SignOffReferenceReview)):
+        return reduce_workspace_reference_review_action(
+            snapshot,
+            action,
+            review_policy,
         )
     return reduce_domain_analysis_lifecycle(
         snapshot,
@@ -407,80 +426,15 @@ def _reduce_workspace(
             request,
             result,
             correction_module,
+            review_policy,
         ),
     )
-
-
-def _is_correction_action(action: object) -> bool:
-    return isinstance(action, (
-        SelectDomainMolecules,
-        SelectDomainMoleculesByPolygons,
-        ToggleDomainMoleculeSelection,
-        ClearDomainMoleculeSelection,
-        DiscardPreparedDomainCorrection,
-        PreviewManualOrientation,
-        PreviewManualOrientationReset,
-        PreviewCreateManualDomain,
-        PreviewMoveToManualDomain,
-        PreviewDeleteManualDomain,
-        PreviewRestoreManualDomain,
-        ApplyPreparedDomainCorrection,
-        RedoDomainCorrection,
-        UndoDomainCorrection,
-    ))
-
-
-def _reduce_correction_action(
-    snapshot: DomainAnalysisWorkspaceSnapshot,
-    action: DomainCorrectionWorkspaceAction,
-    correction_module: DomainCorrectionModule,
-) -> DomainAnalysisWorkspaceSnapshot:
-    if snapshot.run.status == "running" and isinstance(action, (
-        ApplyPreparedDomainCorrection,
-        RedoDomainCorrection,
-        UndoDomainCorrection,
-    )):
-        raise DomainAnalysisWorkspaceIntentError(
-            "Correction history is read-only while a rerun is active."
-        )
-    automatic = None if snapshot.published is None else snapshot.published.result
-    corrected = reduce_domain_corrections(
-        snapshot.domain_corrections,
-        automatic,
-        snapshot.active_physical_frame_id,
-        action,
-        correction_module,
-    )
-    if corrected is snapshot.domain_corrections:
-        return snapshot
-    return replace(
-        snapshot,
-        revision=snapshot.revision + 1,
-        domain_corrections=corrected,
-        hierarchy_highlight=_compatible_correction_highlight(snapshot, corrected),
-    )
-
-
-def _compatible_correction_highlight(
-    snapshot: DomainAnalysisWorkspaceSnapshot,
-    corrected: DomainCorrectionWorkspaceState,
-) -> DomainHierarchyHighlight | None:
-    highlight = snapshot.hierarchy_highlight
-    if highlight is None:
-        return None
-    diagnosis = hierarchy_reference_diagnosis(
-        snapshot.active_physical_frame_id,
-        None if snapshot.published is None else snapshot.published.result,
-        highlight,
-        corrected.effective_projection,
-    )
-    return None if diagnosis is not None else highlight
-
 
 def _restore_workspace(
     snapshot: DomainAnalysisWorkspaceSnapshot,
     action: RestoreDomainAnalysisWorkspace,
     correction_module: DomainCorrectionModule,
+    review_policy: ReferenceReviewPolicy,
 ) -> DomainAnalysisWorkspaceSnapshot:
     if snapshot.run.status == "running":
         raise DomainAnalysisWorkspaceIntentError(
@@ -520,6 +474,19 @@ def _restore_workspace(
             request=restored_request,
             diagnosis=action.run_diagnosis,
         )
+    corrections = (
+        DomainCorrectionWorkspaceState()
+        if action.published is None
+        else initialize_domain_corrections(
+            correction_module,
+            action.published.result,
+        )
+    )
+    reviews = (
+        ReferenceReviewWorkspace()
+        if action.published is None
+        else review_policy.initialize(action.published.result, corrections)
+    )
     return replace(
         snapshot,
         revision=snapshot.revision + 1,
@@ -530,14 +497,8 @@ def _restore_workspace(
         active_frame_index=action.active_frame_index,
         selected_component=action.selected_component,
         hierarchy_highlight=None,
-        domain_corrections=(
-            DomainCorrectionWorkspaceState()
-            if action.published is None
-            else initialize_domain_corrections(
-                correction_module,
-                action.published.result,
-            )
-        ),
+        domain_corrections=corrections,
+        reference_reviews=reviews,
         run=restored_run,
     )
 
@@ -547,6 +508,7 @@ def _publish_result(
     request: DomainAnalysisRequest,
     result: DomainAnalysisResult,
     correction_module: DomainCorrectionModule,
+    review_policy: ReferenceReviewPolicy,
 ) -> DomainAnalysisWorkspaceSnapshot:
     _validate_series_request(
         request,
@@ -561,6 +523,12 @@ def _publish_result(
         selection,
     ):
         selection = None
+    corrections = initialize_domain_corrections(correction_module, result)
+    reviews = review_policy.synchronize(
+        snapshot.reference_reviews,
+        result,
+        corrections,
+    )
     return replace(
         snapshot,
         revision=snapshot.revision + 1,
@@ -568,10 +536,8 @@ def _publish_result(
         published=publication,
         selected_component=selection,
         hierarchy_highlight=None,
-        domain_corrections=initialize_domain_corrections(
-            correction_module,
-            result,
-        ),
+        domain_corrections=corrections,
+        reference_reviews=reviews,
     )
 
 

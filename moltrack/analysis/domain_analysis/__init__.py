@@ -164,6 +164,20 @@ from .domain_correction_models import (
     ManualOrientationIntent,
     PreparedDomainCorrection,
 )
+from .reference_review import (
+    ReferenceReviewAbstention,
+    ReferenceReviewDecision,
+    ReferenceReviewDisposition,
+    ReferenceReviewEligibility,
+    ReferenceReviewFrame,
+    ReferenceReviewPolicy,
+    ReferenceReviewReadiness,
+    ReferenceReviewScope,
+    ReferenceReviewSignOff,
+    ReferenceReviewStatus,
+    ReferenceReviewTarget,
+    ReferenceReviewWorkspace,
+)
 from .manual_domain_models import (
     BoundaryResolution,
     EffectiveM6Domain,
@@ -207,6 +221,10 @@ from .workspace_navigation import (
     DomainHierarchyHighlightKind,
     SetDomainHierarchyHighlight,
     display_orientation_label,
+)
+from .workspace_review import (
+    SetReferenceReviewDecision,
+    SignOffReferenceReview,
 )
 from .workspace_lifecycle import (
     CancelDomainAnalysis,
@@ -255,6 +273,18 @@ __all__ = [
     "ManualDomainRecord",
     "RestoreMemberResolution",
     "PreparedDomainCorrection",
+    "ReferenceReviewAbstention",
+    "ReferenceReviewDecision",
+    "ReferenceReviewDisposition",
+    "ReferenceReviewEligibility",
+    "ReferenceReviewFrame",
+    "ReferenceReviewPolicy",
+    "ReferenceReviewReadiness",
+    "ReferenceReviewScope",
+    "ReferenceReviewSignOff",
+    "ReferenceReviewStatus",
+    "ReferenceReviewTarget",
+    "ReferenceReviewWorkspace",
     "PreviewManualOrientation",
     "PreviewManualOrientationReset",
     "PreviewCreateManualDomain",
@@ -393,6 +423,8 @@ __all__ = [
     "SelectDomainComponent",
     "SetDomainHierarchyHighlight",
     "SetDomainAnalysisFrame",
+    "SetReferenceReviewDecision",
+    "SignOffReferenceReview",
     "ShutdownDomainAnalysis",
     "StartDomainAnalysis",
     "TextureABCClassifierAdapter",
