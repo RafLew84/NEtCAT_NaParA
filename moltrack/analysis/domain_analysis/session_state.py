@@ -16,6 +16,7 @@ from .classifier_models import (
     MoleculeClassification,
     classifier_frame_result_fingerprint,
 )
+from .correction_workspace_quarantine import CorrectionWorkspaceQuarantine
 from .geometry import GeometryMode
 from .models import (
     DomainAnalysisRequest,
@@ -189,6 +190,7 @@ class DomainAnalysisSessionState:
     ] = ()
     draft_physical_frame_ids: tuple[str, ...] = ()
     published_result: DomainAnalysisPublication | None = None
+    correction_workspace_quarantine: CorrectionWorkspaceQuarantine | None = None
     orientation_class_catalog: OrientationClassCatalog = field(
         default_factory=OrientationClassCatalog
     )
@@ -236,6 +238,8 @@ class DomainAnalysisSessionState:
     @property
     def classifier_status(self) -> str:
         publication = self.published_result
+        if publication is None and self.correction_workspace_quarantine is not None:
+            publication = self.correction_workspace_quarantine.automatic_snapshot
         if publication is None:
             return "not_run"
         return publication.result.classifier_status
@@ -366,6 +370,19 @@ def _validate_workspace_values(state: DomainAnalysisSessionState) -> None:
         DomainAnalysisPublication,
     ):
         raise TypeError("published_result must be a DomainAnalysisPublication.")
+    quarantine = state.correction_workspace_quarantine
+    if quarantine is not None and not isinstance(
+        quarantine,
+        CorrectionWorkspaceQuarantine,
+    ):
+        raise TypeError(
+            "correction_workspace_quarantine must be a "
+            "CorrectionWorkspaceQuarantine."
+        )
+    if quarantine is not None and publication is not None:
+        raise ValueError(
+            "A quarantined automatic snapshot cannot also be active."
+        )
     if not isinstance(state.view_settings, DomainAnalysisViewSettings):
         raise TypeError("view_settings must be DomainAnalysisViewSettings.")
     if state.selected_component is not None:

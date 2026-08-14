@@ -117,6 +117,11 @@ def domain_analysis_state_to_payload(
     state: DomainAnalysisSessionState | None,
 ) -> dict[str, Any]:
     saved = DomainAnalysisSessionState() if state is None else state
+    if saved.correction_workspace_quarantine is not None:
+        raise ValueError(
+            "A quarantined correction workspace cannot be saved as active "
+            "Domain Analysis state."
+        )
     draft = saved.draft
     if draft is not None and draft.backend_id is None:
         raise ValueError("Domain Analysis draft requires an explicit backend.")

@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import QMainWindow
 
 from moltrack.analysis.domain_analysis import (
     ClassifierConfiguration,
+    CorrectionWorkspaceQuarantine,
     DomainAnalysisPublication,
     DomainAnalysisSessionState,
     DomainAnalysisSessionCacheRecords,
@@ -88,6 +89,9 @@ class DomainAnalysisMainWindowComposition(QObject):
         self._view_settings = (
             DomainAnalysisViewSettings() if view_settings is None else view_settings
         )
+        self._correction_workspace_quarantine: (
+            CorrectionWorkspaceQuarantine | None
+        ) = None
         if not isinstance(self._view_settings, DomainAnalysisViewSettings):
             raise TypeError("view_settings must be DomainAnalysisViewSettings.")
         viewer = getattr(owner, "viewer", None)
@@ -177,6 +181,11 @@ class DomainAnalysisMainWindowComposition(QObject):
 
     def session_state(self) -> DomainAnalysisSessionState:
         snapshot = self._controller.snapshot
+        quarantine = (
+            self._correction_workspace_quarantine
+            if snapshot.published is None
+            else None
+        )
         try:
             configurations = tuple(
                 self._configurations[classifier_id]
@@ -195,6 +204,7 @@ class DomainAnalysisMainWindowComposition(QObject):
                 for index in snapshot.draft.frame_indices
             ),
             published_result=snapshot.published,
+            correction_workspace_quarantine=quarantine,
             orientation_class_catalog=snapshot.orientation_class_catalog,
             domain_corrections=snapshot.domain_corrections,
             reference_reviews=snapshot.reference_reviews,
@@ -267,6 +277,9 @@ class DomainAnalysisMainWindowComposition(QObject):
                 m6_records=state.m6_cache_records,
                 classifier_records=state.classifier_cache_records,
             )
+        )
+        self._correction_workspace_quarantine = (
+            state.correction_workspace_quarantine
         )
         self._view_settings = state.view_settings
 

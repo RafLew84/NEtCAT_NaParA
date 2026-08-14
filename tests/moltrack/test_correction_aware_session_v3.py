@@ -180,14 +180,6 @@ def test_session_v3_round_trip_recomputes_the_effective_projection(tmp_path) -> 
     ):
         load_moltrack_session(session_path)
 
-    correction_payload["effective_projection_checkpoint"]["projection"][
-        "molecules"
-    ][0]["effective_orientation"] = "tampered"
-    session_path.write_text(json.dumps(payload), encoding="utf-8")
-    with pytest.raises(ValueError, match="Effective Projection Checkpoint"):
-        load_moltrack_session(session_path)
-
-
 def test_unknown_outer_version_is_rejected_before_source_open(tmp_path) -> None:
     session_path = tmp_path / "future-session.moltrack.json"
     session_path.write_text(

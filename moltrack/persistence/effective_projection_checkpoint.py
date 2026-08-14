@@ -22,6 +22,10 @@ from .domain_analysis_payload_validation import json_compatible_value
 EFFECTIVE_PROJECTION_CHECKPOINT_SCHEMA_VERSION = 1
 
 
+class EffectiveProjectionCheckpointMismatch(ValueError):
+    """Saved derived projection does not reproduce from authoritative inputs."""
+
+
 def effective_projection_checkpoint(
     publication: DomainAnalysisPublication,
     correction_set: DomainCorrectionWorkspace,
@@ -52,7 +56,7 @@ def validate_effective_projection_checkpoint(
     projection: EffectiveDomainProjection,
 ) -> None:
     if not isinstance(payload, dict):
-        raise ValueError(
+        raise EffectiveProjectionCheckpointMismatch(
             "domain_analysis.correction_workspace.effective_projection_checkpoint "
             "must be an object."
         )
@@ -62,7 +66,7 @@ def validate_effective_projection_checkpoint(
         projection,
     )
     if payload != expected:
-        raise ValueError(
+        raise EffectiveProjectionCheckpointMismatch(
             "Effective Projection Checkpoint does not match the projection "
             "recomputed from its automatic snapshot and correction history."
         )
@@ -80,6 +84,7 @@ def _projection_payload(projection: EffectiveDomainProjection) -> dict[str, Any]
 
 __all__ = [
     "EFFECTIVE_PROJECTION_CHECKPOINT_SCHEMA_VERSION",
+    "EffectiveProjectionCheckpointMismatch",
     "effective_projection_checkpoint",
     "validate_effective_projection_checkpoint",
 ]

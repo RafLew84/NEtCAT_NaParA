@@ -149,6 +149,10 @@ from .correction_rebase import (
     PrepareCorrectionRebase,
     PreparedCorrectionRebase,
 )
+from .correction_workspace_quarantine import (
+    CorrectionWorkspaceQuarantine,
+    CorrectionWorkspaceQuarantineReason,
+)
 from .domain_correction_actions import (
     ApplyPreparedDomainCorrection,
     RedoDomainCorrection,
@@ -262,6 +266,8 @@ __all__ = [
     "CorrectionRebasePolicy",
     "CorrectionRebaseRecord",
     "CorrectionRebaseResolution",
+    "CorrectionWorkspaceQuarantine",
+    "CorrectionWorkspaceQuarantineReason",
     "DomainCorrectionAtom",
     "DomainCorrectionAxis",
     "DomainCorrectionConflict",
