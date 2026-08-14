@@ -12,7 +12,6 @@ from moltrack.analysis.domain_analysis import (
 )
 from moltrack.analysis.domain_analysis.fingerprints import canonical_sha256
 
-
 @dataclass(frozen=True)
 class M6ReferenceStateIdentity:
     automatic_snapshot_fingerprint: str
@@ -117,4 +116,7 @@ def _m6_domain_state(domain: EffectiveM6Domain) -> dict[str, Any]:
     }
 
 
-__all__ = ["M6ReferenceStateIdentity", "m6_reference_state_identity"]
+__all__ = [
+    "M6ReferenceStateIdentity",
+    "m6_reference_state_identity",
+]

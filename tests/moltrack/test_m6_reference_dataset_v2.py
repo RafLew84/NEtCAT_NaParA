@@ -49,8 +49,8 @@ def test_publish_m6_reference_v2_writes_complete_target_specific_dataset(
 ) -> None:
     state = _m6_reviewed_state()
     measurements = (
-        _measurement("measurement-calibration", "calibration", state, "a"),
-        _measurement("measurement-validation", "validation", state, "b"),
+        _measurement(tmp_path, "measurement-calibration", "calibration", state, "a"),
+        _measurement(tmp_path, "measurement-validation", "validation", state, "b"),
     )
     first_destination = tmp_path / "m6-reference-first"
     second_destination = tmp_path / "m6-reference-second"
@@ -145,8 +145,8 @@ def test_publisher_rejects_non_ready_m6_states_without_creating_a_package(
     for index, (message, state) in enumerate(cases):
         destination = tmp_path / f"rejected-{index}"
         measurements = (
-            _measurement("calibration", "calibration", state, "a"),
-            _measurement("validation", "validation", state, "b"),
+            _measurement(tmp_path, "calibration", "calibration", state, "a"),
+            _measurement(tmp_path, "validation", "validation", state, "b"),
         )
         with pytest.raises(ValueError, match=message):
             publish_m6_reference_dataset(
@@ -160,8 +160,8 @@ def test_publisher_requires_reason_both_splits_and_whole_measurement_groups(
     tmp_path,
 ) -> None:
     state = _m6_reviewed_state()
-    calibration = _measurement("same-group", "calibration", state, "a")
-    validation = _measurement("same-group", "validation", state, "b")
+    calibration = _measurement(tmp_path, "same-group", "calibration", state, "a")
+    validation = _measurement(tmp_path, "same-group", "validation", state, "b")
 
     with pytest.raises(ValueError, match="publication_reason"):
         M6ReferenceDatasetSettings(
@@ -184,8 +184,8 @@ def test_publisher_requires_reason_both_splits_and_whole_measurement_groups(
 def test_published_version_is_immutable(tmp_path) -> None:
     state = _m6_reviewed_state()
     measurements = (
-        _measurement("calibration", "calibration", state, "a"),
-        _measurement("validation", "validation", state, "b"),
+        _measurement(tmp_path, "calibration", "calibration", state, "a"),
+        _measurement(tmp_path, "validation", "validation", state, "b"),
     )
     destination = tmp_path / "immutable-version"
     publish_m6_reference_dataset(measurements, _settings(destination))
@@ -211,15 +211,27 @@ def test_m6_version_identity_ignores_orientation_only_corrections(tmp_path) -> N
     orientation_changed = _with_manual_orientation(m6_state, "B")
     baseline = publish_m6_reference_dataset(
         (
-            _measurement("calibration", "calibration", m6_state, "a"),
-            _measurement("validation", "validation", m6_state, "b"),
+            _measurement(tmp_path, "calibration", "calibration", m6_state, "a"),
+            _measurement(tmp_path, "validation", "validation", m6_state, "b"),
         ),
         _settings(tmp_path / "m6-baseline"),
     )
     changed = publish_m6_reference_dataset(
         (
-            _measurement("calibration", "calibration", orientation_changed, "a"),
-            _measurement("validation", "validation", orientation_changed, "b"),
+            _measurement(
+                tmp_path,
+                "calibration",
+                "calibration",
+                orientation_changed,
+                "a",
+            ),
+            _measurement(
+                tmp_path,
+                "validation",
+                "validation",
+                orientation_changed,
+                "b",
+            ),
         ),
         _settings(tmp_path / "m6-orientation-changed"),
     )
@@ -268,13 +280,15 @@ def _m6_reviewed_state() -> DomainAnalysisSessionState:
     )
 
 
-def _measurement(group_id, split, state, fingerprint_character):
+def _measurement(source_root, group_id, split, state, source_character):
+    source_path = source_root / f"{group_id}-{split}.mpp"
+    source_path.write_bytes(source_character.encode("ascii"))
     return M6ReferenceMeasurementGroup(
         measurement_group_id=group_id,
         split=split,
-        source_revision=M6ReferenceSourceRevision(
+        source_revision=M6ReferenceSourceRevision.from_path(
+            source_path,
             source_file_name=f"{group_id}.mpp",
-            content_sha256=fingerprint_character * 64,
             acquisition_fingerprint=f"acquisition-{group_id}",
             lineage_fingerprint=f"lineage-{group_id}",
         ),

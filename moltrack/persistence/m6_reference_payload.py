@@ -14,8 +14,6 @@ from moltrack.analysis.domain_analysis import (
 from moltrack.analysis.domain_analysis.diagnostic_funnel import (
     build_molecule_diagnostic_funnels,
 )
-from moltrack.analysis.domain_analysis.fingerprints import canonical_sha256
-
 from .domain_analysis_payload_validation import json_compatible_value
 from .domain_backend_payload import backend_identity_to_payload
 from .m6_reference_identity import (
@@ -23,6 +21,13 @@ from .m6_reference_identity import (
     m6_reference_state_identity,
 )
 from .m6_reference_schema import M6ReferenceMeasurementGroup, M6ReferenceSplit
+from .reference_dataset import (
+    ReferenceMeasurementIdentity,
+    reference_measurement_group_fingerprint,
+    reference_partition_fingerprint,
+    reference_source_identity,
+    validate_reference_split_integrity,
+)
 
 
 M6_REFERENCE_TABLE_FILES = (
@@ -54,14 +59,7 @@ class M6ReferencePackageTables:
     tables: dict[str, list[dict[str, Any]]]
 
     def partition_fingerprint(self, split: M6ReferenceSplit) -> str:
-        return canonical_sha256({
-            "schema_version": "m6-reference-partition-v2",
-            "split": split,
-            "tables": {
-                name: [row for row in rows if row["split"] == split]
-                for name, rows in sorted(self.tables.items())
-            },
-        })
+        return reference_partition_fingerprint("m6", split, self.tables)
 
     def measurement_group_count(self, split: M6ReferenceSplit) -> int:
         return sum(
@@ -105,6 +103,14 @@ def _validated_measurements(
         raise ValueError(
             "M6 Reference Dataset requires non-empty Calibration and Validation."
         )
+    validate_reference_split_integrity(tuple(
+        ReferenceMeasurementIdentity(
+            value.measurement_group_id,
+            value.split,
+            value.source_revision,
+        )
+        for value in values
+    ))
     for value in values:
         _validate_ready_measurement(value)
     return values
@@ -200,20 +206,17 @@ def _append_measurement_tables(
 
 def _source_revision(measurement: M6ReferenceMeasurementGroup) -> dict[str, Any]:
     source = measurement.source_revision
-    body = {
+    source_revision_id, source_revision_fingerprint = reference_source_identity(
+        "m6",
+        source,
+    )
+    return {
+        "source_revision_id": source_revision_id,
+        "source_revision_fingerprint": source_revision_fingerprint,
         "source_file_name": source.source_file_name,
         "content_sha256": source.content_sha256,
         "acquisition_fingerprint": source.acquisition_fingerprint,
         "lineage_fingerprint": source.lineage_fingerprint,
-    }
-    fingerprint = canonical_sha256({
-        "schema_version": "m6-reference-source-revision-v1",
-        **body,
-    })
-    return {
-        "source_revision_id": f"source-revision-{fingerprint[:24]}",
-        "source_revision_fingerprint": fingerprint,
-        **body,
     }
 
 
@@ -241,10 +244,9 @@ def _measurement_row(
     }
     return {
         **body,
-        "measurement_group_fingerprint": canonical_sha256({
-            "schema_version": "m6-reference-measurement-group-v2",
-            **body,
-        }),
+        "measurement_group_fingerprint": (
+            reference_measurement_group_fingerprint("m6", body)
+        ),
     }
 
 
