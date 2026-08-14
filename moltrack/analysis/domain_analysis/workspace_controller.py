@@ -8,6 +8,11 @@ from .classifier_contract import (
     validated_non_negative_integer,
     validated_text,
 )
+from .correction_rebase import (
+    ApplyPreparedCorrectionRebase,
+    CorrectionRebasePolicy,
+    PrepareCorrectionRebase,
+)
 from .fingerprints import canonical_sha256
 from .models import DomainAnalysisRequest, DomainAnalysisResult
 from .domain_correction import DomainCorrectionModule
@@ -47,6 +52,11 @@ from .workspace_review import (
     ReferenceReviewWorkspaceAction,
     SetReferenceReviewDecision,
     SignOffReferenceReview,
+)
+from .workspace_rebase import (
+    CorrectionRebaseWorkspaceAction,
+    queue_pending_automatic_candidate,
+    reduce_workspace_rebase_action,
 )
 
 if TYPE_CHECKING:
@@ -242,6 +252,7 @@ DomainAnalysisWorkspaceAction = (
     | RestoreDomainAnalysisWorkspace
     | DomainCorrectionWorkspaceAction
     | ReferenceReviewWorkspaceAction
+    | CorrectionRebaseWorkspaceAction
     | DomainAnalysisLifecycleAction
 )
 class DomainAnalysisWorkspaceController:
@@ -256,6 +267,7 @@ class DomainAnalysisWorkspaceController:
         execution: DomainAnalysisWorkspaceExecution | None = None,
         correction_module: DomainCorrectionModule | None = None,
         review_policy: ReferenceReviewPolicy | None = None,
+        rebase_policy: CorrectionRebasePolicy | None = None,
     ) -> None:
         self._lock = RLock()
         self._snapshot = DomainAnalysisWorkspaceSnapshot(
@@ -279,6 +291,7 @@ class DomainAnalysisWorkspaceController:
         self._execution = execution
         self._correction_module = correction_module or DomainCorrectionModule()
         self._review_policy = review_policy or ReferenceReviewPolicy()
+        self._rebase_policy = rebase_policy or CorrectionRebasePolicy()
 
     @property
     def snapshot(self) -> DomainAnalysisWorkspaceSnapshot:
@@ -330,6 +343,7 @@ class DomainAnalysisWorkspaceController:
                 action,
                 self._correction_module,
                 self._review_policy,
+                self._rebase_policy,
             )
             if updated is self._snapshot:
                 return updated
@@ -366,6 +380,7 @@ def _reduce_workspace(
     action: DomainAnalysisWorkspaceAction,
     correction_module: DomainCorrectionModule,
     review_policy: ReferenceReviewPolicy,
+    rebase_policy: CorrectionRebasePolicy,
 ) -> DomainAnalysisWorkspaceSnapshot:
     if isinstance(action, ReplaceDomainAnalysisDraft):
         if snapshot.run.status == "running":
@@ -391,6 +406,7 @@ def _reduce_workspace(
             action.result,
             correction_module,
             review_policy,
+            rebase_policy,
         )
     if isinstance(action, SelectDomainComponent):
         return _select_component(snapshot, action.component)
@@ -418,6 +434,15 @@ def _reduce_workspace(
             action,
             review_policy,
         )
+    if isinstance(action, (PrepareCorrectionRebase, ApplyPreparedCorrectionRebase)):
+        return reduce_workspace_rebase_action(
+            snapshot,
+            action,
+            correction_module,
+            rebase_policy,
+            review_policy,
+            DomainAnalysisPublication,
+        )
     return reduce_domain_analysis_lifecycle(
         snapshot,
         cast(DomainAnalysisLifecycleAction, action),
@@ -427,6 +452,7 @@ def _reduce_workspace(
             result,
             correction_module,
             review_policy,
+            rebase_policy,
         ),
     )
 
@@ -509,6 +535,7 @@ def _publish_result(
     result: DomainAnalysisResult,
     correction_module: DomainCorrectionModule,
     review_policy: ReferenceReviewPolicy,
+    rebase_policy: CorrectionRebasePolicy,
 ) -> DomainAnalysisWorkspaceSnapshot:
     _validate_series_request(
         request,
@@ -517,6 +544,13 @@ def _publish_result(
     )
     publication = DomainAnalysisPublication(request, result)
     _validate_publication_series(publication, snapshot.physical_frame_ids)
+    if snapshot.published is not None:
+        return queue_pending_automatic_candidate(
+            snapshot,
+            request,
+            result,
+            rebase_policy,
+        )
     selection = snapshot.selected_component
     if selection is not None and not _publication_contains(
         publication,

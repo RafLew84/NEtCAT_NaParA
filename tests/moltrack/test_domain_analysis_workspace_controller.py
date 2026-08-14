@@ -58,7 +58,7 @@ def test_discarding_absent_correction_preview_before_publication_is_a_noop() -> 
     assert controller.snapshot.revision == 0
 
 
-def test_new_publication_is_a_hard_boundary_for_correction_history() -> None:
+def test_identical_publication_is_a_noop_for_correction_history() -> None:
     request = DomainAnalysisRequest(frame_range=range(1))
     automatic = _automatic_result()
     controller = DomainAnalysisWorkspaceController(
@@ -79,10 +79,8 @@ def test_new_publication_is_a_hard_boundary_for_correction_history() -> None:
 
     state = controller.snapshot.domain_corrections
     assert state.correction_set is not None
-    assert state.correction_set.history_records == ()
-    assert state.history_for("frame-0").undo is None
-    with pytest.raises(DomainAnalysisWorkspaceIntentError, match="available to undo"):
-        controller.dispatch(UndoDomainCorrection())
+    assert len(state.correction_set.history_records) == 1
+    assert state.history_for("frame-0").undo is not None
 
 
 def test_workspace_owns_manual_orientation_preview_and_effective_projection() -> None:

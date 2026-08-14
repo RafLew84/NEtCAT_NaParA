@@ -23,6 +23,7 @@ from moltrack.analysis.domain_analysis import (
     PreparedDomainCorrection,
 )
 from moltrack.ui.domain_analysis_hierarchy import DomainAnalysisHierarchySheet
+from moltrack.ui.correction_rebase_controls import CorrectionRebaseControls
 from moltrack.ui.manual_domain_controls import ManualDomainControls
 
 
@@ -41,6 +42,8 @@ class DomainCorrectionSheet(QWidget):
     restore_domain_requested = pyqtSignal(str, object)
     undo_requested = pyqtSignal()
     redo_requested = pyqtSignal()
+    compare_rebase_requested = pyqtSignal(object)
+    apply_rebase_requested = pyqtSignal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -115,6 +118,8 @@ class DomainCorrectionSheet(QWidget):
         history_buttons.addWidget(self.redo_button)
         history_buttons.addStretch(1)
         editor_layout.addLayout(history_buttons)
+        self.rebase_controls = CorrectionRebaseControls(editor)
+        editor_layout.addWidget(self.rebase_controls)
         self.preview_label = QLabel("No prepared correction", editor)
         self.preview_label.setWordWrap(True)
         editor_layout.addWidget(self.preview_label)
@@ -169,6 +174,12 @@ class DomainCorrectionSheet(QWidget):
         self.manual_domain_controls.preview_invalidated.connect(
             self.preview_invalidated.emit
         )
+        self.rebase_controls.compare_requested.connect(
+            self.compare_rebase_requested.emit
+        )
+        self.rebase_controls.apply_requested.connect(
+            self.apply_rebase_requested.emit
+        )
 
     def render_snapshot(self, snapshot: DomainAnalysisWorkspaceSnapshot) -> None:
         self.hierarchy_sheet.render_snapshot(snapshot)
@@ -196,6 +207,7 @@ class DomainCorrectionSheet(QWidget):
         self._render_table(molecules)
         self._render_preview_availability()
         self._render_history_availability(snapshot)
+        self.rebase_controls.render_snapshot(snapshot)
 
     def _render_history_availability(
         self,

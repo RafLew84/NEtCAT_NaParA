@@ -138,6 +138,16 @@ from .texture_abc_adapter import (
     TextureABCClassifierAdapter,
 )
 from .domain_correction import DomainCorrectionModule
+from .correction_rebase import (
+    ApplyPreparedCorrectionRebase,
+    CorrectionRebaseIssue,
+    CorrectionRebasePolicy,
+    CorrectionRebaseRecord,
+    CorrectionRebaseResolution,
+    PendingAutomaticCandidate,
+    PrepareCorrectionRebase,
+    PreparedCorrectionRebase,
+)
 from .domain_correction_actions import (
     ApplyPreparedDomainCorrection,
     RedoDomainCorrection,
@@ -244,8 +254,13 @@ from .workspace_notifications import (
 )
 
 __all__ = [
+    "ApplyPreparedCorrectionRebase",
     "ApplyPreparedDomainCorrection",
     "BoundaryResolution",
+    "CorrectionRebaseIssue",
+    "CorrectionRebasePolicy",
+    "CorrectionRebaseRecord",
+    "CorrectionRebaseResolution",
     "DomainCorrectionAtom",
     "DomainCorrectionAxis",
     "DomainCorrectionConflict",
@@ -273,6 +288,9 @@ __all__ = [
     "ManualDomainRecord",
     "RestoreMemberResolution",
     "PreparedDomainCorrection",
+    "PreparedCorrectionRebase",
+    "PrepareCorrectionRebase",
+    "PendingAutomaticCandidate",
     "ReferenceReviewAbstention",
     "ReferenceReviewDecision",
     "ReferenceReviewDisposition",

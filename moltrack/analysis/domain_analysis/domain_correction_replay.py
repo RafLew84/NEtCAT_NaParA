@@ -85,8 +85,8 @@ def replay_active_atoms(
     ))
     replayed = replace(
         workspace,
-        orientation_decisions=(),
-        manual_domains=(),
+        orientation_decisions=workspace.baseline_orientation_decisions,
+        manual_domains=workspace.baseline_manual_domains,
         cleared_boundary_source_keys=_legacy_boundary_baseline(workspace),
     )
     for atom in workspace.atoms:

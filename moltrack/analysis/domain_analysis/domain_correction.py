@@ -41,7 +41,7 @@ from .manual_domain_projection import (
     project_effective_domains,
     source_footprints_for_frame,
 )
-from .fingerprints import canonical_sha256
+from .correction_rebase import correction_anchor_fingerprint
 from .models import DomainAnalysisResult, M6FrameGate
 from .network_backend_evidence import M3M6LatticeNetworkEvidence
 from .texture_abc_adapter import ABC_ORIENTATION_CLASSIFIER_ID
@@ -74,7 +74,7 @@ class DomainCorrectionModule:
     ) -> DomainCorrectionWorkspace:
         _validate_automatic(automatic)
         return DomainCorrectionWorkspace(
-            automatic_fingerprint=_automatic_fingerprint(automatic),
+            automatic_fingerprint=correction_anchor_fingerprint(automatic),
             revision=0,
         )
 
@@ -728,23 +728,8 @@ def _validate_workspace_anchor(
     if not isinstance(workspace, DomainCorrectionWorkspace):
         raise TypeError("workspace must be a DomainCorrectionWorkspace.")
     _validate_automatic(automatic)
-    if workspace.automatic_fingerprint != _automatic_fingerprint(automatic):
+    if workspace.automatic_fingerprint != correction_anchor_fingerprint(automatic):
         raise ValueError("Domain Correction Workspace automatic anchor is stale.")
-
-
-def _automatic_fingerprint(automatic: DomainAnalysisResult) -> str:
-    assert automatic.m6_gate is not None
-    return canonical_sha256({
-        "schema_version": "domain-correction-automatic-anchor-v1",
-        "m6_frames": [
-            (frame.physical_frame_id, frame.m6_gate_fingerprint)
-            for frame in automatic.m6_gate.frames
-        ],
-        "classifiers": [
-            (outcome.classifier_id, outcome.classifier_result_fingerprint)
-            for outcome in automatic.classifier_outcomes or ()
-        ],
-    })
 
 
 __all__ = ["DomainCorrectionModule"]

@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .correction_rebase import (
+    CorrectionRebaseRecord,
+    PendingAutomaticCandidate,
+    PreparedCorrectionRebase,
+)
 from .domain_correction import DomainCorrectionModule
 from .domain_correction_actions import (
     ApplyPreparedDomainCorrection,
@@ -23,7 +28,6 @@ from .manual_domain_models import (
 from .domain_selection import (
     ClearDomainMoleculeSelection,
     DomainSelectionPolygon,
-    DomainSelectionView,
     SelectDomainMoleculesByPolygons,
     ToggleDomainMoleculeSelection,
     raw_selection_polygon,
@@ -105,6 +109,9 @@ class DomainCorrectionWorkspaceState:
     selected_source_ids: tuple[str, ...] = ()
     selection_polygons: tuple[DomainSelectionPolygon, ...] = ()
     prepared: PreparedDomainCorrection | None = None
+    pending_automatic_candidate: PendingAutomaticCandidate | None = None
+    prepared_rebase: PreparedCorrectionRebase | None = None
+    rebase_records: tuple[CorrectionRebaseRecord, ...] = ()
 
     def __post_init__(self) -> None:
         if (self.correction_set is None) != (self.effective_projection is None):
@@ -117,6 +124,20 @@ class DomainCorrectionWorkspaceState:
             raise ValueError("Effective projection must match the correction revision.")
         if self.prepared is not None and self.correction_set is None:
             raise ValueError("Prepared correction requires an initialized set.")
+        if self.pending_automatic_candidate is not None and not isinstance(
+            self.pending_automatic_candidate,
+            PendingAutomaticCandidate,
+        ):
+            raise TypeError(
+                "pending_automatic_candidate must be a PendingAutomaticCandidate."
+            )
+        if self.prepared_rebase is not None and self.pending_automatic_candidate is None:
+            raise ValueError("Prepared rebase requires a pending automatic candidate.")
+        if any(
+            not isinstance(value, CorrectionRebaseRecord)
+            for value in self.rebase_records
+        ):
+            raise TypeError("rebase_records must contain CorrectionRebaseRecord values.")
         if any(
             not isinstance(value, DomainSelectionPolygon)
             for value in self.selection_polygons
@@ -152,11 +173,7 @@ def reduce_domain_corrections(
 ) -> DomainCorrectionWorkspaceState:
     if isinstance(action, DiscardPreparedDomainCorrection) and state.prepared is None:
         return state
-    correction_set = state.correction_set
-    if automatic is None or correction_set is None:
-        raise DomainAnalysisWorkspaceIntentError(
-            "Manual orientation requires a published automatic result."
-        )
+    automatic, correction_set = _required_correction_context(state, automatic)
     if isinstance(action, (
         SelectDomainMolecules,
         ToggleDomainMoleculeSelection,
@@ -175,6 +192,9 @@ def reduce_domain_corrections(
             effective_projection=state.effective_projection,
             selected_source_ids=state.selected_source_ids,
             selection_polygons=state.selection_polygons,
+            pending_automatic_candidate=state.pending_automatic_candidate,
+            prepared_rebase=state.prepared_rebase,
+            rebase_records=state.rebase_records,
         )
     if isinstance(action, (UndoDomainCorrection, RedoDomainCorrection)):
         return _reduce_history(state, automatic, physical_frame_id, action, module)
@@ -246,7 +266,21 @@ def _reduce_history(
         effective_projection=module.project(automatic, updated_set),
         selected_source_ids=state.selected_source_ids,
         selection_polygons=state.selection_polygons,
+        pending_automatic_candidate=state.pending_automatic_candidate,
+        rebase_records=state.rebase_records,
     )
+
+
+def _required_correction_context(
+    state: DomainCorrectionWorkspaceState,
+    automatic: DomainAnalysisResult | None,
+) -> tuple[DomainAnalysisResult, DomainCorrectionWorkspace]:
+    correction_set = state.correction_set
+    if automatic is None or correction_set is None:
+        raise DomainAnalysisWorkspaceIntentError(
+            "Manual orientation requires a published automatic result."
+        )
+    return automatic, correction_set
 
 
 def _reduce_selection(
@@ -342,6 +376,8 @@ def _apply_prepared_correction(
         correction_set=updated_set,
         effective_projection=module.project(automatic, updated_set),
         selected_source_ids=state.selected_source_ids,
+        pending_automatic_candidate=state.pending_automatic_candidate,
+        rebase_records=state.rebase_records,
     )
 
 
@@ -357,6 +393,9 @@ def clear_domain_correction_selection(
     return DomainCorrectionWorkspaceState(
         correction_set=state.correction_set,
         effective_projection=state.effective_projection,
+        pending_automatic_candidate=state.pending_automatic_candidate,
+        prepared_rebase=state.prepared_rebase,
+        rebase_records=state.rebase_records,
     )
 
 
@@ -370,6 +409,9 @@ def _with_preview(
         selected_source_ids=state.selected_source_ids,
         selection_polygons=state.selection_polygons,
         prepared=prepared,
+        pending_automatic_candidate=state.pending_automatic_candidate,
+        prepared_rebase=state.prepared_rebase,
+        rebase_records=state.rebase_records,
     )
 
 
@@ -388,6 +430,9 @@ def _selection_state(
             if selection_polygons is None
             else selection_polygons
         ),
+        pending_automatic_candidate=state.pending_automatic_candidate,
+        prepared_rebase=state.prepared_rebase,
+        rebase_records=state.rebase_records,
     )
 
 

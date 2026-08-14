@@ -7,12 +7,14 @@ from functools import partial
 import pytest
 
 from moltrack.analysis.domain_analysis import (
+    ApplyPreparedCorrectionRebase,
     ApplyPreparedDomainCorrection,
     DomainAnalysisRequest,
     DomainAnalysisWorkspaceController,
     DomainAnalysisWorkspaceIntentError,
     M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     M6Gate,
+    PrepareCorrectionRebase,
     PublishDomainAnalysisResult,
     PreviewCreateManualDomain,
     PreviewManualOrientation,
@@ -354,7 +356,7 @@ def test_new_source_revision_returns_both_target_reviews_to_draft() -> None:
     )
     changed_automatic = replace(automatic, m6_gate=M6Gate((changed_frame,)))
 
-    republished = controller.dispatch(PublishDomainAnalysisResult(
+    republished = _publish_and_promote(controller, PublishDomainAnalysisResult(
         publication.request,
         changed_automatic,
     ))
@@ -391,7 +393,7 @@ def test_orientation_automatic_change_preserves_m6_sign_off() -> None:
         classifier_outcomes=None,
     )
 
-    republished = controller.dispatch(PublishDomainAnalysisResult(
+    republished = _publish_and_promote(controller, PublishDomainAnalysisResult(
         publication.request,
         without_orientation,
     ))
@@ -438,7 +440,7 @@ def test_one_frame_source_change_preserves_other_frame_sign_off() -> None:
         m6_gate=M6Gate((changed_frame, gate.frames[1])),
     )
 
-    republished = controller.dispatch(PublishDomainAnalysisResult(
+    republished = _publish_and_promote(controller, PublishDomainAnalysisResult(
         request,
         changed_automatic,
     ))
@@ -551,3 +553,14 @@ def _signed_controller() -> DomainAnalysisWorkspaceController:
     controller.dispatch(SignOffReferenceReview("m6", "frame-0"))
     controller.dispatch(SignOffReferenceReview("orientation", "frame-0"))
     return controller
+
+
+def _publish_and_promote(
+    controller: DomainAnalysisWorkspaceController,
+    action: PublishDomainAnalysisResult,
+):
+    controller.dispatch(action)
+    compared = controller.dispatch(PrepareCorrectionRebase())
+    preview = compared.domain_corrections.prepared_rebase
+    assert preview is not None and preview.is_ready
+    return controller.dispatch(ApplyPreparedCorrectionRebase(preview))

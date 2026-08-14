@@ -119,6 +119,8 @@ class DomainCorrectionWorkspace:
     cleared_boundary_source_keys: tuple[tuple[str, str], ...] = ()
     atoms: tuple[DomainCorrectionAtom, ...] = ()
     history_records: tuple[DomainCorrectionHistoryRecord, ...] = ()
+    baseline_orientation_decisions: tuple[ManualOrientationDecision, ...] = ()
+    baseline_manual_domains: tuple[ManualDomainRecord, ...] = ()
     legacy_boundary_source_keys: tuple[tuple[str, str], ...] | None = None
     review_revisions: tuple[tuple[DomainCorrectionReviewTarget, int], ...] = (
         ("m6", 0),
@@ -178,6 +180,12 @@ class DomainCorrectionWorkspace:
             )
         validate_history(atoms, records)
         object.__setattr__(self, "history_records", records)
+        baseline_values = (
+            _baseline_orientation_decisions(self.baseline_orientation_decisions),
+            _baseline_manual_domains(self.baseline_manual_domains),
+        )
+        object.__setattr__(self, "baseline_orientation_decisions", baseline_values[0])
+        object.__setattr__(self, "baseline_manual_domains", baseline_values[1])
         raw_legacy_boundary_keys = self.legacy_boundary_source_keys
         legacy_boundary_keys = None if raw_legacy_boundary_keys is None else tuple(sorted({
             (
@@ -459,6 +467,42 @@ def _orientation_label(value: object) -> str:
     if len(label) != 1 or not "A" <= label <= "Z":
         raise ValueError("orientation_label must be A-Z or Unresolvable.")
     return label
+
+
+def _baseline_orientation_decisions(
+    values: tuple[ManualOrientationDecision, ...],
+) -> tuple[ManualOrientationDecision, ...]:
+    decisions = tuple(sorted(
+        values,
+        key=lambda value: (value.physical_frame_id, value.source_id),
+    ))
+    if any(not isinstance(value, ManualOrientationDecision) for value in decisions):
+        raise TypeError(
+            "baseline_orientation_decisions must contain manual decisions."
+        )
+    keys = tuple((value.physical_frame_id, value.source_id) for value in decisions)
+    if len(keys) != len(set(keys)):
+        raise ValueError(
+            "baseline_orientation_decisions must have unique molecule keys."
+        )
+    return decisions
+
+
+def _baseline_manual_domains(
+    values: tuple[ManualDomainRecord, ...],
+) -> tuple[ManualDomainRecord, ...]:
+    domains = tuple(sorted(
+        values,
+        key=lambda value: (value.physical_frame_id, value.manual_domain_id),
+    ))
+    if any(not isinstance(value, ManualDomainRecord) for value in domains):
+        raise TypeError(
+            "baseline_manual_domains must contain ManualDomainRecord values."
+        )
+    domain_ids = tuple(value.manual_domain_id for value in domains)
+    if len(domain_ids) != len(set(domain_ids)):
+        raise ValueError("Baseline manual-domain UUIDs must be unique.")
+    return domains
 
 
 def _optional_text(value: object) -> str | None:

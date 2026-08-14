@@ -37,7 +37,6 @@ from moltrack.ui.domain_analysis_workspace_view import (
     DomainAnalysisWorkspaceViewBinding,
     ExportPublished,
 )
-from moltrack.ui.domain_analysis_hierarchy import DomainAnalysisHierarchySheet
 from moltrack.ui.domain_correction_sheet import DomainCorrectionSheet
 from moltrack.ui.domain_correction_view import DomainCorrectionActionBinding
 from moltrack.ui.reference_review_sheet import ReferenceReviewSheet
@@ -309,6 +308,12 @@ class DomainAnalysisDialog(QDialog):
         )
         self.domain_correction_sheet.redo_requested.connect(
             self._correction_actions.redo
+        )
+        self.domain_correction_sheet.compare_rebase_requested.connect(
+            self._correction_actions.compare_rebase
+        )
+        self.domain_correction_sheet.apply_rebase_requested.connect(
+            self._correction_actions.apply_rebase
         )
         self.domain_correction_sheet.preview_invalidated.connect(
             self._correction_actions.discard_prepared_correction

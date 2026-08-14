@@ -163,6 +163,16 @@ def _abc_column(table) -> int:
     )
 
 
+def _promote_pending_rebase(dialog, qt_app) -> None:
+    controls = dialog.domain_correction_sheet.rebase_controls
+    assert controls.compare_button.isEnabled()
+    controls.compare_button.click()
+    qt_app.processEvents()
+    assert controls.apply_button.isEnabled()
+    controls.apply_button.click()
+    qt_app.processEvents()
+
+
 def _component_key(frame, component) -> DomainComponentKey:
     return DomainComponentKey(
         frame.physical_frame_id,
@@ -301,6 +311,7 @@ def test_position_analysis_adapter_reads_the_shared_workspace(
     simple.analyze_button.click()
     executor.run_next()
     qt_app.processEvents()
+    _promote_pending_rebase(simple, qt_app)
 
     assert controller.snapshot.run.status == "completed_with_errors", (
         controller.snapshot.run.diagnosis
@@ -633,6 +644,7 @@ def test_main_window_routes_save_open_and_export_through_one_domain_workspace(
         simple.analyze_button.click()
         executor.run_next()
         qt_app.processEvents()
+        _promote_pending_rebase(simple, qt_app)
         publication = controller.snapshot.published
         assert publication is not None
         assert publication.request.frame_indices == (0,)

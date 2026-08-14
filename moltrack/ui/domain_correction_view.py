@@ -3,9 +3,11 @@ from __future__ import annotations
 from typing import cast
 
 from moltrack.analysis.domain_analysis import (
+    ApplyPreparedCorrectionRebase,
     ApplyPreparedDomainCorrection,
     BoundaryResolution,
     DomainAnalysisWorkspaceController,
+    CorrectionRebaseResolution,
     DomainSelectionView,
     DiscardPreparedDomainCorrection,
     ClearDomainMoleculeSelection,
@@ -15,6 +17,7 @@ from moltrack.analysis.domain_analysis import (
     PreviewMoveToManualDomain,
     PreviewDeleteManualDomain,
     PreviewRestoreManualDomain,
+    PrepareCorrectionRebase,
     RedoDomainCorrection,
     RestoreMemberResolution,
     SelectDomainMoleculesByPolygons,
@@ -80,6 +83,19 @@ class DomainCorrectionActionBinding:
 
     def redo(self) -> None:
         self._controller.dispatch(RedoDomainCorrection())
+
+    def compare_rebase(self, resolutions: object = ()) -> None:
+        if not isinstance(resolutions, tuple) or any(
+            not isinstance(value, CorrectionRebaseResolution)
+            for value in resolutions
+        ):
+            raise TypeError("resolutions must contain CorrectionRebaseResolution values.")
+        self._controller.dispatch(PrepareCorrectionRebase(resolutions))
+
+    def apply_rebase(self) -> None:
+        prepared = self._controller.snapshot.domain_corrections.prepared_rebase
+        if prepared is not None:
+            self._controller.dispatch(ApplyPreparedCorrectionRebase(prepared))
 
     def preview_create_manual_domain(self) -> None:
         self._controller.dispatch(PreviewCreateManualDomain())
