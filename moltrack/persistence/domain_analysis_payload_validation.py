@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import json
 from typing import Any, cast
 
 
@@ -195,3 +196,7 @@ def pairs_to_lists(
     values: tuple[tuple[Any, Any], ...],
 ) -> list[list[Any]]:
     return [[first, second] for first, second in values]
+
+
+def json_compatible_value(value: Any) -> Any:
+    return json.loads(json.dumps(value, allow_nan=False))

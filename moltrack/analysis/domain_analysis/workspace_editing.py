@@ -9,6 +9,7 @@ from .domain_correction_actions import (
     RedoDomainCorrection,
     UndoDomainCorrection,
 )
+from .domain_correction_models import ManualOrientationIntent
 from .reference_review import ReferenceReviewPolicy
 from .workspace_correction import (
     ClearDomainMoleculeSelection,
@@ -92,11 +93,21 @@ def reduce_workspace_correction_action(
         )
         if diagnosis is not None:
             highlight = None
+    catalog = snapshot.orientation_class_catalog
+    if isinstance(action, ApplyPreparedDomainCorrection):
+        intent = action.preview.intent
+        if (
+            isinstance(intent, ManualOrientationIntent)
+            and intent.operation == "assign"
+            and intent.orientation_label is not None
+        ):
+            catalog = catalog.with_label(intent.orientation_label)
     return replace(
         snapshot,
         revision=snapshot.revision + 1,
         domain_corrections=corrected,
         reference_reviews=reviews,
+        orientation_class_catalog=catalog,
         hierarchy_highlight=highlight,
     )
 

@@ -671,7 +671,7 @@ def test_main_window_routes_save_open_and_export_through_one_domain_workspace(
         assert loaded.domain_analysis_state.selected_component == selection
         assert len(loaded.domain_analysis_state.m6_cache_records) == 1
         assert len(loaded.domain_analysis_state.classifier_cache_records) == 1
-        assert session_payload["schema_version"] == 2
+        assert session_payload["schema_version"] == 3
         assert "molecular_m6_analysis" not in session_payload
         assert "texture_domain_analysis" not in session_payload
 

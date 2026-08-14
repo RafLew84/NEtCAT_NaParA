@@ -118,6 +118,7 @@ from .m6_preset_workspace import (
     UnsavedM6PresetChanges,
 )
 from .module import DomainAnalysisModule, M6Adapter, M6FrameAnalysisError
+from .orientation_class_catalog import OrientationClassCatalog
 from .session_state import (
     DOMAIN_ANALYSIS_RETRY_REQUIRED_DIAGNOSIS,
     DOMAIN_ANALYSIS_SESSION_SCHEMA_VERSION,
@@ -360,6 +361,7 @@ __all__ = [
     "LocalOrderEvidence",
     "ManualOrientationDecisionEvidence",
     "OrientationComponentFilterEvidence",
+    "OrientationClassCatalog",
     "OrientationDescriptorEvidence",
     "OrientationThresholdEvidence",
     "RawOrientationEvidence",

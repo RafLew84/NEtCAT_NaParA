@@ -28,13 +28,11 @@ from moltrack.analysis.domain_analysis.events import (
 )
 from moltrack.analysis.domain_analysis.geometry import (
     CoordinateView,
-    GeometryMode,
 )
 from moltrack.analysis.domain_analysis.models import M6ComponentType
 from moltrack.analysis.domain_analysis.diagnostic_funnel import build_molecule_diagnostic_funnels
 
 from .domain_analysis_cache_payload import (
-    domain_analysis_cache_from_payload,
     domain_analysis_cache_to_payload,
 )
 from .domain_backend_payload import (
@@ -56,7 +54,6 @@ from .domain_analysis_membership_payload import (
 )
 from .domain_analysis_payload_validation import (
     float_pair_field as _float_pair,
-    float_pairs_field as _float_pairs,
     float_quad_field as _float_quad,
     integer_field as _require_integer,
     integer_pair_field as _integer_pair,
@@ -73,6 +70,16 @@ from .domain_analysis_request_payload import (
     domain_analysis_request_from_payload,
     domain_analysis_request_to_payload,
 )
+from .diagnostic_funnel_payload import (
+    diagnostic_funnels_to_payload,
+    validate_diagnostic_funnels_payload,
+)
+from .correction_workspace_session import correction_workspace_to_payload
+from .domain_analysis_v2_session import (
+    restore_domain_analysis_cache,
+    restore_v2_correction_workspace,
+    validated_domain_analysis_version,
+)
 
 
 _PUBLISHED_RESULT_SCHEMA_VERSION = 2
@@ -85,6 +92,7 @@ _DOMAIN_ANALYSIS_KNOWN_FIELDS = frozenset({
     "selected_component",
     "run",
     "published_result",
+    "correction_workspace",
     "cache",
 })
 
@@ -163,6 +171,12 @@ def domain_analysis_state_to_payload(
             saved.m6_cache_records,
             saved.classifier_cache_records,
         ),
+        "correction_workspace": correction_workspace_to_payload(
+            saved.published_result,
+            saved.orientation_class_catalog,
+            saved.domain_corrections,
+            saved.reference_reviews,
+        ),
     }
     payload.update({
         key: deepcopy(value) for key, value in saved.opaque_components
@@ -172,24 +186,19 @@ def domain_analysis_state_to_payload(
 
 def domain_analysis_state_from_payload(
     payload: Any,
+    *,
+    require_legacy_v1: bool = False,
 ) -> DomainAnalysisSessionState:
     section = _require_mapping(payload, "domain_analysis")
-    _require_version(
+    schema_version = validated_domain_analysis_version(
         section,
-        DOMAIN_ANALYSIS_SESSION_SCHEMA_VERSION,
-        "domain_analysis",
+        require_legacy_v1=require_legacy_v1,
     )
-    draft, draft_configurations, draft_physical_frame_ids = (
-        _draft_from_payload(section)
-    )
+    draft, draft_configurations, draft_physical_frame_ids = _draft_from_payload(section)
     m6_cache_records, classifier_cache_records, cache_diagnostics = (
-        _cache_from_payload(section)
+        restore_domain_analysis_cache(section)
     )
-    classifier_status = _require_text(
-        section,
-        "classifier_status",
-        "domain_analysis",
-    )
+    classifier_status = _require_text(section, "classifier_status", "domain_analysis")
     publication_payload = _required(section, "published_result", "domain_analysis")
     publication = None
     publication_diagnostics: tuple[DomainAnalysisSessionDiagnostic, ...] = ()
@@ -199,6 +208,9 @@ def domain_analysis_state_from_payload(
             publication, publication_diagnostics = _publication_from_payload(
                 publication_payload,
                 fallback_configurations=draft_configurations,
+                require_diagnostic_funnels=(
+                    schema_version == DOMAIN_ANALYSIS_SESSION_SCHEMA_VERSION
+                ),
             )
         except (TypeError, ValueError) as exc:
             publication_was_rejected = True
@@ -216,6 +228,14 @@ def domain_analysis_state_from_payload(
         publication=publication,
         ignore_selected_component=publication_was_rejected,
     )
+    state, correction_diagnostics = restore_v2_correction_workspace(
+        state,
+        section,
+        schema_version=schema_version,
+        publication=publication,
+        publication_was_rejected=publication_was_rejected,
+        publication_has_diagnostics=bool(publication_diagnostics),
+    )
     opaque_components, opaque_diagnostics = opaque_components_from_payload(
         section,
         known_fields=_DOMAIN_ANALYSIS_KNOWN_FIELDS,
@@ -225,6 +245,7 @@ def domain_analysis_state_from_payload(
         opaque_components=opaque_components,
         diagnostics=(
             publication_diagnostics
+            + correction_diagnostics
             + cache_diagnostics
             + opaque_diagnostics
         ),
@@ -245,24 +266,6 @@ def domain_analysis_state_from_payload(
     return state
 
 
-def _cache_from_payload(
-    section: Mapping[str, Any],
-) -> tuple[
-    tuple[Any, ...],
-    tuple[Any, ...],
-    tuple[DomainAnalysisSessionDiagnostic, ...],
-]:
-    try:
-        return domain_analysis_cache_from_payload(section.get("cache"))
-    except (TypeError, ValueError) as exc:
-        return (), (), (DomainAnalysisSessionDiagnostic(
-            component="cache",
-            identifier="domain-analysis-cache",
-            schema_version="unknown",
-            reason=str(exc),
-        ),)
-
-
 def _publication_to_payload(
     publication: DomainAnalysisPublication,
 ) -> dict[str, Any]:
@@ -272,6 +275,7 @@ def _publication_to_payload(
     gate = publication.result.m6_gate
     if gate is None:
         raise ValueError("A published Domain Analysis result requires an M6 gate.")
+    funnels = build_molecule_diagnostic_funnels(publication.result)
     return {
         "schema_version": _PUBLISHED_RESULT_SCHEMA_VERSION,
         "request": domain_analysis_request_to_payload(request),
@@ -282,6 +286,9 @@ def _publication_to_payload(
         "classifier_outcomes": classifier_outcomes_to_payload(
             publication.result.classifier_outcomes
         ),
+        "diagnostic_funnels": diagnostic_funnels_to_payload(
+            funnels
+        ),
     }
 
 
@@ -289,6 +296,7 @@ def _publication_from_payload(
     payload: Any,
     *,
     fallback_configurations: tuple[ClassifierConfiguration, ...],
+    require_diagnostic_funnels: bool = False,
 ) -> tuple[
     DomainAnalysisPublication,
     tuple[DomainAnalysisSessionDiagnostic, ...],
@@ -336,6 +344,17 @@ def _publication_from_payload(
     result = replace(result, molecule_diagnostic_funnels=(
         build_molecule_diagnostic_funnels(result)
     ))
+    saved_funnels = saved.get("diagnostic_funnels")
+    if require_diagnostic_funnels or saved_funnels is not None:
+        validate_diagnostic_funnels_payload(
+            _required(
+                saved,
+                "diagnostic_funnels",
+                "domain_analysis.published_result",
+            ),
+            result.molecule_diagnostic_funnels,
+            path="domain_analysis.published_result.diagnostic_funnels",
+        )
     publication = DomainAnalysisPublication(request=request, result=result)
     expected_fingerprint = _require_text(
         saved,

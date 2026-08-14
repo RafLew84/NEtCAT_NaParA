@@ -13,9 +13,9 @@ from .correction_rebase import (
     CorrectionRebasePolicy,
     PrepareCorrectionRebase,
 )
-from .fingerprints import canonical_sha256
 from .models import DomainAnalysisRequest, DomainAnalysisResult
 from .domain_correction import DomainCorrectionModule
+from .orientation_class_catalog import OrientationClassCatalog
 from .reference_review import ReferenceReviewPolicy, ReferenceReviewWorkspace
 from .workspace_correction import (
     DomainCorrectionWorkspaceAction,
@@ -41,6 +41,7 @@ from .workspace_lifecycle_actions import (
     DomainAnalysisWorkspaceRunStatus,
     ShutdownDomainAnalysis,
     StartDomainAnalysis,
+    domain_analysis_request_fingerprint,
 )
 from .workspace_notifications import DomainAnalysisWorkspaceStateChanged
 from .workspace_navigation import (
@@ -124,7 +125,7 @@ class DomainAnalysisPublication:
         object.__setattr__(
             self,
             "request_fingerprint",
-            _request_fingerprint(self.request),
+            domain_analysis_request_fingerprint(self.request),
         )
 
 
@@ -140,6 +141,9 @@ class DomainAnalysisWorkspaceSnapshot:
     draft: DomainAnalysisRequest
     published: DomainAnalysisPublication | None
     active_frame_index: int
+    orientation_class_catalog: OrientationClassCatalog = field(
+        default_factory=OrientationClassCatalog
+    )
     selected_component: DomainComponentKey | None = None
     hierarchy_highlight: DomainHierarchyHighlight | None = None
     domain_corrections: DomainCorrectionWorkspaceState = field(
@@ -183,6 +187,10 @@ class DomainAnalysisWorkspaceSnapshot:
         object.__setattr__(self, "active_frame_index", active_frame_index)
         if not isinstance(self.run, DomainAnalysisWorkspaceRunState):
             raise TypeError("run must be a DomainAnalysisWorkspaceRunState.")
+        if not isinstance(self.orientation_class_catalog, OrientationClassCatalog):
+            raise TypeError(
+                "orientation_class_catalog must be an OrientationClassCatalog."
+            )
         if not isinstance(
             self.domain_corrections,
             DomainCorrectionWorkspaceState,
@@ -198,7 +206,7 @@ class DomainAnalysisWorkspaceSnapshot:
         object.__setattr__(
             self,
             "draft_fingerprint",
-            _request_fingerprint(self.draft),
+            domain_analysis_request_fingerprint(self.draft),
         )
 
     @property
@@ -240,6 +248,11 @@ class RestoreDomainAnalysisWorkspace:
     active_frame_index: int
     selected_component: DomainComponentKey | None
     run_status: DomainAnalysisWorkspaceRunStatus
+    orientation_class_catalog: OrientationClassCatalog = field(
+        default_factory=OrientationClassCatalog
+    )
+    domain_corrections: DomainCorrectionWorkspaceState | None = None
+    reference_reviews: ReferenceReviewWorkspace | None = None
     run_diagnosis: str | None = None
 
 
@@ -456,6 +469,7 @@ def _reduce_workspace(
         ),
     )
 
+
 def _restore_workspace(
     snapshot: DomainAnalysisWorkspaceSnapshot,
     action: RestoreDomainAnalysisWorkspace,
@@ -495,24 +509,28 @@ def _restore_workspace(
                     if previous_identity is None
                     else previous_identity.run_id + 1
                 ),
-                request_fingerprint=_request_fingerprint(restored_request),
+                request_fingerprint=domain_analysis_request_fingerprint(restored_request),
             ),
             request=restored_request,
             diagnosis=action.run_diagnosis,
         )
-    corrections = (
-        DomainCorrectionWorkspaceState()
-        if action.published is None
-        else initialize_domain_corrections(
-            correction_module,
-            action.published.result,
+    corrections = action.domain_corrections
+    if corrections is None:
+        corrections = (
+            DomainCorrectionWorkspaceState()
+            if action.published is None
+            else initialize_domain_corrections(
+                correction_module,
+                action.published.result,
+            )
         )
-    )
-    reviews = (
-        ReferenceReviewWorkspace()
-        if action.published is None
-        else review_policy.initialize(action.published.result, corrections)
-    )
+    reviews = action.reference_reviews
+    if reviews is None:
+        reviews = (
+            ReferenceReviewWorkspace()
+            if action.published is None
+            else review_policy.initialize(action.published.result, corrections)
+        )
     return replace(
         snapshot,
         revision=snapshot.revision + 1,
@@ -522,6 +540,7 @@ def _restore_workspace(
         published=action.published,
         active_frame_index=action.active_frame_index,
         selected_component=action.selected_component,
+        orientation_class_catalog=action.orientation_class_catalog,
         hierarchy_highlight=None,
         domain_corrections=corrections,
         reference_reviews=reviews,
@@ -778,21 +797,3 @@ def _validate_publication_series(
                 "Published result frames must belong to the current "
                 "Working Image Series."
             )
-
-
-def _request_fingerprint(request: DomainAnalysisRequest) -> str:
-    payload: dict[str, object] = {
-        "schema_version": "domain-analysis-workspace-draft-v1",
-        "frame_indices": request.frame_indices,
-        "geometry_mode": request.geometry_mode,
-        "classifier_ids": request.classifier_ids,
-    }
-    if request.m6_configuration is not None:
-        payload.update({
-            "schema_version": "domain-analysis-workspace-draft-v2",
-            "backend_id": request.backend_id,
-            "m6_configuration_fingerprint": (
-                request.m6_configuration.configuration_fingerprint
-            ),
-        })
-    return canonical_sha256(payload)

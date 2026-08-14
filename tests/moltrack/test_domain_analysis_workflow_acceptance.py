@@ -335,7 +335,7 @@ def test_one_public_domain_analysis_workflow_survives_round_trip_and_rejects_bad
         saved = load_moltrack_session(saved_path)
         saved_payload = json.loads(saved_path.read_text(encoding="utf-8"))
         saved_state = saved.domain_analysis_state
-        assert saved_payload["schema_version"] == 2
+        assert saved_payload["schema_version"] == 3
         assert {
             "position_analysis",
             "molecular_m6_analysis",

@@ -147,8 +147,8 @@ def test_m6_only_published_result_round_trips_through_public_session_seams(
     payload = json.loads(session_path.read_text(encoding="utf-8"))
 
     assert loaded.domain_analysis_state == state
-    assert payload["schema_version"] == 2
-    assert payload["domain_analysis"]["schema_version"] == 1
+    assert payload["schema_version"] == 3
+    assert payload["domain_analysis"]["schema_version"] == 2
     assert payload["domain_analysis"]["classifier_status"] == "not_requested"
     assert payload["domain_analysis"]["published_result"]["m6_gate"][
         "schema_version"

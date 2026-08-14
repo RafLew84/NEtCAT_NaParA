@@ -23,13 +23,20 @@ from .models import (
     M6FrameGate,
     M6Gate,
 )
+from .orientation_class_catalog import OrientationClassCatalog
+from .reference_review import ReferenceReviewPolicy, ReferenceReviewWorkspace
+from .domain_correction import DomainCorrectionModule
+from .workspace_correction import (
+    DomainCorrectionWorkspaceState,
+    initialize_domain_corrections,
+)
 from .workspace_controller import (
     DomainAnalysisPublication,
     DomainComponentKey,
 )
 
 
-DOMAIN_ANALYSIS_SESSION_SCHEMA_VERSION = 1
+DOMAIN_ANALYSIS_SESSION_SCHEMA_VERSION = 2
 DOMAIN_ANALYSIS_RETRY_REQUIRED_DIAGNOSIS = (
     "Saved while Domain Analysis was running; retry must be started explicitly."
 )
@@ -50,6 +57,7 @@ _RESERVED_OPAQUE_COMPONENT_NAMES = frozenset({
     "selected_component",
     "run",
     "published_result",
+    "correction_workspace",
     "cache",
 })
 
@@ -181,6 +189,15 @@ class DomainAnalysisSessionState:
     ] = ()
     draft_physical_frame_ids: tuple[str, ...] = ()
     published_result: DomainAnalysisPublication | None = None
+    orientation_class_catalog: OrientationClassCatalog = field(
+        default_factory=OrientationClassCatalog
+    )
+    domain_corrections: DomainCorrectionWorkspaceState = field(
+        default_factory=DomainCorrectionWorkspaceState
+    )
+    reference_reviews: ReferenceReviewWorkspace = field(
+        default_factory=ReferenceReviewWorkspace
+    )
     view_settings: DomainAnalysisViewSettings = field(
         default_factory=DomainAnalysisViewSettings
     )
@@ -204,6 +221,17 @@ class DomainAnalysisSessionState:
         _normalize_session_collections(self)
         _validate_workspace_values(self)
         _normalize_opaque_components(self)
+        if not isinstance(self.orientation_class_catalog, OrientationClassCatalog):
+            raise TypeError(
+                "orientation_class_catalog must be an OrientationClassCatalog."
+            )
+        if not isinstance(self.domain_corrections, DomainCorrectionWorkspaceState):
+            raise TypeError(
+                "domain_corrections must be a DomainCorrectionWorkspaceState."
+            )
+        if not isinstance(self.reference_reviews, ReferenceReviewWorkspace):
+            raise TypeError("reference_reviews must be a ReferenceReviewWorkspace.")
+        _normalize_correction_workspace(self)
 
     @property
     def classifier_status(self) -> str:
@@ -211,6 +239,40 @@ class DomainAnalysisSessionState:
         if publication is None:
             return "not_run"
         return publication.result.classifier_status
+
+
+def _normalize_correction_workspace(state: DomainAnalysisSessionState) -> None:
+    publication = state.published_result
+    corrections = state.domain_corrections
+    reviews = state.reference_reviews
+    if publication is None:
+        if corrections.correction_set is not None or reviews.frames:
+            raise ValueError(
+                "Correction workspace data requires a published automatic result."
+            )
+        return
+    module = DomainCorrectionModule()
+    if corrections.correction_set is None:
+        corrections = initialize_domain_corrections(module, publication.result)
+        object.__setattr__(state, "domain_corrections", corrections)
+    else:
+        expected = module.project(publication.result, corrections.correction_set)
+        if expected != corrections.effective_projection:
+            raise ValueError(
+                "Effective projection must be derived from the published result "
+                "and active correction set."
+            )
+    policy = ReferenceReviewPolicy()
+    if not reviews.frames:
+        reviews = policy.initialize(publication.result, corrections)
+        object.__setattr__(state, "reference_reviews", reviews)
+    elif policy.synchronize(reviews, publication.result, corrections) != reviews:
+        raise ValueError("Reference Review scopes do not match corrections.")
+    correction_set = corrections.correction_set
+    assert correction_set is not None
+    state.orientation_class_catalog.validate_assignments(
+        value.orientation_label for value in correction_set.orientation_decisions
+    )
 
 
 def _normalize_session_collections(state: DomainAnalysisSessionState) -> None:

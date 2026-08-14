@@ -183,7 +183,11 @@ def _saved_v2_payload(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
         metadata=STMSequenceMetadata(pixels_x=2, pixels_y=2),
     )
     save_moltrack_session(session_path, series)
-    return session_path, json.loads(session_path.read_text(encoding="utf-8"))
+    payload = json.loads(session_path.read_text(encoding="utf-8"))
+    payload["schema_version"] = 2
+    payload["domain_analysis"]["schema_version"] = 1
+    payload["domain_analysis"].pop("correction_workspace")
+    return session_path, payload
 
 
 def _m6_cache_record() -> DomainAnalysisM6CacheRecord:
@@ -374,7 +378,7 @@ def test_real_v1_m6_input_is_diagnosed_without_recomputation(tmp_path) -> None:
     assert loaded.structural_analysis_cache_records == ()
 
 
-def test_v1_without_position_state_defaults_to_whole_series_and_saves_v2(
+def test_v1_without_position_state_defaults_to_whole_series_and_saves_v3(
     tmp_path,
 ) -> None:
     session_path, payload = _saved_v2_payload(tmp_path)
@@ -399,7 +403,7 @@ def test_v1_without_position_state_defaults_to_whole_series_and_saves_v2(
         value.component == "molecular_order_type_analysis"
         for value in loaded.domain_analysis_state.diagnostics
     )
-    migrated_path = tmp_path / "explicit-save-v2.moltrack.json"
+    migrated_path = tmp_path / "explicit-save-v3.moltrack.json"
     series = MolTrackImageSeries(
         source_path=Path(loaded.source_path),
         raw_frames=np.zeros((2, 2, 2), dtype=np.float32),
@@ -417,7 +421,7 @@ def test_v1_without_position_state_defaults_to_whole_series_and_saves_v2(
         )},
     )
     migrated = json.loads(migrated_path.read_text(encoding="utf-8"))
-    assert migrated["schema_version"] == 2
+    assert migrated["schema_version"] == 3
     assert "position_analysis" not in migrated
     assert "molecular_m6_analysis" not in migrated
     assert "molecular_order_type_analysis" not in migrated

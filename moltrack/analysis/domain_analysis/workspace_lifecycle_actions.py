@@ -12,6 +12,7 @@ from .models import (
     DomainAnalysisRequest,
     DomainAnalysisResult,
 )
+from .fingerprints import canonical_sha256
 
 
 DomainAnalysisWorkspaceRunStatus = Literal[
@@ -139,3 +140,21 @@ DomainAnalysisLifecycleAction = (
     | ReceiveDomainAnalysisResult
     | ReceiveDomainAnalysisFailure
 )
+
+
+def domain_analysis_request_fingerprint(request: DomainAnalysisRequest) -> str:
+    payload: dict[str, object] = {
+        "schema_version": "domain-analysis-workspace-draft-v1",
+        "frame_indices": request.frame_indices,
+        "geometry_mode": request.geometry_mode,
+        "classifier_ids": request.classifier_ids,
+    }
+    if request.m6_configuration is not None:
+        payload.update({
+            "schema_version": "domain-analysis-workspace-draft-v2",
+            "backend_id": request.backend_id,
+            "m6_configuration_fingerprint": (
+                request.m6_configuration.configuration_fingerprint
+            ),
+        })
+    return canonical_sha256(payload)

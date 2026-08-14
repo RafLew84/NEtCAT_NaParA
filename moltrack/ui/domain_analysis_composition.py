@@ -195,6 +195,9 @@ class DomainAnalysisMainWindowComposition(QObject):
                 for index in snapshot.draft.frame_indices
             ),
             published_result=snapshot.published,
+            orientation_class_catalog=snapshot.orientation_class_catalog,
+            domain_corrections=snapshot.domain_corrections,
+            reference_reviews=snapshot.reference_reviews,
             view_settings=self._view_settings,
             selected_component=snapshot.selected_component,
             run_status=snapshot.run.status,
@@ -254,6 +257,9 @@ class DomainAnalysisMainWindowComposition(QObject):
             active_frame_index=active_frame_index,
             selected_component=state.selected_component,
             run_status=state.run_status,
+            orientation_class_catalog=state.orientation_class_catalog,
+            domain_corrections=state.domain_corrections,
+            reference_reviews=state.reference_reviews,
             run_diagnosis=state.run_diagnosis,
         ))
         self._controller.restore_session_cache_records(
