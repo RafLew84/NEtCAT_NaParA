@@ -5,6 +5,12 @@ from typing import Literal
 
 from .classifier_models import MoleculeClassification
 from .fingerprints import canonical_sha256
+from .domain_correction_history import (
+    DomainCorrectionHistoryAvailability,
+    DomainCorrectionHistoryRecord,
+    history_availability,
+    validate_history,
+)
 from .models import DomainAnalysisResult
 from .manual_domain_models import EffectiveM6Domain, ManualDomainIntent, ManualDomainRecord
 
@@ -112,6 +118,8 @@ class DomainCorrectionWorkspace:
     manual_domains: tuple[ManualDomainRecord, ...] = ()
     cleared_boundary_source_keys: tuple[tuple[str, str], ...] = ()
     atoms: tuple[DomainCorrectionAtom, ...] = ()
+    history_records: tuple[DomainCorrectionHistoryRecord, ...] = ()
+    legacy_boundary_source_keys: tuple[tuple[str, str], ...] | None = None
     review_revisions: tuple[tuple[DomainCorrectionReviewTarget, int], ...] = (
         ("m6", 0),
         ("orientation", 0),
@@ -160,6 +168,29 @@ class DomainCorrectionWorkspace:
         if len(operation_ids) != len(set(operation_ids)):
             raise ValueError("Correction atom operation IDs must be unique.")
         object.__setattr__(self, "atoms", atoms)
+        records = tuple(self.history_records)
+        if any(
+            not isinstance(value, DomainCorrectionHistoryRecord)
+            for value in records
+        ):
+            raise TypeError(
+                "history_records must contain DomainCorrectionHistoryRecord values."
+            )
+        validate_history(atoms, records)
+        object.__setattr__(self, "history_records", records)
+        raw_legacy_boundary_keys = self.legacy_boundary_source_keys
+        legacy_boundary_keys = None if raw_legacy_boundary_keys is None else tuple(sorted({
+            (
+                _text(physical_frame_id, "legacy boundary physical_frame_id"),
+                _text(source_id, "legacy boundary source_id"),
+            )
+            for physical_frame_id, source_id in raw_legacy_boundary_keys
+        }))
+        object.__setattr__(
+            self,
+            "legacy_boundary_source_keys",
+            legacy_boundary_keys,
+        )
         revisions = dict(self.review_revisions)
         if set(revisions) != {"m6", "orientation"}:
             raise ValueError("review_revisions must contain both review targets.")
@@ -174,6 +205,16 @@ class DomainCorrectionWorkspace:
             return dict(self.review_revisions)[target]
         except KeyError as error:
             raise ValueError(f"Unsupported review target: {target!r}.") from error
+
+    def history_for(
+        self,
+        physical_frame_id: str,
+    ) -> DomainCorrectionHistoryAvailability:
+        return history_availability(
+            self.atoms,
+            self.history_records,
+            physical_frame_id,
+        )
 
 
 @dataclass(frozen=True)
@@ -226,6 +267,7 @@ class DomainCorrectionAtom:
     source_ids: tuple[str, ...]
     intent: ManualOrientationIntent | ManualDomainIntent
     invalidates_review_targets: tuple[DomainCorrectionReviewTarget, ...]
+    effects: tuple[DomainCorrectionEffect, ...] = ()
 
     def __post_init__(self) -> None:
         for field_name in (
@@ -251,6 +293,13 @@ class DomainCorrectionAtom:
         if not targets or any(value not in {"m6", "orientation"} for value in targets):
             raise ValueError("Correction atom must invalidate a supported review target.")
         object.__setattr__(self, "invalidates_review_targets", targets)
+        effects = tuple(self.effects)
+        if any(not isinstance(value, DomainCorrectionEffect) for value in effects):
+            raise TypeError("Atom effects must contain DomainCorrectionEffect values.")
+        effects = tuple(sorted(effects, key=lambda value: value.source_id))
+        if effects and tuple(value.source_id for value in effects) != self.source_ids:
+            raise ValueError("Atom effects must cover its frozen batch exactly.")
+        object.__setattr__(self, "effects", effects)
 
 
 @dataclass(frozen=True)
@@ -440,6 +489,8 @@ __all__ = [
     "DomainCorrectionConflict",
     "DomainCorrectionConflictSeverity",
     "DomainCorrectionEffect",
+    "DomainCorrectionHistoryAvailability",
+    "DomainCorrectionHistoryRecord",
     "DomainCorrectionReviewTarget",
     "DomainCorrectionWorkspace",
     "EffectiveDomainProjection",

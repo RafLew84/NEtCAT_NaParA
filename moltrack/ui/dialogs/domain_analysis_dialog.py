@@ -174,6 +174,8 @@ class DomainAnalysisDialog(QDialog):
         self.correction_confirm_impact_checkbox = (
             self.domain_correction_sheet.confirm_impact_checkbox
         )
+        self.correction_undo_button = self.domain_correction_sheet.undo_button
+        self.correction_redo_button = self.domain_correction_sheet.redo_button
         domain_controls = self.domain_correction_sheet.manual_domain_controls
         self.manual_domain_combo = domain_controls.domain_combo
         self.manual_domain_create_button = domain_controls.create_button
@@ -296,6 +298,12 @@ class DomainAnalysisDialog(QDialog):
         )
         self.domain_correction_sheet.apply_requested.connect(
             self._correction_actions.apply_prepared_correction
+        )
+        self.domain_correction_sheet.undo_requested.connect(
+            self._correction_actions.undo
+        )
+        self.domain_correction_sheet.redo_requested.connect(
+            self._correction_actions.redo
         )
         self.domain_correction_sheet.preview_invalidated.connect(
             self._correction_actions.discard_prepared_correction

@@ -9,6 +9,11 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from test_domain_analysis_dialog import _dialog, _dispose, _workspace
 from test_domain_analysis_workspace_lifecycle import _ManualExecutor
+from moltrack.analysis.domain_analysis import (
+    ApplyPreparedDomainCorrection,
+    DomainAnalysisWorkspaceIntentError,
+    UndoDomainCorrection,
+)
 
 try:
     from PyQt6.QtWidgets import QApplication
@@ -261,4 +266,76 @@ def test_polygon_crossing_groups_requires_confirmation_and_commits_once(
         "m-b",
         "m-d",
     )
+    _dispose(dialog, qt_app)
+
+
+def test_correction_history_buttons_render_model_availability_and_dispatch(
+    qt_app,
+) -> None:
+    executor = _ManualExecutor()
+    controller = _workspace(executor)
+    dialog = _dialog(
+        controller,
+        lambda publication: None,
+        canvas_frame_for=lambda _frame_index: np.zeros((4, 4), dtype=np.float32),
+    )
+    dialog.analyze_button.click()
+    executor.run_next()
+    qt_app.processEvents()
+    dialog.command_center.stage_button("correct").click()
+    dialog.command_center.canvas.select_molecule("m-a")
+    dialog.command_center.canvas.select_molecule("m-b")
+    dialog.orientation_target_combo.setCurrentText("D")
+    dialog.orientation_preview_button.click()
+    dialog.orientation_apply_button.click()
+    qt_app.processEvents()
+
+    assert dialog.correction_undo_button.isEnabled()
+    assert dialog.correction_undo_button.text() == "Undo Assign orientation (2)"
+    assert not dialog.correction_redo_button.isEnabled()
+    dialog.correction_undo_button.click()
+    qt_app.processEvents()
+
+    projection = controller.snapshot.domain_corrections.effective_projection
+    assert projection is not None
+    assert projection.molecule(
+        "physical-frame-0", "m-a"
+    ).effective_orientation == "A"
+    assert dialog.correction_redo_button.isEnabled()
+    assert dialog.correction_redo_button.text() == "Redo Assign orientation (2)"
+    dialog.correction_redo_button.click()
+    qt_app.processEvents()
+    projection = controller.snapshot.domain_corrections.effective_projection
+    assert projection is not None
+    assert projection.molecule(
+        "physical-frame-0", "m-a"
+    ).effective_orientation == "D"
+
+    dialog.orientation_target_combo.setCurrentText("E")
+    dialog.orientation_preview_button.click()
+    prepared = controller.snapshot.domain_corrections.prepared
+    assert prepared is not None
+    if prepared.requires_confirmation:
+        dialog.correction_confirm_impact_checkbox.setChecked(True)
+    assert dialog.orientation_apply_button.isEnabled()
+    correction_set = controller.snapshot.domain_corrections.correction_set
+    assert correction_set is not None
+    history_count = len(correction_set.history_records)
+
+    dialog.analyze_button.click()
+    qt_app.processEvents()
+
+    assert controller.snapshot.run.status == "running"
+    assert not dialog.orientation_apply_button.isEnabled()
+    assert not dialog.correction_undo_button.isEnabled()
+    assert not dialog.correction_redo_button.isEnabled()
+    with pytest.raises(DomainAnalysisWorkspaceIntentError, match="read-only"):
+        controller.dispatch(UndoDomainCorrection())
+    with pytest.raises(DomainAnalysisWorkspaceIntentError, match="read-only"):
+        controller.dispatch(ApplyPreparedDomainCorrection(prepared))
+    correction_set = controller.snapshot.domain_corrections.correction_set
+    assert correction_set is not None
+    assert len(correction_set.history_records) == history_count
+    executor.run_next()
+    qt_app.processEvents()
     _dispose(dialog, qt_app)

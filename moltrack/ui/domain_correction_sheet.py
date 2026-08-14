@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QButtonGroup,
+    QStyle,
     QVBoxLayout,
     QWidget,
 )
@@ -38,6 +39,8 @@ class DomainCorrectionSheet(QWidget):
     move_domain_requested = pyqtSignal(str, object)
     delete_domain_requested = pyqtSignal(str)
     restore_domain_requested = pyqtSignal(str, object)
+    undo_requested = pyqtSignal()
+    redo_requested = pyqtSignal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -50,6 +53,7 @@ class DomainCorrectionSheet(QWidget):
         self._connect_controls()
         self._has_selection = False
         self._has_publication = False
+        self._history_read_only = False
         self._prepared: PreparedDomainCorrection | None = None
         self._rendered_prepared_fingerprint: str | None = None
         self._render_reason_requirement(self.target_combo.currentText())
@@ -96,6 +100,21 @@ class DomainCorrectionSheet(QWidget):
         buttons.addStretch(1)
         buttons.addWidget(self.apply_button)
         editor_layout.addLayout(buttons)
+        history_buttons = QHBoxLayout()
+        self.undo_button = QPushButton("Undo", editor)
+        self.redo_button = QPushButton("Redo", editor)
+        style = self.style()
+        assert style is not None
+        self.undo_button.setIcon(style.standardIcon(
+            QStyle.StandardPixmap.SP_ArrowBack
+        ))
+        self.redo_button.setIcon(style.standardIcon(
+            QStyle.StandardPixmap.SP_ArrowForward
+        ))
+        history_buttons.addWidget(self.undo_button)
+        history_buttons.addWidget(self.redo_button)
+        history_buttons.addStretch(1)
+        editor_layout.addLayout(history_buttons)
         self.preview_label = QLabel("No prepared correction", editor)
         self.preview_label.setWordWrap(True)
         editor_layout.addWidget(self.preview_label)
@@ -121,6 +140,8 @@ class DomainCorrectionSheet(QWidget):
                 self.confirm_impact_checkbox.isChecked()
             )
         )
+        self.undo_button.clicked.connect(self.undo_requested.emit)
+        self.redo_button.clicked.connect(self.redo_requested.emit)
         self.point_selection_button.clicked.connect(
             lambda: self.selection_mode_changed.emit("point")
         )
@@ -156,6 +177,7 @@ class DomainCorrectionSheet(QWidget):
         selected = state.selected_source_ids
         self._has_selection = bool(selected)
         self._has_publication = snapshot.published is not None
+        self._history_read_only = snapshot.run.status == "running"
         self.selection_label.setText(
             "No molecule selected"
             if not selected
@@ -173,6 +195,28 @@ class DomainCorrectionSheet(QWidget):
         self._render_effective_label(molecules, selected)
         self._render_table(molecules)
         self._render_preview_availability()
+        self._render_history_availability(snapshot)
+
+    def _render_history_availability(
+        self,
+        snapshot: DomainAnalysisWorkspaceSnapshot,
+    ) -> None:
+        availability = snapshot.domain_corrections.history_for(
+            snapshot.active_physical_frame_id
+        )
+        for button, prefix, target in (
+            (self.undo_button, "Undo", availability.undo),
+            (self.redo_button, "Redo", availability.redo),
+        ):
+            button.setEnabled(target is not None and not self._history_read_only)
+            button.setText(
+                prefix
+                if target is None
+                else (
+                    f"{prefix} {target.operation_label} "
+                    f"({target.source_count})"
+                )
+            )
 
     def _render_prepared(
         self,
@@ -202,7 +246,7 @@ class DomainCorrectionSheet(QWidget):
         if prepared is None:
             self.apply_button.setEnabled(False)
             return
-        enabled = bool(prepared.changed_source_ids)
+        enabled = bool(prepared.changed_source_ids) and not self._history_read_only
         if enabled:
             enabled = not prepared.is_blocked and (
                 not prepared.requires_confirmation

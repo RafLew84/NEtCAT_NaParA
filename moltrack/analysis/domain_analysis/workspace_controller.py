@@ -23,9 +23,11 @@ from .workspace_correction import (
     PreviewMoveToManualDomain,
     PreviewDeleteManualDomain,
     PreviewRestoreManualDomain,
+    RedoDomainCorrection,
     SelectDomainMolecules,
     SelectDomainMoleculesByPolygons,
     ToggleDomainMoleculeSelection,
+    UndoDomainCorrection,
     clear_domain_correction_selection,
     initialize_domain_corrections,
     reduce_domain_corrections,
@@ -391,7 +393,26 @@ def _reduce_workspace(
         return _set_active_frame(snapshot, action.frame_index)
     if isinstance(action, RestoreDomainAnalysisWorkspace):
         return _restore_workspace(snapshot, action, correction_module)
-    if isinstance(action, (
+    if _is_correction_action(action):
+        return _reduce_correction_action(
+            snapshot,
+            cast(DomainCorrectionWorkspaceAction, action),
+            correction_module,
+        )
+    return reduce_domain_analysis_lifecycle(
+        snapshot,
+        cast(DomainAnalysisLifecycleAction, action),
+        lambda value, request, result: _publish_result(
+            value,
+            request,
+            result,
+            correction_module,
+        ),
+    )
+
+
+def _is_correction_action(action: object) -> bool:
+    return isinstance(action, (
         SelectDomainMolecules,
         SelectDomainMoleculesByPolygons,
         ToggleDomainMoleculeSelection,
@@ -404,35 +425,39 @@ def _reduce_workspace(
         PreviewDeleteManualDomain,
         PreviewRestoreManualDomain,
         ApplyPreparedDomainCorrection,
+        RedoDomainCorrection,
+        UndoDomainCorrection,
+    ))
+
+
+def _reduce_correction_action(
+    snapshot: DomainAnalysisWorkspaceSnapshot,
+    action: DomainCorrectionWorkspaceAction,
+    correction_module: DomainCorrectionModule,
+) -> DomainAnalysisWorkspaceSnapshot:
+    if snapshot.run.status == "running" and isinstance(action, (
+        ApplyPreparedDomainCorrection,
+        RedoDomainCorrection,
+        UndoDomainCorrection,
     )):
-        automatic = (
-            None if snapshot.published is None else snapshot.published.result
+        raise DomainAnalysisWorkspaceIntentError(
+            "Correction history is read-only while a rerun is active."
         )
-        corrected = reduce_domain_corrections(
-            snapshot.domain_corrections,
-            automatic,
-            snapshot.active_physical_frame_id,
-            action,
-            correction_module,
-        )
-        if corrected is snapshot.domain_corrections:
-            return snapshot
-        highlight = _compatible_correction_highlight(snapshot, corrected)
-        return replace(
-            snapshot,
-            revision=snapshot.revision + 1,
-            domain_corrections=corrected,
-            hierarchy_highlight=highlight,
-        )
-    return reduce_domain_analysis_lifecycle(
+    automatic = None if snapshot.published is None else snapshot.published.result
+    corrected = reduce_domain_corrections(
+        snapshot.domain_corrections,
+        automatic,
+        snapshot.active_physical_frame_id,
+        action,
+        correction_module,
+    )
+    if corrected is snapshot.domain_corrections:
+        return snapshot
+    return replace(
         snapshot,
-        cast(DomainAnalysisLifecycleAction, action),
-        lambda value, request, result: _publish_result(
-            value,
-            request,
-            result,
-            correction_module,
-        ),
+        revision=snapshot.revision + 1,
+        domain_corrections=corrected,
+        hierarchy_highlight=_compatible_correction_highlight(snapshot, corrected),
     )
 
 

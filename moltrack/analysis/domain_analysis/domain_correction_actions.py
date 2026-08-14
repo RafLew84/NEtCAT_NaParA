@@ -27,4 +27,18 @@ class ApplyPreparedDomainCorrection:
         return cls(preview, preview.prepared_fingerprint)
 
 
-__all__ = ["ApplyPreparedDomainCorrection"]
+@dataclass(frozen=True)
+class UndoDomainCorrection:
+    pass
+
+
+@dataclass(frozen=True)
+class RedoDomainCorrection:
+    pass
+
+
+__all__ = [
+    "ApplyPreparedDomainCorrection",
+    "RedoDomainCorrection",
+    "UndoDomainCorrection",
+]

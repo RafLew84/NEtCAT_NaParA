@@ -3,7 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .domain_correction import DomainCorrectionModule
-from .domain_correction_actions import ApplyPreparedDomainCorrection
+from .domain_correction_actions import (
+    ApplyPreparedDomainCorrection,
+    RedoDomainCorrection,
+    UndoDomainCorrection,
+)
+from .domain_correction_history import DomainCorrectionHistoryAvailability
 from .domain_correction_models import (
     DomainCorrectionWorkspace,
     EffectiveDomainProjection,
@@ -88,6 +93,8 @@ DomainCorrectionWorkspaceAction = (
     | PreviewDeleteManualDomain
     | PreviewRestoreManualDomain
     | ApplyPreparedDomainCorrection
+    | UndoDomainCorrection
+    | RedoDomainCorrection
 )
 
 
@@ -115,6 +122,14 @@ class DomainCorrectionWorkspaceState:
             for value in self.selection_polygons
         ):
             raise TypeError("selection_polygons must contain selection polygons.")
+
+    def history_for(
+        self,
+        physical_frame_id: str,
+    ) -> DomainCorrectionHistoryAvailability:
+        if self.correction_set is None:
+            return DomainCorrectionHistoryAvailability()
+        return self.correction_set.history_for(physical_frame_id)
 
 
 def initialize_domain_corrections(
@@ -161,6 +176,8 @@ def reduce_domain_corrections(
             selected_source_ids=state.selected_source_ids,
             selection_polygons=state.selection_polygons,
         )
+    if isinstance(action, (UndoDomainCorrection, RedoDomainCorrection)):
+        return _reduce_history(state, automatic, physical_frame_id, action, module)
     needs_selection = isinstance(action, (
         PreviewManualOrientation,
         PreviewManualOrientationReset,
@@ -205,6 +222,30 @@ def reduce_domain_corrections(
         automatic,
         action,
         module,
+    )
+
+
+def _reduce_history(
+    state: DomainCorrectionWorkspaceState,
+    automatic: DomainAnalysisResult,
+    physical_frame_id: str,
+    action: UndoDomainCorrection | RedoDomainCorrection,
+    module: DomainCorrectionModule,
+) -> DomainCorrectionWorkspaceState:
+    assert state.correction_set is not None
+    try:
+        updated_set = (
+            module.undo(state.correction_set, automatic, physical_frame_id)
+            if isinstance(action, UndoDomainCorrection)
+            else module.redo(state.correction_set, automatic, physical_frame_id)
+        )
+    except ValueError as error:
+        raise DomainAnalysisWorkspaceIntentError(str(error)) from error
+    return DomainCorrectionWorkspaceState(
+        correction_set=updated_set,
+        effective_projection=module.project(automatic, updated_set),
+        selected_source_ids=state.selected_source_ids,
+        selection_polygons=state.selection_polygons,
     )
 
 
@@ -401,8 +442,10 @@ __all__ = [
     "PreviewMoveToManualDomain",
     "PreviewDeleteManualDomain",
     "PreviewRestoreManualDomain",
+    "RedoDomainCorrection",
     "ClearDomainMoleculeSelection",
     "SelectDomainMolecules",
     "SelectDomainMoleculesByPolygons",
     "ToggleDomainMoleculeSelection",
+    "UndoDomainCorrection",
 ]

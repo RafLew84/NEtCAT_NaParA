@@ -138,7 +138,17 @@ from .texture_abc_adapter import (
     TextureABCClassifierAdapter,
 )
 from .domain_correction import DomainCorrectionModule
-from .domain_correction_actions import ApplyPreparedDomainCorrection
+from .domain_correction_actions import (
+    ApplyPreparedDomainCorrection,
+    RedoDomainCorrection,
+    UndoDomainCorrection,
+)
+from .domain_correction_history import (
+    DomainCorrectionHistoryAction,
+    DomainCorrectionHistoryAvailability,
+    DomainCorrectionHistoryRecord,
+    DomainCorrectionHistoryTarget,
+)
 from .domain_correction_models import (
     DomainCorrectionAtom,
     DomainCorrectionAxis,
@@ -223,6 +233,10 @@ __all__ = [
     "DomainCorrectionConflict",
     "DomainCorrectionConflictSeverity",
     "DomainCorrectionEffect",
+    "DomainCorrectionHistoryAction",
+    "DomainCorrectionHistoryAvailability",
+    "DomainCorrectionHistoryRecord",
+    "DomainCorrectionHistoryTarget",
     "DomainCorrectionReviewTarget",
     "DomainCorrectionModule",
     "DomainCorrectionWorkspace",
@@ -247,9 +261,11 @@ __all__ = [
     "PreviewMoveToManualDomain",
     "PreviewDeleteManualDomain",
     "PreviewRestoreManualDomain",
+    "RedoDomainCorrection",
     "SelectDomainMolecules",
     "SelectDomainMoleculesByPolygons",
     "ToggleDomainMoleculeSelection",
+    "UndoDomainCorrection",
     "ABC_DOMAIN_SUMMARY_CONSERVATIVE_V1",
     "ABCOrientationDiagnosticEvidence",
     "ABC_ORIENTATION_CLASSIFIER_ID",

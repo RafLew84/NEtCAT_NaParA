@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import replace
 from collections.abc import Callable
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from .classifier_models import MoleculeClassification
@@ -19,6 +20,16 @@ from .domain_correction_models import (
     ManualOrientationDecision,
     ManualOrientationIntent,
     PreparedDomainCorrection,
+)
+from .domain_correction_history import (
+    DomainCorrectionHistoryAction,
+    DomainCorrectionHistoryAvailability,
+    DomainCorrectionHistoryRecord,
+)
+from .domain_correction_replay import (
+    _legacy_boundary_baseline,
+    apply_manual_domain_intent,
+    replay_active_atoms,
 )
 from .domain_correction_policy import (
     compatible_automatic_orientation,
@@ -43,6 +54,8 @@ class DomainCorrectionModule:
         self,
         manual_domain_id_factory: Callable[[], str] | None = None,
         correction_operation_id_factory: Callable[[], str] | None = None,
+        correction_history_id_factory: Callable[[], str] | None = None,
+        clock: Callable[[], datetime] | None = None,
     ) -> None:
         self._manual_domain_id_factory = manual_domain_id_factory or (
             lambda: str(uuid4())
@@ -50,6 +63,10 @@ class DomainCorrectionModule:
         self._correction_operation_id_factory = (
             correction_operation_id_factory or (lambda: str(uuid4()))
         )
+        self._correction_history_id_factory = (
+            correction_history_id_factory or (lambda: str(uuid4()))
+        )
+        self._clock = clock or (lambda: datetime.now(timezone.utc))
 
     def initialize(
         self,
@@ -96,7 +113,7 @@ class DomainCorrectionModule:
         if isinstance(intent, ManualDomainIntent) and not blocked:
             prospective = replace(
                 workspace,
-                manual_domains=_apply_manual_domain_intent(workspace, intent),
+                manual_domains=apply_manual_domain_intent(workspace, intent),
             )
             self.project(automatic, prospective)
         changed = () if blocked else (
@@ -151,6 +168,11 @@ class DomainCorrectionModule:
             raise ValueError(
                 "Prepared Domain Correction requires confirmation."
             )
+        if workspace.legacy_boundary_source_keys is None:
+            workspace = replace(
+                workspace,
+                legacy_boundary_source_keys=_legacy_boundary_baseline(workspace),
+            )
         intent = preview.intent
         if isinstance(intent, ManualDomainIntent):
             boundary_keys = set(workspace.cleared_boundary_source_keys)
@@ -167,7 +189,7 @@ class DomainCorrectionModule:
                     boundary_keys.difference_update(intent_keys)
             return self._append_atom(replace(
                 workspace,
-                manual_domains=_apply_manual_domain_intent(workspace, intent),
+                manual_domains=apply_manual_domain_intent(workspace, intent),
                 cleared_boundary_source_keys=tuple(sorted(boundary_keys)),
             ), preview)
         decisions = _decision_index(workspace)
@@ -193,6 +215,8 @@ class DomainCorrectionModule:
         workspace: DomainCorrectionWorkspace,
         preview: PreparedDomainCorrection,
     ) -> DomainCorrectionWorkspace:
+        legacy_boundary_source_keys = workspace.legacy_boundary_source_keys
+        assert legacy_boundary_source_keys is not None
         targets: tuple[DomainCorrectionReviewTarget, ...] = (
             ("m6", "orientation")
             if preview.axis == "m6"
@@ -209,12 +233,97 @@ class DomainCorrectionModule:
             source_ids=preview.source_ids,
             intent=preview.intent,
             invalidates_review_targets=targets,
+            effects=preview.effects,
         )
+        record = self._history_record("apply", atom)
         return replace(
             workspace,
             revision=workspace.revision + 1,
             atoms=workspace.atoms + (atom,),
+            history_records=workspace.history_records + (record,),
+            legacy_boundary_source_keys=legacy_boundary_source_keys,
             review_revisions=tuple(sorted(revisions.items())),
+        )
+
+    def history_availability(
+        self,
+        workspace: DomainCorrectionWorkspace,
+        physical_frame_id: str,
+    ) -> DomainCorrectionHistoryAvailability:
+        if not isinstance(workspace, DomainCorrectionWorkspace):
+            raise TypeError("workspace must be a DomainCorrectionWorkspace.")
+        return workspace.history_for(physical_frame_id)
+
+    def undo(
+        self,
+        workspace: DomainCorrectionWorkspace,
+        automatic: DomainAnalysisResult,
+        physical_frame_id: str,
+    ) -> DomainCorrectionWorkspace:
+        return self._change_history(
+            workspace,
+            automatic,
+            physical_frame_id,
+            action="undo",
+        )
+
+    def redo(
+        self,
+        workspace: DomainCorrectionWorkspace,
+        automatic: DomainAnalysisResult,
+        physical_frame_id: str,
+    ) -> DomainCorrectionWorkspace:
+        return self._change_history(
+            workspace,
+            automatic,
+            physical_frame_id,
+            action="redo",
+        )
+
+    def _change_history(
+        self,
+        workspace: DomainCorrectionWorkspace,
+        automatic: DomainAnalysisResult,
+        physical_frame_id: str,
+        *,
+        action: DomainCorrectionHistoryAction,
+    ) -> DomainCorrectionWorkspace:
+        _validate_workspace_anchor(workspace, automatic)
+        availability = workspace.history_for(physical_frame_id)
+        target = availability.undo if action == "undo" else availability.redo
+        if target is None:
+            raise ValueError(f"No correction is available to {action} in this frame.")
+        atom = next(
+            value for value in workspace.atoms
+            if value.operation_id == target.operation_id
+        )
+        record = self._history_record(action, atom)
+        legacy_boundary_source_keys = workspace.legacy_boundary_source_keys
+        if legacy_boundary_source_keys is None:
+            legacy_boundary_source_keys = _legacy_boundary_baseline(workspace)
+        revisions = dict(workspace.review_revisions)
+        for review_target in atom.invalidates_review_targets:
+            revisions[review_target] += 1
+        recorded = replace(
+            workspace,
+            revision=workspace.revision + 1,
+            history_records=workspace.history_records + (record,),
+            legacy_boundary_source_keys=legacy_boundary_source_keys,
+            review_revisions=tuple(sorted(revisions.items())),
+        )
+        return replay_active_atoms(recorded)
+
+    def _history_record(
+        self,
+        action: DomainCorrectionHistoryAction,
+        atom: DomainCorrectionAtom,
+    ) -> DomainCorrectionHistoryRecord:
+        return DomainCorrectionHistoryRecord(
+            record_id=self._correction_history_id_factory(),
+            action=action,
+            operation_id=atom.operation_id,
+            physical_frame_id=atom.physical_frame_id,
+            recorded_at=self._clock(),
         )
 
     def project(
@@ -582,102 +691,6 @@ def _manual_domain_changed_source_ids(
         for source_id in record.restore_source_ids
         if resolutions.get(source_id) != "keep_current"
     )
-
-
-def _apply_manual_domain_intent(
-    workspace: DomainCorrectionWorkspace,
-    intent: ManualDomainIntent,
-) -> tuple[ManualDomainRecord, ...]:
-    domains = _manual_domain_index(workspace)
-    domain_id = intent.manual_domain_id
-    assert domain_id is not None
-    key = (intent.physical_frame_id, domain_id)
-    if intent.operation == "create":
-        domains = _remove_sources_from_manual_domains(
-            domains,
-            intent.physical_frame_id,
-            intent.source_ids,
-        )
-        domains[key] = ManualDomainRecord(
-            intent.physical_frame_id,
-            domain_id,
-            intent.source_ids,
-            intent.source_ids,
-        )
-    elif intent.operation == "move":
-        domains = _remove_sources_from_manual_domains(
-            domains,
-            intent.physical_frame_id,
-            intent.source_ids,
-            except_domain_id=domain_id,
-        )
-        current = domains[key]
-        source_ids = tuple(sorted(set(current.source_ids).union(intent.source_ids)))
-        domains[key] = replace(
-            current,
-            source_ids=source_ids,
-            restore_source_ids=source_ids,
-        )
-    elif intent.operation == "delete":
-        current = domains[key]
-        domains[key] = replace(
-            current,
-            source_ids=(),
-            restore_source_ids=current.source_ids,
-            is_deleted=True,
-        )
-    else:
-        current = domains[key]
-        resolutions = dict(intent.member_resolutions)
-        restored_source_ids = tuple(
-            source_id
-            for source_id in current.restore_source_ids
-            if resolutions.get(source_id) != "keep_current"
-        )
-        domains = _remove_sources_from_manual_domains(
-            domains,
-            intent.physical_frame_id,
-            restored_source_ids,
-            except_domain_id=domain_id,
-        )
-        domains[key] = replace(
-            current,
-            source_ids=restored_source_ids,
-            restore_source_ids=(
-                current.restore_source_ids
-                if not restored_source_ids
-                else restored_source_ids
-            ),
-            is_deleted=not restored_source_ids,
-        )
-    return tuple(domains[value] for value in sorted(domains))
-
-
-def _remove_sources_from_manual_domains(
-    domains: dict[tuple[str, str], ManualDomainRecord],
-    physical_frame_id: str,
-    source_ids: tuple[str, ...],
-    *,
-    except_domain_id: str | None = None,
-) -> dict[tuple[str, str], ManualDomainRecord]:
-    updated = dict(domains)
-    removed = set(source_ids)
-    for key, domain in domains.items():
-        if (
-            domain.physical_frame_id != physical_frame_id
-            or domain.manual_domain_id == except_domain_id
-            or domain.is_deleted
-            or removed.isdisjoint(domain.source_ids)
-        ):
-            continue
-        retained = tuple(value for value in domain.source_ids if value not in removed)
-        updated[key] = replace(
-            domain,
-            source_ids=retained,
-            restore_source_ids=(domain.source_ids if not retained else retained),
-            is_deleted=not retained,
-        )
-    return updated
 
 
 def _manual_domain_index(

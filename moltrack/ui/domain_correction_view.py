@@ -15,9 +15,11 @@ from moltrack.analysis.domain_analysis import (
     PreviewMoveToManualDomain,
     PreviewDeleteManualDomain,
     PreviewRestoreManualDomain,
+    RedoDomainCorrection,
     RestoreMemberResolution,
     SelectDomainMoleculesByPolygons,
     ToggleDomainMoleculeSelection,
+    UndoDomainCorrection,
 )
 
 
@@ -72,6 +74,12 @@ class DomainCorrectionActionBinding:
 
     def discard_prepared_correction(self) -> None:
         self._controller.dispatch(DiscardPreparedDomainCorrection())
+
+    def undo(self) -> None:
+        self._controller.dispatch(UndoDomainCorrection())
+
+    def redo(self) -> None:
+        self._controller.dispatch(RedoDomainCorrection())
 
     def preview_create_manual_domain(self) -> None:
         self._controller.dispatch(PreviewCreateManualDomain())

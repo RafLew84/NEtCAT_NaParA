@@ -33,6 +33,7 @@ from moltrack.analysis.domain_analysis import (
     SelectDomainMolecules,
     SelectDomainMoleculesByPolygons,
     ToggleDomainMoleculeSelection,
+    UndoDomainCorrection,
     ClearDomainMoleculeSelection,
     SetDomainHierarchyHighlight,
     SetDomainAnalysisFrame,
@@ -55,6 +56,33 @@ def test_discarding_absent_correction_preview_before_publication_is_a_noop() -> 
 
     assert controller.dispatch(DiscardPreparedDomainCorrection()) is controller.snapshot
     assert controller.snapshot.revision == 0
+
+
+def test_new_publication_is_a_hard_boundary_for_correction_history() -> None:
+    request = DomainAnalysisRequest(frame_range=range(1))
+    automatic = _automatic_result()
+    controller = DomainAnalysisWorkspaceController(
+        request,
+        physical_frame_ids=("frame-0",),
+    )
+    controller.dispatch(PublishDomainAnalysisResult(request, automatic))
+    controller.dispatch(SelectDomainMolecules(("outside",)))
+    controller.dispatch(PreviewManualOrientation("D"))
+    preview = controller.snapshot.domain_corrections.prepared
+    assert preview is not None
+    controller.dispatch(ApplyPreparedDomainCorrection(preview))
+    assert controller.snapshot.domain_corrections.history_for(
+        "frame-0"
+    ).undo is not None
+
+    controller.dispatch(PublishDomainAnalysisResult(request, automatic))
+
+    state = controller.snapshot.domain_corrections
+    assert state.correction_set is not None
+    assert state.correction_set.history_records == ()
+    assert state.history_for("frame-0").undo is None
+    with pytest.raises(DomainAnalysisWorkspaceIntentError, match="available to undo"):
+        controller.dispatch(UndoDomainCorrection())
 
 
 def test_workspace_owns_manual_orientation_preview_and_effective_projection() -> None:
