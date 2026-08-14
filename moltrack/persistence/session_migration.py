@@ -12,6 +12,7 @@ from moltrack.analysis.domain_analysis import (
     GeometryMode,
 )
 from moltrack.core import (
+    MOLTRACK_SESSION_SCHEMA_VERSION,
     SUPPORTED_MOLTRACK_SESSION_SCHEMA_VERSIONS,
 )
 
@@ -20,6 +21,7 @@ from .domain_analysis_cache_payload import (
     CACHE_SCHEMA_VERSION,
     domain_analysis_cache_from_payload,
 )
+from .session_v2_migration import migrate_v2_domain_analysis
 
 
 @dataclass(frozen=True)
@@ -50,12 +52,15 @@ def resolve_session_load_payload(
             migrated.domain_analysis_state,
             migrated.payload,
         )
+    if schema_version == 2:
+        return (
+            MOLTRACK_SESSION_SCHEMA_VERSION,
+            migrate_v2_domain_analysis(payload.get("domain_analysis")),
+            payload,
+        )
     return (
         schema_version,
-        domain_analysis_state_from_payload(
-            payload.get("domain_analysis"),
-            require_legacy_v1=schema_version == 2,
-        ),
+        domain_analysis_state_from_payload(payload.get("domain_analysis")),
         payload,
     )
 

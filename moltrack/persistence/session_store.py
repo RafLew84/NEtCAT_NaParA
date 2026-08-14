@@ -37,7 +37,7 @@ from .domain_analysis_session import (
     domain_analysis_state_to_payload,
 )
 from .session_load_diagnostics import diagnose_session_load_errors
-from .session_v1_migration import resolve_session_load_payload
+from .session_migration import resolve_session_load_payload
 
 
 SeriesLoader = Callable[..., MolTrackImageSeries]

@@ -46,6 +46,7 @@ from moltrack.persistence import (
 )
 from nanotrack.core import STMSequenceMetadata
 from moltrack.ui import MolTrackMainWindow
+from domain_analysis_test_support import as_legacy_session_v2
 
 DomainAnalysisRequest = partial(
     DomainAnalysisRequest, backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID
@@ -449,7 +450,7 @@ def test_one_public_domain_analysis_workflow_survives_round_trip_and_rejects_bad
         qt_app.processEvents()
 
 
-def test_open_without_abc_then_enable_save_and_reopen_uses_runtime_capability(
+def test_open_v2_without_abc_then_enable_save_and_reopen_uses_runtime_capability(
     qt_app,
     tmp_path,
     monkeypatch,
@@ -494,6 +495,13 @@ def test_open_without_abc_then_enable_save_and_reopen_uses_runtime_capability(
         assert dialog is not None
         dialog.classify_abc_checkbox.setChecked(False)
         window.save_state(without_abc_path)
+        legacy_payload = as_legacy_session_v2(
+            json.loads(without_abc_path.read_text(encoding="utf-8"))
+        )
+        without_abc_path.write_text(
+            json.dumps(legacy_payload),
+            encoding="utf-8",
+        )
 
         window.open_state(without_abc_path)
         assert len(built_compositions) == 2
