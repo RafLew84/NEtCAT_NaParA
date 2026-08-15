@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Protocol, TypeVar
 
 from moltrack.analysis.domain_analysis.fingerprints import canonical_sha256
 
@@ -77,6 +77,51 @@ class ReferenceMeasurementIdentity:
     source_revision: ReferenceSourceRevision
 
 
+class _ReferenceMeasurementLike(Protocol):
+    @property
+    def measurement_group_id(self) -> str: ...
+
+    @property
+    def split(self) -> ReferenceSplit: ...
+
+    @property
+    def source_revision(self) -> ReferenceSourceRevision: ...
+
+
+_ReferenceMeasurement = TypeVar(
+    "_ReferenceMeasurement",
+    bound=_ReferenceMeasurementLike,
+)
+
+
+def validated_reference_measurements(
+    measurements: tuple[_ReferenceMeasurement, ...],
+    *,
+    measurement_type: type[_ReferenceMeasurement],
+    dataset_label: str,
+) -> tuple[_ReferenceMeasurement, ...]:
+    values = tuple(measurements)
+    if not values or any(not isinstance(value, measurement_type) for value in values):
+        raise ValueError(f"{dataset_label} requires measurement groups.")
+    values = tuple(sorted(values, key=lambda value: value.measurement_group_id))
+    group_ids = tuple(value.measurement_group_id for value in values)
+    if len(group_ids) != len(set(group_ids)):
+        raise ValueError("A measurement_group must belong to exactly one dataset split.")
+    if {value.split for value in values} != {"calibration", "validation"}:
+        raise ValueError(
+            f"{dataset_label} requires non-empty Calibration and Validation."
+        )
+    validate_reference_split_integrity(tuple(
+        ReferenceMeasurementIdentity(
+            value.measurement_group_id,
+            value.split,
+            value.source_revision,
+        )
+        for value in values
+    ))
+    return values
+
+
 def reference_source_identity(
     target: ReferenceTarget,
     source: ReferenceSourceRevision,
@@ -89,6 +134,21 @@ def reference_source_identity(
         "lineage_fingerprint": source.lineage_fingerprint,
     })
     return f"source-revision-{fingerprint[:24]}", fingerprint
+
+
+def reference_source_revision_row(
+    target: ReferenceTarget,
+    source: ReferenceSourceRevision,
+) -> dict[str, str]:
+    source_revision_id, fingerprint = reference_source_identity(target, source)
+    return {
+        "source_revision_id": source_revision_id,
+        "source_revision_fingerprint": fingerprint,
+        "source_file_name": source.source_file_name,
+        "content_sha256": source.content_sha256,
+        "acquisition_fingerprint": source.acquisition_fingerprint,
+        "lineage_fingerprint": source.lineage_fingerprint,
+    }
 
 
 def reference_measurement_group_fingerprint(
@@ -178,7 +238,9 @@ __all__ = [
     "reference_measurement_group_fingerprint",
     "reference_partition_fingerprint",
     "reference_source_identity",
+    "reference_source_revision_row",
     "reference_stable_id",
     "reference_text",
     "validate_reference_split_integrity",
+    "validated_reference_measurements",
 ]

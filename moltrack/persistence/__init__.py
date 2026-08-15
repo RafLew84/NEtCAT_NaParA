@@ -14,6 +14,13 @@ from .m6_reference_schema import (
     M6ReferenceMeasurementGroup,
     M6ReferenceSourceRevision,
 )
+from .orientation_reference_dataset import publish_orientation_reference_dataset
+from .orientation_reference_schema import (
+    OrientationReferenceDatasetPublication,
+    OrientationReferenceDatasetSettings,
+    OrientationReferenceMeasurementGroup,
+    OrientationReferenceSourceRevision,
+)
 from .session_store import (
     MolTrackStateSaveProgress,
     load_moltrack_session,
@@ -31,9 +38,14 @@ __all__ = [
     "M6ReferenceFirstShellEdge",
     "M6ReferenceMeasurementGroup",
     "M6ReferenceSourceRevision",
+    "OrientationReferenceDatasetPublication",
+    "OrientationReferenceDatasetSettings",
+    "OrientationReferenceMeasurementGroup",
+    "OrientationReferenceSourceRevision",
     "CanonicalJsonObject",
     "export_analysis_package",
     "publish_m6_reference_dataset",
+    "publish_orientation_reference_dataset",
     "MolTrackStateSaveProgress",
     "MolTrackSessionLoadError",
     "load_moltrack_session",

@@ -9,7 +9,6 @@ from moltrack.analysis.domain_analysis import (
     M6FrameGate,
     M6PublishedMolecule,
     ReferenceReviewDecision,
-    ReferenceReviewPolicy,
 )
 from moltrack.analysis.domain_analysis.diagnostic_funnel import (
     build_molecule_diagnostic_funnels,
@@ -22,12 +21,12 @@ from .m6_reference_identity import (
 )
 from .m6_reference_schema import M6ReferenceMeasurementGroup, M6ReferenceSplit
 from .reference_dataset import (
-    ReferenceMeasurementIdentity,
     reference_measurement_group_fingerprint,
     reference_partition_fingerprint,
-    reference_source_identity,
-    validate_reference_split_integrity,
+    reference_source_revision_row,
+    validated_reference_measurements,
 )
+from .reference_dataset_readiness import validate_reference_snapshot_readiness
 
 
 M6_REFERENCE_TABLE_FILES = (
@@ -83,34 +82,11 @@ def build_m6_reference_tables(
 def _validated_measurements(
     measurements: tuple[M6ReferenceMeasurementGroup, ...],
 ) -> tuple[M6ReferenceMeasurementGroup, ...]:
-    measurement_values = tuple(measurements)
-    if not measurement_values or any(
-        not isinstance(value, M6ReferenceMeasurementGroup)
-        for value in measurement_values
-    ):
-        raise ValueError("M6 Reference Dataset requires measurement groups.")
-    values = tuple(sorted(
-        measurement_values,
-        key=lambda value: value.measurement_group_id,
-    ))
-    group_ids = tuple(value.measurement_group_id for value in values)
-    if len(group_ids) != len(set(group_ids)):
-        raise ValueError(
-            "A measurement_group must belong to exactly one dataset split."
-        )
-    splits = {value.split for value in values}
-    if splits != {"calibration", "validation"}:
-        raise ValueError(
-            "M6 Reference Dataset requires non-empty Calibration and Validation."
-        )
-    validate_reference_split_integrity(tuple(
-        ReferenceMeasurementIdentity(
-            value.measurement_group_id,
-            value.split,
-            value.source_revision,
-        )
-        for value in values
-    ))
+    values = validated_reference_measurements(
+        measurements,
+        measurement_type=M6ReferenceMeasurementGroup,
+        dataset_label="M6 Reference Dataset",
+    )
     for value in values:
         _validate_ready_measurement(value)
     return values
@@ -118,40 +94,10 @@ def _validated_measurements(
 
 def _validate_ready_measurement(measurement: M6ReferenceMeasurementGroup) -> None:
     state = measurement.snapshot
-    if state.correction_workspace_quarantine is not None:
-        raise ValueError("Quarantined corrections cannot publish an M6 reference.")
+    validate_reference_snapshot_readiness(state, "m6")
     publication = state.published_result
-    if publication is None or publication.result.m6_gate is None:
-        raise ValueError("M6 Reference Dataset publication rejects draft state.")
-    corrections = state.domain_corrections
-    if corrections.prepared_rebase is not None and not corrections.prepared_rebase.is_ready:
-        raise ValueError("Conflicted corrections cannot publish an M6 reference.")
-    if corrections.pending_automatic_candidate is not None:
-        raise ValueError("Stale corrections cannot publish an M6 reference.")
-    if corrections.prepared is not None:
-        raise ValueError("Prepared correction draft cannot publish an M6 reference.")
-    if corrections.correction_set is None or corrections.effective_projection is None:
-        raise ValueError("M6 Reference Dataset requires an effective M6 projection.")
-    readiness = ReferenceReviewPolicy().readiness(state.reference_reviews, "m6")
-    if not readiness.ready:
-        raise ValueError(
-            "M6 Reference Dataset requires complete signed M6 review scope."
-        )
-    _validate_review_reasons(state)
+    assert publication is not None and publication.result.m6_gate is not None
     _validate_edges(measurement, publication.result.m6_gate.frames)
-
-
-def _validate_review_reasons(state: DomainAnalysisSessionState) -> None:
-    for frame in state.reference_reviews.frames:
-        if frame.scope.target != "m6":
-            continue
-        for decision in frame.decisions:
-            if (
-                decision.eligibility == "not_eligible"
-                or decision.disposition == "rejected"
-                or decision.abstention is not None
-            ) and decision.reason_code is None:
-                raise ValueError("M6 review decisions requiring a reason are incomplete.")
 
 
 def _validate_edges(
@@ -185,7 +131,7 @@ def _append_measurement_tables(
         correction_set,
         projection,
     )
-    source = _source_revision(measurement)
+    source = reference_source_revision_row("m6", measurement.source_revision)
     tables["measurements.jsonl"].append(_measurement_row(
         measurement,
         source,
@@ -202,22 +148,6 @@ def _append_measurement_tables(
         )
     _append_diagnostic_stages(tables, measurement)
     _append_first_shell_edges(tables, measurement)
-
-
-def _source_revision(measurement: M6ReferenceMeasurementGroup) -> dict[str, Any]:
-    source = measurement.source_revision
-    source_revision_id, source_revision_fingerprint = reference_source_identity(
-        "m6",
-        source,
-    )
-    return {
-        "source_revision_id": source_revision_id,
-        "source_revision_fingerprint": source_revision_fingerprint,
-        "source_file_name": source.source_file_name,
-        "content_sha256": source.content_sha256,
-        "acquisition_fingerprint": source.acquisition_fingerprint,
-        "lineage_fingerprint": source.lineage_fingerprint,
-    }
 
 
 def _measurement_row(

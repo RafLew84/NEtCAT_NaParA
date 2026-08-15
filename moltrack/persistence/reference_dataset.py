@@ -20,9 +20,11 @@ from .reference_dataset_identity import (
     reference_measurement_group_fingerprint,
     reference_partition_fingerprint,
     reference_source_identity,
+    reference_source_revision_row,
     reference_stable_id,
     reference_text,
     validate_reference_split_integrity,
+    validated_reference_measurements,
 )
 
 
@@ -464,5 +466,7 @@ __all__ = [
     "reference_measurement_group_fingerprint",
     "reference_partition_fingerprint",
     "reference_source_identity",
+    "reference_source_revision_row",
     "validate_reference_split_integrity",
+    "validated_reference_measurements",
 ]
