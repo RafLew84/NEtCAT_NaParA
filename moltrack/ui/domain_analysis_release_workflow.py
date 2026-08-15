@@ -3,20 +3,17 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 from PyQt6.QtWidgets import QFileDialog, QInputDialog, QWidget
 
 from moltrack.analysis import (
-    FirstShellGeometryExperimentSettings,
-    FirstShellGraphSettings,
-    FirstShellPairCorrelationEvidence,
     FrozenFirstShellGeometrySelection,
     LatticeDomainCalibrationSweepSettings,
     LatticeDomainPartitionLabels,
     MolecularM6OrientationAnalysisSettings,
     freeze_m6_candidate_shortlist,
     open_m6_validation_and_publish_report,
-    run_first_shell_geometry_experiment,
     run_lattice_domain_calibration_campaign,
 )
 from moltrack.analysis.domain_analysis import (
@@ -25,6 +22,7 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisSeries,
     M3M6LatticeNetworkEvidence,
     M6OrientationComponentsEvidence,
+    M6PresetLibrary,
     M6RunConfiguration,
     MoleculeDiagnosticStageId,
 )
@@ -34,6 +32,7 @@ from moltrack.analysis.m6_calibration_campaign_models import (
     M6CalibrationGroupPrediction,
     M6CalibrationObjective,
 )
+from moltrack.analysis.first_shell_geometry_models import FirstShellPolicyMode
 from moltrack.analysis.m6_validation_campaign_models import (
     M6CampaignReportV2Publication,
     M6CandidateShortlist,
@@ -48,9 +47,16 @@ from moltrack.ui.domain_backend_adapters import (
 )
 
 from .domain_analysis_workflow_sheet import DomainAnalysisWorkflowActions
+from .first_shell_calibration_application import (
+    FirstShellCalibrationApplication,
+    FirstShellCalibrationComparison,
+    FirstShellCalibrationGroup,
+    FirstShellCalibrationSelection,
+)
 from .domain_analysis_reference_workflow import (
     CurrentDomainAnalysisWorkspace,
     DomainAnalysisReferenceWorkflow,
+    StagedReferenceMeasurement,
 )
 
 
@@ -59,12 +65,18 @@ class M6ReleaseCampaign:
     """Auditable artifacts produced by one interactive release campaign."""
 
     geometry: FrozenFirstShellGeometrySelection
+    geometry_comparison: FirstShellCalibrationComparison
+    configuration: M6RunConfiguration
     campaign: M6CalibrationCampaignReport
     shortlist: M6CandidateShortlist
     publication: M6CampaignReportV2Publication
     evaluation_trace: tuple[
         tuple[str, tuple[tuple[str, str], ...]], ...
     ]
+
+
+class _CalibrationCancelled(Exception):
+    """Stop the interactive workflow without leaking cancellation downstream."""
 
 
 class DomainAnalysisReleaseWorkflow:
@@ -118,20 +130,51 @@ class DomainAnalysisReleaseWorkflow:
         package = self._references.m6_publication
         _state, _series, _analysis_series, library = current()
         configuration = library.active_run_configuration()
-        policy = configuration.first_shell_geometry
-        if policy.mode != "fixed":
-            raise ValueError(
-                "Calibrate requires an explicitly activated fixed first-shell policy."
+        try:
+            objective = self._required_objective()
+            groups = self._references.m6_groups
+            geometry_choice = self._select_geometry(
+                package.package_path,
+                configuration,
+                library,
+                groups,
             )
-        objective = self._objective()
-        if objective is None:
-            return "Calibration cancelled before Validation was opened."
-        geometry = self._geometry(configuration)
-        groups = self._references.m6_groups
-        observed: dict[str, list[tuple[str, str]]] = {}
-        adapters = self._campaign_backends(groups, configuration.settings, observed)
+            comparison, selection = geometry_choice
+            geometry = selection.geometry
+            configuration = selection.configuration
+            observed: dict[str, list[tuple[str, str]]] = {}
+            adapters = self._campaign_backends(
+                groups, configuration.settings, observed
+            )
+            campaign_result = self._run_and_publish_campaign(
+                package.package_path,
+                configuration,
+                objective,
+                geometry,
+                adapters,
+            )
+        except _CalibrationCancelled as cancellation:
+            return str(cancellation)
+        campaign, shortlist, publication = campaign_result
+        self._last_campaign = _release_campaign(
+            geometry_choice, campaign_result, observed
+        )
+        return publication.output_directory
+
+    def _run_and_publish_campaign(
+        self,
+        package_path: str | Path,
+        configuration: M6RunConfiguration,
+        objective: M6CalibrationObjective,
+        geometry: FrozenFirstShellGeometrySelection,
+        adapters: tuple[M6CalibrationBackend, ...],
+    ) -> tuple[
+        M6CalibrationCampaignReport,
+        M6CandidateShortlist,
+        M6CampaignReportV2Publication,
+    ]:
         campaign = run_lattice_domain_calibration_campaign(
-            package.package_path,
+            package_path,
             LatticeDomainCalibrationSweepSettings(
                 baseline_settings=configuration.settings,
                 parameter_names=("q_grow",),
@@ -144,11 +187,12 @@ class DomainAnalysisReleaseWorkflow:
         )
         shortlist = freeze_m6_candidate_shortlist(campaign, geometry)
         destination = QFileDialog.getExistingDirectory(
-            self._owner,
-            "Publish M6 campaign report v2",
+            self._owner, "Publish M6 campaign report v2",
         )
         if not destination:
-            return "Report publication cancelled before Validation was opened."
+            raise _CalibrationCancelled(
+                "Report publication cancelled before Validation was opened."
+            )
         publication = open_m6_validation_and_publish_report(
             campaign,
             shortlist,
@@ -156,67 +200,90 @@ class DomainAnalysisReleaseWorkflow:
             backends=adapters,
             destination=Path(destination) / "m6-campaign-report-v2",
         )
-        self._last_campaign = M6ReleaseCampaign(
-            geometry=geometry,
-            campaign=campaign,
-            shortlist=shortlist,
-            publication=publication,
-            evaluation_trace=tuple(
-                (backend_id, tuple(observed[backend_id]))
-                for backend_id in sorted(observed)
-            ),
-        )
-        return publication.output_directory
+        return campaign, shortlist, publication
 
-    def _geometry(self, configuration: M6RunConfiguration):
-        package = self._references.m6_publication
-        policy = configuration.first_shell_geometry
-        assert policy.fixed_r_min_nm is not None and policy.fixed_r_max_nm is not None
-        groups = self._references.m6_groups
-        return run_first_shell_geometry_experiment(
-            package.package_path,
-            FirstShellGeometryExperimentSettings(
-                graph_settings=FirstShellGraphSettings(
-                    duplicate_detection_enabled=(
-                        configuration.settings.duplicate_detection_enabled
-                    ),
-                    duplicate_max_distance_nm=(
-                        configuration.settings.duplicate_max_distance_nm
-                    ),
-                    geometry_absolute_tolerance_nm=(
-                        configuration.settings.geometry_absolute_tolerance_nm
-                    ),
-                    geometry_relative_tolerance=(
-                        configuration.settings.geometry_relative_tolerance
-                    ),
-                ),
-                fixed_r_min_nm=policy.fixed_r_min_nm,
-                fixed_r_max_nm=policy.fixed_r_max_nm,
-                gr_bin_width_nm=configuration.settings.gr_bin_width_nm,
-                gr_max_nm=configuration.settings.gr_max_nm,
-                gr_min_expected_pair_exposure=(
-                    configuration.settings.gr_min_expected_pair_exposure
-                ),
-                gr_min_contributing_frames=(
-                    configuration.settings.gr_min_contributing_frames
-                ),
-                gr_smoothing_width=configuration.settings.gr_smoothing_width,
-                gr_peak_prominence=configuration.settings.gr_peak_prominence,
-            ),
-            pair_correlations=tuple(
-                FirstShellPairCorrelationEvidence.unavailable(
-                    package.version_id,
-                    group.measurement_group_id,
-                    symmetry,
-                    "operator_selected_fixed_policy",
-                )
-                for group in groups
-                if group.split == "calibration"
-                for symmetry in self._references.first_shell_symmetries(
+    def _select_geometry(
+        self,
+        package_path: str | Path,
+        configuration: M6RunConfiguration,
+        library: M6PresetLibrary,
+        groups: tuple[StagedReferenceMeasurement, ...],
+    ) -> tuple[
+        FirstShellCalibrationComparison,
+        FirstShellCalibrationSelection,
+    ]:
+        comparison = FirstShellCalibrationApplication.compare(
+            package_path,
+            configuration,
+            self._calibration_groups(groups),
+        )
+        mode = self._geometry_policy(comparison)
+        if mode is None:
+            raise _CalibrationCancelled(
+                "Calibration cancelled before geometry was frozen."
+            )
+        selection = comparison.freeze(mode, configuration)
+        preset_name = self._geometry_preset_name()
+        if preset_name is None:
+            raise _CalibrationCancelled(
+                "Calibration cancelled before geometry preset Save As."
+            )
+        FirstShellCalibrationApplication.save_as_active(
+            selection,
+            library,
+            preset_name,
+        )
+        return comparison, selection
+
+    def _required_objective(self) -> M6CalibrationObjective:
+        objective = self._objective()
+        if objective is None:
+            raise _CalibrationCancelled(
+                "Calibration cancelled before Validation was opened."
+            )
+        return objective
+
+    def _calibration_groups(
+        self,
+        groups: tuple[StagedReferenceMeasurement, ...],
+    ) -> tuple[FirstShellCalibrationGroup, ...]:
+        return tuple(
+            FirstShellCalibrationGroup(
+                group.measurement_group_id,
+                group.analysis_series,
+                self._references.first_shell_frame_symmetries(
                     group.measurement_group_id
-                )
-            ),
-        ).freeze("fixed")
+                ),
+            )
+            for group in groups
+            if group.split == "calibration"
+        )
+
+    def _geometry_policy(
+        self,
+        comparison: FirstShellCalibrationComparison,
+    ) -> FirstShellPolicyMode | None:
+        value, accepted = QInputDialog.getItem(
+            self._owner,
+            "First-shell geometry comparison",
+            "Select first-shell geometry policy\n" + comparison.operator_summary(),
+            ("fixed", "adaptive"),
+            0,
+            False,
+        )
+        if not accepted or value not in {"fixed", "adaptive"}:
+            return None
+        return cast(FirstShellPolicyMode, value)
+
+    def _geometry_preset_name(self) -> str | None:
+        value, accepted = QInputDialog.getText(
+            self._owner,
+            "Save selected first-shell geometry",
+            "Active preset name",
+        )
+        if not accepted or not value.strip():
+            return None
+        return value.strip()
 
     def _campaign_backends(self, groups, settings, observed):
         probe = self._production_adapters(groups[0].analysis_series, settings)
@@ -286,6 +353,35 @@ class DomainAnalysisReleaseWorkflow:
             MolTrackOrientationComponentsAdapter(series, settings=settings),
             MolTrackLatticeNetworkAdapter(series, settings=settings),
         )
+
+
+def _release_campaign(
+    geometry_choice: tuple[
+        FirstShellCalibrationComparison,
+        FirstShellCalibrationSelection,
+    ],
+    campaign_result: tuple[
+        M6CalibrationCampaignReport,
+        M6CandidateShortlist,
+        M6CampaignReportV2Publication,
+    ],
+    observed: dict[str, list[tuple[str, str]]],
+) -> M6ReleaseCampaign:
+    comparison, selection = geometry_choice
+    campaign, shortlist, publication = campaign_result
+    return M6ReleaseCampaign(
+        geometry=selection.geometry,
+        geometry_comparison=comparison,
+        configuration=selection.configuration,
+        campaign=campaign,
+        shortlist=shortlist,
+        publication=publication,
+        evaluation_trace=tuple(
+            (backend_id, tuple(observed[backend_id]))
+            for backend_id in sorted(observed)
+        ),
+    )
+
 
 def _campaign_prediction(result, source_ids) -> M6CalibrationGroupPrediction:
     gate = result.m6_gate

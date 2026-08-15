@@ -9,6 +9,7 @@ from moltrack.analysis import TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
 from moltrack.analysis._m6_settings_fingerprint import m6_settings_fingerprint
 from moltrack.analysis.domain_analysis import (
     FirstShellGeometryPolicy,
+    FirstShellGeometrySelectionRecord,
     M6OrientationComponentsEvidence,
     M6Preset,
     M6PresetLibrary,
@@ -243,7 +244,7 @@ def test_configuration_fingerprint_isolates_m6_cache() -> None:
     assert observed == [first, second]
 
 
-def test_adaptive_first_shell_policy_is_rejected_until_it_is_executable() -> None:
+def test_adaptive_first_shell_policy_is_an_executable_frozen_configuration() -> None:
     fixed = _configuration()
     adaptive = FirstShellGeometryPolicy(
         mode="adaptive",
@@ -253,12 +254,67 @@ def test_adaptive_first_shell_policy_is_rejected_until_it_is_executable() -> Non
         adaptive_parameters=(("smoothing_window", 5),),
     )
 
-    with pytest.raises(ValueError, match="not executable"):
-        M6RunConfiguration(
-            backend_identity=fixed.backend_identity,
-            settings=fixed.settings,
-            first_shell_geometry=adaptive,
-        )
+    configuration = M6RunConfiguration(
+        backend_identity=fixed.backend_identity,
+        settings=fixed.settings,
+        first_shell_geometry=adaptive,
+    )
+
+    assert configuration.first_shell_geometry == adaptive
+    assert configuration.configuration_fingerprint != fixed.configuration_fingerprint
+
+
+def test_library_explicitly_saves_adaptive_geometry_selection_as_active(
+    tmp_path,
+) -> None:
+    fixed = _configuration()
+    adaptive = FirstShellGeometryPolicy(
+        mode="adaptive",
+        fixed_r_min_nm=fixed.settings.first_shell_r_min_nm,
+        fixed_r_max_nm=fixed.settings.first_shell_r_max_nm,
+        algorithm_version="adaptive-first-shell-v1",
+        adaptive_parameters=(("smoothing_window", 5),),
+    )
+    record = FirstShellGeometrySelectionRecord(
+        dataset_version_id="dataset-v1",
+        dataset_version_fingerprint="dataset-fingerprint",
+        validation_epoch_id="validation-epoch",
+        experiment_fingerprint="experiment-fingerprint",
+        geometry_fingerprint="geometry-fingerprint",
+        policy_fingerprint=adaptive.policy_fingerprint,
+        policy_result_fingerprint="policy-result-fingerprint",
+        evidence_fingerprints=(("group-a", "sixfold", "evidence-fingerprint"),),
+    )
+    configuration = M6RunConfiguration(
+        backend_identity=fixed.backend_identity,
+        settings=fixed.settings,
+        first_shell_geometry=adaptive,
+        first_shell_geometry_selection=record,
+    )
+    path = tmp_path / "m6-presets.json"
+    library = M6PresetLibrary(
+        path,
+        built_in_presets=(_built_in(),),
+        clock=lambda: _NOW,
+    )
+
+    saved = library.save_as_active(
+        "Adaptive Calibration geometry",
+        configuration,
+        description="Explicit operator Save As",
+    )
+    restored = M6PresetLibrary(
+        path,
+        built_in_presets=(_built_in(),),
+        clock=lambda: _NOW,
+    )
+
+    assert library.snapshot.active_preset == saved
+    assert restored.snapshot.active_preset.configuration == configuration
+    assert (
+        restored.active_run_configuration().first_shell_geometry_selection
+        == record
+    )
 
 
 def _series() -> DomainAnalysisSeries:

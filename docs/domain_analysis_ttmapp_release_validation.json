@@ -22,6 +22,9 @@
     "orientation_reference_v2": true,
     "explicit_operator_preset": true,
     "explicit_first_shell_policy": true,
+    "fixed_adaptive_first_shell_comparison": true,
+    "both_backends_pair_correlation_evidence": true,
+    "adaptive_first_shell_preset_executed": true,
     "first_shell_true_positive_verified": true,
     "same_reference_version_for_both_backends": true,
     "automatic_snapshot_identity_preserved": true,
@@ -60,7 +63,7 @@
     ],
     "dataset_version_id": "ttmapp-m6-cutover-v1-9dfbf8823d3a8b5f",
     "dataset_version_fingerprint": "9dfbf8823d3a8b5f1a703d9671273ca60cad07044db4a54f31982b5b190d5519",
-    "geometry_fingerprint": "8f3f0f92c128a2f7cf03fea747be2101cae064c5021bfa07a8a1706d219bc6d7",
+    "geometry_fingerprint": "2430ad2176a444488950485c54bff6be65212a665e9221684ddf03c2b61f51d0",
     "recommended_backend_id": "m6_orientation_components",
     "results": [
       {
@@ -89,7 +92,7 @@
           "ttmapp-validation"
         ],
         "validation_macro_ari": 0.0,
-        "validation_objective_loss": 0.9033333333333333
+        "validation_objective_loss": 1.6533333333333333
       }
     ],
     "schema_version": "m6-campaign-report-v2",

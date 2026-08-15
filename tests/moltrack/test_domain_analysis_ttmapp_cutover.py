@@ -286,6 +286,8 @@ def test_ttmapp_variant_c_cutover_preserves_identity_through_campaign(
     orientation_package = release_workflow.orientation_publication
     release_campaign = release_workflow.last_campaign
     geometry = release_campaign.geometry
+    geometry_comparison = release_campaign.geometry_comparison
+    campaign_configuration = release_campaign.configuration
     campaign = release_campaign.campaign
     shortlist = release_campaign.shortlist
     report = release_campaign.publication.report
@@ -319,8 +321,48 @@ def test_ttmapp_variant_c_cutover_preserves_identity_through_campaign(
         ),
     }
 
-    assert geometry.policy.mode == "fixed"
+    assert geometry.policy.mode == "adaptive"
     assert geometry.policy.fixed_r_max_nm == 3.5
+    assert {
+        value.policy.mode for value in geometry_comparison.report.policy_results
+    } == {"fixed", "adaptive"}
+    assert geometry_comparison.evidence_backend_ids == tuple(sorted(identities))
+    assert all(
+        evidence.pair_correlation is not None
+        and evidence.unavailable_reason is None
+        for backend in geometry_comparison.backend_evidence
+        for evidence in backend.pair_correlations
+    )
+    assert all(
+        metric.status == "available"
+        and metric.precision is not None
+        and metric.recall is not None
+        and metric.f1_score is not None
+        for result in geometry_comparison.report.policy_results
+        for metric in result.metrics
+    )
+    adaptive_result = geometry_comparison.report.result("adaptive")
+    assert all(
+        decision.resolution == "adaptive_g_r"
+        or (
+            decision.resolution == "fixed_fallback"
+            and decision.fallback_reason
+        )
+        for decision in adaptive_result.decisions
+    )
+    operator_summary = geometry_comparison.operator_summary()
+    assert "resolution=" in operator_summary
+    assert "reason=" in operator_summary
+    assert all(
+        decision.evidence_fingerprint in operator_summary
+        for decision in adaptive_result.decisions
+    )
+    assert all(
+        f"g(r) {backend_id}" in operator_summary
+        for backend_id in identities
+    )
+    assert geometry.dataset_version_id == m6_package.version_id
+    assert geometry.geometry_fingerprint == campaign.geometry_fingerprint
     assert all(metric.reference_edge_count == 1 for metric in geometry.policy_result.metrics)
     assert all(metric.true_positive_edge_count == 1 for metric in geometry.policy_result.metrics)
     assert all(metric.f1_score is not None and metric.f1_score > 0.0 for metric in geometry.policy_result.metrics)
@@ -372,8 +414,25 @@ def test_ttmapp_variant_c_cutover_preserves_identity_through_campaign(
         for _version_id, group_id in observed[M3_M6_LATTICE_NETWORK_BACKEND_ID]
     }
     assert report.preset_modified is False
-    assert library.active_run_configuration() == frozen_configuration
-    assert geometry.policy.mode == "fixed"
+    active_configuration = library.active_run_configuration()
+    assert active_configuration == campaign_configuration
+    assert active_configuration != frozen_configuration
+    assert campaign_configuration != frozen_configuration
+    assert campaign_configuration.first_shell_geometry == geometry.policy
+    assert campaign_configuration.first_shell_geometry.mode == "adaptive"
+    selection_record = campaign_configuration.first_shell_geometry_selection
+    assert selection_record is not None
+    assert selection_record.dataset_version_id == m6_package.version_id
+    assert selection_record.geometry_fingerprint == geometry.geometry_fingerprint
+    assert selection_record.policy_fingerprint == geometry.policy.policy_fingerprint
+    assert selection_record.evidence_fingerprints == tuple(
+        (
+            decision.measurement_group_id,
+            decision.symmetry_class,
+            decision.evidence_fingerprint,
+        )
+        for decision in geometry.policy_result.decisions
+    )
     release = _json(_RELEASE_REPORT)
     assert release["validation_schema_version"] == 2
     assert release["automatic_snapshot_fingerprints"] == sorted(
@@ -420,6 +479,8 @@ def _configure_release_prompts(monkeypatch, groups, tmp_path: Path) -> None:
     def get_item(_owner, title, label, *_args, **_kwargs):
         if label == "Whole measurement group split":
             return next(split_choices), True
+        if label.startswith("Select first-shell geometry policy"):
+            return "adaptive", True
         group = next(value for key, value in group_by_id.items() if key in title)
         symmetry = "trifold" if group.split == "calibration" else "sixfold"
         return symmetry, True
@@ -433,6 +494,8 @@ def _configure_release_prompts(monkeypatch, groups, tmp_path: Path) -> None:
             return active_group[0].acquisition_fingerprint, True
         if label == "Stable sample/condition lineage fingerprint":
             return active_group[0].lineage_fingerprint, True
+        if label == "Active preset name":
+            return "TTMAPP adaptive Calibration geometry", True
         dataset_id = (
             "ttmapp-m6-cutover"
             if "m6" in title.lower()

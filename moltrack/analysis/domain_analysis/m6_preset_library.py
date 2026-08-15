@@ -28,6 +28,7 @@ from ._m6_preset_values import (
     timestamp_text as _timestamp_text,
 )
 from .backend_contract import DomainBackendIdentity
+from .first_shell_geometry_selection import FirstShellGeometrySelectionRecord
 from .fingerprints import canonical_sha256
 
 
@@ -123,6 +124,7 @@ class M6RunConfiguration:
     backend_identity: DomainBackendIdentity
     settings: MolecularM6OrientationAnalysisSettings
     first_shell_geometry: FirstShellGeometryPolicy
+    first_shell_geometry_selection: FirstShellGeometrySelectionRecord | None = None
     schema_version: str = M6_PRESET_SCHEMA_VERSION
     configuration_fingerprint: str = field(init=False)
 
@@ -133,6 +135,19 @@ class M6RunConfiguration:
             raise TypeError("settings must be MolecularM6OrientationAnalysisSettings.")
         if not isinstance(self.first_shell_geometry, FirstShellGeometryPolicy):
             raise TypeError("first_shell_geometry must be FirstShellGeometryPolicy.")
+        selection = self.first_shell_geometry_selection
+        if selection is not None:
+            if not isinstance(selection, FirstShellGeometrySelectionRecord):
+                raise TypeError(
+                    "first_shell_geometry_selection must be a selection record or None."
+                )
+            if (
+                selection.policy_fingerprint
+                != self.first_shell_geometry.policy_fingerprint
+            ):
+                raise ValueError(
+                    "Geometry selection policy fingerprint does not match policy."
+                )
         schema = _text(self.schema_version, "schema_version")
         if schema != M6_PRESET_SCHEMA_VERSION:
             raise ValueError(f"Unsupported M6 preset schema: {schema!r}.")
@@ -147,10 +162,6 @@ class M6RunConfiguration:
             != self.first_shell_geometry.fixed_r_max_nm
         ):
             raise ValueError("Fixed first-shell policy must match the M6 settings range.")
-        if self.first_shell_geometry.mode == "adaptive":
-            raise ValueError(
-                "Adaptive first-shell policies are not executable in this release."
-            )
         object.__setattr__(self, "schema_version", schema)
         object.__setattr__(
             self,
@@ -169,6 +180,10 @@ class M6RunConfiguration:
             "settings": self.settings.to_dict(),
             "first_shell_geometry": self.first_shell_geometry.to_payload(),
         }
+        if self.first_shell_geometry_selection is not None:
+            payload["first_shell_geometry_selection"] = (
+                self.first_shell_geometry_selection.to_payload()
+            )
         if include_fingerprint:
             payload["configuration_fingerprint"] = self.configuration_fingerprint
         return payload
@@ -185,6 +200,13 @@ class M6RunConfiguration:
             settings=settings,
             first_shell_geometry=FirstShellGeometryPolicy.from_payload(
                 saved.get("first_shell_geometry")
+            ),
+            first_shell_geometry_selection=(
+                None
+                if saved.get("first_shell_geometry_selection") is None
+                else FirstShellGeometrySelectionRecord.from_payload(
+                    saved.get("first_shell_geometry_selection")
+                )
             ),
             schema_version=_text(saved.get("schema_version"), "schema_version"),
         )
@@ -315,6 +337,23 @@ class M6PresetLibrary:
         updated_users = {**self._users, preset.name: preset}
         self._persist(updated_users, self._active_name)
         self._users = updated_users
+        return preset
+
+    def save_as_active(
+        self,
+        name: str,
+        configuration: M6RunConfiguration,
+        *,
+        description: str = "",
+    ) -> M6Preset:
+        """Atomically Save As and activate after an explicit operator decision."""
+
+        preset = self.new(name, configuration, description=description)
+        self._ensure_compatible(preset)
+        users = {**self._users, preset.name: preset}
+        self._persist(users, preset.name)
+        self._users = users
+        self._active_name = preset.name
         return preset
 
     def preset(self, name: str) -> M6Preset:

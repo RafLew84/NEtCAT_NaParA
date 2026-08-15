@@ -1,8 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from dataclasses import replace
 from math import cos, radians, sin
 
 from moltrack.analysis import TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
+from moltrack.analysis import (
+    PairCorrelationResult,
+    compute_pair_correlation,
+    suggest_first_shell_r_max,
+)
 from moltrack.analysis._m6_settings_fingerprint import m6_settings_fingerprint
 from moltrack.analysis.domain_analysis import (
     M3_M6_LATTICE_NETWORK_BACKEND_ID,
@@ -19,6 +26,7 @@ from moltrack.analysis.domain_analysis import (
     FirstShellGeometryPolicy,
     M6RunConfiguration,
 )
+from moltrack.analysis.domain_analysis.canonical_geometry import canonicalize_frame
 from moltrack.analysis.m6_settings import MolecularM6OrientationAnalysisSettings
 from moltrack.analysis.lattice_domain_models import (
     LATTICE_DOMAIN_ANALYSIS_ALGORITHM_VERSION,
@@ -48,9 +56,11 @@ class MolTrackOrientationComponentsAdapter:
         settings: MolecularM6OrientationAnalysisSettings = (
             TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
         ),
+        geometry_policy: FirstShellGeometryPolicy | None = None,
     ) -> None:
         self._series = series
         self._settings = settings
+        self._geometry_policy = _geometry_policy(settings, geometry_policy)
         settings_fingerprint = m6_settings_fingerprint(self._settings)
         self.backend_identity = DomainBackendIdentity(
             backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID,
@@ -59,11 +69,23 @@ class MolTrackOrientationComponentsAdapter:
             settings_fingerprint=settings_fingerprint,
             adapter_owner="analyze_m6_orientation_domains",
             native_evidence_kind="m6_orientation_evidence_v1",
-            capabilities=("common_partition", "orientation_components"),
+            capabilities=(
+                "common_partition",
+                "orientation_components",
+            ),
         )
         self._geometry_by_frame = {
             value.frame_index: value.geometry for value in series.frames
         }
+
+    def first_shell_pair_correlations(self) -> tuple[PairCorrelationResult, ...]:
+        """Return Calibration g(r) evidence in canonical frame order."""
+
+        return _pair_correlations(
+            self._series,
+            self._settings,
+            _classic_pair_correlation,
+        )
 
     def default_run_configuration(self) -> M6RunConfiguration:
         return _run_configuration(self.backend_identity, self._settings)
@@ -75,6 +97,7 @@ class MolTrackOrientationComponentsAdapter:
         configured = MolTrackOrientationComponentsAdapter(
             self._series,
             settings=configuration.settings,
+            geometry_policy=configuration.first_shell_geometry,
         )
         _validate_frozen_identity(configured.backend_identity, configuration)
         return configured
@@ -97,13 +120,23 @@ class MolTrackOrientationComponentsAdapter:
                 evidence=M6OrientationComponentsEvidence((), ()),
             )
         geometry = self._geometry_by_frame[frame_index]
+        settings = _settings_for_geometry_policy(
+            self._geometry_policy,
+            self._settings,
+            lambda: _classic_pair_correlation(
+                    frame,
+                    frame_index=frame_index,
+                    geometry=geometry,
+                    settings=self._settings,
+            ),
+        )
         analysis = analyze_m6_orientation_domains(
             tuple(value.centroid_xy_nm for value in frame.molecules),
             distance_to_valid_fov_boundary_nm=_boundary_distances(
                 frame, geometry.raw_shape, geometry.pixel_size_nm
             ),
             point_ids=tuple(value.source_id for value in frame.molecules),
-            settings=self._settings,
+            settings=settings,
             spatial_calibration_fingerprint=(
                 frame.coordinate_transform_fingerprint
             ),
@@ -146,9 +179,11 @@ class MolTrackLatticeNetworkAdapter:
         settings: MolecularM6OrientationAnalysisSettings = (
             TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
         ),
+        geometry_policy: FirstShellGeometryPolicy | None = None,
     ) -> None:
         self._series = series
         self._settings = settings
+        self._geometry_policy = _geometry_policy(settings, geometry_policy)
         settings_fingerprint = m6_settings_fingerprint(self._settings)
         self.backend_identity = DomainBackendIdentity(
             backend_id=M3_M6_LATTICE_NETWORK_BACKEND_ID,
@@ -173,6 +208,15 @@ class MolTrackLatticeNetworkAdapter:
             value.frame_index: value.geometry for value in series.frames
         }
 
+    def first_shell_pair_correlations(self) -> tuple[PairCorrelationResult, ...]:
+        """Return Calibration g(r) evidence retained by the network backend."""
+
+        return _pair_correlations(
+            self._series,
+            self._settings,
+            _network_pair_correlation,
+        )
+
     def default_run_configuration(self) -> M6RunConfiguration:
         return _run_configuration(self.backend_identity, self._settings)
 
@@ -183,6 +227,7 @@ class MolTrackLatticeNetworkAdapter:
         configured = MolTrackLatticeNetworkAdapter(
             self._series,
             settings=configuration.settings,
+            geometry_policy=configuration.first_shell_geometry,
         )
         _validate_frozen_identity(configured.backend_identity, configuration)
         return configured
@@ -205,9 +250,19 @@ class MolTrackLatticeNetworkAdapter:
                 evidence=M3M6LatticeNetworkEvidence((), (), (), (), ()),
             )
         geometry = self._geometry_by_frame[frame_index]
+        settings = _settings_for_geometry_policy(
+            self._geometry_policy,
+            self._settings,
+            lambda: _network_pair_correlation(
+                    frame,
+                    frame_index=frame_index,
+                    geometry=geometry,
+                    settings=self._settings,
+            ),
+        )
         analysis = analyze_molecular_m6_orientation(
             _sample_coordinates(frame, frame_index=frame_index, geometry=geometry),
-            settings=self._settings,
+            settings=settings,
         )
         lattice = analysis.lattice_domain_analysis
         if lattice is None:
@@ -304,6 +359,104 @@ def _classic_native_evidence(
         local_order_status=tuple(zip(local_ids, local_statuses)),
         component_type=tuple(zip(segmentation_ids, component_types)),
     )
+
+
+def _classic_pair_correlation(
+    frame: M6CanonicalFrame,
+    frame_index: int,
+    geometry: M6FrameGeometry,
+    settings: MolecularM6OrientationAnalysisSettings,
+) -> PairCorrelationResult:
+    width_nm = geometry.raw_shape[1] * geometry.pixel_size_nm[0]
+    height_nm = geometry.raw_shape[0] * geometry.pixel_size_nm[1]
+    points = tuple(value.centroid_xy_nm for value in frame.molecules)
+    point_ids = tuple(value.source_id for value in frame.molecules)
+    analysis = analyze_m6_orientation_domains(
+        points,
+        distance_to_valid_fov_boundary_nm=_boundary_distances(
+            frame, geometry.raw_shape, geometry.pixel_size_nm
+        ),
+        point_ids=point_ids,
+        settings=settings,
+        spatial_calibration_fingerprint=frame.coordinate_transform_fingerprint,
+        registration_fingerprint=frame.presentation_provenance.registration_fingerprint,
+        window_geometry="rectangular",
+        window_size_nm=(width_nm, height_nm),
+    )
+    return compute_pair_correlation(
+        points,
+        point_ids=point_ids,
+        point_frame_indices=(frame_index,) * len(points),
+        first_shell_graph=analysis.first_shell_graph,
+        frame_index=frame_index,
+        settings=settings,
+        window_geometry="rectangular",
+        window_size_nm=(width_nm, height_nm),
+    )
+
+
+def _network_pair_correlation(
+    frame: M6CanonicalFrame,
+    frame_index: int,
+    geometry: M6FrameGeometry,
+    settings: MolecularM6OrientationAnalysisSettings,
+) -> PairCorrelationResult:
+    return analyze_molecular_m6_orientation(
+        _sample_coordinates(frame, frame_index=frame_index, geometry=geometry),
+        settings=settings,
+    ).pair_correlation
+
+
+def _pair_correlations(
+    series: DomainAnalysisSeries,
+    settings: MolecularM6OrientationAnalysisSettings,
+    compute: Callable[
+        [
+            M6CanonicalFrame,
+            int,
+            M6FrameGeometry,
+            MolecularM6OrientationAnalysisSettings,
+        ],
+        PairCorrelationResult,
+    ],
+) -> tuple[PairCorrelationResult, ...]:
+    return tuple(
+        compute(
+            canonicalize_frame(
+                series,
+                frame_index=frame.frame_index,
+                geometry_mode="segmentation_preferred",
+            ),
+            frame.frame_index,
+            frame.geometry,
+            settings,
+        )
+        for frame in series.frames
+    )
+
+
+def _geometry_policy(
+    settings: MolecularM6OrientationAnalysisSettings,
+    policy: FirstShellGeometryPolicy | None,
+) -> FirstShellGeometryPolicy:
+    return policy or FirstShellGeometryPolicy.fixed(
+        r_min_nm=settings.first_shell_r_min_nm,
+        r_max_nm=settings.first_shell_r_max_nm,
+    )
+
+
+def _settings_for_geometry_policy(
+    policy: FirstShellGeometryPolicy,
+    settings: MolecularM6OrientationAnalysisSettings,
+    pair_correlation: Callable[[], PairCorrelationResult],
+) -> MolecularM6OrientationAnalysisSettings:
+    if policy.mode == "fixed":
+        return settings
+    suggestion = suggest_first_shell_r_max(pair_correlation(), settings=settings)
+    resolved_r_max = suggestion.suggested_first_shell_r_max_nm
+    if resolved_r_max is None:
+        return settings
+    return replace(settings, first_shell_r_max_nm=resolved_r_max)
 
 
 def _classic_membership(

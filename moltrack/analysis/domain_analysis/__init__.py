@@ -95,6 +95,10 @@ from .models import (
     M6Gate,
     M6PublishedComponent,
 )
+from .first_shell_geometry_selection import (
+    FIRST_SHELL_GEOMETRY_SELECTION_SCHEMA_VERSION,
+    FirstShellGeometrySelectionRecord,
+)
 from .m6_preset_library import (
     M6_PRESET_LIBRARY_SCHEMA_VERSION,
     M6_PRESET_SCHEMA_VERSION,
@@ -399,7 +403,9 @@ __all__ = [
     "M6_PRESET_FILE_LEGACY_SCHEMA_VERSION",
     "M6_PRESET_FILE_SCHEMA_VERSION",
     "M6_PRESET_SCHEMA_VERSION",
+    "FIRST_SHELL_GEOMETRY_SELECTION_SCHEMA_VERSION",
     "FirstShellGeometryPolicy",
+    "FirstShellGeometrySelectionRecord",
     "M6Preset",
     "M6PresetLibrary",
     "M6PresetLibrarySnapshot",

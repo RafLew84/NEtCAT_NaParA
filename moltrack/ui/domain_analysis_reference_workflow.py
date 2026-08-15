@@ -106,6 +106,17 @@ class DomainAnalysisReferenceWorkflow:
         frames = self._m6_first_shell_frames[measurement_group_id]
         return tuple(sorted({value.symmetry_class for value in frames}))
 
+    def first_shell_frame_symmetries(
+        self,
+        measurement_group_id: str,
+    ) -> tuple[tuple[str, Literal["trifold", "sixfold"]], ...]:
+        """Return the reviewed Calibration stratum for every physical frame."""
+
+        return tuple(
+            (value.physical_frame_id, value.symmetry_class)
+            for value in self._m6_first_shell_frames[measurement_group_id]
+        )
+
     def publish_m6_reference(
         self,
         current: CurrentDomainAnalysisWorkspace,
