@@ -33,6 +33,7 @@ from moltrack.analysis.domain_analysis.correction_rebase_models import (
 from moltrack.persistence import (
     M6ReferenceDatasetSettings,
     M6ReferenceFirstShellEdge,
+    M6ReferenceFirstShellFrame,
     M6ReferenceMeasurementGroup,
     M6ReferenceSourceRevision,
     publish_m6_reference_dataset,
@@ -99,7 +100,9 @@ def test_publish_m6_reference_v2_writes_complete_target_specific_dataset(
         "measurement-calibration",
         "measurement-validation",
     }
-    assert len(_json_lines(first_destination / "frames.jsonl")) == 2
+    frame_rows = _json_lines(first_destination / "frames.jsonl")
+    assert len(frame_rows) == 2
+    assert {row["first_shell_symmetry_class"] for row in frame_rows} == {"sixfold"}
     assert len(_json_lines(first_destination / "molecules.jsonl")) == 6
     assert len(_json_lines(first_destination / "source_geometry.jsonl")) == 6
     assert len(assignment_rows) == 6
@@ -293,6 +296,7 @@ def _measurement(source_root, group_id, split, state, source_character):
             lineage_fingerprint=f"lineage-{group_id}",
         ),
         snapshot=state,
+        first_shell_frames=(M6ReferenceFirstShellFrame("frame-0", "sixfold"),),
         first_shell_edges=(
             M6ReferenceFirstShellEdge("frame-0", "full", "island"),
             M6ReferenceFirstShellEdge("frame-0", "island", "outside"),

@@ -6,6 +6,8 @@ from .frame_ranges import (
 )
 from .first_shell_graph import FirstShellGraph
 from .first_shell_builder import build_first_shell_graph
+from .first_shell_geometry import run_first_shell_geometry_experiment
+from .first_shell_geometry_models import FirstShellGeometryExperimentSettings, FirstShellGraphSettings, FirstShellPairCorrelationEvidence, FrozenFirstShellGeometrySelection
 from .intensity import (
     MolecularIntensityCacheStats,
     MolecularIntensityMeasurement,
@@ -16,10 +18,8 @@ from .intensity import (
     restore_molecular_intensity_cache_records,
 )
 from .m6_settings import (
-    MAX_PAIR_CORRELATION_BIN_COUNT,
-    MolecularM6OrientationAnalysisSettings,
-    MolecularM6SessionState,
-    MolecularM6ViewSettings,
+    MAX_PAIR_CORRELATION_BIN_COUNT, MolecularM6OrientationAnalysisSettings,
+    MolecularM6SessionState, MolecularM6ViewSettings,
 )
 from .m6_domain_type_settings import M6DomainTypeClassificationSettings
 from .m6_presets import TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET
@@ -567,8 +567,8 @@ __all__ = [
     "texture_domain_frame_fingerprint",
     "texture_domain_input_fingerprint",
     "NEAREST_NEIGHBOR_ANGLE_BIN_EDGES_DEGREES",
-    "FirstShellGraph",
-    "FirstShellSuggestionResult",
+    "FirstShellGraph", "FirstShellGeometryExperimentSettings", "FirstShellGraphSettings", "FirstShellPairCorrelationEvidence",
+    "FirstShellSuggestionResult", "FrozenFirstShellGeometrySelection",
     "LATTICE_DOMAIN_EDGE_COMPATIBILITY_ALGORITHM_VERSION",
     "LATTICE_DOMAIN_EDGE_COMPATIBILITY_SCHEMA_VERSION",
     "LatticeDomainEdgeCompatibilityField",
@@ -963,5 +963,5 @@ __all__ = [
     "restore_structural_analysis_cache_records",
     "extract_m6_domain_type_observations",
     "suggest_first_shell_r_max",
-    "suggest_shared_first_shell_r_max",
+    "suggest_shared_first_shell_r_max", "run_first_shell_geometry_experiment",
 ]

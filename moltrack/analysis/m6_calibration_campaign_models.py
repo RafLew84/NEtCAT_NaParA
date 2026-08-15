@@ -14,6 +14,7 @@ from .lattice_domain_calibration_models import (
 )
 from .lattice_domain_validation import LatticeDomainPartitionLabels
 from .m6_settings import MolecularM6OrientationAnalysisSettings
+from .first_shell_geometry_models import FrozenFirstShellGeometrySelection
 
 
 M6MetricStatus = Literal["available", "unavailable"]
@@ -124,7 +125,11 @@ class M6CalibrationGroupPrediction:
 
 
 M6CalibrationEvaluator = Callable[
-    [M6CalibrationReferenceGroup, MolecularM6OrientationAnalysisSettings],
+    [
+        M6CalibrationReferenceGroup,
+        MolecularM6OrientationAnalysisSettings,
+        FrozenFirstShellGeometrySelection,
+    ],
     M6CalibrationGroupPrediction | LatticeDomainPartitionLabels,
 ]
 
@@ -219,9 +224,31 @@ class M6CalibrationCampaignReport:
     dataset_version_id: str
     dataset_version_fingerprint: str
     validation_epoch_id: str
+    geometry_fingerprint: str
     objective: M6CalibrationObjective
-    backend_results: tuple[M6CalibrationBackendResult, ...]
+    _backend_results: tuple[M6CalibrationBackendResult, ...]
     validation_opened: bool = False
+
+    def backend_results_for(
+        self,
+        geometry: FrozenFirstShellGeometrySelection,
+    ) -> tuple[M6CalibrationBackendResult, ...]:
+        """Return search/shortlist results only for their frozen geometry."""
+
+        self.require_geometry(geometry)
+        return self._backend_results
+
+    def require_geometry(
+        self,
+        geometry: FrozenFirstShellGeometrySelection,
+    ) -> None:
+        if not isinstance(geometry, FrozenFirstShellGeometrySelection):
+            raise TypeError("geometry must be a FrozenFirstShellGeometrySelection.")
+        if geometry.geometry_fingerprint != self.geometry_fingerprint:
+            raise ValueError(
+                "First-shell geometry fingerprint changed; campaign search and "
+                "selection are invalidated."
+            )
 
 
 def _unit_float(value: object, field_name: str) -> float:

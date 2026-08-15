@@ -6,10 +6,14 @@ from typing import cast
 import pytest
 
 from moltrack.analysis import (
+    FirstShellGraphSettings,
+    FirstShellGeometryExperimentSettings,
+    FirstShellPairCorrelationEvidence,
     LatticeDomainCalibrationSweepSettings,
     LatticeDomainPartitionLabels,
     MolecularM6OrientationAnalysisSettings,
     run_lattice_domain_calibration_campaign,
+    run_first_shell_geometry_experiment,
 )
 from moltrack.analysis.m6_calibration_campaign_models import (
     M6CalibrationBackend,
@@ -66,7 +70,8 @@ def test_campaign_ranks_source_aligned_partitions_with_constraints(tmp_path) -> 
             ),
         )
 
-        def evaluate(group, settings):
+        def evaluate(group, settings, geometry):
+            assert geometry.dataset_version_id == group.dataset_version_id
             observed[backend_id].append(
                 (
                     group.dataset_version_id,
@@ -127,6 +132,30 @@ def test_campaign_ranks_source_aligned_partitions_with_constraints(tmp_path) -> 
         max_multivariate_variants=0,
         max_stability_candidates=3,
     )
+    geometry = run_first_shell_geometry_experiment(
+        package.package_path,
+        FirstShellGeometryExperimentSettings(
+            graph_settings=FirstShellGraphSettings(duplicate_max_distance_nm=0.5),
+            fixed_r_min_nm=1.0,
+            fixed_r_max_nm=2.6,
+            gr_bin_width_nm=0.5,
+            gr_max_nm=3.0,
+            gr_min_expected_pair_exposure=1.0,
+            gr_min_contributing_frames=1,
+            gr_smoothing_width=0.2,
+            gr_peak_prominence=0.2,
+        ),
+        pair_correlations=(
+            FirstShellPairCorrelationEvidence.unavailable(
+                package.version_id,
+                "group-a", "trifold", "fixture_has_no_g_r"
+            ),
+            FirstShellPairCorrelationEvidence.unavailable(
+                package.version_id,
+                "group-b", "sixfold", "fixture_has_no_g_r"
+            ),
+        ),
+    ).freeze("fixed")
     report = run_lattice_domain_calibration_campaign(
         package.package_path,
         sweep,
@@ -136,6 +165,7 @@ def test_campaign_ranks_source_aligned_partitions_with_constraints(tmp_path) -> 
             split_weight=0.2,
             merge_weight=0.3,
         ),
+        geometry=geometry,
         backends=(
             backend(M6_ORIENTATION_COMPONENTS_BACKEND_ID, explicit_boundary=False),
             backend(M3_M6_LATTICE_NETWORK_BACKEND_ID, explicit_boundary=True),
@@ -144,11 +174,12 @@ def test_campaign_ranks_source_aligned_partitions_with_constraints(tmp_path) -> 
 
     assert report.dataset_version_id == package.version_id
     assert report.dataset_version_fingerprint == package.version_fingerprint
-    assert {value.backend_identity.backend_id for value in report.backend_results} == {
+    backend_results = report.backend_results_for(geometry)
+    assert {value.backend_identity.backend_id for value in backend_results} == {
         M6_ORIENTATION_COMPONENTS_BACKEND_ID,
         M3_M6_LATTICE_NETWORK_BACKEND_ID,
     }
-    for backend_result in report.backend_results:
+    for backend_result in backend_results:
         selected = backend_result.selected_candidate
         assert selected is not None
         assert selected.variant.variant_id == "q_grow:high"
@@ -300,6 +331,51 @@ def _reference_package(tmp_path):
         "review_abstention": "uncertain",
         "review_reason_code": "ambiguous-manual-membership",
     })
+    rows["frames.jsonl"] = [
+        {
+            "measurement_group_id": group_id,
+            "split": split,
+            "physical_frame_id": frame_id,
+            "working_frame_index": frame_index,
+            "first_shell_symmetry_class": symmetry,
+        }
+        for group_id, split, frame_id, frame_index, symmetry in (
+            ("group-a", "calibration", "frame-a", 0, "trifold"),
+            ("group-b", "calibration", "frame-b", 1, "sixfold"),
+            ("validation-secret", "validation", "frame-secret", 2, "sixfold"),
+        )
+    ]
+    coordinates = {
+        "p1": (0.0, 0.0), "p2": (1.0, 0.0), "n1": (2.0, 0.0),
+        "uncertain": (3.0, 0.0), "p3": (0.0, 0.0), "p4": (1.0, 0.0),
+        "p5": (2.0, 0.0), "p6": (3.0, 0.0), "secret": (0.0, 0.0),
+    }
+    rows["source_geometry.jsonl"] = [
+        {
+            "measurement_group_id": row["measurement_group_id"],
+            "split": row["split"],
+            "physical_frame_id": row["physical_frame_id"],
+            "source_id": row["source_id"],
+            "point_xy_nm": list(coordinates[row["source_id"]]),
+            "coordinate_transform_fingerprint": "calibration-v1",
+            "registration_fingerprint": "unregistered",
+        }
+        for row in rows["m6_assignments.jsonl"]
+    ]
+    rows["m6_first_shell_edges.jsonl"] = [
+        {
+            "measurement_group_id": group_id,
+            "split": "calibration",
+            "physical_frame_id": frame_id,
+            "source_id_a": left,
+            "source_id_b": right,
+            "distance_nm": 1.0,
+        }
+        for group_id, frame_id, left, right in (
+            ("group-a", "frame-a", "p1", "p2"),
+            ("group-b", "frame-b", "p3", "p4"),
+        )
+    ]
     settings = ReferenceDatasetSettings(
         destination=tmp_path / "m6-reference",
         dataset_id="campaign-reference",

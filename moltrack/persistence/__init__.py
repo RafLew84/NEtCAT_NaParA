@@ -11,6 +11,7 @@ from .m6_reference_schema import (
     M6ReferenceDatasetPublication,
     M6ReferenceDatasetSettings,
     M6ReferenceFirstShellEdge,
+    M6ReferenceFirstShellFrame,
     M6ReferenceMeasurementGroup,
     M6ReferenceSourceRevision,
 )
@@ -36,6 +37,7 @@ __all__ = [
     "M6ReferenceDatasetPublication",
     "M6ReferenceDatasetSettings",
     "M6ReferenceFirstShellEdge",
+    "M6ReferenceFirstShellFrame",
     "M6ReferenceMeasurementGroup",
     "M6ReferenceSourceRevision",
     "OrientationReferenceDatasetPublication",

@@ -3,6 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from moltrack.analysis.domain_analysis import DomainAnalysisSessionState
+from moltrack.analysis.first_shell_geometry_contracts import (
+    FirstShellSymmetry,
+    first_shell_symmetry,
+)
 
 from .reference_dataset import (
     REFERENCE_DATASET_ENVELOPE_VERSION,
@@ -19,6 +23,26 @@ from .reference_dataset_identity import (
 
 M6_REFERENCE_DATASET_SCHEMA_VERSION = REFERENCE_DATASET_ENVELOPE_VERSION
 M6_REFERENCE_DATASET_VERSION = 1
+
+
+@dataclass(frozen=True)
+class M6ReferenceFirstShellFrame:
+    """Manual symmetry stratum for first-shell validation of one frame."""
+
+    physical_frame_id: str
+    symmetry_class: FirstShellSymmetry
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "physical_frame_id",
+            reference_text(self.physical_frame_id, "physical_frame_id"),
+        )
+        object.__setattr__(
+            self,
+            "symmetry_class",
+            first_shell_symmetry(self.symmetry_class),
+        )
 
 
 @dataclass(frozen=True)
@@ -50,6 +74,7 @@ class M6ReferenceMeasurementGroup:
     split: M6ReferenceSplit
     source_revision: M6ReferenceSourceRevision
     snapshot: DomainAnalysisSessionState
+    first_shell_frames: tuple[M6ReferenceFirstShellFrame, ...]
     first_shell_edges: tuple[M6ReferenceFirstShellEdge, ...]
 
     def __post_init__(self) -> None:
@@ -63,6 +88,20 @@ class M6ReferenceMeasurementGroup:
             raise TypeError("source_revision must be an M6ReferenceSourceRevision.")
         if not isinstance(self.snapshot, DomainAnalysisSessionState):
             raise TypeError("snapshot must be a DomainAnalysisSessionState.")
+        frame_values = tuple(self.first_shell_frames)
+        if any(
+            not isinstance(value, M6ReferenceFirstShellFrame)
+            for value in frame_values
+        ):
+            raise TypeError(
+                "first_shell_frames must contain M6ReferenceFirstShellFrame."
+            )
+        frames = tuple(sorted(
+            frame_values,
+            key=lambda value: value.physical_frame_id,
+        ))
+        if len({value.physical_frame_id for value in frames}) != len(frames):
+            raise ValueError("first_shell_frames must contain unique frame IDs.")
         edge_values = tuple(self.first_shell_edges)
         if any(
             not isinstance(value, M6ReferenceFirstShellEdge)
@@ -80,6 +119,7 @@ class M6ReferenceMeasurementGroup:
         if len(edges) != len(set(edges)):
             raise ValueError("first_shell_edges must not contain duplicates.")
         object.__setattr__(self, "measurement_group_id", group_id)
+        object.__setattr__(self, "first_shell_frames", frames)
         object.__setattr__(self, "first_shell_edges", edges)
 
 __all__ = [
@@ -87,6 +127,7 @@ __all__ = [
     "M6ReferenceDatasetPublication",
     "M6ReferenceDatasetSettings",
     "M6ReferenceFirstShellEdge",
+    "M6ReferenceFirstShellFrame",
     "M6ReferenceMeasurementGroup",
     "M6ReferenceSourceRevision",
     "M6ReferenceSplit",

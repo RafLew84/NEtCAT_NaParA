@@ -42,6 +42,7 @@ from .m6_calibration_metrics import (
     m6_calibration_objective_loss,
     m6_local_partition_stability,
 )
+from .first_shell_geometry_models import FrozenFirstShellGeometrySelection
 
 if TYPE_CHECKING:
     from moltrack.persistence.m6_calibration_reference import (
@@ -68,6 +69,7 @@ def run_lattice_domain_calibration_campaign(
     sweep: LatticeDomainCalibrationSweepSettings,
     objective: M6CalibrationObjective,
     *,
+    geometry: FrozenFirstShellGeometrySelection,
     backends: tuple[M6CalibrationBackend, ...],
 ) -> M6CalibrationCampaignReport:
     """Evaluate both backends against one verified, unopened Calibration split."""
@@ -76,6 +78,8 @@ def run_lattice_domain_calibration_campaign(
         raise TypeError("sweep must be LatticeDomainCalibrationSweepSettings.")
     if not isinstance(objective, M6CalibrationObjective):
         raise TypeError("objective must be M6CalibrationObjective.")
+    if not isinstance(geometry, FrozenFirstShellGeometrySelection):
+        raise TypeError("geometry must be a FrozenFirstShellGeometrySelection.")
     backends = tuple(backends)
     if any(not isinstance(value, M6CalibrationBackend) for value in backends):
         raise TypeError("backends must contain M6CalibrationBackend values.")
@@ -87,8 +91,9 @@ def run_lattice_domain_calibration_campaign(
     )
 
     reference = load_m6_calibration_reference(package_path)
+    _validate_geometry(reference, sweep, geometry)
     results = tuple(
-        _run_backend(reference, sweep, objective, backend)
+        _run_backend(reference, sweep, objective, geometry, backend)
         for backend in sorted(
             backends,
             key=lambda value: value.backend_identity.backend_id,
@@ -100,8 +105,9 @@ def run_lattice_domain_calibration_campaign(
         dataset_version_id=reference.version_id,
         dataset_version_fingerprint=reference.version_fingerprint,
         validation_epoch_id=reference.validation_epoch_id,
+        geometry_fingerprint=geometry.geometry_fingerprint,
         objective=objective,
-        backend_results=results,
+        _backend_results=results,
     )
 
 
@@ -109,9 +115,10 @@ def _run_backend(
     reference: M6CalibrationReference,
     sweep: LatticeDomainCalibrationSweepSettings,
     objective: M6CalibrationObjective,
+    geometry: FrozenFirstShellGeometrySelection,
     backend: M6CalibrationBackend,
 ) -> M6CalibrationBackendResult:
-    adapter = _CampaignSearchAdapter(reference, sweep, objective, backend)
+    adapter = _CampaignSearchAdapter(reference, sweep, objective, geometry, backend)
     search = run_lattice_domain_bounded_search(
         sweep,
         evaluator=adapter.evaluate,
@@ -153,6 +160,7 @@ class _CampaignSearchAdapter:
     reference: M6CalibrationReference
     sweep: LatticeDomainCalibrationSweepSettings
     objective: M6CalibrationObjective
+    geometry: FrozenFirstShellGeometrySelection
     backend: M6CalibrationBackend
 
     def evaluate(
@@ -165,6 +173,7 @@ class _CampaignSearchAdapter:
             variant,
             self.reference.groups,
             self.backend,
+            self.geometry,
             self.objective,
             stability_reference=(
                 None
@@ -249,12 +258,13 @@ def _evaluate_variant(
     variant: LatticeDomainCalibrationVariant,
     groups: tuple[M6CalibrationReferenceGroup, ...],
     backend: M6CalibrationBackend,
+    geometry: FrozenFirstShellGeometrySelection,
     objective: M6CalibrationObjective,
     *,
     stability_reference: tuple[M6CalibrationGroupPrediction, ...] | None,
 ) -> _EvaluatedVariant:
     predictions = tuple(
-        _prediction(backend.evaluator(group, variant.settings))
+        _prediction(backend.evaluator(group, variant.settings, geometry))
         for group in groups
     )
     group_metrics = tuple(
@@ -295,6 +305,47 @@ def _evaluate_variant(
         objective_loss=m6_calibration_objective_loss(metrics, objective),
         local_stability_ari=local_stability,
     )
+
+
+def _validate_geometry(
+    reference: M6CalibrationReference,
+    sweep: LatticeDomainCalibrationSweepSettings,
+    geometry: FrozenFirstShellGeometrySelection,
+) -> None:
+    if (
+        geometry.dataset_id != reference.dataset_id
+        or geometry.dataset_version_id != reference.version_id
+        or geometry.dataset_version_fingerprint != reference.version_fingerprint
+        or geometry.validation_epoch_id != reference.validation_epoch_id
+    ):
+        raise ValueError("Frozen first-shell geometry does not match the M6 reference.")
+    reference_groups = {value.measurement_group_id for value in reference.groups}
+    geometry_groups = {
+        value.measurement_group_id
+        for value in geometry.policy_result.decisions
+    }
+    if geometry_groups != reference_groups:
+        raise ValueError("Frozen first-shell geometry does not cover Calibration groups.")
+    baseline = sweep.baseline_settings
+    policy = geometry.policy
+    if (
+        baseline.first_shell_r_min_nm != policy.fixed_r_min_nm
+        or baseline.first_shell_r_max_nm != policy.fixed_r_max_nm
+    ):
+        raise ValueError(
+            "Classification sweep first-shell radii must match the frozen fixed fallback."
+        )
+    graph = geometry.graph_settings
+    if (
+        baseline.duplicate_detection_enabled != graph.duplicate_detection_enabled
+        or baseline.duplicate_max_distance_nm != graph.duplicate_max_distance_nm
+        or baseline.geometry_absolute_tolerance_nm
+        != graph.geometry_absolute_tolerance_nm
+        or baseline.geometry_relative_tolerance != graph.geometry_relative_tolerance
+    ):
+        raise ValueError(
+            "Classification sweep graph settings must match the frozen geometry."
+        )
 
 
 def _candidate_result(

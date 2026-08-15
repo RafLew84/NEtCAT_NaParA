@@ -97,7 +97,21 @@ def _validate_ready_measurement(measurement: M6ReferenceMeasurementGroup) -> Non
     validate_reference_snapshot_readiness(state, "m6")
     publication = state.published_result
     assert publication is not None and publication.result.m6_gate is not None
-    _validate_edges(measurement, publication.result.m6_gate.frames)
+    frames = publication.result.m6_gate.frames
+    _validate_first_shell_frames(measurement, frames)
+    _validate_edges(measurement, frames)
+
+
+def _validate_first_shell_frames(
+    measurement: M6ReferenceMeasurementGroup,
+    frames: tuple[M6FrameGate, ...],
+) -> None:
+    expected = {frame.physical_frame_id for frame in frames}
+    actual = {frame.physical_frame_id for frame in measurement.first_shell_frames}
+    if actual != expected:
+        raise ValueError(
+            "First-shell symmetry strata must identify every published frame."
+        )
 
 
 def _validate_edges(
@@ -138,6 +152,10 @@ def _append_measurement_tables(
         state_identity,
     ))
     review_decisions = _m6_review_decisions(state)
+    symmetry_by_frame = {
+        value.physical_frame_id: value.symmetry_class
+        for value in measurement.first_shell_frames
+    }
     for frame in publication.result.m6_gate.frames:
         _append_frame_tables(
             tables,
@@ -145,6 +163,7 @@ def _append_measurement_tables(
             frame,
             state_identity,
             review_decisions,
+            symmetry_by_frame[frame.physical_frame_id],
         )
     _append_diagnostic_stages(tables, measurement)
     _append_first_shell_edges(tables, measurement)
@@ -186,6 +205,7 @@ def _append_frame_tables(
     frame: M6FrameGate,
     state_identity: M6ReferenceStateIdentity,
     review_decisions: dict[tuple[str, str], ReferenceReviewDecision],
+    first_shell_symmetry_class: str,
 ) -> None:
     state = measurement.snapshot
     projection = state.domain_corrections.effective_projection
@@ -196,6 +216,7 @@ def _append_frame_tables(
         "working_frame_index": frame.frame_index,
         "m6_gate_fingerprint": frame.m6_gate_fingerprint,
         "backend_identity": backend_identity_to_payload(frame.backend_identity),
+        "first_shell_symmetry_class": first_shell_symmetry_class,
         "automatic_snapshot_fingerprint": (
             state_identity.automatic_snapshot_fingerprint
         ),

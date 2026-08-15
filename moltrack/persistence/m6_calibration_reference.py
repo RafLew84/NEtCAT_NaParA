@@ -29,13 +29,35 @@ class M6CalibrationReference:
     groups: tuple[M6CalibrationReferenceGroup, ...]
 
 
+@dataclass(frozen=True)
+class M6CalibrationTables:
+    package_path: Path
+    dataset_id: str
+    version_id: str
+    version_fingerprint: str
+    validation_epoch_id: str
+    tables: dict[str, list[dict[str, Any]]]
+
+
 def load_m6_calibration_reference(
     package_path: str | Path,
 ) -> M6CalibrationReference:
-    package = load_reference_dataset_package(
-        package_path,
-        expected_target="m6",
+    verified = load_m6_calibration_tables(package_path)
+    tables = verified.tables
+    return M6CalibrationReference(
+        package_path=verified.package_path,
+        dataset_id=verified.dataset_id,
+        version_id=verified.version_id,
+        version_fingerprint=verified.version_fingerprint,
+        validation_epoch_id=verified.validation_epoch_id,
+        groups=_calibration_groups(tables, verified.version_id),
     )
+
+
+def load_m6_calibration_tables(
+    package_path: str | Path,
+) -> M6CalibrationTables:
+    package = load_reference_dataset_package(package_path, expected_target="m6")
     if set(package.payloads) != set(M6_REFERENCE_TABLE_FILES):
         raise ValueError("M6 Reference Dataset payload table set is invalid.")
     tables = {
@@ -44,22 +66,33 @@ def load_m6_calibration_reference(
     }
     _verify_table_identity(package.manifest, tables)
     manifest = package.manifest
-    version_id = _text(manifest.get("version_id"), "version_id")
-    return M6CalibrationReference(
+    validation_epoch = _mapping(
+        manifest.get("validation_epoch"),
+        "validation_epoch",
+    )
+    calibration_tables = {
+        name: [row for row in rows if row.get("split") == "calibration"]
+        for name, rows in tables.items()
+    }
+    if any(
+        row.get("split") != "calibration"
+        for rows in calibration_tables.values()
+        for row in rows
+    ):
+        raise AssertionError("Calibration projection exposed a Validation row.")
+    return M6CalibrationTables(
         package_path=package.package_path,
         dataset_id=_text(manifest.get("dataset_id"), "dataset_id"),
-        version_id=version_id,
+        version_id=_text(manifest.get("version_id"), "version_id"),
         version_fingerprint=_text(
             manifest.get("version_fingerprint"),
             "version_fingerprint",
         ),
         validation_epoch_id=_text(
-            _mapping(manifest.get("validation_epoch"), "validation_epoch").get(
-                "epoch_id"
-            ),
+            validation_epoch.get("epoch_id"),
             "validation_epoch.epoch_id",
         ),
-        groups=_calibration_groups(tables, version_id),
+        tables=calibration_tables,
     )
 
 
@@ -107,7 +140,6 @@ def _calibration_groups(
     calibration_ids = tuple(sorted(
         _text(row.get("measurement_group_id"), "measurement_group_id")
         for row in tables["measurements.jsonl"]
-        if row.get("split") == "calibration"
     ))
     assignments = tables["m6_assignments.jsonl"]
     groups = []
@@ -115,8 +147,7 @@ def _calibration_groups(
         rows = [
             row
             for row in assignments
-            if row.get("split") == "calibration"
-            and row.get("measurement_group_id") == group_id
+            if row.get("measurement_group_id") == group_id
         ]
         if not rows:
             raise ValueError("M6 Reference Dataset Calibration group has no labels.")
@@ -202,4 +233,9 @@ def _text(value: object, field_name: str) -> str:
     return value.strip()
 
 
-__all__ = ["M6CalibrationReference", "load_m6_calibration_reference"]
+__all__ = [
+    "M6CalibrationReference",
+    "M6CalibrationTables",
+    "load_m6_calibration_reference",
+    "load_m6_calibration_tables",
+]
