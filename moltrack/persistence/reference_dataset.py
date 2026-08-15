@@ -26,9 +26,13 @@ from .reference_dataset_identity import (
     validate_reference_split_integrity,
     validated_reference_measurements,
 )
+from .reference_dataset_reader import (
+    REFERENCE_DATASET_ENVELOPE_VERSION,
+    load_reference_dataset_package,
+    reference_validation_epoch,
+)
 
 
-REFERENCE_DATASET_ENVELOPE_VERSION = 2
 _RESERVED_PATHS = {"manifest.json", "file_manifest.json"}
 
 
@@ -225,102 +229,27 @@ def _load_parent(draft: ReferenceDatasetDraft) -> _ParentVersion | None:
     package_path = draft.settings.parent_package
     if package_path is None:
         return None
-    manifest = _read_json(package_path / "manifest.json", "parent manifest")
-    file_manifest = _read_json(
-        package_path / "file_manifest.json",
-        "parent file manifest",
+    package = load_reference_dataset_package(
+        package_path,
+        expected_target=draft.target,
     )
-    _verify_parent_envelope(draft, package_path, manifest, file_manifest)
+    manifest = package.manifest
+    dataset_version = manifest.get("dataset_version")
+    if (
+        manifest.get("dataset_id") != draft.settings.dataset_id
+        or not isinstance(dataset_version, int)
+        or dataset_version < draft.initial_dataset_version
+    ):
+        raise ValueError("Reference Dataset parent envelope is incompatible.")
     validation = manifest["validation_epoch"]
     return _ParentVersion(
         version_id=manifest["version_id"],
-        dataset_version=manifest["dataset_version"],
+        dataset_version=dataset_version,
         validation_epoch_id=validation["epoch_id"],
         validation_partition_fingerprint=(
             validation["validation_partition_fingerprint"]
         ),
     )
-
-
-def _verify_parent_envelope(
-    draft: ReferenceDatasetDraft,
-    package_path: Path,
-    manifest: dict[str, Any],
-    file_manifest: dict[str, Any],
-) -> None:
-    settings = draft.settings
-    if (
-        manifest.get("schema_version") != REFERENCE_DATASET_ENVELOPE_VERSION
-        or manifest.get("target") != draft.target
-        or manifest.get("dataset_id") != settings.dataset_id
-        or manifest.get("readiness") != {"ready": True, "blockers": []}
-    ):
-        raise ValueError("Reference Dataset parent envelope is incompatible.")
-    _verify_parent_files(package_path, file_manifest)
-    file_fingerprint = canonical_sha256(file_manifest)
-    if manifest.get("file_manifest") != {
-        "path": "file_manifest.json",
-        "fingerprint": file_fingerprint,
-    }:
-        raise ValueError("Reference Dataset parent file manifest is invalid.")
-    body = _version_body_from_manifest(manifest, file_fingerprint)
-    fingerprint = canonical_sha256(body)
-    dataset_version = manifest.get("dataset_version")
-    expected_version_id = (
-        f"{settings.dataset_id}-v{dataset_version}-{fingerprint[:16]}"
-    )
-    if (
-        not isinstance(dataset_version, int)
-        or dataset_version < draft.initial_dataset_version
-        or manifest.get("version_fingerprint") != fingerprint
-        or manifest.get("version_id") != expected_version_id
-    ):
-        raise ValueError("Reference Dataset parent version identity is invalid.")
-    _verify_validation_epoch(draft.target, manifest)
-
-
-def _verify_parent_files(
-    package_path: Path,
-    file_manifest: dict[str, Any],
-) -> None:
-    entries = file_manifest.get("files")
-    if file_manifest.get("schema_version") != 1 or not isinstance(entries, list):
-        raise ValueError("Reference Dataset parent file manifest is invalid.")
-    manifested_paths: set[str] = set()
-    for entry in entries:
-        if not isinstance(entry, dict) or not isinstance(entry.get("path"), str):
-            raise ValueError("Reference Dataset parent file entry is invalid.")
-        relative = ReferencePayloadFile(entry["path"], b"", 0).path
-        if relative in manifested_paths:
-            raise ValueError("Reference Dataset parent file manifest has duplicates.")
-        manifested_paths.add(relative)
-        path = package_path / PurePosixPath(relative)
-        try:
-            digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        except OSError as error:
-            raise ValueError("Reference Dataset parent payload is unreadable.") from error
-        if entry.get("sha256") != digest:
-            raise ValueError("Reference Dataset parent payload fingerprint mismatch.")
-    package_payload_paths = set(relative_package_files(package_path)) - _RESERVED_PATHS
-    if package_payload_paths != manifested_paths:
-        raise ValueError("Reference Dataset parent contains unmanifested payload.")
-
-
-def _verify_validation_epoch(
-    target: ReferenceTarget,
-    manifest: dict[str, Any],
-) -> None:
-    partitions = manifest.get("partitions")
-    validation = manifest.get("validation_epoch")
-    if not isinstance(partitions, dict) or not isinstance(validation, dict):
-        raise ValueError("Reference Dataset parent Validation epoch is invalid.")
-    partition = partitions.get("validation")
-    if not isinstance(partition, dict):
-        raise ValueError("Reference Dataset parent Validation epoch is invalid.")
-    fingerprint = partition.get("partition_fingerprint")
-    identity = _validation_epoch(target, str(fingerprint))
-    if validation != identity:
-        raise ValueError("Reference Dataset parent Validation epoch is invalid.")
 
 
 def _write_payload(
@@ -361,7 +290,7 @@ def _manifest(
     validation_fingerprint = str(
         partitions["validation"]["partition_fingerprint"]
     )
-    epoch = _validation_epoch(draft.target, validation_fingerprint)
+    epoch = reference_validation_epoch(draft.target, validation_fingerprint)
     if parent is not None and (
         parent.validation_partition_fingerprint == validation_fingerprint
     ):
@@ -390,51 +319,6 @@ def _manifest(
         },
         "application": {"name": "MolTrack", "version": moltrack_version},
     }
-
-
-def _version_body_from_manifest(
-    manifest: dict[str, Any],
-    file_manifest_fingerprint: str,
-) -> dict[str, Any]:
-    keys = (
-        "schema_version",
-        "target",
-        "dataset_id",
-        "dataset_version",
-        "parent_version_id",
-        "publication_reason",
-        "partitions",
-        "validation_epoch",
-    )
-    return {
-        **{key: manifest.get(key) for key in keys},
-        "file_manifest_fingerprint": file_manifest_fingerprint,
-    }
-
-
-def _validation_epoch(
-    target: ReferenceTarget,
-    fingerprint: str,
-) -> dict[str, str]:
-    identity_fingerprint = canonical_sha256({
-        "schema_version": f"{target}-reference-validation-epoch-v1",
-        "validation_partition_fingerprint": fingerprint,
-    })
-    return {
-        "epoch_id": f"{target}-validation-epoch-{identity_fingerprint[:24]}",
-        "identity_fingerprint": identity_fingerprint,
-        "validation_partition_fingerprint": fingerprint,
-    }
-
-
-def _read_json(path: Path, label: str) -> dict[str, Any]:
-    try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise ValueError(f"Reference Dataset {label} is unreadable: {path}") from error
-    if not isinstance(value, dict):
-        raise ValueError(f"Reference Dataset {label} must be an object.")
-    return value
 
 
 def _write_json(path: Path, value: dict[str, Any]) -> None:

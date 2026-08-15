@@ -15,6 +15,7 @@ from .lattice_domain_calibration_models import (
     LatticeDomainCalibrationAggregateMetrics,
     LatticeDomainCalibrationFirstShellValidation,
     LatticeDomainCalibrationPrediction,
+    LatticeDomainCalibrationPhase,
     LatticeDomainCalibrationProgress,
     LatticeDomainCalibrationQualityImpact,
     LatticeDomainCalibrationReferenceDataset,
@@ -22,16 +23,20 @@ from .lattice_domain_calibration_models import (
     LatticeDomainCalibrationReport,
     LatticeDomainCalibrationSkippedVariant,
     LatticeDomainCalibrationStableRange,
+    LatticeDomainCalibrationStatus,
     LatticeDomainCalibrationSweepSettings,
     LatticeDomainCalibrationVariant,
     LatticeDomainCalibrationVariantResult,
 )
 from .lattice_domain_calibration_search import (
     build_initial_variants as _build_initial_variants,
-    build_multivariate_variants as _build_multivariate_variants,
-    build_stability_variants as _build_stability_variants,
     rank_variants as _rank_variants,
     stability_ranges_around_best as _stability_ranges_around_best,
+)
+from .lattice_domain_bounded_search import (
+    LatticeDomainBoundedEvaluation,
+    LatticeDomainStabilityAssessment,
+    run_lattice_domain_bounded_search,
 )
 from .lattice_domain_edge_models import (
     LATTICE_DOMAIN_EDGE_COMPATIBILITY_ALGORITHM_VERSION,
@@ -95,241 +100,81 @@ def run_lattice_domain_calibration(
     if not callable(evaluator):
         raise TypeError("evaluator must be callable.")
     _validate_complete_quality_controls(reference)
-
-    initial_variants, initial_skipped = _build_initial_variants(sweep)
-    skipped = list(initial_skipped)
-    variant_results: list[LatticeDomainCalibrationVariantResult] = []
-    diagnostic_cache_result: LatticeDomainCalibrationVariantResult | None = None
-    diagnostic_prediction_cache: dict[
-        int,
-        LatticeDomainCalibrationPrediction,
-    ] | None = None
     completed = 0
-    initial_total = len(initial_variants) * len(reference.calibration_frames)
+    maximum_evaluations = (
+        1
+        + 2 * len(sweep.parameter_names)
+        + sweep.max_multivariate_variants
+        + 2 * len(sweep.parameter_names) * sweep.max_stability_candidates
+    ) * len(reference.calibration_frames)
 
-    for variant in initial_variants:
-        result, variant_predictions, completed = _evaluate_variant(
+    def bounded_evaluator(variant, phase, stability_reference):
+        nonlocal completed
+        result, predictions, completed = _evaluate_variant(
             variant,
             reference.calibration_frames,
             evaluator=evaluator,
-            phase="one_at_a_time",
+            phase=phase,
             progress_callback=progress_callback,
             cancel_callback=cancel_callback,
             completed_evaluations=completed,
-            total_evaluations=initial_total,
+            total_evaluations=maximum_evaluations,
+            stability_reference=stability_reference,
         )
-        variant_results.append(result)
-        if (
-            diagnostic_cache_result is None
-            or _rank_variants((diagnostic_cache_result, result))[0] is result
-        ):
-            diagnostic_cache_result = result
-            diagnostic_prediction_cache = variant_predictions
-    del variant_predictions
-    one_at_a_time_results = tuple(variant_results)
+        return LatticeDomainBoundedEvaluation(result, predictions)
 
-    exploration_limit = (
-        0
-        if sweep.max_multivariate_variants == 0
-        else max(1, (2 * sweep.max_multivariate_variants + 2) // 3)
-    )
-    multivariate, multivariate_skipped = _build_multivariate_variants(
+    def ranker(values):
+        by_result = {id(value.result): value for value in values}
+        return tuple(
+            by_result[id(result)]
+            for result in _rank_variants(tuple(value.result for value in values))
+        )
+
+    def stability_assessor(candidate, results, parameter_names):
+        ranges, indeterminate = _stability_ranges_around_best(
+            candidate.result,
+            tuple(value.result for value in results),
+            parameter_names=parameter_names,
+            minimum_ari=sweep.minimum_stability_ari,
+        )
+        stability_values = tuple(
+            value.result.metrics.mean_partition_stability_ari
+            for value in results
+            if value.result.metrics.mean_partition_stability_ari is not None
+        )
+        return LatticeDomainStabilityAssessment(
+            ranges,
+            indeterminate,
+            min(stability_values) if stability_values else None,
+        )
+
+    search = run_lattice_domain_bounded_search(
         sweep,
-        one_at_a_time_results,
-        max_variants=exploration_limit,
-        variant_id_prefix="explore",
-    )
-    skipped.extend(multivariate_skipped)
-    total_with_multivariate = (
-        initial_total + len(multivariate) * len(reference.calibration_frames)
-    )
-    for variant in multivariate:
-        result, variant_predictions, completed = _evaluate_variant(
-            variant,
-            reference.calibration_frames,
-            evaluator=evaluator,
-            phase="multivariate",
-            progress_callback=progress_callback,
-            cancel_callback=cancel_callback,
-            completed_evaluations=completed,
-            total_evaluations=total_with_multivariate,
-        )
-        variant_results.append(result)
-        if (
-            diagnostic_cache_result is None
-            or _rank_variants((diagnostic_cache_result, result))[0] is result
-        ):
-            diagnostic_cache_result = result
-            diagnostic_prediction_cache = variant_predictions
-    if multivariate:
-        del variant_predictions
-
-    ranked_candidates = _rank_variants(tuple(variant_results))
-    diagnostic_best = ranked_candidates[0]
-    assert diagnostic_cache_result is diagnostic_best
-    assert diagnostic_prediction_cache is not None
-    selected_best: LatticeDomainCalibrationVariantResult | None = None
-    stable_ranges: tuple[LatticeDomainCalibrationStableRange, ...] = ()
-    indeterminate: tuple[str, ...] = sweep.parameter_names
-    selected_calibration_predictions: dict[
-        int,
-        LatticeDomainCalibrationPrediction,
-    ] | None = None
-    maximum_stability_evaluations = (
-        (
-            sweep.max_stability_candidates
-            * (1 + 2 * len(sweep.parameter_names))
-            + 1
-        )
-        * len(reference.calibration_frames)
-    )
-    stability_total = completed + maximum_stability_evaluations
-    stability_candidates_evaluated = 0
-    for candidate in ranked_candidates[: sweep.max_stability_candidates]:
-        (
-            stability_results,
-            candidate_predictions,
-            completed,
-            stability_skipped,
-            candidate_ranges,
-            candidate_indeterminate,
-        ) = _evaluate_stability_candidate(
-            candidate,
-            reference.calibration_frames,
-            sweep=sweep,
-            evaluator=evaluator,
-            progress_callback=progress_callback,
-            cancel_callback=cancel_callback,
-            completed_evaluations=completed,
-            total_evaluations=stability_total,
-            precomputed_predictions=(
-                diagnostic_prediction_cache
-                if candidate is diagnostic_best
-                else None
-            ),
-        )
-        if candidate is diagnostic_best:
-            diagnostic_prediction_cache = None
-        stability_candidates_evaluated += 1
-        skipped.extend(stability_skipped)
-        variant_results.extend(stability_results)
-        if (
-            candidate.metrics.mean_adjusted_rand_index
+        evaluator=bounded_evaluator,
+        ranker=ranker,
+        stability_assessor=stability_assessor,
+        eligibility_gate=lambda candidate, assessment: (
+            candidate.result.metrics.mean_adjusted_rand_index
             >= sweep.minimum_stability_ari
-            and not candidate_indeterminate
-        ):
-            selected_best = candidate
-            stable_ranges = candidate_ranges
-            indeterminate = ()
-            selected_calibration_predictions = candidate_predictions
-            break
-        if candidate is diagnostic_best:
-            stable_ranges = candidate_ranges
-            indeterminate = candidate_indeterminate
-        del candidate_predictions
-
-    remaining_multivariate = (
-        sweep.max_multivariate_variants - len(multivariate)
+            and not assessment.indeterminate_parameters
+        ),
     )
-    if selected_best is not None and remaining_multivariate > 0:
-        refinement, refinement_skipped = _build_multivariate_variants(
-            sweep,
-            tuple(variant_results),
-            center_settings=selected_best.variant.settings,
-            max_variants=remaining_multivariate,
-            variant_id_prefix=f"refine:{selected_best.variant.variant_id}",
-        )
-        skipped.extend(refinement_skipped)
-        refinement_results = []
-        refinement_total = (
-            completed + len(refinement) * len(reference.calibration_frames)
-        )
-        for variant in refinement:
-            result, refinement_predictions, completed = _evaluate_variant(
-                variant,
-                reference.calibration_frames,
-                evaluator=evaluator,
-                phase="multivariate",
-                progress_callback=progress_callback,
-                cancel_callback=cancel_callback,
-                completed_evaluations=completed,
-                total_evaluations=refinement_total,
-            )
-            refinement_results.append(result)
-        if refinement:
-            del refinement_predictions
-        variant_results.extend(refinement_results)
-
-        remaining_stability_candidates = max(
-            0,
-            sweep.max_stability_candidates - stability_candidates_evaluated,
-        )
-        refinement_stability_total = completed + (
-            remaining_stability_candidates
-            * (1 + 2 * len(sweep.parameter_names))
-            * len(reference.calibration_frames)
-        )
-        better_refinements = tuple(
-            value
-            for value in _rank_variants(tuple(refinement_results))
-            if value.score > selected_best.score
-        )
-        if better_refinements and remaining_stability_candidates > 0:
-            selected_calibration_predictions = None
-        for candidate in better_refinements[:remaining_stability_candidates]:
-            (
-                stability_results,
-                candidate_predictions,
-                completed,
-                stability_skipped,
-                candidate_ranges,
-                candidate_indeterminate,
-            ) = _evaluate_stability_candidate(
-                candidate,
-                reference.calibration_frames,
-                sweep=sweep,
-                evaluator=evaluator,
-                progress_callback=progress_callback,
-                cancel_callback=cancel_callback,
-                completed_evaluations=completed,
-                total_evaluations=refinement_stability_total,
-            )
-            stability_candidates_evaluated += 1
-            skipped.extend(stability_skipped)
-            variant_results.extend(stability_results)
-            if (
-                candidate.metrics.mean_adjusted_rand_index
-                >= sweep.minimum_stability_ari
-                and not candidate_indeterminate
-            ):
-                selected_best = candidate
-                stable_ranges = candidate_ranges
-                indeterminate = ()
-                selected_calibration_predictions = candidate_predictions
-                break
-            del candidate_predictions
-
-    best = selected_best if selected_best is not None else diagnostic_best
-    if selected_calibration_predictions is None:
-        _diagnostic_result, calibration_predictions, completed = _evaluate_variant(
-            best.variant,
-            reference.calibration_frames,
-            evaluator=evaluator,
-            phase="stability",
-            progress_callback=progress_callback,
-            cancel_callback=cancel_callback,
-            completed_evaluations=completed,
-            total_evaluations=stability_total,
-        )
-    else:
-        calibration_predictions = selected_calibration_predictions
+    selected = search.selected
+    best_evaluation = selected or search.diagnostic_best
+    best = best_evaluation.result
+    calibration_predictions = best_evaluation.payload
+    assessment = search.assessment_for(best.variant.variant_id)
+    stable_ranges = () if assessment is None else assessment.ranges
+    indeterminate = (
+        sweep.parameter_names
+        if assessment is None
+        else assessment.indeterminate_parameters
+    )
     calibration_reports = _frame_reports(
         reference.calibration_frames,
         calibration_predictions,
     )
-    if (
-        selected_best is None
-    ):
+    if selected is None:
         _emit_terminal_stability_progress(
             progress_callback,
             completed=completed,
@@ -342,8 +187,8 @@ def run_lattice_domain_calibration(
             status="no_stable_solution",
             selected_settings=None,
             best_variant_id=None,
-            variant_results=variant_results,
-            skipped_variants=skipped,
+            variant_results=search.variant_results,
+            skipped_variants=search.skipped_variants,
             holdout_metrics=None,
             holdout_passed=None,
             frame_reports=calibration_reports,
@@ -375,9 +220,11 @@ def run_lattice_domain_calibration(
     holdout_metrics = _aggregate_validation_reports(
         report for _frame, report in holdout_reports
     )
+    minimum_holdout_ari = sweep.minimum_holdout_ari
+    assert minimum_holdout_ari is not None
     holdout_passed = (
         holdout_metrics.mean_adjusted_rand_index
-        >= float(sweep.minimum_holdout_ari)
+        >= minimum_holdout_ari
     )
     selected_predictions = {
         **calibration_predictions,
@@ -403,8 +250,8 @@ def run_lattice_domain_calibration(
         ),
         selected_settings=best.variant.settings,
         best_variant_id=best.variant.variant_id,
-        variant_results=variant_results,
-        skipped_variants=skipped,
+        variant_results=search.variant_results,
+        skipped_variants=search.skipped_variants,
         holdout_metrics=holdout_metrics,
         holdout_passed=holdout_passed,
         frame_reports=(*calibration_reports, *holdout_reports),
@@ -548,7 +395,7 @@ def _evaluate_variant(
     frames: tuple[LatticeDomainCalibrationReferenceFrame, ...],
     *,
     evaluator: LatticeDomainCalibrationEvaluator,
-    phase: str,
+    phase: LatticeDomainCalibrationPhase,
     progress_callback: LatticeDomainCalibrationProgressCallback | None,
     cancel_callback: LatticeDomainCalibrationCancelCallback | None,
     completed_evaluations: int,
@@ -599,77 +446,6 @@ def _evaluate_variant(
         ),
         predictions,
         completed,
-    )
-
-
-def _evaluate_stability_candidate(
-    candidate: LatticeDomainCalibrationVariantResult,
-    frames: tuple[LatticeDomainCalibrationReferenceFrame, ...],
-    *,
-    sweep: LatticeDomainCalibrationSweepSettings,
-    evaluator: LatticeDomainCalibrationEvaluator,
-    progress_callback: LatticeDomainCalibrationProgressCallback | None,
-    cancel_callback: LatticeDomainCalibrationCancelCallback | None,
-    completed_evaluations: int,
-    total_evaluations: int,
-    precomputed_predictions: (
-        dict[int, LatticeDomainCalibrationPrediction] | None
-    ) = None,
-) -> tuple[
-    tuple[LatticeDomainCalibrationVariantResult, ...],
-    dict[int, LatticeDomainCalibrationPrediction],
-    int,
-    tuple[LatticeDomainCalibrationSkippedVariant, ...],
-    tuple[LatticeDomainCalibrationStableRange, ...],
-    tuple[str, ...],
-]:
-    if precomputed_predictions is None:
-        _candidate_result, candidate_predictions, completed = _evaluate_variant(
-            candidate.variant,
-            frames,
-            evaluator=evaluator,
-            phase="stability",
-            progress_callback=progress_callback,
-            cancel_callback=cancel_callback,
-            completed_evaluations=completed_evaluations,
-            total_evaluations=total_evaluations,
-        )
-    else:
-        candidate_predictions = precomputed_predictions
-        completed = completed_evaluations
-    stability_variants, skipped = _build_stability_variants(
-        candidate.variant,
-        sweep.parameter_names,
-    )
-    stability_results = []
-    for variant in stability_variants:
-        result, variant_predictions, completed = _evaluate_variant(
-            variant,
-            frames,
-            evaluator=evaluator,
-            phase="stability",
-            progress_callback=progress_callback,
-            cancel_callback=cancel_callback,
-            completed_evaluations=completed,
-            total_evaluations=total_evaluations,
-            stability_reference=candidate_predictions,
-        )
-        stability_results.append(result)
-    if stability_variants:
-        del variant_predictions
-    ranges, indeterminate = _stability_ranges_around_best(
-        candidate,
-        tuple(stability_results),
-        parameter_names=sweep.parameter_names,
-        minimum_ari=sweep.minimum_stability_ari,
-    )
-    return (
-        tuple(stability_results),
-        candidate_predictions,
-        completed,
-        skipped,
-        ranges,
-        indeterminate,
     )
 
 
@@ -756,7 +532,7 @@ def _build_report(
     reference: LatticeDomainCalibrationReferenceDataset,
     sweep: LatticeDomainCalibrationSweepSettings,
     *,
-    status: str,
+    status: LatticeDomainCalibrationStatus,
     selected_settings: MolecularM6OrientationAnalysisSettings | None,
     best_variant_id: str | None,
     variant_results: Iterable[LatticeDomainCalibrationVariantResult],
@@ -944,13 +720,16 @@ def _first_shell_validation_passes(
         settings.first_shell_r_min_nm == TTMAPP_FIRST_SHELL_R_MIN_NM
         and settings.first_shell_r_max_nm == TTMAPP_FIRST_SHELL_R_MAX_NM
     )
-    return range_matches_ttmapp and all(
-        symmetry in by_symmetry
-        and by_symmetry[symmetry].status == "available"
-        and by_symmetry[symmetry].f1_score is not None
-        and by_symmetry[symmetry].f1_score >= minimum_f1
-        for symmetry in ("trifold", "sixfold")
-    )
+    for symmetry in ("trifold", "sixfold"):
+        result = by_symmetry.get(symmetry)
+        if (
+            result is None
+            or result.status != "available"
+            or result.f1_score is None
+            or result.f1_score < minimum_f1
+        ):
+            return False
+    return range_matches_ttmapp
 
 
 def _validate_complete_quality_controls(

@@ -182,9 +182,8 @@ from .lattice_domain_calibration import (
     run_lattice_domain_calibration,
     run_lattice_domain_calibration_for_source,
 )
-from .lattice_domain_calibration_report import (
-    write_lattice_domain_calibration_report,
-)
+from .m6_calibration_campaign import run_lattice_domain_calibration_campaign
+from .lattice_domain_calibration_report import write_lattice_domain_calibration_report
 from .local_sixfold_bond_order_computation import compute_local_sixfold_bond_order
 from .sixfold_bond_order_aggregates import (
     SixfoldBondOrderAggregates,
@@ -640,6 +639,7 @@ __all__ = [
     "lattice_domain_calibration_source_fingerprint",
     "load_lattice_domain_calibration_reference",
     "run_lattice_domain_calibration",
+    "run_lattice_domain_calibration_campaign",
     "run_lattice_domain_calibration_for_source",
     "save_lattice_domain_calibration_reference",
     "write_lattice_domain_calibration_report",
