@@ -183,6 +183,7 @@ from .lattice_domain_calibration import (
     run_lattice_domain_calibration_for_source,
 )
 from .m6_calibration_campaign import run_lattice_domain_calibration_campaign
+from .m6_validation_campaign import freeze_m6_candidate_shortlist, open_m6_validation_and_publish_report
 from .lattice_domain_calibration_report import write_lattice_domain_calibration_report
 from .local_sixfold_bond_order_computation import compute_local_sixfold_bond_order
 from .sixfold_bond_order_aggregates import (
@@ -544,7 +545,6 @@ from .m6_domain_type_lifecycle import (
     adapt_m6_domain_type_analysis_source,
     build_m6_domain_type_analysis_context,
 )
-
 __all__ = [
     "AggregatedPairCorrelationResult",
     "TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET",
@@ -639,7 +639,7 @@ __all__ = [
     "lattice_domain_calibration_source_fingerprint",
     "load_lattice_domain_calibration_reference",
     "run_lattice_domain_calibration",
-    "run_lattice_domain_calibration_campaign",
+    "freeze_m6_candidate_shortlist", "open_m6_validation_and_publish_report", "run_lattice_domain_calibration_campaign",
     "run_lattice_domain_calibration_for_source",
     "save_lattice_domain_calibration_reference",
     "write_lattice_domain_calibration_report",

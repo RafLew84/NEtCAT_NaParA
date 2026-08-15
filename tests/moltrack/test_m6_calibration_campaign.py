@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import replace
+import json
+from dataclasses import dataclass, replace
 from typing import cast
 
 import pytest
@@ -12,14 +13,26 @@ from moltrack.analysis import (
     LatticeDomainCalibrationSweepSettings,
     LatticeDomainPartitionLabels,
     MolecularM6OrientationAnalysisSettings,
+    freeze_m6_candidate_shortlist,
+    open_m6_validation_and_publish_report,
     run_lattice_domain_calibration_campaign,
     run_first_shell_geometry_experiment,
 )
 from moltrack.analysis.m6_calibration_campaign_models import (
     M6CalibrationBackend,
+    M6CalibrationBackendResult,
+    M6CalibrationCampaignReport,
     M6CalibrationGroupPrediction,
     M6CalibrationObjective,
     M6CalibrationReferenceGroup,
+)
+from moltrack.analysis.first_shell_geometry_models import (
+    FrozenFirstShellGeometrySelection,
+)
+from moltrack.analysis.m6_validation_campaign_models import (
+    M6CampaignReportV2,
+    M6CampaignReportV2Publication,
+    M6CandidateShortlist,
 )
 from moltrack.analysis.m6_calibration_metrics import (
     evaluate_m6_calibration_prediction,
@@ -33,6 +46,7 @@ from moltrack.analysis.domain_analysis.backend_contract import NativeEvidenceKin
 from moltrack.persistence.m6_reference_payload import M6_REFERENCE_TABLE_FILES
 from moltrack.persistence.reference_dataset import (
     ReferenceDatasetDraft,
+    ReferenceDatasetPublication,
     ReferenceDatasetSettings,
     ReferencePartitionIdentity,
     publish_reference_dataset,
@@ -44,203 +58,128 @@ from moltrack.persistence.reference_dataset_identity import (
 
 
 def test_campaign_ranks_source_aligned_partitions_with_constraints(tmp_path) -> None:
-    package = _reference_package(tmp_path)
-    observed: dict[str, list[tuple[str, str, float]]] = {
-        M6_ORIENTATION_COMPONENTS_BACKEND_ID: [],
-        M3_M6_LATTICE_NETWORK_BACKEND_ID: [],
-    }
-
-    def backend(backend_id: str, *, explicit_boundary: bool) -> M6CalibrationBackend:
-        native_kind = (
-            "m6_orientation_evidence_v1"
-            if backend_id == M6_ORIENTATION_COMPONENTS_BACKEND_ID
-            else "m3_m6_lattice_evidence_v1"
-        )
-        identity = DomainBackendIdentity(
-            backend_id=backend_id,
-            result_schema_version="domain-backend-result-v1",
-            algorithm_version="campaign-fixture-v1",
-            settings_fingerprint="fixture-settings",
-            adapter_owner="campaign-fixture",
-            native_evidence_kind=cast(NativeEvidenceKind, native_kind),
-            capabilities=(
-                ("common_partition", "explicit_boundary")
-                if explicit_boundary
-                else ("common_partition",)
-            ),
-        )
-
-        def evaluate(group, settings, geometry):
-            assert geometry.dataset_version_id == group.dataset_version_id
-            observed[backend_id].append(
-                (
-                    group.dataset_version_id,
-                    group.measurement_group_id,
-                    settings.q_grow,
-                )
-            )
-            reference = group.reference_labels
-            low_recall_stable = settings.q_grow >= 0.5
-            labels = []
-            boundary = []
-            failed_stages = []
-            for source_id in reference.source_ids:
-                molecule_id = source_id.rsplit("::", 1)[-1]
-                if not low_recall_stable:
-                    labels.append("different-local-domain-id")
-                    boundary.append(False)
-                    continue
-                if group.measurement_group_id == "group-a":
-                    predicted_positive = molecule_id == "p1"
-                    labels.append("predicted-a" if predicted_positive else None)
-                    boundary.append(predicted_positive)
-                    if molecule_id == "p2":
-                        failed_stages.append(
-                            (source_id, ("local_order", "first_shell"))
-                        )
-                else:
-                    labels.append(
-                        "predicted-b-left"
-                        if molecule_id in {"p3", "p4"}
-                        else "predicted-b-right"
-                    )
-                    boundary.append(molecule_id == "p3")
-            for source_id in group.excluded_source_ids:
-                labels.append("must-not-enter-any-metric")
-                boundary.append(False)
-            return M6CalibrationGroupPrediction(
-                labels=LatticeDomainPartitionLabels(
-                    source_ids=(
-                        *reference.source_ids,
-                        *group.excluded_source_ids,
-                    ),
-                    domain_labels=tuple(labels),
-                    boundary=tuple(boundary),
-                    confidence=tuple(None for _ in labels),
-                ),
-                failed_stage_ids=tuple(failed_stages),
-            )
-
-        return M6CalibrationBackend(identity, evaluate)
-
-    sweep = LatticeDomainCalibrationSweepSettings(
-        baseline_settings=replace(
-            MolecularM6OrientationAnalysisSettings(),
-            q_grow=0.5,
-        ),
-        parameter_names=("q_grow",),
-        max_multivariate_variants=0,
-        max_stability_candidates=3,
-    )
-    geometry = run_first_shell_geometry_experiment(
-        package.package_path,
-        FirstShellGeometryExperimentSettings(
-            graph_settings=FirstShellGraphSettings(duplicate_max_distance_nm=0.5),
-            fixed_r_min_nm=1.0,
-            fixed_r_max_nm=2.6,
-            gr_bin_width_nm=0.5,
-            gr_max_nm=3.0,
-            gr_min_expected_pair_exposure=1.0,
-            gr_min_contributing_frames=1,
-            gr_smoothing_width=0.2,
-            gr_peak_prominence=0.2,
-        ),
-        pair_correlations=(
-            FirstShellPairCorrelationEvidence.unavailable(
-                package.version_id,
-                "group-a", "trifold", "fixture_has_no_g_r"
-            ),
-            FirstShellPairCorrelationEvidence.unavailable(
-                package.version_id,
-                "group-b", "sixfold", "fixture_has_no_g_r"
-            ),
-        ),
-    ).freeze("fixed")
-    report = run_lattice_domain_calibration_campaign(
-        package.package_path,
-        sweep,
-        M6CalibrationObjective(
-            minimum_membership_precision=0.9,
-            minimum_local_stability_ari=0.8,
-            split_weight=0.2,
-            merge_weight=0.3,
-        ),
-        geometry=geometry,
-        backends=(
-            backend(M6_ORIENTATION_COMPONENTS_BACKEND_ID, explicit_boundary=False),
-            backend(M3_M6_LATTICE_NETWORK_BACKEND_ID, explicit_boundary=True),
-        ),
-    )
-
-    assert report.dataset_version_id == package.version_id
-    assert report.dataset_version_fingerprint == package.version_fingerprint
-    backend_results = report.backend_results_for(geometry)
+    scenario = _campaign_scenario(tmp_path, dataset_id="campaign-ranking")
+    report = scenario.campaign
+    assert report.dataset_version_id == scenario.package.version_id
+    assert report.dataset_version_fingerprint == scenario.package.version_fingerprint
+    backend_results = report.backend_results_for(scenario.geometry)
     assert {value.backend_identity.backend_id for value in backend_results} == {
         M6_ORIENTATION_COMPONENTS_BACKEND_ID,
         M3_M6_LATTICE_NETWORK_BACKEND_ID,
     }
     for backend_result in backend_results:
-        selected = backend_result.selected_candidate
-        assert selected is not None
-        assert selected.variant.variant_id == "q_grow:high"
-        assert selected.eligible is True
-        assert selected.metrics.membership_true_positive_count == 5
-        assert selected.metrics.membership_false_positive_count == 0
-        assert selected.metrics.membership_false_negative_count == 1
-        assert selected.metrics.abstention_count == 1
-        assert selected.metrics.macro_membership_recall == pytest.approx(0.75)
-        assert selected.metrics.micro_membership_recall == pytest.approx(5 / 6)
-        assert selected.metrics.macro_split_rate == pytest.approx(0.5)
-        assert selected.objective_loss == pytest.approx(0.35)
-        assert selected.local_stability_ari == pytest.approx(1.0)
-        assert selected.metrics.funnel_misses == (("first_shell", 1),)
+        _assert_ranked_backend_result(backend_result)
+    for observations in scenario.observed.values():
+        assert {value[0] for value in observations} == {scenario.package.version_id}
+        assert {value[1] for value in observations} == {"group-a", "group-b"}
+        assert "validation-secret" not in {value[1] for value in observations}
+        assert {round(value[2], 2) for value in observations} >= {
+            0.45, 0.5, 0.55, 0.6,
+        }
 
-        by_id = {
-            value.variant.variant_id: value
-            for value in backend_result.ranked_candidates
-        }
-        assert "local_stability_below_constraint" in by_id[
-            "baseline"
-        ].eligibility_failures
-        assert "precision_below_constraint" in by_id[
-            "q_grow:low"
-        ].eligibility_failures
-        if backend_result.backend_identity.backend_id == (
-            M6_ORIENTATION_COMPONENTS_BACKEND_ID
-        ):
-            assert selected.metrics.boundary_precision.status == "unavailable"
-            assert selected.metrics.boundary_precision.value is None
-            assert selected.metrics.boundary_precision.reason == (
-                "boundary_or_disordered_is_ambiguous"
-            )
-            assert all(
-                value.boundary_true_positive_count is None
-                and value.boundary_precision.status == "unavailable"
-                for value in selected.group_metrics
-            )
-        else:
-            assert selected.metrics.boundary_precision.status == "available"
-            assert selected.metrics.boundary_precision.value == pytest.approx(1.0)
-            assert selected.metrics.boundary_precision.reason is None
-            assert all(
-                value.boundary_true_positive_count is not None
-                and value.boundary_precision.status == "available"
-                for value in selected.group_metrics
-            )
 
-    for backend_observations in observed.values():
-        assert {value[0] for value in backend_observations} == {package.version_id}
-        assert {value[1] for value in backend_observations} == {
-            "group-a",
-            "group-b",
+def test_shortlist_is_deterministic_and_binds_both_backends(tmp_path) -> None:
+    scenario = _campaign_scenario(tmp_path, dataset_id="campaign-shortlist")
+    shortlist = scenario.shortlist
+    repeated = freeze_m6_candidate_shortlist(
+        scenario.campaign,
+        scenario.geometry,
+    )
+    assert shortlist.dataset_version_id == scenario.package.version_id
+    assert shortlist.validation_epoch_id == scenario.package.validation_epoch_id
+    assert shortlist.geometry_fingerprint == scenario.geometry.geometry_fingerprint
+    assert shortlist.validation_opened is False
+    assert shortlist.shortlist_fingerprint == repeated.shortlist_fingerprint
+    assert {entry.backend_identity.backend_id for entry in shortlist.entries} == {
+        M6_ORIENTATION_COMPONENTS_BACKEND_ID,
+        M3_M6_LATTICE_NETWORK_BACKEND_ID,
+    }
+    assert all(entry.candidate.eligible for entry in shortlist.entries)
+    assert all(
+        entry.candidate.variant.variant_id == "q_grow:high"
+        for entry in shortlist.entries
+    )
+    assert shortlist.tie_break_rule
+
+
+@pytest.mark.parametrize("validation_failure", [False, True])
+def test_validation_publishes_positive_or_legal_negative_report(
+    tmp_path,
+    monkeypatch,
+    validation_failure: bool,
+) -> None:
+    _configure_validation_registry(monkeypatch, tmp_path)
+    scenario = _campaign_scenario(
+        tmp_path,
+        dataset_id=("campaign-report-failure" if validation_failure else "campaign-report"),
+        validation_failure=validation_failure,
+    )
+    before = {key: len(values) for key, values in scenario.observed.items()}
+    publication = _open_validation(scenario, tmp_path / "report")
+    assert publication.report.status == (
+        "validation_failed" if validation_failure else "validated"
+    )
+    assert publication.report.preset_modified is False
+    assert publication.report.receipt.open_count == 1
+    assert publication.report.receipt.shortlist_fingerprint == (
+        scenario.shortlist.shortlist_fingerprint
+    )
+    if validation_failure:
+        assert publication.report.recommended_backend_id is None
+        assert publication.report.failure_reason is not None
+    else:
+        assert publication.report.recommended_backend_id in {
+            M6_ORIENTATION_COMPONENTS_BACKEND_ID,
+            M3_M6_LATTICE_NETWORK_BACKEND_ID,
         }
-        assert "validation-secret" not in {value[1] for value in backend_observations}
-        assert {round(value[2], 2) for value in backend_observations} >= {
-            0.45,
-            0.5,
-            0.55,
-            0.6,
-        }
+    _assert_validation_metrics(publication.report, validation_failure)
+    _assert_report_artifacts(publication)
+    for backend_id, observations in scenario.observed.items():
+        assert len(observations) == before[backend_id] + 1
+        assert observations[-1][1] == "validation-secret"
+
+
+def test_validation_access_is_global_one_shot_and_rejects_mismatch(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    _configure_validation_registry(monkeypatch, tmp_path)
+    scenario = _campaign_scenario(tmp_path, dataset_id="campaign-guard")
+    _open_validation(scenario, tmp_path / "first-report-root")
+    after_open = {key: len(values) for key, values in scenario.observed.items()}
+    with pytest.raises(ValueError, match="already been opened"):
+        _open_validation(scenario, tmp_path / "different-report-root")
+    assert {key: len(values) for key, values in scenario.observed.items()} == after_open
+
+    alternate = run_lattice_domain_calibration_campaign(
+        scenario.package.package_path,
+        scenario.sweep,
+        replace(
+            scenario.campaign.objective,
+            minimum_membership_precision=0.89,
+        ),
+        geometry=scenario.geometry,
+        backends=scenario.backends,
+    )
+    alternate_shortlist = freeze_m6_candidate_shortlist(
+        alternate,
+        scenario.geometry,
+    )
+    before_alternate = {
+        key: len(values) for key, values in scenario.observed.items()
+    }
+    with pytest.raises(ValueError, match="identity mismatch"):
+        open_m6_validation_and_publish_report(
+            alternate,
+            alternate_shortlist,
+            scenario.geometry,
+            backends=scenario.backends,
+            destination=tmp_path / "alternate-objective-report",
+        )
+    assert {
+        key: len(values) for key, values in scenario.observed.items()
+    } == before_alternate
+    _assert_pre_open_mismatches(scenario, tmp_path)
 
 
 def test_group_metrics_keep_frame_local_ids_separate_and_exclude_abstentions() -> None:
@@ -284,7 +223,315 @@ def test_group_metrics_keep_frame_local_ids_separate_and_exclude_abstentions() -
     assert metrics.boundary_precision.status == "unavailable"
 
 
-def _reference_package(tmp_path):
+@dataclass(frozen=True)
+class _CampaignScenario:
+    package: ReferenceDatasetPublication
+    observed: dict[str, list[tuple[str, str, float]]]
+    backends: tuple[M6CalibrationBackend, ...]
+    sweep: LatticeDomainCalibrationSweepSettings
+    geometry: FrozenFirstShellGeometrySelection
+    campaign: M6CalibrationCampaignReport
+    shortlist: M6CandidateShortlist
+
+
+def _campaign_scenario(
+    tmp_path,
+    *,
+    dataset_id: str,
+    validation_failure: bool = False,
+) -> _CampaignScenario:
+    package = _reference_package(tmp_path, dataset_id=dataset_id)
+    observed: dict[str, list[tuple[str, str, float]]] = {
+        M6_ORIENTATION_COMPONENTS_BACKEND_ID: [],
+        M3_M6_LATTICE_NETWORK_BACKEND_ID: [],
+    }
+    backends = (
+        _campaign_backend(
+            M6_ORIENTATION_COMPONENTS_BACKEND_ID,
+            explicit_boundary=False,
+            validation_failure=validation_failure,
+            observed=observed,
+        ),
+        _campaign_backend(
+            M3_M6_LATTICE_NETWORK_BACKEND_ID,
+            explicit_boundary=True,
+            validation_failure=validation_failure,
+            observed=observed,
+        ),
+    )
+    sweep = LatticeDomainCalibrationSweepSettings(
+        baseline_settings=replace(
+            MolecularM6OrientationAnalysisSettings(),
+            q_grow=0.5,
+        ),
+        parameter_names=("q_grow",),
+        max_multivariate_variants=0,
+        max_stability_candidates=3,
+    )
+    geometry = _campaign_geometry(package)
+    campaign = run_lattice_domain_calibration_campaign(
+        package.package_path,
+        sweep,
+        M6CalibrationObjective(
+            minimum_membership_precision=0.9,
+            minimum_local_stability_ari=0.8,
+            split_weight=0.2,
+            merge_weight=0.3,
+        ),
+        geometry=geometry,
+        backends=backends,
+    )
+    return _CampaignScenario(
+        package=package,
+        observed=observed,
+        backends=backends,
+        sweep=sweep,
+        geometry=geometry,
+        campaign=campaign,
+        shortlist=freeze_m6_candidate_shortlist(campaign, geometry),
+    )
+
+
+def _campaign_backend(
+    backend_id: str,
+    *,
+    explicit_boundary: bool,
+    validation_failure: bool,
+    observed: dict[str, list[tuple[str, str, float]]],
+) -> M6CalibrationBackend:
+    native_kind = (
+        "m6_orientation_evidence_v1"
+        if backend_id == M6_ORIENTATION_COMPONENTS_BACKEND_ID
+        else "m3_m6_lattice_evidence_v1"
+    )
+    identity = DomainBackendIdentity(
+        backend_id=backend_id,
+        result_schema_version="domain-backend-result-v1",
+        algorithm_version="campaign-fixture-v1",
+        settings_fingerprint="fixture-settings",
+        adapter_owner="campaign-fixture",
+        native_evidence_kind=cast(NativeEvidenceKind, native_kind),
+        capabilities=(
+            ("common_partition", "explicit_boundary")
+            if explicit_boundary
+            else ("common_partition",)
+        ),
+    )
+
+    def evaluate(group, settings, geometry):
+        assert geometry.dataset_version_id == group.dataset_version_id
+        observed[backend_id].append((
+            group.dataset_version_id,
+            group.measurement_group_id,
+            settings.q_grow,
+        ))
+        reference = group.reference_labels
+        labels = []
+        boundary = []
+        failed_stages = []
+        for source_id in reference.source_ids:
+            molecule_id = source_id.rsplit("::", 1)[-1]
+            if settings.q_grow < 0.5:
+                labels.append("different-local-domain-id")
+                boundary.append(False)
+            elif validation_failure and group.measurement_group_id == (
+                "validation-secret"
+            ):
+                labels.append(None)
+                boundary.append(False)
+                failed_stages.append((source_id, ("automatic_result",)))
+            elif group.measurement_group_id == "group-a":
+                predicted_positive = molecule_id == "p1"
+                labels.append("predicted-a" if predicted_positive else None)
+                boundary.append(predicted_positive)
+                if molecule_id == "p2":
+                    failed_stages.append(
+                        (source_id, ("local_order", "first_shell"))
+                    )
+            else:
+                labels.append(
+                    "predicted-b-left"
+                    if molecule_id in {"p3", "p4"}
+                    else "predicted-b-right"
+                )
+                boundary.append(molecule_id == "p3")
+        for _source_id in group.excluded_source_ids:
+            labels.append("must-not-enter-any-metric")
+            boundary.append(False)
+        return M6CalibrationGroupPrediction(
+            labels=LatticeDomainPartitionLabels(
+                source_ids=(*reference.source_ids, *group.excluded_source_ids),
+                domain_labels=tuple(labels),
+                boundary=tuple(boundary),
+                confidence=tuple(None for _ in labels),
+            ),
+            failed_stage_ids=tuple(failed_stages),
+        )
+
+    return M6CalibrationBackend(identity, evaluate)
+
+
+def _campaign_geometry(
+    package: ReferenceDatasetPublication,
+) -> FrozenFirstShellGeometrySelection:
+    return run_first_shell_geometry_experiment(
+        package.package_path,
+        FirstShellGeometryExperimentSettings(
+            graph_settings=FirstShellGraphSettings(duplicate_max_distance_nm=0.5),
+            fixed_r_min_nm=1.0,
+            fixed_r_max_nm=2.6,
+            gr_bin_width_nm=0.5,
+            gr_max_nm=3.0,
+            gr_min_expected_pair_exposure=1.0,
+            gr_min_contributing_frames=1,
+            gr_smoothing_width=0.2,
+            gr_peak_prominence=0.2,
+        ),
+        pair_correlations=(
+            FirstShellPairCorrelationEvidence.unavailable(
+                package.version_id,
+                "group-a", "trifold", "fixture_has_no_g_r"
+            ),
+            FirstShellPairCorrelationEvidence.unavailable(
+                package.version_id,
+                "group-b", "sixfold", "fixture_has_no_g_r"
+            ),
+        ),
+    ).freeze("fixed")
+
+
+def _assert_ranked_backend_result(result: M6CalibrationBackendResult) -> None:
+    selected = result.selected_candidate
+    assert selected is not None
+    assert selected.variant.variant_id == "q_grow:high"
+    assert selected.eligible is True
+    assert selected.metrics.membership_true_positive_count == 5
+    assert selected.metrics.membership_false_positive_count == 0
+    assert selected.metrics.membership_false_negative_count == 1
+    assert selected.metrics.abstention_count == 1
+    assert selected.metrics.macro_membership_recall == pytest.approx(0.75)
+    assert selected.metrics.micro_membership_recall == pytest.approx(5 / 6)
+    assert selected.metrics.macro_split_rate == pytest.approx(0.5)
+    assert selected.objective_loss == pytest.approx(0.35)
+    assert selected.local_stability_ari == pytest.approx(1.0)
+    assert selected.metrics.funnel_misses == (("first_shell", 1),)
+    by_id = {value.variant.variant_id: value for value in result.ranked_candidates}
+    assert "local_stability_below_constraint" in by_id[
+        "baseline"
+    ].eligibility_failures
+    assert "precision_below_constraint" in by_id["q_grow:low"].eligibility_failures
+    expected_status = (
+        "unavailable"
+        if result.backend_identity.backend_id == M6_ORIENTATION_COMPONENTS_BACKEND_ID
+        else "available"
+    )
+    assert selected.metrics.boundary_precision.status == expected_status
+    assert all(
+        value.boundary_precision.status == expected_status
+        for value in selected.group_metrics
+    )
+
+
+def _open_validation(
+    scenario: _CampaignScenario,
+    destination,
+) -> M6CampaignReportV2Publication:
+    return open_m6_validation_and_publish_report(
+        scenario.campaign,
+        scenario.shortlist,
+        scenario.geometry,
+        backends=scenario.backends,
+        destination=destination,
+    )
+
+
+def _assert_validation_metrics(
+    report: M6CampaignReportV2,
+    validation_failure: bool,
+) -> None:
+    by_backend = {
+        value.backend_identity.backend_id: value
+        for value in report.validation_results
+    }
+    assert by_backend[
+        M6_ORIENTATION_COMPONENTS_BACKEND_ID
+    ].metrics.boundary_precision.status == "unavailable"
+    assert by_backend[
+        M3_M6_LATTICE_NETWORK_BACKEND_ID
+    ].metrics.boundary_precision.status == "available"
+    for result in report.validation_results:
+        assert result.group_metrics[0].measurement_group_id == "validation-secret"
+        assert result.metrics.funnel_misses == (
+            (("automatic_result", 1),) if validation_failure else ()
+        )
+
+
+def _assert_report_artifacts(publication: M6CampaignReportV2Publication) -> None:
+    for path in (
+        publication.report_json_path,
+        publication.report_markdown_path,
+        publication.metrics_csv_path,
+        publication.receipt_path,
+    ):
+        assert path.is_file()
+        assert path.parent == publication.output_directory
+    payload = json.loads(publication.report_json_path.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == "m6-campaign-report-v2"
+    assert payload["preset_modified"] is False
+    assert payload["validation_access_receipt"]["open_count"] == 1
+    assert "validation-secret" in publication.report_markdown_path.read_text(
+        encoding="utf-8"
+    )
+    assert "validation-secret" in publication.metrics_csv_path.read_text(
+        encoding="utf-8"
+    )
+
+
+def _assert_pre_open_mismatches(
+    scenario: _CampaignScenario,
+    tmp_path,
+) -> None:
+    before = {key: len(values) for key, values in scenario.observed.items()}
+    changed_objective = replace(
+        scenario.shortlist.objective,
+        minimum_membership_precision=0.91,
+    )
+    mismatched = (
+        replace(
+            scenario.shortlist,
+            dataset_version_id="different-dataset-version",
+        ),
+        replace(scenario.shortlist, objective=changed_objective),
+        replace(scenario.shortlist, tie_break_rule="changed-tie-break"),
+    )
+    for shortlist in mismatched:
+        with pytest.raises(ValueError, match="does not match"):
+            open_m6_validation_and_publish_report(
+                scenario.campaign,
+                shortlist,
+                scenario.geometry,
+                backends=scenario.backends,
+                destination=tmp_path / "must-not-open-validation",
+            )
+    with pytest.raises(ValueError, match="geometry fingerprint changed"):
+        open_m6_validation_and_publish_report(
+            scenario.campaign,
+            scenario.shortlist,
+            replace(scenario.geometry, geometry_fingerprint="changed-geometry"),
+            backends=scenario.backends,
+            destination=tmp_path / "must-not-open-validation",
+        )
+    assert {key: len(values) for key, values in scenario.observed.items()} == before
+
+
+def _configure_validation_registry(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv(
+        "MOLTRACK_M6_VALIDATION_ACCESS_REGISTRY",
+        str(tmp_path.parent / "m6-validation-access"),
+    )
+
+
+def _reference_package(tmp_path, *, dataset_id="campaign-reference"):
     rows = {
         name: [] for name in M6_REFERENCE_TABLE_FILES
     }
@@ -378,7 +625,7 @@ def _reference_package(tmp_path):
     ]
     settings = ReferenceDatasetSettings(
         destination=tmp_path / "m6-reference",
-        dataset_id="campaign-reference",
+        dataset_id=dataset_id,
         publication_reason="campaign tracer",
     )
     return publish_reference_dataset(ReferenceDatasetDraft(

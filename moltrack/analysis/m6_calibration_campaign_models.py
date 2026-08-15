@@ -10,6 +10,7 @@ from typing import Callable, Literal
 from .domain_analysis import DomainBackendIdentity, MoleculeDiagnosticStageId
 from .lattice_domain_calibration_models import (
     LatticeDomainCalibrationSkippedVariant,
+    LatticeDomainCalibrationSweepSettings,
     LatticeDomainCalibrationVariant,
 )
 from .lattice_domain_validation import LatticeDomainPartitionLabels
@@ -226,6 +227,7 @@ class M6CalibrationCampaignReport:
     validation_epoch_id: str
     geometry_fingerprint: str
     objective: M6CalibrationObjective
+    sweep: LatticeDomainCalibrationSweepSettings
     _backend_results: tuple[M6CalibrationBackendResult, ...]
     validation_opened: bool = False
 

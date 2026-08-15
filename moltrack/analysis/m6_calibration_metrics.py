@@ -118,6 +118,25 @@ def evaluate_m6_calibration_prediction(
     )
 
 
+def evaluate_m6_calibration_groups(
+    groups: tuple[M6CalibrationReferenceGroup, ...],
+    predictions: tuple[M6CalibrationGroupPrediction, ...],
+    *,
+    explicit_boundary: bool,
+) -> tuple[M6CalibrationAggregateMetrics, tuple[M6CalibrationGroupMetrics, ...]]:
+    if len(groups) != len(predictions):
+        raise ValueError("M6 groups and predictions must have equal lengths.")
+    group_metrics = tuple(
+        evaluate_m6_calibration_prediction(
+            group,
+            prediction,
+            explicit_boundary=explicit_boundary,
+        )
+        for group, prediction in zip(groups, predictions)
+    )
+    return aggregate_m6_calibration_metrics(group_metrics), group_metrics
+
+
 def aggregate_m6_calibration_metrics(
     groups: tuple[M6CalibrationGroupMetrics, ...],
 ) -> M6CalibrationAggregateMetrics:
@@ -206,6 +225,16 @@ def m6_local_partition_stability(
         changed_labels,
         baseline_labels,
     ).adjusted_rand_index
+
+
+def normalize_m6_calibration_prediction(
+    value: M6CalibrationGroupPrediction | LatticeDomainPartitionLabels,
+) -> M6CalibrationGroupPrediction:
+    if isinstance(value, M6CalibrationGroupPrediction):
+        return value
+    if isinstance(value, LatticeDomainPartitionLabels):
+        return M6CalibrationGroupPrediction(value)
+    raise TypeError("M6 evaluator returned an unsupported prediction.")
 
 
 def _boundary_metrics(
@@ -366,7 +395,9 @@ def _safe_rate(numerator: int, denominator: int) -> float:
 
 __all__ = [
     "aggregate_m6_calibration_metrics",
+    "evaluate_m6_calibration_groups",
     "evaluate_m6_calibration_prediction",
     "m6_calibration_objective_loss",
     "m6_local_partition_stability",
+    "normalize_m6_calibration_prediction",
 ]

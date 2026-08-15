@@ -24,7 +24,6 @@ from .lattice_domain_bounded_search import (
     LatticeDomainStabilityAssessment,
     run_lattice_domain_bounded_search,
 )
-from .lattice_domain_validation import LatticeDomainPartitionLabels
 from .m6_calibration_campaign_models import (
     M6CalibrationAggregateMetrics,
     M6CalibrationBackend,
@@ -37,10 +36,10 @@ from .m6_calibration_campaign_models import (
     M6CalibrationReferenceGroup,
 )
 from .m6_calibration_metrics import (
-    aggregate_m6_calibration_metrics,
-    evaluate_m6_calibration_prediction,
+    evaluate_m6_calibration_groups,
     m6_calibration_objective_loss,
     m6_local_partition_stability,
+    normalize_m6_calibration_prediction,
 )
 from .first_shell_geometry_models import FrozenFirstShellGeometrySelection
 
@@ -107,6 +106,7 @@ def run_lattice_domain_calibration_campaign(
         validation_epoch_id=reference.validation_epoch_id,
         geometry_fingerprint=geometry.geometry_fingerprint,
         objective=objective,
+        sweep=sweep,
         _backend_results=results,
     )
 
@@ -264,20 +264,18 @@ def _evaluate_variant(
     stability_reference: tuple[M6CalibrationGroupPrediction, ...] | None,
 ) -> _EvaluatedVariant:
     predictions = tuple(
-        _prediction(backend.evaluator(group, variant.settings, geometry))
+        normalize_m6_calibration_prediction(
+            backend.evaluator(group, variant.settings, geometry)
+        )
         for group in groups
     )
-    group_metrics = tuple(
-        evaluate_m6_calibration_prediction(
-            group,
-            prediction,
-            explicit_boundary=(
-                "explicit_boundary" in backend.backend_identity.capabilities
-            ),
-        )
-        for group, prediction in zip(groups, predictions)
+    metrics, group_metrics = evaluate_m6_calibration_groups(
+        groups,
+        predictions,
+        explicit_boundary=(
+            "explicit_boundary" in backend.backend_identity.capabilities
+        ),
     )
-    metrics = aggregate_m6_calibration_metrics(group_metrics)
     local_stability = (
         None
         if stability_reference is None
@@ -416,16 +414,6 @@ def _search_result(value: _EvaluatedVariant) -> LatticeDomainCalibrationVariantR
             else -value.objective_loss
         ),
     )
-
-
-def _prediction(
-    value: M6CalibrationGroupPrediction | LatticeDomainPartitionLabels,
-) -> M6CalibrationGroupPrediction:
-    if isinstance(value, M6CalibrationGroupPrediction):
-        return value
-    if isinstance(value, LatticeDomainPartitionLabels):
-        return M6CalibrationGroupPrediction(value)
-    raise TypeError("M6 campaign evaluator returned an unsupported prediction.")
 
 
 def _preliminary_sort_key(
