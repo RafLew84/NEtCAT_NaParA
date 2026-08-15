@@ -4,9 +4,9 @@ import hashlib
 import json
 import shutil
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, Literal
 
 from moltrack import __version__ as moltrack_version
 from moltrack.analysis.domain_analysis.fingerprints import canonical_sha256
@@ -121,6 +121,7 @@ class ReferenceDatasetDraft:
     initial_dataset_version: int
     payload_files: tuple[ReferencePayloadFile, ...]
     partitions: tuple[ReferencePartitionIdentity, ...]
+    source_revisions: tuple[ReferenceSourceRevision, ...] = ()
 
     def __post_init__(self) -> None:
         if self.target not in {"m6", "orientation"}:
@@ -148,8 +149,15 @@ class ReferenceDatasetDraft:
             != {"calibration", "validation"}
         ):
             raise ValueError("Reference Dataset requires both partition identities.")
+        source_revisions = tuple(self.source_revisions)
+        if any(
+            not isinstance(value, ReferenceSourceRevision)
+            for value in source_revisions
+        ):
+            raise TypeError("Reference Dataset source revisions are invalid.")
         object.__setattr__(self, "payload_files", files)
         object.__setattr__(self, "partitions", partitions)
+        object.__setattr__(self, "source_revisions", source_revisions)
 
 
 @dataclass(frozen=True)
@@ -160,6 +168,51 @@ class ReferenceDatasetPublication:
     version_fingerprint: str
     validation_epoch_id: str
     relative_files: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ReferenceDatasetPublicationPlan:
+    """Verified operator preview of one immutable publication."""
+
+    target: ReferenceTarget
+    dataset_id: str
+    dataset_version: int
+    parent_version_id: str | None
+    source_revision_ids: tuple[str, ...]
+    partitions: tuple[ReferencePartitionIdentity, ...]
+    validation_epoch_id: str
+    validation_epoch_action: Literal["preserve", "new"]
+
+    def operator_summary(self) -> str:
+        parent = self.parent_version_id or "none (new dataset root)"
+        sources = "\n".join(
+            f"  - {value}" for value in self.source_revision_ids
+        ) or "  - none supplied"
+        partitions = "\n".join(
+            f"  - {value.split}: {value.partition_fingerprint}"
+            for value in self.partitions
+        )
+        return (
+            f"Target: {self.target}\n"
+            f"Dataset ID: {self.dataset_id}\n"
+            f"Ancestry: {parent} -> version {self.dataset_version}\n"
+            f"Parent version: {parent}\n"
+            f"Source revisions:\n{sources}\n"
+            f"Split fingerprints:\n{partitions}\n"
+            f"Validation epoch: {self.validation_epoch_action} "
+            f"{self.validation_epoch_id}"
+        )
+
+
+@dataclass(frozen=True)
+class ReferenceDatasetPublicationCandidate:
+    """Freeze a verified preview and publish only if it still matches."""
+
+    plan: ReferenceDatasetPublicationPlan
+    _draft: ReferenceDatasetDraft = field(repr=False)
+
+    def publish(self) -> ReferenceDatasetPublication:
+        return _publish_reference_dataset(self._draft, self.plan)
 
 
 @dataclass(frozen=True)
@@ -175,8 +228,31 @@ def publish_reference_dataset(
 ) -> ReferenceDatasetPublication:
     """Verify ancestry and atomically publish one immutable dataset envelope."""
 
+    return prepare_reference_dataset(draft).publish()
+
+
+def prepare_reference_dataset(
+    draft: ReferenceDatasetDraft,
+) -> ReferenceDatasetPublicationCandidate:
+    """Prepare the same verified identity plan consumed by publication."""
+
+    if not isinstance(draft, ReferenceDatasetDraft):
+        raise TypeError("draft must be a ReferenceDatasetDraft.")
+    plan = _publication_plan(draft, _load_parent(draft))
+    return ReferenceDatasetPublicationCandidate(plan, draft)
+
+
+def _publish_reference_dataset(
+    draft: ReferenceDatasetDraft,
+    expected_plan: ReferenceDatasetPublicationPlan,
+) -> ReferenceDatasetPublication:
+    current_plan = _publication_plan(draft, _load_parent(draft))
+    if current_plan != expected_plan:
+        raise ValueError(
+            "Reference Dataset publication inputs changed after preview."
+        )
+
     settings = draft.settings
-    parent = _load_parent(draft)
     if path_exists(settings.destination):
         raise FileExistsError(
             f"Reference Dataset version already exists: {settings.destination}"
@@ -190,7 +266,7 @@ def publish_reference_dataset(
     try:
         file_manifest = _write_payload(staging, draft.payload_files)
         _write_json(staging / "file_manifest.json", file_manifest)
-        manifest = _manifest(draft, file_manifest, parent)
+        manifest = _manifest(draft, file_manifest, current_plan)
         _write_json(staging / "manifest.json", manifest)
         relative_files = relative_package_files(staging)
         publish_path(staging, settings.destination, overwrite=False)
@@ -269,17 +345,48 @@ def _write_payload(
     return {"schema_version": 1, "files": entries}
 
 
+def _publication_plan(
+    draft: ReferenceDatasetDraft,
+    parent: _ParentVersion | None,
+) -> ReferenceDatasetPublicationPlan:
+    validation_fingerprint = next(
+        value.partition_fingerprint
+        for value in draft.partitions
+        if value.split == "validation"
+    )
+    epoch = reference_validation_epoch(draft.target, validation_fingerprint)
+    action: Literal["preserve", "new"] = "new"
+    if parent is not None and (
+        parent.validation_partition_fingerprint == validation_fingerprint
+    ):
+        epoch["epoch_id"] = parent.validation_epoch_id
+        action = "preserve"
+    source_revision_ids = tuple(sorted({
+        reference_source_identity(draft.target, value)[0]
+        for value in draft.source_revisions
+    }))
+    return ReferenceDatasetPublicationPlan(
+        target=draft.target,
+        dataset_id=draft.settings.dataset_id,
+        dataset_version=(
+            draft.initial_dataset_version
+            if parent is None
+            else parent.dataset_version + 1
+        ),
+        parent_version_id=None if parent is None else parent.version_id,
+        source_revision_ids=source_revision_ids,
+        partitions=draft.partitions,
+        validation_epoch_id=epoch["epoch_id"],
+        validation_epoch_action=action,
+    )
+
+
 def _manifest(
     draft: ReferenceDatasetDraft,
     file_manifest: dict[str, Any],
-    parent: _ParentVersion | None,
+    plan: ReferenceDatasetPublicationPlan,
 ) -> dict[str, Any]:
     settings = draft.settings
-    dataset_version = (
-        draft.initial_dataset_version
-        if parent is None
-        else parent.dataset_version + 1
-    )
     partitions = {
         value.split: {
             "measurement_group_count": value.measurement_group_count,
@@ -291,17 +398,14 @@ def _manifest(
         partitions["validation"]["partition_fingerprint"]
     )
     epoch = reference_validation_epoch(draft.target, validation_fingerprint)
-    if parent is not None and (
-        parent.validation_partition_fingerprint == validation_fingerprint
-    ):
-        epoch["epoch_id"] = parent.validation_epoch_id
+    epoch["epoch_id"] = plan.validation_epoch_id
     file_fingerprint = canonical_sha256(file_manifest)
     body = {
         "schema_version": REFERENCE_DATASET_ENVELOPE_VERSION,
         "target": draft.target,
         "dataset_id": settings.dataset_id,
-        "dataset_version": dataset_version,
-        "parent_version_id": None if parent is None else parent.version_id,
+        "dataset_version": plan.dataset_version,
+        "parent_version_id": plan.parent_version_id,
         "publication_reason": settings.publication_reason,
         "partitions": partitions,
         "validation_epoch": epoch,
@@ -310,7 +414,9 @@ def _manifest(
     fingerprint = canonical_sha256(body)
     return {
         **{key: value for key, value in body.items() if key != "file_manifest_fingerprint"},
-        "version_id": f"{settings.dataset_id}-v{dataset_version}-{fingerprint[:16]}",
+        "version_id": (
+            f"{settings.dataset_id}-v{plan.dataset_version}-{fingerprint[:16]}"
+        ),
         "version_fingerprint": fingerprint,
         "readiness": {"ready": True, "blockers": []},
         "file_manifest": {
@@ -337,6 +443,8 @@ def _write_json(path: Path, value: dict[str, Any]) -> None:
 
 __all__ = [
     "ReferenceDatasetDraft",
+    "ReferenceDatasetPublicationCandidate",
+    "ReferenceDatasetPublicationPlan",
     "ReferenceDatasetPublication",
     "ReferenceDatasetSettings",
     "ReferenceMeasurementIdentity",
@@ -346,6 +454,7 @@ __all__ = [
     "ReferenceSplit",
     "ReferenceTarget",
     "publish_reference_dataset",
+    "prepare_reference_dataset",
     "reference_json_lines_file",
     "reference_measurement_group_fingerprint",
     "reference_partition_fingerprint",

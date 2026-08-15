@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, overload
 
-from PyQt6.QtWidgets import QFileDialog, QInputDialog, QWidget
+from PyQt6.QtWidgets import QFileDialog, QInputDialog, QMessageBox, QWidget
 
 from moltrack.analysis import build_molecular_sample_coordinates
 from moltrack.analysis.domain_analysis import (
@@ -27,8 +27,9 @@ from moltrack.persistence import (
     OrientationReferenceDatasetSettings,
     OrientationReferenceMeasurementGroup,
     OrientationReferenceSourceRevision,
-    publish_m6_reference_dataset,
-    publish_orientation_reference_dataset,
+    ReferenceDatasetPublicationPlan,
+    prepare_m6_reference_dataset,
+    prepare_orientation_reference_dataset,
 )
 
 
@@ -140,7 +141,10 @@ class DomainAnalysisReferenceWorkflow:
             value.measurement_group_id: value.first_shell_frames
             for value in measurements
         }
-        publication = publish_m6_reference_dataset(measurements, settings)
+        candidate = prepare_m6_reference_dataset(measurements, settings)
+        if not self._confirm_publication(candidate.plan):
+            return "Publication cancelled after ancestry preview."
+        publication = candidate.publish()
         self._m6_publication = publication
         return publication.package_path
 
@@ -164,10 +168,13 @@ class DomainAnalysisReferenceWorkflow:
             self._orientation_measurement(self._orientation_groups[split])
             for split in ("calibration", "validation")
         )
-        publication = publish_orientation_reference_dataset(
+        candidate = prepare_orientation_reference_dataset(
             measurements,
             settings,
         )
+        if not self._confirm_publication(candidate.plan):
+            return "Publication cancelled after ancestry preview."
+        publication = candidate.publish()
         self._orientation_publication = publication
         return publication.package_path
 
@@ -250,6 +257,25 @@ class DomainAnalysisReferenceWorkflow:
         )
         if not accepted or not dataset_id.strip():
             return None
+        ancestry, accepted = QInputDialog.getItem(
+            self._owner,
+            f"Publish {target} reference",
+            "Publication ancestry",
+            ("new dataset root", "immutable child"),
+            0,
+            False,
+        )
+        if not accepted:
+            return None
+        parent_package = None
+        if ancestry == "immutable child":
+            parent = QFileDialog.getExistingDirectory(
+                self._owner,
+                f"Select parent {target} Reference Dataset Version",
+            )
+            if not parent:
+                return None
+            parent_package = Path(parent)
         directory = QFileDialog.getExistingDirectory(
             self._owner,
             f"Publish {target} Reference Dataset v2",
@@ -265,7 +291,21 @@ class DomainAnalysisReferenceWorkflow:
             destination=Path(directory) / f"{dataset_id.strip()}-reference-v2",
             dataset_id=dataset_id.strip(),
             publication_reason="Operator publication from Domain Analysis",
+            parent_package=parent_package,
         )
+
+    def _confirm_publication(
+        self,
+        plan: ReferenceDatasetPublicationPlan,
+    ) -> bool:
+        answer = QMessageBox.question(
+            self._owner,
+            "Confirm immutable Reference Dataset Version",
+            plan.operator_summary() + "\n\nPublish this immutable version?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        return answer == QMessageBox.StandardButton.Yes
 
     def _m6_measurement(
         self,

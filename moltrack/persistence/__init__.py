@@ -6,7 +6,10 @@ from .analysis_package_dispatch import export_analysis_package
 from .domain_analysis_export import DomainAnalysisExportSettings
 from .domain_analysis_export_schema import CanonicalJsonObject
 from .correction_aware_export_schema import CorrectionAwareExportSettings
-from .m6_reference_dataset import publish_m6_reference_dataset
+from .m6_reference_dataset import (
+    prepare_m6_reference_dataset,
+    publish_m6_reference_dataset,
+)
 from .m6_reference_schema import (
     M6ReferenceDatasetPublication,
     M6ReferenceDatasetSettings,
@@ -15,7 +18,11 @@ from .m6_reference_schema import (
     M6ReferenceMeasurementGroup,
     M6ReferenceSourceRevision,
 )
-from .orientation_reference_dataset import publish_orientation_reference_dataset
+from .orientation_reference_dataset import (
+    prepare_orientation_reference_dataset,
+    publish_orientation_reference_dataset,
+)
+from .reference_dataset import ReferenceDatasetPublicationPlan
 from .orientation_reference_schema import (
     OrientationReferenceDatasetPublication,
     OrientationReferenceDatasetSettings,
@@ -48,6 +55,9 @@ __all__ = [
     "export_analysis_package",
     "publish_m6_reference_dataset",
     "publish_orientation_reference_dataset",
+    "prepare_m6_reference_dataset",
+    "prepare_orientation_reference_dataset",
+    "ReferenceDatasetPublicationPlan",
     "MolTrackStateSaveProgress",
     "MolTrackSessionLoadError",
     "load_moltrack_session",

@@ -11,7 +11,13 @@ import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PyQt6.QtWidgets import QApplication, QFileDialog, QInputDialog, QWidget
+from PyQt6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QInputDialog,
+    QMessageBox,
+    QWidget,
+)
 
 from moltrack.analysis import (
     LatticeDomainCalibrationReferenceDataset,
@@ -479,6 +485,8 @@ def _configure_release_prompts(monkeypatch, groups, tmp_path: Path) -> None:
     def get_item(_owner, title, label, *_args, **_kwargs):
         if label == "Whole measurement group split":
             return next(split_choices), True
+        if label == "Publication ancestry":
+            return "new dataset root", True
         if label.startswith("Select first-shell geometry policy"):
             return "adaptive", True
         group = next(value for key, value in group_by_id.items() if key in title)
@@ -511,6 +519,13 @@ def _configure_release_prompts(monkeypatch, groups, tmp_path: Path) -> None:
     monkeypatch.setattr(QInputDialog, "getItem", staticmethod(get_item))
     monkeypatch.setattr(QInputDialog, "getText", staticmethod(get_text))
     monkeypatch.setattr(QInputDialog, "getMultiLineText", staticmethod(get_edges))
+    monkeypatch.setattr(
+        QMessageBox,
+        "question",
+        staticmethod(
+            lambda *_args, **_kwargs: QMessageBox.StandardButton.Yes
+        ),
+    )
     monkeypatch.setattr(
         QInputDialog,
         "getDouble",

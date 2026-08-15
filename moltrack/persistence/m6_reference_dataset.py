@@ -13,7 +13,8 @@ from .m6_reference_schema import (
 from .reference_dataset import (
     ReferenceDatasetDraft,
     ReferencePartitionIdentity,
-    publish_reference_dataset,
+    ReferenceDatasetPublicationCandidate,
+    prepare_reference_dataset,
     reference_json_lines_file,
 )
 
@@ -24,10 +25,28 @@ def publish_m6_reference_dataset(
 ) -> M6ReferenceDatasetPublication:
     """Validate and atomically publish an immutable M6 dataset version."""
 
+    publication = prepare_m6_reference_dataset(measurements, settings).publish()
+    return M6ReferenceDatasetPublication(
+        package_path=publication.package_path,
+        dataset_id=publication.dataset_id,
+        version_id=publication.version_id,
+        version_fingerprint=publication.version_fingerprint,
+        validation_epoch_id=publication.validation_epoch_id,
+        relative_files=publication.relative_files,
+    )
+
+
+def prepare_m6_reference_dataset(
+    measurements: tuple[M6ReferenceMeasurementGroup, ...],
+    settings: M6ReferenceDatasetSettings,
+) -> ReferenceDatasetPublicationCandidate:
+    """Prepare an operator preview backed by the production publisher."""
+
     if not isinstance(settings, M6ReferenceDatasetSettings):
         raise TypeError("settings must be M6ReferenceDatasetSettings.")
+    measurements = tuple(measurements)
     tables = build_m6_reference_tables(tuple(measurements))
-    publication = publish_reference_dataset(ReferenceDatasetDraft(
+    return prepare_reference_dataset(ReferenceDatasetDraft(
         target="m6",
         settings=settings,
         initial_dataset_version=M6_REFERENCE_DATASET_VERSION,
@@ -43,15 +62,10 @@ def publish_m6_reference_dataset(
             )
             for split in ("calibration", "validation")
         ),
+        source_revisions=tuple(
+            value.source_revision for value in measurements
+        ),
     ))
-    return M6ReferenceDatasetPublication(
-        package_path=publication.package_path,
-        dataset_id=publication.dataset_id,
-        version_id=publication.version_id,
-        version_fingerprint=publication.version_fingerprint,
-        validation_epoch_id=publication.validation_epoch_id,
-        relative_files=publication.relative_files,
-    )
 
 
-__all__ = ["publish_m6_reference_dataset"]
+__all__ = ["prepare_m6_reference_dataset", "publish_m6_reference_dataset"]
