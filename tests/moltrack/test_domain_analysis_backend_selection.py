@@ -106,15 +106,23 @@ class _BackendAdapter:
         )
 
 
-def test_run_requires_an_explicit_available_backend() -> None:
+def test_request_requires_an_available_backend_identity() -> None:
     adapter = _BackendAdapter(M6_ORIENTATION_COMPONENTS_BACKEND_ID)
     module = DomainAnalysisModule(
         {adapter.backend_identity.backend_id: adapter},
         classifier_adapters={},
     )
 
-    with pytest.raises(ValueError, match="explicit domain backend"):
-        module.run(_series(), DomainAnalysisRequest(frame_range=range(1)))
+    with pytest.raises(TypeError, match="backend_id"):
+        DomainAnalysisRequest(frame_range=range(1))
+    request = DomainAnalysisRequest(
+        frame_range=range(1),
+        backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID,
+    )
+    assert request.backend_id == M6_ORIENTATION_COMPONENTS_BACKEND_ID
+    assert module.run(_series(), request).m6_gate is not None
+    with pytest.raises(ValueError, match="backend_id"):
+        DomainAnalysisRequest(frame_range=range(1), backend_id=None)
     with pytest.raises(ValueError, match="Unavailable domain backend"):
         module.run(
             _series(),

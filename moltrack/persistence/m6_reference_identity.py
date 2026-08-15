@@ -10,6 +10,9 @@ from moltrack.analysis.domain_analysis import (
     EffectiveM6Domain,
     EffectiveMoleculeOrientation,
 )
+from moltrack.analysis.domain_analysis.correction_rebase_models import (
+    automatic_candidate_fingerprint,
+)
 from moltrack.analysis.domain_analysis.fingerprints import canonical_sha256
 
 @dataclass(frozen=True)
@@ -44,18 +47,10 @@ def m6_reference_state_identity(
 def _automatic_snapshot_fingerprint(
     publication: DomainAnalysisPublication,
 ) -> str:
-    gate = publication.result.m6_gate
-    assert gate is not None
-    return canonical_sha256({
-        "schema_version": "m6-reference-automatic-snapshot-v1",
-        "frames": [
-            {
-                "physical_frame_id": frame.physical_frame_id,
-                "m6_gate_fingerprint": frame.m6_gate_fingerprint,
-            }
-            for frame in gate.frames
-        ],
-    })
+    return automatic_candidate_fingerprint(
+        publication.request,
+        publication.result,
+    )
 
 
 def _effective_projection_fingerprint(

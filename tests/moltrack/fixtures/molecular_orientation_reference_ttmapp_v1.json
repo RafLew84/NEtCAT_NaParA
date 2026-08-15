@@ -1,7 +1,5 @@
 {
   "dataset_id": "ttmapp-molecular-orientation-v1",
-  "reviewed": true,
-  "reviewed_by": "MolTrack step 87.1 manual curation",
   "samples": [
     {
       "domain_context": {
@@ -250,7 +248,7 @@
       "split": "holdout"
     }
   ],
-  "schema_version": 1,
+  "schema_version": 2,
   "source_file_name": "MOVIE_23raw_TTMAPP_I_AU111.MPP",
   "source_file_sha256": "8fbbfa5d515a90552c13cee2dbd289ff5cc16f000315547185c2a57bfe9f7c66",
   "source_session_file_name": "m6_state.moltrack.json",

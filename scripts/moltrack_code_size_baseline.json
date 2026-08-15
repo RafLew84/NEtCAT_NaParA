@@ -15,7 +15,7 @@
       "physical_lines": 967
     },
     "moltrack/analysis/lattice_domain_calibration_models.py": {
-      "physical_lines": 844,
+      "physical_lines": 838,
       "classes": 14
     },
     "moltrack/analysis/lattice_domain_models.py": {
@@ -122,7 +122,7 @@
       "build_lattice_domain_analysis": 145
     },
     "moltrack/analysis/lattice_domain_calibration.py": {
-      "run_lattice_domain_calibration": 178
+      "run_lattice_domain_calibration": 176
     },
     "moltrack/analysis/lattice_domain_calibration_report.py": {
       "_markdown_report": 116
@@ -231,7 +231,7 @@
       "MolecularOrientationMethodMergeAssessment.__post_init__": 81,
       "MolecularOrientationMethodValidation.__post_init__": 126,
       "assess_molecular_orientation_method_merge": 100,
-      "evaluate_molecular_orientation_method_against_reference": 113
+      "evaluate_molecular_orientation_method_against_reference": 109
     },
     "moltrack/analysis/molecular_orientation_models.py": {
       "MolecularOrientationMeasurement.__post_init__": 84
@@ -247,7 +247,7 @@
       "build_molecular_orientation_prototype_analysis": 246
     },
     "moltrack/analysis/molecular_orientation_reference.py": {
-      "MolecularOrientationReferenceDataset.__post_init__": 109
+      "MolecularOrientationReferenceDataset.__post_init__": 98
     },
     "moltrack/analysis/molecular_orientation_store.py": {
       "estimate_series_molecular_orientations": 125

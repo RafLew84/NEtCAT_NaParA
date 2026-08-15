@@ -303,7 +303,9 @@ def _validate_detail(
         reason = reason_by_id[source_id]
         if (role == "boundary") != (reason is not None):
             raise ValueError("Only boundary points require a boundary_reason.")
-        if (role in {"core", "halo"}) != (domain_id is not None):
+        # Proto-seeds may keep core/halo evidence without becoming domains;
+        # only a published membership requires the final core/halo role.
+        if domain_id is not None and role not in {"core", "halo"}:
             raise ValueError("Only core/halo points may reference a lattice domain.")
         if domain_id is not None and domain_id not in domain_by_id:
             raise ValueError("point_domain_ids references an unknown lattice domain.")

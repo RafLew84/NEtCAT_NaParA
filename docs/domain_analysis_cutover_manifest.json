@@ -173,6 +173,47 @@
       ]
     },
     {
+      "id": "state.dataset_level_review_flags",
+      "category": "state_fields",
+      "legacy": [
+        {
+          "path": "moltrack/analysis/molecular_orientation_reference.py",
+          "anchors": [
+            "    reviewed: bool",
+            "    reviewed_by: str | None",
+            "\"reviewed\": self.reviewed",
+            "\"reviewed_by\": self.reviewed_by"
+          ]
+        },
+        {
+          "path": "moltrack/analysis/lattice_domain_calibration_models.py",
+          "anchors": [
+            "    reviewed: bool",
+            "\"reviewed\": self.reviewed"
+          ]
+        }
+      ],
+      "disposition": "replace",
+      "replacement": [
+        {
+          "path": "moltrack/analysis/domain_analysis/reference_review.py",
+          "anchors": [
+            "class ReferenceReviewScope",
+            "class ReferenceReviewSignOff",
+            "def sign_off("
+          ]
+        },
+        {
+          "path": "tests/moltrack/ttmapp_cutover_ui_support.py",
+          "anchors": [
+            "def correct_and_review(",
+            "_review_target_in_ui(",
+            "sheet.sign_off_button.click()"
+          ]
+        }
+      ]
+    },
+    {
       "id": "workers.m6_domain_type",
       "category": "workers",
       "legacy": [
@@ -190,6 +231,45 @@
         {
           "path": "moltrack/analysis/domain_analysis/workspace_lifecycle.py",
           "anchors": ["class DomainAnalysisWorkspaceExecution"]
+        }
+      ]
+    },
+    {
+      "id": "persistence.legacy_ttmapp_v9_validator",
+      "category": "persistence_export",
+      "legacy": [
+        {
+          "path": "scripts/validate_ttmapp_domain_analysis_release.py",
+          "anchors": [
+            "def main()",
+            "export_schema_version",
+            "validation_schema_version"
+          ]
+        }
+      ],
+      "disposition": "replace",
+      "replacement": [
+        {
+          "path": "tests/moltrack/test_domain_analysis_ttmapp_cutover.py",
+          "anchors": [
+            "test_ttmapp_variant_c_cutover_preserves_identity_through_campaign",
+            "export_manifest[\"export_schema_version\"] == 10",
+            "release_workflow.last_campaign"
+          ]
+        },
+        {
+          "path": "moltrack/ui/domain_analysis_release_workflow.py",
+          "anchors": [
+            "class DomainAnalysisReleaseWorkflow",
+            "open_m6_validation_and_publish_report("
+          ]
+        },
+        {
+          "path": "docs/domain_analysis_ttmapp_release_validation.json",
+          "anchors": [
+            "\"validation_schema_version\": 2",
+            "\"same_reference_version_for_both_backends\": true"
+          ]
         }
       ]
     },

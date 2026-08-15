@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from typing import Any
 
 from moltrack.analysis.domain_analysis import (
@@ -11,9 +11,6 @@ from moltrack.analysis.domain_analysis import (
 )
 from moltrack.analysis.domain_analysis.correction_rebase_models import (
     automatic_candidate_fingerprint,
-)
-from moltrack.analysis.domain_analysis.diagnostic_funnel import (
-    build_molecule_diagnostic_funnels,
 )
 from moltrack.analysis.domain_analysis.fingerprints import canonical_sha256
 
@@ -285,13 +282,10 @@ def _backend_identities(publication: Any) -> list[dict[str, Any]]:
 def _automatic_fingerprint(publication: Any) -> str | None:
     if publication is None:
         return None
-    result = replace(
+    return automatic_candidate_fingerprint(
+        publication.request,
         publication.result,
-        molecule_diagnostic_funnels=build_molecule_diagnostic_funnels(
-            publication.result
-        ),
     )
-    return automatic_candidate_fingerprint(publication.request, result)
 
 
 def _revision_rows(correction: dict[str, Any]) -> list[dict[str, Any]]:

@@ -117,10 +117,11 @@ class DomainAnalysisPublication:
             )
         gate = self.result.m6_gate
         if gate is None or tuple(
-            frame.frame_index for frame in gate.frames
-        ) != self.request.frame_indices:
+            (frame.frame_index, frame.backend_identity.backend_id)
+            for frame in gate.frames
+        ) != tuple((index, self.request.backend_id) for index in self.request.frame_indices):
             raise DomainAnalysisWorkspaceIntentError(
-                "Published result frames must match the frozen request."
+                "Published result frames and backend must match the frozen request."
             )
         object.__setattr__(
             self,

@@ -1,4 +1,5 @@
 from dataclasses import replace
+from functools import partial
 
 import pytest
 
@@ -9,6 +10,7 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisRequest,
     DomainAnalysisWorkspaceController,
     DomainAnalysisWorkspaceIntentError,
+    M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     M6Gate,
     PrepareCorrectionRebase,
     PreviewCreateManualDomain,
@@ -18,6 +20,12 @@ from moltrack.analysis.domain_analysis import (
     UndoDomainCorrection,
 )
 from test_domain_correction_orientation import _automatic_result
+
+
+DomainAnalysisRequest = partial(
+    DomainAnalysisRequest,
+    backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID,
+)
 
 
 def test_changed_rerun_stays_pending_without_replacing_effective_projection() -> None:

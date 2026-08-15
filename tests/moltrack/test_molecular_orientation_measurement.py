@@ -240,8 +240,6 @@ class MolecularOrientationMeasurementTests(unittest.TestCase):
             source_file_sha256="a" * 64,
             source_session_file_name="m6_state.moltrack.json",
             source_session_sha256="b" * 64,
-            reviewed=True,
-            reviewed_by="rlewa",
             samples=samples,
         )
 
@@ -252,7 +250,7 @@ class MolecularOrientationMeasurementTests(unittest.TestCase):
             restored = load_molecular_orientation_reference(path)
 
         self.assertEqual(restored, reference)
-        self.assertEqual(payload["schema_version"], 1)
+        self.assertEqual(payload["schema_version"], 2)
         self.assertTrue(reference.has_required_ttmapp_contexts)
         self.assertEqual(
             restored.samples[2].measurement.angle_deg,
@@ -270,6 +268,14 @@ class MolecularOrientationMeasurementTests(unittest.TestCase):
         with self.assertRaisesRegex(TypeError, "schema_version"):
             replace(reference, schema_version=1.0)
 
+        legacy = reference.to_dict()
+        legacy.update(schema_version=1, reviewed=True, reviewed_by="legacy-user")
+        migrated = MolecularOrientationReferenceDataset.from_dict(legacy)
+        self.assertEqual(migrated.schema_version, 2)
+        self.assertFalse(migrated.has_required_ttmapp_contexts)
+        with self.assertRaisesRegex(ValueError, "cannot be saved"):
+            migrated.to_dict()
+
     def test_versioned_ttmapp_reference_covers_required_domain_contexts(
         self,
     ) -> None:
@@ -282,7 +288,6 @@ class MolecularOrientationMeasurementTests(unittest.TestCase):
         reference = load_molecular_orientation_reference(fixture)
 
         self.assertEqual(reference.dataset_id, "ttmapp-molecular-orientation-v1")
-        self.assertTrue(reference.reviewed)
         self.assertFalse(reference.uses_tracking)
         self.assertTrue(reference.has_required_ttmapp_contexts)
         self.assertEqual(
@@ -305,7 +310,7 @@ class MolecularOrientationMeasurementTests(unittest.TestCase):
         )
         self.assertEqual(
             reference.fingerprint,
-            "8d45f069fd50b04a1749c086d6e519ecb68d86d30d0907f11ad67e27ccad321f",
+            "ec7459c4c977c2dbe92f68a3457cb5cbe80daf290e74c4945b48cc7e83c031db",
         )
 
 

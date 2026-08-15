@@ -11,19 +11,19 @@
 
 | Format | Produkcja obecnie | Kontrakt docelowy | Zasada zgodności |
 | --- | --- | --- | --- |
-| MolTrack session | v2; loader v1/v2 | v3; loader v2/v3 | nieznana outer version jest odrzucana |
-| Domain Analysis state | v1 | v2 | v2 zawiera correction-aware workspace |
-| `correction_workspace` | brak | v1 | wymagany wewnątrz session v3 |
-| Domain Analysis export | v9 | v10 | v9 pozostaje jawnie automatic-only; v10 jest osobnym package kind |
-| M6 Reference Dataset | legacy v1 | v2 | v1 importuje się jako audit-only draft |
-| Orientation Reference Dataset | legacy v1 | v2 | v1 importuje się jako audit-only draft |
-| Reference collection envelope | brak | manifest schema v1 | envelope nie jest trzecim targetem |
-| M6 preset | brak biblioteki | pierwsza wersjonowana schema do zamrożenia w implementacji | nieznana nowsza schema blokuje aktywację |
-| M6 calibration campaign report | v1 w istniejącym modelu kalibracji | report v2 | v2 zachowuje dataset/epoch/backend/receipt identity |
+| MolTrack session | v3; loader v1/v2/v3 | v3; loader v2/v3 | nieznana outer version jest odrzucana |
+| Domain Analysis state | v2 | v2 | v2 zawiera correction-aware workspace |
+| `correction_workspace` | v1 | v1 | wymagany wewnątrz session v3 |
+| Domain Analysis export | v10 | v10 | v9 pozostaje jawnie automatic-only; v10 jest correction-aware package kind |
+| M6 Reference Dataset | v2 | v2 | v1 importuje się jako audit-only draft |
+| Orientation Reference Dataset | v2 | v2 | v1 importuje się jako audit-only draft |
+| Reference collection envelope | manifest schema v2 | manifest schema v2 | envelope nie jest trzecim targetem |
+| M6 preset | m6-preset-library-v1 / m6-preset-v1 | m6-preset-library-v1 / m6-preset-v1 | nieznana nowsza schema blokuje aktywację |
+| M6 calibration campaign report | m6-campaign-report-v2 | m6-campaign-report-v2 | v2 zachowuje dataset/epoch/backend/receipt identity |
 
-Numery docelowe pochodzą z zatwierdzonego projektu, ale nie są obsługiwane przez
-bieżący kod. W szczególności nie wolno ręcznie zmienić numeru v2 na v3 bez pełnego
-cutoveru modeli, migratora, testów i readera.
+Session v3, Domain Analysis state v2 i correction workspace v1 przeszły pełny
+cutover modeli, migratora, testów i readera. Starsze wersje są obsługiwane wyłącznie
+przez jawne ścieżki odczytu lub migracji wskazane w tabeli.
 
 ## MolTrack session v3
 

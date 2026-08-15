@@ -312,9 +312,9 @@ def evaluate_molecular_orientation_method_against_reference(
 
     if not isinstance(reference, MolecularOrientationReferenceDataset):
         raise TypeError("reference must be MolecularOrientationReferenceDataset.")
-    if not reference.reviewed:
+    if reference._legacy_audit_only:
         raise ValueError(
-            "Method validation requires a reviewed manual reference dataset."
+            "Legacy orientation reference schema v1 is audit-only and cannot authorize method validation."
         )
     method = _automatic_method(method)
     if split not in {"development", "holdout"}:

@@ -102,7 +102,6 @@ class DomainAnalysisModule:
             self._backend_adapters,
             self._classifier_adapters,
         )
-        assert request.backend_id is not None
         adapter = _adapter_for_run(
             self._backend_adapters[request.backend_id],
             request.m6_configuration,
@@ -322,9 +321,7 @@ def _validate_run_request(
 ) -> None:
     if not isinstance(request, DomainAnalysisRequest):
         raise TypeError("request must be a DomainAnalysisRequest.")
-    if request.backend_id is None:
-        raise ValueError("Domain Analysis requires an explicit domain backend.")
-    if request.backend_id is not None and request.backend_id not in backend_adapters:
+    if request.backend_id not in backend_adapters:
         raise ValueError(f"Unavailable domain backend: {request.backend_id!r}.")
     unknown_classifiers = set(request.classifier_ids).difference(
         classifier_adapters

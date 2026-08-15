@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import hashlib
 import json
 from math import isfinite
@@ -13,7 +13,7 @@ from .lattice_domain_validation import LatticeDomainPartitionLabels
 from .m6_settings import MolecularM6OrientationAnalysisSettings
 
 
-LATTICE_DOMAIN_CALIBRATION_SCHEMA_VERSION = 1
+LATTICE_DOMAIN_CALIBRATION_SCHEMA_VERSION = 2
 LATTICE_DOMAIN_CALIBRATION_ALGORITHM_VERSION = "1.0"
 TTMAPP_FIRST_SHELL_R_MIN_NM = 30.0
 TTMAPP_FIRST_SHELL_R_MAX_NM = 70.0
@@ -283,7 +283,7 @@ class LatticeDomainCalibrationReferenceFrame:
 
 @dataclass(frozen=True)
 class LatticeDomainCalibrationReferenceDataset:
-    """Reviewed manual labels with an immutable calibration/holdout split."""
+    """Manual labels with an immutable calibration/holdout split."""
 
     dataset_id: str
     source_file_name: str
@@ -291,10 +291,10 @@ class LatticeDomainCalibrationReferenceDataset:
     source_sample_fingerprint: str
     source_view: str
     use_segmentation_centroids: bool
-    reviewed: bool
     frames: tuple[LatticeDomainCalibrationReferenceFrame, ...]
     schema_version: int = LATTICE_DOMAIN_CALIBRATION_SCHEMA_VERSION
     uses_tracking: bool = False
+    _legacy_audit_only: bool = field(default=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         dataset_id = _normalized_string(self.dataset_id, "dataset_id")
@@ -332,8 +332,6 @@ class LatticeDomainCalibrationReferenceDataset:
             raise ValueError("source_view must not be empty.")
         if not isinstance(self.use_segmentation_centroids, bool):
             raise TypeError("use_segmentation_centroids must be a boolean.")
-        if not isinstance(self.reviewed, bool):
-            raise TypeError("reviewed must be a boolean.")
         if self.schema_version != LATTICE_DOMAIN_CALIBRATION_SCHEMA_VERSION:
             raise ValueError("Unsupported lattice-domain calibration schema version.")
         if self.uses_tracking is not False:
@@ -364,10 +362,14 @@ class LatticeDomainCalibrationReferenceDataset:
 
     @property
     def calibration_frames(self) -> tuple[LatticeDomainCalibrationReferenceFrame, ...]:
+        if self._legacy_audit_only:
+            raise ValueError("Legacy calibration schema v1 is audit-only; publish a reviewed v2 reference.")
         return tuple(value for value in self.frames if value.split == "calibration")
 
     @property
     def holdout_frames(self) -> tuple[LatticeDomainCalibrationReferenceFrame, ...]:
+        if self._legacy_audit_only:
+            raise ValueError("Legacy calibration schema v1 is audit-only; publish a reviewed v2 reference.")
         return tuple(value for value in self.frames if value.split == "holdout")
 
     @property
@@ -381,6 +383,10 @@ class LatticeDomainCalibrationReferenceDataset:
         return hashlib.sha256(encoded).hexdigest()
 
     def to_dict(self) -> dict[str, object]:
+        if self._legacy_audit_only:
+            raise ValueError(
+                "Legacy calibration schema v1 is audit-only and cannot be saved as v2."
+            )
         return {
             "schema_version": self.schema_version,
             "dataset_id": self.dataset_id,
@@ -389,7 +395,6 @@ class LatticeDomainCalibrationReferenceDataset:
             "source_sample_fingerprint": self.source_sample_fingerprint,
             "source_view": self.source_view,
             "use_segmentation_centroids": self.use_segmentation_centroids,
-            "reviewed": self.reviewed,
             "uses_tracking": self.uses_tracking,
             "frames": [value.to_dict() for value in self.frames],
         }
@@ -399,22 +404,22 @@ class LatticeDomainCalibrationReferenceDataset:
         cls,
         payload: Mapping[str, object],
     ) -> "LatticeDomainCalibrationReferenceDataset":
+        schema_version = _integer(payload.get("schema_version"), "schema_version")
+        legacy = schema_version == 1
+        expected_fields = {
+            "schema_version", "dataset_id", "source_file_name",
+            "source_frame_count", "source_sample_fingerprint", "source_view",
+            "use_segmentation_centroids", "uses_tracking", "frames",
+        }
+        if legacy:
+            expected_fields.add("reviewed")
         _require_exact_fields(
             payload,
-            {
-                "schema_version",
-                "dataset_id",
-                "source_file_name",
-                "source_frame_count",
-                "source_sample_fingerprint",
-                "source_view",
-                "use_segmentation_centroids",
-                "reviewed",
-                "uses_tracking",
-                "frames",
-            },
+            expected_fields,
             "reference dataset",
         )
+        if schema_version not in {1, LATTICE_DOMAIN_CALIBRATION_SCHEMA_VERSION}:
+            raise ValueError("Unsupported lattice-domain calibration schema version.")
         raw_frames = payload["frames"]
         if not isinstance(raw_frames, (list, tuple)):
             raise TypeError("Reference frames must be an array.")
@@ -424,7 +429,7 @@ class LatticeDomainCalibrationReferenceDataset:
                 raise TypeError("Every reference frame must be an object.")
             frames.append(LatticeDomainCalibrationReferenceFrame.from_dict(value))
         return cls(
-            schema_version=_integer(payload["schema_version"], "schema_version"),
+            schema_version=LATTICE_DOMAIN_CALIBRATION_SCHEMA_VERSION,
             dataset_id=_string(payload["dataset_id"], "dataset_id"),
             source_file_name=_string(
                 payload["source_file_name"],
@@ -443,9 +448,9 @@ class LatticeDomainCalibrationReferenceDataset:
                 payload["use_segmentation_centroids"],
                 "use_segmentation_centroids",
             ),
-            reviewed=_boolean(payload["reviewed"], "reviewed"),
             uses_tracking=_boolean(payload["uses_tracking"], "uses_tracking"),
             frames=tuple(frames),
+            _legacy_audit_only=legacy,
         )
 
 

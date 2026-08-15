@@ -39,6 +39,11 @@ from moltrack.ui.domain_analysis_workspace_view import (
 )
 from moltrack.ui.domain_correction_sheet import DomainCorrectionSheet
 from moltrack.ui.domain_correction_view import DomainCorrectionActionBinding
+from moltrack.ui.domain_analysis_workflow_sheet import (
+    DomainAnalysisWorkflowActions,
+    M6CalibrationWorkflowSheet,
+    ReferenceDatasetWorkflowSheet,
+)
 from moltrack.ui.reference_review_sheet import ReferenceReviewSheet
 from moltrack.ui.reference_review_view import ReferenceReviewActionBinding
 
@@ -73,6 +78,7 @@ class DomainAnalysisDialog(QDialog):
         classifier_preset_name: str,
         export_published: ExportPublished,
         m6_preset_library: M6PresetLibrary | None = None,
+        workflow_actions: DomainAnalysisWorkflowActions | None = None,
         canvas_frame_for: Callable[[int], object] | None = None,
         canvas_scale_nm_per_px: tuple[float | None, float | None] = (None, None),
         canvas_target_view_for: DomainAnalysisCanvasTargetViewFor | None = None,
@@ -88,6 +94,7 @@ class DomainAnalysisDialog(QDialog):
         ):
             raise TypeError("m6_preset_library must be an M6PresetLibrary.")
         self._m6_preset_library = m6_preset_library
+        self._workflow_actions = workflow_actions or DomainAnalysisWorkflowActions()
         self.setWindowTitle("Domain Analysis")
         self.resize(1100, 760)
         self._build_ui(
@@ -190,16 +197,29 @@ class DomainAnalysisDialog(QDialog):
             if self._m6_preset_library is not None
             else _unconfigured_preset_sheet(self)
         )
+        self._build_release_sheets()
         self.command_center = DomainAnalysisCommandCenter(
             canvas=canvas,
             analyze_sheet=analyze_sheet,
             correct_sheet=self.domain_correction_sheet,
             review_sheet=self.reference_review_sheet,
+            datasets_sheet=self.reference_dataset_sheet,
             presets_sheet=self.m6_preset_sheet,
+            calibrate_sheet=self.calibration_sheet,
             diagnostics=diagnostics,
             parent=self,
         )
         layout.addWidget(self.command_center)
+
+    def _build_release_sheets(self) -> None:
+        self.reference_dataset_sheet = ReferenceDatasetWorkflowSheet(
+            self._workflow_actions,
+            self,
+        )
+        self.calibration_sheet = M6CalibrationWorkflowSheet(
+            self._workflow_actions,
+            self,
+        )
 
     def _build_range_group(self) -> QGroupBox:
         group = QGroupBox("Frame range", self)
@@ -352,11 +372,11 @@ class DomainAnalysisDialog(QDialog):
                 self.domain_backend_combo.findData(selected_backend)
             )
             del blocker
+        if not isinstance(selected_backend, str):
+            raise RuntimeError("Domain Analysis backend selection is unavailable.")
         draft = DomainAnalysisRequest(
             frame_range=self._range_binding.frame_range,
-            backend_id=(
-                selected_backend if isinstance(selected_backend, str) else None
-            ),
+            backend_id=selected_backend,
             geometry_mode=(
                 "segmentation_preferred"
                 if self.use_segmentation_centroids_checkbox.isChecked()

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import hashlib
 import json
 from pathlib import Path
@@ -19,13 +19,11 @@ from ._molecular_orientation_contract import (
     strict_string as _string,
     supported_string as _supported_string,
 )
-from .molecular_orientation_models import (
-    MOLECULAR_ORIENTATION_SCHEMA_VERSION,
-    MolecularOrientationMeasurement,
-)
+from .molecular_orientation_models import MolecularOrientationMeasurement
 
 
 MolecularOrientationReferenceSplit = Literal["development", "holdout"]
+MOLECULAR_ORIENTATION_REFERENCE_SCHEMA_VERSION = 2
 MolecularOrientationLatticeSymmetry = Literal[
     "trifold",
     "sixfold",
@@ -185,11 +183,10 @@ class MolecularOrientationReferenceDataset:
     source_file_sha256: str
     source_session_file_name: str | None
     source_session_sha256: str | None
-    reviewed: bool
-    reviewed_by: str | None
     samples: tuple[MolecularOrientationReferenceSample, ...]
-    schema_version: int = MOLECULAR_ORIENTATION_SCHEMA_VERSION
+    schema_version: int = MOLECULAR_ORIENTATION_REFERENCE_SCHEMA_VERSION
     uses_tracking: bool = False
+    _legacy_audit_only: bool = field(default=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         dataset_id = _non_empty_string(self.dataset_id, "dataset_id")
@@ -219,16 +216,6 @@ class MolecularOrientationReferenceDataset:
             raise ValueError(
                 "source_session_file_name and source_session_sha256 must be "
                 "provided together."
-            )
-        if not isinstance(self.reviewed, bool):
-            raise TypeError("reviewed must be a boolean.")
-        reviewed_by = _optional_non_empty_string(
-            self.reviewed_by,
-            "reviewed_by",
-        )
-        if self.reviewed != (reviewed_by is not None):
-            raise ValueError(
-                "reviewed_by must be present exactly when reviewed is true."
             )
         samples = tuple(self.samples)
         if not samples or any(
@@ -270,15 +257,15 @@ class MolecularOrientationReferenceDataset:
                 raise ValueError(
                     "Sample provenance must match reference dataset sources."
                 )
-            if self.reviewed and sample.measurement.method not in {
+            if sample.measurement.method not in {
                 "manual",
                 "manual_correction",
             }:
                 raise ValueError(
-                    "Reviewed ground truth must contain manual measurements."
+                    "Orientation ground truth must contain manual measurements."
                 )
         schema_version = _integer(self.schema_version, "schema_version")
-        if schema_version != MOLECULAR_ORIENTATION_SCHEMA_VERSION:
+        if schema_version != MOLECULAR_ORIENTATION_REFERENCE_SCHEMA_VERSION:
             raise ValueError(
                 "Unsupported molecular orientation reference schema version."
             )
@@ -297,12 +284,13 @@ class MolecularOrientationReferenceDataset:
             "source_session_sha256",
             source_session_sha256,
         )
-        object.__setattr__(self, "reviewed_by", reviewed_by)
         object.__setattr__(self, "samples", samples)
         object.__setattr__(self, "schema_version", schema_version)
 
     @property
     def has_required_ttmapp_contexts(self) -> bool:
+        if self._legacy_audit_only:
+            return False
         return (
             any(
                 value.domain_context.lattice_symmetry == "trifold"
@@ -329,6 +317,10 @@ class MolecularOrientationReferenceDataset:
         return hashlib.sha256(encoded).hexdigest()
 
     def to_dict(self) -> dict[str, object]:
+        if self._legacy_audit_only:
+            raise ValueError(
+                "Legacy orientation reference schema v1 is audit-only and cannot be saved as v2."
+            )
         return {
             "schema_version": self.schema_version,
             "dataset_id": self.dataset_id,
@@ -336,8 +328,6 @@ class MolecularOrientationReferenceDataset:
             "source_file_sha256": self.source_file_sha256,
             "source_session_file_name": self.source_session_file_name,
             "source_session_sha256": self.source_session_sha256,
-            "reviewed": self.reviewed,
-            "reviewed_by": self.reviewed_by,
             "uses_tracking": self.uses_tracking,
             "samples": [value.to_dict() for value in self.samples],
         }
@@ -347,22 +337,27 @@ class MolecularOrientationReferenceDataset:
         cls,
         payload: Mapping[str, object],
     ) -> "MolecularOrientationReferenceDataset":
+        schema_version = _integer(payload.get("schema_version"), "schema_version")
+        legacy = schema_version == 1
+        expected_fields = {
+            "schema_version",
+            "dataset_id",
+            "source_file_name",
+            "source_file_sha256",
+            "source_session_file_name",
+            "source_session_sha256",
+            "uses_tracking",
+            "samples",
+        }
+        if legacy:
+            expected_fields.update({"reviewed", "reviewed_by"})
         _require_exact_fields(
             payload,
-            {
-                "schema_version",
-                "dataset_id",
-                "source_file_name",
-                "source_file_sha256",
-                "source_session_file_name",
-                "source_session_sha256",
-                "reviewed",
-                "reviewed_by",
-                "uses_tracking",
-                "samples",
-            },
+            expected_fields,
             "molecular orientation reference dataset",
         )
+        if schema_version not in {1, MOLECULAR_ORIENTATION_REFERENCE_SCHEMA_VERSION}:
+            raise ValueError("Unsupported molecular orientation reference schema version.")
         raw_samples = payload["samples"]
         if not isinstance(raw_samples, (list, tuple)):
             raise TypeError("samples must be an array.")
@@ -372,7 +367,7 @@ class MolecularOrientationReferenceDataset:
                 raise TypeError("Every reference sample must be an object.")
             samples.append(MolecularOrientationReferenceSample.from_dict(value))
         return cls(
-            schema_version=_integer(payload["schema_version"], "schema_version"),
+            schema_version=MOLECULAR_ORIENTATION_REFERENCE_SCHEMA_VERSION,
             dataset_id=_string(payload["dataset_id"], "dataset_id"),
             source_file_name=_string(
                 payload["source_file_name"],
@@ -390,13 +385,9 @@ class MolecularOrientationReferenceDataset:
                 payload["source_session_sha256"],
                 "source_session_sha256",
             ),
-            reviewed=_boolean(payload["reviewed"], "reviewed"),
-            reviewed_by=_optional_string(
-                payload["reviewed_by"],
-                "reviewed_by",
-            ),
             uses_tracking=_boolean(payload["uses_tracking"], "uses_tracking"),
             samples=tuple(samples),
+            _legacy_audit_only=legacy,
         )
 
 

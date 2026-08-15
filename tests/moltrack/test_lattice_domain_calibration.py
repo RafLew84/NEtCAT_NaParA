@@ -139,7 +139,6 @@ def _reference() -> LatticeDomainCalibrationReferenceDataset:
         source_sample_fingerprint="0" * 64,
         source_view="raw",
         use_segmentation_centroids=True,
-        reviewed=True,
         frames=(
             LatticeDomainCalibrationReferenceFrame(
                 frame_index=0,
@@ -194,13 +193,22 @@ class LatticeDomainCalibrationTests(unittest.TestCase):
             restored = load_lattice_domain_calibration_reference(path)
 
         self.assertEqual(restored, reference)
-        self.assertEqual(payload["schema_version"], 1)
+        self.assertEqual(payload["schema_version"], 2)
         self.assertEqual(payload["uses_tracking"], False)
         self.assertEqual(
             [frame["split"] for frame in payload["frames"]],
             ["calibration", "calibration", "holdout", "holdout"],
         )
         self.assertEqual(len(reference.fingerprint), 64)
+
+        legacy = reference.to_dict()
+        legacy.update(schema_version=1, reviewed=True)
+        migrated = LatticeDomainCalibrationReferenceDataset.from_dict(legacy)
+        self.assertEqual(migrated.schema_version, 2)
+        with self.assertRaisesRegex(ValueError, "audit-only"):
+            _ = migrated.calibration_frames
+        with self.assertRaisesRegex(ValueError, "cannot be saved"):
+            migrated.to_dict()
 
     def test_reference_rejects_unknown_quality_tag(self) -> None:
         with self.assertRaisesRegex(ValueError, "quality tag"):
@@ -867,7 +875,6 @@ class LatticeDomainCalibrationTests(unittest.TestCase):
             ),
             source_view="raw",
             use_segmentation_centroids=True,
-            reviewed=True,
             frames=tuple(reference_frames),
         )
 

@@ -36,10 +36,7 @@ from moltrack.persistence import (
     CorrectionAwareExportSettings,
     export_analysis_package,
 )
-from test_domain_correction_orientation import (
-    _automatic_result,
-    _classifier_configuration,
-)
+from test_domain_correction_orientation import _automatic_result
 from test_domain_analysis_export import _export_settings, _m6_only_state
 
 from moltrack.persistence.domain_analysis_session import (
@@ -162,49 +159,9 @@ def test_non_current_v10_is_audit_only_with_false_readiness(
         assert rebase["prepared_rebase"]["blocking_reasons"]
 
 
-def test_inactive_draft_audit_preserves_request_configuration_and_run(
-    tmp_path,
-) -> None:
-    configuration = _classifier_configuration()
-    draft = DomainAnalysisRequest(
-        frame_range=range(1),
-        backend_id=None,
-        classifier_ids=(configuration.identity.classifier_id,),
-    )
-    state = DomainAnalysisSessionState(
-        draft=draft,
-        draft_classifier_configurations=(configuration,),
-        draft_physical_frame_ids=("frame-0",),
-        run_status="failed",
-        run_diagnosis="backend selection is required",
-    )
-    reference_destination = tmp_path / "inactive-reference"
-
-    with pytest.raises(ValueError, match="requires reference-ready state"):
-        export_analysis_package(
-            state,
-            _v10_settings(reference_destination, "reference"),
-        )
-
-    audit_destination = tmp_path / "inactive-audit"
-    export_analysis_package(
-        state,
-        _v10_settings(audit_destination, "audit"),
-    )
-    manifest = _json(audit_destination / "manifest.json")
-    saved = _json(audit_destination / "domain_analysis_draft.json")
-    assert manifest["activation_status"] == "inactive"
-    assert manifest["correction_status"] == "draft"
-    assert manifest["readiness"]["ready"] is False
-    assert saved["request"]["backend_id"] is None
-    assert saved["physical_frame_ids"] == ["frame-0"]
-    assert saved["classifier_configurations"][0]["fingerprint"] == (
-        configuration.fingerprint
-    )
-    assert saved["run"] == {
-        "status": "failed",
-        "diagnosis": "backend selection is required",
-    }
+def test_backendless_draft_is_rejected_at_request_boundary() -> None:
+    with pytest.raises(ValueError, match="backend_id"):
+        DomainAnalysisRequest(frame_range=range(1), backend_id=None)
 
 
 def test_quarantined_v10_exports_raw_audit_without_effective_projection(

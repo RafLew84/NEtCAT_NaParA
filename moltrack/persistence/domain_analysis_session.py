@@ -123,8 +123,6 @@ def domain_analysis_state_to_payload(
             "Domain Analysis state."
         )
     draft = saved.draft
-    if draft is not None and draft.backend_id is None:
-        raise ValueError("Domain Analysis draft requires an explicit backend.")
     selected = saved.selected_component
     run_status = (
         "retry_required" if saved.run_status == "running" else saved.run_status
@@ -275,8 +273,6 @@ def _publication_to_payload(
     publication: DomainAnalysisPublication,
 ) -> dict[str, Any]:
     request = publication.request
-    if request.backend_id is None:
-        raise ValueError("Published Domain Analysis requires an explicit backend.")
     gate = publication.result.m6_gate
     if gate is None:
         raise ValueError("A published Domain Analysis result requires an M6 gate.")

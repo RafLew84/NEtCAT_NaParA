@@ -617,10 +617,7 @@ def _validate_m6_cache_scope(
         )
         matches_draft = (
             state.draft is not None
-            and (
-                state.draft.backend_id is None
-                or state.draft.backend_id == record.key.backend_identity.backend_id
-            )
+            and state.draft.backend_id == record.key.backend_identity.backend_id
             and state.draft.geometry_mode == record.key.geometry_mode
             and (
                 state.draft.m6_configuration is None

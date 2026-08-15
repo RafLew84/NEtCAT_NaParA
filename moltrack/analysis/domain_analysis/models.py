@@ -38,7 +38,7 @@ class DomainAnalysisRequest:
     """Immutable input snapshot for one Domain Analysis run."""
 
     frame_range: range
-    backend_id: str | None = None
+    backend_id: str
     geometry_mode: GeometryMode = "segmentation_preferred"
     classifier_ids: tuple[str, ...] = ()
     m6_configuration: M6RunConfiguration | None = None
@@ -52,12 +52,11 @@ class DomainAnalysisRequest:
             raise ValueError("frame_range cannot contain negative frame indexes.")
         if self.geometry_mode not in {"segmentation_preferred", "bbox_centers"}:
             raise ValueError(f"Unsupported geometry_mode: {self.geometry_mode!r}.")
-        if self.backend_id is not None:
-            object.__setattr__(
-                self,
-                "backend_id",
-                _non_empty_string(self.backend_id, "backend_id"),
-            )
+        object.__setattr__(
+            self,
+            "backend_id",
+            _non_empty_string(self.backend_id, "backend_id"),
+        )
         classifier_ids = tuple(self.classifier_ids)
         if any(not isinstance(value, str) or not value.strip() for value in classifier_ids):
             raise ValueError("classifier_ids must contain non-empty strings.")

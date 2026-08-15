@@ -139,7 +139,9 @@ def test_open_migrates_real_v1_annotations_and_first_range_in_memory(
     assert loaded.schema_version == 2
     assert loaded.domain_analysis_state is not None
     assert loaded.domain_analysis_state.draft is not None
-    assert loaded.domain_analysis_state.draft.backend_id is None
+    assert loaded.domain_analysis_state.draft.backend_id == (
+        M6_ORIENTATION_COMPONENTS_BACKEND_ID
+    )
     assert loaded.molecular_detections is not None
     assert loaded.molecular_detections.get_detection("detection-v1") is not None
     assert loaded.molecular_segmentations is not None

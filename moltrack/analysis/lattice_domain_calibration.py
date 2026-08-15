@@ -93,8 +93,6 @@ def run_lattice_domain_calibration(
 
     if not isinstance(reference, LatticeDomainCalibrationReferenceDataset):
         raise TypeError("reference must be a calibration reference dataset.")
-    if not reference.reviewed:
-        raise ValueError("Calibration reference must be manually reviewed first.")
     if not isinstance(sweep, LatticeDomainCalibrationSweepSettings):
         raise TypeError("sweep must be lattice-domain calibration settings.")
     if not callable(evaluator):

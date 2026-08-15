@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, replace
+from dataclasses import asdict
 from typing import Any
 
 from moltrack.analysis.domain_analysis import (
@@ -12,9 +12,6 @@ from moltrack.analysis.domain_analysis.correction_rebase_models import (
     automatic_candidate_fingerprint,
 )
 from moltrack.analysis.domain_analysis.fingerprints import canonical_sha256
-from moltrack.analysis.domain_analysis.diagnostic_funnel import (
-    build_molecule_diagnostic_funnels,
-)
 
 from .domain_analysis_payload_validation import json_compatible_value
 
@@ -35,12 +32,7 @@ def effective_projection_checkpoint(
         "schema_version": EFFECTIVE_PROJECTION_CHECKPOINT_SCHEMA_VERSION,
         "automatic_snapshot_fingerprint": automatic_candidate_fingerprint(
             publication.request,
-            replace(
-                publication.result,
-                molecule_diagnostic_funnels=build_molecule_diagnostic_funnels(
-                    publication.result
-                ),
-            ),
+            publication.result,
         ),
         "correction_anchor_fingerprint": correction_set.automatic_fingerprint,
         "correction_revision": correction_set.revision,

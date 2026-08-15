@@ -10,6 +10,7 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisSessionDiagnostic,
     DomainAnalysisSessionState,
     GeometryMode,
+    M6_ORIENTATION_COMPONENTS_BACKEND_ID,
 )
 from moltrack.core import (
     MOLTRACK_SESSION_SCHEMA_VERSION,
@@ -95,13 +96,13 @@ def migrate_v1_session_payload(
             schema_version="1",
             reason=(
                 "Historical M6 cache was preserved as classic backend evidence, "
-                "but no backend was selected; choose one before running analysis."
+                "and the matching classic backend was selected explicitly."
             ),
         ))
     state = DomainAnalysisSessionState(
         draft=DomainAnalysisRequest(
             frame_range=frame_range,
-            backend_id=None,
+            backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID,
             geometry_mode=geometry_mode,
         ),
         draft_physical_frame_ids=physical_frame_ids,

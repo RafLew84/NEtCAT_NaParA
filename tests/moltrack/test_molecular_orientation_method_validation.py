@@ -65,6 +65,19 @@ class MolecularOrientationMethodValidationTests(unittest.TestCase):
     def setUp(self) -> None:
         self.reference = load_molecular_orientation_reference(_REFERENCE_FIXTURE)
 
+    def test_legacy_v1_reference_cannot_authorize_method_validation(self) -> None:
+        payload = self.reference.to_dict()
+        payload.update(schema_version=1, reviewed=True, reviewed_by="legacy-user")
+        legacy = type(self.reference).from_dict(payload)
+        estimates = _automatic_measurements(
+            self.reference, method="mask_principal_axis", offset_deg=0.0
+        )
+
+        with self.assertRaisesRegex(ValueError, "audit-only"):
+            evaluate_molecular_orientation_method_against_reference(
+                legacy, estimates, method="mask_principal_axis"
+            )
+
     def test_accurate_method_agrees_with_holdout_ground_truth(self) -> None:
         estimates = _automatic_measurements(
             self.reference,
@@ -220,25 +233,6 @@ class MolecularOrientationMethodValidationTests(unittest.TestCase):
         self.assertAlmostEqual(report.reference_coverage_fraction, 0.5)
         self.assertEqual(report.agreement_status, "insufficient_data")
         self.assertFalse(report.automatic_merge_eligible)
-
-    def test_unreviewed_reference_cannot_authorize_merge(self) -> None:
-        reference = replace(
-            self.reference,
-            reviewed=False,
-            reviewed_by=None,
-        )
-        estimates = _automatic_measurements(
-            reference,
-            method="stm_topography",
-            offset_deg=0.0,
-        )
-
-        with self.assertRaisesRegex(ValueError, "reviewed"):
-            evaluate_molecular_orientation_method_against_reference(
-                reference,
-                estimates,
-                method="stm_topography",
-            )
 
     def test_coordinate_reference_and_patch_must_match_ground_truth(self) -> None:
         estimates = _automatic_measurements(

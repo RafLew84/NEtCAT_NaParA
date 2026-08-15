@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import replace
+from functools import partial
 
 import pytest
 
@@ -11,12 +12,19 @@ from moltrack.analysis.domain_analysis import (
     ApplyPreparedDomainCorrection,
     DomainAnalysisRequest,
     DomainAnalysisWorkspaceController,
+    M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     M6Gate,
     PreviewManualOrientation,
     PublishDomainAnalysisResult,
     SelectDomainMolecules,
 )
 from test_domain_correction_orientation import _automatic_result
+
+
+DomainAnalysisRequest = partial(
+    DomainAnalysisRequest,
+    backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID,
+)
 
 try:
     from PyQt6.QtWidgets import QApplication, QComboBox, QLineEdit

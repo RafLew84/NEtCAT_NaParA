@@ -23,7 +23,7 @@ from moltrack.analysis.domain_analysis import (
     ClassifierIdentity,
     ClassifierMoleculeInput,
     ClassifierMoleculePrediction,
-    DomainAnalysisRequest,
+    DomainAnalysisRequest as _DomainAnalysisRequest,
     DomainAnalysisSessionState,
     M6_ORIENTATION_COMPONENTS_BACKEND_ID,
     M6CanonicalFrame,
@@ -48,12 +48,13 @@ from nanotrack.core import STMSequenceMetadata
 from moltrack.ui import MolTrackMainWindow
 from domain_analysis_test_support import as_legacy_session_v2
 
-DomainAnalysisRequest = partial(
-    DomainAnalysisRequest, backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID
-)
 from moltrack.ui import domain_analysis_runtime as runtime
 from moltrack.ui.domain_analysis_composition import (
     DomainAnalysisMainWindowComposition,
+)
+
+DomainAnalysisRequest = partial(
+    _DomainAnalysisRequest, backend_id=M6_ORIENTATION_COMPONENTS_BACKEND_ID
 )
 
 
@@ -575,6 +576,34 @@ def test_restore_reports_classifier_missing_from_runtime_capability_catalog(
 
         assert missing_id in str(raised.value)
         assert composition.session_state().draft == initial_draft
+    finally:
+        composition.shutdown()
+        window.close()
+        window.deleteLater()
+        qt_app.processEvents()
+
+
+def test_runtime_composition_exposes_the_release_workflow_actions(
+    qt_app,
+    tmp_path,
+) -> None:
+    source_path = tmp_path / "release-workflow.mpp"
+    source_path.write_bytes(b"domain analysis release workflow source")
+    window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+    composition = runtime.build_domain_analysis_main_window_composition(
+        window,
+        _annotated_series(source_path),
+    )
+
+    try:
+        dialog = composition.open_domain_analysis()
+        dataset_sheet = dialog.reference_dataset_sheet
+
+        assert dataset_sheet.save_session_button.isEnabled()
+        assert dataset_sheet.open_session_button.isEnabled()
+        assert dataset_sheet.publish_m6_button.isEnabled()
+        assert dataset_sheet.publish_orientation_button.isEnabled()
+        assert dialog.calibration_sheet.run_campaign_button.isEnabled()
     finally:
         composition.shutdown()
         window.close()

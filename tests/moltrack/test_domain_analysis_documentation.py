@@ -6,18 +6,28 @@ from pathlib import Path
 from moltrack.analysis.domain_analysis.session_state import (
     DOMAIN_ANALYSIS_SESSION_SCHEMA_VERSION,
 )
-from moltrack.analysis.lattice_domain_calibration_models import (
-    LATTICE_DOMAIN_CALIBRATION_SCHEMA_VERSION,
+from moltrack.analysis.domain_analysis import (
+    M6_PRESET_LIBRARY_SCHEMA_VERSION,
+    M6_PRESET_SCHEMA_VERSION,
 )
-from moltrack.analysis.molecular_orientation_models import (
-    MOLECULAR_ORIENTATION_SCHEMA_VERSION,
+from moltrack.analysis.m6_validation_campaign_models import (
+    M6_CAMPAIGN_REPORT_SCHEMA_VERSION,
 )
 from moltrack.core.session import (
     MOLTRACK_SESSION_SCHEMA_VERSION,
     SUPPORTED_MOLTRACK_SESSION_SCHEMA_VERSIONS,
 )
-from moltrack.persistence.domain_analysis_export_schema import (
-    DOMAIN_ANALYSIS_EXPORT_SCHEMA_VERSION,
+from moltrack.persistence.correction_aware_export_schema import (
+    CORRECTION_AWARE_EXPORT_SCHEMA_VERSION,
+)
+from moltrack.persistence.m6_reference_schema import (
+    M6_REFERENCE_DATASET_SCHEMA_VERSION,
+)
+from moltrack.persistence.orientation_reference_schema import (
+    ORIENTATION_REFERENCE_DATASET_SCHEMA_VERSION,
+)
+from moltrack.persistence.reference_dataset_reader import (
+    REFERENCE_DATASET_ENVELOPE_VERSION,
 )
 
 
@@ -74,11 +84,17 @@ def test_format_reference_matches_current_schema_constants() -> None:
         f"| MolTrack session | v{MOLTRACK_SESSION_SCHEMA_VERSION}; "
         f"loader {supported_session_versions} |",
         f"| Domain Analysis state | v{DOMAIN_ANALYSIS_SESSION_SCHEMA_VERSION} |",
-        f"| Domain Analysis export | v{DOMAIN_ANALYSIS_EXPORT_SCHEMA_VERSION} |",
+        f"| Domain Analysis export | v{CORRECTION_AWARE_EXPORT_SCHEMA_VERSION} |",
         "| M6 Reference Dataset | "
-        f"legacy v{LATTICE_DOMAIN_CALIBRATION_SCHEMA_VERSION} |",
+        f"v{M6_REFERENCE_DATASET_SCHEMA_VERSION} |",
         "| Orientation Reference Dataset | "
-        f"legacy v{MOLECULAR_ORIENTATION_SCHEMA_VERSION} |",
+        f"v{ORIENTATION_REFERENCE_DATASET_SCHEMA_VERSION} |",
+        "| Reference collection envelope | "
+        f"manifest schema v{REFERENCE_DATASET_ENVELOPE_VERSION} |",
+        "| M6 preset | "
+        f"{M6_PRESET_LIBRARY_SCHEMA_VERSION} / {M6_PRESET_SCHEMA_VERSION} |",
+        "| M6 calibration campaign report | "
+        f"{M6_CAMPAIGN_REPORT_SCHEMA_VERSION} |",
     )
 
     for fragment in expected_current_version_fragments:

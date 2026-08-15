@@ -38,6 +38,9 @@ from moltrack.persistence import CanonicalJsonObject, DomainAnalysisExportSettin
 from moltrack.ui.domain_analysis_composition import (
     DomainAnalysisMainWindowComposition,
 )
+from moltrack.ui.domain_analysis_release_workflow import (
+    DomainAnalysisReleaseWorkflow,
+)
 from moltrack.ui.domain_backend_adapters import (
     MolTrackLatticeNetworkAdapter,
     MolTrackOrientationComponentsAdapter,
@@ -136,7 +139,25 @@ def build_domain_analysis_main_window_composition(
         ),
         aggregation_preset=classifier.domain_aggregation_preset,
     )
-    return DomainAnalysisMainWindowComposition(
+    release_workflow = _release_workflow(owner)
+    composition_holder: list[DomainAnalysisMainWindowComposition] = []
+
+    def current_workspace():
+        if not composition_holder:
+            raise RuntimeError("Domain Analysis composition is not ready.")
+        return (
+            composition_holder[0].session_state(),
+            series,
+            analysis_series,
+            preset_library,
+        )
+
+    workflow_actions = release_workflow.actions(
+        current_workspace,
+        save_session=lambda: _trigger_owner_action(owner, "action_save_state"),
+        open_session=lambda: _trigger_owner_action(owner, "action_open_state"),
+    )
+    composition = DomainAnalysisMainWindowComposition(
         owner,
         controller,
         session_series=series,
@@ -144,6 +165,7 @@ def build_domain_analysis_main_window_composition(
         m6_preset_name="TTMAPP M6 approved",
         m6_preset_library=preset_library,
         classifier_preset_name="TTMAPP M6-gated A/B/C",
+        workflow_actions=workflow_actions,
         export_settings_for=lambda publication: _export_settings(
             owner,
             series,
@@ -151,6 +173,28 @@ def build_domain_analysis_main_window_composition(
             publication,
         ),
     )
+    composition_holder.append(composition)
+    return composition
+
+
+def _release_workflow(owner: QMainWindow) -> DomainAnalysisReleaseWorkflow:
+    attribute = "_moltrack_domain_analysis_release_workflow"
+    workflow = getattr(owner, attribute, None)
+    if workflow is None:
+        workflow = DomainAnalysisReleaseWorkflow(owner)
+        setattr(owner, attribute, workflow)
+    if not isinstance(workflow, DomainAnalysisReleaseWorkflow):
+        raise TypeError(f"{attribute} must be a DomainAnalysisReleaseWorkflow.")
+    return workflow
+
+
+def _trigger_owner_action(owner: QMainWindow, name: str) -> None:
+    action = getattr(owner, name, None)
+    if action is None or not callable(getattr(action, "trigger", None)):
+        raise RuntimeError(f"Main window does not provide {name}.")
+    if not action.isEnabled():
+        raise RuntimeError(f"Main window action {name} is disabled.")
+    action.trigger()
 
 
 def _domain_analysis_series(series: MolTrackImageSeries) -> DomainAnalysisSeries:

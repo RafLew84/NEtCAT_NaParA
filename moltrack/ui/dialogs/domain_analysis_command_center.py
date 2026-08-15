@@ -348,7 +348,9 @@ class DomainAnalysisCommandCenter(QWidget):
         analyze_sheet: QWidget,
         correct_sheet: QWidget,
         review_sheet: QWidget,
+        datasets_sheet: QWidget,
         presets_sheet: QWidget,
+        calibrate_sheet: QWidget,
         diagnostics: QWidget,
         parent: QWidget | None = None,
     ) -> None:
@@ -358,7 +360,9 @@ class DomainAnalysisCommandCenter(QWidget):
             (analyze_sheet, "analyze_sheet"),
             (correct_sheet, "correct_sheet"),
             (review_sheet, "review_sheet"),
+            (datasets_sheet, "datasets_sheet"),
             (presets_sheet, "presets_sheet"),
+            (calibrate_sheet, "calibrate_sheet"),
             (diagnostics, "diagnostics"),
         ):
             if not isinstance(value, QWidget):
@@ -374,7 +378,9 @@ class DomainAnalysisCommandCenter(QWidget):
             analyze_sheet,
             correct_sheet,
             review_sheet,
+            datasets_sheet,
             presets_sheet,
+            calibrate_sheet,
             diagnostics,
         )
         self.dispatch(SelectDomainAnalysisStage("analyze"))
@@ -413,8 +419,7 @@ class DomainAnalysisCommandCenter(QWidget):
             raise TypeError("snapshot must be a DomainAnalysisWorkspaceSnapshot.")
         self._rendered_snapshot = snapshot
         self.canvas.render_snapshot(snapshot)
-        backend_id = snapshot.draft.backend_id or "backend not selected"
-        self.backend_status_label.setText(backend_id)
+        self.backend_status_label.setText(snapshot.draft.backend_id)
         self.run_status_label.setText(snapshot.run.status.replace("_", " ").title())
         self.frame_status_label.setText(
             f"Frame {snapshot.active_frame_index + 1} / {snapshot.frame_count}"
@@ -425,7 +430,9 @@ class DomainAnalysisCommandCenter(QWidget):
         analyze_sheet: QWidget,
         correct_sheet: QWidget,
         review_sheet: QWidget,
+        datasets_sheet: QWidget,
         presets_sheet: QWidget,
+        calibrate_sheet: QWidget,
         diagnostics: QWidget,
     ) -> None:
         layout = QGridLayout(self)
@@ -435,24 +442,16 @@ class DomainAnalysisCommandCenter(QWidget):
         layout.addWidget(self.canvas, 1, 1)
         self.bottom_sheet = QStackedWidget(self)
         self.bottom_sheet.setObjectName("domainAnalysisBottomSheet")
+        sheets = {
+            "analyze": analyze_sheet,
+            "correct": correct_sheet,
+            "review": review_sheet,
+            "datasets": datasets_sheet,
+            "presets": presets_sheet,
+            "calibrate": calibrate_sheet,
+        }
         for stage in DOMAIN_ANALYSIS_STAGES:
-            page = (
-                analyze_sheet
-                if stage.stage_id == "analyze"
-                else (
-                    correct_sheet
-                    if stage.stage_id == "correct"
-                    else (
-                        review_sheet
-                        if stage.stage_id == "review"
-                        else (
-                            presets_sheet
-                            if stage.stage_id == "presets"
-                            else _future_stage_sheet(stage, self.bottom_sheet)
-                        )
-                    )
-                )
-            )
+            page = sheets[stage.stage_id]
             page.setProperty("domainAnalysisStage", stage.stage_id)
             self._sheet_indices[stage.stage_id] = self.bottom_sheet.addWidget(page)
         layout.addWidget(self.bottom_sheet, 2, 1)
@@ -475,27 +474,6 @@ class DomainAnalysisCommandCenter(QWidget):
         layout.addStretch(1)
         layout.addWidget(diagnostics)
         return bar
-
-
-def _future_stage_sheet(
-    stage: DomainAnalysisStage,
-    parent: QWidget,
-) -> QWidget:
-    page = QWidget(parent)
-    page.setObjectName(f"domainAnalysisSheet_{stage.stage_id}")
-    layout = QVBoxLayout(page)
-    title = QLabel(stage.label, page)
-    title.setObjectName("domainAnalysisSheetTitle")
-    layout.addWidget(title)
-    description = QLabel(
-        f"{stage.hint}. The current immutable analysis remains on the canvas.",
-        page,
-    )
-    description.setWordWrap(True)
-    layout.addWidget(description)
-    layout.addStretch(1)
-    return page
-
 
 def _validated_stage_id(value: object) -> DomainAnalysisStageId:
     stage_ids = tuple(stage.stage_id for stage in DOMAIN_ANALYSIS_STAGES)

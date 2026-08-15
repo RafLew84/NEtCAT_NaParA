@@ -19,6 +19,7 @@ from .domain_analysis_session import domain_analysis_state_from_payload
 def migrate_v2_domain_analysis(payload: Any) -> DomainAnalysisSessionState:
     """Translate legacy Domain Analysis v1 into correction-aware state."""
 
+    _require_raw_historical_backend_identity(payload)
     legacy = domain_analysis_state_from_payload(
         payload,
         require_legacy_v1=True,
@@ -37,6 +38,41 @@ def migrate_v2_domain_analysis(payload: Any) -> DomainAnalysisSessionState:
         reference_reviews=ReferenceReviewWorkspace(),
         diagnostics=diagnostics,
     )
+
+
+def _require_raw_historical_backend_identity(payload: Any) -> None:
+    if not isinstance(payload, Mapping):
+        return
+    publication = payload.get("published_result")
+    if publication is None:
+        return
+    if not isinstance(publication, Mapping):
+        raise ValueError(
+            "Legacy automatic result does not prove one historical domain backend."
+        )
+    request = publication.get("request")
+    gate = publication.get("m6_gate")
+    if not isinstance(request, Mapping) or not isinstance(gate, Mapping):
+        raise ValueError(
+            "Legacy automatic result does not prove one historical domain backend."
+        )
+    backend_id = request.get("backend_id")
+    frames = gate.get("frames")
+    if not isinstance(backend_id, str) or not isinstance(frames, list):
+        raise ValueError(
+            "Legacy automatic result does not prove one historical domain backend."
+        )
+    frame_backend_ids = {
+        identity.get("backend_id")
+        for frame in frames
+        if isinstance(frame, Mapping)
+        for identity in (frame.get("backend_identity"),)
+        if isinstance(identity, Mapping)
+    }
+    if frame_backend_ids != {backend_id}:
+        raise ValueError(
+            "Legacy automatic result does not prove one historical domain backend."
+        )
 
 
 def _migration_diagnostics(
@@ -80,7 +116,7 @@ def _historical_backend_diagnostic(
         frame.backend_identity.backend_id
         for frame in (() if gate is None else gate.frames)
     }
-    if backend_id is None or frame_backend_ids != {backend_id}:
+    if frame_backend_ids != {backend_id}:
         raise ValueError(
             "Legacy automatic result does not prove one historical domain backend."
         )

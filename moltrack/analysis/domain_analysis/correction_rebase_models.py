@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Literal
 
 from .domain_correction_models import DomainCorrectionWorkspace
+from .diagnostic_funnel import build_molecule_diagnostic_funnels
 from .fingerprints import canonical_sha256
 from .models import DomainAnalysisRequest, DomainAnalysisResult
 
@@ -204,6 +205,10 @@ def automatic_candidate_fingerprint(
     request: DomainAnalysisRequest,
     result: DomainAnalysisResult,
 ) -> str:
+    result = replace(
+        result,
+        molecule_diagnostic_funnels=build_molecule_diagnostic_funnels(result),
+    )
     gate = result.m6_gate
     return canonical_sha256({
         "schema_version": "domain-analysis-automatic-candidate-v1",
