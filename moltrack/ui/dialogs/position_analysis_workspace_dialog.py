@@ -23,6 +23,7 @@ from moltrack.ui.domain_analysis_workspace_view import (
     DomainAnalysisFrameRangeBinding,
     DomainAnalysisWorkspaceActionBinding,
     DomainAnalysisWorkspaceViewBinding,
+    ExportAudit,
     ExportPublished,
 )
 from moltrack.ui.position_analysis_workspace_presentation import (
@@ -54,6 +55,8 @@ class PositionAnalysisWorkspaceDialog(QDialog):
         controller: DomainAnalysisWorkspaceController,
         *,
         export_published: ExportPublished,
+        export_audit: ExportAudit | None = None,
+        export_legacy_published: ExportPublished | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -76,10 +79,14 @@ class PositionAnalysisWorkspaceDialog(QDialog):
         self._workspace_actions = DomainAnalysisWorkspaceActionBinding(
             controller,
             export_published=export_published,
+            export_audit=export_audit,
+            export_legacy_published=export_legacy_published,
             sync_draft=self._replace_draft,
             analyze_button=self.analyze_button,
             cancel_button=self.cancel_button,
             export_button=self.export_button,
+            audit_export_button=self.audit_export_button,
+            legacy_export_button=self.legacy_export_button,
             diagnosis_label=self.diagnosis_label,
         )
         self.current_frame_results_panel.domain_selection_changed.connect(
@@ -143,6 +150,8 @@ class PositionAnalysisWorkspaceDialog(QDialog):
         self.analyze_button = row.analyze_button
         self.cancel_button = row.cancel_button
         self.export_button = row.export_button
+        self.audit_export_button = row.audit_export_button
+        self.legacy_export_button = row.legacy_export_button
         return row
 
     def _replace_draft(self) -> None:

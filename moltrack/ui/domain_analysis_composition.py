@@ -24,6 +24,7 @@ from moltrack.analysis.domain_analysis import (
 )
 from moltrack.core import MolTrackImageSeries
 from moltrack.persistence import (
+    CorrectionAwareExportSettings,
     DomainAnalysisExportSettings,
     export_analysis_package,
     save_moltrack_session,
@@ -41,8 +42,13 @@ from moltrack.ui.widgets.stm_series_viewer import STMSeriesViewer
 
 ExportSettingsFor = Callable[
     [DomainAnalysisPublication],
+    CorrectionAwareExportSettings,
+]
+LegacyExportSettingsFor = Callable[
+    [DomainAnalysisPublication],
     DomainAnalysisExportSettings,
 ]
+AuditExportSettingsFor = Callable[[], CorrectionAwareExportSettings]
 
 
 class DomainAnalysisMainWindowComposition(QObject):
@@ -61,6 +67,8 @@ class DomainAnalysisMainWindowComposition(QObject):
         m6_preset_name: str,
         classifier_preset_name: str,
         export_settings_for: ExportSettingsFor,
+        audit_export_settings_for: AuditExportSettingsFor | None = None,
+        legacy_export_settings_for: LegacyExportSettingsFor | None = None,
         m6_preset_library: M6PresetLibrary | None = None,
         workflow_actions: DomainAnalysisWorkflowActions | None = None,
         view_settings: DomainAnalysisViewSettings | None = None,
@@ -73,6 +81,14 @@ class DomainAnalysisMainWindowComposition(QObject):
             raise TypeError("session_series must be a MolTrackImageSeries.")
         if not callable(export_settings_for):
             raise TypeError("export_settings_for must be callable.")
+        if audit_export_settings_for is not None and not callable(
+            audit_export_settings_for
+        ):
+            raise TypeError("audit_export_settings_for must be callable or None.")
+        if legacy_export_settings_for is not None and not callable(
+            legacy_export_settings_for
+        ):
+            raise TypeError("legacy_export_settings_for must be callable or None.")
         super().__init__(owner)
         self._owner = owner
         self._controller = controller
@@ -91,6 +107,16 @@ class DomainAnalysisMainWindowComposition(QObject):
             "classifier_preset_name",
         )
         self._export_settings_for = export_settings_for
+        self._audit_export_settings_for = audit_export_settings_for
+        self._legacy_export_settings_for = legacy_export_settings_for
+        self._audit_export_action = (
+            None if audit_export_settings_for is None else self._export_audit
+        )
+        self._legacy_export_action = (
+            None
+            if legacy_export_settings_for is None
+            else self._export_legacy_published
+        )
         self._view_settings = (
             DomainAnalysisViewSettings() if view_settings is None else view_settings
         )
@@ -145,6 +171,8 @@ class DomainAnalysisMainWindowComposition(QObject):
                 m6_preset_name=self._m6_preset_name,
                 classifier_preset_name=self._classifier_preset_name,
                 export_published=self._export_published,
+                export_audit=self._audit_export_action,
+                export_legacy_published=self._legacy_export_action,
                 m6_preset_library=self._m6_preset_library,
                 workflow_actions=self._workflow_actions,
                 canvas_frame_for=self._canvas_frame_for,
@@ -174,6 +202,8 @@ class DomainAnalysisMainWindowComposition(QObject):
             dialog = PositionAnalysisWorkspaceDialog(
                 self._controller,
                 export_published=self._export_published,
+                export_audit=self._audit_export_action,
+                export_legacy_published=self._legacy_export_action,
                 parent=self._owner,
             )
             dialog.destroyed.connect(
@@ -319,10 +349,49 @@ class DomainAnalysisMainWindowComposition(QObject):
         if self._controller.snapshot.published is not publication:
             raise ValueError("Export requires the current published snapshot.")
         settings = self._export_settings_for(publication)
+        if not isinstance(settings, CorrectionAwareExportSettings):
+            raise TypeError(
+                "export_settings_for must return CorrectionAwareExportSettings."
+            )
+        if settings.export_mode != "reference":
+            raise TypeError("export_settings_for must select reference mode.")
+        self._start_export(settings)
+
+    def _export_audit(self) -> None:
+        settings_for = self._audit_export_settings_for
+        if settings_for is None:
+            raise RuntimeError("Audit Domain Analysis export is unavailable.")
+        settings = settings_for()
+        if not isinstance(settings, CorrectionAwareExportSettings):
+            raise TypeError(
+                "audit_export_settings_for must return "
+                "CorrectionAwareExportSettings."
+            )
+        if settings.export_mode != "audit":
+            raise TypeError("audit_export_settings_for must select audit mode.")
+        self._start_export(settings)
+
+    def _export_legacy_published(
+        self,
+        publication: DomainAnalysisPublication,
+    ) -> None:
+        if self._controller.snapshot.published is not publication:
+            raise ValueError("Export requires the current published snapshot.")
+        settings_for = self._legacy_export_settings_for
+        if settings_for is None:
+            raise RuntimeError("Legacy Domain Analysis export is unavailable.")
+        settings = settings_for(publication)
         if not isinstance(settings, DomainAnalysisExportSettings):
             raise TypeError(
-                "export_settings_for must return DomainAnalysisExportSettings."
+                "legacy_export_settings_for must return "
+                "DomainAnalysisExportSettings."
             )
+        self._start_export(settings)
+
+    def _start_export(
+        self,
+        settings: CorrectionAwareExportSettings | DomainAnalysisExportSettings,
+    ) -> None:
         with self._export_lock:
             if self._shutting_down:
                 raise RuntimeError("Domain Analysis workspace is shutting down.")

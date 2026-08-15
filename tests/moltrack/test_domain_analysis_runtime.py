@@ -31,6 +31,7 @@ from moltrack.core.registration import (
     MolTrackRegistrationResultSet,
     MolTrackRegistrationSettings,
 )
+from moltrack.persistence import CorrectionAwareExportSettings
 from moltrack.ui import domain_analysis_runtime as runtime
 from nanotrack.core import STMSequenceMetadata
 
@@ -384,6 +385,7 @@ def test_runtime_export_chooses_a_new_package_below_selected_directory(
 
     settings = runtime._export_settings(None, series, ("source-frame-0",))
 
+    assert isinstance(settings, CorrectionAwareExportSettings)
     assert settings.destination == tmp_path / "movie-domain-analysis-2"
     assert not settings.destination.exists()
 

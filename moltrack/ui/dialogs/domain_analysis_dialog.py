@@ -35,6 +35,7 @@ from moltrack.ui.domain_analysis_workspace_view import (
     DomainAnalysisFrameRangeBinding,
     DomainAnalysisWorkspaceActionBinding,
     DomainAnalysisWorkspaceViewBinding,
+    ExportAudit,
     ExportPublished,
 )
 from moltrack.ui.domain_correction_sheet import DomainCorrectionSheet
@@ -77,6 +78,8 @@ class DomainAnalysisDialog(QDialog):
         m6_preset_name: str,
         classifier_preset_name: str,
         export_published: ExportPublished,
+        export_audit: ExportAudit | None = None,
+        export_legacy_published: ExportPublished | None = None,
         m6_preset_library: M6PresetLibrary | None = None,
         workflow_actions: DomainAnalysisWorkflowActions | None = None,
         canvas_frame_for: Callable[[int], object] | None = None,
@@ -121,10 +124,14 @@ class DomainAnalysisDialog(QDialog):
         self._workspace_actions = DomainAnalysisWorkspaceActionBinding(
             controller,
             export_published=export_published,
+            export_audit=export_audit,
+            export_legacy_published=export_legacy_published,
             sync_draft=self._replace_draft,
             analyze_button=self.analyze_button,
             cancel_button=self.cancel_button,
             export_button=self.export_button,
+            audit_export_button=self.audit_export_button,
+            legacy_export_button=self.legacy_export_button,
             diagnosis_label=self.diagnosis_label,
         )
         self._correction_actions = DomainCorrectionActionBinding(controller)
@@ -290,6 +297,8 @@ class DomainAnalysisDialog(QDialog):
         self.analyze_button = row.analyze_button
         self.cancel_button = row.cancel_button
         self.export_button = row.export_button
+        self.audit_export_button = row.audit_export_button
+        self.legacy_export_button = row.legacy_export_button
         return row
 
     def _connect_controls(self) -> None:

@@ -216,6 +216,24 @@ def _select_first_domain(dialog) -> None:
     dialog.current_frame_results_panel.domain_table.setCurrentCell(0, 0)
 
 
+def _review_target_in_ui(sheet, target, decisions, qt_app) -> None:
+    sheet.target_combo.setCurrentIndex(sheet.target_combo.findData(target))
+    qt_app.processEvents()
+    for row in range(sheet.review_table.rowCount()):
+        source_id = sheet.review_table.item(row, 0).text()
+        decision, reason = decisions[source_id]
+        sheet.review_table.selectRow(row)
+        sheet.decision_combo.setCurrentIndex(
+            sheet.decision_combo.findData(decision)
+        )
+        sheet.reason_edit.setText(reason or "")
+        sheet.record_button.click()
+        qt_app.processEvents()
+    assert sheet.sign_off_button.isEnabled()
+    sheet.sign_off_button.click()
+    qt_app.processEvents()
+
+
 def test_one_public_domain_analysis_workflow_survives_round_trip_and_rejects_bad_input(
     qt_app,
     tmp_path,
@@ -279,6 +297,27 @@ def test_one_public_domain_analysis_workflow_survives_round_trip_and_rejects_bad
         assert len(built_compositions) == 1
         composition = built_compositions[-1].composition
         restored_series = built_compositions[-1].session_series
+        audit_destination = tmp_path / "workflow-domain-analysis-audit-v10"
+        assert dialog.audit_export_button.text() == "Export audit v10..."
+        assert dialog.audit_export_button.isEnabled()
+        dialog.audit_export_button.click()
+        audit_manifest_path = audit_destination / "manifest.json"
+        _wait_until(qt_app, audit_manifest_path.is_file)
+        audit_manifest = json.loads(
+            audit_manifest_path.read_text(encoding="utf-8")
+        )
+        assert audit_manifest["export_schema_version"] == 10
+        assert audit_manifest["export_mode"] == "audit"
+        assert audit_manifest["readiness"] == {
+            "ready": False,
+            "blockers": ["no_active_automatic_snapshot"],
+        }
+        _wait_until(
+            qt_app,
+            lambda: window.statusBar().currentMessage().startswith(
+                "Exported Domain Analysis to"
+            ),
+        )
         assert [value.source_id for value in build_molecular_centroids(restored_series)] == [
             "m-a",
             "m-b",
@@ -372,30 +411,76 @@ def test_one_public_domain_analysis_workflow_survives_round_trip_and_rejects_bad
         assert len(built_compositions) == 2
         reopened = window.domain_analysis_dialog()
         assert reopened is not None
+        reopened.command_center.stage_button("review").click()
+        review_sheet = reopened.reference_review_sheet
+        _review_target_in_ui(
+            review_sheet,
+            "m6",
+            {source_id: ("accepted_automatic", None) for source_id in (
+                "m-a", "m-b", "m-c", "m-d"
+            )},
+            qt_app,
+        )
+        _review_target_in_ui(
+            review_sheet,
+            "orientation",
+            {
+                "m-a": ("accepted_automatic", None),
+                "m-b": ("accepted_automatic", None),
+                "m-c": ("not_eligible", "automatic_gate_excluded"),
+                "m-d": ("not_eligible", "automatic_gate_excluded"),
+            },
+            qt_app,
+        )
         reopened.export_button.click()
         manifest_path = export_destination / "manifest.json"
         _wait_until(qt_app, manifest_path.is_file)
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        exported = manifest["analysis"]["domain_analysis"]
-        assert manifest["export_schema_version"] == 9
-        assert exported["session_schema_version"] == saved_state.schema_version
-        assert exported["request"]["request_fingerprint"] == (
+        automatic = json.loads(
+            (export_destination / "automatic_snapshot.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        assert manifest["export_schema_version"] == 10
+        assert manifest["package_kind"] == "moltrack_correction_aware_analysis"
+        assert manifest["export_mode"] == "reference"
+        assert manifest["readiness"] == {"ready": True, "blockers": []}
+        assert automatic["request_fingerprint"] == (
             publication.request_fingerprint
         )
         assert [
             value["m6_gate_fingerprint"]
-            for value in exported["m6_gate"]["frames"]
+            for value in automatic["m6_gate"]["frames"]
         ] == [
             value.m6_gate_fingerprint
             for value in publication.result.m6_gate.frames
         ]
         assert [
             value["classifier_result_fingerprint"]
-            for value in exported["classifier_outcomes"]
+            for value in automatic["classifier_outcomes"]
         ] == [
             value.classifier_result_fingerprint
             for value in publication.result.classifier_outcomes or ()
         ]
+        legacy_destination = tmp_path / "workflow-domain-analysis-legacy-v9"
+        assert not legacy_destination.exists()
+        _wait_until(
+            qt_app,
+            lambda: window.statusBar().currentMessage().startswith(
+                "Exported Domain Analysis to"
+            ),
+        )
+        assert reopened.legacy_export_button.text() == "Export legacy v9..."
+        assert reopened.legacy_export_button.isEnabled()
+        reopened.legacy_export_button.click()
+        legacy_manifest_path = legacy_destination / "manifest.json"
+        _wait_until(qt_app, legacy_manifest_path.is_file)
+        legacy_manifest = json.loads(
+            legacy_manifest_path.read_text(encoding="utf-8")
+        )
+        assert legacy_manifest["export_schema_version"] == 9
+        assert legacy_manifest["package_kind"] == "moltrack_analysis"
+        assert not (legacy_destination / "automatic_snapshot.json").exists()
 
         active_state = composition.session_state()
         active_overlay = window.viewer.highlighted_m6_overlay_source_ids()

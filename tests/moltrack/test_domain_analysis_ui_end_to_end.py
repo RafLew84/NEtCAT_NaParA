@@ -34,6 +34,7 @@ from moltrack.analysis.domain_analysis import (
 from moltrack.core import MolTrackImageSeries
 from moltrack.persistence import (
     CanonicalJsonObject,
+    CorrectionAwareExportSettings,
     DomainAnalysisExportSettings,
     load_moltrack_session,
 )
@@ -466,12 +467,9 @@ def test_composition_waits_for_owned_export_before_shutdown(
         ),
         aggregation_preset=classifier.domain_aggregation_preset,
     )
-    settings = DomainAnalysisExportSettings(
+    settings = CorrectionAwareExportSettings(
         destination=tmp_path / "export",
-        source_frame_indices=session_series.source_frame_indices,
-        physical_frame_ids=controller.snapshot.physical_frame_ids,
         source_identity=CanonicalJsonObject({"source": "test"}),
-        m6_settings=CanonicalJsonObject({"preset": "test"}),
     )
     composition = DomainAnalysisMainWindowComposition(
         window,
@@ -559,6 +557,11 @@ def test_main_window_routes_save_open_and_export_through_one_domain_workspace(
         aggregation_preset=classifier.domain_aggregation_preset,
     )
     export_destination = tmp_path / "preflight-export"
+    correction_aware_destination = tmp_path / "preflight-export-v10"
+    correction_aware_settings = CorrectionAwareExportSettings(
+        destination=correction_aware_destination,
+        source_identity=CanonicalJsonObject({"source": source_path.name}),
+    )
     export_settings = DomainAnalysisExportSettings(
         destination=export_destination,
         source_frame_indices=image_series.source_frame_indices,
@@ -577,7 +580,8 @@ def test_main_window_routes_save_open_and_export_through_one_domain_workspace(
             classifier_configurations=(classifier_configuration,),
             m6_preset_name="TTMAPP M6 approved",
             classifier_preset_name="TTMAPP A/B/C approved",
-            export_settings_for=lambda _publication: export_settings,
+            export_settings_for=lambda _publication: correction_aware_settings,
+            legacy_export_settings_for=lambda _publication: export_settings,
         )
         compositions.append(composition)
         return composition
@@ -693,7 +697,7 @@ def test_main_window_routes_save_open_and_export_through_one_domain_workspace(
         window.btn_position_analysis.click()
         reopened = window.domain_analysis_dialog()
         assert isinstance(reopened, DomainAnalysisDialog)
-        reopened.export_button.click()
+        reopened.legacy_export_button.click()
         deadline = time.monotonic() + 2.0
         while (
             not (export_destination / "manifest.json").is_file()
@@ -718,6 +722,7 @@ def test_main_window_routes_save_open_and_export_through_one_domain_workspace(
             path.name == "manifest.json" or path.name.startswith("domain_analysis_")
             for path in export_destination.iterdir()
         )
+        assert not correction_aware_destination.exists()
     finally:
         window.close()
         window.deleteLater()

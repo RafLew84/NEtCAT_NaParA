@@ -60,6 +60,7 @@ class _ActionPresentation(Protocol):
 
 
 ExportPublished = Callable[[DomainAnalysisPublication], None]
+ExportAudit = Callable[[], None]
 
 
 class DomainAnalysisActionRow(QHBoxLayout):
@@ -69,10 +70,14 @@ class DomainAnalysisActionRow(QHBoxLayout):
         super().__init__()
         self.analyze_button = QPushButton("Analyze range", owner)
         self.cancel_button = QPushButton("Cancel", owner)
-        self.export_button = QPushButton("Export results...", owner)
+        self.export_button = QPushButton("Export v10...", owner)
+        self.audit_export_button = QPushButton("Export audit v10...", owner)
+        self.legacy_export_button = QPushButton("Export legacy v9...", owner)
         self.addWidget(self.analyze_button)
         self.addWidget(self.cancel_button)
         self.addStretch(1)
+        self.addWidget(self.legacy_export_button)
+        self.addWidget(self.audit_export_button)
         self.addWidget(self.export_button)
 
 
@@ -133,28 +138,52 @@ class DomainAnalysisWorkspaceActionBinding:
         controller: DomainAnalysisWorkspaceController,
         *,
         export_published: ExportPublished,
+        export_audit: ExportAudit | None,
+        export_legacy_published: ExportPublished | None,
         sync_draft: Callable[[], None],
         analyze_button: QPushButton,
         cancel_button: QPushButton,
         export_button: QPushButton,
+        audit_export_button: QPushButton,
+        legacy_export_button: QPushButton,
         diagnosis_label: QLabel,
     ) -> None:
         if not isinstance(controller, DomainAnalysisWorkspaceController):
             raise TypeError("controller must be a DomainAnalysisWorkspaceController.")
         if not callable(export_published):
             raise TypeError("export_published must be callable.")
+        if export_audit is not None and not callable(export_audit):
+            raise TypeError("export_audit must be callable or None.")
+        if export_legacy_published is not None and not callable(
+            export_legacy_published
+        ):
+            raise TypeError("export_legacy_published must be callable or None.")
         if not callable(sync_draft):
             raise TypeError("sync_draft must be callable.")
         self._controller = controller
         self._export_published = export_published
+        self._export_audit = export_audit
+        self._export_legacy_published = export_legacy_published
         self._sync_draft = sync_draft
         self._analyze_button = analyze_button
         self._cancel_button = cancel_button
         self._export_button = export_button
+        self._audit_export_button = audit_export_button
+        self._legacy_export_button = legacy_export_button
         self._diagnosis_label = diagnosis_label
         analyze_button.clicked.connect(self.start_analysis)
         cancel_button.clicked.connect(self.cancel_analysis)
-        export_button.clicked.connect(self.export_last_publication)
+        export_button.clicked.connect(
+            lambda _checked=False: self.export_last_publication()
+        )
+        audit_export_button.clicked.connect(self.export_current_audit)
+        legacy_export_button.clicked.connect(
+            lambda _checked=False: self.export_last_publication(
+                self._export_legacy_published
+            )
+        )
+        audit_export_button.setVisible(export_audit is not None)
+        legacy_export_button.setVisible(export_legacy_published is not None)
 
     def replace_draft(self, draft: DomainAnalysisRequest) -> None:
         self._controller.dispatch(ReplaceDomainAnalysisDraft(draft))
@@ -166,12 +195,23 @@ class DomainAnalysisWorkspaceActionBinding:
     def cancel_analysis(self) -> None:
         self._controller.dispatch(CancelDomainAnalysis())
 
-    def export_last_publication(self) -> None:
+    def export_last_publication(
+        self,
+        callback: ExportPublished | None = None,
+    ) -> None:
+        export_published = self._export_published if callback is None else callback
         publication = self._controller.snapshot.published
-        if publication is None:
+        if publication is not None:
+            self._export(lambda: export_published(publication))
+
+    def export_current_audit(self) -> None:
+        self._export(self._export_audit)
+
+    def _export(self, callback: ExportAudit | None) -> None:
+        if callback is None:
             return
         try:
-            self._export_published(publication)
+            callback()
         except Exception as error:
             self._diagnosis_label.setText(
                 f"Export failed: {str(error) or error.__class__.__name__}"
@@ -181,6 +221,12 @@ class DomainAnalysisWorkspaceActionBinding:
         self._analyze_button.setEnabled(presentation.request_enabled)
         self._cancel_button.setEnabled(presentation.cancel_enabled)
         self._export_button.setEnabled(presentation.export_enabled)
+        self._audit_export_button.setEnabled(
+            self._export_audit is not None and not presentation.cancel_enabled
+        )
+        self._legacy_export_button.setEnabled(
+            self._export_legacy_published is not None and presentation.export_enabled
+        )
 
 
 class DomainAnalysisWorkspaceViewBinding(QObject):

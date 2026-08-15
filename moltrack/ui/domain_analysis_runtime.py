@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime, timezone
+from functools import partial
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Lock, Thread
@@ -34,7 +35,11 @@ from moltrack.core import (
     MolTrackImageSeries,
     build_moltrack_expanded_aligned_stack,
 )
-from moltrack.persistence import CanonicalJsonObject, DomainAnalysisExportSettings
+from moltrack.persistence import (
+    CanonicalJsonObject,
+    CorrectionAwareExportSettings,
+    DomainAnalysisExportSettings,
+)
 from moltrack.ui.domain_analysis_composition import (
     DomainAnalysisMainWindowComposition,
 )
@@ -157,6 +162,10 @@ def build_domain_analysis_main_window_composition(
         save_session=lambda: _trigger_owner_action(owner, "action_save_state"),
         open_session=lambda: _trigger_owner_action(owner, "action_open_state"),
     )
+    settings_args = (owner, series, physical_frame_ids)
+    export_settings_for = partial(_export_settings, *settings_args)
+    audit_export_settings_for = partial(_audit_export_settings, owner, series)
+    legacy_export_settings_for = partial(_legacy_export_settings, *settings_args)
     composition = DomainAnalysisMainWindowComposition(
         owner,
         controller,
@@ -166,12 +175,9 @@ def build_domain_analysis_main_window_composition(
         m6_preset_library=preset_library,
         classifier_preset_name="TTMAPP M6-gated A/B/C",
         workflow_actions=workflow_actions,
-        export_settings_for=lambda publication: _export_settings(
-            owner,
-            series,
-            physical_frame_ids,
-            publication,
-        ),
+        export_settings_for=export_settings_for,
+        audit_export_settings_for=audit_export_settings_for,
+        legacy_export_settings_for=legacy_export_settings_for,
     )
     composition_holder.append(composition)
     return composition
@@ -382,31 +388,53 @@ def _export_settings(
     series: MolTrackImageSeries,
     physical_frame_ids: tuple[str, ...],
     publication: DomainAnalysisPublication | None = None,
-) -> DomainAnalysisExportSettings:
+) -> CorrectionAwareExportSettings:
+    del physical_frame_ids, publication
+    return _correction_aware_export_settings(
+        owner,
+        series,
+        title="Export Domain Analysis",
+        format_suffix="",
+        export_mode="reference",
+    )
+
+
+def _audit_export_settings(
+    owner: QMainWindow,
+    series: MolTrackImageSeries,
+) -> CorrectionAwareExportSettings:
+    return _correction_aware_export_settings(
+        owner,
+        series,
+        title="Export audit-only Domain Analysis v10",
+        format_suffix="-audit-v10",
+        export_mode="audit",
+    )
+
+
+def _correction_aware_export_settings(
+    owner: QMainWindow,
+    series: MolTrackImageSeries,
+    *,
+    title: str,
+    format_suffix: str,
+    export_mode: Literal["reference", "audit"],
+) -> CorrectionAwareExportSettings:
     destination = QFileDialog.getExistingDirectory(
         owner,
-        "Export Domain Analysis",
+        title,
         str(Path(series.source_path).parent),
     )
     if not destination:
         raise ValueError("Domain Analysis export was canceled.")
-    source_frame_indices = series.source_frame_indices
-    if source_frame_indices is None:
-        raise RuntimeError("Image series has no source-frame mapping.")
-    return DomainAnalysisExportSettings(
+    return CorrectionAwareExportSettings(
         destination=_available_export_destination(
             Path(destination),
             Path(series.source_path).stem,
+            format_suffix=format_suffix,
         ),
-        source_frame_indices=source_frame_indices,
-        physical_frame_ids=physical_frame_ids,
-        source_identity=CanonicalJsonObject(
-            {
-                "source_path": series.source_path,
-                "source_name": Path(series.source_path).name,
-            }
-        ),
-        m6_settings=CanonicalJsonObject(_published_m6_settings(publication)),
+        source_identity=_source_identity_for(series),
+        export_mode=export_mode,
     )
 
 
@@ -422,6 +450,42 @@ def _published_m6_settings(
         else configuration.settings
     )
     return dict(settings.to_dict())
+
+
+def _legacy_export_settings(
+    owner: QMainWindow,
+    series: MolTrackImageSeries,
+    physical_frame_ids: tuple[str, ...],
+    publication: DomainAnalysisPublication,
+) -> DomainAnalysisExportSettings:
+    destination = QFileDialog.getExistingDirectory(
+        owner,
+        "Export legacy automatic-only Domain Analysis v9",
+        str(Path(series.source_path).parent),
+    )
+    if not destination:
+        raise ValueError("Legacy Domain Analysis export was canceled.")
+    source_frame_indices = series.source_frame_indices
+    if source_frame_indices is None:
+        raise RuntimeError("Image series has no source-frame mapping.")
+    return DomainAnalysisExportSettings(
+        destination=_available_export_destination(
+            Path(destination),
+            Path(series.source_path).stem,
+            format_suffix="-legacy-v9",
+        ),
+        source_frame_indices=source_frame_indices,
+        physical_frame_ids=physical_frame_ids,
+        source_identity=_source_identity_for(series),
+        m6_settings=CanonicalJsonObject(_published_m6_settings(publication)),
+    )
+
+
+def _source_identity_for(series: MolTrackImageSeries) -> CanonicalJsonObject:
+    return CanonicalJsonObject({
+        "source_path": series.source_path,
+        "source_name": Path(series.source_path).name,
+    })
 
 
 def _m6_preset_library(adapters) -> M6PresetLibrary:
@@ -448,8 +512,13 @@ def _m6_preset_library(adapters) -> M6PresetLibrary:
     )
 
 
-def _available_export_destination(parent: Path, source_stem: str) -> Path:
-    base = parent / f"{source_stem}-domain-analysis"
+def _available_export_destination(
+    parent: Path,
+    source_stem: str,
+    *,
+    format_suffix: str = "",
+) -> Path:
+    base = parent / f"{source_stem}-domain-analysis{format_suffix}"
     destination = base
     suffix = 2
     while destination.exists():
