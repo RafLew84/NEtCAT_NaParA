@@ -210,3 +210,6 @@ fix_track.md
 /moltrack/analysis
 /moltrack/ui/dialogs/_prototype_domain_analysis_dialog
 moltrack.7z
+moltrack/ui/dialogs/domain_analysis_editing_prototype.html
+moltrack/ui/dialogs/domain_analysis_workflow_ui_prototype.html
+moltrack/persistence/domain_correction_persistence_export_prototype.html
