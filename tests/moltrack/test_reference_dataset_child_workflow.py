@@ -140,6 +140,7 @@ def test_references_ui_previews_and_publishes_immutable_m6_child(
     try:
         sheet.publish_m6_button.click()
         sheet.publish_m6_button.click()
+        sheet.publish_m6_button.click()
 
         assert len(previews) == 1, sheet.status_label.text()
         summary = previews[0]

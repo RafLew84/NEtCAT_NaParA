@@ -228,6 +228,8 @@ def run_release_actions_in_ui(
     assert "M6 Reference Dataset v2 completed" in (
         dialog.reference_dataset_sheet.status_label.text()
     ), dialog.reference_dataset_sheet.status_label.text()
+    dialog.reference_dataset_sheet.publish_m6_button.click()
+    dialog.reference_dataset_sheet.publish_orientation_button.click()
     dialog.reference_dataset_sheet.publish_orientation_button.click()
     dialog.reference_dataset_sheet.publish_orientation_button.click()
     assert "Orientation Reference Dataset v2 completed" in (

@@ -9,11 +9,19 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from moltrack.analysis.domain_analysis import (
     DomainAnalysisRequest,
+    DomainAnalysisSessionState,
     DomainAnalysisWorkspaceController,
     M6_ORIENTATION_COMPONENTS_BACKEND_ID,
+    PreviewManualOrientation,
     PublishDomainAnalysisResult,
+    ReferenceReadinessError,
+    ReferenceReadinessPolicy,
+    RestoreDomainAnalysisWorkspace,
+    SelectDomainMolecules,
 )
+from moltrack.persistence import publish_m6_reference_dataset
 from test_domain_correction_orientation import _automatic_result
+from test_m6_reference_dataset_v2 import _m6_reviewed_state, _measurement, _settings
 
 
 DomainAnalysisRequest = partial(
@@ -28,6 +36,11 @@ except ImportError:  # pragma: no cover - optional outside target GUI env
 
 if QApplication is not None:
     from moltrack.ui.dialogs.domain_analysis_dialog import DomainAnalysisDialog
+    from moltrack.ui.domain_analysis_workflow_sheet import (
+        DomainAnalysisWorkflowActions,
+        ReferenceDatasetWorkflowSheet,
+    )
+    from moltrack.ui.reference_review_sheet import ReferenceReviewSheet
 
 
 @pytest.fixture(scope="module")
@@ -129,3 +142,128 @@ def test_export_and_calibrate_navigation_never_sign_off_review(qt_app) -> None:
     dialog.close()
     dialog.deleteLater()
     qt_app.processEvents()
+
+
+def test_prepared_correction_has_one_readiness_result_in_ui_and_publisher(
+    qt_app,
+    tmp_path,
+) -> None:
+    ready, controller = _ready_m6_controller()
+    controller.dispatch(SelectDomainMolecules(("full",)))
+    snapshot = controller.dispatch(PreviewManualOrientation("B"))
+    state = DomainAnalysisSessionState(
+        published_result=snapshot.published,
+        orientation_class_catalog=snapshot.orientation_class_catalog,
+        domain_corrections=snapshot.domain_corrections,
+        reference_reviews=snapshot.reference_reviews,
+    )
+    measurements = (
+        _measurement(tmp_path, "calibration", "calibration", state, "a"),
+        _measurement(tmp_path, "validation", "validation", state, "b"),
+    )
+
+    snapshot_readiness = ReferenceReadinessPolicy().evaluate_snapshot(
+        snapshot,
+        "m6",
+    )
+    dataset_readiness = ReferenceReadinessPolicy().evaluate_dataset(
+        measurements,
+        "m6",
+    )
+
+    assert tuple(value.code for value in snapshot_readiness.blockers) == (
+        "prepared_correction",
+    )
+    assert dataset_readiness == snapshot_readiness
+    review_sheet = ReferenceReviewSheet()
+    workflow_sheet = ReferenceDatasetWorkflowSheet(
+        DomainAnalysisWorkflowActions(publish_m6_reference=lambda: None)
+    )
+    try:
+        review_sheet.render_snapshot(snapshot)
+        workflow_sheet.render_snapshot(snapshot)
+
+        assert review_sheet.readiness_label.text().startswith("Not ready")
+        assert all(
+            blocker.code in review_sheet.readiness_label.text()
+            for blocker in snapshot_readiness.blockers
+        )
+        assert not workflow_sheet.publish_m6_button.isEnabled()
+        with pytest.raises(ReferenceReadinessError) as raised:
+            publish_m6_reference_dataset(
+                measurements,
+                _settings(tmp_path / "rejected-prepared"),
+            )
+        assert raised.value.result == dataset_readiness
+    finally:
+        review_sheet.close()
+        workflow_sheet.close()
+        review_sheet.deleteLater()
+        workflow_sheet.deleteLater()
+        qt_app.processEvents()
+
+
+def test_publish_action_uses_dataset_readiness_including_staged_splits(
+    qt_app,
+    tmp_path,
+) -> None:
+    ready, controller = _ready_m6_controller()
+    measurements = (
+        _measurement(tmp_path, "calibration", "calibration", ready, "a"),
+        _measurement(tmp_path, "validation", "validation", ready, "b"),
+    )
+    staged = []
+    sheet = ReferenceDatasetWorkflowSheet(DomainAnalysisWorkflowActions(
+        publish_m6_reference=lambda: None,
+        m6_reference_measurements=lambda: tuple(staged),
+    ))
+    try:
+        sheet.render_snapshot(controller.snapshot)
+
+        assert sheet.publish_m6_button.text().startswith("Stage current")
+        assert sheet.publish_m6_button.isEnabled()
+        assert "calibration_split_missing" in sheet.status_label.text()
+        assert "validation_split_missing" in sheet.status_label.text()
+
+        staged.extend(measurements)
+        sheet.render_snapshot(controller.snapshot)
+
+        assert sheet.publish_m6_button.text() == (
+            "Publish M6 Reference Dataset v2"
+        )
+        assert sheet.publish_m6_button.isEnabled()
+        assert "M6 Ready" in sheet.status_label.text()
+
+        measurements[0].source_revision.source_path.write_bytes(b"drifted")
+        sheet.render_snapshot(controller.snapshot)
+
+        assert sheet.publish_m6_button.text() == (
+            "M6 Reference Dataset blocked"
+        )
+        assert not sheet.publish_m6_button.isEnabled()
+        assert "source_revision_drifted" in sheet.status_label.text()
+    finally:
+        sheet.close()
+        sheet.deleteLater()
+        qt_app.processEvents()
+
+
+def _ready_m6_controller():
+    ready = _m6_reviewed_state()
+    publication = ready.published_result
+    assert publication is not None
+    controller = DomainAnalysisWorkspaceController(
+        publication.request,
+        physical_frame_ids=("frame-0",),
+    )
+    controller.dispatch(RestoreDomainAnalysisWorkspace(
+        draft=publication.request,
+        published=publication,
+        active_frame_index=0,
+        selected_component=None,
+        run_status="idle",
+        orientation_class_catalog=ready.orientation_class_catalog,
+        domain_corrections=ready.domain_corrections,
+        reference_reviews=ready.reference_reviews,
+    ))
+    return ready, controller

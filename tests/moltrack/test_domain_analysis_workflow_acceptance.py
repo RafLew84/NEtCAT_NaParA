@@ -668,7 +668,7 @@ def test_restore_reports_classifier_missing_from_runtime_capability_catalog(
         qt_app.processEvents()
 
 
-def test_runtime_composition_exposes_the_release_workflow_actions(
+def test_runtime_composition_gates_reference_publication_until_ready(
     qt_app,
     tmp_path,
 ) -> None:
@@ -686,8 +686,9 @@ def test_runtime_composition_exposes_the_release_workflow_actions(
 
         assert dataset_sheet.save_session_button.isEnabled()
         assert dataset_sheet.open_session_button.isEnabled()
-        assert dataset_sheet.publish_m6_button.isEnabled()
-        assert dataset_sheet.publish_orientation_button.isEnabled()
+        assert not dataset_sheet.publish_m6_button.isEnabled()
+        assert not dataset_sheet.publish_orientation_button.isEnabled()
+        assert "no_active_publication" in dataset_sheet.status_label.text()
         assert dialog.calibration_sheet.run_campaign_button.isEnabled()
     finally:
         composition.shutdown()

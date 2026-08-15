@@ -23,6 +23,11 @@ ReferenceReviewDisposition = Literal[
 ]
 ReferenceReviewAbstention = Literal["uncertain", "unresolvable"]
 ReferenceReviewStatus = Literal["draft", "reviewed"]
+ReferenceReviewBlockerCode = Literal[
+    "review_scope_missing",
+    "review_decisions_incomplete",
+    "review_sign_off_missing",
+]
 
 
 @dataclass(frozen=True)
@@ -289,10 +294,16 @@ class ReferenceReviewWorkspace:
 
 
 @dataclass(frozen=True)
+class ReferenceReviewBlocker:
+    code: ReferenceReviewBlockerCode
+    message: str
+
+
+@dataclass(frozen=True)
 class ReferenceReviewReadiness:
     target: ReferenceReviewTarget
     ready: bool
-    blockers: tuple[str, ...]
+    blockers: tuple[ReferenceReviewBlocker, ...]
 
 
 class ReferenceReviewPolicy:
@@ -437,19 +448,28 @@ class ReferenceReviewPolicy:
         reviews = tuple(
             value for value in workspace.frames if value.scope.target == target
         )
+        label = "M6" if target == "m6" else "Orientation"
         blockers = []
         if not reviews:
-            blockers.append(f"No frozen {target} review scopes exist.")
+            blockers.append(ReferenceReviewBlocker(
+                "review_scope_missing",
+                f"No frozen {target} review scopes exist; complete signed "
+                f"{label} review is required.",
+            ))
         for review in reviews:
             if review.missing_source_ids:
-                blockers.append(
-                    f"{review.scope.physical_frame_id}: missing decisions for "
-                    f"{', '.join(review.missing_source_ids)}."
-                )
+                blockers.append(ReferenceReviewBlocker(
+                    "review_decisions_incomplete",
+                    f"{review.scope.physical_frame_id}: complete signed {label} "
+                    f"review requires decisions for "
+                    f"{', '.join(review.missing_source_ids)}.",
+                ))
             elif review.status != "reviewed":
-                blockers.append(
-                    f"{review.scope.physical_frame_id}: explicit sign-off is missing."
-                )
+                blockers.append(ReferenceReviewBlocker(
+                    "review_sign_off_missing",
+                    f"{review.scope.physical_frame_id}: explicit signed {label} "
+                    "review is missing.",
+                ))
         return ReferenceReviewReadiness(target, not blockers, tuple(blockers))
 
 

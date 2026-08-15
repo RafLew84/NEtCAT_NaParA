@@ -19,11 +19,12 @@ from PyQt6.QtWidgets import (
 
 from moltrack.analysis.domain_analysis import (
     DomainAnalysisWorkspaceSnapshot,
+    ReferenceReadiness,
+    ReferenceReadinessPolicy,
     ReferenceReviewAbstention,
     ReferenceReviewDecision,
     ReferenceReviewDisposition,
     ReferenceReviewFrame,
-    ReferenceReviewPolicy,
     ReferenceReviewTarget,
 )
 
@@ -72,8 +73,12 @@ class ReferenceReviewSheet(QWidget):
         if not isinstance(snapshot, DomainAnalysisWorkspaceSnapshot):
             raise TypeError("snapshot must be a DomainAnalysisWorkspaceSnapshot.")
         self._snapshot = snapshot
+        readiness = ReferenceReadinessPolicy().evaluate_snapshot(
+            snapshot,
+            self.target,
+        )
         if snapshot.published is None or not snapshot.reference_reviews.frames:
-            self._render_empty()
+            self._render_empty(readiness=readiness)
             return
         try:
             m6_review = snapshot.reference_reviews.review_for(
@@ -85,7 +90,10 @@ class ReferenceReviewSheet(QWidget):
                 "orientation",
             )
         except ValueError:
-            self._render_empty("No Review Scope for the active frame")
+            self._render_empty(
+                "No Review Scope for the active frame",
+                readiness=readiness,
+            )
             return
         self.m6_status_label.setText(_status_text(m6_review))
         self.orientation_status_label.setText(_status_text(orientation_review))
@@ -97,13 +105,7 @@ class ReferenceReviewSheet(QWidget):
             f"annotation revision {selected_review.scope.annotation_revision}"
         )
         self._render_table(selected_review)
-        readiness = ReferenceReviewPolicy().readiness(
-            snapshot.reference_reviews,
-            self.target,
-        )
-        self.readiness_label.setText(
-            "Ready" if readiness.ready else f"Not ready · {len(readiness.blockers)} blocker(s)"
-        )
+        self.readiness_label.setText(_readiness_text(readiness))
         self.sign_off_button.setEnabled(
             selected_review.is_complete and selected_review.status == "draft"
         )
@@ -115,6 +117,7 @@ class ReferenceReviewSheet(QWidget):
         self.m6_status_label = QLabel(self)
         self.orientation_status_label = QLabel(self)
         self.readiness_label = QLabel(self)
+        self.readiness_label.setWordWrap(True)
         status_row.addWidget(QLabel("M6 review:", self))
         status_row.addWidget(self.m6_status_label)
         status_row.addWidget(QLabel("Orientation review:", self))
@@ -219,10 +222,17 @@ class ReferenceReviewSheet(QWidget):
             for column, value in enumerate(values):
                 self.review_table.setItem(row, column, QTableWidgetItem(value))
 
-    def _render_empty(self, scope_text: str = "No published scope") -> None:
+    def _render_empty(
+        self,
+        scope_text: str = "No published scope",
+        *,
+        readiness: ReferenceReadiness | None = None,
+    ) -> None:
         self.m6_status_label.setText("Draft")
         self.orientation_status_label.setText("Draft")
-        self.readiness_label.setText("Not ready")
+        self.readiness_label.setText(
+            "Not ready" if readiness is None else _readiness_text(readiness)
+        )
         self.scope_label.setText(scope_text)
         self.review_table.setRowCount(0)
         self.sign_off_button.setEnabled(False)
@@ -293,6 +303,14 @@ class ReferenceReviewSheet(QWidget):
 
 def _status_text(review: ReferenceReviewFrame) -> str:
     return "Reviewed" if review.status == "reviewed" else "Draft"
+
+
+def _readiness_text(readiness: ReferenceReadiness) -> str:
+    if readiness.ready:
+        return "Ready"
+    return "Not ready · " + " · ".join(
+        f"{value.code}: {value.message}" for value in readiness.blockers
+    )
 
 
 __all__ = ["ReferenceReviewSheet"]

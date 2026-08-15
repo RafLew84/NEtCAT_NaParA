@@ -8,6 +8,7 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisSessionState,
     M6FrameGate,
     M6PublishedMolecule,
+    ReferenceReadinessPolicy,
     ReferenceReviewDecision,
 )
 from moltrack.analysis.domain_analysis.diagnostic_funnel import (
@@ -26,9 +27,6 @@ from .reference_dataset import (
     reference_source_revision_row,
     validated_reference_measurements,
 )
-from .reference_dataset_readiness import validate_reference_snapshot_readiness
-
-
 M6_REFERENCE_TABLE_FILES = (
     "measurements.jsonl",
     "frames.jsonl",
@@ -87,14 +85,14 @@ def _validated_measurements(
         measurement_type=M6ReferenceMeasurementGroup,
         dataset_label="M6 Reference Dataset",
     )
+    ReferenceReadinessPolicy().evaluate_dataset(values, "m6").require_ready()
     for value in values:
-        _validate_ready_measurement(value)
+        _validate_measurement(value)
     return values
 
 
-def _validate_ready_measurement(measurement: M6ReferenceMeasurementGroup) -> None:
+def _validate_measurement(measurement: M6ReferenceMeasurementGroup) -> None:
     state = measurement.snapshot
-    validate_reference_snapshot_readiness(state, "m6")
     publication = state.published_result
     assert publication is not None and publication.result.m6_gate is not None
     frames = publication.result.m6_gate.frames

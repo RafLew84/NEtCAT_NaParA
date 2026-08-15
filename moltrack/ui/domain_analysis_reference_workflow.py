@@ -13,6 +13,8 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisSessionState,
     M6FrameGate,
     M6PresetLibrary,
+    ReferenceReadinessPolicy,
+    ReferenceReviewTarget,
 )
 from moltrack.persistence.reference_dataset_identity import ReferenceSourceRevision
 from moltrack.core import MolecularCentroid, MolTrackImageSeries
@@ -22,11 +24,9 @@ from moltrack.persistence import (
     M6ReferenceFirstShellEdge,
     M6ReferenceFirstShellFrame,
     M6ReferenceMeasurementGroup,
-    M6ReferenceSourceRevision,
     OrientationReferenceDatasetPublication,
     OrientationReferenceDatasetSettings,
     OrientationReferenceMeasurementGroup,
-    OrientationReferenceSourceRevision,
     ReferenceDatasetPublicationPlan,
     prepare_m6_reference_dataset,
     prepare_orientation_reference_dataset,
@@ -52,8 +52,11 @@ class StagedReferenceMeasurement:
     state: DomainAnalysisSessionState
     series: MolTrackImageSeries
     analysis_series: DomainAnalysisSeries
-    acquisition_fingerprint: str
-    lineage_fingerprint: str
+    source_revision: ReferenceSourceRevision
+
+    @property
+    def snapshot(self) -> DomainAnalysisSessionState:
+        return self.state
 
 
 class DomainAnalysisReferenceWorkflow:
@@ -100,6 +103,19 @@ class DomainAnalysisReferenceWorkflow:
             for split in ("calibration", "validation")
         )
 
+    @property
+    def staged_m6_measurements(self) -> tuple[StagedReferenceMeasurement, ...]:
+        return tuple(self._m6_groups[split] for split in sorted(self._m6_groups))
+
+    @property
+    def staged_orientation_measurements(
+        self,
+    ) -> tuple[StagedReferenceMeasurement, ...]:
+        return tuple(
+            self._orientation_groups[split]
+            for split in sorted(self._orientation_groups)
+        )
+
     def first_shell_symmetries(
         self,
         measurement_group_id: str,
@@ -127,10 +143,15 @@ class DomainAnalysisReferenceWorkflow:
                 "The published M6 reference is immutable; start a new release "
                 "workflow to stage another version."
             )
-        group = self._stage_current(current)
-        self._m6_groups[group.split] = group
         if set(self._m6_groups) != {"calibration", "validation"}:
-            return f"Staged {group.split}; stage the other split before publication."
+            group = self._stage_current(current, "m6")
+            self._m6_groups[group.split] = group
+            detail = (
+                "dataset is ready for publication"
+                if set(self._m6_groups) == {"calibration", "validation"}
+                else "stage the other split before publication"
+            )
+            return f"Staged {group.split}; {detail}."
         settings = self._reference_settings("m6")
         if settings is None:
             return "Publication cancelled; staged groups were preserved."
@@ -157,10 +178,15 @@ class DomainAnalysisReferenceWorkflow:
                 "The published Orientation reference is immutable; start a new "
                 "release workflow to stage another version."
             )
-        group = self._stage_current(current)
-        self._orientation_groups[group.split] = group
         if set(self._orientation_groups) != {"calibration", "validation"}:
-            return f"Staged {group.split}; stage the other split before publication."
+            group = self._stage_current(current, "orientation")
+            self._orientation_groups[group.split] = group
+            detail = (
+                "dataset is ready for publication"
+                if set(self._orientation_groups) == {"calibration", "validation"}
+                else "stage the other split before publication"
+            )
+            return f"Staged {group.split}; {detail}."
         settings = self._reference_settings("orientation")
         if settings is None:
             return "Publication cancelled; staged groups were preserved."
@@ -181,10 +207,12 @@ class DomainAnalysisReferenceWorkflow:
     def _stage_current(
         self,
         current: CurrentDomainAnalysisWorkspace,
+        target: ReferenceReviewTarget,
     ) -> StagedReferenceMeasurement:
         state, series, analysis_series, _library = current()
         if state.draft is None or state.published_result is None:
             raise ValueError("Reference staging requires a published analysis.")
+        ReferenceReadinessPolicy().evaluate_snapshot(state, target).require_ready()
         split, accepted = QInputDialog.getItem(
             self._owner,
             "Reference split",
@@ -213,14 +241,19 @@ class DomainAnalysisReferenceWorkflow:
         normalized_split: ReferenceSplit = (
             "calibration" if split == "calibration" else "validation"
         )
+        source_path = Path(series.source_path).resolve()
         return StagedReferenceMeasurement(
-            group_id.strip(),
-            normalized_split,
-            state,
-            series,
-            analysis_series,
-            acquisition_fingerprint,
-            lineage_fingerprint,
+            measurement_group_id=group_id.strip(),
+            split=normalized_split,
+            state=state,
+            series=series,
+            analysis_series=analysis_series,
+            source_revision=ReferenceSourceRevision.from_path(
+                source_path,
+                source_file_name=source_path.name,
+                acquisition_fingerprint=acquisition_fingerprint,
+                lineage_fingerprint=lineage_fingerprint,
+            ),
         )
 
     def _source_identity(self, label: str) -> str:
@@ -320,7 +353,7 @@ class DomainAnalysisReferenceWorkflow:
         return M6ReferenceMeasurementGroup(
             measurement_group_id=group.measurement_group_id,
             split=group.split,
-            source_revision=self._source_revision(group, M6ReferenceSourceRevision),
+            source_revision=group.source_revision,
             snapshot=group.state,
             first_shell_frames=first_shell_frames,
             first_shell_edges=first_shell_edges,
@@ -418,28 +451,11 @@ class DomainAnalysisReferenceWorkflow:
         return OrientationReferenceMeasurementGroup(
             measurement_group_id=group.measurement_group_id,
             split=group.split,
-            source_revision=self._source_revision(
-                group,
-                OrientationReferenceSourceRevision,
-            ),
+            source_revision=group.source_revision,
             snapshot=group.state,
             series=group.series,
             sample_coordinates=tuple(coordinates),
         )
-
-    @staticmethod
-    def _source_revision(
-        group: StagedReferenceMeasurement,
-        revision_type: type[ReferenceSourceRevision],
-    ) -> ReferenceSourceRevision:
-        source_path = Path(group.series.source_path).resolve()
-        return revision_type.from_path(
-            source_path,
-            source_file_name=source_path.name,
-            acquisition_fingerprint=group.acquisition_fingerprint,
-            lineage_fingerprint=group.lineage_fingerprint,
-        )
-
 
 __all__ = [
     "CurrentDomainAnalysisWorkspace",

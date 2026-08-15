@@ -4,6 +4,7 @@ from dataclasses import replace
 
 import pytest
 
+from moltrack.analysis.domain_analysis import ReferenceReadinessError
 from moltrack.persistence import (
     M6ReferenceSourceRevision,
     publish_m6_reference_dataset,
@@ -305,11 +306,14 @@ def test_publisher_detects_source_drift_before_creating_a_child(
     source_path = calibration.source_revision.source_path
     source_path.write_bytes(b"changed calibration bytes")
 
-    with pytest.raises(ValueError, match="source drift"):
+    with pytest.raises(ReferenceReadinessError, match="source drift") as raised:
         publish_m6_reference_dataset(
             (calibration, validation),
             replace(_settings(rejected_path), parent_package=root_path),
         )
+    assert tuple(value.code for value in raised.value.result.blockers) == (
+        "source_revision_drifted",
+    )
     assert not rejected_path.exists()
 
     refreshed = replace(

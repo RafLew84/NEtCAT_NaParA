@@ -120,6 +120,12 @@ class DomainAnalysisReleaseWorkflow:
             publish_orientation_reference=(
                 lambda: self._references.publish_orientation_reference(current)
             ),
+            m6_reference_measurements=(
+                lambda: self._references.staged_m6_measurements
+            ),
+            orientation_reference_measurements=(
+                lambda: self._references.staged_orientation_measurements
+            ),
             run_calibration=lambda: self.run_calibration(current),
         )
 

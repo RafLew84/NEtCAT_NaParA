@@ -6,8 +6,16 @@ from pathlib import Path
 
 from PyQt6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
 
+from moltrack.analysis.domain_analysis import (
+    DomainAnalysisWorkspaceSnapshot,
+    ReferenceReadiness,
+    ReferenceReadinessMeasurement,
+    ReferenceReadinessPolicy,
+)
+
 
 WorkflowOperation = Callable[[], object]
+ReferenceMeasurements = Callable[[], tuple[ReferenceReadinessMeasurement, ...]]
 
 
 @dataclass(frozen=True)
@@ -18,6 +26,8 @@ class DomainAnalysisWorkflowActions:
     open_session: WorkflowOperation | None = None
     publish_m6_reference: WorkflowOperation | None = None
     publish_orientation_reference: WorkflowOperation | None = None
+    m6_reference_measurements: ReferenceMeasurements | None = None
+    orientation_reference_measurements: ReferenceMeasurements | None = None
     run_calibration: WorkflowOperation | None = None
 
     def __post_init__(self) -> None:
@@ -26,6 +36,8 @@ class DomainAnalysisWorkflowActions:
             "open_session",
             "publish_m6_reference",
             "publish_orientation_reference",
+            "m6_reference_measurements",
+            "orientation_reference_measurements",
             "run_calibration",
         ):
             value = getattr(self, field_name)
@@ -62,11 +74,56 @@ class ReferenceDatasetWorkflowSheet(QWidget):
             actions.publish_orientation_reference,
             layout,
         )
+        self._publish_m6_available = actions.publish_m6_reference is not None
+        self._publish_orientation_available = (
+            actions.publish_orientation_reference is not None
+        )
+        self._m6_measurements = actions.m6_reference_measurements or (lambda: ())
+        self._orientation_measurements = (
+            actions.orientation_reference_measurements or (lambda: ())
+        )
+        self._snapshot: DomainAnalysisWorkspaceSnapshot | None = None
         self.status_label = QLabel(self)
         self.status_label.setObjectName("domainAnalysisReferenceWorkflowStatus")
         self.status_label.setWordWrap(True)
         layout.addWidget(self.status_label)
         layout.addStretch(1)
+
+    def render_snapshot(self, snapshot: DomainAnalysisWorkspaceSnapshot) -> None:
+        if not isinstance(snapshot, DomainAnalysisWorkspaceSnapshot):
+            raise TypeError("snapshot must be a DomainAnalysisWorkspaceSnapshot.")
+        self._snapshot = snapshot
+        policy = ReferenceReadinessPolicy()
+        m6_snapshot = policy.evaluate_snapshot(snapshot, "m6")
+        orientation_snapshot = policy.evaluate_snapshot(snapshot, "orientation")
+        m6 = policy.evaluate_dataset(
+            self._m6_measurements(),
+            "m6",
+            candidate_snapshot=snapshot,
+        )
+        orientation = policy.evaluate_dataset(
+            self._orientation_measurements(),
+            "orientation",
+            candidate_snapshot=snapshot,
+        )
+        _render_reference_action(
+            self.publish_m6_button,
+            "M6",
+            self._publish_m6_available,
+            m6_snapshot,
+            m6,
+        )
+        _render_reference_action(
+            self.publish_orientation_button,
+            "Orientation",
+            self._publish_orientation_available,
+            orientation_snapshot,
+            orientation,
+        )
+        self.status_label.setText(
+            f"M6 {_readiness_summary(m6)} | "
+            f"Orientation {_readiness_summary(orientation)}"
+        )
 
     def _button(
         self,
@@ -94,7 +151,11 @@ class ReferenceDatasetWorkflowSheet(QWidget):
             )
             return
         detail = _result_detail(result)
-        self.status_label.setText(f"{label} completed.{detail}")
+        completion = f"{label} completed.{detail}"
+        if self._snapshot is not None:
+            self.render_snapshot(self._snapshot)
+            completion = f"{completion} {self.status_label.text()}"
+        self.status_label.setText(completion)
 
 
 class M6CalibrationWorkflowSheet(QWidget):
@@ -145,6 +206,37 @@ def _result_detail(result: object) -> str:
         return ""
     value = result.name if isinstance(result, Path) else result
     return f" {value}"
+
+
+def _readiness_summary(readiness: ReferenceReadiness) -> str:
+    if readiness.ready:
+        return "Ready"
+    return "Not ready: " + "; ".join(
+        f"{value.code}: {value.message}" for value in readiness.blockers
+    )
+
+
+def _render_reference_action(
+    button: QPushButton,
+    target_label: str,
+    operation_available: bool,
+    snapshot: ReferenceReadiness,
+    dataset: ReferenceReadiness,
+) -> None:
+    if dataset.ready:
+        button.setText(f"Publish {target_label} Reference Dataset v2")
+        button.setEnabled(operation_available)
+        return
+    missing_split = any(
+        value.code in {"calibration_split_missing", "validation_split_missing"}
+        for value in dataset.blockers
+    )
+    if missing_split:
+        button.setText(f"Stage current {target_label} reference split")
+        button.setEnabled(operation_available and snapshot.ready)
+        return
+    button.setText(f"{target_label} Reference Dataset blocked")
+    button.setEnabled(False)
 
 
 __all__ = [

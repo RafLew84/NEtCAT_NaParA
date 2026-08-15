@@ -101,16 +101,12 @@ def validated_reference_measurements(
     dataset_label: str,
 ) -> tuple[_ReferenceMeasurement, ...]:
     values = tuple(measurements)
-    if not values or any(not isinstance(value, measurement_type) for value in values):
+    if any(not isinstance(value, measurement_type) for value in values):
         raise ValueError(f"{dataset_label} requires measurement groups.")
     values = tuple(sorted(values, key=lambda value: value.measurement_group_id))
     group_ids = tuple(value.measurement_group_id for value in values)
     if len(group_ids) != len(set(group_ids)):
         raise ValueError("A measurement_group must belong to exactly one dataset split.")
-    if {value.split for value in values} != {"calibration", "validation"}:
-        raise ValueError(
-            f"{dataset_label} requires non-empty Calibration and Validation."
-        )
     validate_reference_split_integrity(tuple(
         ReferenceMeasurementIdentity(
             value.measurement_group_id,

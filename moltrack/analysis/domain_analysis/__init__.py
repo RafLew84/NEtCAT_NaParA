@@ -234,6 +234,16 @@ from .workspace_controller import (
     SelectDomainComponent,
     SetDomainAnalysisFrame,
 )
+from .reference_readiness import (
+    ReferenceReadiness,
+    ReferenceReadinessBlocker,
+    ReferenceReadinessBlockerCode,
+    ReferenceReadinessError,
+    ReferenceReadinessMeasurement,
+    ReferenceReadinessPolicy,
+    ReferenceReadinessSnapshot,
+    ReferenceReadinessSourceRevision,
+)
 from .workspace_navigation import (
     DomainHierarchyHighlight,
     DomainHierarchyHighlightKind,
@@ -314,6 +324,14 @@ __all__ = [
     "ReferenceReviewStatus",
     "ReferenceReviewTarget",
     "ReferenceReviewWorkspace",
+    "ReferenceReadiness",
+    "ReferenceReadinessBlocker",
+    "ReferenceReadinessBlockerCode",
+    "ReferenceReadinessError",
+    "ReferenceReadinessMeasurement",
+    "ReferenceReadinessPolicy",
+    "ReferenceReadinessSnapshot",
+    "ReferenceReadinessSourceRevision",
     "PreviewManualOrientation",
     "PreviewManualOrientationReset",
     "PreviewCreateManualDomain",

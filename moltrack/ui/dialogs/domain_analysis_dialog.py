@@ -418,6 +418,7 @@ class DomainAnalysisDialog(QDialog):
         self.command_center.render_snapshot(value)
         self.domain_correction_sheet.render_snapshot(value)
         self.reference_review_sheet.render_snapshot(value)
+        self.reference_dataset_sheet.render_snapshot(value)
         blockers = [
             QSignalBlocker(widget)
             for widget in (

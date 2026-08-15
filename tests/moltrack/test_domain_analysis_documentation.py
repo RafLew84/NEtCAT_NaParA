@@ -127,6 +127,16 @@ def test_quick_start_uses_production_control_names_and_signoff_contract() -> Non
     assert "Sign-off zachowuje timestamp i fingerprint" in guide
 
 
+def test_technical_reference_names_the_single_readiness_owner() -> None:
+    reference = (
+        DOCUMENTATION_ROOT / "DOMAIN_ANALYSIS_TECHNICAL_REFERENCE.md"
+    ).read_text(encoding="utf-8")
+
+    assert "`ReferenceReadinessPolicy` jest jedynym właścicielem" in reference
+    assert "`evaluate_snapshot(...)`" in reference
+    assert "`evaluate_dataset(...)`" in reference
+
+
 def test_final_documentation_has_no_release_placeholders() -> None:
     for filename in DOCUMENTATION_FILES:
         text = (DOCUMENTATION_ROOT / filename).read_text(encoding="utf-8")

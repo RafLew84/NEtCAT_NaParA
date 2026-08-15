@@ -9,6 +9,7 @@ import numpy as np
 from moltrack.analysis import MolecularSampleCoordinates
 from moltrack.analysis.domain_analysis import (
     M6FrameGate,
+    ReferenceReadinessPolicy,
     ReferenceReviewDecision,
 )
 from moltrack.core import (
@@ -48,9 +49,6 @@ from .reference_dataset import (
     reference_source_revision_row,
     validated_reference_measurements,
 )
-from .reference_dataset_readiness import validate_reference_snapshot_readiness
-
-
 ORIENTATION_REFERENCE_TABLE_FILES = (
     "measurements.jsonl",
     "frames.jsonl",
@@ -109,8 +107,11 @@ def _validated_measurements(
         measurement_type=OrientationReferenceMeasurementGroup,
         dataset_label="Orientation Reference Dataset",
     )
+    ReferenceReadinessPolicy().evaluate_dataset(
+        values,
+        "orientation",
+    ).require_ready()
     for value in values:
-        validate_reference_snapshot_readiness(value.snapshot, "orientation")
         _validated_frame_inputs(value)
     return values
 

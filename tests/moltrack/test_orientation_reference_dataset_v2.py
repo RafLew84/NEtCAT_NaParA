@@ -16,6 +16,8 @@ from moltrack.analysis.domain_analysis import (
     DomainAnalysisWorkspaceController,
     PreviewManualOrientation,
     PublishDomainAnalysisResult,
+    ReferenceReadinessError,
+    ReferenceReadinessPolicy,
     ReferenceReviewDecision,
     ReferenceReviewWorkspace,
     SelectDomainMolecules,
@@ -226,6 +228,37 @@ def test_orientation_publisher_rejects_incomplete_review_geometry_and_masks(
                 _settings(destination),
             )
         assert not destination.exists()
+
+
+def test_orientation_publisher_raises_its_policy_readiness_result(tmp_path) -> None:
+    state = _orientation_reviewed_state()
+    unsigned = replace(
+        state,
+        reference_reviews=ReferenceReviewWorkspace(tuple(
+            replace(frame, sign_off=None)
+            if frame.scope.target == "orientation"
+            else frame
+            for frame in state.reference_reviews.frames
+        )),
+    )
+    measurements = (
+        _measurement(tmp_path, "unsigned-cal", "calibration", unsigned, b"a"),
+        _measurement(tmp_path, "unsigned-val", "validation", unsigned, b"b"),
+    )
+    expected = ReferenceReadinessPolicy().evaluate_dataset(
+        measurements,
+        "orientation",
+    )
+
+    assert tuple(value.code for value in expected.blockers) == (
+        "review_sign_off_missing",
+    )
+    with pytest.raises(ReferenceReadinessError) as raised:
+        publish_orientation_reference_dataset(
+            measurements,
+            _settings(tmp_path / "unsigned-policy-result"),
+        )
+    assert raised.value.result == expected
 
 
 def _orientation_reviewed_state() -> DomainAnalysisSessionState:

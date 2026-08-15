@@ -20,6 +20,8 @@ from moltrack.analysis.domain_analysis import (
     PendingAutomaticCandidate,
     PreparedCorrectionRebase,
     PublishDomainAnalysisResult,
+    ReferenceReadinessError,
+    ReferenceReadinessPolicy,
     ReferenceReviewDecision,
     ReferenceReviewPolicy,
     SelectDomainMolecules,
@@ -182,6 +184,60 @@ def test_publisher_requires_reason_both_splits_and_whole_measurement_groups(
             (calibration, validation),
             _settings(tmp_path / "split-group"),
         )
+
+
+@pytest.mark.parametrize(
+    ("state_kind", "expected_codes"),
+    (
+        ("stale", {"pending_automatic_candidate"}),
+        (
+            "conflicted",
+            {"pending_automatic_candidate", "conflicted_rebase"},
+        ),
+        (
+            "quarantined",
+            {
+                "no_active_publication",
+                "correction_workspace_quarantined",
+                "effective_projection_missing",
+                "review_scope_missing",
+            },
+        ),
+    ),
+)
+def test_reference_readiness_types_previously_divergent_blockers(
+    state_kind,
+    expected_codes,
+) -> None:
+    state_factory = {
+        "stale": _stale_state,
+        "conflicted": _conflicted_state,
+        "quarantined": _quarantined_state,
+    }[state_kind]
+    readiness = ReferenceReadinessPolicy().evaluate_snapshot(
+        state_factory(_m6_reviewed_state()),
+        "m6",
+    )
+
+    assert {value.code for value in readiness.blockers} == expected_codes
+
+
+def test_split_completeness_is_owned_by_reference_readiness_policy(tmp_path) -> None:
+    state = _m6_reviewed_state()
+    measurements = (
+        _measurement(tmp_path, "calibration", "calibration", state, "a"),
+    )
+    expected = ReferenceReadinessPolicy().evaluate_dataset(measurements, "m6")
+
+    assert tuple(value.code for value in expected.blockers) == (
+        "validation_split_missing",
+    )
+    with pytest.raises(ReferenceReadinessError) as raised:
+        publish_m6_reference_dataset(
+            measurements,
+            _settings(tmp_path / "missing-validation"),
+        )
+    assert raised.value.result == expected
 
 
 def test_published_version_is_immutable(tmp_path) -> None:

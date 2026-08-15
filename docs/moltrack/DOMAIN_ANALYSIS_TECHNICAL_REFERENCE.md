@@ -125,6 +125,15 @@ flagą. MolTrack jest narzędziem single-operator, więc kontrakt nie wymaga
 `reviewer_id`; zachowuje scope, automatyczny timestamp UTC i fingerprint
 podpisanego stanu.
 
+`ReferenceReadinessPolicy` jest jedynym właścicielem target-specific readiness.
+`evaluate_snapshot(...)` daje UI typowane blockery i steruje dostępnością
+publikacji, a `evaluate_dataset(...)` dokłada kompletność Calibration/Validation.
+Oba wejścia zwracają ten sam fingerprintowany `ReferenceReadiness`; M6 i
+Orientation publisher wyłącznie egzekwują ten wynik przez `require_ready()`.
+Policy uwzględnia quarantine bez aktywnej publikacji, pending candidate,
+prepared correction, stale/conflicted rebase, Effective Domain Projection,
+kompletność i sign-off review oraz wymagane reason codes.
+
 ## Persistence i integralność
 
 Źródłami prawdy po Open są automatic snapshot, Orientation Class Catalog i
