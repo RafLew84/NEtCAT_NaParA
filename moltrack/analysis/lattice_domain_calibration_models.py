@@ -178,7 +178,6 @@ LATTICE_DOMAIN_CALIBRATION_PRIORITY_INTERACTIONS = (
     ("domain_conflict_margin", "grow_angle_tolerance_deg"),
 )
 
-
 @dataclass(frozen=True)
 class LatticeDomainCalibrationReferenceFrame:
     """Manual final-domain partition for one independently evaluated frame."""
@@ -279,7 +278,6 @@ class LatticeDomainCalibrationReferenceFrame:
                 "first_shell_neighbor_pairs",
             ),
         )
-
 
 @dataclass(frozen=True)
 class LatticeDomainCalibrationReferenceDataset:
@@ -453,7 +451,6 @@ class LatticeDomainCalibrationReferenceDataset:
             _legacy_audit_only=legacy,
         )
 
-
 @dataclass(frozen=True)
 class LatticeDomainCalibrationSweepSettings:
     """Bounded sweep definition; first-shell geometry is intentionally absent."""
@@ -519,7 +516,6 @@ class LatticeDomainCalibrationSweepSettings:
             minimum_first_shell_f1,
         )
 
-
 @dataclass(frozen=True)
 class LatticeDomainCalibrationVariant:
     variant_id: str
@@ -546,7 +542,6 @@ class LatticeDomainCalibrationVariant:
             raise ValueError("changed_parameters contains an unsupported parameter.")
         object.__setattr__(self, "variant_id", variant_id)
         object.__setattr__(self, "changed_parameters", changed)
-
 
 @dataclass(frozen=True)
 class LatticeDomainCalibrationAggregateMetrics:
@@ -595,7 +590,6 @@ class LatticeDomainCalibrationFirstShellValidation:
     recall: float | None
     f1_score: float | None
 
-
 @dataclass(frozen=True)
 class LatticeDomainCalibrationPrediction:
     labels: LatticeDomainPartitionLabels
@@ -623,7 +617,6 @@ class LatticeDomainCalibrationPrediction:
             )
         object.__setattr__(self, "first_shell_neighbor_pairs", pairs)
 
-
 @dataclass(frozen=True)
 class LatticeDomainCalibrationSkippedVariant:
     variant_id: str
@@ -650,14 +643,12 @@ class LatticeDomainCalibrationSkippedVariant:
             _normalized_string(self.reason, "reason"),
         )
 
-
 @dataclass(frozen=True)
 class LatticeDomainCalibrationStableRange:
     parameter_name: str
     minimum_value: float | int
     maximum_value: float | int
     accepted_variant_ids: tuple[str, ...]
-
 
 @dataclass(frozen=True)
 class LatticeDomainCalibrationProgress:
@@ -666,7 +657,6 @@ class LatticeDomainCalibrationProgress:
     total_evaluations: int
     variant_id: str
     frame_index: int
-
 
 @dataclass(frozen=True)
 class LatticeDomainCalibrationReport:
@@ -696,7 +686,6 @@ class LatticeDomainCalibrationReport:
     preset_modified: bool = False
     uses_tracking: bool = False
     schema_version: int = LATTICE_DOMAIN_CALIBRATION_SCHEMA_VERSION
-
 
 def save_lattice_domain_calibration_reference(
     reference: LatticeDomainCalibrationReferenceDataset,

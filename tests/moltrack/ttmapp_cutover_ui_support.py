@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from itertools import count
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
+
+from PyQt6.QtGui import QFont, QFontDatabase
 
 from moltrack.analysis.domain_analysis import (
     DomainAnalysisSessionState,
@@ -28,6 +31,8 @@ from moltrack.ui.domain_analysis_workflow_sheet import (
 
 
 _NOW = datetime(2026, 8, 15, 10, 0, tzinfo=timezone.utc)
+_CAPTURED_DOCUMENTATION_STAGES: set[str] = set()
+_DOCUMENTATION_FONT_READY = False
 
 
 def correct_and_review(
@@ -38,6 +43,7 @@ def correct_and_review(
     qt_app,
     tmp_path,
 ) -> tuple[DomainAnalysisSessionState, object]:
+    _prepare_documentation_capture(qt_app)
     controller = DomainAnalysisWorkspaceController(
         request,
         physical_frame_ids=(group.physical_frame_id,),
@@ -113,6 +119,7 @@ def correct_and_review(
     result = publication.result
     assert dialog.command_center.current_sheet_stage == "analyze"
     assert dialog.command_center.rendered_snapshot is controller.snapshot
+    _capture_documentation_stage(dialog, "analyze", qt_app)
     dialog.command_center.stage_button("correct").click()
     dialog.command_center.canvas.select_molecule(group.source_ids[0])
     dialog.orientation_target_combo.setCurrentText("A")
@@ -130,6 +137,7 @@ def correct_and_review(
         sorted(group.source_ids)
     )
     dialog.manual_domain_create_button.click()
+    _capture_documentation_stage(dialog, "correct", qt_app)
     if not dialog.correction_confirm_impact_checkbox.isHidden():
         dialog.correction_confirm_impact_checkbox.setChecked(True)
     dialog.orientation_apply_button.click()
@@ -163,6 +171,7 @@ def correct_and_review(
         {source_id: "created" for source_id in group.source_ids},
         qt_app,
     )
+    _capture_documentation_stage(dialog, "review", qt_app)
     dialog.correction_clear_selection_button.click()
     dialog.command_center.stage_button("datasets").click()
     dialog.reference_dataset_sheet.save_session_button.click()
@@ -187,6 +196,7 @@ def run_release_actions_in_ui(
     workflow_actions,
     qt_app,
 ) -> None:
+    _prepare_documentation_capture(qt_app)
     assert state.draft is not None
     controller = DomainAnalysisWorkspaceController(
         state.draft,
@@ -229,6 +239,7 @@ def run_release_actions_in_ui(
     qt_app.processEvents()
     status = dialog.calibration_sheet.status_label.text()
     assert "Calibration report published" in status, status
+    _capture_documentation_stage(dialog, "calibrate", qt_app)
     dialog.close()
     dialog.deleteLater()
     qt_app.processEvents()
@@ -311,6 +322,44 @@ def _stable_id_factory(group_id: str, identity_kind: str):
         ))
 
     return create
+
+
+def _capture_documentation_stage(dialog, stage: str, qt_app) -> None:
+    destination = os.environ.get("MOLTRACK_DOMAIN_DOC_SCREENSHOT_DIR")
+    if not destination or stage in _CAPTURED_DOCUMENTATION_STAGES:
+        return
+    _CAPTURED_DOCUMENTATION_STAGES.add(stage)
+    dialog.command_center.stage_button(stage).click()
+    qt_app.processEvents()
+    dialog.resize(1920, 1200)
+    dialog.repaint()
+    qt_app.processEvents()
+    if dialog.width() > 1920 or dialog.height() > 1200:
+        raise AssertionError(
+            f"Production documentation view exceeds 1920x1200: "
+            f"{dialog.width()}x{dialog.height()}"
+        )
+    path = Path(destination) / f"spatial-command-center-{stage}.png"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not dialog.grab().save(str(path), "PNG"):
+        raise RuntimeError(f"Unable to save documentation screenshot: {path}")
+
+
+def _prepare_documentation_capture(qt_app) -> None:
+    global _DOCUMENTATION_FONT_READY
+    if (
+        _DOCUMENTATION_FONT_READY
+        or not os.environ.get("MOLTRACK_DOMAIN_DOC_SCREENSHOT_DIR")
+    ):
+        return
+    _DOCUMENTATION_FONT_READY = True
+    font_path = Path("C:/Windows/Fonts/segoeui.ttf")
+    if not font_path.is_file():
+        return
+    font_id = QFontDatabase.addApplicationFont(str(font_path))
+    families = QFontDatabase.applicationFontFamilies(font_id)
+    if families:
+        qt_app.setFont(QFont(families[0], 9))
 
 
 def _m6_disposition(result, projection, source_id: str) -> str:

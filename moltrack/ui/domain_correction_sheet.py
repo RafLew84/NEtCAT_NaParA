@@ -68,6 +68,7 @@ class DomainCorrectionSheet(QWidget):
         editor_layout = QVBoxLayout(editor)
         form = QFormLayout()
         self.selection_label = QLabel("No molecule selected", editor)
+        self.selection_label.setWordWrap(True)
         self.target_combo = QComboBox(editor)
         self.target_combo.addItems([chr(value) for value in range(ord("A"), ord("Z") + 1)])
         self.target_combo.addItem("Unresolvable")

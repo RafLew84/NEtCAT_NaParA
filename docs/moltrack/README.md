@@ -1,53 +1,47 @@
 # Dokumentacja MolTrack
 
-Ten katalog jest punktem wejścia do dokumentacji produktu i kontraktów domenowych
-MolTrack. Dokumenty opisujące planowany workflow korekt domen są wersjonowane razem
-z kodem, ale do czasu spełnienia bramki wydania pozostają oznaczone jako **draft**.
+Ten katalog jest kanonicznym punktem wejścia do dokumentacji wydanego workflow
+Domain Analysis. Zestaw opisuje produkcyjny wariant C — Spatial Command Center —
+i jest wersjonowany razem z kodem MolTrack 0.1.0.
 
 ## Dokumenty kanoniczne
 
 | Dokument | Zakres | Stan |
 | --- | --- | --- |
-| [CONTEXT.md](CONTEXT.md) | Słownik domenowy i relacje między pojęciami | bieżący i docelowy model domeny |
-| [QUALITY_GATES.md](QUALITY_GATES.md) | Obowiązujące bramki jakości kodu | wdrożone |
-| [DOMAIN_ANALYSIS_USER_GUIDE_DRAFT.md](DOMAIN_ANALYSIS_USER_GUIDE_DRAFT.md) | Zadaniowa instrukcja wariantu C i Quick start | draft implementacyjny |
-| [DOMAIN_ANALYSIS_TECHNICAL_REFERENCE_DRAFT.md](DOMAIN_ANALYSIS_TECHNICAL_REFERENCE_DRAFT.md) | Seamy, właściciele stanu i inwarianty | draft implementacyjny |
-| [DOMAIN_ANALYSIS_FORMATS_DRAFT.md](DOMAIN_ANALYSIS_FORMATS_DRAFT.md) | Wersje sesji, eksportu, referencji, presetów i raportów | stan obecny + kontrakt docelowy |
-| [DOMAIN_ANALYSIS_MIGRATION_AND_TROUBLESHOOTING_DRAFT.md](DOMAIN_ANALYSIS_MIGRATION_AND_TROUBLESHOOTING_DRAFT.md) | Migracje, diagnostyka i bezpieczne odzyskiwanie | draft implementacyjny |
+| [CONTEXT.md](CONTEXT.md) | Słownik domenowy i relacje między pojęciami | obowiązujący model domeny |
+| [QUALITY_GATES.md](QUALITY_GATES.md) | Bramki jakości kodu i ratchet rozmiaru | wdrożone |
+| [DOMAIN_ANALYSIS_USER_GUIDE.md](DOMAIN_ANALYSIS_USER_GUIDE.md) | Zadaniowa instrukcja wariantu C i zweryfikowany Quick start | wydane dla 0.1.0 |
+| [DOMAIN_ANALYSIS_TECHNICAL_REFERENCE.md](DOMAIN_ANALYSIS_TECHNICAL_REFERENCE.md) | Seamy, właściciele stanu i inwarianty | wdrożone |
+| [DOMAIN_ANALYSIS_FORMATS.md](DOMAIN_ANALYSIS_FORMATS.md) | Wersje sesji, eksportu, referencji, presetów i raportów | produkcyjne |
+| [DOMAIN_ANALYSIS_MIGRATION_AND_TROUBLESHOOTING.md](DOMAIN_ANALYSIS_MIGRATION_AND_TROUBLESHOOTING.md) | Migracje, diagnostyka i bezpieczne odzyskiwanie | produkcyjne |
 
-## Co jest źródłem prawdy
+## Źródła prawdy
 
-1. Dla zachowania dostępnego w wydaniu źródłem prawdy są stałe schematów, modele
-   oraz testy w kodzie.
-2. Dla planowanego workflow źródłem prawdy są `CONTEXT.md` i zatwierdzone decyzje
-   mapy `manual-domain-orientation-calibration`.
-3. Prototyp HTML pokazuje wyłącznie architekturę informacji wariantu
-   **C — Spatial command center**. Nie jest implementacją ani dowodem akceptacji.
-4. Instrukcja użytkownika może utracić dopisek `_DRAFT` dopiero po przejściu
-   pełnej bramki dokumentacyjnej poniżej.
+1. Stałe schematów, modele oraz testy w kodzie określają zachowanie wydania.
+2. `CONTEXT.md` określa język domenowy i inwarianty.
+3. Instrukcja użytkownika opisuje wyłącznie kontrolki produkcyjnego Qt wariantu C.
+4. Prototyp HTML jest historycznym dowodem wyboru architektury informacji, nie
+   alternatywną implementacją ani instrukcją operatora.
 
-## Bieżący stan zgodności
+## Zgodność wydania
 
-Kod produkcyjny zapisuje obecnie MolTrack session v2, Domain Analysis state v1 i
-Domain Analysis export v9. Docelowe session v3, correction workspace, export v10,
-Reference Dataset v2, preset library i campaign report v2 nie są jeszcze
-wdrożone. Z tego powodu instrukcja nie może być traktowana jako opis aktualnego UI.
+MolTrack 0.1.0 zapisuje MolTrack session v3 i Domain Analysis state v2. Produkcyjny
+pakiet correction-aware ma export v10; legacy export v9 pozostaje jawnie
+automatic-only. M6 i Orientation Reference Dataset używają target schema v2 i
+collection envelope v2. Biblioteka/preset M6 używają odpowiednio
+`m6-preset-library-v1` i `m6-preset-v1`, a raport kampanii
+`m6-campaign-report-v2`.
 
-## Bramka dokumentacyjna wydania
+## Dowód wydania dokumentacji
 
-Wydanie workflow korekt domen jest zablokowane, dopóki wszystkie poniższe punkty
-nie są spełnione:
+Clean-session walkthrough na rzeczywistych plikach TTMAPP przeszedł 2026-08-15.
+Obejmuje oba stabilne backendy, korekty point/polygon, niezależne review, Save/Open
+session v3, export v10, oba Reference Dataset v2 i jednorazowy Validation campaign
+report v2. Cztery screenshoty w instrukcji zostały przechwycone bezpośrednio z
+produkcyjnego `DomainAnalysisDialog` w tym samym przebiegu.
 
-- produkcyjne Qt realizuje zatwierdzony wariant C nad jednym workspace Controllerem;
-- finalne nazwy kontrolek zostały przeniesione do instrukcji;
-- screenshoty pochodzą z produkcyjnego UI, mają alt text i podpisy;
-- Quick start przeszedł krok po kroku na czystej sesji i rzeczywistym przykładzie
-  TTMAPP;
-- test UI potwierdza, że menu `Help` otwiera właściwą wersję instrukcji;
-- lokalne linki, nazwy plików i deklarowane wersje schematów są sprawdzane
-  automatycznie;
-- zachowanie walkthrough odpowiada testom akceptacyjnym, a dokumenty nie opisują
-  funkcji spoza wydania.
-
-Wynik i data walkthrough, identyfikator danych TTMAPP oraz wersja aplikacji muszą
-zostać zapisane w instrukcji przed usunięciem oznaczenia draft.
+Menu `Help > Domain Analysis Guide` otwiera wersję instrukcji dołączoną do tej
+wersji aplikacji. Automatyczna bramka sprawdza akcję Qt, lokalne linki, zgodność
+wersji, alt text i podpisy screenshotów oraz ich SHA-256. Szczegółowy wynik jest w
+[manifeście wydania dokumentacji](../domain_analysis_documentation_release.json),
+który odwołuje się do [dowodu hard cutover TTMAPP](../domain_analysis_ttmapp_release_validation.json).

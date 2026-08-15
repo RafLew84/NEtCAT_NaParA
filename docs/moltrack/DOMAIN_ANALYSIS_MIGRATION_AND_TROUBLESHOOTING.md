@@ -1,10 +1,10 @@
-# Domain Analysis — migracja i troubleshooting (draft)
+# Domain Analysis — migracja i troubleshooting
 
-**Status:** procedury docelowe; nazwy komunikatów wymagają potwierdzenia w finalnym UI
+**Status:** procedury produkcyjne MolTrack 0.1.0
 
-**Formaty:** [DOMAIN_ANALYSIS_FORMATS_DRAFT.md](DOMAIN_ANALYSIS_FORMATS_DRAFT.md)
+**Formaty:** [DOMAIN_ANALYSIS_FORMATS.md](DOMAIN_ANALYSIS_FORMATS.md)
 
-**Instrukcja:** [DOMAIN_ANALYSIS_USER_GUIDE_DRAFT.md](DOMAIN_ANALYSIS_USER_GUIDE_DRAFT.md)
+**Instrukcja:** [DOMAIN_ANALYSIS_USER_GUIDE.md](DOMAIN_ANALYSIS_USER_GUIDE.md)
 
 ## Zasada bezpieczeństwa
 
@@ -15,7 +15,7 @@ Validation i pozostawić dane audytowalne.
 
 ## Migracja session v2 → v3
 
-Docelowy loader:
+Loader produkcyjny:
 
 1. waliduje outer session v2 przed migracją;
 2. zachowuje source/working-series identity, draft, kompatybilny automatic
@@ -44,14 +44,14 @@ Restore traktuje listę aktywnych konfiguracji z sesji jak katalog możliwości
 runtime i usuwa z niego nieaktywny w drafcie adapter. Późniejsze włączenie ma ID,
 ale nie ma już pełnej capability/configuration potrzebnej do zapisu.
 
-### Docelowa naprawa
+### Zachowanie produkcyjne
 
 Runtime capability catalog jest niemutowalną własnością kompozycji aplikacji.
 Open rozwiązuje zapisane active classifier IDs względem tego katalogu, ale go nie
 zastępuje. Regresja musi przechodzić ścieżkę: Open bez A/B/C → enable
 `abc_orientation` → Save → ponowny Open.
 
-### Obejście przed wdrożeniem
+### Bezpieczne odzyskanie starej sesji
 
 Nie polegaj na edycji starego draftu jako jedynej kopii pracy. Zachowaj oryginał,
 uruchom świeżą sesję z wymaganym classifierem aktywnym i odtwórz analizę. Nie

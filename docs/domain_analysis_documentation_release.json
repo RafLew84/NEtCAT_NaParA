@@ -1,0 +1,59 @@
+{
+  "validation_schema_version": 1,
+  "validated_at": "2026-08-15",
+  "application_version": "0.1.0",
+  "workflow": "clean-session TTMAPP variant C walkthrough",
+  "result": "passed",
+  "acceptance_evidence": "docs/domain_analysis_ttmapp_release_validation.json",
+  "fixture": {
+    "domain_geometry": [
+      "tests/moltrack/fixtures/ttmapp_domain_analysis_sources/movie2/34855.STP",
+      "tests/moltrack/fixtures/ttmapp_domain_analysis_sources/movie3/34172.STP"
+    ],
+    "frozen_detections": "tests/moltrack/fixtures/ttmapp_domain_analysis_v1.json"
+  },
+  "walkthrough_assertions": {
+    "both_stable_backends": true,
+    "point_and_polygon_corrections": true,
+    "independent_m6_and_orientation_review": true,
+    "save_open_session_v3": true,
+    "correction_aware_export_v10": true,
+    "m6_reference_v2": true,
+    "orientation_reference_v2": true,
+    "one_shot_validation_campaign_report_v2": true,
+    "production_variant_c_only": true
+  },
+  "help": {
+    "menu": "Help",
+    "action": "Domain Analysis Guide",
+    "guide": "docs/moltrack/DOMAIN_ANALYSIS_USER_GUIDE.md",
+    "result": "passed"
+  },
+  "screenshots": [
+    {
+      "stage": "Analyze",
+      "path": "screenshots/spatial-command-center-analyze.png",
+      "sha256": "d388dd759470b08964d5f10936338fa7c65f05afb862db22fc5425730db4e967"
+    },
+    {
+      "stage": "Correct",
+      "path": "screenshots/spatial-command-center-correct.png",
+      "sha256": "dd4758228ac0349f987f7dca06d80c492c4da7dcb8d73605d965687d4dd8be4c"
+    },
+    {
+      "stage": "Review",
+      "path": "screenshots/spatial-command-center-review.png",
+      "sha256": "c833836bb3eb263f11551fcc054190830c69115459ca59868b0262777d164d3e"
+    },
+    {
+      "stage": "Calibrate",
+      "path": "screenshots/spatial-command-center-calibrate.png",
+      "sha256": "b39804983cc14e414b67db54be8401d4ccc2e7db56a630c0b71592ccca4b2145"
+    }
+  ],
+  "reproduction": {
+    "command": "pytest tests/moltrack/test_domain_analysis_ttmapp_cutover.py",
+    "screenshot_environment": "MOLTRACK_DOMAIN_DOC_SCREENSHOT_DIR=docs/moltrack/screenshots",
+    "working_directory": "repository_root"
+  }
+}

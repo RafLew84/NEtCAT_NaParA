@@ -1,17 +1,17 @@
-# Domain Analysis — formaty i kompatybilność (draft)
+# Domain Analysis — formaty i kompatybilność
 
-**Status:** referencja stanu obecnego i zatwierdzonego kontraktu docelowego
+**Status:** referencja formatów produkcyjnych MolTrack 0.1.0
 
 **Słownik:** [CONTEXT.md](CONTEXT.md)
 
 **Migracje:**
-[DOMAIN_ANALYSIS_MIGRATION_AND_TROUBLESHOOTING_DRAFT.md](DOMAIN_ANALYSIS_MIGRATION_AND_TROUBLESHOOTING_DRAFT.md)
+[DOMAIN_ANALYSIS_MIGRATION_AND_TROUBLESHOOTING.md](DOMAIN_ANALYSIS_MIGRATION_AND_TROUBLESHOOTING.md)
 
 ## Macierz wersji
 
-| Format | Produkcja obecnie | Kontrakt docelowy | Zasada zgodności |
+| Format | Produkcja | Obsługiwany kontrakt | Zasada zgodności |
 | --- | --- | --- | --- |
-| MolTrack session | v3; loader v1/v2/v3 | v3; loader v2/v3 | nieznana outer version jest odrzucana |
+| MolTrack session | v3; loader v1/v2/v3 | v3; loader v1/v2/v3 | nieznana outer version jest odrzucana |
 | Domain Analysis state | v2 | v2 | v2 zawiera correction-aware workspace |
 | `correction_workspace` | v1 | v1 | wymagany wewnątrz session v3 |
 | Domain Analysis export | v10 | v10 | v9 pozostaje jawnie automatic-only; v10 jest correction-aware package kind |
@@ -97,8 +97,8 @@ Validation epoch. Zmiana Validation tworzy nowy epoch. Inne bytes pod tą samą
 
 ## Preset schema
 
-Numer pierwszej produkcyjnej schema presetu musi zostać zamrożony razem z modelem
-i migratorem — plan nie nadaje mu numeru na zapas. Payload zawiera:
+Pierwsza produkcyjna schema jest zamrożona jako `m6-preset-library-v1` dla
+biblioteki i `m6-preset-v1` dla pojedynczego presetu. Payload zawiera:
 
 - niepustą, unikalną nazwę oraz opcjonalny opis;
 - backend identity;
@@ -137,15 +137,15 @@ Validation receipt.
 - V9 nie jest automatycznie konwertowany w reviewowany v10.
 - Nieznany backend lub schema presetu blokuje wykonanie zamiast wybierać fallback.
 
-## Kanoniczne stałe obecnego kodu
+## Kanoniczne stałe kodu
 
-Do czasu cutoveru deklaracje stanu produkcyjnego muszą być zgodne z:
+Automatyczny test dokumentacji porównuje macierz ze stałymi w:
 
 - `moltrack/core/session.py` — MolTrack session version i supported versions;
 - `moltrack/analysis/domain_analysis/session_state.py` — Domain Analysis state;
-- `moltrack/persistence/domain_analysis_export_schema.py` — export v9;
-- `moltrack/analysis/lattice_domain_calibration_models.py` — calibration v1;
-- `moltrack/analysis/molecular_orientation_models.py` — orientation v1.
-
-Po implementacji nowych formatów test dokumentacji ma porównywać tę tabelę ze
-stałymi zamiast polegać na ręcznej kontroli tekstu.
+- `moltrack/persistence/correction_aware_export_schema.py` — export v10;
+- `moltrack/persistence/m6_reference_schema.py` i
+  `orientation_reference_schema.py` — target schema v2;
+- `moltrack/persistence/reference_dataset_reader.py` — envelope v2;
+- `moltrack/analysis/domain_analysis/m6_preset_library.py` — preset/library v1;
+- `moltrack/analysis/m6_validation_campaign_models.py` — campaign report v2.

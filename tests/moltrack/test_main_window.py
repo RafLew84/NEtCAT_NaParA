@@ -156,7 +156,7 @@ class MolTrackMainWindowTests(unittest.TestCase):
 
         self.assertEqual(
             tuple(action.text() for action in self.window.menuBar().actions()),
-            ("File", "Analysis"),
+            ("File", "Analysis", "Help"),
         )
         self.assertEqual(self.window.analysis_menu.title(), "Analysis")
         self.assertEqual(

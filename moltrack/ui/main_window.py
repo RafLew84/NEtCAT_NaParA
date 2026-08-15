@@ -61,9 +61,8 @@ from moltrack.ui.widgets import (
     STMSeriesViewer,
     SeriesMetadataPanel,
 )
-from moltrack.ui.domain_analysis_composition import (
-    DomainAnalysisMainWindowComposition,
-)
+from moltrack.ui.domain_analysis_composition import DomainAnalysisMainWindowComposition
+from moltrack.ui.domain_analysis_help import install_domain_analysis_help
 from moltrack.yolo import MolTrackYoloDetector, YoloBBoxSizeFilter, discover_yolo_models
 from moltrack.sam2 import (
     MolTrackSam2PromptRejection,
@@ -853,6 +852,7 @@ class MolTrackMainWindow(QMainWindow):
         sam3_adapter=None,
         molecular_orientation_estimator=estimate_series_molecular_orientations,
         domain_analysis_composition_factory=None,
+        documentation_opener=None,
     ):
         super().__init__(parent)
         self._series = None
@@ -871,9 +871,7 @@ class MolTrackMainWindow(QMainWindow):
         )
         self._session_path: str | None = None
         self._domain_analysis_composition_factory = domain_analysis_composition_factory
-        self._domain_analysis_composition: (
-            DomainAnalysisMainWindowComposition | None
-        ) = None
+        self._domain_analysis_composition: DomainAnalysisMainWindowComposition | None = None
         self._state_io_running = False
         self._state_io_operation = ""
         self._state_io_path: str | None = None
@@ -895,9 +893,7 @@ class MolTrackMainWindow(QMainWindow):
             QProgressDialog | None
         ) = None
         self._molecular_orientation_thread: QThread | None = None
-        self._molecular_orientation_worker: (
-            _MolecularOrientationWorker | None
-        ) = None
+        self._molecular_orientation_worker: _MolecularOrientationWorker | None = None
         self._molecular_orientation_series = None
         self._yolo_models = []
         self._sam2_checkpoints = []
@@ -953,7 +949,7 @@ class MolTrackMainWindow(QMainWindow):
         )
         self.setWindowTitle("MolTrack")
         self.resize(1280, 860)
-        self._build_actions()
+        self._build_actions(documentation_opener)
         self._build_central_widget()
         self._refresh_yolo_models()
         self._refresh_sam2_checkpoints()
@@ -961,7 +957,7 @@ class MolTrackMainWindow(QMainWindow):
         self._update_navigation_enabled(False)
         self.statusBar().showMessage("Ready")
 
-    def _build_actions(self) -> None:
+    def _build_actions(self, documentation_opener) -> None:
         file_menu = self.menuBar().addMenu("File")
         self.action_open_stm = QAction("Open STM...", self)
         self.action_open_stm.setToolTip("Load one MPP movie into MolTrack")
@@ -986,6 +982,9 @@ class MolTrackMainWindow(QMainWindow):
         self.action_position_analysis = QAction("Position Analysis...", self)
         self.action_position_analysis.setEnabled(False)
         self.analysis_menu.addAction(self.action_position_analysis)
+        self.help_menu, self.action_domain_analysis_guide = install_domain_analysis_help(
+            self, documentation_opener=documentation_opener
+        )
 
     def _build_central_widget(self) -> None:
         central = QSplitter(Qt.Orientation.Horizontal, self)

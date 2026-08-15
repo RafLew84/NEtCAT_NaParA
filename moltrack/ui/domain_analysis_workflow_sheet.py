@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 from PyQt6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
 
@@ -92,7 +93,7 @@ class ReferenceDatasetWorkflowSheet(QWidget):
                 f"{label} failed: {str(error) or error.__class__.__name__}"
             )
             return
-        detail = "" if result is None else f" {result}"
+        detail = _result_detail(result)
         self.status_label.setText(f"{label} completed.{detail}")
 
 
@@ -135,8 +136,15 @@ class M6CalibrationWorkflowSheet(QWidget):
                 f"{str(error) or error.__class__.__name__}"
             )
             return
-        detail = "" if result is None else f" {result}"
+        detail = _result_detail(result)
         self.status_label.setText(f"Calibration report published.{detail}")
+
+
+def _result_detail(result: object) -> str:
+    if result is None:
+        return ""
+    value = result.name if isinstance(result, Path) else result
+    return f" {value}"
 
 
 __all__ = [

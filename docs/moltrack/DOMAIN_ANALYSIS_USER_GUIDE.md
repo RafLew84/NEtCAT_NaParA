@@ -1,21 +1,17 @@
-# Domain Analysis — instrukcja użytkownika (draft)
+# Domain Analysis — instrukcja użytkownika
 
-**Status:** draft implementacyjny; nie opisuje jeszcze wydanego UI
+**Status:** wydana z MolTrack 0.1.0; zweryfikowana 2026-08-15
 
-**Docelowy interfejs:** C — Spatial command center
+**Interfejs:** C — Spatial Command Center
 
-**Docelowe formaty:** MolTrack session v3, Domain Analysis export v10,
+**Formaty produkcyjne:** MolTrack session v3, Domain Analysis state v2,
+Domain Analysis export v10,
 M6/Orientation Reference Dataset v2, campaign report v2
 
 **Kanoniczne definicje:** [CONTEXT.md](CONTEXT.md)
 
 **Problemy i migracje:**
-[DOMAIN_ANALYSIS_MIGRATION_AND_TROUBLESHOOTING_DRAFT.md](DOMAIN_ANALYSIS_MIGRATION_AND_TROUBLESHOOTING_DRAFT.md)
-
-> Uwaga: obecna aplikacja zapisuje session v2 i export v9 i nie zawiera jeszcze
-> finalnego Qt wariantu C. Nazwy akcji i kroki poniżej są kontraktem dla
-> implementacji. Nie używaj tej instrukcji jako procedury produkcyjnej przed
-> usunięciem oznaczenia draft.
+[DOMAIN_ANALYSIS_MIGRATION_AND_TROUBLESHOOTING.md](DOMAIN_ANALYSIS_MIGRATION_AND_TROUBLESHOOTING.md)
 
 ## Model pracy wariantu C
 
@@ -31,9 +27,11 @@ objąć polecenie. Sam highlight nigdy nie modyfikuje danych.
 
 1. Otwórz serię i upewnij się, że klatka ma źródłowe molekuły lub segmentacje
    wymagane przez wybrany backend domen.
-2. Otwórz `Analysis > Domain Analysis` i wybierz etap `Analyze`.
+2. W panelu bocznym `Domain Analysis` kliknij `Domain Analysis...` i wybierz etap
+   `Analyze`.
 3. Wybierz backend oraz preset M6, ustaw zakres obejmujący jedną klatkę i uruchom
-   `Run`. Poczekaj na stan zakończony; nie uznawaj wyniku częściowego za review.
+   `Analyze range`. Poczekaj na stan zakończony; nie uznawaj wyniku częściowego
+   za review.
 4. Przejdź do `Correct`. Kliknięcie w canvas lub wiersz tabeli ma wskazywać ten sam
    obiekt. Wybierz dokładnie jedną oś edycji: `M6 membership` albo `Orientation`.
 5. Zaznacz molekuły punktem lub polygonem. Otwórz `Preview`, przeczytaj skutki,
@@ -44,18 +42,24 @@ objąć polecenie. Sam highlight nigdy nie modyfikuje danych.
 7. Przejdź do `Review`. Zakończ osobno review `M6` i `Orientation`. Dla wyniku,
    którego nie da się rozstrzygnąć, wybierz `Unresolvable` i podaj reason. Następnie
    wykonaj sign-off dla obu osi.
-8. Użyj `File > Save State`. Docelowa sesja v3 zachowuje automat, historię korekt,
-   review i efektywny checkpoint. Ponownie otwórz zapis i sprawdź status obu review.
+8. Przejdź do `References`, użyj `Save session`, a następnie `Open session`.
+   Sesja v3 zachowuje automat, historię korekt, review i efektywny checkpoint.
+   Sprawdź po otwarciu status obu review.
 
-Po wdrożeniu ten sam Quick start ma być dostępny z `Help > Domain Analysis Quick
-start`.
+Ten sam Quick start jest dostępny z `Help > Domain Analysis Guide`.
 
-**Dowód akceptacji do uzupełnienia:**
+**Dowód akceptacji:**
 
-- wersja aplikacji: `TODO po wdrożeniu`;
-- dane TTMAPP: `TODO po wyborze bezpiecznego identyfikatora testowego`;
-- data i operator walkthrough: `TODO`;
-- wynik testu Help: `TODO`.
+- wersja aplikacji: `0.1.0`;
+- dane: rzeczywiste pliki TTMAPP `movie2/34855.STP` i `movie3/34172.STP`
+  z zamrożonym manifestem detekcji;
+- data: `2026-08-15`;
+- wynik: `passed` dla deterministycznego clean-session walkthrough, obu
+  backendów, Save/Open v3, exportu v10, obu Reference Dataset v2 i campaign
+  report v2;
+- Help: test Qt potwierdza `Help > Domain Analysis Guide`;
+- manifest: [domain_analysis_documentation_release.json](../domain_analysis_documentation_release.json),
+  bazujący na [dowodzie hard cutover TTMAPP](../domain_analysis_ttmapp_release_validation.json).
 
 ## Analyze
 
@@ -68,8 +72,8 @@ start`.
 5. Ponowne przeliczenie tworzy oczekującego kandydata. Nie zastępuje automatu ani
    korekt bez jawnego rebase.
 
-**Screenshot wymagany po wdrożeniu:** cały Spatial command center na etapie
-Analyze, z widocznym canvasem, railem, zakresem, backendem, presetem i statusem.
+![Etap Analyze produkcyjnego Spatial Command Center z wynikiem TTMAPP, railem, backendem i presetem](screenshots/spatial-command-center-analyze.png)
+*Rysunek 1 — Analyze po zakończonym przebiegu TTMAPP na backendzie m6_orientation_components.*
 
 ## Correct: wybór, highlight i ręczne korekty
 
@@ -105,8 +109,8 @@ Preview musi pokazać:
 `Apply` jest atomowy: albo zapisuje całą komendę, albo nie zapisuje nic. Gdy
 konflikt blokuje operację, usuń przyczynę lub zmień selection i ponów Preview.
 
-**Screenshot wymagany po wdrożeniu:** selection polygon na canvasie i dolny arkusz
-Preview z konfliktem high-impact, liczbą molekuł oraz przyciskami Apply/Cancel.
+![Etap Correct produkcyjnego Spatial Command Center z polygon selection i przygotowanym batch preview](screenshots/spatial-command-center-correct.png)
+*Rysunek 2 — Correct z zamrożonym polygon selection, preview domeny i wymaganym potwierdzeniem batcha.*
 
 ### Undo i Redo
 
@@ -127,14 +131,15 @@ odnoszą się do zaakceptowanej bazy.
 ## Review
 
 Review M6 i Orientation są oddzielne. Każda oś obejmuje cały zamrożony zakres i
-wymaga jawnej decyzji dla każdego elementu. Sign-off ma operatora i timestamp,
-ale gotowość zbioru danych jest wyliczana z kompletności, nie z nazwiska operatora.
+wymaga jawnej decyzji dla każdego elementu. Sign-off zachowuje timestamp i fingerprint
+podpisanego stanu; nie zapisuje `reviewer_id`. Gotowość zbioru danych jest wyliczana
+z kompletności.
 
 Zmiana efektywnego wyniku po sign-off oznacza odpowiedni scope jako stale i wymaga
 ponownego review. Jedna zakończona oś nie maskuje braków drugiej.
 
-**Screenshot wymagany po wdrożeniu:** etap Review z osobnymi statusami M6 i
-Orientation, reason dla abstencji i gotowością sign-off.
+![Etap Review produkcyjnego Spatial Command Center z osobnymi zakończonymi review M6 i Orientation](screenshots/spatial-command-center-review.png)
+*Rysunek 3 — Review po niezależnym sign-off M6 i Orientation; status targetu jest Ready.*
 
 ## Save, Open i export
 
@@ -142,10 +147,10 @@ Orientation, reason dla abstencji i gotowością sign-off.
   aktywne ustawienia oraz correction-aware checkpoint.
 - `Open State` ma odtworzyć dokładnie ten sam efektywny wynik albo jawnie
   poddać niezgodne dane kwarantannie.
-- Export v9 jest formatem automatic-only i nie może udawać, że zawiera korekty.
-- Docelowy export v10 zawiera warstwy automatic, correction, review, effective i
+- Legacy export v9 jest formatem automatic-only i nie może udawać, że zawiera korekty.
+- Produkcyjny export v10 zawiera warstwy automatic, correction, review, effective i
   per-point diagnostics. Szczegóły plików są w
-  [referencji formatów](DOMAIN_ANALYSIS_FORMATS_DRAFT.md).
+  [referencji formatów](DOMAIN_ANALYSIS_FORMATS.md).
 
 Po każdym ważnym review wykonaj cykl Save → Open → porównanie statusów przed
 publikacją danych referencyjnych.
@@ -183,5 +188,5 @@ Raport musi porównywać oba jawnie nazwane backendy na tych samych referencjach
 Nie wolno wybrać backendu domyślnego na podstawie różnych zbiorów lub wielokrotnego
 podglądania Validation.
 
-**Screenshot wymagany po wdrożeniu:** etap Calibrate z identyfikacją datasetu,
-shortlistą backendów, statusem Validation receipt i linkiem do report v2.
+![Etap Calibrate produkcyjnego Spatial Command Center po publikacji report v2](screenshots/spatial-command-center-calibrate.png)
+*Rysunek 4 — Calibrate po zamrożeniu shortlisty, jednorazowym Validation i publikacji campaign report v2.*

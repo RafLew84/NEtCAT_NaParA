@@ -72,7 +72,7 @@
       "definitions": 32
     },
     "moltrack/ui/main_window.py": {
-      "physical_lines": 4745,
+      "physical_lines": 4744,
       "definitions": 226,
       "classes": 15
     },
@@ -340,7 +340,7 @@
       "benchmark_sam2_optimization": 83
     },
     "moltrack/ui/main_window.py": {
-      "MolTrackMainWindow.__init__": 126,
+      "MolTrackMainWindow.__init__": 123,
       "MolTrackMainWindow._build_central_widget": 333,
       "MolTrackMainWindow._start_molecular_orientation_estimation": 93,
       "MolTrackMainWindow._start_sam2_segmentation": 120,

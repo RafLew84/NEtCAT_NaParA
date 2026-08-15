@@ -321,11 +321,7 @@ def evaluate_molecular_orientation_method_against_reference(
         raise ValueError("Unsupported molecular orientation reference split.")
     tolerance = _positive_tolerance(tolerance_deg)
     minimum = _positive_integer(min_comparable_count, "min_comparable_count")
-    estimates = _measurement_map(
-        reference,
-        measurements,
-        expected_method=method,
-    )
+    estimates = _measurement_map(reference, measurements, expected_method=method)
     reference_samples = tuple(
         sample for sample in reference.samples if sample.split == split
     )

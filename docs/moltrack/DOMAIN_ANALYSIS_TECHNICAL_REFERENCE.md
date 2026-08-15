@@ -1,26 +1,26 @@
-# Domain Analysis — referencja techniczna (draft)
+# Domain Analysis — referencja techniczna
 
-**Status:** kontrakt docelowy; nie wszystkie seamy są wdrożone
+**Status:** kontrakt produkcyjny MolTrack 0.1.0; zweryfikowany 2026-08-15
 
-**Docelowy interfejs:** C — Spatial command center
+**Interfejs:** C — Spatial Command Center
 
 **Słownik:** [CONTEXT.md](CONTEXT.md)
 
-**Formaty:** [DOMAIN_ANALYSIS_FORMATS_DRAFT.md](DOMAIN_ANALYSIS_FORMATS_DRAFT.md)
+**Formaty:** [DOMAIN_ANALYSIS_FORMATS.md](DOMAIN_ANALYSIS_FORMATS.md)
 
 ## Granica modułów
 
-| Seam | Odpowiedzialność | Stan obecny |
+| Seam | Odpowiedzialność | Stan produkcyjny |
 | --- | --- | --- |
-| `DomainAnalysisModule.run(...)` | Wykonuje jawnie wybrany `DomainBackendAdapter`, buduje backend-qualified immutable automatic snapshot i pełny funnel | istnieje; wymaga pogłębienia kontraktu backend/funnel |
-| `DomainCorrectionModule.initialize/prepare/dispatch/project(...)` | Jest jedynym właścicielem correction history, konfliktów, Undo/Redo, review, rebase i Effective Domain Projection | planowany |
-| `DomainAnalysisWorkspaceController.snapshot/dispatch(...)` | Udostępnia jeden niemutowalny snapshot UI: analizę, korekty, selection, highlight i prepared preview | istnieje dla bieżącego workflow; wymaga rozszerzenia |
-| `save_moltrack_session(...)` / `load_moltrack_session(...)` | Waliduje i atomowo zapisuje/otwiera wersjonowaną sesję; wykonuje migrację i quarantine | istnieje dla session v1/v2; v3 planowane |
-| `export_analysis_package(...)` | Buduje jawnie wybrany export v9 automatic-only albo v10 correction-aware | v9 istnieje; v10 planowane |
-| Target-specific Reference Dataset module | Publikuje i czyta niemutowalne M6/Orientation Reference Dataset Version | v2 planowane |
-| M6 preset library | Zarządza saved presets, working copy i jednym active presetem | planowana |
-| `run_lattice_domain_calibration_campaign(...)` | Orkiestruje istniejący bounded search, metryki, shortlistę i jednorazową Validation | planowany |
-| `MainWindow` + Domain Analysis Qt | Cienko renderuje snapshot i wysyła akcje Controllerowi | bieżący dialog istnieje; wariant C planowany |
+| `DomainAnalysisModule.run(...)` | Wykonuje jawnie wybrany `DomainBackendAdapter`, buduje backend-qualified immutable automatic snapshot i pełny funnel | wdrożony dla obu stabilnych backendów |
+| `DomainCorrectionModule.initialize/prepare/dispatch/project(...)` | Jest jedynym właścicielem correction history, konfliktów, Undo/Redo, review, rebase i Effective Domain Projection | wdrożony |
+| `DomainAnalysisWorkspaceController.snapshot/dispatch(...)` | Udostępnia jeden niemutowalny snapshot UI: analizę, korekty, selection, highlight i prepared preview | wdrożony |
+| `save_moltrack_session(...)` / `load_moltrack_session(...)` | Waliduje i atomowo zapisuje/otwiera wersjonowaną sesję; wykonuje migrację i quarantine | session v3; loader v1/v2/v3 |
+| `export_analysis_package(...)` | Publikuje v10 correction-aware; v9 pozostaje legacy automatic-only | wdrożony |
+| Target-specific Reference Dataset modules | Publikują i czytają niemutowalne M6/Orientation Reference Dataset Version | target schema v2, envelope v2 |
+| `M6PresetLibrary` / `M6PresetWorkspace` | Zarządzają saved presets, working copy i jednym active presetem | schema v1; wdrożone |
+| `run_lattice_domain_calibration_campaign(...)` | Orkiestruje bounded search, metryki, shortlistę i jednorazową Validation | campaign report v2; wdrożony |
+| `MainWindow` + `DomainAnalysisDialog` | Cienko renderują snapshot i wysyłają akcje Controllerowi | produkcyjny wariant C z przewodnikiem Help |
 
 UI, persistence ani eksport nie mogą implementować ponownie reguł projekcji,
 review, rebase lub gotowości datasetu. Każda z tych reguł ma jednego właściciela
