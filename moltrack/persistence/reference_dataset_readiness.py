@@ -17,7 +17,10 @@ def validate_reference_snapshot_readiness(
     label = "M6" if target == "m6" else "Orientation"
     if not isinstance(state, DomainAnalysisSessionState):
         raise TypeError("snapshot must be a DomainAnalysisSessionState.")
-    if state.correction_workspace_quarantine is not None:
+    if (
+        state.published_result is None
+        and state.correction_workspace_quarantine is not None
+    ):
         raise ValueError(f"Quarantined corrections cannot publish a {label} reference.")
     publication = state.published_result
     if publication is None or publication.result.m6_gate is None:

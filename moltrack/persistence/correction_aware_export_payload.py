@@ -31,6 +31,9 @@ from .correction_aware_export_schema import (
 )
 from .correction_aware_draft_export import inactive_draft_export_parts
 from .domain_analysis_session import domain_analysis_state_to_payload
+from .correction_workspace_quarantine_payload import (
+    correction_workspace_quarantine_to_payload,
+)
 from .domain_backend_payload import backend_identity_to_payload
 from .package_io import csv_json_cell
 
@@ -52,12 +55,11 @@ def correction_aware_package_payload(
 ) -> CorrectionAwarePackagePayload:
     if not isinstance(state, DomainAnalysisSessionState):
         raise TypeError("snapshot must be a DomainAnalysisSessionState instance.")
-    quarantine = state.correction_workspace_quarantine
-    if quarantine is not None:
+    if state.published_result is not None:
+        return _active_payload(state, settings)
+    if state.correction_workspace_quarantine is not None:
         return _quarantined_payload(state, settings)
-    if state.published_result is None:
-        return _inactive_draft_payload(state, settings)
-    return _active_payload(state, settings)
+    return _inactive_draft_payload(state, settings)
 
 
 def _active_payload(
@@ -77,22 +79,30 @@ def _active_payload(
     status = _correction_status(state, readiness)
     _enforce_policy(settings, readiness, status)
     molecule_rows = _effective_molecule_rows(state, projection)
+    documents = {
+        AUTOMATIC_SNAPSHOT_FILE: automatic,
+        ORIENTATION_CLASS_CATALOG_FILE: workspace[
+            "orientation_class_catalog"
+        ],
+        CORRECTION_STATE_FILE: correction,
+        EFFECTIVE_PROJECTION_FILE: projection,
+        REFERENCE_REVIEWS_FILE: workspace["reviews"],
+        DIAGNOSTIC_FUNNELS_FILE: workspace["diagnostic_funnels"],
+        REBASE_DIAGNOSTICS_FILE: _rebase_diagnostics(workspace),
+    }
+    if (
+        settings.export_mode == "audit"
+        and state.correction_workspace_quarantine is not None
+    ):
+        documents[QUARANTINE_FILE] = correction_workspace_quarantine_to_payload(
+            state.correction_workspace_quarantine
+        )
     return CorrectionAwarePackagePayload(
         activation_status="active",
         correction_status=status,
         readiness=readiness,
         anchors=_active_anchors(state, workspace, correction, projection),
-        json_documents={
-            AUTOMATIC_SNAPSHOT_FILE: automatic,
-            ORIENTATION_CLASS_CATALOG_FILE: workspace[
-                "orientation_class_catalog"
-            ],
-            CORRECTION_STATE_FILE: correction,
-            EFFECTIVE_PROJECTION_FILE: projection,
-            REFERENCE_REVIEWS_FILE: workspace["reviews"],
-            DIAGNOSTIC_FUNNELS_FILE: workspace["diagnostic_funnels"],
-            REBASE_DIAGNOSTICS_FILE: _rebase_diagnostics(workspace),
-        },
+        json_documents=documents,
         json_lines={
             CORRECTION_REVISIONS_FILE: _revision_rows(correction),
             CORRECTION_OPERATIONS_FILE: list(correction["atoms"]),
@@ -146,7 +156,7 @@ def _quarantined_payload(
         correction_status="conflicted",
         readiness=readiness,
         anchors=_quarantine_anchors(quarantine, automatic, correction),
-        json_documents=_quarantine_documents(quarantine, automatic, correction),
+        json_documents=_quarantine_documents(quarantine, automatic),
         json_lines={},
         molecule_rows=[],
     )
@@ -178,15 +188,12 @@ def _quarantine_anchors(
 def _quarantine_documents(
     quarantine: Any,
     automatic: Any,
-    correction: Any,
 ) -> dict[str, Any]:
+    audit = correction_workspace_quarantine_to_payload(quarantine)
+    assert audit is not None
     return {
         AUTOMATIC_SNAPSHOT_FILE: automatic,
-        QUARANTINE_FILE: {
-            "reason_code": quarantine.reason_code,
-            "reason": quarantine.reason,
-            "correction_workspace": correction,
-        },
+        QUARANTINE_FILE: audit,
     }
 
 

@@ -226,7 +226,6 @@ from .workspace_controller import (
     DomainAnalysisPublication,
     DomainAnalysisWorkspaceController,
     DomainAnalysisWorkspaceIntentError,
-    DomainAnalysisWorkspaceNotificationError,
     DomainAnalysisWorkspaceSnapshot,
     DomainComponentKey,
     PublishDomainAnalysisResult,
@@ -258,6 +257,7 @@ from .workspace_lifecycle import (
     StartDomainAnalysis,
 )
 from .workspace_notifications import (
+    DomainAnalysisWorkspaceNotificationError,
     DomainAnalysisWorkspaceStateChanged,
     DomainAnalysisWorkspaceSubscription,
 )

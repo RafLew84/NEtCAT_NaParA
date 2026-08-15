@@ -8,6 +8,17 @@ from typing import Generic, TypeVar
 SnapshotT = TypeVar("SnapshotT")
 
 
+class DomainAnalysisWorkspaceNotificationError(RuntimeError, Generic[SnapshotT]):
+    """A consumer failed after the immutable snapshot was committed."""
+
+    def __init__(self, committed_snapshot: SnapshotT) -> None:
+        super().__init__(
+            "Workspace state was committed, but its state_changed "
+            "notification failed."
+        )
+        self.committed_snapshot = committed_snapshot
+
+
 class DomainAnalysisWorkspaceSubscription:
     """Idempotent handle for one workspace-state consumer."""
 

@@ -75,8 +75,10 @@ from .diagnostic_funnel_payload import (
     validate_diagnostic_funnels_payload,
 )
 from .correction_workspace_session import correction_workspace_to_payload
+from . import correction_workspace_quarantine_payload as quarantine_payload
 from .domain_analysis_v2_session import (
     restore_domain_analysis_cache,
+    restore_domain_analysis_publication,
     restore_v2_correction_workspace,
     validated_domain_analysis_version,
 )
@@ -93,6 +95,7 @@ _DOMAIN_ANALYSIS_KNOWN_FIELDS = frozenset({
     "run",
     "published_result",
     "correction_workspace",
+    "correction_workspace_quarantine",
     "cache",
 })
 
@@ -117,7 +120,10 @@ def domain_analysis_state_to_payload(
     state: DomainAnalysisSessionState | None,
 ) -> dict[str, Any]:
     saved = DomainAnalysisSessionState() if state is None else state
-    if saved.correction_workspace_quarantine is not None:
+    if (
+        saved.published_result is None
+        and saved.correction_workspace_quarantine is not None
+    ):
         raise ValueError(
             "A quarantined correction workspace cannot be saved as active "
             "Domain Analysis state."
@@ -180,6 +186,9 @@ def domain_analysis_state_to_payload(
             saved.domain_corrections,
             saved.reference_reviews,
         ),
+        "correction_workspace_quarantine": quarantine_payload.correction_workspace_quarantine_to_payload(
+            saved.correction_workspace_quarantine
+        ),
     }
     payload.update({
         key: deepcopy(value) for key, value in saved.opaque_components
@@ -198,31 +207,23 @@ def domain_analysis_state_from_payload(
         require_legacy_v1=require_legacy_v1,
     )
     draft, draft_configurations, draft_physical_frame_ids = _draft_from_payload(section)
-    m6_cache_records, classifier_cache_records, cache_diagnostics = (
-        restore_domain_analysis_cache(section)
-    )
+    cache_records = restore_domain_analysis_cache(section)
+    m6_cache_records, classifier_cache_records, cache_diagnostics = cache_records
     classifier_status = _require_text(section, "classifier_status", "domain_analysis")
     publication_payload = _required(section, "published_result", "domain_analysis")
-    publication = None
-    publication_diagnostics: tuple[DomainAnalysisSessionDiagnostic, ...] = ()
-    publication_was_rejected = False
-    if publication_payload is not None:
-        try:
-            publication, publication_diagnostics = _publication_from_payload(
-                publication_payload,
+    publication, publication_diagnostics, publication_was_rejected = (
+        restore_domain_analysis_publication(
+            publication_payload,
+            schema_version=_PUBLISHED_RESULT_SCHEMA_VERSION,
+            decode=lambda value: _publication_from_payload(
+                value,
                 fallback_configurations=draft_configurations,
                 require_diagnostic_funnels=(
                     schema_version == DOMAIN_ANALYSIS_SESSION_SCHEMA_VERSION
                 ),
-            )
-        except (TypeError, ValueError) as exc:
-            publication_was_rejected = True
-            publication_diagnostics = (DomainAnalysisSessionDiagnostic(
-                component="published_result",
-                identifier="domain-analysis-publication",
-                schema_version=str(_PUBLISHED_RESULT_SCHEMA_VERSION),
-                reason=str(exc),
-            ),)
+            ),
+        )
+    )
     state = _workspace_state_from_payload(
         section,
         draft=draft,
@@ -239,6 +240,15 @@ def domain_analysis_state_from_payload(
         publication_was_rejected=publication_was_rejected,
         publication_has_diagnostics=bool(publication_diagnostics),
     )
+    state = quarantine_payload.restore_correction_workspace_quarantine(
+        state,
+        section.get("correction_workspace_quarantine"),
+        decode_automatic_snapshot=lambda value: _publication_from_payload(
+            value,
+            fallback_configurations=draft_configurations,
+            require_diagnostic_funnels=True,
+        )[0],
+    )
     opaque_components, opaque_diagnostics = opaque_components_from_payload(
         section,
         known_fields=_DOMAIN_ANALYSIS_KNOWN_FIELDS,
@@ -253,8 +263,7 @@ def domain_analysis_state_from_payload(
             + opaque_diagnostics
         ),
     )
-    state = _restore_compatible_cache(
-        state,
+    state = _restore_compatible_cache(state,
         m6_cache_records=m6_cache_records,
         classifier_cache_records=classifier_cache_records,
     )

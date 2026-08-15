@@ -43,6 +43,7 @@ from .workspace_lifecycle_actions import (
     StartDomainAnalysis,
     domain_analysis_request_fingerprint,
 )
+from .workspace_notifications import DomainAnalysisWorkspaceNotificationError
 from .workspace_notifications import DomainAnalysisWorkspaceStateChanged
 from .workspace_navigation import (
     DomainHierarchyHighlight,
@@ -61,22 +62,8 @@ from .workspace_rebase import (
 )
 
 if TYPE_CHECKING:
+    from .correction_workspace_quarantine import CorrectionWorkspaceQuarantine
     from .session_cache_scope import DomainAnalysisSessionCacheRecords
-
-
-class DomainAnalysisWorkspaceNotificationError(RuntimeError):
-    """An adapter notification failed after workspace state was committed."""
-
-    def __init__(
-        self,
-        committed_snapshot: DomainAnalysisWorkspaceSnapshot,
-    ) -> None:
-        super().__init__(
-            "Workspace state was committed, but its state_changed "
-            "notification failed."
-        )
-        self.committed_snapshot = committed_snapshot
-
 
 @dataclass(frozen=True, order=True)
 class DomainComponentKey:
@@ -142,6 +129,7 @@ class DomainAnalysisWorkspaceSnapshot:
     draft: DomainAnalysisRequest
     published: DomainAnalysisPublication | None
     active_frame_index: int
+    correction_workspace_quarantine: CorrectionWorkspaceQuarantine | None = None
     orientation_class_catalog: OrientationClassCatalog = field(
         default_factory=OrientationClassCatalog
     )
@@ -201,6 +189,16 @@ class DomainAnalysisWorkspaceSnapshot:
             )
         if not isinstance(self.reference_reviews, ReferenceReviewWorkspace):
             raise TypeError("reference_reviews must be a ReferenceReviewWorkspace.")
+        quarantine = self.correction_workspace_quarantine
+        if quarantine is not None:
+            from .correction_workspace_quarantine import (
+                CorrectionWorkspaceQuarantine,
+            )
+
+            if not isinstance(quarantine, CorrectionWorkspaceQuarantine):
+                raise TypeError(
+                    "correction_workspace_quarantine must be a quarantine or None."
+                )
         if not isinstance(self.is_shutdown, bool):
             raise TypeError("is_shutdown must be a bool.")
         _validate_snapshot_references(self)
@@ -255,6 +253,7 @@ class RestoreDomainAnalysisWorkspace:
     domain_corrections: DomainCorrectionWorkspaceState | None = None
     reference_reviews: ReferenceReviewWorkspace | None = None
     run_diagnosis: str | None = None
+    correction_workspace_quarantine: CorrectionWorkspaceQuarantine | None = None
 
 
 DomainAnalysisWorkspaceAction = (
@@ -545,6 +544,7 @@ def _restore_workspace(
         hierarchy_highlight=None,
         domain_corrections=corrections,
         reference_reviews=reviews,
+        correction_workspace_quarantine=action.correction_workspace_quarantine,
         run=restored_run,
     )
 

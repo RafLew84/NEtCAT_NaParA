@@ -379,10 +379,6 @@ def _validate_workspace_values(state: DomainAnalysisSessionState) -> None:
             "correction_workspace_quarantine must be a "
             "CorrectionWorkspaceQuarantine."
         )
-    if quarantine is not None and publication is not None:
-        raise ValueError(
-            "A quarantined automatic snapshot cannot also be active."
-        )
     if not isinstance(state.view_settings, DomainAnalysisViewSettings):
         raise TypeError("view_settings must be DomainAnalysisViewSettings.")
     if state.selected_component is not None:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from copy import deepcopy
 from dataclasses import replace
 from typing import Any, Callable
@@ -28,6 +29,7 @@ from moltrack.analysis.domain_analysis.diagnostic_funnel import (
 from moltrack.core import MolTrackImageSeries
 from moltrack.persistence import (
     CanonicalJsonObject,
+    CorrectionAwareExportSettings,
     DomainAnalysisExportSettings,
     export_analysis_package,
     load_moltrack_session,
@@ -191,6 +193,92 @@ def test_composition_preserves_quarantine_and_blocks_follow_up_save(
         qt_app.processEvents()
 
 
+def test_production_rerun_save_open_preserves_quarantine_as_audit(
+    qt_app,
+    tmp_path,
+) -> None:
+    session_path, payload, _automatic_snapshot, series = _saved_corrected_session(
+        tmp_path
+    )
+    _change_checkpoint(payload["domain_analysis"]["correction_workspace"])
+    session_path.write_text(json.dumps(payload), encoding="utf-8")
+    quarantined = load_moltrack_session(session_path).domain_analysis_state
+    assert quarantined is not None
+    original = quarantined.correction_workspace_quarantine
+    assert original is not None
+    window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
+    composition = runtime.build_domain_analysis_main_window_composition(
+        window,
+        series,
+    )
+
+    try:
+        composition.restore_session(quarantined)
+        dialog = composition.open_domain_analysis()
+        dialog.analyze_button.click()
+        _wait_until(
+            qt_app,
+            lambda: composition.session_state().published_result is not None,
+        )
+
+        rerun = composition.session_state()
+        assert rerun.published_result is not None
+        assert rerun.correction_workspace_quarantine == original
+        assert rerun.domain_corrections.effective_projection is not None
+        assert (
+            rerun.domain_corrections.effective_projection.automatic_result
+            is rerun.published_result.result
+        )
+        saved_path = tmp_path / "rerun-with-quarantine.moltrack.json"
+        composition.save_session(saved_path)
+        opened = load_moltrack_session(saved_path).domain_analysis_state
+        assert opened is not None
+        assert opened.published_result == rerun.published_result
+        assert opened.correction_workspace_quarantine == original
+        assert opened.correction_workspace_quarantine.reason == original.reason
+        assert (
+            opened.correction_workspace_quarantine.automatic_snapshot_payload
+            == original.automatic_snapshot_payload
+        )
+        assert (
+            opened.correction_workspace_quarantine.correction_workspace_payload
+            == original.correction_workspace_payload
+        )
+        assert (
+            opened.correction_workspace_quarantine.activation_status
+            == original.activation_status
+        )
+
+        composition.restore_session(opened)
+        restored = composition.session_state()
+        assert restored.published_result == rerun.published_result
+        assert restored.correction_workspace_quarantine == original
+        audit_destination = tmp_path / "rerun-audit"
+        export_analysis_package(
+            restored,
+            CorrectionAwareExportSettings(
+                destination=audit_destination,
+                source_identity=CanonicalJsonObject({"source": "quarantine-rerun"}),
+                export_mode="audit",
+            ),
+        )
+        manifest = json.loads(
+            (audit_destination / "manifest.json").read_text(encoding="utf-8")
+        )
+        assert manifest["activation_status"] == "active"
+        assert "correction_workspace_quarantined" not in (
+            manifest["readiness"]["blockers"]
+        )
+        assert (
+            audit_destination / "correction_workspace_quarantine.json"
+        ).is_file()
+    finally:
+        composition.shutdown()
+        window.close()
+        window.deleteLater()
+        qt_app.processEvents()
+
+
 def test_open_quarantines_a_non_object_correction_workspace(tmp_path) -> None:
     session_path, payload, automatic_snapshot, _series = _saved_corrected_session(
         tmp_path
@@ -287,3 +375,13 @@ def _saved_corrected_session(tmp_path):
     payload = json.loads(session_path.read_text(encoding="utf-8"))
     assert state.published_result is not None
     return session_path, payload, state.published_result, series
+
+
+def _wait_until(qt_app, predicate, *, timeout_seconds: float = 10.0) -> None:
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        qt_app.processEvents()
+        if predicate():
+            return
+        time.sleep(0.01)
+    raise AssertionError("Timed out waiting for Domain Analysis rerun.")

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from copy import deepcopy
 from dataclasses import replace
 from typing import Any
@@ -28,6 +28,37 @@ CorrectionWorkspaceRestore = tuple[
     DomainAnalysisSessionState,
     tuple[DomainAnalysisSessionDiagnostic, ...],
 ]
+PublicationRestore = tuple[
+    DomainAnalysisPublication | None,
+    tuple[DomainAnalysisSessionDiagnostic, ...],
+    bool,
+]
+
+
+def restore_domain_analysis_publication(
+    payload: Any,
+    *,
+    schema_version: int,
+    decode: Callable[
+        [Any],
+        tuple[
+            DomainAnalysisPublication,
+            tuple[DomainAnalysisSessionDiagnostic, ...],
+        ],
+    ],
+) -> PublicationRestore:
+    if payload is None:
+        return None, (), False
+    try:
+        publication, diagnostics = decode(payload)
+    except (TypeError, ValueError) as exc:
+        return None, (DomainAnalysisSessionDiagnostic(
+            component="published_result",
+            identifier="domain-analysis-publication",
+            schema_version=str(schema_version),
+            reason=str(exc),
+        ),), True
+    return publication, diagnostics, False
 
 
 def validated_domain_analysis_version(
@@ -176,6 +207,7 @@ def restore_domain_analysis_cache(
 
 __all__ = [
     "restore_domain_analysis_cache",
+    "restore_domain_analysis_publication",
     "restore_v2_correction_workspace",
     "validated_domain_analysis_version",
 ]
