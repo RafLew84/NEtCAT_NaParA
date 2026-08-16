@@ -34,11 +34,13 @@ collection envelope v2. Biblioteka/preset M6 używają odpowiednio
 
 ## Dowód wydania dokumentacji
 
-Clean-session walkthrough na rzeczywistych plikach TTMAPP przeszedł 2026-08-15.
-Obejmuje oba stabilne backendy, korekty point/polygon, niezależne review, Save/Open
-session v3, export v10, oba Reference Dataset v2 i jednorazowy Validation campaign
-report v2. Cztery screenshoty w instrukcji zostały przechwycone bezpośrednio z
-produkcyjnego `DomainAnalysisDialog` w tym samym przebiegu.
+Clean-session walkthrough na rzeczywistych plikach TTMAPP przeszedł 2026-08-16
+przez rzeczywisty `MolTrackMainWindow` i domyślną kompozycję produkcyjną. Obejmuje
+oba stabilne backendy, geometrię `segmentation_preferred`, korekty point/polygon,
+niezależne review, Save/Open session v3, wyłącznie produkcyjny export v10, root i
+immutable child obu Reference Dataset v2 oraz jednorazowy Validation campaign
+report v2 po porównaniu fixed/adaptive. Cztery screenshoty w instrukcji zostały
+przechwycone z otwartego w tym przebiegu produkcyjnego Spatial Command Center.
 
 Menu `Help > Domain Analysis Guide` otwiera wersję instrukcji dołączoną do tej
 wersji aplikacji. Automatyczna bramka sprawdza akcję Qt, lokalne linki, zgodność

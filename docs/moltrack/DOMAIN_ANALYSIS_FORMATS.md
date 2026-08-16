@@ -1,6 +1,6 @@
 # Domain Analysis — formaty i kompatybilność
 
-**Status:** referencja formatów produkcyjnych MolTrack 0.1.0
+**Status:** referencja formatów produkcyjnych MolTrack 0.1.0; zweryfikowana 2026-08-16
 
 **Słownik:** [CONTEXT.md](CONTEXT.md)
 
@@ -14,7 +14,7 @@
 | MolTrack session | v3; loader v1/v2/v3 | v3; loader v1/v2/v3 | nieznana outer version jest odrzucana |
 | Domain Analysis state | v2 | v2 | v2 zawiera correction-aware workspace |
 | `correction_workspace` | v1 | v1 | wymagany wewnątrz session v3 |
-| Domain Analysis export | v10 | v10 | v9 pozostaje jawnie automatic-only; v10 jest correction-aware package kind |
+| Domain Analysis export | v10 | v10 | produkcyjny workflow publikuje v10; v9 jest tylko jawną ścieżką legacy automatic-only |
 | M6 Reference Dataset | v2 | v2 | v1 importuje się jako audit-only draft |
 | Orientation Reference Dataset | v2 | v2 | v1 importuje się jako audit-only draft |
 | Reference collection envelope | manifest schema v2 | manifest schema v2 | envelope nie jest trzecim targetem |
@@ -44,7 +44,9 @@ odrzucić v3 zamiast pominąć correction workspace i utracić go przy Save.
 
 ## Domain Analysis export v9
 
-V9 jest istniejącym, automatic-only pakietem. Zachowuje bieżące tabele automatu,
+V9 jest istniejącym, automatic-only pakietem używanym wyłącznie przez jawną akcję
+legacy do diagnostyki lub migracji. Nie jest oczekiwaniem produkcyjnej akceptacji.
+Zachowuje bieżące tabele automatu,
 ale nie ma correction history, target-specific review ani correction-aware
 effective state. Reader i UI muszą prezentować go jako legacy automatic-only;
 v9 nie może deklarować reference readiness.
@@ -90,6 +92,11 @@ Kanoniczne splity to `calibration` oraz `validation`. Cały `measurement_group`
 należy do dokładnie jednego splitu w obrębie targetu. `dataset_id` jest stabilne,
 a każda publikacja ma rosnący `dataset_version`, niezmienne `version_id`,
 `parent_version_id` i `version_fingerprint`.
+
+Root ma `dataset_version=1` i `parent_version_id=null`. Immutable child ma wersję
+rodzica powiększoną o jeden, wskazuje dokładny `version_id` rodzica i musi być
+publikowany poza jego katalogiem. Te same reguły obowiązują osobno dla targetów M6
+i Orientation.
 
 Zmiana Calibration przy identycznym Validation fingerprint pozostaje w tym samym
 Validation epoch. Zmiana Validation tworzy nowy epoch. Inne bytes pod tą samą

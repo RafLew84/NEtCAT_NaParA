@@ -371,6 +371,7 @@ _Avoid_: Separate correction wizard, independent stage controllers, HTML prototy
 **Domain Analysis Documentation Set**:
 The versioned user guide, technical reference, format reference, migration/troubleshooting guide, screenshots, and verified clean-session walkthrough shipped with the correction-aware **Domain Analysis** workflow. Its compatibility declarations and Help link are release-gated behavior rather than optional follow-up prose.
 The MolTrack 0.1.0 release snapshot is session v3, Domain Analysis state v2, correction-aware export v10, M6/Orientation Reference Dataset target schema v2 with envelope v2, M6 preset/library v1, and campaign report v2.
+The 2026-08-16 release acceptance drives the real **Spatial Command Center** from production `MolTrackMainWindow`, verifies segmentation-preferred molecular geometry, publishes root and immutable-child versions of both reference targets, and compares fixed/adaptive first-shell geometry with pair-correlation evidence from both stable backends.
 _Avoid_: Prototype notes as user documentation, unversioned screenshots, documentation after release
 
 **Molecular Detector**:
@@ -708,6 +709,7 @@ _Avoid_: Analysis Export, copied external data model
 - **Spatial Command Center** renders one **Domain Correction Workspace** through one workspace controller; its canvas, hierarchy, ledger, diagnostics, and bottom sheet are projections of the same immutable snapshot.
 - In **Spatial Command Center**, highlight is navigational and cannot change selection or create a **Domain Correction Apply**.
 - The **Domain Analysis Documentation Set** is complete only when its Quick start is verified on a clean TTMAPP session, its screenshots come from production **Spatial Command Center**, and application Help opens the version-compatible user guide.
+- Release acceptance reaches the **Spatial Command Center** through production `MolTrackMainWindow`; it does not replace the composition, backend adapters, export callback, or persistence actions with test seams.
 - One **Domain Correction Apply** freezes and deduplicates its **Detection Identities** and changes them as one all-or-nothing atom.
 - Point and polygon selections prepare a **Domain Correction Apply** but do not become persistent domain regions.
 - **Domain Correction History** survives session save and load within its current revision; a **Correction Rebase** makes the previous revision read-only history.
@@ -716,6 +718,7 @@ _Avoid_: Analysis Export, copied external data model
 - A rename, copy, conversion, adjacent frame, or derived source from the same acquisition remains in the same **Reference Measurement Group** and cannot cross the split.
 - **M6 Reference Dataset** and **Orientation Reference Dataset** partition measurements independently; the same group may occupy different splits for the two targets.
 - A successor **Reference Dataset Version** in the same **Reference Validation Epoch** may change Calibration but must preserve the Validation partition identity.
+- A root **Reference Dataset Version** has no parent; an immutable child names the exact parent version, increments the dataset version, and is published outside the parent package for each target independently.
 - Changing Validation starts a new **Reference Validation Epoch**, and changing source bytes creates a new **Reference Source Revision**; neither operation overwrites earlier versions.
 - **Reference Dataset Readiness** is invalidated by source drift or by a change to the signed target-specific review scope.
 - One **M6 Calibration Campaign** selects its **First-Shell Geometry Policy** on Calibration before sweeping classification parameters.

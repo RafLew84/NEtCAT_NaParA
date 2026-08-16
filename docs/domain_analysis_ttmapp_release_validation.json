@@ -1,7 +1,7 @@
 {
-  "validation_schema_version": 2,
-  "validated_at": "2026-08-15",
-  "workflow": "TTMAPP variant C hard-cutover acceptance",
+  "validation_schema_version": 3,
+  "validated_at": "2026-08-16",
+  "workflow": "TTMAPP variant C production MainWindow acceptance",
   "fixture": {
     "orientation_reference": "tests/moltrack/fixtures/molecular_orientation_reference_ttmapp_v1.json",
     "domain_geometry": [
@@ -13,47 +13,51 @@
     "validation_measurement_group": "ttmapp-validation"
   },
   "workflow_assertions": {
+    "production_main_window": true,
+    "production_domain_analysis_composition": true,
+    "operator_controls_only": true,
+    "public_snapshots_reports_files_and_events_only": true,
     "both_stable_backends": true,
     "point_and_polygon_corrections": true,
     "independent_m6_and_orientation_review": true,
     "save_open_session_v3": true,
+    "no_custom_export_callback": true,
     "correction_aware_export_v10": true,
-    "m6_reference_v2": true,
-    "orientation_reference_v2": true,
+    "legacy_v9_not_used_for_production": true,
+    "m6_reference_root_and_child_v2": true,
+    "orientation_reference_root_and_child_v2": true,
     "explicit_operator_preset": true,
-    "explicit_first_shell_policy": true,
     "fixed_adaptive_first_shell_comparison": true,
     "both_backends_pair_correlation_evidence": true,
     "adaptive_first_shell_preset_executed": true,
-    "first_shell_true_positive_verified": true,
     "same_reference_version_for_both_backends": true,
     "automatic_snapshot_identity_preserved": true,
     "backendless_snapshot_rejected": true,
-    "legacy_dataset_review_flags_absent": true,
-    "legacy_v1_audit_only_migration": true
+    "legacy_dataset_review_flags_absent": true
   },
-  "automatic_snapshot_fingerprints": [
-    "0e80c0d995bf891019116699a61db5c553666cf43ce6fa48e009cf1e5a7ba1c7",
-    "345a139a32300b72ba6eb477e07cb450357c1218d08a1a18788995601b506315",
-    "4268779c1b3d44b0ba20db8d306089042313fb92d4bec6dde210236aac3a765d",
-    "7ef8871660946b284c09b4408fc205fdfab03524e2a70318cc9fb5c87cb261a3"
-  ],
+  "automatic_snapshot_count": 4,
   "export": {
     "backend_ids": [
       "m3_m6_lattice_network",
       "m6_orientation_components"
     ],
+    "correction_revision": 3,
+    "export_mode": "reference",
     "export_schema_version": 10,
-    "correction_revision": 3
+    "package_kind": "moltrack_correction_aware_analysis"
   },
   "reference_packages": {
     "m6": {
-      "version_id": "ttmapp-m6-cutover-v1-9dfbf8823d3a8b5f",
-      "version_fingerprint": "9dfbf8823d3a8b5f1a703d9671273ca60cad07044db4a54f31982b5b190d5519"
+      "child_dataset_version": 2,
+      "parent_link_verified": true,
+      "root_dataset_version": 1,
+      "schema_version": 2
     },
     "orientation": {
-      "version_id": "ttmapp-orientation-cutover-v1-853d001c5f71b266",
-      "version_fingerprint": "853d001c5f71b266d146b3832ad01158db8965a958cdce5a684e1c9c3fc3c311"
+      "child_dataset_version": 2,
+      "parent_link_verified": true,
+      "root_dataset_version": 1,
+      "schema_version": 2
     }
   },
   "campaign": {
@@ -61,43 +65,14 @@
       "m3_m6_lattice_network",
       "m6_orientation_components"
     ],
-    "dataset_version_id": "ttmapp-m6-cutover-v1-9dfbf8823d3a8b5f",
-    "dataset_version_fingerprint": "9dfbf8823d3a8b5f1a703d9671273ca60cad07044db4a54f31982b5b190d5519",
-    "geometry_fingerprint": "2430ad2176a444488950485c54bff6be65212a665e9221684ddf03c2b61f51d0",
-    "recommended_backend_id": "m6_orientation_components",
-    "results": [
-      {
-        "backend_id": "m3_m6_lattice_network",
-        "calibration_group_ids": [
-          "ttmapp-calibration"
-        ],
-        "calibration_macro_ari": 0.0,
-        "calibration_objective_loss": 0.5442622950819673,
-        "passed_validation_constraints": false,
-        "validation_group_ids": [
-          "ttmapp-validation"
-        ],
-        "validation_macro_ari": 1.0,
-        "validation_objective_loss": 1.2
-      },
-      {
-        "backend_id": "m6_orientation_components",
-        "calibration_group_ids": [
-          "ttmapp-calibration"
-        ],
-        "calibration_macro_ari": 0.0,
-        "calibration_objective_loss": 0.5278688524590165,
-        "passed_validation_constraints": true,
-        "validation_group_ids": [
-          "ttmapp-validation"
-        ],
-        "validation_macro_ari": 0.0,
-        "validation_objective_loss": 1.6533333333333333
-      }
+    "compared_geometry_modes": [
+      "fixed",
+      "adaptive"
     ],
+    "geometry_mode": "adaptive",
+    "pair_correlation_evidence_for_both_backends": true,
     "schema_version": "m6-campaign-report-v2",
-    "status": "validated",
-    "validation_epoch_id": "m6-validation-epoch-f78729e5d31d9d024aee3781"
+    "status": "validated"
   },
   "reproduction": {
     "command": "pytest tests/moltrack/test_domain_analysis_ttmapp_cutover.py",

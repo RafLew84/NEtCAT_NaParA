@@ -1,8 +1,8 @@
 {
-  "validation_schema_version": 1,
-  "validated_at": "2026-08-15",
+  "validation_schema_version": 2,
+  "validated_at": "2026-08-16",
   "application_version": "0.1.0",
-  "workflow": "clean-session TTMAPP variant C walkthrough",
+  "workflow": "clean-session TTMAPP variant C production MainWindow walkthrough",
   "result": "passed",
   "acceptance_evidence": "docs/domain_analysis_ttmapp_release_validation.json",
   "fixture": {
@@ -14,15 +14,20 @@
   },
   "walkthrough_assertions": {
     "both_stable_backends": true,
+    "production_main_window_and_composition": true,
+    "segmentation_preferred_geometry": true,
     "point_and_polygon_corrections": true,
     "independent_m6_and_orientation_review": true,
     "save_open_session_v3": true,
     "correction_aware_export_v10": true,
-    "m6_reference_v2": true,
-    "orientation_reference_v2": true,
+    "m6_reference_root_and_child_v2": true,
+    "orientation_reference_root_and_child_v2": true,
+    "fixed_adaptive_geometry_comparison": true,
+    "both_backends_pair_correlation_evidence": true,
     "one_shot_validation_campaign_report_v2": true,
     "production_variant_c_only": true
   },
+  "screenshot_source": "production MolTrackMainWindow composition",
   "help": {
     "menu": "Help",
     "action": "Domain Analysis Guide",
@@ -33,22 +38,22 @@
     {
       "stage": "Analyze",
       "path": "screenshots/spatial-command-center-analyze.png",
-      "sha256": "d388dd759470b08964d5f10936338fa7c65f05afb862db22fc5425730db4e967"
+      "sha256": "cc963e296fc47ec6bb1082cdd3bdc08441225669d0656961a45229197706e007"
     },
     {
       "stage": "Correct",
       "path": "screenshots/spatial-command-center-correct.png",
-      "sha256": "dd4758228ac0349f987f7dca06d80c492c4da7dcb8d73605d965687d4dd8be4c"
+      "sha256": "b653aeefedc3be2ed76d576c736340f664e91a8b606dd9cf490c474d48174e54"
     },
     {
       "stage": "Review",
       "path": "screenshots/spatial-command-center-review.png",
-      "sha256": "c833836bb3eb263f11551fcc054190830c69115459ca59868b0262777d164d3e"
+      "sha256": "3f8a0767197ba16254019a24cb0849b78dfcc4a2153b6a492955f8022cf5f436"
     },
     {
       "stage": "Calibrate",
       "path": "screenshots/spatial-command-center-calibrate.png",
-      "sha256": "b39804983cc14e414b67db54be8401d4ccc2e7db56a630c0b71592ccca4b2145"
+      "sha256": "fc64054832cf97eb80130cbc27ea64ba3ae29310462dd5ecc054497bb5b52201"
     }
   ],
   "reproduction": {

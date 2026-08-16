@@ -1,6 +1,6 @@
 # Domain Analysis — referencja techniczna
 
-**Status:** kontrakt produkcyjny MolTrack 0.1.0; zweryfikowany 2026-08-15
+**Status:** kontrakt produkcyjny MolTrack 0.1.0; zweryfikowany 2026-08-16
 
 **Interfejs:** C — Spatial Command Center
 
@@ -16,11 +16,11 @@
 | `DomainCorrectionModule.initialize/prepare/dispatch/project(...)` | Jest jedynym właścicielem correction history, konfliktów, Undo/Redo, review, rebase i Effective Domain Projection | wdrożony |
 | `DomainAnalysisWorkspaceController.snapshot/dispatch(...)` | Udostępnia jeden niemutowalny snapshot UI: analizę, korekty, selection, highlight i prepared preview | wdrożony |
 | `save_moltrack_session(...)` / `load_moltrack_session(...)` | Waliduje i atomowo zapisuje/otwiera wersjonowaną sesję; wykonuje migrację i quarantine | session v3; loader v1/v2/v3 |
-| `export_analysis_package(...)` | Publikuje v10 correction-aware; v9 pozostaje legacy automatic-only | wdrożony |
+| `export_analysis_package(...)` | Publikuje produkcyjny v10 correction-aware; jawna ścieżka v9 jest wyłącznie legacy automatic-only | wdrożony |
 | Target-specific Reference Dataset modules | Publikują i czytają niemutowalne M6/Orientation Reference Dataset Version | target schema v2, envelope v2 |
 | `M6PresetLibrary` / `M6PresetWorkspace` | Zarządzają saved presets, working copy i jednym active presetem | schema v1; wdrożone |
 | `run_lattice_domain_calibration_campaign(...)` | Orkiestruje bounded search, metryki, shortlistę i jednorazową Validation | campaign report v2; wdrożony |
-| `MainWindow` + `DomainAnalysisDialog` | Cienko renderują snapshot i wysyłają akcje Controllerowi | produkcyjny wariant C z przewodnikiem Help |
+| `MolTrackMainWindow` + `build_domain_analysis_main_window_composition(...)` | Składa produkcyjne adaptery, preset library, workflow i `DomainAnalysisDialog`; kontrolki renderują snapshot i wysyłają akcje Controllerowi | produkcyjny wariant C z przewodnikiem Help |
 
 UI, persistence ani eksport nie mogą implementować ponownie reguł projekcji,
 review, rebase lub gotowości datasetu. Każda z tych reguł ma jednego właściciela
@@ -153,6 +153,11 @@ mają osobne modele v2, osobne review i osobne Calibration/Validation. Jednostk�
 splitu jest cały `measurement_group`; content, acquisition i lineage fingerprinty
 blokują leakage przez rename, kopię lub sąsiednią klatkę.
 
+Pierwsza publikacja targetu jest rootem (`dataset_version=1`, bez rodzica).
+Aktualizacja jest publikowana poza katalogiem rodzica jako immutable child z
+rosnącą wersją i dokładnym `parent_version_id`. Identyczny Validation partition
+zachowuje epoch; reguła jest egzekwowana niezależnie dla M6 i Orientation.
+
 Preset jest konfiguracją przyszłego runu, nie dowodem walidacji. Analiza zamraża
 backend, ustawienia, First-Shell Geometry Policy, wersje i fingerprint. Późniejsza
 edycja biblioteki nie zmienia runu.
@@ -189,7 +194,9 @@ Minimalny zestaw końcowy obejmuje:
 - publikację obu Reference Dataset v2 i brak leakage/source drift;
 - zamrożenie runu względem zmian biblioteki presetów;
 - jednorazowy Validation receipt i report v2;
-- pełny przypadek TTMAPP oraz test `Help` otwierający instrukcję.
+- pełny przypadek TTMAPP przez rzeczywisty `MolTrackMainWindow`, domyślną kompozycję,
+  oba backendy, geometrię masek, publikacje root/child i test `Help` otwierający
+  instrukcję.
 
 Przed finalnym wydaniem pełne `tests/moltrack` działają z
 `QT_QPA_PLATFORM=offscreen`, a `scripts/check_moltrack_code_size.py` pozostaje

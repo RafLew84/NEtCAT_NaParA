@@ -72,6 +72,8 @@ modyfikuj JSON ręcznie, ponieważ można utracić provenance lub fingerprinty.
 | Validation epoch already consumed | Istnieje receipt dla zamrożonej shortlisty/epoch | Nie otwieraj Validation ponownie; rozpocznij nową kampanię lub jawnie nowy epoch |
 | preset incompatible | Nieznana schema, brak parametru lub niedostępny backend | Importuj w zgodnej wersji, migruj jako working copy i użyj `Save As`; nie uzupełniaj defaultami |
 | prepared preview stale | Selection lub workspace revision zmieniły się po Preview | Anuluj preview, ponownie przygotuj batch i przeczytaj aktualne skutki |
+| incompatible Reference Dataset parent | Child wskazuje inny target/dataset, starszą niezgodną wersję albo leży wewnątrz katalogu rodzica | Wskaż dokładny immutable parent tego samego targetu i `dataset_id`; wybierz osobny katalog docelowy |
+| legacy v9 użyty jako wynik produkcyjny | Wybrano jawną akcję automatic-only zamiast correction-aware publikacji | Nie dopisuj readiness do v9; wróć do review i wykonaj produkcyjny export v10 |
 
 ## Stale correction i rebase
 
@@ -126,6 +128,10 @@ Zmiana efektywnego wyniku po sign-off unieważnia odpowiedni scope.
 Readiness wymaga również niepustych Calibration i Validation, target-specific
 sign-offs, source provenance, zgodnych fingerprintów i braku aktywnego conflict,
 stale, quarantine, leakage oraz drift.
+
+Przy publikacji child sprawdź preview ancestry: wersja ma rosnąć, a
+`parent_version_id` musi wskazywać immutable root/child bez modyfikowania katalogu
+rodzica. Wykonaj tę kontrolę oddzielnie dla M6 i Orientation.
 
 ## Zużyty Validation epoch
 

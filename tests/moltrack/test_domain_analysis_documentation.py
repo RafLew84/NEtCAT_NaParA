@@ -174,15 +174,25 @@ def test_documentation_release_records_clean_ttmapp_walkthrough_and_help() -> No
     release = json.loads(DOCUMENTATION_RELEASE.read_text(encoding="utf-8"))
     acceptance = json.loads(TTMAPP_RELEASE_VALIDATION.read_text(encoding="utf-8"))
 
-    assert release["validation_schema_version"] == 1
+    assert release["validation_schema_version"] == 2
     assert release["validated_at"] == acceptance["validated_at"]
     assert release["application_version"] == moltrack_version
     assert release["result"] == "passed"
-    assert release["workflow"] == "clean-session TTMAPP variant C walkthrough"
+    assert release["workflow"] == (
+        "clean-session TTMAPP variant C production MainWindow walkthrough"
+    )
     assert release["acceptance_evidence"] == (
         "docs/domain_analysis_ttmapp_release_validation.json"
     )
     assert acceptance["campaign"]["status"] == "validated"
+    assert acceptance["validation_schema_version"] == 3
+    assert acceptance["workflow_assertions"]["production_main_window"] is True
+    assert acceptance["workflow_assertions"][
+        "m6_reference_root_and_child_v2"
+    ] is True
+    assert release["screenshot_source"] == (
+        "production MolTrackMainWindow composition"
+    )
     assert len(acceptance["fixture"]["domain_geometry"]) >= 2
     assert release["help"] == {
         "menu": "Help",

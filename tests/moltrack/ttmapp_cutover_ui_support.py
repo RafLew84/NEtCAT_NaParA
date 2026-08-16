@@ -1,125 +1,185 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
-from itertools import count
+import time
+from dataclasses import dataclass
 from pathlib import Path
-from uuid import NAMESPACE_URL, uuid5
 
 from PyQt6.QtGui import QFont, QFontDatabase
+from PyQt6.QtWidgets import QFileDialog, QInputDialog, QMessageBox
 
 from moltrack.analysis.domain_analysis import (
     DomainAnalysisSessionState,
-    DomainAnalysisWorkspaceController,
-    DomainAnalysisWorkspaceExecution,
-    DomainCorrectionModule,
     M6_ORIENTATION_COMPONENTS_BACKEND_ID,
-    ReferenceReviewPolicy,
-    RestoreDomainAnalysisWorkspace,
+    M3_M6_LATTICE_NETWORK_BACKEND_ID,
 )
-from moltrack.persistence import (
-    CanonicalJsonObject,
-    CorrectionAwareExportSettings,
-    export_analysis_package,
-    load_moltrack_session,
-    save_moltrack_session,
-)
-from moltrack.ui.dialogs.domain_analysis_dialog import DomainAnalysisDialog
-from moltrack.ui.domain_analysis_workflow_sheet import (
-    DomainAnalysisWorkflowActions,
-)
+from moltrack.persistence import load_moltrack_session
+from moltrack.ui import MolTrackMainWindow
 
 
-_NOW = datetime(2026, 8, 15, 10, 0, tzinfo=timezone.utc)
 _CAPTURED_DOCUMENTATION_STAGES: set[str] = set()
 _DOCUMENTATION_FONT_READY = False
 
 
-def correct_and_review(
+@dataclass(frozen=True)
+class MainWindowAnalysisArtifacts:
+    state: DomainAnalysisSessionState
+    session_path: Path
+    export_path: Path
+
+
+@dataclass(frozen=True)
+class MainWindowReleaseArtifacts:
+    m6_package: Path
+    orientation_package: Path
+    campaign_report: Path | None
+    geometry_prompt: str | None
+
+
+def analyze_in_main_window(
     group,
-    request,
-    module,
-    preset_library,
+    backend_id,
+    settings,
     qt_app,
     tmp_path,
-) -> tuple[DomainAnalysisSessionState, object]:
+    monkeypatch,
+) -> MainWindowAnalysisArtifacts:
+    """Drive one real backend through MainWindow's production composition."""
+
     _prepare_documentation_capture(qt_app)
-    controller = DomainAnalysisWorkspaceController(
-        request,
-        physical_frame_ids=(group.physical_frame_id,),
-        execution=DomainAnalysisWorkspaceExecution(
-            module,
-            group.analysis_series,
-            _InlineExecutor(),
-        ),
-        correction_module=DomainCorrectionModule(
-            manual_domain_id_factory=_stable_id_factory(group.group_id, "manual-domain"),
-            correction_operation_id_factory=_stable_id_factory(
-                group.group_id, "operation"
-            ),
-            correction_history_id_factory=_stable_id_factory(group.group_id, "history"),
-            clock=lambda: _NOW,
-        ),
-        review_policy=ReferenceReviewPolicy(clock=lambda: _NOW),
+    home = tmp_path / "operator-home"
+    session_path = tmp_path / f"mainwindow-{group.split}-{backend_id}.moltrack.json"
+    export_parent = tmp_path / "exports" / group.split / backend_id
+    export_parent.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: home))
+    monkeypatch.setattr(
+        QFileDialog,
+        "getSaveFileName",
+        staticmethod(lambda *_args, **_kwargs: (str(session_path), "")),
     )
-    session_path = tmp_path / (
-        f"ttmapp-{group.split}-{request.backend_id}.moltrack.json"
+    monkeypatch.setattr(
+        QFileDialog,
+        "getOpenFileName",
+        staticmethod(lambda *_args, **_kwargs: (str(session_path), "")),
     )
-    export_path = tmp_path / f"ttmapp-v10-{group.split}-{request.backend_id}"
+    monkeypatch.setattr(
+        QFileDialog,
+        "getExistingDirectory",
+        staticmethod(lambda *_args, **_kwargs: str(export_parent)),
+    )
+    monkeypatch.setattr(
+        QMessageBox,
+        "critical",
+        staticmethod(lambda *_args, **_kwargs: QMessageBox.StandardButton.Ok),
+    )
 
-    def save_session() -> object:
-        return save_moltrack_session(
-            session_path,
-            group.series,
-            {"domain_analysis": _session_state(group, controller)},
+    window = MolTrackMainWindow(
+        yolo_model_discovery=lambda: [],
+        sam2_checkpoint_discovery=lambda: [],
+    )
+    try:
+        window.set_image_series(group.series)
+        assert window.domain_analysis_dialog() is None
+        window.btn_position_analysis.click()
+        dialog = window.domain_analysis_dialog()
+        assert dialog is not None
+        _activate_tuned_preset(dialog, backend_id, settings, qt_app)
+        dialog.command_center.stage_button("analyze").click()
+        dialog.analyze_button.click()
+        _wait_until(
+            qt_app,
+            lambda: (
+                dialog.command_center.rendered_snapshot is not None
+                and dialog.command_center.rendered_snapshot.run.status
+                in {"completed", "completed_with_errors"}
+            ),
+            lambda: dialog.diagnosis_label.text(),
         )
-
-    def open_session() -> Path:
-        restored = load_moltrack_session(session_path).domain_analysis_state
-        _restore_session(controller, restored)
-        return session_path
-
-    def export_publication(_publication) -> Path:
-        return export_analysis_package(
-            _session_state(group, controller),
-            CorrectionAwareExportSettings(
-                destination=export_path,
-                source_identity=CanonicalJsonObject({
-                    "source_file_name": group.source_path.name,
-                    "acquisition_fingerprint": group.acquisition_fingerprint,
-                    "lineage_fingerprint": group.lineage_fingerprint,
-                }),
+        snapshot = dialog.command_center.rendered_snapshot
+        assert snapshot is not None and snapshot.published is not None
+        _capture_documentation_stage(dialog, "analyze", qt_app)
+        result = snapshot.published.result
+        _correct_and_review_in_ui(dialog, group, result, qt_app)
+        dialog.command_center.stage_button("datasets").click()
+        dialog.reference_dataset_sheet.save_session_button.click()
+        _wait_until(
+            qt_app,
+            lambda: session_path.is_file() and window.action_open_state.isEnabled(),
+            lambda: window.statusBar().currentMessage(),
+        )
+        dialog.reference_dataset_sheet.open_session_button.click()
+        _wait_until(
+            qt_app,
+            lambda: (
+                window.statusBar().currentMessage().startswith("Loaded state")
+                and window.btn_position_analysis.isEnabled()
             ),
-        ).package_path
+            lambda: window.statusBar().currentMessage(),
+        )
+        window.btn_position_analysis.click()
+        reopened = window.domain_analysis_dialog()
+        assert reopened is not None
+        loaded = load_moltrack_session(session_path).domain_analysis_state
+        assert loaded is not None
+        reopened_snapshot = reopened.command_center.rendered_snapshot
+        assert reopened_snapshot is not None
+        assert reopened_snapshot.published == loaded.published_result
+        reopened.command_center.stage_button("datasets").click()
+        reopened.export_button.click()
+        export_path = export_parent / f"{group.source_path.stem}-domain-analysis"
+        _wait_until(
+            qt_app,
+            lambda: (export_path / "manifest.json").is_file(),
+            lambda: window.statusBar().currentMessage(),
+        )
+        return MainWindowAnalysisArtifacts(
+            state=loaded,
+            session_path=session_path,
+            export_path=export_path,
+        )
+    finally:
+        window.close()
+        window.deleteLater()
+        qt_app.processEvents()
 
-    dialog = DomainAnalysisDialog(
-        controller,
-        m6_preset_name="TTMAPP explicit cutover preset",
-        classifier_preset_name="No classifier",
-        m6_preset_library=preset_library,
-        workflow_actions=DomainAnalysisWorkflowActions(
-            save_session=save_session,
-            open_session=open_session,
-        ),
-        export_published=export_publication,
-        canvas_frame_for=lambda _frame_index: group.series.raw_frames[0],
-    )
-    dialog.show()
-    _activate_preset_in_ui(dialog, request.backend_id, qt_app)
-    dialog.command_center.stage_button("analyze").click()
-    dialog.analyze_button.click()
+
+def _activate_tuned_preset(dialog, backend_id, settings, qt_app) -> None:
+    sheet = dialog.m6_preset_sheet
+    preset_name = f"TTMAPP production acceptance [{backend_id}]"
+    dialog.command_center.stage_button("presets").click()
+    index = sheet.preset_combo.findData(preset_name)
+    if index < 0:
+        built_in = {
+            M6_ORIENTATION_COMPONENTS_BACKEND_ID: "TTMAPP M6 Orientation Components",
+            M3_M6_LATTICE_NETWORK_BACKEND_ID: "TTMAPP M3/M6 Lattice Network",
+        }[backend_id]
+        index = sheet.preset_combo.findData(built_in)
+        assert index >= 0
+        sheet.preset_combo.setCurrentIndex(index)
+        for field_name, value in settings.to_dict().items():
+            control = sheet.settings_editor.control(field_name)
+            if not control.isEnabled():
+                continue
+            if hasattr(control, "setChecked") and isinstance(value, bool):
+                control.setChecked(value)
+            elif hasattr(control, "setValue") and isinstance(value, (int, float)):
+                control.setValue(value)
+            elif hasattr(control, "setText"):
+                control.setText(str(value))
+        sheet.name_edit.setText(preset_name)
+        sheet.description_edit.setText("Verified TTMAPP production acceptance")
+        sheet.save_as_button.click()
+        assert sheet.status_label.text() == f"Saved {preset_name}."
+    else:
+        sheet.preset_combo.setCurrentIndex(index)
+    if sheet.set_active_button.isEnabled():
+        sheet.set_active_button.click()
     qt_app.processEvents()
-    publication = controller.snapshot.published
-    assert publication is not None, (
-        group.split,
-        request.backend_id,
-        controller.snapshot.run,
-    )
-    assert publication.request == request
-    result = publication.result
-    assert dialog.command_center.current_sheet_stage == "analyze"
-    assert dialog.command_center.rendered_snapshot is controller.snapshot
-    _capture_documentation_stage(dialog, "analyze", qt_app)
+    assert sheet.preset_combo.currentData() == preset_name
+    assert dialog.domain_backend_combo.currentData() == backend_id
+
+
+def _correct_and_review_in_ui(dialog, group, result, qt_app) -> None:
     dialog.command_center.stage_button("correct").click()
     dialog.command_center.canvas.select_molecule(group.source_ids[0])
     dialog.orientation_target_combo.setCurrentText("A")
@@ -128,12 +188,17 @@ def correct_and_review(
     dialog.orientation_apply_button.click()
     dialog.correction_clear_selection_button.click()
     dialog.correction_polygon_selection_button.click()
-    width, height = group.series.frame_shape[1], group.series.frame_shape[0]
-    dialog.command_center.canvas.select_polygons((
-        ((-1.0, -1.0), (width, -1.0), (width, height), (-1.0, height)),
-    ))
+    height, width = group.series.frame_shape
+    dialog.command_center.canvas.select_polygons(((
+        (-1.0, -1.0),
+        (width, -1.0),
+        (width, height),
+        (-1.0, height),
+    ),))
     qt_app.processEvents()
-    assert controller.snapshot.domain_corrections.selected_source_ids == tuple(
+    snapshot = dialog.command_center.rendered_snapshot
+    assert snapshot is not None
+    assert snapshot.domain_corrections.selected_source_ids == tuple(
         sorted(group.source_ids)
     )
     dialog.manual_domain_create_button.click()
@@ -148,10 +213,13 @@ def correct_and_review(
         dialog.correction_confirm_impact_checkbox.setChecked(True)
     dialog.orientation_apply_button.click()
     qt_app.processEvents()
-    projection = controller.snapshot.domain_corrections.effective_projection
+    snapshot = dialog.command_center.rendered_snapshot
+    assert snapshot is not None
+    projection = snapshot.domain_corrections.effective_projection
     assert projection is not None
+    physical_frame_id = snapshot.physical_frame_ids[0]
     assert all(
-        projection.molecule(group.physical_frame_id, source_id).m6_partition
+        projection.molecule(physical_frame_id, source_id).m6_partition
         == "full_domain"
         for source_id in group.source_ids
     )
@@ -168,134 +236,206 @@ def correct_and_review(
     _review_target_in_ui(
         dialog.reference_review_sheet,
         "orientation",
-        {source_id: "created" for source_id in group.source_ids},
+        {
+            source_id: _orientation_disposition(
+                projection,
+                physical_frame_id,
+                source_id,
+            )
+            for source_id in group.source_ids
+        },
         qt_app,
     )
     _capture_documentation_stage(dialog, "review", qt_app)
-    dialog.correction_clear_selection_button.click()
-    dialog.command_center.stage_button("datasets").click()
-    dialog.reference_dataset_sheet.save_session_button.click()
-    dialog.reference_dataset_sheet.open_session_button.click()
-    qt_app.processEvents()
-    assert "Open session completed" in dialog.reference_dataset_sheet.status_label.text()
-    state = _session_state(group, controller)
-    assert load_moltrack_session(session_path).domain_analysis_state == state
-    dialog.export_button.click()
-    qt_app.processEvents()
-    assert (export_path / "manifest.json").is_file()
-    dialog.close()
-    dialog.deleteLater()
-    qt_app.processEvents()
-    return state, result
 
 
-def run_release_actions_in_ui(
-    group,
-    state,
-    preset_library,
-    workflow_actions,
+def _wait_until(qt_app, predicate, failure_message, *, timeout: float = 30.0) -> None:
+    deadline = time.monotonic() + timeout
+    while not predicate() and time.monotonic() < deadline:
+        qt_app.processEvents()
+        time.sleep(0.01)
+    assert predicate(), failure_message()
+
+
+def publish_release_in_main_window(
+    groups,
+    sessions_by_split,
     qt_app,
-) -> None:
-    _prepare_documentation_capture(qt_app)
-    assert state.draft is not None
-    controller = DomainAnalysisWorkspaceController(
-        state.draft,
-        physical_frame_ids=(group.physical_frame_id,),
+    tmp_path,
+    monkeypatch,
+    *,
+    ancestry: str,
+    parent_packages=None,
+    run_campaign: bool = False,
+    geometry_preset_name: str = "TTMAPP adaptive Calibration geometry",
+) -> MainWindowReleaseArtifacts:
+    """Publish root/child references through a fresh production MainWindow."""
+
+    if ancestry not in {"new dataset root", "immutable child"}:
+        raise ValueError(f"Unsupported publication ancestry: {ancestry!r}.")
+    release_name = "root" if ancestry == "new dataset root" else "child"
+    release_root = tmp_path / f"production-{release_name}-release"
+    current_session = [None]
+    current_group = [None]
+    geometry_prompts: list[str] = []
+    def get_open_file(*_args, **_kwargs):
+        path = current_session[0]
+        assert path is not None
+        return str(path), ""
+
+    def get_directory(_owner, title, *_args, **_kwargs):
+        if title.startswith("Select parent m6"):
+            assert parent_packages is not None
+            return str(parent_packages["m6"])
+        if title.startswith("Select parent orientation"):
+            assert parent_packages is not None
+            return str(parent_packages["orientation"])
+        if title == "Publish m6 Reference Dataset v2":
+            destination = release_root / "m6"
+        elif title == "Publish orientation Reference Dataset v2":
+            destination = release_root / "orientation"
+        elif title == "Publish M6 campaign report v2":
+            destination = release_root / "campaign"
+        else:
+            raise AssertionError(f"Unexpected directory prompt: {title!r}")
+        destination.mkdir(parents=True, exist_ok=True)
+        return str(destination)
+
+    def get_item(_owner, title, label, *_args, **_kwargs):
+        group = current_group[0]
+        if label == "Whole measurement group split":
+            assert group is not None
+            return group.split, True
+        if label == "Publication ancestry":
+            return ancestry, True
+        if label.startswith("Select first-shell geometry policy"):
+            geometry_prompts.append(label)
+            return "adaptive", True
+        prompt_group = next(value for value in groups if value.group_id in title)
+        return (
+            "trifold" if prompt_group.split == "calibration" else "sixfold"
+        ), True
+
+    def get_text(_owner, title, label, *_args, **_kwargs):
+        group = current_group[0]
+        if label == "Stable measurement_group_id":
+            assert group is not None
+            return group.group_id, True
+        if label == "Stable acquisition fingerprint":
+            assert group is not None
+            return group.acquisition_fingerprint, True
+        if label == "Stable sample/condition lineage fingerprint":
+            assert group is not None
+            return group.lineage_fingerprint, True
+        if label == "Active preset name":
+            return geometry_preset_name, True
+        if label == "Stable dataset_id":
+            return (
+                "ttmapp-m6-cutover"
+                if "m6" in title.lower()
+                else "ttmapp-orientation-cutover"
+            ), True
+        raise AssertionError(f"Unexpected text prompt: {title!r} / {label!r}")
+
+    def get_edges(_owner, title, _label, *_args, **_kwargs):
+        group = next(value for value in groups if value.group_id in title)
+        left, right = group.reviewed_first_shell_edge
+        return f"{left},{right}", True
+
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", staticmethod(get_open_file))
+    monkeypatch.setattr(
+        QFileDialog,
+        "getExistingDirectory",
+        staticmethod(get_directory),
     )
-    _restore_session(controller, state)
-    dialog = DomainAnalysisDialog(
-        controller,
-        m6_preset_name="TTMAPP explicit cutover preset",
-        classifier_preset_name="No classifier",
-        export_published=lambda _publication: None,
-        m6_preset_library=preset_library,
-        workflow_actions=workflow_actions,
-        canvas_frame_for=lambda _frame_index: group.series.raw_frames[0],
+    monkeypatch.setattr(QInputDialog, "getItem", staticmethod(get_item))
+    monkeypatch.setattr(QInputDialog, "getText", staticmethod(get_text))
+    monkeypatch.setattr(
+        QInputDialog,
+        "getMultiLineText",
+        staticmethod(get_edges),
     )
-    dialog.show()
-    _activate_preset_in_ui(
-        dialog,
-        M6_ORIENTATION_COMPONENTS_BACKEND_ID,
-        qt_app,
+    objectives = iter((0.9, 0.8, 0.2, 0.2))
+    monkeypatch.setattr(
+        QInputDialog,
+        "getDouble",
+        staticmethod(
+            lambda *_args, **_kwargs: (next(objectives), True)
+        ),
     )
-    dialog.command_center.stage_button("datasets").click()
-    assert dialog.reference_dataset_sheet.publish_m6_button.isEnabled()
-    dialog.reference_dataset_sheet.publish_m6_button.click()
-    assert "M6 Reference Dataset v2 completed" in (
-        dialog.reference_dataset_sheet.status_label.text()
-    ), dialog.reference_dataset_sheet.status_label.text()
-    dialog.reference_dataset_sheet.publish_m6_button.click()
-    assert "M6 Reference Dataset v2 completed" in (
-        dialog.reference_dataset_sheet.status_label.text()
-    ), dialog.reference_dataset_sheet.status_label.text()
-    dialog.reference_dataset_sheet.publish_m6_button.click()
-    dialog.reference_dataset_sheet.publish_orientation_button.click()
-    dialog.reference_dataset_sheet.publish_orientation_button.click()
-    dialog.reference_dataset_sheet.publish_orientation_button.click()
-    assert "Orientation Reference Dataset v2 completed" in (
-        dialog.reference_dataset_sheet.status_label.text()
-    )
-    dialog.command_center.stage_button("calibrate").click()
-    assert dialog.calibration_sheet.run_campaign_button.isEnabled()
-    dialog.calibration_sheet.run_campaign_button.click()
-    qt_app.processEvents()
-    status = dialog.calibration_sheet.status_label.text()
-    assert "Calibration report published" in status, status
-    _capture_documentation_stage(dialog, "calibrate", qt_app)
-    dialog.close()
-    dialog.deleteLater()
-    qt_app.processEvents()
-
-
-class _InlineExecutor:
-    def submit(self, job) -> None:
-        job()
-
-    def shutdown(self) -> None:
-        pass
-
-
-def _activate_preset_in_ui(dialog, backend_id, qt_app) -> None:
-    sheet = dialog.m6_preset_sheet
-    preset_name = f"TTMAPP explicit cutover preset [{backend_id}]"
-    dialog.command_center.stage_button("presets").click()
-    index = sheet.preset_combo.findData(preset_name)
-    assert index >= 0
-    sheet.preset_combo.setCurrentIndex(index)
-    if sheet.set_active_button.isEnabled():
-        sheet.set_active_button.click()
-    else:
-        assert "(active)" in sheet.preset_combo.currentText()
-    qt_app.processEvents()
-    assert sheet.preset_combo.currentData() == preset_name
-
-
-def _session_state(group, controller) -> DomainAnalysisSessionState:
-    snapshot = controller.snapshot
-    return DomainAnalysisSessionState(
-        draft=snapshot.draft,
-        draft_physical_frame_ids=(group.physical_frame_id,),
-        published_result=snapshot.published,
-        orientation_class_catalog=snapshot.orientation_class_catalog,
-        domain_corrections=snapshot.domain_corrections,
-        reference_reviews=snapshot.reference_reviews,
-        run_status=snapshot.run.status,
+    monkeypatch.setattr(
+        QMessageBox,
+        "question",
+        staticmethod(lambda *_args, **_kwargs: QMessageBox.StandardButton.Yes),
     )
 
-
-def _restore_session(controller, state) -> None:
-    assert state.draft is not None
-    controller.dispatch(RestoreDomainAnalysisWorkspace(
-        draft=state.draft,
-        published=state.published_result,
-        active_frame_index=state.draft.frame_range.start,
-        selected_component=state.selected_component,
-        run_status=state.run_status,
-        orientation_class_catalog=state.orientation_class_catalog,
-        domain_corrections=state.domain_corrections,
-        reference_reviews=state.reference_reviews,
-        run_diagnosis=state.run_diagnosis,
-    ))
+    window = MolTrackMainWindow(
+        yolo_model_discovery=lambda: [],
+        sam2_checkpoint_discovery=lambda: [],
+    )
+    try:
+        dialog = None
+        for group in groups:
+            current_group[0] = group
+            current_session[0] = sessions_by_split[group.split]
+            window.action_open_state.trigger()
+            _wait_until(
+                qt_app,
+                lambda: (
+                    window.statusBar().currentMessage().startswith("Loaded state")
+                    and window.btn_position_analysis.isEnabled()
+                ),
+                lambda: window.statusBar().currentMessage(),
+            )
+            window.btn_position_analysis.click()
+            dialog = window.domain_analysis_dialog()
+            assert dialog is not None
+            dialog.command_center.stage_button("datasets").click()
+            assert dialog.reference_dataset_sheet.publish_m6_button.isEnabled()
+            dialog.reference_dataset_sheet.publish_m6_button.click()
+            assert dialog.reference_dataset_sheet.publish_orientation_button.isEnabled()
+            dialog.reference_dataset_sheet.publish_orientation_button.click()
+            qt_app.processEvents()
+        assert dialog is not None
+        dialog.reference_dataset_sheet.publish_m6_button.click()
+        m6_status = dialog.reference_dataset_sheet.status_label.text()
+        assert "M6 Reference Dataset v2 completed" in m6_status, m6_status
+        dialog.reference_dataset_sheet.publish_orientation_button.click()
+        orientation_status = dialog.reference_dataset_sheet.status_label.text()
+        assert "Orientation Reference Dataset v2 completed" in orientation_status, (
+            orientation_status
+        )
+        report_path = None
+        if run_campaign:
+            dialog.command_center.stage_button("calibrate").click()
+            assert dialog.calibration_sheet.run_campaign_button.isEnabled()
+            dialog.calibration_sheet.run_campaign_button.click()
+            campaign_status = dialog.calibration_sheet.status_label.text()
+            assert "Calibration report published" in campaign_status, campaign_status
+            _capture_documentation_stage(dialog, "calibrate", qt_app)
+            reports = tuple(
+                (release_root / "campaign" / "m6-campaign-report-v2").glob(
+                    "m6-campaign-report-v2-*/m6_campaign_report_v2.json"
+                )
+            )
+            assert len(reports) == 1
+            report_path = reports[0]
+        return MainWindowReleaseArtifacts(
+            m6_package=(
+                release_root / "m6" / "ttmapp-m6-cutover-reference-v2"
+            ),
+            orientation_package=(
+                release_root
+                / "orientation"
+                / "ttmapp-orientation-cutover-reference-v2"
+            ),
+            campaign_report=report_path,
+            geometry_prompt=(geometry_prompts[0] if geometry_prompts else None),
+        )
+    finally:
+        window.close()
+        window.deleteLater()
+        qt_app.processEvents()
 
 
 def _review_target_in_ui(sheet, target, dispositions, qt_app) -> None:
@@ -312,18 +452,6 @@ def _review_target_in_ui(sheet, target, dispositions, qt_app) -> None:
     assert sheet.sign_off_button.isEnabled()
     sheet.sign_off_button.click()
     qt_app.processEvents()
-
-
-def _stable_id_factory(group_id: str, identity_kind: str):
-    sequence = count(1)
-
-    def create() -> str:
-        return str(uuid5(
-            NAMESPACE_URL,
-            f"moltrack:{group_id}:{identity_kind}:{next(sequence)}",
-        ))
-
-    return create
 
 
 def _capture_documentation_stage(dialog, stage: str, qt_app) -> None:
@@ -388,4 +516,22 @@ def _m6_disposition(result, projection, source_id: str) -> str:
     return "corrected"
 
 
-__all__ = ["correct_and_review", "run_release_actions_in_ui"]
+def _orientation_disposition(
+    projection,
+    physical_frame_id: str,
+    source_id: str,
+) -> str:
+    molecule = projection.molecule(physical_frame_id, source_id)
+    assert molecule.manual_decision is not None
+    classification = molecule.automatic_classification
+    if classification is not None and classification.classification_status == "classified":
+        return "corrected"
+    return "created"
+
+
+__all__ = [
+    "MainWindowAnalysisArtifacts",
+    "MainWindowReleaseArtifacts",
+    "analyze_in_main_window",
+    "publish_release_in_main_window",
+]

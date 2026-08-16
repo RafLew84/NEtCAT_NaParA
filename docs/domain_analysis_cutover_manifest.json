@@ -206,7 +206,7 @@
         {
           "path": "tests/moltrack/ttmapp_cutover_ui_support.py",
           "anchors": [
-            "def correct_and_review(",
+            "def _correct_and_review_in_ui(",
             "_review_target_in_ui(",
             "sheet.sign_off_button.click()"
           ]
@@ -253,8 +253,8 @@
           "path": "tests/moltrack/test_domain_analysis_ttmapp_cutover.py",
           "anchors": [
             "test_ttmapp_variant_c_cutover_preserves_identity_through_campaign",
-            "export_manifest[\"export_schema_version\"] == 10",
-            "release_workflow.last_campaign"
+            "manifest[\"export_schema_version\"] == 10",
+            "publish_release_in_main_window("
           ]
         },
         {
@@ -267,7 +267,7 @@
         {
           "path": "docs/domain_analysis_ttmapp_release_validation.json",
           "anchors": [
-            "\"validation_schema_version\": 2",
+            "\"validation_schema_version\": 3",
             "\"same_reference_version_for_both_backends\": true"
           ]
         }

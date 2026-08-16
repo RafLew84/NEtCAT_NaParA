@@ -1,6 +1,6 @@
 # Domain Analysis — instrukcja użytkownika
 
-**Status:** wydana z MolTrack 0.1.0; zweryfikowana 2026-08-15
+**Status:** wydana z MolTrack 0.1.0; zweryfikowana 2026-08-16
 
 **Interfejs:** C — Spatial Command Center
 
@@ -29,9 +29,10 @@ objąć polecenie. Sam highlight nigdy nie modyfikuje danych.
    wymagane przez wybrany backend domen.
 2. W panelu bocznym `Domain Analysis` kliknij `Domain Analysis...` i wybierz etap
    `Analyze`.
-3. Wybierz backend oraz preset M6, ustaw zakres obejmujący jedną klatkę i uruchom
-   `Analyze range`. Poczekaj na stan zakończony; nie uznawaj wyniku częściowego
-   za review.
+3. Wybierz backend oraz preset M6, ustaw zakres obejmujący jedną klatkę i wybierz
+   geometrię. Zaznaczone `Use segmentation centroids when available` oznacza
+   `segmentation_preferred`: maska wyznacza pozycję, a bbox jest fallbackiem tylko
+   dla źródła bez maski. Uruchom `Analyze range` i poczekaj na stan zakończony.
 4. Przejdź do `Correct`. Kliknięcie w canvas lub wiersz tabeli ma wskazywać ten sam
    obiekt. Wybierz dokładnie jedną oś edycji: `M6 membership` albo `Orientation`.
 5. Zaznacz molekuły punktem lub polygonem. Otwórz `Preview`, przeczytaj skutki,
@@ -53,10 +54,11 @@ Ten sam Quick start jest dostępny z `Help > Domain Analysis Guide`.
 - wersja aplikacji: `0.1.0`;
 - dane: rzeczywiste pliki TTMAPP `movie2/34855.STP` i `movie3/34172.STP`
   z zamrożonym manifestem detekcji;
-- data: `2026-08-15`;
-- wynik: `passed` dla deterministycznego clean-session walkthrough, obu
-  backendów, Save/Open v3, exportu v10, obu Reference Dataset v2 i campaign
-  report v2;
+- data: `2026-08-16`;
+- wynik: `passed` dla jednego clean-session walkthrough przez rzeczywisty
+  `MolTrackMainWindow` i produkcyjną kompozycję, obu backendów, geometrii
+  `segmentation_preferred`, Save/Open v3, exportu v10, publikacji root/child obu
+  Reference Dataset v2 i campaign report v2;
 - Help: test Qt potwierdza `Help > Domain Analysis Guide`;
 - manifest: [domain_analysis_documentation_release.json](../domain_analysis_documentation_release.json),
   bazujący na [dowodzie hard cutover TTMAPP](../domain_analysis_ttmapp_release_validation.json).
@@ -147,8 +149,10 @@ ponownego review. Jedna zakończona oś nie maskuje braków drugiej.
   aktywne ustawienia oraz correction-aware checkpoint.
 - `Open State` ma odtworzyć dokładnie ten sam efektywny wynik albo jawnie
   poddać niezgodne dane kwarantannie.
-- Legacy export v9 jest formatem automatic-only i nie może udawać, że zawiera korekty.
-- Produkcyjny export v10 zawiera warstwy automatic, correction, review, effective i
+- Produkcyjna ścieżka akceptacyjna używa wyłącznie exportu v10. Jawna akcja
+  `Export legacy v9...` służy tylko diagnostyce/migracji automatic-only i nie jest
+  oczekiwanym wynikiem produkcyjnego workflow.
+- Export v10 zawiera warstwy automatic, correction, review, effective i
   per-point diagnostics. Szczegóły plików są w
   [referencji formatów](DOMAIN_ANALYSIS_FORMATS.md).
 
@@ -163,7 +167,11 @@ wieloplikowego envelope, ale mają różne cele, decyzje i metryki.
 1. Wybierz kompletnie reviewowane measurement groups.
 2. Zamroź source revision oraz podział całych grup na Calibration i Validation.
 3. Uruchom kontrole leakage i source drift.
-4. Sprawdź kompletność właściwej osi i opublikuj niemutowalną wersję.
+4. Przy pierwszej publikacji wybierz `new dataset root`; sprawdź preview ancestry i
+   opublikuj niemutowalną wersję v1.
+5. Następną wersję publikuj jako `immutable child`, wskazując dokładny katalog
+   rodzica. Child ma `dataset_version=2`, `parent_version_id` wersji v1 i pozostaje
+   poza katalogiem rodzica. Powtórz tę kontrolę osobno dla M6 i Orientation.
 
 Validation epoch wolno zużyć tylko raz w przewidzianej kampanii. Publikacja
 referencji orientacji nie oznacza trenowania nowego klasyfikatora A–Z.
@@ -179,7 +187,10 @@ Zapis lub aktywacja presetu nie oznaczają walidacji naukowej.
 
 ## Calibrate
 
-Kampania M6 najpierw porównuje politykę geometrii first-shell na Calibration.
+Kampania M6 najpierw porównuje polityki `fixed` i `adaptive` geometrii first-shell
+na Calibration. Podsumowanie operatora pokazuje rozstrzygnięcie, reason,
+fingerprint evidence i dostępność `g(r)` dla obu backendów; adaptive zawsze ma
+jawny fixed fallback.
 Następnie odrzuca kandydatów niespełniających ograniczeń precision/stability i
 wybiera shortlistę według celu obejmującego recall oraz kary split/merge. Dopiero
 zatwierdzony kandydat może zostać oceniony na jednorazowym Validation epoch.

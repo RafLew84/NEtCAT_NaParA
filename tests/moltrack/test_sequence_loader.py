@@ -35,15 +35,28 @@ class MolTrackSequenceLoaderTests(unittest.TestCase):
         self.assertEqual(series.active_frame_index, 0)
         np.testing.assert_array_equal(series.active_frame, frames[0])
 
-    def test_loader_rejects_non_mpp_sources(self) -> None:
-        def fail_if_called(*args, **kwargs):
-            raise AssertionError("sequence loader should not be called for non-MPP sources")
+    def test_loader_accepts_single_stp_frame_series_source(self) -> None:
+        frames = np.arange(8, dtype=np.float32).reshape(1, 2, 4)
+        metadata = STMSequenceMetadata(pixels_x=4, pixels_y=2)
+        calls = []
 
-        with self.assertRaises(ValueError):
-            load_moltrack_image_series(
-                "frame.stp",
-                sequence_loader=fail_if_called,
+        def fake_sequence_loader(source_path, *, reverse_frame_order=False):
+            calls.append((source_path, reverse_frame_order))
+            return STMSequence(
+                source_path=str(source_path),
+                raw_frames=frames,
+                metadata=metadata,
+                reverse_frame_order=reverse_frame_order,
             )
+
+        series = load_moltrack_image_series(
+            Path("frame.STP"),
+            sequence_loader=fake_sequence_loader,
+        )
+
+        self.assertEqual(calls, [(Path("frame.STP"), False)])
+        self.assertEqual(series.source_path, "frame.STP")
+        np.testing.assert_array_equal(series.active_frame, frames[0])
 
     def test_loader_rejects_multiple_source_paths(self) -> None:
         def fail_if_called(*args, **kwargs):

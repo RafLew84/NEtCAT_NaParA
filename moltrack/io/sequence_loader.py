@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Callable
 
 from moltrack.core import MolTrackImageSeries
-from nanotrack.io import load_stm_sequence
+from nanotrack.io import SUPPORTED_SEQUENCE_EXTENSIONS, load_stm_sequence
 
 
 SequenceLoader = Callable[..., object]
@@ -18,10 +18,14 @@ def load_moltrack_image_series(
     sequence_loader: SequenceLoader = load_stm_sequence,
 ) -> MolTrackImageSeries:
     if not isinstance(source_path, (str, os.PathLike)):
-        raise ValueError("MolTrack currently supports one MPP source file.")
+        raise ValueError("MolTrack supports one STM source file at a time.")
     path = Path(source_path)
-    if path.suffix.lower() != ".mpp":
-        raise ValueError("MolTrack currently supports one MPP source file.")
+    if path.suffix.lower() not in SUPPORTED_SEQUENCE_EXTENSIONS:
+        extensions = ", ".join(sorted(SUPPORTED_SEQUENCE_EXTENSIONS))
+        raise ValueError(
+            "MolTrack source must use a supported STM extension: "
+            f"{extensions}."
+        )
     try:
         sequence = sequence_loader(source_path, reverse_frame_order=reverse_frame_order)
     except Exception as exc:
