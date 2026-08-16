@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from moltrack.analysis.domain_analysis import (
+    DetectionIdentity,
     DomainAnalysisPublication,
     DomainCorrectionWorkspace,
     EffectiveDomainProjection,
@@ -66,7 +67,10 @@ def _effective_projection_fingerprint(
             _m6_molecule_state(value)
             for value in sorted(
                 projection.molecules,
-                key=lambda item: (item.physical_frame_id, item.source_id),
+                key=lambda item: DetectionIdentity(
+                    physical_frame_id=item.physical_frame_id,
+                    source_id=item.source_id,
+                ),
             )
         ],
         "domains": [

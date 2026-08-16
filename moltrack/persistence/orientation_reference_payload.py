@@ -8,6 +8,7 @@ import numpy as np
 
 from moltrack.analysis import MolecularSampleCoordinates
 from moltrack.analysis.domain_analysis import (
+    DetectionIdentity,
     M6FrameGate,
     ReferenceReadinessPolicy,
     ReferenceReviewDecision,
@@ -49,6 +50,7 @@ from .reference_dataset import (
     reference_source_revision_row,
     validated_reference_measurements,
 )
+from .reference_detection_identity import reference_review_decisions_by_identity
 ORIENTATION_REFERENCE_TABLE_FILES = (
     "measurements.jsonl",
     "frames.jsonl",
@@ -79,8 +81,8 @@ class _FrameInputs:
     gate: M6FrameGate
     coordinates: MolecularSampleCoordinates
     pixel_size_nm: tuple[float, float]
-    segmentations: dict[str, MolecularSegmentation]
-    parent_detections: dict[str, MolecularDetection]
+    segmentations: dict[DetectionIdentity, MolecularSegmentation]
+    parent_detections: dict[DetectionIdentity, MolecularDetection]
 
 
 def build_orientation_reference_payload(
@@ -168,8 +170,21 @@ def _validate_frame_input(
         raise ValueError("Orientation raw frame geometry is invalid.")
     if coordinates.source_view != "raw":
         raise ValueError("Orientation reference coordinates must use the raw source view.")
-    expected_ids = tuple(sorted(frame.analyzed_source_ids))
-    if tuple(sorted(coordinates.point_source_ids)) != expected_ids:
+    expected_identities = tuple(sorted(
+        DetectionIdentity(
+            physical_frame_id=frame.physical_frame_id,
+            source_id=source_id,
+        )
+        for source_id in frame.analyzed_source_ids
+    ))
+    coordinate_identities = tuple(sorted(
+        DetectionIdentity(
+            physical_frame_id=frame.physical_frame_id,
+            source_id=source_id,
+        )
+        for source_id in coordinates.point_source_ids
+    ))
+    if coordinate_identities != expected_identities:
         raise ValueError("Orientation sample coordinates must cover analyzed source IDs.")
     if any(value != "segmentation" for value in coordinates.point_source_kinds):
         raise ValueError("Orientation training sources must be segmentations.")
@@ -183,14 +198,17 @@ def _validate_frame_input(
     ):
         raise ValueError("Orientation pixel size conflicts with sample coordinates.")
     segmentations = {
-        value.segmentation_id: value
+        DetectionIdentity(
+            physical_frame_id=frame.physical_frame_id,
+            source_id=value.segmentation_id,
+        ): value
         for value in segmentation_set.get_segmentations(
             frame.frame_index,
             source_view="raw",
         )
-        if value.segmentation_id in expected_ids
+        if value.segmentation_id in frame.analyzed_source_ids
     }
-    if set(segmentations) != set(expected_ids):
+    if set(segmentations) != set(expected_identities):
         raise ValueError("Orientation reference requires one raw mask per source_id.")
     for segmentation in segmentations.values():
         mask = None if segmentation.mask is None else np.asarray(segmentation.mask)
@@ -206,9 +224,9 @@ def _validate_frame_input(
 
 def _validated_parent_detections(
     frame: M6FrameGate,
-    segmentations: dict[str, MolecularSegmentation],
+    segmentations: dict[DetectionIdentity, MolecularSegmentation],
     detection_set: MolecularDetectionSet,
-) -> dict[str, MolecularDetection]:
+) -> dict[DetectionIdentity, MolecularDetection]:
     available = {
         value.detection_id: value
         for value in detection_set.get_detections(
@@ -216,8 +234,8 @@ def _validated_parent_detections(
             source_view="raw",
         )
     }
-    parents: dict[str, MolecularDetection] = {}
-    for source_id, segmentation in segmentations.items():
+    parents: dict[DetectionIdentity, MolecularDetection] = {}
+    for identity, segmentation in segmentations.items():
         if len(segmentation.prompt_detection_ids) != 1:
             raise ValueError(
                 "Orientation segmentation requires one parent Detection Identity."
@@ -228,7 +246,7 @@ def _validated_parent_detections(
             raise ValueError(
                 "Orientation segmentation references an unknown parent Detection Identity."
             )
-        parents[source_id] = parent
+        parents[identity] = parent
     if len({value.detection_id for value in parents.values()}) != len(parents):
         raise ValueError("Orientation segmentations must have distinct parent detections.")
     return parents
@@ -268,7 +286,10 @@ def _append_measurement_payload(
     tables["measurements.jsonl"].append(
         _measurement_row(measurement, source, identity)
     )
-    decisions = _orientation_review_decisions(measurement)
+    decisions = reference_review_decisions_by_identity(
+        measurement.snapshot.reference_reviews,
+        "orientation",
+    )
     for inputs in _validated_frame_inputs(measurement):
         _append_frame_payload(
             tables,
@@ -313,7 +334,7 @@ def _append_frame_payload(
     measurement: OrientationReferenceMeasurementGroup,
     inputs: _FrameInputs,
     identity: OrientationReferenceStateIdentity,
-    decisions: dict[tuple[str, str], ReferenceReviewDecision],
+    decisions: dict[DetectionIdentity, ReferenceReviewDecision],
 ) -> None:
     raw_frame = np.asarray(measurement.series.get_frame(inputs.gate.frame_index))
     raw_object = orientation_array_object("raw_frames", raw_frame)
@@ -332,9 +353,9 @@ def _append_frame_payload(
     coordinate_rows = orientation_coordinate_rows(inputs.coordinates)
     projection = measurement.snapshot.domain_corrections.effective_projection
     assert projection is not None
-    for source_id in sorted(inputs.segmentations):
-        segmentation = inputs.segmentations[source_id]
-        parent_detection = inputs.parent_detections[source_id]
+    for detection_identity in sorted(inputs.segmentations):
+        segmentation = inputs.segmentations[detection_identity]
+        parent_detection = inputs.parent_detections[detection_identity]
         mask_object = orientation_local_mask_object(
             "segmentations",
             segmentation.mask,
@@ -349,38 +370,33 @@ def _append_frame_payload(
             objects,
         )
         prefix = {
-            **orientation_row_prefix(measurement, inputs.gate.physical_frame_id),
-            "source_id": source_id,
+            **orientation_row_prefix(
+                measurement,
+                detection_identity.physical_frame_id,
+            ),
+            "source_id": detection_identity.source_id,
         }
         tables["molecules.jsonl"].append(orientation_molecule_row(
             prefix,
             segmentation,
             parent_detection,
-            coordinate_rows[source_id],
+            coordinate_rows[detection_identity.source_id],
             mask_object,
             original_object,
         ))
         tables["orientation_assignments.jsonl"].append(
             orientation_assignment_row(
                 prefix,
-                projection.molecule(inputs.gate.physical_frame_id, source_id),
-                decisions[(inputs.gate.physical_frame_id, source_id)],
+                projection.molecule(
+                    detection_identity.physical_frame_id,
+                    detection_identity.source_id,
+                ),
+                decisions[detection_identity],
             )
         )
     tables["review_signoffs.jsonl"].append(
         _orientation_signoff_row(measurement, inputs.gate)
     )
-
-
-def _orientation_review_decisions(
-    measurement: OrientationReferenceMeasurementGroup,
-) -> dict[tuple[str, str], ReferenceReviewDecision]:
-    return {
-        (frame.scope.physical_frame_id, decision.source_id): decision
-        for frame in measurement.snapshot.reference_reviews.frames
-        if frame.scope.target == "orientation"
-        for decision in frame.decisions
-    }
 
 
 def _orientation_signoff_row(

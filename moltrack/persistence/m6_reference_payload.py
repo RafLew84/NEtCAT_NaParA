@@ -5,6 +5,7 @@ from math import hypot
 from typing import Any
 
 from moltrack.analysis.domain_analysis import (
+    DetectionIdentity,
     DomainAnalysisSessionState,
     M6FrameGate,
     M6PublishedMolecule,
@@ -27,6 +28,7 @@ from .reference_dataset import (
     reference_source_revision_row,
     validated_reference_measurements,
 )
+from .reference_detection_identity import reference_review_decisions_by_identity
 M6_REFERENCE_TABLE_FILES = (
     "measurements.jsonl",
     "frames.jsonl",
@@ -116,15 +118,27 @@ def _validate_edges(
     measurement: M6ReferenceMeasurementGroup,
     frames: tuple[M6FrameGate, ...],
 ) -> None:
-    source_ids = {
-        frame.physical_frame_id: set(frame.analyzed_source_ids)
+    frame_ids = {frame.physical_frame_id for frame in frames}
+    identities = {
+        DetectionIdentity(
+            physical_frame_id=frame.physical_frame_id,
+            source_id=source_id,
+        )
         for frame in frames
+        for source_id in frame.analyzed_source_ids
     }
     for edge in measurement.first_shell_edges:
-        available = source_ids.get(edge.physical_frame_id)
-        if available is None:
+        if edge.physical_frame_id not in frame_ids:
             raise ValueError("First-shell edge references an unknown frame.")
-        if edge.source_id_a not in available or edge.source_id_b not in available:
+        first = DetectionIdentity(
+            physical_frame_id=edge.physical_frame_id,
+            source_id=edge.source_id_a,
+        )
+        second = DetectionIdentity(
+            physical_frame_id=edge.physical_frame_id,
+            source_id=edge.source_id_b,
+        )
+        if first not in identities or second not in identities:
             raise ValueError("First-shell edge references an unknown source_id.")
 
 
@@ -149,7 +163,10 @@ def _append_measurement_tables(
         source,
         state_identity,
     ))
-    review_decisions = _m6_review_decisions(state)
+    review_decisions = reference_review_decisions_by_identity(
+        state.reference_reviews,
+        "m6",
+    )
     symmetry_by_frame = {
         value.physical_frame_id: value.symmetry_class
         for value in measurement.first_shell_frames
@@ -202,7 +219,7 @@ def _append_frame_tables(
     measurement: M6ReferenceMeasurementGroup,
     frame: M6FrameGate,
     state_identity: M6ReferenceStateIdentity,
-    review_decisions: dict[tuple[str, str], ReferenceReviewDecision],
+    review_decisions: dict[DetectionIdentity, ReferenceReviewDecision],
     first_shell_symmetry_class: str,
 ) -> None:
     state = measurement.snapshot
@@ -225,13 +242,21 @@ def _append_frame_tables(
     })
     molecules = _frame_molecules(frame)
     for molecule in molecules:
+        identity = DetectionIdentity(
+            physical_frame_id=frame.physical_frame_id,
+            source_id=molecule.source_id,
+        )
         _append_molecule_tables(
             tables,
             measurement,
             frame,
             molecule,
-            projection.molecule(frame.physical_frame_id, molecule.source_id),
-            review_decisions[(frame.physical_frame_id, molecule.source_id)],
+            identity,
+            projection.molecule(
+                identity.physical_frame_id,
+                identity.source_id,
+            ),
+            review_decisions[identity],
         )
     tables["review_signoffs.jsonl"].append(
         _m6_signoff_row(state, measurement, frame)
@@ -243,12 +268,13 @@ def _append_molecule_tables(
     measurement: M6ReferenceMeasurementGroup,
     frame: M6FrameGate,
     molecule: M6PublishedMolecule,
+    identity: DetectionIdentity,
     effective: Any,
     review: ReferenceReviewDecision,
 ) -> None:
     prefix = {
-        **_row_prefix(measurement, frame.physical_frame_id),
-        "source_id": molecule.source_id,
+        **_row_prefix(measurement, identity.physical_frame_id),
+        "source_id": identity.source_id,
     }
     tables["molecules.jsonl"].append({
         **prefix,
@@ -314,24 +340,23 @@ def _frame_molecules(frame: M6FrameGate) -> tuple[M6PublishedMolecule, ...]:
         for component in frame.full_domains + frame.small_ordered_islands
         for member in component.members
     ) + frame.outside_members
-    by_source_id = {value.source_id: value for value in values}
-    if set(by_source_id) != set(frame.analyzed_source_ids) or len(values) != len(
-        by_source_id
-    ):
-        raise ValueError("Published M6 frame does not contain one row per source_id.")
-    return tuple(by_source_id[value] for value in sorted(by_source_id))
-
-
-def _m6_review_decisions(
-    state: DomainAnalysisSessionState,
-) -> dict[tuple[str, str], ReferenceReviewDecision]:
-    values = {
-        (frame.scope.physical_frame_id, decision.source_id): decision
-        for frame in state.reference_reviews.frames
-        if frame.scope.target == "m6"
-        for decision in frame.decisions
+    by_identity = {
+        DetectionIdentity(
+            physical_frame_id=frame.physical_frame_id,
+            source_id=value.source_id,
+        ): value
+        for value in values
     }
-    return values
+    expected = {
+        DetectionIdentity(
+            physical_frame_id=frame.physical_frame_id,
+            source_id=source_id,
+        )
+        for source_id in frame.analyzed_source_ids
+    }
+    if set(by_identity) != expected or len(values) != len(by_identity):
+        raise ValueError("Published M6 frame does not contain one row per source_id.")
+    return tuple(by_identity[value] for value in sorted(by_identity))
 
 
 def _m6_signoff_row(
@@ -359,9 +384,13 @@ def _append_diagnostic_stages(
     publication = measurement.snapshot.published_result
     assert publication is not None
     for funnel in build_molecule_diagnostic_funnels(publication.result):
+        identity = DetectionIdentity(
+            physical_frame_id=funnel.physical_frame_id,
+            source_id=funnel.source_id,
+        )
         prefix = {
-            **_row_prefix(measurement, funnel.physical_frame_id),
-            "source_id": funnel.source_id,
+            **_row_prefix(measurement, identity.physical_frame_id),
+            "source_id": identity.source_id,
         }
         for stage in funnel.stages:
             if stage.stage_id in _M6_DIAGNOSTIC_STAGE_IDS:
@@ -378,13 +407,24 @@ def _append_first_shell_edges(
     publication = measurement.snapshot.published_result
     assert publication is not None and publication.result.m6_gate is not None
     points = {
-        (frame.physical_frame_id, molecule.source_id): molecule.point_xy_nm
+        DetectionIdentity(
+            physical_frame_id=frame.physical_frame_id,
+            source_id=molecule.source_id,
+        ): molecule.point_xy_nm
         for frame in publication.result.m6_gate.frames
         for molecule in _frame_molecules(frame)
     }
     for edge in measurement.first_shell_edges:
-        first = points[(edge.physical_frame_id, edge.source_id_a)]
-        second = points[(edge.physical_frame_id, edge.source_id_b)]
+        first_identity = DetectionIdentity(
+            physical_frame_id=edge.physical_frame_id,
+            source_id=edge.source_id_a,
+        )
+        second_identity = DetectionIdentity(
+            physical_frame_id=edge.physical_frame_id,
+            source_id=edge.source_id_b,
+        )
+        first = points[first_identity]
+        second = points[second_identity]
         tables["m6_first_shell_edges.jsonl"].append({
             **_row_prefix(measurement, edge.physical_frame_id),
             "source_id_a": edge.source_id_a,

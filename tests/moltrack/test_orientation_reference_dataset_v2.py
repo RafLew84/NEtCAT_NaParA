@@ -38,6 +38,9 @@ from moltrack.persistence import (
     OrientationReferenceSourceRevision,
     publish_orientation_reference_dataset,
 )
+from moltrack.persistence.reference_dataset_reader import (
+    load_reference_dataset_package,
+)
 from nanotrack.core import STMSequenceMetadata
 from test_domain_correction_orientation import _automatic_result
 
@@ -67,6 +70,10 @@ def test_publish_orientation_reference_v2_writes_training_complete_package(
     frames = _json_lines(first_destination / "frames.jsonl")
     molecules = _json_lines(first_destination / "molecules.jsonl")
     assignments = _json_lines(first_destination / "orientation_assignments.jsonl")
+    round_trip = load_reference_dataset_package(
+        first_destination,
+        expected_target="orientation",
+    )
 
     assert manifest["schema_version"] == 2
     assert manifest["target"] == "orientation"
@@ -75,6 +82,10 @@ def test_publish_orientation_reference_v2_writes_training_complete_package(
     assert manifest["readiness"] == {"ready": True, "blockers": []}
     assert first.version_id == second.version_id == manifest["version_id"]
     assert first.version_fingerprint == second.version_fingerprint
+    assert round_trip.manifest == manifest
+    assert (
+        round_trip.json_lines("orientation_assignments.jsonl") == assignments
+    )
     assert "m6_assignments.jsonl" not in first.relative_files
 
     frame = next(row for row in frames if row["split"] == "calibration")

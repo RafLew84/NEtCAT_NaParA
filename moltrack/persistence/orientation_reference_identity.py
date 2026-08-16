@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 from moltrack.analysis.domain_analysis import (
+    DetectionIdentity,
     DomainAnalysisPublication,
     DomainCorrectionWorkspace,
     EffectiveDomainProjection,
@@ -46,7 +47,10 @@ def orientation_reference_state_identity(
             _effective_orientation_state(value)
             for value in sorted(
                 projection.molecules,
-                key=lambda item: (item.physical_frame_id, item.source_id),
+                key=lambda item: DetectionIdentity(
+                    physical_frame_id=item.physical_frame_id,
+                    source_id=item.source_id,
+                ),
             )
         ],
     })

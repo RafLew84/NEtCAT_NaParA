@@ -40,11 +40,13 @@ from moltrack.persistence import (
     M6ReferenceSourceRevision,
     publish_m6_reference_dataset,
 )
-from test_domain_correction_orientation import _automatic_result
-
 from moltrack.persistence.domain_analysis_session import (
     domain_analysis_state_to_payload,
 )
+from moltrack.persistence.reference_dataset_reader import (
+    load_reference_dataset_package,
+)
+from test_domain_correction_orientation import _automatic_result
 
 
 def test_publish_m6_reference_v2_writes_complete_target_specific_dataset(
@@ -73,6 +75,10 @@ def test_publish_m6_reference_v2_writes_complete_target_specific_dataset(
     assignment_rows = _json_lines(first_destination / "m6_assignments.jsonl")
     signoff_rows = _json_lines(first_destination / "review_signoffs.jsonl")
     edge_rows = _json_lines(first_destination / "m6_first_shell_edges.jsonl")
+    round_trip = load_reference_dataset_package(
+        first_destination,
+        expected_target="m6",
+    )
 
     assert manifest["schema_version"] == 2
     assert manifest["target"] == "m6"
@@ -108,6 +114,8 @@ def test_publish_m6_reference_v2_writes_complete_target_specific_dataset(
     assert len(_json_lines(first_destination / "molecules.jsonl")) == 6
     assert len(_json_lines(first_destination / "source_geometry.jsonl")) == 6
     assert len(assignment_rows) == 6
+    assert round_trip.manifest == manifest
+    assert round_trip.json_lines("m6_assignments.jsonl") == assignment_rows
     assert len(edge_rows) == 4
     assert {row["target"] for row in signoff_rows} == {"m6"}
     assert len(signoff_rows) == 2
