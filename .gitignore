@@ -206,7 +206,11 @@ plan_nanotrack_mask_trackers.md
 nanotrack.zip
 fix_track.md
 /notes
-/.scratch
+/.scratch/*
+!/.scratch/manual-domain-orientation-calibration-implementation/
+/.scratch/manual-domain-orientation-calibration-implementation/*
+!/.scratch/manual-domain-orientation-calibration-implementation/issues/
+!/.scratch/manual-domain-orientation-calibration-implementation/issues/*.md
 /moltrack/analysis
 /moltrack/ui/dialogs/_prototype_domain_analysis_dialog
 moltrack.7z

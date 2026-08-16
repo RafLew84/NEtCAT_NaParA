@@ -78,6 +78,28 @@ and test locator to remain absent, while every declared replacement anchor must
 resolve in the repository. It also verifies the completed cutover invariants and
 the production preflight composition.
 
+## Domain Analysis issue plan
+
+The implementation plan has one closed status dictionary:
+
+| Status | Checklist rule | Allowed next status |
+| --- | --- | --- |
+| `pending` | At least one acceptance criterion remains unchecked. | `completed` |
+| `completed` | Every acceptance criterion is checked. | None |
+
+A ticket moves from `pending` to `completed` only after every acceptance
+criterion is checked. Run the validator locally with the same command used by
+CI:
+
+```powershell
+conda run -n netcat python scripts\check_domain_analysis_issue_plan.py
+```
+
+The validator scans every Markdown file in
+`.scratch/manual-domain-orientation-calibration-implementation/issues`, rejects
+missing or unknown statuses, duplicate ticket numbers, and status/checklist
+contradictions. Every failure identifies the ticket path and violated rule.
+
 ## Code-size guard
 
 Run the architecture guard with one command:

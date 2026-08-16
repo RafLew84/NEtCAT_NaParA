@@ -6,20 +6,24 @@ on:
       - "moltrack/**"
       - "scripts/check_domain_analysis_types.py"
       - "scripts/check_domain_analysis_cutover_manifest.py"
+      - "scripts/check_domain_analysis_issue_plan.py"
       - "scripts/domain_analysis_mypy_baseline.json"
       - "tests/moltrack/**"
       - "docs/domain_analysis_cutover_manifest.json"
       - "docs/moltrack/QUALITY_GATES.md"
+      - ".scratch/manual-domain-orientation-calibration-implementation/issues/**"
       - ".github/workflows/moltrack-quality.yml"
   push:
     paths:
       - "moltrack/**"
       - "scripts/check_domain_analysis_types.py"
       - "scripts/check_domain_analysis_cutover_manifest.py"
+      - "scripts/check_domain_analysis_issue_plan.py"
       - "scripts/domain_analysis_mypy_baseline.json"
       - "tests/moltrack/**"
       - "docs/domain_analysis_cutover_manifest.json"
       - "docs/moltrack/QUALITY_GATES.md"
+      - ".scratch/manual-domain-orientation-calibration-implementation/issues/**"
       - ".github/workflows/moltrack-quality.yml"
 
 jobs:
@@ -40,3 +44,6 @@ jobs:
       - name: Validate the Domain Analysis cutover manifest
         shell: powershell
         run: conda run -n netcat python scripts\check_domain_analysis_cutover_manifest.py
+      - name: Validate the Domain Analysis issue plan
+        shell: powershell
+        run: conda run -n netcat python scripts\check_domain_analysis_issue_plan.py
