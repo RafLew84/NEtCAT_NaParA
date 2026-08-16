@@ -11,12 +11,14 @@ from moltrack.analysis.domain_analysis import (
     DomainBackendIdentity,
     DomainCorrectionModule,
     DomainCorrectionHistoryRecord,
+    DomainCorrectionWorkspaceState,
     DetectionIdentity,
     DomainCorrectionWorkspace,
     M3M6LatticeNetworkEvidence,
     M6Gate,
     ManualDomainIntent,
     ManualOrientationIntent,
+    ReferenceReviewPolicy,
 )
 from test_domain_correction_orientation import (
     MANUAL_DOMAIN_1,
@@ -27,6 +29,71 @@ from test_domain_correction_orientation import (
 
 
 _NOW = datetime(2026, 8, 14, 9, 30, tzinfo=timezone.utc)
+
+
+def test_apply_and_replay_of_one_log_have_the_same_public_contract() -> None:
+    automatic, module, _, workspace = _boundary_workspace()
+    preview = module.prepare(
+        workspace,
+        automatic,
+        ManualOrientationIntent.assign(
+            physical_frame_id="frame-0",
+            source_ids=("island",),
+            orientation_label="D",
+        ),
+    )
+    applied = module.dispatch(
+        workspace,
+        automatic,
+        ApplyPreparedDomainCorrection.confirmed(preview),
+    )
+    audit_log = replace(
+        applied,
+        orientation_decisions=applied.baseline_orientation_decisions,
+        manual_domains=applied.baseline_manual_domains,
+        cleared_boundary_source_keys=applied.legacy_boundary_source_keys or (),
+    )
+
+    replayed = module.replay(audit_log, automatic)
+
+    assert replayed == applied
+    assert replayed.revision == applied.revision == 4
+    applied_projection = module.project(automatic, applied)
+    replayed_projection = module.project(automatic, replayed)
+    assert replayed_projection == applied_projection
+    assert replayed_projection.molecule(
+        "frame-0", "island"
+    ).effective_orientation == "D"
+    assert replayed_projection.molecule("frame-0", "outside").is_boundary is False
+    conflicting_restore = ManualDomainIntent.restore(
+        physical_frame_id="frame-0",
+        manual_domain_id=MANUAL_DOMAIN_2,
+    )
+    applied_conflicts = module.prepare(
+        applied, automatic, conflicting_restore
+    ).conflicts
+    replayed_conflicts = module.prepare(
+        replayed, automatic, conflicting_restore
+    ).conflicts
+    assert tuple(value.code for value in applied_conflicts) == (
+        "manual_domain_not_deleted",
+        "no_op",
+    )
+    assert replayed_conflicts == applied_conflicts
+    policy = ReferenceReviewPolicy()
+    readiness = []
+    for correction_set in (applied, replayed):
+        corrections = DomainCorrectionWorkspaceState(
+            correction_set=correction_set,
+            effective_projection=module.project(automatic, correction_set),
+        )
+        reviews = policy.initialize(automatic, corrections)
+        readiness.append(policy.readiness(reviews, "m6"))
+    assert readiness[0] == readiness[1]
+    assert readiness[0].ready is False
+    assert tuple(value.code for value in readiness[0].blockers) == (
+        "review_decisions_incomplete",
+    )
 
 
 def test_undo_and_redo_append_records_and_replay_the_whole_batch() -> None:

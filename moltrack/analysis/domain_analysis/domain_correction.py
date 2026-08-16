@@ -27,11 +27,7 @@ from .domain_correction_history import (
     DomainCorrectionHistoryAvailability,
     DomainCorrectionHistoryRecord,
 )
-from .domain_correction_replay import (
-    _legacy_boundary_baseline,
-    apply_manual_domain_intent,
-    replay_active_atoms,
-)
+from .domain_correction_engine import DomainCorrectionEngine
 from .domain_correction_policy import (
     compatible_automatic_orientation,
     prepared_correction_report,
@@ -48,8 +44,11 @@ from .network_backend_evidence import M3M6LatticeNetworkEvidence
 from .texture_abc_adapter import ABC_ORIENTATION_CLASSIFIER_ID
 
 
+_TRANSITIONS = DomainCorrectionEngine()
+
+
 class DomainCorrectionModule:
-    """Prepare orientation corrections and derive one effective projection."""
+    """Prepare corrections, transition their audit log and project results."""
 
     def __init__(
         self,
@@ -114,7 +113,7 @@ class DomainCorrectionModule:
         if isinstance(intent, ManualDomainIntent) and not blocked:
             prospective = replace(
                 workspace,
-                manual_domains=apply_manual_domain_intent(workspace, intent),
+                manual_domains=_TRANSITIONS.apply_manual_intent(workspace, intent),
             )
             self.project(automatic, prospective)
         changed = () if blocked else (
@@ -124,7 +123,7 @@ class DomainCorrectionModule:
                 source_id
                 for source_id in intent.source_ids
                 if _decision_would_change(
-                    _decision_index(workspace),
+                    _TRANSITIONS.orientation_decisions(workspace),
                     intent,
                     source_id,
                 )
@@ -169,69 +168,18 @@ class DomainCorrectionModule:
             raise ValueError(
                 "Prepared Domain Correction requires confirmation."
             )
-        if workspace.legacy_boundary_source_keys is None:
-            workspace = replace(
-                workspace,
-                legacy_boundary_source_keys=_legacy_boundary_baseline(workspace),
-            )
-        intent = preview.intent
-        if isinstance(intent, ManualDomainIntent):
-            boundary_keys = set(workspace.cleared_boundary_source_keys)
-            if intent.operation == "move" and intent.boundary_resolution is not None:
-                intent_keys = {
-                    DetectionIdentity(
-                        physical_frame_id=intent.physical_frame_id,
-                        source_id=effect.source_id,
-                    )
-                    for effect in preview.effects
-                    if effect.before_boundary is True
-                    and effect.after_boundary is not None
-                }
-                if intent.boundary_resolution == "clear":
-                    boundary_keys.update(intent_keys)
-                else:
-                    boundary_keys.difference_update(intent_keys)
-            return self._append_atom(replace(
-                workspace,
-                manual_domains=apply_manual_domain_intent(workspace, intent),
-                cleared_boundary_source_keys=tuple(sorted(boundary_keys)),
-            ), preview)
-        decisions = _decision_index(workspace)
-        for source_id in intent.source_ids:
-            key = DetectionIdentity(
-                physical_frame_id=intent.physical_frame_id,
-                source_id=source_id,
-            )
-            if intent.operation == "reset":
-                decisions.pop(key, None)
-            else:
-                assert intent.orientation_label is not None
-                decisions[key] = ManualOrientationDecision(
-                    physical_frame_id=intent.physical_frame_id,
-                    source_id=source_id,
-                    orientation_label=intent.orientation_label,
-                    reason_code=intent.reason_code,
-                )
-        return self._append_atom(replace(
-            workspace,
-            orientation_decisions=tuple(decisions[key] for key in sorted(decisions)),
-        ), preview)
+        return self._append_atom(workspace, preview)
 
     def _append_atom(
         self,
         workspace: DomainCorrectionWorkspace,
         preview: PreparedDomainCorrection,
     ) -> DomainCorrectionWorkspace:
-        legacy_boundary_source_keys = workspace.legacy_boundary_source_keys
-        assert legacy_boundary_source_keys is not None
         targets: tuple[DomainCorrectionReviewTarget, ...] = (
             ("m6", "orientation")
             if preview.axis == "m6"
             else ("orientation",)
         )
-        revisions = dict(workspace.review_revisions)
-        for target in targets:
-            revisions[target] += 1
         atom = DomainCorrectionAtom(
             operation_id=self._correction_operation_id_factory(),
             prepared_fingerprint=preview.prepared_fingerprint,
@@ -243,14 +191,17 @@ class DomainCorrectionModule:
             effects=preview.effects,
         )
         record = self._history_record("apply", atom)
-        return replace(
-            workspace,
-            revision=workspace.revision + 1,
-            atoms=workspace.atoms + (atom,),
-            history_records=workspace.history_records + (record,),
-            legacy_boundary_source_keys=legacy_boundary_source_keys,
-            review_revisions=tuple(sorted(revisions.items())),
-        )
+        return _TRANSITIONS.apply(workspace, atom, record)
+
+    def replay(
+        self,
+        workspace: DomainCorrectionWorkspace,
+        automatic: DomainAnalysisResult,
+    ) -> DomainCorrectionWorkspace:
+        """Rebuild active correction state from its immutable audit log."""
+
+        _validate_workspace_anchor(workspace, automatic)
+        return _TRANSITIONS.replay(workspace)
 
     def history_availability(
         self,
@@ -305,20 +256,7 @@ class DomainCorrectionModule:
             if value.operation_id == target.operation_id
         )
         record = self._history_record(action, atom)
-        legacy_boundary_source_keys = workspace.legacy_boundary_source_keys
-        if legacy_boundary_source_keys is None:
-            legacy_boundary_source_keys = _legacy_boundary_baseline(workspace)
-        revisions = dict(workspace.review_revisions)
-        for review_target in atom.invalidates_review_targets:
-            revisions[review_target] += 1
-        recorded = replace(
-            workspace,
-            revision=workspace.revision + 1,
-            history_records=workspace.history_records + (record,),
-            legacy_boundary_source_keys=legacy_boundary_source_keys,
-            review_revisions=tuple(sorted(revisions.items())),
-        )
-        return replay_active_atoms(recorded)
+        return _TRANSITIONS.record_history(workspace, record)
 
     def _history_record(
         self,
@@ -339,7 +277,7 @@ class DomainCorrectionModule:
         workspace: DomainCorrectionWorkspace,
     ) -> EffectiveDomainProjection:
         _validate_workspace_anchor(workspace, automatic)
-        decisions = _decision_index(workspace)
+        decisions = _TRANSITIONS.orientation_decisions(workspace)
         manual_memberships = active_manual_memberships(workspace.manual_domains)
         tombstoned_sources = {
             DetectionIdentity(
@@ -533,18 +471,6 @@ def _classification_index(
     }
 
 
-def _decision_index(
-    workspace: DomainCorrectionWorkspace,
-) -> dict[DetectionIdentity, ManualOrientationDecision]:
-    return {
-        DetectionIdentity(
-            physical_frame_id=value.physical_frame_id,
-            source_id=value.source_id,
-        ): value
-        for value in workspace.orientation_decisions
-    }
-
-
 def _decision_would_change(
     decisions: dict[DetectionIdentity, ManualOrientationDecision],
     intent: ManualOrientationIntent,
@@ -580,8 +506,11 @@ def _prepared_manual_domain_intent(
             automatic_domain_ids,
         )
     assert intent.manual_domain_id is not None
-    key = (intent.physical_frame_id, intent.manual_domain_id)
-    record = _manual_domain_index(workspace).get(key)
+    record = _TRANSITIONS.manual_domain(
+        workspace,
+        intent.physical_frame_id,
+        intent.manual_domain_id,
+    )
     if record is None:
         return intent, (DomainCorrectionConflict(
             "blocked",
@@ -661,10 +590,11 @@ def _manual_domain_source_ids(
         return None
     if intent.operation in {"create", "move"}:
         return intent.source_ids
-    record = _manual_domain_index(workspace).get((
+    record = _TRANSITIONS.manual_domain(
+        workspace,
         intent.physical_frame_id,
         intent.manual_domain_id or "",
-    ))
+    )
     if record is None:
         return None
     return (
@@ -719,9 +649,12 @@ def _manual_domain_changed_source_ids(
             ))
             != intent.manual_domain_id
         )
-    record = _manual_domain_index(workspace)[
-        (intent.physical_frame_id, intent.manual_domain_id or "")
-    ]
+    record = _TRANSITIONS.manual_domain(
+        workspace,
+        intent.physical_frame_id,
+        intent.manual_domain_id or "",
+    )
+    assert record is not None
     if intent.operation == "delete":
         return record.source_ids
     resolutions = dict(intent.member_resolutions)
@@ -730,15 +663,6 @@ def _manual_domain_changed_source_ids(
         for source_id in record.restore_source_ids
         if resolutions.get(source_id) != "keep_current"
     )
-
-
-def _manual_domain_index(
-    workspace: DomainCorrectionWorkspace,
-) -> dict[tuple[str, str], ManualDomainRecord]:
-    return {
-        (value.physical_frame_id, value.manual_domain_id): value
-        for value in workspace.manual_domains
-    }
 
 
 def _frame(automatic: DomainAnalysisResult, physical_frame_id: str) -> M6FrameGate:
