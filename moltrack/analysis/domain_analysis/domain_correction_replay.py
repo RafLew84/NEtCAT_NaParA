@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from .detection_identity import DetectionIdentity
 from .domain_correction_history import active_operation_ids
 from .domain_correction_models import (
     DomainCorrectionAtom,
@@ -108,7 +109,7 @@ def replay_active_atoms(
 
 def _legacy_boundary_baseline(
     workspace: DomainCorrectionWorkspace,
-) -> tuple[tuple[str, str], ...]:
+) -> tuple[DetectionIdentity, ...]:
     baseline = workspace.legacy_boundary_source_keys
     if baseline is not None:
         return baseline
@@ -120,7 +121,10 @@ def _legacy_boundary_baseline(
         for effect in reversed(atom.effects):
             if effect.before_boundary is not True or effect.after_boundary is None:
                 continue
-            key = (atom.physical_frame_id, effect.source_id)
+            key = DetectionIdentity(
+                physical_frame_id=atom.physical_frame_id,
+                source_id=effect.source_id,
+            )
             if effect.before_boundary:
                 keys.discard(key)
             else:
@@ -135,11 +139,17 @@ def _orientation_decisions(
     intent = atom.intent
     assert not isinstance(intent, ManualDomainIntent)
     decisions = {
-        (value.physical_frame_id, value.source_id): value
+        DetectionIdentity(
+            physical_frame_id=value.physical_frame_id,
+            source_id=value.source_id,
+        ): value
         for value in workspace.orientation_decisions
     }
     for source_id in intent.source_ids:
-        key = (intent.physical_frame_id, source_id)
+        key = DetectionIdentity(
+            physical_frame_id=intent.physical_frame_id,
+            source_id=source_id,
+        )
         if intent.operation == "reset":
             decisions.pop(key, None)
         else:
@@ -156,12 +166,15 @@ def _orientation_decisions(
 def _boundary_keys(
     workspace: DomainCorrectionWorkspace,
     atom: DomainCorrectionAtom,
-) -> tuple[tuple[str, str], ...]:
+) -> tuple[DetectionIdentity, ...]:
     keys = set(workspace.cleared_boundary_source_keys)
     for effect in atom.effects:
         if effect.before_boundary is not True or effect.after_boundary is None:
             continue
-        key = (atom.physical_frame_id, effect.source_id)
+        key = DetectionIdentity(
+            physical_frame_id=atom.physical_frame_id,
+            source_id=effect.source_id,
+        )
         if effect.after_boundary:
             keys.discard(key)
         else:

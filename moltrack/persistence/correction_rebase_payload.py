@@ -14,7 +14,10 @@ from moltrack.analysis.domain_analysis import (
 from moltrack.analysis.domain_analysis.correction_rebase_models import (
     CorrectionRebaseIssueKind,
     CorrectionRebaseResolutionAction,
+)
+from moltrack.analysis.domain_analysis.detection_identity import (
     CorrectionSourceMapping,
+    DetectionIdentity,
 )
 from moltrack.analysis.domain_analysis.workspace_controller import (
     DomainAnalysisPublication,
@@ -31,6 +34,10 @@ from .domain_analysis_payload_validation import (
 from .domain_correction_set_payload import (
     correction_set_from_payload,
     correction_set_to_payload,
+)
+from .detection_identity_payload import (
+    identities_from_payload,
+    identities_to_payload,
 )
 
 
@@ -71,7 +78,7 @@ def prepared_rebase_to_payload(
         "expected_correction_revision": prepared.expected_correction_revision,
         "active_automatic_fingerprint": prepared.active_automatic_fingerprint,
         "candidate_automatic_fingerprint": prepared.candidate_automatic_fingerprint,
-        "portable_source_keys": _pairs(prepared.portable_source_keys),
+        "portable_source_keys": identities_to_payload(prepared.portable_source_keys),
         "issues": [asdict(value) for value in prepared.issues],
         "resolutions": [asdict(value) for value in prepared.resolutions],
         "source_mapping": _mapping_to_payload(prepared.source_mapping),
@@ -95,7 +102,7 @@ def prepared_rebase_from_payload(payload: Any) -> PreparedCorrectionRebase | Non
         candidate_automatic_fingerprint=text_field(
             saved, "candidate_automatic_fingerprint", path
         ),
-        portable_source_keys=_text_pairs(
+        portable_source_keys=identities_from_payload(
             required(saved, "portable_source_keys", path),
             f"{path}.portable_source_keys",
         ),
@@ -198,23 +205,15 @@ def _resolution(payload: Any, path: str) -> CorrectionRebaseResolution:
     )
 
 
-def _pairs(values: tuple[tuple[str, str], ...]) -> list[list[str]]:
-    return [[first, second] for first, second in values]
-
-
-def _text_pairs(payload: Any, path: str) -> tuple[tuple[str, str], ...]:
-    if not isinstance(payload, list) or any(
-        not isinstance(value, list)
-        or len(value) != 2
-        or any(not isinstance(item, str) or not item for item in value)
-        for value in payload
-    ):
-        raise ValueError(f"{path} must contain text pairs.")
-    return tuple((value[0], value[1]) for value in payload)
-
-
 def _mapping_to_payload(values: tuple[CorrectionSourceMapping, ...]) -> list[list[Any]]:
-    return [[frame_id, source_id, list(targets)] for frame_id, source_id, targets in values]
+    return [
+        [
+            value.source_identity.physical_frame_id,
+            value.source_identity.source_id,
+            list(value.target_source_ids),
+        ]
+        for value in values
+    ]
 
 
 def _mapping_from_payload(payload: Any, path: str) -> tuple[CorrectionSourceMapping, ...]:
@@ -231,7 +230,13 @@ def _mapping_from_payload(payload: Any, path: str) -> tuple[CorrectionSourceMapp
             or any(not isinstance(item, str) for item in value[2])
         ):
             raise ValueError(f"{path}[{index}] must be a source mapping.")
-        values.append((value[0], value[1], tuple(value[2])))
+        values.append(CorrectionSourceMapping(
+            source_identity=DetectionIdentity(
+                physical_frame_id=value[0],
+                source_id=value[1],
+            ),
+            target_source_ids=tuple(value[2]),
+        ))
     return tuple(values)
 
 

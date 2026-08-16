@@ -7,6 +7,7 @@ from moltrack.analysis.domain_analysis import (
     ApplyPreparedCorrectionRebase,
     ApplyPreparedDomainCorrection,
     CorrectionRebaseResolution,
+    DetectionIdentity,
     DomainAnalysisRequest,
     DomainAnalysisWorkspaceController,
     DomainAnalysisWorkspaceIntentError,
@@ -109,7 +110,10 @@ def test_compatible_sources_promote_atomically_to_a_successor_revision() -> None
     assert rebase_preview is not None
     assert rebase_preview.is_ready
     assert rebase_preview.issues == ()
-    assert rebase_preview.portable_source_keys == (("frame-0", "outside"),)
+    assert rebase_preview.portable_source_keys == (DetectionIdentity(
+        physical_frame_id="frame-0",
+        source_id="outside",
+    ),)
 
     promoted = controller.dispatch(ApplyPreparedCorrectionRebase(rebase_preview))
 

@@ -11,13 +11,12 @@ from .correction_rebase_models import (
     CorrectionRebasePromotion,
     CorrectionRebaseRecord,
     CorrectionRebaseResolution,
-    CorrectionSourceKey,
-    CorrectionSourceMapping,
     PendingAutomaticCandidate,
     PrepareCorrectionRebase,
     PreparedCorrectionRebase,
     automatic_candidate_fingerprint,
 )
+from .detection_identity import CorrectionSourceMapping, DetectionIdentity
 from .domain_correction_models import (
     DomainCorrectionReviewTarget,
     DomainCorrectionWorkspace,
@@ -118,17 +117,26 @@ class CorrectionRebasePolicy:
         )))
         if unknown:
             raise ValueError(f"Rebase resolutions reference unknown issues: {unknown!r}.")
-        mapping: list[CorrectionSourceMapping] = list(
-            (frame_id, source_id, (source_id,))
-            for frame_id, source_id in portable
-        )
+        mapping = [
+            CorrectionSourceMapping(
+                source_identity=identity,
+                target_source_ids=(identity.source_id,),
+            )
+            for identity in portable
+        ]
         blocking: list[str] = []
         for issue in issues:
             resolution = resolution_by_id.get(issue.issue_id)
             if resolution is None:
                 continue
             targets = _resolved_targets(issue, resolution, candidate_sources)
-            mapping.append((issue.physical_frame_id, issue.source_id, targets))
+            mapping.append(CorrectionSourceMapping(
+                source_identity=DetectionIdentity(
+                    physical_frame_id=issue.physical_frame_id,
+                    source_id=issue.source_id,
+                ),
+                target_source_ids=targets,
+            ))
         blocking.extend(_mapping_conflicts(correction_set, tuple(mapping)))
         return PreparedCorrectionRebase(
             expected_correction_revision=correction_set.revision,
@@ -215,13 +223,19 @@ def correction_anchor_fingerprint(result: DomainAnalysisResult) -> str:
 
 def _corrected_source_keys(
     correction_set: DomainCorrectionWorkspace,
-) -> tuple[CorrectionSourceKey, ...]:
+) -> tuple[DetectionIdentity, ...]:
     keys = {
-        (value.physical_frame_id, value.source_id)
+        DetectionIdentity(
+            physical_frame_id=value.physical_frame_id,
+            source_id=value.source_id,
+        )
         for value in correction_set.orientation_decisions
     }
     keys.update(
-        (domain.physical_frame_id, source_id)
+        DetectionIdentity(
+            physical_frame_id=domain.physical_frame_id,
+            source_id=source_id,
+        )
         for domain in correction_set.manual_domains
         for source_id in domain.restore_source_ids
     )
@@ -231,18 +245,22 @@ def _corrected_source_keys(
 
 def _source_fingerprints(
     result: DomainAnalysisResult,
-) -> dict[CorrectionSourceKey, str | None]:
+) -> dict[DetectionIdentity, str | None]:
     gate = result.m6_gate
     if gate is None:
         return {}
-    fingerprints: dict[CorrectionSourceKey, str | None] = {}
+    fingerprints: dict[DetectionIdentity, str | None] = {}
     for frame in gate.frames:
         footprints = source_footprints_for_frame(frame)
         molecules = _molecule_index(frame)
         for source_id in frame.analyzed_source_ids:
             footprint = footprints[source_id]
             molecule = molecules[source_id]
-            fingerprints[(frame.physical_frame_id, source_id)] = (
+            identity = DetectionIdentity(
+                physical_frame_id=frame.physical_frame_id,
+                source_id=source_id,
+            )
+            fingerprints[identity] = (
                 None
                 if footprint is None
                 else canonical_sha256({
@@ -263,12 +281,15 @@ def _source_fingerprints(
 
 def _source_footprints(
     result: DomainAnalysisResult,
-) -> dict[CorrectionSourceKey, frozenset[tuple[int, int]] | None]:
+) -> dict[DetectionIdentity, frozenset[tuple[int, int]] | None]:
     gate = result.m6_gate
     if gate is None:
         return {}
     return {
-        (frame.physical_frame_id, source_id): (
+        DetectionIdentity(
+            physical_frame_id=frame.physical_frame_id,
+            source_id=source_id,
+        ): (
             None if footprint is None else frozenset(footprint)
         )
         for frame in gate.frames
@@ -287,19 +308,20 @@ def _molecule_index(frame: M6FrameGate) -> dict[str, M6PublishedMolecule]:
 
 
 def _issue_for(
-    key: CorrectionSourceKey,
-    candidate_sources: dict[CorrectionSourceKey, str | None],
+    key: DetectionIdentity,
+    candidate_sources: dict[DetectionIdentity, str | None],
     active_footprints: dict[
-        CorrectionSourceKey,
+        DetectionIdentity,
         frozenset[tuple[int, int]] | None,
     ],
     candidate_footprints: dict[
-        CorrectionSourceKey,
+        DetectionIdentity,
         frozenset[tuple[int, int]] | None,
     ],
-    missing_source_keys: tuple[CorrectionSourceKey, ...],
+    missing_source_keys: tuple[DetectionIdentity, ...],
 ) -> CorrectionRebaseIssue:
-    frame_id, source_id = key
+    frame_id = key.physical_frame_id
+    source_id = key.source_id
     candidates = (source_id,) if key in candidate_sources else _overlap_targets(
         key,
         active_footprints,
@@ -316,7 +338,7 @@ def _issue_for(
             candidate_footprints,
         )
         for missing_key in missing_source_keys
-        if missing_key[0] == frame_id
+        if missing_key.physical_frame_id == frame_id
     ) > 1:
         kind = "merge"
     else:
@@ -331,25 +353,24 @@ def _issue_for(
 
 
 def _overlap_targets(
-    source_key: CorrectionSourceKey,
+    source_key: DetectionIdentity,
     active_footprints: dict[
-        CorrectionSourceKey,
+        DetectionIdentity,
         frozenset[tuple[int, int]] | None,
     ],
     candidate_footprints: dict[
-        CorrectionSourceKey,
+        DetectionIdentity,
         frozenset[tuple[int, int]] | None,
     ],
 ) -> tuple[str, ...]:
-    physical_frame_id, _ = source_key
+    physical_frame_id = source_key.physical_frame_id
     source_footprint = active_footprints.get(source_key)
     if not source_footprint:
         return ()
     return tuple(sorted(
-        candidate_source_id
-        for (candidate_frame_id, candidate_source_id), candidate_footprint
-        in candidate_footprints.items()
-        if candidate_frame_id == physical_frame_id
+        candidate_identity.source_id
+        for candidate_identity, candidate_footprint in candidate_footprints.items()
+        if candidate_identity.physical_frame_id == physical_frame_id
         and candidate_footprint
         and not source_footprint.isdisjoint(candidate_footprint)
     ))
@@ -358,7 +379,7 @@ def _overlap_targets(
 def _resolved_targets(
     issue: CorrectionRebaseIssue,
     resolution: CorrectionRebaseResolution,
-    candidate_sources: dict[CorrectionSourceKey, str | None],
+    candidate_sources: dict[DetectionIdentity, str | None],
 ) -> tuple[str, ...]:
     if resolution.action == "dropped":
         return ()
@@ -370,7 +391,10 @@ def _resolved_targets(
     missing = tuple(
         value
         for value in targets
-        if (issue.physical_frame_id, value) not in candidate_sources
+        if DetectionIdentity(
+            physical_frame_id=issue.physical_frame_id,
+            source_id=value,
+        ) not in candidate_sources
     )
     if missing:
         raise ValueError(f"Rebase resolution targets do not exist: {missing!r}.")
@@ -382,15 +406,23 @@ def _mapping_conflicts(
     mapping: tuple[CorrectionSourceMapping, ...],
 ) -> tuple[str, ...]:
     mapped = {
-        (frame_id, source_id): tuple(
-            (frame_id, target_id) for target_id in target_ids
+        value.source_identity: tuple(
+            DetectionIdentity(
+                physical_frame_id=value.source_identity.physical_frame_id,
+                source_id=target_id,
+            )
+            for target_id in value.target_source_ids
         )
-        for frame_id, source_id, target_ids in mapping
+        for value in mapping
     }
-    orientation_by_target: dict[CorrectionSourceKey, ManualOrientationDecision] = {}
+    orientation_by_target: dict[DetectionIdentity, ManualOrientationDecision] = {}
     conflicts: set[str] = set()
     for decision in correction_set.orientation_decisions:
-        for target in mapped.get((decision.physical_frame_id, decision.source_id), ()):
+        identity = DetectionIdentity(
+            physical_frame_id=decision.physical_frame_id,
+            source_id=decision.source_id,
+        )
+        for target in mapped.get(identity, ()):
             previous = orientation_by_target.get(target)
             if previous is not None and (
                 previous.orientation_label != decision.orientation_label
@@ -398,12 +430,16 @@ def _mapping_conflicts(
             ):
                 conflicts.add(f"Conflicting orientation decisions target {target!r}.")
             orientation_by_target[target] = decision
-    domain_by_target: dict[CorrectionSourceKey, str] = {}
+    domain_by_target: dict[DetectionIdentity, str] = {}
     for domain in correction_set.manual_domains:
         if domain.is_deleted:
             continue
         for source_id in domain.source_ids:
-            for target in mapped.get((domain.physical_frame_id, source_id), ()):
+            identity = DetectionIdentity(
+                physical_frame_id=domain.physical_frame_id,
+                source_id=source_id,
+            )
+            for target in mapped.get(identity, ()):
                 previous_domain = domain_by_target.get(target)
                 if (
                     previous_domain is not None
@@ -420,14 +456,17 @@ def _transferred_state(
 ) -> tuple[
     tuple[ManualOrientationDecision, ...],
     tuple[ManualDomainRecord, ...],
-    tuple[CorrectionSourceKey, ...],
+    tuple[DetectionIdentity, ...],
 ]:
     targets = {
-        (frame_id, source_id): target_ids
-        for frame_id, source_id, target_ids in mapping
+        value.source_identity: value.target_source_ids
+        for value in mapping
     }
     decisions_by_key = {
-        (decision.physical_frame_id, target_id): ManualOrientationDecision(
+        DetectionIdentity(
+            physical_frame_id=decision.physical_frame_id,
+            source_id=target_id,
+        ): ManualOrientationDecision(
             decision.physical_frame_id,
             target_id,
             decision.orientation_label,
@@ -435,7 +474,10 @@ def _transferred_state(
         )
         for decision in correction_set.orientation_decisions
         for target_id in targets.get(
-            (decision.physical_frame_id, decision.source_id),
+            DetectionIdentity(
+                physical_frame_id=decision.physical_frame_id,
+                source_id=decision.source_id,
+            ),
             (),
         )
     }
@@ -465,9 +507,12 @@ def _transferred_state(
             domain.is_deleted or not active_ids,
         ))
     boundary_keys = tuple(sorted(
-        (frame_id, target_id)
-        for frame_id, source_id in correction_set.cleared_boundary_source_keys
-        for target_id in targets.get((frame_id, source_id), ())
+        DetectionIdentity(
+            physical_frame_id=identity.physical_frame_id,
+            source_id=target_id,
+        )
+        for identity in correction_set.cleared_boundary_source_keys
+        for target_id in targets.get(identity, ())
     ))
     return tuple(decisions), tuple(domains), boundary_keys
 
@@ -475,12 +520,18 @@ def _transferred_state(
 def _mapped_ids(
     physical_frame_id: str,
     source_ids: tuple[str, ...],
-    mapping: dict[CorrectionSourceKey, tuple[str, ...]],
+    mapping: dict[DetectionIdentity, tuple[str, ...]],
 ) -> tuple[str, ...]:
     return tuple(sorted({
         target_id
         for source_id in source_ids
-        for target_id in mapping.get((physical_frame_id, source_id), ())
+        for target_id in mapping.get(
+            DetectionIdentity(
+                physical_frame_id=physical_frame_id,
+                source_id=source_id,
+            ),
+            (),
+        )
     }))
 
 

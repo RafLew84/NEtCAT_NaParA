@@ -143,6 +143,7 @@ from .texture_abc_adapter import (
     TextureABCClassifierAdapter,
 )
 from .domain_correction import DomainCorrectionModule
+from .detection_identity import CorrectionSourceMapping, DetectionIdentity
 from .correction_rebase import (
     ApplyPreparedCorrectionRebase,
     CorrectionRebaseIssue,
@@ -280,6 +281,7 @@ __all__ = [
     "CorrectionRebasePolicy",
     "CorrectionRebaseRecord",
     "CorrectionRebaseResolution",
+    "CorrectionSourceMapping",
     "CorrectionWorkspaceQuarantine",
     "CorrectionWorkspaceQuarantineReason",
     "DomainCorrectionAtom",
@@ -295,6 +297,7 @@ __all__ = [
     "DomainCorrectionModule",
     "DomainCorrectionWorkspace",
     "DomainCorrectionWorkspaceState",
+    "DetectionIdentity",
     "DomainSelectionPolygon",
     "DomainSelectionView",
     "DiscardPreparedDomainCorrection",

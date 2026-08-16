@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Literal
 
 from .classifier_models import MoleculeClassification
+from .detection_identity import DetectionIdentity
 from .fingerprints import canonical_sha256
 from .domain_correction_history import (
     DomainCorrectionHistoryAvailability,
@@ -116,12 +117,12 @@ class DomainCorrectionWorkspace:
     revision: int
     orientation_decisions: tuple[ManualOrientationDecision, ...] = ()
     manual_domains: tuple[ManualDomainRecord, ...] = ()
-    cleared_boundary_source_keys: tuple[tuple[str, str], ...] = ()
+    cleared_boundary_source_keys: tuple[DetectionIdentity, ...] = ()
     atoms: tuple[DomainCorrectionAtom, ...] = ()
     history_records: tuple[DomainCorrectionHistoryRecord, ...] = ()
     baseline_orientation_decisions: tuple[ManualOrientationDecision, ...] = ()
     baseline_manual_domains: tuple[ManualDomainRecord, ...] = ()
-    legacy_boundary_source_keys: tuple[tuple[str, str], ...] | None = None
+    legacy_boundary_source_keys: tuple[DetectionIdentity, ...] | None = None
     review_revisions: tuple[tuple[DomainCorrectionReviewTarget, int], ...] = (
         ("m6", 0),
         ("orientation", 0),
@@ -141,7 +142,13 @@ class DomainCorrectionWorkspace:
         ))
         if any(not isinstance(value, ManualOrientationDecision) for value in decisions):
             raise TypeError("orientation_decisions must contain manual decisions.")
-        keys = tuple((value.physical_frame_id, value.source_id) for value in decisions)
+        keys = tuple(
+            DetectionIdentity(
+                physical_frame_id=value.physical_frame_id,
+                source_id=value.source_id,
+            )
+            for value in decisions
+        )
         if len(keys) != len(set(keys)):
             raise ValueError("orientation_decisions must have unique molecule keys.")
         object.__setattr__(self, "orientation_decisions", decisions)
@@ -155,13 +162,10 @@ class DomainCorrectionWorkspace:
         if len(domain_ids) != len(set(domain_ids)):
             raise ValueError("manual_domains must have globally unique UUIDs.")
         object.__setattr__(self, "manual_domains", domains)
-        boundary_keys = tuple(sorted({
-            (
-                _text(physical_frame_id, "boundary physical_frame_id"),
-                _text(source_id, "boundary source_id"),
-            )
-            for physical_frame_id, source_id in self.cleared_boundary_source_keys
-        }))
+        boundary_keys = _detection_identities(
+            self.cleared_boundary_source_keys,
+            "cleared_boundary_source_keys",
+        )
         object.__setattr__(self, "cleared_boundary_source_keys", boundary_keys)
         atoms = tuple(self.atoms)
         if any(not isinstance(value, DomainCorrectionAtom) for value in atoms):
@@ -187,26 +191,22 @@ class DomainCorrectionWorkspace:
         object.__setattr__(self, "baseline_orientation_decisions", baseline_values[0])
         object.__setattr__(self, "baseline_manual_domains", baseline_values[1])
         raw_legacy_boundary_keys = self.legacy_boundary_source_keys
-        legacy_boundary_keys = None if raw_legacy_boundary_keys is None else tuple(sorted({
-            (
-                _text(physical_frame_id, "legacy boundary physical_frame_id"),
-                _text(source_id, "legacy boundary source_id"),
+        legacy_boundary_keys = (
+            None
+            if raw_legacy_boundary_keys is None
+            else _detection_identities(
+                raw_legacy_boundary_keys,
+                "legacy_boundary_source_keys",
             )
-            for physical_frame_id, source_id in raw_legacy_boundary_keys
-        }))
+        )
         object.__setattr__(
             self,
             "legacy_boundary_source_keys",
             legacy_boundary_keys,
         )
-        revisions = dict(self.review_revisions)
-        if set(revisions) != {"m6", "orientation"}:
-            raise ValueError("review_revisions must contain both review targets.")
-        normalized_revisions = tuple(
-            (target, _non_negative_integer(revisions[target], f"{target}_review_revision"))
-            for target in ("m6", "orientation")
+        object.__setattr__(
+            self, "review_revisions", _review_revisions(self.review_revisions)
         )
-        object.__setattr__(self, "review_revisions", normalized_revisions)
 
     def review_revision(self, target: DomainCorrectionReviewTarget) -> int:
         try:
@@ -434,12 +434,18 @@ class EffectiveDomainProjection:
         physical_frame_id: str,
         source_id: str,
     ) -> EffectiveMoleculeOrientation:
-        key = (physical_frame_id, source_id)
+        key = DetectionIdentity(
+            physical_frame_id=physical_frame_id,
+            source_id=source_id,
+        )
         try:
             return next(
                 value
                 for value in self.molecules
-                if (value.physical_frame_id, value.source_id) == key
+                if DetectionIdentity(
+                    physical_frame_id=value.physical_frame_id,
+                    source_id=value.source_id,
+                ) == key
             )
         except StopIteration as error:
             raise ValueError(f"Unknown effective molecule: {key!r}.") from error
@@ -480,7 +486,13 @@ def _baseline_orientation_decisions(
         raise TypeError(
             "baseline_orientation_decisions must contain manual decisions."
         )
-    keys = tuple((value.physical_frame_id, value.source_id) for value in decisions)
+    keys = tuple(
+        DetectionIdentity(
+            physical_frame_id=value.physical_frame_id,
+            source_id=value.source_id,
+        )
+        for value in decisions
+    )
     if len(keys) != len(set(keys)):
         raise ValueError(
             "baseline_orientation_decisions must have unique molecule keys."
@@ -515,10 +527,31 @@ def _source_ids(values: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(sorted({_text(value, "source_id") for value in values}))
 
 
+def _detection_identities(
+    values: tuple[DetectionIdentity, ...],
+    field_name: str,
+) -> tuple[DetectionIdentity, ...]:
+    if any(not isinstance(value, DetectionIdentity) for value in values):
+        raise TypeError(f"{field_name} must contain DetectionIdentity values.")
+    return tuple(sorted(set(values)))
+
+
 def _non_negative_integer(value: object, field_name: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int) or value < 0:
         raise ValueError(f"{field_name} must be a non-negative integer.")
     return value
+
+
+def _review_revisions(
+    values: tuple[tuple[DomainCorrectionReviewTarget, int], ...],
+) -> tuple[tuple[DomainCorrectionReviewTarget, int], ...]:
+    revisions = dict(values)
+    if set(revisions) != {"m6", "orientation"}:
+        raise ValueError("review_revisions must contain both review targets.")
+    return tuple(
+        (target, _non_negative_integer(revisions[target], f"{target}_review_revision"))
+        for target in ("m6", "orientation")
+    )
 
 
 def _text(value: object, field_name: str) -> str:

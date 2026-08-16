@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from .classifier_models import MoleculeClassification
+from .detection_identity import DetectionIdentity
 from .domain_correction_actions import ApplyPreparedDomainCorrection
 from .domain_correction_models import (
     DomainCorrectionAtom,
@@ -178,7 +179,10 @@ class DomainCorrectionModule:
             boundary_keys = set(workspace.cleared_boundary_source_keys)
             if intent.operation == "move" and intent.boundary_resolution is not None:
                 intent_keys = {
-                    (intent.physical_frame_id, effect.source_id)
+                    DetectionIdentity(
+                        physical_frame_id=intent.physical_frame_id,
+                        source_id=effect.source_id,
+                    )
                     for effect in preview.effects
                     if effect.before_boundary is True
                     and effect.after_boundary is not None
@@ -194,7 +198,10 @@ class DomainCorrectionModule:
             ), preview)
         decisions = _decision_index(workspace)
         for source_id in intent.source_ids:
-            key = (intent.physical_frame_id, source_id)
+            key = DetectionIdentity(
+                physical_frame_id=intent.physical_frame_id,
+                source_id=source_id,
+            )
             if intent.operation == "reset":
                 decisions.pop(key, None)
             else:
@@ -335,7 +342,10 @@ class DomainCorrectionModule:
         decisions = _decision_index(workspace)
         manual_memberships = active_manual_memberships(workspace.manual_domains)
         tombstoned_sources = {
-            (domain.physical_frame_id, source_id)
+            DetectionIdentity(
+                physical_frame_id=domain.physical_frame_id,
+                source_id=source_id,
+            )
             for domain in workspace.manual_domains
             if domain.is_deleted
             for source_id in domain.restore_source_ids
@@ -358,12 +368,17 @@ class DomainCorrectionModule:
                 classifications,
                 decisions,
                 manual_memberships,
-                (frame.physical_frame_id, source_id) in tombstoned_sources,
+                DetectionIdentity(
+                    physical_frame_id=frame.physical_frame_id,
+                    source_id=source_id,
+                ) in tombstoned_sources,
                 _effective_boundary_role(
                     boundary_ids[frame.physical_frame_id],
                     source_id,
-                    (frame.physical_frame_id, source_id)
-                    in cleared_boundary_keys,
+                    DetectionIdentity(
+                        physical_frame_id=frame.physical_frame_id,
+                        source_id=source_id,
+                    ) in cleared_boundary_keys,
                 ),
                 footprints[frame.physical_frame_id][source_id],
             )
@@ -387,14 +402,17 @@ class DomainCorrectionModule:
 def _project_molecule(
     frame: M6FrameGate,
     source_id: str,
-    classifications: dict[tuple[str, str], MoleculeClassification],
-    decisions: dict[tuple[str, str], ManualOrientationDecision],
-    manual_memberships: dict[tuple[str, str], str],
+    classifications: dict[DetectionIdentity, MoleculeClassification],
+    decisions: dict[DetectionIdentity, ManualOrientationDecision],
+    manual_memberships: dict[DetectionIdentity, str],
     is_tombstoned_member: bool,
     automatic_boundary: bool | None,
     footprint_pixels_xy: tuple[tuple[int, int], ...] | None,
 ) -> EffectiveMoleculeOrientation:
-    key = (frame.physical_frame_id, source_id)
+    key = DetectionIdentity(
+        physical_frame_id=frame.physical_frame_id,
+        source_id=source_id,
+    )
     classification = classifications.get(key)
     decision = decisions.get(key)
     manual_domain_id = manual_memberships.get(key)
@@ -503,9 +521,12 @@ def _orientation_subdomains(
 
 def _classification_index(
     automatic: DomainAnalysisResult,
-) -> dict[tuple[str, str], MoleculeClassification]:
+) -> dict[DetectionIdentity, MoleculeClassification]:
     return {
-        (classification.physical_frame_id, classification.source_id): classification
+        DetectionIdentity(
+            physical_frame_id=classification.physical_frame_id,
+            source_id=classification.source_id,
+        ): classification
         for outcome in automatic.classifier_outcomes or ()
         if outcome.classifier_id == ABC_ORIENTATION_CLASSIFIER_ID
         for classification in outcome.molecule_classifications
@@ -514,19 +535,25 @@ def _classification_index(
 
 def _decision_index(
     workspace: DomainCorrectionWorkspace,
-) -> dict[tuple[str, str], ManualOrientationDecision]:
+) -> dict[DetectionIdentity, ManualOrientationDecision]:
     return {
-        (value.physical_frame_id, value.source_id): value
+        DetectionIdentity(
+            physical_frame_id=value.physical_frame_id,
+            source_id=value.source_id,
+        ): value
         for value in workspace.orientation_decisions
     }
 
 
 def _decision_would_change(
-    decisions: dict[tuple[str, str], ManualOrientationDecision],
+    decisions: dict[DetectionIdentity, ManualOrientationDecision],
     intent: ManualOrientationIntent,
     source_id: str,
 ) -> bool:
-    current = decisions.get((intent.physical_frame_id, source_id))
+    current = decisions.get(DetectionIdentity(
+        physical_frame_id=intent.physical_frame_id,
+        source_id=source_id,
+    ))
     if intent.operation == "reset":
         return current is not None
     return (
@@ -584,37 +611,46 @@ def _prepared_manual_domain_intent(
             (),
         ),)
     if intent.operation == "restore":
-        memberships = active_manual_memberships(workspace.manual_domains)
-        resolutions = dict(intent.member_resolutions)
-        invalid_resolutions = tuple(
-            source_id
-            for source_id in resolutions
-            if source_id not in record.restore_source_ids
-        )
-        if invalid_resolutions:
-            return intent, (DomainCorrectionConflict(
-                "blocked",
-                "invalid_restore_resolution",
-                "Restore resolutions must identify saved domain members.",
-                invalid_resolutions,
-            ),)
-        conflicts = tuple(
-            source_id
-            for source_id in record.restore_source_ids
-            if (
-                memberships.get((intent.physical_frame_id, source_id))
-                not in {None, intent.manual_domain_id}
-                and source_id not in resolutions
-            )
-        )
-        if conflicts:
-            return intent, (DomainCorrectionConflict(
-                "blocked",
-                "restore_membership_conflict",
-                "Restore members already belong to another manual domain.",
-                conflicts,
-            ),)
+        return intent, _restore_conflicts(workspace, intent, record)
     return intent, ()
+
+
+def _restore_conflicts(
+    workspace: DomainCorrectionWorkspace,
+    intent: ManualDomainIntent,
+    record: ManualDomainRecord,
+) -> tuple[DomainCorrectionConflict, ...]:
+    memberships = active_manual_memberships(workspace.manual_domains)
+    resolutions = dict(intent.member_resolutions)
+    invalid_resolutions = tuple(
+        source_id
+        for source_id in resolutions
+        if source_id not in record.restore_source_ids
+    )
+    if invalid_resolutions:
+        return (DomainCorrectionConflict(
+            "blocked",
+            "invalid_restore_resolution",
+            "Restore resolutions must identify saved domain members.",
+            invalid_resolutions,
+        ),)
+    conflicts = tuple(
+        source_id
+        for source_id in record.restore_source_ids
+        if memberships.get(DetectionIdentity(
+            physical_frame_id=intent.physical_frame_id,
+            source_id=source_id,
+        )) not in {None, intent.manual_domain_id}
+        and source_id not in resolutions
+    )
+    if not conflicts:
+        return ()
+    return (DomainCorrectionConflict(
+        "blocked",
+        "restore_membership_conflict",
+        "Restore members already belong to another manual domain.",
+        conflicts,
+    ),)
 
 
 def _manual_domain_source_ids(
@@ -677,7 +713,10 @@ def _manual_domain_changed_source_ids(
         return tuple(
             source_id
             for source_id in intent.source_ids
-            if memberships.get((intent.physical_frame_id, source_id))
+            if memberships.get(DetectionIdentity(
+                physical_frame_id=intent.physical_frame_id,
+                source_id=source_id,
+            ))
             != intent.manual_domain_id
         )
     record = _manual_domain_index(workspace)[

@@ -11,6 +11,7 @@ from moltrack.analysis.domain_analysis import (
     DomainBackendIdentity,
     DomainCorrectionModule,
     DomainCorrectionHistoryRecord,
+    DetectionIdentity,
     DomainCorrectionWorkspace,
     M3M6LatticeNetworkEvidence,
     M6Gate,
@@ -370,7 +371,10 @@ def test_replay_preserves_an_effectless_legacy_boundary_baseline() -> None:
         atoms=tuple(replace(atom, effects=()) for atom in workspace.atoms),
         review_revisions=workspace.review_revisions,
     )
-    assert legacy.cleared_boundary_source_keys == (("frame-0", "outside"),)
+    assert legacy.cleared_boundary_source_keys == (DetectionIdentity(
+        physical_frame_id="frame-0",
+        source_id="outside",
+    ),)
     assert module.history_availability(legacy, "frame-0").undo is None
 
     preview = module.prepare(
@@ -389,9 +393,10 @@ def test_replay_preserves_an_effectless_legacy_boundary_baseline() -> None:
     )
     updated = module.undo(updated, automatic, "frame-0")
 
-    assert updated.cleared_boundary_source_keys == (
-        ("frame-0", "outside"),
-    )
+    assert updated.cleared_boundary_source_keys == (DetectionIdentity(
+        physical_frame_id="frame-0",
+        source_id="outside",
+    ),)
     assert not module.project(automatic, updated).molecule(
         "frame-0", "outside"
     ).is_boundary

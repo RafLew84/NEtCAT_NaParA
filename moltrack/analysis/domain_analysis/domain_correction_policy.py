@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 
 from .classifier_models import MoleculeClassification
+from .detection_identity import DetectionIdentity
 from .domain_correction_models import (
     DomainCorrectionConflict,
     DomainCorrectionConflictSeverity,
@@ -344,13 +345,19 @@ def _manual_orientation_conflicts(
     if not isinstance(intent, ManualOrientationIntent):
         return ()
     manual_keys = {
-        (value.physical_frame_id, value.source_id)
+        DetectionIdentity(
+            physical_frame_id=value.physical_frame_id,
+            source_id=value.source_id,
+        )
         for value in workspace.orientation_decisions
     }
     replaced_manual = tuple(
         source_id
         for source_id in changed_source_ids
-        if (intent.physical_frame_id, source_id) in manual_keys
+        if DetectionIdentity(
+            physical_frame_id=intent.physical_frame_id,
+            source_id=source_id,
+        ) in manual_keys
     )
     if replaced_manual:
         return (DomainCorrectionConflict(

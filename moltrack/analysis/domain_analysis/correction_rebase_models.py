@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Literal
 
+from .detection_identity import CorrectionSourceMapping, DetectionIdentity
 from .domain_correction_models import DomainCorrectionWorkspace
 from .diagnostic_funnel import build_molecule_diagnostic_funnels
 from .fingerprints import canonical_sha256
@@ -17,10 +18,6 @@ CorrectionRebaseIssueKind = Literal[
     "merge",
 ]
 CorrectionRebaseResolutionAction = Literal["reapplied", "remapped", "dropped"]
-CorrectionSourceKey = tuple[str, str]
-CorrectionSourceMapping = tuple[str, str, tuple[str, ...]]
-
-
 @dataclass(frozen=True)
 class PendingAutomaticCandidate:
     request: DomainAnalysisRequest
@@ -93,7 +90,7 @@ class PreparedCorrectionRebase:
     expected_correction_revision: int
     active_automatic_fingerprint: str
     candidate_automatic_fingerprint: str
-    portable_source_keys: tuple[CorrectionSourceKey, ...]
+    portable_source_keys: tuple[DetectionIdentity, ...]
     issues: tuple[CorrectionRebaseIssue, ...]
     resolutions: tuple[CorrectionRebaseResolution, ...]
     source_mapping: tuple[CorrectionSourceMapping, ...]
@@ -111,12 +108,22 @@ class PreparedCorrectionRebase:
             "candidate_automatic_fingerprint",
         ):
             object.__setattr__(self, name, _text(getattr(self, name), name))
+        if any(
+            not isinstance(value, DetectionIdentity)
+            for value in self.portable_source_keys
+        ):
+            raise TypeError("portable_source_keys must contain DetectionIdentity values.")
         portable = tuple(sorted(set(self.portable_source_keys)))
         issues = tuple(sorted(self.issues, key=lambda value: value.issue_id))
         resolutions = tuple(sorted(
             self.resolutions,
             key=lambda value: value.issue_id,
         ))
+        if any(
+            not isinstance(value, CorrectionSourceMapping)
+            for value in self.source_mapping
+        ):
+            raise TypeError("source_mapping must contain CorrectionSourceMapping values.")
         mapping = tuple(sorted(self.source_mapping))
         if len({value.issue_id for value in issues}) != len(issues):
             raise ValueError("Rebase issue IDs must be unique.")
@@ -136,10 +143,20 @@ class PreparedCorrectionRebase:
             "expected_correction_revision": self.expected_correction_revision,
             "active_automatic_fingerprint": self.active_automatic_fingerprint,
             "candidate_automatic_fingerprint": self.candidate_automatic_fingerprint,
-            "portable_source_keys": portable,
+            "portable_source_keys": [
+                (value.physical_frame_id, value.source_id)
+                for value in portable
+            ],
             "issues": [asdict(value) for value in issues],
             "resolutions": [asdict(value) for value in resolutions],
-            "source_mapping": mapping,
+            "source_mapping": [
+                (
+                    value.source_identity.physical_frame_id,
+                    value.source_identity.source_id,
+                    value.target_source_ids,
+                )
+                for value in mapping
+            ],
             "blocking_reasons": self.blocking_reasons,
         }))
 
@@ -172,6 +189,12 @@ class CorrectionRebaseRecord:
             "recorded_at",
             self.recorded_at.astimezone(timezone.utc),
         )
+        if any(
+            not isinstance(value, CorrectionSourceMapping)
+            for value in self.source_mapping
+        ):
+            raise TypeError("source_mapping must contain CorrectionSourceMapping values.")
+        object.__setattr__(self, "source_mapping", tuple(sorted(self.source_mapping)))
 
 
 @dataclass(frozen=True)
@@ -258,7 +281,6 @@ __all__ = [
     "CorrectionRebaseRecord",
     "CorrectionRebaseResolution",
     "CorrectionRebaseResolutionAction",
-    "CorrectionSourceKey",
     "CorrectionSourceMapping",
     "PendingAutomaticCandidate",
     "PrepareCorrectionRebase",

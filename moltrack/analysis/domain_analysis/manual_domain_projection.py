@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 
+from .detection_identity import DetectionIdentity
 from .domain_correction_models import EffectiveMoleculeOrientation
 from .geometry import M6PublishedMolecule
 from .manual_domain_models import (
@@ -14,13 +15,16 @@ from .models import M6FrameGate
 
 def active_manual_memberships(
     manual_domains: tuple[ManualDomainRecord, ...],
-) -> dict[tuple[str, str], str]:
-    memberships: dict[tuple[str, str], str] = {}
+) -> dict[DetectionIdentity, str]:
+    memberships: dict[DetectionIdentity, str] = {}
     for domain in manual_domains:
         if domain.is_deleted:
             continue
         for source_id in domain.source_ids:
-            key = (domain.physical_frame_id, source_id)
+            key = DetectionIdentity(
+                physical_frame_id=domain.physical_frame_id,
+                source_id=source_id,
+            )
             if key in memberships:
                 raise ValueError("Effective molecule belongs to multiple manual domains.")
             memberships[key] = domain.manual_domain_id
@@ -33,16 +37,25 @@ def project_effective_domains(
     molecules: tuple[EffectiveMoleculeOrientation, ...],
 ) -> tuple[EffectiveM6Domain, ...]:
     orientations = {
-        (value.physical_frame_id, value.source_id): value.effective_orientation
+        DetectionIdentity(
+            physical_frame_id=value.physical_frame_id,
+            source_id=value.source_id,
+        ): value.effective_orientation
         for value in molecules
     }
     boundaries = {
-        (value.physical_frame_id, value.source_id): value.is_boundary
+        DetectionIdentity(
+            physical_frame_id=value.physical_frame_id,
+            source_id=value.source_id,
+        ): value.is_boundary
         for value in molecules
     }
     active_manual_memberships(manual_domains)
     effective_molecules = {
-        (value.physical_frame_id, value.source_id): value
+        DetectionIdentity(
+            physical_frame_id=value.physical_frame_id,
+            source_id=value.source_id,
+        ): value
         for value in molecules
     }
     domains = []
@@ -53,7 +66,10 @@ def project_effective_domains(
             source_ids = tuple(
                 value
                 for value in component.source_ids
-                if effective_molecules[(frame.physical_frame_id, value)]
+                if effective_molecules[DetectionIdentity(
+                    physical_frame_id=frame.physical_frame_id,
+                    source_id=value,
+                )]
                 .effective_domain_id == component.lattice_domain_id
             )
             if source_ids:
@@ -94,8 +110,8 @@ def _effective_domain(
     source_ids: tuple[str, ...],
     members: dict[str, M6PublishedMolecule],
     source_footprints: dict[str, tuple[tuple[int, int], ...] | None],
-    orientations: dict[tuple[str, str], str | None],
-    boundaries: dict[tuple[str, str], bool | None],
+    orientations: dict[DetectionIdentity, str | None],
+    boundaries: dict[DetectionIdentity, bool | None],
     *,
     is_tombstone: bool = False,
 ) -> EffectiveM6Domain:
@@ -108,7 +124,10 @@ def _effective_domain(
     composition = Counter(
         label
         for source_id in source_ids
-        for label in (orientations.get((frame.physical_frame_id, source_id)),)
+        for label in (orientations.get(DetectionIdentity(
+            physical_frame_id=frame.physical_frame_id,
+            source_id=source_id,
+        )),)
         if label is not None and len(label) == 1 and "A" <= label <= "Z"
     )
     return EffectiveM6Domain(
@@ -134,13 +153,16 @@ def _effective_domain(
             None
             if not any(
                 value is not None
-                for (frame_id, _), value in boundaries.items()
-                if frame_id == frame.physical_frame_id
+                for identity, value in boundaries.items()
+                if identity.physical_frame_id == frame.physical_frame_id
             )
             else tuple(
                 source_id
                 for source_id in source_ids
-                if boundaries[(frame.physical_frame_id, source_id)]
+                if boundaries[DetectionIdentity(
+                    physical_frame_id=frame.physical_frame_id,
+                    source_id=source_id,
+                )]
             )
         ),
         orientation_composition=tuple(sorted(composition.items())),

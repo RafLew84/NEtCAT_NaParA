@@ -31,6 +31,10 @@ from .domain_analysis_payload_validation import (
     text_field,
     text_list_field,
 )
+from .detection_identity_payload import (
+    identities_from_payload,
+    identities_to_payload,
+)
 
 
 def correction_set_to_payload(value: DomainCorrectionWorkspace) -> dict[str, Any]:
@@ -39,7 +43,9 @@ def correction_set_to_payload(value: DomainCorrectionWorkspace) -> dict[str, Any
         "revision": value.revision,
         "orientation_decisions": [asdict(item) for item in value.orientation_decisions],
         "manual_domains": [asdict(item) for item in value.manual_domains],
-        "cleared_boundary_source_keys": _pairs(value.cleared_boundary_source_keys),
+        "cleared_boundary_source_keys": identities_to_payload(
+            value.cleared_boundary_source_keys
+        ),
         "atoms": [_atom_to_payload(item) for item in value.atoms],
         "history_records": [
             {
@@ -57,7 +63,7 @@ def correction_set_to_payload(value: DomainCorrectionWorkspace) -> dict[str, Any
         "legacy_boundary_source_keys": (
             None
             if value.legacy_boundary_source_keys is None
-            else _pairs(value.legacy_boundary_source_keys)
+            else identities_to_payload(value.legacy_boundary_source_keys)
         ),
         "review_revisions": _pairs(value.review_revisions),
     }
@@ -66,6 +72,7 @@ def correction_set_to_payload(value: DomainCorrectionWorkspace) -> dict[str, Any
 def correction_set_from_payload(payload: Any) -> DomainCorrectionWorkspace:
     path = "domain_analysis.correction_workspace.active_correction_set"
     saved = mapping(payload, path)
+    legacy_boundary_payload = required(saved, "legacy_boundary_source_keys", path)
     return DomainCorrectionWorkspace(
         automatic_fingerprint=text_field(saved, "automatic_fingerprint", path),
         revision=integer_field(saved, "revision", path),
@@ -77,7 +84,7 @@ def correction_set_from_payload(payload: Any) -> DomainCorrectionWorkspace:
             _manual_domain(item, f"{path}.manual_domains[{index}]")
             for index, item in enumerate(list_field(saved, "manual_domains", path))
         ),
-        cleared_boundary_source_keys=_text_pairs(
+        cleared_boundary_source_keys=identities_from_payload(
             required(saved, "cleared_boundary_source_keys", path),
             f"{path}.cleared_boundary_source_keys",
         ),
@@ -104,9 +111,13 @@ def correction_set_from_payload(payload: Any) -> DomainCorrectionWorkspace:
                 list_field(saved, "baseline_manual_domains", path)
             )
         ),
-        legacy_boundary_source_keys=_optional_text_pairs(
-            required(saved, "legacy_boundary_source_keys", path),
-            f"{path}.legacy_boundary_source_keys",
+        legacy_boundary_source_keys=(
+            None
+            if legacy_boundary_payload is None
+            else identities_from_payload(
+                legacy_boundary_payload,
+                f"{path}.legacy_boundary_source_keys",
+            )
         ),
         review_revisions=cast(
             tuple[tuple[DomainCorrectionReviewTarget, int], ...],
@@ -255,10 +266,6 @@ def _text_pairs(payload: Any, path: str) -> tuple[tuple[str, str], ...]:
 
 def _text_integer_pairs(payload: Any, path: str) -> tuple[tuple[str, int], ...]:
     return cast(tuple[tuple[str, int], ...], _pairs_from_payload(payload, path, int))
-
-
-def _optional_text_pairs(payload: Any, path: str) -> tuple[tuple[str, str], ...] | None:
-    return None if payload is None else _text_pairs(payload, path)
 
 
 def _pairs_from_payload(payload: Any, path: str, second_type: type) -> tuple[tuple[Any, Any], ...]:

@@ -5,6 +5,7 @@ from typing import Any
 
 from moltrack.analysis.domain_analysis import (
     DomainAnalysisSessionState,
+    DetectionIdentity,
     EffectiveMoleculeOrientation,
     M6FrameGate,
     ReferenceReviewDecision,
@@ -325,11 +326,17 @@ def _effective_molecule_rows(
     }
     reviews = _review_decisions(state)
     saved_molecules = {
-        (value["physical_frame_id"], value["source_id"]): value
+        DetectionIdentity(
+            physical_frame_id=value["physical_frame_id"],
+            source_id=value["source_id"],
+        ): value
         for value in projection_payload["projection"]["molecules"]
     }
     effective_keys = {
-        (value.physical_frame_id, value.source_id)
+        DetectionIdentity(
+            physical_frame_id=value.physical_frame_id,
+            source_id=value.source_id,
+        )
         for value in projection.molecules
     }
     expected_keys = set(automatic)
@@ -342,7 +349,10 @@ def _effective_molecule_rows(
         projection.molecules,
         key=lambda value: (value.physical_frame_id, value.source_id),
     ):
-        key = (molecule.physical_frame_id, molecule.source_id)
+        key = DetectionIdentity(
+            physical_frame_id=molecule.physical_frame_id,
+            source_id=molecule.source_id,
+        )
         rows.append(_effective_molecule_row(
             molecule,
             automatic[key],
@@ -360,10 +370,9 @@ def _effective_molecule_row(
 ) -> dict[str, Any]:
     partition, domain_id, boundary = automatic
     classification = molecule.automatic_classification
-    key = (molecule.physical_frame_id, molecule.source_id)
     row = {
-        "physical_frame_id": key[0],
-        "source_id": key[1],
+        "physical_frame_id": molecule.physical_frame_id,
+        "source_id": molecule.source_id,
         "automatic_m6_partition": partition,
         "automatic_domain_id": domain_id or "",
         "automatic_boundary": boundary,
@@ -384,21 +393,35 @@ def _effective_molecule_row(
             else molecule.effective_confidence
         ),
     }
-    row.update(_review_columns("m6", reviews.get((key[0], "m6", key[1]))))
+    row.update(_review_columns("m6", reviews.get((
+        molecule.physical_frame_id,
+        "m6",
+        molecule.source_id,
+    ))))
     row.update(_review_columns(
         "orientation",
-        reviews.get((key[0], "orientation", key[1])),
+        reviews.get((
+            molecule.physical_frame_id,
+            "orientation",
+            molecule.source_id,
+        )),
     ))
     return row
 
 
 def _automatic_assignments(
     frame: M6FrameGate,
-) -> dict[tuple[str, str], tuple[str, str | None, bool | None]]:
-    values: dict[tuple[str, str], tuple[str, str | None, bool | None]] = {}
+) -> dict[DetectionIdentity, tuple[str, str | None, bool | None]]:
+    values: dict[
+        DetectionIdentity,
+        tuple[str, str | None, bool | None],
+    ] = {}
     for component in frame.full_domains + frame.small_ordered_islands:
         for member in component.members:
-            key = (frame.physical_frame_id, member.source_id)
+            key = DetectionIdentity(
+                physical_frame_id=frame.physical_frame_id,
+                source_id=member.source_id,
+            )
             if key in values:
                 raise ValueError(
                     "Automatic snapshot repeats a frozen source_id."
@@ -409,7 +432,10 @@ def _automatic_assignments(
                 member.source_id in component.halo_source_ids,
             )
     for member in frame.outside_members:
-        key = (frame.physical_frame_id, member.source_id)
+        key = DetectionIdentity(
+            physical_frame_id=frame.physical_frame_id,
+            source_id=member.source_id,
+        )
         if key in values:
             raise ValueError("Automatic snapshot repeats a frozen source_id.")
         values[key] = (
@@ -418,7 +444,10 @@ def _automatic_assignments(
             None,
         )
     expected = {
-        (frame.physical_frame_id, source_id)
+        DetectionIdentity(
+            physical_frame_id=frame.physical_frame_id,
+            source_id=source_id,
+        )
         for source_id in frame.analyzed_source_ids
     }
     if set(values) != expected:
