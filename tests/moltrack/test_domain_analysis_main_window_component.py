@@ -234,13 +234,13 @@ def _review_target_in_ui(sheet, target, decisions, qt_app) -> None:
     qt_app.processEvents()
 
 
-def test_one_public_domain_analysis_workflow_survives_round_trip_and_rejects_bad_input(
+def test_main_window_component_survives_round_trip_and_rejects_bad_input(
     qt_app,
     tmp_path,
     monkeypatch,
 ) -> None:
     source_path = tmp_path / "workflow.mpp"
-    source_path.write_bytes(b"domain analysis acceptance source")
+    source_path.write_bytes(b"domain analysis component test source")
     initial_series = _annotated_series(source_path)
     initial_session_path = tmp_path / "initial.moltrack.json"
     save_moltrack_session(initial_session_path, initial_series)
@@ -536,7 +536,7 @@ def test_one_public_domain_analysis_workflow_survives_round_trip_and_rejects_bad
         qt_app.processEvents()
 
 
-def test_open_v2_without_abc_then_enable_save_and_reopen_uses_runtime_capability(
+def test_main_window_component_restores_v2_classifier_capability(
     qt_app,
     tmp_path,
     monkeypatch,
@@ -625,7 +625,7 @@ def test_open_v2_without_abc_then_enable_save_and_reopen_uses_runtime_capability
         qt_app.processEvents()
 
 
-def test_restore_reports_classifier_missing_from_runtime_capability_catalog(
+def test_runtime_composition_rejects_missing_classifier_capability(
     qt_app,
     tmp_path,
 ) -> None:
@@ -668,12 +668,12 @@ def test_restore_reports_classifier_missing_from_runtime_capability_catalog(
         qt_app.processEvents()
 
 
-def test_runtime_composition_gates_reference_publication_until_ready(
+def test_runtime_composition_reports_reference_readiness_until_ready(
     qt_app,
     tmp_path,
 ) -> None:
-    source_path = tmp_path / "release-workflow.mpp"
-    source_path.write_bytes(b"domain analysis release workflow source")
+    source_path = tmp_path / "readiness-workflow.mpp"
+    source_path.write_bytes(b"domain analysis readiness component source")
     window = MolTrackMainWindow(yolo_model_discovery=lambda: [])
     composition = runtime.build_domain_analysis_main_window_composition(
         window,

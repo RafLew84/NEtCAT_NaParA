@@ -4,7 +4,8 @@
   "invariants": [
     "Public routing uses one Domain Analysis workspace through both simple and advanced views.",
     "Every legacy locator is absent after the cutover, without a feature flag, shadow execution, or dual-write.",
-    "Low-level M6 and texture descriptor mathematics remain only where used by the new Domain Analysis adapters."
+    "Low-level M6 and texture descriptor mathematics remain only where used by the new Domain Analysis adapters.",
+    "Acceptance and release tests are explicitly tiered and guarded against private production seams."
   ],
   "entries": [
     {
@@ -396,8 +397,23 @@
       "disposition": "replace",
       "replacement": [
         {
-          "path": "tests/moltrack/test_domain_analysis_ui_end_to_end.py",
-          "anchors": ["test_main_window_routes_save_open_and_export_through_one_domain_workspace", "test_position_analysis_actions_share_workspace_lifecycle"]
+          "path": "tests/moltrack/test_domain_analysis_ui_component.py",
+          "anchors": ["test_main_window_component_routes_save_open_and_export_through_one_workspace", "test_position_analysis_component_actions_share_workspace_lifecycle"]
+        },
+        {
+          "path": "tests/moltrack/test_domain_analysis_test_tiers.py",
+          "anchors": [
+            "test_acceptance_and_release_modules_are_explicitly_tiered",
+            "test_acceptance_and_release_modules_use_only_public_production_seams",
+            "test_quality_workflow_runs_the_public_seam_guard"
+          ]
+        },
+        {
+          "path": "tests/moltrack/test_domain_analysis_ttmapp_cutover.py",
+          "anchors": [
+            "DOMAIN_ANALYSIS_TEST_TIER = \"acceptance\"",
+            "test_ttmapp_variant_c_cutover_preserves_identity_through_campaign"
+          ]
         }
       ]
     },

@@ -198,7 +198,7 @@ def _assert_unknown_abc(table, viewer, abc_column: int) -> None:
     )
 
 
-def test_domain_analysis_ui_shares_published_overlay_and_selection(
+def test_domain_analysis_ui_component_shares_published_overlay_and_selection(
     qt_app,
     domain_ui,
 ) -> None:
@@ -271,7 +271,7 @@ def test_domain_analysis_ui_shares_published_overlay_and_selection(
     assert viewer.visible_m6_overlay_colors() == published_colors
 
 
-def test_position_analysis_adapter_reads_the_shared_workspace(
+def test_position_analysis_component_reads_the_shared_workspace(
     qt_app,
     domain_ui,
 ) -> None:
@@ -376,7 +376,7 @@ def test_position_analysis_adapter_reads_the_shared_workspace(
     reopened.deleteLater()
 
 
-def test_position_analysis_actions_share_workspace_lifecycle(
+def test_position_analysis_component_actions_share_workspace_lifecycle(
     qt_app,
     domain_ui,
 ) -> None:
@@ -440,7 +440,7 @@ def test_position_analysis_actions_share_workspace_lifecycle(
     reopened.deleteLater()
 
 
-def test_composition_waits_for_owned_export_before_shutdown(
+def test_ui_component_waits_for_owned_export_before_shutdown(
     qt_app,
     domain_ui,
     tmp_path,
@@ -506,7 +506,7 @@ def test_composition_waits_for_owned_export_before_shutdown(
         composition.shutdown()
 
 
-def test_main_window_routes_save_open_and_export_through_one_domain_workspace(
+def test_main_window_component_routes_save_open_and_export_through_one_workspace(
     qt_app,
     tmp_path,
 ) -> None:

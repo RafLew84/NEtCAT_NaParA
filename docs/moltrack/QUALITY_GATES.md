@@ -46,6 +46,38 @@ ratchet compares against `HEAD`; CI sets `DOMAIN_ANALYSIS_RATCHET_REF` to the PR
 base or pre-push revision so a commit cannot raise its own accepted debt. On a
 first branch push, GitHub's all-zero `before` value falls back to `HEAD^`.
 
+## Acceptance/release public-seam guard
+
+Domain Analysis modules that exercise a full operator workflow declare
+`DOMAIN_ANALYSIS_TEST_TIER = "acceptance"` or `"release"`. The production TTMAPP
+test and its UI support module form the current acceptance suite. Tests using
+injected adapters or compositions are explicitly named as component tests and do
+not claim release evidence.
+
+Run the automatic tier and private-seam guard with:
+
+```powershell
+conda run -n netcat python -m pytest tests\moltrack\test_domain_analysis_test_tiers.py -q
+```
+
+The guard discovers explicitly tiered modules and Domain Analysis files named as
+acceptance, release, or end-to-end tests. It rejects `_save_as()`,
+`_MolTrackM6Adapter`, and injected session restorers, composition factories, or
+export callbacks in that suite.
+
+## Domain Analysis cutover manifest
+
+Run the release cutover inventory validation locally and in CI with:
+
+```powershell
+conda run -n netcat python scripts\check_domain_analysis_cutover_manifest.py
+```
+
+The validator requires every legacy routing, state, worker, persistence/export,
+and test locator to remain absent, while every declared replacement anchor must
+resolve in the repository. It also verifies the completed cutover invariants and
+the production preflight composition.
+
 ## Code-size guard
 
 Run the architecture guard with one command:

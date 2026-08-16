@@ -57,6 +57,7 @@ _TTMAPP_SOURCE_ROOT = _FIXTURE_ROOT / "ttmapp_domain_analysis_sources"
 _RELEASE_REPORT = (
     _REPOSITORY_ROOT / "docs" / "domain_analysis_ttmapp_release_validation.json"
 )
+DOMAIN_ANALYSIS_TEST_TIER = "acceptance"
 
 
 @dataclass(frozen=True)

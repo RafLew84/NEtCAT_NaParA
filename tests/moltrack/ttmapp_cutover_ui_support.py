@@ -19,6 +19,7 @@ from moltrack.ui import MolTrackMainWindow
 
 _CAPTURED_DOCUMENTATION_STAGES: set[str] = set()
 _DOCUMENTATION_FONT_READY = False
+DOMAIN_ANALYSIS_TEST_TIER = "acceptance"
 
 
 @dataclass(frozen=True)
