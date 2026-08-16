@@ -115,10 +115,13 @@ class DomainAnalysisReleaseWorkflow:
             save_session=save_session,
             open_session=open_session,
             publish_m6_reference=(
-                lambda: self._references.publish_m6_reference(current)
+                lambda: self._references.publish_reference("m6", current)
             ),
             publish_orientation_reference=(
-                lambda: self._references.publish_orientation_reference(current)
+                lambda: self._references.publish_reference(
+                    "orientation",
+                    current,
+                )
             ),
             m6_reference_measurements=(
                 lambda: self._references.staged_m6_measurements

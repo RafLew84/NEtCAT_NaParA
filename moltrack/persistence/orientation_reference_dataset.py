@@ -25,18 +25,7 @@ def publish_orientation_reference_dataset(
 ) -> OrientationReferenceDatasetPublication:
     """Validate and publish one immutable Orientation dataset version."""
 
-    publication = prepare_orientation_reference_dataset(
-        measurements,
-        settings,
-    ).publish()
-    return OrientationReferenceDatasetPublication(
-        package_path=publication.package_path,
-        dataset_id=publication.dataset_id,
-        version_id=publication.version_id,
-        version_fingerprint=publication.version_fingerprint,
-        validation_epoch_id=publication.validation_epoch_id,
-        relative_files=publication.relative_files,
-    )
+    return prepare_orientation_reference_dataset(measurements, settings).publish()
 
 
 def prepare_orientation_reference_dataset(

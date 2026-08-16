@@ -25,15 +25,7 @@ def publish_m6_reference_dataset(
 ) -> M6ReferenceDatasetPublication:
     """Validate and atomically publish an immutable M6 dataset version."""
 
-    publication = prepare_m6_reference_dataset(measurements, settings).publish()
-    return M6ReferenceDatasetPublication(
-        package_path=publication.package_path,
-        dataset_id=publication.dataset_id,
-        version_id=publication.version_id,
-        version_fingerprint=publication.version_fingerprint,
-        validation_epoch_id=publication.validation_epoch_id,
-        relative_files=publication.relative_files,
-    )
+    return prepare_m6_reference_dataset(measurements, settings).publish()
 
 
 def prepare_m6_reference_dataset(

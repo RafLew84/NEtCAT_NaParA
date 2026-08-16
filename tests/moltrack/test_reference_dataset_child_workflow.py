@@ -18,21 +18,32 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from moltrack.analysis.domain_analysis import DomainAnalysisSeries
+from moltrack.analysis.domain_analysis import (
+    DomainAnalysisSeries,
+    ReferenceReadinessError,
+    ReferenceReadinessPolicy,
+)
 from moltrack.core import MolTrackImageSeries
 from moltrack.persistence import publish_m6_reference_dataset
 from moltrack.ui.domain_analysis_release_workflow import (
     DomainAnalysisReleaseWorkflow,
 )
+from moltrack.ui.domain_analysis_reference_workflow import (
+    DomainAnalysisReferenceWorkflow,
+)
 from moltrack.ui.domain_analysis_workflow_sheet import (
     ReferenceDatasetWorkflowSheet,
 )
 from test_m6_reference_dataset_v2 import (
+    _conflicted_state,
     _m6_reviewed_state,
     _measurement,
+    _quarantined_state,
     _settings,
+    _stale_state,
 )
 from test_domain_correction_orientation import _classifier_configuration
+from test_orientation_reference_dataset_v2 import _orientation_reviewed_state
 
 
 @pytest.fixture(scope="module")
@@ -162,6 +173,57 @@ def test_references_ui_previews_and_publishes_immutable_m6_child(
         )
         assert _package_bytes(parent_path) == parent_bytes
         assert "completed" in sheet.status_label.text()
+    finally:
+        owner.close()
+        owner.deleteLater()
+        qt_app.processEvents()
+
+
+@pytest.mark.parametrize(
+    ("target", "ready_state"),
+    (
+        ("m6", _m6_reviewed_state),
+        ("orientation", _orientation_reviewed_state),
+    ),
+)
+@pytest.mark.parametrize(
+    "not_ready_state",
+    (_stale_state, _conflicted_state, _quarantined_state),
+    ids=("stale", "conflicted", "quarantined"),
+)
+def test_reference_workflow_uses_one_readiness_contract_for_both_targets(
+    qt_app,
+    tmp_path,
+    target,
+    ready_state,
+    not_ready_state,
+) -> None:
+    ready = ready_state()
+    publication = ready.published_result
+    assert publication is not None
+    state = replace(
+        not_ready_state(ready),
+        draft=publication.request,
+        draft_classifier_configurations=(_classifier_configuration(),),
+        draft_physical_frame_ids=("frame-0",),
+    )
+    expected = ReferenceReadinessPolicy().evaluate_snapshot(state, target)
+    owner = QWidget()
+    workflow = DomainAnalysisReferenceWorkflow(owner)
+
+    try:
+        with pytest.raises(ReferenceReadinessError) as raised:
+            workflow.publish_reference(
+                target,
+                lambda: (
+                    state,
+                    _series(tmp_path / f"{target}.mpp"),
+                    DomainAnalysisSeries(()),
+                    None,
+                ),
+            )
+
+        assert raised.value.result == expected
     finally:
         owner.close()
         owner.deleteLater()
