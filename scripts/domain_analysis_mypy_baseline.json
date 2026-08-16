@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "owner": "MolTrack Domain Analysis maintainers",
+  "scope": {
+    "baseline_commit": "d0e542a0a601e9306d17d56b353a13d6c50b3af1",
+    "description": "All Python files in the Domain Analysis core and MolTrack UI, plus other production moltrack Python files added or modified since the ticket implementation baseline and untracked production files."
+  },
+  "errors": {
+    "moltrack/analysis/first_shell_graph.py": {
+      "owner": "MolTrack analysis maintainers",
+      "justification": "Legacy deserialization and optional-value diagnostics predate adoption of the automatic gate; this cap may only shrink.",
+      "errors": {
+        "arg-type": {
+          "Argument \"representative_source_ids\" to \"_validate_duplicate_groups\" has incompatible type \"tuple[object, ...]\"; expected \"tuple[str, ...]\"": 1,
+          "Argument 1 to \"float\" has incompatible type \"object\"; expected \"str | Buffer | SupportsFloat | SupportsIndex\"": 2,
+          "Argument 1 to \"tuple\" has incompatible type \"tuple[object, ...]\"; expected \"Iterable[bool]\"": 1,
+          "Argument 1 to \"tuple\" has incompatible type \"tuple[object, ...]\"; expected \"Iterable[str | None]\"": 1
+        },
+        "call-overload": {
+          "No overload variant of \"int\" matches argument type \"object\"": 1
+        },
+        "operator": {
+          "Unsupported operand types for < (\"float\" and \"None\")": 1
+        }
+      }
+    },
+    "moltrack/analysis/lattice_domain_calibration_models.py": {
+      "owner": "MolTrack analysis maintainers",
+      "justification": "Legacy payload conversion diagnostics predate adoption of the automatic gate; this cap may only shrink.",
+      "errors": {
+        "arg-type": {
+          "Argument \"split\" to \"LatticeDomainCalibrationReferenceFrame\" has incompatible type \"str\"; expected \"Literal['calibration', 'holdout']\"": 1,
+          "Argument \"symmetry_class\" to \"LatticeDomainCalibrationReferenceFrame\" has incompatible type \"str\"; expected \"Literal['trifold', 'sixfold', 'unknown']\"": 1
+        },
+        "return-value": {
+          "Incompatible return value type (got \"tuple[str, ...]\", expected \"tuple[str, str]\")": 1
+        }
+      }
+    },
+    "moltrack/analysis/local_symmetry_evidence_models.py": {
+      "owner": "MolTrack analysis maintainers",
+      "justification": "Legacy payload conversion diagnostics predate adoption of the automatic gate; this cap may only shrink.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"float\" has incompatible type \"object\"; expected \"str | Buffer | SupportsFloat | SupportsIndex\"": 1,
+          "Argument 1 to \"LocalSymmetryEvidenceSettings\" has incompatible type \"**dict[str, object]\"; expected \"float | None\"": 1,
+          "Argument 1 to \"LocalSymmetryEvidenceSettings\" has incompatible type \"**dict[str, object]\"; expected \"float\"": 1,
+          "Argument 1 to \"LocalSymmetryEvidenceSettings\" has incompatible type \"**dict[str, object]\"; expected \"int\"": 1
+        }
+      }
+    },
+    "moltrack/analysis/molecular_orientation_method_validation.py": {
+      "owner": "MolTrack analysis maintainers",
+      "justification": "Legacy validation payload diagnostics predate adoption of the automatic gate; this cap may only shrink.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"periodic_axis_distance\" has incompatible type \"float | None\"; expected \"float\"": 2,
+          "Argument 2 to \"periodic_axis_distance\" has incompatible type \"float | None\"; expected \"float\"": 2
+        }
+      }
+    },
+    "moltrack/analysis/molecular_orientation_reference.py": {
+      "owner": "MolTrack analysis maintainers",
+      "justification": "Legacy reference payload diagnostics predate adoption of the automatic gate; this cap may only shrink.",
+      "errors": {
+        "arg-type": {
+          "Argument \"lattice_rotation\" to \"MolecularOrientationDomainContext\" has incompatible type \"str\"; expected \"Literal['reference', 'rotated', 'unknown']\"": 1,
+          "Argument \"lattice_symmetry\" to \"MolecularOrientationDomainContext\" has incompatible type \"str\"; expected \"Literal['trifold', 'sixfold', 'mixed', 'unknown']\"": 1,
+          "Argument \"split\" to \"MolecularOrientationReferenceSample\" has incompatible type \"str\"; expected \"Literal['development', 'holdout']\"": 1,
+          "Argument \"stacking\" to \"MolecularOrientationDomainContext\" has incompatible type \"str\"; expected \"Literal['abab', 'uniform', 'mixed', 'unknown']\"": 1
+        }
+      }
+    },
+    "moltrack/analysis/texture_domain_analysis.py": {
+      "owner": "MolTrack analysis maintainers",
+      "justification": "A legacy collection-shape diagnostic predates adoption of the automatic gate; this cap may only shrink.",
+      "errors": {
+        "misc": {
+          "\"int\" object is not iterable": 1
+        }
+      }
+    },
+    "moltrack/persistence/session_store.py": {
+      "owner": "MolTrack persistence maintainers",
+      "justification": "Legacy optional payload diagnostics predate adoption of the automatic gate; this cap may only shrink.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"enumerate\" has incompatible type \"tuple[int, ...] | None\"; expected \"Iterable[int]\"": 1,
+          "Argument 1 to \"list\" has incompatible type \"tuple[float, float, float, float] | None\"; expected \"Iterable[Any]\"": 1,
+          "Argument 1 to \"tuple\" has incompatible type \"Any | None\"; expected \"Iterable[Any]\"": 1,
+          "Argument 2 to \"_mask_crop_bounds\" has incompatible type \"tuple[int, ...]\"; expected \"tuple[int, int]\"": 1
+        }
+      }
+    },
+    "moltrack/ui/main_window.py": {
+      "owner": "MolTrack UI maintainers",
+      "justification": "Legacy Qt nullability and broad UI orchestration diagnostics predate adoption of the automatic gate; these caps may only shrink.",
+      "errors": {
+        "arg-type": {
+          "Argument \"existing_masks_policy\" to \"_start_sam2_segmentation\" of \"MolTrackMainWindow\" has incompatible type \"object\"; expected \"str\"": 3,
+          "Argument \"keep_largest_component\" to \"_start_sam2_segmentation\" of \"MolTrackMainWindow\" has incompatible type \"object\"; expected \"bool\"": 3,
+          "Argument \"mask_probability_threshold\" to \"_start_sam2_segmentation\" of \"MolTrackMainWindow\" has incompatible type \"object\"; expected \"float\"": 3,
+          "Argument \"min_mask_area_px\" to \"_start_sam2_segmentation\" of \"MolTrackMainWindow\" has incompatible type \"object\"; expected \"int\"": 3,
+          "Argument 1 to \"_mask_brush_pixels\" of \"MolTrackMainWindow\" has incompatible type \"tuple[int, ...]\"; expected \"tuple[int, int]\"": 1,
+          "Argument 1 to \"build_manual_molecular_orientation_measurement\" has incompatible type \"Any | None\"; expected \"MolTrackImageSeries\"": 1,
+          "Argument 1 to \"Sam2SegmentationSettingsDialog\" has incompatible type \"**dict[str, list[Any] | float | int | str | MolTrackMainWindow | Any | None]\"; expected \"float\"": 1,
+          "Argument 1 to \"Sam2SegmentationSettingsDialog\" has incompatible type \"**dict[str, list[Any] | float | int | str | MolTrackMainWindow | Any | None]\"; expected \"int\"": 1,
+          "Argument 1 to \"Sam2SegmentationSettingsDialog\" has incompatible type \"**dict[str, list[Any] | float | int | str | MolTrackMainWindow | Any | None]\"; expected \"str\"": 1,
+          "Argument 1 to \"tuple\" has incompatible type \"object\"; expected \"Iterable[Any]\"": 2
+        },
+        "assignment": {
+          "Incompatible types in assignment (expression has type \"list[Never]\", variable has type \"_Sam2SegmentationBatchResult\")": 1,
+          "Incompatible types in assignment (expression has type \"tuple[tuple[float, float, float, float], ...]\", variable has type \"tuple[()]\")": 2
+        },
+        "attr-defined": {
+          "\"_Sam2SegmentationBatchResult\" has no attribute \"append\"": 1
+        },
+        "call-arg": {
+          "Unexpected keyword argument \"type\" for \"connect\" of \"pyqtBoundSignal\"": 3
+        },
+        "call-overload": {
+          "No overload variant of \"dict\" matches argument type \"object\"": 1
+        },
+        "union-attr": {
+          "Item \"None\" of \"Any | None\" has no attribute \"active_frame_index\"": 1,
+          "Item \"None\" of \"QMenu | Any | None\" has no attribute \"addAction\"": 6,
+          "Item \"None\" of \"QMenu | Any | None\" has no attribute \"addSeparator\"": 1,
+          "Item \"None\" of \"QMenuBar | None\" has no attribute \"addMenu\"": 2,
+          "Item \"None\" of \"QStatusBar | None\" has no attribute \"showMessage\"": 97
+        },
+        "var-annotated": {
+          "Need type annotation for \"_sam2_checkpoints\" (hint: \"_sam2_checkpoints: list[<type>] = ...\")": 1,
+          "Need type annotation for \"_yolo_models\" (hint: \"_yolo_models: list[<type>] = ...\")": 1
+        }
+      }
+    },
+    "moltrack/ui/widgets/stm_series_viewer.py": {
+      "owner": "MolTrack UI maintainers",
+      "justification": "Legacy Qt signal and tuple inference diagnostics predate adoption of the automatic gate; these caps may only shrink.",
+      "errors": {
+        "assignment": {
+          "Incompatible types in assignment (expression has type \"tuple[int, ...]\", variable has type \"tuple[int, int] | None\")": 1
+        },
+        "var-annotated": {
+          "Need type annotation for \"points\" (hint: \"points: list[<type>] = ...\")": 1
+        }
+      }
+    }
+  }
+}

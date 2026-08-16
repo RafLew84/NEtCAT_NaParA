@@ -411,7 +411,9 @@ class MolecularOrientationPanel(QGroupBox):
         self.btn_rotate_negative.setEnabled(editable)
         self.btn_rotate_positive.setEnabled(editable)
         self.btn_reset.setEnabled(
-            editable and bool(self._measurement.is_manually_corrected)
+            self._measurement is not None
+            and not self._running
+            and bool(self._measurement.is_manually_corrected)
         )
         stacking_busy = self._running or self._stacking_running
         self.btn_analyze_stacking.setEnabled(

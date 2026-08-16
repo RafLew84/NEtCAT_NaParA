@@ -1,0 +1,30 @@
+name: MolTrack quality gates
+
+on:
+  pull_request:
+    paths:
+      - "moltrack/**"
+      - "scripts/check_domain_analysis_types.py"
+      - "scripts/domain_analysis_mypy_baseline.json"
+      - "docs/moltrack/QUALITY_GATES.md"
+      - ".github/workflows/moltrack-quality.yml"
+  push:
+    paths:
+      - "moltrack/**"
+      - "scripts/check_domain_analysis_types.py"
+      - "scripts/domain_analysis_mypy_baseline.json"
+      - "docs/moltrack/QUALITY_GATES.md"
+      - ".github/workflows/moltrack-quality.yml"
+
+jobs:
+  domain-analysis-typecheck:
+    runs-on: [self-hosted, Windows]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run the Domain Analysis typecheck gate
+        shell: powershell
+        env:
+          DOMAIN_ANALYSIS_RATCHET_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: conda run -n netcat python scripts\check_domain_analysis_types.py

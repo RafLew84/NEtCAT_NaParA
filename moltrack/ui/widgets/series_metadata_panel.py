@@ -74,16 +74,18 @@ def _expanded_aligned_metadata_lines(expanded_stack: Any) -> list[str]:
     frames = getattr(expanded_stack, "frames", None)
     padding = getattr(expanded_stack, "padding_ltrb", None)
     lines: list[str] = []
-    try:
-        height, width = int(frames.shape[1]), int(frames.shape[2])
-        lines.append(f"Expanded shape: {width}x{height} px")
-    except (AttributeError, IndexError, TypeError, ValueError):
-        pass
-    try:
-        left, top, right, bottom = (int(value) for value in padding)
-        lines.append(f"Expanded padding: {left},{top},{right},{bottom} px")
-    except (TypeError, ValueError):
-        pass
+    if frames is not None:
+        try:
+            height, width = int(frames.shape[1]), int(frames.shape[2])
+            lines.append(f"Expanded shape: {width}x{height} px")
+        except (AttributeError, IndexError, TypeError, ValueError):
+            pass
+    if padding is not None:
+        try:
+            left, top, right, bottom = (int(value) for value in padding)
+            lines.append(f"Expanded padding: {left},{top},{right},{bottom} px")
+        except (TypeError, ValueError):
+            pass
     return lines
 
 

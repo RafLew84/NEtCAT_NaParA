@@ -19,17 +19,32 @@ mistaken for pre-existing failures.
 
 ## Domain Analysis typecheck
 
-Typecheck the Domain Analysis core together with its thin Qt composition and
-views using one repeatable command:
+Run the automatic Domain Analysis typecheck locally and in CI with the same
+command:
 
 ```powershell
-conda run -n netcat python -m mypy --ignore-missing-imports --follow-imports=silent moltrack\analysis\domain_analysis moltrack\ui\domain_analysis_composition.py moltrack\ui\domain_analysis_runtime.py moltrack\ui\domain_analysis_reference_workflow.py moltrack\ui\domain_analysis_release_workflow.py moltrack\ui\domain_analysis_workflow_sheet.py moltrack\ui\domain_analysis_help.py moltrack\ui\domain_analysis_overlay.py moltrack\ui\domain_analysis_hierarchy.py moltrack\ui\domain_analysis_workspace_view.py moltrack\ui\correction_rebase_controls.py moltrack\ui\domain_correction_sheet.py moltrack\ui\domain_correction_view.py moltrack\ui\domain_polygon_selection.py moltrack\ui\manual_domain_controls.py moltrack\ui\reference_review_sheet.py moltrack\ui\reference_review_view.py moltrack\ui\position_analysis_workspace_presentation.py moltrack\ui\dialogs\domain_analysis_command_center.py moltrack\ui\dialogs\domain_analysis_dialog.py moltrack\ui\dialogs\m6_preset_sheet.py moltrack\ui\dialogs\m6_settings_editor.py moltrack\ui\dialogs\position_analysis_workspace_dialog.py moltrack\ui\dialogs\m6_current_frame_results_panel.py
+conda run -n netcat python scripts\check_domain_analysis_types.py
 ```
 
-The explicit file list is the agreed typecheck scope. `follow-imports=silent`
-still uses imported type information while keeping failures owned by this gate
-inside Domain Analysis and its Qt adapters. `ignore-missing-imports` is required
-for optional scientific and GUI packages that do not publish typing metadata.
+The checker always discovers the complete
+`moltrack/analysis/domain_analysis/**/*.py` and `moltrack/ui/**/*.py` packages.
+It also discovers every other production `moltrack/**/*.py` file added or
+changed since the fixed Domain Analysis ownership boundary
+`d0e542a0a601e9306d17d56b353a13d6c50b3af1`, including untracked production
+files during local development. Therefore later modules enter the gate without
+editing a file list. CI checks out full Git history so the same boundary is
+available there. Imported type information remains available, while optional
+scientific and GUI packages without typing metadata are tolerated.
+
+Nine legacy files currently carry 165 diagnostics in
+`scripts/domain_analysis_mypy_baseline.json`. Every entry has an owner and a
+justification. Stable path, error-code, and message fingerprints are ratchets:
+adding or replacing a diagnostic, raising a count, or moving the ownership
+boundary fails the gate. When a diagnostic is fixed, the stale fingerprint or
+higher count also fails until the baseline is lowered or removed. Locally the
+ratchet compares against `HEAD`; CI sets `DOMAIN_ANALYSIS_RATCHET_REF` to the PR
+base or pre-push revision so a commit cannot raise its own accepted debt. On a
+first branch push, GitHub's all-zero `before` value falls back to `HEAD^`.
 
 ## Code-size guard
 
