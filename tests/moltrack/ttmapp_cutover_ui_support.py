@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from PyQt6.QtGui import QFont, QFontDatabase
@@ -36,6 +36,16 @@ class MainWindowReleaseArtifacts:
     geometry_prompt: str | None
 
 
+@dataclass(frozen=True)
+class _HistoryState:
+    records: tuple[tuple[str, str, str], ...]
+    operation_ids: tuple[str, ...]
+    revision: int
+    cursor: int
+    can_undo: bool
+    can_redo: bool
+
+
 def analyze_in_main_window(
     group,
     backend_id,
@@ -49,18 +59,23 @@ def analyze_in_main_window(
     _prepare_documentation_capture(qt_app)
     home = tmp_path / "operator-home"
     session_path = tmp_path / f"mainwindow-{group.split}-{backend_id}.moltrack.json"
+    history_path = tmp_path / (
+        f"mainwindow-{group.split}-{backend_id}-active-history.moltrack.json"
+    )
     export_parent = tmp_path / "exports" / group.split / backend_id
     export_parent.mkdir(parents=True, exist_ok=True)
+    save_path = [session_path]
+    open_path = [session_path]
     monkeypatch.setattr(Path, "home", staticmethod(lambda: home))
     monkeypatch.setattr(
         QFileDialog,
         "getSaveFileName",
-        staticmethod(lambda *_args, **_kwargs: (str(session_path), "")),
+        staticmethod(lambda *_args, **_kwargs: (str(save_path[0]), "")),
     )
     monkeypatch.setattr(
         QFileDialog,
         "getOpenFileName",
-        staticmethod(lambda *_args, **_kwargs: (str(session_path), "")),
+        staticmethod(lambda *_args, **_kwargs: (str(open_path[0]), "")),
     )
     monkeypatch.setattr(
         QFileDialog,
@@ -107,23 +122,27 @@ def analyze_in_main_window(
             lambda: session_path.is_file() and window.action_open_state.isEnabled(),
             lambda: window.statusBar().currentMessage(),
         )
-        dialog.reference_dataset_sheet.open_session_button.click()
-        _wait_until(
+        reopened = _open_session_in_main_window(
+            window,
+            dialog,
+            open_path,
+            session_path,
             qt_app,
-            lambda: (
-                window.statusBar().currentMessage().startswith("Loaded state")
-                and window.btn_position_analysis.isEnabled()
-            ),
-            lambda: window.statusBar().currentMessage(),
         )
-        window.btn_position_analysis.click()
-        reopened = window.domain_analysis_dialog()
-        assert reopened is not None
         loaded = load_moltrack_session(session_path).domain_analysis_state
         assert loaded is not None
         reopened_snapshot = reopened.command_center.rendered_snapshot
         assert reopened_snapshot is not None
         assert reopened_snapshot.published == loaded.published_result
+        reopened = _exercise_active_history_round_trip(
+            window,
+            reopened,
+            session_path,
+            history_path,
+            save_path,
+            open_path,
+            qt_app,
+        )
         reopened.command_center.stage_button("datasets").click()
         reopened.export_button.click()
         export_path = export_parent / f"{group.source_path.stem}-domain-analysis"
@@ -202,6 +221,18 @@ def _correct_and_review_in_ui(dialog, group, result, qt_app) -> None:
         sorted(group.source_ids)
     )
     dialog.manual_domain_create_button.click()
+    snapshot = dialog.command_center.rendered_snapshot
+    assert snapshot is not None
+    prepared = snapshot.domain_corrections.prepared
+    assert prepared is not None
+    assert (
+        "confirmation_required",
+        "domain_create",
+        tuple(sorted(group.source_ids)),
+    ) in tuple(
+        (conflict.severity, conflict.code, conflict.source_ids)
+        for conflict in prepared.conflicts
+    )
     _capture_documentation_stage(dialog, "correct", qt_app)
     if not dialog.correction_confirm_impact_checkbox.isHidden():
         dialog.correction_confirm_impact_checkbox.setChecked(True)
@@ -247,6 +278,207 @@ def _correct_and_review_in_ui(dialog, group, result, qt_app) -> None:
         qt_app,
     )
     _capture_documentation_stage(dialog, "review", qt_app)
+
+
+def _exercise_active_history_round_trip(
+    window,
+    dialog,
+    baseline_path,
+    history_path,
+    save_path,
+    open_path,
+    qt_app,
+):
+    """Continue correction history after a public MainWindow Save/Open."""
+
+    baseline = _required_correction_snapshot(dialog)
+    physical_frame_id = baseline.active_physical_frame_id
+    baseline_science = _correction_science(baseline)
+    dialog.command_center.stage_button("correct").click()
+    assert dialog.correction_undo_button.isEnabled()
+    dialog.correction_undo_button.click()
+    qt_app.processEvents()
+
+    before_save = _required_correction_snapshot(dialog)
+    before_history = _history_state(before_save, physical_frame_id)
+    assert before_history.revision == 4
+    assert before_history.cursor == 2
+    assert before_history.can_undo
+    assert before_history.can_redo
+    _assert_no_pending_conflicts(before_save)
+    assert _review_status(before_save, physical_frame_id) == (
+        ("m6", "reviewed"),
+        ("orientation", "draft"),
+    )
+
+    save_path[0] = history_path
+    window.action_save_state_as.trigger()
+    _wait_until(
+        qt_app,
+        lambda: history_path.is_file() and window.action_open_state.isEnabled(),
+        lambda: window.statusBar().currentMessage(),
+    )
+    restored = _open_session_in_main_window(
+        window,
+        dialog,
+        open_path,
+        history_path,
+        qt_app,
+    )
+    after_open = _required_correction_snapshot(restored)
+    _assert_no_pending_conflicts(after_open)
+    assert after_open.domain_corrections.correction_set == (
+        before_save.domain_corrections.correction_set
+    )
+    assert after_open.domain_corrections.effective_projection == (
+        before_save.domain_corrections.effective_projection
+    )
+    assert _history_state(after_open, physical_frame_id) == before_history
+    assert after_open.reference_reviews == before_save.reference_reviews
+
+    restored.command_center.stage_button("correct").click()
+    assert restored.correction_redo_button.isEnabled()
+    restored.correction_redo_button.click()
+    qt_app.processEvents()
+    after_redo = _required_correction_snapshot(restored)
+    _assert_no_pending_conflicts(after_redo)
+    assert _correction_science(after_redo) == baseline_science
+    redo_history = _history_state(after_redo, physical_frame_id)
+    assert redo_history.revision == 5
+    assert redo_history.cursor == 3
+    assert redo_history.can_undo
+    assert not redo_history.can_redo
+    _assert_review_invalidation(after_redo, before_save, physical_frame_id, 1)
+
+    assert restored.correction_undo_button.isEnabled()
+    restored.correction_undo_button.click()
+    qt_app.processEvents()
+    after_undo = _required_correction_snapshot(restored)
+    _assert_no_pending_conflicts(after_undo)
+    assert _correction_science(after_undo) == _correction_science(before_save)
+    undo_history = _history_state(after_undo, physical_frame_id)
+    assert undo_history.revision == 6
+    assert undo_history.cursor == 2
+    assert undo_history.can_undo
+    assert undo_history.can_redo
+    _assert_review_invalidation(after_undo, before_save, physical_frame_id, 2)
+
+    return _open_session_in_main_window(
+        window,
+        restored,
+        open_path,
+        baseline_path,
+        qt_app,
+    )
+
+
+def _open_session_in_main_window(
+    window,
+    dialog,
+    open_path,
+    target_path,
+    qt_app,
+):
+    open_path[0] = target_path
+    dialog.command_center.stage_button("datasets").click()
+    dialog.reference_dataset_sheet.open_session_button.click()
+    _wait_until(
+        qt_app,
+        lambda: (
+            window.statusBar().currentMessage().startswith("Loaded state")
+            and window.btn_position_analysis.isEnabled()
+        ),
+        lambda: window.statusBar().currentMessage(),
+    )
+    window.btn_position_analysis.click()
+    reopened = window.domain_analysis_dialog()
+    assert reopened is not None
+    return reopened
+
+
+def _required_correction_snapshot(dialog):
+    snapshot = dialog.command_center.rendered_snapshot
+    assert snapshot is not None
+    assert snapshot.domain_corrections.correction_set is not None
+    assert snapshot.domain_corrections.effective_projection is not None
+    return snapshot
+
+
+def _history_state(snapshot, physical_frame_id):
+    correction_set = snapshot.domain_corrections.correction_set
+    assert correction_set is not None
+    availability = correction_set.history_for(physical_frame_id)
+    cursor = sum(
+        -1 if record.action == "undo" else 1
+        for record in correction_set.history_records
+        if record.physical_frame_id == physical_frame_id
+    )
+    return _HistoryState(
+        records=tuple(
+            (record.record_id, record.action, record.operation_id)
+            for record in correction_set.history_records
+        ),
+        operation_ids=tuple(atom.operation_id for atom in correction_set.atoms),
+        revision=correction_set.revision,
+        cursor=cursor,
+        can_undo=availability.undo is not None,
+        can_redo=availability.redo is not None,
+    )
+
+
+def _correction_science(snapshot):
+    state = snapshot.domain_corrections
+    correction_set = state.correction_set
+    projection = state.effective_projection
+    assert correction_set is not None and projection is not None
+    return (
+        correction_set.orientation_decisions,
+        correction_set.manual_domains,
+        correction_set.cleared_boundary_source_keys,
+        replace(projection, correction_revision=0),
+    )
+
+
+def _assert_no_pending_conflicts(snapshot):
+    assert snapshot.domain_corrections.prepared is None
+
+
+def _review_status(snapshot, physical_frame_id):
+    return tuple(
+        (
+            target,
+            snapshot.reference_reviews.review_for(
+                physical_frame_id,
+                target,
+            ).status,
+        )
+        for target in ("m6", "orientation")
+    )
+
+
+def _assert_review_invalidation(
+    snapshot,
+    before_save,
+    physical_frame_id,
+    orientation_revision_delta,
+):
+    current_m6 = snapshot.reference_reviews.review_for(physical_frame_id, "m6")
+    saved_m6 = before_save.reference_reviews.review_for(physical_frame_id, "m6")
+    current_orientation = snapshot.reference_reviews.review_for(
+        physical_frame_id,
+        "orientation",
+    )
+    saved_orientation = before_save.reference_reviews.review_for(
+        physical_frame_id,
+        "orientation",
+    )
+    assert current_m6 == saved_m6
+    assert current_orientation.status == "draft"
+    assert current_orientation.decisions == ()
+    assert current_orientation.sign_off is None
+    assert current_orientation.scope.annotation_revision == (
+        saved_orientation.scope.annotation_revision + orientation_revision_delta
+    )
 
 
 def _wait_until(qt_app, predicate, failure_message, *, timeout: float = 30.0) -> None:
