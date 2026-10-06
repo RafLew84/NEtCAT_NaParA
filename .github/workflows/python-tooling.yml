@@ -1,0 +1,41 @@
+name: Python UTF-8 launcher
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "scripts/run_python_utf8.ps1"
+      - "scripts/check_nanotrack.ps1"
+      - "tests/tooling/**"
+      - "tests/wayfinder/**"
+      - "scripts/check_wayfinder_plan.py"
+      - "docs/PYTHON_CHECKS.md"
+      - ".github/workflows/python-tooling.yml"
+  push:
+    paths:
+      - "scripts/run_python_utf8.ps1"
+      - "scripts/check_nanotrack.ps1"
+      - "tests/tooling/**"
+      - "tests/wayfinder/**"
+      - "scripts/check_wayfinder_plan.py"
+      - "docs/PYTHON_CHECKS.md"
+      - ".github/workflows/python-tooling.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  launcher-tests:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Test UTF-8 and process exit codes in Windows PowerShell
+        shell: powershell
+        run: |
+          $pythonExe = (Get-Command python -CommandType Application).Source
+          & ./scripts/run_python_utf8.ps1 -PythonExe $pythonExe -Module unittest discover -s tests/tooling -p "test_*.py" -v
+          exit $LASTEXITCODE

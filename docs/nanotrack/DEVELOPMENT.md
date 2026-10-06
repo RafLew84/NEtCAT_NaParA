@@ -54,6 +54,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\check_nanotrack.ps
 Launcher sam szuka Condy i uruchamia kontrolę w `netcat`. Sprawdza zależności
 oraz Qt, a następnie testy NanoTrack i viewera MolTrack. Nie wymaga aktywowania
 środowiska w terminalu. `ExecutionPolicy Bypass` dotyczy tylko tego procesu.
+Komunikację PowerShell–Python obsługuje wspólny [launcher UTF-8](../PYTHON_CHECKS.md).
 
 [QUALITY_GATES.md](QUALITY_GATES.md) jest źródłem szczegółów: wymagane zależności,
 dozwolone pominięcia, opcjonalne próby modeli, wybór instalacji Condy,
@@ -64,11 +65,11 @@ Konfiguracja CI: [nanotrack-quality.yml](../../.github/workflows/nanotrack-quali
 
 ## Szybkie testy podczas pracy
 
-W aktywnym `netcat` można uruchomić wybrany plik lub test, np.:
+Wybrany plik lub test można uruchomić przez wspólny launcher w `netcat`, np.:
 
 ```powershell
-python -m pytest tests/nanotrack/test_ecc_translation_backend.py -q -p no:cacheprovider
-python -m pytest tests/nanotrack/test_session_store.py -q -p no:cacheprovider
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_python_utf8.ps1 -Module pytest tests/nanotrack/test_ecc_translation_backend.py -q -p no:cacheprovider
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_python_utf8.ps1 -Module pytest tests/nanotrack/test_session_store.py -q -p no:cacheprovider
 ```
 
 Do wyboru pojedynczego testu dopisz `::NazwaKlasy::nazwa_testu` do ścieżki pliku.
@@ -85,11 +86,11 @@ a wspólny skrypt sprawdza również przyczynę pominięcia.
 [MolTrack](../../moltrack/ui/widgets/stm_series_viewer.py) oraz
 [NaParA](../../napara/gui/main_window.py).
 
-Szybka kontrola obu zestawów testów, w aktywnym `netcat`:
+Szybka kontrola obu zestawów testów:
 
 ```powershell
 $env:QT_QPA_PLATFORM = 'offscreen'
-python -m pytest tests/nanotrack/test_viewer_widget.py tests/moltrack/test_stm_series_viewer.py -q -p no:cacheprovider
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_python_utf8.ps1 -Module pytest tests/nanotrack/test_viewer_widget.py tests/moltrack/test_stm_series_viewer.py -q -p no:cacheprovider
 ```
 
 Następnie uruchom pełną kontrolę NanoTrack. Przy zmianie wyglądu lub interakcji
@@ -108,7 +109,7 @@ checkoutcie nie oznacza błędu instalacji aplikacji.
 Jeśli plan jest dostępny, sprawdź jego strukturę:
 
 ```powershell
-python scripts/check_wayfinder_plan.py .scratch/nanotrack-registration-export
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_python_utf8.ps1 scripts/check_wayfinder_plan.py .scratch/nanotrack-registration-export
 ```
 
 [Opis walidatora](../WAYFINDER_PLANS.md) wyjaśnia reguły, zakres kontroli
@@ -116,7 +117,7 @@ odnośników i kody zakończenia. Testy samego walidatora, również bez lokalne
 planu:
 
 ```powershell
-python -m unittest discover -s tests/wayfinder -p "test_*.py" -v
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_python_utf8.ps1 -Module unittest discover -s tests/wayfinder -p "test_*.py" -v
 ```
 
 Walidacja struktury planu, testy aplikacji i odbiór opisanych w specyfikacji

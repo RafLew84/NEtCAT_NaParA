@@ -16,6 +16,7 @@ on:
       - "tests/moltrack/test_stm_series_viewer.py"
       - "scripts/check_nanotrack.py"
       - "scripts/check_nanotrack.ps1"
+      - "scripts/run_python_utf8.ps1"
       - "docs/nanotrack/QUALITY_GATES.md"
       - ".github/workflows/nanotrack-quality.yml"
   push:
@@ -32,6 +33,7 @@ on:
       - "tests/moltrack/test_stm_series_viewer.py"
       - "scripts/check_nanotrack.py"
       - "scripts/check_nanotrack.ps1"
+      - "scripts/run_python_utf8.ps1"
       - "docs/nanotrack/QUALITY_GATES.md"
       - ".github/workflows/nanotrack-quality.yml"
 

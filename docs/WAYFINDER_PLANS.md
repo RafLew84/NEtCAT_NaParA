@@ -3,12 +3,14 @@
 Z katalogu repozytorium:
 
 ```powershell
-python scripts/check_wayfinder_plan.py .scratch/nanotrack-registration-export
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_python_utf8.ps1 scripts/check_wayfinder_plan.py .scratch/nanotrack-registration-export
 ```
 
 Argument to katalog zawierający `map.md` i `issues/NN-slug.md`. Może być względny
 albo absolutny. Skrypt wymaga Pythona 3.10 lub nowszego, bez dodatkowych pakietów.
-Można używać interpretera ze środowiska `netcat`.
+Wspólny [launcher UTF-8](PYTHON_CHECKS.md) używa domyślnie `netcat` i pozwala
+wskazać inny interpreter. Bez PowerShell można użyć
+`python -X utf8 scripts/check_wayfinder_plan.py <katalog>`.
 
 Poprawny plan daje komunikat `OK: <katalog>: <liczba> tickets` i kod 0.
 Pierwszy błąd daje pojedynczy komunikat `ERROR: <plik>: <przyczyna>` na stderr
@@ -67,16 +69,16 @@ użytkownika ani wykonanie opisanych prac.
 ## Testy i CI
 
 ```powershell
-python -m unittest discover -s tests/wayfinder -p "test_*.py" -v
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_python_utf8.ps1 -Module unittest discover -s tests/wayfinder -p "test_*.py" -v
 ```
 
 `tests/wayfinder/fixtures/` zawiera małe plany: zamknięty, w toku i celowo
 błędny z cyklem. Testy używają ich bez prywatnych plików. Dodatkowe uszkodzenia
 tworzą w katalogach tymczasowych, aby sprawdzać komunikaty i kody zakończenia.
 
-`.github/workflows/wayfinder-plan.yml` wykonuje tę samą komendę po zmianie
+`.github/workflows/wayfinder-plan.yml` wykonuje ten sam zestaw testów po zmianie
 walidatora, jego testów, przykładów, dokumentacji lub workflow. Używa zwykłego
-Pythona na runnerze GitHub z Linuxem; nie wymaga Condy ani bibliotek GUI.
+Pythona z `-X utf8` na runnerze GitHub z Linuxem; nie wymaga Condy ani bibliotek GUI.
 Python jest przygotowywany przez [oficjalny setup-python](https://github.com/actions/setup-python).
 
 Rzeczywisty plan NanoTrack pozostaje ignorowany w `.scratch` i jest sprawdzany

@@ -10,6 +10,8 @@ To ta sama komenda, której używa `.github/workflows/nanotrack-quality.yml`.
 `ExecutionPolicy Bypass` dotyczy tylko tego procesu; pozwala wykonać lokalny
 skrypt bez podpisu i nie zmienia zapisanej polityki PowerShell na komputerze.
 Uruchamia środowisko Conda `netcat`; nie instaluje ani nie aktualizuje pakietów.
+Wspólny [launcher UTF-8](../PYTHON_CHECKS.md) ustawia komunikację PowerShell–Python,
+włącza tryb UTF-8 interpretera i przekazuje kod zakończenia kontroli.
 Launcher szuka Condy przez `CONDA_EXE`, `PATH` i standardowe instalacje
 Anaconda/Miniconda/Miniforge w katalogu użytkownika. Dla innej lokalizacji:
 
@@ -17,7 +19,7 @@ Anaconda/Miniconda/Miniforge w katalogu użytkownika. Dla innej lokalizacji:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\check_nanotrack.ps1 -CondaExe 'D:\Conda\Scripts\conda.exe'
 ```
 
-W aktywnym środowisku można też użyć `python scripts/check_nanotrack.py`.
+W aktywnym środowisku można też użyć `python -X utf8 scripts/check_nanotrack.py`.
 Każdy błąd kontroli zwraca niezerowy kod zakończenia.
 
 ## Co jest sprawdzane
@@ -88,8 +90,10 @@ Konto uruchamiające usługę runnera musi mieć dostęp do Condy i środowiska 
 W razie potrzeby należy ustawić dla niego `CONDA_EXE`. Lokalny poprawny wynik nie
 potwierdza rejestracji runnera w GitHub ani dostępu do środowiska z konta usługi.
 
-Weryfikacja lokalna z 2026-10-06: powyższa komenda zakończyła się kodem 0,
-z wynikiem **608 passed, 3 skipped, 0 failures/errors** w 52,93 s.
+Weryfikacja lokalna z 2026-10-07: powyższa komenda zakończyła się kodem 0,
+z wynikiem **608 passed, 3 skipped, 0 failures/errors** w 50,21 s.
+Sprawdzono wspólny launcher UTF-8 oraz zapis raportów w ścieżce z polskim
+znakiem i spacją.
 Pominięto wyłącznie trzy zewnętrzne próby modeli opisane powyżej.
 Sprawdzone środowisko `netcat`: Python 3.12.12, pytest 8.3.5, NumPy 2.2.5,
 SciPy 1.15.2, scikit-image 0.25.2, PyQt6 6.9.1, pyqtgraph 0.13.7,
