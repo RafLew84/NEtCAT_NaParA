@@ -1,0 +1,31 @@
+name: Wayfinder plan validator
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "scripts/check_wayfinder_plan.py"
+      - "tests/wayfinder/**"
+      - "docs/WAYFINDER_PLANS.md"
+      - ".github/workflows/wayfinder-plan.yml"
+  push:
+    paths:
+      - "scripts/check_wayfinder_plan.py"
+      - "tests/wayfinder/**"
+      - "docs/WAYFINDER_PLANS.md"
+      - ".github/workflows/wayfinder-plan.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validator-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Test validator against repository fixtures
+        run: python -m unittest discover -s tests/wayfinder -p "test_*.py" -v
