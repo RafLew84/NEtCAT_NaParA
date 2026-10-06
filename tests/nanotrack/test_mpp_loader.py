@@ -1,5 +1,4 @@
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
@@ -7,10 +6,10 @@ import numpy as np
 from nanotrack.core.data_models import STMSequence
 from nanotrack.io.mpp_loader import load_mpp_sequence
 from napara.core.data_models import STMImage
+from nanotrack_test_fixtures import sample_mpp_path
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-SAMPLE_MPP = REPO_ROOT / "data" / "MOVIE_3.MPP"
+SAMPLE_MPP = sample_mpp_path()
 
 
 class MPPLoaderTests(unittest.TestCase):
@@ -18,7 +17,7 @@ class MPPLoaderTests(unittest.TestCase):
         sequence = load_mpp_sequence(str(SAMPLE_MPP))
 
         self.assertIsInstance(sequence, STMSequence)
-        self.assertEqual(sequence.file_name, "MOVIE_3.MPP")
+        self.assertEqual(sequence.file_name, "sample.MPP")
         self.assertGreater(sequence.frame_count, 1)
         self.assertEqual(sequence.raw_frames.ndim, 3)
         self.assertEqual(sequence.frame_shape, (sequence.metadata.pixels_y, sequence.metadata.pixels_x))

@@ -49,6 +49,7 @@ from nanotrack.registration import build_aligned_frames, build_expanded_aligned_
 from nanotrack.sam2 import Sam2RunOutput
 from nanotrack.trackers import PointTrackerRunOutput
 from nanotrack.yolo import YoloModelInfo
+from nanotrack_test_fixtures import sample_mpp_path
 
 if QApplication is not None:
     from nanotrack.ui.main_window import NanoTrackMainWindow
@@ -56,8 +57,7 @@ else:  # pragma: no cover - optional outside the target GUI env
     NanoTrackMainWindow = None
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-SAMPLE_MPP = REPO_ROOT / "data" / "MOVIE_3.MPP"
+SAMPLE_MPP = sample_mpp_path()
 
 
 class _FakeCancelableEdgeBackend:
@@ -336,7 +336,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.spin_frame.maximum(), sequence.frame_count)
         self.assertEqual(self.window.spin_frame.value(), 1)
         self.assertIn("Frame 1/", self.window.viewer.lbl_title.text())
-        self.assertEqual(self.window.metadata_panel.lbl_file.text(), "MOVIE_3.MPP")
+        self.assertEqual(self.window.metadata_panel.lbl_file.text(), "sample.MPP")
         self.assertEqual(self.window.track_list_panel.list_tracks.count(), 0)
         self.assertFalse(self.window.track_list_panel.btn_run_selected.isEnabled())
         self.assertFalse(self.window.track_list_panel.btn_run_all_at_selected_frame.isEnabled())

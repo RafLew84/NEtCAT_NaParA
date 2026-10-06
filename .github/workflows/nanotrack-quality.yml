@@ -1,0 +1,62 @@
+name: NanoTrack quality gates
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "nanotrack/**"
+      - "tests/nanotrack/**"
+      - "napara/core/**"
+      - "napara/io/**"
+      - "napara/gui/widgets/**"
+      - "moltrack/core/**"
+      - "moltrack/analysis/**"
+      - "moltrack/sam3/**"
+      - "moltrack/ui/widgets/**"
+      - "tests/moltrack/test_stm_series_viewer.py"
+      - "scripts/check_nanotrack.py"
+      - "scripts/check_nanotrack.ps1"
+      - "docs/nanotrack/QUALITY_GATES.md"
+      - ".github/workflows/nanotrack-quality.yml"
+  push:
+    paths:
+      - "nanotrack/**"
+      - "tests/nanotrack/**"
+      - "napara/core/**"
+      - "napara/io/**"
+      - "napara/gui/widgets/**"
+      - "moltrack/core/**"
+      - "moltrack/analysis/**"
+      - "moltrack/sam3/**"
+      - "moltrack/ui/widgets/**"
+      - "tests/moltrack/test_stm_series_viewer.py"
+      - "scripts/check_nanotrack.py"
+      - "scripts/check_nanotrack.ps1"
+      - "docs/nanotrack/QUALITY_GATES.md"
+      - ".github/workflows/nanotrack-quality.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  nanotrack-quality:
+    runs-on: [self-hosted, Windows]
+    timeout-minutes: 30
+    env:
+      NANOTRACK_REPORT_DIR: .scratch/nanotrack-quality/ci-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run NanoTrack and shared viewer checks
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/check_nanotrack.ps1 -ReportDir "$env:NANOTRACK_REPORT_DIR"
+          exit $LASTEXITCODE
+      - name: Upload environment and test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nanotrack-quality-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.NANOTRACK_REPORT_DIR }}/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
