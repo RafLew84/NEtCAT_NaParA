@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -18,6 +19,44 @@ class _FakeBM3DModule:
 
 
 class BM3DPreviewTests(unittest.TestCase):
+    def test_batch_restores_each_frames_offset_and_scale(self) -> None:
+        frames = np.array([[[-1., 1.], [3., 5.]], [[100., 104.], [108., 112.]]])
+        original = frames.copy()
+        backend = SimpleNamespace(bm3d=lambda image, sigma_psd: image + 0.25)
+        with patch.dict("sys.modules", {"bm3d": backend}):
+            output = run_bm3d_batch(frames)
+        np.testing.assert_allclose(output, [[[0.5, 2.5], [4.5, 6.5]], [[103., 107.], [111., 115.]]])
+        np.testing.assert_array_equal(frames, original)
+
+    def test_constant_and_missing_samples_keep_their_meaning(self) -> None:
+        frames = np.full((3, 4, 4), 17.123456789, dtype=np.float64)
+        frames[0, 0, 0] = np.nan
+        frames[1] = np.nan
+        frames[2] = [[100., 102., 104., 106.]] * 4
+        frames[2, 1, 0] = np.inf
+        original = frames.copy()
+        backend = SimpleNamespace(bm3d=lambda image, sigma_psd: image)
+        with patch.dict("sys.modules", {"bm3d": backend}):
+            output = run_bm3d_batch(frames)
+        self.assertEqual(float(output[0, 1, 1]), 17.123456789)
+        np.testing.assert_array_equal(np.isfinite(output), np.isfinite(original))
+        self.assertTrue(np.isnan(output[2, 1, 0]))
+        np.testing.assert_allclose(output[2, 0], [100., 102., 104., 106.])
+        np.testing.assert_array_equal(frames, original)
+
+    def test_rejects_invalid_backend_output_without_mutating_input(self) -> None:
+        frame = np.array([[100., 102.], [104., 106.]])
+        original = frame.copy()
+        for bad_output in (np.zeros((1, 2)), np.full((2, 2), np.nan), np.full((2, 2), 1 + 3j)):
+            with self.subTest(shape=bad_output.shape, dtype=bad_output.dtype):
+                def broken_backend(image, sigma_psd):
+                    image[:] = -999
+                    return bad_output
+                with patch.dict("sys.modules", {"bm3d": SimpleNamespace(bm3d=broken_backend)}):
+                    with self.assertRaises(ValueError):
+                        run_bm3d_preview(frame)
+                np.testing.assert_array_equal(frame, original)
+
     @patch("nanotrack.processing.bm3d_preview._import_bm3d_module")
     def test_runs_bm3d_with_clamped_input_and_sigma_factor(self, import_bm3d_mock) -> None:
         fake_bm3d = _FakeBM3DModule()
@@ -26,14 +65,14 @@ class BM3DPreviewTests(unittest.TestCase):
 
         output = run_bm3d_preview(frame, sigma_factor=2.0)
 
-        self.assertEqual(output.dtype, np.float32)
+        self.assertEqual(output.dtype, np.float64)
         self.assertAlmostEqual(float(fake_bm3d.last_image.min()), 0.0, places=6)
         self.assertAlmostEqual(float(fake_bm3d.last_image.max()), 1.0, places=6)
 
         mad = np.median(np.abs(fake_bm3d.last_image - np.median(fake_bm3d.last_image)))
         expected_sigma = float(mad * 1.4826 * 2.0)
         self.assertAlmostEqual(fake_bm3d.last_sigma_psd, expected_sigma, places=6)
-        np.testing.assert_allclose(output, fake_bm3d.last_image + 0.25)
+        np.testing.assert_allclose(output, [[0.5, 2.5], [4.5, 6.5]])
 
     def test_rejects_non_positive_sigma_factor(self) -> None:
         with self.assertRaises(ValueError):

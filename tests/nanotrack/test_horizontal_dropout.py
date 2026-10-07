@@ -10,6 +10,18 @@ from nanotrack.processing.horizontal_dropout import (
 
 
 class HorizontalDropoutTests(unittest.TestCase):
+    def test_repair_keeps_constant_precision_and_original_missing_samples(self) -> None:
+        frames = np.full((2, 16, 32), 17.123456789, dtype=np.float64)
+        frames[0, 8, 10] = np.nan
+        frames[1] = np.nan
+        original = frames.copy()
+        for mode in ("vertical_interp", "inpaint"):
+            with self.subTest(mode=mode):
+                output = run_horizontal_dropout_batch(frames, repair_mode=mode)
+                self.assertEqual(float(output[0, 0, 0]), 17.123456789)
+                np.testing.assert_array_equal(np.isfinite(output), np.isfinite(original))
+                np.testing.assert_array_equal(frames, original)
+
     def test_preview_repairs_local_horizontal_segment(self) -> None:
         y = np.linspace(0.0, 1.0, 16, dtype=np.float32)[:, None]
         x = np.linspace(0.0, 0.2, 32, dtype=np.float32)[None, :]

@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import cast
 
 import numpy as np
 from scipy import ndimage as ndi
 from skimage.restoration import inpaint
+from .results import checked_preprocessing_result
 
 
 def _sanitize(img: np.ndarray) -> np.ndarray:
-    out = np.asarray(img, dtype=np.float32)
-    if not np.isfinite(out).all():
-        med = float(np.nanmedian(out))
-        out = np.where(np.isfinite(out), out, med).astype(np.float32, copy=False)
+    out = np.array(img, dtype=np.result_type(img.dtype, np.float32), copy=True)
+    valid = np.isfinite(out)
+    if not valid.all() and valid.any():
+        out[~valid] = np.median(out[valid])
     return out
 
 
@@ -50,7 +52,7 @@ def _vertical_prediction(image: np.ndarray) -> np.ndarray:
             pad = np.repeat(image[-1:], shift, axis=0)
             shifted = np.vstack([image[shift:], pad])
         neighbors.append(shifted)
-    return np.median(np.stack(neighbors, axis=0), axis=0).astype(np.float32, copy=False)
+    return np.median(np.stack(neighbors, axis=0), axis=0)
 
 
 def _detect_horizontal_dropout_mask(
@@ -75,7 +77,7 @@ def _detect_horizontal_dropout_mask(
         structure = np.ones((1, max(1, int(gap_closing_px))), dtype=bool)
         mask = ndi.binary_closing(mask, structure=structure)
 
-    labels, count = ndi.label(mask)
+    labels, count = cast(tuple[np.ndarray, int], ndi.label(mask))
     if count == 0:
         return np.zeros_like(mask, dtype=bool)
 
@@ -101,7 +103,7 @@ def _detect_horizontal_dropout_mask(
 
 
 def _repair_vertical_interp(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
-    repaired = np.array(image, copy=True, dtype=np.float32)
+    repaired = np.array(image, copy=True)
     h, w = repaired.shape
     for x in range(w):
         bad_rows = np.flatnonzero(mask[:, x])
@@ -110,7 +112,7 @@ def _repair_vertical_interp(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
         good_rows = np.flatnonzero(~mask[:, x])
         if good_rows.size == 0:
             continue
-        repaired[bad_rows, x] = np.interp(bad_rows, good_rows, repaired[good_rows, x]).astype(np.float32)
+        repaired[bad_rows, x] = np.interp(bad_rows, good_rows, repaired[good_rows, x])
     return repaired
 
 
@@ -134,7 +136,13 @@ def run_horizontal_dropout_preview(
         repair_mode=repair_mode,
     )
 
-    image = _sanitize(frame)
+    source = np.asarray(frame)
+    if source.ndim != 2 or source.size == 0:
+        raise ValueError("frame must be a non-empty 2D array.")
+    valid = np.isfinite(source)
+    image = _sanitize(source)
+    if not valid.any():
+        return np.full_like(image, np.nan), np.zeros(image.shape, dtype=bool)
     mask = _detect_horizontal_dropout_mask(
         image,
         threshold_sigma=threshold_sigma,
@@ -143,15 +151,16 @@ def run_horizontal_dropout_preview(
         max_thickness_px=max_thickness_px,
         gap_closing_px=gap_closing_px,
     )
+    mask &= valid
 
     if not mask.any():
-        return image.astype(np.float32, copy=True), mask
+        return np.where(valid, image, np.nan), mask
 
     if repair_mode == "vertical_interp":
         repaired = _repair_vertical_interp(image, mask)
     else:
         repaired = inpaint.inpaint_biharmonic(image, mask, channel_axis=None)
-    return np.asarray(repaired, dtype=np.float32), mask
+    return checked_preprocessing_result(repaired, source), mask
 
 
 def run_horizontal_dropout_batch(
@@ -188,4 +197,4 @@ def run_horizontal_dropout_batch(
         if progress_callback is not None:
             progress_callback(frame_index + 1, frame_count)
 
-    return np.stack(repaired_frames, axis=0).astype(np.float32, copy=False)
+    return np.stack(repaired_frames, axis=0)

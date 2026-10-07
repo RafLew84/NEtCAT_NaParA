@@ -45,6 +45,25 @@ class STMSequenceMetadata:
         px_y = self.size_nm_y / self.pixels_y if self.pixels_y > 0 and self.size_nm_y > 0 else None
         return px_x, px_y
 
+    @property
+    def value_unit(self) -> Optional[str]:
+        """Only an explicitly declared scalar unit; never infer it from the channel or XY scale."""
+        def declared_unit(header: dict) -> Optional[str]:
+            section = header.get("General Info", header)
+            if not isinstance(section, dict):
+                return None
+            for key, value in section.items():
+                if str(key).strip().casefold() in {"z unit", "z units", "value unit"}:
+                    unit = str(value).strip()
+                    return unit if unit and unit.casefold() not in {"unknown", "n/a"} else None
+            return None
+
+        frame_headers = self.raw_header.get("NanoTrack Frame Headers")
+        if isinstance(frame_headers, list) and frame_headers:
+            units = {declared_unit(item["raw_header"]) for item in frame_headers}
+            return next(iter(units)) if len(units) == 1 else None
+        return declared_unit(self.raw_header)
+
 
 @dataclass
 class STMSequence:

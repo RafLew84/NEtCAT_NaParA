@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import replace
 from pathlib import Path
 import sys
 import time
@@ -49,6 +50,7 @@ from nanotrack.core import (
 )
 from nanotrack.io import load_stm_sequence
 from nanotrack.core.preview_sources import PreprocessingProvenance, PreprocessingStep
+from nanotrack.processing.results import checked_preprocessing_result
 from nanotrack.persistence import NanoTrackSessionSnapshot, load_session_snapshot, save_session_snapshot
 from nanotrack.processing import (
     run_bm3d_batch,
@@ -281,6 +283,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._draft_polygons_by_frame: dict[int, PolygonROI] = {}
         self._draft_edge_polylines_by_frame: dict[int, np.ndarray] = {}
         self._repair_frames: np.ndarray | None = None
+        self._sequence_generation = 0
         self._repair_provenance: PreprocessingProvenance | None = None
         self._preprocessing_provenance: PreprocessingProvenance | None = None
         self._repair_params: dict[str, float | int | str] | None = None
@@ -634,6 +637,7 @@ class NanoTrackMainWindow(QMainWindow):
             return
 
         frame_override = None
+        self._sync_preview_source_controls()
         view_label = "Raw"
         display_offset_px = (0.0, 0.0)
         if self._show_expanded_aligned_in_viewer:
@@ -663,6 +667,7 @@ class NanoTrackMainWindow(QMainWindow):
         )
 
     def set_sequence(self, sequence: STMSequence) -> None:
+        self._sequence_generation += 1
         self._sequence = sequence
         self._tracks = []
         self._selected_track_id = None
@@ -3136,8 +3141,12 @@ class NanoTrackMainWindow(QMainWindow):
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
             return
 
+        sequence = self._sequence
+        generation = self._sequence_generation
+        input_frames = np.array(sequence.raw_frames, copy=True)
+        input_frames.setflags(write=False)
         params = self.preprocessing_panel.repair_parameters()
-        frame_count = self._sequence.frame_count
+        frame_count = sequence.frame_count
         progress = QProgressDialog("Applying horizontal repair to all frames...", "", 0, frame_count, self)
         progress.setWindowTitle("Horizontal Repair")
         progress.setWindowModality(Qt.WindowModality.WindowModal)
@@ -3159,18 +3168,31 @@ class NanoTrackMainWindow(QMainWindow):
 
         try:
             repair_frames = run_horizontal_dropout_batch(
-                self._sequence.raw_frames,
+                input_frames,
                 progress_callback=on_progress,
                 **params,
             )
+            repair_frames = checked_preprocessing_result(repair_frames, input_frames)
         except Exception as exc:
             QMessageBox.critical(self, "Repair apply-all error", str(exc))
             self.preprocessing_panel.set_preview_status("Repair apply-all failed")
         else:
+            if generation != self._sequence_generation:
+                status = self.statusBar()
+                if status is not None:
+                    status.showMessage("Odrzucono wynik naprawy dla poprzedniej sekwencji.", 4000)
+                return
             self._repair_frames = repair_frames
             self._repair_params = dict(params)
-            self._repair_provenance = PreprocessingProvenance().append(
-                PreprocessingStep("horizontal_repair", "Naprawa artefaktów", dict(params))
+            self._repair_provenance = PreprocessingProvenance(
+                source_path=sequence.source_path,
+                value_unit=sequence.metadata.value_unit,
+                output_dtype=str(repair_frames.dtype),
+                validity_rule="finite_samples",
+                input_scale_preserved=True,
+            ).append(
+                PreprocessingStep("horizontal_repair", "Naprawa artefaktów", dict(params),
+                                  implementation_version="2", working_dtype=str(repair_frames.dtype))
             )
             self._preprocessing_provenance = self._repair_provenance
             self._clear_denoised_cache()
@@ -3191,8 +3213,23 @@ class NanoTrackMainWindow(QMainWindow):
         if self._sequence is None or self._is_preprocessing or self._is_tracking:
             return
 
+        sequence = self._sequence
+        generation = self._sequence_generation
+        repair_provenance = self._repair_provenance
+        bm3d_input = self._current_bm3d_input_frames()
+        input_frames = np.array(bm3d_input, dtype=np.result_type(bm3d_input.dtype, np.float32), copy=True)
+        # Older repair caches may have filled missing measurements. Those remain invalid.
+        input_frames[~np.isfinite(sequence.raw_frames)] = np.nan
+        input_frames.setflags(write=False)
+        input_provenance = (
+            repair_provenance or PreprocessingProvenance(history_known=False)
+            if self._repair_frames is not None else PreprocessingProvenance(
+                source_path=sequence.source_path, value_unit=sequence.metadata.value_unit,
+            )
+        )
         sigma_factor = self.preprocessing_panel.bm3d_sigma_factor()
-        frame_count = self._sequence.frame_count
+        normalization_reports: list[dict[str, float | int | str]] = []
+        frame_count = sequence.frame_count
         progress = QProgressDialog("Applying BM3D to all frames...", "", 0, frame_count, self)
         progress.setWindowTitle("BM3D Processing")
         progress.setWindowModality(Qt.WindowModality.WindowModal)
@@ -3214,22 +3251,32 @@ class NanoTrackMainWindow(QMainWindow):
 
         try:
             denoised_frames = run_bm3d_batch(
-                self._current_bm3d_input_frames(),
+                input_frames,
                 sigma_factor=sigma_factor,
                 progress_callback=on_progress,
+                normalization_callback=lambda _index, report: normalization_reports.append(report),
             )
+            denoised_frames = checked_preprocessing_result(denoised_frames, input_frames)
         except Exception as exc:
             QMessageBox.critical(self, "BM3D apply-all error", str(exc))
             self.preprocessing_panel.set_preview_status("BM3D apply-all failed")
         else:
+            if generation != self._sequence_generation or repair_provenance is not self._repair_provenance:
+                status = self.statusBar()
+                if status is not None:
+                    status.showMessage("Odrzucono wynik BM3D dla nieaktualnego wejścia.", 4000)
+                return
             self._denoised_frames = denoised_frames
             self._denoised_sigma_factor = sigma_factor
-            input_provenance = (
-                self._repair_provenance or PreprocessingProvenance(history_known=False)
-                if self._repair_frames is not None else PreprocessingProvenance()
-            )
-            self._preprocessing_provenance = input_provenance.append(
-                PreprocessingStep("bm3d", "BM3D", {"sigma_factor": sigma_factor})
+            self._preprocessing_provenance = replace(
+                input_provenance.append(PreprocessingStep(
+                    "bm3d", "BM3D", {"sigma_factor": sigma_factor}, implementation_version="2",
+                    working_dtype=("float32" if any(report["working_dtype"] == "float32"
+                                                   for report in normalization_reports) else "float64"),
+                    frame_parameters=tuple(normalization_reports),
+                )),
+                output_dtype=str(denoised_frames.dtype), validity_rule="finite_samples",
+                input_scale_preserved=(True if self._repair_frames is None else input_provenance.input_scale_preserved),
             )
             self._invalidate_aligned_registration_materialization_cache()
             self._update_cached_preprocessing_availability()
@@ -3810,6 +3857,19 @@ class NanoTrackMainWindow(QMainWindow):
         if self._show_processed_in_viewer:
             provenance = self._preprocessing_provenance or PreprocessingProvenance(history_known=False)
             description = provenance.description()
+            frames = self._denoised_frames if self._denoised_frames is not None else self._repair_frames
+            if frames is not None and self._sequence is not None:
+                frame = frames[self._sequence.active_frame_index]
+                valid_count = int(np.count_nonzero(np.isfinite(frame)))
+                unit = provenance.value_unit or "nieznana"
+                scale = "zachowana skala wejścia" if provenance.input_scale_preserved else "skala niepotwierdzona"
+                source_name = Path(provenance.source_path).name if provenance.source_path else "nieznane"
+                working = ", ".join(dict.fromkeys(step.working_dtype for step in provenance.steps if step.working_dtype))
+                validity_label = "Ważne próbki" if provenance.validity_rule == "finite_samples" else "Skończone próbki (ważność niepotwierdzona)"
+                description += (
+                    f" | Źródło: {source_name}; jednostka: {unit}; {scale}; wynik: {frames.dtype};"
+                    f" obliczenia: {working or 'nieznane'}. {validity_label}: {valid_count}/{frame.size} (NaN = brak)."
+                )
         self.lbl_preview_source.setText(f"{description}. {reason}".strip())
 
     def _has_matching_repair_cache(self, params: dict[str, float | int | str]) -> bool:

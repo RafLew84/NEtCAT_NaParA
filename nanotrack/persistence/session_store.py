@@ -277,8 +277,18 @@ def _serialize_provenance(provenance: PreprocessingProvenance | None, *, availab
     return {
         "revision": provenance.revision,
         "history_known": provenance.history_known,
+        "source_path": provenance.source_path,
+        "value_unit": provenance.value_unit,
+        "output_dtype": provenance.output_dtype,
+        "validity_rule": provenance.validity_rule,
+        "input_scale_preserved": provenance.input_scale_preserved,
         "steps": [
-            {"method": step.method, "label": step.label, "parameters": step.parameters}
+            {
+                "method": step.method, "label": step.label, "parameters": step.parameters,
+                "implementation_version": step.implementation_version,
+                "working_dtype": step.working_dtype,
+                "frame_parameters": list(step.frame_parameters),
+            }
             for step in provenance.steps
         ],
     }
@@ -288,9 +298,17 @@ def _restore_provenance(payload: dict | None) -> PreprocessingProvenance | None:
     if payload is None:
         return None
     return PreprocessingProvenance(
-        steps=tuple(PreprocessingStep(step["method"], step["label"], step["parameters"]) for step in payload["steps"]),
+        steps=tuple(PreprocessingStep(
+            step["method"], step["label"], step["parameters"], step.get("implementation_version"),
+            step.get("working_dtype"), tuple(step.get("frame_parameters", [])),
+        ) for step in payload["steps"]),
         history_known=bool(payload["history_known"]),
         revision=str(payload["revision"]),
+        source_path=payload.get("source_path"),
+        value_unit=payload.get("value_unit"),
+        output_dtype=payload.get("output_dtype"),
+        validity_rule=payload.get("validity_rule"),
+        input_scale_preserved=payload.get("input_scale_preserved"),
     )
 
 
