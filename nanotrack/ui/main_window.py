@@ -7,7 +7,7 @@ import time
 
 import numpy as np
 from PyQt6.QtCore import QObject, QSignalBlocker, QThread, QTimer, Qt, pyqtSignal
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QStandardItemModel
 from PyQt6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -48,6 +48,7 @@ from nanotrack.core import (
     YoloDetectionSet,
 )
 from nanotrack.io import load_stm_sequence
+from nanotrack.core.preview_sources import PreprocessingProvenance, PreprocessingStep
 from nanotrack.persistence import NanoTrackSessionSnapshot, load_session_snapshot, save_session_snapshot
 from nanotrack.processing import (
     run_bm3d_batch,
@@ -280,10 +281,12 @@ class NanoTrackMainWindow(QMainWindow):
         self._draft_polygons_by_frame: dict[int, PolygonROI] = {}
         self._draft_edge_polylines_by_frame: dict[int, np.ndarray] = {}
         self._repair_frames: np.ndarray | None = None
+        self._repair_provenance: PreprocessingProvenance | None = None
+        self._preprocessing_provenance: PreprocessingProvenance | None = None
         self._repair_params: dict[str, float | int | str] | None = None
         self._denoised_frames: np.ndarray | None = None
         self._denoised_sigma_factor: float | None = None
-        self._show_denoised_in_viewer = False
+        self._show_processed_in_viewer = False
         self._hide_excluded_frames = False
         self._is_preprocessing = False
         self._is_tracking = False
@@ -427,6 +430,18 @@ class NanoTrackMainWindow(QMainWindow):
         viewer_container = QWidget(self)
         layout = QVBoxLayout(viewer_container)
 
+        source_row = QHBoxLayout()
+        source_row.addWidget(QLabel("Źródło podglądu:", viewer_container))
+        self.cmb_preview_source = QComboBox(viewer_container)
+        self.cmb_preview_source.addItem("Oryginał", "original")
+        self.cmb_preview_source.addItem("Wynik preprocessingu", "processed")
+        source_row.addWidget(self.cmb_preview_source)
+        source_row.addStretch(1)
+        layout.addLayout(source_row)
+        self.lbl_preview_source = QLabel(viewer_container)
+        self.lbl_preview_source.setWordWrap(True)
+        layout.addWidget(self.lbl_preview_source)
+
         self.viewer = SequenceViewerWidget(self)
         layout.addWidget(self.viewer, 1)
 
@@ -563,7 +578,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.preprocessing_panel.repair_apply_all_requested.connect(self._on_repair_apply_all_requested)
         self.preprocessing_panel.preview_requested.connect(self._on_bm3d_preview_requested)
         self.preprocessing_panel.apply_all_requested.connect(self._on_bm3d_apply_all_requested)
-        self.preprocessing_panel.show_denoised_toggled.connect(self._on_show_denoised_toggled)
+        self.cmb_preview_source.currentIndexChanged.connect(self._on_preview_source_changed)
         self._on_bbox_default_size_changed(*self.bbox_tools_panel.default_size_px())
 
     def _update_navigation_enabled(self, enabled: bool) -> None:
@@ -578,6 +593,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.yolo_panel.set_detect_all_available(enabled)
         self.polygon_tools_panel.set_sequence_loaded(enabled)
         self.preprocessing_panel.set_sequence_loaded(enabled)
+        self._sync_preview_source_controls()
 
     def _sync_navigation_controls(self) -> None:
         if self._sequence is None:
@@ -625,7 +641,7 @@ class NanoTrackMainWindow(QMainWindow):
             display_offset_px = self._current_expanded_aligned_display_offset_px()
         elif self._show_aligned_in_viewer:
             frame_override, view_label = self._current_aligned_viewer_override()
-        elif self._show_denoised_in_viewer:
+        elif self._show_processed_in_viewer:
             frame_override, view_label = self._current_viewer_override()
 
         self.viewer.show_frame(
@@ -648,6 +664,7 @@ class NanoTrackMainWindow(QMainWindow):
 
     def set_sequence(self, sequence: STMSequence) -> None:
         self._sequence = sequence
+        self._tracks = []
         self._selected_track_id = None
         self._selected_edge_track_id = None
         self._edge_tracks = []
@@ -987,11 +1004,14 @@ class NanoTrackMainWindow(QMainWindow):
                 frame_index: np.asarray(polyline, dtype=np.float64)
                 for frame_index, polyline in self._draft_edge_polylines_by_frame.items()
             },
-            repair_frames=None if self._repair_frames is None else np.asarray(self._repair_frames, dtype=np.float32),
+            repair_frames=self._repair_frames,
             repair_params=None if self._repair_params is None else dict(self._repair_params),
-            denoised_frames=None if self._denoised_frames is None else np.asarray(self._denoised_frames, dtype=np.float32),
+            denoised_frames=self._denoised_frames,
+            preview_source="processed" if self._show_processed_in_viewer else "original",
+            preprocessing_provenance=self._preprocessing_provenance,
+            repair_provenance=self._repair_provenance,
             denoised_sigma_factor=self._denoised_sigma_factor,
-            show_denoised_in_viewer=self._show_denoised_in_viewer,
+            show_denoised_in_viewer=self._show_processed_in_viewer,
             registration_results=self._registration_results,
             show_aligned_in_viewer=self._show_aligned_in_viewer,
             show_expanded_aligned_in_viewer=self._show_expanded_aligned_in_viewer,
@@ -1243,6 +1263,8 @@ class NanoTrackMainWindow(QMainWindow):
         self._repair_params = None if snapshot.repair_params is None else dict(snapshot.repair_params)
         self._denoised_frames = snapshot.denoised_frames
         self._denoised_sigma_factor = snapshot.denoised_sigma_factor
+        self._preprocessing_provenance = snapshot.preprocessing_provenance
+        self._repair_provenance = snapshot.repair_provenance
         self._draft_bboxes_by_frame = dict(snapshot.draft_bboxes_by_frame)
         self._draft_polygons_by_frame = dict(snapshot.draft_polygons_by_frame)
         self._draft_edge_polylines_by_frame = {
@@ -1254,9 +1276,8 @@ class NanoTrackMainWindow(QMainWindow):
         self._registration_results = snapshot.registration_results
         self._clear_aligned_registration_cache()
         self._update_cached_preprocessing_availability()
-        self._show_denoised_in_viewer = bool(snapshot.show_denoised_in_viewer and self._has_any_preprocessing_cache())
-        with QSignalBlocker(self.preprocessing_panel.chk_show_denoised):
-            self.preprocessing_panel.chk_show_denoised.setChecked(self._show_denoised_in_viewer)
+        self._show_processed_in_viewer = bool(snapshot.show_denoised_in_viewer and self._has_any_preprocessing_cache())
+        self._sync_preview_source_controls()
         self._restore_session_registration_view_flags(snapshot)
         self.set_tracks(snapshot.tracks, selected_track_id=snapshot.selected_track_id)
         self.set_edge_tracks(snapshot.edge_tracks, selected_track_id=snapshot.selected_edge_track_id)
@@ -1271,10 +1292,6 @@ class NanoTrackMainWindow(QMainWindow):
         show_aligned = bool(has_registration and snapshot.show_aligned_in_viewer and not show_expanded)
         self._show_expanded_aligned_in_viewer = show_expanded
         self._show_aligned_in_viewer = show_aligned
-        if show_expanded or show_aligned:
-            self._show_denoised_in_viewer = False
-            with QSignalBlocker(self.preprocessing_panel.chk_show_denoised):
-                self.preprocessing_panel.chk_show_denoised.setChecked(False)
         with QSignalBlocker(self.action_show_aligned_registration):
             self.action_show_aligned_registration.setChecked(show_aligned)
         with QSignalBlocker(self.action_show_expanded_aligned_registration):
@@ -3147,16 +3164,18 @@ class NanoTrackMainWindow(QMainWindow):
                 **params,
             )
         except Exception as exc:
-            self._clear_repair_cache()
-            self._update_cached_preprocessing_availability()
             QMessageBox.critical(self, "Repair apply-all error", str(exc))
             self.preprocessing_panel.set_preview_status("Repair apply-all failed")
         else:
             self._repair_frames = repair_frames
             self._repair_params = dict(params)
+            self._repair_provenance = PreprocessingProvenance().append(
+                PreprocessingStep("horizontal_repair", "Naprawa artefaktów", dict(params))
+            )
+            self._preprocessing_provenance = self._repair_provenance
             self._clear_denoised_cache()
             self._update_cached_preprocessing_availability()
-            if self._show_denoised_in_viewer:
+            if self._show_processed_in_viewer:
                 self._show_current_frame(preserve_zoom=True)
             progress.setValue(frame_count)
             self.preprocessing_panel.set_preview_status(self._default_preprocessing_status())
@@ -3200,16 +3219,21 @@ class NanoTrackMainWindow(QMainWindow):
                 progress_callback=on_progress,
             )
         except Exception as exc:
-            self._clear_denoised_cache()
-            self._update_cached_preprocessing_availability()
             QMessageBox.critical(self, "BM3D apply-all error", str(exc))
             self.preprocessing_panel.set_preview_status("BM3D apply-all failed")
         else:
             self._denoised_frames = denoised_frames
             self._denoised_sigma_factor = sigma_factor
+            input_provenance = (
+                self._repair_provenance or PreprocessingProvenance(history_known=False)
+                if self._repair_frames is not None else PreprocessingProvenance()
+            )
+            self._preprocessing_provenance = input_provenance.append(
+                PreprocessingStep("bm3d", "BM3D", {"sigma_factor": sigma_factor})
+            )
             self._invalidate_aligned_registration_materialization_cache()
             self._update_cached_preprocessing_availability()
-            if self._show_denoised_in_viewer:
+            if self._show_processed_in_viewer:
                 self._show_current_frame(preserve_zoom=True)
             progress.setValue(frame_count)
             self.preprocessing_panel.set_preview_status(self._default_preprocessing_status())
@@ -3519,11 +3543,14 @@ class NanoTrackMainWindow(QMainWindow):
         self._close_sam2_progress_dialog()
         self._active_mask_tracker_backend_label = None
 
-    def _on_show_denoised_toggled(self, checked: bool) -> None:
-        self._show_denoised_in_viewer = bool(checked and self._has_any_preprocessing_cache())
-        if self._show_denoised_in_viewer:
-            self._disable_aligned_registration_view()
-            self._disable_expanded_aligned_registration_view()
+    def _on_preview_source_changed(self, index: int) -> None:
+        requested = self.cmb_preview_source.itemData(index)
+        if requested == "processed" and not self._has_any_preprocessing_cache():
+            self._sync_preview_source_controls()
+            return
+        self._show_processed_in_viewer = requested == "processed"
+        self._invalidate_aligned_registration_materialization_cache()
+        self._sync_preview_source_controls()
         if self._sequence is not None:
             self._show_current_frame(preserve_zoom=True)
 
@@ -3548,7 +3575,6 @@ class NanoTrackMainWindow(QMainWindow):
 
         self._show_aligned_in_viewer = True
         self._disable_expanded_aligned_registration_view()
-        self._disable_denoised_view()
         self._show_current_frame(preserve_zoom=True)
         self.statusBar().showMessage("Aligned registration view enabled.", 3000)
 
@@ -3573,7 +3599,6 @@ class NanoTrackMainWindow(QMainWindow):
 
         self._show_expanded_aligned_in_viewer = True
         self._disable_aligned_registration_view()
-        self._disable_denoised_view()
         self._show_current_frame(preserve_zoom=True)
         self.statusBar().showMessage("Expanded aligned registration view enabled.", 3000)
 
@@ -3614,6 +3639,7 @@ class NanoTrackMainWindow(QMainWindow):
             self.yolo_panel.set_processing(busy)
             self.polygon_tools_panel.set_processing(busy)
             self.preprocessing_panel.set_processing(busy)
+            self._sync_preview_source_controls()
             self.track_list_panel.set_processing(busy)
             self.edge_track_list_panel.set_processing(busy)
             if busy:
@@ -3730,8 +3756,9 @@ class NanoTrackMainWindow(QMainWindow):
     def _clear_all_preprocessing_cache(self) -> None:
         self._clear_repair_cache()
         self._clear_denoised_cache()
-        self._show_denoised_in_viewer = False
-        self.preprocessing_panel.set_cached_preprocessing_available(False)
+        self._show_processed_in_viewer = False
+        self._preprocessing_provenance = None
+        self._repair_provenance = None
 
     def _clear_aligned_registration_cache(self) -> None:
         self._invalidate_aligned_registration_materialization_cache()
@@ -3762,15 +3789,28 @@ class NanoTrackMainWindow(QMainWindow):
             with QSignalBlocker(self.action_show_expanded_aligned_registration):
                 self.action_show_expanded_aligned_registration.setChecked(False)
 
-    def _disable_denoised_view(self) -> None:
-        self._show_denoised_in_viewer = False
-        with QSignalBlocker(self.preprocessing_panel.chk_show_denoised):
-            self.preprocessing_panel.chk_show_denoised.setChecked(False)
-
     def _update_cached_preprocessing_availability(self) -> None:
-        self.preprocessing_panel.set_cached_preprocessing_available(self._has_any_preprocessing_cache())
-        if not self._has_any_preprocessing_cache():
-            self._show_denoised_in_viewer = False
+        self._sync_preview_source_controls()
+
+    def _sync_preview_source_controls(self) -> None:
+        available = self._has_any_preprocessing_cache()
+        reason = "" if available else "Brak wyniku preprocessingu — wykonaj przetwarzanie wszystkich klatek."
+        model = self.cmb_preview_source.model()
+        assert isinstance(model, QStandardItemModel)
+        item = model.item(1)
+        assert item is not None
+        item.setEnabled(available)
+        item.setToolTip(reason)
+        self.cmb_preview_source.setEnabled(
+            self._sequence is not None and not self._is_preprocessing and not self._is_tracking
+        )
+        with QSignalBlocker(self.cmb_preview_source):
+            self.cmb_preview_source.setCurrentIndex(1 if self._show_processed_in_viewer else 0)
+        description = "Oryginał — dane pomiarowe"
+        if self._show_processed_in_viewer:
+            provenance = self._preprocessing_provenance or PreprocessingProvenance(history_known=False)
+            description = provenance.description()
+        self.lbl_preview_source.setText(f"{description}. {reason}".strip())
 
     def _has_matching_repair_cache(self, params: dict[str, float | int | str]) -> bool:
         if self._sequence is None or self._repair_frames is None or self._repair_params is None:
@@ -3804,12 +3844,22 @@ class NanoTrackMainWindow(QMainWindow):
         return self._sequence.active_frame
 
     def _current_viewer_override(self) -> tuple[np.ndarray | None, str]:
+        frames, _source_view, _kind = self._current_preview_base_frames()
+        assert self._sequence is not None
         if self._denoised_frames is not None and self._sequence is not None:
             label = "BM3D" if self._denoised_sigma_factor is None else f"BM3D sigma {self._denoised_sigma_factor:.2f}"
-            return self.current_denoised_frame(), label
-        if self._repair_frames is not None and self._sequence is not None:
-            return self.current_repaired_frame(), "Horizontal repair"
-        return None, "Raw"
+        else:
+            label = "Horizontal repair"
+        return frames[self._sequence.active_frame_index], label
+
+    def _current_preview_base_frames(self) -> tuple[np.ndarray, str, str]:
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
+        if not self._show_processed_in_viewer:
+            return self._sequence.raw_frames, "raw", "raw"
+        if not self._has_any_preprocessing_cache():
+            raise RuntimeError("Wybrany Wynik preprocessingu jest niedostępny.")
+        return self._current_mask_tracker_base_frames()
 
     def _current_aligned_viewer_override(self) -> tuple[np.ndarray | None, str]:
         if self._sequence is not None and self._registration_results is not None:
@@ -3844,20 +3894,22 @@ class NanoTrackMainWindow(QMainWindow):
             raise RuntimeError("Registration materialization requires registration results.")
         return str(mode), str(base_stack_kind), id(base_frames), id(self._registration_results)
 
-    def _ensure_aligned_registration_cache(self) -> np.ndarray:
+    def _ensure_aligned_registration_cache(self, *, source: tuple[np.ndarray, str, str] | None = None) -> np.ndarray:
         if self._sequence is None or self._registration_results is None:
             raise RuntimeError("Aligned registration requires sequence and registration results.")
-        base_frames, _source_view, base_stack_kind = self._current_mask_tracker_base_frames()
+        base_frames, _source_view, base_stack_kind = source if source is not None else self._current_preview_base_frames()
         cache_key = self._registration_materialization_cache_key("aligned", base_frames, base_stack_kind)
         if self._aligned_frames is None or self._aligned_frames_cache_key != cache_key:
             self._aligned_frames = build_aligned_frames(base_frames, self._registration_results)
             self._aligned_frames_cache_key = cache_key
         return self._aligned_frames
 
-    def _ensure_expanded_aligned_registration_cache(self) -> ExpandedAlignedStack:
+    def _ensure_expanded_aligned_registration_cache(
+        self, *, source: tuple[np.ndarray, str, str] | None = None,
+    ) -> ExpandedAlignedStack:
         if self._sequence is None or self._registration_results is None:
             raise RuntimeError("Expanded aligned registration requires sequence and registration results.")
-        base_frames, _source_view, base_stack_kind = self._current_mask_tracker_base_frames()
+        base_frames, _source_view, base_stack_kind = source if source is not None else self._current_preview_base_frames()
         cache_key = self._registration_materialization_cache_key("expanded", base_frames, base_stack_kind)
         if self._expanded_aligned_stack is None or self._expanded_aligned_stack_cache_key != cache_key:
             self._expanded_aligned_stack = build_expanded_aligned_frames(
@@ -5069,12 +5121,13 @@ class NanoTrackMainWindow(QMainWindow):
         return self._sequence.raw_frames, "raw", "raw"
 
     def _current_mask_tracker_input_frames(self) -> tuple[np.ndarray, str]:
-        frames, source_view, _ = self._current_mask_tracker_base_frames()
+        source = self._current_mask_tracker_base_frames()
+        frames, source_view, _ = source
         if self._show_expanded_aligned_in_viewer:
-            expanded = self._ensure_expanded_aligned_registration_cache()
+            expanded = self._ensure_expanded_aligned_registration_cache(source=source)
             return expanded.frames, f"{source_view}+expanded_registration"
         if self._show_aligned_in_viewer:
-            return self._ensure_aligned_registration_cache(), f"{source_view}+registration"
+            return self._ensure_aligned_registration_cache(source=source), f"{source_view}+registration"
         return frames, source_view
 
     def _remember_mask_tracker_run_input(self, run_input: MaskTrackerRunInput) -> None:

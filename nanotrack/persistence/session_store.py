@@ -34,9 +34,11 @@ from nanotrack.core import (
     YoloDetectionSet,
 )
 from nanotrack.io import FRAME_SERIES_EXTENSIONS, load_stm_sequence
+from nanotrack.core.preview_sources import PreprocessingProvenance, PreprocessingStep
 from nanotrack.mask_trackers.config import MaskTrackerKind
 
-SESSION_SCHEMA = "nanotrack.session.v1"
+SESSION_SCHEMA = "nanotrack.session.v2"
+LEGACY_SESSION_SCHEMA = "nanotrack.session.v1"
 
 
 @dataclass
@@ -61,6 +63,9 @@ class NanoTrackSessionSnapshot:
     registration_results: RegistrationResultSet | None = None
     show_aligned_in_viewer: bool = False
     show_expanded_aligned_in_viewer: bool = False
+    preview_source: str | None = None
+    preprocessing_provenance: PreprocessingProvenance | None = None
+    repair_provenance: PreprocessingProvenance | None = None
 
 
 def save_session_snapshot(path: str, snapshot: NanoTrackSessionSnapshot) -> None:
@@ -73,12 +78,12 @@ def save_session_snapshot(path: str, snapshot: NanoTrackSessionSnapshot) -> None
     with zipfile.ZipFile(output_path, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
         if snapshot.repair_frames is not None:
-            _write_npz(zf, "preprocessing/repair_frames.npz", frames=np.asarray(snapshot.repair_frames, dtype=np.float32))
+            _write_npz(zf, "preprocessing/repair_frames.npz", frames=np.asarray(snapshot.repair_frames))
         if snapshot.denoised_frames is not None:
             _write_npz(
                 zf,
                 "preprocessing/denoised_frames.npz",
-                frames=np.asarray(snapshot.denoised_frames, dtype=np.float32),
+                frames=np.asarray(snapshot.denoised_frames),
             )
         for track in snapshot.tracks:
             for annotation in track.annotations.values():
@@ -109,7 +114,7 @@ def load_session_snapshot(
 
     with zipfile.ZipFile(path, mode="r") as zf:
         manifest = json.loads(zf.read("manifest.json").decode("utf-8"))
-        if manifest.get("schema") != SESSION_SCHEMA:
+        if manifest.get("schema") not in (SESSION_SCHEMA, LEGACY_SESSION_SCHEMA):
             raise ValueError(f"Unsupported NanoTrack session schema: {manifest.get('schema')!r}")
 
         sequence_payload = manifest["sequence"]
@@ -122,6 +127,7 @@ def load_session_snapshot(
 
         repair_frames = _read_optional_npz(zf, "preprocessing/repair_frames.npz", "frames")
         denoised_frames = _read_optional_npz(zf, "preprocessing/denoised_frames.npz", "frames")
+        _validate_processed_frames(sequence, repair_frames, denoised_frames)
         tracks = _restore_tracks(zf, manifest.get("tracks", []))
         edge_tracks = _restore_edge_tracks(zf, manifest.get("edge_tracks", []))
         yolo_detections = _restore_yolo_detections(manifest.get("yolo_detections"))
@@ -140,6 +146,24 @@ def load_session_snapshot(
         }
 
         preprocessing = manifest.get("preprocessing", {})
+        has_processed = repair_frames is not None or denoised_frames is not None
+        if manifest["schema"] == LEGACY_SESSION_SCHEMA:
+            # v1 aligned views always preferred the processed cache, regardless of the checkbox.
+            was_processed = any(manifest.get(key, False) for key in (
+                "show_denoised_in_viewer", "show_aligned_in_viewer", "show_expanded_aligned_in_viewer",
+            ))
+            preview_source = "processed" if has_processed and was_processed else "original"
+            provenance = PreprocessingProvenance(history_known=False) if has_processed else None
+            repair_provenance = PreprocessingProvenance(history_known=False) if repair_frames is not None else None
+        else:
+            preview_source = manifest["preview_source"]
+            _validate_preview_source(preview_source, has_processed)
+            if preprocessing["result_asset"] != _current_result_asset(repair_frames, denoised_frames):
+                raise ValueError("Wynik preprocessingu wskazany w sesji jest niedostępny lub niespójny.")
+            provenance = _restore_provenance(preprocessing.get("provenance"))
+            repair_provenance = _restore_provenance(preprocessing.get("repair_provenance"))
+            if has_processed and provenance is None:
+                raise ValueError("Wynik preprocessingu nie ma opisu pochodzenia.")
         return NanoTrackSessionSnapshot(
             sequence=sequence,
             tracks=tracks,
@@ -157,7 +181,10 @@ def load_session_snapshot(
             repair_params=preprocessing.get("repair_params"),
             denoised_frames=denoised_frames,
             denoised_sigma_factor=preprocessing.get("denoised_sigma_factor"),
-            show_denoised_in_viewer=bool(manifest.get("show_denoised_in_viewer", False)),
+            show_denoised_in_viewer=preview_source == "processed",
+            preview_source=preview_source,
+            preprocessing_provenance=provenance,
+            repair_provenance=repair_provenance,
             registration_results=registration_results,
             show_aligned_in_viewer=bool(manifest.get("show_aligned_in_viewer", False)),
             show_expanded_aligned_in_viewer=bool(manifest.get("show_expanded_aligned_in_viewer", False)),
@@ -165,8 +192,13 @@ def load_session_snapshot(
 
 
 def _build_manifest(snapshot: NanoTrackSessionSnapshot) -> dict:
+    _validate_processed_frames(snapshot.sequence, snapshot.repair_frames, snapshot.denoised_frames)
+    preview_source = snapshot.preview_source or ("processed" if snapshot.show_denoised_in_viewer else "original")
+    has_processed = snapshot.repair_frames is not None or snapshot.denoised_frames is not None
+    _validate_preview_source(preview_source, has_processed)
     return {
         "schema": SESSION_SCHEMA,
+        "preview_source": preview_source,
         "sequence": {
             "source_path": snapshot.sequence.source_path,
             "source_paths": _sequence_source_paths(snapshot.sequence),
@@ -204,12 +236,62 @@ def _build_manifest(snapshot: NanoTrackSessionSnapshot) -> dict:
             for frame_index, polyline in sorted(snapshot.draft_edge_polylines_by_frame.items())
         ],
         "preprocessing": {
+            "result_asset": _current_result_asset(snapshot.repair_frames, snapshot.denoised_frames),
             "repair_params": snapshot.repair_params,
             "denoised_sigma_factor": snapshot.denoised_sigma_factor,
+            "provenance": _serialize_provenance(snapshot.preprocessing_provenance, available=has_processed),
+            "repair_provenance": _serialize_provenance(
+                snapshot.repair_provenance, available=snapshot.repair_frames is not None,
+            ),
         },
         "tracks": [_serialize_track(track) for track in snapshot.tracks],
         "edge_tracks": [_serialize_edge_track(track) for track in snapshot.edge_tracks],
     }
+
+
+def _validate_preview_source(source: str, has_processed: bool) -> None:
+    if source not in ("original", "processed"):
+        raise ValueError(f"Nieznane źródło podglądu: {source!r}.")
+    if source == "processed" and not has_processed:
+        raise ValueError("Wybrany Wynik preprocessingu jest niedostępny w sesji.")
+
+
+def _current_result_asset(repair_frames: np.ndarray | None, denoised_frames: np.ndarray | None) -> str | None:
+    if denoised_frames is not None:
+        return "preprocessing/denoised_frames.npz"
+    if repair_frames is not None:
+        return "preprocessing/repair_frames.npz"
+    return None
+
+
+def _validate_processed_frames(sequence: STMSequence, *stacks: np.ndarray | None) -> None:
+    for frames in stacks:
+        if frames is not None and frames.shape != sequence.raw_frames.shape:
+            raise ValueError("Wynik preprocessingu ma nieprawidłowy kształt lub liczbę klatek.")
+
+
+def _serialize_provenance(provenance: PreprocessingProvenance | None, *, available: bool) -> dict | None:
+    if not available:
+        return None
+    provenance = provenance or PreprocessingProvenance(history_known=False)
+    return {
+        "revision": provenance.revision,
+        "history_known": provenance.history_known,
+        "steps": [
+            {"method": step.method, "label": step.label, "parameters": step.parameters}
+            for step in provenance.steps
+        ],
+    }
+
+
+def _restore_provenance(payload: dict | None) -> PreprocessingProvenance | None:
+    if payload is None:
+        return None
+    return PreprocessingProvenance(
+        steps=tuple(PreprocessingStep(step["method"], step["label"], step["parameters"]) for step in payload["steps"]),
+        history_known=bool(payload["history_known"]),
+        revision=str(payload["revision"]),
+    )
 
 
 def _sequence_source_paths(sequence: STMSequence) -> list[str]:

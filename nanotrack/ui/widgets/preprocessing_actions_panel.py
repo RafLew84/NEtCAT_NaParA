@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from PyQt6.QtCore import QSignalBlocker, Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
-    QCheckBox,
     QComboBox,
     QDoubleSpinBox,
     QFormLayout,
@@ -23,13 +22,11 @@ class PreprocessingActionsPanel(QWidget):
     apply_all_requested = pyqtSignal()
     repair_preview_requested = pyqtSignal()
     repair_apply_all_requested = pyqtSignal()
-    show_denoised_toggled = pyqtSignal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._sequence_loaded = False
         self._processing = False
-        self._cached_preprocessing_available = False
         self._build()
         self.set_sequence_loaded(False)
 
@@ -92,7 +89,6 @@ class PreprocessingActionsPanel(QWidget):
         self.sp_bm3d_sigma.setValue(1.0)
         self.btn_preview = QPushButton("Preview BM3D", self.content_widget)
         self.btn_apply_all = QPushButton("Apply BM3D to All Frames", self.content_widget)
-        self.chk_show_denoised = QCheckBox("Show cached preprocessing in main view", self.content_widget)
 
         bm3d_form.addRow("Sigma factor:", self.sp_bm3d_sigma)
 
@@ -100,7 +96,6 @@ class PreprocessingActionsPanel(QWidget):
         self.btn_repair_apply_all.clicked.connect(self.repair_apply_all_requested.emit)
         self.btn_preview.clicked.connect(self.preview_requested.emit)
         self.btn_apply_all.clicked.connect(self.apply_all_requested.emit)
-        self.chk_show_denoised.toggled.connect(self.show_denoised_toggled.emit)
 
         group_layout.addWidget(self.lbl_method)
         group_layout.addWidget(self.lbl_status)
@@ -110,7 +105,6 @@ class PreprocessingActionsPanel(QWidget):
         group_layout.addWidget(bm3d_group)
         group_layout.addWidget(self.btn_preview)
         group_layout.addWidget(self.btn_apply_all)
-        group_layout.addWidget(self.chk_show_denoised)
 
         content_layout.addWidget(group)
         content_layout.addStretch(1)
@@ -120,8 +114,6 @@ class PreprocessingActionsPanel(QWidget):
 
     def set_sequence_loaded(self, loaded: bool) -> None:
         self._sequence_loaded = loaded
-        if not loaded:
-            self.set_cached_preprocessing_available(False)
         self._apply_enabled_state()
         if not loaded:
             self.lbl_status.setText("No sequence loaded")
@@ -143,16 +135,6 @@ class PreprocessingActionsPanel(QWidget):
             "repair_mode": "vertical_interp" if self.cmb_repair_mode.currentIndex() == 0 else "inpaint",
         }
 
-    def set_cached_preprocessing_available(self, available: bool) -> None:
-        self._cached_preprocessing_available = available
-        if not available:
-            with QSignalBlocker(self.chk_show_denoised):
-                self.chk_show_denoised.setChecked(False)
-        self._apply_enabled_state()
-
-    def show_denoised_checked(self) -> bool:
-        return bool(self.chk_show_denoised.isChecked())
-
     def set_preview_status(self, text: str) -> None:
         self.lbl_status.setText(text)
 
@@ -169,4 +151,3 @@ class PreprocessingActionsPanel(QWidget):
         self.sp_bm3d_sigma.setEnabled(enabled)
         self.btn_preview.setEnabled(enabled)
         self.btn_apply_all.setEnabled(enabled)
-        self.chk_show_denoised.setEnabled(enabled and self._cached_preprocessing_available)

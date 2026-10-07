@@ -406,7 +406,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(self.window.preprocessing_panel.btn_apply_all.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_repair_preview.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_repair_apply_all.isEnabled())
-        self.assertFalse(self.window.preprocessing_panel.chk_show_denoised.isEnabled())
+        self.assertFalse(self.window.cmb_preview_source.model().item(1).isEnabled())
         self.assertEqual(self.window.preprocessing_panel.lbl_status.text(), "No preview generated for current frame")
 
     def test_mask_tracker_base_frames_prefer_bm3d_then_repair_then_raw(self) -> None:
@@ -1913,7 +1913,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             },
         )
         self.window._update_cached_preprocessing_availability()
-        self.window.preprocessing_panel.chk_show_denoised.setChecked(True)
+        self.window.cmb_preview_source.setCurrentIndex(1)
         self.window.track_list_panel.set_mask_tracker_kind(MaskTrackerKind.DAM4SAM)
         registration_results = RegistrationResultSet(
             settings=RegistrationSettings(
@@ -1953,7 +1953,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             self.window._yolo_detections = None
             self.window._registration_results = None
             self.window.set_tracks([])
-            self.window.preprocessing_panel.chk_show_denoised.setChecked(False)
+            self.window.cmb_preview_source.setCurrentIndex(0)
             self.window.track_list_panel.set_mask_tracker_kind(MaskTrackerKind.SAM2)
 
             self.window.load_session_from_path(session_path)
@@ -1963,7 +1963,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertEqual(self.window.track_list_panel.current_mask_tracker_kind(), MaskTrackerKind.DAM4SAM)
         self.assertTrue(self.window.action_save_session.isEnabled())
         self.assertEqual(self.window.current_draft_bbox(), BBoxXYXY(0.0, 0.0, 48.0, 48.0))
-        self.assertTrue(self.window.preprocessing_panel.chk_show_denoised.isChecked())
+        self.assertTrue(self.window.cmb_preview_source.currentData() == "processed")
         restored_registration = self.window.current_registration_results()
         self.assertIsNotNone(restored_registration)
         assert restored_registration is not None
@@ -1978,7 +1978,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(self.window.action_show_aligned_registration.isChecked())
         self.assertFalse(self.window.action_show_expanded_aligned_registration.isChecked())
         self.assertIsNotNone(self.window.current_aligned_frames())
-        self.assertFalse(self.window.preprocessing_panel.chk_show_denoised.isChecked())
+        self.assertEqual(self.window.cmb_preview_source.currentData(), "processed")
         self.assertIn("View: Aligned registration", self.window.viewer.lbl_meta.text())
         np.testing.assert_array_equal(self.window.current_repair_frames(), np.full_like(sequence.raw_frames, 0.15, dtype=np.float32))
         np.testing.assert_array_equal(self.window.current_denoised_frames(), np.full_like(sequence.raw_frames, 0.85, dtype=np.float32))
@@ -2470,6 +2470,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.window._repair_frames = repaired
         self.window._registration_results = result_set
         self.window._update_menu_action_state()
+        self.window._update_cached_preprocessing_availability()
+        self.window.cmb_preview_source.setCurrentIndex(1)
         self.window.action_show_aligned_registration.trigger()
         first_cache = self.window.current_aligned_frames()
         self.assertIsNotNone(first_cache)
@@ -2832,7 +2834,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertIsNotNone(self.window.current_registration_results())
         self.assertTrue(self.window.action_show_expanded_aligned_registration.isChecked())
         self.assertFalse(self.window.action_show_aligned_registration.isChecked())
-        self.assertFalse(self.window.preprocessing_panel.chk_show_denoised.isChecked())
+        self.assertFalse(self.window.cmb_preview_source.currentData() == "processed")
         self.assertIn("View: Expanded aligned registration", self.window.viewer.lbl_meta.text())
 
     def test_expanded_aligned_view_offsets_overlays_without_mutating_raw_annotations(self) -> None:
@@ -5585,8 +5587,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(self.window.preprocessing_panel.btn_apply_all.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_repair_preview.isEnabled())
         self.assertTrue(self.window.preprocessing_panel.btn_repair_apply_all.isEnabled())
-        self.assertTrue(self.window.preprocessing_panel.chk_show_denoised.isEnabled())
-        self.assertFalse(self.window.preprocessing_panel.chk_show_denoised.isChecked())
+        self.assertTrue(self.window.cmb_preview_source.model().item(1).isEnabled())
+        self.assertFalse(self.window.cmb_preview_source.currentData() == "processed")
         self.assertEqual(
             self.window.preprocessing_panel.lbl_status.text(),
             f"Horizontal repair cached for all {sequence.frame_count} frames",
@@ -5652,7 +5654,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
 
     @patch("nanotrack.ui.main_window.run_horizontal_dropout_batch")
     @patch("nanotrack.ui.main_window.run_bm3d_batch")
-    def test_show_denoised_checkbox_switches_main_viewer_source(
+    def test_source_selector_switches_main_viewer_source(
         self,
         run_bm3d_batch_mock,
         run_repair_batch_mock,
@@ -5669,7 +5671,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, sequence.raw_frames[0])
         self.assertIn("View: Raw", self.window.viewer.lbl_meta.text())
 
-        self.window.preprocessing_panel.chk_show_denoised.setChecked(True)
+        self.window.cmb_preview_source.setCurrentIndex(1)
 
         np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, repaired[0])
         self.assertIn("View: Horizontal repair", self.window.viewer.lbl_meta.text())
@@ -5683,7 +5685,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.window.slider_frame.setValue(1)
         np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, denoised[1])
 
-        self.window.preprocessing_panel.chk_show_denoised.setChecked(False)
+        self.window.cmb_preview_source.setCurrentIndex(0)
         np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, sequence.raw_frames[1])
         self.assertIn("View: Raw", self.window.viewer.lbl_meta.text())
 
