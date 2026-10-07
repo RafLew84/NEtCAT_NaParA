@@ -52,7 +52,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\check_nanotrack.ps
 ```
 
 Launcher sam szuka Condy i uruchamia kontrolę w `netcat`. Sprawdza zależności
-oraz Qt, a następnie testy NanoTrack i viewera MolTrack. Nie wymaga aktywowania
+oraz Qt, nowe diagnostyki mypy, a następnie testy NanoTrack i viewera MolTrack. Nie wymaga aktywowania
 środowiska w terminalu. `ExecutionPolicy Bypass` dotyczy tylko tego procesu.
 Komunikację PowerShell–Python obsługuje wspólny [launcher UTF-8](../PYTHON_CHECKS.md).
 
@@ -62,6 +62,15 @@ parametry raportów i wymagania runnera. Raport bieżącego uruchomienia trafia
 do katalogu wypisanego przez skrypt w `.scratch/nanotrack-quality/`.
 
 Konfiguracja CI: [nanotrack-quality.yml](../../.github/workflows/nanotrack-quality.yml).
+
+## Odbiór w działającym GUI
+
+Używaj wspólnego [runnera odbioru](ACCEPTANCE.md): `quick` tworzy znaną próbkę
+i wykonuje naprawę → rzeczywisty BM3D → Save/Open; `full` przetwarza wskazany film;
+`session` sprawdza gotową sesję bez ponownego liczenia. Runner zapisuje wyniki
+etapów, zrzuty i jeden aktualizowany widok postępu oraz kończy się błędem po
+awarii lub przekroczeniu czasu. Pozwala powtarzać odbiór bez kopiowania skryptów
+z wcześniejszych katalogów `.scratch`.
 
 ## Szybkie testy podczas pracy
 

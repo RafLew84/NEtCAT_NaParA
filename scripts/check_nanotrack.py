@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TEST_PATHS = ("tests/nanotrack", "tests/moltrack/test_stm_series_viewer.py")
 REQUIRED_MODULES = (
     "pytest", "numpy", "scipy", "skimage", "PyQt6.QtCore",
-    "PyQt6.QtWidgets", "pyqtgraph", "cv2",
+    "PyQt6.QtWidgets", "pyqtgraph", "cv2", "mypy",
 )
 RUNTIME_SMOKE_TESTS = frozenset({
     "tests/nanotrack/test_dam4sam_helpers.py::Dam4SamRuntimeSmokeTests::test_default_dam4sam_worker_smoke_runs_if_runtime_is_available",
@@ -205,6 +205,18 @@ def main(argv: list[str] | None = None) -> int:
         write_json(report_dir / "summary.json", {"status": "preflight_failed", "exit_code": 1, "error": error})
         return 1
     print("Required dependencies and offscreen Qt: OK", flush=True)
+    try:
+        typecheck = subprocess.run([
+            sys.executable, str(ROOT / "scripts/check_nanotrack_types.py"),
+            "--report", str(report_dir / "types.json"),
+        ], timeout=210, check=False)
+        type_error = None if typecheck.returncode == 0 else "NanoTrack typecheck failed; see types.json."
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        type_error = f"NanoTrack typecheck could not complete: {exc}"
+    if type_error:
+        write_json(report_dir / "summary.json", {"status": "typecheck_failed", "exit_code": 1, "error": type_error})
+        print(type_error, file=sys.stderr)
+        return 1
     return run_tests(list(TEST_PATHS), report_dir, runtime_smoke=args.runtime_smoke)
 
 

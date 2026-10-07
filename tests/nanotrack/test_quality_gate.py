@@ -43,6 +43,16 @@ class NanoTrackQualityGateTests(unittest.TestCase):
         self.assertEqual(summary["status"], "preflight_failed")
         run_tests.assert_not_called()
 
+    def test_typecheck_failure_stops_gate_before_pytest(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(gate.subprocess, "run", side_effect=[SimpleNamespace(returncode=0), SimpleNamespace(returncode=1)]), \
+                    patch.object(gate, "run_tests") as run_tests:
+                code = gate.main(["--report-dir", directory])
+            summary = json.loads((Path(directory) / "summary.json").read_text(encoding="utf-8"))
+        self.assertEqual(code, 1)
+        self.assertEqual(summary["status"], "typecheck_failed")
+        run_tests.assert_not_called()
+
     def run_sample_suite(self, source, *, relative_path="test_sample.py", runtime_smoke=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

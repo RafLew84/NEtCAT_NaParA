@@ -16,6 +16,11 @@ on:
       - "tests/moltrack/test_stm_series_viewer.py"
       - "scripts/check_nanotrack.py"
       - "scripts/check_nanotrack.ps1"
+      - "scripts/check_nanotrack_types.py"
+      - "scripts/mypy_baseline.py"
+      - "scripts/nanotrack_mypy_baseline.json"
+      - "scripts/run_nanotrack_acceptance.py"
+      - "scripts/nanotrack_acceptance/**"
       - "scripts/run_python_utf8.ps1"
       - "docs/nanotrack/QUALITY_GATES.md"
       - ".github/workflows/nanotrack-quality.yml"
@@ -33,6 +38,11 @@ on:
       - "tests/moltrack/test_stm_series_viewer.py"
       - "scripts/check_nanotrack.py"
       - "scripts/check_nanotrack.ps1"
+      - "scripts/check_nanotrack_types.py"
+      - "scripts/mypy_baseline.py"
+      - "scripts/nanotrack_mypy_baseline.json"
+      - "scripts/run_nanotrack_acceptance.py"
+      - "scripts/nanotrack_acceptance/**"
       - "scripts/run_python_utf8.ps1"
       - "docs/nanotrack/QUALITY_GATES.md"
       - ".github/workflows/nanotrack-quality.yml"
@@ -46,8 +56,11 @@ jobs:
     timeout-minutes: 30
     env:
       NANOTRACK_REPORT_DIR: .scratch/nanotrack-quality/ci-${{ github.run_id }}-${{ github.run_attempt }}
+      NANOTRACK_RATCHET_REF: ${{ github.event.pull_request.base.sha || github.event.before || 'HEAD' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Run NanoTrack and shared viewer checks
         shell: powershell
         run: |

@@ -1,0 +1,657 @@
+{
+  "schema_version": 1,
+  "owner": "NanoTrack",
+  "scope": {
+    "baseline_commit": "56ddf6192f2de4c91a7943e39f3cfa3137af07c6",
+    "description": "All production nanotrack Python sources, including new modules; acceptance/typecheck tooling has no legacy allowance."
+  },
+  "errors": {
+    "nanotrack/edges/backend.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        }
+      }
+    },
+    "nanotrack/edges/ddn_backend.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        }
+      }
+    },
+    "nanotrack/edges/muge_backend.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        }
+      }
+    },
+    "nanotrack/edges/nbed_backend.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        }
+      }
+    },
+    "nanotrack/edges/pidinet_backend.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        }
+      }
+    },
+    "nanotrack/edges/polyline.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 2 to \"_combined_component_mask\" has incompatible type \"tuple[int, ...]\"; expected \"tuple[int, int]\"": 1
+        },
+        "assignment": {
+          "Incompatible types in assignment (expression has type \"ndarray[tuple[int, ...], dtype[float64]]\", variable has type \"ndarray[tuple[int], dtype[float64]]\")": 1
+        }
+      }
+    },
+    "nanotrack/edges/run_ddn_subprocess.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"_resolve_inference_shape\" has incompatible type \"tuple[int, ...]\"; expected \"tuple[int, int]\"": 1,
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        },
+        "assignment": {
+          "Incompatible types in assignment (expression has type \"Image\", variable has type \"ndarray[Any, dtype[integer[Any] | floating[Any]]]\")": 1
+        },
+        "attr-defined": {
+          "Module has no attribute \"BILINEAR\"": 2
+        },
+        "return-value": {
+          "Incompatible return value type (got \"tuple[ndarray[tuple[int, ...], dtype[Any]], tuple[int, ...], tuple[int, int]]\", expected \"tuple[ndarray[Any, Any], tuple[int, int], tuple[int, int]]\")": 1
+        }
+      }
+    },
+    "nanotrack/edges/run_dexined_subprocess.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"_resolve_inference_shape\" has incompatible type \"tuple[int, ...]\"; expected \"tuple[int, int]\"": 1,
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        },
+        "assignment": {
+          "Incompatible types in assignment (expression has type \"Image\", variable has type \"ndarray[Any, dtype[integer[Any] | floating[Any]]]\")": 1
+        },
+        "attr-defined": {
+          "Module has no attribute \"BILINEAR\"": 2
+        },
+        "return-value": {
+          "Incompatible return value type (got \"tuple[ndarray[tuple[int, ...], dtype[Any]], tuple[int, ...], tuple[int, int]]\", expected \"tuple[ndarray[Any, Any], tuple[int, int], tuple[int, int]]\")": 1
+        }
+      }
+    },
+    "nanotrack/edges/run_muge_subprocess.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"_resolve_inference_shape\" has incompatible type \"tuple[int, ...]\"; expected \"tuple[int, int]\"": 1,
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        },
+        "assignment": {
+          "Incompatible types in assignment (expression has type \"Image\", variable has type \"ndarray[Any, dtype[integer[Any] | floating[Any]]]\")": 1
+        },
+        "attr-defined": {
+          "Module has no attribute \"BILINEAR\"": 2
+        },
+        "return-value": {
+          "Incompatible return value type (got \"tuple[ndarray[tuple[int, ...], dtype[Any]], tuple[int, ...], tuple[int, int]]\", expected \"tuple[ndarray[Any, Any], tuple[int, int], tuple[int, int]]\")": 1
+        }
+      }
+    },
+    "nanotrack/edges/run_nbed_subprocess.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"_resolve_inference_shape\" has incompatible type \"tuple[int, ...]\"; expected \"tuple[int, int]\"": 1,
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        },
+        "assignment": {
+          "Incompatible types in assignment (expression has type \"Image\", variable has type \"ndarray[Any, dtype[integer[Any] | floating[Any]]]\")": 1,
+          "Incompatible types in assignment (expression has type \"ndarray[tuple[int, ...], dtype[float64]]\", variable has type \"ndarray[tuple[int, ...], dtype[floating[_32Bit]]]\")": 1
+        },
+        "attr-defined": {
+          "Module has no attribute \"BILINEAR\"": 2
+        },
+        "return-value": {
+          "Incompatible return value type (got \"tuple[ndarray[tuple[int, ...], dtype[Any]], tuple[int, ...], tuple[int, int]]\", expected \"tuple[ndarray[Any, Any], tuple[int, int], tuple[int, int]]\")": 1
+        }
+      }
+    },
+    "nanotrack/edges/run_pidinet_subprocess.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"_resolve_inference_shape\" has incompatible type \"tuple[int, ...]\"; expected \"tuple[int, int]\"": 1,
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        },
+        "assignment": {
+          "Incompatible types in assignment (expression has type \"Image\", variable has type \"ndarray[Any, dtype[integer[Any] | floating[Any]]]\")": 1
+        },
+        "attr-defined": {
+          "Module has no attribute \"BILINEAR\"": 2
+        },
+        "return-value": {
+          "Incompatible return value type (got \"tuple[ndarray[tuple[int, ...], dtype[Any]], tuple[int, ...], tuple[int, int]]\", expected \"tuple[ndarray[Any, Any], tuple[int, int], tuple[int, int]]\")": 1
+        }
+      }
+    },
+    "nanotrack/edges/run_teed_subprocess.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"_resolve_inference_shape\" has incompatible type \"tuple[int, ...]\"; expected \"tuple[int, int]\"": 1,
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        },
+        "assignment": {
+          "Incompatible types in assignment (expression has type \"Image\", variable has type \"ndarray[Any, dtype[integer[Any] | floating[Any]]]\")": 1
+        },
+        "attr-defined": {
+          "Module has no attribute \"BILINEAR\"": 2
+        },
+        "return-value": {
+          "Incompatible return value type (got \"tuple[ndarray[tuple[int, ...], dtype[floating[_32Bit]]], tuple[int, ...], tuple[int, int]]\", expected \"tuple[ndarray[Any, Any], tuple[int, int], tuple[int, int]]\")": 1
+        }
+      }
+    },
+    "nanotrack/edges/run_uaed_subprocess.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"_resolve_inference_shape\" has incompatible type \"tuple[int, ...]\"; expected \"tuple[int, int]\"": 1,
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        },
+        "assignment": {
+          "Incompatible types in assignment (expression has type \"Image\", variable has type \"ndarray[Any, dtype[integer[Any] | floating[Any]]]\")": 1
+        },
+        "attr-defined": {
+          "Module has no attribute \"BILINEAR\"": 2
+        },
+        "return-value": {
+          "Incompatible return value type (got \"tuple[ndarray[tuple[int, ...], dtype[Any]], tuple[int, ...], tuple[int, int]]\", expected \"tuple[ndarray[Any, Any], tuple[int, int], tuple[int, int]]\")": 1
+        }
+      }
+    },
+    "nanotrack/edges/teed_backend.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        }
+      }
+    },
+    "nanotrack/edges/uaed_backend.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        }
+      }
+    },
+    "nanotrack/mask_trackers/backend.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        },
+        "attr-defined": {
+          "\"str\" has no attribute \"value\"": 4
+        },
+        "index": {
+          "Invalid index type \"MaskTrackerKind | str\" for \"dict[MaskTrackerKind, type]\"; expected type \"MaskTrackerKind\"": 1
+        },
+        "union-attr": {
+          "Item \"str\" of \"MaskTrackerKind | str\" has no attribute \"value\"": 5
+        }
+      }
+    },
+    "nanotrack/mask_trackers/contract.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "union-attr": {
+          "Item \"str\" of \"MaskTrackerKind | str\" has no attribute \"value\"": 2
+        }
+      }
+    },
+    "nanotrack/mask_trackers/run_dam4sam_subprocess.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        },
+        "attr-defined": {
+          "\"str\" has no attribute \"value\"": 2,
+          "Module has no attribute \"determine_tracker\"": 2
+        }
+      }
+    },
+    "nanotrack/mask_trackers/run_samurai_subprocess.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        },
+        "attr-defined": {
+          "\"str\" has no attribute \"value\"": 3,
+          "Module has no attribute \"NEAREST\"": 1
+        }
+      }
+    },
+    "nanotrack/persistence/edge_results_export.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"sum\" has incompatible type \"list[float | None]\"; expected \"Iterable[bool]\"": 5
+        },
+        "type-var": {
+          "Value of type variable \"SupportsRichComparisonT\" of \"max\" cannot be \"float | None\"": 5
+        }
+      }
+    },
+    "nanotrack/persistence/registration_results_export.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"_format_indices\" has incompatible type \"tuple[int, ...] | list[int] | ndarray[Any, Any] | None\"; expected \"tuple[int, ...] | None\"": 2
+        }
+      }
+    },
+    "nanotrack/persistence/results_export.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"sum\" has incompatible type \"list[float | None]\"; expected \"Iterable[bool]\"": 4
+        },
+        "type-var": {
+          "Value of type variable \"SupportsRichComparisonT\" of \"max\" cannot be \"float | None\"": 4
+        }
+      }
+    },
+    "nanotrack/persistence/session_store.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"from_value\" of \"MaskTrackerKind\" has incompatible type \"object\"; expected \"MaskTrackerKind | str\"": 1,
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        },
+        "assignment": {
+          "Incompatible types in assignment (expression has type \"EdgeFrameAnnotation\", variable has type \"TrackFrameAnnotation\")": 1
+        },
+        "attr-defined": {
+          "\"TrackFrameAnnotation\" has no attribute \"edge_mask\"": 2
+        }
+      }
+    },
+    "nanotrack/registration/aligned.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 2 to \"apply_translation_to_frame\" has incompatible type \"tuple[float, float] | ndarray[Any, Any]\"; expected \"tuple[float, float]\"": 1
+        },
+        "assignment": {
+          "Incompatible types in assignment (expression has type \"tuple[int, ...]\", variable has type \"tuple[int, int, int, int]\")": 1
+        },
+        "call-overload": {
+          "No overload variant of \"affine_transform\" matches argument types \"ndarray[tuple[int, ...], dtype[floating[_32Bit]]]\", \"ndarray[tuple[int, ...], dtype[float64]]\", \"tuple[float, float]\", \"tuple[int, int]\", \"int\", \"str\", \"float\", \"bool\"": 1
+        }
+      }
+    },
+    "nanotrack/registration/batch.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument \"reference_mask\" to \"estimate_pair\" of \"MaskedPhaseCorrelationBackend\" has incompatible type \"ndarray[Any, Any] | None\"; expected \"ndarray[Any, Any]\"": 1,
+          "Argument 2 to \"_estimate_adjacent_pair\" has incompatible type \"RegistrationViewResult\"; expected \"ndarray[Any, Any]\"": 1
+        }
+      }
+    },
+    "nanotrack/registration/deep_matcher.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"float\" has incompatible type \"object\"; expected \"str | Buffer | SupportsFloat | SupportsIndex\"": 1
+        },
+        "operator": {
+          "Unsupported operand types for > (\"int\" and \"object\")": 1
+        }
+      }
+    },
+    "nanotrack/registration/ecc_translation.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 6 to \"findTransformECC\" has incompatible type \"ndarray[tuple[int, ...], dtype[unsignedinteger[_8Bit]]] | None\"; expected \"Mat | ndarray[Any, dtype[integer[Any] | floating[Any]]]\"": 1
+        }
+      }
+    },
+    "nanotrack/registration/graph_optimizer.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "union-attr": {
+          "Item \"None\" of \"RegistrationFrameResult | None\" has no attribute \"shift_xy\"": 1
+        }
+      }
+    },
+    "nanotrack/registration/phase_correlation.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "assignment": {
+          "Incompatible types in assignment (expression has type \"MaskedPhaseCorrelationConfig\", variable has type \"PhaseCorrelationShiftConfig\")": 1
+        },
+        "attr-defined": {
+          "\"PhaseCorrelationShiftConfig\" has no attribute \"low_confidence_overlap_ratio\"; maybe \"low_confidence_peak_ratio\"?": 1,
+          "\"PhaseCorrelationShiftConfig\" has no attribute \"min_mask_pixels\"": 2,
+          "\"PhaseCorrelationShiftConfig\" has no attribute \"overlap_ratio\"": 1
+        },
+        "override": {
+          "Signature of \"estimate\" incompatible with supertype \"PhaseCorrelationShiftBackend\"": 1,
+          "Signature of \"estimate_pair\" incompatible with supertype \"PhaseCorrelationShiftBackend\"": 1
+        }
+      }
+    },
+    "nanotrack/registration/preview.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 2 to \"apply_translation_to_frame\" has incompatible type \"tuple[float, float] | ndarray[Any, Any]\"; expected \"tuple[float, float]\"": 1
+        },
+        "call-overload": {
+          "No overload variant of \"shift\" matches argument types \"ndarray[tuple[int, ...], dtype[floating[_32Bit]]]\", \"tuple[float, float]\", \"int\", \"str\", \"bool\"": 1
+        }
+      }
+    },
+    "nanotrack/registration/tile_correlation.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"float\" has incompatible type \"object\"; expected \"str | Buffer | SupportsFloat | SupportsIndex\"": 1
+        },
+        "call-overload": {
+          "No overload variant of \"int\" matches argument type \"object\"": 1
+        },
+        "operator": {
+          "Unsupported operand types for > (\"int\" and \"object\")": 1
+        }
+      }
+    },
+    "nanotrack/sam2/backend.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        }
+      }
+    },
+    "nanotrack/sam2/image_batch_contract.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument \"frame_shape\" to \"_validate_boxes_within_frame\" has incompatible type \"tuple[int, ...]\"; expected \"tuple[int, int]\"": 1,
+          "Argument \"frame_shape\" to \"_validate_mask_boxes\" has incompatible type \"tuple[int, ...]\"; expected \"tuple[int, int]\"": 1,
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**Mapping[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        }
+      }
+    },
+    "nanotrack/sam2/memory_budget.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "attr-defined": {
+          "Module has no attribute \"RUSAGE_SELF\"": 1,
+          "Module has no attribute \"getrusage\"": 1
+        }
+      }
+    },
+    "nanotrack/sam2/persistent_image_batch_backend.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"int\" has incompatible type \"Any | None\"; expected \"str | Buffer | SupportsInt | SupportsIndex | SupportsTrunc\"": 1
+        }
+      }
+    },
+    "nanotrack/sam2/run_sam2_subprocess.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        }
+      }
+    },
+    "nanotrack/trackers/backend.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        }
+      }
+    },
+    "nanotrack/trackers/contract.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 3 to \"_normalize_optional_matrix\" of \"PointTrackerRunOutput\" has incompatible type \"tuple[int, ...]\"; expected \"tuple[int, int]\"": 3
+        }
+      }
+    },
+    "nanotrack/trackers/run_locotrack_subprocess.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"_resolve_inference_shape\" has incompatible type \"tuple[int, ...]\"; expected \"tuple[int, int]\"": 1,
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        }
+      }
+    },
+    "nanotrack/trackers/run_tapir_subprocess.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 1 to \"_resolve_inference_shape\" has incompatible type \"tuple[int, ...]\"; expected \"tuple[int, int]\"": 1,
+          "Argument 2 to \"_scale_query_points_tyx\" has incompatible type \"tuple[int, ...]\"; expected \"tuple[int, int]\"": 1,
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1,
+          "Argument 3 to \"_scale_tracks_xy\" has incompatible type \"tuple[int, ...]\"; expected \"tuple[int, int]\"": 1
+        },
+        "attr-defined": {
+          "Module has no attribute \"BILINEAR\"": 1
+        }
+      }
+    },
+    "nanotrack/trackers/run_trackonr_subprocess.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
+        }
+      }
+    },
+    "nanotrack/ui/dialogs/edge_results_dialog.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "union-attr": {
+          "Item \"None\" of \"EdgeTrack | None\" has no attribute \"edge_track_id\"": 2,
+          "Item \"None\" of \"EdgeTrack | None\" has no attribute \"label\"": 2
+        }
+      }
+    },
+    "nanotrack/ui/dialogs/registration_results_dialog.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "union-attr": {
+          "Item \"None\" of \"QHeaderView | None\" has no attribute \"setSectionResizeMode\"": 1,
+          "Item \"None\" of \"QHeaderView | None\" has no attribute \"setStretchLastSection\"": 1
+        }
+      }
+    },
+    "nanotrack/ui/dialogs/results_dialog.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "attr-defined": {
+          "\"object\" has no attribute \"area_nm2\"": 3,
+          "\"object\" has no attribute \"area_px\"": 4,
+          "\"object\" has no attribute \"intensity_max\"": 1,
+          "\"object\" has no attribute \"intensity_sum\"": 1,
+          "\"object\" has no attribute \"perimeter_nm\"": 3,
+          "\"object\" has no attribute \"perimeter_px\"": 2
+        },
+        "union-attr": {
+          "Item \"None\" of \"ParticleTrack | None\" has no attribute \"label\"": 2,
+          "Item \"None\" of \"ParticleTrack | None\" has no attribute \"track_id\"": 2
+        }
+      }
+    },
+    "nanotrack/ui/main_window.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "arg-type": {
+          "Argument \"backend\" to \"build_registration_pair_preview\" has incompatible type \"PhaseCorrelationShiftBackend | TileCorrelationRansacBackend | ECCTranslationBackend | OpticalFlowMedianBackend | DeepMatcherTranslationBackend\"; expected \"PhaseCorrelationShiftBackend | None\"": 1,
+          "Argument \"polygon_roi\" to \"EdgeTrack\" has incompatible type \"object\"; expected \"PolygonROI\"": 1,
+          "Argument \"worker_script\" to \"PointTrackerBackendConfig\" has incompatible type \"object\"; expected \"str | Path\"": 1,
+          "Argument 1 to \"add_annotation\" of \"EdgeTrack\" has incompatible type \"object\"; expected \"EdgeFrameAnnotation\"": 2,
+          "Argument 1 to \"float\" has incompatible type \"object\"; expected \"str | Buffer | SupportsFloat | SupportsIndex\"": 6,
+          "Argument 2 to \"run_horizontal_dropout_preview\" has incompatible type \"**dict[str, float | int | str]\"; expected \"float\"": 1,
+          "Argument 2 to \"run_horizontal_dropout_preview\" has incompatible type \"**dict[str, float | int | str]\"; expected \"int\"": 1,
+          "Argument 2 to \"run_horizontal_dropout_preview\" has incompatible type \"**dict[str, float | int | str]\"; expected \"str\"": 1,
+          "Argument 3 to \"run_horizontal_dropout_batch\" has incompatible type \"**dict[str, float | int | str]\"; expected \"float\"": 1,
+          "Argument 3 to \"run_horizontal_dropout_batch\" has incompatible type \"**dict[str, float | int | str]\"; expected \"int\"": 1,
+          "Argument 3 to \"run_horizontal_dropout_batch\" has incompatible type \"**dict[str, float | int | str]\"; expected \"str\"": 1
+        },
+        "assignment": {
+          "Incompatible types in assignment (expression has type \"DexiNedRunInput | None\", variable has type \"DexiNedRunInput\")": 1,
+          "Incompatible types in assignment (expression has type \"None\", variable has type \"_MaskTrackerBatchWorker\")": 1,
+          "Incompatible types in assignment (expression has type \"object\", target has type \"BBoxXYXY\")": 1,
+          "Incompatible types in assignment (expression has type \"object\", target has type \"PolygonROI\")": 1,
+          "Incompatible types in assignment (expression has type \"object\", variable has type \"PolygonROI\")": 5
+        },
+        "attr-defined": {
+          "\"object\" has no attribute \"polyline\"": 2
+        },
+        "call-overload": {
+          "No overload variant of \"dict\" matches argument type \"object\"": 1,
+          "No overload variant of \"int\" matches argument type \"object\"": 49
+        },
+        "has-type": {
+          "Cannot determine type of \"error_message\"": 2,
+          "Cannot determine type of \"run_output\"": 2,
+          "Cannot determine type of \"track_id\"": 8
+        },
+        "misc": {
+          "\"object\" object is not iterable": 2
+        },
+        "union-attr": {
+          "Item \"None\" of \"ExpandedAlignedStack | None\" has no attribute \"frames\"": 1,
+          "Item \"None\" of \"ExpandedAlignedStack | None\" has no attribute \"padding_ltrb\"": 1,
+          "Item \"None\" of \"QAction | None\" has no attribute \"setCheckable\"": 2,
+          "Item \"None\" of \"QAction | None\" has no attribute \"setChecked\"": 6,
+          "Item \"None\" of \"QAction | None\" has no attribute \"setEnabled\"": 14,
+          "Item \"None\" of \"QAction | None\" has no attribute \"setToolTip\"": 7,
+          "Item \"None\" of \"QAction | None\" has no attribute \"toggled\"": 2,
+          "Item \"None\" of \"QAction | None\" has no attribute \"triggered\"": 5,
+          "Item \"None\" of \"QMenu | Any | None\" has no attribute \"addAction\"": 4,
+          "Item \"None\" of \"QMenu | Any | None\" has no attribute \"addSeparator\"": 1,
+          "Item \"None\" of \"QMenuBar | None\" has no attribute \"addMenu\"": 1,
+          "Item \"None\" of \"QScrollBar | None\" has no attribute \"maximum\"": 2,
+          "Item \"None\" of \"QScrollBar | None\" has no attribute \"minimum\"": 2,
+          "Item \"None\" of \"QScrollBar | None\" has no attribute \"setValue\"": 2,
+          "Item \"None\" of \"QScrollBar | None\" has no attribute \"value\"": 1,
+          "Item \"None\" of \"QStatusBar | None\" has no attribute \"showMessage\"": 95
+        }
+      }
+    },
+    "nanotrack/ui/widgets/edge_track_list_panel.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "union-attr": {
+          "Item \"None\" of \"QListWidgetItem | None\" has no attribute \"data\"": 1
+        }
+      }
+    },
+    "nanotrack/ui/widgets/sequence_viewer_widget.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "assignment": {
+          "Incompatible types in assignment (expression has type \"EdgeFrameAnnotation | None\", variable has type \"TrackFrameAnnotation | None\")": 1
+        },
+        "attr-defined": {
+          "\"TrackFrameAnnotation\" has no attribute \"polyline\"": 3
+        }
+      }
+    },
+    "nanotrack/ui/widgets/track_list_panel.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "union-attr": {
+          "Item \"None\" of \"QListWidgetItem | None\" has no attribute \"data\"": 1
+        }
+      }
+    },
+    "nanotrack/yolo/runtime.py": {
+      "owner": "NanoTrack",
+      "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
+      "errors": {
+        "assignment": {
+          "Incompatible types in assignment (expression has type \"ndarray[tuple[int, ...], dtype[float64]]\", variable has type \"ndarray[tuple[int, ...], dtype[floating[_32Bit]]]\")": 1
+        }
+      }
+    }
+  }
+}
