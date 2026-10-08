@@ -218,6 +218,7 @@ class RegistrationFrameResult:
     median_tile_residual: Optional[float] = None
     flow_mad: Optional[float] = None
     status: str = "ok"
+    recomputed: bool = True
 
     VALID_STATUSES = {"ok", "low_confidence", "failed", "manual_review"}
 

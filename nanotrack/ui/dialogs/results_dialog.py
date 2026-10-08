@@ -340,8 +340,6 @@ class TrackResultsDialog(QDialog):
 
     def _metric_rows(self, track: ParticleTrack) -> Iterable[tuple[int, object]]:
         for frame_index in track.frame_indices:
-            if self._sequence is not None and self._sequence.is_frame_excluded(frame_index):
-                continue
             annotation = track.get_annotation(frame_index)
             if annotation is None:
                 continue

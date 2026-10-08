@@ -608,7 +608,7 @@
           "Item \"None\" of \"QScrollBar | None\" has no attribute \"minimum\"": 2,
           "Item \"None\" of \"QScrollBar | None\" has no attribute \"setValue\"": 2,
           "Item \"None\" of \"QScrollBar | None\" has no attribute \"value\"": 1,
-          "Item \"None\" of \"QStatusBar | None\" has no attribute \"showMessage\"": 95
+          "Item \"None\" of \"QStatusBar | None\" has no attribute \"showMessage\"": 93
         }
       }
     },

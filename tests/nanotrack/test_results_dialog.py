@@ -369,7 +369,7 @@ class TrackResultsDialogTests(unittest.TestCase):
         _x_coverage, coverage_data = coverage_items[0].getData()
         np.testing.assert_allclose(coverage_data, np.asarray([(12.0 / 64.0) * 100.0], dtype=np.float32))
 
-    def test_results_ignore_excluded_frames(self) -> None:
+    def test_results_include_registration_excluded_frames(self) -> None:
         sequence = STMSequence(
             source_path="/tmp/results_excluded_frame.mpp",
             raw_frames=np.zeros((4, 8, 8), dtype=np.float32),
@@ -396,11 +396,11 @@ class TrackResultsDialogTests(unittest.TestCase):
 
         area_items = self.dialog.plot_area.plotItem.listDataItems()
         x_data, y_data = area_items[0].getData()
-        np.testing.assert_array_equal(x_data, np.asarray([3.0], dtype=np.float32))
-        np.testing.assert_array_equal(y_data, np.asarray([8.0], dtype=np.float32))
+        np.testing.assert_array_equal(x_data, np.asarray([2.0, 3.0], dtype=np.float32))
+        np.testing.assert_array_equal(y_data, np.asarray([12.0, 8.0], dtype=np.float32))
         coverage_items = self.dialog.plot_coverage.plotItem.listDataItems()
         _x_coverage, coverage_data = coverage_items[0].getData()
-        np.testing.assert_allclose(coverage_data, np.asarray([(8.0 / 64.0) * 100.0], dtype=np.float32))
+        np.testing.assert_allclose(coverage_data, np.asarray([18.75, 12.5], dtype=np.float32))
 
     def test_coverage_uses_original_frame_area_for_expanded_registration_source_view(self) -> None:
         sequence = STMSequence(

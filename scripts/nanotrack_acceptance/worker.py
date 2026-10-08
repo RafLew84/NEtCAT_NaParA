@@ -14,7 +14,7 @@ from scripts.nanotrack_acceptance.reporting import AcceptanceReport, write_statu
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("quick", "full", "session", "aligned", "expanded", "particles", "edges"))
+    parser.add_argument("mode", choices=("quick", "full", "session", "aligned", "expanded", "particles", "edges", "exclusions"))
     parser.add_argument("--input", type=Path)
     parser.add_argument("--report-dir", type=Path, required=True)
     parser.add_argument("--headless", action="store_true")
@@ -78,6 +78,10 @@ def main() -> int:
                     from scripts.nanotrack_acceptance.edges import run as run_edges
                     assert args.input is not None
                     run_edges(scenario, args.input)
+                elif args.mode == "exclusions":
+                    from scripts.nanotrack_acceptance.exclusions import run as run_exclusions
+                    assert args.input is not None
+                    run_exclusions(scenario, args.input)
                 else:
                     assert args.input is not None
                     if args.mode == "full":

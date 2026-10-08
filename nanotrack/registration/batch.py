@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Callable, Iterable
 
 import numpy as np
@@ -36,7 +37,7 @@ from .tile_correlation import (
 from .view import build_registration_view_from_settings
 
 
-RegistrationProgressCallback = Callable[[int, int, RegistrationFrameResult], None]
+RegistrationProgressCallback = Callable[[int, int, RegistrationFrameResult | None], None]
 AdjacentRegistrationBackend = (
     PhaseCorrelationShiftBackend
     | MaskedPhaseCorrelationBackend
@@ -54,6 +55,7 @@ def run_adjacent_phase_registration(
     backend: AdjacentRegistrationBackend | None = None,
     progress_callback: RegistrationProgressCallback | None = None,
     excluded_frame_indices: Iterable[int] | None = None,
+    previous_results: RegistrationResultSet | None = None,
 ) -> RegistrationResultSet:
     """Register included frames by accumulating adjacent translations."""
 
@@ -63,6 +65,13 @@ def run_adjacent_phase_registration(
     included = [frame_index for frame_index in range(total) if frame_index not in excluded]
     if not included:
         raise ValueError("registration requires at least one frame that is not excluded.")
+    if excluded:
+        # Keep global frame indices in the backend contract. These placeholders
+        # never enter a pair; excluded source pixels need not be finite.
+        source_stack = source_stack.copy()
+        source_stack[list(excluded)] = 0.
+    if not np.all(np.isfinite(source_stack)):
+        raise ValueError("included frames must contain only finite values.")
 
     settings = settings or RegistrationSettings(
         backend="phase_correlation",
@@ -85,10 +94,13 @@ def run_adjacent_phase_registration(
 
     for frame_index in range(total):
         if frame_index in excluded:
-            result = _excluded_registration_result(frame_index, cumulative_shift)
-            results[frame_index] = result
+            previous = None if previous_results is None else previous_results.get_result(frame_index)
+            retained = None
+            if previous is not None and previous.method != "excluded_frame":
+                retained = replace(previous, recomputed=False)
+                results[frame_index] = retained
             if progress_callback is not None:
-                progress_callback(frame_index + 1, total, result)
+                progress_callback(frame_index + 1, total, retained)
             continue
 
         if previous_included_index is None:
@@ -299,16 +311,6 @@ def _normalize_excluded_frame_indices(
     return excluded
 
 
-def _excluded_registration_result(frame_index: int, cumulative_shift: np.ndarray) -> RegistrationFrameResult:
-    return RegistrationFrameResult(
-        frame_index=frame_index,
-        shift_xy=(float(cumulative_shift[0]), float(cumulative_shift[1])),
-        method="excluded_frame",
-        quality_score=0.0,
-        status="manual_review",
-    )
-
-
 def _combine_registration_status(current_status: str, pair_status: str) -> str:
     if current_status == "failed" or pair_status == "failed":
         return "failed"
@@ -327,6 +329,4 @@ def _ensure_frame_stack(frames: np.ndarray) -> np.ndarray:
         raise ValueError("registration batch requires at least one frame.")
     if stack.shape[1] < 1 or stack.shape[2] < 1:
         raise ValueError("registration frames must be non-empty.")
-    if not np.all(np.isfinite(stack)):
-        raise ValueError("frames must contain only finite values.")
     return stack

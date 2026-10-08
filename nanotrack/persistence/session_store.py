@@ -64,6 +64,7 @@ class NanoTrackSessionSnapshot:
     registration_results: RegistrationResultSet | None = None
     show_aligned_in_viewer: bool = False
     show_expanded_aligned_in_viewer: bool = False
+    hide_excluded_frames: bool = False
     preview_source: str | None = None
     preprocessing_provenance: PreprocessingProvenance | None = None
     repair_provenance: PreprocessingProvenance | None = None
@@ -186,6 +187,7 @@ def load_session_snapshot(
             preview_source=preview_source,
             preprocessing_provenance=provenance,
             repair_provenance=repair_provenance,
+            hide_excluded_frames=bool(manifest.get("hide_excluded_frames", False)),
             registration_results=registration_results,
             show_aligned_in_viewer=bool(manifest.get("show_aligned_in_viewer", False)),
             show_expanded_aligned_in_viewer=bool(manifest.get("show_expanded_aligned_in_viewer", False)),
@@ -207,6 +209,7 @@ def _build_manifest(snapshot: NanoTrackSessionSnapshot) -> dict:
             "reverse_frame_order": bool(snapshot.sequence.reverse_frame_order),
             "excluded_frame_indices": snapshot.sequence.sorted_excluded_frame_indices(),
         },
+        "hide_excluded_frames": bool(snapshot.hide_excluded_frames),
         "selected_track_id": snapshot.selected_track_id,
         "selected_edge_track_id": snapshot.selected_edge_track_id,
         "selected_mask_tracker_kind": _normalize_mask_tracker_kind(snapshot.selected_mask_tracker_kind),
@@ -433,6 +436,7 @@ def _serialize_registration_frame_result(result: RegistrationFrameResult | None)
         "median_tile_residual": result.median_tile_residual,
         "flow_mad": result.flow_mad,
         "status": result.status,
+        "recomputed": result.recomputed,
     }
 
 
@@ -692,6 +696,7 @@ def _restore_registration_result_set(payload: dict | None) -> RegistrationResult
             median_tile_residual=result_payload.get("median_tile_residual"),
             flow_mad=result_payload.get("flow_mad"),
             status=str(result_payload.get("status", "ok")),
+            recomputed=bool(result_payload.get("recomputed", True)),
         )
         results_by_frame[result.frame_index] = result
     return RegistrationResultSet(

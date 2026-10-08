@@ -162,7 +162,7 @@ class RegistrationResultsDialog(QDialog):
                 f"{result.dx:.3f}",
                 f"{result.dy:.3f}",
                 f"{result.quality_score:.3f}",
-                result.status,
+                result.status if result.recomputed else f"{result.status} | nieprzeliczony",
                 result.method,
                 self._format_optional_float(result.phase_peak_ratio),
                 self._format_optional_float(result.ecc_score),

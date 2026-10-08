@@ -55,6 +55,7 @@ def _metrics_rows(sequence: STMSequence, result_set: RegistrationResultSet) -> l
                 "frame_number": result.frame_index + 1,
                 "time_s": sequence.get_frame_time_s(result.frame_index),
                 "frame_excluded": sequence.is_frame_excluded(result.frame_index),
+                "recomputed": result.recomputed,
                 "dx_px": result.dx,
                 "dy_px": result.dy,
                 "shift_magnitude_px": float(np.hypot(result.dx, result.dy)),

@@ -140,24 +140,10 @@ class AdjacentPhaseRegistrationTests(unittest.TestCase):
         self.assertEqual(backend.pairs, [(0, 2), (2, 4)])
         self.assertEqual(result_set.reference_frame_index, 0)
         self.assertEqual(result_set.template_frame_indices, (0,))
-        self.assertEqual(result_set.frame_indices, [0, 1, 2, 3, 4])
-        np.testing.assert_allclose(
-            result_set.shifts_xy_array(),
-            np.asarray(
-                [
-                    [0.0, 0.0],
-                    [0.0, 0.0],
-                    [1.0, 0.0],
-                    [1.0, 0.0],
-                    [2.0, 0.0],
-                ],
-                dtype=np.float64,
-            ),
-        )
-        self.assertEqual(result_set.get_result(1).method, "excluded_frame")
-        self.assertEqual(result_set.get_result(1).status, "manual_review")
-        self.assertEqual(result_set.get_result(3).method, "excluded_frame")
-        self.assertEqual(result_set.status_counts()["manual_review"], 2)
+        self.assertEqual(result_set.frame_indices, [0, 2, 4])
+        np.testing.assert_allclose(result_set.shifts_xy_array(), [[0., 0.], [1., 0.], [2., 0.]])
+        self.assertIsNone(result_set.get_result(1))
+        self.assertIsNone(result_set.get_result(3))
 
     def test_rejects_invalid_inputs_and_reference_strategy(self) -> None:
         frame = self._textured_frame()

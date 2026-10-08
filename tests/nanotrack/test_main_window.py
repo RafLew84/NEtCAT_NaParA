@@ -1136,7 +1136,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             "Detections: current 1 (selected 0) | all 2 (selected 1)",
         )
 
-    def test_yolo_detect_all_creates_detection_proposals_for_included_frames(self) -> None:
+    def test_yolo_detect_all_creates_detection_proposals_for_all_frames(self) -> None:
         sequence = STMSequence(
             source_path="/tmp/yolo_detect_all.mpp",
             raw_frames=np.zeros((4, 8, 8), dtype=np.float32),
@@ -1154,6 +1154,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         detections_per_call = {
             0: [SimpleNamespace(bbox=BBoxXYXY(1.0, 1.0, 3.0, 3.0), confidence=0.9)],
             1: [SimpleNamespace(bbox=BBoxXYXY(2.0, 2.0, 4.0, 4.0), confidence=0.8)],
+            2: [SimpleNamespace(bbox=BBoxXYXY(3.0, 3.0, 5.0, 5.0), confidence=0.75)],
             3: [SimpleNamespace(bbox=BBoxXYXY(4.0, 4.0, 6.0, 6.0), confidence=0.7)],
         }
 
@@ -1170,15 +1171,15 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         with patch.object(self.window._yolo_runtime, "predict_frame", side_effect=_predict_frame) as predict_mock:
             self.window._on_yolo_detect_all_requested()
 
-        self.assertEqual(predict_mock.call_count, 3)
+        self.assertEqual(predict_mock.call_count, 4)
         detection_set = self.window.current_yolo_detection_set()
         self.assertIsNotNone(detection_set)
         assert detection_set is not None
         self.assertEqual(detection_set.model_name, model_name)
-        self.assertEqual(detection_set.frame_indices, [0, 1, 3])
-        self.assertEqual(detection_set.detection_count, 3)
-        self.assertEqual(len(detection_set.get_detections(2)), 0)
-        self.assertEqual(self.window.yolo_panel.lbl_detections.text(), "Detections: current 1 (selected 1) | all 3 (selected 3)")
+        self.assertEqual(detection_set.frame_indices, [0, 1, 2, 3])
+        self.assertEqual(detection_set.detection_count, 4)
+        self.assertEqual(len(detection_set.get_detections(2)), 1)
+        self.assertEqual(self.window.yolo_panel.lbl_detections.text(), "Detections: current 1 (selected 1) | all 4 (selected 4)")
         self.assertEqual(len(self.window.viewer.viewer._overlay_items), 2)
         self.assertTrue(self.window.yolo_panel.btn_detect_current.isEnabled())
         self.assertTrue(self.window.yolo_panel.btn_detect_all.isEnabled())
@@ -1193,9 +1194,9 @@ class NanoTrackMainWindowTests(unittest.TestCase):
 
         self.window.slider_frame.setValue(2)
         self.__class__._app.processEvents()
-        self.assertEqual(len(self.window.viewer.viewer._overlay_items), 0)
+        self.assertEqual(len(self.window.viewer.viewer._overlay_items), 2)
 
-    def test_excluding_current_frame_removes_it_from_analysis_state(self) -> None:
+    def test_excluding_current_frame_preserves_analysis_state(self) -> None:
         sequence = STMSequence(
             source_path="/tmp/excluded_frame.mpp",
             raw_frames=np.zeros((3, 8, 8), dtype=np.float32),
@@ -1247,9 +1248,9 @@ class NanoTrackMainWindowTests(unittest.TestCase):
 
         self.window.slider_frame.setValue(1)
         self.__class__._app.processEvents()
-        self.window.viewer.set_bbox(BBoxXYXY(0.5, 0.5, 3.5, 3.5))
+        self.window.viewer.bbox_changed.emit(BBoxXYXY(0.5, 0.5, 3.5, 3.5))
         self.window.viewer._commit_polygon(polygon)
-        self.window.viewer.set_edge_polyline(np.asarray([[1.0, 4.0], [6.0, 4.0]], dtype=np.float64))
+        self.window.viewer.edge_polyline_changed.emit(np.asarray([[1.0, 4.0], [6.0, 4.0]], dtype=np.float64))
 
         self.window.chk_exclude_frame.setChecked(True)
         self.__class__._app.processEvents()
@@ -1257,17 +1258,17 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertTrue(sequence.is_frame_excluded(1))
         self.assertTrue(self.window.chk_exclude_frame.isChecked())
         self.assertIn("excluded", self.window.lbl_frame.text().lower())
-        self.assertIsNone(self.window.current_draft_bbox())
-        self.assertIsNone(self.window.current_draft_polygon_roi())
-        self.assertIsNone(self.window.current_draft_edge_polyline())
+        self.assertIsNotNone(self.window.current_draft_bbox())
+        self.assertIsNotNone(self.window.current_draft_polygon_roi())
+        self.assertIsNotNone(self.window.current_draft_edge_polyline())
 
         remaining_track_ids = [track.track_id for track in self.window.current_tracks()]
-        self.assertEqual(remaining_track_ids, [1])
-        self.assertEqual(self.window.current_tracks()[0].frame_indices, [0])
+        self.assertEqual(remaining_track_ids, [1, 2])
+        self.assertEqual(self.window.current_tracks()[0].frame_indices, [0, 1])
 
         remaining_edge_track_ids = [track.edge_track_id for track in self.window.current_edge_tracks()]
-        self.assertEqual(remaining_edge_track_ids, [1])
-        self.assertEqual(self.window.current_edge_tracks()[0].frame_indices, [0])
+        self.assertEqual(remaining_edge_track_ids, [1, 2])
+        self.assertEqual(self.window.current_edge_tracks()[0].frame_indices, [0, 1])
 
         self.window.chk_exclude_frame.setChecked(False)
         self.__class__._app.processEvents()

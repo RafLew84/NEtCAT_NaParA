@@ -81,6 +81,23 @@ oraz pochodzenie w `Edge Tracks` rozróżniają źródło kształtu i geometrię
 Próba obejmuje integrację jednego rzeczywistego modelu, bez kalibracji jakości
 detekcji i bez deklarowania rzeczywistego uruchomienia innych backendów.
 
+Tryb `exclusions` wykonuje SAM2 i DexiNed na klatkach 9–11 przed i po
+wykluczeniu 10. Sprawdza Hide Excluded, rzeczywistą rejestrację Phase,
+zachowanie własnego dx/dy klatki 10, Save/Open i przywrócenie:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_python_utf8.ps1 -ScriptPath scripts/run_nanotrack_acceptance.py exclusions --input .scratch/nanotrack-registration-export/acceptance/runs/ticket-02/MOVIE_2-repair-bm3d-registered-v2.nanotrack --timeout 360
+```
+
+**Wyklucz z rejestracji** nie kasuje szkiców, detekcji ani analiz i nie
+ogranicza nowych analiz. **Hide Excluded** filtruje tylko nawigację, bez
+zmiany numerów klatek; oba stany są zapisywane w sesji. Nowa rejestracja
+zachowuje własny wynik pominiętej klatki z flagą `recomputed=false` i opisem
+„nieprzeliczony” w tabeli rejestracji. Bez własnego wyniku pozostaje brak;
+historyczny wpis `excluded_frame` z odziedziczonym dx/dy nie jest zachowywany
+jako pomiar. Błąd nowego batcha nie usuwa aktywnego wyniku. Tabele i CSV
+analiz zawierają również klatki wykluczone z rejestracji.
+
 Krótka próba generuje S1 o znanej skali, z klatką stałą, NaN i dużym offsetem.
 Sprawdza naprawę, rzeczywisty BM3D, precyzję, przełączanie źródła i Save/Open:
 
@@ -104,7 +121,7 @@ ponownie BM3D ani rejestracji i nie nadpisuje wejściowej sesji:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_python_utf8.ps1 -ScriptPath scripts/run_nanotrack_acceptance.py session --input .scratch/nanotrack-registration-export/acceptance/runs/ticket-02/MOVIE_2-repair-bm3d-registered-v2.nanotrack
 ```
 
-Limity czasu: `quick`, `session`, `aligned`, `expanded`, `particles` i `edges` 180 s, `full` 7200 s. Nadpisanie:
+Limity czasu: `quick`, `session`, `aligned`, `expanded`, `particles`, `edges` i `exclusions` 180 s, `full` 7200 s. Nadpisanie:
 `--timeout 300`. Przekroczenie czasu kończy własny proces roboczy, zapisuje
 `timeout` i zwraca kod 1. Awaria procesu bez raportu też jest błędem — runner
 sprawdza zakończenie procesu, nie czeka na pojawienie się pliku sygnalizacyjnego.
