@@ -2249,8 +2249,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, aligned[0])
 
         self.window.slider_frame.setValue(1)
-        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, aligned[1])
-        self.assertLess(float(np.mean((aligned[1] - frame0) ** 2)), float(np.mean((frame1 - frame0) ** 2)))
+        self._assert_viewer_image_matches_finite_pixels(aligned[1])
+        self.assertLess(float(np.nanmean((aligned[1] - frame0) ** 2)), float(np.mean((frame1 - frame0) ** 2)))
 
         self.window.action_show_aligned_registration.trigger()
         self.assertFalse(self.window.action_show_aligned_registration.isChecked())
@@ -2326,7 +2326,9 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         input_frames, source_view = self.window._current_mask_tracker_input_frames()
         self.assertEqual(source_view, "bm3d+registration")
         np.testing.assert_allclose(input_frames, expected, atol=1e-6)
-        np.testing.assert_allclose(self.window.current_aligned_frames(), expected, atol=1e-6)
+        # Legacy tracker input is separate; obtaining it must not replace the chosen preview source.
+        np.testing.assert_array_equal(self.window.current_aligned_frames()[0], raw_frames[0])
+        self.assertTrue(np.isnan(self.window.current_aligned_frames()[1, :, 0]).all())
         np.testing.assert_array_equal(sequence.raw_frames, raw_frames)
 
     def test_mask_tracker_input_uses_repair_expanded_registration_when_view_active(self) -> None:
@@ -2778,7 +2780,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         assert aligned is not None
         self.assertTrue(self.window.action_show_aligned_registration.isChecked())
         self.assertFalse(self.window.action_show_expanded_aligned_registration.isChecked())
-        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, aligned[1])
+        self._assert_viewer_image_matches_finite_pixels(aligned[1])
         self.assertIn("View: Aligned registration", self.window.viewer.lbl_meta.text())
 
         self.window.action_show_expanded_aligned_registration.trigger()
@@ -2793,7 +2795,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.window.action_show_aligned_registration.trigger()
         self.assertTrue(self.window.action_show_aligned_registration.isChecked())
         self.assertFalse(self.window.action_show_expanded_aligned_registration.isChecked())
-        np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, aligned[1])
+        self._assert_viewer_image_matches_finite_pixels(aligned[1])
         self.assertIn("View: Aligned registration", self.window.viewer.lbl_meta.text())
 
         self.window.action_show_aligned_registration.trigger()

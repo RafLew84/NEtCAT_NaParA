@@ -66,6 +66,7 @@ from nanotrack.registration import (
     build_registration_pair_preview,
     run_adjacent_phase_registration,
 )
+from nanotrack.registration.scalar_frames import ScalarFrame, ScalarFrameProvider
 from nanotrack.edges import (
     DdnSubprocessBackend,
     DexiNedRunInput,
@@ -302,6 +303,8 @@ class NanoTrackMainWindow(QMainWindow):
         self._edge_results_dialog: EdgeTrackResultsDialog | None = None
         self._registration_results: RegistrationResultSet | None = None
         self._aligned_frames: np.ndarray | None = None
+        self._scalar_frame_provider: ScalarFrameProvider | None = None
+        self._scalar_frame_source_key: tuple[int, str] | None = None
         self._aligned_frames_cache_key: tuple[str, str, int, int] | None = None
         self._expanded_aligned_stack: ExpandedAlignedStack | None = None
         self._expanded_aligned_stack_cache_key: tuple[str, str, int, int] | None = None
@@ -640,13 +643,21 @@ class NanoTrackMainWindow(QMainWindow):
         self._sync_preview_source_controls()
         view_label = "Raw"
         display_offset_px = (0.0, 0.0)
+        geometry = None
         if self._show_expanded_aligned_in_viewer:
             frame_override, view_label = self._current_expanded_aligned_viewer_override()
             display_offset_px = self._current_expanded_aligned_display_offset_px()
         elif self._show_aligned_in_viewer:
-            frame_override, view_label = self._current_aligned_viewer_override()
+            view_label = "Aligned registration"
         elif self._show_processed_in_viewer:
             frame_override, view_label = self._current_viewer_override()
+
+        if not self._show_expanded_aligned_in_viewer:
+            scalar = self._current_scalar_frame(aligned=self._show_aligned_in_viewer)
+            frame_override = scalar.values
+            geometry = scalar.geometry
+            if self._show_aligned_in_viewer and scalar.registration_status == "missing":
+                view_label += " | Brak własnego dx/dy — bez przesunięcia"
 
         self.viewer.show_frame(
             self._sequence.active_frame_index,
@@ -654,6 +665,7 @@ class NanoTrackMainWindow(QMainWindow):
             frame_override=frame_override,
             view_label=view_label,
             display_offset_px=display_offset_px,
+            geometry=geometry,
         )
         self._sync_current_bbox_ui()
         self._sync_current_polygon_ui()
@@ -797,12 +809,16 @@ class NanoTrackMainWindow(QMainWindow):
         return self._registration_results
 
     def current_aligned_frames(self) -> np.ndarray | None:
-        return self._aligned_frames
+        """Explicit bulk read for callers; the viewer never materializes a movie here."""
+        if self._sequence is None or not self._show_aligned_in_viewer:
+            return None
+        return np.stack([self._current_scalar_frame(aligned=True, frame_index=i).values
+                         for i in range(self._sequence.frame_count)])
 
     def current_aligned_frame(self) -> np.ndarray | None:
-        if self._aligned_frames is None or self._sequence is None:
+        if self._registration_results is None or self._sequence is None:
             return None
-        return self._aligned_frames[self._sequence.active_frame_index]
+        return self._current_scalar_frame(aligned=True).values
 
     def current_expanded_aligned_stack(self) -> ExpandedAlignedStack | None:
         return self._expanded_aligned_stack
@@ -3613,7 +3629,7 @@ class NanoTrackMainWindow(QMainWindow):
             return
 
         try:
-            self._ensure_aligned_registration_cache()
+            self._current_scalar_frame(aligned=True)
         except Exception as exc:
             self._disable_aligned_registration_view()
             QMessageBox.critical(self, "Aligned registration view error", str(exc))
@@ -3819,6 +3835,8 @@ class NanoTrackMainWindow(QMainWindow):
                 self.action_show_expanded_aligned_registration.setChecked(False)
 
     def _invalidate_aligned_registration_materialization_cache(self) -> None:
+        self._scalar_frame_provider = None
+        self._scalar_frame_source_key = None
         self._aligned_frames = None
         self._aligned_frames_cache_key = None
         self._expanded_aligned_stack = None
@@ -3921,11 +3939,22 @@ class NanoTrackMainWindow(QMainWindow):
             raise RuntimeError("Wybrany Wynik preprocessingu jest niedostępny.")
         return self._current_mask_tracker_base_frames()
 
-    def _current_aligned_viewer_override(self) -> tuple[np.ndarray | None, str]:
-        if self._sequence is not None and self._registration_results is not None:
-            self._ensure_aligned_registration_cache()
-            return self.current_aligned_frame(), "Aligned registration"
-        return None, "Raw"
+    def _current_scalar_frame(self, *, aligned: bool, frame_index: int | None = None) -> ScalarFrame:
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
+        frames, _source_view, _kind = self._current_preview_base_frames()
+        provenance = self._preprocessing_provenance if self._show_processed_in_viewer else None
+        revision = provenance.revision if provenance is not None else f"original-{self._sequence_generation}"
+        key = (id(frames), revision)
+        if self._scalar_frame_provider is None or key != self._scalar_frame_source_key:
+            self._scalar_frame_provider = ScalarFrameProvider(
+                frames, self._sequence.metadata, source_revision=revision, provenance=provenance,
+            )
+            self._scalar_frame_source_key = key
+        return self._scalar_frame_provider.get_frame(
+            self._sequence.active_frame_index if frame_index is None else frame_index,
+            aligned=aligned, registration=self._registration_results,
+        )
 
     def _current_expanded_aligned_viewer_override(self) -> tuple[np.ndarray | None, str]:
         if self._sequence is not None and self._registration_results is not None:

@@ -11,6 +11,7 @@ from skimage import measure
 
 from nanotrack.core import BBoxXYXY, EdgeTrack, FrameVisibility, ParticleTrack, PolygonROI, STMSequence, YoloDetection
 from napara.gui.widgets.viewer_widget import ViewerWidget
+from nanotrack.registration.scalar_frames import FrameGeometry
 
 
 class SequenceViewerWidget(QWidget):
@@ -41,6 +42,7 @@ class SequenceViewerWidget(QWidget):
         self._suppress_edge_polyline_signal = False
         self._current_yolo_detections: list[YoloDetection] = []
         self._display_offset_px = (0.0, 0.0)
+        self._geometry = FrameGeometry()
         self._build()
 
     def _build(self) -> None:
@@ -52,12 +54,19 @@ class SequenceViewerWidget(QWidget):
         layout.addWidget(self.lbl_meta)
 
         self.viewer = ViewerWidget(self)
+        # Separate presentation layer: black never becomes a scalar measurement.
+        self.viewer.image_item.setZValue(-20)
+        self._invalid_pixels = pg.ImageItem(axisOrder="row-major")
+        self._invalid_pixels.setZValue(-10)
+        self.viewer.plot_item.addItem(self._invalid_pixels)
         layout.addWidget(self.viewer, 1)
         self.viewer.glw.scene().sigMouseClicked.connect(self._on_scene_mouse_clicked)
 
     def clear(self) -> None:
         self._sequence = None
         self._display_offset_px = (0.0, 0.0)
+        self._geometry = FrameGeometry()
+        self._invalid_pixels.clear()
         self.clear_bbox()
         self.clear_polygon()
         self.clear_edge_polyline()
@@ -81,21 +90,36 @@ class SequenceViewerWidget(QWidget):
         frame_override=None,
         view_label: str = "Raw",
         display_offset_px: tuple[float, float] | None = None,
+        geometry: FrameGeometry | None = None,
     ) -> None:
         if self._sequence is None:
             self.clear()
             return
 
         self._sequence.set_active_frame(frame_index)
-        self._display_offset_px = self._normalize_display_offset(display_offset_px)
+        self._geometry = geometry or FrameGeometry(self._normalize_display_offset(display_offset_px))
+        self._display_offset_px = self._geometry.offset_xy
         frame = self._sequence.active_frame if frame_override is None else frame_override
         px_x, px_y = self._sequence.metadata.get_pixel_size_nm()
+        valid = np.isfinite(frame) if geometry is not None else None
+        display_frame = frame
+        if valid is not None and not np.all(valid):
+            # Supply a finite presentation copy without the shared viewer's
+            # float32 NaN conversion; the scientific frame remains unchanged.
+            display_frame = frame.copy()
+            display_frame[~valid] = np.median(frame[valid]) if np.any(valid) else 0.
         self.viewer.set_image(
-            frame,
+            display_frame,
             scale_nm_per_px=(px_x, px_y),
             preserve_zoom=preserve_zoom,
             auto_levels=True,
         )
+        self._invalid_pixels.clear()
+        if valid is not None and not np.all(valid):
+            rgba = np.zeros((*valid.shape, 4), dtype=np.uint8)
+            rgba[~valid, 3] = 255
+            self._invalid_pixels.setImage(rgba, autoLevels=False)
+            self._invalid_pixels.setTransform(self.viewer.image_item.transform())
 
         file_name = os.path.basename(self._sequence.source_path)
         current = self._sequence.active_frame_index + 1
@@ -658,21 +682,15 @@ class SequenceViewerWidget(QWidget):
         return float(offset[0]), float(offset[1])
 
     def _model_point_to_display_px(self, point_px) -> tuple[float, float]:
-        point = np.asarray(point_px, dtype=np.float64)
-        offset_x, offset_y = self._display_offset_px
-        return float(point[0] + offset_x), float(point[1] + offset_y)
+        point = self._geometry.source_to_display(point_px)
+        return float(point[0]), float(point[1])
 
     def _display_point_to_model_px(self, point_px) -> tuple[float, float]:
-        point = np.asarray(point_px, dtype=np.float64)
-        offset_x, offset_y = self._display_offset_px
-        return float(point[0] - offset_x), float(point[1] - offset_y)
+        point = self._geometry.display_to_source(point_px)
+        return float(point[0]), float(point[1])
 
     def _model_points_to_display_px(self, points_px) -> np.ndarray:
-        points = np.asarray(points_px, dtype=np.float64)
-        offset = np.asarray(self._display_offset_px, dtype=np.float64)
-        return points + offset
+        return self._geometry.source_to_display(points_px)
 
     def _display_points_to_model_px(self, points_px) -> np.ndarray:
-        points = np.asarray(points_px, dtype=np.float64)
-        offset = np.asarray(self._display_offset_px, dtype=np.float64)
-        return points - offset
+        return self._geometry.display_to_source(points_px)

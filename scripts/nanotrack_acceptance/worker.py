@@ -14,7 +14,7 @@ from scripts.nanotrack_acceptance.reporting import AcceptanceReport, write_statu
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("quick", "full", "session"))
+    parser.add_argument("mode", choices=("quick", "full", "session", "aligned"))
     parser.add_argument("--input", type=Path)
     parser.add_argument("--report-dir", type=Path, required=True)
     parser.add_argument("--headless", action="store_true")
@@ -31,7 +31,7 @@ def main() -> int:
         report.data["environment"] = {"python": sys.version, **{
             name: version(name) for name in ("numpy", "scipy", "scikit-image", "PyQt6", "pyqtgraph")
         }}
-        if args.mode != "session":
+        if args.mode in ("quick", "full"):
             report.data["environment"]["bm3d"] = version("bm3d")
         report.data["code"] = {
             "commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
@@ -64,6 +64,9 @@ def main() -> int:
             try:
                 if args.mode == "quick":
                     scenario.quick()
+                elif args.mode == "aligned":
+                    from scripts.nanotrack_acceptance.aligned import run as run_aligned
+                    run_aligned(scenario)
                 else:
                     assert args.input is not None
                     if args.mode == "full":
