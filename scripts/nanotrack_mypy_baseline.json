@@ -306,14 +306,7 @@
       "justification": "Existing at 56ddf61; recorded before introducing the full NanoTrack typecheck gate.",
       "errors": {
         "arg-type": {
-          "Argument 1 to \"from_value\" of \"MaskTrackerKind\" has incompatible type \"object\"; expected \"MaskTrackerKind | str\"": 1,
-          "Argument 2 to \"savez_compressed\" has incompatible type \"**dict[str, ndarray[Any, Any]]\"; expected \"bool\"": 1
-        },
-        "assignment": {
-          "Incompatible types in assignment (expression has type \"EdgeFrameAnnotation\", variable has type \"TrackFrameAnnotation\")": 1
-        },
-        "attr-defined": {
-          "\"TrackFrameAnnotation\" has no attribute \"edge_mask\"": 2
+          "Argument 1 to \"from_value\" of \"MaskTrackerKind\" has incompatible type \"object\"; expected \"MaskTrackerKind | str\"": 1
         }
       }
     },
@@ -608,7 +601,7 @@
           "Item \"None\" of \"QScrollBar | None\" has no attribute \"minimum\"": 2,
           "Item \"None\" of \"QScrollBar | None\" has no attribute \"setValue\"": 2,
           "Item \"None\" of \"QScrollBar | None\" has no attribute \"value\"": 1,
-          "Item \"None\" of \"QStatusBar | None\" has no attribute \"showMessage\"": 93
+          "Item \"None\" of \"QStatusBar | None\" has no attribute \"showMessage\"": 92
         }
       }
     },

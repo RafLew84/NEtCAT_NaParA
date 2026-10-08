@@ -37,6 +37,8 @@ from nanotrack.io import FRAME_SERIES_EXTENSIONS, load_stm_sequence
 from nanotrack.core.preview_sources import PreprocessingProvenance, PreprocessingStep
 from nanotrack.core.data_models import AnalysisShapeProvenance, ParticleMeasurementProvenance, EdgeMeasurementProvenance
 from nanotrack.mask_trackers.config import MaskTrackerKind
+from .session_save import ConfirmOverwrite, SaveProgress, SessionSaveControl, save_archive
+from .session_target import SessionSaveReceipt
 
 SESSION_SCHEMA = "nanotrack.session.v2"
 LEGACY_SESSION_SCHEMA = "nanotrack.session.v1"
@@ -68,43 +70,34 @@ class NanoTrackSessionSnapshot:
     preview_source: str | None = None
     preprocessing_provenance: PreprocessingProvenance | None = None
     repair_provenance: PreprocessingProvenance | None = None
+    tool_settings: dict[str, object] = field(default_factory=dict)
 
 
-def save_session_snapshot(path: str, snapshot: NanoTrackSessionSnapshot) -> None:
+def save_session_snapshot(
+    path: str, snapshot: NanoTrackSessionSnapshot, *,
+    control: SessionSaveControl | None = None, progress: SaveProgress | None = None,
+    confirm_overwrite: ConfirmOverwrite | None = None,
+) -> SessionSaveReceipt:
     """Write a NanoTrack session to a zip-backed `.nanotrack` file."""
 
-    output_path = Path(path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
     manifest = _build_manifest(snapshot)
-
-    with zipfile.ZipFile(output_path, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
-        if snapshot.repair_frames is not None:
-            _write_npz(zf, "preprocessing/repair_frames.npz", frames=np.asarray(snapshot.repair_frames))
-        if snapshot.denoised_frames is not None:
-            _write_npz(
-                zf,
-                "preprocessing/denoised_frames.npz",
-                frames=np.asarray(snapshot.denoised_frames),
-            )
-        for track in snapshot.tracks:
-            for annotation in track.annotations.values():
-                if annotation.mask is None:
-                    continue
-                _write_npz(
-                    zf,
-                    f"tracks/{track.track_id}/mask_{annotation.frame_index}.npz",
-                    mask=np.asarray(annotation.mask, dtype=np.uint8),
-                )
-        for edge_track in snapshot.edge_tracks:
-            for annotation in edge_track.annotations.values():
-                if annotation.edge_mask is None:
-                    continue
-                _write_npz(
-                    zf,
-                    f"edge_tracks/{edge_track.edge_track_id}/edge_mask_{annotation.frame_index}.npz",
-                    edge_mask=np.asarray(annotation.edge_mask, dtype=np.uint8),
-                )
+    assets = []
+    if snapshot.repair_frames is not None:
+        assets.append(("preprocessing/repair_frames.npz", "frames", np.asarray(snapshot.repair_frames)))
+    if snapshot.denoised_frames is not None:
+        assets.append(("preprocessing/denoised_frames.npz", "frames", np.asarray(snapshot.denoised_frames)))
+    for track in snapshot.tracks:
+        for annotation in track.annotations.values():
+            if annotation.mask is not None:
+                assets.append((f"tracks/{track.track_id}/mask_{annotation.frame_index}.npz",
+                               "mask", np.asarray(annotation.mask, dtype=np.uint8)))
+    for edge in snapshot.edge_tracks:
+        for edge_annotation in edge.annotations.values():
+            if edge_annotation.edge_mask is not None:
+                assets.append((f"edge_tracks/{edge.edge_track_id}/edge_mask_{edge_annotation.frame_index}.npz",
+                               "edge_mask", np.asarray(edge_annotation.edge_mask, dtype=np.uint8)))
+    return save_archive(path, manifest, assets, control=control or SessionSaveControl(), progress=progress,
+                        confirm_overwrite=confirm_overwrite)
 
 
 def load_session_snapshot(
@@ -168,6 +161,7 @@ def load_session_snapshot(
                 raise ValueError("Wynik preprocessingu nie ma opisu pochodzenia.")
         return NanoTrackSessionSnapshot(
             sequence=sequence,
+            tool_settings=dict(manifest.get("tool_settings", {})),
             tracks=tracks,
             edge_tracks=edge_tracks,
             yolo_detections=yolo_detections,
@@ -201,6 +195,7 @@ def _build_manifest(snapshot: NanoTrackSessionSnapshot) -> dict:
     _validate_preview_source(preview_source, has_processed)
     return {
         "schema": SESSION_SCHEMA,
+        "tool_settings": _json_safe(snapshot.tool_settings),
         "preview_source": preview_source,
         "sequence": {
             "source_path": snapshot.sequence.source_path,
@@ -752,12 +747,6 @@ def _normalize_mask_tracker_kind(value: object) -> str:
         return MaskTrackerKind.from_value(value).value
     except Exception:
         return MaskTrackerKind.SAM2.value
-
-
-def _write_npz(zf: zipfile.ZipFile, path: str, **arrays: np.ndarray) -> None:
-    buffer = io.BytesIO()
-    np.savez_compressed(buffer, **arrays)
-    zf.writestr(path, buffer.getvalue())
 
 
 def _read_optional_npz(zf: zipfile.ZipFile, path: str, key: str) -> np.ndarray | None:

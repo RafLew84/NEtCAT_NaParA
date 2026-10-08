@@ -121,7 +121,41 @@ ponownie BM3D ani rejestracji i nie nadpisuje wejściowej sesji:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_python_utf8.ps1 -ScriptPath scripts/run_nanotrack_acceptance.py session --input .scratch/nanotrack-registration-export/acceptance/runs/ticket-02/MOVIE_2-repair-bm3d-registered-v2.nanotrack
 ```
 
-Limity czasu: `quick`, `session`, `aligned`, `expanded`, `particles`, `edges` i `exclusions` 180 s, `full` 7200 s. Nadpisanie:
+Tryb `save` otwiera przygotowane MOVIE_2 z repair/BM3D, rejestracją i analizami,
+zapisuje do ścieżki z polskimi znakami i porównuje odtworzony stan. Obsługuje
+rzeczywiste przyciski potwierdzenia i Cancel, również podczas weryfikacji.
+Sprawdza zegar Qt podczas zapisu, blokadę edycji, odmowę nadpisania i ponowny
+zapis po błędzie. Nie przelicza modeli ani preprocessingu:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_python_utf8.ps1 -ScriptPath scripts/run_nanotrack_acceptance.py save --input .scratch/nanotrack-registration-export/acceptance/runs/ticket-07/gui-final/MOVIE_2-restored-frame-10.nanotrack --timeout 360
+```
+
+Scenariusz błędu działa wyłącznie na własnych kopiach w nowym katalogu odbioru:
+na granicy systemowego rename symuluje innego autora zajmującego nazwę celu.
+Sprawdza zachowanie jego pliku i poprzedniej sesji, komunikat ze ścieżką odzyskania
+oraz rzeczywiste Open obu poprawnych zapisów. Zrzuty obejmują okna postępu,
+potwierdzenia, błędu i odtworzonej sesji.
+
+**Save Session** zapisuje i weryfikuje archiwum w tle, w unikalnym pliku obok
+celu. Sprawdza manifest, wszystkie skompresowane wpisy i wartości tablic.
+Cancel działa przed publikacją; po jej zakończeniu operacja jest zapisana.
+Oryginały nadal są zewnętrzne. Sesja zachowuje dane i pochodzenie oraz dostępne
+ustawienia narzędzi, gamma, granice histogramu oraz Units/Boundary correction/
+Boundary weight w Results i Units/Trend w Edge Results; cache podglądu nie są zapisywane.
+
+Na Windows nadpisanie blokuje zapis i zmianę nazwy sprawdzonego pliku przez
+innych autorów. Ten sam uchwyt chroni go aż do zakończenia publikacji. Stary plik
+na krótko otrzymuje własną nazwę zapasową, a nowy zajmuje wolną nazwę bez prawa
+nadpisania. Przy błędzie poprzednia nazwa jest przywracana. Jeśli ktoś zdążył ją
+zająć, oba pliki pozostają, a komunikat podaje plik `previous.nanotrack`, który
+można otworzyć przez **Open Session**. Przy problemie wyłącznie ze sprzątaniem
+poprzedniej kopii GUI informuje o udanym zapisie i pozostawionej kopii.
+Nie jest to gwarancja ciągłej dostępności jednej nazwy ani transakcja odporna
+na nagłą utratę zasilania. Na innych systemach nowa nazwa jest chroniona przed
+nadpisaniem, a nadpisanie istniejącego celu jest odrzucane z prośbą o nową nazwę.
+
+Limity czasu: `quick`, `session`, `aligned`, `expanded`, `particles`, `edges`, `exclusions` i `save` 180 s, `full` 7200 s. Nadpisanie:
 `--timeout 300`. Przekroczenie czasu kończy własny proces roboczy, zapisuje
 `timeout` i zwraca kod 1. Awaria procesu bez raportu też jest błędem — runner
 sprawdza zakończenie procesu, nie czeka na pojawienie się pliku sygnalizacyjnego.

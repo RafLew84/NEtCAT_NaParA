@@ -9,7 +9,7 @@ from typing import cast
 
 import numpy as np
 from PyQt6.QtCore import QObject, QSignalBlocker, QThread, QTimer, Qt, pyqtSignal
-from PyQt6.QtGui import QAction, QStandardItemModel
+from PyQt6.QtGui import QAction, QCloseEvent, QStandardItemModel
 from PyQt6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -56,6 +56,8 @@ from nanotrack.io import load_stm_sequence
 from nanotrack.core.preview_sources import PreprocessingProvenance, PreprocessingStep
 from nanotrack.processing.results import checked_preprocessing_result
 from nanotrack.persistence import NanoTrackSessionSnapshot, load_session_snapshot, save_session_snapshot
+from nanotrack.ui.session_save_job import SessionSaveJob
+from nanotrack.ui.session_settings import capture_settings, restore_settings
 from nanotrack.processing import (
     run_bm3d_batch,
     run_bm3d_preview,
@@ -295,6 +297,10 @@ class NanoTrackMainWindow(QMainWindow):
         self._hide_excluded_frames = False
         self._is_preprocessing = False
         self._is_tracking = False
+        self._is_saving = False
+        self._session_save_job: SessionSaveJob | None = None
+        self._session_save_progress: QProgressDialog | None = None
+        self._close_after_save = False
         self._preview_frame_index: int | None = None
         self._bm3d_preview_dialog: Bm3dPreviewDialog | None = None
         self._edge_preview_dialog: EdgePreviewDialog | None = None
@@ -698,6 +704,8 @@ class NanoTrackMainWindow(QMainWindow):
         )
 
     def set_sequence(self, sequence: STMSequence) -> None:
+        if self._is_saving:
+            raise RuntimeError("Poczekaj na zakończenie lub anulowanie zapisu sesji.")
         self._particle_runs.clear()
         self._sequence_generation += 1
         self._sequence = sequence
@@ -738,6 +746,8 @@ class NanoTrackMainWindow(QMainWindow):
         self.set_edge_tracks([])
 
     def load_sequence_from_path(self, file_path: str | list[str], *, reverse_frame_order: bool = False) -> None:
+        if self._is_saving:
+            raise RuntimeError("Poczekaj na zakończenie lub anulowanie zapisu sesji.")
         sequence = load_stm_sequence(file_path, reverse_frame_order=reverse_frame_order)
         self.set_sequence(sequence)
 
@@ -998,7 +1008,7 @@ class NanoTrackMainWindow(QMainWindow):
         return self._mask_tracker_backends.get(self._selected_mask_tracker_kind())
 
     def _update_menu_action_state(self) -> None:
-        busy = self._is_preprocessing or self._is_tracking
+        busy = self._is_preprocessing or self._is_tracking or self._is_saving
         self.action_open_mpp.setEnabled(not busy)
         self.action_open_mpp_reverse.setEnabled(not busy)
         self.action_open_session.setEnabled(not busy)
@@ -1028,6 +1038,7 @@ class NanoTrackMainWindow(QMainWindow):
             return None
         return NanoTrackSessionSnapshot(
             sequence=self._sequence,
+            tool_settings=capture_settings(self),
             tracks=self.current_tracks(),
             edge_tracks=self.current_edge_tracks(),
             yolo_detections=self._yolo_detections,
@@ -1055,14 +1066,116 @@ class NanoTrackMainWindow(QMainWindow):
         )
 
     def save_session_to_path(self, path: str) -> None:
+        if self._is_saving:
+            raise RuntimeError("Zapis sesji już trwa.")
         snapshot = self.current_session_snapshot()
         if snapshot is None:
             raise RuntimeError("No sequence loaded.")
         save_session_snapshot(path, snapshot)
 
     def load_session_from_path(self, path: str) -> None:
+        if self._is_saving:
+            raise RuntimeError("Poczekaj na zakończenie lub anulowanie zapisu sesji.")
         snapshot = load_session_snapshot(path)
         self._apply_session_snapshot(snapshot)
+
+    def start_session_save(self, path: str) -> None:
+        """Start one background save while edits to its input are blocked."""
+        if self._is_saving or self._is_preprocessing or self._is_tracking:
+            raise RuntimeError("Poczekaj na zakończenie bieżącej operacji.")
+        snapshot = self.current_session_snapshot()
+        if snapshot is None:
+            raise RuntimeError("No sequence loaded.")
+        self._is_saving = True
+        self._update_menu_action_state()
+        central = self.centralWidget()
+        if central is not None:
+            central.setEnabled(False)
+        progress = QProgressDialog("Przygotowanie zapisu…", "Anuluj", 0, 100, self)
+        progress.setWindowTitle("Zapis sesji")
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setAutoClose(False)
+        progress.setAutoReset(False)
+        progress.setMinimumDuration(0)
+        self._session_save_progress = progress
+        job = SessionSaveJob(path, snapshot, self)
+        self._session_save_job = job
+        job.progress.connect(self._on_session_save_progress)
+        job.overwrite_requested.connect(self._confirm_session_overwrite)
+        job.finished.connect(self._on_session_save_finished)
+        progress.canceled.connect(self._cancel_session_save)
+        progress.show()
+        job.start()
+
+    def _on_session_save_progress(self, phase: str, value: int) -> None:
+        if self.sender() is not self._session_save_job or self._session_save_progress is None:
+            return
+        if self._session_save_job is None or self._session_save_job.control.cancelled:
+            return
+        labels = {"target": "Sprawdzanie pliku docelowego", "write": "Zapisywanie danych",
+                  "verify": "Weryfikacja archiwum", "publish": "Publikowanie sesji"}
+        self._session_save_progress.setLabelText(f"{labels.get(phase, phase)}… {value}%")
+        self._session_save_progress.setValue(value)
+
+    def _confirm_session_overwrite(self, path: str) -> None:
+        job = self._session_save_job
+        if self.sender() is not job or job is None or job.control.cancelled:
+            return
+        answer = QMessageBox.question(self, "Nadpisać sesję?", f"Zastąpić sprawdzony plik?\n{path}",
+                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                      QMessageBox.StandardButton.No)
+        job.confirm_overwrite(answer == QMessageBox.StandardButton.Yes)
+
+    def _cancel_session_save(self) -> None:
+        if self._session_save_job is not None:
+            self._session_save_job.cancel()
+            QTimer.singleShot(0, self._show_session_save_cancelling)
+
+    def _show_session_save_cancelling(self) -> None:
+        if self._session_save_progress is not None:
+            self._session_save_progress.setLabelText("Kończenie zapisu i sprzątanie pliku tymczasowego…")
+            self._session_save_progress.setCancelButton(None)
+            self._session_save_progress.show()
+
+    def _on_session_save_finished(self) -> None:
+        job = self._session_save_job
+        if self.sender() is not job or job is None:
+            return
+        if self._session_save_progress is not None:
+            self._session_save_progress.canceled.disconnect(self._cancel_session_save)
+            self._session_save_progress.close()
+            self._session_save_progress.deleteLater()
+            self._session_save_progress = None
+        self._session_save_job = None
+        self._is_saving = False
+        central = self.centralWidget()
+        if central is not None:
+            central.setEnabled(True)
+        self._update_menu_action_state()
+        status = self.statusBar()
+        if status is not None:
+            message = f"Zapisano sesję: {Path(job.path).name}" if job.outcome == "saved" else (
+                "Zapis sesji anulowany; poprzedni plik i bieżąca praca zachowane."
+                if job.outcome == "cancelled" else "Zapis sesji nie powiódł się; bieżąca praca zachowana.")
+            status.showMessage(message, 5000)
+        if job.outcome == "failed" and not self._close_after_save:
+            QMessageBox.critical(self, "Session save error", f"Nie zapisano sesji:\n{job.path}\n\n{job.error}")
+        if job.receipt is not None and job.receipt.recovery_path is not None and not self._close_after_save:
+            QMessageBox.warning(self, "Zapisano sesję", "Nowa sesja została zapisana. Pozostała kopia poprzedniej sesji:\n"
+                                f"{job.receipt.recovery_path}")
+        job.deleteLater()
+        if self._close_after_save:
+            self._close_after_save = False
+            self.close()
+
+    def closeEvent(self, event: QCloseEvent | None) -> None:
+        if self._session_save_job is not None:
+            self._close_after_save = True
+            self._session_save_job.cancel()
+            if event is not None:
+                event.ignore()
+            return
+        super().closeEvent(event)
 
     def _set_active_frame(self, frame_index: int) -> None:
         if self._sequence is None:
@@ -1124,7 +1237,7 @@ class NanoTrackMainWindow(QMainWindow):
         self.statusBar().showMessage(f"Loaded session: {Path(path).name}", 3000)
 
     def _on_save_session_requested(self) -> None:
-        if self._sequence is None or self._is_preprocessing or self._is_tracking:
+        if self._sequence is None or self._is_preprocessing or self._is_tracking or self._is_saving:
             return
         default_name = Path(self._sequence.file_name).stem if self._sequence.file_name else "session"
         path, _ = QFileDialog.getSaveFileName(
@@ -1132,17 +1245,17 @@ class NanoTrackMainWindow(QMainWindow):
             "Save NanoTrack session",
             f"{default_name}.nanotrack",
             "NanoTrack Session (*.nanotrack);;All files (*.*)",
+            options=QFileDialog.Option.DontConfirmOverwrite,
         )
         if not path:
             return
         if not path.lower().endswith(".nanotrack"):
             path = f"{path}.nanotrack"
         try:
-            self.save_session_to_path(path)
+            self.start_session_save(path)
         except Exception as exc:
             QMessageBox.critical(self, "Session save error", f"Cannot save session:\n{path}\n\n{exc}")
             return
-        self.statusBar().showMessage(f"Saved session: {Path(path).name}", 3000)
 
     def _on_open_results_requested(self) -> None:
         if not self._has_results_data():
@@ -1321,6 +1434,13 @@ class NanoTrackMainWindow(QMainWindow):
         self._sync_registration_results_dialog()
         self._show_current_frame(preserve_zoom=False)
         self._on_hide_excluded_frames_toggled(snapshot.hide_excluded_frames)
+        if any(key.startswith("results.") for key in snapshot.tool_settings):
+            self._ensure_results_dialog()
+            self._sync_results_dialog()
+        if any(key.startswith("edge_results.") for key in snapshot.tool_settings):
+            self._ensure_edge_results_dialog()
+            self._sync_edge_results_dialog()
+        restore_settings(self, snapshot.tool_settings)
 
     def _restore_session_registration_view_flags(self, snapshot: NanoTrackSessionSnapshot) -> None:
         has_registration = snapshot.registration_results is not None
@@ -3585,7 +3705,7 @@ class NanoTrackMainWindow(QMainWindow):
     def _apply_busy_state(self) -> None:
         sidebar_scroll_position = self._sidebar_scroll_position()
         try:
-            busy = self._is_preprocessing or self._is_tracking
+            busy = self._is_preprocessing or self._is_tracking or self._is_saving
             self._update_menu_action_state()
             self.bbox_tools_panel.set_processing(busy)
             self.yolo_panel.set_processing(busy)

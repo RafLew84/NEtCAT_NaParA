@@ -14,7 +14,7 @@ from scripts.nanotrack_acceptance.reporting import AcceptanceReport, write_statu
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("quick", "full", "session", "aligned", "expanded", "particles", "edges", "exclusions"))
+    parser.add_argument("mode", choices=("quick", "full", "session", "aligned", "expanded", "particles", "edges", "exclusions", "save"))
     parser.add_argument("--input", type=Path)
     parser.add_argument("--report-dir", type=Path, required=True)
     parser.add_argument("--headless", action="store_true")
@@ -46,7 +46,7 @@ def main() -> int:
 
         def monitor() -> None:
             modal = app.activeModalWidget()
-            if isinstance(modal, QMessageBox):
+            if isinstance(modal, QMessageBox) and args.mode != "save":
                 report.data.setdefault("dialogs", []).append(modal.text())
                 report.flush()
                 modal.reject()
@@ -82,6 +82,10 @@ def main() -> int:
                     from scripts.nanotrack_acceptance.exclusions import run as run_exclusions
                     assert args.input is not None
                     run_exclusions(scenario, args.input)
+                elif args.mode == "save":
+                    from scripts.nanotrack_acceptance.saving import run as run_saving
+                    assert args.input is not None
+                    run_saving(scenario, args.input)
                 else:
                     assert args.input is not None
                     if args.mode == "full":
