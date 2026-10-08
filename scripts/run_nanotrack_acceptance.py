@@ -1,4 +1,4 @@
-"""Run preprocessing, Aligned geometry or saved-session GUI acceptance with a bounded worker."""
+"""Run preprocessing, Aligned/Expanded geometry or session acceptance with a bounded worker."""
 from __future__ import annotations
 
 import argparse
@@ -15,16 +15,16 @@ from scripts.nanotrack_acceptance.reporting import supervise
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("quick", "full", "session", "aligned"))
+    parser.add_argument("mode", choices=("quick", "full", "session", "aligned", "expanded"))
     parser.add_argument("--input", type=Path, help="MPP for full, .nanotrack for session")
     parser.add_argument("--report-dir", type=Path, help="New or empty output directory")
-    parser.add_argument("--timeout", type=float, help="Total seconds; default quick/session/aligned 180, full 7200")
+    parser.add_argument("--timeout", type=float, help="Total seconds; default 180, full 7200")
     parser.add_argument("--headless", action="store_true", help="Offscreen checks; explicitly not visible GUI acceptance")
     args = parser.parse_args(argv)
     if args.mode in ("full", "session") and (args.input is None or not args.input.is_file()):
         parser.error("full/session require --input pointing to an existing file")
-    if args.mode in ("quick", "aligned") and args.input is not None:
-        parser.error("quick/aligned generate their own known sample; use full/session for --input")
+    if args.mode in ("quick", "aligned", "expanded") and args.input is not None:
+        parser.error("quick/aligned/expanded generate their own known sample; use full/session for --input")
     timeout = args.timeout if args.timeout is not None else (7200 if args.mode == "full" else 180)
     if not math.isfinite(timeout) or timeout <= 0:
         parser.error("--timeout must be finite and positive")

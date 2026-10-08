@@ -14,7 +14,7 @@ from scripts.nanotrack_acceptance.reporting import AcceptanceReport, write_statu
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("quick", "full", "session", "aligned"))
+    parser.add_argument("mode", choices=("quick", "full", "session", "aligned", "expanded"))
     parser.add_argument("--input", type=Path)
     parser.add_argument("--report-dir", type=Path, required=True)
     parser.add_argument("--headless", action="store_true")
@@ -67,6 +67,9 @@ def main() -> int:
                 elif args.mode == "aligned":
                     from scripts.nanotrack_acceptance.aligned import run as run_aligned
                     run_aligned(scenario)
+                elif args.mode == "expanded":
+                    from scripts.nanotrack_acceptance.expanded import run as run_expanded
+                    run_expanded(scenario)
                 else:
                     assert args.input is not None
                     if args.mode == "full":

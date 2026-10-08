@@ -2257,7 +2257,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         np.testing.assert_array_equal(self.window.viewer.viewer.image_item.image, sequence.raw_frames[1])
         self.assertIn("View: Raw", self.window.viewer.lbl_meta.text())
 
-    def test_registration_expanded_aligned_view_uses_expanded_cache_and_renders_frame(self) -> None:
+    def test_registration_expanded_aligned_view_renders_frames_on_demand(self) -> None:
         raw_frames = np.arange(2 * 3 * 4, dtype=np.float32).reshape(2, 3, 4)
         sequence = STMSequence(
             source_path="/tmp/registration_expanded_aligned.mpp",
@@ -2279,19 +2279,19 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertIsNone(self.window.current_expanded_aligned_stack())
         self.window.action_show_expanded_aligned_registration.trigger()
 
-        expanded = self.window.current_expanded_aligned_stack()
+        expanded = self.window.current_expanded_aligned_frame()
         self.assertIsNotNone(expanded)
         assert expanded is not None
         self.assertTrue(self.window.action_show_expanded_aligned_registration.isChecked())
         self.assertFalse(self.window.action_show_aligned_registration.isChecked())
-        self.assertEqual(expanded.frames.shape, (2, 4, 6))
-        self.assertEqual(expanded.padding_ltrb, (0, 1, 2, 0))
-        self.assertIn("View: Expanded aligned registration 6x4 px pad 0,1,2,0", self.window.viewer.lbl_meta.text())
+        self.assertEqual(expanded.shape, (4, 6))
+        self.assertEqual(expanded.dtype, np.float64)
+        self.assertIn("View: Expanded aligned registration 6x4 px", self.window.viewer.lbl_meta.text())
         np.testing.assert_array_equal(sequence.raw_frames, raw_frames)
-        self._assert_viewer_image_matches_finite_pixels(expanded.frames[0])
+        self._assert_viewer_image_matches_finite_pixels(expanded)
 
         self.window.slider_frame.setValue(1)
-        self._assert_viewer_image_matches_finite_pixels(expanded.frames[1])
+        self._assert_viewer_image_matches_finite_pixels(self.window.current_expanded_aligned_frame())
 
         self.window.action_show_expanded_aligned_registration.trigger()
         self.assertFalse(self.window.action_show_expanded_aligned_registration.isChecked())
@@ -2543,11 +2543,9 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         track = ParticleTrack(track_id=1, seed_frame_index=1, seed_bbox=BBoxXYXY(1.0, 1.0, 3.0, 3.0))
         self.window.set_tracks([track], selected_track_id=1)
 
-        expanded = self.window.current_expanded_aligned_stack()
-        self.assertIsNotNone(expanded)
-        assert expanded is not None
-        np.testing.assert_array_equal(expanded.frame_origins_xy[1], np.asarray([2.0, 0.0]))
-        expanded_mask = np.zeros(expanded.frames.shape[1:], dtype=bool)
+        expected_frames = np.full((1, 5, 7), np.nan, dtype=np.float32)
+        expected_frames[0, :4, 2:7] = 0.
+        expanded_mask = np.zeros((5, 7), dtype=bool)
         expanded_mask[1:3, 3:5] = True
         run_output = MaskTrackerRunOutput(
             tracker_kind=MaskTrackerKind.SAM2,
@@ -2566,7 +2564,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             time.sleep(0.05)
             observed_inputs.append(run_input)
             self.assertEqual(run_input.source_view, "raw+expanded_registration")
-            np.testing.assert_allclose(run_input.frames, expanded.frames[1:2], equal_nan=True)
+            np.testing.assert_allclose(run_input.frames, expected_frames, equal_nan=True)
             np.testing.assert_array_equal(
                 run_input.query_box_xyxy,
                 np.asarray([3.0, 1.0, 5.0, 3.0], dtype=np.float32),
@@ -2643,12 +2641,10 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.window.slider_frame.setValue(1)
         self.assertTrue(self.window.bbox_tools_panel.btn_resume_track.isEnabled())
 
-        expanded = self.window.current_expanded_aligned_stack()
-        self.assertIsNotNone(expanded)
-        assert expanded is not None
-        np.testing.assert_array_equal(expanded.frame_origins_xy[1], np.asarray([2.0, 0.0]))
-        np.testing.assert_array_equal(expanded.frame_origins_xy[2], np.asarray([1.0, 1.0]))
-        masks = np.zeros((2, *expanded.frames.shape[1:]), dtype=bool)
+        expected_frames = np.full((2, 5, 7), np.nan, dtype=np.float32)
+        expected_frames[0, :4, 2:7] = 0.
+        expected_frames[1, 1:5, 1:6] = 0.
+        masks = np.zeros((2, 5, 7), dtype=bool)
         masks[0, 1:3, 3:5] = True
         masks[1, 2:4, 2:4] = True
         run_output = MaskTrackerRunOutput(
@@ -2673,7 +2669,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
             time.sleep(0.05)
             self.assertEqual(run_input.source_view, "raw+expanded_registration")
             self.assertEqual(run_input.frame_index_offset, 1)
-            np.testing.assert_allclose(run_input.frames, expanded.frames[1:], equal_nan=True)
+            np.testing.assert_allclose(run_input.frames, expected_frames, equal_nan=True)
             np.testing.assert_array_equal(
                 run_input.query_box_xyxy,
                 np.asarray([3.0, 1.0, 5.0, 3.0], dtype=np.float32),
@@ -2784,12 +2780,12 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.assertIn("View: Aligned registration", self.window.viewer.lbl_meta.text())
 
         self.window.action_show_expanded_aligned_registration.trigger()
-        expanded = self.window.current_expanded_aligned_stack()
+        expanded = self.window.current_expanded_aligned_frame()
         self.assertIsNotNone(expanded)
         assert expanded is not None
         self.assertFalse(self.window.action_show_aligned_registration.isChecked())
         self.assertTrue(self.window.action_show_expanded_aligned_registration.isChecked())
-        self._assert_viewer_image_matches_finite_pixels(expanded.frames[1])
+        self._assert_viewer_image_matches_finite_pixels(expanded)
         self.assertIn("View: Expanded aligned registration", self.window.viewer.lbl_meta.text())
 
         self.window.action_show_aligned_registration.trigger()
@@ -2866,10 +2862,6 @@ class NanoTrackMainWindowTests(unittest.TestCase):
 
         self.window.action_show_expanded_aligned_registration.trigger()
 
-        expanded = self.window.current_expanded_aligned_stack()
-        self.assertIsNotNone(expanded)
-        assert expanded is not None
-        np.testing.assert_allclose(expanded.frame_origins_xy[1], np.asarray([2.0, 0.0]))
         self.assertEqual(self.window.current_draft_bbox(), bbox)
         np.testing.assert_array_equal(self.window.current_draft_polygon_roi().as_array(), polygon.as_array())
         np.testing.assert_array_equal(self.window.current_draft_edge_polyline(), edge_polyline)

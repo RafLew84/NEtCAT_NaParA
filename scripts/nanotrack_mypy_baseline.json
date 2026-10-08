@@ -595,8 +595,6 @@
           "\"object\" object is not iterable": 2
         },
         "union-attr": {
-          "Item \"None\" of \"ExpandedAlignedStack | None\" has no attribute \"frames\"": 1,
-          "Item \"None\" of \"ExpandedAlignedStack | None\" has no attribute \"padding_ltrb\"": 1,
           "Item \"None\" of \"QAction | None\" has no attribute \"setCheckable\"": 2,
           "Item \"None\" of \"QAction | None\" has no attribute \"setChecked\"": 6,
           "Item \"None\" of \"QAction | None\" has no attribute \"setEnabled\"": 14,

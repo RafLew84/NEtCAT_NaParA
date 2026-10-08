@@ -27,7 +27,24 @@ nie jest wynikiem BM3D ani oceną skuteczności rejestracji.
 Podgląd Original/Aligned materializuje pojedyncze klatki float64, z cache
 ograniczonym do 32 MiB. Próbka biliniowa wymaga ważności wszystkich wkładów
 z niezerową wagą. Braki pozostają NaN w danych; czarne tło jest osobną warstwą
-wyświetlania. Expanded oraz wejście trackerów mają odrębne zadania wdrożeniowe.
+wyświetlania. Tę samą ścieżkę danych stosuje Expanded.
+
+Odbiór Expanded tworzy dwie gotowe sesje S1, sprawdza wspólne płótno,
+zmianę skrajnego dx/dy, wybór źródła, edycję i Save/Open:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_python_utf8.ps1 -ScriptPath scripts/run_nanotrack_acceptance.py expanded
+```
+
+`S1-expanded.nanotrack` ma płótno **102 × 70 px**, początek **(-2,-3)**
+i skalę **2 / 1 nm/px**. `S1-expanded-extreme.nanotrack` zmienia przesunięcie
+klatki 3 na **(-7.5,6.25)**: płótno ma **108 × 74 px**, początek **(-8,-3)**.
+`Apply Registration` włącza domyślne Expanded; `Show Aligned` wybiera rozmiar
+źródła. Wyłączenie `Apply Registration` wraca do obrazu bez wyrównania.
+Wspólny plan obejmuje wszystkie klatki sekwencji, z identity dla brakujących
+wyników. Nie materializuje całego filmu. Odmowa zbyt dużego płótna następuje
+przed alokacją, przy szacunku buforów ponad 512 MiB, bez zmniejszania obrazu.
+Wejścia trackerów pozostają osobnym zadaniem wdrożeniowym.
 
 Krótka próba generuje S1 o znanej skali, z klatką stałą, NaN i dużym offsetem.
 Sprawdza naprawę, rzeczywisty BM3D, precyzję, przełączanie źródła i Save/Open:
@@ -52,7 +69,7 @@ ponownie BM3D ani rejestracji i nie nadpisuje wejściowej sesji:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_python_utf8.ps1 -ScriptPath scripts/run_nanotrack_acceptance.py session --input .scratch/nanotrack-registration-export/acceptance/runs/ticket-02/MOVIE_2-repair-bm3d-registered-v2.nanotrack
 ```
 
-Limity czasu: `quick`, `session` i `aligned` 180 s, `full` 7200 s. Nadpisanie:
+Limity czasu: `quick`, `session`, `aligned` i `expanded` 180 s, `full` 7200 s. Nadpisanie:
 `--timeout 300`. Przekroczenie czasu kończy własny proces roboczy, zapisuje
 `timeout` i zwraca kod 1. Awaria procesu bez raportu też jest błędem — runner
 sprawdza zakończenie procesu, nie czeka na pojawienie się pliku sygnalizacyjnego.
