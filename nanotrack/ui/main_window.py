@@ -28,9 +28,10 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from scipy.ndimage import affine_transform
 
 from nanotrack.analysis import compute_edge_metrics, compute_particle_metrics
+from nanotrack.analysis.particle_input import ParticleInput, mask_bbox
+from nanotrack.core.data_models import ParticleMeasurementProvenance
 from nanotrack.core import (
     AnnotationSource,
     BBoxXYXY,
@@ -59,9 +60,6 @@ from nanotrack.processing import (
     run_horizontal_dropout_preview,
 )
 from nanotrack.registration import (
-    ExpandedAlignedStack,
-    build_aligned_frames,
-    build_expanded_aligned_frames,
     build_registration_backend_from_settings,
     build_registration_pair_preview,
     run_adjacent_phase_registration,
@@ -302,12 +300,8 @@ class NanoTrackMainWindow(QMainWindow):
         self._results_dialog: TrackResultsDialog | None = None
         self._edge_results_dialog: EdgeTrackResultsDialog | None = None
         self._registration_results: RegistrationResultSet | None = None
-        self._aligned_frames: np.ndarray | None = None
         self._scalar_frame_provider: ScalarFrameProvider | None = None
         self._scalar_frame_source_key: tuple[int, str] | None = None
-        self._aligned_frames_cache_key: tuple[str, str, int, int] | None = None
-        self._expanded_aligned_stack: ExpandedAlignedStack | None = None
-        self._expanded_aligned_stack_cache_key: tuple[str, str, int, int] | None = None
         self._show_aligned_in_viewer = False
         self._show_expanded_aligned_in_viewer = False
         self._dexined_backend = DexiNedSubprocessBackend()
@@ -351,7 +345,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._sam2_running_track_id: int | None = None
         self._sam2_resume_from_frame: int | None = None
         self._sam2_batch_failures: list[tuple[int, str]] = []
-        self._mask_tracker_run_source_views: dict[tuple[int, int], str] = {}
+        self._particle_runs: dict[tuple[int, int], ParticleInput] = {}
         self._active_mask_tracker_backend_label: str | None = None
         self._mask_tracker_batch_scope_label = "all seeds"
         self._mask_tracker_cancel_requested = False
@@ -665,6 +659,19 @@ class NanoTrackMainWindow(QMainWindow):
             view_label += " | Brak własnego dx/dy — bez przesunięcia"
         self._sync_registration_application_action()
 
+        height, width = scalar.values.shape
+        source_name = "Wynik preprocessingu" if self._show_processed_in_viewer else "Oryginał"
+        geometry_name = "Expanded" if self._show_expanded_aligned_in_viewer else "Aligned" if aligned else "Original"
+        input_description = (
+            f"Wejście: {source_name}\n{geometry_name}, {width}×{height} px\n"
+            f"Rejestracja: {'włączona' if aligned else 'wyłączona'}\n"
+            f"Klatka {self._sequence.active_frame_index + 1}: {scalar.registration_status}\n"
+            f"Offset XY: {scalar.geometry.offset_xy[0]:.3f}, {scalar.geometry.offset_xy[1]:.3f} px\n"
+            "Pomiary: raw (Oryginał)."
+        )
+        self.track_list_panel.lbl_input.setText(input_description)
+        self.yolo_panel.lbl_input.setText(input_description)
+
         self.viewer.show_frame(
             self._sequence.active_frame_index,
             preserve_zoom=preserve_zoom,
@@ -684,6 +691,7 @@ class NanoTrackMainWindow(QMainWindow):
         )
 
     def set_sequence(self, sequence: STMSequence) -> None:
+        self._particle_runs.clear()
         self._sequence_generation += 1
         self._sequence = sequence
         self._tracks = []
@@ -824,14 +832,6 @@ class NanoTrackMainWindow(QMainWindow):
         if self._registration_results is None or self._sequence is None:
             return None
         return self._current_scalar_frame(aligned=True).values
-
-    def current_expanded_aligned_stack(self) -> ExpandedAlignedStack | None:
-        return self._expanded_aligned_stack
-
-    def current_expanded_aligned_frames(self) -> np.ndarray | None:
-        if self._expanded_aligned_stack is None:
-            return None
-        return self._expanded_aligned_stack.frames
 
     def current_expanded_aligned_frame(self) -> np.ndarray | None:
         if self._registration_results is None or self._sequence is None:
@@ -1530,7 +1530,8 @@ class NanoTrackMainWindow(QMainWindow):
             return
 
         frame_index = int(self._sequence.active_frame_index)
-        input_frame, source_view = self._current_yolo_input_frame()
+        context = self._particle_input()
+        source_view = context.source_view
         self._set_tracking_busy(True)
         self.statusBar().showMessage(
             f"Running YOLO on frame {frame_index + 1} using {model_name}...",
@@ -1539,7 +1540,7 @@ class NanoTrackMainWindow(QMainWindow):
         QApplication.processEvents()
         try:
             runtime_detections = self._yolo_runtime.predict_frame(
-                input_frame,
+                context.model_frame(frame_index),
                 model_path=model_path,
                 conf_threshold=self.yolo_panel.confidence_threshold(),
                 iou_threshold=self.yolo_panel.nms_iou_threshold(),
@@ -1553,12 +1554,14 @@ class NanoTrackMainWindow(QMainWindow):
         detections = [
             YoloDetection(
                 frame_index=frame_index,
-                bbox=detection.bbox,
+                bbox=bbox,
                 confidence=detection.confidence,
                 selected=True,
                 model_name=model_name,
+                shape_provenance=context.provenance(frame_index, model_name=model_name),
             )
             for detection in runtime_detections
+            if (bbox := context.source_box(frame_index, detection.bbox)) is not None
         ]
         self._upsert_current_frame_yolo_detections(model_name=model_name, frame_index=frame_index, detections=detections)
         self.statusBar().showMessage(
@@ -1583,7 +1586,8 @@ class NanoTrackMainWindow(QMainWindow):
             )
             return
 
-        input_frames, source_view = self._current_yolo_input_frames()
+        context = self._particle_input()
+        source_view = context.source_view
         included_frame_indices = self._sequence.included_frame_indices()
         if not included_frame_indices:
             QMessageBox.warning(
@@ -1614,7 +1618,7 @@ class NanoTrackMainWindow(QMainWindow):
         try:
             for processed_index, frame_index in enumerate(included_frame_indices, start=1):
                 runtime_detections = self._yolo_runtime.predict_frame(
-                    input_frames[frame_index],
+                    context.model_frame(frame_index),
                     model_path=model_path,
                     conf_threshold=self.yolo_panel.confidence_threshold(),
                     iou_threshold=self.yolo_panel.nms_iou_threshold(),
@@ -1622,12 +1626,14 @@ class NanoTrackMainWindow(QMainWindow):
                 detections_by_frame[frame_index] = [
                     YoloDetection(
                         frame_index=frame_index,
-                        bbox=detection.bbox,
+                        bbox=bbox,
                         confidence=detection.confidence,
                         selected=True,
                         model_name=model_name,
+                        shape_provenance=context.provenance(frame_index, model_name=model_name),
                     )
                     for detection in runtime_detections
+                    if (bbox := context.source_box(frame_index, detection.bbox)) is not None
                 ]
                 progress.setValue(processed_index)
                 self.statusBar().showMessage(
@@ -1656,18 +1662,6 @@ class NanoTrackMainWindow(QMainWindow):
             ),
             5000,
         )
-
-    def _current_yolo_input_frame(self) -> tuple[np.ndarray, str]:
-        if self._sequence is None:
-            raise RuntimeError("No sequence loaded.")
-        frames_source, source_view, _ = self._current_mask_tracker_base_frames()
-        return np.asarray(frames_source[self._sequence.active_frame_index], dtype=np.float32), source_view
-
-    def _current_yolo_input_frames(self) -> tuple[np.ndarray, str]:
-        if self._sequence is None:
-            raise RuntimeError("No sequence loaded.")
-        frames_source, source_view, _ = self._current_mask_tracker_base_frames()
-        return np.asarray(frames_source, dtype=np.float32), source_view
 
     def _upsert_current_frame_yolo_detections(
         self,
@@ -1858,11 +1852,7 @@ class NanoTrackMainWindow(QMainWindow):
         next_track_id = self._next_track_id()
         for offset, detection in enumerate(selected_detections):
             created_tracks.append(
-                ParticleTrack(
-                    track_id=next_track_id + offset,
-                    seed_frame_index=frame_index,
-                    seed_bbox=detection.bbox,
-                )
+                detection.to_seed(next_track_id + offset)
             )
 
         remaining_detections = [detection for detection in frame_detections if not detection.selected]
@@ -1907,11 +1897,7 @@ class NanoTrackMainWindow(QMainWindow):
         for frame_index in sorted(selected_by_frame):
             for detection in selected_by_frame[frame_index]:
                 created_tracks.append(
-                    ParticleTrack(
-                        track_id=next_track_id + next_offset,
-                        seed_frame_index=frame_index,
-                        seed_bbox=detection.bbox,
-                    )
+                    detection.to_seed(next_track_id + next_offset)
                 )
                 next_offset += 1
 
@@ -2751,7 +2737,6 @@ class NanoTrackMainWindow(QMainWindow):
         self._set_tracking_busy(True)
         self._active_mask_tracker_backend_label = backend_label
         self._mask_tracker_cancel_requested = False
-        self._remember_mask_tracker_run_input(run_input)
         self._sam2_running_track_id = track.track_id
         self._sam2_resume_from_frame = resume_frame
         self._sam2_progress_dialog = QProgressDialog(
@@ -3303,7 +3288,7 @@ class NanoTrackMainWindow(QMainWindow):
                 output_dtype=str(denoised_frames.dtype), validity_rule="finite_samples",
                 input_scale_preserved=(True if self._repair_frames is None else input_provenance.input_scale_preserved),
             )
-            self._invalidate_aligned_registration_materialization_cache()
+            self._clear_scalar_frame_cache()
             self._update_cached_preprocessing_availability()
             if self._show_processed_in_viewer:
                 self._show_current_frame(preserve_zoom=True)
@@ -3347,7 +3332,6 @@ class NanoTrackMainWindow(QMainWindow):
         self._set_tracking_busy(True)
         self._active_mask_tracker_backend_label = backend_label
         self._mask_tracker_cancel_requested = False
-        self._remember_mask_tracker_run_input(run_input)
         self._sam2_running_track_id = track.track_id
         self._sam2_resume_from_frame = None
         self._sam2_progress_dialog = QProgressDialog(
@@ -3430,6 +3414,7 @@ class NanoTrackMainWindow(QMainWindow):
             return
 
         run_items: list[tuple[int, MaskTrackerRunInput]] = []
+        self._particle_runs.clear()
         frame_limit = self.track_list_panel.current_run_frame_limit()
         try:
             for track in tracks:
@@ -3444,6 +3429,7 @@ class NanoTrackMainWindow(QMainWindow):
                     )
                 )
         except Exception as exc:
+            self._particle_runs.clear()
             QMessageBox.critical(self, f"{backend_label} input error", str(exc))
             return
 
@@ -3451,9 +3437,6 @@ class NanoTrackMainWindow(QMainWindow):
         self._active_mask_tracker_backend_label = backend_label
         self._mask_tracker_batch_scope_label = str(scope_label)
         self._mask_tracker_cancel_requested = False
-        self._mask_tracker_run_source_views = {}
-        for _track_id, run_input in run_items:
-            self._remember_mask_tracker_run_input(run_input)
         self._sam2_running_track_id = None
         self._sam2_resume_from_frame = None
         self._sam2_batch_failures = []
@@ -3621,7 +3604,7 @@ class NanoTrackMainWindow(QMainWindow):
             self._sync_preview_source_controls()
             return
         self._show_processed_in_viewer = requested == "processed"
-        self._invalidate_aligned_registration_materialization_cache()
+        self._clear_scalar_frame_cache()
         self._sync_preview_source_controls()
         if self._sequence is not None:
             self._show_current_frame(preserve_zoom=True)
@@ -3762,6 +3745,7 @@ class NanoTrackMainWindow(QMainWindow):
         vertical.setValue(max(vertical.minimum(), min(int(vertical_value), vertical.maximum())))
 
     def _close_sam2_progress_dialog(self) -> None:
+        self._particle_runs.clear()
         if self._sam2_progress_dialog is None:
             return
         try:
@@ -3826,7 +3810,6 @@ class NanoTrackMainWindow(QMainWindow):
         self._sam2_running_track_id = None
         self._sam2_resume_from_frame = None
         self._sam2_batch_failures = []
-        self._mask_tracker_run_source_views = {}
         self._active_mask_tracker_backend_label = None
         self._mask_tracker_batch_scope_label = "all seeds"
         self._mask_tracker_cancel_requested = False
@@ -3834,12 +3817,12 @@ class NanoTrackMainWindow(QMainWindow):
     def _clear_denoised_cache(self) -> None:
         self._denoised_frames = None
         self._denoised_sigma_factor = None
-        self._invalidate_aligned_registration_materialization_cache()
+        self._clear_scalar_frame_cache()
 
     def _clear_repair_cache(self) -> None:
         self._repair_frames = None
         self._repair_params = None
-        self._invalidate_aligned_registration_materialization_cache()
+        self._clear_scalar_frame_cache()
 
     def _clear_all_preprocessing_cache(self) -> None:
         self._clear_repair_cache()
@@ -3849,7 +3832,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._repair_provenance = None
 
     def _clear_aligned_registration_cache(self) -> None:
-        self._invalidate_aligned_registration_materialization_cache()
+        self._clear_scalar_frame_cache()
         self._show_aligned_in_viewer = False
         self._show_expanded_aligned_in_viewer = False
         self._sync_registration_application_action()
@@ -3860,13 +3843,9 @@ class NanoTrackMainWindow(QMainWindow):
             with QSignalBlocker(self.action_show_expanded_aligned_registration):
                 self.action_show_expanded_aligned_registration.setChecked(False)
 
-    def _invalidate_aligned_registration_materialization_cache(self) -> None:
+    def _clear_scalar_frame_cache(self) -> None:
         self._scalar_frame_provider = None
         self._scalar_frame_source_key = None
-        self._aligned_frames = None
-        self._aligned_frames_cache_key = None
-        self._expanded_aligned_stack = None
-        self._expanded_aligned_stack_cache_key = None
 
     def _disable_aligned_registration_view(self) -> None:
         self._show_aligned_in_viewer = False
@@ -3965,7 +3944,7 @@ class NanoTrackMainWindow(QMainWindow):
             return self._sequence.raw_frames, "raw", "raw"
         if not self._has_any_preprocessing_cache():
             raise RuntimeError("Wybrany Wynik preprocessingu jest niedostępny.")
-        return self._current_mask_tracker_base_frames()
+        return self._current_processed_or_raw_frames()
 
     def _current_scalar_frame(
         self, *, aligned: bool, expanded: bool = False, frame_index: int | None = None,
@@ -3985,42 +3964,6 @@ class NanoTrackMainWindow(QMainWindow):
             self._sequence.active_frame_index if frame_index is None else frame_index,
             aligned=aligned, expanded=expanded, registration=self._registration_results,
         )
-
-    def _registration_materialization_cache_key(
-        self,
-        mode: str,
-        base_frames: np.ndarray,
-        base_stack_kind: str,
-    ) -> tuple[str, str, int, int]:
-        if self._registration_results is None:
-            raise RuntimeError("Registration materialization requires registration results.")
-        return str(mode), str(base_stack_kind), id(base_frames), id(self._registration_results)
-
-    def _ensure_aligned_registration_cache(self, *, source: tuple[np.ndarray, str, str] | None = None) -> np.ndarray:
-        if self._sequence is None or self._registration_results is None:
-            raise RuntimeError("Aligned registration requires sequence and registration results.")
-        base_frames, _source_view, base_stack_kind = source if source is not None else self._current_preview_base_frames()
-        cache_key = self._registration_materialization_cache_key("aligned", base_frames, base_stack_kind)
-        if self._aligned_frames is None or self._aligned_frames_cache_key != cache_key:
-            self._aligned_frames = build_aligned_frames(base_frames, self._registration_results)
-            self._aligned_frames_cache_key = cache_key
-        return self._aligned_frames
-
-    def _ensure_expanded_aligned_registration_cache(
-        self, *, source: tuple[np.ndarray, str, str] | None = None,
-    ) -> ExpandedAlignedStack:
-        if self._sequence is None or self._registration_results is None:
-            raise RuntimeError("Expanded aligned registration requires sequence and registration results.")
-        base_frames, _source_view, base_stack_kind = source if source is not None else self._current_preview_base_frames()
-        cache_key = self._registration_materialization_cache_key("expanded", base_frames, base_stack_kind)
-        if self._expanded_aligned_stack is None or self._expanded_aligned_stack_cache_key != cache_key:
-            self._expanded_aligned_stack = build_expanded_aligned_frames(
-                base_frames,
-                self._registration_results,
-                metadata=self._sequence.metadata,
-            )
-            self._expanded_aligned_stack_cache_key = cache_key
-        return self._expanded_aligned_stack
 
     def _default_preprocessing_status(self) -> str:
         if self._sequence is None:
@@ -4768,6 +4711,22 @@ class NanoTrackMainWindow(QMainWindow):
             self.viewer.clear_track_seed_overlays()
             return
         current_frame_index = int(self._sequence.active_frame_index)
+        track = self._find_track_by_id(self._selected_track_id)
+        annotation = track.get_annotation(current_frame_index) if track else None
+        analysis_description = ""
+        if annotation is not None:
+            shape = annotation.shape_provenance
+            measurement = annotation.measurement_provenance
+            shape_source = f"{shape.source_view}, rew. {shape.source_revision[:12]}" if shape else annotation.source_view or "nieznane"
+            count = annotation.metrics.valid_sample_count
+            value_source = "raw (Oryginał)" if measurement else "nieznane (starszy wynik / brak pomiaru)"
+            analysis_description = f"Kształt: {shape_source}\nPomiary: {value_source}; ważne próbki: {count if count is not None else 'nieznane'}."
+            self.track_list_panel.lbl_analysis.setToolTip(
+                f"{shape.source_description}\n{shape.source_path}\nOffset XY: {shape.offset_xy}\n"
+                f"Canvas: {shape.canvas_shape_hw}; {shape.registration_status}\nModel: {shape.model_name}"
+                if shape else "Brak utrwalonego pochodzenia kształtu."
+            )
+        self.track_list_panel.lbl_analysis.setText(analysis_description)
         yolo_detections = [] if self._yolo_detections is None else self._yolo_detections.get_detections(current_frame_index)
         self.viewer.set_tracks_and_edges(
             self._tracks,
@@ -5214,113 +5173,13 @@ class NanoTrackMainWindow(QMainWindow):
     def _update_results_action_state(self) -> None:
         self._update_menu_action_state()
 
-    def _current_mask_tracker_base_frames(self) -> tuple[np.ndarray, str, str]:
+    def _current_processed_or_raw_frames(self) -> tuple[np.ndarray, str, str]:
         if self._denoised_frames is not None:
             return self._denoised_frames, "bm3d", "bm3d"
         if self._repair_frames is not None:
             return self._repair_frames, "repair", "repair"
         assert self._sequence is not None
         return self._sequence.raw_frames, "raw", "raw"
-
-    def _current_mask_tracker_input_frames(self) -> tuple[np.ndarray, str]:
-        source = self._current_mask_tracker_base_frames()
-        frames, source_view, _ = source
-        if self._show_expanded_aligned_in_viewer:
-            expanded = self._ensure_expanded_aligned_registration_cache(source=source)
-            return expanded.frames, f"{source_view}+expanded_registration"
-        if self._show_aligned_in_viewer:
-            return self._ensure_aligned_registration_cache(source=source), f"{source_view}+registration"
-        return frames, source_view
-
-    def _remember_mask_tracker_run_input(self, run_input: MaskTrackerRunInput) -> None:
-        key = (int(run_input.track_id), int(run_input.frame_index_offset))
-        self._mask_tracker_run_source_views[key] = str(run_input.source_view)
-
-    def _source_view_for_mask_tracker_output(self, run_output: MaskTrackerRunOutput) -> str:
-        key = (int(run_output.track_id), int(run_output.frame_index_offset))
-        return self._mask_tracker_run_source_views.get(key, "")
-
-    def _is_expanded_registration_source_view(self, source_view: str) -> bool:
-        return str(source_view).endswith("+expanded_registration")
-
-    def _expanded_frame_origin_xy(self, frame_index: int) -> np.ndarray:
-        expanded = self._ensure_expanded_aligned_registration_cache()
-        if not 0 <= int(frame_index) < expanded.frame_origins_xy.shape[0]:
-            raise IndexError("frame_index is out of range for expanded aligned stack.")
-        return np.asarray(expanded.frame_origins_xy[int(frame_index)], dtype=np.float64)
-
-    def _bbox_to_mask_tracker_input_coords(
-        self,
-        bbox: BBoxXYXY,
-        *,
-        frame_index: int,
-        source_view: str,
-    ) -> BBoxXYXY:
-        if not self._is_expanded_registration_source_view(source_view):
-            return bbox
-        origin_x, origin_y = self._expanded_frame_origin_xy(frame_index)
-        return BBoxXYXY(
-            bbox.x0 + float(origin_x),
-            bbox.y0 + float(origin_y),
-            bbox.x1 + float(origin_x),
-            bbox.y1 + float(origin_y),
-        )
-
-    def _mask_from_mask_tracker_output(
-        self,
-        run_output: MaskTrackerRunOutput,
-        local_frame_index: int,
-        *,
-        source_view: str,
-        frame_index: int,
-    ) -> np.ndarray:
-        mask = np.asarray(run_output.masks[local_frame_index], dtype=bool)
-        if not self._is_expanded_registration_source_view(source_view):
-            return mask
-        if self._sequence is None:
-            raise RuntimeError("No sequence loaded.")
-        origin_x, origin_y = self._expanded_frame_origin_xy(frame_index)
-        frame_h, frame_w = self._sequence.frame_shape
-        transformed = affine_transform(
-            mask.astype(np.float32, copy=False),
-            matrix=np.eye(2, dtype=np.float64),
-            offset=(float(origin_y), float(origin_x)),
-            output_shape=(int(frame_h), int(frame_w)),
-            order=0,
-            mode="constant",
-            cval=0.0,
-            prefilter=False,
-        )
-        return np.asarray(transformed >= 0.5, dtype=bool)
-
-    def _bbox_from_mask_tracker_output(
-        self,
-        bbox_xyxy: np.ndarray,
-        *,
-        source_view: str,
-        frame_index: int,
-    ) -> BBoxXYXY | None:
-        if not self._is_expanded_registration_source_view(source_view):
-            return self._bbox_from_output_array(bbox_xyxy)
-        if self._sequence is None:
-            raise RuntimeError("No sequence loaded.")
-        bbox_array = np.asarray(bbox_xyxy, dtype=np.float32)
-        if bbox_array.shape != (4,):
-            return None
-        origin_x, origin_y = self._expanded_frame_origin_xy(frame_index)
-        x0, y0, x1, y1 = [float(value) for value in bbox_array.tolist()]
-        x0 -= float(origin_x)
-        x1 -= float(origin_x)
-        y0 -= float(origin_y)
-        y1 -= float(origin_y)
-        frame_h, frame_w = self._sequence.frame_shape
-        x0 = min(max(x0, 0.0), float(frame_w))
-        x1 = min(max(x1, 0.0), float(frame_w))
-        y0 = min(max(y0, 0.0), float(frame_h))
-        y1 = min(max(y1, 0.0), float(frame_h))
-        if x1 <= x0 or y1 <= y0:
-            return None
-        return BBoxXYXY(x0, y0, x1, y1)
 
     def _bbox_is_inside_sequence_frame(self, bbox: BBoxXYXY) -> bool:
         if self._sequence is None:
@@ -5361,34 +5220,31 @@ class NanoTrackMainWindow(QMainWindow):
         if self._sequence is None:
             raise RuntimeError("No sequence loaded.")
 
-        frames_source, source_view = self._current_mask_tracker_input_frames()
         frame_offset = track.seed_frame_index if start_frame_index is None else int(start_frame_index)
         if frame_offset < track.seed_frame_index:
             raise ValueError("start_frame_index cannot be earlier than the seed frame.")
-        if frame_limit is None:
-            frame_end = None
-        else:
-            frame_limit = int(frame_limit)
-            if frame_limit < 1:
-                raise ValueError("frame_limit must be positive or None.")
-            frame_end = frame_offset + frame_limit
-        frames = np.asarray(frames_source[frame_offset:frame_end], dtype=np.float32)
         bbox = track.seed_bbox if prompt_bbox is None else prompt_bbox
-        input_bbox = self._bbox_to_mask_tracker_input_coords(
-            bbox,
-            frame_index=frame_offset,
-            source_view=source_view,
+        context = self._particle_input()
+        run_input = context.tracker_input(
+            tracker_kind, track.track_id, frame_offset, bbox, frame_limit=frame_limit,
+            probability_threshold=self.track_list_panel.current_mask_probability_threshold(),
         )
-        center_x, center_y = input_bbox.center_xy
-        return MaskTrackerRunInput(
-            tracker_kind=tracker_kind,
-            track_id=track.track_id,
-            frame_index_offset=frame_offset,
-            frames=frames,
-            query_box_xyxy=np.asarray(input_bbox.as_tuple(), dtype=np.float32),
-            query_point_tyx=np.asarray([0.0, center_y, center_x], dtype=np.float32),
-            source_view=source_view,
-            mask_probability_threshold=self.track_list_panel.current_mask_probability_threshold(),
+        self._particle_runs[(track.track_id, frame_offset)] = context
+        return run_input
+
+    def _particle_input(self) -> ParticleInput:
+        if self._sequence is None:
+            raise RuntimeError("No sequence loaded.")
+        frames, source_view, _ = self._current_preview_base_frames()
+        provenance = self._preprocessing_provenance if self._show_processed_in_viewer else None
+        return ParticleInput(
+            frames, self._sequence.metadata, source_view=source_view,
+            source_revision=provenance.revision if provenance else f"original-{self._sequence_generation}",
+            registration=self._registration_results,
+            aligned=self._show_aligned_in_viewer or self._show_expanded_aligned_in_viewer,
+            expanded=self._show_expanded_aligned_in_viewer,
+            source_path=self._sequence.source_path,
+            source_description=provenance.description() if provenance else "Oryginał",
         )
 
     def _apply_mask_tracker_output_to_track(self, track_id: int, run_output: MaskTrackerRunOutput) -> None:
@@ -5421,22 +5277,16 @@ class NanoTrackMainWindow(QMainWindow):
         frame_index = run_output.frame_index_offset + local_frame_index
         if self._sequence.is_frame_excluded(frame_index):
             return None
-        source_view = self._source_view_for_mask_tracker_output(run_output)
+        context = self._particle_runs[(int(run_output.track_id), int(run_output.frame_index_offset))]
+        source_view = context.source_view
         visible = bool(run_output.visible_mask[local_frame_index])
-        mask = self._mask_from_mask_tracker_output(
-            run_output,
-            local_frame_index,
-            source_view=source_view,
-            frame_index=frame_index,
-        )
-        bbox = None
-        metrics = ParticleMetrics()
-        if visible and run_output.mask_bboxes_xyxy is not None:
-            bbox = self._bbox_from_mask_tracker_output(
-                run_output.mask_bboxes_xyxy[local_frame_index],
-                source_view=source_view,
-                frame_index=frame_index,
-            )
+        mask = context.source_mask(frame_index, run_output.masks[local_frame_index])
+        mask &= np.isfinite(self._sequence.get_frame(frame_index))
+        if not visible:
+            mask[:] = False
+        bbox = mask_bbox(mask)
+        visible = visible and bbox is not None
+        metrics = ParticleMetrics(valid_sample_count=0)
         if visible and np.any(mask):
             metrics = compute_particle_metrics(
                 mask,
@@ -5452,6 +5302,14 @@ class NanoTrackMainWindow(QMainWindow):
             source=self._annotation_source_for_mask_tracker(run_output.tracker_kind),
             metrics=metrics,
             source_view=source_view,
+            shape_provenance=context.provenance(
+                frame_index, model_name=run_output.model_name or MaskTrackerKind.from_value(run_output.tracker_kind).value,
+                checkpoint_name=run_output.checkpoint_name,
+            ),
+            measurement_provenance=ParticleMeasurementProvenance(
+                self._sequence.source_path, str(self._sequence.raw_frames.dtype),
+                self._sequence.metadata.value_unit, self._sequence.metadata.get_pixel_size_nm(),
+            ),
         )
 
     def _annotation_source_for_mask_tracker(self, tracker_kind: MaskTrackerKind | str) -> AnnotationSource:
@@ -5463,12 +5321,3 @@ class NanoTrackMainWindow(QMainWindow):
         if tracker is MaskTrackerKind.SAMURAI:
             return AnnotationSource.SAMURAI
         raise ValueError(f"Unsupported mask tracker kind: {tracker_kind!r}.")
-
-    def _bbox_from_output_array(self, bbox_xyxy: np.ndarray) -> BBoxXYXY | None:
-        bbox_array = np.asarray(bbox_xyxy, dtype=np.float32)
-        if bbox_array.shape != (4,):
-            return None
-        x0, y0, x1, y1 = [float(value) for value in bbox_array.tolist()]
-        if x1 <= x0 or y1 <= y0:
-            return None
-        return BBoxXYXY(x0, y0, x1, y1)

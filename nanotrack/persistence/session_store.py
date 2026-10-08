@@ -6,7 +6,7 @@ import io
 import json
 import re
 import zipfile
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path, PureWindowsPath
 from typing import Callable
 
@@ -35,6 +35,7 @@ from nanotrack.core import (
 )
 from nanotrack.io import FRAME_SERIES_EXTENSIONS, load_stm_sequence
 from nanotrack.core.preview_sources import PreprocessingProvenance, PreprocessingStep
+from nanotrack.core.data_models import ParticleShapeProvenance, ParticleMeasurementProvenance
 from nanotrack.mask_trackers.config import MaskTrackerKind
 
 SESSION_SCHEMA = "nanotrack.session.v2"
@@ -450,6 +451,7 @@ def _serialize_yolo_detections(detections: YoloDetectionSet | None) -> dict | No
                         "confidence": detection.confidence,
                         "selected": bool(detection.selected),
                         "model_name": detection.model_name,
+                        "shape_provenance": None if detection.shape_provenance is None else asdict(detection.shape_provenance),
                     }
                     for detection in detections.get_detections(frame_index)
                 ],
@@ -482,6 +484,8 @@ def _serialize_annotation(track_id: int, annotation: TrackFrameAnnotation) -> di
         "visibility": annotation.visibility.value,
         "source": annotation.source.value,
         "source_view": annotation.source_view,
+        "shape_provenance": None if annotation.shape_provenance is None else asdict(annotation.shape_provenance),
+        "measurement_provenance": None if annotation.measurement_provenance is None else asdict(annotation.measurement_provenance),
         "metrics": {
             "area_px": annotation.metrics.area_px,
             "perimeter_px": annotation.metrics.perimeter_px,
@@ -490,6 +494,7 @@ def _serialize_annotation(track_id: int, annotation: TrackFrameAnnotation) -> di
             "intensity_sum": annotation.metrics.intensity_sum,
             "intensity_mean": annotation.metrics.intensity_mean,
             "intensity_max": annotation.metrics.intensity_max,
+            "valid_sample_count": annotation.metrics.valid_sample_count,
         },
     }
 
@@ -579,8 +584,11 @@ def _restore_tracks(zf: zipfile.ZipFile, tracks_payload: list[dict]) -> list[Par
                     intensity_sum=metrics_payload.get("intensity_sum"),
                     intensity_mean=metrics_payload.get("intensity_mean"),
                     intensity_max=metrics_payload.get("intensity_max"),
+                    valid_sample_count=metrics_payload.get("valid_sample_count"),
                 ),
                 source_view=str(annotation_payload.get("source_view", "")),
+                shape_provenance=ParticleShapeProvenance(**annotation_payload["shape_provenance"]) if annotation_payload.get("shape_provenance") else None,
+                measurement_provenance=ParticleMeasurementProvenance(**annotation_payload["measurement_provenance"]) if annotation_payload.get("measurement_provenance") else None,
             )
         tracks.append(
             ParticleTrack(
@@ -712,6 +720,7 @@ def _restore_yolo_detections(payload: dict | None) -> YoloDetectionSet | None:
                 frame_index=frame_index,
                 bbox=_bbox_from_payload(detection_payload["bbox"]),
                 confidence=float(detection_payload["confidence"]),
+                shape_provenance=ParticleShapeProvenance(**detection_payload["shape_provenance"]) if detection_payload.get("shape_provenance") else None,
                 selected=bool(detection_payload.get("selected", True)),
                 model_name=str(detection_payload.get("model_name") or payload["model_name"]),
             )

@@ -44,7 +44,24 @@ klatki 3 na **(-7.5,6.25)**: płótno ma **108 × 74 px**, początek **(-8,-3)**
 Wspólny plan obejmuje wszystkie klatki sekwencji, z identity dla brakujących
 wyników. Nie materializuje całego filmu. Odmowa zbyt dużego płótna następuje
 przed alokacją, przy szacunku buforów ponad 512 MiB, bez zmniejszania obrazu.
-Wejścia trackerów pozostają osobnym zadaniem wdrożeniowym.
+Śledzenie cząstek i YOLO korzystają z wybranego źródła oraz geometrii podglądu.
+Opis **Wejście** w panelu pokazuje je przed Start. Wyniki cząstek są przechowywane
+w oryginalnych współrzędnych, a wartości kanału mierzone na raw z liczbą ważnych
+próbek. Brak pomiaru pozostaje brakiem wartości. Źródło kształtu i pomiarów
+przetrwa Save/Open. Śledzenie krawędzi pozostaje zadaniem 06.
+
+Rzeczywisty SAM2 na przygotowanym MOVIE_2 (klatki 10–12, osobno Aligned i
+Expanded, zmiany widoku, Save/Open oraz Cancel) uruchamia tryb `particles`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_python_utf8.ps1 -ScriptPath scripts/run_nanotrack_acceptance.py particles --input .scratch/nanotrack-registration-export/acceptance/runs/ticket-02/MOVIE_2-repair-bm3d-registered-v2.nanotrack --timeout 360
+```
+
+Wymaga istniejącego środowiska i checkpointu SAM2 wskazanych w
+`nanotrack/mask_trackers/config.py`; nie pobiera zależności ani modeli.
+Nie uruchamia ponownie preprocessingu. Raport zachowuje SHA-256 sesji,
+filmu i checkpointu oraz zapisuje dwie gotowe sesje z wynikami i zrzuty GUI.
+Ta krótka próba sprawdza integrację i geometrię, nie stanowi kalibracji modelu.
 
 Krótka próba generuje S1 o znanej skali, z klatką stałą, NaN i dużym offsetem.
 Sprawdza naprawę, rzeczywisty BM3D, precyzję, przełączanie źródła i Save/Open:
@@ -69,7 +86,7 @@ ponownie BM3D ani rejestracji i nie nadpisuje wejściowej sesji:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_python_utf8.ps1 -ScriptPath scripts/run_nanotrack_acceptance.py session --input .scratch/nanotrack-registration-export/acceptance/runs/ticket-02/MOVIE_2-repair-bm3d-registered-v2.nanotrack
 ```
 
-Limity czasu: `quick`, `session`, `aligned` i `expanded` 180 s, `full` 7200 s. Nadpisanie:
+Limity czasu: `quick`, `session`, `aligned`, `expanded` i `particles` 180 s, `full` 7200 s. Nadpisanie:
 `--timeout 300`. Przekroczenie czasu kończy własny proces roboczy, zapisuje
 `timeout` i zwraca kod 1. Awaria procesu bez raportu też jest błędem — runner
 sprawdza zakończenie procesu, nie czeka na pojawienie się pliku sygnalizacyjnego.

@@ -6,6 +6,20 @@ from nanotrack.analysis import compute_particle_metrics
 
 
 class ComputeParticleMetricsTests(unittest.TestCase):
+    def test_counts_only_finite_raw_samples_without_quantizing_them(self) -> None:
+        raw = np.array([[100000000.125, np.nan], [100000000.375, np.inf]])
+        metrics = compute_particle_metrics(np.ones((2, 2), dtype=bool), raw)
+        self.assertEqual(metrics.valid_sample_count, 2)
+        self.assertEqual(metrics.intensity_sum, 200000000.5)
+        self.assertEqual(metrics.intensity_mean, 100000000.25)
+        self.assertEqual(metrics.intensity_max, 100000000.375)
+        self.assertEqual(metrics.area_px, 4.)
+        empty = compute_particle_metrics(np.array([[False, True], [False, True]]), raw)
+        self.assertEqual(empty.valid_sample_count, 0)
+        self.assertIsNone(empty.intensity_sum)
+        self.assertIsNone(empty.intensity_mean)
+        self.assertIsNone(empty.intensity_max)
+
     def test_computes_area_perimeter_and_raw_intensity(self) -> None:
         raw_frame = np.asarray(
             [

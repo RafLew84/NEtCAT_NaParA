@@ -367,6 +367,7 @@ class AnnotationSource(str, Enum):
     """How an annotation was created or last updated."""
 
     MANUAL = "manual"
+    YOLO = "yolo"
     SAM2 = "sam2"
     DAM4SAM = "dam4sam"
     SAMURAI = "samurai"
@@ -476,8 +477,11 @@ class ParticleMetrics:
     intensity_sum: Optional[float] = None
     intensity_mean: Optional[float] = None
     intensity_max: Optional[float] = None
+    valid_sample_count: Optional[int] = None
 
     def __post_init__(self) -> None:
+        if self.valid_sample_count is not None and self.valid_sample_count < 0:
+            raise ValueError("valid_sample_count must be non-negative.")
         if self.area_px is not None and self.area_px < 0:
             raise ValueError("area_px must be non-negative.")
         if self.perimeter_px is not None and self.perimeter_px < 0:
@@ -566,6 +570,40 @@ class EdgeGeometryQuality:
         self.refinement_mode = str(self.refinement_mode)
 
 
+@dataclass(frozen=True)
+class ParticleShapeProvenance:
+    """Source revision and actual transform used to obtain a particle shape."""
+
+    source_view: str
+    source_revision: str
+    source_path: str
+    source_description: str
+    offset_xy: tuple[float, float]
+    canvas_shape_hw: tuple[int, int]
+    registration_status: str
+    model_name: str = ""
+    checkpoint_name: str | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "offset_xy", tuple(self.offset_xy))
+        object.__setattr__(self, "canvas_shape_hw", tuple(self.canvas_shape_hw))
+
+
+@dataclass(frozen=True)
+class ParticleMeasurementProvenance:
+    """The raw channel and sampling rule, independently of the shape source."""
+
+    source_path: str
+    dtype: str
+    value_unit: str | None
+    pixel_size_nm: tuple[float | None, float | None]
+    source_view: str = "raw"
+    sampling_rule: str = "finite_raw_samples_in_source_mask"
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "pixel_size_nm", tuple(self.pixel_size_nm))
+
+
 @dataclass
 class YoloDetection:
     """One YOLO bbox proposal for a single frame."""
@@ -575,6 +613,7 @@ class YoloDetection:
     confidence: float
     selected: bool = True
     model_name: str = ""
+    shape_provenance: Optional[ParticleShapeProvenance] = None
 
     def __post_init__(self) -> None:
         if self.frame_index < 0:
@@ -588,6 +627,16 @@ class YoloDetection:
         self.model_name = str(self.model_name).strip()
         if not self.model_name:
             raise ValueError("model_name must be a non-empty string.")
+
+    def to_seed(self, track_id: int) -> ParticleTrack:
+        return ParticleTrack(
+            track_id=track_id, seed_frame_index=self.frame_index, seed_bbox=self.bbox,
+            annotations={self.frame_index: TrackFrameAnnotation(
+                frame_index=self.frame_index, bbox=self.bbox, source=AnnotationSource.YOLO,
+                source_view=self.shape_provenance.source_view if self.shape_provenance else "",
+                shape_provenance=self.shape_provenance,
+            )},
+        )
 
 
 @dataclass
@@ -694,6 +743,8 @@ class TrackFrameAnnotation:
     source: AnnotationSource = AnnotationSource.SAM2
     metrics: ParticleMetrics = field(default_factory=ParticleMetrics)
     source_view: str = ""
+    shape_provenance: Optional[ParticleShapeProvenance] = None
+    measurement_provenance: Optional[ParticleMeasurementProvenance] = None
 
     def __post_init__(self) -> None:
         if self.frame_index < 0:

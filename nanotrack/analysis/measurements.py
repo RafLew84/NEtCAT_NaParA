@@ -16,7 +16,7 @@ def compute_particle_metrics(
     """Compute per-frame particle metrics from a binary mask and the raw STM frame."""
 
     mask_array = np.asarray(mask, dtype=bool)
-    raw_array = np.asarray(raw_frame, dtype=np.float32)
+    raw_array = np.asarray(raw_frame, dtype=np.float64)
 
     if mask_array.ndim != 2:
         raise ValueError("mask must have shape [H, W].")
@@ -25,9 +25,9 @@ def compute_particle_metrics(
     if mask_array.shape != raw_array.shape:
         raise ValueError("mask and raw_frame must have the same shape.")
     if not np.any(mask_array):
-        return ParticleMetrics()
+        return ParticleMetrics(valid_sample_count=0)
 
-    values = raw_array[mask_array]
+    values = raw_array[mask_array & np.isfinite(raw_array)]
     area_px = float(np.count_nonzero(mask_array))
     perimeter_px = float(_binary_mask_perimeter_px(mask_array))
     area_nm2 = None
@@ -45,9 +45,10 @@ def compute_particle_metrics(
         perimeter_px=perimeter_px,
         area_nm2=area_nm2,
         perimeter_nm=perimeter_nm,
-        intensity_sum=float(values.sum()),
-        intensity_mean=float(values.mean()),
-        intensity_max=float(values.max()),
+        intensity_sum=float(values.sum()) if values.size else None,
+        intensity_mean=float(values.mean()) if values.size else None,
+        intensity_max=float(values.max()) if values.size else None,
+        valid_sample_count=int(values.size),
     )
 
 

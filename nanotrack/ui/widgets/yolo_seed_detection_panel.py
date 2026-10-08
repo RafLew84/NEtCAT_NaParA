@@ -91,6 +91,10 @@ class YoloSeedDetectionPanel(QWidget):
         threshold_row.addWidget(self.sp_confidence)
         threshold_row.addWidget(self.sp_iou)
         group_layout.addLayout(threshold_row)
+        self.lbl_input = QLabel("Wejście: brak obrazu", group)
+        self.lbl_input.setWordWrap(True)
+        self.lbl_input.setMaximumWidth(260)
+        group_layout.addWidget(self.lbl_input)
 
         detect_row = QHBoxLayout()
         self.btn_detect_current = QPushButton("Detect Current Frame", group)
