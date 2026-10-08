@@ -1,4 +1,4 @@
-"""Frozen numerical input and source-coordinate recovery for particle models."""
+"""Frozen numerical input and source-coordinate recovery for analysis models."""
 from __future__ import annotations
 
 from copy import deepcopy
@@ -6,12 +6,12 @@ import numpy as np
 from scipy.ndimage import affine_transform
 
 from nanotrack.core import BBoxXYXY, RegistrationResultSet, STMSequenceMetadata
-from nanotrack.core.data_models import ParticleShapeProvenance
+from nanotrack.core.data_models import AnalysisShapeProvenance
 from nanotrack.mask_trackers import MaskTrackerKind, MaskTrackerRunInput
 from nanotrack.registration.scalar_frames import ScalarFrame, ScalarFrameProvider
 
 
-class ParticleInput:
+class AnalysisInput:
     """Keep one execution independent of subsequent viewer/cache changes.
 
     Source arrays belong to an immutable source revision. Registration is copied
@@ -46,7 +46,7 @@ class ParticleInput:
         with np.errstate(over="ignore"):
             working = filled.astype(np.float32)
         if not np.isfinite(working).all():
-            raise ValueError("Particle model input exceeds the finite float32 range.")
+            raise ValueError("Analysis model input exceeds the finite float32 range.")
         return working
 
     def tracker_input(
@@ -74,7 +74,7 @@ class ParticleInput:
     def source_mask(self, frame_index: int, mask: np.ndarray) -> np.ndarray:
         scalar = self.frame(frame_index)
         if mask.shape != scalar.values.shape:
-            raise ValueError("Particle mask shape differs from its execution canvas.")
+            raise ValueError("Analysis mask shape differs from its execution canvas.")
         dx, dy = scalar.geometry.offset_xy
         recovered = affine_transform(
             np.asarray(mask, dtype=bool) & scalar.valid_mask,
@@ -83,10 +83,10 @@ class ParticleInput:
         )
         return recovered & np.isfinite(self._frames[frame_index])
 
-    def provenance(self, frame_index: int, *, model_name: str, checkpoint_name: str | None = None) -> ParticleShapeProvenance:
+    def provenance(self, frame_index: int, *, model_name: str, checkpoint_name: str | None = None) -> AnalysisShapeProvenance:
         scalar = self.frame(frame_index)
         height, width = scalar.values.shape
-        return ParticleShapeProvenance(
+        return AnalysisShapeProvenance(
             self.source_view, scalar.source_revision, self._source_path, self._source_description,
             scalar.geometry.offset_xy, (height, width), scalar.registration_status, model_name, checkpoint_name,
         )

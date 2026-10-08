@@ -35,7 +35,7 @@ from nanotrack.core import (
 )
 from nanotrack.io import FRAME_SERIES_EXTENSIONS, load_stm_sequence
 from nanotrack.core.preview_sources import PreprocessingProvenance, PreprocessingStep
-from nanotrack.core.data_models import ParticleShapeProvenance, ParticleMeasurementProvenance
+from nanotrack.core.data_models import AnalysisShapeProvenance, ParticleMeasurementProvenance, EdgeMeasurementProvenance
 from nanotrack.mask_trackers.config import MaskTrackerKind
 
 SESSION_SCHEMA = "nanotrack.session.v2"
@@ -523,6 +523,8 @@ def _serialize_edge_annotation(edge_track_id: int, annotation: EdgeFrameAnnotati
         "visibility": annotation.visibility.value,
         "source": annotation.source.value,
         "geometry_quality": _serialize_edge_geometry_quality(annotation.geometry_quality),
+        "shape_provenance": None if annotation.shape_provenance is None else asdict(annotation.shape_provenance),
+        "measurement_provenance": None if annotation.measurement_provenance is None else asdict(annotation.measurement_provenance),
         "metrics": {
             "length_px": annotation.metrics.length_px,
             "length_nm": annotation.metrics.length_nm,
@@ -587,7 +589,7 @@ def _restore_tracks(zf: zipfile.ZipFile, tracks_payload: list[dict]) -> list[Par
                     valid_sample_count=metrics_payload.get("valid_sample_count"),
                 ),
                 source_view=str(annotation_payload.get("source_view", "")),
-                shape_provenance=ParticleShapeProvenance(**annotation_payload["shape_provenance"]) if annotation_payload.get("shape_provenance") else None,
+                shape_provenance=AnalysisShapeProvenance(**annotation_payload["shape_provenance"]) if annotation_payload.get("shape_provenance") else None,
                 measurement_provenance=ParticleMeasurementProvenance(**annotation_payload["measurement_provenance"]) if annotation_payload.get("measurement_provenance") else None,
             )
         tracks.append(
@@ -637,6 +639,8 @@ def _restore_edge_tracks(zf: zipfile.ZipFile, tracks_payload: list[dict]) -> lis
                     waviness_amplitude_nm=metrics_payload.get("waviness_amplitude_nm"),
                 ),
                 geometry_quality=_restore_edge_geometry_quality(geometry_quality_payload),
+                shape_provenance=AnalysisShapeProvenance(**annotation_payload["shape_provenance"]) if annotation_payload.get("shape_provenance") else None,
+                measurement_provenance=EdgeMeasurementProvenance(**annotation_payload["measurement_provenance"]) if annotation_payload.get("measurement_provenance") else None,
             )
         tracks.append(
             EdgeTrack(
@@ -720,7 +724,7 @@ def _restore_yolo_detections(payload: dict | None) -> YoloDetectionSet | None:
                 frame_index=frame_index,
                 bbox=_bbox_from_payload(detection_payload["bbox"]),
                 confidence=float(detection_payload["confidence"]),
-                shape_provenance=ParticleShapeProvenance(**detection_payload["shape_provenance"]) if detection_payload.get("shape_provenance") else None,
+                shape_provenance=AnalysisShapeProvenance(**detection_payload["shape_provenance"]) if detection_payload.get("shape_provenance") else None,
                 selected=bool(detection_payload.get("selected", True)),
                 model_name=str(detection_payload.get("model_name") or payload["model_name"]),
             )

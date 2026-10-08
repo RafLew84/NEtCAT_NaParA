@@ -77,7 +77,9 @@ def run(scenario: Scenarios, session: Path) -> None:
             window.bbox_tools_panel.btn_add_seed.click()
             stage["input_description"] = window.track_list_panel.lbl_input.text()
             window.sidebar_scroll_area.ensureWidgetVisible(window.track_list_panel.lbl_input, 0, 8)
-            window.sidebar_scroll_area.horizontalScrollBar().setValue(0)
+            horizontal_scroll = window.sidebar_scroll_area.horizontalScrollBar()
+            assert horizontal_scroll is not None
+            horizontal_scroll.setValue(0)
             wait(20)
             scenario.capture(f"{mode}-01-input")
 

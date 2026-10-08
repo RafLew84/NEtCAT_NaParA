@@ -5,6 +5,7 @@ from dataclasses import replace
 from pathlib import Path
 import sys
 import time
+from typing import cast
 
 import numpy as np
 from PyQt6.QtCore import QObject, QSignalBlocker, QThread, QTimer, Qt, pyqtSignal
@@ -30,7 +31,9 @@ from PyQt6.QtWidgets import (
 )
 
 from nanotrack.analysis import compute_edge_metrics, compute_particle_metrics
-from nanotrack.analysis.particle_input import ParticleInput, mask_bbox
+from nanotrack.analysis.edge_input import EdgeInput
+from nanotrack.core.data_models import EdgeMeasurementProvenance, EdgeMetrics
+from nanotrack.analysis.analysis_input import AnalysisInput, mask_bbox
 from nanotrack.core.data_models import ParticleMeasurementProvenance
 from nanotrack.core import (
     AnnotationSource,
@@ -345,7 +348,7 @@ class NanoTrackMainWindow(QMainWindow):
         self._sam2_running_track_id: int | None = None
         self._sam2_resume_from_frame: int | None = None
         self._sam2_batch_failures: list[tuple[int, str]] = []
-        self._particle_runs: dict[tuple[int, int], ParticleInput] = {}
+        self._particle_runs: dict[tuple[int, int], AnalysisInput] = {}
         self._active_mask_tracker_backend_label: str | None = None
         self._mask_tracker_batch_scope_label = "all seeds"
         self._mask_tracker_cancel_requested = False
@@ -671,6 +674,10 @@ class NanoTrackMainWindow(QMainWindow):
         )
         self.track_list_panel.lbl_input.setText(input_description)
         self.yolo_panel.lbl_input.setText(input_description)
+        self.polygon_tools_panel.lbl_input.setText(input_description.replace(
+            "Pomiary: raw (Oryginał).", "Pomiary: geometria w oryginale; kanał nie jest mierzony.",
+        ))
+        self.polygon_tools_panel.lbl_input.setMinimumHeight(self.polygon_tools_panel.lbl_input.heightForWidth(260))
 
         self.viewer.show_frame(
             self._sequence.active_frame_index,
@@ -1530,7 +1537,7 @@ class NanoTrackMainWindow(QMainWindow):
             return
 
         frame_index = int(self._sequence.active_frame_index)
-        context = self._particle_input()
+        context = self._analysis_input()
         source_view = context.source_view
         self._set_tracking_busy(True)
         self.statusBar().showMessage(
@@ -1586,7 +1593,7 @@ class NanoTrackMainWindow(QMainWindow):
             )
             return
 
-        context = self._particle_input()
+        context = self._analysis_input()
         source_view = context.source_view
         included_frame_indices = self._sequence.included_frame_indices()
         if not included_frame_indices:
@@ -2344,19 +2351,11 @@ class NanoTrackMainWindow(QMainWindow):
 
         frame_index = self._sequence.active_frame_index
         previous = track.get_annotation(frame_index)
-        edge_mask = None if previous is None else previous.edge_mask
         track.polygon_roi = polygon
         if frame_index == track.seed_frame_index:
             track.seed_polyline = np.asarray(polyline, dtype=np.float64)
         track.add_annotation(
-            EdgeFrameAnnotation(
-                frame_index=frame_index,
-                polyline=np.asarray(polyline, dtype=np.float64),
-                edge_mask=edge_mask,
-                visibility=FrameVisibility.VISIBLE,
-                source=EdgeAnnotationSource.MANUAL,
-                metrics=self._compute_edge_metrics(polyline),
-            )
+            self._manual_edge_annotation(frame_index, polyline, None if previous is None else previous.edge_mask)
         )
         self.set_edge_tracks(self._edge_tracks, selected_track_id=track.edge_track_id)
         self._show_current_frame(preserve_zoom=True)
@@ -2389,14 +2388,7 @@ class NanoTrackMainWindow(QMainWindow):
             track.seed_polyline = np.asarray(polyline, dtype=np.float64)
         previous = track.get_annotation(frame_index)
         current_edge_mask = None if previous is None else previous.edge_mask
-        current_annotation = EdgeFrameAnnotation(
-            frame_index=frame_index,
-            polyline=np.asarray(polyline, dtype=np.float64),
-            edge_mask=current_edge_mask,
-            visibility=FrameVisibility.VISIBLE,
-            source=EdgeAnnotationSource.MANUAL,
-            metrics=self._compute_edge_metrics(polyline),
-        )
+        current_annotation = self._manual_edge_annotation(frame_index, polyline, current_edge_mask)
 
         if frame_index >= self._sequence.frame_count - 1:
             track.drop_annotations_after(frame_index)
@@ -2532,14 +2524,9 @@ class NanoTrackMainWindow(QMainWindow):
             if annotation is None
             else annotation.source
         )
-        current_annotation = EdgeFrameAnnotation(
-            frame_index=frame_index,
-            polyline=np.asarray(anchor_polyline, dtype=np.float64),
-            edge_mask=current_edge_mask,
-            visibility=FrameVisibility.VISIBLE,
-            source=current_source,
-            metrics=self._compute_edge_metrics(anchor_polyline),
-        )
+        current_annotation = self._manual_edge_annotation(frame_index, anchor_polyline, current_edge_mask)
+        if current_source != EdgeAnnotationSource.MANUAL and annotation is not None:
+            current_annotation = replace(annotation)
 
         if frame_index >= self._sequence.frame_count - 1:
             track.polygon_roi = anchor_polygon
@@ -2911,9 +2898,16 @@ class NanoTrackMainWindow(QMainWindow):
         self.statusBar().showMessage(f"BM3D preview opened for frame {current_index + 1}.", 3000)
 
     def _on_dexined_preview_finished(self, output: DexiNedRunOutput) -> None:
-        if self._sequence is None or self._pending_edge_preview_frame is None or self._pending_edge_preview_meta is None:
+        try:
+            self._show_edge_preview_output(output)
+        except Exception as exc:
+            QMessageBox.critical(self, "Edge preview error", str(exc))
+        finally:
             self._set_preprocessing_busy(False)
             self._close_dexined_progress_dialog()
+
+    def _show_edge_preview_output(self, output: DexiNedRunOutput) -> None:
+        if self._sequence is None or self._pending_edge_preview_frame is None or self._pending_edge_preview_meta is None:
             return
 
         backend_label = str(
@@ -2933,6 +2927,18 @@ class NanoTrackMainWindow(QMainWindow):
         px_x, px_y = self._sequence.metadata.get_pixel_size_nm()
         edge_frame = np.asarray(output.edge_prob[0], dtype=np.float32)
         edge_binary_frame = None if output.edge_binary is None else np.asarray(output.edge_binary[0], dtype=bool)
+        context = cast(EdgeInput, self._pending_edge_preview_meta["context"])
+        scientific_frame = context.numerical.frame(current_index).values
+        if np.count_nonzero(polygon_mask & np.isfinite(edge_frame) & (edge_frame >= threshold)) < 2:
+            dialog = self._ensure_edge_preview_dialog()
+            dialog.set_preview(
+                scientific_frame, np.zeros_like(edge_frame), frame_index=current_index,
+                frame_count=self._sequence.frame_count, scale_nm_per_px=(px_x, px_y),
+                window_title=f"{backend_label} Preview", input_title=source_title, input_meta=source_meta,
+                edge_title="Dominant Edge", edge_meta="Brak krawędzi w ważnym obszarze — brak pomiaru.",
+            )
+            dialog.show()
+            return
         selection, selected_edge_frame, coarse_polyline, refined_polyline, geometry_quality, max_prob = self._extract_dominant_edge_geometry(
             edge_frame,
             polygon_mask,
@@ -2944,6 +2950,8 @@ class NanoTrackMainWindow(QMainWindow):
             refine_score_mode=refine_score_mode,
             refine_search_radius_px=refine_search_radius_px,
         )
+        source_polyline = context.source_polyline(current_index, refined_polyline.polyline_xy)
+        preview_polyline = None if source_polyline is None else context.numerical.frame(current_index).geometry.source_to_display(source_polyline)
         subpixel_meta = (
             f"subpx {refined_polyline.subpixel_mode} {refined_polyline.mean_subpixel_correction_px:.2f}px"
         )
@@ -2955,7 +2963,7 @@ class NanoTrackMainWindow(QMainWindow):
 
         dialog = self._ensure_edge_preview_dialog()
         dialog.set_preview(
-            self._pending_edge_preview_frame,
+            scientific_frame,
             selected_edge_frame,
             frame_index=current_index,
             frame_count=self._sequence.frame_count,
@@ -2964,7 +2972,7 @@ class NanoTrackMainWindow(QMainWindow):
             input_title=source_title,
             input_meta=source_meta,
             input_overlay_mask=selection.edge_mask,
-            input_overlay_polyline=refined_polyline.polyline_xy,
+            input_overlay_polyline=preview_polyline,
             edge_title="Dominant Edge",
             edge_meta=(
                 f"View: {source_view} | mode {selection.selection_mode} | "
@@ -2977,15 +2985,13 @@ class NanoTrackMainWindow(QMainWindow):
                 f"pts {refined_polyline.point_count} | shift {refined_polyline.mean_shift_px:.2f}px | "
                 f"{format_edge_geometry_review(geometry_quality)} | max p {max_prob:.3f}"
             ),
-            edge_overlay_polyline=refined_polyline.polyline_xy,
+            edge_overlay_polyline=preview_polyline,
         )
         dialog.show()
         dialog.raise_()
         dialog.activateWindow()
 
         self.statusBar().showMessage(f"{backend_label} preview opened for frame {current_index + 1}.", 3000)
-        self._set_preprocessing_busy(False)
-        self._close_dexined_progress_dialog()
 
     def _on_dexined_sequence_finished(self, output: DexiNedRunOutput) -> None:
         if self._sequence is None or self._pending_edge_sequence_meta is None:
@@ -4045,106 +4051,39 @@ class NanoTrackMainWindow(QMainWindow):
         self.viewer.set_edge_polyline(self.current_draft_edge_polyline())
         self._sync_edge_track_context()
 
-    def _current_edge_input_frames(self) -> tuple[np.ndarray, str, str, str]:
-        if self._sequence is None:
-            raise RuntimeError("No sequence loaded.")
-        if self._denoised_frames is not None:
-            source_view = "repair+bm3d" if self._repair_frames is not None else "bm3d"
-            return np.asarray(self._denoised_frames, dtype=np.float32), "BM3D input", "BM3D cache", source_view
-        if self._repair_frames is not None:
-            return np.asarray(self._repair_frames, dtype=np.float32), "Repair input", "Horizontal repair cache", "repair"
-        return np.asarray(self._sequence.raw_frames, dtype=np.float32), "Raw input", "Raw frame", "raw"
+    def _build_dexined_preview_input(self, polygon: PolygonROI) -> tuple[DexiNedRunInput, np.ndarray, dict[str, object]]:
+        assert self._sequence is not None
+        index = self._sequence.active_frame_index
+        run, meta = self._edge_detection_input(polygon, np.array([index], dtype=np.int32))
+        meta["frame_index"] = index
+        meta["polygon_mask"] = run.polygon_mask[0]
+        return run, run.frames[0], meta
 
-    def _current_edge_input_frame(self) -> tuple[np.ndarray, str, str, str]:
-        if self._sequence is None:
-            raise RuntimeError("No sequence loaded.")
-        input_frames, source_title, source_meta, source_view = self._current_edge_input_frames()
-        return input_frames[self._sequence.active_frame_index], source_title, source_meta, source_view
+    def _build_dexined_sequence_input(self, polygon: PolygonROI) -> tuple[DexiNedRunInput, dict[str, object]]:
+        start, end = self._selected_edge_run_range()
+        run, meta = self._edge_detection_input(polygon, np.arange(start, end+1, dtype=np.int32))
+        meta.update(mode="create", seed_frame_index=start)
+        return run, meta
 
-    def _polygon_roi_to_mask(self, polygon: PolygonROI) -> np.ndarray:
-        if self._sequence is None:
-            raise RuntimeError("No sequence loaded.")
-        from skimage.draw import polygon2mask
-
-        polygon_vertices_rc = polygon.as_array()[:, [1, 0]]
-        return np.asarray(polygon2mask(self._sequence.frame_shape, polygon_vertices_rc), dtype=bool)
-
-    def _build_dexined_preview_input(
-        self,
-        polygon: PolygonROI,
-    ) -> tuple[DexiNedRunInput, np.ndarray, dict[str, object]]:
-        if self._sequence is None:
-            raise RuntimeError("No sequence loaded.")
-        input_frame, source_title, source_meta, source_view = self._current_edge_input_frame()
-        polygon_mask = self._polygon_roi_to_mask(polygon)
-        threshold = self.polygon_tools_panel.dexined_threshold()
-        inference_resolution_hw = self.polygon_tools_panel.dexined_inference_resolution_hw()
-        run_input = DexiNedRunInput(
-            frames=np.asarray(input_frame[None, ...], dtype=np.float32),
-            polygon_mask=polygon_mask,
-            inference_resolution_hw=None
-            if inference_resolution_hw is None
-            else np.asarray(inference_resolution_hw, dtype=np.int32),
-            threshold=threshold,
-            source_view=source_view,
+    def _edge_detection_input(self, polygon: PolygonROI, frame_indices: np.ndarray) -> tuple[DexiNedRunInput, dict[str, object]]:
+        context = EdgeInput(self._analysis_input(), polygon)
+        frames, masks = context.frames_and_masks(frame_indices)
+        panel = self.polygon_tools_panel
+        resolution = panel.dexined_inference_resolution_hw()
+        run = DexiNedRunInput(
+            frames=frames, polygon_mask=masks, frame_indices=frame_indices,
+            inference_resolution_hw=None if resolution is None else np.asarray(resolution, dtype=np.int32),
+            threshold=panel.dexined_threshold(), source_view=context.numerical.source_view,
         )
-        preview_meta = {
-            "frame_index": self._sequence.active_frame_index,
-            "source_title": source_title,
-            "source_meta": source_meta,
-            "source_view": source_view,
-            "polygon_mask": polygon_mask,
-            "threshold": threshold,
-            "top_k_components": self.polygon_tools_panel.dexined_top_k_components(),
-            "inference_resolution_hw": inference_resolution_hw,
-            "polyline_method": self.polygon_tools_panel.edge_polyline_method(),
-            "refine_score_mode": self.polygon_tools_panel.edge_refine_score_mode(),
-            "refine_search_radius_px": self.polygon_tools_panel.edge_refine_search_radius_px(),
-        }
-        return run_input, np.asarray(input_frame, dtype=np.float32), preview_meta
-
-    def _build_dexined_sequence_input(
-        self,
-        polygon: PolygonROI,
-    ) -> tuple[DexiNedRunInput, dict[str, object]]:
-        if self._sequence is None:
-            raise RuntimeError("No sequence loaded.")
-        start_frame_index, end_frame_index = self._selected_edge_run_range()
-        input_frames, source_title, source_meta, source_view = self._current_edge_input_frames()
-        polygon_mask = self._polygon_roi_to_mask(polygon)
-        threshold = self.polygon_tools_panel.dexined_threshold()
-        inference_resolution_hw = self.polygon_tools_panel.dexined_inference_resolution_hw()
-        frame_indices = np.arange(start_frame_index, end_frame_index + 1, dtype=np.int32)
-        run_input = DexiNedRunInput(
-            frames=np.asarray(input_frames[start_frame_index : end_frame_index + 1], dtype=np.float32),
-            polygon_mask=polygon_mask,
-            frame_indices=frame_indices,
-            inference_resolution_hw=None
-            if inference_resolution_hw is None
-            else np.asarray(inference_resolution_hw, dtype=np.int32),
-            threshold=threshold,
-            source_view=source_view,
+        return run, dict(
+            context=context, polygon=polygon, polygon_mask=masks, frame_indices=frame_indices,
+            start_frame_index=int(frame_indices[0]), end_frame_index=int(frame_indices[-1]),
+            input_frames=frames, source_view=run.source_view, source_title=run.source_view,
+            source_meta=self.polygon_tools_panel.lbl_input.text(), threshold=run.threshold,
+            top_k_components=panel.dexined_top_k_components(), inference_resolution_hw=resolution,
+            polyline_method=panel.edge_polyline_method(), refine_score_mode=panel.edge_refine_score_mode(),
+            refine_search_radius_px=panel.edge_refine_search_radius_px(),
         )
-        sequence_meta = {
-            "polygon": polygon,
-            "polygon_mask": polygon_mask,
-            "seed_frame_index": start_frame_index,
-            "start_frame_index": start_frame_index,
-            "end_frame_index": end_frame_index,
-            "frame_indices": frame_indices,
-            "input_frames": np.asarray(input_frames[start_frame_index : end_frame_index + 1], dtype=np.float32),
-            "source_title": source_title,
-            "source_meta": source_meta,
-            "source_view": source_view,
-            "threshold": threshold,
-            "top_k_components": self.polygon_tools_panel.dexined_top_k_components(),
-            "inference_resolution_hw": inference_resolution_hw,
-            "polyline_method": self.polygon_tools_panel.edge_polyline_method(),
-            "refine_score_mode": self.polygon_tools_panel.edge_refine_score_mode(),
-            "refine_search_radius_px": self.polygon_tools_panel.edge_refine_search_radius_px(),
-            "mode": "create",
-        }
-        return run_input, sequence_meta
 
     def _selected_edge_run_range(self) -> tuple[int, int]:
         if self._sequence is None:
@@ -4157,81 +4096,30 @@ class NanoTrackMainWindow(QMainWindow):
             raise ValueError("DexiNed end frame is out of range.")
         return start_frame_index, end_frame_index
 
-    def _build_dexined_stitch_input(
-        self,
-        track: EdgeTrack,
-        polygon: PolygonROI,
-    ) -> tuple[DexiNedRunInput | None, dict[str, object]]:
-        if self._sequence is None:
-            raise RuntimeError("No sequence loaded.")
+    def _build_dexined_stitch_input(self, track: EdgeTrack, polygon: PolygonROI) -> tuple[DexiNedRunInput | None, dict[str, object]]:
+        start, end = self._selected_edge_run_range()
+        current = track.get_annotation(start)
+        draft = self.current_draft_edge_polyline()
+        if draft is not None:
+            current = self._manual_edge_annotation(start, draft, None if current is None else current.edge_mask)
+        elif current is not None:
+            current = replace(current)
+        suffix_start = start+1 if current is not None and current.polyline is not None else start
+        indices = np.arange(suffix_start, end+1, dtype=np.int32)
+        run, meta = self._edge_detection_input(polygon, indices if indices.size else np.array([start], dtype=np.int32))
+        meta.update(mode="stitch", track_id=track.edge_track_id, current_annotation=current,
+                    start_frame_index=start, end_frame_index=end, frame_indices=indices)
+        return (run if indices.size else None), meta
 
-        start_frame_index, end_frame_index = self._selected_edge_run_range()
-        input_frames, source_title, source_meta, source_view = self._current_edge_input_frames()
-        polygon_mask = self._polygon_roi_to_mask(polygon)
-        threshold = self.polygon_tools_panel.dexined_threshold()
-        inference_resolution_hw = self.polygon_tools_panel.dexined_inference_resolution_hw()
-        top_k_components = self.polygon_tools_panel.dexined_top_k_components()
-
-        existing_annotation = track.get_annotation(start_frame_index)
-        draft_polyline = self.current_draft_edge_polyline()
-        current_annotation = None
-        suffix_start_frame_index = start_frame_index
-        if draft_polyline is not None:
-            current_annotation = EdgeFrameAnnotation(
-                frame_index=start_frame_index,
-                polyline=np.asarray(draft_polyline, dtype=np.float64),
-                edge_mask=None if existing_annotation is None else existing_annotation.edge_mask,
-                visibility=FrameVisibility.VISIBLE,
-                source=EdgeAnnotationSource.MANUAL,
-                metrics=self._compute_edge_metrics(draft_polyline),
-            )
-            suffix_start_frame_index = start_frame_index + 1
-        elif existing_annotation is not None and existing_annotation.polyline is not None:
-            current_annotation = EdgeFrameAnnotation(
-                frame_index=start_frame_index,
-                polyline=np.asarray(existing_annotation.polyline, dtype=np.float64),
-                edge_mask=existing_annotation.edge_mask,
-                visibility=existing_annotation.visibility,
-                source=existing_annotation.source,
-                metrics=existing_annotation.metrics,
-            )
-            suffix_start_frame_index = start_frame_index + 1
-
-        frame_indices = np.arange(suffix_start_frame_index, end_frame_index + 1, dtype=np.int32)
-        stitch_meta = {
-            "mode": "stitch",
-            "track_id": track.edge_track_id,
-            "polygon": polygon,
-            "polygon_mask": polygon_mask,
-            "start_frame_index": start_frame_index,
-            "end_frame_index": end_frame_index,
-            "current_annotation": current_annotation,
-            "frame_indices": frame_indices,
-            "input_frames": np.asarray(input_frames[suffix_start_frame_index : end_frame_index + 1], dtype=np.float32),
-            "source_title": source_title,
-            "source_meta": source_meta,
-            "source_view": source_view,
-            "threshold": threshold,
-            "top_k_components": top_k_components,
-            "inference_resolution_hw": inference_resolution_hw,
-            "polyline_method": self.polygon_tools_panel.edge_polyline_method(),
-            "refine_score_mode": self.polygon_tools_panel.edge_refine_score_mode(),
-            "refine_search_radius_px": self.polygon_tools_panel.edge_refine_search_radius_px(),
-        }
-        if len(frame_indices) == 0:
-            return None, stitch_meta
-
-        run_input = DexiNedRunInput(
-            frames=np.asarray(input_frames[suffix_start_frame_index : end_frame_index + 1], dtype=np.float32),
-            polygon_mask=polygon_mask,
-            frame_indices=frame_indices,
-            inference_resolution_hw=None
-            if inference_resolution_hw is None
-            else np.asarray(inference_resolution_hw, dtype=np.int32),
-            threshold=threshold,
-            source_view=source_view,
+    def _manual_edge_annotation(self, frame_index: int, polyline: np.ndarray, edge_mask: np.ndarray | None) -> EdgeFrameAnnotation:
+        assert self._sequence is not None
+        context = self._analysis_input()
+        return EdgeFrameAnnotation(
+            frame_index, polyline=polyline, edge_mask=edge_mask, source=EdgeAnnotationSource.MANUAL,
+            metrics=self._compute_edge_metrics(polyline),
+            shape_provenance=context.provenance(frame_index, model_name="manual"),
+            measurement_provenance=EdgeMeasurementProvenance(self._sequence.source_path, self._sequence.metadata.get_pixel_size_nm()),
         )
-        return run_input, stitch_meta
 
     def _build_dexined_redetect_input(
         self,
@@ -4245,43 +4133,9 @@ class NanoTrackMainWindow(QMainWindow):
             raise ValueError("Selected edge track has no annotated frames to re-detect.")
 
         polygon = self.current_draft_polygon_roi() or track.polygon_roi
-        input_frames, source_title, source_meta, source_view = self._current_edge_input_frames()
-        polygon_mask = self._polygon_roi_to_mask(polygon)
-        threshold = self.polygon_tools_panel.dexined_threshold()
-        inference_resolution_hw = self.polygon_tools_panel.dexined_inference_resolution_hw()
-        top_k_components = self.polygon_tools_panel.dexined_top_k_components()
-        run_frames = np.asarray(input_frames[frame_indices], dtype=np.float32)
-
-        run_input = DexiNedRunInput(
-            frames=run_frames,
-            polygon_mask=polygon_mask,
-            frame_indices=frame_indices,
-            inference_resolution_hw=None
-            if inference_resolution_hw is None
-            else np.asarray(inference_resolution_hw, dtype=np.int32),
-            threshold=threshold,
-            source_view=source_view,
-        )
-        redetect_meta = {
-            "mode": "redetect",
-            "track_id": track.edge_track_id,
-            "polygon": polygon,
-            "polygon_mask": polygon_mask,
-            "start_frame_index": int(frame_indices[0]),
-            "end_frame_index": int(frame_indices[-1]),
-            "frame_indices": frame_indices,
-            "input_frames": run_frames,
-            "source_title": source_title,
-            "source_meta": source_meta,
-            "source_view": source_view,
-            "threshold": threshold,
-            "top_k_components": top_k_components,
-            "inference_resolution_hw": inference_resolution_hw,
-            "polyline_method": self.polygon_tools_panel.edge_polyline_method(),
-            "refine_score_mode": self.polygon_tools_panel.edge_refine_score_mode(),
-            "refine_search_radius_px": self.polygon_tools_panel.edge_refine_search_radius_px(),
-        }
-        return run_input, redetect_meta
+        run, meta = self._edge_detection_input(polygon, frame_indices)
+        meta.update(mode="redetect", track_id=track.edge_track_id)
+        return run, meta
 
     def _build_dexined_partial_redetect_input(
         self,
@@ -4310,43 +4164,9 @@ class NanoTrackMainWindow(QMainWindow):
             raise ValueError("Selected frame range does not overlap the current edge track.")
 
         polygon = self.current_draft_polygon_roi() or track.polygon_roi
-        input_frames, source_title, source_meta, source_view = self._current_edge_input_frames()
-        polygon_mask = self._polygon_roi_to_mask(polygon)
-        threshold = self.polygon_tools_panel.dexined_threshold()
-        inference_resolution_hw = self.polygon_tools_panel.dexined_inference_resolution_hw()
-        top_k_components = self.polygon_tools_panel.dexined_top_k_components()
-        run_frames = np.asarray(input_frames[frame_indices], dtype=np.float32)
-
-        run_input = DexiNedRunInput(
-            frames=run_frames,
-            polygon_mask=polygon_mask,
-            frame_indices=frame_indices,
-            inference_resolution_hw=None
-            if inference_resolution_hw is None
-            else np.asarray(inference_resolution_hw, dtype=np.int32),
-            threshold=threshold,
-            source_view=source_view,
-        )
-        redetect_meta = {
-            "mode": "partial_redetect",
-            "track_id": track.edge_track_id,
-            "polygon": polygon,
-            "polygon_mask": polygon_mask,
-            "start_frame_index": start_frame_index,
-            "end_frame_index": end_frame_index,
-            "frame_indices": frame_indices,
-            "input_frames": run_frames,
-            "source_title": source_title,
-            "source_meta": source_meta,
-            "source_view": source_view,
-            "threshold": threshold,
-            "top_k_components": top_k_components,
-            "inference_resolution_hw": inference_resolution_hw,
-            "polyline_method": self.polygon_tools_panel.edge_polyline_method(),
-            "refine_score_mode": self.polygon_tools_panel.edge_refine_score_mode(),
-            "refine_search_radius_px": self.polygon_tools_panel.edge_refine_search_radius_px(),
-        }
-        return run_input, redetect_meta
+        run, meta = self._edge_detection_input(polygon, frame_indices)
+        meta.update(mode="partial_redetect", track_id=track.edge_track_id)
+        return run, meta
 
     def _effective_dexined_threshold(
         self,
@@ -4476,9 +4296,10 @@ class NanoTrackMainWindow(QMainWindow):
             polyline_method=polyline_method,
             refine_score_mode=refine_score_mode,
             refine_search_radius_px=refine_search_radius_px,
+            context=cast(EdgeInput | None, sequence_meta.get("context")),
         )
         seed_annotation = annotations.get(seed_frame_index)
-        seed_polyline = None if seed_annotation is None else np.asarray(seed_annotation.polyline, dtype=np.float64)
+        seed_polyline = None if seed_annotation is None else seed_annotation.polyline
 
         if seed_polyline is None:
             raise ValueError("Seed frame polyline could not be extracted from DexiNed output.")
@@ -4505,6 +4326,7 @@ class NanoTrackMainWindow(QMainWindow):
         polyline_method: str,
         refine_score_mode: str,
         refine_search_radius_px: int,
+        context: EdgeInput | None = None,
     ) -> dict[int, EdgeFrameAnnotation]:
         edge_prob = np.asarray(output.edge_prob, dtype=np.float32)
         frame_indices = np.asarray(frame_indices, dtype=np.int32)
@@ -4520,12 +4342,26 @@ class NanoTrackMainWindow(QMainWindow):
                 continue
             edge_frame = np.asarray(edge_prob[local_index], dtype=np.float32)
             input_frame = np.asarray(input_frames_f32[local_index], dtype=np.float32)
+            frame_mask = polygon_mask[local_index] if polygon_mask.ndim == 3 else polygon_mask
+            shape_provenance = None if context is None else context.numerical.provenance(
+                int(frame_index), model_name=output.model_name, checkpoint_name=output.checkpoint_name,
+            )
+            measurement_provenance = EdgeMeasurementProvenance(
+                self._sequence.source_path, self._sequence.metadata.get_pixel_size_nm(),
+            ) if self._sequence is not None else None
+            if np.count_nonzero(frame_mask & np.isfinite(edge_frame) & (edge_frame >= threshold)) < 2:
+                annotations[int(frame_index)] = EdgeFrameAnnotation(
+                    frame_index=int(frame_index), visibility=FrameVisibility.LOST,
+                    source=EdgeAnnotationSource.DEXINED, shape_provenance=shape_provenance,
+                    measurement_provenance=measurement_provenance,
+                )
+                continue
             edge_binary_frame = None
             if output.edge_binary is not None:
                 edge_binary_frame = np.asarray(output.edge_binary[local_index], dtype=bool)
             selection, _selected_edge_frame, _coarse_polyline, refined_polyline, geometry_quality, _max_prob = self._extract_dominant_edge_geometry(
                 edge_frame,
-                polygon_mask,
+                frame_mask,
                 input_frame=input_frame,
                 edge_binary_frame=edge_binary_frame,
                 requested_threshold=threshold,
@@ -4534,13 +4370,21 @@ class NanoTrackMainWindow(QMainWindow):
                 refine_score_mode=refine_score_mode,
                 refine_search_radius_px=refine_search_radius_px,
             )
+            polyline = refined_polyline.polyline_xy
+            edge_mask = selection.edge_mask
+            if context is not None:
+                polyline = context.source_polyline(int(frame_index), polyline)
+                edge_mask = context.numerical.source_mask(int(frame_index), edge_mask)
             annotations[int(frame_index)] = EdgeFrameAnnotation(
                 frame_index=int(frame_index),
-                polyline=refined_polyline.polyline_xy,
-                edge_mask=selection.edge_mask,
+                polyline=polyline,
+                edge_mask=edge_mask,
                 source=EdgeAnnotationSource.DEXINED,
-                metrics=self._compute_edge_metrics(refined_polyline.polyline_xy),
+                metrics=self._compute_edge_metrics(polyline) if polyline is not None else EdgeMetrics(),
+                visibility=FrameVisibility.VISIBLE if polyline is not None else FrameVisibility.LOST,
                 geometry_quality=geometry_quality,
+                shape_provenance=shape_provenance,
+                measurement_provenance=measurement_provenance,
             )
         return annotations
 
@@ -4597,6 +4441,7 @@ class NanoTrackMainWindow(QMainWindow):
                     polyline_method=polyline_method,
                     refine_score_mode=refine_score_mode,
                     refine_search_radius_px=refine_search_radius_px,
+                    context=cast(EdgeInput | None, stitch_meta.get("context")),
                 )
             )
 
@@ -4642,6 +4487,7 @@ class NanoTrackMainWindow(QMainWindow):
             polyline_method=polyline_method,
             refine_score_mode=refine_score_mode,
             refine_search_radius_px=refine_search_radius_px,
+            context=cast(EdgeInput | None, redetect_meta.get("context")),
         )
         if track.seed_frame_index not in replacement_annotations or replacement_annotations[track.seed_frame_index].polyline is None:
             raise ValueError("Re-detect output does not contain a valid seed-frame polyline.")
@@ -4683,6 +4529,7 @@ class NanoTrackMainWindow(QMainWindow):
             polyline_method=polyline_method,
             refine_score_mode=refine_score_mode,
             refine_search_radius_px=refine_search_radius_px,
+            context=cast(EdgeInput | None, redetect_meta.get("context")),
         )
         if (
             start_frame_index <= track.seed_frame_index <= end_frame_index
@@ -4763,6 +4610,9 @@ class NanoTrackMainWindow(QMainWindow):
         return max(track.edge_track_id for track in self._edge_tracks) + 1
 
     def _sync_edge_track_context(self) -> None:
+        self.edge_track_list_panel.lbl_analysis.setText("Kształt i pomiary: -")
+        self.edge_track_list_panel.lbl_analysis.setMinimumHeight(0)
+        self.edge_track_list_panel.lbl_analysis.setToolTip("")
         if self._sequence is None:
             self.polygon_tools_panel.set_edge_track_context(
                 None,
@@ -4781,6 +4631,17 @@ class NanoTrackMainWindow(QMainWindow):
             return
 
         annotation = track.get_annotation(self._sequence.active_frame_index)
+        if annotation is not None:
+            shape = annotation.shape_provenance
+            measurement = annotation.measurement_provenance
+            source = "nieznane (starszy wynik)" if shape is None else f"{shape.source_view}\nWersja: {shape.source_revision}"
+            self.edge_track_list_panel.lbl_analysis.setText(
+                f"Kształt: {source}\nPomiary: geometria w oryginale; kanał nie jest mierzony."
+            )
+            self.edge_track_list_panel.lbl_analysis.setMinimumHeight(
+                self.edge_track_list_panel.lbl_analysis.heightForWidth(260)
+            )
+            self.edge_track_list_panel.lbl_analysis.setToolTip(f"{shape}\n{measurement}")
         edge_label = track.label or f"Edge {track.edge_track_id}"
         self.polygon_tools_panel.set_edge_track_context(
             edge_label,
@@ -4788,44 +4649,12 @@ class NanoTrackMainWindow(QMainWindow):
             has_editable_polyline=self.current_draft_edge_polyline() is not None,
         )
 
-    def _build_dexined_resume_input(
-        self,
-        track: EdgeTrack,
-        polygon: PolygonROI,
-        current_annotation: EdgeFrameAnnotation,
-    ) -> tuple[DexiNedRunInput, dict[str, object]]:
-        if self._sequence is None:
-            raise RuntimeError("No sequence loaded.")
-        resume_from_frame = self._sequence.active_frame_index
-        input_frames, _source_title, _source_meta, source_view = self._current_edge_input_frames()
-        suffix_frames = np.asarray(input_frames[resume_from_frame + 1 :], dtype=np.float32)
-        polygon_mask = self._polygon_roi_to_mask(polygon)
-        threshold = self.polygon_tools_panel.dexined_threshold()
-        inference_resolution_hw = self.polygon_tools_panel.dexined_inference_resolution_hw()
-        run_input = DexiNedRunInput(
-            frames=suffix_frames,
-            polygon_mask=polygon_mask,
-            inference_resolution_hw=None
-            if inference_resolution_hw is None
-            else np.asarray(inference_resolution_hw, dtype=np.int32),
-            threshold=threshold,
-            source_view=source_view,
-        )
-        resume_meta = {
-            "track_id": track.edge_track_id,
-            "resume_from_frame": resume_from_frame,
-            "polygon": polygon,
-            "polygon_mask": polygon_mask,
-            "input_frames": suffix_frames,
-            "current_annotation": current_annotation,
-            "threshold": threshold,
-            "top_k_components": self.polygon_tools_panel.dexined_top_k_components(),
-            "inference_resolution_hw": inference_resolution_hw,
-            "polyline_method": self.polygon_tools_panel.edge_polyline_method(),
-            "refine_score_mode": self.polygon_tools_panel.edge_refine_score_mode(),
-            "refine_search_radius_px": self.polygon_tools_panel.edge_refine_search_radius_px(),
-        }
-        return run_input, resume_meta
+    def _build_dexined_resume_input(self, track: EdgeTrack, polygon: PolygonROI, current_annotation: EdgeFrameAnnotation) -> tuple[DexiNedRunInput, dict[str, object]]:
+        assert self._sequence is not None
+        start = self._sequence.active_frame_index
+        run, meta = self._edge_detection_input(polygon, np.arange(start+1, self._sequence.frame_count, dtype=np.int32))
+        meta.update(track_id=track.edge_track_id, resume_from_frame=start, current_annotation=current_annotation)
+        return run, meta
 
     def _build_edge_hybrid_input(
         self,
@@ -4842,12 +4671,18 @@ class NanoTrackMainWindow(QMainWindow):
             raise ValueError(f"Unsupported point tracker backend: {tracker_model}")
 
         start_frame_index = self._sequence.active_frame_index
-        input_frames, _source_title, _source_meta, source_view = self._current_edge_input_frames()
-        suffix_frames = np.asarray(input_frames[start_frame_index:], dtype=np.float32)
+        context = EdgeInput(self._analysis_input(), polygon)
+        suffix_frames, _ = context.frames_and_masks(np.arange(start_frame_index, self._sequence.frame_count))
+        source_view = context.numerical.source_view
         if current_annotation.polyline is None:
             raise ValueError("Current edge annotation does not contain a polyline.")
 
         control_points_xy = sample_polyline_control_points(current_annotation.polyline, int(control_point_count))
+        control_points_xy = context.numerical.frame(start_frame_index).geometry.source_to_display(control_points_xy)
+        _, supported = context.source_points(start_frame_index, control_points_xy)
+        control_points_xy = control_points_xy[supported]
+        if len(control_points_xy) < 2:
+            raise ValueError("Za mało punktów krawędzi w ważnym obszarze wybranego wejścia.")
         query_points_tyx = np.column_stack(
             [
                 np.zeros(len(control_points_xy), dtype=np.float32),
@@ -4865,6 +4700,7 @@ class NanoTrackMainWindow(QMainWindow):
             for frame_index in range(start_frame_index + 1, self._sequence.frame_count)
         }
         hybrid_meta = {
+            "context": context,
             "track_id": track.edge_track_id,
             "start_frame_index": start_frame_index,
             "polygon": polygon,
@@ -4883,6 +4719,7 @@ class NanoTrackMainWindow(QMainWindow):
         if track is None:
             raise RuntimeError("Selected edge track is no longer available.")
 
+        context = cast(EdgeInput, hybrid_meta["context"])
         start_frame_index = int(hybrid_meta["start_frame_index"])
         polygon = hybrid_meta["polygon"]
         current_annotation = hybrid_meta["current_annotation"]
@@ -4908,19 +4745,23 @@ class NanoTrackMainWindow(QMainWindow):
             if self._sequence.is_frame_excluded(frame_index):
                 continue
             tracked_points = np.asarray(tracks_xy[:, local_index, :], dtype=np.float64)
-            visible_points = tracked_points[visible_mask[:, local_index]]
+            tracked_points, supported = context.source_points(frame_index, tracked_points)
+            visible_points = tracked_points[visible_mask[:, local_index] & supported]
+            shape_provenance = context.numerical.provenance(frame_index, model_name=output.model_name, checkpoint_name=output.checkpoint_name)
+            measurement_provenance = EdgeMeasurementProvenance(self._sequence.source_path, self._sequence.metadata.get_pixel_size_nm())
             existing_annotation = existing_annotations.get(frame_index)
 
             if existing_annotation is not None and existing_annotation.polyline is not None and len(visible_points) >= 2:
-                refined_polyline = hybrid_refine_polyline(existing_annotation.polyline, visible_points)
+                refined_polyline = context.clip_source_polyline(frame_index, hybrid_refine_polyline(existing_annotation.polyline, visible_points))
                 track.add_annotation(
                     EdgeFrameAnnotation(
                         frame_index=frame_index,
                         polyline=refined_polyline,
                         edge_mask=None if existing_annotation is None else existing_annotation.edge_mask,
-                        visibility=FrameVisibility.VISIBLE,
+                        visibility=FrameVisibility.VISIBLE if refined_polyline is not None else FrameVisibility.LOST,
                         source=EdgeAnnotationSource.TRACKER_REFINE,
-                        metrics=self._compute_edge_metrics(refined_polyline),
+                        shape_provenance=shape_provenance, measurement_provenance=measurement_provenance,
+                        metrics=self._compute_edge_metrics(refined_polyline) if refined_polyline is not None else EdgeMetrics(),
                     )
                 )
                 continue
@@ -4930,14 +4771,16 @@ class NanoTrackMainWindow(QMainWindow):
                 continue
 
             if len(visible_points) >= 2:
+                supported_polyline = context.clip_source_polyline(frame_index, visible_points)
                 track.add_annotation(
                     EdgeFrameAnnotation(
                         frame_index=frame_index,
-                        polyline=visible_points,
+                        polyline=supported_polyline,
                         edge_mask=None,
-                        visibility=FrameVisibility.VISIBLE,
+                        visibility=FrameVisibility.VISIBLE if supported_polyline is not None else FrameVisibility.LOST,
                         source=EdgeAnnotationSource.TRACKER_REFINE,
-                        metrics=self._compute_edge_metrics(visible_points),
+                        shape_provenance=shape_provenance, measurement_provenance=measurement_provenance,
+                        metrics=self._compute_edge_metrics(supported_polyline) if supported_polyline is not None else EdgeMetrics(),
                     )
                 )
                 continue
@@ -4949,72 +4792,31 @@ class NanoTrackMainWindow(QMainWindow):
                     edge_mask=None,
                     visibility=FrameVisibility.LOST,
                     source=EdgeAnnotationSource.TRACKER_REFINE,
+                    shape_provenance=shape_provenance, measurement_provenance=measurement_provenance,
                 )
             )
 
     def _apply_edge_resume_output(self, output: DexiNedRunOutput, resume_meta: dict[str, object]) -> None:
-        if self._sequence is None:
-            raise RuntimeError("No sequence loaded.")
+        assert self._sequence is not None
         track = self._find_edge_track_by_id(int(resume_meta["track_id"]))
         if track is None:
             raise RuntimeError("Selected edge track is no longer available.")
-
-        resume_from_frame = int(resume_meta["resume_from_frame"])
-        polygon = resume_meta["polygon"]
-        polygon_mask = np.asarray(resume_meta["polygon_mask"], dtype=bool)
-        input_frames = np.asarray(resume_meta["input_frames"], dtype=np.float32)
-        current_annotation = resume_meta["current_annotation"]
-        threshold = float(resume_meta["threshold"])
-        top_k_components = int(resume_meta["top_k_components"])
-        polyline_method = str(resume_meta.get("polyline_method", "graph"))
-        refine_score_mode = str(resume_meta["refine_score_mode"])
-        refine_search_radius_px = int(resume_meta["refine_search_radius_px"])
-        expected_suffix_length = self._sequence.frame_count - resume_from_frame - 1
-
-        track.polygon_roi = polygon
-        if resume_from_frame == track.seed_frame_index:
-            track.seed_polyline = np.asarray(current_annotation.polyline, dtype=np.float64)
-
-        track.drop_annotations_after(resume_from_frame)
-        track.add_annotation(current_annotation)
-
-        edge_prob = np.asarray(output.edge_prob, dtype=np.float32)
-        if edge_prob.shape[0] != expected_suffix_length:
-            raise ValueError("DexiNed resume output length must match the remaining frame count.")
-        if input_frames.shape[0] != expected_suffix_length:
-            raise ValueError("DexiNed resume input frame range must match the remaining frame count.")
-        for local_index in range(edge_prob.shape[0]):
-            frame_index = resume_from_frame + 1 + local_index
-            if self._sequence.is_frame_excluded(frame_index):
-                continue
-            edge_frame = np.asarray(edge_prob[local_index], dtype=np.float32)
-            input_frame = np.asarray(input_frames[local_index], dtype=np.float32)
-            edge_binary_frame = None
-            if output.edge_binary is not None:
-                edge_binary_frame = np.asarray(output.edge_binary[local_index], dtype=bool)
-            selection, _selected_edge_frame, _coarse_polyline, refined_polyline, geometry_quality, _max_prob = self._extract_dominant_edge_geometry(
-                edge_frame,
-                polygon_mask,
-                input_frame=input_frame,
-                edge_binary_frame=edge_binary_frame,
-                requested_threshold=threshold,
-                top_k_components=top_k_components,
-                polyline_method=polyline_method,
-                refine_score_mode=refine_score_mode,
-                refine_search_radius_px=refine_search_radius_px,
-            )
-            track.add_annotation(
-                EdgeFrameAnnotation(
-                    frame_index=frame_index,
-                    polyline=refined_polyline.polyline_xy,
-                    edge_mask=selection.edge_mask,
-                    visibility=FrameVisibility.VISIBLE,
-                    source=EdgeAnnotationSource.DEXINED,
-                    metrics=self._compute_edge_metrics(refined_polyline.polyline_xy),
-                    geometry_quality=geometry_quality,
-                )
-            )
-
+        start = int(resume_meta["resume_from_frame"])
+        annotations = self._build_edge_annotations_from_dexined_output(
+            output, frame_indices=np.asarray(resume_meta["frame_indices"]), input_frames=np.asarray(resume_meta["input_frames"]),
+            polygon_mask=np.asarray(resume_meta["polygon_mask"]), threshold=float(resume_meta["threshold"]),
+            top_k_components=int(resume_meta["top_k_components"]), polyline_method=str(resume_meta["polyline_method"]),
+            refine_score_mode=str(resume_meta["refine_score_mode"]),
+            refine_search_radius_px=int(resume_meta["refine_search_radius_px"]), context=cast(EdgeInput | None, resume_meta.get("context")),
+        )
+        current = resume_meta["current_annotation"]
+        track.polygon_roi = resume_meta["polygon"]
+        if start == track.seed_frame_index:
+            track.seed_polyline = np.asarray(current.polyline, dtype=np.float64)
+        track.drop_annotations_after(start)
+        track.add_annotation(current)
+        for annotation in annotations.values():
+            track.add_annotation(annotation)
         self.set_edge_tracks(self._edge_tracks, selected_track_id=track.edge_track_id)
         self._show_current_frame(preserve_zoom=True)
 
@@ -5224,7 +5026,7 @@ class NanoTrackMainWindow(QMainWindow):
         if frame_offset < track.seed_frame_index:
             raise ValueError("start_frame_index cannot be earlier than the seed frame.")
         bbox = track.seed_bbox if prompt_bbox is None else prompt_bbox
-        context = self._particle_input()
+        context = self._analysis_input()
         run_input = context.tracker_input(
             tracker_kind, track.track_id, frame_offset, bbox, frame_limit=frame_limit,
             probability_threshold=self.track_list_panel.current_mask_probability_threshold(),
@@ -5232,12 +5034,12 @@ class NanoTrackMainWindow(QMainWindow):
         self._particle_runs[(track.track_id, frame_offset)] = context
         return run_input
 
-    def _particle_input(self) -> ParticleInput:
+    def _analysis_input(self) -> AnalysisInput:
         if self._sequence is None:
             raise RuntimeError("No sequence loaded.")
         frames, source_view, _ = self._current_preview_base_frames()
         provenance = self._preprocessing_provenance if self._show_processed_in_viewer else None
-        return ParticleInput(
+        return AnalysisInput(
             frames, self._sequence.metadata, source_view=source_view,
             source_revision=provenance.revision if provenance else f"original-{self._sequence_generation}",
             registration=self._registration_results,

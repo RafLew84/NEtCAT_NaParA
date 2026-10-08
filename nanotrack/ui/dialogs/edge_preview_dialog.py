@@ -20,6 +20,8 @@ class EdgePreviewDialog(QDialog):
         layout = QHBoxLayout(self)
         self.input_view = FramePreviewWidget("Input", self)
         self.edge_view = FramePreviewWidget("DexiNed", self)
+        self.input_view.lbl_meta.setWordWrap(True)
+        self.edge_view.lbl_meta.setWordWrap(True)
         layout.addWidget(self.input_view, 1)
         layout.addWidget(self.edge_view, 1)
 

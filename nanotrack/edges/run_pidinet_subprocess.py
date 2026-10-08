@@ -314,12 +314,14 @@ def _run_real_inference(
         use_dil=use_dil,
         evaluate_converted=evaluate_converted,
     )
-    polygon_mask = np.asarray(run_input.polygon_mask, dtype=bool)
-    polygon_bbox = _resolve_polygon_bbox(polygon_mask)
-    y0, y1, x0, x1 = polygon_bbox
-
     frame_probs: list[np.ndarray] = []
-    for frame in _iter_frames(run_input.frames):
+    for index, frame in enumerate(_iter_frames(run_input.frames)):
+        polygon_mask = run_input.polygon_mask_for_frame(index)
+        if not np.any(polygon_mask):
+            frame_probs.append(np.zeros(polygon_mask.shape, dtype=np.float32))
+            continue
+        polygon_bbox = _resolve_polygon_bbox(polygon_mask)
+        y0, y1, x0, x1 = polygon_bbox
         chw_frame, source_hw, _ = _prepare_frame_tensor(
             frame,
             polygon_bbox=polygon_bbox,

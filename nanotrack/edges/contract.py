@@ -47,11 +47,9 @@ class DexiNedRunInput:
         object.__setattr__(self, "frames", frames)
 
         polygon_mask = np.asarray(self.polygon_mask, dtype=bool)
-        if polygon_mask.ndim != 2:
-            raise ValueError("polygon_mask must have shape [H, W].")
-        if polygon_mask.shape != frames.shape[1:3]:
-            raise ValueError("polygon_mask must match the spatial shape of frames.")
-        if not np.any(polygon_mask):
+        if polygon_mask.shape not in (frames.shape[1:3], frames.shape[:3]):
+            raise ValueError("polygon_mask must have shape [H, W] or [T, H, W] matching frames.")
+        if polygon_mask.ndim == 2 and not np.any(polygon_mask):
             raise ValueError("polygon_mask must contain at least one True pixel.")
         object.__setattr__(self, "polygon_mask", polygon_mask)
 
@@ -76,6 +74,9 @@ class DexiNedRunInput:
             if not 0.0 <= threshold <= 1.0:
                 raise ValueError("threshold must be within [0, 1].")
             object.__setattr__(self, "threshold", threshold)
+
+    def polygon_mask_for_frame(self, index: int) -> np.ndarray:
+        return self.polygon_mask if self.polygon_mask.ndim == 2 else self.polygon_mask[index]
 
     def to_npz_payload(self) -> dict[str, np.ndarray]:
         payload: dict[str, np.ndarray] = {

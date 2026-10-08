@@ -15,14 +15,14 @@ from scripts.nanotrack_acceptance.reporting import supervise
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("quick", "full", "session", "aligned", "expanded", "particles"))
+    parser.add_argument("mode", choices=("quick", "full", "session", "aligned", "expanded", "particles", "edges"))
     parser.add_argument("--input", type=Path, help="MPP for full, .nanotrack for session")
     parser.add_argument("--report-dir", type=Path, help="New or empty output directory")
     parser.add_argument("--timeout", type=float, help="Total seconds; default 180, full 7200")
     parser.add_argument("--headless", action="store_true", help="Offscreen checks; explicitly not visible GUI acceptance")
     args = parser.parse_args(argv)
-    if args.mode in ("full", "session", "particles") and (args.input is None or not args.input.is_file()):
-        parser.error("full/session/particles require --input pointing to an existing file")
+    if args.mode in ("full", "session", "particles", "edges") and (args.input is None or not args.input.is_file()):
+        parser.error("full/session/particles/edges require --input pointing to an existing file")
     if args.mode in ("quick", "aligned", "expanded") and args.input is not None:
         parser.error("quick/aligned/expanded generate their own known sample; use full/session for --input")
     timeout = args.timeout if args.timeout is not None else (7200 if args.mode == "full" else 180)

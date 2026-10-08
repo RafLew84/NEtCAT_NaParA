@@ -48,7 +48,11 @@ przed alokacją, przy szacunku buforów ponad 512 MiB, bez zmniejszania obrazu.
 Opis **Wejście** w panelu pokazuje je przed Start. Wyniki cząstek są przechowywane
 w oryginalnych współrzędnych, a wartości kanału mierzone na raw z liczbą ważnych
 próbek. Brak pomiaru pozostaje brakiem wartości. Źródło kształtu i pomiarów
-przetrwa Save/Open. Śledzenie krawędzi pozostaje zadaniem 06.
+przetrwa Save/Open. Krawędzie i tracker punktowy również używają wybranego
+źródła i geometrii. ROI jest przeliczane osobno dla każdej klatki; zapisane
+polilinie oraz pomiary geometryczne pozostają w układzie oryginału. Krawędzie
+nie mierzą wartości kanału. Brak ważnych danych oznacza brak krawędzi/pomiaru;
+przy luce zachowywany jest najdłuższy ciągły ważny fragment polilinii.
 
 Rzeczywisty SAM2 na przygotowanym MOVIE_2 (klatki 10–12, osobno Aligned i
 Expanded, zmiany widoku, Save/Open oraz Cancel) uruchamia tryb `particles`:
@@ -62,6 +66,20 @@ Wymaga istniejącego środowiska i checkpointu SAM2 wskazanych w
 Nie uruchamia ponownie preprocessingu. Raport zachowuje SHA-256 sesji,
 filmu i checkpointu oraz zapisuje dwie gotowe sesje z wynikami i zrzuty GUI.
 Ta krótka próba sprawdza integrację i geometrię, nie stanowi kalibracji modelu.
+
+Tryb `edges` sprawdza rzeczywisty DexiNed: Preview, klatki 194–196 w Aligned,
+zmiany widoku, wznowienie od 195 w Expanded, Save/Open i Cancel:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_python_utf8.ps1 -ScriptPath scripts/run_nanotrack_acceptance.py edges --input .scratch/nanotrack-registration-export/acceptance/runs/ticket-02/MOVIE_2-repair-bm3d-registered-v2.nanotrack --timeout 360
+```
+
+Wymaga istniejącego środowiska i checkpointu z `nanotrack/edges/backend.py`.
+Zapisuje identyfikację wejść, sesje z wynikami i zrzuty widocznego GUI.
+Nie pobiera modeli i nie przelicza preprocessingu. Opis wejścia w `Polygon ROI`
+oraz pochodzenie w `Edge Tracks` rozróżniają źródło kształtu i geometrię pomiaru.
+Próba obejmuje integrację jednego rzeczywistego modelu, bez kalibracji jakości
+detekcji i bez deklarowania rzeczywistego uruchomienia innych backendów.
 
 Krótka próba generuje S1 o znanej skali, z klatką stałą, NaN i dużym offsetem.
 Sprawdza naprawę, rzeczywisty BM3D, precyzję, przełączanie źródła i Save/Open:
@@ -86,7 +104,7 @@ ponownie BM3D ani rejestracji i nie nadpisuje wejściowej sesji:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_python_utf8.ps1 -ScriptPath scripts/run_nanotrack_acceptance.py session --input .scratch/nanotrack-registration-export/acceptance/runs/ticket-02/MOVIE_2-repair-bm3d-registered-v2.nanotrack
 ```
 
-Limity czasu: `quick`, `session`, `aligned`, `expanded` i `particles` 180 s, `full` 7200 s. Nadpisanie:
+Limity czasu: `quick`, `session`, `aligned`, `expanded`, `particles` i `edges` 180 s, `full` 7200 s. Nadpisanie:
 `--timeout 300`. Przekroczenie czasu kończy własny proces roboczy, zapisuje
 `timeout` i zwraca kod 1. Awaria procesu bez raportu też jest błędem — runner
 sprawdza zakończenie procesu, nie czeka na pojawienie się pliku sygnalizacyjnego.

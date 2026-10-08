@@ -17,6 +17,7 @@ from nanotrack.analysis import compute_particle_metrics
 
 try:
     from PyQt6.QtCore import Qt
+    from PyQt6.QtTest import QTest
     from PyQt6.QtWidgets import QApplication, QMessageBox
 except ImportError:  # pragma: no cover - optional outside the target GUI env
     Qt = None
@@ -2659,6 +2660,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self.window._repair_frames = repaired
         self.window._denoised_frames = denoised
         self.window._denoised_sigma_factor = 0.8
+        self.window.cmb_preview_source.setCurrentIndex(1)
 
         edge_prob = np.zeros((1, *sequence.frame_shape), dtype=np.float32)
         edge_prob[0, 12:28, 10:22] = 0.75
@@ -2674,8 +2676,8 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         def fake_run(run_input):
             time.sleep(0.05)
             np.testing.assert_array_equal(run_input.frames, denoised[[0]])
-            self.assertEqual(run_input.source_view, "repair+bm3d")
-            self.assertEqual(run_input.polygon_mask.shape, sequence.frame_shape)
+            self.assertEqual(run_input.source_view, "bm3d")
+            self.assertEqual(run_input.polygon_mask.shape, (1, *sequence.frame_shape))
             self.assertTrue(np.any(run_input.polygon_mask))
             self.assertAlmostEqual(run_input.threshold, 0.35, places=6)
             np.testing.assert_array_equal(run_input.inference_resolution_hw, np.asarray([512, 512], dtype=np.int32))
@@ -2694,11 +2696,11 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         run_mock.assert_called_once()
         self.assertIsNotNone(self.window._edge_preview_dialog)
         self.assertTrue(self.window._edge_preview_dialog.isVisible())
-        self.assertIn("BM3D input | Frame 1/", self.window._edge_preview_dialog.input_view.lbl_title.text())
-        self.assertEqual(self.window._edge_preview_dialog.input_view.lbl_meta.text(), "BM3D cache")
+        self.assertIn("bm3d | Frame 1/", self.window._edge_preview_dialog.input_view.lbl_title.text())
+        self.assertIn("Wynik preprocessingu", self.window._edge_preview_dialog.input_view.lbl_meta.text())
         self.assertGreater(len(self.window._edge_preview_dialog.input_view.viewer._overlay_items), 0)
         self.assertIn("Dominant Edge | Frame 1/", self.window._edge_preview_dialog.edge_view.lbl_title.text())
-        self.assertIn("repair+bm3d", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
+        self.assertIn("bm3d", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertIn("thr 0.35", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertIn("k 2", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
         self.assertIn("512", self.window._edge_preview_dialog.edge_view.lbl_meta.text())
@@ -2812,7 +2814,10 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         edge_frame = np.zeros(sequence.frame_shape, dtype=np.float32)
         edge_frame[:, 5:27] = edge_profile[:, None].astype(np.float32)
         polygon = PolygonROI(np.asarray([[4.0, 5.0], [28.0, 5.0], [28.0, 26.0], [4.0, 26.0]], dtype=np.float64))
-        polygon_mask = self.window._polygon_roi_to_mask(polygon)
+        self.window.viewer.polygon_changed.emit(polygon)
+        self.window.polygon_tools_panel.sp_dexined_threshold.setValue(.25)
+        self.window.polygon_tools_panel.cmb_refine_score_mode.setCurrentIndex(1)
+        self.window.polygon_tools_panel.sp_refine_radius.setValue(5)
 
         for polyline_method, extraction_mode in (("graph", "graph_path"), ("pca_bins", "binned_pca")):
             output = DexiNedRunOutput(
@@ -2821,19 +2826,15 @@ class NanoTrackMainWindowTests(unittest.TestCase):
                 model_name="dexined",
                 checkpoint_name="DexiNed_BIPED_10.pth",
             )
-            annotations = self.window._build_edge_annotations_from_dexined_output(
-                output,
-                frame_indices=np.asarray([0], dtype=np.int32),
-                input_frames=input_frame[None, ...],
-                polygon_mask=polygon_mask,
-                threshold=0.25,
-                top_k_components=1,
-                polyline_method=polyline_method,
-                refine_score_mode="edge_prob",
-                refine_search_radius_px=5,
-            )
-
-            annotation = annotations[0]
+            self.window.polygon_tools_panel.cmb_polyline_method.setCurrentIndex(0 if polyline_method=="graph" else 1)
+            before = len(self.window.current_edge_tracks())
+            with patch("nanotrack.edges.backend.DexiNedSubprocessBackend.run", return_value=output):
+                self.assertTrue(self.window.polygon_tools_panel.btn_run_sequence.isEnabled())
+                self.window.polygon_tools_panel.btn_run_sequence.click()
+                self._wait_until(lambda: len(self.window.current_edge_tracks()) > before)
+                self.assertEqual(len(self.window.current_edge_tracks()), before + 1)
+                QTest.qWait(30)
+            annotation = self.window.current_edge_tracks()[-1].get_annotation(0)
             self.assertIsNotNone(annotation.geometry_quality)
             assert annotation.geometry_quality is not None
             self.assertEqual(annotation.geometry_quality.polyline_method, polyline_method)
@@ -3930,7 +3931,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
 
         def fake_ddn_run(run_input):
             self.assertEqual(run_input.frames.shape[0], 2)
-            self.assertIsNone(run_input.frame_indices)
+            np.testing.assert_array_equal(run_input.frame_indices, [2, 3])
             return resume_output
 
         with (
@@ -4167,7 +4168,7 @@ class NanoTrackMainWindowTests(unittest.TestCase):
         self._cancel_active_edge_operation(fake_backend)
 
         self.assertEqual(fake_backend.run_input.frames.shape[0], 2)
-        self.assertIsNone(fake_backend.run_input.frame_indices)
+        np.testing.assert_array_equal(fake_backend.run_input.frame_indices, [2, 3])
         self.assertEqual(len(self.window.current_edge_tracks()), 1)
         self._assert_edge_track_matches_snapshot(track, snapshot)
         self.assertEqual(self.window.current_selected_edge_track_id(), track.edge_track_id)

@@ -27,11 +27,15 @@ class EdgeTrackListPanel(QWidget):
         group_layout = QVBoxLayout(group)
 
         self.lbl_summary = QLabel("0 edge tracks", self)
+        self.lbl_analysis = QLabel("Kształt i pomiary: -", self)
+        self.lbl_analysis.setWordWrap(True)
+        self.lbl_analysis.setMaximumWidth(260)
         self.list_tracks = QListWidget(self)
         self.list_tracks.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         self.btn_delete_selected = QPushButton("Delete Selected", self)
 
         group_layout.addWidget(self.lbl_summary)
+        group_layout.addWidget(self.lbl_analysis)
         group_layout.addWidget(self.list_tracks, 1)
         group_layout.addWidget(self.btn_delete_selected)
 

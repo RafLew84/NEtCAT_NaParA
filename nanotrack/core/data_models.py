@@ -571,8 +571,8 @@ class EdgeGeometryQuality:
 
 
 @dataclass(frozen=True)
-class ParticleShapeProvenance:
-    """Source revision and actual transform used to obtain a particle shape."""
+class AnalysisShapeProvenance:
+    """Source revision and actual transform used to obtain an analysis shape."""
 
     source_view: str
     source_revision: str
@@ -613,7 +613,7 @@ class YoloDetection:
     confidence: float
     selected: bool = True
     model_name: str = ""
-    shape_provenance: Optional[ParticleShapeProvenance] = None
+    shape_provenance: Optional[AnalysisShapeProvenance] = None
 
     def __post_init__(self) -> None:
         if self.frame_index < 0:
@@ -743,7 +743,7 @@ class TrackFrameAnnotation:
     source: AnnotationSource = AnnotationSource.SAM2
     metrics: ParticleMetrics = field(default_factory=ParticleMetrics)
     source_view: str = ""
-    shape_provenance: Optional[ParticleShapeProvenance] = None
+    shape_provenance: Optional[AnalysisShapeProvenance] = None
     measurement_provenance: Optional[ParticleMeasurementProvenance] = None
 
     def __post_init__(self) -> None:
@@ -768,6 +768,19 @@ class TrackFrameAnnotation:
         return self.bbox is not None or self.mask is not None
 
 
+@dataclass(frozen=True)
+class EdgeMeasurementProvenance:
+    """Geometric measurements use canonical points and the source XY calibration."""
+
+    source_path: str
+    pixel_size_nm: tuple[float | None, float | None]
+    coordinate_space: str = "original"
+    channel_sampling: str = "not_measured"
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "pixel_size_nm", tuple(self.pixel_size_nm))
+
+
 @dataclass
 class EdgeFrameAnnotation:
     """Single-frame annotation for one tracked step edge."""
@@ -779,6 +792,8 @@ class EdgeFrameAnnotation:
     source: EdgeAnnotationSource = EdgeAnnotationSource.DEXINED
     metrics: EdgeMetrics = field(default_factory=EdgeMetrics)
     geometry_quality: Optional[EdgeGeometryQuality] = None
+    shape_provenance: Optional[AnalysisShapeProvenance] = None
+    measurement_provenance: Optional[EdgeMeasurementProvenance] = None
 
     def __post_init__(self) -> None:
         if self.frame_index < 0:
