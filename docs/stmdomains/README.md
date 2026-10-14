@@ -35,3 +35,10 @@ python -m stmdomains.main
 
 Współdzielony kod i modele mogą wymagać dodatkowych zależności poza PyQt6 szkieletu.
 Nowe metody będą oceniane na danych i kryteriach wskazanych w mapie.
+
+## Rozpoznanie przed przygotowaniem mapy
+
+- [Ogólne wykrywanie domen molekularnych](research-general-domain-detection.md)
+  — przegląd metod wykrywania regularności rozmieszczenia i uporządkowania
+  orientacji molekuł, założeń MolTrack oraz propozycja porównania metod na danych.
+  Notatka badawcza z 2026-10-14; wybór rozwiązania pozostaje otwarty.
