@@ -44,3 +44,7 @@ Nowe metody będą oceniane na danych i kryteriach wskazanych w mapie.
   Notatka badawcza z 2026-10-14, rozszerzona o rozwiązania z lat 2024–2026,
   w tym SBC/MatID, odkrywanie lokalnych środowisk i analizę obrazów STM.
   Wybór rozwiązania pozostaje otwarty.
+- [Pomiar orientacji pojedynczej molekuły](research-molecular-orientation.md)
+  — wymagane dane wejściowe, znaczenie kąta, porównanie metod oraz inspekcja
+  przykładowego zapisu TTMAPP i wycinków obrazu. Parametry fizyczne eksportu
+  są nieznane; definicja orientacji pozostaje do ustalenia na przykładach.
