@@ -1,19 +1,37 @@
 # STM Viewer
 
-Program do przeglądania obrazów i sekwencji STM, zapisu STP/MPP/S94
-oraz rejestracji obrazów. Katalog aplikacji: `stmviewer/`.
+Program do przeglądania obrazów i sekwencji STP/S94/MPP, rejestracji
+oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 
 ## Stan początkowy
 
 Gotowe są osobny punkt uruchomienia, podstawowe okno PyQt6 i akcja zakończenia.
 Okno nie wczytuje ani nie zapisuje jeszcze plików i nie wykonuje rejestracji.
-Zakres dalszej implementacji określi nowa mapa użytkownika.
+Trwa uzgadnianie pierwszej wersji w mapie decyzji. Utworzenie mapy nie oznacza
+wdrożenia opisanych funkcji.
 
 ## Mapa
 
-Dodaj mapę jako `docs/stmviewer/map.md`, a zadania do `docs/stmviewer/issues/`.
-Pliki wersjonuj na gałęzi `viewer/*`. Plik `handoff.md` powstaje przy przekazaniu
-zadania do sesji integracyjnej.
+- [STM Viewer — mapa pierwszej wersji](map.md) — cel, zakres i indeks zamkniętych decyzji.
+- [Tickety](issues/) — pytania do rozstrzygnięcia, po jednym w pliku.
+- [Słownik STM Viewer](GLOSSARY.md) — pojęcia serii i rejestracji.
+- [Rozpoznanie istniejącego kodu](reconnaissance.md) — fakty, zależności i ograniczenia.
+- [Przekazanie](handoff.md) — wynik sesji i potrzebne wspólne zmiany.
+
+Lokalny tracker adaptuje konwencję `wayfinder` do wymaganych przez repo ścieżek
+`docs/stmviewer/`, zamiast `.scratch/`. Pliki wersjonujemy na gałęzi `viewer/*`.
+Mapa i tickety mają wyłącznie etykiety `wayfinder:*`.
+
+Ticket ma `Type`, `Status` (`open`, `claimed`, `resolved`), `Assignee`, `Parent`
+i `Blocked by`. Brak zależności oznaczamy `none`; pozostałe wskazują numery
+plików. Dostępny ticket jest otwarty, nieprzejęty i ma wszystkie blokujące
+tickety rozwiązane. Wybieramy pierwszy według numeru.
+
+Przed pracą ustaw `Status: claimed` i `Assignee: rlew` (osoba prowadząca mapę).
+Komentarze dopisuj pod `Comments`. Rozstrzygnięcie zapisz jako `Answer`, ustaw
+`Status: resolved` i dopisz nazwany link z krótkim wynikiem do mapy. Nie zmieniaj
+samego pytania w magazyn decyzji. W sesji rozstrzygamy najwyżej jeden ticket
+(wyjątek skillu: research); tworzenie mapy nie zamyka ticketów.
 
 ## Uruchomienie
 
