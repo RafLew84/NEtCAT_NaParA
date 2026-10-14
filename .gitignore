@@ -217,3 +217,7 @@ moltrack.7z
 moltrack/ui/dialogs/domain_analysis_editing_prototype.html
 moltrack/ui/dialogs/domain_analysis_workflow_ui_prototype.html
 moltrack/persistence/domain_correction_persistence_export_prototype.html
+
+# New application plans belong to Git, including names ignored by legacy rules.
+!/docs/stmviewer/**/*.md
+!/docs/stmdomains/**/*.md

@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "STM Viewer",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "stmviewer.main",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "STM Domains",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "stmdomains.main",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}

@@ -1,0 +1,5 @@
+# Minimal runtime for the STM Viewer and STM Domains skeletons.
+# Dependencies of the existing applications are managed separately.
+PyQt6==6.9.1
+PyQt6-Qt6==6.9.2
+PyQt6-sip==13.13.0
