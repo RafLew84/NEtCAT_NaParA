@@ -41,4 +41,6 @@ Nowe metody będą oceniane na danych i kryteriach wskazanych w mapie.
 - [Ogólne wykrywanie domen molekularnych](research-general-domain-detection.md)
   — przegląd metod wykrywania regularności rozmieszczenia i uporządkowania
   orientacji molekuł, założeń MolTrack oraz propozycja porównania metod na danych.
-  Notatka badawcza z 2026-10-14; wybór rozwiązania pozostaje otwarty.
+  Notatka badawcza z 2026-10-14, rozszerzona o rozwiązania z lat 2024–2026,
+  w tym SBC/MatID, odkrywanie lokalnych środowisk i analizę obrazów STM.
+  Wybór rozwiązania pozostaje otwarty.

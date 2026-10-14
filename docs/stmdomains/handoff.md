@@ -13,13 +13,21 @@ potrzebny do niezależnego pomiaru orientacji samych molekuł.
 
 Notatka rozróżnia założenia obecnego MolTrack, wyniki opublikowanych badań,
 propozycje do eksperymentalnego sprawdzenia oraz ograniczenia interpretacji.
+Na prośbę użytkownika rozszerzono przegląd o nowsze rozwiązania z lat 2024–2026:
+SBC/MatID, porównanie metod odkrywania lokalnych środowisk Ulugöl i in.,
+reprezentacje łączące położenie i orientację molekuł oraz segmentację STM
+Koleva i in. Uwzględniono też adaptacyjne sąsiedztwo mSANN i ograniczenia
+rozpoznawania molekuł przez UniMR. Zaktualizowano propozycję porównania metod;
+przeniesienie wyników z modeli atomowych i koloidów na molekuły STM pozostaje
+hipotezą do sprawdzenia.
 Dodano odnośnik w README. Zgodnie ze zleceniem mapa i tickety powstaną później;
 nie ma jeszcze decyzji o metodzie ani implementacji nowych funkcji.
 
 ## Commit
 
-Przekazanie obejmuje commit dokumentacji na `domains/start` zawierający tę notatkę,
-README i niniejszy plik. Jego identyfikator znajduje się w końcowej wiadomości sesji.
+Pierwszy przegląd zapisano w `a5d6601`. Bieżące przekazanie rozszerza go commitem
+dokumentacji na `domains/start`, obejmującym notatkę, README i niniejszy plik.
+Identyfikator nowego commita znajduje się w końcowej wiadomości sesji.
 
 ## Wykonane sprawdzenia
 

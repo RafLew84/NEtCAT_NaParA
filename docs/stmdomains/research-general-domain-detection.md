@@ -26,6 +26,11 @@ Przy znanych centrach proponowany punkt startu eksperymentu to **sąsiedztwa pun
 całego obrazu może uzupełniać i kontrolować wynik; nie trzeba ponownie rozwiązywać
 zadania detekcji molekuł.
 
+Przegląd uzupełniono o prace z lat 2024–2026, opisane niżej w sekcji
+„Nowsze rozwiązania”. Najbliższe naszemu wejściu są odkrywanie powtarzalnych
+komórek przez SBC/MatID oraz grupowanie deskryptorów punkt + orientacja molekuły.
+Nadal są to kandydaci do porównania.
+
 ## Co rzeczywiście zakłada MolTrack
 
 Audyt kodu bieżącego worktree, baza Git `0e8bc53`:
@@ -158,6 +163,104 @@ to gotowy algorytm odkrywania nieznanych typów.
 Propozycja: porównać wynik analizy punktów z mapami lokalnej autokorelacji,
 FFT lub falek w kilku rozmiarach okna, szczególnie przy spornych granicach.
 
+## Nowsze rozwiązania — przegląd na 2026-10-14
+
+Nowsze publikacje rozwijają kilka różnych części zadania: wyszukiwanie
+periodycznych obszarów, odkrywanie klas otoczenia, opis orientacji molekuł
+i segmentację obrazu. Nie należy traktować tych wyników jako wymiennych.
+Poniższy wybór uwzględnia znane centra z YOLO lub ręcznych oznaczeń;
+sprawdzono dostępność publicznego kodu, ale nie odtwarzano jego działania ani wyników.
+
+**SBC / MatID — Denell i in., 6.02.2025.** Algorytm znajduje lokalnie komórkę
+powtarzalnego układu, a następnie przypisuje do niej zgodne punkty. Wejściem są
+współrzędne i gatunki atomów, wynikiem grupy oraz odpowiadające im komórki.
+Badanie obejmuje modele stosów materiałów 2D i granic ziaren, z kontrolowanymi
+zakłóceniami. Nie wymaga uczenia ani katalogu szablonów kryształów.
+[Publikacja](https://doi.org/10.1038/s41524-024-01498-x).
+Publiczny [kod MatID](https://github.com/FAIRmat-NFDI/matid) i
+[dokumentacja SBC](https://fairmat-nfdi.github.io/matid/docs/learn/symmetry-based-clustering/)
+udostępniają analizę struktur skończonych i periodycznych. Ograniczeniem jest
+założenie powtarzalności w dwóch lub trzech kierunkach oraz dobór tolerancji,
+rozmiaru komórki i promieni definiujących połączenia.
+[Parametry implementacji](https://fairmat-nfdi.github.io/matid/docs/reference/sbc/).
+Obecna implementacja nie obsługuje struktur powtarzających się tylko w jednym
+kierunku, np. łańcuchów.
+[Zakres SBC](https://fairmat-nfdi.github.io/matid/docs/learn/symmetry-based-clustering/).
+Wniosek: to konkretny kandydat dla regularnych pól znanych centrów; przeniesienie
+z atomów na molekuły wymaga adaptacji skali i relacji sąsiedztwa. Nie zapewnia
+pomiaru obrotu samej molekuły ani wykrycia każdego rodzaju porządku nieperiodycznego.
+
+**Deskryptory środowiska + UMAP — Ulugöl i in., publikacja 2026.** Praca porównuje
+PCA, autoenkodery i UMAP na deskryptorach uporządkowania wiązań oraz asymetrii
+otoczenia. Walidacja obejmuje symulacje i eksperymentalnie wyznaczone pozycje
+cząstek koloidalnych w strukturze 3D. UMAP dawał najlepsze wyniki w badanych
+przypadkach. To nowsze rozwinięcie podejścia Boattini, bez zadanej listy klas
+w samym grupowaniu. [Artykuł, online 10.02.2026](https://doi.org/10.1063/5.0302107),
+[preprint od 8.09.2025](https://arxiv.org/abs/2509.07186).
+[Repozytorium autorów](https://github.com/alptug/Comparing-dimensionality-reduction-methods-for-local-structural-identification-in-colloidal-systems)
+zawiera kalkulator deskryptorów, notebooki i przykładowe dane. Transfer wymaga
+reprezentacji odpowiedniej dla 2D i osobnego kanału orientacji: skalarne cechy
+niezmiennicze względem obrotu nie wystarczą do rozdzielenia obróconych domen.
+Wyjściowa klasa środowiska nadal wymaga sprawdzenia spójności przestrzennej.
+
+**Pozycja i orientacja w jednym deskryptorze — Kuroshima i in., 3.07.2024.**
+Reprezentacja *punkt + wektory* obejmuje środki molekuł i ich względne
+orientacje; alternatywą jest graf atomistyczny. Autorzy klasyfikują otoczenia
+w symulacjach kryształów mocznika i nikotynamidu, także przy interfejsach.
+Klasyfikator jest nadzorowany i rozpoznaje znane polimorfy, więc nie jest gotowym
+rozwiązaniem odkrywania nieznanych domen. [Publikacja](https://doi.org/10.1021/acs.jctc.4c00418),
+[preprint od 29.03.2024](https://arxiv.org/abs/2404.00155).
+Dostępne są [MolStrucClassifier](https://github.com/rogalj/MolStrucClassifier)
+i [wariant grafowy](https://github.com/InfluenceFunctional/MXtalTools/tree/mol_classifier).
+Dla STM Domains interesująca jest reprezentacja: pozwala uwzględnić różne
+układy obrotów przy identycznych centrach. Jej połączenie z grupowaniem bez etykiet
+byłoby naszym eksperymentem, nie wynikiem już wykazanym w tej pracy.
+
+**Segmentacja domen bezpośrednio na STM — Kolev i in., publikacja 2026.**
+Pierwszy moduł wykorzystuje cechy wczesnych warstw sieci FCNResNet101,
+wytrenowanej wcześniej na ImageNet, oraz k-means. Na rzeczywistym Si(001)
+pokazano rozdzielenie obszarów rzędów dimerów obróconych o 90°. Zmiana
+rozdzielczości przetwarzania zmienia szczegółowość podziału. Liczbę klastrów
+wybiera użytkownik; dalszy moduł few-shot wymaga wskazanych klas i przykładów.
+[Publikacja](https://doi.org/10.1088/2632-2153/ae520e),
+[pełny tekst, §3.2 i rys. 3f; preprint 2025, wersja 2 z 18.06.2026](https://arxiv.org/html/2506.01678v2).
+Jest [publiczny kod i modele](https://github.com/nickkolev97/FSL_STM).
+To bezpośredni nowszy precedens segmentacji orientacji sieci w STM, lecz jeszcze
+nie walidacja odkrywania domen dowolnych molekuł. Przy naszych znanych centrach
+warto rozważyć go jako obrazową kontrolę wyniku.
+
+**UniMR — online 15.12.2025, wydanie czasopisma 2026.** Praca rozpoznaje
+molekuły w pięciu układach molekuła/podłoże STM. Porównuje reprezentację pikselową
+i CLIP, wybierając cechy przez analizę GMM, następnie wyszukuje obiekty podobne
+do wskazanego wzorca. Normalizacja wyrównuje obroty i odbicia lustrzane.
+[Publikacja](https://doi.org/10.1002/advs.202516428).
+Wniosek: to pomoc w porównywaniu wyglądu, ale normalizacja usuwa różnice ważne
+dla domen orientacyjnych i chiralnych. Nie jest gotowym miernikiem orientacji.
+Mimo deklaracji autorów o otwartym rozwiązaniu nie potwierdzono publicznego
+repozytorium powiązanego z publikacją; dostępność kodu wymaga dalszego ustalenia.
+
+**Sąsiedztwo bez sztywnej otoczki.** mSANN poprawia nadliczanie sąsiadów starego
+SANN w układach o małej koordynacji; opisano testy układów 2D i 3D.
+[Publikacja, online 16.03.2026](https://doi.org/10.1063/5.0311865),
+[preprint od 13.11.2025, aktualizacja 10.09.2026](https://arxiv.org/abs/2511.10748),
+[kod SANNpy](https://github.com/alptug/SANNpy).
+To komponent do porównania z Delaunay i lokalną skalą, nie kompletny detektor domen.
+W dalszej perspektywie istnieje też grafowy autoenkoder MEAGraph (2026),
+grupujący deskryptory atomowych środowisk; jego demonstracje dotyczą baz
+potencjałów atomowych, a nie przestrzennej segmentacji STM.
+[Publikacja](https://doi.org/10.1088/2632-2153/ae39a1),
+[kod](https://github.com/LLNL/MEAGraph).
+
+**Nowsze grupowanie nie usuwa potrzeby walidacji.** Kývala i in. (27.02.2025)
+porównali PCA, UMAP i PaCMAP na symulacjach krzemu oraz wody. Wskazali
+sztuczne klastry zależne od inicjalizacji, trudności przy nierównych liczebnościach
+i konieczność uśredniania niektórych deskryptorów w czasie. Nie potwierdzili
+uniwersalnej przewagi PaCMAP. [Publikacja](https://doi.org/10.1038/s41524-025-01544-2),
+[dane autorów](https://zenodo.org/records/13789144).
+Wniosek dla prób: wybór deskryptora, skali oraz stabilność wyniku są równie
+istotne jak wybór algorytmu grupowania. Kolorowe klastry w rzucie 2D nie są
+samodzielnym dowodem istnienia fizycznych domen.
+
 ## Ograniczenia istotne dla obu rodzajów uporządkowania
 
 Lokalna autokorelacja nie zachowuje całej informacji o motywie. Wang i in.
@@ -205,13 +308,18 @@ To plan sprawdzenia hipotezy; **żadnego z poniższych pomiarów jeszcze nie wyk
    powtarzalny motyw wielomolekułowy, gradient orientacji oraz brak domen.
    Osobno zmieniać jakość obrazu i błędy wejściowych pozycji/brakujące centra.
    Syntetyki sprawdzają znane własności; nie zastępują oceny na eksperymencie STM.
-4. Porównać obecną analizę MolTrack na zgodnych z nią przypadkach z deskryptorami
-   centrów połączonymi z osobnym pomiarem motywu. Użyć autokorelacji/FFT jako
-   kontroli. Oddzielić błędy grupowania na poprawnych centrach od skutków błędów
-   wejściowych pozycji. Falki lub uczony deskryptor dołączyć według wyników prób.
+4. Porównać dwie hipotezy: **odkrywanie powtarzalnych komórek i obszarów przez
+   SBC/MatID** oraz **wieloskalowe deskryptory centrów, grupowanie i osobny kanał
+   orientacji molekuł**. Obecną analizę MolTrack pozostawić jako punkt odniesienia
+   na zgodnych z nią przypadkach. Sprawdzić kilka definicji sąsiedztwa, w tym mSANN.
+   Kontrolę obrazową zacząć od autokorelacji/FFT; metodę Koleva i in. rozważyć jako kolejny
+   wariant. Oddzielić błędy grupowania na poprawnych centrach od skutków błędów
+   wejściowych pozycji. To kolejność prób, nie wybór architektury.
 5. Dobierać parametry na jednych akwizycjach, sprawdzać na innych. Nie traktować
    sąsiednich nakładających się wycinków tej samej klatki jako niezależnego testu.
    Zachować parametry, ziarno losowania, wersję kodu, maskę ważnych pikseli i wyniki.
+   Sprawdzić również różne inicjalizacje i udział małych domen, żeby nie uznać
+   niestabilnych klastrów ani zaniku rzadkiej struktury za własność próbki.
 
 | Oceniany aspekt | Proponowany pomiar |
 | --- | --- |
