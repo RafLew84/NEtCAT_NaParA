@@ -3,7 +3,8 @@
 Data badania: **2026-10-14**. Status: **notatka badawcza, bez wyboru architektury**.
 Zakres: zarówno rozmieszczenie centrów molekuł, jak i orientacja samych molekuł.
 **Pozycje molekuł będą danymi wejściowymi z YOLO albo ręcznego oznaczania.**
-Mapa i tickety powstaną później. Nie przeprowadzono eksperymentów na danych użytkownika.
+Przegląd powstał przed [mapą decyzji](map.md), która prowadzi dalsze prace.
+Nie przeprowadzono tu eksperymentów skuteczności metod na danych użytkownika.
 
 ## Odpowiedź
 

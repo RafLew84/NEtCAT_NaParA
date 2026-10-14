@@ -4,52 +4,69 @@ Data: 2026-10-14. Gałąź: `domains/start`.
 
 ## Zakres i wynik
 
-Po przeglądzie ogólnego wykrywania domen przygotowano
-[notatkę o pomiarze orientacji molekuły](research-molecular-orientation.md).
-Opisuje wymagane wejście niezależne od formatu MolTrack, metody analizy,
-niejednoznaczność symetrii oraz potrzebne referencje i pomiary jakości.
+Utworzono mapę
+[STM Domains — specyfikacja analizy typów uporządkowania w serii](map.md)
+na podstawie rozmowy z użytkownikiem i umiejętności `wayfinder`, `grilling`
+oraz `domain-modeling`. [Rejestr pytań](issues/README.md) zawiera dziewięć
+otwartych ticketów decyzyjnych z zależnościami i instrukcją lokalnego trackera.
+Dodano [słownik](GLOSSARY.md) i zaktualizowano README. Nie rozstrzygnięto żadnego
+ticketu i nie rozpoczęto implementacji.
 
-Sprawdzono lokalny `data/TTMAPP/detection_full.moltrack.json` i wskazany przez
-niego plik MPP. Oprócz 52 494 detekcji zapis zawiera 11 993 maski SAM2.
-Adnotacje są w układzie `expanded_aligned`; opisano ich przeliczenie na surową
-klatkę i różnicę między `original_bbox_xyxy` a współrzędnymi surowego obrazu.
-Przygotowano przegląd pierwszej klatki, 12 wycinków i kontrolę anizotropii masek.
-Artefakty oraz skrypt pozostają lokalne w ignorowanym katalogu
-`.scratch/stmdomains/orientation-inspection/`.
+Zakres został zawężony w rozmowie: wejściem jest gotowy zapis z innego programu
+oraz powiązane obrazy doczytywane automatycznie, z naprawą ścieżki. Na razie nie
+ma osobnego importu STP/MPP/S94 ani tworzenia oznaczeń przez YOLO lub ręcznie.
+Analiza obejmuje położenia i orientacje molekuł, przeglądanie klatek oraz stałe
+typy uporządkowania w całej serii. Nie obejmuje historii konkretnych domen.
 
-Użytkownik potwierdził, że parametry fizyczne nagłówka MPP są zastępczymi
-wartościami eksportu. Nie ma jeszcze definicji orientacji molekuły. Proponowany
-pierwszy etap dotyczy orientacji widocznego motywu względem obrazu; przypisanie
-osi chemicznej i orientacji względem podłoża wymaga dodatkowych informacji.
+Użytkownik wybrał wszystkie statystyki: liczby molekuł według typu, powierzchnie,
+udziały oraz liczbę oddzielnych domen. Obszarem odniesienia jest oryginalne pole
+każdej klatki przesunięte zgodnie z rejestracją; dopełnienie obrazu po wyrównaniu
+nie jest obszarem pomiarowym. Stały ROI dla całej serii jest poza zakresem.
 
-Nie powstały mapa, tickety ani implementacja funkcji aplikacji. Nie przypisano
-molekułom końcowych kątów. Uzupełniono README.
+Następne pytanie według kolejności trackera:
+[Jak zapis wejściowy odtwarza obrazy, oznaczenia i rejestrację?](issues/01-import-and-geometry.md).
+Niezależnie można podjąć
+[Jak definiujemy typ uporządkowania i pojedynczą domenę?](issues/02-order-types-and-domains.md).
+Przed pracą trzeba przypisać pytanie i zapisać `Status: claimed`.
+
+## Korekta materiału wejściowego
+
+Audyt ścieżki importu ujawnił, że wcześniejszy lokalny podgląd molekuł pomijał
+obrót o 180° wykonywany przez loader MPP używany w MolTrack. Poprawiono skrypt
+oraz PNG w `.scratch/stmdomains/orientation-inspection/`, ponownie obejrzano
+wycinki i opisano korektę w [notatce orientacji](research-molecular-orientation.md).
+Liczby detekcji, rozmiary bboxów i anizotropia masek pozostały bez zmian.
+Nie wyznaczano końcowych kątów molekuł. Dla importu wymagane jest potwierdzenie
+zgodności całego przekształcenia obrazu i adnotacji, nie tylko rozmiarów macierzy.
 
 ## Commit
 
-Wcześniejsze przeglądy: `a5d6601` oraz `0e45ee3`. Bieżący commit dokumentacji
-obejmuje nową notatkę, README i ten plik; jego identyfikator znajduje się
-w końcowej wiadomości sesji.
+Wcześniejsze materiały badawcze: `a5d6601`, `0e45ee3`, `44969c1`.
+Bieżący commit zawiera mapę, tickety, słownik, korektę notatki, README i ten plik.
+Identyfikator commita znajduje się w końcowej wiadomości sesji.
 
 ## Wykonane sprawdzenia
 
-- Odczyt JSON, nagłówka i pikseli MPP; zapis SHA-256 wejść w notatce.
-- Kontrola liczebności rekordów, klatek, układów współrzędnych i rozmiarów bboxów.
-- Inspekcja kodu importu, transformacji współrzędnych i estymatorów MolTrack.
-- Uruchomienie lokalnego skryptu `inspect_input.py`: odtworzenie przesunięcia
-  pierwszej klatki, dekodowanie 288 masek, momenty kształtu i obrazy diagnostyczne.
-- Wizualna inspekcja surowej klatki i 12 wycinków; bez wygładzania lub obracania.
-- Przegląd źródeł pierwotnych, kontrola lokalnych odnośników i `git diff --check`.
+- Odczyt instrukcji aplikacji, konwencji lokalnego trackera i umiejętności.
+- Audyt czytników oraz lokalnych modeli sekwencji, rejestracji i agregatów domen.
+- Ponowne uruchomienie skryptu inspekcji z orientacją MPP zgodną z loaderem;
+  wizualna kontrola poprawionych wycinków.
+- Kontrola zgodności wybranych klatek z produkcyjną ścieżką importu MolTrack.
+- Kontrola metadanych ticketów, lokalnych odnośników, braku cykli zależności,
+  zgodności diagramu i aktualnego frontier oraz `git diff --check`.
 
-## Ograniczenia i dalszy odbiór
+## Ograniczenia i integracja
 
-Inspekcja jednej klatki i rozkład anizotropii nie są oceną skuteczności pomiaru
-orientacji. Nie ustalono symetrii TTMAPP z tych danych, nie porównano kątów
-z niezależnymi oznaczeniami i nie uruchamiano testów aplikacji ani GUI.
-Nie instalowano zależności. Skrypt wykorzystał dostępny w powłoce interpreter
-środowiska `netcat` z NumPy i Matplotlib, a nie lokalne `.venv` aplikacji.
+Mapa określa zakres i pytania, nie stanowi ukończonej specyfikacji ani potwierdzenia
+skuteczności algorytmów. Testów aplikacji i GUI nie uruchamiano; nie instalowano
+zależności. Dane i diagnostyka pozostają lokalne poza Git. Parametry fizyczne
+nagłówka MPP i definicja orientacji pozostają nieustalone.
 
-Do porównania metod potrzebne są definicja widocznego kierunku, oznaczone
-przykłady i potwierdzenie geometrii skali x/y. Warunki obrazowania i geometria
-podłoża są potrzebne do dalszej interpretacji fizycznej. Nie ma zmian wspólnych
-modułów do scalenia; wykorzystanie istniejących estymatorów pozostaje do oceny.
+Nie zmieniano wspólnych modułów. Ich ewentualne wykorzystanie i potrzebne zmiany
+zostaną rozstrzygnięte w pytaniu o przekazanie specyfikacji do implementacji.
+Podczas audytu zauważono dodatkowo problem poza obecnym zakresem: odwrócona
+seria wielu STP/S94 w NanoTrack zapisuje już odwróconą listę źródeł, a przy
+odtworzeniu odwraca ją ponownie. Sprawdzenie w pamięci na dwóch lokalnych S94
+zmieniło kolejność pierwszej klatki; nie zapisano ani nie naprawiano sesji.
+Warto przekazać ten przypadek integracji przed ponownym użyciem tego wariantu
+wczytywania. Nie blokuje mapy opartej na dostarczonym zapisie pojedynczego MPP.

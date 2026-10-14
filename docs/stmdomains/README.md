@@ -6,14 +6,18 @@ Katalog aplikacji: `stmdomains/`.
 ## Stan początkowy
 
 Gotowe są osobny punkt uruchomienia, podstawowe okno PyQt6 i akcja zakończenia.
-Wczytywanie, metody wykrywania, definicja domeny i kryteria oceny będą ustalone
-w nowej mapie użytkownika. Szkielet nie wybiera modelu ani algorytmu.
+Zakres planowania obejmuje otwarcie zapisu z gotowymi oznaczeniami i powiązanymi
+obrazami, przeglądanie klatek oraz analizę typów uporządkowania w serii.
+Szkielet nie implementuje tych funkcji i nie wybiera modelu ani algorytmu.
 
 ## Mapa
 
-Dodaj mapę jako `docs/stmdomains/map.md`, a zadania do `docs/stmdomains/issues/`.
-Pliki wersjonuj na gałęzi `domains/*`. Plik `handoff.md` powstaje przy przekazaniu
-zadania do sesji integracyjnej.
+[STM Domains — specyfikacja analizy typów uporządkowania w serii](map.md)
+jest mapą decyzji `wayfinder`. [Rejestr pytań i zależności](issues/README.md)
+prowadzi do kolejnych rozmów i prototypów; [słownik](GLOSSARY.md) ustala nazwy.
+Na tym etapie tickety rozstrzygają decyzje, a nie zlecają implementację.
+Pliki wersjonujemy na gałęzi `domains/*`; [przekazanie](handoff.md) opisuje stan
+gotowy do odbioru w sesji integracyjnej.
 
 ## Uruchomienie
 
@@ -34,9 +38,9 @@ python -m stmdomains.main
 - Testy nowych funkcji: `tests/stmdomains/` (na razie katalog startowy).
 
 Współdzielony kod i modele mogą wymagać dodatkowych zależności poza PyQt6 szkieletu.
-Nowe metody będą oceniane na danych i kryteriach wskazanych w mapie.
+Nowe metody będą oceniane na danych i kryteriach rozstrzygniętych przez pytania mapy.
 
-## Rozpoznanie przed przygotowaniem mapy
+## Materiały do decyzji
 
 - [Ogólne wykrywanie domen molekularnych](research-general-domain-detection.md)
   — przegląd metod wykrywania regularności rozmieszczenia i uporządkowania

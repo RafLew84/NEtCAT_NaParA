@@ -47,6 +47,11 @@ Audyt lokalnych plików z 2026-10-14:
   Dla klatki 0 jest to `(224, 139)` px.
   [Transformacja detekcji](../../moltrack/core/registered_coordinates.py#L105),
   [wyrównywanie](../../nanotrack/registration/aligned.py).
+- Surowa klatka aplikacji nie ma tej samej orientacji co macierz bezpośrednio
+  odczytana z MPP: loader używany przez MolTrack obraca macierz o 180°.
+  Bbox po odjęciu przesunięcia odnosi się do tej znormalizowanej klatki.
+  [Orientacja MPP w loaderze](../../nanotrack/io/mpp_loader.py#L94),
+  [ścieżka wczytywania MolTrack](../../moltrack/io/sequence_loader.py#L14).
 
 Użytkownik potwierdził, że **nie ma jeszcze definicji orientacji**, a wartości
 `1000 × 1000 nm`, bias 0 i current 0 w nagłówku są wartościami eksportu, nie
@@ -70,8 +75,13 @@ symetrii ani jakości całego filmu.
 
 Odtwarzalność: lokalny skrypt, raport i PNG są w ignorowanym przez Git katalogu
 `.scratch/stmdomains/orientation-inspection/`. Wycinki wyświetlono bez wygładzania
-i obrotu, z niezależnym zakresem percentylowym 2–98% każdego wycinka. SHA-256
-wejściowego JSON:
+i dodatkowego dopasowywania kąta, po normalizacji orientacji MPP takiej jak
+w loaderze MolTrack, z zakresem percentylowym 2–98% każdego wycinka.
+Podczas przygotowania mapy wykryto, że pierwotny podgląd w `44969c1` pomijał
+obrót importera. Skrypt i PNG poprawiono oraz ponownie obejrzano; wcześniejsze
+powiązanie wycinków z konkretnymi oznaczeniami nie było poprawne. Liczebności,
+rozmiary bboxów i anizotropia samych masek nie zależały od tego błędu.
+SHA-256 wejściowego JSON:
 `d0c4cb999bede28edb5dfd18ddbe146054711382f1c78363055be2330b3cdd2e`;
 MPP: `8fbbfa5d515a90552c13cee2dbd289ff5cc16f000315547185c2a57bfe9f7c66`.
 
