@@ -35,3 +35,10 @@ python -m stmdomains.main
 
 Współdzielony kod i modele mogą wymagać dodatkowych zależności poza PyQt6 szkieletu.
 Nowe metody będą oceniane na danych i kryteriach wskazanych w mapie.
+
+## Rozpoznanie metod
+
+- [Wykrywanie domen i ocena metod level set](research-domain-detection-level-sets.md)
+  — przegląd źródeł z 2026-10-16 dla dwóch celów: pokrycie/wyspy oraz orientacja
+  i uporządkowanie sieci molekuł. Zawiera propozycję eksperymentu porównawczego;
+  nie stanowi wyboru algorytmu ani walidacji na danych projektu.
