@@ -33,3 +33,12 @@ Nie znaleziono istniejącego eksportera MPP. Obecny czytnik obsługuje float64,
 ale brakujące piksele aligned to NaN, a rejestracja wymaga skończonych wartości.
 Istotne są także różne miejsca obrotu danych i różne jednostki wejścia.
 Zobacz [rozpoznanie czytników](../reconnaissance.md).
+
+### 2026-10-16 — konsekwencje kontraktu serii
+
+[Seria wejściowa i usuwanie klatek](01-frame-series.md) dopuszcza różne skale
+i kanały przy jednakowych wymiarach. Każda klatka zachowuje własne metadane,
+pochodzenie i dostępny czas pomiaru, również po usunięciu innych lub odwróceniu
+kolejności. Kontrakt MPP musi rozstrzygnąć zapis takiej serii, w tym różnych
+metadanych, przerw w czasach pomiaru i ich odwróconej kolejności. Nie można
+zakładać, że metadane pierwszej klatki opisują wszystkie pozostałe.

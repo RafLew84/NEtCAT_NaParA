@@ -31,3 +31,11 @@ Deep Matcher. Rozwijanie metod i strojenie parametrów jest późniejszym etapem
 Po rejestracji potrzebny jest wspólny powiększony obszar bez obcięcia przesuniętych
 klatek i przełączanie original/aligned. Dostępne API oraz ograniczenia wejścia
 opisuje [Rozpoznanie istniejącego kodu](../reconnaissance.md).
+
+### 2026-10-16 — konsekwencje kontraktu serii
+
+[Seria wejściowa i usuwanie klatek](01-frame-series.md) dopuszcza przy imporcie
+różne skale fizyczne i kanały przy jednakowych wymiarach w pikselach.
+W tym tickecie trzeba ustalić zachowanie rejestracji dla takich danych oraz
+ważność wyniku po odwróceniu kolejności, obok już wskazanego usuwania klatek.
+To pytania otwarte; kontrakt importu nie narzuca odpowiedzi.

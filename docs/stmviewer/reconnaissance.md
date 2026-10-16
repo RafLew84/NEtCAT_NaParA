@@ -80,3 +80,35 @@ Istnieją testy [loadera](../../tests/nanotrack/test_sequence_loader.py),
 i [okna NanoTrack](../../tests/nanotrack/test_main_window.py).
 Test z rzeczywistym `data/MOVIE_3.MPP` wymaga lokalnego pliku, którego nie ma
 w tym worktree. Ocena skuteczności rejestracji wymaga danych i odrębnych kryteriów.
+
+## Uzupełnienie: seria i usuwanie klatek
+
+Sprawdzenie z 2026-10-16, baza `1f28b63`. Przeczytano implementacje i testy;
+wykonano trzy próby w pamięci. Nie zmieniano kodu istniejących aplikacji.
+
+- [`MolTrackImageSeries.remove_frame`](../../moltrack/core/data_models.py)
+  usuwa obraz i jego indeks źródłowy, wybiera następną klatkę albo poprzednią
+  po usunięciu ostatniej. Odrzuca usunięcie jedynej klatki. Nowy kontrakt
+  STM Viewer wymaga również obsługi pustego programu po takim usunięciu.
+- Usunięcie nie aktualizuje czasów w metadanych. Próba: obrazy `[0, 1, 2]`
+  z czasami `[10, 20, 30]` po usunięciu środka dają obrazy `[0, 2]`, lecz nadal
+  trzy czasy. [Odtworzenie sesji MolTrack](../../moltrack/persistence/session_store.py)
+  również wybiera podzbiór obrazów z pełnymi metadanymi źródła. Obecne
+  [testy modelu](../../tests/moltrack/test_data_models.py) nie sprawdzają czasów.
+- [Sesja NanoTrack](../../nanotrack/persistence/session_store.py) zapisuje dla
+  odwróconej serii STP/S94 zarówno odwrócone ścieżki, jak i znacznik odwrócenia.
+  Odtworzenie ponownie odwraca kolejność: próba `[b, a]` daje `[a, b]`.
+  [Testy sesji](../../tests/nanotrack/test_session_store.py) nie obejmują tego
+  przypadku z rzeczywistym loaderem. Nie jest to wymaganie dodania zapisu sesji
+  do STM Viewer, lecz ograniczenie ponownego użycia istniejącego kodu.
+- Próba importu obrazów o tych samych wymiarach, różnych skalach 10/100
+  i kanałach Topography/Current potwierdza akceptację oraz wspólne metadane
+  z pierwszej klatki. Nie istnieje tolerancja zgodności skali. Nagłówki źródłowe
+  pozostają osobno; metadanych pierwszej klatki nie można utożsamiać
+  z metadanymi każdej klatki takiej serii.
+- `load_stm_sequence` przerywa import przy błędzie źródła. Inny helper,
+  [`load_from_paths`](../../napara/io/factory.py), pomija błędne pliki;
+  nie spełnia więc przyjętego kontraktu odrzucenia całego importu.
+
+Rozstrzygnięcie zachowania nowej aplikacji:
+[Seria wejściowa i usuwanie klatek](issues/01-frame-series.md).

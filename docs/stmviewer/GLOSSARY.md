@@ -11,6 +11,18 @@ STP/S94 albo z jednego wieloklatkowego pliku MPP.
 **Klatka**:
 Pojedynczy obraz STM w serii. Plik MPP zawiera wiele klatek.
 
+**Pozycja w serii**:
+Bieżące miejsce klatki w uporządkowanej serii, numerowane od 1 do liczby klatek.
+Nie jest identyfikatorem klatki źródłowej.
+
+**Pochodzenie klatki**:
+Plik źródłowy i, dla MPP, pierwotny numer klatki w tym pliku.
+Identyfikuje obraz niezależnie od jego pozycji w bieżącej serii.
+
+**Czas pomiaru klatki**:
+Czas przypisany obrazowi w danych źródłowych, jeśli jest dostępny.
+Nie jest czasem wyświetlania klatki podczas odtwarzania.
+
 **Oryginał (original)**:
 Obraz klatki przed zastosowaniem rejestracji w bieżącej serii.
 

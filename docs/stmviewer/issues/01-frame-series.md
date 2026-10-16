@@ -2,8 +2,8 @@
 
 Type: grilling
 Label: wayfinder:grilling
-Status: open
-Assignee: none
+Status: resolved
+Assignee: rlew
 Parent: [STM Viewer — mapa pierwszej wersji](../map.md)
 Blocked by: none
 
@@ -31,3 +31,82 @@ nie wszystkich klatek pliku.
 Istniejący loader spełnia regułę formatów i wymaga identycznych wymiarów,
 ale nie sprawdza zgodności skali ani kanału. Fakty i odnośniki:
 [Rozpoznanie istniejącego kodu](../reconnaissance.md).
+
+## Answer
+
+### 2026-10-16 — uzgodnione z użytkownikiem
+
+Rozstrzygnięcie po dwóch rundach rozmowy: użytkownik potwierdził reguły
+kolejności, zastępowania, błędów i usuwania, wybrał zgodność wyłącznie wymiarów,
+a następnie potwierdził zachowanie aktywnej klatki przy odwracaniu oraz
+rozdzielenie numeru bieżącego od pochodzenia.
+
+### Seria i kolejność
+
+- Otwarta jest jedna seria: co najmniej jeden plik STP/S94 (można mieszać
+  te formaty) albo dokładnie jeden MPP. Nie łączymy MPP z STP/S94 ani kilku MPP.
+- STP/S94 sortujemy naturalnie po nazwie: `klatka2` przed `klatka10`.
+  MPP zachowuje kolejność klatek zapisaną w filmie.
+- Przycisk odwraca kolejność całej bieżącej serii. Na ekranie pozostaje
+  ta sama klatka; zmienia się jej pozycja. Dwa odwrócenia przywracają kolejność.
+  Odwracanie nie przywraca klatek usuniętych z serii.
+
+### Wczytywanie i zgodność
+
+- Kolejne otwarcie zastępuje całą serię dopiero po poprawnym wczytaniu
+  wszystkich nowych danych. Nie ma dopisywania do bieżącej serii.
+- Wymagamy jednakowej szerokości i wysokości obrazów w pikselach.
+  Różna skala fizyczna, kanał i pozostałe metadane nie blokują importu.
+  Brak metadanych także nie jest powodem odrzucenia poprawnych obrazów.
+  Nie wykonujemy automatycznego skalowania ani przycinania do wspólnego rozmiaru.
+- Uszkodzony, nieczytelny lub niezgodny plik odrzuca cały nowy import.
+  Komunikat wskazuje problematyczne źródła i powody; nie powstaje seria częściowa.
+  Wcześniejsza seria, jej kolejność i wyświetlana klatka pozostają bez zmian.
+  Gdy nie było serii, program pozostaje pusty.
+
+### Usuwanie i tożsamość klatki
+
+- Usuwamy zaznaczoną klatkę wyłącznie z bieżącej serii, bez funkcji cofania.
+  Źródła na dysku pozostają bez zmian; w MPP operacja dotyczy jednej klatki.
+- Po usunięciu pokazujemy następną klatkę według bieżącej kolejności;
+  po usunięciu ostatniej — poprzednią. Usunięcie jedynej klatki zostawia
+  pusty program, bez aktywnego obrazu.
+- Numer bieżący oznacza pozycję `1…N` w aktualnej serii i jest aktualizowany
+  po usunięciu lub odwróceniu. Osobno zachowujemy pochodzenie: plik źródłowy
+  oraz pierwotny numer klatki w MPP. Zmiana pozycji nie zmienia pochodzenia.
+- Metadane są powiązane z konkretną klatką. Jej skala, kanał, pozostałe
+  dostępne dane źródłowe i czas pomiaru pozostają przy tym samym obrazie.
+  Nie przypisujemy automatycznie metadanych pierwszej klatki całej serii.
+  Nieznane wartości pozostają nieznane.
+- Usunięcie lub odwrócenie nie przepisuje czasów pomiaru. Dla czasów
+  `[10, 20, 30]` usunięcie środka daje `[10, 30]`, a odwrócenie pozostałych
+  klatek — `[30, 10]`. Nie dopisujemy sztucznych czasów ani nie usuwamy przerw.
+
+### Przykłady do weryfikacji implementacji
+
+| Sytuacja | Oczekiwany wynik |
+| --- | --- |
+| Wybór `10.stp`, `2.s94`, `1.stp` | Kolejność `1.stp`, `2.s94`, `10.stp`. |
+| MPP z klatkami A, B, C | Kolejność A, B, C zgodna ze źródłem. |
+| Odwrócenie A, B, C z aktywną A | Kolejność C, B, A; nadal widać A, teraz jako `3/3`. |
+| Usunięcie aktywnej B z A, B, C | Pozostaje A, C; widać C jako `2/2`, z pierwotnym pochodzeniem i metadanymi C. |
+| Usunięcie aktywnej C z A, B, C | Pozostaje A, B; widać B. |
+| Usunięcie jedynej klatki | Pusty program; plik źródłowy nadal istnieje. |
+| Nowy import zawiera uszkodzony plik lub inne wymiary | Cały import odrzucony; poprzednia seria i wybór pozostają bez zmian. |
+| Równe wymiary, lecz różne skale lub kanały | Import zaakceptowany; każda klatka zachowuje swoje metadane. |
+| Poprawne kolejne otwarcie | Nowa seria zastępuje starą w całości. |
+
+### Granice rozstrzygnięcia
+
+Układ informacji na ekranie i odtwarzanie rozstrzyga
+[Podgląd, gamma i odtwarzanie serii](02-preview-playback.md).
+Wpływ usunięcia lub odwrócenia na gotowy wynik dopasowania oraz wymagania
+rejestracji dla serii o różnych skalach lub kanałach pozostają w
+[Rejestracji i życiu wyniku aligned](03-registration.md).
+Zachowanie metadanych i czasu w pliku wynikowym należy do
+[Zapisu MPP z wartościami i metadanymi](04-mpp-export.md).
+Akceptacja serii przy imporcie nie rozstrzyga tych dalszych kontraktów.
+
+Rozbieżności istniejącego kodu z tym kontraktem i sprawdzenia opisuje
+[Rozpoznanie istniejącego kodu](../reconnaissance.md#uzupełnienie-seria-i-usuwanie-klatek).
+Ten ticket ustala specyfikację; nie wdraża funkcji aplikacji.

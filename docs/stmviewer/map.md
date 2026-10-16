@@ -35,8 +35,8 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Decisions so far
 
-Brak zamkniętych ticketów. Zebrano wymagania i pierwszą rundę odpowiedzi;
-to sesja utworzenia mapy, bez rozwiązywania jej ticketów.
+- [Seria wejściowa i usuwanie klatek](issues/01-frame-series.md): ustalono kolejność,
+  zastępowanie całej serii, zgodność wymiarów oraz usuwanie z zachowaniem pochodzenia klatek.
 
 ## Not yet specified
 
