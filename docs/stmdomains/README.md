@@ -6,16 +6,26 @@ Katalog aplikacji: `stmdomains/`.
 ## Stan początkowy
 
 Gotowe są osobny punkt uruchomienia, podstawowe okno PyQt6 i akcja zakończenia.
-Zakres planowania obejmuje otwarcie zapisu z gotowymi oznaczeniami i powiązanymi
-obrazami, przeglądanie klatek oraz analizę typów uporządkowania w serii.
-Szkielet nie implementuje tych funkcji i nie wybiera modelu ani algorytmu.
+Pierwszy etap rozwoju ma dać działający szkielet: import zapisu z gotowymi
+oznaczeniami, doczytanie obrazów, przeglądanie klatek, zoom/gamma i podgląd
+zapisanej rejestracji. Kod nie implementuje jeszcze tych funkcji.
 
-## Mapa
+## Dwa etapy
 
-[STM Domains — specyfikacja analizy typów uporządkowania w serii](map.md)
-jest mapą decyzji `wayfinder`. [Rejestr pytań i zależności](issues/README.md)
-prowadzi do kolejnych rozmów i prototypów; [słownik](GLOSSARY.md) ustala nazwy.
-Na tym etapie tickety rozstrzygają decyzje, a nie zlecają implementację.
+- [Etap 1: działający szkielet](map.md) — import, podstawowy podgląd oraz
+  przygotowanie implementacji i jej odbioru na rzeczywistych danych.
+- [Etap 2: metody i zapis wyników](map-methods-and-save.md) — po odbiorze
+  szkieletu: próby wykrywania wysp i domen sieci, ocena jakości, statystyki
+  oraz zapis/eksport wyników.
+
+Podział zatwierdził użytkownik 2026-10-16. Wybór metody i formatu wyników
+nie blokuje budowy szkieletu. Pomiar orientacji pojedynczej molekuły odłożono
+poza oba etapy; orientacja sieci pozostaje w drugim etapie.
+
+[Rejestr pytań i zależności](issues/README.md) prowadzi do kolejnych rozmów
+i prototypów; [słownik](GLOSSARY.md) ustala nazwy. To mapy decyzji `wayfinder`:
+po zamknięciu pierwszej można przygotować implementację szkieletu bez czekania
+na drugą. Aktualizacja dokumentacji nie oznacza wykonania programu.
 Pliki wersjonujemy na gałęzi `domains/*`; [przekazanie](handoff.md) opisuje stan
 gotowy do odbioru w sesji integracyjnej.
 
@@ -52,3 +62,7 @@ Nowe metody będą oceniane na danych i kryteriach rozstrzygniętych przez pytan
   — wymagane dane wejściowe, znaczenie kąta, porównanie metod oraz inspekcja
   przykładowego zapisu TTMAPP i wycinków obrazu. Parametry fizyczne eksportu
   są nieznane; definicja orientacji pozostaje do ustalenia na przykładach.
+  Audyt importu pozostaje potrzebny w etapie 1; sam pomiar kąta jest odłożony.
+- [Wyspy, orientacja sieci i level set](research-domain-detection-level-sets.md)
+  — materiał do drugiego etapu: osobne warstwy pokrycia i sieci, ocena
+  podejścia Gibou–Fedkiwa oraz propozycja porównania metod na referencjach.

@@ -1,4 +1,4 @@
-# Jak odkrywać domeny i zachować stałe typy w całej serii?
+# Jak porównać metody wykrywania wysp i domen w serii?
 
 ID: 05
 Type: prototype
@@ -6,34 +6,43 @@ Labels: wayfinder:prototype
 Mode: HITL
 Status: open
 Assignee:
-Parent: [STM Domains — specyfikacja analizy typów uporządkowania w serii](../map.md)
-Blocked by: 01, 02, 03, 04
+Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
+Blocked by: 01, 02, 04
 
 ## Question
 
-Jakie połączenie opisu sąsiedztwa, orientacji molekuł i podziału przestrzennego
-pozwala odkrywać typy uporządkowania bez zamkniętego katalogu oraz nadać im stałe
-znaczenie na kolejnych klatkach?
+Jakie metody potrafią na uzgodnionych danych wykrywać pokrycie/wyspy oraz
+spójne domeny orientacji i uporządkowania sieci, zachowując znaczenie typów
+na kolejnych klatkach?
 
-Porównajmy kandydatów z istniejącego przeglądu na uzgodnionych referencjach.
-SBC/MatID, wieloskalowe cechy sąsiedztwa i kontrola obrazowa pozostają kandydatami.
-Wynik ma rozdzielać klasę podobnych środowisk od spójnego obszaru domeny.
+Na odebranym szkielecie porównajmy małą liczbę kandydatów z przeglądów:
+prosty model regionów i level set dla pokrycia oraz cechy lokalnej tekstury
+lub sąsiedztwa dla sieci. Wybór kandydatów wynika z referencji i jakości wejścia;
+SBC/MatID, FFT/Gabor, analiza grafu i level set pozostają możliwościami,
+a nie obowiązkową listą funkcji. Pomiar orientacji pojedynczej molekuły nie
+jest warunkiem rozpoczęcia tych prób.
 
-Jak ustalamy typy dla serii: wspólna analiza wybranego zestawu, referencja z części
-klatek czy inna procedura? Co dzieje się z typem nieobecnym na pierwszej klatce,
-nowym wzorem, bardzo rzadkim typem oraz po ponownym przeliczeniu? Numery lub kolory
-z niezależnego grupowania każdej klatki nie gwarantują zgodności znaczenia.
+Prototyp ma umożliwić wybór klatki lub zakresu, parametrów i metody oraz
+obejrzenie nakładek wyników na obraz. Oddzielmy maskę pokrycia, identyfikatory
+wysp, typy i domeny sieci, orientacje sieci oraz brak wiarygodnego wyniku.
+Użytkownik ocenia wyniki na przykładach; nie wystarczy samo uruchomienie kodu.
 
-Jaki jest wpływ brakujących orientacji, zmiany parametrów, zakresu analizowanych
-klatek i inicjalizacji? Rozstrzygnięcie zawiera wybór metody oraz regułę spójności
-typów w serii popartą wynikami. Nie dodaje śledzenia konkretnych domen.
+Jak ustalamy typy w serii: wspólna analiza wybranego zestawu, referencja z części
+klatek czy inna procedura? Co z nowym wzorem, rzadkim typem, ponownym obliczeniem
+oraz zmianą parametrów? Numery niezależnych klastrów nie ustalają wspólnego
+znaczenia. Nie dodajemy śledzenia konkretnych domen.
 
-Kontekst: [kandydaci i ograniczenia](../research-general-domain-detection.md),
-[istniejące agregaty typów MolTrack](../../../moltrack/analysis/m6_domain_type_aggregates.py).
+Oceńmy jakość, koszt, pamięć, anulowanie i powtarzalność na danych z ticketu
+referencji. Rozstrzygnięcie określa metodę popartą wynikami albo konkretną lukę
+wymagającą dalszej próby. Linkujemy materiały porównawcze, parametry i ograniczenia.
+Prezentacja tych eksperymentów rozwija podstawowy podgląd z pierwszego etapu;
+nie uzależnia jego odbioru od skuteczności detekcji.
+
+Kontekst: [przegląd metod](../research-general-domain-detection.md),
+[level set i analiza sieci](../research-domain-detection-level-sets.md).
 
 ## Dependencies
 
 - [Jak zapis wejściowy odtwarza obrazy, oznaczenia i rejestrację?](01-import-and-geometry.md)
-- [Jak definiujemy typ uporządkowania i pojedynczą domenę?](02-order-types-and-domains.md)
-- [Jak mierzyć orientację molekuły i oznaczać wynik niepewny?](03-molecular-orientation.md)
+- [Jak definiujemy wyspę, typ uporządkowania i domenę sieci?](02-order-types-and-domains.md)
 - [Jakie referencje i kryteria potwierdzą wiarygodność analizy?](04-reference-and-quality.md)

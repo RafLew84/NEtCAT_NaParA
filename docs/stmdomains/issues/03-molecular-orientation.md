@@ -4,10 +4,19 @@ ID: 03
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: open
+Status: closed
 Assignee:
-Parent: [STM Domains — specyfikacja analizy typów uporządkowania w serii](../map.md)
+Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 01
+
+## Scope disposition
+
+2026-10-16: użytkownik zatwierdził najpierw szkielet, następnie próby metod
+wykrywania wysp i domen orientacji/uporządkowania sieci oraz zapis wyników.
+Pomiar orientacji pojedynczej molekuły odłożono poza oba etapy. Ticket zamknięto
+ze względu na zakres, bez rozstrzygnięcia metody lub wiarygodności pomiaru.
+Nie blokuje pozostałych ticketów. Poniższe pytanie zachowano jako kontekst;
+powrót do niego wymaga nowego zakresu pracy.
 
 ## Question
 

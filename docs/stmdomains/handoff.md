@@ -1,72 +1,62 @@
-# STM Domains — przekazanie
+# STM Domains — przekazanie podziału na dwa etapy
 
-Data: 2026-10-14. Gałąź: `domains/start`.
+Data: 2026-10-16.
+Gałąź docelowa: `domains/start`.
+Gałąź przygotowania: `domains/staged-plan`, na bazie `0dab344`.
+Commit zmiany: identyfikator w końcowej wiadomości sesji.
 
 ## Zakres i wynik
 
-Utworzono mapę
-[STM Domains — specyfikacja analizy typów uporządkowania w serii](map.md)
-na podstawie rozmowy z użytkownikiem i umiejętności `wayfinder`, `grilling`
-oraz `domain-modeling`. [Rejestr pytań](issues/README.md) zawiera dziewięć
-otwartych ticketów decyzyjnych z zależnościami i instrukcją lokalnego trackera.
-Dodano [słownik](GLOSSARY.md) i zaktualizowano README. Nie rozstrzygnięto żadnego
-ticketu i nie rozpoczęto implementacji.
+Na polecenie użytkownika rozdzielono dotychczasową mapę całego programu:
 
-Zakres został zawężony w rozmowie: wejściem jest gotowy zapis z innego programu
-oraz powiązane obrazy doczytywane automatycznie, z naprawą ścieżki. Na razie nie
-ma osobnego importu STP/MPP/S94 ani tworzenia oznaczeń przez YOLO lub ręcznie.
-Analiza obejmuje położenia i orientacje molekuł, przeglądanie klatek oraz stałe
-typy uporządkowania w całej serii. Nie obejmuje historii konkretnych domen.
+- [Etap 1: działający szkielet](map.md) obejmuje import, podstawowy podgląd
+  i przygotowanie implementacji oraz odbioru na rzeczywistych danych.
+- [Etap 2: metody i zapis wyników](map-methods-and-save.md) obejmuje definicje
+  wysp i domen sieci, referencje, próby metod, statystyki i zapis/eksport.
+  Zaczyna się po implementacji i odbiorze szkieletu.
 
-Użytkownik wybrał wszystkie statystyki: liczby molekuł według typu, powierzchnie,
-udziały oraz liczbę oddzielnych domen. Obszarem odniesienia jest oryginalne pole
-każdej klatki przesunięte zgodnie z rejestracją; dopełnienie obrazu po wyrównaniu
-nie jest obszarem pomiarowym. Stały ROI dla całej serii jest poza zakresem.
+Zachowano ID i ścieżki dziewięciu ticketów. Trzy otwarte pytania należą do
+pierwszej mapy, pięć do drugiej. Pytanie o pomiar orientacji pojedynczej molekuły
+zamknięto jako odłożone poza oba etapy, bez rozstrzygnięcia naukowego.
+Żaden otwarty ticket nie zależy od tego zamkniętego pytania.
 
-Następne pytanie według kolejności trackera:
+Przekazanie szkieletu do implementacji zależy teraz tylko od importu i podglądu.
+Wybór metod, ich skuteczność, statystyki i własny format wyników nie blokują
+budowy szkieletu. Nie uznano żadnej decyzji technicznej za rozstrzygniętą
+ani żadnego fragmentu aplikacji za wdrożony.
+
+Zaktualizowano [rejestr i diagram zależności](issues/README.md), README i słownik.
+Dołączono [wcześniejszy raport o level set](research-domain-detection-level-sets.md)
+z gałęzi Viewer jako materiał drugiego etapu; nie wykonywano nowego researchu.
+
+## Kolejny krok
+
+Aktywna jest pierwsza mapa. Następne pytanie:
 [Jak zapis wejściowy odtwarza obrazy, oznaczenia i rejestrację?](issues/01-import-and-geometry.md).
-Niezależnie można podjąć
-[Jak definiujemy typ uporządkowania i pojedynczą domenę?](issues/02-order-types-and-domains.md).
-Przed pracą trzeba przypisać pytanie i zapisać `Status: claimed`.
+Po nim podstawowy podgląd i przekazanie szkieletu do implementacji. Samo
+zamknięcie tych decyzji nie zastępuje wykonania oraz odbioru aplikacji.
 
-## Korekta materiału wejściowego
+## Sprawdzenia
 
-Audyt ścieżki importu ujawnił, że wcześniejszy lokalny podgląd molekuł pomijał
-obrót o 180° wykonywany przez loader MPP używany w MolTrack. Poprawiono skrypt
-oraz PNG w `.scratch/stmdomains/orientation-inspection/`, ponownie obejrzano
-wycinki i opisano korektę w [notatce orientacji](research-molecular-orientation.md).
-Liczby detekcji, rozmiary bboxów i anizotropia masek pozostały bez zmian.
-Nie wyznaczano końcowych kątów molekuł. Dla importu wymagane jest potwierdzenie
-zgodności całego przekształcenia obrazu i adnotacji, nie tylko rozmiarów macierzy.
+- Kontrola statusów, rodziców i zależności ticketów oraz zgodności z diagramem.
+- Sprawdzenie braku cykli i zależności pierwszej mapy od drugiego etapu.
+- Kontrola odnośników zmienianej dokumentacji i `git diff --check`.
+- Brak zmian kodu; nie uruchamiano testów aplikacji, GUI ani metod detekcji.
 
-## Commit
+## Zachowany kontekst importu i integracji
 
-Wcześniejsze materiały badawcze: `a5d6601`, `0e45ee3`, `44969c1`.
-Bieżący commit zawiera mapę, tickety, słownik, korektę notatki, README i ten plik.
-Identyfikator commita znajduje się w końcowej wiadomości sesji.
+Poprzednie przekazanie oraz audyt są zachowane w historii `0dab344`.
+Przed implementacją importu przeczytaj
+[notatkę o orientacji obrazu i danych](research-molecular-orientation.md):
+loader MPP obraca obraz o 180 stopni, co musi być zgodne z oznaczeniami.
+Kalibracja fizyczna i czasy przykładowego eksportu są niewiarygodne; nie wolno
+traktować zastępczych wartości jako pomiaru.
 
-## Wykonane sprawdzenia
+Wcześniejsza sesja zgłosiła też podwójne odwrócenie kolejności serii wielu
+STP/S94 podczas odtwarzania w NanoTrack. Pozostaje to zgłoszeniem dla integracji,
+bez naprawy w tym zadaniu; obecne wejście oparte na jednym MPP nie wymaga tego
+wariantu loadera. Nie zmieniono wspólnych modułów ani konfiguracji środowiska.
 
-- Odczyt instrukcji aplikacji, konwencji lokalnego trackera i umiejętności.
-- Audyt czytników oraz lokalnych modeli sekwencji, rejestracji i agregatów domen.
-- Ponowne uruchomienie skryptu inspekcji z orientacją MPP zgodną z loaderem;
-  wizualna kontrola poprawionych wycinków.
-- Kontrola zgodności wybranych klatek z produkcyjną ścieżką importu MolTrack.
-- Kontrola metadanych ticketów, lokalnych odnośników, braku cykli zależności,
-  zgodności diagramu i aktualnego frontier oraz `git diff --check`.
-
-## Ograniczenia i integracja
-
-Mapa określa zakres i pytania, nie stanowi ukończonej specyfikacji ani potwierdzenia
-skuteczności algorytmów. Testów aplikacji i GUI nie uruchamiano; nie instalowano
-zależności. Dane i diagnostyka pozostają lokalne poza Git. Parametry fizyczne
-nagłówka MPP i definicja orientacji pozostają nieustalone.
-
-Nie zmieniano wspólnych modułów. Ich ewentualne wykorzystanie i potrzebne zmiany
-zostaną rozstrzygnięte w pytaniu o przekazanie specyfikacji do implementacji.
-Podczas audytu zauważono dodatkowo problem poza obecnym zakresem: odwrócona
-seria wielu STP/S94 w NanoTrack zapisuje już odwróconą listę źródeł, a przy
-odtworzeniu odwraca ją ponownie. Sprawdzenie w pamięci na dwóch lokalnych S94
-zmieniło kolejność pierwszej klatki; nie zapisano ani nie naprawiano sesji.
-Warto przekazać ten przypadek integracji przed ponownym użyciem tego wariantu
-wczytywania. Nie blokuje mapy opartej na dostarczonym zapisie pojedynczego MPP.
+Zmiany przygotowano w worktree przypisanym do bieżącej sesji. Aktualizacja
+docelowego worktree odbywa się commitem i scaleniem, zgodnie z instrukcją
+współpracy; nie przenosimy zmian roboczych między worktree.

@@ -1,6 +1,6 @@
 # STM Domains
 
-Pojęcia analizy uporządkowania molekuł na kolejnych obrazach STM.
+Pojęcia przeglądania obrazów, pokrycia materiałem i uporządkowania sieci molekuł.
 Słownik dotyczy zakresu ustalonego z użytkownikiem podczas tworzenia mapy.
 
 ## Language
@@ -15,8 +15,8 @@ Pojedynczy obraz pomiarowy powierzchni próbki w serii.
 _Avoid_: Cały film, powiększone płótno
 
 **Seria**:
-Uporządkowany zbiór klatek analizowanych z zachowaniem tego samego znaczenia
-typów uporządkowania. Kolejność klatek nie określa sama w sobie odstępu czasu.
+Uporządkowany zbiór klatek należących do jednego otwartego zapisu.
+Kolejność klatek nie określa sama w sobie odstępu czasu.
 _Avoid_: Jeden obraz, jedna domena
 
 **Oznaczenie molekuły**:
@@ -37,15 +37,24 @@ _Avoid_: Orientacja sieci, kąt bboxa
 Kierunek lokalnego układu sąsiednich centrów molekuł.
 _Avoid_: Orientacja molekuły
 
+**Pokrycie materiałem**:
+Obszar poprawnego pola pomiarowego zajęty przez analizowany materiał.
+Nie obejmuje dopełnienia obrazu po wyrównaniu.
+_Avoid_: Całe płótno, miara uporządkowania sieci
+
+**Wyspa**:
+Przestrzennie spójny obszar pokrycia materiałem. Może zawierać kilka domen sieci.
+_Avoid_: Typ uporządkowania, pojedyncza domena orientacyjna
+
 **Typ uporządkowania**:
-Klasa podobnych wzorów rozmieszczenia lub orientacji molekuł, zachowująca znaczenie
+Klasa podobnych wzorów rozmieszczenia molekuł i orientacji sieci, zachowująca znaczenie
 w całej analizowanej serii. Kilka oddzielnych domen może mieć ten sam typ.
 _Avoid_: Tożsamość konkretnej domeny, numer klastra ustalany niezależnie w każdej klatce
 
-**Domena**:
+**Domena sieci**:
 Przestrzennie spójny obszar uporządkowania na jednej klatce. Oddzielne obszary
 mogą należeć do tego samego typu uporządkowania.
-_Avoid_: Typ uporządkowania, śledzona domena
+_Avoid_: Typ uporządkowania, śledzona domena, cała wyspa niezależnie od uporządkowania
 
 **Rejestracja obrazów**:
 Wyznaczenie przekształceń umieszczających klatki we wspólnym układzie odniesienia.

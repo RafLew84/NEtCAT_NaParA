@@ -1,4 +1,4 @@
-# Jak przekazać uzgodnioną specyfikację do implementacji?
+# Jak przekazać szkielet do implementacji i go odebrać?
 
 ID: 09
 Type: grilling
@@ -6,33 +6,42 @@ Labels: wayfinder:grilling
 Mode: HITL
 Status: open
 Assignee:
-Parent: [STM Domains — specyfikacja analizy typów uporządkowania w serii](../map.md)
-Blocked by: 04, 05, 07, 08
+Parent: [STM Domains — etap 1: działający szkielet](../map.md)
+Blocked by: 01, 07
 
 ## Question
 
-Czy po rozstrzygnięciu pytań można opisać spójną drogę od wejścia do wyników,
-z jawnymi granicami modułów, zależnościami i sposobem odbioru?
+Czy ustalony import i podstawowy podgląd wystarczają, aby rozpisać i zbudować
+działający szkielet na rzeczywistym zapisie MolTrack?
 
-Ustalmy zakres ponownego użycia czytników, geometrii, rejestracji, analizy i GUI
-z istniejących aplikacji. Oddzielmy zmiany lokalne STM Domains od zmian wspólnych,
-które trzeba przekazać sesji integracyjnej. Gotowy kod MolTrack jest materiałem
-do oceny, nie domyślnym wyborem metody.
+Ustalmy lokalne moduły importu, modelu serii i widoku oraz zakres użycia
+istniejących czytników, geometrii i widgetów. Wskażmy potrzebne zmiany wspólne
+do sesji integracyjnej. Pozostawmy prosty punkt do późniejszego podłączenia
+analizy, bez projektowania teraz ogólnego systemu metod lub schematu wyników.
 
-Jakie wymagania dotyczą czasu obliczeń, pamięci, anulowania i ponownego użycia
-wyników wynikają z prób oraz z rozmiarów serii? Jak odbieramy import, statystyki,
-interakcje i zapis, a osobno jakość naukową analizy? Czy istnieje nierozstrzygnięta
-kwestia, bez której nie można przygotować zadań implementacyjnych?
+Kryteria odbioru mają obejmować otwarcie rzeczywistego zapisu, odnalezienie
+obrazów po poprawieniu ścieżki, nawigację, zoom/gamma oraz sprawdzenie zgodności
+oznaczeń w original/aligned. Uwzględnijmy serię jednoklatkową, brak danych
+i wyraźne oddzielenie dopełnienia od pola pomiarowego. Określmy osobno testy
+automatyczne geometrii/importu oraz kontrolę wymagającą lokalnych danych i GUI.
 
-Rozstrzygnięcie wskazuje uzgodnioną specyfikację, kolejność etapów i wymagania
-wobec integracji. Nowe problemy wracają jako pytania mapy. Nie implementujemy
-aplikacji ani nie uznajemy mapy za ukończoną tylko dlatego, że istnieje szkielet GUI.
-
-Kontekst: [instrukcje współpracy](../../PARALLEL_DEVELOPMENT.md).
+Rozstrzygnięcie przekazuje zakres i kryteria do zadań implementacyjnych etapu 1.
+Po ich wykonaniu i odbiorze można rozpocząć drugą mapę. Wybór metody detekcji,
+walidacja naukowa, statystyki i zapis wyników nie są warunkami gotowości szkieletu.
+Zamknięcie tego ticketu oznacza gotowość specyfikacji, nie wykonanie programu.
 
 ## Dependencies
 
-- [Jakie referencje i kryteria potwierdzą wiarygodność analizy?](04-reference-and-quality.md)
-- [Jak odkrywać domeny i zachować stałe typy w całej serii?](05-stable-types-across-frames.md)
-- [Jak przeglądać klatki, domeny i zmiany ilościowe?](07-browsing-and-comparison.md)
-- [Co zapisujemy i eksportujemy, aby odtworzyć analizę?](08-save-and-export.md)
+- [Jak zapis wejściowy odtwarza obrazy, oznaczenia i rejestrację?](01-import-and-geometry.md)
+- [Jak przeglądać obrazy i oznaczenia w szkielecie?](07-browsing-and-comparison.md)
+
+## Comments
+
+### 2026-10-16 — podział zakresu zatwierdzony przez użytkownika
+
+Usunięto zależność przekazania szkieletu od wyboru metod, referencji jakości
+i eksportu. Pytania o koszt analizy, jej anulowanie i ponowne użycie wyników
+pozostają częścią [Jak porównać metody wykrywania wysp i domen w serii?](05-stable-types-across-frames.md)
+i [Co zapisujemy i eksportujemy po próbach metod?](08-save-and-export.md) w drugim etapie.
+
+Kontekst: [instrukcje współpracy](../../PARALLEL_DEVELOPMENT.md).

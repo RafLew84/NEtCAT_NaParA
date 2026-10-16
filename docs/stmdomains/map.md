@@ -1,4 +1,4 @@
-# STM Domains — specyfikacja analizy typów uporządkowania w serii
+# STM Domains — etap 1: działający szkielet
 
 ID: stmdomains-map
 Labels: wayfinder:map
@@ -7,71 +7,64 @@ Assignee:
 
 ## Destination
 
-Uzgodniona specyfikacja STM Domains: od otwarcia zapisu z gotowymi oznaczeniami
-molekuł i powiązanymi obrazami, przez analizę uporządkowania położeń i orientacji,
-do porównania stałych typów uporządkowania i ich ilości na kolejnych klatkach.
-Mapa kończy się, gdy decyzje pozwalają przygotować zadania implementacyjne.
+Uzgodniona specyfikacja szkieletu STM Domains, który otwiera istniejący zapis
+z oznaczeniami molekuł, doczytuje obrazy i pozwala sprawdzić je na kolejnych
+klatkach. Mapa kończy się przygotowaniem implementacji i kryteriów odbioru
+tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
-Zakres uzgodniony z użytkownikiem 2026-10-14:
+Podział na dwa etapy zatwierdzony przez użytkownika 2026-10-16 zastępuje
+wcześniejsze założenie jednej specyfikacji całego programu.
 
-- Punktem wejścia jest zapis z innego programu; przykładem jest
-  `data/TTMAPP/detection_full.moltrack.json`. Obrazy wskazane w zapisie są
-  doczytywane automatycznie, z możliwością poprawienia ścieżki.
-  W ramach jednej analizy otwieramy jeden zapis i należące do niego klatki.
-- Potrzebne jest przeglądanie klatek i oznaczeń otwartego zapisu, wyników analizy
-  oraz zmian ilościowych w serii. Zapis z jedną klatką też należy do zakresu.
-- Typy uporządkowania mają to samo znaczenie w całej serii. Analiza obejmuje
-  regularność położeń oraz orientację samych molekuł; nie zakładamy katalogu A/B/C
-  ani obowiązkowej symetrii M6. Definicja kąta molekuły pozostaje do ustalenia.
-- Wyniki ilościowe: liczba molekuł według typu, powierzchnia i udział domen
-  oraz liczba oddzielnych domen na każdej klatce.
-- Rejestracja jest już częścią przykładowego zapisu. Oryginalny rozmiar klatki
-  i zapisane przesunięcie wyznaczają jej pole pomiarowe po wyrównaniu.
-  Dodatkowe dopełnienie nie należy do powierzchni odniesienia ani do domen.
-- Wartości fizyczne z nagłówka przykładowego MPP są zastępcze. Nie traktujemy
-  ich jako kalibracji; brak rzeczywistego czasu również nie uprawnia do wymyślania
-  osi czasu zamiast numerów klatek.
+- Etap 1 obejmuje otwarcie zapisu MolTrack, automatyczne doczytanie obrazów
+  z możliwością poprawienia ścieżki, nawigację klatek, zoom, gamma,
+  oznaczenia molekuł oraz podgląd zapisanej rejestracji.
+- Punktem odniesienia jest `data/TTMAPP/detection_full.moltrack.json`.
+  Jedna analiza otwiera jeden zapis i należące do niego klatki; dopuszczona
+  jest także seria z jedną klatką.
+- Szkielet ma działać na rzeczywistych danych. Odbiór sprawdza zgodność obrazu,
+  oznaczeń i współrzędnych; samo otwarcie pustego okna nie kończy etapu.
+- Rejestrację odtwarzamy z wejścia. Oryginalny rozmiar klatki i zapisane
+  przesunięcie wyznaczają pole pomiarowe po wyrównaniu; dopełnienie jest
+  oddzielone od pomiaru. Zakres nie obejmuje ponownego liczenia rejestracji.
+- Parametry fizyczne przykładowego MPP są zastępcze. Przy braku wiarygodnej
+  kalibracji pokazujemy piksele, a przy braku czasu — numery klatek.
+- Po uzgodnieniu tej mapy można przygotować i wykonać zadania implementacji
+  szkieletu. Otwarte pytania drugiej mapy nie są warunkiem tego kroku.
+- Po odbiorze działającego szkieletu przechodzimy do
+  [etapu 2: metod i zapisu wyników](map-methods-and-save.md).
+  Decyzji drugiego etapu nie rozstrzygamy przy projektowaniu szkieletu.
 
-To mapa decyzji, nie lista implementacji. Nie zamyka się pytań na podstawie
-samego działania kodu; skuteczność metod wymaga osobnej oceny.
+To mapa decyzji `wayfinder`; aktualizacja planu nie oznacza implementacji.
+Przy rozstrzyganiu pytań używamy `grilling` i `domain-modeling`, a przy szkicu UI
+`prototype`. [Rejestr pytań](issues/README.md) wskazuje aktywną mapę, zależności
+i zasady wyboru ticketu. [Słownik](GLOSSARY.md) definiuje pojęcia.
 
-Lokalny tracker znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie
-z instrukcjami repozytorium. Jego [operacje i zależności](issues/README.md)
-prowadzą do pytań, które można podjąć. Ta mapa nie powiela ich treści.
-Przy pracy używamy `wayfinder`, `grilling` i `domain-modeling`, a dla prototypów
-`prototype`. [Słownik](GLOSSARY.md) porządkuje nazwy używane w rozmowie.
-
-Źródła istniejących ustaleń technicznych:
-[wykrywanie domen](research-general-domain-detection.md),
-[orientacja molekuły i audyt wejścia](research-molecular-orientation.md).
-Nie są zatwierdzeniem konkretnego algorytmu. Na starcie nie dodajemy nowych
-pytań typu research: obecne pytania dotyczą wyborów użytkownika i prób na
-posiadanych danych. Konkretna luka wymagająca źródeł zewnętrznych może utworzyć
-nowe pytanie badawcze podczas dalszej pracy.
+Przed ustaleniem importu należy przeczytać
+[audyt wejścia i orientacji obrazu](research-molecular-orientation.md).
+Jego część o pomiarze kąta molekuły jest materiałem na późniejszą pracę.
 
 ## Decisions so far
 
-<!-- Brak zamkniętych ticketów. Ustalenia zakresu pochodzą ze zlecenia;
-     ich zapis w Notes nie oznacza rozstrzygnięcia pytań metodycznych. -->
+<!-- Brak zamkniętych decyzji technicznych. Zmiana zakresu wynika z polecenia
+     użytkownika; nie jest potwierdzeniem kontraktu importu ani odbioru GUI. -->
 
 ## Not yet specified
 
-Nie znamy jeszcze dodatkowych problemów, które ujawnią próby na kolejnych
-akwizycjach: zmian wyglądu motywu, niespójności eksportów lub klas błędów
-wymagających własnego sposobu oceny. Gdy pojawi się konkretny przypadek,
-powstanie osobne pytanie albo zostanie zawężone istniejące.
+Dodatkowe przypadki niespójnego wejścia mogą pojawić się podczas sprawdzania
+kolejnych zapisów. Gdy ujawni się konkretny przypadek, należy doprecyzować
+kontrakt importu lub dodać osobne pytanie blokujące szkielet.
 
 ## Out of scope
 
-- Samodzielne dodawanie STP, MPP i S94 jako alternatywnego wejścia aplikacji.
-  Czytanie obrazu wskazanego przez zapis nadal należy do zakresu.
-- Detekcja YOLO, tworzenie oznaczeń ręcznych i trenowanie detektora w STM Domains;
-  użytkownik dostarcza gotowe oznaczenia.
-- Śledzenie tożsamości pojedynczych molekuł i konkretnych domen między klatkami,
-  w tym historie podziałów, scaleń i narodzin domen.
-- Stały ROI lub wspólne pole wybrane do porównania całej serii. Liczymy oryginalne
-  pole każdej klatki, przemieszczone zgodnie z rejestracją.
-- Implementacja produkcyjnej aplikacji podczas wytyczania tej mapy; poza celem
-  pozostaje też niezależny rozwój STM Viewer.
+- Wykrywanie wysp i domen sieci, wybór metod, próby jakości, statystyki oraz
+  własny zapis/eksport wyników — [osobna mapa etapu 2](map-methods-and-save.md).
+- Pomiar orientacji pojedynczej molekuły — odłożony poza oba etapy;
+  [wcześniejsze pytanie](issues/03-molecular-orientation.md) zamknięto jako
+  odłożone, bez wyboru metody.
+- Samodzielny import STP/MPP/S94 jako alternatywa dla zapisu z oznaczeniami.
+  Doczytanie obrazu wskazanego w zapisie pozostaje częścią szkieletu.
+- Detekcja YOLO, ręczne tworzenie oznaczeń i trenowanie detektora.
+- Śledzenie tożsamości molekuł lub konkretnych domen między klatkami.
+- Stały ROI dla całej serii oraz rozwój STM Viewer.

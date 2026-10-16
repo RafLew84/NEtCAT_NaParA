@@ -1,4 +1,4 @@
-# Jak przeglądać klatki, domeny i zmiany ilościowe?
+# Jak przeglądać obrazy i oznaczenia w szkielecie?
 
 ID: 07
 Type: prototype
@@ -6,30 +6,34 @@ Labels: wayfinder:prototype
 Mode: HITL
 Status: open
 Assignee:
-Parent: [STM Domains — specyfikacja analizy typów uporządkowania w serii](../map.md)
-Blocked by: 01, 02, 06
+Parent: [STM Domains — etap 1: działający szkielet](../map.md)
+Blocked by: 01
 
 ## Question
 
-Jaki przebieg pracy i widoki pozwolą otworzyć zapis, sprawdzić jego zgodność,
-przejrzeć klatki oraz zrozumieć wyniki domen i wykresy zmian?
+Jaki minimalny układ okna pozwala otworzyć zapis, sprawdzić zgodność oznaczeń
+z obrazem i przejrzeć klatki bez wdrażania analizy domen?
 
-Przygotujmy szkic do reakcji użytkownika: nawigacja serii, obraz z oznaczeniami,
-przełączanie widoków przed/po wyrównaniu, granica oryginalnego pola klatki,
-warstwy typów/domen/kątów i połączony widok wykresu lub tabeli.
+Przygotujmy szkic do reakcji użytkownika: wybór zapisu, naprawa ścieżki do
+obrazu, nawigacja serii, obraz z gotowymi oznaczeniami, zoom i gamma,
+przełączanie original/aligned z użyciem zapisanej rejestracji oraz granica
+oryginalnego pola pomiarowego. Ustalmy zachowanie przy pojedynczej klatce,
+brakujących oznaczeniach, brakującej rejestracji i niewiarygodnej kalibracji.
 
-Jak wybieramy klatkę lub zakres do analizy, zaznaczamy typ i oglądamy jego zmianę,
-rozróżniamy niepewny wynik od braku domeny oraz naprawiamy ścieżkę do obrazu?
-Jak pokazać stałe znaczenie typów i kolory, nie sugerując śledzenia konkretnego
-obszaru w czasie? Czy potrzebna jest ręczna ocena lub korekta wyników analizy,
-a jeśli tak, co wolno zmieniać i jak zaznaczyć tę ingerencję?
-
-Interakcje ustalamy na szkicu, bez implementacji aplikacji. Rozstrzygnięcie
-opisuje ekran i przejścia zaakceptowane przez użytkownika, z odnośnikiem do szkicu.
-Gotowe oznaczenia wejściowe nie stają się przez to edytorem detekcji YOLO.
+Rozstrzygnięcie opisuje podstawowy ekran i przejścia zaakceptowane na szkicu.
+Interfejs ma umożliwić wizualne sprawdzenie importu na rzeczywistych danych.
+Wyniki metod, warstwy domen, wykresy i statystyki należą do etapu 2; ich brak
+nie blokuje tego pytania. Wejściowe oznaczenia pozostają danymi do podglądu.
 
 ## Dependencies
 
 - [Jak zapis wejściowy odtwarza obrazy, oznaczenia i rejestrację?](01-import-and-geometry.md)
-- [Jak definiujemy typ uporządkowania i pojedynczą domenę?](02-order-types-and-domains.md)
-- [Jak dokładnie liczymy ilości i udziały na każdej klatce?](06-frame-statistics.md)
+
+## Comments
+
+### 2026-10-16 — podział zakresu zatwierdzony przez użytkownika
+
+Zawężono wcześniejsze pytanie o kompletny interfejs analizy do podglądu
+szkieletu. Prezentację prób metod przeniesiono do
+[Jak porównać metody wykrywania wysp i domen w serii?](05-stable-types-across-frames.md), a interakcje
+z trwałymi wynikami do [Co zapisujemy i eksportujemy po próbach metod?](08-save-and-export.md).

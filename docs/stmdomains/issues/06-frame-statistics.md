@@ -6,13 +6,17 @@ Labels: wayfinder:grilling
 Mode: HITL
 Status: open
 Assignee:
-Parent: [STM Domains — specyfikacja analizy typów uporządkowania w serii](../map.md)
+Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 01, 02
 
 ## Question
 
 Jak zdefiniować liczby molekuł według typu, powierzchnie, udziały oraz liczbę
 oddzielnych domen, żeby wartości były jednoznaczne i porównywalne w serii?
+
+Osobno zdefiniujmy pokrycie i wyspy oraz domeny sieci wewnątrz materiału.
+Liczba wysp nie jest liczbą domen orientacyjnych. Ustalmy mianownik udziału
+domen sieci: całe poprawne pole klatki, pokrycie lub obie jawnie nazwane miary.
 
 Pole odniesienia jest już ustalone: oryginalny rozmiar każdej klatki przesunięty
 według rejestracji. Dopełnienie większego obrazu nie wchodzi do statystyk.
@@ -30,8 +34,9 @@ w klatkach nie jest dowodem narodzin lub zaniku konkretnej domeny.
 
 Rozstrzygnięcie zawiera definicje wielkości, jednostki i przykłady obliczeń na
 prostym układzie z domeną na brzegu, pustym dopełnieniem i niepewnymi wynikami.
+Te statystyki powstają w etapie 2; ich definicja nie blokuje podstawowego podglądu.
 
 ## Dependencies
 
 - [Jak zapis wejściowy odtwarza obrazy, oznaczenia i rejestrację?](01-import-and-geometry.md)
-- [Jak definiujemy typ uporządkowania i pojedynczą domenę?](02-order-types-and-domains.md)
+- [Jak definiujemy wyspę, typ uporządkowania i domenę sieci?](02-order-types-and-domains.md)
