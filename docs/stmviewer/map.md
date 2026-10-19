@@ -44,12 +44,14 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 - [Zapis MPP z wartościami i metadanymi](issues/04-mpp-export.md): ustalono zapis
   całej serii, towarzyszące metadane, zachowanie NaN i niejednorodnej kalibracji
   oraz zasady ponownego odczytu i rejestracji.
+- [Opcje filmu AVI](issues/05-avi-export.md): ustalono pełne obrazy, zakres klatek,
+  gamma/FPS, tła i opisy, kontrast, proporcje oraz wybór MJPG/FFV1.
 
 ## Not yet specified
 
-Szczegóły podziału implementacji i potrzebnych zmian wspólnych wyłonią się
-z kontraktów serii, rejestracji i eksportu. Po ich ustaleniu trzeba sprawdzić,
-czy pozostały pytania wymagające osobnych decyzji przed rozpoczęciem budowy.
+Nie zidentyfikowano dodatkowych pytań poza istniejącymi ticketami.
+Potrzeby wspólnych zmian są zapisane w przekazaniu; końcowy odbiór mapy
+obejmuje sprawdzenie pozostałych blokad implementacji.
 
 ## Out of scope
 

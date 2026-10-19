@@ -74,3 +74,15 @@ używanej do wyświetlenia obrazu.
 **Metadane towarzyszące MPP**:
 Informacje zapisane w osobnym pliku powiązanym z filmem MPP, opisujące
 pochodzenie, czasy, parametry i geometrię poszczególnych klatek.
+
+**Klatka filmu AVI**:
+Wyrenderowany obraz klatki serii wraz z wybranym tłem i opisami.
+Jasność jego pikseli jest prezentacją danych, nie wartością pomiarową.
+
+**Tempo filmu AVI**:
+Liczba klatek wyświetlanych na sekundę zapisanego filmu.
+Jest niezależna od tempa Play w aplikacji i od czasów pomiaru.
+
+**Poziomy kontrastu**:
+Wartości obrazu STM przypisane do czerni i bieli przy prezentacji obrazu.
+Wyznaczają zakres jasności przed zastosowaniem gamma.

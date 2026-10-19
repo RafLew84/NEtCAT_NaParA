@@ -118,6 +118,6 @@ okna PyQt6, nie wdraża funkcji aplikacji.
 [Rejestracja i życie wyniku aligned](03-registration.md) rozstrzyga dostępność
 i ważność aligned, w tym po usunięciu. Powiązanie pola oryginalnej
 klatki z wynikiem jest potrzebne do obrysu i prezentacji brakujących pikseli.
-[Opcje filmu AVI](05-avi-export.md) osobno rozstrzygają tempo, gamma, wycinek
-i wygląd brakujących danych w pliku wynikowym. Ten wybór podglądu nie zamyka
-kontraktu eksportu.
+[Opcje filmu AVI](05-avi-export.md#answer) rozstrzygają osobno tempo, gamma
+oraz wygląd brakujących danych. Eksport obejmuje wyłącznie pełne obrazy;
+ustawienie wycinka podglądu nie zmienia kadru AVI.

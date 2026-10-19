@@ -194,5 +194,6 @@ uzgodniona i zapewniona obsługa takich danych.
 geometrii, metadanych, brakujących danych i ponowny odczyt. Ponowna rejestracja
 zależy od faktycznie wczytanych danych, nie znacznika original/aligned;
 obecne metody nadal odrzucają brakujące próbki.
-[Opcje filmu AVI](05-avi-export.md) określą sposób przeniesienia podglądu do filmu.
+[Opcje filmu AVI](05-avi-export.md#answer) określają prezentację pełnego obszaru
+wyniku w filmie, bez ponownego wyznaczania mniejszego obszaru dla podzbioru.
 Wielkości serii i kryteria jakości należą do [odbioru pierwszej wersji](06-acceptance.md).

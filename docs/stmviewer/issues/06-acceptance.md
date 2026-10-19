@@ -52,3 +52,27 @@ Wynik próby nie może prowadzić do cichego zerowania lub kadrowania aligned.
 Nie oceniono jeszcze docelowej wydajności, dużych serii ani właściwej wersji
 WSxM. Obecny limit 1000 linii nagłówka nie może zostać ukrytym limitem liczby
 klatek nowej aplikacji; zapis/odczyt ma go obsłużyć lub wykryć przed zapisem.
+
+### 2026-10-19 — konsekwencje kontraktu AVI i pozostały odbiór mapy
+
+[Opcje filmu AVI](05-avi-export.md#answer) są rozstrzygnięte. Odbiór obejmuje
+pełny obraz, zakres od–do, niezależność od okna, FPS, oba tryby kontrastu,
+gamma, trzy tła, opisy, anizotropię lub brak wspólnej skali oraz dopełnienie
+nieparzystych wymiarów. Nie ma eksportu wycinka ani ręcznej rozdzielczości.
+
+[Lokalna próba](../avi-export-reconnaissance.md) potwierdziła MJPG i FFV1
+przez OpenCV/FFmpeg. Oba obcinały 65×49 do 64×48 bez jawnego dopełnienia;
+po dopełnieniu 66×50 zachowano pełną geometrię. FFV1 zachował wszystkie
+wyrenderowane piksele; MJPG jest stratny. Zachowano 7 klatek i 7,5 FPS.
+To nie jest potwierdzenie zgodności z docelowym odtwarzaczem.
+
+Pozostają do ustalenia konkretne dane, największe serie/filmy, systemy,
+odtwarzacz i wersja WSxM oraz wymagania wydajności. Odbiór powinien też
+objąć anulowanie/błąd zapisu bez utraty poprzedniego pliku, pojedynczą klatkę,
+stałe i całkowicie brakujące dane, czytelność opisów oraz eksport po usuwaniu
+klatek i zmianie wyniku rejestracji.
+
+Po domknięciu tych kryteriów należy skonfrontować potrzeby wspólnych zmian
+z [przekazaniem](../handoff.md), ustalić zakres integracji i sprawdzić, czy
+pozostała osobna decyzja blokująca implementację. Samo rozstrzygnięcie mapy
+nie oznacza, że aplikacja jest już zaimplementowana.

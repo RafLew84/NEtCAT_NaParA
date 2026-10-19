@@ -1,81 +1,73 @@
-# Przekazanie — zapis MPP STM Viewer
+# Przekazanie — film AVI STM Viewer
 
 Data: 2026-10-19
 Gałąź: `viewer/start`
-Baza bieżącej kontynuacji: `777351b`
-Poprzedni checkpoint rozpoznania: `777351b` (na bazie `5412dbb`).
+Baza bieżącej zmiany: `08c9ca6`
 Commit zamykający: identyfikator w końcowej wiadomości sesji.
 
 ## Wynik
 
-Rozstrzygnięto [Zapis MPP z wartościami i metadanymi](issues/04-mpp-export.md#answer).
-Zapis obejmuje całą pozostałą serię, wybór original/aligned, wartości niezależne
-od podglądu, MPP z towarzyszącymi metadanymi, NaN, pełną geometrię, pochodzenie
-i czasy. Różne skale/kanały nie blokują zapisu; wspólny nagłówek nie udaje
-kalibracji wszystkich klatek. Ponowne dopasowanie zależy od danych, nie
-znacznika aligned; brakujące próbki pozostają nieobsługiwane przez backendy.
+Rozstrzygnięto [Opcje filmu AVI](issues/05-avi-export.md#answer) po dwóch rundach
+odpowiedzi. Wyłącznie pełne obrazy, wybór original/aligned i zakresu klatek,
+gamma z podglądu lub 1,0, FPS przy eksporcie, tło czarne/szare/białe,
+opcjonalna podziałka i numer/czas, dwa tryby kontrastu, proporcje z danych,
+MJPG domyślnie albo FFV1. Ciche obcinanie nieparzystych wymiarów zastępuje
+jawne dopełnienie zachowujące wszystkie krawędzie.
 
-Użytkownik doprecyzował, że chodzi o zwykłe utworzenie MPP, bez osobnego trybu
-„eksport do WSxM”. WSxM pozostaje programem, w którym chce otwierać wynik.
-Zgodność NaN i interpretacji filmu nie została potwierdzona. Nie zatwierdzono
-zerowania braków ani przycinania obrazu w celu poprawienia kompatybilności.
+Użytkownik wycofał proponowany wycinek i szachownicę z AVI. Przeniesiono
+wynik do mapy, słownika, odnośników z podglądu/rejestracji oraz kryteriów
+odbioru. Wszystkie zmiany dotyczą specyfikacji i dowodów z małej próby;
+nie wdrożono eksportera ani nie zmieniono wspólnych modułów.
 
-Zaktualizowano mapę, słownik, powiązanie z decyzją rejestracji i komentarz
-w tickecie odbioru. Wszystkie zmiany są dokumentacją; eksporter i wspólne
-czytniki nie zostały zaimplementowane/zmienione. Aplikacja pozostaje szkieletem.
+Następny dostępny ticket: [Dane i kryteria odbioru pierwszej wersji](issues/06-acceptance.md).
+Mapa pozostaje otwarta; ten ticket ma ustalić konkretne dane i środowiska
+oraz sprawdzić pozostałe blokady implementacji. Nie zidentyfikowano nowego
+pytania wymagającego osobnego ticketu poza już zapisaną decyzją odbioru.
 
-Następny dostępny ticket: [Opcje filmu AVI](issues/05-avi-export.md).
-[Dane i kryteria odbioru](issues/06-acceptance.md) oczekują jeszcze na AVI.
-Wcześniejsze ustalenia rejestracji są w [jej tickecie](issues/03-registration.md)
-i historii `5412dbb`; prototyp podglądu nadal ma wersję `efb7e50`.
+Wcześniejszy kontrakt MPP i jego potrzeby integracji są zachowane w
+[decyzji MPP](issues/04-mpp-export.md#answer), [rozpoznaniu](reconnaissance.md)
+i historii `08c9ca6`. Prototyp podglądu pozostaje w wersji `efb7e50`.
 
-## Wykonane sprawdzenia i ograniczenia
+## Wykonane sprawdzenia
 
-- Poprzedni checkpoint obejmował przegląd lokalnych readerów i małą próbę
-  dwóch klatek MPP: wartości, NaN, obrót, skala/offset, dodatkowe pole nagłówka,
-  kompletne i niepełne czasy, nieciągłe indeksy, jednostki oraz limit linii.
-  Przeczytano też nagłówki i wybrane wartości STP/S94/MPP z lokalnego `data/`
-  worktree Domains. [Szczegóły](reconnaissance.md#uzupełnienie-kontrakt-odczytu-mpp).
-- W tej kontynuacji przejrzano źródła pierwotne UAM, dyskusję z autorem
-  Gwyddion oraz wersjonowany kod SciFiReaders. [Notatka](wsxm-mpp-compatibility.md)
-  oddziela sprawdzone fakty od niezweryfikowanych zachowań WSxM.
-- Potwierdzono ustawienie row-major w punktach startowych NaPara/NanoTrack.
-  Nie testowano ich końcowego wyświetlania ani zapisu w WSxM.
-- Sprawdzono 111 lokalnych odnośników i kotwic, statusy i brak cykli zależności
-  sześciu ticketów oraz zachowanie pierwotnego pytania. Jedynym dostępnym
-  otwartym ticketem jest teraz AVI. `git diff --check` przeszedł poprawnie.
+- Przeczytano kod ViewerWidget, SequenceViewerWidget i lokalnego pyqtgraph:
+  gamma LUT, automatyczne poziomy per klatka, wpływ skali X/Y, zastępowanie
+  NaN medianą w kopii wyświetlanej i ustawienie row-major.
+- Sześć małych syntetycznych prób AVI w conda netcat, OpenCV 4.11.0/FFmpeg:
+  MJPG/FFV1 × parzyste, nieparzyste i dopełnione wymiary. Każda zapisywała
+  siedem klatek przy 7,5 FPS. Sprawdzono backend, liczbę i rozmiary faktycznie
+  odczytanych klatek, FPS i różnice pikseli. [Raport i odtwarzalny skrypt](avi-export-reconnaissance.md).
+- FFV1 po dopełnieniu/parzystych wymiarach odtwarzał raster dokładnie;
+  MJPG zmieniał piksele stratnie. Sam sukces otwarcia writera nie wykrył
+  obcięcia ostatniego wiersza/kolumny.
+- Sprawdzono 125 lokalnych odnośników/kotwic, statusy i brak cykli zależności
+  sześciu ticketów oraz zachowanie pierwotnego pytania. Dostępny jest ticket
+  odbioru. `git diff --check` przeszedł poprawnie; zapisany skrypt próby jest
+  identyczny z wykonanym, a jego składnia została sprawdzona przez AST.
 
-Nie uruchamiano w tej kontynuacji zestawu testów aplikacji, GUI ani nowego
-próbnego eksportera. Nie znaleziono WSxM/Wine w sprawdzonych lokalizacjach;
-nie instalowano programu. Pełny test MPP → aplikacje repo/WSxM i z powrotem
-pozostaje do wykonania przy implementacji/odbiorze. Rozpoznanie kodu innych
-czytników nie stanowi testu WSxM.
+Nie uruchamiano pełnego zestawu testów, produkcyjnego GUI ani odtwarzacza
+zewnętrznego. Nie sprawdzano wielkich filmów, anulowania i błędów zapisu,
+renderowania NaN/opisów przez nową aplikację ani prawdziwego eksportera.
+Nie instalowano zależności. Minimalny szkielet nadal nie obejmuje OpenCV.
 
 ## Potrzeby implementacji i integracji
 
-- Dodać zapis obsługiwanego wariantu double MPP oraz wersjonowanych metadanych
-  towarzyszących, ich powiązanie z zawartością filmu, walidację i spójny zapis.
-  Brak dodatku pozwala oglądać film; nie wolno używać dodatku należącego do
-  innych danych. Eksport nie jest zapisem kompletnej sesji.
-- Zachować metadane każdej klatki, źródłowe numery i czasy, geometrię pola
-  pomiaru osobno od maski próbek, historyczne odniesienie i pełny obszar aligned.
-  Nie kopiować metadanych pierwszej klatki jako prawdy o całej serii.
-- Uzgodnić orientację STP/S94/MPP we wspólnej warstwie. Czytnik MPP i loader
-  NanoTrack mają różne miejsca obrotu; odbiór powinien obejmować asymetryczne
-  dane i wszystkich wskazanych odbiorców.
-- Jawnie modelować jednostkę wartości, nieznaną kalibrację oraz jednostki
-  umowne. Obecny parser skali nie zapewnia tego kontraktu. Poprawić warianty
-  nazw offsetu/kanału STP; nie normalizować próbki według liczby w Z Amplitude.
-- Poprawić obsługę niepełnych czasów i jednostek synchronizacji; usunięcie
-  klatki nie może pozostawiać niepasującej osi czasu. Numery wyjściowe i
-  pochodzenie są odrębne.
-- Rozwiązać limit 1000 linii nagłówka, uwzględnić rzeczywisty rozmiar nagłówka
-  w bajtach i poprawny binarny wariant zapisu. Sam test lokalnego czytnika,
-  który ignoruje niektóre deklaracje nagłówka, nie potwierdza zgodności MPP.
-- Sprawdzić w WSxM wartości double, orientację, skalę, NaN, brak fizycznej
-  kalibracji dla mieszanej serii i zachowanie po ponownym zapisaniu filmu.
-  Metadane STM Viewer nie zapewniają WSxM interpretacji indywidualnych masek
-  lub kalibracji. Zmiana zawartości MPP może unieważnić jego dodatek.
-
-Zmiany współdzielonych modułów i konfiguracji są do sesji integracyjnej,
-z testami ich odbiorców. W tej sesji nie zmieniono wspólnego kodu.
+- Renderer pełnej klatki oddzielony od zrzutów okna: ważne próbki, wybrany
+  kontrast/gamma, proporcje, maska, tło, opisy i dopełnienie. Przypisanie NaN
+  do mediany w starym widgetcie nie spełnia kontraktu.
+- Wspólny kontrast liczyć wyłącznie z wybranych klatek i ważnych próbek.
+  Obsłużyć stały obraz, brak ważnych próbek i serie o różnych jednostkach;
+  korekcja jasności nie ujednolica jednostek pomiaru.
+- Zachować cały istniejący obszar aligned i powiązanie klatek z czasami.
+  Nie przeliczać rejestracji i rozmiaru obszaru dla wybranego zakresu.
+- Fizyczne proporcje i podziałka wymagają wspólnej wiarygodnej kalibracji;
+  przy jej braku film używa pikseli. Maska i opisy muszą uwzględniać tę samą
+  geometrię. Techniczny padding nie zmienia skali pomiaru.
+- Wybrany kodek sprawdzić w środowisku; brak metody ma być jawny, bez
+  automatycznego zastąpienia. Nieparzystych wymiarów nie przekazywać bez
+  dopełnienia do obecnego writera. Zapis tymczasowy, postęp i anulowanie
+  powinny chronić poprzedni wynik przed błędem nowego eksportu.
+- Zależności i testy współdzielonych zmian uzgodnić z sesją integracyjną.
+  Dalszy odbiór ma wskazać docelowe odtwarzacze, formaty danych i rozmiary
+  oraz objąć wcześniejsze wymagania MPP/WSxM. Nie trzeba ich rozstrzygać
+  ponownie w osobnym tickecie AVI.

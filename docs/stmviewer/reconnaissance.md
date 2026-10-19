@@ -279,3 +279,13 @@ SciFiReaders. Różnice interpretacji wartości potwierdzają, że odczyt przez
 inny parser nie zastępuje testu w docelowym WSxM. Obsługa NaN i własnych
 metadanych pozostaje niezweryfikowana. Nie znaleziono lokalnego programu
 WSxM ani Wine w PATH i sprawdzonych typowych katalogach; nie instalowano ich.
+
+## Uzupełnienie: film AVI
+
+2026-10-19, baza `08c9ca6`: [rozpoznanie AVI](avi-export-reconnaissance.md)
+opisuje kontrast/gamma, proporcje i sposób wyświetlania NaN w istniejącym
+widgetcie oraz sześć małych prób zapisu/odczytu przez OpenCV/FFmpeg.
+MJPG i FFV1 działają lokalnie, lecz cicho obcinają nieparzyste wymiary.
+Jawne dopełnienie zachowuje krawędzie. Nie sprawdzono odtwarzacza docelowego,
+wielkich filmów ani eksportera aplikacji. [Skrypt](experiments/avi_codec_probe.py)
+generuje wyłącznie małe syntetyczne dane do katalogu tymczasowego.
