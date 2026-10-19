@@ -4,8 +4,8 @@ ID: 07
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: open
-Assignee:
+Status: claimed
+Assignee: Codex — domains/browsing-contract
 Parent: [STM Domains — etap 1: działający szkielet](../map.md)
 Blocked by: 01
 
@@ -37,3 +37,9 @@ Zawężono wcześniejsze pytanie o kompletny interfejs analizy do podglądu
 szkieletu. Prezentację prób metod przeniesiono do
 [Jak porównać metody wykrywania wysp i domen w serii?](05-stable-types-across-frames.md), a interakcje
 z trwałymi wynikami do [Co zapisujemy i eksportujemy po próbach metod?](08-save-and-export.md).
+
+### 2026-10-19 — rozpoczęcie prototypu
+
+Przygotowujemy trzy warianty podstawowego podglądu na rzeczywistych obrazach
+i oznaczeniach TTMAPP. Źródła prototypu pozostają na osobnej gałęzi; jego wybór
+rozstrzyga układ i zachowanie szkieletu, nie implementuje aplikacji ani analizy.
