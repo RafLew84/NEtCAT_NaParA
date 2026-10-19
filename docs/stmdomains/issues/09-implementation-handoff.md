@@ -4,8 +4,8 @@ ID: 09
 Type: grilling
 Labels: wayfinder:grilling
 Mode: HITL
-Status: open
-Assignee:
+Status: claimed
+Assignee: Codex — domains/implementation-handoff
 Parent: [STM Domains — etap 1: działający szkielet](../map.md)
 Blocked by: 01, 07
 
@@ -45,3 +45,10 @@ pozostają częścią [Jak porównać metody wykrywania wysp i domen w serii?](0
 i [Co zapisujemy i eksportujemy po próbach metod?](08-save-and-export.md) w drugim etapie.
 
 Kontekst: [instrukcje współpracy](../../PARALLEL_DEVELOPMENT.md).
+
+### 2026-10-19 — przygotowanie przekazania
+
+Import i podgląd są uzgodnione. Sprawdzamy lokalne punkty ponownego użycia,
+ustalamy brakujące zachowania prezentacji i przygotowujemy zadania budowy
+oraz odbioru szkieletu. Zamknięcie pytania zakończy specyfikację pierwszej mapy,
+nie będzie deklaracją zaimplementowanej ani odebranej aplikacji.
