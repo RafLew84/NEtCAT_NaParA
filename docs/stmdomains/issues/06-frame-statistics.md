@@ -4,8 +4,8 @@ ID: 06
 Type: grilling
 Labels: wayfinder:grilling
 Mode: HITL
-Status: open
-Assignee:
+Status: claimed
+Assignee: Codex — domains/frame-statistics
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 01, 02
 
@@ -47,3 +47,10 @@ Te statystyki powstają w etapie 2; ich definicja nie blokuje podstawowego podgl
 
 - [Jak zapis wejściowy odtwarza obrazy, oznaczenia i rejestrację?](01-import-and-geometry.md)
 - [Jak definiujemy wyspę, typ uporządkowania i domenę sieci?](02-order-types-and-domains.md)
+
+## Discussion — 2026-10-19
+
+Na bezpośrednie polecenie użytkownika rozstrzygamy definicje statystyk
+przed odbiorem szkieletu. To decyzja pojęciowa, nie implementacja ani walidacja
+metod wykrywania. Kontrakty importu i definicje wysp/typów/domen są już
+uzgodnione; pilotaż wskazał osobne pytania do dalszych prób metod.
