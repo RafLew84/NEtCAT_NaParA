@@ -4,8 +4,8 @@ ID: 02
 Type: grilling
 Labels: wayfinder:grilling
 Mode: HITL
-Status: open
-Assignee:
+Status: claimed
+Assignee: Codex — domains/order-types-contract
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by:
 
@@ -33,3 +33,9 @@ i nie jest warunkiem zdefiniowania tych dwóch warstw wyniku.
 
 Kontekst: [słownik](../GLOSSARY.md),
 [rozdzielenie wielkości w przeglądzie metod](../research-general-domain-detection.md).
+
+## Discussion — 2026-10-19
+
+Użytkownik wskazał to pytanie do wykonania przed odbiorem szkieletu. Podejmujemy
+wcześniej tę decyzję definicyjną z etapu 2; nie oznacza to odbioru etapu 1 ani
+rozpoczęcia implementacji metod. Ticket pozostaje `claimed` do zakończenia rozmowy.
