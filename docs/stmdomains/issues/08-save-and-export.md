@@ -4,8 +4,8 @@ ID: 08
 Type: grilling
 Labels: wayfinder:grilling
 Mode: HITL
-Status: open
-Assignee:
+Status: claimed
+Assignee: Codex — domains/save-export-contract
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 01, 06, 07, 13
 
@@ -58,3 +58,13 @@ jest przykładem związanym z M6, nie gotowym kontraktem nowej analizy.
 - [Które metody i warunki odmowy wyniku przyjmujemy po próbach?](13-method-acceptance.md)
 - [Jak dokładnie liczymy ilości i udziały na każdej klatce?](06-frame-statistics.md)
 - [Jak przeglądać obrazy i oznaczenia w szkielecie?](07-browsing-and-comparison.md)
+
+## Comments
+
+### 2026-10-19 — podjęcie na bezpośrednie polecenie użytkownika
+
+Rozmowę o zapisie rozpoczynamy przed odbiorem metod, jako wskazany przez
+użytkownika wyjątek od kolejności mapy. Ustalamy kontrakt wspólny dla metod,
+a szczegóły zależne od wyników prób pozostają do weryfikacji podczas ich
+odbioru. Nie oznacza to wyboru ani zatwierdzenia algorytmu i nie rozszerza
+pierwszego etapu o implementację zapisu.
