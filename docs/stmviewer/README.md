@@ -26,7 +26,7 @@ opisuje dostępne pomiary, sprzęt i granice wykonanych sprawdzeń.
 
 Lokalny tracker adaptuje konwencję `wayfinder` do wymaganych przez repo ścieżek
 `docs/stmviewer/`, zamiast `.scratch/`. Pliki wersjonujemy na gałęzi `viewer/*`.
-Mapa i tickety mają wyłącznie etykiety `wayfinder:*`.
+Mapa i jej tickety decyzyjne mają wyłącznie etykiety `wayfinder:*`.
 
 Ticket ma `Type`, `Status` (`open`, `claimed`, `resolved`), `Assignee`, `Parent`
 i `Blocked by`. Brak zależności oznaczamy `none`; pozostałe wskazują numery
@@ -38,6 +38,19 @@ Komentarze dopisuj pod `Comments`. Rozstrzygnięcie zapisz jako `Answer`, ustaw
 `Status: resolved` i dopisz nazwany link z krótkim wynikiem do mapy. Nie zmieniaj
 samego pytania w magazyn decyzji. W sesji rozstrzygamy najwyżej jeden ticket
 (wyjątek skillu: research); tworzenie mapy nie zamyka ticketów.
+
+## Implementacja
+
+[Lista 21 ticketów implementacyjnych](implementation/README.md) została
+zatwierdzona 2026-10-19 wraz z zależnościami i publicznymi granicami testowania
+TDD. Każdy etap kończy się funkcją możliwą do sprawdzenia w działającym GUI
+oraz zawiera konkretne kroki próby i oczekiwane wyniki.
+
+Zacznij od [Pierwszego obrazu STP w działającym oknie](implementation/issues/01-single-stp.md).
+Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
+Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
+ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje
+cel do 1000 linii i bezwzględny limit 1500 fizycznych linii pliku kodu.
 
 ## Uruchomienie
 

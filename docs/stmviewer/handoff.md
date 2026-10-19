@@ -1,60 +1,66 @@
-# Przekazanie — gotowa specyfikacja STM Viewer
+# Przekazanie — tickety implementacyjne STM Viewer
 
 Data: 2026-10-19
 Gałąź: `viewer/start`
-Baza bieżącej zmiany: `7cfc154`
+Baza bieżącej zmiany: `f394eba`
 Commit zamykający: identyfikator w końcowej wiadomości sesji.
 
-## Wynik i stan mapy
+## Wynik
 
-Rozstrzygnięto [Dane i kryteria odbioru pierwszej wersji](issues/06-acceptance.md#answer).
-Wszystkie sześć ticketów i [mapa](map.md) są zamknięte. Gotowy jest kontrakt
-pierwszej wersji, nie implementacja. Kod `stmviewer/` nadal jest szkieletem.
-Nie pozostały decyzje produktowe blokujące rozpoczęcie implementacji;
-prace techniczne i odbiór działającego programu są następnym etapem.
+Użytkownik zatwierdził [21 ticketów implementacyjnych](implementation/README.md),
+ich zależności i publiczne granice testowania TDD. Podział dostosowano do
+pracy skillem `implement`: realizacja funkcji, testy, kontrola typów,
+code-review i commit mieszczą się w jednym etapie. Każdy ticket zawiera
+konkretny ręczny scenariusz w działającym programie i oczekiwane wyniki.
 
-Uzgodniono Ubuntu 24.04 i Windows 11, start z repozytorium/Pythona,
-16 GB **wolnego** RAM, SSD i NVIDIA/CUDA z minimum 8 GB VRAM. Rzeczywiste
-pomiary uzupełnia seria 1000 × 512 × 512; wymagane 5 kl./s i reakcja na
-wybór/Pause do 250 ms w co najmniej 95% prób. Przy większym obciążeniu Play
-zwalnia bez pomijania klatek. Długie operacje mają postęp i anulowanie,
-a ich czas jest raportowany bez sztywnego limitu.
+Pierwszy dostępny etap to [Pierwszy obraz STP w działającym oknie](implementation/issues/01-single-stp.md).
+Pozostałe mają jawne blokady; status `ready-for-agent` nie pozwala pomijać
+nieukończonych zależności. Zapisano też przebieg `in-progress` →
+`ready-for-review` → `done` i rozróżnienie prób wykonanych/niewykonanych.
 
-MPP wymaga dokładnego ponownego odczytu wartości i metadanych. AVI MJPG/FFV1
-trzeba odtworzyć w VLC na obu systemach. WSxM pozostaje dodatkową próbą,
-która nie blokuje pierwszego odbioru; nie deklarujemy niezweryfikowanej zgodności.
-Zaktualizowano odnośniki w kontrakcie MPP i podglądu oraz pojęcie zadanego
-tempa odtwarzania w słowniku. Pełny ręczny scenariusz znajduje się w tickecie
-odbioru; nie jest listą już zaliczonych sprawdzeń.
+Oddzielono otwarcie obrazu od serii, podgląd od Play/Pause, odczyt dodatku
+MPP od zapisu, podstawowy AVI od wyborów prezentacji, duży podgląd od
+pełnych eksportów oraz odbiór Ubuntu od Windows. Gotowy wynik Phase nadal
+jest jednym kompletnym etapem z GUI, postępem, anulowaniem i geometrią.
+Nie utworzono osobnych ticketów niepodłączonego modelu, renderera lub workera.
 
-Zmiana obejmuje wyłącznie dokumentację. Nie wdrożono importerów, UI,
-rejestracji ani eksporterów i nie zmieniono współdzielonych modułów.
-Prototyp podglądu pozostaje osobno w wersji `efb7e50`; nie jest aplikacją.
+[Instrukcja aplikacji](../../stmviewer/AGENTS.md) określa cel do **1000 linii**
+i twardy limit **1500 linii fizycznych** pliku kodu, z komentarzami i pustymi
+wierszami. Podział ma wynikać z odpowiedzialności. Każdy etap wymaga także
+instrukcji uruchomienia i ręcznej próby; wynik Qt offscreen jest osobnym
+sprawdzeniem automatycznym.
 
-## Wykonane sprawdzenia i ograniczenia
+Uzgodnione granice testowania i domyślna baza przeglądu (HEAD przed rozpoczęciem
+ticketu) są zapisane w trackerze. Nie trzeba ponawiać tych samych pytań przy
+każdym tickecie; nowa, nieuzgodniona granica testów wymaga uzgodnienia.
+Pierwszy etap ustala komendę typecheckingu; kolejne uruchamiają ją regularnie,
+pojedyncze testy w toku pracy, a pełny zestaw na końcu.
 
-- Sprawdzono branch/status/worktree, instrukcje, mapę, zamknięte kontrakty
-  i istniejące testy. Zachowano pierwotne pytanie ticketu.
-- Przeprowadzono odczyt nagłówków, rozmiarów oraz krótkich próbek lokalnych
-  pomiarów. [Inwentarz](acceptance-reconnaissance.md) opisuje 872 STP,
-  370 S94 i 12 MPP oraz prawdopodobne kopie. Nie czytano całych dużych filmów
-  i nie wykonywano pełnych hashy ani oceny kalibracji wszystkich plików.
-- Sprawdzono lokalny system, CPU/RAM, dostępne programy oraz ścieżki GPU
-  w kodzie. Lokalnie Ubuntu 24.04.4 i około 123,5 GiB RAM. Wykryto RTX 5090,
-  ale `nvidia-smi` nie komunikował się ze sterownikiem; nie potwierdzono
-  VRAM tej karty, działania CUDA ani wag. Nie diagnozowano przyczyny.
-- Nie znaleziono zewnętrznego odtwarzacza/WSxM w sprawdzonych miejscach.
-  Nie instalowano programów, nie pobierano wag i nie modyfikowano danych.
-- Sprawdzono 154 lokalne odnośniki/kotwice, zamknięcie sześciu ticketów
-  i mapy, brak cykli zależności oraz niezmienność wszystkich pytań względem
-  `7cfc154`. `git diff --check` przeszedł; kod produkcyjny pozostaje bez zmian.
+Zamknięta [mapa decyzji](map.md) i jej sześć ticketów pozostają niezmienione.
+Specyfikacja nadal obowiązuje, a kod aplikacji pozostaje szkieletem. Ten
+commit publikuje plan wykonania i reguły pracy; nie wdraża funkcji programu.
 
-W tej sesji nie uruchamiano testów aplikacji, produkcyjnego GUI, Windows,
-VLC/WSxM, dużych benchmarków ani modelu GPU. Nie można na tej podstawie
-uznać implementacji za odebraną. Wcześniejsze małe próby są opisane osobno
-w [rozpoznaniu kodu](reconnaissance.md), [raporcie MPP](wsxm-mpp-compatibility.md)
-i [raporcie AVI](avi-export-reconnaissance.md). FFV1/MJPG potwierdzono tam
-przez OpenCV/FFmpeg, bez odbioru w zewnętrznym odtwarzaczu.
+## Weryfikacja i granice tej zmiany
+
+- Odczytano instrukcje `to-tickets`, `implement` oraz wymagania jego przebiegu
+  TDD/code-review; przy zmianie AGENTS zastosowano `writing-for-agents`.
+- Sprawdzono istniejący szkielet, publiczne wejścia i rozmiary współdzielonych
+  czytników/runnera/materializatora. Przygotowane funkcje wykorzystują ten kod,
+  a wymagane wspólne zmiany pozostają przypisane sesji integracyjnej.
+- Sprawdzono 294 lokalne odnośniki/kotwice, 21 osobnych ticketów, statusy,
+  topologiczne uporządkowanie bez cykli i zbędnych blokad przechodnich oraz
+  kompletność scenariuszy ręcznych i publicznych granic testów. Tylko pierwszy
+  ticket jest odblokowany, a oba odbiory platform obejmują wszystkie wcześniejsze etapy.
+- Mapa i sześć decyzji są identyczne bajtowo względem `f394eba`. Zmiany
+  obejmują wyłącznie instrukcję aplikacji i dokumentację Viewera. Pięć obecnych
+  plików Python aplikacji/testów mieści się w limicie (największy: 29 linii).
+  `git diff --check` przeszedł poprawnie.
+
+Nie uruchamiano testów aplikacji, modeli, GUI, Windows ani VLC. Nie wdrożono
+żadnego ticketu i nie zaliczono jego przyszłych prób. Wcześniejsze dowody
+z rozpoznania nadal są w [raporcie danych](acceptance-reconnaissance.md),
+[raporcie kodu](reconnaissance.md) oraz raportach [MPP](wsxm-mpp-compatibility.md)
+i [AVI](avi-export-reconnaissance.md).
 
 ## Podział pracy z sesją integracyjną
 
@@ -104,5 +110,7 @@ prace Viewera i zgłosić konkretną zależność w kolejnym przekazaniu.
   danych i osobnymi wynikami Ubuntu/Windows. Zanotować faktyczne zużycie
   zasobów oraz dostępność metod, a niewykonane próby oznaczyć jawnie.
 
-Nie tworzono nowych ticketów decyzyjnych: pozostały zadania implementacji,
-integracji i sprawdzenia gotowego programu, poza celem zakończonej mapy.
+
+Dalsza praca prowadzi przez zatwierdzone tickety implementacyjne. Odbiór całej
+pierwszej wersji wymaga obu zaliczonych ticketów platformowych na zgodnym
+zestawie zintegrowanych zmian.
