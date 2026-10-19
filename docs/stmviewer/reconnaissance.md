@@ -191,3 +191,81 @@ Rozstrzygnięcie: [Rejestracja i życie wyniku aligned](issues/03-registration.m
 Po rozpoznaniu użytkownik wycofał odwracanie kolejności z STM Viewer;
 powyższe fakty o tej funkcji dotyczą istniejącego kodu i wcześniejszej analizy,
 nie aktualnych wymagań nowej aplikacji.
+
+## Uzupełnienie: kontrakt odczytu MPP
+
+Sprawdzenie z 2026-10-19, baza `5412dbb`. Fakty stanowią podstawę otwartego
+[Zapisu MPP z wartościami i metadanymi](issues/04-mpp-export.md);
+nie są jeszcze uzgodnionym kontraktem eksportu.
+
+### Nagłówek, wartości i metadane
+
+- [Czytnik MPP](../../napara/io/mpp_reader.py) czyta sekcje z parami
+  `Key: Value` do `[Header end]`, maksymalnie przez 1000 linii. Nie korzysta
+  z deklarowanego rozmiaru nagłówka w bajtach. Wymiary i liczba klatek
+  pochodzą z `General Info`; kolejne klatki to macierze float64 little endian,
+  wierszami. Deklaracja `Image Data Type` nie zmienia obecnego odczytu.
+- Nieznane sekcje i pola trafiają do `raw_header`. Próba potwierdziła
+  zachowanie jednoliniowego JSON w dodatkowym polu. To techniczna możliwość
+  rozszerzenia, a nie dowód zgodności z programami zewnętrznymi.
+- Rozmiar fizyczny, offset, kanał, kąt, bias i setpoint są wspólne dla filmu.
+  Czytnik nie interpretuje metadanych per klatka, pochodzenia, jednostki
+  wartości, rejestracji ani pola oryginalnej klatki. Wersjonowane rozszerzenie
+  wymagałoby nowego adaptera lub wspólnej zmiany czytnika.
+- NaN przechodzi przez odczyt bez zastępowania zerem. Maska skończonych próbek
+  nie wystarcza do odzyskania oryginalnego pola klatki ani wartości oryginału
+  sprzed interpolacji. Zapis float64 nie odzyska precyzji wcześniej utraconej
+  podczas obliczeń aligned lub odczytu S94 do float32.
+- Sam czytnik MPP zachowuje kolejność elementów macierzy;
+  [loader NanoTrack](../../nanotrack/io/mpp_loader.py) obraca każdą o 180 stopni.
+  Oba punkty startowe NaPara i NanoTrack ustawiają wyświetlanie row-major.
+  Ponowny odczyt wymaga kontroli orientacji na asymetrycznym obrazie;
+  w tej próbie nie sprawdzano końcowego obrazu w GUI.
+
+### Czasy i usunięte klatki
+
+[Parser czasu](../../nanotrack/io/mpp_loader.py) oczekuje kluczy
+`Frame 0000` do `Frame N-1`. Próba eksportowego podzbioru z kluczami 0 i 2
+przy dwóch klatkach dała `KeyError`; konieczne jest rozdzielenie pozycji
+wyjściowej od numeru źródłowego. Wartości czasów można zachować z przerwami.
+
+Brak jednego czasu powoduje utratę całej tablicy czasów w modelu.
+Parser odczytuje samą liczbę: napis `10 ms` interpretuje jako 10 sekund;
+zerowe czasy wszystkich klatek akceptuje. Nie należy wyznaczać czasu pomiaru
+z tempa odtwarzania ani uznawać zera automatycznie za potwierdzony pomiar.
+Standardowe wpisy czasów również zużywają limit 1000 linii nagłówka.
+
+### Jednostki wejścia
+
+Lokalne próbki STP/MPP mają nagłówki WSxM (Nanotec Electronica/UAM), mimo
+określenia „Omicron” w docstringach czytników. Dokumentacja
+[SPM Images UAM](https://spmimages.ftmc.uam.es/file-specifications/)
+opisuje STP z typem danych i jednostką wartości w nagłówku; nie stanowi
+pełnej specyfikacji filmu MPP ani gwarancji odbioru NaN.
+
+[Czytnik STP](../../napara/io/stp_reader.py) zachowuje wartości float64 i obraca
+macierz o 180 stopni, lecz nie modeluje jednostki wartości. W próbkach
+`17851.STP` i `17544.STP` zakres danych wynosi odpowiednio 4,619140625 oraz
+1,697265625, mimo `Z Amplitude` 4 nm i 1 nm. Minima i maksima są takie same
+jak w odpowiadających S94 po kalibracji do nm. Dla tych próbek normalizacja
+wartości do liczby z `Z Amplitude` zmieniłaby pomiar. Rozbieżność nazw pól
+`Acquisition channel`/`Channel` i `X-Offset`/`X Offset` potwierdza wcześniejszą
+potrzebę poprawienia metadanych czytnika STP.
+
+[Czytnik S94](../../napara/io/s94_reader.py) daje nm dla topografii ze znanym
+wzmocnieniem i nA dla prądu. Przy nieznanym wzmocnieniu lub trybie zachowuje
+surowe liczby; oznaczenie ich jako nm byłoby błędne. Obecne modele nie mają
+jednoznacznego pola jednostki wartości ani pewności metadanych.
+
+### Zakres sprawdzenia
+
+Wykonano małą próbę dwóch klatek 2 × 3: wartości i NaN, obrót w loaderze,
+rozmiar fizyczny i offset, dodatkowe pole nagłówka, kompletne/niekompletne
+czasy, nieciągłe indeksy czasu, jednostkę ms, zerowe czasy i limit nagłówka.
+Przeczytano też nagłówki i wybrane wartości lokalnych STP/S94/MPP z
+`/home/rlew/projekty/NEtCAT-domains/data/`: `MOVIE_3.MPP`,
+`TTMAPP/MOVIE_23raw_TTMAPP_I_AU111.MPP` oraz pary `17851` i `17544` STP/S94.
+Kod importowano z worktree Viewer w środowisku conda netcat. Syntetyczny
+probe wykonano inline; jego katalog tymczasowy został automatycznie usunięty.
+Nie uruchamiano pełnego zestawu testów, GUI ani zewnętrznego WSxM;
+nie napisano eksportera i nie potwierdzono interoperacyjności.

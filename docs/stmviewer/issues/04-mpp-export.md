@@ -2,8 +2,8 @@
 
 Type: grilling
 Label: wayfinder:grilling
-Status: open
-Assignee: none
+Status: claimed
+Assignee: rlew
 Parent: [STM Viewer — mapa pierwszej wersji](../map.md)
 Blocked by: 03
 
@@ -57,3 +57,20 @@ w komentarzach opisują poprzedni zakres. Pozostają do ustalenia zapis przerw
 w czasach po usuwaniu i pozostałe szczegóły eksportu. Obecny materializator
 tworzy float32, a rejestracja wymaga skończonych wejść; precyzja zapisu,
 kodowanie braków i możliwość ponownej rejestracji aligned wymagają decyzji.
+
+### 2026-10-19 — rozpoczęcie rozmowy o eksporcie
+
+Ticket przejęty do uzgodnienia specyfikacji, bez implementacji eksportera.
+Pierwsza runda pytań czeka na odpowiedzi użytkownika:
+
+1. Propozycja: wszystkie pozostałe klatki w bieżącej kolejności do jednego
+   MPP; wybór original/aligned, domyślnie aktualny widok; bez wyboru zakresu.
+2. Propozycja: wartości danych niezależne od gamma, zoomu i kolorów;
+   aligned zawiera wartości po interpolacji rejestracji.
+3. Wymagane programy odbiorcze: czy wystarczą STM Viewer, NaPara, NanoTrack
+   i MolTrack, czy potrzebny jest też wskazany program zewnętrzny?
+
+To pytania i rekomendacje, nie zatwierdzone decyzje. Wybór odbiorców wpływa
+na dalsze ustalenia dotyczące metadanych, brakujących próbek i zgodności.
+Fakty z kodu i prób zapisano w
+[rozpoznaniu eksportu MPP](../reconnaissance.md#uzupełnienie-kontrakt-odczytu-mpp).

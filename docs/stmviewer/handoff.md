@@ -73,3 +73,17 @@ należy ustalić przy podziale implementacji. Wspólnego kodu i konfiguracji
 głównej w tej sesji nie zmieniono. Wcześniejszy błąd odwracania przy odtwarzaniu
 sesji NanoTrack jest opisany w rozpoznaniu, ale nie blokuje zakresu STM Viewer
 po wycofaniu odwracania.
+
+## W toku: zapis MPP
+
+2026-10-19, baza `5412dbb`: przejęto
+[Zapis MPP z wartościami i metadanymi](issues/04-mpp-export.md), status `claimed`.
+Pierwsza runda pytań o zakres zapisu, niezależność od podglądu i odbiorców
+czeka na odpowiedzi. Propozycje nie są jeszcze decyzjami; ticket pozostaje
+nierozstrzygnięty. Kod produkcyjny bez zmian.
+
+Rozpoznano lokalny odczyt MPP, metadane, jednostki i czasy oraz wykonano mały
+syntetyczny odczyt. Wyniki i ograniczenia znajdują się w
+[rozpoznaniu kontraktu MPP](reconnaissance.md#uzupełnienie-kontrakt-odczytu-mpp).
+Dalsze ustalenia muszą uwzględnić wybranych odbiorców, zachowanie metadanych
+każdej klatki i geometrii aligned oraz możliwość ponownej rejestracji.
