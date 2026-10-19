@@ -13,10 +13,12 @@ zapisanej rejestracji. Kod nie implementuje jeszcze tych funkcji.
 2026-10-19 uzgodniono
 [kontrakt importu MolTrack z jednym MPP](issues/01-import-and-geometry.md)
 i wykonano [audyt na danych TTMAPP](import-geometry-audit.md).
-Trwa [wybór podstawowego podglądu](issues/07-browsing-and-comparison.md):
-przygotowano trzy działające warianty prototypu HTML na rzeczywistych danych
-TTMAPP. Prototyp oczekuje na wybór użytkownika; nie jest implementacją okna
-aplikacji. Instrukcja otwarcia i odtworzenia jest w tickecie.
+Po obejrzeniu trzech wariantów prototypu HTML na danych TTMAPP użytkownik
+[wybrał podstawowy podgląd](issues/07-browsing-and-comparison.md): jeden obraz
+z przełączaniem oryginał/wyrównany, dolny pasek miniatur i nawigacja z play/pauzą.
+Instrukcja otwarcia i odtworzenia szkicu jest w tickecie; to nie implementacja
+natywnego okna aplikacji. Następne pytanie pierwszej mapy dotyczy
+[przekazania szkieletu do implementacji i odbioru](issues/09-implementation-handoff.md).
 
 Na polecenie użytkownika tego samego dnia rozstrzygnięto też wcześniej
 [definicje wysp, typów i domen](issues/02-order-types-and-domains.md) z etapu 2.

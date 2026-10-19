@@ -15,6 +15,11 @@ Następnie na bezpośrednie polecenie użytkownika uzgodniono także
 [definicje statystyk klatek](06-frame-statistics.md). Odbiór metod i zapis
 wyników korzystają z tych definicji; sama decyzja nie implementuje statystyk.
 
+W pierwszym etapie rozstrzygnięto również
+[podgląd szkieletu](07-browsing-and-comparison.md): po reakcji na prototyp
+wybrano jeden obraz i pasek miniatur. Następne pytanie aktywnej mapy to
+[przekazanie do implementacji i kryteria odbioru](09-implementation-handoff.md).
+
 ## Wayfinding operations
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie

@@ -45,16 +45,15 @@ Przed ustaleniem importu należy przeczytać
 [audyt wejścia i orientacji obrazu](research-molecular-orientation.md).
 Jego część o pomiarze kąta molekuły jest materiałem na późniejszą pracę.
 
-Aktualnie przygotowano szkic do
-[wyboru podstawowego podglądu](issues/07-browsing-and-comparison.md).
-Trzy warianty działają na danych TTMAPP; rozstrzygnięcie czeka na reakcję
-użytkownika. To prototyp osobnej gałęzi, bez implementacji funkcji w aplikacji.
-
 ## Decisions so far
 
 - [Jak zapis wejściowy odtwarza obrazy, oznaczenia i rejestrację?](issues/01-import-and-geometry.md):
   uzgodniono import MolTrack z jednym MPP, geometrię obu widoków i zachowanie
   przy przeniesionym źródle, brakach oznaczeń oraz słabej rejestracji.
+
+- [Jak przeglądać obrazy i oznaczenia w szkielecie?](issues/07-browsing-and-comparison.md):
+  po obejrzeniu prototypu TTMAPP wybrano jeden podgląd z paskiem miniatur,
+  przełączaniem oryginał/wyrównany oraz nawigacją z play/pauzą.
 
 ## Not yet specified
 

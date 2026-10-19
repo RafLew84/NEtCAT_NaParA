@@ -4,7 +4,7 @@ ID: 07
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: claimed
+Status: resolved
 Assignee: Codex — domains/browsing-contract
 Parent: [STM Domains — etap 1: działający szkielet](../map.md)
 Blocked by: 01
@@ -29,11 +29,23 @@ nie blokuje tego pytania. Wejściowe oznaczenia pozostają danymi do podglądu.
 
 - [Jak zapis wejściowy odtwarza obrazy, oznaczenia i rejestrację?](01-import-and-geometry.md)
 
-## Prototyp do decyzji użytkownika
+## Answer
 
-2026-10-19 przygotowano trzy układy na tym samym zestawie TTMAPP.
-**Status pozostaje `claimed` do reakcji użytkownika na szkic.** Poniższe
-zachowania są propozycją; wcześniejszy kontrakt importu pozostaje wiążący.
+### 2026-10-19 — przyjęty układ i zachowanie
+
+Użytkownik obejrzał prototyp i wybrał **C — jeden podgląd i pasek miniatur**.
+Przyjął też pokazane zachowanie: przywracanie zapisanej klatki i widoku,
+play/pauzę z wyborem szybkości, zatrzymanie na końcu serii oraz zachowanie
+poprzedniej serii przy anulowaniu lub błędzie otwierania. Zoom, gamma
+oraz nakładki dotyczą wyłącznie podglądu. Wcześniejszy kontrakt importu
+pozostaje wiążący.
+
+Podstawowy ekran ma jeden duży obraz, przełącznik oryginał/wyrównany,
+sterowanie obrazem i nakładkami oraz dolny pasek nawigacji z miniaturami.
+Szczegóły bieżącej klatki są rozwijane na żądanie. Widok dwóch obrazów
+obok siebie i boczna lista klatek nie wchodzą do przyjętego szkieletu.
+
+Porównane warianty zachowano jako materiał decyzji:
 
 - A: lista klatek i informacje z boku, jeden obraz z przełączaniem
   oryginał/wyrównany.
@@ -44,27 +56,28 @@ zachowania są propozycją; wcześniejszy kontrakt importu pozostaje wiążący.
 
 Artefakt lokalny:
 `/home/rlew/projekty/NEtCAT-domains/.scratch/browsing-prototype/index.html`.
-Otwieramy w przeglądarce, bez serwera. Dolne strzałki i parametr
+Otwieramy w przeglądarce, bez serwera; domyślnie uruchamia się wybrany C.
+Dolne strzałki i parametr
 `?variant=A/B/C` przełączają układ. Lista „Przykład stanu” pozwala obejrzeć
 braki danych. Źródła i instrukcja odtworzenia są na osobnej gałęzi
 `prototype/stmdomains-browsing`, commit
-`d9c7eb8f22724fcd0a5dd6517bdbceb19078dfbd`, katalog `stmdomains/prototypes/`.
+`cb51fbf04802620637dd7d10acc19863717de083`, katalog `stmdomains/prototypes/`.
 **Nie scalać tej gałęzi do aplikacji.** Wygenerowane obrazy, HTML i zrzuty
 pozostają lokalne, poza Git; po przeniesieniu repo trzeba je odtworzyć.
 
-### Zachowania pokazane w szkicu
+### Przyjęte zachowania podglądu
 
 - Po otwarciu przywracamy zapisaną klatkę i tryb podglądu; TTMAPP otwiera
   klatkę 268 w widoku wyrównanym. Brak poprawnej rejestracji pozostawia oryginał.
-- Nawigacja: poprzednia/następna, numer i suwak klatki, dodatkowo lista albo
-  miniatury zależnie od wariantu. Odtwarzanie 1, 2, 5, 10 lub 20 kl./s,
+- Nawigacja: poprzednia/następna, numer i suwak klatki oraz dolny pasek
+  miniatur. Odtwarzanie 1, 2, 5, 10 lub 20 kl./s,
   domyślnie 5; pauza na bieżącej klatce, koniec zatrzymuje odtwarzanie.
   Ponowny start z końca jest opisany jako „Od początku”. Ręczna zmiana klatki
   i otwarcie dialogu zatrzymują odtwarzanie. To szybkość przeglądania,
   nie czas pomiaru. Jedna klatka wyłącza odtwarzanie i zbędną nawigację.
 - Kółko powiększa wokół kursora, przeciąganie przesuwa, „Dopasuj” przywraca
   cały widok. Gamma, powiększenie i nakładki dotyczą podglądu. Zmiana klatki
-  zachowuje te ustawienia; przełączenie oryginał/wyrównany w A/C zachowuje
+  zachowuje te ustawienia; przełączenie oryginał/wyrównany zachowuje
   klatkę, gammę i nakładki, ale ponownie dopasowuje cały obraz.
 - Ramki, maski i granica oryginalnego pola mają oddzielne przełączniki;
   maski mają regulację krycia. Kliknięcie ramki pokazuje identyfikator,
@@ -108,6 +121,8 @@ podświetlenie ramki, play/pauzę i zatrzymanie na końcu. Anulowanie i błędny
 zapis pozostawiły poprzednią serię oraz klatkę. Inspekcja w oknie 1100 × 760:
 brak błędów JS i poziomego przepełnienia, obejrzane zrzuty A/B/C.
 Log `inspection.json` i zrzuty są w tym samym lokalnym katalogu co HTML.
+Inspekcja dotyczy źródeł `d9c7eb8`; po wyborze użytkownika `cb51fbf` zmienia
+wyłącznie wariant domyślny na sprawdzony C i zapisuje wybór w README prototypu.
 
 Nie jest to gotowy importer ani natywne okno PyQt. Wybór plików, walidacja
 nowego źródła, pojedyncza klatka i brak rejestracji są symulowane. Rzeczywiste
@@ -115,6 +130,18 @@ obrazy, ramki, maski i przesunięcia pochodzą z wejścia. Wyświetlanie używa
 percentyli 2–98 na klatkę i 8-bitowych PNG; nie rozstrzyga to jeszcze polityki
 normalizacji intensywności aplikacji. Nie oceniano jakości rejestracji ani
 metod wykrywania. Kod aplikacji i współdzielonych modułów nie był zmieniany.
+
+### Granice rozstrzygnięcia
+
+To wybór ekranu i zachowania szkieletu; nie oznacza wykonania natywnego
+programu. Odtworzenie miniaturek, koszt importu i płynność nawigacji w PyQt
+wymagają sprawdzenia podczas implementacji. Polityka normalizacji obrazu
+powinna być jawna w implementacji i odbiorze; nie wolno traktować wartości
+8-bitowego szkicu jako danych pomiarowych.
+
+Dalsze [przekazanie do implementacji i kryteria odbioru](09-implementation-handoff.md)
+korzysta z tego wyboru. Analiza domen, statystyki, korekty konfliktów oraz
+zapis i eksport wyników pozostają w etapie 2.
 
 ## Comments
 
@@ -130,3 +157,9 @@ z trwałymi wynikami do [Co zapisujemy i eksportujemy po próbach metod?](08-sav
 Przygotowujemy trzy warianty podstawowego podglądu na rzeczywistych obrazach
 i oznaczeniach TTMAPP. Źródła prototypu pozostają na osobnej gałęzi; jego wybór
 rozstrzyga układ i zachowanie szkieletu, nie implementuje aplikacji ani analizy.
+
+### 2026-10-19 — odpowiedź użytkownika
+
+Wybrano „C — jeden podgląd i pasek miniatur” i potwierdzono „Tak — przyjmij
+pokazane zachowanie”. Wybór zamyka pytanie o podstawowy podgląd; źródła
+prototypu pozostają oddzielone od kodu aplikacji.

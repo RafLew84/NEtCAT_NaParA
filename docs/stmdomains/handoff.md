@@ -1,4 +1,4 @@
-# STM Domains — przekazanie prototypu podglądu
+# STM Domains — przekazanie wyboru podglądu
 
 Data: 2026-10-19.
 Gałąź dokumentacji: `domains/browsing-contract`, baza `1a81bc7`.
@@ -11,9 +11,9 @@ Przeniesienie dokumentacji do Domains przez scalenie commitów po kontroli czyst
 
 Przygotowano [prototyp podstawowego podglądu](issues/07-browsing-and-comparison.md):
 trzy układy na rzeczywistych obrazach, ramkach, maskach i zapisanej rejestracji
-TTMAPP. **Ticket pozostaje `claimed`; czeka na reakcję i wybór użytkownika.**
-Nie przyjęto jeszcze układu ani nowych zasad nawigacji. Obowiązuje wcześniej
-uzgodniony kontrakt importu.
+TTMAPP. Użytkownik wybrał **C — jeden podgląd i pasek miniatur** oraz przyjął
+pokazane zachowania nawigacji. Ticket ma status `resolved`; kanoniczny kontrakt
+jest w jego `Answer`. Obowiązuje także wcześniej uzgodniony kontrakt importu.
 
 - A: boczna lista klatek i jeden przełączany podgląd.
 - B: oryginał i zapisane wyrównanie tej samej klatki obok siebie.
@@ -22,20 +22,20 @@ uzgodniony kontrakt importu.
 Wspólne funkcje prototypu: zoom, gamma, ramki/maski/granica pola, nawigacja,
 play/pauza ze zmianą szybkości oraz jawne stany braków danych. Dialogi
 otwierania i naprawy ścieżki symulują zaakceptowany wcześniej kontrakt.
-Zaktualizowano ticket, README i mapę o stan prac oraz materiał do wyboru.
+Zaktualizowano ticket, README, indeks i mapę o przyjętą decyzję.
 
 ## Artefakty i sposób obejrzenia
 
 Źródła prototypu: gałąź `prototype/stmdomains-browsing`, commit
-`d9c7eb8f22724fcd0a5dd6517bdbceb19078dfbd`, katalog `stmdomains/prototypes/`.
+`cb51fbf04802620637dd7d10acc19863717de083`, katalog `stmdomains/prototypes/`.
 Instrukcja odtworzenia jest w `README.md` tego katalogu. Worktree źródeł:
 `/tmp/netcat-stmdomains-browsing-prototype`.
 **Nie scalać gałęzi prototypu do aplikacji.**
 
 Lokalny HTML do otwarcia w przeglądarce:
 `/home/rlew/projekty/NEtCAT-domains/.scratch/browsing-prototype/index.html`.
-Dolne strzałki wybierają wariant; lista „Przykład stanu” wybiera brak masek,
-ramek, rejestracji, pojedynczą klatkę lub pusty start. Przycisk „Otwórz zapis…”
+Domyślnie otwiera się C. Dolne strzałki wybierają wariant; lista „Przykład stanu”
+wybiera brak masek, ramek, rejestracji, pojedynczą klatkę lub pusty start. Przycisk „Otwórz zapis…”
 pokazuje symulowane przejścia importu. Bez serwera i połączenia z siecią.
 Metadane, zrzuty i log inspekcji są obok HTML; dane i wyniki poza Git.
 
@@ -48,7 +48,9 @@ Metadane, zrzuty i log inspekcji są obok HTML; dane i wyniki poza Git.
   pojedyncza klatka, pusty start, przejścia symulowanego importu, gamma/zoom,
   podświetlenie ramki, play/pauza i zatrzymanie na końcu. Anulowanie i błędny
   zapis zachowują poprzednią serię oraz klatkę. Brak błędów JS i poziomego
-  przepełnienia; kontrola wizualna zrzutów trzech wariantów.
+  przepełnienia; kontrola wizualna zrzutów trzech wariantów. Sprawdzenie
+  źródeł `d9c7eb8`; późniejszy `cb51fbf` ustawia jedynie sprawdzony C jako
+  domyślny i zapisuje wybór w README prototypu.
 - Kontrola lokalnych linków dokumentacji i `git diff --check` przed commitem.
 
 Nie zmieniono kodu aplikacji ani współdzielonych modułów; nie uruchamiano
@@ -60,11 +62,12 @@ programu. Miary kosztu generatora nie opisują wydajności aplikacji.
 
 ## Co pozostało
 
-Najpierw reakcja użytkownika na prototyp, ewentualna korekta, a następnie
-zapis przyjętego układu i zachowań w `Answer` pytania o podgląd. Dopiero wtedy
-można zamknąć tę decyzję i przejść do
-[przekazania szkieletu do implementacji](issues/09-implementation-handoff.md).
-Kod produkcyjny nadal zawiera tylko startowe okno PyQt6.
+Następne pytanie aktywnej mapy to
+[przekazanie szkieletu do implementacji i kryteria odbioru](issues/09-implementation-handoff.md).
+Korzysta z zaakceptowanego wariantu C i kontraktu importu. Implementacja
+musi sprawdzić rzeczywisty import, koszt miniaturek, płynność nawigacji
+oraz jawne zasady wyświetlania intensywności. Kod produkcyjny nadal zawiera
+tylko startowe okno PyQt6; wybór prototypu nie oznacza odbioru programu.
 
 Dalsze referencje i próby metod oraz zapis wyników pozostają w etapie 2.
 Ten prototyp nie obejmuje domen, statystyk ani ręcznej korekty ich konfliktów.
