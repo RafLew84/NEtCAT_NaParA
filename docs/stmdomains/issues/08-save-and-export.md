@@ -7,12 +7,15 @@ Mode: HITL
 Status: open
 Assignee:
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
-Blocked by: 01, 05, 06, 07
+Blocked by: 01, 06, 07, 13
 
 ## Question
 
 Jaki własny zapis wyników STM Domains i eksport są potrzebne po próbach metod
 do ponownego otwarcia pracy, odtworzenia obliczeń i porównywania serii?
+
+Zakończony pilotaż wskazał braki i nie wybrał metody. Kontrakt zapisu opieramy
+na odbiorze dalszych prób, nie na numerach klastrów z prototypu.
 
 Ustalmy rozdzielenie wejściowego zapisu z innego programu od wyników analizy,
 identyfikację obrazów i klatek, geometrię, parametry i wersje metod, maski
@@ -39,6 +42,6 @@ jest przykładem związanym z M6, nie gotowym kontraktem nowej analizy.
 ## Dependencies
 
 - [Jak zapis wejściowy odtwarza obrazy, oznaczenia i rejestrację?](01-import-and-geometry.md)
-- [Jak porównać metody wykrywania wysp i domen w serii?](05-stable-types-across-frames.md)
+- [Które metody i warunki odmowy wyniku przyjmujemy po próbach?](13-method-acceptance.md)
 - [Jak dokładnie liczymy ilości i udziały na każdej klatce?](06-frame-statistics.md)
 - [Jak przeglądać obrazy i oznaczenia w szkielecie?](07-browsing-and-comparison.md)

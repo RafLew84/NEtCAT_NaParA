@@ -37,6 +37,12 @@ zamiast uznawać metodę za skuteczną bez referencji.
 
 To odbiór metod drugiego etapu; nie jest warunkiem odbioru szkieletu.
 
+[Wykonany wcześniej na polecenie użytkownika pilotaż](../method-comparison-pilot.md)
+wskazuje konkretne przypadki do referencji: skąpe oznaczenia w klatce 68,
+rozbieżne maski pokrycia i kontrolną granicę przesunięcia. Nie dostarcza
+niezależnej prawdy odniesienia TTMAPP ani progów jakości. To pytanie nadal
+warunkuje dalsze próby i odbiór metod, pomimo zakończenia samego pilotażu.
+
 Kontekst: [proponowane kryteria domen](../research-general-domain-detection.md),
 [protokół dla wysp i orientacji sieci](../research-domain-detection-level-sets.md).
 

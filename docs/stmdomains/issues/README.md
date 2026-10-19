@@ -6,8 +6,11 @@ implementacji i odbiorze szkieletu. Otwarte decyzje etapu 2 nie blokują etapu 1
 Statusy i zależności przechowujemy w ticketach; indeks poniżej grupuje je według map.
 
 Na bezpośrednie polecenie użytkownika z 2026-10-19 wcześniej podejmujemy
-[definicje wyspy, typu i domeny sieci](02-order-types-and-domains.md).
-To wyjątek dla wskazanego pytania, bez zmiany warunku rozpoczęcia prób metod.
+[definicje wyspy, typu i domeny sieci](02-order-types-and-domains.md) oraz
+[pilotaż porównania metod](05-stable-types-across-frames.md). Pilotaż zakończono
+wskazaniem luk; na polecenie użytkownika utworzono dalsze pytania o pokrycie,
+typy, granice domen i odbiór metod. To jawne wyjątki dla wskazanych zadań,
+bez deklaracji gotowego szkieletu lub zwalidowanego algorytmu.
 
 ## Wayfinding operations
 
@@ -67,6 +70,10 @@ rg -n '^(# |Status:|Assignee:|Parent:|Blocked by:)' docs/stmdomains/issues/[0-9]
 | [Jak porównać metody wykrywania wysp i domen w serii?](05-stable-types-across-frames.md) | prototype |
 | [Jak dokładnie liczymy ilości i udziały na każdej klatce?](06-frame-statistics.md) | grilling |
 | [Co zapisujemy i eksportujemy po próbach metod?](08-save-and-export.md) | grilling |
+| [Jak wyznaczać pokrycie bez mylenia luk oznaczeń z podłożem?](10-coverage-and-scale.md) | prototype |
+| [Jak rozpoznawać typy przy obrocie, zmianie rozstawu i rzadkich wzorach?](11-structural-type-catalogue.md) | prototype |
+| [Jak rozdzielać domeny o tym samym typie i orientacji?](12-phase-boundaries.md) | prototype |
+| [Które metody i warunki odmowy wyniku przyjmujemy po próbach?](13-method-acceptance.md) | grilling |
 
 ## Odłożone poza oba etapy
 
@@ -77,6 +84,8 @@ zamknięto zakresowo. Zachowano treść i materiały, bez wyboru metody.
 
 Strzałki pokazują warunki wstępne pytań, nie kolejność implementacji ani status.
 Rozpoczęcie etapu 2 dodatkowo wymaga odebranego szkieletu, zgodnie z mapami.
+Wyjątek dla zakończonego pilotażu nie zamyka referencji jakości. Ich zależność
+przeniesiono do dalszych prób i odbioru metod; zapis wyników zależy od odbioru.
 
 ```mermaid
 flowchart TD
@@ -91,6 +100,10 @@ flowchart TD
         e["Próby metod w serii"]
         f["Statystyki"]
         h["Zapis wyników"]
+        j["Pokrycie i skala"]
+        k["Katalog typów struktury"]
+        l["Granice niedopasowania"]
+        m["Odbiór metod"]
     end
     a --> g
     a --> i
@@ -98,11 +111,20 @@ flowchart TD
     b --> d
     a --> e
     b --> e
-    d --> e
+    d --> j
+    d --> k
+    d --> l
+    e --> j
+    e --> k
+    e --> l
+    d --> m
+    j --> m
+    k --> m
+    l --> m
     a --> f
     b --> f
     a --> h
-    e --> h
+    m --> h
     f --> h
     g --> h
 ```

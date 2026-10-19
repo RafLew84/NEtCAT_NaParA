@@ -17,10 +17,12 @@ Etap odłożony do czasu odbioru działającego szkieletu z
 [pierwszej mapy](map.md), zgodnie z decyzją użytkownika z 2026-10-16.
 Jego otwarte pytania nie blokują implementacji ani odbioru etapu 1.
 
-Wyjątek wskazany przez użytkownika 2026-10-19: wcześniej rozpatrujemy
-[definicje wyspy, typu i domeny sieci](issues/02-order-types-and-domains.md).
-Dotyczy to tej decyzji pojęciowej; próby metod i implementacja etapu 2 nadal
-czekają na odbiór szkieletu.
+Wyjątki wskazane przez użytkownika 2026-10-19: wcześniej rozpatrzono
+[definicje wyspy, typu i domeny sieci](issues/02-order-types-and-domains.md)
+i wykonano [pilotaż porównania metod](issues/05-stable-types-across-frames.md).
+Pilotaż wskazał konkretne braki; nie zastępuje odbioru szkieletu ani walidacji.
+Na polecenie użytkownika dodano dalsze pytania o pokrycie, typy, granice
+i odbiór metod. Pozostałe warunki etapowania nadal obowiązują.
 
 - Rozpatrujemy dwa wyniki: pokrycie materiałem/wyspy oraz domeny orientacji
   i uporządkowania sieci. Orientacja pojedynczej molekuły jest odłożona.
@@ -53,6 +55,9 @@ powstaną w zadaniach wynikających z ustaleń i wyników prób.
 - [Jak definiujemy wyspę, typ uporządkowania i domenę sieci?](issues/02-order-types-and-domains.md):
   wyspa jako płat warstwy; typ oddzielony od orientacji; domeny, granice
   niedopasowania, małe skupiska i stany niepewności uzgodnione na przykładach.
+- [Jak porównać metody wykrywania wysp i domen w serii?](issues/05-stable-types-across-frames.md):
+  katalog wspólny dla wybranego zakresu; pilotaż ujawnił luki w doborze skali,
+  rozróżnianiu rozstawu i granicach domen. Dalsze próby mają osobne tickety.
 
 Nie wybrano ani nie zwalidowano metody i nie ustalono kontraktu zapisu wyników.
 

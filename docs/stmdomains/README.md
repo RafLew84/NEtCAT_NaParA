@@ -20,6 +20,14 @@ Na polecenie użytkownika tego samego dnia rozstrzygnięto też wcześniej
 [definicje wysp, typów i domen](issues/02-order-types-and-domains.md) z etapu 2.
 Ustalenia pojęciowe nie zastępują implementacji i odbioru szkieletu ani prób metod.
 
+Następnie, także na bezpośrednie polecenie użytkownika, wykonano
+[pilotaż wspólnego katalogu i porównania metod](issues/05-stable-types-across-frames.md).
+[Raport](method-comparison-pilot.md) opisuje osiem klatek TTMAPP, kontrole
+syntetyczne i lokalny prototyp HTML. Wyniki ujawniły braki; użytkownik polecił
+dodać dalsze tickety o pokryciu, typach, granicach i odbiorze metod. Nie wybrano
+algorytmu do aplikacji. Źródła prototypu pozostają na osobnej gałęzi, a dane
+i wygenerowany HTML lokalnie poza Git.
+
 ## Dwa etapy
 
 - [Etap 1: działający szkielet](map.md) — import, podstawowy podgląd oraz
