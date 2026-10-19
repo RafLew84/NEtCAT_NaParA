@@ -29,6 +29,93 @@ nie blokuje tego pytania. Wejściowe oznaczenia pozostają danymi do podglądu.
 
 - [Jak zapis wejściowy odtwarza obrazy, oznaczenia i rejestrację?](01-import-and-geometry.md)
 
+## Prototyp do decyzji użytkownika
+
+2026-10-19 przygotowano trzy układy na tym samym zestawie TTMAPP.
+**Status pozostaje `claimed` do reakcji użytkownika na szkic.** Poniższe
+zachowania są propozycją; wcześniejszy kontrakt importu pozostaje wiążący.
+
+- A: lista klatek i informacje z boku, jeden obraz z przełączaniem
+  oryginał/wyrównany.
+- B: oryginał i zapisane wyrównanie tej samej klatki obok siebie, wspólne
+  sterowanie klatką, gammą, skalą powiększenia i przesuwaniem.
+- C: jeden obraz z przełączaniem widoku, pasek miniatur na dole, informacje
+  o klatce rozwijane na żądanie.
+
+Artefakt lokalny:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/browsing-prototype/index.html`.
+Otwieramy w przeglądarce, bez serwera. Dolne strzałki i parametr
+`?variant=A/B/C` przełączają układ. Lista „Przykład stanu” pozwala obejrzeć
+braki danych. Źródła i instrukcja odtworzenia są na osobnej gałęzi
+`prototype/stmdomains-browsing`, commit
+`d9c7eb8f22724fcd0a5dd6517bdbceb19078dfbd`, katalog `stmdomains/prototypes/`.
+**Nie scalać tej gałęzi do aplikacji.** Wygenerowane obrazy, HTML i zrzuty
+pozostają lokalne, poza Git; po przeniesieniu repo trzeba je odtworzyć.
+
+### Zachowania pokazane w szkicu
+
+- Po otwarciu przywracamy zapisaną klatkę i tryb podglądu; TTMAPP otwiera
+  klatkę 268 w widoku wyrównanym. Brak poprawnej rejestracji pozostawia oryginał.
+- Nawigacja: poprzednia/następna, numer i suwak klatki, dodatkowo lista albo
+  miniatury zależnie od wariantu. Odtwarzanie 1, 2, 5, 10 lub 20 kl./s,
+  domyślnie 5; pauza na bieżącej klatce, koniec zatrzymuje odtwarzanie.
+  Ponowny start z końca jest opisany jako „Od początku”. Ręczna zmiana klatki
+  i otwarcie dialogu zatrzymują odtwarzanie. To szybkość przeglądania,
+  nie czas pomiaru. Jedna klatka wyłącza odtwarzanie i zbędną nawigację.
+- Kółko powiększa wokół kursora, przeciąganie przesuwa, „Dopasuj” przywraca
+  cały widok. Gamma, powiększenie i nakładki dotyczą podglądu. Zmiana klatki
+  zachowuje te ustawienia; przełączenie oryginał/wyrównany w A/C zachowuje
+  klatkę, gammę i nakładki, ale ponownie dopasowuje cały obraz.
+- Ramki, maski i granica oryginalnego pola mają oddzielne przełączniki;
+  maski mają regulację krycia. Kliknięcie ramki pokazuje identyfikator,
+  źródło, pewność detektora i bbox w oryginale. Podświetlenie nie edytuje
+  oznaczeń ani flagi `selected`. To dane wejściowe, nie wyniki analizy domen.
+- Padding w wyrównaniu ma osobne tło, a pole pomiarowe przerywaną granicę.
+  Informacja o niskiej pewności zapisanej rejestracji pozostaje widoczna;
+  nie obliczamy nowego dopasowania.
+- Brak masek wyłącza ich przełącznik bez ukrywania poprawnych ramek. Brak
+  zapisanych oznaczeń daje komunikat i nadal pokazuje obraz; nie oznacza
+  braku molekuł. Brak rejestracji blokuje współrzędne `expanded_aligned`,
+  których położenia nie można ustalić. Dla wejścia zawierającego ramki `raw`
+  obowiązuje dostępny podgląd z kontraktu importu; fixture nie ma tego przypadku.
+- Rozmiar i współrzędne są w px; nieznana kalibracja i czas są opisane
+  wprost. Numery klatek nie sugerują odstępu czasowego.
+- Pusty start prowadzi do otwarcia MolTrack. Dialogi pokazują szukanie MPP,
+  wskazanie nowej ścieżki, odrzucenie niezgodnego źródła i potwierdzenie
+  zgodnego źródła mimo zmienionego mtime. Anulowanie lub błąd zachowują
+  poprzednią serię, klatkę i ustawienia podglądu; nowy zapis zastępuje ją
+  dopiero po sprawdzeniu źródła i wymaganym potwierdzeniu.
+
+### Dane, sprawdzenia i ograniczenia
+
+Szkic wykorzystuje parę TTMAPP z [audytu importu](../import-geometry-audit.md):
+268 obrazów 256 × 256 px, 52 494 ramki oraz 11 993 maski SAM. Maski występują
+na klatkach 1–40; klatki 64–68 nie mają zapisanych ramek. Canvas wyrównania
+480 × 408 px, padding LTRB 224, 139, 0, 13; globalne translacje nie są sumowane.
+Ramki zachowują ułamkowe współrzędne, obraz jest interpolowany liniowo,
+a maski najbliższym sąsiadem. Wyświetlana maska jest unią masek molekuł,
+nie definicją powierzchni wyspy.
+
+Generator w lokalnym środowisku `netcat` przygotował HTML około 53,5 MiB
+w 5,72 s, przy szczycie RSS 554,2 MiB. Maski dekoduje po jednej. Te liczby
+opisują generator fixture'a; nie są pomiarem kosztu docelowego importera.
+Źródła identyfikuje `index.json` obok HTML oraz SHA-256 zgodne z audytem.
+
+W QtWebEngine sprawdzono przejścia A/B/C, maski i ich braki, brak ramek,
+brak rejestracji, jedną klatkę, pusty start, symulowane otwieranie i naprawę
+ścieżki, błędny MPP/JSON, potwierdzenie mtime, zmianę klatki/gamma/zoom,
+podświetlenie ramki, play/pauzę i zatrzymanie na końcu. Anulowanie i błędny
+zapis pozostawiły poprzednią serię oraz klatkę. Inspekcja w oknie 1100 × 760:
+brak błędów JS i poziomego przepełnienia, obejrzane zrzuty A/B/C.
+Log `inspection.json` i zrzuty są w tym samym lokalnym katalogu co HTML.
+
+Nie jest to gotowy importer ani natywne okno PyQt. Wybór plików, walidacja
+nowego źródła, pojedyncza klatka i brak rejestracji są symulowane. Rzeczywiste
+obrazy, ramki, maski i przesunięcia pochodzą z wejścia. Wyświetlanie używa
+percentyli 2–98 na klatkę i 8-bitowych PNG; nie rozstrzyga to jeszcze polityki
+normalizacji intensywności aplikacji. Nie oceniano jakości rejestracji ani
+metod wykrywania. Kod aplikacji i współdzielonych modułów nie był zmieniany.
+
 ## Comments
 
 ### 2026-10-16 — podział zakresu zatwierdzony przez użytkownika

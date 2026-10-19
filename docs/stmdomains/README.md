@@ -13,8 +13,10 @@ zapisanej rejestracji. Kod nie implementuje jeszcze tych funkcji.
 2026-10-19 uzgodniono
 [kontrakt importu MolTrack z jednym MPP](issues/01-import-and-geometry.md)
 i wykonano [audyt na danych TTMAPP](import-geometry-audit.md).
-Następne pytanie pierwszego etapu to
-[podgląd obrazów i oznaczeń](issues/07-browsing-and-comparison.md).
+Trwa [wybór podstawowego podglądu](issues/07-browsing-and-comparison.md):
+przygotowano trzy działające warianty prototypu HTML na rzeczywistych danych
+TTMAPP. Prototyp oczekuje na wybór użytkownika; nie jest implementacją okna
+aplikacji. Instrukcja otwarcia i odtworzenia jest w tickecie.
 
 Na polecenie użytkownika tego samego dnia rozstrzygnięto też wcześniej
 [definicje wysp, typów i domen](issues/02-order-types-and-domains.md) z etapu 2.

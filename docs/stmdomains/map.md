@@ -45,6 +45,11 @@ Przed ustaleniem importu należy przeczytać
 [audyt wejścia i orientacji obrazu](research-molecular-orientation.md).
 Jego część o pomiarze kąta molekuły jest materiałem na późniejszą pracę.
 
+Aktualnie przygotowano szkic do
+[wyboru podstawowego podglądu](issues/07-browsing-and-comparison.md).
+Trzy warianty działają na danych TTMAPP; rozstrzygnięcie czeka na reakcję
+użytkownika. To prototyp osobnej gałęzi, bez implementacji funkcji w aplikacji.
+
 ## Decisions so far
 
 - [Jak zapis wejściowy odtwarza obrazy, oznaczenia i rejestrację?](issues/01-import-and-geometry.md):

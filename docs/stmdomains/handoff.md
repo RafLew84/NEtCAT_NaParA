@@ -1,75 +1,83 @@
-# STM Domains — przekazanie definicji statystyk klatek
+# STM Domains — przekazanie prototypu podglądu
 
 Data: 2026-10-19.
-Gałąź zadania: `domains/frame-statistics`, baza `ed5da11`.
+Gałąź dokumentacji: `domains/browsing-contract`, baza `1a81bc7`.
 Docelowa gałąź aplikacji: `domains/start`.
-Commit przypisania: `f873363`; commit rozstrzygnięcia podany w końcowej wiadomości.
-Praca w osobnym worktree `/tmp/netcat-stmdomains-frame-statistics`;
-przeniesienie do worktree Domains przez scalenie commitów po kontroli czystości.
+Commit przypisania: `d44c859`; commit dokumentacji podany w końcowej wiadomości.
+Worktree dokumentacji: `/tmp/netcat-stmdomains-browsing-contract`.
+Przeniesienie dokumentacji do Domains przez scalenie commitów po kontroli czystości.
 
-## Zakres i wynik
+## Zakres i stan decyzji
 
-Rozstrzygnięto [definicje statystyk klatek](issues/06-frame-statistics.md)
-na podstawie odpowiedzi użytkownika. Ticket ma status `resolved` i zawiera
-kanoniczne definicje, wzory, stany wyniku oraz przykład rachunkowy.
+Przygotowano [prototyp podstawowego podglądu](issues/07-browsing-and-comparison.md):
+trzy układy na rzeczywistych obrazach, ramkach, maskach i zapisanej rejestracji
+TTMAPP. **Ticket pozostaje `claimed`; czeka na reakcję i wybór użytkownika.**
+Nie przyjęto jeszcze układu ani nowych zasad nawigacji. Obowiązuje wcześniej
+uzgodniony kontrakt importu.
 
-- Dwa udziały powierzchni typu: względem oryginalnego pola klatki i względem
-  warstwy molekularnej. Padding pozostaje poza pomiarem; nieznany typ nie
-  zmniejsza znanego mianownika warstwy.
-- Liczenie molekuł według środka bieżącego bboxa, z typem przejętym z domeny.
-  Mianownikiem są wszystkie poprawne oznaczenia ze środkiem w polu, także bez
-  typu. Brak maski SAM nie zmienia tej reguły.
-- Wyniki częściowe, brak/zero, nieznany typ i przyczyny nieprzypisania pozostają
-  jawne. Wyspy i rozpoznane fragmenty domen mają odrębne liczebności; fragmenty
-  przy brzegu uwzględniamy w widocznym zakresie.
-- Domyślnie sporny wspólny obszar domen jest niejednoznaczny. Użytkownik może
-  wskazać jedną z propozycji dla konkretnego konfliktu; korekta jest oznaczona,
-  a powierzchnie i przypisania przeliczane.
-- Tabela i wykres osobno dla wybranych klatek. Bez średnich/sum serii,
-  śledzenia obiektów i zgadywania czasu lub kalibracji.
+- A: boczna lista klatek i jeden przełączany podgląd.
+- B: oryginał i zapisane wyrównanie tej samej klatki obok siebie.
+- C: jeden podgląd i dolny pasek miniatur.
 
-Zaktualizowano słownik, mapę metod, indeks, README oraz pytania o zapis i odbiór
-metod. Odbiór metod zależy teraz także od statystyk; diagram odzwierciedla zmianę.
-Dołączono [schemat przykładu](assets/frame-statistics-example.svg).
-To specyfikacja etapu 2, nie implementacja obliczeń ani interfejsu.
+Wspólne funkcje prototypu: zoom, gamma, ramki/maski/granica pola, nawigacja,
+play/pauza ze zmianą szybkości oraz jawne stany braków danych. Dialogi
+otwierania i naprawy ścieżki symulują zaakceptowany wcześniej kontrakt.
+Zaktualizowano ticket, README i mapę o stan prac oraz materiał do wyboru.
 
-## Wykonane sprawdzenia
+## Artefakty i sposób obejrzenia
 
-- Audyt tylko do odczytu istniejących statystyk MolTrack. Eksport Domain Analysis
-  liczy unię masek/ramek molekuł; starszy footprint orientacyjny używa ograniczonego
-  Voronoia. Żadna miara nie stała się automatycznie powierzchnią płata STM Domains.
-  Źródła i różnice opisano w tickecie.
-- Sprawdzenie rachunków: rozłączność i sumy obszarów schematu, oba udziały,
-  liczebności, zachowanie unii przy konflikcie i konwersja px² → nm².
-- Kontrola wizualna SVG, lokalnych odnośników, statusów, grafu zależności
-  i `git diff --check` przed commitem.
+Źródła prototypu: gałąź `prototype/stmdomains-browsing`, commit
+`d9c7eb8f22724fcd0a5dd6517bdbceb19078dfbd`, katalog `stmdomains/prototypes/`.
+Instrukcja odtworzenia jest w `README.md` tego katalogu. Worktree źródeł:
+`/tmp/netcat-stmdomains-browsing-prototype`.
+**Nie scalać gałęzi prototypu do aplikacji.**
 
-Nie uruchamiano testów aplikacji ani metod wykrywania: kod aplikacji nie był
-zmieniany. Nie oceniano powierzchni/klasyfikacji na referencjach TTMAPP.
-Kontrolny schemat i rachunki nie są walidacją skuteczności algorytmu.
+Lokalny HTML do otwarcia w przeglądarce:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/browsing-prototype/index.html`.
+Dolne strzałki wybierają wariant; lista „Przykład stanu” wybiera brak masek,
+ramek, rejestracji, pojedynczą klatkę lub pusty start. Przycisk „Otwórz zapis…”
+pokazuje symulowane przejścia importu. Bez serwera i połączenia z siecią.
+Metadane, zrzuty i log inspekcji są obok HTML; dane i wyniki poza Git.
 
-## Następne kroki
+## Wykonane sprawdzenia i ograniczenia
 
-Pierwsza mapa nadal prowadzi do szkieletu, a jej następne pytanie to
-[podgląd obrazów i oznaczeń](issues/07-browsing-and-comparison.md). Wcześniejsze
-wykonanie definicji, pilotażu i obecnych statystyk wynikało z bezpośrednich
-poleceń użytkownika, nie z odbioru szkieletu.
+- Generator uruchomiono na pełnej parze TTMAPP: 268 klatek, 52 494 ramki,
+  11 993 maski. SHA-256 zgadzają się z audytem importu. Maski dekodowane
+  pojedynczo. Przygotowanie około 5,72 s, szczyt RSS 554,2 MiB, HTML 53,5 MiB.
+- Inspekcja QtWebEngine w oknie 1100 × 760: A/B/C, nakładki i braki,
+  pojedyncza klatka, pusty start, przejścia symulowanego importu, gamma/zoom,
+  podświetlenie ramki, play/pauza i zatrzymanie na końcu. Anulowanie i błędny
+  zapis zachowują poprzednią serię oraz klatkę. Brak błędów JS i poziomego
+  przepełnienia; kontrola wizualna zrzutów trzech wariantów.
+- Kontrola lokalnych linków dokumentacji i `git diff --check` przed commitem.
 
-[Referencje jakości](issues/04-reference-and-quality.md),
-[pokrycie](issues/10-coverage-and-scale.md),
-[katalog typów](issues/11-structural-type-catalogue.md),
-[granice domen](issues/12-phase-boundaries.md),
-[odbiór metod](issues/13-method-acceptance.md) i
-[zapis wyników](issues/08-save-and-export.md) pozostają otwarte.
-Manualne rozstrzygnięcie konfliktu jest wymaganiem do późniejszego UI analizy
-oraz trwałości wyniku, bez rozszerzania podstawowego podglądu pierwszego etapu.
+Nie zmieniono kodu aplikacji ani współdzielonych modułów; nie uruchamiano
+ich testów. Nie jest to odbiór natywnego GUI ani importera. Symulacja dialogów
+nie sprawdza prawdziwego wskazywania i walidowania nowych źródeł. Nie oceniano
+jakości rejestracji ani metod wykrywania. Normalizacja percentylami 2–98 na
+klatkę i PNG 8-bit służą szkicowi; nie ustanawiają polityki intensywności
+programu. Miary kosztu generatora nie opisują wydajności aplikacji.
+
+## Co pozostało
+
+Najpierw reakcja użytkownika na prototyp, ewentualna korekta, a następnie
+zapis przyjętego układu i zachowań w `Answer` pytania o podgląd. Dopiero wtedy
+można zamknąć tę decyzję i przejść do
+[przekazania szkieletu do implementacji](issues/09-implementation-handoff.md).
+Kod produkcyjny nadal zawiera tylko startowe okno PyQt6.
+
+Dalsze referencje i próby metod oraz zapis wyników pozostają w etapie 2.
+Ten prototyp nie obejmuje domen, statystyk ani ręcznej korekty ich konfliktów.
 
 ## Zachowany kontekst poprzednich prac
 
 [Kontrakt importu](issues/01-import-and-geometry.md),
 [audyt geometrii](import-geometry-audit.md) i
 [definicje wysp/typów/domen](issues/02-order-types-and-domains.md) pozostają aktualne.
-Przekazania wcześniejszych zadań są w commitach `3c7c680`, `af7888e` i `ed5da11`.
+Przekazania wcześniejszych zadań są w commitach `3c7c680`, `af7888e`, `ed5da11` i `1a81bc7`.
+[Definicje statystyk](issues/06-frame-statistics.md) pozostają aktualne;
+ręczne rozstrzyganie konfliktów domen należy do późniejszego UI analizy,
+bez rozszerzania podglądu pierwszego etapu.
 
 [Pilotaż metod](method-comparison-pilot.md) nie wybrał algorytmu do aplikacji.
 Jego źródła pozostają na `prototype/stmdomains-method-comparison`, commit
