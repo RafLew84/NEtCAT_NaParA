@@ -40,6 +40,12 @@ przedstawione zasady odtwarzania i podglądu.
 Źródło eksperymentu: gałąź `prototype/stmviewer-preview-playback`, commit
 `bf8e849`. [Artefakt, uruchomienie, dane i sprawdzenia](../preview-playback-prototype.md).
 
+### 2026-10-19 — korekta po decyzji o rejestracji
+
+Użytkownik wycofał odwracanie kolejności z zakresu STM Viewer. Usunięto tę
+operację z poniższej odpowiedzi i z aktualnego prototypu (`efb7e50`);
+wybrany układ B i pozostałe zasady podglądu pozostają bez zmian.
+
 ## Answer
 
 ### Układ i wybór klatki
@@ -65,9 +71,8 @@ głównego obrazu. Pasek miniatur wskazuje i odsłania bieżącą klatkę.
   pozycjach wznawia od bieżącej; Pause pozostawia bieżącą klatkę.
 - Ręczny wybór miniaturą, suwakiem, numerem lub przyciskiem poprzednia/następna
   zatrzymuje Play na wskazanej klatce.
-- Zmiana original/aligned, odwrócenie kolejności i usunięcie klatki również
-  zatrzymują odtwarzanie. Reguły wyboru obrazu po usunięciu i odwróceniu
-  pozostają zgodne z kontraktem serii.
+- Zmiana original/aligned i usunięcie klatki również zatrzymują odtwarzanie.
+  Reguły wyboru obrazu po usunięciu pozostają zgodne z kontraktem serii.
 - Gamma, zoom, przesuwanie obrazu i zmiana tempa mogą być regulowane podczas
   Play; nie zmieniają wybranej kolejności ani danych pomiarowych.
 - Pusta seria i pojedyncza klatka nie uruchamiają Play. Dla jednej klatki
@@ -111,7 +116,7 @@ Prototyp pozostaje na osobnej gałęzi; ten ticket ustala specyfikację przyszł
 okna PyQt6, nie wdraża funkcji aplikacji.
 
 [Rejestracja i życie wyniku aligned](03-registration.md) rozstrzyga dostępność
-i ważność aligned, w tym po usunięciu lub odwróceniu. Powiązanie pola oryginalnej
+i ważność aligned, w tym po usunięciu. Powiązanie pola oryginalnej
 klatki z wynikiem jest potrzebne do obrysu i prezentacji brakujących pikseli.
 [Opcje filmu AVI](05-avi-export.md) osobno rozstrzygają tempo, gamma, wycinek
 i wygląd brakujących danych w pliku wynikowym. Ten wybór podglądu nie zamyka

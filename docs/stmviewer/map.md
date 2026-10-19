@@ -39,6 +39,8 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
   zastępowanie całej serii, zgodność wymiarów oraz usuwanie z zachowaniem pochodzenia klatek.
 - [Podgląd, gamma i odtwarzanie serii](issues/02-preview-playback.md): wybrano wariant B
   z paskiem miniatur oraz zasady Play/Pause, wspólnej gamma, zoomu i szachownicy poza pomiarem.
+- [Rejestracja i życie wyniku aligned](issues/03-registration.md): ustalono dopasowanie
+  NanoTrack, podmianę wyniku po sukcesie, zachowanie po usuwaniu oraz geometrię i brakujące dane.
 
 ## Not yet specified
 
@@ -47,6 +49,10 @@ z kontraktów serii, rejestracji i eksportu. Po ich ustaleniu trzeba sprawdzić,
 czy pozostały pytania wymagające osobnych decyzji przed rozpoczęciem budowy.
 
 ## Out of scope
+
+- Odwracanie kolejności klatek — wycofane przez użytkownika 2026-10-19 w
+  [decyzji o rejestracji](issues/03-registration.md#answer); wcześniejsze odpowiedzi skorygowano.
+- Automatyczne pobieranie wag modeli z aplikacji — poza zakresem pierwszej wersji.
 
 - Implementacja produkcyjna podczas tworzenia tej mapy.
 - Rozwijanie algorytmów i strojenie parametrów rejestracji — późniejszy etap,

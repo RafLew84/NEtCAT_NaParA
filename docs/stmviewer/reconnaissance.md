@@ -112,3 +112,82 @@ wykonano trzy próby w pamięci. Nie zmieniano kodu istniejących aplikacji.
 
 Rozstrzygnięcie zachowania nowej aplikacji:
 [Seria wejściowa i usuwanie klatek](issues/01-frame-series.md).
+
+## Uzupełnienie: rejestracja i geometria wyniku
+
+Sprawdzenie z 2026-10-19, baza `db4cc7c`. Przegląd kodu i testów oraz dwie
+małe próby w pamięci, bez uruchamiania modeli, pobierania wag i zmian w kodzie.
+
+- [`run_adjacent_phase_registration`](../../nanotrack/registration/batch.py)
+  obsługuje wyłącznie pary sąsiednie w bieżącej kolejności. Pierwsza klatka
+  ma przesunięcie `(0, 0)`, pozostałe sumę przesunięć par względem niej.
+  Inna strategia odniesienia jest odrzucana. Wyjątek backendu przerywa batch.
+- Status `low_confidence` może towarzyszyć pełnym, skończonym przesunięciom.
+  Statusy problemów propagują się przez łańcuch dopasowań na dalsze klatki;
+  jakość globalna jest minimum jakości dotychczasowych par. Wstrzyknięty
+  backend zwracający kolejno `low_confidence` i `ok` dał statusy
+  `[ok, low_confidence, low_confidence]` przy skończonych przesunięciach.
+- [UI NanoTrack](../../nanotrack/ui/main_window.py) usuwa poprzedni wynik
+  przy błędzie nowej próby. Dostępny callback postępu jest wywoływany po
+  klatkach, lecz batch nie ma API anulowania, a dialog NanoTrack nie udostępnia
+  Anuluj. Obliczenia UI są synchroniczne z przetwarzaniem zdarzeń w callbacku.
+- Globalne przesunięcia można zachować po usunięciu lub odwróceniu klatek,
+  wiążąc je z ich pochodzeniem i dotychczasowym układem odniesienia. Wybranie
+  podzbioru/przestawienie gotowych aligned w niezmienionym obszarze nie wymaga
+  ponownej interpolacji. [MolTrack](../../moltrack/core/data_models.py) obecnie
+  unieważnia rejestrację po usunięciu; [model wyników](../../nanotrack/core/data_models.py)
+  używa bieżących indeksów i nie udostępnia gotowej operacji usuwania/odwracania.
+
+### Geometria i wartości
+
+[`build_expanded_aligned_frames`](../../nanotrack/registration/aligned.py)
+zwraca rozszerzony obszar, padding i położenia oryginalnych klatek. Domyślne
+próbkowanie jest liniowe, wynik float32, a brakujące próbki mają wartość NaN.
+`shift_xy = (dx, dy)` oznacza przesunięcie nanoszone na obraz ruchomy:
+dodatnie X w prawo, dodatnie Y w dół. Nie jest to zaobserwowany dryf obrazu
+(patrz [kontrakt phase correlation](../../nanotrack/registration/phase_correlation.py)).
+Pozycja klatki w rozszerzonym obszarze to `(left + dx, top + dy)`.
+Padding obejmuje skrajne przesunięcia z zaokrągleniem na zewnątrz.
+
+**Pole oryginalnej klatki i ważne próbki aligned to różne informacje.**
+Próba z obrazem o wymiarach 3 wiersze × 4 kolumny i nanoszonym przesunięciem
+`(dx=0,25; dy=0,5)` px dała rozszerzony obszar 4 × 5. Prostokąt pomiaru nadal miał
+3 × 4, lecz skończone próbki występowały jedynie w `y=1,2`, `x=1,2,3`.
+Interpolacja z NaN poza danymi nie ekstrapoluje pomiaru na brzegu.
+Obrys wynika z wymiarów i przesunięcia; maska ważności opisuje próbki wyniku.
+Nie należy wyznaczać pola oryginalnej klatki przez liczenie skończonych próbek.
+
+Uproszczone [`build_aligned_frames`](../../nanotrack/registration/preview.py)
+nie rozszerza obszaru i powiela wartości na brzegu (`mode="nearest"`), więc
+nie spełnia wymagań pełnego obszaru i brakujących pikseli dla STM Viewer.
+Materializator expanded przyjmuje jedne metadane serii; przelicza rozmiar
+fizyczny i offset według jednej skali. Samo dopasowanie działa w pikselach.
+Nie zapewnia to kontraktu różnych metadanych dla każdej klatki.
+
+### Dostępność metod
+
+[`Deep Matcher`](../../nanotrack/registration/deep_matcher.py) tłumaczy brak
+`torch`/`kornia` na czytelny wyjątek, ale nie ma sprawdzenia dostępności przed
+startem. Inicjalizuje LoFTR z `pretrained="outdoor"`. Sprawdzenie lokalnych
+źródeł Kornia (`feature/loftr/loftr.py`) i Torch (`hub.py`) w środowisku netcat
+potwierdziło wywołanie `load_state_dict_from_url`: przy braku pliku w cache
+może nastąpić pobranie wag. Nie uruchamiano tej ścieżki. Obecność pliku cache
+jest tylko wstępnym sprawdzeniem i nie dowodzi, że model da się załadować.
+
+### Zakres potwierdzenia
+
+Przeczytano, ale nie uruchamiano testów
+[batch](../../tests/nanotrack/test_registration_batch.py),
+[expanded aligned](../../tests/nanotrack/test_registration_aligned.py)
+i [rejestracji MolTrack](../../tests/moltrack/test_registration.py).
+Obejmują m.in. kumulację i znak przesunięć, postęp, propagowanie jakości,
+padding, geometrię, niemutowanie oryginałów i unieważnianie po usunięciu.
+Dwie własne próby dotyczyły maski próbek po przesunięciu subpikselowym oraz
+propagowania `low_confidence`. Nie oceniano jakości dopasowania danych
+pomiarowych ani działania GUI.
+
+
+Rozstrzygnięcie: [Rejestracja i życie wyniku aligned](issues/03-registration.md#answer).
+Po rozpoznaniu użytkownik wycofał odwracanie kolejności z STM Viewer;
+powyższe fakty o tej funkcji dotyczą istniejącego kodu i wcześniejszej analizy,
+nie aktualnych wymagań nowej aplikacji.

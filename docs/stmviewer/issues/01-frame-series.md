@@ -32,14 +32,20 @@ Istniejący loader spełnia regułę formatów i wymaga identycznych wymiarów,
 ale nie sprawdza zgodności skali ani kanału. Fakty i odnośniki:
 [Rozpoznanie istniejącego kodu](../reconnaissance.md).
 
+### 2026-10-19 — korekta zakresu
+
+W [decyzji o rejestracji](03-registration.md#answer) użytkownik wycofał
+odwracanie kolejności z programu. Poniższa odpowiedź uwzględnia tę korektę;
+pozostałe zasady serii pozostają w mocy.
+
 ## Answer
 
-### 2026-10-16 — uzgodnione z użytkownikiem
+### Uzgodnione z użytkownikiem 2026-10-16, skorygowane 2026-10-19
 
 Rozstrzygnięcie po dwóch rundach rozmowy: użytkownik potwierdził reguły
 kolejności, zastępowania, błędów i usuwania, wybrał zgodność wyłącznie wymiarów,
-a następnie potwierdził zachowanie aktywnej klatki przy odwracaniu oraz
-rozdzielenie numeru bieżącego od pochodzenia.
+a następnie potwierdził rozdzielenie numeru bieżącego od pochodzenia.
+Późniejsza korekta usuwa funkcję odwracania kolejności.
 
 ### Seria i kolejność
 
@@ -47,9 +53,8 @@ rozdzielenie numeru bieżącego od pochodzenia.
   te formaty) albo dokładnie jeden MPP. Nie łączymy MPP z STP/S94 ani kilku MPP.
 - STP/S94 sortujemy naturalnie po nazwie: `klatka2` przed `klatka10`.
   MPP zachowuje kolejność klatek zapisaną w filmie.
-- Przycisk odwraca kolejność całej bieżącej serii. Na ekranie pozostaje
-  ta sama klatka; zmienia się jej pozycja. Dwa odwrócenia przywracają kolejność.
-  Odwracanie nie przywraca klatek usuniętych z serii.
+- Program nie oferuje odwracania kolejności. Usuwanie klatek nie zmienia
+  wzajemnej kolejności pozostałych obrazów.
 
 ### Wczytywanie i zgodność
 
@@ -72,15 +77,15 @@ rozdzielenie numeru bieżącego od pochodzenia.
   po usunięciu ostatniej — poprzednią. Usunięcie jedynej klatki zostawia
   pusty program, bez aktywnego obrazu.
 - Numer bieżący oznacza pozycję `1…N` w aktualnej serii i jest aktualizowany
-  po usunięciu lub odwróceniu. Osobno zachowujemy pochodzenie: plik źródłowy
+  po usunięciu. Osobno zachowujemy pochodzenie: plik źródłowy
   oraz pierwotny numer klatki w MPP. Zmiana pozycji nie zmienia pochodzenia.
 - Metadane są powiązane z konkretną klatką. Jej skala, kanał, pozostałe
   dostępne dane źródłowe i czas pomiaru pozostają przy tym samym obrazie.
   Nie przypisujemy automatycznie metadanych pierwszej klatki całej serii.
   Nieznane wartości pozostają nieznane.
-- Usunięcie lub odwrócenie nie przepisuje czasów pomiaru. Dla czasów
-  `[10, 20, 30]` usunięcie środka daje `[10, 30]`, a odwrócenie pozostałych
-  klatek — `[30, 10]`. Nie dopisujemy sztucznych czasów ani nie usuwamy przerw.
+- Usunięcie nie przepisuje czasów pomiaru. Dla czasów `[10, 20, 30]`
+  usunięcie środka daje `[10, 30]`. Nie dopisujemy sztucznych czasów
+  ani nie usuwamy przerw.
 
 ### Przykłady do weryfikacji implementacji
 
@@ -88,7 +93,6 @@ rozdzielenie numeru bieżącego od pochodzenia.
 | --- | --- |
 | Wybór `10.stp`, `2.s94`, `1.stp` | Kolejność `1.stp`, `2.s94`, `10.stp`. |
 | MPP z klatkami A, B, C | Kolejność A, B, C zgodna ze źródłem. |
-| Odwrócenie A, B, C z aktywną A | Kolejność C, B, A; nadal widać A, teraz jako `3/3`. |
 | Usunięcie aktywnej B z A, B, C | Pozostaje A, C; widać C jako `2/2`, z pierwotnym pochodzeniem i metadanymi C. |
 | Usunięcie aktywnej C z A, B, C | Pozostaje A, B; widać B. |
 | Usunięcie jedynej klatki | Pusty program; plik źródłowy nadal istnieje. |
@@ -100,7 +104,7 @@ rozdzielenie numeru bieżącego od pochodzenia.
 
 Układ informacji na ekranie i odtwarzanie rozstrzyga
 [Podgląd, gamma i odtwarzanie serii](02-preview-playback.md).
-Wpływ usunięcia lub odwrócenia na gotowy wynik dopasowania oraz wymagania
+Wpływ usunięcia na gotowy wynik dopasowania oraz wymagania
 rejestracji dla serii o różnych skalach lub kanałach pozostają w
 [Rejestracji i życiu wyniku aligned](03-registration.md).
 Zachowanie metadanych i czasu w pliku wynikowym należy do

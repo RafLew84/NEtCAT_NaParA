@@ -6,7 +6,7 @@ Dotyczy: [Podgląd, gamma i odtwarzanie serii](issues/02-preview-playback.md).
 ## Artefakt
 
 Prototyp jest zapisany na osobnej lokalnej gałęzi
-`prototype/stmviewer-preview-playback`, commit `bf8e849`:
+`prototype/stmviewer-preview-playback`, commit `efb7e50`:
 
 - `stmviewer/ui/preview_playback_prototype.html` — samodzielny plik z obrazem,
   trzema układami i działającymi kontrolkami;
@@ -16,13 +16,16 @@ Prototyp jest zapisany na osobnej lokalnej gałęzi
 Gałąź jest źródłem prototypu i nie jest przeznaczona do scalania z kodem
 produkcyjnym. Na `viewer/start` pozostaje dokumentacja procesu decyzyjnego.
 Wersja HTML służy ocenie przyszłego okna PyQt6; nie zmienia technologii aplikacji.
+Wersja oceniona pierwotnie znajduje się w commicie `bf8e849`. Aktualizacja
+`efb7e50` usuwa odwracanie zgodnie z późniejszą decyzją użytkownika i otwiera
+domyślnie wybrany wariant B. Pozostałe warianty można nadal porównać.
 
 Lokalną kopię można odtworzyć i otworzyć z katalogu głównego repozytorium:
 
 ```bash
 mkdir -p .scratch/preview-playback-prototype
-git show bf8e849:stmviewer/ui/preview_playback_prototype.html > .scratch/preview-playback-prototype/preview_playback_prototype.html
-git show bf8e849:stmviewer/ui/preview_playback_prototype.md > .scratch/preview-playback-prototype/preview_playback_prototype.md
+git show efb7e50:stmviewer/ui/preview_playback_prototype.html > .scratch/preview-playback-prototype/preview_playback_prototype.html
+git show efb7e50:stmviewer/ui/preview_playback_prototype.md > .scratch/preview-playback-prototype/preview_playback_prototype.md
 xdg-open .scratch/preview-playback-prototype/preview_playback_prototype.html
 ```
 
@@ -42,7 +45,7 @@ Kopia `.scratch/` i zrzuty podglądu pozostają lokalne, poza Git.
 Każdy wariant ma jeden główny podgląd i przełącznik original/aligned.
 Miniatury pokazują original z gamma 1,0. Oprócz Play/Pause działają tempo,
 pętla, suwak i numer klatki, gamma, zoom pod kursorem, przesuwanie, dopasowanie,
-odwracanie i usuwanie. Panel „Porównaj zachowania” udostępnia alternatywy
+usuwanie. Panel „Porównaj zachowania” udostępnia alternatywy
 zachowania zoomu, gamma i ręcznej nawigacji podczas Play.
 
 Użytkownik obejrzał prototyp i 2026-10-19 wybrał **wariant B**, potwierdzając
@@ -60,7 +63,7 @@ nie wynik działania rejestracji ani oryginalny film. Nie przypisano skali
 fizycznej ani czasów pomiaru. Obraz ma wspólną normalizację do uint8 wyłącznie
 na potrzeby demonstracji; nie jest eksportem danych pomiarowych.
 
-Prototyp uruchomiono w Qt WebEngine. Sprawdzono renderowanie A/B/C i aligned
+Pierwotny prototyp (`bf8e849`) uruchomiono w Qt WebEngine. Sprawdzono renderowanie A/B/C i aligned
 oraz obejrzano zrzuty w rozdzielczości 1400 × 1000 i zwężonego okna 980 × 850.
 Sprawdzono interakcje: Play na ostatniej klatce, ręczne zatrzymanie,
 odwrócenie z zachowaniem pochodzenia, usuwanie do pustej serii, ponowne
@@ -69,5 +72,8 @@ Przeglądarka systemowa została uruchomiona z gotowym plikiem do oceny użytkow
 
 Nie dodawano testów automatycznych prototypu. Nie sprawdzano produkcyjnego
 GUI PyQt6, wydajności dużych serii, importu, eksportu ani prawdziwej rejestracji.
-Zachowanie przygotowanego aligned po usunięciu lub odwróceniu nie rozstrzyga
-[życia wyniku rejestracji](issues/03-registration.md).
+Aktualizację bez odwracania ponownie uruchomiono w Qt WebEngine: kontrolki
+pozostają sprawne, przycisku odwracania nie ma, a w konsoli brak błędów
+JavaScript. Odświeżono lokalną kopię i zrzuty. Zachowanie prawdziwego wyniku
+określa [decyzja o rejestracji](issues/03-registration.md#answer); aligned
+w demonstracji pozostaje symulacją.

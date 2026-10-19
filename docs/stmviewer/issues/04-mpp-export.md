@@ -42,3 +42,18 @@ pochodzenie i dostępny czas pomiaru, również po usunięciu innych lub odwróc
 kolejności. Kontrakt MPP musi rozstrzygnąć zapis takiej serii, w tym różnych
 metadanych, przerw w czasach pomiaru i ich odwróconej kolejności. Nie można
 zakładać, że metadane pierwszej klatki opisują wszystkie pozostałe.
+
+### 2026-10-19 — rozstrzygnięta rejestracja i aktualny zakres
+
+[Rejestracja i życie wyniku aligned](03-registration.md#answer) ustala wspólny
+powiększony obszar, zachowanie jego rozmiaru po usuwaniu i osobne informacje
+o polu oryginalnej klatki oraz ważności próbek aligned. Eksport musi zachować
+powiązanie z pochodzeniem i metadanymi każdej klatki; przy niespójnej skali
+wynik nie ma jednej potwierdzonej skali fizycznej. Nie wolno mylić braku pomiaru
+z zerem ani wyliczać pola oryginalnej klatki z liczby ważnych próbek aligned.
+
+Odwracanie kolejności zostało wycofane z programu; wcześniejsze wzmianki o nim
+w komentarzach opisują poprzedni zakres. Pozostają do ustalenia zapis przerw
+w czasach po usuwaniu i pozostałe szczegóły eksportu. Obecny materializator
+tworzy float32, a rejestracja wymaga skończonych wejść; precyzja zapisu,
+kodowanie braków i możliwość ponownej rejestracji aligned wymagają decyzji.

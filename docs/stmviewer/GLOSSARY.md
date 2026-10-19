@@ -41,10 +41,26 @@ Obraz klatki przed zastosowaniem rejestracji w bieżącej serii.
 Wyznaczenie dopasowania położenia klatek serii względem wspólnego odniesienia.
 _Avoid_: registration jako osobna polska nazwa operacji
 
+**Klatka odniesienia**:
+Klatka źródłowa, względem której określono położenia obrazów w wyniku rejestracji.
+Jej pochodzenie identyfikuje odniesienie także wtedy, gdy nie ma jej już w bieżącej serii.
+
+**Wynik rejestracji**:
+Dopasowanie położenia klatek konkretnej serii, stanowiące podstawę ich
+wspólnego widoku aligned.
+
+**Pole oryginalnej klatki**:
+Prostokątny obszar pochodzący z oryginalnego obrazu, umieszczony w układzie
+wyniku rejestracji. Jego granice są niezależne od dostępności próbek aligned.
+
 **Obraz wyrównany (aligned)**:
 Obraz klatki po zastosowaniu wyznaczonego dopasowania, umieszczony we wspólnym
 obszarze serii. Dostępny jako alternatywny widok do oryginału.
 _Avoid_: registered jako osobny rodzaj obrazu
+
+**Maska ważności aligned**:
+Wskazanie miejsc wyrównanego obrazu, w których dostępne są ważne próbki
+wyznaczone z pomiaru. Jest odrębna od granic pola oryginalnej klatki.
 
 **Brakujący piksel**:
 Miejsce wspólnego obszaru obrazu, dla którego dana klatka nie dostarcza pomiaru.

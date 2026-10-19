@@ -39,3 +39,11 @@ zapisu i odczytu. Zobacz [rozpoznanie środowiska](../reconnaissance.md).
 wspólną gamma, osobne obszary podglądu original/aligned oraz szachownicę poza
 pomiarem. Ich przeniesienie do filmu, w tym wybór FPS i kadrowania, pozostaje
 decyzją tego ticketu; nie wynika automatycznie z ustawień podglądu.
+
+### 2026-10-19 — geometria rejestracji
+
+[Rejestracja i życie wyniku aligned](03-registration.md#answer) zachowuje
+rozmiar wspólnego obszaru po usuwaniu klatek, również skrajnych. Nowa udana
+próba może zmienić ten rozmiar. Geometria pola oryginalnej klatki i maska
+ważności próbek są osobne; opcje kadrowania oraz wygląd braków w filmie
+powinny korzystać z właściwej informacji. Ich eksport nadal rozstrzyga ten ticket.
