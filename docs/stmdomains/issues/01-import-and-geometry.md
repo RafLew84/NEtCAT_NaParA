@@ -4,8 +4,8 @@ ID: 01
 Type: grilling
 Labels: wayfinder:grilling
 Mode: HITL
-Status: open
-Assignee:
+Status: claimed
+Assignee: Codex — domains/import-contract
 Parent: [STM Domains — etap 1: działający szkielet](../map.md)
 Blocked by:
 
