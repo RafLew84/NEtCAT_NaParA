@@ -64,7 +64,9 @@ głównego obrazu. Pasek miniatur wskazuje i odsłania bieżącą klatkę.
 ### Odtwarzanie
 
 - Play/Pause; domyślnie 5 kl./s. Wybór tempa: 1, 2, 5, 10, 20 i 30 kl./s,
-  jak w ocenionym prototypie. To tempo podglądu, niezależne od czasu pomiaru.
+  jak w ocenionym prototypie. To zadane tempo podglądu, niezależne od czasu pomiaru.
+  Przy przeciążeniu program zwalnia bez pomijania klatek. Wymagania płynności
+  i reakcji określa [odbiór pierwszej wersji](06-acceptance.md#answer).
 - Domyślnie odtwarzanie kończy się na ostatniej klatce i pozostawia ją na ekranie.
   Opcjonalna pętla przechodzi z ostatniej do pierwszej.
 - Play naciśnięte na ostatniej klatce zaczyna od pierwszej. W pozostałych

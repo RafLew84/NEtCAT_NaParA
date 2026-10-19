@@ -3,12 +3,18 @@
 Program do przeglądania obrazów i sekwencji STP/S94/MPP, rejestracji
 oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 
-## Stan początkowy
+## Stan aplikacji
 
 Gotowe są osobny punkt uruchomienia, podstawowe okno PyQt6 i akcja zakończenia.
 Okno nie wczytuje ani nie zapisuje jeszcze plików i nie wykonuje rejestracji.
-Trwa uzgadnianie pierwszej wersji w mapie decyzji. Utworzenie mapy nie oznacza
-wdrożenia opisanych funkcji.
+Mapa decyzji jest zamknięta: specyfikacja pierwszej wersji jest gotowa do
+implementacji. Nie oznacza to wdrożenia funkcji ani zaliczenia odbioru.
+
+[Kryteria odbioru](issues/06-acceptance.md#answer) obejmują Ubuntu 24.04 i
+Windows 11, uruchomienie z repozytorium, 16 GB wolnego RAM, SSD i NVIDIA/CUDA
+z minimum 8 GB VRAM. Dane typowe uzupełnia test 1000 klatek 512 × 512;
+filmy AVI sprawdzamy w VLC na obu systemach. [Inwentarz lokalny](acceptance-reconnaissance.md)
+opisuje dostępne pomiary, sprzęt i granice wykonanych sprawdzeń.
 
 ## Mapa
 

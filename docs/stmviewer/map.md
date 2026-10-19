@@ -1,7 +1,7 @@
 # STM Viewer — mapa pierwszej wersji
 
 Label: wayfinder:map
-Status: open
+Status: resolved
 
 ## Destination
 
@@ -46,12 +46,15 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
   oraz zasady ponownego odczytu i rejestracji.
 - [Opcje filmu AVI](issues/05-avi-export.md): ustalono pełne obrazy, zakres klatek,
   gamma/FPS, tła i opisy, kontrast, proporcje oraz wybór MJPG/FFV1.
+- [Dane i kryteria odbioru pierwszej wersji](issues/06-acceptance.md): ustalono
+  platformy i sprzęt, zestaw pomiarów i dużą serię, płynność oraz odbiór MPP/AVI i GUI.
 
 ## Not yet specified
 
-Nie zidentyfikowano dodatkowych pytań poza istniejącymi ticketami.
-Potrzeby wspólnych zmian są zapisane w przekazaniu; końcowy odbiór mapy
-obejmuje sprawdzenie pozostałych blokad implementacji.
+Brak otwartych decyzji potrzebnych do rozpoczęcia implementacji.
+Rozstrzygnięto wszystkie sześć ticketów. Specyfikacja jest gotowa; aplikacja pozostaje
+szkieletem, a odbiór działającego programu będzie wykonany po implementacji.
+Potrzeby wspólnych zmian i ograniczenia sprawdzeń: [przekazanie](handoff.md).
 
 ## Out of scope
 
@@ -60,6 +63,9 @@ obejmuje sprawdzenie pozostałych blokad implementacji.
 - Automatyczne pobieranie wag modeli z aplikacji — poza zakresem pierwszej wersji.
 
 - Implementacja produkcyjna podczas tworzenia tej mapy.
+- Przygotowanie instalatora lub samodzielnego pliku wykonywalnego pierwszej wersji.
+- Wymaganie zgodności z WSxM jako warunek pierwszego odbioru — pozostaje próbą
+  dodatkową według [kryteriów odbioru](issues/06-acceptance.md#answer).
 - Rozwijanie algorytmów i strojenie parametrów rejestracji — późniejszy etap,
   zgodnie ze zleceniem użytkownika.
 - Funkcje analizy domen, detekcji i trackingu z pozostałych aplikacji.

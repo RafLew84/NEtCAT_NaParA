@@ -307,12 +307,13 @@ metadanych po edycji lub ponownym zapisaniu samego MPP w innym programie.
 ### Odbiorcy i kryteria poprawności
 
 Pełny kontrakt dotyczy ponownego otwarcia pary MPP/metadane w STM Viewer.
-Sprawdzamy też odczyt filmu przez NaPara, NanoTrack, MolTrack oraz wskazany
-WSxM. Poprawne otwarcie nie wystarcza do potwierdzenia wartości, orientacji,
-skali ani obsługi brakujących próbek.
+Obowiązkowo sprawdzamy też odczyt filmu przez NaPara, NanoTrack i MolTrack.
+Zgodnie z późniejszą [decyzją odbioru](06-acceptance.md#answer), próba WSxM
+jest dodatkowa i nie blokuje pierwszej wersji. Poprawne otwarcie nie wystarcza
+do potwierdzenia wartości, orientacji, skali ani obsługi brakujących próbek.
 
 **Obsługa NaN i zachowanie danych w WSxM nie zostały potwierdzone.**
-Są przedmiotem testu odbiorczego, nie powodem do niejawnego wypełniania
+Są przedmiotem dodatkowej próby, nie powodem do niejawnego wypełniania
 braków, kadrowania albo blokowania zapisu mieszanej serii. W razie problemu
 wynik testu trzeba ujawnić; alternatywny zapis wymaga osobnej decyzji.
 Źródła i ograniczenia: [rozpoznanie WSxM](../wsxm-mpp-compatibility.md).
@@ -329,9 +330,9 @@ wynik testu trzeba ujawnić; alternatywny zapis wymaga osobnej decyzji.
 | MPP bez metadanych towarzyszących | Film otwieralny; nieodtwarzalna historia/geometria nie jest zgadywana. |
 | Metadane należące do innej zawartości MPP | Nie są nakładane na film; podana przyczyna. |
 | Ponowne dopasowanie filmu oznaczonego aligned | Dopuszczone przy poprawnych wejściach; NaN odrzucane przez obecne metody. |
-| Otwieranie w WSxM | Osobna próba orientacji, liczb, skali i braków; nie utożsamiamy jej z testem własnego czytnika. |
+| Otwieranie w WSxM | Dodatkowa, nieblokująca próba orientacji, liczb, skali i braków; nie utożsamiamy jej z testem własnego czytnika. |
 
 Wspólne czytniki wymagają uzgodnienia jednostek, orientacji, niepełnych czasów,
 metadanych per klatka i nagłówków przekraczających obecny limit 1000 linii.
-Nie zmieniono ich w tej sesji. Dalszy dobór danych, tolerancji i wersji
-programów należy do [odbioru pierwszej wersji](06-acceptance.md).
+Nie zmieniono ich w tej sesji. Dane, tolerancje i wymagane środowiska określa
+[odbiór pierwszej wersji](06-acceptance.md#answer).

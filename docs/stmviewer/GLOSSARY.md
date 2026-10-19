@@ -24,8 +24,8 @@ Czas przypisany obrazowi w danych źródłowych, jeśli jest dostępny.
 Nie jest czasem wyświetlania klatki podczas odtwarzania.
 
 **Tempo odtwarzania**:
-Liczba klatek wyświetlanych w ciągu sekundy podczas przeglądania serii.
-Nie określa czasu wykonania pomiaru.
+Zadana liczba klatek do wyświetlenia w ciągu sekundy podczas przeglądania serii.
+Nie określa czasu wykonania pomiaru; rzeczywiste tempo może być niższe.
 
 **Gamma podglądu**:
 Korekcja jasności prezentowanego obrazu STM, niezależna od wartości pomiarowych.
