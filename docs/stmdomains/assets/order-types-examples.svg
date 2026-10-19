@@ -21,33 +21,33 @@
  </defs>
  <g id="figure_1">
   <g id="patch_1">
-   <path d="M 0 540 
-L 792 540 
-L 792 0 
-L 0 0 
+   <path d="M 0 540
+L 792 540
+L 792 0
+L 0 0
 z
 " style="fill: #ffffff"/>
   </g>
   <g id="axes_1">
    <g id="patch_2">
-    <path d="M 3.00024 260.78573 
-L 392.04 260.78573 
-L 392.04 66.26585 
-L 3.00024 66.26585 
+    <path d="M 3.00024 260.78573
+L 392.04 260.78573
+L 392.04 66.26585
+L 3.00024 66.26585
 z
 " style="fill: #ffffff"/>
    </g>
    <g id="PathCollection_1">
     <defs>
-     <path id="m3a430d0bc0" d="M 0 2 
-C 0.530406 2 1.03916 1.789267 1.414214 1.414214 
-C 1.789267 1.03916 2 0.530406 2 0 
-C 2 -0.530406 1.789267 -1.03916 1.414214 -1.414214 
-C 1.03916 -1.789267 0.530406 -2 0 -2 
-C -0.530406 -2 -1.03916 -1.789267 -1.414214 -1.414214 
-C -1.789267 -1.03916 -2 -0.530406 -2 0 
-C -2 0.530406 -1.789267 1.03916 -1.414214 1.414214 
-C -1.03916 1.789267 -0.530406 2 0 2 
+     <path id="m3a430d0bc0" d="M 0 2
+C 0.530406 2 1.03916 1.789267 1.414214 1.414214
+C 1.789267 1.03916 2 0.530406 2 0
+C 2 -0.530406 1.789267 -1.03916 1.414214 -1.414214
+C 1.03916 -1.789267 0.530406 -2 0 -2
+C -0.530406 -2 -1.03916 -1.789267 -1.414214 -1.414214
+C -1.789267 -1.03916 -2 -0.530406 -2 0
+C -2 0.530406 -1.789267 1.03916 -1.414214 1.414214
+C -1.03916 1.789267 -0.530406 2 0 2
 z
 " style="stroke: #275f9c"/>
     </defs>
@@ -159,23 +159,23 @@ z
    <g id="matplotlib.axis_1"/>
    <g id="matplotlib.axis_2"/>
    <g id="patch_3">
-    <path d="M 3.00024 260.78573 
-L 3.00024 66.26585 
+    <path d="M 3.00024 260.78573
+L 3.00024 66.26585
 " style="fill: none; stroke: #d7dde5; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="patch_4">
-    <path d="M 392.04 260.78573 
-L 392.04 66.26585 
+    <path d="M 392.04 260.78573
+L 392.04 66.26585
 " style="fill: none; stroke: #d7dde5; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="patch_5">
-    <path d="M 3.00024 260.78573 
-L 392.04 260.78573 
+    <path d="M 3.00024 260.78573
+L 392.04 260.78573
 " style="fill: none; stroke: #d7dde5; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="patch_6">
-    <path d="M 3.00024 66.26585 
-L 392.04 66.26585 
+    <path d="M 3.00024 66.26585
+L 392.04 66.26585
 " style="fill: none; stroke: #d7dde5; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="text_1">
@@ -184,10 +184,10 @@ L 392.04 66.26585
   </g>
   <g id="axes_2">
    <g id="patch_7">
-    <path d="M 399.96 260.78573 
-L 788.99976 260.78573 
-L 788.99976 66.26585 
-L 399.96 66.26585 
+    <path d="M 399.96 260.78573
+L 788.99976 260.78573
+L 788.99976 66.26585
+L 399.96 66.26585
 z
 " style="fill: #ffffff"/>
    </g>
@@ -300,23 +300,23 @@ z
    <g id="matplotlib.axis_3"/>
    <g id="matplotlib.axis_4"/>
    <g id="patch_8">
-    <path d="M 399.96 260.78573 
-L 399.96 66.26585 
+    <path d="M 399.96 260.78573
+L 399.96 66.26585
 " style="fill: none; stroke: #d7dde5; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="patch_9">
-    <path d="M 788.99976 260.78573 
-L 788.99976 66.26585 
+    <path d="M 788.99976 260.78573
+L 788.99976 66.26585
 " style="fill: none; stroke: #d7dde5; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="patch_10">
-    <path d="M 399.96 260.78573 
-L 788.99976 260.78573 
+    <path d="M 399.96 260.78573
+L 788.99976 260.78573
 " style="fill: none; stroke: #d7dde5; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="patch_11">
-    <path d="M 399.96 66.26585 
-L 788.99976 66.26585 
+    <path d="M 399.96 66.26585
+L 788.99976 66.26585
 " style="fill: none; stroke: #d7dde5; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="text_2">
@@ -325,10 +325,10 @@ L 788.99976 66.26585
   </g>
   <g id="axes_3">
    <g id="patch_12">
-    <path d="M 3.00024 511.768537 
-L 392.04 511.768537 
-L 392.04 317.248657 
-L 3.00024 317.248657 
+    <path d="M 3.00024 511.768537
+L 392.04 511.768537
+L 392.04 317.248657
+L 3.00024 317.248657
 z
 " style="fill: #ffffff"/>
    </g>
@@ -458,23 +458,23 @@ z
    <g id="matplotlib.axis_5"/>
    <g id="matplotlib.axis_6"/>
    <g id="patch_13">
-    <path d="M 3.00024 511.768537 
-L 3.00024 317.248657 
+    <path d="M 3.00024 511.768537
+L 3.00024 317.248657
 " style="fill: none; stroke: #d7dde5; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="patch_14">
-    <path d="M 392.04 511.768537 
-L 392.04 317.248657 
+    <path d="M 392.04 511.768537
+L 392.04 317.248657
 " style="fill: none; stroke: #d7dde5; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="patch_15">
-    <path d="M 3.00024 511.768537 
-L 392.04 511.768537 
+    <path d="M 3.00024 511.768537
+L 392.04 511.768537
 " style="fill: none; stroke: #d7dde5; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="patch_16">
-    <path d="M 3.00024 317.248657 
-L 392.04 317.248657 
+    <path d="M 3.00024 317.248657
+L 392.04 317.248657
 " style="fill: none; stroke: #d7dde5; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="text_3">
@@ -483,10 +483,10 @@ L 392.04 317.248657
   </g>
   <g id="axes_4">
    <g id="patch_17">
-    <path d="M 399.96 511.768537 
-L 788.99976 511.768537 
-L 788.99976 317.248657 
-L 399.96 317.248657 
+    <path d="M 399.96 511.768537
+L 788.99976 511.768537
+L 788.99976 317.248657
+L 399.96 317.248657
 z
 " style="fill: #ffffff"/>
    </g>
@@ -616,28 +616,28 @@ z
    <g id="matplotlib.axis_7"/>
    <g id="matplotlib.axis_8"/>
    <g id="line2d_1">
-    <path d="M 604.205874 511.768537 
-L 604.205874 317.248657 
+    <path d="M 604.205874 511.768537
+L 604.205874 317.248657
 " clip-path="url(#p0c933b152a)" style="fill: none; stroke-dasharray: 3.7,1.6; stroke-dashoffset: 0; stroke: #aa7040"/>
    </g>
    <g id="patch_18">
-    <path d="M 399.96 511.768537 
-L 399.96 317.248657 
+    <path d="M 399.96 511.768537
+L 399.96 317.248657
 " style="fill: none; stroke: #d7dde5; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="patch_19">
-    <path d="M 788.99976 511.768537 
-L 788.99976 317.248657 
+    <path d="M 788.99976 511.768537
+L 788.99976 317.248657
 " style="fill: none; stroke: #d7dde5; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="patch_20">
-    <path d="M 399.96 511.768537 
-L 788.99976 511.768537 
+    <path d="M 399.96 511.768537
+L 788.99976 511.768537
 " style="fill: none; stroke: #d7dde5; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="patch_21">
-    <path d="M 399.96 317.248657 
-L 788.99976 317.248657 
+    <path d="M 399.96 317.248657
+L 788.99976 317.248657
 " style="fill: none; stroke: #d7dde5; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="text_4">
