@@ -4,8 +4,8 @@ ID: 05
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: open
-Assignee:
+Status: claimed
+Assignee: Codex — domains/method-comparison
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 01, 02, 04
 
@@ -52,3 +52,10 @@ Kontekst: [przegląd metod](../research-general-domain-detection.md),
 - [Jak zapis wejściowy odtwarza obrazy, oznaczenia i rejestrację?](01-import-and-geometry.md)
 - [Jak definiujemy wyspę, typ uporządkowania i domenę sieci?](02-order-types-and-domains.md)
 - [Jakie referencje i kryteria potwierdzą wiarygodność analizy?](04-reference-and-quality.md)
+
+## Discussion — 2026-10-19
+
+Na bezpośrednie polecenie użytkownika podejmujemy prototyp przed odbiorem
+szkieletu i rozstrzygnięciem referencji jakości. Zależność od referencji
+pozostaje jawna; sama próba działania nie jest walidacją naukową. Prototyp
+powstaje na osobnej gałęzi, bez zmian produkcyjnego kodu aplikacji.
