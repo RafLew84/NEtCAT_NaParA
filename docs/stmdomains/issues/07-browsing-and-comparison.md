@@ -135,9 +135,9 @@ metod wykrywania. Kod aplikacji i współdzielonych modułów nie był zmieniany
 
 To wybór ekranu i zachowania szkieletu; nie oznacza wykonania natywnego
 programu. Odtworzenie miniaturek, koszt importu i płynność nawigacji w PyQt
-wymagają sprawdzenia podczas implementacji. Polityka normalizacji obrazu
-powinna być jawna w implementacji i odbiorze; nie wolno traktować wartości
-8-bitowego szkicu jako danych pomiarowych.
+wymagają sprawdzenia podczas implementacji. Politykę normalizacji oraz zachowanie
+odtwarzania przy wolnym przygotowaniu klatki doprecyzowano w [przekazaniu do implementacji](09-implementation-handoff.md#answer--2026-10-19).
+Nie wolno traktować wartości 8-bitowego szkicu jako danych pomiarowych.
 
 Dalsze [przekazanie do implementacji i kryteria odbioru](09-implementation-handoff.md)
 korzysta z tego wyboru. Analiza domen, statystyki, korekty konfliktów oraz

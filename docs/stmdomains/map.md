@@ -2,7 +2,7 @@
 
 ID: stmdomains-map
 Labels: wayfinder:map
-Status: open
+Status: resolved
 Assignee:
 
 ## Destination
@@ -13,6 +13,11 @@ klatkach. Mapa kończy się przygotowaniem implementacji i kryteriów odbioru
 tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
+
+Specyfikację pierwszej mapy zakończono 2026-10-19.
+[Zadania budowy i odbioru](implementation/README.md) są gotowe do podjęcia;
+aplikacja nie została jeszcze zaimplementowana ani odebrana. Status mapy
+odnosi się do decyzji, nie do gotowości programu.
 
 Podział na dwa etapy zatwierdzony przez użytkownika 2026-10-16 zastępuje
 wcześniejsze założenie jednej specyfikacji całego programu.
@@ -55,11 +60,16 @@ Jego część o pomiarze kąta molekuły jest materiałem na późniejszą prac�
   po obejrzeniu prototypu TTMAPP wybrano jeden podgląd z paskiem miniatur,
   przełączaniem oryginał/wyrównany oraz nawigacją z play/pauzą.
 
+- [Jak przekazać szkielet do implementacji i go odebrać?](issues/09-implementation-handoff.md):
+  ustalono lokalne moduły, ponowne użycie czytnika, kontrast i pełne odtwarzanie
+  klatek; trzy zadania wykonawcze rozdzielają kod, testy oraz odbiór danych i GUI.
+
 ## Not yet specified
 
-Dodatkowe przypadki niespójnego wejścia mogą pojawić się podczas sprawdzania
-kolejnych zapisów. Gdy ujawni się konkretny przypadek, należy doprecyzować
-kontrakt importu lub dodać osobne pytanie blokujące szkielet.
+Nie pozostały znane decyzje blokujące rozpoczęcie implementacji szkieletu.
+Nowy przypadek niespójnego wejścia ujawniony podczas budowy wymaga opisania
+w zadaniu wykonawczym; jeśli zmienia kontrakt, należy doprecyzować odpowiednią
+decyzję albo dodać konkretne pytanie. Nie jest to warunek odkładania obecnej budowy.
 
 ## Out of scope
 

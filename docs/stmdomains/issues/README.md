@@ -1,6 +1,8 @@
 # Rejestr decyzji STM Domains
 
-Aktualnie pracujemy nad [etapem 1: działającym szkieletem](../map.md).
+[Mapa decyzji etapu 1](../map.md) jest zakończona. Aktualny następny krok to
+[budowa i odbiór szkieletu](../implementation/README.md), nie kolejna decyzja.
+Zadania wykonawcze są oddzielone od poniższego rejestru pytań.
 [Etap 2: metody i zapis wyników](../map-methods-and-save.md) rozpoczyna się po
 implementacji i odbiorze szkieletu. Otwarte decyzje etapu 2 nie blokują etapu 1.
 Statusy i zależności przechowujemy w ticketach; indeks poniżej grupuje je według map.
@@ -17,8 +19,10 @@ wyników korzystają z tych definicji; sama decyzja nie implementuje statystyk.
 
 W pierwszym etapie rozstrzygnięto również
 [podgląd szkieletu](07-browsing-and-comparison.md): po reakcji na prototyp
-wybrano jeden obraz i pasek miniatur. Następne pytanie aktywnej mapy to
+wybrano jeden obraz i pasek miniatur. Zamknięto też
 [przekazanie do implementacji i kryteria odbioru](09-implementation-handoff.md).
+Wszystkie decyzje pierwszej mapy są rozstrzygnięte; trzy zadania wykonawcze
+pozostają `todo`, a odbiór programu wymaga rzeczywistych danych i GUI.
 
 Na kolejne polecenie użytkownika rozstrzygnięto
 [kontrakt zapisu i eksportu](08-save-and-export.md) przed odbiorem metod:
@@ -32,8 +36,9 @@ Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodn
 z instrukcjami repozytorium. Nie wymaga zewnętrznego trackera.
 
 - **Mapa:** osobny plik z etykietą `wayfinder:map`. Domyślnie aktywna jest
-  `../map.md`; do drugiej mapy przechodzimy po odbiorze szkieletu. Samo zamknięcie
-  pytania o przekazanie do implementacji nie jest jeszcze odbiorem programu.
+  `../map.md`; jej pytania są już rozstrzygnięte i trwa przekazanie do zadań
+  wykonawczych. Do zwykłego toku drugiej mapy przechodzimy po odbiorze szkieletu.
+  Samo zamknięcie decyzji nie jest odbiorem programu.
 - **Pytanie:** jeden plik `NN-nazwa.md`. `ID` identyfikuje go w całym rejestrze,
   `Parent` wskazuje mapę, a tytuł służy do nazywania w rozmowie i linkach.
   Zachowujemy dotychczasowe ID i ścieżki również po zmianie zakresu.

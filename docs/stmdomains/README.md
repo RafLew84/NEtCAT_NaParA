@@ -17,8 +17,13 @@ Po obejrzeniu trzech wariantów prototypu HTML na danych TTMAPP użytkownik
 [wybrał podstawowy podgląd](issues/07-browsing-and-comparison.md): jeden obraz
 z przełączaniem oryginał/wyrównany, dolny pasek miniatur i nawigacja z play/pauzą.
 Instrukcja otwarcia i odtworzenia szkicu jest w tickecie; to nie implementacja
-natywnego okna aplikacji. Następne pytanie pierwszej mapy dotyczy
-[przekazania szkieletu do implementacji i odbioru](issues/09-implementation-handoff.md).
+natywnego okna aplikacji. Zakończono także
+[przekazanie do implementacji](issues/09-implementation-handoff.md): pierwsza
+mapa decyzji jest zamknięta, a [trzy zadania budowy i odbioru](implementation/README.md)
+czekają ze statusem `todo`. Następny krok to
+[import, model serii i geometria](implementation/01-import-model.md).
+Przyjęto automatyczny kontrast każdej klatki i odtwarzanie bez pomijania klatek.
+Etap 1 będzie wykonany dopiero po budowie oraz odbiorze programu.
 
 Na polecenie użytkownika tego samego dnia rozstrzygnięto też wcześniej
 [definicje wysp, typów i domen](issues/02-order-types-and-domains.md) z etapu 2.
@@ -62,7 +67,7 @@ poza oba etapy; orientacja sieci pozostaje w drugim etapie.
 
 [Rejestr pytań i zależności](issues/README.md) prowadzi do kolejnych rozmów
 i prototypów; [słownik](GLOSSARY.md) ustala nazwy. To mapy decyzji `wayfinder`:
-po zamknięciu pierwszej można przygotować implementację szkieletu bez czekania
+pierwsza jest zamknięta, a implementacja szkieletu może ruszyć bez czekania
 na drugą. Aktualizacja dokumentacji nie oznacza wykonania programu.
 Pliki wersjonujemy na gałęzi `domains/*`; [przekazanie](handoff.md) opisuje stan
 gotowy do odbioru w sesji integracyjnej.

@@ -1,64 +1,85 @@
-# STM Domains — przekazanie kontraktu zapisu i eksportu
+# STM Domains — specyfikacja szkieletu gotowa do implementacji
 
 Data: 2026-10-19.
-Gałąź: `domains/save-export-contract`, baza `92e589d`.
-Worktree: `/tmp/netcat-stmdomains-save-export-contract`.
-Gałąź docelowa: `domains/start`. Claim: `2d5b995`; pierwsze odpowiedzi: `560b00e`.
-Commit rozstrzygnięcia podany w wiadomości końcowej. Przeniesienie przez
-fast-forward do Domains po kontroli gałęzi, HEAD i czystości worktree.
+Gałąź: `domains/implementation-handoff`, baza `7378c21`.
+Worktree: `/tmp/netcat-stmdomains-implementation-handoff`.
+Gałąź docelowa: `domains/start`. Claim: `52b5139`.
+Commit rozstrzygnięcia podany w wiadomości końcowej. Przeniesienie dokumentacji
+przez fast-forward po kontroli gałęzi, HEAD i czystości worktree.
 
-## Przyjęty wynik
+## Wynik
 
-[Kontrakt zapisu i eksportu](issues/08-save-and-export.md) ma status `resolved`.
-Jego `Answer` jest kanoniczną specyfikacją, opartą na trzech rundach odpowiedzi:
+[Przekazanie do implementacji](issues/09-implementation-handoff.md) ma status
+`resolved`. Zakończono [pierwszą mapę decyzji](map.md); nie oznacza to wykonania
+aplikacji. Kod produkcyjny nadal zawiera startowe okno PyQt6.
 
-- Jeden samowystarczalny `.stmdomains` zawiera oryginalny MPP, oznaczenia,
-  geometrię i podgląd. Zero lub jeden wynik; zapis także przed analizą.
-- Otwarcie odtwarza zapisany wynik, automatyczną podstawę i korekty bez
-  uruchamiania metod. Nowa próba zachowuje poprzedni wynik do zastąpienia;
-  „Zapisz jako” pozwala zachować wariant. Korekty nie przechodzą na nową analizę.
-- CSV: klatki, typy na klatkach, wyspy, fragmenty domen i przypisania molekuł.
-  Jawne jednostki, liczniki/mianowniki, braki i korekty; bez sum/średnich serii.
-- PNG: całość bieżącego widoku lub wycinek z gammą i nakładkami, oraz wykresy.
-  Wybór typu podświetla obszary, a tabela i wykres wskazują klatkę podglądu.
+Użytkownik potwierdził dwa pozostałe zachowania: pełną kolejność klatek
+podczas play, ze spowolnieniem w razie potrzeby, oraz automatyczny kontrast
+każdej klatki. Raw/aligned tej samej klatki używają wspólnej skali jasności.
 
-Techniczna postać kontenera: wersjonowany ZIP z JSON, oryginalnym MPP i danymi
-wyniku; identyfikacja rzeczywistych bajtów źródła i zapis przez podmianę gotowej
-paczki. Dokładny schemat pól/tablic i adaptery powstaną przy implementacji.
-Wymagane znaczenia danych i kryteria odtworzenia są już zapisane w tickecie.
+Przygotowano [trzy zadania wykonawcze](implementation/README.md), wszystkie `todo`:
 
-Zaktualizowano słownik, README, mapę metod i indeks zależności. Uzgodnienie
-kontraktu przed odbiorem metod wynika z bezpośredniego polecenia użytkownika.
-Usunięto zależność pytania o zapis od odbioru metod i dodano odwrotną: odbiór
-sprawdza kompletność/odtwarzalność danych metod względem przyjętego kontraktu.
-Ticket odbioru metod pozostaje otwarty; nie wybrano algorytmu.
+1. Import MolTrack, lokalny model serii, kodek masek i geometria.
+2. Natywny podgląd C, otwieranie, zadania w tle i nawigacja.
+3. Automatyczne sprawdzenia, pełny TTMAPP oraz odbiór GUI i raport.
+
+Zadania nie są nowymi pytaniami `wayfinder`. Kolejny krok to
+[import, model serii i geometria](implementation/01-import-model.md).
+Dopiero wykonanie zadań i potwierdzony odbiór programu otwierają zwykły tok
+etapu 2. Wcześniejsze decyzje na bezpośrednie polecenia użytkownika są zachowane.
+
+## Kierunek implementacji
+
+Publiczny czytnik `nanotrack.io.mpp_loader.load_mpp_sequence` za lokalnym
+adapterem; własne rekordy zachowujące braki i kodowane maski. Jeden układ
+geometrii z całej zapisanej rejestracji, obraz/oznaczenia pojedynczej klatki
+przygotowywane razem. Nie kopiować pełnego loadera sesji MolTrack ani jego
+modeli wymagających pełnych masek lub domyślnego confidence/jakości.
+
+Mały lokalny widok PyQt6 zamiast dziedziczenia całych widgetów NanoTrack/MolTrack.
+Odrębne tło paddingu, jednostki px, scene coordinates zgodne z krawędziami
+pikseli i bboxów. Kontrast percentylami 2–98 finite próbek oryginału, gamma
+wyłącznie podglądu. Cache masek i wyrównania jest ograniczony; nie budować
+całego wyrównanego stosu ani wszystkich masek przy otwarciu.
+
+Lokalny kontroler importu i nawigacji odrzuca spóźnione odpowiedzi workerów,
+zachowuje poprzednią serię do zatwierdzenia nowej i nie miesza obrazu/oznaczeń.
+Wątki GUI i pracy są oddzielone; pauza nie publikuje dodatkowego kroku.
+Przyszła analiza dostanie model serii; nie tworzyć teraz ogólnego systemu metod.
 
 ## Wykonane sprawdzenia
 
-- Audyt lokalnego kodu tylko do odczytu: eksport Domain Analysis v9/v10,
-  identyfikacja źródła w UI, zapis MolTrack i kontener NanoTrack. Wnioski
-  i linki są w tickecie. Stary eksport M6 nie jest kontraktem Domains.
-- Kontrola spójności z uzgodnioną geometrią/statystykami, lokalnych linków,
-  statusów, zależności oraz diagramu, a także `git diff --check` przed commitem.
+- Audyt istniejącego okna, czytników, modeli, kodeków, geometrii, widgetów,
+  zależności i testów. Nie zmieniano ich kodu.
+- Małe próby importów modułów bez danych w `netcat`. Pełne `session_store`
+  załadowało 171 modułów `moltrack.analysis`; lekki czytnik MPP nie ładuje ich.
+  To kontrola sprzężeń, nie benchmark przyszłej aplikacji.
+- Próba starego ViewerWidget w Qt/offscreen: bez ustawienia row-major obraz
+  `(2,4)` dostał wymiary 2×4 zamiast 4×2; osie pozostawały nm bez kalibracji;
+  NaN w podglądzie były zastępowane medianą. Uzasadnia to lokalny prosty widok.
+- Kontrola lokalnych linków, statusów i grafów zależności, kompletności zadań,
+  zgodności zakończonej mapy z jej decyzjami oraz `git diff --check` przed commitem.
 
-Nie zmieniono kodu aplikacji ani wspólnych modułów. Nie uruchamiano testów
-aplikacji, importera, eksportera ani metod. Nie powstał serializer lub UI zapisu.
-Kryteria przyszłego odbioru obejmują otwarcie przeniesionego pliku bez źródeł,
-wynik bez modeli i bez przeliczania, geometrię/korekty/statystyki, zapisy przed
-analizą, błędy/anulowanie, CSV/PNG oraz koszty na pełnej serii TTMAPP.
-To wymagane sprawdzenia przyszłej implementacji, nie wyniki obecnych testów.
+Nie uruchamiano ponownie dawnych sześciu testów importu, pełnego TTMAPP ani
+nowej aplikacji. Prototyp HTML i wcześniejsze testy nie zastępują odbioru
+natywnego programu. Przyszłe sprawdzenia opisuje
+[zadanie odbioru](implementation/03-acceptance.md); wszystkie pozostają do wykonania.
 
-## Następne kroki
+## Potrzeby integracyjne i środowisko
 
-Pierwsza mapa nadal prowadzi do
-[przekazania szkieletu do implementacji i jego odbioru](issues/09-implementation-handoff.md).
-Własny zapis, analiza i powiązanie statystyk z podglądem rozwijają etap 2;
-samo dopuszczenie zapisu przed analizą nie rozszerza obowiązków pierwszego etapu.
+Produkcja według tego planu: PyQt6 + NumPy + SciPy. Testy: pytest i pytest-qt.
+Lokalne `netcat` ma potrzebne zależności. Nie potrzeba modeli, Torch,
+QtWebEngine, pyqtgraph ani skimage w produkcyjnej ścieżce szkieletu.
 
-Pozostają referencje jakości, próby pokrycia/katalogu/granic oraz odbiór metod.
-Próby mogą uzupełnić metadane konkretnego algorytmu, nie zastępują przyjętych
-pojęć ani nie pozwalają gubić braków, korekt lub mianowników w zapisie.
-Nie ma nowej wymaganej zmiany współdzielonego kodu ani konfiguracji.
+Do integratora: uzupełnienie `requirements/stm-apps.txt` (obecnie tylko PyQt6)
+o NumPy/SciPy i objęcie nowych testów właściwym CI. Root requirements/workflow
+nie były zmieniane w tej sesji. Dotychczasowy plik nie jest jeszcze podstawą
+do deklaracji kompletnej nowej instalacji programu.
+
+Wydzielenie wspólnego lekkiego kodeka masek lub renderera pojedynczej klatki
+może być późniejszym refaktorem integracyjnym; lokalna implementacja zgodnego
+podzbioru nie musi na to czekać. Stare problemy importu opisane niżej nie są
+rozwiązywane przez bezwarunkowe przejęcie pełnego loadera MolTrack.
 
 ## Zachowany kontekst poprzednich prac
 
@@ -81,11 +102,16 @@ Zgłoszenia integracyjne pozostają aktualne: dobór czasów do wybranych klatek
 MolTrack, walidacja duplikatów i shape masek, zachowanie przy zmienionym mtime
 oraz koszt pełnej materializacji masek. Adapter STM Domains może powstać bez
 czekania na wspólne poprawki. Dawne zgłoszenie odwracania STP/S94 w NanoTrack
-jest poza zakresem importera z jednym MPP. Nie powstała nowa wymagana zmiana
-współdzielonego kodu ani konfiguracji.
+jest poza zakresem importera z jednym MPP. Zmiany tych wspólnych modułów nie blokują lokalnego importera.
+Aktualne wymaganie dotyczące środowiska opisano powyżej.
 
 Wybór podglądu jest zakończony: [jeden obraz i pasek miniatur](issues/07-browsing-and-comparison.md),
 commit dokumentacji `92e589d`. Źródła jego prototypu pozostają na
 `prototype/stmdomains-browsing`, commit `cb51fbf04802620637dd7d10acc19863717de083`;
 nie scalać do aplikacji. Lokalny HTML:
 `/home/rlew/projekty/NEtCAT-domains/.scratch/browsing-prototype/index.html`.
+
+[Kontrakt zapisu i eksportu](issues/08-save-and-export.md) rozstrzygnięto
+w `7378c21`: samowystarczalny `.stmdomains`, opcjonalnie jeden wynik,
+odtwarzanie bez przeliczania oraz CSV/PNG. Zapis pozostaje w etapie 2,
+także wariant pracy przed analizą. Nie powstał jeszcze serializer.
