@@ -23,6 +23,17 @@ Identyfikuje obraz niezależnie od jego pozycji w bieżącej serii.
 Czas przypisany obrazowi w danych źródłowych, jeśli jest dostępny.
 Nie jest czasem wyświetlania klatki podczas odtwarzania.
 
+**Tempo odtwarzania**:
+Liczba klatek wyświetlanych w ciągu sekundy podczas przeglądania serii.
+Nie określa czasu wykonania pomiaru.
+
+**Gamma podglądu**:
+Korekcja jasności prezentowanego obrazu STM, niezależna od wartości pomiarowych.
+
+**Obszar podglądu**:
+Fragment obrazu widoczny w głównym podglądzie przy danym położeniu i powiększeniu.
+Może obejmować całą klatkę lub jej wycinek.
+
 **Oryginał (original)**:
 Obraz klatki przed zastosowaniem rejestracji w bieżącej serii.
 

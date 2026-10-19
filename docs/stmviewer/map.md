@@ -37,6 +37,8 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 - [Seria wejściowa i usuwanie klatek](issues/01-frame-series.md): ustalono kolejność,
   zastępowanie całej serii, zgodność wymiarów oraz usuwanie z zachowaniem pochodzenia klatek.
+- [Podgląd, gamma i odtwarzanie serii](issues/02-preview-playback.md): wybrano wariant B
+  z paskiem miniatur oraz zasady Play/Pause, wspólnej gamma, zoomu i szachownicy poza pomiarem.
 
 ## Not yet specified
 

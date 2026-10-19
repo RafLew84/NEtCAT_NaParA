@@ -32,3 +32,10 @@ otwarty. Nie przyjmujemy jeszcze automatycznie jednego sposobu kadrowania.
 W repo nie znaleziono eksportera AVI. Lokalny netcat zawiera OpenCV
 z deklarowaną obsługą FFmpeg; dostępność konkretnego kodeka wymaga sprawdzenia
 zapisu i odczytu. Zobacz [rozpoznanie środowiska](../reconnaissance.md).
+
+### 2026-10-19 — kontrakt podglądu
+
+[Podgląd, gamma i odtwarzanie serii](02-preview-playback.md) ustala tempo Play,
+wspólną gamma, osobne obszary podglądu original/aligned oraz szachownicę poza
+pomiarem. Ich przeniesienie do filmu, w tym wybór FPS i kadrowania, pozostaje
+decyzją tego ticketu; nie wynika automatycznie z ustawień podglądu.

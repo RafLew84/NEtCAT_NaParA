@@ -39,3 +39,11 @@ różne skale fizyczne i kanały przy jednakowych wymiarach w pikselach.
 W tym tickecie trzeba ustalić zachowanie rejestracji dla takich danych oraz
 ważność wyniku po odwróceniu kolejności, obok już wskazanego usuwania klatek.
 To pytania otwarte; kontrakt importu nie narzuca odpowiedzi.
+
+### 2026-10-19 — kontrakt podglądu
+
+[Podgląd, gamma i odtwarzanie serii](02-preview-playback.md) ustala jeden
+główny obraz, osobny zapamiętany zoom original/aligned, szachownicę poza
+pomiarem i obrys oryginalnego pola klatki. Wynik rejestracji musi dostarczyć
+geometrię i informację o brakujących pikselach potrzebne do tej prezentacji.
+Ważność wyniku po zmianie serii nadal rozstrzyga niniejszy ticket.
