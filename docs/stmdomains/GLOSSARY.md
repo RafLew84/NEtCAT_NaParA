@@ -74,6 +74,41 @@ zachowująca znaczenie w całej serii niezależnie od obrotu lub jednolitego
 przesunięcia sieci. Kilka domen o różnych orientacjach może mieć ten sam typ.
 _Avoid_: Orientacja sieci, tożsamość konkretnej domeny, numer klastra ustalany niezależnie w każdej klatce
 
+**Udział powierzchni typu w polu klatki**:
+Część oryginalnego pola pomiarowego zajęta przez obszary danego typu.
+Dopełnienie obrazu nie należy do pola odniesienia.
+_Avoid_: Udział typu w warstwie, procent powiększonego płótna
+
+**Udział powierzchni typu w pokryciu**:
+Część powierzchni warstwy molekularnej zajęta przez obszary danego typu.
+Materiał bez rozpoznanego typu nadal należy do powierzchni odniesienia.
+_Avoid_: Udział typu w całej klatce, udział tylko w rozpoznanych typach
+
+**Przypisanie molekuły do domeny**:
+Powiązanie oznaczenia molekuły z jedną domeną według położenia środka oznaczenia;
+przypisana molekuła przyjmuje typ tej domeny, jeśli typ jest rozpoznany.
+_Avoid_: Niezależny pomiar typu molekuły, wielokrotne zliczenie na granicy
+
+**Udział liczebności typu**:
+Część wszystkich poprawnych oznaczeń ze środkiem w oryginalnym polu klatki
+przypisana do danego typu; oznaczenia bez typu pozostają w podstawie porównania.
+_Avoid_: Udział tylko w rozpoznanych typach, udział wszystkich rzeczywistych molekuł próbki
+
+**Częściowy wynik statystyki**:
+Dostępna liczba lub powierzchnia rozpoznanych obszarów przy niepełnej ocenie
+klatki, z zachowaną informacją o niepewności i brakach.
+_Avoid_: Kompletny pomiar, zero w miejscu braku danych
+
+**Ręczne rozstrzygnięcie konfliktu domen**:
+Decyzja użytkownika o przynależności konkretnego spornego obszaru do jednej
+z proponowanych domen, zachowana jako korekta wyniku automatycznego.
+_Avoid_: Automatyczny wybór pewniejszej domeny, nowa detekcja molekuł
+
+**Obserwowany fragment domeny**:
+Spójna, rozpoznana część domeny w polu jednej klatki. Jej rozmiar i połączenia
+poza polem pozostają nieznane; oddzielne widoczne fragmenty liczymy osobno.
+_Avoid_: Pełna domena poza kadrem, tożsamość domeny śledzona w serii
+
 **Domena sieci**:
 Przestrzennie spójny obszar uporządkowania na jednej klatce, oddzielony od innych
 przerwą, pasem bez uporządkowania lub wyraźną granicą niedopasowania sieci.

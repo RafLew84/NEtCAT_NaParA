@@ -17,6 +17,19 @@ do ponownego otwarcia pracy, odtworzenia obliczeń i porównywania serii?
 Zakończony pilotaż wskazał braki i nie wybrał metody. Kontrakt zapisu opieramy
 na odbiorze dalszych prób, nie na numerach klastrów z prototypu.
 
+[Uzgodnione statystyki klatek](06-frame-statistics.md#answer--2026-10-19)
+wymagają zachowania obu mianowników powierzchni, liczby wszystkich poprawnych
+oznaczeń ze środkiem w polu, jednostek i dostępności poszczególnych miar.
+Wynik częściowy, zero i brak pomiaru pozostają rozróżnialne. Zapis nie może
+gubić przyczyn nieprzypisania, ucięć brzegiem ani wersji wspólnego katalogu.
+
+Użytkownik dopuścił ręczne rozstrzygnięcie konkretnego nakładania domen przez
+wybór jednej z propozycji. Ustalmy sposób zachowania obszaru konfliktu,
+automatycznych propozycji i decyzji użytkownika, aby odtworzyć geometrię oraz
+przeliczyć statystyki bez udawania automatycznego wyniku. Korekta odnosi się
+do konkretnej analizy; nie przechodzi po numerze domeny na nowy katalog.
+Nie rozszerza to zakresu do pełnego edytora granic ani tworzenia oznaczeń.
+
 Ustalmy rozdzielenie wejściowego zapisu z innego programu od wyników analizy,
 identyfikację obrazów i klatek, geometrię, parametry i wersje metod, maski
 pokrycia i wysp, orientacje sieci, wspólną definicję typów, przypisania molekuł,

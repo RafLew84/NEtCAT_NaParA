@@ -22,7 +22,9 @@ Wyjątki wskazane przez użytkownika 2026-10-19: wcześniej rozpatrzono
 i wykonano [pilotaż porównania metod](issues/05-stable-types-across-frames.md).
 Pilotaż wskazał konkretne braki; nie zastępuje odbioru szkieletu ani walidacji.
 Na polecenie użytkownika dodano dalsze pytania o pokrycie, typy, granice
-i odbiór metod. Pozostałe warunki etapowania nadal obowiązują.
+i odbiór metod. Następnie na jego bezpośrednie polecenie uzgodniono
+[statystyki klatek](issues/06-frame-statistics.md), nadal jako definicje
+do implementacji. Pozostałe warunki etapowania obowiązują.
 
 - Rozpatrujemy dwa wyniki: pokrycie materiałem/wyspy oraz domeny orientacji
   i uporządkowania sieci. Orientacja pojedynczej molekuły jest odłożona.
@@ -58,6 +60,9 @@ powstaną w zadaniach wynikających z ustaleń i wyników prób.
 - [Jak porównać metody wykrywania wysp i domen w serii?](issues/05-stable-types-across-frames.md):
   katalog wspólny dla wybranego zakresu; pilotaż ujawnił luki w doborze skali,
   rozróżnianiu rozstawu i granicach domen. Dalsze próby mają osobne tickety.
+- [Jak dokładnie liczymy ilości i udziały na każdej klatce?](issues/06-frame-statistics.md):
+  dwa udziały powierzchni, liczebności według środka oznaczenia, jawne braki
+  i korekty konfliktów; wyniki osobno dla klatek, bez agregatów serii.
 
 Nie wybrano ani nie zwalidowano metody i nie ustalono kontraktu zapisu wyników.
 

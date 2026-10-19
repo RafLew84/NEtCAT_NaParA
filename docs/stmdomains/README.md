@@ -28,6 +28,14 @@ dodać dalsze tickety o pokryciu, typach, granicach i odbiorze metod. Nie wybran
 algorytmu do aplikacji. Źródła prototypu pozostają na osobnej gałęzi, a dane
 i wygenerowany HTML lokalnie poza Git.
 
+Na kolejne polecenie użytkownika uzgodniono
+[definicje statystyk klatek](issues/06-frame-statistics.md): dwa mianowniki
+udziału powierzchni, przypisywanie molekuł według środka oznaczenia, wyniki
+częściowe i ręczne rozstrzyganie konkretnych konfliktów domen. Tabela i wykres
+dotyczą osobnych klatek; sumy i średnie serii są poza obecnym zakresem.
+Dołączono przykład rachunkowy i schemat. Statystyki ani ich UI nie są jeszcze
+zaimplementowane w aplikacji.
+
 ## Dwa etapy
 
 - [Etap 1: działający szkielet](map.md) — import, podstawowy podgląd oraz

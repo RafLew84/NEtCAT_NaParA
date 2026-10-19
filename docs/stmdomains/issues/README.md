@@ -11,6 +11,9 @@ Na bezpośrednie polecenie użytkownika z 2026-10-19 wcześniej podejmujemy
 wskazaniem luk; na polecenie użytkownika utworzono dalsze pytania o pokrycie,
 typy, granice domen i odbiór metod. To jawne wyjątki dla wskazanych zadań,
 bez deklaracji gotowego szkieletu lub zwalidowanego algorytmu.
+Następnie na bezpośrednie polecenie użytkownika uzgodniono także
+[definicje statystyk klatek](06-frame-statistics.md). Odbiór metod i zapis
+wyników korzystają z tych definicji; sama decyzja nie implementuje statystyk.
 
 ## Wayfinding operations
 
@@ -121,6 +124,7 @@ flowchart TD
     j --> m
     k --> m
     l --> m
+    f --> m
     a --> f
     b --> f
     a --> h
