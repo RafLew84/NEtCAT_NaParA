@@ -17,6 +17,11 @@ Etap odłożony do czasu odbioru działającego szkieletu z
 [pierwszej mapy](map.md), zgodnie z decyzją użytkownika z 2026-10-16.
 Jego otwarte pytania nie blokują implementacji ani odbioru etapu 1.
 
+Wyjątek wskazany przez użytkownika 2026-10-19: wcześniej rozpatrujemy
+[definicje wyspy, typu i domeny sieci](issues/02-order-types-and-domains.md).
+Dotyczy to tej decyzji pojęciowej; próby metod i implementacja etapu 2 nadal
+czekają na odbiór szkieletu.
+
 - Rozpatrujemy dwa wyniki: pokrycie materiałem/wyspy oraz domeny orientacji
   i uporządkowania sieci. Orientacja pojedynczej molekuły jest odłożona.
 - Korzystamy z odtworzonych obrazów i gotowych oznaczeń. Możemy porównywać
@@ -45,7 +50,11 @@ powstaną w zadaniach wynikających z ustaleń i wyników prób.
 
 ## Decisions so far
 
-<!-- Brak wybranej i zwalidowanej metody oraz kontraktu zapisu wyników. -->
+- [Jak definiujemy wyspę, typ uporządkowania i domenę sieci?](issues/02-order-types-and-domains.md):
+  wyspa jako płat warstwy; typ oddzielony od orientacji; domeny, granice
+  niedopasowania, małe skupiska i stany niepewności uzgodnione na przykładach.
+
+Nie wybrano ani nie zwalidowano metody i nie ustalono kontraktu zapisu wyników.
 
 ## Not yet specified
 

@@ -27,6 +27,12 @@ obejrzenie nakładek wyników na obraz. Oddzielmy maskę pokrycia, identyfikator
 wysp, typy i domeny sieci, orientacje sieci oraz brak wiarygodnego wyniku.
 Użytkownik ocenia wyniki na przykładach; nie wystarczy samo uruchomienie kodu.
 
+Punktem odniesienia są
+[uzgodnione definicje i przypadki graniczne](02-order-types-and-domains.md#answer--2026-10-19).
+Typ nie jest przedziałem orientacji. Próba musi też pokazać, czy metoda potrafi
+rozróżnić domeny o tym samym typie i orientacji rozdzielone linią niedopasowania;
+samo podobieństwo kąta i rozstawu nie potwierdza poprawnego scalenia.
+
 Jak ustalamy typy w serii: wspólna analiza wybranego zestawu, referencja z części
 klatek czy inna procedura? Co z nowym wzorem, rzadkim typem, ponownym obliczeniem
 oraz zmianą parametrów? Numery niezależnych klastrów nie ustalają wspólnego

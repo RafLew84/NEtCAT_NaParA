@@ -58,23 +58,48 @@ Kierunek lokalnego układu sąsiednich centrów molekuł.
 _Avoid_: Orientacja molekuły
 
 **Pokrycie materiałem**:
-Obszar poprawnego pola pomiarowego zajęty przez analizowany materiał.
-Nie obejmuje dopełnienia obrazu po wyrównaniu.
-_Avoid_: Całe płótno, miara uporządkowania sieci
+Obszar poprawnego pola pomiarowego zajęty przez płaty warstwy molekularnej,
+obejmujący normalne odstępy między molekułami, bez większych odsłoniętych
+obszarów podłoża i dopełnienia obrazu.
+_Avoid_: Suma powierzchni samych molekuł, całe płótno, miara uporządkowania sieci
 
 **Wyspa**:
-Przestrzennie spójny obszar pokrycia materiałem. Może zawierać kilka domen sieci.
+Przestrzennie spójny płat warstwy molekularnej wraz z normalnymi odstępami
+między molekułami. Może zawierać kilka domen sieci i lokalne defekty.
 _Avoid_: Typ uporządkowania, pojedyncza domena orientacyjna
 
 **Typ uporządkowania**:
-Klasa podobnych wzorów rozmieszczenia molekuł i orientacji sieci, zachowująca znaczenie
-w całej analizowanej serii. Kilka oddzielnych domen może mieć ten sam typ.
-_Avoid_: Tożsamość konkretnej domeny, numer klastra ustalany niezależnie w każdej klatce
+Klasa struktur o podobnym układzie i charakterystycznym rozstawie molekuł,
+zachowująca znaczenie w całej serii niezależnie od obrotu lub jednolitego
+przesunięcia sieci. Kilka domen o różnych orientacjach może mieć ten sam typ.
+_Avoid_: Orientacja sieci, tożsamość konkretnej domeny, numer klastra ustalany niezależnie w każdej klatce
 
 **Domena sieci**:
-Przestrzennie spójny obszar uporządkowania na jednej klatce. Oddzielne obszary
-mogą należeć do tego samego typu uporządkowania.
+Przestrzennie spójny obszar uporządkowania na jednej klatce, oddzielony od innych
+przerwą, pasem bez uporządkowania lub wyraźną granicą niedopasowania sieci.
+Pojedyncze defekty nie muszą go rozdzielać; różne domeny mogą mieć ten sam typ
+i orientację.
 _Avoid_: Typ uporządkowania, śledzona domena, cała wyspa niezależnie od uporządkowania
+
+**Granica niedopasowania sieci**:
+Linia rozdzielająca obszary, których uporządkowane wzory nie łączą się spójnie,
+także przy jednakowym typie i orientacji po obu stronach.
+_Avoid_: Pojedynczy defekt, jednolite przesunięcie całej domeny
+
+**Obszar bez wykrytego porządku**:
+Obszar, w którym wystarczające dane nie potwierdzają badanej regularności
+rozmieszczenia molekuł. Może nadal należeć do wyspy materiału.
+_Avoid_: Brak materiału, zbyt słaby sygnał, brak oznaczeń
+
+**Uporządkowanie bez rozpoznanego typu**:
+Rozpoznana regularność struktury, której nie można przypisać do znanego typu.
+Jest kandydatem do rozszerzenia katalogu typów, a nie brakiem uporządkowania.
+_Avoid_: Nieporządek, automatycznie nowa faza materiału
+
+**Domena ucięta brzegiem**:
+Domena, której obserwowany fragment dochodzi do granicy pola pomiarowego.
+Jej zasięg i połączenia poza tym polem pozostają nieznane.
+_Avoid_: Pełna domena o zmierzonej powierzchni, automatycznie błędna domena
 
 **Rejestracja obrazów**:
 Wyznaczenie przekształceń umieszczających klatki we wspólnym układzie odniesienia.

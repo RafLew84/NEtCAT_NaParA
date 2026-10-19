@@ -20,6 +20,13 @@ kontrolne. Posiadany zapis TTMAPP jest pierwszym przykładem, nie automatyczną
 prawdą odniesienia dla pokrycia, domen lub kątów sieci. Maski pokrycia i granice
 domen sieci wymagają odrębnej referencji; padding wykluczamy z obu ocen.
 
+Zestaw przypadków wynika z
+[uzgodnionych definicji i przykładów](02-order-types-and-domains.md#answer--2026-10-19):
+obejmuje m.in. obrót bez zmiany typu, różny rozstaw, pas bez uporządkowania,
+granicę niedopasowania przy tym samym typie i orientacji, małe skupiska oraz
+ucięcie brzegiem. Płynny gradient orientacji nie jest wymaganym scenariuszem
+pierwszych prób. Trzeba osobno oceniać odmowę pomiaru i brak wykrytego porządku.
+
 Jakie błędy kątów, nadmierne podziały, błędne scalenia, niestabilność typów,
 fałszywe domeny i odmowy pomiaru są istotne dla użytkownika? Jak raportować
 wyniki dla małych typów, ubytków oznaczeń i domen uciętych krawędzią?

@@ -22,11 +22,18 @@ Pole odniesienia jest już ustalone: oryginalny rozmiar każdej klatki przesuni�
 według rejestracji. Dopełnienie większego obrazu nie wchodzi do statystyk.
 Nie wracamy tu do wyboru stałego ROI.
 
-Pozostaje ustalić: czy powierzchnia domeny to obszar między molekułami, suma ich
-masek czy inna jawna definicja; jakie są mianowniki udziału powierzchni i udziału
-liczebności; jak traktujemy nieprzypisane molekuły, nakładanie obszarów, brak
-wyniku i domeny przecinające krawędź klatki. Co pokazujemy w pikselach przy braku
-kalibracji i jak przechodzimy na jednostki fizyczne po jej uzupełnieniu?
+Z [definicji wysp, typów i domen](02-order-types-and-domains.md#answer--2026-10-19)
+wynika już, że wyspa obejmuje płat warstwy z normalnymi odstępami między
+molekułami. Nie zastępujemy jego powierzchni sumą masek molekuł. Domeny ucięte
+brzegiem uwzględniamy w widocznym zakresie i oznaczamy ucięcie; małe skupisko
+bez wystarczających danych o porządku nie jest automatycznie domeną.
+
+Pozostaje ustalić dokładne liczenie powierzchni odtworzonych obszarów,
+mianowniki udziału powierzchni i liczebności, przypisywanie molekuł do domen
+oraz agregację nakładania, niepewności i nieprzypisanych typów. Jak prezentujemy
+liczby obserwowanych fragmentów bez wnioskowania o połączeniach poza kadrem?
+Co pokazujemy w pikselach przy braku kalibracji i jak przechodzimy na jednostki
+fizyczne po jej uzupełnieniu?
 
 Jak przedstawiamy zmiany po numerach klatek przy niewiarygodnych czasach eksportu,
 wybór zakresu klatek oraz rozróżnienie zera od braku pomiaru? Zmiana liczby obszarów

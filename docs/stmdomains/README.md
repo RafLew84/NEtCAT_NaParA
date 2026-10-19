@@ -16,6 +16,10 @@ i wykonano [audyt na danych TTMAPP](import-geometry-audit.md).
 Następne pytanie pierwszego etapu to
 [podgląd obrazów i oznaczeń](issues/07-browsing-and-comparison.md).
 
+Na polecenie użytkownika tego samego dnia rozstrzygnięto też wcześniej
+[definicje wysp, typów i domen](issues/02-order-types-and-domains.md) z etapu 2.
+Ustalenia pojęciowe nie zastępują implementacji i odbioru szkieletu ani prób metod.
+
 ## Dwa etapy
 
 - [Etap 1: działający szkielet](map.md) — import, podstawowy podgląd oraz

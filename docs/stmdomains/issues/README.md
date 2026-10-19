@@ -5,6 +5,10 @@ Aktualnie pracujemy nad [etapem 1: działającym szkieletem](../map.md).
 implementacji i odbiorze szkieletu. Otwarte decyzje etapu 2 nie blokują etapu 1.
 Statusy i zależności przechowujemy w ticketach; indeks poniżej grupuje je według map.
 
+Na bezpośrednie polecenie użytkownika z 2026-10-19 wcześniej podejmujemy
+[definicje wyspy, typu i domeny sieci](02-order-types-and-domains.md).
+To wyjątek dla wskazanego pytania, bez zmiany warunku rozpoczęcia prób metod.
+
 ## Wayfinding operations
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie
