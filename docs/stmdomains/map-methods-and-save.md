@@ -24,10 +24,10 @@ Pilotaż wskazał konkretne braki; nie zastępuje odbioru szkieletu ani walidacj
 Na polecenie użytkownika dodano dalsze pytania o pokrycie, typy, granice
 i odbiór metod. Następnie na jego bezpośrednie polecenie uzgodniono
 [statystyki klatek](issues/06-frame-statistics.md), nadal jako definicje
-do implementacji. Następnie na jego polecenie rozpoczęto
+do implementacji. Na kolejne polecenie uzgodniono też
 [kontrakt zapisu i eksportu](issues/08-save-and-export.md) przed odbiorem metod.
-Zatwierdzone dotąd wymagania i otwarte pytania są w tickecie; pozostaje on
-`claimed`. Pozostałe warunki etapowania obowiązują.
+Kontrakt jest niezależny od algorytmu; odbiór sprawdzi jego realizację
+na wynikach prób. Pozostałe warunki etapowania obowiązują.
 
 - Rozpatrujemy dwa wyniki: pokrycie materiałem/wyspy oraz domeny orientacji
   i uporządkowania sieci. Orientacja pojedynczej molekuły jest odłożona.
@@ -67,13 +67,19 @@ powstaną w zadaniach wynikających z ustaleń i wyników prób.
   dwa udziały powierzchni, liczebności według środka oznaczenia, jawne braki
   i korekty konfliktów; wyniki osobno dla klatek, bez agregatów serii.
 
-Nie wybrano ani nie zwalidowano metody i nie ustalono kontraktu zapisu wyników.
+- [Co zapisujemy i eksportujemy po próbach metod?](issues/08-save-and-export.md):
+  samowystarczalny plik z obrazem, oznaczeniami i opcjonalnie jednym wynikiem;
+  otwarcie bez przeliczania, korekty oraz eksport CSV/PNG uzgodnione.
+
+Nie wybrano ani nie zwalidowano metod. Kontrakt zapisu jest ustalony;
+jego implementacja i odbiór na wynikach metod pozostają do wykonania.
 
 ## Not yet specified
 
 Próby na kolejnych akwizycjach mogą ujawnić dodatkowe klasy błędów, potrzebę
-innych cech lub ograniczenia obecnych oznaczeń. Zakres dostrojenia aplikacji
-i formatów ustalimy na podstawie wyników tych prób.
+innych cech lub ograniczenia obecnych oznaczeń. Szczegółowe metadane metod
+i dostrojenie aplikacji ustalimy na podstawie prób, zachowując przyjęty
+kontrakt zapisu i znaczenia danych.
 
 ## Out of scope
 

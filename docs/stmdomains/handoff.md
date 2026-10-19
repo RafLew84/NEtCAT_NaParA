@@ -1,62 +1,64 @@
-# STM Domains — zapis i eksport w trakcie ustaleń
+# STM Domains — przekazanie kontraktu zapisu i eksportu
 
 Data: 2026-10-19.
 Gałąź: `domains/save-export-contract`, baza `92e589d`.
 Worktree: `/tmp/netcat-stmdomains-save-export-contract`.
-Gałąź docelowa: `domains/start`. Claim: `2d5b995`.
-Commit bieżących ustaleń podany w wiadomości końcowej.
+Gałąź docelowa: `domains/start`. Claim: `2d5b995`; pierwsze odpowiedzi: `560b00e`.
+Commit rozstrzygnięcia podany w wiadomości końcowej. Przeniesienie przez
+fast-forward do Domains po kontroli gałęzi, HEAD i czystości worktree.
 
-## Przyjęte ustalenia
+## Przyjęty wynik
 
-Na bezpośrednie polecenie użytkownika podjęto
-[kontrakt zapisu i eksportu](issues/08-save-and-export.md) przed odbiorem metod.
-Ticket pozostaje **`claimed`**. Odpowiedzi użytkownika zapisano w `Discussion`:
+[Kontrakt zapisu i eksportu](issues/08-save-and-export.md) ma status `resolved`.
+Jego `Answer` jest kanoniczną specyfikacją, opartą na trzech rundach odpowiedzi:
 
-- Jeden samowystarczalny plik zawiera także obrazy MPP; ponowne otwarcie nie
-  wymaga osobnego MPP ani pierwotnego zapisu MolTrack.
-- Jeden wybrany wynik analizy na plik. Warianty ustawień przez „Zapisz jako”,
-  bez historii wielu prób w jednym projekcie.
-- Eksport tabel CSV, obrazów z nakładkami PNG i wykresów PNG.
+- Jeden samowystarczalny `.stmdomains` zawiera oryginalny MPP, oznaczenia,
+  geometrię i podgląd. Zero lub jeden wynik; zapis także przed analizą.
+- Otwarcie odtwarza zapisany wynik, automatyczną podstawę i korekty bez
+  uruchamiania metod. Nowa próba zachowuje poprzedni wynik do zastąpienia;
+  „Zapisz jako” pozwala zachować wariant. Korekty nie przechodzą na nową analizę.
+- CSV: klatki, typy na klatkach, wyspy, fragmenty domen i przypisania molekuł.
+  Jawne jednostki, liczniki/mianowniki, braki i korekty; bez sum/średnich serii.
+- PNG: całość bieżącego widoku lub wycinek z gammą i nakładkami, oraz wykresy.
+  Wybór typu podświetla obszary, a tabela i wykres wskazują klatkę podglądu.
 
-Słownik uzupełniono o zapis pracy STM Domains, wynik analizy i eksport.
-Nie zmieniono kodu aplikacji ani wspólnych modułów.
+Techniczna postać kontenera: wersjonowany ZIP z JSON, oryginalnym MPP i danymi
+wyniku; identyfikacja rzeczywistych bajtów źródła i zapis przez podmianę gotowej
+paczki. Dokładny schemat pól/tablic i adaptery powstaną przy implementacji.
+Wymagane znaczenia danych i kryteria odtworzenia są już zapisane w tickecie.
 
-## Pytania oczekujące i dalszy zakres rozmowy
+Zaktualizowano słownik, README, mapę metod i indeks zależności. Uzgodnienie
+kontraktu przed odbiorem metod wynika z bezpośredniego polecenia użytkownika.
+Usunięto zależność pytania o zapis od odbioru metod i dodano odwrotną: odbiór
+sprawdza kompletność/odtwarzalność danych metod względem przyjętego kontraktu.
+Ticket odbioru metod pozostaje otwarty; nie wybrano algorytmu.
 
-Wysłano pytania o odtwarzanie wyniku bez ponownego uruchamiania metod,
-zachowanie poprzedniego wyniku podczas nowej próby oraz wybór pełnego obrazu
-lub wycinka przy eksporcie PNG. Odpowiedzi jeszcze nie zapisano; nie należy
-traktować rekomendacji jako przyjętych decyzji.
+## Wykonane sprawdzenia
 
-Po tych odpowiedziach pozostają do domknięcia szczegółowość tabel CSV,
-powiązanie wyboru typu/tabeli/wykresu z obrazem oraz podsumowanie kontraktu.
-Obowiązują wcześniejsze definicje powierzchni, braków danych i korekt
-konkretnego konfliktu; nie trzeba ich ustalać od nowa.
+- Audyt lokalnego kodu tylko do odczytu: eksport Domain Analysis v9/v10,
+  identyfikacja źródła w UI, zapis MolTrack i kontener NanoTrack. Wnioski
+  i linki są w tickecie. Stary eksport M6 nie jest kontraktem Domains.
+- Kontrola spójności z uzgodnioną geometrią/statystykami, lokalnych linków,
+  statusów, zależności oraz diagramu, a także `git diff --check` przed commitem.
 
-Roboczy szkic technicznego kontraktu jest lokalnie w
-`/tmp/netcat-stmdomains-save-export-contract/.scratch/save-export-contract-draft.md`.
-Nie stanowi zatwierdzonego `Answer`. Zależność od odbioru metod pozostaje
-w trackerze do rozstrzygnięcia zakresu końcowego kontraktu; odbiór metod
-nadal jest otwarty. Nie przeniesiono prototypów do aplikacji.
+Nie zmieniono kodu aplikacji ani wspólnych modułów. Nie uruchamiano testów
+aplikacji, importera, eksportera ani metod. Nie powstał serializer lub UI zapisu.
+Kryteria przyszłego odbioru obejmują otwarcie przeniesionego pliku bez źródeł,
+wynik bez modeli i bez przeliczania, geometrię/korekty/statystyki, zapisy przed
+analizą, błędy/anulowanie, CSV/PNG oraz koszty na pełnej serii TTMAPP.
+To wymagane sprawdzenia przyszłej implementacji, nie wyniki obecnych testów.
 
-## Sprawdzenia
+## Następne kroki
 
-Audyt lokalnego kodu tylko do odczytu: eksport Domain Analysis v9/v10,
-identyfikacja źródła w UI, zapis MolTrack i kontener NanoTrack. Wnioski oraz
-linki do kodu są w tickecie. Stary eksport M6 nie jest kontraktem Domains.
-Hash nazwy/ścieżki nie identyfikuje bajtów obrazu; istniejący ZIP NanoTrack
-pokazuje kontener, ale nadal wymaga obrazu zewnętrznego.
+Pierwsza mapa nadal prowadzi do
+[przekazania szkieletu do implementacji i jego odbioru](issues/09-implementation-handoff.md).
+Własny zapis, analiza i powiązanie statystyk z podglądem rozwijają etap 2;
+samo dopuszczenie zapisu przed analizą nie rozszerza obowiązków pierwszego etapu.
 
-Kontrola lokalnych linków i `git diff --check` przed commitem. Nie uruchamiano
-testów aplikacji, importera, eksportera ani metod. Nie powstał jeszcze plik
-`.stmdomains`, serializer lub nowy interfejs zapisu. Integralność pakietu,
-ponowne otwarcie i koszty na pełnej serii wymagają przyszłej implementacji.
-
-## Dalszy tok prac
-
-Dokończyć rozmowę i zapisać jej przyjęty wynik. Następne pytanie pierwszej mapy
-nadal dotyczy [przekazania szkieletu do implementacji](issues/09-implementation-handoff.md).
-Wcześniejsze podjęcie zapisu nie jest odbiorem szkieletu ani metod.
+Pozostają referencje jakości, próby pokrycia/katalogu/granic oraz odbiór metod.
+Próby mogą uzupełnić metadane konkretnego algorytmu, nie zastępują przyjętych
+pojęć ani nie pozwalają gubić braków, korekt lub mianowników w zapisie.
+Nie ma nowej wymaganej zmiany współdzielonego kodu ani konfiguracji.
 
 ## Zachowany kontekst poprzednich prac
 

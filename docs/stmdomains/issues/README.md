@@ -20,6 +20,12 @@ W pierwszym etapie rozstrzygnięto również
 wybrano jeden obraz i pasek miniatur. Następne pytanie aktywnej mapy to
 [przekazanie do implementacji i kryteria odbioru](09-implementation-handoff.md).
 
+Na kolejne polecenie użytkownika rozstrzygnięto
+[kontrakt zapisu i eksportu](08-save-and-export.md) przed odbiorem metod:
+samowystarczalny zapis z MPP, opcjonalnym wynikiem oraz CSV/PNG. Zależność
+odwrócono: odbiór metod sprawdzi realizację tego kontraktu na wynikach prób.
+Nie oznacza to implementacji zapisu ani odbioru metod.
+
 ## Wayfinding operations
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie
@@ -93,7 +99,9 @@ zamknięto zakresowo. Zachowano treść i materiały, bez wyboru metody.
 Strzałki pokazują warunki wstępne pytań, nie kolejność implementacji ani status.
 Rozpoczęcie etapu 2 dodatkowo wymaga odebranego szkieletu, zgodnie z mapami.
 Wyjątek dla zakończonego pilotażu nie zamyka referencji jakości. Ich zależność
-przeniesiono do dalszych prób i odbioru metod; zapis wyników zależy od odbioru.
+przeniesiono do dalszych prób i odbioru metod. Na późniejsze polecenie użytkownika
+kontrakt zapisu ustalono wcześniej; teraz odbiór metod zależy od tego kontraktu
+i weryfikuje jego realizację.
 
 ```mermaid
 flowchart TD
@@ -133,7 +141,7 @@ flowchart TD
     a --> f
     b --> f
     a --> h
-    m --> h
+    h --> m
     f --> h
     g --> h
 ```

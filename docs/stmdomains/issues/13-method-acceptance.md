@@ -7,7 +7,7 @@ Mode: HITL
 Status: open
 Assignee:
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
-Blocked by: 04, 06, 10, 11, 12
+Blocked by: 04, 06, 08, 10, 11, 12
 
 ## Question
 
@@ -26,21 +26,34 @@ molekuł według środka bboxa, brak podwójnego liczenia oraz częściowe wynik
 Ręczny wybór domeny w konkretnym konflikcie ma przeliczać wynik i pozostawiać
 informację o korekcie; nie jest dowodem trafności automatycznej segmentacji.
 
+Sprawdźmy również [przyjęty kontrakt zapisu](08-save-and-export.md#answer--2026-10-19):
+czy adaptery metod zwracają wszystkie maski/obszary, definicje typów, stany
+niepewności, geometrię konfliktów i parametry potrzebne do samowystarczalnego
+odtworzenia wyniku? Zapis/odczyt przykładowych wyników powinien zachować
+ich znaczenie bez uruchamiania metod i bez modeli, również po ręcznej korekcie.
+Szczegółowe metadane algorytmu można uzupełnić podczas prób; nie wolno gubić
+wspólnych mianowników, jednostek, wersji katalogu ani pochodzenia decyzji.
+
 Potrzebne są też mierzalne koszty na docelowych seriach, pamięć, najdłuższy
 nieprzerywalny etap i zachowanie anulowania, odtwarzalność parametrów oraz
 warunki unieważnienia katalogu po zmianie zakresu. Pilotaż ośmiu klatek nie
 rozstrzyga tych własności dla całego wejścia. Dobór zakresu sprawdzeń wynika
-z uzgodnionego niewielkiego, wewnętrznego zastosowania.
+z uzgodnionego niewielkiego, wewnętrznego zastosowania. Obejmuje także koszty
+samowystarczalnego zapisu i odtworzenia wyników z maskami na docelowej serii,
+bez pełnej materializacji wszystkich masek przy otwarciu.
 
 Wynik: zaakceptowany przez użytkownika zestaw z jasno określonymi warunkami
 użycia/odmowy albo konkretna dalsza luka. Nie przyjmujemy metody na podstawie
 samego uruchomienia programu ani dostrojenia do tych samych przykładów.
-Ten odbiór jest warunkiem kontraktu zapisu analizy, nie odbioru szkieletu.
+Ten odbiór weryfikuje metody i ich zgodność z wcześniej ustalonym kontraktem
+zapisu, nie jest warunkiem odbioru szkieletu. Kontrakt rozstrzygnięto wcześniej
+na bezpośrednie polecenie użytkownika; nie oznacza to zaliczenia tego odbioru.
 
 ## Dependencies
 
 - [Jakie referencje i kryteria potwierdzą wiarygodność analizy?](04-reference-and-quality.md)
 - [Jak dokładnie liczymy ilości i udziały na każdej klatce?](06-frame-statistics.md)
+- [Co zapisujemy i eksportujemy po próbach metod?](08-save-and-export.md)
 - [Jak wyznaczać pokrycie bez mylenia luk oznaczeń z podłożem?](10-coverage-and-scale.md)
 - [Jak rozpoznawać typy przy obrocie, zmianie rozstawu i rzadkich wzorach?](11-structural-type-catalogue.md)
 - [Jak rozdzielać domeny o tym samym typie i orientacji?](12-phase-boundaries.md)

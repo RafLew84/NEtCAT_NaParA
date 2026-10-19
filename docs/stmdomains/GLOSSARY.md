@@ -11,8 +11,8 @@ pozwalające powiązać je z obrazami i klatkami.
 _Avoid_: Model detekcji, wynik STM Domains
 
 **Zapis pracy STM Domains**:
-Samowystarczalny zapis obrazów, oznaczeń wejściowych oraz jednego wyniku
-analizy z jego ustawieniami i korektami, pozwalający wznowić tę pracę.
+Samowystarczalny zapis obrazów, oznaczeń wejściowych i podglądu, opcjonalnie
+z jednym wynikiem analizy, jego ustawieniami i korektami, pozwalający wznowić pracę.
 _Avoid_: Zapis wejściowy MolTrack, tabela eksportowa, historia wielu prób
 
 **Wynik analizy**:

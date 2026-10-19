@@ -40,11 +40,13 @@ dotyczą osobnych klatek; sumy i średnie serii są poza obecnym zakresem.
 Dołączono przykład rachunkowy i schemat. Statystyki ani ich UI nie są jeszcze
 zaimplementowane w aplikacji.
 
-Na bezpośrednie polecenie użytkownika trwa także ustalanie
-[zapisu i eksportu](issues/08-save-and-export.md). Przyjęto samowystarczalny
-plik zawierający MPP, oznaczenia i jeden wynik analizy oraz eksport CSV/PNG.
-Pozostałe zachowania są w rozmowie; ticket pozostaje `claimed`. Nie jest to
-implementacja formatu ani odbiór metod.
+Na bezpośrednie polecenie użytkownika uzgodniono także
+[zapis i eksport](issues/08-save-and-export.md): samowystarczalny plik
+`.stmdomains` z MPP, oznaczeniami, podglądem i opcjonalnie jednym wynikiem.
+Otwarcie odtwarza wynik oraz korekty bez uruchamiania metod. Eksport obejmuje
+CSV zbiorcze/szczegółowe i PNG całego widoku lub wycinka, także wykresy.
+To kontrakt do implementacji; odbiór metod sprawdzi jego realizację na danych.
+Nie powstał jeszcze serializer ani interfejs zapisu.
 
 ## Dwa etapy
 
