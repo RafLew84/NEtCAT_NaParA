@@ -190,8 +190,9 @@ ponownej rejestracji wczytanego aligned zawierającego NaN. Taka próba musi
 zakończyć się czytelnym błędem bez utraty starego wyniku, dopóki nie zostanie
 uzgodniona i zapewniona obsługa takich danych.
 
-[Zapis MPP z wartościami i metadanymi](04-mpp-export.md) określi format zapisu
-geometrii, metadanych i brakujących danych, precyzję i ponowny odczyt, w tym
-możliwość ponownej rejestracji wyeksportowanego aligned.
+[Zapis MPP z wartościami i metadanymi](04-mpp-export.md#answer) rozstrzyga zapis
+geometrii, metadanych, brakujących danych i ponowny odczyt. Ponowna rejestracja
+zależy od faktycznie wczytanych danych, nie znacznika original/aligned;
+obecne metody nadal odrzucają brakujące próbki.
 [Opcje filmu AVI](05-avi-export.md) określą sposób przeniesienia podglądu do filmu.
 Wielkości serii i kryteria jakości należą do [odbioru pierwszej wersji](06-acceptance.md).

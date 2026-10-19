@@ -41,6 +41,9 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
   z paskiem miniatur oraz zasady Play/Pause, wspólnej gamma, zoomu i szachownicy poza pomiarem.
 - [Rejestracja i życie wyniku aligned](issues/03-registration.md): ustalono dopasowanie
   NanoTrack, podmianę wyniku po sukcesie, zachowanie po usuwaniu oraz geometrię i brakujące dane.
+- [Zapis MPP z wartościami i metadanymi](issues/04-mpp-export.md): ustalono zapis
+  całej serii, towarzyszące metadane, zachowanie NaN i niejednorodnej kalibracji
+  oraz zasady ponownego odczytu i rejestracji.
 
 ## Not yet specified
 

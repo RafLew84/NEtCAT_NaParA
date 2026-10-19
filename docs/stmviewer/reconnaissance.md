@@ -269,3 +269,13 @@ Kod importowano z worktree Viewer w środowisku conda netcat. Syntetyczny
 probe wykonano inline; jego katalog tymczasowy został automatycznie usunięty.
 Nie uruchamiano pełnego zestawu testów, GUI ani zewnętrznego WSxM;
 nie napisano eksportera i nie potwierdzono interoperacyjności.
+
+### Wymagany odbiorca WSxM
+
+Po wskazaniu WSxM przez użytkownika przejrzano źródła zewnętrzne.
+[Osobna notatka](wsxm-mpp-compatibility.md) zawiera odnośniki do specyfikacji
+UAM, pierwotnych prób autorów/zgłaszającego Gwyddion i wersjonowanego kodu
+SciFiReaders. Różnice interpretacji wartości potwierdzają, że odczyt przez
+inny parser nie zastępuje testu w docelowym WSxM. Obsługa NaN i własnych
+metadanych pozostaje niezweryfikowana. Nie znaleziono lokalnego programu
+WSxM ani Wine w PATH i sprawdzonych typowych katalogach; nie instalowano ich.

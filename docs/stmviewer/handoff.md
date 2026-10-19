@@ -1,89 +1,81 @@
-# Przekazanie — rejestracja STM Viewer
+# Przekazanie — zapis MPP STM Viewer
 
 Data: 2026-10-19
-Gałąź dokumentacji: `viewer/start`
-Baza bieżącej zmiany: `db4cc7c`
-Aktualizacja prototypu: `prototype/stmviewer-preview-playback`, commit `efb7e50`.
-Commit dokumentacji: identyfikator w końcowej wiadomości sesji.
+Gałąź: `viewer/start`
+Baza bieżącej kontynuacji: `777351b`
+Poprzedni checkpoint rozpoznania: `777351b` (na bazie `5412dbb`).
+Commit zamykający: identyfikator w końcowej wiadomości sesji.
 
 ## Wynik
 
-Rozstrzygnięto [Rejestrację i życie wyniku aligned](issues/03-registration.md)
-po dwóch rundach odpowiedzi użytkownika. Wynik obejmuje sposób NanoTrack,
-obliczanie z oryginałów, podmianę po sukcesie, postęp/anulowanie, zachowanie
-dopasowania po usuwaniu, niepewność, dostępność metod oraz geometrię i maski.
-Ticket ma status `resolved`; [mapa](map.md) i [słownik](GLOSSARY.md) są aktualne.
+Rozstrzygnięto [Zapis MPP z wartościami i metadanymi](issues/04-mpp-export.md#answer).
+Zapis obejmuje całą pozostałą serię, wybór original/aligned, wartości niezależne
+od podglądu, MPP z towarzyszącymi metadanymi, NaN, pełną geometrię, pochodzenie
+i czasy. Różne skale/kanały nie blokują zapisu; wspólny nagłówek nie udaje
+kalibracji wszystkich klatek. Ponowne dopasowanie zależy od danych, nie
+znacznika aligned; brakujące próbki pozostają nieobsługiwane przez backendy.
 
-Użytkownik wycofał odwracanie kolejności z programu. Skorygowano odpowiedzi
-o serii i podglądzie oraz usunięto operację z prototypu. Jego
-[dokumentacja](preview-playback-prototype.md) wskazuje aktualny commit
-i zachowuje odnośnik do pierwotnego eksperymentu. Prototyp jest na osobnej
-gałęzi, nieprzeznaczonej do scalenia do kodu produkcyjnego.
+Użytkownik doprecyzował, że chodzi o zwykłe utworzenie MPP, bez osobnego trybu
+„eksport do WSxM”. WSxM pozostaje programem, w którym chce otwierać wynik.
+Zgodność NaN i interpretacji filmu nie została potwierdzona. Nie zatwierdzono
+zerowania braków ani przycinania obrazu w celu poprawienia kompatybilności.
 
-Na `viewer/start` zmienia się tylko dokumentacja. Aplikacja nadal jest szkieletem;
-nie wdrożono rejestracji. Do ticketów eksportu dopisano wynikające z decyzji
-ograniczenia i wymagania dotyczące danych.
+Zaktualizowano mapę, słownik, powiązanie z decyzją rejestracji i komentarz
+w tickecie odbioru. Wszystkie zmiany są dokumentacją; eksporter i wspólne
+czytniki nie zostały zaimplementowane/zmienione. Aplikacja pozostaje szkieletem.
 
-Dostępne są teraz [Zapis MPP z wartościami i metadanymi](issues/04-mpp-export.md)
-oraz [Opcje filmu AVI](issues/05-avi-export.md).
+Następny dostępny ticket: [Opcje filmu AVI](issues/05-avi-export.md).
+[Dane i kryteria odbioru](issues/06-acceptance.md) oczekują jeszcze na AVI.
+Wcześniejsze ustalenia rejestracji są w [jej tickecie](issues/03-registration.md)
+i historii `5412dbb`; prototyp podglądu nadal ma wersję `efb7e50`.
 
-## Wykonane sprawdzenia
+## Wykonane sprawdzenia i ograniczenia
 
-- Przegląd rejestracji, materializacji aligned, modeli, UI i istniejących testów.
-- Dwie próby w pamięci: geometria i skończone próbki po przesunięciu subpikselowym
-  oraz propagowanie niskiej pewności przez łańcuch dopasowań.
-- Odczyt lokalnych źródeł Kornia/Torch potwierdzający możliwość pobierania wag
-  przez obecny Deep Matcher; bez inicjalizacji modelu i bez sieci.
-- Uruchomienie poprawionego prototypu w Qt WebEngine: A/B/C, Play/Pause, wybór
-  klatki, usuwanie do pustej serii, ponowne wczytanie i Stop na końcu;
-  brak przycisku odwracania i brak błędów JavaScript.
-- Kontrola lokalnych linków, statusów i zależności ticketów, zgodności kopii
-  prototypu z commitem oraz `git diff --check`.
+- Poprzedni checkpoint obejmował przegląd lokalnych readerów i małą próbę
+  dwóch klatek MPP: wartości, NaN, obrót, skala/offset, dodatkowe pole nagłówka,
+  kompletne i niepełne czasy, nieciągłe indeksy, jednostki oraz limit linii.
+  Przeczytano też nagłówki i wybrane wartości STP/S94/MPP z lokalnego `data/`
+  worktree Domains. [Szczegóły](reconnaissance.md#uzupełnienie-kontrakt-odczytu-mpp).
+- W tej kontynuacji przejrzano źródła pierwotne UAM, dyskusję z autorem
+  Gwyddion oraz wersjonowany kod SciFiReaders. [Notatka](wsxm-mpp-compatibility.md)
+  oddziela sprawdzone fakty od niezweryfikowanych zachowań WSxM.
+- Potwierdzono ustawienie row-major w punktach startowych NaPara/NanoTrack.
+  Nie testowano ich końcowego wyświetlania ani zapisu w WSxM.
+- Sprawdzono 111 lokalnych odnośników i kotwic, statusy i brak cykli zależności
+  sześciu ticketów oraz zachowanie pierwotnego pytania. Jedynym dostępnym
+  otwartym ticketem jest teraz AVI. `git diff --check` przeszedł poprawnie.
 
-Nie uruchamiano zestawu testów aplikacji ani produkcyjnego GUI. Nie oceniano
-jakości dopasowania pomiarów, wydajności dużych serii ani eksportu.
-Szczegóły i odnośniki: [rozpoznanie](reconnaissance.md#uzupełnienie-rejestracja-i-geometria-wyniku).
+Nie uruchamiano w tej kontynuacji zestawu testów aplikacji, GUI ani nowego
+próbnego eksportera. Nie znaleziono WSxM/Wine w sprawdzonych lokalizacjach;
+nie instalowano programu. Pełny test MPP → aplikacje repo/WSxM i z powrotem
+pozostaje do wykonania przy implementacji/odbiorze. Rozpoznanie kodu innych
+czytników nie stanowi testu WSxM.
 
 ## Potrzeby implementacji i integracji
 
-- Obecne UI NanoTrack kasuje stary wynik po błędzie i nie obsługuje anulowania.
-  Potrzebne są responsywna operacja z anulowaniem, postęp obejmujący także
-  przygotowanie aligned i publikacja dopiero kompletnego wyniku.
-- Zachowanie aligned po usunięciu wymaga stabilnego powiązania z pochodzeniem
-  klatek, historycznym odniesieniem i niezmienioną geometrią obszaru.
-  Nie należy kopiować unieważniania wyniku z MolTrack ani ponownie przeliczać
-  zachowanych obrazów tylko z powodu zmiany ich bieżących indeksów.
-- Wynik musi rozróżniać pole oryginalnej klatki i maskę ważnych próbek.
-  Obecny `ViewerWidget` wypełnia NaN medianą w kopii podglądu; szachownica
-  wymaga osobnej obsługi maski. Uproszczony helper aligned obcinający obraz
-  i powielający brzegi nie spełnia kontraktu.
-- Wspólne modele/materializator używają jednej metadanej serii. Trzeba zachować
-  metadane poszczególnych klatek, również po usuwaniu. Pozostaje wcześniejszy
-  problem czasów nieusuwanych razem z obrazem w MolTrack i pól pierwszej klatki
-  używanych przez loader STP/S94 do opisu całej serii.
-- Deep Matcher wymaga sprawdzenia lokalnej dostępności bez pobierania wag
-  oraz ścieżki uruchomienia, która nie inicjuje automatycznego pobierania.
-  Samo istnienie pliku cache nie zapewnia poprawnego załadowania modelu.
-- Czytnik STP pomija warianty nazw offsetu i kanału obecne w fixture. Jednostki,
-  precyzja, kodowanie braków i ponowny odczyt pozostają w decyzji eksportu MPP.
-  Zależności przyszłych funkcji wykraczają poza minimalny szkielet PyQt6.
+- Dodać zapis obsługiwanego wariantu double MPP oraz wersjonowanych metadanych
+  towarzyszących, ich powiązanie z zawartością filmu, walidację i spójny zapis.
+  Brak dodatku pozwala oglądać film; nie wolno używać dodatku należącego do
+  innych danych. Eksport nie jest zapisem kompletnej sesji.
+- Zachować metadane każdej klatki, źródłowe numery i czasy, geometrię pola
+  pomiaru osobno od maski próbek, historyczne odniesienie i pełny obszar aligned.
+  Nie kopiować metadanych pierwszej klatki jako prawdy o całej serii.
+- Uzgodnić orientację STP/S94/MPP we wspólnej warstwie. Czytnik MPP i loader
+  NanoTrack mają różne miejsca obrotu; odbiór powinien obejmować asymetryczne
+  dane i wszystkich wskazanych odbiorców.
+- Jawnie modelować jednostkę wartości, nieznaną kalibrację oraz jednostki
+  umowne. Obecny parser skali nie zapewnia tego kontraktu. Poprawić warianty
+  nazw offsetu/kanału STP; nie normalizować próbki według liczby w Z Amplitude.
+- Poprawić obsługę niepełnych czasów i jednostek synchronizacji; usunięcie
+  klatki nie może pozostawiać niepasującej osi czasu. Numery wyjściowe i
+  pochodzenie są odrębne.
+- Rozwiązać limit 1000 linii nagłówka, uwzględnić rzeczywisty rozmiar nagłówka
+  w bajtach i poprawny binarny wariant zapisu. Sam test lokalnego czytnika,
+  który ignoruje niektóre deklaracje nagłówka, nie potwierdza zgodności MPP.
+- Sprawdzić w WSxM wartości double, orientację, skalę, NaN, brak fizycznej
+  kalibracji dla mieszanej serii i zachowanie po ponownym zapisaniu filmu.
+  Metadane STM Viewer nie zapewniają WSxM interpretacji indywidualnych masek
+  lub kalibracji. Zmiana zawartości MPP może unieważnić jego dodatek.
 
-Miejsce realizacji zmian (warstwa STM Viewer czy rozszerzenie wspólnego modułu)
-należy ustalić przy podziale implementacji. Wspólnego kodu i konfiguracji
-głównej w tej sesji nie zmieniono. Wcześniejszy błąd odwracania przy odtwarzaniu
-sesji NanoTrack jest opisany w rozpoznaniu, ale nie blokuje zakresu STM Viewer
-po wycofaniu odwracania.
-
-## W toku: zapis MPP
-
-2026-10-19, baza `5412dbb`: przejęto
-[Zapis MPP z wartościami i metadanymi](issues/04-mpp-export.md), status `claimed`.
-Pierwsza runda pytań o zakres zapisu, niezależność od podglądu i odbiorców
-czeka na odpowiedzi. Propozycje nie są jeszcze decyzjami; ticket pozostaje
-nierozstrzygnięty. Kod produkcyjny bez zmian.
-
-Rozpoznano lokalny odczyt MPP, metadane, jednostki i czasy oraz wykonano mały
-syntetyczny odczyt. Wyniki i ograniczenia znajdują się w
-[rozpoznaniu kontraktu MPP](reconnaissance.md#uzupełnienie-kontrakt-odczytu-mpp).
-Dalsze ustalenia muszą uwzględnić wybranych odbiorców, zachowanie metadanych
-każdej klatki i geometrii aligned oraz możliwość ponownej rejestracji.
+Zmiany współdzielonych modułów i konfiguracji są do sesji integracyjnej,
+z testami ich odbiorców. W tej sesji nie zmieniono wspólnego kodu.

@@ -65,3 +65,12 @@ wyznaczone z pomiaru. Jest odrębna od granic pola oryginalnej klatki.
 **Brakujący piksel**:
 Miejsce wspólnego obszaru obrazu, dla którego dana klatka nie dostarcza pomiaru.
 Nie jest to pomiar o wartości zero.
+
+**Wartości obrazu STM**:
+Liczby opisujące sygnał w pikselach klatki: z odczytu źródła dla original
+lub po interpolacji rejestracji dla aligned. Są odrębne od jasności
+używanej do wyświetlenia obrazu.
+
+**Metadane towarzyszące MPP**:
+Informacje zapisane w osobnym pliku powiązanym z filmem MPP, opisujące
+pochodzenie, czasy, parametry i geometrię poszczególnych klatek.
