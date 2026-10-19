@@ -24,7 +24,10 @@ Pilotaż wskazał konkretne braki; nie zastępuje odbioru szkieletu ani walidacj
 Na polecenie użytkownika dodano dalsze pytania o pokrycie, typy, granice
 i odbiór metod. Następnie na jego bezpośrednie polecenie uzgodniono
 [statystyki klatek](issues/06-frame-statistics.md), nadal jako definicje
-do implementacji. Pozostałe warunki etapowania obowiązują.
+do implementacji. Następnie na jego polecenie rozpoczęto
+[kontrakt zapisu i eksportu](issues/08-save-and-export.md) przed odbiorem metod.
+Zatwierdzone dotąd wymagania i otwarte pytania są w tickecie; pozostaje on
+`claimed`. Pozostałe warunki etapowania obowiązują.
 
 - Rozpatrujemy dwa wyniki: pokrycie materiałem/wyspy oraz domeny orientacji
   i uporządkowania sieci. Orientacja pojedynczej molekuły jest odłożona.

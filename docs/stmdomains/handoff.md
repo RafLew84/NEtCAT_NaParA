@@ -1,76 +1,62 @@
-# STM Domains — przekazanie wyboru podglądu
+# STM Domains — zapis i eksport w trakcie ustaleń
 
 Data: 2026-10-19.
-Gałąź dokumentacji: `domains/browsing-contract`, baza `1a81bc7`.
-Docelowa gałąź aplikacji: `domains/start`.
-Commit przypisania: `d44c859`; commit dokumentacji podany w końcowej wiadomości.
-Worktree dokumentacji: `/tmp/netcat-stmdomains-browsing-contract`.
-Przeniesienie dokumentacji do Domains przez scalenie commitów po kontroli czystości.
+Gałąź: `domains/save-export-contract`, baza `92e589d`.
+Worktree: `/tmp/netcat-stmdomains-save-export-contract`.
+Gałąź docelowa: `domains/start`. Claim: `2d5b995`.
+Commit bieżących ustaleń podany w wiadomości końcowej.
 
-## Zakres i stan decyzji
+## Przyjęte ustalenia
 
-Przygotowano [prototyp podstawowego podglądu](issues/07-browsing-and-comparison.md):
-trzy układy na rzeczywistych obrazach, ramkach, maskach i zapisanej rejestracji
-TTMAPP. Użytkownik wybrał **C — jeden podgląd i pasek miniatur** oraz przyjął
-pokazane zachowania nawigacji. Ticket ma status `resolved`; kanoniczny kontrakt
-jest w jego `Answer`. Obowiązuje także wcześniej uzgodniony kontrakt importu.
+Na bezpośrednie polecenie użytkownika podjęto
+[kontrakt zapisu i eksportu](issues/08-save-and-export.md) przed odbiorem metod.
+Ticket pozostaje **`claimed`**. Odpowiedzi użytkownika zapisano w `Discussion`:
 
-- A: boczna lista klatek i jeden przełączany podgląd.
-- B: oryginał i zapisane wyrównanie tej samej klatki obok siebie.
-- C: jeden podgląd i dolny pasek miniatur.
+- Jeden samowystarczalny plik zawiera także obrazy MPP; ponowne otwarcie nie
+  wymaga osobnego MPP ani pierwotnego zapisu MolTrack.
+- Jeden wybrany wynik analizy na plik. Warianty ustawień przez „Zapisz jako”,
+  bez historii wielu prób w jednym projekcie.
+- Eksport tabel CSV, obrazów z nakładkami PNG i wykresów PNG.
 
-Wspólne funkcje prototypu: zoom, gamma, ramki/maski/granica pola, nawigacja,
-play/pauza ze zmianą szybkości oraz jawne stany braków danych. Dialogi
-otwierania i naprawy ścieżki symulują zaakceptowany wcześniej kontrakt.
-Zaktualizowano ticket, README, indeks i mapę o przyjętą decyzję.
+Słownik uzupełniono o zapis pracy STM Domains, wynik analizy i eksport.
+Nie zmieniono kodu aplikacji ani wspólnych modułów.
 
-## Artefakty i sposób obejrzenia
+## Pytania oczekujące i dalszy zakres rozmowy
 
-Źródła prototypu: gałąź `prototype/stmdomains-browsing`, commit
-`cb51fbf04802620637dd7d10acc19863717de083`, katalog `stmdomains/prototypes/`.
-Instrukcja odtworzenia jest w `README.md` tego katalogu. Worktree źródeł:
-`/tmp/netcat-stmdomains-browsing-prototype`.
-**Nie scalać gałęzi prototypu do aplikacji.**
+Wysłano pytania o odtwarzanie wyniku bez ponownego uruchamiania metod,
+zachowanie poprzedniego wyniku podczas nowej próby oraz wybór pełnego obrazu
+lub wycinka przy eksporcie PNG. Odpowiedzi jeszcze nie zapisano; nie należy
+traktować rekomendacji jako przyjętych decyzji.
 
-Lokalny HTML do otwarcia w przeglądarce:
-`/home/rlew/projekty/NEtCAT-domains/.scratch/browsing-prototype/index.html`.
-Domyślnie otwiera się C. Dolne strzałki wybierają wariant; lista „Przykład stanu”
-wybiera brak masek, ramek, rejestracji, pojedynczą klatkę lub pusty start. Przycisk „Otwórz zapis…”
-pokazuje symulowane przejścia importu. Bez serwera i połączenia z siecią.
-Metadane, zrzuty i log inspekcji są obok HTML; dane i wyniki poza Git.
+Po tych odpowiedziach pozostają do domknięcia szczegółowość tabel CSV,
+powiązanie wyboru typu/tabeli/wykresu z obrazem oraz podsumowanie kontraktu.
+Obowiązują wcześniejsze definicje powierzchni, braków danych i korekt
+konkretnego konfliktu; nie trzeba ich ustalać od nowa.
 
-## Wykonane sprawdzenia i ograniczenia
+Roboczy szkic technicznego kontraktu jest lokalnie w
+`/tmp/netcat-stmdomains-save-export-contract/.scratch/save-export-contract-draft.md`.
+Nie stanowi zatwierdzonego `Answer`. Zależność od odbioru metod pozostaje
+w trackerze do rozstrzygnięcia zakresu końcowego kontraktu; odbiór metod
+nadal jest otwarty. Nie przeniesiono prototypów do aplikacji.
 
-- Generator uruchomiono na pełnej parze TTMAPP: 268 klatek, 52 494 ramki,
-  11 993 maski. SHA-256 zgadzają się z audytem importu. Maski dekodowane
-  pojedynczo. Przygotowanie około 5,72 s, szczyt RSS 554,2 MiB, HTML 53,5 MiB.
-- Inspekcja QtWebEngine w oknie 1100 × 760: A/B/C, nakładki i braki,
-  pojedyncza klatka, pusty start, przejścia symulowanego importu, gamma/zoom,
-  podświetlenie ramki, play/pauza i zatrzymanie na końcu. Anulowanie i błędny
-  zapis zachowują poprzednią serię oraz klatkę. Brak błędów JS i poziomego
-  przepełnienia; kontrola wizualna zrzutów trzech wariantów. Sprawdzenie
-  źródeł `d9c7eb8`; późniejszy `cb51fbf` ustawia jedynie sprawdzony C jako
-  domyślny i zapisuje wybór w README prototypu.
-- Kontrola lokalnych linków dokumentacji i `git diff --check` przed commitem.
+## Sprawdzenia
 
-Nie zmieniono kodu aplikacji ani współdzielonych modułów; nie uruchamiano
-ich testów. Nie jest to odbiór natywnego GUI ani importera. Symulacja dialogów
-nie sprawdza prawdziwego wskazywania i walidowania nowych źródeł. Nie oceniano
-jakości rejestracji ani metod wykrywania. Normalizacja percentylami 2–98 na
-klatkę i PNG 8-bit służą szkicowi; nie ustanawiają polityki intensywności
-programu. Miary kosztu generatora nie opisują wydajności aplikacji.
+Audyt lokalnego kodu tylko do odczytu: eksport Domain Analysis v9/v10,
+identyfikacja źródła w UI, zapis MolTrack i kontener NanoTrack. Wnioski oraz
+linki do kodu są w tickecie. Stary eksport M6 nie jest kontraktem Domains.
+Hash nazwy/ścieżki nie identyfikuje bajtów obrazu; istniejący ZIP NanoTrack
+pokazuje kontener, ale nadal wymaga obrazu zewnętrznego.
 
-## Co pozostało
+Kontrola lokalnych linków i `git diff --check` przed commitem. Nie uruchamiano
+testów aplikacji, importera, eksportera ani metod. Nie powstał jeszcze plik
+`.stmdomains`, serializer lub nowy interfejs zapisu. Integralność pakietu,
+ponowne otwarcie i koszty na pełnej serii wymagają przyszłej implementacji.
 
-Następne pytanie aktywnej mapy to
-[przekazanie szkieletu do implementacji i kryteria odbioru](issues/09-implementation-handoff.md).
-Korzysta z zaakceptowanego wariantu C i kontraktu importu. Implementacja
-musi sprawdzić rzeczywisty import, koszt miniaturek, płynność nawigacji
-oraz jawne zasady wyświetlania intensywności. Kod produkcyjny nadal zawiera
-tylko startowe okno PyQt6; wybór prototypu nie oznacza odbioru programu.
+## Dalszy tok prac
 
-Dalsze referencje i próby metod oraz zapis wyników pozostają w etapie 2.
-Ten prototyp nie obejmuje domen, statystyk ani ręcznej korekty ich konfliktów.
+Dokończyć rozmowę i zapisać jej przyjęty wynik. Następne pytanie pierwszej mapy
+nadal dotyczy [przekazania szkieletu do implementacji](issues/09-implementation-handoff.md).
+Wcześniejsze podjęcie zapisu nie jest odbiorem szkieletu ani metod.
 
 ## Zachowany kontekst poprzednich prac
 
@@ -95,3 +81,9 @@ oraz koszt pełnej materializacji masek. Adapter STM Domains może powstać bez
 czekania na wspólne poprawki. Dawne zgłoszenie odwracania STP/S94 w NanoTrack
 jest poza zakresem importera z jednym MPP. Nie powstała nowa wymagana zmiana
 współdzielonego kodu ani konfiguracji.
+
+Wybór podglądu jest zakończony: [jeden obraz i pasek miniatur](issues/07-browsing-and-comparison.md),
+commit dokumentacji `92e589d`. Źródła jego prototypu pozostają na
+`prototype/stmdomains-browsing`, commit `cb51fbf04802620637dd7d10acc19863717de083`;
+nie scalać do aplikacji. Lokalny HTML:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/browsing-prototype/index.html`.

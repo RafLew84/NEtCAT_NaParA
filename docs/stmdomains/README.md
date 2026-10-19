@@ -40,6 +40,12 @@ dotyczą osobnych klatek; sumy i średnie serii są poza obecnym zakresem.
 Dołączono przykład rachunkowy i schemat. Statystyki ani ich UI nie są jeszcze
 zaimplementowane w aplikacji.
 
+Na bezpośrednie polecenie użytkownika trwa także ustalanie
+[zapisu i eksportu](issues/08-save-and-export.md). Przyjęto samowystarczalny
+plik zawierający MPP, oznaczenia i jeden wynik analizy oraz eksport CSV/PNG.
+Pozostałe zachowania są w rozmowie; ticket pozostaje `claimed`. Nie jest to
+implementacja formatu ani odbiór metod.
+
 ## Dwa etapy
 
 - [Etap 1: działający szkielet](map.md) — import, podstawowy podgląd oraz

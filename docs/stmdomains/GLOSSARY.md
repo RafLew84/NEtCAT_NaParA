@@ -10,6 +10,21 @@ Zapis z innego programu zawierający gotowe oznaczenia molekuł oraz informacje
 pozwalające powiązać je z obrazami i klatkami.
 _Avoid_: Model detekcji, wynik STM Domains
 
+**Zapis pracy STM Domains**:
+Samowystarczalny zapis obrazów, oznaczeń wejściowych oraz jednego wyniku
+analizy z jego ustawieniami i korektami, pozwalający wznowić tę pracę.
+_Avoid_: Zapis wejściowy MolTrack, tabela eksportowa, historia wielu prób
+
+**Wynik analizy**:
+Rezultat jednej analizy określonego zakresu klatek, z przypisanymi ustawieniami,
+katalogiem typów, oceną dostępności danych i ewentualnymi korektami użytkownika.
+_Avoid_: Sam obraz nakładki, numer klastra bez katalogu, kompletna ocena każdej klatki
+
+**Eksport wyników**:
+Tabele lub ilustracje wybranych wyników przeznaczone do dalszego opracowania
+albo prezentacji; nie zastępują zapisu pracy STM Domains.
+_Avoid_: Samowystarczalna kopia pracy, obraz pomiarowy po zmianie gamma
+
 **Klatka**:
 Pojedynczy obraz pomiarowy powierzchni próbki w serii.
 _Avoid_: Cały film, powiększone płótno
