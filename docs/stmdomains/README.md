@@ -10,6 +10,12 @@ Pierwszy etap rozwoju ma dać działający szkielet: import zapisu z gotowymi
 oznaczeniami, doczytanie obrazów, przeglądanie klatek, zoom/gamma i podgląd
 zapisanej rejestracji. Kod nie implementuje jeszcze tych funkcji.
 
+2026-10-19 uzgodniono
+[kontrakt importu MolTrack z jednym MPP](issues/01-import-and-geometry.md)
+i wykonano [audyt na danych TTMAPP](import-geometry-audit.md).
+Następne pytanie pierwszego etapu to
+[podgląd obrazów i oznaczeń](issues/07-browsing-and-comparison.md).
+
 ## Dwa etapy
 
 - [Etap 1: działający szkielet](map.md) — import, podstawowy podgląd oraz

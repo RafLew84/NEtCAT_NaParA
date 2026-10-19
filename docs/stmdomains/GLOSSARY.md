@@ -14,6 +14,16 @@ _Avoid_: Model detekcji, wynik STM Domains
 Pojedynczy obraz pomiarowy powierzchni próbki w serii.
 _Avoid_: Cały film, powiększone płótno
 
+**Obraz oryginalny**:
+Obraz pomiarowy w orientacji przyjętej podczas importu, przed zastosowaniem
+rejestracji. Jego orientacja może różnić się od macierzy zapisanej w pliku.
+_Avoid_: Niezmieniona macierz pliku, obraz wyrównany
+
+**Obraz wyrównany**:
+Obraz oryginalny umieszczony we wspólnym układzie zgodnie z zapisaną rejestracją,
+z dopełnieniem potrzebnym do pokazania całego pola klatki.
+_Avoid_: Nowy pomiar, powiększony obszar próbki
+
 **Seria**:
 Uporządkowany zbiór klatek należących do jednego otwartego zapisu.
 Kolejność klatek nie określa sama w sobie odstępu czasu.
@@ -23,6 +33,16 @@ _Avoid_: Jeden obraz, jedna domena
 Wskazanie położenia lub obszaru molekuły na konkretnej klatce. Samo oznaczenie
 nie jest pomiarem jej orientacji ani tożsamością śledzoną przez całą serię.
 _Avoid_: Orientacja, trajektoria
+
+**Brak zapisanych oznaczeń**:
+Stan klatki, dla której dostępny zbiór oznaczeń nie zawiera żadnego rekordu.
+Nie dowodzi braku molekuł ani tego, czy klatkę wcześniej oceniono.
+_Avoid_: Zero molekuł, potwierdzona pusta powierzchnia
+
+**Niedostępne oznaczenia**:
+Oznaczenia, których nie zapisano albo których treści lub położenia nie można
+poprawnie odtworzyć. Przyczyna niedostępności jest odrębna od liczby molekuł.
+_Avoid_: Pusta lista, brak molekuł
 
 **Uporządkowanie położeń**:
 Regularność przestrzennego układu centrów molekuł.

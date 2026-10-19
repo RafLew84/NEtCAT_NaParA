@@ -47,8 +47,9 @@ Jego część o pomiarze kąta molekuły jest materiałem na późniejszą prac�
 
 ## Decisions so far
 
-<!-- Brak zamkniętych decyzji technicznych. Zmiana zakresu wynika z polecenia
-     użytkownika; nie jest potwierdzeniem kontraktu importu ani odbioru GUI. -->
+- [Jak zapis wejściowy odtwarza obrazy, oznaczenia i rejestrację?](issues/01-import-and-geometry.md):
+  uzgodniono import MolTrack z jednym MPP, geometrię obu widoków i zachowanie
+  przy przeniesionym źródle, brakach oznaczeń oraz słabej rejestracji.
 
 ## Not yet specified
 

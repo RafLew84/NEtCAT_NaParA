@@ -1,62 +1,70 @@
-# STM Domains — przekazanie podziału na dwa etapy
+# STM Domains — przekazanie kontraktu importu
 
-Data: 2026-10-16.
-Gałąź docelowa: `domains/start`.
-Gałąź przygotowania: `domains/staged-plan`, na bazie `0dab344`.
-Commit zmiany: identyfikator w końcowej wiadomości sesji.
+Data: 2026-10-19.
+Gałąź zadania: `domains/import-contract`, baza `61d010e`.
+Docelowa gałąź aplikacji: `domains/start`.
+Commit przypisania ticketu: `295ccad`; commit rozstrzygnięcia podany w końcowej
+wiadomości sesji. Przygotowanie w `/tmp/netcat-stmdomains-import-contract`,
+przeniesienie do worktree Domains przez scalenie commitów.
 
 ## Zakres i wynik
 
-Na polecenie użytkownika rozdzielono dotychczasową mapę całego programu:
-
-- [Etap 1: działający szkielet](map.md) obejmuje import, podstawowy podgląd
-  i przygotowanie implementacji oraz odbioru na rzeczywistych danych.
-- [Etap 2: metody i zapis wyników](map-methods-and-save.md) obejmuje definicje
-  wysp i domen sieci, referencje, próby metod, statystyki i zapis/eksport.
-  Zaczyna się po implementacji i odbiorze szkieletu.
-
-Zachowano ID i ścieżki dziewięciu ticketów. Trzy otwarte pytania należą do
-pierwszej mapy, pięć do drugiej. Pytanie o pomiar orientacji pojedynczej molekuły
-zamknięto jako odłożone poza oba etapy, bez rozstrzygnięcia naukowego.
-Żaden otwarty ticket nie zależy od tego zamkniętego pytania.
-
-Przekazanie szkieletu do implementacji zależy teraz tylko od importu i podglądu.
-Wybór metod, ich skuteczność, statystyki i własny format wyników nie blokują
-budowy szkieletu. Nie uznano żadnej decyzji technicznej za rozstrzygniętą
-ani żadnego fragmentu aplikacji za wdrożony.
-
-Zaktualizowano [rejestr i diagram zależności](issues/README.md), README i słownik.
-Dołączono [wcześniejszy raport o level set](research-domain-detection-level-sets.md)
-z gałęzi Viewer jako materiał drugiego etapu; nie wykonywano nowego researchu.
-
-## Kolejny krok
-
-Aktywna jest pierwsza mapa. Następne pytanie:
+Rozstrzygnięto ticket `01`:
 [Jak zapis wejściowy odtwarza obrazy, oznaczenia i rejestrację?](issues/01-import-and-geometry.md).
-Po nim podstawowy podgląd i przekazanie szkieletu do implementacji. Samo
-zamknięcie tych decyzji nie zastępuje wykonania oraz odbioru aplikacji.
+Status `resolved` wynika z dwóch rund odpowiedzi użytkownika oraz audytu kodu
+i rzeczywistych danych. Pełny kontrakt jest w `Answer` ticketu; mapa zawiera
+odnośnik do wyniku. Zaktualizowano słownik i README.
 
-## Sprawdzenia
+Uzgodniono MolTrack z jednym MPP, automatyczne/ręczne odnajdywanie źródła,
+odtwarzanie słabej rejestracji z informacją o jakości, częściowy podgląd przy
+uszkodzonych dodatkach oraz potwierdzane użycie zgodnego źródła o zmienionym mtime.
+Kontrakt ustala też mapę klatek, oba układy obrazu, padding, dostępność oznaczeń
+i kryteria odbioru. Nie zmieniono kodu aplikacji ani wspólnych modułów.
 
-- Kontrola statusów, rodziców i zależności ticketów oraz zgodności z diagramem.
-- Sprawdzenie braku cykli i zależności pierwszej mapy od drugiego etapu.
-- Kontrola odnośników zmienianej dokumentacji i `git diff --check`.
-- Brak zmian kodu; nie uruchamiano testów aplikacji, GUI ani metod detekcji.
+## Wykonane sprawdzenia
 
-## Zachowany kontekst importu i integracji
+- [Audyt importu i geometrii](import-geometry-audit.md): pełny odczyt MPP,
+  odtworzenie zapisanych translacji, kontrola wszystkich bboxów i dekodowanie
+  masek pojedynczo. Ogląd statycznych nakładek klatek 0, 39 i 267 w obu widokach.
+- Istniejące testy `tests/moltrack/test_registered_coordinates.py` oraz
+  `tests/nanotrack/test_mpp_loader.py` w conda netcat: **6 passed**.
+- Kontrola lokalnych odnośników, statusów i zależności mapy oraz `git diff --check`.
 
-Poprzednie przekazanie oraz audyt są zachowane w historii `0dab344`.
-Przed implementacją importu przeczytaj
-[notatkę o orientacji obrazu i danych](research-molecular-orientation.md):
-loader MPP obraca obraz o 180 stopni, co musi być zgodne z oznaczeniami.
-Kalibracja fizyczna i czasy przykładowego eksportu są niewiarygodne; nie wolno
-traktować zastępczych wartości jako pomiaru.
+Nie wykonano odbioru nowego importera ani GUI STM Domains: funkcje te nie są
+jeszcze wdrożone. Nie uruchamiano detekcji, ponownej rejestracji ani analizy domen.
+Wersje wejścia 2/3 i pozostałe kodowania masek mają dostać fixture'y odbioru
+przy implementacji; realny przebadany zapis ma schema 1. Ogląd nakładek nie
+jest naukową walidacją jakości detekcji.
 
-Wcześniejsza sesja zgłosiła też podwójne odwrócenie kolejności serii wielu
-STP/S94 podczas odtwarzania w NanoTrack. Pozostaje to zgłoszeniem dla integracji,
-bez naprawy w tym zadaniu; obecne wejście oparte na jednym MPP nie wymaga tego
-wariantu loadera. Nie zmieniono wspólnych modułów ani konfiguracji środowiska.
+## Następny krok
 
-Zmiany przygotowano w worktree przypisanym do bieżącej sesji. Aktualizacja
-docelowego worktree odbywa się commitem i scaleniem, zgodnie z instrukcją
-współpracy; nie przenosimy zmian roboczych między worktree.
+Odblokowane jest
+[Jak przeglądać obrazy i oznaczenia w szkielecie?](issues/07-browsing-and-comparison.md).
+Przy szkicu trzeba uwzględnić wyniki importu i dostępność poszczególnych warstw.
+Następnie pozostaje przekazanie szkieletu do implementacji. Druga mapa zaczyna
+się dopiero po implementacji i odbiorze szkieletu, zgodnie z podziałem `61d010e`.
+
+## Ograniczenia i integracja
+
+Istniejący pełny loader sesji MolTrack nie realizuje tego kontraktu. Dla realnego
+MPP data różni się o 7200 s, mimo zgodności hasha z poprzednim audytem; loader
+odrzuca źródło. Ładuje też analizy poza zakresem i wszystkie maski — same dwa
+zestawy rastrów bool przykładowej serii to około 4,70 GB. Importer STM Domains
+powinien mieć lokalny adapter, korzystający z czytnika MPP i sprawdzonej geometrii,
+oraz odczytywać maski w miarę potrzeby. Wydzielenie wspólnego lekkiego parsera,
+jeśli okaże się potrzebne, należy do sesji integracyjnej.
+
+Do sesji integracyjnej przekazujemy potwierdzone obserwacje o obecnym MolTrack:
+
+- `restore_moltrack_image_series_from_session` wybiera obrazy po źródłowych ID,
+  ale nie wybiera odpowiadających im `metadata.frame_times_s`.
+- Parser cicho nadpisuje duplikaty wyników rejestracji i przyjmuje powtórzone
+  ID detekcji. Dekoder nie wiąże shape maski z geometrią obrazu.
+- Dotychczasowe wymaganie zgodności mtime nie obsługuje potwierdzonego przez
+  użytkownika przypadku przeniesienia pliku. Zmiana tego zachowania w MolTrack
+  wymaga oddzielnej decyzji integracyjnej; nie została tutaj wykonana.
+
+Lokalny adapter może kontynuować pracę bez zmiany współdzielonego kodu.
+Zachowujemy wcześniejsze zgłoszenie o podwójnym odwracaniu serii wielu STP/S94
+w NanoTrack (przekazanie w `61d010e`); ten wariant jest poza zakresem importera
+STM Domains z jednym MPP. Nie modyfikowano roboczych zmian STM Viewer.
