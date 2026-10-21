@@ -4,8 +4,8 @@ ID: 12
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: open
-Assignee:
+Status: claimed
+Assignee: Codex — domains/phase-boundaries
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 04, 05
 
@@ -36,3 +36,17 @@ powierzchni domen. Zapisujemy parametry, koszt i ograniczenia.
 
 - [Jakie referencje i kryteria potwierdzą wiarygodność analizy?](04-reference-and-quality.md)
 - [Jak porównać metody wykrywania wysp i domen w serii?](05-stable-types-across-frames.md)
+
+
+## Work started — 2026-10-21
+
+Na bezpośrednie polecenie użytkownika wykonujemy lokalną próbę przed pełnym
+odbiorem 04. Korzystamy z zaakceptowanych 18 klatek / 54 wnętrz oraz kontroli
+syntetycznych z dokładnie znaną granicą. Kolory referencji oznaczają głównie
+różne orientacje tej samej sieci; nie są referencją granicy przesunięcia przy
+identycznej orientacji. Pomiar błędu takiej granicy oprzemy na kontrolach,
+a we wnętrzach TTMAPP pokażemy lokalne wskazania i zakres braku danych.
+
+Porównujemy kąt sąsiedztwa, niedopasowanie wektorów sieci i lokalną fazę obrazu.
+Typ, orientacja, granica oraz brak wiarygodnego pomiaru pozostają rozdzielone.
+Prototyp: `prototype/stmdomains-boundaries`; nie scalać do aplikacji.
