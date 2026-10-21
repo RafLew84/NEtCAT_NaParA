@@ -7,7 +7,7 @@ Mode: HITL
 Status: open
 Assignee:
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
-Blocked by: 04, 06, 08, 10, 11, 12
+Blocked by: 04, 06, 08, 10, 11, 12, 15, 16, 17
 
 ## Question
 
@@ -129,9 +129,19 @@ na pełnym polu klatek, bez dostępu do masek referencyjnych podczas analizy.
 Ramki służą późniejszej, częściowej ocenie, a ich brak nie oznacza tła.
 Wymagane są kontrole zero/jedna/wiele domen oraz osobna ocena porządku:
 stabilna grupa podobnych cech sama nie dowodzi istnienia domeny sieci.
-Plan jest przygotowany, próby nie zostały jeszcze uruchomione. Odbiór
-pozostaje otwarty; wcześniejsze ograniczenia powierzchni i granic nadal
-obowiązują.
+Plan rozpisano na osobne pytania o otoczenie molekuł, SBC/MatID i teksturę
+obrazu, poprzedzone przygotowaniem wspólnego wejścia. Próby nie zostały
+jeszcze uruchomione. Odbiór czeka na ich wyniki, a wcześniejsze ograniczenia
+powierzchni i granic nadal obowiązują.
+
+Porównanie końcowe ma zestawić trzy drogi na wspólnym wejściu i kontrolach:
+zdolność do odmowy, zachowanie jednej poprawnej domeny, rozdzielenie typu
+od orientacji, scalenia/podziały, braki centrów, stabilność katalogu i koszt.
+Dokumentujemy również odrzuconych kandydatów; negatywny wynik zakończonej
+próby nie oznacza, że trzeba przyjąć tę metodę lub badać ją bez końca.
+Wynik odbioru to uzasadniony wybór metody/połączenia metod albo konkretna
+dalsza luka. Ostateczne miary jakości i potrzeby dodatkowych referencji
+pozostają związane z protokołem jakości, nie z samą atrakcyjnością nakładek.
 
 ## Dependencies
 
@@ -141,3 +151,6 @@ obowiązują.
 - [Jak wyznaczać pokrycie bez mylenia luk oznaczeń z podłożem?](10-coverage-and-scale.md)
 - [Jak rozpoznawać typy przy obrocie, zmianie rozstawu i rzadkich wzorach?](11-structural-type-catalogue.md)
 - [Jak rozdzielać domeny o tym samym typie i orientacji?](12-phase-boundaries.md)
+- [Czy otoczenie zaznaczonych molekuł pozwala samodzielnie znaleźć domeny?](15-local-neighborhood-domains.md)
+- [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md)
+- [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md)

@@ -1,4 +1,41 @@
-# STM Domains — samodzielne wyszukiwanie domen w STM/AFM
+# STM Domains — nowe tickety prób samodzielnego wykrywania domen
+
+Data: 2026-10-21. Gałąź `domains/unsupervised-experiment-map`, baza `5a7209c`.
+Worktree `/tmp/netcat-stmdomains-experiment-map`, docelowo `domains/start`.
+Commit aktualizacji dokumentacji w wiadomości końcowej.
+
+Na polecenie użytkownika przeniesiono plan eksperymentów do istniejącej
+[mapy metod i zapisu](map-methods-and-save.md), zgodnie z lokalnym trackerem
+`wayfinder`. Dodano cztery otwarte zadania/pytania:
+
+- [Wspólne wejście i kontrole](issues/14-unsupervised-input-and-controls.md) — task / AFK.
+- [Otoczenie zaznaczonych molekuł](issues/15-local-neighborhood-domains.md) — prototype / HITL.
+- [SBC/MatID z niepełnych centrów](issues/16-sbc-matid-domains.md) — prototype / HITL.
+- [Lokalna tekstura STM](issues/17-image-texture-domains.md) — prototype / HITL.
+
+Przygotowanie wejścia zależy od rozstrzygniętych kontraktów importu i pojęć;
+trzy niezależne próby zależą od tego przygotowania. Rozszerzono zależności
+[odbioru metod](issues/13-method-acceptance.md) o wyniki trzech prób.
+[Pełny protokół jakości](issues/04-reference-and-quality.md) nadal jest
+wymagany do odbioru, ale nie blokuje wstępnego porównania na obecnych danych.
+Zakończonych badań pokrycia, typów i granic nie otwarto ponownie.
+
+Następny krok w tym cyklu badawczym to przygotowanie wspólnego wejścia;
+pierwszą zalecaną próbą jest otoczenie molekuł. Analiza obejmuje pełne pola
+klatek bez dostępu do ramek referencji, z przypadkami zero/jedna/wiele domen.
+Zaktualizowano rejestr, diagram i README; mapa jest indeksem, a dawny plan
+prowadzi do ticketów przechowujących szczegóły. Nie rozwiązano nowych pytań
+ani nie uruchomiono eksperymentów przez tę aktualizację.
+
+Sprawdzenia dokumentacji: lokalne odnośniki, kompletność metadanych,
+zgodność zależności z linkami i diagramem, brak cykli oraz `git diff --check`.
+Bez testów aplikacji, analizy danych, instalacji zależności i odbioru GUI.
+Brak zmian produkcyjnych lub nowych potrzeb wspólnych modułów. Wcześniejsze
+wyniki i ustalenia integracyjne poniżej pozostają aktualne.
+
+---
+
+## Poprzednie przekazanie — samodzielne wyszukiwanie domen w STM/AFM
 
 Data: 2026-10-21. Gałąź `domains/stm-afm-unsupervised-research`,
 baza `53e5fb4`. Worktree `/tmp/netcat-stmdomains-stm-afm-research`,

@@ -102,6 +102,25 @@ i kącie potrzebny będzie wskazany rzeczywisty przykład z linią/tolerancją
 i fragmentami po obu stronach. Nie jest to warunek zamknięcia wykonanej próby
 ani rozpoczęcia kolejnych lokalnych sprawdzeń na obecnych wnętrzach.
 
+## Rola w nowych próbach samodzielnego wykrywania — 2026-10-21
+
+[Wspólne wejście i kontrole](14-unsupervised-input-and-controls.md) oraz
+trzy próby metod wykorzystują obecne dane, bez oczekiwania na rozstrzygnięcie
+całego niniejszego pytania. To rozdzielenie przygotowania porównania od
+pełnego protokołu jakości, nie rezygnacja z walidacji.
+
+Nowa analiza obejmuje pełne pola klatek. Dotychczasowe ramki ograniczają
+wyłącznie późniejszą ocenę, nie wejście ani miejsca poszukiwania domen.
+Nie służą do uczenia klas, doboru liczby grup lub zakresu sąsiedztwa.
+Poza ramkami brak prawdy odniesienia; wyjście poza nie nie jest samo w sobie
+błędem. Te referencje były już używane i nie są niezależnym testem.
+
+W pełnym protokole uwzględnić fałszywe domeny na kontrolach bez porządku,
+przypadek jednej domeny, rozdzielność odmów i błędów, zmianę zakresu oraz
+wpływ braków oznaczeń. Potrzebę nowych referencji uzasadniają konkretne
+wyniki prób. Pytanie pozostaje `open` i nadal blokuje pełny odbiór metod;
+nie blokuje przygotowania zestawu ani trzech wstępnych porównań.
+
 ## Dependencies
 
 - [Jak definiujemy wyspę, typ uporządkowania i domenę sieci?](02-order-types-and-domains.md)

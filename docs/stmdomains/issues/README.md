@@ -1,6 +1,6 @@
 # Rejestr decyzji STM Domains
 
-[Mapa decyzji etapu 1](../map.md) jest zakończona. Aktualny następny krok to
+[Mapa decyzji etapu 1](../map.md) jest zakończona. Następny krok aplikacyjny to
 [budowa i odbiór szkieletu](../implementation/README.md), nie kolejna decyzja.
 Zadania wykonawcze są oddzielone od poniższego rejestru pytań.
 [Etap 2: metody i zapis wyników](../map-methods-and-save.md) rozpoczyna się po
@@ -51,6 +51,14 @@ fazy obrazu, dostępności sieci oraz interpretacji rozłączonych grafów.
 Nie wybrano metody produkcyjnej ani nie policzono dokładności granic TTMAPP.
 Próby 10–12 są zakończone; odbiór metod 13 i protokół jakości 04 nadal otwarte.
 
+Po przeglądzie MolTrack i literatury STM/AFM użytkownik polecił wpisać
+[kolejne próby samodzielnego znajdowania domen](#próby-samodzielnego-znajdowania-domen)
+do istniejącej mapy. Następny krok badawczy to przygotowanie wspólnego
+wejścia i kontroli, potem porównania trzech metod. Analizujemy całe klatki;
+ramki służą wyłącznie późniejszej ocenie. Nie zakładamy istnienia domen
+ani ich liczby i nie uczymy klas z ręcznie zaznaczonych przykładów.
+Nowe tickety są otwarte, próby nie zostały uruchomione.
+
 ## Wayfinding operations
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie
@@ -59,7 +67,9 @@ z instrukcjami repozytorium. Nie wymaga zewnętrznego trackera.
 - **Mapa:** osobny plik z etykietą `wayfinder:map`. Domyślnie aktywna jest
   `../map.md`; jej pytania są już rozstrzygnięte i trwa przekazanie do zadań
   wykonawczych. Do zwykłego toku drugiej mapy przechodzimy po odbiorze szkieletu.
-  Samo zamknięcie decyzji nie jest odbiorem programu.
+  Samo zamknięcie decyzji nie jest odbiorem programu. Dla kontynuowanego
+  na polecenie użytkownika badania metod aktywny jest cykl nowych prób
+  w drugiej mapie; nie wymaga odbioru aplikacji.
 - **Pytanie:** jeden plik `NN-nazwa.md`. `ID` identyfikuje go w całym rejestrze,
   `Parent` wskazuje mapę, a tytuł służy do nazywania w rozmowie i linkach.
   Zachowujemy dotychczasowe ID i ścieżki również po zmianie zakresu.
@@ -70,7 +80,10 @@ z instrukcjami repozytorium. Nie wymaga zewnętrznego trackera.
   nie oznacza naukowego rozstrzygnięcia ani spełnienia zależności.
 - **Frontier:** wybieramy wyłącznie dzieci aktywnej mapy z `Status: open`,
   pustym `Assignee` i wszystkimi zależnościami `resolved`. Pierwszeństwo ma
-  kolejność numerów plików. Pytanie innej mapy nie trafia do tej kolejki.
+  aktualny zakres wskazany w Notes mapy, a w jego obrębie kolejność numerów
+  plików. Pytanie innej mapy nie trafia do tej kolejki. W cyklu nowych prób
+  pierwsze jest przygotowanie wspólnego wejścia; otwarty protokół pełnej
+  jakości pozostaje osobnym pytaniem do odbioru, nie blokadą tych prób.
 - **Zależności:** `Blocked by` wskazuje istniejące ID, także innej mapy;
   `Dependencies` zawiera odpowiadające nazwane linki. Zmiana zależności wymaga
   aktualizacji diagramu. Otwarte pytanie nie może zależeć od zakresowo
@@ -115,6 +128,27 @@ rg -n '^(# |Status:|Assignee:|Parent:|Blocked by:)' docs/stmdomains/issues/[0-9]
 | [Jak rozdzielać domeny o tym samym typie i orientacji?](12-phase-boundaries.md) | prototype |
 | [Które metody i warunki odmowy wyniku przyjmujemy po próbach?](13-method-acceptance.md) | grilling |
 
+### Próby samodzielnego znajdowania domen
+
+Kontynuacja badań na obecnych danych, dopuszczona przed odbiorem szkieletu.
+Zadanie przygotowania nie zależy od zamknięcia pełnego protokołu jakości;
+ten nadal warunkuje odbiór metod. Statusy znajdują się w ticketach.
+
+| Pytanie/zadanie | Typ | Kolejność |
+| --- | --- | --- |
+| [Jak przygotować wspólne wejście i kontrole bez narzucania domen?](14-unsupervised-input-and-controls.md) | task / AFK | Pierwszy krok; E0 |
+| [Czy otoczenie zaznaczonych molekuł pozwala samodzielnie znaleźć domeny?](15-local-neighborhood-domains.md) | prototype / HITL | Po przygotowaniu wejścia; zalecana pierwsza próba, E1 |
+| [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md) | prototype / HITL | Po przygotowaniu wejścia; E2 |
+| [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md) | prototype / HITL | Po przygotowaniu wejścia; E3 |
+
+Trzy porównania są niezależne: niepowodzenie jednej metody nie blokuje
+sprawdzenia pozostałych.
+Ich udokumentowane wyniki, także negatywne, zasilają istniejący
+[odbiór metod](13-method-acceptance.md). Zamkniętych badań pokrycia, katalogu
+typów i granic nie otwieramy ponownie. Dawny
+[plan eksperymentów](../unsupervised-domain-experiments.md) prowadzi teraz
+do ticketów; zakres i warunki zakończenia utrzymujemy w ich treści.
+
 ## Odłożone poza oba etapy
 
 [Jak mierzyć orientację molekuły i oznaczać wynik niepewny?](03-molecular-orientation.md)
@@ -123,7 +157,8 @@ zamknięto zakresowo. Zachowano treść i materiały, bez wyboru metody.
 ## Zależności decyzji
 
 Strzałki pokazują warunki wstępne pytań, nie kolejność implementacji ani status.
-Rozpoczęcie etapu 2 dodatkowo wymaga odebranego szkieletu, zgodnie z mapami.
+Zwykły tok etapu 2 wymaga odebranego szkieletu, zgodnie z mapami; opisany
+wyżej cykl badań można prowadzić wcześniej na polecenie użytkownika.
 Wyjątek dla zakończonego pilotażu nie zamyka referencji jakości. Ich zależność
 przeniesiono do dalszych prób i odbioru metod. Na późniejsze polecenie użytkownika
 kontrakt zapisu ustalono wcześniej; teraz odbiór metod zależy od tego kontraktu
@@ -146,6 +181,10 @@ flowchart TD
         k["Katalog typów struktury"]
         l["Granice niedopasowania"]
         m["Odbiór metod"]
+        n["Wspólne wejście i kontrole"]
+        o["Otoczenie oznaczonych molekuł"]
+        p["Odtwarzanie komórki SBC/MatID"]
+        q["Lokalna tekstura STM"]
     end
     a --> g
     a --> i
@@ -170,4 +209,12 @@ flowchart TD
     h --> m
     f --> h
     g --> h
+    a --> n
+    b --> n
+    n --> o
+    n --> p
+    n --> q
+    o --> m
+    p --> m
+    q --> m
 ```

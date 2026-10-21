@@ -90,6 +90,15 @@ jest `resolved` jako wykonany eksperyment, bez zatwierdzenia metody.
 Podgląd: `.scratch/phase-boundaries-trial/index.html`. Próby 10–12 są zakończone;
 protokół jakości 04 oraz odbiór metod 13 pozostają otwarte.
 
+Po przeglądzie MolTrack i literatury STM/AFM dodano do istniejącej mapy
+[cykl samodzielnego znajdowania domen](issues/README.md#próby-samodzielnego-znajdowania-domen).
+Następny krok badawczy to [wspólne wejście i kontrole](issues/14-unsupervised-input-and-controls.md),
+następnie trzy porównania: otoczenie molekuł, SBC/MatID oraz tekstura obrazu.
+Zakres obejmuje całe klatki, bez przykładów domen i zadanej liczby grup;
+ramki służą wyłącznie późniejszej ocenie. Nowe tickety są otwarte, a próby
+nie zostały wykonane. Ten tok badawczy może poprzedzać odbiór szkieletu;
+następny krok aplikacyjny nadal dotyczy jego importu i geometrii.
+
 ## Dwa etapy
 
 - [Etap 1: działający szkielet](map.md) — import, podstawowy podgląd oraz
@@ -132,6 +141,13 @@ Nowe metody będą oceniane na danych i kryteriach rozstrzygniętych przez pytan
 
 ## Materiały do decyzji
 
+- [Samodzielne wyszukiwanie domen w STM/AFM](research-stm-afm-unsupervised-domain-discovery.md)
+  — bezpośrednie precedensy, ich ograniczenia oraz rozróżnienie braku
+  przykładów treningowych od narzucania liczby grup.
+- [Domeny i grupowanie oznaczonych obiektów](research-domain-discovery-and-object-clustering.md)
+  — kandydaci dla centrów molekuł, ich otoczeń i tekstury obrazu.
+- [Plan nowych prób i odpowiadające mu tickety](unsupervised-domain-experiments.md)
+  — wejście, kontrole i trzy porównania prowadzące do odbioru metod.
 - [Ogólne wykrywanie domen molekularnych](research-general-domain-detection.md)
   — przegląd metod wykrywania regularności rozmieszczenia i uporządkowania
   orientacji molekuł, założeń MolTrack oraz propozycja porównania metod na danych.
