@@ -137,8 +137,11 @@ po pojedynczej sesji było co uruchomić i ocenić ręcznie.
    te granice, bez narzucania nazw klas, metod ani prywatnych helperów.
    Nową granicę wykraczającą poza uzgodnione trzeba uzgodnić przed testem.
 3. Regularnie wykonuj sprawdzanie typów i pojedyncze pliki testowe.
-   Pierwszy ticket ustala z integracją działającą komendę typecheckingu
-   dla Viewera; kompilacja składni nie jest sprawdzaniem typów.
+   Pierwszy ticket ustala i sprawdza działającą komendę typecheckingu
+   dla Viewera oraz zapisuje ją w przekazaniu do integracji. Lokalna
+   konfiguracja aplikacji nie wymaga osobnego zatwierdzenia; zmiany
+   konfiguracji głównej nadal prowadzi sesja integracyjna.
+   Kompilacja składni nie jest sprawdzaniem typów.
 4. Po implementacji wykonaj pełny zestaw testów repozytorium raz na końcu,
    a także próby wskazane w tickecie. Raportuj braki danych/GUI/zależności
    oraz wcześniejsze błędy osobno od regresji; nie utożsamiaj pominięcia

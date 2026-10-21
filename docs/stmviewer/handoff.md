@@ -93,7 +93,8 @@ Instrukcje środowisk Ubuntu/Windows: [README](README.md#uruchomienie).
 - Limit plików: największy nowy/zmieniony plik Python ma 109 linii.
   `git diff --check` bez błędów.
 - [Przegląd Standards/Spec](implementation/review-01-single-stp.md):
-  Standards — 0 ustaleń; Spec — 0 usterek kodu, 2 jawnie otwarte warunki odbioru.
+  Standards — 0 ustaleń; Spec — 0 usterek kodu. W chwili przeglądu pozostały
+  2 warunki odbioru; ich zamknięcie opisano poniżej.
   Obie osie wykonane przez niezależnych recenzentów od uzgodnionej bazy.
 
 Lokalne logi: `/tmp/stmviewer-full-suite.log`, `/tmp/stmviewer-baseline-suite.log`
@@ -105,16 +106,21 @@ Artefakty lokalne nie są częścią repozytorium.
 
 ## Odbiór i integracja
 
-Status `ready-for-review`: funkcja działa, testy i instrukcje są dostarczone.
+Ticket 01 ma status `done`: funkcja działa, testy i instrukcje są dostarczone,
+a użytkownik zatwierdził odbiór. Następny odblokowany etap to ticket 02.
 Użytkownik potwierdził ręczny scenariusz otwierania STP 2026-10-21:
 „testy manualne ok”. Nie podał systemu, więc nie oznacza to odbioru Windows.
-Do potwierdzenia pozostaje konfiguracja integracyjna opisana poniżej.
+Usunięto dodatkową blokadę osobnego potwierdzenia lokalnej konfiguracji:
+nie zmieniono konfiguracji głównej ani wspólnych modułów. Doprecyzowanie
+zapisano w kryterium ticketu i zasadach implementacji.
 
-Do potwierdzenia w sesji integracyjnej: minimalne wymagania aplikacji
+Do wykorzystania przy integracji: minimalne wymagania aplikacji
 `stmviewer/requirements.txt` (wspólny PyQt6 + NumPy 2.2.5),
 `stmviewer/requirements-dev.txt` oraz komenda
 `python -m mypy --config-file stmviewer/mypy.ini`. Konfiguracja działa lokalnie
-bez zmiany root; nie deklarujemy uzgodnienia, którego jeszcze nie było.
+bez zmiany root i została przekazana w dokumentacji. Odrębnego zatwierdzenia
+przez sesję integracyjną nie przeprowadzono; nie jest ono warunkiem zamknięcia
+tego lokalnego etapu. Scalenie gałęzi pozostaje osobną czynnością.
 Wspólny czytnik wymaga w przyszłości obsługi Acquisition channel,
 X-Offset/Y-Offset, nieznanych wartości, osobnej jednostki sygnału i kodowania
 nagłówka bez utraty µ. Adapter zapewnia ten kontrakt już w Viewerze.

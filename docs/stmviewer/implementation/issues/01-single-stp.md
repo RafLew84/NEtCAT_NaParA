@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-review
+**Status:** done
 
 **Assignee:** Codex / rlew
 
@@ -20,7 +20,7 @@ Przed realizacją przeczytaj [zasady wykonania i odbioru](../README.md#zasady-wy
 - [x] Odczyt zachowuje orientację, wartości, źródłowy kanał, jednostkę sygnału i skalę. Nieznane parametry pozostają nieznane; Z Amplitude nie skaluje ponownie danych double.
 - [x] Ponowne otwarcie poprawnego STP zastępuje obraz; anulowanie wyboru i błąd odczytu zachowują dotychczasowy obraz. Komunikat wskazuje źródło problemu.
 - [x] Pusty program i pojedyncza klatka mają spójne kontrolki. Zestawy wielu plików i filmstrip należą do następnego etapu.
-- [ ] Jest instrukcja uruchomienia na docelowych systemach, minimalne zależności dla tej funkcji i ustalona z integracją komenda sprawdzania typów kodu Viewera.
+- [x] Jest instrukcja uruchomienia na docelowych systemach, minimalne zależności dla tej funkcji i sprawdzona komenda kontroli typów Viewera, udokumentowana w przekazaniu do integracji.
 - [x] Dołączony mały wzorzec STP pozwala ręcznie sprawdzić orientację i metadane bez posiadania pełnego katalogu pomiarowego.
 
 ## Testy automatyczne
@@ -61,5 +61,10 @@ błędy poza Viewerem; szczegóły i porównanie bazy w [przekazaniu](../../hand
 wygląd wzorców i oczekiwane wyniki. Przygotowano instrukcje Ubuntu/Windows,
 minimalne zależności i działającą komendę mypy po stronie aplikacji.
 Użytkownik potwierdził ręczny odbiór 2026-10-21: „testy manualne ok”.
-Do zamknięcia `done` pozostaje potwierdzenie konfiguracji przez sesję integracyjną.
+Ticket zamknięty po potwierdzonym odbiorze użytkownika. Komenda
+`python -m mypy --config-file stmviewer/mypy.ini` i wymagania są sprawdzone
+oraz przekazane w dokumentacji. Konfiguracja dotyczy wyłącznie Viewera;
+nie wymagała zmiany konfiguracji głównej ani wspólnego kodu.
+Doprecyzowano kryterium: przekazanie lokalnej konfiguracji nie wymaga osobnej
+aprobaty sesji integracyjnej. Scalenie gałęzi pozostaje osobnym działaniem.
 Automatyczne próby offscreen/xcb są rozliczone osobno.

@@ -50,7 +50,9 @@ zatwierdzona 2026-10-19 wraz z zależnościami i publicznymi granicami testowani
 TDD. Każdy etap kończy się funkcją możliwą do sprawdzenia w działającym GUI
 oraz zawiera konkretne kroki próby i oczekiwane wyniki.
 
-Zacznij od [Pierwszego obrazu STP w działającym oknie](implementation/issues/01-single-stp.md).
+[Pierwszy obraz STP w działającym oknie](implementation/issues/01-single-stp.md)
+ma status `done`. Następny odblokowany etap to
+[Otwarcie i przeglądanie serii STP](implementation/issues/02-stp-series.md).
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje
@@ -103,8 +105,8 @@ uruchomieniem pytest (Linux: prefiks komendy; PowerShell:
 `$env:QT_QPA_PLATFORM = "offscreen"`). Tryb offscreen dotyczy testów,
 nie interaktywnego uruchomienia aplikacji.
 Mypy sprawdza cały kod `stmviewer` w trybie strict, pomija śledzenie starego
-kodu `napara`. Komenda i zależności są przygotowane po stronie aplikacji;
-przekazano je do potwierdzenia przez sesję integracyjną w [handoff](handoff.md).
+kodu `napara`. Komenda i zależności są sprawdzone po stronie aplikacji
+oraz opisane dla integracji w [handoff](handoff.md).
 Nie zmieniono głównej konfiguracji ani wspólnych czytników.
 
 [Przygotowanie środowiska repo](../../README.md) i
