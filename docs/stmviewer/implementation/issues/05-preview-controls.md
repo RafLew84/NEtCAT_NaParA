@@ -4,7 +4,7 @@
 
 **Blocked by:** [02: Otwarcie i przeglądanie serii STP](02-stp-series.md)
 
-**Status:** in-progress
+**Status:** ready-for-review
 
 **Wykonawca:** Codex, `viewer/start`.
 
@@ -94,5 +94,9 @@ Prawy panel może się przewijać, więc postęp nie powiększa okna ani podglą
 77 testów Viewera oraz mypy strict (15 plików) przechodzą. Automatyczna próba
 xcb obejmuje rzeczywisty dialog, wzorce i lokalny MPP.
 [Instrukcja próby ręcznej i wzorce](../../preview-controls-manual.md).
-Ręczny odbiór użytkownika i Windows pozostają niewykonane. Pełne wyniki
-zestawu repo i przeglądu zostaną uzupełnione w [przekazaniu](../../handoff.md).
+Commit implementacji: `b2903b8`. Pełny zestaw repo: **1816 passed, 63 failed,
+12 skipped**; zestaw niepowodzeń jest identyczny jak przed zmianą, bez nowych
+błędów. [Przegląd Standards/Spec](../review-05-preview-controls.md): obie osie
+bez uwag. Szczegóły i logi: [przekazanie](../../handoff.md).
+Ręczny odbiór użytkownika i Windows pozostają niewykonane; ticket jest gotowy
+do próby użytkownika, ze statusem `ready-for-review`.

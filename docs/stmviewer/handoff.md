@@ -5,7 +5,8 @@
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
 `4b4f6d478b5c734a196821106e984a6ade865536`.
 Ticket: [05-preview-controls](implementation/issues/05-preview-controls.md).
-Commit implementacji i końcowy przegląd zostaną uzupełnione.
+Status: `ready-for-review`. Commit implementacji: `b2903b8`.
+Commit końcowego raportu podany w wiadomości sesji.
 
 ### Wynik i kontrakt
 
@@ -44,7 +45,17 @@ powiększać okna, co zmieniałoby kadr po nieudanym imporcie.
   zoomu, puste próbki, proporcje oraz nawigacja lokalnego MOVIE_3.MPP.
   Zrzuty: `/tmp/stmviewer-preview-{gamma,missing,pixels,measurement}-xcb.png`.
   Oceniono wizualnie wygląd podglądu i ustawień. To próba automatyczna.
-- Pełny zestaw repo i niezależne przeglądy Standards/Spec: w toku.
+- Pełny zestaw repo w `netcat`:
+  `PYTHONPATH=.:tests/moltrack:tests/stmviewer QT_QPA_PLATFORM=offscreen python -m pytest -q --import-mode=importlib --continue-on-collection-errors`:
+  **1816 passed, 63 failed, 12 skipped**, 208.14 s. Porównanie identyfikatorów
+  wszystkich niepowodzeń z `/tmp/stmviewer-mpp-full-suite.log` potwierdza
+  identyczny zestaw 63 wcześniejszych błędów MolTrack/NanoTrack. Brak nowych
+  niepowodzeń i błędów zbierania; nie jest to zielony odbiór całego repo.
+  Log: `/tmp/stmviewer-preview-full-suite.log`.
+- [Niezależny przegląd Standards/Spec](implementation/review-05-preview-controls.md):
+  0 naruszeń zasad, 0 istotnych uwag projektowych, 0 usterek specyfikacji.
+- Generator odtwarza wzorce bajtowo bez zmian w Git. `git diff --check`
+  i lokalne odnośniki zmienionej dokumentacji sprawdzono bez błędów.
 
 ### Odbiór i integracja
 
