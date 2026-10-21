@@ -4,6 +4,7 @@
 
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
 `b904045e7626e97cd924920d9fbb0e52fbdb3bcc`.
+Commit implementacji: `d6fbb7d`; commit końcowego raportu podany w wiadomości sesji.
 Ticket: [03-s94-series](implementation/issues/03-s94-series.md),
 status `ready-for-review` do ręcznego odbioru użytkownika.
 
@@ -50,8 +51,16 @@ jednostki w istniejącym kontrakcie czytnika, więc nie jest zgadywane jako setp
   opis surowych wartości oraz identyczny podgląd pary 17851. Zrzuty oceniono
   wizualnie: `/tmp/stmviewer-s94-mixed-xcb.png`, `/tmp/stmviewer-s94-raw-xcb.png`,
   `/tmp/stmviewer-s94-measurement-xcb.png`.
-- Pełny zestaw repo uruchomiony; wynik zostanie dopisany po zakończeniu.
+- Pełny zestaw repo w netcat:
+  `PYTHONPATH=.:tests/moltrack QT_QPA_PLATFORM=offscreen python -m pytest -q --import-mode=importlib --continue-on-collection-errors`
+  — **1793 passed, 63 failed, 12 skipped**, 204.61 s. Zestaw 63 niepowodzeń
+  jest identyczny z bazą `/tmp/stmviewer-series-full-suite.log` (starsze
+  MolTrack/NanoTrack, m.in. brak MOVIE_3.MPP, ścieżki Windows i SAM2).
+  Brak nowych niepowodzeń i błędów zbierania. To nie jest zielony odbiór całego repo.
   Log: `/tmp/stmviewer-s94-full-suite.log`.
+- [Przegląd Standards/Spec](implementation/review-03-s94-series.md): obie osie
+  bez uwag. Generator odtwarza wzorce bajtowo bez zmian; sprawdzono 37 lokalnych
+  odnośników dokumentacji przed dopisaniem raportu. `git diff --check` poprawne.
 
 ### Odbiór i integracja
 

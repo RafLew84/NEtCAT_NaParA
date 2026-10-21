@@ -58,6 +58,9 @@ nagłówek, rozróżnia kalibrację nm/nA od surowych wartości i opisuje jej br
 w panelu. Zamiana osi obejmuje dane, wymiary, rozmiary i offsety; kąt pozostaje
 ustawieniem pomiaru. Wspólne moduły i zależności nie zostały zmienione.
 
+Commit implementacji: `d6fbb7d`.
+[Przegląd](../review-03-s94-series.md): Standards — 0 ustaleń; Spec — 0 ustaleń.
+
 54 testy Viewera oraz mypy strict (13 plików) przechodzą. Trzy lokalne pary
 STP/S94 mają identyczne wartości macierzy; znaną rozbieżność jednostki w jednym
 STP opisano w instrukcji. Automatyczna próba xcb przeszła. Wynik pełnego repo
