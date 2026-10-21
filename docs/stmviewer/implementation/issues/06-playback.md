@@ -4,7 +4,7 @@
 
 **Blocked by:** [05: Zoom, gamma i brakujące próbki](05-preview-controls.md)
 
-**Status:** ready-for-review
+**Status:** done
 
 **Wykonawca:** Codex, `viewer/start`.
 
@@ -19,7 +19,7 @@ Przed realizacją przeczytaj [zasady wykonania i odbioru](../README.md#zasady-wy
 - [x] Play domyślnie 5 kl./s, wybór 1/2/5/10/20/30, pętla domyślnie wyłączona; na końcu Pause, a Play na ostatniej zaczyna od pierwszej.
 - [x] Ręczny wybór zatrzymuje Play. Pusta seria i pojedyncza klatka nie uruchamiają Play. Udany import resetuje widok; nieudany zachowuje poprzedni stan.
 - [x] Przy przeciążeniu odtwarzanie zwalnia bez pomijania klatek. Zmiana gamma/zoomu/tempa działa podczas Play; mierzyć rzeczywiste zmiany obrazu.
-- [ ] Na dostępnej serii typowej cel odbioru to 5 kl./s oraz reakcja wyboru/Pause do 250 ms w co najmniej 95% prób. Pełne sprawdzenie dużej serii ma osobny etap.
+- [x] Na dostępnej serii typowej cel odbioru to 5 kl./s oraz reakcja wyboru/Pause do 250 ms w co najmniej 95% prób. Pełne sprawdzenie dużej serii ma osobny etap.
 - [x] Play współpracuje z istniejącą gamma/zoomem, miniaturami i ręcznym wyborem. Po nieudanym imporcie poprzedni stan odtwarzania/podglądu pozostaje zgodny z kontraktem.
 - [x] Automatyczny test liczy faktycznie wyświetlane kolejne klatki; pomiar płynności jest odrębny od samego timera.
 
@@ -71,6 +71,11 @@ odstęp medianowy **201,61 ms**, p95 **204,34 ms**, bez pominiętych klatek.
 Po 50 prób Pause i wyboru: p95 **5,40 ms / 10,70 ms**, wszystkie poniżej 250 ms.
 Odczytywano pomalowany bufor okna przez QScreen, nie wywołania timera.
 To sprawdza potok Qt; pomiar fizycznego ekranu był zakłócony zasłonięciem
-okna i nie został zaliczony. Kryterium płynności na monitorze pozostaje
-otwarte do próby ręcznej. Szczegóły: [przekazanie](../../handoff.md).
-Ręczny odbiór użytkownika i Windows pozostają do wykonania.
+okna i nie został zaliczony jako pomiar liczbowy ekranu. Szczegóły:
+[przekazanie](../../handoff.md).
+
+Użytkownik potwierdził testy manualne 2026-10-21: „testy manualne ok”.
+Potwierdzenie zamyka ręczny odbiór tego etapu, w tym pozostawioną próbę
+płynności i reakcji; ticket ma status `done`. Raport implementacji: `0f3229d`.
+Nie podano systemu ani dodatkowych wyników liczbowych. Odrębne odbiory
+platform, dużej serii i aligned pozostają w późniejszych ticketach.

@@ -97,4 +97,6 @@ Po 50 prób: Pause p95 5,40 ms, wybór p95 10,70 ms; wszystkie poniżej 250 ms.
 To wyniki pomalowanego bufora Qt, bez kompozytora/monitora. Próbę xcb
 przerwało zasłonięcie okna, więc nie została zaliczona jako pomiar płynności.
 Dane, komenda i ograniczenia są w [przekazaniu](handoff.md).
-Ręczny odbiór użytkownika i Windows pozostają do wykonania.
+Użytkownik potwierdził ręczny odbiór 2026-10-21: „testy manualne ok”,
+zamykając próbę tego etapu, w tym płynność i reakcję. Nie podał systemu ani
+dodatkowych wyników liczbowych; odrębne odbiory platform pozostają do wykonania.

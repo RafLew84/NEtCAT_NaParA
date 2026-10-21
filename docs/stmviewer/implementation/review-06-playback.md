@@ -5,6 +5,12 @@ Data: 2026-10-21. Baza zgodnie z zatwierdzonymi zasadami implementacji:
 Commit implementacji: `83c20a9`.
 Diff: `git diff 0d57200d4d606292f95fe56cca831c78e437673f...83c20a9`.
 
+Poniższy raport zachowuje stan z chwili przeglądu. Następnie, 2026-10-21,
+użytkownik potwierdził testy manualne („testy manualne ok”), zamykając
+warunek ręcznej próby płynności i reakcji. [Ticket 06](issues/06-playback.md)
+ma status `done`. Potwierdzenie nie dodaje wyników liczbowych ani odbioru
+konkretnej platformy.
+
 Dwie osie sprawdzili równolegle niezależni agenci zgodnie ze skillem
 `code-review`. Przegląd tylko do odczytu, bez ponawiania testów przez agentów.
 Końcowe wyniki i status dokumentacji uzupełniono po otrzymaniu obu raportów.

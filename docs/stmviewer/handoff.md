@@ -5,8 +5,9 @@
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
 `0d57200d4d606292f95fe56cca831c78e437673f`.
 Ticket: [06-playback](implementation/issues/06-playback.md).
-Status: `ready-for-review`. Commit implementacji: `83c20a9`.
-Commit końcowego raportu podany w wiadomości sesji.
+Status: `done` po potwierdzeniu ręcznego odbioru użytkownika 2026-10-21.
+Commit implementacji: `83c20a9`; końcowy raport: `0f3229d`.
+Commit potwierdzenia ręcznego odbioru podany w wiadomości sesji.
 
 ### Wynik i kontrakt
 
@@ -63,15 +64,18 @@ oraz pętla pozostają preferencjami okna. Czasy pomiaru nie są modyfikowane.
   oceniono wizualnie; log `/tmp/stmviewer-playback-measurement.log`.
 - Automatyczna próba na pulpicie Qt xcb otworzyła rzeczywisty MPP i pokazała
   kontrolki. Pomiar został przerwany po zasłonięciu okna i nie jest zaliczony
-  jako odbiór płynności monitora. Kryterium pozostaje do próby użytkownika;
-  wynik offscreen nie zastępuje fizycznego ekranu ani Windows.
+  jako liczbowy pomiar płynności monitora. Późniejsze potwierdzenie ręczne
+  użytkownika zamyka próbę tego etapu; nie dostarcza nowych liczb ani
+  potwierdzenia systemu. Wynik offscreen pozostaje opisany osobno.
 - [Przegląd Standards/Spec](implementation/review-06-playback.md): brak naruszeń
-  standardów i usterek implementacji. Pozostały warunek ręcznej płynności
-  jest jawnie otwarty. Największy zmieniony plik kodu ma **396 linii**.
+  standardów i usterek implementacji. Warunek ręcznej płynności zamknięto
+  potwierdzeniem użytkownika. Największy zmieniony plik kodu ma **396 linii**.
   `git diff --check` i lokalne odnośniki dokumentacji poprawne.
 - [Instrukcja ręczna i pomiar](playback-manual.md) korzysta z istniejących
-  wzorców MPP/STP oraz lokalnego filmu. Próba użytkownika i Windows czekają.
-  Duża seria i aligned pozostają w późniejszych etapach odbioru.
+  wzorców MPP/STP oraz lokalnego filmu. Użytkownik potwierdził ręczny odbiór
+  2026-10-21: „testy manualne ok”. Nie wskazano systemu; odrębne odbiory
+  platform, dużej serii i aligned pozostają w późniejszych etapach.
+  Aktualizacja odbioru dotyczy tylko dokumentacji; testów nie powtarzano.
 
 Nie zmieniono wspólnych modułów, zależności ani głównej konfiguracji.
 Nie ma nowej zmiany integracyjnej wymaganej do działania Play.
