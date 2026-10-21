@@ -59,6 +59,9 @@ Klatki zachowują własne dane i metadane. Zmiana klatki zachowuje zoom/przesuni
 nowy udany import dopasowuje pierwszą klatkę, a błąd i anulowanie zachowują stan.
 Wspólne czytniki, zależności i konfiguracja repo pozostają bez zmian.
 
+Commit implementacji: `e054738`. [Przegląd](../review-02-stp-series.md):
+Standards — 0 ustaleń; Spec — 0 ustaleń.
+
 33 testy Viewera przechodzą w Qt offscreen; mypy strict obejmuje 12 plików bez
 błędów. Automatyczna próba z rzeczywistym oknem xcb i dialogiem wielokrotnego
 wyboru przeszła na Linuksie. Szczegóły pełnego zestawu repo i przeglądu:

@@ -4,6 +4,8 @@
 
 Gałąź: `viewer/start`. Baza implementacji i code-review:
 `3f2e92b59d29dc0ecf74751807e26f530167af7d`.
+Commit implementacji: `e054738`. Finalny zakres tego etapu: `3f2e92b..HEAD`;
+commit raportu podany w końcowej wiadomości sesji.
 Ticket: [02-stp-series](implementation/issues/02-stp-series.md),
 status `ready-for-review` do ręcznego odbioru użytkownika.
 
@@ -52,6 +54,11 @@ gamma i szachownica pozostają do wykonania.
   `/tmp/stmviewer-series-current-xcb.png`, `/tmp/stmviewer-series-measurement-xcb.png`.
 - Generator większych danych sprawdzono na trzech STP 64 × 64 z ponownym
   odczytem. Duża próba wydajności z ticketu 18 nie została tu wykonana.
+
+- [Przegląd Standards/Spec](implementation/review-02-stp-series.md): obie
+  niezależne osie bez ustaleń wymagających poprawki. Generatory odtworzyły
+  wzorce bajtowo bez zmian; 38 odnośników dokumentacji było poprawnych,
+  `git diff --check` bez błędów.
 
 ### Odbiór i integracja
 
