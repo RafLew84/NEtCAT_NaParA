@@ -5,7 +5,8 @@
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
 `0d57200d4d606292f95fe56cca831c78e437673f`.
 Ticket: [06-playback](implementation/issues/06-playback.md).
-Commit implementacji oraz końcowe wyniki zostaną uzupełnione.
+Status: `ready-for-review`. Commit implementacji: `83c20a9`.
+Commit końcowego raportu podany w wiadomości sesji.
 
 ### Wynik i kontrakt
 
@@ -38,7 +39,36 @@ oraz pętla pozostają preferencjami okna. Czasy pomiaru nie są modyfikowane.
 - **93 testy Viewera zaliczone** w Qt offscreen. W tym wymuszone przeciążenie
   Paint z odczytem kolejnych obrazów, anulowanie na granicy I/O i zamknięcie.
 - Mypy strict: **15 plików bez błędów**; cache w `/tmp/stmviewer-playback-mypy`.
-- Pełny zestaw repo, pomiar GUI oraz przegląd Standards/Spec: w toku.
+- Pełny zestaw repo w `netcat`:
+  `PYTHONPATH=.:tests/moltrack:tests/stmviewer QT_QPA_PLATFORM=offscreen python -m pytest -q --import-mode=importlib --continue-on-collection-errors`:
+  **1832 passed, 63 failed, 12 skipped**, 220.35 s. Porównano wszystkie
+  identyfikatory błędów z `/tmp/stmviewer-preview-full-suite.log`: identyczne
+  63 wcześniejsze niepowodzenia MolTrack/NanoTrack, bez nowych i bez błędów
+  zbierania. Nie jest to zielony odbiór całego repo.
+  Log: `/tmp/stmviewer-playback-full-suite.log`.
+- Osobny pomiar po zakończeniu testów: `PYTHONPATH=. QT_QPA_PLATFORM=offscreen
+  python tests/stmviewer/measure_playback.py
+  /home/rlew/projekty/NEtCAT-domains/data/nanotrack_registration/trudne/MOVIE_8.mpp
+  --output /tmp/stmviewer-playback-offscreen-512.json`.
+  **84 klatki 512 × 512**, 30 s; 148 zmian obrazu, **4,956 kl./s**.
+  Odstępy min/mediana/p95/max: **199,63 / 201,61 / 204,34 / 207,36 ms**.
+  Każda zmiana odpowiada następnej referencji obrazu; brak pominięć.
+  Po 50 prób obu czynności: Pause min/mediana/p95/max
+  **5,18 / 5,26 / 5,40 / 5,55 ms**; wybór numerem
+  **8,97 / 9,66 / 10,70 / 10,85 ms**. **100% prób poniżej 250 ms**.
+  Otwarcie z automatycznym dialogiem: 0,217 s; nie jest częścią pomiaru Play.
+  Skrypt odczytuje już pomalowany bufor przez QScreen.grabWindow, bez
+  wymuszania malowania przez QWidget.grab. To potok Qt offscreen, bez
+  kompozytora/monitora. Zrzut `/tmp/stmviewer-playback-offscreen-512.png`
+  oceniono wizualnie; log `/tmp/stmviewer-playback-measurement.log`.
+- Automatyczna próba na pulpicie Qt xcb otworzyła rzeczywisty MPP i pokazała
+  kontrolki. Pomiar został przerwany po zasłonięciu okna i nie jest zaliczony
+  jako odbiór płynności monitora. Kryterium pozostaje do próby użytkownika;
+  wynik offscreen nie zastępuje fizycznego ekranu ani Windows.
+- [Przegląd Standards/Spec](implementation/review-06-playback.md): brak naruszeń
+  standardów i usterek implementacji. Pozostały warunek ręcznej płynności
+  jest jawnie otwarty. Największy zmieniony plik kodu ma **396 linii**.
+  `git diff --check` i lokalne odnośniki dokumentacji poprawne.
 - [Instrukcja ręczna i pomiar](playback-manual.md) korzysta z istniejących
   wzorców MPP/STP oraz lokalnego filmu. Próba użytkownika i Windows czekają.
   Duża seria i aligned pozostają w późniejszych etapach odbioru.

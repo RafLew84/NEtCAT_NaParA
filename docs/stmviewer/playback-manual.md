@@ -88,6 +88,13 @@ Windows. Warunki końcowe są w [decyzji 06](issues/06-acceptance.md#answer).
 93 testy Viewera przechodzą w Qt offscreen. Obejmują Pause/wznowienie,
 koniec/pętlę, wszystkie metody ręcznego wyboru, gamma/zoom/tempo, brak
 pomijania przy wolnym malowaniu, błędy/anulowanie importu i zamknięcie.
-Mypy strict: 15 plików bez błędów. Końcowy pomiar ekranu i pełny zestaw repo
-są raportowane w [przekazaniu](handoff.md).
+Mypy strict: 15 plików bez błędów. Pełne repo: 1832 passed, 63 wcześniejsze
+failed, 12 skipped; identyczny zestaw niepowodzeń jak przed zmianą.
+
+Pomiar Qt offscreen na 84 klatkach 512 × 512 trwał 30 s: 4,956 kl./s,
+mediana odstępu 201,61 ms, p95 204,34 ms, bez pominiętych obrazów.
+Po 50 prób: Pause p95 5,40 ms, wybór p95 10,70 ms; wszystkie poniżej 250 ms.
+To wyniki pomalowanego bufora Qt, bez kompozytora/monitora. Próbę xcb
+przerwało zasłonięcie okna, więc nie została zaliczona jako pomiar płynności.
+Dane, komenda i ograniczenia są w [przekazaniu](handoff.md).
 Ręczny odbiór użytkownika i Windows pozostają do wykonania.

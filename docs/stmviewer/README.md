@@ -77,7 +77,8 @@ ma status `done`: użytkownik potwierdził testy manualne 2026-10-21.
 mają status `done`: użytkownik potwierdził [testy manualne](preview-controls-manual.md)
 2026-10-21.
 [Play, Pause i tempo odtwarzania](implementation/issues/06-playback.md)
-są zaimplementowane; końcowy pomiar i przegląd są w toku.
+mają status `ready-for-review`: testy i przegląd zakończone;
+[próba ręczna](playback-manual.md) pozostaje do wykonania.
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje

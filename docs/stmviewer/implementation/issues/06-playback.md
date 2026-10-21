@@ -4,7 +4,7 @@
 
 **Blocked by:** [05: Zoom, gamma i brakujące próbki](05-preview-controls.md)
 
-**Status:** in-progress
+**Status:** ready-for-review
 
 **Wykonawca:** Codex, `viewer/start`.
 
@@ -62,5 +62,15 @@ sukces zatrzymuje film i resetuje podgląd. FPS i pętla pozostają ustawieniami
 93 testy Viewera i mypy strict (15 plików) przechodzą. Test przeciążenia
 obserwuje rzeczywiste malowanie i obrazy, nie sygnały timera.
 [Instrukcja próby ręcznej i pomiaru](../../playback-manual.md).
-Końcowy pomiar, pełny zestaw repo i przegląd są w toku. Ręczny odbiór
-użytkownika i Windows pozostają do wykonania.
+Commit implementacji: `83c20a9`. Pełny zestaw repo: **1832 passed, 63 failed,
+12 skipped**; wszystkie 63 niepowodzenia identyczne z bazą, bez nowych błędów.
+[Przegląd Standards/Spec](../review-06-playback.md): brak usterek implementacji.
+
+Pomiar Qt offscreen przez 30 s na 84 klatkach 512 × 512: **4,956 kl./s**,
+odstęp medianowy **201,61 ms**, p95 **204,34 ms**, bez pominiętych klatek.
+Po 50 prób Pause i wyboru: p95 **5,40 ms / 10,70 ms**, wszystkie poniżej 250 ms.
+Odczytywano pomalowany bufor okna przez QScreen, nie wywołania timera.
+To sprawdza potok Qt; pomiar fizycznego ekranu był zakłócony zasłonięciem
+okna i nie został zaliczony. Kryterium płynności na monitorze pozostaje
+otwarte do próby ręcznej. Szczegóły: [przekazanie](../../handoff.md).
+Ręczny odbiór użytkownika i Windows pozostają do wykonania.
