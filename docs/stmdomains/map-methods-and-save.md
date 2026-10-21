@@ -84,6 +84,14 @@ z przybliżonych ramek orientacyjnych. Ograniczenia pozostają w odbiorze 13.
 - Próba, która wykazuje nieskuteczność metody, jest wynikiem badania.
   Nie wolno uznać jej za gotową metodę tylko dlatego, że program się uruchamia.
 
+Po próbach 10–12 użytkownik poprosił o przegląd MolTrack i podkreślił potrzebę
+ogólnego znajdowania domen, również poza wariantami jednej znanej sieci.
+[Audyt implementacji MolTrack](moltrack-method-audit.md) potwierdza ograniczenia
+modeli M3/M6 oraz prototypów tekstury TTMAPP. MolTrack pozostaje porównaniem,
+nie metodą docelową. Następna proponowana próba dotyczy lokalnego wzoru obrazu
+w kilku skalach, z osobnym typem i orientacją oraz oceną korzyści z centrów.
+Nie zatwierdzono algorytmu ani wymagania działania całkowicie bez oznaczeń.
+
 Materiały do porównań: [przegląd wykrywania domen](research-general-domain-detection.md)
 oraz [wyspy, orientacja sieci i level set](research-domain-detection-level-sets.md).
 To propozycje kandydatów i eksperymentów, nie zatwierdzenie algorytmu.

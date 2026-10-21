@@ -98,6 +98,17 @@ potrzebuje wskazanego przykładu takiej linii z tolerancją, nie ogólnego żąd
 pełnych anotacji wszystkich klatek. Obecny zbiór nadal służy lokalnym próbom.
 Zamknięcie badań 10–12 nie zalicza odbioru 13 ani protokołu jakości 04.
 
+## Kierunek po przeglądzie MolTrack — 2026-10-21
+
+Użytkownik potrzebuje ogólnego znajdowania domen, nie tylko wariantów znanej
+sieci. [Audyt kodu MolTrack](../moltrack-method-audit.md) opisuje ograniczenia
+M3/M6, prototypów A/B/C, zależności tekstury od wcześniejszych domen i dwóch
+różnych definicji powierzchni. MolTrack służy jako porównanie, nie wybrana
+metoda. Propozycja następnej próby obejmuje lokalne wzory obrazu w kilku
+skalach, katalog wspólny dla zakresu i osobną orientację. Trzeba sprawdzić
+odporność na brak detekcji; całkowite uniezależnienie od oznaczeń nie jest
+zatwierdzonym wymaganiem. Odbiór pozostaje otwarty.
+
 ## Dependencies
 
 - [Jakie referencje i kryteria potwierdzą wiarygodność analizy?](04-reference-and-quality.md)

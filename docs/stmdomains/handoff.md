@@ -1,4 +1,28 @@
-# STM Domains — wykonana próba granic przesunięcia
+# STM Domains — przegląd MolTrack i kierunek ogólnego wykrywania domen
+
+Data: 2026-10-21. Gałąź `domains/moltrack-method-audit`, baza `2e0c8d1`.
+Worktree `/tmp/netcat-stmdomains-moltrack-audit`, docelowo `domains/start`.
+Commit dokumentacji podany w wiadomości końcowej.
+
+[Audyt](moltrack-method-audit.md) opisuje rzeczywiste ścieżki M6, M3/M6,
+teksturę A/B/C oraz ograniczenie klasyfikatora do wcześniej wyznaczonych
+domen. Rozróżnia przybliżenie powierzchni wokół centrów od sumy masek/bboxów;
+żadne nie jest automatycznie powierzchnią całego płata.
+
+Użytkownik wskazał potrzebę ogólnego znajdowania domen poza wariantami
+znanego układu. Zapisano propozycję próby lokalnego wzoru obrazu w kilku
+skalach, z osobnym typem i orientacją. MolTrack jest materiałem porównawczym.
+Nie zatwierdzono nowego algorytmu ani wymagania pracy całkowicie bez oznaczeń.
+Kroki 10–12 pozostają `resolved`; odbiór 13 i protokół jakości 04 są otwarte.
+
+Wykonano audyt kodu i odnośników oraz `git diff --check`. Nie uruchamiano
+algorytmów, testów aplikacji ani GUI. Brak zmian produkcyjnych, nowych danych
+i nowych potrzeb wspólnych modułów. Dotychczasowe potrzeby integracyjne
+opisane niżej pozostają aktualne.
+
+---
+
+## Poprzednie przekazanie — krok 12
 
 Data: 2026-10-21. Gałąź dokumentacji: `domains/phase-boundaries`.
 Baza `a103f99`, claim `2cd4e02`; commit raportu podany w wiadomości końcowej.
