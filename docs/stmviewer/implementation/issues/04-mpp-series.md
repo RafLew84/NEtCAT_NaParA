@@ -4,7 +4,7 @@
 
 **Blocked by:** [02: Otwarcie i przeglądanie serii STP](02-stp-series.md)
 
-**Status:** in-progress
+**Status:** ready-for-review
 
 **Wykonawca:** Codex, `viewer/start`.
 
@@ -64,5 +64,10 @@ Automatyczna próba xcb obejmuje rzeczywisty dialog, częściowe czasy, klatkę 
 oraz pierwszy/środkowy/ostatni obraz lokalnego filmu Current.
 
 [Instrukcja ręczna i wzorce](../../mpp-series-manual.md). Ręczny odbiór użytkownika
-i Windows są niewykonane. Wyniki pełnego zestawu repo oraz przeglądu będą
-uzupełnione po ich zakończeniu w [przekazaniu](../../handoff.md).
+i Windows są niewykonane, stąd `ready-for-review`.
+
+Commit implementacji: `03f4917`.
+[Przegląd](../review-04-mpp-series.md): Standards — bez naruszeń zasad,
+jedna drobna sugestia; Spec — 0 ustaleń. Pełne repo: **1807 passed,
+63 failed, 12 skipped**; niepowodzenia identyczne z bazą, bez nowych.
+Szczegóły i ograniczenia: [przekazanie](../../handoff.md).

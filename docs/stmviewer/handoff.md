@@ -4,8 +4,9 @@
 
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
 `8aa12416d6225d63d1378b535e140b2063b65bf6`.
-Ticket: [04-mpp-series](implementation/issues/04-mpp-series.md).
-Commit implementacji i wynik końcowego przeglądu zostaną uzupełnione.
+Ticket: [04-mpp-series](implementation/issues/04-mpp-series.md),
+status `ready-for-review` do ręcznego odbioru użytkownika.
+Commit implementacji: `03f4917`; commit końcowego raportu podany w wiadomości sesji.
 
 ### Wynik i kontrakt
 
@@ -43,7 +44,21 @@ sprawdzane w trakcie nagłówka, między klatkami i przed publikacją wyniku.
 - Automatyczna próba Qt xcb: prawdziwy dialog, częściowe czasy, wybór klatki
   1000 oraz klatek 1/9/17 lokalnego `MOVIE_3.MPP`. Zrzuty w
   `/tmp/stmviewer-mpp-{timed,third,1000,measurement}-xcb.png`.
-- Pełne repo i niezależny przegląd Standards/Spec: w toku.
+- Pełne repo w netcat:
+  `PYTHONPATH=.:tests/moltrack:tests/stmviewer QT_QPA_PLATFORM=offscreen python -m pytest -q --import-mode=importlib --continue-on-collection-errors`
+  — **1807 passed, 63 failed, 12 skipped**, 207,50 s. Zestaw niepowodzeń
+  jest identyczny z poprzednią próbą S94: starsze MolTrack/NanoTrack,
+  m.in. brak MOVIE_3.MPP, ścieżki Windows i SAM2. **Brak nowych niepowodzeń
+  i błędów zbierania**. To nie jest zielony odbiór całego repo.
+  Log: `/tmp/stmviewer-mpp-full-suite.log`. Dodatkowa ścieżka testów udostępnia
+  generator binarnych wzorców przy używanym w repo trybie pytest importlib.
+- [Przegląd Standards/Spec](implementation/review-04-mpp-series.md): brak
+  naruszeń zasad, jedna drobna sugestia formatowania pochodzenia; Spec bez uwag.
+  Sugestię pozostawiono jako możliwość późniejszego uproszczenia trzech
+  powtórzonych linii, bez usterki zachowania.
+- Generator odtwarza wzorce bajtowo bez zmian. Sprawdzono 44 lokalne odnośniki
+  dokumentacji przed dodaniem raportu. Największy zmieniony plik kodu:
+  `stmviewer/ui/main_window.py`, **263 linie**. `git diff --check` poprawne.
 
 ### Odbiór i integracja
 
