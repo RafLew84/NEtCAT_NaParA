@@ -26,7 +26,9 @@ a nie dane pomiarowe. Program nie zmienia plików źródłowych.
 4. Wybierz trzecią miniaturę. Białe L jest po prawej i na dole;
    panel pokazuje **Current, pA, pole 16 × 12 nm, napięcie 1.5 V**.
    Upewnij się, że główny obraz, zaznaczona miniatura, suwak, numer i źródło
-   wskazują tę samą klatkę. Wypróbuj także suwak, wpisanie numeru i Poprzednia.
+   wskazują tę samą klatkę. Kliknij dwukrotnie Poprzednia, potem dwukrotnie
+   Następna: podświetlona ma być tylko aktualna miniatura, bez pozostających
+   śladów na poprzednich. Wypróbuj także suwak i wpisanie numeru.
 5. Przybliż kółkiem i przesuń lewym przyciskiem myszy. Zmieniaj klatki:
    zoom i przesunięcie pozostają, choć proporcje każdej klatki wynikają z jej
    własnej skali. „Dopasuj” przywraca cały obraz. Na końcach serii odpowiedni

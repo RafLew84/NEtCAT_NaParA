@@ -1,5 +1,34 @@
 # Przekazanie — STM Viewer
 
+## Poprawka ticketu 02: podświetlenie miniatur — 2026-10-21
+
+Baza: `89614aa`, gałąź `viewer/start`. Commit poprawki podany w końcowej
+wiadomości sesji. Użytkownik zgłosił pozostawanie podświetlenia poprzednich
+miniatur przy użyciu Następna/Poprzednia. Odtworzono to dwukrotnie na xcb:
+model zaznaczał tylko aktualną klatkę, ale poprzednie podświetlenie znikało
+z ekranu dopiero po wymuszonym przemalowaniu.
+
+Przyczyną był `QSignalBlocker` na modelu zaznaczenia: blokował również
+powiadomienia potrzebne widokowi Qt do odświeżenia poprzedniej miniatury.
+Usunięto blokadę tych sygnałów. Obsługa wyboru ignoruje już aktywny indeks,
+co zapobiega ponownemu wykonywaniu tej samej zmiany podczas synchronizacji.
+
+Test regresji poprzez publiczne przyciski sprawdza pojedyncze zaznaczenie
+oraz zdarzenia malowania starej i nowej miniatury (dwa kroki w przód i dwa
+wstecz). Przed poprawką nie otrzymywał przemalowania starej miniatury;
+po poprawce przechodzi w offscreen i xcb. Niezależna automatyczna próba xcb
+porównuje obraz z ekranu przed i po wymuszonym odświeżeniu — po poprawce
+obrazy są identyczne. Lokalny skrypt diagnostyczny i zrzuty:
+`/tmp/stmviewer-selection-debug/`.
+
+Sprawdzenia: **34 testy Viewera zaliczone**, test regresji na xcb zaliczony,
+mypy strict bez błędów, `git diff --check` poprawne. Największy zmieniony plik
+kodu ma 264 linie. Nie powtarzano pełnego zestawu repo dla tej lokalnej
+poprawki GUI; poprzedni wynik i 63 istniejące błędy są opisane niżej.
+Nie zmieniono wspólnych modułów ani zależności. To próby automatyczne;
+potwierdzenie użytkownika po poprawce pozostaje do wykonania.
+Ticket 02 nadal ma status `ready-for-review`.
+
 ## 02: Otwarcie i przeglądanie serii STP — 2026-10-21
 
 Gałąź: `viewer/start`. Baza implementacji i code-review:

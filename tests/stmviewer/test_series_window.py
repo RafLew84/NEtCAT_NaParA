@@ -230,3 +230,34 @@ def test_selecting_a_distant_frame_scrolls_its_thumbnail_into_view(qtbot, monkey
     assert strip.horizontalScrollBar().value() > 0
     assert strip.viewport().rect().contains(strip.visualRect(strip.currentIndex()).center())
     assert "Klatka 20 z 20" in window.statusBar().currentMessage()
+
+
+def test_frame_buttons_repaint_the_previous_thumbnail_selection(series_window, qtbot):
+    from PyQt6.QtCore import QEvent, QObject
+    from PyQt6.QtGui import QRegion
+
+    strip = series_window.findChild(QListView, "frameThumbnails")
+    repainted = []
+
+    class PaintObserver(QObject):
+        def eventFilter(self, watched, event):
+            if event.type() == QEvent.Type.Paint:
+                repainted.append(QRegion(event.region()))
+            return False
+
+    observer = PaintObserver(strip)
+    strip.viewport().installEventFilter(observer)
+    qtbot.wait(50)  # Finish the initial layout/paint before observing navigation.
+    for button_name, old_row, new_row in [
+        ("nextFrame", 0, 1), ("nextFrame", 1, 2),
+        ("previousFrame", 2, 1), ("previousFrame", 1, 0),
+    ]:
+        old_center = strip.visualRect(strip.model().index(old_row, 0)).center()
+        new_center = strip.visualRect(strip.model().index(new_row, 0)).center()
+        repainted.clear()
+
+        qtbot.mouseClick(series_window.findChild(QPushButton, button_name), Qt.MouseButton.LeftButton)
+
+        assert [index.row() for index in strip.selectionModel().selectedIndexes()] == [new_row]
+        qtbot.waitUntil(lambda: any(region.contains(old_center) for region in repainted), timeout=500)
+        qtbot.waitUntil(lambda: any(region.contains(new_center) for region in repainted), timeout=500)

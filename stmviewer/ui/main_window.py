@@ -217,12 +217,12 @@ class STMViewerMainWindow(QMainWindow):
             model = self._strip.model()
             assert model is not None
             index = model.index(self._index, 0)
-            with QSignalBlocker(self._strip.selectionModel()):
-                self._strip.setCurrentIndex(index)
+            # The view needs selectionChanged to repaint the previous highlight.
+            self._strip.setCurrentIndex(index)
             self._strip.scrollTo(index)
 
     def _select_frame(self, index: int) -> None:
-        if not 0 <= index < len(self._frames):
+        if index == self._index or not 0 <= index < len(self._frames):
             return
         frame = self._frames[index]
         self._preview.set_frame(frame, reset_view=False)

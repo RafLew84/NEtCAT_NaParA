@@ -70,3 +70,12 @@ wyboru przeszła na Linuksie. Szczegóły pełnego zestawu repo i przeglądu:
 Ręczny odbiór użytkownika pozostaje niewykonany, dlatego status to
 `ready-for-review`. [Scenariusz, wzorce i generator](../../stp-series-manual.md)
 obejmują wszystkie kroki dostępne po tym etapie; Windows pozostaje osobnym odbiorem.
+
+### Poprawka po zgłoszeniu z próby GUI
+
+2026-10-21: usunięto pozostające podświetlenie wcześniejszych miniatur przy
+Następna/Poprzednia. Powiadomienia Qt ponownie odświeżają stary i nowy wybór;
+zapętlaniu synchronizacji zapobiega pomijanie już aktywnego indeksu.
+34 testy Viewera, test regresji na xcb i mypy przechodzą. Automatyczne
+porównanie obrazu ekranu potwierdza brak śladu. Ręczne potwierdzenie użytkownika
+po poprawce pozostaje do wykonania; szczegóły w przekazaniu.
