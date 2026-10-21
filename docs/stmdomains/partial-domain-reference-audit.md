@@ -134,6 +134,11 @@ pozostają częścią [pytania o referencje](issues/04-reference-and-quality.md)
 Sprawdzono kompletność par, zgodność snapshotów rejestracji i rekonstrukcję
 18 PNG, przygotowano maski bez etykietowania reszty obrazu, obejrzano zestawienie
 wszystkich wnętrz oraz oryginały klatek 250, 251, 258 i 268. Rozdzielono ramki
-ręczne od poprzednich predykcji i od dokładnych masek granic. Nie przeliczano
-jeszcze klasyfikatorów domen ani nie ogłoszono skuteczności metod na tym zbiorze.
+ręczne od poprzednich predykcji i od dokładnych masek granic. Podczas tego audytu
+nie przeliczano klasyfikatorów domen ani nie oceniano skuteczności metod.
 Nie zmieniano danych źródłowych, kodu wspólnego ani produkcyjnej aplikacji.
+
+Następnie wykonano [próbę pokrycia na tych wnętrzach](coverage-partial-reference-trial.md).
+Zachowano te same maski referencji i oceniono utratę znanego materiału przez
+10 wariantów. To wynik kolejnego eksperymentu, nie zmiana znaczenia etykiet
+ani pełna walidacja pokrycia lub rozróżniania typów domen.

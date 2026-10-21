@@ -101,7 +101,7 @@ w QtWebEngine; nie zmieniano ani nie testowano aplikacji produkcyjnej.
 Obok są metryki, parametry, inspekcja oraz `reference-candidates/` z ośmioma
 podglądami bez nakładek — nie z referencjami.
 
-### Kolejne kroki z przyjętą referencją
+### Plan próby z przyjętą referencją — wykonanie opisano poniżej
 
 1. Wykorzystać przygotowane wnętrza do porównania zachowania masek pokrycia
    na znanym materiale. Zapisać utracone fragmenty, parametry i koszt;
@@ -136,8 +136,8 @@ uporządkowania. Automatyczne predykcje ze starego katalogu nie są referencją.
 
 Prototyp przygotowania: `prototype/stmdomains-coverage`, commit `4e7a757`.
 Lokalny podgląd: `/home/rlew/projekty/NEtCAT-domains/.scratch/partial-domain-reference/index.html`.
-Nie przeliczono jeszcze metod na tych wnętrzach. Umożliwiają ocenę lokalnego
-rozróżniania domen oraz zachowania materiału, ale nie pełnego pokrycia,
+Na etapie przygotowania nie przeliczono metod na tych wnętrzach. Umożliwiają
+ocenę lokalnego rozróżniania domen oraz zachowania materiału, ale nie pełnego pokrycia,
 fałszywych wykryć poza ramkami ani całkowitej liczby domen. Nie wystarczają
 samodzielnie do zamknięcia tego pytania; status nadal `claimed`.
 
@@ -148,3 +148,34 @@ kolejne przygotuje później, jeśli okażą się konieczne. Zaczynamy od obecny
 18 par i oznaczonych fragmentów, bez wymagania nowych anotacji przed próbą.
 To zgoda na dalsze lokalne porównania mimo otwartego pytania 04, a nie
 zatwierdzenie skuteczności metody ani kompletności referencji całych klatek.
+
+## Próba na dostarczonej referencji — wykonana 2026-10-21
+
+Na polecenie użytkownika **uruchomiono porównanie**, opisane w
+[raporcie próby](../coverage-partial-reference-trial.md). Wszystkie 18 klatek,
+54 robocze wnętrza, 10 niezmienionych wariantów oraz kontrola całego pola.
+Dodano cztery ubytki centrów klatki 250 przy niezmienionym obrazie i referencji.
+Obszary poza oznaczeniami pozostały wyłączone z oceny.
+
+- Mediana zachowania oznaczonych wnętrz: wspólna skala ×0,45 **97,71%**,
+  ×0,65 **99,51%**, jasna faza 3 px **45,00%**, lokalne zmiany jasności 3 px
+  **23,87%**. Nie są to miary trafności całej maski.
+- Klatka 250: po pozostawieniu 25% centrów fixed45 spada z **97,63% do 26,30%**.
+  Przy trzech centrach auto65 obejmuje całe pole; wysoki wynik we wnętrzach
+  nie potwierdza poprawności maski. Brak centrów daje jawny brak propozycji.
+- Jasna i ciemna faza wybiórczo odrzucają różne oznaczone regiony.
+  Prosta cecha amplitudy także nie odzyskuje całego materiału.
+
+Źródła: `prototype/stmdomains-coverage`, **`e67ca93`**.
+Podgląd: `/home/rlew/projekty/NEtCAT-domains/.scratch/coverage-partial-trial/index.html`.
+Obok CSV, NPZ, hashe, parametry, zestawienia i inspekcja. Zweryfikowano miary
+238 masek, zgodność 10 masek klatki 268 z pierwszą próbą oraz HTML w QtWebEngine
+(22 przypadki, 15 kroków scenariuszy, bez błędów JS). Koszt: 28,49 s,
+590,40 MiB RSS wraz z odczytem danych i generowaniem. Bez zmian aplikacji.
+
+**Ta próba jest wykonana; ticket pozostaje `claimed` do omówienia wyniku
+i dalszego zakresu.** Nie wybrano metody produkcyjnej. Obecny zbiór wystarcza
+do kolejnych lokalnych porównań; nie poproszono o nowe referencje. Konkretny
+nieoceniony aspekt to nadmiar maski poza ramkami: jeśli celem będzie wybór
+rozrostu według błędów w otoczeniu, potrzebne będą oznaczenia właśnie tych
+fragmentów. Przygotowanie pełnej anotacji klatek nie jest teraz wymagane.

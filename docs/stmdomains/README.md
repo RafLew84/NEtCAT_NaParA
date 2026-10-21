@@ -62,7 +62,13 @@ ciemnych miejsc bez wystarczających danych. Ticket pozostaje `claimed`.
 Następnie [przyjęto częściowe referencje wybranych domen](partial-domain-reference-audit.md)
 z klatek 250–268: 18 par PNG, zweryfikowana geometria, przygotowane robocze
 wnętrza ramek. Pozostałe obszary nie są oznaczone; pełna ocena pokrycia
-wymaga dodatkowych referencji podłoża i niepewności.
+wymaga dodatkowych referencji podłoża i niepewności. Obecny zbiór został
+zaakceptowany do lokalnych prób bez oczekiwania na kolejne oznaczenia.
+[Wykonano porównanie na częściowej referencji](coverage-partial-reference-trial.md):
+10 wariantów, 18 klatek i cztery kontrolowane ubytki centrów. Wyniki ujawniły
+utratę znanego materiału przez proste warianty obrazowe oraz silną zależność
+masek z centrów od kompletności detekcji. Interaktywny wynik jest w
+`.scratch/coverage-partial-trial/index.html`; nie wybrano metody produkcyjnej.
 
 ## Dwa etapy
 

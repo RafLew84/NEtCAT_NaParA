@@ -43,6 +43,11 @@ nieoznaczone. Dane umożliwiają lokalne porównanie, ale nie pełną ocenę pok
 Użytkownik zaakceptował ten zbiór na najbliższe próby: nie czekamy na dodatkowe
 anotacje ani zamknięcie całego pytania 04, aby wykonać porównania w oznaczonym
 zakresie. Potrzebę kolejnych referencji uzasadni konkretny wynik próby.
+Następnie [wykonano porównanie na tych referencjach](coverage-partial-reference-trial.md):
+18 klatek, 54 wnętrza i kontrole ubytków. Warianty z centrów zachowują materiał
+przy pełnych oznaczeniach, lecz są wrażliwe na ich braki; proste warianty
+jasności i amplitudy odrzucają znaczne części wnętrz. Próba jest wykonana,
+ticket 10 pozostaje `claimed` do omówienia wyniku i dalszego zakresu.
 
 - Rozpatrujemy dwa wyniki: pokrycie materiałem/wyspy oraz domeny orientacji
   i uporządkowania sieci. Orientacja pojedynczej molekuły jest odłożona.

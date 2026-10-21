@@ -1,4 +1,42 @@
-# STM Domains — wstępna próba pokrycia i skali
+# STM Domains — próba na częściowej referencji wykonana
+
+Data: 2026-10-21. Gałąź dokumentacji: `domains/coverage-and-scale`, baza `245a3e9`.
+Worktree: `/tmp/netcat-stmdomains-coverage`; docelowo `domains/start`.
+Commit dokumentacji podany w wiadomości końcowej. Źródła prototypu:
+**`prototype/stmdomains-coverage`, `e67ca93` — nie scalać do aplikacji.**
+
+[Próba zadania 10](coverage-partial-reference-trial.md): wykonano 10 wariantów
+na 18 klatkach / 54 wnętrzach częściowej referencji. Dodano cztery ubytki
+centrów klatki 250 oraz kontrolę całego pola. Parametrów nie dostrajano.
+Dane i maski referencji pozostały niezmienione; nie oceniano obszarów poza nimi.
+
+Mediana zachowania znanego materiału: fixed45 97,71%, fixed65 99,51%, bright3
+45,00%, texture3 23,87%. Ubytek do 25% centrów w klatce 250 obniża fixed45
+z 97,63% do 26,30%; przy trzech centrach auto65 obejmuje całe pole. Wyniki
+uzasadniają ograniczenia tych kandydatów, nie wybór gotowej metody.
+
+Podgląd: `/home/rlew/projekty/NEtCAT-domains/.scratch/coverage-partial-trial/index.html`.
+Obok `results.json`, CSV klatek/regionów, 22 NPZ masek, zestawienia PNG i raporty
+inspekcji. Polecenie odtworzenia, parametry i hashe są w raporcie i README prototypu.
+
+Wykonano kontrolę hashy wejścia, geometrii raw/PNG, wyłączenia kreski/paddingu,
+zgodności metryk 238 masek i 10 masek klatki 268 z pierwszą próbą. Metody
+obrazowe są niezmienne przy ubytkach centrów. QtWebEngine: 22 przypadki,
+15 kroków scenariuszy, wybory i nakładki, gamma, nawigacja, reset, brak wyniku;
+bez błędów JS. Obejrzano zrzut i zestawienia wszystkich klatek dla dwóch metod.
+Generator: 28,49 s / 590,40 MiB RSS, HTML 3 839 863 B. Sprawdzono linki dokumentacji
+oraz `git diff --check`. Nie uruchamiano testów ani nie zmieniano kodu aplikacji.
+
+Próba wykonana; [ticket 10](issues/10-coverage-and-scale.md) pozostaje `claimed`
+do omówienia wyniku i dalszego zakresu. Brak nowych referencji nie blokował
+próby; nie poproszono o dodatkowe dane. Pełna ocena nadmiaru maski poza ramkami
+pozostaje niedostępna. Można kontynuować lokalne porównania na obecnych danych.
+Nie zgłoszono nowych zmian wspólnych; wcześniejsze potrzeby integracyjne
+pozostają w zachowanym przekazaniu poniżej.
+
+---
+
+## Poprzednie przekazanie — wstępna próba pokrycia i skali
 
 Data: 2026-10-21. Gałąź dokumentacji: `domains/coverage-and-scale`, baza `c80d9e9`.
 Worktree: `/tmp/netcat-stmdomains-coverage`; docelowo `domains/start`.
