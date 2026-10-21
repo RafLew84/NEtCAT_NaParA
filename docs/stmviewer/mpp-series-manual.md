@@ -93,4 +93,7 @@ Odczyt dodatku metadanych i eksport należą do kolejnych ticketów.
 klatki 12 lokalnych MPP z dotychczasowym czytnikiem po obrocie: wartości,
 wymiary i NaN zgodne. Automatyczna próba rzeczywistego okna Qt xcb przeszła
 na wzorcach oraz `MOVIE_3.MPP`; zrzuty oceniono wizualnie. To próby automatyczne.
-Ręczny odbiór użytkownika oraz odrębny odbiór Windows pozostają do wykonania.
+
+Użytkownik potwierdził pozytywny wynik testów manualnych 2026-10-21:
+„testy manualne ok”. Ticket 04 ma status `done`. Nie wskazano systemu;
+odrębny odbiór platform, w tym Windows, pozostaje do wykonania.

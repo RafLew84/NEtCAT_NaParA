@@ -4,7 +4,7 @@
 
 **Blocked by:** [02: Otwarcie i przeglądanie serii STP](02-stp-series.md)
 
-**Status:** ready-for-review
+**Status:** done
 
 **Wykonawca:** Codex, `viewer/start`.
 
@@ -63,8 +63,10 @@ i zależności pozostają bez zmian.
 Automatyczna próba xcb obejmuje rzeczywisty dialog, częściowe czasy, klatkę 1000
 oraz pierwszy/środkowy/ostatni obraz lokalnego filmu Current.
 
-[Instrukcja ręczna i wzorce](../../mpp-series-manual.md). Ręczny odbiór użytkownika
-i Windows są niewykonane, stąd `ready-for-review`.
+[Instrukcja ręczna i wzorce](../../mpp-series-manual.md). Użytkownik potwierdził
+pozytywny wynik testów manualnych 2026-10-21: „testy manualne ok”.
+Ticket ma status `done`. Nie wskazano systemu; potwierdzenie nie zamyka
+odrębnych ticketów odbioru platform.
 
 Commit implementacji: `03f4917`.
 [Przegląd](../review-04-mpp-series.md): Standards — bez naruszeń zasad,

@@ -5,8 +5,9 @@
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
 `8aa12416d6225d63d1378b535e140b2063b65bf6`.
 Ticket: [04-mpp-series](implementation/issues/04-mpp-series.md),
-status `ready-for-review` do ręcznego odbioru użytkownika.
-Commit implementacji: `03f4917`; commit końcowego raportu podany w wiadomości sesji.
+status `done` po potwierdzeniu ręcznego odbioru użytkownika 2026-10-21.
+Commit implementacji: `03f4917`; końcowy raport: `2f18b67`.
+Commit potwierdzenia ręcznego odbioru podany w wiadomości sesji.
 
 ### Wynik i kontrakt
 
@@ -63,9 +64,12 @@ sprawdzane w trakcie nagłówka, między klatkami i przed publikacją wyniku.
 ### Odbiór i integracja
 
 [Instrukcja GUI](mpp-series-manual.md) zawiera uruchomienie, wersjonowane małe
-wzorce, generator, lokalne pomiary oraz oczekiwane wyniki. Ręczny odbiór
-użytkownika i Windows pozostają niewykonane. Test 1000 × 1 × 1 sprawdza
-liczbę klatek i nagłówek; nie zastępuje testu 1000 × 512 × 512 z ticketu 18.
+wzorce, generator, lokalne pomiary oraz oczekiwane wyniki. Użytkownik
+potwierdził pozytywny wynik testów manualnych 2026-10-21: „testy manualne ok”.
+Nie wskazano systemu; potwierdzenie nie zamyka odrębnych ticketów odbioru
+platform, w tym Windows. Test 1000 × 1 × 1 sprawdza liczbę klatek i nagłówek;
+nie zastępuje testu 1000 × 512 × 512 z ticketu 18. Aktualizacja statusu zmienia
+wyłącznie dokumentację; nie ponawiano testów kodu.
 
 Nie zmieniono modułów wspólnych ani konfiguracji głównej/zależności.
 Dla przyszłych zmian integracyjnych wspólny czytnik/loader wymaga:

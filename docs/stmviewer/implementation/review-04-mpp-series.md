@@ -5,6 +5,10 @@ Data: 2026-10-21. Baza zgodnie z zatwierdzonymi zasadami implementacji:
 Commit implementacji: `03f4917`.
 Diff: `git diff 8aa12416d6225d63d1378b535e140b2063b65bf6...03f4917`.
 
+Poniższe ustalenia opisują stan w chwili przeglądu. Później, 2026-10-21,
+użytkownik potwierdził testy manualne („testy manualne ok”);
+[ticket 04](issues/04-mpp-series.md) otrzymał status `done`.
+
 Dwie osie sprawdzili równolegle niezależni agenci zgodnie ze skillem
 `code-review`. Przegląd tylko do odczytu, bez ponawiania testów przez agentów.
 

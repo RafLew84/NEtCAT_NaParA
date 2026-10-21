@@ -67,8 +67,7 @@ podświetlenia miniatur, 2026-10-21.
 [S94 i mieszane serie STP/S94](implementation/issues/03-s94-series.md) mają
 status `done`: użytkownik potwierdził testy manualne 2026-10-21.
 [Otwarcie filmu MPP z czasami i pochodzeniem](implementation/issues/04-mpp-series.md)
-ma status `ready-for-review`: implementacja, sprawdzenia i przegląd są gotowe;
-ręczny odbiór użytkownika pozostaje do wykonania.
+ma status `done`: użytkownik potwierdził testy manualne 2026-10-21.
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje
