@@ -9,8 +9,8 @@ Claim: `fd0c119`; commit niniejszego przekazania podany w wiadomości końcowej.
 [Pokrycie i skala](issues/10-coverage-and-scale.md): wykonano i omówiono
 porównanie wstępne; pytanie nadal `claimed`. Użytkownik potwierdził dalszą próbę
 z referencjami. Następnie dostarczył częściowe oznaczenia domen opisane
-w uzupełnieniu poniżej. Nie zwalidowano metody i nie usunięto zależności
-od referencji pokrycia, podłoża i niepewności.
+w uzupełnieniu poniżej i zaakceptował ich użycie na najbliższe próby.
+Nie zwalidowano metody; pełny odbiór nadal wymaga protokołu jakości.
 
 [Raport](coverage-and-scale-pilot.md): 25 obrazów, 10 wariantów, oddzielny wpływ
 skali, braków oznaczeń, kontrastu i wygładzania. Na kontrolach wykazano błędne
@@ -39,11 +39,12 @@ HTML 2,38 MiB. Kontrola lokalnych linków, statusów, grafu i `git diff --check`
 przed commitem. Nie dodawano testów prototypu ani nie uruchamiano testów
 produkcyjnej aplikacji; kod produkcyjny pozostaje bez zmian.
 
-Następny krok badawczy: wykorzystać oznaczone wnętrza do lokalnego porównania,
-uzupełnić pewne podłoże i nierozstrzygnięcie, ustalić podział danych i wrócić do
-tego samego pytania o pokrycie. Nie utworzono duplikatu ticketu. Budowa szkieletu
-z pierwszej mapy może przebiegać niezależnie. Do integratora nie zgłoszono nowych
-zmian wspólnych; wcześniejsze potrzeby środowiska i importu pozostają poniżej.
+Następny krok badawczy: wykorzystać obecne oznaczone wnętrza do lokalnego
+porównania. Dodatkowe referencje pozyskiwać dopiero po wykazaniu konkretnej
+potrzeby; nie są warunkiem rozpoczęcia tej próby. Nie utworzono duplikatu ticketu.
+Budowa szkieletu z pierwszej mapy może przebiegać niezależnie. Do integratora nie
+zgłoszono nowych zmian wspólnych; wcześniejsze potrzeby środowiska i importu
+pozostają poniżej.
 
 ## Uzupełnienie: częściowe referencje domen
 
@@ -65,6 +66,12 @@ referencjach; nie uruchamiano testów aplikacji. Ramki są przybliżone, margine
 wnętrz nie jest skalibrowaną tolerancją. Do pełnej walidacji nadal brakuje
 negatywnych przykładów podłoża, niepewności i niezależnej próby. Nie zgłoszono
 nowych potrzeb wspólnych. Dokumentacja i stan ticketu zostały uzupełnione.
+
+Uzupełnienie po akceptacji zbioru przez użytkownika: dokumentacja dopuszcza
+lokalne próby na tej referencji mimo otwartego pytania 04. Commit bazowy audytu:
+`c0cc0f4`; commit tej decyzji podany w wiadomości końcowej. Obecna zmiana
+obejmuje tylko dokumentację: sprawdzono lokalne linki i `git diff --check`.
+Nie uruchamiano ponownie eksperymentów ani testów aplikacji.
 
 ---
 

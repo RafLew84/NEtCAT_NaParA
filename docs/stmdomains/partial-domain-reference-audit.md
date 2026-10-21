@@ -104,6 +104,11 @@ pełna ocena granic wymaga osobnego ustalenia tolerancji i fragmentów niepewnyc
 
 ## Do czego użyjemy tych danych
 
+Użytkownik 2026-10-21 zaakceptował obecny zbiór jako referencję do najbliższych
+prób. Wykorzystujemy go w poniższym zakresie; dodatkowych oznaczeń szukamy
+dopiero wtedy, gdy konkretna próba wykaże ich konieczność. Brak pełnej anotacji
+klatek nie blokuje lokalnego porównania metod.
+
 1. Porównanie cech i rozróżniania wzorów **wewnątrz zaznaczonych domen**.
    Przy wymaganiu użycia wyłącznie ich wnętrz okno cechy musi mieścić się
    w odpowiednim wnętrzu; brak dostatecznie dużego okna to jawny brak próbki.

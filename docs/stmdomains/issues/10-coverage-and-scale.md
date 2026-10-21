@@ -101,20 +101,23 @@ w QtWebEngine; nie zmieniano ani nie testowano aplikacji produkcyjnej.
 Obok są metryki, parametry, inspekcja oraz `reference-candidates/` z ośmioma
 podglądami bez nakładek — nie z referencjami.
 
-### Co pozostaje do zakończenia pytania
+### Kolejne kroki z przyjętą referencją
 
-1. Wskazanie i audyt dostarczonych częściowych referencji wykonano w uzupełnieniu
-   poniżej. Dla pełnej oceny pokrycia nadal brakuje pewnego podłoża oraz oznaczeń
-   obszarów nierozstrzygniętych.
-2. Przygotować niezależne granice pewnego materiału, podłoża i nierozstrzygnięcia,
-   także dla wielu poziomów i miejsc bez widocznych molekuł. Ustalić podział
-   do strojenia/sprawdzenia i sposób oceny niepewności w pytaniu o referencje.
-3. Powtórzyć ocenę granic, pokrycia, scaleń/podziałów i odmów na tych danych.
-   Dopiero wtedy dobrać następny wariant i progi jakości. Obecne progi pomocnicze
-   prototypu nie są zaakceptowanymi regułami odmowy pomiaru.
+1. Wykorzystać przygotowane wnętrza do porównania zachowania masek pokrycia
+   na znanym materiale. Zapisać utracone fragmenty, parametry i koszt;
+   zachowanie całego wnętrza samo nie świadczy o poprawności całej maski.
+2. Rozbieżności i ograniczenia pokazać na konkretnych fragmentach obecnych
+   klatek. Porównanie cech rozróżniających oznaczone domeny może korzystać
+   z tej samej referencji, z zachowaniem jej częściowego zakresu.
+3. O dodatkowe oznaczenia poprosić dopiero, gdy konkretna próba ujawni pytanie,
+   którego ten zbiór nie rozstrzyga. Wskazać wtedy potrzebny fragment i rodzaj
+   oznaczenia, np. pewne podłoże lub niepewną granicę.
 
-Nie utworzono kolejnego ticketu powielającego ten zakres: dalsza próba pozostaje
-tutaj, zależna od [referencji i jakości](04-reference-and-quality.md).
+Pełna ocena pokrycia, scaleń/podziałów i odmów pozostaje związana z
+[protokołem jakości](04-reference-and-quality.md). Jego otwarty status nie
+blokuje powyższych prób na obecnej referencji, zgodnie z decyzją poniżej.
+Progi pomocnicze prototypu nie są zaakceptowanymi regułami odmowy pomiaru.
+Nie utworzono kolejnego ticketu powielającego ten zakres.
 
 ## Uzupełnienie — częściowe referencje dostarczone 2026-10-21
 
@@ -137,3 +140,11 @@ Nie przeliczono jeszcze metod na tych wnętrzach. Umożliwiają ocenę lokalnego
 rozróżniania domen oraz zachowania materiału, ale nie pełnego pokrycia,
 fałszywych wykryć poza ramkami ani całkowitej liczby domen. Nie wystarczają
 samodzielnie do zamknięcia tego pytania; status nadal `claimed`.
+
+### Decyzja użytkownika — korzystamy z obecnego zbioru
+
+2026-10-21 użytkownik zaakceptował tę referencję na najbliższe próby;
+kolejne przygotuje później, jeśli okażą się konieczne. Zaczynamy od obecnych
+18 par i oznaczonych fragmentów, bez wymagania nowych anotacji przed próbą.
+To zgoda na dalsze lokalne porównania mimo otwartego pytania 04, a nie
+zatwierdzenie skuteczności metody ani kompletności referencji całych klatek.

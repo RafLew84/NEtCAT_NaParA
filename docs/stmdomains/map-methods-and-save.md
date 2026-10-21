@@ -35,11 +35,14 @@ Użytkownik przyjął potrzebę dalszej próby z referencjami i doprecyzował, �
 pokrycie dotyczy materiału na dowolnym widocznym poziomie warstwy; ciemne
 obszary bez wystarczających przesłanek pozostają nierozstrzygnięte.
 [Raport](coverage-and-scale-pilot.md) nie wybiera metody. Pytanie pozostaje
-`claimed` do oceny na niezależnych referencjach; nie zniesiono jego zależności.
+`claimed`; pełny odbiór nadal wymaga protokołu referencji i jakości.
 Następnie użytkownik dostarczył
 [częściowe oznaczenia wybranych domen](partial-domain-reference-audit.md).
 Zweryfikowano ich geometrię i przygotowano wnętrza; obszary poza ramkami są
 nieoznaczone. Dane umożliwiają lokalne porównanie, ale nie pełną ocenę pokrycia.
+Użytkownik zaakceptował ten zbiór na najbliższe próby: nie czekamy na dodatkowe
+anotacje ani zamknięcie całego pytania 04, aby wykonać porównania w oznaczonym
+zakresie. Potrzebę kolejnych referencji uzasadni konkretny wynik próby.
 
 - Rozpatrujemy dwa wyniki: pokrycie materiałem/wyspy oraz domeny orientacji
   i uporządkowania sieci. Orientacja pojedynczej molekuły jest odłożona.

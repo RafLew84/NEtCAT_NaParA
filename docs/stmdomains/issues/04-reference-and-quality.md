@@ -41,7 +41,8 @@ To odbiór metod drugiego etapu; nie jest warunkiem odbioru szkieletu.
 wskazuje konkretne przypadki do referencji: skąpe oznaczenia w klatce 68,
 rozbieżne maski pokrycia i kontrolną granicę przesunięcia. Nie dostarcza
 niezależnej prawdy odniesienia TTMAPP ani progów jakości. To pytanie nadal
-warunkuje dalsze próby i odbiór metod, pomimo zakończenia samego pilotażu.
+warunkuje pełny odbiór metod. Dalsze lokalne próby na dostarczonej referencji
+są dopuszczone decyzją użytkownika opisaną poniżej.
 
 Kontekst: [proponowane kryteria domen](../research-general-domain-detection.md),
 [protokół dla wysp i orientacji sieci](../research-domain-detection-level-sets.md).
@@ -84,6 +85,12 @@ Wcześniej używany temporalny holdout nie jest nowym niezależnym testem.
 Pozostają: pewne podłoże, obszary nierozstrzygnięte, tolerancja przybliżonych
 granic, podział do strojenia/sprawdzenia oraz kryteria jakości. Status pytania
 nadal `open`; przyjęcie częściowej referencji nie zamyka całego protokołu.
+
+Użytkownik 2026-10-21 potwierdził użycie obecnego zbioru na najbliższe próby.
+Nowe referencje przygotuje w razie wykazanej potrzeby. Powyższe braki nie są
+listą anotacji wymaganych przed rozpoczęciem lokalnych porównań: najpierw
+wykorzystujemy oznaczone fragmenty, a ewentualną prośbę o uzupełnienie wiążemy
+z konkretnym nierozstrzygniętym przykładem i celem pomiaru.
 
 ## Dependencies
 
