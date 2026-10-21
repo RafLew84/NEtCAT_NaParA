@@ -5,7 +5,7 @@ Data: 2026-10-21. Baza zgodnie z zatwierdzonymi zasadami implementacji:
 Commit implementacji: `d6fbb7dd147ddf94789192b048ab1284a5312e8a`.
 Diff: `git diff b904045...d6fbb7d`.
 
-Dwie niezależne osie wykonały równolegle osobne osoby recenzujące zgodnie
+Dwie osie sprawdzili równolegle niezależni agenci zgodnie
 ze skillem `code-review`. Przegląd tylko do odczytu, bez ponawiania testów.
 
 ## Standards
