@@ -4,7 +4,11 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** ready-for-review
+
+**Assignee:** Codex / rlew
+
+**Baza code-review:** `ba4e0d3` (HEAD przed rozpoczęciem, 2026-10-21).
 
 **Specyfikacja:** [Seria wejściowa i usuwanie klatek](../../issues/01-frame-series.md#answer), [Podgląd, gamma i odtwarzanie serii](../../issues/02-preview-playback.md#answer), [Dane i kryteria odbioru pierwszej wersji](../../issues/06-acceptance.md#answer).
 
@@ -12,12 +16,12 @@ Przed realizacją przeczytaj [zasady wykonania i odbioru](../README.md#zasady-wy
 
 ## Kryteria odbioru
 
-- [ ] Okno uruchamia się z repozytorium i otwiera jeden STP przez wybór pliku; rzeczywisty obraz jest dopasowany do głównego podglądu.
-- [ ] Odczyt zachowuje orientację, wartości, źródłowy kanał, jednostkę sygnału i skalę. Nieznane parametry pozostają nieznane; Z Amplitude nie skaluje ponownie danych double.
-- [ ] Ponowne otwarcie poprawnego STP zastępuje obraz; anulowanie wyboru i błąd odczytu zachowują dotychczasowy obraz. Komunikat wskazuje źródło problemu.
-- [ ] Pusty program i pojedyncza klatka mają spójne kontrolki. Zestawy wielu plików i filmstrip należą do następnego etapu.
+- [x] Okno uruchamia się z repozytorium i otwiera jeden STP przez wybór pliku; rzeczywisty obraz jest dopasowany do głównego podglądu.
+- [x] Odczyt zachowuje orientację, wartości, źródłowy kanał, jednostkę sygnału i skalę. Nieznane parametry pozostają nieznane; Z Amplitude nie skaluje ponownie danych double.
+- [x] Ponowne otwarcie poprawnego STP zastępuje obraz; anulowanie wyboru i błąd odczytu zachowują dotychczasowy obraz. Komunikat wskazuje źródło problemu.
+- [x] Pusty program i pojedyncza klatka mają spójne kontrolki. Zestawy wielu plików i filmstrip należą do następnego etapu.
 - [ ] Jest instrukcja uruchomienia na docelowych systemach, minimalne zależności dla tej funkcji i ustalona z integracją komenda sprawdzania typów kodu Viewera.
-- [ ] Dołączony mały wzorzec STP pozwala ręcznie sprawdzić orientację i metadane bez posiadania pełnego katalogu pomiarowego.
+- [x] Dołączony mały wzorzec STP pozwala ręcznie sprawdzić orientację i metadane bez posiadania pełnego katalogu pomiarowego.
 
 ## Testy automatyczne
 
@@ -44,3 +48,16 @@ Dane i sposób przygotowania nietypowych wzorców dostarcza realizujący ticket.
 ## Współpraca z integracją
 
 Minimalne zależności, komenda typecheckingu i potrzebne poprawki wspólnego czytnika STP należą do współpracy z integracją. Przygotowanie małego szkieletu jest częścią działającego otwarcia obrazu, nie oddzielną warstwą bez GUI.
+
+
+## Wynik implementacji — 2026-10-21
+
+Otwieranie, podgląd i metadane są podłączone w działającym oknie.
+14 testów Viewera i mypy strict przechodzi. Pełny zestaw repo wykazał
+błędy poza Viewerem; szczegóły i porównanie bazy w [przekazaniu](../../handoff.md).
+
+[Ręczna próba](../../single-stp-manual.md) zawiera uruchomienie, małe dane,
+wygląd wzorców i oczekiwane wyniki. Przygotowano instrukcje Ubuntu/Windows,
+minimalne zależności i działającą komendę mypy po stronie aplikacji.
+Do zamknięcia `done` pozostają ręczny odbiór i potwierdzenie konfiguracji
+przez sesję integracyjną. Automatyczne próby offscreen/xcb są rozliczone osobno.

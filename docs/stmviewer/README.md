@@ -5,8 +5,10 @@ oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 
 ## Stan aplikacji
 
-Gotowe są osobny punkt uruchomienia, podstawowe okno PyQt6 i akcja zakończenia.
-Okno nie wczytuje ani nie zapisuje jeszcze plików i nie wykonuje rejestracji.
+Działa otwieranie jednego STP, podgląd całego obrazu, pochodzenie i metadane.
+Anulowanie wyboru i błąd importu zachowują poprzedni obraz. Ręczna próba:
+[instrukcja ticketu 01](single-stp-manual.md). Serie, rejestracja i eksport
+należą do kolejnych ticketów.
 Mapa decyzji jest zamknięta: specyfikacja pierwszej wersji jest gotowa do
 implementacji. Nie oznacza to wdrożenia funkcji ani zaliczenia odbioru.
 
@@ -54,13 +56,56 @@ cel do 1000 linii i bezwzględny limit 1500 fizycznych linii pliku kodu.
 
 ## Uruchomienie
 
-Z katalogu głównego worktree, w jego środowisku:
+Z katalogu głównego worktree, z Pythonem 3.12. Dla tej funkcji potrzebne
+są tylko NumPy i PyQt6; wersje zapisano w `stmviewer/requirements.txt`,
+który korzysta ze wspólnego zestawu PyQt6 z `requirements/stm-apps.txt`.
+
+Ubuntu 24.04:
 
 ```bash
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -r stmviewer/requirements.txt
+.venv/bin/python -m stmviewer.main
+```
+
+Windows 11, PowerShell (instrukcja przygotowana, próba na Windows jeszcze niewykonana):
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r stmviewer/requirements.txt
+.\.venv\Scripts\python.exe -m stmviewer.main
+```
+
+W już przygotowanej conda `netcat`:
+
+```bash
+conda activate netcat
 python -m stmviewer.main
 ```
 
-[Przygotowanie środowiska](../../README.md) i
+Na tym stanowisku można również użyć bezpośrednio
+`/home/rlew/projekty/conda-migration-ubuntu-20261008/envs/netcat/bin/python`.
+Przycisk „Otwórz STP…”, menu Plik lub Ctrl+O otwierają wybór jednego pliku.
+Małe dane i oczekiwany wygląd: [próba ręczna](single-stp-manual.md).
+
+Kontrole dla dewelopera (po aktywowaniu środowiska):
+
+```bash
+python -m pip install -r stmviewer/requirements-dev.txt
+python -m mypy --config-file stmviewer/mypy.ini
+python -m pytest -q tests/stmviewer
+```
+
+Testy Qt wymagają ekranu lub ustawienia `QT_QPA_PLATFORM=offscreen` przed
+uruchomieniem pytest (Linux: prefiks komendy; PowerShell:
+`$env:QT_QPA_PLATFORM = "offscreen"`). Tryb offscreen dotyczy testów,
+nie interaktywnego uruchomienia aplikacji.
+Mypy sprawdza cały kod `stmviewer` w trybie strict, pomija śledzenie starego
+kodu `napara`. Komenda i zależności są przygotowane po stronie aplikacji;
+przekazano je do potwierdzenia przez sesję integracyjną w [handoff](handoff.md).
+Nie zmieniono głównej konfiguracji ani wspólnych czytników.
+
+[Przygotowanie środowiska repo](../../README.md) i
 [praca równoległa](../PARALLEL_DEVELOPMENT.md).
 
 ## Kod do wykorzystania i testy
@@ -68,7 +113,7 @@ python -m stmviewer.main
 - Czytniki: `napara/io/`; dane obrazu: `napara/core/data_models.py`.
 - Viewer: `napara/gui/widgets/viewer_widget.py`.
 - Rejestracja: `nanotrack/registration/`.
-- Testy nowych funkcji: `tests/stmviewer/` (na razie katalog startowy).
+- Testy nowych funkcji i małe wzorce: `tests/stmviewer/`.
 
 Współdzielony kod wymaga dodatkowych zależności poza minimalnym PyQt6 szkieletu.
 Ich dobór oraz zmiany wspólnych modułów koordynuje sesja integracyjna.
