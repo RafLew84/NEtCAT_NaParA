@@ -166,8 +166,10 @@ wspólnej skali to pomocnicze reguły prototypu, nie zatwierdzone minima danych.
 Nie ustalono progów kontrastu, separacji, stabilności parametrów ani wielkości
 wyspy, które uprawniałyby do automatycznego pomiaru.
 
-Użytkownik może mieć klatki referencyjne; ścieżki i status ich oznaczeń nie
-są jeszcze znane. Samo wskazanie dobrego obrazu nie dostarcza maski odniesienia.
+Po tej próbie użytkownik dostarczył
+[częściowe referencje domen](partial-domain-reference-audit.md): przybliżone
+ramki wybranych obszarów klatek 250–268. Przygotowano ich robocze wnętrza,
+bez uznawania reszty obrazu za podłoże. Nie są to pełne maski pokrycia.
 W [pytaniu o referencje](issues/04-reference-and-quality.md) trzeba ustalić
 pochodzenie i geometrię, granice materiału i niepewność, przykłady podłoża,
 podział do strojenia i sprawdzenia oraz sposób ograniczenia wpływu obejrzanych

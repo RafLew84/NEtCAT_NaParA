@@ -47,8 +47,8 @@ zależy od dostępności referencji i reakcji użytkownika na maski.
 ## Answer — 2026-10-21, wynik wstępny
 
 **Zakończono i omówiono porównanie wstępne. Pełne pytanie pozostaje `claimed`**:
-nie dostarczono niezależnych referencji pokrycia TTMAPP, więc nie oceniono
-trafności ani nie wybrano metody. Zależność od pytania o referencje pozostaje.
+w chwili tej próby nie dostarczono niezależnych referencji pokrycia TTMAPP,
+więc nie oceniono trafności ani nie wybrano metody. Zależność od pytania o referencje pozostaje.
 Użytkownik najpierw polecił porównanie wstępne, zaznaczając, że może posiadać
 klatki referencyjne. Następnie po otrzymaniu prototypu potwierdził:
 „Tak — dalsza próba z referencjami”. Nie jest to akceptacja gotowego algorytmu.
@@ -103,8 +103,9 @@ podglądami bez nakładek — nie z referencjami.
 
 ### Co pozostaje do zakończenia pytania
 
-1. Ustalić, jakie klatki referencyjne ma użytkownik, ich ścieżki, pochodzenie
-   i zgodność geometrii. Rozróżnić obrazy do oznaczenia od gotowych referencji.
+1. Wskazanie i audyt dostarczonych częściowych referencji wykonano w uzupełnieniu
+   poniżej. Dla pełnej oceny pokrycia nadal brakuje pewnego podłoża oraz oznaczeń
+   obszarów nierozstrzygniętych.
 2. Przygotować niezależne granice pewnego materiału, podłoża i nierozstrzygnięcia,
    także dla wielu poziomów i miejsc bez widocznych molekuł. Ustalić podział
    do strojenia/sprawdzenia i sposób oceny niepewności w pytaniu o referencje.
@@ -114,3 +115,25 @@ podglądami bez nakładek — nie z referencjami.
 
 Nie utworzono kolejnego ticketu powielającego ten zakres: dalsza próba pozostaje
 tutaj, zależna od [referencji i jakości](04-reference-and-quality.md).
+
+## Uzupełnienie — częściowe referencje dostarczone 2026-10-21
+
+Użytkownik wskazał `data/ttmapp_frames_250_268_domain_review` i potwierdził:
+ramki opisują przybliżone granice całych wybranych widocznych domen; podobne
+skupiska mogą istnieć poza nimi. Referencja obejmuje tylko te fragmenty,
+nie całą górną część ani całą klatkę. Reszta jest nieoznaczona, nigdy
+negatywna tylko z powodu braku ramki.
+
+[Audyt i zasady wykorzystania](../partial-domain-reference-audit.md):
+18 par PNG (bez klatki 255), wszystkie czyste obrazy odtworzone piksel w piksel
+z MPP i zapisanej geometrii. Przygotowano 54 ostrożne wnętrza regionów,
+manifest/hashy i maski raw/PNG. Kreski i pas przybliżonych granic są wyłączone
+z roboczych wnętrz. Kolory pozostają etykietami zbioru, nie automatycznie typami
+uporządkowania. Automatyczne predykcje ze starego katalogu nie są referencją.
+
+Prototyp przygotowania: `prototype/stmdomains-coverage`, commit `4e7a757`.
+Lokalny podgląd: `/home/rlew/projekty/NEtCAT-domains/.scratch/partial-domain-reference/index.html`.
+Nie przeliczono jeszcze metod na tych wnętrzach. Umożliwiają ocenę lokalnego
+rozróżniania domen oraz zachowania materiału, ale nie pełnego pokrycia,
+fałszywych wykryć poza ramkami ani całkowitej liczby domen. Nie wystarczają
+samodzielnie do zamknięcia tego pytania; status nadal `claimed`.

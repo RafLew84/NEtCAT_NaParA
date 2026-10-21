@@ -59,6 +59,10 @@ centrów, skali, kontrastu i szumu. Użytkownik potwierdził dalszą próbę
 z referencjami; nie wybrano metody. Pokrycie dotyczy rozpoznanego materiału
 na dowolnym widocznym poziomie warstwy, z osobnym nierozstrzygnięciem dla
 ciemnych miejsc bez wystarczających danych. Ticket pozostaje `claimed`.
+Następnie [przyjęto częściowe referencje wybranych domen](partial-domain-reference-audit.md)
+z klatek 250–268: 18 par PNG, zweryfikowana geometria, przygotowane robocze
+wnętrza ramek. Pozostałe obszary nie są oznaczone; pełna ocena pokrycia
+wymaga dodatkowych referencji podłoża i niepewności.
 
 ## Dwa etapy
 

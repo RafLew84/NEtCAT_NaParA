@@ -51,8 +51,8 @@ Kontekst: [proponowane kryteria domen](../research-general-domain-detection.md),
 [Wstępna próba pokrycia i skali](../coverage-and-scale-pilot.md) wykazała,
 że same centra nie określają warstwy w lukach oznaczeń, a warianty obrazowe
 potrafią przypisać około połowy pustego, zaszumionego podłoża do materiału.
-Użytkownik zaakceptował dalszą próbę z referencjami i może posiadać klatki
-referencyjne; ich lokalizacja i status oznaczeń pozostają do ustalenia.
+Użytkownik zaakceptował dalszą próbę z referencjami. Następnie wskazał
+częściowo oznaczone klatki; ich zakres opisano w uzupełnieniu poniżej.
 
 Pokrycie ma obejmować materiał na dowolnym widocznym poziomie warstwy.
 Ciemne miejsca mogą odsłaniać niższą warstwę, ale gdy molekuł nie widać
@@ -66,6 +66,24 @@ bez nakładek i manifest geometrii; **nie są to niezależne referencje**.
 Należy uwzględnić, że użytkownik oglądał już propozycje masek, oraz ustalić
 sposób ograniczenia ich wpływu na referencję i niezależny zbiór sprawdzający.
 Ten materiał nie zamyka niniejszego pytania ani nie ustanawia progów jakości.
+
+## Dostarczone częściowe referencje — 2026-10-21
+
+[Audyt klatek 250–268](../partial-domain-reference-audit.md) obejmuje 18 par
+czystych/ręcznie oznaczonych PNG z `data/ttmapp_frames_250_268_domain_review`.
+Użytkownik potwierdził przybliżone granice wybranych całych widocznych domen;
+nie oznaczył pozostałych obszarów. Poza ramkami mogą występować takie same
+wzory. Nie traktować tego otoczenia jako negatywnych przykładów lub podłoża.
+
+Zweryfikowano zgodność PNG z MPP i rejestracją, przygotowano robocze wnętrza
+w obu układach. Nie są to pełne referencje pokrycia ani dokładne granice.
+Kolory nie definiują samodzielnie typów sieci. Stare raporty obejmują też
+klatkę 255, której nie ma w tym folderze; nie włączono jej z domysłu.
+Wcześniej używany temporalny holdout nie jest nowym niezależnym testem.
+
+Pozostają: pewne podłoże, obszary nierozstrzygnięte, tolerancja przybliżonych
+granic, podział do strojenia/sprawdzenia oraz kryteria jakości. Status pytania
+nadal `open`; przyjęcie częściowej referencji nie zamyka całego protokołu.
 
 ## Dependencies
 

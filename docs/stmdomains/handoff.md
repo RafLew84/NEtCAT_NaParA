@@ -8,8 +8,9 @@ Claim: `fd0c119`; commit niniejszego przekazania podany w wiadomości końcowej.
 
 [Pokrycie i skala](issues/10-coverage-and-scale.md): wykonano i omówiono
 porównanie wstępne; pytanie nadal `claimed`. Użytkownik potwierdził dalszą próbę
-z referencjami. Może posiadać klatki referencyjne, ale nie podał ścieżek ani
-ich oznaczeń. Nie zwalidowano metody i nie usunięto zależności od referencji.
+z referencjami. Następnie dostarczył częściowe oznaczenia domen opisane
+w uzupełnieniu poniżej. Nie zwalidowano metody i nie usunięto zależności
+od referencji pokrycia, podłoża i niepewności.
 
 [Raport](coverage-and-scale-pilot.md): 25 obrazów, 10 wariantów, oddzielny wpływ
 skali, braków oznaczeń, kontrastu i wygładzania. Na kontrolach wykazano błędne
@@ -38,11 +39,32 @@ HTML 2,38 MiB. Kontrola lokalnych linków, statusów, grafu i `git diff --check`
 przed commitem. Nie dodawano testów prototypu ani nie uruchamiano testów
 produkcyjnej aplikacji; kod produkcyjny pozostaje bez zmian.
 
-Następny krok badawczy: pozyskać i ocenić niezależne referencje, oznaczyć pewny
-materiał/podłoże oraz nierozstrzygnięcie, ustalić podział danych i wrócić do
+Następny krok badawczy: wykorzystać oznaczone wnętrza do lokalnego porównania,
+uzupełnić pewne podłoże i nierozstrzygnięcie, ustalić podział danych i wrócić do
 tego samego pytania o pokrycie. Nie utworzono duplikatu ticketu. Budowa szkieletu
 z pierwszej mapy może przebiegać niezależnie. Do integratora nie zgłoszono nowych
 zmian wspólnych; wcześniejsze potrzeby środowiska i importu pozostają poniżej.
+
+## Uzupełnienie: częściowe referencje domen
+
+Użytkownik dostarczył `data/ttmapp_frames_250_268_domain_review` i wyjaśnił,
+że ramki są przybliżonymi granicami wybranych domen, a podobne skupiska mogą
+występować poza nimi. [Audyt i zasady użycia](partial-domain-reference-audit.md)
+ograniczają ocenę do zaznaczonych obszarów; reszta nie jest podłożem ani
+fałszywą detekcją. Kolory są etykietami referencji, nie wyborem typów sieci.
+
+18 par PNG, brak klatki 255; dla wszystkich zgodność rekonstrukcji z MPP
+piksel w piksel. Przygotowano 54 robocze wnętrza regionów, maski raw/PNG,
+manifest z hashami i galerię; obejrzano wnętrza oraz źródłowe ramki.
+Kod przygotowania: `prototype/stmdomains-coverage`, commit `4e7a757`.
+Lokalny HTML: `/home/rlew/projekty/NEtCAT-domains/.scratch/partial-domain-reference/index.html`.
+Nie scalać kodu prototypu do aplikacji. Dane i duże artefakty są poza Git.
+
+Nie przeliczono klasyfikatorów ani nie oceniono skuteczności pokrycia na tych
+referencjach; nie uruchamiano testów aplikacji. Ramki są przybliżone, margines
+wnętrz nie jest skalibrowaną tolerancją. Do pełnej walidacji nadal brakuje
+negatywnych przykładów podłoża, niepewności i niezależnej próby. Nie zgłoszono
+nowych potrzeb wspólnych. Dokumentacja i stan ticketu zostały uzupełnione.
 
 ---
 
