@@ -1,11 +1,11 @@
-"""Import a complete STP selection without publishing partial results."""
+"""Import a complete STP/S94 selection without publishing partial results."""
 
 from collections.abc import Callable, Sequence
 from pathlib import Path
 import re
 
 from stmviewer.frame import ImageFrame
-from stmviewer.io import open_stp
+from stmviewer.io import open_frame
 
 
 def _natural_key(path: Path) -> tuple[tuple[tuple[int, str | int], ...], str]:
@@ -18,20 +18,20 @@ class ImportCancelled(Exception):
     """The caller cancelled before a complete result could be published."""
 
 
-def open_stp_series(
+def open_frame_series(
     paths: Sequence[str | Path],
     *,
     progress: Callable[[int, int, Path], None] | None = None,
     cancelled: Callable[[], bool] | None = None,
 ) -> tuple[ImageFrame, ...]:
-    """Decode STP files in natural filename order, retaining per-frame metadata."""
+    """Decode STP/S94 files in natural filename order, retaining per-frame metadata."""
     if not paths:
-        raise ValueError("Nie wybrano plików STP.")
+        raise ValueError("Nie wybrano plików STP/S94.")
     frames: list[ImageFrame] = []
     for path in sorted(map(Path, paths), key=_natural_key):
         if cancelled is not None and cancelled():
             raise ImportCancelled
-        frame = open_stp(path)
+        frame = open_frame(path)
         if frames and frame.data.shape != frames[0].data.shape:
             height, width = frame.data.shape
             expected_height, expected_width = frames[0].data.shape

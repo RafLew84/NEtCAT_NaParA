@@ -5,7 +5,7 @@ oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 
 ## Stan aplikacji
 
-Działa otwieranie jednego lub wielu STP, naturalne sortowanie nazw, podgląd
+Działa otwieranie jednego lub wielu STP/S94, także mieszanych, naturalne sortowanie nazw, podgląd
 z dolnym paskiem miniatur, suwakiem, numerem i przyciskami klatek.
 Panel pokazuje pochodzenie i metadane aktualnej klatki. Import działa w tle,
 ma postęp i anulowanie; błąd lub anulowanie zachowują wcześniejszą serię.
@@ -13,8 +13,10 @@ Wymagane są wspólne wymiary pikselowe, skale i kanały mogą się różnić.
 Kółko myszy zmienia zoom pod kursorem; przeciąganie lewym przyciskiem przesuwa
 obraz z zachowaniem powiększenia. Zmiana klatki zachowuje widok, a „Dopasuj”
 i nowy poprawny import przywracają całą klatkę. Próba ręczna:
-[instrukcja ticketu 02](stp-series-manual.md). MPP, S94, rejestracja i eksport
-należą do kolejnych ticketów.
+[instrukcja serii STP](stp-series-manual.md) oraz
+[S94 i mieszane serie](s94-series-manual.md). S94 rozróżnia dane skalibrowane
+w nm/nA od surowych wartości przy nieznanym trybie lub wzmocnieniu.
+MPP, rejestracja i eksport należą do kolejnych ticketów.
 Mapa decyzji jest zamknięta: specyfikacja pierwszej wersji jest gotowa do
 implementacji. Nie oznacza to wdrożenia funkcji ani zaliczenia odbioru.
 
@@ -59,6 +61,8 @@ ma status `done`.
 [Otwarcie i przeglądanie serii STP](implementation/issues/02-stp-series.md)
 ma status `done`: użytkownik potwierdził testy manualne, w tym poprawkę
 podświetlenia miniatur, 2026-10-21.
+[S94 i mieszane serie STP/S94](implementation/issues/03-s94-series.md) są
+zaimplementowane; status `ready-for-review` oczekuje na ręczny odbiór.
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje
@@ -95,8 +99,8 @@ python -m stmviewer.main
 
 Na tym stanowisku można również użyć bezpośrednio
 `/home/rlew/projekty/conda-migration-ubuntu-20261008/envs/netcat/bin/python`.
-Przycisk „Otwórz STP…”, menu Plik lub Ctrl+O otwierają wybór jednego lub wielu plików.
-Małe dane i oczekiwany wygląd: [próba ręczna serii](stp-series-manual.md).
+Przycisk „Otwórz STP/S94…”, menu Plik lub Ctrl+O otwierają wybór jednego lub wielu plików.
+Małe dane i oczekiwany wygląd: [próba ręczna STP/S94](s94-series-manual.md).
 
 Kontrole dla dewelopera (po aktywowaniu środowiska):
 

@@ -22,8 +22,8 @@ def opened_window(qtbot, monkeypatch):
     monkeypatch.setattr(QFileDialog, "getOpenFileNames", lambda *a, **kw: (
         [str(FIXTURES / "unknown.stp")], ""
     ))
-    qtbot.mouseClick(window.findChild(QPushButton, "openStp"), Qt.MouseButton.LeftButton)
-    qtbot.waitUntil(window.findChild(QPushButton, "openStp").isEnabled)
+    qtbot.mouseClick(window.findChild(QPushButton, "openFrames"), Qt.MouseButton.LeftButton)
+    qtbot.waitUntil(window.findChild(QPushButton, "openFrames").isEnabled)
     return window, preview
 
 
@@ -106,7 +106,7 @@ def test_import_cancel_and_error_keep_navigation_but_success_resets_it(
     navigated = screenshot(preview)
     choices = iter(["", str(FIXTURES / "truncated.stp"), str(FIXTURES / "unknown.stp")])
     monkeypatch.setattr(QFileDialog, "getOpenFileNames", lambda *a, **kw: ([choice] if (choice := next(choices)) else [], ""))
-    button = window.findChild(QPushButton, "openStp")
+    button = window.findChild(QPushButton, "openFrames")
 
     qtbot.mouseClick(button, Qt.MouseButton.LeftButton)
     qtbot.waitUntil(button.isEnabled)

@@ -1,5 +1,72 @@
 # Przekazanie — STM Viewer
 
+## 03: S94 i mieszane serie STP/S94 — 2026-10-21
+
+Gałąź: `viewer/start`. Baza implementacji i przeglądu:
+`b904045e7626e97cd924920d9fbb0e52fbdb3bcc`.
+Ticket: [03-s94-series](implementation/issues/03-s94-series.md),
+status `ready-for-review` do ręcznego odbioru użytkownika.
+
+### Wynik i kontrakt danych
+
+Dialog, menu i Ctrl+O otwierają jeden lub wiele STP/S94, także mieszanych.
+Importer `open_frame_series` zastępuje nazwę ograniczoną wcześniej do STP.
+Kolejność nazw, zgodność wymiarów, postęp, anulowanie, zachowanie stanu przy
+błędach i nawigacja korzystają z dotychczasowego przebiegu. Wymiary są porównywane
+po transformacji każdego wejścia. Zoom i pojedyncze podświetlenie miniatur pozostają.
+
+Adapter `stmviewer/s94.py` korzysta z układu nagłówka i zakresów wzmocnienia
+wspólnego czytnika. Sam odczytuje jawnie little-endian int16 i przechowuje float64;
+waliduje nagłówek, dodatnie wymiary, flagę Swapped oraz długość danych przed
+alokowaniem macierzy. Dla trybu 0: gain 1/2/3 odpowiada 5,5/22/88 nm na 65536
+jednostek surowych; tryb 1: 20 nA na 65536 jednostek. Nieznany gain topografii
+lub tryb zachowuje liczby surowe, brak jednostki i opis przyczyny w panelu.
+Pole `ImageFrame.calibration_note` przekazuje tę informację do podglądu.
+
+Swapped=1 transponuje macierz i zamienia osie rozmiarów oraz offsetów.
+Oryginalny nagłówek, w tym Image_Number, Swapped i wszystkie pozostałe pola,
+pozostaje zachowany. Kąt skanowania jest źródłowym ustawieniem pomiaru,
+nie kątem wyliczonym dla przekształconego rastra. Brak wiarygodnej dodatniej
+skali lub niefinitywny parametr jest reprezentowany przez None. Rzeczywiste zera
+pozostają zerami. Bias mV jest przeliczany na V. Pole It nie ma potwierdzonej
+jednostki w istniejącym kontrakcie czytnika, więc nie jest zgadywane jako setpoint.
+
+### Sprawdzenia
+
+- TDD red → green: znana kalibracja i para S94/STP, nieznana kalibracja,
+  prostokątny obraz Swapped, walidacja, wspólna seria i kontrolki GUI.
+  Testy nie zastępują wewnętrznych komponentów atrapami.
+- **54 testy Viewera zaliczone** w offscreen. Nowe przypadki obejmują
+  signed little-endian, dane fizyczne/surowe, metadane po transpozycji,
+  zachowanie stanu po błędnym S94 i anulowanie podczas jego odczytu w mieszanej serii.
+- Mypy strict: **13 plików bez błędów**. Największy zmieniony plik kodu:
+  `tests/stmviewer/test_series_window.py`, **264 linie**.
+- Rzeczywiste lokalne pary 17851, 17544 i 85291r: macierze nowego odczytu
+  S94 są identyczne element po elemencie z STP (256 × 256). Pierwsze dwie
+  pary mają nm; eksport 85291r.STP podaje nm mimo prądowego trybu S94/nA.
+  Wartości nie są nadpisywane na podstawie innego pliku; różnica jest opisana
+  w instrukcji ręcznej. Pomiary pozostają lokalne poza Git.
+- Automatyczne GUI xcb na Linuksie: prawdziwy dialog obu formatów, nawigacja,
+  opis surowych wartości oraz identyczny podgląd pary 17851. Zrzuty oceniono
+  wizualnie: `/tmp/stmviewer-s94-mixed-xcb.png`, `/tmp/stmviewer-s94-raw-xcb.png`,
+  `/tmp/stmviewer-s94-measurement-xcb.png`.
+- Pełny zestaw repo uruchomiony; wynik zostanie dopisany po zakończeniu.
+  Log: `/tmp/stmviewer-s94-full-suite.log`.
+
+### Odbiór i integracja
+
+[Ręczna próba S94](s94-series-manual.md) zawiera uruchomienie w netcat,
+wersjonowane wzorce i generator, lokalne pary pomiarów oraz oczekiwane wyniki.
+Ręczny odbiór użytkownika i Windows są niewykonane. Ta implementacja nie zamyka
+późniejszych ticketów odbioru platform.
+
+Nie zmieniono modułów wspólnych, konfiguracji głównej ani zależności.
+Do wykorzystania przez integrację przy przyszłej poprawce wspólnego czytnika:
+explicit `<i2` zamiast natywnego int16, jawna jednostka i informacja o danych
+surowych, walidacja parametrów oraz spójna zamiana offsetów wraz z osiami.
+Taka wspólna zmiana wymaga testów odbiorców; nie blokuje działającego adaptera
+Viewera. Testy z `tests/stmviewer/test_s94_import.py` opisują jego obecny kontrakt.
+
 ## Poprawka ticketu 02: podświetlenie miniatur — 2026-10-21
 
 Baza: `89614aa`, gałąź `viewer/start`. Commit poprawki: `cb40891`. Użytkownik zgłosił pozostawanie podświetlenia poprzednich

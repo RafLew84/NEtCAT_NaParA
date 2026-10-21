@@ -22,3 +22,4 @@ class ImageFrame:
     bias_v: float | None
     setpoint_a: float | None
     scan_angle_deg: float | None
+    calibration_note: str | None = None

@@ -18,7 +18,7 @@ def test_user_opens_one_stp_and_sees_image_and_parameters(qtbot, monkeypatch):
     window = STMViewerMainWindow()
     qtbot.addWidget(window)
     window.show()
-    button = window.findChild(QPushButton, "openStp")
+    button = window.findChild(QPushButton, "openFrames")
     assert button is not None and button.isEnabled()
     assert "Brak otwartego obrazu" in visible_text(window)
     preview = window.findChild(QWidget, "imagePreview")
@@ -45,7 +45,7 @@ def test_replacement_cancel_and_bad_file_preserve_the_last_valid_preview(qtbot, 
     choices = iter([str(FIXTURES / "asymmetric.stp"), str(FIXTURES / "unknown.stp"),
                     "", str(FIXTURES / "truncated.stp")])
     monkeypatch.setattr(QFileDialog, "getOpenFileNames", lambda *a, **kw: ([choice] if (choice := next(choices)) else [], ""))
-    button = window.findChild(QPushButton, "openStp")
+    button = window.findChild(QPushButton, "openFrames")
     qtbot.mouseClick(button, Qt.MouseButton.LeftButton)
     qtbot.waitUntil(button.isEnabled)
     first_image = window.findChild(QWidget, "imagePreview").grab().toImage()

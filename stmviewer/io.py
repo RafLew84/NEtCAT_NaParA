@@ -7,6 +7,7 @@ import re
 from napara.io.stp_reader import MAX_HEADER_LINES, read_stp_file
 
 from stmviewer.frame import ImageFrame
+from stmviewer.s94 import open_s94
 
 _NUMBER_UNIT = re.compile(r"([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)\s*(.*?)")
 _LENGTH_NM = {"m": 1e9, "mm": 1e6, "um": 1e3, "µm": 1e3, "μm": 1e3,
@@ -93,3 +94,14 @@ def open_stp(path: str | Path) -> ImageFrame:
         setpoint_a=_scaled(header.get("Setpoint", header.get("Current", "")), _CURRENT),
         scan_angle_deg=_scaled(header.get("Angle", ""), {"": 1.0, "deg": 1.0, "°": 1.0}),
     )
+
+
+def open_frame(path: str | Path) -> ImageFrame:
+    """Read one supported image while retaining format-specific calibration."""
+    source = Path(path)
+    extension = source.suffix.lower()
+    if extension == ".stp":
+        return open_stp(source)
+    if extension == ".s94":
+        return open_s94(source)
+    raise ValueError(f"{source}: nieobsługiwany format (wymagany STP lub S94).")

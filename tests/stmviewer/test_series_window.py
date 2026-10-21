@@ -23,7 +23,7 @@ def labels(window):
 
 def open_selection(qtbot, window, monkeypatch, paths):
     choose(monkeypatch, paths)
-    button = window.findChild(QPushButton, "openStp")
+    button = window.findChild(QPushButton, "openFrames")
     qtbot.mouseClick(button, Qt.MouseButton.LeftButton)
     qtbot.waitUntil(button.isEnabled)
 
@@ -80,10 +80,10 @@ def test_controls_thumbnails_metadata_and_image_follow_the_same_frame(series_win
 
 
 @pytest.mark.parametrize("action", ["cancel", "close"])
+@pytest.mark.parametrize("extension", ["stp", "s94"])
 def test_background_import_can_be_cancelled_or_closed_without_blocking(
-    series_window, qtbot, monkeypatch, tmp_path, action
+    series_window, qtbot, monkeypatch, tmp_path, action, extension
 ):
-    import builtins
     from threading import Event
     from PyQt6.QtCore import QTimer
     from PyQt6.QtWidgets import QProgressBar
@@ -93,10 +93,11 @@ def test_background_import_can_be_cancelled_or_closed_without_blocking(
     number.setValue(2)
     preview = window.findChild(QWidget, "imagePreview")
     previous_image = preview.grab().toImage()
-    path = tmp_path / "slow.stp"
-    path.write_bytes((FIXTURES / "unknown.stp").read_bytes())
+    path = tmp_path / f"slow.{extension}"
+    source = FIXTURES / ("unknown.stp" if extension == "stp" else "s94/frame2.s94")
+    path.write_bytes(source.read_bytes())
     entered, release = Event(), Event()
-    real_open = builtins.open
+    real_open = Path.open
 
     def slow_open(filename, *args, **kwargs):
         if str(filename) == str(path):
@@ -105,9 +106,9 @@ def test_background_import_can_be_cancelled_or_closed_without_blocking(
                 raise OSError("File I/O did not finish")
         return real_open(filename, *args, **kwargs)
 
-    monkeypatch.setattr(builtins, "open", slow_open)
+    monkeypatch.setattr(Path, "open", slow_open)
     choose(monkeypatch, [FIXTURES / "asymmetric.stp", path])
-    button = window.findChild(QPushButton, "openStp")
+    button = window.findChild(QPushButton, "openFrames")
     try:
         qtbot.mouseClick(button, Qt.MouseButton.LeftButton)
         qtbot.waitUntil(entered.is_set)

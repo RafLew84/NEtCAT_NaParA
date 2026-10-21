@@ -4,7 +4,11 @@
 
 **Blocked by:** [02: Otwarcie i przeglądanie serii STP](02-stp-series.md)
 
-**Status:** ready-for-agent
+**Status:** ready-for-review
+
+**Wykonawca:** Codex, `viewer/start`.
+
+**Baza code-review:** `b904045e7626e97cd924920d9fbb0e52fbdb3bcc`.
 
 **Specyfikacja:** [Seria wejściowa i usuwanie klatek](../../issues/01-frame-series.md#answer), [Dane i kryteria odbioru pierwszej wersji](../../issues/06-acceptance.md#answer).
 
@@ -12,11 +16,11 @@ Przed realizacją przeczytaj [zasady wykonania i odbioru](../README.md#zasady-wy
 
 ## Kryteria odbioru
 
-- [ ] Wybór plików dopuszcza S94 i mieszankę STP/S94, z jedną naturalną kolejnością nazw oraz zgodnością wyłącznie wymiarów.
-- [ ] Każda klatka zachowuje własny kanał, jednostkę sygnału, skalę X/Y i pochodzenie; parametry pierwszej klatki nie zastępują pozostałych.
-- [ ] Znana kalibracja S94 daje wartości w odpowiedniej jednostce; nieznany tryb lub wzmocnienie pozostaje jawnie nieznane/surowe.
-- [ ] Właściwe są orientacja, wymiary i metadane po transformacji wejścia, także dla niesymetrycznego obrazu. Sprawdzona jest kolejność bajtów danych.
-- [ ] Błąd lub anulowanie mieszanego importu nie publikuje częściowej serii. Dotychczasowy podgląd zachowuje stan.
+- [x] Wybór plików dopuszcza S94 i mieszankę STP/S94, z jedną naturalną kolejnością nazw oraz zgodnością wyłącznie wymiarów.
+- [x] Każda klatka zachowuje własny kanał, jednostkę sygnału, skalę X/Y i pochodzenie; parametry pierwszej klatki nie zastępują pozostałych.
+- [x] Znana kalibracja S94 daje wartości w odpowiedniej jednostce; nieznany tryb lub wzmocnienie pozostaje jawnie nieznane/surowe.
+- [x] Właściwe są orientacja, wymiary i metadane po transformacji wejścia, także dla niesymetrycznego obrazu. Sprawdzona jest kolejność bajtów danych.
+- [x] Błąd lub anulowanie mieszanego importu nie publikuje częściowej serii. Dotychczasowy podgląd zachowuje stan.
 
 ## Testy automatyczne
 
@@ -44,3 +48,21 @@ Dane i sposób przygotowania nietypowych wzorców dostarcza realizujący ticket.
 ## Współpraca z integracją
 
 Ewentualne poprawki wspólnego czytnika S94, jego kalibracji i metadanych przekazać integracji wraz z testem odbiorców.
+
+## Wynik implementacji — 2026-10-21
+
+Działa otwieranie jednego lub wielu S94 oraz mieszanych STP/S94, ze wspólnym
+sortowaniem, kontrolą wymiarów po transpozycji i dotychczasową ochroną stanu.
+Adapter S94 odczytuje int16 little-endian do float64, zachowuje źródłowy
+nagłówek, rozróżnia kalibrację nm/nA od surowych wartości i opisuje jej brak
+w panelu. Zamiana osi obejmuje dane, wymiary, rozmiary i offsety; kąt pozostaje
+ustawieniem pomiaru. Wspólne moduły i zależności nie zostały zmienione.
+
+54 testy Viewera oraz mypy strict (13 plików) przechodzą. Trzy lokalne pary
+STP/S94 mają identyczne wartości macierzy; znaną rozbieżność jednostki w jednym
+STP opisano w instrukcji. Automatyczna próba xcb przeszła. Wynik pełnego repo
+oraz przeglądu jest zapisany w [przekazaniu](../../handoff.md).
+
+[Scenariusz ręczny, małe wzorce i lokalne pomiary](../../s94-series-manual.md).
+Ręczny odbiór użytkownika i Windows pozostają niewykonane, stąd
+`ready-for-review`.

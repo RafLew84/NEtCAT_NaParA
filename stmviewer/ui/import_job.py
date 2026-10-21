@@ -8,7 +8,7 @@ from PyQt6.QtCore import QObject, QThread, pyqtSignal
 from PyQt6.QtGui import QImage
 
 from stmviewer.frame import ImageFrame
-from stmviewer.series import ImportCancelled, open_stp_series
+from stmviewer.series import ImportCancelled, open_frame_series
 from stmviewer.ui.raster import frame_thumbnail
 
 
@@ -39,7 +39,7 @@ class ImportJob(QThread):
 
     def run(self) -> None:
         try:
-            frames = open_stp_series(self._paths, progress=self._read_progress,
+            frames = open_frame_series(self._paths, progress=self._read_progress,
                                      cancelled=self.was_cancelled)
             thumbnails = []
             for index, frame in enumerate(frames, 1):

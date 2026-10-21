@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from stmviewer.series import ImportCancelled, open_stp_series
+from stmviewer.series import ImportCancelled, open_frame_series
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -16,7 +16,7 @@ def test_natural_order_preserves_each_frames_values_and_metadata(tmp_path):
                          ("klatka1.stp", "unknown.stp")]:
         (tmp_path / name).write_bytes((FIXTURES / source).read_bytes())
 
-    series = open_stp_series(list(tmp_path.iterdir()))
+    series = open_frame_series(list(tmp_path.iterdir()))
 
     assert [frame.source.name for frame in series] == [
         "klatka1.stp", "klatka2.stp", "klatka10.STP"
@@ -37,13 +37,13 @@ def test_mismatched_dimensions_reject_the_selection_and_identify_source(tmp_path
     other.write_bytes(payload.replace(b"Number of columns: 4", b"Number of columns: 2")[:-48])
 
     with pytest.raises(ValueError, match=r"smaller.stp.*2.*3.*4.*3"):
-        open_stp_series([FIXTURES / "asymmetric.stp", other])
+        open_frame_series([FIXTURES / "asymmetric.stp", other])
 
 
 def test_cancel_during_import_never_returns_a_partial_series():
     progress = []
     with pytest.raises(ImportCancelled):
-        open_stp_series(
+        open_frame_series(
             [FIXTURES / "asymmetric.stp", FIXTURES / "unknown.stp"],
             progress=lambda done, total, source: progress.append((done, total, source.name)),
             cancelled=lambda: bool(progress),
@@ -53,13 +53,13 @@ def test_cancel_during_import_never_returns_a_partial_series():
 
 def test_empty_selection_and_bad_payload_raise_source_errors():
     with pytest.raises(ValueError, match="wybrano"):
-        open_stp_series([])
+        open_frame_series([])
     with pytest.raises(ValueError, match="truncated.stp"):
-        open_stp_series([FIXTURES / "asymmetric.stp", FIXTURES / "truncated.stp"])
+        open_frame_series([FIXTURES / "asymmetric.stp", FIXTURES / "truncated.stp"])
 
 
 def test_different_known_scales_channels_and_units_are_allowed():
-    frames = open_stp_series(list((FIXTURES / "series").glob("*.stp")))
+    frames = open_frame_series(list((FIXTURES / "series").glob("*.stp")))
     assert [(frame.size_x_nm, frame.size_y_nm, frame.channel, frame.signal_unit)
             for frame in frames] == [
         (None, None, None, None), (8, 9, "Topo", "nm"), (16, 12, "Current", "pA")
@@ -70,5 +70,5 @@ def test_different_known_scales_channels_and_units_are_allowed():
 def test_cancellation_after_the_final_read_still_discards_the_result():
     done = []
     with pytest.raises(ImportCancelled):
-        open_stp_series([FIXTURES / "unknown.stp"],
+        open_frame_series([FIXTURES / "unknown.stp"],
                         progress=lambda *args: done.append(True), cancelled=lambda: bool(done))
