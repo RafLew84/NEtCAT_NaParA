@@ -67,4 +67,6 @@ Ręczna próba dodatku: [nawigacja obrazu](../../single-stp-manual.md#zoom-i-prz
 Commit dodatku: `75f419d`. [Przegląd](../review-preview-navigation.md): bez uwag.
 19 testów Viewera i mypy strict przechodzi; automatyczna próba na ekranie
 Linuksa potwierdziła zoom, przesuwanie i Dopasuj na rzeczywistym STP.
-Ręczny odbiór tego dodatku jest osobny od zaliczonego wcześniej otwierania STP.
+Użytkownik potwierdził ręczny odbiór dodatku 2026-10-21: „testy manualne ok”.
+Dotyczy to zoomu i przeciągania dostarczonych w `75f419d` (raport `df4bbc5`);
+pozostałe wymagania całego ticketu 05 nadal czekają na realizację.

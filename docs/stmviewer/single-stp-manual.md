@@ -64,7 +64,8 @@ całej aplikacji w tickecie 21.
 ## Zoom i przesuwanie
 
 Poprzedni scenariusz otwarcia STP użytkownik zaliczył 2026-10-21.
-Poniższe kroki dotyczą dodanej później nawigacji i wymagają osobnej próby.
+Ręczny odbiór dodanej nawigacji również został potwierdzony przez użytkownika
+2026-10-21: „testy manualne ok”. Poniższe kroki pozostają scenariuszem regresji.
 
 1. Otwórz `asymmetric.stp` albo rzeczywisty `34855.STP` opisany wyżej.
    Ustaw kursor nad rozpoznawalnym elementem i obróć kółko w górę.

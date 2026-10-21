@@ -3,7 +3,7 @@
 ## Uzupełnienie: zoom i przesuwanie — 2026-10-21
 
 Baza dodatku: `7a43715`, gałąź `viewer/start`. Commit kodu: `75f419d`.
-Commit końcowego raportu w wiadomości sesji.
+Commit raportu testów i przeglądu: `df4bbc5`.
 Użytkownik potwierdził ręczną próbę otwierania STP i zlecił wcześniejsze dodanie
 nawigacji obrazu. To część zakresu [05](implementation/issues/05-preview-controls.md),
 bez zamykania jego przyszłych wymagań dotyczących serii i gamma.
@@ -19,8 +19,10 @@ Sprawdzenia dodatku: pięć testów publicznych gestów GUI przechodzi w offscre
 (zoom pod kursorem, ruch podczas przeciągania i stała wielkość znacznika,
 Dopasuj, zachowanie/reset przy imporcie, pusty program). Mypy strict: 8 plików,
 bez błędów. Automatyczna próba xcb otworzyła rzeczywisty 34855.STP przez dialog,
-sprawdziła kółko, przeciąganie i powrót przez Dopasuj. Ręczna próba nowej
-nawigacji jeszcze niewykonana; [scenariusz](single-stp-manual.md#zoom-i-przesuwanie).
+sprawdziła kółko, przeciąganie i powrót przez Dopasuj. Użytkownik potwierdził
+ręczny odbiór nawigacji 2026-10-21: „testy manualne ok”.
+[Scenariusz](single-stp-manual.md#zoom-i-przesuwanie). Nie wskazał platformy;
+potwierdzenie nie zamyka osobnych odbiorów Ubuntu i Windows.
 [Przegląd dodatku](implementation/review-preview-navigation.md): Standards — 0 ustaleń,
 Spec — 0 ustaleń. Największy zmieniony plik kodu ma 132 linie, `git diff --check`
 bez błędów. Zrzut automatycznej próby: `/tmp/stmviewer-navigation-xcb.png`.
