@@ -81,6 +81,15 @@ ma status `resolved` jako zakończony eksperyment, bez wyboru gotowej metody.
 Wynik jest gotowy do obejrzenia w `.scratch/type-catalogue-trial/index.html`;
 odbiór metod 13 nadal pozostaje otwarty.
 
+2026-10-21 wykonano [próbę granic przesunięcia](phase-boundaries-trial.md):
+7 wariantów, 19 kontroli i 18 klatek TTMAPP. Niedopasowanie wektorów centrów
+rozdziela proste kontrolne domeny o tym samym typie i kącie, zachowując
+pojedyncze defekty wewnątrz domeny. Wiarygodna estymata sieci, braki detekcji
+i wpływ kontrastu na fazę pozostają ograniczeniami. [Krok 12](issues/12-phase-boundaries.md)
+jest `resolved` jako wykonany eksperyment, bez zatwierdzenia metody.
+Podgląd: `.scratch/phase-boundaries-trial/index.html`. Próby 10–12 są zakończone;
+protokół jakości 04 oraz odbiór metod 13 pozostają otwarte.
+
 ## Dwa etapy
 
 - [Etap 1: działający szkielet](map.md) — import, podstawowy podgląd oraz

@@ -76,6 +76,28 @@ Sukces rozwijanej cechy na znanych kontrolach nie jest niezależną walidacją.
 Obecne referencje wystarczą do dalszych lokalnych prób; nowe oznaczenia
 powinny wynikać z konkretnej potrzeby, nie z samego pozostawienia 04 otwartym.
 
+## Wynik próby granic do uwzględnienia
+
+Zadanie 12 zakończono jako eksperyment (`resolved`), bez zatwierdzenia metody.
+[Raport granic przesunięcia](../phase-boundaries-trial.md) wskazuje kierunek:
+niedopasowanie wektorów między centrami w obrębie wiarygodnej sieci i orientacji.
+Działa na prostych kontrolach przesunięcia 4/8 px i nie rozcina pojedynczych
+defektów. Wariant ten zależy jednak od kompletności centrów i estymaty sieci,
+uzyskanej tylko w 7/54 obecnych wnętrz TTMAPP; przesunięcia 1 px nie wykrywa.
+
+Przed przyjęciem metody trzeba oddzielić przerwę detekcji od granicy i przerwy
+materiału, sprawdzić orientację przed narzuceniem wspólnej sieci oraz uzasadnić
+progi i interpretację małych fragmentów. Faza obrazu daje fałszywe cięcia przy
+odwróceniu kontrastu; filtrowanie długości i większe okno mogą usuwać prawdziwą
+granicę. Nie wolno zaliczać rozłączenia przez brak pomiaru jako wykrytej linii.
+Komponenty grafu i dokładny kontur powierzchni pozostają różnymi wynikami.
+
+Obecne ręczne ramki dotyczą głównie orientacji i nie dają dokładnej prawdy
+dla granicy przesunięcia przy tym samym kącie. Późniejsza ocena realnego błędu
+potrzebuje wskazanego przykładu takiej linii z tolerancją, nie ogólnego żądania
+pełnych anotacji wszystkich klatek. Obecny zbiór nadal służy lokalnym próbom.
+Zamknięcie badań 10–12 nie zalicza odbioru 13 ani protokołu jakości 04.
+
 ## Dependencies
 
 - [Jakie referencje i kryteria potwierdzą wiarygodność analizy?](04-reference-and-quality.md)

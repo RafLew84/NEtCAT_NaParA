@@ -92,6 +92,16 @@ listą anotacji wymaganych przed rozpoczęciem lokalnych porównań: najpierw
 wykorzystujemy oznaczone fragmenty, a ewentualną prośbę o uzupełnienie wiążemy
 z konkretnym nierozstrzygniętym przykładem i celem pomiaru.
 
+## Konkretna potrzeba po próbie granic — 2026-10-21
+
+[Próba kroku 12](../phase-boundaries-trial.md) zmierzyła błędy granicy na
+kontrolach syntetycznych; nie przypisała dokładnej prawdy przybliżonym ramkom
+TTMAPP. Kolory oznaczają głównie różne orientacje, zgodnie z wyjaśnieniem
+użytkownika. Do późniejszej oceny granicy przesunięcia przy tym samym typie
+i kącie potrzebny będzie wskazany rzeczywisty przykład z linią/tolerancją
+i fragmentami po obu stronach. Nie jest to warunek zamknięcia wykonanej próby
+ani rozpoczęcia kolejnych lokalnych sprawdzeń na obecnych wnętrzach.
+
 ## Dependencies
 
 - [Jak definiujemy wyspę, typ uporządkowania i domenę sieci?](02-order-types-and-domains.md)

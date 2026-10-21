@@ -4,7 +4,7 @@ ID: 12
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: claimed
+Status: resolved
 Assignee: Codex — domains/phase-boundaries
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 04, 05
@@ -50,3 +50,57 @@ a we wnętrzach TTMAPP pokażemy lokalne wskazania i zakres braku danych.
 Porównujemy kąt sąsiedztwa, niedopasowanie wektorów sieci i lokalną fazę obrazu.
 Typ, orientacja, granica oraz brak wiarygodnego pomiaru pozostają rozdzielone.
 Prototyp: `prototype/stmdomains-boundaries`; nie scalać do aplikacji.
+
+
+## Answer — 2026-10-21
+
+Zakończono [próbę granic przesunięcia](../phase-boundaries-trial.md): 7 wariantów,
+19 kontroli syntetycznych oraz 18 klatek / 54 wnętrza TTMAPP. Status `resolved`
+oznacza wykonany eksperyment, **bez zatwierdzenia metody produkcyjnej**.
+Prototyp i nakładki przygotowano do oceny użytkownika; nie deklarujemy, że
+zaakceptował już wynik lub parametry.
+
+Niedopasowanie wektorów między centrami do oszacowanej sieci rozdziela
+kontrolne domeny o tym samym typie i orientacji przy przesunięciu 4/8 px,
+również na granicy skośnej. Zachowuje jeden obszar po globalnym przesunięciu,
+pojedynczych defektach i ucięciu brzegiem. Sam kąt nie wykrywa tych granic.
+To wynik na prostych kontrolach z dokładnymi centrami, nie walidacja na STM.
+
+Metoda nie wykrywa przesunięcia 1 px i myli przerwę detekcji z rozłączeniem
+domen. Wymaganą estymatę dwóch wektorów sieci uzyskano tylko w 7/54 wnętrz
+TTMAPP. Prosta faza obrazu tworzy wielokrotne cięcia, zależy od kontrastu
+i okna; filtrowanie krótkich wskazań usuwa również część rzeczywistych granic.
+Zmiana orientacji unieważnia założenie wspólnej sieci użyte w tych wariantach.
+
+Raport zawiera błędy scaleń/podziałów i położenia wskazań na kontrolach,
+liczby przed/po cięciu, dostępność, parametry oraz koszt. Komponenty grafu
+nie są maskami powierzchni domen. Brak wiarygodnego pomiaru pozostaje brakiem
+danych, a nie automatycznym pasem nieporządku. Nie liczono dokładności granic
+TTMAPP: obecne ramki opisują głównie orientacje i mają przybliżone kontury.
+
+Dalszy kierunek: porównanie wektorów pomiędzy centrami w obszarach z wiarygodną
+siecią i orientacją, po rozwiązaniu luk z kroku 11. Nie przyjęto fazy obrazu
+jako samodzielnego detektora. Konkretne ograniczenia przekazano do
+[odbioru 13](13-method-acceptance.md). Obecne referencje wystarczają do dalszych
+lokalnych prób; późniejszy pomiar błędu rzeczywistej granicy będzie wymagał
+wskazanego przykładu niedopasowania przy tym samym kącie i tolerancji oznaczenia.
+Brak takiej referencji nie pozostawia wykonanego eksperymentu otwartym.
+
+## Prototype and inspection
+
+Źródła: **`prototype/stmdomains-boundaries`, `c33cc5b`** — nie scalać do aplikacji.
+Lokalny podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/phase-boundaries-trial/index.html`.
+Obok JSON, CSV i inspekcje. Polecenie odtworzenia jest w raporcie oraz
+`stmdomains/prototypes/phase_boundaries_README.md` na gałęzi prototypu.
+
+W HTML porównaj „Granica 4 px”, „Jeden defekt”, „Pas bez detekcji”,
+„Odwrócenie kontrastu” i „Klatka 258”. Liczby grafów przed cięciem pokazują,
+kiedy rozłączenie istniało już z powodu braku danych. Gamma i nakładki
+zmieniają tylko podgląd; wyniki są zapisane w prototypie.
+
+Sprawdzono geometrię wejścia i wsparcia pomiarów, metryki par niezależnym
+wyliczeniem oraz niezmienność przy zmianie obrazu poza referencją i usunięciu
+samych centrów. QtWebEngine: 37 przypadków, 24 kroki scenariuszy; brak błędów JS.
+Koszt generatora 3,91 s przed końcowym zapisem JSON/CSV, 588,59 MiB RSS.
+Nie zmieniano aplikacji ani nie uruchamiano jej testów.

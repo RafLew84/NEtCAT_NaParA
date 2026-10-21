@@ -44,6 +44,13 @@ ale brak stabilnego katalogu TTMAPP. Użytkownik wyjaśnił znaczenie kolorów
 jako głównie różnych orientacji tej samej sieci; nie zatwierdzono metody.
 Dalsze luki pozostają w odbiorze 13, a granice niedopasowania w osobnym kroku 12.
 
+Na kolejne polecenie wykonano [próbę granic niedopasowania](12-phase-boundaries.md).
+Krok 12 ma status `resolved` jako zakończony eksperyment. [Raport](../phase-boundaries-trial.md)
+wskazuje przydatność niedopasowania wektorów centrów na kontrolach i ograniczenia
+fazy obrazu, dostępności sieci oraz interpretacji rozłączonych grafów.
+Nie wybrano metody produkcyjnej ani nie policzono dokładności granic TTMAPP.
+Próby 10–12 są zakończone; odbiór metod 13 i protokół jakości 04 nadal otwarte.
+
 ## Wayfinding operations
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie

@@ -1,4 +1,45 @@
-# STM Domains — wykonana próba wspólnego katalogu typów
+# STM Domains — wykonana próba granic przesunięcia
+
+Data: 2026-10-21. Gałąź dokumentacji: `domains/phase-boundaries`.
+Baza `a103f99`, claim `2cd4e02`; commit raportu podany w wiadomości końcowej.
+Worktree `/tmp/netcat-stmdomains-boundaries`, docelowo `domains/start`.
+Źródła: **`prototype/stmdomains-boundaries`, `c33cc5b` — nie scalać do aplikacji.**
+
+[Krok 12](issues/12-phase-boundaries.md) zakończono jako eksperyment (`resolved`).
+[Raport](phase-boundaries-trial.md) obejmuje 7 wariantów, 19 kontroli
+syntetycznych i 18 klatek / 54 wnętrza TTMAPP. Wynik gotowy do oceny użytkownika;
+nie deklarujemy zatwierdzenia metody ani parametrów.
+
+Niedopasowanie wektorów między centrami rozdziela proste domeny kontrolne
+przy przesunięciu 4/8 px bez dzielenia przez pojedynczy defekt. Nie wykrywa
+1 px, zależy od centrów i wiarygodnej sieci. Dwa piki przyjęto tylko w 7/54
+wnętrz TTMAPP. Prosta faza obrazu daje nadmierne cięcia i myli odwrócenie
+kontrastu z granicą. Komponenty grafu nie są powierzchniami domen; rozłączenie
+przez brak danych nie oznacza wyznaczonej linii. Dokładność granic realnych
+nie jest dostępna z obecnych przybliżonych ramek orientacyjnych.
+
+Podgląd: `/home/rlew/projekty/NEtCAT-domains/.scratch/phase-boundaries-trial/index.html`.
+Obok pełny JSON, CSV, inspekcje i zrzuty. Parametry, hashe, metryki i polecenie
+odtworzenia są w raporcie i README prototypu. Poza wnętrzami nie pobierano
+pikseli do obliczeń; dane źródłowe i maski pozostały niezmienione.
+
+Wykonane sprawdzenia: tożsamość wejścia i geometria, 95 389 węzłów we wnętrzach,
+6854 środków cięć, 87 365 pełnych okien fazy; 76 niezależnych kontroli miar par;
+6 niezmienionych wyników fazowych po usunięciu samych centrów i niezależność
+od otoczenia referencji na kontroli oraz TTMAPP 258. QtWebEngine: 37 przypadków,
+7 metod, 24 kroki, wybory/nakładki/gamma/nawigacja/tabela/reset/brak wyniku;
+bez błędów JS, obejrzano zrzuty. Generator 3,91 s przed końcowym JSON/CSV,
+588,59 MiB RSS; HTML 4 500 199 B. Sprawdzono linki i `git diff --check`.
+Nie uruchamiano testów aplikacji ani nie wykonywano odbioru użytkownika.
+
+Próby 10–12 są zakończone. Ograniczenia przekazano do otwartego odbioru 13;
+04 opisuje konkretną przyszłą potrzebę referencji granicy przesunięcia.
+Nowych anotacji nie żądano przed zakończeniem eksperymentu. Brak zmian
+wspólnych i produkcyjnych. Wcześniejsze ustalenia integracyjne poniżej.
+
+---
+
+## Poprzednie przekazanie — krok 11
 
 Data: 2026-10-21. Gałąź dokumentacji: `domains/structural-type-catalogue`.
 Baza `8b16b8c`, claim `d8cdd77`; commit raportu i przekazania podany w wiadomości

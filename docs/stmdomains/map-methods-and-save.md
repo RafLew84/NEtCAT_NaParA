@@ -59,6 +59,13 @@ kontrole wskazały przydatność rozstawu i zróżnicowania odległości, a dane
 rzeczywiste — nadmierne dzielenie i zależność od zakresu. Wynik przygotowano
 do obejrzenia; nie deklarujemy zatwierdzenia metody ani parametrów przez użytkownika.
 
+Na kolejne polecenie wykonano [próbę granic przesunięcia](phase-boundaries-trial.md).
+Ticket 12 jest `resolved` jako zakończony eksperyment, bez zatwierdzenia metody.
+Niedopasowanie wektorów między centrami działa na prostych kontrolach tego
+samego typu i kąta, ale wymaga wiarygodnej sieci; prosta faza obrazu daje
+fałszywe oraz wielokrotne cięcia. Dokładnych błędów granic TTMAPP nie policzono
+z przybliżonych ramek orientacyjnych. Ograniczenia pozostają w odbiorze 13.
+
 - Rozpatrujemy dwa wyniki: pokrycie materiałem/wyspy oraz domeny orientacji
   i uporządkowania sieci. Orientacja pojedynczej molekuły jest odłożona.
 - Korzystamy z odtworzonych obrazów i gotowych oznaczeń. Możemy porównywać
@@ -87,6 +94,12 @@ powstaną w zadaniach wynikających z ustaleń i wyników prób.
 
 ## Decisions so far
 
+- [Jak rozdzielać domeny o tym samym typie i orientacji?](issues/12-phase-boundaries.md):
+  wykonano 7 wariantów na 19 kontrolach i 18 klatkach TTMAPP. Niedopasowanie
+  wektorów centrów wykrywa kontrolne granice przesunięcia 4/8 px bez dzielenia
+  przez pojedyncze defekty. Nie daje jeszcze gotowej metody: estymata sieci
+  dostępna w 7/54 wnętrz, zależność od braków detekcji i brak dokładnej
+  referencji rzeczywistej granicy. Faza obrazu wymaga dalszej oceny kontrastu.
 - [Jak rozpoznawać typy przy obrocie, zmianie rozstawu i rzadkich wzorach?](issues/11-structural-type-catalogue.md):
   wykonano 9 wariantów na 18 klatkach i 19 kontrolach. Dodanie rozstawu
   i różnic odległości rozdziela proste kontrolne sieci bez zmiany typu przy
