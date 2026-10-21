@@ -46,6 +46,27 @@ warunkuje dalsze próby i odbiór metod, pomimo zakończenia samego pilotażu.
 Kontekst: [proponowane kryteria domen](../research-general-domain-detection.md),
 [protokół dla wysp i orientacji sieci](../research-domain-detection-level-sets.md).
 
+## Materiał do przygotowania referencji — 2026-10-21
+
+[Wstępna próba pokrycia i skali](../coverage-and-scale-pilot.md) wykazała,
+że same centra nie określają warstwy w lukach oznaczeń, a warianty obrazowe
+potrafią przypisać około połowy pustego, zaszumionego podłoża do materiału.
+Użytkownik zaakceptował dalszą próbę z referencjami i może posiadać klatki
+referencyjne; ich lokalizacja i status oznaczeń pozostają do ustalenia.
+
+Pokrycie ma obejmować materiał na dowolnym widocznym poziomie warstwy.
+Ciemne miejsca mogą odsłaniać niższą warstwę, ale gdy molekuł nie widać
+oraz brak innych wystarczających przesłanek, pozostają nierozstrzygnięte.
+Potrzebne są osobne oznaczenia pewnego materiału, pewnego podłoża i niepewności,
+a nie binarna interpretacja „jasne = materiał”. Nowe przypadki kontrolne
+obejmują wielopoziomowość, sam szum, ubytki centrów, otwory i małe wyspy.
+
+W `.scratch/coverage-and-scale/reference-candidates/` są podglądy ośmiu klatek
+bez nakładek i manifest geometrii; **nie są to niezależne referencje**.
+Należy uwzględnić, że użytkownik oglądał już propozycje masek, oraz ustalić
+sposób ograniczenia ich wpływu na referencję i niezależny zbiór sprawdzający.
+Ten materiał nie zamyka niniejszego pytania ani nie ustanawia progów jakości.
+
 ## Dependencies
 
 - [Jak definiujemy wyspę, typ uporządkowania i domenę sieci?](02-order-types-and-domains.md)

@@ -53,6 +53,13 @@ CSV zbiorcze/szczegółowe i PNG całego widoku lub wycinka, także wykresy.
 To kontrakt do implementacji; odbiór metod sprawdzi jego realizację na danych.
 Nie powstał jeszcze serializer ani interfejs zapisu.
 
+2026-10-21 wykonano [wstępną próbę pokrycia i skali](issues/10-coverage-and-scale.md).
+[Raport](coverage-and-scale-pilot.md) i lokalny HTML dokumentują wpływ braków
+centrów, skali, kontrastu i szumu. Użytkownik potwierdził dalszą próbę
+z referencjami; nie wybrano metody. Pokrycie dotyczy rozpoznanego materiału
+na dowolnym widocznym poziomie warstwy, z osobnym nierozstrzygnięciem dla
+ciemnych miejsc bez wystarczających danych. Ticket pozostaje `claimed`.
+
 ## Dwa etapy
 
 - [Etap 1: działający szkielet](map.md) — import, podstawowy podgląd oraz

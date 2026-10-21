@@ -73,10 +73,17 @@ Kierunek lokalnego układu sąsiednich centrów molekuł.
 _Avoid_: Orientacja molekuły
 
 **Pokrycie materiałem**:
-Obszar poprawnego pola pomiarowego zajęty przez płaty warstwy molekularnej,
-obejmujący normalne odstępy między molekułami, bez większych odsłoniętych
-obszarów podłoża i dopełnienia obrazu.
-_Avoid_: Suma powierzchni samych molekuł, całe płótno, miara uporządkowania sieci
+Obszar poprawnego pola pomiarowego rozpoznany jako materiał molekularny na
+dowolnym widocznym poziomie warstwy, obejmujący normalne odstępy między
+molekułami, bez potwierdzonego odsłoniętego podłoża i dopełnienia obrazu.
+Widoczna niższa warstwa również należy do pokrycia.
+_Avoid_: Suma powierzchni samych molekuł, tylko warstwa wierzchnia, całe płótno, miara uporządkowania sieci
+
+**Nierozstrzygnięte pokrycie**:
+Obszar, dla którego nie można ustalić obecności materiału, na przykład ciemne
+miejsce bez widocznych molekuł i bez innych wystarczających przesłanek.
+Nie jest potwierdzonym podłożem ani potwierdzoną warstwą molekularną.
+_Avoid_: Zero pokrycia, automatycznie niższa warstwa, brak uporządkowania
 
 **Wyspa**:
 Przestrzennie spójny płat warstwy molekularnej wraz z normalnymi odstępami

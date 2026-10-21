@@ -357,3 +357,14 @@ Oznaczenia ze środkami w tych 200 px² przechodzą z nieprzypisanych do A.
 W tym zadaniu sprawdzono rachunki przykładu, schemat i spójność dokumentacji.
 Nie implementowano obliczeń ani UI aplikacji i nie uruchamiano testów metod.
 Nie ma jeszcze walidacji tych statystyk na rzeczywistych granicach TTMAPP.
+
+## Doprecyzowanie pokrycia — 2026-10-21
+
+W [próbie pokrycia i skali](10-coverage-and-scale.md) użytkownik doprecyzował,
+że materiał na dowolnym widocznym poziomie warstwy należy do pokrycia;
+nie sumujemy zakrytych warstw ani nie liczymy pikseli wielokrotnie.
+Ciemny obszar bez widocznych molekuł i wystarczających przesłanek pozostaje
+nierozstrzygnięty. Stosujemy powyższe zasady częściowego pokrycia: rozpoznane
+pole materiału jest wynikiem częściowym, a pełny udział typu w pokryciu
+pozostaje niedostępny, gdy nie jest znany cały mianownik. Nie zmienia to
+mianownika liczebności poprawnych oznaczeń ani reguły ich środków.

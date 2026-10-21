@@ -1,4 +1,52 @@
-# STM Domains — specyfikacja szkieletu gotowa do implementacji
+# STM Domains — wstępna próba pokrycia i skali
+
+Data: 2026-10-21. Gałąź dokumentacji: `domains/coverage-and-scale`, baza `c80d9e9`.
+Worktree: `/tmp/netcat-stmdomains-coverage`; docelowo `domains/start`.
+Claim: `fd0c119`; commit niniejszego przekazania podany w wiadomości końcowej.
+Źródła prototypu: `prototype/stmdomains-coverage`, commit `3f2dee6`.
+**Nie scalać gałęzi prototypu do aplikacji.**
+
+[Pokrycie i skala](issues/10-coverage-and-scale.md): wykonano i omówiono
+porównanie wstępne; pytanie nadal `claimed`. Użytkownik potwierdził dalszą próbę
+z referencjami. Może posiadać klatki referencyjne, ale nie podał ścieżek ani
+ich oznaczeń. Nie zwalidowano metody i nie usunięto zależności od referencji.
+
+[Raport](coverage-and-scale-pilot.md): 25 obrazów, 10 wariantów, oddzielny wpływ
+skali, braków oznaczeń, kontrastu i wygładzania. Na kontrolach wykazano błędne
+scalenia/podziały i fałszywy materiał na samym szumie. Wspólna skala usuwa
+rozrost maski z trzech centrów, lecz nie dostarcza pełnej granicy warstwy.
+Metryki TTMAPP bez referencji pozostają niedostępne.
+
+Doprecyzowanie użytkownika: pokrycie obejmuje materiał na dowolnym widocznym
+poziomie warstwy. Ciemne miejsca bez rozpoznawalnych molekuł i innych
+wystarczających przesłanek pozostają nierozstrzygnięte, nie są automatycznie
+podłożem ani potwierdzoną niższą warstwą. Zaktualizowano słownik, kontekst
+referencji oraz zastosowanie dotychczasowych reguł statystyk częściowych.
+Nie zmieniono liczebności oznaczeń ani ich mianownika.
+
+Artefakt lokalny:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/coverage-and-scale/index.html`.
+Obok są metryki, inspekcja, porównanie powtarzalności i podglądy ośmiu klatek
+bez nakładek w `reference-candidates/`. To kandydaci do referencji, nie ich maski.
+Odtworzenie jednym poleceniem opisuje raport i README na gałęzi prototypu.
+
+Wykonano: kontrolę hashy wejścia i liczby centrów, powtórzenie 230 pierwotnych
+wariantów z identycznymi maskami/metrykami, inspekcję scenariuszy HTML,
+przełączników, gamma i braków wyniku w QtWebEngine oraz oglądanie zrzutów.
+Ostateczny generator: 28,91 s, 589,81 MiB RSS (pełny odczyt i generowanie),
+HTML 2,38 MiB. Kontrola lokalnych linków, statusów, grafu i `git diff --check`
+przed commitem. Nie dodawano testów prototypu ani nie uruchamiano testów
+produkcyjnej aplikacji; kod produkcyjny pozostaje bez zmian.
+
+Następny krok badawczy: pozyskać i ocenić niezależne referencje, oznaczyć pewny
+materiał/podłoże oraz nierozstrzygnięcie, ustalić podział danych i wrócić do
+tego samego pytania o pokrycie. Nie utworzono duplikatu ticketu. Budowa szkieletu
+z pierwszej mapy może przebiegać niezależnie. Do integratora nie zgłoszono nowych
+zmian wspólnych; wcześniejsze potrzeby środowiska i importu pozostają poniżej.
+
+---
+
+## Poprzednie przekazanie — specyfikacja szkieletu gotowa do implementacji
 
 Data: 2026-10-19.
 Gałąź: `domains/implementation-handoff`, baza `7378c21`.

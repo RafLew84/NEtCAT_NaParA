@@ -30,6 +30,11 @@ samowystarczalny zapis z MPP, opcjonalnym wynikiem oraz CSV/PNG. Zależność
 odwrócono: odbiór metod sprawdzi realizację tego kontraktu na wynikach prób.
 Nie oznacza to implementacji zapisu ani odbioru metod.
 
+2026-10-21 na bezpośrednie polecenie użytkownika wykonano
+[wstępne porównanie pokrycia i skali](10-coverage-and-scale.md). Wynik omówiono,
+ale pytanie pozostaje `claimed`: pełna ocena wymaga niezależnych referencji.
+Nie wybrano metody; zachowano zależność od referencji i dotychczasowy graf.
+
 ## Wayfinding operations
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie

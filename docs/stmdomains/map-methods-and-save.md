@@ -29,6 +29,14 @@ do implementacji. Na kolejne polecenie uzgodniono też
 Kontrakt jest niezależny od algorytmu; odbiór sprawdzi jego realizację
 na wynikach prób. Pozostałe warunki etapowania obowiązują.
 
+Na bezpośrednie polecenie z 2026-10-21 wykonano
+[wstępną próbę pokrycia i skali](issues/10-coverage-and-scale.md).
+Użytkownik przyjął potrzebę dalszej próby z referencjami i doprecyzował, że
+pokrycie dotyczy materiału na dowolnym widocznym poziomie warstwy; ciemne
+obszary bez wystarczających przesłanek pozostają nierozstrzygnięte.
+[Raport](coverage-and-scale-pilot.md) nie wybiera metody. Pytanie pozostaje
+`claimed` do oceny na niezależnych referencjach; nie zniesiono jego zależności.
+
 - Rozpatrujemy dwa wyniki: pokrycie materiałem/wyspy oraz domeny orientacji
   i uporządkowania sieci. Orientacja pojedynczej molekuły jest odłożona.
 - Korzystamy z odtworzonych obrazów i gotowych oznaczeń. Możemy porównywać
