@@ -4,8 +4,8 @@ ID: 11
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: open
-Assignee:
+Status: claimed
+Assignee: Codex — domains/structural-type-catalogue
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 04, 05
 
@@ -39,3 +39,16 @@ Wspólne dopasowanie katalogu i niezależna ocena poprawności to osobne czynno�
 
 - [Jakie referencje i kryteria potwierdzą wiarygodność analizy?](04-reference-and-quality.md)
 - [Jak porównać metody wykrywania wysp i domen w serii?](05-stable-types-across-frames.md)
+
+## Work started — 2026-10-21
+
+Na bezpośrednie polecenie użytkownika wykonujemy próbę na zaakceptowanych
+częściowych referencjach 250–268 oraz kontrolach syntetycznych. Otwarte pytanie
+04 nie blokuje tej lokalnej próby; nie deklarujemy pełnego odbioru metod.
+Kolory ręcznych ramek pozostają etykietami porównania, nie narzuconym katalogiem
+trzech typów. Katalog powstaje wspólnie dla badanego zakresu.
+
+Porównujemy cechy struktury z orientacją wydzieloną od typu, informację
+o rozstawie, wpływ skali okna i braków detekcji, rzadkie wzory oraz zmianę
+zakresu katalogu. Źródła prototypu: `prototype/stmdomains-types`; kod i duże
+wyniki eksperymentu nie trafią do aplikacji produkcyjnej.
