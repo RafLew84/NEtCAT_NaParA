@@ -5,8 +5,9 @@
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
 `4b4f6d478b5c734a196821106e984a6ade865536`.
 Ticket: [05-preview-controls](implementation/issues/05-preview-controls.md).
-Status: `ready-for-review`. Commit implementacji: `b2903b8`.
-Commit końcowego raportu podany w wiadomości sesji.
+Status: `done` po potwierdzeniu ręcznego odbioru użytkownika 2026-10-21.
+Commit implementacji: `b2903b8`; końcowy raport: `253f806`.
+Commit potwierdzenia ręcznego odbioru podany w wiadomości sesji.
 
 ### Wynik i kontrakt
 
@@ -60,8 +61,10 @@ powiększać okna, co zmieniałoby kadr po nieudanym imporcie.
 ### Odbiór i integracja
 
 [Instrukcja ręczna](preview-controls-manual.md) zawiera start, wzorce STP,
-generator, kroki i oczekiwane wyniki. Ręczny odbiór użytkownika i Windows
-pozostają do wykonania; ta zmiana nie zamyka końcowych odbiorów platform.
+generator, kroki i oczekiwane wyniki. Użytkownik potwierdził ręczny odbiór
+2026-10-21: „testy manualne ok”. Nie wskazano systemu; potwierdzenie nie zamyka
+odrębnych ticketów odbioru platform. Aktualizacja odbioru dotyczy wyłącznie
+dokumentacji; testów automatycznych nie powtarzano.
 Play i original/aligned są w kolejnych ticketach; gamma i pamięć widoku
 muszą zostać z nimi połączone zgodnie z mapą.
 

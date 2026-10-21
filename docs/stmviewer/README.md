@@ -72,8 +72,8 @@ status `done`: użytkownik potwierdził testy manualne 2026-10-21.
 [Otwarcie filmu MPP z czasami i pochodzeniem](implementation/issues/04-mpp-series.md)
 ma status `done`: użytkownik potwierdził testy manualne 2026-10-21.
 [Zoom, gamma i brakujące próbki](implementation/issues/05-preview-controls.md)
-mają status `ready-for-review`: implementacja i sprawdzenia zakończone,
-[próba ręczna użytkownika](preview-controls-manual.md) pozostaje do wykonania.
+mają status `done`: użytkownik potwierdził [testy manualne](preview-controls-manual.md)
+2026-10-21.
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje

@@ -5,6 +5,10 @@ Data: 2026-10-21. Baza zgodnie z zatwierdzonymi zasadami implementacji:
 Commit implementacji: `b2903b8`.
 Diff: `git diff 4b4f6d478b5c734a196821106e984a6ade865536...b2903b8`.
 
+Poniższe ustalenia opisują stan w chwili przeglądu. Następnie, 2026-10-21,
+użytkownik potwierdził testy manualne („testy manualne ok”);
+[ticket 05](issues/05-preview-controls.md) otrzymał status `done`.
+
 Dwie osie sprawdzili równolegle niezależni agenci zgodnie ze skillem
 `code-review`. Przegląd tylko do odczytu, bez ponawiania testów przez agentów.
 Końcowy raport i status dokumentacji uzupełniono po otrzymaniu obu wyników.

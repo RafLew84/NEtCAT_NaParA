@@ -101,5 +101,6 @@ rzeczywiste pliki, obraz/miniatury, maskę, gamma, stałe i puste klatki,
 niezmienność danych tylko do odczytu, gesty, przyciski, proporcje i import.
 Automatyczna próba Qt xcb przeszła na wzorcach oraz lokalnym
 `/home/rlew/projekty/NEtCAT-domains/data/MOVIE_3.MPP`; zrzuty oceniono wizualnie.
-Ręczny odbiór użytkownika i odrębny odbiór Windows pozostają do wykonania.
+Użytkownik potwierdził ręczny odbiór 2026-10-21: „testy manualne ok”.
+Nie wskazano systemu; odrębne odbiory platform pozostają do wykonania.
 Play i przełączanie original/aligned należą do kolejnych ticketów.

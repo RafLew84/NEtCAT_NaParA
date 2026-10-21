@@ -4,7 +4,7 @@
 
 **Blocked by:** [02: Otwarcie i przeglądanie serii STP](02-stp-series.md)
 
-**Status:** ready-for-review
+**Status:** done
 
 **Wykonawca:** Codex, `viewer/start`.
 
@@ -98,5 +98,6 @@ Commit implementacji: `b2903b8`. Pełny zestaw repo: **1816 passed, 63 failed,
 12 skipped**; zestaw niepowodzeń jest identyczny jak przed zmianą, bez nowych
 błędów. [Przegląd Standards/Spec](../review-05-preview-controls.md): obie osie
 bez uwag. Szczegóły i logi: [przekazanie](../../handoff.md).
-Ręczny odbiór użytkownika i Windows pozostają niewykonane; ticket jest gotowy
-do próby użytkownika, ze statusem `ready-for-review`.
+Użytkownik potwierdził ręczny odbiór 2026-10-21: „testy manualne ok”.
+Ticket ma status `done`. Raport implementacji: `253f806`. Nie wskazano systemu;
+potwierdzenie nie zamyka odrębnych ticketów odbioru platform.
