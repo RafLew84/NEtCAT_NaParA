@@ -2,8 +2,7 @@
 
 ## Poprawka ticketu 02: podświetlenie miniatur — 2026-10-21
 
-Baza: `89614aa`, gałąź `viewer/start`. Commit poprawki podany w końcowej
-wiadomości sesji. Użytkownik zgłosił pozostawanie podświetlenia poprzednich
+Baza: `89614aa`, gałąź `viewer/start`. Commit poprawki: `cb40891`. Użytkownik zgłosił pozostawanie podświetlenia poprzednich
 miniatur przy użyciu Następna/Poprzednia. Odtworzono to dwukrotnie na xcb:
 model zaznaczał tylko aktualną klatkę, ale poprzednie podświetlenie znikało
 z ekranu dopiero po wymuszonym przemalowaniu.
@@ -23,7 +22,7 @@ obrazy są identyczne. Lokalny skrypt diagnostyczny i zrzuty:
 
 Sprawdzenia: **34 testy Viewera zaliczone**, test regresji na xcb zaliczony,
 mypy strict bez błędów, `git diff --check` poprawne. Największy zmieniony plik
-kodu ma 264 linie. Nie powtarzano pełnego zestawu repo dla tej lokalnej
+kodu ma 263 linie. Nie powtarzano pełnego zestawu repo dla tej lokalnej
 poprawki GUI; poprzedni wynik i 63 istniejące błędy są opisane niżej.
 Nie zmieniono wspólnych modułów ani zależności. To próby automatyczne;
 potwierdzenie użytkownika po poprawce pozostaje do wykonania.
