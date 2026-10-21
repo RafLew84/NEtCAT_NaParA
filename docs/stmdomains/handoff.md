@@ -1,4 +1,44 @@
-# STM Domains — próba na częściowej referencji wykonana
+# STM Domains — wykonana próba wspólnego katalogu typów
+
+Data: 2026-10-21. Gałąź dokumentacji: `domains/structural-type-catalogue`.
+Baza `8b16b8c`, claim `d8cdd77`; commit raportu i przekazania podany w wiadomości
+końcowej. Worktree `/tmp/netcat-stmdomains-types`, docelowo `domains/start`.
+Źródła: **`prototype/stmdomains-types`, `f2608c7` — nie scalać do aplikacji.**
+
+[Krok 11](issues/11-structural-type-catalogue.md) zakończono jako eksperyment
+(`resolved`). [Raport](structural-type-catalogue-trial.md) obejmuje 9 wariantów,
+18 klatek / 54 wnętrza TTMAPP oraz 19 kontroli syntetycznych. Użytkownik
+wyjaśnił, że kolory oznaczają głównie różne orientacje tej samej sieci.
+Wynik przygotowano do obejrzenia; nie deklarujemy zatwierdzenia algorytmu.
+
+Cechy rozstawu i różnic odległości pozwalają rozdzielić proste struktury
+kontrolne bez zmiany typu po obrocie. Cecha rozwijana na tych kontrolach nie
+ma niezależnej walidacji. Na TTMAPP tworzy 34 grupy kandydatów; zmiana zakresu
+zmienia 11,29% relacji par. Ubytki centrów, defekty, rozmiar okna i fałszywy
+porządek w szumie pozostają problemem. Wąski RED często nie mieści pełnego
+pomiaru; taki brak danych nie oznacza nieporządku. Nie wybrano metody.
+Luki przekazano do otwartego odbioru 13; krok 12 osobno bada granice.
+
+Podgląd: `/home/rlew/projekty/NEtCAT-domains/.scratch/type-catalogue-trial/index.html`.
+Obok JSON, CSV dostępności/cech/przypisań, zestawienie i raporty inspekcji.
+Źródła, parametry, hashe i polecenie odtworzenia opisują raport oraz README
+prototypu. Pełny obszar każdej cechy mieści się w referencji i fizycznym polu.
+
+Wykonane sprawdzenia: tożsamość wejścia i geometria, 7014 pomiarów z poprawnym
+wsparciem, 349 średnic grup i 81 okien niezależnych od otoczenia. FFT pozostaje
+identyczne po usunięciu samych centrów. QtWebEngine: 37 przypadków, 9 wariantów,
+26 kroków scenariuszy, wybory/nakładki/gamma/nawigacja/reset/brak wyniku;
+bez błędów JS. Obejrzano zrzuty. Generator: 7,10 s przed CSV / 618,43 MiB RSS;
+HTML 16 068 171 B. Sprawdzono linki dokumentacji i `git diff --check`.
+To inspekcja eksperymentu; nie uruchamiano testów aplikacji ani nie wykonano
+odbioru użytkownika. Kod produkcyjny, dane i maski źródłowe pozostały bez zmian.
+
+Brak nowych potrzeb wspólnych modułów. Wcześniejsze ustalenia integracyjne
+pozostają w przekazaniach poniżej. Duże wyniki lokalne, bez publikacji.
+
+---
+
+## Poprzednie przekazanie — zakończenie kroku 10
 
 Data: 2026-10-21. Gałąź dokumentacji: `domains/coverage-and-scale`.
 Raport próby: `25c6aba`; obecna zmiana zamyka status po omówieniu wniosków.

@@ -59,6 +59,23 @@ granic całych płatów oraz uzasadnione warunki odmowy. Jeżeli do odbioru potr
 będzie kolejna próba lub konkretne oznaczenia otoczenia, należy wskazać ten zakres.
 Zamknięcie kroku 10 nie zalicza tych sprawdzeń ani niniejszego odbioru.
 
+## Wynik próby katalogu typów do uwzględnienia
+
+Zadanie 11 zakończono jako eksperyment (`resolved`), bez zatwierdzenia metody.
+[Raport](../structural-type-catalogue-trial.md) uwzględnia doprecyzowanie,
+że kolory ręczne opisują głównie różne orientacje tej samej sieci. Nie należy
+optymalizować katalogu tak, aby traktował je jako trzy różne typy.
+
+Przed przyjęciem metody pozostają: wybór lokalnej powłoki sąsiadów odporny
+na defekty i brak detekcji, estymacja okresu przy małym oknie oraz warunki
+odmowy na szumie bez odrzucania regularnej sieci. Trzeba ograniczyć nadmierne
+dzielenie TTMAPP i sprawdzić znaczenie typów po zmianie zakresu, wraz
+z reprezentantami oraz stanami niejednoznaczności. Test powtórzeń z kroku 11
+obejmował tylko surowe relacje przynależności par, nie te dodatkowe własności.
+Sukces rozwijanej cechy na znanych kontrolach nie jest niezależną walidacją.
+Obecne referencje wystarczą do dalszych lokalnych prób; nowe oznaczenia
+powinny wynikać z konkretnej potrzeby, nie z samego pozostawienia 04 otwartym.
+
 ## Dependencies
 
 - [Jakie referencje i kryteria potwierdzą wiarygodność analizy?](04-reference-and-quality.md)

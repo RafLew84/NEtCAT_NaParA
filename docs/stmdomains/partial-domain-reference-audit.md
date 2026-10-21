@@ -16,9 +16,11 @@ przykładem danej klasy ani fałszywym wykryciem. Nie zaznaczamy całej górnej
 połowy jako poprawnie opisanej: szczeliny i fragmenty między ramkami również
 pozostają poza zakresem referencji.
 
-Kolory BLACK, RED i YELLOW zachowujemy jako etykiety ręcznego zbioru. Nie
-przesądzają, czy różnicę opisuje typ sieci, orientacja, rozstaw czy kilka cech.
-Nie ustanawiają trzech obowiązkowych typów w całej serii. Odrębne regiony
+Kolory BLACK, RED i YELLOW zachowujemy jako etykiety ręcznego zbioru.
+Podczas próby kroku 11 użytkownik doprecyzował: **głównie różne orientacje
+tej samej sieci**. Oczekujemy więc przede wszystkim wspólnego typu przy
+różnym kącie, nie trzech obowiązkowych typów. Nie ustalono dokładnych kątów,
+tolerancji ani gwarancji jednorodności każdego wnętrza. Odrębne regiony
 tego samego koloru pozostają odrębnymi przykładami przestrzennymi.
 
 ## Co rzeczywiście jest dostępne
@@ -142,3 +144,8 @@ Następnie wykonano [próbę pokrycia na tych wnętrzach](coverage-partial-refer
 Zachowano te same maski referencji i oceniono utratę znanego materiału przez
 10 wariantów. To wynik kolejnego eksperymentu, nie zmiana znaczenia etykiet
 ani pełna walidacja pokrycia lub rozróżniania typów domen.
+
+Następnie wykonano [próbę wspólnego katalogu typów](structural-type-catalogue-trial.md).
+Wykorzystano te same 54 wnętrza, bez zmiany masek po obejrzeniu wyników.
+Badano strukturę oddzielnie od orientacji; brak pełnego sąsiedztwa w wąskim
+regionie jest brakiem danych, nie dowodem nieporządku.

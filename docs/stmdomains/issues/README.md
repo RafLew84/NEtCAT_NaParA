@@ -37,6 +37,13 @@ wyników krok 10 ma status `resolved` jako zakończony eksperyment. Nie wybrano
 metody; pełna ocena pokrycia pozostaje w zakresie odbioru metod i protokołu jakości.
 Krok 10 nie zależy od kroku 11. Dotychczasowy graf zależności pozostaje bez zmian.
 
+Następnie na polecenie użytkownika wykonano [próbę katalogu typów](11-structural-type-catalogue.md).
+Krok 11 ma status `resolved` jako ukończony eksperyment. [Raport](../structural-type-catalogue-trial.md)
+wykazuje poprawę prostych kontroli po dodaniu rozstawu i różnic odległości,
+ale brak stabilnego katalogu TTMAPP. Użytkownik wyjaśnił znaczenie kolorów
+jako głównie różnych orientacji tej samej sieci; nie zatwierdzono metody.
+Dalsze luki pozostają w odbiorze 13, a granice niedopasowania w osobnym kroku 12.
+
 ## Wayfinding operations
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie

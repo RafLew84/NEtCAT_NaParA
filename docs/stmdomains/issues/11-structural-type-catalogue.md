@@ -4,7 +4,7 @@ ID: 11
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: claimed
+Status: resolved
 Assignee: Codex — domains/structural-type-catalogue
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 04, 05
@@ -52,3 +52,60 @@ Porównujemy cechy struktury z orientacją wydzieloną od typu, informację
 o rozstawie, wpływ skali okna i braków detekcji, rzadkie wzory oraz zmianę
 zakresu katalogu. Źródła prototypu: `prototype/stmdomains-types`; kod i duże
 wyniki eksperymentu nie trafią do aplikacji produkcyjnej.
+
+Użytkownik doprecyzował znaczenie kolorów: **głównie różne orientacje tej samej
+sieci**. Nie traktujemy BLACK/RED/YELLOW jako trzech prawdziwych typów.
+Sprawdzamy, czy cechy oddzielające typ od kąta unikają fałszywego tworzenia
+nowych typów z obrotu; realną zmianę rozstawu i geometrii oceniamy na kontrolach.
+
+## Answer — 2026-10-21
+
+Zakończono [próbę katalogu typów](../structural-type-catalogue-trial.md):
+9 wariantów, 18 klatek TTMAPP / 54 wnętrza oraz 19 kontroli syntetycznych.
+Status `resolved` oznacza wykonany eksperyment i udokumentowaną odpowiedź
+na pytanie o zachowanie kandydatów. **Nie oznacza zatwierdzenia metody.**
+Użytkownik doprecyzował znaczenie kolorów; nowy wynik przygotowano do jego
+obejrzenia, bez deklaracji, że zaakceptował już prototyp lub jego parametry.
+
+Momenty kątowe z wydzieloną orientacją, rozstaw i zróżnicowanie odległości
+sąsiadów rozdzielają proste struktury kontrolne, zachowując typ po obrocie
+oraz zmianie rozstawu o 2%. Rozszerzenie cechy opracowano na tych kontrolach,
+więc nie jest to niezależna walidacja. Na TTMAPP ten wariant tworzy 34 grupy
+kandydatów; zmiana zakresu zmienia 11,29% relacji wspólnego przypisania par.
+Nie utożsamiamy grup z fizycznymi typami ani kolorów ramek z trzema typami.
+
+Poszerzenie sąsiedztwa o następną powłokę, ubytki centrów i pojedynczy defekt
+mogą zmienić typ albo fałszywie odrzucić porządek. FFT nie zależy od braków
+centrów, ale ma błędy pomiaru okresu i odmowy zależne od okna/orientacji;
+przepuszcza również szum. Wąski RED najczęściej nie mieści pełnego pomiaru.
+Rzadki wzór zachowujemy jako kandydata, z jawną liczbą dostępnych próbek,
+bez wymuszania rozpoznania. Nie wybrano gotowego zestawu cech i progów.
+
+Porównano wspólny katalog całego zakresu, pierwszej połowy, odwróconej
+kolejności, powtórzeń pierwszego przypadku oraz progów 0,75/1/1,25.
+Porównania dotyczą relacji między tymi samymi próbkami; stabilność medoidów
+oraz stanów niejednoznaczności pozostaje osobną luką. Raport zawiera
+parametry, tożsamość wejścia, pomiary kosztu i zakres inspekcji.
+
+Kolejny krok dla rozpoznawania typów: stabilny wybór lokalnego sąsiedztwa
+oraz ocena wystarczalności danych przed tworzeniem grup. Te luki pozostają
+jawne w [odbiorze metod](13-method-acceptance.md); obecne referencje pozwalają
+kontynuować lokalne próby. [Granice niedopasowania](12-phase-boundaries.md)
+są osobnym pytaniem. Zamknięcie 11 nie zalicza odbioru 13 i nie czeka na 12.
+
+## Prototype and inspection
+
+Źródła: **`prototype/stmdomains-types`, commit `f2608c7`** — nie scalać do aplikacji.
+Lokalny podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/type-catalogue-trial/index.html`.
+Obok pełny JSON, CSV i raporty inspekcji. Polecenie odtworzenia jest w raporcie
+oraz `stmdomains/prototypes/type_catalogue_README.md` na gałęzi prototypu.
+
+W HTML obejrzyj kolejno „Prostokąt i różnice odległości”, „Wąski RED — 251”,
+„Szersze sąsiedztwo” oraz „Sam szum”. Zmień nakładkę grup na kierunek q4/q6;
+orientacja pozostaje osobna od typu. Dostępny jest swobodny wybór metod i klatek.
+
+Wykonano inspekcję geometrii 7014 pomiarów, średnic 349 grup, niezależności
+81 okien od obrazu poza referencją oraz interakcji HTML w QtWebEngine.
+Bez błędów JS; koszt generatora 7,10 s przed eksportem CSV / 618,43 MiB RSS.
+Nie zmieniano kodu aplikacji ani nie uruchamiano jej testów.

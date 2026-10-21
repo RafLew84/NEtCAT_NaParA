@@ -72,6 +72,15 @@ masek z centrów od kompletności detekcji. Interaktywny wynik jest w
 Po omówieniu wyników krok 10 ma status `resolved` jako zakończona próba badawcza.
 Nie czeka na krok 11; pełny odbiór metody pokrycia nadal pozostaje otwarty.
 
+2026-10-21 wykonano również [próbę katalogu typów](structural-type-catalogue-trial.md):
+9 wariantów, 18 klatek TTMAPP i 19 kontroli syntetycznych. Kolory referencji
+opisują głównie różne orientacje tej samej sieci, zgodnie z doprecyzowaniem
+użytkownika. Cechy rozstawu i różnic odległości poprawiają rozróżnianie kontroli,
+ale katalog TTMAPP pozostaje rozdrobniony i zależny od zakresu. [Krok 11](issues/11-structural-type-catalogue.md)
+ma status `resolved` jako zakończony eksperyment, bez wyboru gotowej metody.
+Wynik jest gotowy do obejrzenia w `.scratch/type-catalogue-trial/index.html`;
+odbiór metod 13 nadal pozostaje otwarty.
+
 ## Dwa etapy
 
 - [Etap 1: działający szkielet](map.md) — import, podstawowy podgląd oraz

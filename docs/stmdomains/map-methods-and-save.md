@@ -51,6 +51,14 @@ ticket 10 ma status `resolved` jako zakończona próba, bez zatwierdzenia metody
 Nie czeka na krok 11; nierozstrzygnięte warunki pełnego pomiaru pokrycia
 pozostają w zakresie odbioru metod, z możliwością wskazania kolejnych prób.
 
+Na kolejne bezpośrednie polecenie wykonano
+[próbę wspólnego katalogu typów](structural-type-catalogue-trial.md).
+Użytkownik doprecyzował kolory referencji jako głównie różne orientacje tej
+samej sieci. Ticket 11 ma status `resolved` jako zakończony eksperyment:
+kontrole wskazały przydatność rozstawu i zróżnicowania odległości, a dane
+rzeczywiste — nadmierne dzielenie i zależność od zakresu. Wynik przygotowano
+do obejrzenia; nie deklarujemy zatwierdzenia metody ani parametrów przez użytkownika.
+
 - Rozpatrujemy dwa wyniki: pokrycie materiałem/wyspy oraz domeny orientacji
   i uporządkowania sieci. Orientacja pojedynczej molekuły jest odłożona.
 - Korzystamy z odtworzonych obrazów i gotowych oznaczeń. Możemy porównywać
@@ -79,6 +87,11 @@ powstaną w zadaniach wynikających z ustaleń i wyników prób.
 
 ## Decisions so far
 
+- [Jak rozpoznawać typy przy obrocie, zmianie rozstawu i rzadkich wzorach?](issues/11-structural-type-catalogue.md):
+  wykonano 9 wariantów na 18 klatkach i 19 kontrolach. Dodanie rozstawu
+  i różnic odległości rozdziela proste kontrolne sieci bez zmiany typu przy
+  obrocie; nie daje jeszcze stabilnego katalogu TTMAPP. Dobór sąsiedztwa,
+  rozmiaru okna i warunki odmowy wymagają dalszych prób przed odbiorem 13.
 - [Jak wyznaczać pokrycie bez mylenia luk oznaczeń z podłożem?](issues/10-coverage-and-scale.md):
   zakończono próbę na częściowych referencjach. Maski z centrów zależą od
   kompletności detekcji; proste cechy jasności/amplitudy gubią znany materiał.
