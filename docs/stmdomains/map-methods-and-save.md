@@ -26,17 +26,25 @@ Aktualny zakres badawczy to
 [próby samodzielnego znajdowania domen](issues/README.md#próby-samodzielnego-znajdowania-domen),
 rozpisane na polecenie użytkownika 2026-10-21 po przeglądzie STM/AFM.
 Ten cykl można podejmować przed odbiorem szkieletu. Najpierw przygotowujemy
-wspólne wejście i kontrole, potem porównujemy trzy niezależne kierunki.
+wspólne wejście i kontrole, potem porównujemy kolejne kierunki.
 Zalecana pierwsza próba wykorzystuje otoczenie zaznaczonych molekuł.
 Aktualizacja mapy nie uruchamia eksperymentów ani nie rozstrzyga ich wyniku.
 
 [Przegląd ML bez własnego treningu](research-training-free-ml-domain-discovery.md)
-z 2026-10-21 dodaje propozycję porównania gotowych cech CNN/DINO w
-[próbie obrazowej 17](issues/17-image-texture-domains.md). Grupowanie
-nienadzorowane już należy do planu; gotowa sieć może dostarczyć dodatkowej
-reprezentacji bez uczenia na ramkach użytkownika. Jakość wymaga sprawdzenia.
-Krok 15 pozostaje bazą geometryczną, a kolejność to 14 → próby 15–17 →
-odbiór 13, przy zachowaniu wymaganego protokołu jakości 04.
+z 2026-10-21 rozwinięto na polecenie użytkownika w
+[przygotowanie gotowych cech](issues/18-frozen-feature-preparation.md) oraz
+[porównanie domen z tych cech](issues/19-frozen-feature-domains.md).
+Przygotowanie korzysta ze wspólnego wejścia i może przebiegać obok prób
+geometrii, SBC/MatID i klasycznej tekstury. Porównanie ML wymaga gotowych
+cech oraz udokumentowanego wyniku klasycznej tekstury; jej sukces nie jest
+warunkiem próby. DINOv3 pozostaje opcjonalny. Grupowanie dopasowuje się
+do danych bez etykiet, a wagi sieci pozostają niezmienione.
+
+[Odbiór metod](issues/13-method-acceptance.md) obejmie również wynik ML,
+przy zachowaniu wymaganego protokołu jakości. Przygotowanie modeli nie
+oznacza wyboru ani skuteczności metody. W tym cyklu nie planujemy własnego
+treningu sieci, także bez etykiet; ewentualna potrzeba takiego rozszerzenia
+powinna wynikać z rezultatów obecnych prób.
 
 Zakres i warunki poszczególnych prób są w ticketach; indeks powyżej oraz
 [odnośniki ze wcześniejszego planu](unsupervised-domain-experiments.md)

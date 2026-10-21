@@ -34,26 +34,17 @@ Zestawić wpływ okna, kontrastu, skali, rzadkiego wzoru i rozszerzenia zakresu
 na katalog. Porównać z wynikami innych kandydatów, gdy będą dostępne,
 bez uzależniania wykonania tej próby od ich powodzenia.
 
-## Propozycja porównania ML bez własnego treningu
+## Punkt odniesienia dla porównania ML
 
-[Przegląd z 2026-10-21](../research-training-free-ml-domain-discovery.md)
-uzasadnia dodatkowe porównanie cech wczesnych warstw gotowej FCN–ResNet101
-(bezpośredni precedens STM) i zamrożonego DINOv2 ViT-S z autokorelacją/EWT.
-DINOv3 ViT-S pozostaje opcjonalnym rozszerzeniem, zależnym od dostępu do
-wag. To propozycja próby; nie potwierdzono jakości tych cech na TTMAPP.
-
-Sieci tylko wyliczają lokalne opisy obrazu: bez treningu wag, głowicy
-klasyfikacyjnej ani przykładów domen. Grupowanie nadal dopasowuje się
-do nieoznaczonych danych. Cechy pobierać na siatce i, osobno, przy
-dostarczonych centrach. Oba warianty pozostają w tym tickecie;
-[krok 15](15-local-neighborhood-domains.md) zachowuje bazę geometryczną.
-
-Przy porównaniu reprezentacji stosować wspólny sposób grupowania,
-łączenia przestrzennego i oceny uporządkowania, z jawnym doborem skali
-parametrów. Sprawdzić wpływ rozdzielczości cech oraz skalowania wejścia
-na rozstaw, orientację i granice przesunięcia. Model i wagi, przygotowanie
-obrazu, czas oraz pamięć wymagają zapisu. SAM i autoenkodery wymagające
-własnego treningu nie są warunkiem tej próby.
+Na polecenie użytkownika z 2026-10-21 wcześniejszą propozycję ML wydzielono
+do [przygotowania gotowych cech](18-frozen-feature-preparation.md) i
+[porównania domen z tych cech](19-frozen-feature-domains.md). Ten ticket
+zachowuje autokorelację/EWT jako klasyczny punkt odniesienia; jego wykonanie
+nie czeka na modele ani ich wagi. Wynik przygotować do ponownego porównania:
+zapisane cechy i pozycje, konfiguracja grupowania, reguła przestrzennej
+łączności oraz ocena porządku. Wynik negatywny też jest użytecznym punktem
+odniesienia. [Próba otoczenia molekuł](15-local-neighborhood-domains.md)
+zachowuje niezależne porównanie geometrii.
 
 ## Dane i kryteria porównania
 

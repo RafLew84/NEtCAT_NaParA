@@ -7,7 +7,7 @@ Mode: HITL
 Status: open
 Assignee:
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
-Blocked by: 04, 06, 08, 10, 11, 12, 15, 16, 17
+Blocked by: 04, 06, 08, 10, 11, 12, 15, 16, 17, 19
 
 ## Question
 
@@ -129,12 +129,13 @@ na pełnym polu klatek, bez dostępu do masek referencyjnych podczas analizy.
 Ramki służą późniejszej, częściowej ocenie, a ich brak nie oznacza tła.
 Wymagane są kontrole zero/jedna/wiele domen oraz osobna ocena porządku:
 stabilna grupa podobnych cech sama nie dowodzi istnienia domeny sieci.
-Plan rozpisano na osobne pytania o otoczenie molekuł, SBC/MatID i teksturę
-obrazu, poprzedzone przygotowaniem wspólnego wejścia. Próby nie zostały
-jeszcze uruchomione. Odbiór czeka na ich wyniki, a wcześniejsze ograniczenia
+Plan rozpisano na osobne pytania o otoczenie molekuł, SBC/MatID, klasyczną
+teksturę obrazu i gotowe cechy sieci bez własnego treningu, poprzedzone
+przygotowaniem wspólnego wejścia. Próby nie zostały jeszcze uruchomione.
+Odbiór czeka na ich wyniki, a wcześniejsze ograniczenia
 powierzchni i granic nadal obowiązują.
 
-Porównanie końcowe ma zestawić trzy drogi na wspólnym wejściu i kontrolach:
+Porównanie końcowe ma zestawić te kierunki na wspólnym wejściu i kontrolach:
 zdolność do odmowy, zachowanie jednej poprawnej domeny, rozdzielenie typu
 od orientacji, scalenia/podziały, braki centrów, stabilność katalogu i koszt.
 Dokumentujemy również odrzuconych kandydatów; negatywny wynik zakończonej
@@ -142,6 +143,21 @@ próby nie oznacza, że trzeba przyjąć tę metodę lub badać ją bez końca.
 Wynik odbioru to uzasadniony wybór metody/połączenia metod albo konkretna
 dalsza luka. Ostateczne miary jakości i potrzeby dodatkowych referencji
 pozostają związane z protokołem jakości, nie z samą atrakcyjnością nakładek.
+
+## Wynik ML do uwzględnienia
+
+[Porównanie gotowych cech sieci](19-frozen-feature-domains.md) ma określić,
+czy dają one poprawę względem klasycznej tekstury i jaki jest jej koszt.
+Samo przygotowanie wag i ekstrakcji nie wystarcza do odbioru. Uwzględnić
+odmowy, wpływ rozdzielczości i przygotowania obrazu, rozstaw/orientację, granice,
+stabilność wspólnego katalogu oraz czas i pamięć. Rozróżniać wynik negatywny
+od braku uruchomienia konkretnego modelu; nieobecność opcjonalnego DINOv3
+nie blokuje odbioru pozostałych kandydatów.
+
+Jeśli wybór obejmie sieć, zapisać jej wariant, źródło i hash wag, wybrane
+warstwy oraz przygotowanie wejścia. Odtworzenie zapisanego wyniku nadal
+nie wymaga obecności modelu ani ponownego przeliczania. Odbiór może
+odrzucić wszystkie gotowe cechy sieci; nie wymaga wyboru metody ML.
 
 ## Dependencies
 
@@ -154,3 +170,4 @@ pozostają związane z protokołem jakości, nie z samą atrakcyjnością nakła
 - [Czy otoczenie zaznaczonych molekuł pozwala samodzielnie znaleźć domeny?](15-local-neighborhood-domains.md)
 - [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md)
 - [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md)
+- [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md)

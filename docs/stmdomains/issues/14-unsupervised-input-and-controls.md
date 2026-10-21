@@ -11,7 +11,7 @@ Blocked by: 01, 02
 
 ## Question
 
-Przygotować odtwarzalny zestaw danych i kontroli dla trzech porównań metod,
+Przygotować odtwarzalny zestaw danych i kontroli dla porównań metod,
 bez wskazywania im domen lub liczby grup. Zakres wejścia jest określony
 poniżej; to praca przygotowawcza umożliwiająca badanie, a nie wybór algorytmu
 ani rozstrzygnięcie pełnego protokołu jakości.
@@ -29,6 +29,14 @@ nie jest treningiem na wybranych domenach użytkownika. Skala sąsiedztwa,
 tolerancja szumu i minimalne wsparcie nadal wymagają jawnego określenia.
 Grupowanie podobnych obiektów, dowód uporządkowania i rozdzielenie
 przestrzennych domen są osobnymi etapami oceny.
+
+W porównaniu ML dopuszczamy modele wcześniej wytrenowane przez autorów,
+używane bez zmiany wag i statystyk na naszych obrazach. Format manifestu
+wyników przewiduje model, warstwy/tokeny, źródło i hash wag oraz sposób
+przygotowania wejścia; pola te wypełnimy podczas przygotowania ekstraktorów.
+Przygotowanie ekstraktorów jest osobnym zadaniem i nie blokuje
+zakończenia tego wspólnego zestawu. Nie planujemy własnego treningu sieci
+ani uczenia klas z ramkami referencyjnymi.
 
 Najpierw porównujemy przypisania molekuł, lokalne typy/orientacje i obszary
 z wiarygodnym wsparciem. Nie przeliczamy ich automatycznie na powierzchnie
@@ -89,6 +97,7 @@ osobno zmieniać kompletność detekcji i wygląd obrazu:
 | Pojedynczy defekt oraz pas nieuporządkowany | Defekt nie musi rozcinać domeny; pas może ją rozdzielać |
 | Losowe braki 10/30/50% centrów i lokalna luka detekcji | Nie mylić braków oznaczeń z granicą lub brakiem materiału |
 | Zmienny kontrast, odwrócenie kontrastu, ucięcie pola | Odporność lub jawna odmowa, bez ukrywania ograniczeń |
+| Przeskalowanie obrazu przy zachowaniu geometrii pomiaru oraz osobno zmiana rozstawu sieci | Rozróżnienie wpływu rozdzielczości wejścia od rzeczywistej różnicy struktury |
 
 Każdą losową kontrolę powtórzyć dla zapisanych ziaren. Przed oceną TTMAPP
 zamrozić konfigurację próby. Zmiany po obejrzeniu wyniku oznaczać jako kolejną
@@ -117,8 +126,10 @@ Mierzymy:
   domen całej rzeczywistej klatki.
 
 Najpierw przygotowanie wejścia i próba otoczenia molekuł, potem próby
-SBC/MatID i tekstury na tym samym zestawie. To zalecana kolejność;
-porównania metod są niezależne po przygotowaniu wspólnego wejścia. Kandydat,
+SBC/MatID i tekstury na tym samym zestawie. Przygotowanie gotowych cech
+sieci może przebiegać niezależnie od tych prób; ich porównanie domenowe
+korzysta później z wyniku klasycznej tekstury. Nie wymaga sukcesu żadnego
+innego kandydata, lecz udokumentowanego punktu odniesienia. Kandydat,
 który odrzuca wszystko, nie przechodzi kontroli jednej regularnej domeny.
 Kandydat kolorujący szum jak sieć nie przechodzi kontroli zerowej. Nie
 zastępujemy tych sprawdzeń samym wynikiem silhouette lub trwałości klastra.
@@ -139,8 +150,9 @@ porównania. Przyjęcie rozwiązania produkcyjnego pozostaje wynikiem
   ramek, kolorów ani poprzednich etykiet domen. Kolejne próby sprawdzą
   niezmienność predykcji po zmianie lub usunięciu samych referencji.
 - Opisany format wyników eksperymentu, definicje miar i zestaw podglądów
-  umożliwiający porównanie trzech kandydatów. Progi przyjęcia do programu
-  pozostają przedmiotem protokołu jakości i odbioru metod.
+  umożliwiający porównanie cech geometrycznych, SBC/MatID, tekstury i ML.
+  Progi przyjęcia do programu pozostają przedmiotem protokołu jakości
+  i odbioru metod.
 - Raport przygotowania z poleceniem odtworzenia, wykonanymi kontrolami oraz
   jawnymi brakami. Nie jest wymagany wynik żadnego algorytmu domenowego.
 
@@ -159,3 +171,4 @@ zadania oznacza gotowość zestawu porównawczego, nie skuteczność detekcji.
 - [Czy otoczenie zaznaczonych molekuł pozwala samodzielnie znaleźć domeny?](15-local-neighborhood-domains.md)
 - [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md)
 - [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md)
+- [Jak przygotować cechy gotowych sieci bez treningu na naszych danych?](18-frozen-feature-preparation.md)

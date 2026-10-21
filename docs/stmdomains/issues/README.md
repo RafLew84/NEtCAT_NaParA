@@ -54,7 +54,9 @@ Próby 10–12 są zakończone; odbiór metod 13 i protokół jakości 04 nadal 
 Po przeglądzie MolTrack i literatury STM/AFM użytkownik polecił wpisać
 [kolejne próby samodzielnego znajdowania domen](#próby-samodzielnego-znajdowania-domen)
 do istniejącej mapy. Następny krok badawczy to przygotowanie wspólnego
-wejścia i kontroli, potem porównania trzech metod. Analizujemy całe klatki;
+wejścia i kontroli, potem porównania kandydatów. Po przeglądzie ML dodano
+przygotowanie gotowych cech i ich porównanie z klasyczną teksturą, bez
+własnego treningu sieci. Analizujemy całe klatki;
 ramki służą wyłącznie późniejszej ocenie. Nie zakładamy istnienia domen
 ani ich liczby i nie uczymy klas z ręcznie zaznaczonych przykładów.
 Nowe tickety są otwarte, próby nie zostały uruchomione.
@@ -140,9 +142,12 @@ ten nadal warunkuje odbiór metod. Statusy znajdują się w ticketach.
 | [Czy otoczenie zaznaczonych molekuł pozwala samodzielnie znaleźć domeny?](15-local-neighborhood-domains.md) | prototype / HITL | Po przygotowaniu wejścia; zalecana pierwsza próba, E1 |
 | [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md) | prototype / HITL | Po przygotowaniu wejścia; E2 |
 | [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md) | prototype / HITL | Po przygotowaniu wejścia; E3 |
+| [Jak przygotować cechy gotowych sieci bez treningu na naszych danych?](18-frozen-feature-preparation.md) | task / AFK | Po przygotowaniu wejścia; niezależnie od prób klasycznych |
+| [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | Po przygotowaniu cech i wyniku klasycznej tekstury |
 
-Trzy porównania są niezależne: niepowodzenie jednej metody nie blokuje
-sprawdzenia pozostałych.
+Próby geometrii, SBC/MatID i klasycznej tekstury są niezależne. Porównanie
+ML korzysta z wyniku tekstury jako punktu odniesienia, również gdy jest
+negatywny. DINOv3 jest opcjonalny; nie warunkuje zakończenia prób.
 Ich udokumentowane wyniki, także negatywne, zasilają istniejący
 [odbiór metod](13-method-acceptance.md). Zamkniętych badań pokrycia, katalogu
 typów i granic nie otwieramy ponownie. Dawny
@@ -185,6 +190,8 @@ flowchart TD
         o["Otoczenie oznaczonych molekuł"]
         p["Odtwarzanie komórki SBC/MatID"]
         q["Lokalna tekstura STM"]
+        r["Przygotowanie gotowych cech sieci"]
+        s["Domeny z gotowych cech — porównanie ML"]
     end
     a --> g
     a --> i
@@ -214,7 +221,11 @@ flowchart TD
     n --> o
     n --> p
     n --> q
+    n --> r
+    q --> s
+    r --> s
     o --> m
     p --> m
     q --> m
+    s --> m
 ```

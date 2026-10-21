@@ -93,7 +93,12 @@ protokół jakości 04 oraz odbiór metod 13 pozostają otwarte.
 Po przeglądzie MolTrack i literatury STM/AFM dodano do istniejącej mapy
 [cykl samodzielnego znajdowania domen](issues/README.md#próby-samodzielnego-znajdowania-domen).
 Następny krok badawczy to [wspólne wejście i kontrole](issues/14-unsupervised-input-and-controls.md),
-następnie trzy porównania: otoczenie molekuł, SBC/MatID oraz tekstura obrazu.
+następnie porównania: otoczenie molekuł, SBC/MatID oraz klasyczna tekstura
+obrazu. Po przeglądzie ML dodano
+[przygotowanie gotowych cech sieci](issues/18-frozen-feature-preparation.md)
+i [porównanie domen z tych cech](issues/19-frozen-feature-domains.md).
+Próba ML korzysta z wyniku klasycznej tekstury jako punktu odniesienia;
+wszystkie wyniki trafiają do istniejącego odbioru metod.
 Zakres obejmuje całe klatki, bez przykładów domen i zadanej liczby grup;
 ramki służą wyłącznie późniejszej ocenie. Nowe tickety są otwarte, a próby
 nie zostały wykonane. Ten tok badawczy może poprzedzać odbiór szkieletu;
@@ -143,15 +148,16 @@ Nowe metody będą oceniane na danych i kryteriach rozstrzygniętych przez pytan
 
 - [ML i deep learning bez własnego treningu](research-training-free-ml-domain-discovery.md)
   — gotowe cechy CNN/DINO, bezpośrednie precedensy STM/SPM oraz różnica
-  między grupowaniem bez etykiet a treningiem sieci. Propozycja porównania
-  uzupełnia krok 17; nie uruchomiono modeli ani nie wybrano metody.
+  między grupowaniem bez etykiet a treningiem sieci. Propozycję rozwinięto
+  w zadania przygotowania i porównania ML; nie uruchomiono modeli
+  ani nie wybrano metody.
 - [Samodzielne wyszukiwanie domen w STM/AFM](research-stm-afm-unsupervised-domain-discovery.md)
   — bezpośrednie precedensy, ich ograniczenia oraz rozróżnienie braku
   przykładów treningowych od narzucania liczby grup.
 - [Domeny i grupowanie oznaczonych obiektów](research-domain-discovery-and-object-clustering.md)
   — kandydaci dla centrów molekuł, ich otoczeń i tekstury obrazu.
 - [Plan nowych prób i odpowiadające mu tickety](unsupervised-domain-experiments.md)
-  — wejście, kontrole i trzy porównania prowadzące do odbioru metod.
+  — wejście, kontrole oraz porównania klasyczne i ML prowadzące do odbioru metod.
 - [Ogólne wykrywanie domen molekularnych](research-general-domain-detection.md)
   — przegląd metod wykrywania regularności rozmieszczenia i uporządkowania
   orientacji molekuł, założeń MolTrack oraz propozycja porównania metod na danych.

@@ -1,4 +1,37 @@
-# STM Domains — ML bez własnego treningu do odkrywania domen
+# STM Domains — zadania przygotowania i porównania ML
+
+Data: 2026-10-21. Gałąź `domains/training-free-ml-map`, baza `abf7869`.
+Worktree `/tmp/netcat-stmdomains-ml-map`, docelowo `domains/start`.
+Commit aktualizacji dokumentacji w wiadomości końcowej.
+
+Na polecenie użytkownika rozwinięto wnioski przeglądu ML w dwa otwarte
+tickety istniejącej mapy `wayfinder`:
+
+- [Przygotowanie gotowych cech bez własnego treningu](issues/18-frozen-feature-preparation.md)
+  — task / AFK, po wspólnym wejściu. Modele, geometria cech, zapis
+  konfiguracji i sprawdzenie odtwarzalności; bez oceny skuteczności domen.
+- [Porównanie domen z gotowych cech](issues/19-frozen-feature-domains.md)
+  — prototype / HITL, po przygotowaniu cech i wyniku klasycznej tekstury.
+  FCN–ResNet101 i DINOv2, opcjonalnie DINOv3, bez uczenia na ramkach
+  i bez treningu wag. Grupowanie nienadzorowane jest dozwolone.
+
+Próba tekstury zachowuje autokorelację/EWT; jej wynik jest punktem
+odniesienia dla ML, nawet jeśli nie wykrywa domen poprawnie. Geometria
+otoczenia molekuł pozostaje niezależnym porównaniem. Wspólne wejście
+uzupełniono o metadane modeli i kontrolę skalowania; nie czeka na wagi.
+Odbiór metod zależy również od wyniku porównania ML. DINOv3 i własny trening
+sieci nie są nowymi obowiązkowymi etapami. Zaktualizowano mapę, indeks,
+diagram zależności, README oraz odnośniki w planie i raporcie badawczym.
+
+Sprawdzenia: lokalne odnośniki, kompletność metadanych i indeksu, zgodność
+zależności z linkami i diagramem, brak cykli oraz `git diff --check`.
+Bez uruchamiania eksperymentów, instalacji, pobierania wag, testów aplikacji
+i odbioru GUI. Wszystkie nowe zadania pozostają `open`, bez prowadzącego.
+Nie zmieniono danych, kodu ani konfiguracji wspólnych modułów.
+
+---
+
+## Poprzednie przekazanie — ML bez własnego treningu do odkrywania domen
 
 Data: 2026-10-21. Gałąź `domains/training-free-ml-research`, baza `2a35377`.
 Worktree `/tmp/netcat-stmdomains-ml-research`, docelowo `domains/start`.

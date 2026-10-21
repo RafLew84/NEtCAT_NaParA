@@ -5,6 +5,13 @@ Status: **przegląd źródeł i publicznego kodu; bez uruchamiania modeli na TTM
 Uzupełnia [badania STM/AFM](research-stm-afm-unsupervised-domain-discovery.md)
 i [plan eksperymentów](unsupervised-domain-experiments.md).
 
+Aktualizacja planu po przeglądzie: propozycję rozszerzenia próby obrazowej
+wydzielono na polecenie użytkownika do
+[przygotowania gotowych cech](issues/18-frozen-feature-preparation.md) i
+[porównania domen z tych cech](issues/19-frozen-feature-domains.md).
+Poniżej zachowano uzasadnienie badawcze; aktualny zakres i zależności
+przechowują tickety.
+
 ## Odpowiedź i znaczenie „bez treningu”
 
 **Możemy zastosować ML oraz gotowe sieci bez trenowania ich na obrazach
