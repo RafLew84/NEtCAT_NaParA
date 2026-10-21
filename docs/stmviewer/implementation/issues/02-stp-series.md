@@ -4,7 +4,7 @@
 
 **Blocked by:** [01: Pierwszy obraz STP w działającym oknie](01-single-stp.md)
 
-**Status:** ready-for-review
+**Status:** done
 
 **Wykonawca:** Codex, `viewer/start`.
 
@@ -67,9 +67,10 @@ błędów. Automatyczna próba z rzeczywistym oknem xcb i dialogiem wielokrotneg
 wyboru przeszła na Linuksie. Szczegóły pełnego zestawu repo i przeglądu:
 [przekazanie](../../handoff.md).
 
-Ręczny odbiór użytkownika pozostaje niewykonany, dlatego status to
-`ready-for-review`. [Scenariusz, wzorce i generator](../../stp-series-manual.md)
-obejmują wszystkie kroki dostępne po tym etapie; Windows pozostaje osobnym odbiorem.
+Użytkownik potwierdził ręczny odbiór 2026-10-21: „testy manualne ok”,
+po poprawce podświetlenia miniatur `cb40891`. Ticket ma status `done`.
+[Scenariusz, wzorce i generator](../../stp-series-manual.md) obejmują kroki
+dostępne po tym etapie. Nie wskazano platformy; osobne odbiory systemów pozostają.
 
 ### Poprawka po zgłoszeniu z próby GUI
 
@@ -77,5 +78,5 @@ obejmują wszystkie kroki dostępne po tym etapie; Windows pozostaje osobnym odb
 Następna/Poprzednia. Powiadomienia Qt ponownie odświeżają stary i nowy wybór;
 zapętlaniu synchronizacji zapobiega pomijanie już aktywnego indeksu.
 34 testy Viewera, test regresji na xcb i mypy przechodzą. Automatyczne
-porównanie obrazu ekranu potwierdza brak śladu. Ręczne potwierdzenie użytkownika
-po poprawce pozostaje do wykonania; szczegóły w przekazaniu.
+porównanie obrazu ekranu potwierdza brak śladu. Użytkownik potwierdził testy
+manualne po poprawce; szczegóły w przekazaniu.

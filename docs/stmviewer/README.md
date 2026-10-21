@@ -57,7 +57,8 @@ oraz zawiera konkretne kroki próby i oczekiwane wyniki.
 [Pierwszy obraz STP w działającym oknie](implementation/issues/01-single-stp.md)
 ma status `done`.
 [Otwarcie i przeglądanie serii STP](implementation/issues/02-stp-series.md)
-jest zaimplementowane; status `ready-for-review` oczekuje na ręczną próbę użytkownika.
+ma status `done`: użytkownik potwierdził testy manualne, w tym poprawkę
+podświetlenia miniatur, 2026-10-21.
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje

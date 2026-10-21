@@ -75,5 +75,7 @@ odczyt plików z kontrolowanym opóźnieniem systemowego I/O, anulowanie,
 zamykanie podczas importu i zachowanie widoku. Automatyczna próba Qt xcb
 na Linuksie otworzyła trzy wzorce przez prawdziwy dialog, sprawdziła miniatury
 oraz nawigację i wczytała rzeczywisty pomiar 34855.STP. Zrzuty oceniono wizualnie.
-Te sprawdzenia nie zastępują ręcznej próby użytkownika. Odbiór manualny ticketu
-02 oraz uruchomienie na Windows pozostają do wykonania.
+Użytkownik potwierdził ręczny odbiór ticketu 02 po poprawce podświetlenia
+miniatur (`cb40891`) 2026-10-21: „testy manualne ok”. Ticket ma status `done`.
+Nie wskazano systemu, więc potwierdzenie nie zamyka osobnych odbiorów Ubuntu
+i Windows.

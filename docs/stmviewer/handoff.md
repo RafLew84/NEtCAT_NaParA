@@ -24,9 +24,10 @@ Sprawdzenia: **34 testy Viewera zaliczone**, test regresji na xcb zaliczony,
 mypy strict bez błędów, `git diff --check` poprawne. Największy zmieniony plik
 kodu ma 263 linie. Nie powtarzano pełnego zestawu repo dla tej lokalnej
 poprawki GUI; poprzedni wynik i 63 istniejące błędy są opisane niżej.
-Nie zmieniono wspólnych modułów ani zależności. To próby automatyczne;
-potwierdzenie użytkownika po poprawce pozostaje do wykonania.
-Ticket 02 nadal ma status `ready-for-review`.
+Nie zmieniono wspólnych modułów ani zależności. Powyższe próby są automatyczne.
+Użytkownik następnie potwierdził ręczny odbiór po poprawce 2026-10-21:
+„testy manualne ok”. Ticket 02 ma status `done`. Nie wskazano systemu;
+potwierdzenie nie zamyka odrębnych ticketów odbioru platform.
 
 ## 02: Otwarcie i przeglądanie serii STP — 2026-10-21
 
@@ -35,7 +36,7 @@ Gałąź: `viewer/start`. Baza implementacji i code-review:
 Commit implementacji: `e054738`. Finalny zakres tego etapu: `3f2e92b..HEAD`;
 commit raportu podany w końcowej wiadomości sesji.
 Ticket: [02-stp-series](implementation/issues/02-stp-series.md),
-status `ready-for-review` do ręcznego odbioru użytkownika.
+status `done` po potwierdzeniu ręcznego odbioru użytkownika 2026-10-21.
 
 ### Wynik
 
@@ -91,9 +92,10 @@ gamma i szachownica pozostają do wykonania.
 ### Odbiór i integracja
 
 [Instrukcja GUI i wzorce](stp-series-manual.md) obejmują ręczny scenariusz,
-łącznie z generowaniem większego zestawu do anulowania. Ręczny odbiór użytkownika
-oraz próba Windows są niewykonane. Wcześniejsze potwierdzenie ticketu 01
-pozostaje ważne, ale nie obejmuje nowej serii.
+łącznie z generowaniem większego zestawu do anulowania. Użytkownik potwierdził
+ręczny odbiór serii po poprawce miniatur 2026-10-21. To nowe potwierdzenie
+ticketu 02, niezależne od wcześniejszego odbioru ticketu 01. Systemu nie podano;
+odbiór Windows pozostaje odrębnym etapem.
 
 Zmiany dotyczą wyłącznie aplikacji Viewera, jej testów i dokumentacji.
 Nie zmieniono konfiguracji głównej, zależności ani współdzielonych loaderów;
