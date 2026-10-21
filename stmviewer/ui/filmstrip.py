@@ -5,6 +5,7 @@ from PyQt6.QtGui import QIcon, QImage, QPixmap
 from PyQt6.QtWidgets import QListView, QWidget
 
 from stmviewer.frame import ImageFrame
+from stmviewer.ui.raster import frame_thumbnail
 
 
 class FrameListModel(QAbstractListModel):
@@ -14,6 +15,7 @@ class FrameListModel(QAbstractListModel):
         self._frames = frames
         self._thumbnails = thumbnails
         self._icons: dict[int, QIcon] = {}
+        self._pixel_proportions = False
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return 0 if parent.isValid() else len(self._frames)
@@ -32,9 +34,21 @@ class FrameListModel(QAbstractListModel):
             return source
         if role == Qt.ItemDataRole.DecorationRole:
             if row not in self._icons:
-                self._icons[row] = QIcon(QPixmap.fromImage(self._thumbnails[row]))
+                thumbnail = (frame_thumbnail(self._frames[row], pixel_proportions=True)
+                             if self._pixel_proportions else self._thumbnails[row])
+                self._icons[row] = QIcon(QPixmap.fromImage(thumbnail))
             return self._icons[row]
         return None
+
+
+    def set_pixel_proportions(self, enabled: bool) -> None:
+        if self._pixel_proportions == enabled:
+            return
+        self._pixel_proportions = enabled
+        self._icons.clear()
+        if self._frames:
+            self.dataChanged.emit(self.index(0), self.index(len(self._frames) - 1),
+                                  [Qt.ItemDataRole.DecorationRole])
 
 
 class Filmstrip(QListView):
@@ -63,3 +77,8 @@ class Filmstrip(QListView):
             model.deleteLater()
         if selection is not None:
             selection.deleteLater()
+
+    def set_pixel_proportions(self, enabled: bool) -> None:
+        model = self.model()
+        assert isinstance(model, FrameListModel)
+        model.set_pixel_proportions(enabled)

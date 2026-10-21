@@ -12,14 +12,17 @@ Panel pokazuje pochodzenie i metadane aktualnej klatki. Import działa w tle,
 ma postęp i anulowanie; błąd lub anulowanie zachowują wcześniejszą serię.
 Wymagane są wspólne wymiary pikselowe, skale i kanały mogą się różnić.
 Kółko myszy zmienia zoom pod kursorem; przeciąganie lewym przyciskiem przesuwa
-obraz z zachowaniem powiększenia. Zmiana klatki zachowuje widok, a „Dopasuj”
+obraz z zachowaniem powiększenia. Przyciski +/− zmieniają zoom wokół środka.
+Gamma 0,1–4 dotyczy głównego obrazu; miniatury pozostają przy gamma 1.
+Brakujące próbki pokazuje szachownica. Opcja Proporcje pikselowe pozwala
+pominąć niewiarygodną skalę źródłową: [próba podglądu](preview-controls-manual.md). Zmiana klatki zachowuje widok, a „Dopasuj”
 i nowy poprawny import przywracają całą klatkę. Próba ręczna:
 [instrukcja serii STP](stp-series-manual.md) oraz
 [S94 i mieszane serie](s94-series-manual.md). S94 rozróżnia dane skalibrowane
 w nm/nA od surowych wartości przy nieznanym trybie lub wzmocnieniu.
 MPP pokazuje numer źródłowej klatki oraz dostępny czas pomiaru, także przy
 częściowych brakach: [instrukcja próby MPP](mpp-series-manual.md).
-Rejestracja i eksport należą do kolejnych ticketów.
+Odtwarzanie, rejestracja i eksport należą do kolejnych ticketów.
 Mapa decyzji jest zamknięta: specyfikacja pierwszej wersji jest gotowa do
 implementacji. Nie oznacza to wdrożenia funkcji ani zaliczenia odbioru.
 
@@ -68,6 +71,8 @@ podświetlenia miniatur, 2026-10-21.
 status `done`: użytkownik potwierdził testy manualne 2026-10-21.
 [Otwarcie filmu MPP z czasami i pochodzeniem](implementation/issues/04-mpp-series.md)
 ma status `done`: użytkownik potwierdził testy manualne 2026-10-21.
+[Zoom, gamma i brakujące próbki](implementation/issues/05-preview-controls.md)
+są zaimplementowane; końcowe sprawdzenia i przegląd są w toku.
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje

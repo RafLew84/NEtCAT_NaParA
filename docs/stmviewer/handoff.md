@@ -1,5 +1,62 @@
 # Przekazanie — STM Viewer
 
+## 05: Zoom, gamma i brakujące próbki — 2026-10-21
+
+Gałąź: `viewer/start`. Baza implementacji i przeglądu:
+`4b4f6d478b5c734a196821106e984a6ade865536`.
+Ticket: [05-preview-controls](implementation/issues/05-preview-controls.md).
+Commit implementacji i końcowy przegląd zostaną uzupełnione.
+
+### Wynik i kontrakt
+
+Główny podgląd ma gamma 0,1–4 (domyślnie 1), reset gamma, +/− wokół środka,
+Dopasuj oraz dotychczasowy zoom pod kursorem i przesuwanie bez zmiany skali.
+Gamma używa `u ** (1 / gamma)` po normalizacji skończonych próbek; stała
+klatka ma `u = 0,5`. Miniatury pozostają original z gamma 1. Braki są
+przezroczyste w rastrze; pod nimi rysowana jest niezależna od gamma szachownica
+(8 px na pole, poziomy 96/144). NaN/±Inf nie stają się zerami pomiaru.
+
+Użytkownik zatwierdził opcję Proporcje pikselowe: pomija skalę nagłówka
+w podglądzie i miniaturach, zachowując dane źródłowe. Ustawienie jest wspólne
+dla serii. Bez niego dodatnia skończona skala X/Y określa proporcje, a jej
+brak/nieprawidłowy stosunek daje proporcje pikselowe. Etykieta „Parametry z pliku”
+nie potwierdza rzeczywistej kalibracji; nie wykrywamy zastępczych 1000 nm
+po nazwie ani wartości. Miniatury dla wymuszonych proporcji są liczone na żądanie.
+
+Zmiana klatki zachowuje gamma/zoom/przesunięcie/proporcje. Nowa poprawna seria
+resetuje gamma do 1, opcję proporcji do domyślnej i dopasowuje obraz. Błąd
+lub anulowanie zachowują ustawienia. Ustawienia są nieaktywne w pustej aplikacji.
+Prawy panel otrzymał przewijanie: dodatkowe kontrolki i postęp nie mogą
+powiększać okna, co zmieniałoby kadr po nieudanym imporcie.
+
+### Sprawdzenia
+
+- TDD przez publiczne kontrolki i podgląd: wartości szarości dla znanej gamma,
+  neutralne miniatury, maska braków, przyciski zoomu, proporcje, dostępność
+  kontrolek oraz reset/zachowanie ustawień. Gesty z wcześniejszych ticketów
+  pozostają sprawdzane. Test przekazuje dane tylko do odczytu do publicznego
+  podglądu i potwierdza niezmienność macierzy, NaN oraz metadanych.
+- **77 testów Viewera zaliczonych** w Qt offscreen. Rozszerzony rzeczywisty
+  import MPP potwierdza zachowanie gamma/proporcji/zoomu po anulowaniu.
+- Mypy strict: **15 plików bez błędów**. Największy zmieniony plik kodu:
+  `stmviewer/ui/main_window.py`, **314 linii**.
+- Automatyczna próba rzeczywistego okna Qt xcb: dialog, gamma/reset, przyciski
+  zoomu, puste próbki, proporcje oraz nawigacja lokalnego MOVIE_3.MPP.
+  Zrzuty: `/tmp/stmviewer-preview-{gamma,missing,pixels,measurement}-xcb.png`.
+  Oceniono wizualnie wygląd podglądu i ustawień. To próba automatyczna.
+- Pełny zestaw repo i niezależne przeglądy Standards/Spec: w toku.
+
+### Odbiór i integracja
+
+[Instrukcja ręczna](preview-controls-manual.md) zawiera start, wzorce STP,
+generator, kroki i oczekiwane wyniki. Ręczny odbiór użytkownika i Windows
+pozostają do wykonania; ta zmiana nie zamyka końcowych odbiorów platform.
+Play i original/aligned są w kolejnych ticketach; gamma i pamięć widoku
+muszą zostać z nimi połączone zgodnie z mapą.
+
+Nie zmieniono wspólnych modułów, zależności ani głównej konfiguracji.
+Nie ma wymaganej zmiany integracyjnej blokującej tę funkcję.
+
 ## 04: Otwarcie filmu MPP z czasami i pochodzeniem — 2026-10-21
 
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:

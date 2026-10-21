@@ -5,7 +5,7 @@ from PyQt6.QtGui import QImage, QMouseEvent, QPaintEvent, QPainter, QWheelEvent
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from stmviewer.frame import ImageFrame
-from stmviewer.ui.raster import frame_aspect, frame_image
+from stmviewer.ui.raster import draw_frame, frame_aspect, frame_image
 
 
 class ImagePreview(QWidget):
@@ -14,6 +14,9 @@ class ImagePreview(QWidget):
         self.setObjectName("imagePreview")
         self.setMinimumSize(240, 200)
         self.setToolTip("Kółko: zoom pod kursorem. Przeciągnij lewym przyciskiem, aby przesunąć obraz.")
+        self._frame: ImageFrame | None = None
+        self._gamma = 1.0
+        self._pixel_proportions = False
         self._image: QImage | None = None
         self._aspect = 1.0
         self._zoom = 1.0
@@ -24,9 +27,15 @@ class ImagePreview(QWidget):
         layout = QVBoxLayout(self)
         layout.addWidget(self._empty)
 
-    def set_frame(self, frame: ImageFrame, *, reset_view: bool = True) -> None:
-        image = frame_image(frame)
-        aspect = frame_aspect(frame)
+    def set_frame(self, frame: ImageFrame, *, reset_view: bool = True,
+                  reset_settings: bool = False) -> None:
+        gamma = 1.0 if reset_settings else self._gamma
+        image = frame_image(frame, gamma=gamma)
+        pixels = False if reset_settings else self._pixel_proportions
+        aspect = frame_aspect(frame, pixel_proportions=pixels)
+        self._gamma = gamma
+        self._pixel_proportions = pixels
+        self._frame = frame
         self._image = image
         self._aspect = aspect
         self._empty.hide()
@@ -34,6 +43,22 @@ class ImagePreview(QWidget):
             self.fit_image()
         else:
             self.update()
+
+    def set_pixel_proportions(self, enabled: bool) -> None:
+        """Ignore header scale in the view while retaining all source metadata."""
+        if self._frame is not None:
+            self._aspect = frame_aspect(self._frame, pixel_proportions=enabled)
+        self._pixel_proportions = enabled
+        self.update()
+
+    def set_gamma(self, gamma: float) -> None:
+        """Change display brightness without modifying measurement values or geometry."""
+        if not 0.1 <= gamma <= 4.0:
+            raise ValueError("Gamma musi mieścić się w zakresie 0,1–4.")
+        if self._frame is not None:
+            self._image = frame_image(self._frame, gamma=gamma)
+        self._gamma = gamma
+        self.update()
 
     def fit_image(self) -> None:
         """Restore the complete, centered image after navigation or a new import."""
@@ -55,12 +80,23 @@ class ImagePreview(QWidget):
             event.ignore()
             return
         steps = max(-60.0, min(60.0, delta / 120))
-        zoom = max(0.1, min(64.0, self._zoom * 1.2 ** steps))
-        cursor = event.position() - QPointF(self.width() / 2, self.height() / 2)
+        self._zoom_at(1.2 ** steps, event.position())
+        event.accept()
+
+    def zoom_in(self) -> None:
+        self._zoom_at(1.2, QPointF(self.width() / 2, self.height() / 2))
+
+    def zoom_out(self) -> None:
+        self._zoom_at(1 / 1.2, QPointF(self.width() / 2, self.height() / 2))
+
+    def _zoom_at(self, factor: float, position: QPointF) -> None:
+        if self._image is None:
+            return
+        zoom = max(0.1, min(64.0, self._zoom * factor))
+        cursor = position - QPointF(self.width() / 2, self.height() / 2)
         self._pan = cursor + (self._pan - cursor) * (zoom / self._zoom)
         self._zoom = zoom
         self.update()
-        event.accept()
 
     def mousePressEvent(self, event: QMouseEvent | None) -> None:
         if event is not None and self._image is not None and event.button() == Qt.MouseButton.LeftButton:
@@ -103,4 +139,4 @@ class ImagePreview(QWidget):
         height = width / self._aspect
         target = QRectF((self.width() - width) / 2, (self.height() - height) / 2,
                         width, height)
-        painter.drawImage(target.translated(self._pan), self._image)
+        draw_frame(painter, target.translated(self._pan), self._image)

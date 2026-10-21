@@ -119,13 +119,18 @@ def test_failed_and_disallowed_movie_imports_keep_previous_movie(qtbot, monkeypa
 def test_movie_import_can_cancel_after_a_decoded_frame(qtbot, monkeypatch):
     from threading import Event
     from PyQt6.QtCore import QTimer
-    from PyQt6.QtWidgets import QProgressBar
+    from PyQt6.QtWidgets import QCheckBox, QDoubleSpinBox, QProgressBar
 
     window = STMViewerMainWindow()
     qtbot.addWidget(window)
     window.show()
     open_selection(qtbot, window, monkeypatch, [FIXTURES / 'mpp/timed.MPP'])
     window.findChild(QSpinBox, 'frameNumber').setValue(3)
+    gamma = window.findChild(QDoubleSpinBox, 'previewGamma')
+    pixels = window.findChild(QCheckBox, 'pixelProportions')
+    gamma.setValue(2)
+    pixels.setChecked(True)
+    window.findChild(QPushButton, 'zoomIn').click()
     previous = window.findChild(QWidget, 'imagePreview').grab().toImage()
     path = (FIXTURES / 'mpp/long.mpp').resolve()
     entered, release = Event(), Event()
@@ -175,9 +180,11 @@ def test_movie_import_can_cancel_after_a_decoded_frame(qtbot, monkeypatch):
     finally:
         release.set()
         qtbot.waitUntil(button.isEnabled)
+    assert gamma.value() == 2 and pixels.isChecked()
     assert 'Klatka 3 z 3' in window.statusBar().currentMessage()
     assert 'Klatka źródłowa MPP: 3' in labels(window)
     assert window.findChild(QWidget, 'imagePreview').grab().toImage() == previous
     open_selection(qtbot, window, monkeypatch, [FIXTURES / 'mpp/no-times.mpp'])
     assert 'Klatka 1 z 1' in window.statusBar().currentMessage()
     assert 'Czas pomiaru: nieznane' in labels(window)
+    assert gamma.value() == 1 and not pixels.isChecked()
