@@ -1,5 +1,16 @@
 # Przekazanie — STM Viewer
 
+## Lokalny katalog danych — 2026-10-21
+
+Użytkownik udostępnił `/home/rlew/projekty/NEtCAT-viewer/data/` do testów.
+W kolejnych zadaniach korzystać przede wszystkim z tej lokalizacji.
+Sprawdzono obecność 515 STP, 370 S94 i 10 MPP oraz ignorowanie `data/` przez Git.
+Bieżący spis: [aktualizacja inwentarza](acceptance-reconnaissance.md).
+Nie zmieniano plików pomiarowych ani nie ponawiano testów przy aktualizacji
+lokalizacji. Starsze raporty zachowują faktycznie użyte ścieżki i wyniki.
+Obecność `data/MOVIE_3.MPP` może usunąć wcześniejszy brak danych w testach
+repozytorium; kolejny wynik porównać z bazą, uwzględniając tę zmianę środowiska.
+
 ## 06: Play, Pause i tempo odtwarzania — 2026-10-21
 
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:

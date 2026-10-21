@@ -4,7 +4,23 @@ Rozpoznanie: 2026-10-19, baza Viewer `7cfc154`. To sprawdzone lokalnie fakty,
 nie wynik odbioru aplikacji ani zatwierdzony zakres jej wydajności.
 Decyzje: [Dane i kryteria odbioru pierwszej wersji](issues/06-acceptance.md).
 
-## Dostępne pomiary
+## Aktualizacja lokalizacji — 2026-10-21
+
+Użytkownik udostępnił do testów katalog
+`/home/rlew/projekty/NEtCAT-viewer/data/`. To bieżąca, preferowana lokalizacja
+pomiarów dla kolejnych prac Viewera; z katalogu repo można używać `data/`.
+Sprawdzono listę i rozmiary plików: **515 STP, 370 S94 i 10 MPP**,
+łącznie **1 246 773 717 bajtów** dla tych trzech formatów.
+Dostępne są m.in. `MOVIE_3.MPP`, para `17851.STP`/`17851.S94` oraz
+`nanotrack_registration/trudne/MOVIE_8.mpp`.
+
+`data/` jest ignorowany przez Git. Dane pozostają lokalne; nie dodano ich
+do commitów ani nie zmieniono źródeł. Ten spis potwierdza obecność plików,
+nie poprawność ich dekodowania. Nie ponawiano testów przy tej aktualizacji.
+Poniższy szczegółowy inwentarz zachowuje stan i lokalizację z 2026-10-19;
+nie należy utożsamiać go z zawartością nowego katalogu Viewera.
+
+## Dostępne pomiary — inwentarz z 2026-10-19
 
 Katalog danych: `/home/rlew/projekty/NEtCAT-domains/data/`.
 Worktree Viewer nie ma własnego `data/`. Dane pozostają lokalne, poza Git;

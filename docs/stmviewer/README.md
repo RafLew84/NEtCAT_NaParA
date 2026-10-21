@@ -33,6 +33,9 @@ Windows 11, uruchomienie z repozytorium, 16 GB wolnego RAM, SSD i NVIDIA/CUDA
 z minimum 8 GB VRAM. Dane typowe uzupełnia test 1000 klatek 512 × 512;
 filmy AVI sprawdzamy w VLC na obu systemach. [Inwentarz lokalny](acceptance-reconnaissance.md)
 opisuje dostępne pomiary, sprzęt i granice wykonanych sprawdzeń.
+Od 2026-10-21 lokalne pomiary do kolejnych testów znajdują się w
+`/home/rlew/projekty/NEtCAT-viewer/data/` (czyli `data/` z katalogu repo).
+Katalog pozostaje poza Git; małe wzorce testowe są w `tests/stmviewer/fixtures/`.
 
 ## Mapa
 
