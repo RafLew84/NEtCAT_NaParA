@@ -1,9 +1,11 @@
 """Series browsing through the application's public file action."""
 
-from PyQt6.QtCore import QSignalBlocker, Qt
+from time import perf_counter
+
+from PyQt6.QtCore import QSignalBlocker, Qt, QTimer
 from PyQt6.QtGui import QAction, QCloseEvent, QKeySequence
 from PyQt6.QtWidgets import (
-    QCheckBox, QDoubleSpinBox, QFileDialog, QFrame, QHBoxLayout, QLabel, QMainWindow, QMenu, QMenuBar,
+    QCheckBox, QComboBox, QDoubleSpinBox, QFileDialog, QFrame, QHBoxLayout, QLabel, QMainWindow, QMenu, QMenuBar,
     QMessageBox, QProgressBar, QPushButton, QScrollArea, QSlider, QSpinBox, QStatusBar, QVBoxLayout, QWidget,
 )
 
@@ -26,6 +28,11 @@ class STMViewerMainWindow(QMainWindow):
         self._index = 0
         self._job: ImportJob | None = None
         self._closing = False
+        self._playing = False
+        self._play_timer = QTimer(self)
+        self._play_timer.setSingleShot(True)
+        self._play_timer.setTimerType(Qt.TimerType.PreciseTimer)
+        self._play_timer.timeout.connect(self._advance_playback)
 
         central = QWidget(self)
         outer = QVBoxLayout(central)
@@ -120,6 +127,24 @@ class STMViewerMainWindow(QMainWindow):
         sidebar.setFixedWidth(300)
         sidebar.setWidget(panel)
         layout.addWidget(sidebar)
+        playback = QHBoxLayout()
+        self._play = QPushButton("Play", central)
+        self._play.setObjectName("playPause")
+        self._play.clicked.connect(self._toggle_playback)
+        self._fps = QComboBox(central)
+        self._fps.setObjectName("playbackFps")
+        self._fps.setAccessibleName("Tempo odtwarzania w klatkach na sekundę")
+        self._fps.addItems(["1", "2", "5", "10", "20", "30"])
+        self._fps.setCurrentText("5")
+        self._fps.currentTextChanged.connect(self._change_tempo)
+        playback.addWidget(self._play)
+        playback.addWidget(QLabel("kl./s", central))
+        playback.addWidget(self._fps)
+        self._loop = QCheckBox("Pętla", central)
+        self._loop.setObjectName("playbackLoop")
+        playback.addWidget(self._loop)
+        playback.addStretch()
+        outer.addLayout(playback)
         navigation = QHBoxLayout()
         self._previous = QPushButton("← Poprzednia", central)
         self._previous.setObjectName("previousFrame")
@@ -130,17 +155,22 @@ class STMViewerMainWindow(QMainWindow):
         self._slider = QSlider(Qt.Orientation.Horizontal, central)
         self._slider.setObjectName("frameSlider")
         self._slider.setAccessibleName("Wybór klatki")
+        self._slider.sliderPressed.connect(self._pause)
         self._slider.valueChanged.connect(lambda value: self._select_frame(value - 1))
         self._number = QSpinBox(central)
         self._number.setObjectName("frameNumber")
         self._number.setAccessibleName("Numer klatki")
         self._number.setKeyboardTracking(False)
+        editor = self._number.lineEdit()
+        assert editor is not None
+        editor.textEdited.connect(self._pause)
         self._number.valueChanged.connect(lambda value: self._select_frame(value - 1))
         self._total = QLabel("z 0", central)
         for control in (self._previous, self._slider, self._number, self._total, self._next):
             navigation.addWidget(control)
         outer.addLayout(navigation)
         self._strip = Filmstrip(central)
+        self._strip.pressed.connect(self._pause)
         outer.addWidget(self._strip)
         self._pixel_proportions.toggled.connect(self._strip.set_pixel_proportions)
         self.setCentralWidget(central)
@@ -212,6 +242,7 @@ class STMViewerMainWindow(QMainWindow):
                 elif job.result is not None:
                     result = job.result
                     self._preview.set_frame(result.frames[0], reset_settings=True)
+                    self._pause()
                     with QSignalBlocker(self._gamma):
                         self._gamma.setValue(1.0)
                     with QSignalBlocker(self._pixel_proportions):
@@ -221,7 +252,7 @@ class STMViewerMainWindow(QMainWindow):
                     selection = self._strip.selectionModel()
                     assert selection is not None
                     selection.currentChanged.connect(
-                        lambda current, previous: self._select_frame(current.row())
+                        lambda current, previous: self._thumbnail_changed(current.row())
                     )
                     self._index = 0
                     self._show_current_frame()
@@ -246,6 +277,7 @@ class STMViewerMainWindow(QMainWindow):
         message.open()
 
     def closeEvent(self, event: QCloseEvent | None) -> None:
+        self._pause()
         if event is not None and self._job is not None:
             self._closing = True
             self._cancel_import()
@@ -255,6 +287,7 @@ class STMViewerMainWindow(QMainWindow):
 
     def _sync_navigation(self) -> None:
         count = len(self._frames)
+        self._play.setEnabled(count > 1)
         for preview_control in (self._zoom_in, self._zoom_out, self._fit_button, self._gamma,
                                 self._gamma_reset, self._pixel_proportions):
             preview_control.setEnabled(bool(count))
@@ -275,7 +308,56 @@ class STMViewerMainWindow(QMainWindow):
             self._strip.setCurrentIndex(index)
             self._strip.scrollTo(index)
 
+    def _pause(self) -> None:
+        self._playing = False
+        self._play_timer.stop()
+        self._play.setText("Play")
+
+    def _toggle_playback(self) -> None:
+        if self._playing:
+            self._pause()
+        elif len(self._frames) > 1:
+            if self._index == len(self._frames) - 1:
+                self._display_frame(0)
+                self._preview.repaint()
+            self._playing = True
+            self._play.setText("Pause")
+            self._play_timer.start(round(1000 / int(self._fps.currentText())))
+
+    def _change_tempo(self) -> None:
+        if self._playing:
+            self._play_timer.start(round(1000 / int(self._fps.currentText())))
+
+    def _advance_playback(self) -> None:
+        if not self._playing:
+            return
+        started = perf_counter()
+        next_index = self._index + 1
+        if next_index == len(self._frames):
+            if not self._loop.isChecked():
+                self._pause()
+                return
+            next_index = 0
+        self._display_frame(next_index)
+        # Complete this paint before scheduling another frame, even under load.
+        self._preview.repaint()
+        if self._index == len(self._frames) - 1 and not self._loop.isChecked():
+            self._pause()
+        else:
+            interval = 1000 / int(self._fps.currentText())
+            elapsed = (perf_counter() - started) * 1000
+            self._play_timer.start(max(1, round(interval - elapsed)))
+
+    def _thumbnail_changed(self, index: int) -> None:
+        # Synchronizing the current thumbnail during Play is not a manual choice.
+        if index != self._index:
+            self._select_frame(index)
+
     def _select_frame(self, index: int) -> None:
+        self._pause()
+        self._display_frame(index)
+
+    def _display_frame(self, index: int) -> None:
         if index == self._index or not 0 <= index < len(self._frames):
             return
         frame = self._frames[index]

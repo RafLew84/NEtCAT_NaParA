@@ -1,5 +1,51 @@
 # Przekazanie — STM Viewer
 
+## 06: Play, Pause i tempo odtwarzania — 2026-10-21
+
+Gałąź: `viewer/start`. Baza implementacji i przeglądu:
+`0d57200d4d606292f95fe56cca831c78e437673f`.
+Ticket: [06-playback](implementation/issues/06-playback.md).
+Commit implementacji oraz końcowe wyniki zostaną uzupełnione.
+
+### Wynik i kontrakt
+
+Sterowanie pod obrazem: Play/Pause, domyślnie 5 kl./s, wybór 1/2/5/10/20/30,
+pętla domyślnie wyłączona. Pause pozostawia bieżący obraz. Bez pętli film
+kończy się na ostatniej; Play na końcu pokazuje pierwszą od razu.
+W pozostałych pozycjach wznawia od bieżącej. Pusta i pojedyncza seria mają
+nieaktywne Play. Zamknięcie okna zatrzymuje odtwarzanie.
+
+Ręczny wybór miniaturą, suwakiem, numerem i przyciskami zatrzymuje Play.
+Kliknięcie bieżącej miniatury lub uchwytu suwaka także zatrzymuje film;
+wpisywanie numeru zatrzymuje go przed zatwierdzeniem. Synchronizacja miniatur
+przez odtwarzanie nie udaje ręcznej nawigacji. Gamma, zoom i przesuwanie
+pozostają aktywne, a zmiana FPS od razu przestawia czas następnej klatki.
+
+Planowanie używa pojedynczego timera: jedna następna klatka i synchroniczne
+malowanie przed ponownym uruchomieniem timera. Czas przygotowania i malowania
+odejmujemy od okresu. Przy przeciążeniu kolejny termin jest liczony od tej
+klatki, bez nadrabiania zaległości skokiem i bez pomijania indeksów.
+
+Import w tle pozostawia stare Play dostępne. Błąd lub anulowanie nie zmienia
+jego stanu; w międzyczasie film może naturalnie dojść do końca. Sukces pokazuje
+pierwszą klatkę w pauzie i resetuje widok według ticketu 05. Wybrane FPS
+oraz pętla pozostają preferencjami okna. Czasy pomiaru nie są modyfikowane.
+
+### Sprawdzenia i odbiór
+
+- TDD przez publiczne kontrolki: red → green dla kolejnych klatek, końca/pętli,
+  ręcznej nawigacji (także bieżący wybór), zmiany FPS oraz cyklu życia importu.
+- **93 testy Viewera zaliczone** w Qt offscreen. W tym wymuszone przeciążenie
+  Paint z odczytem kolejnych obrazów, anulowanie na granicy I/O i zamknięcie.
+- Mypy strict: **15 plików bez błędów**; cache w `/tmp/stmviewer-playback-mypy`.
+- Pełny zestaw repo, pomiar GUI oraz przegląd Standards/Spec: w toku.
+- [Instrukcja ręczna i pomiar](playback-manual.md) korzysta z istniejących
+  wzorców MPP/STP oraz lokalnego filmu. Próba użytkownika i Windows czekają.
+  Duża seria i aligned pozostają w późniejszych etapach odbioru.
+
+Nie zmieniono wspólnych modułów, zależności ani głównej konfiguracji.
+Nie ma nowej zmiany integracyjnej wymaganej do działania Play.
+
 ## 05: Zoom, gamma i brakujące próbki — 2026-10-21
 
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:

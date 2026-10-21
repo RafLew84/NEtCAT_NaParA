@@ -22,7 +22,9 @@ i nowy poprawny import przywracają całą klatkę. Próba ręczna:
 w nm/nA od surowych wartości przy nieznanym trybie lub wzmocnieniu.
 MPP pokazuje numer źródłowej klatki oraz dostępny czas pomiaru, także przy
 częściowych brakach: [instrukcja próby MPP](mpp-series-manual.md).
-Odtwarzanie, rejestracja i eksport należą do kolejnych ticketów.
+Play/Pause, tempo 1/2/5/10/20/30 kl./s i pętla działają; ręczny wybór
+zatrzymuje film. [Instrukcja odtwarzania](playback-manual.md). Rejestracja
+i eksport należą do kolejnych ticketów.
 Mapa decyzji jest zamknięta: specyfikacja pierwszej wersji jest gotowa do
 implementacji. Nie oznacza to wdrożenia funkcji ani zaliczenia odbioru.
 
@@ -74,6 +76,8 @@ ma status `done`: użytkownik potwierdził testy manualne 2026-10-21.
 [Zoom, gamma i brakujące próbki](implementation/issues/05-preview-controls.md)
 mają status `done`: użytkownik potwierdził [testy manualne](preview-controls-manual.md)
 2026-10-21.
+[Play, Pause i tempo odtwarzania](implementation/issues/06-playback.md)
+są zaimplementowane; końcowy pomiar i przegląd są w toku.
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje
