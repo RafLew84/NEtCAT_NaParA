@@ -34,6 +34,27 @@ Zestawić wpływ okna, kontrastu, skali, rzadkiego wzoru i rozszerzenia zakresu
 na katalog. Porównać z wynikami innych kandydatów, gdy będą dostępne,
 bez uzależniania wykonania tej próby od ich powodzenia.
 
+## Propozycja porównania ML bez własnego treningu
+
+[Przegląd z 2026-10-21](../research-training-free-ml-domain-discovery.md)
+uzasadnia dodatkowe porównanie cech wczesnych warstw gotowej FCN–ResNet101
+(bezpośredni precedens STM) i zamrożonego DINOv2 ViT-S z autokorelacją/EWT.
+DINOv3 ViT-S pozostaje opcjonalnym rozszerzeniem, zależnym od dostępu do
+wag. To propozycja próby; nie potwierdzono jakości tych cech na TTMAPP.
+
+Sieci tylko wyliczają lokalne opisy obrazu: bez treningu wag, głowicy
+klasyfikacyjnej ani przykładów domen. Grupowanie nadal dopasowuje się
+do nieoznaczonych danych. Cechy pobierać na siatce i, osobno, przy
+dostarczonych centrach. Oba warianty pozostają w tym tickecie;
+[krok 15](15-local-neighborhood-domains.md) zachowuje bazę geometryczną.
+
+Przy porównaniu reprezentacji stosować wspólny sposób grupowania,
+łączenia przestrzennego i oceny uporządkowania, z jawnym doborem skali
+parametrów. Sprawdzić wpływ rozdzielczości cech oraz skalowania wejścia
+na rozstaw, orientację i granice przesunięcia. Model i wagi, przygotowanie
+obrazu, czas oraz pamięć wymagają zapisu. SAM i autoenkodery wymagające
+własnego treningu nie są warunkiem tej próby.
+
 ## Dane i kryteria porównania
 
 Obowiązuje [wspólne wejście, kontrole i format oceny](14-unsupervised-input-and-controls.md).
@@ -67,5 +88,6 @@ lokalne duże wyniki nie stają się automatycznie częścią aplikacji.
 
 ## Kontekst
 
+- [ML i deep learning bez własnego treningu](../research-training-free-ml-domain-discovery.md)
 - [Przegląd samodzielnego wyszukiwania domen w STM/AFM](../research-stm-afm-unsupervised-domain-discovery.md)
 - [Przegląd domen i grupowania obiektów](../research-domain-discovery-and-object-clustering.md)

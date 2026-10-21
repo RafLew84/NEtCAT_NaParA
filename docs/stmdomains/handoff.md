@@ -1,4 +1,33 @@
-# STM Domains — nowe tickety prób samodzielnego wykrywania domen
+# STM Domains — ML bez własnego treningu do odkrywania domen
+
+Data: 2026-10-21. Gałąź `domains/training-free-ml-research`, baza `2a35377`.
+Worktree `/tmp/netcat-stmdomains-ml-research`, docelowo `domains/start`.
+Commit aktualizacji dokumentacji w wiadomości końcowej.
+
+Na polecenie użytkownika, z użyciem `research`, przygotowano
+[przegląd ML i gotowych sieci](research-training-free-ml-domain-discovery.md)
+na podstawie publikacji, kodu i kart modeli autorów. Odróżniono grupowanie
+nienadzorowane, użycie zamrożonego modelu i własny trening bez etykiet.
+Pierwsze dwa kierunki pozwalają wykonać próby bez uczenia na zaznaczonych
+domenach użytkownika; nie potwierdzono gotowego rozwiązania całego zakresu.
+
+Do [kroku 17](issues/17-image-texture-domains.md) dodano propozycję
+porównania autokorelacji/EWT z wczesnymi cechami FCN–ResNet101 oraz DINOv2,
+opcjonalnie DINOv3. Gotowe cechy obrazowe można próbkować na siatce i przy
+istniejących centrach. Krok 15 zachowuje niezależną bazę geometryczną.
+Mapę i README uzupełniono o raport; numeracja, zależności i statusy ticketów
+pozostają aktualne. Następny krok badawczy to nadal przygotowanie wejścia
+14, potem próby 15–17 i odbiór 13 z protokołem jakości 04.
+
+Sprawdzenia: źródła pierwotne, lokalne odnośniki, zachowanie metadanych
+ticketów i `git diff --check`. Bez uruchamiania modeli, pobierania wag,
+instalacji zależności, testów aplikacji i odbioru GUI. Wydajność oraz
+skuteczność na TTMAPP wymagają dopiero eksperymentu. Brak zmian danych,
+kodu produkcyjnego i nowych potrzeb wspólnych modułów.
+
+---
+
+## Poprzednie przekazanie — nowe tickety prób samodzielnego wykrywania domen
 
 Data: 2026-10-21. Gałąź `domains/unsupervised-experiment-map`, baza `5a7209c`.
 Worktree `/tmp/netcat-stmdomains-experiment-map`, docelowo `domains/start`.

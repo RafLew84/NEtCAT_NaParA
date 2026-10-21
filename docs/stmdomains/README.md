@@ -141,6 +141,10 @@ Nowe metody będą oceniane na danych i kryteriach rozstrzygniętych przez pytan
 
 ## Materiały do decyzji
 
+- [ML i deep learning bez własnego treningu](research-training-free-ml-domain-discovery.md)
+  — gotowe cechy CNN/DINO, bezpośrednie precedensy STM/SPM oraz różnica
+  między grupowaniem bez etykiet a treningiem sieci. Propozycja porównania
+  uzupełnia krok 17; nie uruchomiono modeli ani nie wybrano metody.
 - [Samodzielne wyszukiwanie domen w STM/AFM](research-stm-afm-unsupervised-domain-discovery.md)
   — bezpośrednie precedensy, ich ograniczenia oraz rozróżnienie braku
   przykładów treningowych od narzucania liczby grup.

@@ -30,6 +30,14 @@ wspólne wejście i kontrole, potem porównujemy trzy niezależne kierunki.
 Zalecana pierwsza próba wykorzystuje otoczenie zaznaczonych molekuł.
 Aktualizacja mapy nie uruchamia eksperymentów ani nie rozstrzyga ich wyniku.
 
+[Przegląd ML bez własnego treningu](research-training-free-ml-domain-discovery.md)
+z 2026-10-21 dodaje propozycję porównania gotowych cech CNN/DINO w
+[próbie obrazowej 17](issues/17-image-texture-domains.md). Grupowanie
+nienadzorowane już należy do planu; gotowa sieć może dostarczyć dodatkowej
+reprezentacji bez uczenia na ramkach użytkownika. Jakość wymaga sprawdzenia.
+Krok 15 pozostaje bazą geometryczną, a kolejność to 14 → próby 15–17 →
+odbiór 13, przy zachowaniu wymaganego protokołu jakości 04.
+
 Zakres i warunki poszczególnych prób są w ticketach; indeks powyżej oraz
 [odnośniki ze wcześniejszego planu](unsupervised-domain-experiments.md)
 prowadzą do ich aktualnych treści. Odbiór metod pozostaje osobnym pytaniem:
