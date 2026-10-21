@@ -5,7 +5,9 @@ oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 
 ## Stan aplikacji
 
-Działa otwieranie jednego STP, podgląd całego obrazu, pochodzenie i metadane.
+Działa otwieranie jednego STP, podgląd obrazu, pochodzenie i metadane.
+Kółko myszy zmienia zoom pod kursorem; przeciąganie lewym przyciskiem przesuwa
+obraz z zachowaniem powiększenia. „Dopasuj” przywraca całą klatkę.
 Anulowanie wyboru i błąd importu zachowują poprzedni obraz. Ręczna próba:
 [instrukcja ticketu 01](single-stp-manual.md). Serie, rejestracja i eksport
 należą do kolejnych ticketów.

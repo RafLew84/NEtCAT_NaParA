@@ -1,4 +1,28 @@
-# Przekazanie — 01: Pierwszy obraz STP w działającym oknie
+# Przekazanie — STM Viewer
+
+## Uzupełnienie: zoom i przesuwanie — 2026-10-21
+
+Baza dodatku: `7a43715`, gałąź `viewer/start`. Commit w końcowym raporcie sesji.
+Użytkownik potwierdził ręczną próbę otwierania STP i zlecił wcześniejsze dodanie
+nawigacji obrazu. To część zakresu [05](implementation/issues/05-preview-controls.md),
+bez zamykania jego przyszłych wymagań dotyczących serii i gamma.
+
+Kółko zmienia zoom pod kursorem (czynnik 1.2 na krok, zakres 0.1–64 względem
+dopasowania), lewy przycisk przesuwa obraz w obu osiach bez zmiany zoomu.
+Przycisk „Dopasuj” przywraca cały obraz. Poprawny import dopasowuje nową klatkę,
+anulowanie i błąd zachowują nawigację. Pusty program ma nieaktywne Dopasuj.
+Zależności i wspólny kod pozostają bez zmian. Przy wprowadzaniu przeglądania
+serii trzeba zachować zoom na zmianie klatki: obecne `set_frame` oznacza nowy import.
+
+Sprawdzenia dodatku: pięć testów publicznych gestów GUI przechodzi w offscreen
+(zoom pod kursorem, ruch podczas przeciągania i stała wielkość znacznika,
+Dopasuj, zachowanie/reset przy imporcie, pusty program). Mypy strict: 8 plików,
+bez błędów. Automatyczna próba xcb otworzyła rzeczywisty 34855.STP przez dialog,
+sprawdziła kółko, przeciąganie i powrót przez Dopasuj. Ręczna próba nowej
+nawigacji jeszcze niewykonana; [scenariusz](single-stp-manual.md#zoom-i-przesuwanie).
+Pełny zestaw repo i przegląd kodu w toku; wynik zostanie uzupełniony.
+
+## 01: Pierwszy obraz STP — poprzedni etap
 
 Data: 2026-10-21. Gałąź: `viewer/start`. Baza zmiany i code-review: `ba4e0d3`.
 Commit implementacji: `960101c`; finalny zakres `ba4e0d3..HEAD`.
@@ -71,8 +95,9 @@ Artefakty lokalne nie są częścią repozytorium.
 ## Odbiór i integracja
 
 Status `ready-for-review`: funkcja działa, testy i instrukcje są dostarczone.
-Ręczny scenariusz użytkownika nie został wykonany; automatyczne sterowanie
-xcb nie zastępuje tego dowodu. Windows nie był dostępny do próby.
+Użytkownik potwierdził ręczny scenariusz otwierania STP 2026-10-21:
+„testy manualne ok”. Nie podał systemu, więc nie oznacza to odbioru Windows.
+Do potwierdzenia pozostaje konfiguracja integracyjna opisana poniżej.
 
 Do potwierdzenia w sesji integracyjnej: minimalne wymagania aplikacji
 `stmviewer/requirements.txt` (wspólny PyQt6 + NumPy 2.2.5),

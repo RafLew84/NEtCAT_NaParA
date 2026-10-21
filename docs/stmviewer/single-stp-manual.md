@@ -59,3 +59,21 @@ Przy zgłaszaniu wyniku podaj system, interpreter, commit i numery kroków.
 Automatyczny Qt offscreen oraz sterowana skryptem próba okna xcb nie są
 ręcznym odbiorem przez użytkownika. Windows jest osobnym wymaganym odbiorem
 całej aplikacji w tickecie 21.
+
+
+## Zoom i przesuwanie
+
+Poprzedni scenariusz otwarcia STP użytkownik zaliczył 2026-10-21.
+Poniższe kroki dotyczą dodanej później nawigacji i wymagają osobnej próby.
+
+1. Otwórz `asymmetric.stp` albo rzeczywisty `34855.STP` opisany wyżej.
+   Ustaw kursor nad rozpoznawalnym elementem i obróć kółko w górę.
+   Obraz powiększa się wokół tego miejsca; kółko w dół oddala.
+2. Przytrzymaj lewy przycisk myszy i przeciągnij obraz w bok oraz w pionie.
+   Obraz podąża za myszą, a wielkość widocznych elementów pozostaje taka sama.
+   Po zwolnieniu przycisku zwykły ruch kursora już nie przesuwa obrazu.
+3. Użyj „Dopasuj”. Cała klatka wraca na środek, z właściwymi proporcjami.
+4. Ponownie przybliż i przesuń. Anuluj wybór pliku, a następnie spróbuj
+   otworzyć `truncated.stp`. Po zamknięciu komunikatu powiększenie i pozycja zostają.
+5. Otwórz poprawny STP. Nowy obraz rozpoczyna od pełnego, dopasowanego widoku.
+   W pustym programie przycisk „Dopasuj” jest nieaktywny.

@@ -36,6 +36,12 @@ class STMViewerMainWindow(QMainWindow):
         open_button.setObjectName("openStp")
         open_button.clicked.connect(self.open_file)
         controls.addWidget(open_button)
+        self._fit_button = QPushButton("Dopasuj", panel)
+        self._fit_button.setObjectName("fitImage")
+        self._fit_button.setToolTip("Pokaż cały obraz i wyzeruj przesunięcie.")
+        self._fit_button.setEnabled(False)
+        self._fit_button.clicked.connect(self._preview.fit_image)
+        controls.addWidget(self._fit_button)
         controls.addWidget(QLabel("Źródło", panel))
         self._source = QLabel("—", panel)
         self._source.setWordWrap(True)
@@ -90,6 +96,7 @@ class STMViewerMainWindow(QMainWindow):
             message.open()
             return
         self._frame = frame
+        self._fit_button.setEnabled(True)
         self._source.setText(str(frame.source))
         height, width = frame.data.shape
         current = frame.setpoint_a * 1e9 if frame.setpoint_a is not None else None

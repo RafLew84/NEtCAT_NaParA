@@ -45,3 +45,20 @@ Dane i sposób przygotowania nietypowych wzorców dostarcza realizujący ticket.
 ## Współpraca z integracją
 
 Jeśli używany wspólny viewer zastępuje NaN medianą, dostosować adapter/prezentację Viewera; modyfikacje wspólnego widgetu prowadzi integracja. Nie przejmować funkcji ROI/trackingu innych aplikacji.
+
+
+## Wcześniej dostarczony zakres — zoom i przeciąganie
+
+Na wyraźne zlecenie użytkownika z 2026-10-21, po ręcznym odbiorze ticketu 01,
+przyspieszono podstawową nawigację pojedynczego obrazu. Baza zmiany: `7a43715`.
+Kółko przybliża/oddala pod kursorem; przeciąganie lewym przyciskiem przesuwa
+obraz bez zmiany powiększenia. „Dopasuj” przywraca cały obraz na środku.
+Nowy poprawny import resetuje widok, anulowanie i błąd zachowują go.
+Krok kółka zmienia skalę o czynnik 1.2, zakres to 0.1–64 razy dopasowanie.
+Testy działają na uzgodnionej granicy publicznych kontrolek GUI.
+
+Ten dodatek nie zamyka ticketu 05 ani jego zależności. Zachowanie widoku
+pomiędzy klatkami, gamma, szachownica i miniatury pozostają w jego zakresie.
+Przy wprowadzaniu serii trzeba rozdzielić zmianę klatki od nowego importu:
+obecne `ImagePreview.set_frame` resetuje widok, bo obsługuje otwarcie nowego pliku.
+Ręczna próba dodatku: [nawigacja obrazu](../../single-stp-manual.md#zoom-i-przesuwanie).

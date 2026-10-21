@@ -60,5 +60,6 @@ błędy poza Viewerem; szczegóły i porównanie bazy w [przekazaniu](../../hand
 [Ręczna próba](../../single-stp-manual.md) zawiera uruchomienie, małe dane,
 wygląd wzorców i oczekiwane wyniki. Przygotowano instrukcje Ubuntu/Windows,
 minimalne zależności i działającą komendę mypy po stronie aplikacji.
-Do zamknięcia `done` pozostają ręczny odbiór i potwierdzenie konfiguracji
-przez sesję integracyjną. Automatyczne próby offscreen/xcb są rozliczone osobno.
+Użytkownik potwierdził ręczny odbiór 2026-10-21: „testy manualne ok”.
+Do zamknięcia `done` pozostaje potwierdzenie konfiguracji przez sesję integracyjną.
+Automatyczne próby offscreen/xcb są rozliczone osobno.
