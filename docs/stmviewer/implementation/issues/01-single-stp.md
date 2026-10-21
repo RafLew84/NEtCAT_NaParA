@@ -53,7 +53,8 @@ Minimalne zależności, komenda typecheckingu i potrzebne poprawki wspólnego cz
 ## Wynik implementacji — 2026-10-21
 
 Otwieranie, podgląd i metadane są podłączone w działającym oknie.
-14 testów Viewera i mypy strict przechodzi. Pełny zestaw repo wykazał
+Commit implementacji: `960101c`. 14 testów Viewera i mypy strict przechodzi.
+[Przegląd Standards/Spec](../review-01-single-stp.md) nie znalazł usterek kodu. Pełny zestaw repo wykazał
 błędy poza Viewerem; szczegóły i porównanie bazy w [przekazaniu](../../handoff.md).
 
 [Ręczna próba](../../single-stp-manual.md) zawiera uruchomienie, małe dane,
