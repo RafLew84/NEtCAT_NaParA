@@ -22,7 +22,11 @@ otoczenie zaznaczonych molekuł. Próby geometrii, SBC/MatID i klasycznej
 tekstury korzystają z tego samego zestawu, niezależnie od siebie.
 Gotowe cechy sieci przygotowujemy po przygotowaniu wspólnego wejścia; porównanie ML
 korzysta z nich i z wyniku klasycznej tekstury. Nie wymaga powodzenia
-tej metody. DINOv3 jest opcjonalny, własnego treningu sieci nie planujemy.
+tej metody. DINOv3 jest opcjonalny. Te tickety zachowują porównanie bez
+własnego treningu; na późniejsze polecenie użytkownika zbadano również
+[możliwości uczenia bez etykiet](research-self-supervised-domain-learning.md).
+Wynik tego przeglądu rozszerza kandydatów, bez zastępowania dotychczasowych
+prób ani deklaracji uruchomienia treningu.
 Otwarte [pytanie o pełną jakość](issues/04-reference-and-quality.md)
 pozostaje warunkiem odbioru metody, a nie rozpoczęcia wstępnych prób.
 

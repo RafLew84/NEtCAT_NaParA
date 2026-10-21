@@ -42,9 +42,21 @@ do danych bez etykiet, a wagi sieci pozostają niezmienione.
 
 [Odbiór metod](issues/13-method-acceptance.md) obejmie również wynik ML,
 przy zachowaniu wymaganego protokołu jakości. Przygotowanie modeli nie
-oznacza wyboru ani skuteczności metody. W tym cyklu nie planujemy własnego
-treningu sieci, także bez etykiet; ewentualna potrzeba takiego rozszerzenia
-powinna wynikać z rezultatów obecnych prób.
+oznacza wyboru ani skuteczności metody.
+
+2026-10-21 użytkownik dopuścił również własny trening na nieoznaczonych
+danych. [Przegląd metod uczonych bez etykiet](research-self-supervised-domain-learning.md)
+rozszerza kandydatów o rVAE, lokalne uczenie cech oraz reprezentacje grafu
+molekuł. Ograniczenie braku przykładów domen i narzucanej liczby grup nadal
+obowiązuje. Próby gotowych cech zachowują zakres bez treningu jako punkt
+odniesienia; nowy przegląd nie oznacza wykonania ani wyboru metody uczonej.
+
+Sprzęt do pierwszych prób: RTX 5090 z 32 GB VRAM i 128 GB RAM.
+Użytkownik wskazał także drugi komputer z kartą Blackwell Max-Q 96 GB VRAM
+oraz Colab jako możliwości dalszych prób, jeśli wyniki uzasadnią rozszerzenie.
+Protokół treningu powinien rozdzielać analizę obecnej serii od oceny
+uogólnienia na niezależnych danych, z kontrolą przecieku między wycinkami
+i sąsiednimi klatkami. Większy model nie zastępuje takiej oceny.
 
 Zakres i warunki poszczególnych prób są w ticketach; indeks powyżej oraz
 [odnośniki ze wcześniejszego planu](unsupervised-domain-experiments.md)

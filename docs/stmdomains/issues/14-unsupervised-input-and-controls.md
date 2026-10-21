@@ -35,8 +35,12 @@ używane bez zmiany wag i statystyk na naszych obrazach. Format manifestu
 wyników przewiduje model, warstwy/tokeny, źródło i hash wag oraz sposób
 przygotowania wejścia; pola te wypełnimy podczas przygotowania ekstraktorów.
 Przygotowanie ekstraktorów jest osobnym zadaniem i nie blokuje
-zakończenia tego wspólnego zestawu. Nie planujemy własnego treningu sieci
-ani uczenia klas z ramkami referencyjnymi.
+zakończenia tego wspólnego zestawu. Dotychczasowe próby gotowych cech
+pozostają porównaniem bez treningu. Po dopuszczeniu przez użytkownika
+osobnych prób treningu bez etykiet ich protokół będzie wymagał także
+manifestu podziału danych i augmentacji, zgodnie z
+[nowym przeglądem](../research-self-supervised-domain-learning.md).
+Nie wolno używać ramek referencyjnych jako klas ani wzorców treningowych.
 
 Najpierw porównujemy przypisania molekuł, lokalne typy/orientacje i obszary
 z wiarygodnym wsparciem. Nie przeliczamy ich automatycznie na powierzchnie

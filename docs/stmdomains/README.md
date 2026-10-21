@@ -146,6 +146,11 @@ Nowe metody będą oceniane na danych i kryteriach rozstrzygniętych przez pytan
 
 ## Materiały do decyzji
 
+- [Trening bez etykiet do odkrywania domen](research-self-supervised-domain-learning.md)
+  — rVAE, lokalne uczenie cech, maskowane obrazy i grafy oznaczonych molekuł;
+  precedensy STM/AFM oraz propozycja prób na RTX 5090. Własny trening
+  jest dopuszczony, ale ramki domen pozostają wyłącznie referencją oceny.
+  Drugi komputer z 96 GB VRAM i Colab są opcjami późniejszego rozszerzenia.
 - [ML i deep learning bez własnego treningu](research-training-free-ml-domain-discovery.md)
   — gotowe cechy CNN/DINO, bezpośrednie precedensy STM/SPM oraz różnica
   między grupowaniem bez etykiet a treningiem sieci. Propozycję rozwinięto

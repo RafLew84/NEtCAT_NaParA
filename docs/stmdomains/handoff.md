@@ -1,4 +1,38 @@
-# STM Domains — zadania przygotowania i porównania ML
+# STM Domains — trening bez etykiet do odkrywania domen
+
+Data: 2026-10-21. Gałąź `domains/self-supervised-training-research`, baza `a298c1d`.
+Worktree `/tmp/netcat-stmdomains-training-research`, docelowo `domains/start`.
+Commit dokumentacji w wiadomości końcowej.
+
+Na polecenie użytkownika, z użyciem `research`, przygotowano
+[przegląd metod uczonych bez etykiet](research-self-supervised-domain-learning.md).
+Użytkownik dopuścił własny trening i wskazał RTX 5090 32 GB VRAM / 128 GB RAM,
+a przy dobrych wynikach drugi komputer z Blackwell Max-Q 96 GB VRAM lub Colab.
+Zgoda na trening nie zmienia zakazu uczenia klas z ręcznie wskazanych domen
+ani wymagań zero/jedna/wiele domen i rozdzielenia typu od orientacji.
+
+Raport rozróżnia bezpośrednie precedensy STM/AFM/PFM od adaptacji ogólnego
+uczenia reprezentacji. Zaleca najpierw ciągły rVAE i lokalne uczenie cech,
+następnie rozważenie grafu molekuł lub maskowanego autoenkodera. Zawiera
+ograniczenia narzuconej liczby kategorii, utraty orientacji/fazy, przecieku
+danych i kosztu. Potrzebne są osobne oceny obecnej serii oraz uogólnienia.
+
+Mapę, README i plan uzupełniono o nowy zakres. We wspólnym wejściu usunięto
+ogólne wykluczenie treningu; dotychczasowe tickety przygotowania i porównania
+gotowych cech nadal dotyczą modeli zamrożonych. Nie dodano ani nie zamknięto
+ticketów treningowych przez samo badanie źródeł.
+
+Sprawdzenia: publikacje i repozytoria autorów, lokalne odnośniki, zachowanie
+metadanych ticketów i `git diff --check`. Odczytano GPU/sterownik przez
+`nvidia-smi` poza piaskownicą oraz metadane lokalnego `netcat`; brak pomiarów
+wydajności treningu i pełnego sprawdzenia zgodności bibliotek. Nie uruchamiano
+modeli, nie instalowano zależności, nie pobierano wag ani nie przenoszono
+danych na drugi komputer lub do Colab. Bez zmian kodu i testów aplikacji.
+Brak nowych potrzeb zmian współdzielonych modułów.
+
+---
+
+## Poprzednie przekazanie — zadania przygotowania i porównania ML
 
 Data: 2026-10-21. Gałąź `domains/training-free-ml-map`, baza `abf7869`.
 Worktree `/tmp/netcat-stmdomains-ml-map`, docelowo `domains/start`.
