@@ -4,8 +4,8 @@ ID: 10
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: open
-Assignee:
+Status: claimed
+Assignee: Codex — domains/coverage-and-scale
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 04, 05
 
@@ -36,3 +36,10 @@ koszt, pamięć i ograniczenia. Nie wybieramy wariantu wyłącznie po liczbie wy
 
 - [Jakie referencje i kryteria potwierdzą wiarygodność analizy?](04-reference-and-quality.md)
 - [Jak porównać metody wykrywania wysp i domen w serii?](05-stable-types-across-frames.md)
+
+## Work started — 2026-10-21
+
+Na bezpośrednie polecenie użytkownika przygotowujemy próbę przed zamknięciem
+pytania o referencje. Kontrole syntetyczne i rozbieżności na TTMAPP nie
+zastępują niezależnego oznaczenia granic warstwy. Zakres końcowego wniosku
+zależy od dostępności referencji i reakcji użytkownika na maski.
