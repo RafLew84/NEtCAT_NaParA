@@ -4,9 +4,10 @@
 
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
 `b904045e7626e97cd924920d9fbb0e52fbdb3bcc`.
-Commit implementacji: `d6fbb7d`; commit końcowego raportu podany w wiadomości sesji.
+Commit implementacji: `d6fbb7d`; końcowy raport: `18d6ca9`.
+Commit potwierdzenia ręcznego odbioru podany w wiadomości sesji.
 Ticket: [03-s94-series](implementation/issues/03-s94-series.md),
-status `ready-for-review` do ręcznego odbioru użytkownika.
+status `done` po potwierdzeniu ręcznego odbioru użytkownika 2026-10-21.
 
 ### Wynik i kontrakt danych
 
@@ -66,8 +67,10 @@ jednostki w istniejącym kontrakcie czytnika, więc nie jest zgadywane jako setp
 
 [Ręczna próba S94](s94-series-manual.md) zawiera uruchomienie w netcat,
 wersjonowane wzorce i generator, lokalne pary pomiarów oraz oczekiwane wyniki.
-Ręczny odbiór użytkownika i Windows są niewykonane. Ta implementacja nie zamyka
-późniejszych ticketów odbioru platform.
+Użytkownik potwierdził pozytywny wynik testów manualnych 2026-10-21:
+„testy manualne ok”. Nie wskazano systemu; potwierdzenie nie zamyka
+odrębnych ticketów odbioru platform, w tym Windows.
+Aktualizacja statusu zmienia wyłącznie dokumentację; nie ponawiano testów kodu.
 
 Nie zmieniono modułów wspólnych, konfiguracji głównej ani zależności.
 Do wykorzystania przez integrację przy przyszłej poprawce wspólnego czytnika:

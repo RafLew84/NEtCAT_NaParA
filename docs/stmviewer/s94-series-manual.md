@@ -75,5 +75,8 @@ Testy automatyczne obejmują rzeczywiste dekodowanie binarnych wzorców,
 little-endian ze znakiem, kalibrację, transpozycję i metadane, mieszane serie,
 błędy i anulowanie. Próba automatyczna na ekranie Linuksa xcb potwierdziła
 wybór obu formatów w dialogu, opis surowych wartości i identyczny podgląd
-rzeczywistej pary 17851. Ręczny odbiór użytkownika oraz próba Windows
-pozostają do wykonania.
+rzeczywistej pary 17851.
+
+Użytkownik potwierdził pozytywny wynik testów manualnych 2026-10-21:
+„testy manualne ok”. Ticket 03 ma status `done`. Nie wskazano systemu;
+odrębny odbiór platform, w tym Windows, pozostaje do wykonania.

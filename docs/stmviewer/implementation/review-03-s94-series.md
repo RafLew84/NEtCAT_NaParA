@@ -5,6 +5,10 @@ Data: 2026-10-21. Baza zgodnie z zatwierdzonymi zasadami implementacji:
 Commit implementacji: `d6fbb7dd147ddf94789192b048ab1284a5312e8a`.
 Diff: `git diff b904045...d6fbb7d`.
 
+Poniższe ustalenia opisują stan w chwili przeglądu. Później, 2026-10-21,
+użytkownik potwierdził testy manualne („testy manualne ok”);
+[ticket 03](issues/03-s94-series.md) otrzymał status `done`.
+
 Dwie osie sprawdzili równolegle niezależni agenci zgodnie
 ze skillem `code-review`. Przegląd tylko do odczytu, bez ponawiania testów.
 

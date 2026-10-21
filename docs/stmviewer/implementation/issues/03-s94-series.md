@@ -4,7 +4,7 @@
 
 **Blocked by:** [02: Otwarcie i przeglądanie serii STP](02-stp-series.md)
 
-**Status:** ready-for-review
+**Status:** done
 
 **Wykonawca:** Codex, `viewer/start`.
 
@@ -67,5 +67,6 @@ STP opisano w instrukcji. Automatyczna próba xcb przeszła. Wynik pełnego repo
 oraz przeglądu jest zapisany w [przekazaniu](../../handoff.md).
 
 [Scenariusz ręczny, małe wzorce i lokalne pomiary](../../s94-series-manual.md).
-Ręczny odbiór użytkownika i Windows pozostają niewykonane, stąd
-`ready-for-review`.
+Użytkownik potwierdził pozytywny wynik testów manualnych 2026-10-21:
+„testy manualne ok”. Ticket ma status `done`. Nie wskazano systemu;
+potwierdzenie nie zamyka odrębnych ticketów odbioru platform.
