@@ -2,7 +2,8 @@
 
 ## Uzupełnienie: zoom i przesuwanie — 2026-10-21
 
-Baza dodatku: `7a43715`, gałąź `viewer/start`. Commit w końcowym raporcie sesji.
+Baza dodatku: `7a43715`, gałąź `viewer/start`. Commit kodu: `75f419d`.
+Commit końcowego raportu w wiadomości sesji.
 Użytkownik potwierdził ręczną próbę otwierania STP i zlecił wcześniejsze dodanie
 nawigacji obrazu. To część zakresu [05](implementation/issues/05-preview-controls.md),
 bez zamykania jego przyszłych wymagań dotyczących serii i gamma.
@@ -20,7 +21,15 @@ Dopasuj, zachowanie/reset przy imporcie, pusty program). Mypy strict: 8 plików,
 bez błędów. Automatyczna próba xcb otworzyła rzeczywisty 34855.STP przez dialog,
 sprawdziła kółko, przeciąganie i powrót przez Dopasuj. Ręczna próba nowej
 nawigacji jeszcze niewykonana; [scenariusz](single-stp-manual.md#zoom-i-przesuwanie).
-Pełny zestaw repo i przegląd kodu w toku; wynik zostanie uzupełniony.
+[Przegląd dodatku](implementation/review-preview-navigation.md): Standards — 0 ustaleń,
+Spec — 0 ustaleń. Największy zmieniony plik kodu ma 132 linie, `git diff --check`
+bez błędów. Zrzut automatycznej próby: `/tmp/stmviewer-navigation-xcb.png`.
+Pełny zestaw repo w `netcat`:
+`PYTHONPATH=.:tests/moltrack QT_QPA_PLATFORM=offscreen python -m pytest -q --import-mode=importlib --continue-on-collection-errors`
+— **1758 passed, 63 failed, 12 skipped** w 203.27 s. Wszystkie 19 testów
+Viewera przeszły. Zestaw 63 niezaliczonych testów jest identyczny z wcześniejszą
+bazą `ba4e0d3`; nie ma nowych błędów ani błędów zbierania testów.
+Log: `/tmp/stmviewer-navigation-full-suite.log`.
 
 ## 01: Pierwszy obraz STP — poprzedni etap
 

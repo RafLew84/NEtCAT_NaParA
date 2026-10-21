@@ -62,3 +62,9 @@ pomiędzy klatkami, gamma, szachownica i miniatury pozostają w jego zakresie.
 Przy wprowadzaniu serii trzeba rozdzielić zmianę klatki od nowego importu:
 obecne `ImagePreview.set_frame` resetuje widok, bo obsługuje otwarcie nowego pliku.
 Ręczna próba dodatku: [nawigacja obrazu](../../single-stp-manual.md#zoom-i-przesuwanie).
+
+
+Commit dodatku: `75f419d`. [Przegląd](../review-preview-navigation.md): bez uwag.
+19 testów Viewera i mypy strict przechodzi; automatyczna próba na ekranie
+Linuksa potwierdziła zoom, przesuwanie i Dopasuj na rzeczywistym STP.
+Ręczny odbiór tego dodatku jest osobny od zaliczonego wcześniej otwierania STP.
