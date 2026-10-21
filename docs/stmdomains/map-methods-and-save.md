@@ -92,6 +92,14 @@ nie metodą docelową. Następna proponowana próba dotyczy lokalnego wzoru obra
 w kilku skalach, z osobnym typem i orientacją oraz oceną korzyści z centrów.
 Nie zatwierdzono algorytmu ani wymagania działania całkowicie bez oznaczeń.
 
+Na kolejne polecenie wykonano
+[przegląd metod wykrywania domen i grupowania oznaczonych obiektów](research-domain-discovery-and-object-clustering.md).
+Rozróżnia skupiska według bliskości, podobne lokalne układy oraz przestrzenne
+domeny. Do dalszego porównania proponuje opis otoczenia obiektów z grupowaniem
+i kontrolą spójności, SBC/MatID dla struktur periodycznych oraz cechy tekstury
+obrazu. To wynik przeglądu źródeł, bez uruchomienia nowej próby lub wyboru
+metody. Algorytmy grupujące same XY nie zastępują rozpoznawania struktury.
+
 Materiały do porównań: [przegląd wykrywania domen](research-general-domain-detection.md)
 oraz [wyspy, orientacja sieci i level set](research-domain-detection-level-sets.md).
 To propozycje kandydatów i eksperymentów, nie zatwierdzenie algorytmu.

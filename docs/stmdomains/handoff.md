@@ -1,4 +1,30 @@
-# STM Domains — przegląd MolTrack i kierunek ogólnego wykrywania domen
+# STM Domains — badanie metod domen i klastrowania obiektów
+
+Data: 2026-10-21. Gałąź `domains/general-domain-clustering-research`,
+baza `035bc11`. Worktree `/tmp/netcat-stmdomains-general-research`,
+docelowo `domains/start`. Commit dokumentacji w wiadomości końcowej.
+
+Na polecenie użytkownika i z użyciem umiejętności `research` przygotowano
+[przegląd źródeł pierwotnych](research-domain-discovery-and-object-clustering.md).
+Obejmuje grupowanie centrów, opis otoczenia obiektów, SBC/MatID, teksturę
+obrazu oraz łączenie przestrzenne z użyciem grafów. Rozróżnia wyniki publikacji,
+właściwości dostępnego kodu i nasze propozycje transferu do STM Domains.
+
+Rekomendowane porównanie obejmuje trzy kierunki: cechy otoczenia i grupowanie,
+SBC dla periodycznych punktów oraz teksturę obrazu. MolTrack pozostaje
+porównaniem. Nie wybrano metody, nie wykonano nowego eksperymentu i nie
+zmieniono statusów 10–13. Nie rozszerzono produkcyjnego zakresu aplikacji.
+
+Wykonano przegląd publikacji, dokumentacji i wskazanych fragmentów kodu,
+kontrolę lokalnych odnośników i `git diff --check`. Odczytano wersje pakietów
+z metadanych `netcat`; nie instalowano zależności ani nie uruchamiano metod,
+testów aplikacji czy GUI. Wydajność i jakość kandydatów na TTMAPP pozostają
+do sprawdzenia. Brak nowych potrzeb zmian wspólnych modułów; wcześniejsze
+ustalenia integracyjne zachowano poniżej.
+
+---
+
+## Poprzednie przekazanie — audyt MolTrack
 
 Data: 2026-10-21. Gałąź `domains/moltrack-method-audit`, baza `2e0c8d1`.
 Worktree `/tmp/netcat-stmdomains-moltrack-audit`, docelowo `domains/start`.

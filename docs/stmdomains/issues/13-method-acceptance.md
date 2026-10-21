@@ -109,6 +109,13 @@ skalach, katalog wspólny dla zakresu i osobną orientację. Trzeba sprawdzić
 odporność na brak detekcji; całkowite uniezależnienie od oznaczeń nie jest
 zatwierdzonym wymaganiem. Odbiór pozostaje otwarty.
 
+[Dalszy przegląd źródeł](../research-domain-discovery-and-object-clustering.md)
+obejmuje także dowolne oznaczone obiekty. Kandydaci do próby: cechy lokalnego
+otoczenia i grupowanie z kontrolą przestrzennej spójności, SBC/MatID oraz
+tekstura obrazu. Klastry gęstości, klasy podobieństwa, konkretne domeny
+i powierzchnie płatów pozostają odrębnymi wynikami. Dostępność biblioteki lub
+wynik publikacji na innych danych nie oznacza zaliczenia odbioru.
+
 ## Dependencies
 
 - [Jakie referencje i kryteria potwierdzą wiarygodność analizy?](04-reference-and-quality.md)
