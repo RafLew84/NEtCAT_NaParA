@@ -1,4 +1,40 @@
-# STM Domains — badanie metod domen i klastrowania obiektów
+# STM Domains — samodzielne wyszukiwanie domen w STM/AFM
+
+Data: 2026-10-21. Gałąź `domains/stm-afm-unsupervised-research`,
+baza `53e5fb4`. Worktree `/tmp/netcat-stmdomains-stm-afm-research`,
+docelowo `domains/start`. Commit dokumentacji w wiadomości końcowej.
+
+Na bezpośrednie polecenie użytkownika, z użyciem `research`, przygotowano
+[przegląd STM/AFM](research-stm-afm-unsupervised-domain-discovery.md)
+i [plan kolejnych eksperymentów](unsupervised-domain-experiments.md).
+Publikacje dostarczają nienadzorowanych sposobów analizy, lecz w sprawdzonych
+źródłach nie potwierdzono jednego gotowego rozwiązania całego zakresu.
+Sprawdzono szczególnie narzucaną liczbę grup, wybór wzorców oraz różnicę
+między odtworzeniem komórki, grupowaniem cech i domeną przestrzenną.
+
+Doprecyzowanie użytkownika: gotowe oznaczenia molekuł są wejściem; nie
+zakładamy istnienia domen i nie trenujemy klasyfikatora na wybranych domenach.
+Plan obejmuje analizę pełnych pól klatek, bez masek referencji na wejściu,
+oraz kontrole zero/jedna/wiele domen. Ramki służą wyłącznie późniejszej,
+częściowej ocenie. To rozszerzenie zakresu następnej próby względem lokalnych
+badań wnętrz w krokach 10–12, nie zmiana dawnych wyników. Nieoznaczone
+obszary nie stają się negatywnymi przykładami.
+
+Kolejność planu: wspólne kontrole i opis otoczenia centrów, potem SBC/MatID
+oraz lokalna tekstura obrazu na tym samym wejściu. Porządek, podobieństwo,
+spójność przestrzenna i powierzchnie materiału pozostają rozdzielone.
+Plan nie został wykonany, metody nie wybrano. Kroki 10–12 nadal `resolved`
+jako zakończone badania; protokół 04 i odbiór 13 pozostają otwarte.
+
+Sprawdzenia: źródła pierwotne, teksty metod i wskazane repozytoria autorów;
+kontrola lokalnych odnośników nowych/zmienionych dokumentów oraz
+`git diff --check`. Bez instalacji zależności, nowego przetwarzania TTMAPP,
+testów aplikacji i odbioru GUI. Nie zmieniono danych ani kodu produkcyjnego.
+Brak nowych potrzeb wspólnych modułów; wcześniejsze ustalenia poniżej.
+
+---
+
+## Poprzednie przekazanie — badanie metod domen i klastrowania obiektów
 
 Data: 2026-10-21. Gałąź `domains/general-domain-clustering-research`,
 baza `035bc11`. Worktree `/tmp/netcat-stmdomains-general-research`,

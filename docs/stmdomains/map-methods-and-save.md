@@ -100,6 +100,19 @@ i kontrolą spójności, SBC/MatID dla struktur periodycznych oraz cechy tekstur
 obrazu. To wynik przeglądu źródeł, bez uruchomienia nowej próby lub wyboru
 metody. Algorytmy grupujące same XY nie zastępują rozpoznawania struktury.
 
+Użytkownik następnie doprecyzował: wykorzystujemy dostarczone oznaczenia
+molekuł, ale nie zakładamy istnienia domen ani nie uczymy klasyfikatora na
+wybranych ręcznie domenach. [Przegląd STM/AFM](research-stm-afm-unsupervised-domain-discovery.md)
+potwierdza precedensy nienadzorowanej analizy, bez potwierdzenia gotowej
+metody obejmującej cały zakres. Wiele prac nadal wymaga liczby grup;
+AiSurf odtwarza komórkę, ale nie rozróżnia domen.
+[Plan kolejnych prób](unsupervised-domain-experiments.md) obejmuje pełne
+klatki, przypadki zero/jedna/wiele domen oraz porównanie otoczenia centrów,
+SBC/MatID i tekstury. Ramki są wyłącznie częściową referencją do oceny po
+uzyskaniu wyniku; nie ograniczają wejścia do znanych domen. Plan nie został
+jeszcze wykonany. Statusy zakończonych prób 10–12 i otwartego odbioru 13
+pozostają bez zmian.
+
 Materiały do porównań: [przegląd wykrywania domen](research-general-domain-detection.md)
 oraz [wyspy, orientacja sieci i level set](research-domain-detection-level-sets.md).
 To propozycje kandydatów i eksperymentów, nie zatwierdzenie algorytmu.

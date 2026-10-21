@@ -116,6 +116,23 @@ tekstura obrazu. Klastry gęstości, klasy podobieństwa, konkretne domeny
 i powierzchnie płatów pozostają odrębnymi wynikami. Dostępność biblioteki lub
 wynik publikacji na innych danych nie oznacza zaliczenia odbioru.
 
+## Samodzielne znajdowanie domen — doprecyzowanie 2026-10-21
+
+Użytkownik potwierdził użycie dostarczonych oznaczeń molekuł jako wejścia,
+bez narzucania istnienia domen i treningu na wybranych przykładach domen.
+[Przegląd STM/AFM](../research-stm-afm-unsupervised-domain-discovery.md)
+rozróżnia metody bez ręcznych etykiet od metod wymagających liczby grup.
+Nie potwierdził gotowego rozwiązania całego zakresu.
+
+[Następne eksperymenty](../unsupervised-domain-experiments.md) mają działać
+na pełnym polu klatek, bez dostępu do masek referencyjnych podczas analizy.
+Ramki służą późniejszej, częściowej ocenie, a ich brak nie oznacza tła.
+Wymagane są kontrole zero/jedna/wiele domen oraz osobna ocena porządku:
+stabilna grupa podobnych cech sama nie dowodzi istnienia domeny sieci.
+Plan jest przygotowany, próby nie zostały jeszcze uruchomione. Odbiór
+pozostaje otwarty; wcześniejsze ograniczenia powierzchni i granic nadal
+obowiązują.
+
 ## Dependencies
 
 - [Jakie referencje i kryteria potwierdzą wiarygodność analizy?](04-reference-and-quality.md)
