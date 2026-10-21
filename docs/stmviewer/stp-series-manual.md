@@ -13,7 +13,7 @@ a nie dane pomiarowe. Program nie zmienia plików źródłowych.
 
 ## Otwieranie i przeglądanie
 
-1. Wybierz „Otwórz STP/S94…” (także Plik → Otwórz lub Ctrl+O). W katalogu
+1. Wybierz „Otwórz STP/S94/MPP…” (także Plik → Otwórz lub Ctrl+O). W katalogu
    `tests/stmviewer/fixtures/series` zaznacz trzy pliki: `klatka10.stp`,
    `klatka2.stp`, `klatka1.stp` — np. Ctrl+A w liście plików.
 2. Oczekuj kolejności **1, 2, 10**, numeru **1 z 3** i całego obrazu.

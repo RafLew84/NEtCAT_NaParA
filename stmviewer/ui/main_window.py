@@ -36,7 +36,7 @@ class STMViewerMainWindow(QMainWindow):
         panel = QWidget(central)
         panel.setFixedWidth(280)
         controls = QVBoxLayout(panel)
-        open_button = QPushButton("Otwórz STP/S94…", panel)
+        open_button = QPushButton("Otwórz STP/S94/MPP…", panel)
         open_button.setObjectName("openFrames")
         open_button.clicked.connect(self.open_file)
         controls.addWidget(open_button)
@@ -106,7 +106,7 @@ class STMViewerMainWindow(QMainWindow):
         self.setMenuBar(menu_bar)
         file_menu = QMenu("&Plik", menu_bar)
         menu_bar.addMenu(file_menu)
-        open_action = QAction("&Otwórz STP/S94…", self)
+        open_action = QAction("&Otwórz STP/S94/MPP…", self)
         open_action.setShortcut(QKeySequence.StandardKey.Open)
         open_action.triggered.connect(self.open_file)
         file_menu.addAction(open_action)
@@ -126,7 +126,10 @@ class STMViewerMainWindow(QMainWindow):
             return
         initial = str(self._frames[self._index].source.parent) if self._frames else ""
         filenames, _ = QFileDialog.getOpenFileNames(
-            self, "Otwórz obrazy STP/S94", initial, "STP/S94 (*.stp *.STP *.s94 *.S94);;STP (*.stp *.STP);;S94 (*.s94 *.S94)"
+            self, "Otwórz serię STP/S94 lub jeden film MPP", initial,
+            "STP/S94/MPP (*.stp *.STP *.s94 *.S94 *.mpp *.MPP);;"
+            "STP/S94 (*.stp *.STP *.s94 *.S94);;MPP (*.mpp *.MPP);;"
+            "STP (*.stp *.STP);;S94 (*.s94 *.S94)"
         )
         if not filenames:
             return
@@ -189,7 +192,7 @@ class STMViewerMainWindow(QMainWindow):
         message = QMessageBox(self)
         message.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         message.setIcon(QMessageBox.Icon.Critical)
-        message.setWindowTitle("Nie można otworzyć serii STP/S94")
+        message.setWindowTitle("Nie można otworzyć serii STP/S94/MPP")
         message.setTextFormat(Qt.TextFormat.PlainText)
         message.setText(error)
         message.open()
@@ -233,11 +236,15 @@ class STMViewerMainWindow(QMainWindow):
         frame = self._frames[self._index]
         self._sync_navigation()
         self._fit_button.setEnabled(True)
-        self._source.setText(str(frame.source))
+        source = str(frame.source)
+        if frame.source_frame_index is not None:
+            source += f"\nKlatka źródłowa MPP: {frame.source_frame_index + 1}"
+        self._source.setText(source)
         height, width = frame.data.shape
         current = frame.setpoint_a * 1e9 if frame.setpoint_a is not None else None
         self._metadata.setText(
             f"Rozmiar: {width} × {height} px\n"
+            f"Czas pomiaru: {_value(frame.measurement_time_s, 's')}\n"
             f"Kanał: {frame.channel or 'nieznany'}\n"
             f"Jednostka sygnału: {frame.signal_unit or 'nieznana'}\n\n"
             f"Pole X: {_value(frame.size_x_nm, 'nm')}\n"
@@ -248,6 +255,8 @@ class STMViewerMainWindow(QMainWindow):
             f"Prąd: {_value(current, 'nA')}\n"
             f"Kąt skanowania: {_value(frame.scan_angle_deg, '°')}"
         )
+        if frame.measurement_time_raw:
+            self._metadata.setText(self._metadata.text() + f"\nZapis czasu: {frame.measurement_time_raw}")
         if frame.calibration_note:
             self._metadata.setText(self._metadata.text() + "\n\n" + frame.calibration_note)
         self.setWindowTitle(f"{frame.source.name} — STM Viewer")

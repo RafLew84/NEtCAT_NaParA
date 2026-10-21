@@ -25,7 +25,11 @@ class FrameListModel(QAbstractListModel):
         if role == Qt.ItemDataRole.DisplayRole:
             return f"{row + 1} · {self._frames[row].source.name}"
         if role == Qt.ItemDataRole.ToolTipRole:
-            return str(self._frames[row].source)
+            frame = self._frames[row]
+            source = str(frame.source)
+            if frame.source_frame_index is not None:
+                source += f"\nKlatka źródłowa MPP: {frame.source_frame_index + 1}"
+            return source
         if role == Qt.ItemDataRole.DecorationRole:
             if row not in self._icons:
                 self._icons[row] = QIcon(QPixmap.fromImage(self._thumbnails[row]))

@@ -36,7 +36,7 @@ Dokładne wartości sprawdzają testy importu; panel pokazuje jednostkę `nm`.
 ## Kroki i oczekiwany wynik
 
 1. Z katalogu repo uruchom `python -m stmviewer.main`. Oczekuj pustego okna,
-   komunikatu „Brak otwartego obrazu” i dostępnego przycisku „Otwórz STP/S94…”.
+   komunikatu „Brak otwartego obrazu” i dostępnego przycisku „Otwórz STP/S94/MPP…”.
 2. Przyciskiem wybierz `asymmetric.stp`. Sprawdź białe L po lewej i na dole,
    brak obciętych krawędzi, źródło oraz „Klatka 1 z 1 · original”.
    Panel: rozmiar 4 × 3 px, kanał Topo, sygnał nm, pole X 8 nm / Y 9 nm,

@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 class ImageFrame:
     source: Path
     data: NDArray[np.float64] = field(repr=False)
-    raw_header: Mapping[str, str] = field(repr=False)
+    raw_header: Mapping[str, str | Mapping[str, str]] = field(repr=False)
     channel: str | None
     signal_unit: str | None
     size_x_nm: float | None
@@ -23,3 +23,7 @@ class ImageFrame:
     setpoint_a: float | None
     scan_angle_deg: float | None
     calibration_note: str | None = None
+    # Zero-based index in the source MPP, independent of current series position.
+    source_frame_index: int | None = None
+    measurement_time_s: float | None = None
+    measurement_time_raw: str | None = None

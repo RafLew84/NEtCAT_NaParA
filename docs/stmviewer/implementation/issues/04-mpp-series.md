@@ -4,7 +4,11 @@
 
 **Blocked by:** [02: Otwarcie i przeglądanie serii STP](02-stp-series.md)
 
-**Status:** ready-for-agent
+**Status:** in-progress
+
+**Wykonawca:** Codex, `viewer/start`.
+
+**Baza code-review:** `8aa12416d6225d63d1378b535e140b2063b65bf6`.
 
 **Specyfikacja:** [Seria wejściowa i usuwanie klatek](../../issues/01-frame-series.md#answer), [Zapis MPP z wartościami i metadanymi](../../issues/04-mpp-export.md#answer), [Dane i kryteria odbioru pierwszej wersji](../../issues/06-acceptance.md#answer).
 
@@ -12,12 +16,12 @@ Przed realizacją przeczytaj [zasady wykonania i odbioru](../README.md#zasady-wy
 
 ## Kryteria odbioru
 
-- [ ] Jeden MPP zastępuje serię po pełnym sukcesie; interfejs nie łączy kilku MPP ani MPP z STP/S94.
-- [ ] Klatki zachowują kolejność z filmu, orientację, wartości, metadane i źródłowy numer, odrębny od pozycji w serii.
-- [ ] Znane czasy są poprawnie interpretowane z jednostką, a częściowe braki nie usuwają pozostałych czasów. FPS nie tworzy czasu pomiaru; brak pozostaje brakiem.
-- [ ] Nagłówek z ponad 1000 liniami i film o 1000 klatkach są obsługiwane bez ukrytego limitu liczby klatek.
-- [ ] Niepełne/uszkodzone dane, brak uprawnień i anulowanie nie zastępują poprzedniej serii. Postęp oraz kontrolki wyboru działają dla wieloklatkowego filmu.
-- [ ] Obsługa własnego dodatku MPP będzie częścią zapisu original i ponownego odczytu; ten etap umożliwia rzeczywiste oglądanie istniejących filmów.
+- [x] Jeden MPP zastępuje serię po pełnym sukcesie; interfejs nie łączy kilku MPP ani MPP z STP/S94.
+- [x] Klatki zachowują kolejność z filmu, orientację, wartości, metadane i źródłowy numer, odrębny od pozycji w serii.
+- [x] Znane czasy są poprawnie interpretowane z jednostką, a częściowe braki nie usuwają pozostałych czasów. FPS nie tworzy czasu pomiaru; brak pozostaje brakiem.
+- [x] Nagłówek z ponad 1000 liniami i film o 1000 klatkach są obsługiwane bez ukrytego limitu liczby klatek.
+- [x] Niepełne/uszkodzone dane, brak uprawnień i anulowanie nie zastępują poprzedniej serii. Postęp oraz kontrolki wyboru działają dla wieloklatkowego filmu.
+- [x] Obsługa własnego dodatku MPP będzie częścią zapisu original i ponownego odczytu; ten etap umożliwia rzeczywiste oglądanie istniejących filmów.
 
 ## Testy automatyczne
 
@@ -45,3 +49,20 @@ Dane i sposób przygotowania nietypowych wzorców dostarcza realizujący ticket.
 ## Współpraca z integracją
 
 Wspólne czytniki/loader wymagają uzgodnienia obrotu, jednostek czasu, częściowych braków i limitu nagłówka. Ich poprawki realizuje integracja z testami dotychczasowych odbiorców.
+
+## Wynik implementacji — 2026-10-21
+
+Działa jeden MPP jako kompletna seria, z orientacją zgodną z STP/NanoTrack,
+źródłowym indeksem klatki i częściowo znanymi czasami. Sekundy i milisekundy
+są przeliczane; zapis czasu pozostaje osobno. Nagłówek nie ma limitu liczby linii.
+Walidacja danych, postęp i anulowanie chronią poprzednią serię. Wspólne moduły
+i zależności pozostają bez zmian.
+
+68 testów Viewera oraz mypy strict (15 plików) przechodzą. Wszystkie klatki
+12 lokalnych filmów są liczbowo zgodne z dotychczasowym czytnikiem po obrocie.
+Automatyczna próba xcb obejmuje rzeczywisty dialog, częściowe czasy, klatkę 1000
+oraz pierwszy/środkowy/ostatni obraz lokalnego filmu Current.
+
+[Instrukcja ręczna i wzorce](../../mpp-series-manual.md). Ręczny odbiór użytkownika
+i Windows są niewykonane. Wyniki pełnego zestawu repo oraz przeglądu będą
+uzupełnione po ich zakończeniu w [przekazaniu](../../handoff.md).

@@ -5,7 +5,8 @@ oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 
 ## Stan aplikacji
 
-Działa otwieranie jednego lub wielu STP/S94, także mieszanych, naturalne sortowanie nazw, podgląd
+Działa otwieranie jednego lub wielu STP/S94, także mieszanych, oraz jednego filmu MPP.
+STP/S94 sortujemy naturalnie, MPP zachowuje kolejność źródłową. Dostępny jest podgląd
 z dolnym paskiem miniatur, suwakiem, numerem i przyciskami klatek.
 Panel pokazuje pochodzenie i metadane aktualnej klatki. Import działa w tle,
 ma postęp i anulowanie; błąd lub anulowanie zachowują wcześniejszą serię.
@@ -16,7 +17,9 @@ i nowy poprawny import przywracają całą klatkę. Próba ręczna:
 [instrukcja serii STP](stp-series-manual.md) oraz
 [S94 i mieszane serie](s94-series-manual.md). S94 rozróżnia dane skalibrowane
 w nm/nA od surowych wartości przy nieznanym trybie lub wzmocnieniu.
-MPP, rejestracja i eksport należą do kolejnych ticketów.
+MPP pokazuje numer źródłowej klatki oraz dostępny czas pomiaru, także przy
+częściowych brakach: [instrukcja próby MPP](mpp-series-manual.md).
+Rejestracja i eksport należą do kolejnych ticketów.
 Mapa decyzji jest zamknięta: specyfikacja pierwszej wersji jest gotowa do
 implementacji. Nie oznacza to wdrożenia funkcji ani zaliczenia odbioru.
 
@@ -63,6 +66,8 @@ ma status `done`: użytkownik potwierdził testy manualne, w tym poprawkę
 podświetlenia miniatur, 2026-10-21.
 [S94 i mieszane serie STP/S94](implementation/issues/03-s94-series.md) mają
 status `done`: użytkownik potwierdził testy manualne 2026-10-21.
+[Otwarcie filmu MPP z czasami i pochodzeniem](implementation/issues/04-mpp-series.md)
+jest zaimplementowane; końcowe sprawdzenia i przegląd są w toku.
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje
@@ -99,7 +104,7 @@ python -m stmviewer.main
 
 Na tym stanowisku można również użyć bezpośrednio
 `/home/rlew/projekty/conda-migration-ubuntu-20261008/envs/netcat/bin/python`.
-Przycisk „Otwórz STP/S94…”, menu Plik lub Ctrl+O otwierają wybór jednego lub wielu plików.
+Przycisk „Otwórz STP/S94/MPP…”, menu Plik lub Ctrl+O otwierają wybór jednego lub wielu STP/S94 albo jednego MPP.
 Małe dane i oczekiwany wygląd: [próba ręczna STP/S94](s94-series-manual.md).
 
 Kontrole dla dewelopera (po aktywowaniu środowiska):

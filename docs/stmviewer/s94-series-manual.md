@@ -6,7 +6,7 @@ Z katalogu `NEtCAT-viewer`, w środowisku `netcat`, uruchom:
 python -m stmviewer.main
 ```
 
-Wybór „Otwórz STP/S94…” (także menu Plik lub Ctrl+O) pozwala zaznaczyć jeden
+Wybór „Otwórz STP/S94/MPP…” (także menu Plik lub Ctrl+O) pozwala zaznaczyć jeden
 lub wiele plików obu formatów. Początkowy filtr obejmuje oba formaty; można
 również wybrać osobny filtr STP lub S94.
 

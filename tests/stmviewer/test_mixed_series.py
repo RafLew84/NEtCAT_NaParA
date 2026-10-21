@@ -37,5 +37,5 @@ def test_compatibility_uses_dimensions_after_s94_transposition(tmp_path):
 def test_unsupported_format_is_rejected_with_source():
     import pytest
 
-    with pytest.raises(ValueError, match='movie.mpp.*STP.*S94'):
-        open_frame_series([FIXTURES / 'movie.mpp'])
+    with pytest.raises(ValueError, match='movie.avi.*STP.*S94'):
+        open_frame_series([FIXTURES / 'movie.avi'])

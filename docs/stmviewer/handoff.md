@@ -1,5 +1,65 @@
 # Przekazanie — STM Viewer
 
+## 04: Otwarcie filmu MPP z czasami i pochodzeniem — 2026-10-21
+
+Gałąź: `viewer/start`. Baza implementacji i przeglądu:
+`8aa12416d6225d63d1378b535e140b2063b65bf6`.
+Ticket: [04-mpp-series](implementation/issues/04-mpp-series.md).
+Commit implementacji i wynik końcowego przeglądu zostaną uzupełnione.
+
+### Wynik i kontrakt
+
+Jeden MPP przechodzi przez istniejący import w tle: klatki, miniatury, postęp,
+anulowanie i podmiana całej serii po sukcesie. Nie można łączyć kilku MPP
+ani MPP z STP/S94. GUI pokazuje pierwotny numer klatki, czas pomiaru w sekundach
+i oryginalny zapis czasu. Nawigacja, zoom i przesuwanie pozostają dostępne.
+
+Lokalny adapter `stmviewer/mpp.py` dekoduje double little-endian, obraca 180°
+raz na wejściu (zgodnie z STP i loaderem NanoTrack), zachowuje float64/NaN oraz
+nagłówki z sekcjami. Amplituda Z określa jednostkę, bez przeskalowania wartości.
+Wspólne dla STP/MPP parsowanie wielkości z jednostkami jest w lokalnym
+`stmviewer/quantities.py`. Nieznane dane nie są zastępowane zerami.
+
+`ImageFrame` przechowuje `source_frame_index` (indeks MPP od 0),
+`measurement_time_s` oraz `measurement_time_raw`. W GUI numer źródłowy
+jest liczony od 1, oddzielnie od pozycji w bieżącej serii. Brak/nieznana
+jednostka czasu dotyczy tylko jednej klatki; FPS nie tworzy czasu.
+Nagłówek nie ma limitu liczby linii (limit pojedynczej linii: 64 KiB).
+Wymiary i długość danych są sprawdzane przed alokacją; przerwanie jest
+sprawdzane w trakcie nagłówka, między klatkami i przed publikacją wyniku.
+
+### Sprawdzenia
+
+- TDD przez publiczny import i GUI: realne dekodowanie/wartości/orientacja,
+  czasy z jednostkami i częściowymi brakami, długi nagłówek, 1000 klatek,
+  postęp/anulowanie, wadliwy typ/długość oraz niedozwolony wybór.
+- **68 testów Viewera zaliczonych** w Qt offscreen; mypy strict:
+  **15 plików bez błędów**. Testy prawdziwych plików nie zastępują adaptera
+  atrapą; kontrolowane opóźnienie oraz brak uprawnień są na granicy systemu plików.
+- **12 lokalnych filmów MPP**: wszystkie klatki zgodne element po elemencie
+  (także NaN) z `read_mpp_file` po obrocie 180°. Obejmuje prostokątne filmy,
+  364 × 256 × 256 oraz 84 × 512 × 512; część plików to kopie tego samego pomiaru.
+  Nie traktujemy ich jako 12 niezależnych wzorców. Pomiary pozostają poza Git.
+- Automatyczna próba Qt xcb: prawdziwy dialog, częściowe czasy, wybór klatki
+  1000 oraz klatek 1/9/17 lokalnego `MOVIE_3.MPP`. Zrzuty w
+  `/tmp/stmviewer-mpp-{timed,third,1000,measurement}-xcb.png`.
+- Pełne repo i niezależny przegląd Standards/Spec: w toku.
+
+### Odbiór i integracja
+
+[Instrukcja GUI](mpp-series-manual.md) zawiera uruchomienie, wersjonowane małe
+wzorce, generator, lokalne pomiary oraz oczekiwane wyniki. Ręczny odbiór
+użytkownika i Windows pozostają niewykonane. Test 1000 × 1 × 1 sprawdza
+liczbę klatek i nagłówek; nie zastępuje testu 1000 × 512 × 512 z ticketu 18.
+
+Nie zmieniono modułów wspólnych ani konfiguracji głównej/zależności.
+Dla przyszłych zmian integracyjnych wspólny czytnik/loader wymaga:
+zniesienia limitu 1000 linii, kontroli deklarowanego typu, wydajnego odczytu
+float64, poprawnych jednostek i częściowych czasów oraz uzgodnionej orientacji.
+Wspólny kontrakt musi być sprawdzony u dotychczasowych odbiorców. Lokalny
+adapter pozwala kontynuować Viewer niezależnie; dodatkowe metadane MPP
+i eksport należą do kolejnych ticketów.
+
 ## 03: S94 i mieszane serie STP/S94 — 2026-10-21
 
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
