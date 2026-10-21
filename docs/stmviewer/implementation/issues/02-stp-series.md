@@ -4,7 +4,11 @@
 
 **Blocked by:** [01: Pierwszy obraz STP w działającym oknie](01-single-stp.md)
 
-**Status:** ready-for-agent
+**Status:** ready-for-review
+
+**Wykonawca:** Codex, `viewer/start`.
+
+**Baza code-review:** `3f2e92b59d29dc0ecf74751807e26f530167af7d`.
 
 **Specyfikacja:** [Seria wejściowa i usuwanie klatek](../../issues/01-frame-series.md#answer), [Podgląd, gamma i odtwarzanie serii](../../issues/02-preview-playback.md#answer), [Dane i kryteria odbioru pierwszej wersji](../../issues/06-acceptance.md#answer).
 
@@ -12,12 +16,12 @@ Przed realizacją przeczytaj [zasady wykonania i odbioru](../README.md#zasady-wy
 
 ## Kryteria odbioru
 
-- [ ] Okno otwierania przyjmuje jeden lub wiele STP i sortuje nazwy naturalnie; seria ma jednakowe wymiary, bez obowiązku wspólnej skali lub kanału.
-- [ ] Główny obraz, miniatury, numer i przyciski poprzednia/następna wskazują tę samą klatkę; widoczne są jej pochodzenie i dostępne metadane.
-- [ ] Odczyt zachowuje orientację, wartości oraz metadane każdej klatki. Nieznana jednostka lub kalibracja pozostaje nieznana; Z Amplitude nie skaluje ponownie danych double.
-- [ ] Nowy import zastępuje stan dopiero po sukcesie. Uszkodzony plik, inne wymiary lub anulowanie zachowują poprzednią serię i wybór; problematyczne źródło jest wskazane.
-- [ ] Import ma postęp i anulowanie, a okno pozostaje responsywne. Pierwszy poprawny import pokazuje pierwszą klatkę dopasowaną do okna; stan pusty i pojedyncza klatka są obsłużone.
-- [ ] Rozszerza istniejące otwarcie pojedynczego obrazu, zachowując sprawdzone dekodowanie i konfigurację środowiska; ten etap dodaje serię, nawigację i pełny przebieg dłuższego importu.
+- [x] Okno otwierania przyjmuje jeden lub wiele STP i sortuje nazwy naturalnie; seria ma jednakowe wymiary, bez obowiązku wspólnej skali lub kanału.
+- [x] Główny obraz, miniatury, numer i przyciski poprzednia/następna wskazują tę samą klatkę; widoczne są jej pochodzenie i dostępne metadane.
+- [x] Odczyt zachowuje orientację, wartości oraz metadane każdej klatki. Nieznana jednostka lub kalibracja pozostaje nieznana; Z Amplitude nie skaluje ponownie danych double.
+- [x] Nowy import zastępuje stan dopiero po sukcesie. Uszkodzony plik, inne wymiary lub anulowanie zachowują poprzednią serię i wybór; problematyczne źródło jest wskazane.
+- [x] Import ma postęp i anulowanie, a okno pozostaje responsywne. Pierwszy poprawny import pokazuje pierwszą klatkę dopasowaną do okna; stan pusty i pojedyncza klatka są obsłużone.
+- [x] Rozszerza istniejące otwarcie pojedynczego obrazu, zachowując sprawdzone dekodowanie i konfigurację środowiska; ten etap dodaje serię, nawigację i pełny przebieg dłuższego importu.
 
 ## Testy automatyczne
 
@@ -46,3 +50,20 @@ Dane i sposób przygotowania nietypowych wzorców dostarcza realizujący ticket.
 ## Współpraca z integracją
 
 Jeśli wspólny loader nie zachowuje parametrów każdej klatki albo pomija uszkodzone pliki, potrzebny adapter lub poprawkę uzgodnić z integracją. Wcześniejsze otwarcie pojedynczego STP ma pozostać działające.
+
+## Wynik implementacji — 2026-10-21
+
+Dostarczono import STP w tle z postępem i anulowaniem, naturalne sortowanie,
+sprawdzanie wymiarów oraz układ B z miniaturami, suwakiem, numerem i przyciskami.
+Klatki zachowują własne dane i metadane. Zmiana klatki zachowuje zoom/przesunięcie;
+nowy udany import dopasowuje pierwszą klatkę, a błąd i anulowanie zachowują stan.
+Wspólne czytniki, zależności i konfiguracja repo pozostają bez zmian.
+
+33 testy Viewera przechodzą w Qt offscreen; mypy strict obejmuje 12 plików bez
+błędów. Automatyczna próba z rzeczywistym oknem xcb i dialogiem wielokrotnego
+wyboru przeszła na Linuksie. Szczegóły pełnego zestawu repo i przeglądu:
+[przekazanie](../../handoff.md).
+
+Ręczny odbiór użytkownika pozostaje niewykonany, dlatego status to
+`ready-for-review`. [Scenariusz, wzorce i generator](../../stp-series-manual.md)
+obejmują wszystkie kroki dostępne po tym etapie; Windows pozostaje osobnym odbiorem.

@@ -1,5 +1,70 @@
 # Przekazanie — STM Viewer
 
+## 02: Otwarcie i przeglądanie serii STP — 2026-10-21
+
+Gałąź: `viewer/start`. Baza implementacji i code-review:
+`3f2e92b59d29dc0ecf74751807e26f530167af7d`.
+Ticket: [02-stp-series](implementation/issues/02-stp-series.md),
+status `ready-for-review` do ręcznego odbioru użytkownika.
+
+### Wynik
+
+Otwieranie jednego lub wielu STP sortuje nazwy naturalnie i wymaga jedynie
+zgodnych wymiarów pikselowych. Odczyt wykorzystuje sprawdzony adapter;
+każda klatka zachowuje własne wartości, orientację, skalę, kanał i pozostałe
+metadane. Miniatury oryginałów są na dole, ustawienia po prawej.
+Przyciski, suwak, edytowalny numer, zaznaczenie miniatury, główny obraz i panel
+źródła wskazują tę samą klatkę. Pasek przewija się do wybranej miniatury.
+
+Odczyt i przygotowanie miniatur wykonuje zadanie w tle. Postęp obejmuje obie
+fazy. Błąd lub anulowanie nie zastępują poprzedniego zestawu i wyboru.
+Podczas importu działają podgląd i nawigacja starej serii; nowy import jest
+zablokowany. Anulowanie czeka na ukończenie bieżącego odczytu pojedynczego
+pliku; okno nadal obsługuje zdarzenia. Zamknięcie podczas importu anuluje
+zadanie i zamyka okno po zakończeniu wątku.
+
+Zmiana klatki zachowuje zoom i przesunięcie. Sukces nowego importu pokazuje
+pierwszą klatkę dopasowaną do okna. Pusta i pojedyncza seria mają odpowiednio
+nieaktywne kontrolki. To realizuje również część przyszłego ticketu 05;
+gamma i szachownica pozostają do wykonania.
+
+### Sprawdzenia
+
+- TDD: red → green dla naturalnego sortowania/odczytu, kontroli wymiarów,
+  anulowania, nawigacji GUI oraz responsywności przy opóźnionym I/O.
+  Testy korzystają z uzgodnionych publicznych granic. Zastępowane są jedynie
+  dialog systemowy i czas odczytu pliku, bez atrap wewnętrznych komponentów.
+- **33 testy Viewera zaliczone** w Qt offscreen. Obejmują regresje pojedynczego
+  STP i gestów, dane liczbowe/metadane, odmienne znane kanały i skale,
+  orientację miniatur, synchronizację, anulowanie, błędy oraz zamykanie w trakcie pracy.
+- Mypy strict: **12 plików bez błędów**. Największy zmieniony plik kodu:
+  `stmviewer/ui/main_window.py`, **252 linie**; wszystkie poniżej 1500.
+- Pełne repo w `netcat`:
+  `PYTHONPATH=.:tests/moltrack QT_QPA_PLATFORM=offscreen python -m pytest -q --import-mode=importlib --continue-on-collection-errors`:
+  **1772 passed, 63 failed, 12 skipped**, 205.54 s. Zestaw 63 niepowodzeń
+  jest identyczny z poprzednią próbą (`/tmp/stmviewer-navigation-full-suite.log`):
+  starsze testy MolTrack/NanoTrack, m.in. brak MOVIE_3.MPP, ścieżki Windows,
+  SAM2. **Brak nowych niepowodzeń i błędów zbierania**. To nie jest zielony odbiór
+  całego repo. Log: `/tmp/stmviewer-series-full-suite.log`.
+- Automatyczna próba rzeczywistego okna Qt xcb na Linuksie: dialog wielu STP,
+  kolejność 1–2–10, przyciski i miniatury, następnie rzeczywisty pomiar 34855.STP.
+  Zrzuty oceniono wizualnie: `/tmp/stmviewer-series-xcb.png`,
+  `/tmp/stmviewer-series-current-xcb.png`, `/tmp/stmviewer-series-measurement-xcb.png`.
+- Generator większych danych sprawdzono na trzech STP 64 × 64 z ponownym
+  odczytem. Duża próba wydajności z ticketu 18 nie została tu wykonana.
+
+### Odbiór i integracja
+
+[Instrukcja GUI i wzorce](stp-series-manual.md) obejmują ręczny scenariusz,
+łącznie z generowaniem większego zestawu do anulowania. Ręczny odbiór użytkownika
+oraz próba Windows są niewykonane. Wcześniejsze potwierdzenie ticketu 01
+pozostaje ważne, ale nie obejmuje nowej serii.
+
+Zmiany dotyczą wyłącznie aplikacji Viewera, jej testów i dokumentacji.
+Nie zmieniono konfiguracji głównej, zależności ani współdzielonych loaderów;
+nie potrzeba nowej poprawki integracyjnej. Uruchomienie pozostaje
+`python -m stmviewer.main` w `netcat`. Nie publikowano ani nie scalano gałęzi.
+
 ## Uzupełnienie: zoom i przesuwanie — 2026-10-21
 
 Baza dodatku: `7a43715`, gałąź `viewer/start`. Commit kodu: `75f419d`.

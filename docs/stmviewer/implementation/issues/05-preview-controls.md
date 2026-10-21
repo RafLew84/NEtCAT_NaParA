@@ -57,10 +57,10 @@ Nowy poprawny import resetuje widok, anulowanie i błąd zachowują go.
 Krok kółka zmienia skalę o czynnik 1.2, zakres to 0.1–64 razy dopasowanie.
 Testy działają na uzgodnionej granicy publicznych kontrolek GUI.
 
-Ten dodatek nie zamyka ticketu 05 ani jego zależności. Zachowanie widoku
-pomiędzy klatkami, gamma, szachownica i miniatury pozostają w jego zakresie.
-Przy wprowadzaniu serii trzeba rozdzielić zmianę klatki od nowego importu:
-obecne `ImagePreview.set_frame` resetuje widok, bo obsługuje otwarcie nowego pliku.
+Ten dodatek nie zamyka ticketu 05 ani jego zależności. Ticket 02 dostarczył
+miniatury, synchronizację kontrolek i zachowanie zoomu oraz przesunięcia przy
+zmianie klatki. Nowy poprawny import dopasowuje obraz. Gamma, szachownica
+i pozostałe kryteria tego ticketu nadal czekają na realizację.
 Ręczna próba dodatku: [nawigacja obrazu](../../single-stp-manual.md#zoom-i-przesuwanie).
 
 

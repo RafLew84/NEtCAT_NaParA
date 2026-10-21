@@ -1,11 +1,11 @@
 """Image navigation and display, separate from the frame's measurement values."""
 
-import numpy as np
 from PyQt6.QtCore import QPointF, QRectF, Qt
 from PyQt6.QtGui import QImage, QMouseEvent, QPaintEvent, QPainter, QWheelEvent
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from stmviewer.frame import ImageFrame
+from stmviewer.ui.raster import frame_aspect, frame_image
 
 
 class ImagePreview(QWidget):
@@ -24,30 +24,16 @@ class ImagePreview(QWidget):
         layout = QVBoxLayout(self)
         layout.addWidget(self._empty)
 
-    def set_frame(self, frame: ImageFrame) -> None:
-        data = frame.data
-        finite = np.isfinite(data)
-        raster = np.zeros(data.shape, dtype=np.uint8)
-        if finite.any():
-            values = data[finite]
-            low, high = float(values.min()), float(values.max())
-            if low == high:
-                raster[finite] = 127
-            else:
-                # Scaling first also handles opposite finite float64 extremes.
-                scale = max(abs(low), abs(high))
-                values = (values / scale - low / scale) / (high / scale - low / scale)
-                raster[finite] = np.clip(values * 255, 0, 255).astype(np.uint8)
-        height, width = raster.shape
-        image = QImage(raster.tobytes(), width, height, raster.strides[0],
-                       QImage.Format.Format_Grayscale8).copy()
-        aspect = width / height
-        if frame.size_x_nm is not None and frame.size_y_nm is not None:
-            aspect = frame.size_x_nm / frame.size_y_nm
+    def set_frame(self, frame: ImageFrame, *, reset_view: bool = True) -> None:
+        image = frame_image(frame)
+        aspect = frame_aspect(frame)
         self._image = image
         self._aspect = aspect
         self._empty.hide()
-        self.fit_image()
+        if reset_view:
+            self.fit_image()
+        else:
+            self.update()
 
     def fit_image(self) -> None:
         """Restore the complete, centered image after navigation or a new import."""

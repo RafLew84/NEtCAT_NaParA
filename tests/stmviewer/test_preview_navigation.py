@@ -19,10 +19,11 @@ def opened_window(qtbot, monkeypatch):
     preview = window.findChild(QWidget, "imagePreview")
     preview.setFixedSize(400, 300)
     window.show()
-    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **kw: (
-        str(FIXTURES / "unknown.stp"), ""
+    monkeypatch.setattr(QFileDialog, "getOpenFileNames", lambda *a, **kw: (
+        [str(FIXTURES / "unknown.stp")], ""
     ))
     qtbot.mouseClick(window.findChild(QPushButton, "openStp"), Qt.MouseButton.LeftButton)
+    qtbot.waitUntil(window.findChild(QPushButton, "openStp").isEnabled)
     return window, preview
 
 
@@ -89,6 +90,7 @@ def test_fit_button_restores_the_whole_image_after_navigation(opened_window, qtb
     assert button is not None and button.isEnabled()
 
     qtbot.mouseClick(button, Qt.MouseButton.LeftButton)
+    qtbot.waitUntil(button.isEnabled)
 
     assert screenshot(preview) == fitted
 
@@ -103,17 +105,20 @@ def test_import_cancel_and_error_keep_navigation_but_success_resets_it(
     qtbot.mouseRelease(preview, Qt.MouseButton.LeftButton, pos=QPoint(180, 170))
     navigated = screenshot(preview)
     choices = iter(["", str(FIXTURES / "truncated.stp"), str(FIXTURES / "unknown.stp")])
-    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **kw: (next(choices), ""))
+    monkeypatch.setattr(QFileDialog, "getOpenFileNames", lambda *a, **kw: ([choice] if (choice := next(choices)) else [], ""))
     button = window.findChild(QPushButton, "openStp")
 
     qtbot.mouseClick(button, Qt.MouseButton.LeftButton)
+    qtbot.waitUntil(button.isEnabled)
     assert screenshot(preview) == navigated
     qtbot.mouseClick(button, Qt.MouseButton.LeftButton)
+    qtbot.waitUntil(button.isEnabled)
     message = window.findChild(QMessageBox)
     assert message is not None and "truncated.stp" in message.text()
     message.accept()
     assert screenshot(preview) == navigated
     qtbot.mouseClick(button, Qt.MouseButton.LeftButton)
+    qtbot.waitUntil(button.isEnabled)
     assert screenshot(preview) == fitted
 
 

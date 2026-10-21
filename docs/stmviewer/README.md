@@ -5,11 +5,15 @@ oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 
 ## Stan aplikacji
 
-Działa otwieranie jednego STP, podgląd obrazu, pochodzenie i metadane.
+Działa otwieranie jednego lub wielu STP, naturalne sortowanie nazw, podgląd
+z dolnym paskiem miniatur, suwakiem, numerem i przyciskami klatek.
+Panel pokazuje pochodzenie i metadane aktualnej klatki. Import działa w tle,
+ma postęp i anulowanie; błąd lub anulowanie zachowują wcześniejszą serię.
+Wymagane są wspólne wymiary pikselowe, skale i kanały mogą się różnić.
 Kółko myszy zmienia zoom pod kursorem; przeciąganie lewym przyciskiem przesuwa
-obraz z zachowaniem powiększenia. „Dopasuj” przywraca całą klatkę.
-Anulowanie wyboru i błąd importu zachowują poprzedni obraz. Ręczna próba:
-[instrukcja ticketu 01](single-stp-manual.md). Serie, rejestracja i eksport
+obraz z zachowaniem powiększenia. Zmiana klatki zachowuje widok, a „Dopasuj”
+i nowy poprawny import przywracają całą klatkę. Próba ręczna:
+[instrukcja ticketu 02](stp-series-manual.md). MPP, S94, rejestracja i eksport
 należą do kolejnych ticketów.
 Mapa decyzji jest zamknięta: specyfikacja pierwszej wersji jest gotowa do
 implementacji. Nie oznacza to wdrożenia funkcji ani zaliczenia odbioru.
@@ -51,8 +55,9 @@ TDD. Każdy etap kończy się funkcją możliwą do sprawdzenia w działającym 
 oraz zawiera konkretne kroki próby i oczekiwane wyniki.
 
 [Pierwszy obraz STP w działającym oknie](implementation/issues/01-single-stp.md)
-ma status `done`. Następny odblokowany etap to
-[Otwarcie i przeglądanie serii STP](implementation/issues/02-stp-series.md).
+ma status `done`.
+[Otwarcie i przeglądanie serii STP](implementation/issues/02-stp-series.md)
+jest zaimplementowane; status `ready-for-review` oczekuje na ręczną próbę użytkownika.
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje
@@ -89,8 +94,8 @@ python -m stmviewer.main
 
 Na tym stanowisku można również użyć bezpośrednio
 `/home/rlew/projekty/conda-migration-ubuntu-20261008/envs/netcat/bin/python`.
-Przycisk „Otwórz STP…”, menu Plik lub Ctrl+O otwierają wybór jednego pliku.
-Małe dane i oczekiwany wygląd: [próba ręczna](single-stp-manual.md).
+Przycisk „Otwórz STP…”, menu Plik lub Ctrl+O otwierają wybór jednego lub wielu plików.
+Małe dane i oczekiwany wygląd: [próba ręczna serii](stp-series-manual.md).
 
 Kontrole dla dewelopera (po aktywowaniu środowiska):
 
