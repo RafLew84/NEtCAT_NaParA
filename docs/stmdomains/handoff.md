@@ -1,4 +1,41 @@
-# STM Domains — trening bez etykiet do odkrywania domen
+# STM Domains — mapa prób treningu bez etykiet
+
+Data: 2026-10-21. Gałąź `domains/self-supervised-training-map`, baza `63c5d0b`.
+Worktree `/tmp/netcat-stmdomains-training-map`, docelowo `domains/start`.
+Commit dokumentacji w wiadomości końcowej.
+
+Na polecenie użytkownika rozwinięto ostatnie badanie w
+[siedem ticketów 20–26](issues/README.md#trening-bez-etykiet-domen):
+przygotowanie treningu, porównanie AE/rVAE, lokalne SSL, decyzję po pierwszych
+próbach oraz warunkowe grafy, maskowany AE i adaptację gotowego modelu.
+Wszystkie mają status `open`; żadnego modelu nie wytrenowano.
+
+Przygotowanie 20 zależy od wspólnego wejścia 14. Próby 21 i 22 zależą od
+20 oraz wyniku tekstury 17, mogą być prowadzone niezależnie. Zestawienie 23
+czeka na 19, 21 i 22. Odbiór 13 uzupełniono o 23. Rozszerzenia 24–26 są
+warunkowe i nie blokują odbioru, dopóki nie wybierzemy ich w 23; wtedy
+należy dodać odpowiednie zależności 13 i krawędzie diagramu. Tracker wyklucza
+niewybrane rozszerzenia z frontier mimo spełnienia samych zależności.
+
+Zakres zachowuje pełne pola pomiarowe, brak etykiet domen i zadanej liczby
+grup, osobne typ/orientację, kontrolę rozstawu oraz granic. Protokół oddziela
+opis obecnej serii od oceny przenoszenia, z podziałem przed wycinaniem okien,
+kontrolą przecieku, budżetem, powtórzeniami i odtwarzalnymi checkpointami.
+Pierwszy sprzęt to RTX 5090; 96 GB i Colab są opcjami uzasadnianymi pomiarem.
+
+Zaktualizowano mapę, indeks z diagramem, odnośniki ze wcześniejszego planu,
+README i badania oraz wspólne wejście 14. Zakres 18–19 pozostaje zamrożony,
+statusy zakończonych prób 10–12 i mapa szkieletu bez zmian. Następny krok
+badawczy nadal to 14. Nie zmieniono kodu ani współdzielonych zależności.
+
+Sprawdzenia dokumentacji: lokalne linki, unikatowe ID, zgodność `Blocked by`
+z `Dependencies` i diagramem, brak cykli oraz `git diff --check`.
+Nie uruchamiano testów aplikacji, GUI, modeli ani nowych pomiarów sprzętu.
+Brak nowych potrzeb zmian współdzielonych modułów.
+
+---
+
+## Poprzednie przekazanie — trening bez etykiet do odkrywania domen
 
 Data: 2026-10-21. Gałąź `domains/self-supervised-training-research`, baza `a298c1d`.
 Worktree `/tmp/netcat-stmdomains-training-research`, docelowo `domains/start`.

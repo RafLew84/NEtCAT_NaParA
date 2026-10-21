@@ -7,7 +7,7 @@ Mode: HITL
 Status: open
 Assignee:
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
-Blocked by: 04, 06, 08, 10, 11, 12, 15, 16, 17, 19
+Blocked by: 04, 06, 08, 10, 11, 12, 15, 16, 17, 19, 23
 
 ## Question
 
@@ -159,6 +159,25 @@ warstwy oraz przygotowanie wejścia. Odtworzenie zapisanego wyniku nadal
 nie wymaga obecności modelu ani ponownego przeliczania. Odbiór może
 odrzucić wszystkie gotowe cechy sieci; nie wymaga wyboru metody ML.
 
+## Wynik treningu bez etykiet do uwzględnienia
+
+[Zestawienie pierwszych prób treningowych](23-training-comparison-and-next-step.md)
+porówna AE/rVAE i lokalne SSL z teksturą oraz zamrożonymi modelami.
+Odbiór wymaga tego wyniku, także negatywnego; nie wymaga wybrania metody
+uczonej. Rozdzielić poprawę na obecnej serii od przenoszenia na niewidziane
+dane i sprawdzić protokół podziału, pochodzenie wag, wybór checkpointu,
+stabilność, koszty oraz brak uczenia z ręcznych ramek.
+
+Grafy, maskowany autoenkoder i adaptacja modelu pozostają warunkowe.
+Przy wyborze któregoś w kroku 23 dodać jego ID do `Blocked by`, nazwany
+link poniżej i krawędź diagramu. Wtedy odbiór czeka na ten wynik;
+niewybrane rozszerzenia nie stają się obowiązkowe. Nie wracamy do
+treningu bez końca, jeśli próby nie dają uzasadnionej korzyści.
+
+Przyjęty wynik ma zachować manifest treningu i identyfikację checkpointu,
+lecz samo oglądanie zapisu nadal nie wymaga modelu ani przeliczania.
+Osobno sprawdzić zapis wyniku i możliwość odtworzenia eksperymentu.
+
 ## Dependencies
 
 - [Jakie referencje i kryteria potwierdzą wiarygodność analizy?](04-reference-and-quality.md)
@@ -171,3 +190,4 @@ odrzucić wszystkie gotowe cechy sieci; nie wymaga wyboru metody ML.
 - [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md)
 - [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md)
 - [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md)
+- [Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md)

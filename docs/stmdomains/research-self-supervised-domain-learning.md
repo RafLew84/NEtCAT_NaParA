@@ -8,6 +8,12 @@ To przegląd źródeł i propozycja eksperymentów. Nie trenowano modeli,
 nie pobierano wag ani nie oceniano skuteczności nowych metod na TTMAPP.
 Rozszerza [wcześniejszy przegląd bez własnego treningu](research-training-free-ml-domain-discovery.md).
 
+Na kolejne polecenie użytkownika wnioski rozwinięto w
+[tickety 20–26](issues/README.md#trening-bez-etykiet-domen): dwie pierwsze
+próby i decyzję o warunkowych rozszerzeniach. Aktualne zależności oraz
+warunki zakończenia znajdują się w ticketach; ta notatka zachowuje
+uzasadnienie badawcze i nie stanowi raportu wykonania eksperymentów.
+
 ## Wniosek
 
 **Tak: warto dopuścić uczenie na nieoznaczonych wycinkach naszych obrazów.**

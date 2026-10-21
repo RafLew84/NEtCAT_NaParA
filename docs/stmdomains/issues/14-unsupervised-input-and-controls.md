@@ -38,8 +38,10 @@ Przygotowanie ekstraktorów jest osobnym zadaniem i nie blokuje
 zakończenia tego wspólnego zestawu. Dotychczasowe próby gotowych cech
 pozostają porównaniem bez treningu. Po dopuszczeniu przez użytkownika
 osobnych prób treningu bez etykiet ich protokół będzie wymagał także
-manifestu podziału danych i augmentacji, zgodnie z
-[nowym przeglądem](../research-self-supervised-domain-learning.md).
+manifestu podziału danych i augmentacji. Przygotowanie to ma osobny
+[ticket 20](20-self-supervised-training-preparation.md), zgodnie z
+[nowym przeglądem](../research-self-supervised-domain-learning.md), i nie
+blokuje zakończenia wspólnego wejścia.
 Nie wolno używać ramek referencyjnych jako klas ani wzorców treningowych.
 
 Najpierw porównujemy przypisania molekuł, lokalne typy/orientacje i obszary
@@ -176,3 +178,4 @@ zadania oznacza gotowość zestawu porównawczego, nie skuteczność detekcji.
 - [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md)
 - [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md)
 - [Jak przygotować cechy gotowych sieci bez treningu na naszych danych?](18-frozen-feature-preparation.md)
+- [Jak przygotować odtwarzalny trening bez etykiet domen?](20-self-supervised-training-preparation.md)

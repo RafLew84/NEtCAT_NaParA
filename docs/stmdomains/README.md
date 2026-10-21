@@ -104,6 +104,15 @@ ramki służą wyłącznie późniejszej ocenie. Nowe tickety są otwarte, a pr�
 nie zostały wykonane. Ten tok badawczy może poprzedzać odbiór szkieletu;
 następny krok aplikacyjny nadal dotyczy jego importu i geometrii.
 
+Po dopuszczeniu treningu bez etykiet i ostatnim badaniu dodano
+[punkty 20–26](issues/README.md#trening-bez-etykiet-domen): przygotowanie
+treningu, AE/rVAE, lokalne SSL, porównanie z wcześniejszymi metodami oraz
+warunkowe próby grafów, maskowania i adaptacji gotowego modelu.
+Pierwsze próby dotyczą RTX 5090; przejście na 96 GB lub Colab wymaga
+uzasadnienia wynikiem i pomiarem. Odbiór 13 czeka na zestawienie 23,
+a dalej tylko na wybrane rozszerzenia. Trening nie został uruchomiony;
+następnym krokiem badawczym całej mapy nadal jest przygotowanie wejścia 14.
+
 ## Dwa etapy
 
 - [Etap 1: działający szkielet](map.md) — import, podstawowy podgląd oraz

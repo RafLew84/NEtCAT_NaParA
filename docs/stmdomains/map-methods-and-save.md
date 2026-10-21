@@ -51,6 +51,18 @@ molekuł. Ograniczenie braku przykładów domen i narzucanej liczby grup nadal
 obowiązuje. Próby gotowych cech zachowują zakres bez treningu jako punkt
 odniesienia; nowy przegląd nie oznacza wykonania ani wyboru metody uczonej.
 
+Na kolejne polecenie użytkownika rozpisano
+[zadania treningu bez etykiet 20–26](issues/README.md#trening-bez-etykiet-domen).
+Po wspólnym wejściu przygotujemy protokół treningu, podział danych i pomiar
+GPU. Pierwsze próby to AE/rVAE oraz lokalne SSL, niezależne od siebie,
+z wynikiem tekstury jako punktem odniesienia. Ich zestawienie z gotowymi
+cechami sieci kończy się [decyzją o dalszym zakresie](issues/23-training-comparison-and-next-step.md).
+Grafy molekuł, maskowany autoenkoder i adaptacja gotowego modelu są
+warunkowymi rozszerzeniami, wybieranymi na podstawie konkretnej luki.
+Odbiór 13 czeka na decyzję 23; wybrane w niej rozszerzenia dopisujemy do
+jego zależności. Niewybrane warianty nie blokują odbioru. Przygotowanie
+treningu może przebiegać obok przygotowania zamrożonych modeli.
+
 Sprzęt do pierwszych prób: RTX 5090 z 32 GB VRAM i 128 GB RAM.
 Użytkownik wskazał także drugi komputer z kartą Blackwell Max-Q 96 GB VRAM
 oraz Colab jako możliwości dalszych prób, jeśli wyniki uzasadnią rozszerzenie.
@@ -118,7 +130,9 @@ jego implementacja i odbiór na wynikach metod pozostają do wykonania.
 Kolejne akwizycje i wyniki nowych prób mogą ujawnić dodatkowe klasy błędów,
 potrzebę innych cech lub konkretnego połączenia informacji obrazu i centrów.
 Nie rozpisujemy jeszcze takiej metody łączonej ani następnych zestawów
-anotacji. Szczegółowe metadane wybranego algorytmu i zadania jego wdrożenia
+anotacji. Rodziny uczenia z ostatniego przeglądu mają już tickety 20–26;
+konkretne architektury, budżety i wybór rozszerzeń rozstrzygną te zadania.
+Szczegółowe metadane wybranego algorytmu i zadania jego wdrożenia
 wynikną z porównań, przy zachowaniu kontraktu zapisu i znaczenia danych.
 
 ## Out of scope

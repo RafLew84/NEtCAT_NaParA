@@ -61,6 +61,12 @@ ramki służą wyłącznie późniejszej ocenie. Nie zakładamy istnienia domen
 ani ich liczby i nie uczymy klas z ręcznie zaznaczonych przykładów.
 Nowe tickety są otwarte, próby nie zostały uruchomione.
 
+Po dopuszczeniu treningu bez etykiet i ostatnim przeglądzie użytkownik
+polecił dodać [zadania 20–26](#trening-bez-etykiet-domen). Najpierw
+przygotowujemy protokół, następnie porównujemy AE/rVAE i lokalne SSL.
+Decyzja po tych próbach wybierze ewentualne rozszerzenia. Gotowe modele
+z kroków 18–19 zachowują niezmienione wagi jako punkt odniesienia.
+
 ## Wayfinding operations
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie
@@ -86,6 +92,9 @@ z instrukcjami repozytorium. Nie wymaga zewnętrznego trackera.
   plików. Pytanie innej mapy nie trafia do tej kolejki. W cyklu nowych prób
   pierwsze jest przygotowanie wspólnego wejścia; otwarty protokół pełnej
   jakości pozostaje osobnym pytaniem do odbioru, nie blokadą tych prób.
+  Dla ticketów z sekcją `Warunek podjęcia` trzeba dodatkowo sprawdzić
+  zapisany wybór w kroku 23. Niewybrane rozszerzenia 24–26 nie trafiają
+  do frontier, nawet gdy wszystkie ich zależności są `resolved`.
 - **Zależności:** `Blocked by` wskazuje istniejące ID, także innej mapy;
   `Dependencies` zawiera odpowiadające nazwane linki. Zmiana zależności wymaga
   aktualizacji diagramu. Otwarte pytanie nie może zależeć od zakresowo
@@ -154,6 +163,34 @@ typów i granic nie otwieramy ponownie. Dawny
 [plan eksperymentów](../unsupervised-domain-experiments.md) prowadzi teraz
 do ticketów; zakres i warunki zakończenia utrzymujemy w ich treści.
 
+### Trening bez etykiet domen
+
+Rozszerzenie na podstawie [ostatniego badania](../research-self-supervised-domain-learning.md).
+Każda próba używa pełnych pól pomiarowych; ręczne ramki służą ocenie,
+bez dostarczania klas ani liczby domen. Statusy i zależności są w ticketach.
+
+| Pytanie/zadanie | Typ | Kolejność |
+| --- | --- | --- |
+| [20 — Jak przygotować odtwarzalny trening bez etykiet domen?](20-self-supervised-training-preparation.md) | task / AFK | Po 14; podział danych, augmentacje, budżet i GPU |
+| [21 — Czy AE i rVAE uczą się cech przydatnych do odkrywania domen?](21-autoencoder-domains.md) | prototype / HITL | Po 17 i 20; pierwsza próba treningowa |
+| [22 — Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](22-local-self-supervised-domains.md) | prototype / HITL | Po 17 i 20; niezależnie od 21 |
+| [23 — Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md) | grilling / HITL | Po 19, 21 i 22; porównanie i decyzja o dalszym zakresie |
+| [24 — Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md) | prototype / HITL | Warunkowo: wybrane w 23, po wyniku 15 |
+| [25 — Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md) | prototype / HITL | Warunkowo: wybrane w 23 |
+| [26 — Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md) | prototype / HITL | Warunkowo: wybrane w 23, z zachowanym modelem odniesienia |
+
+Przygotowanie 20 można prowadzić obok przygotowania gotowych cech 18.
+Próby 21 i 22 wymagają wyniku tekstury, również negatywnego; nie muszą
+czekać na gotowe modele. Ich wspólne zestawienie 23 korzysta już z 19.
+Odbiór 13 czeka na 23, lecz nie na wszystkie warunkowe rodziny modeli.
+Jeśli w 23 wybierzemy rozszerzenie, dodajemy je do zależności 13 i diagramu.
+Brak wyboru nie oznacza wykonania lub nieskuteczności tego rozszerzenia.
+
+Pierwsze próby planujemy na RTX 5090 32 GB VRAM / 128 GB RAM. Użycie
+drugiego komputera z 96 GB VRAM lub Colab wynika z pomiaru i hipotezy
+wybranej w 23. Dostępność tych zasobów nie jest warunkiem zakończenia
+podstawowego porównania. Żadnego treningu nie uruchomiono przez dodanie mapy.
+
 ## Odłożone poza oba etapy
 
 [Jak mierzyć orientację molekuły i oznaczać wynik niepewny?](03-molecular-orientation.md)
@@ -192,6 +229,13 @@ flowchart TD
         q["Lokalna tekstura STM"]
         r["Przygotowanie gotowych cech sieci"]
         s["Domeny z gotowych cech — porównanie ML"]
+        t["20: Protokół i przygotowanie treningu"]
+        u["21: AE i ciągły rVAE"]
+        v["22: Lokalne SSL"]
+        w["23: Porównanie treningu i wybór rozszerzeń"]
+        x["24: Grafy molekuł — warunkowo"]
+        y["25: Maskowany AE — warunkowo"]
+        z["26: Adaptacja gotowego modelu — warunkowo"]
     end
     a --> g
     a --> i
@@ -228,4 +272,20 @@ flowchart TD
     p --> m
     q --> m
     s --> m
+    n --> t
+    q --> u
+    t --> u
+    q --> v
+    t --> v
+    s --> w
+    u --> w
+    v --> w
+    w --> m
+    o --> x
+    w --> x
+    w --> y
+    w --> z
 ```
+
+Krawędzie do 24–26 pokazują warunki wstępne. Dodatkowo wymagany jest
+wybór rozszerzenia w 23; dopiero wtedy dodajemy jego krawędź do odbioru 13.

@@ -15,6 +15,13 @@ zawiera ich kolejność i diagram zależności.
 | E3 — lokalna struktura obrazu | [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](issues/17-image-texture-domains.md) |
 | Przygotowanie ML | [Jak przygotować cechy gotowych sieci bez treningu na naszych danych?](issues/18-frozen-feature-preparation.md) |
 | Porównanie ML | [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](issues/19-frozen-feature-domains.md) |
+| Przygotowanie treningu | [Jak przygotować odtwarzalny trening bez etykiet domen?](issues/20-self-supervised-training-preparation.md) |
+| Autoenkodery | [Czy AE i rVAE uczą się cech przydatnych do odkrywania domen?](issues/21-autoencoder-domains.md) |
+| Lokalne SSL | [Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](issues/22-local-self-supervised-domains.md) |
+| Ocena treningu i dalszy zakres | [Czy trening daje poprawę i które rozszerzenie warto wykonać?](issues/23-training-comparison-and-next-step.md) |
+| Warunkowo: grafy | [Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](issues/24-graph-self-supervised-domains.md) |
+| Warunkowo: maskowanie | [Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](issues/25-masked-autoencoder-domains.md) |
+| Warunkowo: adaptacja | [Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](issues/26-pretrained-self-supervised-adaptation.md) |
 | Wspólne porównanie i wybór | [Które metody i warunki odmowy wyniku przyjmujemy po próbach?](issues/13-method-acceptance.md) |
 
 Najpierw przygotowujemy wspólne wejście; pierwszą zalecaną próbą jest
@@ -25,8 +32,12 @@ korzysta z nich i z wyniku klasycznej tekstury. Nie wymaga powodzenia
 tej metody. DINOv3 jest opcjonalny. Te tickety zachowują porównanie bez
 własnego treningu; na późniejsze polecenie użytkownika zbadano również
 [możliwości uczenia bez etykiet](research-self-supervised-domain-learning.md).
-Wynik tego przeglądu rozszerza kandydatów, bez zastępowania dotychczasowych
-prób ani deklaracji uruchomienia treningu.
+Na kolejne polecenie użytkownika przegląd rozwinięto w zadania 20–26.
+Podstawowy zakres to przygotowanie, AE/rVAE i lokalne SSL oraz decyzja
+o dalszym badaniu. Grafy, maskowanie i adaptacja są warunkowe; ich
+uruchomienie wybieramy w kroku 23. Pełna kolejność i zależności pozostają
+w [indeksie](issues/README.md#trening-bez-etykiet-domen) oraz ticketach.
+Nie zastępuje to dotychczasowych prób ani nie oznacza uruchomienia treningu.
 Otwarte [pytanie o pełną jakość](issues/04-reference-and-quality.md)
 pozostaje warunkiem odbioru metody, a nie rozpoczęcia wstępnych prób.
 
