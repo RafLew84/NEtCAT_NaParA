@@ -58,7 +58,7 @@ Nie powstał jeszcze serializer ani interfejs zapisu.
 centrów, skali, kontrastu i szumu. Użytkownik potwierdził dalszą próbę
 z referencjami; nie wybrano metody. Pokrycie dotyczy rozpoznanego materiału
 na dowolnym widocznym poziomie warstwy, z osobnym nierozstrzygnięciem dla
-ciemnych miejsc bez wystarczających danych. Ticket pozostaje `claimed`.
+ciemnych miejsc bez wystarczających danych. Po wstępnej próbie ticket pozostawał `claimed`.
 Następnie [przyjęto częściowe referencje wybranych domen](partial-domain-reference-audit.md)
 z klatek 250–268: 18 par PNG, zweryfikowana geometria, przygotowane robocze
 wnętrza ramek. Pozostałe obszary nie są oznaczone; pełna ocena pokrycia
@@ -69,6 +69,8 @@ zaakceptowany do lokalnych prób bez oczekiwania na kolejne oznaczenia.
 utratę znanego materiału przez proste warianty obrazowe oraz silną zależność
 masek z centrów od kompletności detekcji. Interaktywny wynik jest w
 `.scratch/coverage-partial-trial/index.html`; nie wybrano metody produkcyjnej.
+Po omówieniu wyników krok 10 ma status `resolved` jako zakończona próba badawcza.
+Nie czeka na krok 11; pełny odbiór metody pokrycia nadal pozostaje otwarty.
 
 ## Dwa etapy
 

@@ -32,8 +32,10 @@ Nie oznacza to implementacji zapisu ani odbioru metod.
 
 2026-10-21 na bezpośrednie polecenie użytkownika wykonano
 [wstępne porównanie pokrycia i skali](10-coverage-and-scale.md). Wynik omówiono,
-ale pytanie pozostaje `claimed`: pełna ocena wymaga niezależnych referencji.
-Nie wybrano metody; zachowano zależność od referencji i dotychczasowy graf.
+po czym wykonano próbę na dostarczonych częściowych referencjach. Po omówieniu
+wyników krok 10 ma status `resolved` jako zakończony eksperyment. Nie wybrano
+metody; pełna ocena pokrycia pozostaje w zakresie odbioru metod i protokołu jakości.
+Krok 10 nie zależy od kroku 11. Dotychczasowy graf zależności pozostaje bez zmian.
 
 ## Wayfinding operations
 

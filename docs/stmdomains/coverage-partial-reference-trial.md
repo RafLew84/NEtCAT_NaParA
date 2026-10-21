@@ -150,8 +150,10 @@ Nie trzeba w tym celu od razu oznaczać całych klatek.
 
 Wynik dotyczy pokrycia, nie rozpoznawania etykiet BLACK/RED/YELLOW ani tworzenia
 katalogu typów. Nie przenosimy tych kolorów automatycznie do wyników domen.
-Zadanie 10 pozostaje `claimed` do omówienia wyniku i ustalenia dalszego zakresu;
-wykonanie tej próby nie czeka na nowe referencje.
+Po omówieniu wyniku zadanie 10 zamknięto jako wykonaną próbę (`resolved`).
+Nie czeka na krok 11. Pełna ocena pokrycia i warunków odmowy pozostaje do
+[odbioru metod](issues/13-method-acceptance.md); zamknięcie próby nie zatwierdza
+algorytmu. Krok 11 dotyczy osobnego pytania o strukturę i rozstaw.
 
 ## Odtworzenie i sprawdzenia
 

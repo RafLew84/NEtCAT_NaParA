@@ -4,7 +4,7 @@ ID: 10
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: claimed
+Status: resolved
 Assignee: Codex — domains/coverage-and-scale
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 04, 05
@@ -46,7 +46,7 @@ zależy od dostępności referencji i reakcji użytkownika na maski.
 
 ## Answer — 2026-10-21, wynik wstępny
 
-**Zakończono i omówiono porównanie wstępne. Pełne pytanie pozostaje `claimed`**:
+**Zakończono i omówiono porównanie wstępne. Na tym etapie pytanie pozostawało `claimed`**:
 w chwili tej próby nie dostarczono niezależnych referencji pokrycia TTMAPP,
 więc nie oceniono trafności ani nie wybrano metody. Zależność od pytania o referencje pozostaje.
 Użytkownik najpierw polecił porównanie wstępne, zaznaczając, że może posiadać
@@ -139,7 +139,7 @@ Lokalny podgląd: `/home/rlew/projekty/NEtCAT-domains/.scratch/partial-domain-re
 Na etapie przygotowania nie przeliczono metod na tych wnętrzach. Umożliwiają
 ocenę lokalnego rozróżniania domen oraz zachowania materiału, ale nie pełnego pokrycia,
 fałszywych wykryć poza ramkami ani całkowitej liczby domen. Nie wystarczają
-samodzielnie do zamknięcia tego pytania; status nadal `claimed`.
+samodzielnie do pełnej walidacji pokrycia; po przygotowaniu status pozostawał `claimed`.
 
 ### Decyzja użytkownika — korzystamy z obecnego zbioru
 
@@ -173,9 +173,29 @@ Obok CSV, NPZ, hashe, parametry, zestawienia i inspekcja. Zweryfikowano miary
 (22 przypadki, 15 kroków scenariuszy, bez błędów JS). Koszt: 28,49 s,
 590,40 MiB RSS wraz z odczytem danych i generowaniem. Bez zmian aplikacji.
 
-**Ta próba jest wykonana; ticket pozostaje `claimed` do omówienia wyniku
-i dalszego zakresu.** Nie wybrano metody produkcyjnej. Obecny zbiór wystarcza
+**Ta próba jest wykonana; jej wnioski podsumowano w rozmowie.**
+Nie wybrano metody produkcyjnej. Obecny zbiór wystarcza
 do kolejnych lokalnych porównań; nie poproszono o nowe referencje. Konkretny
 nieoceniony aspekt to nadmiar maski poza ramkami: jeśli celem będzie wybór
 rozrostu według błędów w otoczeniu, potrzebne będą oznaczenia właśnie tych
 fragmentów. Przygotowanie pełnej anotacji klatek nie jest teraz wymagane.
+
+## Answer — 2026-10-21, zakończenie próby badawczej
+
+**Status `resolved`: zakończono porównanie pokrycia i skali w uzgodnionym
+zakresie obecnych referencji i omówiono jego wnioski.** Żaden badany wariant
+nie został zatwierdzony jako gotowa metoda pomiaru. Wynik ujemny i konkretne
+ograniczenia są wynikiem tej próby; status nie oznacza pełnej walidacji pokrycia.
+
+Maski z centrów są punktem odniesienia przy kompletnych oznaczeniach, lecz
+nie odzyskują materiału w lukach detekcji. Skala z trzech centrów daje
+nieuzasadniony rozrost; jasność i prosta amplituda zmian odrzucają znany materiał.
+Nie ustalono uniwersalnego progu odmowy ani poprawnych granic całych płatów.
+Ocena nadmiaru maski poza ramkami i dobór metody do pomiaru pozostają jawnie
+nierozstrzygnięte w [odbiorze metod](13-method-acceptance.md), z protokołem 04.
+
+Krok 10 **nie czeka na krok 11**. Następnym proponowanym eksperymentem jest
+[rozróżnianie struktury i rozstawu](11-structural-type-catalogue.md) na obecnych
+wnętrzach. Nie rozpoczynamy go samą zmianą statusu. Dalsze badanie pokrycia,
+jeśli będzie potrzebne do odbioru, wymaga konkretnej kolejnej próby wynikającej
+z opisanych braków, a nie utrzymywania wykonanego porównania w toku.

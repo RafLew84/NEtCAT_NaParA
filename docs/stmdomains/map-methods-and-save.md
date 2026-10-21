@@ -34,8 +34,8 @@ Na bezpośrednie polecenie z 2026-10-21 wykonano
 Użytkownik przyjął potrzebę dalszej próby z referencjami i doprecyzował, że
 pokrycie dotyczy materiału na dowolnym widocznym poziomie warstwy; ciemne
 obszary bez wystarczających przesłanek pozostają nierozstrzygnięte.
-[Raport](coverage-and-scale-pilot.md) nie wybiera metody. Pytanie pozostaje
-`claimed`; pełny odbiór nadal wymaga protokołu referencji i jakości.
+[Raport](coverage-and-scale-pilot.md) nie wybiera metody. Po wstępnej próbie
+pytanie pozostawało `claimed`; pełny odbiór nadal wymaga protokołu referencji i jakości.
 Następnie użytkownik dostarczył
 [częściowe oznaczenia wybranych domen](partial-domain-reference-audit.md).
 Zweryfikowano ich geometrię i przygotowano wnętrza; obszary poza ramkami są
@@ -46,8 +46,10 @@ zakresie. Potrzebę kolejnych referencji uzasadni konkretny wynik próby.
 Następnie [wykonano porównanie na tych referencjach](coverage-partial-reference-trial.md):
 18 klatek, 54 wnętrza i kontrole ubytków. Warianty z centrów zachowują materiał
 przy pełnych oznaczeniach, lecz są wrażliwe na ich braki; proste warianty
-jasności i amplitudy odrzucają znaczne części wnętrz. Próba jest wykonana,
-ticket 10 pozostaje `claimed` do omówienia wyniku i dalszego zakresu.
+jasności i amplitudy odrzucają znaczne części wnętrz. Po omówieniu wyniku
+ticket 10 ma status `resolved` jako zakończona próba, bez zatwierdzenia metody.
+Nie czeka na krok 11; nierozstrzygnięte warunki pełnego pomiaru pokrycia
+pozostają w zakresie odbioru metod, z możliwością wskazania kolejnych prób.
 
 - Rozpatrujemy dwa wyniki: pokrycie materiałem/wyspy oraz domeny orientacji
   i uporządkowania sieci. Orientacja pojedynczej molekuły jest odłożona.
@@ -77,6 +79,11 @@ powstaną w zadaniach wynikających z ustaleń i wyników prób.
 
 ## Decisions so far
 
+- [Jak wyznaczać pokrycie bez mylenia luk oznaczeń z podłożem?](issues/10-coverage-and-scale.md):
+  zakończono próbę na częściowych referencjach. Maski z centrów zależą od
+  kompletności detekcji; proste cechy jasności/amplitudy gubią znany materiał.
+  Nie wybrano metody pomiarowej; pełna ocena granic, nadmiaru maski i odmów
+  pozostaje do odbioru metod. Krok 11 jest osobnym eksperymentem.
 - [Jak definiujemy wyspę, typ uporządkowania i domenę sieci?](issues/02-order-types-and-domains.md):
   wyspa jako płat warstwy; typ oddzielony od orientacji; domeny, granice
   niedopasowania, małe skupiska i stany niepewności uzgodnione na przykładach.

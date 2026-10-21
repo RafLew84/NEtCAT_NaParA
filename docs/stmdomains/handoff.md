@@ -1,6 +1,7 @@
 # STM Domains — próba na częściowej referencji wykonana
 
-Data: 2026-10-21. Gałąź dokumentacji: `domains/coverage-and-scale`, baza `245a3e9`.
+Data: 2026-10-21. Gałąź dokumentacji: `domains/coverage-and-scale`.
+Raport próby: `25c6aba`; obecna zmiana zamyka status po omówieniu wniosków.
 Worktree: `/tmp/netcat-stmdomains-coverage`; docelowo `domains/start`.
 Commit dokumentacji podany w wiadomości końcowej. Źródła prototypu:
 **`prototype/stmdomains-coverage`, `e67ca93` — nie scalać do aplikacji.**
@@ -27,12 +28,19 @@ bez błędów JS. Obejrzano zrzut i zestawienia wszystkich klatek dla dwóch met
 Generator: 28,49 s / 590,40 MiB RSS, HTML 3 839 863 B. Sprawdzono linki dokumentacji
 oraz `git diff --check`. Nie uruchamiano testów ani nie zmieniano kodu aplikacji.
 
-Próba wykonana; [ticket 10](issues/10-coverage-and-scale.md) pozostaje `claimed`
-do omówienia wyniku i dalszego zakresu. Brak nowych referencji nie blokował
+Próba wykonana i omówiona; [ticket 10](issues/10-coverage-and-scale.md) ma status
+`resolved` jako zakończony eksperyment, bez zatwierdzenia metody pomiarowej.
+Nie czeka na krok 11. Odbiór metod nadal obejmuje nierozstrzygnięte granice,
+nadmiar maski i warunki odmowy; zmiana statusu nie zalicza tych sprawdzeń.
+Brak nowych referencji nie blokował
 próby; nie poproszono o dodatkowe dane. Pełna ocena nadmiaru maski poza ramkami
 pozostaje niedostępna. Można kontynuować lokalne porównania na obecnych danych.
 Nie zgłoszono nowych zmian wspólnych; wcześniejsze potrzeby integracyjne
 pozostają w zachowanym przekazaniu poniżej.
+
+Przy zmianie statusu sprawdzono spójność odwołań i `git diff --check`.
+Nie uruchamiano ponownie eksperymentów ani testów aplikacji. Krok 11 nie został
+rozpoczęty tą zmianą dokumentacji.
 
 ---
 

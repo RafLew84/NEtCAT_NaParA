@@ -49,6 +49,16 @@ Ten odbiór weryfikuje metody i ich zgodność z wcześniej ustalonym kontraktem
 zapisu, nie jest warunkiem odbioru szkieletu. Kontrakt rozstrzygnięto wcześniej
 na bezpośrednie polecenie użytkownika; nie oznacza to zaliczenia tego odbioru.
 
+## Wynik próby pokrycia do uwzględnienia
+
+Zadanie 10 zakończono jako próbę badawczą (`resolved`), bez zatwierdzenia metody.
+[Raport na częściowej referencji](../coverage-partial-reference-trial.md)
+wykazuje zależność od kompletności centrów i wybiórczość prostych cech obrazu.
+Przed przyjęciem pomiaru pokrycia pozostają: ocena nadmiaru maski poza ramkami,
+granic całych płatów oraz uzasadnione warunki odmowy. Jeżeli do odbioru potrzebna
+będzie kolejna próba lub konkretne oznaczenia otoczenia, należy wskazać ten zakres.
+Zamknięcie kroku 10 nie zalicza tych sprawdzeń ani niniejszego odbioru.
+
 ## Dependencies
 
 - [Jakie referencje i kryteria potwierdzą wiarygodność analizy?](04-reference-and-quality.md)
