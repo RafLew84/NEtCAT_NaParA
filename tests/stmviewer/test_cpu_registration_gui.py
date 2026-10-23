@@ -34,7 +34,7 @@ def test_selecting_method_keeps_old_aligned_until_success(qtbot, monkeypatch, tm
     info = window.findChild(QLabel, 'registrationInfo').text()
 
     combo = window.findChild(QComboBox, 'registrationMethod')
-    assert [combo.itemText(i) for i in range(combo.count())] == ['Phase', 'Tile+RANSAC', 'ECC', 'Optical Flow']
+    assert [combo.itemText(i) for i in range(combo.count())] == ['Phase', 'Tile+RANSAC', 'ECC', 'Optical Flow', 'Deep Matcher']
     combo.setCurrentText(method)
     assert image(window) == before
     assert window.findChild(QLabel, 'registrationInfo').text() == info
@@ -178,7 +178,7 @@ def test_retry_preserves_old_result_or_publishes_complete_uncertainty(
             error.accept()
 
 
-@pytest.mark.parametrize('missing', ['cv2', 'scipy', 'skimage'])
+@pytest.mark.parametrize('missing', ['cv2', 'scipy', 'skimage', 'torch', 'kornia'])
 def test_fresh_process_can_browse_without_registration_dependency(missing):
     """An empty import cache must not turn an optional dependency into a startup crash."""
     import os
@@ -195,7 +195,7 @@ def test_fresh_process_can_browse_without_registration_dependency(missing):
                 if fullname.split('.')[0] == sys.argv[1]:
                     raise ModuleNotFoundError("Test: missing " + sys.argv[1])
         sys.meta_path.insert(0, MissingLibrary())
-        from PyQt6.QtWidgets import QApplication, QFileDialog, QComboBox, QLabel, QPushButton
+        from PyQt6.QtWidgets import QApplication, QFileDialog, QComboBox, QLabel, QPushButton, QLineEdit
         from PyQt6.QtTest import QTest
         from stmviewer.ui.main_window import STMViewerMainWindow
         app = QApplication([])
@@ -214,11 +214,16 @@ def test_fresh_process_can_browse_without_registration_dependency(missing):
         register = window.findChild(QPushButton, 'registerFrames')
         for name in ['Phase', 'Tile+RANSAC', 'ECC', 'Optical Flow']:
             combo.setCurrentText(name)
-            if sys.argv[1] != 'cv2' or name == 'ECC':
+            if sys.argv[1] in ('scipy', 'skimage') or (sys.argv[1] == 'cv2' and name == 'ECC'):
                 assert not register.isEnabled()
                 assert sys.argv[1] in window.findChild(QLabel, 'registrationAvailability').text()
             else:
                 assert register.isEnabled()
+        if sys.argv[1] in ('torch', 'kornia'):
+            combo.setCurrentText('Deep Matcher')
+            window.findChild(QLineEdit, 'deepWeights').setText('tests/stmviewer/fixtures/registration/cpu.mpp')
+            assert not register.isEnabled()
+            assert sys.argv[1] in window.findChild(QLabel, 'registrationAvailability').text()
         window.close()
         print('browsing works')
     ''')

@@ -10,7 +10,11 @@ from PyQt6.QtWidgets import (
 )
 
 from stmviewer.frame import ImageFrame
-from stmviewer.registration import CPU_METHODS, RegistrationResult, ShiftBackend, registration_unavailable_reason
+from stmviewer.registration import (
+    CPU_METHODS, REGISTRATION_METHODS, RegistrationResult, ShiftBackend, registration_unavailable_reason,
+)
+from stmviewer.deep_matcher import deep_unavailable_reason
+from stmviewer.ui.deep_matcher_controls import DeepMatcherControls
 from stmviewer.ui.registration_job import RegistrationJob
 from stmviewer.ui.filmstrip import Filmstrip
 from stmviewer.ui.import_job import ImportJob
@@ -105,9 +109,9 @@ class STMViewerMainWindow(QMainWindow):
         controls.addWidget(self._view)
         self._method = QComboBox(panel)
         self._method.setObjectName("registrationMethod")
-        for key, label in CPU_METHODS.items():
+        for key, label in REGISTRATION_METHODS.items():
             self._method.addItem(label, key)
-            self._method.setItemData(self._method.count() - 1, self._method_errors[key] or
+            self._method.setItemData(self._method.count() - 1, self._method_errors.get(key) or
                                      "Domyślne ustawienia NanoTrack", Qt.ItemDataRole.ToolTipRole)
         self._method.setToolTip("Rejestracja sąsiednich klatek, domyślne ustawienia NanoTrack.")
         controls.addWidget(self._method)
@@ -116,6 +120,10 @@ class STMViewerMainWindow(QMainWindow):
         self._method_availability.setWordWrap(True)
         self._method_availability.setTextFormat(Qt.TextFormat.PlainText)
         controls.addWidget(self._method_availability)
+        self._deep_controls = DeepMatcherControls(panel)
+        controls.addWidget(self._deep_controls)
+        self._deep_controls.changed.connect(self._change_registration_method)
+        self._deep_controls.check_requested.connect(lambda: self._start_registration(check_only=True))
         self._method.currentIndexChanged.connect(self._change_registration_method)
         self._register = QPushButton("Rejestruj", panel)
         self._register.setObjectName("registerFrames")
@@ -347,8 +355,11 @@ class STMViewerMainWindow(QMainWindow):
         self._play.setEnabled(count > 1 and not registering)
         self._delete.setEnabled(bool(count) and not registering)
         self._register.setEnabled(bool(count) and not registering and self._job is None
-                                  and not self._method_errors[str(self._method.currentData())])
+                                  and not self._selected_method_error())
         self._method.setEnabled(not registering and self._job is None)
+        self._deep_controls.setEnabled(not registering and self._job is None)
+        self._deep_controls.check.setEnabled(not registering and self._job is None
+                                             and not self._selected_method_error())
         self._view.setEnabled(self._registration is not None)
         for preview_control in (self._zoom_in, self._zoom_out, self._fit_button, self._gamma,
                                 self._gamma_reset, self._pixel_proportions):
@@ -504,19 +515,28 @@ class STMViewerMainWindow(QMainWindow):
             self._show_preview(self._index)
             self._show_current_frame()
 
+    def _selected_method_error(self) -> str | None:
+        key = str(self._method.currentData())
+        if key == 'deep_matcher_translation':
+            reason = self._method_errors['phase_correlation'] or deep_unavailable_reason(self._deep_controls.options())
+            return f'Deep Matcher niedostępny: {reason}' if reason else None
+        return self._method_errors[key]
+
     def _change_registration_method(self) -> None:
-        reason = self._method_errors[str(self._method.currentData())]
+        self._deep_controls.setVisible(self._method.currentData() == 'deep_matcher_translation')
+        reason = self._selected_method_error()
         self._method_availability.setText(reason or "")
         self._method_availability.setVisible(reason is not None)
         self._sync_navigation()
 
-    def _start_registration(self) -> None:
-        if (not self._frames or self._job is not None or self._registration_job is not None
-                or self._method_errors[str(self._method.currentData())]):
+    def _start_registration(self, *, check_only: bool = False) -> None:
+        if ((not self._frames and not check_only) or self._job is not None or self._registration_job is not None
+                or self._selected_method_error()):
             return
         self._pause()
         job = RegistrationJob(self._frames, self, self._registration_backend,
-                              method=str(self._method.currentData()))
+                              method=str(self._method.currentData()),
+                              deep_options=self._deep_controls.options(), check_only=check_only)
         self._registration_job = job
         self._registration_progress.setRange(0, len(self._frames) * 2)
         self._registration_progress.setValue(0)
@@ -551,12 +571,18 @@ class STMViewerMainWindow(QMainWindow):
             if not job.was_cancelled() and not self._closing:
                 if job.error is not None:
                     self._show_registration_error(job.error)
+                    if self._method.currentData() == 'deep_matcher_translation':
+                        self._deep_controls.set_status(f'Niepowodzenie próby: {job.error}')
+                elif job.checked_device is not None:
+                    self._deep_controls.set_status(f'Sprawdzono model. Urządzenie: {job.checked_device}')
                 elif job.result is not None:
                     # Prepare the visible raster before publishing the new complete result.
                     current = job.result.frames[self._index]
                     self._preview.set_frame(current.image, view="aligned", reset_view=True,
                                             original_rect=current.original_rect)
                     self._registration = job.result
+                    if job.result.method == 'Deep Matcher':
+                        self._deep_controls.set_status(f'Sprawdzono model. Urządzenie: {job.result.device}')
                     self._strip.set_warnings(tuple(
                         ("Do sprawdzenia: niepewność odziedziczona" if frame.inherited_uncertainty
                          else "Do sprawdzenia: niska pewność") if frame.status != "ok" else ""
@@ -602,7 +628,7 @@ class STMViewerMainWindow(QMainWindow):
         if self._pixel_proportions.isChecked():
             scale = "piksele — opcja Proporcje pikselowe"
         self._registration_text.setText(
-            f"{result.method} · {quality}{inherited}\n"
+            f"{result.method} · {quality}{inherited}\nUrządzenie: {result.device}\n"
             f"ΔX: {current.shift_xy[0]:g} px · ΔY: {current.shift_xy[1]:g} px\n"
             f"Aligned: {width} × {height} px\nSkala aligned: {scale}\nOdniesienie: {origin}"
         )

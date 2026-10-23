@@ -1,0 +1,5 @@
+-r requirements.txt
+# Install the chosen Torch CPU/CUDA build first; see docs/stmviewer/deep-matcher-manual.md.
+torch==2.9.1
+kornia==0.8.2
+kornia_rs==0.1.10

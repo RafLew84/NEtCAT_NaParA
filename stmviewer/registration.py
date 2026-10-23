@@ -11,6 +11,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from stmviewer.frame import ImageFrame
+from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
 
 
 CPU_METHODS = {
@@ -19,6 +20,9 @@ CPU_METHODS = {
     "ecc_translation": "ECC",
     "optical_flow_median": "Optical Flow",
 }
+
+
+REGISTRATION_METHODS = {**CPU_METHODS, "deep_matcher_translation": "Deep Matcher"}
 
 
 @dataclass(frozen=True)
@@ -53,6 +57,7 @@ class RegistrationResult:
     padding_ltrb: tuple[int, int, int, int]
     pixel_size_nm: tuple[float, float] | None
     method: str = 'Phase'
+    device: str = 'CPU'
 
     def without_frame(self, index: int) -> 'RegistrationResult | None':
         """Retain historical coordinates and the exact surviving samples."""
@@ -77,6 +82,7 @@ class ShiftBackend(Protocol):
 
 def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_correlation",
                     backend: ShiftBackend | None = None,
+                    deep_options: DeepMatcherOptions | None = None,
                     progress: Callable[[int, int, str], None] | None = None,
                     cancelled: Callable[[], bool] | None = None) -> RegistrationResult:
     """Align adjacent originals with the selected NanoTrack method and its defaults."""
@@ -92,9 +98,9 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
         checkpoint()
 
     checkpoint()
-    if method not in CPU_METHODS:
+    if method not in REGISTRATION_METHODS:
         raise RegistrationError(f"Nieznana metoda rejestracji: {method}")
-    label = CPU_METHODS[method]
+    label = REGISTRATION_METHODS[method]
     if not frames:
         raise RegistrationError("Seria jest pusta.")
     for i, frame in enumerate(frames):
@@ -103,7 +109,13 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
             raise RegistrationError(f"Klatka {i + 1}: niezgodne lub puste wymiary obrazu.")
         if not np.isfinite(frame.data).all():
             raise RegistrationError(f"Klatka {i + 1}: {label} wymaga skończonych próbek; wejście zawiera NaN/Inf.")
-    backend = backend if backend is not None else create_shift_backend(method)
+    device = 'CPU'
+    if method == 'deep_matcher_translation':
+        loaded = load_deep_backend(deep_options or DeepMatcherOptions(),
+                                   progress=lambda text: report(0, text), cancelled=cancelled)
+        backend, device = loaded.backend, loaded.device
+    else:
+        backend = backend if backend is not None else create_shift_backend(method)
     shifts = [(0.0, 0.0)]
     statuses = ['ok']
     qualities = [1.0]
@@ -163,7 +175,7 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
             raise RegistrationError(f"Aligned: klatka {i + 1}: {str(error) or type(error).__name__}") from error
         report(len(frames) + i + 1, f"Aligned: klatka {i + 1}/{len(frames)}")
     return RegistrationResult(tuple(aligned), FrameOrigin(frames[0].source, frames[0].source_frame_index),
-                              shape, (left, top, right, bottom), pixel_size, method=label)
+                              shape, (left, top, right, bottom), pixel_size, method=label, device=device)
 
 
 def _common_pixel_size(frames: tuple[ImageFrame, ...]) -> tuple[float, float] | None:

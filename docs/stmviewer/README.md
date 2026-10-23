@@ -28,8 +28,9 @@ Rejestracja Phase, Tile+RANSAC, ECC i Optical Flow działa w tle z postępem i a
 pełny obszar, obrys źródła i oznaczenia niepewności; przełącznik original/aligned
 zachowuje osobne kadry. [Instrukcja rejestracji](phase-registration-manual.md).
 [Próba metod CPU](cpu-registration-manual.md) opisuje wybór metody,
-stan dostępności i zachowanie wcześniejszego wyniku. Deep Matcher i eksport
-należą do kolejnych ticketów.
+stan dostępności i zachowanie wcześniejszego wyniku. Deep Matcher używa lokalnych
+wag LoFTR i pozwala wybrać Auto/CPU/CUDA; Sprawdź model działa w tle.
+[Instrukcja modelu i wag](deep-matcher-manual.md). Eksport należy do kolejnych ticketów.
 Przycisk Usuń klatkę usuwa bieżący obraz z serii, zatrzymuje Play i zachowuje
 pochodzenie oraz czasy pozostałych klatek. Źródła na dysku pozostają bez zmian:
 [instrukcja usuwania](frame-deletion-manual.md).
@@ -99,6 +100,8 @@ ma status `done`: użytkownik potwierdził [testy manualne](phase-registration-m
 [Pozostałe metody rejestracji CPU](implementation/issues/09-cpu-registration-methods.md)
 mają status `done`: użytkownik potwierdził [testy manualne](cpu-registration-manual.md)
 2026-10-23.
+[Deep Matcher z lokalnymi wagami](implementation/issues/10-deep-matcher.md)
+jest zaimplementowany; trwa końcowa weryfikacja. [Próba ręczna](deep-matcher-manual.md).
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje
@@ -144,6 +147,11 @@ Bez OpenCV ECC pozostaje na liście z powodem niedostępności; pozostałe metod
 są dostępne. Brak SciPy/scikit-image wyłącza rejestrację, zachowując przeglądanie.
 Program niczego nie pobiera i nie zastępuje wybranej metody. Zmiana zainstalowanych
 zależności wymaga ponownego uruchomienia programu.
+
+Deep Matcher ma osobny, opcjonalny zestaw `stmviewer/requirements-deep.txt`.
+[Instrukcja](deep-matcher-manual.md#przygotowanie-zależności-poza-aplikacją) podaje
+wybór wariantu Torch dla CPU/CUDA, lokalne wagi i rzeczywistą kontrolę urządzenia.
+Aplikacja nie instaluje bibliotek ani nie pobiera wag.
 
 W już przygotowanej conda `netcat`:
 
