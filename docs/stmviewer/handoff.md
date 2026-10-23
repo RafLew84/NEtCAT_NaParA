@@ -5,7 +5,9 @@
 
 Baza: `3ba1ea0`, gałąź `viewer/start`. Zmiana wyłącznie dokumentacji:
 [wyjaśnienie i porównanie w GUI](deep-matcher-manual.md#obwódka-przy-ostrych-krawędziach-wzorca).
-Ticket 10 pozostaje `ready-for-review`; zgłoszenie nie jest odbiorem manualnym.
+Diagnoza zapisana w `2b13195`. Następnie użytkownik potwierdził ręczny odbiór
+2026-10-23; ticket 10 ma status `done`. Samo wcześniejsze zgłoszenie
+nie stanowiło jeszcze odbioru.
 
 Dwie próby rzeczywistego LoFTR CPU odtworzyły pas przy krawędzi ciemnego
 obiektu. Klatka 3: XY = (−0,7461051941; +0,9392890930) wobec dokładnego
@@ -41,8 +43,9 @@ przy tej zmianie dokumentacji. Commit przekazania podany w wiadomości sesji.
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
 `d899ea0648af2ab507b41fc24d2c2bdcf5c356c2`. Commit implementacji: `30ddddf`.
 Ticket: [10-deep-matcher](implementation/issues/10-deep-matcher.md).
-Status: `ready-for-review`; ręczny odbiór użytkownika jeszcze niewykonany.
-Raport i status zapisane osobnym commitem podanym w wiadomości sesji.
+Status: `done` po potwierdzeniu ręcznego odbioru użytkownika 2026-10-23.
+Raport implementacji i przeglądu: `3ba1ea0`; diagnoza obwódki: `2b13195`.
+Commit potwierdzenia odbioru podany w wiadomości sesji.
 
 ### Wynik i kontrakt
 
@@ -109,9 +112,11 @@ wynik. Rozdzielczość wejścia nie jest zmieniana dla modelu.
   Spec — 0. Kod po przeglądzie niezmieniony. `git diff --check` i lokalne
   odnośniki dokumentacji poprawne; największy zmieniony plik kodu ma 634 linie.
 - [Instrukcja manualna](deep-matcher-manual.md) zawiera uruchomienie,
-  wzorzec, lokalne wagi i scenariusze. Ręczny odbiór użytkownika pozostaje
-  niewykonany. Windows nie był uruchamiany; przygotowanie opisano, ale próba
-  platformy należy do osobnego ticketu.
+  wzorzec, lokalne wagi i scenariusze. Użytkownik potwierdził ręczny odbiór
+  2026-10-23: „testy manualne ok”, po wyjaśnieniu obwódki interpolacyjnej.
+  Nie wskazał systemu ani urządzenia użytego do próby; potwierdzenie nie
+  zamyka odrębnych odbiorów platform. Aktualizacja odbioru dotyczy wyłącznie
+  dokumentacji; testów automatycznych nie ponawiano.
 
 ### Integracja
 

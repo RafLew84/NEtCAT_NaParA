@@ -4,6 +4,10 @@ Data: 2026-10-23. Baza zgodnie z zasadami implementacji:
 `d899ea0648af2ab507b41fc24d2c2bdcf5c356c2`. Implementacja: `30ddddf`.
 Diff: `git diff d899ea0648af2ab507b41fc24d2c2bdcf5c356c2...30ddddf`.
 
+Raport zachowuje stan z chwili przeglądu. Następnie użytkownik potwierdził
+pozytywny wynik testów manualnych 2026-10-23; [ticket 10](issues/10-deep-matcher.md)
+ma status `done`. Potwierdzenie nie zamyka odrębnych odbiorów platform.
+
 Dwie osie sprawdzili równolegle niezależni agenci zgodnie ze skillem
 `code-review`, tylko do odczytu i bez uruchamiania testów. Końcowe statusy,
 wyniki testów i przekazanie uzupełniono po przeglądzie; kod się nie zmienił.

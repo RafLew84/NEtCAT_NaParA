@@ -4,7 +4,7 @@
 
 **Blocked by:** [08: Rejestracja Phase i pełny widok aligned](08-phase-registration.md)
 
-**Status:** ready-for-review
+**Status:** done
 
 **Wykonawca:** Codex, `viewer/start`, 2026-10-23.
 **Baza code-review:** `d899ea0648af2ab507b41fc24d2c2bdcf5c356c2`.
@@ -72,9 +72,10 @@ Gotowy wynik podaje faktyczne urządzenie; błąd i anulowanie zachowują stary 
 - [Instrukcja manualna](../../deep-matcher-manual.md) zawiera lokalne wagi,
   wzorzec, kroki w GUI, oczekiwane wyniki i przygotowanie obu systemów.
 
-Status `ready-for-review`: automatyczne próby zakończone, ręczny odbiór
-użytkownika jeszcze niewykonany. Windows nie był uruchamiany; odbiór platform
-pozostaje odrębnym etapem. Szczegóły: [przekazanie](../../handoff.md).
+Użytkownik potwierdził pozytywny wynik testów manualnych 2026-10-23:
+„testy manualne ok”. Ticket ma status `done`. Nie wskazano systemu ani
+urządzenia użytego do próby ręcznej; potwierdzenie nie zamyka odrębnych
+odbiorów platform. Szczegóły: [przekazanie](../../handoff.md).
 
 
 ### Zgłoszenie obwódki na cpu.mpp — 2026-10-23
@@ -85,5 +86,8 @@ oraz poprawnej interpolacji biliniowej. Dla klatki 3 przesunięcie wynosi
 około (−0,746; +0,939) zamiast wzorcowego (−1; +1) px. Niezależny rachunek
 potwierdził wartości wszystkich ważnych pikseli; próba z dokładnym
 przesunięciem całkowitym usuwa pas. Nie zmieniano algorytmu ani zaokrąglania.
-Instrukcja manualna opisuje ten efekt i porównanie z Phase. To diagnoza
-zgłoszenia, a nie potwierdzenie odbioru; status pozostaje `ready-for-review`.
+Instrukcja manualna opisuje ten efekt i porównanie z Phase. Po wyjaśnieniu
+użytkownik potwierdził pozytywny wynik testów manualnych; ticket zamknięto.
+Diagnoza: `2b13195`. Aktualizacja odbioru zmienia wyłącznie dokumentację;
+nie ponawiano testów automatycznych. Commit potwierdzenia podany
+w wiadomości sesji.

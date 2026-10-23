@@ -181,5 +181,8 @@ oraz CUDA — obie przeszły, przy zablokowanych funkcjach pobierania.
 Automatyczna próba prawdziwego GUI Qt xcb potwierdziła brak wag, wybór pliku,
 sprawdzanie modelu, CPU/CUDA/Auto, błędny plik, rzeczywiste anulowanie i pełne
 17 klatek MOVIE_3 (obszar 312 × 291 px). Źródła i wagi zachowały SHA-256.
-Obejrzano zrzuty. To próby automatyczne; odbiór manualny użytkownika oraz
-Windows pozostają niewykonane. Szczegóły: [przekazanie](handoff.md).
+Obejrzano zrzuty. Powyższe próby są automatyczne. Użytkownik następnie
+potwierdził pozytywny wynik testów manualnych 2026-10-23, po wyjaśnieniu
+obwódki interpolacyjnej. Nie wskazał systemu ani urządzenia; potwierdzenie
+nie zamyka odrębnych odbiorów platform, w tym Windows.
+Szczegóły: [przekazanie](handoff.md).

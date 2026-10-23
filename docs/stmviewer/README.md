@@ -101,8 +101,8 @@ ma status `done`: użytkownik potwierdził [testy manualne](phase-registration-m
 mają status `done`: użytkownik potwierdził [testy manualne](cpu-registration-manual.md)
 2026-10-23.
 [Deep Matcher z lokalnymi wagami](implementation/issues/10-deep-matcher.md)
-ma status `ready-for-review`: implementacja, testy i przegląd zakończone;
-rzeczywisty model sprawdzony na CPU i CUDA. [Próba ręczna](deep-matcher-manual.md).
+ma status `done`: użytkownik potwierdził [testy manualne](deep-matcher-manual.md)
+2026-10-23 po wyjaśnieniu obwódki interpolacyjnej na wzorcu cpu.mpp.
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje
