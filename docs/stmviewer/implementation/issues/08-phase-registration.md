@@ -4,7 +4,7 @@
 
 **Blocked by:** [07: Usuwanie klatek z zachowaniem czasu i pochodzenia](07-frame-deletion.md)
 
-**Status:** ready-for-review
+**Status:** done
 
 **Wykonawca:** Codex, `viewer/start`.
 
@@ -74,5 +74,7 @@ Pełny zestaw repo: **1909 passed, 14 failed, 14 skipped**, 222.93 s.
 Wszystkie 14 niepowodzeń występowało przy tickecie 07; brak nowych
 identyfikatorów błędów i błędów zbierania. Nie jest to zielony odbiór repo.
 Największy zmieniony plik kodu ma 590 linii. Szczegóły: [przekazanie](../../handoff.md).
-Ręczny odbiór użytkownika pozostaje do wykonania, dlatego status to
-`ready-for-review`. Windows ma odrębny ticket odbioru.
+Użytkownik potwierdził ręczny odbiór 2026-10-23: „testy manualne ok”.
+Ticket ma status `done`. Nie wskazano systemu; potwierdzenie nie zamyka
+odrębnych odbiorów platform. Aktualizacja dotyczy dokumentacji;
+testów automatycznych nie ponawiano.

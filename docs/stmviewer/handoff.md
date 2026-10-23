@@ -5,8 +5,9 @@
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
 `1dc159ee48341b2180cea47947a3fb38d59dd0c6`.
 Ticket: [08-phase-registration](implementation/issues/08-phase-registration.md).
-Status: `ready-for-review`, do ręcznej próby użytkownika.
-Commit implementacji: `2fea452`; końcowy commit raportu podany w wiadomości sesji.
+Status: `done` po potwierdzeniu ręcznego odbioru użytkownika 2026-10-23.
+Commit implementacji: `2fea452`; końcowy raport: `c4c6fe5`.
+Commit potwierdzenia ręcznego odbioru podany w wiadomości sesji.
 
 ### Wynik i kontrakt
 
@@ -68,7 +69,10 @@ czyści wynik; nieudany import go zachowuje.
   `stmviewer/ui/main_window.py`, **590 linii** (limit 1500).
   `git diff --check` oraz lokalne odnośniki zmienionej dokumentacji poprawne.
 - [Instrukcja manualna](phase-registration-manual.md) i pięć małych filmów
-  oraz generator są w repo. Ręczny odbiór użytkownika i Windows czekają.
+  oraz generator są w repo. Użytkownik potwierdził ręczny odbiór 2026-10-23:
+  „testy manualne ok”. Nie wskazano systemu; potwierdzenie nie zamyka
+  odrębnych odbiorów platform. Zmieniono wyłącznie dokumentację,
+  bez ponawiania testów automatycznych.
 
 ### Integracja
 

@@ -88,5 +88,8 @@ zachowujemy algorytm i progi NanoTrack bez strojenia dla pomiaru.
 - Lokalny MOVIE_3 dał 398 × 398 px i 16 klatek z niską/odziedziczoną pewnością.
   Nie deklarujemy poprawności fizycznego dopasowania wszystkich jego klatek.
 
-Ręczny odbiór użytkownika i Windows pozostają do wykonania. Pełny zestaw repo
-oraz przegląd kodu: [przekazanie](handoff.md).
+Użytkownik potwierdził pozytywny wynik testów manualnych 2026-10-23:
+„testy manualne ok”. Ticket 08 ma status `done`. Nie wskazano systemu;
+odrębne odbiory platform pozostają w późniejszych etapach. Aktualizacja
+dotyczy dokumentacji, więc testów automatycznych nie ponawiano.
+Pełny zestaw repo oraz przegląd kodu: [przekazanie](handoff.md).
