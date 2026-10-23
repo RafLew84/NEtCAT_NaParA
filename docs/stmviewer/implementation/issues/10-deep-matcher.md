@@ -75,3 +75,15 @@ Gotowy wynik podaje faktyczne urządzenie; błąd i anulowanie zachowują stary 
 Status `ready-for-review`: automatyczne próby zakończone, ręczny odbiór
 użytkownika jeszcze niewykonany. Windows nie był uruchamiany; odbiór platform
 pozostaje odrębnym etapem. Szczegóły: [przekazanie](../../handoff.md).
+
+
+### Zgłoszenie obwódki na cpu.mpp — 2026-10-23
+
+Odtworzono zgłoszenie na rzeczywistym modelu CPU. Pas przy ciemnym
+prostokącie wynika z ułamkowego przesunięcia oszacowanego przez Deep Matcher
+oraz poprawnej interpolacji biliniowej. Dla klatki 3 przesunięcie wynosi
+około (−0,746; +0,939) zamiast wzorcowego (−1; +1) px. Niezależny rachunek
+potwierdził wartości wszystkich ważnych pikseli; próba z dokładnym
+przesunięciem całkowitym usuwa pas. Nie zmieniano algorytmu ani zaokrąglania.
+Instrukcja manualna opisuje ten efekt i porównanie z Phase. To diagnoza
+zgłoszenia, a nie potwierdzenie odbioru; status pozostaje `ready-for-review`.

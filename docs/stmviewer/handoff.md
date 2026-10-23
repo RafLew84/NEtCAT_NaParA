@@ -1,6 +1,41 @@
 # Przekazanie — STM Viewer
 
 
+## 10: Diagnoza obwódki na cpu.mpp — 2026-10-23
+
+Baza: `3ba1ea0`, gałąź `viewer/start`. Zmiana wyłącznie dokumentacji:
+[wyjaśnienie i porównanie w GUI](deep-matcher-manual.md#obwódka-przy-ostrych-krawędziach-wzorca).
+Ticket 10 pozostaje `ready-for-review`; zgłoszenie nie jest odbiorem manualnym.
+
+Dwie próby rzeczywistego LoFTR CPU odtworzyły pas przy krawędzi ciemnego
+obiektu. Klatka 3: XY = (−0,7461051941; +0,9392890930) wobec dokładnego
+(−1; +1) wynikającego z generatora `np.roll`. W punkcie lewej krawędzi
+różnica względem klatki odniesienia wynosi 0,352253 jednostki danych.
+Minimalna próba z dwiema klatkami i tym zmierzonym przesunięciem odtwarza
+identyczny efekt bez modelu i GUI. Zmiana wyłącznie przesunięcia na (−1; +1)
+sprowadza tę różnicę do zera. Rzeczywisty Phase również daje (−1; +1) i zero.
+
+Niezależny rachunek wag czterech sąsiadów dla wszystkich 6241 ważnych próbek
+klatki 3 potwierdza interpolację biliniową z maksymalnym błędem
+4,44 × 10⁻¹⁶. Żadna próbka nie wychodzi poza zakres swoich czterech sąsiadów.
+Na lewej krawędzi udział tła wynosi 25,3895%, obiektu 74,6105%.
+To wyjaśnia pas wartości pośrednich widoczny na zrzucie. Nie jest wymagane
+poprawianie implementacji interpolacji; zaokrąglenie do pikseli zmieniłoby
+uzgodniony kontrakt rejestracji subpikselowej. Zmierzony błąd estymacji modelu
+mieści się w obecnej tolerancji testu 0,75 px; nie dowodzi dokładności
+modelu na innych obrazach. Nie zmieniono kodu, danych ani wag.
+
+Diagnostyka lokalna: `/tmp/stmviewer-halo-probe.py` (rzeczywisty model),
+`/tmp/stmviewer-halo-minimal.py` (domyślnie zmierzona translacja;
+`--integer` przełącza na dokładną), macierze `/tmp/stmviewer-halo-arrays.npz`
+i porównanie `/tmp/stmviewer-halo-comparison.png`. Warunek wykrywający
+widoczny pas celowo zgłasza błąd w obu próbach ułamkowych i przechodzi
+w próbie całkowitej. Jest to detektor objawu, nie nowy wymóg testów aplikacji.
+Zrzut porównania obejrzano. Wszystkie próby automatyczne; GUI użytkownika
+oraz Windows nie były ponownie testowane. Pełnego zestawu nie powtarzano
+przy tej zmianie dokumentacji. Commit przekazania podany w wiadomości sesji.
+
+
 ## 10: Deep Matcher z lokalnymi wagami — 2026-10-23
 
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:

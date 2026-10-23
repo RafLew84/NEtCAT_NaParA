@@ -99,6 +99,29 @@ próby. Niska pewność pozostaje oznaczona; metoda nie gwarantuje poprawnego
 fizycznie wyniku na każdym pomiarze. LoFTR nie zmienia rozdzielczości wejść;
 nieobsługiwany rozmiar/za mało dopasowań jest błędem próby, bez zmiany algorytmu.
 
+## Obwódka przy ostrych krawędziach wzorca
+
+Na `cpu.mpp` szczególnie w klatce 3 widać po Deep Matcher wąski pasek
+wzdłuż krawędzi ciemnego prostokąta. W odtworzonej próbie CPU model wyznaczył
+XY = (−0,746105; +0,939289) px, podczas gdy generator przesuwa ten wzorzec
+całkowitoliczbowo i poprawne dopasowanie wynosi (−1; +1) px.
+To błąd oszacowania około 0,254 px w X i −0,061 px w Y, mieszczący się
+w tolerancji obecnego testu 0,75 px.
+
+Aligned powstaje przez interpolację biliniową. Przy takim przesunięciu
+piksel na lewej krawędzi zawiera około 25,4% tła i 74,6% obiektu. Wąski
+pas wartości pośrednich jest widoczny zwłaszcza przy dużym powiększeniu
+syntetycznego obrazu 80 × 80 z ostrymi skokami sygnału. Jest obecny już
+w liczbach aligned; podgląd go tylko pokazuje. W tej próbie nie powstają
+wartości poza zakresem czterech sąsiednich próbek źródła.
+
+Do porównania wykonaj Phase na tym samym pliku i obejrzyj klatkę 3:
+uzyskuje dokładnie (−1; +1), a dodatkowy pas znika. Nie oznacza to gwarancji
+większej dokładności Phase na innych danych. Każda metoda dająca ułamkowe
+przesunięcie korzysta z tej samej interpolacji. Original zachowuje wartości
+źródłowe. Nie zaokrąglamy automatycznie przesunięć do całych pikseli, ponieważ
+utraciłoby to dopasowanie subpikselowe rzeczywistych pomiarów.
+
 ## Przygotowanie zależności poza aplikacją
 
 Python 3.12, podstawowe środowisko według [README](README.md#uruchomienie).
