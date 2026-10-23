@@ -15,7 +15,22 @@ from stmviewer.frame import ImageFrame
 from stmviewer.mpp_metadata import encode_mpp_metadata, mpp_sidecar_path
 
 
-def _header(frames: tuple[ImageFrame, ...]) -> bytes:
+def _finite_range(frames: tuple[ImageFrame, ...],
+                  check_cancelled: Callable[[], None]) -> tuple[float, float] | None:
+    """Describe the movie without modifying samples or copying a whole frame."""
+    minimum, maximum = float('inf'), float('-inf')
+    for frame in frames:
+        block_rows = max(1, (4 * 1024 * 1024) // (frame.data.shape[1] * 8))
+        for row in range(0, frame.data.shape[0], block_rows):
+            check_cancelled()
+            block = frame.data[row:row + block_rows]
+            finite = np.isfinite(block)
+            minimum = min(minimum, float(np.min(block, where=finite, initial=np.inf)))
+            maximum = max(maximum, float(np.max(block, where=finite, initial=-np.inf)))
+    return (minimum, maximum) if minimum <= maximum else None
+
+
+def _header(frames: tuple[ImageFrame, ...], check_cancelled: Callable[[], None]) -> bytes:
     rows, columns = frames[0].data.shape
     def common(name: str) -> object:
         values = [getattr(frame, name) for frame in frames]
@@ -53,8 +68,14 @@ def _header(frames: tuple[ImageFrame, ...]) -> bytes:
     lines.append('[Frames Synchronization]')
     lines.extend(f'Frame {i:04d}: {frame.measurement_time_s!r} s' for i, frame in enumerate(frames)
                  if frame.measurement_time_s is not None)
-    lines.append('[Header end]')
-    template = '\n'.join(lines) + '\n'
+    lines.append('[Miscellaneous]')
+    limits = _finite_range(frames, check_cancelled)
+    if limits is not None:
+        lines.extend((f'Minimum: {limits[0]!r}', f'Maximum: {limits[1]!r}'))
+    # WSxM needs explicit double conversion and range metadata. Its header
+    # parser also requires CRLF to apply these fields reliably (see WSxM report).
+    lines.extend(('Z Scale Factor: 1', 'Z Scale Offset: 0', '[Header end]'))
+    template = '\r\n'.join(lines) + '\r\n'
     size = 0
     while True:
         encoded = template.replace('{size}', str(size), 1).encode('utf-8')
@@ -127,7 +148,7 @@ def save_original_mpp(path: str | Path, frames: tuple[ImageFrame, ...], *,
     try:
         digest = hashlib.sha256()
         with staged[0].open('xb') as stream:
-            header = _header(frames)
+            header = _header(frames, checkpoint)
             _write(stream, header)
             digest.update(header)
             block_rows = max(1, (4 * 1024 * 1024) // (shape[1] * 8))

@@ -96,8 +96,10 @@ katalog zachowanych kopii do odzyskania.
 ## Granice odbioru
 
 Qt offscreen oraz sterowana skryptem próba xcb są testami automatycznymi.
-Ręczne potwierdzenie użytkownika jest osobnym odbiorem. Windows 11 i WSxM
-nie zostały sprawdzone w tym etapie; WSxM pozostaje próbą dodatkową.
+Ręczne potwierdzenie użytkownika jest osobnym odbiorem. Windows 11 pozostaje
+do sprawdzenia. Dodatkowa [próba WSxM pod Wine](wsxm-investigation.md) wykazała
+problem nagłówka, poprawiony przez CRLF i jawne parametry sygnału.
+Do ponownej próby użyj `data/test-wsxm.mpp` lub zapisz film ponownie.
 NaPara czyta bajty w kolejności pliku; NanoTrack/MolTrack stosują swój obrót
 180° do orientacji zgodnej z Viewerem. Wspólny starszy czytnik ma limit
 1000 linii nagłówka, nie obsługuje JSON ani nie rozróżnia poprawnie nieznanej

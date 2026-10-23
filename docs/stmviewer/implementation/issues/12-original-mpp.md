@@ -85,3 +85,12 @@ Starsze czytniki sprawdzono dla wartości, orientacji używanej przez ich
 adaptery, wspólnej kalibracji i znanych czasów. Ich limit 1000 linii
 nagłówka, brak obsługi JSON i nieznanej skali wymagają pracy integracji;
 nie zmieniono wspólnego kodu ani konfiguracji.
+
+## Dodatkowe zgłoszenie WSxM — 2026-10-23
+
+[Diagnoza i poprawka nagłówka](../../wsxm-investigation.md): CRLF oraz
+`Minimum`, `Maximum`, `Z Scale Factor`, `Z Scale Offset` przywracają
+przejścia tonalne bez zmiany danych pomiarowych. Powstała poprawiona para
+`data/test-wsxm.mpp` + JSON. Wszystkie 369 klatek są dokładnie zgodne ze
+źródłowymi S94. Ręczny odbiór użytkownika nadal oczekuje; status pozostaje
+`ready-for-review`. Próba Wine nie zastępuje odbioru Windows 11.

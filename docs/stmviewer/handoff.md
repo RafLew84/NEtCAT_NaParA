@@ -1,5 +1,19 @@
 # Przekazanie — STM Viewer
 
+## 12: Poprawka zgodności nagłówka z WSxM — 2026-10-23
+
+Baza poprawki: `7eab8e9`. [Raport diagnozy](wsxm-investigation.md).
+Zapis używa CRLF i jawnych granic skończonych wartości wraz z przelicznikiem
+1 i przesunięciem 0. Dane i metadane indywidualne nie są przeskalowywane.
+Test regresji publicznego eksportu: RED przed zmianą, GREEN po zmianie.
+Pełny wynik `data/test-wsxm.mpp` jest bajtowo identyczny z wariantem z
+poprawnym obrazem w WSxM pod Wine. Wszystkie 369 klatek porównano dokładnie
+z źródłowymi S94; oryginalny `test.mpp` zachował SHA-256.
+
+Zmiana nie obejmuje wspólnych modułów. Ticket 12 nadal czeka na ręczny
+odbiór użytkownika. Dane, instalacja Wine/WSxM i artefakty diagnozy są lokalne.
+
+
 ## 12: Zapis original do MPP — 2026-10-23
 
 Gałąź `viewer/start`. Baza `7756c3d6e018ad1820f7400dc2d606b49d0975f2`.

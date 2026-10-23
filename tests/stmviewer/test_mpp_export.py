@@ -20,7 +20,7 @@ def test_original_export_preserves_removed_frame_gaps_provenance_and_file_orient
     destination = tmp_path / 'result.MPP'
     save_original_mpp(destination, (first, third))
     raw = destination.read_bytes()
-    header, payload = raw.split(b'[Header end]\n', 1)
+    header, payload = raw.split(b'[Header end]\r\n', 1)
     assert b'Image Data Type: double' in header
     assert b'Number of Frames: 2' in header
     assert b'Frame 0000: 10.0 s' in header and b'Frame 0001: 35.0 s' in header
@@ -64,7 +64,7 @@ def test_stp_s94_and_missing_pixels_roundtrip_without_precision_loss(tmp_path):
     saved = open_frame_series([path])[0].data
     np.testing.assert_array_equal(saved, values)
     assert np.signbit(saved[0, 1])
-    payload = path.read_bytes().split(b'[Header end]\n', 1)[1]
+    payload = path.read_bytes().split(b'[Header end]\r\n', 1)[1]
     assert payload == struct.pack('<6d', np.nan, -np.finfo(float).max,
                                  np.nextafter(0., 1.), np.finfo(float).max, -0., np.nextafter(1., 2.))
 
@@ -106,7 +106,7 @@ def test_long_utf8_header_has_exact_byte_offset_and_reopens(tmp_path):
     save_original_mpp(path, frames)
     raw = path.read_bytes()
     offset = int(raw.splitlines()[2].split(b': ')[1])
-    assert raw[:offset].endswith(b'[Header end]\n')
+    assert raw[:offset].endswith(b'[Header end]\r\n')
     assert len(raw[:offset].splitlines()) > 1000
     assert raw[offset:offset+8] == struct.pack('<d', source.data[-1, -1])
     restored = open_frame_series([path])
@@ -153,3 +153,28 @@ def test_long_utf8_labels_from_valid_sidecar_remain_readable_after_export(tmp_pa
     restored = open_frame_series([saved])
     assert all(frame.channel == text and frame.signal_unit == text for frame in restored)
     assert all('wczytano' in frame.metadata_note for frame in restored)
+
+
+def test_wsxm_header_declares_finite_movie_range_and_identity_conversion(tmp_path):
+    """CRLF plus numeric metadata prevent WSxM clipping signed double samples."""
+    from dataclasses import replace
+    from stmviewer.mpp_export import save_original_mpp
+
+    source = open_frame_series([FIXTURES / 'asymmetric.stp'])[0]
+    frames = (replace(source, data=np.array([[3., 4., np.nan], [1., 2., np.inf]])),
+              replace(source, data=np.array([[-.625, .625, -np.inf], [-0., 0., .3125]])))
+    path = tmp_path / 'signed.mpp'
+    save_original_mpp(path, frames)
+    raw = path.read_bytes()
+    offset = int(raw.splitlines()[2].split(b': ')[1])
+    header = raw[:offset]
+    assert header.endswith(b'[Header end]\r\n')
+    assert b'\n' not in header.replace(b'\r\n', b'')
+    assert b'[Miscellaneous]\r\n' in header
+    assert b'Minimum: -0.625\r\n' in header
+    assert b'Maximum: 4.0\r\n' in header
+    assert b'Z Scale Factor: 1\r\nZ Scale Offset: 0\r\n' in header
+    assert raw[offset:] == struct.pack('<12d', np.inf, 2., 1., np.nan, 4., 3.,
+                                      .3125, 0., -0., -np.inf, .625, -.625)
+    for expected, restored in zip(frames, open_frame_series([path]), strict=True):
+        np.testing.assert_array_equal(restored.data, expected.data)
