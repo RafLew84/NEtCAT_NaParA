@@ -69,6 +69,12 @@ z kroków 18–19 zachowują niezmienione wagi jako punkt odniesienia.
 
 ## Wayfinding operations
 
+Stan 2026-10-23: [przygotowanie 14](14-unsupervised-input-and-controls.md)
+zakończone. [Raport](../unsupervised-input-preparation.md) i
+[protokół wejścia/wyników](../experiment-input-protocol.md) opisują gotowy
+zestaw. Odblokowano 15, 16, 17, 18 i 20; następna zalecana próba to 15.
+Przygotowanie nie uruchomiło metod ani treningu; odbiór 13 i jakość 04 otwarte.
+
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie
 z instrukcjami repozytorium. Nie wymaga zewnętrznego trackera.
 

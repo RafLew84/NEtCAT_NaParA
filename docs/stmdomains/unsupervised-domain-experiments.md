@@ -2,7 +2,10 @@
 
 Plan z 2026-10-21 przeniesiono na polecenie użytkownika do ticketów
 [istniejącej mapy metod i zapisu](map-methods-and-save.md).
-**Eksperymenty nie zostały jeszcze wykonane.** Zakres, zależności i warunki
+**Przygotowanie 14 zakończono 2026-10-23; próby metod nie zostały jeszcze wykonane.**
+[Gotowy zestaw](unsupervised-input-preparation.md) i
+[protokół](experiment-input-protocol.md) są wejściem kolejnych prób.
+Zakres, zależności i warunki
 zakończenia utrzymujemy w ticketach, zamiast w dwóch równoległych planach.
 [Rejestr pytań](issues/README.md#próby-samodzielnego-znajdowania-domen)
 zawiera ich kolejność i diagram zależności.

@@ -25,8 +25,10 @@ oraz granic. Nie oznacza to wykonania aplikacji ani wyboru gotowej metody.
 Aktualny zakres badawczy to
 [próby samodzielnego znajdowania domen](issues/README.md#próby-samodzielnego-znajdowania-domen),
 rozpisane na polecenie użytkownika 2026-10-21 po przeglądzie STM/AFM.
-Ten cykl można podejmować przed odbiorem szkieletu. Najpierw przygotowujemy
-wspólne wejście i kontrole, potem porównujemy kolejne kierunki.
+Ten cykl można podejmować przed odbiorem szkieletu. 2026-10-23 zakończono
+[przygotowanie wspólnego wejścia i kontroli](issues/14-unsupervised-input-and-controls.md);
+[raport](unsupervised-input-preparation.md) i [protokół](experiment-input-protocol.md)
+udostępniają zestaw do kolejnych porównań.
 Zalecana pierwsza próba wykorzystuje otoczenie zaznaczonych molekuł.
 Aktualizacja mapy nie uruchamia eksperymentów ani nie rozstrzyga ich wyniku.
 
@@ -114,6 +116,7 @@ nie zamknięto przez samo dodanie go do mapy.
 
 ## Decisions so far
 
+- [Jak przygotować wspólne wejście i kontrole bez narzucania domen?](issues/14-unsupervised-input-and-controls.md): przygotowano 24 pełne klatki, 132 kontrole, osobne referencje i format wyników; potwierdzono geometrię, powtarzalność i brak wpływu referencji na wejście. Bez uruchamiania metod.
 - [Jak definiujemy wyspę, typ uporządkowania i domenę sieci?](issues/02-order-types-and-domains.md): uzgodniono płat warstwy, osobny typ i orientację, granice oraz stany niepewności.
 - [Jak porównać metody wykrywania wysp i domen w serii?](issues/05-stable-types-across-frames.md): katalog wspólny dla zakresu; pilotaż wskazał luki skali, rozstawu i granic.
 - [Jak dokładnie liczymy ilości i udziały na każdej klatce?](issues/06-frame-statistics.md): dwa mianowniki powierzchni, środki oznaczeń, wyniki częściowe i korekty konfliktów.

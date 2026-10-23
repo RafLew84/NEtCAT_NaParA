@@ -1,4 +1,41 @@
-# STM Domains — mapa prób treningu bez etykiet
+# STM Domains — przygotowanie wspólnego wejścia, issue 14
+
+Data: 2026-10-23. Gałąź `domains/unsupervised-input`, baza `d134439`.
+Worktree `/tmp/netcat-stmdomains-input`, docelowo `domains/start`.
+Commit kodu, testów i dokumentacji w wiadomości końcowej.
+
+Wykonano issue 14: `stmdomains.experiments` przygotowuje audytowane obrazy
+MPP i bieżące oznaczenia w raw, 132 kontrole syntetyczne oraz osobny pakiet
+oceny z 18 referencjami/54 wnętrzami. Pilot ma 24 pełne klatki i 6730
+oznaczeń, włącznie z klatką 255. Generator nie uruchamia detektora ani treningu.
+
+[Raport](unsupervised-input-preparation.md) zawiera polecenie odtworzenia;
+[protokół](experiment-input-protocol.md) definiuje schematy wejścia/wyniku,
+miary z odmowami i warunki porównania. Lokalny artefakt:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/unsupervised-input/index.html`.
+Dane, obrazy, maski i duże manifesty pozostają poza Git.
+
+Sprawdzenia: 35 testów pytest w `netcat`, oba źródłowe SHA-256, geometria
+6730 bboxów (roundtrip 0 px), dokładne odtworzenie 18 PNG i zgodność masek
+z poprzednim audytem. Wszystkie 156 próbek przechodzą walidację. Wszystkie
+157 plików analizy są identyczne po ponownym przygotowaniu bez referencji.
+Obejrzano statyczny arkusz podglądów i sprawdzono składnię JS w QJSEngine;
+interakcji DOM w przeglądarce oraz natywnego GUI aplikacji nie testowano.
+Przygotowanie końcowe: 5,89 s, RSS 445 916 KiB; bez GPU.
+
+Issue 14 ma status `resolved`. Mapa i indeks wskazują 15 jako następny
+zalecany eksperyment; odblokowane także 16, 17, 18 i 20. 04 i 13 pozostają
+otwarte. Ograniczenia: adapter tylko dla audytowanego TTMAPP, częściowe
+używane już referencje, brak rzeczywistej kalibracji i niezależnej akwizycji.
+Nie wykonano nowego algorytmu, pełnego eksportu 268 klatek ani pomiaru pokrycia.
+
+Wykorzystano istniejący czytnik MPP bez zmian. Ekstrakcję referencji
+przeniesiono z audytowanego prototypu `4e7a757` do lokalnego modułu oceny.
+Brak nowych potrzeb zmian wspólnego kodu, konfiguracji i środowiska.
+
+---
+
+## Poprzednie przekazanie — mapa prób treningu bez etykiet
 
 Data: 2026-10-21. Gałąź `domains/self-supervised-training-map`, baza `63c5d0b`.
 Worktree `/tmp/netcat-stmdomains-training-map`, docelowo `domains/start`.

@@ -4,8 +4,8 @@ ID: 14
 Type: task
 Labels: wayfinder:task
 Mode: AFK
-Status: open
-Assignee:
+Status: resolved
+Assignee: Codex — domains/unsupervised-input
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 01, 02
 
@@ -166,6 +166,27 @@ Zadanie można wykonać na obecnych danych przed odbiorem szkieletu. Otwarte
 [pytanie o referencje i jakość](04-reference-and-quality.md) nie blokuje
 tego przygotowania; pozostaje warunkiem pełnego odbioru metody. Zakończenie
 zadania oznacza gotowość zestawu porównawczego, nie skuteczność detekcji.
+
+## Answer — 2026-10-23
+
+Przygotowano wersjonowany generator `stmdomains.experiments` i lokalny pakiet
+`.scratch/unsupervised-input/`: 24 pełne klatki TTMAPP z 6730 oznaczeniami,
+132 kontrole (22 przypadki, po 3 ziarna rozwojowe i 3 do oceny) oraz osobne
+18 referencji/54 wnętrza. Klatka 255 pozostaje w analizie bez referencji.
+
+[Raport](../unsupervised-input-preparation.md) zawiera polecenie odtworzenia,
+identyfikację źródeł, pomiary i ograniczenia. [Protokół](../experiment-input-protocol.md)
+określa schemat wejścia/wyniku, miary z odmowami i podglądy porównań.
+Algorytmy otrzymują wyłącznie `analysis/`; prawda kontrolna i ramki są
+w `evaluation/`. 157 plików analizy było identycznych bajt w bajt po
+regeneracji bez referencji. Wszystkie 18 czystych PNG odtworzono dokładnie,
+a mapy referencji zgadzają się z poprzednim audytem.
+
+Przeszło 35 testów, walidacja 156 próbek oraz sprawdzenia rzeczywistej
+geometrii (maksymalny błąd powrotu bboxów 0 px). Sprawdzono statyczne
+podglądy i składnię JS; interakcji przeglądarki i GUI aplikacji nie testowano.
+Nie uruchomiono detektora ani treningu. Zakończenie oznacza gotowość
+zestawu, nie przyjęcie algorytmu. Kolejna zalecana próba to 15; 04/13 otwarte.
 
 ## Dependencies
 

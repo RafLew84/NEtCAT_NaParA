@@ -111,7 +111,16 @@ warunkowe próby grafów, maskowania i adaptacji gotowego modelu.
 Pierwsze próby dotyczą RTX 5090; przejście na 96 GB lub Colab wymaga
 uzasadnienia wynikiem i pomiarem. Odbiór 13 czeka na zestawienie 23,
 a dalej tylko na wybrane rozszerzenia. Trening nie został uruchomiony;
-następnym krokiem badawczym całej mapy nadal jest przygotowanie wejścia 14.
+w chwili dodania tych zadań następnym krokiem było przygotowanie wejścia 14.
+
+2026-10-23 [zakończono przygotowanie 14](issues/14-unsupervised-input-and-controls.md).
+Gotowy [pakiet i raport](unsupervised-input-preparation.md) obejmuje 24 pełne
+klatki, 132 kontrole i osobne referencje; [protokół](experiment-input-protocol.md)
+określa format wejścia/wyniku i ocenę. Przeszło 35 testów oraz sprawdzenia
+realnych danych i niezależności wejścia od referencji. Podgląd lokalny:
+`.scratch/unsupervised-input/index.html`. Następna zalecana próba badawcza
+to [15 — otoczenie molekuł](issues/15-local-neighborhood-domains.md).
+Nie wykonano jeszcze nowych detektorów ani treningu.
 
 ## Dwa etapy
 
