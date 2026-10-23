@@ -4,7 +4,11 @@
 
 **Blocked by:** [07: Usuwanie klatek z zachowaniem czasu i pochodzenia](07-frame-deletion.md)
 
-**Status:** ready-for-agent
+**Status:** in-progress
+
+**Wykonawca:** Codex, `viewer/start`.
+
+**Baza code-review:** `1dc159ee48341b2180cea47947a3fb38d59dd0c6`.
 
 **Specyfikacja:** [Rejestracja i życie wyniku aligned](../../issues/03-registration.md#answer), [Dane i kryteria odbioru pierwszej wersji](../../issues/06-acceptance.md#answer).
 
@@ -12,14 +16,14 @@ Przed realizacją przeczytaj [zasady wykonania i odbioru](../README.md#zasady-wy
 
 ## Kryteria odbioru
 
-- [ ] Phase dopasowuje sąsiednie oryginały i sumuje przesunięcia od pierwszej klatki bieżącej serii; pojedyncza klatka ma wynik zerowy.
-- [ ] Operacja zatrzymuje Play, pokazuje postęp/Anuluj i blokuje zmianę serii. W trakcie dostępne są wybór klatki, zoom/gamma i dotychczasowy podgląd.
-- [ ] Wynik obejmuje cały powiększony obszar, liniowo interpolowane próbki i NaN poza pomiarem. Osobno przechowuje maskę oraz prostokąt i położenie oryginalnej klatki.
-- [ ] Po pełnym sukcesie pokazuje aligned aktualnie oglądanej klatki, dopasowuje nowy obszar i zachowuje gamma. Original/aligned pamiętają osobne ustawienia zoomu.
-- [ ] Błąd lub anulowanie, także podczas budowy aligned, zachowuje poprzedni kompletny wynik. Niska pewność z kompletnym wynikiem jest widoczna; nie jest automatycznie odrzucana.
-- [ ] Usunięcie klatki, także odniesienia/skrajnej, zachowuje gotowe aligned pozostałych, obszar i historyczne odniesienie; dopiero nowa rejestracja może je zmienić.
-- [ ] Różne skale/kanały nie blokują rejestracji w pikselach. Przy niewspólnej kalibracji aligned używa pikseli; wejście z NaN daje czytelną odmowę obecnego backendu.
-- [ ] Znaki XY, kumulacja, geometria i niezależność od gamma/zoomu są sprawdzone na wzorcu; nie stroić algorytmu dla trudnych pomiarów.
+- [x] Phase dopasowuje sąsiednie oryginały i sumuje przesunięcia od pierwszej klatki bieżącej serii; pojedyncza klatka ma wynik zerowy.
+- [x] Operacja zatrzymuje Play, pokazuje postęp/Anuluj i blokuje zmianę serii. W trakcie dostępne są wybór klatki, zoom/gamma i dotychczasowy podgląd.
+- [x] Wynik obejmuje cały powiększony obszar, liniowo interpolowane próbki i NaN poza pomiarem. Osobno przechowuje maskę oraz prostokąt i położenie oryginalnej klatki.
+- [x] Po pełnym sukcesie pokazuje aligned aktualnie oglądanej klatki, dopasowuje nowy obszar i zachowuje gamma. Original/aligned pamiętają osobne ustawienia zoomu.
+- [x] Błąd lub anulowanie, także podczas budowy aligned, zachowuje poprzedni kompletny wynik. Niska pewność z kompletnym wynikiem jest widoczna; nie jest automatycznie odrzucana.
+- [x] Usunięcie klatki, także odniesienia/skrajnej, zachowuje gotowe aligned pozostałych, obszar i historyczne odniesienie; dopiero nowa rejestracja może je zmienić.
+- [x] Różne skale/kanały nie blokują rejestracji w pikselach. Przy niewspólnej kalibracji aligned używa pikseli; wejście z NaN daje czytelną odmowę obecnego backendu.
+- [x] Znaki XY, kumulacja, geometria i niezależność od gamma/zoomu są sprawdzone na wzorcu; nie stroić algorytmu dla trudnych pomiarów.
 
 ## Testy automatyczne
 
@@ -50,3 +54,17 @@ Dane i sposób przygotowania nietypowych wzorców dostarcza realizujący ticket.
 ## Współpraca z integracją
 
 Runner, bezpieczne punkty anulowania i materializator mogą wymagać wspólnych zmian koordynowanych przez integrację. Interfejs Viewera ma zachowywać stary wynik niezależnie od dotychczasowego zachowania NanoTrack/MolTrack.
+
+
+## Wynik implementacji — 2026-10-23
+
+Działa Phase w tle, postęp/anulowanie i atomowa podmiana kompletnego aligned.
+Original/aligned mają osobny kadr i wspólną gamma. Obrys pochodzi z pola
+źródłowego; maska ważnych próbek jest osobna. Usuwanie zachowuje historyczny
+układ, a nowa rejestracja wyznacza go z pozostałych oryginałów. Niepewność
+jest oznaczana także po jej odziedziczeniu. Wspólne moduły pozostają bez zmian.
+
+123 testy Viewera i mypy strict (17 plików) przechodzą. Automatyczna próba
+Qt xcb na wzorcach oraz lokalnym MOVIE_3.MPP przeszła; oceniono zrzuty.
+[Instrukcja manualna](../../phase-registration-manual.md). Pełny zestaw repo
+oraz code-review są w toku. Ręczny odbiór użytkownika i Windows czekają.

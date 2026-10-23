@@ -14,6 +14,7 @@ class FrameListModel(QAbstractListModel):
         super().__init__(parent)
         self._frames = frames
         self._thumbnails = thumbnails
+        self._warnings = tuple("" for _ in frames)
         self._icons: dict[int, QIcon] = {}
         self._pixel_proportions = False
 
@@ -25,13 +26,13 @@ class FrameListModel(QAbstractListModel):
             return None
         row = index.row()
         if role == Qt.ItemDataRole.DisplayRole:
-            return f"{row + 1} · {self._frames[row].source.name}"
+            return f"{'⚠ ' if self._warnings[row] else ''}{row + 1} · {self._frames[row].source.name}"
         if role == Qt.ItemDataRole.ToolTipRole:
             frame = self._frames[row]
             source = str(frame.source)
             if frame.source_frame_index is not None:
                 source += f"\nKlatka źródłowa MPP: {frame.source_frame_index + 1}"
-            return source
+            return source + ("\n" + self._warnings[row] if self._warnings[row] else "")
         if role == Qt.ItemDataRole.DecorationRole:
             if row not in self._icons:
                 thumbnail = (frame_thumbnail(self._frames[row], pixel_proportions=True)
@@ -48,8 +49,17 @@ class FrameListModel(QAbstractListModel):
         self.beginResetModel()
         self._frames = frames
         self._thumbnails = thumbnails
+        self._warnings = self._warnings[:index] + self._warnings[index + 1:]
         self._icons.clear()
         self.endResetModel()
+
+    def set_warnings(self, warnings: tuple[str, ...]) -> None:
+        if len(warnings) != len(self._frames):
+            raise ValueError("Warnings must match the frame series.")
+        self._warnings = warnings
+        if warnings:
+            self.dataChanged.emit(self.index(0), self.index(len(warnings) - 1),
+                                  [Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ToolTipRole])
 
     def set_pixel_proportions(self, enabled: bool) -> None:
         if self._pixel_proportions == enabled:
@@ -97,3 +107,8 @@ class Filmstrip(QListView):
         model = self.model()
         assert isinstance(model, FrameListModel)
         model.remove_frame(index)
+
+    def set_warnings(self, warnings: tuple[str, ...]) -> None:
+        model = self.model()
+        assert isinstance(model, FrameListModel)
+        model.set_warnings(warnings)

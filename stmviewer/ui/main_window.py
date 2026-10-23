@@ -10,6 +10,8 @@ from PyQt6.QtWidgets import (
 )
 
 from stmviewer.frame import ImageFrame
+from stmviewer.registration import RegistrationResult, ShiftBackend, phase_unavailable_reason
+from stmviewer.ui.registration_job import RegistrationJob
 from stmviewer.ui.filmstrip import Filmstrip
 from stmviewer.ui.import_job import ImportJob
 from stmviewer.ui.image_preview import ImagePreview
@@ -20,13 +22,18 @@ def _value(value: float | None, unit: str) -> str:
 
 
 class STMViewerMainWindow(QMainWindow):
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, *,
+                 registration_backend: ShiftBackend | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("STM Viewer")
         self.resize(1100, 760)
         self._frames: tuple[ImageFrame, ...] = ()
         self._index = 0
         self._job: ImportJob | None = None
+        self._registration: RegistrationResult | None = None
+        self._registration_job: RegistrationJob | None = None
+        self._registration_backend = registration_backend
+        self._phase_error = phase_unavailable_reason()
         self._closing = False
         self._playing = False
         self._play_timer = QTimer(self)
@@ -91,6 +98,34 @@ class STMViewerMainWindow(QMainWindow):
         )
         self._pixel_proportions.toggled.connect(self._preview.set_pixel_proportions)
         controls.addWidget(self._pixel_proportions)
+        self._view = QComboBox(panel)
+        self._view.setObjectName("frameView")
+        self._view.addItems(["original", "aligned"])
+        self._view.currentTextChanged.connect(self._change_view)
+        controls.addWidget(self._view)
+        self._method = QComboBox(panel)
+        self._method.setObjectName("registrationMethod")
+        self._method.addItem("Phase")
+        self._method.setToolTip(self._phase_error or "Rejestracja sąsiednich klatek, domyślne ustawienia NanoTrack.")
+        controls.addWidget(self._method)
+        self._register = QPushButton("Rejestruj", panel)
+        self._register.setObjectName("registerFrames")
+        self._register.clicked.connect(self._start_registration)
+        controls.addWidget(self._register)
+        self._registration_text = QLabel(self._phase_error or "", panel)
+        self._registration_text.setObjectName("registrationInfo")
+        self._registration_text.setWordWrap(True)
+        self._registration_text.setTextFormat(Qt.TextFormat.PlainText)
+        controls.addWidget(self._registration_text)
+        self._registration_progress = QProgressBar(panel)
+        self._registration_progress.setObjectName("registrationProgress")
+        self._registration_progress.hide()
+        controls.addWidget(self._registration_progress)
+        self._registration_cancel = QPushButton("Anuluj rejestrację", panel)
+        self._registration_cancel.setObjectName("cancelRegistration")
+        self._registration_cancel.clicked.connect(self._cancel_registration)
+        self._registration_cancel.hide()
+        controls.addWidget(self._registration_cancel)
         controls.addWidget(QLabel("Źródło", panel))
         self._source = QLabel("—", panel)
         self._source.setWordWrap(True)
@@ -178,6 +213,7 @@ class STMViewerMainWindow(QMainWindow):
         self._strip.pressed.connect(self._pause)
         outer.addWidget(self._strip)
         self._pixel_proportions.toggled.connect(self._strip.set_pixel_proportions)
+        self._pixel_proportions.toggled.connect(self._show_registration_info)
         self.setCentralWidget(central)
         self._sync_navigation()
 
@@ -201,7 +237,7 @@ class STMViewerMainWindow(QMainWindow):
 
     def open_file(self) -> None:
         """Choose a complete series; a worker keeps the existing view responsive."""
-        if self._job is not None:
+        if self._job is not None or self._registration_job is not None:
             return
         initial = str(self._frames[self._index].source.parent) if self._frames else ""
         filenames, _ = QFileDialog.getOpenFileNames(
@@ -223,6 +259,7 @@ class STMViewerMainWindow(QMainWindow):
         self._job.progress.connect(self._show_progress)
         self._job.finished.connect(self._finish_import)
         self._job.start()
+        self._sync_navigation()
 
     def _show_progress(self, done: int, total: int, description: str) -> None:
         self._progress.setRange(0, total)
@@ -252,6 +289,9 @@ class STMViewerMainWindow(QMainWindow):
                         self._gamma.setValue(1.0)
                     with QSignalBlocker(self._pixel_proportions):
                         self._pixel_proportions.setChecked(False)
+                    self._registration = None
+                    with QSignalBlocker(self._view):
+                        self._view.setCurrentText("original")
                     self._frames = result.frames
                     self._strip.set_series(result.frames, result.thumbnails)
                     selection = self._strip.selectionModel()
@@ -269,6 +309,7 @@ class STMViewerMainWindow(QMainWindow):
             self._import_panel.hide()
             self._open_button.setEnabled(True)
             self._open_action.setEnabled(True)
+            self._sync_navigation()
             if self._closing:
                 self.close()
 
@@ -283,17 +324,22 @@ class STMViewerMainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent | None) -> None:
         self._pause()
-        if event is not None and self._job is not None:
+        if event is not None and (self._job is not None or self._registration_job is not None):
             self._closing = True
             self._cancel_import()
+            self._cancel_registration()
             event.ignore()
             return
         super().closeEvent(event)
 
     def _sync_navigation(self) -> None:
         count = len(self._frames)
-        self._play.setEnabled(count > 1)
-        self._delete.setEnabled(bool(count))
+        registering = self._registration_job is not None
+        self._play.setEnabled(count > 1 and not registering)
+        self._delete.setEnabled(bool(count) and not registering)
+        self._register.setEnabled(bool(count) and not registering and self._job is None and not self._phase_error)
+        self._method.setEnabled(not registering and self._job is None)
+        self._view.setEnabled(self._registration is not None)
         for preview_control in (self._zoom_in, self._zoom_out, self._fit_button, self._gamma,
                                 self._gamma_reset, self._pixel_proportions):
             preview_control.setEnabled(bool(count))
@@ -315,16 +361,25 @@ class STMViewerMainWindow(QMainWindow):
             self._strip.scrollTo(index)
 
     def _delete_frame(self) -> None:
-        if not self._frames:
+        if not self._frames or self._registration_job is not None:
             return
         self._pause()
         removed = self._index
         frames = self._frames[:removed] + self._frames[removed + 1:]
         index = min(removed, len(frames) - 1) if frames else 0
+        registration = self._registration.without_frame(removed) if self._registration is not None else None
         if frames:
-            self._preview.set_frame(frames[index], reset_view=False)
+            if registration is not None and self._view.currentText() == "aligned":
+                current = registration.frames[index]
+                self._preview.set_frame(current.image, view="aligned", reset_view=False,
+                                        original_rect=current.original_rect)
+            else:
+                self._preview.set_frame(frames[index], reset_view=False)
         else:
             self._preview.clear_frame()
+            with QSignalBlocker(self._view):
+                self._view.setCurrentText("original")
+        self._registration = registration
         self._frames = frames
         self._index = index
         self._strip.remove_frame(removed)
@@ -338,7 +393,7 @@ class STMViewerMainWindow(QMainWindow):
     def _toggle_playback(self) -> None:
         if self._playing:
             self._pause()
-        elif len(self._frames) > 1:
+        elif len(self._frames) > 1 and self._registration_job is None:
             if self._index == len(self._frames) - 1:
                 self._display_frame(0)
                 self._preview.repaint()
@@ -382,8 +437,7 @@ class STMViewerMainWindow(QMainWindow):
     def _display_frame(self, index: int) -> None:
         if index == self._index or not 0 <= index < len(self._frames):
             return
-        frame = self._frames[index]
-        self._preview.set_frame(frame, reset_view=False)
+        self._show_preview(index)
         self._index = index
         self._show_current_frame()
 
@@ -392,6 +446,7 @@ class STMViewerMainWindow(QMainWindow):
         if not self._frames:
             self._source.setText("—")
             self._metadata.setText("Brak danych.")
+            self._registration_text.setText(self._phase_error or "")
             self.setWindowTitle("STM Viewer")
             self._status.showMessage("Brak otwartego obrazu")
             return
@@ -421,4 +476,115 @@ class STMViewerMainWindow(QMainWindow):
         if frame.calibration_note:
             self._metadata.setText(self._metadata.text() + "\n\n" + frame.calibration_note)
         self.setWindowTitle(f"{frame.source.name} — STM Viewer")
-        self._status.showMessage(f"Klatka {self._index + 1} z {len(self._frames)} · original")
+        self._status.showMessage(f"Klatka {self._index + 1} z {len(self._frames)} · {self._view.currentText()}")
+        self._show_registration_info()
+
+
+    def _show_preview(self, index: int, *, reset_view: bool = False) -> None:
+        if self._view.currentText() == "aligned" and self._registration is not None:
+            frame = self._registration.frames[index]
+            self._preview.set_frame(frame.image, view="aligned", original_rect=frame.original_rect,
+                                    reset_view=reset_view)
+        else:
+            self._preview.set_frame(self._frames[index], reset_view=reset_view)
+
+    def _change_view(self) -> None:
+        self._pause()
+        if self._frames:
+            self._show_preview(self._index)
+            self._show_current_frame()
+
+    def _start_registration(self) -> None:
+        if not self._frames or self._job is not None or self._registration_job is not None or self._phase_error:
+            return
+        self._pause()
+        job = RegistrationJob(self._frames, self, self._registration_backend)
+        self._registration_job = job
+        self._registration_progress.setRange(0, len(self._frames) * 2)
+        self._registration_progress.setValue(0)
+        self._registration_progress.setFormat("Przygotowanie…")
+        self._registration_progress.show()
+        self._registration_cancel.setEnabled(True)
+        self._registration_cancel.show()
+        self._open_button.setEnabled(False)
+        self._open_action.setEnabled(False)
+        self._sync_navigation()
+        job.progress.connect(self._show_registration_progress)
+        job.finished.connect(self._finish_registration)
+        job.start()
+
+    def _show_registration_progress(self, done: int, total: int, description: str) -> None:
+        self._registration_progress.setRange(0, total)
+        self._registration_progress.setValue(done)
+        if self._registration_cancel.isEnabled():
+            self._registration_progress.setFormat(description)
+
+    def _cancel_registration(self) -> None:
+        if self._registration_job is not None:
+            self._registration_job.cancel()
+            self._registration_cancel.setEnabled(False)
+            self._registration_progress.setFormat("Anulowanie po bieżącym kroku…")
+
+    def _finish_registration(self) -> None:
+        job = self._registration_job
+        if job is None:
+            return
+        try:
+            if not job.was_cancelled() and not self._closing:
+                if job.error is not None:
+                    self._show_registration_error(job.error)
+                elif job.result is not None:
+                    # Prepare the visible raster before publishing the new complete result.
+                    current = job.result.frames[self._index]
+                    self._preview.set_frame(current.image, view="aligned", reset_view=True,
+                                            original_rect=current.original_rect)
+                    self._registration = job.result
+                    self._strip.set_warnings(tuple(
+                        ("Do sprawdzenia: niepewność odziedziczona" if frame.inherited_uncertainty
+                         else "Do sprawdzenia: niska pewność") if frame.status != "ok" else ""
+                        for frame in job.result.frames
+                    ))
+                    with QSignalBlocker(self._view):
+                        self._view.setCurrentText("aligned")
+        except (OSError, ValueError, OverflowError, MemoryError) as error:
+            self._show_registration_error(str(error) or type(error).__name__)
+        finally:
+            self._registration_job = None
+            job.deleteLater()
+            self._registration_progress.hide()
+            self._registration_cancel.hide()
+            self._open_button.setEnabled(True)
+            self._open_action.setEnabled(True)
+            self._show_current_frame()
+            if self._closing:
+                self.close()
+
+    def _show_registration_error(self, error: str) -> None:
+        message = QMessageBox(self)
+        message.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        message.setIcon(QMessageBox.Icon.Critical)
+        message.setWindowTitle("Nie można zarejestrować serii")
+        message.setTextFormat(Qt.TextFormat.PlainText)
+        message.setText(error)
+        message.open()
+
+    def _show_registration_info(self) -> None:
+        if self._registration is None:
+            self._registration_text.setText(self._phase_error or "")
+            return
+        result = self._registration
+        current = result.frames[self._index]
+        origin = result.reference.source.name
+        if result.reference.source_frame_index is not None:
+            origin += f" · MPP {result.reference.source_frame_index + 1}"
+        height, width = result.canvas_shape
+        quality = "OK" if current.status == "ok" else "⚠ Do sprawdzenia"
+        inherited = " (niepewność odziedziczona)" if current.inherited_uncertainty else ""
+        scale = "piksele — brak wspólnej skali" if result.pixel_size_nm is None else "wspólna skala źródłowa"
+        if self._pixel_proportions.isChecked():
+            scale = "piksele — opcja Proporcje pikselowe"
+        self._registration_text.setText(
+            f"{result.method} · {quality}{inherited}\n"
+            f"ΔX: {current.shift_xy[0]:g} px · ΔY: {current.shift_xy[1]:g} px\n"
+            f"Aligned: {width} × {height} px\nSkala aligned: {scale}\nOdniesienie: {origin}"
+        )

@@ -23,8 +23,11 @@ w nm/nA od surowych wartości przy nieznanym trybie lub wzmocnieniu.
 MPP pokazuje numer źródłowej klatki oraz dostępny czas pomiaru, także przy
 częściowych brakach: [instrukcja próby MPP](mpp-series-manual.md).
 Play/Pause, tempo 1/2/5/10/20/30 kl./s i pętla działają; ręczny wybór
-zatrzymuje film. [Instrukcja odtwarzania](playback-manual.md). Rejestracja
-i eksport należą do kolejnych ticketów.
+zatrzymuje film. [Instrukcja odtwarzania](playback-manual.md).
+Rejestracja Phase działa w tle z postępem i anulowaniem. Wynik aligned ma
+pełny obszar, obrys źródła i oznaczenia niepewności; przełącznik original/aligned
+zachowuje osobne kadry. [Instrukcja rejestracji](phase-registration-manual.md).
+Pozostałe metody i eksport należą do kolejnych ticketów.
 Przycisk Usuń klatkę usuwa bieżący obraz z serii, zatrzymuje Play i zachowuje
 pochodzenie oraz czasy pozostałych klatek. Źródła na dysku pozostają bez zmian:
 [instrukcja usuwania](frame-deletion-manual.md).
@@ -88,6 +91,8 @@ mają status `done`: użytkownik potwierdził [testy manualne](playback-manual.m
 [Usuwanie klatek z zachowaniem czasu i pochodzenia](implementation/issues/07-frame-deletion.md)
 ma status `done`: użytkownik potwierdził [testy manualne](frame-deletion-manual.md)
 2026-10-23.
+[Rejestracja Phase i pełny widok aligned](implementation/issues/08-phase-registration.md)
+jest zaimplementowana; końcowe sprawdzenia i przegląd są w toku.
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje
@@ -96,7 +101,7 @@ cel do 1000 linii i bezwzględny limit 1500 fizycznych linii pliku kodu.
 ## Uruchomienie
 
 Z katalogu głównego worktree, z Pythonem 3.12. Dla tej funkcji potrzebne
-są tylko NumPy i PyQt6; wersje zapisano w `stmviewer/requirements.txt`,
+są NumPy, PyQt6 oraz SciPy/scikit-image dla Phase; wersje zapisano w `stmviewer/requirements.txt`,
 który korzysta ze wspólnego zestawu PyQt6 z `requirements/stm-apps.txt`.
 
 Ubuntu 24.04:

@@ -1,7 +1,7 @@
 """Image navigation and display, separate from the frame's measurement values."""
 
 from PyQt6.QtCore import QPointF, QRectF, Qt
-from PyQt6.QtGui import QImage, QMouseEvent, QPaintEvent, QPainter, QWheelEvent
+from PyQt6.QtGui import QColor, QImage, QMouseEvent, QPaintEvent, QPainter, QPen, QWheelEvent
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from stmviewer.frame import ImageFrame
@@ -22,17 +22,30 @@ class ImagePreview(QWidget):
         self._zoom = 1.0
         self._pan = QPointF()
         self._drag_position: QPointF | None = None
+        self._view = "original"
+        self._views: dict[str, tuple[float, QPointF]] = {}
+        self._original_rect: tuple[float, float, int, int] | None = None
         self._empty = QLabel("Brak otwartego obrazu.", self)
         self._empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout = QVBoxLayout(self)
         layout.addWidget(self._empty)
 
     def set_frame(self, frame: ImageFrame, *, reset_view: bool = True,
-                  reset_settings: bool = False) -> None:
+                  reset_settings: bool = False, view: str = "original",
+                  original_rect: tuple[float, float, int, int] | None = None) -> None:
         gamma = 1.0 if reset_settings else self._gamma
         image = frame_image(frame, gamma=gamma)
         pixels = False if reset_settings else self._pixel_proportions
         aspect = frame_aspect(frame, pixel_proportions=pixels)
+        if reset_settings:
+            self._views.clear()
+        elif view != self._view:
+            self._views[self._view] = (self._zoom, QPointF(self._pan))
+        if view != self._view:
+            self._zoom, self._pan = self._views.get(view, (1.0, QPointF()))
+            self._drag_position = None
+        self._view = view
+        self._original_rect = original_rect
         self._gamma = gamma
         self._pixel_proportions = pixels
         self._frame = frame
@@ -48,6 +61,9 @@ class ImagePreview(QWidget):
         """Release the last measurement and return to the empty preview."""
         self._frame = None
         self._image = None
+        self._views.clear()
+        self._view = "original"
+        self._original_rect = None
         self._aspect = 1.0
         self.fit_image()
         self.unsetCursor()
@@ -148,4 +164,12 @@ class ImagePreview(QWidget):
         height = width / self._aspect
         target = QRectF((self.width() - width) / 2, (self.height() - height) / 2,
                         width, height)
-        draw_frame(painter, target.translated(self._pan), self._image)
+        target.translate(self._pan)
+        draw_frame(painter, target, self._image)
+        if self._original_rect is not None:
+            x, y, w, h = self._original_rect
+            sx, sy = target.width() / self._image.width(), target.height() / self._image.height()
+            pen = QPen(QColor(255, 200, 0), 1, Qt.PenStyle.DashLine)
+            pen.setCosmetic(True)
+            painter.setPen(pen)
+            painter.drawRect(QRectF(target.x() + x * sx, target.y() + y * sy, w * sx, h * sy))

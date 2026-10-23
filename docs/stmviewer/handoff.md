@@ -1,5 +1,71 @@
 # Przekazanie — STM Viewer
 
+## 08: Rejestracja Phase i pełny widok aligned — 2026-10-23
+
+Gałąź: `viewer/start`. Baza implementacji i przeglądu:
+`1dc159ee48341b2180cea47947a3fb38d59dd0c6`.
+Ticket: [08-phase-registration](implementation/issues/08-phase-registration.md).
+Implementacja gotowa; końcowe sprawdzenia i przegląd w toku.
+
+### Wynik i kontrakt
+
+Lokalny runner korzysta z istniejącego `PhaseCorrelationShiftBackend`
+(default: upsample 20, normalization phase, min_texture_std 1e-8,
+peak_exclusion_radius 3, low_confidence_peak_ratio 3). Jak NanoTrack UI używa
+raw, sąsiednich oryginałów i kumulacji XY, jakości minimum i najgorszego statusu.
+Nie zmieniano algorytmu ani progów. Pojedyncza klatka ma przesunięcie zerowe.
+
+`RegistrationResult` przechowuje pole każdej klatki, przesunięcia, status,
+maskę, cały obszar i lekkie historyczne pochodzenie odniesienia. Metadane
+źródeł pozostają w oryginalnych `ImageFrame`. Aligned ma float64 i NaN,
+SciPy affine_transform order=1, constant NaN, bez ekstrapolacji. Geometria
+odpowiada NanoTrack (ceil marginesów); lokalny materializator zachowuje
+float64 oraz punkty anulowania między klatkami. Wspólna kalibracja wynika
+z każdej klatki, a przy braku/niezgodności aligned ma proporcje pikselowe.
+Pole źródłowe opisuje prostokąt krawędzi pikseli; maska nie określa jego rozmiaru.
+
+QThread publikuje tylko kompletny wynik. Start zatrzymuje Play i blokuje
+import/usuwanie/metodę/Play/kolejną próbę. Nawigacja, widoki i ustawienia
+obrazu pozostają dostępne. Anulowanie utrzymuje blokady do końca pracy;
+zamykanie okna także czeka na zakończenie. Błąd lub anulowanie zachowują
+stary wynik i zmiany bieżącego podglądu. Sukces dopasowuje nowe aligned
+aktualnej klatki, zachowuje gamma i zapisany kadr original.
+
+Miniatury pozostają original gamma 1; ostrzegają o niepewności, także
+odziedziczonej. Usuwanie nie interpoluje ponownie, nie przycina obszaru
+ani nie usuwa historycznego odniesienia/niepewności. Rejestracja po usunięciu
+korzysta z pozostałych oryginałów i tworzy nowe odniesienie. Nowa seria
+czyści wynik; nieudany import go zachowuje.
+
+### Sprawdzenia i odbiór
+
+- TDD w uzgodnionych granicach: znaki/kumulacja, subpiksele i maska ≠ pole,
+  anulowanie aligned, błędy i niekompletny wynik, historyczne odniesienie,
+  wspólna skala, GUI i bezpieczne zamknięcie. Kontrolowane wyniki backendu
+  sprawdzono osobno od rzeczywistego Phase oraz porównania z runnerem NanoTrack.
+- **123 testy Viewera zaliczone**, w tym 20 nowych; **mypy strict 17 plików**.
+- Automatyczna próba Qt xcb z rzeczywistymi dialogami i lokalnym MOVIE_3.MPP
+  przeszła. Źródła zachowały bajty/hash; obejrzano zrzuty aligned/subpixel/pomiar.
+  Skrypt i log: `/tmp/stmviewer-phase-smoke.py`, `/tmp/stmviewer-phase-smoke.log`.
+  Zrzuty: `/tmp/stmviewer-phase-{aligned,subpixel,uncertain,measurement}-xcb.png`.
+  MOVIE_3: 17 klatek, wynik **398 × 398**, 16 niepewnych klatek
+  (łącznie z odziedziczoną niepewnością); manifest SHA-256 i przesunięcia:
+  `/tmp/stmviewer-phase-measurement.json`. To test wykonania/prezentacji,
+  nie potwierdzenie fizycznej poprawności wszystkich dopasowań.
+- Pełny zestaw repo i przegląd Standards/Spec: w toku.
+- [Instrukcja manualna](phase-registration-manual.md) i pięć małych filmów
+  oraz generator są w repo. Ręczny odbiór użytkownika i Windows czekają.
+
+### Integracja
+
+Lokalne wymagania Viewera rozszerzono o sprawdzone SciPy 1.15.2 i scikit-image
+0.25.2. Mypy pomija śledzenie starego NanoTrack i brak stubów SciPy; sam kod
+Viewera pozostaje strict. Nie zmieniono konfiguracji głównej ani wspólnych
+modułów. Istniejący batch/materializator NanoTrack nie mają punktów anulowania,
+więc Viewer używa lokalnego cyklu z tym samym backendem i regułami geometrii.
+Wspólne wydzielenie runnera/materializatora może koordynować sesja integracyjna;
+nie jest blokadą obecnej funkcji. Pozostałe metody: 09–10; duża seria: 18.
+
 ## 07: Usuwanie klatek z zachowaniem czasu i pochodzenia — 2026-10-23
 
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
