@@ -5,7 +5,8 @@
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
 `1dc159ee48341b2180cea47947a3fb38d59dd0c6`.
 Ticket: [08-phase-registration](implementation/issues/08-phase-registration.md).
-Implementacja gotowa; końcowe sprawdzenia i przegląd w toku.
+Status: `ready-for-review`, do ręcznej próby użytkownika.
+Commit implementacji: `2fea452`; końcowy commit raportu podany w wiadomości sesji.
 
 ### Wynik i kontrakt
 
@@ -52,7 +53,20 @@ czyści wynik; nieudany import go zachowuje.
   (łącznie z odziedziczoną niepewnością); manifest SHA-256 i przesunięcia:
   `/tmp/stmviewer-phase-measurement.json`. To test wykonania/prezentacji,
   nie potwierdzenie fizycznej poprawności wszystkich dopasowań.
-- Pełny zestaw repo i przegląd Standards/Spec: w toku.
+- Pełny zestaw repo w `netcat`:
+  `PYTHONPATH=.:tests/moltrack:tests/stmviewer QT_QPA_PLATFORM=offscreen python -m pytest -q --import-mode=importlib --continue-on-collection-errors -o cache_dir=/tmp/stmviewer-phase-full-pytest`:
+  **1909 passed, 14 failed, 14 skipped**, 222.93 s. Wszystkie 14 identyfikatorów
+  niepowodzeń MolTrack/NanoTrack występuje w poprzednim logu ticketu 07;
+  brak nowych niepowodzeń oraz błędów zbierania. Wcześniejszy timeout workera
+  SAM2 nie powtórzył się. Nie jest to zielony odbiór całego repo. Log:
+  `/tmp/stmviewer-phase-full-suite.log`, porównanie z
+  `/tmp/stmviewer-deletion-full-suite.log`.
+- [Przegląd Standards/Spec](implementation/review-08-phase-registration.md):
+  Standards — 0 uwag; Spec — 0 usterek kodu, 1 drobna uwaga do instrukcji
+  manualnej, poprawiona po przeglądzie. Nie zmieniano kodu po testach.
+- Generator odtwarza pięć wzorców bajtowo. Największy zmieniony plik kodu:
+  `stmviewer/ui/main_window.py`, **590 linii** (limit 1500).
+  `git diff --check` oraz lokalne odnośniki zmienionej dokumentacji poprawne.
 - [Instrukcja manualna](phase-registration-manual.md) i pięć małych filmów
   oraz generator są w repo. Ręczny odbiór użytkownika i Windows czekają.
 

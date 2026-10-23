@@ -92,7 +92,8 @@ mają status `done`: użytkownik potwierdził [testy manualne](playback-manual.m
 ma status `done`: użytkownik potwierdził [testy manualne](frame-deletion-manual.md)
 2026-10-23.
 [Rejestracja Phase i pełny widok aligned](implementation/issues/08-phase-registration.md)
-jest zaimplementowana; końcowe sprawdzenia i przegląd są w toku.
+ma status `ready-for-review`: implementacja, testy i przegląd są zakończone;
+czeka na [ręczny odbiór](phase-registration-manual.md).
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje

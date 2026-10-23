@@ -38,8 +38,9 @@ Metadane zastępcze w tym drugim filmie nie potwierdzają rzeczywistej kalibracj
 
 1. Otwórz `integer.mpp`, wybierz klatkę 2, ustaw gamma 1,5, przybliż
    i przesuń obraz. Uruchom Play, następnie **Rejestruj**. Play zatrzymuje się.
-   Po sukcesie widać aligned aktualnie wybranej klatki, cały nowy obszar,
-   gamma 1,5, ΔX 3 px i ΔY −2 px. Panel podaje 53 × 34 px.
+   Po sukcesie widać aligned aktualnie wybranej klatki, cały nowy obszar
+   i gamma 1,5. Play mogło przejść dalej przed kliknięciem Rejestruj.
+   Wybierz teraz klatkę 2: oczekuj ΔX 3 px i ΔY −2 px; panel podaje 53 × 34 px.
 2. Przejdź przez klatki: znaczniki obrazu powinny pozostawać na wspólnej
    pozycji. Żółty przerywany obrys wskazuje pełne pole źródła; szachownica
    oznacza brak próbek, również przy gamma innej niż 1.

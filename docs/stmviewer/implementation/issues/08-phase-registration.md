@@ -4,7 +4,7 @@
 
 **Blocked by:** [07: Usuwanie klatek z zachowaniem czasu i pochodzenia](07-frame-deletion.md)
 
-**Status:** in-progress
+**Status:** ready-for-review
 
 **Wykonawca:** Codex, `viewer/start`.
 
@@ -66,5 +66,13 @@ jest oznaczana także po jej odziedziczeniu. Wspólne moduły pozostają bez zmi
 
 123 testy Viewera i mypy strict (17 plików) przechodzą. Automatyczna próba
 Qt xcb na wzorcach oraz lokalnym MOVIE_3.MPP przeszła; oceniono zrzuty.
-[Instrukcja manualna](../../phase-registration-manual.md). Pełny zestaw repo
-oraz code-review są w toku. Ręczny odbiór użytkownika i Windows czekają.
+[Instrukcja manualna](../../phase-registration-manual.md). Commit implementacji:
+`2fea452`. [Przegląd Standards/Spec](../review-08-phase-registration.md):
+0 usterek kodu; jedną drobną uwagę do instrukcji manualnej poprawiono.
+
+Pełny zestaw repo: **1909 passed, 14 failed, 14 skipped**, 222.93 s.
+Wszystkie 14 niepowodzeń występowało przy tickecie 07; brak nowych
+identyfikatorów błędów i błędów zbierania. Nie jest to zielony odbiór repo.
+Największy zmieniony plik kodu ma 590 linii. Szczegóły: [przekazanie](../../handoff.md).
+Ręczny odbiór użytkownika pozostaje do wykonania, dlatego status to
+`ready-for-review`. Windows ma odrębny ticket odbioru.
