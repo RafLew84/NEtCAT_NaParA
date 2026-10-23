@@ -4,7 +4,7 @@
 
 **Blocked by:** [08: Rejestracja Phase i pełny widok aligned](08-phase-registration.md)
 
-**Status:** in-progress
+**Status:** ready-for-review
 
 **Wykonawca:** Codex, `viewer/start`, 2026-10-23.
 **Baza code-review:** `d899ea0648af2ab507b41fc24d2c2bdcf5c356c2`.
@@ -15,12 +15,12 @@ Przed realizacją przeczytaj [zasady wykonania i odbioru](../README.md#zasady-wy
 
 ## Kryteria odbioru
 
-- [ ] Sprawdzenie dostępności i start obliczeń nie pobierają wag ani bibliotek. Brak/nieprawidłowe wagi lub zależności dają czytelny powód.
-- [ ] Przy poprawnym lokalnym środowisku wybrany Deep Matcher tworzy aligned zgodnie ze wspólnym cyklem rejestracji.
-- [ ] Jawna informacja o faktycznym urządzeniu rozróżnia CPU/CUDA. Zachowanie wyboru urządzenia nie jest cichą zamianą wybranej metody na inny backend.
-- [ ] Błąd inicjalizacji/modelu, brak zasobów lub anulowanie zachowuje poprzedni wynik; okno pozostaje responsywne.
-- [ ] Instrukcja wyjaśnia lokalne przygotowanie zależności/wag poza aplikacją i sposób sprawdzenia CUDA. Dostępność GPU nie jest wnioskowana tylko z jego nazwy.
-- [ ] Odbiór zawiera próbę braku wag oraz rzeczywistą próbę modelu/CUDA, gdy środowisko jest dostępne. FakeMatcher nie zastępuje raportu tej próby; brak środowiska jest zapisany jawnie.
+- [x] Sprawdzenie dostępności i start obliczeń nie pobierają wag ani bibliotek. Brak/nieprawidłowe wagi lub zależności dają czytelny powód.
+- [x] Przy poprawnym lokalnym środowisku wybrany Deep Matcher tworzy aligned zgodnie ze wspólnym cyklem rejestracji.
+- [x] Jawna informacja o faktycznym urządzeniu rozróżnia CPU/CUDA. Zachowanie wyboru urządzenia nie jest cichą zamianą wybranej metody na inny backend.
+- [x] Błąd inicjalizacji/modelu, brak zasobów lub anulowanie zachowuje poprzedni wynik; okno pozostaje responsywne.
+- [x] Instrukcja wyjaśnia lokalne przygotowanie zależności/wag poza aplikacją i sposób sprawdzenia CUDA. Dostępność GPU nie jest wnioskowana tylko z jego nazwy.
+- [x] Odbiór zawiera próbę braku wag oraz rzeczywistą próbę modelu/CUDA, gdy środowisko jest dostępne. FakeMatcher nie zastępuje raportu tej próby; brak środowiska jest zapisany jawnie.
 
 ## Testy automatyczne
 
@@ -47,4 +47,31 @@ Dane i sposób przygotowania nietypowych wzorców dostarcza realizujący ticket.
 
 ## Współpraca z integracją
 
-Wspólna inicjalizacja LoFTR wymaga ścieżki bez automatycznego pobierania; zmiany backendu i stosu Torch/Kornia/CUDA wykonuje integracja.
+Wspólna inicjalizacja LoFTR wymaga ścieżki bez automatycznego pobierania; zmiany backendu i stosu Torch/Kornia/CUDA wykonuje integracja. W realizacji wykorzystano istniejący punkt wstrzyknięcia matchera: lokalny adapter Viewera ładuje wagi bez zmiany wspólnego kodu ani środowiska netcat.
+
+
+## Realizacja — 2026-10-23
+
+Implementacja: `30ddddf`. Zakres: `d899ea0..HEAD`; raport i status zapisane
+osobnym commitem. Wybór Deep Matcher pokazuje plik lokalnych wag, urządzenie
+Auto/CPU/CUDA i Sprawdź model. Ładowanie i obliczenia działają w tle.
+Gotowy wynik podaje faktyczne urządzenie; błąd i anulowanie zachowują stary aligned.
+
+- 177 testów Viewera zaliczonych, 2 opcjonalne próby rzeczywistego modelu
+  pominięte bez ścieżki. Te same dwie próby uruchomiono osobno z lokalnymi
+  wagami: **CPU i CUDA zaliczone**. Mypy strict: 19 plików bez błędów.
+- Pełny zestaw repo: **1963 passed, 14 failed, 16 skipped**, bez błędów
+  zbierania. Wszystkie 14 niepowodzeń MolTrack/NanoTrack jest identyczne
+  z listą poprzedniego ticketu; brak nowych niepowodzeń.
+- Automatyczna próba prawdziwego Qt xcb: brak wag, wybór pliku, sprawdzanie,
+  CPU/CUDA/Auto, błędne wagi, anulowanie i pełny MOVIE_3 — zaliczona.
+  Rzeczywiste CUDA: NVIDIA GeForce RTX 5090, Torch 2.9.1+cu128.
+  Źródła i lokalny checkpoint zachowały SHA-256.
+- [Code-review](../review-10-deep-matcher.md): Standards 0, Spec 0.
+  Największy zmieniony plik kodu: 634 linie, poniżej celu 1000 i limitu 1500.
+- [Instrukcja manualna](../../deep-matcher-manual.md) zawiera lokalne wagi,
+  wzorzec, kroki w GUI, oczekiwane wyniki i przygotowanie obu systemów.
+
+Status `ready-for-review`: automatyczne próby zakończone, ręczny odbiór
+użytkownika jeszcze niewykonany. Windows nie był uruchamiany; odbiór platform
+pozostaje odrębnym etapem. Szczegóły: [przekazanie](../../handoff.md).

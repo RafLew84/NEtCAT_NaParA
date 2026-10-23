@@ -1,5 +1,92 @@
 # Przekazanie — STM Viewer
 
+
+## 10: Deep Matcher z lokalnymi wagami — 2026-10-23
+
+Gałąź: `viewer/start`. Baza implementacji i przeglądu:
+`d899ea0648af2ab507b41fc24d2c2bdcf5c356c2`. Commit implementacji: `30ddddf`.
+Ticket: [10-deep-matcher](implementation/issues/10-deep-matcher.md).
+Status: `ready-for-review`; ręczny odbiór użytkownika jeszcze niewykonany.
+Raport i status zapisane osobnym commitem podanym w wiadomości sesji.
+
+### Wynik i kontrakt
+
+Deep Matcher ma pole lokalnego checkpointu, wybór Auto/CPU/CUDA i Sprawdź
+model. Pole można wypełnić przez `STMVIEWER_LOFTR_WEIGHTS`. Domyślnie jest
+puste. Wstępna kontrola sprawdza plik i moduły, bez importowania modelu;
+panel nie twierdzi wtedy, że model został już zweryfikowany. Sprawdź model
+można uruchomić przed wczytaniem obrazów; nie zmienia istniejącego aligned.
+
+Import bibliotek, ładowanie i weryfikacja wag oraz rejestracja działają
+w QThread, z postępem i punktami anulowania. Checkpoint jest czytany przez
+`torch.load(weights_only=True)` na CPU, następnie `LoFTR(pretrained=None)`
+sprawdza ścisłą zgodność parametrów i przechodzi na wybrane urządzenie.
+Nie ma pobierania bibliotek/wag. Auto wybiera CUDA, gdy Torch zgłasza jego
+obecność, inaczej CPU; błąd wykonania na CUDA nie powoduje ponowienia na CPU.
+Wykonywana jest rzeczywista operacja na urządzeniu, a wynik zapisuje jego
+numer/nazwę. Zmiana wyboru metody lub urządzenia nie zmienia starego wyniku.
+
+Każde Rejestruj ponownie ładuje wskazany plik. Jeden model obsługuje wszystkie
+pary danej próby. Adapter zachowuje normalizację NanoTrack i domyślny
+konsensus translacji XY. Wykorzystuje istniejący punkt
+`DeepMatcherTranslationBackend(matcher=...)`, bez modyfikacji wspólnego kodu.
+Geometria, sąsiednie oryginały, kumulacja względem pierwszej klatki, statusy,
+interpolacja, publikacja kompletnego wyniku i usuwanie pozostają wspólne
+z wcześniejszymi metodami. Błąd, brak zasobów i anulowanie zachowują poprzedni
+wynik. Rozdzielczość wejścia nie jest zmieniana dla modelu.
+
+### Sprawdzenia i odbiór
+
+- TDD red → green w zatwierdzonych granicach rejestracji i publicznego GUI.
+  Kontrolowany model używa prawdziwego Torch i konsensusu NanoTrack;
+  sprawdza znane XY, lokalny odczyt, niezgodne/uszkodzone/brakujące wagi,
+  brak bibliotek, Auto/CPU/CUDA, błędy zasobów i anulowanie. Testy GUI
+  sprawdzają stare aligned, blokady, nawigację, gamma i zoom w trakcie pracy.
+- **177 testów Viewera zaliczonych, 2 opcjonalne pominięte**, 18.58 s.
+  Te dwie próby rzeczywistych wag wykonano osobno po ustawieniu
+  `STMVIEWER_TEST_LOFTR_WEIGHTS`: **2 passed**, CPU i CUDA, 1.72 s,
+  przy zablokowanych funkcjach pobierania. Log: `/tmp/stmviewer-deep-real-tests.log`.
+  **Mypy strict: 19 plików**, bez błędów.
+- Rzeczywisty checkpoint LoFTR outdoor: 46 341 978 bajtów,
+  SHA-256 `21f5bec5968178e8bc8b7633441836fe5de4f47d861dd2cd7dc38e271b0479ec`,
+  11 561 456 parametrów. Ścieżka w [instrukcji](deep-matcher-manual.md).
+  Torch 2.9.1+cu128, Kornia 0.8.2, kornia_rs 0.1.10; CUDA:0,
+  NVIDIA GeForce RTX 5090. Sprawdzono rzeczywistą operację CUDA oraz model,
+  a nie samą nazwę GPU. Niczego nie instalowano ani nie pobierano.
+- Automatyczne GUI Qt xcb z prawdziwymi dialogami: Phase → brak wag →
+  wybór pliku → Sprawdź model/Rejestruj na CPU, CUDA i Auto. Dla klatki 2
+  wzorca CPU: XY około (1.955, −1.072), CUDA: (1.956, −1.072), obszar 83 × 83.
+  Auto wybrało CUDA. Błędne wagi i rzeczywiste anulowanie zachowały stary wynik.
+  Pełny MOVIE_3, 17 klatek, zakończył się wynikiem 312 × 291 px.
+  To potwierdzenie wykonania i prezentacji, nie fizycznej poprawności każdego
+  dopasowania. Źródła oraz wagi zachowały SHA-256. Obejrzano zrzuty GUI.
+  Skrypt/log/manifest: `/tmp/stmviewer-deep-smoke.{py,log,json}`;
+  zrzuty `/tmp/stmviewer-deep-{CPU,CUDA,Auto,measurement}-xcb.png`
+  oraz `/tmp/stmviewer-deep-missing-settled-xcb.png`.
+- Pełne repo, uruchomione raz w netcat:
+  `PYTHONPATH=.:tests/moltrack:tests/stmviewer QT_QPA_PLATFORM=offscreen python -m pytest -q --import-mode=importlib --continue-on-collection-errors -o cache_dir=/tmp/stmviewer-deep-full-pytest`:
+  **1963 passed, 14 failed, 16 skipped**, 227.13 s, bez błędów zbierania.
+  Zestaw 14 niepowodzeń MolTrack/NanoTrack jest identyczny z ticketem 09;
+  brak nowych niepowodzeń. Całe repo nadal nie ma zielonego odbioru.
+  Log `/tmp/stmviewer-deep-full-suite.log`; porównanie z
+  `/tmp/stmviewer-cpu-full-suite.log`.
+- [Code-review](implementation/review-10-deep-matcher.md): Standards — 0,
+  Spec — 0. Kod po przeglądzie niezmieniony. `git diff --check` i lokalne
+  odnośniki dokumentacji poprawne; największy zmieniony plik kodu ma 634 linie.
+- [Instrukcja manualna](deep-matcher-manual.md) zawiera uruchomienie,
+  wzorzec, lokalne wagi i scenariusze. Ręczny odbiór użytkownika pozostaje
+  niewykonany. Windows nie był uruchamiany; przygotowanie opisano, ale próba
+  platformy należy do osobnego ticketu.
+
+### Integracja
+
+Zmiany wyłącznie w Viewerze, jego testach i dokumentacji. Wspólne moduły,
+konfiguracja główna, pomiary i istniejące środowisko netcat niezmienione.
+Opcjonalne zależności zapisano w `stmviewer/requirements-deep.txt`;
+instrukcja rozdziela instalację CPU i CUDA. Ewentualne wspólne wydzielenie
+lokalnego loadera może prowadzić integracja, ale nie blokuje tej funkcji.
+Nie publikowano ani nie scalano gałęzi.
+
 ## 09: Pozostałe metody rejestracji CPU — 2026-10-23
 
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
