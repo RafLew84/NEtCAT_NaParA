@@ -4,8 +4,8 @@ ID: 16
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: open
-Assignee:
+Status: claimed
+Assignee: Codex
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 14
 
@@ -60,6 +60,36 @@ ograniczenia zostają. Udokumentowany wynik negatywny także odpowiada na to
 pytanie. Zakończenie próby nie zatwierdza metody produkcyjnej; ten wybór
 pozostaje w [odbiorze metod](13-method-acceptance.md). Kod prototypu oraz
 lokalne duże wyniki nie stają się automatycznie częścią aplikacji.
+
+## Wykonana próba — 2026-10-23
+
+[Raport SBC/MatID](../sbc-matid-domains-trial.md) i
+[audyt API](../research-sbc-adaptation-audit.md). Sprawdzono 24 pełne klatki
+TTMAPP i 204 kontrole: 6 ustawień, wynik surowy oraz dwie jawne adaptacje.
+Bez treningu, K lub ramek na wejściu. Żaden wariant nie spełnia kompletu
+warunków; konfigurację podglądu wybrano diagnostycznie na syntezie.
+
+SBC poprawia braki 30% (99.8% przypisań), gładkie odkształcenie i trudną
+granicę przesunięcia (0.2% scaleń przy 52.2% przypisań). Jednak scala
+różnicę orientacji 8° i przypisuje 355/3195 losowych punktów do pozornych
+obszarów. TTMAPP: 63.5% przypisań, 5.9% podziałów i 5.5% scaleń
+warunkowych par, wobec 70.7% / 2.8% / 0% poprzedniej komórki.
+Wynik zależy też od ziarna wyszukiwania. Nie przyjęto metody do aplikacji.
+
+Podgląd: `/home/rlew/projekty/NEtCAT-domains/.scratch/sbc-matid-domains/index.html`.
+Źródła: `prototype/stmdomains-sbc`, commit `e6d3fbc`, baza `2b70d0d`.
+W tym checkoutcie: `stmdomains/prototypes/README-sbc.md` i jedno polecenie
+odtworzenia. Duże wyniki pozostają lokalne, kod prototypu na osobnej gałęzi.
+
+Pełne powtórzenie bez referencji, ze zmianą kolejności, daje 228 identycznych
+wyników. Zapisano 684 wyniki zgodne z kontraktem, komórki i ślady etapów;
+sprawdzono kontrast, skalę, obrót, ziarna oraz zależność od kategorii atomowej.
+35 kontroli HTML bez błędów JS. Raport podaje zakres, koszty i ograniczenia.
+
+Obliczenia zakończone, status **`claimed` do omówienia**. Propozycja:
+zachować SBC jako punkt odniesienia i przejść do
+[17 — tekstury](17-image-texture-domains.md). Nie uruchomiono kolejnego
+issue ani treningu; odbiór 13 pozostaje osobną decyzją.
 
 ## Dependencies
 

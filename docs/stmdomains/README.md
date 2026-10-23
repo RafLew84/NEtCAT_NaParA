@@ -137,9 +137,20 @@ Na kolejne polecenie wykonano [badanie orientacji i łączenia](orientation-and-
 poprawia kontrolę braków i część TTMAPP: 70.7% przypisań, 0/3801 scaleń
 ocenianych par różnych regionów. RED jednak spada do 14/101, a granica
 przesunięcia z błędem centrów jest niemal całkowicie scalana. Podgląd:
-`.scratch/orientation-and-joining/index.html`. Issue 15 nadal `claimed`
-do omówienia; następna propozycja to porównanie 16 na rozszerzonych
-kontrolach, bez wdrażania obecnej metody. Nie rozpoczęto 16 ani treningu.
+`.scratch/orientation-and-joining/index.html`. Użytkownik polecił następnie
+przejść do 16; issue 15 jest zakończone jako eksperyment i punkt odniesienia,
+bez wdrażania metody.
+
+[Próba 16 — SBC/MatID](sbc-matid-domains-trial.md) obejmuje 228 próbek,
+6 ustawień i 3 polityki wyniku. Pomaga przy brakach centrów, deformacji
+i granicy przesunięcia z szumem. Nie spełnia jednak warunku samodzielnego
+wyszukiwania: tworzy pozorne obszary na losowych punktach, scala różnicę
+orientacji 8° i zależy od ziarna wyszukiwania. W referencjach adaptacja
+przypisuje 63.5% centrów, przy 5.5% scaleń ocenianych par różnych regionów.
+Podgląd: `.scratch/sbc-matid-domains/index.html`. Issue 16 jest `claimed`
+do omówienia; propozycja to porównanie tekstury w 17. Nie uruchomiono
+kolejnego issue ani treningu. [Audyt API](research-sbc-adaptation-audit.md)
+i raport opisują poprawki modelu punktowego oraz ograniczenia biblioteki.
 
 ## Dwa etapy
 

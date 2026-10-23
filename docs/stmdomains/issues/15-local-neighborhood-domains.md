@@ -4,7 +4,7 @@ ID: 15
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: claimed
+Status: resolved
 Assignee: Codex — domains/orientation-trial
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 14
@@ -88,7 +88,7 @@ przypisania. Raport podaje szczegóły jakości, koszty, wersje i ograniczenia.
 `76dd4a3`), bez scalania prototypu do aplikacji.
 
 Użytkownik po przedstawieniu wyniku wybrał **„Najpierw omówmy lub rozwińmy
-tę próbę”**. Status pozostaje `claimed`; nie przyjęto zakończenia pytania
+tę próbę”**. Status pozostawał wtedy `claimed`; nie przyjęto zakończenia pytania
 ani przejścia do 16. Następnie polecił zbadać kryterium powtarzalności.
 
 ## Kontynuacja — kryterium powtarzalności, 2026-10-23
@@ -139,10 +139,11 @@ z kontraktem, obrót 37° na czterech kontrolach, kontrast i skalę oraz
 14 kontroli HTML bez błędów JS. Pełne powtórzenie bez referencji i ze
 zmianą kolejności opisano w raporcie.
 
-Issue 15 nadal **`claimed` do omówienia**. Komórka jest użytecznym punktem
-odniesienia, nie gotową metodą produkcyjną. Proponowany kolejny krok po
-omówieniu: porównanie 16 z zachowaniem nowych trudnych kontroli i osobną
-oceną RED/YELLOW. Nie uruchomiono 16 ani treningu. Odbiór 13 nadal otwarty.
+Po tej próbie issue 15 pozostawało `claimed` do omówienia. Komórka jest
+użytecznym punktem odniesienia, nie gotową metodą produkcyjną. Proponowano
+porównanie 16 z zachowaniem nowych trudnych kontroli i osobną oceną
+RED/YELLOW. Decyzja użytkownika o przejściu do 16 jest poniżej;
+odbiór 13 nadal pozostaje otwarty.
 
 ## Dependencies
 
@@ -152,3 +153,10 @@ oceną RED/YELLOW. Nie uruchomiono 16 ani treningu. Odbiór 13 nadal otwarty.
 
 - [Przegląd samodzielnego wyszukiwania domen w STM/AFM](../research-stm-afm-unsupervised-domain-discovery.md)
 - [Przegląd domen i grupowania obiektów](../research-domain-discovery-and-object-clustering.md)
+
+## Answer — 2026-10-23: przejście do porównania SBC
+
+Po trzech eksperymentach użytkownik polecił przejść do issue 16. Zakończono
+15 jako porównanie i punkt odniesienia; nie przyjęto metody do aplikacji.
+Ograniczenia granic przesunięcia, RED/YELLOW i deformacji pozostają w
+[raporcie orientacji i łączenia](../orientation-and-joining-trial.md).

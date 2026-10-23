@@ -1,4 +1,57 @@
-# STM Domains — orientacja i łączenie, kontynuacja issue 15
+# STM Domains — próba SBC / MatID, issue 16
+
+Data: 2026-10-23. Dokumentacja `domains/sbc-trial`, baza `9f2b127`,
+worktree `/tmp/netcat-stmdomains-sbc`, docelowo `domains/start`.
+Źródła: `prototype/stmdomains-sbc`, commit `e6d3fbc`, baza `2b70d0d`.
+Nie scalać prototypu do aplikacji. Commit dokumentacji w wiadomości końcowej.
+
+Na polecenie użytkownika przejścia do 16 zakończono issue 15 jako trzy
+porównania, bez przyjęcia metody. Wykonano SBC/MatID: 228 próbek,
+6 ustawień, surowa biblioteka i dwie jawne adaptacje punktowe. Kalibracja
+na 102 kontrolach rozwojowych; pozostałe kontrole i TTMAPP ocenione później.
+Żadna konfiguracja nie spełniła kompletu warunków. Wybrany diagnostycznie
+wariant: tolerancja 1.8 px, maksymalny wektor komórki 42 px, połączenie
+19.8 px, zerowe promienie także wewnątrz walidacji prototypu, zachowanie
+wszystkich komponentów ≥8 i odmowa nakładającym się propozycjom.
+
+[Raport](sbc-matid-domains-trial.md), [audyt API](research-sbc-adaptation-audit.md)
+i podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/sbc-matid-domains/index.html`.
+SBC poprawia 30% braków (99.8% przypisań), deformację i granicę przesunięcia
+z błędami centrów (0.2% scaleń przy 52.2% przypisań). Jednak scala różnicę
+orientacji 8° i tworzy pozorne obszary z 355/3195 losowych punktów.
+TTMAPP: 63.5% przypisań, 5.9% podziałów i 5.5% scaleń warunkowych par,
+wobec 70.7% / 2.8% / 0% poprzedniej komórki. Zmiana ziarna powoduje
+znaczne zmiany wyniku. Komórka biblioteki jest prototypem, nie globalnym fitem.
+
+Issue 16 **`claimed` do omówienia**; zapytano użytkownika o zachowanie
+porównania i przejście następnie do tekstury 17. Nie uruchomiono 17 ani
+treningu. Odbiór 13 i jakość 04 pozostają otwarte. Nie wybrano metody
+produkcyjnej, nie mierzono powierzchni ani nie tworzono katalogu typów.
+
+Sprawdzenia: 228/228 identycznych ponownych wyników i śladów etapów bez
+referencji, po przestawieniu punktów i odwróceniu kolejności klatek;
+684 wyniki zgodne z kontraktem. Kontrast/inwersja/skala: po 6 par;
+obrót 37°: identyczne przypisania na 10 próbkach. Zmiana kategorii H/C
+zmienia raw, lecz nie adaptację. Sprawdzono także 2 dodatkowe ziarna,
+wejście bez kanonizacji i bezpośrednie zachowanie czyszczenia. 35 kontroli
+lokalnego HTML w QtWebEngine bez błędów JS; obejrzano zrzut i wykres.
+Sprawdzono składnię Python/Bash i diff. Nie testowano natywnego GUI ani
+produkcji, nie wykonano pełnego benchmarku 268 klatek. Ostrzeżenia
+numeryczne jednej kontroli zapisano w artefaktach; nie było przerwania próby.
+
+CPU, jeden wątek BLAS/OpenMP: 91.05 s kalibracyjnych predykcji,
+224.07 s dla 228 próbek × 6 ustawień; RSS 223844 KiB (~219 MiB).
+Zbudowano MatID 2.2.0 z commita `5aa27776` i spglib 2.6.0 w izolowanym
+`/tmp/stmdomains-issue16-deps`. Środowisko netcat, kod wspólny i główna
+konfiguracja bez zmian. Dane/duże wyniki pozostają lokalne (3594 pliki,
+564478701 B; kopia zweryfikowana SHA-256). Dokumentacja trafia wyłącznie
+do Domains; Viewer i integracja bez zmian.
+
+---
+
+## Poprzednie przekazanie — orientacja i łączenie, issue 15
+
 
 Data: 2026-10-23. Dokumentacja: `domains/orientation-trial`, baza `8065aea`,
 worktree `/tmp/netcat-stmdomains-orientation`, docelowo `domains/start`.

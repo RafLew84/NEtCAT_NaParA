@@ -73,7 +73,7 @@ Stan 2026-10-23: [przygotowanie 14](14-unsupervised-input-and-controls.md)
 zakończone. [Raport](../unsupervised-input-preparation.md) i
 [protokół wejścia/wyników](../experiment-input-protocol.md) opisują gotowy
 zestaw. Następnie wykonano [pierwszą próbę 15](../local-neighborhood-domains-trial.md).
-Issue 15 pozostaje `claimed`: użytkownik wybrał dalsze omówienie lub
+Issue 15 początkowo pozostawało `claimed`: użytkownik wybrał dalsze
 rozwinięcie próby, bez przejścia do 16. Prosty opis/SOAP nie dały gotowej
 metody. Następnie [zbadano kryterium powtarzalności](../recurrence-criterion-trial.md):
 38 konfiguracji, 204 próbki, przypisanie w referencjach 31.0% → 62.5%,
@@ -81,10 +81,13 @@ lecz nadal scalenia i odmowy przy łączeniu zgodnych orientacyjnie składowych.
 Na następne polecenie wykonano [orientację i łączenie](../orientation-and-joining-trial.md):
 31 wariantów, 228 próbek. Komórka ze zgodnością ze startem poprawia braki
 i część TTMAPP, lecz pomija RED/YELLOW i scala zaburzoną granicę przesunięcia.
-15 nadal `claimed` do omówienia; propozycja dalszej pracy to porównanie 16
-z nowymi kontrolami. 16, 17, 18 i 20 mają spełnione zależności, ale nie
-zostały uruchomione.
-Odbiór 13 i jakość 04 pozostają otwarte.
+Użytkownik polecił przejść do 16; 15 zakończono jako porównanie, bez wyboru
+algorytmu produkcyjnego. [Próba SBC/MatID](../sbc-matid-domains-trial.md)
+jest wykonana na 228 próbkach. Daje poprawę braków, deformacji i trudnej
+granicy, ale fałszywy porządek, mała różnica orientacji i niestabilność
+ziarna wykluczają przyjęcie konfiguracji. 16 jest `claimed` do omówienia;
+następna propozycja to 17 — tekstura. 17, 18 i 20 mają spełnione zależności,
+lecz nie zostały uruchomione. Odbiór 13 i jakość 04 pozostają otwarte.
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie
 z instrukcjami repozytorium. Nie wymaga zewnętrznego trackera.
@@ -165,8 +168,8 @@ ten nadal warunkuje odbiór metod. Statusy znajdują się w ticketach.
 | Pytanie/zadanie | Typ | Kolejność |
 | --- | --- | --- |
 | [Jak przygotować wspólne wejście i kontrole bez narzucania domen?](14-unsupervised-input-and-controls.md) | task / AFK | Pierwszy krok; E0 |
-| [Czy otoczenie zaznaczonych molekuł pozwala samodzielnie znaleźć domeny?](15-local-neighborhood-domains.md) | prototype / HITL | `claimed`: wykonano otoczenia, powtarzalność oraz orientację/łączenie; do omówienia wynik i przejście do porównania 16, E1 |
-| [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md) | prototype / HITL | Po przygotowaniu wejścia; E2 |
+| [Czy otoczenie zaznaczonych molekuł pozwala samodzielnie znaleźć domeny?](15-local-neighborhood-domains.md) | prototype / HITL | `resolved`: trzy próby; użytkownik polecił porównanie 16, bez przyjęcia metody, E1 |
+| [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md) | prototype / HITL | `claimed`: próba SBC/MatID wykonana, wynik do omówienia; propozycja 17, E2 |
 | [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md) | prototype / HITL | Po przygotowaniu wejścia; E3 |
 | [Jak przygotować cechy gotowych sieci bez treningu na naszych danych?](18-frozen-feature-preparation.md) | task / AFK | Po przygotowaniu wejścia; niezależnie od prób klasycznych |
 | [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | Po przygotowaniu cech i wyniku klasycznej tekstury |
