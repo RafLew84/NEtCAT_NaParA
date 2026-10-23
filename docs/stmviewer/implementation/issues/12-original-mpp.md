@@ -4,7 +4,10 @@
 
 **Blocked by:** [03: S94 i mieszane serie STP/S94](03-s94-series.md), [07: Usuwanie klatek z zachowaniem czasu i pochodzenia](07-frame-deletion.md), [11: Otwarcie MPP z metadanymi towarzyszącymi](11-mpp-metadata-import.md)
 
-**Status:** ready-for-agent
+**Status:** in-progress
+
+**Wykonawca:** Codex, `viewer/start`, 2026-10-23.
+**Baza code-review:** `7756c3d6e018ad1820f7400dc2d606b49d0975f2`.
 
 **Specyfikacja:** [Zapis MPP z wartościami i metadanymi](../../issues/04-mpp-export.md#answer), [Dane i kryteria odbioru pierwszej wersji](../../issues/06-acceptance.md#answer).
 

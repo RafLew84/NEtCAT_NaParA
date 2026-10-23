@@ -160,3 +160,27 @@ def apply_mpp_metadata(path: Path, frames: tuple[ImageFrame, ...], *, sha256: st
         annotated.append(replace(frame, metadata_note=note))
     check_cancelled()
     return tuple(annotated)
+
+
+def encode_mpp_metadata(frames: tuple[ImageFrame, ...], sha256: str, *,
+                        check_cancelled: Callable[[], None]) -> bytes:
+    """Serialize original-frame metadata using the same validated V1 contract."""
+    records = []
+    for frame in frames:
+        check_cancelled()
+        provenance = frame.provenance or FrameProvenance(str(frame.source), frame.source_frame_index)
+        record = {key: getattr(frame, key) for key in _FIELDS if key != 'provenance'}
+        record['raw_header'] = {key: value if isinstance(value, str) else dict(value)
+                                for key, value in frame.raw_header.items()}
+        record['provenance'] = {'source': provenance.source,
+                                'source_frame_index': provenance.source_frame_index}
+        _frame(frame, record)
+        records.append(record)
+    metadata = dict(format='stmviewer-mpp', version=1, image_kind='original',
+                    movie=dict(sha256=sha256, frame_count=len(frames), shape_yx=list(frames[0].data.shape)),
+                    frames=records)
+    payload = (json.dumps(metadata, ensure_ascii=False, allow_nan=False, sort_keys=True, indent=2) + '\n').encode('utf-8')
+    if len(payload) > _MAX_BYTES:
+        raise ValueError('Dodatek przekracza 64 MiB.')
+    check_cancelled()
+    return payload

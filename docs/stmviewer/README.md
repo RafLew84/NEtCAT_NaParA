@@ -30,7 +30,9 @@ zachowuje osobne kadry. [Instrukcja rejestracji](phase-registration-manual.md).
 [Próba metod CPU](cpu-registration-manual.md) opisuje wybór metody,
 stan dostępności i zachowanie wcześniejszego wyniku. Deep Matcher używa lokalnych
 wag LoFTR i pozwala wybrać Auto/CPU/CUDA; Sprawdź model działa w tle.
-[Instrukcja modelu i wag](deep-matcher-manual.md). Eksport należy do kolejnych ticketów.
+[Instrukcja modelu i wag](deep-matcher-manual.md). Działa zapis całej serii original do MPP z towarzyszącymi metadanymi, postępem
+i anulowaniem: [instrukcja zapisu MPP](original-mpp-manual.md). Eksport aligned
+i AVI należą do kolejnych ticketów.
 Przycisk Usuń klatkę usuwa bieżący obraz z serii, zatrzymuje Play i zachowuje
 pochodzenie oraz czasy pozostałych klatek. Źródła na dysku pozostają bez zmian:
 [instrukcja usuwania](frame-deletion-manual.md).

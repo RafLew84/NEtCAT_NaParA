@@ -79,3 +79,27 @@ się po usunięciu klatki. Nazwy miniatur pochodzą z historycznego źródła,
 a podpowiedzi zawierają obie lokalizacje. Komunikat o dodatku pozostaje
 widoczny przy nawigacji i znika po opróżnieniu serii albo otwarciu STP/S94.
 Oryginalne pliki oraz ich dodatki nie są modyfikowane.
+
+
+## Zapis original (ticket 12)
+
+`save_original_mpp` zapisuje float64 little endian w kolejności plikowej WSxM
+(obrót 180° względem tablic Viewera) i tworzy dodatek V1. Cała pozostała seria
+zachowuje wymiary, wartości, NaN, kolejność, czasy i pochodzenie. Podgląd nie
+jest wejściem eksportera. Istniejące historyczne pochodzenie jest zachowane;
+przy jego braku pochodzi z faktycznego źródła i indeksu klatki.
+
+Wspólny nagłówek używa wyłącznie wspólnych znanych parametrów. Każda oś
+bez wspólnej skali ma rozmiar pikselowy w `a.u.`; różne/nieznane jednostki
+sygnału dają `a.u.`, kanał `Unknown`. Nieznane napięcie, prąd, offset lub kąt
+są pomijane. Znany wspólny prąd zapisuje się w nA: stary czytnik interpretuje
+`A` jako angstrom. Znane czasy w nagłówku mają jednostkę sekund i bieżące
+indeksy, bez uzupełniania braków. Dokładne parametry wszystkich klatek,
+łącznie z surowymi nagłówkami i opisami czasu, pozostają w JSON.
+
+Eksporter zapisuje parę tymczasową na tym samym systemie plików, synchronizuje
+zapis i zabezpiecza kopie zastępowanych plików przed podmianami. Błąd lub
+anulowanie powoduje przywrócenie wcześniejszych plików; niepowodzenie samego
+przywracania zachowuje kopie i wskazuje ich katalog. Po twardej awarii między
+podmianami niezgodny stary dodatek jest odrzucany przy odczycie dzięki SHA-256.
+Nie jest to obietnica atomowości dwóch plików ani odporności na utratę zasilania.

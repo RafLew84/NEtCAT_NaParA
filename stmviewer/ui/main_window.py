@@ -1,5 +1,6 @@
 """Series browsing through the application's public file action."""
 
+from pathlib import Path
 from time import perf_counter
 
 from PyQt6.QtCore import QSignalBlocker, Qt, QTimer
@@ -19,6 +20,7 @@ from stmviewer.ui.registration_job import RegistrationJob
 from stmviewer.ui.filmstrip import Filmstrip
 from stmviewer.ui.frame_source import frame_source_text
 from stmviewer.ui.import_job import ImportJob
+from stmviewer.ui.mpp_export_job import MppExportJob
 from stmviewer.ui.image_preview import ImagePreview
 
 
@@ -35,6 +37,7 @@ class STMViewerMainWindow(QMainWindow):
         self._frames: tuple[ImageFrame, ...] = ()
         self._index = 0
         self._job: ImportJob | None = None
+        self._export_job: MppExportJob | None = None
         self._registration: RegistrationResult | None = None
         self._registration_job: RegistrationJob | None = None
         self._registration_backend = registration_backend
@@ -60,6 +63,26 @@ class STMViewerMainWindow(QMainWindow):
         open_button.clicked.connect(self.open_file)
         controls.addWidget(open_button)
         self._open_button = open_button
+        self._save_button = QPushButton("Zapisz original MPP…", panel)
+        self._save_button.setObjectName("saveOriginalMpp")
+        self._save_button.setToolTip("Zapisz wszystkie pozostałe klatki original oraz plik metadanych.")
+        self._save_button.clicked.connect(self.save_original_mpp)
+        controls.addWidget(self._save_button)
+        self._export_info = QLabel(panel)
+        self._export_info.setObjectName("mppExportInfo")
+        self._export_info.setTextFormat(Qt.TextFormat.PlainText)
+        self._export_info.setWordWrap(True)
+        self._export_info.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        controls.addWidget(self._export_info)
+        self._export_progress = QProgressBar(panel)
+        self._export_progress.setObjectName("mppExportProgress")
+        self._export_progress.hide()
+        controls.addWidget(self._export_progress)
+        self._export_cancel = QPushButton("Anuluj zapis MPP", panel)
+        self._export_cancel.setObjectName("cancelMppExport")
+        self._export_cancel.clicked.connect(self._cancel_export)
+        self._export_cancel.hide()
+        controls.addWidget(self._export_cancel)
         self._fit_button = QPushButton("Dopasuj", panel)
         self._fit_button.setObjectName("fitImage")
         self._fit_button.setToolTip("Pokaż cały obraz i wyzeruj przesunięcie.")
@@ -250,6 +273,11 @@ class STMViewerMainWindow(QMainWindow):
         open_action.triggered.connect(self.open_file)
         file_menu.addAction(open_action)
         self._open_action = open_action
+        self._save_action = QAction("Zapisz &original MPP…", self)
+        self._save_action.setShortcut(QKeySequence.StandardKey.Save)
+        self._save_action.triggered.connect(self.save_original_mpp)
+        self._save_action.setEnabled(False)
+        file_menu.addAction(self._save_action)
         file_menu.addSeparator()
         close_action = QAction("&Zakończ", self)
         close_action.setShortcut(QKeySequence.StandardKey.Quit)
@@ -261,7 +289,7 @@ class STMViewerMainWindow(QMainWindow):
 
     def open_file(self) -> None:
         """Choose a complete series; a worker keeps the existing view responsive."""
-        if self._job is not None or self._registration_job is not None:
+        if self._job is not None or self._registration_job is not None or self._export_job is not None:
             return
         initial = str(self._frames[self._index].source.parent) if self._frames else ""
         filenames, _ = QFileDialog.getOpenFileNames(
@@ -284,6 +312,81 @@ class STMViewerMainWindow(QMainWindow):
         self._job.finished.connect(self._finish_import)
         self._job.start()
         self._sync_navigation()
+
+    def save_original_mpp(self) -> None:
+        """Save a fixed original series; preview settings never enter the writer."""
+        if (not self._frames or self._job is not None or self._registration_job is not None
+                or self._export_job is not None):
+            return
+        self._pause()
+        source = self._frames[self._index].source
+        filename, _ = QFileDialog.getSaveFileName(
+            self, "Zapisz całą serię original do MPP", str(source.with_name(source.stem + '-original.mpp')),
+            "MPP (*.mpp *.MPP)", options=QFileDialog.Option.DontConfirmOverwrite,
+        )
+        if not filename:
+            return
+        path = Path(filename)
+        if path.suffix.lower() != '.mpp':
+            path = path.with_name(path.name + '.mpp')
+        sidecar = path.with_name(path.name + '.stmviewer.json')
+        existing = [p for p in (path, sidecar) if p.exists() or p.is_symlink()]
+        if existing:
+            confirmation = QMessageBox(self)
+            confirmation.setWindowTitle("Zastąpić zapis MPP?")
+            confirmation.setIcon(QMessageBox.Icon.Question)
+            confirmation.setTextFormat(Qt.TextFormat.PlainText)
+            confirmation.setText("Zastąpić istniejące pliki?\n" + "\n".join(map(str, existing)))
+            confirmation.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            confirmation.setDefaultButton(QMessageBox.StandardButton.No)
+            if confirmation.exec() != QMessageBox.StandardButton.Yes:
+                return
+        job = MppExportJob(path, self._frames, self, overwrite=bool(existing))
+        self._export_job = job
+        self._export_info.setText("Zapis całej serii original…")
+        self._export_progress.setRange(0, len(self._frames) + 3)
+        self._export_progress.setValue(0)
+        self._export_progress.show()
+        self._export_cancel.setEnabled(True)
+        self._export_cancel.show()
+        self._open_button.setEnabled(False)
+        self._open_action.setEnabled(False)
+        self._sync_navigation()
+        job.progress.connect(self._show_export_progress)
+        job.finished.connect(self._finish_export)
+        job.start()
+
+    def _show_export_progress(self, done: int, total: int, description: str) -> None:
+        self._export_progress.setRange(0, total)
+        self._export_progress.setValue(done)
+        if self._export_cancel.isEnabled():
+            self._export_info.setText(description)
+
+    def _cancel_export(self) -> None:
+        if self._export_job is not None:
+            self._export_job.cancel()
+            self._export_cancel.setEnabled(False)
+            self._export_info.setText("Anulowanie zapisu po bieżącym kroku…")
+
+    def _finish_export(self) -> None:
+        job = self._export_job
+        if job is None:
+            return
+        if job.result is not None:
+            self._export_info.setText(f"Zapisano: {job.result.name} i {job.result.name}.stmviewer.json")
+        elif job.error is not None:
+            self._export_info.setText(f"Nie udało się zapisać MPP. {job.error}")
+        else:
+            self._export_info.setText("Anulowano zapis MPP; wcześniejsze pliki zachowane.")
+        self._export_job = None
+        job.deleteLater()
+        self._export_progress.hide()
+        self._export_cancel.hide()
+        self._open_button.setEnabled(True)
+        self._open_action.setEnabled(True)
+        self._sync_navigation()
+        if self._closing:
+            self.close()
 
     def _show_progress(self, done: int, total: int, description: str) -> None:
         self._progress.setRange(0, total)
@@ -316,6 +419,7 @@ class STMViewerMainWindow(QMainWindow):
                     self._registration = None
                     with QSignalBlocker(self._view):
                         self._view.setCurrentText("original")
+                    self._export_info.clear()
                     self._frames = result.frames
                     self._strip.set_series(result.frames, result.thumbnails)
                     selection = self._strip.selectionModel()
@@ -348,24 +452,30 @@ class STMViewerMainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent | None) -> None:
         self._pause()
-        if event is not None and (self._job is not None or self._registration_job is not None):
+        if event is not None and (self._job is not None or self._registration_job is not None
+                                  or self._export_job is not None):
             self._closing = True
             self._cancel_import()
             self._cancel_registration()
+            self._cancel_export()
             event.ignore()
             return
         super().closeEvent(event)
 
     def _sync_navigation(self) -> None:
         count = len(self._frames)
-        registering = self._registration_job is not None
-        self._play.setEnabled(count > 1 and not registering)
-        self._delete.setEnabled(bool(count) and not registering)
-        self._register.setEnabled(bool(count) and not registering and self._job is None
+        busy = self._registration_job is not None or self._export_job is not None
+        can_save = bool(count) and not busy and self._job is None
+        self._save_button.setEnabled(can_save)
+        if hasattr(self, '_save_action'):
+            self._save_action.setEnabled(can_save)
+        self._play.setEnabled(count > 1 and not busy)
+        self._delete.setEnabled(bool(count) and not busy)
+        self._register.setEnabled(bool(count) and not busy and self._job is None
                                   and not self._selected_method_error())
-        self._method.setEnabled(not registering and self._job is None)
-        self._deep_controls.setEnabled(not registering and self._job is None)
-        self._deep_controls.check.setEnabled(not registering and self._job is None
+        self._method.setEnabled(not busy and self._job is None)
+        self._deep_controls.setEnabled(not busy and self._job is None)
+        self._deep_controls.check.setEnabled(not busy and self._job is None
                                              and not self._selected_method_error())
         self._view.setEnabled(self._registration is not None)
         for preview_control in (self._zoom_in, self._zoom_out, self._fit_button, self._gamma,
@@ -389,7 +499,7 @@ class STMViewerMainWindow(QMainWindow):
             self._strip.scrollTo(index)
 
     def _delete_frame(self) -> None:
-        if not self._frames or self._registration_job is not None:
+        if not self._frames or self._registration_job is not None or self._export_job is not None:
             return
         self._pause()
         removed = self._index
@@ -421,7 +531,7 @@ class STMViewerMainWindow(QMainWindow):
     def _toggle_playback(self) -> None:
         if self._playing:
             self._pause()
-        elif len(self._frames) > 1 and self._registration_job is None:
+        elif len(self._frames) > 1 and self._registration_job is None and self._export_job is None:
             if self._index == len(self._frames) - 1:
                 self._display_frame(0)
                 self._preview.repaint()
@@ -537,7 +647,7 @@ class STMViewerMainWindow(QMainWindow):
 
     def _start_registration(self, *, check_only: bool = False) -> None:
         if ((not self._frames and not check_only) or self._job is not None or self._registration_job is not None
-                or self._selected_method_error()):
+                or self._export_job is not None or self._selected_method_error()):
             return
         self._pause()
         job = RegistrationJob(self._frames, self, self._registration_backend,
