@@ -173,8 +173,62 @@ def test_wsxm_header_declares_finite_movie_range_and_identity_conversion(tmp_pat
     assert b'[Miscellaneous]\r\n' in header
     assert b'Minimum: -0.625\r\n' in header
     assert b'Maximum: 4.0\r\n' in header
-    assert b'Z Scale Factor: 1\r\nZ Scale Offset: 0\r\n' in header
+    assert b'    Z Scale Factor: 1\r\n    Z Scale Offset: 0\r\n' in header
     assert raw[offset:] == struct.pack('<12d', np.inf, 2., 1., np.nan, 4., 3.,
                                       .3125, 0., -0., -np.inf, .625, -.625)
     for expected, restored in zip(frames, open_frame_series([path]), strict=True):
         np.testing.assert_array_equal(restored.data, expected.data)
+
+
+def test_export_uses_native_wsxm_header_layout_without_empty_sections(tmp_path):
+    """WSxM seeks by its normalized header size, not the declared byte offset.
+
+    This 546-byte layout was checked through WSxM open/save of all ramp pixels;
+    the previous 490-byte layout made WSxM skip seven double samples.
+    """
+    from dataclasses import replace
+    from stmviewer.mpp_export import save_original_mpp
+
+    source = open_frame_series([FIXTURES / 'asymmetric.stp'])[0]
+    ramp = np.tile(np.arange(256, dtype=float), (256, 1))
+    frame = replace(source, data=ramp, size_x_nm=256., size_y_nm=256.)
+    path = tmp_path / 'ramp.mpp'
+    save_original_mpp(path, (frame,))
+    # Literal native layout, independently verified with WSxM 5.0 Develop 12.0.
+    expected = '''WSxM file copyright UAM
+Movie Image file
+Image header size: 546
+
+[Control]
+
+    Gap Voltage: 0.0 V
+    Setpoint: 0.25 nA
+    X Amplitude: 256.0 nm
+    X Offset: 2.0 nm
+    Y Amplitude: 256.0 nm
+    Y Offset: -1.0 nm
+
+[General Info]
+
+    Acquisition channel: Topo
+    Angle: 0.0
+    Image Data Type: double
+    Number of columns: 256
+    Number of Frames: 1
+    Number of rows: 256
+    Z Amplitude: 1 nm
+
+[Miscellaneous]
+
+    Maximum: 255.0
+    Minimum: 0.0
+    Z Scale Factor: 1
+    Z Scale Offset: 0
+
+[Header end]
+'''.replace('\n', '\r\n').encode('ascii')
+    raw = path.read_bytes()
+    assert raw[:546] == expected
+    assert b'[Frames Synchronization]' not in raw[:546]
+    assert raw[546:554] == struct.pack('<d', 255.)
+    np.testing.assert_array_equal(open_frame_series([path])[0].data, ramp)

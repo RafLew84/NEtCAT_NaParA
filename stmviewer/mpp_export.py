@@ -42,21 +42,20 @@ def _header(frames: tuple[ImageFrame, ...], check_cancelled: Callable[[], None])
         # full text remains in JSON even when it cannot be represented here.
         if (isinstance(value, str) and value.strip() and all(ord(c) >= 32 for c in value)
                 and len(value.encode('utf-8')) <= 65000):
-            return value
+            return value.strip()
         return unknown
 
-    lines = ['WSxM file copyright UAM', 'Movie Image file', 'Image header size: {size}',
-             '[General Info]', 'Image Data Type: double', f'Number of columns: {columns}',
-             f'Number of rows: {rows}', f'Number of Frames: {len(frames)}',
-             f'Acquisition channel: {text("channel", "Unknown")}',
-             f'Z Amplitude: 1 {text("signal_unit", "a.u.")}']
+    general = ['Image Data Type: double', f'Number of columns: {columns}',
+               f'Number of rows: {rows}', f'Number of Frames: {len(frames)}',
+               f'Acquisition channel: {text("channel", "Unknown")}',
+               f'Z Amplitude: 1 {text("signal_unit", "a.u.")}']
     angle = common('scan_angle_deg')
     if angle is not None:
-        lines.append(f'Angle: {angle}')
-    lines.append('[Control]')
+        general.append(f'Angle: {angle}')
+    control = []
     for field, key, pixels in [('size_x_nm', 'X Amplitude', columns), ('size_y_nm', 'Y Amplitude', rows)]:
         value = common(field)
-        lines.append(f'{key}: {value} nm' if value is not None else f'{key}: {pixels} a.u.')
+        control.append(f'{key}: {value} nm' if value is not None else f'{key}: {pixels} a.u.')
     for field, key, unit in [('offset_x_nm', 'X Offset', 'nm'), ('offset_y_nm', 'Y Offset', 'nm'),
                              ('bias_v', 'Gap Voltage', 'V'), ('setpoint_a', 'Setpoint', 'nA')]:
         value = common(field)
@@ -64,17 +63,25 @@ def _header(frames: tuple[ImageFrame, ...], check_cancelled: Callable[[], None])
             # The legacy reader confuses A with angstrom; nA is unambiguous.
             if field == 'setpoint_a':
                 value = Decimal(str(value)) * Decimal('1e9')
-            lines.append(f'{key}: {value} {unit}')
-    lines.append('[Frames Synchronization]')
-    lines.extend(f'Frame {i:04d}: {frame.measurement_time_s!r} s' for i, frame in enumerate(frames)
-                 if frame.measurement_time_s is not None)
-    lines.append('[Miscellaneous]')
+            control.append(f'{key}: {value} {unit}')
+    synchronization = [f'Frame {i:04d}: {frame.measurement_time_s!r} s'
+                       for i, frame in enumerate(frames) if frame.measurement_time_s is not None]
+    miscellaneous = ['Z Scale Factor: 1', 'Z Scale Offset: 0']
     limits = _finite_range(frames, check_cancelled)
     if limits is not None:
-        lines.extend((f'Minimum: {limits[0]!r}', f'Maximum: {limits[1]!r}'))
-    # WSxM needs explicit double conversion and range metadata. Its header
-    # parser also requires CRLF to apply these fields reliably (see WSxM report).
-    lines.extend(('Z Scale Factor: 1', 'Z Scale Offset: 0', '[Header end]'))
+        miscellaneous.extend((f'Minimum: {limits[0]!r}', f'Maximum: {limits[1]!r}'))
+    # WSxM 5.0 seeks by the size of its reserialized header. A compact but
+    # byte-count-correct header still moves the first sample (see WSxM report).
+    # Match the native CRLF layout: sorted sections/fields, four-space fields,
+    # blank lines around headings, and no empty sections. JSON keeps full text.
+    sections = {'General Info': general, 'Control': control,
+                'Frames Synchronization': synchronization, 'Miscellaneous': miscellaneous}
+    lines = ['WSxM file copyright UAM', 'Movie Image file', 'Image header size: {size}']
+    for section, fields in sorted(sections.items()):
+        if fields:
+            lines.extend(('', f'[{section}]', ''))
+            lines.extend(f'    {field}' for field in sorted(fields, key=str.lower))
+    lines.extend(('', '[Header end]'))
     template = '\r\n'.join(lines) + '\r\n'
     size = 0
     while True:

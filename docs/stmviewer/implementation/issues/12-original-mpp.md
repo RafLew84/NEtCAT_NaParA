@@ -88,9 +88,13 @@ nie zmieniono wspólnego kodu ani konfiguracji.
 
 ## Dodatkowe zgłoszenie WSxM — 2026-10-23
 
-[Diagnoza i poprawka nagłówka](../../wsxm-investigation.md): CRLF oraz
-`Minimum`, `Maximum`, `Z Scale Factor`, `Z Scale Offset` przywracają
-przejścia tonalne bez zmiany danych pomiarowych. Powstała poprawiona para
-`data/test-wsxm.mpp` + JSON. Wszystkie 369 klatek są dokładnie zgodne ze
-źródłowymi S94. Ręczny odbiór użytkownika nadal oczekuje; status pozostaje
-`ready-for-review`. Próba Wine nie zastępuje odbioru Windows 11.
+[Diagnoza i poprawka nagłówka](../../wsxm-investigation.md): końcowy zapis
+odtwarza natywne formatowanie WSxM. Pierwsza korekta CRLF i zakresu wartości
+przywracała odcienie, ale pozostawiała przesunięcie próbek przy lewej krawędzi.
+Końcowy `data/test-wsxm-v2.mpp` + JSON zachowuje wszystkie 369 klatek,
+parametry i pochodzenie S94. Rzeczywisty odczyt/zapis przez WSxM zachował
+**24 182 784 próbek dokładnie**, bez przesunięcia. Testy Viewera:
+**217 passed, 2 skipped**; mypy strict: 23 pliki. Pełny zestaw repo po pierwszej
+korekcie: **2002 passed, 14 failed, 16 skipped**, te same wcześniejsze
+niepowodzenia MolTrack/NanoTrack. Ręczny odbiór użytkownika nadal oczekuje;
+status pozostaje `ready-for-review`. Próba Wine nie zastępuje odbioru Windows 11.
