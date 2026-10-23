@@ -41,6 +41,16 @@ class FrameListModel(QAbstractListModel):
         return None
 
 
+    def remove_frame(self, index: int) -> None:
+        """Keep frame/thumbnail pairs and renumber their display positions together."""
+        frames = self._frames[:index] + self._frames[index + 1:]
+        thumbnails = self._thumbnails[:index] + self._thumbnails[index + 1:]
+        self.beginResetModel()
+        self._frames = frames
+        self._thumbnails = thumbnails
+        self._icons.clear()
+        self.endResetModel()
+
     def set_pixel_proportions(self, enabled: bool) -> None:
         if self._pixel_proportions == enabled:
             return
@@ -82,3 +92,8 @@ class Filmstrip(QListView):
         model = self.model()
         assert isinstance(model, FrameListModel)
         model.set_pixel_proportions(enabled)
+
+    def remove_frame(self, index: int) -> None:
+        model = self.model()
+        assert isinstance(model, FrameListModel)
+        model.remove_frame(index)

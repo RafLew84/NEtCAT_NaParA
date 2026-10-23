@@ -1,5 +1,54 @@
 # Przekazanie — STM Viewer
 
+## 07: Usuwanie klatek z zachowaniem czasu i pochodzenia — 2026-10-23
+
+Gałąź: `viewer/start`. Baza implementacji i przeglądu:
+`e8102e9d21924c8d661e72df223a46343e0183ff`.
+Ticket: [07-frame-deletion](implementation/issues/07-frame-deletion.md).
+Commit implementacji i końcowy wynik zostaną uzupełnione.
+
+### Wynik i kontrakt
+
+Przycisk Usuń klatkę jest pod obrazem. Zatrzymuje Play, usuwa tylko bieżący
+obraz z pamięci serii i pokazuje następną klatkę (dla ostatniej poprzednią).
+Usunięcie jedynej czyści obraz, źródło, metadane, zaznaczenie i miniatury;
+numer pokazuje 0 z 0, a kontrolki obrazu/nawigacji/Play/usuwania są nieaktywne.
+Nowe poprawne otwarcie po opróżnieniu przywraca normalne działanie.
+
+Pozostałe obiekty ImageFrame zachowują dane, pochodzenie, parametry i czasy.
+Usuwamy odpowiadającą parę obraz/miniatura; pozycje są ponownie numerowane,
+cache ikon odświeżany, a źródłowy indeks MPP oraz czas nie są przeliczane.
+Gamma, zoom, przesunięcie i Proporcje pikselowe są zachowane dla następnego
+obrazu. Źródła pozostają bez zmian; nie dodano cofania ani odwracania.
+
+Podczas importu w tle można edytować starą serię. Błąd i anulowanie zachowują
+jej aktualny, skrócony lub pusty stan. Sukces zastępuje ją nową kompletną serią.
+Wynik aligned należy do ticketu 08; usuwanie trzeba z nim połączyć zgodnie
+z mapą, zachowując geometrię pozostałych klatek.
+
+### Sprawdzenia i odbiór
+
+- TDD: red → green przez publiczne kontrolki dla usunięcia podczas Play,
+  wyboru następnej/poprzedniej i opróżnienia programu. Dalsze testy sprawdzają
+  czasy 10/20/35 s i częściowe braki, metadane mieszanych STP/S94, ustawienia
+  podglądu, niezmienność źródeł i współpracę z importem.
+- **103 testy Viewera zaliczone** w Qt offscreen, w tym 10 nowych przypadków.
+- Mypy strict: **15 plików bez błędów**.
+- Automatyczna próba rzeczywistego okna Qt xcb przeszła z dialogiem, nowym
+  wzorcem known-times.mpp i lokalnym data/MOVIE_3.MPP (17 klatek).
+  Sprawdzono usunięcie środka/ostatniej/jedynej, Pause, czas, źródło, ponowne
+  otwarcie i niezmienność zawartości źródeł (porównanie bajtów/hash SHA-256).
+  Skrypt: `/tmp/stmviewer-deletion-smoke.py`; zrzuty:
+  `/tmp/stmviewer-deletion-{middle,empty,measurement}-xcb.png`.
+  Oceniono wizualnie. To próba automatyczna; odbiór użytkownika i Windows czekają.
+- Pełny zestaw repo i przegląd Standards/Spec: w toku. Dane w lokalnym `data/`
+  są teraz dostępne, więc wcześniejsza liczba 63 błędów może się zmniejszyć.
+- [Instrukcja ręczna i wzorce](frame-deletion-manual.md). Nowy mały film
+  known-times.mpp jest odtwarzany przez istniejący generator MPP.
+
+Nie zmieniono wspólnych modułów, zależności ani głównej konfiguracji.
+Nie ma nowego wymagania integracyjnego blokującego tę funkcję.
+
 ## Lokalny katalog danych — 2026-10-21
 
 Użytkownik udostępnił `/home/rlew/projekty/NEtCAT-viewer/data/` do testów.

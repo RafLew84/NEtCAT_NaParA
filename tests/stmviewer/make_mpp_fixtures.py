@@ -36,6 +36,9 @@ def generate(destination):
     destination.mkdir(parents=True, exist_ok=True)
     payload = movie_bytes([FIRST, SECOND, THIRD], times={0: '1500 ms', 2: '4.25 s'})
     (destination / 'timed.MPP').write_bytes(payload)
+    (destination / 'known-times.mpp').write_bytes(movie_bytes(
+        [FIRST, SECOND, THIRD], times={0: '10 s', 1: '20 s', 2: '35 s'},
+    ))
     (destination / 'truncated.mpp').write_bytes(payload[:-1])
     (destination / 'no-times.mpp').write_bytes(movie_bytes([FIRST]))
     (destination / 'long.mpp').write_bytes(movie_bytes(

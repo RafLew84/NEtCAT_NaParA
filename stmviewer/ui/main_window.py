@@ -144,6 +144,11 @@ class STMViewerMainWindow(QMainWindow):
         self._loop.setObjectName("playbackLoop")
         playback.addWidget(self._loop)
         playback.addStretch()
+        self._delete = QPushButton("Usuń klatkę", central)
+        self._delete.setObjectName("deleteFrame")
+        self._delete.setToolTip("Usuń bieżącą klatkę z serii. Plik źródłowy pozostaje bez zmian.")
+        self._delete.clicked.connect(self._delete_frame)
+        playback.addWidget(self._delete)
         outer.addLayout(playback)
         navigation = QHBoxLayout()
         self._previous = QPushButton("← Poprzednia", central)
@@ -288,6 +293,7 @@ class STMViewerMainWindow(QMainWindow):
     def _sync_navigation(self) -> None:
         count = len(self._frames)
         self._play.setEnabled(count > 1)
+        self._delete.setEnabled(bool(count))
         for preview_control in (self._zoom_in, self._zoom_out, self._fit_button, self._gamma,
                                 self._gamma_reset, self._pixel_proportions):
             preview_control.setEnabled(bool(count))
@@ -307,6 +313,22 @@ class STMViewerMainWindow(QMainWindow):
             # The view needs selectionChanged to repaint the previous highlight.
             self._strip.setCurrentIndex(index)
             self._strip.scrollTo(index)
+
+    def _delete_frame(self) -> None:
+        if not self._frames:
+            return
+        self._pause()
+        removed = self._index
+        frames = self._frames[:removed] + self._frames[removed + 1:]
+        index = min(removed, len(frames) - 1) if frames else 0
+        if frames:
+            self._preview.set_frame(frames[index], reset_view=False)
+        else:
+            self._preview.clear_frame()
+        self._frames = frames
+        self._index = index
+        self._strip.remove_frame(removed)
+        self._show_current_frame()
 
     def _pause(self) -> None:
         self._playing = False
@@ -366,8 +388,14 @@ class STMViewerMainWindow(QMainWindow):
         self._show_current_frame()
 
     def _show_current_frame(self) -> None:
-        frame = self._frames[self._index]
         self._sync_navigation()
+        if not self._frames:
+            self._source.setText("—")
+            self._metadata.setText("Brak danych.")
+            self.setWindowTitle("STM Viewer")
+            self._status.showMessage("Brak otwartego obrazu")
+            return
+        frame = self._frames[self._index]
         self._fit_button.setEnabled(True)
         source = str(frame.source)
         if frame.source_frame_index is not None:

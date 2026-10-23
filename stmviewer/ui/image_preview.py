@@ -44,6 +44,15 @@ class ImagePreview(QWidget):
         else:
             self.update()
 
+    def clear_frame(self) -> None:
+        """Release the last measurement and return to the empty preview."""
+        self._frame = None
+        self._image = None
+        self._aspect = 1.0
+        self.fit_image()
+        self.unsetCursor()
+        self._empty.show()
+
     def set_pixel_proportions(self, enabled: bool) -> None:
         """Ignore header scale in the view while retaining all source metadata."""
         if self._frame is not None:

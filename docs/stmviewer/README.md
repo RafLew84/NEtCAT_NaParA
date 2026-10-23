@@ -25,6 +25,9 @@ częściowych brakach: [instrukcja próby MPP](mpp-series-manual.md).
 Play/Pause, tempo 1/2/5/10/20/30 kl./s i pętla działają; ręczny wybór
 zatrzymuje film. [Instrukcja odtwarzania](playback-manual.md). Rejestracja
 i eksport należą do kolejnych ticketów.
+Przycisk Usuń klatkę usuwa bieżący obraz z serii, zatrzymuje Play i zachowuje
+pochodzenie oraz czasy pozostałych klatek. Źródła na dysku pozostają bez zmian:
+[instrukcja usuwania](frame-deletion-manual.md).
 Mapa decyzji jest zamknięta: specyfikacja pierwszej wersji jest gotowa do
 implementacji. Nie oznacza to wdrożenia funkcji ani zaliczenia odbioru.
 
@@ -82,6 +85,8 @@ mają status `done`: użytkownik potwierdził [testy manualne](preview-controls-
 [Play, Pause i tempo odtwarzania](implementation/issues/06-playback.md)
 mają status `done`: użytkownik potwierdził [testy manualne](playback-manual.md)
 2026-10-21.
+[Usuwanie klatek z zachowaniem czasu i pochodzenia](implementation/issues/07-frame-deletion.md)
+jest zaimplementowane; końcowe sprawdzenia i przegląd są w toku.
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje

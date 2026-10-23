@@ -4,7 +4,11 @@
 
 **Blocked by:** [04: Otwarcie filmu MPP z czasami i pochodzeniem](04-mpp-series.md), [06: Play, Pause i tempo odtwarzania](06-playback.md)
 
-**Status:** ready-for-agent
+**Status:** in-progress
+
+**Wykonawca:** Codex, `viewer/start`.
+
+**Baza code-review:** `e8102e9d21924c8d661e72df223a46343e0183ff`.
 
 **Specyfikacja:** [Seria wejściowa i usuwanie klatek](../../issues/01-frame-series.md#answer), [Podgląd, gamma i odtwarzanie serii](../../issues/02-preview-playback.md#answer), [Dane i kryteria odbioru pierwszej wersji](../../issues/06-acceptance.md#answer).
 
@@ -12,11 +16,11 @@ Przed realizacją przeczytaj [zasady wykonania i odbioru](../README.md#zasady-wy
 
 ## Kryteria odbioru
 
-- [ ] Usunięcie zatrzymuje Play i wybiera następną klatkę, a dla ostatniej poprzednią; usunięcie jedynej zostawia pusty program.
-- [ ] Pozycje 1…N aktualizują się, lecz pochodzenie i parametry każdej pozostałej klatki pozostają związane z tym samym obrazem.
-- [ ] Czasy zachowują wartości i przerwy, także gdy część jest nieznana. Usunięcie środka [10,20,35] s pozostawia [10,35] s.
-- [ ] Źródła pozostają bez zmian na dysku. Nie ma odwracania kolejności ani cofania usunięcia.
-- [ ] Kontrolki i miniatury nie wskazują usuniętej klatki. Nowa poprawna seria działa także po opróżnieniu programu.
+- [x] Usunięcie zatrzymuje Play i wybiera następną klatkę, a dla ostatniej poprzednią; usunięcie jedynej zostawia pusty program.
+- [x] Pozycje 1…N aktualizują się, lecz pochodzenie i parametry każdej pozostałej klatki pozostają związane z tym samym obrazem.
+- [x] Czasy zachowują wartości i przerwy, także gdy część jest nieznana. Usunięcie środka [10,20,35] s pozostawia [10,35] s.
+- [x] Źródła pozostają bez zmian na dysku. Nie ma odwracania kolejności ani cofania usunięcia.
+- [x] Kontrolki i miniatury nie wskazują usuniętej klatki. Nowa poprawna seria działa także po opróżnieniu programu.
 
 ## Testy automatyczne
 
@@ -44,3 +48,18 @@ Dane i sposób przygotowania nietypowych wzorców dostarcza realizujący ticket.
 ## Współpraca z integracją
 
 Nie kopiować modelu usuwania MolTrack, który nie synchronizuje czasów i odrzuca wynik rejestracji. Ewentualne zmiany wspólnych modeli uzgodnić z integracją, zachowując kontrakty ich odbiorców.
+
+## Wynik implementacji — 2026-10-23
+
+Przycisk Usuń klatkę zatrzymuje Play i usuwa bieżący obraz wyłącznie z serii.
+Pokazuje następną klatkę, dla ostatniej poprzednią; usunięcie jedynej czyści
+podgląd, miniatury, pochodzenie i metadane. Numery bieżące są przeliczane,
+a dane źródłowe i czasy (również nieznane i z przerwami) pozostają związane
+z tymi samymi obrazami. Gamma/zoom/przesunięcie/proporcje pozostają przy
+zmianie na pozostały obraz. Nowa seria po opróżnieniu działa normalnie.
+
+103 testy Viewera i mypy strict (15 plików) przechodzą. Automatyczna próba
+Qt xcb na wzorcu i lokalnym `data/MOVIE_3.MPP` potwierdziła GUI oraz
+niezmienność źródeł. [Instrukcja ręczna](../../frame-deletion-manual.md).
+Pełny zestaw repo i przegląd w toku. Ręczny odbiór użytkownika i Windows
+pozostają do wykonania.
