@@ -13,6 +13,14 @@ from numpy.typing import NDArray
 from stmviewer.frame import ImageFrame
 
 
+CPU_METHODS = {
+    "phase_correlation": "Phase",
+    "tile_correlation_ransac": "Tile+RANSAC",
+    "ecc_translation": "ECC",
+    "optical_flow_median": "Optical Flow",
+}
+
+
 @dataclass(frozen=True)
 class FrameOrigin:
     source: Path
@@ -67,11 +75,11 @@ class ShiftBackend(Protocol):
                  *, moving_frame_index: int) -> RegistrationFrameResult: ...
 
 
-def register_series(frames: tuple[ImageFrame, ...], *, backend: ShiftBackend | None = None,
+def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_correlation",
+                    backend: ShiftBackend | None = None,
                     progress: Callable[[int, int, str], None] | None = None,
                     cancelled: Callable[[], bool] | None = None) -> RegistrationResult:
-    """Align adjacent originals with NanoTrack Phase's unchanged default settings."""
-    from nanotrack.registration.phase_correlation import PhaseCorrelationShiftBackend
+    """Align adjacent originals with the selected NanoTrack method and its defaults."""
     from scipy.ndimage import affine_transform
 
     def checkpoint() -> None:
@@ -84,6 +92,9 @@ def register_series(frames: tuple[ImageFrame, ...], *, backend: ShiftBackend | N
         checkpoint()
 
     checkpoint()
+    if method not in CPU_METHODS:
+        raise RegistrationError(f"Nieznana metoda rejestracji: {method}")
+    label = CPU_METHODS[method]
     if not frames:
         raise RegistrationError("Seria jest pusta.")
     for i, frame in enumerate(frames):
@@ -91,8 +102,8 @@ def register_series(frames: tuple[ImageFrame, ...], *, backend: ShiftBackend | N
         if frame.data.ndim != 2 or min(frame.data.shape) < 1 or frame.data.shape != frames[0].data.shape:
             raise RegistrationError(f"Klatka {i + 1}: niezgodne lub puste wymiary obrazu.")
         if not np.isfinite(frame.data).all():
-            raise RegistrationError(f"Klatka {i + 1}: Phase wymaga skończonych próbek; wejście zawiera NaN/Inf.")
-    backend = backend or PhaseCorrelationShiftBackend()
+            raise RegistrationError(f"Klatka {i + 1}: {label} wymaga skończonych próbek; wejście zawiera NaN/Inf.")
+    backend = backend if backend is not None else create_shift_backend(method)
     shifts = [(0.0, 0.0)]
     statuses = ['ok']
     qualities = [1.0]
@@ -112,7 +123,7 @@ def register_series(frames: tuple[ImageFrame, ...], *, backend: ShiftBackend | N
             checkpoint()
             reason = str(error) or type(error).__name__
             if 'too little texture' in reason:
-                reason = 'za mało tekstury do rejestracji Phase'
+                reason = f'za mało tekstury do rejestracji {label}'
             raise RegistrationError(f"Para {i} → {i + 1}: {reason}") from error
         shifts.append((shifts[-1][0] + float(pair.shift_xy[0]),
                        shifts[-1][1] + float(pair.shift_xy[1])))
@@ -121,7 +132,7 @@ def register_series(frames: tuple[ImageFrame, ...], *, backend: ShiftBackend | N
             raise RegistrationError(f"Para {i} → {i + 1}: nieprawidłowe przesunięcie skumulowane.")
         qualities.append(min(qualities[-1], pair.quality_score))
         statuses.append(max(statuses[-1], pair.status, key=severity.__getitem__))
-        report(i + 1, f"Phase: para {i} → {i + 1}")
+        report(i + 1, f"{label}: para {i} → {i + 1}")
     left = math.ceil(max(0, -min(x for x, y in shifts)))
     top = math.ceil(max(0, -min(y for x, y in shifts)))
     right = math.ceil(max(0, max(x for x, y in shifts)))
@@ -152,7 +163,7 @@ def register_series(frames: tuple[ImageFrame, ...], *, backend: ShiftBackend | N
             raise RegistrationError(f"Aligned: klatka {i + 1}: {str(error) or type(error).__name__}") from error
         report(len(frames) + i + 1, f"Aligned: klatka {i + 1}/{len(frames)}")
     return RegistrationResult(tuple(aligned), FrameOrigin(frames[0].source, frames[0].source_frame_index),
-                              shape, (left, top, right, bottom), pixel_size)
+                              shape, (left, top, right, bottom), pixel_size, method=label)
 
 
 def _common_pixel_size(frames: tuple[ImageFrame, ...]) -> tuple[float, float] | None:
@@ -168,12 +179,29 @@ def _common_pixel_size(frames: tuple[ImageFrame, ...]) -> tuple[float, float] | 
     return common
 
 
-def phase_unavailable_reason() -> str | None:
+def registration_unavailable_reason(method: str) -> str | None:
     """Check local CPU dependencies; never download or substitute a backend."""
     try:
-        from nanotrack.registration.phase_correlation import PhaseCorrelationShiftBackend
         from scipy.ndimage import affine_transform
-        PhaseCorrelationShiftBackend()
+        create_shift_backend(method)
     except Exception as error:
-        return f"Phase niedostępna: {str(error) or type(error).__name__}"
+        return f"{CPU_METHODS.get(method, method)} niedostępna: {str(error) or type(error).__name__}"
     return None
+
+
+def create_shift_backend(method: str) -> ShiftBackend:
+    """Use the same settings factory as NanoTrack; never pick a substitute."""
+    if method not in CPU_METHODS:
+        raise RegistrationError(f"Nieznana metoda rejestracji: {method}")
+    if method == "ecc_translation":
+        # Construction alone does not import OpenCV in the shared ECC backend.
+        from cv2 import findTransformECC
+        if not callable(findTransformECC):
+            raise RegistrationError("OpenCV cv2: brak funkcji findTransformECC")
+    from nanotrack.core import RegistrationSettings
+    from nanotrack.registration import build_registration_backend_from_settings
+
+    backend: ShiftBackend = build_registration_backend_from_settings(RegistrationSettings(
+        backend=method, reference_strategy="adjacent", registration_view="raw",
+    ))
+    return backend

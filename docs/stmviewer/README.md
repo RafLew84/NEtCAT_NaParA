@@ -24,10 +24,12 @@ MPP pokazuje numer źródłowej klatki oraz dostępny czas pomiaru, także przy
 częściowych brakach: [instrukcja próby MPP](mpp-series-manual.md).
 Play/Pause, tempo 1/2/5/10/20/30 kl./s i pętla działają; ręczny wybór
 zatrzymuje film. [Instrukcja odtwarzania](playback-manual.md).
-Rejestracja Phase działa w tle z postępem i anulowaniem. Wynik aligned ma
+Rejestracja Phase, Tile+RANSAC, ECC i Optical Flow działa w tle z postępem i anulowaniem. Wynik aligned ma
 pełny obszar, obrys źródła i oznaczenia niepewności; przełącznik original/aligned
 zachowuje osobne kadry. [Instrukcja rejestracji](phase-registration-manual.md).
-Pozostałe metody i eksport należą do kolejnych ticketów.
+[Próba metod CPU](cpu-registration-manual.md) opisuje wybór metody,
+stan dostępności i zachowanie wcześniejszego wyniku. Deep Matcher i eksport
+należą do kolejnych ticketów.
 Przycisk Usuń klatkę usuwa bieżący obraz z serii, zatrzymuje Play i zachowuje
 pochodzenie oraz czasy pozostałych klatek. Źródła na dysku pozostają bez zmian:
 [instrukcja usuwania](frame-deletion-manual.md).
@@ -94,6 +96,8 @@ ma status `done`: użytkownik potwierdził [testy manualne](frame-deletion-manua
 [Rejestracja Phase i pełny widok aligned](implementation/issues/08-phase-registration.md)
 ma status `done`: użytkownik potwierdził [testy manualne](phase-registration-manual.md)
 2026-10-23.
+[Pozostałe metody rejestracji CPU](implementation/issues/09-cpu-registration-methods.md)
+są zaimplementowane; trwa weryfikacja ticketu. [Instrukcja manualna](cpu-registration-manual.md).
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje
@@ -102,7 +106,7 @@ cel do 1000 linii i bezwzględny limit 1500 fizycznych linii pliku kodu.
 ## Uruchomienie
 
 Z katalogu głównego worktree, z Pythonem 3.12. Dla tej funkcji potrzebne
-są NumPy, PyQt6 oraz SciPy/scikit-image dla Phase; wersje zapisano w `stmviewer/requirements.txt`,
+są NumPy, PyQt6 oraz SciPy/scikit-image dla Phase, Tile+RANSAC i Optical Flow; wersje zapisano w `stmviewer/requirements.txt`,
 który korzysta ze wspólnego zestawu PyQt6 z `requirements/stm-apps.txt`.
 
 Ubuntu 24.04:
@@ -120,6 +124,25 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r stmviewer/requirements.txt
 .\.venv\Scripts\python.exe -m stmviewer.main
 ```
+
+ECC dodatkowo wymaga OpenCV. Opcjonalny zestaw `stmviewer/requirements-ecc.txt`
+zawiera podstawowe zależności oraz `opencv-python==4.11.0.86` (wersja użyta w próbie
+lokalnej). Instalacja w wybranym środowisku:
+
+```bash
+# Ubuntu
+.venv/bin/python -m pip install -r stmviewer/requirements-ecc.txt
+```
+
+```powershell
+# Windows
+.\.venv\Scripts\python.exe -m pip install -r stmviewer/requirements-ecc.txt
+```
+
+Bez OpenCV ECC pozostaje na liście z powodem niedostępności; pozostałe metody
+są dostępne. Brak SciPy/scikit-image wyłącza rejestrację, zachowując przeglądanie.
+Program niczego nie pobiera i nie zastępuje wybranej metody. Zmiana zainstalowanych
+zależności wymaga ponownego uruchomienia programu.
 
 W już przygotowanej conda `netcat`:
 

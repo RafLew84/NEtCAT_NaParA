@@ -12,10 +12,11 @@ class RegistrationJob(QThread):
     progress = pyqtSignal(int, int, str)
 
     def __init__(self, frames: tuple[ImageFrame, ...], parent: QObject,
-                 backend: ShiftBackend | None = None) -> None:
+                 backend: ShiftBackend | None = None, *, method: str = "phase_correlation") -> None:
         super().__init__(parent)
         self._frames = frames
         self._backend = backend
+        self._method = method
         self._cancelled = Event()
         self.result: RegistrationResult | None = None
         self.error: str | None = None
@@ -28,7 +29,7 @@ class RegistrationJob(QThread):
 
     def run(self) -> None:
         try:
-            result = register_series(self._frames, backend=self._backend,
+            result = register_series(self._frames, method=self._method, backend=self._backend,
                                      progress=self.progress.emit, cancelled=self.was_cancelled)
             if not self.was_cancelled():
                 self.result = result

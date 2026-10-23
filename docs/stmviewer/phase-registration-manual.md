@@ -7,7 +7,8 @@ python -m stmviewer.main
 ```
 
 Dodatkowe zależności Phase: SciPy 1.15.2 i scikit-image 0.25.2, zapisane
-w `stmviewer/requirements.txt`. Pozostałe metody będą w ticketach 09–10.
+w `stmviewer/requirements.txt`. Pozostałe metody CPU opisuje [ticket 09](cpu-registration-manual.md);
+Deep Matcher należy do ticketu 10.
 
 ## Dane
 

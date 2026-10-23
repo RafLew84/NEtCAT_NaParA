@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
 )
 
 from stmviewer.frame import ImageFrame
-from stmviewer.registration import RegistrationResult, ShiftBackend, phase_unavailable_reason
+from stmviewer.registration import CPU_METHODS, RegistrationResult, ShiftBackend, registration_unavailable_reason
 from stmviewer.ui.registration_job import RegistrationJob
 from stmviewer.ui.filmstrip import Filmstrip
 from stmviewer.ui.import_job import ImportJob
@@ -33,7 +33,7 @@ class STMViewerMainWindow(QMainWindow):
         self._registration: RegistrationResult | None = None
         self._registration_job: RegistrationJob | None = None
         self._registration_backend = registration_backend
-        self._phase_error = phase_unavailable_reason()
+        self._method_errors = {key: registration_unavailable_reason(key) for key in CPU_METHODS}
         self._closing = False
         self._playing = False
         self._play_timer = QTimer(self)
@@ -105,14 +105,23 @@ class STMViewerMainWindow(QMainWindow):
         controls.addWidget(self._view)
         self._method = QComboBox(panel)
         self._method.setObjectName("registrationMethod")
-        self._method.addItem("Phase")
-        self._method.setToolTip(self._phase_error or "Rejestracja sąsiednich klatek, domyślne ustawienia NanoTrack.")
+        for key, label in CPU_METHODS.items():
+            self._method.addItem(label, key)
+            self._method.setItemData(self._method.count() - 1, self._method_errors[key] or
+                                     "Domyślne ustawienia NanoTrack", Qt.ItemDataRole.ToolTipRole)
+        self._method.setToolTip("Rejestracja sąsiednich klatek, domyślne ustawienia NanoTrack.")
         controls.addWidget(self._method)
+        self._method_availability = QLabel(panel)
+        self._method_availability.setObjectName("registrationAvailability")
+        self._method_availability.setWordWrap(True)
+        self._method_availability.setTextFormat(Qt.TextFormat.PlainText)
+        controls.addWidget(self._method_availability)
+        self._method.currentIndexChanged.connect(self._change_registration_method)
         self._register = QPushButton("Rejestruj", panel)
         self._register.setObjectName("registerFrames")
         self._register.clicked.connect(self._start_registration)
         controls.addWidget(self._register)
-        self._registration_text = QLabel(self._phase_error or "", panel)
+        self._registration_text = QLabel("", panel)
         self._registration_text.setObjectName("registrationInfo")
         self._registration_text.setWordWrap(True)
         self._registration_text.setTextFormat(Qt.TextFormat.PlainText)
@@ -215,7 +224,7 @@ class STMViewerMainWindow(QMainWindow):
         self._pixel_proportions.toggled.connect(self._strip.set_pixel_proportions)
         self._pixel_proportions.toggled.connect(self._show_registration_info)
         self.setCentralWidget(central)
-        self._sync_navigation()
+        self._change_registration_method()
 
         menu_bar = QMenuBar(self)
         self.setMenuBar(menu_bar)
@@ -337,7 +346,8 @@ class STMViewerMainWindow(QMainWindow):
         registering = self._registration_job is not None
         self._play.setEnabled(count > 1 and not registering)
         self._delete.setEnabled(bool(count) and not registering)
-        self._register.setEnabled(bool(count) and not registering and self._job is None and not self._phase_error)
+        self._register.setEnabled(bool(count) and not registering and self._job is None
+                                  and not self._method_errors[str(self._method.currentData())])
         self._method.setEnabled(not registering and self._job is None)
         self._view.setEnabled(self._registration is not None)
         for preview_control in (self._zoom_in, self._zoom_out, self._fit_button, self._gamma,
@@ -446,7 +456,7 @@ class STMViewerMainWindow(QMainWindow):
         if not self._frames:
             self._source.setText("—")
             self._metadata.setText("Brak danych.")
-            self._registration_text.setText(self._phase_error or "")
+            self._registration_text.setText("")
             self.setWindowTitle("STM Viewer")
             self._status.showMessage("Brak otwartego obrazu")
             return
@@ -494,11 +504,19 @@ class STMViewerMainWindow(QMainWindow):
             self._show_preview(self._index)
             self._show_current_frame()
 
+    def _change_registration_method(self) -> None:
+        reason = self._method_errors[str(self._method.currentData())]
+        self._method_availability.setText(reason or "")
+        self._method_availability.setVisible(reason is not None)
+        self._sync_navigation()
+
     def _start_registration(self) -> None:
-        if not self._frames or self._job is not None or self._registration_job is not None or self._phase_error:
+        if (not self._frames or self._job is not None or self._registration_job is not None
+                or self._method_errors[str(self._method.currentData())]):
             return
         self._pause()
-        job = RegistrationJob(self._frames, self, self._registration_backend)
+        job = RegistrationJob(self._frames, self, self._registration_backend,
+                              method=str(self._method.currentData()))
         self._registration_job = job
         self._registration_progress.setRange(0, len(self._frames) * 2)
         self._registration_progress.setValue(0)
@@ -570,7 +588,7 @@ class STMViewerMainWindow(QMainWindow):
 
     def _show_registration_info(self) -> None:
         if self._registration is None:
-            self._registration_text.setText(self._phase_error or "")
+            self._registration_text.setText("")
             return
         result = self._registration
         current = result.frames[self._index]

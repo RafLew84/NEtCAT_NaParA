@@ -4,7 +4,10 @@
 
 **Blocked by:** [08: Rejestracja Phase i pełny widok aligned](08-phase-registration.md)
 
-**Status:** ready-for-agent
+**Status:** in-progress
+
+**Wykonawca:** Codex, `viewer/start`, 2026-10-23.
+**Baza code-review:** `b8dcc4596988e8a2ee529f60b860f030b1be9749`.
 
 **Specyfikacja:** [Rejestracja i życie wyniku aligned](../../issues/03-registration.md#answer), [Dane i kryteria odbioru pierwszej wersji](../../issues/06-acceptance.md#answer).
 
