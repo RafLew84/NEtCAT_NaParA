@@ -12,7 +12,7 @@ from collections.abc import Callable
 import numpy as np
 
 from stmviewer.frame import ImageFrame
-from stmviewer.mpp_metadata import encode_mpp_metadata
+from stmviewer.mpp_metadata import encode_mpp_metadata, mpp_sidecar_path
 
 
 def _header(frames: tuple[ImageFrame, ...]) -> bytes:
@@ -23,7 +23,12 @@ def _header(frames: tuple[ImageFrame, ...]) -> bytes:
 
     def text(name: str, unknown: str) -> str:
         value = common(name)
-        return value if isinstance(value, str) and value.strip() and all(ord(c) >= 32 for c in value) else unknown
+        # The reader accepts lines up to 64 KiB. Leave room for the field prefix;
+        # full text remains in JSON even when it cannot be represented here.
+        if (isinstance(value, str) and value.strip() and all(ord(c) >= 32 for c in value)
+                and len(value.encode('utf-8')) <= 65000):
+            return value
+        return unknown
 
     lines = ['WSxM file copyright UAM', 'Movie Image file', 'Image header size: {size}',
              '[General Info]', 'Image Data Type: double', f'Number of columns: {columns}',
@@ -91,7 +96,7 @@ def save_original_mpp(path: str | Path, frames: tuple[ImageFrame, ...], *,
     as a pair: after a process crash the reader detects stale JSON by SHA-256.
     """
     target = Path(path).absolute()
-    destinations = (target, target.with_name(target.name + '.stmviewer.json'))
+    destinations = (target, mpp_sidecar_path(target))
     frames = tuple(frames)
     if not frames:
         raise ValueError('Nie można zapisać pustej serii.')

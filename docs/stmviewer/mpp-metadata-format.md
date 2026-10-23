@@ -94,7 +94,9 @@ bez wspólnej skali ma rozmiar pikselowy w `a.u.`; różne/nieznane jednostki
 sygnału dają `a.u.`, kanał `Unknown`. Nieznane napięcie, prąd, offset lub kąt
 są pomijane. Znany wspólny prąd zapisuje się w nA: stary czytnik interpretuje
 `A` jako angstrom. Znane czasy w nagłówku mają jednostkę sekund i bieżące
-indeksy, bez uzupełniania braków. Dokładne parametry wszystkich klatek,
+indeksy, bez uzupełniania braków. Tekstowe pola nagłówka przekraczające 65 000 bajtów UTF-8 lub zawierające
+znaki sterujące używają wartości umownych; pełna treść pozostaje w JSON.
+Dokładne parametry wszystkich klatek,
 łącznie z surowymi nagłówkami i opisami czasu, pozostają w JSON.
 
 Eksporter zapisuje parę tymczasową na tym samym systemie plików, synchronizuje

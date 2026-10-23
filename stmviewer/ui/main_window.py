@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
 )
 
 from stmviewer.frame import ImageFrame
+from stmviewer.mpp_metadata import mpp_sidecar_path
 from stmviewer.registration import (
     CPU_METHODS, REGISTRATION_METHODS, RegistrationResult, ShiftBackend, registration_unavailable_reason,
 )
@@ -329,7 +330,7 @@ class STMViewerMainWindow(QMainWindow):
         path = Path(filename)
         if path.suffix.lower() != '.mpp':
             path = path.with_name(path.name + '.mpp')
-        sidecar = path.with_name(path.name + '.stmviewer.json')
+        sidecar = mpp_sidecar_path(path)
         existing = [p for p in (path, sidecar) if p.exists() or p.is_symlink()]
         if existing:
             confirmation = QMessageBox(self)
@@ -373,7 +374,7 @@ class STMViewerMainWindow(QMainWindow):
         if job is None:
             return
         if job.result is not None:
-            self._export_info.setText(f"Zapisano: {job.result.name} i {job.result.name}.stmviewer.json")
+            self._export_info.setText(f"Zapisano: {job.result.name} i {mpp_sidecar_path(job.result).name}")
         elif job.error is not None:
             self._export_info.setText(f"Nie udało się zapisać MPP. {job.error}")
         else:

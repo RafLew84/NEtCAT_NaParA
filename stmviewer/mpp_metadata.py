@@ -98,10 +98,15 @@ def _frame(frame: ImageFrame, value: object) -> ImageFrame:
     )
 
 
+def mpp_sidecar_path(path: Path) -> Path:
+    """The V1 companion lives beside the movie, retaining its complete filename."""
+    return path.with_name(path.name + '.stmviewer.json')
+
+
 def apply_mpp_metadata(path: Path, frames: tuple[ImageFrame, ...], *, sha256: str,
                        check_cancelled: Callable[[], None]) -> tuple[ImageFrame, ...]:
     """Return the whole validated addon, or untouched header metadata with a reason."""
-    sidecar = path.with_name(path.name + '.stmviewer.json')
+    sidecar = mpp_sidecar_path(path)
     check_cancelled()
     result = frames
     try:

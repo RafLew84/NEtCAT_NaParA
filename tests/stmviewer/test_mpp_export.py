@@ -134,3 +134,22 @@ def test_existing_readers_receive_values_and_common_calibration(tmp_path):
     np.testing.assert_array_equal(sequence.metadata.frame_times_s, [10, 20, 35])
     series = load_moltrack_image_series(path)
     np.testing.assert_array_equal(series.raw_frames, sequence.raw_frames)
+
+
+def test_long_utf8_labels_from_valid_sidecar_remain_readable_after_export(tmp_path):
+    from stmviewer.mpp_export import save_original_mpp
+
+    source = tmp_path / 'source.MPP'
+    source.write_bytes((FIXTURES / 'mpp-metadata/mixed.MPP').read_bytes())
+    metadata = json.loads((FIXTURES / 'mpp-metadata/mixed.MPP.stmviewer.json').read_text())
+    text = 'Ω' * 40000  # fewer than 65536 characters, more than 65536 UTF-8 bytes
+    for record in metadata['frames']:
+        record['channel'] = record['signal_unit'] = text
+    source.with_name(source.name + '.stmviewer.json').write_text(json.dumps(metadata), encoding='utf-8')
+    frames = open_frame_series([source])
+    assert all(frame.channel == text for frame in frames)
+    saved = tmp_path / 'saved.mpp'
+    save_original_mpp(saved, frames)
+    restored = open_frame_series([saved])
+    assert all(frame.channel == text and frame.signal_unit == text for frame in restored)
+    assert all('wczytano' in frame.metadata_note for frame in restored)
