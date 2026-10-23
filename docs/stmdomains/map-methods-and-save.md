@@ -55,8 +55,8 @@ trudną granicę przesunięcia, lecz scala różnicę orientacji 8°, tworzy
 pozorne obszary na losowych punktach i zależy od ziarna wyszukiwania.
 Adaptacja punktowa: 63.5% przypisań w częściowych referencjach, 5.5%
 scaleń ocenianych par różnych regionów. Żaden z 18 wariantów nie spełnia
-wszystkich warunków. 16 jest `claimed` do omówienia; propozycja dalszej
-pracy to 17 — tekstura obrazu. Nie rozpoczęto 17 ani treningu.
+wszystkich warunków. Użytkownik zatwierdził zachowanie porównania i przejście do 17 — tekstury
+obrazu; 16 ma status `resolved`. Nie wybrano algorytmu do aplikacji.
 
 [Przegląd ML bez własnego treningu](research-training-free-ml-domain-discovery.md)
 z 2026-10-21 rozwinięto na polecenie użytkownika w
@@ -143,7 +143,7 @@ nie zamknięto przez samo dodanie go do mapy.
 ## Decisions so far
 
 - [Czy otoczenie molekuł pozwala znaleźć domeny?](issues/15-local-neighborhood-domains.md): zakończono trzy porównania; użytkownik polecił przejść do 16. Lokalna komórka jest punktem odniesienia, bez przyjęcia metody; pozostają błędy trudnych granic i RED/YELLOW. [Raport orientacji i łączenia](orientation-and-joining-trial.md).
-- [Czy SBC/MatID odtwarza domeny z centrów?](issues/16-sbc-matid-domains.md): [próba wykonana](sbc-matid-domains-trial.md), **wynik do omówienia**. Poprawia braki i deformacje, lecz nie przechodzi kontroli losowego porządku i małej różnicy orientacji. Nie wybrano do aplikacji; następna propozycja to tekstura 17.
+- [Czy SBC/MatID odtwarza domeny z centrów?](issues/16-sbc-matid-domains.md): [próba wykonana](sbc-matid-domains-trial.md), **próba zakończona**. Użytkownik zachował porównanie i wybrał przejście do 17. Poprawa braków i deformacji nie usuwa pozornego porządku ani błędów małej orientacji; nie przyjęto do aplikacji.
 - [Jak przygotować wspólne wejście i kontrole bez narzucania domen?](issues/14-unsupervised-input-and-controls.md): przygotowano 24 pełne klatki, 132 kontrole, osobne referencje i format wyników; potwierdzono geometrię, powtarzalność i brak wpływu referencji na wejście. Bez uruchamiania metod.
 - [Jak definiujemy wyspę, typ uporządkowania i domenę sieci?](issues/02-order-types-and-domains.md): uzgodniono płat warstwy, osobny typ i orientację, granice oraz stany niepewności.
 - [Jak porównać metody wykrywania wysp i domen w serii?](issues/05-stable-types-across-frames.md): katalog wspólny dla zakresu; pilotaż wskazał luki skali, rozstawu i granic.

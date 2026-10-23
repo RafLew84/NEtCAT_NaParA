@@ -1,7 +1,8 @@
 # SBC / MatID — próba domen z centrów molekuł
 
 Data: 2026-10-23. Issue [16](issues/16-sbc-matid-domains.md).
-**Obliczenia zakończone; wynik do omówienia. Nie wybrano metody do programu.**
+**Próba zakończona i omówiona. Użytkownik wybrał zachowanie porównania
+i przejście do 17. Nie wybrano metody do programu.**
 
 SBC wnosi przydatną odporność na braki centrów i łagodne odkształcenie
 sieci. W tej próbie rozdziela też granicę przesunięcia z błędami pozycji
@@ -292,7 +293,7 @@ prób wielkoskalowych. Nie potrzeba obecnie GPU do tej implementacji SBC.
 
 Użytkownik polecił przejść od 15 do 16. Issue 15 kończymy jako trzy
 udokumentowane eksperymenty, z komórką jako punktem odniesienia;
-nie jako przyjęcie algorytmu. Próba 16 jest wykonana i pozostaje
-`claimed` do omówienia wyniku. Odbiór 13 i protokół jakości 04 nadal
+nie jako przyjęcie algorytmu. Próba 16 jest wykonana i po decyzji użytkownika ma status
+`resolved`: zachowujemy porównanie i przechodzimy do 17. Odbiór 13 i protokół jakości 04 nadal
 pozostają otwarte. Kolejny proponowany eksperyment to 17, bez zmiany
 warunku braku zadanej liczby domen lub treningu na kolorowych ramkach.

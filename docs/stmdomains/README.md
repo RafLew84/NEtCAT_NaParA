@@ -147,9 +147,8 @@ i granicy przesunięcia z szumem. Nie spełnia jednak warunku samodzielnego
 wyszukiwania: tworzy pozorne obszary na losowych punktach, scala różnicę
 orientacji 8° i zależy od ziarna wyszukiwania. W referencjach adaptacja
 przypisuje 63.5% centrów, przy 5.5% scaleń ocenianych par różnych regionów.
-Podgląd: `.scratch/sbc-matid-domains/index.html`. Issue 16 jest `claimed`
-do omówienia; propozycja to porównanie tekstury w 17. Nie uruchomiono
-kolejnego issue ani treningu. [Audyt API](research-sbc-adaptation-audit.md)
+Podgląd: `.scratch/sbc-matid-domains/index.html`. Issue 16 ma status `resolved`: użytkownik
+zatwierdził zachowanie porównania i przejście do tekstury w 17. [Audyt API](research-sbc-adaptation-audit.md)
 i raport opisują poprawki modelu punktowego oraz ograniczenia biblioteki.
 
 ## Dwa etapy

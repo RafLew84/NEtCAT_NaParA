@@ -4,7 +4,7 @@ ID: 16
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: claimed
+Status: resolved
 Assignee: Codex
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 14
@@ -86,7 +86,7 @@ wyników. Zapisano 684 wyniki zgodne z kontraktem, komórki i ślady etapów;
 sprawdzono kontrast, skalę, obrót, ziarna oraz zależność od kategorii atomowej.
 35 kontroli HTML bez błędów JS. Raport podaje zakres, koszty i ograniczenia.
 
-Obliczenia zakończone, status **`claimed` do omówienia**. Propozycja:
+Po obliczeniach status pozostawał `claimed` do omówienia. Zaproponowano:
 zachować SBC jako punkt odniesienia i przejść do
 [17 — tekstury](17-image-texture-domains.md). Nie uruchomiono kolejnego
 issue ani treningu; odbiór 13 pozostaje osobną decyzją.
@@ -99,3 +99,11 @@ issue ani treningu; odbiór 13 pozostaje osobną decyzją.
 
 - [Przegląd samodzielnego wyszukiwania domen w STM/AFM](../research-stm-afm-unsupervised-domain-discovery.md)
 - [Przegląd domen i grupowania obiektów](../research-domain-discovery-and-object-clustering.md)
+
+## Answer — 2026-10-23
+
+Po obejrzeniu wyniku użytkownik wybrał: **„Tak — zachowaj porównanie,
+następnie issue 17”**. Próba jest zakończona. SBC pozostaje punktem
+odniesienia, bez przyjęcia do programu. Dalszy krok to tekstura obrazu
+w 17; błędy pozornego porządku, orientacji i niestabilności pozostają
+w raporcie oraz porównaniu do odbioru 13.

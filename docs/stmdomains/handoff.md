@@ -24,9 +24,9 @@ TTMAPP: 63.5% przypisań, 5.9% podziałów i 5.5% scaleń warunkowych par,
 wobec 70.7% / 2.8% / 0% poprzedniej komórki. Zmiana ziarna powoduje
 znaczne zmiany wyniku. Komórka biblioteki jest prototypem, nie globalnym fitem.
 
-Issue 16 **`claimed` do omówienia**; zapytano użytkownika o zachowanie
-porównania i przejście następnie do tekstury 17. Nie uruchomiono 17 ani
-treningu. Odbiór 13 i jakość 04 pozostają otwarte. Nie wybrano metody
+Issue 16 **`resolved`**: użytkownik zatwierdził zachowanie porównania
+i przejście następnie do tekstury 17. Zakończenie próby nie wybiera
+metody produkcyjnej. Odbiór 13 i jakość 04 pozostają otwarte. Nie wybrano metody
 produkcyjnej, nie mierzono powierzchni ani nie tworzono katalogu typów.
 
 Sprawdzenia: 228/228 identycznych ponownych wyników i śladów etapów bez
