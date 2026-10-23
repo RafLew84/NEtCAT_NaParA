@@ -1,5 +1,95 @@
 # Przekazanie — STM Viewer
 
+## 12: Zapis original do MPP — 2026-10-23
+
+Gałąź `viewer/start`. Baza `7756c3d6e018ad1820f7400dc2d606b49d0975f2`.
+Implementacja **`678269f`**, poprawki przeglądu **`e24e560`**.
+[Ticket 12](implementation/issues/12-original-mpp.md): `ready-for-review`,
+oczekuje na ręczny odbiór użytkownika.
+
+### Wynik
+
+Przycisk Zapisz original MPP…, menu Plik i Ctrl+S zapisują całą pozostałą
+serię original do MPP i `<nazwa MPP>.stmviewer.json`. Jedna klatka jest
+obsługiwana; pusta seria wyłącza zapis. Wybrana klatka ani widok aligned
+nie zmieniają zakresu. Gamma, zoom i opcja proporcji pikselowych nie trafiają
+do eksportera. Dane to float64 little endian w konwencji orientacji MPP;
+zachowane są NaN, pełne wymiary i dokładne skończone wartości.
+
+Dodatek [V1](mpp-metadata-format.md) zachowuje własne parametry każdej klatki,
+surowe nagłówki, braki i przerwy czasu oraz historyczne pochodzenie.
+Wspólny nagłówek ma tylko wspólne znane parametry, a przy różnicach/nieznanych
+wartościach jednostki umowne i Unknown. Znany prąd zapisuje się w nA, ponieważ
+wspólny starszy parser myli A z angstromem. Pełne długie teksty pozostają
+w JSON; reprezentacja w nagłówku mieści się w limicie czytnika.
+
+Worker zapisuje dane partiami wierszy, bez kopii całej serii. Zapisany snapshot
+to niezmieniana podczas operacji krotka obrazów. UI zatrzymuje Play i blokuje
+nowy import, usuwanie, rejestrację oraz kolejny zapis; przeglądanie/gamma/zoom
+pozostają dostępne. Przycisk Anuluj i zamknięcie okna kończą operację przez
+worker. Spóźnione anulowanie po zakończonej publikacji nie udaje wycofania.
+
+MPP i JSON powstają w katalogu tymczasowym obok celu. Przed podmianą
+zabezpieczane są kopie istniejących plików; błąd/anulowanie przywraca parę.
+Gdy samo przywracanie zawiedzie, kopie pozostają, a komunikat wskazuje katalog.
+Dwa renamy nie są transakcją odporną na twarde zakończenie procesu: jeśli
+pozostanie nowy MPP ze starym JSON, import wykryje niezgodność SHA-256.
+Przerwanie procesu między podmianami sprawdzono osobnym podprocesem.
+
+### Sprawdzenia
+
+- TDD RED → GREEN: zapis z niezależnymi oczekiwaniami bajtowymi; bezpieczeństwo
+  zastępowania pary; publiczne kontrolki GUI; poprawka długich tekstów UTF-8.
+  Testy obejmują STP/S94/MPP, NaN, skrajne float64 i ujemne zero, długi
+  nagłówek, indywidualne metadane, przeniesienie pary, błąd/krótki zapis,
+  anulowanie pomiędzy publikacjami, twarde zakończenie procesu, blokady GUI,
+  potwierdzenie nadpisania także samego JSON i zamknięcie podczas zapisu.
+- Zestaw Viewera: **214 passed, 2 skipped**, 21.78 s. Pominięte istniejące
+  opcjonalne testy lokalnego LoFTR; eksport nie zmienia modelu.
+  Po poprawce przeglądu **38 passed**, 3.53 s: eksport, bezpieczeństwo,
+  GUI eksportu, import metadanych i GUI importu; zawiera dodatkowy test UTF-8.
+  Mypy strict: **23 pliki**, bez błędów.
+- Pełny zestaw repo uruchomiony raz:
+  `PYTHONPATH=.:tests/moltrack:tests/stmviewer QT_QPA_PLATFORM=offscreen python -m pytest -q --import-mode=importlib --continue-on-collection-errors -o cache_dir=/tmp/stmviewer-original-mpp-full-pytest`.
+  Kompletny log: **2000 passed, 14 failed, 16 skipped**, 231.70 s,
+  bez błędów zbierania. Wszystkie 14 identyfikatorów niepowodzeń jest identyczne
+  z `/tmp/stmviewer-mpp-metadata-full-suite.log`; brak nowych niepowodzeń.
+  Log bieżący: `/tmp/stmviewer-original-mpp-full-suite.log`. Narzędzie sesji
+  procesu zwróciło kod 143 po pełnym podsumowaniu pytest; podane wyniki
+  pochodzą z logu zawierającego 100% testów i końcową listę niepowodzeń.
+  Zestaw rozpoczęto dla `678269f`; poprawkę `e24e560` sprawdzono wymienionymi
+  38 testami i mypy. Nie deklarujemy zielonego odbioru całego repo.
+- Automatyczne rzeczywiste Qt xcb z dialogami: zapis/ponowne otwarcie
+  znanych czasów po usunięciu środka, S94, mieszanych metadanych oraz
+  **MOVIE_3: 17 klatek 256 × 256**. Dokładne wartości i parametry zachowane;
+  źródła mają niezmienione SHA-256. Obejrzano dwa zrzuty podglądu.
+  Skrypt/log/manifest: `/tmp/stmviewer-original-mpp-smoke.{py,log,json}`.
+  Zrzuty: `/tmp/stmviewer-original-mpp-{saved,reopened}-xcb.png`.
+- Sprawdzono CLI porównania eksportu na dwóch klatkach po usunięciu środka
+  oraz generator wzorca na 4 × 16 × 16 z NaN i jego zapis/odczyt.
+  Nie jest to odbiór dużej serii 1000 × 512 × 512 z ticketu 18/19.
+- [Przegląd](implementation/review-12-original-mpp.md): jedno P2 Spec i drobna
+  heurystyka Standards zamknięte po poprawce; **0 otwartych uwag** w obu osiach.
+  Największy zmieniony plik kodu: **751 linii**, poniżej celu 1000 i limitu 1500.
+  Sprawdzono lokalne odnośniki dokumentacji i `git diff --check`.
+
+### Ręczny odbiór i integracja
+
+[Instrukcja manualna](original-mpp-manual.md) podaje uruchomienie, gotowe dane,
+generator dużego wzorca, raport dokładnego porównania oraz oczekiwane wyniki.
+Ręczna próba użytkownika **niewykonana**; Qt offscreen i xcb to automaty.
+Windows 11 oraz dodatkowe WSxM nie zostały sprawdzone w tej sesji.
+
+Zmiany tylko w Viewerze, jego testach i dokumentacji. Nowych zależności nie ma;
+bez zmian wspólnego kodu, konfiguracji, środowiska i pomiarów. Bez push/scalania.
+Istniejące czytniki NaPara/NanoTrack/MolTrack czytają wartości i wspólne parametry
+z typowych filmów. NaPara zwraca kolejność plikową, NanoTrack/MolTrack wykonują
+własny obrót 180°. Dla integracji pozostają znane ograniczenia wspólnego
+czytnika: limit 1000 linii nagłówka, błędna interpretacja A, nieznanej skali
+oraz brak indywidualnych metadanych JSON. Eksporter używa nA; pełen kontrakt
+nieznanych i mieszanych parametrów zapewnia para otwierana w Viewerze.
+Eksport aligned i geometria są zakresem ticketu 13, który nadal wymaga
+zamknięcia ręcznego odbioru ticketu 12.
 
 ## 11: Otwarcie MPP z metadanymi towarzyszącymi — 2026-10-23
 
