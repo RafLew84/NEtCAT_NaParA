@@ -4,7 +4,7 @@
 
 **Blocked by:** [04: Otwarcie filmu MPP z czasami i pochodzeniem](04-mpp-series.md)
 
-**Status:** ready-for-review
+**Status:** done
 
 **Wykonawca:** Codex, `viewer/start`, 2026-10-23.
 **Baza code-review:** `b71305bfb2886d734cc087708780f22ea12fd30d`.
@@ -52,8 +52,8 @@ Adapter dodatku może pozostać w Viewer. Jeśli trzeba rozszerzyć wspólny odc
 
 ## Realizacja — 2026-10-23
 
-Implementacja: `137655d`. Baza: `b71305b`; końcowy raport zapisany osobnym
-commitem. [Kontrakt V1](../../mpp-metadata-format.md) określa nazwę dodatku,
+Implementacja: `137655d`. Baza: `b71305b`; raport implementacji i przeglądu:
+`33a672b`. [Kontrakt V1](../../mpp-metadata-format.md) określa nazwę dodatku,
 SHA-256 wszystkich bajtów MPP, liczbę/kształt klatek oraz typy pól.
 Walidacja całego dodatku poprzedza zastosowanie jakichkolwiek metadanych.
 Historyczne pochodzenie jest odrębne od faktycznie otwartego pliku.
@@ -74,8 +74,11 @@ przyczynę. Anulowanie importu zachowuje poprzednią serię.
   Największy zmieniony plik kodu: **640 linii**. Generator odtwarza wszystkie
   13 plików wzorców bajtowo; odnośniki dokumentacji i `git diff --check` poprawne.
 - [Instrukcja manualna](../../mpp-metadata-manual.md) zawiera dane, kroki
-  i oczekiwane wartości. Ręczny odbiór użytkownika jeszcze niewykonany;
-  Windows nie był uruchamiany. Status pozostaje `ready-for-review`.
+  i oczekiwane wartości. Użytkownik potwierdził pozytywny wynik testów
+  manualnych 2026-10-23: „testy manualne ok”. Status: `done`.
+  Nie wskazano systemu; potwierdzenie nie zamyka odrębnych odbiorów platform.
 
 Zmiany wyłącznie w Viewerze, jego testach i dokumentacji; wspólne czytniki
-oraz środowisko pozostają bez zmian. Szczegóły: [przekazanie](../../handoff.md).
+oraz środowisko pozostają bez zmian. Potwierdzenie odbioru aktualizuje
+wyłącznie dokumentację, bez ponawiania testów automatycznych. Commit
+potwierdzenia podany w wiadomości sesji. Szczegóły: [przekazanie](../../handoff.md).

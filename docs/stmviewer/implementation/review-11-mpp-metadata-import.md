@@ -4,6 +4,10 @@ Data: 2026-10-23. Baza zgodnie z zasadami implementacji:
 `b71305bfb2886d734cc087708780f22ea12fd30d`. Implementacja: `137655d`.
 Diff: `git diff b71305bfb2886d734cc087708780f22ea12fd30d...137655d`.
 
+Raport zachowuje stan z chwili przeglądu. Następnie użytkownik potwierdził
+pozytywny wynik testów manualnych 2026-10-23; [ticket 11](issues/11-mpp-metadata-import.md)
+ma status `done`. Potwierdzenie nie zamyka odrębnych odbiorów platform.
+
 Dwie osie sprawdzili równolegle niezależni agenci zgodnie ze skillem
 `code-review`, tylko do odczytu i bez uruchamiania testów. Końcowe statusy,
 wyniki testów i przekazanie uzupełniono po przeglądzie; kod się nie zmienił.

@@ -104,8 +104,7 @@ mają status `done`: użytkownik potwierdził [testy manualne](cpu-registration-
 ma status `done`: użytkownik potwierdził [testy manualne](deep-matcher-manual.md)
 2026-10-23 po wyjaśnieniu obwódki interpolacyjnej na wzorcu cpu.mpp.
 [Otwarcie MPP z metadanymi towarzyszącymi](implementation/issues/11-mpp-metadata-import.md)
-ma status `ready-for-review`: implementacja, testy i przegląd zakończone;
-oczekuje na ręczny odbiór użytkownika.
+ma status `done`: użytkownik potwierdził testy manualne 2026-10-23.
 [Próba ręczna](mpp-metadata-manual.md), [format dodatku V1](mpp-metadata-format.md).
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy

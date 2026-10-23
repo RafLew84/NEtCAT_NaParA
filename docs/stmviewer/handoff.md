@@ -6,8 +6,9 @@
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
 `b71305bfb2886d734cc087708780f22ea12fd30d`. Implementacja: `137655d`.
 Ticket: [11-mpp-metadata-import](implementation/issues/11-mpp-metadata-import.md).
-Status: `ready-for-review`, ręczny odbiór użytkownika jeszcze niewykonany.
-Commit końcowego raportu podany w wiadomości sesji.
+Status: `done` po potwierdzeniu ręcznego odbioru użytkownika 2026-10-23.
+Raport implementacji i przeglądu: `33a672b`. Commit potwierdzenia odbioru
+podany w wiadomości sesji.
 
 ### Wynik i kontrakt
 
@@ -69,9 +70,12 @@ pozostaje przy nawigacji i znika po opróżnieniu lub otwarciu STP/S94.
   13 plików bajtowo. `git diff --check` i lokalne odnośniki poprawne;
   największy zmieniony plik kodu ma **640 linii**, poniżej celu 1000 i limitu 1500.
 - [Instrukcja manualna](mpp-metadata-manual.md) zawiera uruchomienie,
-  gotowe poprawne/błędne pary i oczekiwane parametry. Ręczny odbiór użytkownika
-  pozostaje niewykonany. Windows nie był uruchamiany; tekstowe ścieżki Windows
-  sprawdzono na Linuksie, co nie zastępuje odbioru platformy.
+  gotowe poprawne/błędne pary i oczekiwane parametry. Użytkownik potwierdził
+  ręczny odbiór 2026-10-23: „testy manualne ok”. Nie wskazał systemu;
+  potwierdzenie nie zamyka odrębnych odbiorów platform. Tekstowe ścieżki
+  Windows sprawdzono automatycznie na Linuksie; to nie zastępuje odbioru
+  Windows. Aktualizacja odbioru zmienia wyłącznie dokumentację; testów
+  automatycznych nie ponawiano.
 
 ### Integracja i następne etapy
 

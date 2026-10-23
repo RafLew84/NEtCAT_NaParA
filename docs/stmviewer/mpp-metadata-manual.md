@@ -77,5 +77,7 @@ w ticketach 12–13. Rzeczywiste wczytane piksele nadal stanowią wejście do
 rejestracji, z dotychczasowym odrzucaniem NaN przez backendy.
 
 Testy Qt offscreen i sterowane skryptem okno są próbami automatycznymi.
-Ręczny odbiór użytkownika oraz Windows pozostają niewykonane.
+Użytkownik potwierdził pozytywny wynik testów manualnych 2026-10-23.
+Nie wskazał systemu; potwierdzenie nie zamyka odrębnych odbiorów platform,
+w tym Windows.
 Wyniki wykonanych sprawdzeń: [przekazanie](handoff.md).
