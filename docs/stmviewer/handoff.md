@@ -1,5 +1,17 @@
 # Przekazanie — STM Viewer
 
+## 12: Nagranie Windows i zakres palety — 2026-10-23
+
+Dalsze zgłoszenie słabego kontrastu w Windows sprawdzono na nagraniu
+`bandicam 2026-10-23 19-19-29-772.mp4`. Kopia v2 z pendrive ma ten sam
+SHA-256 co sprawdzony film. Objaw odtworzono w WSxM pod Wine przez wybór
+zakresu palety całego filmu. Przełączenie **Settings → Movie Settings →
+Palette range → Fit to frame Max/Min values**, zatwierdzenie i odświeżenie
+klatki przywróciło szczegóły: kontrast percentylowy tej samej klatki 24 → 217.
+Zmiana dotyczy wyłącznie konfiguracji podglądu WSxM. Kod i pliki pomiarowe
+pozostały bez zmian, więc nie ponawiano testów aplikacji. [Raport](wsxm-investigation.md).
+Potwierdzenie ustawienia na Windows i ręczny odbiór użytkownika nadal oczekują.
+
 ## 12: Poprawka odczytu MPP w WSxM — 2026-10-23
 
 Baza poprawki: `7eab8e9`. Commity **`b887b2b`**, **`0cb6644`**.

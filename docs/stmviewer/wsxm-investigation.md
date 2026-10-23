@@ -153,6 +153,36 @@ programu nie dowodzą obsługi indywidualnych metadanych JSON ani wszystkich
 wariantów kodowania nagłówka. Wszystkie skrypty i filmy diagnostyczne
 pozostają lokalnie w `/tmp/wsxm-investigation/`; nie trafiają do Git.
 
+## Nagranie Windows: słaby kontrast — 2026-10-23
+
+Użytkownik dostarczył `bandicam 2026-10-23 19-19-29-772.mp4` z nośnika
+`/media/rlew/A7DE-44B4`. Na nagraniu otwarty jest `test-wsxm-v2.mpp`:
+widoczne są słabe szczegóły i duże zmiany ogólnej jasności między klatkami,
+bez wcześniejszego paska przy krawędzi. SHA-256 kopii na nośniku jest
+identyczny z lokalnym v2: `e3a821bafc04291119c65530b152a5529bb02595b52bf9b6d51c12de85440c6c`.
+
+W izolowanej kopii WSxM odtworzono ten wygląd przy ustawieniu
+**Settings → Movie Settings → Palette range → Fit to movie Max/Min values**.
+Następnie zmieniono wyłącznie tę opcję na **Fit to frame Max/Min values**,
+zatwierdzono i odświeżono klatkę. Szczegóły wróciły bez zmiany MPP lub
+włączenia Plane. Dla tej samej klatki o indeksie 4 rozpiętość jasności
+między percentylami 1 i 99 wzrosła z **24 do 217** w skali 0–255.
+Pierwszy obraz nagrania Windows również miał rozpiętość **24**.
+To lokalne odtworzenie objawu i naprawy ustawienia, nie potwierdzenie
+bieżącej konfiguracji na komputerze Windows — potrzebna jest próba użytkownika.
+
+Próg diagnostyczny >30 dotyczy tego konkretnego obrazu, nie dowolnego
+pomiaru. Komenda `windows/check_contrast.py` w katalogu diagnozy: RED dla
+`windows/movie-range-frame4.png`, GREEN dla `windows/frame-range-frame4.png`,
+z wycinkiem `8 112 258 362`. Nagranie, zrzuty i skrypt pozostają lokalne.
+
+Globalny zakres filmu to −6.337890625…15.08203125 nm. Zakres pojedynczych
+klatek 0/184/368 zajmuje odpowiednio około 6.5/6.0/3.2% tego przedziału,
+więc wspólna paleta słabo różnicuje ich szczegóły. Wybór zakresu dla każdej
+klatki poprawia widoczność, ale jednakowy kolor nie oznacza wtedy jednakowej
+wartości między klatkami. Nie zmieniano eksportera ani danych; Windows
+nadal oczekuje na potwierdzenie użytkownika po zmianie opcji.
+
 ## Lokalna instalacja
 
 WSxM z instalatora użytkownika jest zainstalowany w osobnym prefiksie:
