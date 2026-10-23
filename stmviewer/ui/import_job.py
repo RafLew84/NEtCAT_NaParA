@@ -35,7 +35,8 @@ class ImportJob(QThread):
         return self._cancelled.is_set()
 
     def _read_progress(self, done: int, total: int, path: Path) -> None:
-        self.progress.emit(done, total * 2, f"Odczyt {done}/{total}: {path.name}")
+        suffix = ' · weryfikacja metadanych' if done == total and path.suffix.lower() == '.mpp' else ''
+        self.progress.emit(done, total * 2, f"Odczyt {done}/{total}: {path.name}{suffix}")
 
     def run(self) -> None:
         try:

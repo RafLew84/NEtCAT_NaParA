@@ -4,7 +4,10 @@
 
 **Blocked by:** [04: Otwarcie filmu MPP z czasami i pochodzeniem](04-mpp-series.md)
 
-**Status:** ready-for-agent
+**Status:** in-progress
+
+**Wykonawca:** Codex, `viewer/start`, 2026-10-23.
+**Baza code-review:** `b71305bfb2886d734cc087708780f22ea12fd30d`.
 
 **Specyfikacja:** [Zapis MPP z wartościami i metadanymi](../../issues/04-mpp-export.md#answer), [Dane i kryteria odbioru pierwszej wersji](../../issues/06-acceptance.md#answer).
 

@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 from pathlib import Path
+import hashlib
 import os
 import re
 from typing import BinaryIO
@@ -9,6 +10,7 @@ from typing import BinaryIO
 import numpy as np
 
 from stmviewer.frame import ImageFrame
+from stmviewer.mpp_metadata import apply_mpp_metadata
 from stmviewer.quantities import CURRENT_A, LENGTH_NM, VOLTAGE_V, parse_quantity, scaled_quantity
 
 
@@ -16,12 +18,14 @@ _TIME_S = {"s": 1.0, "sec": 1.0, "ms": 1e-3, "us": 1e-6, "µs": 1e-6,
            "μs": 1e-6, "min": 60.0, "h": 3600.0}
 
 
-def _header(stream: BinaryIO, check_cancelled: Callable[[], None]) -> dict[str, dict[str, str]]:
+def _header(stream: BinaryIO, check_cancelled: Callable[[], None],
+            consume: Callable[[bytes], None]) -> dict[str, dict[str, str]]:
     header: dict[str, dict[str, str]] = {}
     section = ''
     # No header-line count limit: synchronization adds one line per movie frame.
     while raw := stream.readline(65537):
         check_cancelled()
+        consume(raw)
         if len(raw) > 65536:
             raise ValueError('Zbyt długa linia nagłówka MPP.')
         try:
@@ -45,7 +49,8 @@ def open_mpp_series(
     source = path.resolve()
     try:
         with source.open('rb') as stream:
-            header = _header(stream, check_cancelled)
+            digest = hashlib.sha256()
+            header = _header(stream, check_cancelled, digest.update)
             general = header.get('General Info', {})
             control = header.get('Control', {})
             data_type = general.get('Image Data Type', 'double')
@@ -71,6 +76,7 @@ def open_mpp_series(
             for index in range(count):
                 check_cancelled()
                 payload = stream.read(bytes_per_frame)
+                digest.update(payload)
                 check_cancelled()
                 if len(payload) != bytes_per_frame:
                     raise ValueError(f"Niepełne dane klatki {index + 1}/{count} MPP.")
@@ -97,6 +103,11 @@ def open_mpp_series(
                 if progress is not None:
                     progress(index + 1, count, source)
             check_cancelled()
-            return tuple(frames)
+            # Bind metadata to exactly the bytes decoded, including any file trailer.
+            while chunk := stream.read(1024 * 1024):
+                check_cancelled()
+                digest.update(chunk)
+            return apply_mpp_metadata(source, tuple(frames), sha256=digest.hexdigest(),
+                                      check_cancelled=check_cancelled)
     except (OSError, ValueError, OverflowError) as error:
         raise ValueError(f'{source}: {error}') from error

@@ -17,6 +17,7 @@ from stmviewer.deep_matcher import deep_unavailable_reason
 from stmviewer.ui.deep_matcher_controls import DeepMatcherControls
 from stmviewer.ui.registration_job import RegistrationJob
 from stmviewer.ui.filmstrip import Filmstrip
+from stmviewer.ui.frame_source import frame_source_text
 from stmviewer.ui.import_job import ImportJob
 from stmviewer.ui.image_preview import ImagePreview
 
@@ -149,6 +150,12 @@ class STMViewerMainWindow(QMainWindow):
         self._source.setTextFormat(Qt.TextFormat.PlainText)
         self._source.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         controls.addWidget(self._source)
+        self._metadata_note = QLabel(panel)
+        self._metadata_note.setObjectName('metadataImportInfo')
+        self._metadata_note.setWordWrap(True)
+        self._metadata_note.setTextFormat(Qt.TextFormat.PlainText)
+        self._metadata_note.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        controls.addWidget(self._metadata_note)
         controls.addWidget(QLabel("Parametry z pliku", panel))
         self._metadata = QLabel("Brak danych.", panel)
         self._metadata.setWordWrap(True)
@@ -466,6 +473,7 @@ class STMViewerMainWindow(QMainWindow):
         self._sync_navigation()
         if not self._frames:
             self._source.setText("—")
+            self._metadata_note.clear()
             self._metadata.setText("Brak danych.")
             self._registration_text.setText("")
             self.setWindowTitle("STM Viewer")
@@ -473,10 +481,8 @@ class STMViewerMainWindow(QMainWindow):
             return
         frame = self._frames[self._index]
         self._fit_button.setEnabled(True)
-        source = str(frame.source)
-        if frame.source_frame_index is not None:
-            source += f"\nKlatka źródłowa MPP: {frame.source_frame_index + 1}"
-        self._source.setText(source)
+        self._source.setText(frame_source_text(frame))
+        self._metadata_note.setText(frame.metadata_note or "")
         height, width = frame.data.shape
         current = frame.setpoint_a * 1e9 if frame.setpoint_a is not None else None
         self._metadata.setText(

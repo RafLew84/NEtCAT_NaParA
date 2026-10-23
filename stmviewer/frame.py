@@ -9,6 +9,14 @@ from numpy.typing import NDArray
 
 
 @dataclass(frozen=True)
+class FrameProvenance:
+    """Historical source text; never resolved or opened on this computer."""
+
+    source: str
+    source_frame_index: int | None
+
+
+@dataclass(frozen=True)
 class ImageFrame:
     source: Path
     data: NDArray[np.float64] = field(repr=False)
@@ -27,3 +35,6 @@ class ImageFrame:
     source_frame_index: int | None = None
     measurement_time_s: float | None = None
     measurement_time_raw: str | None = None
+    # The opened file/index remain in source/source_frame_index.
+    provenance: FrameProvenance | None = None
+    metadata_note: str | None = None

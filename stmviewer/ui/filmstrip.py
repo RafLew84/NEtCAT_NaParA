@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import QListView, QWidget
 
 from stmviewer.frame import ImageFrame
 from stmviewer.ui.raster import frame_thumbnail
+from stmviewer.ui.frame_source import frame_source_name, frame_source_text
 
 
 class FrameListModel(QAbstractListModel):
@@ -26,12 +27,9 @@ class FrameListModel(QAbstractListModel):
             return None
         row = index.row()
         if role == Qt.ItemDataRole.DisplayRole:
-            return f"{'⚠ ' if self._warnings[row] else ''}{row + 1} · {self._frames[row].source.name}"
+            return f"{'⚠ ' if self._warnings[row] else ''}{row + 1} · {frame_source_name(self._frames[row])}"
         if role == Qt.ItemDataRole.ToolTipRole:
-            frame = self._frames[row]
-            source = str(frame.source)
-            if frame.source_frame_index is not None:
-                source += f"\nKlatka źródłowa MPP: {frame.source_frame_index + 1}"
+            source = frame_source_text(self._frames[row])
             return source + ("\n" + self._warnings[row] if self._warnings[row] else "")
         if role == Qt.ItemDataRole.DecorationRole:
             if row not in self._icons:
