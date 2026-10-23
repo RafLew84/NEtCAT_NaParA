@@ -5,8 +5,9 @@
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
 `e8102e9d21924c8d661e72df223a46343e0183ff`.
 Ticket: [07-frame-deletion](implementation/issues/07-frame-deletion.md).
-Status: `ready-for-review`, do ręcznej próby użytkownika.
-Commit implementacji: `bfffd83`; commit końcowego raportu podany w wiadomości sesji.
+Status: `done` po potwierdzeniu ręcznego odbioru użytkownika 2026-10-23.
+Commit implementacji: `bfffd83`; końcowy raport: `6f35585`.
+Commit potwierdzenia ręcznego odbioru podany w wiadomości sesji.
 
 ### Wynik i kontrakt
 
@@ -41,7 +42,8 @@ z mapą, zachowując geometrię pozostałych klatek.
   otwarcie i niezmienność zawartości źródeł (porównanie bajtów/hash SHA-256).
   Skrypt: `/tmp/stmviewer-deletion-smoke.py`; zrzuty:
   `/tmp/stmviewer-deletion-{middle,empty,measurement}-xcb.png`.
-  Oceniono wizualnie. To próba automatyczna; odbiór użytkownika i Windows czekają.
+  Oceniono wizualnie. To próba automatyczna, odrębna od późniejszego
+  potwierdzenia użytkownika; odbiór Windows pozostaje w osobnym tickecie.
 - Pełny zestaw repo w `netcat`:
   `PYTHONPATH=.:tests/moltrack:tests/stmviewer QT_QPA_PLATFORM=offscreen python -m pytest -q --import-mode=importlib --continue-on-collection-errors`:
   **1888 passed, 15 failed, 14 skipped**, 241.66 s, bez błędów zbierania.
@@ -68,6 +70,9 @@ z mapą, zachowując geometrię pozostałych klatek.
   `git diff --check` i lokalne odnośniki zmienionej dokumentacji poprawne.
 - [Instrukcja ręczna i wzorce](frame-deletion-manual.md). Nowy mały film
   known-times.mpp jest odtwarzany przez istniejący generator MPP.
+  Użytkownik potwierdził ręczny odbiór 2026-10-23: „testy manualne ok”.
+  Nie wskazano systemu; potwierdzenie nie zamyka odrębnych odbiorów platform.
+  Zmieniono wyłącznie dokumentację, bez ponawiania testów automatycznych.
 
 Nie zmieniono wspólnych modułów, zależności ani głównej konfiguracji.
 Nie ma nowego wymagania integracyjnego blokującego tę funkcję.

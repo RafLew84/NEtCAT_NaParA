@@ -80,5 +80,10 @@ Automatyczna próba Qt xcb użyła rzeczywistego dialogu, wzorca 10/20/35 s
 oraz lokalnego `data/MOVIE_3.MPP`. Zaliczyła usunięcie podczas Play, wybór
 następnej/poprzedniej, stan pusty i ponowne otwarcie; źródła pozostały
 bajtowo niezmienione. Zrzuty obejrzano. To próba automatyczna, odrębna od
-ręcznego odbioru użytkownika i odbioru Windows — te pozostają do wykonania.
+ręcznego odbioru użytkownika.
+
+Użytkownik potwierdził pozytywny wynik testów manualnych 2026-10-23:
+„testy manualne ok”. Ticket 07 ma status `done`. Nie wskazano systemu;
+odrębne odbiory platform pozostają w późniejszych etapach. Aktualizacja
+dotyczy dokumentacji, więc testów automatycznych nie ponawiano.
 Pełny wynik testów repo i przegląd: [przekazanie](handoff.md).

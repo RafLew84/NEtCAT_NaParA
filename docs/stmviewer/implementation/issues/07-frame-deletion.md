@@ -4,7 +4,7 @@
 
 **Blocked by:** [04: Otwarcie filmu MPP z czasami i pochodzeniem](04-mpp-series.md), [06: Play, Pause i tempo odtwarzania](06-playback.md)
 
-**Status:** ready-for-review
+**Status:** done
 
 **Wykonawca:** Codex, `viewer/start`.
 
@@ -69,5 +69,7 @@ Pełny zestaw repo: **1888 passed, 15 failed, 14 skipped**. Z tych błędów
 osobno zarówno na bazie, jak i bieżącym kodzie. Nie ustalono przyczyny tych
 dwóch niepowodzeń pełnej próby; nie deklarujemy zielonego odbioru repo.
 Szczegóły i logi: [przekazanie](../../handoff.md).
-Ręczny odbiór użytkownika pozostaje do wykonania, dlatego status to
-`ready-for-review`. Próba Windows należy do odrębnego odbioru platformy.
+Użytkownik potwierdził ręczny odbiór 2026-10-23: „testy manualne ok”.
+Ticket ma status `done`. Nie wskazano systemu; osobne odbiory platform
+pozostają w późniejszych etapach. Aktualizacja dotyczy dokumentacji;
+testów automatycznych nie ponawiano.

@@ -5,6 +5,11 @@ Data: 2026-10-23. Baza zgodnie z zatwierdzonymi zasadami implementacji:
 Commit implementacji: `bfffd83`.
 Diff: `git diff e8102e9d21924c8d661e72df223a46343e0183ff...bfffd83`.
 
+Poniższy raport zachowuje stan z chwili przeglądu. Następnie, 2026-10-23,
+użytkownik potwierdził ręczny odbiór („testy manualne ok”).
+[Ticket 07](issues/07-frame-deletion.md) ma status `done`. Nie wskazano systemu;
+potwierdzenie nie zamyka odrębnych odbiorów platform.
+
 Dwie osie sprawdzili równolegle niezależni agenci zgodnie ze skillem
 `code-review`. Przegląd był tylko do odczytu, bez ponawiania testów przez
 recenzentów. Statusy i końcowe wyniki uzupełniono po otrzymaniu raportów.
