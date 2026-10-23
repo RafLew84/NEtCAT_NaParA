@@ -1,5 +1,93 @@
 # Przekazanie — STM Viewer
 
+## 09: Pozostałe metody rejestracji CPU — 2026-10-23
+
+Gałąź: `viewer/start`. Baza implementacji i przeglądu:
+`b8dcc4596988e8a2ee529f60b860f030b1be9749`.
+Ticket: [09-cpu-registration-methods](implementation/issues/09-cpu-registration-methods.md).
+Status: `ready-for-review`, oczekuje ręcznego odbioru użytkownika.
+Commit implementacji: `3e31161`; poprawka importu testowego: `5d4ea6b`.
+Końcowy commit raportu podany w wiadomości sesji; pełny zakres `b8dcc45..HEAD`.
+
+### Wynik i kontrakt
+
+Lista rejestracji zawiera Phase, Tile+RANSAC, ECC i Optical Flow.
+Adapter używa istniejącej `build_registration_backend_from_settings` NanoTrack,
+`reference_strategy=adjacent`, `registration_view=raw`, pustych backend_params.
+Nie zmieniano algorytmów, progów ani domyślnych parametrów. ECC ma własne
+wstępne oszacowanie Phase, a Optical Flow używa mediany TV-L1 do wyznaczenia
+jednego przesunięcia XY. Brak automatycznego zastępowania metody po błędzie.
+
+Wybór jest zapamiętany w uruchomionym zadaniu, a nazwa metody w kompletnym
+wyniku. Zmiana listy nie zmienia starego aligned, jego opisu ani kadru.
+Wszystkie metody korzystają z cyklu, geometrii, interpolacji i anulowania
+wprowadzonego w tickecie 08. Usuwanie zachowuje także metodę starego wyniku.
+Niska pewność/manual_review pozostają dostępne i są dziedziczone jak wcześniej.
+Błąd, failed, brak wyniku lub nieprawidłowe XY odrzuca całą nową próbę.
+
+Lokalna dostępność sprawdzana jest przy starcie okna. Brak OpenCV wyłącza
+wyłącznie ECC. Brak SciPy/scikit-image wyłącza rejestrację, zachowując start
+aplikacji, import i przeglądanie. Powód pojawia się osobno od opisu starego
+wyniku; niedostępne metody pozostają na liście. Instalacja biblioteki wymaga
+ponownego startu. Program nie instaluje ani nie pobiera zależności.
+
+### Sprawdzenia i odbiór
+
+- TDD: red → green dla wyboru realnych backendów i porównania z domyślnym
+  NanoTrack, wyboru metody w GUI oraz braku OpenCV. Kontrolowane wyniki
+  i błędy uzupełniają próby prawdziwych metod; nie zastępują oceny dopasowania.
+- **155 testów Viewera zaliczonych**, w tym 32 nowe. **Mypy strict: 17 plików**
+  bez błędów. Opcjonalne cv2 ma ignore_missing_imports w lokalnej konfiguracji.
+- Nowe testy obejmują wszystkie trzy metody, znane XY, status/quality zgodne
+  z NanoTrack, postęp, usuwanie oraz zachowanie starego aligned po anulowaniu,
+  wyjątku, failed, braku wyniku i nieprawidłowym XY. Kontrolowane manual_review
+  i low_confidence sprawdzają kompletny wynik, dziedziczenie i ostrzeżenia GUI.
+- Osobne procesy z pustym cache importów i kontrolowanym brakiem cv2/scipy/skimage:
+  rzeczywisty start okna, import MPP i widoczne powody niedostępności przeszły.
+  To symulacja na granicy importu bibliotek, nie instalacja nowego środowiska.
+- Automatyczna próba Qt xcb z rzeczywistymi dialogami: cztery metody na
+  `cpu.mpp` i `data/MOVIE_3.MPP`, zmiana wyboru, błąd ECC, rzeczywiste anulowanie
+  Optical Flow, usunięcie odniesienia — zaliczona. SHA-256 źródeł zachowane.
+  Obejrzano zrzuty ECC/wzorca i Optical Flow/pomiaru. To nie ręczny odbiór.
+  Skrypt, log i manifest: `/tmp/stmviewer-cpu-smoke.{py,log,json}`;
+  zrzuty `/tmp/stmviewer-cpu-{cpu,MOVIE_3}-{Phase,TileRANSAC,ECC,OpticalFlow}.png`.
+- Na wzorcu 80 × 80 przesunięcia są zgodne z (0,0), (2,−1), (−1,1),
+  z tolerancją 0,3 px dla metod subpikselowych. Aligned: Phase/Tile 83 × 82,
+  ECC 84 × 83, Optical Flow 84 × 84 px. Generator odtwarza plik bajtowo.
+- Lokalny MOVIE_3, 17 klatek: Phase 398 × 398, Tile+RANSAC 256 × 305,
+  Optical Flow 274 × 281 px, z oznaczeniami niepewności. ECC nie zbiega się
+  dla pary 2 → 3 i zachowuje wcześniejszy wynik. To test kontraktu i prezentacji,
+  nie potwierdzenie fizycznej poprawności dopasowań każdego pomiaru.
+- Pełne repo uruchomione raz w netcat:
+  `PYTHONPATH=.:tests/moltrack:tests/stmviewer QT_QPA_PLATFORM=offscreen python -m pytest -q --import-mode=importlib --continue-on-collection-errors -o cache_dir=/tmp/stmviewer-cpu-full-pytest`:
+  **1934 passed, 14 failed, 14 skipped, 1 błąd zbierania**, 225.91 s.
+  Log: `/tmp/stmviewer-cpu-full-suite.log`. Wszystkie 14 niepowodzeń
+  MolTrack/NanoTrack jest identyczne z listą ticketu 08; brak nowych failed.
+  Nowy błąd zbierania wynikał z importu `test_registration` z MolTrack zamiast
+  pomocnika Viewera. Poprawiono w `5d4ea6b`, używając publicznego odczytu gotowego
+  `cpu.mpp`. Powtórka dwóch modułów CPU wraz z kolidującym modułem MolTrack
+  w tej samej konfiguracji ścieżek/importlib: **36 passed**, 2.36 s.
+  Ponowne zbieranie całego repo: **1969 testów, bez błędów**, 0.85 s;
+  log `/tmp/stmviewer-cpu-collection.log`. Całego wykonania nie powtarzano.
+  Pełny zestaw repo nadal nie ma zielonego odbioru.
+- [Przegląd Standards/Spec](implementation/review-09-cpu-registration.md):
+  Standards — 0; Spec — 0, także po poprawce testu. Kod aplikacji po przeglądzie
+  nie był zmieniany. `git diff --check` bez błędów; największy zmieniony plik
+  Python ma **608 linii**, poniżej celu 1000 i limitu 1500.
+- [Instrukcja manualna](cpu-registration-manual.md), wzorzec i generator są
+  w repo. Ręczny odbiór użytkownika oraz osobne środowisko bez OpenCV jeszcze
+  niewykonane. Windows niedostępny na tym stanowisku, jego odbiór pozostaje
+  w tickecie 21. Status 09 nie oznacza zaliczenia obu platform.
+
+### Integracja
+
+Zmiany wyłącznie w Viewerze, jego testach i dokumentacji. Wspólne moduły,
+konfiguracja główna i pomiary pozostają bez zmian. Podstawowy zestaw zależności
+obsługuje Phase/Tile/Optical Flow. Lokalny `stmviewer/requirements-ecc.txt`
+dodaje opencv-python 4.11.0.86, użyty w netcat; [README](README.md#uruchomienie)
+podaje instalację dla Ubuntu 24.04 i Windows 11. Zmiana wspólnych zależności
+nie jest potrzebna do tego ticketu. Deep Matcher pozostaje w tickecie 10.
+
 ## 08: Rejestracja Phase i pełny widok aligned — 2026-10-23
 
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
