@@ -5,7 +5,8 @@
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
 `e8102e9d21924c8d661e72df223a46343e0183ff`.
 Ticket: [07-frame-deletion](implementation/issues/07-frame-deletion.md).
-Commit implementacji i końcowy wynik zostaną uzupełnione.
+Status: `ready-for-review`, do ręcznej próby użytkownika.
+Commit implementacji: `bfffd83`; commit końcowego raportu podany w wiadomości sesji.
 
 ### Wynik i kontrakt
 
@@ -41,8 +42,30 @@ z mapą, zachowując geometrię pozostałych klatek.
   Skrypt: `/tmp/stmviewer-deletion-smoke.py`; zrzuty:
   `/tmp/stmviewer-deletion-{middle,empty,measurement}-xcb.png`.
   Oceniono wizualnie. To próba automatyczna; odbiór użytkownika i Windows czekają.
-- Pełny zestaw repo i przegląd Standards/Spec: w toku. Dane w lokalnym `data/`
-  są teraz dostępne, więc wcześniejsza liczba 63 błędów może się zmniejszyć.
+- Pełny zestaw repo w `netcat`:
+  `PYTHONPATH=.:tests/moltrack:tests/stmviewer QT_QPA_PLATFORM=offscreen python -m pytest -q --import-mode=importlib --continue-on-collection-errors`:
+  **1888 passed, 15 failed, 14 skipped**, 241.66 s, bez błędów zbierania.
+  Wszystkie niepowodzenia dotyczą MolTrack/NanoTrack. Log:
+  `/tmp/stmviewer-deletion-full-suite.log`. Obecne lokalne `data/` usuwa
+  wcześniejszy brak pomiarów; nie przypisujemy zmniejszenia liczby błędów
+  implementacji usuwania klatek.
+- Sprawdzenie niepowodzeń na czystym archiwum bazy `e8102e9` z dowiązanym
+  tym samym `data/`, tym samym Pythonem i opcjami pytest: **13 failed,
+  2 passed**, 10.03 s. Wszystkie 13 identyfikatorów i rodzaje błędów pokrywają
+  się z pełną próbą: starsze ścieżki Windows/SAM2 i stan GUI MolTrack/NanoTrack.
+  Log: `/tmp/stmviewer-deletion-baseline.log`; checkout:
+  `/tmp/stmviewer-deletion-baseline-u84rcczz`.
+  Dwa pozostałe testy NanoTrack —
+  `test_edge_correction_and_resume_replace_suffix` (niewymieniona polilinia)
+  i `test_real_worker_cli_roundtrips_batch_contract_with_injected_sam2_repo`
+  (timeout 10 s) — przeszły również osobno na bieżącym kodzie: **2 passed**,
+  1.33 s, log `/tmp/stmviewer-deletion-recheck.log`.
+  Ich przyczyny w pełnym zestawie nie ustalono; brak powtarzalnej regresji
+  nie oznacza zielonego odbioru całego repo. Nie zmieniano starszych aplikacji.
+- [Przegląd Standards/Spec](implementation/review-07-frame-deletion.md):
+  **0 uwag w obu osiach**. Największy zmieniony plik kodu:
+  `stmviewer/ui/main_window.py`, **424 linie** (limit 1500).
+  `git diff --check` i lokalne odnośniki zmienionej dokumentacji poprawne.
 - [Instrukcja ręczna i wzorce](frame-deletion-manual.md). Nowy mały film
   known-times.mpp jest odtwarzany przez istniejący generator MPP.
 

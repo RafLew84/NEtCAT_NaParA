@@ -4,7 +4,7 @@
 
 **Blocked by:** [04: Otwarcie filmu MPP z czasami i pochodzeniem](04-mpp-series.md), [06: Play, Pause i tempo odtwarzania](06-playback.md)
 
-**Status:** in-progress
+**Status:** ready-for-review
 
 **Wykonawca:** Codex, `viewer/start`.
 
@@ -61,5 +61,13 @@ zmianie na pozostały obraz. Nowa seria po opróżnieniu działa normalnie.
 103 testy Viewera i mypy strict (15 plików) przechodzą. Automatyczna próba
 Qt xcb na wzorcu i lokalnym `data/MOVIE_3.MPP` potwierdziła GUI oraz
 niezmienność źródeł. [Instrukcja ręczna](../../frame-deletion-manual.md).
-Pełny zestaw repo i przegląd w toku. Ręczny odbiór użytkownika i Windows
-pozostają do wykonania.
+Commit implementacji: `bfffd83`. [Przegląd Standards/Spec](../review-07-frame-deletion.md):
+0 uwag w obu osiach. Największy zmieniony plik kodu ma 424 linie.
+
+Pełny zestaw repo: **1888 passed, 15 failed, 14 skipped**. Z tych błędów
+13 odtworzono na bazie sprzed ticketu; dwa pozostałe testy NanoTrack przeszły
+osobno zarówno na bazie, jak i bieżącym kodzie. Nie ustalono przyczyny tych
+dwóch niepowodzeń pełnej próby; nie deklarujemy zielonego odbioru repo.
+Szczegóły i logi: [przekazanie](../../handoff.md).
+Ręczny odbiór użytkownika pozostaje do wykonania, dlatego status to
+`ready-for-review`. Próba Windows należy do odrębnego odbioru platformy.

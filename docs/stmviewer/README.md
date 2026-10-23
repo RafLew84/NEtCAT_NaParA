@@ -86,7 +86,8 @@ mają status `done`: użytkownik potwierdził [testy manualne](preview-controls-
 mają status `done`: użytkownik potwierdził [testy manualne](playback-manual.md)
 2026-10-21.
 [Usuwanie klatek z zachowaniem czasu i pochodzenia](implementation/issues/07-frame-deletion.md)
-jest zaimplementowane; końcowe sprawdzenia i przegląd są w toku.
+ma status `ready-for-review`: implementacja, testy i przegląd są zakończone;
+czeka na [ręczny odbiór](frame-deletion-manual.md).
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje
