@@ -5,9 +5,10 @@
 Gałąź: `viewer/start`. Baza implementacji i przeglądu:
 `b8dcc4596988e8a2ee529f60b860f030b1be9749`.
 Ticket: [09-cpu-registration-methods](implementation/issues/09-cpu-registration-methods.md).
-Status: `ready-for-review`, oczekuje ręcznego odbioru użytkownika.
+Status: `done` po potwierdzeniu ręcznego odbioru użytkownika 2026-10-23.
 Commit implementacji: `3e31161`; poprawka importu testowego: `5d4ea6b`.
-Końcowy commit raportu podany w wiadomości sesji; pełny zakres `b8dcc45..HEAD`.
+Raport implementacji i przeglądu: `935c638`; pełny zakres `b8dcc45..HEAD`.
+Commit potwierdzenia ręcznego odbioru podany w wiadomości sesji.
 
 ### Wynik i kontrakt
 
@@ -75,9 +76,11 @@ ponownego startu. Program nie instaluje ani nie pobiera zależności.
   nie był zmieniany. `git diff --check` bez błędów; największy zmieniony plik
   Python ma **608 linii**, poniżej celu 1000 i limitu 1500.
 - [Instrukcja manualna](cpu-registration-manual.md), wzorzec i generator są
-  w repo. Ręczny odbiór użytkownika oraz osobne środowisko bez OpenCV jeszcze
-  niewykonane. Windows niedostępny na tym stanowisku, jego odbiór pozostaje
-  w tickecie 21. Status 09 nie oznacza zaliczenia obu platform.
+  w repo. Użytkownik potwierdził pozytywny wynik testów manualnych 2026-10-23.
+  Nie podał systemu ani szczegółów osobnej próby środowiska bez OpenCV.
+  Potwierdzenie zamyka ticket 09, lecz nie oznacza zaliczenia odrębnych
+  odbiorów platform. Zmieniono wyłącznie dokumentację; testów automatycznych
+  nie ponawiano.
 
 ### Integracja
 

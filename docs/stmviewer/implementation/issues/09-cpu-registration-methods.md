@@ -4,7 +4,7 @@
 
 **Blocked by:** [08: Rejestracja Phase i pełny widok aligned](08-phase-registration.md)
 
-**Status:** ready-for-review
+**Status:** done
 
 **Wykonawca:** Codex, `viewer/start`, 2026-10-23.
 **Baza code-review:** `b8dcc4596988e8a2ee529f60b860f030b1be9749`.
@@ -70,7 +70,10 @@ oraz gotowym wyniku. Osobny komunikat dostępności nie nadpisuje opisu aligned.
 - [Instrukcja manualna](../../cpu-registration-manual.md) zawiera wzorzec,
   generator, kroki i oczekiwane wyniki oraz przygotowanie obu systemów.
 
-Status pozostaje `ready-for-review`: ręczny odbiór użytkownika jeszcze
-niewykonany. Windows oraz osobne środowisko bez OpenCV nie były uruchamiane;
-kontrolowane testy świeżych procesów sprawdziły brak cv2/scipy/skimage.
-Szczegóły i ograniczenia: [przekazanie](../../handoff.md).
+Użytkownik potwierdził pozytywny wynik testów manualnych 2026-10-23.
+Ticket ma status `done`. Potwierdzenie nie wskazuje systemu ani szczegółów
+osobnej próby środowiska bez OpenCV; nie zamyka odrębnych odbiorów platform.
+Kontrolowane testy świeżych procesów sprawdziły brak cv2/scipy/skimage.
+Zaktualizowano wyłącznie dokumentację, bez ponawiania testów automatycznych.
+Raport implementacji i przeglądu: `935c638`; commit potwierdzenia odbioru
+podany w wiadomości sesji. Szczegóły: [przekazanie](../../handoff.md).

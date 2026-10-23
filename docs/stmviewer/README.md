@@ -97,8 +97,8 @@ ma status `done`: użytkownik potwierdził [testy manualne](frame-deletion-manua
 ma status `done`: użytkownik potwierdził [testy manualne](phase-registration-manual.md)
 2026-10-23.
 [Pozostałe metody rejestracji CPU](implementation/issues/09-cpu-registration-methods.md)
-mają status `ready-for-review`: implementacja i przegląd zakończone;
-ręczny odbiór użytkownika oczekuje. [Instrukcja manualna](cpu-registration-manual.md).
+mają status `done`: użytkownik potwierdził [testy manualne](cpu-registration-manual.md)
+2026-10-23.
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje

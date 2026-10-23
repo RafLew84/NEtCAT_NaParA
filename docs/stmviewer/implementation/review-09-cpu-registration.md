@@ -5,6 +5,10 @@ Data: 2026-10-23. Baza zgodnie z zatwierdzonymi zasadami implementacji:
 Implementacja: `3e31161`; poprawka testu: `5d4ea6b`.
 Diff: `git diff b8dcc4596988e8a2ee529f60b860f030b1be9749...5d4ea6b`.
 
+Raport zachowuje stan z chwili przeglądu. Następnie użytkownik potwierdził
+pozytywny wynik testów manualnych 2026-10-23; [ticket 09](issues/09-cpu-registration-methods.md)
+ma status `done`. Potwierdzenie nie zamyka odrębnych odbiorów platform.
+
 Dwie osie sprawdzili równolegle niezależni agenci zgodnie ze skillem
 `code-review`, tylko do odczytu i bez uruchamiania testów. Obaj sprawdzili
 również późniejszą poprawkę kolizji importu testowego. Dokumentację wyników,

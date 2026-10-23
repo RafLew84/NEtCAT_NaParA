@@ -112,5 +112,8 @@ wzorca `cpu.mpp` oraz lokalnego MOVIE_3, w tym rzeczywistego anulowania
 Optical Flow. Przeszła; źródła zachowały sumy SHA-256. Obejrzano zrzuty.
 ECC na MOVIE_3 zgłosił błąd z zachowaniem poprzedniego wyniku, zgodnie z krokiem 5.
 
-Ręczny odbiór użytkownika, próba osobnego środowiska bez OpenCV oraz Windows
-nie zostały jeszcze wykonane. Wyniki pełnej weryfikacji: [przekazanie](handoff.md).
+Użytkownik potwierdził pozytywny wynik testów manualnych 2026-10-23.
+Ticket 09 ma status `done`. Nie wskazano systemu ani szczegółów osobnej próby
+środowiska bez OpenCV; odrębne odbiory platform pozostają w późniejszych etapach.
+Zmieniono wyłącznie dokumentację, bez ponawiania testów automatycznych.
+Wyniki pełnej weryfikacji: [przekazanie](handoff.md).
