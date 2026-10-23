@@ -133,6 +133,9 @@ Nagłówek ma 485 B; część pomiarowa jest bajtowo identyczna z oryginałem.
   Kopia diagnostyczna: `/tmp/wsxm-investigation/full-v2-native-roundtrip.mpp`.
 - Oceniono obrazy klatek 0/184/368: pasek zniknął, szczegóły pozostają widoczne.
   Liczba kolorów spełniających wcześniejszy próg: **72/218/206**.
+- Dodatkowy film 3 × 64 × 96 z unikalnymi wartościami i czasami 2/5/9 s:
+  **18 432 / 18 432** próbek zgodnych po odczycie/zapisie w WSxM; czasy
+  zachowane. Obejmuje niepustą sekcję synchronizacji i prostokątny obraz.
 - Testy Viewera po poprawce: **217 passed, 2 skipped**, 22.07 s.
   Mypy strict: **23 pliki**, bez błędów.
 - Pełny zestaw repo po pierwszej poprawce: **2002 passed, 14 failed,
@@ -140,6 +143,9 @@ Nagłówek ma 485 B; część pomiarowa jest bajtowo identyczna z oryginałem.
   są identyczne z wynikiem ticketu 12; brak nowych niepowodzeń.
   Po końcowej korekcie formatowania ponowiono zestaw Viewera, obejmujący
   również kontrolę eksportu przez starsze czytniki.
+
+[Przegląd Standards/Spec](implementation/review-12-wsxm.md): brak otwartych
+uwag. Implementacja: `b887b2b`, końcowa korekta: `0cb6644`.
 
 Próby Wine są automatyczne, sterowane GUI. Nie zastępują ręcznego odbioru
 użytkownika na Ubuntu/Windows ani sprawdzenia NaN w WSxM. Testy tego

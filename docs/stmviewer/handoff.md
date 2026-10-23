@@ -1,17 +1,50 @@
 # Przekazanie — STM Viewer
 
-## 12: Poprawka zgodności nagłówka z WSxM — 2026-10-23
+## 12: Poprawka odczytu MPP w WSxM — 2026-10-23
 
-Baza poprawki: `7eab8e9`. [Raport diagnozy](wsxm-investigation.md).
-Zapis używa CRLF i jawnych granic skończonych wartości wraz z przelicznikiem
-1 i przesunięciem 0. Dane i metadane indywidualne nie są przeskalowywane.
-Test regresji publicznego eksportu: RED przed zmianą, GREEN po zmianie.
-Pełny wynik `data/test-wsxm.mpp` jest bajtowo identyczny z wariantem z
-poprawnym obrazem w WSxM pod Wine. Wszystkie 369 klatek porównano dokładnie
-z źródłowymi S94; oryginalny `test.mpp` zachował SHA-256.
+Baza poprawki: `7eab8e9`. Commity **`b887b2b`**, **`0cb6644`**.
+[Raport diagnozy](wsxm-investigation.md),
+[przegląd Standards/Spec](implementation/review-12-wsxm.md).
 
-Zmiana nie obejmuje wspólnych modułów. Ticket 12 nadal czeka na ręczny
-odbiór użytkownika. Dane, instalacja Wine/WSxM i artefakty diagnozy są lokalne.
+Pierwszy nagłówek CRLF z zakresem wartości przywracał odcienie, ale
+pozostawiał przesunięcie obrazu. Nagrania użytkownika ujawniły pasek przy
+lewej krawędzi. Rzeczywisty odczyt/zapis wzorca w WSxM wykazał zmianę
+pozycji próbek: program odczytywał dane z offsetu odpowiadającego długości
+natywnego układu nagłówka, niezależnie od poprawnej deklaracji jego rozmiaru.
+Końcowa poprawka odtwarza ten układ, łącznie z wcięciami, odstępami między
+sekcjami i pominięciem pustych sekcji. Dane nie są przeskalowywane ani
+przesuwane w eksporterze. Pełne indywidualne metadane pozostają w JSON.
+
+Wynik dla użytkownika: **`data/test-wsxm-v2.mpp` + `.stmviewer.json`**.
+Oryginał `test.mpp` i pierwsza kopia `test-wsxm.mpp` nie były nadpisane.
+
+Wykonane sprawdzenia:
+
+- Publiczna regresja zapisu: RED przed poprawką, GREEN po poprawce;
+  literalny nagłówek oparty na wzorcu sprawdzonym w rzeczywistym WSxM.
+- Wszystkie 369 klatek v2 dokładnie zgodne ze źródłowymi S94: wartości,
+  parametry, czasy i pochodzenie. Bajty pomiarów identyczne z oryginałem.
+- WSxM 5.0 Develop 12.0, Wine 9: otwarcie i zapis całego filmu bez Plane,
+  **24 182 784 próbek dokładnie zgodnych**, we właściwej kolejności.
+  Oceniono zrzuty klatek 0/184/368; brak paska. Dodatkowy prostokątny
+  film z czasami 2/5/9 s: **18 432 próbek zgodnych**, czasy zachowane.
+- Końcowy zestaw Viewera: **217 passed, 2 skipped**, 22.07 s;
+  obejmuje eksport przez czytniki NaPara/NanoTrack/MolTrack.
+  Mypy strict: **23 pliki** bez błędów. `git diff --check` poprawny.
+- Pełny zestaw repo po pierwszej poprawce: **2002 passed, 14 failed,
+  16 skipped**, 230.78 s. Wszystkie identyfikatory niepowodzeń są zgodne
+  z ticketem 12; brak nowych błędów. Końcowa korekta miała następnie pełne
+  sprawdzenie Viewera, bez ponawiania całego repo.
+  Logi: `/tmp/stmviewer-wsxm-full-suite.log`,
+  `/tmp/stmviewer-wsxm-edge-viewer-tests.log`.
+- Przegląd: Standards bez naruszeń, jedna uwaga do nieaktualnego opisu
+  testu poprawiona; Spec bez uwag. Największy zmieniony plik kodu: 234 linie.
+
+Próby Wine były automatyczne, sterowane GUI; ręczny odbiór użytkownika
+nadal oczekuje. Ticket 12 pozostaje `ready-for-review`. Windows 11, NaN
+w WSxM oraz indywidualna kalibracja JSON w tym zewnętrznym programie nie
+zostały potwierdzone. Zmiana nie obejmuje wspólnych modułów. Instalacja
+Wine/WSxM, dane i artefakty `/tmp/wsxm-investigation/` pozostają lokalne.
 
 
 ## 12: Zapis original do MPP — 2026-10-23

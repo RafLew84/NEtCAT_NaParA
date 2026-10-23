@@ -156,7 +156,7 @@ def test_long_utf8_labels_from_valid_sidecar_remain_readable_after_export(tmp_pa
 
 
 def test_wsxm_header_declares_finite_movie_range_and_identity_conversion(tmp_path):
-    """CRLF plus numeric metadata prevent WSxM clipping signed double samples."""
+    """Declare the finite movie range without transforming signed or missing samples."""
     from dataclasses import replace
     from stmviewer.mpp_export import save_original_mpp
 
