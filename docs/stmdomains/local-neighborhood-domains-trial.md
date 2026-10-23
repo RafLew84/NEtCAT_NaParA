@@ -242,7 +242,15 @@ i częściowe referencje. Parametry zamrozić przed tą oceną. Ponieważ
 problem wskazała obecna referencja, wynik będzie rozwojowy, nie nowy
 niezależny test. Nie wymuszać przejścia konkretnych kolorów ani trzech klas.
 
-Ten kolejny wariant nie został jeszcze uruchomiony. Katalog rozstawów
-i granice pozostają osobnymi lukami nawet przy poprawie kryterium porządku.
-Nie wybrano metody do programu, nie uruchomiono issue 16 ani treningu;
-odbiór 13 i protokół jakości 04 nadal otwarte.
+**Aktualizacja 2026-10-23:** na polecenie użytkownika wykonano tę próbę;
+[osobny raport kryterium powtarzalności](recurrence-criterion-trial.md)
+zawiera 38 wariantów, nowe kontrole błędów centrów i wynik przy zamrożonym
+katalogu. Warunek przechodzi 90.9% zamiast 34.0% oznaczeń we wnętrzach
+referencji; domenę otrzymuje 62.5% zamiast 31.0%, lecz nadal występują
+scalenia oraz brak dużych zgodnych składowych RED/YELLOW. Są to wyniki
+rozwojowe, nie dokładność wykrywania. Najbliższy temat to orientacja
+lokalnej sieci i łączenie sąsiadów, a nie kolejne obniżenie progu.
+
+Katalog rozstawów i granice pozostają osobnymi lukami. Issue 15 nadal
+`claimed`; nie wybrano metody do programu, nie uruchomiono issue 16 ani
+treningu. Odbiór 13 i protokół jakości 04 nadal otwarte.

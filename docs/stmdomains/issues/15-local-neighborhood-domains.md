@@ -5,7 +5,7 @@ Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
 Status: claimed
-Assignee: Codex — domains/local-neighborhood-trial
+Assignee: Codex — domains/recurrence-trial
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 14
 
@@ -89,10 +89,35 @@ przypisania. Raport podaje szczegóły jakości, koszty, wersje i ograniczenia.
 
 Użytkownik po przedstawieniu wyniku wybrał **„Najpierw omówmy lub rozwińmy
 tę próbę”**. Status pozostaje `claimed`; nie przyjęto zakończenia pytania
-ani przejścia do 16. Dodatkowa diagnoza wskazuje konserwatywny próg 0.6
-i regułę dopasowania przesunięć jako pierwsze elementy do zbadania.
-Proponowana dalsza próba kryterium porządku/tolerancji jest opisana
-w raporcie; jeszcze jej nie uruchomiono. Nie wybieramy metody produkcyjnej.
+ani przejścia do 16. Następnie polecił zbadać kryterium powtarzalności.
+
+## Kontynuacja — kryterium powtarzalności, 2026-10-23
+
+[Raport kontynuacji](../recurrence-criterion-trial.md): 38 konfiguracji,
+24 pełne klatki i 180 kontroli, w tym nowe błędy centrów, odkształcenia
+oraz losowe skupiska. Katalog SOAP/36 i reguły przestrzenne zamrożone.
+Wybór tylko na kontrolach rozwojowych: promień 36 px, tolerancja 24%
+rozstawu, wynik bez gwarantowanego trafienia środka >0.25.
+
+Na częściowych referencjach warunek przechodzi 90.9% oznaczeń zamiast
+34.0%, domenę otrzymuje 62.5% zamiast 31.0%. To nie dokładność: 30.4%
+przypisanych par z różnych regionów jest błędnie scalonych. RED/YELLOW
+nadal odpadają głównie na zbyt małych składowych zgodnych orientacyjnie.
+Kontrole losowe: 2/3195 akceptacji, zero składowych; regularne rzędy
+z niezależną fazą pokazują ograniczenie samej lokalnej powtarzalności.
+
+Podgląd: `/home/rlew/projekty/NEtCAT-domains/.scratch/recurrence-criterion/index.html`.
+Źródła: `prototype/stmdomains-recurrence`, commit `bc3763e`, baza `1f25b45`.
+Sprawdzono odtworzenie poprzednich 156 wyników i walidację 1020 nowych
+wyników dla pięciu podglądowych wariantów. Dwa powtórzenia bez referencji,
+jedno ze zmianą kolejności, dały po 204 identyczne pliki z 38 konfiguracjami.
+13 kontroli lokalnego HTML w QtWebEngine, bez błędów JS.
+
+Status nadal `claimed`, bez wyboru metody produkcyjnej i bez przejścia
+do 16. Kolejny proponowany eksperyment dotyczy estymacji orientacji,
+zgodności lokalnej sieci oraz łączenia sąsiadów, z kontrolą skorelowanych
+rzędów, braków, scaleń i podziałów. Samo dalsze obniżanie progu nie
+rozwiązuje pozostałych błędów. Katalog rozstawów pozostaje osobną luką.
 
 ## Dependencies
 

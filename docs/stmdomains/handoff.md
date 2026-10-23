@@ -1,4 +1,57 @@
-# STM Domains — pierwsza próba otoczeń molekuł, issue 15
+# STM Domains — kryterium powtarzalności, kontynuacja issue 15
+
+Data: 2026-10-23. Gałąź dokumentacji `domains/recurrence-trial`, baza
+`12f3652`, worktree `/tmp/netcat-stmdomains-recurrence`, docelowo `domains/start`.
+Źródła prototypu: `prototype/stmdomains-recurrence`, commit `bc3763e`,
+baza `1f25b45`. Nie scalać kodu prototypu do aplikacji. Commit dokumentacji
+w wiadomości końcowej; duże wyniki pozostają lokalne.
+
+Na polecenie „zbadaj kryterium powtarzalności” wykonano kontrolowane
+porównanie 38 wariantów na 24 pełnych klatkach i 180 kontrolach. Zamrożono
+katalog SOAP/36 i reguły przestrzenne. Usunięto gwarantowane trafienie
+środka przy przesunięciu, porównano promienie, tolerancje i progi
+kalibrowane wyłącznie na kontrolach rozwojowych. Wybrany wariant:
+R=36 px, tolerancja 24% lokalnego rozstawu, wynik >0.25.
+
+[Raport](recurrence-criterion-trial.md) i podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/recurrence-criterion/index.html`.
+Warunek przechodzi 90.9% zamiast 34.0% oznaczeń we wnętrzach referencji;
+domenę otrzymuje 62.5% zamiast 31.0%. To nie dokładność: 708/2329 = 30.4%
+przypisanych par z różnych regionów scalono w jedną domenę. W YELLOW
+nadal tylko 13/274 centrów ma domenę; wiele pozostałych odpada na zbyt
+małych składowych zgodnych orientacyjnie. Losowe kontrole: 2/3195 akceptacji,
+zero składowych. Przy błędzie centrów 0.72 px akceptacja regularnej sieci
+rośnie z 13.3% do 95.5%, lecz duże braki nadal powodują podziały/odmowy.
+Rzędy z niezależną fazą pokazują, że lokalna powtarzalność nie wystarcza
+jako dowód spójnej domeny 2D; nie mają kompletnej prawdy domen.
+
+**Issue 15 nadal `claimed`**: użytkownik wcześniej wybrał rozwinięcie próby,
+a obecne zlecenie dotyczyło tego kryterium, nie zamknięcia całego pytania.
+Nie uruchomiono 16 ani treningu. Następny proponowany eksperyment:
+estymacja orientacji i lokalnej komórki oraz łączenie sąsiadów, z kontrolą
+scaleń, braków i skorelowanych struktur. Katalog rozstawów pozostaje osobną
+luką. Bez wyboru metody produkcyjnej; odbiór 13 i protokół 04 nadal otwarte.
+
+Sprawdzenia wykonane: dokładne odtworzenie starego warunku i domen na
+156 próbkach, monotoniczność wyniku na 204, obrót/kolejność/kontrast/skala,
+walidacja 1020 wyników. Dwa pełne powtórzenia bez referencji, jedno także
+z losową kolejnością: po 204 identyczne pliki NPZ z 38 wariantami.
+Ponowne przygotowanie wejścia końcowym kodem: identyczne 205 plików analizy
+oraz 199 oceny. QtWebEngine offscreen: 13 kontroli bez błędów JS;
+obejrzano zrzut i wykres. Nie wykonano testów produkcyjnej aplikacji,
+natywnego GUI ani pomiaru 268 klatek. Nowe kontrole bez dopasowanego
+katalogu oceniono tylko dla warunku/składowych bez typu; patrz raport.
+
+CPU, jeden wątek BLAS/OpenMP. Ekstrakcja 29.61 s, wybór 3.71 s,
+predykcja wszystkich wariantów 24.98 s, ocena 3.10 s; szczyt procesowego
+RSS 217 780 KiB (~213 MiB), bez GPU/treningu. Brak instalacji pakietów,
+zmian środowiska, wspólnych modułów lub głównej konfiguracji. Artefakty
+~230 MB poza Git. Przekazanie ogranicza się do dokumentacji Domains;
+nie aktualizowano gałęzi Viewer ani integracyjnej.
+
+---
+
+## Poprzednie przekazanie — pierwsza próba otoczeń molekuł, issue 15
 
 Data: 2026-10-23. Gałąź dokumentacji `domains/local-neighborhood-trial`,
 baza `76dd4a3`, worktree `/tmp/netcat-stmdomains-neighborhoods`.

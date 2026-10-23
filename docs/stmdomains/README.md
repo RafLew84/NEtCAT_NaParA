@@ -125,9 +125,14 @@ Prosty opis/SOAP, dwa promienie i osobna ocena powtarzalności nie dały
 jeszcze ogólnego wykrywania. Największe przypisanie na częściowych
 referencjach TTMAPP: 31%, tylko BLACK. RED/YELLOW odpadają na kryterium
 powtarzalności. Podgląd: `.scratch/local-neighborhood-domains/index.html`.
-Użytkownik wybrał dalsze omówienie lub rozwinięcie próby, więc issue 15
-pozostaje `claimed`; nie rozpoczęto 16 ani treningu. Raport wskazuje
-kryterium porządku i tolerancję centrów jako najbliższy temat do zbadania.
+Użytkownik wybrał dalsze omówienie lub rozwinięcie próby, a następnie
+polecił zbadać kryterium powtarzalności. [Kontynuacja](recurrence-criterion-trial.md)
+porównuje 38 konfiguracji na 204 próbkach przy zamrożonym katalogu.
+Warunek przechodzi 90.9% oznaczeń w referencjach, domenę otrzymuje 62.5%,
+lecz występują scalenia i liczne odmowy RED/YELLOW przy łączeniu składowych.
+Podgląd: `.scratch/recurrence-criterion/index.html`. Kolejny temat to
+orientacja i łączenie sąsiadów. Issue 15 nadal `claimed`; nie rozpoczęto
+16 ani treningu i nie wybrano metody produkcyjnej.
 
 ## Dwa etapy
 
