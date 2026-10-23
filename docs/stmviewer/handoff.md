@@ -1,6 +1,95 @@
 # Przekazanie — STM Viewer
 
 
+## 11: Otwarcie MPP z metadanymi towarzyszącymi — 2026-10-23
+
+Gałąź: `viewer/start`. Baza implementacji i przeglądu:
+`b71305bfb2886d734cc087708780f22ea12fd30d`. Implementacja: `137655d`.
+Ticket: [11-mpp-metadata-import](implementation/issues/11-mpp-metadata-import.md).
+Status: `ready-for-review`, ręczny odbiór użytkownika jeszcze niewykonany.
+Commit końcowego raportu podany w wiadomości sesji.
+
+### Wynik i kontrakt
+
+MPP automatycznie szuka obok siebie dodatku `<pełna nazwa MPP>.stmviewer.json`.
+[Kontrakt V1](mpp-metadata-format.md) wiąże go ze wszystkimi bajtami filmu
+przez SHA-256, liczbą oraz kształtem klatek. Skrót powstaje na tych samych
+bajtach, które są dekodowane; uwzględnia nagłówek i ewentualny koniec pliku.
+Przeniesienie lub wspólna zmiana nazwy pary zachowuje powiązanie.
+
+Adapter w Viewerze waliduje cały JSON przed nałożeniem jakichkolwiek danych.
+Wersja, format, rodzaj obrazu, komplet pól, typy, skończone wartości, dodatnia
+skala i integralność muszą się zgadzać. JSON UTF-8 ma limit 64 MiB; powtórzone
+klucze, NaN i Infinity są odrzucane. Błąd dowolnego rekordu odrzuca cały
+dodatek. Brak, nieprawidłowy dodatek i błąd jego odczytu pozostawiają działający
+film z metadanymi nagłówka oraz widoczną przyczyną. Anulowanie jest odrębne:
+zachowuje poprzednią serię, jej pozycję, gamma i kadr. Praca jest w istniejącym
+workerze, z punktami anulowania przy odczycie i walidacji rekordów.
+
+Każda klatka odzyskuje własne parametry, kanał, jednostkę, surowy nagłówek,
+czasy i ich źródłowy opis oraz informację o kalibracji. Null i rzeczywiste
+zero pozostają rozróżnione; nie zgadujemy parametrów z nagłówka ani nie
+przeliczamy próbek. `ImageFrame.source` oraz `source_frame_index` nadal
+wskazują faktycznie otwarty plik i indeks w nim. Nowe `provenance` przechowuje
+historyczną ścieżkę jako tekst i historyczny indeks od zera. Ścieżka jest
+zachowana dosłownie, także Windows i względna; nie jest rozwiązywana/otwierana.
+
+Panel i podpowiedzi miniatur rozdzielają obie lokalizacje i numery;
+miniatury pokazują historyczne nazwy, a bieżąca pozycja nadal należy do serii.
+Usuwanie nie zmienia pochodzenia pozostałych klatek. Komunikat o dodatku
+pozostaje przy nawigacji i znika po opróżnieniu lub otwarciu STP/S94.
+
+### Sprawdzenia i odbiór
+
+- TDD red → green: indywidualne metadane przez publiczny import; odrzucenie
+  całego nieprawidłowego dodatku; prezentacja przez publiczne kontrolki GUI.
+  Pozostałe próby obejmują zmianę nagłówka/próbek/końca MPP, przeniesienie
+  i zmianę nazwy pary, null/zera/typy, brak/uprawnienia, anulowanie odczytu
+  dodatku i zachowanie starego podglądu. Oczekiwane liczby i orientacja
+  wzorców są niezależne od przyszłego eksportera.
+- **193 testy Viewera zaliczone, 2 pominięte**, 18.86 s. Pominięcia to
+  istniejące opcjonalne próby rzeczywistego LoFTR bez ścieżki do wag;
+  ticket 11 nie dotyka modelu. **Mypy strict: 21 plików**, bez błędów.
+- Automatyczne rzeczywiste GUI Qt xcb z dialogami plików: poprawny dodatek,
+  sześć przypadków braku/odrzucenia, wszystkie klatki i parametry, przeniesiona
+  oraz przemianowana para, usunięcie pierwszej klatki z zachowaniem obu
+  indeksów, lokalny MOVIE_3 (17 klatek) bez dodatku — zaliczone.
+  Źródła zachowały SHA-256. Obejrzano zrzuty poprawnego i odrzuconego dodatku.
+  Skrypt/log/manifest: `/tmp/stmviewer-mpp-metadata-smoke.{py,log,json}`;
+  zrzuty `/tmp/stmviewer-mpp-metadata-{valid,rejected,measurement}-xcb.png`.
+- Pełne repo uruchomione raz w netcat:
+  `PYTHONPATH=.:tests/moltrack:tests/stmviewer QT_QPA_PLATFORM=offscreen python -m pytest -q --import-mode=importlib --continue-on-collection-errors -o cache_dir=/tmp/stmviewer-mpp-metadata-full-pytest`:
+  **1979 passed, 14 failed, 16 skipped**, 229.88 s, bez błędów zbierania.
+  Wszystkie 14 niepowodzeń MolTrack/NanoTrack jest identyczne z ticketem 10;
+  nie ma nowych niepowodzeń. Całe repo nadal nie ma zielonego odbioru.
+  Log `/tmp/stmviewer-mpp-metadata-full-suite.log`; porównanie z
+  `/tmp/stmviewer-deep-full-suite.log`.
+- [Code-review](implementation/review-11-mpp-metadata-import.md): Standards — 0,
+  Spec — 0. Kod po przeglądzie niezmieniony. Generator odtwarza wszystkie
+  13 plików bajtowo. `git diff --check` i lokalne odnośniki poprawne;
+  największy zmieniony plik kodu ma **640 linii**, poniżej celu 1000 i limitu 1500.
+- [Instrukcja manualna](mpp-metadata-manual.md) zawiera uruchomienie,
+  gotowe poprawne/błędne pary i oczekiwane parametry. Ręczny odbiór użytkownika
+  pozostaje niewykonany. Windows nie był uruchamiany; tekstowe ścieżki Windows
+  sprawdzono na Linuksie, co nie zastępuje odbioru platformy.
+
+### Integracja i następne etapy
+
+Zmiany wyłącznie w Viewerze, jego testach i dokumentacji. Nie zmieniono
+wspólnych czytników, konfiguracji głównej, środowiska ani lokalnych pomiarów.
+Nowych zależności nie ma; moduły modelu/metadanych nie importują Qt.
+Nie publikowano ani nie scalano gałęzi.
+
+Ticket 12 powinien zapisywać ten kontrakt dla original. Przy ponownym
+zapisywaniu zaimportowanej pary należy zachować istniejące `provenance`;
+dla klatki bez niego pochodzenie pochodzi z `source/source_frame_index`.
+Nie należy zastępować historii nazwą najnowszego kontenera MPP. Wersja 1
+jawnie odrzuca rodzaj aligned; ticket 13 ma rozszerzyć wersjonowany kontrakt
+z zachowaniem odczytu V1 i dodać geometrię, maskę, historyczne odniesienie
+oraz ich podgląd. Ten etap nie wprowadza eksportera ani odtwarzania historii
+rejestracji, nie obiecuje zgodności dodatku z zewnętrznymi programami.
+
+
 ## 10: Diagnoza obwódki na cpu.mpp — 2026-10-23
 
 Baza: `3ba1ea0`, gałąź `viewer/start`. Zmiana wyłącznie dokumentacji:
