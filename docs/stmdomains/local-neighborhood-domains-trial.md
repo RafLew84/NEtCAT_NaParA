@@ -248,8 +248,10 @@ zawiera 38 wariantów, nowe kontrole błędów centrów i wynik przy zamrożonym
 katalogu. Warunek przechodzi 90.9% zamiast 34.0% oznaczeń we wnętrzach
 referencji; domenę otrzymuje 62.5% zamiast 31.0%, lecz nadal występują
 scalenia oraz brak dużych zgodnych składowych RED/YELLOW. Są to wyniki
-rozwojowe, nie dokładność wykrywania. Najbliższy temat to orientacja
-lokalnej sieci i łączenie sąsiadów, a nie kolejne obniżenie progu.
+rozwojowe, nie dokładność wykrywania. Następnie na polecenie użytkownika
+wykonano [badanie orientacji i łączenia sąsiadów](orientation-and-joining-trial.md).
+Komórka sieci poprawia część wyników, lecz zachowuje istotne ograniczenia;
+raport proponuje porównanie 16 po omówieniu tej próby.
 
 Katalog rozstawów i granice pozostają osobnymi lukami. Issue 15 nadal
 `claimed`; nie wybrano metody do programu, nie uruchomiono issue 16 ani

@@ -279,3 +279,12 @@ zamrożony wariant na pełnych klatkach i odsłonięcie częściowej referencji.
 Katalog rozstawów SOAP pozostaje odrębną luką. Nie narzucamy trzech domen,
 nie trenujemy na kolorowych ramkach. Nie wybrano metody produkcyjnej,
 nie rozpoczęto issue 16; issue 15 i odbiór 13 pozostają otwarte.
+
+## Aktualizacja po kolejnym poleceniu użytkownika
+
+2026-10-23 wykonano proponowane [badanie orientacji i łączenia](orientation-and-joining-trial.md).
+Komórka sieci i zgodność ze startem obszaru poprawiają kontrolę braków
+oraz część TTMAPP, ale nie rozwiązują granicy przesunięcia przy błędach
+centrów ani słabego RED/YELLOW. Wynik i nowe ograniczenia są w osobnym
+raporcie. Issue 15 pozostaje `claimed`; po omówieniu proponowane jest
+porównanie 16 z zachowaniem rozszerzonych kontroli.

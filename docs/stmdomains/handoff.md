@@ -1,4 +1,53 @@
-# STM Domains — kryterium powtarzalności, kontynuacja issue 15
+# STM Domains — orientacja i łączenie, kontynuacja issue 15
+
+Data: 2026-10-23. Dokumentacja: `domains/orientation-trial`, baza `8065aea`,
+worktree `/tmp/netcat-stmdomains-orientation`, docelowo `domains/start`.
+Źródła: `prototype/stmdomains-orientation`, commit `2b70d0d`, baza `bc3763e`.
+Nie scalać prototypu do aplikacji. Commit dokumentacji w wiadomości końcowej.
+
+Wykonano proponowane badanie orientacji oraz łączenia sąsiadów: 31
+wariantów, 24 pełne klatki i 204 kontrole. Zamrożono powtarzalność,
+minimum 8 elementów i dawny katalog. Główny wynik ocenia obszary bez
+warunku typu; katalog stanowi osobne porównanie. Wybrany na kontrolach
+wariant komórki wymaga ≥65% dopasowanych punktów, różnicy bazy ≤0.12,
+fazy ≤0.30 rozstawu i zgodności z punktem rozpoczynającym obszar.
+
+[Raport](orientation-and-joining-trial.md) i podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/orientation-and-joining/index.html`.
+Przy 30% braków: jedna domena, 81.9% przypisań zamiast 2–3 fragmentów
+z 46.7%. TTMAPP: 70.7% zamiast 62.5%, scalenia 0/3801 ocenianych par
+różnych regionów zamiast 708/2329. RED jednak spada z 28/101 do 14/101;
+YELLOW nadal tylko 48/274. Granica przesunięcia z błędem centrów ma 98.1%
+scaleń, a łagodna deformacja 51.0% podziałów. Same krawędzie tworzą
+łańcuchy łączące różne orientacje; zgodność ze startem ogranicza to kosztem
+deformacji. Sprawdzanie fazy na krawędziach nie naprawia trudnej granicy.
+
+Stan **`claimed` do omówienia**. Komórka jest punktem odniesienia, bez
+wyboru metody produkcyjnej. Proponowany następny krok: porównanie 16
+na rozszerzonych kontrolach, osobno oceniając zaburzoną granicę przesunięcia,
+małe różnice orientacji i RED/YELLOW. Nie uruchomiono 16/17 ani treningu;
+odbiór 13 i jakość 04 pozostają otwarte. Opis kierunków to wariant
+diagnostyczny: żaden nie spełnił wszystkich zapisanych warunków wyboru.
+
+Sprawdzenia: dokładne odtworzenie 204 wcześniejszych wyników głównych
+oraz z katalogiem; 1368 wyników zgodnych z kontraktem; kontrast/skala;
+obrót 37° czterech kontroli daje identyczne przypisane pary wszystkich
+31 wariantów. Przed oceną referencji naprawiono remisy numeryczne i
+ponowiono obliczenia. Pełna ponowna ekstrakcja/predykcja bez referencji,
+ze zmianą kolejności: 228 identycznych plików cech i 228 wyników.
+QtWebEngine offscreen: 14 kontroli bez błędów JS; obejrzano zrzut i wykres.
+Nie wykonano testów produkcyjnej aplikacji, natywnego GUI ani benchmarku
+268 klatek. Nie oceniano granic pikselowych lub pokrycia warstwy.
+
+CPU, jeden wątek BLAS/OpenMP. Ekstrakcja 205.11 s, wybór 40.47 s,
+predykcja 186.77 s, ocena 2.80 s; szczyt procesowego RSS 264000 KiB
+(~258 MiB), bez GPU/treningu. Bez instalacji pakietów i zmian wspólnych
+modułów, środowiska lub konfiguracji. Artefakty lokalne poza Git.
+Dokumentację przenosimy tylko do Domains; Viewer i integracja bez zmian.
+
+---
+
+## Poprzednie przekazanie — kryterium powtarzalności, kontynuacja issue 15
 
 Data: 2026-10-23. Gałąź dokumentacji `domains/recurrence-trial`, baza
 `12f3652`, worktree `/tmp/netcat-stmdomains-recurrence`, docelowo `domains/start`.

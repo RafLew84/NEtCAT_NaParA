@@ -5,7 +5,7 @@ Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
 Status: claimed
-Assignee: Codex — domains/recurrence-trial
+Assignee: Codex — domains/orientation-trial
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 14
 
@@ -113,11 +113,36 @@ wyników dla pięciu podglądowych wariantów. Dwa powtórzenia bez referencji,
 jedno ze zmianą kolejności, dały po 204 identyczne pliki z 38 konfiguracjami.
 13 kontroli lokalnego HTML w QtWebEngine, bez błędów JS.
 
-Status nadal `claimed`, bez wyboru metody produkcyjnej i bez przejścia
-do 16. Kolejny proponowany eksperyment dotyczy estymacji orientacji,
-zgodności lokalnej sieci oraz łączenia sąsiadów, z kontrolą skorelowanych
-rzędów, braków, scaleń i podziałów. Samo dalsze obniżanie progu nie
-rozwiązuje pozostałych błędów. Katalog rozstawów pozostaje osobną luką.
+Status pozostał `claimed`; użytkownik następnie polecił wykonać badanie
+orientacji i łączenia opisane poniżej. Katalog rozstawów nadal jest osobną luką.
+
+## Kontynuacja — orientacja i łączenie, 2026-10-23
+
+[Raport badania](../orientation-and-joining-trial.md): 31 wariantów na
+24 pełnych klatkach i 204 kontrolach. Porównano dawny wybór symetrii,
+pełny rozkład kierunków i lokalną komórkę sieci. Powtarzalność, minimum
+8 elementów i dawny katalog pozostają stałe; główny wynik ocenia obszary
+bez warunku typu, a katalog jest osobnym porównaniem.
+
+Wybór na kontrolach rozwojowych wskazał komórkę ze zgodnością wobec startu
+obszaru. Przy 30% braków daje jedną domenę i 81.9% przypisań zamiast
+2–3 fragmentów i 46.7%. Na TTMAPP: 70.7% zamiast 62.5%, scalenia 0/3801
+ocenianych par różnych regionów zamiast 708/2329. Poprawa nie jest
+równomierna: RED spada z 28/101 do 14/101 przypisań. Granica przesunięcia
+z błędem centrów ma 98.1% scaleń przypisanych par; wygięta sieć jest
+nadmiernie dzielona. Sama kontrola fazy na krawędziach nie naprawia granicy.
+
+Podgląd: `/home/rlew/projekty/NEtCAT-domains/.scratch/orientation-and-joining/index.html`.
+Źródła: `prototype/stmdomains-orientation`, commit `2b70d0d`, baza `bc3763e`.
+Sprawdzono odtworzenie 204 wcześniejszych wyników, 1368 wyników zgodnych
+z kontraktem, obrót 37° na czterech kontrolach, kontrast i skalę oraz
+14 kontroli HTML bez błędów JS. Pełne powtórzenie bez referencji i ze
+zmianą kolejności opisano w raporcie.
+
+Issue 15 nadal **`claimed` do omówienia**. Komórka jest użytecznym punktem
+odniesienia, nie gotową metodą produkcyjną. Proponowany kolejny krok po
+omówieniu: porównanie 16 z zachowaniem nowych trudnych kontroli i osobną
+oceną RED/YELLOW. Nie uruchomiono 16 ani treningu. Odbiór 13 nadal otwarty.
 
 ## Dependencies
 

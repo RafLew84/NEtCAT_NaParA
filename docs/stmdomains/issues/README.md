@@ -78,8 +78,12 @@ rozwinięcie próby, bez przejścia do 16. Prosty opis/SOAP nie dały gotowej
 metody. Następnie [zbadano kryterium powtarzalności](../recurrence-criterion-trial.md):
 38 konfiguracji, 204 próbki, przypisanie w referencjach 31.0% → 62.5%,
 lecz nadal scalenia i odmowy przy łączeniu zgodnych orientacyjnie składowych.
-Kolejna proponowana próba w 15 dotyczy orientacji i łączenia sąsiadów.
-16, 17, 18 i 20 mają spełnione zależności, ale nie zostały uruchomione.
+Na następne polecenie wykonano [orientację i łączenie](../orientation-and-joining-trial.md):
+31 wariantów, 228 próbek. Komórka ze zgodnością ze startem poprawia braki
+i część TTMAPP, lecz pomija RED/YELLOW i scala zaburzoną granicę przesunięcia.
+15 nadal `claimed` do omówienia; propozycja dalszej pracy to porównanie 16
+z nowymi kontrolami. 16, 17, 18 i 20 mają spełnione zależności, ale nie
+zostały uruchomione.
 Odbiór 13 i jakość 04 pozostają otwarte.
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie
@@ -161,7 +165,7 @@ ten nadal warunkuje odbiór metod. Statusy znajdują się w ticketach.
 | Pytanie/zadanie | Typ | Kolejność |
 | --- | --- | --- |
 | [Jak przygotować wspólne wejście i kontrole bez narzucania domen?](14-unsupervised-input-and-controls.md) | task / AFK | Pierwszy krok; E0 |
-| [Czy otoczenie zaznaczonych molekuł pozwala samodzielnie znaleźć domeny?](15-local-neighborhood-domains.md) | prototype / HITL | `claimed`: pierwsza próba i badanie powtarzalności wykonane; dalsze omówienie/rozwój orientacji i łączenia, E1 |
+| [Czy otoczenie zaznaczonych molekuł pozwala samodzielnie znaleźć domeny?](15-local-neighborhood-domains.md) | prototype / HITL | `claimed`: wykonano otoczenia, powtarzalność oraz orientację/łączenie; do omówienia wynik i przejście do porównania 16, E1 |
 | [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md) | prototype / HITL | Po przygotowaniu wejścia; E2 |
 | [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md) | prototype / HITL | Po przygotowaniu wejścia; E3 |
 | [Jak przygotować cechy gotowych sieci bez treningu na naszych danych?](18-frozen-feature-preparation.md) | task / AFK | Po przygotowaniu wejścia; niezależnie od prób klasycznych |

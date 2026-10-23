@@ -41,6 +41,13 @@ Przypisanie w referencjach wzrosło do 62.5%, lecz 30.4% przypisanych par
 z różnych regionów jest scalonych. Pozostają błędy orientacji/łączenia
 i katalogu; samo przejście kryterium nie oznacza domeny. Issue 15 pozostaje
 `claimed`, bez automatycznego przejścia do 16 i bez wyboru metody.
+Następnie na polecenie użytkownika [zbadano orientację i łączenie](orientation-and-joining-trial.md):
+komórka sieci i zgodność ze startem poprawiają kontrolę braków, dają
+70.7% przypisań na referencjach i 0/3801 scaleń ocenianych par różnych
+regionów. Pozostają słaby RED/YELLOW, scalenia granicy przesunięcia
+przy błędach centrów oraz nadmierne dzielenie deformacji. Po omówieniu
+15 proponowane jest porównanie 16 na rozszerzonym zestawie kontroli;
+obecna komórka pozostaje punktem odniesienia. Status 15 nadal `claimed`.
 
 [Przegląd ML bez własnego treningu](research-training-free-ml-domain-discovery.md)
 z 2026-10-21 rozwinięto na polecenie użytkownika w
@@ -126,7 +133,7 @@ nie zamknięto przez samo dodanie go do mapy.
 
 ## Decisions so far
 
-- [Czy otoczenie molekuł pozwala znaleźć domeny?](issues/15-local-neighborhood-domains.md): pierwsza próba i [badanie kryterium powtarzalności](recurrence-criterion-trial.md) wykonane, **decyzja otwarta** na życzenie użytkownika. Następne pytanie: estymacja orientacji i łączenie lokalnie zgodnej sieci; pozostają braki centrów oraz błędy katalogu. [Pierwszy raport](local-neighborhood-domains-trial.md).
+- [Czy otoczenie molekuł pozwala znaleźć domeny?](issues/15-local-neighborhood-domains.md): wykonano pierwszą próbę, [powtarzalność](recurrence-criterion-trial.md) oraz [orientację i łączenie](orientation-and-joining-trial.md). **Decyzja otwarta**; komórka sieci jest punktem odniesienia z poprawą braków i części orientacji, ale nie rozwiązuje granicy przesunięcia przy błędach centrów ani RED/YELLOW. Propozycja po omówieniu: porównanie 16 z rozszerzonymi kontrolami. [Pierwszy raport](local-neighborhood-domains-trial.md).
 - [Jak przygotować wspólne wejście i kontrole bez narzucania domen?](issues/14-unsupervised-input-and-controls.md): przygotowano 24 pełne klatki, 132 kontrole, osobne referencje i format wyników; potwierdzono geometrię, powtarzalność i brak wpływu referencji na wejście. Bez uruchamiania metod.
 - [Jak definiujemy wyspę, typ uporządkowania i domenę sieci?](issues/02-order-types-and-domains.md): uzgodniono płat warstwy, osobny typ i orientację, granice oraz stany niepewności.
 - [Jak porównać metody wykrywania wysp i domen w serii?](issues/05-stable-types-across-frames.md): katalog wspólny dla zakresu; pilotaż wskazał luki skali, rozstawu i granic.

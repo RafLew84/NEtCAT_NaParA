@@ -130,9 +130,16 @@ polecił zbadać kryterium powtarzalności. [Kontynuacja](recurrence-criterion-t
 porównuje 38 konfiguracji na 204 próbkach przy zamrożonym katalogu.
 Warunek przechodzi 90.9% oznaczeń w referencjach, domenę otrzymuje 62.5%,
 lecz występują scalenia i liczne odmowy RED/YELLOW przy łączeniu składowych.
-Podgląd: `.scratch/recurrence-criterion/index.html`. Kolejny temat to
-orientacja i łączenie sąsiadów. Issue 15 nadal `claimed`; nie rozpoczęto
-16 ani treningu i nie wybrano metody produkcyjnej.
+Podgląd tej próby: `.scratch/recurrence-criterion/index.html`.
+
+Na kolejne polecenie wykonano [badanie orientacji i łączenia](orientation-and-joining-trial.md):
+31 wariantów, 228 próbek. Komórka sieci ze zgodnością wobec startu obszaru
+poprawia kontrolę braków i część TTMAPP: 70.7% przypisań, 0/3801 scaleń
+ocenianych par różnych regionów. RED jednak spada do 14/101, a granica
+przesunięcia z błędem centrów jest niemal całkowicie scalana. Podgląd:
+`.scratch/orientation-and-joining/index.html`. Issue 15 nadal `claimed`
+do omówienia; następna propozycja to porównanie 16 na rozszerzonych
+kontrolach, bez wdrażania obecnej metody. Nie rozpoczęto 16 ani treningu.
 
 ## Dwa etapy
 
