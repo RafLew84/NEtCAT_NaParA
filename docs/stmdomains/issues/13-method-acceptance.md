@@ -191,3 +191,19 @@ Osobno sprawdzić zapis wyniku i możliwość odtworzenia eksperymentu.
 - [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md)
 - [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md)
 - [Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md)
+
+
+## Wynik tekstury 17 do uwzględnienia — 2026-10-23
+
+Użytkownik zakończył [próbę 17](../image-texture-domains-trial.md) jako
+porównanie, bez przyjęcia konfiguracji. Lokalna tekstura działa bez
+anotacji, lecz na TTMAPP wybrane warianty mają 0.3–5.8% przypisań i brak
+RED/YELLOW. EWT tworzy przed bramką jedną grupę całego zakresu; końcowe
+fragmenty wynikają głównie z odmów i łączności. Niskie błędy przy niemal
+całkowitej odmowie nie mogą kwalifikować metody.
+
+W dalszej ocenie kontrolować jakość cech oddzielnie od bramki porządku,
+podziały pojedynczej sieci obok jej przypisania, małe różnice orientacji
+na odłożonych próbach oraz zakres banku/katalogu przed odmowami. Granica
+przesunięcia z błędem centrów nie sprawdza odporności na pogorszenie obrazu,
+gdy generator zmienia tylko oznaczenia. Odbiór 13 nadal pozostaje otwarty.

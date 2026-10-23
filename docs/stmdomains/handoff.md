@@ -1,4 +1,56 @@
-# STM Domains — próba SBC / MatID, issue 16
+# STM Domains — tekstura obrazu, issue 17
+
+Data: 2026-10-23. Dokumentacja `domains/texture-trial`, baza `b292f2f`,
+worktree `/tmp/netcat-stmdomains-texture`, docelowo `domains/start`.
+Źródła: `prototype/stmdomains-texture`, commit `3bb4d36`, baza `e6d3fbc`.
+Nie scalać prototypu do aplikacji. Commit dokumentacji w wiadomości końcowej.
+
+Issue 16 zamknięto wcześniej po zatwierdzeniu użytkownika. Następnie wykonano
+issue 17: lokalne widmo/autokorelacja i EWT, siatka/centra, 32 konfiguracje,
+24 pełne klatki i 204 kontrole. Parametry wybrano na kontrolach rozwojowych;
+częściowe referencje i odłożone ziarna oceniono później. Adaptacja EWT jest
+jawnie odróżniona od publikacji STM z zadanym K. Nie trenowano modelu.
+
+[Raport](image-texture-domains-trial.md),
+[audyt API i publikacji](research-image-texture-adaptation-audit.md), podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/image-texture-domains/index.html`.
+Wybrane warianty przypisują 0.3–5.8% centrów w referencjach, wyłącznie BLACK;
+RED/YELLOW pominięte. Bramka przepuszcza 9.2–12.6% ocenianych miejsc.
+EWT wcześniej tworzy jeden klaster całego zakresu. Na kontrolach scala małe
+orientacje; widmo na siatce dzieli pojedynczą sieć. Zero fałszywych przypisań
+na losowych punktach nie rekompensuje odmowy na TTMAPP. Filtr doboru nie
+miał twardego warunku podziałów pojedynczej sieci; ujawniono brak, bez
+zmiany rankingu po wynikach. Większe okno również nie rozwiązuje problemu.
+
+Użytkownik zatwierdził: **„Tak — zachowaj porównanie i zamknij 17”**.
+Issue 17 `resolved` jako badanie, bez wyboru metody produkcyjnej. Cechy,
+przypisania i reguły zachowano dla 19/21/22. Następne 18 → 19 i niezależne
+20 nie są uruchomione. Odbiór 13 i jakość 04 pozostają otwarte. W 19 i 13
+zapisano konieczność rozdzielenia jakości cech od odmów bramki oraz oceny
+podziałów jednej sieci. Nie mierzono pokrycia ani granic powierzchni.
+
+Sprawdzenia: pełna ponowna ekstrakcja 228 obrazów bez wszystkich anotacji
+i bez drzewa referencji — identyczne cechy siatki, 205 banków oraz wyniki
+obu wybranych metod obrazowych. 60 dokładnych porównań braków/inwersji;
+24 porównania kontrastu/skali z jawnymi drobnymi zmianami FFT. Zakres 5 → 24:
+ponowne dopasowanie banku i katalogu; puste wyniki końcowe nie dowodzą
+stabilności. 1824 wyniki zgodne z kontraktem, 228 odtworzonych wejść bez
+anotacji, zgodność hashy kodu. QtWebEngine offscreen: 42 kontrole bez
+błędów JS; obejrzano podgląd i wykres. Sprawdzono składnię Python/Bash
+i diff. Etapy wykonano osobno; nie powtarzano całego przebiegu wrapperem.
+Nie testowano produkcyjnej aplikacji, natywnego GUI ani pełnych 268 klatek.
+
+CPU, po jednym wątku BLAS/OpenMP: ekstrakcja 842.47 s, predykcja 25.85 s,
+ocena 3.64 s, pełna ekstrakcja bez anotacji 785.32 s. Maksymalny RSS
+803324 KiB (~785 MiB). `pyewt 1.0.0` i `connected-components-3d 3.26.1`
+wyłącznie w izolowanym `/tmp/stmdomains-issue17-deps`; netcat bez zmian.
+Artefakty lokalne: 3455 plików, 891338928 B, kopia SHA-256 zgodna.
+Brak potrzeb zmian wspólnego kodu lub konfiguracji. Dokumentacja trafia
+wyłącznie do Domains; Viewer oraz gałąź integracyjna bez zmian tej sesji.
+
+---
+
+## Poprzednie przekazanie — SBC / MatID, issue 16
 
 Data: 2026-10-23. Dokumentacja `domains/sbc-trial`, baza `9f2b127`,
 worktree `/tmp/netcat-stmdomains-sbc`, docelowo `domains/start`.

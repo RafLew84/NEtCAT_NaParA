@@ -4,7 +4,7 @@ ID: 17
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: open
+Status: resolved
 Assignee:
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 14
@@ -82,3 +82,36 @@ lokalne duże wyniki nie stają się automatycznie częścią aplikacji.
 - [ML i deep learning bez własnego treningu](../research-training-free-ml-domain-discovery.md)
 - [Przegląd samodzielnego wyszukiwania domen w STM/AFM](../research-stm-afm-unsupervised-domain-discovery.md)
 - [Przegląd domen i grupowania obiektów](../research-domain-discovery-and-object-clustering.md)
+
+
+## Answer — 2026-10-23
+
+Wykonano [porównanie tekstury](../image-texture-domains-trial.md): lokalne
+widmo/autokorelacja i EWT, siatka/centra, 32 konfiguracje na 228 próbkach.
+Przygotowano [audyt publikacji i API](../research-image-texture-adaptation-audit.md),
+pełne cechy, banki, katalogi, przypisania, odmowy i samodzielny podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/image-texture-domains/index.html`.
+Źródła: `prototype/stmdomains-texture`, commit `3bb4d36`, baza `e6d3fbc`.
+Kod eksperymentu nie trafia do aplikacji.
+
+Wybrane na syntezie warianty przypisują na częściowej referencji TTMAPP
+0.3–5.8% centrów, bez RED/YELLOW. Bramkę porządku przechodzi tylko
+9.2–12.6% ocenianych miejsc; EWT wcześniej tworzy jedną grupę całego
+zakresu. Na kontrolach EWT scala 8° i część granic przesunięcia, a widmo
+na siatce dzieli jedną sieć na trzy. Odmowa na losowych kontrolach jest
+poprawna, ale nie równoważy odmowy na rzeczywistym uporządkowaniu.
+Zamrożony filtr doboru pomijał podziały pojedynczej sieci; opisano tę lukę
+bez poprawiania rankingu po referencji.
+
+Potwierdzono identyczność cech i wyników obrazowych na 228 próbkach po
+usunięciu wszystkich oznaczeń i referencji. Oceniono braki, kontrast,
+inwersję, skalę i ponowne dopasowanie banku/katalogu dla 5 → 24 klatek.
+Walidacja 1824 wyników, 42 kontrole HTML bez błędów JS. Szczegóły, koszt
+CPU/pamięci i ograniczenia są w raporcie; nie wykonano testów aplikacji.
+
+Użytkownik zatwierdził: **„Tak — zachowaj porównanie i zamknij 17”**.
+Ticket jest `resolved` jako eksperyment, bez przyjęcia metody produkcyjnej.
+Cechy i wyniki pozostają punktem odniesienia dla 19/21/22. Następnym krokiem
+może być przygotowanie 18, potem porównanie 19; niezależnie pozostaje 20.
+Żadnego z tych zadań nie uruchomiono w ramach 17. Odbiór 13 i jakość 04
+pozostają otwarte. Level set nie rozwiązuje wykazanych braków rozpoznania.

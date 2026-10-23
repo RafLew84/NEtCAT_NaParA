@@ -47,6 +47,23 @@ przed odsłonięciem częściowych referencji; kolejne korekty mają własną we
 Łączenie cech obrazu z geometrią molekuł może wynikać z ustaleń próby,
 ale nie jest dodatkowym obowiązkowym eksperymentem w tym zadaniu.
 
+## Gotowy punkt odniesienia — 2026-10-23
+
+[Próba 17](../image-texture-domains-trial.md) jest zakończona i zachowana
+przez użytkownika jako porównanie. Źródła: `prototype/stmdomains-texture`,
+`3bb4d36`; cechy, katalogi, reguły i wyniki:
+`.scratch/image-texture-domains/`. Wybrane konfiguracje obrazu przypisują
+0.3–5.8% centrów w częściowych referencjach, bez RED/YELLOW. To wynik
+negatywny, który nie blokuje niniejszego porównania.
+
+Oddzielnie ocenić jakość nowych cech i wpływ bramki porządku: obecna ACF
+przepuszcza jedynie 9.2–12.6% miejsc w referencjach. Nie przyjmować jej
+bez sprawdzenia jako poprawnej dla wszystkich kandydatów. Zachować uczciwe
+porównanie wspólnych etapów, pokazać ewentualną zmianę bramki jako osobny
+wariant i nie przypisywać całej poprawy sieci. Do warunków doboru włączyć
+liczbę domen/podziały pojedynczej sieci; filtr 17 sprawdzał tylko jej
+przypisanie. Nie dobierać tych ustawień na ręcznych domenach TTMAPP.
+
 ## Dane i kryteria porównania
 
 Obowiązuje [wspólny manifest, format wyników i ocena](14-unsupervised-input-and-controls.md).

@@ -151,6 +151,16 @@ Podgląd: `.scratch/sbc-matid-domains/index.html`. Issue 16 ma status `resolved`
 zatwierdził zachowanie porównania i przejście do tekstury w 17. [Audyt API](research-sbc-adaptation-audit.md)
 i raport opisują poprawki modelu punktowego oraz ograniczenia biblioteki.
 
+Wykonano [próbę tekstury 17](image-texture-domains-trial.md): lokalne widmo
+oraz EWT, 32 konfiguracje, siatka i centra na 228 próbkach. Wariant obrazowy
+pozostaje identyczny bez oznaczeń, ale wybrane ustawienia przypisują tylko
+0.3–5.8% centrów w referencjach TTMAPP, bez RED/YELLOW. EWT scala małe
+orientacje, widmo na siatce nadmiernie dzieli jedną sieć, a bramka porządku
+odrzuca większość rzeczywistych wzorów. Użytkownik zaakceptował porównanie:
+17 jest `resolved` jako klasyczny punkt odniesienia dla ML, bez wdrożenia.
+Podgląd: `.scratch/image-texture-domains/index.html`. Przygotowanie 18,
+następnie porównanie 19, oraz niezależne 20 pozostają do wykonania.
+
 ## Dwa etapy
 
 - [Etap 1: działający szkielet](map.md) — import, podstawowy podgląd oraz

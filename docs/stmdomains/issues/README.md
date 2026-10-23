@@ -86,8 +86,12 @@ algorytmu produkcyjnego. [Próba SBC/MatID](../sbc-matid-domains-trial.md)
 jest wykonana na 228 próbkach. Daje poprawę braków, deformacji i trudnej
 granicy, ale fałszywy porządek, mała różnica orientacji i niestabilność
 ziarna wykluczają przyjęcie konfiguracji. 16 jest `resolved`: użytkownik zatwierdził porównanie
-i wybrał przejście do 17 — tekstury. 17, 18 i 20 mają spełnione zależności,
-lecz nie zostały uruchomione. Odbiór 13 i jakość 04 pozostają otwarte.
+i wybrał przejście do 17 — tekstury. [Próba 17](../image-texture-domains-trial.md)
+jest wykonana i zatwierdzona jako porównanie: `resolved`, bez przyjęcia
+metody. Wariant obrazowy jest niezależny od anotacji, ale na TTMAPP ma
+0.3–5.8% przypisań i pomija RED/YELLOW. Cechy zachowano do porównań ML.
+18 i 20 mają spełnione zależności, lecz nie zostały uruchomione; 19 wymaga
+jeszcze przygotowania 18. Odbiór 13 i jakość 04 pozostają otwarte.
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie
 z instrukcjami repozytorium. Nie wymaga zewnętrznego trackera.
@@ -170,7 +174,7 @@ ten nadal warunkuje odbiór metod. Statusy znajdują się w ticketach.
 | [Jak przygotować wspólne wejście i kontrole bez narzucania domen?](14-unsupervised-input-and-controls.md) | task / AFK | Pierwszy krok; E0 |
 | [Czy otoczenie zaznaczonych molekuł pozwala samodzielnie znaleźć domeny?](15-local-neighborhood-domains.md) | prototype / HITL | `resolved`: trzy próby; użytkownik polecił porównanie 16, bez przyjęcia metody, E1 |
 | [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md) | prototype / HITL | `resolved`: porównanie zachowane, użytkownik wybrał przejście do 17, E2 |
-| [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md) | prototype / HITL | Po przygotowaniu wejścia; E3 |
+| [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md) | prototype / HITL | `resolved`: widmo/EWT zachowane do porównań ML, bez przyjęcia metody; E3 |
 | [Jak przygotować cechy gotowych sieci bez treningu na naszych danych?](18-frozen-feature-preparation.md) | task / AFK | Po przygotowaniu wejścia; niezależnie od prób klasycznych |
 | [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | Po przygotowaniu cech i wyniku klasycznej tekstury |
 

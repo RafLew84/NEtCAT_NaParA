@@ -58,6 +58,16 @@ scaleń ocenianych par różnych regionów. Żaden z 18 wariantów nie spełnia
 wszystkich warunków. Użytkownik zatwierdził zachowanie porównania i przejście do 17 — tekstury
 obrazu; 16 ma status `resolved`. Nie wybrano algorytmu do aplikacji.
 
+Wykonano [próbę tekstury 17](image-texture-domains-trial.md): lokalne widmo
+oraz EWT, 32 konfiguracje, siatka i centra na 228 próbkach. Wariant obrazowy
+pozostaje identyczny bez oznaczeń, ale wybrane ustawienia przypisują tylko
+0.3–5.8% centrów w referencjach TTMAPP, bez RED/YELLOW. EWT scala małe
+orientacje, widmo na siatce nadmiernie dzieli jedną sieć, a bramka porządku
+odrzuca większość rzeczywistych wzorów. Użytkownik zaakceptował porównanie:
+17 jest `resolved` jako klasyczny punkt odniesienia dla ML, bez wdrożenia.
+Podgląd: `.scratch/image-texture-domains/index.html`. Przygotowanie 18,
+następnie porównanie 19, oraz niezależne 20 pozostają do wykonania.
+
 [Przegląd ML bez własnego treningu](research-training-free-ml-domain-discovery.md)
 z 2026-10-21 rozwinięto na polecenie użytkownika w
 [przygotowanie gotowych cech](issues/18-frozen-feature-preparation.md) oraz
@@ -152,6 +162,8 @@ nie zamknięto przez samo dodanie go do mapy.
 - [Jak wyznaczać pokrycie bez mylenia luk oznaczeń z podłożem?](issues/10-coverage-and-scale.md): próba zakończona; zależność od centrów i wybiórczość obrazu wykluczają uznanie jej za gotowy pomiar.
 - [Jak rozpoznawać typy przy obrocie, zmianie rozstawu i rzadkich wzorach?](issues/11-structural-type-catalogue.md): próba zakończona; prostsze kontrole działają, katalog TTMAPP pozostaje nadmiernie podzielony i zależny od zakresu.
 - [Jak rozdzielać domeny o tym samym typie i orientacji?](issues/12-phase-boundaries.md): próba zakończona; niedopasowanie centrów działa na części kontroli, dostępność sieci i kontrast ograniczają wynik.
+
+- [Czy tekstura obrazu znajduje domeny bez przykładów?](issues/17-image-texture-domains.md): [próba zakończona](image-texture-domains-trial.md), zatwierdzona jako porównanie. Niezależność od anotacji potwierdzona; odmowy na TTMAPP i błędy podziałów/orientacji wykluczają przyjęcie obecnych konfiguracji. Zachowano cechy do ML.
 
 Nie wybrano ani nie zwalidowano metod. Kontrakt zapisu jest ustalony;
 jego implementacja i odbiór na wynikach metod pozostają do wykonania.
