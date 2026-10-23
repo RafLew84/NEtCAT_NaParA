@@ -92,16 +92,16 @@ protokół jakości 04 oraz odbiór metod 13 pozostają otwarte.
 
 Po przeglądzie MolTrack i literatury STM/AFM dodano do istniejącej mapy
 [cykl samodzielnego znajdowania domen](issues/README.md#próby-samodzielnego-znajdowania-domen).
-Następny krok badawczy to [wspólne wejście i kontrole](issues/14-unsupervised-input-and-controls.md),
-następnie porównania: otoczenie molekuł, SBC/MatID oraz klasyczna tekstura
+Plan zaczyna się od [wspólnego wejścia i kontroli](issues/14-unsupervised-input-and-controls.md),
+następnie porównuje otoczenie molekuł, SBC/MatID oraz klasyczną teksturę
 obrazu. Po przeglądzie ML dodano
 [przygotowanie gotowych cech sieci](issues/18-frozen-feature-preparation.md)
 i [porównanie domen z tych cech](issues/19-frozen-feature-domains.md).
 Próba ML korzysta z wyniku klasycznej tekstury jako punktu odniesienia;
 wszystkie wyniki trafiają do istniejącego odbioru metod.
 Zakres obejmuje całe klatki, bez przykładów domen i zadanej liczby grup;
-ramki służą wyłącznie późniejszej ocenie. Nowe tickety są otwarte, a próby
-nie zostały wykonane. Ten tok badawczy może poprzedzać odbiór szkieletu;
+ramki służą wyłącznie późniejszej ocenie. Przy dodaniu ticketów próby
+nie były wykonane; bieżący stan opisano poniżej. Ten tok badawczy może poprzedzać odbiór szkieletu;
 następny krok aplikacyjny nadal dotyczy jego importu i geometrii.
 
 Po dopuszczeniu treningu bez etykiet i ostatnim badaniu dodano
@@ -118,9 +118,16 @@ Gotowy [pakiet i raport](unsupervised-input-preparation.md) obejmuje 24 pełne
 klatki, 132 kontrole i osobne referencje; [protokół](experiment-input-protocol.md)
 określa format wejścia/wyniku i ocenę. Przeszło 35 testów oraz sprawdzenia
 realnych danych i niezależności wejścia od referencji. Podgląd lokalny:
-`.scratch/unsupervised-input/index.html`. Następna zalecana próba badawcza
-to [15 — otoczenie molekuł](issues/15-local-neighborhood-domains.md).
-Nie wykonano jeszcze nowych detektorów ani treningu.
+`.scratch/unsupervised-input/index.html`.
+
+Następnie wykonano [pierwszą próbę 15 — otoczenie molekuł](local-neighborhood-domains-trial.md).
+Prosty opis/SOAP, dwa promienie i osobna ocena powtarzalności nie dały
+jeszcze ogólnego wykrywania. Największe przypisanie na częściowych
+referencjach TTMAPP: 31%, tylko BLACK. RED/YELLOW odpadają na kryterium
+powtarzalności. Podgląd: `.scratch/local-neighborhood-domains/index.html`.
+Użytkownik wybrał dalsze omówienie lub rozwinięcie próby, więc issue 15
+pozostaje `claimed`; nie rozpoczęto 16 ani treningu. Raport wskazuje
+kryterium porządku i tolerancję centrów jako najbliższy temat do zbadania.
 
 ## Dwa etapy
 

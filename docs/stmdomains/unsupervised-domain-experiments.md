@@ -2,7 +2,10 @@
 
 Plan z 2026-10-21 przeniesiono na polecenie użytkownika do ticketów
 [istniejącej mapy metod i zapisu](map-methods-and-save.md).
-**Przygotowanie 14 zakończono 2026-10-23; próby metod nie zostały jeszcze wykonane.**
+**Przygotowanie 14 zakończono 2026-10-23. Pierwszą próbę 15 wykonano;
+na życzenie użytkownika pozostaje w dyskusji (`claimed`).**
+[Raport otoczeń molekuł](local-neighborhood-domains-trial.md) wskazuje
+ograniczenia katalogu i kryterium powtarzalności; nie wybrano metody.
 [Gotowy zestaw](unsupervised-input-preparation.md) i
 [protokół](experiment-input-protocol.md) są wejściem kolejnych prób.
 Zakres, zależności i warunki

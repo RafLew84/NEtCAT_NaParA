@@ -4,8 +4,8 @@ ID: 15
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: open
-Assignee:
+Status: claimed
+Assignee: Codex — domains/local-neighborhood-trial
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 14
 
@@ -64,6 +64,35 @@ ograniczenia zostają. Udokumentowany wynik negatywny także odpowiada na to
 pytanie. Zakończenie próby nie zatwierdza metody produkcyjnej; ten wybór
 pozostaje w [odbiorze metod](13-method-acceptance.md). Kod prototypu oraz
 lokalne duże wyniki nie stają się automatycznie częścią aplikacji.
+
+## Próba wykonana — 2026-10-23, dyskusja trwa
+
+[Raport](../local-neighborhood-domains-trial.md): porównano rozkłady
+odległości/kątów i SOAP, promienie 24/36 px, HDBSCAN bez K, osobną ocenę
+powtarzalności i przestrzenne składowe. Pełne wejście: 24 klatki TTMAPP
+i 132 kontrole; 624 wyniki z jawnymi odmowami. Podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/local-neighborhood-domains/index.html`.
+
+Prosty opis nadmiernie dzieli część kontrolnych struktur; SOAP scala
+różne rozstawy. Większe otoczenia odróżniają losowe punkty od jednej
+regularnej sieci, ale ubytki centrów pogarszają przypisania i podziały.
+Na TTMAPP najwięcej przypisań daje SOAP/36: 31.0% wewnątrz częściowych
+referencji, wyłącznie BLACK. RED/YELLOW nie przechodzą kryterium
+powtarzalności mimo zwykle wystarczającej liczby sąsiadów. Nie jest to
+rozpoznanie fizycznego nieporządku ani dowód nieskuteczności całej rodziny.
+
+Zbadano rzadki układ, zakres 5 → 24, obrót, braki i skalowanie. Powtórzenie
+bez referencji dało 624 identyczne pliki; zmiana kolejności — identyczne
+przypisania. Raport podaje szczegóły jakości, koszty, wersje i ograniczenia.
+Źródła: `prototype/stmdomains-neighborhoods`, commit `1f25b45` (baza
+`76dd4a3`), bez scalania prototypu do aplikacji.
+
+Użytkownik po przedstawieniu wyniku wybrał **„Najpierw omówmy lub rozwińmy
+tę próbę”**. Status pozostaje `claimed`; nie przyjęto zakończenia pytania
+ani przejścia do 16. Dodatkowa diagnoza wskazuje konserwatywny próg 0.6
+i regułę dopasowania przesunięć jako pierwsze elementy do zbadania.
+Proponowana dalsza próba kryterium porządku/tolerancji jest opisana
+w raporcie; jeszcze jej nie uruchomiono. Nie wybieramy metody produkcyjnej.
 
 ## Dependencies
 

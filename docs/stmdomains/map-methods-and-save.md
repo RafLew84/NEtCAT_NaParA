@@ -29,8 +29,13 @@ Ten cykl można podejmować przed odbiorem szkieletu. 2026-10-23 zakończono
 [przygotowanie wspólnego wejścia i kontroli](issues/14-unsupervised-input-and-controls.md);
 [raport](unsupervised-input-preparation.md) i [protokół](experiment-input-protocol.md)
 udostępniają zestaw do kolejnych porównań.
-Zalecana pierwsza próba wykorzystuje otoczenie zaznaczonych molekuł.
-Aktualizacja mapy nie uruchamia eksperymentów ani nie rozstrzyga ich wyniku.
+Następnie wykonano [pierwszą próbę otoczeń molekuł](local-neighborhood-domains-trial.md):
+prosty opis i SOAP z katalogiem bez K oraz osobną oceną porządku. Nie
+uzyskano ogólnego wykrywania; najwyższe przypisanie na częściowych
+referencjach TTMAPP wynosi 31%, bez RED/YELLOW. Dodatkowa diagnoza
+wskazuje odrzucenie tych obszarów przez kryterium powtarzalności.
+Użytkownik wybrał dalsze omówienie lub rozwinięcie: issue 15 pozostaje
+`claimed`, bez automatycznego przejścia do 16 i bez wyboru metody.
 
 [Przegląd ML bez własnego treningu](research-training-free-ml-domain-discovery.md)
 z 2026-10-21 rozwinięto na polecenie użytkownika w
@@ -116,6 +121,7 @@ nie zamknięto przez samo dodanie go do mapy.
 
 ## Decisions so far
 
+- [Czy otoczenie molekuł pozwala znaleźć domeny?](issues/15-local-neighborhood-domains.md): pierwsza próba wykonana, **decyzja otwarta** na życzenie użytkownika; dalsza dyskusja dotyczy kryterium powtarzalności, braków centrów i błędów katalogu. [Raport](local-neighborhood-domains-trial.md).
 - [Jak przygotować wspólne wejście i kontrole bez narzucania domen?](issues/14-unsupervised-input-and-controls.md): przygotowano 24 pełne klatki, 132 kontrole, osobne referencje i format wyników; potwierdzono geometrię, powtarzalność i brak wpływu referencji na wejście. Bez uruchamiania metod.
 - [Jak definiujemy wyspę, typ uporządkowania i domenę sieci?](issues/02-order-types-and-domains.md): uzgodniono płat warstwy, osobny typ i orientację, granice oraz stany niepewności.
 - [Jak porównać metody wykrywania wysp i domen w serii?](issues/05-stable-types-across-frames.md): katalog wspólny dla zakresu; pilotaż wskazał luki skali, rozstawu i granic.

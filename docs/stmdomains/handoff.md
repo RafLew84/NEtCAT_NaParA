@@ -1,4 +1,44 @@
-# STM Domains — przygotowanie wspólnego wejścia, issue 14
+# STM Domains — pierwsza próba otoczeń molekuł, issue 15
+
+Data: 2026-10-23. Gałąź dokumentacji `domains/local-neighborhood-trial`,
+baza `76dd4a3`, worktree `/tmp/netcat-stmdomains-neighborhoods`.
+Źródła prototypu: osobna gałąź `prototype/stmdomains-neighborhoods`,
+commit `1f25b45`. Nie scalać prototypu do aplikacji.
+
+Wykonano porównanie prostego opisu odległości/kątów i SOAP, promieni
+24/36 px, wspólnego HDBSCAN bez K, oceny powtarzalności i przestrzennych
+składowych. 24 pełne klatki TTMAPP + 132 kontrole, 624 kompletne wyniki.
+[Raport](local-neighborhood-domains-trial.md) zawiera parametry, tabele,
+odmowy, stabilność, koszty i ograniczenia. Podgląd lokalny:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/local-neighborhood-domains/index.html`.
+
+Stan **`claimed`**, nie `resolved`: użytkownik po przedstawieniu wyniku
+wybrał „Najpierw omówmy lub rozwińmy tę próbę”. Nie uruchomiono 16.
+SOAP/36 przypisuje 31.0% centrów w referencjach, tylko BLACK; RED/YELLOW
+odpadają na kryterium powtarzalności mimo przeważnie wystarczającej liczby
+sąsiadów. Proponowana kolejna próba w 15 ma zbadać ten warunek i tolerancję
+położeń z kontrolą fałszywego porządku. Nie została jeszcze uruchomiona.
+Pozostają też nadmierne podziały prostego opisu i scalenia typów SOAP.
+
+Wykonane sprawdzenia: walidacja 624 wyników, rotacja/kontrast/skala/braki,
+rzadki układ, rozszerzenie 5 → 24. Powtórna ekstrakcja/predykcja bez
+referencji: 624 pliki identyczne bajtowo. Losowa kolejność oznaczeń/klatek:
+624 identyczne zestawy przypisań po sortowaniu ID. QtWebEngine offscreen:
+15 kontroli scenariuszy/widoków/referencji, bez błędów JS; obejrzano zrzut.
+Naprawiono błąd numeryczny granicy promienia i powtórzono całość przed
+końcowym raportem. Nie testowano aplikacyjnego GUI, nie uruchamiano
+testów produkcyjnych ani pomiaru 268 klatek. Brak zmian produkcyjnych.
+
+Ekstrakcja 12.24 s, dopasowanie/predykcja/zapis 42.31 s, szczyt RSS
+330 636 KiB, CPU, bez GPU. Zależności dodatkowe DScribe 2.1.2 i sparse
+0.19.2 wyłącznie w `/tmp/stmdomains-issue15-deps`; `netcat` bez zmian.
+Nie ma nowych potrzeb zmian wspólnego kodu ani konfiguracji. Dane,
+cechy, duże wyniki i podgląd pozostają lokalne. Mapa i indeks zachowują
+otwartą dyskusję; odbiór 13 i jakość 04 nadal otwarte.
+
+---
+
+## Poprzednie przekazanie — przygotowanie wspólnego wejścia, issue 14
 
 Data: 2026-10-23. Gałąź `domains/unsupervised-input`, baza `d134439`.
 Worktree `/tmp/netcat-stmdomains-input`, docelowo `domains/start`.

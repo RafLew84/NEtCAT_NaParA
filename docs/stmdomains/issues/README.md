@@ -72,8 +72,12 @@ z kroków 18–19 zachowują niezmienione wagi jako punkt odniesienia.
 Stan 2026-10-23: [przygotowanie 14](14-unsupervised-input-and-controls.md)
 zakończone. [Raport](../unsupervised-input-preparation.md) i
 [protokół wejścia/wyników](../experiment-input-protocol.md) opisują gotowy
-zestaw. Odblokowano 15, 16, 17, 18 i 20; następna zalecana próba to 15.
-Przygotowanie nie uruchomiło metod ani treningu; odbiór 13 i jakość 04 otwarte.
+zestaw. Następnie wykonano [pierwszą próbę 15](../local-neighborhood-domains-trial.md).
+Issue 15 pozostaje `claimed`: użytkownik wybrał dalsze omówienie lub
+rozwinięcie próby, bez przejścia do 16. Prosty opis/SOAP nie dały gotowej
+metody; diagnoza wskazuje lukę kryterium powtarzalności na RED/YELLOW.
+16, 17, 18 i 20 mają spełnione zależności, ale nie zostały uruchomione.
+Odbiór 13 i jakość 04 pozostają otwarte.
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie
 z instrukcjami repozytorium. Nie wymaga zewnętrznego trackera.
@@ -154,7 +158,7 @@ ten nadal warunkuje odbiór metod. Statusy znajdują się w ticketach.
 | Pytanie/zadanie | Typ | Kolejność |
 | --- | --- | --- |
 | [Jak przygotować wspólne wejście i kontrole bez narzucania domen?](14-unsupervised-input-and-controls.md) | task / AFK | Pierwszy krok; E0 |
-| [Czy otoczenie zaznaczonych molekuł pozwala samodzielnie znaleźć domeny?](15-local-neighborhood-domains.md) | prototype / HITL | Po przygotowaniu wejścia; zalecana pierwsza próba, E1 |
+| [Czy otoczenie zaznaczonych molekuł pozwala samodzielnie znaleźć domeny?](15-local-neighborhood-domains.md) | prototype / HITL | `claimed`: pierwsza próba wykonana; na życzenie użytkownika dalsze omówienie/rozwój, E1 |
 | [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md) | prototype / HITL | Po przygotowaniu wejścia; E2 |
 | [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md) | prototype / HITL | Po przygotowaniu wejścia; E3 |
 | [Jak przygotować cechy gotowych sieci bez treningu na naszych danych?](18-frozen-feature-preparation.md) | task / AFK | Po przygotowaniu wejścia; niezależnie od prób klasycznych |
