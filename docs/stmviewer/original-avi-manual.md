@@ -4,7 +4,7 @@ Status: implementacja do odbioru ręcznego. Uruchomienie z katalogu repo:
 
 ```bash
 conda activate netcat
-python -m stmviewer
+python -m stmviewer.main
 ```
 
 Na nowym stanowisku stos OpenCV/FFmpeg dodaje `python -m pip install -r

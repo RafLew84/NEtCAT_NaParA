@@ -152,7 +152,8 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m stmviewer.main
 ```
 
-ECC dodatkowo wymaga OpenCV. Opcjonalny zestaw `stmviewer/requirements-ecc.txt`
+ECC i AVI wymagają OpenCV. Zestaw `stmviewer/requirements-avi.txt` udostępnia
+ten sam build co poniższy zestaw ECC. Opcjonalny zestaw `stmviewer/requirements-ecc.txt`
 zawiera podstawowe zależności oraz `opencv-python==4.11.0.86` (wersja użyta w próbie
 lokalnej). Instalacja w wybranym środowisku:
 

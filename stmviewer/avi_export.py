@@ -122,7 +122,7 @@ def save_avi(path: Path, plan: AviPlan, *, overwrite: bool = False,
             writer.release()
         _verify_movie(stage, plan, hashes, lambda count: report(
             plan.frame_count + 1 + count, f'Sprawdzanie filmu {count}/{plan.frame_count}…'))
-        with stage.open('rb') as stream:
+        with stage.open('r+b') as stream:
             os.fsync(stream.fileno())
         report(2 * plan.frame_count + 2, 'Publikowanie sprawdzonego AVI…')
         check_destination()

@@ -298,9 +298,19 @@ class STMViewerMainWindow(QMainWindow):
         self.setStatusBar(self._status)
         self._status.showMessage("Brak otwartego obrazu")
 
+    @property
+    def _processing_series(self) -> bool:
+        """Operations that lock series edits and playback, but allow browsing."""
+        return self._registration_job is not None or self._export_job is not None or self._avi.busy
+
+    @property
+    def _operation_in_progress(self) -> bool:
+        """Import also excludes launching another operation."""
+        return self._job is not None or self._processing_series
+
     def open_file(self) -> None:
         """Choose a complete series; a worker keeps the existing view responsive."""
-        if self._job is not None or self._registration_job is not None or self._export_job is not None or self._avi.busy:
+        if self._operation_in_progress:
             return
         initial = str(self._frames[self._index].source.parent) if self._frames else ""
         filenames, _ = QFileDialog.getOpenFileNames(
@@ -325,8 +335,7 @@ class STMViewerMainWindow(QMainWindow):
         self._sync_navigation()
 
     def save_avi(self) -> None:
-        if (not self._frames or self._job is not None or self._registration_job is not None
-                or self._export_job is not None or self._avi.busy):
+        if not self._frames or self._operation_in_progress:
             return
         self._pause()
         self._avi.open_export(self._frames, MoviePresentation(
@@ -342,8 +351,7 @@ class STMViewerMainWindow(QMainWindow):
 
     def save_mpp(self) -> None:
         """Choose input or ready aligned samples, independent of preview settings."""
-        if (not self._frames or self._job is not None or self._registration_job is not None
-                or self._export_job is not None or self._avi.busy):
+        if not self._frames or self._operation_in_progress:
             return
         self._pause()
         source = self._frames[self._index].source
@@ -490,8 +498,7 @@ class STMViewerMainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent | None) -> None:
         self._pause()
-        if event is not None and (self._job is not None or self._registration_job is not None
-                                  or self._export_job is not None or self._avi.busy):
+        if event is not None and self._operation_in_progress:
             self._closing = True
             self._cancel_import()
             self._cancel_registration()
@@ -503,8 +510,8 @@ class STMViewerMainWindow(QMainWindow):
 
     def _sync_navigation(self) -> None:
         count = len(self._frames)
-        busy = self._registration_job is not None or self._export_job is not None or self._avi.busy
-        can_save = bool(count) and not busy and self._job is None
+        busy = self._processing_series
+        can_save = bool(count) and not self._operation_in_progress
         self._save_button.setEnabled(can_save)
         self._avi.set_available(can_save)
         if hasattr(self, "_avi_action"):
@@ -513,11 +520,11 @@ class STMViewerMainWindow(QMainWindow):
             self._save_action.setEnabled(can_save)
         self._play.setEnabled(count > 1 and not busy)
         self._delete.setEnabled(bool(count) and not busy)
-        self._register.setEnabled(bool(count) and not busy and self._job is None
+        self._register.setEnabled(bool(count) and not self._operation_in_progress
                                   and not self._selected_method_error())
-        self._method.setEnabled(not busy and self._job is None)
-        self._deep_controls.setEnabled(not busy and self._job is None)
-        self._deep_controls.check.setEnabled(not busy and self._job is None
+        self._method.setEnabled(not self._operation_in_progress)
+        self._deep_controls.setEnabled(not self._operation_in_progress)
+        self._deep_controls.check.setEnabled(not self._operation_in_progress
                                              and not self._selected_method_error())
         self._view.setEnabled(self._registration is not None)
         for preview_control in (self._zoom_in, self._zoom_out, self._fit_button, self._gamma,
@@ -541,7 +548,7 @@ class STMViewerMainWindow(QMainWindow):
             self._strip.scrollTo(index)
 
     def _delete_frame(self) -> None:
-        if not self._frames or self._registration_job is not None or self._export_job is not None or self._avi.busy:
+        if not self._frames or self._processing_series:
             return
         self._pause()
         removed = self._index
@@ -575,7 +582,7 @@ class STMViewerMainWindow(QMainWindow):
     def _toggle_playback(self) -> None:
         if self._playing:
             self._pause()
-        elif len(self._frames) > 1 and self._registration_job is None and self._export_job is None and not self._avi.busy:
+        elif len(self._frames) > 1 and not self._processing_series:
             if self._index == len(self._frames) - 1:
                 self._display_frame(0)
                 self._preview.repaint()
@@ -692,8 +699,7 @@ class STMViewerMainWindow(QMainWindow):
         self._sync_navigation()
 
     def _start_registration(self, *, check_only: bool = False) -> None:
-        if ((not self._frames and not check_only) or self._job is not None or self._registration_job is not None
-                or self._export_job is not None or self._avi.busy or self._selected_method_error()):
+        if ((not self._frames and not check_only) or self._operation_in_progress or self._selected_method_error()):
             return
         self._pause()
         job = RegistrationJob(self._frames, self, self._registration_backend,
