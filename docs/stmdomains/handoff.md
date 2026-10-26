@@ -1,4 +1,64 @@
-# STM Domains — przygotowanie gotowych cech, issue 18
+# STM Domains — porównanie gotowych cech, issue 19
+
+Data: 2026-10-26. Dokumentacja `domains/frozen-domain-trial`, baza `ad584eb`,
+worktree `/tmp/netcat-stmdomains-frozen-domain-trial`, docelowo `domains/start`.
+Źródło prototypu: **`prototype/stmdomains-frozen-domains`, `652ab96`**,
+baza `ad584eb`. Nie scalać prototypu do aplikacji. Commit dokumentacji
+w wiadomości końcowej.
+
+Wykonano issue 19: FCN–ResNet101 i DINOv2, widmo i EWT, siatka i centra,
+24 pełne klatki TTMAPP i 204 kontrole. 64 konfiguracje podstawowe ze
+wspólnym budżetem oraz 96 dodatkowych wariantów rozdzielczości/normalizacji.
+Bez wzorców domen, zadanego K i treningu. Nowe wspólne grupowanie:
+L2/PCA, epsilon w jednostkach mediany dystansu sąsiada; dwa kryteria ACF,
+w tym nowa korelacja na nakładających się częściach okna. Wagi sieci stałe.
+
+[Raport](frozen-feature-domains-trial.md),
+[manifest](frozen-feature-domains-manifest.json),
+[audyt grupowania](research-frozen-domain-clustering-audit.md), podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/frozen-feature-domains/index.html`.
+Wybrane FCN/DINO przypisują 0–5.1% centrów we wnętrzach TTMAPP, bez
+RED/YELLOW. Siedem wariantów ma jeden katalogowy klaster wyglądu;
+DINO/centra odmawia wszystkim. Ocena porządku usuwa większość danych.
+Pozostają nadmierne podziały pojedynczej sieci i błędy małych orientacji
+oraz granic. Żaden ze 160 wariantów nie spełnia wszystkich warunków.
+Nie wyznaczono typów strukturalnych, powierzchni ani dokładnych konturów.
+
+Użytkownik: **„Najpierw omówmy lub rozwińmy tę próbę”**. Issue 19 pozostaje
+**`claimed`**, bez zamknięcia i bez wyboru metody. Zachowano pełne wyniki;
+proponowane rozwinięcie powinno rozdzielić utratę informacji w uśrednieniu,
+PCA i grupowaniu. Jest jeszcze niewykonane. Nie uruchomiono treningu 20;
+odbiór 13 i jakość 04 nadal otwarte. Nie przypisywać wyniku wyłącznie
+modelom ani proponować samego obniżenia progu jako rozwiązania.
+
+Sprawdzenia: 912 świeżych zestawów cech sieci siatki identycznych bez
+oznaczeń; 228 identycznych zestawów klasycznych (FFT/EWT z niezależnego
+powtórzenia 17, nowa ACF przeliczona); 1824 identyczne wyniki pełnego
+powtórnego grupowania wybranych konfiguracji bez referencji. Wariant
+centrowy sprawdzony przy odwróceniu kolejności wejścia. 1824 wyniki
+zgodne z kontraktem; bez zmian źródeł i ustawień po odczycie referencji.
+96 par braków detekcji identycznych na siatce; kontrast/skala zmieniają
+wynik. Zakres 5 → 24 zmienia katalog wyglądu w 21/40 porównań; zgodne puste
+końcowe wyniki nie dowodzą stabilności detekcji. Bezpośrednia kontrola
+numeryczna nowej ACF: błąd do 3.33e-16. QtWebEngine: **46 kontroli**,
+bez błędów JS, obejrzano podgląd i wykres. Składnia Python/Bash i diff
+sprawdzone. Nie testowano produkcji ani natywnego GUI.
+
+Koszt: sieci 566.52 s na RTX 5090, nowa ACF/audyt 319.95 s CPU,
+grupowanie 319.16 s CPU, ocena 11.73 s. Szczyt RSS ekstrakcji ok. 1.48 GiB;
+alokowane tensory CUDA 324 MiB FCN / 268 MiB DINO. Same tablice sieci ok. 3.3 GB.
+Cały artefakt 35319 plików / 6642599215 B, kopia do Domains zweryfikowana
+SHA-256, symlinki względne. Netcat bez instalacji nowych pakietów,
+wagi z 18. Etapy runnera wykonano osobno, nie powtarzano całości wrapperem.
+Nie kwalifikowano żadnej konfiguracji do benchmarku 268 klatek.
+
+Brak zmian wspólnych modułów, wymagań, aplikacji lub Viewer. Do Domains
+trafia tylko dokumentacja i mały manifest; prototyp jest na osobnej gałęzi,
+dane pozostają lokalne. Integrację do `stm-next` prowadzi koordynator.
+
+---
+
+## Poprzednie przekazanie — przygotowanie gotowych cech, issue 18
 
 Data: 2026-10-26. Gałąź `domains/frozen-features`, baza `9346d1a`,
 worktree `/tmp/netcat-stmdomains-frozen-features`, docelowo `domains/start`.

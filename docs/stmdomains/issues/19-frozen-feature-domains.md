@@ -4,8 +4,8 @@ ID: 19
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: open
-Assignee:
+Status: claimed
+Assignee: Codex — domains/frozen-domain-trial
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 17, 18
 
@@ -70,7 +70,8 @@ przypisanie. Nie dobierać tych ustawień na ręcznych domenach TTMAPP.
 Oba wymagane ekstraktory działają; kod `e6e7248` jest w
 `stmdomains/experiments/frozen/`, cechy i manifesty w
 `.scratch/frozen-features/`, wagi w `.scratch/frozen-feature-assets/`.
-Zależności 17 i 18 są spełnione; niniejsza próba pozostaje nieuruchomiona.
+Zależności 17 i 18 są spełnione; próba została wykonana i pozostaje
+do dalszego omówienia zgodnie z decyzją użytkownika opisaną poniżej.
 
 Przygotowanie obejmowało 12 obrazów i 16 konfiguracji, nie cały zakres
 porównania. Rozszerzyć ekstrakcję na wspólny zestaw zgodnie z protokołem.
@@ -121,3 +122,35 @@ pozostaje [osobnym odbiorem](13-method-acceptance.md), wspólnym z pozostałymi 
 ## Kontekst
 
 - [ML i deep learning bez własnego treningu](../research-training-free-ml-domain-discovery.md)
+
+
+## Answer — 2026-10-26, próba do dalszego omówienia
+
+Wykonano [porównanie zamrożonych cech](../frozen-feature-domains-trial.md):
+24 pełne klatki TTMAPP i 204 kontrole, FCN/DINO oraz FFT/EWT, siatka i centra.
+64 konfiguracje podstawowe ze wspólnym budżetem oraz 96 wariantów
+wrażliwości. Bez przykładów domen, zadanego K i treningu sieci.
+Źródło prototypu: `prototype/stmdomains-frozen-domains`, **`652ab96`**;
+podgląd: `.scratch/frozen-feature-domains/index.html`.
+
+Żaden wariant nie spełnia kompletu warunków rozwojowych. Wybrane sieci
+przypisują 0–5.1% centrów we wnętrzach TTMAPP, wyłącznie BLACK; pozostają
+błędy jednej sieci, małych orientacji i granic przesunięcia. Siedem z ośmiu
+wybranych konfiguracji tworzy jeden klaster wyglądu całego zakresu,
+a DINO/centra odmawia wszystkim. Kryterium porządku usuwa większość
+pozostałych miejsc. Nowa ACF z korektą nakładania nie naprawia problemu.
+Nie utożsamiamy tego wyniku z oceną wszystkich możliwych cech tych sieci.
+
+912 zestawów cech sieci siatki bitowo identycznych bez oznaczeń;
+1824/1824 powtórzone wyniki wybranych konfiguracji identyczne. Przeszło
+46 kontroli podglądu. Typy strukturalne pozostają nieustalone; wynik
+zapisuje osobno grupy wyglądu, kandydatów kierunku ACF i fragmenty.
+[Manifest](../frozen-feature-domains-manifest.json) oraz
+[audyt grupowania](../research-frozen-domain-clustering-audit.md).
+
+Użytkownik: **„Najpierw omówmy lub rozwińmy tę próbę”**. Status pozostaje
+`claimed`; nie zamykamy 19 i nie przyjmujemy metody do programu.
+Propozycja dalszego badania: sprawdzić na kontrolach rozróżnialność cech
+przed/po PCA, następnie wpływ grupowania bez scalającego epsilon lub
+uśredniania map. To nowy, jeszcze niewykonany etap wymagający osobnego
+protokołu; aktualnych wyników nie dostrajano po referencjach.

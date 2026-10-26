@@ -1,0 +1,1249 @@
+{
+  "date": "2026-10-26",
+  "schema": "stmdomains-frozen-domain-trial-audit-v1",
+  "prototype_commit": "652ab96",
+  "prototype_branch": "prototype/stmdomains-frozen-domains",
+  "sample_count": 228,
+  "configurations": 160,
+  "primary_configurations": 64,
+  "provenance": {
+    "python": "3.12.12",
+    "versions": {
+      "numpy": "2.2.5",
+      "scipy": "1.15.2",
+      "scikit-learn": "1.6.1",
+      "torch": "2.9.1+cu128",
+      "torchvision": "0.24.1+cu128",
+      "Pillow": "11.2.1",
+      "matplotlib": "3.10.1"
+    },
+    "sources": {
+      "frozen_domain_browser.py": "034f9fbe6705931c554539d49171c65a97854339891819b63f73edc20bcd62bd",
+      "frozen_domain_design.json": "b1ac08439aeed9d90485dba2844211b35e853c842e3d39e2a5c977f154d8c1f5",
+      "frozen_domain_diagnostics.py": "ebfc0fee50aba6cb3697a10e0e9c103156a2832c6c39ff6045289fca59e2e665",
+      "frozen_domain_evaluate.py": "f68b0f82d8ecc04bfaaae521a02c2ae10d79ccfaa46a5c9908bc116f1954c889",
+      "frozen_domain_plot.py": "acc1dd4eb9392098c284788147f6db94a534cb4d2fc048941df2a5393c81ad4c",
+      "frozen_domain_predict.py": "50e7876a9fd359dc8e3fee5d8ea043ffbefb1e8329b9ba5b9e62ee91b56418da",
+      "frozen_domain_prepare.py": "fd7caeffdf57c09fa523c33e1c2fb7fcc53ceb3ef30a73156f7db42104b4adf2",
+      "frozen_domain_probe.py": "388eba3beb2224eb3d06d5f84cbba94065888f84e003683f5a7ac2a88c0ba051",
+      "frozen_domain_review.html": "545fd3dcf11b1c8d74f5faafd69fbc68d897b7025bc6e3443086b804f8026a94",
+      "frozen_domain_review.py": "7e2e194cef8d5322ff8271e855956d774693dbb1864297e0409c9251c1614bd8",
+      "frozen_domain_verify.py": "ab93f50465a7d8bd6c5daed7ca545db17932504383e268681474d23045cae9b1"
+    },
+    "analysis_manifest_sha256": "4b038d7ac488ba47f3b97bab7eab714263690de65608a80448a0ae552647be23",
+    "protocol_sha256": "8faaf32991b4929b44fcbb27fa588c19431853ed7ccdaef953707a4789961798",
+    "settings_sha256": "80eaade58fdda6bb77c9a4918dc2bb116416650ec8690493cb0ccd92568c5e85",
+    "evaluation_manifest_sha256": "b2f496fc3100ea3cf038840e2cd48bbcb1e14a5caa09fb325bc65e2993119719",
+    "selection_lock_unchanged": true,
+    "models_frozen": {
+      "fcn_resnet101": {
+        "state_before": "28bde25d436f8a0aecb56719e3faeb1dd4e5b30b12b14c47727dfd83ee9dfb5e",
+        "state_after": "28bde25d436f8a0aecb56719e3faeb1dd4e5b30b12b14c47727dfd83ee9dfb5e",
+        "equal": true,
+        "training_modules": 0,
+        "trainable_parameters": 0,
+        "parameters_with_grad": 0
+      },
+      "dinov2_vits14": {
+        "state_before": "1e443f20ea18f81e8ced6187e9bdafc096b9d5c165e61971992298505857ead3",
+        "state_after": "1e443f20ea18f81e8ced6187e9bdafc096b9d5c165e61971992298505857ead3",
+        "equal": true,
+        "training_modules": 0,
+        "trainable_parameters": 0,
+        "parameters_with_grad": 0
+      }
+    }
+  },
+  "selected": {
+    "fft-grid": {
+      "config": "fft-grid-r24-s0-classic-e1.5-windowed_acf",
+      "family": "fft",
+      "mode": "grid",
+      "gate": "windowed_acf",
+      "primary": true,
+      "failed": [
+        "single_fragmentation"
+      ],
+      "score": 0.537740598829037
+    },
+    "fft-centers": {
+      "config": "fft-centers-r24-s0-classic-e1.5-windowed_acf",
+      "family": "fft",
+      "mode": "centers",
+      "gate": "windowed_acf",
+      "primary": true,
+      "failed": [
+        "single_fragmentation"
+      ],
+      "score": 0.5662597453602328
+    },
+    "ewt-grid": {
+      "config": "ewt-grid-r24-s0-classic-e1.5-overlap_acf",
+      "family": "ewt",
+      "mode": "grid",
+      "gate": "overlap_acf",
+      "primary": true,
+      "failed": [
+        "single_fragmentation",
+        "phase_boundary",
+        "phase_boundary_jitter_06"
+      ],
+      "score": 0.5828984886454022
+    },
+    "ewt-centers": {
+      "config": "ewt-centers-r24-s0-classic-e1.5-windowed_acf",
+      "family": "ewt",
+      "mode": "centers",
+      "gate": "windowed_acf",
+      "primary": true,
+      "failed": [
+        "single_coverage"
+      ],
+      "score": 0.6861624426444933
+    },
+    "fcn_resnet101-grid": {
+      "config": "fcn_resnet101-grid-r24-s112-frame_percentile-e1.5-overlap_acf",
+      "family": "fcn_resnet101",
+      "mode": "grid",
+      "gate": "overlap_acf",
+      "primary": true,
+      "failed": [
+        "single_fragmentation",
+        "small_rotation",
+        "phase_boundary",
+        "phase_boundary_jitter_06"
+      ],
+      "score": 0.6601537896583082
+    },
+    "fcn_resnet101-centers": {
+      "config": "fcn_resnet101-centers-r24-s112-frame_percentile-e1.5-windowed_acf",
+      "family": "fcn_resnet101",
+      "mode": "centers",
+      "gate": "windowed_acf",
+      "primary": true,
+      "failed": [
+        "single_coverage",
+        "single_fragmentation",
+        "two_orientations",
+        "small_rotation"
+      ],
+      "score": 0.5194384451247531
+    },
+    "dinov2_vits14-grid": {
+      "config": "dinov2_vits14-grid-r24-s112-frame_percentile-e1.5-overlap_acf",
+      "family": "dinov2_vits14",
+      "mode": "grid",
+      "gate": "overlap_acf",
+      "primary": true,
+      "failed": [
+        "single_fragmentation",
+        "small_rotation",
+        "phase_boundary",
+        "phase_boundary_jitter_06"
+      ],
+      "score": 0.6831446598133034
+    },
+    "dinov2_vits14-centers": {
+      "config": "dinov2_vits14-centers-r24-s112-frame_percentile-e0.5-overlap_acf",
+      "family": "dinov2_vits14",
+      "mode": "centers",
+      "gate": "overlap_acf",
+      "primary": true,
+      "failed": [
+        "single_coverage",
+        "single_fragmentation",
+        "phase_boundary_jitter_06"
+      ],
+      "score": 0.31423526991473233
+    }
+  },
+  "qualified_configurations": [],
+  "reference_stages": [
+    {
+      "name": "fft-grid",
+      "config": "fft-grid-r24-s0-classic-e1.5-windowed_acf",
+      "total": 1678,
+      "assigned": 98,
+      "gate": 154,
+      "clustered": 1678,
+      "both": 154,
+      "groups": {
+        "1": {
+          "total": 1303,
+          "assigned": 98,
+          "gate": 143,
+          "clustered": 1303,
+          "both": 143
+        },
+        "2": {
+          "total": 101,
+          "assigned": 0,
+          "gate": 1,
+          "clustered": 101,
+          "both": 1
+        },
+        "3": {
+          "total": 274,
+          "assigned": 0,
+          "gate": 10,
+          "clustered": 274,
+          "both": 10
+        }
+      }
+    },
+    {
+      "name": "fft-centers",
+      "config": "fft-centers-r24-s0-classic-e1.5-windowed_acf",
+      "total": 1678,
+      "assigned": 34,
+      "gate": 151,
+      "clustered": 1678,
+      "both": 151,
+      "groups": {
+        "1": {
+          "total": 1303,
+          "assigned": 34,
+          "gate": 142,
+          "clustered": 1303,
+          "both": 142
+        },
+        "2": {
+          "total": 101,
+          "assigned": 0,
+          "gate": 1,
+          "clustered": 101,
+          "both": 1
+        },
+        "3": {
+          "total": 274,
+          "assigned": 0,
+          "gate": 8,
+          "clustered": 274,
+          "both": 8
+        }
+      }
+    },
+    {
+      "name": "ewt-grid",
+      "config": "ewt-grid-r24-s0-classic-e1.5-overlap_acf",
+      "total": 1678,
+      "assigned": 86,
+      "gate": 118,
+      "clustered": 1666,
+      "both": 118,
+      "groups": {
+        "1": {
+          "total": 1303,
+          "assigned": 86,
+          "gate": 116,
+          "clustered": 1296,
+          "both": 116
+        },
+        "2": {
+          "total": 101,
+          "assigned": 0,
+          "gate": 0,
+          "clustered": 101,
+          "both": 0
+        },
+        "3": {
+          "total": 274,
+          "assigned": 0,
+          "gate": 2,
+          "clustered": 269,
+          "both": 2
+        }
+      }
+    },
+    {
+      "name": "ewt-centers",
+      "config": "ewt-centers-r24-s0-classic-e1.5-windowed_acf",
+      "total": 1678,
+      "assigned": 34,
+      "gate": 151,
+      "clustered": 1664,
+      "both": 148,
+      "groups": {
+        "1": {
+          "total": 1303,
+          "assigned": 34,
+          "gate": 142,
+          "clustered": 1297,
+          "both": 140
+        },
+        "2": {
+          "total": 101,
+          "assigned": 0,
+          "gate": 1,
+          "clustered": 97,
+          "both": 0
+        },
+        "3": {
+          "total": 274,
+          "assigned": 0,
+          "gate": 8,
+          "clustered": 270,
+          "both": 8
+        }
+      }
+    },
+    {
+      "name": "fcn_resnet101-grid",
+      "config": "fcn_resnet101-grid-r24-s112-frame_percentile-e1.5-overlap_acf",
+      "total": 1678,
+      "assigned": 86,
+      "gate": 118,
+      "clustered": 1678,
+      "both": 118,
+      "groups": {
+        "1": {
+          "total": 1303,
+          "assigned": 86,
+          "gate": 116,
+          "clustered": 1303,
+          "both": 116
+        },
+        "2": {
+          "total": 101,
+          "assigned": 0,
+          "gate": 0,
+          "clustered": 101,
+          "both": 0
+        },
+        "3": {
+          "total": 274,
+          "assigned": 0,
+          "gate": 2,
+          "clustered": 274,
+          "both": 2
+        }
+      }
+    },
+    {
+      "name": "fcn_resnet101-centers",
+      "config": "fcn_resnet101-centers-r24-s112-frame_percentile-e1.5-windowed_acf",
+      "total": 1678,
+      "assigned": 34,
+      "gate": 151,
+      "clustered": 1677,
+      "both": 150,
+      "groups": {
+        "1": {
+          "total": 1303,
+          "assigned": 34,
+          "gate": 142,
+          "clustered": 1303,
+          "both": 142
+        },
+        "2": {
+          "total": 101,
+          "assigned": 0,
+          "gate": 1,
+          "clustered": 100,
+          "both": 0
+        },
+        "3": {
+          "total": 274,
+          "assigned": 0,
+          "gate": 8,
+          "clustered": 274,
+          "both": 8
+        }
+      }
+    },
+    {
+      "name": "dinov2_vits14-grid",
+      "config": "dinov2_vits14-grid-r24-s112-frame_percentile-e1.5-overlap_acf",
+      "total": 1678,
+      "assigned": 86,
+      "gate": 118,
+      "clustered": 1677,
+      "both": 118,
+      "groups": {
+        "1": {
+          "total": 1303,
+          "assigned": 86,
+          "gate": 116,
+          "clustered": 1303,
+          "both": 116
+        },
+        "2": {
+          "total": 101,
+          "assigned": 0,
+          "gate": 0,
+          "clustered": 101,
+          "both": 0
+        },
+        "3": {
+          "total": 274,
+          "assigned": 0,
+          "gate": 2,
+          "clustered": 273,
+          "both": 2
+        }
+      }
+    },
+    {
+      "name": "dinov2_vits14-centers",
+      "config": "dinov2_vits14-centers-r24-s112-frame_percentile-e0.5-overlap_acf",
+      "total": 1678,
+      "assigned": 0,
+      "gate": 133,
+      "clustered": 0,
+      "both": 0,
+      "groups": {
+        "1": {
+          "total": 1303,
+          "assigned": 0,
+          "gate": 132,
+          "clustered": 0,
+          "both": 0
+        },
+        "2": {
+          "total": 101,
+          "assigned": 0,
+          "gate": 0,
+          "clustered": 0,
+          "both": 0
+        },
+        "3": {
+          "total": 274,
+          "assigned": 0,
+          "gate": 1,
+          "clustered": 0,
+          "both": 0
+        }
+      }
+    }
+  ],
+  "reference_results": [
+    {
+      "config": "fft-grid-r24-s0-classic-e1.5-windowed_acf",
+      "split": null,
+      "case": null,
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        2,
+        2,
+        0,
+        1,
+        2,
+        2,
+        0,
+        2,
+        2,
+        0,
+        1
+      ],
+      "ungated_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 98,
+        "same_reference_pairs": 635,
+        "different_reference_pairs": 0,
+        "split_pairs": 275,
+        "merged_pairs": 0,
+        "coverage": 0.058402860548271755,
+        "split": 0.4330708661417323,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 96,
+        "same_reference_pairs": 599,
+        "different_reference_pairs": 0,
+        "split_pairs": 264,
+        "merged_pairs": 0,
+        "coverage": 0.05010438413361169,
+        "split": 0.44073455759599334,
+        "merge": null
+      },
+      "appearance": {
+        "reference_elements": 1916,
+        "assigned_elements": 1916,
+        "same_reference_pairs": 62420,
+        "different_reference_pairs": 41371,
+        "split_pairs": 0,
+        "merged_pairs": 41371,
+        "coverage": 1.0,
+        "split": 0.0,
+        "merge": 1.0
+      },
+      "ungated": {
+        "reference_elements": 1916,
+        "assigned_elements": 1916,
+        "same_reference_pairs": 62420,
+        "different_reference_pairs": 41371,
+        "split_pairs": 0,
+        "merged_pairs": 41371,
+        "coverage": 1.0,
+        "split": 0.0,
+        "merge": 1.0
+      },
+      "false_points": 0,
+      "negative_points": 0,
+      "false_samples": 0,
+      "negative_samples": 0,
+      "false_ungated": 0,
+      "gate_pass": 181,
+      "clustered": 7866,
+      "both": 181,
+      "assigned": 97,
+      "elements": 7938
+    },
+    {
+      "config": "fft-centers-r24-s0-classic-e1.5-windowed_acf",
+      "split": null,
+      "case": null,
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "ungated_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 34,
+        "same_reference_pairs": 196,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.02026221692491061,
+        "split": 0.0,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 34,
+        "same_reference_pairs": 196,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.02026221692491061,
+        "split": 0.0,
+        "merge": null
+      },
+      "appearance": {
+        "reference_elements": 1678,
+        "assigned_elements": 1678,
+        "same_reference_pairs": 50529,
+        "different_reference_pairs": 28650,
+        "split_pairs": 0,
+        "merged_pairs": 28650,
+        "coverage": 1.0,
+        "split": 0.0,
+        "merge": 1.0
+      },
+      "ungated": {
+        "reference_elements": 1678,
+        "assigned_elements": 1678,
+        "same_reference_pairs": 50529,
+        "different_reference_pairs": 28650,
+        "split_pairs": 0,
+        "merged_pairs": 28650,
+        "coverage": 1.0,
+        "split": 0.0,
+        "merge": 1.0
+      },
+      "false_points": 0,
+      "negative_points": 0,
+      "false_samples": 0,
+      "negative_samples": 0,
+      "false_ungated": 0,
+      "gate_pass": 168,
+      "clustered": 5440,
+      "both": 168,
+      "assigned": 35,
+      "elements": 5452
+    },
+    {
+      "config": "ewt-grid-r24-s0-classic-e1.5-overlap_acf",
+      "split": null,
+      "case": null,
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        2,
+        0,
+        0,
+        2,
+        2,
+        0,
+        1,
+        2,
+        0,
+        0
+      ],
+      "ungated_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 86,
+        "same_reference_pairs": 629,
+        "different_reference_pairs": 0,
+        "split_pairs": 234,
+        "merged_pairs": 0,
+        "coverage": 0.05125148986889154,
+        "split": 0.37201907790143085,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 87,
+        "same_reference_pairs": 621,
+        "different_reference_pairs": 0,
+        "split_pairs": 234,
+        "merged_pairs": 0,
+        "coverage": 0.04540709812108559,
+        "split": 0.37681159420289856,
+        "merge": null
+      },
+      "appearance": {
+        "reference_elements": 1916,
+        "assigned_elements": 1903,
+        "same_reference_pairs": 61599,
+        "different_reference_pairs": 40768,
+        "split_pairs": 0,
+        "merged_pairs": 40768,
+        "coverage": 0.9932150313152401,
+        "split": 0.0,
+        "merge": 1.0
+      },
+      "ungated": {
+        "reference_elements": 1916,
+        "assigned_elements": 1903,
+        "same_reference_pairs": 61599,
+        "different_reference_pairs": 40768,
+        "split_pairs": 0,
+        "merged_pairs": 40768,
+        "coverage": 0.9932150313152401,
+        "split": 0.0,
+        "merge": 1.0
+      },
+      "false_points": 0,
+      "negative_points": 0,
+      "false_samples": 0,
+      "negative_samples": 0,
+      "false_ungated": 0,
+      "gate_pass": 134,
+      "clustered": 7800,
+      "both": 134,
+      "assigned": 89,
+      "elements": 7938
+    },
+    {
+      "config": "ewt-centers-r24-s0-classic-e1.5-windowed_acf",
+      "split": null,
+      "case": null,
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "ungated_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 34,
+        "same_reference_pairs": 196,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.02026221692491061,
+        "split": 0.0,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 34,
+        "same_reference_pairs": 196,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.02026221692491061,
+        "split": 0.0,
+        "merge": null
+      },
+      "appearance": {
+        "reference_elements": 1678,
+        "assigned_elements": 1664,
+        "same_reference_pairs": 49890,
+        "different_reference_pairs": 27910,
+        "split_pairs": 0,
+        "merged_pairs": 27910,
+        "coverage": 0.9916567342073898,
+        "split": 0.0,
+        "merge": 1.0
+      },
+      "ungated": {
+        "reference_elements": 1678,
+        "assigned_elements": 1664,
+        "same_reference_pairs": 49890,
+        "different_reference_pairs": 27910,
+        "split_pairs": 0,
+        "merged_pairs": 27910,
+        "coverage": 0.9916567342073898,
+        "split": 0.0,
+        "merge": 1.0
+      },
+      "false_points": 0,
+      "negative_points": 0,
+      "false_samples": 0,
+      "negative_samples": 0,
+      "false_ungated": 0,
+      "gate_pass": 168,
+      "clustered": 5399,
+      "both": 164,
+      "assigned": 35,
+      "elements": 5452
+    },
+    {
+      "config": "fcn_resnet101-grid-r24-s112-frame_percentile-e1.5-overlap_acf",
+      "split": null,
+      "case": null,
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        2,
+        0,
+        0,
+        2,
+        2,
+        0,
+        1,
+        2,
+        0,
+        0
+      ],
+      "ungated_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 86,
+        "same_reference_pairs": 629,
+        "different_reference_pairs": 0,
+        "split_pairs": 234,
+        "merged_pairs": 0,
+        "coverage": 0.05125148986889154,
+        "split": 0.37201907790143085,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 87,
+        "same_reference_pairs": 621,
+        "different_reference_pairs": 0,
+        "split_pairs": 234,
+        "merged_pairs": 0,
+        "coverage": 0.04540709812108559,
+        "split": 0.37681159420289856,
+        "merge": null
+      },
+      "appearance": {
+        "reference_elements": 1916,
+        "assigned_elements": 1916,
+        "same_reference_pairs": 62420,
+        "different_reference_pairs": 41371,
+        "split_pairs": 0,
+        "merged_pairs": 41371,
+        "coverage": 1.0,
+        "split": 0.0,
+        "merge": 1.0
+      },
+      "ungated": {
+        "reference_elements": 1916,
+        "assigned_elements": 1916,
+        "same_reference_pairs": 62420,
+        "different_reference_pairs": 41371,
+        "split_pairs": 0,
+        "merged_pairs": 41371,
+        "coverage": 1.0,
+        "split": 0.0,
+        "merge": 1.0
+      },
+      "false_points": 0,
+      "negative_points": 0,
+      "false_samples": 0,
+      "negative_samples": 0,
+      "false_ungated": 0,
+      "gate_pass": 134,
+      "clustered": 7858,
+      "both": 134,
+      "assigned": 89,
+      "elements": 7938
+    },
+    {
+      "config": "fcn_resnet101-centers-r24-s112-frame_percentile-e1.5-windowed_acf",
+      "split": null,
+      "case": null,
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "ungated_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 34,
+        "same_reference_pairs": 196,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.02026221692491061,
+        "split": 0.0,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 34,
+        "same_reference_pairs": 196,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.02026221692491061,
+        "split": 0.0,
+        "merge": null
+      },
+      "appearance": {
+        "reference_elements": 1678,
+        "assigned_elements": 1677,
+        "same_reference_pairs": 50523,
+        "different_reference_pairs": 28550,
+        "split_pairs": 0,
+        "merged_pairs": 28550,
+        "coverage": 0.9994040524433849,
+        "split": 0.0,
+        "merge": 1.0
+      },
+      "ungated": {
+        "reference_elements": 1678,
+        "assigned_elements": 1677,
+        "same_reference_pairs": 50523,
+        "different_reference_pairs": 28550,
+        "split_pairs": 0,
+        "merged_pairs": 28550,
+        "coverage": 0.9994040524433849,
+        "split": 0.0,
+        "merge": 1.0
+      },
+      "false_points": 0,
+      "negative_points": 0,
+      "false_samples": 0,
+      "negative_samples": 0,
+      "false_ungated": 0,
+      "gate_pass": 168,
+      "clustered": 5411,
+      "both": 167,
+      "assigned": 35,
+      "elements": 5452
+    },
+    {
+      "config": "dinov2_vits14-grid-r24-s112-frame_percentile-e1.5-overlap_acf",
+      "split": null,
+      "case": null,
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        2,
+        0,
+        0,
+        2,
+        2,
+        0,
+        1,
+        2,
+        0,
+        0
+      ],
+      "ungated_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 86,
+        "same_reference_pairs": 629,
+        "different_reference_pairs": 0,
+        "split_pairs": 234,
+        "merged_pairs": 0,
+        "coverage": 0.05125148986889154,
+        "split": 0.37201907790143085,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 87,
+        "same_reference_pairs": 621,
+        "different_reference_pairs": 0,
+        "split_pairs": 234,
+        "merged_pairs": 0,
+        "coverage": 0.04540709812108559,
+        "split": 0.37681159420289856,
+        "merge": null
+      },
+      "appearance": {
+        "reference_elements": 1916,
+        "assigned_elements": 1913,
+        "same_reference_pairs": 62318,
+        "different_reference_pairs": 41127,
+        "split_pairs": 0,
+        "merged_pairs": 41127,
+        "coverage": 0.9984342379958246,
+        "split": 0.0,
+        "merge": 1.0
+      },
+      "ungated": {
+        "reference_elements": 1916,
+        "assigned_elements": 1913,
+        "same_reference_pairs": 62318,
+        "different_reference_pairs": 41127,
+        "split_pairs": 0,
+        "merged_pairs": 41127,
+        "coverage": 0.9984342379958246,
+        "split": 0.0,
+        "merge": 1.0
+      },
+      "false_points": 0,
+      "negative_points": 0,
+      "false_samples": 0,
+      "negative_samples": 0,
+      "false_ungated": 0,
+      "gate_pass": 134,
+      "clustered": 7879,
+      "both": 134,
+      "assigned": 89,
+      "elements": 7938
+    },
+    {
+      "config": "dinov2_vits14-centers-r24-s112-frame_percentile-e0.5-overlap_acf",
+      "split": null,
+      "case": null,
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "ungated_counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "appearance": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "ungated": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_points": 0,
+      "negative_points": 0,
+      "false_samples": 0,
+      "negative_samples": 0,
+      "false_ungated": 0,
+      "gate_pass": 139,
+      "clustered": 0,
+      "both": 0,
+      "assigned": 0,
+      "elements": 5452
+    }
+  ],
+  "model_costs": {
+    "fcn_resnet101": {
+      "unique_entries": 3120,
+      "vectors": 773176,
+      "npz_bytes": 2168123034,
+      "seconds": 240.38239868402206,
+      "peak_rss_kib": 1449704,
+      "peak_cuda_allocated": 339811328,
+      "peak_cuda_reserved": 574619648
+    },
+    "dinov2_vits14": {
+      "unique_entries": 3120,
+      "vectors": 773176,
+      "npz_bytes": 1131855712,
+      "seconds": 314.61484321402304,
+      "peak_rss_kib": 1550692,
+      "peak_cuda_allocated": 281049600,
+      "peak_cuda_reserved": 364904448
+    }
+  },
+  "seconds": {
+    "neural": 566.5199039950003,
+    "prediction": 319.16267018600047,
+    "new_acf": 319.9477165510002
+  },
+  "verification": {
+    "neural_grid_fresh_identical": 912,
+    "classic_grid_identical": 228,
+    "prediction_replay_identical": 1824,
+    "reference_tree_absent": true,
+    "empty_centers": true,
+    "envelopes_validated": 1824,
+    "seconds": 116.38198943899988
+  },
+  "browser_checks": 46,
+  "browser_errors": []
+}

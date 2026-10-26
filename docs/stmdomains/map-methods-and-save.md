@@ -73,8 +73,7 @@ działają z niezmienionymi wagami na siatce oraz przy centrach molekuł.
 Sprawdzono geometrię, cache i niezależność od referencji; 192/192 zestawy
 siatki są bitowo identyczne po usunięciu centrów. Pilotaż 12 obrazów
 i 16 konfiguracji przygotowuje cechy, bez wykrywania domen. Porównanie
-19 ma spełnione zależności i pozostaje nieuruchomione; niezależne 20
-również pozostaje do wykonania.
+19 wykonano i opisano poniżej; niezależne 20 pozostaje do wykonania.
 
 [Przegląd ML bez własnego treningu](research-training-free-ml-domain-discovery.md)
 z 2026-10-21 rozwinięto na polecenie użytkownika w
@@ -159,6 +158,8 @@ Przygotowanie wspólnych danych jest zadaniem AFK. Żadnego nowego ticketu
 nie zamknięto przez samo dodanie go do mapy.
 
 ## Decisions so far
+
+- [Czy gotowe cechy sieci pomagają znaleźć domeny?](issues/19-frozen-feature-domains.md): [próba wykonana](frozen-feature-domains-trial.md), **`claimed` do dalszego omówienia/rozwinięcia na życzenie użytkownika**. FCN/DINO nie poprawiły wyniku w badanym uśrednianiu/PCA/grupowaniu; rozdzielono odmowy kryterium porządku i utratę podziałów w katalogu wyglądu. Nie wybrano metody.
 
 - [Jak przygotować cechy gotowych sieci bez treningu?](issues/18-frozen-feature-preparation.md): [przygotowanie zakończone](frozen-feature-preparation.md). FCN i DINOv2 działają z niezmienionymi wagami; geometria, cache i niezależność od referencji sprawdzone. Gotowe wejście techniczne do 19, bez oceny skuteczności domen.
 - [Czy otoczenie molekuł pozwala znaleźć domeny?](issues/15-local-neighborhood-domains.md): zakończono trzy porównania; użytkownik polecił przejść do 16. Lokalna komórka jest punktem odniesienia, bez przyjęcia metody; pozostają błędy trudnych granic i RED/YELLOW. [Raport orientacji i łączenia](orientation-and-joining-trial.md).

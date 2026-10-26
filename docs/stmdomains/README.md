@@ -167,8 +167,19 @@ oraz wszystkie centra molekuł. Zachowano geometrię, maski i cache;
 referencji. Przeszło 41 testów i 19 kontroli podglądu. Modele pracują
 bez aktualizacji wag. Podgląd `.scratch/frozen-features/index.html`
 pokazuje miejsca pobierania cech, nie znalezione domeny. Issue 18 jest
-`resolved`; porównanie 19 ma gotowe zależności, ale nie jest uruchomione.
+`resolved`; wykonanie porównania 19 opisano poniżej.
 Niezależne przygotowanie treningu 20 również pozostaje do wykonania.
+
+2026-10-26 wykonano [porównanie gotowych cech 19](frozen-feature-domains-trial.md):
+FCN/DINO, FFT/EWT i dwa kryteria porządku, 160 konfiguracji na 228 obrazach.
+Nie uzyskano poprawy: wybrane sieci przypisują 0–5.1% centrów we wnętrzach
+TTMAPP, bez RED/YELLOW; pozostają błędy podziałów i scaleń. Oddzielono
+problemy grupowania (zwykle jedna grupa wyglądu) i odmów kryterium porządku.
+Podgląd: `.scratch/frozen-feature-domains/index.html`. Użytkownik wybrał
+**dalsze omówienie/rozwinięcie**, więc 19 pozostaje `claimed`. Proponowane
+kolejne badanie dotyczy utraty różnic w cechach, PCA i grupowaniu; nie jest
+jeszcze uruchomione. Nie wybrano metody ani nie rozpoczęto treningu.
+
 
 ## Dwa etapy
 

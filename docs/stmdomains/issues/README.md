@@ -95,7 +95,10 @@ Stan 2026-10-26: [przygotowanie 18](../frozen-feature-preparation.md) jest
 `resolved`. FCN–ResNet101 i DINOv2 ViT-S/14 działają z niezmienionymi
 wagami; cechy siatki pozostają identyczne bez centrów i niezależne od
 referencji. Gotowe cechy obejmują pilotaż 12 obrazów, bez detekcji domen.
-Porównanie 19 ma spełnione zależności, ale nie zostało uruchomione.
+[Porównanie 19](../frozen-feature-domains-trial.md) wykonano: FCN/DINO nie
+poprawiły wyniku; 0–5.1% przypisań we wnętrzach TTMAPP i błędy kontroli.
+Użytkownik wybrał dalsze omówienie/rozwinięcie, dlatego 19 pozostaje
+`claimed`; nie wybrano metody do programu.
 Przygotowanie treningu 20, odbiór 13 i jakość 04 pozostają otwarte.
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie
@@ -181,7 +184,7 @@ ten nadal warunkuje odbiór metod. Statusy znajdują się w ticketach.
 | [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md) | prototype / HITL | `resolved`: porównanie zachowane, użytkownik wybrał przejście do 17, E2 |
 | [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md) | prototype / HITL | `resolved`: widmo/EWT zachowane do porównań ML, bez przyjęcia metody; E3 |
 | [Jak przygotować cechy gotowych sieci bez treningu na naszych danych?](18-frozen-feature-preparation.md) | task / AFK | `resolved`: oba ekstraktory, cache, geometria i powtarzalność sprawdzone |
-| [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | `open`: 17 i 18 zakończone; gotowe do podjęcia |
+| [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | `claimed`: próba wykonana; użytkownik wybrał dalsze omówienie/rozwinięcie |
 
 Próby geometrii, SBC/MatID i klasycznej tekstury są niezależne. Porównanie
 ML korzysta z wyniku tekstury jako punktu odniesienia, również gdy jest
