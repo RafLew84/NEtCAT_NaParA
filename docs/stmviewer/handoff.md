@@ -1,5 +1,77 @@
 # Przekazanie — STM Viewer
 
+## 13: Poprawka eksportu WSxM w aplikacji — 2026-10-26
+
+Baza `01259e1`, implementacja **`2343bd6`**, korekta przeglądu **`e013d73`**.
+[Poprawka](implementation/issues/13-wsxm-compatibility-fix.md) i ticket 13:
+**ready-for-review**, ręczny odbiór użytkownika oczekuje.
+[Instrukcja GUI](wsxm-export-manual.md), [kontrakt V3](mpp-metadata-format.md),
+[przegląd Standards/Spec](implementation/review-13-wsxm-compatibility.md).
+
+### Zachowanie
+
+Okno zapisu domyślnie wybiera bieżącą wersję original/aligned w wariancie
+WSxM. Zachowano wariant NaN i dotychczasowe domyślne API. WSxM zapisuje
+skończone tło zamiast NaN/Inf: minimum danej klatki lub zero, gdy nie ma
+skończonych wartości. Skończone pomiary i natywny nagłówek nie są zmieniane.
+Dodatek V3 przechowuje dokładne pozycje i bity zastąpionych próbek; otwarcie
+pary przywraca maskę, NaN/Inf, historię i pochodzenie. Działa też zapis
+original po otwarciu wcześniejszego aligned. Odrzucenie błędnego dodatku
+nie pozostawia częściowo odtworzonych pikseli. Zapis używa dotychczasowego
+postępu, anulowania i przywracania pary przy błędzie.
+
+### Wykonane sprawdzenia
+
+- TDD red → green: publiczny zapis/odczyt, następnie publiczne kontrolki
+  GUI (domyślne WSxM i identyczny podgląd z szachownicą po odczycie).
+- Końcowy Viewer po poprawce przeglądu: **252 passed, 2 skipped**, 26.74 s.
+  Pominięcia dotyczą opcjonalnych wag Deep Matcher. Zakres obejmuje V1/V2/V3,
+  niezależny czytnik, NaN payloady/Inf/dziury, błędny/brakujący dodatek,
+  rollback/anulowanie i zachowanie alternatywnego zapisu NaN.
+- Mypy strict: **26 plików**, bez błędów. Największy zmieniony plik kodu:
+  **766 linii**, wszystkie poniżej 1000/1500; `git diff --check` poprawny.
+- Pełne repo: **2038 passed, 14 failed, 16 skipped**, 235.44 s.
+  Dokładnie te same 14 identyfikatorów niepowodzeń MolTrack/NanoTrack co
+  `/tmp/stmviewer-aligned-full-suite.log`; brak nowych. W poprzedniej sesji
+  13 odtworzono na bazie, jeden test NanoTrack był niestabilny w pełnym biegu.
+  Pierwsze polecenie bez importlib zatrzymało się przy zbieraniu (6 kolizji
+  nazw istniejących modułów); pełny przebieg wykonano udokumentowaną komendą:
+  `PYTHONPATH=.:tests/moltrack:tests/stmviewer QT_QPA_PLATFORM=offscreen python -m pytest -q --import-mode=importlib -p no:cacheprovider`.
+- Qt xcb na oddzielnym ekranie: **4 passed**, 0.96 s. Rzeczywisty dialog
+  zapisu, warianty WSxM/NaN, ponowny odczyt, historia i szachownica.
+- `data/MOVIE_3.MPP` → Optical Flow → nowy eksporter:
+  `data/MOVIE_3-aligned-wsxm.mpp` + `.stmviewer.json` (502 882 B).
+  Wszystkie **17 klatek** po otwarciu odzyskują dokładne bajty, NaN,
+  geometrię i parametry; kontrola publicznym `check_aligned_mpp.py` zaliczona.
+  Resave starego aligned przez original WSxM daje te same bajty MPP.
+- MPP jest bajtowo identyczny z diagnostyczną kopią podglądową:
+  SHA-256 `dfc7013b984eb05a101070f13a930893e451320bbb6f4b5dc624746e253d6fc4`.
+  Nowy plik rzeczywiście otwarto w WSxM 5.0 Develop 12.0 pod Wine:
+  obraz ma szczegóły, wycinek zawiera **207** kolorów spełniających próg
+  diagnostyczny; zrzut oceniono wizualnie. To nie próba wszystkich wersji WSxM.
+- Standards: brak uwag. Spec: drobne P3 komunikatu limitu poprawione
+  i zamknięte przez recenzenta; **0 otwartych uwag**.
+
+Logi: `/tmp/stmviewer-wsxm-final-viewer.log`, `/tmp/stmviewer-wsxm-full-suite.log`,
+`/tmp/stmviewer-wsxm-collection.log`, `/tmp/stmviewer-wsxm-xcb.log`,
+`/tmp/stmviewer-wsxm-values.log`. Próba WSxM i zrzut:
+`/tmp/wsxm-aligned-investigation/production-export-result.log`,
+`production-export-frame0.png` (etykieta próby, faktyczna pozycja na zrzucie: 5).
+Izolowany prefiks i ekran nie zmieniały konfiguracji WSxM użytkownika.
+
+### Odbiór i ograniczenia
+
+Zrestartuj program: `conda activate netcat`, `python -m stmviewer.main`.
+Własny stary aligned można otworzyć i zapisać jako **original — WSxM**
+bez ponownej rejestracji. [Próba ręczna](wsxm-export-manual.md) pozostaje
+użytkownikowi; Windows nie był dostępny. Oryginalny pomiar i JSON bez zmian.
+Dla odtworzenia braków przenosić trzeba MPP i JSON razem. Brakujący,
+nieprawidłowy lub nieobsługiwany dodatek pozostawia sztuczne skończone tło.
+Starsze czytniki repo nie odtwarzają V3: należy do nich wybrać wariant NaN;
+ewentualną wspólną obsługę V3 koordynuje sesja integracyjna. Nie zmieniano
+wspólnych modułów. Limit dodatku 64 MiB; eksporter ogranicza też liczbę
+przedziałów do 500 000. Zapis NaN pozostaje dostępny bez tej listy.
+
 ## 13: Diagnoza czarnego aligned w WSxM — 2026-10-26
 
 Na bazie `e49bc6b` sprawdzono zgłoszony `data/MOVIE_3-aligned.mpp`.
