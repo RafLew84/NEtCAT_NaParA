@@ -73,3 +73,8 @@ python tests/stmviewer/check_aligned_mpp.py --source tests/stmviewer/fixtures/re
 
 Odbiór ręczny użytkownika: oczekuje. Testy Qt sterowane skryptem są
 odrębnym sprawdzeniem automatycznym. Ten scenariusz nie wymaga WSxM ani AVI.
+
+Dodatkowa próba WSxM: [diagnoza MOVIE_3-aligned.mpp](wsxm-aligned-investigation.md)
+wykazała czarny obraz przy NaN w WSxM 5.0 Develop 12.0 pod Wine.
+Weryfikator danych potwierdza poprawny zapis; kopia ze sztucznym tłem
+służy wyłącznie do oglądania. Nie zmienia to wymogu zachowania NaN w MPP.

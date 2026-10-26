@@ -1,5 +1,8 @@
 # WSxM: odczyt MPP, kontrast i pasek przy krawędzi — 2026-10-23
 
+Późniejsze zgłoszenie czarnego obrazu po wyrównaniu ma osobną przyczynę:
+[obsługa NaN w WSxM, 2026-10-26](wsxm-aligned-investigation.md).
+
 ## Wynik
 
 Przyczyną końcowo potwierdzonego błędu jest **formatowanie nagłówka**.

@@ -1,5 +1,24 @@
 # Przekazanie — STM Viewer
 
+## 13: Diagnoza czarnego aligned w WSxM — 2026-10-26
+
+Na bazie `e49bc6b` sprawdzono zgłoszony `data/MOVIE_3-aligned.mpp`.
+[Raport](wsxm-aligned-investigation.md): zapis Optical Flow, nagłówek i
+dodatek są poprawne; ponowne obliczenie potwierdza dokładną zgodność
+wszystkich 17 klatek, NaN i geometrii. Rzeczywisty WSxM pod Wine pokazuje
+czarny obraz przy NaN. Kopia z identycznym nagłówkiem i skończonymi
+próbkami, w której zmieniono tylko brakujące piksele na minimum klatki,
+odzyskuje szczegóły. Plane i tryb palety nie usuwają błędu oryginału.
+
+Lokalna kopia wyłącznie do oglądania:
+`data/MOVIE_3-aligned-wsxm-preview.mpp` oraz opis `.README.txt`.
+Oryginał i JSON pozostają bez zmian; kopia nie ma dodatku geometrii/maski.
+Nie zmieniono kodu, kontraktu NaN ani statusu **ready-for-review**.
+Ręczny odbiór ticketu 13 i próba kopii na Windows oczekują. Automatyczne
+GUI Wine oraz kontrola wszystkich próbek zostały wykonane; pełnego
+zestawu testów kodu nie ponawiano przy zmianie samej dokumentacji.
+Brak potrzebnych zmian wspólnych. Commit dokumentacji podany w odpowiedzi.
+
 ## 13: Zapis aligned do MPP — 2026-10-26
 
 Gałąź `viewer/start`. Baza `6ab0837abb5b4e6ba356a1ff6121779302e3585a`.

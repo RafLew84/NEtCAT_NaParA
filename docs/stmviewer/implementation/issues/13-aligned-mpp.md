@@ -84,3 +84,12 @@ pozorne wcześniejsze oryginały. [Kontrakt V1/V2](../../mpp-metadata-format.md)
 Automatyczne Qt offscreen/xcb nie zastępuje tego odbioru ani próby Windows 11.
 WSxM dla NaN/aligned nie sprawdzano w tym etapie; jest dodatkowym testem.
 Pełne wyniki i lokalizacje logów: [handoff](../../handoff.md).
+
+### Dodatkowa diagnoza WSxM — 2026-10-26
+
+[Sprawdzenie MOVIE_3-aligned.mpp](../../wsxm-aligned-investigation.md)
+potwierdziło dokładne dane Optical Flow we wszystkich 17 klatkach oraz
+problem obsługi NaN w WSxM pod Wine. Identyczny nagłówek i dane skończone
+dają obraz po wypełnieniu wyłącznie braków. Przygotowano osobną lokalną
+kopię podglądową, bez zmiany eksportera i kontraktu zachowania NaN.
+Status pozostaje ready-for-review; nie jest to potwierdzenie odbioru ręcznego.
