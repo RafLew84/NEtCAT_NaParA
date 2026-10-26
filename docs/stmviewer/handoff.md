@@ -2,11 +2,14 @@
 
 ## 14: Original do AVI — 2026-10-26
 
-[Ticket 14](implementation/issues/14-original-avi-basic.md): **ready-for-review**.
+[Ticket 14](implementation/issues/14-original-avi-basic.md): **done**.
 Baza `60785df`, implementacja `959c5c6`, poprawki `a9cf6b4`.
 [Instrukcja uruchomienia i ręcznej próby](original-avi-manual.md),
 [przegląd dwóch osi](implementation/review-14-original-avi.md).
-Do zakończenia etapu potrzebne jest potwierdzenie testów manualnych użytkownika.
+Użytkownik potwierdził 2026-10-26: „testy manualne ok”. Odbiór obejmuje
+implementację i poprawkę wskazane wyżej oraz przekazanie `7d546d3`.
+Aktualizacja statusu dotyczy wyłącznie dokumentacji: sprawdzono spójność
+statusów, linki i `git diff --check`; nie ponawiano testów kodu.
 
 Dostępny przycisk/menu „Zapisz AVI original…”: cała seria lub zakres włącznie,
 FPS 1–30 (domyślnie Play), MJPG domyślnie lub FFV1. Podsumowanie pokazuje
@@ -52,7 +55,9 @@ Wykonane sprawdzenia:
 
 Przegląd Standards: 0 twardych naruszeń, 1 uwaga P3 o powtarzaniu blokad
 rozwiązana w `a9cf6b4`, potwierdzona przez recenzenta; Spec: 0 ustaleń.
-Końcowo obie osie bez otwartych uwag. Ręczny odbiór i Windows pozostają otwarte.
+Końcowo obie osie bez otwartych uwag. Ręczny odbiór użytkownika potwierdzony.
+Nie wskazano systemu, więc osobne odbiory platform w ticketach 20 i 21
+pozostają otwarte.
 
 Współpraca: brak zmian wspólnego kodu/konfiguracji. Lokalny
 `stmviewer/requirements-avi.txt` korzysta z istniejącego przypięcia OpenCV

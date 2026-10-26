@@ -1,6 +1,7 @@
 # Ticket 14 — zapis original do AVI
 
-Status: implementacja do odbioru ręcznego. Uruchomienie z katalogu repo:
+Status: **done** — użytkownik potwierdził testy manualne 2026-10-26.
+Uruchomienie z katalogu repo:
 
 ```bash
 conda activate netcat
@@ -95,5 +96,6 @@ Ta kopia pozostaje dostępna do usunięcia katalogu `/tmp/stmviewer-avi-vlc/`.
   kodowania (postęp 32). Stary AVI pozostał identyczny bajtowo. Pierwsza próba
   na mniejszym wzorcu zakończyła się przed kliknięciem, dlatego generator
   udostępnia teraz większy plik opcjonalnie.
-- Windows 11 i ręczny odbiór użytkownika pozostają do wykonania. Duża seria
-  docelowa i test zasobów mają odrębne tickety 18–21.
+- Użytkownik potwierdził odbiór ręczny 2026-10-26: „testy manualne ok”.
+  Nie wskazał systemu, więc nie przypisujemy temu potwierdzeniu odbioru Windows 11.
+  Duża seria docelowa, test zasobów i odbiory platform mają odrębne tickety 18–21.

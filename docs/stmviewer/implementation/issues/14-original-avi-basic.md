@@ -4,7 +4,7 @@
 
 **Blocked by:** [07: Usuwanie klatek z zachowaniem czasu i pochodzenia](07-frame-deletion.md)
 
-**Status:** ready-for-review
+**Status:** done
 
 **Wykonawca:** Codex
 **Baza przeglądu:** `60785df41de0d5f20517e53cdf4abb0878df6e3c`
@@ -58,7 +58,7 @@ Commity: `959c5c6`, `a9cf6b4`; baza `60785df`.
 [Instrukcja i gotowe dane manualne](../../original-avi-manual.md),
 [przegląd Standards/Spec](../review-14-original-avi.md).
 Kryteria powyżej potwierdzono implementacją i próbami automatycznymi oraz VLC;
-ręczna akceptacja użytkownika pozostaje do wykonania, stąd `ready-for-review`.
+użytkownik potwierdził odbiór ręczny 2026-10-26, stąd status `done`.
 
 - 62 testy zakresu po przeglądzie: passed. Qt xcb: 13 passed.
 - Mypy: 31 plików bez błędów; największy zmieniony plik kodu: 802 linie.
@@ -71,3 +71,10 @@ ręczna akceptacja użytkownika pozostaje do wykonania, stąd `ready-for-review`
   istniejącego filmu. Bez zastępowania kodeka lub pobierania.
 - Użyto netcat, lokalnych danych i OpenCV 4.11.0. Wspólnego kodu ani głównej
   konfiguracji nie zmieniono; zależności AVI opisuje lokalny requirements-avi.txt.
+
+## Odbiór ręczny — 2026-10-26
+
+Użytkownik potwierdził: „testy manualne ok”. Ticket 14 ma status **done**.
+Potwierdzenie dotyczy implementacji `959c5c6`, poprawki `a9cf6b4` i przekazania
+`7d546d3`. Użytkownik nie wskazał systemu; osobne odbiory platform w ticketach
+20 i 21 pozostają do wykonania.
