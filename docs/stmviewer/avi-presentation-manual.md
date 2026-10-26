@@ -8,7 +8,7 @@ conda activate netcat
 python -m stmviewer.main
 ```
 
-W oknie **Zapisz AVI original…** doszły trzy wybory:
+W oknie **Zapisz AVI…** doszły trzy wybory:
 
 - **Gamma**: z podglądu (widać pobraną wartość) lub neutralna 1.
 - **Kontrast**: osobno dla każdej klatki lub wspólny dla wybranego zakresu filmu.
@@ -44,7 +44,7 @@ poniższa próba wymaga też wykonania własnego zapisu z GUI.
 
 ## Scenariusz w programie
 
-1. Otwórz wzorzec. Ustaw gamma podglądu 2. Wejdź w **Zapisz AVI original…**.
+1. Otwórz wzorzec. Ustaw gamma podglądu 2. Wejdź w **Zapisz AVI…**.
    Początkowo wybór to „Z podglądu (2)”, kontrast osobny i czarne tło.
    Ustaw zakres **2–5**, FPS **1**, gamma **Neutralna (1)** oraz FFV1.
 2. Zapisz z kontrastem **Osobno dla każdej klatki**. Na klatkach 2 i 3
@@ -74,9 +74,10 @@ Do dłuższej próby można użyć istniejącego `data/avi-ticket14/long.mpp`;
 [poprzednia instrukcja](original-avi-manual.md) opisuje opcjonalny generator.
 Zmiany poziomów liczy worker, bez układania całego filmu w dodatkowej tablicy.
 
-Wybranie widoku aligned nie zmienia źródła przycisku **AVI original**.
-Dodanie eksportu widoku aligned należy do ticketu 16. Gotowy aligned otwarty
-z MPP jest wejściowym obrazem bieżącej serii i korzysta z tych samych opcji.
+Od ticketu 16 pole **Obrazy** pozwala wybrać original lub gotowy aligned,
+domyślnie aktualny podgląd. Powyższy scenariusz wykonuj z original.
+[Próba aligned](aligned-avi-manual.md) obejmuje geometrię rejestracji.
+Gotowy aligned otwarty z MPP jest wejściowym original bieżącej serii.
 
 Lokalna tymczasowa kopia VLC z poprzedniego etapu:
 

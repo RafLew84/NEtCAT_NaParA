@@ -285,7 +285,7 @@ class STMViewerMainWindow(QMainWindow):
         self._save_action.triggered.connect(self.save_mpp)
         self._save_action.setEnabled(False)
         file_menu.addAction(self._save_action)
-        self._avi_action = QAction('Zapisz AVI original…', self)
+        self._avi_action = QAction('Zapisz AVI…', self)
         self._avi_action.triggered.connect(self.save_avi)
         self._avi_action.setEnabled(False)
         file_menu.addAction(self._avi_action)
@@ -340,7 +340,8 @@ class STMViewerMainWindow(QMainWindow):
         self._pause()
         self._avi.open_export(self._frames, MoviePresentation(
             gamma=self._gamma.value(), pixel_proportions=self._pixel_proportions.isChecked()),
-            int(self._fps.currentText()), self._frames[self._index].source)
+            int(self._fps.currentText()), self._frames[self._index].source,
+            registration=self._registration, current_view=self._view.currentText())
 
     def _avi_busy_changed(self) -> None:
         self._open_button.setEnabled(not self._avi.busy)

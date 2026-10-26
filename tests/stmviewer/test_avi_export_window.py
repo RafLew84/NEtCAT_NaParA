@@ -55,7 +55,8 @@ def test_avi_dialog_exports_range_and_snapshot_of_gamma_without_changing_play(qt
 
 @pytest.mark.parametrize('outcome', ['cancel', 'error', 'close', 'success'])
 @pytest.mark.parametrize('shared', [False, True])
-def test_avi_worker_responsive_with_frozen_options_and_safe_cancellation(qtbot, monkeypatch, tmp_path, outcome, shared):
+@pytest.mark.parametrize('aligned', [False, True])
+def test_avi_worker_responsive_with_frozen_options_and_safe_cancellation(qtbot, monkeypatch, tmp_path, outcome, shared, aligned):
     from threading import Event
     import cv2
     from PyQt6.QtWidgets import QMessageBox, QProgressBar
@@ -65,9 +66,15 @@ def test_avi_worker_responsive_with_frozen_options_and_safe_cancellation(qtbot, 
     window = STMViewerMainWindow()
     qtbot.addWidget(window)
     window.show()
-    source = FIXTURES / 'mpp/known-times.mpp'
+    source = FIXTURES / ('registration/integer.mpp' if aligned else 'mpp/known-times.mpp')
     open_movie(qtbot, window, monkeypatch, source)
     frames = open_frame_series([source])
+    if aligned:
+        from stmviewer.registration import register_series
+        register = window.findChild(QPushButton, 'registerFrames')
+        register.click()
+        qtbot.waitUntil(register.isEnabled)
+        frames = tuple(f.image for f in register_series(frames).frames)
     path = tmp_path / 'existing.avi'
     save_avi(path, prepare_avi(frames, start=1, end=1, codec='FFV1'))
     previous = path.read_bytes()
@@ -106,6 +113,8 @@ def test_avi_worker_responsive_with_frozen_options_and_safe_cancellation(qtbot, 
         heartbeat = []
         QTimer.singleShot(0, lambda: heartbeat.append(True))
         qtbot.waitUntil(lambda: bool(heartbeat))
+        if aligned:
+            window.findChild(QComboBox, 'frameView').setCurrentText('original')
         window.findChild(QSpinBox, 'frameNumber').setValue(3)
         window.findChild(QDoubleSpinBox, 'previewGamma').setValue(3)
         window.findChild(QPushButton, 'zoomIn').click()
@@ -130,6 +139,12 @@ def test_avi_worker_responsive_with_frozen_options_and_safe_cancellation(qtbot, 
         assert ('Dysk pełny' if outcome == 'error' else 'Anulowano') in window.findChild(QLabel, 'aviExportInfo').text()
     if outcome == 'close':
         assert not window.isVisible()
+    elif aligned:
+        saved_bytes = path.read_bytes()
+        register.click()
+        qtbot.waitUntil(register.isEnabled)
+        assert window.findChild(QComboBox, 'frameView').currentText() == 'aligned'
+        assert path.read_bytes() == saved_bytes
 
 
 def test_invalid_range_and_cancel_leave_no_movie(qtbot, monkeypatch, tmp_path):

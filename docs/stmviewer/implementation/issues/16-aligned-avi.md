@@ -4,7 +4,10 @@
 
 **Blocked by:** [08: Rejestracja Phase i pełny widok aligned](08-phase-registration.md), [14: Pierwszy film AVI: zakres, FPS i oba kodeki](14-original-avi-basic.md)
 
-**Status:** ready-for-agent
+**Status:** in-progress
+
+**Wykonawca:** Codex
+**Baza przeglądu:** `903d00b6e21c9cbe2609ca151d09480c2551c754`
 
 **Specyfikacja:** [Rejestracja i życie wyniku aligned](../../issues/03-registration.md#answer), [Opcje filmu AVI](../../issues/05-avi-export.md#answer), [Dane i kryteria odbioru pierwszej wersji](../../issues/06-acceptance.md#answer).
 

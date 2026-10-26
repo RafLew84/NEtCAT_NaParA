@@ -1,5 +1,8 @@
 # Ticket 14 — zapis original do AVI
 
+Od ticketu 16 okno **Zapisz AVI…** ma pole **Obrazy**. W tej próbie wybierz
+**original**; [osobna instrukcja](aligned-avi-manual.md) opisuje aligned.
+
 Status: **done** — użytkownik potwierdził testy manualne 2026-10-26.
 Uruchomienie z katalogu repo:
 
@@ -34,7 +37,7 @@ PYTHONPATH=. python tests/stmviewer/make_avi_fixtures.py
 
 ## Próba w programie
 
-1. Otwórz `MOVIE_3.MPP`. Ustaw Play na 5 kl./s. Wybierz **Zapisz AVI original…**
+1. Otwórz `MOVIE_3.MPP`. Ustaw Play na 5 kl./s. Wybierz **Zapisz AVI…**
    w panelu lub menu Plik. Początkowo: cała seria, FPS 5, MJPG. Podsumowanie
    ma pokazać 17 klatek, 256 × 256 px i 3,400 s (interfejs używa kropki).
 2. Ustaw FPS 7, zapisz `movie-mjpg.avi`, potem FFV1 do `movie-ffv1.avi`.
@@ -44,8 +47,8 @@ PYTHONPATH=. python tests/stmviewer/make_avi_fixtures.py
    jedną klatkę, bez powtarzania. Zakres od większy od do blokuje Zapisz.
    Usuń klatkę z serii i ponów: numery zakresu dotyczą obecnej listy.
 4. Ustaw gamma 2, przybliż i przesuń obraz, zmień rozmiar okna. Ponowny film
-   ma gamma 2, ale cały obraz 256 × 256. Przy oglądaniu aligned przycisk nadal
-   jawnie zapisuje **original**; eksport aligned jest w tickecie 16.
+   ma gamma 2, ale cały obraz original 256 × 256. Przy oglądaniu aligned
+   wybierz jawnie **original** w polu Obrazy, aby powtórzyć tę próbę.
 5. Otwórz `odd.mpp`, gamma 1. Eksport obu kodeków ma **66 × 50**:
    ostatnie krawędzie pomiaru zostają, z prawej i dołu dodano czarny piksel.
    Piąta klatka pozostaje w filmie jako czarna, szósta jest szara (127).

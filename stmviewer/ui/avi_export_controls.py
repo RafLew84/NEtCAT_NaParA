@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import QFileDialog, QLabel, QMessageBox, QProgressBar, QPus
 from stmviewer.avi_export import AviCancelled, AviPlan, save_avi
 from stmviewer.avi_raster import MoviePresentation
 from stmviewer.frame import ImageFrame
+from stmviewer.registration import RegistrationResult
 from stmviewer.ui.avi_dialog import AviDialog
 
 
@@ -44,7 +45,7 @@ class AviExportControls(QWidget):
         self._job: AviExportJob | None = None
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        self._save = QPushButton('Zapisz AVI original…', self)
+        self._save = QPushButton('Zapisz AVI…', self)
         self._save.setObjectName('saveAvi')
         self._save.clicked.connect(self.requested)
         layout.addWidget(self._save)
@@ -75,15 +76,17 @@ class AviExportControls(QWidget):
         self._info.clear()
 
     def open_export(self, frames: tuple[ImageFrame, ...], presentation: MoviePresentation,
-                    fps: int, source: Path) -> None:
-        dialog = AviDialog(frames, presentation, fps, self)
+                    fps: int, source: Path, *, registration: RegistrationResult | None = None,
+                    current_view: str = 'original') -> None:
+        dialog = AviDialog(frames, presentation, fps, self,
+                           registration=registration, current_view=current_view)
         accepted = dialog.exec()
-        plan = dialog.plan
+        plan, version = dialog.plan, dialog.version
         dialog.deleteLater()
         if not accepted or plan is None:
             return
         filename, _ = QFileDialog.getSaveFileName(
-            self, 'Zapisz AVI original', str(source.with_name(source.stem + '-original.avi')),
+            self, f'Zapisz AVI {version}', str(source.with_name(f'{source.stem}-{version}.avi')),
             'AVI (*.avi *.AVI)', options=QFileDialog.Option.DontConfirmOverwrite)
         if not filename:
             return
