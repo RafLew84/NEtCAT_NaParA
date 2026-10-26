@@ -3,7 +3,7 @@
 Późniejsze uproszczenie użytkownika: [tylko original/aligned i białe tło](13-white-background.md).
 Poniżej zakres oraz wyniki wcześniejszego etapu z czterema opcjami zapisu.
 
-Status: ready-for-review. Baza przeglądu: `01259e1`.
+Status: done. Baza przeglądu: `01259e1`.
 Zlecenie użytkownika 2026-10-26: poprawić program po potwierdzeniu czarnego
 obrazu `MOVIE_3-aligned.mpp` w WSxM. [Diagnoza](../../wsxm-aligned-investigation.md).
 
@@ -46,7 +46,16 @@ Implementacja `2343bd6`, poprawka przeglądu `e013d73`.
   podglądową. Próbę wykonano zarówno dla nowej rejestracji, jak i resave original.
 - Największy zmieniony plik kodu: 766 linii. Przegląd: 0 otwartych uwag.
 
-Ręczny odbiór użytkownika oraz Windows oczekują; automatyczne Qt/Wine ich
-nie zastępują. Kod starszych czytników repo nie zmieniony: dla zachowania
+Ręczny odbiór końcowego rozwiązania potwierdzono 2026-10-26. Osobny odbiór
+Windows pozostaje do wykonania; automatyczne Qt/Wine go nie zastępują. Kod starszych czytników repo nie zmieniony: dla zachowania
 braków bez V3 należy wybrać wariant NaN. Do analizy w nowym Viewerze
 przenosić MPP i JSON razem. Szczegółowe logi: [handoff](../../handoff.md).
+
+
+## Potwierdzenie odbioru — 2026-10-26
+
+Użytkownik potwierdził: „teraz jest ok. testy manualne ok”.
+Odbiór obejmuje końcowy stan ticketu 13: zapis aligned, zgodność MPP
+oraz uproszczony zapis original/aligned i białe tło. Status: **done**.
+Systemu nie wskazano; końcowe odbiory Ubuntu i Windows pozostają osobnymi
+zadaniami 20 i 21. Nie ponawiano testów kodu przy aktualizacji dokumentacji.

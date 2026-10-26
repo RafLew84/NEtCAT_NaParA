@@ -72,7 +72,7 @@ python tests/stmviewer/check_aligned_mpp.py --source tests/stmviewer/fixtures/re
     do próby anulowania po rejestracji. Dokładne próby błędu między podmianami
     obu plików wykonuje automatyczny zestaw testów.
 
-Odbiór ręczny użytkownika: oczekuje. Testy Qt sterowane skryptem są
+Odbiór ręczny użytkownika: potwierdzony 2026-10-26 („teraz jest ok. testy manualne ok”). Testy Qt sterowane skryptem są
 odrębnym sprawdzeniem automatycznym. Ten scenariusz nie wymaga WSxM ani AVI.
 
 [Próba białego tła i WSxM](wsxm-export-manual.md) opisuje jednolity zapis

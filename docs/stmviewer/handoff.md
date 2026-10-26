@@ -1,5 +1,22 @@
 # Przekazanie — STM Viewer
 
+## 13: Potwierdzenie odbioru — 2026-10-26
+
+Użytkownik potwierdził: „teraz jest ok. testy manualne ok”.
+[Ticket 13](implementation/issues/13-aligned-mpp.md),
+[poprawka zgodności MPP](implementation/issues/13-wsxm-compatibility-fix.md)
+i [białe tło oraz uproszczony zapis](implementation/issues/13-white-background.md)
+mają status **done**. Potwierdzenie dotyczy końcowego rozwiązania z dwoma
+wyborami original/aligned, jasnym tłem i odtwarzaniem braków przez V3.
+
+Implementacja i kolejne poprawki znajdują się w zakresie `6ab0837..223c1bb`,
+w tym `ec21f6a`, `35858f1`, `2343bd6`, `e013d73` i `2175cfe`.
+Aktualizacja odbioru obejmuje wyłącznie dokumentację: sprawdzono spójność
+statusów, linki i `git diff --check`; nie ponawiano testów kodu.
+Nie przypisujemy ogólnemu potwierdzeniu odbioru konkretnych platform;
+użytkownik nie wskazał systemu, więc pozostają osobne zadania 20 i 21.
+Ticket 14 ma spełnioną zależność 07 i status ready-for-agent; nie rozpoczęto go.
+
 ## 13: Białe tło i dwa wybory zapisu — 2026-10-26
 
 Baza `7123d1b`, implementacja **`2175cfe`**.

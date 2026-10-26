@@ -4,7 +4,7 @@
 
 **Blocked by:** [08: Rejestracja Phase i pełny widok aligned](08-phase-registration.md), [12: Zapis original do MPP i ponowne otwarcie](12-original-mpp.md)
 
-**Status:** ready-for-review
+**Status:** done
 
 **Wykonawca:** Codex, `viewer/start`, 2026-10-26.
 **Baza code-review:** `6ab0837`.
@@ -80,7 +80,7 @@ pozorne wcześniejsze oryginały. [Kontrakt V1/V2](../../mpp-metadata-format.md)
 - [Code-review Standards/Spec](../review-13-aligned-mpp.md): obie uwagi
   poprawione i ponownie sprawdzone; brak otwartych ustaleń.
 
-**Ręczny odbiór użytkownika: oczekuje.** [Instrukcja GUI i porównania wartości](../../aligned-mpp-manual.md).
+**Ręczny odbiór użytkownika: potwierdzony 2026-10-26.** [Instrukcja GUI i porównania wartości](../../aligned-mpp-manual.md).
 Automatyczne Qt offscreen/xcb nie zastępuje tego odbioru ani próby Windows 11.
 WSxM dla NaN/aligned nie sprawdzano w tym etapie; jest dodatkowym testem.
 Pełne wyniki i lokalizacje logów: [handoff](../../handoff.md).
@@ -92,7 +92,7 @@ potwierdziło dokładne dane Optical Flow we wszystkich 17 klatkach oraz
 problem obsługi NaN w WSxM pod Wine. Identyczny nagłówek i dane skończone
 dają obraz po wypełnieniu wyłącznie braków. Przygotowano osobną lokalną
 kopię podglądową, bez zmiany eksportera i kontraktu zachowania NaN.
-Status pozostaje ready-for-review; nie jest to potwierdzenie odbioru ręcznego.
+W chwili diagnozy status pozostawał ready-for-review; sam raport nie był potwierdzeniem odbioru ręcznego.
 
 Po diagnozie użytkownik zlecił [poprawkę zgodności WSxM](13-wsxm-compatibility-fix.md).
 Domyślny wariant GUI przechowuje braki w dodatku V3; wariant NaN nadal
@@ -100,3 +100,12 @@ spełnia wcześniejszy kontrakt bezpośredniego zapisu braków w MPP.
 
 Następne uproszczenie użytkownika: [biały dodatkowy obszar i tylko original/aligned](13-white-background.md).
 GUI używa teraz jednego zapisu z jasnym tłem i odtwarzaniem braków przez V3.
+
+
+## Potwierdzenie odbioru — 2026-10-26
+
+Użytkownik potwierdził: „teraz jest ok. testy manualne ok”.
+Odbiór obejmuje końcowy stan ticketu 13: zapis aligned, zgodność MPP
+oraz uproszczony zapis original/aligned i białe tło. Status: **done**.
+Systemu nie wskazano; końcowe odbiory Ubuntu i Windows pozostają osobnymi
+zadaniami 20 i 21. Nie ponawiano testów kodu przy aktualizacji dokumentacji.

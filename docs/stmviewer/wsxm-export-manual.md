@@ -42,5 +42,6 @@ Wszystkie 17 klatek odzyskuje dokładne próbki i historię; w samym MPP
 wyłącznie braki zostały zastąpione maksimum klatki. Oryginałów nie nadpisano.
 Stare V1/V2 oraz V3 z ciemnym tłem nadal są odczytywane.
 
-Odbiór ręczny użytkownika i Windows: oczekują. Próby automatyczne Qt/Wine
-są raportowane osobno w przekazaniu i nie zastępują tych sprawdzeń.
+Odbiór ręczny użytkownika potwierdzono 2026-10-26: „teraz jest ok. testy manualne ok”.
+Systemu nie wskazano; końcowe odbiory platform pozostają osobnymi ticketami.
+Próby automatyczne Qt/Wine są raportowane osobno w przekazaniu.

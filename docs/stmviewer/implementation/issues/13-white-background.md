@@ -1,6 +1,6 @@
 # Poprawka 13: jeden zapis MPP i białe tło brakujących pikseli
 
-Status: ready-for-review. Baza przeglądu: `7123d1b`.
+Status: done. Baza przeglądu: `7123d1b`.
 Zlecenie użytkownika: ujednolicić obsługę dodanego obszaru poprzez białe tło.
 
 - W GUI wracają tylko MPP original i MPP aligned; domyślna jest oglądana wersja.
@@ -16,7 +16,7 @@ Zlecenie użytkownika: ujednolicić obsługę dodanego obszaru poprzez białe t�
 
 Sprawdzenia na zatwierdzonych granicach: publiczny zapis/odczyt pary i
 publiczne kontrolki/piksele GUI, także zapis już otwartego starego aligned.
-Ręczna próba obejmie podgląd, dwa wybory zapisu, ponowne otwarcie i WSxM.
+Scenariusz ręczny obejmuje podgląd, dwa wybory zapisu, ponowne otwarcie i WSxM.
 
 
 ## Wynik
@@ -36,5 +36,14 @@ Implementacja: **`2175cfe`**. [Próba ręczna](../../wsxm-export-manual.md).
   wycinek pomiaru ma 167 kolorów spełniających próg diagnostyczny.
 - Największy zmieniony plik kodu: 765 linii. Oryginalny pomiar bez zmian.
 
-Odbiór ręczny użytkownika i Windows pozostają do wykonania. Nie zmieniano
+Odbiór ręczny użytkownika potwierdzono 2026-10-26; osobny odbiór Windows pozostaje do wykonania. Nie zmieniano
 rejestracji ani wspólnych czytników. MPP z JSON przenosić razem do analizy.
+
+
+## Potwierdzenie odbioru — 2026-10-26
+
+Użytkownik potwierdził: „teraz jest ok. testy manualne ok”.
+Odbiór obejmuje końcowy stan ticketu 13: zapis aligned, zgodność MPP
+oraz uproszczony zapis original/aligned i białe tło. Status: **done**.
+Systemu nie wskazano; końcowe odbiory Ubuntu i Windows pozostają osobnymi
+zadaniami 20 i 21. Nie ponawiano testów kodu przy aktualizacji dokumentacji.
