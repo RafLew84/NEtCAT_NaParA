@@ -45,7 +45,7 @@ def test_invalid_addon_is_rejected_as_a_whole_without_blocking_movie(tmp_path):
     sidecar = path.with_name(path.name + '.stmviewer.json')
     cases = []
     for section, field, value, reason in [
-        (None, 'version', 2, 'wersj'), (None, 'format', 'foreign', 'format'),
+        (None, 'version', 999, 'wersj'), (None, 'format', 'foreign', 'format'),
         (None, 'image_kind', 'aligned', 'rodzaj'),
         ('movie', 'sha256', '0' * 64, 'SHA-256'),
         ('movie', 'shape_yx', [4, 3], 'wymiar'),

@@ -4,7 +4,10 @@
 
 **Blocked by:** [08: Rejestracja Phase i pełny widok aligned](08-phase-registration.md), [12: Zapis original do MPP i ponowne otwarcie](12-original-mpp.md)
 
-**Status:** ready-for-agent
+**Status:** in-progress
+
+**Wykonawca:** Codex, `viewer/start`, 2026-10-26.
+**Baza code-review:** `6ab0837`.
 
 **Specyfikacja:** [Rejestracja i życie wyniku aligned](../../issues/03-registration.md#answer), [Zapis MPP z wartościami i metadanymi](../../issues/04-mpp-export.md#answer), [Dane i kryteria odbioru pierwszej wersji](../../issues/06-acceptance.md#answer).
 

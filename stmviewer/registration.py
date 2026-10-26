@@ -167,7 +167,7 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
             image = replace(frame, data=values,
                             size_x_nm=shape[1] * pixel_size[0] if pixel_size else None,
                             size_y_nm=shape[0] * pixel_size[1] if pixel_size else None,
-                            offset_x_nm=None, offset_y_nm=None)
+                            offset_x_nm=None, offset_y_nm=None, alignment=None)
             aligned.append(AlignedFrame(frame, image, mask, shift, (x, y), status, qualities[i],
                                         i > 0 and statuses[i - 1] != "ok"))
         except Exception as error:

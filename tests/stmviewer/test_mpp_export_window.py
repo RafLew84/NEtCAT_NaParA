@@ -82,7 +82,7 @@ def test_cancel_dialog_and_decline_overwrite_of_metadata_only(qtbot, monkeypatch
     assert 'wczytano' in open_frame_series([path])[0].metadata_note
 
 
-def test_export_from_aligned_view_still_writes_original(qtbot, monkeypatch, tmp_path):
+def test_export_can_explicitly_choose_original_from_aligned_view(qtbot, monkeypatch, tmp_path):
     from PyQt6.QtWidgets import QComboBox
     window = STMViewerMainWindow()
     qtbot.addWidget(window)
@@ -94,7 +94,7 @@ def test_export_from_aligned_view_still_writes_original(qtbot, monkeypatch, tmp_
     qtbot.waitUntil(register.isEnabled)
     assert window.findChild(QComboBox, 'frameView').currentText() == 'aligned'
     path = tmp_path / 'original.mpp'
-    monkeypatch.setattr(QFileDialog, 'getSaveFileName', lambda *a, **kw: (str(path), ''))
+    monkeypatch.setattr(QFileDialog, 'getSaveFileName', lambda *a, **kw: (str(path), 'MPP original (*.mpp *.MPP)'))
     save = window.findChild(QPushButton, 'saveOriginalMpp')
     save.click()
     qtbot.waitUntil(save.isEnabled)

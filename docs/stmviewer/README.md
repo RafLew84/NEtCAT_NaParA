@@ -30,9 +30,11 @@ zachowuje osobne kadry. [Instrukcja rejestracji](phase-registration-manual.md).
 [Próba metod CPU](cpu-registration-manual.md) opisuje wybór metody,
 stan dostępności i zachowanie wcześniejszego wyniku. Deep Matcher używa lokalnych
 wag LoFTR i pozwala wybrać Auto/CPU/CUDA; Sprawdź model działa w tle.
-[Instrukcja modelu i wag](deep-matcher-manual.md). Działa zapis całej serii original do MPP z towarzyszącymi metadanymi, postępem
-i anulowaniem: [instrukcja zapisu MPP](original-mpp-manual.md). Eksport aligned
-i AVI należą do kolejnych ticketów.
+[Instrukcja modelu i wag](deep-matcher-manual.md). Działa zapis całej serii original lub aligned do MPP z towarzyszącymi metadanymi,
+postępem i anulowaniem: [zapis original](original-mpp-manual.md) oraz
+[zapis aligned](aligned-mpp-manual.md). Wersję wybiera się w polu Typ pliku
+okna zapisu; domyślnie jest to aktualny widok. Odczyt aligned zachowuje pełny
+obszar, NaN, obrys źródłowej klatki i historię. Eksport AVI należy do kolejnych ticketów.
 Przycisk Usuń klatkę usuwa bieżący obraz z serii, zatrzymuje Play i zachowuje
 pochodzenie oraz czasy pozostałych klatek. Źródła na dysku pozostają bez zmian:
 [instrukcja usuwania](frame-deletion-manual.md).
@@ -110,7 +112,10 @@ ma status `done`: użytkownik potwierdził testy manualne 2026-10-23.
 [Próba ręczna](mpp-metadata-manual.md), [format dodatku V1](mpp-metadata-format.md).
 [Zapis original do MPP i ponowne otwarcie](implementation/issues/12-original-mpp.md)
 ma status `done`: użytkownik potwierdził [testy manualne](original-mpp-manual.md)
-2026-10-26. Odblokowany jest ticket 13: zapis aligned do MPP.
+2026-10-26.
+[Zapis aligned do MPP](implementation/issues/13-aligned-mpp.md) jest realizowany;
+[scenariusz próby ręcznej](aligned-mpp-manual.md) obejmuje zapis po usunięciu
+odniesienia, historię geometrii i dokładne porównanie próbek.
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje

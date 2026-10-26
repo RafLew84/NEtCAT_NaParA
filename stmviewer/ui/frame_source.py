@@ -25,3 +25,34 @@ def frame_source_text(frame: ImageFrame) -> str:
     if frame.provenance.source_frame_index is not None:
         text += f'\nKlatka źródłowa: {frame.provenance.source_frame_index + 1}'
     return text
+
+
+def alignment_history_text(frame: ImageFrame) -> str:
+    history = frame.alignment
+    if history is None:
+        return ''
+    reference = PureWindowsPath(history.reference.source).name or history.reference.source
+    if history.reference.source_frame_index is not None:
+        reference += f' · klatka {history.reference.source_frame_index + 1}'
+    height, width = history.canvas_shape
+    oh, ow = history.original_shape
+    def pair(values: tuple[float | None, float | None]) -> str:
+        return ' × '.join('nieznane' if v is None else f'{v:g} nm' for v in values)
+
+    count, previous = 0, history.previous
+    while previous is not None:
+        count += 1
+        previous = previous.previous
+    quality = 'OK' if history.status == 'ok' else '⚠ Do sprawdzenia'
+    return (
+        'Historia aligned — wczytane piksele są wejściem original.\n'
+        f'{history.method} · {history.device} · {quality}\n'
+        f'ΔX: {history.shift_xy[0]:g} px · ΔY: {history.shift_xy[1]:g} px\n'
+        f'Obszar: {width} × {height} px\n'
+        f'Źródłowa klatka: {ow} × {oh} px\n'
+        f'Początek źródła XY: {history.origin_xy[0]:g}, {history.origin_xy[1]:g} px\n'
+        f'Źródłowe pole XY: {pair(history.original_size_nm)}\n'
+        f'Źródłowy offset XY: {pair(history.original_offset_nm)}\n'
+        f'Odniesienie historyczne: {reference}\n'
+        f'Wcześniejsze etapy rejestracji: {count}'
+    )

@@ -17,6 +17,32 @@ class FrameProvenance:
 
 
 @dataclass(frozen=True)
+class AlignmentHistory:
+    """Geometry of saved pixels; never a recovered pre-interpolation image."""
+
+    canvas_shape: tuple[int, int]
+    padding_ltrb: tuple[int, int, int, int]
+    pixel_size_nm: tuple[float, float] | None
+    reference: FrameProvenance
+    method: str
+    device: str
+    original_shape: tuple[int, int]
+    original_size_nm: tuple[float | None, float | None]
+    original_offset_nm: tuple[float | None, float | None]
+    shift_xy: tuple[float, float]
+    origin_xy: tuple[float, float]
+    status: str
+    quality_score: float
+    inherited_uncertainty: bool
+    previous: 'AlignmentHistory | None' = None
+
+    @property
+    def original_rect(self) -> tuple[float, float, int, int]:
+        height, width = self.original_shape
+        return (*self.origin_xy, width, height)
+
+
+@dataclass(frozen=True)
 class ImageFrame:
     source: Path
     data: NDArray[np.float64] = field(repr=False)
@@ -38,3 +64,4 @@ class ImageFrame:
     # The opened file/index remain in source/source_frame_index.
     provenance: FrameProvenance | None = None
     metadata_note: str | None = None
+    alignment: AlignmentHistory | None = None

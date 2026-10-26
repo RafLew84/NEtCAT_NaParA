@@ -19,7 +19,7 @@ from stmviewer.deep_matcher import deep_unavailable_reason
 from stmviewer.ui.deep_matcher_controls import DeepMatcherControls
 from stmviewer.ui.registration_job import RegistrationJob
 from stmviewer.ui.filmstrip import Filmstrip
-from stmviewer.ui.frame_source import frame_source_text
+from stmviewer.ui.frame_source import frame_source_text, alignment_history_text
 from stmviewer.ui.import_job import ImportJob
 from stmviewer.ui.mpp_export_job import MppExportJob
 from stmviewer.ui.image_preview import ImagePreview
@@ -64,10 +64,10 @@ class STMViewerMainWindow(QMainWindow):
         open_button.clicked.connect(self.open_file)
         controls.addWidget(open_button)
         self._open_button = open_button
-        self._save_button = QPushButton("Zapisz original MPP…", panel)
+        self._save_button = QPushButton("Zapisz MPP…", panel)
         self._save_button.setObjectName("saveOriginalMpp")
-        self._save_button.setToolTip("Zapisz wszystkie pozostałe klatki original oraz plik metadanych.")
-        self._save_button.clicked.connect(self.save_original_mpp)
+        self._save_button.setToolTip("Zapisz wszystkie pozostałe klatki oraz metadane. W oknie zapisu wybierz original lub aligned.")
+        self._save_button.clicked.connect(self.save_mpp)
         controls.addWidget(self._save_button)
         self._export_info = QLabel(panel)
         self._export_info.setObjectName("mppExportInfo")
@@ -274,9 +274,9 @@ class STMViewerMainWindow(QMainWindow):
         open_action.triggered.connect(self.open_file)
         file_menu.addAction(open_action)
         self._open_action = open_action
-        self._save_action = QAction("Zapisz &original MPP…", self)
+        self._save_action = QAction("Zapisz &MPP…", self)
         self._save_action.setShortcut(QKeySequence.StandardKey.Save)
-        self._save_action.triggered.connect(self.save_original_mpp)
+        self._save_action.triggered.connect(self.save_mpp)
         self._save_action.setEnabled(False)
         file_menu.addAction(self._save_action)
         file_menu.addSeparator()
@@ -314,19 +314,29 @@ class STMViewerMainWindow(QMainWindow):
         self._job.start()
         self._sync_navigation()
 
-    def save_original_mpp(self) -> None:
-        """Save a fixed original series; preview settings never enter the writer."""
+    def save_mpp(self) -> None:
+        """Choose input or ready aligned samples, independent of preview settings."""
         if (not self._frames or self._job is not None or self._registration_job is not None
                 or self._export_job is not None):
             return
         self._pause()
         source = self._frames[self._index].source
-        filename, _ = QFileDialog.getSaveFileName(
-            self, "Zapisz całą serię original do MPP", str(source.with_name(source.stem + '-original.mpp')),
-            "MPP (*.mpp *.MPP)", options=QFileDialog.Option.DontConfirmOverwrite,
+        original_filter = "MPP original (*.mpp *.MPP)"
+        aligned_filter = "MPP aligned (*.mpp *.MPP)"
+        filters = original_filter
+        if self._registration is not None:
+            filters += ";;" + aligned_filter
+        default = aligned_filter if self._view.currentText() == 'aligned' else original_filter
+        kind = 'aligned' if default == aligned_filter else 'original'
+        filename, chosen = QFileDialog.getSaveFileName(
+            self, "Zapisz całą serię MPP — wybierz original/aligned w typie pliku",
+            str(source.with_name(source.stem + f'-{kind}.mpp')), filters, initialFilter=default,
+            options=QFileDialog.Option.DontConfirmOverwrite,
         )
         if not filename:
             return
+        kind = 'aligned' if (chosen or default) == aligned_filter else 'original'
+        registration = self._registration if kind == 'aligned' else None
         path = Path(filename)
         if path.suffix.lower() != '.mpp':
             path = path.with_name(path.name + '.mpp')
@@ -342,9 +352,9 @@ class STMViewerMainWindow(QMainWindow):
             confirmation.setDefaultButton(QMessageBox.StandardButton.No)
             if confirmation.exec() != QMessageBox.StandardButton.Yes:
                 return
-        job = MppExportJob(path, self._frames, self, overwrite=bool(existing))
+        job = MppExportJob(path, self._frames, self, overwrite=bool(existing), registration=registration)
         self._export_job = job
-        self._export_info.setText("Zapis całej serii original…")
+        self._export_info.setText(f"Zapis całej serii {kind}…")
         self._export_progress.setRange(0, len(self._frames) + 3)
         self._export_progress.setValue(0)
         self._export_progress.show()
@@ -411,7 +421,9 @@ class STMViewerMainWindow(QMainWindow):
                     self._show_import_error(job.error)
                 elif job.result is not None:
                     result = job.result
-                    self._preview.set_frame(result.frames[0], reset_settings=True)
+                    first = result.frames[0]
+                    self._preview.set_frame(first, reset_settings=True,
+                                            original_rect=first.alignment.original_rect if first.alignment else None)
                     self._pause()
                     with QSignalBlocker(self._gamma):
                         self._gamma.setValue(1.0)
@@ -513,7 +525,9 @@ class STMViewerMainWindow(QMainWindow):
                 self._preview.set_frame(current.image, view="aligned", reset_view=False,
                                         original_rect=current.original_rect)
             else:
-                self._preview.set_frame(frames[index], reset_view=False)
+                frame = frames[index]
+                self._preview.set_frame(frame, reset_view=False,
+                                        original_rect=frame.alignment.original_rect if frame.alignment else None)
         else:
             self._preview.clear_frame()
             with QSignalBlocker(self._view):
@@ -624,7 +638,9 @@ class STMViewerMainWindow(QMainWindow):
             self._preview.set_frame(frame.image, view="aligned", original_rect=frame.original_rect,
                                     reset_view=reset_view)
         else:
-            self._preview.set_frame(self._frames[index], reset_view=reset_view)
+            original = self._frames[index]
+            self._preview.set_frame(original, reset_view=reset_view,
+                                    original_rect=original.alignment.original_rect if original.alignment else None)
 
     def _change_view(self) -> None:
         self._pause()
@@ -731,7 +747,7 @@ class STMViewerMainWindow(QMainWindow):
 
     def _show_registration_info(self) -> None:
         if self._registration is None:
-            self._registration_text.setText("")
+            self._registration_text.setText(alignment_history_text(self._frames[self._index]))
             return
         result = self._registration
         current = result.frames[self._index]

@@ -1,4 +1,4 @@
-"""Write original measurement values in WSxM double movie orientation."""
+"""Write measurement values in WSxM double movie orientation."""
 
 from pathlib import Path
 from decimal import Decimal
@@ -12,6 +12,8 @@ from collections.abc import Callable
 import numpy as np
 
 from stmviewer.frame import ImageFrame
+from stmviewer.registration import RegistrationResult
+from stmviewer.alignment_metadata import aligned_export_frames
 from stmviewer.mpp_metadata import encode_mpp_metadata, mpp_sidecar_path
 
 
@@ -113,8 +115,8 @@ def _check_destinations(destinations: tuple[Path, Path], overwrite: bool) -> Non
             raise FileExistsError(f'Plik już istnieje: {destination}')
 
 
-def save_original_mpp(path: str | Path, frames: tuple[ImageFrame, ...], *,
-                      overwrite: bool = False,
+def _save_mpp(path: str | Path, frames: tuple[ImageFrame, ...], *,
+                      image_kind: str, overwrite: bool = False,
                       progress: Callable[[int, int, str], None] | None = None,
                       cancelled: Callable[[], bool] | None = None) -> Path:
     """Stage and publish a movie plus its bound metadata; roll back on failure.
@@ -146,7 +148,7 @@ def save_original_mpp(path: str | Path, frames: tuple[ImageFrame, ...], *,
             progress(done, len(frames) + 3, message)
         checkpoint()
 
-    report(0, 'Przygotowanie zapisu original…')
+    report(0, f'Przygotowanie zapisu {image_kind}…')
     staging = Path(tempfile.mkdtemp(prefix='.stmviewer-export-', dir=target.parent))
     staged = (staging / 'movie.part', staging / 'metadata.part')
     backups: dict[Path, Path] = {}
@@ -168,7 +170,7 @@ def save_original_mpp(path: str | Path, frames: tuple[ImageFrame, ...], *,
                     digest.update(payload)
                 report(index, f'Zapis klatki {index} z {len(frames)}')
             _sync(stream)
-        metadata = encode_mpp_metadata(frames, digest.hexdigest(), check_cancelled=checkpoint)
+        metadata = encode_mpp_metadata(frames, digest.hexdigest(), check_cancelled=checkpoint, image_kind=image_kind)
         with staged[1].open('xb') as stream:
             _write(stream, metadata)
             _sync(stream)
@@ -209,3 +211,26 @@ def save_original_mpp(path: str | Path, frames: tuple[ImageFrame, ...], *,
         if not keep_backups:
             shutil.rmtree(staging, ignore_errors=True)
     return target
+
+
+def save_original_mpp(path: str | Path, frames: tuple[ImageFrame, ...], *,
+                      overwrite: bool = False,
+                      progress: Callable[[int, int, str], None] | None = None,
+                      cancelled: Callable[[], bool] | None = None) -> Path:
+    """Save the current input samples, retaining any imported alignment history."""
+    return _save_mpp(path, frames, image_kind='original', overwrite=overwrite,
+                     progress=progress, cancelled=cancelled)
+
+
+def save_aligned_mpp(path: str | Path, result: RegistrationResult, *,
+                     overwrite: bool = False,
+                     progress: Callable[[int, int, str], None] | None = None,
+                     cancelled: Callable[[], bool] | None = None) -> Path:
+    """Save a complete materialized result without resampling or shrinking it."""
+    def checkpoint() -> None:
+        if cancelled is not None and cancelled():
+            raise ExportCancelled('Anulowano zapis MPP.')
+
+    frames = aligned_export_frames(result, checkpoint)
+    return _save_mpp(path, frames, image_kind='aligned', overwrite=overwrite,
+                     progress=progress, cancelled=cancelled)
