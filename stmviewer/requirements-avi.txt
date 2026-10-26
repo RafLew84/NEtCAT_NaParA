@@ -1,0 +1,2 @@
+# AVI uses the same OpenCV/FFmpeg build as ECC registration.
+-r requirements-ecc.txt

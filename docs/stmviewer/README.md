@@ -37,7 +37,11 @@ okna zapisu; domyślnie jest to aktualny widok. Dostępne są tylko **original**
 i **aligned**. Zapis używa jasnego tła w MPP i dokładnego opisu braków w JSON.
 Do odtworzenia braków w STM Viewerze przenoś oba pliki razem.
 [Próba zapisu i białego tła](wsxm-export-manual.md). Odczyt aligned zachowuje pełny
-obszar, NaN, obrys źródłowej klatki i historię. Eksport AVI należy do kolejnych ticketów.
+obszar, NaN, obrys źródłowej klatki i historię. Dostępny jest również eksport
+original do AVI: cała seria lub zakres, FPS 1–30, MJPG/FFV1, gamma podglądu,
+pełne obrazy oraz postęp i anulowanie. [Próba AVI](original-avi-manual.md).
+Ticket 14 oczekuje na ręczny odbiór; opcje prezentacji, aligned i opisy
+należą do kolejnych etapów.
 Przycisk Usuń klatkę usuwa bieżący obraz z serii, zatrzymuje Play i zachowuje
 pochodzenie oraz czasy pozostałych klatek. Źródła na dysku pozostają bez zmian:
 [instrukcja usuwania](frame-deletion-manual.md).

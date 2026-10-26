@@ -11,6 +11,8 @@ from PyQt6.QtWidgets import (
 )
 
 from stmviewer.frame import ImageFrame
+from stmviewer.avi_raster import MoviePresentation
+from stmviewer.ui.avi_export_controls import AviExportControls
 from stmviewer.mpp_metadata import mpp_sidecar_path
 from stmviewer.registration import (
     CPU_METHODS, REGISTRATION_METHODS, RegistrationResult, ShiftBackend, registration_unavailable_reason,
@@ -84,6 +86,10 @@ class STMViewerMainWindow(QMainWindow):
         self._export_cancel.clicked.connect(self._cancel_export)
         self._export_cancel.hide()
         controls.addWidget(self._export_cancel)
+        self._avi = AviExportControls(panel)
+        self._avi.requested.connect(self.save_avi)
+        self._avi.busy_changed.connect(self._avi_busy_changed)
+        controls.addWidget(self._avi)
         self._fit_button = QPushButton("Dopasuj", panel)
         self._fit_button.setObjectName("fitImage")
         self._fit_button.setToolTip("Pokaż cały obraz i wyzeruj przesunięcie.")
@@ -279,6 +285,10 @@ class STMViewerMainWindow(QMainWindow):
         self._save_action.triggered.connect(self.save_mpp)
         self._save_action.setEnabled(False)
         file_menu.addAction(self._save_action)
+        self._avi_action = QAction('Zapisz AVI original…', self)
+        self._avi_action.triggered.connect(self.save_avi)
+        self._avi_action.setEnabled(False)
+        file_menu.addAction(self._avi_action)
         file_menu.addSeparator()
         close_action = QAction("&Zakończ", self)
         close_action.setShortcut(QKeySequence.StandardKey.Quit)
@@ -290,7 +300,7 @@ class STMViewerMainWindow(QMainWindow):
 
     def open_file(self) -> None:
         """Choose a complete series; a worker keeps the existing view responsive."""
-        if self._job is not None or self._registration_job is not None or self._export_job is not None:
+        if self._job is not None or self._registration_job is not None or self._export_job is not None or self._avi.busy:
             return
         initial = str(self._frames[self._index].source.parent) if self._frames else ""
         filenames, _ = QFileDialog.getOpenFileNames(
@@ -314,10 +324,26 @@ class STMViewerMainWindow(QMainWindow):
         self._job.start()
         self._sync_navigation()
 
+    def save_avi(self) -> None:
+        if (not self._frames or self._job is not None or self._registration_job is not None
+                or self._export_job is not None or self._avi.busy):
+            return
+        self._pause()
+        self._avi.open_export(self._frames, MoviePresentation(
+            gamma=self._gamma.value(), pixel_proportions=self._pixel_proportions.isChecked()),
+            int(self._fps.currentText()), self._frames[self._index].source)
+
+    def _avi_busy_changed(self) -> None:
+        self._open_button.setEnabled(not self._avi.busy)
+        self._open_action.setEnabled(not self._avi.busy)
+        self._sync_navigation()
+        if self._closing and not self._avi.busy:
+            self.close()
+
     def save_mpp(self) -> None:
         """Choose input or ready aligned samples, independent of preview settings."""
         if (not self._frames or self._job is not None or self._registration_job is not None
-                or self._export_job is not None):
+                or self._export_job is not None or self._avi.busy):
             return
         self._pause()
         source = self._frames[self._index].source
@@ -431,6 +457,7 @@ class STMViewerMainWindow(QMainWindow):
                     with QSignalBlocker(self._view):
                         self._view.setCurrentText("original")
                     self._export_info.clear()
+                    self._avi.clear_message()
                     self._frames = result.frames
                     self._strip.set_series(result.frames, result.thumbnails)
                     selection = self._strip.selectionModel()
@@ -464,20 +491,24 @@ class STMViewerMainWindow(QMainWindow):
     def closeEvent(self, event: QCloseEvent | None) -> None:
         self._pause()
         if event is not None and (self._job is not None or self._registration_job is not None
-                                  or self._export_job is not None):
+                                  or self._export_job is not None or self._avi.busy):
             self._closing = True
             self._cancel_import()
             self._cancel_registration()
             self._cancel_export()
+            self._avi.cancel()
             event.ignore()
             return
         super().closeEvent(event)
 
     def _sync_navigation(self) -> None:
         count = len(self._frames)
-        busy = self._registration_job is not None or self._export_job is not None
+        busy = self._registration_job is not None or self._export_job is not None or self._avi.busy
         can_save = bool(count) and not busy and self._job is None
         self._save_button.setEnabled(can_save)
+        self._avi.set_available(can_save)
+        if hasattr(self, "_avi_action"):
+            self._avi_action.setEnabled(can_save)
         if hasattr(self, '_save_action'):
             self._save_action.setEnabled(can_save)
         self._play.setEnabled(count > 1 and not busy)
@@ -510,7 +541,7 @@ class STMViewerMainWindow(QMainWindow):
             self._strip.scrollTo(index)
 
     def _delete_frame(self) -> None:
-        if not self._frames or self._registration_job is not None or self._export_job is not None:
+        if not self._frames or self._registration_job is not None or self._export_job is not None or self._avi.busy:
             return
         self._pause()
         removed = self._index
@@ -544,7 +575,7 @@ class STMViewerMainWindow(QMainWindow):
     def _toggle_playback(self) -> None:
         if self._playing:
             self._pause()
-        elif len(self._frames) > 1 and self._registration_job is None and self._export_job is None:
+        elif len(self._frames) > 1 and self._registration_job is None and self._export_job is None and not self._avi.busy:
             if self._index == len(self._frames) - 1:
                 self._display_frame(0)
                 self._preview.repaint()
@@ -662,7 +693,7 @@ class STMViewerMainWindow(QMainWindow):
 
     def _start_registration(self, *, check_only: bool = False) -> None:
         if ((not self._frames and not check_only) or self._job is not None or self._registration_job is not None
-                or self._export_job is not None or self._selected_method_error()):
+                or self._export_job is not None or self._avi.busy or self._selected_method_error()):
             return
         self._pause()
         job = RegistrationJob(self._frames, self, self._registration_backend,
