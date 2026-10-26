@@ -98,7 +98,11 @@ referencji. Gotowe cechy obejmują pilotaż 12 obrazów, bez detekcji domen.
 [Porównanie 19](../frozen-feature-domains-trial.md) wykonano: FCN/DINO nie
 poprawiły wyniku; 0–5.1% przypisań we wnętrzach TTMAPP i błędy kontroli.
 Użytkownik wybrał dalsze omówienie/rozwinięcie, dlatego 19 pozostaje
-`claimed`; nie wybrano metody do programu.
+`claimed`; nie wybrano metody do programu. Następnie wykonano
+[diagnozę cech/PCA/epsilon](../feature-separation-trial.md): cechy
+zachowują rozróżnienie obrotu/rozstawu na kontrolach, ale 32 warianty
+nie naprawiają podziału TTMAPP. Lokalny podgląd `.scratch/feature-separation/`;
+status 19 nadal `claimed`, do omówienia kolejnego wyniku.
 Przygotowanie treningu 20, odbiór 13 i jakość 04 pozostają otwarte.
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie
@@ -184,7 +188,7 @@ ten nadal warunkuje odbiór metod. Statusy znajdują się w ticketach.
 | [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md) | prototype / HITL | `resolved`: porównanie zachowane, użytkownik wybrał przejście do 17, E2 |
 | [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md) | prototype / HITL | `resolved`: widmo/EWT zachowane do porównań ML, bez przyjęcia metody; E3 |
 | [Jak przygotować cechy gotowych sieci bez treningu na naszych danych?](18-frozen-feature-preparation.md) | task / AFK | `resolved`: oba ekstraktory, cache, geometria i powtarzalność sprawdzone |
-| [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | `claimed`: próba wykonana; użytkownik wybrał dalsze omówienie/rozwinięcie |
+| [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | `claimed`: próba i diagnoza cech/PCA/epsilon wykonane; wynik do omówienia |
 
 Próby geometrii, SBC/MatID i klasycznej tekstury są niezależne. Porównanie
 ML korzysta z wyniku tekstury jako punktu odniesienia, również gdy jest

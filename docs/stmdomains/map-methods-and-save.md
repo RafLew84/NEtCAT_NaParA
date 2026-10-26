@@ -159,7 +159,7 @@ nie zamknięto przez samo dodanie go do mapy.
 
 ## Decisions so far
 
-- [Czy gotowe cechy sieci pomagają znaleźć domeny?](issues/19-frozen-feature-domains.md): [próba wykonana](frozen-feature-domains-trial.md), **`claimed` do dalszego omówienia/rozwinięcia na życzenie użytkownika**. FCN/DINO nie poprawiły wyniku w badanym uśrednianiu/PCA/grupowaniu; rozdzielono odmowy kryterium porządku i utratę podziałów w katalogu wyglądu. Nie wybrano metody.
+- [Czy gotowe cechy sieci pomagają znaleźć domeny?](issues/19-frozen-feature-domains.md): [próba wykonana](frozen-feature-domains-trial.md), **`claimed` do dalszego omówienia/rozwinięcia na życzenie użytkownika**. [Dalsza diagnoza](feature-separation-trial.md) zachowania cech/PCA i 32 wariantów grupowania też jest wykonana: syntetyczne orientacje/rozstaw są rozróżnialne, lecz epsilon=0 lub pełne cechy nie naprawiają podziału TTMAPP. Kolejny kierunek do omówienia: lokalne granice różnic cech oraz osobno kryterium porządku. Nie wybrano metody.
 
 - [Jak przygotować cechy gotowych sieci bez treningu?](issues/18-frozen-feature-preparation.md): [przygotowanie zakończone](frozen-feature-preparation.md). FCN i DINOv2 działają z niezmienionymi wagami; geometria, cache i niezależność od referencji sprawdzone. Gotowe wejście techniczne do 19, bez oceny skuteczności domen.
 - [Czy otoczenie molekuł pozwala znaleźć domeny?](issues/15-local-neighborhood-domains.md): zakończono trzy porównania; użytkownik polecił przejść do 16. Lokalna komórka jest punktem odniesienia, bez przyjęcia metody; pozostają błędy trudnych granic i RED/YELLOW. [Raport orientacji i łączenia](orientation-and-joining-trial.md).

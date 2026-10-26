@@ -177,8 +177,18 @@ TTMAPP, bez RED/YELLOW; pozostają błędy podziałów i scaleń. Oddzielono
 problemy grupowania (zwykle jedna grupa wyglądu) i odmów kryterium porządku.
 Podgląd: `.scratch/frozen-feature-domains/index.html`. Użytkownik wybrał
 **dalsze omówienie/rozwinięcie**, więc 19 pozostaje `claimed`. Proponowane
-kolejne badanie dotyczy utraty różnic w cechach, PCA i grupowaniu; nie jest
-jeszcze uruchomione. Nie wybrano metody ani nie rozpoczęto treningu.
+kolejne badanie dotyczyło utraty różnic w cechach, PCA i grupowaniu;
+zostało wykonane i jest opisane poniżej. Nie wybrano metody ani nie rozpoczęto treningu.
+
+Następnie wykonano [diagnozę cech i grupowania](feature-separation-trial.md):
+32 warianty na tych samych 228 obrazach. Cechy obu sieci rozróżniają
+syntetyczne orientacje/rozstaw, PCA prawie nie zmienia tego wyniku,
+lecz epsilon=0 ani pełne cechy nie naprawiają podziału domen na TTMAPP.
+Żaden wariant nie spełnia wszystkich warunków. Nowy podgląd:
+`.scratch/feature-separation/index.html`; 1824 dokładne odtworzenia
+starego wyniku i 68 kontroli HTML. Issue 19 pozostaje `claimed`.
+Kolejny kierunek do omówienia to lokalne granice różnic cech i osobna
+ocena kryterium porządku, bez narzucania K lub wzorców domen.
 
 
 ## Dwa etapy

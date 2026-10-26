@@ -309,8 +309,8 @@ Najbardziej użyteczne następne badanie w obrębie 19 powinno ustalić,
    map/tokenów z obecnym uśrednieniem. Nie zaczynać od obniżania progu,
    które może jedynie nadać etykietę domeny dużej grupie wyglądu.
 
-To **propozycja, jeszcze niewykonana**. Jej protokół powinien mieć nową
-wersję i budżet ustalony przed kolejną oceną. Dotychczasowe odłożone ziarna
+Tę propozycję następnie **wykonano** w [osobnym badaniu](feature-separation-trial.md),
+z nowym protokołem i budżetem ustalonym przed oceną. Dotychczasowe odłożone ziarna
 oraz referencje były już oglądane; kolejnego dostrajania nie należy
 opisywać jako niezależnej walidacji. Obecna próba nie rozstrzyga innych
 poolingów, skal, metryk, grupowania ani cech trenowanych na STM.

@@ -1,4 +1,57 @@
-# STM Domains — porównanie gotowych cech, issue 19
+# STM Domains — diagnoza cech, PCA i grupowania, issue 19
+
+Data: 2026-10-26. Dokumentacja `domains/feature-separation-trial`, baza
+`1c2eef6`, worktree `/tmp/netcat-stmdomains-feature-separation`.
+Źródła prototypu: **`prototype/stmdomains-feature-separation`, `cf88e8a`**,
+baza `652ab96`. Nie scalać prototypu do aplikacji. Docelowo dokumentacja
+na `domains/start`; commit dokumentacji w wiadomości końcowej.
+
+Na polecenie „wykonaj kolejne badanie” ukończono diagnozę zaproponowaną
+w pierwszej próbie 19. [Raport](feature-separation-trial.md),
+[manifest](feature-separation-manifest.json), interaktywny podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/feature-separation/index.html`.
+
+24 całe klatki TTMAPP i 204 kontrole, osiem kombinacji cecha/miejsca;
+pełne cechy/PCA × dotychczasowe/zerowe epsilon daje 32 konfiguracje.
+Protokół zapisany przed oceną, bez treningu, K i dopasowania do ramek.
+Wszystkie ziarna były już znane: to diagnoza, nie niezależna walidacja.
+
+Cechy obu modeli zachowują rozróżnienie orientacji 8°/27° i rozstawu
+na kontrolach; największa zmiana AUC po PCA to 0.000486. Same zmiany
+PCA/epsilon nie naprawiają domen: na TTMAPP 30 wariantów daje jeden
+klaster wyglądu, dwa odmawiają. DINO/centra po epsilon=0 odzyskuje
+46/1678 oznaczeń, nadal tylko BLACK. Żaden wariant nie spełnia kompletu
+warunków. Nie wyznaczono typów, powierzchni ani dokładnych granic.
+
+**19 nadal `claimed`**, do omówienia. Dalszy kierunek: lokalne granice
+różnic cech i osobna ocena kryterium porządku. Nie rozpoczęto tego
+następnego eksperymentu, treningu 20 ani odbioru 13. Nie ma potrzeby
+uruchamiania warunkowej próby przestrzennego poolingu dla wyjaśnienia
+utraty obrotu/rozstawu na tych kontrolach; nie oznacza to odrzucenia
+innych poolingów dla rzeczywistych STM.
+
+Sprawdzenia: **1824/1824** dokładne odtworzenia starego wariantu (pięć
+tablic na wynik), AUC kontra bezpośrednie liczenie z remisami (5.56e-17),
+odległości PCA nie większe od pełnych, niezmienione hashe predykcji
+podczas oceny. **68 kontroli QtWebEngine**, bez błędów JS; obejrzano
+podgląd oraz wykres. Składnia Python/Bash, linki i diff sprawdzone.
+Nie powtarzano ekstrakcji, testów modeli ani natywnego GUI; korzystano
+z cech i ich wcześniejszej weryfikacji.
+
+Koszt CPU, jeden wątek: PCA 16.16 s, metryki 7.19 s, grupowanie 457.59 s;
+szczyt RSS do 589056 KiB (ok. 575 MiB), bez GPU i instalacji pakietów.
+Kopia: **2078 plików / 261856765 B**, wszystkie SHA-256 zgodne.
+Względne symlinki wskazują zachowany artefakt pierwszej próby 19;
+sam HTML jest samowystarczalny. Dane i modele pozostają poza Git.
+Runner na gałęzi prototypu; etapy wykonano osobno, wrapper składniowo.
+
+Do aplikacji trafia tylko dokumentacja i manifest. Bez zmian wspólnych
+modułów, konfiguracji głównej, produkcyjnego GUI lub Viewer. Integrację
+do `stm-next` prowadzi koordynator.
+
+---
+
+## Poprzednie przekazanie — porównanie gotowych cech, issue 19
 
 Data: 2026-10-26. Dokumentacja `domains/frozen-domain-trial`, baza `ad584eb`,
 worktree `/tmp/netcat-stmdomains-frozen-domain-trial`, docelowo `domains/start`.

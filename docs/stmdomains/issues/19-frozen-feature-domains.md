@@ -5,7 +5,7 @@ Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
 Status: claimed
-Assignee: Codex — domains/frozen-domain-trial
+Assignee: Codex — domains/feature-separation-trial
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 17, 18
 
@@ -152,5 +152,32 @@ Użytkownik: **„Najpierw omówmy lub rozwińmy tę próbę”**. Status pozost
 `claimed`; nie zamykamy 19 i nie przyjmujemy metody do programu.
 Propozycja dalszego badania: sprawdzić na kontrolach rozróżnialność cech
 przed/po PCA, następnie wpływ grupowania bez scalającego epsilon lub
-uśredniania map. To nowy, jeszcze niewykonany etap wymagający osobnego
-protokołu; aktualnych wyników nie dostrajano po referencjach.
+uśredniania map. Ten etap wykonano w osobnym protokole opisanym poniżej;
+pierwotnych wyników nie dostrajano po referencjach.
+
+
+## Rozwinięcie — 2026-10-26: informacja, PCA i epsilon
+
+Na polecenie „wykonaj kolejne badanie” wykonano
+[diagnozę rozróżnialności cech i grupowania](../feature-separation-trial.md).
+Protokół zapisano przed oceną: osiem kombinacji cecha/miejsca,
+pełne wektory i PCA, 32 konfiguracje grupowania. Te same 24 klatki
+TTMAPP i 204 kontrole; bez zadanego K, przykładów domen lub treningu.
+
+Uśrednione cechy obu sieci rozróżniają wnętrza sieci o obrocie 8°/27°
+i innym rozstawie; PCA zmienia AUC najwyżej o 0.000486 na tych kontrolach.
+Pominięcie PCA i epsilon=0 nie rozwiązują jednak podziału: na TTMAPP
+30 wariantów daje jeden klaster wyglądu, dwa odmawiają. DINO/centra
+odzyskuje 46/1678 oznaczeń, nadal tylko BLACK. Żaden wariant nie spełnia
+wszystkich warunków; typy strukturalne pozostają nieustalone.
+
+Źródło: `prototype/stmdomains-feature-separation`, **`cf88e8a`**.
+Podgląd: `.scratch/feature-separation/index.html`.
+[Manifest](../feature-separation-manifest.json); dokładnie odtworzono
+1824 poprzednie wyniki, przeszło 68 kontroli HTML. Znane już ziarna
+oraz referencje oznaczają diagnozę rozwojową, bez niezależnej walidacji.
+
+Status nadal **`claimed`**, do omówienia wyniku. Najbardziej uzasadniona
+kolejna próba: lokalne granice różnic cech zamiast wyłącznie globalnego
+HDBSCAN, z osobną oceną kryterium porządku. To jeszcze niewykonany
+kierunek, bez przyjęcia metody i bez uruchomienia treningu 20.
