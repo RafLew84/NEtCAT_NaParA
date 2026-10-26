@@ -1,5 +1,65 @@
 # Przekazanie — STM Viewer
 
+## 14: Original do AVI — 2026-10-26
+
+[Ticket 14](implementation/issues/14-original-avi-basic.md): **ready-for-review**.
+Baza `60785df`, implementacja `959c5c6`, poprawki `a9cf6b4`.
+[Instrukcja uruchomienia i ręcznej próby](original-avi-manual.md),
+[przegląd dwóch osi](implementation/review-14-original-avi.md).
+Do zakończenia etapu potrzebne jest potwierdzenie testów manualnych użytkownika.
+
+Dostępny przycisk/menu „Zapisz AVI original…”: cała seria lub zakres włącznie,
+FPS 1–30 (domyślnie Play), MJPG domyślnie lub FFV1. Podsumowanie pokazuje
+liczbę klatek, rozmiar i czas. Pełne obrazy niezależne od zoomu; gamma pobrana
+z podglądu, kontrast per klatka, czarne braki, bez opisów. Wspólna skala daje
+proporcje fizyczne; nieznana/niespójna lub opcja Proporcje pikselowe daje
+pikselowe. Nearest sampling zachowuje wspólnie dane/maskę przy rozszerzeniu;
+nieparzyste wymiary są dopełniane z prawej/dołu bez obcinania krawędzi.
+
+Worker blokuje import, Play, usuwanie, rejestrację i oba eksporty; przeglądanie,
+zoom i gamma działają dalej bez zmiany ustawień bieżącego filmu. Zapis etapowy
+chroni istniejący plik. Pełny odczyt sprawdza liczbę, FPS, geometrię i kodek;
+FFV1 dodatkowo skróty rastrów uint8. Brak kodeka lub błąd daje komunikat.
+Próba kodera odbywa się w osobnym procesie po wykryciu natywnej awarii MJPG
+przy 4 × 4. Bez automatycznej zamiany kodeka czy pobierania. Zamknięcie okna
+anuluje pracę i czeka na worker. MPP i białe tło jego podglądu są zachowane.
+
+Wykonane sprawdzenia:
+
+- TDD na zatwierdzonych granicach: renderer, publiczny eksport z rzeczywistym
+  odczytem i publiczne kontrolki GUI. Testy awarii kodeka obejmują też faktyczny
+  SIGABRT małego MJPG izolowany w procesie potomnym.
+- Po przeglądzie **62 passed**, 18.71 s: AVI oraz powiązane MPP, Play,
+  rejestracja i usuwanie. Log `/tmp/stmviewer-avi-focused-final.log`.
+- Mypy strict: **31 plików, 0 błędów**. `git diff --check` czysty.
+  Największy zmieniony plik `main_window.py`: **802 linie** (limit 1500).
+- Pełne repo raz na końcu implementacji: **2056 passed, 14 failed, 16 skipped**,
+  239.70 s, `/tmp/stmviewer-avi-full-suite.log`. Porównanie z
+  `/tmp/stmviewer-white-full-suite.log`: identyczne 14 identyfikatorów błędów
+  MolTrack/NanoTrack; nie dodano nowych. Nie deklarujemy zielonego całego repo.
+- Qt xcb na osobnym Xvfb: **13 passed**, 2.78 s, AVI/MPP GUI.
+  Obejrzano główne okno i dialog. To próba automatyczna, nie akceptacja użytkownika.
+- Faktyczne VLC **3.0.20**: sześć filmów (MOVIE_3, odd, anisotropic × oba kodeki),
+  renderowanie xcb_x11, dojście do EOF i kod wyjścia 0, bez błędów; obejrzano
+  zrzuty. Pakiety Ubuntu rozpakowano wyłącznie do `/tmp/stmviewer-avi-vlc/`;
+  tam logi, `results.json` i obrazy. Windows nie był dostępny.
+- Rzeczywiste anulowanie przez GUI w trakcie kodowania 600 klatek 512 × 512:
+  komunikat anulowania, wcześniejszy AVI identyczny bajtowo. Mały wzorzec
+  kończył zapis przed kliknięciem, więc większy plik generuje opcja `--long`.
+- Dane: `data/avi-ticket14/`, generator `tests/stmviewer/make_avi_fixtures.py`.
+  Gotowe AVI i MPP są poza Git. `MOVIE_3.MPP`: 17 klatek 256 × 256;
+  `odd`: sześć 65 × 49 → 66 × 50; `anisotropic` → 130 × 50.
+
+Przegląd Standards: 0 twardych naruszeń, 1 uwaga P3 o powtarzaniu blokad
+rozwiązana w `a9cf6b4`, potwierdzona przez recenzenta; Spec: 0 ustaleń.
+Końcowo obie osie bez otwartych uwag. Ręczny odbiór i Windows pozostają otwarte.
+
+Współpraca: brak zmian wspólnego kodu/konfiguracji. Lokalny
+`stmviewer/requirements-avi.txt` korzysta z istniejącego przypięcia OpenCV
+w requirements-ecc.txt. Integracja powinna uwzględnić ten zestaw podczas
+przygotowania pełnego środowiska; netcat już zawiera wymagany build.
+Duże serie, dodatkowe prezentacje, aligned i opisy pozostają w ich ticketach.
+
 ## 13: Potwierdzenie odbioru — 2026-10-26
 
 Użytkownik potwierdził: „teraz jest ok. testy manualne ok”.

@@ -12,7 +12,7 @@ from stmviewer.frame import ImageFrame
 from stmviewer.mpp_export import save_original_mpp
 
 
-def generate(destination: Path) -> None:
+def generate(destination: Path, *, long_movie: bool = False) -> None:
     destination.mkdir(parents=True, exist_ok=True)
     frames = []
     for index in range(4):
@@ -30,11 +30,17 @@ def generate(destination: Path) -> None:
     save_original_mpp(destination / 'odd.mpp', tuple(frames), overwrite=True)
     save_original_mpp(destination / 'anisotropic.mpp', tuple(replace(f, size_x_nm=130) for f in frames),
                       overwrite=True)
-    # Repeated frames keep the input modest and permit a reproducible cancel trial.
-    enlarged = tuple(replace(f, data=np.repeat(np.repeat(f.data, 4, axis=0), 4, axis=1)) for f in frames)
-    save_original_mpp(destination / 'long.mpp', enlarged * 100, overwrite=True)
+    if long_movie:
+        # Local-only cancellation input; reuse a few deterministic arrays while
+        # writing. Random texture makes the codec do meaningful work per frame.
+        rng = np.random.default_rng(14)
+        large = tuple(replace(f, data=rng.random((512, 512))) for f in frames)
+        save_original_mpp(destination / 'long.mpp', large * 100, overwrite=True)
     print(destination.resolve())
 
 
 if __name__ == '__main__':
-    generate(Path('data/avi-ticket14'))
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--long', action='store_true', help='Dodatkowo 600 × 512 × 512, około 1,26 GB na dysku')
+    generate(Path('data/avi-ticket14'), long_movie=parser.parse_args().long)

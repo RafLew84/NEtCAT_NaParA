@@ -4,7 +4,7 @@
 
 **Blocked by:** [07: Usuwanie klatek z zachowaniem czasu i pochodzenia](07-frame-deletion.md)
 
-**Status:** in-progress
+**Status:** ready-for-review
 
 **Wykonawca:** Codex
 **Baza przeglądu:** `60785df41de0d5f20517e53cdf4abb0878df6e3c`
@@ -15,14 +15,14 @@ Przed realizacją przeczytaj [zasady wykonania i odbioru](../README.md#zasady-wy
 
 ## Kryteria odbioru
 
-- [ ] Okno zapisuje całą serię lub zakres od–do włącznie w bieżącej numeracji; FPS 1–30 jest domyślnie kopiowane z Play, a kodek to MJPG domyślnie lub FFV1.
-- [ ] Każda wybrana klatka trafia raz do filmu; jedna klatka jest poprawna, pusta seria nie. FPS nie zmienia Play ani czasu pomiaru.
-- [ ] Pierwszy wariant stosuje zatwierdzone ustawienia domyślne: gamma podglądu, kontrast osobno dla klatki, czarne tło braków i czysty obraz. Dodatkowe wybory prezentacji mają osobny etap.
-- [ ] Renderowanie używa wyłącznie ważnych próbek i obsługuje stały obraz/brak próbek. Film obejmuje pełny obraz niezależnie od okna/zoomu.
-- [ ] Wspólna wiarygodna skala X/Y daje proporcje fizyczne, inaczej proporcje pikselowe. Nieparzyste wymiary są dopełnione z prawej/dołu, bez utraty krawędzi.
-- [ ] Przed startem widać liczbę klatek, rozmiar i czas filmu. Wybrany kodek jest sprawdzany bez automatycznej zamiany lub pobierania.
-- [ ] Postęp/anulowanie, spójny zestaw danych/opcji i zapis tymczasowy chronią poprzedni wynik przy błędzie. FFV1 zachowuje dokładnie raster uint8, a MJPG jest stratny.
-- [ ] Oba filmy są faktycznie odczytane i odtworzone w VLC na dostępnym stanowisku; brak zewnętrznej próby jest raportowany jawnie.
+- [x] Okno zapisuje całą serię lub zakres od–do włącznie w bieżącej numeracji; FPS 1–30 jest domyślnie kopiowane z Play, a kodek to MJPG domyślnie lub FFV1.
+- [x] Każda wybrana klatka trafia raz do filmu; jedna klatka jest poprawna, pusta seria nie. FPS nie zmienia Play ani czasu pomiaru.
+- [x] Pierwszy wariant stosuje zatwierdzone ustawienia domyślne: gamma podglądu, kontrast osobno dla klatki, czarne tło braków i czysty obraz. Dodatkowe wybory prezentacji mają osobny etap.
+- [x] Renderowanie używa wyłącznie ważnych próbek i obsługuje stały obraz/brak próbek. Film obejmuje pełny obraz niezależnie od okna/zoomu.
+- [x] Wspólna wiarygodna skala X/Y daje proporcje fizyczne, inaczej proporcje pikselowe. Nieparzyste wymiary są dopełnione z prawej/dołu, bez utraty krawędzi.
+- [x] Przed startem widać liczbę klatek, rozmiar i czas filmu. Wybrany kodek jest sprawdzany bez automatycznej zamiany lub pobierania.
+- [x] Postęp/anulowanie, spójny zestaw danych/opcji i zapis tymczasowy chronią poprzedni wynik przy błędzie. FFV1 zachowuje dokładnie raster uint8, a MJPG jest stratny.
+- [x] Oba filmy są faktycznie odczytane i odtworzone w VLC na dostępnym stanowisku; brak zewnętrznej próby jest raportowany jawnie.
 
 ## Testy automatyczne
 
@@ -51,3 +51,23 @@ Dane i sposób przygotowania nietypowych wzorców dostarcza realizujący ticket.
 ## Współpraca z integracją
 
 Zależności OpenCV/FFmpeg i konfigurację główną koordynuje integracja. Renderer i zapis nie mogą polegać na zrzucie wspólnego widgetu, który zastępuje NaN medianą.
+
+## Wynik implementacji — 2026-10-26
+
+Commity: `959c5c6`, `a9cf6b4`; baza `60785df`.
+[Instrukcja i gotowe dane manualne](../../original-avi-manual.md),
+[przegląd Standards/Spec](../review-14-original-avi.md).
+Kryteria powyżej potwierdzono implementacją i próbami automatycznymi oraz VLC;
+ręczna akceptacja użytkownika pozostaje do wykonania, stąd `ready-for-review`.
+
+- 62 testy zakresu po przeglądzie: passed. Qt xcb: 13 passed.
+- Mypy: 31 plików bez błędów; największy zmieniony plik kodu: 802 linie.
+- Pełne repo: 2056 passed, 14 failed, 16 skipped, 239.70 s. Dokładnie te same
+  14 niepowodzeń MolTrack/NanoTrack co przed zmianą; brak nowych identyfikatorów.
+- VLC 3.0.20/Ubuntu/Xvfb: sześć AVI, oba kodeki, rzeczywisty obraz i EOF,
+  bez błędów. Windows 11 pozostaje osobnym odbiorem.
+- Test małego MJPG wykrył natywne przerwanie procesu przy 4 × 4. Próba kodeka
+  jest izolowana w procesie potomnym, a błąd nie zamyka Viewera i nie zmienia
+  istniejącego filmu. Bez zastępowania kodeka lub pobierania.
+- Użyto netcat, lokalnych danych i OpenCV 4.11.0. Wspólnego kodu ani głównej
+  konfiguracji nie zmieniono; zależności AVI opisuje lokalny requirements-avi.txt.

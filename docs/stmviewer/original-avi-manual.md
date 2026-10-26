@@ -7,8 +7,8 @@ conda activate netcat
 python -m stmviewer.main
 ```
 
-Na nowym stanowisku stos OpenCV/FFmpeg dodaje `python -m pip install -r
-stmviewer/requirements-avi.txt`. Lokalny netcat już go zawiera. Instalacja VLC
+Na nowym stanowisku stos OpenCV/FFmpeg dodaje
+`python -m pip install -r stmviewer/requirements-avi.txt`. Lokalny netcat już go zawiera. Instalacja VLC
 jest osobna; program nie pobiera kodeków. Wybór kodeka jest sprawdzany przez
 próbny zapis/odczyt, a gotowy film przez odczyt wszystkich klatek przed publikacją.
 
@@ -25,8 +25,10 @@ PYTHONPATH=. python tests/stmviewer/make_avi_fixtures.py
   szary znacznik, biała ostatnia kolumna, szary ostatni wiersz i brakujące próbki;
   klatka 5 całkowicie pusta, 6 stała. Znane czasy 10, 15, 35, 40 s w pierwszych czterech.
 - `anisotropic.mpp`: te same dane, piksel X dwa razy szerszy od Y.
-- `long.mpp`: 600 klatek 260 × 196, około 245 MB, do anulowania.
-  Powtórzenia służą tylko próbie zapisu, nie testowi wydajności docelowej serii.
+- `long.mpp`: 600 klatek 512 × 512, około 1,26 GB, do anulowania.
+  Opcjonalnie generowany przez dodanie `--long` do powyższej komendy.
+  Zawiera deterministyczną teksturę; służy próbie zapisu, nie odbiorowi
+  wydajności docelowej serii. Mały film może skończyć się przed kliknięciem Anuluj.
 - MPP i JSON należy zachować razem. To pliki lokalne, poza Git.
 
 ## Próba w programie
@@ -68,6 +70,14 @@ Czarne tło AVI jest ustawieniem ticketu 14. Białe tło podglądu i obecny zapi
 pozostają zgodne z wcześniejszym odbiorem. Wybór czarny/szary/biały, kontrastu
 oraz neutralnej gamma należy do ticketu 15.
 
+Lokalnie można uruchomić tymczasową kopię VLC bez instalacji w systemie:
+
+```bash
+/tmp/stmviewer-avi-vlc/vlc data/avi-ticket14/MOVIE_3-FFV1.avi
+```
+
+Ta kopia pozostaje dostępna do usunięcia katalogu `/tmp/stmviewer-avi-vlc/`.
+
 ## Wykonane sprawdzenia — 2026-10-26
 
 - Testy automatyczne obejmują renderer, rzeczywisty zapis/odczyt obu kodeków,
@@ -81,5 +91,9 @@ oraz neutralnej gamma należy do ticketu 15.
   Zewnętrzny VLC używa bibliotek systemowych Ubuntu, a nie FFmpeg z OpenCV.
   Pakiety rozpakowano w `/tmp/stmviewer-avi-vlc/`, bez instalowania w systemie;
   logi, obrazy i `results.json` są w tym katalogu. Gotowe AVI są przy wzorcach.
+- Rzeczywisty eksport 600 klatek 512 × 512 przerwano przez GUI po rozpoczęciu
+  kodowania (postęp 32). Stary AVI pozostał identyczny bajtowo. Pierwsza próba
+  na mniejszym wzorcu zakończyła się przed kliknięciem, dlatego generator
+  udostępnia teraz większy plik opcjonalnie.
 - Windows 11 i ręczny odbiór użytkownika pozostają do wykonania. Duża seria
   docelowa i test zasobów mają odrębne tickety 18–21.
