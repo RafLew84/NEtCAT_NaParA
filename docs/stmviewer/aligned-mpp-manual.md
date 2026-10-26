@@ -51,7 +51,8 @@ Dla innych metod CPU można podać `--method` (`--help` pokazuje nazwy).
    i obrys nadal powinny być dostępne. Bez nowej rejestracji okno zapisu
    oferuje tylko original.
 8. Otwórz `tests/stmviewer/fixtures/registration/integer.mpp`, wykonaj Phase,
-   usuń klatkę 2 (skrajną), zapisz aligned. Obszar pozostaje **53 × 34**,
+   usuń klatkę 2 (skrajną), zapisz aligned jako `data/integer-aligned.mpp`.
+   Obszar pozostaje **53 × 34**,
    choć klatka wyznaczająca jego prawą krawędź została usunięta. Sprawdź:
 
 ```bash

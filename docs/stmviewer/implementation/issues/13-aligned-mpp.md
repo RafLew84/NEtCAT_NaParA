@@ -4,7 +4,7 @@
 
 **Blocked by:** [08: Rejestracja Phase i pełny widok aligned](08-phase-registration.md), [12: Zapis original do MPP i ponowne otwarcie](12-original-mpp.md)
 
-**Status:** in-progress
+**Status:** ready-for-review
 
 **Wykonawca:** Codex, `viewer/start`, 2026-10-26.
 **Baza code-review:** `6ab0837`.
@@ -15,13 +15,13 @@ Przed realizacją przeczytaj [zasady wykonania i odbioru](../README.md#zasady-wy
 
 ## Kryteria odbioru
 
-- [ ] Okno zapisu oferuje original/aligned i domyślnie aktualnie oglądaną wersję; aligned wymaga kompletnego wyniku.
-- [ ] Zapisuje gotowe próbki aligned bez ponownej interpolacji, przycinania i zastępowania NaN; zachowuje dokładne liczby i maskę po odczycie.
-- [ ] Dodatek opisuje cały obszar, przesunięcia XY, pierwotne wymiary, prostokąty źródeł i historyczne odniesienie, osobno od ważności próbek.
-- [ ] Zapis po usunięciu odniesienia lub skrajnej klatki zachowuje geometrię pozostałego wyniku i nie zmniejsza obszaru.
-- [ ] Ponownie otwarty plik zachowuje historię i nie udaje odzyskanych oryginałów sprzed interpolacji; jego piksele są wejściem bieżącej serii.
-- [ ] O nowej rejestracji decydują wczytane wartości, nie etykieta aligned. Obecne backendy odmawiają wejścia z NaN z czytelnym powodem.
-- [ ] Oba warianty zachowują atomową podmianę po sukcesie, bez utraty poprzedniego zapisu przy błędzie/anulowaniu.
+- [x] Okno zapisu oferuje original/aligned i domyślnie aktualnie oglądaną wersję; aligned wymaga kompletnego wyniku.
+- [x] Zapisuje gotowe próbki aligned bez ponownej interpolacji, przycinania i zastępowania NaN; zachowuje dokładne liczby i maskę po odczycie.
+- [x] Dodatek opisuje cały obszar, przesunięcia XY, pierwotne wymiary, prostokąty źródeł i historyczne odniesienie, osobno od ważności próbek.
+- [x] Zapis po usunięciu odniesienia lub skrajnej klatki zachowuje geometrię pozostałego wyniku i nie zmniejsza obszaru.
+- [x] Ponownie otwarty plik zachowuje historię i nie udaje odzyskanych oryginałów sprzed interpolacji; jego piksele są wejściem bieżącej serii.
+- [x] O nowej rejestracji decydują wczytane wartości, nie etykieta aligned. Obecne backendy odmawiają wejścia z NaN z czytelnym powodem.
+- [x] Oba warianty zachowują atomową podmianę po sukcesie, bez utraty poprzedniego zapisu przy błędzie/anulowaniu.
 
 ## Testy automatyczne
 
@@ -50,3 +50,37 @@ Dane i sposób przygotowania nietypowych wzorców dostarcza realizujący ticket.
 ## Współpraca z integracją
 
 Adapter materializatora i ewentualne wspólne typy geometrii uzgodnić z integracją. Nie rekonstruować historii z obwiedni skończonych pikseli.
+
+
+## Wynik implementacji — 2026-10-26
+
+Commity: `ec21f6a` (funkcja) i `35858f1` (poprawki przeglądu).
+W oknie zapisu pole **Typ pliku** wybiera MPP original/aligned, domyślnie
+aktualny widok. Aligned zapisuje gotowe próbki i dodatek V2 z geometrią
+oraz historią; zwykły original pozostaje przy V1. Po odczycie nie powstają
+pozorne wcześniejsze oryginały. [Kontrakt V1/V2](../../mpp-metadata-format.md).
+
+- Końcowe testy Viewera: **231 passed, 2 skipped**, 23.95 s; pominięcia
+  dotyczą opcjonalnych prób rzeczywistych wag Deep Matcher.
+- Mypy strict: **25 plików**, bez błędów. Największy zmieniony plik kodu:
+  **767 linii**. `git diff --check` poprawny.
+- Pełny zestaw repo przed poprawką przeglądu: **2016 passed, 14 failed,
+  16 skipped**, 239.42 s. Niepowodzenia dotyczą MolTrack/NanoTrack.
+  Spośród nich 13 odtworzono na czystym archiwum bazy `6ab0837`;
+  test NanoTrack `test_edge_correction_and_resume_replace_suffix` przeszedł
+  osobno zarówno na bazie, jak i bieżącym kodzie. Pełnego repo nie oznaczamy
+  jako zaliczonego. Po poprawce ponowiono cały zestaw Viewera.
+- Próba automatyczna rzeczywistego Qt xcb: wybór aligned w dialogu,
+  rejestracja subpikselowa, usunięcie odniesienia, zapis i otwarcie z obrysem
+  64 × 64 na obszarze 68 × 67. Zrzuty ocenione wizualnie.
+- Lokalny `data/MOVIE_3.MPP`: rejestracja Phase, usunięcie odniesienia,
+  16 klatek 398 × 398 zapisanych i odczytanych z dokładnymi próbkami i geometrią.
+- NaPara/NanoTrack/MolTrack odczytują wartości i NaN nowego eksportu;
+  zachowanie V1 i natywnego nagłówka WSxM objęte regresjami.
+- [Code-review Standards/Spec](../review-13-aligned-mpp.md): obie uwagi
+  poprawione i ponownie sprawdzone; brak otwartych ustaleń.
+
+**Ręczny odbiór użytkownika: oczekuje.** [Instrukcja GUI i porównania wartości](../../aligned-mpp-manual.md).
+Automatyczne Qt offscreen/xcb nie zastępuje tego odbioru ani próby Windows 11.
+WSxM dla NaN/aligned nie sprawdzano w tym etapie; jest dodatkowym testem.
+Pełne wyniki i lokalizacje logów: [handoff](../../handoff.md).

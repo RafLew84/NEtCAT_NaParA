@@ -1,5 +1,90 @@
 # Przekazanie — STM Viewer
 
+## 13: Zapis aligned do MPP — 2026-10-26
+
+Gałąź `viewer/start`. Baza `6ab0837abb5b4e6ba356a1ff6121779302e3585a`.
+Implementacja **`ec21f6a`**, poprawki przeglądu **`35858f1`**.
+[Ticket 13](implementation/issues/13-aligned-mpp.md): **`ready-for-review`**.
+[Próba ręczna](aligned-mpp-manual.md), [kontrakt V1/V2](mpp-metadata-format.md),
+[przegląd Standards/Spec](implementation/review-13-aligned-mpp.md).
+
+### Wynik
+
+Zapisz MPP… / Ctrl+S oferuje original/aligned w polu Typ pliku okna zapisu,
+domyślnie aktualny widok. Aligned wymaga gotowego wyniku rejestracji.
+Oba warianty zapisują całą pozostałą serię, używając wspólnego zapisu
+z postępem, anulowaniem i przywracaniem poprzedniej pary przy błędzie.
+
+Eksport aligned zachowuje float64, NaN, pełny obszar, padding, skumulowane
+przesunięcia, prostokąty źródeł i historyczne odniesienie — także usunięte.
+Nie interpoluje ponownie. Dodatek V2 rozdziela źródłowe pole/offsety od
+rozmiaru obszaru aligned i regułę ważności próbek od prostokąta źródła.
+Odczyt traktuje zapisane piksele jako nowe wejście original; pokazuje
+historię i obrys bez tworzenia fikcyjnych oryginałów ani wyniku rejestracji.
+Ponowny zapis original zachowuje historię; nowa rejestracja tworzy nowy etap,
+zachowując poprzednie. NaN/Inf blokują obecne backendy z czytelną przyczyną;
+skończony plik ze znacznikiem aligned może być rejestrowany.
+
+Przegląd wskazał niespójność tolerancji wspólnej skali: kolejne porównania
+mogły uznać dryfujące wartości za wspólne. Teraz wszystkie klatki porównuje
+się z jedną skalą odniesienia. Przy niespójności aligned używa pikseli,
+a zapis zachowuje indywidualne parametry źródeł. Wspólna walidacja pochodzenia
+obsługuje również odniesienie historyczne.
+
+### Sprawdzenia
+
+- TDD na zatwierdzonych granicach: dokładny zapis/odczyt subpikseli po
+  usunięciu odniesienia, publiczny wybór wersji i historia w GUI, niespójna
+  skala kolejnych etapów oraz regresja dryfujących skal — red → green.
+- Końcowy Viewer: **231 passed, 2 skipped**, 23.95 s. Obejmuje V1/V2,
+  zachowanie maski i prostokąta osobno, różne/nieznane kalibracje, ponowny
+  zapis i rejestrację, błędy dodatku, rollback i anulowanie obu wariantów,
+  rzeczywisty dialog Qt oraz odczyt przez trzy dotychczasowe aplikacje.
+  Dwa pominięcia dotyczą opcjonalnych testów wag Deep Matcher.
+- Mypy strict: **25 plików** bez błędów. Największy zmieniony plik Python:
+  `main_window.py`, **767 linii**; wszystkie poniżej 1000/1500.
+- Pełny zestaw repo uruchomiony raz przed poprawką przeglądu:
+  **2016 passed, 14 failed, 16 skipped**, 239.42 s, bez błędów zbierania.
+  Wszystkie niepowodzenia dotyczą MolTrack/NanoTrack. W czystym archiwum
+  bazy `6ab0837` uruchomiono te 14 testów: **13 failed, 1 passed**.
+  Przechodzący osobno `test_edge_correction_and_resume_replace_suffix`
+  przeszedł również na bieżącej gałęzi (0.66 s). To niepowtarzalny lokalnie
+  błąd pełnego przebiegu; nie deklarujemy zielonego odbioru całego repo.
+  Po poprawce przeglądu uruchomiono pełny zestaw Viewera, bez ponawiania repo.
+- Automatyczne Qt xcb na Linuksie: rzeczywisty wybór pliku i wersji w oknie,
+  Phase na `subpixel.mpp`, usunięcie odniesienia, gamma 2, zapis i otwarcie.
+  Zrzuty pokazują prawidłowy wybór aligned oraz odtworzony obrys 64 × 64
+  na obszarze 68 × 67. Skrypt kontrolny potwierdził dokładne próbki,
+  3969 ważnych pikseli i całą geometrię.
+- Lokalny `data/MOVIE_3.MPP`: Phase, usunięcie pierwszej klatki,
+  **16 klatek 398 × 398**, dokładna zgodność bajtów próbek i prostokątów.
+  Wyniki zapisano pod nowymi nazwami w `/tmp/stmviewer-ticket13/`.
+- Przegląd dwóch niezależnych agentów: Standards — jedna drobna duplikacja;
+  Spec — jeden błąd P2 wspólnej skali. Obie poprawki zatwierdzone przez
+  recenzentów, **0 otwartych ustaleń** w obu osiach.
+
+Logi lokalne: `/tmp/stmviewer-aligned-full-suite.log`,
+`/tmp/stmviewer-aligned-final-viewer-tests.log`,
+`/tmp/stmviewer-aligned-baseline-failures.log`,
+`/tmp/stmviewer-aligned-edge-repeat.log`, `/tmp/stmviewer-ticket13-probe.log`.
+Zrzuty: `/tmp/stmviewer-ticket13/save-dialog.png` i `reopened.png`.
+
+### Odbiór i integracja
+
+Uruchomienie: z katalogu repo `conda activate netcat`, `python -m stmviewer.main`.
+Ręczna próba użytkownika **oczekuje**; automatyczne offscreen/xcb nie są jej
+zastępstwem. Windows 11 oraz opcjonalne odczytanie aligned z NaN w WSxM
+pozostają niesprawdzone w tym etapie. Do ręcznej próby dostarczono istniejące
+małe wzorce i `tests/stmviewer/check_aligned_mpp.py` z kontrolą wartości i geometrii.
+
+Nie zmieniono współdzielonych aplikacji ani głównej konfiguracji; brak
+nowej blokady integracyjnej. Istniejące czytniki wspólne nadal nie rozumieją
+indywidualnej historii JSON; jej obsługa jest lokalna dla STM Viewera.
+Historia ma limit 32 etapów i limit dodatku 64 MiB. MPP oraz JSON należy
+przenosić razem. Nie jest to atomowa operacja dwóch plików przy twardym
+zakończeniu procesu; niezgodny dodatek jest wtedy odrzucany przez SHA-256.
+
+
 ## 12: Potwierdzenie odbioru — 2026-10-26
 
 Użytkownik potwierdził: „testy manualne 12 ok”.

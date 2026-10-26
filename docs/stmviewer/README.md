@@ -113,7 +113,8 @@ ma status `done`: użytkownik potwierdził testy manualne 2026-10-23.
 [Zapis original do MPP i ponowne otwarcie](implementation/issues/12-original-mpp.md)
 ma status `done`: użytkownik potwierdził [testy manualne](original-mpp-manual.md)
 2026-10-26.
-[Zapis aligned do MPP](implementation/issues/13-aligned-mpp.md) jest realizowany;
+[Zapis aligned do MPP](implementation/issues/13-aligned-mpp.md) ma status
+`ready-for-review`;
 [scenariusz próby ręcznej](aligned-mpp-manual.md) obejmuje zapis po usunięciu
 odniesienia, historię geometrii i dokładne porównanie próbek.
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.

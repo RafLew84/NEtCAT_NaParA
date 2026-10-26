@@ -9,9 +9,10 @@ python -m stmviewer
 Na tym stanowisku Python jest pod
 `/home/rlew/projekty/conda-migration-ubuntu-20261008/envs/netcat/bin/python`.
 Wyniki zapisuj poza danymi źródłowymi, np. w nowym katalogu `/tmp/stmviewer-export-manual`
-(na Windows w swoim katalogu roboczym). Przycisk **Zapisz original MPP…** oraz
-Plik → Zapisz original MPP… / Ctrl+S zapisują wszystkie pozostałe klatki original.
-Także podczas oglądania aligned zapis dotyczy original; eksport aligned jest ticketem 13.
+(na Windows w swoim katalogu roboczym). Przycisk **Zapisz MPP…** oraz Plik → Zapisz MPP… / Ctrl+S otwierają okno zapisu
+wszystkich pozostałych klatek. Od ticketu 13 wybierz w polu **Typ pliku**
+opcję **MPP original**; domyślna wersja odpowiada aktualnie oglądanemu widokowi.
+Eksport aligned opisuje [osobna instrukcja](aligned-mpp-manual.md).
 
 ## Wartości, usuwanie i ponowne otwarcie
 
@@ -29,7 +30,8 @@ Także podczas oglądania aligned zapis dotyczy original; eksport aligned jest t
 5. Sprawdź `fixtures/preview/missing.stp`: NaN po ponownym otwarciu nadal
    pokazuje szachownicę. Gamma i zoom nie zmieniają wartości w filmie.
 6. Otwórz `fixtures/registration/integer.mpp`, wybierz Rejestruj, obejrzyj aligned
-   i zapisz. Ponownie otwarty film ma pierwotne wymiary i obrazy original.
+   i zapisz, wybierając **MPP original**. Ponownie otwarty film ma pierwotne
+   wymiary i obrazy original.
 
 Dokładne porównanie pierwszego wyniku (uruchom z katalogu repo, dostosuj ścieżkę):
 
