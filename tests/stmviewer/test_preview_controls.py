@@ -113,17 +113,17 @@ def test_zoom_buttons_use_center_and_fit_keeps_gamma(window, qtbot, monkeypatch)
     assert image(preview) == fitted and gamma.value() == 2
 
 
-def test_missing_samples_have_checkerboard_independent_of_gamma(window, qtbot, monkeypatch):
+def test_missing_samples_are_white_independent_of_gamma(window, qtbot, monkeypatch):
     open_files(qtbot, window, monkeypatch, [FIXTURES / 'preview/pattern1.stp'])
     preview = window.findChild(QWidget, 'imagePreview')
     before = image(preview)
     missing = {(x, y): before.pixelColor(x, y).rgba() for x in range(304, 344) for y in range(4, 44)}
-    assert {before.pixelColor(x, y).red() for x, y in missing} == {96, 144}
+    assert {before.pixelColor(x, y).getRgb() for x, y in missing} == {(255, 255, 255, 255)}
     assert before.pixelColor(50, 50).red() == 0
     assert before.pixelColor(150, 50).red() == 63
     strip = window.findChild(QListView, 'frameThumbnails')
     icon = strip.model().index(0, 0).data(Qt.ItemDataRole.DecorationRole).pixmap(96, 72).toImage()
-    assert icon.pixelColor(90, 5).red() in (96, 144)
+    assert icon.pixelColor(90, 5).getRgb() == (255, 255, 255, 255)
 
     for value, grey in [(2, 127), (0.1, 0), (4, 180)]:
         window.findChild(QDoubleSpinBox, 'previewGamma').setValue(value)
@@ -181,7 +181,7 @@ def test_constant_and_all_missing_frames_remain_displayable(window, qtbot, monke
     for gamma, constant_grey in [(1, 127), (2, 180), (0.5, 63)]:
         window.findChild(QDoubleSpinBox, 'previewGamma').setValue(gamma)
         colors = {image(preview).pixelColor(x, 50).red() for x in (4, 12, 20, 28)}
-        assert colors == ({constant_grey} if name == 'constant.stp' else {96, 144})
+        assert colors == ({constant_grey} if name == 'constant.stp' else {255})
 
 
 def test_public_preview_actions_never_modify_measurement_values_or_metadata(qtbot):

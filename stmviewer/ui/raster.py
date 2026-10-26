@@ -4,7 +4,7 @@ import math
 
 import numpy as np
 from PyQt6.QtCore import QRectF, QSize
-from PyQt6.QtGui import QBrush, QColor, QImage, QPainter
+from PyQt6.QtGui import QColor, QImage, QPainter
 
 from stmviewer.frame import ImageFrame
 
@@ -45,14 +45,8 @@ def frame_image(frame: ImageFrame, *, gamma: float = 1.0) -> QImage:
 
 
 def draw_frame(painter: QPainter, target: QRectF, image: QImage) -> None:
-    """Composite missing samples over a screen-sized checker, after gamma."""
-    tile = QImage(16, 16, QImage.Format.Format_RGB32)
-    tile.fill(QColor(96, 96, 96))
-    tile_painter = QPainter(tile)
-    tile_painter.fillRect(0, 0, 8, 8, QColor(144, 144, 144))
-    tile_painter.fillRect(8, 8, 8, 8, QColor(144, 144, 144))
-    tile_painter.end()
-    painter.fillRect(target, QBrush(tile))
+    """Show missing samples on white, independently of image gamma."""
+    painter.fillRect(target, QColor(255, 255, 255))
     painter.drawImage(target, image)
 
 

@@ -35,6 +35,11 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Decisions so far
 
+Aktualizacja po implementacji: użytkownik zlecił [ujednolicenie zapisu
+oraz białe tło braków](implementation/issues/13-white-background.md).
+Ta decyzja zastępuje wcześniejszą szachownicę i dodatkowe warianty GUI
+WSxM/NaN. Rejestracja i zachowanie braków w parze MPP+JSON pozostają.
+
 - [Seria wejściowa i usuwanie klatek](issues/01-frame-series.md): ustalono kolejność,
   zastępowanie całej serii, zgodność wymiarów oraz usuwanie z zachowaniem pochodzenia klatek.
 - [Podgląd, gamma i odtwarzanie serii](issues/02-preview-playback.md): wybrano wariant B

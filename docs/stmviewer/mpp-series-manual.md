@@ -84,7 +84,7 @@ Nagłówek jest czytany do `[Header end]` bez limitu liczby linii/klatek;
 pojedyncza linia ma ochronny limit 64 KiB. Liczbę i długość danych sprawdzamy
 przed alokacją klatek. Metadane zachowują sekcje źródłowe. Nieznane jednostki
 kalibracji pozostają nieznane, rzeczywiste zero z jednostką pozostaje zerem.
-NaN pozostaje w danych; podgląd pokazuje go szachownicą niezależną od gamma
+NaN pozostaje w danych; podgląd pokazuje go białym tłem niezależnym od gamma
 ([ustawienia podglądu](preview-controls-manual.md)).
 Odczyt dodatku metadanych i eksport należą do kolejnych ticketów.
 

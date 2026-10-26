@@ -31,10 +31,10 @@ w kolejności widocznej na ekranie (`—` oznacza NaN):
 
 | Plik | Oczekiwany wynik |
 | --- | --- |
-| `pattern1.stp` | Czarne zera, dwa poziomy szarości, białe jedynki, szachownica w brakujących próbkach |
+| `pattern1.stp` | Czarne zera, dwa poziomy szarości, białe jedynki, białe tło w brakujących próbkach |
 | `pattern2.stp` | Ten sam wygląd; skończone liczby są większe o 10, NaN pozostaje NaN |
 | `constant.stp` | Wszystkie wartości 7; jednolite szare pole przy gamma 1 |
-| `missing.stp` | Wszystkie wartości NaN; całe pole jest szachownicą |
+| `missing.stp` | Wszystkie wartości NaN; całe pole ma białe tło |
 | `physical.stp` | Wzór jak pattern1, pole 8 × 9 nm; obraz jest wyższy niż szerszy |
 | `placeholder.stp` | Wzór jak pattern1, pole 1000 × 1000 nm; sztuczny przykład zastępczej skali |
 
@@ -45,7 +45,7 @@ Nie wybieraj całego katalogu jako pierwszej próby: do sekwencji użyj
 
 1. Otwórz razem `pattern1.stp` i `pattern2.stp`. Ustaw gamma 2: szare pola
    rozjaśniają się, zera pozostają czarne, białe pola pozostają białe,
-   a szachownica się nie zmienia. Miniatury nadal mają gamma 1.
+   a białe tło się nie zmienia. Miniatury nadal mają gamma 1.
    Przy gamma 0,5 szare pola ciemnieją. Sprawdź krańce 0,1 i 4 oraz Reset gamma.
 2. Ustaw gamma 2, przybliż kółkiem przy krawędzi rozpoznawalnego pola.
    Punkt pod kursorem pozostaje w tym samym miejscu. Przeciągnij obraz lewym
@@ -58,7 +58,7 @@ Nie wybieraj całego katalogu jako pierwszej próby: do sekwencji użyj
    pozostawiając gamma; Reset gamma pozostawia zoom i przesunięcie.
 4. Otwórz `constant.stp`. Przy gamma 1 oczekuj jednolitej szarości;
    gamma 2 rozjaśnia ją, a 0,5 przyciemnia. Następnie otwórz `missing.stp`:
-   cała klatka jest szachownicą niezależną od gamma. Pozostaje możliwy zoom.
+   cała klatka jest biała niezależnie od gamma. Pozostaje możliwy zoom.
 5. Otwórz `physical.stp`: proporcja wynika z pola 8 × 9 nm.
    Zaznacz Proporcje pikselowe: obraz i miniatura zmieniają proporcję na 4:3,
    a parametry z pliku nadal pokazują 8 i 9 nm. Odznaczenie przywraca proporcję
@@ -90,9 +90,8 @@ Przełącznik nie przelicza i nie usuwa metadanych.
 
 Skończone wartości są normalizowane do `u` od 0 do 1 według zakresu klatki,
 a jasność wynosi `u ** (1 / gamma)`. Stała klatka przyjmuje `u = 0,5`
-przed gamma. Dane pomiarowe nie są zmieniane. Szachownica ma pola o stałym
-rozmiarze ekranowym i jest rysowana pod przezroczystą maską braków; nie trafia
-do pomiaru. Tak samo prezentowane są inne niefinitywne wartości, np. ±Inf.
+przed gamma. Dane pomiarowe nie są zmieniane. Białe tło jest rysowane
+pod przezroczystą maską braków i nie trafia do pomiaru. Tak samo prezentowane są inne niefinitywne wartości, np. ±Inf.
 
 ## Wykonane sprawdzenia
 

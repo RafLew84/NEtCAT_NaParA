@@ -13,12 +13,12 @@ MAX_RUNS = 500_000
 
 
 def background_value(data: NDArray[np.float64], checkpoint: Callable[[], None]) -> float:
-    minimum = math.inf
+    maximum = -math.inf
     for row in range(0, data.shape[0], 128):
         checkpoint()
         block = data[row:row + 128]
-        minimum = min(minimum, float(np.min(block, where=np.isfinite(block), initial=np.inf)))
-    return minimum if math.isfinite(minimum) else 0.0
+        maximum = max(maximum, float(np.max(block, where=np.isfinite(block), initial=-np.inf)))
+    return maximum if math.isfinite(maximum) else 0.0
 
 
 def encode_missing_samples(data: NDArray[np.float64], checkpoint: Callable[[], None],
@@ -43,7 +43,7 @@ def encode_missing_samples(data: NDArray[np.float64], checkpoint: Callable[[], N
                 runs[-1][1] = int(runs[-1][1]) + count
             else:
                 if len(runs) >= remaining_runs:
-                    raise ValueError('Zbyt wiele przedziałów braków dla dodatku WSxM; użyj zapisu z NaN.')
+                    raise ValueError('Zbyt wiele przedziałów braków: dodatek może zawierać najwyżej 500 000.')
                 runs.append([offset, count, encoded])
     return {'encoding': 'runs-f64le-v1', 'fill_value': background_value(data, checkpoint), 'runs': runs}
 

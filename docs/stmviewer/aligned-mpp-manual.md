@@ -16,14 +16,13 @@ z towarzyszącym `<nazwa>.mpp.stmviewer.json`.
 
 1. Otwórz `tests/stmviewer/fixtures/registration/subpixel.mpp` (2 klatki).
    Wybierz Phase i Rejestruj. Zapisz widoczne w panelu przesunięcie oraz
-   wymiary aligned; pokaże się powiększone pole z szachownicą i żółtym obrysem.
+   wymiary aligned; pokaże się powiększone pole z białym tłem i żółtym obrysem.
 2. Wybierz klatkę 1 i Usuń klatkę. Zostaje dawna klatka 2; obszar oraz
    historyczne odniesienie nie zmieniają się. Ustaw gamma 2, powiększ obraz.
 3. Kliknij **Zapisz MPP…** (również Plik / Ctrl+S). W oknie zapisu pole
    **Typ pliku** zawiera `MPP original` i `MPP aligned`. Domyślnie wybrane
-   jest **MPP aligned — WSxM**, czyli oglądana wersja ze skończonym tłem
-   w MPP i odtwarzaniem braków z JSON. Wariant **MPP aligned — NaN** zachowuje
-   braki bezpośrednio w MPP. Zapisz jako `data/subpixel-aligned.mpp`.
+   jest **MPP aligned**, czyli oglądana wersja z jasnym tłem w MPP
+   i odtwarzaniem braków z JSON. Zapisz jako `data/subpixel-aligned.mpp`.
    Gamma, zoom i bieżąca klatka pozostają bez zmian.
 4. Przed zmianą serii zapisz drugi plik, wybierając **MPP original**:
    `data/subpixel-original.mpp`. Ten plik zawiera tylko pozostałą oryginalną
@@ -42,7 +41,7 @@ serii źródłowej metodą Phase, a następnie uwzględnia usunięcie klatki 1.
 Dla innych metod CPU można podać `--method` (`--help` pokazuje nazwy).
 
 6. Otwórz `data/subpixel-aligned.mpp`. Nowy import ustawia gamma 1 i dopasowanie.
-   Powinien mieć te same wymiary obszaru, szachownicę oraz źródłowy obrys.
+   Powinien mieć te same wymiary obszaru, białe tło oraz źródłowy obrys.
    Panel **Historia aligned** pokazuje źródłowe 64 × 64, przesunięcie,
    odniesienie do dawnej klatki 1 i źródłowe pole/offsety.
    Plik otwarty i pochodzenie pozostają rozdzielone. Widok nazywa się
@@ -51,7 +50,7 @@ Dla innych metod CPU można podać `--method` (`--help` pokazuje nazwy).
 7. Kliknij Rejestruj. Oczekuj czytelnego komunikatu o NaN/Inf, bez zmiany
    obrazu. Zapisz ponownie jako original pod trzecią nazwą i otwórz: historia
    i obrys nadal powinny być dostępne. Bez nowej rejestracji okno zapisu
-   oferuje tylko original, w wariantach WSxM i NaN.
+   oferuje tylko original.
 8. Otwórz `tests/stmviewer/fixtures/registration/integer.mpp`, wykonaj Phase,
    usuń klatkę 2 (skrajną), zapisz aligned jako `data/integer-aligned.mpp`.
    Obszar pozostaje **53 × 34**,
@@ -76,11 +75,6 @@ python tests/stmviewer/check_aligned_mpp.py --source tests/stmviewer/fixtures/re
 Odbiór ręczny użytkownika: oczekuje. Testy Qt sterowane skryptem są
 odrębnym sprawdzeniem automatycznym. Ten scenariusz nie wymaga WSxM ani AVI.
 
-Dodatkowa próba WSxM: [diagnoza MOVIE_3-aligned.mpp](wsxm-aligned-investigation.md)
-wykazała czarny obraz przy NaN w WSxM 5.0 Develop 12.0 pod Wine.
-Weryfikator danych potwierdza poprawny zapis; kopia ze sztucznym tłem
-służy wyłącznie do oglądania. Nie zmienia to wymogu zachowania NaN w MPP.
-
-Poprawka aplikacji dodaje teraz wariant WSxM z pełnym odtwarzaniem braków:
-[scenariusz ręczny](wsxm-export-manual.md). Wcześniejsza kopia `-preview`
-pozostaje wyłącznie podglądem; nowy eksporter tworzy pełną parę z dodatkiem V3.
+[Próba białego tła i WSxM](wsxm-export-manual.md) opisuje jednolity zapis
+z jasnym tłem i pełnym odtwarzaniem braków z V3. Algorytm rejestracji
+pozostaje bez zmian; biel jest sposobem prezentacji miejsc bez pomiaru.

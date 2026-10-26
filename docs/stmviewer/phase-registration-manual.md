@@ -43,7 +43,7 @@ Metadane zastępcze w tym drugim filmie nie potwierdzają rzeczywistej kalibracj
    i gamma 1,5. Play mogło przejść dalej przed kliknięciem Rejestruj.
    Wybierz teraz klatkę 2: oczekuj ΔX 3 px i ΔY −2 px; panel podaje 53 × 34 px.
 2. Przejdź przez klatki: znaczniki obrazu powinny pozostawać na wspólnej
-   pozycji. Żółty przerywany obrys wskazuje pełne pole źródła; szachownica
+   pozycji. Żółty przerywany obrys wskazuje pełne pole źródła; białe tło
    oznacza brak próbek, również przy gamma innej niż 1.
 3. Zmień zoom i przesunięcie aligned. Przełącz na original i z powrotem:
    każdy widok przywraca własny kadr. Gamma jest wspólna. Zmiana widoku
@@ -57,7 +57,7 @@ Metadane zastępcze w tym drugim filmie nie potwierdzają rzeczywistej kalibracj
    brak starego wyniku. Ponowne otwarcie źródła przywraca wszystkie klatki.
 6. Otwórz `subpixel.mpp` i zarejestruj. Obrys drugiej klatki nadal odpowiada
    polu 64 × 64, choć brzeg ważnych próbek po interpolacji jest węższy.
-   Powiększenie pomaga rozpoznać szachownicę pomiędzy obrysem a próbkami.
+   Powiększenie pomaga rozpoznać białe tło pomiędzy obrysem a próbkami.
 7. Otwórz `uncertain.mpp`, zarejestruj i obejrzyj klatki 2/3. Wynik pozostaje
    dostępny; panel i miniatury ostrzegają o niepewności. Trzecia dziedziczy
    niepewność. Usunięcie drugiej jej nie usuwa.

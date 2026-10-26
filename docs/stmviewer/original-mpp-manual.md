@@ -28,7 +28,7 @@ Eksport aligned opisuje [osobna instrukcja](aligned-mpp-manual.md).
    `fixtures/s94/frame2.s94` (ścieżki względem `tests/stmviewer`). Oba można zapisać.
    Po usunięciu ostatniej klatki zapis jest nieaktywny.
 5. Sprawdź `fixtures/preview/missing.stp`: NaN po ponownym otwarciu nadal
-   pokazuje szachownicę. Gamma i zoom nie zmieniają wartości w filmie.
+   pokazuje białe tło. Gamma i zoom nie zmieniają wartości w filmie.
 6. Otwórz `fixtures/registration/integer.mpp`, wybierz Rejestruj, obejrzyj aligned
    i zapisz, wybierając **MPP original**. Ponownie otwarty film ma pierwotne
    wymiary i obrazy original.

@@ -322,18 +322,17 @@ class STMViewerMainWindow(QMainWindow):
         self._pause()
         source = self._frames[self._index].source
         kinds = ['original', 'aligned'] if self._registration is not None else ['original']
-        formats = {f"MPP {kind} — {label} (*.mpp *.MPP)": (kind, compatible)
-                   for label, compatible in [('WSxM', True), ('NaN', False)] for kind in kinds}
+        formats = {f"MPP {kind} (*.mpp *.MPP)": kind for kind in kinds}
         kind = 'aligned' if self._view.currentText() == 'aligned' else 'original'
-        default = f"MPP {kind} — WSxM (*.mpp *.MPP)"
+        default = f"MPP {kind} (*.mpp *.MPP)"
         filename, chosen = QFileDialog.getSaveFileName(
-            self, "Zapisz MPP — wybierz wersję i zgodność z WSxM",
+            self, "Zapisz całą serię MPP — wybierz original/aligned w typie pliku",
             str(source.with_name(source.stem + f'-{kind}.mpp')), ';;'.join(formats), initialFilter=default,
             options=QFileDialog.Option.DontConfirmOverwrite,
         )
         if not filename:
             return
-        kind, compatible = formats[chosen or default]
+        kind = formats[chosen or default]
         registration = self._registration if kind == 'aligned' else None
         path = Path(filename)
         if path.suffix.lower() != '.mpp':
@@ -351,7 +350,7 @@ class STMViewerMainWindow(QMainWindow):
             if confirmation.exec() != QMessageBox.StandardButton.Yes:
                 return
         job = MppExportJob(path, self._frames, self, overwrite=bool(existing), registration=registration,
-                           wsxm_compatible=compatible)
+                           wsxm_compatible=True)
         self._export_job = job
         self._export_info.setText(f"Zapis całej serii {kind}…")
         self._export_progress.setRange(0, len(self._frames) + 3)

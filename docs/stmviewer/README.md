@@ -14,7 +14,7 @@ Wymagane są wspólne wymiary pikselowe, skale i kanały mogą się różnić.
 Kółko myszy zmienia zoom pod kursorem; przeciąganie lewym przyciskiem przesuwa
 obraz z zachowaniem powiększenia. Przyciski +/− zmieniają zoom wokół środka.
 Gamma 0,1–4 dotyczy głównego obrazu; miniatury pozostają przy gamma 1.
-Brakujące próbki pokazuje szachownica. Opcja Proporcje pikselowe pozwala
+Brakujące próbki pokazuje białe tło. Opcja Proporcje pikselowe pozwala
 pominąć niewiarygodną skalę źródłową: [próba podglądu](preview-controls-manual.md). Zmiana klatki zachowuje widok, a „Dopasuj”
 i nowy poprawny import przywracają całą klatkę. Próba ręczna:
 [instrukcja serii STP](stp-series-manual.md) oraz
@@ -33,10 +33,10 @@ wag LoFTR i pozwala wybrać Auto/CPU/CUDA; Sprawdź model działa w tle.
 [Instrukcja modelu i wag](deep-matcher-manual.md). Działa zapis całej serii original lub aligned do MPP z towarzyszącymi metadanymi,
 postępem i anulowaniem: [zapis original](original-mpp-manual.md) oraz
 [zapis aligned](aligned-mpp-manual.md). Wersję wybiera się w polu Typ pliku
-okna zapisu; domyślnie jest to aktualny widok w wariancie **WSxM**.
-Wariant WSxM zapisuje skończone tło w MPP i dokładne braki w JSON; wariant
-**NaN** zachowuje je bezpośrednio w MPP. Do odtworzenia braków w STM Viewerze
-przenoś oba pliki razem. [Próba zgodności WSxM](wsxm-export-manual.md). Odczyt aligned zachowuje pełny
+okna zapisu; domyślnie jest to aktualny widok. Dostępne są tylko **original**
+i **aligned**. Zapis używa jasnego tła w MPP i dokładnego opisu braków w JSON.
+Do odtworzenia braków w STM Viewerze przenoś oba pliki razem.
+[Próba zapisu i białego tła](wsxm-export-manual.md). Odczyt aligned zachowuje pełny
 obszar, NaN, obrys źródłowej klatki i historię. Eksport AVI należy do kolejnych ticketów.
 Przycisk Usuń klatkę usuwa bieżący obraz z serii, zatrzymuje Play i zachowuje
 pochodzenie oraz czasy pozostałych klatek. Źródła na dysku pozostają bez zmian:

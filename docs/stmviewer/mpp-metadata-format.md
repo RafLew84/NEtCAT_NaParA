@@ -3,11 +3,11 @@
 Kontrakt ticketów [11](implementation/issues/11-mpp-metadata-import.md),
 [12](implementation/issues/12-original-mpp.md) i [13](implementation/issues/13-aligned-mpp.md).
 Aktualizacja: 2026-10-26. V1 opisuje original bez geometrii rejestracji.
-V2 dodaje historię aligned. Wariant zapisu **NaN** nadal używa V1 dla original
-bez historii i V2 dla aligned lub original z historią. Nowy wariant **WSxM**
-używa V3, opisanej poniżej; GUI wybiera go domyślnie. API zachowuje domyślne
-`wsxm_compatible=False`; zgodność włącza się jawnym `True`. Odczyt obsługuje
-wszystkie trzy wersje.
+V2 dodaje historię aligned. GUI zapisuje teraz zawsze V3 i oferuje tylko
+original/aligned, bez dodatkowego wyboru WSxM/NaN. API zachowuje zgodność:
+`wsxm_compatible=False` zapisuje NaN w MPP i V1/V2, a `True` zapisuje
+skończone tło z odtwarzaniem braków przez V3. Odczyt obsługuje wszystkie
+wersje. [Ujednolicenie i białe tło](implementation/issues/13-white-background.md).
 
 ## Lokalizacja i powiązanie
 
@@ -180,8 +180,8 @@ obowiązkowe `missing_samples`:
 ```
 
 - `fill_value`: skończona liczba użyta w MPP zamiast NaN/Inf. Eksporter
-  wybiera minimum skończonych próbek danej klatki lub zero przy ich braku.
-  Skończone wartości pomiaru, również równe temu minimum, pozostają bez zmian.
+  wybiera maksimum skończonych próbek danej klatki lub zero przy ich braku.
+  Skończone wartości pomiaru, również równe temu maksimum, pozostają bez zmian.
 - `runs`: posortowane rozłączne przedziały `[start, count, bits]` w obrębie
   spłaszczonego obrazu **Viewera** (C order, `start=y*width+x`), przed obrotem
   do kolejności plikowej MPP. `start` jest nieujemnym indeksem od zera,
@@ -195,7 +195,7 @@ obowiązkowe `missing_samples`:
 Powyższy przykład przywraca NaN na pozycji 2 i −Inf na pozycji 4. Odczyt
 sprawdza zakresy, rozłączność, typy, bity oraz zgodność wskazanych pikseli
 MPP z `fill_value`. Nie wyznacza braków przez porównanie wszystkich pikseli
-z minimum ani z prostokątem źródła. `alignment.validity=isfinite(samples)`
+z wartością tła ani z prostokątem źródła. `alignment.validity=isfinite(samples)`
 dotyczy próbek **po odtworzeniu**; tak wyznaczona maska zachowuje również
 dziury wewnątrz pola. Historia rejestracji nie zmienia się przez ten zapis.
 
@@ -204,14 +204,27 @@ odrzuca cały dodatek i wszystkie odtworzone braki; użytkownik dostaje
 skończone piksele MPP oraz komunikat. Brakujący/odrzucony JSON uniemożliwia
 odróżnienie sztucznego tła od pomiaru. Przenosić trzeba **MPP i JSON razem**.
 Starsze wersje Viewera oraz czytniki NaPara/NanoTrack/MolTrack nie rozumieją
-V3 i widzą w MPP sztuczne tło; do nich można wybrać wariant **NaN**.
+V3 i widzą w MPP sztuczne tło. Dotychczasowy zapis NaN do tych czytników
+pozostaje dostępny przez API (`wsxm_compatible=False`), nie w oknie programu.
 
 Eksporter ogranicza sumę przedziałów filmu do 500 000, przed zbudowaniem
 całego JSON. Czytnik ogranicza listę każdej klatki do 500 000. Nadal obowiązuje
 limit 64 MiB całego dodatku. Przekroczenie limitu nie podmienia poprzedniej
-pary; komunikat zaleca wariant NaN. Długie przebiegi sprawdzają anulowanie.
+pary; komunikat podaje przekroczony limit. Długie przebiegi sprawdzają anulowanie.
 Przy V3 nie zmieniono nagłówka MPP ani jego natywnego formatowania.
 
 Ponowny zapis w wariancie original działa na odtworzonych próbkach:
-WSxM ponownie zachowuje braki w V3, NaN przenosi je do MPP z V1/V2.
+GUI ponownie zachowuje braki w V3; API z `wsxm_compatible=False` przenosi je
+do MPP z V1/V2.
 To sposób przechowywania danych w parze, nie druga interpolacja obrazu.
+
+
+Tło w podglądzie i miniaturach jest białe, niezależnie od gamma. Dane
+w pamięci nadal zawierają NaN/Inf. MPP nie zapisuje koloru RGB: maksimum
+klatki odpowiada najjaśniejszemu końcowi jej palety. Kolor w WSxM zależy
+od palety i kontrastu; przy zakresie całego filmu maksimum jednej klatki
+może być niższe od maksimum filmu. Klatka stała albo bez skończonych próbek
+nie ma rozpiętości sygnału, więc jej wygląd w zewnętrznym programie także
+zależy od tego programu. Nie zmieniamy pomiarów, żeby wymusić kolor.
+Stare V3 wypełnione minimum lub inną zapisaną wartością nadal odtwarzają
+braki, ponieważ czytnik korzysta z `fill_value`, a nie z bieżącej polityki eksportu.

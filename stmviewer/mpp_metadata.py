@@ -166,7 +166,6 @@ def encode_mpp_metadata(frames: tuple[ImageFrame, ...], sha256: str, *,
                     frames=records)
     payload = (json.dumps(metadata, ensure_ascii=False, allow_nan=False, sort_keys=True, indent=2) + '\n').encode('utf-8')
     if len(payload) > _MAX_BYTES:
-        hint = ' Spróbuj wariantu NaN, bez przedziałów braków w dodatku.' if wsxm_compatible else ''
-        raise ValueError('Dodatek przekracza 64 MiB.' + hint)
+        raise ValueError('Dodatek przekracza 64 MiB.')
     check_cancelled()
     return payload

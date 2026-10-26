@@ -16,7 +16,7 @@ def test_wsxm_aligned_has_finite_pixels_and_pair_restores_exact_missing_data(tmp
     path = save_aligned_mpp(tmp_path / 'compatible.mpp', result, wsxm_compatible=True)
     # Independent reader sees exactly the finite background required by WSxM.
     raw, = read_mpp_file(str(path))
-    expected = np.full((4, 5), 1.5)
+    expected = np.full((4, 5), 7.5)
     expected[1:3, 1:4] = [[1.5, 2.5, 3.5], [5.5, 6.5, 7.5]]
     np.testing.assert_array_equal(np.rot90(raw.data, 2), expected)
     reopened, = open_frame_series([path])
@@ -41,7 +41,7 @@ def test_original_preserves_nan_payloads_infinities_and_interior_holes(tmp_path)
     frames = (replace(template, data=values), replace(template, data=np.full((2, 4), np.nan)))
     path = save_original_mpp(tmp_path / 'holes.mpp', frames, wsxm_compatible=True)
     raw = read_mpp_file(str(path))
-    np.testing.assert_array_equal(np.rot90(raw[0].data, 2), [[-2, 8, -2, -0.], [-2, 3, -2, -2]])
+    np.testing.assert_array_equal(np.rot90(raw[0].data, 2), [[-2, 8, 8, -0.], [8, 3, 8, -2]])
     np.testing.assert_array_equal(raw[1].data, np.zeros((2, 4)))
     restored = open_frame_series([path])
     for source, loaded in zip(frames, restored, strict=True):

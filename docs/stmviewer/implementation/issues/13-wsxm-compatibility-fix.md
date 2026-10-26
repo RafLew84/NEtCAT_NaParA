@@ -1,5 +1,8 @@
 # Poprawka 13: eksport MPP czytelny w WSxM z odtwarzaniem braków
 
+Późniejsze uproszczenie użytkownika: [tylko original/aligned i białe tło](13-white-background.md).
+Poniżej zakres oraz wyniki wcześniejszego etapu z czterema opcjami zapisu.
+
 Status: ready-for-review. Baza przeglądu: `01259e1`.
 Zlecenie użytkownika 2026-10-26: poprawić program po potwierdzeniu czarnego
 obrazu `MOVIE_3-aligned.mpp` w WSxM. [Diagnoza](../../wsxm-aligned-investigation.md).
