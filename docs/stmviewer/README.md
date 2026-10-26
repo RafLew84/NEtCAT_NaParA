@@ -46,8 +46,8 @@ użytkownik potwierdził testy manualne 2026-10-26.
 [Ticket 15 — opcje prezentacji AVI](implementation/issues/15-avi-presentation.md)
 również ma status **done**: użytkownik potwierdził [testy manualne](avi-presentation-manual.md)
 2026-10-26. [Ticket 16 — aligned AVI](implementation/issues/16-aligned-avi.md)
-dodaje wybór wersji z zachowaniem pełnego obszaru rejestracji;
-[próba ręczna](aligned-avi-manual.md) oczekuje na odbiór. Opisy należą do ticketu 17.
+ma status **done**: użytkownik potwierdził [testy manualne](aligned-avi-manual.md)
+2026-10-26. Eksport zachowuje pełny obszar rejestracji. Opisy należą do ticketu 17.
 Przycisk Usuń klatkę usuwa bieżący obraz z serii, zatrzymuje Play i zachowuje
 pochodzenie oraz czasy pozostałych klatek. Źródła na dysku pozostają bez zmian:
 [instrukcja usuwania](frame-deletion-manual.md).

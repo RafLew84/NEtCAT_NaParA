@@ -1,6 +1,7 @@
 # Ticket 16 — AVI z pełnym obszarem aligned
 
-Implementacja do ręcznego odbioru. Uruchomienie z katalogu repozytorium:
+Użytkownik potwierdził testy manualne 2026-10-26; ticket 16 ma status **done**.
+Poniższy scenariusz służy do powtórzenia próby. Uruchomienie z katalogu repozytorium:
 
 ```bash
 conda activate netcat
@@ -93,5 +94,7 @@ Lokalna tymczasowa kopia VLC z poprzednich etapów:
 ```
 
 Wyniki prób automatycznych oraz VLC są zapisane w [przekazaniu](handoff.md).
-Akceptacja użytkownika pozostaje do wykonania; odbiory platform Ubuntu
-oraz Windows pozostają osobnymi ticketami 20 i 21.
+Akceptacja użytkownika: **zaliczona**, 2026-10-26 („testy manualne ok”).
+Obejmuje implementację `ecc8663`, poprawkę `883b3ae` i przekazanie `72bbef3`.
+Nie wskazano systemu; odbiory platform Ubuntu oraz Windows pozostają
+osobnymi ticketami 20 i 21.

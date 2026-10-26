@@ -3,11 +3,14 @@
 
 ## 16: Aligned do AVI — 2026-10-26
 
-[Ticket 16](implementation/issues/16-aligned-avi.md): **ready-for-review**.
+[Ticket 16](implementation/issues/16-aligned-avi.md): **done**.
 Baza `903d00b`, implementacja **`ecc8663`**, poprawka **`883b3ae`**.
 [Instrukcja uruchomienia i próby ręcznej](aligned-avi-manual.md),
 [przegląd dwóch osi](implementation/review-16-aligned-avi.md).
-Do zakończenia etapu potrzebne jest potwierdzenie testów manualnych użytkownika.
+Użytkownik potwierdził 2026-10-26: „testy manualne ok”. Odbiór obejmuje
+implementację `ecc8663`, poprawkę `883b3ae` i przekazanie `72bbef3`.
+Aktualizacja dotyczy wyłącznie dokumentacji: sprawdzono spójność statusów,
+linki i `git diff --check`; nie ponawiano testów kodu.
 
 Przycisk/menu „Zapisz AVI…” otwiera opcje z wyborem original/aligned,
 domyślnie zgodnym z podglądem. Bez kompletnego wyniku związanego z bieżącą
@@ -66,7 +69,8 @@ Sprawdzenia:
 Przegląd Standards: początkowa opcjonalna uwaga o odpowiedzialności dialogu
 rozwiązana przez adapter; finalnie 0 uwag. Spec: P2 o kalibracji zakresu
 rozwiązane w `883b3ae`, recenzent niezależnie potwierdził wynik; finalnie 0 uwag.
-Ręczny odbiór użytkownika pozostaje otwarty; brak stanowiska Windows.
+Ręczny odbiór użytkownika potwierdzony. Nie wskazano systemu; nie przypisujemy
+więc temu potwierdzeniu odbioru konkretnej platformy.
 Nie zmieniono wspólnego kodu, konfiguracji ani zależności. Integracja nie wymaga
 nowych ustaleń. Odbiory platform nadal należą do ticketów 20 i 21.
 

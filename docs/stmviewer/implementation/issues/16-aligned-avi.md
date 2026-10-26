@@ -4,7 +4,7 @@
 
 **Blocked by:** [08: Rejestracja Phase i pełny widok aligned](08-phase-registration.md), [14: Pierwszy film AVI: zakres, FPS i oba kodeki](14-original-avi-basic.md)
 
-**Status:** ready-for-review
+**Status:** done
 
 **Wykonawca:** Codex
 **Baza przeglądu:** `903d00b6e21c9cbe2609ca151d09480c2551c754`
@@ -55,8 +55,10 @@ Wspólne API geometrii powinno być używane w uzgodnionej orientacji; potrzebne
 Implementacja `ecc8663`, poprawka kalibracji zakresu `883b3ae`; baza `903d00b`.
 [Instrukcja ręczna](../../aligned-avi-manual.md),
 [przegląd Standards/Spec](../review-16-aligned-avi.md).
-Kryteria potwierdzają testy automatyczne i próby techniczne; ręczna akceptacja
-użytkownika pozostaje do wykonania, stąd **ready-for-review**.
+Kryteria potwierdzają testy automatyczne, próby techniczne i ręczna akceptacja
+użytkownika z 2026-10-26: „testy manualne ok”. Status **done** obejmuje
+implementację `ecc8663`, poprawkę `883b3ae` i przekazanie `72bbef3`.
+Potwierdzenie nie wskazuje systemu; osobne odbiory platform pozostają otwarte.
 
 - Wybór original/aligned domyślnie odpowiada podglądowi; dostępny jest tylko
   kompletny wynik zgodny z bieżącą serią. Obie wersje mają wspólne opcje AVI.
