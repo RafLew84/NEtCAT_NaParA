@@ -1,4 +1,57 @@
-# STM Domains — tekstura obrazu, issue 17
+# STM Domains — przygotowanie gotowych cech, issue 18
+
+Data: 2026-10-26. Gałąź `domains/frozen-features`, baza `9346d1a`,
+worktree `/tmp/netcat-stmdomains-frozen-features`, docelowo `domains/start`.
+Kod, testy, audyt źródeł i manifest: **`e6e7248`**. Commit końcowej
+dokumentacji w wiadomości końcowej. Zmiany obejmują wyłącznie katalogi
+STM Domains; kod służy eksperymentom i nie zmienia uruchamiania aplikacji.
+
+Issue 18 **`resolved`**: działają oba zamrożone ekstraktory, FCN–ResNet101
+z `layer1/layer2` i DINOv2 ViT-S/14 z końcowymi patch tokens. Oficjalne
+wagi i przypięty kod sprawdzane SHA-256. Wykonano 16 konfiguracji na
+12 obrazach (5 TTMAPP i 7 kontroli), na siatce i przy wszystkich centrach:
+384 wpisy, 368 unikalnych cache. Zachowane oryginalne współrzędne, maski
+pomiaru, okna i podparcie brzegu. Nie wykonywano treningu ani grupowania.
+
+[Raport](frozen-feature-preparation.md),
+[manifest](frozen-feature-preparation-manifest.json),
+[audyt źródeł](research-frozen-feature-extraction-audit.md),
+[instrukcja odtworzenia](../../stmdomains/experiments/frozen/README.md).
+Lokalny podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/frozen-features/index.html`.
+Krzyżyki siatki, okręgi molekuł i wybrane okno oznaczają miejsca pobierania
+cech. To podgląd geometrii, nie wynik wykrywania domen.
+
+Wykonane sprawdzenia: **41 testów pytest**; **192/192** zestawy cech
+siatki bitowo identyczne w świeżym powtórzeniu bez centrów, po zmianie
+danych referencyjnych; 384 kontrole geometrii/cache; niezmienione hashe
+parametrów i buforów modeli przed/po. Osiem kontroli partii i kolejności:
+DINO przy zmianie partii 5 → 1 różni się do 4.20e-5; zapisano niepowodzenie
+pierwotnej tolerancji i osobną tolerancję 1e-4 dla tego porównania.
+Zwykłe powtórzenie jest dokładne. QtWebEngine offscreen: **19 kontroli**,
+bez błędów JS; obejrzano podgląd. Składnia Python/Bash i diff sprawdzone.
+Nie testowano natywnego GUI, skuteczności domen ani pełnych 268 klatek.
+Etapy odtworzenia wykonano osobno, bez powtarzania całości samym wrapperem.
+
+Sprzęt/środowisko: RTX 5090, torch 2.9.1+cu128, torchvision 0.24.1+cu128,
+Python 3.12.12 w lokalnym netcat; bez instalacji dodatkowych pakietów.
+Ekstrakcja 37.01 s; maksimum alokatora CUDA ok. 324 MiB (FCN), 268 MiB
+(DINO), maksimum RSS procesu ok. 1.34 GiB. To koszt pilotażu, bez
+przyszłego grupowania. Wyniki lokalne: 1126 plików / 394049728 B;
+modele i źródła: 222 pliki / 312982757 B w `.scratch/frozen-feature-assets/`.
+Kopie do Domains zweryfikowano SHA-256; duże pliki pozostają poza Git.
+
+**Następne: 19**, gotowe zależności, jeszcze nieuruchomione. Rozszerzyć
+zakres wejścia i porównać cechy z klasyczną teksturą; uwzględnić pooling,
+normalizację, okna 48/72 wobec 49/73 w 17 i odmowy bramki porządku.
+Gotowość techniczna nie dowodzi rozróżniania orientacji, rozstawów ani
+granic. Opcjonalnego DINOv3 nie uruchamiano. Trening 20, odbiór 13
+i jakość 04 pozostają otwarte. Brak potrzeb zmian wspólnego kodu,
+głównych wymagań lub Viewer; integrację do `stm-next` prowadzi koordynator.
+
+---
+
+## Poprzednie przekazanie — tekstura obrazu, issue 17
 
 Data: 2026-10-23. Dokumentacja `domains/texture-trial`, baza `b292f2f`,
 worktree `/tmp/netcat-stmdomains-texture`, docelowo `domains/start`.

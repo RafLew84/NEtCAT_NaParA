@@ -66,6 +66,20 @@ przypisanie. Nie dobierać tych ustawień na ręcznych domenach TTMAPP.
 
 ## Dane i kryteria porównania
 
+[Przygotowanie 18](../frozen-feature-preparation.md) zakończono 2026-10-26.
+Oba wymagane ekstraktory działają; kod `e6e7248` jest w
+`stmdomains/experiments/frozen/`, cechy i manifesty w
+`.scratch/frozen-features/`, wagi w `.scratch/frozen-feature-assets/`.
+Zależności 17 i 18 są spełnione; niniejsza próba pozostaje nieuruchomiona.
+
+Przygotowanie obejmowało 12 obrazów i 16 konfiguracji, nie cały zakres
+porównania. Rozszerzyć ekstrakcję na wspólny zestaw zgodnie z protokołem.
+Zachować jawność adaptacji: wektory są średnimi lokalnych map, a okna mają
+szerokość 48/72 pikseli odniesienia wobec 49/73 w próbie 17. Podparcie
+pomiaru jest zapisane, bez gotowej decyzji przyjęcia/odmowy. Pooling,
+normalizację i skalę należy uwzględnić w budżecie porównania. Przygotowanie
+nie dowodzi jeszcze, że cechy rozróżniają typy, orientacje lub granice.
+
 Obowiązuje [wspólny manifest, format wyników i ocena](14-unsupervised-input-and-controls.md).
 Należy sprawdzić przypadki zero/jedna/wiele domen, rozstaw, orientację,
 granicę przesunięcia, pojedyncze defekty i pas nieuporządkowany, niepełne

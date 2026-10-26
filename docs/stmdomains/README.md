@@ -158,8 +158,17 @@ pozostaje identyczny bez oznaczeń, ale wybrane ustawienia przypisują tylko
 orientacje, widmo na siatce nadmiernie dzieli jedną sieć, a bramka porządku
 odrzuca większość rzeczywistych wzorów. Użytkownik zaakceptował porównanie:
 17 jest `resolved` jako klasyczny punkt odniesienia dla ML, bez wdrożenia.
-Podgląd: `.scratch/image-texture-domains/index.html`. Przygotowanie 18,
-następnie porównanie 19, oraz niezależne 20 pozostają do wykonania.
+Podgląd: `.scratch/image-texture-domains/index.html`.
+
+2026-10-26 [zakończono przygotowanie 18](frozen-feature-preparation.md):
+FCN–ResNet101 i DINOv2 ViT-S/14, 16 konfiguracji na 12 obrazach, siatka
+oraz wszystkie centra molekuł. Zachowano geometrię, maski i cache;
+192/192 powtórzenia siatki są identyczne bez oznaczeń i niezależne od
+referencji. Przeszło 41 testów i 19 kontroli podglądu. Modele pracują
+bez aktualizacji wag. Podgląd `.scratch/frozen-features/index.html`
+pokazuje miejsca pobierania cech, nie znalezione domeny. Issue 18 jest
+`resolved`; porównanie 19 ma gotowe zależności, ale nie jest uruchomione.
+Niezależne przygotowanie treningu 20 również pozostaje do wykonania.
 
 ## Dwa etapy
 

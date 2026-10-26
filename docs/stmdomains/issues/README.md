@@ -90,8 +90,13 @@ i wybrał przejście do 17 — tekstury. [Próba 17](../image-texture-domains-tr
 jest wykonana i zatwierdzona jako porównanie: `resolved`, bez przyjęcia
 metody. Wariant obrazowy jest niezależny od anotacji, ale na TTMAPP ma
 0.3–5.8% przypisań i pomija RED/YELLOW. Cechy zachowano do porównań ML.
-18 i 20 mają spełnione zależności, lecz nie zostały uruchomione; 19 wymaga
-jeszcze przygotowania 18. Odbiór 13 i jakość 04 pozostają otwarte.
+
+Stan 2026-10-26: [przygotowanie 18](../frozen-feature-preparation.md) jest
+`resolved`. FCN–ResNet101 i DINOv2 ViT-S/14 działają z niezmienionymi
+wagami; cechy siatki pozostają identyczne bez centrów i niezależne od
+referencji. Gotowe cechy obejmują pilotaż 12 obrazów, bez detekcji domen.
+Porównanie 19 ma spełnione zależności, ale nie zostało uruchomione.
+Przygotowanie treningu 20, odbiór 13 i jakość 04 pozostają otwarte.
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie
 z instrukcjami repozytorium. Nie wymaga zewnętrznego trackera.
@@ -175,8 +180,8 @@ ten nadal warunkuje odbiór metod. Statusy znajdują się w ticketach.
 | [Czy otoczenie zaznaczonych molekuł pozwala samodzielnie znaleźć domeny?](15-local-neighborhood-domains.md) | prototype / HITL | `resolved`: trzy próby; użytkownik polecił porównanie 16, bez przyjęcia metody, E1 |
 | [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md) | prototype / HITL | `resolved`: porównanie zachowane, użytkownik wybrał przejście do 17, E2 |
 | [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md) | prototype / HITL | `resolved`: widmo/EWT zachowane do porównań ML, bez przyjęcia metody; E3 |
-| [Jak przygotować cechy gotowych sieci bez treningu na naszych danych?](18-frozen-feature-preparation.md) | task / AFK | Po przygotowaniu wejścia; niezależnie od prób klasycznych |
-| [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | Po przygotowaniu cech i wyniku klasycznej tekstury |
+| [Jak przygotować cechy gotowych sieci bez treningu na naszych danych?](18-frozen-feature-preparation.md) | task / AFK | `resolved`: oba ekstraktory, cache, geometria i powtarzalność sprawdzone |
+| [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | `open`: 17 i 18 zakończone; gotowe do podjęcia |
 
 Próby geometrii, SBC/MatID i klasycznej tekstury są niezależne. Porównanie
 ML korzysta z wyniku tekstury jako punktu odniesienia, również gdy jest

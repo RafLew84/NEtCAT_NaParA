@@ -4,8 +4,8 @@ ID: 18
 Type: task
 Labels: wayfinder:task
 Mode: AFK
-Status: open
-Assignee:
+Status: resolved
+Assignee: Codex — domains/frozen-features
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 14
 
@@ -77,3 +77,29 @@ Brak opcjonalnego DINOv3 nie wstrzymuje pozostałych badań.
 ## Kontekst
 
 - [ML i deep learning bez własnego treningu](../research-training-free-ml-domain-discovery.md)
+
+## Answer — 2026-10-26
+
+Przygotowanie zakończone: działają oba ekstraktory, FCN–ResNet101
+(`backbone.layer1/layer2`) i DINOv2 ViT-S/14 (końcowe patch tokens).
+[Raport](../frozen-feature-preparation.md),
+[manifest](../frozen-feature-preparation-manifest.json) i
+[audyt źródeł](../research-frozen-feature-extraction-audit.md) zawierają
+wersje, hashe, geometrię, preprocessing, koszty i polecenie odtworzenia.
+Kod oraz testy: `e6e7248`, `stmdomains/experiments/frozen/`.
+
+Wykonano 16 konfiguracji na pięciu klatkach TTMAPP i siedmiu kontrolach,
+na siatce oraz przy wszystkich centrach: 384 wpisy, 368 unikalnych cache.
+Modele nie zmieniły parametrów ani buforów. Po usunięciu wszystkich
+oznaczeń i zmianie danych referencyjnych 192/192 zestawy siatki są bitowo
+identyczne. Geometria, maski pomiaru, brzegi, powtarzalność i cache
+sprawdzone; 41 testów oraz 19 kontroli podglądu przeszło.
+Dla zmiany wielkości partii DINO zapisano różnicę do 4.20e-5 i osobną
+tolerancję 1e-4; zwykłe powtórzenie jest dokładne.
+
+Lokalne cechy i podgląd: `.scratch/frozen-features/`; wagi i źródła:
+`.scratch/frozen-feature-assets/`. Podgląd pokazuje miejsca pobierania cech,
+bez oznaczeń wykrytych domen. Ekstrakcja zajęła 37.01 s na RTX 5090;
+nie jest to koszt analizy całej serii ani ocena jakości metody.
+Zadanie AFK spełnia warunki zakończenia. Issue 19 ma gotowe zależności,
+ale nie zostało rozpoczęte. DINOv3 pozostaje opcjonalny.

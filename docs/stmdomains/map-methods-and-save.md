@@ -65,8 +65,16 @@ pozostaje identyczny bez oznaczeń, ale wybrane ustawienia przypisują tylko
 orientacje, widmo na siatce nadmiernie dzieli jedną sieć, a bramka porządku
 odrzuca większość rzeczywistych wzorów. Użytkownik zaakceptował porównanie:
 17 jest `resolved` jako klasyczny punkt odniesienia dla ML, bez wdrożenia.
-Podgląd: `.scratch/image-texture-domains/index.html`. Przygotowanie 18,
-następnie porównanie 19, oraz niezależne 20 pozostają do wykonania.
+Podgląd: `.scratch/image-texture-domains/index.html`.
+
+2026-10-26 [przygotowanie 18](frozen-feature-preparation.md) zakończono
+ze statusem `resolved`: oba ekstraktory, FCN–ResNet101 i DINOv2 ViT-S/14,
+działają z niezmienionymi wagami na siatce oraz przy centrach molekuł.
+Sprawdzono geometrię, cache i niezależność od referencji; 192/192 zestawy
+siatki są bitowo identyczne po usunięciu centrów. Pilotaż 12 obrazów
+i 16 konfiguracji przygotowuje cechy, bez wykrywania domen. Porównanie
+19 ma spełnione zależności i pozostaje nieuruchomione; niezależne 20
+również pozostaje do wykonania.
 
 [Przegląd ML bez własnego treningu](research-training-free-ml-domain-discovery.md)
 z 2026-10-21 rozwinięto na polecenie użytkownika w
@@ -152,6 +160,7 @@ nie zamknięto przez samo dodanie go do mapy.
 
 ## Decisions so far
 
+- [Jak przygotować cechy gotowych sieci bez treningu?](issues/18-frozen-feature-preparation.md): [przygotowanie zakończone](frozen-feature-preparation.md). FCN i DINOv2 działają z niezmienionymi wagami; geometria, cache i niezależność od referencji sprawdzone. Gotowe wejście techniczne do 19, bez oceny skuteczności domen.
 - [Czy otoczenie molekuł pozwala znaleźć domeny?](issues/15-local-neighborhood-domains.md): zakończono trzy porównania; użytkownik polecił przejść do 16. Lokalna komórka jest punktem odniesienia, bez przyjęcia metody; pozostają błędy trudnych granic i RED/YELLOW. [Raport orientacji i łączenia](orientation-and-joining-trial.md).
 - [Czy SBC/MatID odtwarza domeny z centrów?](issues/16-sbc-matid-domains.md): [próba wykonana](sbc-matid-domains-trial.md), **próba zakończona**. Użytkownik zachował porównanie i wybrał przejście do 17. Poprawa braków i deformacji nie usuwa pozornego porządku ani błędów małej orientacji; nie przyjęto do aplikacji.
 - [Jak przygotować wspólne wejście i kontrole bez narzucania domen?](issues/14-unsupervised-input-and-controls.md): przygotowano 24 pełne klatki, 132 kontrole, osobne referencje i format wyników; potwierdzono geometrię, powtarzalność i brak wpływu referencji na wejście. Bez uruchamiania metod.
