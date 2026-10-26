@@ -232,6 +232,12 @@ Nie testowano produkcyjnej aplikacji, zapisu projektu ani eksportu programu.
 
 ## Następny krok
 
+Aktualizacja 2026-10-26: poniżej zaproponowaną próbę
+[skali i podparcia ACF wykonano](acf-scale-support-trial.md).
+Większe okno odzyskuje fragmenty, ale może łączyć rozłączne płaty.
+Kolejna konkretna hipoteza dotyczy widmowego warunku drugiego kierunku;
+poprzednie wyniki grafu pozostają bez zmian.
+
 Nie ma podstaw do dalszego strojenia samej skali grafu jako rozwiązania
 całego problemu. Badanie ujawnia dwa niezależne ograniczenia:
 niestabilny podział lokalnego wyglądu oraz zbyt mały zakres przypisań

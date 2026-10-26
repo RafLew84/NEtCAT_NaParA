@@ -5,7 +5,7 @@ Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
 Status: claimed
-Assignee: Codex — domains/local-feature-graph-trial
+Assignee: Codex — domains/acf-scale-support-trial
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 17, 18
 
@@ -216,4 +216,38 @@ Nie wdrożono algorytmu do aplikacji ani nie zbudowano katalogu typów.
 może dotyczyć skali i podparcia kryterium porządku ACF, przy zamrożonych
 cechach/podziałach i kontrolach negatywnych. Nie wystarczy obniżyć progu
 na TTMAPP; nawet poprawna bramka nie rozwiąże niestabilności granic.
-Nie rozpoczęto tej próby ani treningu 20–23.
+Próbę skali i podparcia wykonano poniżej; nie rozpoczęto treningu 20–23.
+
+## Rozwinięcie — 2026-10-26: skala i podparcie ACF
+
+Wykonano [badanie kryterium porządku](../acf-scale-support-trial.md)
+przy niezmienionych cechach i zapisanych podziałach: 24 pełne klatki
+TTMAPP i 204 kontrole. 32 bramki (cztery promienie, cztery oceny ACF,
+dwa wymagania podparcia), 512 konfiguracji detektora, 64 kontrole limitu
+przypisań oraz 16 zachowanych wyników początkowych. Progi według stałej
+reguły na znanych kontrolach negatywnych; predykcje przed oceną ramek.
+
+Większe okno odzyskuje fragmenty RED/YELLOW: przy `windowed`, podparciu
+50%, limit na siatce rośnie z 98/1678 przy r24 do 430/1678 przy r48.
+Jednak r48 łączy rozłączne płaty przez pustą przerwę. Zapisane podziały
+wyglądu nadal nadmiernie dzielą jedną sieć lub scalają różne obszary.
+**0/512 nowych konfiguracji detektora** spełnia komplet warunków.
+Samo użycie zmierzonych par pikseli nie rozwiązuje problemu.
+
+W znanych wnętrzach przy r24 podparcie 50% nie odrzuca miejsc, natomiast
+widmowy warunek drugiego kierunku odrzuca 953/1916 miejsc siatki
+lub 835/1678 centrów. To hipoteza do następnej osobnej ablacji;
+nie wolno po prostu usunąć warunku, który chroni też przed pasami.
+
+Źródło: `prototype/stmdomains-acf-scale-support`, **`2ccf9ad`**.
+[Manifest](../acf-scale-support-manifest.json), podgląd:
+`.scratch/acf-scale-support/index.html`. Sprawdzono 5836 korelacji
+bezpośrednim rachunkiem, 912 odtworzeń ACF, cztery progi, 3648 wyników
+początkowych i niezależność siatki od braków oznaczeń; 92 kontrole HTML.
+Dane były już znane, bez nowej niezależnej walidacji.
+
+**19 nadal `claimed`, do omówienia.** Następna próba może zbadać drugi
+kierunek przy różnym kontraście rzędów molekuł, pasach skanowania
+i rzędach bez wzajemnego porządku. Zachować kontrole pustej przerwy
+i nieuporządkowanego pasa. Nie rozpoczęto tej próby, treningu 20–23
+ani odbioru metody 13.

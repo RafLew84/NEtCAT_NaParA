@@ -198,8 +198,17 @@ wszystkich warunków; obecna bramka dopuszcza najwyżej 2.0–5.8% molekuł
 w częściach TTMAPP z referencjami. Podgląd:
 `.scratch/local-feature-graph/index.html`; 107 kontroli HTML, odtworzenia
 cech i grafów oraz niezależne sprawdzenie małych grafów. **19 nadal
-`claimed`**, bez przyjęcia metody. Kolejny kierunek do omówienia to skala
-i podparcie ACF przy stałych cechach/podziałach oraz kontrolach negatywnych.
+`claimed`**, bez przyjęcia metody. Próbę skali i podparcia ACF przy stałych
+cechach/podziałach wykonano następnie.
+
+[Skala i podparcie kryterium ACF](acf-scale-support-trial.md): 32 warianty
+bramki na 228 obrazach. Większe okno odzyskuje część RED/YELLOW,
+ale może łączyć rozłączne płaty przez pustą przerwę; żaden z 512 wariantów
+detektora nie spełnia wszystkich warunków. Widmowy warunek drugiego
+kierunku odrzuca około połowy miejsc w znanych wnętrzach i jest kolejną
+hipotezą do osobnej próby. Podgląd `.scratch/acf-scale-support/index.html`,
+92 sprawdzenia HTML, odtworzenia ACF/progów/wyników oraz niezależna kontrola
+korelacji z maską pomiaru. **19 nadal `claimed`**, bez wyboru metody.
 
 
 ## Dwa etapy

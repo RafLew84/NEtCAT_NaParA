@@ -1,4 +1,57 @@
-# STM Domains — lokalny graf cech i położenie siatki, issue 19
+# STM Domains — skala i podparcie ACF, issue 19
+
+Data: 2026-10-26. Dokumentacja `domains/acf-scale-support-trial`, baza
+`e095bc4`, worktree `/tmp/netcat-stmdomains-acf-scale-support`.
+Źródła prototypu: **`prototype/stmdomains-acf-scale-support`, `2ccf9ad`**,
+baza `1ae0706`. Nie scalać prototypu do aplikacji. Dokumentacja przeznaczona
+do `domains/start`; integrację do `stm-next` prowadzi koordynator.
+
+Wykonano kolejne badanie issue 19: [raport](acf-scale-support-trial.md),
+[manifest](acf-scale-support-manifest.json), samowystarczalny podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/acf-scale-support/index.html`.
+24 całe klatki TTMAPP, 204 kontrole; 32 warianty ACF/skali/podparcia,
+512 konfiguracji ze stałymi podziałami, 64 kontrole limitu bramki
+i 16 zachowanych wyników początkowych. Bez treningu, K, wzorców domen,
+przeliczania cech/PCA/HDBSCAN/grafu lub strojenia do referencji.
+
+Większe okno odzyskuje fragmenty RED/YELLOW: limit `windowed` na siatce
+rośnie z 98/1678 przy r24 do 430/1678 przy r48. Jednak r48 łączy dwa
+rozłączne płaty przez pustą przerwę, a zachowane podziały nadal dzielą
+jedną sieć lub scalają różne obszary. **0/512 nowych konfiguracji**
+spełnia komplet warunków. W r24 brak podparcia 50% nie odrzuca znanych
+wnętrz; widmowy warunek drugiego kierunku odrzuca około połowy miejsc.
+
+**19 nadal `claimed`**, do omówienia. Kolejna hipoteza: drugi kierunek
+widma przy różnym kontraście rzędów molekuł wobec pasów skanowania
+i rzędów bez wzajemnego porządku. Potrzebna osobna ablacja i zachowanie
+kontroli przerw. Nie rozpoczęto tej próby, treningu 20–23 ani odbioru 13.
+Wszystkie użyte ziarna i referencje były znane; bez niezależnej walidacji.
+
+Sprawdzenia: 5836 przesunięć Pearsona kontra bezpośredni rachunek
+(błąd do 6.42e-13, liczby par dokładne), 912 dokładnych odtworzeń ACF,
+cztery progi i 3648 wyników początkowych zgodne. 864 tablice ACF siatki
+i 7104 wyniki siatki identyczne przy brakach samych oznaczeń.
+228 starych i 228 nowych plików predykcji zgodnych z hashami, progi stałe
+po ocenie. **92 kontrole QtWebEngine**, bez błędów; obejrzano podgląd
+i wykres. Składnia Python/Bash, linki, manifest i diff sprawdzone.
+Nie testowano produkcji, natywnego GUI ani pełnych 268 klatek.
+
+CPU bez GPU/instalacji: cztery procesy, po jednym wątku BLAS/OpenMP.
+ACF 429.29 s, dodatkowe odtworzenie 12 rekordów z pustymi centrami po
+poprawce ich pustych tablic 12.11 s (przed oceną), predykcje 18.37 s,
+ocena 30.57 s. Największy RSS pojedynczego procesu przygotowania
+125004 KiB; łącznego szczytu nie mierzono. Etapy wykonano osobno;
+wrapper składniowo. Protokół i parametry nie zmieniały się po ocenie.
+
+Kopia: **479 plików / 425534929 B**, wszystkie SHA-256 zgodne.
+Względne linki wymagają zachowania `.scratch/local-feature-graph/`
+i jego zależności; sam HTML jest samowystarczalny. Do gałęzi aplikacji
+trafia wyłącznie dokumentacja i mały manifest. Bez zmian wspólnego kodu,
+konfiguracji głównej, produkcyjnego GUI lub Viewer.
+
+---
+
+## Poprzednie przekazanie — lokalny graf cech i położenie siatki, issue 19
 
 Data: 2026-10-26. Dokumentacja `domains/local-feature-graph-trial`, baza
 `e7b6ae0`, worktree `/tmp/netcat-stmdomains-local-feature-graph`.
