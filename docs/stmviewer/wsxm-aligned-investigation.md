@@ -1,5 +1,9 @@
 # WSxM: czarny film aligned z NaN — 2026-10-26
 
+Aktualizacja: po diagnozie użytkownik zlecił poprawkę programu.
+[Wariant WSxM z odtwarzaniem braków](wsxm-export-manual.md) zastępuje
+ręczne przygotowywanie kopii podglądowej. Poniżej zapis pierwotnej diagnozy.
+
 ## Wynik
 
 `data/MOVIE_3-aligned.mpp` jest poprawnym zapisem wyniku Optical Flow.

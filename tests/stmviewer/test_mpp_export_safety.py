@@ -53,10 +53,11 @@ def test_cancel_after_first_frame_keeps_old_pair(tmp_path):
     assert_old_pair(path, sidecar)
 
 
+@pytest.mark.parametrize('wsxm_compatible', [False, True])
 @pytest.mark.parametrize('kind', ['original', 'aligned'])
 @pytest.mark.parametrize('existing', [False, True])
 @pytest.mark.parametrize('cancel', [False, True])
-def test_failure_or_cancel_between_publications_rolls_back_both_files(tmp_path, monkeypatch, existing, cancel, kind):
+def test_failure_or_cancel_between_publications_rolls_back_both_files(tmp_path, monkeypatch, existing, cancel, kind, wsxm_compatible):
     path = tmp_path / 'movie.mpp'
     sidecar = path.with_name(path.name + '.stmviewer.json')
     if existing:
@@ -77,11 +78,13 @@ def test_failure_or_cancel_between_publications_rolls_back_both_files(tmp_path, 
     monkeypatch.setattr(os, 'replace', replace)
     with pytest.raises(ExportCancelled if cancel else OSError):
         if kind == 'original':
-            save_original_mpp(path, frames, overwrite=existing, cancelled=lambda: stopped)
+            save_original_mpp(path, frames, overwrite=existing, cancelled=lambda: stopped,
+                              wsxm_compatible=wsxm_compatible)
         else:
             from stmviewer.mpp_export import save_aligned_mpp
             from stmviewer.registration import register_series
-            save_aligned_mpp(path, register_series(frames), overwrite=existing, cancelled=lambda: stopped)
+            save_aligned_mpp(path, register_series(frames), overwrite=existing, cancelled=lambda: stopped,
+                              wsxm_compatible=wsxm_compatible)
     if existing:
         assert_old_pair(path, sidecar)
     else:

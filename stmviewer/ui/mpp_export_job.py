@@ -13,12 +13,13 @@ class MppExportJob(QThread):
     progress = pyqtSignal(int, int, str)
 
     def __init__(self, path: Path, frames: tuple[ImageFrame, ...], parent: QObject, *, overwrite: bool,
-                 registration: RegistrationResult | None = None) -> None:
+                 registration: RegistrationResult | None = None, wsxm_compatible: bool = False) -> None:
         super().__init__(parent)
         self._path = path
         self._frames = frames
         self._registration = registration
         self._overwrite = overwrite
+        self._wsxm_compatible = wsxm_compatible
         self._cancelled = Event()
         self.result: Path | None = None
         self.error: str | None = None
@@ -31,10 +32,12 @@ class MppExportJob(QThread):
             # A late cancel must not turn a completed publication into a reported cancellation.
             if self._registration is None:
                 self.result = save_original_mpp(self._path, self._frames, overwrite=self._overwrite,
-                                                progress=self.progress.emit, cancelled=self._cancelled.is_set)
+                                                progress=self.progress.emit, cancelled=self._cancelled.is_set,
+                                                wsxm_compatible=self._wsxm_compatible)
             else:
                 self.result = save_aligned_mpp(self._path, self._registration, overwrite=self._overwrite,
-                                               progress=self.progress.emit, cancelled=self._cancelled.is_set)
+                                               progress=self.progress.emit, cancelled=self._cancelled.is_set,
+                                                wsxm_compatible=self._wsxm_compatible)
         except ExportCancelled:
             pass
         except Exception as error:

@@ -93,3 +93,7 @@ problem obsługi NaN w WSxM pod Wine. Identyczny nagłówek i dane skończone
 dają obraz po wypełnieniu wyłącznie braków. Przygotowano osobną lokalną
 kopię podglądową, bez zmiany eksportera i kontraktu zachowania NaN.
 Status pozostaje ready-for-review; nie jest to potwierdzenie odbioru ręcznego.
+
+Po diagnozie użytkownik zlecił [poprawkę zgodności WSxM](13-wsxm-compatibility-fix.md).
+Domyślny wariant GUI przechowuje braki w dodatku V3; wariant NaN nadal
+spełnia wcześniejszy kontrakt bezpośredniego zapisu braków w MPP.

@@ -94,7 +94,7 @@ def test_export_can_explicitly_choose_original_from_aligned_view(qtbot, monkeypa
     qtbot.waitUntil(register.isEnabled)
     assert window.findChild(QComboBox, 'frameView').currentText() == 'aligned'
     path = tmp_path / 'original.mpp'
-    monkeypatch.setattr(QFileDialog, 'getSaveFileName', lambda *a, **kw: (str(path), 'MPP original (*.mpp *.MPP)'))
+    monkeypatch.setattr(QFileDialog, 'getSaveFileName', lambda *a, **kw: (str(path), 'MPP original — NaN (*.mpp *.MPP)'))
     save = window.findChild(QPushButton, 'saveOriginalMpp')
     save.click()
     qtbot.waitUntil(save.isEnabled)

@@ -11,6 +11,7 @@ from collections.abc import Callable
 
 import numpy as np
 
+from stmviewer.mpp_missing import background_value
 from stmviewer.frame import ImageFrame
 from stmviewer.registration import RegistrationResult
 from stmviewer.alignment_metadata import aligned_export_frames
@@ -116,7 +117,7 @@ def _check_destinations(destinations: tuple[Path, Path], overwrite: bool) -> Non
 
 
 def _save_mpp(path: str | Path, frames: tuple[ImageFrame, ...], *,
-                      image_kind: str, overwrite: bool = False,
+                      image_kind: str, overwrite: bool = False, wsxm_compatible: bool = False,
                       progress: Callable[[int, int, str], None] | None = None,
                       cancelled: Callable[[], bool] | None = None) -> Path:
     """Stage and publish a movie plus its bound metadata; roll back on failure.
@@ -163,14 +164,19 @@ def _save_mpp(path: str | Path, frames: tuple[ImageFrame, ...], *,
             block_rows = max(1, (4 * 1024 * 1024) // (shape[1] * 8))
             for index, frame in enumerate(frames, 1):
                 image = np.rot90(frame.data, 2)
+                fill = background_value(frame.data, checkpoint) if wsxm_compatible else 0.0
                 for row in range(0, shape[0], block_rows):
                     checkpoint()
-                    payload = image[row:row + block_rows].astype('<f8').tobytes()
+                    block = image[row:row + block_rows].astype('<f8')
+                    if wsxm_compatible:
+                        block[~np.isfinite(block)] = fill
+                    payload = block.tobytes()
                     _write(stream, payload)
                     digest.update(payload)
                 report(index, f'Zapis klatki {index} z {len(frames)}')
             _sync(stream)
-        metadata = encode_mpp_metadata(frames, digest.hexdigest(), check_cancelled=checkpoint, image_kind=image_kind)
+        metadata = encode_mpp_metadata(frames, digest.hexdigest(), check_cancelled=checkpoint, image_kind=image_kind,
+                                       wsxm_compatible=wsxm_compatible)
         with staged[1].open('xb') as stream:
             _write(stream, metadata)
             _sync(stream)
@@ -214,16 +220,16 @@ def _save_mpp(path: str | Path, frames: tuple[ImageFrame, ...], *,
 
 
 def save_original_mpp(path: str | Path, frames: tuple[ImageFrame, ...], *,
-                      overwrite: bool = False,
+                      overwrite: bool = False, wsxm_compatible: bool = False,
                       progress: Callable[[int, int, str], None] | None = None,
                       cancelled: Callable[[], bool] | None = None) -> Path:
     """Save the current input samples, retaining any imported alignment history."""
     return _save_mpp(path, frames, image_kind='original', overwrite=overwrite,
-                     progress=progress, cancelled=cancelled)
+                     progress=progress, cancelled=cancelled, wsxm_compatible=wsxm_compatible)
 
 
 def save_aligned_mpp(path: str | Path, result: RegistrationResult, *,
-                     overwrite: bool = False,
+                     overwrite: bool = False, wsxm_compatible: bool = False,
                      progress: Callable[[int, int, str], None] | None = None,
                      cancelled: Callable[[], bool] | None = None) -> Path:
     """Save a complete materialized result without resampling or shrinking it."""
@@ -233,4 +239,4 @@ def save_aligned_mpp(path: str | Path, result: RegistrationResult, *,
 
     frames = aligned_export_frames(result, checkpoint)
     return _save_mpp(path, frames, image_kind='aligned', overwrite=overwrite,
-                     progress=progress, cancelled=cancelled)
+                     progress=progress, cancelled=cancelled, wsxm_compatible=wsxm_compatible)

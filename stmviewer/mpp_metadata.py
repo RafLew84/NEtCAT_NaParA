@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import re
 
+from stmviewer.mpp_missing import MAX_RUNS, encode_missing_samples, restore_missing_samples
 from stmviewer.frame import FrameProvenance, ImageFrame
 from stmviewer.metadata_values import (json_object as _object, optional_number as _number,
                                        optional_text as _text, source_header as _header, source_provenance)
@@ -31,7 +32,8 @@ def _invalid_constant(value: str) -> object:
 
 
 def _frame(frame: ImageFrame, value: object, version: int = 1) -> ImageFrame:
-    record = _object(value, _FIELDS | ({"alignment"} if version == 2 else set()))
+    record = _object(value, _FIELDS | ({"alignment"} if version >= 2 else set())
+                     | ({"missing_samples"} if version == 3 else set()))
     restored = replace(
         frame, provenance=source_provenance(record['provenance']),
         measurement_time_s=_number(record, 'measurement_time_s'),
@@ -44,7 +46,7 @@ def _frame(frame: ImageFrame, value: object, version: int = 1) -> ImageFrame:
         scan_angle_deg=_number(record, 'scan_angle_deg'),
         calibration_note=_text(record, 'calibration_note'), raw_header=_header(record['raw_header']),
     )
-    if version == 2 and record["alignment"] is not None:
+    if version >= 2 and record["alignment"] is not None:
         restored = replace(restored, alignment=decode_alignment(record["alignment"], restored))
     return restored
 
@@ -80,7 +82,7 @@ def apply_mpp_metadata(path: Path, frames: tuple[ImageFrame, ...], *, sha256: st
         metadata = _object(decoded, {'format', 'version', 'image_kind', 'movie', 'frames'})
         if metadata['format'] != 'stmviewer-mpp':
             raise ValueError('Nieobsługiwany format dodatku.')
-        if type(metadata['version']) is not int or metadata['version'] not in (1, 2):
+        if type(metadata['version']) is not int or metadata['version'] not in (1, 2, 3):
             raise ValueError(f'Nieobsługiwana wersja dodatku: {metadata["version"]}.')
         version = metadata['version']
         assert isinstance(version, int)
@@ -104,16 +106,25 @@ def apply_mpp_metadata(path: Path, frames: tuple[ImageFrame, ...], *, sha256: st
         for index, (frame, record) in enumerate(zip(frames, records, strict=True), 1):
             check_cancelled()
             try:
-                restored.append(_frame(frame, record, version))
+                image = _frame(frame, record, version)
+                if version == 3:
+                    assert isinstance(record, dict)
+                    image = replace(image, data=restore_missing_samples(
+                        frame.data, record['missing_samples'], check_cancelled))
+                restored.append(image)
             except (ValueError, OverflowError) as error:
                 raise ValueError(f'Klatka {index} dodatku: {error}') from error
         validate_alignment_series(tuple(restored), aligned=kind == "aligned")
         result = tuple(restored)
         note = f'Metadane towarzyszące: wczytano {sidecar.name} ({kind}).'
+        if version == 3:
+            note += ' WSxM: odtworzono brakujące próbki z dodatku.'
     except FileNotFoundError:
         note = 'Metadane towarzyszące: brak; dane z nagłówka MPP.'
     except (OSError, ValueError, RecursionError, OverflowError) as error:
         note = f'Metadane towarzyszące: pominięto {sidecar.name}. {error}'
+    if result is frames:
+        note += ' Bez poprawnego dodatku nie można odtworzyć braków z wariantu WSxM.'
     annotated = []
     for frame in result:
         check_cancelled()
@@ -123,10 +134,14 @@ def apply_mpp_metadata(path: Path, frames: tuple[ImageFrame, ...], *, sha256: st
 
 
 def encode_mpp_metadata(frames: tuple[ImageFrame, ...], sha256: str, *,
-                        check_cancelled: Callable[[], None], image_kind: str = "original") -> bytes:
-    """Use V1 for plain originals and V2 when geometry needs to travel with pixels."""
+                        check_cancelled: Callable[[], None], image_kind: str = "original",
+                        wsxm_compatible: bool = False) -> bytes:
+    """V1/V2 keep samples in MPP; V3 recovers nonfinite samples from finite fill."""
     validate_alignment_series(frames, aligned=image_kind == "aligned")
     version = 2 if image_kind == "aligned" or any(f.alignment for f in frames) else 1
+    if wsxm_compatible:
+        version = 3
+    remaining_runs = MAX_RUNS
     records = []
     for frame in frames:
         check_cancelled()
@@ -136,8 +151,14 @@ def encode_mpp_metadata(frames: tuple[ImageFrame, ...], sha256: str, *,
                                 for key, value in frame.raw_header.items()}
         record['provenance'] = {'source': provenance.source,
                                 'source_frame_index': provenance.source_frame_index}
-        if version == 2:
+        if version >= 2:
             record["alignment"] = encode_alignment(frame.alignment)
+        if version == 3:
+            missing = encode_missing_samples(frame.data, check_cancelled, remaining_runs=remaining_runs)
+            record['missing_samples'] = missing
+            runs = missing['runs']
+            assert isinstance(runs, list)
+            remaining_runs -= len(runs)
         _frame(frame, record, version)
         records.append(record)
     metadata = dict(format='stmviewer-mpp', version=version, image_kind=image_kind,

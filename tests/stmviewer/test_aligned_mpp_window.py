@@ -29,7 +29,10 @@ def test_save_defaults_to_aligned_and_reopens_history_with_outline(qtbot, monkey
     save = window.findChild(QPushButton, 'saveOriginalMpp')
     save.click()
     qtbot.waitUntil(save.isEnabled)
-    assert len(choices[0][0]) == 2 and 'aligned' in choices[0][1]
+    assert len(choices[0][0]) == 4 and 'aligned — WSxM' in choices[0][1]
+    import numpy as np
+    from napara.io.mpp_reader import read_mpp_file
+    assert all(np.isfinite(f.data).all() for f in read_mpp_file(str(path)))
     assert 'Zapisano' in window.findChild(QLabel, 'mppExportInfo').text()
     saved = open_frame_series([path])
     assert len(saved) == 2 and saved[0].data.shape == (34, 53)
@@ -66,13 +69,14 @@ def test_input_view_defaults_to_original_and_does_not_offer_unavailable_aligned(
     monkeypatch.setattr(QFileDialog, 'getSaveFileName', cancel_dialog)
     save = window.findChild(QPushButton, 'saveOriginalMpp')
     save.click()
-    assert offered == [(['MPP original (*.mpp *.MPP)'], 'MPP original (*.mpp *.MPP)')]
+    assert offered == [(['MPP original — WSxM (*.mpp *.MPP)', 'MPP original — NaN (*.mpp *.MPP)'],
+                        'MPP original — WSxM (*.mpp *.MPP)')]
     register = window.findChild(QPushButton, 'registerFrames')
     register.click()
     qtbot.waitUntil(register.isEnabled)
     window.findChild(QComboBox, 'frameView').setCurrentText('original')
     save.click()
-    assert len(offered[-1][0]) == 2 and offered[-1][1] == 'MPP original (*.mpp *.MPP)'
+    assert len(offered[-1][0]) == 4 and offered[-1][1] == 'MPP original — WSxM (*.mpp *.MPP)'
 
 
 def test_real_save_dialog_exposes_version_choice(qtbot, monkeypatch, tmp_path):
@@ -107,6 +111,27 @@ def test_real_save_dialog_exposes_version_choice(qtbot, monkeypatch, tmp_path):
     save.click()
     timer.stop()
     qtbot.waitUntil(save.isEnabled)
-    assert observed == [(['MPP original (*.mpp *.MPP)', 'MPP aligned (*.mpp *.MPP)'],
-                         'MPP aligned (*.mpp *.MPP)')]
+    assert observed == [(['MPP original — WSxM (*.mpp *.MPP)', 'MPP aligned — WSxM (*.mpp *.MPP)',
+                          'MPP original — NaN (*.mpp *.MPP)', 'MPP aligned — NaN (*.mpp *.MPP)'],
+                         'MPP aligned — WSxM (*.mpp *.MPP)')]
     assert path.exists() and open_frame_series([path])[0].alignment is not None
+
+
+def test_user_can_keep_nan_in_mpp_from_the_save_dialog(qtbot, monkeypatch, tmp_path):
+    import numpy as np
+    from napara.io.mpp_reader import read_mpp_file
+    window = STMViewerMainWindow()
+    qtbot.addWidget(window)
+    window.show()
+    open_movie(qtbot, window, monkeypatch, FIXTURES / 'registration/subpixel.mpp')
+    register = window.findChild(QPushButton, 'registerFrames')
+    register.click()
+    qtbot.waitUntil(register.isEnabled)
+    path = tmp_path / 'keep-nan.mpp'
+    monkeypatch.setattr(QFileDialog, 'getSaveFileName',
+                        lambda *a, **kw: (str(path), 'MPP aligned — NaN (*.mpp *.MPP)'))
+    save = window.findChild(QPushButton, 'saveOriginalMpp')
+    save.click()
+    qtbot.waitUntil(save.isEnabled)
+    assert np.isnan(read_mpp_file(str(path))[0].data).any()
+    assert open_frame_series([path])[0].alignment is not None

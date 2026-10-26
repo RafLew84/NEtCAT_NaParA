@@ -1,10 +1,13 @@
-# Metadane towarzyszące MPP — wersje 1 i 2
+# Metadane towarzyszące MPP — wersje 1, 2 i 3
 
 Kontrakt ticketów [11](implementation/issues/11-mpp-metadata-import.md),
 [12](implementation/issues/12-original-mpp.md) i [13](implementation/issues/13-aligned-mpp.md).
 Aktualizacja: 2026-10-26. V1 opisuje original bez geometrii rejestracji.
-V2 dodaje historię aligned; obie wersje są odczytywane. Zwykły eksport original
-nadal używa V1. Eksport aligned oraz original ze znaną historią używa V2.
+V2 dodaje historię aligned. Wariant zapisu **NaN** nadal używa V1 dla original
+bez historii i V2 dla aligned lub original z historią. Nowy wariant **WSxM**
+używa V3, opisanej poniżej; GUI wybiera go domyślnie. API zachowuje domyślne
+`wsxm_compatible=False`; zgodność włącza się jawnym `True`. Odczyt obsługuje
+wszystkie trzy wersje.
 
 ## Lokalizacja i powiązanie
 
@@ -70,7 +73,7 @@ poprawności. Ustawienie podglądu „Proporcje pikselowe” nie modyfikuje tych
 `ImageFrame.source` i `source_frame_index` opisują faktycznie otwarty plik
 oraz pozycję w nim. `provenance` przechowuje niezależne historyczne pochodzenie.
 Pozostałe pola pomiaru, włącznie z `raw_header`, po poprawnej walidacji pochodzą
-z dodatku; `data` pozostaje niezmienione. `metadata_note` przekazuje wynik
+z dodatku; w V1/V2 `data` pozostaje niezmienione. V3 dodatkowo odtwarza braki. `metadata_note` przekazuje wynik
 weryfikacji do GUI. Brak dodatku nie tworzy domniemanej historii przekształceń.
 
 Panel rozdziela „Plik otwarty” i „Pochodzenie” oraz oba numery klatki.
@@ -161,4 +164,54 @@ V2 podlega tym samym regułom SHA-256, rozmiaru, liczby klatek i walidacji
 całości co V1. Niepełna albo sprzeczna geometria unieważnia cały dodatek;
 film nadal można otworzyć bez zgadywania historii. Inne czytniki repo
 odczytują wartości MPP i wspólny nagłówek, ale nie interpretują dodatku V2.
-Odczyt NaN przez WSxM pozostaje osobnym, niepotwierdzonym sprawdzeniem.
+Odczyt NaN przez WSxM 5.0 Develop 12.0 pod Wine daje czarny obraz:
+[diagnoza](wsxm-aligned-investigation.md). Wariant V3 omija ten problem.
+
+
+## V3: skończone tło dla WSxM i dokładne braki w dodatku
+
+Główne pola i `alignment` odpowiadają V2. `version=3` oznacza, że wszystkie
+próbki zapisane w MPP są skończone. Każdy rekord klatki zawiera dodatkowo
+obowiązkowe `missing_samples`:
+
+```json
+{"encoding": "runs-f64le-v1", "fill_value": 0.0,
+ "runs": [[2, 1, "000000000000f87f"], [4, 1, "000000000000f0ff"]]}
+```
+
+- `fill_value`: skończona liczba użyta w MPP zamiast NaN/Inf. Eksporter
+  wybiera minimum skończonych próbek danej klatki lub zero przy ich braku.
+  Skończone wartości pomiaru, również równe temu minimum, pozostają bez zmian.
+- `runs`: posortowane rozłączne przedziały `[start, count, bits]` w obrębie
+  spłaszczonego obrazu **Viewera** (C order, `start=y*width+x`), przed obrotem
+  do kolejności plikowej MPP. `start` jest nieujemnym indeksem od zera,
+  `count` dodatnią liczbą próbek; oba muszą być całkowite, nie boolean.
+- `bits`: dokładnie 16 małych znaków hex, osiem bajtów float64 little endian
+  powtarzanych na wskazanym przedziale. Muszą kodować NaN, +Inf lub −Inf.
+  Zachowany jest również znak i payload NaN. Sąsiednie identyczne przedziały
+  eksporter łączy. Brak zastąpień oznacza `runs=[]`.
+- `encoding`: dokładnie `runs-f64le-v1`; inne kodowania są odrzucane.
+
+Powyższy przykład przywraca NaN na pozycji 2 i −Inf na pozycji 4. Odczyt
+sprawdza zakresy, rozłączność, typy, bity oraz zgodność wskazanych pikseli
+MPP z `fill_value`. Nie wyznacza braków przez porównanie wszystkich pikseli
+z minimum ani z prostokątem źródła. `alignment.validity=isfinite(samples)`
+dotyczy próbek **po odtworzeniu**; tak wyznaczona maska zachowuje również
+dziury wewnątrz pola. Historia rejestracji nie zmienia się przez ten zapis.
+
+Walidacja i odtwarzanie pracują na kopiach. Błąd nawet ostatniej klatki
+odrzuca cały dodatek i wszystkie odtworzone braki; użytkownik dostaje
+skończone piksele MPP oraz komunikat. Brakujący/odrzucony JSON uniemożliwia
+odróżnienie sztucznego tła od pomiaru. Przenosić trzeba **MPP i JSON razem**.
+Starsze wersje Viewera oraz czytniki NaPara/NanoTrack/MolTrack nie rozumieją
+V3 i widzą w MPP sztuczne tło; do nich można wybrać wariant **NaN**.
+
+Eksporter ogranicza sumę przedziałów filmu do 500 000, przed zbudowaniem
+całego JSON. Czytnik ogranicza listę każdej klatki do 500 000. Nadal obowiązuje
+limit 64 MiB całego dodatku. Przekroczenie limitu nie podmienia poprzedniej
+pary; komunikat zaleca wariant NaN. Długie przebiegi sprawdzają anulowanie.
+Przy V3 nie zmieniono nagłówka MPP ani jego natywnego formatowania.
+
+Ponowny zapis w wariancie original działa na odtworzonych próbkach:
+WSxM ponownie zachowuje braki w V3, NaN przenosi je do MPP z V1/V2.
+To sposób przechowywania danych w parze, nie druga interpolacja obrazu.

@@ -21,7 +21,9 @@ z towarzyszącym `<nazwa>.mpp.stmviewer.json`.
    historyczne odniesienie nie zmieniają się. Ustaw gamma 2, powiększ obraz.
 3. Kliknij **Zapisz MPP…** (również Plik / Ctrl+S). W oknie zapisu pole
    **Typ pliku** zawiera `MPP original` i `MPP aligned`. Domyślnie wybrane
-   jest aligned, czyli oglądana wersja. Zapisz jako `data/subpixel-aligned.mpp`.
+   jest **MPP aligned — WSxM**, czyli oglądana wersja ze skończonym tłem
+   w MPP i odtwarzaniem braków z JSON. Wariant **MPP aligned — NaN** zachowuje
+   braki bezpośrednio w MPP. Zapisz jako `data/subpixel-aligned.mpp`.
    Gamma, zoom i bieżąca klatka pozostają bez zmian.
 4. Przed zmianą serii zapisz drugi plik, wybierając **MPP original**:
    `data/subpixel-original.mpp`. Ten plik zawiera tylko pozostałą oryginalną
@@ -49,7 +51,7 @@ Dla innych metod CPU można podać `--method` (`--help` pokazuje nazwy).
 7. Kliknij Rejestruj. Oczekuj czytelnego komunikatu o NaN/Inf, bez zmiany
    obrazu. Zapisz ponownie jako original pod trzecią nazwą i otwórz: historia
    i obrys nadal powinny być dostępne. Bez nowej rejestracji okno zapisu
-   oferuje tylko original.
+   oferuje tylko original, w wariantach WSxM i NaN.
 8. Otwórz `tests/stmviewer/fixtures/registration/integer.mpp`, wykonaj Phase,
    usuń klatkę 2 (skrajną), zapisz aligned jako `data/integer-aligned.mpp`.
    Obszar pozostaje **53 × 34**,
@@ -78,3 +80,7 @@ Dodatkowa próba WSxM: [diagnoza MOVIE_3-aligned.mpp](wsxm-aligned-investigation
 wykazała czarny obraz przy NaN w WSxM 5.0 Develop 12.0 pod Wine.
 Weryfikator danych potwierdza poprawny zapis; kopia ze sztucznym tłem
 służy wyłącznie do oglądania. Nie zmienia to wymogu zachowania NaN w MPP.
+
+Poprawka aplikacji dodaje teraz wariant WSxM z pełnym odtwarzaniem braków:
+[scenariusz ręczny](wsxm-export-manual.md). Wcześniejsza kopia `-preview`
+pozostaje wyłącznie podglądem; nowy eksporter tworzy pełną parę z dodatkiem V3.
