@@ -187,7 +187,8 @@ def _common_pixel_size(frames: tuple[ImageFrame, ...]) -> tuple[float, float] | 
         size = (x / frame.data.shape[1], y / frame.data.shape[0])
         if common is not None and not all(math.isclose(a, b, rel_tol=1e-9) for a, b in zip(size, common)):
             return None
-        common = size
+        if common is None:
+            common = size
     return common
 
 

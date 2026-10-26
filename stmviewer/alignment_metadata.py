@@ -6,7 +6,7 @@ import math
 import numpy as np
 
 from stmviewer.frame import AlignmentHistory, FrameProvenance, ImageFrame
-from stmviewer.metadata_values import json_object, optional_number, optional_text
+from stmviewer.metadata_values import json_object, optional_number, optional_text, source_provenance
 from stmviewer.registration import RegistrationResult
 
 _KEYS = {'canvas_shape', 'padding_ltrb', 'pixel_size_nm', 'reference', 'method', 'device',
@@ -72,14 +72,7 @@ def _decode(value: object, depth: int = 0) -> AlignmentHistory:
     rect = _vector(record['original_rect'], 4)
     if any(type(v) not in (float, int) for v in rect) or rect != [*origin, ow, oh]:
         raise ValueError('Geometria: niespójny prostokąt źródła.')
-    source = json_object(record['reference'], {'source', 'source_frame_index'})
-    name = optional_text(source, 'source')
-    index = source['source_frame_index']
-    if not name or not name.strip() or '\x00' in name:
-        raise ValueError('Historia: wymagane źródło odniesienia.')
-    if index is not None and (type(index) is not int or index < 0):
-        raise ValueError('Historia: nieprawidłowy indeks odniesienia.')
-    assert index is None or isinstance(index, int)
+    reference = source_provenance(record['reference'])
     method, device = optional_text(record, 'method'), optional_text(record, 'device')
     if not method or not method.strip() or not device or not device.strip():
         raise ValueError('Historia: wymagana metoda i urządzenie.')
@@ -101,7 +94,7 @@ def _decode(value: object, depth: int = 0) -> AlignmentHistory:
     if previous is not None:
         _validate_image_metadata(previous, (oh, ow), original_size, original_offset)
     return AlignmentHistory((height, width), (left, top, right, bottom), pixel_size,
-                            FrameProvenance(name, index), method, device, (oh, ow), original_size,
+                            reference, method, device, (oh, ow), original_size,
                             original_offset, shift, origin,
                             status, quality, inherited, previous)
 

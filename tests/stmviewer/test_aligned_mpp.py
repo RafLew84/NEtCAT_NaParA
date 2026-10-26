@@ -156,3 +156,15 @@ def test_existing_readers_receive_full_aligned_values_and_nan(tmp_path):
     expected = np.stack([f.image.data for f in result.frames])
     np.testing.assert_array_equal(load_mpp_sequence(str(path)).raw_frames, expected)
     np.testing.assert_array_equal(load_moltrack_image_series(path).raw_frames, expected)
+
+
+def test_close_but_drifting_source_scales_do_not_block_aligned_export(tmp_path):
+    template = subpixel_result().frames[0].original
+    frames = tuple(replace(template, size_x_nm=size, size_y_nm=1, source_frame_index=i)
+                   for i, size in enumerate((1, 1 + 9e-10, 1 + 1.8e-9)))
+    result = register_series(frames, backend=HalfPixelBackend())
+    path = save_aligned_mpp(tmp_path / 'slightly-different-scales.mpp', result)
+    loaded = open_frame_series([path])
+    assert all(f.size_x_nm is None and f.size_y_nm is None for f in loaded)
+    assert all(f.alignment.pixel_size_nm is None for f in loaded)
+    assert [f.alignment.original_size_nm for f in loaded] == [(1, 1), (1 + 9e-10, 1), (1 + 1.8e-9, 1)]

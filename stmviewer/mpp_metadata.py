@@ -8,7 +8,7 @@ import re
 
 from stmviewer.frame import FrameProvenance, ImageFrame
 from stmviewer.metadata_values import (json_object as _object, optional_number as _number,
-                                       optional_text as _text, source_header as _header)
+                                       optional_text as _text, source_header as _header, source_provenance)
 from stmviewer.alignment_metadata import decode_alignment, encode_alignment, validate_alignment_series
 
 _MAX_BYTES = 64 * 1024 * 1024
@@ -32,16 +32,8 @@ def _invalid_constant(value: str) -> object:
 
 def _frame(frame: ImageFrame, value: object, version: int = 1) -> ImageFrame:
     record = _object(value, _FIELDS | ({"alignment"} if version == 2 else set()))
-    provenance = _object(record['provenance'], {'source', 'source_frame_index'})
-    source = _text(provenance, 'source')
-    index = provenance['source_frame_index']
-    if source is None or not source.strip() or '\x00' in source:
-        raise ValueError('provenance.source: wymagany niepusty opis źródła.')
-    if index is not None and (type(index) is not int or index < 0):
-        raise ValueError('source_frame_index: wymagany indeks od zera albo null.')
-    assert index is None or isinstance(index, int)
     restored = replace(
-        frame, provenance=FrameProvenance(source, index),
+        frame, provenance=source_provenance(record['provenance']),
         measurement_time_s=_number(record, 'measurement_time_s'),
         measurement_time_raw=_text(record, 'measurement_time_raw'),
         channel=_text(record, 'channel'), signal_unit=_text(record, 'signal_unit'),

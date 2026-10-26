@@ -3,6 +3,8 @@
 import math
 from typing import Mapping
 
+from stmviewer.frame import FrameProvenance
+
 
 def json_object(value: object, keys: set[str] | None = None) -> dict[str, object]:
     if not isinstance(value, dict) or not all(isinstance(key, str) for key in value):
@@ -49,3 +51,15 @@ def source_header(value: object) -> Mapping[str, str | Mapping[str, str]]:
     return result
 
 
+
+def source_provenance(value: object) -> FrameProvenance:
+    """Both provenance and historical reference use the same portable source contract."""
+    record = json_object(value, {'source', 'source_frame_index'})
+    source = optional_text(record, 'source')
+    index = record['source_frame_index']
+    if source is None or not source.strip() or '\x00' in source:
+        raise ValueError('provenance.source: wymagany niepusty opis źródła.')
+    if index is not None and (type(index) is not int or index < 0):
+        raise ValueError('source_frame_index: wymagany indeks od zera albo null.')
+    assert index is None or isinstance(index, int)
+    return FrameProvenance(source, index)
