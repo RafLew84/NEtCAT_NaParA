@@ -1,5 +1,58 @@
 # Przekazanie — STM Viewer
 
+## 13: Białe tło i dwa wybory zapisu — 2026-10-26
+
+Baza `7123d1b`, implementacja **`2175cfe`**.
+[Ticket poprawki](implementation/issues/13-white-background.md): **ready-for-review**.
+[Próba ręczna](wsxm-export-manual.md), [przegląd](implementation/review-13-white-background.md).
+Zmiana wynika z prośby użytkownika o ujednolicenie dodatkowego obszaru.
+
+W oknie zapisu pozostają original/aligned, domyślnie bieżący widok.
+Zapis z GUI zawsze używa skończonego tła z dokładnymi brakami w V3.
+Tłem MPP jest maksimum klatki, a przy braku skończonych próbek zero.
+Podgląd i miniatury malują braki na biało po zastosowaniu gamma do pomiaru.
+NaN/Inf pozostają w pamięci, maska i historia odtwarzają się z JSON.
+Rejestracja, interpolacja i skończone wartości nie zmieniły się.
+
+Kolor MPP zależy od zewnętrznej palety i kontrastu — to liczby, nie RGB.
+Dokumentacja wyjaśnia też klatki stałe/puste oraz zakres całego filmu.
+Czytnik nadal obsługuje stare V3 z minimum i V1/V2. API zachowało poprzedni
+parametr i domyślny zapis NaN; dodatkowych wariantów nie ma już w GUI.
+Komunikaty limitu nie sugerują usuniętej opcji interfejsu.
+
+Sprawdzenia:
+
+- Trzy przebiegi TDD red → green na publicznym eksporcie i GUI.
+- Zestaw zmiany: **32 passed**, 3.49 s; rzeczywiste Qt xcb na oddzielnym
+  ekranie: **13 passed**, 1.22 s. Gamma, białe piksele i miniatury, dialog,
+  odczyt i resave starego aligned zostały sprawdzone automatycznie.
+- Mypy strict: **26 plików** bez błędów. Największy zmieniony plik kodu:
+  **765 linii**. `git diff --check` i linki dokumentacji poprawne.
+- Pełne repo raz na końcu: **2038 passed, 14 failed, 16 skipped**, 239.13 s.
+  Wszystkie 14 identyfikatorów błędów MolTrack/NanoTrack jest identycznych
+  z `/tmp/stmviewer-wsxm-full-suite.log`; brak nowych niepowodzeń.
+- `data/MOVIE_3-aligned-white.mpp` + JSON wygenerowano publicznym eksportem
+  original z istniejącego aligned. Każda z **17 klatek** zachowuje dokładne
+  skończone próbki, a po odczycie V3 także pełne bajty braków i historię.
+  Publiczny `check_aligned_mpp.py` ponownie obliczył Optical Flow i potwierdził
+  próbki, maskę, geometrię oraz metadane wszystkich klatek.
+- Nowy plik otwarto w rzeczywistym WSxM 5.0 Develop 12.0 pod Wine:
+  widoczny jasny dodany obszar i szczegóły pomiaru. Wycinek pomiaru:
+  **167** kolorów spełniających próg diagnostyczny; zrzut oceniono wizualnie.
+- Przegląd Standards: 0 uwag; Spec: 0 uwag. Bez zmian wspólnych modułów.
+
+Logi: `/tmp/stmviewer-white-full-suite.log`, `/tmp/stmviewer-white-xcb.log`,
+`/tmp/stmviewer-white-values.log`; WSxM: `/tmp/wsxm-aligned-investigation/white-export-result.log`
+i `white-export-frame0.png` (etykieta próby, faktyczna klatka na zrzucie: 8).
+Oryginalny pomiar i JSON nie były nadpisywane. Izolowane okno WSxM nie
+zmieniało konfiguracji użytkownika. Ręczny odbiór i Windows oczekują.
+
+Uruchom ponownie `python -m stmviewer.main` w środowisku `netcat`.
+Stary aligned wystarczy otworzyć i zapisać jako original pod nową nazwą;
+nie wymaga ponownej rejestracji. Do analizy przenosić MPP i JSON razem.
+Starsze czytniki bez V3 nadal interpretują sztuczne tło jako liczby;
+ewentualna wspólna obsługa V3 pozostaje zadaniem sesji integracyjnej.
+
 ## 13: Poprawka eksportu WSxM w aplikacji — 2026-10-26
 
 Baza `01259e1`, implementacja **`2343bd6`**, korekta przeglądu **`e013d73`**.

@@ -97,3 +97,6 @@ Status pozostaje ready-for-review; nie jest to potwierdzenie odbioru ręcznego.
 Po diagnozie użytkownik zlecił [poprawkę zgodności WSxM](13-wsxm-compatibility-fix.md).
 Domyślny wariant GUI przechowuje braki w dodatku V3; wariant NaN nadal
 spełnia wcześniejszy kontrakt bezpośredniego zapisu braków w MPP.
+
+Następne uproszczenie użytkownika: [biały dodatkowy obszar i tylko original/aligned](13-white-background.md).
+GUI używa teraz jednego zapisu z jasnym tłem i odtwarzaniem braków przez V3.
