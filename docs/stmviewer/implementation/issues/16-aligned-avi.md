@@ -4,7 +4,7 @@
 
 **Blocked by:** [08: Rejestracja Phase i pełny widok aligned](08-phase-registration.md), [14: Pierwszy film AVI: zakres, FPS i oba kodeki](14-original-avi-basic.md)
 
-**Status:** in-progress
+**Status:** ready-for-review
 
 **Wykonawca:** Codex
 **Baza przeglądu:** `903d00b6e21c9cbe2609ca151d09480c2551c754`
@@ -15,12 +15,12 @@ Przed realizacją przeczytaj [zasady wykonania i odbioru](../README.md#zasady-wy
 
 ## Kryteria odbioru
 
-- [ ] Okno oferuje original/aligned i domyślnie aktualny widok; brak kompletnego aligned uniemożliwia wybór tego wariantu.
-- [ ] Wybrany zakres i usunięcie klatki nie przeliczają położenia ani nie zmniejszają pełnego obszaru istniejącego aligned.
-- [ ] Maska, proporcje, gamma, dostępny kontrast i tło korzystają z gotowego wyniku; zapis nie uruchamia rejestracji ani nowej interpolacji pomiaru.
-- [ ] Gamma nie zmienia tła, kontrast nie obejmuje brakujących próbek. Wspólna skala daje właściwe proporcje; przy niewspólnej używane są piksele.
-- [ ] Oba kodeki, zakres i FPS działają z aligned. Eksport zachowuje spójny wynik nawet gdy później rozpocznie się nowa operacja zgodnie z dopuszczonym stanem UI.
-- [ ] Jeśli opcjonalne opisy są już dostępne, stosują geometrię wybranego aligned. Ich implementacja nie jest warunkiem rozpoczęcia tego etapu.
+- [x] Okno oferuje original/aligned i domyślnie aktualny widok; brak kompletnego aligned uniemożliwia wybór tego wariantu.
+- [x] Wybrany zakres i usunięcie klatki nie przeliczają położenia ani nie zmniejszają pełnego obszaru istniejącego aligned.
+- [x] Maska, proporcje, gamma, dostępny kontrast i tło korzystają z gotowego wyniku; zapis nie uruchamia rejestracji ani nowej interpolacji pomiaru.
+- [x] Gamma nie zmienia tła, kontrast nie obejmuje brakujących próbek. Wspólna skala daje właściwe proporcje; przy niewspólnej używane są piksele.
+- [x] Oba kodeki, zakres i FPS działają z aligned. Eksport zachowuje spójny wynik nawet gdy później rozpocznie się nowa operacja zgodnie z dopuszczonym stanem UI.
+- [x] Jeśli opcjonalne opisy są już dostępne, stosują geometrię wybranego aligned. Ich implementacja nie jest warunkiem rozpoczęcia tego etapu.
 
 ## Testy automatyczne
 
@@ -49,3 +49,31 @@ Dane i sposób przygotowania nietypowych wzorców dostarcza realizujący ticket.
 ## Współpraca z integracją
 
 Wspólne API geometrii powinno być używane w uzgodnionej orientacji; potrzebne korekty adaptera/materializatora prowadzić z integracją.
+
+## Wynik implementacji — 2026-10-26
+
+Implementacja `ecc8663`, poprawka kalibracji zakresu `883b3ae`; baza `903d00b`.
+[Instrukcja ręczna](../../aligned-avi-manual.md),
+[przegląd Standards/Spec](../review-16-aligned-avi.md).
+Kryteria potwierdzają testy automatyczne i próby techniczne; ręczna akceptacja
+użytkownika pozostaje do wykonania, stąd **ready-for-review**.
+
+- Wybór original/aligned domyślnie odpowiada podglądowi; dostępny jest tylko
+  kompletny wynik zgodny z bieżącą serią. Obie wersje mają wspólne opcje AVI.
+- Obszar i tablice aligned nie są przeliczane ani kopiowane. Per-frame
+  kalibracja oryginałów pozwala wybrać fizyczne proporcje jednolitego zakresu,
+  także po rejestracji mieszanej serii. Podgląd pozostaje bez zmian.
+- Po poprawce: **86 passed**, 19.58 s (AVI i powiązane MPP);
+  **28 passed**, 7.24 s (GUI Qt xcb). Mypy strict: **32 pliki, 0 błędów**.
+- Pełne repo raz po implementacji, przed poprawką z przeglądu:
+  **2120 passed, 14 failed, 16 skipped**, 266.40 s. Identyczne 14 błędów
+  MolTrack/NanoTrack co w tickecie 15; po poprawce ponowiono zestawy właściwe
+  dla zmiany. Nie deklarujemy zaliczenia całego repozytorium.
+- VLC odtworzył 10 filmów w obu kodekach; dwa filmy mieszanego wzorca
+  sprawdzono ponownie po poprawce kalibracji. Bez błędów, obraz i EOF.
+- Rzeczywisty eksport aligned po Phase 256 × 512 × 512 anulowany przez GUI
+  podczas kodowania: poprzedni AVI identyczny bajtowo. To próba automatyczna.
+- Przeglądy obu osi: bez otwartych uwag. Największy zmieniony plik kodu:
+  `main_window.py`, 803 linie. Brak zmian wspólnych modułów i zależności.
+- Opisy filmu należą do ticketu 17; nie są jeszcze dostępne. Odbiór Windows
+  i końcowe odbiory platform pozostają w ticketach 20–21.

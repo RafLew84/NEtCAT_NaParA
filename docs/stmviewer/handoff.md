@@ -1,5 +1,75 @@
 # Przekazanie — STM Viewer
 
+
+## 16: Aligned do AVI — 2026-10-26
+
+[Ticket 16](implementation/issues/16-aligned-avi.md): **ready-for-review**.
+Baza `903d00b`, implementacja **`ecc8663`**, poprawka **`883b3ae`**.
+[Instrukcja uruchomienia i próby ręcznej](aligned-avi-manual.md),
+[przegląd dwóch osi](implementation/review-16-aligned-avi.md).
+Do zakończenia etapu potrzebne jest potwierdzenie testów manualnych użytkownika.
+
+Przycisk/menu „Zapisz AVI…” otwiera opcje z wyborem original/aligned,
+domyślnie zgodnym z podglądem. Bez kompletnego wyniku związanego z bieżącą
+serią dostępne jest tylko original. Podsumowanie zmienia rozmiar wraz z wyborem;
+proponowana nazwa ma sufiks odpowiedniej wersji. Zmiana wyboru nie zmienia podglądu.
+
+Adapter `avi_sources.py` bierze gotowe tablice aligned i zachowuje pełny canvas
+również po usunięciu odniesienia/skrajnej klatki albo wybraniu zakresu. Nie ma
+nowej rejestracji ani interpolacji pomiaru. Kopiowane są tylko rekordy metadanych,
+bez kopiowania tablic. Kalibracja każdego oryginału odnosi się do pełnego canvas;
+planner sprawdza wspólną skalę eksportowanych klatek. To pozwala zapisać fizyczne
+proporcje jednorodnego zakresu pierwotnie mieszanej serii, bez zmiany skali podglądu.
+Opcja proporcji pikselowych działa jak wcześniej.
+
+Oba kodeki, FPS, zakres, gamma, kontrast i trzy tła korzystają z dotychczasowego
+renderera/workera. Maska braków i dopełnienie parzystych rozmiarów zachowują
+wybrany kolor. Opcje i tablice są ustalone na czas eksportu; podgląd pozostaje
+dostępny, zmiany serii/rejestracja/pozostałe eksporty są blokowane do zakończenia.
+Nie dodano napisów ani podziałki (ticket 17).
+
+Sprawdzenia:
+
+- TDD red → green dla wyboru aligned i eksportu po usunięciu odniesienia,
+  niedostępności niekompletnego/niedopasowanego wyniku oraz poprawki kalibracji
+  jednorodnego podzbioru (zakres i usunięcie odstającej klatki).
+- Po poprawce **86 passed**, 19.58 s: `/tmp/stmviewer-avi16-focused-final.log`.
+  AVI oraz powiązane MPP; rzeczywisty odczyt obu kodeków, geometryczne oczekiwania
+  po usunięciu, maski i subpikselowe próbki, wspólna/nieznana skala, wybór wersji,
+  zamrożenie opcji, anulowanie, błąd, zamknięcie i nowa operacja po zakończeniu.
+- Mypy strict: **32 pliki, 0 błędów**. Największy zmieniony plik kodu:
+  `main_window.py`, **803 linie**. `git diff --check` czysty.
+- Pełne repo raz po implementacji, przed poprawką z przeglądu:
+  **2120 passed, 14 failed, 16 skipped**, 266.40 s;
+  `/tmp/stmviewer-avi16-full-suite.log`. Porównanie z ticketem 15:
+  te same 14 identyfikatorów niepowodzeń MolTrack/NanoTrack, bez nowych.
+  Po poprawce powtórzono właściwe zestawy AVI/MPP/GUI i mypy. Pełny zestaw
+  nie jest deklarowany jako zielony.
+- Po poprawce GUI Qt xcb/Xvfb: **28 passed**, 7.24 s;
+  `/tmp/stmviewer-avi16-xcb-final.log`. Obejrzano główne okno i nowy dialog.
+- VLC **3.0.20**, osobny ekran Xvfb z wyjściem xcb_x11: 10 filmów, oba kodeki,
+  trzy tła, kontrasty, gamma i anizotropia; obraz, EOF, kod 0, bez błędów.
+  Po poprawce powtórzono próbę dwóch zmienionych filmów mieszanego wzorca.
+  Raporty i zrzuty: `/tmp/stmviewer-avi16-vlc/`, w tym `results.json`
+  oraz `calibration-results.json`. Użyto tymczasowej kopii VLC z poprzednich
+  etapów, bez instalowania programów w systemie.
+- Rzeczywista rejestracja Phase **256 klatek 512 × 512**, wynik 524 × 519.
+  Zapis aligned ze wspólnym kontrastem anulowany przez przycisk GUI podczas
+  kodowania klatki 1/256; poprzedni AVI pozostał identyczny bajtowo.
+  `/tmp/stmviewer-avi16-vlc/cancel-result.json`. Nie jest to pełny test wydajności
+  ticketów 18–19 ani ręczna akceptacja użytkownika.
+- Lokalne dane `data/avi-ticket16/`: trzy małe MPP z JSON, 10 filmów AVI
+  oraz `long.mpp` (~537 MB). Generator
+  `tests/stmviewer/make_aligned_avi_fixtures.py` z opcją `--long`.
+  Dane i duże wyniki pozostają poza Git.
+
+Przegląd Standards: początkowa opcjonalna uwaga o odpowiedzialności dialogu
+rozwiązana przez adapter; finalnie 0 uwag. Spec: P2 o kalibracji zakresu
+rozwiązane w `883b3ae`, recenzent niezależnie potwierdził wynik; finalnie 0 uwag.
+Ręczny odbiór użytkownika pozostaje otwarty; brak stanowiska Windows.
+Nie zmieniono wspólnego kodu, konfiguracji ani zależności. Integracja nie wymaga
+nowych ustaleń. Odbiory platform nadal należą do ticketów 20 i 21.
+
 ## 15: Prezentacja AVI — 2026-10-26
 
 [Ticket 15](implementation/issues/15-avi-presentation.md): **done**.
