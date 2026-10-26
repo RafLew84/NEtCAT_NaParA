@@ -1,5 +1,60 @@
 # Przekazanie — STM Viewer
 
+## 15: Prezentacja AVI — 2026-10-26
+
+[Ticket 15](implementation/issues/15-avi-presentation.md): **ready-for-review**.
+Baza `d6a08e1`, implementacja **`3e1fddf`**.
+[Instrukcja ręczna i dane](avi-presentation-manual.md),
+[przegląd dwóch osi](implementation/review-15-avi-presentation.md).
+Do zakończenia etapu potrzebne jest potwierdzenie testów manualnych użytkownika.
+
+Dialog AVI daje gamma z podglądu lub 1, kontrast osobno dla każdej klatki
+lub wspólny dla wybranego zakresu oraz tło czarne/szare/białe (0/128/255).
+Wartości domyślne pozostają: gamma podglądu, kontrast osobny, czarne tło.
+Nowe otwarcie dialogu przywraca te wartości. Opcje po rozpoczęciu są niezmienne;
+zmiana podglądu nie wpływa na rozpoczęty film. Nie zmieniono podglądu ani MPP.
+
+Wspólne poziomy wyznacza worker tylko ze skończonych próbek wybranych klatek,
+blokami około 4 MiB z punktami anulowania. Nie powstaje dodatkowy stos filmu.
+Postęp obejmuje wyznaczanie poziomów, zapis i weryfikację. Braki i dopełnienie
+używają wybranego koloru po gamma, bez udziału w poziomach. Przy stałym zakresie
+u=0,5 przed gamma; pusty film/klatka z punktu widzenia próbek daje wybrane tło.
+MJPG/FFV1 nadal mają wspólne renderowanie i zabezpieczenia z ticketu 14.
+
+Zakres AVI to nadal original. Renderer działa też na pikselach gotowego aligned
+wczytanego z MPP jako źródło; dodanie wyboru bieżącego aligned jest w tickecie 16.
+Nie dodano opisów ani nowych zależności, nie zmieniono wspólnych modułów.
+
+Sprawdzenia:
+
+- TDD: red → green kolejno dla teł, wspólnego kontrastu i publicznych opcji GUI;
+  pozostałe scenariusze rozszerzają regresje granic zatwierdzonych dla AVI.
+- **57 passed**, 12.83 s, `/tmp/stmviewer-avi15-focused.log`. Obejmuje 24
+  kombinacje kodeka/tła/kontrastu/gamma przez GUI i faktyczny odczyt AVI,
+  skrajne finite float64, NaN/Inf, stały zakres, brak próbek, wybór zakresu,
+  niezmienność ustawień podczas pracy i anulowanie obliczeń kontrastu.
+- Mypy strict: **31 plików, 0 błędów**. `git diff --check` czysty.
+  Największy zmieniony plik kodu: `avi_export.py`, **171 linii**.
+- Pełne repo raz na końcu implementacji: **2095 passed, 14 failed, 16 skipped**,
+  259.60 s, `/tmp/stmviewer-avi15-full-suite.log`. Porównanie z logiem ticketu 14
+  `/tmp/stmviewer-avi-full-suite.log`: identyczne 14 identyfikatorów błędów
+  MolTrack/NanoTrack, bez nowych. Nie deklarujemy zielonego całego repo.
+- **34 passed**, 9.69 s, GUI Qt xcb na osobnym Xvfb; log
+  `/tmp/stmviewer-avi15-xcb.log`. Obejrzano także rozszerzony dialog.
+- Faktyczne **VLC 3.0.20** odtworzyło 10 filmów w MJPG/FFV1 z nowymi opcjami,
+  do EOF, z wyjściem obrazu xcb_x11 i kodem 0, bez błędów; obejrzano zrzuty.
+  Raporty: `/tmp/stmviewer-avi15-vlc/`. Użyto tymczasowej kopii VLC z poprzedniego
+  etapu; niczego nie instalowano w systemie. Brak stanowiska Windows.
+- Dane: `data/avi-ticket15/presentation.mpp` i JSON oraz 10 lokalnych AVI;
+  generator `tests/stmviewer/make_avi_presentation_fixtures.py`. Pięć klatek
+  65 × 49, wynik 66 × 50, rozpoznawalne skale i skrajna pierwsza klatka.
+  Pomiary i filmy pozostają poza Git.
+
+Przegląd skilla code-review: Standards **0 ustaleń**, Spec **0 ustaleń**.
+Nie były potrzebne poprawki kodu. Ręczny odbiór użytkownika i odrębne próby
+platformowe pozostają otwarte. Współpraca z integracją: brak nowych wspólnych
+zmian i zależności; użyto netcat oraz konfiguracji OpenCV z ticketu 14.
+
 ## 14: Original do AVI — 2026-10-26
 
 [Ticket 14](implementation/issues/14-original-avi-basic.md): **done**.

@@ -86,3 +86,21 @@ Lokalna tymczasowa kopia VLC z poprzedniego etapu:
 Dostępna do usunięcia katalogu `/tmp/stmviewer-avi-vlc/`. Windows i ręczne
 potwierdzenie użytkownika są odrębne od automatycznych prób Qt i odtwarzania
 VLC na ekranie testowym.
+
+## Wyniki techniczne — 2026-10-26
+
+- **57 passed**, 12.83 s: renderer, wszystkie 24 kombinacje opcji i kodeków
+  przez GUI z odczytem filmu, zamrożenie opcji, anulowanie i regresje eksportu.
+  Log: `/tmp/stmviewer-avi15-focused.log`.
+- **34 passed**, 9.69 s: GUI na Qt xcb/Xvfb, w tym nowe opcje i cykl zapisu.
+  Obejrzano dialog; log `/tmp/stmviewer-avi15-xcb.log`.
+- **VLC 3.0.20** faktycznie odtworzył 10 przygotowanych AVI: oba kodeki,
+  kontrasty, tła i gamma. Wszystkie filmy zakończyły się kodem 0 po EOF,
+  z działającym wyjściem obrazu xcb_x11, bez błędów. Obejrzano zrzuty.
+  Logi, obrazy i `results.json`: `/tmp/stmviewer-avi15-vlc/`.
+- Mypy: 31 plików, 0 błędów. Przegląd Standards i Spec: bez uwag.
+- Pełne repo: 2095 passed, 14 failed, 16 skipped (259.60 s), identyczne
+  wcześniejsze niepowodzenia MolTrack/NanoTrack. Log:
+  `/tmp/stmviewer-avi15-full-suite.log`.
+
+Ręczna akceptacja użytkownika oraz osobny odbiór Windows pozostają otwarte.

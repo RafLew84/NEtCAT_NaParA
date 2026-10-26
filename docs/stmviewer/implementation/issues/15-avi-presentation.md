@@ -4,7 +4,7 @@
 
 **Blocked by:** [14: Pierwszy film AVI: zakres, FPS i oba kodeki](14-original-avi-basic.md)
 
-**Status:** in-progress
+**Status:** ready-for-review
 
 **Wykonawca:** Codex
 **Baza przeglądu:** `d6a08e1a1f2f61b13b83f1ce3deb19ebadb74026`
@@ -15,12 +15,12 @@ Przed realizacją przeczytaj [zasady wykonania i odbioru](../README.md#zasady-wy
 
 ## Kryteria odbioru
 
-- [ ] Domyślne ustawienia pozostają takie jak w pierwszym eksporcie; nowe opcje obejmują gamma z podglądu/1, kontrast osobny/wspólny i trzy uzgodnione tła.
-- [ ] Wspólny kontrast jest liczony tylko z ważnych próbek wybranego zakresu; tło, opisy, padding i klatki spoza zakresu nie wpływają na poziomy.
-- [ ] Gamma ma tę samą konwencję co podgląd i nie wpływa na tło. Stały zakres daje u=0,5 przed gamma; klatka bez ważnych próbek nadal trafia do filmu.
-- [ ] Wybrane opcje są stałe dla całej rozpoczętej operacji, niezależnie od późniejszych zmian podglądu.
-- [ ] Oba kodeki zachowują te same zasady renderowania, proporcji, paddingu i bezpieczeństwa zapisu.
-- [ ] Opcje działają dla original i każdego już dostępnego aligned; ostateczne połączenie wariantów jest sprawdzone podczas odbioru dużych eksportów.
+- [x] Domyślne ustawienia pozostają takie jak w pierwszym eksporcie; nowe opcje obejmują gamma z podglądu/1, kontrast osobny/wspólny i trzy uzgodnione tła.
+- [x] Wspólny kontrast jest liczony tylko z ważnych próbek wybranego zakresu; tło, opisy, padding i klatki spoza zakresu nie wpływają na poziomy.
+- [x] Gamma ma tę samą konwencję co podgląd i nie wpływa na tło. Stały zakres daje u=0,5 przed gamma; klatka bez ważnych próbek nadal trafia do filmu.
+- [x] Wybrane opcje są stałe dla całej rozpoczętej operacji, niezależnie od późniejszych zmian podglądu.
+- [x] Oba kodeki zachowują te same zasady renderowania, proporcji, paddingu i bezpieczeństwa zapisu.
+- [x] Opcje działają dla original i każdego już dostępnego aligned; ostateczne połączenie wariantów jest sprawdzone podczas odbioru dużych eksportów.
 
 ## Testy automatyczne
 
@@ -48,3 +48,23 @@ Dane i sposób przygotowania nietypowych wzorców dostarcza realizujący ticket.
 ## Współpraca z integracją
 
 Renderer i opcje należą do Viewera. Wspólne zmiany prezentacji tylko po uzgodnieniu z integracją; nie zastępować wartości brakujących medianą przed obliczaniem kontrastu.
+
+## Wynik implementacji — 2026-10-26
+
+Commit `3e1fddf`; baza `d6a08e1`.
+[Instrukcja manualna](../../avi-presentation-manual.md),
+[przegląd Standards/Spec](../review-15-avi-presentation.md).
+Implementacja i próby techniczne potwierdzają kryteria; ręczna akceptacja
+użytkownika pozostaje do wykonania, stąd **ready-for-review**.
+
+- 57 testów AVI: passed (12.83 s); 34 próby GUI Qt xcb: passed (9.69 s).
+- Mypy strict: 31 plików bez błędów. Największy zmieniony plik kodu: 171 linii.
+- Pełne repo: 2095 passed, 14 failed, 16 skipped, 259.60 s. Dokładnie te same
+  14 niepowodzeń MolTrack/NanoTrack co przed zmianą; bez nowych identyfikatorów.
+- VLC 3.0.20/Ubuntu/Xvfb: 10 filmów, oba kodeki, trzy tła, oba kontrasty,
+  gamma 1/2 i różne zakresy; obraz i EOF, bez błędów. Obejrzano zrzuty filmu
+  oraz rozszerzonego dialogu. Nie jest to ręczny odbiór użytkownika ani Windows.
+- Obliczanie wspólnych poziomów działa w workerze, blokami, z postępem
+  i anulowaniem. Zmiana gamma podglądu podczas zapisu nie zmienia filmu.
+- Obecny eksporter wybiera original. Gotowy aligned wczytany z MPP korzysta
+  z tego samego renderera; wybór bieżącego widoku aligned pozostaje w tickecie 16.
