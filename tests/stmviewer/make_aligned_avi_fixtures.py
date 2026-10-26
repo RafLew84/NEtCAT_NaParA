@@ -25,7 +25,8 @@ def generate(destination: Path, *, long_movie: bool = False) -> None:
     save_original_mpp(destination / 'drift.mpp', tuple(frames), overwrite=True)
     save_original_mpp(destination / 'anisotropic.mpp', tuple(replace(f, size_x_nm=160) for f in frames),
                       overwrite=True)
-    save_original_mpp(destination / 'mixed.mpp', (replace(frames[0], size_x_nm=None), *frames[1:]),
+    save_original_mpp(destination / 'mixed.mpp', tuple(replace(f, size_x_nm=None if i == 0 else 160)
+                            for i, f in enumerate(frames)),
                       overwrite=True)
     if long_movie:
         # Repeated translations keep the aligned canvas bounded; distinct random

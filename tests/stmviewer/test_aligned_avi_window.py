@@ -153,3 +153,47 @@ def test_version_defaults_to_preview_and_can_be_changed_without_changing_preview
     _, images = decode(path)
     assert len(images) == 3 and images[0].shape == (32, 48, 3)
     assert window.findChild(QComboBox, 'frameView').currentText() == 'original'
+
+
+@pytest.mark.parametrize('remove_outlier', [False, True])
+def test_aligned_range_uses_calibration_of_exported_originals(qtbot, monkeypatch, tmp_path, remove_outlier):
+    from stmviewer.mpp_export import save_original_mpp
+    frames = tuple(replace(f, size_x_nm=96, size_y_nm=32) for f in open_frame_series(
+        [FIXTURES / 'registration/integer.mpp']))
+    frames = (replace(frames[0], size_x_nm=48), *frames[1:])
+    source = save_original_mpp(tmp_path / 'mixed.mpp', frames)
+    window = STMViewerMainWindow()
+    qtbot.addWidget(window)
+    window.show()
+    open_movie(qtbot, window, monkeypatch, source)
+    register = window.findChild(QPushButton, 'registerFrames')
+    register.click()
+    qtbot.waitUntil(register.isEnabled)
+    if remove_outlier:
+        window.findChild(QPushButton, 'deleteFrame').click()
+    before = window.findChild(QWidget, 'imagePreview').grab().toImage()
+    path = tmp_path / 'common-range.avi'
+    monkeypatch.setattr(QFileDialog, 'getSaveFileName', lambda *a, **kw: (str(path), ''))
+
+    def choose_range():
+        dialog = window.findChild(QDialog, 'aviOptions')
+        try:
+            summary = dialog.findChild(QLabel, 'aviSummary')
+            if not remove_outlier:
+                assert '54 × 34' in summary.text() and 'pikselowe' in summary.text()
+            dialog.findChild(QComboBox, 'aviRange').setCurrentIndex(1)
+            dialog.findChild(QSpinBox, 'aviStart').setValue(1 if remove_outlier else 2)
+            assert '106 × 34' in summary.text() and 'fizyczne' in summary.text()
+            dialog.findChild(QComboBox, 'aviCodec').setCurrentText('FFV1')
+            dialog.findChild(QDialogButtonBox).button(QDialogButtonBox.StandardButton.Save).click()
+        finally:
+            if dialog.isVisible():
+                dialog.reject()
+
+    QTimer.singleShot(10, choose_range)
+    save = window.findChild(QPushButton, 'saveAvi')
+    save.click()
+    qtbot.waitUntil(save.isEnabled)
+    _, images = decode(path)
+    assert len(images) == 2 and images[0].shape == (34, 106, 3)
+    assert window.findChild(QWidget, 'imagePreview').grab().toImage() == before

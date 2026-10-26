@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QFormLayout, Q
 
 from stmviewer.avi_export import AviPlan, prepare_avi
 from stmviewer.avi_raster import MoviePresentation
+from stmviewer.avi_sources import aligned_movie_frames
 from stmviewer.frame import ImageFrame
 from stmviewer.registration import RegistrationResult
 
@@ -19,11 +20,9 @@ class AviDialog(QDialog):
         self.setWindowTitle('Zapisz AVI')
         self.setMinimumWidth(440)
         self._versions = {'original': frames}
-        if (registration is not None and len(registration.frames) == len(frames)
-                and all(aligned.original is original
-                        and aligned.image.data.shape == registration.canvas_shape
-                        for original, aligned in zip(frames, registration.frames))):
-            self._versions['aligned'] = tuple(frame.image for frame in registration.frames)
+        aligned = aligned_movie_frames(frames, registration)
+        if aligned is not None:
+            self._versions['aligned'] = aligned
         self._presentation = presentation
         self.plan: AviPlan | None = None
         layout = QFormLayout(self)

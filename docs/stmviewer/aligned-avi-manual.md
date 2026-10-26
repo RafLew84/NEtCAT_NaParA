@@ -25,8 +25,10 @@ Każdy film ma cztery klatki 80 × 80 z trzema rozpoznawalnymi obiektami,
 przesunięciami i różną jasnością. Phase daje pełny obszar **92 × 87**.
 Przesunięcia XY względem pierwszej: (0, 0), (7, −4), (−5, 3), (−2, −1).
 `drift` ma kwadratowe piksele, `anisotropic` skalę X dwukrotnie większą od Y,
-`mixed` brak kalibracji X pierwszej klatki. Po rejestracji `mixed` pozostaje
-w pikselach również po usunięciu pierwszej klatki.
+`mixed` brak kalibracji X pierwszej klatki i dwukrotnie większą skalę X
+pozostałych. Całe aligned `mixed` ma proporcje pikselowe, lecz eksport
+jednolicie skalibrowanego zakresu używa fizycznych proporcji jego oryginałów.
+Podgląd zachowuje skalę wspólnego wyniku rejestracji.
 
 Dziesięć lokalnych filmów porównawczych ma nazwy zaczynające się od
 `drift-black-frame`, `drift-gray-shared`, `drift-white-neutral`,
@@ -60,7 +62,10 @@ osobny. Wykonaj także własny eksport przez GUI.
    wyznaczyć inny obszar; sam eksport nie przelicza dopasowania.
 7. Otwórz `anisotropic.mpp` i wykonaj Phase: aligned AVI ma **184 × 88**,
    a po zaznaczeniu **Proporcje pikselowe** — **92 × 88**. Dla `mixed.mpp`
-   po Phase oczekuj **92 × 88**, także po usunięciu pierwszej klatki.
+   po Phase eksport całej serii ma **92 × 88**, a zakres 2–4 lub wszystkie
+   klatki po usunięciu pierwszej mają **184 × 88**. Pełny obszar danych
+   pozostaje 92 × 87; zmieniają się wyłącznie proporcje filmu. Opcja
+   Proporcje pikselowe daje 92 × 88 także dla tego zakresu.
 8. Przełącz podgląd na original. Nowe okno eksportu domyślnie pokazuje
    original, ale pozwala wybrać aligned. Sprawdź oba filmy i zgodny sufiks
    proponowanej nazwy. Zapis nie zmienia bieżącej klatki ani podglądu.

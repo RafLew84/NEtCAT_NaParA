@@ -13,14 +13,12 @@ from test_mpp_export_window import FIXTURES
 
 
 @pytest.mark.parametrize('codec', ['MJPG', 'FFV1'])
-@pytest.mark.parametrize('scale', ['common', 'unknown', 'mixed', 'pixel-override'])
+@pytest.mark.parametrize('scale', ['common', 'unknown', 'pixel-override'])
 def test_export_uses_frozen_aligned_samples_and_scale_after_deletion(tmp_path, codec, scale):
     originals = tuple(replace(f, size_x_nm=96, size_y_nm=32) for f in open_frame_series(
         [FIXTURES / 'registration/integer.mpp']))
     if scale == 'unknown':
         originals = tuple(replace(f, size_x_nm=None) for f in originals)
-    elif scale == 'mixed':
-        originals = (replace(originals[0], size_x_nm=48), *originals[1:])
     result = register_series(originals)
     before = [(f.image.data.tobytes(), f.valid_mask.tobytes(), f.original.data.tobytes()) for f in result.frames]
     surviving = result.without_frame(0)
