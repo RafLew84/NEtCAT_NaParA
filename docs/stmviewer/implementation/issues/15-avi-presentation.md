@@ -4,7 +4,10 @@
 
 **Blocked by:** [14: Pierwszy film AVI: zakres, FPS i oba kodeki](14-original-avi-basic.md)
 
-**Status:** ready-for-agent
+**Status:** in-progress
+
+**Wykonawca:** Codex
+**Baza przeglądu:** `d6a08e1a1f2f61b13b83f1ce3deb19ebadb74026`
 
 **Specyfikacja:** [Opcje filmu AVI](../../issues/05-avi-export.md#answer), [Dane i kryteria odbioru pierwszej wersji](../../issues/06-acceptance.md#answer).
 

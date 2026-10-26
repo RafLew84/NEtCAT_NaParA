@@ -1,4 +1,6 @@
 """Original AVI options and a live summary, before any file is written."""
+from dataclasses import replace
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QFormLayout, QLabel, QSpinBox, QWidget
 
@@ -41,8 +43,23 @@ class AviDialog(QDialog):
         self._codec.addItems(['MJPG', 'FFV1'])
         self._codec.setToolTip('MJPG: kompresja stratna. FFV1: dokładne piksele wyrenderowanego filmu.')
         layout.addRow('Kodek', self._codec)
-        note = QLabel(f'Pełne obrazy original · gamma {presentation.gamma:g}\n'
-                      'Kontrast osobno dla klatki · czarne tło braków · bez opisów', self)
+        self._gamma = QComboBox(self)
+        self._gamma.setObjectName('aviGamma')
+        self._gamma.addItem(f'Z podglądu ({presentation.gamma:g})', 'preview')
+        self._gamma.addItem('Neutralna (1)', 'neutral')
+        layout.addRow('Gamma', self._gamma)
+        self._contrast = QComboBox(self)
+        self._contrast.setObjectName('aviContrast')
+        self._contrast.addItem('Osobno dla każdej klatki', 'per_frame')
+        self._contrast.addItem('Wspólny dla filmu', 'movie')
+        self._contrast.setToolTip('Wspólny kontrast uwzględnia tylko ważne próbki wybranego zakresu klatek.')
+        layout.addRow('Kontrast', self._contrast)
+        self._background = QComboBox(self)
+        self._background.setObjectName('aviBackground')
+        for label, value in (('Czarne', 0), ('Szare', 128), ('Białe', 255)):
+            self._background.addItem(label, value)
+        layout.addRow('Tło braków', self._background)
+        note = QLabel('Pełne obrazy original · bez opisów', self)
         note.setWordWrap(True)
         layout.addRow(note)
         self._summary = QLabel(self)
@@ -64,6 +81,8 @@ class AviDialog(QDialog):
             spin.valueChanged.connect(self._update_summary)
         self._range.currentIndexChanged.connect(self._update_summary)
         self._codec.currentIndexChanged.connect(self._update_summary)
+        for control in (self._gamma, self._contrast, self._background):
+            control.currentIndexChanged.connect(self._update_summary)
         self._update_summary()
 
     def _update_summary(self) -> None:
@@ -75,7 +94,11 @@ class AviDialog(QDialog):
                 self._frames, start=self._start.value() if subset else 1,
                 end=self._end.value() if subset else len(self._frames), fps=self._fps.value(),
                 codec='FFV1' if self._codec.currentText() == 'FFV1' else 'MJPG',
-                presentation=self._presentation)
+                presentation=replace(
+                    self._presentation,
+                    gamma=self._presentation.gamma if self._gamma.currentData() == 'preview' else 1.0,
+                    contrast='movie' if self._contrast.currentData() == 'movie' else 'per_frame',
+                    background=int(self._background.currentData())))
             width, height = self.plan.geometry.output_size
             proportions = 'fizyczne' if self.plan.geometry.physical else 'pikselowe'
             self._summary.setText(f'{self.plan.frame_count} kl. · {width} × {height} px · '

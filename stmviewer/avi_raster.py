@@ -1,6 +1,8 @@
 """Full-image movie rasters, independent of Qt and the preview viewport."""
 from dataclasses import dataclass
 import math
+from collections.abc import Callable
+from typing import Literal
 
 import numpy as np
 from numpy.typing import NDArray
@@ -12,10 +14,16 @@ from stmviewer.frame import ImageFrame
 class MoviePresentation:
     gamma: float = 1.0
     pixel_proportions: bool = False
+    background: int = 0
+    contrast: Literal['per_frame', 'movie'] = 'per_frame'
 
     def __post_init__(self) -> None:
+        if self.contrast not in ('per_frame', 'movie'):
+            raise ValueError('Wybierz kontrast osobno dla klatki albo wspólny dla filmu.')
         if not math.isfinite(self.gamma) or not 0.1 <= self.gamma <= 4:
             raise ValueError('Gamma musi należeć do zakresu 0,1–4.')
+        if self.background not in (0, 128, 255):
+            raise ValueError('Tło musi być czarne, szare lub białe (0, 128 lub 255).')
 
 
 @dataclass(frozen=True)
@@ -61,16 +69,44 @@ def movie_geometry(frames: tuple[ImageFrame, ...], options: MoviePresentation) -
     return MovieGeometry(shape, (width, height), physical)
 
 
+def movie_contrast_levels(frames: tuple[ImageFrame, ...], *,
+                          progress: Callable[[int, int], None] | None = None) -> tuple[float, float] | None:
+    """Finite limits of already selected frames; no frames are stacked or copied.
+
+    Call in the export worker. Progress is also a cancellation checkpoint within
+    large frames; it reports completed frames, not the number of image blocks.
+    """
+    low, high = math.inf, -math.inf
+    for index, frame in enumerate(frames):
+        rows = max(1, (4 * 1024 * 1024) // (frame.data.shape[1] * 8))
+        for row in range(0, frame.data.shape[0], rows):
+            if progress is not None:
+                progress(index, len(frames))
+            block = frame.data[row:row + rows]
+            finite = np.isfinite(block)
+            low = min(low, float(np.min(block, where=finite, initial=np.inf)))
+            high = max(high, float(np.max(block, where=finite, initial=-np.inf)))
+    if progress is not None:
+        progress(len(frames), len(frames))
+    return (low, high) if low <= high else None
+
+
 def render_movie_frame(frame: ImageFrame, options: MoviePresentation,
-                       geometry: MovieGeometry) -> NDArray[np.uint8]:
-    """Map finite samples to grayscale; missing samples and padding stay black."""
+                       geometry: MovieGeometry, *,
+                       contrast_limits: tuple[float, float] | None = None) -> NDArray[np.uint8]:
+    """Map finite samples to grayscale; missing samples and padding use the selected background."""
     if frame.data.shape != geometry.source_shape:
         raise ValueError('Klatka ma wymiary inne niż film.')
     finite = np.isfinite(frame.data)
-    gray = np.zeros(frame.data.shape, dtype=np.uint8)
+    gray = np.full(frame.data.shape, options.background, dtype=np.uint8)
     if finite.any():
         values = frame.data[finite]
-        low, high = float(values.min()), float(values.max())
+        if options.contrast == 'movie':
+            if contrast_limits is None:
+                raise ValueError('Wspólny kontrast wymaga poziomów całego wybranego zakresu.')
+            low, high = contrast_limits
+        else:
+            low, high = float(values.min()), float(values.max())
         if low == high:
             gray[finite] = int(255 * 0.5 ** (1 / options.gamma))
         else:
@@ -78,7 +114,7 @@ def render_movie_frame(frame: ImageFrame, options: MoviePresentation,
             values = (values / scale - low / scale) / (high / scale - low / scale)
             gray[finite] = (np.clip(values, 0, 1) ** (1 / options.gamma) * 255).astype(np.uint8)
     width, height = geometry.output_size
-    raster = np.zeros((height, width, 3), dtype=np.uint8)
+    raster = np.full((height, width, 3), options.background, dtype=np.uint8)
     w, h = geometry.image_size
     # Nearest sampling expands samples and their mask together, without halos
     # from interpolating a presentation background into valid measurements.

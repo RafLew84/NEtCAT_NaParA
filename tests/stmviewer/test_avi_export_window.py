@@ -9,7 +9,7 @@ from test_avi_export import decode
 from test_mpp_export_window import open_movie, FIXTURES
 
 
-def configure_dialog(window, *, codec='FFV1', start=1, end=1, fps=7):
+def configure_dialog(window, *, codec='FFV1', start=1, end=1, fps=7, shared=False):
     dialog = window.findChild(QDialog, 'aviOptions')
     assert dialog is not None and dialog.isVisible()
     assert dialog.findChild(QComboBox, 'aviCodec').currentText() == 'MJPG'
@@ -19,6 +19,9 @@ def configure_dialog(window, *, codec='FFV1', start=1, end=1, fps=7):
     dialog.findChild(QSpinBox, 'aviEnd').setValue(end)
     dialog.findChild(QSpinBox, 'aviFps').setValue(fps)
     dialog.findChild(QComboBox, 'aviCodec').setCurrentText(codec)
+    if shared:
+        dialog.findChild(QComboBox, 'aviContrast').setCurrentIndex(1)
+        dialog.findChild(QComboBox, 'aviBackground').setCurrentIndex(1)
     summary = dialog.findChild(QLabel, 'aviSummary').text()
     dialog.findChild(QDialogButtonBox).button(QDialogButtonBox.StandardButton.Save).click()
     return summary
@@ -51,12 +54,13 @@ def test_avi_dialog_exports_range_and_snapshot_of_gamma_without_changing_play(qt
 
 
 @pytest.mark.parametrize('outcome', ['cancel', 'error', 'close', 'success'])
-def test_avi_worker_responsive_with_frozen_options_and_safe_cancellation(qtbot, monkeypatch, tmp_path, outcome):
+@pytest.mark.parametrize('shared', [False, True])
+def test_avi_worker_responsive_with_frozen_options_and_safe_cancellation(qtbot, monkeypatch, tmp_path, outcome, shared):
     from threading import Event
     import cv2
     from PyQt6.QtWidgets import QMessageBox, QProgressBar
     from stmviewer.avi_export import prepare_avi, save_avi
-    from stmviewer.avi_raster import MoviePresentation, render_movie_frame
+    from stmviewer.avi_raster import MoviePresentation, movie_contrast_levels, render_movie_frame
     from stmviewer.series import open_frame_series
     window = STMViewerMainWindow()
     qtbot.addWidget(window)
@@ -91,7 +95,7 @@ def test_avi_worker_responsive_with_frozen_options_and_safe_cancellation(qtbot, 
     save = window.findChild(QPushButton, 'saveAvi')
     window.findChild(QDoubleSpinBox, 'previewGamma').setValue(2)
     window.findChild(QPushButton, 'playPause').click()
-    QTimer.singleShot(10, lambda: configure_dialog(window, start=1, end=3))
+    QTimer.singleShot(10, lambda: configure_dialog(window, start=1, end=3, shared=shared))
     try:
         save.click()
         qtbot.waitUntil(entered.is_set)
@@ -114,11 +118,13 @@ def test_avi_worker_responsive_with_frozen_options_and_safe_cancellation(qtbot, 
         release.set()
         qtbot.waitUntil(save.isEnabled)
     if outcome == 'success':
-        plan = prepare_avi(frames, presentation=MoviePresentation(gamma=2))
+        plan = prepare_avi(frames, presentation=MoviePresentation(
+            gamma=2, background=128 if shared else 0, contrast='movie' if shared else 'per_frame'))
         fps, decoded = decode(path)
         assert fps == 7 and len(decoded) == 3
         for actual, image in zip(decoded, frames, strict=True):
-            np.testing.assert_array_equal(actual, render_movie_frame(image, plan.presentation, plan.geometry))
+            np.testing.assert_array_equal(actual, render_movie_frame(
+                image, plan.presentation, plan.geometry, contrast_limits=movie_contrast_levels(frames)))
     else:
         assert path.read_bytes() == previous
         assert ('Dysk pełny' if outcome == 'error' else 'Anulowano') in window.findChild(QLabel, 'aviExportInfo').text()

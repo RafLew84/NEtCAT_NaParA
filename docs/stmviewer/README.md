@@ -38,11 +38,12 @@ i **aligned**. Zapis używa jasnego tła w MPP i dokładnego opisu braków w JSO
 Do odtworzenia braków w STM Viewerze przenoś oba pliki razem.
 [Próba zapisu i białego tła](wsxm-export-manual.md). Odczyt aligned zachowuje pełny
 obszar, NaN, obrys źródłowej klatki i historię. Dostępny jest również eksport
-original do AVI: cała seria lub zakres, FPS 1–30, MJPG/FFV1, gamma podglądu,
-pełne obrazy oraz postęp i anulowanie. [Próba AVI](original-avi-manual.md).
+original do AVI: cała seria lub zakres, FPS 1–30, MJPG/FFV1, gamma podglądu
+lub neutralna, kontrast osobny lub wspólny oraz czarne/szare/białe tło.
+Eksport obejmuje pełne obrazy i ma postęp oraz anulowanie. [Próba AVI](original-avi-manual.md).
 [Ticket 14](implementation/issues/14-original-avi-basic.md) ma status **done**:
-użytkownik potwierdził testy manualne 2026-10-26. Opcje prezentacji, aligned
-i opisy należą do kolejnych etapów.
+użytkownik potwierdził testy manualne 2026-10-26. [Opcje prezentacji z ticketu 15](avi-presentation-manual.md)
+oczekują na ręczny odbiór. Aligned i opisy należą do kolejnych etapów.
 Przycisk Usuń klatkę usuwa bieżący obraz z serii, zatrzymuje Play i zachowuje
 pochodzenie oraz czasy pozostałych klatek. Źródła na dysku pozostają bez zmian:
 [instrukcja usuwania](frame-deletion-manual.md).

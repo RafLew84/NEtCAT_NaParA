@@ -143,3 +143,27 @@ def test_relative_destination_outside_repository(tmp_path, monkeypatch):
     path = Path('relative.avi')
     save_avi(path, plan)
     assert len(decode(path)[1]) == 1
+
+
+def test_cancel_during_shared_contrast_preserves_destination(tmp_path):
+    from threading import Event
+    from stmviewer.avi_export import AviCancelled
+    images = (frame([[1, 2, 4]]), frame([[2, 3, 5]]))
+    path = tmp_path / 'prior.avi'
+    save_avi(path, prepare_avi(images, codec='FFV1'))
+    previous = path.read_bytes()
+    cancelled = Event()
+    progress_seen = []
+
+    def progress(done, total, description):
+        progress_seen.append((done, total, description))
+        if done == 1 and description.startswith('Poziomy kontrastu'):
+            cancelled.set()
+
+    plan = prepare_avi(images, codec='FFV1', presentation=MoviePresentation(contrast='movie'))
+    with pytest.raises(AviCancelled):
+        save_avi(path, plan, overwrite=True, progress=progress, cancelled=cancelled.is_set)
+    assert cancelled.is_set()
+    assert path.read_bytes() == previous
+    assert list(tmp_path.iterdir()) == [path]
+    assert progress_seen[-1][0] < progress_seen[-1][1]

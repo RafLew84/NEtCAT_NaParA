@@ -69,7 +69,7 @@ PYTHONPATH=. python tests/stmviewer/make_avi_fixtures.py
 
 Czarne tło AVI jest ustawieniem ticketu 14. Białe tło podglądu i obecny zapis MPP
 pozostają zgodne z wcześniejszym odbiorem. Wybór czarny/szary/biały, kontrastu
-oraz neutralnej gamma należy do ticketu 15.
+oraz neutralnej gamma opisuje [instrukcja ticketu 15](avi-presentation-manual.md).
 
 Lokalnie można uruchomić tymczasową kopię VLC bez instalacji w systemie:
 

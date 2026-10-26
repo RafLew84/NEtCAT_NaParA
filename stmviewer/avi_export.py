@@ -11,7 +11,9 @@ import sys
 
 import numpy as np
 
-from stmviewer.avi_raster import MovieGeometry, MoviePresentation, movie_geometry, render_movie_frame
+from stmviewer.avi_raster import (
+    MovieGeometry, MoviePresentation, movie_contrast_levels, movie_geometry, render_movie_frame,
+)
 from stmviewer.frame import ImageFrame
 
 Codec = Literal['MJPG', 'FFV1']
@@ -62,9 +64,12 @@ def save_avi(path: Path, plan: AviPlan, *, overwrite: bool = False,
     except ImportError as error:
         raise ValueError('Eksport AVI wymaga OpenCV z FFmpeg (stmviewer/requirements-avi.txt).') from error
 
+    contrast_steps = plan.frame_count if plan.presentation.contrast == 'movie' else 0
+    completed_contrast = 0
+
     def report(done: int, description: str) -> None:
         if progress is not None:
-            progress(done, 2 * plan.frame_count + 2, description)
+            progress(done + completed_contrast, 2 * plan.frame_count + 2 + contrast_steps, description)
         if cancelled is not None and cancelled():
             raise AviCancelled()
 
@@ -75,11 +80,16 @@ def save_avi(path: Path, plan: AviPlan, *, overwrite: bool = False,
             raise FileExistsError(path)
 
     check_destination()
+    contrast_limits = None
+    if contrast_steps:
+        contrast_limits = movie_contrast_levels(plan.frames, progress=lambda done, total: report(
+            done, f'Poziomy kontrastu {done}/{total}…'))
+        completed_contrast = contrast_steps
     report(0, f'Sprawdzanie kodeka {plan.codec}…')
     with TemporaryDirectory(prefix='.stmviewer-avi-', dir=path.parent) as temporary:
         stage = Path(temporary) / 'movie.avi'
         fourcc = int.from_bytes(plan.codec.encode('ascii'), 'little')
-        first = render_movie_frame(plan.frames[0], plan.presentation, plan.geometry)
+        first = render_movie_frame(plan.frames[0], plan.presentation, plan.geometry, contrast_limits=contrast_limits)
         probe = Path(temporary) / 'probe.avi'
         probe_input = Path(temporary) / 'probe.npy'
         np.save(probe_input, first, allow_pickle=False)
@@ -115,7 +125,7 @@ def save_avi(path: Path, plan: AviPlan, *, overwrite: bool = False,
                 raise ValueError(f'Nie można otworzyć zapisu {plan.codec}.')
             for index, frame in enumerate(plan.frames):
                 report(index + 1, f'Zapis klatki {index + 1}/{plan.frame_count}…')
-                raster = render_movie_frame(frame, plan.presentation, plan.geometry)
+                raster = render_movie_frame(frame, plan.presentation, plan.geometry, contrast_limits=contrast_limits)
                 hashes.append(hashlib.sha256(raster).digest())
                 writer.write(raster)
         finally:
