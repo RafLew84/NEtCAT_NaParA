@@ -4,9 +4,10 @@
 
 **Blocked by:** [03: S94 i mieszane serie STP/S94](03-s94-series.md), [07: Usuwanie klatek z zachowaniem czasu i pochodzenia](07-frame-deletion.md), [11: Otwarcie MPP z metadanymi towarzyszącymi](11-mpp-metadata-import.md)
 
-**Status:** ready-for-review
+**Status:** done
 
 **Wykonawca:** Codex, `viewer/start`, 2026-10-23.
+**Odbiór ręczny:** użytkownik potwierdził 2026-10-26: „testy manualne 12 ok”.
 **Baza code-review:** `7756c3d6e018ad1820f7400dc2d606b49d0975f2`.
 
 **Specyfikacja:** [Zapis MPP z wartościami i metadanymi](../../issues/04-mpp-export.md#answer), [Dane i kryteria odbioru pierwszej wersji](../../issues/06-acceptance.md#answer).
@@ -77,7 +78,7 @@ wcześniejszą parę przy zwykłym błędzie/anulowaniu.
 
 [Instrukcja manualna](../../original-mpp-manual.md) zawiera dane, kroki,
 generator większego wzorca i narzędzie dokładnego porównania. **Ręczny odbiór
-użytkownika pozostaje do wykonania**, dlatego status to `ready-for-review`.
+użytkownika potwierdzony 2026-10-26**; status to `done`.
 Próba xcb była sterowana skryptem. Windows 11 oraz dodatkowe WSxM nie były
 sprawdzane w tym etapie. Eksport aligned pozostaje ticketem 13.
 
@@ -96,5 +97,8 @@ parametry i pochodzenie S94. Rzeczywisty odczyt/zapis przez WSxM zachował
 **24 182 784 próbek dokładnie**, bez przesunięcia. Testy Viewera:
 **217 passed, 2 skipped**; mypy strict: 23 pliki. Pełny zestaw repo po pierwszej
 korekcie: **2002 passed, 14 failed, 16 skipped**, te same wcześniejsze
-niepowodzenia MolTrack/NanoTrack. Ręczny odbiór użytkownika nadal oczekuje;
-status pozostaje `ready-for-review`. Próba Wine nie zastępuje odbioru Windows 11.
+niepowodzenia MolTrack/NanoTrack. Ręczny odbiór ticketu potwierdzono
+2026-10-26; status: `done`. Potwierdzenie nie określa osobno zakresu prób
+platformowych ani ustawień WSxM. Odrębne odbiory Ubuntu i Windows pozostają
+w swoich ticketach. Aktualizacja odbioru zmienia wyłącznie dokumentację;
+nie ponawiano testów automatycznych.

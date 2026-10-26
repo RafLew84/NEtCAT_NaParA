@@ -108,6 +108,9 @@ ma status `done`: użytkownik potwierdził [testy manualne](deep-matcher-manual.
 [Otwarcie MPP z metadanymi towarzyszącymi](implementation/issues/11-mpp-metadata-import.md)
 ma status `done`: użytkownik potwierdził testy manualne 2026-10-23.
 [Próba ręczna](mpp-metadata-manual.md), [format dodatku V1](mpp-metadata-format.md).
+[Zapis original do MPP i ponowne otwarcie](implementation/issues/12-original-mpp.md)
+ma status `done`: użytkownik potwierdził [testy manualne](original-mpp-manual.md)
+2026-10-26. Odblokowany jest ticket 13: zapis aligned do MPP.
 Statusy i przebieg pracy skillem `implement` opisuje indeks implementacji.
 Są odrębne od zamkniętego trackera decyzji powyżej; tych decyzji nie otwieramy
 ponownie przy rozpoczynaniu kodowania. W instrukcji aplikacji obowiązuje

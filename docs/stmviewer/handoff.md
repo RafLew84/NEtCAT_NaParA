@@ -1,5 +1,17 @@
 # Przekazanie — STM Viewer
 
+## 12: Potwierdzenie odbioru — 2026-10-26
+
+Użytkownik potwierdził: „testy manualne 12 ok”.
+[Ticket 12](implementation/issues/12-original-mpp.md) ma status **`done`**.
+Implementacja i poprawki są w zakresie `7756c3d..6282365`, w tym eksport
+`678269f`, korekta przeglądu `e24e560` i nagłówek WSxM `b887b2b`/`0cb6644`.
+Aktualizacja potwierdzenia obejmuje tylko dokumentację; sprawdzono spójność
+statusów i `git diff --check`, bez ponawiania testów kodu.
+Nie przypisujemy temu ogólnemu potwierdzeniu pełnego odbioru obu platform;
+pozostają osobne tickety platformowe. Ticket 13 — zapis aligned do MPP —
+ma spełnione zależności 08 i 12, jest gotowy do podjęcia.
+
 ## 12: Nagranie Windows i zakres palety — 2026-10-23
 
 Dalsze zgłoszenie słabego kontrastu w Windows sprawdzono na nagraniu
@@ -10,7 +22,8 @@ Palette range → Fit to frame Max/Min values**, zatwierdzenie i odświeżenie
 klatki przywróciło szczegóły: kontrast percentylowy tej samej klatki 24 → 217.
 Zmiana dotyczy wyłącznie konfiguracji podglądu WSxM. Kod i pliki pomiarowe
 pozostały bez zmian, więc nie ponawiano testów aplikacji. [Raport](wsxm-investigation.md).
-Potwierdzenie ustawienia na Windows i ręczny odbiór użytkownika nadal oczekują.
+Ręczny odbiór ticketu 12 potwierdzono 2026-10-26. Użytkownik nie opisał
+osobno wyniku zmiany ustawienia na Windows.
 
 ## 12: Poprawka odczytu MPP w WSxM — 2026-10-23
 
@@ -52,8 +65,8 @@ Wykonane sprawdzenia:
 - Przegląd: Standards bez naruszeń, jedna uwaga do nieaktualnego opisu
   testu poprawiona; Spec bez uwag. Największy zmieniony plik kodu: 234 linie.
 
-Próby Wine były automatyczne, sterowane GUI; ręczny odbiór użytkownika
-nadal oczekuje. Ticket 12 pozostaje `ready-for-review`. Windows 11, NaN
+Próby Wine były automatyczne, sterowane GUI. Ręczny odbiór użytkownika
+potwierdzono 2026-10-26; ticket 12 ma status `done`. Windows 11, NaN
 w WSxM oraz indywidualna kalibracja JSON w tym zewnętrznym programie nie
 zostały potwierdzone. Zmiana nie obejmuje wspólnych modułów. Instalacja
 Wine/WSxM, dane i artefakty `/tmp/wsxm-investigation/` pozostają lokalne.
@@ -63,8 +76,8 @@ Wine/WSxM, dane i artefakty `/tmp/wsxm-investigation/` pozostają lokalne.
 
 Gałąź `viewer/start`. Baza `7756c3d6e018ad1820f7400dc2d606b49d0975f2`.
 Implementacja **`678269f`**, poprawki przeglądu **`e24e560`**.
-[Ticket 12](implementation/issues/12-original-mpp.md): `ready-for-review`,
-oczekuje na ręczny odbiór użytkownika.
+[Ticket 12](implementation/issues/12-original-mpp.md): `done` po potwierdzeniu
+ręcznego odbioru użytkownika 2026-10-26.
 
 ### Wynik
 
@@ -136,8 +149,9 @@ Przerwanie procesu między podmianami sprawdzono osobnym podprocesem.
 
 [Instrukcja manualna](original-mpp-manual.md) podaje uruchomienie, gotowe dane,
 generator dużego wzorca, raport dokładnego porównania oraz oczekiwane wyniki.
-Ręczna próba użytkownika **niewykonana**; Qt offscreen i xcb to automaty.
-Windows 11 oraz dodatkowe WSxM nie zostały sprawdzone w tej sesji.
+Ręczna próba użytkownika **potwierdzona 2026-10-26**; Qt offscreen i xcb
+pozostają odrębnymi próbami automatycznymi. Dodatkowe sprawdzenia WSxM
+opisano powyżej; potwierdzenie ticketu nie zamyka odbiorów platformowych.
 
 Zmiany tylko w Viewerze, jego testach i dokumentacji. Nowych zależności nie ma;
 bez zmian wspólnego kodu, konfiguracji, środowiska i pomiarów. Bez push/scalania.
@@ -147,8 +161,8 @@ własny obrót 180°. Dla integracji pozostają znane ograniczenia wspólnego
 czytnika: limit 1000 linii nagłówka, błędna interpretacja A, nieznanej skali
 oraz brak indywidualnych metadanych JSON. Eksporter używa nA; pełen kontrakt
 nieznanych i mieszanych parametrów zapewnia para otwierana w Viewerze.
-Eksport aligned i geometria są zakresem ticketu 13, który nadal wymaga
-zamknięcia ręcznego odbioru ticketu 12.
+Eksport aligned i geometria są zakresem ticketu 13, odblokowanego po
+potwierdzeniu ręcznego odbioru ticketu 12.
 
 ## 11: Otwarcie MPP z metadanymi towarzyszącymi — 2026-10-23
 
