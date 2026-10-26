@@ -5,7 +5,7 @@ Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
 Status: claimed
-Assignee: Codex — domains/acf-scale-support-trial
+Assignee: Codex — domains/second-direction-trial
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 17, 18
 
@@ -249,5 +249,36 @@ Dane były już znane, bez nowej niezależnej walidacji.
 **19 nadal `claimed`, do omówienia.** Następna próba może zbadać drugi
 kierunek przy różnym kontraście rzędów molekuł, pasach skanowania
 i rzędach bez wzajemnego porządku. Zachować kontrole pustej przerwy
-i nieuporządkowanego pasa. Nie rozpoczęto tej próby, treningu 20–23
-ani odbioru metody 13.
+i nieuporządkowanego pasa. Próbę drugiego kierunku wykonano poniżej;
+nie rozpoczęto treningu 20–23 ani odbioru metody 13.
+
+## Rozwinięcie — 2026-10-26: drugi kierunek i wzajemna zgodność rzędów
+
+Wykonano [ablację warunku drugiego kierunku](../second-direction-trial.md):
+osłabienie do 0.10, wyłączenie przy stałym lub ponownie kalibrowanym progu
+ACF oraz eksperymentalna krzywizna maksimów. Zachowano cechy i podziały.
+24 całe klatki TTMAPP, 204 stare kontrole oraz 63 nowe obrazy rzędów,
+pasów i przerw (21 przypadków, nowe ziarna 4101–4103). Nowe obrazy
+sprawdzają sam porządek/łączność; nie dobierają progów ani grup wyglądu.
+
+Przy r24/`windowed`, siatce, wyłączenie warunku zwiększa limit przypisań
+z **98 do 636/1678**, nadal tylko BLACK. Odzyskuje też słabsze regularne
+rzędy, ale przyjmuje **756/768 miejsc** rzędów z niezależną fazą jako
+jeden płat. Krzywizna odrzuca słabsze rzędy i TTMAPP; obrócone niezależne
+rzędy nadal dają fałszywe fragmenty. R48 wciąż łączy płaty przez przerwę.
+**0/384 zmienionych konfiguracji detektora** spełnia komplet dotychczasowych
+warunków. To diagnoza kryterium, nie poprawa samych cech FCN/DINO.
+
+Źródło: `prototype/stmdomains-second-direction`, **`f648afe`**.
+[Manifest](../second-direction-manifest.json), podgląd:
+`.scratch/second-direction/index.html`. 130 kontroli rachunku krzywizny,
+2736 dokładnych odtworzeń ACF i 24624 wyników początkowych; wszystkie
+291 plików predykcji odtworzono identycznie przy blokadzie dostępu do
+referencji. 170 kontroli HTML. Nowe ziarna są kontrolą syntetyczną,
+nie niezależną walidacją pomiarów; progi pozostały zamrożone.
+
+**19 nadal `claimed`, do omówienia.** Kolejna hipoteza: zgodność
+przesunięć między rzędami oraz potwierdzenie sygnału w ocenianym miejscu,
+bez wzorca, zadanej symetrii lub K. Zachować słabsze spójne rzędy,
+losowe fazy, pasy i puste przerwy jako oddzielne kontrole. Kolejnej
+próby, treningu 20–23 ani odbioru 13 nie uruchomiono.

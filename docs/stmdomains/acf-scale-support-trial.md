@@ -216,5 +216,7 @@ w sąsiedztwie nie może automatycznie oznaczać porządku w jego środku.
 Duże okno samo tego nie zapewnia. Nawet lepsza bramka nie rozwiązuje
 podziału wyglądu ani zależności grafu od początku siatki z poprzedniej próby.
 
-Nie rozpoczęto tej następnej próby ani treningu 20–23. **19 pozostaje
-`claimed`**; zapisane wyniki służą omówieniu i dalszym porównaniom.
+Opisaną próbę wykonano następnie: [warunek drugiego kierunku](second-direction-trial.md).
+Odzyskanie rzędów po wyłączeniu warunku wiąże się z przyjmowaniem rzędów
+o losowych fazach; nie wybrano metody. Treningu 20–23 nie rozpoczęto.
+**19 pozostaje `claimed`**; zapisane wyniki służą dalszemu omówieniu.

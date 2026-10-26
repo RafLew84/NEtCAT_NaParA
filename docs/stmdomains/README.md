@@ -205,10 +205,21 @@ cechach/podziałach wykonano następnie.
 bramki na 228 obrazach. Większe okno odzyskuje część RED/YELLOW,
 ale może łączyć rozłączne płaty przez pustą przerwę; żaden z 512 wariantów
 detektora nie spełnia wszystkich warunków. Widmowy warunek drugiego
-kierunku odrzuca około połowy miejsc w znanych wnętrzach i jest kolejną
-hipotezą do osobnej próby. Podgląd `.scratch/acf-scale-support/index.html`,
+kierunku odrzuca około połowy miejsc w znanych wnętrzach i został zbadany
+w osobnej próbie poniżej. Podgląd `.scratch/acf-scale-support/index.html`,
 92 sprawdzenia HTML, odtworzenia ACF/progów/wyników oraz niezależna kontrola
 korelacji z maską pomiaru. **19 nadal `claimed`**, bez wyboru metody.
+
+[Warunek drugiego kierunku](second-direction-trial.md): 228 znanych obrazów
+i 63 nowe kontrole rzędów/pasów/przerw. Przy r24/`windowed` wyłączenie warunku
+podnosi limit przypisań z 98 do 636/1678 w TTMAPP, lecz przyjmuje także
+756/768 miejsc rzędów o losowych fazach jako jedną sieć. Krzywizna ACF
+odrzuca słabsze spójne rzędy i TTMAPP; 0/384 zmienionych konfiguracji
+detektora spełnia komplet warunków. Predykcje identyczne po zablokowaniu
+odczytu referencji, 170 kontroli HTML. Podgląd `.scratch/second-direction/index.html`.
+**19 pozostaje `claimed`**, do omówienia. Następna hipoteza dotyczy
+zgodności przesunięć między rzędami i lokalnego wsparcia sygnału, bez
+wzorca domeny i zadanej symetrii. Nie rozpoczęto kolejnej próby ani treningu.
 
 
 ## Dwa etapy

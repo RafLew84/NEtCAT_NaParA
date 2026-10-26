@@ -1,4 +1,61 @@
-# STM Domains — skala i podparcie ACF, issue 19
+# STM Domains — warunek drugiego kierunku i rzędy molekuł, issue 19
+
+Data: 2026-10-26. Dokumentacja `domains/second-direction-trial`, baza
+`4241af9`, worktree `/tmp/netcat-stmdomains-second-direction`.
+Źródła: **`prototype/stmdomains-second-direction`, `f648afe`**, baza
+`2ccf9ad`. Prototyp pozostaje na osobnej gałęzi; nie scalać do aplikacji.
+Dokumentacja do `domains/start`; commit końcowy w wiadomości do użytkownika.
+Integrację ze `stm-next` prowadzi koordynator.
+
+Wykonano zaproponowane badanie: [raport](second-direction-trial.md),
+[manifest](second-direction-manifest.json), podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/second-direction/index.html`.
+24 pełne klatki TTMAPP, 204 stare kontrole i 63 nowe obrazy syntetyczne.
+30 kryteriów × 18 zachowanych podziałów/limitów = 540 konfiguracji:
+108 powtórzonych, 384 zmienione detektory, 48 zmienionych limitów.
+Nowe obrazy sprawdzają tylko 60 wariantów porządku/łączności. Bez wzorców
+domen, K, treningu i ponownego grupowania; progi bez nowych obrazów/ramek.
+
+Usunięcie drugiego kierunku przy r24/`windowed` zwiększa limit przypisań
+z **98 do 636/1678**, nadal wyłącznie BLACK. Odzyskuje słabsze regularne
+rzędy, ale przyjmuje **756/768 miejsc** rzędów z losową fazą jako jedną
+sieć. Krzywizna ACF odmawia słabszym rzędom i TTMAPP; przy obrocie nadal
+przepuszcza fragmenty niezależnych rzędów. R48 dalej łączy płaty przez
+przerwę. **0/384 zmienionych konfiguracji detektora** spełnia komplet
+warunków. Nie utożsamiać liczby przypisań z jakością wykrywania domen.
+
+**19 pozostaje `claimed`, do omówienia.** Kolejna hipoteza: zgodność
+przesunięć między rzędami i lokalne potwierdzenie sygnału. Kontrole
+obejmą słabe spójne rzędy, losowe fazy, pasy i puste przerwy. Tej próby,
+treningu 20–23 ani odbioru 13 nie uruchomiono. Nowe ziarna syntetyczne
+nie stanowią niezależnej walidacji rzeczywistych pomiarów STM.
+
+Sprawdzenia: 130 obliczeń analitycznych krzywizny (błąd ≤6.67e-16),
+63 odtworzenia obrazów, 2736 dokładnych odtworzeń ACF, 24624 poprzednich
+wyników zgodnych. 528 tablic siatki i 6480 par wyników identycznych przy
+brakach samych oznaczeń. Wszystkie **291 plików / 126900 wyników**
+ponowiono przy blokadzie odczytów referencji: zgodne hashe zawartości.
+291 nowych i 228 poprzednich plików predykcji sprawdzonych SHA-256;
+protokół/progi/kod niezmienione po ocenie. **170 kontroli QtWebEngine**,
+bez błędów JS, obejrzano podgląd i wykres. Sprawdzono składnię, linki,
+manifest i diff. Nie testowano produkcji, natywnego GUI ani pełnych
+268 klatek; nie powtarzano przesunięcia siatki i ekstrakcji modeli.
+
+CPU, cztery procesy, po jednym wątku BLAS/OpenMP; ACF/krzywizna 440.43 s,
+predykcje 14.87 s, ocena 24.87 s, ponowienie bez referencji 15.42 s.
+Maksymalny RSS jednego procesu przygotowania 115892 KiB (~113 MiB),
+bez pomiaru łącznego szczytu. Bez GPU, instalacji i nowych wag.
+Etapy uruchomiono osobno; wrapper sprawdzono składniowo.
+
+Kopia **732 pliki / 414795835 B**, wszystkie SHA-256 zgodne; później
+dopisano potwierdzenie kopii. Wymaga wcześniejszych katalogów ACF/grafu
+i ich zależności; HTML, wykresy i CSV są samowystarczalne.
+Do aplikacji trafia wyłącznie dokumentacja i mały manifest. Brak potrzeb
+zmian wspólnego kodu, konfiguracji głównej lub Viewer.
+
+---
+
+## Poprzednie przekazanie — skala i podparcie ACF, issue 19
 
 Data: 2026-10-26. Dokumentacja `domains/acf-scale-support-trial`, baza
 `e095bc4`, worktree `/tmp/netcat-stmdomains-acf-scale-support`.
