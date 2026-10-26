@@ -229,6 +229,12 @@ wrapper sprawdzono składniowo, bez ponownego pełnego przebiegu.
 
 ## Kolejny krok do omówienia
 
+Aktualizacja 2026-10-26: zaproponowaną niżej próbę lokalnego podziału
+wykonano w [osobnym badaniu grafu i początku siatki](local-feature-graph-trial.md).
+Zmniejsza część scaleń, ale nadmiernie dzieli jedną sieć i pozostaje
+zależna od próbkowania. Osobna próba skali/podparcia ACF nadal przed nami.
+Poniższy plan zachowuje uzasadnienie kolejnego eksperymentu.
+
 Najbardziej uzasadniona kolejna próba w obrębie 19 to **lokalny podział
 przestrzenny na podstawie różnic cech**, porównany z obecnym globalnym
 grupowaniem gęstościowym. Trzeba sprawdzić, czy punkty przejściowe lub

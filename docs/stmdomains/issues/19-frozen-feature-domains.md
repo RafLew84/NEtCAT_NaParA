@@ -5,7 +5,7 @@ Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
 Status: claimed
-Assignee: Codex — domains/feature-separation-trial
+Assignee: Codex — domains/local-feature-graph-trial
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 17, 18
 
@@ -177,7 +177,43 @@ Podgląd: `.scratch/feature-separation/index.html`.
 1824 poprzednie wyniki, przeszło 68 kontroli HTML. Znane już ziarna
 oraz referencje oznaczają diagnozę rozwojową, bez niezależnej walidacji.
 
-Status nadal **`claimed`**, do omówienia wyniku. Najbardziej uzasadniona
-kolejna próba: lokalne granice różnic cech zamiast wyłącznie globalnego
-HDBSCAN, z osobną oceną kryterium porządku. To jeszcze niewykonany
-kierunek, bez przyjęcia metody i bez uruchomienia treningu 20.
+Status nadal **`claimed`**, do omówienia wyniku. Zaproponowano lokalne
+granice różnic cech zamiast wyłącznie globalnego HDBSCAN, z osobną oceną
+kryterium porządku. Próbę lokalnego grafu wykonano poniżej; nie przyjęto
+metody ani nie uruchomiono treningu 20.
+
+## Rozwinięcie — 2026-10-26: lokalny graf i początek siatki
+
+Wykonano [porównanie lokalnego grafu cech](../local-feature-graph-trial.md)
+na tych samych 24 całych klatkach TTMAPP i 204 kontrolach: 32 warianty
+grafu, osiem zachowanych wyników HDBSCAN oraz osiem kontroli maksymalnego
+zakresu obecnej bramki. Cechy, PCA i ocena porządku pozostają niezmienione.
+Bez liczby domen K, przykładów domen, treningu lub dostrajania do ramek.
+Protokół zapisano przed obliczeniami; użyte dane były już znane.
+
+Graf ogranicza część scaleń orientacji, ale rozcina pojedynczą sieć.
+Przykładowo FCN/siatka przy skali 4 zmniejsza scalenia obrotu 8° ze 100%
+do 1.9%, jednocześnie daje 7/5/5 fragmentów jednej sieci w trzech ziarnach.
+Żaden z 32 wariantów nie spełnia wszystkich warunków rozwojowych.
+Maksymalny zakres obecnej bramki to 2.0–5.8% molekuł w częściowych
+referencjach TTMAPP; nadal brak RED/YELLOW. Sama rezygnacja z bramki
+nie naprawia scaleń obszarów wyglądu.
+
+Na 53 obrazach pobrano świeże cechy przy czterech początkach siatki:
+424 zestawy cech i 1696 wyników grafu. Zależność od początku siatki
+utrzymuje się także po wykluczeniu brzegu: jedna sieć zmienia końcowy
+podział w 69/144 powiązanych porównań. Audyt wnętrza dodano po zamrożeniu
+predykcji i oznaczono jako pomocniczy; nie zmieniano parametrów.
+
+Źródło: `prototype/stmdomains-local-feature-graph`, **`1ae0706`**.
+[Manifest](../local-feature-graph-manifest.json), podgląd:
+`.scratch/local-feature-graph/index.html`. Sprawdzono 7296 permutacji,
+128 małych grafów niezależną implementacją, 106 dokładnych odtworzeń
+cech i 424 odtworzenia grafu dla zerowego przesunięcia; 107 kontroli HTML.
+Nie wdrożono algorytmu do aplikacji ani nie zbudowano katalogu typów.
+
+**19 pozostaje `claimed`, do omówienia.** Kolejne ograniczone badanie
+może dotyczyć skali i podparcia kryterium porządku ACF, przy zamrożonych
+cechach/podziałach i kontrolach negatywnych. Nie wystarczy obniżyć progu
+na TTMAPP; nawet poprawna bramka nie rozwiąże niestabilności granic.
+Nie rozpoczęto tej próby ani treningu 20–23.

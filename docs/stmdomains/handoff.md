@@ -1,4 +1,64 @@
-# STM Domains — diagnoza cech, PCA i grupowania, issue 19
+# STM Domains — lokalny graf cech i położenie siatki, issue 19
+
+Data: 2026-10-26. Dokumentacja `domains/local-feature-graph-trial`, baza
+`e7b6ae0`, worktree `/tmp/netcat-stmdomains-local-feature-graph`.
+Źródła prototypu: **`prototype/stmdomains-local-feature-graph`, `1ae0706`**,
+baza `cf88e8a`. Nie scalać prototypu do aplikacji. Dokumentacja przeznaczona
+do `domains/start`; integrację do `stm-next` prowadzi koordynator.
+
+Na polecenie „wykonaj kolejne badanie” ukończono zaproponowaną próbę
+lokalnego podziału. [Raport](local-feature-graph-trial.md),
+[manifest](local-feature-graph-manifest.json), samowystarczalny podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/local-feature-graph/index.html`.
+
+24 całe klatki TTMAPP, 204 kontrole; osiem baz cech/miejsc, cztery skale
+grafu, osiem zachowanych wyników HDBSCAN i osiem kontroli limitu bramki.
+Własna adaptacja grafu Felzenszwalba–Huttenlochera, z niezmienionymi
+cechami, PCA i oceną porządku. Bez liczby domen K, wzorców domen i treningu.
+Znane już dane oznaczają diagnozę rozwojową, bez niezależnej walidacji.
+
+Graf zmniejsza część scaleń orientacji, ale rozcina jedną sieć;
+**0/32 konfiguracji** spełnia komplet warunków. Przykład FCN/siatka,
+skala 4: scalenia obrotu 8° ze 100% do 1.9%, lecz jedna sieć ma
+7/5/5 fragmentów. ACF nadal ogranicza końcowe przypisania TTMAPP
+do 2.0–5.8% molekuł we wnętrzach referencji, bez RED/YELLOW.
+Podział bez bramki także scala różne obszary wyglądu.
+
+Świeża ekstrakcja na 53 obrazach i czterech początkach siatki:
+424 zestawy cech, 1696 wyników grafu. Zależność od siatki pozostaje
+po wykluczeniu brzegu — jedna sieć zmienia wynik w 69/144 powiązanych
+porównań. Pomocniczy audyt wnętrza dodano po zamrożeniu predykcji;
+nie zmieniano parametrów. Nie powstały typy strukturalne ani dokładne kontury.
+
+**19 nadal `claimed`**, do omówienia. Kolejny kierunek to osobne badanie
+skali/podparcia kryterium porządku ACF przy stałych cechach i podziałach,
+z kontrolami szumu i pasów. Nie rozpoczęto tego badania, treningu 20–23
+ani odbioru 13. Sama poprawa bramki nie rozwiąże problemów granic.
+
+Sprawdzenia: 7296 permutacji grafu, 7296 ograniczeń zakresu przez bramkę,
+128 małych grafów zgodnych z niezależną implementacją; 384 porównania
+braków samych oznaczeń bez zmiany siatki. 106 świeżych zestawów cech
+bitowo zgodnych z cache, 424 zgodne grafy zerowego przesunięcia, stałe
+wagi/bufory modeli i hashe predykcji. **107 kontroli QtWebEngine**,
+bez błędów JS; obejrzano podgląd i wykres. Składnia Python/Bash,
+linki, manifesty i diff sprawdzone. Nie testowano produkcji ani natywnego GUI.
+
+Koszt: krawędzie 3.91 s CPU, grafy podstawowe z permutacjami 26.95 s,
+ekstrakcja przesuniętej siatki i ACF 55.02 s (ACF 33.33 s), grafy
+przesunięte 4.17 s. Szczyt RSS ekstrakcji ok. 1.41 GiB, tensory CUDA
+155.6 MiB; nie jest to pełna pamięć procesu GPU. RTX 5090, lokalne netcat,
+bez instalacji lub pobierania wag. Etapy wykonano osobno, wrapper
+sprawdzono składniowo. Bez kwalifikacji do benchmarku całych 268 klatek.
+
+Artefakt **1555 plików / 367553595 B**, kopia zweryfikowana SHA-256.
+Względne symlinki wymagają zachowania `.scratch/frozen-feature-domains/`
+i `.scratch/feature-separation/`; sam HTML jest samowystarczalny.
+Do aplikacji trafia wyłącznie dokumentacja i mały manifest. Brak zmian
+wspólnych modułów, konfiguracji głównej, produkcyjnego GUI lub Viewer.
+
+---
+
+## Poprzednie przekazanie — diagnoza cech, PCA i grupowania, issue 19
 
 Data: 2026-10-26. Dokumentacja `domains/feature-separation-trial`, baza
 `1c2eef6`, worktree `/tmp/netcat-stmdomains-feature-separation`.

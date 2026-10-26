@@ -103,6 +103,12 @@ Użytkownik wybrał dalsze omówienie/rozwinięcie, dlatego 19 pozostaje
 zachowują rozróżnienie obrotu/rozstawu na kontrolach, ale 32 warianty
 nie naprawiają podziału TTMAPP. Lokalny podgląd `.scratch/feature-separation/`;
 status 19 nadal `claimed`, do omówienia kolejnego wyniku.
+Wykonano też [lokalny graf i przesunięcie siatki](../local-feature-graph-trial.md):
+32 warianty, mniej części scaleń kosztem nadmiernych podziałów jednej sieci,
+zależność od położenia siatki i utrzymane ograniczenie przypisań przez ACF.
+Żaden wariant nie spełnia wszystkich warunków; `.scratch/local-feature-graph/`.
+Następny kierunek do omówienia: skala i podparcie oceny porządku przy
+niezmienionych cechach/podziałach. Nie rozpoczęto go; 19 nadal `claimed`.
 Przygotowanie treningu 20, odbiór 13 i jakość 04 pozostają otwarte.
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie
@@ -188,7 +194,7 @@ ten nadal warunkuje odbiór metod. Statusy znajdują się w ticketach.
 | [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md) | prototype / HITL | `resolved`: porównanie zachowane, użytkownik wybrał przejście do 17, E2 |
 | [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md) | prototype / HITL | `resolved`: widmo/EWT zachowane do porównań ML, bez przyjęcia metody; E3 |
 | [Jak przygotować cechy gotowych sieci bez treningu na naszych danych?](18-frozen-feature-preparation.md) | task / AFK | `resolved`: oba ekstraktory, cache, geometria i powtarzalność sprawdzone |
-| [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | `claimed`: próba i diagnoza cech/PCA/epsilon wykonane; wynik do omówienia |
+| [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | `claimed`: próba, diagnoza cech/PCA/epsilon oraz lokalny graf/przesunięcie siatki wykonane; wynik do omówienia |
 
 Próby geometrii, SBC/MatID i klasycznej tekstury są niezależne. Porównanie
 ML korzysta z wyniku tekstury jako punktu odniesienia, również gdy jest

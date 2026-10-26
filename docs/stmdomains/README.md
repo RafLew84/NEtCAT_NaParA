@@ -187,8 +187,19 @@ lecz epsilon=0 ani pełne cechy nie naprawiają podziału domen na TTMAPP.
 Żaden wariant nie spełnia wszystkich warunków. Nowy podgląd:
 `.scratch/feature-separation/index.html`; 1824 dokładne odtworzenia
 starego wyniku i 68 kontroli HTML. Issue 19 pozostaje `claimed`.
-Kolejny kierunek do omówienia to lokalne granice różnic cech i osobna
-ocena kryterium porządku, bez narzucania K lub wzorców domen.
+Zaproponowaną próbę lokalnych granic wykonano poniżej; ocena kryterium
+porządku pozostaje osobnym kierunkiem, bez narzucania K lub wzorców domen.
+
+[Lokalny graf i położenie siatki](local-feature-graph-trial.md): 32 nowe
+konfiguracje na 228 obrazach, dodatkowo świeże cechy przesuniętych okien
+na 53 obrazach. Graf zmniejsza część scaleń orientacji, ale nadmiernie
+dzieli jedną sieć i zależy od początku siatki. Żaden wariant nie spełnia
+wszystkich warunków; obecna bramka dopuszcza najwyżej 2.0–5.8% molekuł
+w częściach TTMAPP z referencjami. Podgląd:
+`.scratch/local-feature-graph/index.html`; 107 kontroli HTML, odtworzenia
+cech i grafów oraz niezależne sprawdzenie małych grafów. **19 nadal
+`claimed`**, bez przyjęcia metody. Kolejny kierunek do omówienia to skala
+i podparcie ACF przy stałych cechach/podziałach oraz kontrolach negatywnych.
 
 
 ## Dwa etapy
