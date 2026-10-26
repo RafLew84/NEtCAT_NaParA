@@ -4,7 +4,7 @@
 
 **Blocked by:** [14: Pierwszy film AVI: zakres, FPS i oba kodeki](14-original-avi-basic.md)
 
-**Status:** ready-for-review
+**Status:** done
 
 **Wykonawca:** Codex
 **Baza przeglądu:** `d6a08e1a1f2f61b13b83f1ce3deb19ebadb74026`
@@ -54,8 +54,10 @@ Renderer i opcje należą do Viewera. Wspólne zmiany prezentacji tylko po uzgod
 Commit `3e1fddf`; baza `d6a08e1`.
 [Instrukcja manualna](../../avi-presentation-manual.md),
 [przegląd Standards/Spec](../review-15-avi-presentation.md).
-Implementacja i próby techniczne potwierdzają kryteria; ręczna akceptacja
-użytkownika pozostaje do wykonania, stąd **ready-for-review**.
+Implementacja i próby techniczne potwierdzają kryteria. Użytkownik potwierdził
+2026-10-26: „testy manualne ok”; status **done**. Akceptacja obejmuje implementację
+`3e1fddf` i przekazanie `e80a93d`. Osobne odbiory platform w ticketach 20 i 21
+pozostają otwarte; potwierdzenie nie wskazuje systemu.
 
 - 57 testów AVI: passed (12.83 s); 34 próby GUI Qt xcb: passed (9.69 s).
 - Mypy strict: 31 plików bez błędów. Największy zmieniony plik kodu: 171 linii.

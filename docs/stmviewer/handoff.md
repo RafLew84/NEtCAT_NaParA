@@ -2,11 +2,14 @@
 
 ## 15: Prezentacja AVI — 2026-10-26
 
-[Ticket 15](implementation/issues/15-avi-presentation.md): **ready-for-review**.
+[Ticket 15](implementation/issues/15-avi-presentation.md): **done**.
 Baza `d6a08e1`, implementacja **`3e1fddf`**.
 [Instrukcja ręczna i dane](avi-presentation-manual.md),
 [przegląd dwóch osi](implementation/review-15-avi-presentation.md).
-Do zakończenia etapu potrzebne jest potwierdzenie testów manualnych użytkownika.
+Użytkownik potwierdził 2026-10-26: „testy manualne ok”. Odbiór obejmuje
+implementację `3e1fddf` i przekazanie `e80a93d`. Aktualizacja dotyczy wyłącznie
+dokumentacji: sprawdzono spójność statusów, linki i `git diff --check`;
+nie ponawiano testów kodu.
 
 Dialog AVI daje gamma z podglądu lub 1, kontrast osobno dla każdej klatki
 lub wspólny dla wybranego zakresu oraz tło czarne/szare/białe (0/128/255).
@@ -51,8 +54,9 @@ Sprawdzenia:
   Pomiary i filmy pozostają poza Git.
 
 Przegląd skilla code-review: Standards **0 ustaleń**, Spec **0 ustaleń**.
-Nie były potrzebne poprawki kodu. Ręczny odbiór użytkownika i odrębne próby
-platformowe pozostają otwarte. Współpraca z integracją: brak nowych wspólnych
+Nie były potrzebne poprawki kodu. Ręczny odbiór użytkownika potwierdzony.
+Nie wskazano systemu; odrębne próby platformowe w ticketach 20 i 21 pozostają
+otwarte. Współpraca z integracją: brak nowych wspólnych
 zmian i zależności; użyto netcat oraz konfiguracji OpenCV z ticketu 14.
 
 ## 14: Original do AVI — 2026-10-26

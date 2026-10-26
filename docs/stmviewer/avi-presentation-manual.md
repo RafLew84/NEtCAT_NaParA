@@ -1,6 +1,7 @@
 # Ticket 15 — kontrast, gamma i tła AVI
 
-Implementacja do ręcznego odbioru. Z katalogu repozytorium:
+Użytkownik potwierdził testy manualne 2026-10-26; ticket 15 ma status **done**.
+Poniższy scenariusz służy do powtórzenia próby. Z katalogu repozytorium:
 
 ```bash
 conda activate netcat
@@ -103,4 +104,7 @@ VLC na ekranie testowym.
   wcześniejsze niepowodzenia MolTrack/NanoTrack. Log:
   `/tmp/stmviewer-avi15-full-suite.log`.
 
-Ręczna akceptacja użytkownika oraz osobny odbiór Windows pozostają otwarte.
+Ręczna akceptacja użytkownika: **zaliczona**, 2026-10-26 („testy manualne ok”).
+Potwierdzenie obejmuje implementację `3e1fddf` i przekazanie `e80a93d`.
+Nie wskazano systemu; odrębne odbiory Ubuntu i Windows w ticketach 20 i 21
+pozostają otwarte.
