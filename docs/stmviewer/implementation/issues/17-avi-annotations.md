@@ -4,7 +4,7 @@
 
 **Blocked by:** [15: Kontrast, gamma i tła filmu AVI](15-avi-presentation.md)
 
-**Status:** in-progress
+**Status:** ready-for-review
 
 **Wykonawca:** Codex
 **Baza przeglądu:** `f051a14303d3ed6bd344aada63d4408cfb1887d3`
@@ -15,12 +15,12 @@ Przed realizacją przeczytaj [zasady wykonania i odbioru](../README.md#zasady-wy
 
 ## Kryteria odbioru
 
-- [ ] Opisy są opcjonalne, domyślnie wyłączone i tworzone przez renderer filmu, niezależnie od okna oraz gamma.
-- [ ] Podziałka korzysta ze wspólnej wiarygodnej kalibracji i geometrii filmu; w pozostałych przypadkach jawnie podaje px, bez fikcyjnych nm.
-- [ ] Numer odnosi się do bieżącej serii: zakres 5–10 z 20 pokazuje 5/20…10/20. Czas pochodzi z pomiaru z zachowanymi przerwami, a brak czasu jest jawny.
-- [ ] Opisy są czytelne na każdym tle; zbyt mały obraz daje informację przed zapisem zamiast cichego obcięcia obrazu lub pominięcia opisu.
-- [ ] Opisy działają dla original oraz każdego już dostępnego wariantu aligned; techniczne dopełnienie nie zmienia skali.
-- [ ] Połączenie tego etapu z eksportem aligned podlega wspólnemu odbiorowi; oba etapy mogą powstawać niezależnie na tym samym kontrakcie renderowania.
+- [x] Opisy są opcjonalne, domyślnie wyłączone i tworzone przez renderer filmu, niezależnie od okna oraz gamma.
+- [x] Podziałka korzysta ze wspólnej wiarygodnej kalibracji i geometrii filmu; w pozostałych przypadkach jawnie podaje px, bez fikcyjnych nm.
+- [x] Numer odnosi się do bieżącej serii: zakres 5–10 z 20 pokazuje 5/20…10/20. Czas pochodzi z pomiaru z zachowanymi przerwami, a brak czasu jest jawny.
+- [x] Opisy są czytelne na każdym tle; zbyt mały obraz daje informację przed zapisem zamiast cichego obcięcia obrazu lub pominięcia opisu.
+- [x] Opisy działają dla original oraz każdego już dostępnego wariantu aligned; techniczne dopełnienie nie zmienia skali.
+- [x] Połączenie tego etapu z eksportem aligned podlega wspólnemu odbiorowi; oba etapy mogą powstawać niezależnie na tym samym kontrakcie renderowania.
 
 ## Testy automatyczne
 
@@ -53,3 +53,19 @@ Dane i sposób przygotowania nietypowych wzorców dostarcza realizujący ticket.
 
 Napisy i podziałka mają być bez czarnych prostokątnych pól. Białe znaki
 z cienkim ciemnym obrysem zachowują czytelność na jasnym i ciemnym obrazie.
+
+## Wynik implementacji — 2026-10-27
+
+Implementacja `367f714`, wygląd bez czarnych pól `b3ca58d`.
+Kryteria funkcjonalne sprawdzone automatycznie; ręczny odbiór użytkownika
+pozostaje otwarty. [Scenariusz z gotowymi danymi](../../avi-annotations-manual.md),
+[pełne wyniki i ograniczenia](../../handoff.md),
+[przegląd Standards/Spec](../review-17-avi-annotations.md).
+
+Po poprawce: 96 testów AVI i 39 prób Qt xcb zaliczonych;
+mypy strict bez błędów w 33 plikach.
+Osiem filmów original/aligned w MJPG/FFV1 uruchomiono w VLC na Linuksie;
+zrzuty potwierdzają opisy bez prostokątnych pól. To próba sterowana skryptem,
+nie ręczna akceptacja użytkownika ani odbiór Windows.
+Pełne repo: 2149 passed, 15 failed, 16 skipped; niepowodzenia poza Viewerem
+opisano w przekazaniu wraz z porównaniem z bazą.

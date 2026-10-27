@@ -1,5 +1,68 @@
 # Przekazanie — STM Viewer
 
+## 17: Podziałka, numer i czas w AVI — 2026-10-27
+
+[Ticket 17](implementation/issues/17-avi-annotations.md): **ready-for-review**.
+Baza `f051a143`, implementacja **`367f714`**, napisy bez czarnych pól **`b3ca58d`**.
+[Instrukcja uruchomienia i próby ręcznej](avi-annotations-manual.md),
+[przegląd dwóch osi](implementation/review-17-avi-annotations.md).
+Ręczny odbiór użytkownika oczekuje; Windows nie był dostępny w tej sesji.
+
+Okno Zapisz AVI zawiera trzy niezależne, domyślnie wyłączone opcje:
+podziałkę długości, numer klatki i czas pomiaru. Działają dla original/aligned
+oraz MJPG/FFV1. Numer odnosi się do całej bieżącej serii po usuwaniu,
+a czas do metadanych pomiaru; brak jest wyświetlany jawnie. Podziałka używa
+wspólnej kalibracji wybranego zakresu, a przy jej braku, niezgodności lub
+włączonych proporcjach pikselowych podaje px. Techniczny padding nie zmienia
+przelicznika. Rozmiar i położenie opisów są stałe w całym filmie.
+
+Zgodnie z doprecyzowaniem użytkownika napisy i podziałka są białe z cienkim
+ciemnym obrysem, bez prostokątnych czarnych pól. Nakładane są po gamma/kontraście.
+Zbyt mały obraz blokuje zapis z podaniem wymaganych wymiarów. Plan eksportu
+zachowuje wybrane opcje podczas zmian podglądu; anulowanie i błąd nadal chronią
+poprzedni plik. Źródłowe próbki i metadane pozostają bez zmian.
+
+Sprawdzenia automatyczne:
+
+- TDD: red → green na zatwierdzonej granicy klatka/opcje → raster oraz
+  kontrolki GUI → wynik. Dodatkowy test bez czarnych pól był czerwony przed poprawką.
+- Po ostatniej poprawce: **96 passed** dla `tests/stmviewer/test_avi*.py`
+  w Qt offscreen; sprawdzono także odczyt filmów obu kodeków i stan eksportu.
+- Qt xcb na lokalnym ekranie X11: **39 passed** dla kontrolek opisów
+  i eksportu (sukces, błąd, anulowanie, zamknięcie, original/aligned). To
+  automatyczna próba okna, odrębna od ręcznej akceptacji użytkownika.
+- Mypy strict: **33 pliki, bez błędów**.
+- Pełny zestaw repo uruchomiony przed poprawką wyglądu:
+  **2149 passed, 15 failed, 16 skipped** w 291.14 s.
+  Żaden niezaliczony test nie dotyczył Viewera. Powtórzenie tych 15 testów
+  na czystym archiwum bazy `f051a143`: **13 failed, 2 passed**.
+  Dwa pozostałe testy NanoTrack (`test_edge_correction_and_resume_replace_suffix`
+  oraz `test_real_worker_cli_roundtrips_batch_contract_with_injected_sam2_repo`)
+  przeszły również powtórzenie na bieżącym kodzie: **2 passed**.
+  Drugi wcześniej przekroczył timeout 10 s. Nie ustalono przyczyny zależności
+  pierwszego od pełnego przebiegu; nie deklarujemy zielonego odbioru repo.
+  Trzynaście powtarzalnych błędów dotyczy testów SAM2 MolTrack/NanoTrack
+  i zapisu/odczytu sesji NanoTrack; należy je diagnozować w sesji integracyjnej.
+- Największy zmieniony plik kodu: **186 linii**; wszystkie poniżej limitu 1500.
+
+Próba zewnętrznego odtwarzacza: osiem AVI z lokalnego `data/avi-ticket17/movies.json`
+uruchomiono w VLC 3.0.24 na Linuksie/X11. Każdy proces zakończył się kodem 0
+po czasie odpowiadającym filmowi. Zrzuty original/aligned, nm/px i braku czasu
+oceniono wizualnie: poprawne proporcje, czytelne znaki, brak prostokątnych pól.
+To odtwarzanie sterowane skryptem z oceną zrzutów, nie ręczny odbiór użytkownika.
+Pakiet VLC Snap nie przekazał logów dekodera, więc nie traktujemy pustych logów
+jako dowodu braku błędów. Odbiór Windows/VLC pozostaje w tickecie 21.
+
+Lokalne artefakty: `data/avi-ticket17/` (MPP, JSON i filmy),
+`/tmp/stmviewer-avi17-final-avi.log`, `/tmp/stmviewer-avi17-final-xcb.log`,
+`/tmp/stmviewer-avi17-full-suite.log`,
+`/tmp/stmviewer-avi17-baseline-failures.log`,
+`/tmp/stmviewer-avi17-transient-recheck.log`,
+`/tmp/stmviewer-avi17-vlc/` (zrzuty i wyniki odtwarzania).
+Generator danych wejściowych jest w Git; pomiary i filmy pozostają lokalne.
+Nie zmieniono wspólnych modułów ani głównej konfiguracji. Brak nowej zależności
+od zmiany integracyjnej; istniejące błędy pełnego zestawu przekazano powyżej.
+
 
 ## 16: Aligned do AVI — 2026-10-26
 
