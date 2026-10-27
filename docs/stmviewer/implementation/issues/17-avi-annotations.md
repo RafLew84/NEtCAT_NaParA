@@ -4,7 +4,7 @@
 
 **Blocked by:** [15: Kontrast, gamma i tła filmu AVI](15-avi-presentation.md)
 
-**Status:** ready-for-review
+**Status:** done
 
 **Wykonawca:** Codex
 **Baza przeglądu:** `f051a14303d3ed6bd344aada63d4408cfb1887d3`
@@ -57,8 +57,9 @@ z cienkim ciemnym obrysem zachowują czytelność na jasnym i ciemnym obrazie.
 ## Wynik implementacji — 2026-10-27
 
 Implementacja `367f714`, wygląd bez czarnych pól `b3ca58d`.
-Kryteria funkcjonalne sprawdzone automatycznie; ręczny odbiór użytkownika
-pozostaje otwarty. [Scenariusz z gotowymi danymi](../../avi-annotations-manual.md),
+Kryteria funkcjonalne sprawdzone automatycznie; użytkownik potwierdził
+ręczny odbiór 2026-10-27: „testy manualne ok”. Odbiór obejmuje również
+napisy bez czarnych pól oraz przekazanie `3ae7bcd`. [Scenariusz z gotowymi danymi](../../avi-annotations-manual.md),
 [pełne wyniki i ograniczenia](../../handoff.md),
 [przegląd Standards/Spec](../review-17-avi-annotations.md).
 

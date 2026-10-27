@@ -2,11 +2,15 @@
 
 ## 17: Podziałka, numer i czas w AVI — 2026-10-27
 
-[Ticket 17](implementation/issues/17-avi-annotations.md): **ready-for-review**.
+[Ticket 17](implementation/issues/17-avi-annotations.md): **done**.
 Baza `f051a143`, implementacja **`367f714`**, napisy bez czarnych pól **`b3ca58d`**.
 [Instrukcja uruchomienia i próby ręcznej](avi-annotations-manual.md),
 [przegląd dwóch osi](implementation/review-17-avi-annotations.md).
-Ręczny odbiór użytkownika oczekuje; Windows nie był dostępny w tej sesji.
+Użytkownik potwierdził 2026-10-27: „testy manualne ok”. Odbiór obejmuje
+implementację `367f714`, poprawkę `b3ca58d` i przekazanie `3ae7bcd`.
+Nie podano systemu wykonania próby; nie oznacza to zbiorczego odbioru Windows.
+Aktualizacja statusu dotyczy wyłącznie dokumentacji: sprawdzono spójność,
+linki i `git diff --check`; nie ponawiano testów kodu.
 
 Okno Zapisz AVI zawiera trzy niezależne, domyślnie wyłączone opcje:
 podziałkę długości, numer klatki i czas pomiaru. Działają dla original/aligned

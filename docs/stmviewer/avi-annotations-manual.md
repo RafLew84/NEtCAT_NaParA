@@ -1,6 +1,7 @@
 # Ticket 17 — podziałka, numer i czas w AVI
 
-Implementacja do ręcznego odbioru. Uruchomienie z katalogu repozytorium:
+Ręczny odbiór zatwierdzony przez użytkownika 2026-10-27: „testy manualne ok”.
+Uruchomienie z katalogu repozytorium:
 
 ```bash
 conda activate netcat
@@ -78,5 +79,5 @@ technicznym dopełnieniem. Długość dobierana jest z 1/2/5 × potęga 10, do o
 (maksymalnie pół piksela różnicy). Tekst czasu podaje sekundy pomiaru.
 
 Wyniki automatyczne i próby VLC: [przekazanie](handoff.md).
-Ręczna akceptacja użytkownika pozostaje otwarta. Odbiory platform Ubuntu
-oraz Windows są osobnymi ticketami 20 i 21.
+Ręczna akceptacja użytkownika została zapisana. Nie podano systemu wykonania
+próby; zbiorcze odbiory Ubuntu oraz Windows są osobnymi ticketami 20 i 21.
