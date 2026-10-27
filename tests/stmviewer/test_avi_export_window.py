@@ -2,14 +2,14 @@
 import numpy as np
 import pytest
 from PyQt6.QtCore import QTimer
-from PyQt6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QFileDialog, QLabel, QPushButton, QSpinBox
+from PyQt6.QtWidgets import QCheckBox, QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QFileDialog, QLabel, QPushButton, QSpinBox
 
 from stmviewer.ui.main_window import STMViewerMainWindow
 from test_avi_export import decode
 from test_mpp_export_window import open_movie, FIXTURES
 
 
-def configure_dialog(window, *, codec='FFV1', start=1, end=1, fps=7, shared=False):
+def configure_dialog(window, *, codec='FFV1', start=1, end=1, fps=7, shared=False, annotated=False):
     dialog = window.findChild(QDialog, 'aviOptions')
     assert dialog is not None and dialog.isVisible()
     assert dialog.findChild(QComboBox, 'aviCodec').currentText() == 'MJPG'
@@ -22,6 +22,9 @@ def configure_dialog(window, *, codec='FFV1', start=1, end=1, fps=7, shared=Fals
     if shared:
         dialog.findChild(QComboBox, 'aviContrast').setCurrentIndex(1)
         dialog.findChild(QComboBox, 'aviBackground').setCurrentIndex(1)
+    if annotated:
+        for name in ('aviScaleBar', 'aviFrameNumber', 'aviMeasurementTime'):
+            dialog.findChild(QCheckBox, name).setChecked(True)
     summary = dialog.findChild(QLabel, 'aviSummary').text()
     dialog.findChild(QDialogButtonBox).button(QDialogButtonBox.StandardButton.Save).click()
     return summary
@@ -56,17 +59,23 @@ def test_avi_dialog_exports_range_and_snapshot_of_gamma_without_changing_play(qt
 @pytest.mark.parametrize('outcome', ['cancel', 'error', 'close', 'success'])
 @pytest.mark.parametrize('shared', [False, True])
 @pytest.mark.parametrize('aligned', [False, True])
-def test_avi_worker_responsive_with_frozen_options_and_safe_cancellation(qtbot, monkeypatch, tmp_path, outcome, shared, aligned):
+@pytest.mark.parametrize('annotated', [False, True])
+def test_avi_worker_responsive_with_frozen_options_and_safe_cancellation(qtbot, monkeypatch, tmp_path, outcome, shared, aligned, annotated):
     from threading import Event
     import cv2
     from PyQt6.QtWidgets import QMessageBox, QProgressBar
+    from stmviewer.avi_annotations import AnnotationOptions
     from stmviewer.avi_export import prepare_avi, save_avi
-    from stmviewer.avi_raster import MoviePresentation, movie_contrast_levels, render_movie_frame
+    from stmviewer.avi_raster import MoviePresentation, movie_contrast_levels
     from stmviewer.series import open_frame_series
     window = STMViewerMainWindow()
     qtbot.addWidget(window)
     window.show()
     source = FIXTURES / ('registration/integer.mpp' if aligned else 'mpp/known-times.mpp')
+    if annotated:
+        from stmviewer.mpp_export import save_original_mpp
+        from make_avi_annotation_fixtures import annotation_frames
+        source = save_original_mpp(tmp_path / 'annotation-input.mpp', annotation_frames()[:3])
     open_movie(qtbot, window, monkeypatch, source)
     frames = open_frame_series([source])
     if aligned:
@@ -102,7 +111,7 @@ def test_avi_worker_responsive_with_frozen_options_and_safe_cancellation(qtbot, 
     save = window.findChild(QPushButton, 'saveAvi')
     window.findChild(QDoubleSpinBox, 'previewGamma').setValue(2)
     window.findChild(QPushButton, 'playPause').click()
-    QTimer.singleShot(10, lambda: configure_dialog(window, start=1, end=3, shared=shared))
+    QTimer.singleShot(10, lambda: configure_dialog(window, start=1, end=3, shared=shared, annotated=annotated))
     try:
         save.click()
         qtbot.waitUntil(entered.is_set)
@@ -128,12 +137,13 @@ def test_avi_worker_responsive_with_frozen_options_and_safe_cancellation(qtbot, 
         qtbot.waitUntil(save.isEnabled)
     if outcome == 'success':
         plan = prepare_avi(frames, presentation=MoviePresentation(
-            gamma=2, background=128 if shared else 0, contrast='movie' if shared else 'per_frame'))
+            gamma=2, background=128 if shared else 0, contrast='movie' if shared else 'per_frame'),
+            annotations=AnnotationOptions(scale_bar=annotated, frame_number=annotated, measurement_time=annotated))
         fps, decoded = decode(path)
         assert fps == 7 and len(decoded) == 3
-        for actual, image in zip(decoded, frames, strict=True):
-            np.testing.assert_array_equal(actual, render_movie_frame(
-                image, plan.presentation, plan.geometry, contrast_limits=movie_contrast_levels(frames)))
+        for index, actual in enumerate(decoded):
+            np.testing.assert_array_equal(actual, plan.render_frame(
+                index, contrast_limits=movie_contrast_levels(frames)))
     else:
         assert path.read_bytes() == previous
         assert ('Dysk pełny' if outcome == 'error' else 'Anulowano') in window.findChild(QLabel, 'aviExportInfo').text()

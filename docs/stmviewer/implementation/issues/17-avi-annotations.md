@@ -4,7 +4,10 @@
 
 **Blocked by:** [15: Kontrast, gamma i tła filmu AVI](15-avi-presentation.md)
 
-**Status:** ready-for-agent
+**Status:** in-progress
+
+**Wykonawca:** Codex
+**Baza przeglądu:** `f051a14303d3ed6bd344aada63d4408cfb1887d3`
 
 **Specyfikacja:** [Opcje filmu AVI](../../issues/05-avi-export.md#answer), [Dane i kryteria odbioru pierwszej wersji](../../issues/06-acceptance.md#answer).
 

@@ -10,6 +10,9 @@ import subprocess
 import sys
 
 import numpy as np
+from numpy.typing import NDArray
+
+from stmviewer.avi_annotations import AnnotationOptions, MovieAnnotations, prepare_annotations
 
 from stmviewer.avi_raster import (
     MovieGeometry, MoviePresentation, movie_contrast_levels, movie_geometry, render_movie_frame,
@@ -26,6 +29,15 @@ class AviPlan:
     codec: Codec
     presentation: MoviePresentation
     geometry: MovieGeometry
+    annotations: MovieAnnotations | None = None
+
+    def render_frame(self, index: int, *,
+                     contrast_limits: tuple[float, float] | None = None) -> NDArray[np.uint8]:
+        raster = render_movie_frame(self.frames[index], self.presentation, self.geometry,
+                                    contrast_limits=contrast_limits)
+        if self.annotations is not None:
+            self.annotations.draw(raster, index)
+        return raster
 
     @property
     def frame_count(self) -> int:
@@ -38,7 +50,8 @@ class AviPlan:
 
 def prepare_avi(frames: tuple[ImageFrame, ...], *, start: int = 1, end: int | None = None,
                 fps: int = 5, codec: Codec = 'MJPG',
-                presentation: MoviePresentation = MoviePresentation()) -> AviPlan:
+                presentation: MoviePresentation = MoviePresentation(),
+                annotations: AnnotationOptions = AnnotationOptions()) -> AviPlan:
     """Freeze the selected series and options; frame arrays are immutable inputs."""
     end = len(frames) if end is None else end
     if not 1 <= start <= end <= len(frames):
@@ -48,7 +61,9 @@ def prepare_avi(frames: tuple[ImageFrame, ...], *, start: int = 1, end: int | No
     if codec not in ('MJPG', 'FFV1'):
         raise ValueError('Wybierz kodek MJPG lub FFV1.')
     selected = frames[start - 1:end]
-    return AviPlan(selected, fps, codec, presentation, movie_geometry(selected, presentation))
+    geometry = movie_geometry(selected, presentation)
+    labels = prepare_annotations(selected, geometry, annotations, start=start, total=len(frames))
+    return AviPlan(selected, fps, codec, presentation, geometry, labels)
 
 
 class AviCancelled(Exception):
@@ -89,7 +104,7 @@ def save_avi(path: Path, plan: AviPlan, *, overwrite: bool = False,
     with TemporaryDirectory(prefix='.stmviewer-avi-', dir=path.parent) as temporary:
         stage = Path(temporary) / 'movie.avi'
         fourcc = int.from_bytes(plan.codec.encode('ascii'), 'little')
-        first = render_movie_frame(plan.frames[0], plan.presentation, plan.geometry, contrast_limits=contrast_limits)
+        first = plan.render_frame(0, contrast_limits=contrast_limits)
         probe = Path(temporary) / 'probe.avi'
         probe_input = Path(temporary) / 'probe.npy'
         np.save(probe_input, first, allow_pickle=False)
@@ -123,9 +138,9 @@ def save_avi(path: Path, plan: AviPlan, *, overwrite: bool = False,
         try:
             if not writer.isOpened():
                 raise ValueError(f'Nie można otworzyć zapisu {plan.codec}.')
-            for index, frame in enumerate(plan.frames):
+            for index in range(plan.frame_count):
                 report(index + 1, f'Zapis klatki {index + 1}/{plan.frame_count}…')
-                raster = render_movie_frame(frame, plan.presentation, plan.geometry, contrast_limits=contrast_limits)
+                raster = plan.render_frame(index, contrast_limits=contrast_limits)
                 hashes.append(hashlib.sha256(raster).digest())
                 writer.write(raster)
         finally:

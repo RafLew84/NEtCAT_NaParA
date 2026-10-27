@@ -2,8 +2,9 @@
 from dataclasses import replace
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QFormLayout, QLabel, QSpinBox, QWidget
+from PyQt6.QtWidgets import QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFormLayout, QLabel, QSpinBox, QWidget
 
+from stmviewer.avi_annotations import AnnotationOptions
 from stmviewer.avi_export import AviPlan, prepare_avi
 from stmviewer.avi_raster import MoviePresentation
 from stmviewer.avi_sources import aligned_movie_frames
@@ -70,7 +71,17 @@ class AviDialog(QDialog):
         for label, value in (('Czarne', 0), ('Szare', 128), ('Białe', 255)):
             self._background.addItem(label, value)
         layout.addRow('Tło braków', self._background)
-        note = QLabel('Pełne obrazy wybranej wersji · bez opisów', self)
+        self._scale_bar = QCheckBox('Podziałka długości', self)
+        self._scale_bar.setObjectName('aviScaleBar')
+        self._scale_bar.setToolTip('Wspólna skala: nm. Brak skali lub proporcje pikselowe: px.')
+        self._frame_number = QCheckBox('Numer klatki w bieżącej serii', self)
+        self._frame_number.setObjectName('aviFrameNumber')
+        self._measurement_time = QCheckBox('Czas pomiaru', self)
+        self._measurement_time.setObjectName('aviMeasurementTime')
+        layout.addRow('Dodatki', self._scale_bar)
+        layout.addRow('', self._frame_number)
+        layout.addRow('', self._measurement_time)
+        note = QLabel('Pełne obrazy wybranej wersji', self)
         note.setWordWrap(True)
         layout.addRow(note)
         self._summary = QLabel(self)
@@ -95,6 +106,8 @@ class AviDialog(QDialog):
         self._codec.currentIndexChanged.connect(self._update_summary)
         for control in (self._gamma, self._contrast, self._background):
             control.currentIndexChanged.connect(self._update_summary)
+        for check in (self._scale_bar, self._frame_number, self._measurement_time):
+            check.toggled.connect(self._update_summary)
         self._update_summary()
 
     @property
@@ -115,11 +128,16 @@ class AviDialog(QDialog):
                     self._presentation,
                     gamma=self._presentation.gamma if self._gamma.currentData() == 'preview' else 1.0,
                     contrast='movie' if self._contrast.currentData() == 'movie' else 'per_frame',
-                    background=int(self._background.currentData())))
+                    background=int(self._background.currentData())),
+                annotations=AnnotationOptions(scale_bar=self._scale_bar.isChecked(),
+                                              frame_number=self._frame_number.isChecked(),
+                                              measurement_time=self._measurement_time.isChecked()))
             width, height = self.plan.geometry.output_size
             proportions = 'fizyczne' if self.plan.geometry.physical else 'pikselowe'
             self._summary.setText(f'{self.plan.frame_count} kl. · {width} × {height} px · '
                                   f'{self.plan.duration_s:.3f} s\nProporcje {proportions}')
+            if self.plan.annotations is not None and self.plan.annotations.scale_label is not None:
+                self._summary.setText(self._summary.text() + f'\nPodziałka: {self.plan.annotations.scale_label}')
         except (ValueError, OverflowError) as error:
             self.plan = None
             self._summary.setText(str(error))

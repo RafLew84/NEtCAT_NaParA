@@ -1,5 +1,8 @@
 # Ticket 16 — AVI z pełnym obszarem aligned
 
+Od ticketu 17 dostępne są [opcjonalne opisy AVI](avi-annotations-manual.md).
+W poniższej próbie pozostaw je wyłączone, jeśli krok nie wymaga ich użycia.
+
 Użytkownik potwierdził testy manualne 2026-10-26; ticket 16 ma status **done**.
 Poniższy scenariusz służy do powtórzenia próby. Uruchomienie z katalogu repozytorium:
 

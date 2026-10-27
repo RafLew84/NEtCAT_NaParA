@@ -1,5 +1,8 @@
 # Ticket 15 — kontrast, gamma i tła AVI
 
+Od ticketu 17 dostępne są [opcjonalne opisy AVI](avi-annotations-manual.md).
+W poniższej próbie pozostaw je wyłączone, jeśli krok nie wymaga ich użycia.
+
 Użytkownik potwierdził testy manualne 2026-10-26; ticket 15 ma status **done**.
 Poniższy scenariusz służy do powtórzenia próby. Z katalogu repozytorium:
 

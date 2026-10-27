@@ -47,7 +47,10 @@ użytkownik potwierdził testy manualne 2026-10-26.
 również ma status **done**: użytkownik potwierdził [testy manualne](avi-presentation-manual.md)
 2026-10-26. [Ticket 16 — aligned AVI](implementation/issues/16-aligned-avi.md)
 ma status **done**: użytkownik potwierdził [testy manualne](aligned-avi-manual.md)
-2026-10-26. Eksport zachowuje pełny obszar rejestracji. Opisy należą do ticketu 17.
+2026-10-26. Eksport zachowuje pełny obszar rejestracji.
+[Ticket 17 — podziałka, numer i czas](implementation/issues/17-avi-annotations.md)
+dodaje opcjonalne opisy filmu; [próba ręczna](avi-annotations-manual.md)
+oczekuje na odbiór.
 Przycisk Usuń klatkę usuwa bieżący obraz z serii, zatrzymuje Play i zachowuje
 pochodzenie oraz czasy pozostałych klatek. Źródła na dysku pozostają bez zmian:
 [instrukcja usuwania](frame-deletion-manual.md).

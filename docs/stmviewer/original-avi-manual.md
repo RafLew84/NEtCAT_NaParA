@@ -1,5 +1,8 @@
 # Ticket 14 — zapis original do AVI
 
+Od ticketu 17 dostępne są [opcjonalne opisy AVI](avi-annotations-manual.md).
+W poniższej próbie pozostaw je wyłączone, jeśli krok nie wymaga ich użycia.
+
 Od ticketu 16 okno **Zapisz AVI…** ma pole **Obrazy**. W tej próbie wybierz
 **original**; [osobna instrukcja](aligned-avi-manual.md) opisuje aligned.
 
