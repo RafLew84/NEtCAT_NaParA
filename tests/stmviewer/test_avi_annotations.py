@@ -12,11 +12,18 @@ from test_avi_raster import frame
 def has_text(raster, text, tolerance=1e-5):
     # Independent glyph oracle: the expected words/numbers are literal test data.
     (width, height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, .5, 1)
-    template = np.zeros((height + baseline + 4, width + 4, 3), np.uint8)
-    cv2.putText(template, text, (2, height + 2), cv2.FONT_HERSHEY_SIMPLEX, .5,
+    template = np.zeros((height + baseline + 8, width + 8, 3), np.uint8)
+    mask = np.zeros_like(template)
+    origin = (4, height + 4)
+    cv2.putText(template, text, origin, cv2.FONT_HERSHEY_SIMPLEX, .5,
                 (255, 255, 255), 1, cv2.LINE_AA)
-    match = cv2.matchTemplate(raster, template, cv2.TM_SQDIFF_NORMED)
-    return float(match.min()) < tolerance
+    cv2.putText(mask, text, origin, cv2.FONT_HERSHEY_SIMPLEX, .5,
+                (255, 255, 255), 3, cv2.LINE_AA)
+    # Compare only opaque glyph/contour pixels; no assumption about the image behind them.
+    mask = (mask == 255).astype(np.uint8)
+    match = cv2.matchTemplate(raster, template, cv2.TM_SQDIFF_NORMED, mask=mask)
+    return float(np.nanmin(match)) < tolerance
+
 
 
 def test_movie_uses_series_numbers_and_measurement_times_for_range_after_deletion():
@@ -145,3 +152,14 @@ def test_aligned_scale_uses_complete_canvas_and_original_pixel_size_after_deleti
     assert np.count_nonzero(raster[244, 16:116, 0] == 255) == 100
     assert np.all(raster[-1] == 0)
     assert tuple(f.data.tobytes() for f in frames) == before
+
+
+def test_labels_and_scale_leave_surrounding_image_visible_without_black_panels():
+    source = replace(frame(np.ones((256, 256))), measurement_time_s=15)
+    plan = prepare_avi((source,), annotations=AnnotationOptions(
+        scale_bar=True, frame_number=True, measurement_time=True))
+    raster = plan.render_frame(0)
+    assert np.all(raster[8:12, 8:12] == 127)
+    assert np.all(raster[208:212, 8:12] == 127)
+    assert np.any(raster == 0)  # narrow dark contours keep white marks readable
+    assert np.any(raster == 255)

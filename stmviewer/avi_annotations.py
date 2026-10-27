@@ -22,27 +22,28 @@ class MovieAnnotations:
     font_scale: float
     text_height: int
     line_height: int
-    text_width: int
     scale_label: str | None
     scale_pixels: int
-    scale_width: int
     scale_height: int
     image_height: int
 
     def draw(self, raster: NDArray[np.uint8], index: int) -> None:
         import cv2
-        lines = self.labels[index]
-        if lines:
-            raster[8:24 + len(lines) * self.line_height, 8:24 + self.text_width] = 0
-            for row, text in enumerate(lines):
-                cv2.putText(raster, text, (16, 16 + self.text_height + row * self.line_height),
-                            cv2.FONT_HERSHEY_SIMPLEX, self.font_scale, (255, 255, 255), 1, cv2.LINE_AA)
+        def draw_text(text: str, origin: tuple[int, int]) -> None:
+            cv2.putText(raster, text, origin, cv2.FONT_HERSHEY_SIMPLEX, self.font_scale,
+                        (0, 0, 0), 3, cv2.LINE_AA)
+            cv2.putText(raster, text, origin, cv2.FONT_HERSHEY_SIMPLEX, self.font_scale,
+                        (255, 255, 255), 1, cv2.LINE_AA)
+
+        for row, text in enumerate(self.labels[index]):
+            draw_text(text, (16, 16 + self.text_height + row * self.line_height))
         if self.scale_label is not None:
             top = self.image_height - 8 - self.scale_height
-            raster[top:self.image_height - 8, 8:24 + self.scale_width] = 0
-            cv2.putText(raster, self.scale_label, (16, top + 8 + self.text_height),
-                        cv2.FONT_HERSHEY_SIMPLEX, self.font_scale, (255, 255, 255), 1, cv2.LINE_AA)
+            draw_text(self.scale_label, (16, top + 8 + self.text_height))
+            # Only the marks have a dark contour; the surrounding image stays visible.
+            raster[self.image_height - 20:self.image_height - 15, 15:17 + self.scale_pixels] = 0
             raster[self.image_height - 19:self.image_height - 16, 16:16 + self.scale_pixels] = 255
+
 
 
 def prepare_annotations(frames: tuple[ImageFrame, ...], geometry: MovieGeometry,
@@ -88,5 +89,5 @@ def prepare_annotations(frames: tuple[ImageFrame, ...], geometry: MovieGeometry,
         raise ValueError('Obraz jest za mały na czytelne opisy '
                          f'(potrzeba co najmniej {minimum_width} × {minimum_height} px). '
                          'Wyłącz część opisów lub wybierz większy obraz.')
-    return MovieAnnotations(tuple(labels), scale, height, height + baseline + 8, width,
-                            scale_label, scale_pixels, scale_width, scale_height, geometry.image_size[1])
+    return MovieAnnotations(tuple(labels), scale, height, height + baseline + 8,
+                            scale_label, scale_pixels, scale_height, geometry.image_size[1])

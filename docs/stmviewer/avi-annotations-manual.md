@@ -12,8 +12,9 @@ W oknie **Zapisz AVI…** są trzy niezależne opcje: **Podziałka długości**,
 także po ponownym otwarciu okna. Działają dla original i aligned.
 
 Numer i czas są u góry po lewej, podziałka u dołu po lewej. Białe znaki
-na czarnych polach są czytelne na wszystkich tłach. Pola opisów mają stały
-rozmiar i położenie w całym filmie; mogą zasłaniać część pomiaru. Rozmiar filmu
+z cienkim ciemnym obrysem są czytelne na wszystkich tłach. Nie mają czarnych
+prostokątnych pól; obraz wokół znaków pozostaje widoczny. Opisy zachowują
+rozmiar i położenie w całym filmie. Rozmiar filmu
 się nie zmienia. Opisy nie trafiają do MPP ani podglądu aplikacji.
 
 ## Dane

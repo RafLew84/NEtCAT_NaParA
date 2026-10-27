@@ -48,3 +48,8 @@ Dane i sposób przygotowania nietypowych wzorców dostarcza realizujący ticket.
 ## Współpraca z integracją
 
 Źródłem kalibracji/czasu są per-klatkowe dane już wprowadzone w imporcie; nowe braki wspólnego modelu zgłaszać integracji, bez zgadywania parametrów.
+
+## Doprecyzowanie użytkownika — 2026-10-27
+
+Napisy i podziałka mają być bez czarnych prostokątnych pól. Białe znaki
+z cienkim ciemnym obrysem zachowują czytelność na jasnym i ciemnym obrazie.
