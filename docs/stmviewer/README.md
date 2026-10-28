@@ -14,6 +14,13 @@ etapów podstawowych i dwa warunkowe. Każdy kończy się ręcznym odbiorem
 funkcji oraz jakości; kolejny etap czeka na decyzję użytkownika.
 [Wspólny protokół prób](registration/manual-protocol.md) ustala dane i sposób porównania.
 
+REG-01 jest gotowy do ręcznego odbioru (`ready-for-review`). Przycisk
+**Porównaj parę…** otwiera osobny podgląd sąsiednich oryginałów: przed/po XY,
+nakładkę 50/50 i próby A/B ze wspólnym kadrem, kontrastem oraz zoomem.
+Można liczyć pojedynczą parę niezależnie od pełnego aligned.
+[Instrukcja testu](registration/pair-comparison-manual.md),
+[wyniki i przegląd kodu](registration/reviews/REG-01.md).
+
 ## Stan aplikacji
 
 Działa otwieranie jednego lub wielu STP/S94, także mieszanych, oraz jednego filmu MPP.

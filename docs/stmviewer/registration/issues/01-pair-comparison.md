@@ -3,8 +3,8 @@
 **What to build:** Użytkownik ogląda wybraną sąsiednią parę przed i po dopasowaniu
 oraz przypina dwie próby A/B do porównania przy identycznych warunkach podglądu.
 **Blocked by:** brak — pierwszy etap tego planu.
-**Status:** in-progress
-**Manualny odbiór:** niewykonany; implementacja w toku.
+**Status:** ready-for-review
+**Manualny odbiór:** oczekuje na użytkownika; automatyczne sprawdzenia zakończone.
 **Wykonawca:** Codex, `viewer/registration-difficult-movies`.
 **Baza code-review:** `b1050103d255f366697887619590bd76d734557e`.
 
@@ -12,22 +12,22 @@ Obowiązują [plan i kontrakty](../README.md) oraz [protokół odbioru](../manua
 
 ## Zakres i kryteria odbioru
 
-- [ ] Z działającego okna można otworzyć podgląd wybranej sąsiedniej pary,
+- [x] Z działającego okna można otworzyć podgląd wybranej sąsiedniej pary,
   zobaczyć jej źródłowe numery, wybrać dostępną metodę i obliczyć tylko tę parę.
   Operacja nie wymaga poprawnego dopasowania całego filmu.
-- [ ] Podgląd oferuje przełączanie odniesienie/ruchoma i nakładkę 50/50,
+- [x] Podgląd oferuje przełączanie odniesienie/ruchoma i nakładkę 50/50,
   przed oraz po zastosowaniu XY. Przesunięcie jest opisane jako nakładane na
   następną klatkę względem poprzedniej, nie jako fizyczny kierunek ruchu próbki.
-- [ ] Można przypiąć poprzednią próbę A i porównać z nową B. Nazwa metody,
+- [x] Można przypiąć poprzednią próbę A i porównać z nową B. Nazwa metody,
   ustawienia, status i para są widoczne; nie przypisujemy wyniku innej parze.
-- [ ] A/B zachowują identyczny zoom, punkt zakotwiczenia, gamma i proporcje.
+- [x] A/B zachowują identyczny zoom, punkt zakotwiczenia, gamma i proporcje.
   Wspólny zakres jasności jest wyznaczony z oryginalnej pary i zamrożony dla
   porównania. Różny padding nie wywołuje pozornego ruchu lub zmiany skali.
-- [ ] Ważny wspólny obszar jest rozpoznawalny; białe marginesy nie trafiają
+- [x] Ważny wspólny obszar jest rozpoznawalny; białe marginesy nie trafiają
   do obliczania zakresu jasności. Przy braku części wspólnej UI to wyjaśnia.
-- [ ] A/B przechowują lekkie wyniki i renderują tylko oglądaną parę.
+- [x] A/B przechowują lekkie wyniki i renderują tylko oglądaną parę.
   Próba pary nie podmienia pełnego aligned ani nie staje się wynikiem eksportu.
-- [ ] Obliczenia działają w tle z anulowaniem. Błąd zachowuje ostatnią poprawną
+- [x] Obliczenia działają w tle z anulowaniem. Błąd zachowuje ostatnią poprawną
   próbę, pokazując wyraźnie niepowodzenie nowej; nie pojawia się zastępcze XY=0.
   Nowy import i zmiana składu serii unieważniają niepasujące próby.
 
@@ -61,3 +61,11 @@ Poza zakresem: nowe algorytmy, maski, zapis porównań na dysk, automatyczna oce
 
 **Oczekiwany wynik:** wiarygodne narzędzie oceny. Jakość algorytmów pozostaje
 bez zmian. Zapis karty i jawny odbiór użytkownika blokują start REG-02.
+
+## Wykonanie — 2026-10-28
+
+Implementacja: `4a61ba4`. Zaznaczone kryteria oznaczają wdrożenie i sprawdzenia
+automatyczne; ręczny odbiór pozostaje osobnym warunkiem `done`.
+[Instrukcja GUI](../pair-comparison-manual.md) zawiera nazwy kontrolek i kroki.
+[Karta odbioru i przegląd Standards/Spec](../reviews/REG-01.md) opisuje wyniki
+testów oraz pola oczekujące na potwierdzenie użytkownika. REG-02 nie rozpoczęto.

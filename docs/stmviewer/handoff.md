@@ -1,5 +1,41 @@
 # Przekazanie — STM Viewer
 
+## REG-01: Porównanie par klatek — 2026-10-28
+
+[Ticket](registration/issues/01-pair-comparison.md): **ready-for-review**.
+Implementacja **`4a61ba4`**, baza **`b1050103d255f366697887619590bd76d734557e`**,
+gałąź `viewer/registration-difficult-movies`. Commit końcowego przekazania
+podany w wiadomości sesji. [Próba manualna](registration/pair-comparison-manual.md),
+[karta i przegląd Standards/Spec](registration/reviews/REG-01.md).
+
+- Osobny podgląd wybranej sąsiedniej pary: źródłowe numery, metoda i jej ustawienia,
+  obliczenie w tle, anulowanie; oryginały nie wymagają pełnej rejestracji filmu.
+- Przed/po XY, odniesienie/ruchoma/nakładka 50/50, lekkie próby A/B. Stałe pole
+  odniesienia, wspólny kontrast oryginałów, gamma, zoom i proporcje; informacja
+  o części wspólnej. Obrazy wychodzące poza ten kadr są przycięte tylko w podglądzie.
+- Błąd/anulowanie zachowują poprzedni wynik. Escape i zamknięcie czekają na backend.
+  Nowy udany import/usunięcie unieważniają próby. Główny aligned i eksport pozostają
+  niezależne. Nie zmieniono algorytmów ani modułów współdzielonych.
+
+Sprawdzenia automatyczne: 14 nowych testów passed; testy Viewera łącznie 384 passed,
+2 skipped (szczegóły poprawionego PYTHONPATH w karcie); mypy strict 36 plików,
+Ruff i limity długości bez uwag. Pełne repo: **2170 passed, 14 failed, 16 skipped**.
+Nazwy 14 błędów MolTrack/NanoTrack identyczne z końcową próbą ticketu 19.
+Przeglądy niezależne: Standards 0, Spec 0. Największy zmieniony plik: 850 linii.
+
+Rzeczywiste GUI Qt xcb sterowane skryptem: 16 prób, oba MOVIE, znane XY wzorca,
+A/B, Deep Matcher CUDA, rzeczywiste błędy ECC/Deep i anulowanie Optical Flow (~8 s).
+SHA-256 wejść bez zmian. Zrzuty obejrzane przez agenta; końcowy układ kontrolek
+sprawdzony ponownie. Artefakty lokalne: `data/registration-pair-review/`.
+Wzorzec anulowania: `data/registration-pair-cancel.mpp`, generator wersjonowany.
+
+**Odbiór manualny użytkownika: oczekuje.** Uruchomienie: `python -m stmviewer.main`
+w `netcat` z katalogu Viewera. Otwórz cpu.mpp, wykonaj pełne Phase, wybierz klatkę 2,
+**Porównaj parę… → Oblicz parę → Przypnij B jako A**; porównaj kolejną metodę
+i wykonaj dalsze kroki instrukcji na obu MOVIE. Automatyczne GUI nie zastępuje odbioru.
+Windows nieweryfikowany. REG-02 nie rozpoczęto; historyczne statusy 19–21 bez zmian.
+REG-01 nie wymaga nowej zmiany współdzielonej; problem czytnika z ticketu 19 pozostaje.
+
 ## Plan rozwoju rejestracji — 2026-10-28
 
 Zlecenie użytkownika: rozpisać poprawę rejestracji trudnych filmów na tickety,
