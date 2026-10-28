@@ -5,6 +5,9 @@
 Na życzenie użytkownika utworzono **`viewer/registration-difficult-movies`**
 z `26f5538` (`viewer/start` zachowuje dotychczasowe zadania).
 [Wyniki i odtwarzalne próby](registration-difficult-movies.md).
+Dopisano [przegląd metod poprawy](registration-improvement-options.md) na podstawie
+źródeł STM/SPM i kodu: maski, dopasowanie wieloskalowe, zgodność fragmentów;
+korekcja deformacji jako osobny etap. To propozycja dalszych prób, bez wdrożenia.
 Zakres tego etapu: rozpoznanie MOVIE_4 / MOVIE_8 i zapis narzędzi diagnostycznych.
 Kod rejestracji aplikacji pozostaje bez zmian; nie wdrożono niezweryfikowanej
 zmiany domyślnej metody. Kierunek dryfu może się zmieniać i sam znak lub duży

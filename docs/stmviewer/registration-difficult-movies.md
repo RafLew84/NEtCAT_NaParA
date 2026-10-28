@@ -134,6 +134,9 @@ niejednoznacznego. To kierunek dalszych prób, nie już sprawdzony nowy algorytm
 Tearing wymagający różnych przesunięć różnych części jednej klatki trzeba
 odróżnić od jej globalnego XY; pojedyncza translacja nie opisuje takiej deformacji.
 
+Kierunki dalszej pracy i ich podstawy opisano w
+[przeglądzie metod poprawy rejestracji](registration-improvement-options.md).
+
 ## Odtworzenie
 
 Środowisko `netcat`, katalog repo Viewera. Wejścia muszą pozostać lokalne.
