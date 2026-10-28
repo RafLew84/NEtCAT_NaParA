@@ -76,5 +76,15 @@ w kroku 23; ich dostępność nie blokuje tego zadania.
 
 ## Następne pytania
 
+Po [próbach kryterium porządku 19](../translation-consistency-trial.md)
+(2026-10-28) przygotowanie 20 jest proponowanym następnym krokiem;
+nie zostało przez to wykonane. Do protokołu porównania włączyć zapis
+reprezentacji/podziału przed bramką oraz odmów po bramce. Wykazano
+zarówno całkowite odrzucanie znanych wnętrz TTMAPP, jak i odrzucanie
+poprawnych miejsc siatki między molekułami. Nowego modelu nie oceniać
+wyłącznie przez taki filtr; same klastry bez oceny porządku również
+nie są dowodem domen. Znane już kontrole rzędów, różnych sieci i przerw
+zachować jako rozwojowe, a nowe realizacje odłożyć przed doborem parametrów.
+
 - [Czy AE i rVAE uczą się cech przydatnych do odkrywania domen?](21-autoencoder-domains.md)
 - [Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](22-local-self-supervised-domains.md)

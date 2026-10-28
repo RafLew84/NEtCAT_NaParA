@@ -5,7 +5,7 @@ Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
 Status: claimed
-Assignee: Codex — domains/second-direction-trial
+Assignee: Codex — domains/translation-consistency-trial
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 17, 18
 
@@ -280,5 +280,38 @@ nie niezależną walidacją pomiarów; progi pozostały zamrożone.
 **19 nadal `claimed`, do omówienia.** Kolejna hipoteza: zgodność
 przesunięć między rzędami oraz potwierdzenie sygnału w ocenianym miejscu,
 bez wzorca, zadanej symetrii lub K. Zachować słabsze spójne rzędy,
-losowe fazy, pasy i puste przerwy jako oddzielne kontrole. Kolejnej
-próby, treningu 20–23 ani odbioru 13 nie uruchomiono.
+losowe fazy, pasy i puste przerwy jako oddzielne kontrole. Kolejną
+próbę zgodności i lokalnego sygnału wykonano poniżej; treningu 20–23
+ani odbioru 13 nie uruchomiono.
+
+## Rozwinięcie — 2026-10-28: zgodność przesunięć i lokalny sygnał
+
+Wykonano [dwa porównania](../translation-consistency-trial.md) na
+372 obrazach, w tym 81 nowych kontrolach (nowe ziarna, dodatkowe skośne
+i prostokątne sieci). Zachowane cechy/podziały, bez wzorca domeny,
+K lub treningu. Nowe kontrole nie kalibrowały progów. 20 kryteriów,
+360 konfiguracji na starym zestawie; obrazy rzędów badają samą bramkę
+i łączność, bez nowego grupowania cech.
+
+Zgodność różnic obrazu po przesunięciu między rzędami przy r24/kwantylu
+.99 zachowuje **79.7%** słabszej syntetycznej sieci, a przypisania
+w niezależnych rzędach 0° spadają z **756 do 24/768** względem wariantu
+bez drugiego kierunku. Jednak każde badane kryterium zgodności odrzuca
+wszystkie wnętrza TTMAPP. Lokalny sygnał usuwa błędy w pustej przerwie,
+lecz na siatce usuwa także poprawne płaty. Małe okno trafia między
+molekuły; przy centrach ta sama kontrola zachowuje wynik.
+**0/256 zmienionych konfiguracji detektora** spełnia komplet warunków.
+
+Źródło: `prototype/stmdomains-translation-consistency`, **`89cd738`**.
+[Manifest](../translation-consistency-manifest.json), podgląd:
+`.scratch/translation-consistency/index.html`. 4656 zgodnych tablic
+wcześniejszych pomiarów, 16920 dokładnych odtworzeń wyników;
+372 pliki / 87840 wyników konfiguracji identyczne po ponowieniu
+z zablokowanym odczytem referencji. **187 kontroli HTML**. Pomocniczy
+audyt niepowodzeń wykonano po zamrożeniu, bez zmiany parametrów.
+
+**19 nadal `claimed`, do omówienia.** Proponowany następny krok to 20:
+przygotowanie uczenia bez etykiet, następnie 21/22. Zachować niniejsze
+kontrole oraz oddzielić ocenę reprezentacji/podziału od odmów bramki.
+Nie uznano pustego wyniku za brak domen; nie wybrano metody do programu.
+Przygotowania 20 ani treningów nie uruchomiono.

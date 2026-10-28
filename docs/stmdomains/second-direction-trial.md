@@ -224,4 +224,6 @@ ustalenia trzeba sprawdzić na nowych realizacjach. Podziały wyglądu
 pozostają zamrożone dla rozdzielenia przyczyn, a poprawność granic
 oceniana osobno. Przygotowanie treningu 20 może pozostać niezależnym
 kierunkiem, ale nowa reprezentacja nie naprawia automatycznie tej bramki.
-Nie rozpoczęto następnej próby, treningu 20–23 ani odbioru 13.
+Następną próbę wykonano 2026-10-28:
+[zgodność przesunięć i lokalny sygnał](translation-consistency-trial.md).
+Treningu 20–23 ani odbioru 13 nie rozpoczęto.

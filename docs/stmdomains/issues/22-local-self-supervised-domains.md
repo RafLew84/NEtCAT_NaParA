@@ -54,6 +54,14 @@ zmieniać predykcji. Raportować wyłącznie ocenę oznaczonych fragmentów,
 bez globalnej trafności na nieoznaczonym otoczeniu. Rozdzielić uczenie
 na obecnej serii od oceny na niewidzianych danych.
 
+W [kontynuacji 19 z 2026-10-28](../translation-consistency-trial.md)
+kryteria zgodności odrzucają wszystkie znane wnętrza TTMAPP; lokalny
+sygnał w małym kole odrzuca też poprawne miejsca między molekułami.
+Zachować osobną ocenę reprezentacji i podziału przed bramką oraz odmów
+po bramce, aby nie przypisać ich automatycznie modelowi SSL. Same grupy
+wyglądu nadal nie stanowią rozpoznanych domen. Użyte już kontrole
+syntetyczne są materiałem rozwojowym, nie niezależnym testem nowej próby.
+
 ## Wynik do omówienia
 
 Odtwarzalny prototyp z pełnymi nakładkami, tabelą kontroli, manifestem wag

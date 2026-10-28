@@ -1,4 +1,63 @@
-# STM Domains — warunek drugiego kierunku i rzędy molekuł, issue 19
+# STM Domains — zgodność przesunięć i lokalny sygnał, issue 19
+
+Data: **2026-10-28**. Dokumentacja `domains/translation-consistency-trial`,
+baza `1868426`, worktree `/tmp/netcat-stmdomains-translation-consistency`.
+Źródła: **`prototype/stmdomains-translation-consistency`, `89cd738`**,
+baza `f648afe`. Prototyp pozostaje osobno; nie scalać kodu do aplikacji.
+Dokumentacja do `domains/start`, commit końcowy w wiadomości użytkownika.
+Integrację do `stm-next` prowadzi koordynator.
+
+Wykonano dwa badania: zgodność różnic obrazu po przesunięciach między
+rzędami oraz lokalny wskaźnik sygnału. [Raport](translation-consistency-trial.md),
+[manifest](translation-consistency-manifest.json), podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/translation-consistency/index.html`.
+372 obrazy: 24 TTMAPP, 204 kontrole, 63 znane obrazy rzędów i 81 nowych
+realizacji, także skośnych/prostokątnych sieci. Nowe dane nie kalibrują
+progów. Bez K, wzorców domen, treningu i ponownego grupowania cech.
+360 konfiguracji starego zestawu, w tym 256 zmienionych detektorów;
+na obrazach rzędów tylko 40 wariantów porządku i łączności.
+
+Zgodność przy r24/kwantylu .99 zachowuje **79.7%** słabszej syntetycznej
+sieci, ograniczając przypisania losowych faz rzędów 0° z **756 do 24/768**
+względem wariantu bez drugiego kierunku. Wszystkie kryteria zgodności
+odrzucają jednak wnętrza TTMAPP. Mały lokalny pomiar usuwa błąd pustej
+przerwy, lecz również poprawne płaty na siatce; przy centrach kontrola
+pozostaje rozpoznana. To zależność od położenia w komórce sieci, nie
+gotowa maska materiału. **0/256 zmienionych konfiguracji** spełnia cały
+zestaw warunków. Wynik poza częściowymi referencjami pozostaje nieznany.
+
+**19 pozostaje `claimed`, do omówienia.** Proponowane następne: 20,
+potem 21/22, z oceną reprezentacji/podziału przed bramką oraz osobno
+odmów. W 20/22 zapisano wnioski, bez uruchomienia tych zadań i bez
+wyboru modelu. Nowe syntetyki nie są niezależną walidacją realnego STM.
+
+Sprawdzenia: 128 porównań Pearsona, 400 interpolacji (błędy ≤4.45e-16),
+400 masek i cztery przypadki analityczne/braku podstaw; 81 odtworzeń
+generatora. 4656 tablic zgodnych do 1e-12, 16920 wyników początkowych
+dokładnych. 456 tablic i 4320 par wyników siatki niezmienionych przy
+brakach oznaczeń. **372 pliki / 87840 wyników** ponowiono identycznie
+przy blokadzie odczytów referencji; 372 nowe i 291 starych plików zgodnych
+z hashami. Parametry/protokół/kod analizy niezmienione po ocenie.
+Pomocniczy audyt przyczyn odmów dodano po zamrożeniu, bez strojenia.
+**187 kontroli QtWebEngine**, brak błędów JS, obejrzano HTML i wykresy.
+Składnia Python/Bash, linki, manifest i diff sprawdzone. Nie testowano
+produkcji, natywnego GUI, przesunięć początku siatki ani pełnych 268 klatek.
+
+CPU: cztery procesy, po jednym wątku BLAS/OpenMP. Pomiary 174.26 s,
+predykcje 15.61 s, ocena 17.18 s, ponowienie bez referencji 13.91 s.
+Maksymalny RSS jednego procesu przygotowania 120468 KiB (~118 MiB);
+łącznego szczytu nie mierzono. Bez GPU, instalacji i nowych wag.
+Etapy wykonano osobno, wrapper sprawdzono składniowo.
+
+Kopia **931 plików / 293617956 B**, wszystkie SHA-256 zgodne; potem
+dopisano potwierdzenie kopii. Względne linki do wcześniejszych katalogów
+second-direction/grafu i ich zależności. HTML/PNG/PDF/CSV samowystarczalne.
+Do aplikacji tylko dokumentacja i manifest. Brak potrzeb zmian wspólnego
+kodu, konfiguracji głównej, Viewer lub produkcyjnego GUI.
+
+---
+
+## Poprzednie przekazanie — drugi kierunek i rzędy molekuł, issue 19
 
 Data: 2026-10-26. Dokumentacja `domains/second-direction-trial`, baza
 `4241af9`, worktree `/tmp/netcat-stmdomains-second-direction`.

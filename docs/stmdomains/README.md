@@ -219,7 +219,20 @@ detektora spełnia komplet warunków. Predykcje identyczne po zablokowaniu
 odczytu referencji, 170 kontroli HTML. Podgląd `.scratch/second-direction/index.html`.
 **19 pozostaje `claimed`**, do omówienia. Następna hipoteza dotyczy
 zgodności przesunięć między rzędami i lokalnego wsparcia sygnału, bez
-wzorca domeny i zadanej symetrii. Nie rozpoczęto kolejnej próby ani treningu.
+wzorca domeny i zadanej symetrii; zbadano ją poniżej.
+
+2026-10-28 wykonano [zgodność przesunięć i lokalny sygnał](translation-consistency-trial.md)
+na 372 obrazach, w tym 81 nowych kontrolach. Zgodność zachowuje około
+80% słabszej syntetycznej sieci i ogranicza przypisania niezależnych
+rzędów z 98.4% do 3.1% względem wariantu bez drugiego kierunku, ale
+odrzuca wszystkie wnętrza TTMAPP. Lokalny sygnał usuwa także poprawne
+płaty, gdy małe okno siatki wypada między molekułami. 0/256 zmienionych
+konfiguracji detektora spełnia komplet warunków. Podgląd:
+`.scratch/translation-consistency/index.html`, 187 kontroli HTML oraz
+87840 wyników identycznych po ponowieniu bez dostępu do referencji.
+**19 nadal `claimed`**, do omówienia. Proponowane następne: przygotowanie
+20, następnie 21/22; oceniać cechy i podział także przed odmowami bramki.
+Nie rozpoczęto przygotowania ani treningu.
 
 
 ## Dwa etapy

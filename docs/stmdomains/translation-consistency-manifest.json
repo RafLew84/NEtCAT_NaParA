@@ -1,0 +1,1224 @@
+{
+  "schema": "stmdomains.translation-consistency-trial.v1",
+  "date": "2026-10-28",
+  "issue": 19,
+  "status": "claimed",
+  "source": {
+    "prototype_branch": "prototype/stmdomains-translation-consistency",
+    "prototype_commit": "89cd7388970c406937d2c1193bfabae376ae78e1",
+    "prototype_base": "f648afe",
+    "documentation_branch": "domains/translation-consistency-trial",
+    "documentation_base": "1868426",
+    "production_changes": false
+  },
+  "artifact_root": "/home/rlew/projekty/NEtCAT-domains/.scratch/translation-consistency",
+  "outcome": "Reciprocal translation consistency recovers weaker synthetic lattices while reducing independent-row assignments, but rejects all TTMAPP reference interiors. Local variance support rejects interstitial grid sites of true lattices. No qualified detector.",
+  "scope": {
+    "measurement_frames": 24,
+    "old_controls": 204,
+    "old_row_images": 63,
+    "fresh_images": 81,
+    "total_images": 372,
+    "gate_configs": 20,
+    "old_configurations": 360,
+    "old_baseline_configurations": 72,
+    "changed_detector_configurations": 256,
+    "changed_ceiling_configurations": 32,
+    "row_probe_configurations": 40,
+    "new_seeds": [
+      5101,
+      5102,
+      5103
+    ],
+    "fresh_cases": 27,
+    "independent_experimental_validation": false,
+    "reference_tuning": false,
+    "training": false,
+    "feature_or_partition_refit": false
+  },
+  "settings": {
+    "thresholds": {
+      "24": {
+        "acf": 0.36077697348260535,
+        "c99": 0.7286339084274114,
+        "c999": 0.9247698163969639,
+        "samples": 5934
+      },
+      "48": {
+        "acf": 0.24813696014900552,
+        "c99": 0.9363692282403281,
+        "c999": 0.9519087302299336,
+        "samples": 6784
+      }
+    },
+    "negative_samples": [
+      "control-0001",
+      "control-0002",
+      "control-0003",
+      "control-0004",
+      "control-0005",
+      "control-0023",
+      "control-0024",
+      "control-0025",
+      "control-0026",
+      "control-0027",
+      "control-0045",
+      "control-0046",
+      "control-0047",
+      "control-0048",
+      "control-0049",
+      "additional-0007",
+      "additional-0015",
+      "additional-0023",
+      "probe-01-4101",
+      "probe-01-4102",
+      "probe-01-4103",
+      "probe-03-4101",
+      "probe-03-4102",
+      "probe-03-4103",
+      "probe-05-4101",
+      "probe-05-4102",
+      "probe-05-4103",
+      "probe-07-4101",
+      "probe-07-4102",
+      "probe-07-4103",
+      "probe-11-4101",
+      "probe-11-4102",
+      "probe-11-4103",
+      "probe-13-4101",
+      "probe-13-4102",
+      "probe-13-4103",
+      "probe-15-4101",
+      "probe-15-4102",
+      "probe-15-4103",
+      "probe-17-4101",
+      "probe-17-4102",
+      "probe-17-4103",
+      "probe-20-4101",
+      "probe-20-4102",
+      "probe-20-4103"
+    ],
+    "fresh_used": false,
+    "protocol_sha256": "3a89add84d325be4f703480134960e9399f7cc284ec049c253a5725657f85444"
+  },
+  "qualified_detectors": [],
+  "illustrative_results": [
+    {
+      "config": "ceiling-grid--r24-original",
+      "split": "evaluation",
+      "case": "single",
+      "coverage": 0.953125,
+      "assigned": 732,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-off_fixed",
+      "split": "evaluation",
+      "case": "single",
+      "coverage": 0.953125,
+      "assigned": 732,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-local15",
+      "split": "evaluation",
+      "case": "single",
+      "coverage": 0.0,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-c99",
+      "split": "evaluation",
+      "case": "single",
+      "coverage": 0.796875,
+      "assigned": 612,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-c999",
+      "split": "evaluation",
+      "case": "single",
+      "coverage": 0.66015625,
+      "assigned": 507,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-original",
+      "split": "evaluation",
+      "case": "single",
+      "coverage": 0.91015625,
+      "assigned": 699,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-off_fixed",
+      "split": "evaluation",
+      "case": "single",
+      "coverage": 0.91015625,
+      "assigned": 699,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-local15",
+      "split": "evaluation",
+      "case": "single",
+      "coverage": 0.0,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-c99",
+      "split": "evaluation",
+      "case": "single",
+      "coverage": 0.5885416666666666,
+      "assigned": 452,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-c999",
+      "split": "evaluation",
+      "case": "single",
+      "coverage": 0.5143229166666666,
+      "assigned": 395,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-original",
+      "split": "evaluation",
+      "case": "disjoint",
+      "coverage": 0.8461538461538461,
+      "assigned": 528,
+      "counts": [
+        2,
+        2,
+        2
+      ],
+      "false_samples": 0,
+      "negative_samples": 96
+    },
+    {
+      "config": "ceiling-grid--r24-off_fixed",
+      "split": "evaluation",
+      "case": "disjoint",
+      "coverage": 0.8461538461538461,
+      "assigned": 528,
+      "counts": [
+        2,
+        2,
+        2
+      ],
+      "false_samples": 0,
+      "negative_samples": 96
+    },
+    {
+      "config": "ceiling-grid--r24-local15",
+      "split": "evaluation",
+      "case": "disjoint",
+      "coverage": 0.0,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 96
+    },
+    {
+      "config": "ceiling-grid--r24-c99",
+      "split": "evaluation",
+      "case": "disjoint",
+      "coverage": 0.5673076923076923,
+      "assigned": 354,
+      "counts": [
+        2,
+        2,
+        2
+      ],
+      "false_samples": 0,
+      "negative_samples": 96
+    },
+    {
+      "config": "ceiling-grid--r24-c999",
+      "split": "evaluation",
+      "case": "disjoint",
+      "coverage": 0.4326923076923077,
+      "assigned": 270,
+      "counts": [
+        2,
+        2,
+        2
+      ],
+      "false_samples": 0,
+      "negative_samples": 96
+    },
+    {
+      "config": "ceiling-grid--r48-original",
+      "split": "evaluation",
+      "case": "disjoint",
+      "coverage": 0.8894230769230769,
+      "assigned": 555,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 96,
+      "negative_samples": 96
+    },
+    {
+      "config": "ceiling-grid--r48-off_fixed",
+      "split": "evaluation",
+      "case": "disjoint",
+      "coverage": 0.8894230769230769,
+      "assigned": 555,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 96,
+      "negative_samples": 96
+    },
+    {
+      "config": "ceiling-grid--r48-local15",
+      "split": "evaluation",
+      "case": "disjoint",
+      "coverage": 0.0,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 96
+    },
+    {
+      "config": "ceiling-grid--r48-c99",
+      "split": "evaluation",
+      "case": "disjoint",
+      "coverage": 0.11858974358974358,
+      "assigned": 74,
+      "counts": [
+        1,
+        1,
+        2
+      ],
+      "false_samples": 0,
+      "negative_samples": 96
+    },
+    {
+      "config": "ceiling-grid--r48-c999",
+      "split": "evaluation",
+      "case": "disjoint",
+      "coverage": 0.09935897435897435,
+      "assigned": 62,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 96
+    },
+    {
+      "config": "ceiling-grid--r24-original",
+      "split": null,
+      "case": null,
+      "coverage": 0.058402860548271755,
+      "assigned": 98,
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        2,
+        2,
+        0,
+        1,
+        2,
+        2,
+        0,
+        2,
+        2,
+        0,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-off_fixed",
+      "split": null,
+      "case": null,
+      "coverage": 0.37902264600715135,
+      "assigned": 636,
+      "counts": [
+        1,
+        2,
+        2,
+        1,
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        2,
+        2,
+        3
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-local15",
+      "split": null,
+      "case": null,
+      "coverage": 0.37902264600715135,
+      "assigned": 636,
+      "counts": [
+        1,
+        2,
+        2,
+        1,
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        2,
+        2,
+        3
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-c99",
+      "split": null,
+      "case": null,
+      "coverage": 0.0,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-c999",
+      "split": null,
+      "case": null,
+      "coverage": 0.0,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-original",
+      "split": null,
+      "case": null,
+      "coverage": 0.2562574493444577,
+      "assigned": 430,
+      "counts": [
+        6,
+        5,
+        1,
+        4,
+        3,
+        3,
+        4,
+        3,
+        4,
+        2,
+        6,
+        4,
+        5,
+        5,
+        4,
+        5,
+        5,
+        7
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-off_fixed",
+      "split": null,
+      "case": null,
+      "coverage": 0.7824791418355185,
+      "assigned": 1313,
+      "counts": [
+        4,
+        4,
+        3,
+        3,
+        4,
+        2,
+        3,
+        2,
+        3,
+        3,
+        5,
+        3,
+        5,
+        4,
+        4,
+        3,
+        4,
+        4
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-local15",
+      "split": null,
+      "case": null,
+      "coverage": 0.7824791418355185,
+      "assigned": 1313,
+      "counts": [
+        4,
+        4,
+        3,
+        3,
+        4,
+        2,
+        3,
+        2,
+        3,
+        3,
+        5,
+        3,
+        5,
+        4,
+        4,
+        3,
+        4,
+        4
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-c99",
+      "split": null,
+      "case": null,
+      "coverage": 0.0,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-c999",
+      "split": null,
+      "case": null,
+      "coverage": 0.0,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-original",
+      "split": "fresh",
+      "case": "independent-a0-m1",
+      "coverage": null,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        1
+      ],
+      "false_samples": 14,
+      "negative_samples": 768
+    },
+    {
+      "config": "ceiling-grid--r24-off_fixed",
+      "split": "fresh",
+      "case": "independent-a0-m1",
+      "coverage": null,
+      "assigned": 0,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 756,
+      "negative_samples": 768
+    },
+    {
+      "config": "ceiling-grid--r24-local15",
+      "split": "fresh",
+      "case": "independent-a0-m1",
+      "coverage": null,
+      "assigned": 0,
+      "counts": [
+        1,
+        2,
+        1
+      ],
+      "false_samples": 696,
+      "negative_samples": 768
+    },
+    {
+      "config": "ceiling-grid--r24-c99",
+      "split": "fresh",
+      "case": "independent-a0-m1",
+      "coverage": null,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        1
+      ],
+      "false_samples": 24,
+      "negative_samples": 768
+    },
+    {
+      "config": "ceiling-grid--r24-c999",
+      "split": "fresh",
+      "case": "independent-a0-m1",
+      "coverage": null,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 768
+    },
+    {
+      "config": "ceiling-grid--r48-original",
+      "split": "fresh",
+      "case": "independent-a0-m1",
+      "coverage": null,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 768
+    },
+    {
+      "config": "ceiling-grid--r48-off_fixed",
+      "split": "fresh",
+      "case": "independent-a0-m1",
+      "coverage": null,
+      "assigned": 0,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 696,
+      "negative_samples": 768
+    },
+    {
+      "config": "ceiling-grid--r48-local15",
+      "split": "fresh",
+      "case": "independent-a0-m1",
+      "coverage": null,
+      "assigned": 0,
+      "counts": [
+        1,
+        2,
+        1
+      ],
+      "false_samples": 648,
+      "negative_samples": 768
+    },
+    {
+      "config": "ceiling-grid--r48-c99",
+      "split": "fresh",
+      "case": "independent-a0-m1",
+      "coverage": null,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 768
+    },
+    {
+      "config": "ceiling-grid--r48-c999",
+      "split": "fresh",
+      "case": "independent-a0-m1",
+      "coverage": null,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 768
+    },
+    {
+      "config": "ceiling-grid--r24-original",
+      "split": "fresh",
+      "case": "coherent-a0-m0.35",
+      "coverage": 0.0,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-off_fixed",
+      "split": "fresh",
+      "case": "coherent-a0-m0.35",
+      "coverage": 0.98828125,
+      "assigned": 759,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-local15",
+      "split": "fresh",
+      "case": "coherent-a0-m0.35",
+      "coverage": 0.98828125,
+      "assigned": 759,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-c99",
+      "split": "fresh",
+      "case": "coherent-a0-m0.35",
+      "coverage": 0.796875,
+      "assigned": 612,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-c999",
+      "split": "fresh",
+      "case": "coherent-a0-m0.35",
+      "coverage": 0.0,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-original",
+      "split": "fresh",
+      "case": "coherent-a0-m0.35",
+      "coverage": 0.0,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-off_fixed",
+      "split": "fresh",
+      "case": "coherent-a0-m0.35",
+      "coverage": 0.91015625,
+      "assigned": 699,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-local15",
+      "split": "fresh",
+      "case": "coherent-a0-m0.35",
+      "coverage": 0.91015625,
+      "assigned": 699,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-c99",
+      "split": "fresh",
+      "case": "coherent-a0-m0.35",
+      "coverage": 0.0,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-c999",
+      "split": "fresh",
+      "case": "coherent-a0-m0.35",
+      "coverage": 0.0,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-original",
+      "split": "fresh",
+      "case": "rectangular-a13",
+      "coverage": 0.0,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-off_fixed",
+      "split": "fresh",
+      "case": "rectangular-a13",
+      "coverage": 0.6959349593495935,
+      "assigned": 428,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-local15",
+      "split": "fresh",
+      "case": "rectangular-a13",
+      "coverage": 0.6959349593495935,
+      "assigned": 428,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-c99",
+      "split": "fresh",
+      "case": "rectangular-a13",
+      "coverage": 0.7821138211382114,
+      "assigned": 481,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r24-c999",
+      "split": "fresh",
+      "case": "rectangular-a13",
+      "coverage": 0.030894308943089432,
+      "assigned": 19,
+      "counts": [
+        2,
+        2,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-original",
+      "split": "fresh",
+      "case": "rectangular-a13",
+      "coverage": 0.0,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-off_fixed",
+      "split": "fresh",
+      "case": "rectangular-a13",
+      "coverage": 0.9317073170731708,
+      "assigned": 573,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-local15",
+      "split": "fresh",
+      "case": "rectangular-a13",
+      "coverage": 0.9317073170731708,
+      "assigned": 573,
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-c99",
+      "split": "fresh",
+      "case": "rectangular-a13",
+      "coverage": 0.0,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    },
+    {
+      "config": "ceiling-grid--r48-c999",
+      "split": "fresh",
+      "case": "rectangular-a13",
+      "coverage": 0.0,
+      "assigned": 0,
+      "counts": [
+        0,
+        0,
+        0
+      ],
+      "false_samples": 0,
+      "negative_samples": 0
+    }
+  ],
+  "verification": {
+    "math": {
+      "pearson_checks": 128,
+      "pearson_max_error": 4.440892098500626e-16,
+      "bilinear_checks": 400,
+      "bilinear_max_error": 4.440892098500626e-16,
+      "measurement_masks_checked": 400,
+      "analytic_and_invalid_cases": 4
+    },
+    "exact_new_image_regenerations": 81,
+    "old_array_comparisons": 4656,
+    "old_array_tolerance": 1e-12,
+    "exact_baseline_results": 16920,
+    "missing_annotations": {
+      "grid_order_array_pairs": 456,
+      "grid_prediction_pairs": 4320
+    },
+    "provenance": {
+      "new_files_verified": 372,
+      "old_files_verified": 291,
+      "files_replayed_without_truth": 372,
+      "configuration_results_replayed": 87840,
+      "settings_and_source_unchanged": true,
+      "seconds": 13.911362954999959,
+      "python": "3.12.12",
+      "versions": {
+        "numpy": "2.2.5",
+        "scipy": "1.15.2",
+        "scikit-learn": "1.6.1",
+        "matplotlib": "3.10.1",
+        "Pillow": "11.2.1"
+      }
+    },
+    "browser_checks": 187,
+    "browser_errors": [],
+    "failure_audit_post_freeze": true
+  },
+  "cost": {
+    "preparation_seconds": 174.25575692500001,
+    "prediction_seconds": 15.605923100999917,
+    "evaluation_seconds": 17.180535857999985,
+    "reference_free_replay_seconds": 13.911362954999959,
+    "max_preparation_worker_rss_kib": 120468,
+    "total_memory_measured": false,
+    "workers": 4,
+    "gpu": false,
+    "new_dependencies": false
+  },
+  "review": {
+    "frames": 106,
+    "measurement_frames": 24,
+    "old_control_cases": 34,
+    "old_row_cases": 21,
+    "new_row_cases": 27,
+    "display_seeds": [
+      2701,
+      4101,
+      5101
+    ],
+    "calculation_images": 372,
+    "existing_configurations": 360,
+    "probe_configurations": 40,
+    "source": "actual frozen predictions; new probes use order/connectivity only"
+  },
+  "copy": {
+    "files": 931,
+    "bytes": 293617956,
+    "all_sha256_equal": true,
+    "relative_links": {
+      "previous": "../second-direction",
+      "graph": "../local-feature-graph",
+      "classic": "../local-feature-graph/classic"
+    }
+  },
+  "artifact_sha256": {
+    "protocol.json": "3a89add84d325be4f703480134960e9399f7cc284ec049c253a5725657f85444",
+    "source.json": "74acfc68f61891674f03baea2591932bae0745130f5fdcd8584e57bf758724d7",
+    "settings.json": "ad5cb4d7f088614b886f8a914322f82cd35f3c84cf90f6b26c2d47d637a50ecd",
+    "prediction-lock.json": "2fa3dc72a78e191e781540242541111b318bf3b4feda124d0adb307e76f26ab5",
+    "order/manifest.json": "dc95cd0dc4416cae7d13550ec3d025461513559fc1746868442babb60bb99593",
+    "predictions/manifest.json": "68ea45466057e58dd741b028940d73ac9e3cc63514ebcc50bf050b0b4239f339",
+    "evaluation/manifest.json": "7d1e1a74b9a7fef0a64853eded30a40cc9a638544c64b7f38398cbee1ebc59fc",
+    "evaluation/summary.json": "cd7d6e17b92122fd155cfc8d4b559bacc8686603e4811c23b05d9afb5cd002f5",
+    "evaluation/qualification.json": "1ba0d369f6068109f2c453e95360ebaf8e1faf7d1dc7a6b196b570c4fbd7b996",
+    "evaluation/groups.json": "de5ca195ed90397a8abbae5fb32793d83827fce89d8abc119c99cbf7209b0389",
+    "fresh/analysis/manifest.json": "b8cfb23d677430398356c748458b3e1f530df19f0eef36e06d5d47c389474a36",
+    "fresh/evaluation/manifest.json": "2f6f34c9ba4499799a707d6187943da247bad92eb894789a537ec1ee7096e434",
+    "fresh/generation.json": "f2a6cefdb2d0d97b72b0df435d0091a03a36620d84e831420e2ec63a2417587e",
+    "math-verification.json": "e7aabfc908749afb7671980d16f7898c00af5fe0046d0e1fc93a2477dbae78db",
+    "missing-verification.json": "02523dbd8edb5b38ebf073689d80bac4e2a37b886bbdfe1b763feba9d5985779",
+    "provenance.json": "7629861e97aef9de51319efb08c7071dc5272f96377d325a6690a8ea2b258a2f",
+    "failure-audit.json": "94acf2abda0fb29683775c36368cc0a7cf46f73371fa992ae412a26149e1f5ab",
+    "browser-verification.json": "48f5af151f9dc5ca9d6bde0d2faa139efe47c99e3c0cb20da5d454ad099664b9",
+    "review-manifest.json": "598cb00ab8fc44a1af32df1d39a5314d349323af6c86d630987220bafbaee51d",
+    "copy-verification.json": "0b3e04dff14b9f5cce5871aec1bde1d603252ed709745f33aa4419313d548a02",
+    "index.html": "48f83547b85258a06c27c6c9456bc46bda0333893d8e6ebb4fbf05662799f11d",
+    "controls.csv": "c9b9dc68a5f4719baaca4d28399b5f2ddb2892a008df286447ee92144327839d",
+    "translation-comparison.png": "9dd57e506bfc24b2b190bb973b6455626e928dd16de841b5637f314facc5ce63",
+    "translation-comparison.pdf": "22df796af3093bfa147229bf1ba812ba784b613b1f6a2062b15a5ef05a566bc6",
+    "browser-preview.png": "7e4f5834398689abfaffb3392b571fc42295c6c6b5681d01bcafeabf847e21a3"
+  },
+  "source_sha256": {
+    "README-translation-consistency.md": "2d3f16328daea0fb016cdb8575528109358c7d6ffb1c0013a3c9c6dd4bcd414e",
+    "run_translation_consistency.sh": "ef5cfafcb0381eef82d77d5e425fd5732ebcd320f141624131c24a58cf301d6d",
+    "translation_consistency.py": "8a2a8924f22d5a365f4134ea22556656593dc3b8d3042ee4551bd15dce9fc254",
+    "translation_consistency_audit.py": "3fe89cdd475bbc3e24a41b1ebc6359a6882bf0ef0796538e48e0176ee8c898a8",
+    "translation_consistency_browser.py": "744be67a5e66e349e37fca4e0f28351a43d6e87d0c7d8c76564f06be5ef201cf",
+    "translation_consistency_design.json": "3a89add84d325be4f703480134960e9399f7cc284ec049c253a5725657f85444",
+    "translation_consistency_evaluate.py": "ac7eb3b06e83b18ecc9436e4279d949ea508ed1a9fc65b84392d83c12cdb635e",
+    "translation_consistency_probes.py": "0bb5240bb6281aeb6e724d25035748bb50abb139905c67fd81f592fd50ff09c2",
+    "translation_consistency_review.html": "4f0de8928c67b5543c46b89539962f49158cf4a4ff49445e0b00a692633b4a98",
+    "translation_consistency_review.py": "d70bf7e0bf7a6f976512127b748e950a15f706d5eeef91b1718f80b8d4a54bd2",
+    "translation_consistency_verify.py": "bed4cea9761d72393acbdef84dbc178b87540de4881dfea7f4e1835ce9ddddb2"
+  },
+  "limitations": [
+    "Old controls and reference boxes already seen; new synthetic seeds are not independent STM validation.",
+    "Quadrant consistency uses candidates from the full same window, not an independent prediction test.",
+    "Derivative footprint extends beyond the candidate window by half one translation plus quarter another.",
+    "Fixed 6px center window, 2px sampling, interpolation, peak search and reflected ACF candidates remain assumptions.",
+    "Consistency variants replace old ACF amplitude and spectral-direction tests; not purely an additional filter.",
+    "Zero assignments do not imply absence of molecular domains.",
+    "Center-only inputs do not evaluate empty unannotated gap sites.",
+    "No grid-origin rerun, area contours, structural-type catalogue, native GUI or full268 benchmark.",
+    "Post-freeze failure audit did not change thresholds or predictions.",
+    "Runner stages executed separately; wrapper syntax checked."
+  ],
+  "next_step_proposed": "Preserve diagnostics and proceed to issue20 preparation, then21/22, with explicit comparison before/after order gating. Not started; issue19 remains for discussion."
+}
