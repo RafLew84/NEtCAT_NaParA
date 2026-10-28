@@ -6,9 +6,13 @@
 Baza `6b43765f71f28f77d1b8bf74cf2643f67e0dba15`.
 [Raport](large-exports-results.md), [ręczna próba](large-exports-manual.md).
 Implementacja **`6888cff`**, [przegląd dwóch osi](implementation/review-19-large-exports.md).
-Ręczny odbiór użytkownika jeszcze niewykonany. **Do `done` wymagane są oba
-warunki: manualne OK oraz poprawka i odbiór wspólnego czytnika przez integrację.**
-Samo manualne OK nie zamyka ticketu 19.
+Użytkownik potwierdził 2026-10-28: „testy manualne ok”. Odbiór obejmuje
+`6888cff` i poprawki przeglądu `716451c`. Nie podano systemu próby; końcowe
+odbiory platform pozostają osobne. **Do `done` pozostaje poprawka i odbiór
+wspólnego czytnika przez integrację.** Sprawdzono `stm-next` (`0e8bc53`):
+limit 1000 wierszy nadal obowiązuje, więc status pozostaje `ready-for-review`.
+Aktualizacja potwierdzenia dotyczy wyłącznie dokumentacji: sprawdzono spójność,
+odnośniki i `git diff --check`; nie ponawiano testów kodu.
 
 Pełny eksport aligned 1000 klatek wymagał 512 998 przedziałów braków przy limicie
 500 000; zapis JSON z wcięciami przekraczał także 64 MiB. Podniesiono limit do

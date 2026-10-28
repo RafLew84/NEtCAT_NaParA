@@ -1,8 +1,9 @@
 # Ticket 19 — duże eksporty: próba ręczna
 
-[Raport wykonanych pomiarów](large-exports-results.md). Ręczny odbiór użytkownika
-jest jeszcze do wykonania. Do `done` potrzebny jest też odbiór poprawki wspólnego
-czytnika przez integrację (opis na końcu). Automatyczne sterowanie GUI/X11 nie zastępuje tego odbioru.
+[Raport wykonanych pomiarów](large-exports-results.md). Użytkownik potwierdził
+ręczny odbiór 2026-10-28: „testy manualne ok”. Nie podano systemu próby;
+końcowe odbiory platform pozostają osobne. Do `done` pozostaje poprawka
+wspólnego czytnika i jej odbiór przez integrację (opis na końcu).
 
 ## Uruchomienie i dane
 

@@ -3,9 +3,11 @@
 Data: 2026-10-28. Baza kodu: `6b43765f71f28f77d1b8bf74cf2643f67e0dba15`.
 Próba obejmuje poprawkę `mpp_missing.py`/`mpp_metadata.py` z commitu `6888cff`.
 [Instrukcja ręcznej próby i odtworzenia pomiarów](large-exports-manual.md).
-Do `done` pozostają ręczny odbiór oraz opisana niżej poprawka czytnika w integracji.
-Ręczny odbiór użytkownika jest jeszcze niewykonany; opisane GUI/X11 i VLC
-były sterowane skryptami, a wybrane zrzuty oceniono wizualnie.
+Użytkownik potwierdził ręczny odbiór 2026-10-28: „testy manualne ok”.
+Potwierdzenie obejmuje `6888cff` i `716451c`; nie podano systemu próby.
+Do `done` pozostaje opisana niżej poprawka czytnika i jej odbiór w integracji.
+Opisane poniżej pomiary GUI/X11 i VLC były sterowane skryptami, a wybrane
+zrzuty oceniono wizualnie; potwierdzenie użytkownika jest osobnym odbiorem.
 
 ## Znaleziona i poprawiona usterka
 

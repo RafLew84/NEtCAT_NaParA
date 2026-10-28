@@ -57,9 +57,9 @@ ma status **done**: użytkownik potwierdził testy manualne 2026-10-28.
 [Ticket 19 — duże eksporty](implementation/issues/19-large-exports.md)
 ma status **ready-for-review**. Naprawiono zapis metadanych dużego aligned;
 [raport](large-exports-results.md) obejmuje pełne 1000 klatek MPP/MJPG/FFV1.
-[Instrukcja ręcznej próby](large-exports-manual.md). Odbiór użytkownika czeka;
-limit długich nagłówków wspólnego czytnika MPP przekazano integracji.
-Do `done` potrzebne są zarówno testy manualne, jak i odbiór tej poprawki wspólnej.
+[Instrukcja ręcznej próby](large-exports-manual.md). Użytkownik potwierdził
+testy manualne 2026-10-28. Do `done` pozostaje poprawka limitu długich nagłówków
+wspólnego czytnika MPP i jej odbiór przez integrację.
 Przycisk Usuń klatkę usuwa bieżący obraz z serii, zatrzymuje Play i zachowuje
 pochodzenie oraz czasy pozostałych klatek. Źródła na dysku pozostają bez zmian:
 [instrukcja usuwania](frame-deletion-manual.md).

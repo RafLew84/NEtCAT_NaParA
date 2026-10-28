@@ -8,7 +8,7 @@
 
 **Warunki przejścia do `done` (oba wymagane):**
 
-- [ ] Użytkownik potwierdził testy manualne tego ticketu.
+- [x] Użytkownik potwierdził testy manualne tego ticketu 2026-10-28: „testy manualne ok”.
 - [ ] Integracja poprawiła i odebrała odczyt pełnego MPP z długim nagłówkiem
   we wspólnym czytniku NaPara/NanoTrack; szczegóły w [przekazaniu](../../handoff.md).
 
@@ -64,8 +64,10 @@ Poprawiono limit opisu braków i rozmiar JSON, które uniemożliwiały pełny
 eksport aligned 1000 klatek. [Raport](../../large-exports-results.md) zawiera
 13 pełnych eksportów, porównania wszystkich danych MPP i rastrów AVI,
 otwarcia w GUI, VLC, pamięć, anulowanie i kontrolowane awarie.
-[Instrukcja ręcznej próby](../../large-exports-manual.md) — odbiór użytkownika
-jeszcze niewykonany. Status nie oznacza odbioru Windows ani całego repo.
+[Instrukcja ręcznej próby](../../large-exports-manual.md) — użytkownik potwierdził
+odbiór 2026-10-28: „testy manualne ok”. Potwierdzenie obejmuje `6888cff` i `716451c`.
+Nie podano systemu próby; nie oznacza to końcowego odbioru Windows ani całego repo.
+Status pozostaje `ready-for-review` do odbioru poprawki wspólnego czytnika przez integrację.
 Wspólny czytnik NaPara/NanoTrack odrzuca długie nagłówki; potrzebę zmiany
 przekazano integracji w raporcie i `handoff.md`. Własny roundtrip Viewer
 nie zamyka tego odbioru.
