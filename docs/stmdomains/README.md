@@ -243,9 +243,16 @@ równoważnej bazy, lecz agregacje obrazu nadal dają 0/1678 przypisań TTMAPP.
 Zgodność centrów odzyskuje do 296/1678, tylko BLACK, kosztem błędów granic
 i niezależnych rzędów. Podgląd `.scratch/translation-family/index.html`;
 24804 wyników odtworzonych bez referencji, 343 kontrole HTML.
-**19 nadal `claimed`; 20 odłożone.** Do omówienia tolerancja pozycji,
-zmienny wygląd molekuł i osobna spójność fazy między otoczeniami.
-Kolejnego eksperymentu, przygotowania ani treningu nie uruchomiono.
+Następnie wykonano [tolerancję pozycji i zgodność fazy](tolerant-fit-phase-trial.md):
+210 obrazów, 84 warianty, 45 nowych syntetyków. Miękkie dopasowanie pomaga
+przy niewielkich błędach i brakach oznaczeń, ale korekta sieci pochłania
+część granic. Faza odcina 132/138 połączeń przez kontrolną granicę 3 px,
+lecz pozostawione mostki nadal scalają fragmenty. TTMAPP najwyżej 125/1678,
+tylko BLACK. Podgląd `.scratch/tolerant-fit-phase/index.html`; 17640 wyników
+odtworzonych bez referencji, 217 kontroli HTML.
+**19 nadal `claimed`; 20 odłożone.** Do omówienia rozłączne otoczenia
+po stronach granicy i oddzielenie podparcia materiału od fazy. Następnego
+badania ani treningu nie uruchomiono; nie przyjęto metody do aplikacji.
 
 
 ## Dwa etapy

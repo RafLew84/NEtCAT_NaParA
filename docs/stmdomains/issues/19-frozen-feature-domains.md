@@ -379,5 +379,37 @@ progi, pięć przykładów krokowych). 804 tablice pojedynczych par zgodne,
 **19 pozostaje `claimed`, do omówienia; 20 nadal odłożone.** Kolejna
 propozycja: lokalna zgodność struktury z tolerancją pozycji i osobna
 spójność fazy między otoczeniami, z kontrolą niezależnych rzędów i przerw.
-Nie uruchomiono tej kolejnej próby ani treningu. Rodzina jest zachowanym
+Tę kolejną próbę wykonano poniżej; nie uruchamiano treningu. Rodzina jest zachowanym
 punktem odniesienia; metoda nie została przyjęta do aplikacji.
+
+
+## Rozwinięcie — 2026-10-28: tolerancja pozycji i osobna zgodność fazy
+
+Na polecenie użytkownika wykonano [dopasowanie sieci i test sąsiadów](../tolerant-fit-phase-trial.md)
+na 210 obrazach (24 pełne TTMAPP, 45 nowych syntetyków), 84 warianty. Progi
+ustalono wcześniej na 45 negatywach; referencje służyły wyłącznie ocenie.
+Stała lub lekko korygowana lokalna sieć, miękka odległość centrów oraz osobna
+zgodność baz/fazy. Bez wzorców domen, K i treningu; nie testowano nowych cech DL.
+
+Stała sieć r48/τ2 poprawia przypisania przy jitterze .6 px (84.2→90.9%)
+i braku 30% oznaczeń (13.1→75.8%). Korekta pomaga przy lekkim odkształceniu,
+ale pochłania granicę 3 px. Osobna faza małego otoczenia odcina 132/138
+połączeń przez granicę przy centrach, jednak dwa mostki na obraz nadal
+scalają domeny. Na siatce nowe dopasowanie wypełnia pusty pas (96/96 miejsc);
+małe otoczenie usuwa go przez brak danych, lecz rozcina również kontrolę
+brakujących oznaczeń. Niezależne rzędy nadal dają fałszywe fragmenty.
+
+TTMAPP: najwyżej **125/1678 (7.4%)**, tylko BLACK; poprzedni geometryczny
+wariant na siatce miał 279/1678. RED/YELLOW nadal pomijane. Model jednej
+sieci Bravaisa nie obejmuje dowolnego motywu. Nie przyjęto metody do programu.
+
+Źródła: `prototype/stmdomains-tolerant-fit-phase`, **`c7ed021`**;
+[manifest](../tolerant-fit-phase-manifest.json), podgląd
+`.scratch/tolerant-fit-phase/index.html` (53 obrazy, faza i połączenia).
+1225 sprawdzeń liczbowych, 660 wcześniejszych wyników zgodnych; 210 pomiarów
+oraz **17640 wyników** odtworzonych bez dostępu do referencji, 217 kontroli HTML.
+
+**19 nadal `claimed`, do omówienia; 20 odłożone.** Kolejna propozycja:
+porównanie jednego modelu z dwoma modelami po stronach granicy na rozłącznych
+otoczeniach, ocena ciągłości rozcięcia i osobne podparcie materiału. Brak
+lokalnych centrów nie może sam oznaczać granicy. Następnej próby nie uruchomiono.

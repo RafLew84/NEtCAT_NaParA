@@ -1,4 +1,58 @@
-# STM Domains — rodzina zgodnych przesunięć, issue 19
+# STM Domains — tolerancja pozycji i osobna zgodność fazy, issue 19
+
+Data: **2026-10-28**. Dokumentacja `domains/tolerant-fit-phase`, baza
+`5e5557b`, worktree `/tmp/netcat-stmdomains-tolerant-fit-phase`.
+Źródła: **`prototype/stmdomains-tolerant-fit-phase`, `c7ed021`**, baza
+`d6ae09a`. Prototyp pozostaje osobno; nie scalać go do aplikacji.
+Dokumentacja do `domains/start`; końcowy commit w wiadomości użytkownika.
+Integrację do `stm-next` prowadzi koordynator.
+
+Na polecenie użytkownika zbadano lokalne dopasowanie jednej sieci z tolerancją
+błędów pozycji oraz osobny test fazy sąsiednich otoczeń:
+[raport](tolerant-fit-phase-trial.md), [manifest](tolerant-fit-phase-manifest.json),
+podgląd `/home/rlew/projekty/NEtCAT-domains/.scratch/tolerant-fit-phase/index.html`.
+210 obrazów: 24 TTMAPP oraz 186 kontroli, w tym 45 nowych syntetyków.
+84 warianty; 45 wcześniejszych negatywów do kalibracji przed nowymi obrazami.
+17640 prognoz, 17136 ocen z powodu braku referencji 6 TTMAPP. Pełne obrazy,
+bez wzorców klas, K, treningu lub strojenia na referencjach. Ocena dopasowania
+na części punktów jest warunkowa względem propozycji bazy z wszystkich centrów.
+
+Stała sieć poprawia mały jitter i brak oznaczeń; korekta pomaga przy lekkim
+odkształceniu, ale pochłania skok 3 px. Faza małego otoczenia odcina 132/138
+połączeń przez granicę, lecz dwa pozostawione mostki na obraz nadal scalają
+domeny. Dopasowanie wypełnia pusty pas na siatce; ograniczenie dostępności
+małego otoczenia usuwa go, ale także rozcina kontrolę braków oznaczeń.
+TTMAPP najwyżej **125/1678 (7.4%)**, tylko BLACK, wobec poprzednich 279/1678
+w tym samym geometrycznym wariancie siatki. RED/YELLOW nadal nieprzypisane.
+Model jednej sieci Bravaisa nie jest ogólnym modelem dowolnych motywów.
+
+**19 pozostaje `claimed`, do omówienia; 20 nadal odłożone.** Następna
+propozycja: porównanie jednego/dwóch modeli na rozłącznych otoczeniach
+po stronach granicy, ocena ciągłości rozcięcia i osobne podparcie materiału.
+Nie uruchomiono następnej próby, treningu ani pełnych 268 klatek.
+Nie przyjęto metody do programu i nie zmieniono produkcyjnego kodu.
+
+Sprawdzenia: **1225 kontroli liczbowych**, 660 wcześniejszych wyników po
+3 tablice dokładne; 45 deterministycznych odtworzeń syntetyków. **210 pomiarów
+oraz 210 plików / 17640 wyników** odtworzone identycznie bez dostępu do
+referencji. **217 kontroli QtWebEngine**, bez błędów JS; oba tryby, 53 obrazy,
+84 ustawienia, scenariusze i procenty; podgląd i wykres obejrzane. Poprawki
+serializacji bool/wskaźników dotyczyły HTML, bez zmian wyników analizy.
+Python/Bash sprawdzone składniowo; wrapper wykonany etapami.
+Nie testowano aplikacyjnego GUI ani produkcji. Nie jest to odbiór skuteczności.
+
+CPU: 4 procesy po 1 wątku, pomiary 42.13+29.80 s, prognozy 18.28 s,
+ocena 4.18 s, odtworzenie 91.85 s. Maksymalny RSS procesu 118712 KiB;
+łącznego szczytu nie mierzono. Bez GPU, nowych wag lub zależności.
+Kopia: **537 plików / 109045271 B**, wszystkie SHA-256 zgodne; następnie
+potwierdzenie kopii. Względny link do translation-family. HTML/CSV/wykresy
+samodzielne, powtórzenie analizy wymaga starszych lokalnych artefaktów.
+Brak potrzeb zmian modułów wspólnych, głównej konfiguracji, Viewer lub GUI.
+
+---
+
+## Poprzednie przekazanie — rodzina zgodnych przesunięć
+
 
 Data: **2026-10-28**. Dokumentacja `domains/translation-family`, baza
 `e5e6100`, worktree `/tmp/netcat-stmdomains-translation-family`.

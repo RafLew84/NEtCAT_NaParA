@@ -119,9 +119,12 @@ miejsc i nadal 0/1678 przypisań TTMAPP; kryterium zależy także od bazy sieci.
 [Rodzinę przesunięć](../translation-family-trial.md) zbadano następnie
 na 165 obrazach, w tym 42 nowych. Oceny równoważnych baz są identyczne,
 ale agregacje obrazu nadal dają zero przypisań TTMAPP. Zgodność centrów
-daje do 17.6%, tylko BLACK, i błędy granic/niezależnych rzędów. Do omówienia
-lokalna tolerancja pozycji i spójność fazy. Kolejna próba niewykonana;
-odbiór 13 i jakość 04 pozostają otwarte.
+daje do 17.6%, tylko BLACK, i błędy granic/niezależnych rzędów.
+Wykonano [tolerancję pozycji i test fazy](../tolerant-fit-phase-trial.md):
+210 obrazów, 84 warianty. Częściowa poprawa kontroli jitteru/braków, lecz
+pozostawione mostki nadal scalają granicę, a TTMAPP osiąga najwyżej 7.4%.
+Do omówienia rozłączne otoczenia po stronach granicy i osobne podparcie
+materiału. Następnej próby nie wykonano; odbiór 13 i jakość 04 pozostają otwarte.
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie
 z instrukcjami repozytorium. Nie wymaga zewnętrznego trackera.
@@ -206,7 +209,7 @@ ten nadal warunkuje odbiór metod. Statusy znajdują się w ticketach.
 | [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md) | prototype / HITL | `resolved`: porównanie zachowane, użytkownik wybrał przejście do 17, E2 |
 | [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md) | prototype / HITL | `resolved`: widmo/EWT zachowane do porównań ML, bez przyjęcia metody; E3 |
 | [Jak przygotować cechy gotowych sieci bez treningu na naszych danych?](18-frozen-feature-preparation.md) | task / AFK | `resolved`: oba ekstraktory, cache, geometria i powtarzalność sprawdzone |
-| [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | `claimed`: wykonane próby, audyt odmów i rodzina przesunięć; pozostają odmowy obrazu i błędy granic; do omówienia tolerancja pozycji/faza; 20 odłożone |
+| [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | `claimed`: wykonane także tolerancja pozycji i test fazy; częściowa korzyść na kontrolach, mostki nadal scalają domeny, TTMAPP najwyżej 7.4%; do omówienia rozłączne otoczenia/podparcie materiału; 20 odłożone |
 
 Próby geometrii, SBC/MatID i klasycznej tekstury są niezależne. Porównanie
 ML korzysta z wyniku tekstury jako punktu odniesienia, również gdy jest
