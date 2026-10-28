@@ -9,7 +9,8 @@ from numpy.typing import NDArray
 from stmviewer.metadata_values import json_object, optional_number
 
 # Bound run-list allocation before the enclosing 64 MiB JSON limit is checked.
-MAX_RUNS = 500_000
+# A 1000-frame 512-row drift canvas alone needs just over 512,000 runs.
+MAX_RUNS = 1_000_000
 
 
 def background_value(data: NDArray[np.float64], checkpoint: Callable[[], None]) -> float:
@@ -43,7 +44,7 @@ def encode_missing_samples(data: NDArray[np.float64], checkpoint: Callable[[], N
                 runs[-1][1] = int(runs[-1][1]) + count
             else:
                 if len(runs) >= remaining_runs:
-                    raise ValueError('Zbyt wiele przedziałów braków: dodatek może zawierać najwyżej 500 000.')
+                    raise ValueError('Zbyt wiele przedziałów braków: dodatek może zawierać najwyżej 1 000 000.')
                 runs.append([offset, count, encoded])
     return {'encoding': 'runs-f64le-v1', 'fill_value': background_value(data, checkpoint), 'runs': runs}
 

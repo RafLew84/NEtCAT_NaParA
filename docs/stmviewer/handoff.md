@@ -1,5 +1,58 @@
 # Przekazanie — STM Viewer
 
+## 19: Duże eksporty i wspólna praca funkcji — 2026-10-28
+
+[Ticket 19](implementation/issues/19-large-exports.md): **ready-for-review**.
+Baza `6b43765f71f28f77d1b8bf74cf2643f67e0dba15`.
+[Raport](large-exports-results.md), [ręczna próba](large-exports-manual.md).
+Ręczny odbiór użytkownika jeszcze niewykonany. Przegląd dwóch osi i identyfikator
+commitu zostaną dopisane po końcowym przeglądzie.
+
+Pełny eksport aligned 1000 klatek wymagał 512 998 przedziałów braków przy limicie
+500 000; zapis JSON z wcięciami przekraczał także 64 MiB. Podniesiono limit do
+1 000 000 i zapisano kompaktowy JSON, zachowując limit bajtów, schemat i dokładne
+wartości. Regresja TDD obejmuje publiczny zapis/odczyt 1000 małych klatek.
+Dodano odtwarzalne, opcjonalne narzędzia dużych pomiarów; dane pozostają lokalne.
+
+Wykonane sprawdzenia:
+
+- 13 pełnych publikacji: MPP original/aligned i MJPG/FFV1, początkowo 1000 klatek,
+  po usunięciu odniesienia/ostatniej i po ponownym Phase — 998. Wszystkie opisy,
+  oba kontrasty, gamma 1/2, czarne/szare/białe tło.
+- 4994 klatki MPP: identyczne bity próbek i wszystkie metadane; 3996 klatek FFV1:
+  identyczne rastry. Kolejne 3996 MJPG sprawdzono z tolerancją stratnej kompresji,
+  także lokalnie w numerach. Pięć MPP otwarto ponownie przez GUI; osiem pełnych
+  AVI zakończyło odtwarzanie w VLC 3.0.24 na Ubuntu (sterowanie skryptem/X11).
+- Szczyt RSS procesu wraz z dziećmi: eksporty/ponowne Phase **10,112 GB**;
+  ponowne otwieranie przez GUI **14,120 GB**. Po każdym z dwóch pełnych AVI i MPP
+  osobny tracemalloc wykazał **0 B nowych żywych buforów NumPy** eksportu.
+- Anulowanie MPP, AVI podczas kontrastu i dekodowania zachowało wcześniejsze
+  pliki. Kontrolowane OSError przy publikacji drugiego pliku MPP przywróciło
+  parę, MemoryError kodeka po ćwierci filmu zachowało AVI. SHA-256 bez zmian,
+  brak pozostałych katalogów tymczasowych.
+- Szybkie testy regresji/WSxM/bezpieczeństwa: **34 passed**. Mypy strict: **33 pliki**,
+  bez błędów. Nowe narzędzia: smoke i pełne pomiary, Ruff bez uwag.
+- Pełny zestaw repo raz: **2156 passed, 14 failed, 16 skipped**, 276,77 s.
+  Te same 14 testów w czystym archiwum bazy: **13 failed, 1 passed**.
+  `test_edge_correction_and_resume_replace_suffix` przechodzi również osobno
+  na bieżącym kodzie. Powtarzalne błędy MolTrack/SAM2 i sesji NanoTrack
+  oraz niestabilność całego zestawu pozostają dla integracji.
+
+**Potrzebna zmiana wspólna:** `napara/io/mpp_reader.py::read_mpp_file`
+(używany też przez NanoTrack) ogranicza nagłówek do 1000 wierszy.
+Oba pełne MPP mają 1029 wierszy z 1000 znanymi czasami i są odrzucane:
+`ValueError: Missing [Header end] in MPP.`. Przekazać integracji bezpieczną
+obsługę dłuższych nagłówków wraz z testami odbiorców. Nie usuwać czasów
+z eksportu jako obejścia. W tej sesji nie zmieniano wspólnych modułów;
+własny roundtrip nie jest odbiorem innych czytników. Ograniczenie pozostaje otwarte.
+
+Stanowisko ma 132,61 GB RAM i HDD; nie potwierdza czasów zimnego SSD ani pracy
+systemu fizycznie ograniczonego do 16 GB. Zrzuty X11/Xvfb nie stanowią ręcznego
+odbioru monitora. Windows i końcowe odbiory platform pozostają 20/21; WSxM nie
+sprawdzano dodatkowo na dużej serii. Artefakty: `data/large-export-ticket19/`,
+`data/large-export-ticket19-allocations/`; logi `/tmp/stmviewer19-*.log`.
+
+
 ## 18: Duża seria: podgląd i rejestracja — 2026-10-28
 
 [Ticket 18](implementation/issues/18-large-series-preview.md): **done**.

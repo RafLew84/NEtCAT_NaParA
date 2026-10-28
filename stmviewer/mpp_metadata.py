@@ -164,7 +164,7 @@ def encode_mpp_metadata(frames: tuple[ImageFrame, ...], sha256: str, *,
     metadata = dict(format='stmviewer-mpp', version=version, image_kind=image_kind,
                     movie=dict(sha256=sha256, frame_count=len(frames), shape_yx=list(frames[0].data.shape)),
                     frames=records)
-    payload = (json.dumps(metadata, ensure_ascii=False, allow_nan=False, sort_keys=True, indent=2) + '\n').encode('utf-8')
+    payload = (json.dumps(metadata, ensure_ascii=False, allow_nan=False, sort_keys=True, separators=(',', ':')) + '\n').encode('utf-8')
     if len(payload) > _MAX_BYTES:
         raise ValueError('Dodatek przekracza 64 MiB.')
     check_cancelled()

@@ -207,11 +207,13 @@ Starsze wersje Viewera oraz czytniki NaPara/NanoTrack/MolTrack nie rozumieją
 V3 i widzą w MPP sztuczne tło. Dotychczasowy zapis NaN do tych czytników
 pozostaje dostępny przez API (`wsxm_compatible=False`), nie w oknie programu.
 
-Eksporter ogranicza sumę przedziałów filmu do 500 000, przed zbudowaniem
-całego JSON. Czytnik ogranicza listę każdej klatki do 500 000. Nadal obowiązuje
+Eksporter ogranicza sumę przedziałów filmu do 1 000 000, przed zbudowaniem
+całego JSON. Czytnik ogranicza listę każdej klatki do 1 000 000. Nadal obowiązuje
 limit 64 MiB całego dodatku. Przekroczenie limitu nie podmienia poprzedniej
 pary; komunikat podaje przekroczony limit. Długie przebiegi sprawdzają anulowanie.
 Przy V3 nie zmieniono nagłówka MPP ani jego natywnego formatowania.
+Od ticketu 19 JSON jest zapisywany bez wcięć, aby opis dużej serii i brzegu
+aligned mieścił się w 64 MiB. Schemat danych pozostaje bez zmian.
 
 Ponowny zapis w wariancie original działa na odtworzonych próbkach:
 GUI ponownie zachowuje braki w V3; API z `wsxm_compatible=False` przenosi je
