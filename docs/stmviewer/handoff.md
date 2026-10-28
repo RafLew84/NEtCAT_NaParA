@@ -2,12 +2,16 @@
 
 ## 18: Duża seria: podgląd i rejestracja — 2026-10-28
 
-[Ticket 18](implementation/issues/18-large-series-preview.md): **ready-for-review**.
+[Ticket 18](implementation/issues/18-large-series-preview.md): **done**.
 Baza `08c1f3c`, narzędzia/testy/raport **`fb6b4e4`**, poprawki **`ae06831`**.
 [Instrukcja uruchomienia i ręcznej próby](large-series-manual.md),
 [pełny raport](large-series-results.md),
 [przegląd dwóch osi](implementation/review-18-large-series-preview.md).
-Odbiór ręczny użytkownika pozostaje otwarty.
+Użytkownik potwierdził 2026-10-28: „testy manualne ok”. Odbiór obejmuje
+`fb6b4e4`, `ae06831` i przekazanie `0edaef6`. Nie podano systemu próby;
+nie oznacza to zbiorczego odbioru Windows. Aktualizacja statusu dotyczy
+wyłącznie dokumentacji: sprawdzono spójność, linki i `git diff --check`;
+nie ponawiano testów kodu.
 
 Pomiary nie wykazały potrzeby zmiany produkcji. Dodano strumieniowy generator
 MPP 1000 × 512 × 512, odtwarzalny benchmark publicznych kontrolek GUI,

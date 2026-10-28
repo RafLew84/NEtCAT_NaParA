@@ -3,7 +3,8 @@
 Data: 2026-10-28. Kod aplikacji: `08c1f3c` (bez zmian produkcyjnych w tym etapie).
 Duża seria przeszła pełny przebieg podglądu, usuwania, ponawiania oraz anulowania
 importu/Phase. Nie znaleziono powodu do optymalizacji ani strojenia algorytmu.
-Ręczny odbiór użytkownika pozostaje otwarty.
+Użytkownik potwierdził ręczny odbiór 2026-10-28: „testy manualne ok”.
+Nie podano systemu wykonania tej próby; odbiory platform pozostają osobne.
 
 ## Stanowisko i zakres dowodu
 

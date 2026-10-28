@@ -4,7 +4,7 @@
 
 **Blocked by:** [08: Rejestracja Phase i pełny widok aligned](08-phase-registration.md)
 
-**Status:** ready-for-review
+**Status:** done
 
 **Wykonawca:** Codex
 **Baza przeglądu:** `08c1f3c4495a9d15b6632811fe4a99fc76b511fa`
@@ -54,7 +54,9 @@ Optymalizacje wspólnych loaderów/backendów/materializatora i zależności pro
 
 Implementacja narzędzi i testów `fb6b4e4`; poprawki po przeglądzie `ae06831`.
 Kod aplikacji nie wymagał zmian. Kryteria sprawdzono w automatycznym przebiegu
-GUI na X11; ręczna akceptacja użytkownika pozostaje otwarta.
+GUI na X11. Użytkownik potwierdził ręczną akceptację 2026-10-28:
+„testy manualne ok”. Odbiór obejmuje `fb6b4e4`, `ae06831`
+i przekazanie `0edaef6`.
 
 [Instrukcja i dane do próby ręcznej](../../large-series-manual.md),
 [raport pomiarów](../../large-series-results.md),

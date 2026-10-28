@@ -96,5 +96,6 @@ QT_QPA_PLATFORM=xcb PYTHONPATH=. python tests/stmviewer/check_series_memory.py \
 ```
 
 [Wyniki i ograniczenia pomiaru](large-series-results.md).
-Ręczna akceptacja użytkownika pozostaje otwarta. Odbiory platform Ubuntu
-oraz Windows są osobnymi ticketami 20 i 21.
+Użytkownik potwierdził ręczną akceptację 2026-10-28: „testy manualne ok”.
+Nie podano systemu wykonania próby; zbiorcze odbiory Ubuntu oraz Windows
+są osobnymi ticketami 20 i 21.
