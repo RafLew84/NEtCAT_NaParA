@@ -1,5 +1,69 @@
 # Przekazanie — STM Viewer
 
+## 18: Duża seria: podgląd i rejestracja — 2026-10-28
+
+[Ticket 18](implementation/issues/18-large-series-preview.md): **ready-for-review**.
+Baza `08c1f3c`, narzędzia/testy/raport **`fb6b4e4`**, poprawki **`ae06831`**.
+[Instrukcja uruchomienia i ręcznej próby](large-series-manual.md),
+[pełny raport](large-series-results.md),
+[przegląd dwóch osi](implementation/review-18-large-series-preview.md).
+Odbiór ręczny użytkownika pozostaje otwarty.
+
+Pomiary nie wykazały potrzeby zmiany produkcji. Dodano strumieniowy generator
+MPP 1000 × 512 × 512, odtwarzalny benchmark publicznych kontrolek GUI,
+osobny pomiar żywych buforów NumPy i małe testy cyklu życia zasobów.
+Dane `data/large-ticket18-v2/large.mpp` i manifest są lokalne, generator
+w Git. Raporty zapisują identyfikację wejścia, czas, postęp, piksele X11,
+rozkłady opóźnień, szczyt RSS oraz faktyczny rozmiar aligned.
+
+Wykonane pomiary:
+
+- Duża seria: import 2,263 s; Phase 21,721 s, **aligned 640 × 640**.
+  Usunięcie trzech klatek, ponowne Phase, anulowanie obu etapów rejestracji,
+  odczytu i miniatur oraz dwa kolejne otwarcia/rejestracje zakończone poprawnie.
+- Original/aligned: nominalne 5 kl./s dało **4,95–4,96 kl./s**, odstępy
+  około 200 ms, bez pomijania. 30 s Play na każdy widok dużej serii
+  i rzeczywistego TTMAPP (268 klatek, aligned 313 × 656).
+  **400 prób** wyboru/Pause: wszystkie poniżej 250 ms; p95 wyboru do 13,01 ms,
+  Pause do 6,75 ms. Wyższe tempo zwalniało z zachowaniem kolejności.
+- Szczyt RSS całego dużego przebiegu: **10,331 GB**. Żywe bufory NumPy po
+  pierwszym i ponownym Phase: jednakowe 5 783 552 000 bajtów; po otwarciu
+  małego MPP: **288 bajtów**. RSS może nadal obejmować wolne bloki alokatora.
+  Nie wymuszano GC ani platformowego oddawania pamięci.
+
+Testy i ograniczenia:
+
+- Szybki zestaw importu/Play/Phase/generatora/zasobów: **46 passed**.
+  Po poprawce znacznika wzorca generator i zasoby: **4 passed**.
+  Nowe testy zasobów potwierdziły już istniejący kontrakt; nie było potrzeby
+  produkcyjnej poprawki TDD. Kontrolowany MemoryError/anulowanie zachowują
+  stary wynik i zwalniają częściowe alokacje zewnętrznej biblioteki SciPy.
+- Końcowe narzędzie pomiarowe sprawdzone w trybie smoke na X11; smoke nie
+  zastępuje opisanych pełnych pomiarów. Mypy strict: **33 pliki, bez błędów**.
+- Pełny zestaw repo raz: **2154 passed, 15 failed, 16 skipped**, 295,17 s.
+  Wszystkie niepowodzenia dotyczą MolTrack/NanoTrack. Powtórzenie tych samych
+  15 na czystym archiwum bazy `08c1f3c`: **13 failed, 2 passed**.
+  Dwa pozostałe (`test_edge_correction_and_resume_replace_suffix` oraz
+  `test_real_worker_cli_roundtrips_batch_contract_with_injected_sam2_repo`)
+  przeszły również powtórzenie na bieżącym kodzie: **2 passed**.
+  Nie deklarujemy zielonego odbioru repo; powtarzalne problemy SAM2/ścieżek
+  i sesji NanoTrack oraz niestabilność pełnego przebiegu należą do integracji.
+- Największy nowy plik ma 226 linii, poniżej limitu 1500.
+  Sprawdzono odnośniki i `git diff --check`.
+- Lokalna maszyna ma 132,61 GB RAM, a pliki są na HDD z cache systemowym.
+  Zmierzono rzeczywisty budżet RSS, nie ograniczano systemu do 16 GB.
+  Zrzuty X11/Xvfb oceniono wizualnie; nie jest to ręczny odbiór ani pomiar
+  fizycznego monitora. Nie potwierdza czasu zimnego odczytu z SSD.
+  Windows nie był dostępny; końcowe odbiory platform pozostają 20/21.
+
+Artefakty lokalne: `/tmp/stmviewer18-large-final.json`,
+`/tmp/stmviewer18-typical.json`, `/tmp/stmviewer18-live-memory.json`,
+`/tmp/stmviewer18-full-suite.log`, `/tmp/stmviewer18-baseline-failures.log`,
+`/tmp/stmviewer18-transient-recheck.log` i zrzuty z prefiksem `stmviewer18`.
+Nie zmieniono wspólnych modułów, konfiguracji głównej ani algorytmów.
+Nie ma nowej zależności od zmiany integracyjnej. Eksporty dużej serii należą
+wciąż do ticketu 19; ten etap ich nie odbiera.
+
 ## 17: Podziałka, numer i czas w AVI — 2026-10-27
 
 [Ticket 17](implementation/issues/17-avi-annotations.md): **done**.

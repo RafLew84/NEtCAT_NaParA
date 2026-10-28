@@ -51,6 +51,9 @@ ma status **done**: użytkownik potwierdził [testy manualne](aligned-avi-manual
 [Ticket 17 — podziałka, numer i czas](implementation/issues/17-avi-annotations.md)
 ma status **done**: opcjonalne opisy filmu są bez czarnych pól.
 Użytkownik potwierdził [testy manualne](avi-annotations-manual.md) 2026-10-27.
+[Ticket 18 — duża seria](implementation/issues/18-large-series-preview.md)
+ma status **ready-for-review**: przygotowano dane, pomiary i testy zasobów.
+[Instrukcja próby ręcznej](large-series-manual.md), [wyniki](large-series-results.md).
 Przycisk Usuń klatkę usuwa bieżący obraz z serii, zatrzymuje Play i zachowuje
 pochodzenie oraz czasy pozostałych klatek. Źródła na dysku pozostają bez zmian:
 [instrukcja usuwania](frame-deletion-manual.md).
