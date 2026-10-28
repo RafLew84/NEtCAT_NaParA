@@ -237,9 +237,15 @@ pozostanie przy 19 i [audyt odmów](vector-refusal-audit.md), wykonany na
 Odmowy utrzymują się we wnętrzach; część zmian decyzji wynika z wyboru
 równoważnej bazy sieci. Podgląd `.scratch/vector-refusal-audit/index.html`,
 125 kontroli HTML, 3816 wyników odtworzonych bez dostępu do referencji.
-**19 nadal `claimed`; 20 odłożone.** Następna propozycja w 19 to odporna
-na wybór bazy ocena rodziny przesunięć i zmienności wyglądu molekuł.
-Nie uruchomiono tej próby, przygotowania ani treningu.
+Następnie wykonano [ocenę rodziny przesunięć](translation-family-trial.md)
+na 165 obrazach, w tym 42 nowych syntetykach. Ocena jest niezależna od
+równoważnej bazy, lecz agregacje obrazu nadal dają 0/1678 przypisań TTMAPP.
+Zgodność centrów odzyskuje do 296/1678, tylko BLACK, kosztem błędów granic
+i niezależnych rzędów. Podgląd `.scratch/translation-family/index.html`;
+24804 wyników odtworzonych bez referencji, 343 kontrole HTML.
+**19 nadal `claimed`; 20 odłożone.** Do omówienia tolerancja pozycji,
+zmienny wygląd molekuł i osobna spójność fazy między otoczeniami.
+Kolejnego eksperymentu, przygotowania ani treningu nie uruchomiono.
 
 
 ## Dwa etapy

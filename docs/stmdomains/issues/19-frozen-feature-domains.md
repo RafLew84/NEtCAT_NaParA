@@ -5,7 +5,7 @@ Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
 Status: claimed
-Assignee: Codex — domains/vector-refusal-audit
+Assignee: Codex — domains/translation-family
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 17, 18
 
@@ -349,4 +349,35 @@ po ponowieniu bez dostępu do referencji. 125 kontroli HTML, bez błędów JS.
 Następna proponowana próba w 19: ocena rodziny zgodnych przesunięć,
 odporność na wybór równoważnej bazy i zmienny wygląd molekuł, z osobnym
 sprawdzianem fałszywych akceptacji. Kalibracja na kontrolach, bez dostrajania
-do ramek. Ta próba jest jeszcze niewykonana. Nie wybrano metody do aplikacji.
+do ramek. Tę próbę wykonano poniżej. Nie wybrano metody do aplikacji.
+
+
+## Rozwinięcie — 2026-10-28: rodzina zgodnych przesunięć
+
+Na polecenie użytkownika wykonano [ocenę wielu przesunięć](../translation-family-trial.md):
+165 obrazów, w tym 24 pełne TTMAPP i 42 nowe syntetyki zmiennego wyglądu,
+szumu, błędów pozycji, niezależnych rzędów i granic. Progi osobno dla
+kryterium/źródła/promienia na 45 starych negatywach, przed nowymi obrazami.
+Bez treningu, K, wzorców domen i strojenia na referencjach.
+
+Kanoniczna rodzina usuwa zależność oceny od równoważnej bazy: sprawdzono
+56818 identycznych rodzin, po cztery zgodne oceny. Nie rozwiązuje jednak
+wykrywania. Agregacje obrazu nadal dają **0/1678 przypisań TTMAPP**.
+Zgodność centrów r48 daje do **296/1678 (17.6%)**, tylko BLACK; na nowych
+kontrolach scala granicę przesunięcia i dopuszcza niezależne rzędy.
+Łagodniejsze mediany obrazu r48 tworzą także pozorny fragment w pustym
+pasie (84/96 lub 78/96 miejsc). Sama zmiana agregacji jest niewystarczająca.
+
+Źródła: `prototype/stmdomains-translation-family`, **`d6ae09a`**;
+[manifest](../translation-family-manifest.json), podgląd
+`.scratch/translation-family/index.html` (56 obrazów, rodzina wektorów,
+progi, pięć przykładów krokowych). 804 tablice pojedynczych par zgodne,
+3816 bazowych wyników dokładnych. Wszystkie 165 pomiarów i 165 plików /
+24804 wyników odtworzone identycznie bez dostępu do referencji.
+343 kontrole HTML, bez błędów JS. Nowe syntetyki nie są walidacją STM.
+
+**19 pozostaje `claimed`, do omówienia; 20 nadal odłożone.** Kolejna
+propozycja: lokalna zgodność struktury z tolerancją pozycji i osobna
+spójność fazy między otoczeniami, z kontrolą niezależnych rzędów i przerw.
+Nie uruchomiono tej kolejnej próby ani treningu. Rodzina jest zachowanym
+punktem odniesienia; metoda nie została przyjęta do aplikacji.

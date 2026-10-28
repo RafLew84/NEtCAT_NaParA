@@ -1,4 +1,60 @@
-# STM Domains — audyt wektorów i odmów, issue 19
+# STM Domains — rodzina zgodnych przesunięć, issue 19
+
+Data: **2026-10-28**. Dokumentacja `domains/translation-family`, baza
+`e5e6100`, worktree `/tmp/netcat-stmdomains-translation-family`.
+Źródła: **`prototype/stmdomains-translation-family`, `d6ae09a`**, baza
+`9c78d8c`. Prototyp pozostaje osobno; nie scalać go do aplikacji.
+Dokumentacja do `domains/start`; końcowy commit w wiadomości użytkownika.
+Integrację do `stm-next` prowadzi koordynator.
+
+Na polecenie użytkownika zbadano rodzinę zgodnych przesunięć:
+[raport](translation-family-trial.md), [manifest](translation-family-manifest.json),
+podgląd `/home/rlew/projekty/NEtCAT-domains/.scratch/translation-family/index.html`.
+165 obrazów: 24 pełne TTMAPP, pozostałe znane obrazy audytu i 45 negatywów
+kalibracji (łącznie 123), następnie 42 nowe syntetyki. Pięć kryteriów,
+dwa promienie/źródła, osobna kalibracja kwantylem .99; bez treningu,
+K, wzorców domen i strojenia na referencjach. Cechy/podziały zachowane.
+260 konfiguracji na starszych obrazach spoza rzędów, 52 na rzędach/nowych.
+
+Kanoniczna rodzina daje identyczne oceny równoważnych baz; sprawdzono
+56818 takich otoczeń. Agregacje obrazu nadal **0/1678 przypisań TTMAPP**.
+Zgodność centrów r48 daje do **296/1678 (17.6%)**, tylko BLACK, przy
+scalaniu granicy przesunięcia i fałszywych miejscach niezależnych rzędów.
+Na małym oknie próg zgodności centrów wynosi 1, więc nie przechodzi nawet
+poprawna sieć. Mediany obrazu r48 tworzą też pozorny fragment w pustej
+przerwie (84/96 lub 78/96 miejsc). Zmienna amplituda pojedynczych molekuł,
+szum i niewielki jitter nadal silnie obniżają wyniki obrazu.
+
+**19 pozostaje `claimed`, do omówienia; 20 nadal odłożone.** Następna
+propozycja: lokalna zgodność struktury z tolerancją pozycji i oddzielna
+spójność fazy między sąsiednimi otoczeniami. Kontrole niezależnych rzędów,
+przerw i granicy przesunięcia muszą pozostać. Nie uruchomiono tej próby,
+treningu ani pełnych 268 klatek. Nie przyjęto metody do programu.
+
+Sprawdzenia: 24 rodziny, 96 niezmiennych ocen, 864 porównania korelacji
+(błąd ≤1.39e-16), 804 odtworzenia pojedynczych par (≤1.12e-15), 3816
+bazowych wyników dokładnych. **165 pomiarów i 165 plików / 24804 wyniki**
+odtworzone identycznie z blokadą odczytów referencji. 132 pary tablic obrazu
+niezmienione przy brakach oznaczeń; 227272 identyczne oceny wspólnych rodzin.
+42 deterministyczne odtworzenia nowych obrazów. Przed oceną poprawiono
+zapis pól/manifestu; 165 ponowionych obrazów zachowało wszystkie oceny
+oraz progi. **343 kontrole QtWebEngine**, bez błędów JS, podgląd/wykres
+obejrzane. Python/Bash sprawdzone składniowo; wrapper wykonany etapami.
+Nie testowano natywnego GUI, produkcji ani pełnego odbioru skuteczności.
+
+CPU: 4 procesy po 1 wątku. Pomiary 153.98+64.41 s, predykcje 4.17 s,
+ocena 7.05 s, ponowienie 232.03 s. Maksymalny RSS procesu 138200 KiB;
+łącznego szczytu nie mierzono. Czasy końcowych etapów, bez poprawek/UI.
+Bez GPU, nowych wag i zależności. Kopia **444 pliki / 158992656 B**,
+wszystkie SHA-256 zgodne; następnie dopisano potwierdzenie kopii.
+Względne linki do audytu, translation-consistency i grafu. HTML/CSV/wykresy
+samowystarczalne, odtworzenie obliczeń wymaga poprzednich artefaktów.
+Do aplikacji tylko dokumentacja i manifest. Brak potrzeb zmian wspólnego
+kodu, głównej konfiguracji, Viewer lub produkcyjnego GUI.
+
+---
+
+## Poprzednie przekazanie — audyt wektorów i odmów, issue 19
 
 Data: **2026-10-28**. Dokumentacja `domains/vector-refusal-audit`, baza
 `9b94cac`, worktree `/tmp/netcat-stmdomains-vector-refusal-audit`.
