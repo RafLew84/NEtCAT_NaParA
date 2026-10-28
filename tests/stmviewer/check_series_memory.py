@@ -10,7 +10,7 @@ from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtTest import QTest
 from PyQt6.QtWidgets import QApplication, QPushButton
 
-from large_series_probe import GuiProbe
+from large_series_probe import GuiProbe, source_identity
 from stmviewer.ui.main_window import STMViewerMainWindow
 
 
@@ -19,6 +19,7 @@ def main():
     parser.add_argument('source', type=Path)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
+    identity = source_identity(args.source)
     QApplication.setAttribute(Qt.ApplicationAttribute.AA_DontUseNativeDialogs)
     app = QApplication([])
     if app.platformName() != 'xcb':
@@ -53,7 +54,7 @@ def main():
         finally:
             probe.resources.close()
             tracemalloc.stop()
-            args.output.write_text(json.dumps(dict(stages=rows, errors=errors), indent=2) + '\n')
+            args.output.write_text(json.dumps(dict(**identity, stages=rows, errors=errors), indent=2) + '\n')
             window.close()
             while window.isVisible():
                 QTest.qWait(10)

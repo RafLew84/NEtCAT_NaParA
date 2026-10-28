@@ -13,7 +13,7 @@ from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtTest import QTest
 from PyQt6.QtWidgets import QApplication, QLabel, QPushButton
 
-from large_series_probe import GuiProbe
+from large_series_probe import GuiProbe, source_identity
 from stmviewer.ui.main_window import STMViewerMainWindow
 
 
@@ -24,6 +24,7 @@ def main():
     parser.add_argument('--smoke', action='store_true', help='Short harness check, NOT acceptance evidence')
     parser.add_argument('--typical', action='store_true', help='Typical film: import, Phase and both views only')
     args = parser.parse_args()
+    identity = source_identity(args.source)
     QApplication.setAttribute(Qt.ApplicationAttribute.AA_DontUseNativeDialogs)
     app = QApplication([])
     if app.platformName() != 'xcb':
@@ -36,7 +37,7 @@ def main():
     cpu_info = Path('/proc/cpuinfo')
     cpu_model = next((line.split(':', 1)[1].strip() for line in cpu_info.read_text().splitlines()
                       if line.startswith('model name')), platform.processor()) if cpu_info.exists() else platform.processor()
-    report = dict(source=str(args.source.resolve()), smoke=args.smoke,
+    report = dict(**identity, smoke=args.smoke,
                   commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
                   platform=platform.platform(), python=platform.python_version(), numpy=np.__version__,
                   cpu=cpu_model, logical_cpus=psutil.cpu_count(),

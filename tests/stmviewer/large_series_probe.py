@@ -1,6 +1,7 @@
 """Opt-in measurement helpers using public widgets, X11 captures and process RSS."""
 
 import hashlib
+from pathlib import Path
 from threading import Event, Thread
 from time import perf_counter
 
@@ -13,6 +14,13 @@ from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QDialogButtonBox, QFileDialog,
     QLabel, QLineEdit, QMessageBox, QProgressBar, QPushButton, QSpinBox, QWidget,
 )
+
+
+def source_identity(path):
+    source = Path(path).resolve()
+    with source.open('rb') as stream:
+        checksum = hashlib.file_digest(stream, 'sha256').hexdigest()
+    return dict(source=str(source), source_bytes=source.stat().st_size, source_sha256=checksum)
 
 
 def distribution(values):
@@ -31,9 +39,7 @@ class Resources:
 
     def _sample(self):
         while not self.stop.is_set():
-            processes = [self.process] + self.process.children(recursive=True)
-            rss = sum(p.memory_info().rss for p in processes if p.is_running())
-            self.samples.append((perf_counter() - self.started, rss))
+            self.samples.append((perf_counter() - self.started, self.snapshot()))
             self.stop.wait(.05)
 
     def snapshot(self):

@@ -58,6 +58,7 @@ nadpisania istniejącego `large.mpp`. Wzorzec nie ustanawia limitu importu.
 Osobny skrypt, niewłączany do szybkiego `pytest`. Wymaga środowiska aplikacji
 oraz `psutil` (w użytym `netcat` jest 7.1.3), X11 i Qt xcb. Dla innego środowiska
 pomiarowego można doinstalować `psutil` przez `python -m pip install psutil`.
+Raport zapisuje ścieżkę wejścia, rozmiar i SHA-256 (obliczane przed pomiarem).
 Okno musi być w całości widoczne i niezasłonięte; nie zmieniaj go ręcznie
 podczas pomiaru. Raport i dwa zrzuty zapisują się we wskazanym katalogu.
 

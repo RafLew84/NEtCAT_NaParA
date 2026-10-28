@@ -32,7 +32,10 @@ Metoda i polecenia: [instrukcja](large-series-manual.md).
   Generator `large-series-v2`, seed 1801, manifest podaje przesunięcia XY.
   Phase wyznaczył **640 × 640**, zgodnie z geometrią wzorca.
 - Typowe: `data/nanotrack_registration/dobre/MOVIE_23raw_TTMAPP_I_AU111.MPP`,
-  **268 × 256 × 256**. Phase dał **313 × 656**; rozmiar faktycznie uwzględniono
+  **268 × 256 × 256**, 140 518 099 bajtów. SHA-256:
+  `8fbbfa5d515a90552c13cee2dbd289ff5cc16f000315547185c2a57bfe9f7c66`.
+  Manifest obu wejść: lokalny `data/large-ticket18-v2/inputs.json`.
+  Phase dał **313 × 656**; rozmiar faktycznie uwzględniono
   w próbie aligned. Zastępcze skale/czasy tego eksportu nie są wzorcem
   kalibracji ani czasu pomiaru. Nie oceniano tu jakości algorytmu na molekułach.
 
@@ -106,8 +109,9 @@ Nie dodawano wymuszania GC ani platformowej funkcji oddawania pamięci.
 
 Szybki zestaw dla generatora, zasobów, importu, Play i Phase: **46 passed**.
 Po osłabieniu znacznika wzorca ponowiono jego test i 3 testy zasobów:
-**4 passed**. Mypy strict: **33 pliki, bez błędów**. Pełny zestaw repo
-zostanie podsumowany w [przekazaniu](handoff.md).
+**4 passed**. Mypy strict: **33 pliki, bez błędów**. Pełny zestaw repo:
+**2154 passed, 15 failed, 16 skipped**; niepowodzenia poza Viewerem
+i porównanie z bazą opisano w [przekazaniu](handoff.md).
 
 Pełne lokalne raporty: `/tmp/stmviewer18-large-final.json`,
 `/tmp/stmviewer18-typical.json`, `/tmp/stmviewer18-live-memory.json`;
