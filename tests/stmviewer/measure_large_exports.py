@@ -80,6 +80,32 @@ def main():
         report["operations"].append(row)
         save()
 
+    def repeat_export(kind, *, cancel_fraction=None, fail=False):
+        previous = next(
+            row
+            for row in report["exports"]
+            if row["group"] == "reregistered"
+            and row["kind"] == kind
+            and row["codec"] == "FFV1"
+            and row["status"] == "saved"
+        )
+        target = Path(previous["file"])
+        originals = [source_identity(target)]
+        if kind == "mpp":
+            originals.append(
+                source_identity(target.with_name(target.name + ".stmviewer.json"))
+            )
+        if fail:
+            with export_failure(kind, target, len(indices)) as error:
+                result = probe.export(target, previous, expected_error=error)
+        else:
+            result = probe.export(target, previous, cancel_fraction=cancel_fraction)
+        for original in originals:
+            assert source_identity(Path(original["source"])) == original
+        assert not list(args.destination.glob(".stmviewer-*"))
+        report["exports"].append(result)
+        save()
+
     def run():
         try:
             report["operations"].append(
@@ -129,50 +155,9 @@ def main():
             export("reregistered", "avi", "aligned", "FFV1", background=255)
             # Cancellation on existing complete files, observed through public progress/UI.
             for kind, fraction in [("mpp", 0.3), ("avi", 0.2), ("avi", 0.8)]:
-                old = next(
-                    row
-                    for row in report["exports"]
-                    if row["group"] == "reregistered"
-                    and row["kind"] == kind
-                    and row["codec"] == "FFV1"
-                )
-                target = Path(old["file"])
-                before = source_identity(target)
-                sidecar = (
-                    source_identity(target.with_name(target.name + ".stmviewer.json"))
-                    if kind == "mpp"
-                    else None
-                )
-                cancelled = probe.export(target, old, cancel_fraction=fraction)
-                assert source_identity(target) == before
-                if sidecar:
-                    assert source_identity(Path(sidecar["source"])) == sidecar
-                report["exports"].append(cancelled)
-                save()
+                repeat_export(kind, cancel_fraction=fraction)
             for kind in ("mpp", "avi"):
-                old = next(
-                    row
-                    for row in report["exports"]
-                    if row["group"] == "reregistered"
-                    and row["kind"] == kind
-                    and row["codec"] == "FFV1"
-                    and row["status"] == "saved"
-                )
-                target = Path(old["file"])
-                before = source_identity(target)
-                sidecar = (
-                    source_identity(target.with_name(target.name + ".stmviewer.json"))
-                    if kind == "mpp"
-                    else None
-                )
-                with export_failure(kind, target, len(indices)) as error:
-                    failed = probe.export(target, old, expected_error=error)
-                assert source_identity(target) == before
-                if sidecar:
-                    assert source_identity(Path(sidecar["source"])) == sidecar
-                assert not list(args.destination.glob(".stmviewer-*"))
-                report["exports"].append(failed)
-                save()
+                repeat_export(kind, fail=True)
             report["status"] = "completed"
         except Exception as error:
             errors.append(error)

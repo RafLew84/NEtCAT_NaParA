@@ -5,8 +5,10 @@
 [Ticket 19](implementation/issues/19-large-exports.md): **ready-for-review**.
 Baza `6b43765f71f28f77d1b8bf74cf2643f67e0dba15`.
 [Raport](large-exports-results.md), [ręczna próba](large-exports-manual.md).
-Ręczny odbiór użytkownika jeszcze niewykonany. Przegląd dwóch osi i identyfikator
-commitu zostaną dopisane po końcowym przeglądzie.
+Implementacja **`6888cff`**, [przegląd dwóch osi](implementation/review-19-large-exports.md).
+Ręczny odbiór użytkownika jeszcze niewykonany. **Do `done` wymagane są oba
+warunki: manualne OK oraz poprawka i odbiór wspólnego czytnika przez integrację.**
+Samo manualne OK nie zamyka ticketu 19.
 
 Pełny eksport aligned 1000 klatek wymagał 512 998 przedziałów braków przy limicie
 500 000; zapis JSON z wcięciami przekraczał także 64 MiB. Podniesiono limit do
@@ -45,6 +47,13 @@ Oba pełne MPP mają 1029 wierszy z 1000 znanymi czasami i są odrzucane:
 obsługę dłuższych nagłówków wraz z testami odbiorców. Nie usuwać czasów
 z eksportu jako obejścia. W tej sesji nie zmieniano wspólnych modułów;
 własny roundtrip nie jest odbiorem innych czytników. Ograniczenie pozostaje otwarte.
+
+Przegląd Standards: brak naruszeń, jedna drobna uwaga o powtórzeniu kontroli
+wcześniejszych publikacji. Wydzielono `repeat_export`; ponowny smoke GUI
+(13 eksportów, 3 anulowania i 2 awarie) przeszedł. Przegląd Spec: brak nowych
+usterek implementacji, jedna jawna zależność integracyjna odbioru pozostaje.
+Dopisano jednoznaczne warunki `done` przy statusie. Największy zmieniony plik
+kodu ma 197 linii; odnośniki i `git diff --check` poprawne.
 
 Stanowisko ma 132,61 GB RAM i HDD; nie potwierdza czasów zimnego SSD ani pracy
 systemu fizycznie ograniczonego do 16 GB. Zrzuty X11/Xvfb nie stanowią ręcznego

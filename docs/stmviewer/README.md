@@ -59,6 +59,7 @@ ma status **ready-for-review**. Naprawiono zapis metadanych dużego aligned;
 [raport](large-exports-results.md) obejmuje pełne 1000 klatek MPP/MJPG/FFV1.
 [Instrukcja ręcznej próby](large-exports-manual.md). Odbiór użytkownika czeka;
 limit długich nagłówków wspólnego czytnika MPP przekazano integracji.
+Do `done` potrzebne są zarówno testy manualne, jak i odbiór tej poprawki wspólnej.
 Przycisk Usuń klatkę usuwa bieżący obraz z serii, zatrzymuje Play i zachowuje
 pochodzenie oraz czasy pozostałych klatek. Źródła na dysku pozostają bez zmian:
 [instrukcja usuwania](frame-deletion-manual.md).

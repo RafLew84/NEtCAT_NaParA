@@ -1,8 +1,9 @@
 # Ticket 19 — raport dużych eksportów
 
 Data: 2026-10-28. Baza kodu: `6b43765f71f28f77d1b8bf74cf2643f67e0dba15`.
-Próba obejmuje poprawkę `mpp_missing.py`/`mpp_metadata.py` z tego ticketu.
+Próba obejmuje poprawkę `mpp_missing.py`/`mpp_metadata.py` z commitu `6888cff`.
 [Instrukcja ręcznej próby i odtworzenia pomiarów](large-exports-manual.md).
+Do `done` pozostają ręczny odbiór oraz opisana niżej poprawka czytnika w integracji.
 Ręczny odbiór użytkownika jest jeszcze niewykonany; opisane GUI/X11 i VLC
 były sterowane skryptami, a wybrane zrzuty oceniono wizualnie.
 
@@ -159,3 +160,7 @@ Artefakty lokalne: `data/large-export-ticket19/` (filmy, pary, raport,
 logi `/tmp/stmviewer19-{full-suite,baseline-failures,transient-recheck}.log`.
 Nie wersjonujemy danych, filmów ani dużych wyników. Pilot sprzed poprawki
 pozostaje w `data/large-export-ticket19-pilot/`, oddzielnie od wyników końcowych.
+
+[Przegląd dwóch osi](implementation/review-19-large-exports.md): brak nowych
+usterek produkcji. Po uwadze o duplikacji uproszczono skrypt powtórzeń i
+ponowiono cały smoke GUI; zakres i wyniki dużego pomiaru pozostają aktualne.

@@ -6,6 +6,14 @@
 
 **Status:** ready-for-review
 
+**Warunki przejścia do `done` (oba wymagane):**
+
+- [ ] Użytkownik potwierdził testy manualne tego ticketu.
+- [ ] Integracja poprawiła i odebrała odczyt pełnego MPP z długim nagłówkiem
+  we wspólnym czytniku NaPara/NanoTrack; szczegóły w [przekazaniu](../../handoff.md).
+
+Samo potwierdzenie testów manualnych nie zamyka zależności integracyjnej.
+
 **Wykonawca:** Codex
 **Baza przeglądu:** `6b43765f71f28f77d1b8bf74cf2643f67e0dba15`
 
@@ -61,3 +69,5 @@ jeszcze niewykonany. Status nie oznacza odbioru Windows ani całego repo.
 Wspólny czytnik NaPara/NanoTrack odrzuca długie nagłówki; potrzebę zmiany
 przekazano integracji w raporcie i `handoff.md`. Własny roundtrip Viewer
 nie zamyka tego odbioru.
+
+Implementacja: `6888cff`. [Przegląd dwóch osi](../review-19-large-exports.md).
