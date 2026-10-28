@@ -412,4 +412,36 @@ oraz **17640 wyników** odtworzonych bez dostępu do referencji, 217 kontroli HT
 **19 nadal `claimed`, do omówienia; 20 odłożone.** Kolejna propozycja:
 porównanie jednego modelu z dwoma modelami po stronach granicy na rozłącznych
 otoczeniach, ocena ciągłości rozcięcia i osobne podparcie materiału. Brak
-lokalnych centrów nie może sam oznaczać granicy. Następnej próby nie uruchomiono.
+lokalnych centrów nie może sam oznaczać granicy. Tę kolejną próbę wykonano poniżej.
+
+
+## Rozwinięcie — 2026-10-28: jeden model kontra dwa, osobno materiał
+
+Na polecenie użytkownika wykonano [porównanie rozłącznych modeli](../disjoint-models-material-trial.md):
+261 obrazów, w tym 51 nowych kontroli, 96 wariantów. Każda strona ma osobne
+bloki dopasowania i oceny; propozycje baz też powstają wyłącznie z części uczących.
+Progi jakości/zysku ustalono na 45 negatywach i 33 jednorodnych kontrolach przed
+nowymi obrazami, bez masek referencyjnych. Zachowano wcześniejsze oceny porządku.
+
+Dla prostej granicy 3 px w centrach odrzucono **138/138 połączeń**, uzyskując
+dwa fragmenty przy zachowanych 89.5% przypisań. Poprzednia faza zostawiała
+6 połączeń i scalała obszary. Na siatce nadal pozostają dwa niepewne mostki
+na obraz; granica ukośna i braki centrów nadal sprawiają problemy.
+Osobne podparcie sygnałem odróżnia czystą przerwę 36 px od pasa samych braków
+oznaczeń, ale zawodzi przy przerwie 18 px, ciemnym materiale i lokalnym szumie.
+
+TTMAPP: **zero kwalifikowanych jakościowo porównań** na 24 pełnych klatkach.
+Zachowanie niepewnych połączeń pozostawia stare wyniki (279/1678 na siatce
+z wcześniejszą oceną geometryczną); ich usuwanie kasuje wszystko. Nie jest to
+poprawa detekcji STM. Nie wybrano metody do programu.
+
+Źródła: `prototype/stmdomains-disjoint-models-material`, **`946cfb4`**;
+[manifest](../disjoint-models-material-manifest.json), podgląd
+`.scratch/disjoint-models-material/index.html` (42 obrazy, rozłączne strony,
+porównania i sygnał). 1566 bazowych wyników zgodnych; 261 nowych pomiarów
+i **25056 wyników** odtworzonych bez dostępu do referencji. 212 kontroli HTML.
+
+**19 nadal `claimed`, do omówienia; 20 odłożone.** Kolejne pytania dotyczą
+jakości dopasowania przy błędach pozycji, kierunku/położenia granicy oraz
+lokalnego szumu. Brak dowodu pozostaje osobnym stanem, a nie automatyczną
+granicą lub potwierdzeniem jednej domeny. Następnego badania nie uruchomiono.

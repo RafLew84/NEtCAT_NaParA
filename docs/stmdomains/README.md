@@ -250,9 +250,17 @@ część granic. Faza odcina 132/138 połączeń przez kontrolną granicę 3 px,
 lecz pozostawione mostki nadal scalają fragmenty. TTMAPP najwyżej 125/1678,
 tylko BLACK. Podgląd `.scratch/tolerant-fit-phase/index.html`; 17640 wyników
 odtworzonych bez referencji, 217 kontroli HTML.
-**19 nadal `claimed`; 20 odłożone.** Do omówienia rozłączne otoczenia
-po stronach granicy i oddzielenie podparcia materiału od fazy. Następnego
-badania ani treningu nie uruchomiono; nie przyjęto metody do aplikacji.
+Wykonano też [rozłączne modele i podparcie materiału](disjoint-models-material-trial.md):
+261 obrazów, 96 wariantów, 51 nowych kontroli. Prosta granica 3 px została
+rozdzielona przy centrach (138/138 połączeń usuniętych, bez spadku przypisań).
+Osobny sygnał obrazu odróżnia szeroką przerwę od pasa brakujących oznaczeń.
+Granice ukośne, lokalny szum i jakość TTMAPP pozostają nierozwiązane;
+zero porównań TTMAPP osiąga próg jakości. Podgląd
+`.scratch/disjoint-models-material/index.html`; 25056 wyników odtworzonych
+bez referencji, 212 kontroli HTML.
+**19 nadal `claimed`; 20 odłożone.** Do omówienia wiarygodność dopasowania
+przy błędach pozycji i lokalnego sygnału. Następnego badania ani treningu
+nie uruchomiono; nie przyjęto metody do aplikacji.
 
 
 ## Dwa etapy

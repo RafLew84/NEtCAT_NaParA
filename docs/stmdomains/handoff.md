@@ -1,4 +1,56 @@
-# STM Domains — tolerancja pozycji i osobna zgodność fazy, issue 19
+# STM Domains — rozłączne modele i osobne podparcie materiału, issue 19
+
+Data: **2026-10-28**. Dokumentacja `domains/disjoint-models-material`, baza
+`49badd7`, worktree `/tmp/netcat-stmdomains-disjoint-models-material`.
+Źródła: **`prototype/stmdomains-disjoint-models-material`, `946cfb4`**, baza
+`c7ed021`. Prototyp pozostaje osobno; nie scalać go do aplikacji.
+Dokumentacja do `domains/start`; końcowy commit w wiadomości użytkownika.
+Integrację do `stm-next` prowadzi koordynator.
+
+Na polecenie użytkownika porównano jeden wspólny model z dwoma modelami
+na rozłącznych otoczeniach po stronach granicy oraz osobną informację o materiale:
+[raport](disjoint-models-material-trial.md), [manifest](disjoint-models-material-manifest.json),
+podgląd `/home/rlew/projekty/NEtCAT-domains/.scratch/disjoint-models-material/index.html`.
+261 obrazów, 96 wariantów, 51 nowych syntetyków. Progi na 45 starych negatywach
+i 33 jednorodnych kontrolach przed nowymi obrazami. 25056 prognoz, 24480 ocen
+(brak referencji 6 z 24 TTMAPP). Bez wzorców domen, K, treningu i strojenia na
+referencjach. Propozycje i dopasowania krawędzi wyłącznie z części uczących;
+wcześniejsze oceny porządku pozostają zachowanym wejściem.
+
+Prosta granica 3 px przy centrach: **138/138 połączeń przez granicę odrzuconych**,
+dwa fragmenty, zachowane 89.5% przypisań. Na siatce nadal dwa niepewne mostki
+na obraz. Osobny sygnał rozróżnia czystą przerwę 36 px od braków samych oznaczeń.
+Węższa przerwa, lokalny szum i słaby materiał ujawniają ograniczenia podparcia.
+Granice ukośne i niepełne centra nadal problematyczne. TTMAPP: zero porównań
+kwalifikowanych jakościowo. Zachowaj niepewność = stare przypisania; usuń
+niepewność = brak wyniku. Brak poprawy STM, nie wybrano metody do programu.
+
+**19 pozostaje `claimed`, do omówienia; 20 odłożone.** Następne pytania:
+wiarygodność dopasowania przy błędach pozycji, kierunek/położenie granicy,
+lokalny szum. Nie uruchomiono kolejnej próby, treningu lub pełnych 268 klatek.
+Nie zmieniono kodu produkcyjnego ani konfiguracji wspólnej.
+
+Sprawdzenia: 16 kontroli inwariantów/dostępu wyłącznie do części uczących,
+cztery przypadki analityczne; 1566 bazowych wyników po 4 tablice identyczne;
+51 deterministycznych odtworzeń generatora. **261 nowych pomiarów i 261 plików /
+25056 wyników** identycznych po odtworzeniu z blokadą referencji (wcześniejsze
+bramki porządku pozostają wejściem). **212 kontroli QtWebEngine**, bez błędów JS;
+42 obrazy, 96 ustawień, scenariusze, wybór połączenia/kierunku i procenty;
+podgląd oraz wykres obejrzane. Python/Bash sprawdzone składniowo, wrapper
+wykonany etapami. Nie testowano aplikacyjnego GUI lub produkcji.
+
+CPU: 4 procesy po 1 wątku. Nowe bramki bazowe 52.53 s, pomiary 316.14+107.94 s,
+prognozy 1.82 s, ocena 5.89 s, odtworzenie 424.46 s. Maksymalny RSS procesu
+205740 KiB; łącznego szczytu nie mierzono. Bez GPU, nowych wag i zależności.
+Kopia **758 plików / 200239951 B**, wszystkie SHA-256 zgodne; następnie
+potwierdzenie kopii. Względny link do tolerant-fit-phase; HTML/CSV/wykresy
+samodzielne, powtórzenie obliczeń wymaga poprzednich lokalnych artefaktów.
+Brak potrzeb zmian wspólnych modułów, głównej konfiguracji, Viewer lub GUI.
+
+---
+
+## Poprzednie przekazanie — tolerancja pozycji i osobna zgodność fazy
+
 
 Data: **2026-10-28**. Dokumentacja `domains/tolerant-fit-phase`, baza
 `5e5557b`, worktree `/tmp/netcat-stmdomains-tolerant-fit-phase`.
