@@ -230,9 +230,16 @@ płaty, gdy małe okno siatki wypada między molekułami. 0/256 zmienionych
 konfiguracji detektora spełnia komplet warunków. Podgląd:
 `.scratch/translation-consistency/index.html`, 187 kontroli HTML oraz
 87840 wyników identycznych po ponowieniu bez dostępu do referencji.
-**19 nadal `claimed`**, do omówienia. Proponowane następne: przygotowanie
-20, następnie 21/22; oceniać cechy i podział także przed odmowami bramki.
-Nie rozpoczęto przygotowania ani treningu.
+Po tej próbie proponowano 20, następnie 21/22. Użytkownik wybrał jednak
+pozostanie przy 19 i [audyt odmów](vector-refusal-audit.md), wykonany na
+78 znanych obrazach. Podmiana wektorów obrazu na wektory centrów daje
+17/1916 przyjętych miejsc siatki r24, ale nadal 0/1678 przypisań TTMAPP.
+Odmowy utrzymują się we wnętrzach; część zmian decyzji wynika z wyboru
+równoważnej bazy sieci. Podgląd `.scratch/vector-refusal-audit/index.html`,
+125 kontroli HTML, 3816 wyników odtworzonych bez dostępu do referencji.
+**19 nadal `claimed`; 20 odłożone.** Następna propozycja w 19 to odporna
+na wybór bazy ocena rodziny przesunięć i zmienności wyglądu molekuł.
+Nie uruchomiono tej próby, przygotowania ani treningu.
 
 
 ## Dwa etapy

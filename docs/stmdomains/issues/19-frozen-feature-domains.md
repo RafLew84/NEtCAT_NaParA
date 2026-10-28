@@ -5,7 +5,7 @@ Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
 Status: claimed
-Assignee: Codex — domains/translation-consistency-trial
+Assignee: Codex — domains/vector-refusal-audit
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 17, 18
 
@@ -310,8 +310,43 @@ wcześniejszych pomiarów, 16920 dokładnych odtworzeń wyników;
 z zablokowanym odczytem referencji. **187 kontroli HTML**. Pomocniczy
 audyt niepowodzeń wykonano po zamrożeniu, bez zmiany parametrów.
 
-**19 nadal `claimed`, do omówienia.** Proponowany następny krok to 20:
-przygotowanie uczenia bez etykiet, następnie 21/22. Zachować niniejsze
+**19 nadal `claimed`, do omówienia.** Po tej próbie proponowano 20:
+przygotowanie uczenia bez etykiet, następnie 21/22. Użytkownik później
+wybrał pozostanie przy 19 i poniższy audyt. Zachować niniejsze
 kontrole oraz oddzielić ocenę reprezentacji/podziału od odmów bramki.
 Nie uznano pustego wyniku za brak domen; nie wybrano metody do programu.
 Przygotowania 20 ani treningów nie uruchomiono.
+
+
+## Audyt — 2026-10-28: wektory obrazu i centrów w tych samych otoczeniach
+
+Na polecenie użytkownika **„zrób audyt”**, po decyzji o pozostaniu w 19,
+wykonano [porównanie źródeł odmów](../vector-refusal-audit.md): 78 znanych
+już obrazów, w tym 24 pełne TTMAPP; stałe progi, podziały FCN/DINO
+oraz łączność. Brak treningu, zadanej liczby domen i wpływu referencji.
+
+Wektory z centrów częściej zgadzają się z oznaczeniami, lecz nie naprawiają
+odmów. Na siatce r24 przepuszczają 17/1916 znanych miejsc wobec zera dla
+ACF; pozostają składowe 1–3 miejsc, więc wynik to nadal **0/1678 przypisań**.
+Przy centrach i przy r48 nie przechodzi żadne znane miejsce. Nawet okna
+w ≥80% wewnątrz jednej referencji pozostają zwykle daleko od progu.
+Sześć z 17 zmian decyzji dotyczy dokładnie równoważnych baz sieci;
+kryterium jest zależne od wyboru pary, nie tylko od wykrytej struktury.
+
+To diagnoza niedopasowania kryterium/kalibracji oraz ograniczeń propozycji,
+nie dowód braku domen. Podmiana pozostawia też 14/768 fałszywych miejsc
+niezależnych rzędów i pogarsza część kontroli braków centrów. DINO/centra/
+HDBSCAN ma dodatkowo niezależną odmowę grupowania wyglądu.
+
+Źródła: `prototype/stmdomains-vector-refusal-audit`, **`9c78d8c`**.
+[Manifest](../vector-refusal-audit-manifest.json), podgląd:
+`.scratch/vector-refusal-audit/index.html` (42 obrazy, wybór miejsca,
+obie pary wektorów i korelacje). 312 dokładnych odtworzeń pomiarów,
+2544 wyników bazowych; 78 pomiarów i 78 plików / 3816 wyników identycznych
+po ponowieniu bez dostępu do referencji. 125 kontroli HTML, bez błędów JS.
+
+**19 pozostaje `claimed`; 20 jest odłożone na życzenie użytkownika.**
+Następna proponowana próba w 19: ocena rodziny zgodnych przesunięć,
+odporność na wybór równoważnej bazy i zmienny wygląd molekuł, z osobnym
+sprawdzianem fałszywych akceptacji. Kalibracja na kontrolach, bez dostrajania
+do ramek. Ta próba jest jeszcze niewykonana. Nie wybrano metody do aplikacji.

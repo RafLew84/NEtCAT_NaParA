@@ -77,8 +77,9 @@ w kroku 23; ich dostępność nie blokuje tego zadania.
 ## Następne pytania
 
 Po [próbach kryterium porządku 19](../translation-consistency-trial.md)
-(2026-10-28) przygotowanie 20 jest proponowanym następnym krokiem;
-nie zostało przez to wykonane. Do protokołu porównania włączyć zapis
+(2026-10-28) proponowano przygotowanie 20. Użytkownik następnie wybrał
+pozostanie przy 19 i [audyt odmów](../vector-refusal-audit.md): **20 jest
+odłożone**, nie zostało wykonane. Do przyszłego protokołu porównania włączyć zapis
 reprezentacji/podziału przed bramką oraz odmów po bramce. Wykazano
 zarówno całkowite odrzucanie znanych wnętrz TTMAPP, jak i odrzucanie
 poprawnych miejsc siatki między molekułami. Nowego modelu nie oceniać

@@ -1,4 +1,59 @@
-# STM Domains — zgodność przesunięć i lokalny sygnał, issue 19
+# STM Domains — audyt wektorów i odmów, issue 19
+
+Data: **2026-10-28**. Dokumentacja `domains/vector-refusal-audit`, baza
+`9b94cac`, worktree `/tmp/netcat-stmdomains-vector-refusal-audit`.
+Źródła: **`prototype/stmdomains-vector-refusal-audit`, `9c78d8c`**,
+baza `89cd738`. Kod prototypu pozostaje osobno; nie scalać go do aplikacji.
+Dokumentacja do `domains/start`, końcowy commit w wiadomości użytkownika.
+Integrację do `stm-next` prowadzi koordynator.
+
+Użytkownik wybrał pozostanie przy 19 i polecił audyt. **19 nadal `claimed`;
+20 odłożone.** Wykonano [audyt odmów](vector-refusal-audit.md),
+[manifest](vector-refusal-audit-manifest.json), podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/vector-refusal-audit/index.html`.
+78 znanych obrazów: 24 pełne TTMAPP, 36 starszych kontroli i 18 rzędów.
+W tych samych otoczeniach porównano przesunięcia obrazu i centrów, zachowując
+progi, cechy, podziały i łączność. Bez treningu, K, wzorców domen i strojenia
+na referencjach. Podmiana przy starym progu jest diagnostyką bez rekalibracji.
+
+Kryterium zgodności odrzuca miejsca przed łączeniem. Geometria przepuszcza
+17/1916 znanych miejsc siatki r24, ale składowe mają tylko 1–3 miejsca,
+więc nadal **0/1678 przypisań TTMAPP**. Przy centrach i przy r48 zero miejsc.
+Sześć zmian decyzji występuje przy dokładnie równoważnych bazach tej samej
+sieci. Okna w ≥80% w jednym znanym wnętrzu nadal zwykle daleko od progu;
+mieszanie obszarów nie tłumaczy całości, ale nie zostało całkiem wykluczone.
+DINO/centra/HDBSCAN ma także niezależną całkowitą odmowę grupowania wyglądu.
+Geometria pozostawia fałszywe fragmenty losowych rzędów i pogarsza braki
+centrów/słabsze rzędy. Centra nie są prawdą referencyjną.
+
+Kolejna propozycja **w 19**, jeszcze niewykonana: kryterium rodziny zgodnych
+przesunięć, odporność na wybór bazy i zmienny wygląd molekuł. Kontrole
+odkształceń, niezależnych rzędów, przerw i granic, z kalibracją bez ramek.
+Nie wybierać po prostu najlepszego przesunięcia bez kontroli fałszywych
+akceptacji. Nie wdrożono metody i nie uruchomiono treningów.
+
+Sprawdzenia: 128 permutacji, trzy bazy, sześć braków podstaw, przypadek
+analityczny. **312 dokładnych odtworzeń** tablic zgodności, **2544 wyników
+bazowych**. Wszystkie 78 pomiarów i 78 plików / **3816 wyników** odtworzone
+identycznie przy blokadzie odczytów referencji; hashe 372 poprzednich plików,
+progów/protokołu/kodu zgodne. 72 pary tablic obrazowych niezmienione przy
+brakach oznaczeń; 12 geometrycznych zmienionych zgodnie z oczekiwaniem.
+**125 kontroli QtWebEngine**, brak błędów JS, obejrzano HTML/wykres.
+Składnia Python/Bash sprawdzona, wrapper uruchamiany etapami. To weryfikacja
+obliczeń i podglądu, nie test natywnego GUI ani odbiór skuteczności.
+
+CPU, cztery procesy, po jednym wątku: pomiary 41.57 s, predykcje 1.05 s,
+ocena 52.01 s, ponowienie 43.68 s. Maksymalny RSS procesu 110492 KiB;
+łącznego szczytu nie mierzono. Bez GPU, nowych wag i zależności.
+Kopia **179 plików / 92488878 B**, wszystkie SHA-256 zgodne, potem dopisano
+potwierdzenie. Względne linki do translation-consistency/local-feature-graph.
+HTML/CSV/wykresy samowystarczalne; pełne odtworzenie wymaga dawnych artefaktów.
+Do aplikacji tylko raport, manifest i statusy mapy. Brak potrzeb zmian
+wspólnego kodu, konfiguracji, Viewer lub produkcyjnego GUI.
+
+---
+
+## Poprzednie przekazanie — zgodność przesunięć i lokalny sygnał, issue 19
 
 Data: **2026-10-28**. Dokumentacja `domains/translation-consistency-trial`,
 baza `1868426`, worktree `/tmp/netcat-stmdomains-translation-consistency`.

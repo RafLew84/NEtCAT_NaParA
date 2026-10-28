@@ -1,0 +1,5347 @@
+{
+  "schema": "stmdomains.vector-refusal-audit.v1",
+  "date": "2026-10-28",
+  "issue": 19,
+  "status": "claimed",
+  "next_scope": "Stay on issue19. Step20 deferred by user. Proposed basis-robust translation-family experiment not yet executed.",
+  "source": {
+    "prototype_branch": "prototype/stmdomains-vector-refusal-audit",
+    "prototype_commit": "9c78d8c5796c5f1e95dbccccc5973fb4e692b703",
+    "prototype_base": "89cd738",
+    "documentation_branch": "domains/vector-refusal-audit",
+    "documentation_base": "9b94cac",
+    "production_changes": false
+  },
+  "artifact_root": "/home/rlew/projekty/NEtCAT-domains/.scratch/vector-refusal-audit",
+  "outcome": "Vector substitution does not repair refusals. Consistency gate rejects most sites before connectivity. Some decisions change under exactly equivalent lattice bases. Mixed windows do not explain all refusals.",
+  "scope": {
+    "images": 78,
+    "real_frames": 24,
+    "old_controls": 36,
+    "row_controls": 18,
+    "previously_seen": true,
+    "independent_validation": false,
+    "reference_tuning": false,
+    "training": false,
+    "feature_or_partition_refit": false,
+    "radii": [
+      24,
+      48
+    ],
+    "configurations": 60,
+    "row_configurations": 12,
+    "result_configurations": 3816,
+    "baseline_configurations_replayed": 2544,
+    "counterfactual_configurations": 1272,
+    "reference_frames": 18,
+    "reference_grid_sites": 1916,
+    "reference_annotations": 1678
+  },
+  "thresholds": {
+    "24": {
+      "acf": 0.36077697348260535,
+      "c99": 0.7286339084274114,
+      "c999": 0.9247698163969639,
+      "samples": 5934
+    },
+    "48": {
+      "acf": 0.24813696014900552,
+      "c99": 0.9363692282403281,
+      "c999": 0.9519087302299336,
+      "samples": 6784
+    }
+  },
+  "ttmapp_site_summary": [
+    {
+      "case": "ttmapp",
+      "mode": "grid",
+      "radius": 24,
+      "status": "known",
+      "sites": 1916,
+      "geometry_available": 1879,
+      "both_pairs": 1879,
+      "direct_match_2px": 605,
+      "lattice_match_2px": 1192,
+      "mostly_same_sites": 847,
+      "mostly_same_image_min": {
+        "n": 847,
+        "quantiles": [
+          -0.7309547966042775,
+          -0.04675725382718974,
+          0.10139194028247768,
+          0.30445993035879854,
+          0.49269965537248983,
+          0.6467240697380919
+        ]
+      },
+      "mostly_same_geometry_min": {
+        "n": 847,
+        "quantiles": [
+          -0.7107055897008363,
+          -0.0285216828969504,
+          0.12463216878963612,
+          0.3200819495883823,
+          0.6115834368769375,
+          0.8106634333572975
+        ]
+      },
+      "image_min": {
+        "n": 1916,
+        "quantiles": [
+          -1.0,
+          -0.16939910016935178,
+          -0.021515252151804505,
+          0.13642016407703225,
+          0.4273344141617982,
+          0.6548012803925569
+        ]
+      },
+      "geometry_min": {
+        "n": 1879,
+        "quantiles": [
+          -1.0,
+          -0.18492012717555512,
+          -0.009256220304924873,
+          0.15828791853060245,
+          0.48404731847058363,
+          0.8106634333572975
+        ]
+      },
+      "image_mean": {
+        "n": 1890,
+        "quantiles": [
+          -0.0645549385773709,
+          0.3020491147821966,
+          0.4187564062124175,
+          0.5421055050174652,
+          0.6967982868351666,
+          0.814243572867154
+        ]
+      },
+      "geometry_mean": {
+        "n": 1863,
+        "quantiles": [
+          -0.1419616518014027,
+          0.30745738230832037,
+          0.4344542453967725,
+          0.5583733869318933,
+          0.7123846726946964,
+          0.8375764806876316
+        ]
+      },
+      "image_global": {
+        "n": 1905,
+        "quantiles": [
+          -0.38410488166610174,
+          0.11701158040162381,
+          0.2347507665193653,
+          0.3636450521030841,
+          0.5314883272429864,
+          0.7317656727348505
+        ]
+      },
+      "geometry_global": {
+        "n": 1873,
+        "quantiles": [
+          -0.37394584195638136,
+          0.1251895437639006,
+          0.2559938095641615,
+          0.38323708635932674,
+          0.611696728479148,
+          0.830704369905255
+        ]
+      },
+      "image_raw_min": {
+        "n": 1908,
+        "quantiles": [
+          -0.4705758603708278,
+          -0.04259547940917756,
+          0.11700623887437239,
+          0.3401275172736199,
+          0.6724557518085217,
+          0.7924769989175514
+        ]
+      },
+      "geometry_raw_min": {
+        "n": 1871,
+        "quantiles": [
+          -0.53305852148815,
+          -0.06555651574824757,
+          0.10335677957723656,
+          0.3469301279967707,
+          0.6744486462965211,
+          0.7815088169761286
+        ]
+      },
+      "image_raw_global": {
+        "n": 1914,
+        "quantiles": [
+          -0.21128508341302377,
+          0.26327350209155126,
+          0.41029770892739936,
+          0.5767348821014245,
+          0.7386610218248988,
+          0.8194537366431323
+        ]
+      },
+      "geometry_raw_global": {
+        "n": 1877,
+        "quantiles": [
+          -0.2567354313688608,
+          0.2591533871965644,
+          0.4121834052715131,
+          0.5762598078508486,
+          0.737987410623398,
+          0.8072915318381096
+        ]
+      },
+      "image_center_fraction": {
+        "n": 1822,
+        "quantiles": [
+          0.0,
+          0.25,
+          0.5,
+          0.7708333333333334,
+          1.0,
+          1.0
+        ]
+      },
+      "geometry_center_fraction": {
+        "n": 1822,
+        "quantiles": [
+          0.14285714285714285,
+          0.5,
+          0.6666666666666666,
+          0.8571428571428571,
+          1.0,
+          1.0
+        ]
+      },
+      "image_center_distance": {
+        "n": 1822,
+        "quantiles": [
+          0.5030211728740343,
+          1.1582118322610064,
+          1.880833493713323,
+          3.4718449163715057,
+          6.3723405027720545,
+          16.64331697709324
+        ]
+      },
+      "geometry_center_distance": {
+        "n": 1822,
+        "quantiles": [
+          0.4289602066041767,
+          0.8843241276133068,
+          1.2601100571817336,
+          2.4434049922945107,
+          5.820040436705036,
+          14.469690333975855
+        ]
+      },
+      "image_passes_fixed_threshold": 0,
+      "geometry_passes_fixed_threshold": 17
+    },
+    {
+      "case": "ttmapp",
+      "mode": "grid",
+      "radius": 48,
+      "status": "known",
+      "sites": 1916,
+      "geometry_available": 1916,
+      "both_pairs": 1916,
+      "direct_match_2px": 730,
+      "lattice_match_2px": 1395,
+      "mostly_same_sites": 332,
+      "mostly_same_image_min": {
+        "n": 332,
+        "quantiles": [
+          -0.47432824870801915,
+          0.0787263550763258,
+          0.15728454811200793,
+          0.22337470731421688,
+          0.30933630812797386,
+          0.44337568229469887
+        ]
+      },
+      "mostly_same_geometry_min": {
+        "n": 332,
+        "quantiles": [
+          -0.5176082879328207,
+          0.06764577718736837,
+          0.16946308256688825,
+          0.2559830161660452,
+          0.5563740683713829,
+          0.6722071748107856
+        ]
+      },
+      "image_min": {
+        "n": 1916,
+        "quantiles": [
+          -1.0,
+          -0.07847363823287354,
+          0.01847279879368069,
+          0.1030597879938109,
+          0.22871370217779896,
+          0.44337568229469887
+        ]
+      },
+      "geometry_min": {
+        "n": 1916,
+        "quantiles": [
+          -1.0,
+          -0.08543789121215287,
+          0.006501882636603128,
+          0.10356733526364999,
+          0.27893891100037094,
+          0.6722071748107856
+        ]
+      },
+      "image_mean": {
+        "n": 1876,
+        "quantiles": [
+          -0.033560213872767974,
+          0.2588624411641429,
+          0.3327123863097087,
+          0.42274162191636333,
+          0.5533274387057325,
+          0.6594490655816523
+        ]
+      },
+      "geometry_mean": {
+        "n": 1884,
+        "quantiles": [
+          0.031137339003296988,
+          0.24740998660346258,
+          0.33195627200868427,
+          0.43292420721454616,
+          0.5786013741605799,
+          0.7579460600227885
+        ]
+      },
+      "image_global": {
+        "n": 1876,
+        "quantiles": [
+          -0.1948774762031796,
+          0.13548435124008906,
+          0.2122829130720284,
+          0.2757355036329149,
+          0.3807917092327335,
+          0.5517783187886015
+        ]
+      },
+      "geometry_global": {
+        "n": 1884,
+        "quantiles": [
+          -0.13915335634328246,
+          0.13168673288977575,
+          0.21071042471316465,
+          0.28832599902271405,
+          0.5036967613595433,
+          0.7494067338059678
+        ]
+      },
+      "image_raw_min": {
+        "n": 1887,
+        "quantiles": [
+          -0.36867969797371297,
+          -0.01640063792351265,
+          0.058036278740374155,
+          0.172369161289391,
+          0.4579546133625755,
+          0.611758572724886
+        ]
+      },
+      "geometry_raw_min": {
+        "n": 1888,
+        "quantiles": [
+          -0.33038658235687135,
+          -0.031104941508556628,
+          0.05336569704831792,
+          0.17538288906020089,
+          0.45252560083806376,
+          0.611758572724886
+        ]
+      },
+      "image_raw_global": {
+        "n": 1887,
+        "quantiles": [
+          -0.05063293514293811,
+          0.19950037077248967,
+          0.31875704953939105,
+          0.4590962303669872,
+          0.6151478762363188,
+          0.7008905221633546
+        ]
+      },
+      "geometry_raw_global": {
+        "n": 1889,
+        "quantiles": [
+          -0.012172167042106505,
+          0.20464164609139548,
+          0.3237399371203755,
+          0.45922120244888115,
+          0.6155924028701696,
+          0.6952205977452282
+        ]
+      },
+      "image_center_fraction": {
+        "n": 1916,
+        "quantiles": [
+          0.0,
+          0.25,
+          0.5294117647058824,
+          0.6875,
+          0.8461538461538461,
+          0.9473684210526315
+        ]
+      },
+      "geometry_center_fraction": {
+        "n": 1916,
+        "quantiles": [
+          0.15384615384615385,
+          0.37142857142857144,
+          0.56,
+          0.7027027027027027,
+          0.8571428571428571,
+          0.9714285714285714
+        ]
+      },
+      "image_center_distance": {
+        "n": 1916,
+        "quantiles": [
+          0.7292852912957534,
+          1.1699927149750182,
+          1.808158710846738,
+          3.5861066695996744,
+          5.389849122278634,
+          11.354706385213117
+        ]
+      },
+      "geometry_center_distance": {
+        "n": 1916,
+        "quantiles": [
+          0.6735654559726629,
+          1.0999481361389158,
+          1.5859949394576978,
+          3.2006590077368244,
+          5.1821899918133525,
+          11.211955660823087
+        ]
+      },
+      "image_passes_fixed_threshold": 0,
+      "geometry_passes_fixed_threshold": 0
+    },
+    {
+      "case": "ttmapp",
+      "mode": "centers",
+      "radius": 24,
+      "status": "known",
+      "sites": 1678,
+      "geometry_available": 1646,
+      "both_pairs": 1646,
+      "direct_match_2px": 625,
+      "lattice_match_2px": 1061,
+      "mostly_same_sites": 786,
+      "mostly_same_image_min": {
+        "n": 786,
+        "quantiles": [
+          -0.5787729586105804,
+          -0.06835372645777478,
+          0.10302263406385523,
+          0.2622190554890308,
+          0.4767433441972081,
+          0.672923473728866
+        ]
+      },
+      "mostly_same_geometry_min": {
+        "n": 786,
+        "quantiles": [
+          -0.5959901649802911,
+          -0.04216265503552627,
+          0.1062847040817024,
+          0.285834078687797,
+          0.4888306600429796,
+          0.638324079390239
+        ]
+      },
+      "image_min": {
+        "n": 1678,
+        "quantiles": [
+          -1.0,
+          -0.16898259326341536,
+          -0.02334807172079938,
+          0.13525750846282142,
+          0.40766799523306724,
+          0.672923473728866
+        ]
+      },
+      "geometry_min": {
+        "n": 1646,
+        "quantiles": [
+          -1.0,
+          -0.16535421064512693,
+          -0.009765132999326718,
+          0.14222399772659994,
+          0.427154979579471,
+          0.638324079390239
+        ]
+      },
+      "image_mean": {
+        "n": 1652,
+        "quantiles": [
+          -0.045669877966590236,
+          0.31332175310417754,
+          0.4272668929774023,
+          0.5458917020603863,
+          0.6909629162098732,
+          0.8087407684237986
+        ]
+      },
+      "geometry_mean": {
+        "n": 1632,
+        "quantiles": [
+          -0.13604631971810688,
+          0.31873299369121794,
+          0.43244263605395106,
+          0.555015509496037,
+          0.6960571908603029,
+          0.7986244375313116
+        ]
+      },
+      "image_global": {
+        "n": 1672,
+        "quantiles": [
+          -0.3069601753750396,
+          0.11281522449743786,
+          0.2412184269702471,
+          0.3650760573031119,
+          0.5219963067830921,
+          0.7191060430470371
+        ]
+      },
+      "geometry_global": {
+        "n": 1646,
+        "quantiles": [
+          -0.36657611109847366,
+          0.1306134941019817,
+          0.2474618876884031,
+          0.3767237629893574,
+          0.5308343174505828,
+          0.7191060430470371
+        ]
+      },
+      "image_raw_min": {
+        "n": 1670,
+        "quantiles": [
+          -0.46733262988991237,
+          -0.03249093153353694,
+          0.11719119770658792,
+          0.3653798134705158,
+          0.6814069032514902,
+          0.7976696811531447
+        ]
+      },
+      "geometry_raw_min": {
+        "n": 1639,
+        "quantiles": [
+          -0.5337056160297814,
+          -0.05776542381069616,
+          0.11606370659514396,
+          0.36657927543461954,
+          0.6883414831458098,
+          0.7970402610333787
+        ]
+      },
+      "image_raw_global": {
+        "n": 1677,
+        "quantiles": [
+          -0.12236879778875723,
+          0.2730564357446954,
+          0.416678732342505,
+          0.5868014629849928,
+          0.7383794281047026,
+          0.8116842198793317
+        ]
+      },
+      "geometry_raw_global": {
+        "n": 1646,
+        "quantiles": [
+          -0.20371859203862533,
+          0.2686034472908447,
+          0.42794555466782463,
+          0.6032237023785747,
+          0.7473404901010064,
+          0.8214944022478317
+        ]
+      },
+      "image_center_fraction": {
+        "n": 1603,
+        "quantiles": [
+          0.0,
+          0.2857142857142857,
+          0.5714285714285714,
+          0.7777777777777778,
+          1.0,
+          1.0
+        ]
+      },
+      "geometry_center_fraction": {
+        "n": 1600,
+        "quantiles": [
+          0.14285714285714285,
+          0.5,
+          0.6666666666666666,
+          0.8571428571428571,
+          1.0,
+          1.0
+        ]
+      },
+      "image_center_distance": {
+        "n": 1603,
+        "quantiles": [
+          0.5698095756978666,
+          1.1527541979941147,
+          1.8100089605226906,
+          3.32917098434364,
+          6.268359402027453,
+          15.501154297596742
+        ]
+      },
+      "geometry_center_distance": {
+        "n": 1600,
+        "quantiles": [
+          0.4549121959012362,
+          0.8763279537098966,
+          1.1893914955650031,
+          2.1769854130131487,
+          5.5211837374493475,
+          14.469690333975855
+        ]
+      },
+      "image_passes_fixed_threshold": 0,
+      "geometry_passes_fixed_threshold": 0
+    },
+    {
+      "case": "ttmapp",
+      "mode": "centers",
+      "radius": 48,
+      "status": "known",
+      "sites": 1678,
+      "geometry_available": 1678,
+      "both_pairs": 1678,
+      "direct_match_2px": 660,
+      "lattice_match_2px": 1265,
+      "mostly_same_sites": 299,
+      "mostly_same_image_min": {
+        "n": 299,
+        "quantiles": [
+          -1.0,
+          0.08061851057383013,
+          0.16623003236813919,
+          0.2162099486837275,
+          0.31763465318831696,
+          0.45205759304126913
+        ]
+      },
+      "mostly_same_geometry_min": {
+        "n": 299,
+        "quantiles": [
+          -1.0,
+          0.07481998109251083,
+          0.16852617365797265,
+          0.24115876613705844,
+          0.545472886711784,
+          0.6657002992790777
+        ]
+      },
+      "image_min": {
+        "n": 1678,
+        "quantiles": [
+          -1.0,
+          -0.0658361652395776,
+          0.023706301539654036,
+          0.11195841672700634,
+          0.22895982332084136,
+          0.45205759304126913
+        ]
+      },
+      "geometry_min": {
+        "n": 1678,
+        "quantiles": [
+          -1.0,
+          -0.08149772574788745,
+          0.015581264840253498,
+          0.1062698136994161,
+          0.27537680650991153,
+          0.6657002992790777
+        ]
+      },
+      "image_mean": {
+        "n": 1646,
+        "quantiles": [
+          0.0002789912576999787,
+          0.2665761666673772,
+          0.34051123038052755,
+          0.4257245735784404,
+          0.5546728282194415,
+          0.6658668186276596
+        ]
+      },
+      "geometry_mean": {
+        "n": 1650,
+        "quantiles": [
+          -0.06116709471644417,
+          0.2509850895121052,
+          0.33873944860239874,
+          0.43803704272845134,
+          0.5730428714767534,
+          0.7581642059298627
+        ]
+      },
+      "image_global": {
+        "n": 1650,
+        "quantiles": [
+          -0.20298628394968346,
+          0.14315451961603762,
+          0.2140444068998272,
+          0.2794206763319778,
+          0.3874009500428518,
+          0.5304394093553855
+        ]
+      },
+      "geometry_global": {
+        "n": 1652,
+        "quantiles": [
+          -0.22983712492107297,
+          0.13336268467412496,
+          0.20673224950634222,
+          0.28822389027765566,
+          0.4881304935552315,
+          0.754628878977306
+        ]
+      },
+      "image_raw_min": {
+        "n": 1662,
+        "quantiles": [
+          -0.4738807750931125,
+          -0.01544421696410624,
+          0.06108858757452858,
+          0.1841064929921624,
+          0.4710348651326838,
+          0.6244854962380355
+        ]
+      },
+      "geometry_raw_min": {
+        "n": 1661,
+        "quantiles": [
+          -0.3159742787289603,
+          -0.021192204735763814,
+          0.05870760444003491,
+          0.19071643981518596,
+          0.4636865221360502,
+          0.6144357703887254
+        ]
+      },
+      "image_raw_global": {
+        "n": 1663,
+        "quantiles": [
+          -0.07491761566966895,
+          0.2087573604271546,
+          0.32966226331392134,
+          0.4644215450256702,
+          0.6191514440793776,
+          0.6982448060395708
+        ]
+      },
+      "geometry_raw_global": {
+        "n": 1664,
+        "quantiles": [
+          -0.009883045217854004,
+          0.20981792835865135,
+          0.3389859097354952,
+          0.47143784915402637,
+          0.623879500083662,
+          0.695305258511418
+        ]
+      },
+      "image_center_fraction": {
+        "n": 1678,
+        "quantiles": [
+          0.0,
+          0.28125,
+          0.5428571428571428,
+          0.7058823529411765,
+          0.8504411764705878,
+          0.9487179487179487
+        ]
+      },
+      "geometry_center_fraction": {
+        "n": 1678,
+        "quantiles": [
+          0.14285714285714285,
+          0.39285714285714285,
+          0.5714285714285714,
+          0.7142857142857143,
+          0.8648648648648649,
+          0.9487179487179487
+        ]
+      },
+      "image_center_distance": {
+        "n": 1678,
+        "quantiles": [
+          0.6908090350962519,
+          1.1494461399940894,
+          1.763622225447956,
+          3.4404381531451307,
+          5.408062824622873,
+          10.69849960477969
+        ]
+      },
+      "geometry_center_distance": {
+        "n": 1678,
+        "quantiles": [
+          0.6801231426417087,
+          1.0781199599397444,
+          1.534837350837518,
+          3.047413297731712,
+          5.0671125231011835,
+          9.17294568205213
+        ]
+      },
+      "image_passes_fixed_threshold": 0,
+      "geometry_passes_fixed_threshold": 0
+    }
+  ],
+  "ttmapp_pipeline": [
+    {
+      "config": "fcn_resnet101-grid--hdbscan--r24-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1916,
+      "candidate": 1916,
+      "gate": 0,
+      "appearance": 1916,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "fcn_resnet101-grid--hdbscan--r24-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1916,
+      "candidate": 1916,
+      "gate": 17,
+      "appearance": 1916,
+      "both": 17,
+      "assigned_sites": 0
+    },
+    {
+      "config": "fcn_resnet101-grid--hdbscan--r24-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        1,
+        2,
+        2,
+        1,
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        2,
+        2,
+        3
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 636,
+        "same_reference_pairs": 11390,
+        "different_reference_pairs": 0,
+        "split_pairs": 1665,
+        "merged_pairs": 0,
+        "coverage": 0.37902264600715135,
+        "split": 0.14618086040386305,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 680,
+        "same_reference_pairs": 13039,
+        "different_reference_pairs": 0,
+        "split_pairs": 1831,
+        "merged_pairs": 0,
+        "coverage": 0.35490605427974947,
+        "split": 0.14042487920852825,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1916,
+      "candidate": 724,
+      "gate": 724,
+      "appearance": 1916,
+      "both": 724,
+      "assigned_sites": 680
+    },
+    {
+      "config": "fcn_resnet101-grid--hdbscan--r48-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1889,
+      "candidate": 1889,
+      "gate": 0,
+      "appearance": 1916,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "fcn_resnet101-grid--hdbscan--r48-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1889,
+      "candidate": 1889,
+      "gate": 0,
+      "appearance": 1916,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "fcn_resnet101-grid--hdbscan--r48-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        4,
+        4,
+        3,
+        3,
+        4,
+        2,
+        3,
+        2,
+        3,
+        3,
+        5,
+        3,
+        5,
+        4,
+        4,
+        3,
+        4,
+        4
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 1313,
+        "same_reference_pairs": 36763,
+        "different_reference_pairs": 12040,
+        "split_pairs": 18,
+        "merged_pairs": 7815,
+        "coverage": 0.7824791418355185,
+        "split": 0.0004896227184941381,
+        "merge": 0.6490863787375415
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 1464,
+        "same_reference_pairs": 44611,
+        "different_reference_pairs": 16220,
+        "split_pairs": 30,
+        "merged_pairs": 10824,
+        "coverage": 0.7640918580375783,
+        "split": 0.0006724798816435409,
+        "merge": 0.667324290998767
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1889,
+      "candidate": 1465,
+      "gate": 1465,
+      "appearance": 1916,
+      "both": 1465,
+      "assigned_sites": 1464
+    },
+    {
+      "config": "fcn_resnet101-grid--fh4--r24-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1916,
+      "candidate": 1916,
+      "gate": 0,
+      "appearance": 1916,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "fcn_resnet101-grid--fh4--r24-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1916,
+      "candidate": 1916,
+      "gate": 17,
+      "appearance": 1916,
+      "both": 17,
+      "assigned_sites": 0
+    },
+    {
+      "config": "fcn_resnet101-grid--fh4--r24-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        1,
+        2,
+        2,
+        1,
+        1,
+        1,
+        2,
+        2,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        1,
+        2,
+        2,
+        3
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 631,
+        "same_reference_pairs": 11206,
+        "different_reference_pairs": 0,
+        "split_pairs": 1994,
+        "merged_pairs": 0,
+        "coverage": 0.37604290822407627,
+        "split": 0.17794038907728002,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 674,
+        "same_reference_pairs": 12794,
+        "different_reference_pairs": 0,
+        "split_pairs": 2147,
+        "merged_pairs": 0,
+        "coverage": 0.35177453027139877,
+        "split": 0.1678130373612631,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1916,
+      "candidate": 724,
+      "gate": 724,
+      "appearance": 1916,
+      "both": 724,
+      "assigned_sites": 674
+    },
+    {
+      "config": "fcn_resnet101-grid--fh4--r48-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1889,
+      "candidate": 1889,
+      "gate": 0,
+      "appearance": 1916,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "fcn_resnet101-grid--fh4--r48-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1889,
+      "candidate": 1889,
+      "gate": 0,
+      "appearance": 1916,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "fcn_resnet101-grid--fh4--r48-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        5,
+        4,
+        3,
+        3,
+        4,
+        2,
+        4,
+        4,
+        4,
+        3,
+        5,
+        4,
+        6,
+        4,
+        4,
+        3,
+        4,
+        4
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 1292,
+        "same_reference_pairs": 35632,
+        "different_reference_pairs": 11630,
+        "split_pairs": 1105,
+        "merged_pairs": 6337,
+        "coverage": 0.7699642431466031,
+        "split": 0.03101145038167939,
+        "merge": 0.544883920894239
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 1442,
+        "same_reference_pairs": 43272,
+        "different_reference_pairs": 15795,
+        "split_pairs": 1375,
+        "merged_pairs": 8270,
+        "coverage": 0.7526096033402923,
+        "split": 0.031775744130153445,
+        "merge": 0.5235834124723013
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1889,
+      "candidate": 1465,
+      "gate": 1465,
+      "appearance": 1916,
+      "both": 1465,
+      "assigned_sites": 1442
+    },
+    {
+      "config": "fcn_resnet101-centers--hdbscan--r24-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1678,
+      "candidate": 1678,
+      "gate": 0,
+      "appearance": 1677,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "fcn_resnet101-centers--hdbscan--r24-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1678,
+      "candidate": 1678,
+      "gate": 0,
+      "appearance": 1677,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "fcn_resnet101-centers--hdbscan--r24-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        2,
+        2,
+        2
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 570,
+        "same_reference_pairs": 9327,
+        "different_reference_pairs": 0,
+        "split_pairs": 2029,
+        "merged_pairs": 0,
+        "coverage": 0.3396901072705602,
+        "split": 0.21754047389299883,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 570,
+        "same_reference_pairs": 9327,
+        "different_reference_pairs": 0,
+        "split_pairs": 2029,
+        "merged_pairs": 0,
+        "coverage": 0.3396901072705602,
+        "split": 0.21754047389299883,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1678,
+      "candidate": 652,
+      "gate": 652,
+      "appearance": 1677,
+      "both": 651,
+      "assigned_sites": 570
+    },
+    {
+      "config": "fcn_resnet101-centers--hdbscan--r48-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1670,
+      "candidate": 1670,
+      "gate": 0,
+      "appearance": 1677,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "fcn_resnet101-centers--hdbscan--r48-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1670,
+      "candidate": 1670,
+      "gate": 0,
+      "appearance": 1677,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "fcn_resnet101-centers--hdbscan--r48-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        2,
+        2,
+        1,
+        2,
+        2,
+        2,
+        3,
+        2,
+        1,
+        1,
+        4,
+        2,
+        3,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 1273,
+        "same_reference_pairs": 37160,
+        "different_reference_pairs": 9202,
+        "split_pairs": 0,
+        "merged_pairs": 8531,
+        "coverage": 0.7586412395709178,
+        "split": 0.0,
+        "merge": 0.9270810693327538
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 1273,
+        "same_reference_pairs": 37160,
+        "different_reference_pairs": 9202,
+        "split_pairs": 0,
+        "merged_pairs": 8531,
+        "coverage": 0.7586412395709178,
+        "split": 0.0,
+        "merge": 0.9270810693327538
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1670,
+      "candidate": 1332,
+      "gate": 1332,
+      "appearance": 1677,
+      "both": 1331,
+      "assigned_sites": 1273
+    },
+    {
+      "config": "fcn_resnet101-centers--fh4--r24-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1678,
+      "candidate": 1678,
+      "gate": 0,
+      "appearance": 1678,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "fcn_resnet101-centers--fh4--r24-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1678,
+      "candidate": 1678,
+      "gate": 0,
+      "appearance": 1678,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "fcn_resnet101-centers--fh4--r24-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        2,
+        2,
+        2
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 568,
+        "same_reference_pairs": 9270,
+        "different_reference_pairs": 0,
+        "split_pairs": 2010,
+        "merged_pairs": 0,
+        "coverage": 0.33849821215733017,
+        "split": 0.2168284789644013,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 568,
+        "same_reference_pairs": 9270,
+        "different_reference_pairs": 0,
+        "split_pairs": 2010,
+        "merged_pairs": 0,
+        "coverage": 0.33849821215733017,
+        "split": 0.2168284789644013,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1678,
+      "candidate": 652,
+      "gate": 652,
+      "appearance": 1678,
+      "both": 652,
+      "assigned_sites": 568
+    },
+    {
+      "config": "fcn_resnet101-centers--fh4--r48-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1670,
+      "candidate": 1670,
+      "gate": 0,
+      "appearance": 1678,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "fcn_resnet101-centers--fh4--r48-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1670,
+      "candidate": 1670,
+      "gate": 0,
+      "appearance": 1678,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "fcn_resnet101-centers--fh4--r48-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        2,
+        2,
+        1,
+        2,
+        2,
+        2,
+        3,
+        2,
+        1,
+        1,
+        4,
+        2,
+        3,
+        3,
+        2,
+        2,
+        2,
+        2
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 1263,
+        "same_reference_pairs": 36764,
+        "different_reference_pairs": 8879,
+        "split_pairs": 0,
+        "merged_pairs": 7697,
+        "coverage": 0.7526817640047676,
+        "split": 0.0,
+        "merge": 0.866876900551864
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 1263,
+        "same_reference_pairs": 36764,
+        "different_reference_pairs": 8879,
+        "split_pairs": 0,
+        "merged_pairs": 7697,
+        "coverage": 0.7526817640047676,
+        "split": 0.0,
+        "merge": 0.866876900551864
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1670,
+      "candidate": 1332,
+      "gate": 1332,
+      "appearance": 1678,
+      "both": 1332,
+      "assigned_sites": 1263
+    },
+    {
+      "config": "dinov2_vits14-grid--hdbscan--r24-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1916,
+      "candidate": 1916,
+      "gate": 0,
+      "appearance": 1913,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "dinov2_vits14-grid--hdbscan--r24-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1916,
+      "candidate": 1916,
+      "gate": 17,
+      "appearance": 1913,
+      "both": 17,
+      "assigned_sites": 0
+    },
+    {
+      "config": "dinov2_vits14-grid--hdbscan--r24-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        1,
+        2,
+        2,
+        2,
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        2,
+        2,
+        3
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 636,
+        "same_reference_pairs": 11390,
+        "different_reference_pairs": 0,
+        "split_pairs": 1917,
+        "merged_pairs": 0,
+        "coverage": 0.37902264600715135,
+        "split": 0.16830553116769095,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 679,
+        "same_reference_pairs": 13007,
+        "different_reference_pairs": 0,
+        "split_pairs": 2071,
+        "merged_pairs": 0,
+        "coverage": 0.354384133611691,
+        "split": 0.15922195740754977,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1916,
+      "candidate": 724,
+      "gate": 724,
+      "appearance": 1913,
+      "both": 723,
+      "assigned_sites": 679
+    },
+    {
+      "config": "dinov2_vits14-grid--hdbscan--r48-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1889,
+      "candidate": 1889,
+      "gate": 0,
+      "appearance": 1913,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "dinov2_vits14-grid--hdbscan--r48-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1889,
+      "candidate": 1889,
+      "gate": 0,
+      "appearance": 1913,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "dinov2_vits14-grid--hdbscan--r48-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        4,
+        4,
+        3,
+        3,
+        4,
+        2,
+        3,
+        2,
+        3,
+        3,
+        5,
+        3,
+        5,
+        4,
+        4,
+        3,
+        4,
+        4
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 1313,
+        "same_reference_pairs": 36763,
+        "different_reference_pairs": 12040,
+        "split_pairs": 18,
+        "merged_pairs": 7815,
+        "coverage": 0.7824791418355185,
+        "split": 0.0004896227184941381,
+        "merge": 0.6490863787375415
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 1463,
+        "same_reference_pairs": 44553,
+        "different_reference_pairs": 16212,
+        "split_pairs": 30,
+        "merged_pairs": 10824,
+        "coverage": 0.7635699373695198,
+        "split": 0.0006733553296074338,
+        "merge": 0.6676535899333826
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1889,
+      "candidate": 1465,
+      "gate": 1465,
+      "appearance": 1913,
+      "both": 1464,
+      "assigned_sites": 1463
+    },
+    {
+      "config": "dinov2_vits14-grid--fh4--r24-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1916,
+      "candidate": 1916,
+      "gate": 0,
+      "appearance": 1916,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "dinov2_vits14-grid--fh4--r24-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1916,
+      "candidate": 1916,
+      "gate": 17,
+      "appearance": 1916,
+      "both": 17,
+      "assigned_sites": 0
+    },
+    {
+      "config": "dinov2_vits14-grid--fh4--r24-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        1,
+        2,
+        2,
+        2,
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        2,
+        2,
+        2
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 628,
+        "same_reference_pairs": 11067,
+        "different_reference_pairs": 0,
+        "split_pairs": 1721,
+        "merged_pairs": 0,
+        "coverage": 0.3742550655542312,
+        "split": 0.155507364236017,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 670,
+        "same_reference_pairs": 12618,
+        "different_reference_pairs": 0,
+        "split_pairs": 1855,
+        "merged_pairs": 0,
+        "coverage": 0.3496868475991649,
+        "split": 0.14701220478681248,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1916,
+      "candidate": 724,
+      "gate": 724,
+      "appearance": 1916,
+      "both": 724,
+      "assigned_sites": 670
+    },
+    {
+      "config": "dinov2_vits14-grid--fh4--r48-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1889,
+      "candidate": 1889,
+      "gate": 0,
+      "appearance": 1916,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "dinov2_vits14-grid--fh4--r48-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1889,
+      "candidate": 1889,
+      "gate": 0,
+      "appearance": 1916,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "dinov2_vits14-grid--fh4--r48-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        2,
+        5,
+        5,
+        3,
+        4,
+        5,
+        5,
+        6,
+        6,
+        6,
+        3,
+        7,
+        3
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 1278,
+        "same_reference_pairs": 35529,
+        "different_reference_pairs": 10731,
+        "split_pairs": 1201,
+        "merged_pairs": 4423,
+        "coverage": 0.7616209773539928,
+        "split": 0.03380337189338287,
+        "merge": 0.4121703475910912
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 1429,
+        "same_reference_pairs": 43230,
+        "different_reference_pairs": 14690,
+        "split_pairs": 1594,
+        "merged_pairs": 6167,
+        "coverage": 0.7458246346555324,
+        "split": 0.03687254221605367,
+        "merge": 0.4198093941456773
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1889,
+      "candidate": 1465,
+      "gate": 1465,
+      "appearance": 1916,
+      "both": 1465,
+      "assigned_sites": 1429
+    },
+    {
+      "config": "dinov2_vits14-centers--hdbscan--r24-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1678,
+      "candidate": 1678,
+      "gate": 0,
+      "appearance": 0,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "dinov2_vits14-centers--hdbscan--r24-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1678,
+      "candidate": 1678,
+      "gate": 0,
+      "appearance": 0,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "dinov2_vits14-centers--hdbscan--r24-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1678,
+      "candidate": 652,
+      "gate": 652,
+      "appearance": 0,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "dinov2_vits14-centers--hdbscan--r48-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1670,
+      "candidate": 1670,
+      "gate": 0,
+      "appearance": 0,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "dinov2_vits14-centers--hdbscan--r48-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1670,
+      "candidate": 1670,
+      "gate": 0,
+      "appearance": 0,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "dinov2_vits14-centers--hdbscan--r48-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1670,
+      "candidate": 1332,
+      "gate": 1332,
+      "appearance": 0,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "dinov2_vits14-centers--fh4--r24-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1678,
+      "candidate": 1678,
+      "gate": 0,
+      "appearance": 1678,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "dinov2_vits14-centers--fh4--r24-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1678,
+      "candidate": 1678,
+      "gate": 0,
+      "appearance": 1678,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "dinov2_vits14-centers--fh4--r24-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        2,
+        2,
+        2
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 565,
+        "same_reference_pairs": 9149,
+        "different_reference_pairs": 0,
+        "split_pairs": 1928,
+        "merged_pairs": 0,
+        "coverage": 0.3367103694874851,
+        "split": 0.21073341348781288,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 565,
+        "same_reference_pairs": 9149,
+        "different_reference_pairs": 0,
+        "split_pairs": 1928,
+        "merged_pairs": 0,
+        "coverage": 0.3367103694874851,
+        "split": 0.21073341348781288,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1678,
+      "candidate": 652,
+      "gate": 652,
+      "appearance": 1678,
+      "both": 652,
+      "assigned_sites": 565
+    },
+    {
+      "config": "dinov2_vits14-centers--fh4--r48-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1670,
+      "candidate": 1670,
+      "gate": 0,
+      "appearance": 1678,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "dinov2_vits14-centers--fh4--r48-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1670,
+      "candidate": 1670,
+      "gate": 0,
+      "appearance": 1678,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "dinov2_vits14-centers--fh4--r48-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        2,
+        2,
+        1,
+        2,
+        2,
+        2,
+        3,
+        3,
+        2,
+        1,
+        3,
+        2,
+        2,
+        2,
+        3,
+        2,
+        2,
+        3
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 1227,
+        "same_reference_pairs": 35990,
+        "different_reference_pairs": 6936,
+        "split_pairs": 666,
+        "merged_pairs": 6482,
+        "coverage": 0.731227651966627,
+        "split": 0.018505140316754654,
+        "merge": 0.9345444059976932
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 1227,
+        "same_reference_pairs": 35990,
+        "different_reference_pairs": 6936,
+        "split_pairs": 666,
+        "merged_pairs": 6482,
+        "coverage": 0.731227651966627,
+        "split": 0.018505140316754654,
+        "merge": 0.9345444059976932
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1670,
+      "candidate": 1332,
+      "gate": 1332,
+      "appearance": 1678,
+      "both": 1332,
+      "assigned_sites": 1227
+    },
+    {
+      "config": "ceiling-grid--r24-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1916,
+      "candidate": 1916,
+      "gate": 0,
+      "appearance": 1916,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "ceiling-grid--r24-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1916,
+      "candidate": 1916,
+      "gate": 17,
+      "appearance": 1916,
+      "both": 17,
+      "assigned_sites": 0
+    },
+    {
+      "config": "ceiling-grid--r24-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        1,
+        2,
+        2,
+        1,
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        2,
+        2,
+        3
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 636,
+        "same_reference_pairs": 11390,
+        "different_reference_pairs": 0,
+        "split_pairs": 1665,
+        "merged_pairs": 0,
+        "coverage": 0.37902264600715135,
+        "split": 0.14618086040386305,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 680,
+        "same_reference_pairs": 13039,
+        "different_reference_pairs": 0,
+        "split_pairs": 1831,
+        "merged_pairs": 0,
+        "coverage": 0.35490605427974947,
+        "split": 0.14042487920852825,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1916,
+      "candidate": 724,
+      "gate": 724,
+      "appearance": 1916,
+      "both": 724,
+      "assigned_sites": 680
+    },
+    {
+      "config": "ceiling-grid--r48-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1889,
+      "candidate": 1889,
+      "gate": 0,
+      "appearance": 1916,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "ceiling-grid--r48-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1889,
+      "candidate": 1889,
+      "gate": 0,
+      "appearance": 1916,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "ceiling-grid--r48-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        4,
+        4,
+        3,
+        3,
+        4,
+        2,
+        3,
+        2,
+        3,
+        3,
+        5,
+        3,
+        5,
+        4,
+        4,
+        3,
+        4,
+        4
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 1313,
+        "same_reference_pairs": 36763,
+        "different_reference_pairs": 12040,
+        "split_pairs": 18,
+        "merged_pairs": 7815,
+        "coverage": 0.7824791418355185,
+        "split": 0.0004896227184941381,
+        "merge": 0.6490863787375415
+      },
+      "sampling": {
+        "reference_elements": 1916,
+        "assigned_elements": 1464,
+        "same_reference_pairs": 44611,
+        "different_reference_pairs": 16220,
+        "split_pairs": 30,
+        "merged_pairs": 10824,
+        "coverage": 0.7640918580375783,
+        "split": 0.0006724798816435409,
+        "merge": 0.667324290998767
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1916,
+      "support": 1889,
+      "candidate": 1465,
+      "gate": 1465,
+      "appearance": 1916,
+      "both": 1465,
+      "assigned_sites": 1464
+    },
+    {
+      "config": "ceiling-centers--r24-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1678,
+      "candidate": 1678,
+      "gate": 0,
+      "appearance": 1678,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "ceiling-centers--r24-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1678,
+      "candidate": 1678,
+      "gate": 0,
+      "appearance": 1678,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "ceiling-centers--r24-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        2,
+        2,
+        2
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 570,
+        "same_reference_pairs": 9327,
+        "different_reference_pairs": 0,
+        "split_pairs": 2029,
+        "merged_pairs": 0,
+        "coverage": 0.3396901072705602,
+        "split": 0.21754047389299883,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 570,
+        "same_reference_pairs": 9327,
+        "different_reference_pairs": 0,
+        "split_pairs": 2029,
+        "merged_pairs": 0,
+        "coverage": 0.3396901072705602,
+        "split": 0.21754047389299883,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1678,
+      "candidate": 652,
+      "gate": 652,
+      "appearance": 1678,
+      "both": 652,
+      "assigned_sites": 570
+    },
+    {
+      "config": "ceiling-centers--r48-image",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1670,
+      "candidate": 1670,
+      "gate": 0,
+      "appearance": 1678,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "ceiling-centers--r48-geometry",
+      "case": "ttmapp",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.0,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1670,
+      "candidate": 1670,
+      "gate": 0,
+      "appearance": 1678,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "ceiling-centers--r48-off_fixed",
+      "case": "ttmapp",
+      "counts": [
+        2,
+        2,
+        1,
+        2,
+        2,
+        2,
+        3,
+        2,
+        1,
+        1,
+        4,
+        2,
+        3,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 1273,
+        "same_reference_pairs": 37160,
+        "different_reference_pairs": 9202,
+        "split_pairs": 0,
+        "merged_pairs": 8531,
+        "coverage": 0.7586412395709178,
+        "split": 0.0,
+        "merge": 0.9270810693327538
+      },
+      "sampling": {
+        "reference_elements": 1678,
+        "assigned_elements": 1273,
+        "same_reference_pairs": 37160,
+        "different_reference_pairs": 9202,
+        "split_pairs": 0,
+        "merged_pairs": 8531,
+        "coverage": 0.7586412395709178,
+        "split": 0.0,
+        "merge": 0.9270810693327538
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 1678,
+      "support": 1670,
+      "candidate": 1332,
+      "gate": 1332,
+      "appearance": 1678,
+      "both": 1332,
+      "assigned_sites": 1273
+    }
+  ],
+  "selected_controls": [
+    {
+      "config": "ceiling-grid--r24-image",
+      "case": "single",
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 768,
+        "assigned_elements": 612,
+        "same_reference_pairs": 62118,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.796875,
+        "split": 0.0,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 768,
+        "assigned_elements": 588,
+        "same_reference_pairs": 57330,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.765625,
+        "split": 0.0,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 768,
+      "support": 756,
+      "candidate": 756,
+      "gate": 588,
+      "appearance": 756,
+      "both": 588,
+      "assigned_sites": 588
+    },
+    {
+      "config": "ceiling-grid--r24-geometry",
+      "case": "single",
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 768,
+        "assigned_elements": 612,
+        "same_reference_pairs": 62118,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.796875,
+        "split": 0.0,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 768,
+        "assigned_elements": 588,
+        "same_reference_pairs": 57330,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.765625,
+        "split": 0.0,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 768,
+      "support": 756,
+      "candidate": 756,
+      "gate": 588,
+      "appearance": 756,
+      "both": 588,
+      "assigned_sites": 588
+    },
+    {
+      "config": "ceiling-grid--r24-off_fixed",
+      "case": "single",
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 768,
+        "assigned_elements": 732,
+        "same_reference_pairs": 88938,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.953125,
+        "split": 0.0,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 768,
+        "assigned_elements": 672,
+        "same_reference_pairs": 74928,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.875,
+        "split": 0.0,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 768,
+      "support": 756,
+      "candidate": 672,
+      "gate": 672,
+      "appearance": 756,
+      "both": 672,
+      "assigned_sites": 672
+    },
+    {
+      "config": "ceiling-grid--r24-image",
+      "case": "missing_30",
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 537,
+        "assigned_elements": 427,
+        "same_reference_pairs": 30183,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.7951582867783985,
+        "split": 0.0,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 768,
+        "assigned_elements": 588,
+        "same_reference_pairs": 57330,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.765625,
+        "split": 0.0,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 768,
+      "support": 756,
+      "candidate": 756,
+      "gate": 588,
+      "appearance": 756,
+      "both": 588,
+      "assigned_sites": 588
+    },
+    {
+      "config": "ceiling-grid--r24-geometry",
+      "case": "missing_30",
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 537,
+        "assigned_elements": 385,
+        "same_reference_pairs": 24542,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.7169459962756052,
+        "split": 0.0,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 768,
+        "assigned_elements": 525,
+        "same_reference_pairs": 45676,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.68359375,
+        "split": 0.0,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 768,
+      "support": 756,
+      "candidate": 756,
+      "gate": 525,
+      "appearance": 756,
+      "both": 525,
+      "assigned_sites": 525
+    },
+    {
+      "config": "ceiling-grid--r24-off_fixed",
+      "case": "missing_30",
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 537,
+        "assigned_elements": 511,
+        "same_reference_pairs": 43270,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.9515828677839852,
+        "split": 0.0,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 768,
+        "assigned_elements": 672,
+        "same_reference_pairs": 74928,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.875,
+        "split": 0.0,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 768,
+      "support": 756,
+      "candidate": 672,
+      "gate": 672,
+      "appearance": 756,
+      "both": 672,
+      "assigned_sites": 672
+    },
+    {
+      "config": "ceiling-grid--r24-image",
+      "case": "missing_local",
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 723,
+        "assigned_elements": 567,
+        "same_reference_pairs": 53298,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.7842323651452282,
+        "split": 0.0,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 768,
+        "assigned_elements": 588,
+        "same_reference_pairs": 57330,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.765625,
+        "split": 0.0,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 768,
+      "support": 756,
+      "candidate": 756,
+      "gate": 588,
+      "appearance": 756,
+      "both": 588,
+      "assigned_sites": 588
+    },
+    {
+      "config": "ceiling-grid--r24-geometry",
+      "case": "missing_local",
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 723,
+        "assigned_elements": 567,
+        "same_reference_pairs": 53298,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.7842323651452282,
+        "split": 0.0,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 768,
+        "assigned_elements": 564,
+        "same_reference_pairs": 52734,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.734375,
+        "split": 0.0,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 768,
+      "support": 756,
+      "candidate": 756,
+      "gate": 564,
+      "appearance": 756,
+      "both": 564,
+      "assigned_sites": 564
+    },
+    {
+      "config": "ceiling-grid--r24-off_fixed",
+      "case": "missing_local",
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 723,
+        "assigned_elements": 687,
+        "same_reference_pairs": 78318,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.950207468879668,
+        "split": 0.0,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 768,
+        "assigned_elements": 672,
+        "same_reference_pairs": 74928,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.875,
+        "split": 0.0,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 768,
+      "support": 756,
+      "candidate": 672,
+      "gate": 672,
+      "appearance": 756,
+      "both": 672,
+      "assigned_sites": 672
+    },
+    {
+      "config": "ceiling-grid--r24-image",
+      "case": "independent-a0-m1",
+      "counts": [
+        0,
+        0,
+        1
+      ],
+      "points": {
+        "reference_elements": 0,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": null,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 0,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": null,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 24,
+      "negative_samples": 768,
+      "known_sites": 0,
+      "support": 0,
+      "candidate": 0,
+      "gate": 0,
+      "appearance": 0,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "ceiling-grid--r24-geometry",
+      "case": "independent-a0-m1",
+      "counts": [
+        0,
+        0,
+        1
+      ],
+      "points": {
+        "reference_elements": 0,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": null,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 0,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": null,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 14,
+      "negative_samples": 768,
+      "known_sites": 0,
+      "support": 0,
+      "candidate": 0,
+      "gate": 0,
+      "appearance": 0,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "ceiling-grid--r24-off_fixed",
+      "case": "independent-a0-m1",
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 0,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": null,
+        "split": null,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 0,
+        "assigned_elements": 0,
+        "same_reference_pairs": 0,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": null,
+        "split": null,
+        "merge": null
+      },
+      "false_samples": 756,
+      "negative_samples": 768,
+      "known_sites": 0,
+      "support": 0,
+      "candidate": 0,
+      "gate": 0,
+      "appearance": 0,
+      "both": 0,
+      "assigned_sites": 0
+    },
+    {
+      "config": "ceiling-grid--r24-image",
+      "case": "coherent-a0-m0.35",
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 768,
+        "assigned_elements": 612,
+        "same_reference_pairs": 62118,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.796875,
+        "split": 0.0,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 768,
+        "assigned_elements": 587,
+        "same_reference_pairs": 57135,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.7643229166666666,
+        "split": 0.0,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 768,
+      "support": 756,
+      "candidate": 756,
+      "gate": 587,
+      "appearance": 756,
+      "both": 587,
+      "assigned_sites": 587
+    },
+    {
+      "config": "ceiling-grid--r24-geometry",
+      "case": "coherent-a0-m0.35",
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 768,
+        "assigned_elements": 522,
+        "same_reference_pairs": 45156,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.6796875,
+        "split": 0.0,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 768,
+        "assigned_elements": 499,
+        "same_reference_pairs": 41251,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.6497395833333334,
+        "split": 0.0,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 768,
+      "support": 756,
+      "candidate": 756,
+      "gate": 499,
+      "appearance": 756,
+      "both": 499,
+      "assigned_sites": 499
+    },
+    {
+      "config": "ceiling-grid--r24-off_fixed",
+      "case": "coherent-a0-m0.35",
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 768,
+        "assigned_elements": 759,
+        "same_reference_pairs": 95634,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.98828125,
+        "split": 0.0,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 768,
+        "assigned_elements": 756,
+        "same_reference_pairs": 94878,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.984375,
+        "split": 0.0,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 768,
+      "support": 756,
+      "candidate": 756,
+      "gate": 756,
+      "appearance": 756,
+      "both": 756,
+      "assigned_sites": 756
+    },
+    {
+      "config": "ceiling-grid--r24-image",
+      "case": "gap-a0-m0.35",
+      "counts": [
+        2,
+        2,
+        2
+      ],
+      "points": {
+        "reference_elements": 624,
+        "assigned_elements": 354,
+        "same_reference_pairs": 10278,
+        "different_reference_pairs": 10431,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.5673076923076923,
+        "split": 0.0,
+        "merge": 0.0
+      },
+      "sampling": {
+        "reference_elements": 576,
+        "assigned_elements": 336,
+        "same_reference_pairs": 9240,
+        "different_reference_pairs": 9408,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.5833333333333334,
+        "split": 0.0,
+        "merge": 0.0
+      },
+      "false_samples": 0,
+      "negative_samples": 96,
+      "known_sites": 576,
+      "support": 564,
+      "candidate": 564,
+      "gate": 336,
+      "appearance": 564,
+      "both": 336,
+      "assigned_sites": 336
+    },
+    {
+      "config": "ceiling-grid--r24-geometry",
+      "case": "gap-a0-m0.35",
+      "counts": [
+        3,
+        2,
+        2
+      ],
+      "points": {
+        "reference_elements": 624,
+        "assigned_elements": 299,
+        "same_reference_pairs": 7314,
+        "different_reference_pairs": 7438,
+        "split_pairs": 420,
+        "merged_pairs": 0,
+        "coverage": 0.4791666666666667,
+        "split": 0.05742411812961444,
+        "merge": 0.0
+      },
+      "sampling": {
+        "reference_elements": 576,
+        "assigned_elements": 277,
+        "same_reference_pairs": 6284,
+        "different_reference_pairs": 6370,
+        "split_pairs": 288,
+        "merged_pairs": 0,
+        "coverage": 0.4809027777777778,
+        "split": 0.04583068109484405,
+        "merge": 0.0
+      },
+      "false_samples": 0,
+      "negative_samples": 96,
+      "known_sites": 576,
+      "support": 564,
+      "candidate": 564,
+      "gate": 277,
+      "appearance": 564,
+      "both": 277,
+      "assigned_sites": 277
+    },
+    {
+      "config": "ceiling-grid--r24-off_fixed",
+      "case": "gap-a0-m0.35",
+      "counts": [
+        2,
+        2,
+        2
+      ],
+      "points": {
+        "reference_elements": 624,
+        "assigned_elements": 555,
+        "same_reference_pairs": 25518,
+        "different_reference_pairs": 25542,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.8894230769230769,
+        "split": 0.0,
+        "merge": 0.0
+      },
+      "sampling": {
+        "reference_elements": 576,
+        "assigned_elements": 564,
+        "same_reference_pairs": 26226,
+        "different_reference_pairs": 26508,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.9791666666666666,
+        "split": 0.0,
+        "merge": 0.0
+      },
+      "false_samples": 0,
+      "negative_samples": 96,
+      "known_sites": 576,
+      "support": 564,
+      "candidate": 564,
+      "gate": 564,
+      "appearance": 564,
+      "both": 564,
+      "assigned_sites": 564
+    },
+    {
+      "config": "ceiling-grid--r24-image",
+      "case": "rectangular-a13",
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 615,
+        "assigned_elements": 481,
+        "same_reference_pairs": 38321,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.7821138211382114,
+        "split": 0.0,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 768,
+        "assigned_elements": 585,
+        "same_reference_pairs": 56748,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.76171875,
+        "split": 0.0,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 768,
+      "support": 756,
+      "candidate": 702,
+      "gate": 585,
+      "appearance": 756,
+      "both": 585,
+      "assigned_sites": 585
+    },
+    {
+      "config": "ceiling-grid--r24-geometry",
+      "case": "rectangular-a13",
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 615,
+        "assigned_elements": 477,
+        "same_reference_pairs": 37683,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.775609756097561,
+        "split": 0.0,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 768,
+        "assigned_elements": 584,
+        "same_reference_pairs": 56551,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.7604166666666666,
+        "split": 0.0,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 768,
+      "support": 756,
+      "candidate": 702,
+      "gate": 584,
+      "appearance": 756,
+      "both": 584,
+      "assigned_sites": 584
+    },
+    {
+      "config": "ceiling-grid--r24-off_fixed",
+      "case": "rectangular-a13",
+      "counts": [
+        1,
+        1,
+        1
+      ],
+      "points": {
+        "reference_elements": 615,
+        "assigned_elements": 428,
+        "same_reference_pairs": 30319,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.6959349593495935,
+        "split": 0.0,
+        "merge": null
+      },
+      "sampling": {
+        "reference_elements": 768,
+        "assigned_elements": 529,
+        "same_reference_pairs": 46384,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.6888020833333334,
+        "split": 0.0,
+        "merge": null
+      },
+      "false_samples": 0,
+      "negative_samples": 0,
+      "known_sites": 768,
+      "support": 756,
+      "candidate": 529,
+      "gate": 529,
+      "appearance": 756,
+      "both": 529,
+      "assigned_sites": 529
+    }
+  ],
+  "posthoc": {
+    "description": "Descriptive stratification, basis-choice and component audit after locked predictions. No rule changes.",
+    "groups": [
+      {
+        "mode": "grid",
+        "radius": 24,
+        "matched_pairs": 1192,
+        "mostly_same_sites": 847,
+        "exact_integer_equivalence": 153,
+        "threshold_decision_changes": 17,
+        "decision_changes_with_exact_equivalence": 6,
+        "image_matched_min": {
+          "n": 1192,
+          "quantiles": [
+            -1.0,
+            -0.08080801571022515,
+            0.05751178799195322,
+            0.2314419769428471,
+            0.46156844442148826,
+            0.6548012803925569
+          ]
+        },
+        "image_mostly_same_passes": 0,
+        "image_all_quadrants_positive": 888,
+        "geometry_matched_min": {
+          "n": 1192,
+          "quantiles": [
+            -1.0,
+            -0.08122795467646356,
+            0.06546336416663609,
+            0.24609164858517654,
+            0.5646646756629314,
+            0.8106634333572975
+          ]
+        },
+        "geometry_mostly_same_passes": 17,
+        "geometry_all_quadrants_positive": 909
+      },
+      {
+        "mode": "grid",
+        "radius": 48,
+        "matched_pairs": 1395,
+        "mostly_same_sites": 332,
+        "exact_integer_equivalence": 444,
+        "threshold_decision_changes": 0,
+        "decision_changes_with_exact_equivalence": 0,
+        "image_matched_min": {
+          "n": 1395,
+          "quantiles": [
+            -1.0,
+            -0.047939233662162024,
+            0.04700469332075945,
+            0.12379280558295735,
+            0.24768367772155134,
+            0.44337568229469887
+          ]
+        },
+        "image_mostly_same_passes": 0,
+        "image_all_quadrants_positive": 1042,
+        "geometry_matched_min": {
+          "n": 1395,
+          "quantiles": [
+            -1.0,
+            -0.05206424271083222,
+            0.040415116545417885,
+            0.13857852427493417,
+            0.3254105301999622,
+            0.6722071748107856
+          ]
+        },
+        "geometry_mostly_same_passes": 0,
+        "geometry_all_quadrants_positive": 987
+      },
+      {
+        "mode": "centers",
+        "radius": 24,
+        "matched_pairs": 1061,
+        "mostly_same_sites": 786,
+        "exact_integer_equivalence": 121,
+        "threshold_decision_changes": 0,
+        "decision_changes_with_exact_equivalence": 0,
+        "image_matched_min": {
+          "n": 1061,
+          "quantiles": [
+            -1.0,
+            -0.07591448404523858,
+            0.06117914387417505,
+            0.22126156425545784,
+            0.45834765971538516,
+            0.672923473728866
+          ]
+        },
+        "image_mostly_same_passes": 0,
+        "image_all_quadrants_positive": 767,
+        "geometry_matched_min": {
+          "n": 1061,
+          "quantiles": [
+            -1.0,
+            -0.07539377239339998,
+            0.05844519322899997,
+            0.2205761005836049,
+            0.45413238706248565,
+            0.638324079390239
+          ]
+        },
+        "geometry_mostly_same_passes": 0,
+        "geometry_all_quadrants_positive": 791
+      },
+      {
+        "mode": "centers",
+        "radius": 48,
+        "matched_pairs": 1265,
+        "mostly_same_sites": 299,
+        "exact_integer_equivalence": 398,
+        "threshold_decision_changes": 0,
+        "decision_changes_with_exact_equivalence": 0,
+        "image_matched_min": {
+          "n": 1265,
+          "quantiles": [
+            -1.0,
+            -0.03739337519022588,
+            0.04806567193877657,
+            0.12788534006170793,
+            0.2439797406840868,
+            0.45205759304126913
+          ]
+        },
+        "image_mostly_same_passes": 0,
+        "image_all_quadrants_positive": 946,
+        "geometry_matched_min": {
+          "n": 1265,
+          "quantiles": [
+            -1.0,
+            -0.04975843458039864,
+            0.04128015161654686,
+            0.1330111069433134,
+            0.300827972535261,
+            0.6657002992790777
+          ]
+        },
+        "geometry_mostly_same_passes": 0,
+        "geometry_all_quadrants_positive": 923
+      }
+    ],
+    "components": [
+      {
+        "sample_id": "ttmapp-250",
+        "known_passes": 1,
+        "full_frame_component_sizes_touching_known_passes": [
+          1
+        ]
+      },
+      {
+        "sample_id": "ttmapp-251",
+        "known_passes": 2,
+        "full_frame_component_sizes_touching_known_passes": [
+          2
+        ]
+      },
+      {
+        "sample_id": "ttmapp-252",
+        "known_passes": 1,
+        "full_frame_component_sizes_touching_known_passes": [
+          1
+        ]
+      },
+      {
+        "sample_id": "ttmapp-253",
+        "known_passes": 1,
+        "full_frame_component_sizes_touching_known_passes": [
+          1
+        ]
+      },
+      {
+        "sample_id": "ttmapp-256",
+        "known_passes": 1,
+        "full_frame_component_sizes_touching_known_passes": [
+          1
+        ]
+      },
+      {
+        "sample_id": "ttmapp-257",
+        "known_passes": 3,
+        "full_frame_component_sizes_touching_known_passes": [
+          3
+        ]
+      },
+      {
+        "sample_id": "ttmapp-258",
+        "known_passes": 2,
+        "full_frame_component_sizes_touching_known_passes": [
+          1,
+          1
+        ]
+      },
+      {
+        "sample_id": "ttmapp-259",
+        "known_passes": 1,
+        "full_frame_component_sizes_touching_known_passes": [
+          1
+        ]
+      },
+      {
+        "sample_id": "ttmapp-260",
+        "known_passes": 2,
+        "full_frame_component_sizes_touching_known_passes": [
+          1,
+          1
+        ]
+      },
+      {
+        "sample_id": "ttmapp-262",
+        "known_passes": 1,
+        "full_frame_component_sizes_touching_known_passes": [
+          1
+        ]
+      },
+      {
+        "sample_id": "ttmapp-263",
+        "known_passes": 1,
+        "full_frame_component_sizes_touching_known_passes": [
+          1
+        ]
+      },
+      {
+        "sample_id": "ttmapp-265",
+        "known_passes": 1,
+        "full_frame_component_sizes_touching_known_passes": [
+          1
+        ]
+      }
+    ],
+    "example": {
+      "sample_id": "ttmapp-250",
+      "mode": "grid",
+      "radius": 24,
+      "site": 113,
+      "selection": "maximum geometry consistency, inspection only",
+      "image_vectors": [
+        [
+          -10,
+          5
+        ],
+        [
+          -10,
+          -9
+        ]
+      ],
+      "geometry_vectors": [
+        [
+          -10.0,
+          -9.0
+        ],
+        [
+          0.0,
+          -14.0
+        ]
+      ],
+      "direct_distance": 13.45362404707371,
+      "lattice_distance": 0.0,
+      "image_diff": [
+        [
+          0.6360792003368607,
+          0.5284814375063918,
+          0.619875090866366,
+          0.686199307419007
+        ],
+        [
+          0.8678391411172462,
+          0.8552869761502981,
+          0.9320219697047908,
+          0.9331365005380248
+        ]
+      ],
+      "geometry_diff": [
+        [
+          0.8366975452882317,
+          0.8283465393951039,
+          0.8550442539271942,
+          0.820202771040343
+        ],
+        [
+          0.8399897877259249,
+          0.7877694609050153,
+          0.8156356141165785,
+          0.7922543626672741
+        ]
+      ],
+      "center_count": 11
+    }
+  },
+  "checks": {
+    "math": {
+      "permutation_checks": 128,
+      "max_peak_error": 0.0,
+      "equivalent_basis_checks": 3,
+      "insufficient_center_checks": 6,
+      "analytic_center_support_checks": 1
+    },
+    "provenance": {
+      "measurement_files_replayed_without_truth": 78,
+      "prediction_files_replayed_without_truth": 78,
+      "configuration_results_replayed": 3816,
+      "previous_prediction_files_verified": 372,
+      "missing_annotation_image_array_pairs": 72,
+      "changed_geometry_arrays_with_missing_annotations": 12,
+      "geometry_change_expected": true,
+      "settings_protocol_source_unchanged": true,
+      "seconds": 43.68167288699988,
+      "python": "3.12.12",
+      "versions": {
+        "numpy": "2.2.5",
+        "scipy": "1.15.2",
+        "scikit-learn": "1.6.1",
+        "matplotlib": "3.10.1",
+        "Pillow": "11.2.1"
+      }
+    },
+    "evaluation": {
+      "seconds": 52.01442008599997,
+      "reference_manifest_sha256": "b2f496fc3100ea3cf038840e2cd48bbcb1e14a5caa09fb325bc65e2993119719",
+      "measures_and_predictions_unchanged": true,
+      "thresholds_unchanged": true,
+      "site_rows": 57528,
+      "pipeline_rows": 3456,
+      "reference_pixels_read_after_lock": true
+    },
+    "image_score_replays": 312,
+    "max_image_score_error": 0.0,
+    "baseline_prediction_replays": 2544,
+    "browser_checks": 125,
+    "browser_errors": [],
+    "syntax_checked": true,
+    "native_application_tested": false
+  },
+  "cost": {
+    "measurements_seconds": 41.573498152999946,
+    "prediction_seconds": 1.0529761679999865,
+    "evaluation_seconds": 52.01442008599997,
+    "replay_seconds": 43.68167288699988,
+    "max_worker_rss_kib": 110492,
+    "workers": 4,
+    "threads_per_worker": 1,
+    "gpu_used": false,
+    "aggregate_peak_memory_measured": false
+  },
+  "review": {
+    "frames": 42,
+    "real_frames": 24,
+    "old_control_cases": 12,
+    "row_cases": 6,
+    "seeds": [
+      2701,
+      5101
+    ],
+    "calculation_images": 78,
+    "configurations": 60,
+    "actual_locked_results": true,
+    "reference_optional_and_posthoc": true
+  },
+  "copy": {
+    "files": 179,
+    "bytes": 92488878,
+    "sha256_verified": true,
+    "symlinks_relative": true,
+    "source": "/tmp/stmdomains-vector-refusal-audit",
+    "destination": "/home/rlew/projekty/NEtCAT-domains/.scratch/vector-refusal-audit"
+  },
+  "artifact_hashes": {
+    "protocol.json": "8be7eece70e7fbbd669244377e7da292468425cb55ccaf45f85f4dbff8a89ba1",
+    "selection.json": "455dad067f1f22534bd4b255904c1180146bb65935ccd78be42e60139a472de4",
+    "settings.json": "ad5cb4d7f088614b886f8a914322f82cd35f3c84cf90f6b26c2d47d637a50ecd",
+    "audit-lock.json": "0374b055554af58b7508d09ef71c0d889373247244f9a2703757542e1a65df96",
+    "source-capture.json": "649446c475d7b66e93a755429df78dcf358ae201548632e8ab00c8382192a25e",
+    "measurements/manifest.json": "be926d5d105997c5217f9889a06fbf1a35f69cb01c6840116c628545b922cada",
+    "predictions/manifest.json": "d6529913cf98cc6960966321a8b84d580ec9b1fd32657f7f9843a42222a780ce",
+    "evaluation/manifest.json": "0c7716a6a5aef7e0fc8980af7b07e07c2e744e63a641630354f04c0f4c00c5a7",
+    "evaluation/summary.json": "7e62de467bab1c5c53f64af4398dd86777f21eb4cb8c6c7b73ef157a603aacc9",
+    "evaluation/site-summary.json": "9fb24eac7653356bc3e7674016f2fc5952df50d4c51c03de23a361e4681ad8ff",
+    "posthoc.json": "26e2af083d93ae829023e2951c1ebe3b6f44b87d704cec11698415d918f2104b",
+    "site-audit.csv": "6e4fb0704cb41b4ddfa64253b49a785869208497938abd24e219e432c9bd7ced",
+    "pipeline.csv": "f7676e463f398eeee93e1cc8ac2ce65269b2c2f7c9c2a5fb8114cb949f7177fc",
+    "index.html": "6108ff92ca0e26fc344d629d2908775bb1ff1c6eda51c2c5c26ff042bcb2a9f6",
+    "audit-comparison.png": "1fff67f62c78df6ad1f01cee22ca0ea3b8f659318abbdefb6cddc623bac332b6",
+    "audit-comparison.pdf": "b5c99f7373963d04d0b44a592d82a2454fcabd1387b149caf6bf6f19f556ba89",
+    "browser-verification.json": "2cfa044f599bf51b8c7ada4663be8098ff3426f7be1f3cbd1f4885455001c425"
+  }
+}
