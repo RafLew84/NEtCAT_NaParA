@@ -20,6 +20,7 @@ from stmviewer.registration import (
 from stmviewer.deep_matcher import deep_unavailable_reason
 from stmviewer.ui.deep_matcher_controls import DeepMatcherControls
 from stmviewer.ui.registration_job import RegistrationJob
+from stmviewer.ui.pair_dialog import PairComparisonDialog
 from stmviewer.ui.filmstrip import Filmstrip
 from stmviewer.ui.frame_source import frame_source_text, alignment_history_text
 from stmviewer.ui.import_job import ImportJob
@@ -44,6 +45,7 @@ class STMViewerMainWindow(QMainWindow):
         self._registration: RegistrationResult | None = None
         self._registration_job: RegistrationJob | None = None
         self._registration_backend = registration_backend
+        self._pair_dialog: PairComparisonDialog | None = None
         self._method_errors = {key: registration_unavailable_reason(key) for key in CPU_METHODS}
         self._closing = False
         self._playing = False
@@ -160,6 +162,10 @@ class STMViewerMainWindow(QMainWindow):
         self._register.setObjectName("registerFrames")
         self._register.clicked.connect(self._start_registration)
         controls.addWidget(self._register)
+        self._compare_pair = QPushButton('Porównaj parę…', panel)
+        self._compare_pair.setObjectName('comparePair')
+        self._compare_pair.clicked.connect(self._open_pair_comparison)
+        controls.addWidget(self._compare_pair)
         self._registration_text = QLabel("", panel)
         self._registration_text.setObjectName("registrationInfo")
         self._registration_text.setWordWrap(True)
@@ -301,7 +307,8 @@ class STMViewerMainWindow(QMainWindow):
     @property
     def _processing_series(self) -> bool:
         """Operations that lock series edits and playback, but allow browsing."""
-        return self._registration_job is not None or self._export_job is not None or self._avi.busy
+        return (self._registration_job is not None or self._export_job is not None or self._avi.busy
+                or (self._pair_dialog is not None and self._pair_dialog.busy))
 
     @property
     def _operation_in_progress(self) -> bool:
@@ -467,6 +474,7 @@ class STMViewerMainWindow(QMainWindow):
                         self._view.setCurrentText("original")
                     self._export_info.clear()
                     self._avi.clear_message()
+                    self._discard_pair_comparison()
                     self._frames = result.frames
                     self._strip.set_series(result.frames, result.thumbnails)
                     selection = self._strip.selectionModel()
@@ -505,13 +513,19 @@ class STMViewerMainWindow(QMainWindow):
             self._cancel_registration()
             self._cancel_export()
             self._avi.cancel()
+            self._discard_pair_comparison()
             event.ignore()
             return
+        self._discard_pair_comparison()
         super().closeEvent(event)
 
     def _sync_navigation(self) -> None:
         count = len(self._frames)
         busy = self._processing_series
+        self._compare_pair.setEnabled(count > 1 and not self._operation_in_progress)
+        if self._pair_dialog is not None:
+            self._pair_dialog.set_available(not (self._job is not None or self._registration_job is not None
+                                                 or self._export_job is not None or self._avi.busy))
         can_save = bool(count) and not self._operation_in_progress
         self._save_button.setEnabled(can_save)
         self._avi.set_available(can_save)
@@ -552,6 +566,7 @@ class STMViewerMainWindow(QMainWindow):
         if not self._frames or self._processing_series:
             return
         self._pause()
+        self._discard_pair_comparison()
         removed = self._index
         frames = self._frames[:removed] + self._frames[removed + 1:]
         index = min(removed, len(frames) - 1) if frames else 0
@@ -684,6 +699,38 @@ class STMViewerMainWindow(QMainWindow):
         if self._frames:
             self._show_preview(self._index)
             self._show_current_frame()
+
+    def _open_pair_comparison(self) -> None:
+        if len(self._frames) < 2 or self._operation_in_progress:
+            return
+        self._pause()
+        if self._pair_dialog is None:
+            dialog = PairComparisonDialog(self._frames, max(1, self._index), self,
+                                          method=str(self._method.currentData()),
+                                          deep_options=self._deep_controls.options(),
+                                          backend=self._registration_backend)
+            self._pair_dialog = dialog
+            dialog.busy_changed.connect(self._pair_busy_changed)
+            dialog.finished.connect(self._pair_closed)
+        self._pair_dialog.show()
+        self._pair_dialog.raise_()
+        self._pair_dialog.activateWindow()
+
+    def _pair_closed(self) -> None:
+        self._pair_dialog = None
+        self._sync_navigation()
+
+    def _pair_busy_changed(self) -> None:
+        self._pause()
+        self._open_button.setEnabled(not self._operation_in_progress)
+        self._open_action.setEnabled(not self._operation_in_progress)
+        self._sync_navigation()
+        if self._closing and not self._operation_in_progress:
+            self.close()
+
+    def _discard_pair_comparison(self) -> None:
+        if self._pair_dialog is not None:
+            self._pair_dialog.close()
 
     def _selected_method_error(self) -> str | None:
         key = str(self._method.currentData())

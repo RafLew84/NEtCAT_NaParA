@@ -57,6 +57,18 @@ class ImagePreview(QWidget):
         else:
             self.update()
 
+    def set_image(self, image: QImage, *, aspect: float, reset_view: bool = False) -> None:
+        """Display an already rendered raster, retaining one shared navigation state."""
+        self._frame = None
+        self._original_rect = None
+        self._image = image
+        self._aspect = aspect
+        self._empty.hide()
+        if reset_view:
+            self.fit_image()
+        else:
+            self.update()
+
     def clear_frame(self) -> None:
         """Release the last measurement and return to the empty preview."""
         self._frame = None

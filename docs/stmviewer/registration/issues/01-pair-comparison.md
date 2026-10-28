@@ -3,8 +3,10 @@
 **What to build:** Użytkownik ogląda wybraną sąsiednią parę przed i po dopasowaniu
 oraz przypina dwie próby A/B do porównania przy identycznych warunkach podglądu.
 **Blocked by:** brak — pierwszy etap tego planu.
-**Status:** ready-for-agent
-**Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
+**Status:** in-progress
+**Manualny odbiór:** niewykonany; implementacja w toku.
+**Wykonawca:** Codex, `viewer/registration-difficult-movies`.
+**Baza code-review:** `b1050103d255f366697887619590bd76d734557e`.
 
 Obowiązują [plan i kontrakty](../README.md) oraz [protokół odbioru](../manual-protocol.md).
 

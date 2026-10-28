@@ -52,6 +52,10 @@ class DeepMatcherControls(QWidget):
         value = self._weights.text().strip()
         return DeepMatcherOptions(Path(value).expanduser() if value else None, self._device.currentText().lower())
 
+    def set_options(self, options: DeepMatcherOptions) -> None:
+        self._weights.setText(str(options.weights) if options.weights is not None else '')
+        self._device.setCurrentText(options.device.upper() if options.device != 'auto' else 'Auto')
+
     def set_status(self, text: str) -> None:
         self._status.setText(text)
 

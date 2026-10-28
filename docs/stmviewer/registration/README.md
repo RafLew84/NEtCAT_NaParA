@@ -2,7 +2,7 @@
 
 Data: 2026-10-28. Gałąź: `viewer/registration-difficult-movies`.
 Baza rozpoznania: `c85aecb`; przegląd metod: `81ff1a0`.
-Status: plan przygotowany do realizacji, bez rozpoczętej implementacji.
+Status: REG-01 w realizacji na zlecenie użytkownika; kolejne etapy czekają na odbiór.
 Zlecenie użytkownika: małe tickety, ręczna ocena wpływu i jakości po każdym.
 
 ## Cel i zakres
