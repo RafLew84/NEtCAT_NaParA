@@ -11,6 +11,11 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-10-28: użytkownik zlecił osobny [plan rozwoju rejestracji
+  trudnych filmów](registration/README.md), z ręcznym odbiorem po każdym
+  tickecie REG. Rozpoczyna on późniejszy etap rozwoju metod; nie zmienia
+  zamkniętych decyzji ani statusów odbioru pierwszej wersji.
+
 - Pracujemy w `NEtCAT-viewer`, na gałęzi `viewer/*`. Zakres:
   `stmviewer/`, `tests/stmviewer/`, `docs/stmviewer/`.
 - Jest to mapa decyzji według `wayfinder`, nie lista zadań implementacyjnych.

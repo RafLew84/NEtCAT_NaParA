@@ -1,5 +1,35 @@
 # Przekazanie — STM Viewer
 
+## Plan rozwoju rejestracji — 2026-10-28
+
+Zlecenie użytkownika: rozpisać poprawę rejestracji trudnych filmów na tickety,
+z ręczną oceną wpływu i jakości wizualnej po każdym. Powstał
+[plan REG-01–09](registration/README.md), dziewięć oddzielnych ticketów i
+[wspólny protokół manualny](registration/manual-protocol.md).
+
+- REG-01–07: porównanie par A/B, korelacja bez normalizacji, ręczne maski,
+  wieloskalowość, lokalny konsensus, kontrola na wydzielonych fragmentach,
+  zapis prób i odbiór pełnych MOVIE_4/MOVIE_8.
+- REG-08/09: warunkowe rozpoznanie spójności kilku klatek i deformacji pasów.
+  Rzeczywista korekcja tearingu wymaga późniejszej decyzji i specyfikacji
+  geometrii oraz eksportów; nie może być opisana pojedynczym XY.
+- Po każdym etapie `ready-for-review` i ręczny odbiór przed następnym.
+  Oddzielamy działanie funkcji od wyniku lepiej/podobnie/gorzej/niejednoznacznie.
+  Nowe warianty nie stają się automatycznie domyślne.
+- Uwzględniono limit 1500 linii, porównanie bez dodatkowych pełnych stosów,
+  kontrolę przypadków błędu i ochronę istniejących wartości oraz eksportów.
+- Dwa niezależne przeglądy planu: granulacja/kontrakty i wykonalność prób
+  manualnych. Poprawiono przygotowanie wcześniejszego aligned, wykonalność
+  anulowania, brak pełnego wyniku, niezależność danych kontrolnych oraz
+  rozdzielenie nazw metody od napisów AVI.
+
+Baza planowania: `81ff1a0`, gałąź `viewer/registration-difficult-movies`.
+Nie rozpoczęto implementacji ani nie wykonano odbiorów nowych funkcji.
+Sprawdzenia tej zmiany: odnośniki lokalne, spójność numeracji/zależności,
+kompletność kryteriów i scenariuszy oraz `git diff --check`.
+Bez zmian kodu nie uruchamiano ponownie pytest ani GUI. Statusy 19–21 bez zmian.
+Commit planu podany w wiadomości sesji.
+
 ## Trudne filmy: osobna gałąź i rozpoznanie — 2026-10-28
 
 Na życzenie użytkownika utworzono **`viewer/registration-difficult-movies`**

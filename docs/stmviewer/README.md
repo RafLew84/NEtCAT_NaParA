@@ -8,7 +8,11 @@ oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 `viewer/registration-difficult-movies` powstała z `26f5538` na zlecenie użytkownika.
 [Rozpoznanie MOVIE_4/MOVIE_8 i reproduktory](registration-difficult-movies.md)
 opisuje zgodność metod ze strukturami obrazu przy zakłóceniach i tearing.
-Ten etap dostarcza diagnozę wstępną; domyślne algorytmy aplikacji pozostają bez zmian.
+Domyślne algorytmy aplikacji pozostają bez zmian.
+[Plan rozwoju i tickety REG-01–09](registration/README.md) obejmuje siedem
+etapów podstawowych i dwa warunkowe. Każdy kończy się ręcznym odbiorem
+funkcji oraz jakości; kolejny etap czeka na decyzję użytkownika.
+[Wspólny protokół prób](registration/manual-protocol.md) ustala dane i sposób porównania.
 
 ## Stan aplikacji
 
