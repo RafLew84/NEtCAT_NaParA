@@ -1,5 +1,35 @@
 # Przekazanie — STM Viewer
 
+## Trudne filmy: osobna gałąź i rozpoznanie — 2026-10-28
+
+Na życzenie użytkownika utworzono **`viewer/registration-difficult-movies`**
+z `26f5538` (`viewer/start` zachowuje dotychczasowe zadania).
+[Wyniki i odtwarzalne próby](registration-difficult-movies.md).
+Zakres tego etapu: rozpoznanie MOVIE_4 / MOVIE_8 i zapis narzędzi diagnostycznych.
+Kod rejestracji aplikacji pozostaje bez zmian; nie wdrożono niezweryfikowanej
+zmiany domyślnej metody. Kierunek dryfu może się zmieniać i sam znak lub duży
+krok nie jest kryterium błędu. Nie znamy kierunków skanowania trace/retrace.
+
+- Sprawdzono wszystkie 363 i 83 pary czterema metodami CPU i Deep Matcher/CUDA
+  na istniejących wagach. Estymaty rozchodzą się; dodatkowo Deep Matcher MOVIE_4
+  oraz ECC MOVIE_8 przerywają aplikację na parze 2→3.
+- MOVIE_8 1→2: trzy oddzielne fragmenty surowego obrazu wskazują około (+14,0),
+  a obecny Phase około (0,0). Reproduktor daje powtarzalny RED z rozbieżnością
+  14,10 px. To lokalne odniesienie obrazowe, nie ground truth całego filmu.
+- Wyłączenie normalizacji daje lokalnie (+13,55; +0,25), rozbieżność 0,51 px.
+  Przebieg wszystkich 446 par nie potwierdza uniwersalnej naprawy; proste filtry
+  również nie rozwiązały tej konkretnej próby. Potrzebna walidacja zgodności
+  struktur, a nie optymalizacja wielkości obszaru lub gładkości trajektorii.
+- Narzędzia: `tests/stmviewer/diagnostics/registration_baseline.py` oraz
+  `repro_movie8_phase.py`. Smoke wszystkich backendów, celowy RED i porównawczy
+  GREEN odtworzone; dokumentacja, Ruff i limity sprawdzone. Bez zmian produkcji
+  nie ponawiano pełnego pytest ani testów manualnych GUI.
+
+Dane, pełne JSON, skrypty eksperymentów i figury są lokalne w
+`data/registration-difficult-movies/`. Hipoteza dominowania zakłóceń nie jest
+jeszcze dowiedziona dla wszystkich metod/klatek. Rozpoznanie nie zamyka
+zależności czytnika MPP z ticketu 19 ani nie uruchamia ticketu 20.
+
 ## 19: Duże eksporty i wspólna praca funkcji — 2026-10-28
 
 [Ticket 19](implementation/issues/19-large-exports.md): **ready-for-review**.

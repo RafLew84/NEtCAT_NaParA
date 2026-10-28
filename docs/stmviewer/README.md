@@ -3,6 +3,13 @@
 Program do przeglądania obrazów i sekwencji STP/S94/MPP, rejestracji
 oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 
+## Osobna gałąź: trudne filmy do rejestracji
+
+`viewer/registration-difficult-movies` powstała z `26f5538` na zlecenie użytkownika.
+[Rozpoznanie MOVIE_4/MOVIE_8 i reproduktory](registration-difficult-movies.md)
+opisuje zgodność metod ze strukturami obrazu przy zakłóceniach i tearing.
+Ten etap dostarcza diagnozę wstępną; domyślne algorytmy aplikacji pozostają bez zmian.
+
 ## Stan aplikacji
 
 Działa otwieranie jednego lub wielu STP/S94, także mieszanych, oraz jednego filmu MPP.
