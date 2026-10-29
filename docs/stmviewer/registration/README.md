@@ -2,7 +2,7 @@
 
 Data: 2026-10-28. Gałąź: `viewer/registration-difficult-movies`.
 Baza rozpoznania: `c85aecb`; przegląd metod: `81ff1a0`.
-Status: REG-01 `ready-for-review`; kolejne etapy czekają na jego ręczny odbiór.
+Status: REG-01 `done` — ręczny odbiór potwierdzony 2026-10-29; REG-02 gotowy do zlecenia.
 Zlecenie użytkownika: małe tickety, ręczna ocena wpływu i jakości po każdym.
 
 ## Cel i zakres
@@ -32,7 +32,8 @@ W tej numeracji używamy **REG-01…REG-09**, aby uniknąć kolizji.
 | [REG-08: Spójność kilku klatek](issues/08-temporal-consistency.md) | Warunkowo: diagnostyka zgodności A→B→C z A→C, bez narzucania trajektorii. | REG-07 + decyzja po odbiorze |
 | [REG-09: Rozpoznanie deformacji w pasach](issues/09-scanline-diagnostics.md) | Warunkowo: podgląd lokalnych rozbieżności po globalnym XY i podstawa decyzji o korekcji tearingu. | REG-07 + decyzja po odbiorze |
 
-REG-01 ma status `ready-for-review`: [instrukcja próby](pair-comparison-manual.md),
+REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
+[instrukcja próby](pair-comparison-manual.md),
 [karta odbioru](reviews/REG-01.md). REG-02–07 mają status `ready-for-agent`:
 zakres jest przygotowany, ale start
 wymaga zlecenia użytkownika i zakończenia blokujących ticketów. REG-08/09 mają

@@ -1,6 +1,6 @@
 # REG-01 — karta odbioru
 
-Status: **ready-for-review**. Ręczny odbiór użytkownika niewykonany.
+Status: **done**. Użytkownik potwierdził „testy manualne ok” 2026-10-29.
 Data sprawdzeń: 2026-10-28, Ubuntu, środowisko `netcat`.
 Implementacja: `4a61ba4`, gałąź `viewer/registration-difficult-movies`.
 Baza przeglądu: `b1050103d255f366697887619590bd76d734557e`.
@@ -84,20 +84,25 @@ i usuwanie klatek unieważniają porównanie. Pełny aligned i eksport są nieza
 Zakres jasności pomija próbki nieważne, a nakładka pokazuje część wspólną
 i komunikuje jej brak. Nie znaleziono nowych algorytmów ani rozszerzenia zakresu.
 
-Niezależny przegląd kodu i testów, bez ponownego uruchamiania GUI. Odbiór użytkownika
-pozostaje wymagany; REG-02 nadal czeka.
+Niezależny przegląd kodu i testów, bez ponownego uruchamiania GUI. W chwili
+przeglądu odbiór użytkownika pozostawał wymagany; potwierdzenie zapisano poniżej.
 
 Wynik przeglądu: Standards 0 uwag, Spec 0 uwag; brak problemu wymagającego poprawki w obu osiach.
 
 ## Ręczny odbiór użytkownika
 
-- Data / osoba / system: niewypełnione.
-- Commit aplikacji: `4a61ba4`; metody A/B do wpisania przy odbiorze.
-- Dane: cpu.mpp, MOVIE_4.mpp, MOVIE_8.mpp, registration-pair-cancel.mpp.
-- Pary źródłowe / fragmenty / gamma / kontrast / zoom: do wpisania.
-- Funkcja: niewykonane.
-- Jakość XY i tearing: algorytmy niezmienione; do oceny wierność porównania.
-- A/B / błąd / anulowanie / zamknięcie / ochrona aligned: do sprawdzenia.
-- Decyzja użytkownika: oczekuje.
+- Data / osoba: 2026-10-29, użytkownik; system niepodany.
+- Potwierdzenie: „testy manualne ok”.
+- Commit aplikacji: `4a61ba4`; przekazanie: `893b4b1`.
+- Dane i kroki przewidziane w instrukcji: cpu.mpp, MOVIE_4.mpp, MOVIE_8.mpp,
+  registration-pair-cancel.mpp; A/B, błąd, anulowanie, zamknięcie i ochrona aligned.
+- Szczegółowy przebieg, metody A/B, pary, fragmenty i ustawienia podglądu:
+  niepodane w potwierdzeniu; nie dopisujemy pomiarów ani wyników poszczególnych kroków.
+- Funkcja: odbiór zaakceptowany przez użytkownika.
+- Jakość XY i tearing: REG-01 służy porównaniu, algorytmy nie zostały zmienione.
+- Decyzja: zamknąć REG-01 jako `done`.
 
-Bez tego odbioru REG-01 pozostaje ready-for-review; REG-02 nie jest rozpoczynany.
+Potwierdzenie spełnia warunek ręcznego odbioru REG-01; REG-02 czeka na osobne
+zlecenie. Nie oznacza to końcowego odbioru obu platform. Aktualizacja wyłącznie
+dokumentacyjna: sprawdzono statusy, odnośniki i `git diff --check`, bez ponawiania
+testów kodu.

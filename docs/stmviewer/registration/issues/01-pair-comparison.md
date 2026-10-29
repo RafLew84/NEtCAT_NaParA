@@ -3,8 +3,8 @@
 **What to build:** Użytkownik ogląda wybraną sąsiednią parę przed i po dopasowaniu
 oraz przypina dwie próby A/B do porównania przy identycznych warunkach podglądu.
 **Blocked by:** brak — pierwszy etap tego planu.
-**Status:** ready-for-review
-**Manualny odbiór:** oczekuje na użytkownika; automatyczne sprawdzenia zakończone.
+**Status:** done
+**Manualny odbiór:** zaliczony — użytkownik potwierdził „testy manualne ok” 2026-10-29.
 **Wykonawca:** Codex, `viewer/registration-difficult-movies`.
 **Baza code-review:** `b1050103d255f366697887619590bd76d734557e`.
 
@@ -68,4 +68,13 @@ Implementacja: `4a61ba4`. Zaznaczone kryteria oznaczają wdrożenie i sprawdzeni
 automatyczne; ręczny odbiór pozostaje osobnym warunkiem `done`.
 [Instrukcja GUI](../pair-comparison-manual.md) zawiera nazwy kontrolek i kroki.
 [Karta odbioru i przegląd Standards/Spec](../reviews/REG-01.md) opisuje wyniki
-testów oraz pola oczekujące na potwierdzenie użytkownika. REG-02 nie rozpoczęto.
+testów oraz potwierdzenie odbioru użytkownika.
+
+## Odbiór — 2026-10-29
+
+Użytkownik potwierdził: „testy manualne ok”. REG-01 zamknięto jako `done`;
+odbiór dotyczy implementacji `4a61ba4` z przekazaniem `893b4b1`. Systemu
+i szczegółowych parametrów próby nie podano; nie rozszerzamy tego potwierdzenia
+na osobne odbiory platform. Zależność REG-02 została spełniona; realizacja
+kolejnego ticketu czeka na zlecenie. Zmieniono wyłącznie dokumentację: sprawdzono
+spójność statusów, odnośniki i `git diff --check`; nie ponawiano testów kodu.

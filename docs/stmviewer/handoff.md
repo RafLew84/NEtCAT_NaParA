@@ -2,7 +2,12 @@
 
 ## REG-01: Porównanie par klatek — 2026-10-28
 
-[Ticket](registration/issues/01-pair-comparison.md): **ready-for-review**.
+[Ticket](registration/issues/01-pair-comparison.md): **done**.
+Użytkownik potwierdził 2026-10-29: „testy manualne ok”. Odbiór obejmuje
+implementację `4a61ba4` i przekazanie `893b4b1`. Nie podano systemu ani
+szczegółowych ustawień próby; odbiory platform pozostają osobne.
+Aktualizacja potwierdzenia dotyczy dokumentacji: sprawdzono spójność statusów,
+odnośniki i `git diff --check`; nie ponawiano testów kodu.
 Implementacja **`4a61ba4`**, baza **`b1050103d255f366697887619590bd76d734557e`**,
 gałąź `viewer/registration-difficult-movies`. Commit końcowego przekazania
 podany w wiadomości sesji. [Próba manualna](registration/pair-comparison-manual.md),
@@ -29,11 +34,12 @@ SHA-256 wejść bez zmian. Zrzuty obejrzane przez agenta; końcowy układ kontro
 sprawdzony ponownie. Artefakty lokalne: `data/registration-pair-review/`.
 Wzorzec anulowania: `data/registration-pair-cancel.mpp`, generator wersjonowany.
 
-**Odbiór manualny użytkownika: oczekuje.** Uruchomienie: `python -m stmviewer.main`
+**Odbiór manualny użytkownika: zaliczony 2026-10-29.** Uruchomienie: `python -m stmviewer.main`
 w `netcat` z katalogu Viewera. Otwórz cpu.mpp, wykonaj pełne Phase, wybierz klatkę 2,
 **Porównaj parę… → Oblicz parę → Przypnij B jako A**; porównaj kolejną metodę
 i wykonaj dalsze kroki instrukcji na obu MOVIE. Automatyczne GUI nie zastępuje odbioru.
-Windows nieweryfikowany. REG-02 nie rozpoczęto; historyczne statusy 19–21 bez zmian.
+Windows nie został zweryfikowany przez agenta; systemu ręcznej próby nie podano.
+REG-02 ma spełnioną zależność i czeka na zlecenie; historyczne statusy 19–21 bez zmian.
 REG-01 nie wymaga nowej zmiany współdzielonej; problem czytnika z ticketu 19 pozostaje.
 
 ## Plan rozwoju rejestracji — 2026-10-28

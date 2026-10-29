@@ -109,7 +109,6 @@ a wynik zostaje odrzucony. Szybkie zakończenie sukcesem nie zalicza próby anul
 
 ## Odbiór
 
-Wypełnij [kartę REG-01](reviews/REG-01.md). Testy automatyczne i oglądanie
-zrzutów przez agenta są oddzielone od Twojego ręcznego odbioru.
-Po potwierdzeniu i spełnieniu pozostałych kryteriów ticket przechodzi do `done`.
-REG-02 czeka na ten odbiór.
+[Karta REG-01](reviews/REG-01.md) zawiera wyniki automatyczne i osobny zapis
+ręcznego odbioru. Użytkownik potwierdził „testy manualne ok” 2026-10-29;
+REG-01 ma status `done`. REG-02 ma spełnioną zależność i czeka na zlecenie.
