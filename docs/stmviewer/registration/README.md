@@ -1,8 +1,10 @@
 # Plan rozwoju rejestracji trudnych filmów STM
 
-Data: 2026-10-28. Gałąź: `viewer/registration-difficult-movies`.
+Data: 2026-10-28; rozszerzenie ręcznego dopasowania: 2026-10-30.
+Gałąź: `viewer/registration-difficult-movies`.
 Baza rozpoznania: `c85aecb`; przegląd metod: `81ff1a0`.
-Status: REG-01 `done` — ręczny odbiór potwierdzony 2026-10-29; REG-02 gotowy do zlecenia.
+Status: REG-01 `done`; dodano REG-01a `ready-for-agent` przed REG-02.
+REG-01a jest planem funkcji; kod nie został jeszcze wdrożony.
 Zlecenie użytkownika: małe tickety, ręczna ocena wpływu i jakości po każdym.
 
 ## Cel i zakres
@@ -16,14 +18,16 @@ Podstawa: [rozpoznanie danych](../registration-difficult-movies.md),
 [przegląd metod i źródła](../registration-improvement-options.md).
 Nowe zlecenie rozpoczyna etap rozwoju metod odłożony w
 [mapie pierwszej wersji](../map.md). Nie zmienia historycznych odbiorów 01–21.
-W tej numeracji używamy **REG-01…REG-09**, aby uniknąć kolizji.
+W tej numeracji używamy **REG-01…REG-09** oraz dodanego **REG-01a**, aby uniknąć
+kolizji i zachować numery istniejących zadań.
 
 ## Kolejność i wynik każdego ticketu
 
 | Ticket | Efekt widoczny w aplikacji | Blocked by |
 | --- | --- | --- |
 | [REG-01: Porównanie par klatek](issues/01-pair-comparison.md) | Nakładka i przełączanie obrazów przed/po dopasowaniu; porównanie dwóch prób A/B przy jednakowym widoku. | Brak |
-| [REG-02: Korelacja bez normalizacji](issues/02-unnormalized-correlation.md) | Osobny wariant dostępny dla pary i całej serii, z porównaniem do dotychczasowego Phase. | REG-01 |
+| [REG-01a: Ręczne dopasowanie pary](issues/01a-manual-alignment.md) | Ruch klatki dopasowywanej ±1 px w X/Y, nakładka/przełączanie obrazów, start z zera lub korekta próby, zachowanie ręcznego wyniku jako B. | REG-01 |
+| [REG-02: Korelacja bez normalizacji](issues/02-unnormalized-correlation.md) | Osobny wariant dostępny dla pary i całej serii, z porównaniem do dotychczasowego Phase. | REG-01a |
 | [REG-03: Ręczne maski zakłóceń](issues/03-manual-masks.md) | Zaznaczanie obszarów używanych i pomijanych; rejestracja uwzględnia osobne maski klatek. | REG-02 |
 | [REG-04: Dopasowanie wieloskalowe](issues/04-multiscale-translation.md) | Zgrubne XY i doprecyzowanie na pełnym obrazie; jawna ocena niejednoznacznych dopasowań. | REG-03 |
 | [REG-05: Zgodność lokalnych fragmentów](issues/05-local-consensus.md) | Wektory dopasowania fragmentów, wskazanie zgodnych/odrzuconych i odporne wyznaczanie globalnego XY. | REG-04 |
@@ -34,15 +38,26 @@ W tej numeracji używamy **REG-01…REG-09**, aby uniknąć kolizji.
 
 REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [instrukcja próby](pair-comparison-manual.md),
-[karta odbioru](reviews/REG-01.md). REG-02–07 mają status `ready-for-agent`:
+[karta odbioru](reviews/REG-01.md). REG-01a i REG-02–07 mają status `ready-for-agent`:
 zakres jest przygotowany, ale start
 wymaga zlecenia użytkownika i zakończenia blokujących ticketów. REG-08/09 mają
 status `planned`; nie uruchamiamy ich automatycznie. Nie zależą od siebie.
-Łańcuch REG-01–07 jest również kolejnością ręcznych odbiorów: chcemy ocenić
-pojedynczą zmianę przed dołożeniem następnej, nawet jeśli część kodu można
+Kolejność REG-01 → REG-01a → REG-02–07 jest również kolejnością ręcznych
+odbiorów: chcemy ocenić pojedynczą zmianę przed dołożeniem następnej, nawet jeśli część kodu można
 technicznie napisać niezależnie.
 
 ## Stałe kontrakty
+
+- REG-01a ustawia XY jednej pary ręcznie, w pikselach original (+X w prawo,
+  +Y w dół). Klatka odniesienia pozostaje nieruchoma. A/B to próby; obrazy
+  nazywamy odniesieniem i dopasowywaną klatką. Szkic ręczny jest odrębny od
+  zatwierdzonych prób. Zastosowanie tworzy B z jawnym pochodzeniem ręcznym
+  i bez automatycznego wskaźnika pewności. Pełny aligned i eksport zachowują
+  dotychczasowy wynik; ręczne składanie całego filmu wymaga osobnego zakresu.
+- Próby ręczne można rozpocząć od zera lub kopii istniejącego wyniku tej pary.
+  Podgląd zawsze powstaje z oryginałów i całkowitego XY. REG-07 zachowuje
+  początkowe XY, pochodzenie, korektę i wynik ręczny. Ocena wzrokowa operatora
+  nie staje się automatycznie niezależną kontrolą z REG-06.
 
 - Każda metoda dodawana w REG-02–05 działa od razu na parze i na całej serii,
   przez ten sam estymator. REG-07 nie odkłada podstawowej integracji z GUI.

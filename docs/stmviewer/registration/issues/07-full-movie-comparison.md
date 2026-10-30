@@ -17,6 +17,11 @@ nawigację. Ten ticket nie buduje osobnego odtwarzacza dwóch filmów.
 - [ ] Z GUI można zapisać/otworzyć dokument próby: wersję formatu, tożsamość
   źródeł i kolejność klatek, wersję kodu/commit, metodę i pełne ustawienia, maski, fragmenty kontroli,
   XY par/skumulowane, statusy i uzyskane diagnozy. Dokument nie zawiera obrazów.
+- [ ] Próby ręczne z REG-01a zachowują oznaczenie pochodzenia, początkowe XY,
+  opis próby użytej jako punkt startu (jeśli była), łączną korektę, końcowe XY
+  i jawny brak automatycznej oceny jakości. Odtwarzane są zatwierdzone próby,
+  bez historii kliknięć ani niezastosowanego szkicu. Odczyt nie promuje ręcznej
+  próby pary do pełnego aligned i nie nadaje jej pewności backendu.
 - [ ] Źródła są identyfikowane zawartością i pochodzeniem, nie wyłącznie nazwą.
   Tożsamość obejmuje również metadane mające wpływ na geometrię.
   Przy ponownym otwarciu można wskazać przeniesiony plik. Inna zawartość,
@@ -48,6 +53,7 @@ w Git, zamknięcie wcześniejszych ticketów odbioru platform lub dużych ekspor
 - **Próba → dokument → odczyt przy źródłach:** zachowanie ustawień i wyników,
   weryfikacja zawartości, przeniesiona ścieżka, zła wersja, niezgodna seria,
   uszkodzenie i atomowe zachowanie poprzedniego pliku po błędzie/anulowaniu.
+  Dla ręcznej próby: to samo XY, pochodzenie i brak oceny jakości po odczycie.
 - **Pełne wyniki A/B → oglądane klatki:** wspólne odniesienie, prawidłowe
   wartości po interpolacji i ograniczona pamięć renderera, bez pełnych kopii.
 - **Nowy wariant → MPP/AVI:** wartości, geometria, maski ważności i pochodzenie.
@@ -69,7 +75,10 @@ w Git, zamknięcie wcześniejszych ticketów odbioru platform lub dużych ekspor
    jeśli został uzyskany. Otwórz MPP w programie, AVI w VLC; sprawdź próbki
    kontrolne, obraz i krawędzie. W razie odmowy na pomiarze sprawdź sam eksport
    na `cpu.mpp`, a brak pełnego wyniku pomiarowego pozostaw jawnym ograniczeniem.
-6. Podejmij jawną decyzję: zachować wariant eksperymentalny, poprawić go albo
+6. Zapisz także ręczną próbę z REG-01a, ponownie ją otwórz i porównaj
+   z algorytmem. Sprawdź początkowe XY, korektę, wynik końcowy, pochodzenie
+   i zachowanie pełnego aligned.
+7. Podejmij jawną decyzję: zachować wariant eksperymentalny, poprawić go albo
    zakończyć na obecnym wyniku. Dopiero osobno zdecyduj o REG-08 i REG-09.
 
 **Oczekiwany wynik:** odtwarzalna, udokumentowana ocena całych filmów.

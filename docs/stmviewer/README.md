@@ -9,8 +9,8 @@ oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 [Rozpoznanie MOVIE_4/MOVIE_8 i reproduktory](registration-difficult-movies.md)
 opisuje zgodność metod ze strukturami obrazu przy zakłóceniach i tearing.
 Domyślne algorytmy aplikacji pozostają bez zmian.
-[Plan rozwoju i tickety REG-01–09](registration/README.md) obejmuje siedem
-etapów podstawowych i dwa warunkowe. Każdy kończy się ręcznym odbiorem
+[Plan rozwoju i tickety](registration/README.md) obejmuje osiem etapów
+podstawowych (w tym REG-01a) i dwa warunkowe. Każdy kończy się ręcznym odbiorem
 funkcji oraz jakości; kolejny etap czeka na decyzję użytkownika.
 [Wspólny protokół prób](registration/manual-protocol.md) ustala dane i sposób porównania.
 
@@ -20,6 +20,11 @@ nakładkę 50/50 i próby A/B ze wspólnym kadrem, kontrastem oraz zoomem.
 Można liczyć pojedynczą parę niezależnie od pełnego aligned.
 [Instrukcja testu](registration/pair-comparison-manual.md),
 [wyniki i przegląd kodu](registration/reviews/REG-01.md).
+
+Do planu dodano **[REG-01a — ręczne dopasowanie pary](registration/issues/01a-manual-alignment.md)**
+(2026-10-30), przed REG-02. Planowane są ruchy ±1 px X/Y w tym samym oknie,
+start od zera lub istniejącej próby oraz porównanie wyniku ręcznego z algorytmem.
+Funkcja czeka na implementację i własny odbiór.
 
 ## Stan aplikacji
 

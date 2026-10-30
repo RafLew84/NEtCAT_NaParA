@@ -70,6 +70,20 @@ wielkość aligned albo zgodność pętli klatek nie dowodzą poprawności.
 Próg 3 px dotyczy istniejącego reproduktora MOVIE_8 1→2; nie przenosimy go
 na ocenę całej klatki ani całych filmów. Dokładność fizyczna nie jest znana.
 
+## Ręczne dopasowanie — REG-01a
+
+Wynik ręczny dotyczy sąsiedniej pary w oknie porównania. Do próby A przypnij
+wynik początkowy, rozpocznij ręczny szkic od zera albo wybranego wyniku,
+a po korekcie zastosuj go jako B. Obrazy nazywamy odniesieniem i dopasowywaną
+klatką; A/B oznaczają próby, nie nazwy obrazów.
+
+Zapisz początkowe XY, sumę korekt, końcowe XY oraz oglądane struktury. Krok
+wynosi 1 piksel oryginału niezależnie od zoomu; +X w prawo, +Y w dół.
+Przeciąganie przesuwa wspólny widok. Pełny aligned zachowuje swój wynik.
+Przy braku zgodności różnych części obrazu zanotuj rozbieżność. Ręczny wybór
+nie stanowi samodzielnego dowodu fizycznego dryfu ani niezależnej walidacji.
+Szczegółowe próby i reset/odrzucenie opisuje [REG-01a](issues/01a-manual-alignment.md).
+
 ## Karta odbioru każdego ticketu
 
 Realizujący tworzy kartę w `docs/stmviewer/registration/reviews/REG-XX.md`.
@@ -81,6 +95,7 @@ Ticket / data / osoba / system:
 Commit A / commit B:
 Film + SHA / numery źródłowe par:
 Metoda i ustawienia A / B / maski:
+Dla próby ręcznej: pochodzenie / początkowe XY / korekta / końcowe XY:
 Gamma / zakres jasności / proporcje / zoom:
 Fragmenty estymacji / fragmenty kontroli / czy kontrola niezależna:
 Funkcja: działa | usterka | niewykonane

@@ -1,5 +1,30 @@
 # Przekazanie — STM Viewer
 
+## Plan: REG-01a — ręczne dopasowanie pary — 2026-10-30
+
+Na zlecenie użytkownika dodano [REG-01a](registration/issues/01a-manual-alignment.md)
+między zakończony REG-01 a REG-02. Status nowego ticketu `ready-for-agent`;
+implementacja nierozpoczęta. Numery pozostałych zadań pozostają zachowane.
+
+- To samo okno porównania, nieruchome odniesienie i przesuwana klatka,
+  nakładka/przełączanie, kroki ±1 piksel original w X/Y niezależnie od zoomu.
+- Ręczny szkic od zera lub kopii wybranej próby, reset/odrzucenie, zastosowanie
+  jako nowe B. Zachowane przypięte A, pochodzenie i ułamkowe początkowe XY;
+  ręczny wynik ma jawny brak automatycznej oceny jakości.
+- Zakres: próba jednej pary. Pełny aligned i eksport pozostają niezależne;
+  ręczne składanie całego filmu nie wchodzi do tego ticketu. REG-07 obejmuje
+  zapis/odczyt zatwierdzonego ręcznego XY, źródła i łącznej korekty.
+- Zaktualizowano kolejność i zależność REG-02, kontrakty planu, protokół
+  odbioru i REG-07. Nowy ticket ma publiczne granice TDD oraz wykonalną
+  próbę GUI na cpu.mpp i obu MOVIE. REG-01 zachowuje status done.
+
+Baza zmiany planu: `ef5f861`, gałąź `viewer/registration-difficult-movies`.
+Sprawdzono spójność zależności, odnośniki i `git diff --check`; niezależny
+audyt wskazał rozdzielenie obrazów od prób A/B, szkicu od wyniku, jednostki
+źródłowe, ułamkowy punkt startu i pochodzenie ręczne. Zmiana tylko dokumentacji,
+bez uruchamiania testów kodu ani deklarowania odbioru nowej funkcji.
+Commit dokumentacji podany w wiadomości sesji; nowe zmiany współdzielone nie są wymagane.
+
 ## REG-01: Porównanie par klatek — 2026-10-28
 
 [Ticket](registration/issues/01-pair-comparison.md): **done**.
