@@ -4,10 +4,76 @@ ID: 19
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: claimed
-Assignee: Codex — domains/motif-completeness
+Status: resolved
+Assignee:
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 17, 18
+
+## Answer — 2026-10-31: seria zakończona
+
+Użytkownik polecił podsumować ustalenia i zakończyć tę serię analiz.
+**Ticket 19 ma status `resolved` jako zakończone porównanie i diagnostyka.
+Nie wybrano metody do aplikacji ani nie uzyskano ogólnego detektora domen
+TTMAPP.** Kończymy dalsze rozszerzanie tej serii w ramach 19.
+
+Odpowiedź na pierwotne pytanie: **badane konfiguracje zamrożonych cech
+FCN–ResNet101 i DINOv2 nie dały poprawy wystarczającej do przyjęcia metody**.
+Dotyczy to wykonanych konfiguracji i danych, nie wszystkich możliwych
+zastosowań tych sieci ani ML. Własnego treningu nie wykonywano.
+
+### Co ustalono
+
+| Obszar | Ustalenie i jego zakres |
+| --- | --- |
+| Gotowe cechy i grupowanie | Cechy rozróżniają część syntetycznych orientacji i rozstawów, ale nie zapewniają poprawnego podziału obrazu. Usunięcie PCA, zmiana epsilon i lokalny graf nie rozwiązały łącznie scaleń, nadmiernych podziałów i odmów. [Cechy](../feature-separation-trial.md), [graf](../local-feature-graph-trial.md). |
+| Ocena porządku | Sam wygląd klastra nie dowodzi domeny. Zbyt surowa ocena odrzuca znane uporządkowane miejsca; łagodniejsza potrafi uznać niezależnie przesunięte rzędy za spójną sieć. Należy osobno raportować reprezentację, podział i powody odmowy. [Drugi kierunek](../second-direction-trial.md), [zgodność przesunięć](../translation-consistency-trial.md). |
+| Baza i rzeczywisty okres | Równoważne zapisy tej samej sieci powinny dawać tę samą ocenę. Porównanie kandydatów i ich dzielników odzyskało właściwy okres w 9/9 celowanych kontrolach, lecz nie poprawiło ogólnie TTMAPP. [Rodzina przesunięć](../translation-family-trial.md), [kandydaci baz](../basis-candidates-trial.md). |
+| Błędy położeń i granice | Tolerancja pomaga przy części niedokładnych oznaczeń; elastyczne dopasowanie może również pochłonąć rzeczywistą granicę. Osobna faza oraz porównanie jednego modelu z dwoma są użyteczne na kontrolach. Prostą granicę rozdzielono, odrzucając 138/138 połączeń; trudniejsze granice i TTMAPP pozostają nierozwiązane. [Tolerancja i faza](../tolerant-fit-phase-trial.md), [rozłączne modele](../disjoint-models-material-trial.md). |
+| Regularność a kompletność | Brak oznaczenia nie musi oznaczać braku porządku. Oddzielna ocena pozycji zwiększyła akceptacje pojedynczej sieci przy nominalnie 60% braków z 1 do 100/192 otoczeń, przy 104 dostępnych modelach. Obsadzenie modelu nie jest znaną kompletnością detekcji ani pokryciem materiału. [Ostatnia próba](../motif-completeness-trial.md). |
+| Powtarzalny motyw | Model dwóch pozycji poprawia przewidywania kontrolnych par: mediana zgodności pełnych pozycji .754 → .968. Dodaje jednak fałszywe akceptacje niezależnych rzędów: 9/192 oraz 16/192 po obrocie. Kontrola trzech pozycji jest bliska prostszej sieci w tolerancji i nie rozstrzyga zdolności rozpoznania K3. [Ostatnia próba](../motif-completeness-trial.md). |
+| Materiał i dostępność danych | Sieć może przechodzić przez pustą przerwę. Identyczne centra przy prawdziwej przerwie i przy samym braku oznaczeń dają identyczną geometrię; obecność materiału wymaga osobnej informacji obrazu. Za mało nowych powtórzeń daje brak oceny, nie automatyczne potwierdzenie ani brak domeny. |
+
+### Końcowy wynik TTMAPP
+
+W ostatnim porównaniu pojedyncza pozycja i rozszerzony motyw, oceniane tą
+samą miarą przy wspólnych progach, dają **te same 7 akceptacji całego
+pierścienia i 5 akceptacji nowych rzędów na 2904 otoczenia**. Wszystkie
+zaakceptowane modele rozszerzonego wariantu nadal mają jedną pozycję.
+W znanych wnętrzach referencji pozostają po jednej akceptacji każdego
+sprawdzianu. Nie wykazano przewagi rozszerzenia motywu na TTMAPP.
+
+To lokalne sprawdziany przewidywania, nie liczba domen ani odsetek
+skuteczności na całej klatce. W tej końcowej próbie nie wyznaczono
+komponentów domen, granic ani powierzchni. Seria jako całość nie spełniła
+warunków przyjęcia kompletnej metody: poprawy użytecznych wykryć bez
+nieakceptowalnych scaleń, podziałów i fałszywego porządku.
+
+### Co zachowujemy i co pozostaje otwarte
+
+Zachowujemy źródła prototypów, manifesty, podglądy i wyniki jako punkty
+odniesienia oraz sprawdzone składniki badawcze: porównywanie baz, tolerancję
+pozycji, osobną fazę, rozdzielenie regularności i obsadzenia, dopasowanie
+motywu oraz ocenę jednego modelu względem dwóch. Żaden z tych składników
+samodzielnie nie jest zatwierdzonym detektorem.
+
+Obowiązuje nadal wykrywanie bez przykładów domen i zadanej liczby domen.
+Ręczne ramki służą wyłącznie późniejszej ocenie; nie wyznaczają wejścia,
+klas ani modeli. Częściowe referencje z jednej serii, wielokrotnie używane
+w diagnostyce, nie potwierdzają uogólnienia na niezależne pomiary.
+Odtwarzalność obliczeń i brak dostępu do referencji potwierdzono kontrolami,
+ale nie zastępuje to oceny skuteczności.
+
+[Protokół jakości 04](04-reference-and-quality.md) i
+[odbiór metod 13](13-method-acceptance.md) pozostają otwarte. Zamknięcie 19
+nie kończy drugiej mapy ani nie oznacza implementacji aplikacji. Kolejny
+zaplanowany krok badawczy to [20 — przygotowanie treningu bez etykiet](20-self-supervised-training-preparation.md),
+który pozostaje `open`, nierozpoczęty, do osobnego podjęcia. Potem zaplanowano
+próby AE/rVAE i lokalnego SSL; nie przesądzamy ich skuteczności.
+
+Poniżej zachowano pytanie wyjściowe i chronologiczny dziennik prób.
+Występujące w nim statusy `claimed`, odłożenie 20 i propozycje kolejnych
+badań opisują stan z chwili danego wpisu. Aktualną decyzją jest powyższe
+zamknięcie 19.
 
 ## Question
 
@@ -70,8 +136,8 @@ przypisanie. Nie dobierać tych ustawień na ręcznych domenach TTMAPP.
 Oba wymagane ekstraktory działają; kod `e6e7248` jest w
 `stmdomains/experiments/frozen/`, cechy i manifesty w
 `.scratch/frozen-features/`, wagi w `.scratch/frozen-feature-assets/`.
-Zależności 17 i 18 są spełnione; próba została wykonana i pozostaje
-do dalszego omówienia zgodnie z decyzją użytkownika opisaną poniżej.
+Zależności 17 i 18 są spełnione; próba i jej rozwinięcia zostały wykonane.
+Serię zamknięto decyzją użytkownika opisaną w końcowym Answer powyżej.
 
 Przygotowanie obejmowało 12 obrazów i 16 konfiguracji, nie cały zakres
 porównania. Rozszerzyć ekstrakcję na wspólny zestaw zgodnie z protokołem.

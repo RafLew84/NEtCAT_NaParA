@@ -146,8 +146,14 @@ pozostają związane z protokołem jakości, nie z samą atrakcyjnością nakła
 
 ## Wynik ML do uwzględnienia
 
-[Porównanie gotowych cech sieci](19-frozen-feature-domains.md) ma określić,
-czy dają one poprawę względem klasycznej tekstury i jaki jest jej koszt.
+[Porównanie gotowych cech sieci i dalszą diagnostykę](19-frozen-feature-domains.md)
+zakończono na polecenie użytkownika 2026-10-31 (`resolved`). Badane konfiguracje
+FCN/DINO nie dały kompletnej metody domen TTMAPP; zachowano użyteczne wyniki
+cząstkowe i prototypy jako punkty odniesienia. Nie zatwierdzono detektora
+ani nie rozstrzygnięto nieskuteczności wszystkich zastosowań tych modeli.
+Odbiór 13 pozostaje otwarty i uwzględni ten zakończony wynik obok kolejnych
+prób przewidzianych w mapie.
+
 Samo przygotowanie wag i ekstrakcji nie wystarcza do odbioru. Uwzględnić
 odmowy, wpływ rozdzielczości i przygotowania obrazu, rozstaw/orientację, granice,
 stabilność wspólnego katalogu oraz czas i pamięć. Rozróżniać wynik negatywny

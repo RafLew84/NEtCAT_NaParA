@@ -3,7 +3,19 @@
 Program do wykrywania i analizy domen pól molekularnych na obrazach STM.
 Katalog aplikacji: `stmdomains/`.
 
-## Stan początkowy
+## Aktualny stan — 2026-10-31
+
+Na polecenie użytkownika [ticket 19](issues/19-frozen-feature-domains.md)
+zamknięto jako zakończoną serię badań (`resolved`). Nie wybrano detektora
+domen do aplikacji. Podsumowanie ustaleń i ograniczeń znajduje się na
+początku ticketu. Zachowujemy prototypy i wyniki jako punkty odniesienia.
+Krok 20 jest kolejnym zaplanowanym przygotowaniem, `open`, nierozpoczętym;
+treningu nie uruchomiono. Jakość 04, odbiór metod 13 i druga mapa są otwarte.
+
+Poniższy opis zachowuje historię projektu; wcześniejsze statusy `claimed`
+i odłożenie 20 dotyczą ówczesnych decyzji, zastąpionych powyższym zamknięciem.
+
+## Stan początkowy i historia
 
 Gotowe są osobny punkt uruchomienia, podstawowe okno PyQt6 i akcja zakończenia.
 Pierwszy etap rozwoju ma dać działający szkielet: import zapisu z gotowymi
@@ -276,9 +288,9 @@ pomaga przy brakach oznaczeń; model dwóch pozycji poprawia przewidywania
 kontrolnych par, ale dodaje fałszywe akceptacje niezależnych rzędów.
 TTMAPP: jedna pozycja i motyw mają te same 7 akceptacji całego pierścienia
 oraz 5 nowych rzędów; w znanych wnętrzach po jednej. Nie przyjęto metody.
-Podgląd `.scratch/motif-completeness/index.html`. **19 nadal `claimed`,
-do omówienia; 20 odłożone.** Propozycja po omówieniu: zachować składniki
-badawcze i przejść do przygotowania treningu. Treningu nie uruchomiono.
+Podgląd `.scratch/motif-completeness/index.html`. Po omówieniu użytkownik
+zakończył serię: **19 `resolved`**, bez przyjęcia metody. Zachowujemy składniki
+badawcze; przygotowanie 20 pozostaje otwarte i nierozpoczęte.
 
 
 ## Dwa etapy

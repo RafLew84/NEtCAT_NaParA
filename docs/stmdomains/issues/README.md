@@ -7,6 +7,13 @@ Zadania wykonawcze są oddzielone od poniższego rejestru pytań.
 implementacji i odbiorze szkieletu. Otwarte decyzje etapu 2 nie blokują etapu 1.
 Statusy i zależności przechowujemy w ticketach; indeks poniżej grupuje je według map.
 
+**Aktualny stan 2026-10-31:** [19](19-frozen-feature-domains.md) ma status
+`resolved` — użytkownik zakończył serię analiz, bez przyjęcia detektora.
+[Podsumowanie ustaleń](19-frozen-feature-domains.md) zachowuje osiągnięcia
+cząstkowe i ograniczenia. Przygotowanie [20](20-self-supervised-training-preparation.md)
+pozostaje `open`, nierozpoczęte; jakość 04 i odbiór 13 pozostają otwarte.
+Wcześniejsze statusy w poniższej chronologii opisują historyczne decyzje.
+
 Na bezpośrednie polecenie użytkownika z 2026-10-19 wcześniej podejmujemy
 [definicje wyspy, typu i domeny sieci](02-order-types-and-domains.md) oraz
 [pilotaż porównania metod](05-stable-types-across-frames.md). Pilotaż zakończono
@@ -139,7 +146,8 @@ na braki, motyw poprawia geometrię par, lecz dodaje fałszywe akceptacje rzęd�
 TTMAPP bez przewagi motywu: te same 7/5 lokalnych akceptacji pierścienia/nowych
 rzędów co przy jednej pozycji. Do omówienia zachowanie składników jako punktu
 odniesienia i przygotowanie treningu; nie wybrano metody.
-19 `claimed`, 20 odłożone; odbiór 13 i jakość 04 otwarte.
+Po omówieniu użytkownik zakończył serię: **19 `resolved`**, bez wyboru metody.
+20 pozostaje otwarte i nierozpoczęte; odbiór 13 i jakość 04 otwarte.
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie
 z instrukcjami repozytorium. Nie wymaga zewnętrznego trackera.
@@ -224,7 +232,7 @@ ten nadal warunkuje odbiór metod. Statusy znajdują się w ticketach.
 | [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md) | prototype / HITL | `resolved`: porównanie zachowane, użytkownik wybrał przejście do 17, E2 |
 | [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md) | prototype / HITL | `resolved`: widmo/EWT zachowane do porównań ML, bez przyjęcia metody; E3 |
 | [Jak przygotować cechy gotowych sieci bez treningu na naszych danych?](18-frozen-feature-preparation.md) | task / AFK | `resolved`: oba ekstraktory, cache, geometria i powtarzalność sprawdzone |
-| [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | `claimed`: wykonana próba motywu i kompletności; poprawa kontroli braków i par, nowe fałszywe akceptacje rzędów, TTMAPP bez przewagi motywu; do omówienia dalszy zakres; 20 odłożone |
+| [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | `resolved`: seria porównań i diagnostyki zakończona; zachowane wyniki cząstkowe, brak przyjętej metody TTMAPP; 20 otwarte, nierozpoczęte |
 
 Próby geometrii, SBC/MatID i klasycznej tekstury są niezależne. Porównanie
 ML korzysta z wyniku tekstury jako punktu odniesienia, również gdy jest

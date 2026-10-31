@@ -1,5 +1,10 @@
 # Powtarzalny motyw i kompletność oznaczeń — issue 19
 
+**Aktualizacja po omówieniu — 2026-10-31:** użytkownik zakończył serię
+analiz; [ticket 19](issues/19-frozen-feature-domains.md) ma status `resolved`,
+bez wyboru detektora. Poniższy raport i manifest zachowują wynik oraz status
+z chwili ukończenia próby; przygotowanie 20 pozostaje nierozpoczęte.
+
 Data: **2026-10-31**. Kontynuacja [porównania kandydatów baz](basis-candidates-trial.md),
 wykonana na bezpośrednie polecenie użytkownika.
 

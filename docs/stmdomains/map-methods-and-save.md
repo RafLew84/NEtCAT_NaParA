@@ -15,8 +15,15 @@ Ustalenia mają pozwolić rozwinąć odebrany szkielet STM Domains.
 
 ## Notes
 
-**Aktualna decyzja użytkownika (podtrzymana 2026-10-31): pozostajemy przy 19; 20
-odłożone.** Wykonano [audyt wektorów i odmów](vector-refusal-audit.md),
+**Aktualna decyzja użytkownika — 2026-10-31: kończymy serię analiz 19.**
+[Podsumowanie i rozstrzygnięcie](issues/19-frozen-feature-domains.md): **19
+`resolved`**, bez wyboru detektora do aplikacji. Zachowujemy wyniki i użyteczne
+składniki jako punkty odniesienia. Protokół jakości 04, odbiór 13 i ta mapa
+pozostają otwarte. Następny zaplanowany krok badawczy to przygotowanie 20;
+pozostaje `open`, nierozpoczęte. Zamknięcie 19 nie uruchamia treningu.
+
+Historia zakończonej serii: wcześniej użytkownik wybrał pozostanie w 19
+oraz odłożył 20. Wykonano [audyt wektorów i odmów](vector-refusal-audit.md),
 a następnie [ocenę rodziny przesunięć](translation-family-trial.md).
 Zależność oceny od równoważnej bazy usunięta, bez ogólnej poprawy domen.
 Następnie wykonano [tolerancję pozycji i osobną fazę](tolerant-fit-phase-trial.md):
@@ -40,9 +47,8 @@ brakach; model dwóch pozycji poprawia geometrię par, ale dodaje błędne
 akceptacje niezależnych rzędów. TTMAPP przy wspólnym progu: te same
 7 otoczeń dla całego pierścienia i 5 dla nowych rzędów przy jednej
 pozycji i rozszerzonym motywie. Nie spełniono kryterium całej próby.
-Do omówienia zachowanie wyników i przejście do przygotowania treningu;
-20 nadal odłożone, sygnał materiału pozostaje osobny.
-Nie zamykamy 19 ani nie wybieramy metody do aplikacji.
+Po tej próbie użytkownik zakończył serię 19 i zachowujemy jej wyniki.
+Sygnał materiału pozostaje osobny; nie wybrano metody do aplikacji.
 
 Zwykły tok tego etapu następuje po odbiorze działającego szkieletu z
 [pierwszej mapy](map.md), zgodnie z decyzją użytkownika z 2026-10-16.
@@ -188,7 +194,15 @@ nie zamknięto przez samo dodanie go do mapy.
 
 ## Decisions so far
 
-- [Czy gotowe cechy sieci pomagają znaleźć domeny?](issues/19-frozen-feature-domains.md): [próba wykonana](frozen-feature-domains-trial.md), **`claimed` do dalszego omówienia/rozwinięcia na życzenie użytkownika**. [Diagnoza cech/PCA](feature-separation-trial.md) wykazała rozróżnialność syntetycznych orientacji/rozstawu, lecz pełne cechy i epsilon=0 nie naprawiły podziału. Następnie wykonano [lokalny graf i przesunięcie siatki](local-feature-graph-trial.md): mniej części scaleń kosztem podziałów jednej sieci, zależność od siatki, 0/32 zakwalifikowanych konfiguracji. Wykonana później [skala/podparcie ACF](acf-scale-support-trial.md) odzyskuje fragmenty RED/YELLOW, ale większe okna łączą rozłączne płaty; 0/512 nowych konfiguracji detektora spełnia komplet warunków. [Ablacja drugiego kierunku](second-direction-trial.md), także na 63 nowych kontrolach, odzyskuje słabsze spójne rzędy kosztem przyjmowania losowych faz między rzędami; krzywizna ACF nie rozwiązuje problemu, 0/384 zmienionych konfiguracji spełnia komplet warunków. [Zgodność przesunięć i lokalny sygnał](translation-consistency-trial.md) na 372 obrazach pomaga na słabszych syntetycznych sieciach, lecz odrzuca wnętrza TTMAPP; małe lokalne okno odrzuca poprawne miejsca między molekułami, 0/256 zmienionych konfiguracji spełnia komplet warunków. [Audyt odmów](vector-refusal-audit.md) na 78 znanych obrazach wskazuje kryterium zgodności i jego zależność od bazy: podmiana wektorów na geometryczne daje 17 miejsc, ale nadal 0/1678 przypisań TTMAPP. Użytkownik wybrał dalszą pracę w 19; 20 odłożone. [Rodzinę przesunięć](translation-family-trial.md) zbadano na 165 obrazach (42 nowe syntetyki): ocena niezależna od bazy, lecz agregacje obrazu nadal dają zero przypisań TTMAPP. Zgodność centrów odzyskuje do 17.6%, tylko BLACK, przy błędach granic i niezależnych rzędów. [Tolerancję pozycji i fazę](tolerant-fit-phase-trial.md) wykonano na 210 obrazach: częściowa korzyść dla małego jitteru/braków centrów, lecz korekta pochłania granicę, a faza pozostawia mostki. TTMAPP najwyżej 125/1678; brak poprawy ogólnej. [Rozłączne modele i materiał](disjoint-models-material-trial.md) zbadano na 261 obrazach: prosta granica 3 px rozdzielona przy centrach, szeroka przerwa odróżniona od samych braków oznaczeń. TTMAPP bez kwalifikowanych jakościowo porównań, granice ukośne i szum nadal problematyczne. [Diagnostyka jakości](fit-quality-diagnosis.md) na 97 obrazach ujawnia alias okresu po podziale i niedostatek niezależnych rzędów; nowe uwzględnienie tolerancji/liczebności nie daje ogólnej poprawy. [Kandydaci baz i nowe powtórzenia](basis-candidates-trial.md) naprawiają 9/9 celowanych aliasów R64, lecz nie poprawiają TTMAPP przy wspólnym progu. Do omówienia zgodność motywu i kompletność oznaczeń. Nie wybrano metody.
+- [Czy gotowe cechy sieci pomagają znaleźć domeny?](issues/19-frozen-feature-domains.md):
+  **`resolved` — seria zakończona na polecenie użytkownika 2026-10-31**.
+  Badane konfiguracje FCN/DINO i dalsza diagnostyka nie dały kompletnej
+  metody TTMAPP. Zachowujemy porównania baz, tolerancję, fazę, rozdzielenie
+  regularności i obsadzenia oraz modele motywu jako składniki badawcze.
+  [Ostatnia próba](motif-completeness-trial.md) poprawia kontrolne braki/pary,
+  lecz dodaje błędy niezależnych rzędów i nie daje przewagi motywu na TTMAPP.
+  To wynik tego zakresu prób, nie dowód nieskuteczności całego ML.
+  Przygotowanie 20 pozostaje otwarte i nierozpoczęte.
 
 - [Jak przygotować cechy gotowych sieci bez treningu?](issues/18-frozen-feature-preparation.md): [przygotowanie zakończone](frozen-feature-preparation.md). FCN i DINOv2 działają z niezmienionymi wagami; geometria, cache i niezależność od referencji sprawdzone. Gotowe wejście techniczne do 19, bez oceny skuteczności domen.
 - [Czy otoczenie molekuł pozwala znaleźć domeny?](issues/15-local-neighborhood-domains.md): zakończono trzy porównania; użytkownik polecił przejść do 16. Lokalna komórka jest punktem odniesienia, bez przyjęcia metody; pozostają błędy trudnych granic i RED/YELLOW. [Raport orientacji i łączenia](orientation-and-joining-trial.md).

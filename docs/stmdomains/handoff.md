@@ -1,3 +1,34 @@
+# STM Domains — zamknięcie serii analiz 19
+
+Data: **2026-10-31**. Na wyraźne polecenie użytkownika podsumowano ustalenia
+w [tickecie 19](issues/19-frozen-feature-domains.md) i zmieniono jego status
+na **`resolved`**. Gałąź `domains/close-issue-19`, baza `c7cda73`, worktree
+`/tmp/netcat-stmdomains-close-19`. Commit dokumentacji w odpowiedzi końcowej;
+do `domains/start`, następnie integracja przez koordynatora.
+
+Zakończono serię badań FCN/DINO i dalszej diagnostyki, bez przyjęcia detektora.
+Zachowano wnioski o reprezentacji, porządku, bazie/okresie, tolerancji,
+fazie/granicach, kompletności oznaczeń, motywie oraz obecności materiału.
+Sprawdzone składniki i kontrole pozostają punktami odniesienia; nie dowodzą
+ogólnego wykrywania domen TTMAPP ani nieskuteczności całego ML.
+
+Zaktualizowano bieżący stan README, mapy, indeksu, przekazanie do 20 i odbioru
+13 oraz adnotację zamknięcia w ostatnim raporcie. Wcześniejsze raporty,
+manifesty i wpisy historyczne zachowano; stare statusy opisują chwilę próby.
+20 pozostaje `open`, nierozpoczęte, do osobnego podjęcia. Jakość 04,
+odbiór 13 i druga mapa pozostają otwarte. Nie uruchomiono kolejnych prób,
+treningu ani zmian aplikacji. Źródła ostatniej próby: `25b270e`, dokumentacja
+wyników: `c7cda73`; nie przenoszono kodu prototypu do programu.
+
+Sprawdzenia tej zmiany: zgodność podsumowania z raportami i niezależny
+przegląd wniosków, statusy/decyzje, lokalne odnośniki oraz `git diff --check`.
+Nie powtarzano obliczeń, testów kodu ani GUI: zmiana dotyczy wyłącznie
+zamknięcia dokumentacyjnego. Wyniki wcześniejszych sprawdzeń pozostają
+w raportach prób. Nie są potrzebne zmiany wspólne; Viewer pozostaje
+w zakresie osobnej sesji.
+
+---
+
 # STM Domains — motyw i kompletność oznaczeń, issue 19
 
 Data: **2026-10-31**. Dokumentacja `domains/motif-completeness`, baza

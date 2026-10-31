@@ -74,12 +74,27 @@ w kroku 23; ich dostępność nie blokuje tego zadania.
 
 - [Jak przygotować wspólne wejście i kontrole bez narzucania domen?](14-unsupervised-input-and-controls.md)
 
-## Następne pytania
+## Stan po zamknięciu 19 — 2026-10-31
+
+Użytkownik zakończył [serię analiz 19](19-frozen-feature-domains.md).
+Niniejsze przygotowanie pozostaje **`open`, nierozpoczęte**, jako kolejny
+zaplanowany krok do osobnego podjęcia. Nie uruchomiono treningu ani prób GPU.
+
+Do protokołu przenosimy wnioski 19: ocenę cech/podziału i odmów oddzielnie,
+kontrole brakujących oznaczeń niezależne od rzeczywistego nieporządku,
+kontrole niezależnych rzędów i pustych przerw oraz jawny brak wystarczających
+powtórzeń. Porównania mają zachować wyniki klasyczne i zamrożonych sieci.
+Znane już kontrole są materiałem rozwojowym; nowe realizacje i ewentualne
+niezależne akwizycje służą późniejszej ocenie. Nie używamy ręcznych domen
+jako etykiet treningowych, wyboru checkpointu ani oczekiwanej liczby grup.
+
+## Wcześniejszy kontekst i następne pytania
 
 Po [próbach kryterium porządku 19](../translation-consistency-trial.md)
 (2026-10-28) proponowano przygotowanie 20. Użytkownik następnie wybrał
-pozostanie przy 19 i [audyt odmów](../vector-refusal-audit.md): **20 jest
-odłożone**, nie zostało wykonane. Do przyszłego protokołu porównania włączyć zapis
+pozostanie przy 19 i [audyt odmów](../vector-refusal-audit.md): **wtedy 20
+odłożono**. Tę serię 19 zakończono zgodnie z aktualnym stanem powyżej;
+przygotowanie 20 nie zostało wykonane. Do przyszłego protokołu porównania włączyć zapis
 reprezentacji/podziału przed bramką oraz odmów po bramce. Wykazano
 zarówno całkowite odrzucanie znanych wnętrz TTMAPP, jak i odrzucanie
 poprawnych miejsc siatki między molekułami. Nowego modelu nie oceniać
