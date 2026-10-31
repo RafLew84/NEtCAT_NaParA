@@ -9,6 +9,8 @@ from PyQt6.QtWidgets import (
     QScrollArea, QSizePolicy, QSpinBox, QToolButton, QVBoxLayout, QWidget,
 )
 
+from stmviewer.deep_ecc import HYBRID_METHOD, hybrid_unavailable_reason
+from stmviewer.ui.hybrid_details import deep_start_trial, hybrid_details_text
 from stmviewer.deep_matcher import DeepMatcherOptions, deep_unavailable_reason
 from stmviewer.frame import ImageFrame
 from stmviewer.manual_pair import ManualPairDraft
@@ -16,7 +18,7 @@ from stmviewer.manual_movie import movie_pair_trial
 from stmviewer.ui.manual_movie_controls import ManualMovieControls
 from stmviewer.ui.manual_pair_controls import ManualPairControls
 from stmviewer.pair_comparison import PairImages, PairTrial
-from stmviewer.registration import CPU_METHODS, REGISTRATION_METHODS, RegistrationResult, ShiftBackend, registration_unavailable_reason
+from stmviewer.registration import CPU_METHODS, DEEP_METHODS, REGISTRATION_METHODS, RegistrationResult, ShiftBackend, registration_unavailable_reason
 from stmviewer.ui.deep_matcher_controls import DeepMatcherControls
 from stmviewer.ui.pair_job import PairJob
 from stmviewer.ui.image_preview import ImagePreview
@@ -101,6 +103,20 @@ class PairComparisonDialog(QDialog):
         self._pin.clicked.connect(self._pin_trial)
         choices.addWidget(self._pin)
         choices.addWidget(self._saved_choice)
+        self._hybrid_stage = QComboBox(self)
+        self._hybrid_stage.setObjectName('pairHybridStage')
+        self._hybrid_stage.setAccessibleName('Etap wybranej próby Deep Matcher + ECC')
+        self._hybrid_stage.addItems(['Wynik po ECC', 'Start Deep tej próby'])
+        self._hybrid_stage.setToolTip('Oba przesunięcia pochodzą z jednego obliczenia. Zachowana próba pozostaje osobno.')
+        self._hybrid_stage.currentIndexChanged.connect(self._show_trial)
+        choices.addWidget(self._hybrid_stage)
+        self._hybrid_details = QLabel(self)
+        self._hybrid_details.setObjectName('pairHybridDetails')
+        self._hybrid_details.setWordWrap(True)
+        self._hybrid_details.setTextFormat(Qt.TextFormat.PlainText)
+        self._hybrid_details.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self._hybrid_details.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        choices.addWidget(self._hybrid_details)
         self._details_toggle = QToolButton(self)
         self._details_toggle.setObjectName('pairResultDetails')
         self._details_toggle.setText('Szczegóły wybranego wyniku')
@@ -317,12 +333,19 @@ class PairComparisonDialog(QDialog):
 
     def _sync(self) -> None:
         method = str(self._method.currentData())
-        self._deep.setVisible(method == 'deep_matcher_translation')
-        reason = (deep_unavailable_reason(self._deep.options()) if method == 'deep_matcher_translation'
+        self._deep.setVisible(method in DEEP_METHODS)
+        reason = (hybrid_unavailable_reason(self._deep.options()) if method == HYBRID_METHOD
+                  else deep_unavailable_reason(self._deep.options()) if method in DEEP_METHODS
                   else self._errors[method])
         self._availability.setText(reason or '')
         available = self._available and not self.busy
         editing = self._draft is not None
+        selected = self._selected_result()
+        hybrid = selected.hybrid if selected is not None else None
+        self._hybrid_stage.setVisible(hybrid is not None)
+        self._hybrid_stage.setEnabled(available and not editing)
+        self._hybrid_details.setVisible(hybrid is not None)
+        self._hybrid_details.setText(hybrid_details_text(hybrid) if hybrid else '')
         self._run.setEnabled(available and not editing and reason is None)
         self._cancel.setVisible(self.busy)
         self._pin.setEnabled(available and not editing and self._trial is not None)
@@ -433,6 +456,8 @@ class PairComparisonDialog(QDialog):
             self._message.setText(f'Niepowodzenie nowej próby: {job.error}\nPoprzedni wynik zachowany.')
         elif job.result is not None:
             self._trial = job.result
+            with QSignalBlocker(self._hybrid_stage):
+                self._hybrid_stage.setCurrentIndex(0)
             self._current_choice.setChecked(True)
             with QSignalBlocker(self._alignment):
                 self._alignment.setCurrentIndex(1)
@@ -452,8 +477,14 @@ class PairComparisonDialog(QDialog):
         self._message.setText('Wynik bieżący zachowano do porównania. Kolejne obliczenie lub korekta go nie zmieni.')
         self._show_trial()
 
-    def _selected_trial(self) -> PairTrial | None:
+    def _selected_result(self) -> PairTrial | None:
         return self._pinned if self._saved_choice.isChecked() else self._trial
+
+    def _selected_trial(self) -> PairTrial | None:
+        trial = self._selected_result()
+        if trial is not None and trial.hybrid is not None and self._hybrid_stage.currentIndex() == 1:
+            return deep_start_trial(trial)
+        return trial
 
     def _show_trial(self) -> None:
         trial = self._selected_trial()

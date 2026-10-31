@@ -15,9 +15,11 @@ from stmviewer.avi_raster import MoviePresentation
 from stmviewer.ui.avi_export_controls import AviExportControls
 from stmviewer.mpp_metadata import mpp_sidecar_path
 from stmviewer.registration import (
-    CPU_METHODS, REGISTRATION_METHODS, RegistrationResult, ShiftBackend, registration_unavailable_reason,
+    CPU_METHODS, DEEP_METHODS, REGISTRATION_METHODS, RegistrationResult, ShiftBackend, registration_unavailable_reason,
 )
 from stmviewer.deep_matcher import deep_unavailable_reason
+from stmviewer.deep_ecc import HYBRID_METHOD, HYBRID_LABEL, hybrid_unavailable_reason
+from stmviewer.ui.hybrid_details import hybrid_details_text
 from stmviewer.ui.deep_matcher_controls import DeepMatcherControls
 from stmviewer.ui.registration_job import RegistrationJob
 from stmviewer.ui.manual_movie_job import ManualMovieJob
@@ -742,13 +744,15 @@ class STMViewerMainWindow(QMainWindow):
 
     def _selected_method_error(self) -> str | None:
         key = str(self._method.currentData())
-        if key == 'deep_matcher_translation':
+        if key == HYBRID_METHOD:
+            return self._method_errors['phase_correlation'] or hybrid_unavailable_reason(self._deep_controls.options())
+        if key in DEEP_METHODS:
             reason = self._method_errors['phase_correlation'] or deep_unavailable_reason(self._deep_controls.options())
             return f'Deep Matcher niedostępny: {reason}' if reason else None
         return self._method_errors[key]
 
     def _change_registration_method(self) -> None:
-        self._deep_controls.setVisible(self._method.currentData() == 'deep_matcher_translation')
+        self._deep_controls.setVisible(self._method.currentData() in DEEP_METHODS)
         reason = self._selected_method_error()
         self._method_availability.setText(reason or "")
         self._method_availability.setVisible(reason is not None)
@@ -814,7 +818,7 @@ class STMViewerMainWindow(QMainWindow):
             if not job.was_cancelled() and not self._closing:
                 if job.error is not None:
                     self._show_registration_error(job.error)
-                    if isinstance(job, RegistrationJob) and self._method.currentData() == 'deep_matcher_translation':
+                    if isinstance(job, RegistrationJob) and self._method.currentData() in DEEP_METHODS:
                         self._deep_controls.set_status(f'Niepowodzenie próby: {job.error}')
                 elif job.checked_device is not None:
                     self._deep_controls.set_status(f'Sprawdzono model. Urządzenie: {job.checked_device}')
@@ -827,7 +831,7 @@ class STMViewerMainWindow(QMainWindow):
                     if self._pair_dialog is not None:
                         self._pair_dialog.set_registration(
                             job.result, applied_trial=job.trial if isinstance(job, ManualMovieJob) else None)
-                    if job.result.method == 'Deep Matcher':
+                    if job.result.method in ('Deep Matcher', HYBRID_LABEL):
                         self._deep_controls.set_status(f'Sprawdzono model. Urządzenie: {job.result.device}')
                     self._strip.set_warnings(tuple(
                         (("Do sprawdzenia: pewność niezweryfikowana"
@@ -890,4 +894,14 @@ class STMViewerMainWindow(QMainWindow):
                if result.corrections else "")
             +             f"ΔX: {current.shift_xy[0]:g} px · ΔY: {current.shift_xy[1]:g} px\n"
             f"Aligned: {width} × {height} px\nSkala aligned: {scale}\nOdniesienie: {origin}"
+            + self._hybrid_frame_info(result)
         )
+
+    def _hybrid_frame_info(self, result: RegistrationResult) -> str:
+        if not result.pair_diagnostics:
+            return ''
+        details = result.pair_diagnostics[self._index]
+        if details is None:
+            return '\nHybryda: pierwsza klatka jest odniesieniem; nie wymaga estymacji pary.'
+        return ('\nAutomatyczna estymata pary (przed ręcznymi korektami i usuwaniem):\n'
+                + hybrid_details_text(details) + '\n' + details.settings_text)

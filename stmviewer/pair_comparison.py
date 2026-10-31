@@ -8,6 +8,7 @@ from numpy.typing import NDArray
 
 from stmviewer.frame import ImageFrame
 from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
+from stmviewer.deep_ecc import HYBRID_METHOD, HybridDiagnostics, DeepEccBackend, load_deep_ecc_backend
 from stmviewer.registration import (
     FrameOrigin, REGISTRATION_METHODS, RegistrationCancelled, RegistrationError,
     ShiftBackend, create_shift_backend, estimate_confidence,
@@ -37,6 +38,7 @@ class PairTrial:
     quality_score: float | None
     manual: ManualProvenance | None = None
     movie_revision: str | None = None
+    hybrid: HybridDiagnostics | None = None
 
 
 def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
@@ -60,12 +62,23 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
     if method not in REGISTRATION_METHODS:
         raise RegistrationError(f'Nieznana metoda rejestracji: {method}')
     label = REGISTRATION_METHODS[method]
-    _check_shape(reference, moving)
+    pair_label = _source_pair_label(reference, moving)
+    try:
+        _check_shape(reference, moving)
+    except RegistrationError as error:
+        if method == HYBRID_METHOD:
+            raise RegistrationError(f'{pair_label} — Deep Matcher (wejście): {error}') from error
+        raise
     if not np.isfinite(reference.data).all() or not np.isfinite(moving.data).all():
-        raise RegistrationError(f'{label}: para wymaga skończonych próbek; wejście zawiera NaN/Inf.')
+        prefix = f'{pair_label} — Deep Matcher (wejście)' if method == HYBRID_METHOD else label
+        raise RegistrationError(f'{prefix}: para wymaga skończonych próbek; wejście zawiera NaN/Inf.')
     device = 'CPU'
     settings = 'Oryginały; ustawienia NanoTrack'
-    if method == 'deep_matcher_translation':
+    if method == HYBRID_METHOD:
+        hybrid = load_deep_ecc_backend(deep_options or DeepMatcherOptions(), cancelled=cancelled,
+                                       progress=report, pair_label=pair_label)
+        backend, device, settings = hybrid, hybrid.device, hybrid.settings_text
+    elif method == 'deep_matcher_translation':
         options = deep_options or DeepMatcherOptions()
         loaded = load_deep_backend(options, cancelled=cancelled, progress=report)
         backend, device = loaded.backend, loaded.device
@@ -98,8 +111,14 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
         FrameOrigin(reference.source, reference.source_frame_index),
         FrameOrigin(moving.source, moving.source_frame_index),
         method, label, settings, device, (float(result.shift_xy[0]), float(result.shift_xy[1])),
-        status, quality,
+        status, quality, hybrid=backend.last_diagnostics if isinstance(backend, DeepEccBackend) else None,
     )
+
+
+def _source_pair_label(reference: ImageFrame, moving: ImageFrame) -> str:
+    if reference.source_frame_index is not None and moving.source_frame_index is not None:
+        return f'Para {reference.source_frame_index + 1} → {moving.source_frame_index + 1} (numery źródłowe)'
+    return f'Para {reference.source.name} → {moving.source.name}'
 
 
 def _check_shape(reference: ImageFrame, moving: ImageFrame) -> None:

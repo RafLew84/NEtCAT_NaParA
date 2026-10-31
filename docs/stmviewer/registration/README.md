@@ -9,8 +9,8 @@ Deep Matcher ocenia najlepiej w obejrzanych pierwszych 100 klatkach.
 [Instrukcja REG-02](unnormalized-correlation-manual.md), [wyniki](reviews/REG-02.md).
 [REG-02a: ręczne korekty filmu](issues/02a-manual-movie-corrections.md) zamknięto
 jako `done` po potwierdzeniu użytkownika „testy manualne ok” 2026-10-31.
-Następnym etapem jest [REG-04: Deep Matcher + doprecyzowanie ECC](issues/04-multiscale-translation.md).
-Jego zależność REG-02a jest spełniona; start wymaga osobnego zlecenia.
+Trwa realizacja [REG-04: Deep Matcher + doprecyzowanie ECC](issues/04-multiscale-translation.md).
+Jego zależność REG-02a jest spełniona; użytkownik zlecił implementację 2026-10-31.
 [Instrukcja REG-02a](manual-movie-corrections-manual.md), [sprawdzenia](reviews/REG-02a.md).
 Dalsze próby MOVIE_4
 obejmują źródłowe klatki 3–364, zgodnie z [protokołem](manual-protocol.md).
@@ -29,7 +29,9 @@ następuje bezpośrednio po odebranym REG-02a.
 Deep Matcher → ECC dla tej samej sąsiedniej pary. ECC dostaje XY Deep jako
 start; porównujemy dokładny wynik początkowy z doprecyzowanym. Ten zakres
 zastępuje ogólną wieloskalowość, bez zewnętrznej piramidy i bez automatycznego
-uznawania wyniku ECC za lepszy. Na razie zmieniono ticket; implementacja czeka.
+uznawania wyniku ECC za lepszy. [Instrukcja odbioru](deep-ecc-manual.md)
+i [wyniki prób](deep-ecc-results.md) rozdzielają sprawdzenie funkcji od oceny
+jakości przez użytkownika.
 
 ## Cel i zakres
 
@@ -65,7 +67,7 @@ REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [instrukcja próby](pair-comparison-manual.md),
 [karta odbioru](reviews/REG-01.md). REG-01a ma status `done` po odbiorze
 użytkownika 2026-10-31. REG-02 i REG-02a również odebrano 2026-10-31 (`done`).
-REG-04–07 mają status `ready-for-agent`:
+REG-04 ma status `in-progress`; REG-05–07 mają status `ready-for-agent`:
 zakres jest przygotowany, ale start
 wymaga zlecenia użytkownika i zakończenia blokujących ticketów. REG-08/09 mają
 status `planned`; nie uruchamiamy ich automatycznie. Nie zależą od siebie.

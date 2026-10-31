@@ -58,7 +58,12 @@ Usunięto implementację i ten etap z planu. Następny jest
 zależny bezpośrednio od odebranego REG-02a. Numeracja dalszych ticketów pozostaje
 bez zmian. Użytkownik doprecyzował REG-04 jako porównanie Deep Matcher
 z ECC startującym od dokładnie tego wyniku Deep. Hybryda nie zakłada
-zewnętrznej piramidy; implementacja oczekuje na osobne zlecenie.
+zewnętrznej piramidy. Metoda **Deep Matcher + ECC (v1)** jest wdrażana w REG-04:
+para i cały film korzystają z tego samego przebiegu, a podgląd porównuje dokładny
+start Deep oraz wynik ECC bez ponownego obliczenia modelu. Dostępne są
+[instrukcja odbioru](registration/deep-ecc-manual.md) i
+[wyniki prób rzeczywistych](registration/deep-ecc-results.md).
+Odbiór wizualny użytkownika pozostaje wymagany przed REG-05.
 
 ## Stan aplikacji
 

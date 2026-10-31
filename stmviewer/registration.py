@@ -14,6 +14,9 @@ from numpy.typing import NDArray
 from stmviewer.frame import ImageFrame
 from stmviewer.manual_movie_types import MovieBaselineFrame, MovieCorrection, MovieSource
 from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
+from stmviewer.deep_ecc import (
+    HYBRID_METHOD, HYBRID_LABEL, HybridDiagnostics, DeepEccBackend, load_deep_ecc_backend,
+)
 
 
 CPU_METHODS = {
@@ -25,7 +28,8 @@ CPU_METHODS = {
 }
 
 
-REGISTRATION_METHODS = {**CPU_METHODS, "deep_matcher_translation": "Deep Matcher"}
+DEEP_METHODS = ("deep_matcher_translation", HYBRID_METHOD)
+REGISTRATION_METHODS = {**CPU_METHODS, "deep_matcher_translation": "Deep Matcher", HYBRID_METHOD: HYBRID_LABEL}
 
 
 @dataclass(frozen=True)
@@ -66,6 +70,7 @@ class RegistrationResult:
     baseline: tuple[MovieBaselineFrame, ...] = ()
     corrections: tuple[MovieCorrection, ...] = ()
     corrections_editable: bool = True
+    pair_diagnostics: tuple[HybridDiagnostics | None, ...] = ()
 
     def without_frame(self, index: int) -> 'RegistrationResult | None':
         """Retain historical coordinates and the exact surviving samples."""
@@ -73,8 +78,10 @@ class RegistrationResult:
             raise IndexError(index)
         frames = self.frames[:index] + self.frames[index + 1:]
         # Retain lightweight history, including source pairs removed from the movie.
+        diagnostics = (self.pair_diagnostics[:index] + self.pair_diagnostics[index + 1:]
+                       if self.pair_diagnostics else ())
         return replace(self, frames=frames, corrections_editable=False,
-                       revision=uuid4().hex) if frames else None
+                       pair_diagnostics=diagnostics, revision=uuid4().hex) if frames else None
 
 
 class RegistrationError(ValueError):
@@ -113,17 +120,27 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
         raise RegistrationError("Seria jest pusta.")
     for i, frame in enumerate(frames):
         checkpoint()
+        prefix = (f"Para {max(i, 1)} → {max(i, 1) + 1} — Deep Matcher (wejście), klatka {i + 1}"
+                  if method == HYBRID_METHOD and len(frames) > 1 else f"Klatka {i + 1}")
         if frame.data.ndim != 2 or min(frame.data.shape) < 1 or frame.data.shape != frames[0].data.shape:
-            raise RegistrationError(f"Klatka {i + 1}: niezgodne lub puste wymiary obrazu.")
+            raise RegistrationError(f"{prefix}: niezgodne lub puste wymiary obrazu.")
         if not np.isfinite(frame.data).all():
-            raise RegistrationError(f"Klatka {i + 1}: {label} wymaga skończonych próbek; wejście zawiera NaN/Inf.")
+            raise RegistrationError(f"{prefix}: {label} wymaga skończonych próbek; wejście zawiera NaN/Inf.")
     device = 'CPU'
-    if method == 'deep_matcher_translation':
+    completed_pairs = 0
+    if method == HYBRID_METHOD:
+        hybrid = load_deep_ecc_backend(
+            deep_options or DeepMatcherOptions(),
+            progress=lambda text: report(completed_pairs, text), cancelled=cancelled,
+        )
+        backend, device = hybrid, hybrid.device
+    elif method == 'deep_matcher_translation':
         loaded = load_deep_backend(deep_options or DeepMatcherOptions(),
                                    progress=lambda text: report(0, text), cancelled=cancelled)
         backend, device = loaded.backend, loaded.device
     else:
         backend = backend if backend is not None else create_shift_backend(method)
+    diagnostics: list[HybridDiagnostics | None] = [None]
     shifts = [(0.0, 0.0)]
     statuses = ['ok']
     qualities: list[float | None] = [1.0]
@@ -146,6 +163,8 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
             if 'too little texture' in reason:
                 reason = f'za mało tekstury do rejestracji {label}'
             raise RegistrationError(f"Para {i} → {i + 1}: {reason}") from error
+        diagnostics.append(backend.last_diagnostics if isinstance(backend, DeepEccBackend) else None)
+        completed_pairs = i
         shifts.append((shifts[-1][0] + float(pair.shift_xy[0]),
                        shifts[-1][1] + float(pair.shift_xy[1])))
         checkpoint()
@@ -156,13 +175,14 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
                          else min(previous_quality, pair_quality))
         statuses.append(max(statuses[-1], pair_status, key=severity.__getitem__))
         report(i + 1, f"{label}: para {i} → {i + 1}")
-    return render_registration(
+    rendered = render_registration(
         frames, tuple(shifts), tuple(statuses), tuple(qualities),
         tuple(i > 0 and statuses[i - 1] != 'ok' for i in range(len(frames))),
         reference=FrameOrigin(frames[0].source, frames[0].source_frame_index),
         method=label, device=device, cancelled=cancelled,
         progress=lambda done, total, text: report(len(frames) + done, text),
     )
+    return replace(rendered, pair_diagnostics=tuple(diagnostics) if method == HYBRID_METHOD else ())
 
 
 def render_registration(
@@ -280,7 +300,7 @@ def create_shift_backend(method: str) -> ShiftBackend:
 
 def estimate_confidence(method: str, result: RegistrationFrameResult) -> tuple[str, float | None]:
     """Do not reuse the phase-peak score for an unnormalized estimate."""
-    if method == 'phase_no_normalization':
+    if method in ('phase_no_normalization', HYBRID_METHOD):
         return 'manual_review', None
     quality = float(result.quality_score)
     if not np.isfinite(quality) or not 0 <= quality <= 1:
