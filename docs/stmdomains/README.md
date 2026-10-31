@@ -258,9 +258,16 @@ Granice ukośne, lokalny szum i jakość TTMAPP pozostają nierozwiązane;
 zero porównań TTMAPP osiąga próg jakości. Podgląd
 `.scratch/disjoint-models-material/index.html`; 25056 wyników odtworzonych
 bez referencji, 212 kontroli HTML.
-**19 nadal `claimed`; 20 odłożone.** Do omówienia wiarygodność dopasowania
-przy błędach pozycji i lokalnego sygnału. Następnego badania ani treningu
-nie uruchomiono; nie przyjęto metody do aplikacji.
+2026-10-31 wykonano [diagnostykę jakości dopasowania](fit-quality-diagnosis.md):
+97 obrazów, 54 nowe kontrole, 68184 oceny. Wysoki próg wynikał z kilku
+niezależnych rzędów wspólnych dla treningu i oceny. Naprzemienny podział
+potrafi sugerować podwojony okres nawet idealnej sieci. Nowa ocena
+tolerancji/liczebności nie daje ogólnej poprawy; bardziej złożony motyw
+ujawnia kolejne ograniczenie pojedynczej sieci. Podgląd
+`.scratch/fit-quality-diagnosis/index.html`; 272736 decyzji odtworzonych
+bez referencji. **19 nadal `claimed`; 20 odłożone.** Do omówienia propozycje
+baz i sprawdzanie nowych powtórzeń w obu kierunkach. Kolejnej próby ani
+treningu nie uruchomiono; nie przyjęto metody do aplikacji.
 
 
 ## Dwa etapy

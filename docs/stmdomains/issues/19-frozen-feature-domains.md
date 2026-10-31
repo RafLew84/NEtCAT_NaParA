@@ -444,4 +444,38 @@ i **25056 wyników** odtworzonych bez dostępu do referencji. 212 kontroli HTML.
 **19 nadal `claimed`, do omówienia; 20 odłożone.** Kolejne pytania dotyczą
 jakości dopasowania przy błędach pozycji, kierunku/położenia granicy oraz
 lokalnego szumu. Brak dowodu pozostaje osobnym stanem, a nie automatyczną
-granicą lub potwierdzeniem jednej domeny. Następnego badania nie uruchomiono.
+granicą lub potwierdzeniem jednej domeny. Kolejną próbę wykonano poniżej.
+
+
+## Rozwinięcie — 2026-10-31: diagnostyka jakości dopasowania
+
+Wykonano [diagnozę tolerancji, podziałów i propozycji baz](../fit-quality-diagnosis.md):
+97 obrazów, 68184 oceny otoczeń, 54 nowe syntetyki. Progi na 19 unikalnych
+geometriach wcześniejszych negatywów; TTMAPP i referencje nie służą kalibracji.
+Zmienna sigma jest z góry zadanym scenariuszem, nie błędem oszacowanym z reszt.
+
+Wszystkie 600 wcześniejszych wysokich ocen negatywów pochodziło z 2–3
+niezależnych rzędów, które były wspólne dla dopasowania i oceny. Ponadto
+naprzemienny podział sugeruje podwojony okres: przy r48 **83/184** dostępne
+okna idealnej sieci mają Q<.5, choć prawdziwa baza startowa daje Q>.9.
+Bloki góra/dół usuwają ten konkretny problem czystej kontroli; nie stanowi
+to uniwersalnego wyboru osi. Kontrola dwupunktowego motywu ujawnia osobne
+ograniczenie klasy modelu. Nie dowodzi występowania tego motywu w TTMAPP.
+
+Nowa ocena Z uwzględniająca zadaną tolerancję i liczebność nie daje ogólnej
+poprawy; na jitterze 1.2 px nadal zero przyjętych okien r48. TTMAPP w
+znanych wnętrzach ma mniejszy błąd niż w otoczeniach mieszanych, lecz
+zmniejszenie okna ogranicza dostępność. Prosty ruch do ekstremów obrazu
+nie poprawia błędu względem zachowanego modelu. To diagnoza, nie detektor.
+
+Źródła `prototype/stmdomains-fit-quality`, commit w
+[manifeście](../fit-quality-diagnosis-manifest.json). Podgląd
+`.scratch/fit-quality-diagnosis/index.html`, 42 obrazy, 5 scenariuszy.
+97 pomiarów i **272736 decyzji** odtworzono z blokadą referencji;
+23 sprawdzenia liczbowe, niezależny audyt i kontrole przeglądarki.
+
+**19 pozostaje `claimed`, do omówienia; 20 odłożone.** Następna propozycja:
+kilka kandydatów bazy, odróżnianie okresu od wielokrotności oraz ocena na
+nowych powtórzeniach w obu kierunkach, z osobnym sprawdzeniem złożoności
+motywu. Sygnał materiału pozostaje oddzielny. Następnej próby nie rozpoczęto
+ani nie przyjęto metody do programu.

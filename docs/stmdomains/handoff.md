@@ -1,4 +1,55 @@
-# STM Domains — rozłączne modele i osobne podparcie materiału, issue 19
+# STM Domains — diagnostyka jakości dopasowania, issue 19
+
+Data: **2026-10-31**. Dokumentacja `domains/fit-quality-diagnosis`, baza
+`2a962df`, worktree `/tmp/netcat-stmdomains-fit-quality`. Źródła:
+**`prototype/stmdomains-fit-quality`, `481194a`**, baza `946cfb4`. Prototyp
+pozostaje osobno, nie scalać go do aplikacji. Dokumentacja do `domains/start`;
+końcowy commit w odpowiedzi użytkownika. Integrację do `stm-next` prowadzi
+koordynator. Nie zmieniono Viewer, produkcji lub wspólnych modułów.
+
+Na polecenie użytkownika wykonano [diagnozę jakości](fit-quality-diagnosis.md),
+[manifest](fit-quality-diagnosis-manifest.json). Podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/fit-quality-diagnosis/index.html`.
+97 obrazów: 19 unikalnych geometrii negatywnych, 24 pełne TTMAPP, 54 nowe
+syntetyki; 68184 oceny otoczeń i cztery kryteria. Ramki tylko do późniejszej
+oceny. Tolerancje zadane przed próbą, nie estymowane z błędów modelu.
+
+Wykazano dwie przyczyny: poprzedni wysoki próg wynikał z 2–3 niezależnych
+rzędów wspólnych dla treningu i testu; naprzemienny podział proponuje czasem
+podwojony okres. W idealnej sieci r48 dotyczy 83/184 dostępnych okien
+z Q<.5, które mają Q>.9 po podaniu prawdziwej bazy startowej. Dwupunktowy
+motyw ujawnia osobne ograniczenie pojedynczej sieci. Nowa statystyka
+uwzględniająca tolerancję/liczebność nie daje ogólnej poprawy. TTMAPP
+pozostaje nierozstrzygnięte; prosty ruch do ekstremum nie poprawia błędu
+względem zachowanego modelu. Nie wybrano metody do aplikacji.
+
+**19 nadal `claimed`, do omówienia; 20 odłożone.** Następna propozycja:
+kilka kandydatów bazy, odróżnianie okresu od wielokrotności, ocena na nowych
+powtórzeniach obu kierunków; osobne sprawdzenie złożoności motywu. Materiał
+i szum pozostają osobnym wątkiem. Następnej próby ani treningu nie rozpoczęto.
+
+Sprawdzenia: 23 kontrole liczbowe, 54 odtworzenia generatora; niezależny
+audyt wykrył niezamierzoną przerwę w syntetyku 30°, poprawiono generator
+i powtórzono świeże pomiary bez zmiany progów. **97 pomiarów / 68184 ocen /
+272736 decyzji** identycznych w odtworzeniu z blokadą referencji.
+Niezależnie: 30000 porównań najbliższego węzła, 24 inwarianty, całkowanie
+16²→64² na 218 oknach bez zmiany decyzji. **108 kontroli QtWebEngine**,
+42 obrazy, bez błędów JS; screenshot i wykres obejrzane. Python/Bash
+sprawdzone składniowo, wrapper wykonany etapami. To kontrola raportu
+badawczego, nie odbiór produkcyjnego GUI.
+
+CPU, 4 procesy po 1 wątku: kalibracja 4.24 s, TTMAPP 7.18 s, syntetyki 10.21 s,
+odtworzenie 20.74 s. Maksymalny RSS procesu 118808 KiB, nie łączny szczyt.
+Bez GPU lub nowych zależności. Mała liczba niezależnych geometrii i 48/108
+brakujących komórek kalibracji ograniczają wnioski. Okna się nakładają;
+Z nie jest p-value, sigma nie jest zmierzoną niepewnością TTMAPP. Nie
+porównywać odsetków okien z poprzednimi przypisaniami molekuł. Lokalny
+HTML/CSV/wykresy samodzielne; odtworzenie wymaga poprzednich artefaktów.
+Kopia zweryfikowana w `copy-verification.json`. Brak potrzeb zmian wspólnych.
+
+---
+
+## Poprzednie przekazanie — rozłączne modele i materiał
 
 Data: **2026-10-28**. Dokumentacja `domains/disjoint-models-material`, baza
 `49badd7`, worktree `/tmp/netcat-stmdomains-disjoint-models-material`.

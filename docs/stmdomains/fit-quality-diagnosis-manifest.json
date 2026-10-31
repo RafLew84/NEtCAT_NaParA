@@ -1,0 +1,167 @@
+{
+  "date": "2026-10-31",
+  "prototype_branch": "prototype/stmdomains-fit-quality",
+  "prototype_commit": "481194a486a099711972c9d2f882f28feed7b173",
+  "parent": "946cfb4aa6962ac382028aacb1e7944aa2fd9d75",
+  "input_previous": "/home/rlew/projekty/NEtCAT-domains/.scratch/disjoint-models-material",
+  "destination": "/home/rlew/projekty/NEtCAT-domains/.scratch/fit-quality-diagnosis",
+  "protocol": {
+    "question": "Czy odrzucenie TTMAPP wynika z tolerancji pozycji, mieszania otoczeń czy ograniczenia pojedynczej sieci? Próba diagnostyczna, nie detektor domen.",
+    "radii": [
+      24,
+      36,
+      48
+    ],
+    "grid_step": 24,
+    "splits": [
+      "interleaved",
+      "blocked_x",
+      "blocked_y"
+    ],
+    "sigmas": [
+      0.6,
+      1.2,
+      2.0
+    ],
+    "minimum_train_test": 6,
+    "null_phase_grid": 16,
+    "null_mean_max": 0.75,
+    "calibration": "99th percentile on previous negative geometries, deduplicated by sorted centers and image shape; each radius/split/test-count bin separately, at least 100 available windows. No probability guarantee. Unknown when absent calibration. No TTMAPP truth.",
+    "count_bins": [
+      [
+        6,
+        11
+      ],
+      [
+        12,
+        19
+      ],
+      [
+        20,
+        100000
+      ]
+    ],
+    "fresh_seeds": [
+      9101,
+      9102,
+      9103
+    ],
+    "fresh_cases": [
+      "clean",
+      "jitter06",
+      "jitter12",
+      "jitter20",
+      "missing30",
+      "missing60",
+      "jitter06_missing30",
+      "jitter12_missing30",
+      "spacing10_missing30",
+      "spacing14_missing30",
+      "annotation_jitter12",
+      "motif",
+      "rotation8",
+      "rotation30",
+      "phase3",
+      "rows",
+      "random",
+      "gap36"
+    ],
+    "matching": "TTMAPP unlabeled NN median 12.15 px, 10th/90th 10.83/14.06; radius48 counts 18/32/42 at 10th/50th/90th percentile. Synthetic spacing12 with missing30 plus spacing10/14 and missing60 bracket this; not measured annotation uncertainty.",
+    "comparison": "Q = minimum fold mean exp(-d^2/8), versus min-fold contrast Z against uniform phase in fitted lattice cell. Sigma externally preset, predictive inflation from training-design leverage only. No sigma estimated from fitted residuals. Thresholds calibrated independently for each fixed variant; never pick best variant on references.",
+    "limits": "Lattice basis proposed on training centers only, same capped affine refinement as previous. Leverage conditional on chosen basis/indices, not full model uncertainty. Z is not a p value: molecules correlated. Full windows, not four side-fold edge minima; old .966883 shown for context only. No material inference or new domain labels.",
+    "evaluation": "Lock all measurements/settings before reference read; reference-pure means >=80% centers known in one same region, mixed means >=20% in each of two known regions. Unknown otherwise. Partial labels only. Boundary/motif controls and oracle bases are evaluation-only. Image peak displacements within3px independent of lattice are descriptive, not annotation-error ground truth."
+  },
+  "evaluation": {
+    "images": 97,
+    "windows": 68184,
+    "measurement_frames": 24,
+    "measurement_windows": 26136,
+    "pure_windows": 2157,
+    "mixed_windows": 501,
+    "reference_sha256": "b2f496fc3100ea3cf038840e2cd48bbcb1e14a5caa09fb325bc65e2993119719",
+    "no_reference_in_inference": true,
+    "oracle_is_diagnostic_only": true
+  },
+  "settings_sha256": "e94ae4def417d7c4c036b5be8135577657b8cf624313236ac8b963cc29270c68",
+  "measurement_lock_sha256": "59cfa2e87ddb65a9815561167eb1631d24c70d459982310f881c413673833022",
+  "review": {
+    "frames": 42,
+    "windows": 36504,
+    "measurement_frames": 24,
+    "fresh_cases": 18,
+    "reference_optional": true
+  },
+  "verification": {
+    "numerical-verification.json": {
+      "checks": 23,
+      "oracle_perfect_lattice": true,
+      "global_translation_and_permutation": true,
+      "train_only_proposals_and_fits": true,
+      "rotation_full_coverage": true,
+      "paired_annotation_vs_physical_jitter": true
+    },
+    "browser-verification.json": {
+      "browser": "QtWebEngine offscreen",
+      "errors": [],
+      "passed": true,
+      "inspect_only": true,
+      "checks": 108
+    }
+  },
+  "blind_replay": {
+    "images": 97,
+    "windows": 68184,
+    "decisions": 272736,
+    "all_arrays_identical": true,
+    "truth_reads_blocked": true,
+    "seconds": 20.742661761003546
+  },
+  "artifacts": {
+    "browser-preview.png": "b14190ebdfd93d9b5a224be1388ae9e6401668059d65b964934a340ca07298a4",
+    "calibrate-measurements.json": "821b80a04b816423a319dd91b9bc8efbf86e4312fb68d39f1f3349ae096c5275",
+    "summary.csv": "5bf429bac2cbe5510991329dc7a557b76349b354c8c3b51ac8d366094ff613ad",
+    "comparison.png": "b03de2df20bfb2ba5d5726d377bc92d2685e01593a39c0a3c95971841543ad96",
+    "selection.json": "ba15fa9bf9734ae5840b9d547125ca375a64ac725a954bb475e7fc8254d62137",
+    "measurement-measurements.json": "79a77a8619110e593eeb60cd4c5476efeb25f139a482e345f0dfe1845ade45f4",
+    "numerical-verification.json": "ed5e6de7d34874760b6bb8f06d2218ca0eb9bd6cfd80cb87c4c99a8bd560a213",
+    "settings.json": "e94ae4def417d7c4c036b5be8135577657b8cf624313236ac8b963cc29270c68",
+    "measurement-lock.json": "59cfa2e87ddb65a9815561167eb1631d24c70d459982310f881c413673833022",
+    "index.html": "db928ab77c6f7d00f5421c3bf376dd0824f493b82283a174ed8886f7c17f90aa",
+    "protocol.json": "ed4058b1f6e7a0cf127fcf680bc53e22956efb2a08d69ac897450ce753b39742",
+    "source.json": "a5305c4f03ba9e238d7aabfe75106d7d1d5ef685f9413c7a33708509d3bd35e4",
+    "audit-replay.log": "4354012bf0eb7a074cc526a7da34facc74d11fe20d3a58ec32da0d4ed36f8e0a",
+    "review-manifest.json": "89cadb7c3e899290cf62c2dc4bf0906ad21068f0e3b3387683ca7e0d7cf18aaa",
+    "comparison.pdf": "e00207c475f7e00797ad9c3eb2bbe1e5571ac6a1b012f41cbce016f9bf94014c",
+    "browser-verification.json": "814ead67ce1fe6b40ef558d682ae83a6ef2b0f1e831729848e4d81106ba56195",
+    "fresh-measurements.json": "8b95e4e2bb90edaf81e65dc9bcb1e89ba3b68176ed310edfe1988e8cdfd5ede4",
+    "blind-replay-verification.json": "e460ec68fcd9308bbd75a9e2279c3135577c3660cef5fef88b04c323da46291d",
+    "evaluation/manifest.json": "4b6fd900629fd2bd97f4645f9717f710f13f62acd737f540ef1ffad2ee4919ef",
+    "evaluation/summary.json": "4cb209aa54ef75a240c2b244a58215ec52061dca76aea0546c8d50842c6bc5bb",
+    "audit-replay/geometry-deduplication.json": "143985945d8cf172547f9f2c80f35a1e9b008dff9036e7d11d85efadad2d7f3a",
+    "independent-audit/new-code-review.md": "92b84bc448f925e4db9980ed2c479b772fba257022cf8da43a714f46ef891668",
+    "independent-audit/geometry-deduplication.json": "143985945d8cf172547f9f2c80f35a1e9b008dff9036e7d11d85efadad2d7f3a",
+    "fresh/evaluation/manifest.json": "33bc9d85eaabfb37661efdcf1d9a6c4853b52497d3559d5820ca63f88719ade3",
+    "fresh/analysis/manifest.json": "98e6f8ed946b196ab22e3e3d257f75c621cf5764a4c13bf214fd2d3a65ea2d3d"
+  },
+  "measurement_stages": {
+    "calibrate": {
+      "seconds": 4.235707589003141,
+      "max_worker_rss_kib": 116484
+    },
+    "measurement": {
+      "seconds": 7.182541832007701,
+      "max_worker_rss_kib": 118808
+    },
+    "fresh": {
+      "seconds": 10.21019791199069,
+      "max_worker_rss_kib": 117592
+    }
+  },
+  "copy_verification": {
+    "files": 247,
+    "bytes": 108012599,
+    "all_hashes_equal": true,
+    "previous_symlink": "../disjoint-models-material",
+    "manifest_sha256": "8a8bb6eea6bcc9ed64bddc08baf7d33ced70b8cf63035c5e916e481fd8e002b7"
+  }
+}
