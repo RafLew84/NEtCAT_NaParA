@@ -17,14 +17,31 @@ dodatkowe wzorce/generatory; użytkownik nie tworzy binarnego MPP ręcznie.
 
 | Dane | Stałe pary źródłowe, numerowane od 1 | Cel |
 | --- | --- | --- |
-| `data/MOVIE_4.mpp` | 1→2, 33→34, 120→121 | Początek i pary z rozbieżnymi estymatami w rozpoznaniu |
+| `data/MOVIE_4.mpp` po usunięciu źródłowych 1 i 2 | 3→4, 33→34, 120→121 | Początek właściwej serii i pary z rozbieżnymi estymatami |
 | `data/MOVIE_8.mpp` | 1→2, 16→17, 56→57 | Znany reproduktor, inny przebieg przesunięcia, trudna para |
 | `tests/stmviewer/fixtures/registration/cpu.mpp` | 1→2, 2→3 | Łatwy wzorzec, znane przesunięcia w różnych kierunkach |
 
+**Korekta wejścia MOVIE_4 — 2026-10-31:** użytkownik potwierdził, że pierwsze
+dwie klatki należą do późniejszej części eksperymentu i błędnie dołączono je do
+filmu. Po otwarciu MOVIE_4 usuń w aplikacji pierwszą klatkę, a następnie ponownie
+pierwszą, **przed rejestracją**. Zostają 362 klatki: źródłowe 3–364.
+Źródłowy MPP pozostaje bez zmian. Przy braku innych usunięć bieżąca pozycja i
+odpowiada źródłowej i+2; np. źródłowa para 33→34 jest bieżącą parą 31→32.
+Nowe Rejestruj wyznacza odniesienie na źródłowej klatce 3. Samo usunięcie klatek
+z gotowego aligned zachowuje jego dawną geometrię, więc nie zastępuje przeliczenia.
+
+Do porównań metod używaj identycznego składu serii. Historyczne wyniki pełnych
+364 klatek nie są bezpośrednią bazą poprawionej serii. Miejsca dodatkowej kontroli
+Deep Matcher wskazane przez użytkownika są w [karcie REG-02](reviews/REG-02.md#movie_4--obserwacje-użytkownika);
+użytkownik potwierdził numerację po usunięciu dwóch klatek. Pary źródłowe
+do dodatkowej kontroli: **31→32, 37→38, 46→47→48, 63→64, 96→97→98→99**.
+Oględziny pierwszych 100 obejmują źródłowe 3–102; granica bieżącej 150 to źródłowa 152.
+
 Kontrola wejść: SHA-256 MOVIE_4 i MOVIE_8 są w
 [raporcie rozpoznania](../registration-difficult-movies.md#dane).
-Dodatkowo para 2→3 MOVIE_4 dla Deep Matcher i MOVIE_8 dla ECC sprawdza
-zachowanie po znanym błędzie obecnych backendów; nowe metody nie muszą go powielać.
+Dodatkowo źródłowa para 2→3 MOVIE_8 dla ECC sprawdza zachowanie po znanym
+błędzie backendu; nowe metody nie muszą go powielać. Dawny przypadek Deep Matcher
+MOVIE_4 2→3 dotyczy błędnie dołączonej klatki i nie należy do poprawionej serii.
 Wyniki wzorca cpu: do nałożenia na kolejną klatkę względem poprzedniej
 (+2,−1) oraz (−3,+2); skumulowane względem pierwszej: (0,0), (+2,−1), (−1,+1).
 Opis i generator: [próba CPU](../cpu-registration-manual.md).

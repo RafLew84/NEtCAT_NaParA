@@ -2,7 +2,8 @@
 
 **What to build:** Użytkownik wskazuje prostokątne obszary do wykorzystania lub
 pominięcia i widzi wpływ masek na dopasowanie pary oraz całej serii.
-**Blocked by:** [REG-02](02-unnormalized-correlation.md), w tym odbiór manualny.
+**Blocked by:** [REG-02](02-unnormalized-correlation.md), w tym odbiór manualny — spełnione 2026-10-31.
+Implementacja czeka na osobne zlecenie użytkownika.
 **Status:** ready-for-agent
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 

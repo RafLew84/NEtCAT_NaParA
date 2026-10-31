@@ -103,7 +103,7 @@ Wynik przeglądu: Standards 0 uwag, Spec 0 uwag; brak problemu wymagającego pop
 - Decyzja: zamknąć REG-01 jako `done`.
 
 Potwierdzenie spełnia warunek ręcznego odbioru REG-01. Później dodany REG-01a
-został odebrany 2026-10-31; późniejszą implementację i oczekujący odbiór REG-02
+został odebrany 2026-10-31; późniejszą implementację i potwierdzony odbiór REG-02
 opisuje [jego karta](REG-02.md).
 Nie oznacza to końcowego odbioru obu platform. Aktualizacja wyłącznie
 dokumentacyjna: sprawdzono statusy, odnośniki i `git diff --check`, bez ponawiania

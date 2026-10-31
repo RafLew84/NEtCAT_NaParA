@@ -34,11 +34,14 @@ ustawia wynik bieżący; opcjonalne „Zachowaj do porównania” chroni jego ko
 przed kolejną zmianą. Odbiór obejmuje działające okno w układzie C.
 
 **[REG-02 — korelacja bez normalizacji](registration/issues/02-unnormalized-correlation.md)**
-ma status **ready-for-review** (2026-10-31). Metoda **Korelacja bez normalizacji (v1)**
+ma status **done** po odbiorze 2026-10-31. Metoda **Korelacja bez normalizacji (v1)**
 działa dla pary i całego filmu, z jawną informacją o niezweryfikowanej pewności.
 MPP zachowuje wersję metody, geometrię i brak oceny jakości; AVI korzysta z aligned.
 Domyślny Phase pozostaje bez zmian. [Instrukcja odbioru](registration/unnormalized-correlation-manual.md),
-[karta i przegląd](registration/reviews/REG-02.md). REG-03 czeka na ręczny odbiór.
+[karta i przegląd](registration/reviews/REG-02.md). REG-03 jest odblokowany.
+Użytkownik nie zauważył istotnej poprawy nowego wariantu względem Phase na MOVIE_4;
+Deep Matcher ocenił najlepiej w pierwszych 100 oglądanych klatkach. Dalsze próby
+MOVIE_4 pomijają dwie błędnie dołączone klatki źródłowe, zgodnie z protokołem.
 
 ## Stan aplikacji
 

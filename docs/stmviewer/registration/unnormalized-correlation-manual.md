@@ -45,9 +45,13 @@ a gotowy aligned jest zastępowany po sukcesie.
 
 ## MOVIE_4 i MOVIE_8 — jakość struktur
 
+Od odbioru 2026-10-31 w MOVIE_4 pomijamy pierwsze dwie źródłowe klatki:
+usuń je w aplikacji przed nową rejestracją, zgodnie z [protokołem](manual-protocol.md).
+Numery w tabeli są źródłowe; po usunięciu bieżące są mniejsze o 2.
+
 | Oryginalny film | Pary źródłowe, numery od 1 |
 | --- | --- |
-| `data/MOVIE_4.mpp` | 1→2, 33→34, 120→121 |
+| `data/MOVIE_4.mpp` po usunięciu źródłowych 1 i 2 | 3→4, 33→34, 120→121 |
 | `data/MOVIE_8.mpp` | 1→2, 16→17, 56→57 |
 
 Dla każdej pary wykonaj Phase, zachowaj wynik, oblicz **Korelację bez
@@ -102,5 +106,7 @@ deformacji wewnątrz klatki.
    Otwierany film zawiera już wyrównane piksele; nie wykonuj dodatkowej rejestracji
    przy sprawdzaniu tego roundtripu.
 
-Zapisz wynik w karcie REG-02. Automatyczne testy i próby Qt nie zastępują tej
-oceny wzrokowej. REG-03 czeka na decyzję użytkownika po odbiorze REG-02.
+Odbiór REG-02 użytkownik potwierdził 2026-10-31; obserwacje MOVIE_4 zapisano
+w [karcie](reviews/REG-02.md#ręczny-odbiór-użytkownika). REG-03 jest odblokowany
+i czeka na osobne zlecenie. Powyższe kroki pozostają instrukcją dalszych porównań;
+nie są deklaracją wykonania każdego kroku przez użytkownika.

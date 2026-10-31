@@ -124,11 +124,13 @@ ocenie skuteczności rejestracji. Nie zmienia produkcyjnej aplikacji ani plików
 
 ## MOVIE_4, MOVIE_8 i ochrona pełnego aligned
 
-W zwykłej aplikacji otwórz kolejno oba pomiary. Sprawdź stałe pary:
+W zwykłej aplikacji otwórz kolejno oba pomiary. W MOVIE_4 usuń pierwsze dwie
+źródłowe klatki przed rejestracją, zgodnie z [protokołem](manual-protocol.md).
+Sprawdź stałe pary źródłowe (po usunięciu bieżące numery są mniejsze o 2):
 
 | Film | Pary źródłowe |
 | --- | --- |
-| `data/MOVIE_4.mpp` | 1→2, 33→34, 120→121 |
+| `data/MOVIE_4.mpp` po usunięciu źródłowych 1 i 2 | 3→4, 33→34, 120→121 |
 | `data/MOVIE_8.mpp` | 1→2, 16→17, 56→57 |
 
 Spróbuj ręcznego startu od zera i korekty automatycznej próby. Obejrzyj
@@ -136,7 +138,7 @@ kilka struktur w różnych częściach obrazu. Zanotuj, gdzie jedno XY poprawia
 pokrycie, a gdzie pozostaje rozbieżność. Kierunek dryfu może się zmieniać.
 Ręczne dopasowanie nie naprawia deformacji wewnątrz klatki i nie jest dowodem
 fizycznego dryfu. Sprawdź również możliwość startu po błędzie ECC na parze
-2→3 MOVIE_8; Deep Matcher 2→3 MOVIE_4 sprawdzaj tylko z dostępnymi wagami.
+2→3 MOVIE_8. Dawna para Deep Matcher 2→3 MOVIE_4 jest poza poprawioną serią.
 
 Do sprawdzenia eksportu **ponownie otwórz cpu.mpp i wykonaj pełne Phase**.
 Zanotuj jego wynik i wygląd aligned. Dopiero teraz zastosuj celowo inne XY
@@ -146,5 +148,5 @@ w VLC. Eksport ma nadal korzystać z pełnego Phase, bez ręcznej korekty pary.
 
 Wyniki zapisz w [karcie REG-01a](reviews/REG-01a.md). Próby automatyczne Qt
 nie zastępują ręcznej oceny obrazu. Użytkownik potwierdził „testy manualne ok”
-2026-10-31 po wdrożeniu układu C; REG-01a ma status `done`. REG-02 jest wdrożony
-i czeka na [własny odbiór](unnormalized-correlation-manual.md).
+2026-10-31 po wdrożeniu układu C; REG-01a ma status `done`. REG-02 również odebrano;
+[obserwacje MOVIE_4](reviews/REG-02.md#ręczny-odbiór-użytkownika).

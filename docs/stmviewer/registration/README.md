@@ -3,11 +3,12 @@
 Data: 2026-10-28; rozszerzenie ręcznego dopasowania: 2026-10-30.
 Gałąź: `viewer/registration-difficult-movies`.
 Baza rozpoznania: `c85aecb`; przegląd metod: `81ff1a0`.
-Status: REG-01 i REG-01a `done`. Użytkownik potwierdził odbiór REG-01a
-z układem C 2026-10-31: „testy manualne ok”. REG-02 ma status `ready-for-review`:
-Korelacja bez normalizacji (v1) działa dla pary i serii, czeka na odbiór użytkownika.
+Status: REG-01, REG-01a i REG-02 `done`. Użytkownik potwierdził odbiór REG-02
+2026-10-31 i zgłosił brak istotnej poprawy względem Phase na MOVIE_4.
+Deep Matcher ocenia najlepiej w obejrzanych pierwszych 100 klatkach.
 [Instrukcja REG-02](unnormalized-correlation-manual.md), [wyniki](reviews/REG-02.md).
-REG-03 pozostaje zablokowany do tego odbioru.
+REG-03 jest odblokowany i czeka na osobne zlecenie. Dalsze próby MOVIE_4
+obejmują źródłowe klatki 3–364, zgodnie z [protokołem](manual-protocol.md).
 [Instrukcja manualna](manual-alignment-manual.md), [karta sprawdzeń](reviews/REG-01a.md).
 Użytkownik wybrał układ C; jest wdrożony z opisowymi kartami wyników i ręcznym
 sterowaniem pod obrazem. [Aktualny przegląd i próby](reviews/REG-01a-layout-c.md).
@@ -46,7 +47,7 @@ kolizji i zachować numery istniejących zadań.
 REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [instrukcja próby](pair-comparison-manual.md),
 [karta odbioru](reviews/REG-01.md). REG-01a ma status `done` po odbiorze
-użytkownika 2026-10-31. REG-02 ma status `ready-for-review`. REG-03–07 mają
+użytkownika 2026-10-31. REG-02 również odebrano 2026-10-31 (`done`). REG-03–07 mają
 status `ready-for-agent`:
 zakres jest przygotowany, ale start
 wymaga zlecenia użytkownika i zakończenia blokujących ticketów. REG-08/09 mają

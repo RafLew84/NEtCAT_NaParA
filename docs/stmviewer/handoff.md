@@ -1,5 +1,35 @@
 # Przekazanie — STM Viewer
 
+## REG-02: Odbiór i obserwacje MOVIE_4 — 2026-10-31
+
+Użytkownik potwierdził „testy manualne ok”. [REG-02](registration/issues/02-unnormalized-correlation.md)
+ma status **done**; REG-03 jest odblokowany i czeka na osobne zlecenie.
+Odebrany kod `d85ba1b`, `bcf0e70`; dokumentacja `ad87192`.
+[Pełna relacja i miejsca kontroli](registration/reviews/REG-02.md#ręczny-odbiór-użytkownika).
+
+Phase i wariant bez normalizacji nie różnią się znacząco na MOVIE_4: nadmierny
+ruch do około klatki 150, później lepiej, nadal do poprawy. ECC podobnie słabo.
+Optical Flow i Tile+RANSAC dają mniej pozostałego ruchu; Deep Matcher oceniono
+najlepiej w obejrzanych pierwszych 100 klatkach. Zapisano problemy 29→30, 35→36,
+44→45→46, 61→62, 94→95→96→97. Użytkownik potwierdził numerację po usunięciu
+dwóch klatek: źródłowo odpowiednio 31→32, 37→38, 46→47→48, 63→64,
+96→97→98→99. Granica bieżącej klatki 150 to źródłowa 152.
+Nie uogólniamy oceny Deep na pozostałą część filmu ani na MOVIE_8.
+
+Pierwsze dwie źródłowe klatki MOVIE_4 błędnie dołączono z późniejszego etapu
+pomiaru. Dalszy protokół obejmuje źródłowe 3–364 (362 klatki), usunięcie w GUI
+przed ponowną rejestracją, bez zmiany źródłowego MPP. Zachowano historyczne
+wyniki 364 klatek; dawna odmowa Deep na źródłowej 2→3 nie jest kryterium jakości
+poprawionej serii. Zaktualizowano bieżące instrukcje prób.
+
+Na pytanie użytkownika potwierdzono: ręczne dopasowanie nadal dotyczy tylko
+pary i nie podmienia pełnego aligned ani eksportu MPP/AVI. REG-07 zapisuje próby,
+nie stosuje ręcznej korekty do filmu. Nie rozpoczęto nowej implementacji.
+
+Zmiany wyłącznie dokumentacyjne; sprawdzono statusy, lokalne linki i diff.
+Testów kodu nie ponawiano. Brak zmian współdzielonych; statusy 19–21 bez zmian.
+Poniższe wpisy pozostają historią etapów sprzed tego odbioru.
+
 ## REG-02: Korelacja bez normalizacji — 2026-10-31
 
 [Ticket](registration/issues/02-unnormalized-correlation.md): **ready-for-review**.

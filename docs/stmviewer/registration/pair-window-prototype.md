@@ -80,7 +80,7 @@ Nie dodawano testów prototypu ani nie uruchamiano pełnego zestawu aplikacji.
 Zrzuty i raport oględzin pozostają lokalnie w `data/registration-pair-ui-prototype/`.
 
 Po wyborze prototypu użytkownik osobno potwierdził testy manualne działającego
-GUI 2026-10-31. REG-01a ma status `done`; późniejszy REG-02 jest wdrożony
-i czeka na [własny odbiór](unnormalized-correlation-manual.md). Wdrożenie C zachowuje wcześniejsze kontrakty obliczeń, szkicu,
+GUI 2026-10-31. REG-01a ma status `done`; późniejszy REG-02 również odebrano;
+[obserwacje MOVIE_4](reviews/REG-02.md#ręczny-odbiór-użytkownika). Wdrożenie C zachowuje wcześniejsze kontrakty obliczeń, szkicu,
 wyników i eksportu. [Karta sprawdzeń](reviews/REG-01a-layout-c.md) zawiera
 wyniki automatyczne i osobno zapis odbioru użytkownika.

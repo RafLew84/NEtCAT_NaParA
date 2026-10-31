@@ -4,8 +4,8 @@
 porównuje ją z Phase dla pary i rejestruje nią całą serię.
 **Blocked by:** [REG-01a](01a-manual-alignment.md), w tym odbiór manualny — spełnione 2026-10-31.
 Zależność dodana 2026-10-30 po zakończonym REG-01; realizacja zlecona 2026-10-31.
-**Status:** ready-for-review
-**Manualny odbiór:** oczekuje na użytkownika; implementacja i sprawdzenia wykonane 2026-10-31.
+**Status:** done
+**Manualny odbiór:** zaliczony — użytkownik potwierdził „testy manualne ok” 2026-10-31 i przekazał ocenę MOVIE_4; bez istotnej poprawy wariantu względem Phase.
 **Wykonawca:** Codex, 2026-10-31; baza przeglądu `e1d42d4315280d74a2c5494be93c29687909189b`.
 
 Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
@@ -71,4 +71,14 @@ Pełne repo: 2196 passed, 14 failed, 16 skipped; te same 14 wcześniejszych bł�
 poza Viewerem. Standards 0; Spec 1 uwaga naprawiona, 0 otwartych. Pliki ≤856 linii.
 Aktualne kroki z nazwami układu C: [instrukcja manualna](../unnormalized-correlation-manual.md).
 Pełne wyniki, ograniczenia formatu i przegląd: [karta REG-02](../reviews/REG-02.md).
-REG-03 pozostaje zablokowany do odbioru użytkownika.
+## Odbiór — 2026-10-31
+
+Użytkownik zaakceptował testy manualne. REG-02 zamknięto jako `done`; REG-03
+jest odblokowany i czeka na osobne zlecenie. Akceptacja funkcji nie oznacza
+potwierdzenia poprawy jakości: w MOVIE_4 użytkownik nie widzi dużej różnicy
+między Phase a wariantem bez normalizacji. Najlepiej ocenił Deep Matcher
+w obejrzanych pierwszych 100 klatkach. [Pełna relacja](../reviews/REG-02.md#ręczny-odbiór-użytkownika).
+
+Dalsze próby MOVIE_4 obejmują źródłowe klatki 3–364, po usunięciu dwóch
+błędnie dołączonych klatek w aplikacji przed rejestracją. Źródłowy plik pozostaje
+bez zmian. Poprzednie pomiary na 364 klatkach pozostają historyczne.

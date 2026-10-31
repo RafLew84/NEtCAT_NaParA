@@ -1,7 +1,8 @@
 # REG-02 — karta odbioru
 
 Data sprawdzeń: 2026-10-31, Linux, środowisko `netcat`.
-Status: **ready-for-review**; odbiór manualny użytkownika oczekuje.
+Status: **done**; odbiór manualny użytkownika potwierdzony 2026-10-31.
+W MOVIE_4 brak istotnej poprawy wariantu względem Phase według oględzin użytkownika.
 Baza przeglądu: `e1d42d4315280d74a2c5494be93c29687909189b`.
 Implementacja: `d85ba1b`; wersja ustawień i poprawka importu testów: `bcf0e70`.
 Gałąź: `viewer/registration-difficult-movies`.
@@ -112,8 +113,61 @@ Standards: 0 uwag; Spec: 1 naprawiona, 0 otwartych.
 
 ## Ręczny odbiór użytkownika
 
-Oczekuje zgodnie z [instrukcją](../unnormalized-correlation-manual.md).
-Należy ocenić pokrycie struktur na stałych parach obu filmów i odnotować
-poprawę, pogorszenie albo niejednoznaczność. Pełne zakończenie obliczeń i mniejszy
-obszar aligned nie potwierdzają fizycznej poprawności przesunięć. REG-03 czeka
-na odbiór REG-02 i osobne zlecenie.
+2026-10-31 użytkownik potwierdził **„testy manualne ok”** i opisał oględziny
+MOVIE_4. REG-02 ma status `done`; REG-03 jest odblokowany, bez rozpoczęcia.
+Odebrany kod: `d85ba1b`, `bcf0e70`; dokumentacja: `ad87192`.
+System i ustawienia podglądu nie zostały podane. W tej wiadomości nie ma
+osobnej oceny MOVIE_8 ani szczegółowych wyników każdego kroku eksportu.
+
+### MOVIE_4 — obserwacje użytkownika
+
+| Metoda / zakres | Ocena z oględzin |
+| --- | --- |
+| Phase i korelacja bez normalizacji | Brak dużej różnicy. Przez około pierwsze 150 klatek film nadmiernie się przemieszcza; później jest znacznie lepiej, nadal wymaga poprawy. |
+| ECC | Słabo, podobnie jak Phase. |
+| Optical Flow | Wyraźnie lepiej niż Phase w pierwszych około 150 klatkach, ale wynik nadal niesatysfakcjonujący. |
+| Tile+RANSAC | Film nadal przemieszcza się, zdecydowanie mniej niż przy Phase; podobnie do Optical Flow, lecz w innym kierunku. |
+| Deep Matcher | Najlepszy według użytkownika w obejrzanych pierwszych 100 klatkach; nadal są miejsca do poprawy. Brak oceny pozostałej części tym algorytmem w tej wiadomości. |
+
+Użytkownik potwierdził, że numery i granica około 150 odnoszą się do serii
+**po usunięciu pierwszych dwóch klatek**. Pierwsze 100 obejrzanych klatek Deep
+odpowiada źródłowym 3–102; granica bieżącej klatki 150 odpowiada źródłowej 152.
+
+| Zgłoszone miejsce Deep Matcher — po usunięciu | Oryginalne numery źródłowe MPP |
+| --- | --- |
+| 29→30 | 31→32 |
+| 35→36 | 37→38 |
+| 44→45→46 | 46→47→48 |
+| 61→62 | 63→64 |
+| 94→95→96→97 | 96→97→98→99 |
+
+Dla ostatniej grupy użytkownik ocenia wynik jako niezły, z możliwością poprawy.
+Mapowanie obowiązuje przy wyłączeniu tylko źródłowych klatek 1 i 2.
+Różny kierunek pozostałego ruchu nie stanowi sam w sobie dowodu błędu — dryf
+może zmieniać kierunek. Nie przekształcamy opisu oględzin w pomiary XY.
+
+### Korekta materiału do kolejnych prób
+
+Użytkownik wyjaśnił, że **pierwsze dwie źródłowe klatki MOVIE_4 pochodzą
+z późniejszej części eksperymentu i zostały błędnie przypisane do filmu**.
+Usuwa je w aplikacji do testów. Dalszy protokół obejmuje więc **362 klatki,
+źródłowe 3–364**, po usunięciu pierwszych dwóch klatek przed nowym obliczeniem rejestracji.
+Plik źródłowy i jego SHA pozostają niezmienione. Przy braku innych usunięć
+bieżąca pozycja i odpowiada źródłowej i+2; odniesieniem nowej serii jest źródłowa 3.
+
+Wcześniejsze wyniki automatyczne, w tym 364 klatki, 368×1213 i około 2,26 s,
+dotyczą całego wejścia sprzed tej informacji. Zachowano je bez przepisywania.
+Historyczna odmowa Deep Matcher na źródłowej parze 2→3 dotyczy granicy błędnie
+dołączonej klatki; nie używamy jej jako kryterium jakości poprawionej serii.
+Aktualne wejścia i pary: [protokół](../manual-protocol.md).
+
+### Zakres dopasowania ręcznego
+
+Na pytanie o zapis ręcznej korekty do filmu: obecny REG-01a zmienia tylko wynik
+pary do porównania. Pełny aligned i eksport MPP/AVI nadal korzystają z pełnej
+rejestracji z głównego okna. REG-07 przewiduje zapis dokumentów prób, w tym
+ręcznych, ale nie promuje ich do pełnego aligned. Zastosowanie ręcznej korekty
+do filmu wymaga osobnego zakresu; w tej aktualizacji nie zlecono implementacji.
+
+Zapis odbioru i obserwacji zmienia wyłącznie dokumentację. Testów kodu
+nie ponawiano; sprawdzono statusy, lokalne odnośniki i `git diff --check`.

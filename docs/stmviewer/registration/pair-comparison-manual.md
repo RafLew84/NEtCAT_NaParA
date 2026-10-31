@@ -64,7 +64,8 @@ Zamknięcie porównania usuwa oba wyniki. Żadna próba pary nie podmienia pełn
 
 ## Oba pomiary i błędy metod
 
-Otwórz kolejno `data/MOVIE_4.mpp` i `data/MOVIE_8.mpp`.
+Otwórz kolejno `data/MOVIE_4.mpp` i `data/MOVIE_8.mpp`. W MOVIE_4 usuń
+pierwsze dwie źródłowe klatki przed rejestracją, zgodnie z [protokołem](manual-protocol.md).
 Obejrzyj stałe pary z protokołu; zapisuj źródłowe numery i oglądane struktury.
 Do porównania pojedynczej pary nie trzeba rejestrować całego filmu.
 W MOVIE_8 1→2 obecny Phase daje około (−0,10; +0,05); narzędzie ma pokazać
@@ -74,7 +75,9 @@ Dla próby ochrony pełnego wyniku najpierw wykonaj zwykłe Phase na filmie.
 Następnie w porównaniu sprawdź znane błędy:
 
 - MOVIE_8, para 2→3, ECC — błąd dopasowania.
-- MOVIE_4, para 2→3, Deep Matcher — za mało zgodnych dopasowań cech.
+
+Dawny błąd Deep Matcher na źródłowej parze MOVIE_4 2→3 dotyczy klatki błędnie
+dołączonej do filmu; nie jest kryterium jakości poprawionej serii 3–364.
 
 Deep Matcher wymaga lokalnych wag; ich wybór i urządzenie są niezależne
 w oknie próby, startowo skopiowane z głównego okna. Brak wag/bibliotek ma
@@ -116,4 +119,4 @@ a wynik zostaje odrzucony. Szybkie zakończenie sukcesem nie zalicza próby anul
 [Karta REG-01](reviews/REG-01.md) zawiera wyniki automatyczne i osobny zapis
 ręcznego odbioru. Użytkownik potwierdził „testy manualne ok” 2026-10-29;
 REG-01 ma status `done`. Ręczny odbiór REG-01a zaliczono 2026-10-31;
-REG-02 jest wdrożony i czeka na [własny odbiór](unnormalized-correlation-manual.md).
+REG-02 również odebrano; [obserwacje MOVIE_4](reviews/REG-02.md#ręczny-odbiór-użytkownika).
