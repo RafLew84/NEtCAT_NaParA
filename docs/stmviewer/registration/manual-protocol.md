@@ -83,10 +83,74 @@ Opis i generator: [próba CPU](../cpu-registration-manual.md).
    sprawdź również zapis małego kompletnego wyniku MPP+metadane i AVI oraz
    powrót do podglądu. Nakładki diagnostyczne nie trafiają do filmu pomiarowego.
 
+**Wyjątek zakresu REG-08a/08b:** te dwa etapy tworzą pełną próbę do oglądania
+i lekkiego zapisu, lecz jeszcze nie stosują jej do filmu. W ich odbiorze
+MPP/AVI muszą zachować wcześniejszy aktywny aligned, także podczas oglądania
+nowej próby. Eksport grafu, jego ręczne korekty i ponowny odczyt należą
+do REG-08c. Pozostałe nowe metody REG-10–12 korzystają już z tego zastosowania.
+
+**Braki w grafie:** lokalny brak dopasowania jest zapisaną brakującą relacją.
+Pełny graf może mieć wynik przez inne połączenia; rozłączny pozostaje diagnozą.
+Odmowy, mosty i brak nadmiarowej weryfikacji pozostają w raporcie. Błąd systemu,
+zasobów/solvera lub anulowanie nie udają braków lokalnych. Ta polityka dotyczy
+nowej metody grafowej i nie zmienia zachowania obecnego łańcucha po błędzie.
+
 Sam status backendu, liczba pasujących fragmentów, gładkość trajektorii,
 wielkość aligned albo zgodność pętli klatek nie dowodzą poprawności.
 Próg 3 px dotyczy istniejącego reproduktora MOVIE_8 1→2; nie przenosimy go
 na ocenę całej klatki ani całych filmów. Dokładność fizyczna nie jest znana.
+
+## Porównania wieloklatkowe i nowe modele
+
+Stosujemy [rozszerzony plan](README.md) i zapisane relacje REG-08a.
+Każda para wyników porównywanych w danej próbie zmienia jeden element:
+
+| Porównanie | Stałe elementy | Badana zmiana |
+| --- | --- | --- |
+| Łańcuch Deep / okno 3 albo 5, LS | Model, ustawienia, dostępne pomiary sąsiednie | Dodatkowe relacje i wspólne XY |
+| Graf LS / Huber | Dokładnie ten sam zapisany zbiór relacji i kotwica | Odporność solvera |
+| Okno / okno+dalsze odniesienia (REG-08d) | Stare pomiary, model, solver i progi | Nowe jawnie wybrane pary |
+| Historyczny Deep / EfficientLoFTR | Lista kandydatów par, solver, widok | Cały estymator pary, jeśli agregacja jest różna |
+| EfficientLoFTR / RoMa v2 | Agregacja korespondencji REG-10, pary, solver, widok | Model pary |
+| EfficientLoFTR / MatchAnything-ELoFTR | Wspólna agregacja, pary, graf, widok | Wariant modelu i jego trening |
+
+W porównaniu okna 3 z 5 zachowujemy wspólne pomiary. Nie liczymy ponownie
+innych wartości dla tych samych par bez jawnego utworzenia nowego zestawu.
+Jeśli łańcuch nie jest kompletny, nie uzupełniamy braków, aby uzyskać film A;
+raport wskazuje ograniczenie porównania. Dla modeli niezbędne różnice
+przygotowania wejścia i kwalifikacji punktów są jawne. Historyczny Deep i nowy
+model z inną agregacją są porównaniem całych wariantów, nie izolacją samego modelu.
+
+Pierwszy graf używa obecnego Deep bez ECC; nie przyznajemy wyższego poparcia
+hybrydzie tylko dlatego, że zakończyła doprecyzowanie. Próba REG-05 porównuje
+przestrzenne poparcie z bazowym Deep przez wyszukiwanie lokalnych wycinków.
+REG-10 ustala odrębną wspólną agregację wektorów korespondencji nowych modeli,
+z przestrzenną oceną poparcia według tych zasad. Nie uruchamia po cichu metody
+wycinków REG-05. REG-11/12 zachowują agregację REG-10 i jej ustawienia.
+
+Kontrola obrazowa oznaczona jako niezależna nie wpływa na dobór krawędzi,
+ich wag, progów ani modelu w tej samej próbie. Globalne cechy modelu mogą widzieć
+także piksele bez wybranych korespondencji; wtedy ocenę oznaczamy jako zależną.
+Do końcowej oceny dodajemy nowe przypadki. Znane problematyczne pary służą
+rozwojowi i regresji, nie zastępują nowych danych walidacyjnych.
+
+Oprócz `cpu.mpp` realizujący dostarcza obrazy oraz lekkie dokumenty znanych
+grafów: poprawny ruch z nawrotami, pojedyncza zła relacja, brak z obejściem,
+most, rozłączenie i spójny alias okresowy. Oddzielamy wzorce testujące model
+na obrazach od prób testujących solver na podanych relacjach. Dodajemy
+nieruchome pasy oraz różny ruch góry/dół; globalne XY nie ma udawać ich korekcji.
+
+Przy rzeczywistych wagach zapisujemy wersję kodu i bibliotek, wariant/SHA-256
+modelu, urządzenie i przygotowanie wejścia. Osobno mierzymy czas modelu,
+solvera/renderowania, RAM i VRAM. Docelowe 16 GB wolnego RAM i NVIDIA CUDA
+z 8 GB VRAM nie są zaliczone przez samą próbę na większym komputerze.
+Metoda niedostępna lub odrzucona jakościowo pozostaje jawnym wynikiem próby;
+nie przełączamy jej automatycznie na inną.
+
+W REG-08c dodatkowo sprawdzamy ręczne nadpisanie różnicy globalnych XY grafu,
+powtórzenie, dwie korekty i cofnięcie do bazy grafowej. Surowy d_ij i różnica
+rozwiązania nie muszą być takie same. Ręczne poprawki nie uruchamiają solvera;
+wcześniejsze diagnozy grafu odnoszą się do niezmienionej bazy.
 
 ## Ręczne dopasowanie — REG-01a
 
@@ -134,6 +198,9 @@ Ticket / data / osoba / system:
 Commit wyniku zachowanego / bieżącego:
 Film + SHA / numery źródłowe par:
 Metoda i ustawienia wyniku zachowanego / bieżącego:
+Dla modeli: wersje / wariant i SHA-256 wag / urządzenie / przygotowanie wejścia:
+Dla grafu: źródła i zbiór par / okno / kotwica / solver i próg / zakończenie:
+Brakujące relacje / mosty / rozłączenie / niepewność:
 Dla próby ręcznej: pochodzenie / początkowe XY / korekta / końcowe XY:
 Gamma / zakres jasności / proporcje / zoom:
 Fragmenty estymacji / fragmenty kontroli / czy kontrola niezależna:
@@ -141,6 +208,7 @@ Funkcja: działa | usterka | niewykonane
 Jakość XY dla każdej pary i fragmentu: lepiej | podobnie | gorzej | niejednoznacznie
 Resztkowy tearing: opis osobno
 Pełny film / przerwanie / czas / obserwowane zasoby:
+Czas modelu / solvera / renderowania / RAM / VRAM / status próby 8 GB:
 Uwagi i ścieżki zrzutów:
 Decyzja użytkownika: przyjęte | poprawić | odrzucić wariant | odłożyć
 Ograniczenia i warunki przejścia dalej:

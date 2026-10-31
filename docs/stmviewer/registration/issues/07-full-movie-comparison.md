@@ -94,7 +94,9 @@ w Git, zamknięcie wcześniejszych ticketów odbioru platform lub dużych ekspor
    REG-02a. Sprawdź pary źródłowe, bazę, nadpisania i skumulowane XY, porównanie
    odtworzonego filmu oraz zachowanie aktywnego aligned po samym wczytaniu zapisu.
 8. Podejmij jawną decyzję: zachować wariant eksperymentalny, poprawić go albo
-   zakończyć na obecnym wyniku. Dopiero osobno zdecyduj o REG-08 i REG-09.
+   zakończyć na obecnym wyniku. Zapisz bazę i trudne przypadki dla zaplanowanego
+   kierunku REG-08 → REG-08a/08b/08c; kolejne zlecenie nadal wymaga tego odbioru.
+   Osobna decyzja dotyczy warunkowego REG-09.
 
 **Oczekiwany wynik:** odtwarzalna, udokumentowana ocena całych filmów.
 Nie wymagamy deklaracji skuteczności na każdym obrazie, jeśli dowody jej nie wspierają.

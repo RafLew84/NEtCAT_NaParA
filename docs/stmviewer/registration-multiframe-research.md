@@ -5,6 +5,10 @@ Stan przeglądu: 2026-10-31. Dotyczy STM Viewer, gałęzi
 To rozpoznanie i propozycje kolejnych prób; nie zmienia zakresu ticketów ani aplikacji.
 W tym zadaniu nie uruchamiano nowych matcherów ani optymalizacji grafu na pomiarach.
 
+Późniejsze zlecenie z 2026-10-31 przeniosło rekomendacje do
+[planu i ticketów](registration/README.md). Poniższa notatka zachowuje stan
+badania z commita `903dfac`; aktualną kolejność i zakresy prowadzi plan.
+
 ## Rekomendacja
 
 W eksperymencie wieloklatkowym najpierw warto sprawdzić **ten sam Deep Matcher,

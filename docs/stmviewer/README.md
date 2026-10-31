@@ -9,14 +9,19 @@ oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 [Rozpoznanie MOVIE_4/MOVIE_8 i reproduktory](registration-difficult-movies.md)
 opisuje zgodność metod ze strukturami obrazu przy zakłóceniach i tearing.
 Domyślne algorytmy aplikacji pozostają bez zmian.
-[Plan rozwoju i tickety](registration/README.md) obejmuje osiem etapów
+[Plan rozwoju i tickety](registration/README.md) obejmuje piętnaście etapów
 podstawowych (w tym REG-01a i REG-02a) i dwa warunkowe. Każdy kończy się ręcznym odbiorem
 funkcji oraz jakości; kolejny etap czeka na decyzję użytkownika.
 [Wspólny protokół prób](registration/manual-protocol.md) ustala dane i sposób porównania.
 
 [Przegląd rejestracji wieloklatkowej i nowych matcherów](registration-multiframe-research.md)
 proponuje graf translacji ponad obecnym Deep oraz krótką listę dalszych prób.
-To materiał badawczy, nie wdrożenie ani zmiana zakresu istniejących ticketów.
+Na zlecenie użytkownika 2026-10-31 rozszerzono plan: po REG-05–07 i diagnostyce
+REG-08 następują próby grafu LS (REG-08a), odpornego grafu (REG-08b), zastosowanie
+do filmu i eksport (REG-08c), następnie osobno EfficientLoFTR (REG-10), RoMa v2
+(REG-11) i MatchAnything-ELoFTR (REG-12). Dalsze odniesienia REG-08d oraz tearing
+REG-09 pozostają warunkowe. Są to zaplanowane funkcje; najbliższy krok nadal
+stanowi ręczny odbiór REG-04, a potem REG-05.
 
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk
 **Porównaj parę…** otwiera osobny podgląd sąsiednich oryginałów: przed/po XY,

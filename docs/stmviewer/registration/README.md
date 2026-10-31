@@ -1,6 +1,7 @@
 # Plan rozwoju rejestracji trudnych filmów STM
 
 Data: 2026-10-28; rozszerzenia ręczne: REG-01a 2026-10-30, REG-02a 2026-10-31.
+Rozszerzenie o graf dopasowań i nowe modele: 2026-10-31, na zlecenie użytkownika.
 Gałąź: `viewer/registration-difficult-movies`.
 Baza rozpoznania: `c85aecb`; przegląd metod: `81ff1a0`.
 Status: REG-01, REG-01a, REG-02 i REG-02a `done`. Użytkownik potwierdził odbiór REG-02
@@ -34,6 +35,15 @@ uznawania wyniku ECC za lepszy. [Instrukcja odbioru](deep-ecc-manual.md)
 i [wyniki prób](deep-ecc-results.md) rozdzielają sprawdzenie funkcji od oceny
 jakości przez użytkownika.
 
+**Rozszerzenie po przeglądzie — 2026-10-31:** przyjęto kierunek
+REG-05 → ocena i zapis prób REG-06/07 → diagnostyka REG-08 → graf
+REG-08a/08b/08c → osobne próby EfficientLoFTR, RoMa v2 i MatchAnything
+REG-10/11/12. [Przegląd i źródła](../registration-multiframe-research.md)
+uzasadniają te próby, ale nie potwierdzają ich skuteczności na naszych filmach.
+REG-08 przestaje być warunkowy; nadal sam nie zmienia XY. Dalsze odniesienia
+REG-08d i diagnostyka tearingu REG-09 pozostają warunkowe. Rozszerzenie planu
+nie jest implementacją ani odbiorem REG-04.
+
 ## Cel i zakres
 
 Poprawić dopasowanie struktur próbki w MOVIE_4 i MOVIE_8 mimo zakłóceń linii
@@ -46,8 +56,9 @@ Podstawa: [rozpoznanie danych](../registration-difficult-movies.md),
 Nowe zlecenie rozpoczyna etap rozwoju metod odłożony w
 [mapie pierwszej wersji](../map.md). Nie zmienia historycznych odbiorów 01–21.
 Zachowujemy dotychczasowe identyfikatory ticketów, w tym **REG-01a i REG-02a**,
-aby uniknąć kolizji i zmian numerów istniejących zadań. Plan obejmuje osiem
-etapów podstawowych i dwa warunkowe.
+aby uniknąć kolizji i zmian numerów istniejących zadań. Plan obejmuje piętnaście
+etapów podstawowych i dwa warunkowe. Sufiksy REG-08a–08d rozwijają pracę
+na wielu klatkach; REG-09 zachowuje dotychczasowy zakres.
 
 ## Kolejność i wynik każdego ticketu
 
@@ -58,23 +69,36 @@ etapów podstawowych i dwa warunkowe.
 | [REG-02: Korelacja bez normalizacji](issues/02-unnormalized-correlation.md) | Osobny wariant dostępny dla pary i całej serii, z porównaniem do dotychczasowego Phase. | REG-01a |
 | [REG-02a: Ręczne korekty filmu](issues/02a-manual-movie-corrections.md) | Jawne zastosowanie ręcznego XY pary do całego aligned, przeliczenie dalszych klatek, cofnięcie korekty pary i eksport poprawionego MPP/AVI. | REG-02 |
 | [REG-04: Deep Matcher + doprecyzowanie ECC](issues/04-multiscale-translation.md) | Początkowe XY z Deep Matcher, doprecyzowanie ECC i porównanie dokładnego startu z wynikiem; wpływ oceniany manualnie. | REG-02a |
-| [REG-05: Zgodność lokalnych fragmentów](issues/05-local-consensus.md) | Wektory dopasowania fragmentów, wskazanie zgodnych/odrzuconych i odporne wyznaczanie globalnego XY. | REG-04 |
+| [REG-05: Zgodność lokalnych fragmentów](issues/05-local-consensus.md) | Przestrzenne poparcie XY z różnych części obrazu i konkurujące grupy; porównanie z bazowym Deep, bez obowiązkowego ECC. | REG-04 |
 | [REG-06: Niezależna kontrola dopasowania](issues/06-independent-validation.md) | Ocena na wydzielonych fragmentach kontrolnych i lista par wymagających obejrzenia. | REG-05 |
 | [REG-07: Zapis prób i odbiór pełnych filmów](issues/07-full-movie-comparison.md) | Odtwarzalne porównanie pełnych wyników, zapis/odczyt ustawień i przesunięć, odbiór MOVIE_4/MOVIE_8. | REG-06 |
-| [REG-08: Spójność kilku klatek](issues/08-temporal-consistency.md) | Warunkowo: diagnostyka zgodności A→B→C z A→C, bez narzucania trajektorii. | REG-07 + decyzja po odbiorze |
+| [REG-08: Spójność kilku klatek](issues/08-temporal-consistency.md) | Diagnostyka zgodności A→B→C z A→C i porównanie również niesąsiednich par; jeszcze bez zmiany XY. | REG-07 |
+| [REG-08a: Graf z oknem 3/5 klatek](issues/08a-window-graph.md) | Osobna pełna próba: obecny Deep, wspólne XY przez LS, porównanie z łańcuchem i zapis relacji. | REG-08 |
+| [REG-08b: Odporny graf](issues/08b-robust-graph.md) | LS kontra Huber/IRLS na dokładnie tych samych pomiarach; widoczny wpływ odstających relacji. | REG-08a |
+| [REG-08c: Zastosowanie grafu do filmu](issues/08c-graph-movie-application.md) | Jawna podmiana aligned, ręczne korekty, MPP/AVI i odtworzenie zapisanej próby. | REG-08b |
+| [REG-10: EfficientLoFTR](issues/10-efficient-loftr.md) | Nowy model dla par, łańcucha i grafu; porównanie z obecnym Deep przy stałej reszcie obliczeń. | REG-08c |
+| [REG-11: RoMa v2](issues/11-roma-v2.md) | Gęste korespondencje jako źródło jednej translacji XY; osobna ocena jakości i zasobów. | REG-10 |
+| [REG-12: MatchAnything-ELoFTR](issues/12-matchanything.md) | Kontrola wpływu treningu: porównanie z EfficientLoFTR przy tym samym konsensusie i grafie. | REG-11 |
+| [REG-08d: Dalsze klatki odniesienia](issues/08d-long-range-references.md) | Warunkowo: uzupełnienie odebranego okna o jawne dalsze odniesienia, bez zmiany modelu pary. | REG-08c + decyzja po odbiorze |
 | [REG-09: Rozpoznanie deformacji w pasach](issues/09-scanline-diagnostics.md) | Warunkowo: podgląd lokalnych rozbieżności po globalnym XY i podstawa decyzji o korekcji tearingu. | REG-07 + decyzja po odbiorze |
 
 REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [instrukcja próby](pair-comparison-manual.md),
 [karta odbioru](reviews/REG-01.md). REG-01a ma status `done` po odbiorze
 użytkownika 2026-10-31. REG-02 i REG-02a również odebrano 2026-10-31 (`done`).
-REG-04 ma status `ready-for-review`; REG-05–07 mają status `ready-for-agent`:
-zakres jest przygotowany, ale start
-wymaga zlecenia użytkownika i zakończenia blokujących ticketów. REG-08/09 mają
-status `planned`; nie uruchamiamy ich automatycznie. Nie zależą od siebie.
-Kolejność REG-01 → REG-01a → REG-02 → REG-02a → REG-04 → REG-05 → REG-06 → REG-07 jest również kolejnością ręcznych
-odbiorów: chcemy ocenić pojedynczą zmianę przed dołożeniem następnej, nawet jeśli część kodu można
-technicznie napisać niezależnie.
+REG-04 ma status `ready-for-review`; REG-05–08, REG-08a/08b/08c i REG-10–12
+mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
+zlecenia użytkownika i zakończenia blokujących ticketów. REG-08d i REG-09 mają
+status `planned`; nie uruchamiamy ich automatycznie. Są osobnymi odnogami.
+
+Kolejność podstawowa: REG-01 → REG-01a → REG-02 → REG-02a → REG-04 → REG-05
+→ REG-06 → REG-07 → REG-08 → REG-08a → REG-08b → REG-08c → REG-10 → REG-11
+→ REG-12. To także kolejność ręcznych odbiorów, nawet gdy część kodu można
+technicznie napisać niezależnie. Zależność między REG-10/11/12 porządkuje
+eksperymenty; RoMa nie wymaga uruchamiania EfficientLoFTR, a MatchAnything nie
+wymaga działającego RoMa. Wspólną bazą porównań pozostaje obecny Deep.
+
+Najbliższy krok pozostaje bez zmian: odbiór REG-04, potem zlecenie REG-05.
 
 ## Stałe kontrakty
 
@@ -113,7 +137,9 @@ technicznie napisać niezależnie.
   pełnych filmów float64. Zwykły wynik aligned działa jak dotychczas.
 - Brak wiarygodnego dopasowania nie oznacza (0,0). Wynik liczbowy z małym
   poparciem może być widoczny jako niepewny; brak wyniku lub błąd przerwie
-  próbę całej serii, zachowując poprzedni kompletny aligned.
+  dotychczasową próbę łańcuchową, zachowując poprzedni kompletny aligned.
+  Nowa, jawnie wybrana metoda grafowa ma osobną politykę brakujących relacji
+  opisaną poniżej; nie zmienia zachowania dotychczasowych metod.
 - Postęp, anulowanie, ochrona poprzedniego wyniku i blokady edycji serii
   podczas obliczeń obowiązują również nowe metody i podgląd par.
 - Usuwanie klatek zachowuje gotową geometrię pozostałych. Nowe obliczenie
@@ -122,6 +148,51 @@ technicznie napisać niezależnie.
   z aktywnego kompletnego aligned, a nie z dowolnego eksperymentu pary A/B.
   Szczegółowy zapis próby z REG-07 jest osobnym dokumentem, nie zmianą
   istniejącego formatu metadanych MPP.
+
+## Kontrakty rozszerzenia wieloklatkowego
+
+- Oddzielamy **algorytm pary**, **wyznaczanie wspólnych XY** i **zastosowanie
+  wyniku**. Pierwszy graf używa obecnego Deep bez ECC i bez zmiany jego ustawień.
+  REG-05 jest osobnym porównaniem przestrzennego poparcia, a nie ukrytą nową
+  wersją bazowego Deep. REG-10 ustala wspólną agregację korespondencji nowych
+  modeli; REG-11/12 zachowują ją i zmieniają model. Lokalna metoda wycinków
+  REG-05 pozostaje osobnym wariantem, bez ukrytego dołączania do nowych matcherów.
+- `d_ij` przesuwa oryginalną klatkę j na i, `p_i` przesuwa i do wspólnego
+  układu: `p_j - p_i = d_ij`, kotwica `p_0=(0,0)`. Okno obejmuje jedną relację
+  każdej pary `0 < |i-j| ≤ k`. Wybór aktualnej klatki podglądu nie zmienia kotwicy.
+  Nie uśredniamy surowych wektorów mających różne odniesienia.
+- REG-08a używa równych wag ważnych pomiarów i zwykłego LS. REG-08b porównuje
+  na tych samych krawędziach blokowy Huber/IRLS: jedna waga dla całej reszty XY.
+  Nie dokładamy gładkości trajektorii, stałego kierunku, przyciągania do zera
+  ani automatycznie wyższej wagi wyniku ECC. Próg Hubera zapisujemy w pikselach.
+- Nieudana estymacja pary to brak krawędzi z przyczyną. Inne połączenia mogą
+  ją ominąć. Nieobliczona wskutek anulowania para nie jest odmową estymatora:
+  anulowanie przerywa próbę. Awaria zasobów/modelu/solvera również nie udaje
+  serii zwykłych braków dopasowania.
+- Rozłączny graf nie daje jednego pełnego wyniku; pozostaje diagnostyką.
+  Mosty i brak nadmiarowych połączeń są widocznymi ograniczeniami. Mała reszta,
+  zgodny cykl lub duża liczba krawędzi nie gwarantują poprawności fizycznej:
+  błędy mogą być powiązane, okresowe albo wynikać ze wspólnego zakłócenia.
+- REG-08a/08b tworzą próbę do oglądania i zapisu w GUI, bez podmiany aktywnego
+  aligned. REG-08c dodaje **Zastosuj wynik do filmu** oraz eksport. To celowy
+  podział na etapy możliwe do ręcznej oceny; szczegółowy wyjątek eksportowy
+  znajduje się w protokole. Pełne klatki próby renderujemy na żądanie.
+- REG-08c zamraża globalne XY grafu jako bazę dla REG-02a. Ręczne nadpisanie
+  zastępuje różnicę XY sąsiadów tej bazy i przesuwa dalsze klatki, bez ponownego
+  uruchamiania solvera. Surowa krawędź modelu, wynik grafu i ręczna korekta są
+  osobnymi danymi. Nowa optymalizacja tworzy osobną próbę; przed jej zastosowaniem
+  UI pokazuje, które ręczne korekty aktywnego wyniku zostaną zastąpione.
+- Dokument próby przechowuje krawędzie i ich źródła, konfigurację grafu,
+  bazowe/końcowe XY oraz ręczne nadpisania. Rozszerzenia tego dokumentu i
+  metadanych MPP należą do wprowadzającego je ticketu i zachowują odczyt starszych
+  wersji. Sam aligned MPP nadal nie zawiera oryginałów sprzed interpolacji.
+- Kontrola REG-06 nie ustala wag, progów ani wyboru krawędzi tej samej próby.
+  Jeśli model widział dane kontrolne (także przez globalne cechy obrazu), ocena
+  jest zależna. Zmiana roli danych oznacza nową próbę, nie pozorną niezależność.
+- Modele są opcjonalne, z lokalnymi wagami, jawną wersją i sumą kontrolną.
+  Brak zależności/wag/pamięci ma przyczynę w UI, bez pobierania i podmiany metody.
+  Zapisane wyniki można obejrzeć bez ponownej inferencji. Nowy model nie zmienia
+  domyślnego algorytmu ani nie deformuje lokalnie pikseli.
 
 ## Odbiór i statusy
 
@@ -168,16 +239,23 @@ jest zmiana wspólnego kodu lub konfiguracji głównej, opisujemy wymagany kontr
 w handoff i kierujemy go do `stm-next`, zgodnie z
 [regułami współpracy](../../PARALLEL_DEVELOPMENT.md). Nie edytujemy innych worktree.
 
-Otwarte zadania pierwszej wersji 19–21 zachowują swoje statusy. Problem długiego
+Zadania pierwszej wersji 19–21 zachowują swoje statusy. Problem długiego
 nagłówka MPP nie blokuje pracy na tych dwóch filmach, ale pozostaje osobnym
 warunkiem odbioru dużych eksportów. Próby na Ubuntu nie oznaczają odbioru Windows.
 
 ## Poza bieżącą implementacją
 
 Swobodna deformacja obrazu, prostowanie do założonej sieci molekuł,
-trening/pobieranie modeli, zastępowanie brakujących danych oraz wygładzanie
-trajektorii dryfu nie należą do etapów podstawowych tego planu.
-REG-08 nie optymalizuje jeszcze trajektorii; REG-09 nie deformuje pikseli.
+trening modeli, automatyczne pobieranie przez aplikację, zastępowanie brakujących
+danych oraz wygładzanie trajektorii dryfu nie należą do tego planu.
+REG-10–12 obejmują instrukcje przygotowania lokalnych wag i sprawdzenie warunków
+ich wybranych wersji; sam plan niczego nie instaluje ani nie pobiera.
+REG-08 nie zmienia XY; REG-08a/08b wyznaczają wspólne przesunięcia w próbie,
+REG-08c stosuje je do filmu. REG-09 nie deformuje pikseli.
+LightGlue + ALIKED i TartanMatch pozostają na liście obserwacyjnej w przeglądzie,
+bez osobnych ticketów przed oceną trzech wybranych modeli. Wszystkie pary filmu,
+szablon uśredniony i optymalizacja grafu z ręcznymi twardymi ograniczeniami
+wymagają osobnego uzasadnienia; nie rozszerzamy o nie pierwszego eksperymentu.
 Wdrożenie rzeczywistej korekcji tearingu wymaga po REG-09 osobnego planu:
 modelu deformacji, zachowania rzeczywistego ruchu, geometrii, ważności próbek
 i metadanych eksportu. Obecne metadane pojedynczego XY nie opiszą takiej korekcji.

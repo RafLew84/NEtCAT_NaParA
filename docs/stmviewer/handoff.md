@@ -1,3 +1,34 @@
+# Plan: graf dopasowań i nowe modele — 2026-10-31
+
+Na zlecenie użytkownika rozszerzono [plan rejestracji](registration/README.md)
+na podstawie [przeglądu](registration-multiframe-research.md).
+Baza: `903dfac`, gałąź `viewer/registration-difficult-movies`.
+
+- Nowe tickety: REG-08a (graf okna 3/5 i LS), REG-08b (Huber/IRLS na tych
+  samych pomiarach), REG-08c (zastosowanie, korekty ręczne, eksport), warunkowy
+  REG-08d (dalsze odniesienia) oraz osobno REG-10 EfficientLoFTR, REG-11 RoMa v2,
+  REG-12 MatchAnything-ELoFTR. Każdy ma publiczne granice TDD i próbę w GUI.
+- REG-08 ma przygotowany zakres diagnostyczny i status `ready-for-agent`,
+  po REG-07. REG-05 porównuje przestrzenne poparcie przede wszystkim z samym
+  Deep; ECC pozostaje odrębnym wariantem. Aktualizowano zależności i protokół.
+- Graf nie wymusza gładkiego dryfu. Brakujące relacje, rozłączenie i mosty są
+  jawne. Ręczne korekty działają na zamrożonej bazie globalnych XY, z istniejącą
+  propagacją na dalsze klatki, bez ponownego solvera i bez cichego nadpisywania.
+- REG-08a/08b kończą się podglądem i lekkim zapisem próby; REG-08c dodaje jej
+  zastosowanie i eksport. Modele REG-10–12 działają dla par, łańcucha i grafu,
+  z lokalnymi wagami oraz kontrolowanym porównaniem przy stałej agregacji.
+- Stan: REG-01/01a/02/02a nadal `done`, REG-04 nadal `ready-for-review`.
+  Najbliższy krok to manualny odbiór REG-04, potem zlecenie REG-05.
+  Rozszerzenie planu nie zalicza implementacji ani testów tych nowych funkcji.
+- Kontrola tej zmiany: przegląd spójności zakresów i zależności, linki lokalne,
+  statusy/checklisty oraz `git diff --check`. Kod aplikacji bez zmian;
+  nie uruchamiano testów programu, nie pobierano modeli ani nie instalowano pakietów.
+- Wszystkie zmiany należą do końcowego commita dokumentacyjnego tej pracy.
+  Wspólne adaptery lub konfiguracja, jeśli okażą się potrzebne przy realizacji,
+  pozostają zadaniem integracji opisanym w ticketach; teraz brak zmian wspólnych.
+
+---
+
 # Research: rejestracja wieloklatkowa i nowe matchery — 2026-10-31
 
 Na zlecenie użytkownika, skillem `research`, przygotowano jeden

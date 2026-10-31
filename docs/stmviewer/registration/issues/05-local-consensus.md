@@ -8,11 +8,21 @@ globalne XY, a metoda wyznacza je odpornie na lokalne błędne dopasowania.
 
 Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
 
+**Doprecyzowanie po research — 2026-10-31:** obecny Deep już wybiera grupę
+zgodnych wektorów i ważoną medianę. Nowością tego ticketu jest rozmieszczenie
+poparcia po obrazie, niezależność fragmentów i ocena konkurujących grup,
+a nie samo dodanie pierwszego odpornego konsensusu.
+Źródło: [przegląd](../../registration-multiframe-research.md#co-wiemy-lokalnie).
+
 ## Zakres i kryteria odbioru
 
 - [ ] Po początkowym globalnym XY metoda wybiera przestrzennie rozdzielone fragmenty
   z dostateczną teksturą i szuka ich odpowiedników w rozszerzonym otoczeniu
   drugiej klatki. Nie koreluje wyłącznie wycinków o tych samych współrzędnych.
+- [ ] Podstawowe porównanie startuje z dokładnego wyniku obecnego Deep bez ECC.
+  Bazowe XY, jego konfiguracja i nowy wynik są zachowane oddzielnie; nie liczymy
+  ponownie innego startu dla wyniku A. Deep→ECC z REG-04 jest osobnym wariantem
+  porównawczym, a nie obowiązkowym inicjalizatorem REG-05 ani późniejszego grafu.
 - [ ] Fragmenty obejmują wyłącznie ważne próbki obu obrazów w rzeczywistych
   miejscach dopasowania. Braki danych i padding nie są teksturą.
   Wielkości fragmentów, obszar poszukiwania i reguły konsensusu są zapisane
@@ -47,9 +57,9 @@ poszczególnych fragmentów. Wszystkie piksele klatki nadal otrzymują jedno XY.
 
 1. Na wzorcu z przesuniętą strukturą i nieruchomym pasem obejrzyj fragmenty
    zgodne/odrzucone. Sprawdź, czy wynik wynika z kilku części próbki.
-2. Na obu filmach porównaj hybrydę Deep Matcher + ECC z REG-04 jako wynik A
-   z REG-05 jako wynik B przy tych samych oryginałach
-   i ustawieniach podglądu.
+2. Na obu filmach porównaj bazowy Deep jako wynik A z REG-05 jako wynik B,
+   z tym samym startem, oryginałami i ustawieniami podglądu. Osobno porównaj
+   Deep→ECC z REG-04; nie zmieniaj inicjalizacji i konsensusu w jednej próbie.
    Dla każdej stałej pary sprawdź poparcie w różnych miejscach, nie tylko jego liczbę.
 3. Obejrzyj dostarczony wzorzec, w którym góra i dół mają różne XY. Wynik
    nie może udawać korekcji obu części; rozbieżność ma być widoczna.

@@ -11,6 +11,11 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-10-31: rozszerzono [plan trudnych filmów](registration/README.md) o graf
+  dopasowań wielu klatek oraz osobne próby EfficientLoFTR, RoMa v2 i
+  MatchAnything-ELoFTR. Każdy etap ma ręczny odbiór; zmiana dotyczy późniejszego
+  rozwoju metod i nie oznacza wykonania ani odbioru tych funkcji.
+
 - 2026-10-28: użytkownik zlecił osobny [plan rozwoju rejestracji
   trudnych filmów](registration/README.md), z ręcznym odbiorem po każdym
   tickecie REG. Rozpoczyna on późniejszy etap rozwoju metod; nie zmienia
