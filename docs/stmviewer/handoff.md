@@ -1,5 +1,28 @@
 # Przekazanie — STM Viewer
 
+## Plan: REG-02a — ręczne korekty filmu — 2026-10-31
+
+Na zlecenie użytkownika dodano [REG-02a](registration/issues/02a-manual-movie-corrections.md)
+między odebrany REG-02 a REG-03. Status `ready-for-agent`, implementacja
+nierozpoczęta. REG-03 wymaga jego wykonania i manualnego odbioru; kolejne numery
+pozostają bez zmian. Baza dokumentacji `822ce96`, gałąź `viewer/registration-difficult-movies`.
+
+- Kompletny automatyczny aligned → ręczna korekta pary → jawne Zastosuj do filmu.
+  XY pary zastępuje dotychczasowe; różnica przesuwa tę i dalsze klatki. Ponowienie
+  nie dubluje korekty; można usunąć nadpisanie jednej pary, zachowując pozostałe.
+- Renderowanie z oryginałów, nowa geometria i ważność próbek, postęp/anulowanie,
+  atomowa podmiana oraz ręczne pochodzenie i brak pewności w filmie i eksporcie.
+  Samo Zakończ korektę zachowuje diagnostyczny zakres REG-01a.
+- Po usunięciu klatki gotowy aligned/eksport pozostaje; dalsze korekty wymagają
+  nowej pełnej rejestracji. Stara próba związana z innym wynikiem nie może być użyta.
+- Ticket zawiera publiczne granice testów i odtwarzalny scenariusz cpu.mpp oraz
+  poprawionego MOVIE_4 (źródłowe 3–364), w tym wskazane przez użytkownika przejścia.
+  REG-07 rozszerzono o zachowanie zastosowanych nadpisań w dokumentach prób.
+
+Zmiana tylko planu: aplikacja nie ma jeszcze Zastosuj do filmu. Sprawdzono
+spójność zależności, odnośniki i diff; testów kodu nie uruchamiano. Brak zmian
+współdzielonych. Statusy odbioru REG-01/01a/02 i wcześniejszych 19–21 bez zmian.
+
 ## REG-02: Odbiór i obserwacje MOVIE_4 — 2026-10-31
 
 Użytkownik potwierdził „testy manualne ok”. [REG-02](registration/issues/02-unnormalized-correlation.md)

@@ -1,13 +1,15 @@
 # Plan rozwoju rejestracji trudnych filmów STM
 
-Data: 2026-10-28; rozszerzenie ręcznego dopasowania: 2026-10-30.
+Data: 2026-10-28; rozszerzenia ręczne: REG-01a 2026-10-30, REG-02a 2026-10-31.
 Gałąź: `viewer/registration-difficult-movies`.
 Baza rozpoznania: `c85aecb`; przegląd metod: `81ff1a0`.
 Status: REG-01, REG-01a i REG-02 `done`. Użytkownik potwierdził odbiór REG-02
 2026-10-31 i zgłosił brak istotnej poprawy względem Phase na MOVIE_4.
 Deep Matcher ocenia najlepiej w obejrzanych pierwszych 100 klatkach.
 [Instrukcja REG-02](unnormalized-correlation-manual.md), [wyniki](reviews/REG-02.md).
-REG-03 jest odblokowany i czeka na osobne zlecenie. Dalsze próby MOVIE_4
+Następny jest [REG-02a: ręczne korekty filmu](issues/02a-manual-movie-corrections.md),
+status `ready-for-agent`; implementacja nierozpoczęta. REG-03 czeka na jego odbiór.
+Dalsze próby MOVIE_4
 obejmują źródłowe klatki 3–364, zgodnie z [protokołem](manual-protocol.md).
 [Instrukcja manualna](manual-alignment-manual.md), [karta sprawdzeń](reviews/REG-01a.md).
 Użytkownik wybrał układ C; jest wdrożony z opisowymi kartami wyników i ręcznym
@@ -26,7 +28,7 @@ Podstawa: [rozpoznanie danych](../registration-difficult-movies.md),
 [przegląd metod i źródła](../registration-improvement-options.md).
 Nowe zlecenie rozpoczyna etap rozwoju metod odłożony w
 [mapie pierwszej wersji](../map.md). Nie zmienia historycznych odbiorów 01–21.
-W tej numeracji używamy **REG-01…REG-09** oraz dodanego **REG-01a**, aby uniknąć
+W tej numeracji używamy **REG-01…REG-09** oraz dodanych **REG-01a i REG-02a**, aby uniknąć
 kolizji i zachować numery istniejących zadań.
 
 ## Kolejność i wynik każdego ticketu
@@ -36,7 +38,8 @@ kolizji i zachować numery istniejących zadań.
 | [REG-01: Porównanie par klatek](issues/01-pair-comparison.md) | Nakładka i przełączanie obrazów przed/po dopasowaniu; porównanie dwóch prób A/B przy jednakowym widoku. | Brak |
 | [REG-01a: Ręczne dopasowanie pary](issues/01a-manual-alignment.md) | Ruch klatki dopasowywanej ±1 px w X/Y, nakładka/przełączanie obrazów, start z zera lub korekta próby, zachowanie ręcznego wyniku jako B. | REG-01 |
 | [REG-02: Korelacja bez normalizacji](issues/02-unnormalized-correlation.md) | Osobny wariant dostępny dla pary i całej serii, z porównaniem do dotychczasowego Phase. | REG-01a |
-| [REG-03: Ręczne maski zakłóceń](issues/03-manual-masks.md) | Zaznaczanie obszarów używanych i pomijanych; rejestracja uwzględnia osobne maski klatek. | REG-02 |
+| [REG-02a: Ręczne korekty filmu](issues/02a-manual-movie-corrections.md) | Jawne zastosowanie ręcznego XY pary do całego aligned, przeliczenie dalszych klatek, cofnięcie korekty pary i eksport poprawionego MPP/AVI. | REG-02 |
+| [REG-03: Ręczne maski zakłóceń](issues/03-manual-masks.md) | Zaznaczanie obszarów używanych i pomijanych; rejestracja uwzględnia osobne maski klatek. | REG-02a |
 | [REG-04: Dopasowanie wieloskalowe](issues/04-multiscale-translation.md) | Zgrubne XY i doprecyzowanie na pełnym obrazie; jawna ocena niejednoznacznych dopasowań. | REG-03 |
 | [REG-05: Zgodność lokalnych fragmentów](issues/05-local-consensus.md) | Wektory dopasowania fragmentów, wskazanie zgodnych/odrzuconych i odporne wyznaczanie globalnego XY. | REG-04 |
 | [REG-06: Niezależna kontrola dopasowania](issues/06-independent-validation.md) | Ocena na wydzielonych fragmentach kontrolnych i lista par wymagających obejrzenia. | REG-05 |
@@ -47,12 +50,12 @@ kolizji i zachować numery istniejących zadań.
 REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [instrukcja próby](pair-comparison-manual.md),
 [karta odbioru](reviews/REG-01.md). REG-01a ma status `done` po odbiorze
-użytkownika 2026-10-31. REG-02 również odebrano 2026-10-31 (`done`). REG-03–07 mają
+użytkownika 2026-10-31. REG-02 również odebrano 2026-10-31 (`done`). REG-02a i REG-03–07 mają
 status `ready-for-agent`:
 zakres jest przygotowany, ale start
 wymaga zlecenia użytkownika i zakończenia blokujących ticketów. REG-08/09 mają
 status `planned`; nie uruchamiamy ich automatycznie. Nie zależą od siebie.
-Kolejność REG-01 → REG-01a → REG-02–07 jest również kolejnością ręcznych
+Kolejność REG-01 → REG-01a → REG-02 → REG-02a → REG-03–07 jest również kolejnością ręcznych
 odbiorów: chcemy ocenić pojedynczą zmianę przed dołożeniem następnej, nawet jeśli część kodu można
 technicznie napisać niezależnie.
 
@@ -63,12 +66,20 @@ technicznie napisać niezależnie.
   nazywamy odniesieniem i dopasowywaną klatką. Szkic ręczny jest odrębny od
   zatwierdzonych prób. Zastosowanie tworzy B z jawnym pochodzeniem ręcznym
   i bez automatycznego wskaźnika pewności. Pełny aligned i eksport zachowują
-  dotychczasowy wynik; ręczne składanie całego filmu wymaga osobnego zakresu.
+  dotychczasowy wynik po „Zakończ korektę”. Planowany REG-02a dodaje osobne
+  „Zastosuj do filmu”, które jawnie podmienia aktywny pełny wynik.
 - Próby ręczne można rozpocząć od zera lub kopii istniejącego wyniku tej pary.
   Podgląd zawsze powstaje z oryginałów i całkowitego XY. REG-07 zachowuje
   początkowe XY, pochodzenie, korektę i wynik ręczny. Ocena wzrokowa operatora
   nie staje się automatycznie niezależną kontrolą z REG-06.
 
+- REG-02a wymaga kompletnej rejestracji bazowej. Ręczne XY zastępuje przesunięcie
+  pary; różnica zmienia skumulowane XY tej i kolejnych klatek. Powtórzenie nie
+  dubluje zmiany, cofnięcie dotyczy jednej pary. Film powstaje z oryginałów;
+  błąd/anulowanie zachowują wcześniejszy wynik i korekty. Po usunięciu klatki
+  dotychczasowy aligned/eksport zostaje, lecz dalsza edycja wymaga nowej rejestracji.
+  Eksport poprawionego filmu i ręcznego pochodzenia należy już do REG-02a;
+  zapis edytowalnych prób przy oryginalnych źródłach pozostaje w REG-07.
 - Każda metoda dodawana w REG-02–05 działa od razu na parze i na całej serii,
   przez ten sam estymator. REG-07 nie odkłada podstawowej integracji z GUI.
 - Dotychczasowe metody pozostają dostępne. Nowe warianty są jawnie wybierane,

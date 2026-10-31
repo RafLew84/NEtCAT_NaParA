@@ -73,8 +73,10 @@ Aktualne kroki z nazwami układu C: [instrukcja manualna](../unnormalized-correl
 Pełne wyniki, ograniczenia formatu i przegląd: [karta REG-02](../reviews/REG-02.md).
 ## Odbiór — 2026-10-31
 
-Użytkownik zaakceptował testy manualne. REG-02 zamknięto jako `done`; REG-03
-jest odblokowany i czeka na osobne zlecenie. Akceptacja funkcji nie oznacza
+Użytkownik zaakceptował testy manualne. REG-02 zamknięto jako `done`.
+Aktualizacja planu 2026-10-31: przed REG-03 dodano
+[REG-02a: ręczne korekty filmu](02a-manual-movie-corrections.md); REG-03 czeka
+na jego implementację i manualny odbiór. Akceptacja funkcji REG-02 nie oznacza
 potwierdzenia poprawy jakości: w MOVIE_4 użytkownik nie widzi dużej różnicy
 między Phase a wariantem bez normalizacji. Najlepiej ocenił Deep Matcher
 w obejrzanych pierwszych 100 klatkach. [Pełna relacja](../reviews/REG-02.md#ręczny-odbiór-użytkownika).

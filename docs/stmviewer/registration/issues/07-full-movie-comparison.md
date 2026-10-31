@@ -8,7 +8,8 @@ dodatkowych stosów obrazów w pamięci. Kończymy ocenę podstawowego wariantu 
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 
 Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
-Warianty z REG-02–05 już działają na pełnej serii i współpracują z eksportem.
+W chwili realizacji REG-07 warianty z REG-02–05 oraz ręczne korekty REG-02a
+mają już działać na pełnej serii i współpracować z eksportem.
 Porównanie wykorzystuje podgląd i renderowanie z REG-01 oraz istniejącą
 nawigację. Ten ticket nie buduje osobnego odtwarzacza dwóch filmów.
 
@@ -22,6 +23,11 @@ nawigację. Ten ticket nie buduje osobnego odtwarzacza dwóch filmów.
   i jawny brak automatycznej oceny jakości. Odtwarzane są zatwierdzone próby,
   bez historii kliknięć ani niezastosowanego szkicu. Odczyt nie promuje ręcznej
   próby pary do pełnego aligned i nie nadaje jej pewności backendu.
+- [ ] Dokument kompletnego wyniku po REG-02a zachowuje bazową metodę i wersję,
+  XY bazowe, zastosowane nadpisania par, ręczne pochodzenie i końcowe XY oraz brak
+  oceny jakości. Nie utożsamia zastosowanych korekt filmu z diagnostycznymi próbami
+  par. Odtwarza poprawiony wynik do porównania przy właściwych oryginalnych źródłach;
+  samo wczytanie dokumentu nie podmienia aktywnego aligned ani eksportu.
 - [ ] Źródła są identyfikowane zawartością i pochodzeniem, nie wyłącznie nazwą.
   Tożsamość obejmuje również metadane mające wpływ na geometrię.
   Przy ponownym otwarciu można wskazać przeniesiony plik. Inna zawartość,
@@ -78,7 +84,10 @@ w Git, zamknięcie wcześniejszych ticketów odbioru platform lub dużych ekspor
 6. Zapisz także ręczną próbę z REG-01a, ponownie ją otwórz i porównaj
    z algorytmem. Sprawdź początkowe XY, korektę, wynik końcowy, pochodzenie
    i zachowanie pełnego aligned.
-7. Podejmij jawną decyzję: zachować wariant eksperymentalny, poprawić go albo
+7. Powtórz zapis/odczyt dla pełnego wyniku z dwiema zastosowanymi korektami
+   REG-02a. Sprawdź pary źródłowe, bazę, nadpisania i skumulowane XY, porównanie
+   odtworzonego filmu oraz zachowanie aktywnego aligned po samym wczytaniu zapisu.
+8. Podejmij jawną decyzję: zachować wariant eksperymentalny, poprawić go albo
    zakończyć na obecnym wyniku. Dopiero osobno zdecyduj o REG-08 i REG-09.
 
 **Oczekiwany wynik:** odtwarzalna, udokumentowana ocena całych filmów.

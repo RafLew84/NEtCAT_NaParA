@@ -107,6 +107,7 @@ deformacji wewnątrz klatki.
    przy sprawdzaniu tego roundtripu.
 
 Odbiór REG-02 użytkownik potwierdził 2026-10-31; obserwacje MOVIE_4 zapisano
-w [karcie](reviews/REG-02.md#ręczny-odbiór-użytkownika). REG-03 jest odblokowany
-i czeka na osobne zlecenie. Powyższe kroki pozostają instrukcją dalszych porównań;
+w [karcie](reviews/REG-02.md#ręczny-odbiór-użytkownika). Kolejny etap to
+[REG-02a](issues/02a-manual-movie-corrections.md), dodany do planu 2026-10-31
+przed REG-03. Powyższe kroki pozostają instrukcją dalszych porównań;
 nie są deklaracją wykonania każdego kroku przez użytkownika.

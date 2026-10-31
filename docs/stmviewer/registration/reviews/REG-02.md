@@ -114,7 +114,9 @@ Standards: 0 uwag; Spec: 1 naprawiona, 0 otwartych.
 ## Ręczny odbiór użytkownika
 
 2026-10-31 użytkownik potwierdził **„testy manualne ok”** i opisał oględziny
-MOVIE_4. REG-02 ma status `done`; REG-03 jest odblokowany, bez rozpoczęcia.
+MOVIE_4. REG-02 ma status `done`. W dalszej aktualizacji planu 2026-10-31
+dodano [REG-02a](../issues/02a-manual-movie-corrections.md) przed REG-03;
+REG-03 czeka na jego implementację i manualny odbiór.
 Odebrany kod: `d85ba1b`, `bcf0e70`; dokumentacja: `ad87192`.
 System i ustawienia podglądu nie zostały podane. W tej wiadomości nie ma
 osobnej oceny MOVIE_8 ani szczegółowych wyników każdego kroku eksportu.
@@ -167,7 +169,9 @@ Na pytanie o zapis ręcznej korekty do filmu: obecny REG-01a zmienia tylko wynik
 pary do porównania. Pełny aligned i eksport MPP/AVI nadal korzystają z pełnej
 rejestracji z głównego okna. REG-07 przewiduje zapis dokumentów prób, w tym
 ręcznych, ale nie promuje ich do pełnego aligned. Zastosowanie ręcznej korekty
-do filmu wymaga osobnego zakresu; w tej aktualizacji nie zlecono implementacji.
+do filmu zaplanowano później tego samego dnia w
+[REG-02a](../issues/02a-manual-movie-corrections.md). Implementacja pozostaje
+nierozpoczęta; samo dodanie ticketu nie zmienia działania aplikacji.
 
 Zapis odbioru i obserwacji zmienia wyłącznie dokumentację. Testów kodu
 nie ponawiano; sprawdzono statusy, lokalne odnośniki i `git diff --check`.

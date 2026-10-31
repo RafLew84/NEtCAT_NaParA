@@ -105,6 +105,22 @@ Przy braku zgodności różnych części obrazu zanotuj rozbieżność. Ręczny 
 nie stanowi samodzielnego dowodu fizycznego dryfu ani niezależnej walidacji.
 Szczegółowe próby, cofnięcie ruchów i anulowanie korekty opisuje [REG-01a](issues/01a-manual-alignment.md).
 
+## Planowane zastosowanie korekty do filmu — REG-02a
+
+Ten etap jest dodany do planu; funkcja nie jest jeszcze wdrożona.
+[REG-02a](issues/02a-manual-movie-corrections.md) rozdziela zakończenie próby pary
+od jawnego **Zastosuj do filmu**. Punktem startu jest różnica skumulowanych XY
+sąsiednich klatek z aktywnego pełnego wyniku. Zastąpienie przesunięcia pary zmienia
+położenie jej klatki przesuwanej i dalszych klatek. Porównuj XY względem odniesienia;
+nowy padding może zmienić położenie wszystkich obrazów w powiększonym płótnie.
+
+Próbę zaczynamy na cpu.mpp z liczbami podanymi w tickecie. Potem stosujemy ją
+na MOVIE_4, po usunięciu źródłowych 1 i 2 przed rejestracją. Pierwszy przypadek
+użytkownika: bieżąca para 29→30, źródłowa 31→32. Po zastosowaniu sprawdzamy
+sąsiedztwo pary, dalsze klatki, pochodzenie ręczne, brak oceny pewności,
+cofnięcie korekty, anulowanie oraz mały eksport MPP/AVI z ponownym odczytem.
+Zapis poprawionego filmu należy do REG-02a, zapis lekkiej sesji do REG-07.
+
 ## Karta odbioru każdego ticketu
 
 Realizujący tworzy kartę w `docs/stmviewer/registration/reviews/REG-XX.md`.

@@ -9,8 +9,8 @@ oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 [Rozpoznanie MOVIE_4/MOVIE_8 i reproduktory](registration-difficult-movies.md)
 opisuje zgodność metod ze strukturami obrazu przy zakłóceniach i tearing.
 Domyślne algorytmy aplikacji pozostają bez zmian.
-[Plan rozwoju i tickety](registration/README.md) obejmuje osiem etapów
-podstawowych (w tym REG-01a) i dwa warunkowe. Każdy kończy się ręcznym odbiorem
+[Plan rozwoju i tickety](registration/README.md) obejmuje dziewięć etapów
+podstawowych (w tym REG-01a i REG-02a) i dwa warunkowe. Każdy kończy się ręcznym odbiorem
 funkcji oraz jakości; kolejny etap czeka na decyzję użytkownika.
 [Wspólny protokół prób](registration/manual-protocol.md) ustala dane i sposób porównania.
 
@@ -38,10 +38,16 @@ ma status **done** po odbiorze 2026-10-31. Metoda **Korelacja bez normalizacji (
 działa dla pary i całego filmu, z jawną informacją o niezweryfikowanej pewności.
 MPP zachowuje wersję metody, geometrię i brak oceny jakości; AVI korzysta z aligned.
 Domyślny Phase pozostaje bez zmian. [Instrukcja odbioru](registration/unnormalized-correlation-manual.md),
-[karta i przegląd](registration/reviews/REG-02.md). REG-03 jest odblokowany.
+[karta i przegląd](registration/reviews/REG-02.md). Przed REG-03 dodano REG-02a.
 Użytkownik nie zauważył istotnej poprawy nowego wariantu względem Phase na MOVIE_4;
 Deep Matcher ocenił najlepiej w pierwszych 100 oglądanych klatkach. Dalsze próby
 MOVIE_4 pomijają dwie błędnie dołączone klatki źródłowe, zgodnie z protokołem.
+
+**[REG-02a — ręczne korekty filmu](registration/issues/02a-manual-movie-corrections.md)**
+ma status **ready-for-agent**; został zaplanowany 2026-10-31 i nie jest jeszcze
+zaimplementowany. Doda pobranie dopasowania pary z pełnego wyniku, jawne
+„Zastosuj do filmu”, przeliczenie kolejnych klatek z oryginałów i zapis poprawionego
+MPP/AVI. REG-03 czeka na jego implementację i manualny odbiór.
 
 ## Stan aplikacji
 
