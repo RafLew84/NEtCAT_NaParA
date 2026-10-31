@@ -17,9 +17,9 @@ from stmviewer.mpp_metadata import mpp_sidecar_path
 from stmviewer.registration import (
     CPU_METHODS, DEEP_METHODS, REGISTRATION_METHODS, RegistrationResult, ShiftBackend, registration_unavailable_reason,
 )
-from stmviewer.deep_ecc import HYBRID_LABEL
 from stmviewer.ui.registration_options import method_unavailable_reason
 from stmviewer.ui.hybrid_details import hybrid_details_text
+from stmviewer.ui.local_details import local_details_text
 from stmviewer.ui.deep_matcher_controls import DeepMatcherControls
 from stmviewer.ui.registration_job import RegistrationJob
 from stmviewer.ui.manual_movie_job import ManualMovieJob
@@ -826,7 +826,7 @@ class STMViewerMainWindow(QMainWindow):
                     if self._pair_dialog is not None:
                         self._pair_dialog.set_registration(
                             job.result, applied_trial=job.trial if isinstance(job, ManualMovieJob) else None)
-                    if job.result.method in ('Deep Matcher', HYBRID_LABEL):
+                    if job.result.method in (REGISTRATION_METHODS[key] for key in DEEP_METHODS):
                         self._deep_controls.set_status(f'Sprawdzono model. Urządzenie: {job.result.device}')
                     self._strip.set_warnings(tuple(
                         (("Do sprawdzenia: pewność niezweryfikowana"
@@ -889,10 +889,16 @@ class STMViewerMainWindow(QMainWindow):
                if result.corrections else "")
             +             f"ΔX: {current.shift_xy[0]:g} px · ΔY: {current.shift_xy[1]:g} px\n"
             f"Aligned: {width} × {height} px\nSkala aligned: {scale}\nOdniesienie: {origin}"
-            + self._hybrid_frame_info(result)
+            + self._pair_frame_info(result)
         )
 
-    def _hybrid_frame_info(self, result: RegistrationResult) -> str:
+    def _pair_frame_info(self, result: RegistrationResult) -> str:
+        if result.local_diagnostics:
+            local = result.local_diagnostics[self._index]
+            if local is None:
+                return '\nPierwsza klatka jest odniesieniem; nie wymaga estymacji fragmentów.'
+            return ('\nAutomatyczna estymata pary (przed ręcznymi korektami i usuwaniem):\n'
+                    + local_details_text(local) + '\n' + local.settings_text)
         if not result.pair_diagnostics:
             return ''
         details = result.pair_diagnostics[self._index]

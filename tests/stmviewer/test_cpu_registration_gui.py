@@ -37,6 +37,7 @@ def test_selecting_method_keeps_old_aligned_until_success(qtbot, monkeypatch, tm
     assert [combo.itemText(i) for i in range(combo.count())] == [
         'Phase', 'Korelacja bez normalizacji (v1)', 'Tile+RANSAC', 'ECC',
         'Optical Flow', 'Deep Matcher', 'Deep Matcher + ECC (v1)',
+        'Deep Matcher + lokalne fragmenty (v1)',
     ]
     combo.setCurrentText(method)
     assert image(window) == before

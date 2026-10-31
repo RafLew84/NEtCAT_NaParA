@@ -3,8 +3,10 @@
 **What to build:** Użytkownik widzi, jak kilka części obrazu popiera wybrane
 globalne XY, a metoda wyznacza je odpornie na lokalne błędne dopasowania.
 **Blocked by:** [REG-04](04-multiscale-translation.md), w tym odbiór manualny — spełnione 2026-10-31.
-**Status:** ready-for-agent
-**Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
+**Status:** in-progress
+**Manualny odbiór:** niewykonany; implementacja w toku.
+**Wykonawca:** Codex; baza przeglądu `a59029d`.
+**Granice TDD:** para → XY i dowody lokalne, GUI → mapa i wynik, seria/eksport; zgodnie z poniższym zakresem ticketu.
 
 Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
 

@@ -11,6 +11,8 @@ from PyQt6.QtWidgets import (
 
 from stmviewer.ui.registration_options import method_unavailable_reason
 from stmviewer.ui.hybrid_details import deep_start_trial, hybrid_details_text
+from stmviewer.ui.local_details import LocalDetails, local_overlays, local_start_trial
+from stmviewer.local_consensus import LocalDiagnostics
 from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.frame import ImageFrame
 from stmviewer.manual_pair import ManualPairDraft
@@ -46,6 +48,7 @@ class PairComparisonDialog(QDialog):
         self._available = True
         self._trial: PairTrial | None = None
         self._pinned: PairTrial | None = None
+        self._local_failure: LocalDiagnostics | None = None
         self._draft: ManualPairDraft | None = None
         self._manual_before_alignment = 0
         self._registration: RegistrationResult | None = None
@@ -94,7 +97,7 @@ class PairComparisonDialog(QDialog):
             choice.setAutoDefault(False)
             choice.setMinimumHeight(76)
             self._choice_group.addButton(choice)
-            choice.clicked.connect(self._show_trial)
+            choice.clicked.connect(self._choose_result)
         self._current_choice.setChecked(True)
         choices.addWidget(self._current_choice)
         self._pin = QPushButton('Zachowaj do porównania', self)
@@ -117,6 +120,13 @@ class PairComparisonDialog(QDialog):
         self._hybrid_details.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self._hybrid_details.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         choices.addWidget(self._hybrid_details)
+        self._failure_view = QCheckBox('Pokaż fragmenty odrzuconej próby', self)
+        self._failure_view.setObjectName('pairLocalFailure')
+        self._failure_view.toggled.connect(self._show_trial)
+        choices.addWidget(self._failure_view)
+        self._local_details = LocalDetails(self)
+        self._local_details.changed.connect(self._show_trial)
+        choices.addWidget(self._local_details)
         self._details_toggle = QToolButton(self)
         self._details_toggle.setObjectName('pairResultDetails')
         self._details_toggle.setText('Szczegóły wybranego wyniku')
@@ -295,6 +305,8 @@ class PairComparisonDialog(QDialog):
             return
         index = self._number.value() - 1
         start = movie_pair_trial(self._registration, index)
+        with QSignalBlocker(self._failure_view):
+            self._failure_view.setChecked(False)
         self._draft = ManualPairDraft(self._frames[index - 1], self._frames[index], start=start)
         self._draft_movie_revision = start.movie_revision
         self._manual_before_alignment = self._alignment.currentIndex()
@@ -317,6 +329,9 @@ class PairComparisonDialog(QDialog):
                              f'Klatka przesuwana {index + 1}: {name(moving)}')
         self._trial = None
         self._pinned = None
+        self._local_failure = None
+        with QSignalBlocker(self._failure_view):
+            self._failure_view.setChecked(False)
         self._draft = None
         self._draft_movie_revision = None
         self._manual.show_draft(None)
@@ -339,14 +354,21 @@ class PairComparisonDialog(QDialog):
         available = self._available and not self.busy
         editing = self._draft is not None
         selected = self._selected_result()
-        hybrid = selected.hybrid if selected is not None else None
+        hybrid = selected.hybrid if selected is not None and not self._failure_view.isChecked() else None
         self._hybrid_stage.setVisible(hybrid is not None)
         self._hybrid_stage.setEnabled(available and not editing)
         self._hybrid_details.setVisible(hybrid is not None)
         self._hybrid_details.setText(hybrid_details_text(hybrid) if hybrid else '')
+        self._failure_view.setVisible(self._local_failure is not None)
+        self._failure_view.setEnabled(available and not editing)
+        details = self._selected_local_details()
+        self._local_details.set_details(details)
+        self._local_details.stage.setVisible(details is not None and details.final_shift_xy is not None)
+        self._local_details.stage.setEnabled(available and not editing)
         self._run.setEnabled(available and not editing and reason is None)
         self._cancel.setVisible(self.busy)
-        self._pin.setEnabled(available and not editing and self._trial is not None)
+        self._pin.setEnabled(available and not editing and self._trial is not None
+                             and not self._failure_view.isChecked())
         for button, title, trial in ((self._current_choice, 'Wynik bieżący', self._trial),
                                      (self._saved_choice, 'Wynik zachowany', self._pinned)):
             description = ('Brak wyniku' if trial is None else
@@ -368,6 +390,8 @@ class PairComparisonDialog(QDialog):
             return
         index = self._number.value() - 1
         start = self._selected_trial() if copy_trial else None
+        with QSignalBlocker(self._failure_view):
+            self._failure_view.setChecked(False)
         self._draft = ManualPairDraft(self._frames[index - 1], self._frames[index], start=start)
         # Bind when editing begins, never when an old trial is later published.
         self._draft_movie_revision = start.movie_revision if start is not None else None
@@ -451,9 +475,21 @@ class PairComparisonDialog(QDialog):
         if job.was_cancelled():
             self._message.setText('Anulowano próbę. Poprzedni wynik zachowany.')
         elif job.error is not None:
+            if job.local_failure is not None:
+                self._local_failure = job.local_failure
+                with QSignalBlocker(self._failure_view):
+                    self._failure_view.setChecked(True)
+                with QSignalBlocker(self._alignment):
+                    self._alignment.setCurrentIndex(1)
+                self._show_trial()
             self._message.setText(f'Niepowodzenie nowej próby: {job.error}\nPoprzedni wynik zachowany.')
         elif job.result is not None:
+            self._local_failure = None
+            with QSignalBlocker(self._failure_view):
+                self._failure_view.setChecked(False)
             self._trial = job.result
+            with QSignalBlocker(self._local_details.stage):
+                self._local_details.stage.setCurrentIndex(0)
             with QSignalBlocker(self._hybrid_stage):
                 self._hybrid_stage.setCurrentIndex(0)
             self._current_choice.setChecked(True)
@@ -475,18 +511,35 @@ class PairComparisonDialog(QDialog):
         self._message.setText('Wynik bieżący zachowano do porównania. Kolejne obliczenie lub korekta go nie zmieni.')
         self._show_trial()
 
+    def _choose_result(self) -> None:
+        with QSignalBlocker(self._failure_view):
+            self._failure_view.setChecked(False)
+        self._show_trial()
+
+    def _selected_local_details(self) -> LocalDiagnostics | None:
+        if self._failure_view.isChecked():
+            return self._local_failure
+        trial = self._selected_result()
+        return trial.local if trial is not None else None
+
     def _selected_result(self) -> PairTrial | None:
         return self._pinned if self._saved_choice.isChecked() else self._trial
 
     def _selected_trial(self) -> PairTrial | None:
+        if self._failure_view.isChecked():
+            return None
         trial = self._selected_result()
         if trial is not None and trial.hybrid is not None and self._hybrid_stage.currentIndex() == 1:
             return deep_start_trial(trial)
+        if trial is not None and trial.local is not None and self._local_details.stage.currentIndex() == 1:
+            return local_start_trial(trial)
         return trial
 
     def _show_trial(self) -> None:
         trial = self._selected_trial()
-        if trial is None:
+        if self._failure_view.isChecked():
+            self._result.setText('Odmowa lokalnego dopasowania. To diagnostyka, nie nowy wynik pary.')
+        elif trial is None:
             self._result.setText('Brak wyniku tej pary.')
         else:
             quality = ('ustawione ręcznie — jakość nieoceniona' if trial.manual is not None
@@ -513,6 +566,8 @@ class PairComparisonDialog(QDialog):
             caption = 'Obrazy bez przesunięcia'
         elif self._draft is not None:
             caption = 'Podgląd ręcznej korekty'
+        elif self._failure_view.isChecked():
+            caption = 'Diagnostyka odmowy — start Deep, brak nowego wyniku lokalnego'
         elif trial is None:
             caption = 'Brak wyniku — obrazy bez przesunięcia'
         else:
@@ -523,6 +578,8 @@ class PairComparisonDialog(QDialog):
         if bool(self._alignment.currentData()):
             if self._draft is not None:
                 shift = self._draft.shift_xy
+            elif self._failure_view.isChecked() and self._local_failure is not None:
+                shift = self._local_failure.deep_shift_xy
             elif trial is not None:
                 shift = trial.shift_xy
         try:
@@ -534,11 +591,17 @@ class PairComparisonDialog(QDialog):
             reference = self._frames[self._number.value() - 2]
             aspect = frame_aspect(reference, pixel_proportions=self._pixels.isChecked())
             self._preview.set_image(image, aspect=aspect, reset_view=reset_view)
+            details = self._selected_local_details()
+            overlays = (local_overlays(details, shift)
+                        if details is not None and self._local_details.overlay.isChecked() and self._draft is None
+                        else ())
+            self._preview.set_overlays(overlays)
             text = (f'Wspólne ważne piksele: {raster.overlap_pixels} '
                     f'({raster.overlap_fraction:.1%} pola klatki bazowej). Pokrycie nie jest oceną jakości.')
             if not raster.overlap_pixels:
                 text += '\nBrak wspólnego ważnego obszaru.'
-            if bool(self._alignment.currentData()) and trial is None and self._draft is None:
+            if (bool(self._alignment.currentData()) and trial is None and self._draft is None
+                    and not self._failure_view.isChecked()):
                 text += '\nBrak wyniku — obrazy bez przesunięcia.'
             self._overlap.setText(text)
         except (ValueError, MemoryError, OverflowError) as error:

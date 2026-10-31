@@ -6,6 +6,8 @@ from typing import Callable, Literal
 import numpy as np
 from numpy.typing import NDArray
 
+from stmviewer.local_consensus import LocalDiagnostics, LocalConsensusError
+from stmviewer.local_registration import LOCAL_METHOD, DeepLocalBackend, load_deep_local_backend
 from stmviewer.frame import ImageFrame
 from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
 from stmviewer.deep_ecc import HYBRID_METHOD, HybridDiagnostics, DeepEccBackend, load_deep_ecc_backend
@@ -39,6 +41,7 @@ class PairTrial:
     manual: ManualProvenance | None = None
     movie_revision: str | None = None
     hybrid: HybridDiagnostics | None = None
+    local: LocalDiagnostics | None = None
 
 
 def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
@@ -66,15 +69,19 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
     try:
         _check_shape(reference, moving)
     except RegistrationError as error:
-        if method == HYBRID_METHOD:
+        if method in (HYBRID_METHOD, LOCAL_METHOD):
             raise RegistrationError(f'{pair_label} — Deep Matcher (wejście): {error}') from error
         raise
     if not np.isfinite(reference.data).all() or not np.isfinite(moving.data).all():
-        prefix = f'{pair_label} — Deep Matcher (wejście)' if method == HYBRID_METHOD else label
+        prefix = f'{pair_label} — Deep Matcher (wejście)' if method in (HYBRID_METHOD, LOCAL_METHOD) else label
         raise RegistrationError(f'{prefix}: para wymaga skończonych próbek; wejście zawiera NaN/Inf.')
     device = 'CPU'
     settings = 'Oryginały; ustawienia NanoTrack'
-    if method == HYBRID_METHOD:
+    if method == LOCAL_METHOD:
+        local = load_deep_local_backend(deep_options or DeepMatcherOptions(), cancelled=cancelled,
+                                       progress=report, pair_label=pair_label)
+        backend, device, settings = local, local.device, local.settings_text
+    elif method == HYBRID_METHOD:
         hybrid = load_deep_ecc_backend(deep_options or DeepMatcherOptions(), cancelled=cancelled,
                                        progress=report, pair_label=pair_label)
         backend, device, settings = hybrid, hybrid.device, hybrid.settings_text
@@ -99,7 +106,7 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
         if shift.shape != (2,) or not np.isfinite(shift).all():
             raise ValueError('nieprawidłowe przesunięcie XY')
         status, quality = estimate_confidence(method, result)
-    except (RegistrationCancelled, RegistrationError):
+    except (RegistrationCancelled, RegistrationError, LocalConsensusError):
         checkpoint()
         raise
     except Exception as error:
@@ -113,6 +120,7 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
         FrameOrigin(moving.source, moving.source_frame_index),
         method, label, settings, device, (float(result.shift_xy[0]), float(result.shift_xy[1])),
         status, quality, hybrid=backend.last_diagnostics if isinstance(backend, DeepEccBackend) else None,
+        local=backend.last_diagnostics if isinstance(backend, DeepLocalBackend) else None,
     )
 
 

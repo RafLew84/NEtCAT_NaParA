@@ -1,11 +1,24 @@
 """Image navigation and display, separate from the frame's measurement values."""
 
+from dataclasses import dataclass
+import math
+
 from PyQt6.QtCore import QPointF, QRectF, Qt
 from PyQt6.QtGui import QColor, QImage, QMouseEvent, QPaintEvent, QPainter, QPen, QWheelEvent
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from stmviewer.frame import ImageFrame
 from stmviewer.ui.raster import draw_frame, frame_aspect, frame_image
+
+
+@dataclass(frozen=True)
+class PreviewOverlay:
+    """A display-only source-pixel rectangle and optional correction vector."""
+
+    rect: tuple[float, float, float, float]
+    color: str
+    label: str
+    vector_xy: tuple[float, float] | None = None
 
 
 class ImagePreview(QWidget):
@@ -25,6 +38,7 @@ class ImagePreview(QWidget):
         self._view = "original"
         self._views: dict[str, tuple[float, QPointF]] = {}
         self._original_rect: tuple[float, float, int, int] | None = None
+        self._overlays: tuple[PreviewOverlay, ...] = ()
         self._empty = QLabel("Brak otwartego obrazu.", self)
         self._empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout = QVBoxLayout(self)
@@ -45,6 +59,7 @@ class ImagePreview(QWidget):
             self._zoom, self._pan = self._views.get(view, (1.0, QPointF()))
             self._drag_position = None
         self._view = view
+        self._overlays = ()
         self._original_rect = original_rect
         self._gamma = gamma
         self._pixel_proportions = pixels
@@ -69,10 +84,16 @@ class ImagePreview(QWidget):
         else:
             self.update()
 
+    def set_overlays(self, overlays: tuple[PreviewOverlay, ...]) -> None:
+        """Draw evidence in image coordinates, never into the measurement raster."""
+        self._overlays = overlays
+        self.update()
+
     def clear_frame(self) -> None:
         """Release the last measurement and return to the empty preview."""
         self._frame = None
         self._image = None
+        self._overlays = ()
         self._views.clear()
         self._view = "original"
         self._original_rect = None
@@ -185,3 +206,33 @@ class ImagePreview(QWidget):
             pen.setCosmetic(True)
             painter.setPen(pen)
             painter.drawRect(QRectF(target.x() + x * sx, target.y() + y * sy, w * sx, h * sy))
+
+        self._draw_overlays(painter, target)
+
+    def _draw_overlays(self, painter: QPainter, target: QRectF) -> None:
+        if self._image is None or not self._overlays:
+            return
+        sx, sy = target.width() / self._image.width(), target.height() / self._image.height()
+        painter.save()
+        painter.setClipRect(target)
+        for overlay in self._overlays:
+            x, y, w, h = overlay.rect
+            pen = QPen(QColor(overlay.color), 2)
+            pen.setCosmetic(True)
+            painter.setPen(pen)
+            rect = QRectF(target.x() + x * sx, target.y() + y * sy, w * sx, h * sy)
+            painter.drawRect(rect)
+            painter.drawText(rect.topLeft() + QPointF(4, 13), overlay.label)
+            if overlay.vector_xy is not None:
+                dx, dy = overlay.vector_xy
+                start = rect.center()
+                end = start + QPointF(dx * sx, dy * sy)
+                painter.drawLine(start, end)
+                length = math.hypot(end.x() - start.x(), end.y() - start.y())
+                if length > 2:
+                    angle = math.atan2(end.y() - start.y(), end.x() - start.x())
+                    tip = min(6.0, length * 0.4)
+                    for side in (-0.5, 0.5):
+                        painter.drawLine(end, end - QPointF(tip * math.cos(angle + side),
+                                                           tip * math.sin(angle + side)))
+        painter.restore()
