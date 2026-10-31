@@ -46,10 +46,20 @@ wizualnej można użyć wcześniejszego wyniku Deep Matcher Outdoor.
    **Anuluj zapis/odczyt sesji** oraz dalsze przewijanie/zoom. Import, zmiana
    składu serii, rejestracja i eksport są na czas operacji zablokowane.
    Sesja zapisuje stan z chwili rozpoczęcia zapisu, także gdy potem zmienisz widok.
-9. Zrób kopię zapisu i uszkodź tę kopię (np. utnij koniec pliku). Otwórz ją
-   przy wczytanym dobrym filmie. Komunikat ma wyjaśnić odmowę; dotychczasowy
-   film i eksport pozostają dostępne. Anulowany zapis nie niszczy istniejącego
-   pliku docelowego. Następnie sprawdź poprawny zapis i odczyt.
+9. Przy wczytanym dobrym filmie otwórz kolejno oba przygotowane poniżej
+   nieprawidłowe zapisy. Komunikaty mają wyjaśnić uszkodzony plik i nieobsługiwaną
+   wersję; dotychczasowy film i eksport pozostają dostępne. Anulowany zapis
+   nie niszczy istniejącego pliku docelowego. Następnie sprawdź poprawny zapis i odczyt.
+
+Wzorce do kroku 9 wygeneruj z katalogu repozytorium:
+
+```bash
+python tests/stmviewer/diagnostics/make_invalid_sessions.py
+```
+
+Generator wypisze pełne ścieżki `damaged.stmsession` i
+`unsupported-version.stmsession` w katalogu tymczasowym systemu. Są to celowo
+nieprawidłowe pliki do próby odmowy; generator nie dotyka zapisów użytkownika.
 
 Sesja zawiera jedną bieżącą pracę i zastosowane korekty. Niezastosowany szkic
 w oknie pary, przerwane obliczenia i lista wcześniejszych prób nie są zapisywane.

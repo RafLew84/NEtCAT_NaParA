@@ -12,8 +12,8 @@ korekty, po czym zapisano i ponownie odczytano samodzielną sesję.
 
 | Dane | Klatki original | Rozmiar aligned: wiersze × kolumny | Plik sesji | Zapis | Odczyt |
 | --- | --- | --- | --- | --- | --- |
-| MOVIE_4, bez pierwszych 2 | 362 × 256 × 256 | 1367 × 489 | 214 445 150 B | 7,08 s | 1,58 s |
-| MOVIE_8 | 84 × 512 × 512 | 1019 × 1773 | 216 429 734 B | 6,32 s | 1,13 s |
+| MOVIE_4, bez pierwszych 2 | 362 × 256 × 256 | 1367 × 489 | 214 445 146 B | 7,08 s | 1,58 s |
+| MOVIE_8 | 84 × 512 × 512 | 1019 × 1773 | 216 429 735 B | 6,15 s | 1,12 s |
 
 Dla **wszystkich** klatek porównano próbki original i aligned bajt po bajcie,
 ważność, XY, geometrię, metadane, pochodzenie i historię zastosowanych korekt.
@@ -22,7 +22,7 @@ Wyeksportowano cały odtworzony aligned do MPP+JSON i sprawdzono zgodność pró
 po ponownym odczycie. Wyeksportowano również zakres pierwszych trzech klatek
 każdego filmu jako FFV1; zapis obejmuje automatyczny odczyt kontrolny AVI.
 
-Szczytowy RSS procesu diagnostycznego: **6712 MiB**, przy jednoczesnym utrzymaniu
+Szczytowy RSS procesu diagnostycznego: **6713 MiB**, przy jednoczesnym utrzymaniu
 źródeł, aligned, odtworzonej sesji i ponownie odczytanego pełnego MPP.
 Nie jest to minimalna wymagana pamięć ani wynik pomiaru samego odczytu.
 Limit formatu sesji wynosi 8 GiB nieskompresowanych próbek original+aligned;
@@ -32,6 +32,20 @@ NaN/Inf i znaki zera. Żadne wagi modeli nie trafiają do sesji.
 Lokalne artefakty: `/tmp/stmviewer-session-real/`, raport `report.json`,
 `MOVIE_4-moved.stmsession`, `MOVIE_8-moved.stmsession`, pełne MPP+JSON oraz
 `*-restored-first3.avi`. Dane pozostają poza Git.
+
+Odrębny świeży proces odczytał sesję MOVIE_4 w 1,734 s bez importu Torch ani
+Kornia. RSS po odczycie: 2337 MiB; po kontrolnym eksporcie pierwszych trzech
+klatek FFV1: 2489 MiB. Raport: `fresh-load-report.json` w katalogu artefaktów.
+Ścieżki Linux→Windows→Linux sprawdzono na granicy semantyki pathlib; po
+odczycie działały dalsze poprawki, zapis sesji i rzeczywisty eksport MPP.
+To test przenośności danych, odrębny od odbioru GUI na fizycznym Windows 11.
+
+Odtworzenie pomiaru z katalogu repozytorium:
+
+```bash
+python tests/stmviewer/diagnostics/session_validation.py --data-dir data --output /tmp/stmviewer-session-real
+python tests/stmviewer/diagnostics/session_validation.py --load-session /tmp/stmviewer-session-real/MOVIE_4-moved.stmsession --output /tmp/stmviewer-session-real
+```
 
 ## Automatyczne sprawdzenia aplikacji
 
