@@ -35,10 +35,11 @@ def test_manual_zero_start_moves_original_pixels_without_an_available_backend(qt
         button(dialog, name).click()
     info = dialog.findChild(QLabel, 'manualPairInfo').text()
     assert 'ΔX: 2 px' in info and 'ΔY: -1 px' in info
-    assert dialog.findChild(QComboBox, 'pairAlignment').currentText() == 'Po dopasowaniu'
+    assert dialog.findChild(QComboBox, 'pairAlignment').currentText() == 'Z dopasowaniem'
     assert not button(dialog, 'runPair').isEnabled()
     assert not button(dialog, 'pinPair').isEnabled()
-    assert not dialog.findChild(QComboBox, 'pairTrial').isEnabled()
+    assert not button(dialog, 'pairCurrentResult').isEnabled()
+    assert not button(dialog, 'pairSavedResult').isEnabled()
     assert 'Brak wyniku' in dialog.findChild(QLabel, 'pairResult').text()
     before_apply = dialog.findChild(QWidget, 'pairPreview').grab().toImage()
     button(dialog, 'manualPairApply').click()
@@ -69,31 +70,34 @@ def test_correction_reset_discard_and_apply_preserve_pinned_fractional_trial(qtb
     run.click()
     qtbot.waitUntil(run.isEnabled)
     button(dialog, 'pinPair').click()
-    trials = dialog.findChild(QComboBox, 'pairTrial')
-    trials.setCurrentText('A — przypięta')
+    current = button(dialog, 'pairCurrentResult')
+    saved = button(dialog, 'pairSavedResult')
+    saved.click()
+    assert saved.isChecked() and not current.isChecked()
     result_a = dialog.findChild(QLabel, 'pairResult').text()
     pixels_a = dialog.findChild(QWidget, 'pairPreview').grab().toImage()
     button(dialog, 'manualPairCorrect').click()
     button(dialog, 'manualPairXPlus').click()
     assert 'ΔX: 3.4 px' in dialog.findChild(QLabel, 'manualPairInfo').text()
     assert 'ΔY: -1.25 px' in dialog.findChild(QLabel, 'manualPairInfo').text()
-    assert not run.isEnabled() and not trials.isEnabled()
+    assert not run.isEnabled() and not current.isEnabled() and not saved.isEnabled()
     button(dialog, 'manualPairReset').click()
     assert dialog.findChild(QWidget, 'pairPreview').grab().toImage() == pixels_a
     button(dialog, 'manualPairYPlus').click()
     button(dialog, 'manualPairDiscard').click()
-    assert trials.currentText() == 'A — przypięta'
+    assert saved.isChecked() and not current.isChecked()
     assert dialog.findChild(QLabel, 'pairResult').text() == result_a
     assert dialog.findChild(QWidget, 'pairPreview').grab().toImage() == pixels_a
     button(dialog, 'manualPairCorrect').click()
     button(dialog, 'manualPairXPlus').click()
     button(dialog, 'manualPairApply').click()
-    assert trials.currentText() == 'B — ostatnia'
+    assert current.isChecked() and not saved.isChecked()
     result_b = dialog.findChild(QLabel, 'pairResult').text()
     assert 'ΔX: 3.4 px' in result_b and 'Ręczne' in result_b
     assert '2.4' in result_b and 'Phase' in result_b  # Starting value and its provenance.
     assert 'jakość nieoceniona' in result_b and 'OK backendu' not in result_b
-    trials.setCurrentText('A — przypięta')
+    saved.click()
+    assert saved.isChecked() and not current.isChecked()
     assert dialog.findChild(QLabel, 'pairResult').text() == result_a
     assert dialog.findChild(QWidget, 'pairPreview').grab().toImage() == pixels_a
     dialog.close()
@@ -129,21 +133,21 @@ def test_manual_view_controls_preserve_shift_and_inverse_steps_restore_raster(qt
         button(dialog, minus).click()
         assert preview.grab().toImage() == image_before
     alignment = dialog.findChild(QComboBox, 'pairAlignment')
-    alignment.setCurrentText('Przed dopasowaniem')
+    alignment.setCurrentText('Bez przesunięcia')
     assert preview.grab().toImage() != image_before
     assert dialog.findChild(QLabel, 'manualPairInfo').text() == info
-    alignment.setCurrentText('Po dopasowaniu')
+    alignment.setCurrentText('Z dopasowaniem')
     assert preview.grab().toImage() == image_before
     button(dialog, 'pairToggleImage').click()
-    assert dialog.findChild(QComboBox, 'pairLayer').currentText() == 'Odniesienie'
+    assert dialog.findChild(QComboBox, 'pairLayer').currentText() == 'Klatka bazowa'
     button(dialog, 'pairToggleImage').click()
-    assert dialog.findChild(QComboBox, 'pairLayer').currentText() == 'Dopasowywana'
+    assert dialog.findChild(QComboBox, 'pairLayer').currentText() == 'Klatka przesuwana'
     assert dialog.findChild(QLabel, 'manualPairInfo').text() == info
     assert dialog.findChild(QLabel, 'pairContrast').text() == contrast
     assert gamma.value() == 1.7
-    alignment.setCurrentText('Przed dopasowaniem')
+    alignment.setCurrentText('Bez przesunięcia')
     button(dialog, 'manualPairYMinus').click()
-    assert alignment.currentText() == 'Po dopasowaniu'
+    assert alignment.currentText() == 'Z dopasowaniem'
     dialog.close()
 
 

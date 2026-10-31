@@ -3,8 +3,8 @@
 from PyQt6.QtCore import Qt, QSignalBlocker, pyqtSignal
 from PyQt6.QtGui import QCloseEvent, QImage
 from PyQt6.QtWidgets import (
-    QCheckBox, QComboBox, QDialog, QDoubleSpinBox, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QSpinBox, QVBoxLayout, QWidget,
+    QButtonGroup, QCheckBox, QComboBox, QDialog, QDoubleSpinBox, QGroupBox, QHBoxLayout, QLabel, QPushButton,
+    QScrollArea, QSpinBox, QToolButton, QVBoxLayout, QWidget,
 )
 
 from stmviewer.deep_matcher import DeepMatcherOptions, deep_unavailable_reason
@@ -27,9 +27,9 @@ class PairComparisonDialog(QDialog):
                  backend: ShiftBackend | None = None) -> None:
         super().__init__(parent)
         self.setObjectName('pairComparison')
-        self.setWindowTitle('Porównanie pary — próba rejestracji')
+        self.setWindowTitle('Dopasowanie pary klatek')
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
-        self.resize(1080, 760)
+        self.resize(1180, 820)
         self._frames = frames
         self._backend = backend
         self._job: PairJob | None = None
@@ -41,94 +41,166 @@ class PairComparisonDialog(QDialog):
         self._manual_before_alignment = 0
         self._images: PairImages | None = None
         self._errors = {key: registration_unavailable_reason(key) for key in CPU_METHODS}
-        outer = QHBoxLayout(self)
-        self._preview = ImagePreview(self)
-        self._preview.setObjectName('pairPreview')
-        outer.addWidget(self._preview, 1)
-        panel = QWidget(self)
-        layout = QVBoxLayout(panel)
-        scroll = QScrollArea(self)
-        scroll.setWidgetResizable(True)
-        scroll.setFixedWidth(340)
-        scroll.setWidget(panel)
-        outer.addWidget(scroll)
-        row = QHBoxLayout()
-        row.addWidget(QLabel('Klatka do poprzedniej:', self))
-        self._number = QSpinBox(self)
-        self._number.setObjectName('pairNumber')
-        self._number.setRange(2, len(frames))
-        self._number.setValue(moving_index + 1)
-        row.addWidget(self._number)
-        layout.addLayout(row)
+        outer = QVBoxLayout(self)
+        header = QHBoxLayout()
         self._source = QLabel(self)
         self._source.setObjectName('pairSource')
         self._source.setTextFormat(Qt.TextFormat.PlainText)
         self._source.setWordWrap(True)
-        layout.addWidget(self._source)
-        self._method = QComboBox(self)
-        self._method.setObjectName('pairMethod')
-        for key, name in REGISTRATION_METHODS.items():
-            self._method.addItem(name, key)
-        self._method.setCurrentIndex(self._method.findData(method))
-        layout.addWidget(self._method)
-        self._deep = DeepMatcherControls(self)
-        self._deep.check.hide()
-        if deep_options is not None:
-            self._deep.set_options(deep_options)
-        layout.addWidget(self._deep)
-        self._availability = QLabel(self)
-        self._availability.setObjectName('pairAvailability')
-        self._availability.setWordWrap(True)
-        self._availability.setTextFormat(Qt.TextFormat.PlainText)
-        layout.addWidget(self._availability)
-        row = QHBoxLayout()
-        self._run = QPushButton('Oblicz parę', self)
-        self._run.setObjectName('runPair')
-        self._run.clicked.connect(self._start)
-        row.addWidget(self._run)
-        self._cancel = QPushButton('Anuluj próbę', self)
-        self._cancel.setObjectName('cancelPair')
-        self._cancel.clicked.connect(self._cancel_job)
-        row.addWidget(self._cancel)
-        layout.addLayout(row)
-        self._message = QLabel(self)
-        self._message.setObjectName('pairMessage')
-        self._message.setWordWrap(True)
-        self._message.setTextFormat(Qt.TextFormat.PlainText)
-        layout.addWidget(self._message)
+        header.addWidget(self._source, 1)
+        header.addWidget(QLabel('Klatka przesuwana:', self))
+        self._number = QSpinBox(self)
+        self._number.setObjectName('pairNumber')
+        self._number.setRange(2, len(frames))
+        self._number.setValue(moving_index + 1)
+        header.addWidget(self._number)
+        outer.addLayout(header)
+        body = QHBoxLayout()
+        outer.addLayout(body, 1)
+        panel = QWidget(self)
+        sidebar = QVBoxLayout(panel)
+        scroll = QScrollArea(self)
+        scroll.setObjectName('pairSidebar')
+        scroll.setWidgetResizable(True)
+        scroll.setFixedWidth(330)
+        scroll.setWidget(panel)
+        body.addWidget(scroll)
+
+        comparisons = QGroupBox('Porównaj dopasowania', self)
+        choices = QVBoxLayout(comparisons)
+        hint = QLabel('Opcjonalnie — zachowaj wynik, aby porównać go z następnym.', self)
+        hint.setWordWrap(True)
+        choices.addWidget(hint)
+        self._choice_group = QButtonGroup(self)
+        self._current_choice = QPushButton(self)
+        self._current_choice.setObjectName('pairCurrentResult')
+        self._saved_choice = QPushButton(self)
+        self._saved_choice.setObjectName('pairSavedResult')
+        for choice in (self._current_choice, self._saved_choice):
+            choice.setCheckable(True)
+            choice.setAutoDefault(False)
+            choice.setMinimumHeight(76)
+            self._choice_group.addButton(choice)
+            choice.clicked.connect(self._show_trial)
+        self._current_choice.setChecked(True)
+        choices.addWidget(self._current_choice)
+        self._pin = QPushButton('Zachowaj do porównania', self)
+        self._pin.setObjectName('pinPair')
+        self._pin.setToolTip('Kopiuje wynik bieżący do zachowanego. Kolejne obliczenie lub korekta go nie zmieni.')
+        self._pin.clicked.connect(self._pin_trial)
+        choices.addWidget(self._pin)
+        choices.addWidget(self._saved_choice)
+        self._details_toggle = QToolButton(self)
+        self._details_toggle.setObjectName('pairResultDetails')
+        self._details_toggle.setText('Szczegóły wybranego wyniku')
+        self._details_toggle.setCheckable(True)
+        self._details_toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self._details_toggle.setArrowType(Qt.ArrowType.RightArrow)
+        choices.addWidget(self._details_toggle)
         self._result = QLabel(self)
         self._result.setObjectName('pairResult')
         self._result.setWordWrap(True)
         self._result.setTextFormat(Qt.TextFormat.PlainText)
         self._result.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        layout.addWidget(self._result)
+        self._result.hide()
+        self._details_toggle.toggled.connect(self._result.setVisible)
+        self._details_toggle.toggled.connect(lambda opened: self._details_toggle.setArrowType(
+            Qt.ArrowType.DownArrow if opened else Qt.ArrowType.RightArrow))
+        choices.addWidget(self._result)
+        sidebar.addWidget(comparisons)
+
+        automatic = QGroupBox('Dopasowanie automatyczne', self)
+        auto_layout = QVBoxLayout(automatic)
+        self._method = QComboBox(self)
+        self._method.setObjectName('pairMethod')
+        for key, name in REGISTRATION_METHODS.items():
+            self._method.addItem(name, key)
+        self._method.setCurrentIndex(self._method.findData(method))
+        auto_layout.addWidget(QLabel('Metoda', self))
+        auto_layout.addWidget(self._method)
+        self._deep = DeepMatcherControls(self)
+        self._deep.check.hide()
+        if deep_options is not None:
+            self._deep.set_options(deep_options)
+        auto_layout.addWidget(self._deep)
+        self._availability = QLabel(self)
+        self._availability.setObjectName('pairAvailability')
+        self._availability.setWordWrap(True)
+        self._availability.setTextFormat(Qt.TextFormat.PlainText)
+        auto_layout.addWidget(self._availability)
+        self._run = QPushButton('Dopasuj automatycznie', self)
+        self._run.setObjectName('runPair')
+        self._run.clicked.connect(self._start)
+        auto_layout.addWidget(self._run)
+        self._cancel = QPushButton('Przerwij obliczanie', self)
+        self._cancel.setObjectName('cancelPair')
+        self._cancel.clicked.connect(self._cancel_job)
+        auto_layout.addWidget(self._cancel)
+        sidebar.addWidget(automatic)
+        sidebar.addStretch()
+
+        viewer = QVBoxLayout()
+        body.addLayout(viewer, 1)
         row = QHBoxLayout()
-        self._trial_choice = QComboBox(self)
-        self._trial_choice.setObjectName('pairTrial')
-        self._trial_choice.addItem('B — ostatnia', 'B')
-        row.addWidget(self._trial_choice)
-        self._pin = QPushButton('Przypnij B jako A', self)
-        self._pin.setObjectName('pinPair')
-        self._pin.clicked.connect(self._pin_trial)
-        row.addWidget(self._pin)
-        layout.addLayout(row)
         self._alignment = QComboBox(self)
         self._alignment.setObjectName('pairAlignment')
-        self._alignment.addItem('Przed dopasowaniem', False)
-        self._alignment.addItem('Po dopasowaniu', True)
-        layout.addWidget(self._alignment)
+        self._alignment.addItem('Bez przesunięcia', False)
+        self._alignment.addItem('Z dopasowaniem', True)
+        row.addWidget(self._alignment)
         self._layer = QComboBox(self)
         self._layer.setObjectName('pairLayer')
-        self._layer.addItem('Odniesienie', 'reference')
-        self._layer.addItem('Dopasowywana', 'moving')
+        self._layer.addItem('Klatka bazowa', 'reference')
+        self._layer.addItem('Klatka przesuwana', 'moving')
         self._layer.addItem('Nakładka 50/50', 'overlay')
         self._layer.setCurrentIndex(2)
-        layout.addWidget(self._layer)
-        blink = QPushButton('Przełącz obrazy', self)
-        blink.setToolTip('Przełącz między odniesieniem a dopasowywaną klatką.')
-        blink.setObjectName('pairToggleImage')
-        blink.clicked.connect(self._toggle_layer)
-        layout.addWidget(blink)
+        row.addWidget(self._layer)
+        self._blink = QPushButton(self)
+        self._blink.setObjectName('pairToggleImage')
+        self._blink.clicked.connect(self._toggle_layer)
+        row.addWidget(self._blink)
+        row.addStretch()
+        viewer.addLayout(row)
+        self._preview_status = QLabel(self)
+        self._preview_status.setObjectName('pairPreviewStatus')
+        self._preview_status.setTextFormat(Qt.TextFormat.PlainText)
+        viewer.addWidget(self._preview_status)
+        self._preview = ImagePreview(self)
+        self._preview.setObjectName('pairPreview')
+        viewer.addWidget(self._preview, 1)
+        row = QHBoxLayout()
+        for title, name, callback in (('−', 'pairZoomOut', self._preview.zoom_out),
+                                      ('+', 'pairZoomIn', self._preview.zoom_in),
+                                      ('Pokaż cały obraz', 'pairFit', self._preview.fit_image)):
+            button = QPushButton(title, self)
+            button.setObjectName(name)
+            if name != 'pairFit':
+                button.setFixedWidth(32)
+            button.clicked.connect(callback)
+            row.addWidget(button)
+        row.addStretch()
+        row.addWidget(QLabel('Gamma podglądu', self))
+        self._gamma = QDoubleSpinBox(self)
+        self._gamma.setObjectName('pairGamma')
+        self._gamma.setRange(0.1, 4)
+        self._gamma.setSingleStep(0.1)
+        self._gamma.setValue(1)
+        row.addWidget(self._gamma)
+        self._pixels = QCheckBox('Proporcje pikselowe', self)
+        self._pixels.setObjectName('pairPixelProportions')
+        self._pixels.setChecked(True)
+        row.addWidget(self._pixels)
+        viewer.addLayout(row)
+        self._overlap = QLabel(self)
+        self._overlap.setObjectName('pairOverlap')
+        self._overlap.setWordWrap(True)
+        self._overlap.setMinimumHeight(self._overlap.fontMetrics().lineSpacing() * 2)
+        self._overlap.setToolTip('Pole klatki bazowej; część przesuwanej poza tym polem nie jest wyświetlana. '
+                                 'Białe tło oznacza brak próbek. Pokrycie nie jest oceną jakości dopasowania.')
+        viewer.addWidget(self._overlap)
+        self._contrast = QLabel(self)
+        self._contrast.setObjectName('pairContrast')
+        self._contrast.setWordWrap(True)
+        viewer.addWidget(self._contrast)
         self._manual = ManualPairControls(self)
         self._manual.start_zero.connect(self._start_manual)
         self._manual.start_copy.connect(lambda: self._start_manual(copy_trial=True))
@@ -136,47 +208,22 @@ class PairComparisonDialog(QDialog):
         self._manual.discarded.connect(self._discard_manual)
         self._manual.nudged.connect(self._nudge_manual)
         self._manual.applied.connect(self._apply_manual)
-        layout.addWidget(self._manual)
-        row = QHBoxLayout()
-        for title, name, callback in (('−', 'pairZoomOut', self._preview.zoom_out),
-                                      ('+', 'pairZoomIn', self._preview.zoom_in),
-                                      ('Dopasuj', 'pairFit', self._preview.fit_image)):
-            button = QPushButton(title, self)
-            button.setObjectName(name)
-            button.clicked.connect(callback)
-            row.addWidget(button)
-        layout.addLayout(row)
-        row = QHBoxLayout()
-        row.addWidget(QLabel('Gamma A/B', self))
-        self._gamma = QDoubleSpinBox(self)
-        self._gamma.setObjectName('pairGamma')
-        self._gamma.setRange(0.1, 4)
-        self._gamma.setSingleStep(0.1)
-        self._gamma.setValue(1)
-        row.addWidget(self._gamma)
-        layout.addLayout(row)
-        self._pixels = QCheckBox('Proporcje pikselowe A/B', self)
-        self._pixels.setObjectName('pairPixelProportions')
-        self._pixels.setChecked(True)
-        layout.addWidget(self._pixels)
-        self._contrast = QLabel(self)
-        self._contrast.setObjectName('pairContrast')
-        self._contrast.setWordWrap(True)
-        layout.addWidget(self._contrast)
-        self._overlap = QLabel(self)
-        self._overlap.setObjectName('pairOverlap')
-        self._overlap.setWordWrap(True)
-        layout.addWidget(self._overlap)
-        note = QLabel('Kadr: pole źródłowej klatki odniesienia. Część dopasowywanej poza tym polem '
-                      'nie jest tu wyświetlana. Białe tło: brak próbek; nakładka obejmuje tylko '
-                      'wspólne ważne piksele. Podgląd pary nie zmienia pełnego aligned.', self)
+        viewer.addWidget(self._manual)
+
+        self._message = QLabel(self)
+        self._message.setObjectName('pairMessage')
+        self._message.setWordWrap(True)
+        self._message.setTextFormat(Qt.TextFormat.PlainText)
+        self._message.setMinimumHeight(self._message.fontMetrics().lineSpacing() * 2)
+        outer.addWidget(self._message)
+        note = QLabel('Wyniki tego okna służą porównaniu pary; nie zmieniają całego filmu ani eksportu. '
+                      'Zmiana pary lub zamknięcie okna usuwa wyniki porównania.', self)
+        note.setObjectName('pairScope')
         note.setWordWrap(True)
-        layout.addWidget(note)
-        layout.addStretch()
+        outer.addWidget(note)
         self._number.valueChanged.connect(self._change_pair)
         self._method.currentIndexChanged.connect(self._sync)
         self._deep.changed.connect(self._sync)
-        self._trial_choice.currentIndexChanged.connect(self._show_trial)
         self._alignment.currentIndexChanged.connect(self._render)
         self._layer.currentIndexChanged.connect(self._render)
         self._gamma.valueChanged.connect(self._render)
@@ -197,19 +244,18 @@ class PairComparisonDialog(QDialog):
         def name(frame: ImageFrame) -> str:
             suffix = f' · MPP {frame.source_frame_index + 1}' if frame.source_frame_index is not None else ''
             return frame.source.name + suffix
-        self._source.setText(f'Odniesienie: {name(reference)}\nDopasowywana: {name(moving)}')
+        self._source.setText(f'Klatka bazowa {index}: {name(reference)}\n'
+                             f'Klatka przesuwana {index + 1}: {name(moving)}')
         self._trial = None
         self._pinned = None
         self._draft = None
         self._manual.show_draft(None)
-        with QSignalBlocker(self._trial_choice):
-            self._trial_choice.clear()
-            self._trial_choice.addItem('B — ostatnia', 'B')
+        self._current_choice.setChecked(True)
         with QSignalBlocker(self._alignment):
             self._alignment.setCurrentIndex(0)
         self._images = PairImages(reference, moving)
         low, high = self._images.contrast
-        self._contrast.setText(f'Stały kontrast A/B z oryginalnej pary:\n{low:g} … {high:g}')
+        self._contrast.setText(f'Stały kontrast oryginalnej pary: {low:g} … {high:g}')
         self._result.setText('Brak wyniku tej pary.')
         self._message.clear()
         self._sync()
@@ -226,7 +272,12 @@ class PairComparisonDialog(QDialog):
         self._run.setEnabled(available and not editing and reason is None)
         self._cancel.setVisible(self.busy)
         self._pin.setEnabled(available and not editing and self._trial is not None)
-        self._trial_choice.setEnabled(available and not editing)
+        for button, title, trial in ((self._current_choice, 'Wynik bieżący', self._trial),
+                                     (self._saved_choice, 'Wynik zachowany', self._pinned)):
+            description = ('Brak wyniku' if trial is None else
+                           f'{trial.label}\nΔX: {trial.shift_xy[0]:g} px · ΔY: {trial.shift_xy[1]:g} px')
+            button.setText(f'{title}\n{description}')
+            button.setEnabled(available and not editing and trial is not None)
         self._manual.sync(available=available, editing=editing,
                           can_copy=self._selected_trial() is not None)
         for control in (self._method, self._number, self._deep):
@@ -261,7 +312,7 @@ class PairComparisonDialog(QDialog):
         with QSignalBlocker(self._alignment):
             self._alignment.setCurrentIndex(self._manual_before_alignment)
         self._manual.show_draft(None)
-        self._message.setText('Odrzucono edycję. Zapisane próby A/B pozostają bez zmian.')
+        self._message.setText('Anulowano korektę. Wynik bieżący i zachowany pozostają bez zmian.')
         self._show_trial()
         self._sync()
 
@@ -278,10 +329,9 @@ class PairComparisonDialog(QDialog):
             return
         self._trial = self._draft.apply()
         self._draft = None
-        with QSignalBlocker(self._trial_choice):
-            self._trial_choice.setCurrentIndex(0)
+        self._current_choice.setChecked(True)
         self._manual.show_draft(None)
-        self._message.setText('Zachowano ręczną próbę B. Pełny aligned pozostaje bez zmian.')
+        self._message.setText('Korekta zakończona. Wynik bieżący jest gotowy do porównania; film pozostaje bez zmian.')
         self._show_trial()
         self._sync()
 
@@ -321,12 +371,11 @@ class PairComparisonDialog(QDialog):
             self._message.setText(f'Niepowodzenie nowej próby: {job.error}\nPoprzedni wynik zachowany.')
         elif job.result is not None:
             self._trial = job.result
-            with QSignalBlocker(self._trial_choice):
-                self._trial_choice.setCurrentIndex(0)
+            self._current_choice.setChecked(True)
             with QSignalBlocker(self._alignment):
                 self._alignment.setCurrentIndex(1)
             self._show_trial()
-            self._message.setText('Próba pary zakończona. Pełny aligned pozostaje bez zmian.')
+            self._message.setText('Dopasowanie pary zakończone. Możesz poprawić wynik ręcznie lub zachować go do porównania.')
         self._job = None
         job.deleteLater()
         self._sync()
@@ -338,12 +387,11 @@ class PairComparisonDialog(QDialog):
         if self._trial is None:
             return
         self._pinned = self._trial
-        if self._trial_choice.count() == 1:
-            self._trial_choice.addItem('A — przypięta', 'A')
+        self._message.setText('Wynik bieżący zachowano do porównania. Kolejne obliczenie lub korekta go nie zmieni.')
         self._show_trial()
 
     def _selected_trial(self) -> PairTrial | None:
-        return self._pinned if self._trial_choice.currentData() == 'A' else self._trial
+        return self._pinned if self._saved_choice.isChecked() else self._trial
 
     def _show_trial(self) -> None:
         trial = self._selected_trial()
@@ -367,6 +415,18 @@ class PairComparisonDialog(QDialog):
         if self._images is None:
             return
         trial = self._selected_trial()
+        self._blink.setText('Pokaż klatkę przesuwaną' if self._layer.currentData() == 'reference'
+                            else 'Pokaż klatkę bazową')
+        if not self._alignment.currentData():
+            caption = 'Obrazy bez przesunięcia'
+        elif self._draft is not None:
+            caption = 'Podgląd ręcznej korekty'
+        elif trial is None:
+            caption = 'Brak wyniku — obrazy bez przesunięcia'
+        else:
+            name = 'Wynik zachowany' if self._saved_choice.isChecked() else 'Wynik bieżący'
+            caption = f'{name}: {trial.label}'
+        self._preview_status.setText(caption)
         shift = (0.0, 0.0)
         if bool(self._alignment.currentData()):
             if self._draft is not None:
@@ -383,11 +443,11 @@ class PairComparisonDialog(QDialog):
             aspect = frame_aspect(reference, pixel_proportions=self._pixels.isChecked())
             self._preview.set_image(image, aspect=aspect, reset_view=reset_view)
             text = (f'Wspólne ważne piksele: {raster.overlap_pixels} '
-                    f'({raster.overlap_fraction:.1%} pola odniesienia).')
+                    f'({raster.overlap_fraction:.1%} pola klatki bazowej). Pokrycie nie jest oceną jakości.')
             if not raster.overlap_pixels:
                 text += '\nBrak wspólnego ważnego obszaru.'
             if bool(self._alignment.currentData()) and trial is None and self._draft is None:
-                text += '\nBrak wyniku — wyświetlane przed dopasowaniem.'
+                text += '\nBrak wyniku — obrazy bez przesunięcia.'
             self._overlap.setText(text)
         except (ValueError, MemoryError, OverflowError) as error:
             self._overlap.setText(f'Nie udało się wyświetlić próby: {error}')

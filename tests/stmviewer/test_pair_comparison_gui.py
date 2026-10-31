@@ -65,7 +65,7 @@ def test_series_replacement_or_deletion_discards_pair_trials(qtbot, monkeypatch)
     trial()
     open_file(qtbot, window, monkeypatch, CPU.with_name('missing-file.mpp'))
     retained = window.findChild(QDialog, 'pairComparison')
-    assert retained is not None and retained.findChild(QComboBox, 'pairTrial').count() == 2
+    assert retained is not None and retained.findChild(QPushButton, 'pairSavedResult').isEnabled()
     from PyQt6.QtWidgets import QMessageBox
     window.findChild(QMessageBox).accept()
     open_file(qtbot, window, monkeypatch, CPU)
@@ -77,7 +77,8 @@ def test_series_replacement_or_deletion_discards_pair_trials(qtbot, monkeypatch)
     fresh = window.findChild(QDialog, 'pairComparison')
     assert 'MPP 2' in fresh.findChild(QLabel, 'pairSource').text()
     assert 'MPP 3' in fresh.findChild(QLabel, 'pairSource').text()
-    assert fresh.findChild(QComboBox, 'pairTrial').count() == 1
+    assert not fresh.findChild(QPushButton, 'pairSavedResult').isEnabled()
+    assert 'Brak wyniku' in fresh.findChild(QPushButton, 'pairSavedResult').text()
     assert 'Brak wyniku' in fresh.findChild(QLabel, 'pairResult').text()
     fresh.close()
 
@@ -156,7 +157,7 @@ def test_pinned_trials_share_reference_coordinates_zoom_and_contrast(qtbot, monk
     assert pin is not None and pin.isEnabled()
     pin.click()
     layer = dialog.findChild(QComboBox, 'pairLayer')
-    layer.setCurrentText('Odniesienie')
+    layer.setCurrentText('Klatka bazowa')
     preview = dialog.findChild(QWidget, 'pairPreview')
     preview.setFixedSize(400, 360)
     dialog.findChild(QPushButton, 'pairZoomIn').click()
@@ -171,11 +172,14 @@ def test_pinned_trials_share_reference_coordinates_zoom_and_contrast(qtbot, monk
     run.click()
     qtbot.waitUntil(run.isEnabled, timeout=5000)
     assert preview.grab().toImage() == reference_before
-    trials = dialog.findChild(QComboBox, 'pairTrial')
-    trials.setCurrentText('A — przypięta')
+    saved = dialog.findChild(QPushButton, 'pairSavedResult')
+    current = dialog.findChild(QPushButton, 'pairCurrentResult')
+    saved.click()
+    assert saved.isChecked() and not current.isChecked()
     assert 'Phase' in dialog.findChild(QLabel, 'pairResult').text()
     assert preview.grab().toImage() == reference_before
-    trials.setCurrentText('B — ostatnia')
+    current.click()
+    assert current.isChecked() and not saved.isChecked()
     assert 'Optical Flow' in dialog.findChild(QLabel, 'pairResult').text()
     assert preview.grab().toImage() == reference_before
     assert dialog.findChild(QLabel, 'pairContrast').text() == contrast
@@ -184,6 +188,7 @@ def test_pinned_trials_share_reference_coordinates_zoom_and_contrast(qtbot, monk
     assert 'Wspólne ważne piksele' in dialog.findChild(QLabel, 'pairOverlap').text()
     dialog.findChild(QSpinBox, 'pairNumber').setValue(3)
     assert not pin.isEnabled()
-    assert trials.count() == 1
+    assert not saved.isEnabled() and not current.isEnabled()
+    assert 'Brak wyniku' in saved.text()
     assert 'Brak wyniku' in dialog.findChild(QLabel, 'pairResult').text()
     dialog.close()
