@@ -165,13 +165,15 @@ Aktualne wejścia i pary: [protokół](../manual-protocol.md).
 
 ### Zakres dopasowania ręcznego
 
-Na pytanie o zapis ręcznej korekty do filmu: obecny REG-01a zmienia tylko wynik
-pary do porównania. Pełny aligned i eksport MPP/AVI nadal korzystają z pełnej
-rejestracji z głównego okna. REG-07 przewiduje zapis dokumentów prób, w tym
+Przy odbiorze REG-02 odpowiedź na pytanie o zapis ręcznej korekty do filmu
+była następująca: REG-01a zmieniał tylko wynik pary do porównania. Pełny aligned
+i eksport MPP/AVI nadal korzystały z pełnej rejestracji z głównego okna. REG-07 przewiduje zapis dokumentów prób, w tym
 ręcznych, ale nie promuje ich do pełnego aligned. Zastosowanie ręcznej korekty
 do filmu zaplanowano później tego samego dnia w
-[REG-02a](../issues/02a-manual-movie-corrections.md). Implementacja pozostaje
-nierozpoczęta; samo dodanie ticketu nie zmienia działania aplikacji.
+[REG-02a](../issues/02a-manual-movie-corrections.md). Samo dodanie ticketu
+nie zmieniło działania aplikacji. Późniejsze wykonanie REG-02a dodaje jawne
+Zastosuj do filmu i eksport poprawionego wyniku; [karta REG-02a](REG-02a.md)
+opisuje implementację oczekującą na odbiór użytkownika.
 
 Zapis odbioru i obserwacji zmienia wyłącznie dokumentację. Testów kodu
 nie ponawiano; sprawdzono statusy, lokalne odnośniki i `git diff --check`.

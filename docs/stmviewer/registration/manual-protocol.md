@@ -105,9 +105,10 @@ Przy braku zgodności różnych części obrazu zanotuj rozbieżność. Ręczny 
 nie stanowi samodzielnego dowodu fizycznego dryfu ani niezależnej walidacji.
 Szczegółowe próby, cofnięcie ruchów i anulowanie korekty opisuje [REG-01a](issues/01a-manual-alignment.md).
 
-## Planowane zastosowanie korekty do filmu — REG-02a
+## Zastosowanie korekty do filmu — REG-02a
 
-Ten etap jest dodany do planu; funkcja nie jest jeszcze wdrożona.
+Funkcja jest wdrożona, oczekuje na odbiór użytkownika.
+[Instrukcja próby](manual-movie-corrections-manual.md), [wyniki](reviews/REG-02a.md).
 [REG-02a](issues/02a-manual-movie-corrections.md) rozdziela zakończenie próby pary
 od jawnego **Zastosuj do filmu**. Punktem startu jest różnica skumulowanych XY
 sąsiednich klatek z aktywnego pełnego wyniku. Zastąpienie przesunięcia pary zmienia

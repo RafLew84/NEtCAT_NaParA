@@ -1,5 +1,40 @@
 # Przekazanie — STM Viewer
 
+## REG-02a: ręczne korekty filmu — 2026-10-31
+
+[Ticket](registration/issues/02a-manual-movie-corrections.md): `ready-for-review`.
+Implementacja `976386c`, poprawka po przeglądzie `f94b0a8`, baza `c2c8f1f`.
+Gałąź `viewer/registration-difficult-movies`; bez zmian współdzielonych.
+REG-03 czeka na ręczny odbiór użytkownika.
+
+- Okno pary: **Popraw dopasowanie z filmu → Zakończ korektę → Zastosuj do filmu**.
+  XY pary zastępuje wcześniejsze; różnica wpływa na jej drugą i dalsze klatki.
+  Usunięcie korekty jednej pary zachowuje pozostałe. Film renderowany z original.
+- Wątek z postępem/anulowaniem w obu oknach, podmiana po sukcesie, stare próby
+  zablokowane. Po usunięciu klatki zachowany aligned/eksport; dalsza korekta
+  wymaga nowej pełnej rejestracji. Udany import i nowa rejestracja resetują stan.
+- MPP V4 zapisuje wspólną lekką historię bazy/nadpisań, także po usunięciu
+  klatek. Zgodność V1–V3 zachowana; stary Viewer odrzuci dodatek V4 i otworzy
+  sam MPP bez pełnej historii/braków. AVI używa poprawionego aktywnego filmu.
+- Automatyczne: rdzeń 15 PASS, eksport 45 PASS, końcowe powiązane GUI 36 PASS;
+  mypy strict 43 PASS, Ruff PASS, pliki kodu najwyżej 893 linii.
+  Pełne repo: 2220 passed, 14 failed, 16 skipped (271,36 s); te same 14 błędów
+  MolTrack/NanoTrack co przy REG-02, bez nowych błędów Viewera. Pierwsza próba
+  przerwana SIGTERM, ponowiona do pełnego podsumowania.
+- Rzeczywisty MOVIE_4 źródłowe 3–364: Deep Matcher CUDA/RTX 5090 ukończył 362 klatki;
+  kontrolna +1X, rzeczywiste anulowanie, cofnięcie oraz pełny MPP i FFV1 roundtrip
+  poprawne. To ocena funkcji, nie dowód poprawy dopasowania wzrokowego.
+- Qt/xcb sterowane skryptem: CPU/MOVIE_4, anulowanie przyciskiem, błąd/ponowienie,
+  widoczna historia MPP; obejrzane zrzuty 1180×820 i 1080×760. Nie zastępuje odbioru
+  użytkownika. VLC/Windows w tym tickecie niewykonane; nowe próby MOVIE_8 niewykonane.
+- Code-review: Standards: 1 sugestia naprawiona, 0 otwartych; Spec: 0 uwag.
+
+Start: `python -m stmviewer.main` w `netcat`.
+[Instrukcja manualna](registration/manual-movie-corrections-manual.md),
+[pełna karta sprawdzeń](registration/reviews/REG-02a.md).
+Artefakty lokalne: `data/registration-reg02a-review/` (duże filmy poza Git).
+Brak potrzebnych zmian integracyjnych. Statusy wcześniejszych 19–21 bez zmian.
+
 ## Plan: REG-02a — ręczne korekty filmu — 2026-10-31
 
 Na zlecenie użytkownika dodano [REG-02a](registration/issues/02a-manual-movie-corrections.md)

@@ -5,9 +5,9 @@ wybrane przejścia między klatkami i jawnie stosuje je do pełnego aligned.
 Odtwarzanie oraz eksport MPP/AVI korzystają z poprawionego wyniku.
 **Blocked by:** [REG-02](02-unnormalized-correlation.md), w tym odbiór manualny — spełnione.
 Korzysta z odebranego [REG-01a](01a-manual-alignment.md).
-**Status:** in-progress
+**Status:** ready-for-review
 **Wykonawca:** Codex; baza przeglądu `c2c8f1f`.
-**Manualny odbiór:** niewykonany; implementacja w toku.
+**Manualny odbiór:** oczekuje na użytkownika; implementacja wykonana.
 **Dodano do planu:** 2026-10-31, na zlecenie użytkownika, przed REG-03.
 
 Obowiązują [plan](../README.md), [protokół](../manual-protocol.md) i limity plików
@@ -18,55 +18,55 @@ MOVIE_4, lecz zostały konkretne przejścia wymagające poprawy:
 
 ## Zakres i kryteria odbioru
 
-- [ ] W istniejącym oknie pary można rozpocząć **„Popraw dopasowanie z filmu”**.
+- [x] W istniejącym oknie pary można rozpocząć **„Popraw dopasowanie z filmu”**.
   Punkt startu pochodzi z aktywnego pełnego aligned: jest przesunięciem wybranej
   pary, a nie skumulowanym XY klatki. Dla już poprawionej pary pobieramy jej
   aktualny wynik. Dostępne pozostają ruchy ±1 px, ułamkowy początek, nakładka,
   przełączanie obrazów, zoom i gamma z REG-01a.
-- [ ] **„Zakończ korektę”** nadal zatwierdza tylko próbę pary. Osobne
+- [x] **„Zakończ korektę”** nadal zatwierdza tylko próbę pary. Osobne
   **„Zastosuj do filmu”** publikuje zatwierdzony wynik ręczny w pełnej serii.
   Sterowanie pokazuje parę źródłową, poprzednie i nowe XY oraz zakres klatek,
   na który wpłynie zmiana. Porównanie może działać bez pełnej rejestracji,
   lecz zastosowanie do filmu wymaga kompletnego aktywnego wyniku tej samej serii.
-- [ ] Ręczne XY zastępuje przesunięcie danej pary. Różnica względem dotychczasowego
+- [x] Ręczne XY zastępuje przesunięcie danej pary. Różnica względem dotychczasowego
   przesunięcia pary zmienia skumulowane XY jej klatki przesuwanej i wszystkich
   następnych. Wcześniejsze XY względem odniesienia pozostają niezmienione.
   Kolejne korekty różnych par współistnieją; zmiana już poprawionej pary zastępuje
   jej nadpisanie. Ponowne zastosowanie tego samego XY nie dodaje korekty drugi raz.
-- [ ] **„Usuń korektę tej pary z filmu”** przywraca dla niej przesunięcie z bazowej
+- [x] **„Usuń korektę tej pary z filmu”** przywraca dla niej przesunięcie z bazowej
   pełnej rejestracji, zachowując korekty innych par. Jest niedostępne bez
   zastosowanej korekty. To odrębne działanie od cofania ruchów szkicu REG-01a;
   nie budujemy wielopoziomowej historii kliknięć.
-- [ ] Nowy pełny aligned powstaje z zachowanych oryginalnych próbek i końcowych
+- [x] Nowy pełny aligned powstaje z zachowanych oryginalnych próbek i końcowych
   skumulowanych XY, z jedną interpolacją. Przeliczamy padding, cały obszar,
   położenia pól źródłowych i maski ważności. Nie przesuwamy ponownie wcześniej
   interpolowanego aligned. Zmiana paddingu może przesunąć w płótnie także
   wcześniejsze obrazy, mimo że ich XY względem odniesienia nie zmieniły się.
-- [ ] Przeliczanie działa w tle z postępem i anulowaniem. Play zatrzymuje się;
+- [x] Przeliczanie działa w tle z postępem i anulowaniem. Play zatrzymuje się;
   do końca blokowane są zmiana składu serii, inne obliczenia, kolejne zastosowanie
   korekty i eksport. Podgląd, zoom i gamma pozostają dostępne. Błąd/anulowanie
   zachowują poprzedni kompletny film oraz zestaw zastosowanych korekt. Dopiero
   sukces podmienia wynik; pokazujemy aligned tej samej klatki, dopasowujemy nowy
   obszar do okna, zachowujemy gamma i pozostawiamy Play zatrzymany.
-- [ ] Korekta jest związana z parą oryginalnych klatek i wersją aktywnego wyniku
+- [x] Korekta jest związana z parą oryginalnych klatek i wersją aktywnego wyniku
   z chwili rozpoczęcia edycji. Nie wolno zastosować starej próby po zmianie filmu,
   pary, składu serii lub zastąpieniu pełnej rejestracji. Zwykłe zmiany podglądu
   nie unieważniają wyniku. Po zastosowaniu zamknięcie okna pary nie usuwa korekty
   z filmu; niezastosowany szkic nadal podlega zasadom REG-01a.
-- [ ] Udana nowa pełna rejestracja z oryginałów zastępuje korekty; nieudana lub
+- [x] Udana nowa pełna rejestracja z oryginałów zastępuje korekty; nieudana lub
   anulowana zachowuje wcześniejszy wynik z korektami. Po usunięciu klatki gotowe
   obrazy, geometria, pochodzenie korekt i eksport pozostałych klatek zostają.
   **Przed dalszą ręczną korektą filmu po usunięciu klatki wymagamy nowej pełnej
   rejestracji**, z czytelnym komunikatem. Nowy udany import czyści stan; nieudany
   zachowuje poprzedni. Nie przypisujemy korekt do przesuniętych numerów listy.
-- [ ] Wynik jawnie rozróżnia bazową metodę automatyczną i ręczne nadpisania.
+- [x] Wynik jawnie rozróżnia bazową metodę automatyczną i ręczne nadpisania.
   Zachowuje pary źródłowe, bazowe XY pary, punkt startu ręcznej próby, jej
   pochodzenie, łączną korektę i końcowe XY oraz wersję ustawień. Ręczny wynik
   nie ma pewności algorytmu; klatka poprawiona i zależny dalszy ciąg mają jawny
   brak zweryfikowanej oceny. Cofnięcie korekty odtwarza ocenę z bazy, chyba że
   pozostaje wpływ innej ręcznej korekty. Przechowujemy lekkie metadane i jeden
   aktywny film; bez pełnej kopii obrazów dla każdego kroku.
-- [ ] MPP+metadane i AVI zapisują aktywny poprawiony film. MPP zachowuje wartości,
+- [x] MPP+metadane i AVI zapisują aktywny poprawiony film. MPP zachowuje wartości,
   geometrię, braki, bazową metodę, ręczne pochodzenie i dane nadpisań. Jeśli obecny
   schemat ich nie mieści, minimalne wersjonowane rozszerzenie metadanych Viewera
   należy do tego ticketu, z odczytem starszych plików i opisem zgodności.
@@ -147,3 +147,20 @@ w REG-07. Eksport poprawionego filmu jest częścią REG-02a, nie czeka na REG-0
 **Oczekiwany wynik:** operator poprawia konkretne przejścia w automatycznie
 zarejestrowanym filmie i może zapisać użyteczny poprawiony MPP/AVI.
 Po implementacji status `ready-for-review`; manualny odbiór blokuje REG-03.
+
+## Wykonanie — 2026-10-31
+
+Implementacja `976386c`, poprawka przeglądu `f94b0a8`, baza `c2c8f1f`.
+Działa jawne zastosowanie do filmu, cofnięcie jednej pary, przeliczenie z original,
+postęp/anulowanie i ochrona poprzedniego wyniku. MPP/AVI zapisują poprawiony film;
+MPP V4 przechowuje ręczną historię z pełną lekką bazą także po usunięciu klatek.
+
+[Instrukcja GUI](../manual-movie-corrections-manual.md) obejmuje mały CPU,
+ułamkowe przesunięcia, MOVIE_4, eksport i odtwarzalne próby błędu/anulowania.
+[Wyniki i oba przeglądy](../reviews/REG-02a.md) rozdzielają testy automatyczne,
+rzeczywiste GUI i niewykonany ręczny odbiór użytkownika. REG-03 nadal czeka na odbiór.
+
+Weryfikacja: rdzeń 15 PASS, eksport 45 PASS, końcowe powiązane GUI 36 PASS;
+mypy strict 43 PASS, Ruff PASS. Pełne repo: 2220 passed, 14 failed, 16 skipped;
+te same 14 błędów MolTrack/NanoTrack co przy REG-02, bez nowych błędów Viewera.
+Standards: 1 sugestia naprawiona, 0 otwartych; Spec: 0 uwag. Pliki kodu ≤893 linii.

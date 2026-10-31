@@ -25,7 +25,8 @@ Można liczyć pojedynczą parę niezależnie od pełnego aligned.
 ma status **done**: użytkownik potwierdził testy manualne 2026-10-31.
 W oknie porównania działają ruchy ±1 px X/Y, start od zera lub wybranej próby,
 reset/odrzucenie i zastosowanie ręcznego wyniku jako wyniku bieżącego. Krok nie zależy od zoomu; ułamkowy początek zostaje.
-Pełny aligned i eksport korzystają z dotychczasowej rejestracji filmu.
+Samo zakończenie próby pary zachowuje dotychczasowy aligned i eksport;
+zastosowanie do filmu dodaje opisany niżej REG-02a.
 [Instrukcja próby](registration/manual-alignment-manual.md),
 [wyniki i przegląd](registration/reviews/REG-01a.md).
 Wybrany [układ C](registration/pair-window-prototype.md) jest wdrożony: opisowe
@@ -44,10 +45,11 @@ Deep Matcher ocenił najlepiej w pierwszych 100 oglądanych klatkach. Dalsze pr�
 MOVIE_4 pomijają dwie błędnie dołączone klatki źródłowe, zgodnie z protokołem.
 
 **[REG-02a — ręczne korekty filmu](registration/issues/02a-manual-movie-corrections.md)**
-ma status **ready-for-agent**; został zaplanowany 2026-10-31 i nie jest jeszcze
-zaimplementowany. Doda pobranie dopasowania pary z pełnego wyniku, jawne
-„Zastosuj do filmu”, przeliczenie kolejnych klatek z oryginałów i zapis poprawionego
-MPP/AVI. REG-03 czeka na jego implementację i manualny odbiór.
+ma status **ready-for-review**: działa pobranie dopasowania pary z pełnego wyniku,
+jawne **Zastosuj do filmu**, cofnięcie korekty wybranej pary i przeliczenie aligned
+z oryginałów. MPP/AVI zapisują poprawiony film, MPP+metadane V4 zachowują historię
+ręczną. [Instrukcja odbioru](registration/manual-movie-corrections-manual.md),
+[karta sprawdzeń](registration/reviews/REG-02a.md). REG-03 czeka na manualny odbiór.
 
 ## Stan aplikacji
 

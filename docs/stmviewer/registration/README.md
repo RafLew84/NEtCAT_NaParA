@@ -7,8 +7,9 @@ Status: REG-01, REG-01a i REG-02 `done`. Użytkownik potwierdził odbiór REG-02
 2026-10-31 i zgłosił brak istotnej poprawy względem Phase na MOVIE_4.
 Deep Matcher ocenia najlepiej w obejrzanych pierwszych 100 klatkach.
 [Instrukcja REG-02](unnormalized-correlation-manual.md), [wyniki](reviews/REG-02.md).
-Następny jest [REG-02a: ręczne korekty filmu](issues/02a-manual-movie-corrections.md),
-status `ready-for-agent`; implementacja nierozpoczęta. REG-03 czeka na jego odbiór.
+Obecny etap to [REG-02a: ręczne korekty filmu](issues/02a-manual-movie-corrections.md),
+status `ready-for-review`; implementacja gotowa, REG-03 czeka na odbiór użytkownika.
+[Instrukcja REG-02a](manual-movie-corrections-manual.md), [sprawdzenia](reviews/REG-02a.md).
 Dalsze próby MOVIE_4
 obejmują źródłowe klatki 3–364, zgodnie z [protokołem](manual-protocol.md).
 [Instrukcja manualna](manual-alignment-manual.md), [karta sprawdzeń](reviews/REG-01a.md).
@@ -50,7 +51,7 @@ kolizji i zachować numery istniejących zadań.
 REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [instrukcja próby](pair-comparison-manual.md),
 [karta odbioru](reviews/REG-01.md). REG-01a ma status `done` po odbiorze
-użytkownika 2026-10-31. REG-02 również odebrano 2026-10-31 (`done`). REG-02a i REG-03–07 mają
+użytkownika 2026-10-31. REG-02 również odebrano 2026-10-31 (`done`). REG-02a ma status `ready-for-review`; REG-03–07 mają
 status `ready-for-agent`:
 zakres jest przygotowany, ale start
 wymaga zlecenia użytkownika i zakończenia blokujących ticketów. REG-08/09 mają
@@ -66,7 +67,7 @@ technicznie napisać niezależnie.
   nazywamy odniesieniem i dopasowywaną klatką. Szkic ręczny jest odrębny od
   zatwierdzonych prób. Zastosowanie tworzy B z jawnym pochodzeniem ręcznym
   i bez automatycznego wskaźnika pewności. Pełny aligned i eksport zachowują
-  dotychczasowy wynik po „Zakończ korektę”. Planowany REG-02a dodaje osobne
+  dotychczasowy wynik po „Zakończ korektę”. REG-02a dodaje osobne
   „Zastosuj do filmu”, które jawnie podmienia aktywny pełny wynik.
 - Próby ręczne można rozpocząć od zera lub kopii istniejącego wyniku tej pary.
   Podgląd zawsze powstaje z oryginałów i całkowitego XY. REG-07 zachowuje
