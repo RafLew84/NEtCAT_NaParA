@@ -20,6 +20,7 @@ from stmviewer.registration import (
 from stmviewer.deep_matcher import deep_unavailable_reason
 from stmviewer.ui.deep_matcher_controls import DeepMatcherControls
 from stmviewer.ui.registration_job import RegistrationJob
+from stmviewer.ui.registration_mask_controls import RegistrationMaskControls
 from stmviewer.ui.manual_movie_job import ManualMovieJob
 from stmviewer.pair_comparison import PairTrial
 from stmviewer.ui.pair_dialog import PairComparisonDialog
@@ -148,7 +149,8 @@ class STMViewerMainWindow(QMainWindow):
             self._method.addItem(label, key)
             self._method.setItemData(self._method.count() - 1, self._method_errors.get(key) or
                                      ("Surowe dane; korelacja bez normalizacji fazowej. Pewność niezweryfikowana."
-                                      if key == "phase_no_normalization" else "Domyślne ustawienia NanoTrack"),
+                                      if key == "phase_no_normalization" else "Masked NCC z osobnymi maskami obu klatek; pewność niezweryfikowana."
+                                      if key == "masked_correlation" else "Domyślne ustawienia NanoTrack"),
                                      Qt.ItemDataRole.ToolTipRole)
         self._method.setToolTip("Metoda rejestracji sąsiednich oryginalnych klatek.")
         controls.addWidget(self._method)
@@ -170,6 +172,10 @@ class STMViewerMainWindow(QMainWindow):
         self._compare_pair.setObjectName('comparePair')
         self._compare_pair.clicked.connect(self._open_pair_comparison)
         controls.addWidget(self._compare_pair)
+        self._masks = RegistrationMaskControls(panel)
+        self._masks.edit_requested.connect(lambda: self._open_mask_editor(self._index))
+        self._masks.changed.connect(self._masks_changed)
+        controls.addWidget(self._masks)
         self._registration_text = QLabel("", panel)
         self._registration_text.setObjectName("registrationInfo")
         self._registration_text.setWordWrap(True)
@@ -480,6 +486,7 @@ class STMViewerMainWindow(QMainWindow):
                     self._avi.clear_message()
                     self._discard_pair_comparison()
                     self._frames = result.frames
+                    self._masks.set_frames(self._frames, reset=True)
                     self._strip.set_series(result.frames, result.thumbnails)
                     selection = self._strip.selectionModel()
                     assert selection is not None
@@ -521,11 +528,13 @@ class STMViewerMainWindow(QMainWindow):
             event.ignore()
             return
         self._discard_pair_comparison()
+        self._masks.close_editor()
         super().closeEvent(event)
 
     def _sync_navigation(self) -> None:
         count = len(self._frames)
         busy = self._processing_series
+        self._masks.set_available(not self._operation_in_progress)
         self._compare_pair.setEnabled(count > 1 and not self._operation_in_progress)
         if self._pair_dialog is not None:
             self._pair_dialog.set_available(not (self._job is not None or self._registration_job is not None
@@ -590,6 +599,7 @@ class STMViewerMainWindow(QMainWindow):
                 self._view.setCurrentText("original")
         self._registration = registration
         self._frames = frames
+        self._masks.set_frames(frames)
         self._index = index
         self._strip.remove_frame(removed)
         self._show_current_frame()
@@ -712,8 +722,9 @@ class STMViewerMainWindow(QMainWindow):
             dialog = PairComparisonDialog(self._frames, max(1, self._index), self,
                                           method=str(self._method.currentData()),
                                           deep_options=self._deep_controls.options(),
-                                          backend=self._registration_backend)
+                                          backend=self._registration_backend, masks=self._masks.store)
             self._pair_dialog = dialog
+            dialog.mask_editor_requested.connect(self._open_mask_editor)
             dialog.set_registration(self._registration)
             dialog.movie_apply_requested.connect(self._apply_movie_correction)
             dialog.movie_remove_requested.connect(self._remove_movie_correction)
@@ -723,6 +734,15 @@ class STMViewerMainWindow(QMainWindow):
         self._pair_dialog.show()
         self._pair_dialog.raise_()
         self._pair_dialog.activateWindow()
+
+    def _open_mask_editor(self, index: int) -> None:
+        if not self._operation_in_progress:
+            self._pause()
+            self._masks.edit(index)
+
+    def _masks_changed(self) -> None:
+        if self._pair_dialog is not None:
+            self._pair_dialog.refresh_masks()
 
     def _pair_closed(self) -> None:
         self._pair_dialog = None
@@ -748,6 +768,7 @@ class STMViewerMainWindow(QMainWindow):
         return self._method_errors[key]
 
     def _change_registration_method(self) -> None:
+        self._masks.set_method(str(self._method.currentData()))
         self._deep_controls.setVisible(self._method.currentData() == 'deep_matcher_translation')
         reason = self._selected_method_error()
         self._method_availability.setText(reason or "")
@@ -759,7 +780,8 @@ class STMViewerMainWindow(QMainWindow):
             return
         job = RegistrationJob(self._frames, self, self._registration_backend,
                               method=str(self._method.currentData()),
-                              deep_options=self._deep_controls.options(), check_only=check_only)
+                              deep_options=self._deep_controls.options(), check_only=check_only,
+                              masks=self._masks.snapshot(), use_masks=self._masks.use.isChecked())
         self._start_registration_job(job)
 
     def _apply_movie_correction(self, trial: PairTrial) -> None:

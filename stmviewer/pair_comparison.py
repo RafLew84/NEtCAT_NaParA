@@ -7,6 +7,8 @@ import numpy as np
 from numpy.typing import NDArray
 
 from stmviewer.frame import ImageFrame
+from stmviewer.registration_masks import FrameMask
+from stmviewer.masked_correlation import MASKED_METHOD, MaskedCorrelationShiftBackend, masked_label, mask_settings
 from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
 from stmviewer.registration import (
     FrameOrigin, REGISTRATION_METHODS, RegistrationCancelled, RegistrationError,
@@ -43,6 +45,8 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
                   method: str = 'phase_correlation',
                   deep_options: DeepMatcherOptions | None = None,
                   backend: ShiftBackend | None = None,
+                  reference_mask: FrameMask | None = None, moving_mask: FrameMask | None = None,
+                  use_masks: bool = True,
                   cancelled: Callable[[], bool] | None = None,
                   progress: Callable[[str], None] | None = None) -> PairTrial:
     """Estimate one original pair without creating any aligned images."""
@@ -59,9 +63,9 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
     checkpoint()
     if method not in REGISTRATION_METHODS:
         raise RegistrationError(f'Nieznana metoda rejestracji: {method}')
-    label = REGISTRATION_METHODS[method]
+    label = masked_label(use_masks) if method == MASKED_METHOD else REGISTRATION_METHODS[method]
     _check_shape(reference, moving)
-    if not np.isfinite(reference.data).all() or not np.isfinite(moving.data).all():
+    if method != MASKED_METHOD and (not np.isfinite(reference.data).all() or not np.isfinite(moving.data).all()):
         raise RegistrationError(f'{label}: para wymaga skończonych próbek; wejście zawiera NaN/Inf.')
     device = 'CPU'
     settings = 'Oryginały; ustawienia NanoTrack'
@@ -75,9 +79,18 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
     configuration = getattr(backend, 'config', None)
     if is_dataclass(configuration) and not isinstance(configuration, type):
         settings += '; ' + '; '.join(f'{k}={v}' for k, v in asdict(configuration).items())
+    if method == MASKED_METHOD:
+        settings = mask_settings(reference_mask or FrameMask(), moving_mask or FrameMask(), use_masks)
     report(f'{label}: wyznaczanie przesunięcia pary…')
     try:
-        result = backend.estimate(reference.data, moving.data, moving_frame_index=1)
+        if method == MASKED_METHOD:
+            if not isinstance(backend, MaskedCorrelationShiftBackend):
+                raise ValueError('Masked NCC wymaga backendu obsługującego obie maski.')
+            result = backend.estimate_masked(reference.data, moving.data, moving_frame_index=1,
+                                             reference_mask=reference_mask or FrameMask(),
+                                             moving_mask=moving_mask or FrameMask(), use_masks=use_masks)
+        else:
+            result = backend.estimate(reference.data, moving.data, moving_frame_index=1)
         checkpoint()
         if (result is None or result.frame_index != 1
                 or result.status not in ('ok', 'low_confidence', 'manual_review')):

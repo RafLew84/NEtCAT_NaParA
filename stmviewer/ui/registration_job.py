@@ -5,6 +5,7 @@ from threading import Event
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
 from stmviewer.frame import ImageFrame
+from stmviewer.registration_masks import FrameMask
 from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
 from stmviewer.registration import RegistrationCancelled, RegistrationResult, ShiftBackend, register_series
 
@@ -14,13 +15,16 @@ class RegistrationJob(QThread):
 
     def __init__(self, frames: tuple[ImageFrame, ...], parent: QObject,
                  backend: ShiftBackend | None = None, *, method: str = "phase_correlation",
-                 deep_options: DeepMatcherOptions | None = None, check_only: bool = False) -> None:
+                 deep_options: DeepMatcherOptions | None = None, check_only: bool = False,
+                 masks: tuple[FrameMask, ...] | None = None, use_masks: bool = True) -> None:
         super().__init__(parent)
         self._frames = frames
         self._backend = backend
         self._method = method
         self._deep_options = deep_options
         self._check_only = check_only
+        self._masks = tuple(masks) if masks is not None else None
+        self._use_masks = use_masks
         self.checked_device: str | None = None
         self._cancelled = Event()
         self.result: RegistrationResult | None = None
@@ -42,7 +46,7 @@ class RegistrationJob(QThread):
                     self.checked_device = loaded.device
                 return
             result = register_series(self._frames, method=self._method, backend=self._backend,
-                                     deep_options=self._deep_options,
+                                     deep_options=self._deep_options, masks=self._masks, use_masks=self._use_masks,
                                      progress=self.progress.emit, cancelled=self.was_cancelled)
             if not self.was_cancelled():
                 self.result = result

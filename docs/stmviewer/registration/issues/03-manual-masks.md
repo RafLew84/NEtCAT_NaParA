@@ -4,8 +4,9 @@
 pominięcia i widzi wpływ masek na dopasowanie pary oraz całej serii.
 **Blocked by:** [REG-02a](02a-manual-movie-corrections.md), w tym odbiór manualny — spełnione.
 REG-02a odebrano 2026-10-31; REG-03 jest odblokowany.
-**Status:** ready-for-agent
-**Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
+**Status:** in-progress
+**Wykonawca:** Codex; baza przeglądu `270097b`.
+**Manualny odbiór:** niewykonany; implementacja w toku.
 
 Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
 
