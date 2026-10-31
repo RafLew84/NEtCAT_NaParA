@@ -4,10 +4,41 @@ ID: 21a
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: claimed
+Status: resolved
 Assignee: domains/start
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 20, 21
+
+## Answer — 2026-10-31
+
+Wykonano ograniczoną próbę: [raport](../rvae-decoder-kl-trial.md),
+[manifest](../rvae-decoder-kl-manifest.json). Status `resolved` oznacza
+zakończony eksperyment, bez przyjęcia detektora do aplikacji.
+
+Dwa runy diagnostyczne i dziewięć pełnych fitów ukończyły 22 000 kroków
+w 336,34 s, bez restartów. Słabsze KL zmniejsza medianę MSE walidacji
+z 0,05555 do 0,04794 (około 14%), ale nie przywraca szczegółów molekularnych
+ani wiarygodnego kąta sieci. Nawet próba zapamiętania 16 wycinków bez KL
+odtwarza głównie tło i łagodne zmiany jasności w tym budżecie.
+
+3360 predykcji oceniono po zamrożeniu 14 370 lokalnych i 50 zewnętrznych
+artefaktów, na 81 nowych realizacjach kontroli oraz znanym TTMAPP.
+Końcowe pokrycie częściowej referencji transferowej wynosi **0/174**
+dla wszystkich konfiguracji. Żaden nowy wariant z FH/MWS nie spełnia
+kryteriów kontynuacji; poprawa rekonstrukcji pozostaje wynikiem częściowym.
+Nowe realizacje syntetyczne nie zmieniają rozwojowego charakteru oceny TTMAPP.
+
+161 testów kodu przeszło. Audyt sprawdził 220 checkpointów, zgodność
+inicjalizacji/batchy i wybór walidacyjny; 672 tablice wyników bazowych
+na TTMAPP są identyczne z 21. Galeria przeszła 112 sprawdzeń, bez błędów JS.
+Nie zmieniono źródeł, wag ani wyników 21. Galeria i artefakty są lokalnie
+w `.scratch/rvae-21a/`; odtworzenie opisuje
+[README eksperymentu](../../../stmdomains/experiments/training/rvae_followup/README.md).
+Źródło zachowuje gałąź `prototype/stmdomains-rvae-decoder-kl`.
+
+Następne jest **22**, potem **23**. Budżet dziewięciu fitów SSL pozostaje
+dostępny. Nie uruchomiono 22, nie ponowiono strojenia bramki i nie rozszerzono
+danych MPP/STP. Szczegóły oceny oraz inspekcji galerii są w raporcie.
 
 ## Question
 

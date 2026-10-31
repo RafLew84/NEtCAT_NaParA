@@ -17,13 +17,15 @@ wznowienie dla trzech ziaren.
 25 200 predykcji, 143 testy i galeria `.scratch/autoencoder-21/index.html`.
 Nie wykazano poprawy domen: końcowe coverage częściowych referencji TTMAPP
 0% w transferze, najwyżej 0,51% w transdukcji. Nie przyjęto detektora.
-Na polecenie użytkownika dodano osobny
-[21a — dekoder i regularyzacja rVAE](issues/21a-rvae-decoder-and-kl.md), `open`:
-mała diagnostyka odtwarzania wycinków oraz najwyżej dziewięć nowych fitów
-transferowych z32, z osobnym budżetem. Aktualna kolejność: **21a → 22 → 23**.
-21 pozostaje zakończone; 22 nie wymaga dodatniego wyniku 21a.
-Jakość 04, odbiór 13 i druga mapa pozostają otwarte. Dodanie ticketu
-nie uruchamia nowych treningów; dodatkowe MPP/STP nie są wymagane.
+[21a — dekoder i regularyzacja rVAE](issues/21a-rvae-decoder-and-kl.md)
+wykonano (`resolved`): dwa runy diagnostyczne i dziewięć nowych fitów,
+3360 predykcji, 161 testów. [Raport](rvae-decoder-kl-trial.md): słabsze KL
+zmniejsza błąd rekonstrukcji o około 14%, lecz nie poprawia końcowego
+wykrywania domen; transfer nadal 0/174 przypisań. Galeria lokalna:
+`.scratch/rvae-21a/index.html`. Wyniki 21 pozostają zachowane.
+Następne jest **22**, potem **23**; dziewięć fitów SSL pozostaje dostępne.
+Jakość 04, odbiór 13 i druga mapa pozostają otwarte; dodatkowe MPP/STP
+nie są wymagane do następnej próby.
 
 **Decyzja użytkownika — 2026-10-31:** najpierw wykonujemy 21/22 na obecnym
 TTMAPP i przygotowanych kontrolach według protokołu 20. Przygotowanie

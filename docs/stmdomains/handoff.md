@@ -1,3 +1,51 @@
+# STM Domains — wykonano próbę 21a
+
+Data: **2026-10-31**. Na polecenie użytkownika wykonano
+[21a — dekoder i regularyzacja rVAE](issues/21a-rvae-decoder-and-kl.md),
+status **`resolved`** jako zakończony eksperyment, bez przyjęcia detektora.
+[Raport](rvae-decoder-kl-trial.md), [manifest dowodów](rvae-decoder-kl-manifest.json).
+Następne jest **22**, potem **23**; dziewięć fitów SSL pozostaje dostępne.
+
+Ukończono 2/2 runy diagnostyczne i 9/9 pełnych fitów transferowych z32:
+22 000 kroków, 336,34 s treningu, bez restartów lub dodatkowych instalacji.
+Macierz dekoder × KL zachowuje oryginalne modele 21 jako punkt odniesienia.
+Słabsze KL obniża medianę MSE walidacji o około 14%, lecz rekonstrukcje
+pozostają wygładzone, a kąt nie odtwarza znanych orientacji. Nawet bez KL
+mała próba zapamiętania nie odtworzyła szczegółów molekularnych w tym budżecie.
+Żaden nowy wariant z FH/MWS nie spełnia kryteriów kontynuacji; końcowe
+TTMAPP nadal **0/174** przypisań. Odmowy i fałszywe domeny kontroli
+pozostają problemem; poprawa rekonstrukcji jest wynikiem częściowym.
+
+Ocena obejmuje główną siatkę 48 px, 81 nowych realizacji kontroli oraz
+znane TTMAPP; to ocena rozwojowa jednej akwizycji. 3360 predykcji zamrożono
+przed oceną: 14 370 lokalnych i 50 zewnętrznych artefaktów. Wszystkie
+100 299 hashy pierwotnej próby 21 sprawdzono przed rozpoczęciem; 672 tablice
+wyników bazowych na TTMAPP są dokładnie identyczne. Bramka, podział danych,
+źródła i artefakty 21 pozostały niezmienione. Nie rozpoczęto 22 ani nowych
+prób bramki; dodatkowe MPP/STP pozostają odłożone.
+
+Sprawdzenia: **161 testów**, 220 checkpointów, identyczne inicjalizacje
+wspólnych warstw/batche, właściwy wybór walidacyjny i niezależność wejścia
+od referencji. Galeria: **112 interakcji, zero błędów JS**, pięć obejrzanych
+zrzutów; obejrzano też PNG rekonstrukcji i diagnostyki. Koszt pomierzonych
+etapów przygotowania, oceny i galerii: **150,53 s CPU** wobec limitu 7200 s.
+Wrapper sprawdzono składniowo; wszystkie jego etapy wykonano osobno,
+bez ponawiania 11 treningów. Nie wykonywano odbioru natywnego GUI.
+
+Kod badawczy: `stmdomains/experiments/training/rvae_followup/`;
+[odtworzenie](../../stmdomains/experiments/training/rvae_followup/README.md).
+Wyniki lokalne: `.scratch/rvae-21a/index.html`, `evaluation/`, `figures/`,
+checkpointy i diagnostyka; całość około 1,27 GiB poza Git. Źródło zachowuje
+gałąź `prototype/stmdomains-rvae-decoder-kl`. Zmiany wyłącznie w Domains,
+bez potrzeb wspólnych modułów; integracja przez koordynatora.
+
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/start`,
+baza `773ff5f`, podjęcie zadania `526c61c`. Commit wykonania podany
+w odpowiedzi końcowej. GPU, QtWebEngine i zapis metadanych Git wymagały
+uruchomienia poza sandboxem; żadne modele ani wyniki nie były publikowane.
+
+---
+
 # STM Domains — dodano osobną próbę 21a
 
 Data: **2026-10-31**. Na polecenie użytkownika dodano

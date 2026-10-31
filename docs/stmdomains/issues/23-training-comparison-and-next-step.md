@@ -25,7 +25,7 @@ uruchamia badań; status pozostaje `open`, a 24–26 nadal są warunkowe.
 
 **Uzupełnienie na polecenie użytkownika — 2026-10-31:** przed 22 dodano
 osobny [21a — dekoder i regularyzacja rVAE](21a-rvae-decoder-and-kl.md).
-Zestawienie czeka także na ten wynik, również negatywny. Ująć osobno
+21a następnie wykonano (`resolved`); zestawienie czeka teraz na 22. Ująć osobno
 oryginalne 21 i dodatkową próbę, jej budżet oraz zakres oceny; poprawa
 rekonstrukcji lub cech przed bramką nie oznacza poprawy końcowego detektora.
 
@@ -36,14 +36,16 @@ rekonstrukcji lub cech przed bramką nie oznacza poprawy końcowego detektora.
   odmowy na TTMAPP, lecz także fałszywe domeny niezależnych rzędów.
   Surowy kąt rVAE nie rozpoznaje orientacji. Zapisane wyniki przed odmowami
   pozwalają oddzielić tę lukę od cech i podziału. Ostateczne zestawienie
-  nadal czeka na 21a i 22; samo ukończenie 21 nie wybiera rozszerzenia danych lub 24–26.
-- [Osobna próba 21a](21a-rvae-decoder-and-kl.md): mała diagnostyka oraz
-  macierz dekoder × KL w transferze z32, najwyżej dziewięć nowych fitów.
-  Zachowane modele 21 ocenić na tych samych nowych kontrolach bez ponownego
-  treningu. Oddzielić nowe realizacje syntetyczne od już oglądanego TTMAPP
-  i nie porównywać nowych fitów transferowych z transdukcją jako równymi
-  warunkami. Koszt dwóch dopuszczonych krótkich runów diagnostycznych
-  również wchodzi do zestawienia kosztów.
+  nadal czeka na 22; samo ukończenie 21 nie wybiera rozszerzenia danych lub 24–26.
+- [Osobna próba 21a](../rvae-decoder-kl-trial.md) wykonana: 2 diagnostyki
+  i 9 fitów, 22 000 kroków, 336,34 s. Słabsze KL obniża medianę MSE
+  o około 14%, ale nadal nie daje wiarygodnego kąta i końcowych domen.
+  TTMAPP: 0/174 przypisań dla wszystkich wariantów; pozostają błędy kontroli.
+  Zachowane modele 21 oceniono na tych samych nowych kontrolach bez
+  retreningu; 672 tablice TTMAPP są identyczne z 21. Oddzielić świeże
+  realizacje syntetyczne od znanego TTMAPP i nie porównywać transferu
+  z transdukcją jako równych warunków. Wynik nie otwiera dalszego strojenia
+  rVAE ani bramki; następna jest niezależna próba SSL.
 - Tabela wspólnych kontroli, błędów i odmów, stabilności względem ziaren
   oraz zakresu. Oddzielić zero/jedną/wiele domen, typ/orientację, rozstaw,
   granice przesunięcia, nieporządek i brak danych; zobaczyć pełne nakładki.

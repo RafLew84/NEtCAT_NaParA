@@ -11,6 +11,12 @@ Blocked by: 17, 20, 21a
 
 ## Kolejność po uzupełnieniu 21 — 2026-10-31
 
+**21a wykonano (`resolved`)**: [raport](../rvae-decoder-kl-trial.md).
+Zmiany dekodera/KL nie poprawiły końcowych domen; zależność jest zakończona.
+22 jest teraz następną próbą. Jej parametrów nie zmieniamy pod ujawnione
+wyniki 21a; znane kontrole i TTMAPP nadal wymagają odpowiedniego oznaczenia
+zakresu wniosków.
+
 Na polecenie użytkownika najpierw wykonujemy
 [21a — dekoder i regularyzacja rVAE](21a-rvae-decoder-and-kl.md), potem 22
 i decyzję 23. To zależność kolejności prac: wynik negatywny 21a również

@@ -24,10 +24,13 @@ wykonano (`resolved`): dane, rozdzielone protokoły, pomiar GPU i wznowienie,
 budżet oraz kryteria. [21 wykonano](autoencoder-domains-trial.md), `resolved`:
 18/18 fitów, pełne porównanie 2 × 2, bez wykazanej poprawy końcowych domen.
 Transfer TTMAPP: 0/174 przypisań; transdukcja najwyżej 4/782.
-143 testy i galeria HTML zweryfikowane. Dodano osobny
-[21a — dekoder i regularyzacja rVAE](issues/21a-rvae-decoder-and-kl.md), `open`.
-Aktualna kolejność to **21a → 22 → 23**, bez wymagania sukcesu 21a.
-Nie wybrano metody do aplikacji.
+143 testy i galeria HTML zweryfikowane. Wykonano także osobny
+[21a — dekoder i regularyzacja rVAE](issues/21a-rvae-decoder-and-kl.md), `resolved`:
+dwa runy diagnostyczne i dziewięć fitów, 3360 predykcji, 161 testów.
+[Raport](rvae-decoder-kl-trial.md) wskazuje niższy błąd rekonstrukcji,
+ale brak wiarygodnej orientacji i poprawy końcowych domen: nadal 0/174
+przypisań TTMAPP. Następne jest **22**, potem **23**.
+Nie wybrano metody do aplikacji; budżet SSL pozostaje dostępny.
 
 **Uzupełnienie planu na polecenie użytkownika — 2026-10-31:** 21a obejmuje
 małą próbę odtwarzania wycinków i macierz dekoder × waga KL. Dopuszcza
@@ -37,7 +40,8 @@ budżet, bez zużywania dziewięciu fitów przeznaczonych na 22. Pierwotny
 protokół 20, raport i artefakty 21 pozostają zamrożone. Nowe realizacje
 kontroli służą ocenie po zamrożeniu wariantów; znane TTMAPP pozostaje
 oceną rozwojową. Nie ponawiamy strojenia bramki z 19. Dodanie ticketu
-nie uruchamia próby ani nie wymaga dodatkowych danych.
+nie uruchamiało próby; następnie wykonano ją na osobne polecenie użytkownika,
+bez dodatkowych danych.
 
 **Decyzja użytkownika — 2026-10-31:** 21/22 wykonujemy najpierw na obecnym
 TTMAPP i kontrolach przygotowanych w 20. Użytkownik przygotuje dodatkowe
@@ -250,6 +254,15 @@ Przygotowanie wspólnych danych jest zadaniem AFK. Żadnego nowego ticketu
 nie zamknięto przez samo dodanie go do mapy.
 
 ## Decisions so far
+
+- [Czy zmiana dekodera i regularyzacji poprawia rVAE?](issues/21a-rvae-decoder-and-kl.md):
+  **`resolved` — zakończona ograniczona próba**. [Raport](rvae-decoder-kl-trial.md),
+  [manifest](rvae-decoder-kl-manifest.json): 2 diagnostyki + 9 fitów,
+  22 000 kroków, 336,34 s treningu. Słabsze KL zmniejsza medianę MSE
+  o około 14%, ale pozostają wygładzone rekonstrukcje i błędna orientacja.
+  Wszystkie warianty po odmowach dają 0/174 przypisań TTMAPP; żaden nowy
+  wariant z FH/MWS nie spełnia kryteriów. 161 testów i 672 identyczne
+  tablice bazowe. Następne 22, potem 23; nie przyjęto detektora.
 
 - [Jak przygotować trening bez etykiet?](issues/20-self-supervised-training-preparation.md):
   **`resolved` — przygotowanie wykonane**. 24 klatki, 38 622 rekordy wycinków,

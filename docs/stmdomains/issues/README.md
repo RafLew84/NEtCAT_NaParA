@@ -15,12 +15,13 @@ wykonano (`resolved`): [raport](../self-supervised-training-preparation.md),
 [protokół](../self-supervised-training-protocol.md), 78 testów i identyczne
 wznowienie GPU dla trzech ziaren. [21 wykonano](../autoencoder-domains-trial.md)
 (`resolved`): 18 fitów, 25 200 predykcji, 143 testy; nie wykazano poprawy
-końcowych domen. Na polecenie użytkownika dodano osobny
-[21a — dekoder i regularyzacja rVAE](21a-rvae-decoder-and-kl.md), `open`.
-Następna kolejność to **21a → 22 → 23**; jakość 04 i odbiór 13 pozostają otwarte.
-21a ma osobny budżet: dwa krótkie runy diagnostyczne i najwyżej dziewięć
-nowych fitów transferowych z32. Nie zużywa budżetu 22 i nie zmienia
-zamrożonych wyników 21. Dodanie ticketu nie uruchamia treningów.
+końcowych domen. Wykonano osobny
+[21a — dekoder i regularyzacja rVAE](21a-rvae-decoder-and-kl.md), `resolved`:
+2 diagnostyki i 9 fitów, 3360 predykcji, 161 testów oraz galeria.
+[Raport](../rvae-decoder-kl-trial.md): niższy błąd rekonstrukcji nie daje
+poprawy końcowych domen; transfer nadal 0/174 przypisań.
+Następne jest **22**, potem **23**; jakość 04 i odbiór 13 pozostają otwarte.
+Budżet dziewięciu fitów SSL i zamrożone wyniki 21 pozostają zachowane.
 Wcześniejsze statusy w poniższej chronologii opisują historyczne decyzje.
 
 Tego samego dnia użytkownik zatwierdził
@@ -275,19 +276,18 @@ relacje przez granice, pełne propozycje domen i odmowy; nie powtarza serii 19.
 | --- | --- | --- |
 | [20 — Jak przygotować odtwarzalny trening bez etykiet domen?](20-self-supervised-training-preparation.md) | task / AFK | `resolved`: dane, GPU/checkpoint, protokół relacji, budżet i kryteria gotowe |
 | [21 — Czy AE i rVAE uczą się cech przydatnych do odkrywania domen?](21-autoencoder-domains.md) | prototype / HITL | `resolved`: 18 fitów i porównanie granic/podziału wykonane, bez poprawy końcowych domen |
-| [21a — Czy zmiana dekodera i regularyzacji poprawia rVAE?](21a-rvae-decoder-and-kl.md) | prototype / HITL | `open`, po 20 i 21: diagnostyka i trzy nowe warianty × trzy ziarna, osobny budżet |
+| [21a — Czy zmiana dekodera i regularyzacji poprawia rVAE?](21a-rvae-decoder-and-kl.md) | prototype / HITL | `resolved`: 2 diagnostyki i 9 fitów; niższe MSE, bez poprawy końcowych domen |
 | [22 — Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](22-local-self-supervised-domains.md) | prototype / HITL | Po 17, 20 i zakończeniu 21a; lokalne SSL z pilotem relacji, bez wymagania sukcesu AE/rVAE |
 | [23 — Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md) | grilling / HITL | Po 19, 21, 21a i 22; ocena cech, relacji, podziału i odmów; decyzja o kontynuacji |
 | [24 — Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md) | prototype / HITL | Warunkowo: wybrane w 23, po wyniku 15 |
 | [25 — Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md) | prototype / HITL | Warunkowo: wybrane w 23 |
 | [26 — Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md) | prototype / HITL | Warunkowo: wybrane w 23, z zachowanym modelem odniesienia |
 
-18, 19, 20 i 21 są zakończone; najbliższe zadanie to **21a**, potem **22**.
-21a obejmuje jedną ograniczoną macierz dekoder × KL, po krótkiej diagnostyce.
-Własny budżet i nowe kontrole opisuje ticket; protokół 20 pozostaje
-zamrożonym punktem odniesienia. Nie ponawiamy strojenia bramki z 19.
-22 wymaga zakończenia 21a, również z wynikiem negatywnym; nadal korzysta
-z wyniku tekstury i przygotowania 20 oraz własnych dziewięciu fitów.
+18, 19, 20, 21 i 21a są zakończone; najbliższe zadanie to **22**.
+Własny budżet 21a wykorzystano na zamkniętą macierz dekoder × KL;
+protokół 20 pozostaje zamrożonym punktem odniesienia. Nie ponawiano
+strojenia bramki z 19. Negatywny wynik 21a kończy jego zależność dla 22;
+SSL nadal korzysta z wyniku tekstury, przygotowania 20 i własnych dziewięciu fitów.
 Zestawienie 23 obejmuje pierwotne 21, dodatek 21a, SSL i zachowane wyniki 19.
 Odbiór 13 czeka na 23, lecz nie na wszystkie warunkowe rodziny modeli.
 Jeśli w 23 wybierzemy rozszerzenie, dodajemy je do zależności 13 i diagramu.
