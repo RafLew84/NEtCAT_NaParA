@@ -45,11 +45,12 @@ Deep Matcher ocenił najlepiej w pierwszych 100 oglądanych klatkach. Dalsze pr�
 MOVIE_4 pomijają dwie błędnie dołączone klatki źródłowe, zgodnie z protokołem.
 
 **[REG-02a — ręczne korekty filmu](registration/issues/02a-manual-movie-corrections.md)**
-ma status **ready-for-review**: działa pobranie dopasowania pary z pełnego wyniku,
+ma status **done** po potwierdzeniu użytkownika „testy manualne ok” 2026-10-31.
+Działa pobranie dopasowania pary z pełnego wyniku,
 jawne **Zastosuj do filmu**, cofnięcie korekty wybranej pary i przeliczenie aligned
 z oryginałów. MPP/AVI zapisują poprawiony film, MPP+metadane V4 zachowują historię
 ręczną. [Instrukcja odbioru](registration/manual-movie-corrections-manual.md),
-[karta sprawdzeń](registration/reviews/REG-02a.md). REG-03 czeka na manualny odbiór.
+[karta sprawdzeń](registration/reviews/REG-02a.md). Zależność REG-03 jest spełniona.
 
 ## Stan aplikacji
 

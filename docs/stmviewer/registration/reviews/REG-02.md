@@ -116,7 +116,8 @@ Standards: 0 uwag; Spec: 1 naprawiona, 0 otwartych.
 2026-10-31 użytkownik potwierdził **„testy manualne ok”** i opisał oględziny
 MOVIE_4. REG-02 ma status `done`. W dalszej aktualizacji planu 2026-10-31
 dodano [REG-02a](../issues/02a-manual-movie-corrections.md) przed REG-03;
-REG-03 czeka na jego implementację i manualny odbiór.
+REG-02a następnie wykonano i odebrano 2026-10-31; REG-03 jest odblokowany.
+[Odbiór REG-02a](REG-02a.md#ręczny-odbiór-użytkownika).
 Odebrany kod: `d85ba1b`, `bcf0e70`; dokumentacja: `ad87192`.
 System i ustawienia podglądu nie zostały podane. W tej wiadomości nie ma
 osobnej oceny MOVIE_8 ani szczegółowych wyników każdego kroku eksportu.

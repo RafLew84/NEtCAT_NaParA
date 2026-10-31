@@ -107,7 +107,8 @@ Szczegółowe próby, cofnięcie ruchów i anulowanie korekty opisuje [REG-01a](
 
 ## Zastosowanie korekty do filmu — REG-02a
 
-Funkcja jest wdrożona, oczekuje na odbiór użytkownika.
+Funkcja jest wdrożona i odebrana: użytkownik potwierdził „testy manualne ok”
+2026-10-31. Poniższy opis pozostaje protokołem kolejnych prób.
 [Instrukcja próby](manual-movie-corrections-manual.md), [wyniki](reviews/REG-02a.md).
 [REG-02a](issues/02a-manual-movie-corrections.md) rozdziela zakończenie próby pary
 od jawnego **Zastosuj do filmu**. Punktem startu jest różnica skumulowanych XY

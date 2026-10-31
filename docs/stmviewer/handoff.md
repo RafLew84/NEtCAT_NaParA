@@ -1,5 +1,22 @@
 # Przekazanie — STM Viewer
 
+## REG-02a: odbiór użytkownika — 2026-10-31
+
+Użytkownik potwierdził **„testy manualne ok”**. [REG-02a](registration/issues/02a-manual-movie-corrections.md)
+zamknięto jako `done`; zależność [REG-03](registration/issues/03-manual-masks.md)
+jest spełniona. REG-03 pozostaje `ready-for-agent`; ta aktualizacja dokumentuje
+odbiór poprzedniego etapu i nie zmienia zakresu kolejnego.
+
+Odebrany kod: `976386c` i `f94b0a8`; dokumentacja wykonania: `8df875c`.
+[Pełna karta](registration/reviews/REG-02a.md#ręczny-odbiór-użytkownika) zachowuje
+wcześniejsze wyniki automatyczne i próby GUI. Użytkownik nie podał osobno systemu,
+VLC ani wyników każdego kroku; nie dopisano takich deklaracji. Statusy wcześniejszych
+19–21 i odbiorów platform pozostają bez zmian.
+
+Zmiana dotyczy wyłącznie dokumentacji; sprawdzono odnośniki i diff, bez ponawiania
+testów kodu. Brak zmian współdzielonych. Starsze wpisy poniżej opisują stan
+w chwili ich zapisania.
+
 ## REG-02a: ręczne korekty filmu — 2026-10-31
 
 [Ticket](registration/issues/02a-manual-movie-corrections.md): `ready-for-review`.

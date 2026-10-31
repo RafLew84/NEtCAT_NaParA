@@ -1,7 +1,8 @@
 # REG-02a — ręczna korekta filmu: próba w GUI
 
-Status: implementacja gotowa do odbioru użytkownika. Instrukcja nie oznacza
-zaliczenia testów manualnych. [Ticket](issues/02a-manual-movie-corrections.md),
+Status: `done`; użytkownik potwierdził „testy manualne ok” 2026-10-31.
+Poniższe kroki służą powtórzeniu próby; potwierdzenie nie wymienia osobno
+każdego kroku ani platformy. [Ticket](issues/02a-manual-movie-corrections.md),
 [karta sprawdzeń](reviews/REG-02a.md).
 
 ## Uruchomienie i podstawowy workflow

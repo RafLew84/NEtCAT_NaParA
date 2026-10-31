@@ -2,7 +2,7 @@
 
 Data: 2026-10-31. Gałąź `viewer/registration-difficult-movies`.
 Baza: `c2c8f1f`; implementacja `976386c`; poprawka po przeglądzie `f94b0a8`.
-Status: `ready-for-review`, ręczny odbiór użytkownika niewykonany.
+Status: `done`; użytkownik potwierdził „testy manualne ok” 2026-10-31.
 [Ticket](../issues/02a-manual-movie-corrections.md),
 [instrukcja GUI](../manual-movie-corrections-manual.md).
 
@@ -101,8 +101,8 @@ Wykonano sterowane skryptem GUI Qt/xcb na `DISPLAY=:1`:
   ponowienie zadziałało; kolejne anulowanie po 50 ms także zachowało wynik.
 
 Są to automatyczne próby rzeczywistego GUI i oględziny zrzutów, odrębne od
-ręcznego odbioru użytkownika oraz jakości wizualnej filmu. Nie wykonano odbioru
-Windows, VLC ani nowych testów całego MOVIE_8 w tym tickecie.
+ręcznego odbioru użytkownika oraz jakości wizualnej filmu. Agent nie wykonał
+odbioru Windows, VLC ani nowych testów całego MOVIE_8 w tym tickecie.
 
 ## Standards
 
@@ -124,5 +124,16 @@ aktualność próby, blokadę po usunięciu klatki i eksport V4 z walidacją.
 Refaktor uruchamiania zadania zachował kontrakt. Nie znaleziono nieuzgodnionego
 rozszerzenia zakresu. Przegląd nie zastępuje oceny jakości przez użytkownika.
 
-Standards: 1 uwaga naprawiona, 0 otwartych. Spec: 0 uwag. REG-03 pozostaje
-zablokowany do ręcznego odbioru REG-02a.
+Standards: 1 uwaga naprawiona, 0 otwartych. Spec: 0 uwag. Ręczny odbiór REG-02a
+zakończono 2026-10-31; REG-03 jest odblokowany.
+
+## Ręczny odbiór użytkownika
+
+2026-10-31 użytkownik potwierdził **„testy manualne ok”**. REG-02a ma status
+`done`; odbiór odblokowuje REG-03. Odebrany kod: `976386c` i `f94b0a8`;
+dokumentacja wykonania: `8df875c`.
+
+Wiadomość nie wymienia systemu, użycia VLC ani szczegółowych wyników każdego
+kroku lub oceny poszczególnych przejść MOVIE_4. Powyższe pomiary automatyczne
+i ograniczenia prób agenta pozostają bez zmian; nie są rozszerzane przez
+ogólne potwierdzenie użytkownika. Odbiory platform 20–21 pozostają odrębne.
