@@ -15,6 +15,14 @@ Ustalenia mają pozwolić rozwinąć odebrany szkielet STM Domains.
 
 ## Notes
 
+**Późniejsze polecenie użytkownika — 2026-11-01:** podjęto
+[24 — uczenie grafu otoczeń molekuł](issues/24-graph-self-supervised-domains.md),
+`claimed`. [Protokół](graph-self-supervised-protocol.md): maksymalnie9fitów,
+porównanie z geometrią15 i własną inicjalizacją, nowe kontrole błędów centrów.
+13 czeka także na24; 25/26 i dodatkowe MPP/STP pozostają odłożone.
+Poniższa decyzja23 zachowuje wynik wcześniejszego pilota.
+
+
 **Aktualny stan — 2026-11-01.**
 [Zestawienie 23](training-comparison-and-next-step.md) zakończono;
 ticket jest **`resolved`**. Użytkownik zdecydował zakończyć obecny pilot

@@ -7,7 +7,14 @@ Mode: HITL
 Status: open
 Assignee:
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
-Blocked by: 04, 06, 08, 10, 11, 12, 15, 16, 17, 19, 23
+Blocked by: 04, 06, 08, 10, 11, 12, 15, 16, 17, 19, 23, 24
+
+## Dalszy wybór użytkownika — 2026-11-01
+
+Po zakończeniu23 użytkownik osobno polecił wykonać
+[24 — uczenie grafu otoczeń](24-graph-self-supervised-domains.md).
+Odbiór czeka także na tę ograniczoną próbę według
+[protokołu24](../graph-self-supervised-protocol.md). 25/26 pozostają niewybrane.
 
 ## Question
 
@@ -221,6 +228,7 @@ Osobno sprawdzić zapis wyniku i możliwość odtworzenia eksperymentu.
 - [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md)
 - [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md)
 - [Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md)
+- [Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md)
 
 
 ## Wynik tekstury 17 do uwzględnienia — 2026-10-23

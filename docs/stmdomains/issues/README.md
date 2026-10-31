@@ -7,7 +7,12 @@ Zadania wykonawcze są oddzielone od poniższego rejestru pytań.
 implementacji i odbiorze szkieletu. Otwarte decyzje etapu 2 nie blokują etapu 1.
 Statusy i zależności przechowujemy w ticketach; indeks poniżej grupuje je według map.
 
-**Aktualny stan 2026-11-01:** [23](23-training-comparison-and-next-step.md)
+**Późniejsze polecenie 2026-11-01:** użytkownik wybrał [24](24-graph-self-supervised-domains.md),
+status `claimed`; [protokół](../graph-self-supervised-protocol.md) ogranicza
+próbę do dziewięciu fitów z kontrolą geometrii i inicjalizacji. Dodano24
+do zależności13 i diagramu. 25/26 oraz nowe dane pozostają odłożone.
+
+**Zakończenie poprzedniego pilota 2026-11-01:** [23](23-training-comparison-and-next-step.md)
 jest **`resolved`**; [porównanie](../training-comparison-and-next-step.md)
 zakończone, użytkownik przyjął decyzję o zakończeniu pilota bez detektora.
 24–26 pozostają niewybrane i warunkowe, dodatkowe dane odłożone. Nie wykazano poprawy
@@ -288,7 +293,7 @@ relacje przez granice, pełne propozycje domen i odmowy; nie powtarza serii 19.
 | [21a — Czy zmiana dekodera i regularyzacji poprawia rVAE?](21a-rvae-decoder-and-kl.md) | prototype / HITL | `resolved`: 2 diagnostyki i 9 fitów; niższe MSE, bez poprawy końcowych domen |
 | [22 — Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](22-local-self-supervised-domains.md) | prototype / HITL | `resolved`: 9 fitów SSL; brak poprawy domen, osobna diagnoza granic i bramki |
 | [23 — Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md) | grilling / HITL | `resolved`: użytkownik zakończył pilot bez detektora; dodatkowe dane odłożone |
-| [24 — Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md) | prototype / HITL | `open`, niewybrane w 23; warunkowe, z wynikiem 15 jako dodatkową przesłanką |
+| [24 — Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md) | prototype / HITL | `claimed`: wybrane późniejszym poleceniem użytkownika; ograniczona próba grafowa |
 | [25 — Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md) | prototype / HITL | `open`, niewybrane w 23; warunkowe |
 | [26 — Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md) | prototype / HITL | `open`, niewybrane w 23; warunkowe, z zachowanym modelem odniesienia |
 
@@ -350,7 +355,7 @@ flowchart TD
         ua["21a: Dekoder i regularyzacja rVAE"]
         v["22: Lokalne SSL i pilot relacji"]
         w["23: Ocena domen i decyzja o kontynuacji"]
-        x["24: Grafy molekuł — warunkowo"]
+        x["24: Grafy molekuł — wybrane"]
         y["25: Maskowany AE — warunkowo"]
         z["26: Adaptacja gotowego modelu — warunkowo"]
     end
@@ -404,9 +409,13 @@ flowchart TD
     w --> m
     o --> x
     w --> x
+    x --> m
     w --> y
     w --> z
 ```
 
 Krawędzie do 24–26 pokazują warunki wstępne. Dodatkowo wymagany jest
 wybór rozszerzenia w 23; dopiero wtedy dodajemy jego krawędź do odbioru 13.
+
+2026-11-01 użytkownik osobno wybrał24; jego krawędź do13 jest dodana.
+25/26 wymagają nadal osobnego wyboru.

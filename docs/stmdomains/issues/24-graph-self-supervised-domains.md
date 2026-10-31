@@ -4,16 +4,26 @@ ID: 24
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: open
-Assignee:
+Status: claimed
+Assignee: Codex — domains/start
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 15, 23
+
+## Podjęcie — 2026-11-01
+
+Bezpośrednie polecenie użytkownika „wykonaj 24” wybiera tę próbę po
+zakończeniu 23. [Protokół 24](../graph-self-supervised-protocol.md) zapisuje
+hipotezę, porównanie z geometrią15 i własną inicjalizacją, jawne adaptacje
+20, nowe kontrole i limit dziewięciu fitów. Wynik15 jest użytecznym,
+lecz ograniczonym punktem odniesienia; jakość centrów podlega kontroli.
+13 czeka także na wynik24. 25/26 i dodatkowe MPP/STP pozostają odłożone.
 
 ## Warunek podjęcia
 
 Rozszerzenie warunkowe: krok 23 wskazuje tę próbę i jej hipotezę, a wynik
 kroku 15 pozwala ocenić przydatność centrów. Samo spełnienie zależności nie
-uruchamia zadania. Obecnie nie wybrano go do wykonania.
+uruchamia zadania. Próbę wybrano późniejszym bezpośrednim poleceniem
+użytkownika, opisanym powyżej.
 
 **Decyzja 23 — 2026-11-01:** użytkownik zakończył obecny pilot bez wyboru
 tej próby. Ticket pozostaje `open`, niewybrany i warunkowy; nie ma nowego
