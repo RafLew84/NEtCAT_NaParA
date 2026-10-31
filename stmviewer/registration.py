@@ -16,6 +16,7 @@ from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
 
 CPU_METHODS = {
     "phase_correlation": "Phase",
+    "phase_no_normalization": "Korelacja bez normalizacji",
     "tile_correlation_ransac": "Tile+RANSAC",
     "ecc_translation": "ECC",
     "optical_flow_median": "Optical Flow",
@@ -39,7 +40,7 @@ class AlignedFrame:
     shift_xy: tuple[float, float]
     origin_xy: tuple[float, float]
     status: str
-    quality_score: float
+    quality_score: float | None
     inherited_uncertainty: bool
 
     @property
@@ -85,7 +86,7 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
                     deep_options: DeepMatcherOptions | None = None,
                     progress: Callable[[int, int, str], None] | None = None,
                     cancelled: Callable[[], bool] | None = None) -> RegistrationResult:
-    """Align adjacent originals with the selected NanoTrack method and its defaults."""
+    """Align adjacent originals with the selected method and fixed settings."""
     from scipy.ndimage import affine_transform
 
     def checkpoint() -> None:
@@ -118,7 +119,7 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
         backend = backend if backend is not None else create_shift_backend(method)
     shifts = [(0.0, 0.0)]
     statuses = ['ok']
-    qualities = [1.0]
+    qualities: list[float | None] = [1.0]
     severity = {'ok': 0, 'low_confidence': 1, 'manual_review': 2, 'failed': 3}
     report(1, "Odniesienie: klatka 1")
     for i in range(1, len(frames)):
@@ -131,6 +132,7 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
             pair_shift = np.asarray(pair.shift_xy, dtype=np.float64)
             if pair_shift.shape != (2,) or not np.isfinite(pair_shift).all():
                 raise ValueError("nieprawidłowe przesunięcie XY")
+            pair_status, pair_quality = estimate_confidence(method, pair)
         except Exception as error:
             checkpoint()
             reason = str(error) or type(error).__name__
@@ -142,8 +144,10 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
         checkpoint()
         if not np.isfinite(shifts[-1]).all():
             raise RegistrationError(f"Para {i} → {i + 1}: nieprawidłowe przesunięcie skumulowane.")
-        qualities.append(min(qualities[-1], pair.quality_score))
-        statuses.append(max(statuses[-1], pair.status, key=severity.__getitem__))
+        previous_quality = qualities[-1]
+        qualities.append(None if previous_quality is None or pair_quality is None
+                         else min(previous_quality, pair_quality))
+        statuses.append(max(statuses[-1], pair_status, key=severity.__getitem__))
         report(i + 1, f"{label}: para {i} → {i + 1}")
     left = math.ceil(max(0, -min(x for x, y in shifts)))
     top = math.ceil(max(0, -min(y for x, y in shifts)))
@@ -195,7 +199,7 @@ def _common_pixel_size(frames: tuple[ImageFrame, ...]) -> tuple[float, float] | 
 def registration_unavailable_reason(method: str) -> str | None:
     """Check local CPU dependencies; never download or substitute a backend."""
     try:
-        from scipy.ndimage import affine_transform
+        from scipy.ndimage import affine_transform  # noqa: F401 — dependency availability probe
         create_shift_backend(method)
     except Exception as error:
         return f"{CPU_METHODS.get(method, method)} niedostępna: {str(error) or type(error).__name__}"
@@ -203,9 +207,16 @@ def registration_unavailable_reason(method: str) -> str | None:
 
 
 def create_shift_backend(method: str) -> ShiftBackend:
-    """Use the same settings factory as NanoTrack; never pick a substitute."""
+    """Use NanoTrack defaults or the explicit unnormalized variant; never substitute."""
     if method not in CPU_METHODS:
         raise RegistrationError(f"Nieznana metoda rejestracji: {method}")
+    if method == "phase_no_normalization":
+        from nanotrack.registration.phase_correlation import (
+            PhaseCorrelationShiftBackend, PhaseCorrelationShiftConfig,
+        )
+        unnormalized: ShiftBackend = PhaseCorrelationShiftBackend(
+            PhaseCorrelationShiftConfig(normalization=None))
+        return unnormalized
     if method == "ecc_translation":
         # Construction alone does not import OpenCV in the shared ECC backend.
         from cv2 import findTransformECC
@@ -218,3 +229,13 @@ def create_shift_backend(method: str) -> ShiftBackend:
         backend=method, reference_strategy="adjacent", registration_view="raw",
     ))
     return backend
+
+
+def estimate_confidence(method: str, result: RegistrationFrameResult) -> tuple[str, float | None]:
+    """Do not reuse the phase-peak score for an unnormalized estimate."""
+    if method == 'phase_no_normalization':
+        return 'manual_review', None
+    quality = float(result.quality_score)
+    if not np.isfinite(quality) or not 0 <= quality <= 1:
+        raise ValueError('nieprawidłowy wskaźnik jakości')
+    return str(result.status), quality

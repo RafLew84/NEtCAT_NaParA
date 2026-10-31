@@ -82,7 +82,7 @@ def _decode(value: object, depth: int = 0) -> AlignmentHistory:
     assert status is not None
     quality = optional_number(record, 'quality_score')
     inherited = record['inherited_uncertainty']
-    if quality is None or type(inherited) is not bool:
+    if (quality is None and status != 'manual_review') or type(inherited) is not bool:
         raise ValueError('Historia: nieprawidłowa pewność dopasowania.')
     pixel_size = None if record['pixel_size_nm'] is None else _xy(record['pixel_size_nm'], positive=True)
     original_size = _numbers(record['original_size_nm'], nullable=True, positive=True)

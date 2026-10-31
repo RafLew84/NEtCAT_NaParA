@@ -4,8 +4,9 @@
 porównuje ją z Phase dla pary i rejestruje nią całą serię.
 **Blocked by:** [REG-01a](01a-manual-alignment.md), w tym odbiór manualny — spełnione 2026-10-31.
 Zależność dodana 2026-10-30 po zakończonym REG-01; implementacja wymaga osobnego zlecenia.
-**Status:** ready-for-agent
-**Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
+**Status:** in-progress
+**Manualny odbiór:** oczekuje na implementację i próbę użytkownika.
+**Wykonawca:** Codex, 2026-10-31; baza przeglądu `e1d42d4315280d74a2c5494be93c29687909189b`.
 
 Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
 

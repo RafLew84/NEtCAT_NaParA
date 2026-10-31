@@ -32,7 +32,7 @@ class AlignmentHistory:
     shift_xy: tuple[float, float]
     origin_xy: tuple[float, float]
     status: str
-    quality_score: float
+    quality_score: float | None
     inherited_uncertainty: bool
     previous: 'AlignmentHistory | None' = None
 

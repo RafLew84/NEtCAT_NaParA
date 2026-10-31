@@ -402,6 +402,7 @@ class PairComparisonDialog(QDialog):
             self._result.setText('Brak wyniku tej pary.')
         else:
             quality = ('ustawione ręcznie — jakość nieoceniona' if trial.manual is not None
+                       else 'Do sprawdzenia — pewność niezweryfikowana' if trial.quality_score is None
                        else 'OK backendu (bez niezależnej oceny)' if trial.status == 'ok'
                        else 'Do sprawdzenia')
             self._result.setText(f'{trial.label} · {quality} [{trial.status}]\n'

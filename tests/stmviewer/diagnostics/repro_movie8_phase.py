@@ -4,8 +4,8 @@ The three independently matched patches are a local reference for this pair.
 They are NOT full-film ground truth or evidence that one shift fits all rows.
 Run from any directory with the Viewer repository on PYTHONPATH. Expected RED
 on base 26f5538: current full-frame Phase is ~0px while these structures move
-by ~14px. The optional --normalization none probes one configuration change; it is not a
-production fix or a general acceptance test. No image filtering is performed.
+by ~14px. The optional --normalization none exercises the production Viewer variant.
+This local case is not a general acceptance test. No image filtering is performed.
 """
 
 import argparse
@@ -17,7 +17,7 @@ import json
 import cv2
 import numpy as np
 
-from stmviewer.registration import create_shift_backend
+from stmviewer.pair_comparison import estimate_pair
 from stmviewer.series import open_frame_series
 
 
@@ -57,17 +57,8 @@ def main():
             )
         )
     consensus = np.median([r["shift_xy"] for r in landmarks], axis=0)
-    backend = create_shift_backend("phase_correlation")
-    if args.normalization == "none":
-        from nanotrack.registration.phase_correlation import (
-            PhaseCorrelationShiftBackend,
-            PhaseCorrelationShiftConfig,
-        )
-
-        backend = PhaseCorrelationShiftBackend(
-            PhaseCorrelationShiftConfig(normalization=None)
-        )
-    estimate = backend.estimate(frames[0].data, frames[1].data, moving_frame_index=1)
+    method = 'phase_no_normalization' if args.normalization == 'none' else 'phase_correlation'
+    estimate = estimate_pair(frames[0], frames[1], method=method)
     error = float(np.linalg.norm(np.asarray(estimate.shift_xy) - consensus))
     print(
         json.dumps(
@@ -77,6 +68,8 @@ def main():
                 consensus_xy=consensus.tolist(),
                 phase_xy=list(estimate.shift_xy),
                 phase_status=estimate.status,
+                method=estimate.method,
+                quality_score=estimate.quality_score,
                 disagreement_px=error,
                 seconds=perf_counter() - started,
             ),

@@ -145,8 +145,10 @@ class STMViewerMainWindow(QMainWindow):
         for key, label in REGISTRATION_METHODS.items():
             self._method.addItem(label, key)
             self._method.setItemData(self._method.count() - 1, self._method_errors.get(key) or
-                                     "Domyślne ustawienia NanoTrack", Qt.ItemDataRole.ToolTipRole)
-        self._method.setToolTip("Rejestracja sąsiednich klatek, domyślne ustawienia NanoTrack.")
+                                     ("Surowe dane; korelacja bez normalizacji fazowej. Pewność niezweryfikowana."
+                                      if key == "phase_no_normalization" else "Domyślne ustawienia NanoTrack"),
+                                     Qt.ItemDataRole.ToolTipRole)
+        self._method.setToolTip("Metoda rejestracji sąsiednich oryginalnych klatek.")
         controls.addWidget(self._method)
         self._method_availability = QLabel(panel)
         self._method_availability.setObjectName("registrationAvailability")
@@ -800,7 +802,10 @@ class STMViewerMainWindow(QMainWindow):
                     if job.result.method == 'Deep Matcher':
                         self._deep_controls.set_status(f'Sprawdzono model. Urządzenie: {job.result.device}')
                     self._strip.set_warnings(tuple(
-                        ("Do sprawdzenia: niepewność odziedziczona" if frame.inherited_uncertainty
+                        (("Do sprawdzenia: pewność niezweryfikowana"
+                          + (" (niepewność odziedziczona)" if frame.inherited_uncertainty else ""))
+                         if frame.quality_score is None
+                         else "Do sprawdzenia: niepewność odziedziczona" if frame.inherited_uncertainty
                          else "Do sprawdzenia: niska pewność") if frame.status != "ok" else ""
                         for frame in job.result.frames
                     ))
@@ -838,7 +843,8 @@ class STMViewerMainWindow(QMainWindow):
         if result.reference.source_frame_index is not None:
             origin += f" · MPP {result.reference.source_frame_index + 1}"
         height, width = result.canvas_shape
-        quality = "OK" if current.status == "ok" else "⚠ Do sprawdzenia"
+        quality = ("⚠ Do sprawdzenia — pewność niezweryfikowana" if current.quality_score is None
+                   else "OK" if current.status == "ok" else "⚠ Do sprawdzenia")
         inherited = " (niepewność odziedziczona)" if current.inherited_uncertainty else ""
         scale = "piksele — brak wspólnej skali" if result.pixel_size_nm is None else "wspólna skala źródłowa"
         if self._pixel_proportions.isChecked():

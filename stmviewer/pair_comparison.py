@@ -10,7 +10,7 @@ from stmviewer.frame import ImageFrame
 from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
 from stmviewer.registration import (
     FrameOrigin, REGISTRATION_METHODS, RegistrationCancelled, RegistrationError,
-    ShiftBackend, create_shift_backend,
+    ShiftBackend, create_shift_backend, estimate_confidence,
 )
 
 
@@ -84,9 +84,7 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
         shift = np.asarray(result.shift_xy, dtype=np.float64)
         if shift.shape != (2,) or not np.isfinite(shift).all():
             raise ValueError('nieprawidłowe przesunięcie XY')
-        quality = float(result.quality_score)
-        if not np.isfinite(quality) or not 0 <= quality <= 1:
-            raise ValueError('nieprawidłowy wskaźnik jakości')
+        status, quality = estimate_confidence(method, result)
     except RegistrationCancelled:
         raise
     except Exception as error:
@@ -99,7 +97,7 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
         FrameOrigin(reference.source, reference.source_frame_index),
         FrameOrigin(moving.source, moving.source_frame_index),
         method, label, settings, device, (float(result.shift_xy[0]), float(result.shift_xy[1])),
-        result.status, float(result.quality_score),
+        status, quality,
     )
 
 
