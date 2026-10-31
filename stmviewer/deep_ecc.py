@@ -34,6 +34,23 @@ class HybridDiagnostics:
     settings_version: int = 1
 
 
+@dataclass(frozen=True)
+class HybridFailure:
+    """Available stages after refusal; a Deep start is never a hybrid result."""
+
+    stage: str
+    reason: str
+    deep_shift_xy: tuple[float, float] | None
+    deep_status: str | None
+    deep_quality_score: float | None
+    settings_text: str
+    weights: str
+    requested_device: str
+    actual_device: str
+    final_shift_xy: None = None
+    settings_version: int = 1
+
+
 def hybrid_unavailable_reason(options: DeepMatcherOptions) -> str | None:
     reason = deep_unavailable_reason(options)
     if reason:
@@ -77,6 +94,8 @@ class DeepEccBackend:
             f'wagi={options.weights}; wybrane urządzenie={options.device}; Deep={device}'
         )
         self.last_diagnostics: HybridDiagnostics | None = None
+        self.last_failure: HybridFailure | None = None
+        self.trial_settings = {'deep': deep_config, 'ecc': asdict(self._ecc.config), 'settings_version': 1}
 
     def _checkpoint(self) -> None:
         from stmviewer.registration import RegistrationCancelled
@@ -94,6 +113,9 @@ class DeepEccBackend:
         from stmviewer.registration import RegistrationCancelled, RegistrationError
 
         self.last_diagnostics = None
+        self.last_failure = None
+        start = None
+        deep = None
         pair_label = self._pair_label or f'Para {moving_frame_index} → {moving_frame_index + 1}'
         stage = 'Deep Matcher'
         try:
@@ -119,12 +141,22 @@ class DeepEccBackend:
                                            method=HYBRID_METHOD, quality_score=0.0,
                                            ecc_score=score, status='manual_review')
         except RegistrationCancelled:
+            self.last_failure = HybridFailure(
+                stage, 'Anulowano próbę.', start, str(deep.status) if deep is not None and start is not None else None,
+                float(deep.quality_score) if deep is not None and start is not None else None,
+                self.settings_text, str(self.options.weights), self.options.device, self.device,
+            )
             raise
         except Exception as error:
             self._checkpoint()
             reason = str(error) or type(error).__name__
             if error.__cause__ is not None:
                 reason += f' Przyczyna: {str(error.__cause__) or type(error.__cause__).__name__}'
+            self.last_failure = HybridFailure(
+                stage, reason, start, str(deep.status) if deep is not None and start is not None else None,
+                float(deep.quality_score) if deep is not None and start is not None else None,
+                self.settings_text, str(self.options.weights), self.options.device, self.device,
+            )
             raise RegistrationError(f'{pair_label} — {stage}: {reason}') from error
 
 

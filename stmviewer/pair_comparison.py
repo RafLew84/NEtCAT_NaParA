@@ -1,7 +1,7 @@
 """Lightweight pair trials and a fixed reference field for visual comparison."""
 
-from dataclasses import dataclass, asdict, is_dataclass
-from typing import Callable, Literal
+from dataclasses import dataclass, asdict, field, is_dataclass
+from typing import TYPE_CHECKING, Any, Callable, Literal
 
 import numpy as np
 from numpy.typing import NDArray
@@ -15,6 +15,10 @@ from stmviewer.registration import (
     FrameOrigin, REGISTRATION_METHODS, RegistrationCancelled, RegistrationError,
     ShiftBackend, create_shift_backend, estimate_confidence,
 )
+
+
+if TYPE_CHECKING:
+    from stmviewer.trial_capture import AttemptCapture
 
 
 @dataclass(frozen=True)
@@ -42,6 +46,7 @@ class PairTrial:
     movie_revision: str | None = None
     hybrid: HybridDiagnostics | None = None
     local: LocalDiagnostics | None = None
+    settings: dict[str, Any] = field(default_factory=dict)
 
 
 def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
@@ -49,7 +54,30 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
                   deep_options: DeepMatcherOptions | None = None,
                   backend: ShiftBackend | None = None,
                   cancelled: Callable[[], bool] | None = None,
-                  progress: Callable[[str], None] | None = None) -> PairTrial:
+                  progress: Callable[[str], None] | None = None,
+                  capture: 'AttemptCapture | None' = None) -> PairTrial:
+    """Estimate a pair while optionally preserving diagnostic attempt state."""
+    if capture is not None and method in ('deep_matcher_translation', HYBRID_METHOD, LOCAL_METHOD):
+        capture.requested(deep_options or DeepMatcherOptions())
+    try:
+        result = _estimate_pair(reference, moving, method=method, deep_options=deep_options,
+                                backend=backend, cancelled=cancelled, progress=progress, capture=capture)
+    except Exception as error:
+        if capture is not None:
+            capture.failed(error)
+        raise
+    if capture is not None:
+        capture.finish_pair(result)
+    return result
+
+
+def _estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
+                  method: str = 'phase_correlation',
+                  deep_options: DeepMatcherOptions | None = None,
+                  backend: ShiftBackend | None = None,
+                  cancelled: Callable[[], bool] | None = None,
+                  progress: Callable[[str], None] | None = None,
+                  capture: 'AttemptCapture | None' = None) -> PairTrial:
     """Estimate one original pair without creating any aligned images."""
     def checkpoint() -> None:
         if cancelled is not None and cancelled():
@@ -92,7 +120,12 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
         settings += f'; wagi={options.weights}; wybrane urządzenie={options.device}'
     else:
         backend = backend if backend is not None else create_shift_backend(method)
+    from stmviewer.trial_capture import backend_settings
     configuration = getattr(backend, 'config', None)
+    full_settings = backend_settings(backend, deep_options, device)
+    if capture is not None:
+        capture.configured(backend, deep_options, device)
+        capture.started(1)
     # The local wrapper already describes both stages and its full configuration.
     if (not isinstance(backend, DeepLocalBackend)
             and is_dataclass(configuration) and not isinstance(configuration, type)):
@@ -108,10 +141,14 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
         if shift.shape != (2,) or not np.isfinite(shift).all():
             raise ValueError('nieprawidłowe przesunięcie XY')
         status, quality = estimate_confidence(method, result)
-    except (RegistrationCancelled, RegistrationError, LocalConsensusError):
+    except (RegistrationCancelled, RegistrationError, LocalConsensusError) as error:
+        if capture is not None:
+            capture.pair_failed(error, backend)
         checkpoint()
         raise
     except Exception as error:
+        if capture is not None:
+            capture.pair_failed(error, backend)
         checkpoint()
         reason = str(error) or type(error).__name__
         if 'too little texture' in reason:
@@ -123,6 +160,7 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
         method, label, settings, device, (float(result.shift_xy[0]), float(result.shift_xy[1])),
         status, quality, hybrid=backend.last_diagnostics if isinstance(backend, DeepEccBackend) else None,
         local=backend.last_diagnostics if isinstance(backend, DeepLocalBackend) else None,
+        settings=full_settings,
     )
 
 

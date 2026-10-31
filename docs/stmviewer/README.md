@@ -22,9 +22,11 @@ REG-08 następują próby grafu LS (REG-08a), odpornego grafu (REG-08b), zastoso
 do filmu i eksport (REG-08c), następnie osobno EfficientLoFTR (REG-10), RoMa v2
 (REG-11) i MatchAnything-ELoFTR (REG-12). Dalsze odniesienia REG-08d oraz tearing
 REG-09 pozostają warunkowe. Użytkownik odłożył REG-06 („na razie pominiemy 06”).
-Najbliższym krokiem jest zlecenie REG-07 po odebranym REG-05; niezależna
-kontrola REG-06 pozostaje poza bieżącą ścieżką, bez przenoszenia jej funkcji
-do REG-07 lub dalszych ticketów.
+REG-07 jest w realizacji po odebranym REG-05. Dodano zapis i odczyt lekkich
+prób oraz porównanie pełnych A/B w głównym podglądzie.
+[Instrukcja ręcznego odbioru](registration/full-trial-manual.md),
+[wyniki pomiarów](registration/full-trial-results.md). Niezależna kontrola
+REG-06 pozostaje odłożona; dalsze tickety czekają na odbiór REG-07.
 
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk
 **Porównaj parę…** otwiera osobny podgląd sąsiednich oryginałów: przed/po XY,

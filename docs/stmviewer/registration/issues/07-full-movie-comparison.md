@@ -4,8 +4,9 @@
 otwiera przy tych samych źródłach i porównuje pełne wyniki A/B bez dwóch
 dodatkowych stosów obrazów w pamięci. Kończymy ocenę podstawowego wariantu XY.
 **Blocked by:** [REG-05](05-local-consensus.md), w tym odbiór manualny — spełnione 2026-10-31.
-**Status:** ready-for-agent
-**Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
+**Status:** in-progress
+**Manualny odbiór:** niewykonany; implementacja w toku.
+**Wykonawca:** Codex; baza przeglądu `bb06220bdc8f132ebdcef0bc9ac8d045f39ef68e`.
 
 Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
 

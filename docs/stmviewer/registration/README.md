@@ -15,7 +15,7 @@ ma status `done`: użytkownik potwierdził „testy manualne 04 ok” 2026-10-31
 [Instrukcja REG-04](deep-ecc-manual.md), [karta](reviews/REG-04.md).
 [REG-05: zgodność lokalnych fragmentów](issues/05-local-consensus.md) zamknięto
 po potwierdzeniu „testy manualne 05 ok” 2026-10-31. REG-06 odłożono na życzenie
-użytkownika; następny jest REG-07.
+użytkownika; REG-07 jest w realizacji.
 [Instrukcja REG-02a](manual-movie-corrections-manual.md), [sprawdzenia](reviews/REG-02a.md).
 Dalsze próby MOVIE_4
 obejmują źródłowe klatki 3–364, zgodnie z [protokołem](manual-protocol.md).
@@ -99,7 +99,7 @@ REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [karta odbioru](reviews/REG-01.md). REG-01a ma status `done` po odbiorze
 użytkownika 2026-10-31. REG-02 i REG-02a również odebrano 2026-10-31 (`done`).
 REG-04 i REG-05 mają status `done` po odbiorze użytkownika 2026-10-31.
-REG-07–08, REG-08a/08b/08c i REG-10–12 mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
+REG-07 ma status `in-progress`. REG-08, REG-08a/08b/08c i REG-10–12 mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
 zlecenia użytkownika i zakończenia blokujących ticketów. REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
 REG-08d i REG-09 również mają status `planned` jako warunkowe osobne odnogi.
@@ -112,8 +112,9 @@ technicznie napisać niezależnie. Zależność między REG-10/11/12 porządkuje
 eksperymenty; RoMa nie wymaga uruchamiania EfficientLoFTR, a MatchAnything nie
 wymaga działającego RoMa. Wspólną bazą porównań pozostaje obecny Deep.
 
-Najbliższy krok: zlecenie [REG-07 — zapis prób i odbiór pełnych filmów](issues/07-full-movie-comparison.md).
-Zależność od REG-05 jest spełniona; implementacja REG-07 nie została rozpoczęta.
+Trwa realizacja [REG-07 — zapis prób i odbiór pełnych filmów](issues/07-full-movie-comparison.md).
+Zależność od REG-05 jest spełniona. [Instrukcja odbioru](full-trial-manual.md)
+i [raport prób](full-trial-results.md) opisują nowy zapis i porównanie A/B.
 REG-06 jest odłożony i pozostaje niewdrożony.
 REG-05 zamknięto jako odebrany wariant eksperymentalny: [instrukcja](local-consensus-manual.md),
 [próby rzeczywiste](local-consensus-results.md), [karta](reviews/REG-05.md).

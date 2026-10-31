@@ -5,6 +5,7 @@ from threading import Event
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
 from stmviewer.frame import ImageFrame
+from stmviewer.trial_capture import AttemptCapture
 from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
 from stmviewer.registration import RegistrationCancelled, RegistrationResult, ShiftBackend, register_series
 
@@ -21,6 +22,7 @@ class RegistrationJob(QThread):
         self._method = method
         self._deep_options = deep_options
         self._check_only = check_only
+        self.capture = None if check_only else AttemptCapture(frames, method)
         self.checked_device: str | None = None
         self._cancelled = Event()
         self.result: RegistrationResult | None = None
@@ -43,7 +45,7 @@ class RegistrationJob(QThread):
                 return
             result = register_series(self._frames, method=self._method, backend=self._backend,
                                      deep_options=self._deep_options,
-                                     progress=self.progress.emit, cancelled=self.was_cancelled)
+                                     progress=self.progress.emit, cancelled=self.was_cancelled, capture=self.capture)
             if not self.was_cancelled():
                 self.result = result
         except RegistrationCancelled:

@@ -52,6 +52,7 @@ class DeepLocalBackend:
             + f'; wagi={options.weights}; wybrane urządzenie={options.device}; Deep={device}'
         )
         self.last_diagnostics: LocalDiagnostics | None = None
+        self.trial_settings = {'deep': settings, 'local': asdict(config), 'settings_version': 1}
 
     def _checkpoint(self) -> None:
         from stmviewer.registration import RegistrationCancelled

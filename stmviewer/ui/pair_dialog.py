@@ -15,6 +15,7 @@ from stmviewer.ui.local_details import LocalDetails, local_overlays, local_start
 from stmviewer.local_consensus import LocalDiagnostics
 from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.frame import ImageFrame
+from stmviewer.trial_capture import from_pair
 from stmviewer.manual_pair import ManualPairDraft
 from stmviewer.manual_movie import movie_pair_trial
 from stmviewer.ui.manual_movie_controls import ManualMovieControls
@@ -29,6 +30,7 @@ from stmviewer.ui.raster import frame_aspect
 
 class PairComparisonDialog(QDialog):
     busy_changed = pyqtSignal()
+    trial_ready = pyqtSignal(object)
     movie_apply_requested = pyqtSignal(object)
     movie_remove_requested = pyqtSignal(int)
     movie_cancel_requested = pyqtSignal()
@@ -438,6 +440,7 @@ class PairComparisonDialog(QDialog):
         self._draft = None
         self._current_choice.setChecked(True)
         self._manual.show_draft(None)
+        self.trial_ready.emit(from_pair(self._trial, self._frames))
         self._message.setText('Korekta zakończona. Wynik bieżący jest gotowy do porównania; film pozostaje bez zmian.')
         self._show_trial()
         self._sync()
@@ -448,7 +451,7 @@ class PairComparisonDialog(QDialog):
         index = self._number.value() - 1
         job = PairJob(self._frames[index - 1], self._frames[index], self,
                       method=str(self._method.currentData()), deep_options=self._deep.options(),
-                      backend=self._backend)
+                      backend=self._backend, frames=self._frames, moving_index=index)
         self._job = job
         self._message.setText('Obliczanie wyłącznie tej pary…')
         self._cancel.setEnabled(True)
@@ -497,12 +500,29 @@ class PairComparisonDialog(QDialog):
                 self._alignment.setCurrentIndex(1)
             self._show_trial()
             self._message.setText('Dopasowanie pary zakończone. Możesz poprawić wynik ręcznie lub zachować go do porównania.')
+        self.trial_ready.emit(job.capture.document)
         self._job = None
         job.deleteLater()
         self._sync()
         self.busy_changed.emit()
         if self._closing:
             self.close()
+
+    def show_saved_trials(self, a: PairTrial, b: PairTrial) -> None:
+        """Inspect validated documents without replacing any active movie result."""
+        if self.busy:
+            return
+        origins = [(f.source, f.source_frame_index) for f in self._frames]
+        index = origins.index((b.moving.source, b.moving.source_frame_index))
+        if index < 1 or (a.reference, a.moving) != (b.reference, b.moving):
+            raise ValueError('Próby dotyczą różnych par.')
+        self._number.setValue(index + 1)
+        self._change_pair()
+        self._pinned, self._trial = a, b
+        with QSignalBlocker(self._alignment):
+            self._alignment.setCurrentIndex(1)
+        self._message.setText('Odczytane próby: A — wynik zachowany, B — wynik bieżący. Film pozostaje bez zmian.')
+        self._show_trial()
 
     def _pin_trial(self) -> None:
         if self._trial is None:

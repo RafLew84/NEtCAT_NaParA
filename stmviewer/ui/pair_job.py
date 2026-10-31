@@ -6,6 +6,7 @@ from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
 from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.frame import ImageFrame
+from stmviewer.trial_capture import AttemptCapture
 from stmviewer.local_consensus import LocalDiagnostics, LocalConsensusError
 from stmviewer.pair_comparison import PairTrial, estimate_pair
 from stmviewer.registration import RegistrationCancelled, ShiftBackend
@@ -16,10 +17,13 @@ class PairJob(QThread):
 
     def __init__(self, reference: ImageFrame, moving: ImageFrame, parent: QObject, *,
                  method: str, deep_options: DeepMatcherOptions,
-                 backend: ShiftBackend | None = None) -> None:
+                 backend: ShiftBackend | None = None,
+                 frames: tuple[ImageFrame, ...] | None = None, moving_index: int = 1) -> None:
         super().__init__(parent)
         self._reference, self._moving = reference, moving
         self._method, self._options, self._backend = method, deep_options, backend
+        self.capture = AttemptCapture(frames or (reference, moving), method, kind='pair',
+                                      reference_index=moving_index - 1, moving_index=moving_index)
         self._cancelled = Event()
         self.result: PairTrial | None = None
         self.error: str | None = None
@@ -35,7 +39,7 @@ class PairJob(QThread):
         try:
             result = estimate_pair(self._reference, self._moving, method=self._method,
                                    deep_options=self._options, backend=self._backend,
-                                   cancelled=self.was_cancelled, progress=self.progress.emit)
+                                   cancelled=self.was_cancelled, progress=self.progress.emit, capture=self.capture)
             if not self.was_cancelled():
                 self.result = result
         except RegistrationCancelled:
