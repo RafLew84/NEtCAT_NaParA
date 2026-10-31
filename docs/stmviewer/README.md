@@ -85,6 +85,12 @@ pełne MOVIE_4/MOVIE_8 odmówiły, więc przewaga nad Deep pozostaje niepotwierd
 [wyniki prób](registration/local-consensus-results.md),
 [karta testów i przeglądu](registration/reviews/REG-05.md).
 
+Na osobne pytanie użytkownika wykonano [porównanie checkpointów LoFTR](registration/checkpoint-comparison-results.md):
+Outdoor, Indoor i Indoor New. Dostępne są wyniki 14 stałych par oraz pięć
+kompletnych MPP do oceny. Indoor można wybrać istniejącym polem wag; Indoor New
+wymaga jawnej zmiany konfiguracji i został sprawdzony osobnym skryptem.
+Eksperyment nie zmienia domyślnych wag ani statusu manualnego REG-05.
+
 ## Stan aplikacji
 
 Działa otwieranie jednego lub wielu STP/S94, także mieszanych, oraz jednego filmu MPP.

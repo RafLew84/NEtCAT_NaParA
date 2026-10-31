@@ -1,3 +1,36 @@
+# Porównanie checkpointów LoFTR — 2026-10-31
+
+Na pytanie użytkownika o inne checkpointy wykonano osobny eksperyment,
+na bazie `6e50e57`, gałąź `viewer/registration-difficult-movies`.
+Kod aplikacji i ustawienia domyślne bez zmian; REG-05 nadal `ready-for-review`.
+
+- Zweryfikowano Kornia 0.8.2: Outdoor/Indoor wymagają `temp_bug_fix=False`,
+  Indoor New `True`. Sam wybór pliku Indoor New w obecnym GUI nie odtwarza
+  poprawnego wariantu; `strict=True` nie wykrywa tej różnicy kodowania pozycji.
+- Pobrano oficjalne Indoor i Indoor New z `kornia/loftr`, sprawdzono SHA-256
+  względem metadanych LFS. Wagi pozostają lokalne w `data/weights/loftr/`, poza Git.
+- Dodano odtwarzalny runner `tests/stmviewer/diagnostics/checkpoint_trial.py`:
+  świeża kopia konfiguracji dla każdego modelu, jawny wariant, dotychczasowy
+  publiczny przebieg Viewera i zakaz pobierania w trakcie prób.
+  Raport oddziela rzeczywisty wariant/SHA od historycznej etykiety backendu.
+- 42 próby par: Outdoor 14/14, Indoor 14/14, Indoor New 12/14. Sześć prób
+  pełnych serii: Outdoor i Indoor ukończyły oba filmy, Indoor New tylko MOVIE_8;
+  MOVIE_4 odmowa bieżącej 2→3 (źródłowej 4→5), bez niepełnego eksportu.
+- Pięć MPP+metadanych w `data/loftr-checkpoint-comparison-20261031/`.
+  Odczyt 5/5 PASS, metadane 976 klatek; 15 sprawdzonych obrazów ma wszystkie
+  wartości i NaN zgodne z ponownym przesunięciem original. Kontrola zapisu
+  nie oznacza potwierdzenia jakości rejestracji. Różnice XY są znaczne.
+- CLI/`--help`, Ruff, linki dokumentacji i diffcheck PASS. Read-only przegląd
+  runnera potwierdził zgodność konfiguracji oraz brak ingerencji w agregację
+  i renderowanie. Nie zmieniano aplikacji i nie powtarzano jej pełnego zestawu testów.
+- [Raport, źródła, pliki oraz sposób odtwarzania](registration/checkpoint-comparison-results.md).
+  Ręczna ocena struktur, Windows/VLC i GPU 8 GB niewykonane. Próby używały
+  RTX 5090 32 GB. Brak nowych zmian wymaganych we wspólnych modułach.
+- Skrypt i dokumentacja należą do końcowego commita tej pracy; nie rozpoczęto
+  nowego ticketu i nie uznano REG-05 za odebrany.
+
+---
+
 # REG-05: zgodność lokalnych fragmentów — 2026-10-31
 
 Gałąź `viewer/registration-difficult-movies`, baza `a59029d`.
