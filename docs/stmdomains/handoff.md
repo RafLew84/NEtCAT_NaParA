@@ -1,3 +1,60 @@
+# STM Domains — wykonano lokalny SSL, ticket 22
+
+Data: **2026-10-31**. Na polecenie użytkownika wykonano
+[22 — lokalny SSL](issues/22-local-self-supervised-domains.md), status
+**`resolved`** jako zakończony eksperyment, bez przyjęcia detektora.
+[Raport](local-self-supervised-trial.md), [manifest dowodów](local-self-supervised-manifest.json).
+Następny jest **23** — wspólne zestawienie i decyzja. 04 i 13 pozostają
+otwarte; 24–26 oraz dodatkowe MPP/STP nadal wymagają osobnej decyzji.
+
+**9/9 fitów, 18 000 kroków, 452,04 s**, bez restartów i instalacji.
+Sześć fitów transferowych z16/z32 oraz trzy transdukcyjne z32; własne
+zapisane inicjalizacje są kontrolą bez uczenia. Razem 21/22 wykorzystały
+27/27 pierwotnych fitów; 21a ma oddzielny budżet. Zachowano parametry
+20, bramkę i bazę FFT oraz trzy skale i diagnostykę centrów.
+
+SSL zmienia cechy: główny z32 ma efektywny rząd około 114–120 wobec
+26–62 dla inicjalizacji i słabszą korelację z jasnością. **Nie poprawia
+końcowych domen**: transfer 0/174 dla FH/MWS i wszystkich ziaren;
+transdukcja FH 4/782 (0,51%), MWS 0/782, bez przewagi nad FFT.
+Przed odmowami SSL z32 scala różne referencje transferu i ma F1=0
+na czterech kontrolach granic. Żadna uczona konfiguracja nie spełnia
+kryteriów kontynuacji. Niezależne rzędy nadal tworzą fałszywe domeny.
+
+Osobna diagnoza zapisanej bramki i minimum czterech połączonych miejsc
+wykazała maksimum **0/174 w transferze i 4/782 w transdukcji niezależnie
+od cech**. To analiza ograniczenia istniejącego wyniku, bez zmiany progów,
+nowego detektora lub powrotu do strojenia 19. Do 23 przekazujemy dwie
+luki: granice przed odmowami oraz geometryczny limit końcowych przypisań.
+
+21 420 predykcji, 22 236 ocen z diagnostyką mapowania na centra.
+Przed oceną zamrożono 84 595 lokalnych i 115 zewnętrznych artefaktów.
+Sprawdzono wszystkie 100 299 hashy 21 i dokładną zgodność 2808 archiwów
+FFT we wszystkich skalach/reżimach. 189 checkpointów, 6000 par batchy,
+wspólne inicjalizacje i wybór walidacyjny przeszły audyt. Wszystkie
+1530 sprawdzeń niezmienności siatki przy brakach centrów zaliczono.
+
+**181 testów**, składnia wrappera i wszystkie jego etapy wykonane osobno.
+Galeria `.scratch/local-ssl-22/index.html`: 105 obrazów, 17 wariantów;
+**89 interakcji, zero błędów JS**, pięć obejrzanych zrzutów i trzy PNG.
+Nie wykonano odbioru natywnego GUI. Pomierzone etapy 22: 1031,08 s CPU;
+łącznie 21+22: **2088,67 / 7200 s CPU**. Artefakty około 7,19 GiB poza Git.
+Kontrole były już oglądane w 21, a TTMAPP jest jedną skorelowaną akwizycją;
+to ocena rozwojowa częściowych referencji, nie globalna trafność obrazu.
+
+Kod: `stmdomains/experiments/training/local_ssl/`;
+[odtworzenie](../../stmdomains/experiments/training/local_ssl/README.md).
+Źródło na `prototype/stmdomains-local-self-supervised`. Zmiany wyłącznie
+w zakresie Domains; stare źródła 21/21a i współdzielone moduły zachowane.
+Integracja przez koordynatora, bez publikacji modeli lub wyników.
+
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/start`,
+baza `5755316`, podjęcie `8920f71`. Commit wykonania podany w odpowiedzi
+końcowej. Dostęp do zapisu sprawdzono; GPU, QtWebEngine i zapis metadanych
+Git wykonano z wymaganym dostępem poza sandboxem.
+
+---
+
 # STM Domains — wykonano próbę 21a
 
 Data: **2026-10-31**. Na polecenie użytkownika wykonano

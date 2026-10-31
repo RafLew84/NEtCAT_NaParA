@@ -4,10 +4,42 @@ ID: 22
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: claimed
+Status: resolved
 Assignee: Codex — domains/start
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 17, 20, 21a
+
+## Answer — 2026-10-31
+
+Wykonano zamkniętą próbę: **9/9 fitów, 18 000 kroków, 452,04 s**,
+21 420 predykcji oraz kontrolę zapisanych inicjalizacji z32. [Raport](../local-self-supervised-trial.md)
+i [manifest dowodów](../local-self-supervised-manifest.json).
+SSL zmienia opis obrazu (większy efektywny rząd, mniejsza korelacja
+z jasnością), lecz **nie poprawia końcowego wykrywania domen**.
+Transfer głównego z32: **0/174** dla obu podziałów i trzech ziaren;
+transdukcja: FH 4/782, MWS 0/782, bez przewagi nad FFT.
+
+Diagnoza zapisanej bramki/grafu wykazała geometryczne maksimum 0/174
+w transferze i 4/782 w transdukcji, niezależnie od reprezentacji.
+Jednocześnie SSL z32 przed odmowami scala różne referencje transferu
+i ma F1=0 na czterech kontrolach granic. Nie przypisujemy więc pełnej
+porażki samej bramce ani samej sieci. Żadna uczona konfiguracja nie
+spełnia kryteriów kontynuacji; nie przyjęto detektora do aplikacji.
+
+Sprawdzono 181 testów, 189 checkpointów, 6000 par batchy oraz dokładną
+zgodność 2808 archiwów FFT z 21. Zamrożono 84 595 lokalnych i 115
+zewnętrznych artefaktów przed oceną. Galeria `.scratch/local-ssl-22/index.html`:
+105 obrazów, 17 wariantów; 89 interakcji, zero błędów JS, obejrzane
+zrzuty i ilustracje. Wspólny pomierzony koszt obróbki 21+22: 2088,67 s CPU.
+
+Źródło: `stmdomains/experiments/training/local_ssl/`, zachowane na
+`prototype/stmdomains-local-self-supervised`; [odtworzenie](../../../stmdomains/experiments/training/local_ssl/README.md).
+Worktree `NEtCAT-domains`, gałąź `domains/start`, podjęcie `8920f71`;
+commit wykonania wskazuje odpowiedź końcowa i przekazanie.
+Następny jest **23**. Jakość 04 i odbiór 13 pozostają otwarte;
+24–26 i dodatkowe MPP/STP wymagają osobnej decyzji.
+
+Poniższe sekcje zachowują plan i stan sprzed wykonania próby.
 
 ## Podjęcie — 2026-10-31
 

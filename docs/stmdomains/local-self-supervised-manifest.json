@@ -1,0 +1,1242 @@
+{
+  "schema": "stmdomains-local-ssl22-evidence-v1",
+  "output": "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22",
+  "scope": "Transfer and transduction separately; grid48 primary; grid32/64 and centers diagnostic. Known controls and one correlated acquisition.",
+  "plan_sha256": "c13408085dbb93471e49d605beb647da525ffb71eb73c8a236c7595d640c02ac",
+  "runs": [
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "local_ssl",
+      "latent_dim": 32,
+      "seed": 20261101,
+      "regime": "transductive",
+      "completed_steps": 2000,
+      "selected_step": 2000,
+      "selected_checkpoint_sha256": "dfe245a68e2a3d76af86201a763b628e816b1f34340b8352ee86a6e1eacd1e10",
+      "seconds": 49.58356256199477,
+      "parameter_count": 25376,
+      "peak_rss_bytes": 1794740224,
+      "cuda_peak_allocated_bytes": 99495936,
+      "config_hash": "ce7b3c32a47ee4a9cf8b2aa6897faa31809d10788df6b66202f5d4112d614c85",
+      "best_validation_loss": null,
+      "run_id": "training/transductive/local_ssl/z32/seed-20261101",
+      "selected_validation": null
+    },
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "local_ssl",
+      "latent_dim": 32,
+      "seed": 20261102,
+      "regime": "transductive",
+      "completed_steps": 2000,
+      "selected_step": 2000,
+      "selected_checkpoint_sha256": "4524899b9edcb1620a98162db5b0a69990a71ed6ad652f5902f0c08a9013e164",
+      "seconds": 50.23576648499875,
+      "parameter_count": 25376,
+      "peak_rss_bytes": 1793388544,
+      "cuda_peak_allocated_bytes": 99495936,
+      "config_hash": "0bd4a94fa95e6043e2e6f58e16ce7358d26aa0ba8ea028e0b64fbcb9a615e2d0",
+      "best_validation_loss": null,
+      "run_id": "training/transductive/local_ssl/z32/seed-20261102",
+      "selected_validation": null
+    },
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "local_ssl",
+      "latent_dim": 32,
+      "seed": 20261103,
+      "regime": "transductive",
+      "completed_steps": 2000,
+      "selected_step": 2000,
+      "selected_checkpoint_sha256": "552cbcdca91e9c215a1872f17dac4bda4b8b8834c629ab10ef14c566aa19b4e8",
+      "seconds": 50.17734731499513,
+      "parameter_count": 25376,
+      "peak_rss_bytes": 1795444736,
+      "cuda_peak_allocated_bytes": 99495936,
+      "config_hash": "f14cf62121b80974b6fbff0ccd0248379afb037b861dbfdc516f952fb5a2a886",
+      "best_validation_loss": null,
+      "run_id": "training/transductive/local_ssl/z32/seed-20261103",
+      "selected_validation": null
+    },
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "local_ssl",
+      "latent_dim": 16,
+      "seed": 20261101,
+      "regime": "transfer",
+      "completed_steps": 2000,
+      "selected_step": 600,
+      "selected_checkpoint_sha256": "4e6041c8fb09bbf7d80d5286fff1efbc5519390706ba2b9358867ea3337aa03f",
+      "seconds": 55.38280278799357,
+      "parameter_count": 24336,
+      "peak_rss_bytes": 1742188544,
+      "cuda_peak_allocated_bytes": 98613760,
+      "config_hash": "c8bc3ec6a1335198ddadaefcd0530518af82b053573cb2d18b02aa048d930ec3",
+      "best_validation_loss": 9.119406403435601,
+      "run_id": "training/transfer/local_ssl/z16/seed-20261101",
+      "selected_validation": {
+        "step": 600,
+        "loss": 9.119406403435601,
+        "invariance": 0.11095682912402682,
+        "variance": 0.07351039725321311,
+        "covariance": 4.5077258163028295,
+        "std_mean": 1.0037842750549317,
+        "std_min": 0.7101331878591467,
+        "std_max": 1.3095860251673945,
+        "descriptor_std_max": 1.7993792277795297,
+        "elements": 270
+      }
+    },
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "local_ssl",
+      "latent_dim": 16,
+      "seed": 20261102,
+      "regime": "transfer",
+      "completed_steps": 2000,
+      "selected_step": 1000,
+      "selected_checkpoint_sha256": "4b8e2dd6e78f8089e98ccd502a86ae074af36ef1ac31d36b720cf7c48c53fd85",
+      "seconds": 50.02484118400025,
+      "parameter_count": 24336,
+      "peak_rss_bytes": 1742823424,
+      "cuda_peak_allocated_bytes": 98613760,
+      "config_hash": "338c72810fa988f3106580120d828f71f63e9fbed4a76f2dfc0b0a083213d087",
+      "best_validation_loss": 8.339256547998499,
+      "run_id": "training/transfer/local_ssl/z16/seed-20261102",
+      "selected_validation": {
+        "step": 1000,
+        "loss": 8.339256547998499,
+        "invariance": 0.1031770255278658,
+        "variance": 0.050767290923330516,
+        "covariance": 4.490648682029159,
+        "std_mean": 1.0028960254457262,
+        "std_min": 0.7904962027514423,
+        "std_max": 1.212479567527771,
+        "descriptor_std_max": 1.6593273410090694,
+        "elements": 270
+      }
+    },
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "local_ssl",
+      "latent_dim": 16,
+      "seed": 20261103,
+      "regime": "transfer",
+      "completed_steps": 2000,
+      "selected_step": 1900,
+      "selected_checkpoint_sha256": "d66110ef0129b846882fc5ab37493be21c221e76755e086f72a8f791567ed845",
+      "seconds": 49.37804375500127,
+      "parameter_count": 24336,
+      "peak_rss_bytes": 1742393344,
+      "cuda_peak_allocated_bytes": 98613760,
+      "config_hash": "deafd9158775c1eb5eb7954b19e5efeccead1d74cd8c24bcf1316244886369c2",
+      "best_validation_loss": 9.050015096311215,
+      "run_id": "training/transfer/local_ssl/z16/seed-20261103",
+      "selected_validation": {
+        "step": 1900,
+        "loss": 9.050015096311215,
+        "invariance": 0.10338815240948289,
+        "variance": 0.06201885342597961,
+        "covariance": 4.914839783421269,
+        "std_mean": 1.0193584848333288,
+        "std_min": 0.7533861102881255,
+        "std_max": 1.2455412379017583,
+        "descriptor_std_max": 1.7281231615278456,
+        "elements": 270
+      }
+    },
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "local_ssl",
+      "latent_dim": 32,
+      "seed": 20261101,
+      "regime": "transfer",
+      "completed_steps": 2000,
+      "selected_step": 2000,
+      "selected_checkpoint_sha256": "6c2861eceb29c3d2356028abfe3043d1c1baef5306e42469e214bee3ccc429b0",
+      "seconds": 49.29191956498835,
+      "parameter_count": 25376,
+      "peak_rss_bytes": 1738977280,
+      "cuda_peak_allocated_bytes": 99495936,
+      "config_hash": "6d15ea5c2a4a567f14928ad7e25fcc6a3bfb6245d0f68151cc0de4bee618e00b",
+      "best_validation_loss": 10.063728226555718,
+      "run_id": "training/transfer/local_ssl/z32/seed-20261101",
+      "selected_validation": {
+        "step": 2000,
+        "loss": 10.063728226555718,
+        "invariance": 0.13401372670023529,
+        "variance": 0.04410953985320197,
+        "covariance": 5.61064641740587,
+        "std_mean": 1.0177249021000332,
+        "std_min": 0.7887542976273431,
+        "std_max": 1.2214967136029844,
+        "descriptor_std_max": 1.7614909534101133,
+        "elements": 270
+      }
+    },
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "local_ssl",
+      "latent_dim": 32,
+      "seed": 20261102,
+      "regime": "transfer",
+      "completed_steps": 2000,
+      "selected_step": 2000,
+      "selected_checkpoint_sha256": "d18b2039cfda8d277434feeed51b8816472ff24da55df89d3e0a4f8110956690",
+      "seconds": 48.91679611800646,
+      "parameter_count": 25376,
+      "peak_rss_bytes": 1737781248,
+      "cuda_peak_allocated_bytes": 99495936,
+      "config_hash": "52ef04828578005b9bc71c38155b2c0eecfb7160609a86631645f630ece2338a",
+      "best_validation_loss": 10.440714136759441,
+      "run_id": "training/transfer/local_ssl/z32/seed-20261102",
+      "selected_validation": {
+        "step": 2000,
+        "loss": 10.440714136759441,
+        "invariance": 0.12545535569941557,
+        "variance": 0.060408400606226036,
+        "covariance": 5.79412058017872,
+        "std_mean": 0.9985893620385065,
+        "std_min": 0.7295720908376906,
+        "std_max": 1.3098166916105483,
+        "descriptor_std_max": 1.8464853639955874,
+        "elements": 270
+      }
+    },
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "local_ssl",
+      "latent_dim": 32,
+      "seed": 20261103,
+      "regime": "transfer",
+      "completed_steps": 2000,
+      "selected_step": 1900,
+      "selected_checkpoint_sha256": "f291415405f936a6364c8a0d84ca5de728ebe9772148505b3df7a5f37710cbb1",
+      "seconds": 49.05349056200066,
+      "parameter_count": 25376,
+      "peak_rss_bytes": 1736646656,
+      "cuda_peak_allocated_bytes": 99495936,
+      "config_hash": "e311a2d008a4f7921eb6727e789118d7081ac9642f54832070eeb51adac42c35",
+      "best_validation_loss": 9.448480535436559,
+      "run_id": "training/transfer/local_ssl/z32/seed-20261103",
+      "selected_validation": {
+        "step": 1900,
+        "loss": 9.448480535436559,
+        "invariance": 0.12212459246317546,
+        "variance": 0.04503567858978554,
+        "covariance": 5.269473845870406,
+        "std_mean": 1.0132472983113041,
+        "std_min": 0.8129277467727661,
+        "std_max": 1.2541413603005587,
+        "descriptor_std_max": 1.7886975544470327,
+        "elements": 270
+      }
+    }
+  ],
+  "training_seconds": 452.0445703339792,
+  "completed_steps": 18000,
+  "postprocess_cpu_seconds": 1031.077764481,
+  "resources": {
+    "audit-baseline.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 7.481068186,
+      "prior_cpu_seconds": 1057.587311803,
+      "cumulative_postprocess_cpu_seconds": 1065.0683799889998,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 7.4816935940034455,
+      "max_rss_kib": 173840,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/cache-resources.json": "8ffc3e9a17118938405a1b3bf7e9fa95f1cbafe59dae4d75bcb4fd99733687ae",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/encode-resources.json": "272dc83fca07019bc226dcc2b6dec32234656b097c15aa03ae0cc6e48da52da0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/evaluation-resources.json": "65abfe8835d18adcf7a7816ed183d89f0b26f950512b94ae0ca8a1d648ce8424",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-resources.json": "10ba86c1ab2c6613afe3a288242403dc2a6fb516249ae696850f46475c11a2ee",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-summary-resources.json": "1032c4243b65e95c40ebdbb8f220f5c1d73312870530cef8a9734853fc76ffc6",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/freeze-resources.json": "808589192b9053f1a4f678eb8a6d2d4ba83bdc0bbf5875c7722b1eadea4440cd",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/partition-resources.json": "f198ca9e90976a61bf49228687c1d3f65f9b6ab605bcb2caf6e2ee374a152ecc"
+      }
+    },
+    "audit-training.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 0.685741022,
+      "prior_cpu_seconds": 1068.861116872,
+      "cumulative_postprocess_cpu_seconds": 1069.546857894,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 0.6878520469908835,
+      "max_rss_kib": 574420,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/cache-resources.json": "8ffc3e9a17118938405a1b3bf7e9fa95f1cbafe59dae4d75bcb4fd99733687ae",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/encode-resources.json": "272dc83fca07019bc226dcc2b6dec32234656b097c15aa03ae0cc6e48da52da0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/evaluation-resources.json": "65abfe8835d18adcf7a7816ed183d89f0b26f950512b94ae0ca8a1d648ce8424",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-resources.json": "10ba86c1ab2c6613afe3a288242403dc2a6fb516249ae696850f46475c11a2ee",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-summary-resources.json": "1032c4243b65e95c40ebdbb8f220f5c1d73312870530cef8a9734853fc76ffc6",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/freeze-resources.json": "808589192b9053f1a4f678eb8a6d2d4ba83bdc0bbf5875c7722b1eadea4440cd",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/partition-resources.json": "f198ca9e90976a61bf49228687c1d3f65f9b6ab605bcb2caf6e2ee374a152ecc",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-baseline.resources.json": "8cff016a0ef80ffc9287e21f93e1a4ca7647b51272229d71f33af6c5e4ad9fb0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/cache.resources.json": "394cd2e29ce9ebb0469e816a18123ade2ae073121e6c3657556f1c9f68ca779f",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/plan.resources.json": "8848e3a16a9bdd1e185c5cfc528ed4c8b5625be27dff4aabdf3684fa87f907b9"
+      }
+    },
+    "browser-1.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 2.104230972,
+      "prior_cpu_seconds": 2086.560845312,
+      "cumulative_postprocess_cpu_seconds": 2088.665081084,
+      "wall_seconds": 13.591287695002393,
+      "max_rss_kib": 558196
+    },
+    "cache.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 2.683174164,
+      "prior_cpu_seconds": 1066.1779427079998,
+      "cumulative_postprocess_cpu_seconds": 1068.861116872,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 2.6869902459875448,
+      "max_rss_kib": 602456,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/cache-resources.json": "8ffc3e9a17118938405a1b3bf7e9fa95f1cbafe59dae4d75bcb4fd99733687ae",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/encode-resources.json": "272dc83fca07019bc226dcc2b6dec32234656b097c15aa03ae0cc6e48da52da0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/evaluation-resources.json": "65abfe8835d18adcf7a7816ed183d89f0b26f950512b94ae0ca8a1d648ce8424",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-resources.json": "10ba86c1ab2c6613afe3a288242403dc2a6fb516249ae696850f46475c11a2ee",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-summary-resources.json": "1032c4243b65e95c40ebdbb8f220f5c1d73312870530cef8a9734853fc76ffc6",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/freeze-resources.json": "808589192b9053f1a4f678eb8a6d2d4ba83bdc0bbf5875c7722b1eadea4440cd",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/partition-resources.json": "f198ca9e90976a61bf49228687c1d3f65f9b6ab605bcb2caf6e2ee374a152ecc",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-baseline.resources.json": "8cff016a0ef80ffc9287e21f93e1a4ca7647b51272229d71f33af6c5e4ad9fb0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/plan.resources.json": "8848e3a16a9bdd1e185c5cfc528ed4c8b5625be27dff4aabdf3684fa87f907b9"
+      }
+    },
+    "diagnostics.resources.json": {
+      "stage": "diagnostics",
+      "status": "completed",
+      "cpu_seconds": 18.047288335,
+      "prior_cpu_seconds": 2050.5178628410004,
+      "cumulative_postprocess_cpu_seconds": 2068.565151176,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 18.049286061010207,
+      "max_rss_kib": 941940,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/cache-resources.json": "8ffc3e9a17118938405a1b3bf7e9fa95f1cbafe59dae4d75bcb4fd99733687ae",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/encode-resources.json": "272dc83fca07019bc226dcc2b6dec32234656b097c15aa03ae0cc6e48da52da0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/evaluation-resources.json": "65abfe8835d18adcf7a7816ed183d89f0b26f950512b94ae0ca8a1d648ce8424",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-resources.json": "10ba86c1ab2c6613afe3a288242403dc2a6fb516249ae696850f46475c11a2ee",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-summary-resources.json": "1032c4243b65e95c40ebdbb8f220f5c1d73312870530cef8a9734853fc76ffc6",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/freeze-resources.json": "808589192b9053f1a4f678eb8a6d2d4ba83bdc0bbf5875c7722b1eadea4440cd",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/partition-resources.json": "f198ca9e90976a61bf49228687c1d3f65f9b6ab605bcb2caf6e2ee374a152ecc",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-baseline.resources.json": "8cff016a0ef80ffc9287e21f93e1a4ca7647b51272229d71f33af6c5e4ad9fb0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-training.resources.json": "530b785da1464d471de5621757e1445a54e114b8e873ff1595ea6dcebe0d9c28",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/cache.resources.json": "394cd2e29ce9ebb0469e816a18123ade2ae073121e6c3657556f1c9f68ca779f",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/encode.resources.json": "1c2c09a8eeb37a0a92da91637dbefc041a6d0c655bad4b7008ef40938a738e86",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/evaluation.resources.json": "e31d2d33bd1a5be20b7ad0b0b6da980bac1992eaf8e3958aec7574896db8ac6a",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/freeze.resources.json": "c07d2b585e1d27f451152075d3844fbcead3b80efaaf82ba51882416fd51e230",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/gate-upper-bound.resources.json": "c9afe2bf63ba7edb88f95e5312d39f648edad1b4585e3af335f798888e53b07b",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/independent-summary.resources.json": "4d22d1610f2424b0ab25cc481da6e7693d236fff93b4f1bd5d5fbb1312fe0307",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/partition.resources.json": "f089c01aa3dbf186b88c862165266f40197c5f1e717f3012ac08b68859a78b2a",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/plan.resources.json": "8848e3a16a9bdd1e185c5cfc528ed4c8b5625be27dff4aabdf3684fa87f907b9",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/training-protocol-audit.resources.json": "1b311bc763f3101e404a4d0915f3f53259e91a317e786c4a702502728bbb4708"
+      }
+    },
+    "encode.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 141.638613464,
+      "prior_cpu_seconds": 1069.7334861279999,
+      "cumulative_postprocess_cpu_seconds": 1211.3720995919998,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 141.37860166099563,
+      "max_rss_kib": 1305924,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/cache-resources.json": "8ffc3e9a17118938405a1b3bf7e9fa95f1cbafe59dae4d75bcb4fd99733687ae",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/encode-resources.json": "272dc83fca07019bc226dcc2b6dec32234656b097c15aa03ae0cc6e48da52da0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/evaluation-resources.json": "65abfe8835d18adcf7a7816ed183d89f0b26f950512b94ae0ca8a1d648ce8424",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-resources.json": "10ba86c1ab2c6613afe3a288242403dc2a6fb516249ae696850f46475c11a2ee",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-summary-resources.json": "1032c4243b65e95c40ebdbb8f220f5c1d73312870530cef8a9734853fc76ffc6",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/freeze-resources.json": "808589192b9053f1a4f678eb8a6d2d4ba83bdc0bbf5875c7722b1eadea4440cd",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/partition-resources.json": "f198ca9e90976a61bf49228687c1d3f65f9b6ab605bcb2caf6e2ee374a152ecc",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-baseline.resources.json": "8cff016a0ef80ffc9287e21f93e1a4ca7647b51272229d71f33af6c5e4ad9fb0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-training.resources.json": "530b785da1464d471de5621757e1445a54e114b8e873ff1595ea6dcebe0d9c28",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/cache.resources.json": "394cd2e29ce9ebb0469e816a18123ade2ae073121e6c3657556f1c9f68ca779f",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/plan.resources.json": "8848e3a16a9bdd1e185c5cfc528ed4c8b5625be27dff4aabdf3684fa87f907b9",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/training-protocol-audit.resources.json": "1b311bc763f3101e404a4d0915f3f53259e91a317e786c4a702502728bbb4708"
+      }
+    },
+    "evaluation.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 93.180913097,
+      "prior_cpu_seconds": 1956.207482322,
+      "cumulative_postprocess_cpu_seconds": 2049.388395419,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 93.18903226799739,
+      "max_rss_kib": 3262764,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/cache-resources.json": "8ffc3e9a17118938405a1b3bf7e9fa95f1cbafe59dae4d75bcb4fd99733687ae",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/encode-resources.json": "272dc83fca07019bc226dcc2b6dec32234656b097c15aa03ae0cc6e48da52da0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/evaluation-resources.json": "65abfe8835d18adcf7a7816ed183d89f0b26f950512b94ae0ca8a1d648ce8424",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-resources.json": "10ba86c1ab2c6613afe3a288242403dc2a6fb516249ae696850f46475c11a2ee",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-summary-resources.json": "1032c4243b65e95c40ebdbb8f220f5c1d73312870530cef8a9734853fc76ffc6",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/freeze-resources.json": "808589192b9053f1a4f678eb8a6d2d4ba83bdc0bbf5875c7722b1eadea4440cd",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/partition-resources.json": "f198ca9e90976a61bf49228687c1d3f65f9b6ab605bcb2caf6e2ee374a152ecc",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-baseline.resources.json": "8cff016a0ef80ffc9287e21f93e1a4ca7647b51272229d71f33af6c5e4ad9fb0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-training.resources.json": "530b785da1464d471de5621757e1445a54e114b8e873ff1595ea6dcebe0d9c28",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/cache.resources.json": "394cd2e29ce9ebb0469e816a18123ade2ae073121e6c3657556f1c9f68ca779f",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/encode.resources.json": "1c2c09a8eeb37a0a92da91637dbefc041a6d0c655bad4b7008ef40938a738e86",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/freeze.resources.json": "c07d2b585e1d27f451152075d3844fbcead3b80efaaf82ba51882416fd51e230",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/partition.resources.json": "f089c01aa3dbf186b88c862165266f40197c5f1e717f3012ac08b68859a78b2a",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/plan.resources.json": "8848e3a16a9bdd1e185c5cfc528ed4c8b5625be27dff4aabdf3684fa87f907b9",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/training-protocol-audit.resources.json": "1b311bc763f3101e404a4d0915f3f53259e91a317e786c4a702502728bbb4708"
+      }
+    },
+    "figures.resources.json": {
+      "stage": "figures",
+      "status": "completed",
+      "cpu_seconds": 7.972725274000001,
+      "prior_cpu_seconds": 2068.565151176,
+      "cumulative_postprocess_cpu_seconds": 2076.53787645,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 7.973278262987151,
+      "max_rss_kib": 724080,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/cache-resources.json": "8ffc3e9a17118938405a1b3bf7e9fa95f1cbafe59dae4d75bcb4fd99733687ae",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/encode-resources.json": "272dc83fca07019bc226dcc2b6dec32234656b097c15aa03ae0cc6e48da52da0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/evaluation-resources.json": "65abfe8835d18adcf7a7816ed183d89f0b26f950512b94ae0ca8a1d648ce8424",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-resources.json": "10ba86c1ab2c6613afe3a288242403dc2a6fb516249ae696850f46475c11a2ee",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-summary-resources.json": "1032c4243b65e95c40ebdbb8f220f5c1d73312870530cef8a9734853fc76ffc6",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/freeze-resources.json": "808589192b9053f1a4f678eb8a6d2d4ba83bdc0bbf5875c7722b1eadea4440cd",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/partition-resources.json": "f198ca9e90976a61bf49228687c1d3f65f9b6ab605bcb2caf6e2ee374a152ecc",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-baseline.resources.json": "8cff016a0ef80ffc9287e21f93e1a4ca7647b51272229d71f33af6c5e4ad9fb0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-training.resources.json": "530b785da1464d471de5621757e1445a54e114b8e873ff1595ea6dcebe0d9c28",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/cache.resources.json": "394cd2e29ce9ebb0469e816a18123ade2ae073121e6c3657556f1c9f68ca779f",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/diagnostics.resources.json": "a366e182de79e86c3a39d26faef1c0c0f6b9e9df97fe6eead771808a25ad765b",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/encode.resources.json": "1c2c09a8eeb37a0a92da91637dbefc041a6d0c655bad4b7008ef40938a738e86",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/evaluation.resources.json": "e31d2d33bd1a5be20b7ad0b0b6da980bac1992eaf8e3958aec7574896db8ac6a",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/freeze.resources.json": "c07d2b585e1d27f451152075d3844fbcead3b80efaaf82ba51882416fd51e230",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/gate-upper-bound.resources.json": "c9afe2bf63ba7edb88f95e5312d39f648edad1b4585e3af335f798888e53b07b",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/independent-summary.resources.json": "4d22d1610f2424b0ab25cc481da6e7693d236fff93b4f1bd5d5fbb1312fe0307",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/partition.resources.json": "f089c01aa3dbf186b88c862165266f40197c5f1e717f3012ac08b68859a78b2a",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/plan.resources.json": "8848e3a16a9bdd1e185c5cfc528ed4c8b5625be27dff4aabdf3684fa87f907b9",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/training-protocol-audit.resources.json": "1b311bc763f3101e404a4d0915f3f53259e91a317e786c4a702502728bbb4708"
+      }
+    },
+    "freeze.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 302.270813039,
+      "prior_cpu_seconds": 1653.936669283,
+      "cumulative_postprocess_cpu_seconds": 1956.207482322,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 354.3360802560055,
+      "max_rss_kib": 412204,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/cache-resources.json": "8ffc3e9a17118938405a1b3bf7e9fa95f1cbafe59dae4d75bcb4fd99733687ae",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/encode-resources.json": "272dc83fca07019bc226dcc2b6dec32234656b097c15aa03ae0cc6e48da52da0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/evaluation-resources.json": "65abfe8835d18adcf7a7816ed183d89f0b26f950512b94ae0ca8a1d648ce8424",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-resources.json": "10ba86c1ab2c6613afe3a288242403dc2a6fb516249ae696850f46475c11a2ee",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-summary-resources.json": "1032c4243b65e95c40ebdbb8f220f5c1d73312870530cef8a9734853fc76ffc6",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/freeze-resources.json": "808589192b9053f1a4f678eb8a6d2d4ba83bdc0bbf5875c7722b1eadea4440cd",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/partition-resources.json": "f198ca9e90976a61bf49228687c1d3f65f9b6ab605bcb2caf6e2ee374a152ecc",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-baseline.resources.json": "8cff016a0ef80ffc9287e21f93e1a4ca7647b51272229d71f33af6c5e4ad9fb0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-training.resources.json": "530b785da1464d471de5621757e1445a54e114b8e873ff1595ea6dcebe0d9c28",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/cache.resources.json": "394cd2e29ce9ebb0469e816a18123ade2ae073121e6c3657556f1c9f68ca779f",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/encode.resources.json": "1c2c09a8eeb37a0a92da91637dbefc041a6d0c655bad4b7008ef40938a738e86",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/partition.resources.json": "f089c01aa3dbf186b88c862165266f40197c5f1e717f3012ac08b68859a78b2a",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/plan.resources.json": "8848e3a16a9bdd1e185c5cfc528ed4c8b5625be27dff4aabdf3684fa87f907b9",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/training-protocol-audit.resources.json": "1b311bc763f3101e404a4d0915f3f53259e91a317e786c4a702502728bbb4708"
+      }
+    },
+    "gallery.resources.json": {
+      "stage": "gallery",
+      "status": "completed",
+      "cpu_seconds": 10.022968861999999,
+      "prior_cpu_seconds": 2076.53787645,
+      "cumulative_postprocess_cpu_seconds": 2086.5608453120003,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 10.02381283599243,
+      "max_rss_kib": 332868,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/cache-resources.json": "8ffc3e9a17118938405a1b3bf7e9fa95f1cbafe59dae4d75bcb4fd99733687ae",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/encode-resources.json": "272dc83fca07019bc226dcc2b6dec32234656b097c15aa03ae0cc6e48da52da0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/evaluation-resources.json": "65abfe8835d18adcf7a7816ed183d89f0b26f950512b94ae0ca8a1d648ce8424",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-resources.json": "10ba86c1ab2c6613afe3a288242403dc2a6fb516249ae696850f46475c11a2ee",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-summary-resources.json": "1032c4243b65e95c40ebdbb8f220f5c1d73312870530cef8a9734853fc76ffc6",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/freeze-resources.json": "808589192b9053f1a4f678eb8a6d2d4ba83bdc0bbf5875c7722b1eadea4440cd",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/partition-resources.json": "f198ca9e90976a61bf49228687c1d3f65f9b6ab605bcb2caf6e2ee374a152ecc",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-baseline.resources.json": "8cff016a0ef80ffc9287e21f93e1a4ca7647b51272229d71f33af6c5e4ad9fb0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-training.resources.json": "530b785da1464d471de5621757e1445a54e114b8e873ff1595ea6dcebe0d9c28",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/cache.resources.json": "394cd2e29ce9ebb0469e816a18123ade2ae073121e6c3657556f1c9f68ca779f",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/diagnostics.resources.json": "a366e182de79e86c3a39d26faef1c0c0f6b9e9df97fe6eead771808a25ad765b",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/encode.resources.json": "1c2c09a8eeb37a0a92da91637dbefc041a6d0c655bad4b7008ef40938a738e86",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/evaluation.resources.json": "e31d2d33bd1a5be20b7ad0b0b6da980bac1992eaf8e3958aec7574896db8ac6a",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/figures.resources.json": "7b7c106327a9cef5abcc720b1454adcd76213bb68814f0766136d7192b1bde64",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/freeze.resources.json": "c07d2b585e1d27f451152075d3844fbcead3b80efaaf82ba51882416fd51e230",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/gate-upper-bound.resources.json": "c9afe2bf63ba7edb88f95e5312d39f648edad1b4585e3af335f798888e53b07b",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/independent-summary.resources.json": "4d22d1610f2424b0ab25cc481da6e7693d236fff93b4f1bd5d5fbb1312fe0307",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/partition.resources.json": "f089c01aa3dbf186b88c862165266f40197c5f1e717f3012ac08b68859a78b2a",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/plan.resources.json": "8848e3a16a9bdd1e185c5cfc528ed4c8b5625be27dff4aabdf3684fa87f907b9",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/training-protocol-audit.resources.json": "1b311bc763f3101e404a4d0915f3f53259e91a317e786c4a702502728bbb4708"
+      }
+    },
+    "gate-upper-bound.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 0.340097216,
+      "prior_cpu_seconds": 2049.3883954190005,
+      "cumulative_postprocess_cpu_seconds": 2049.7284926350003,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 0.34014609799487516,
+      "max_rss_kib": 152096,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/cache-resources.json": "8ffc3e9a17118938405a1b3bf7e9fa95f1cbafe59dae4d75bcb4fd99733687ae",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/encode-resources.json": "272dc83fca07019bc226dcc2b6dec32234656b097c15aa03ae0cc6e48da52da0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/evaluation-resources.json": "65abfe8835d18adcf7a7816ed183d89f0b26f950512b94ae0ca8a1d648ce8424",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-resources.json": "10ba86c1ab2c6613afe3a288242403dc2a6fb516249ae696850f46475c11a2ee",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-summary-resources.json": "1032c4243b65e95c40ebdbb8f220f5c1d73312870530cef8a9734853fc76ffc6",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/freeze-resources.json": "808589192b9053f1a4f678eb8a6d2d4ba83bdc0bbf5875c7722b1eadea4440cd",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/partition-resources.json": "f198ca9e90976a61bf49228687c1d3f65f9b6ab605bcb2caf6e2ee374a152ecc",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-baseline.resources.json": "8cff016a0ef80ffc9287e21f93e1a4ca7647b51272229d71f33af6c5e4ad9fb0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-training.resources.json": "530b785da1464d471de5621757e1445a54e114b8e873ff1595ea6dcebe0d9c28",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/cache.resources.json": "394cd2e29ce9ebb0469e816a18123ade2ae073121e6c3657556f1c9f68ca779f",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/encode.resources.json": "1c2c09a8eeb37a0a92da91637dbefc041a6d0c655bad4b7008ef40938a738e86",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/evaluation.resources.json": "e31d2d33bd1a5be20b7ad0b0b6da980bac1992eaf8e3958aec7574896db8ac6a",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/freeze.resources.json": "c07d2b585e1d27f451152075d3844fbcead3b80efaaf82ba51882416fd51e230",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/partition.resources.json": "f089c01aa3dbf186b88c862165266f40197c5f1e717f3012ac08b68859a78b2a",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/plan.resources.json": "8848e3a16a9bdd1e185c5cfc528ed4c8b5625be27dff4aabdf3684fa87f907b9",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/training-protocol-audit.resources.json": "1b311bc763f3101e404a4d0915f3f53259e91a317e786c4a702502728bbb4708"
+      }
+    },
+    "independent-summary.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 0.789370206,
+      "prior_cpu_seconds": 2049.7284926350003,
+      "cumulative_postprocess_cpu_seconds": 2050.5178628410004,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 0.7894159569987096,
+      "max_rss_kib": 540864,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/cache-resources.json": "8ffc3e9a17118938405a1b3bf7e9fa95f1cbafe59dae4d75bcb4fd99733687ae",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/encode-resources.json": "272dc83fca07019bc226dcc2b6dec32234656b097c15aa03ae0cc6e48da52da0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/evaluation-resources.json": "65abfe8835d18adcf7a7816ed183d89f0b26f950512b94ae0ca8a1d648ce8424",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-resources.json": "10ba86c1ab2c6613afe3a288242403dc2a6fb516249ae696850f46475c11a2ee",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-summary-resources.json": "1032c4243b65e95c40ebdbb8f220f5c1d73312870530cef8a9734853fc76ffc6",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/freeze-resources.json": "808589192b9053f1a4f678eb8a6d2d4ba83bdc0bbf5875c7722b1eadea4440cd",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/partition-resources.json": "f198ca9e90976a61bf49228687c1d3f65f9b6ab605bcb2caf6e2ee374a152ecc",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-baseline.resources.json": "8cff016a0ef80ffc9287e21f93e1a4ca7647b51272229d71f33af6c5e4ad9fb0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-training.resources.json": "530b785da1464d471de5621757e1445a54e114b8e873ff1595ea6dcebe0d9c28",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/cache.resources.json": "394cd2e29ce9ebb0469e816a18123ade2ae073121e6c3657556f1c9f68ca779f",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/encode.resources.json": "1c2c09a8eeb37a0a92da91637dbefc041a6d0c655bad4b7008ef40938a738e86",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/evaluation.resources.json": "e31d2d33bd1a5be20b7ad0b0b6da980bac1992eaf8e3958aec7574896db8ac6a",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/freeze.resources.json": "c07d2b585e1d27f451152075d3844fbcead3b80efaaf82ba51882416fd51e230",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/gate-upper-bound.resources.json": "c9afe2bf63ba7edb88f95e5312d39f648edad1b4585e3af335f798888e53b07b",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/partition.resources.json": "f089c01aa3dbf186b88c862165266f40197c5f1e717f3012ac08b68859a78b2a",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/plan.resources.json": "8848e3a16a9bdd1e185c5cfc528ed4c8b5625be27dff4aabdf3684fa87f907b9",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/training-protocol-audit.resources.json": "1b311bc763f3101e404a4d0915f3f53259e91a317e786c4a702502728bbb4708"
+      }
+    },
+    "partition.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 442.564569691,
+      "prior_cpu_seconds": 1211.3720995919998,
+      "cumulative_postprocess_cpu_seconds": 1653.936669283,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 442.93670372499037,
+      "max_rss_kib": 753056,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/cache-resources.json": "8ffc3e9a17118938405a1b3bf7e9fa95f1cbafe59dae4d75bcb4fd99733687ae",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/encode-resources.json": "272dc83fca07019bc226dcc2b6dec32234656b097c15aa03ae0cc6e48da52da0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/evaluation-resources.json": "65abfe8835d18adcf7a7816ed183d89f0b26f950512b94ae0ca8a1d648ce8424",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-resources.json": "10ba86c1ab2c6613afe3a288242403dc2a6fb516249ae696850f46475c11a2ee",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-summary-resources.json": "1032c4243b65e95c40ebdbb8f220f5c1d73312870530cef8a9734853fc76ffc6",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/freeze-resources.json": "808589192b9053f1a4f678eb8a6d2d4ba83bdc0bbf5875c7722b1eadea4440cd",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/partition-resources.json": "f198ca9e90976a61bf49228687c1d3f65f9b6ab605bcb2caf6e2ee374a152ecc",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-baseline.resources.json": "8cff016a0ef80ffc9287e21f93e1a4ca7647b51272229d71f33af6c5e4ad9fb0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-training.resources.json": "530b785da1464d471de5621757e1445a54e114b8e873ff1595ea6dcebe0d9c28",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/cache.resources.json": "394cd2e29ce9ebb0469e816a18123ade2ae073121e6c3657556f1c9f68ca779f",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/encode.resources.json": "1c2c09a8eeb37a0a92da91637dbefc041a6d0c655bad4b7008ef40938a738e86",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/plan.resources.json": "8848e3a16a9bdd1e185c5cfc528ed4c8b5625be27dff4aabdf3684fa87f907b9",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/training-protocol-audit.resources.json": "1b311bc763f3101e404a4d0915f3f53259e91a317e786c4a702502728bbb4708"
+      }
+    },
+    "plan.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 1.109562719,
+      "prior_cpu_seconds": 1065.0683799889998,
+      "cumulative_postprocess_cpu_seconds": 1066.1779427079998,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 1.1121806739975,
+      "max_rss_kib": 685824,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/cache-resources.json": "8ffc3e9a17118938405a1b3bf7e9fa95f1cbafe59dae4d75bcb4fd99733687ae",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/encode-resources.json": "272dc83fca07019bc226dcc2b6dec32234656b097c15aa03ae0cc6e48da52da0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/evaluation-resources.json": "65abfe8835d18adcf7a7816ed183d89f0b26f950512b94ae0ca8a1d648ce8424",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-resources.json": "10ba86c1ab2c6613afe3a288242403dc2a6fb516249ae696850f46475c11a2ee",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-summary-resources.json": "1032c4243b65e95c40ebdbb8f220f5c1d73312870530cef8a9734853fc76ffc6",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/freeze-resources.json": "808589192b9053f1a4f678eb8a6d2d4ba83bdc0bbf5875c7722b1eadea4440cd",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/partition-resources.json": "f198ca9e90976a61bf49228687c1d3f65f9b6ab605bcb2caf6e2ee374a152ecc",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-baseline.resources.json": "8cff016a0ef80ffc9287e21f93e1a4ca7647b51272229d71f33af6c5e4ad9fb0"
+      }
+    },
+    "training-protocol-audit.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 0.18662823399999995,
+      "prior_cpu_seconds": 1069.546857894,
+      "cumulative_postprocess_cpu_seconds": 1069.7334861279999,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 0.18665151001187041,
+      "max_rss_kib": 611160,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/cache-resources.json": "8ffc3e9a17118938405a1b3bf7e9fa95f1cbafe59dae4d75bcb4fd99733687ae",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/encode-resources.json": "272dc83fca07019bc226dcc2b6dec32234656b097c15aa03ae0cc6e48da52da0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/evaluation-resources.json": "65abfe8835d18adcf7a7816ed183d89f0b26f950512b94ae0ca8a1d648ce8424",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-resources.json": "10ba86c1ab2c6613afe3a288242403dc2a6fb516249ae696850f46475c11a2ee",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-summary-resources.json": "1032c4243b65e95c40ebdbb8f220f5c1d73312870530cef8a9734853fc76ffc6",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/freeze-resources.json": "808589192b9053f1a4f678eb8a6d2d4ba83bdc0bbf5875c7722b1eadea4440cd",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/partition-resources.json": "f198ca9e90976a61bf49228687c1d3f65f9b6ab605bcb2caf6e2ee374a152ecc",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-baseline.resources.json": "8cff016a0ef80ffc9287e21f93e1a4ca7647b51272229d71f33af6c5e4ad9fb0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-training.resources.json": "530b785da1464d471de5621757e1445a54e114b8e873ff1595ea6dcebe0d9c28",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/cache.resources.json": "394cd2e29ce9ebb0469e816a18123ade2ae073121e6c3657556f1c9f68ca779f",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/plan.resources.json": "8848e3a16a9bdd1e185c5cfc528ed4c8b5625be27dff4aabdf3684fa87f907b9"
+      }
+    }
+  },
+  "continuation": [
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "local_ssl",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "all three partial-reference groups in transduction"
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "local_ssl",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "all three partial-reference groups in transduction"
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "local_ssl_untrained",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "all three partial-reference groups in transduction"
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "local_ssl_untrained",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "all three partial-reference groups in transduction"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "local_ssl",
+        "latent": 16,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "local_ssl",
+        "latent": 16,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "local_ssl",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "local_ssl",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "local_ssl_untrained",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "local_ssl_untrained",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "fft",
+        "latent": null,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": false,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": true,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": null,
+          "benefit_on_ttmapp": null
+        }
+      },
+      "benefit": {
+        "synthetic": null,
+        "measurement": null
+      },
+      "stability": true,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "fft",
+        "latent": null,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": false,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": true,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": null,
+          "benefit_on_ttmapp": null
+        }
+      },
+      "benefit": {
+        "synthetic": null,
+        "measurement": null
+      },
+      "stability": true,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "fft",
+        "latent": null,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": false,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": true,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": null,
+          "benefit_on_ttmapp": null
+        }
+      },
+      "benefit": {
+        "synthetic": null,
+        "measurement": null
+      },
+      "stability": true,
+      "claim_scope": "all three partial-reference groups in transduction"
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "fft",
+        "latent": null,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": false,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": true,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": null,
+          "benefit_on_ttmapp": null
+        }
+      },
+      "benefit": {
+        "synthetic": null,
+        "measurement": null
+      },
+      "stability": true,
+      "claim_scope": "all three partial-reference groups in transduction"
+    }
+  ],
+  "artifacts_sha256": {
+    "baseline-audit.json": "753ec24026c7d8d1547a91b5d185b87756a1268d48b2cde4a0de8ea41153b878",
+    "baseline-reuse-audit.json": "1b7d89d5472f7f1d97cc1114b94211108f6d13d21fcd6fb76ec00dbff51dcbb1",
+    "evaluation/ablations.json": "a5978ca67edb9408f2d2157aa974c15e8c25eb6a6a001c56a54ffd953223e42c",
+    "evaluation/aggregates.json": "5dd05eb83056eadb2a8da124911d33bd5c47087a4893fb057eccad4538d37d7d",
+    "evaluation/continuation.json": "ff123c0195afa76a776bd090829bd8b5e334ffcfb14e733a318eb630f187cf09",
+    "evaluation/evaluation-evidence.json": "edf4c794fadba40d4f68c78c4720ff064c83fe01ec3e297ebc6030ef7fa6dd20",
+    "evaluation/metrics.csv": "e54d466d283c8761c414f03ea9d8b987097528dce980a81a51f8df2de0aac087",
+    "evaluation/paired-model-comparisons.json": "ea87968a517b0927296e8ae39d801a03c6dde438bc32f44bbc62d83592ec5e44",
+    "evaluation/summary.json": "e978033eb6806cf775b1d15d93c6234696d7a381f1be98729c4da2903f16d2d2",
+    "export-contract-audit.json": "a1fbdee7112df4ae73a1da637e569d16c9ab351b520e57decaed71ed294eb743",
+    "feature-diagnostics.json": "ed0c0a13b5ea7197e281589cbf598e45bbb9174011719c1c646d8a9df3e06843",
+    "figures/local-correspondence.png": "09b6d74b975fb67df2f0ffd92dbf09c30e3b03910783bbe864ed702c09e84080",
+    "figures/manifest.json": "05fbd026310962d167ac605b5dddcfbc6181e0be8ce978ebfbc63649548ca527",
+    "figures/representation-diagnostics.png": "4cbbbf3e75646199367eb878d9234c2d8a93775bf076a83b2ef56c852d4fd78d",
+    "figures/validation-curves.png": "75830ab4a297158c2da1434b641187e6bf951f1c760ded7ddce9855d479872dd",
+    "frozen-predictions.json": "b4c60fb8334328226fd725242edab422c696d58735108e97f68f28984e1c63a9",
+    "gallery/check_browser.py": "c3da4edd3a1602b5a52c0cdb36ac743983a9b7fcdc85ea212437462123a753b8",
+    "gallery/manifest.json": "f3a65aca3094764215a8b50de64abda82b2e4dffd174c04f76437f6cc72c33fb",
+    "gallery/scenario-map.json": "08e3c272fbbfb51f38a04dd3f2f1b1fb7bee09aab9a38699fd0aab64462451c6",
+    "gallery/scenario-source.json": "6054b473f26dce9b7cd6df00059482334d3e97f69e8183188e91be730daff5b0",
+    "gallery/visual-review.json": "d55d94b485bff0c769bb6c36c3f9f73168b8b9ebc2e67e4ad00bf9ce7e300094",
+    "gate-upper-bound.json": "f0224e5a2bee6f9d318b004d4209745594226c4a8bb0ad4db96619ff8039b9c2",
+    "gpu-preflight.json": "b444ad695670dddf43cee06142182a285f3e3cfb8e5bd76709b7824428ebffeb",
+    "index.html": "31fb78006bb5561856383a2daef761a310339b9f1f3eb8bea359eb5ae19edda7",
+    "inference-configuration.json": "9c5b5955c08043a898011525c7b1d660724887861d91c1b7f3bd85ee15f3cb40",
+    "main-result-summary.json": "ce87f74380233f0fb13c640905e23c4e4bbc3b41aff13b27a81f8c02f5f83d0a",
+    "plan.json": "c13408085dbb93471e49d605beb647da525ffb71eb73c8a236c7595d640c02ac",
+    "prior-budget.json": "ea2940529e5756a4285d4fe13ec4c8fa625a3512d58e0bbcacfa68ba8204be60",
+    "training-protocol-audit.json": "cb7e7f4f97643589988fb47d4cf50d5c0376064c7949280e747e27304eb11e4b",
+    "training-protocol-audit.py": "8d674628b96c2fd95c0f2a8ff55c14f5d4fc56bb8075f01d8138644c81ca7766",
+    "training/registry.json": "ed1ce8f990a2f0772b6231dd06f07e9cac174e7d2f711c84872a8509cf446b78",
+    "training/training-audit.json": "63823618e7b7242e234c391053b9c98c16dffe887fe260f9498f32167e7b48d8",
+    "posthoc/gate_upper_bound.py": "8b0f5a51554619f5f19813952c5e9e73c23f8c4a1bb40ab2e845b58db9b1f6dc",
+    "posthoc/independent_summary.json": "6584a92f1f3ccbe079ea8bc2a271f542e512049e415d939ec9b201204cd1a3fd",
+    "posthoc/independent_summary.log": "1928fbc3403d66b08f9f0f9ee43ddb0c0c3f8fb9a946adf27de4c6147d20e61d",
+    "posthoc/independent_summary.py": "a8da0eae9cb633e7ffd8a18688d58c3c8415ce8024baf99094b223fb622b3a6a",
+    "gallery/browser-qa/browser-check.json": "0505585704010efa8895afb7c43b671313f34eb7eccbe139ff2ef34c72379b1c",
+    "gallery/browser-qa/local-correspondence-figure.png": "0f152ace3eb10aec295a2f8b416deee762cda8d05ce1ab5a47ccda579b6552c7",
+    "gallery/browser-qa/missing-transfer-ssl-fh4.png": "6db5c17b705b8cebc63f9c7a3aad3699ea7c8712a1c9e703647f0069ff73ef2c",
+    "gallery/browser-qa/phase-transfer-ssl-fh4.png": "4217faa4c6894052ce4e250667082fa305f430f2567c14aaa1a4a9707a7a4a0d",
+    "gallery/browser-qa/ttmapp-transfer-fft-heldout.png": "3ca7d73f90a516e6bab7f8bcdfadabbdf376db23550b9ed80433fa9e5453432a",
+    "gallery/browser-qa/ttmapp-transfer-ssl-fh4.png": "6b64122314da110835271cd4fad559c8582c982d8e7ad9236f503f60c390bb34"
+  },
+  "source_sha256": {
+    "stmdomains/experiments/training/local_ssl/__init__.py": "2045c1eac4c18ef6df132423a20888d47bb169e4e993417071d6b86c268bb1a7",
+    "stmdomains/experiments/training/local_ssl/diagnostics.py": "1265227131e2c1aad2c842e78da537e16f8f0f2de9c60a137060851009179970",
+    "stmdomains/experiments/training/local_ssl/evaluate.py": "aab9a6fcb01297fd684eac0b609df2d28d76edfa8bc638e62fe9119680fec868",
+    "stmdomains/experiments/training/local_ssl/figures.py": "02871d40e0ffb9f63097b9682ad7f1252a6754d65084118c2af3ac9285e75e8c",
+    "stmdomains/experiments/training/local_ssl/fit.py": "3891b93bcccfb40232bc8db6378b74e6d96c2993655a9999234c263713a7371c",
+    "stmdomains/experiments/training/local_ssl/gallery.py": "3c7d99c2c8f35f223e92ff3d1503649448f6805a1dfe07555dcdc2bf43aa2edf",
+    "stmdomains/experiments/training/local_ssl/models.py": "cabeb1dcabec45591661f4bea2e253d79d81a5017b9b001d11a35c3ac3b66a4c",
+    "stmdomains/experiments/training/local_ssl/predict.py": "ac5248b867bd48bbc0f87536d4aca1532b362d316a121c1f940ba6ef85ca9d65",
+    "stmdomains/experiments/training/local_ssl/prepare.py": "7e96482a84199021bd4804dd1df3dc513e383d779dc600721aa49313948ae053",
+    "stmdomains/experiments/training/local_ssl/run_trial.sh": "11015e83298c6fdd0d39daceb4aafae6b8b319f6c1c46aa162d0a26db1c2dbf0",
+    "stmdomains/experiments/training/local_ssl/summarize.py": "d9d7f3f4fadda33a4bc2fe3f47daeebd2ccc3647c64813161a2ec6fcfc99abad"
+  },
+  "evaluation": {
+    "schema": "stmdomains-post-freeze-evaluation-v1",
+    "frozen_manifest_sha256": "b4c60fb8334328226fd725242edab422c696d58735108e97f68f28984e1c63a9",
+    "verified_prediction_files": 84595,
+    "verified_external_files": 115,
+    "prediction_entries": 21420,
+    "evaluated_records": 22236,
+    "controls_manifest_sha256": "967919561148d5210f9f952ddb7b274ad7df05f1f493d96facccede5db8a84c7",
+    "measurement_manifest_sha256": "77492b92a669377015077a607d1fe5abf1e5f0c21a2ad78be552de4a960f74fd",
+    "evaluation_code_sha256": "aab9a6fcb01297fd684eac0b609df2d28d76edfa8bc638e62fe9119680fec868",
+    "elapsed_seconds": 92.92900314099097,
+    "cpu_seconds": 92.920924969,
+    "peak_rss_kib": 3262764,
+    "policy": "Read-only frozen predictions; no model selection, parameter changes or exact TTMAPP boundary claims",
+    "controls_scope": "Original81 controls already used in21; development assessment, not independent holdout",
+    "postprocessing_budget": {
+      "cpu_seconds": 92.92185701300001,
+      "prior_cpu_seconds": 1956.207482322,
+      "cumulative_postprocess_cpu_seconds": 2049.129339335,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 92.92993605899392,
+      "max_rss_kib": 3262764,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/cache-resources.json": "8ffc3e9a17118938405a1b3bf7e9fa95f1cbafe59dae4d75bcb4fd99733687ae",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/encode-resources.json": "272dc83fca07019bc226dcc2b6dec32234656b097c15aa03ae0cc6e48da52da0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/evaluation-resources.json": "65abfe8835d18adcf7a7816ed183d89f0b26f950512b94ae0ca8a1d648ce8424",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-resources.json": "10ba86c1ab2c6613afe3a288242403dc2a6fb516249ae696850f46475c11a2ee",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/findings-summary-resources.json": "1032c4243b65e95c40ebdbb8f220f5c1d73312870530cef8a9734853fc76ffc6",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/freeze-resources.json": "808589192b9053f1a4f678eb8a6d2d4ba83bdc0bbf5875c7722b1eadea4440cd",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21/partition-resources.json": "f198ca9e90976a61bf49228687c1d3f65f9b6ab605bcb2caf6e2ee374a152ecc",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-baseline.resources.json": "8cff016a0ef80ffc9287e21f93e1a4ca7647b51272229d71f33af6c5e4ad9fb0",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/audit-training.resources.json": "530b785da1464d471de5621757e1445a54e114b8e873ff1595ea6dcebe0d9c28",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/cache.resources.json": "394cd2e29ce9ebb0469e816a18123ade2ae073121e6c3657556f1c9f68ca779f",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/encode.resources.json": "1c2c09a8eeb37a0a92da91637dbefc041a6d0c655bad4b7008ef40938a738e86",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/freeze.resources.json": "c07d2b585e1d27f451152075d3844fbcead3b80efaaf82ba51882416fd51e230",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/partition.resources.json": "f089c01aa3dbf186b88c862165266f40197c5f1e717f3012ac08b68859a78b2a",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/plan.resources.json": "8848e3a16a9bdd1e185c5cfc528ed4c8b5625be27dff4aabdf3684fa87f907b9",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/local-ssl-22/training-protocol-audit.resources.json": "1b311bc763f3101e404a4d0915f3f53259e91a317e786c4a702502728bbb4708"
+      }
+    }
+  },
+  "training_audit": {
+    "schema": "stmdomains-local-ssl-training-audit-v1",
+    "runs": [
+      {
+        "run_id": "training/transfer/local_ssl/z16/seed-20261101",
+        "status": "completed",
+        "selected_step": 600,
+        "completed_steps": 2000,
+        "seconds": 55.38280278799357,
+        "parameter_count": 24336,
+        "peak_rss_bytes": 1742188544,
+        "cuda_peak_allocated_bytes": 98613760
+      },
+      {
+        "run_id": "training/transfer/local_ssl/z16/seed-20261102",
+        "status": "completed",
+        "selected_step": 1000,
+        "completed_steps": 2000,
+        "seconds": 50.02484118400025,
+        "parameter_count": 24336,
+        "peak_rss_bytes": 1742823424,
+        "cuda_peak_allocated_bytes": 98613760
+      },
+      {
+        "run_id": "training/transfer/local_ssl/z16/seed-20261103",
+        "status": "completed",
+        "selected_step": 1900,
+        "completed_steps": 2000,
+        "seconds": 49.37804375500127,
+        "parameter_count": 24336,
+        "peak_rss_bytes": 1742393344,
+        "cuda_peak_allocated_bytes": 98613760
+      },
+      {
+        "run_id": "training/transfer/local_ssl/z32/seed-20261101",
+        "status": "completed",
+        "selected_step": 2000,
+        "completed_steps": 2000,
+        "seconds": 49.29191956498835,
+        "parameter_count": 25376,
+        "peak_rss_bytes": 1738977280,
+        "cuda_peak_allocated_bytes": 99495936
+      },
+      {
+        "run_id": "training/transfer/local_ssl/z32/seed-20261102",
+        "status": "completed",
+        "selected_step": 2000,
+        "completed_steps": 2000,
+        "seconds": 48.91679611800646,
+        "parameter_count": 25376,
+        "peak_rss_bytes": 1737781248,
+        "cuda_peak_allocated_bytes": 99495936
+      },
+      {
+        "run_id": "training/transfer/local_ssl/z32/seed-20261103",
+        "status": "completed",
+        "selected_step": 1900,
+        "completed_steps": 2000,
+        "seconds": 49.05349056200066,
+        "parameter_count": 25376,
+        "peak_rss_bytes": 1736646656,
+        "cuda_peak_allocated_bytes": 99495936
+      },
+      {
+        "run_id": "training/transductive/local_ssl/z32/seed-20261101",
+        "status": "completed",
+        "selected_step": 2000,
+        "completed_steps": 2000,
+        "seconds": 49.58356256199477,
+        "parameter_count": 25376,
+        "peak_rss_bytes": 1794740224,
+        "cuda_peak_allocated_bytes": 99495936
+      },
+      {
+        "run_id": "training/transductive/local_ssl/z32/seed-20261102",
+        "status": "completed",
+        "selected_step": 2000,
+        "completed_steps": 2000,
+        "seconds": 50.23576648499875,
+        "parameter_count": 25376,
+        "peak_rss_bytes": 1793388544,
+        "cuda_peak_allocated_bytes": 99495936
+      },
+      {
+        "run_id": "training/transductive/local_ssl/z32/seed-20261103",
+        "status": "completed",
+        "selected_step": 2000,
+        "completed_steps": 2000,
+        "seconds": 50.17734731499513,
+        "parameter_count": 25376,
+        "peak_rss_bytes": 1795444736,
+        "cuda_peak_allocated_bytes": 99495936
+      }
+    ],
+    "completed": 9,
+    "skipped": [],
+    "checkpoints_verified": 189,
+    "initial_weights_identical_between_regimes": true,
+    "validation_inputs_identical": true,
+    "source_hashes_unchanged": true,
+    "original21_metadata_unchanged": true,
+    "reference_access": false,
+    "steps": 18000,
+    "seconds": 452.0445703339792,
+    "checkpoint_bytes": 167606618,
+    "original21_22_total_seconds": 921.1309571899619,
+    "original21_22_total_checkpoint_bytes": 1058561615,
+    "within_shared_training_caps": true
+  },
+  "application_detector_adopted": false,
+  "posthoc_gate_upper_bound": {
+    "schema": "stmdomains-issue22-posthoc-gate-ceiling-v1",
+    "scope": "Frozen48px grid, transfer-test-only graph or transductive full graph; partial TTMAPP references only",
+    "operation": "Connected components of available, scope-eligible nodes passing the saved order gate, minimum4 nodes; ignore every feature partition boundary",
+    "interpretation": "Necessary geometric ceiling on possible final assignments for any feature partition under this unchanged gate and graph; not a new detector or prediction",
+    "minimum_component_size": 4,
+    "thresholds_changed": false,
+    "predictions_changed": false,
+    "training_performed": false,
+    "selected_from_quality": false,
+    "all_actual_predictions_below_ceiling": true,
+    "actual_predictions_checked": 816,
+    "totals": [
+      {
+        "full_support_scope_elements": 912,
+        "gate_passed_elements": 6,
+        "gate_passed_reference_elements": 4,
+        "max_assignable_elements": 0,
+        "evaluated_reference_elements": 174,
+        "max_assignable_reference_elements": 0,
+        "regime": "transfer",
+        "frames": 24,
+        "maximum_reference_coverage": 0.0
+      },
+      {
+        "full_support_scope_elements": 3456,
+        "gate_passed_elements": 50,
+        "gate_passed_reference_elements": 26,
+        "max_assignable_elements": 18,
+        "evaluated_reference_elements": 782,
+        "max_assignable_reference_elements": 4,
+        "regime": "transductive",
+        "frames": 24,
+        "maximum_reference_coverage": 0.005115089514066497
+      }
+    ],
+    "source_sha256": "8b0f5a51554619f5f19813952c5e9e73c23f8c4a1bb40ab2e845b58db9b1f6dc",
+    "freeze_sha256": "b4c60fb8334328226fd725242edab422c696d58735108e97f68f28984e1c63a9",
+    "evaluation_evidence_sha256": "edf4c794fadba40d4f68c78c4720ff064c83fe01ec3e297ebc6030ef7fa6dd20",
+    "references_manifest_sha256": "77492b92a669377015077a607d1fe5abf1e5f0c21a2ad78be552de4a960f74fd"
+  },
+  "validation": {
+    "tests_passed": 181,
+    "pytest_seconds": 11.58,
+    "gui_interactions": 89,
+    "javascript_errors": 0,
+    "native_application_gui_acceptance": false
+  },
+  "original21_22_postprocess_cpu_seconds": 2088.665076284
+}

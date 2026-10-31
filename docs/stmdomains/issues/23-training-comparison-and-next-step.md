@@ -25,7 +25,7 @@ uruchamia badań; status pozostaje `open`, a 24–26 nadal są warunkowe.
 
 **Uzupełnienie na polecenie użytkownika — 2026-10-31:** przed 22 dodano
 osobny [21a — dekoder i regularyzacja rVAE](21a-rvae-decoder-and-kl.md).
-21a następnie wykonano (`resolved`); zestawienie czeka teraz na 22. Ująć osobno
+21a i 22 następnie wykonano (`resolved`); materiał do zestawienia jest gotowy. Ująć osobno
 oryginalne 21 i dodatkową próbę, jej budżet oraz zakres oceny; poprawa
 rekonstrukcji lub cech przed bramką nie oznacza poprawy końcowego detektora.
 
@@ -36,7 +36,7 @@ rekonstrukcji lub cech przed bramką nie oznacza poprawy końcowego detektora.
   odmowy na TTMAPP, lecz także fałszywe domeny niezależnych rzędów.
   Surowy kąt rVAE nie rozpoznaje orientacji. Zapisane wyniki przed odmowami
   pozwalają oddzielić tę lukę od cech i podziału. Ostateczne zestawienie
-  nadal czeka na 22; samo ukończenie 21 nie wybiera rozszerzenia danych lub 24–26.
+  obejmuje także wykonane 22; samo ukończenie prób nie wybiera rozszerzenia danych lub 24–26.
 - [Osobna próba 21a](../rvae-decoder-kl-trial.md) wykonana: 2 diagnostyki
   i 9 fitów, 22 000 kroków, 336,34 s. Słabsze KL obniża medianę MSE
   o około 14%, ale nadal nie daje wiarygodnego kąta i końcowych domen.
@@ -45,7 +45,18 @@ rekonstrukcji lub cech przed bramką nie oznacza poprawy końcowego detektora.
   retreningu; 672 tablice TTMAPP są identyczne z 21. Oddzielić świeże
   realizacje syntetyczne od znanego TTMAPP i nie porównywać transferu
   z transdukcją jako równych warunków. Wynik nie otwiera dalszego strojenia
-  rVAE ani bramki; następna jest niezależna próba SSL.
+  rVAE ani bramki; niezależną próbę SSL następnie wykonano w 22.
+- [Lokalny SSL — wykonana próba 22](../local-self-supervised-trial.md):
+  9/9 fitów, 18 000 kroków, 452,04 s; pełne porównanie FFT/SSL × FH/MWS
+  i własne inicjalizacje encodera. Cechy są bardziej zróżnicowane i mniej
+  skorelowane z jasnością, ale transfer nadal 0/174, transdukcja najwyżej
+  4/782 (0,51%), bez przewagi nad FFT. Geometryczne maksimum zachowanej
+  bramki/spójności wynosi dokładnie te wartości niezależnie od cech.
+  Jednocześnie SSL z32 ma F1=0 na czterech kontrolach granic także przed
+  odmowami i scala różne referencje transferu. Rozdzielić te dwie luki;
+  sam nowy encoder nie może usunąć ograniczenia bramki. Żadna uczona
+  konfiguracja nie spełnia kryteriów kontynuacji. Wszystkie 27 fitów
+  pierwotnego budżetu 21/22 wykonano; dodatek 21a pozostaje oddzielny.
 - Tabela wspólnych kontroli, błędów i odmów, stabilności względem ziaren
   oraz zakresu. Oddzielić zero/jedną/wiele domen, typ/orientację, rozstaw,
   granice przesunięcia, nieporządek i brak danych; zobaczyć pełne nakładki.

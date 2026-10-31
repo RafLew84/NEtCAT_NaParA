@@ -29,8 +29,12 @@ Transfer TTMAPP: 0/174 przypisań; transdukcja najwyżej 4/782.
 dwa runy diagnostyczne i dziewięć fitów, 3360 predykcji, 161 testów.
 [Raport](rvae-decoder-kl-trial.md) wskazuje niższy błąd rekonstrukcji,
 ale brak wiarygodnej orientacji i poprawy końcowych domen: nadal 0/174
-przypisań TTMAPP. Następne jest **22**, potem **23**.
-Nie wybrano metody do aplikacji; budżet SSL pozostaje dostępny.
+przypisań TTMAPP. [22 — lokalny SSL](local-self-supervised-trial.md) także
+wykonano (`resolved`): 9/9 fitów, 21 420 predykcji, 181 testów.
+Końcowy transfer 0/174, transdukcja najwyżej 4/782; bez poprawy domen.
+Diagnoza zachowanej bramki wyjaśnia te geometryczne limity, lecz SSL
+nie rozdziela badanych granic także przed odmowami. Następny jest **23**.
+Nie wybrano metody do aplikacji; pierwotny budżet 27 fitów został wykorzystany.
 
 **Uzupełnienie planu na polecenie użytkownika — 2026-10-31:** 21a obejmuje
 małą próbę odtwarzania wycinków i macierz dekoder × waga KL. Dopuszcza
@@ -255,6 +259,16 @@ nie zamknięto przez samo dodanie go do mapy.
 
 ## Decisions so far
 
+- [Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](issues/22-local-self-supervised-domains.md):
+  **`resolved` — zakończony eksperyment**. [Raport](local-self-supervised-trial.md),
+  [manifest](local-self-supervised-manifest.json): 9 fitów, 18 000 kroków,
+  452,04 s; kontrola własnych inicjalizacji i pełne FFT/SSL × FH/MWS.
+  Cechy są bardziej zróżnicowane, lecz nie poprawiają końcowych domen:
+  transfer 0/174, transdukcja najwyżej 4/782. Bramka/spójność ma te same
+  limity niezależnie od cech; SSL ma także F1=0 granic przed odmowami.
+  181 testów, 2808 identycznych archiwów FFT, galeria po 89 interakcjach.
+  Zestawienie i decyzja należą teraz do 23; nie przyjęto detektora.
+
 - [Czy zmiana dekodera i regularyzacji poprawia rVAE?](issues/21a-rvae-decoder-and-kl.md):
   **`resolved` — zakończona ograniczona próba**. [Raport](rvae-decoder-kl-trial.md),
   [manifest](rvae-decoder-kl-manifest.json): 2 diagnostyki + 9 fitów,
@@ -262,14 +276,14 @@ nie zamknięto przez samo dodanie go do mapy.
   o około 14%, ale pozostają wygładzone rekonstrukcje i błędna orientacja.
   Wszystkie warianty po odmowach dają 0/174 przypisań TTMAPP; żaden nowy
   wariant z FH/MWS nie spełnia kryteriów. 161 testów i 672 identyczne
-  tablice bazowe. Następne 22, potem 23; nie przyjęto detektora.
+  tablice bazowe. Następnie wykonano 22; wspólna decyzja należy do 23.
 
 - [Jak przygotować trening bez etykiet?](issues/20-self-supervised-training-preparation.md):
   **`resolved` — przygotowanie wykonane**. 24 klatki, 38 622 rekordy wycinków,
   81 odłożonych kontroli, osobne transfer/transdukcja, protokół 2 × 2 i budżet.
   78 testów i identyczne wznowienie GPU dla trzech ziaren. [Raport](self-supervised-training-preparation.md).
   Nie jest to wynik detekcji; niska wiarygodność rejestracji i mały train
-  ograniczają ocenę przenoszenia. Później wykonano 21; 22 pozostaje otwarte.
+  ograniczają ocenę przenoszenia. Później wykonano 21, 21a i 22.
 
 - [Czy AE i rVAE uczą się cech przydatnych do odkrywania domen?](issues/21-autoencoder-domains.md):
   **`resolved` — wykonana zamknięta próba**. [Raport](autoencoder-domains-trial.md)

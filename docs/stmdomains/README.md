@@ -23,9 +23,14 @@ wykonano (`resolved`): dwa runy diagnostyczne i dziewięć nowych fitów,
 zmniejsza błąd rekonstrukcji o około 14%, lecz nie poprawia końcowego
 wykrywania domen; transfer nadal 0/174 przypisań. Galeria lokalna:
 `.scratch/rvae-21a/index.html`. Wyniki 21 pozostają zachowane.
-Następne jest **22**, potem **23**; dziewięć fitów SSL pozostaje dostępne.
-Jakość 04, odbiór 13 i druga mapa pozostają otwarte; dodatkowe MPP/STP
-nie są wymagane do następnej próby.
+[22 — lokalny SSL](local-self-supervised-trial.md) wykonano (`resolved`):
+9/9 fitów, 21 420 predykcji, 181 testów. Końcowy transfer 0/174; transdukcja
+najwyżej 4/782 (0,51%), bez przewagi nad FFT. Zachowana bramka ze spójnością
+ma te same geometryczne limity, a SSL nie rozdziela granic także przed nią.
+Galeria: `.scratch/local-ssl-22/index.html`, 89 sprawdzonych interakcji.
+Następny jest **23** — wspólne porównanie i decyzja. Pierwotny budżet
+27 fitów 21/22 został wykorzystany. Jakość 04, odbiór 13 i druga mapa
+pozostają otwarte; dodatkowe MPP/STP nadal są odłożone do tej decyzji.
 
 **Decyzja użytkownika — 2026-10-31:** najpierw wykonujemy 21/22 na obecnym
 TTMAPP i przygotowanych kontrolach według protokołu 20. Przygotowanie
