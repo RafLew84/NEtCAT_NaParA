@@ -1,5 +1,39 @@
 # Przekazanie — STM Viewer
 
+## REG-01a: Ręczne dopasowanie pary — 2026-10-31
+
+[Ticket](registration/issues/01a-manual-alignment.md): **ready-for-review**.
+Implementacja `846a479`, poprawki `2276755`, baza `c5ec70a` na
+`viewer/registration-difficult-movies`. Końcowy commit dokumentacji podany w sesji.
+[Instrukcja manualna](registration/manual-alignment-manual.md),
+[karta i Standards/Spec](registration/reviews/REG-01a.md).
+
+- Kroki ±1 px X/Y w oknie porównania; start od zera albo kopii wybranej próby.
+  Ułamkowe XY zachowane, szkic oddzielny od A/B, reset/odrzucenie i zastosowanie B.
+- Pochodzenie ręczne, początkowe XY, suma korekt, końcowe XY oraz jawny brak
+  automatycznej jakości. Każdy podgląd powstaje z oryginałów, bez kumulacji interpolacji.
+- Zachowane A, widok/gamma/kontrast i główny aligned; rzeczywiste MPP/AVI przed/po
+  ręcznej korekcie mają te same dane. Manual działa bez wag oraz po błędzie ECC.
+- 14 nowych testów; po poprawkach 28 testów par PASS. Viewer: **398 passed, 2 skipped in 63.41s (0:01:03)**.
+  Pełne repo: **14 failed, 2184 passed, 16 skipped in 276.92s (0:04:36)**; 14 nazw błędów identycznych z REG-01
+  (MolTrack/SAM2 i NanoTrack). Mypy strict 38, Ruff i limit długości bez uwag.
+- Qt xcb sterowane skryptem: 6 stałych par obu MOVIE, ręczne sterowanie po
+  rzeczywistym błędzie ECC 2→3 MOVIE_8, ułamkowy wzorzec i układ kontrolek PASS.
+  SHA źródeł bez zmian. To próby automatyczne, jakość ręcznego dopasowania nieoceniana.
+- Niezależny przegląd: Standards 2 uwagi naprawione, Spec 0; po poprawkach brak
+  otwartych uwag. Największy zmieniony plik 409 linii.
+
+Uruchom `python -m stmviewer.main` w `netcat`. Na cpu.mpp wybierz klatkę 2,
+**Porównaj parę… → Zacznij od zera → X+ → X+ → Y−**: XY=(2,−1).
+Sprawdź zastosowanie B/korektę/reset, a potem obie serie pomiarowe według instrukcji.
+Dostarczony launcher `PYTHONPATH=. python tests/stmviewer/manual_pair_fixture.py`
+zapewnia deterministyczny ułamkowy początek. Artefakty lokalne:
+`data/registration-manual-pair-review/`.
+
+**Ręczny odbiór użytkownika: oczekuje.** Windows i VLC niewykonane w tym zadaniu.
+REG-02 czeka na odbiór REG-01a; zakres ręcznego składania filmu i zapis prób na dysk
+pozostają poza REG-01a. Brak nowych zmian współdzielonych; statusy 19–21 bez zmian.
+
 ## Plan: REG-01a — ręczne dopasowanie pary — 2026-10-30
 
 Na zlecenie użytkownika dodano [REG-01a](registration/issues/01a-manual-alignment.md)
@@ -64,7 +98,7 @@ w `netcat` z katalogu Viewera. Otwórz cpu.mpp, wykonaj pełne Phase, wybierz kl
 **Porównaj parę… → Oblicz parę → Przypnij B jako A**; porównaj kolejną metodę
 i wykonaj dalsze kroki instrukcji na obu MOVIE. Automatyczne GUI nie zastępuje odbioru.
 Windows nie został zweryfikowany przez agenta; systemu ręcznej próby nie podano.
-REG-02 ma spełnioną zależność i czeka na zlecenie; historyczne statusy 19–21 bez zmian.
+Po dodaniu REG-01a kolejny REG-02 czeka na jego ręczny odbiór; historyczne statusy 19–21 bez zmian.
 REG-01 nie wymaga nowej zmiany współdzielonej; problem czytnika z ticketu 19 pozostaje.
 
 ## Plan rozwoju rejestracji — 2026-10-28

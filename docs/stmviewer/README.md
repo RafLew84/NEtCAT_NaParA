@@ -21,10 +21,13 @@ Można liczyć pojedynczą parę niezależnie od pełnego aligned.
 [Instrukcja testu](registration/pair-comparison-manual.md),
 [wyniki i przegląd kodu](registration/reviews/REG-01.md).
 
-Do planu dodano **[REG-01a — ręczne dopasowanie pary](registration/issues/01a-manual-alignment.md)**
-(2026-10-30), przed REG-02. Planowane są ruchy ±1 px X/Y w tym samym oknie,
-start od zera lub istniejącej próby oraz porównanie wyniku ręcznego z algorytmem.
-Funkcja czeka na implementację i własny odbiór.
+**[REG-01a — ręczne dopasowanie pary](registration/issues/01a-manual-alignment.md)**
+ma status **ready-for-review** (2026-10-31). W oknie porównania działają ruchy
+±1 px X/Y, start od zera lub wybranej próby, reset/odrzucenie i zastosowanie
+ręcznego wyniku jako B. Krok nie zależy od zoomu; ułamkowy początek zostaje.
+Pełny aligned i eksport korzystają z dotychczasowej rejestracji filmu.
+[Instrukcja próby](registration/manual-alignment-manual.md),
+[wyniki i przegląd](registration/reviews/REG-01a.md). REG-02 czeka na odbiór REG-01a.
 
 ## Stan aplikacji
 

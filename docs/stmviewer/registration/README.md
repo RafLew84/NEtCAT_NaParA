@@ -3,8 +3,9 @@
 Data: 2026-10-28; rozszerzenie ręcznego dopasowania: 2026-10-30.
 Gałąź: `viewer/registration-difficult-movies`.
 Baza rozpoznania: `c85aecb`; przegląd metod: `81ff1a0`.
-Status: REG-01 `done`; dodano REG-01a `ready-for-agent` przed REG-02.
-REG-01a jest planem funkcji; kod nie został jeszcze wdrożony.
+Status: REG-01 `done`; REG-01a `ready-for-review` (implementacja 2026-10-31).
+REG-01a działa i oczekuje na ręczny odbiór; REG-02 pozostaje zablokowany.
+[Instrukcja manualna](manual-alignment-manual.md), [karta sprawdzeń](reviews/REG-01a.md).
 Zlecenie użytkownika: małe tickety, ręczna ocena wpływu i jakości po każdym.
 
 ## Cel i zakres
@@ -38,7 +39,8 @@ kolizji i zachować numery istniejących zadań.
 
 REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [instrukcja próby](pair-comparison-manual.md),
-[karta odbioru](reviews/REG-01.md). REG-01a i REG-02–07 mają status `ready-for-agent`:
+[karta odbioru](reviews/REG-01.md). REG-01a ma status `ready-for-review`;
+wymaga ręcznego odbioru użytkownika. REG-02–07 mają status `ready-for-agent`:
 zakres jest przygotowany, ale start
 wymaga zlecenia użytkownika i zakończenia blokujących ticketów. REG-08/09 mają
 status `planned`; nie uruchamiamy ich automatycznie. Nie zależą od siebie.

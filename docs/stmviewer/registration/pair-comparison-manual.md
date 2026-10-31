@@ -111,4 +111,4 @@ a wynik zostaje odrzucony. Szybkie zakończenie sukcesem nie zalicza próby anul
 
 [Karta REG-01](reviews/REG-01.md) zawiera wyniki automatyczne i osobny zapis
 ręcznego odbioru. Użytkownik potwierdził „testy manualne ok” 2026-10-29;
-REG-01 ma status `done`. REG-02 ma spełnioną zależność i czeka na zlecenie.
+REG-01 ma status `done`. Po dodaniu REG-01a kolejny REG-02 czeka na jego ręczny odbiór.

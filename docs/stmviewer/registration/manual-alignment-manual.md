@@ -55,7 +55,7 @@ oznaczają brak próbek, a nakładka obejmuje wspólne ważne piksele.
 5. Sprawdź opis ręcznego wyniku: początkowe XY, źródło próby, łączna korekta,
    końcowe XY oraz „ustawione ręcznie — jakość nieoceniona”. Nie ma dziedziczonej
    pewności algorytmu. Ręczne B można przypiąć jako A i korygować ponownie.
-6. W trakcie szkicu wybór A/B, przypinanie i uruchomienie obliczeń automatycznych
+6. W trakcie szkicu wybór A/B, przypinanie i uruchomienie obliczeń automatycznych tej pary
    są zablokowane. Warstwy, przed/po, zoom i gamma pozostają dostępne.
 
 Ręczne B zastępuje poprzednie B; aby porównać je z wcześniejszym B, przypnij
@@ -95,7 +95,8 @@ ocenie skuteczności rejestracji. Nie zmienia produkcyjnej aplikacji ani plików
    poza pole odniesienia (co najmniej szerokość lub wysokość obrazu kroków).
    Oczekuj informacji **Brak wspólnego ważnego obszaru**. Można zastosować
    taką diagnostyczną próbę; opis braku pokrycia pozostaje widoczny.
-2. W osobnym szkicu użyj **Przywróć początek**, aby wrócić do pokrycia.
+2. Wróć przez **Przywróć początek** przed zastosowaniem. Jeśli już zastosowano
+   próbę bez pokrycia, wybierz **Zacznij od zera**, aby wrócić do wspólnego pola.
 3. Wybierz Deep Matcher bez lokalnych wag. Mimo niedostępności obliczeń
    automatycznych **Zacznij od zera** nadal działa bez GPU i modelu.
 4. Zmień parę podczas niezastosowanego szkicu: nowa para nie dziedziczy XY.

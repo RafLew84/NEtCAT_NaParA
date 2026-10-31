@@ -102,7 +102,7 @@ Wynik przeglądu: Standards 0 uwag, Spec 0 uwag; brak problemu wymagającego pop
 - Jakość XY i tearing: REG-01 służy porównaniu, algorytmy nie zostały zmienione.
 - Decyzja: zamknąć REG-01 jako `done`.
 
-Potwierdzenie spełnia warunek ręcznego odbioru REG-01; REG-02 czeka na osobne
-zlecenie. Nie oznacza to końcowego odbioru obu platform. Aktualizacja wyłącznie
+Potwierdzenie spełnia warunek ręcznego odbioru REG-01; Po późniejszym dodaniu REG-01a kolejny REG-02 czeka także na jego ręczny
+odbiór i osobne zlecenie. Nie oznacza to końcowego odbioru obu platform. Aktualizacja wyłącznie
 dokumentacyjna: sprawdzono statusy, odnośniki i `git diff --check`, bez ponawiania
 testów kodu.

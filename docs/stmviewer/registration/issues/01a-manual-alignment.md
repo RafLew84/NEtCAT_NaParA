@@ -4,8 +4,8 @@
 dopasowywaną względem nieruchomej klatki odniesienia przyciskami ±1 piksel X/Y,
 ogląda nakładkę lub przełącza obrazy i zachowuje wynik jako ręczną próbę.
 **Blocked by:** [REG-01](01-pair-comparison.md), w tym odbiór manualny — spełnione.
-**Status:** in-progress
-**Manualny odbiór:** niewykonany; implementacja rozpoczęta 2026-10-31.
+**Status:** ready-for-review
+**Manualny odbiór:** oczekuje na użytkownika; implementacja i sprawdzenia wykonane 2026-10-31.
 **Wykonawca:** Codex; baza przeglądu `c5ec70a8b7efc2d0892fc56b8b63c315b79d3b64`.
 **Dodano do planu:** 2026-10-30, na zlecenie użytkownika.
 
@@ -15,49 +15,49 @@ REG-01 pozostaje zamknięty; nowe sterowanie ma własny odbiór.
 
 ## Zakres i kryteria odbioru
 
-- [ ] W tym samym oknie „Porównaj parę…” jest tryb dopasowania ręcznego.
+- [x] W tym samym oknie „Porównaj parę…” jest tryb dopasowania ręcznego.
   Klatka odniesienia pozostaje nieruchoma; przesuwamy kolejną klatkę względem
   poprzedniej. Nazwy „Odniesienie” i „Dopasowywana” oznaczają obrazy, natomiast
   A/B nadal oznaczają dwie próby dopasowania. UI nie miesza tych znaczeń.
-- [ ] Przyciski **X−, X+, Y−, Y+** zmieniają przesunięcie o dokładnie **1 piksel
+- [x] Przyciski **X−, X+, Y−, Y+** zmieniają przesunięcie o dokładnie **1 piksel
   oryginału** na kliknięcie. +X oznacza ruch obrazu w prawo, +Y w dół;
   znaki odnoszą się do obrazu, nie fizycznego kierunku dryfu. Widoczne są
   bieżące całkowite ΔX/ΔY i jednostka px. Zoom oraz proporcje nie zmieniają kroku.
-- [ ] Dostępne są „Zacznij od zera” i „Koryguj wybraną próbę”. Druga opcja
+- [x] Dostępne są „Zacznij od zera” i „Koryguj wybraną próbę”. Druga opcja
   kopiuje XY i opis pochodzenia aktualnie wybranej próby A/B tej samej pary;
   jest niedostępna, jeśli tej próby brak. Można korygować wynik automatyczny
   lub wcześniejszy ręczny. Nie kopiujemy skumulowanego XY z pełnego aligned.
   Zachowujemy ułamkową część punktu startu: np. 2,4 → 3,4 po X+.
-- [ ] Podgląd reaguje na każdy krok. Działają nakładka 50/50 i przełączanie
+- [x] Podgląd reaguje na każdy krok. Działają nakładka 50/50 i przełączanie
   odniesienie/dopasowywana. Rozpoczęcie edycji i każdy ruch pokazują stan
   „Po dopasowaniu”; podejrzenie „Przed” pokazuje XY=(0,0) bez kasowania edycji.
   Zoom, punkt zakotwiczenia, gamma, proporcje i kontrast pary są zachowane.
-- [ ] Przeciąganie nadal przesuwa wspólny widok, a kółko zmienia zoom;
+- [x] Przeciąganie nadal przesuwa wspólny widok, a kółko zmienia zoom;
   nie zmieniają ręcznego XY. Każde odświeżenie stosuje całkowite XY do
   oryginalnych próbek, bez wielokrotnego przesuwania/interpolowania poprzedniego
   podglądu. Obowiązują stały kadr i ważność próbek z REG-01.
-- [ ] Ręczna edycja jest szkicem, odrębnym od gotowych prób A/B.
+- [x] Ręczna edycja jest szkicem, odrębnym od gotowych prób A/B.
   „Przywróć początek” cofa wszystkie kroki do skopiowanego XY albo do zera.
   „Odrzuć edycję” przywraca wcześniejszą wybraną próbę i jej obraz.
   „Zastosuj jako B” tworzy nową niezmienną próbę B, zachowując przypięte A.
   Jeżeli wcześniejsze B ma służyć porównaniu, użytkownik przypina je jako A
   przed rozpoczęciem edycji; nie nadpisujemy A automatycznie.
-- [ ] Podczas szkicu wybór/przypinanie prób oraz start obliczeń automatycznych
+- [x] Podczas szkicu wybór/przypinanie prób oraz start obliczeń automatycznych tej pary
   są zablokowane; przełączanie samych obrazów i warstw pozostaje dostępne.
   Po zastosowaniu lub odrzuceniu można znów przełączać A/B. Zmiana pary lub
   zamknięcie okna odrzucają szkic; nowy udany import/usunięcie klatki czyści
   porównanie jak w REG-01. Nieudany import zachowuje pasującą edycję.
-- [ ] Sterowanie ręczne działa bez uruchamiania estymatora i bez wag/GPU,
+- [x] Sterowanie ręczne działa bez uruchamiania estymatora i bez wag/GPU,
   także gdy wybrana metoda automatyczna jest niedostępna albo wcześniej
   zakończyła się błędem. Blokady podczas importu i pracujących zadań nadal
   obowiązują. Brak wspólnego ważnego obszaru jest wyraźnie komunikowany;
   można wrócić przyciskami albo zachować taką próbę diagnostyczną z tym opisem.
-- [ ] Próba ma jawne pochodzenie „ręczne”, początkowe XY, opis skopiowanej
+- [x] Próba ma jawne pochodzenie „ręczne”, początkowe XY, opis skopiowanej
   próby (jeśli była), sumę korekt i końcowe XY oraz wersję ustawień.
   Oznaczenie jakości mówi „ustawione ręcznie — jakość nieoceniona”. Nie
   dziedziczymy pewności algorytmu, nie dopisujemy procentu ani „OK backendu”.
   Nowa korekta zachowuje opis źródła, bez bezterminowego łańcucha kopii prób.
-- [ ] Ręczny wynik można przypiąć i porównywać z algorytmem. To lekka próba
+- [x] Ręczny wynik można przypiąć i porównywać z algorytmem. To lekka próba
   tej pary w sesji okna; oryginały, pełny aligned i aktywny wynik eksportu
   zachowują wartości. Zapis/odczyt prób ręcznych na dysk obejmuje REG-07.
 
@@ -114,3 +114,23 @@ nie staje się automatycznie prawdą odniesienia ani niezależną walidacją.
 **Oczekiwany wynik:** użytkownik może sam ustawić przesunięcie pary, natychmiast
 ocenić je wzrokowo i porównać z algorytmem w tych samych warunkach podglądu.
 Po implementacji status `ready-for-review`; ręczny odbiór blokuje REG-02.
+
+
+## Wykonanie — 2026-10-31
+
+Implementacja `846a479`, poprawki przeglądu `2276755`; baza `c5ec70a`.
+Kontrolki ręczne w oknie porównania, szkic od zera/próby i wynik B z pochodzeniem
+oraz bez automatycznej pewności. Kroki 1 px nie zależą od widoku; skopiowany ułamek
+pozostaje. Reset/odrzucenie, blokady zadań, ochrona A oraz pełnego aligned i eksportów.
+Opis pochodzenia kolejnej ręcznej korekty obejmuje bezpośrednią próbę źródłową,
+bez rekurencyjnego przechowywania całej historii.
+
+14 nowych testów, po przeglądzie 28 testów par zaliczonych; mypy strict 38 plików,
+Ruff oraz limit długości bez uwag. Pełne wyniki, ograniczenia i niezależny przegląd:
+[karta REG-01a](../reviews/REG-01a.md). [Instrukcja manualna](../manual-alignment-manual.md)
+zawiera zwykłą aplikację, stałe pary MOVIE i dostarczony ułamkowy wzorzec.
+
+Rzeczywiste Qt xcb sterowane skryptem: 6 stałych par, ręczna próba po błędzie ECC
+MOVIE_8 2→3, ułamkowy start oraz układ panelu sprawdzone. To automatyczna kontrola
+funkcji, nie ocena jakości dopasowania przez użytkownika. REG-02 pozostaje zablokowany
+przez ręczny odbiór REG-01a. Kod współdzielony nie wymaga zmiany.
