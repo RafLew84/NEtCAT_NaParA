@@ -757,42 +757,30 @@ class STMViewerMainWindow(QMainWindow):
     def _start_registration(self, *, check_only: bool = False) -> None:
         if ((not self._frames and not check_only) or self._operation_in_progress or self._selected_method_error()):
             return
-        self._pause()
         job = RegistrationJob(self._frames, self, self._registration_backend,
                               method=str(self._method.currentData()),
                               deep_options=self._deep_controls.options(), check_only=check_only)
-        self._registration_job = job
-        self._registration_progress.setRange(0, len(self._frames) * 2)
-        self._registration_progress.setValue(0)
-        self._registration_progress.setFormat("Przygotowanie…")
-        self._registration_progress.show()
-        self._registration_cancel.setEnabled(True)
-        self._registration_cancel.show()
-        self._open_button.setEnabled(False)
-        self._open_action.setEnabled(False)
-        self._sync_navigation()
-        job.progress.connect(self._show_registration_progress)
-        job.finished.connect(self._finish_registration)
-        job.start()
+        self._start_registration_job(job)
 
     def _apply_movie_correction(self, trial: PairTrial) -> None:
         if self._registration is not None and not self._operation_in_progress:
-            self._start_movie_job(ManualMovieJob(self._registration, self, trial=trial))
+            self._start_registration_job(ManualMovieJob(self._registration, self, trial=trial))
 
     def _remove_movie_correction(self, index: int) -> None:
         if self._registration is not None and not self._operation_in_progress:
-            self._start_movie_job(ManualMovieJob(self._registration, self, remove_index=index))
+            self._start_registration_job(ManualMovieJob(self._registration, self, remove_index=index))
 
-    def _start_movie_job(self, job: ManualMovieJob) -> None:
+    def _start_registration_job(self, job: RegistrationJob | ManualMovieJob) -> None:
         self._pause()
         self._registration_job = job
-        self._registration_progress.setRange(0, len(self._frames))
+        manual = isinstance(job, ManualMovieJob)
+        self._registration_progress.setRange(0, len(self._frames) * (1 if manual else 2))
         self._registration_progress.setValue(0)
-        self._registration_progress.setFormat('Przeliczanie ręcznej korekty filmu…')
-        if self._pair_dialog is not None:
+        self._registration_progress.setFormat('Przeliczanie ręcznej korekty filmu…' if manual else 'Przygotowanie…')
+        if manual and self._pair_dialog is not None:
             self._pair_dialog.show_movie_progress(0, len(self._frames), 'Przeliczanie filmu…')
         self._registration_progress.show()
-        self._registration_cancel.setText('Anuluj korektę filmu')
+        self._registration_cancel.setText('Anuluj korektę filmu' if manual else 'Anuluj rejestrację')
         self._registration_cancel.setEnabled(True)
         self._registration_cancel.show()
         self._open_button.setEnabled(False)
