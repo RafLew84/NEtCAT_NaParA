@@ -62,12 +62,14 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
     try:
         result = _estimate_pair(reference, moving, method=method, deep_options=deep_options,
                                 backend=backend, cancelled=cancelled, progress=progress, capture=capture)
+        if capture is not None:
+            capture.finish_pair(result)
+        if cancelled is not None and cancelled():
+            raise RegistrationCancelled
     except Exception as error:
         if capture is not None:
             capture.failed(error)
         raise
-    if capture is not None:
-        capture.finish_pair(result)
     return result
 
 
@@ -122,9 +124,10 @@ def _estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
         backend = backend if backend is not None else create_shift_backend(method)
     from stmviewer.trial_capture import backend_settings
     configuration = getattr(backend, 'config', None)
-    full_settings = backend_settings(backend, deep_options, device)
+    model_options = deep_options if method in ('deep_matcher_translation', HYBRID_METHOD, LOCAL_METHOD) else None
+    full_settings = backend_settings(backend, model_options, device)
     if capture is not None:
-        capture.configured(backend, deep_options, device)
+        capture.configured(backend, model_options, device)
         capture.started(1)
     # The local wrapper already describes both stages and its full configuration.
     if (not isinstance(backend, DeepLocalBackend)
@@ -133,7 +136,6 @@ def _estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
     report(f'{label}: wyznaczanie przesunięcia pary…')
     try:
         result = backend.estimate(reference.data, moving.data, moving_frame_index=1)
-        checkpoint()
         if (result is None or result.frame_index != 1
                 or result.status not in ('ok', 'low_confidence', 'manual_review')):
             raise ValueError('brak poprawnego wyniku pary lub status failed')

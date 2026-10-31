@@ -225,3 +225,22 @@ def test_full_trial_preserves_pair_quality_separately_from_cumulative_uncertaint
     assert manual.quality_score is None and manual.status == 'manual'
     assert untouched.quality_score == 0.9 and untouched.status == 'ok'
     assert corrected.payload['records'][2]['quality_score'] is None
+
+
+def test_pair_cancelled_during_backend_keeps_returned_estimate_as_diagnostic():
+    from nanotrack.core import RegistrationFrameResult
+    from stmviewer.pair_comparison import estimate_pair
+    frames = frames_with_data(np.arange(64.).reshape(8, 8), np.arange(64.).reshape(8, 8))
+    stop = Event()
+    class FinishingBackend:
+        def estimate(self, reference, moving, *, moving_frame_index):
+            stop.set()  # Cancellation arrived while native estimation was finishing.
+            return RegistrationFrameResult(moving_frame_index, (2.0, -1.0), 'fixture', quality_score=0.8)
+    capture = AttemptCapture(frames, 'phase_correlation', kind='pair')
+    with pytest.raises(RegistrationCancelled):
+        estimate_pair(*frames, backend=FinishingBackend(), capture=capture, cancelled=stop.is_set)
+    assert capture.payload['outcome'] == 'cancelled'
+    record = capture.payload['records'][0]
+    assert record['shift_xy'] == [2.0, -1.0]
+    assert record['pair_quality_score'] == 0.8
+    assert record['status'] == 'ok'

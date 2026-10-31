@@ -121,13 +121,14 @@ class DeepEccBackend:
         try:
             self._report(f'{pair_label} — Deep Matcher ({self.device})')
             deep = self._deep.estimate(reference_frame, moving_frame, moving_frame_index=moving_frame_index)
-            self._checkpoint()
             start = _valid_result(deep, moving_frame_index)
+            self._checkpoint()
             stage = 'ECC'
             self._report(f'{pair_label} — ECC (CPU), start Deep X={start[0]:.3f}, Y={start[1]:.3f}')
             refined = self._ecc.estimate(reference_frame, moving_frame,
                                          moving_frame_index=moving_frame_index, initial_shift_xy=start)
-            self._checkpoint()
+            # A finished native estimate is evidence even if cancellation arrived
+            # during that call; the caller records it before honouring cancellation.
             final = _valid_result(refined, moving_frame_index)
             score = float(refined.ecc_score)
             if not np.isfinite(score):
@@ -148,7 +149,6 @@ class DeepEccBackend:
             )
             raise
         except Exception as error:
-            self._checkpoint()
             reason = str(error) or type(error).__name__
             if error.__cause__ is not None:
                 reason += f' Przyczyna: {str(error.__cause__) or type(error.__cause__).__name__}'
@@ -157,6 +157,7 @@ class DeepEccBackend:
                 float(deep.quality_score) if deep is not None and start is not None else None,
                 self.settings_text, str(self.options.weights), self.options.device, self.device,
             )
+            self._checkpoint()
             raise RegistrationError(f'{pair_label} — {stage}: {reason}') from error
 
 

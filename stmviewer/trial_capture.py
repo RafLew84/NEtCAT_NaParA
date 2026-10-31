@@ -149,7 +149,10 @@ class AttemptCapture:
             return
         hybrid = backend.last_failure if isinstance(backend, DeepEccBackend) else None
         local = backend.last_diagnostics if isinstance(backend, DeepLocalBackend) else None
-        self.payload['records'].append(_record(self._active_index, hybrid=hybrid, local=local, pair_status='failed'))
+        from stmviewer.registration import RegistrationCancelled
+        status = 'cancelled' if isinstance(error, RegistrationCancelled) else 'failed'
+        self.payload['records'].append(_record(self._active_index, hybrid=hybrid, local=local,
+                                               status=status, pair_status=status))
         self._active_index = None
 
     def failed(self, error: BaseException) -> None:
