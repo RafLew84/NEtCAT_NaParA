@@ -9,7 +9,7 @@ oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 [Rozpoznanie MOVIE_4/MOVIE_8 i reproduktory](registration-difficult-movies.md)
 opisuje zgodność metod ze strukturami obrazu przy zakłóceniach i tearing.
 Domyślne algorytmy aplikacji pozostają bez zmian.
-[Plan rozwoju i tickety](registration/README.md) obejmuje dziewięć etapów
+[Plan rozwoju i tickety](registration/README.md) obejmuje osiem etapów
 podstawowych (w tym REG-01a i REG-02a) i dwa warunkowe. Każdy kończy się ręcznym odbiorem
 funkcji oraz jakości; kolejny etap czeka na decyzję użytkownika.
 [Wspólny protokół prób](registration/manual-protocol.md) ustala dane i sposób porównania.
@@ -39,7 +39,7 @@ ma status **done** po odbiorze 2026-10-31. Metoda **Korelacja bez normalizacji (
 działa dla pary i całego filmu, z jawną informacją o niezweryfikowanej pewności.
 MPP zachowuje wersję metody, geometrię i brak oceny jakości; AVI korzysta z aligned.
 Domyślny Phase pozostaje bez zmian. [Instrukcja odbioru](registration/unnormalized-correlation-manual.md),
-[karta i przegląd](registration/reviews/REG-02.md). Przed REG-03 dodano REG-02a.
+[karta i przegląd](registration/reviews/REG-02.md). Kolejny odebrany etap to REG-02a.
 Użytkownik nie zauważył istotnej poprawy nowego wariantu względem Phase na MOVIE_4;
 Deep Matcher ocenił najlepiej w pierwszych 100 oglądanych klatkach. Dalsze próby
 MOVIE_4 pomijają dwie błędnie dołączone klatki źródłowe, zgodnie z protokołem.
@@ -50,18 +50,13 @@ Działa pobranie dopasowania pary z pełnego wyniku,
 jawne **Zastosuj do filmu**, cofnięcie korekty wybranej pary i przeliczenie aligned
 z oryginałów. MPP/AVI zapisują poprawiony film, MPP+metadane V4 zachowują historię
 ręczną. [Instrukcja odbioru](registration/manual-movie-corrections-manual.md),
-[karta sprawdzeń](registration/reviews/REG-02a.md). Zależność REG-03 jest spełniona.
+[karta sprawdzeń](registration/reviews/REG-02a.md).
 
-**[REG-03 — ręczne maski zakłóceń](registration/issues/03-manual-masks.md)**
-ma status **ready-for-review**. **Edytuj maski…** otwiera oryginalne klatki:
-prostokąty „użyj” i „pomiń” określają dane do dopasowania. Osobna metoda
-**Korelacja z maskami (v1)** działa dla pary i całego filmu; przełącznik pozwala
-porównać wynik z oznaczeniami i bez nich. Maski wpływają na kolejne obliczenie,
-zachowując wszystkie wartości obrazu w aligned/MPP/AVI. Oznaczenia pozostają
-w sesji programu; ich zapis należy do REG-07. Dotychczasowe metody nie używają
-tych masek. [Instrukcja próby](registration/manual-masks-manual.md),
-[karta sprawdzeń i ograniczenia jakości](registration/reviews/REG-03.md).
-REG-04 czeka na ręczny odbiór REG-03.
+2026-10-31 użytkownik wycofał **REG-03 — rejestrację z ręcznymi maskami**.
+Usunięto implementację i ten etap z planu. Następny jest
+**[REG-04 — dopasowanie wieloskalowe](registration/issues/04-multiscale-translation.md)**,
+zależny bezpośrednio od odebranego REG-02a. Numeracja dalszych ticketów pozostaje
+bez zmian; REG-04 oczekuje na osobne zlecenie.
 
 ## Stan aplikacji
 

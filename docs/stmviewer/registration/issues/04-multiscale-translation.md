@@ -1,8 +1,9 @@
 # REG-04: Dopasowanie wieloskalowe
 
 **What to build:** Użytkownik wybiera wariant wyznaczający najpierw zgrubne XY,
-a potem doprecyzowujący je na pełnej rozdzielczości i porównuje go z REG-03.
-**Blocked by:** [REG-03](03-manual-masks.md), w tym odbiór manualny.
+a potem doprecyzowujący je na pełnej rozdzielczości i porównuje go z dotychczasowymi
+metodami (Phase, korelacja bez normalizacji, Deep Matcher).
+**Blocked by:** [REG-02a](02a-manual-movie-corrections.md), w tym odbiór manualny — spełnione.
 **Status:** ready-for-agent
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 
@@ -12,8 +13,8 @@ Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
 
 - [ ] Nowy wariant wykorzystuje piramidę rozdzielczości i przenosi estymatę
   XY do kolejnych skal. Finalne przesunięcie jest w pikselach oryginału.
-- [ ] Wspólna część obrazów i maski są uwzględniane podczas oceny kandydatów.
-  Przenoszenie masek do mniejszej skali nie czyni wyłączonych próbek ważnymi.
+- [ ] Kandydaci są oceniani na wspólnej części obrazów z ważnymi próbkami.
+  Zmniejszenie rozdzielczości nie zamienia brakujących danych w pomiary.
   Granice obrazów nie są traktowane jako zawijające się okresowo.
 - [ ] Wynik z pomniejszenia jest sprawdzany i doprecyzowany na oryginałach;
   aliasing i brak szczegółów na małej skali nie stają się automatycznie sukcesem.
@@ -26,12 +27,12 @@ Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
 - [ ] Wariant działa na parze i całej serii. Oryginalne wartości są
   interpolowane dopiero przy końcowym tworzeniu aligned. Działają MPP/AVI.
 
-Poza zakresem: lokalny konsensus, automatyczne maski, deformacje, wygładzanie czasu.
+Poza zakresem: lokalny konsensus, deformacje, wygładzanie czasu.
 
 ## Publiczne granice TDD i automatyczne sprawdzenia
 
-- **Para i maski → XY:** znane duże i subpikselowe przesunięcia w obu osiach,
-  niekwadratowe wymiary, zmiana znaku, mała część wspólna, wykluczone pasy
+- **Para → XY:** znane duże i subpikselowe przesunięcia w obu osiach,
+  niekwadratowe wymiary, zmiana znaku, mała część wspólna, brakujące próbki
   i tekstura okresowa. Wzorce mają rzeczywiste krawędzie, nie tylko `roll`.
 - **Seria → aligned:** zgodność wyniku pary i serii, wartości/geometria,
   anulowanie, brak podmiany po odmowie. Tolerancje wynikają z wzorców testowych,
@@ -43,8 +44,10 @@ Poza zakresem: lokalny konsensus, automatyczne maski, deformacje, wygładzanie c
 
 1. Na dostarczonym wzorcu z dużym przesunięciem obejrzyj dopasowanie zgrubne
    i końcowe. Zrób to także dla ujemnych XY i zmiany kierunku między klatkami.
-2. Porównaj REG-03 A i nowy wariant B przy tych samych maskach na stałych
-   parach obu filmów. Zapisz wpływ na duże struktury i drobne szczegóły.
+2. Na stałych parach obu filmów zachowaj wynik dotychczasowej metody
+   (Phase, korelacja bez normalizacji lub Deep Matcher) i porównaj go z nowym
+   wariantem przy tych samych oryginałach i ustawieniach podglądu. Zapisz
+   wybraną bazę oraz wpływ na duże struktury i drobne szczegóły.
 3. Sprawdź wzorzec okresowy: jeśli istnieją równorzędne rozwiązania, UI ma
    zgłosić niejednoznaczność. Mały krok nie jest sam w sobie wynikiem lepszym.
 4. Uruchom całe oba filmy, obejrzyj wynik i dodatkowe podejrzane miejsca.

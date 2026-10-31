@@ -8,7 +8,7 @@ dodatkowych stosów obrazów w pamięci. Kończymy ocenę podstawowego wariantu 
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 
 Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
-W chwili realizacji REG-07 warianty z REG-02–05 oraz ręczne korekty REG-02a
+W chwili realizacji REG-07 warianty z REG-02, REG-04 i REG-05 oraz ręczne korekty REG-02a
 mają już działać na pełnej serii i współpracować z eksportem.
 Porównanie wykorzystuje podgląd i renderowanie z REG-01 oraz istniejącą
 nawigację. Ten ticket nie buduje osobnego odtwarzacza dwóch filmów.
@@ -16,7 +16,8 @@ nawigację. Ten ticket nie buduje osobnego odtwarzacza dwóch filmów.
 ## Zakres i kryteria odbioru
 
 - [ ] Z GUI można zapisać/otworzyć dokument próby: wersję formatu, tożsamość
-  źródeł i kolejność klatek, wersję kodu/commit, metodę i pełne ustawienia, maski, fragmenty kontroli,
+  źródeł i kolejność klatek, wersję kodu/commit, metodę i pełne ustawienia,
+  fragmenty kontroli,
   XY par/skumulowane, statusy i uzyskane diagnozy. Dokument nie zawiera obrazów.
 - [ ] Próby ręczne z REG-01a zachowują oznaczenie pochodzenia, początkowe XY,
   opis próby użytej jako punkt startu (jeśli była), łączną korektę, końcowe XY

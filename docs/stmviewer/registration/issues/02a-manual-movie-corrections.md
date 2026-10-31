@@ -8,7 +8,7 @@ Korzysta z odebranego [REG-01a](01a-manual-alignment.md).
 **Status:** done
 **Wykonawca:** Codex; baza przeglądu `c2c8f1f`.
 **Manualny odbiór:** użytkownik potwierdził „testy manualne ok” 2026-10-31.
-**Dodano do planu:** 2026-10-31, na zlecenie użytkownika, przed REG-03.
+**Dodano do planu:** 2026-10-31, na zlecenie użytkownika, po REG-02.
 
 Obowiązują [plan](../README.md), [protokół](../manual-protocol.md) i limity plików
 z instrukcji aplikacji. Numery wcześniejszych ticketów pozostają bez zmian.
@@ -146,7 +146,7 @@ w REG-07. Eksport poprawionego filmu jest częścią REG-02a, nie czeka na REG-0
 
 **Oczekiwany wynik:** operator poprawia konkretne przejścia w automatycznie
 zarejestrowanym filmie i może zapisać użyteczny poprawiony MPP/AVI.
-Manualny odbiór zakończony 2026-10-31; zależność REG-03 jest spełniona.
+Manualny odbiór zakończony 2026-10-31; zależność REG-04 jest spełniona.
 
 ## Wykonanie — 2026-10-31
 
@@ -158,7 +158,7 @@ MPP V4 przechowuje ręczną historię z pełną lekką bazą także po usunięci
 [Instrukcja GUI](../manual-movie-corrections-manual.md) obejmuje mały CPU,
 ułamkowe przesunięcia, MOVIE_4, eksport i odtwarzalne próby błędu/anulowania.
 [Wyniki i oba przeglądy](../reviews/REG-02a.md) rozdzielają testy automatyczne,
-rzeczywiste GUI i ręczny odbiór użytkownika. REG-03 jest odblokowany.
+rzeczywiste GUI i ręczny odbiór użytkownika. REG-04 jest odblokowany.
 
 Weryfikacja: rdzeń 15 PASS, eksport 45 PASS, końcowe powiązane GUI 36 PASS;
 mypy strict 43 PASS, Ruff PASS. Pełne repo: 2220 passed, 14 failed, 16 skipped;
@@ -168,6 +168,6 @@ Standards: 1 sugestia naprawiona, 0 otwartych; Spec: 0 uwag. Pliki kodu ≤893 l
 ## Odbiór — 2026-10-31
 
 Użytkownik potwierdził **„testy manualne ok”**. REG-02a zamknięto jako `done`;
-zależność REG-03 jest spełniona. Potwierdzenie nie podaje osobno systemu,
+zależność REG-04 jest spełniona. Potwierdzenie nie podaje osobno systemu,
 VLC ani wyników poszczególnych kroków, więc nie dopisujemy takich szczegółów
 do wcześniejszych dowodów automatycznych. Statusy odbioru platform pozostają bez zmian.

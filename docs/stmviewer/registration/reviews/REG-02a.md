@@ -125,12 +125,12 @@ Refaktor uruchamiania zadania zachował kontrakt. Nie znaleziono nieuzgodnionego
 rozszerzenia zakresu. Przegląd nie zastępuje oceny jakości przez użytkownika.
 
 Standards: 1 uwaga naprawiona, 0 otwartych. Spec: 0 uwag. Ręczny odbiór REG-02a
-zakończono 2026-10-31; REG-03 jest odblokowany.
+zakończono 2026-10-31; REG-04 jest odblokowany zgodnie z aktualnym planem.
 
 ## Ręczny odbiór użytkownika
 
 2026-10-31 użytkownik potwierdził **„testy manualne ok”**. REG-02a ma status
-`done`; odbiór odblokowuje REG-03. Odebrany kod: `976386c` i `f94b0a8`;
+`done`; odbiór spełnia zależność REG-04 w aktualnym planie. Odebrany kod: `976386c` i `f94b0a8`;
 dokumentacja wykonania: `8df875c`.
 
 Wiadomość nie wymienia systemu, użycia VLC ani szczegółowych wyników każdego

@@ -154,21 +154,3 @@ def test_constant_or_entirely_missing_pair_has_an_explicit_validity_mask():
     missing = frame(np.full((2, 3), np.nan))
     empty = PairImages(missing, missing).render()
     assert empty.overlap_pixels == 0 and not empty.rgba[:, :, 3].any()
-
-
-def test_shifted_missing_sample_invalidates_only_its_positive_weight_support():
-    samples = np.array([[0, 1, 2, 3], [4, 5, np.nan, 7], [8, 9, 10, 11]], dtype=float)
-    moving = frame(samples, 1)
-    pair = PairImages(frame(np.zeros((3, 4))), moving)
-    for xy, expected_valid in [
-        ((1, 0), [[0, 1, 1, 1], [0, 1, 1, 0], [0, 1, 1, 1]]),
-        ((-1, 0), [[1, 1, 1, 0], [1, 0, 1, 0], [1, 1, 1, 0]]),
-        ((0.5, 0), [[0, 1, 1, 1], [0, 1, 0, 0], [0, 1, 1, 1]]),
-        ((0.5, 0.25), [[0, 0, 0, 0], [0, 1, 0, 0], [0, 1, 0, 0]]),
-    ]:
-        raster = pair.render(xy, layer='moving')
-        np.testing.assert_array_equal(raster.rgba[:, :, 3], np.array(expected_valid) * 255)
-        assert raster.overlap_pixels == sum(sum(row) for row in expected_valid)
-    half = pair.render((0.5, 0), layer='moving')
-    assert half.rgba[0, 2, 0] == 34  # Midpoint 1.5 in the original 0..11 display range.
-    np.testing.assert_array_equal(moving.data, samples)

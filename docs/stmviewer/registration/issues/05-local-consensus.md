@@ -13,7 +13,8 @@ Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
 - [ ] Po zgrubnym XY metoda wybiera przestrzennie rozdzielone fragmenty
   z dostateczną teksturą i szuka ich odpowiedników w rozszerzonym otoczeniu
   drugiej klatki. Nie koreluje wyłącznie wycinków o tych samych współrzędnych.
-- [ ] Obie maski są respektowane w rzeczywistych miejscach fragmentów.
+- [ ] Fragmenty obejmują wyłącznie ważne próbki obu obrazów w rzeczywistych
+  miejscach dopasowania. Braki danych i padding nie są teksturą.
   Wielkości fragmentów, obszar poszukiwania i reguły konsensusu są zapisane
   w wersjonowanym zestawie ustawień; nie dobieramy ich po cichu osobno do filmu.
 - [ ] Agregacja odrzuca odstające dopasowania, uwzględnia niejednoznaczne
@@ -33,7 +34,7 @@ poszczególnych fragmentów. Wszystkie piksele klatki nadal otrzymują jedno XY.
 
 ## Publiczne granice TDD i automatyczne sprawdzenia
 
-- **Para/maski → globalne XY i dowody lokalne:** wzorzec ze znanym ruchem,
+- **Para → globalne XY i dowody lokalne:** wzorzec ze znanym ruchem,
   silnym nieruchomym artefaktem, częścią odstających fragmentów i konkurującymi
   grupami. Liczy się odzyskanie właściwego XY lub jawna odmowa, nie identyczne
   numery wewnętrznie wybranych fragmentów.
@@ -46,7 +47,8 @@ poszczególnych fragmentów. Wszystkie piksele klatki nadal otrzymują jedno XY.
 
 1. Na wzorcu z przesuniętą strukturą i nieruchomym pasem obejrzyj fragmenty
    zgodne/odrzucone. Sprawdź, czy wynik wynika z kilku części próbki.
-2. Na obu filmach porównaj REG-04 A z REG-05 B, zachowując te same maski.
+2. Na obu filmach porównaj REG-04 A z REG-05 B przy tych samych oryginałach
+   i ustawieniach podglądu.
    Dla każdej stałej pary sprawdź poparcie w różnych miejscach, nie tylko jego liczbę.
 3. Obejrzyj dostarczony wzorzec, w którym góra i dół mają różne XY. Wynik
    nie może udawać korekcji obu części; rozbieżność ma być widoczna.

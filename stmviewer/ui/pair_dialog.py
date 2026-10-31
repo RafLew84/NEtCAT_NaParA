@@ -11,7 +11,6 @@ from PyQt6.QtWidgets import (
 
 from stmviewer.deep_matcher import DeepMatcherOptions, deep_unavailable_reason
 from stmviewer.frame import ImageFrame
-from stmviewer.registration_masks import FrameMasks
 from stmviewer.manual_pair import ManualPairDraft
 from stmviewer.manual_movie import movie_pair_trial
 from stmviewer.ui.manual_movie_controls import ManualMovieControls
@@ -26,21 +25,19 @@ from stmviewer.ui.raster import frame_aspect
 
 class PairComparisonDialog(QDialog):
     busy_changed = pyqtSignal()
-    mask_editor_requested = pyqtSignal(int)
     movie_apply_requested = pyqtSignal(object)
     movie_remove_requested = pyqtSignal(int)
     movie_cancel_requested = pyqtSignal()
 
     def __init__(self, frames: tuple[ImageFrame, ...], moving_index: int, parent: QWidget,
                  *, method: str = 'phase_correlation', deep_options: DeepMatcherOptions | None = None,
-                 backend: ShiftBackend | None = None, masks: FrameMasks | None = None) -> None:
+                 backend: ShiftBackend | None = None) -> None:
         super().__init__(parent)
         self.setObjectName('pairComparison')
         self.setWindowTitle('Dopasowanie pary klatek')
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.resize(1180, 820)
         self._frames = frames
-        self._masks = masks if masks is not None else FrameMasks()
         self._backend = backend
         self._job: PairJob | None = None
         self._closing = False
@@ -133,19 +130,6 @@ class PairComparisonDialog(QDialog):
         self._method.setCurrentIndex(self._method.findData(method))
         auto_layout.addWidget(QLabel('Metoda', self))
         auto_layout.addWidget(self._method)
-        self._use_masks = QCheckBox('Uwzględnij oznaczenia klatek', self)
-        self._use_masks.setObjectName('pairUseMasks')
-        self._use_masks.setChecked(True)
-        auto_layout.addWidget(self._use_masks)
-        self._edit_masks = QPushButton('Edytuj maski tej pary…', self)
-        self._edit_masks.setObjectName('editPairMasks')
-        self._edit_masks.clicked.connect(lambda: self.mask_editor_requested.emit(self._number.value() - 1))
-        auto_layout.addWidget(self._edit_masks)
-        self._mask_info = QLabel(self)
-        self._mask_info.setObjectName('pairMasksInfo')
-        self._mask_info.setWordWrap(True)
-        self._mask_info.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
-        auto_layout.addWidget(self._mask_info)
         self._deep = DeepMatcherControls(self)
         self._deep.check.hide()
         if deep_options is not None:
@@ -331,10 +315,6 @@ class PairComparisonDialog(QDialog):
         self._sync()
         self._render(reset_view=True)
 
-    def refresh_masks(self) -> None:
-        # Keep completed trial images and their captured settings intact.
-        self._sync()
-
     def _sync(self) -> None:
         method = str(self._method.currentData())
         self._deep.setVisible(method == 'deep_matcher_translation')
@@ -343,21 +323,13 @@ class PairComparisonDialog(QDialog):
         self._availability.setText(reason or '')
         available = self._available and not self.busy
         editing = self._draft is not None
-        self._use_masks.setVisible(method == 'masked_correlation')
-        self._use_masks.setEnabled(available and not editing)
-        self._edit_masks.setEnabled(available)
-        index = self._number.value() - 1
-        rectangles = [len(self._masks.get(frame).rectangles) for frame in self._frames[index - 1:index + 1]]
-        self._mask_info.setText(f'Oznaczenia: bazowa {rectangles[0]}, przesuwana {rectangles[1]}. '
-                               'Edycja wpływa na kolejne obliczenie metodą Korelacja z maskami.')
         self._run.setEnabled(available and not editing and reason is None)
         self._cancel.setVisible(self.busy)
         self._pin.setEnabled(available and not editing and self._trial is not None)
         for button, title, trial in ((self._current_choice, 'Wynik bieżący', self._trial),
                                      (self._saved_choice, 'Wynik zachowany', self._pinned)):
-            label = trial.label.replace(' — ', '\n') if trial is not None else ''
             description = ('Brak wyniku' if trial is None else
-                           f'{label}\nΔX: {trial.shift_xy[0]:g} px · ΔY: {trial.shift_xy[1]:g} px')
+                           f'{trial.label}\nΔX: {trial.shift_xy[0]:g} px · ΔY: {trial.shift_xy[1]:g} px')
             button.setText(f'{title}\n{description}')
             button.setEnabled(available and not editing and trial is not None)
         self._manual.sync(available=available, editing=editing,
@@ -431,8 +403,7 @@ class PairComparisonDialog(QDialog):
         index = self._number.value() - 1
         job = PairJob(self._frames[index - 1], self._frames[index], self,
                       method=str(self._method.currentData()), deep_options=self._deep.options(),
-                      backend=self._backend, reference_mask=self._masks.get(self._frames[index - 1]),
-                      moving_mask=self._masks.get(self._frames[index]), use_masks=self._use_masks.isChecked())
+                      backend=self._backend)
         self._job = job
         self._message.setText('Obliczanie wyłącznie tej pary…')
         self._cancel.setEnabled(True)

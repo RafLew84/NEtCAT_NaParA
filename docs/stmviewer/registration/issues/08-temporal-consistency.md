@@ -13,7 +13,8 @@ Przed startem potwierdzamy, że problemy pozostałe po REG-07 uzasadniają ten e
 ## Zakres i kryteria odbioru
 
 - [ ] Dla kolejnych trójek i wskazanej trójki program wyznacza także
-  bezpośrednie A→C tą samą metodą, z właściwymi maskami i ustawieniami.
+  bezpośrednie A→C tą samą metodą i z tymi samymi ustawieniami,
+  z uwzględnieniem ważności próbek obu obrazów.
 - [ ] UI pokazuje trzy wektory, resztę złożenia w pikselach oraz źródłowe
   numery klatek. Można otworzyć każdą z trzech par w porównaniu obrazów.
 - [ ] Brak części wspólnej, tekstury lub wyniku jednej pary oznacza brak

@@ -75,15 +75,19 @@ są opisane w [raporcie rozpoznania](registration-difficult-movies.md).
 
 ## Propozycja do sprawdzenia na obu filmach
 
-Poniższe kroki są projektem eksperymentu, a nie sprawdzoną naprawą.
+Aktualizacja 2026-10-31: użytkownik zrezygnował z rejestracji z maskami.
+Poniższa propozycja jest zgodna z [aktualnym planem](registration/README.md),
+bez etapu ręcznego ani automatycznego maskowania. Opisy masek w przeglądzie
+publikacji powyżej pozostają informacją o tych źródłach, nie wymaganiem aplikacji.
+Kroki są projektem eksperymentu, a nie sprawdzoną naprawą.
 
-1. **Wyznaczyć obszary nadające się do dopasowania.** Zacząć od ręcznie wskazanych
-   fragmentów stabilnych struktur i wykluczenia uszkodzonych pasów. Następnie
-   zbadać automatyczne wykrywanie takich pasów. Nie maskować wszystkich silnych
-   poziomych krawędzi: mogą należeć do próbki. Maska oznacza pominięcie danych
-   w estymacji, bez wypełniania uszkodzeń sztucznym sygnałem.
-2. **Oszacować globalne XY od dużych struktur do szczegółów.** Porównać korelację
-   fazową, bez normalizacji i korelację z maskami. Wykorzystać piramidę skal,
+1. **Wybrać rozpoznawalne fragmenty do oceny wyniku.** Zapisać struktury w różnych
+   częściach obrazu i oddzielić kontrolę od danych używanych do estymacji.
+   Lokalne rozbieżności, zakłócenia i tearing opisać osobno; nie wypełniać
+   uszkodzeń sztucznym sygnałem.
+2. **Oszacować globalne XY od dużych struktur do szczegółów.** Porównać wariant
+   wieloskalowy z dostępnymi metodami, w tym korelacją fazową, bez normalizacji
+   oraz Deep Matcher. Wykorzystać piramidę skal,
    zweryfikować alternatywne maksima korelacji we wspólnym obszarze i dopiero
    potem doprecyzować przesunięcie. Na okresowym obrazie jeden wysoki pik może
    odpowiadać sąsiedniemu powtórzeniu wzoru, nie tej samej strukturze.

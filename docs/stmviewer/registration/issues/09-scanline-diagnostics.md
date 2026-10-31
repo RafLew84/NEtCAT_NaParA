@@ -21,7 +21,7 @@ Przed startem zapisujemy wynik REG-07 i przykłady problemów wewnątrz klatki.
   między pasami, czy ma skok. Nie interpretuje automatycznie każdego wzoru
   jako artefaktu: możliwy jest rzeczywisty ruch lub zmiana struktury.
 - [ ] Wykres i nakładka odnoszą się do tych samych oryginalnych współrzędnych,
-  uwzględniają maski i wspólny ważny obszar. Brak danych nie jest zerem.
+  uwzględniają wspólny obszar ważnych próbek. Brak danych nie jest zerem.
 - [ ] Diagnostyka zapisuje ustawienia i wyniki w dokumencie próby, ale nie
   deformuje pikseli, nie zmienia aktywnego aligned i nie modyfikuje MPP/AVI.
 - [ ] Odbiór kończy się udokumentowaną decyzją o dalszej korekcji: przykłady,

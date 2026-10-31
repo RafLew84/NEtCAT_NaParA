@@ -1,51 +1,49 @@
 # Przekazanie — STM Viewer
 
-## REG-03: ręczne maski zakłóceń — 2026-10-31
+## Wycofanie REG-03 na życzenie użytkownika — 2026-10-31
 
-[Ticket](registration/issues/03-manual-masks.md): `ready-for-review`.
-Baza przeglądu `270097b`; implementacja `868dae4`, poprawki `b318e1d`, `5bc7175`,
-`61fa45c`. Gałąź `viewer/registration-difficult-movies`. REG-04 czeka na odbiór
-użytkownika i osobne zlecenie. REG-02a zamknięto zgodnie z wcześniejszą akceptacją.
+Użytkownik zrezygnował z rejestracji z ręcznymi maskami i polecił usunąć
+ostatnią implementację oraz maski z planu. Cofnięto zmiany commitów
+`868dae4`, `b318e1d`, `5bc7175`, `61fa45c`, `3455dbe` nową zmianą w Git,
+z zachowaniem dotychczasowej historii.
 
-- **Edytuj maski…**: osobne oryginalne klatki, prostokąty użyj/pomiń,
-  rzeczywista kolorowa maska, zoom/pan i gamma. Powiązanie przez źródło;
-  usunięcie jednej klatki zachowuje inne, nowy import czyści komplet.
-- **Korelacja z maskami (v1)**: ten sam masked NCC z oznaczeniami i bez,
-  osobne maski obu obrazów, para i pełny film. Niezweryfikowana pewność,
-  jawna odmowa przy braku poparcia/tekstury, bez ukrytej zamiany metody.
-  Dotychczasowe metody nie używają tych masek. Oznaczenia działają w sesji;
-  ich zapis odłożony do REG-07, zgodnie z zakresem.
-- Niezmienne kopie masek podczas pracy; edycja zachowuje gotowe próby/aligned.
-  Blokady, postęp/anulowanie i podmiana po sukcesie. MPP/AVI zachowują wartości
-  wykluczone podczas estymacji, bez kolorowej nakładki. Wspólny renderer pary
-  i aligned naprawia utratę próbek obok NaN; nie wypełnia braków.
-- Końcowy Viewer: **454 PASS, 2 SKIP**, 57,47 s (opcjonalne testy wag LoFTR).
-  Pełne repo na implementacji: 2237 PASS, 14 FAIL, 16 SKIP; identyczne 14
-  wcześniejszych błędów MolTrack/NanoTrack, bez błędów Viewera. Po poprawkach
-  powtórzono pełny Viewer. Mypy strict 49 plików i Ruff PASS; największy
-  zmieniony plik kodu 915 linii. Logi zachowane lokalnie.
-- Widoczne Qt/xcb sterowane skryptem: wzorzec, maski, podgląd pary, pełny film,
-  MOVIE_8 z błędem i rzeczywistym anulowaniem — PASS. Końcowy wzorzec powtórzony
-  na `61fa45c`; karty czytelne przy 1080×760. To nie odbiór użytkownika.
-- MOVIE_4 źródłowe 3–364 i MOVIE_8: pełne próby off/on, MPP roundtrip, FFV1
-  decode, brak zmiany źródeł. Wybrane pasy nie potwierdzają poprawy jakości:
-  MOVIE_4 nadal wykazuje duży błędny dryf. Dokładne zakresy i XY w karcie.
-- Code-review końcowego kodu: Standards 0 uwag; Spec 1 P2 naprawiona,
-  0 otwartych. Odbiór użytkownika, VLC i Windows 11 pozostają niewykonane.
+- Kod `stmviewer/` i testy `tests/stmviewer/` są identyczne jak w `270097b`,
+  czyli po zaakceptowanym REG-02a. Usunięto edytor, nową metodę, powiązane
+  kontrolki, backend, testy, wzorzec i diagnostykę REG-03.
+- Z planu usunięto ticket REG-03 i wymagania edytowalnych masek w dalszych
+  zadaniach. Następny [REG-04](registration/issues/04-multiscale-translation.md)
+  zależy bezpośrednio od REG-02a i czeka na osobne zlecenie. Numeracja zostaje.
+  Fragmenty kontroli i opis ważności próbek aligned nadal należą do ich
+  dotychczasowego zakresu; ręczne korekty filmu działają jak w REG-02a.
+- Usunięto instrukcję i kartę prób wycofanej implementacji. Wyniki historyczne
+  pozostają w commitach oraz lokalnym `data/registration-reg03-review/`.
+- Sprawdzenia po wycofaniu: **434 PASS, 2 SKIP**, pełny `tests/stmviewer`
+  (63,36 s). Pominięto opcjonalne próby lokalnych wag LoFTR CPU/CUDA.
+  Mypy strict: **43 pliki bez błędów**. Potwierdzono pusty diff kodu/testów
+  względem `270097b`. Nie ponawiano testów innych aplikacji: brak zmian
+  wspólnych, przywrócony kod identyczny z odebranym REG-02a.
+- Widoczne Qt/xcb sterowane skryptem: sześć dotychczasowych metod, brak
+  kontrolek masek, Phase i ręczna korekta +1X przez „Zastosuj do filmu” PASS.
+  Na cpu.mpp końcowe XY: (0,0), (3,−1), (0,1). To próba automatycznie
+  sterowana w rzeczywistym oknie, nie nowy odbiór użytkownika.
+- Log testów oraz skrypt/zrzuty kontrolne: `data/registration-reg03-removal-review/`.
+  Sprawdzono 295 lokalnych odnośników; diff bez błędów formatowania.
+  Niezależny przegląd wycofania kodu i zmiany planu: bez uwag.
 
-Start w `netcat`: `python -m stmviewer.main`.
-[Instrukcja manualna](registration/manual-masks-manual.md),
-[karta sprawdzeń](registration/reviews/REG-03.md).
-Artefakty: `data/registration-reg03-review/` (lokalne, poza Git).
-Brak potrzebnych zmian współdzielonych. Statusy starszych 19–21 bez zmian.
-Starsze wpisy poniżej opisują stan w chwili ich zapisania.
+Start w `netcat`: `python -m stmviewer.main`. Próba kontrolna: otworzyć
+`tests/stmviewer/fixtures/registration/cpu.mpp`, sprawdzić brak „Edytuj maski…”
+i metody „Korelacja z maskami”, wykonać Phase, otworzyć „Porównaj parę…” i użyć
+ręcznej korekty według [instrukcji REG-02a](registration/manual-movie-corrections-manual.md).
+Nie wykonywano nowego odbioru użytkownika ani prób Windows/VLC. Brak zmian
+współdzielonych. Starsze wpisy poniżej opisują ówczesny stan; wycofany REG-03
+nie należy już do aktualnego planu.
 
 ## REG-02a: odbiór użytkownika — 2026-10-31
 
 Użytkownik potwierdził **„testy manualne ok”**. [REG-02a](registration/issues/02a-manual-movie-corrections.md)
-zamknięto jako `done`; zależność [REG-03](registration/issues/03-manual-masks.md)
-jest spełniona. REG-03 pozostaje `ready-for-agent`; ta aktualizacja dokumentuje
-odbiór poprzedniego etapu i nie zmienia zakresu kolejnego.
+zamknięto jako `done`. Po późniejszej rezygnacji z REG-03 następnym etapem jest
+[REG-04](registration/issues/04-multiscale-translation.md), którego zależność
+od zaakceptowanego REG-02a jest spełniona.
 
 Odebrany kod: `976386c` i `f94b0a8`; dokumentacja wykonania: `8df875c`.
 [Pełna karta](registration/reviews/REG-02a.md#ręczny-odbiór-użytkownika) zachowuje

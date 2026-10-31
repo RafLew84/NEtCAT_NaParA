@@ -167,24 +167,16 @@ class ImagePreview(QWidget):
         else:
             super().mouseReleaseEvent(event)
 
-    def image_rect(self) -> QRectF | None:
-        """Current widget rectangle of the full raster, including zoom and pan."""
-        if self._image is None:
-            return None
-        width = min(float(self.width()), self.height() * self._aspect) * self._zoom
-        height = width / self._aspect
-        target = QRectF((self.width() - width) / 2, (self.height() - height) / 2,
-                        width, height)
-        target.translate(self._pan)
-        return target
-
     def paintEvent(self, event: QPaintEvent | None) -> None:
         painter = QPainter(self)
         painter.fillRect(self.rect(), self.palette().window())
         if self._image is None:
             return
-        target = self.image_rect()
-        assert target is not None
+        width = min(float(self.width()), self.height() * self._aspect) * self._zoom
+        height = width / self._aspect
+        target = QRectF((self.width() - width) / 2, (self.height() - height) / 2,
+                        width, height)
+        target.translate(self._pan)
         draw_frame(painter, target, self._image)
         if self._original_rect is not None:
             x, y, w, h = self._original_rect

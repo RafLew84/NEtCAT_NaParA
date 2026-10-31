@@ -13,8 +13,10 @@ Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
 - [ ] W podglądzie pary można nadać prostokątom rolę kontroli. Dla nowego
   wariantu walidowanego wykluczamy te dane z estymacji, również z etapu
   zgrubnego. Obszary w OBU klatkach i margines poszukiwania zamrażamy przed
-  estymacją; nie wyznaczamy maski drugiej klatki z ocenianego dopiero XY.
+  estymacją; nie wyznaczamy obszaru kontroli drugiej klatki z ocenianego dopiero XY.
   Wykluczenie obejmuje wpływ tych danych przez filtry i piramidę rozdzielczości.
+  To wydzielenie danych kontrolnych dla tej próby, bez edytora obszarów
+  „użyj/pomiń” do ogólnej rejestracji.
 - [ ] Wynik kontrolny mierzy pozostałe lokalne przesunięcie i jednoznaczność
   dopasowania na tych fragmentach. Nie służy wyborowi kandydata XY, strojeniu
   parametrów ani iteracyjnemu poprawianiu tej samej próby.

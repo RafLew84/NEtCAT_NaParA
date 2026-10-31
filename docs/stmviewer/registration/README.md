@@ -9,9 +9,8 @@ Deep Matcher ocenia najlepiej w obejrzanych pierwszych 100 klatkach.
 [Instrukcja REG-02](unnormalized-correlation-manual.md), [wyniki](reviews/REG-02.md).
 [REG-02a: ręczne korekty filmu](issues/02a-manual-movie-corrections.md) zamknięto
 jako `done` po potwierdzeniu użytkownika „testy manualne ok” 2026-10-31.
-REG-03 ma status `ready-for-review`: maski oryginalnych klatek i osobny wariant masked NCC
-są wdrożone dla pary oraz pełnego filmu. [Instrukcja próby](manual-masks-manual.md),
-[karta sprawdzeń](reviews/REG-03.md). REG-04 czeka na odbiór użytkownika.
+Następnym etapem jest [REG-04: Dopasowanie wieloskalowe](issues/04-multiscale-translation.md).
+Jego zależność REG-02a jest spełniona; start wymaga osobnego zlecenia.
 [Instrukcja REG-02a](manual-movie-corrections-manual.md), [sprawdzenia](reviews/REG-02a.md).
 Dalsze próby MOVIE_4
 obejmują źródłowe klatki 3–364, zgodnie z [protokołem](manual-protocol.md).
@@ -20,6 +19,11 @@ Użytkownik wybrał układ C; jest wdrożony z opisowymi kartami wyników i ręc
 sterowaniem pod obrazem. [Aktualny przegląd i próby](reviews/REG-01a-layout-c.md).
 Wcześniejsze A/B w opisach mapy odpowiadają wynikowi zachowanemu/bieżącemu.
 Zlecenie użytkownika: małe tickety, ręczna ocena wpływu i jakości po każdym.
+
+**Zmiana zakresu — 2026-10-31:** na życzenie użytkownika usunięto implementację
+i etap REG-03 (rejestracja z ręcznymi maskami). Usunięto też wymagania takich
+oznaczeń w dalszych etapach. Pozostałe tickety zachowują numery; REG-04
+następuje bezpośrednio po odebranym REG-02a.
 
 ## Cel i zakres
 
@@ -32,8 +36,9 @@ Podstawa: [rozpoznanie danych](../registration-difficult-movies.md),
 [przegląd metod i źródła](../registration-improvement-options.md).
 Nowe zlecenie rozpoczyna etap rozwoju metod odłożony w
 [mapie pierwszej wersji](../map.md). Nie zmienia historycznych odbiorów 01–21.
-W tej numeracji używamy **REG-01…REG-09** oraz dodanych **REG-01a i REG-02a**, aby uniknąć
-kolizji i zachować numery istniejących zadań.
+Zachowujemy dotychczasowe identyfikatory ticketów, w tym **REG-01a i REG-02a**,
+aby uniknąć kolizji i zmian numerów istniejących zadań. Plan obejmuje osiem
+etapów podstawowych i dwa warunkowe.
 
 ## Kolejność i wynik każdego ticketu
 
@@ -43,8 +48,7 @@ kolizji i zachować numery istniejących zadań.
 | [REG-01a: Ręczne dopasowanie pary](issues/01a-manual-alignment.md) | Ruch klatki dopasowywanej ±1 px w X/Y, nakładka/przełączanie obrazów, start z zera lub korekta próby, zachowanie ręcznego wyniku jako B. | REG-01 |
 | [REG-02: Korelacja bez normalizacji](issues/02-unnormalized-correlation.md) | Osobny wariant dostępny dla pary i całej serii, z porównaniem do dotychczasowego Phase. | REG-01a |
 | [REG-02a: Ręczne korekty filmu](issues/02a-manual-movie-corrections.md) | Jawne zastosowanie ręcznego XY pary do całego aligned, przeliczenie dalszych klatek, cofnięcie korekty pary i eksport poprawionego MPP/AVI. | REG-02 |
-| [REG-03: Ręczne maski zakłóceń](issues/03-manual-masks.md) | Zaznaczanie obszarów używanych i pomijanych; rejestracja uwzględnia osobne maski klatek. | REG-02a |
-| [REG-04: Dopasowanie wieloskalowe](issues/04-multiscale-translation.md) | Zgrubne XY i doprecyzowanie na pełnym obrazie; jawna ocena niejednoznacznych dopasowań. | REG-03 |
+| [REG-04: Dopasowanie wieloskalowe](issues/04-multiscale-translation.md) | Zgrubne XY i doprecyzowanie na pełnym obrazie; jawna ocena niejednoznacznych dopasowań. | REG-02a |
 | [REG-05: Zgodność lokalnych fragmentów](issues/05-local-consensus.md) | Wektory dopasowania fragmentów, wskazanie zgodnych/odrzuconych i odporne wyznaczanie globalnego XY. | REG-04 |
 | [REG-06: Niezależna kontrola dopasowania](issues/06-independent-validation.md) | Ocena na wydzielonych fragmentach kontrolnych i lista par wymagających obejrzenia. | REG-05 |
 | [REG-07: Zapis prób i odbiór pełnych filmów](issues/07-full-movie-comparison.md) | Odtwarzalne porównanie pełnych wyników, zapis/odczyt ustawień i przesunięć, odbiór MOVIE_4/MOVIE_8. | REG-06 |
@@ -55,12 +59,11 @@ REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [instrukcja próby](pair-comparison-manual.md),
 [karta odbioru](reviews/REG-01.md). REG-01a ma status `done` po odbiorze
 użytkownika 2026-10-31. REG-02 i REG-02a również odebrano 2026-10-31 (`done`).
-REG-03 ma status `ready-for-review`.
 REG-04–07 mają status `ready-for-agent`:
 zakres jest przygotowany, ale start
 wymaga zlecenia użytkownika i zakończenia blokujących ticketów. REG-08/09 mają
 status `planned`; nie uruchamiamy ich automatycznie. Nie zależą od siebie.
-Kolejność REG-01 → REG-01a → REG-02 → REG-02a → REG-03–07 jest również kolejnością ręcznych
+Kolejność REG-01 → REG-01a → REG-02 → REG-02a → REG-04 → REG-05 → REG-06 → REG-07 jest również kolejnością ręcznych
 odbiorów: chcemy ocenić pojedynczą zmianę przed dołożeniem następnej, nawet jeśli część kodu można
 technicznie napisać niezależnie.
 
@@ -85,15 +88,15 @@ technicznie napisać niezależnie.
   dotychczasowy aligned/eksport zostaje, lecz dalsza edycja wymaga nowej rejestracji.
   Eksport poprawionego filmu i ręcznego pochodzenia należy już do REG-02a;
   zapis edytowalnych prób przy oryginalnych źródłach pozostaje w REG-07.
-- Każda metoda dodawana w REG-02–05 działa od razu na parze i na całej serii,
+- Każda metoda dodawana w REG-02, REG-04 i REG-05 działa od razu na parze i na całej serii,
   przez ten sam estymator. REG-07 nie odkłada podstawowej integracji z GUI.
 - Dotychczasowe metody pozostają dostępne. Nowe warianty są jawnie wybierane,
   bez automatycznej zmiany domyślnej metody ani cichego zastępowania po błędzie.
-- Pomocnicze filtrowanie/maski służą wyznaczaniu przesunięcia. Aligned powstaje
+- Pomocnicze filtrowanie służy wyznaczaniu przesunięcia. Aligned powstaje
   z oryginalnych wartości, z jedną interpolacją końcową. Gamma nie wpływa na XY.
-- Nowa maska obliczeń jest odrębna od maski ważności aligned. Zaznaczenie
-  zakłócenia nie usuwa ani nie wypełnia jego pikseli w zapisanym obrazie.
-- Współrzędne masek i fragmentów odnoszą się do original i pochodzenia klatki.
+- Maska ważności aligned nadal opisuje faktycznie dostępne próbki. Brakujące
+  dane i padding nie uczestniczą w ocenie dopasowania jako struktury obrazu.
+- Współrzędne fragmentów odnoszą się do original i pochodzenia klatki.
   Wspólny układ porównania zakotwiczamy w źródłowej klatce odniesienia;
   różny padding wyników nie może przesuwać podglądu A/B.
 - Porównanie przechowuje ustawienia, przesunięcia i potrzebne metadane,
@@ -162,9 +165,9 @@ warunkiem odbioru dużych eksportów. Próby na Ubuntu nie oznaczają odbioru Wi
 
 ## Poza bieżącą implementacją
 
-Automatyczne maskowanie zakłóceń, swobodna deformacja obrazu, prostowanie do
-założonej sieci molekuł, trening/pobieranie modeli, zastępowanie brakujących
-danych oraz wygładzanie trajektorii dryfu nie należą do REG-01–07.
+Swobodna deformacja obrazu, prostowanie do założonej sieci molekuł,
+trening/pobieranie modeli, zastępowanie brakujących danych oraz wygładzanie
+trajektorii dryfu nie należą do etapów podstawowych tego planu.
 REG-08 nie optymalizuje jeszcze trajektorii; REG-09 nie deformuje pikseli.
 Wdrożenie rzeczywistej korekcji tearingu wymaga po REG-09 osobnego planu:
 modelu deformacji, zachowania rzeczywistego ruchu, geometrii, ważności próbek

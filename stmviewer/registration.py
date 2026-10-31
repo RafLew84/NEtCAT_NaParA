@@ -14,15 +14,11 @@ from numpy.typing import NDArray
 from stmviewer.frame import ImageFrame
 from stmviewer.manual_movie_types import MovieBaselineFrame, MovieCorrection, MovieSource
 from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
-from stmviewer.masked_correlation import MASKED_METHOD, MASKED_LABEL, MaskedCorrelationShiftBackend, masked_label
-from stmviewer.registration_masks import FrameMask
-from stmviewer.registration_samples import translate_samples
 
 
 CPU_METHODS = {
     "phase_correlation": "Phase",
     "phase_no_normalization": "Korelacja bez normalizacji (v1)",
-    MASKED_METHOD: MASKED_LABEL,
     "tile_correlation_ransac": "Tile+RANSAC",
     "ecc_translation": "ECC",
     "optical_flow_median": "Optical Flow",
@@ -97,7 +93,6 @@ class ShiftBackend(Protocol):
 def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_correlation",
                     backend: ShiftBackend | None = None,
                     deep_options: DeepMatcherOptions | None = None,
-                    masks: tuple[FrameMask, ...] | None = None, use_masks: bool = True,
                     progress: Callable[[int, int, str], None] | None = None,
                     cancelled: Callable[[], bool] | None = None) -> RegistrationResult:
     """Align adjacent originals with the selected method and fixed settings."""
@@ -113,18 +108,14 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
     checkpoint()
     if method not in REGISTRATION_METHODS:
         raise RegistrationError(f"Nieznana metoda rejestracji: {method}")
-    label = masked_label(use_masks) if method == MASKED_METHOD else REGISTRATION_METHODS[method]
+    label = REGISTRATION_METHODS[method]
     if not frames:
         raise RegistrationError("Seria jest pusta.")
-    selections = tuple(masks) if masks is not None else (FrameMask(),) * len(frames)
-    if method == MASKED_METHOD and (len(selections) != len(frames)
-                                   or any(not isinstance(mask, FrameMask) for mask in selections)):
-        raise RegistrationError('Maski muszą odpowiadać wszystkim klatkom bieżącej serii.')
     for i, frame in enumerate(frames):
         checkpoint()
         if frame.data.ndim != 2 or min(frame.data.shape) < 1 or frame.data.shape != frames[0].data.shape:
             raise RegistrationError(f"Klatka {i + 1}: niezgodne lub puste wymiary obrazu.")
-        if method != MASKED_METHOD and not np.isfinite(frame.data).all():
+        if not np.isfinite(frame.data).all():
             raise RegistrationError(f"Klatka {i + 1}: {label} wymaga skończonych próbek; wejście zawiera NaN/Inf.")
     device = 'CPU'
     if method == 'deep_matcher_translation':
@@ -133,15 +124,6 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
         backend, device = loaded.backend, loaded.device
     else:
         backend = backend if backend is not None else create_shift_backend(method)
-    if method == MASKED_METHOD:
-        if not isinstance(backend, MaskedCorrelationShiftBackend):
-            raise RegistrationError('Masked NCC wymaga backendu obsługującego obie maski.')
-        for i, (frame, mask) in enumerate(zip(frames, selections)):
-            checkpoint()
-            try:
-                backend.validate(frame.data, mask, use_masks)
-            except ValueError as error:
-                raise RegistrationError(f'Klatka {i + 1}: {error}') from error
     shifts = [(0.0, 0.0)]
     statuses = ['ok']
     qualities: list[float | None] = [1.0]
@@ -150,13 +132,7 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
     for i in range(1, len(frames)):
         checkpoint()
         try:
-            if method == MASKED_METHOD:
-                assert isinstance(backend, MaskedCorrelationShiftBackend)
-                pair = backend.estimate_masked(frames[i - 1].data, frames[i].data, moving_frame_index=i,
-                                               reference_mask=selections[i - 1], moving_mask=selections[i],
-                                               use_masks=use_masks)
-            else:
-                pair = backend.estimate(frames[i - 1].data, frames[i].data, moving_frame_index=i)
+            pair = backend.estimate(frames[i - 1].data, frames[i].data, moving_frame_index=i)
             if (pair is None or pair.frame_index != i or pair.status not in severity
                     or pair.status == 'failed'):
                 raise ValueError("brak poprawnego wyniku klatki lub status failed")
@@ -195,7 +171,8 @@ def render_registration(
         inherited: tuple[bool, ...], *, reference: FrameOrigin, method: str, device: str,
         progress: Callable[[int, int, str], None] | None = None,
         cancelled: Callable[[], bool] | None = None) -> RegistrationResult:
-    """Build aligned originals with exact integer shifts or one linear interpolation."""
+    """Build one aligned image per original with a single linear interpolation."""
+    from scipy.ndimage import affine_transform
 
     def checkpoint() -> None:
         if cancelled is not None and cancelled():
@@ -223,7 +200,10 @@ def render_registration(
         checkpoint()
         try:
             x, y = left + shift[0], top + shift[1]
-            values = translate_samples(frame.data, (x, y), shape)
+            values = np.asarray(affine_transform(
+                frame.data, matrix=np.eye(2), offset=(-y, -x), output_shape=shape,
+                order=1, mode='constant', cval=np.nan, prefilter=False,
+            ), dtype=np.float64)
             mask = np.isfinite(values)
             values.setflags(write=False)
             mask.setflags(write=False)
@@ -274,8 +254,6 @@ def create_shift_backend(method: str) -> ShiftBackend:
     """Use NanoTrack defaults or the explicit unnormalized variant; never substitute."""
     if method not in CPU_METHODS:
         raise RegistrationError(f"Nieznana metoda rejestracji: {method}")
-    if method == MASKED_METHOD:
-        return MaskedCorrelationShiftBackend()
     if method == "phase_no_normalization":
         from nanotrack.registration.phase_correlation import (
             PhaseCorrelationShiftBackend, PhaseCorrelationShiftConfig,
@@ -302,7 +280,7 @@ def create_shift_backend(method: str) -> ShiftBackend:
 
 def estimate_confidence(method: str, result: RegistrationFrameResult) -> tuple[str, float | None]:
     """Do not reuse the phase-peak score for an unnormalized estimate."""
-    if method in ('phase_no_normalization', MASKED_METHOD):
+    if method == 'phase_no_normalization':
         return 'manual_review', None
     quality = float(result.quality_score)
     if not np.isfinite(quality) or not 0 <= quality <= 1:

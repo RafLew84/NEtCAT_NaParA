@@ -13,7 +13,7 @@ Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
 ## Zakres i kryteria odbioru
 
 - [x] Osobno nazwany wariant korzysta z korelacji bez normalizacji fazowej
-  na surowych danych. Nie łączy tej zmiany z filtrowaniem, maskami lub innym
+  na surowych danych. Nie łączy tej zmiany z filtrowaniem lub innym
   sposobem wyznaczania odniesienia. Dotychczasowy Phase zachowuje zachowanie.
 - [x] Ten sam wariant działa w podglądzie pary i w zwykłym Rejestruj dla całej
   serii; znaki XY, sumowanie względem pierwszej klatki i geometria są wspólne.
@@ -74,9 +74,9 @@ Pełne wyniki, ograniczenia formatu i przegląd: [karta REG-02](../reviews/REG-0
 ## Odbiór — 2026-10-31
 
 Użytkownik zaakceptował testy manualne. REG-02 zamknięto jako `done`.
-Aktualizacja planu 2026-10-31: przed REG-03 dodano
-[REG-02a: ręczne korekty filmu](02a-manual-movie-corrections.md); REG-03 czeka
-na jego implementację i manualny odbiór. Akceptacja funkcji REG-02 nie oznacza
+Aktualizacja planu 2026-10-31: po REG-02 dodano i odebrano
+[REG-02a: ręczne korekty filmu](02a-manual-movie-corrections.md). Następny etap
+to [REG-04](04-multiscale-translation.md), zgodnie z aktualnym planem. Akceptacja funkcji REG-02 nie oznacza
 potwierdzenia poprawy jakości: w MOVIE_4 użytkownik nie widzi dużej różnicy
 między Phase a wariantem bez normalizacji. Najlepiej ocenił Deep Matcher
 w obejrzanych pierwszych 100 klatkach. [Pełna relacja](../reviews/REG-02.md#ręczny-odbiór-użytkownika).

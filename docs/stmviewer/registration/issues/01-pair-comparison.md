@@ -31,7 +31,7 @@ Obowiązują [plan i kontrakty](../README.md) oraz [protokół odbioru](../manua
   próbę, pokazując wyraźnie niepowodzenie nowej; nie pojawia się zastępcze XY=0.
   Nowy import i zmiana składu serii unieważniają niepasujące próby.
 
-Poza zakresem: nowe algorytmy, maski, zapis porównań na dysk, automatyczna ocena jakości.
+Poza zakresem: nowe algorytmy, zapis porównań na dysk, automatyczna ocena jakości.
 
 ## Publiczne granice TDD i automatyczne sprawdzenia
 
