@@ -1,4 +1,57 @@
-# STM Domains — diagnostyka jakości dopasowania, issue 19
+# STM Domains — kandydaci baz i nowe powtórzenia, issue 19
+
+Data: **2026-10-31**. Dokumentacja `domains/basis-candidates`, baza
+`1a63188`, worktree `/tmp/netcat-stmdomains-basis-candidates`. Źródła:
+**`prototype/stmdomains-basis-candidates`, `b450c4f`**, baza `481194a`.
+Prototyp pozostaje osobno, nie scalać go do aplikacji. Dokumentacja
+do `domains/start`; końcowy commit w odpowiedzi użytkownika. Integrację
+do `stm-next` prowadzi koordynator. Nie zmieniono Viewer ani wspólnych modułów.
+
+Wykonano [porównanie kandydatów baz i nowych rzędów](basis-candidates-trial.md),
+[manifest](basis-candidates-manifest.json). Podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/basis-candidates/index.html`.
+97 obrazów: 19 geometrii kalibracji, 24 pełne TTMAPP, 54 nowe syntetyki;
+15152 otoczenia, 512272 dopasowania, 90912 decyzji. Osobne dane do
+dopasowania, wyboru i końcowego sprawdzenia, bez ponownego dopasowania
+po wyborze. Referencje wyłącznie do późniejszej oceny.
+
+Dzielniki baz odzyskują prawidłowy okres w **9/9 celowanych kontrolach
+R64**, z końcowym wynikiem 1; pojedyncza baza i same dodatkowe piki 0/9.
+Przy R48 obszar wyboru nie zawiera informacji rozróżniającej okresy.
+Na TTMAPP przy wspólnym progu R48 to samo jedno otoczenie w każdej
+puli, R64 zero. Trzy wyniki przy własnym progu dzielników są skutkiem
+łagodniejszej kalibracji, a nie zmiany wybranego modelu. Niezależne rzędy
+nadal czasem przechodzą sprawdzian. Brak nowych rzędów pozostaje brakiem
+oceny; sieć nie dowodzi obecności materiału. Nie wybrano metody do programu.
+
+**19 nadal `claimed`, do omówienia; 20 odłożone.** Następna propozycja:
+oddzielić zgodność motywu od kompletności oznaczeń, porównać jedno-
+i wielopunktowy motyw z oceną złożoności poza dopasowaniem i wyborem.
+Nie rozpoczęto kolejnej próby, treningu ani implementacji w aplikacji.
+
+Sprawdzenia: 48 kontroli liczbowych, 54 odtworzenia generatora. Naprawiono
+lokalnie niestabilne remisy indeksów/fazy/histogramu; powtórzono kalibrację
+i pomiary. Niezależnie: 928 redukcji baz, 140 kontroli węzłów i Hungarian,
+72 inwarianty, 1008 punktów porównania Python/JS, 1566 kontroli agregacji.
+**97 pomiarów i 90912 decyzji** identycznych po odtworzeniu z blokadą
+referencji. **86 kontroli QtWebEngine**, bez błędów JS; zrzut i wykres
+obejrzane. Python/Bash sprawdzone, wrapper uruchomiony etapami. To odbiór
+raportu badawczego, nie produkcyjnego GUI. Snapshot źródła pomiarów
+i końcowe źródło mają identyczne drzewo składni — różnica tylko w komentarzu.
+
+CPU, 4 procesy po 1 wątku: kalibracja 14.95 s, syntetyki 44.42 s, TTMAPP 31.22 s,
+odtworzenie 86.52 s. Maksymalny RSS procesu 115652 KiB, nie łączny szczyt.
+Bez GPU i nowych zależności. Ograniczenia: pojedynczy punkt w komórce,
+stała tolerancja, braki oznaczeń obniżające wynik, mało niezależnych
+geometrii, nakładające się okna. Regularne braki kolumn nierozróżnialne
+od większego okresu na samych centrach. Źródła i dokumentacja w osobnych
+gałęziach; dane lokalne. Kopia sprawdzona w `copy-verification.json`,
+HTML/CSV/wykresy samodzielne; obliczenia wymagają poprzednich artefaktów.
+Brak potrzeb zmian wspólnych modułów lub konfiguracji głównej.
+
+---
+
+## Poprzednie przekazanie — diagnostyka jakości
 
 Data: **2026-10-31**. Dokumentacja `domains/fit-quality-diagnosis`, baza
 `2a962df`, worktree `/tmp/netcat-stmdomains-fit-quality`. Źródła:

@@ -265,9 +265,13 @@ potrafi sugerować podwojony okres nawet idealnej sieci. Nowa ocena
 tolerancji/liczebności nie daje ogólnej poprawy; bardziej złożony motyw
 ujawnia kolejne ograniczenie pojedynczej sieci. Podgląd
 `.scratch/fit-quality-diagnosis/index.html`; 272736 decyzji odtworzonych
-bez referencji. **19 nadal `claimed`; 20 odłożone.** Do omówienia propozycje
-baz i sprawdzanie nowych powtórzeń w obu kierunkach. Kolejnej próby ani
-treningu nie uruchomiono; nie przyjęto metody do aplikacji.
+bez referencji. Następnie wykonano [próbę kandydatów baz i nowych powtórzeń](basis-candidates-trial.md):
+97 obrazów, 54 nowe syntetyki, 15152 otoczenia. Dzielniki baz odzyskują
+prawidłowy okres w 9/9 celowanych kontrolach R64, ale na TTMAPP przy
+wspólnym progu nie ma poprawy. Podgląd `.scratch/basis-candidates/index.html`;
+90912 decyzji odtworzonych bez referencji, 86 kontroli HTML. **19 nadal
+`claimed`; 20 odłożone.** Do omówienia zgodność motywu i kompletność
+oznaczeń. Kolejnej próby ani treningu nie uruchomiono; nie przyjęto metody.
 
 
 ## Dwa etapy

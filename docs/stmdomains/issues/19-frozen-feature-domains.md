@@ -477,5 +477,39 @@ nie poprawia błędu względem zachowanego modelu. To diagnoza, nie detektor.
 **19 pozostaje `claimed`, do omówienia; 20 odłożone.** Następna propozycja:
 kilka kandydatów bazy, odróżnianie okresu od wielokrotności oraz ocena na
 nowych powtórzeniach w obu kierunkach, z osobnym sprawdzeniem złożoności
-motywu. Sygnał materiału pozostaje oddzielny. Następnej próby nie rozpoczęto
-ani nie przyjęto metody do programu.
+motywu. Sygnał materiału pozostaje oddzielny. Kolejną próbę wykonano poniżej;
+nie przyjęto metody do programu.
+
+
+## Rozwinięcie — 2026-10-31: kandydaci baz i nowe powtórzenia
+
+Wykonano [porównanie kilku baz i ich dzielników](../basis-candidates-trial.md):
+97 obrazów, 54 nowe syntetyki, 15152 otoczenia, 512272 dopasowania.
+Dopasowanie, wybór i końcowy test mają rozłączne obszary. Wybrany model
+sprawdza nowe rzędy poza całym obszarem dopasowania i wyboru w obu osiach.
+Nieobsadzone przewidywane węzły obniżają wynik symetrycznego dopasowania.
+Progi na starych negatywach, bez referencji TTMAPP.
+
+W dziewięciu celowanych kontrolach R64 z regularnymi brakami w rdzeniu
+dzielniki odzyskują **9/9 właściwych okresów**, wynik końcowy 1. Pojedyncza
+propozycja i same dodatkowe piki: 0/9. Przy R48 wybór nadal odbywa się
+w niepełnym rdzeniu i nie ma informacji odróżniającej okresy. Regularny
+brak kolumn na całym obrazie pozostaje nierozróżnialny od rzadszej sieci
+na podstawie samych centrów. Brak nowych rzędów jest stanem niepewnym.
+
+TTMAPP: przy wspólnym progu R48 daje to samo jedno otoczenie w każdej
+puli, R64 zero. Trzy wyniki R64 z dzielnikami przy własnym progu wynikają
+z łagodniejszej kalibracji, nie potwierdzają poprawy wyboru modelu.
+Niezależne obrócone rzędy nadal czasem przechodzą sprawdzian. Zachowujemy
+mechanizm propozycji jako część do dalszej oceny, nie jako detektor domen.
+
+Źródła: **`prototype/stmdomains-basis-candidates`, `b450c4f`**;
+[manifest](../basis-candidates-manifest.json), podgląd
+`.scratch/basis-candidates/index.html` (42 obrazy, 5 scenariuszy).
+48 kontroli liczbowych, niezależny audyt i 86 kontroli przeglądarki;
+97 pomiarów i **90912 decyzji** identycznych w odtworzeniu bez referencji.
+
+**19 nadal `claimed`, do omówienia; 20 odłożone.** Następna propozycja:
+oddzielić zgodność motywu od kompletności oznaczeń, porównać jedno-
+i wielopunktowy motyw z oceną jego złożoności poza dopasowaniem i wyborem.
+Nie rozpoczęto kolejnego badania ani implementacji w aplikacji.
