@@ -54,9 +54,11 @@ ręczną. [Instrukcja odbioru](registration/manual-movie-corrections-manual.md),
 
 2026-10-31 użytkownik wycofał **REG-03 — rejestrację z ręcznymi maskami**.
 Usunięto implementację i ten etap z planu. Następny jest
-**[REG-04 — dopasowanie wieloskalowe](registration/issues/04-multiscale-translation.md)**,
+**[REG-04 — Deep Matcher + doprecyzowanie ECC](registration/issues/04-multiscale-translation.md)**,
 zależny bezpośrednio od odebranego REG-02a. Numeracja dalszych ticketów pozostaje
-bez zmian; REG-04 oczekuje na osobne zlecenie.
+bez zmian. Użytkownik doprecyzował REG-04 jako porównanie Deep Matcher
+z ECC startującym od dokładnie tego wyniku Deep. Hybryda nie zakłada
+zewnętrznej piramidy; implementacja oczekuje na osobne zlecenie.
 
 ## Stan aplikacji
 

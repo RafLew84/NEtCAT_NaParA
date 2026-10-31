@@ -10,7 +10,7 @@ Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
 
 ## Zakres i kryteria odbioru
 
-- [ ] Po zgrubnym XY metoda wybiera przestrzennie rozdzielone fragmenty
+- [ ] Po początkowym globalnym XY metoda wybiera przestrzennie rozdzielone fragmenty
   z dostateczną teksturą i szuka ich odpowiedników w rozszerzonym otoczeniu
   drugiej klatki. Nie koreluje wyłącznie wycinków o tych samych współrzędnych.
 - [ ] Fragmenty obejmują wyłącznie ważne próbki obu obrazów w rzeczywistych
@@ -47,7 +47,8 @@ poszczególnych fragmentów. Wszystkie piksele klatki nadal otrzymują jedno XY.
 
 1. Na wzorcu z przesuniętą strukturą i nieruchomym pasem obejrzyj fragmenty
    zgodne/odrzucone. Sprawdź, czy wynik wynika z kilku części próbki.
-2. Na obu filmach porównaj REG-04 A z REG-05 B przy tych samych oryginałach
+2. Na obu filmach porównaj hybrydę Deep Matcher + ECC z REG-04 jako wynik A
+   z REG-05 jako wynik B przy tych samych oryginałach
    i ustawieniach podglądu.
    Dla każdej stałej pary sprawdź poparcie w różnych miejscach, nie tylko jego liczbę.
 3. Obejrzyj dostarczony wzorzec, w którym góra i dół mają różne XY. Wynik

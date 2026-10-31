@@ -81,16 +81,20 @@ bez etapu ręcznego ani automatycznego maskowania. Opisy masek w przeglądzie
 publikacji powyżej pozostają informacją o tych źródłach, nie wymaganiem aplikacji.
 Kroki są projektem eksperymentu, a nie sprawdzoną naprawą.
 
+Dalsze doprecyzowanie 2026-10-31: do REG-04 wybrano **Deep Matcher → ECC**,
+z porównaniem do dokładnego startu Deep. To zastępuje pierwotną propozycję
+zewnętrznej piramidy w tym tickecie; nie oznacza potwierdzonej poprawy.
+
 1. **Wybrać rozpoznawalne fragmenty do oceny wyniku.** Zapisać struktury w różnych
    częściach obrazu i oddzielić kontrolę od danych używanych do estymacji.
    Lokalne rozbieżności, zakłócenia i tearing opisać osobno; nie wypełniać
    uszkodzeń sztucznym sygnałem.
-2. **Oszacować globalne XY od dużych struktur do szczegółów.** Porównać wariant
-   wieloskalowy z dostępnymi metodami, w tym korelacją fazową, bez normalizacji
-   oraz Deep Matcher. Wykorzystać piramidę skal,
-   zweryfikować alternatywne maksima korelacji we wspólnym obszarze i dopiero
-   potem doprecyzować przesunięcie. Na okresowym obrazie jeden wysoki pik może
-   odpowiadać sąsiedniemu powtórzeniu wzoru, nie tej samej strukturze.
+2. **Sprawdzić doprecyzowanie wyniku Deep Matcher przez ECC.** Przekazać
+   początkowe XY Deep do ECC ograniczonego do translacji na oryginałach.
+   Porównać dokładny start i wynik końcowy przy wspólnym widoku. Nie uznawać
+   wyższego score ECC za dowód poprawy: zakłócenia i okresowy wzór mogą
+   prowadzić do błędnego dopasowania. Zakres i odbiór określa
+   [REG-04](registration/issues/04-multiscale-translation.md).
 3. **Sprawdzić kilka oddzielnych fragmentów.** Szukać ich w rozszerzonym obszarze
    następnej klatki, z uwzględnieniem zgrubnego XY. Agregować zgodne dopasowania
    odpornie na odstające wyniki i wymagać przestrzennego pokrycia. Większość

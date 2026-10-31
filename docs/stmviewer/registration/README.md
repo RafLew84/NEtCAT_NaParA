@@ -9,7 +9,7 @@ Deep Matcher ocenia najlepiej w obejrzanych pierwszych 100 klatkach.
 [Instrukcja REG-02](unnormalized-correlation-manual.md), [wyniki](reviews/REG-02.md).
 [REG-02a: ręczne korekty filmu](issues/02a-manual-movie-corrections.md) zamknięto
 jako `done` po potwierdzeniu użytkownika „testy manualne ok” 2026-10-31.
-Następnym etapem jest [REG-04: Dopasowanie wieloskalowe](issues/04-multiscale-translation.md).
+Następnym etapem jest [REG-04: Deep Matcher + doprecyzowanie ECC](issues/04-multiscale-translation.md).
 Jego zależność REG-02a jest spełniona; start wymaga osobnego zlecenia.
 [Instrukcja REG-02a](manual-movie-corrections-manual.md), [sprawdzenia](reviews/REG-02a.md).
 Dalsze próby MOVIE_4
@@ -24,6 +24,12 @@ Zlecenie użytkownika: małe tickety, ręczna ocena wpływu i jakości po każdy
 i etap REG-03 (rejestracja z ręcznymi maskami). Usunięto też wymagania takich
 oznaczeń w dalszych etapach. Pozostałe tickety zachowują numery; REG-04
 następuje bezpośrednio po odebranym REG-02a.
+
+**Doprecyzowanie REG-04 — 2026-10-31:** użytkownik wybrał eksperyment
+Deep Matcher → ECC dla tej samej sąsiedniej pary. ECC dostaje XY Deep jako
+start; porównujemy dokładny wynik początkowy z doprecyzowanym. Ten zakres
+zastępuje ogólną wieloskalowość, bez zewnętrznej piramidy i bez automatycznego
+uznawania wyniku ECC za lepszy. Na razie zmieniono ticket; implementacja czeka.
 
 ## Cel i zakres
 
@@ -48,7 +54,7 @@ etapów podstawowych i dwa warunkowe.
 | [REG-01a: Ręczne dopasowanie pary](issues/01a-manual-alignment.md) | Ruch klatki dopasowywanej ±1 px w X/Y, nakładka/przełączanie obrazów, start z zera lub korekta próby, zachowanie ręcznego wyniku jako B. | REG-01 |
 | [REG-02: Korelacja bez normalizacji](issues/02-unnormalized-correlation.md) | Osobny wariant dostępny dla pary i całej serii, z porównaniem do dotychczasowego Phase. | REG-01a |
 | [REG-02a: Ręczne korekty filmu](issues/02a-manual-movie-corrections.md) | Jawne zastosowanie ręcznego XY pary do całego aligned, przeliczenie dalszych klatek, cofnięcie korekty pary i eksport poprawionego MPP/AVI. | REG-02 |
-| [REG-04: Dopasowanie wieloskalowe](issues/04-multiscale-translation.md) | Zgrubne XY i doprecyzowanie na pełnym obrazie; jawna ocena niejednoznacznych dopasowań. | REG-02a |
+| [REG-04: Deep Matcher + doprecyzowanie ECC](issues/04-multiscale-translation.md) | Początkowe XY z Deep Matcher, doprecyzowanie ECC i porównanie dokładnego startu z wynikiem; wpływ oceniany manualnie. | REG-02a |
 | [REG-05: Zgodność lokalnych fragmentów](issues/05-local-consensus.md) | Wektory dopasowania fragmentów, wskazanie zgodnych/odrzuconych i odporne wyznaczanie globalnego XY. | REG-04 |
 | [REG-06: Niezależna kontrola dopasowania](issues/06-independent-validation.md) | Ocena na wydzielonych fragmentach kontrolnych i lista par wymagających obejrzenia. | REG-05 |
 | [REG-07: Zapis prób i odbiór pełnych filmów](issues/07-full-movie-comparison.md) | Odtwarzalne porównanie pełnych wyników, zapis/odczyt ustawień i przesunięć, odbiór MOVIE_4/MOVIE_8. | REG-06 |

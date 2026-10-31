@@ -19,6 +19,11 @@ nawigację. Ten ticket nie buduje osobnego odtwarzacza dwóch filmów.
   źródeł i kolejność klatek, wersję kodu/commit, metodę i pełne ustawienia,
   fragmenty kontroli,
   XY par/skumulowane, statusy i uzyskane diagnozy. Dokument nie zawiera obrazów.
+- [ ] Próba hybrydy REG-04 zachowuje dokładny start Deep, końcowe XY ECC,
+  ich różnicę, ustawienia obu etapów, pochodzenie lokalnych wag i urządzenie.
+  Po odczycie porównuje te same wyniki bez ponownego uruchamiania modelu.
+  Diagnoza przerwania rozróżnia etap Deep i ECC; dostępny start po odmowie
+  ECC nie staje się kompletną próbą hybrydy.
 - [ ] Próby ręczne z REG-01a zachowują oznaczenie pochodzenia, początkowe XY,
   opis próby użytej jako punkt startu (jeśli była), łączną korektę, końcowe XY
   i jawny brak automatycznej oceny jakości. Odtwarzane są zatwierdzone próby,

@@ -1,5 +1,30 @@
 # Przekazanie — STM Viewer
 
+## Plan REG-04: Deep Matcher + doprecyzowanie ECC — 2026-10-31
+
+Na zlecenie użytkownika zmieniono [REG-04](registration/issues/04-multiscale-translation.md)
+z ogólnej wieloskalowości na eksperyment Deep Matcher → ECC. Status
+`ready-for-agent`, zależność REG-02a spełniona. **Implementacja nierozpoczęta**;
+użytkownik zlecił na razie zmianę ticketu. Numer i dotychczasowa ścieżka pliku
+pozostają stabilne. Baza tej zmiany dokumentacji: `2790e16`.
+
+- Deep daje początkowe XY, ECC dostaje je jawnie i zwraca końcową translację.
+  Porównanie używa dokładnego startu tej samej próby; wyższy score ECC nie
+  stanowi werdyktu poprawy. Bez zewnętrznej piramidy i bez ręcznych masek.
+- Para oraz pełna seria, końcowe XY sumowane raz, jeden render z oryginałów.
+  Brak akceptacji każdej pary; jawnie wybrana hybryda podmienia aligned po
+  pełnym sukcesie. Błąd/anulowanie chronią wcześniejszy film; bez cichej
+  zamiany na sam Deep lub Phase.
+- Ticket określa lokalne wagi, urządzenia, postęp, niepewność, granice testów
+  i odbiór obu filmów, w tym wskazane przez użytkownika przejścia MOVIE_4.
+  REG-05 zachowuje porównanie z wynikiem REG-04; REG-07 zachowa oba etapy próby.
+- Zaktualizowano README aplikacji i planu oraz propozycję dalszych badań.
+  Zmiany dotyczą dokumentacji; testów kodu ani GUI nie uruchamiano.
+  Sprawdzenia dokumentacji: odnośniki, zależności, zgodność zakresu i diff.
+
+Brak zmian współdzielonych ani nowych wyników pomiarowych. Wcześniejszy
+REG-03 pozostaje wycofany, a statusy REG-02a i odbiorów platform bez zmian.
+
 ## Wycofanie REG-03 na życzenie użytkownika — 2026-10-31
 
 Użytkownik zrezygnował z rejestracji z ręcznymi maskami i polecił usunąć
