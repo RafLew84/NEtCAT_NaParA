@@ -4,15 +4,15 @@ Data: 2026-10-28; rozszerzenia ręczne: REG-01a 2026-10-30, REG-02a 2026-10-31.
 Rozszerzenie o graf dopasowań i nowe modele: 2026-10-31, na zlecenie użytkownika.
 Gałąź: `viewer/registration-difficult-movies`.
 Baza rozpoznania: `c85aecb`; przegląd metod: `81ff1a0`.
-Status: REG-01, REG-01a, REG-02 i REG-02a `done`. Użytkownik potwierdził odbiór REG-02
+Status: REG-01, REG-01a, REG-02, REG-02a i REG-04 `done`. Użytkownik potwierdził odbiór REG-02
 2026-10-31 i zgłosił brak istotnej poprawy względem Phase na MOVIE_4.
 Deep Matcher ocenia najlepiej w obejrzanych pierwszych 100 klatkach.
 [Instrukcja REG-02](unnormalized-correlation-manual.md), [wyniki](reviews/REG-02.md).
 [REG-02a: ręczne korekty filmu](issues/02a-manual-movie-corrections.md) zamknięto
 jako `done` po potwierdzeniu użytkownika „testy manualne ok” 2026-10-31.
-Do odbioru jest [REG-04: Deep Matcher + doprecyzowanie ECC](issues/04-multiscale-translation.md).
-REG-04 ma status `ready-for-review`: kod i przegląd są gotowe; pozostaje
-odbiór manualny. [Instrukcja](deep-ecc-manual.md), [karta](reviews/REG-04.md).
+[REG-04: Deep Matcher + doprecyzowanie ECC](issues/04-multiscale-translation.md)
+ma status `done`: użytkownik potwierdził „testy manualne 04 ok” 2026-10-31.
+Następny jest REG-05. [Instrukcja](deep-ecc-manual.md), [karta](reviews/REG-04.md).
 [Instrukcja REG-02a](manual-movie-corrections-manual.md), [sprawdzenia](reviews/REG-02a.md).
 Dalsze próby MOVIE_4
 obejmują źródłowe klatki 3–364, zgodnie z [protokołem](manual-protocol.md).
@@ -86,7 +86,7 @@ REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [instrukcja próby](pair-comparison-manual.md),
 [karta odbioru](reviews/REG-01.md). REG-01a ma status `done` po odbiorze
 użytkownika 2026-10-31. REG-02 i REG-02a również odebrano 2026-10-31 (`done`).
-REG-04 ma status `ready-for-review`; REG-05–08, REG-08a/08b/08c i REG-10–12
+REG-04 ma status `done`; REG-05–08, REG-08a/08b/08c i REG-10–12
 mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
 zlecenia użytkownika i zakończenia blokujących ticketów. REG-08d i REG-09 mają
 status `planned`; nie uruchamiamy ich automatycznie. Są osobnymi odnogami.
@@ -98,7 +98,7 @@ technicznie napisać niezależnie. Zależność między REG-10/11/12 porządkuje
 eksperymenty; RoMa nie wymaga uruchamiania EfficientLoFTR, a MatchAnything nie
 wymaga działającego RoMa. Wspólną bazą porównań pozostaje obecny Deep.
 
-Najbliższy krok pozostaje bez zmian: odbiór REG-04, potem zlecenie REG-05.
+Najbliższy krok: zlecenie REG-05. Jego zależność od odbioru REG-04 jest spełniona.
 
 ## Stałe kontrakty
 

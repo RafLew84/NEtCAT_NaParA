@@ -2,7 +2,7 @@
 
 **What to build:** Użytkownik widzi, jak kilka części obrazu popiera wybrane
 globalne XY, a metoda wyznacza je odpornie na lokalne błędne dopasowania.
-**Blocked by:** [REG-04](04-multiscale-translation.md), w tym odbiór manualny.
+**Blocked by:** [REG-04](04-multiscale-translation.md), w tym odbiór manualny — spełnione 2026-10-31.
 **Status:** ready-for-agent
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 

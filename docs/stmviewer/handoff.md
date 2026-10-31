@@ -1,3 +1,21 @@
+# REG-04: odbiór manualny — 2026-10-31
+
+Użytkownik potwierdził **„testy manualne 04 ok”**. [REG-04](registration/issues/04-multiscale-translation.md)
+ma status `done`; zależność [REG-05](registration/issues/05-local-consensus.md)
+została spełniona. REG-05 pozostaje `ready-for-agent`, bez rozpoczętej implementacji.
+
+- Zaktualizowano ticket, kartę odbioru, plan, README, podsumowanie prób i blokadę
+  REG-05. Potwierdzenie nie zawiera osobnych wyników platform, VLC ani ocen par;
+  nie dopisano takich wyników i nie zmieniono wcześniejszych ograniczeń.
+- Kod REG-04: `f639fd8` i `1a2766b`; baza tej aktualizacji dokumentacji: `61bd497`.
+  Zapis odbioru należy do końcowego commita dokumentacyjnego tej pracy.
+- Kontrola: spójność statusów, odnośniki i `git diff --check`. Kod bez zmian;
+  testów aplikacji nie powtarzano. Nie rozpoczynano następnego ticketu.
+- Brak nowych zmian wymaganych od sesji integracyjnej. Odbiory platform pozostają
+  bez zmian; eksperymentalny wariant nie jest automatycznie lepszy od samego Deep.
+
+---
+
 # Plan: graf dopasowań i nowe modele — 2026-10-31
 
 Na zlecenie użytkownika rozszerzono [plan rejestracji](registration/README.md)

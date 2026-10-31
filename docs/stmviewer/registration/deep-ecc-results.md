@@ -115,9 +115,11 @@ osobnej flagi osiągnięcia tolerancji. Pomyślny powrót backendu oznacza otrzy
 skończonego XY, nie dowód zbieżności ani poprawy dopasowania. Jawny wyjątek
 ECC kończy próbę; wynik bez wyjątku nadal wymaga oceny wizualnej.
 
-## Pozostały odbiór
+## Odbiór i ograniczenia
 
-- Ocena struktur i tearing w GUI, pełne odtworzenie oraz decyzja użytkownika: **niewykonane**.
+- Użytkownik potwierdził „testy manualne 04 ok” 2026-10-31; REG-04 zamknięto jako `done`.
+  Potwierdzenie nie podaje ocen konkretnych struktur/par ani zakresu odtwarzania;
+  nie dopisujemy tych szczegółów do wyników powyższej próby.
 - VLC dla AVI oraz Windows: **niewykonane w tej próbie**.
 - Kontrolowana odmowa/anulowanie i eksport małego wzorca: instrukcja oraz wyniki testów w karcie REG-04.
 - Status akceptacji należy do [karty REG-04](reviews/REG-04.md), nie wynika z powyższych score.

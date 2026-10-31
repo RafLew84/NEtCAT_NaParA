@@ -20,8 +20,8 @@ Na zlecenie użytkownika 2026-10-31 rozszerzono plan: po REG-05–07 i diagnosty
 REG-08 następują próby grafu LS (REG-08a), odpornego grafu (REG-08b), zastosowanie
 do filmu i eksport (REG-08c), następnie osobno EfficientLoFTR (REG-10), RoMa v2
 (REG-11) i MatchAnything-ELoFTR (REG-12). Dalsze odniesienia REG-08d oraz tearing
-REG-09 pozostają warunkowe. Są to zaplanowane funkcje; najbliższy krok nadal
-stanowi ręczny odbiór REG-04, a potem REG-05.
+REG-09 pozostają warunkowe. Są to zaplanowane funkcje; po odebranym REG-04
+najbliższym krokiem jest zlecenie REG-05.
 
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk
 **Porównaj parę…** otwiera osobny podgląd sąsiednich oryginałów: przed/po XY,
@@ -67,13 +67,13 @@ Usunięto implementację i ten etap z planu. Następny jest
 zależny bezpośrednio od odebranego REG-02a. Numeracja dalszych ticketów pozostaje
 bez zmian. Użytkownik doprecyzował REG-04 jako porównanie Deep Matcher
 z ECC startującym od dokładnie tego wyniku Deep. Hybryda nie zakłada
-zewnętrznej piramidy. Metoda **Deep Matcher + ECC (v1)** jest wdrożona; REG-04 ma status **ready-for-review**:
+zewnętrznej piramidy. Metoda **Deep Matcher + ECC (v1)** jest wdrożona; REG-04 ma status **done**:
 para i cały film korzystają z tego samego przebiegu, a podgląd porównuje dokładny
 start Deep oraz wynik ECC bez ponownego obliczenia modelu. Dostępne są
 [instrukcja odbioru](registration/deep-ecc-manual.md) i
 [wyniki prób rzeczywistych](registration/deep-ecc-results.md).
 [Karta testów i przeglądu](registration/reviews/REG-04.md).
-Odbiór wizualny użytkownika pozostaje wymagany przed REG-05.
+Użytkownik potwierdził „testy manualne 04 ok” 2026-10-31. Zależność REG-05 jest spełniona.
 
 ## Stan aplikacji
 

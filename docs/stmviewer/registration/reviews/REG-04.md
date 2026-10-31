@@ -2,7 +2,7 @@
 
 Data: 2026-10-31. Baza przeglądu: `29d7fc9`.
 Implementacja: `f639fd8`; poprawki po przeglądzie: `1a2766b`.
-Status: **ready-for-review**. Ręczny odbiór użytkownika: **niewykonany**.
+Status: **done**. Użytkownik potwierdził **„testy manualne 04 ok”** 2026-10-31.
 
 ## Dostarczona funkcja
 
@@ -100,13 +100,18 @@ nie stwierdzono rozszerzenia zakresu.
 
 Standards: 2 uwagi naprawione, 0 otwartych. Spec: 1 uwaga naprawiona, 0 otwartych.
 
-## Pozostały odbiór
+## Odbiór użytkownika — 2026-10-31
 
-[Instrukcja ręczna](../deep-ecc-manual.md) zawiera dane, kroki, oczekiwane
-wyniki, generator i launcher kontrolowanego błędu ECC. Do wykonania przez
-użytkownika pozostaje ocena struktur/tearing, odtworzenie AVI w VLC oraz
-decyzja, czy zachować hybrydę. Próba Windows nie była wykonana w tym tickecie.
-REG-05 czeka na ten odbiór. Lista kryteriów ticketu pozostaje otwarta.
+Użytkownik potwierdził **„testy manualne 04 ok”**. REG-04 ma status `done`,
+lista kryteriów ticketu jest zamknięta, a zależność REG-05 została spełniona.
+[Instrukcja ręczna](../deep-ecc-manual.md) pozostaje protokołem kolejnych prób.
+Potwierdzenie ma charakter ogólny: nie podaje osobno systemu, wykonania VLC,
+pełnych filmów ani ocen konkretnych par. Nie dopisujemy tych szczegółów jako
+nowych wyników. Dotychczasowe dowody automatyczne i rzeczywiste próby pozostają
+oddzielnie powyżej. Odbiór nie oznacza przewagi hybrydy na wszystkich obrazach;
+wariant zachowuje eksperymentalny charakter. Odbiorów platform nie zmieniano.
+
+## Zachowane ograniczenia
 
 OpenCV nie przekazuje osobnej flagi wyczerpania iteracji; obsługujemy odmowę
 zgłoszoną przez bibliotekę, a skończony wynik nadal wymaga oceny wizualnej.

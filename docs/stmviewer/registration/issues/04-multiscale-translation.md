@@ -4,8 +4,8 @@
 wyznacza początkowe XY pary, a ECC doprecyzowuje tę translację. Porównuje
 wynik samego Deep z wynikiem hybrydy, aby ocenić rzeczywisty wpływ doprecyzowania.
 **Blocked by:** [REG-02a](02a-manual-movie-corrections.md), w tym odbiór manualny — spełnione.
-**Status:** ready-for-review
-**Manualny odbiór:** niewykonany; implementacja i przegląd gotowe.
+**Status:** done
+**Manualny odbiór:** użytkownik potwierdził „testy manualne 04 ok” 2026-10-31.
 **Kod:** `f639fd8`, poprawki `1a2766b`. [Karta sprawdzeń](../reviews/REG-04.md),
 [instrukcja GUI](../deep-ecc-manual.md), [próby rzeczywiste](../deep-ecc-results.md).
 **Wykonawca:** Codex, gałąź `viewer/registration-difficult-movies`; baza przeglądu `29d7fc9`.
@@ -31,50 +31,50 @@ ani wyboru dowolnej kombinacji algorytmów. Każda para jest sąsiednia: 2→1,
 
 ## Zakres i kryteria odbioru
 
-- [ ] Nowa, jawnie wybierana metoda **Deep Matcher + ECC (v1)** współistnieje
+- [x] Nowa, jawnie wybierana metoda **Deep Matcher + ECC (v1)** współistnieje
   z dotychczasowym Deep Matcher i ECC. Nie zmienia domyślnej metody ani
   zachowania wcześniejszych wariantów.
-- [ ] Dla pary Deep wyznacza początkowe XY. ECC otrzymuje dokładnie ten wynik
+- [x] Dla pary Deep wyznacza początkowe XY. ECC otrzymuje dokładnie ten wynik
   jako `initial_shift_xy` i korzysta z `MOTION_TRANSLATION`; nie wykonuje
   własnej inicjalizacji Phase. Oba etapy liczą na tej samej parze oryginałów.
-- [ ] Wynik ECC jest całkowitym przesunięciem do nałożenia na klatkę przesuwaną.
+- [x] Wynik ECC jest całkowitym przesunięciem do nałożenia na klatkę przesuwaną.
   Poprawka wynosi `XY_ECC − XY_Deep`; nie dodajemy wyniku ECC ponownie do Deep.
   Obie estymaty i poprawka mają jednostkę piksela original, +X w prawo, +Y w dół.
-- [ ] Można obejrzeć i porównać dokładny wynik Deep użyty jako start oraz
+- [x] Można obejrzeć i porównać dokładny wynik Deep użyty jako start oraz
   końcowy wynik tej samej próby, bez ponownego obliczania modelu. Wspólny kadr,
   kontrast, zoom i gamma pozwalają ocenić różnicę. Dotychczasowa zachowana
   próba nie jest automatycznie nadpisywana nowym porównaniem.
-- [ ] UI pokazuje XY Deep, końcowe XY, poprawkę i informacje o przebiegu obu
+- [x] UI pokazuje XY Deep, końcowe XY, poprawkę i informacje o przebiegu obu
   etapów. Wynik doprecyzowany nie otrzymuje automatycznie etykiety „lepszy”.
   Jeśli pokazujemy score Deep/ECC, są opisane oddzielnie jako miary backendów,
   nie niezależna ocena poprawności. Status hybrydy wskazuje potrzebę oceny;
   wysoki score ECC nie usuwa ostrzeżeń startu Deep. Mała poprawka również
   nie dowodzi sukcesu, a zmiana kierunku dryfu sama nie jest błędem.
-- [ ] Jeden wersjonowany zestaw ustawień określa konfigurację Deep i ECC,
+- [x] Jeden wersjonowany zestaw ustawień określa konfigurację Deep i ECC,
   w tym limit iteracji, tolerancję i filtr ECC. Używamy tych samych ustawień
   Deep przy bazie i hybrydzie; nie stroimy ich po cichu osobno do filmu.
   Zachowujemy informacje o lokalnych wagach i wybranym/faktycznym urządzeniu.
   Nie dodajemy rozbudowanego panelu strojenia.
-- [ ] Metoda działa dla pojedynczej pary i całej serii przez ten sam przebieg
+- [x] Metoda działa dla pojedynczej pary i całej serii przez ten sam przebieg
   Deep→ECC. Model jest używany ponownie w serii, bez ładowania wag dla każdej
   pary. Wersja startowa zachowuje Auto/CPU/CUDA dla Deep; ECC wykonuje etap CPU.
   Brak wag lub zależności oznacza jawną niedostępność, bez pobierania modelu.
-- [ ] Brak poprawnego wyniku Deep, brak zbieżności ECC, niepoprawne XY lub
+- [x] Brak poprawnego wyniku Deep, brak zbieżności ECC, niepoprawne XY lub
   nieobsługiwane wejście (np. NaN/Inf wymagające odmowy istniejącego backendu)
   dają czytelną przyczynę z numerem pary i etapem. Nie podstawiamy po cichu
   samego Deep, Phase ani zerowego XY. Nie zamieniamy brakujących danych w zera.
   Dostępny start Deep po błędzie ECC może być pokazany jako diagnostyka;
   nie stanowi ukończonego wyniku hybrydy.
-- [ ] Wybór hybrydy i Rejestruj uruchamia całą serię bez osobnego zatwierdzania
+- [x] Wybór hybrydy i Rejestruj uruchamia całą serię bez osobnego zatwierdzania
   każdej pary. Ukończony wynik podmienia aligned po sukcesie jak dotychczas;
   nie jest to automatyczny werdykt poprawy jakości. Błąd/anulowanie pozostawia
   poprzedni kompletny aligned i jego korekty. Postęp rozróżnia Deep i ECC;
   anulowanie jest sprawdzane między etapami i po bieżącym wywołaniu biblioteki.
-- [ ] Do sumowania względem pierwszej klatki trafiają końcowe XY par.
+- [x] Do sumowania względem pierwszej klatki trafiają końcowe XY par.
   Aligned powstaje z oryginalnych wartości, z jedną końcową interpolacją.
   Nie przesuwamy kolejno gotowego obrazu przez Deep i ponownie przez ECC.
   Jedno globalne XY nie deformuje poszczególnych fragmentów klatki.
-- [ ] Działają podgląd, Play, ręczna korekta REG-02a i eksport MPP/AVI.
+- [x] Działają podgląd, Play, ręczna korekta REG-02a i eksport MPP/AVI.
   Nazwa/wersja hybrydy, końcowe XY, geometria i status pozostają prawidłowe
   po odczycie MPP. Lekka diagnostyka obu etapów nie wymaga dwóch dodatkowych
   stosów obrazów; zapis dokumentów prób na dysk pozostaje w REG-07.
@@ -131,4 +131,13 @@ w jednym estymatorze i wygładzanie czasu. Numery dalszych etapów pozostają.
 **Oczekiwany wynik:** sprawdzony wpływ ECC startującego od Deep. Użytkownik
 podejmuje decyzję, czy zachować wariant eksperymentalny, poprawić go lub
 odrzucić; nie zakładamy poprawy względem samego Deep na wszystkich parach.
-REG-05 czeka na zakończenie tego odbioru.
+REG-05 ma spełnioną zależność po odbiorze REG-04.
+
+## Odbiór — 2026-10-31
+
+Użytkownik potwierdził **„testy manualne 04 ok”**. REG-04 zamknięto jako
+`done`; zależność REG-05 jest spełniona. Potwierdzenie nie zawiera osobnych
+wyników dla par, systemu ani VLC, więc nie dopisujemy takich szczegółów
+do [karty sprawdzeń](../reviews/REG-04.md). Wariant pozostaje eksperymentalny;
+odbiór nie oznacza przewagi ECC nad samym Deep na wszystkich obrazach.
+Wcześniejsze wyniki testów i ograniczenia pozostają zapisane bez zmian.
