@@ -1,0 +1,1515 @@
+{
+  "date": "2026-10-31",
+  "question": "Oddzielenie regularności od kompletności oznaczeń i porównanie motywu1–3pozycji",
+  "prototype_branch": "prototype/stmdomains-motif-completeness",
+  "prototype_commit": "25b270e93c2979b1230c6b9eacf6531ca0e0a55a",
+  "prototype_parent": "b450c4fcbc752a4df949167d6b3878b3c9195471",
+  "documentation_branch": "domains/motif-completeness",
+  "documentation_parent": "559daaf6e94fa4f3ca933e4676e69436ae6c5416",
+  "destination": "/home/rlew/projekty/NEtCAT-domains/.scratch/motif-completeness",
+  "input_previous": "/home/rlew/projekty/NEtCAT-domains/.scratch/basis-candidates",
+  "protocol": {
+    "question": "Czy rozdzielenie regularności pozycji i kompletności oznaczeń oraz model 1–3 powtarzalnych pozycji poprawia przewidywania nowych otoczeń bez wzrostu pozornego porządku?",
+    "radius": 64,
+    "grid_step": 24,
+    "train_fraction": 0.55,
+    "validation_fraction": 0.75,
+    "minimum_train": 8,
+    "minimum_validation": 6,
+    "minimum_test": 6,
+    "arms": [
+      "baseline",
+      "position1",
+      "motif"
+    ],
+    "candidate_bases": "Unchanged basis_candidates.candidates with peaks+divisors; all valid candidates, no truth/validation proposal.",
+    "training": "K1 previous five-iteration Huber2 fit. K2/3 deterministic toroidal KDE seeds then six joint weighted least-squares iterations, Huber2, affine correction spectral norm<=15% relative to proposal. Every motif site needs>=3 distinct training cells, sites>=3px apart. Canonical basis and motif phases; no refit after validation.",
+    "position_score": "S=mean(log(0.1+0.9*abs(det B)/(K*2*pi*2^2)*sum exp(-distance^2/(2*2^2)))). Periodic Gaussian sum using5x5 indices aroundroundedcoordinate. This is a cell-density normalized periodic contrast, NOT a finite-window conditional likelihood or p-value. Finite clipped ring may introduce boundary effects; empirical negative calibration only.",
+    "selection": "baseline: max validation soft F among K1. position1: max validation S among K1. motif: max validation [S-(K-1)*log(Nval)/Nval] amongK1..3. Fixed heuristic complexity cost, not BIC; ties1e-10 favor smallerK then deterministic candidate order. No test-based fallback.",
+    "completeness": "Separate soft one-to-one matched mass/Npredicted nodes. Not known annotation recall, physical occupancy or material coverage. Also report matched mass/Nobserved and old symmetric F.",
+    "new_rows": "Whole indexlevel of cell is outside discovery .75R for ALL motif site planes, same side of center. Disjoint sectors by minperpendicular distance overmotifsites, largeraxis wins. Eachaxis>=2 distinct indexlevels containing>=2 distinct cells,>=4centers and>=4nodes. Motifsites within samecell do not countasnewrepeats. No availability means unknown.",
+    "calibration": "19 earlier unique negative geometries, q99 perarm/global ornewrows. >=100available windows and>=3geometries, otherwise unknown. Common threshold ONLY position1 vs motif (sameunits), maximumtwofrozen thresholds. BaselineF differsunits. Calibrationfixedbeforefresh/TT.",
+    "fresh_seeds": [
+      11101,
+      11102,
+      11103
+    ],
+    "fresh_cases": [
+      "single_clean",
+      "single_missing30",
+      "single_missing60",
+      "single_jitter12",
+      "single_missing30_jitter12",
+      "motif2_clean",
+      "motif2_missing30",
+      "motif2_missing60",
+      "motif2_jitter12",
+      "motif3_clean",
+      "motif3_missing30",
+      "disorder",
+      "independent_rows",
+      "independent_rows_rot27",
+      "random",
+      "phase3",
+      "gap36",
+      "annotations_gap36",
+      "all_missing_columns",
+      "motif2_disorder"
+    ],
+    "reference_policy": "24fullTT frames, references only aftermeasurementlock;18partial reference frames+6without. Pure>=80% centers inoneregion beforemixed>=20% eachoftwo. Unknownoutside labels. No domain count or reference labels in inference.",
+    "evaluation": "Known synthetic predictions compare full imagecenters independently of missingannotations, not K alone (equivalent supercell representations possible). All-missing-columns ambiguity explicit. Compare missingness separately from actual jitter4px disorder and independentrow phases. Test materialgap vs annotationgap geometryidentical.",
+    "success": "Improved heldout regularity/recovery of incomplete and multisite controls, no rise in falsepositive random/disordered/independentrows; fullTT confirmation same frozenprotocol. Increaseinacceptedwindowsalone insufficient; no production selection.",
+    "scope": "Localrepeatdiagnostic only, no domaincomponents/boundaries/coverage, no training/GPU. R64only dueindependentrepeatavailability; not fullscaleanalysis. Temporaladjacency/overlappingwindows and reusedTTrefs preclude independentgeneralizationclaim.",
+    "new_rows_gauge": "Anchor is mean of training centers; motif offsets folded into cell relative to anchor. Conservative whole-cell new-row availability depends on this cell partition even for equivalent node sets. Oracle uses identical training anchor; unavailable is not physical disorder."
+  },
+  "settings": {
+    "rows": [
+      {
+        "arm": "baseline",
+        "metric": "global_score",
+        "count": 1085,
+        "geometries": 18,
+        "threshold": 0.7449084193295282
+      },
+      {
+        "arm": "baseline",
+        "metric": "score",
+        "count": 441,
+        "geometries": 18,
+        "threshold": 0.6466731166493525
+      },
+      {
+        "arm": "position1",
+        "metric": "global_score",
+        "count": 1086,
+        "geometries": 18,
+        "threshold": 1.404783364839836
+      },
+      {
+        "arm": "position1",
+        "metric": "score",
+        "count": 478,
+        "geometries": 18,
+        "threshold": 1.098076021489524
+      },
+      {
+        "arm": "motif",
+        "metric": "global_score",
+        "count": 1086,
+        "geometries": 18,
+        "threshold": 1.404162594312121
+      },
+      {
+        "arm": "motif",
+        "metric": "score",
+        "count": 466,
+        "geometries": 18,
+        "threshold": 1.0989533799641809
+      }
+    ],
+    "protocol_sha256": "c15855e3d3f741b6cf3d1d5f80c8c9f8815f7acd25e24f06294dcaa87b4edbfe",
+    "source_sha256": "245b697814de78b74b50c8947bfd6d21c3c40ac10fad9ff80f116888f9d197e9",
+    "fresh_or_ttmapp_used": false
+  },
+  "selection": {
+    "calibration": [
+      {
+        "sample_id": "control-0001",
+        "kind": "synthetic",
+        "file": "samples/control-0001.npz",
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          192,
+          192
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "reference_px",
+        "annotation_count": 256,
+        "sha256": "fa4e93e792d1de262d16b587ffe31257c77bca0fd19c3d9e57b26ff614f57ef1",
+        "content_sha256": "a043697aab746ffc0caca0672d2db000cc4df4109c1b9586ec8b264cd91bf3cf"
+      },
+      {
+        "sample_id": "control-0002",
+        "kind": "synthetic",
+        "file": "samples/control-0002.npz",
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          192,
+          192
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "reference_px",
+        "annotation_count": 256,
+        "sha256": "2b57767341441758e5566ff0a1e7a1168bd09ba6979ee1e2bc21762633b6b3cb",
+        "content_sha256": "084b979ea78c65986ae7f554730bb488c818b2a7efe6c3d061901bd16ae920c1"
+      },
+      {
+        "sample_id": "control-0003",
+        "kind": "synthetic",
+        "file": "samples/control-0003.npz",
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          192,
+          192
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "reference_px",
+        "annotation_count": 256,
+        "sha256": "13aea26be46e169ea864dbeb8731a19d2b4821d2dabfbfd065f6f8c9df651ee9",
+        "content_sha256": "9eda99d196ff9789509cdff29841a956aad83c8840885552fd4b17e501b689d6"
+      },
+      {
+        "sample_id": "control-0004",
+        "kind": "synthetic",
+        "file": "samples/control-0004.npz",
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          192,
+          192
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "reference_px",
+        "annotation_count": 0,
+        "sha256": "48b4ee2c3df7ff8462160a3dcca64dba3c798ec441bc3fb040fd9e473b05139f",
+        "content_sha256": "14a35cd0f7f9f0c5bd44defe4bba04a7ee8d24556ba2d5cb7bc37df734b142d8"
+      },
+      {
+        "sample_id": "control-0023",
+        "kind": "synthetic",
+        "file": "samples/control-0023.npz",
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          192,
+          192
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "reference_px",
+        "annotation_count": 256,
+        "sha256": "409fef9e2cdee41cadab158fb81018682892bcdf64f6a8c4dfec161d8dc58ce1",
+        "content_sha256": "20765e9e43a343c8d3cf3b262320b5093789baf49f015d4305bf82b5be728df7"
+      },
+      {
+        "sample_id": "control-0024",
+        "kind": "synthetic",
+        "file": "samples/control-0024.npz",
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          192,
+          192
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "reference_px",
+        "annotation_count": 256,
+        "sha256": "f8ab69b3754e35219e63b96ef1efe31fc4ed4a06fcb8830b6e58bb1839b824f5",
+        "content_sha256": "1e2e366a7122443fc61c2f6c47246cffeae8f2047cab2be46eb1b4d7a3087562"
+      },
+      {
+        "sample_id": "control-0025",
+        "kind": "synthetic",
+        "file": "samples/control-0025.npz",
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          192,
+          192
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "reference_px",
+        "annotation_count": 256,
+        "sha256": "5615bac5d2a8f439a87fd094d53734587909167b4615f92f3331b668f6e7b605",
+        "content_sha256": "ccd37740a28bc1910d9c1fbebf2418aebf4d8fdd4006dc1fed22ff232318e660"
+      },
+      {
+        "sample_id": "control-0045",
+        "kind": "synthetic",
+        "file": "samples/control-0045.npz",
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          192,
+          192
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "reference_px",
+        "annotation_count": 256,
+        "sha256": "bdf9e67ec2d52a5779215ffca69c7dbb2ee852fcb573dbda9edd53dcfd08f161",
+        "content_sha256": "04ad4b099de34d716d118a41bd02cb7176a85a8cb3be030c718fa4a443bb5037"
+      },
+      {
+        "sample_id": "control-0046",
+        "kind": "synthetic",
+        "file": "samples/control-0046.npz",
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          192,
+          192
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "reference_px",
+        "annotation_count": 256,
+        "sha256": "5ec1bece1c7abd4b86c0a0c0bf83cbf5d028e0e8619ca54414485e863ce94d68",
+        "content_sha256": "c37cc292af3764baf5d60c6c80a169a301d2c673c73621a0663a856f3764f651"
+      },
+      {
+        "sample_id": "control-0047",
+        "kind": "synthetic",
+        "file": "samples/control-0047.npz",
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          192,
+          192
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "reference_px",
+        "annotation_count": 256,
+        "sha256": "b3b02333fa47e14c3a5c771e2af7b74c15ec9ec1493d1bb35c26b565e1627767",
+        "content_sha256": "b3d7938c6f9cc1c4a891f77b4d67e76b3864cbddbd93ff82f433ecd4c337c680"
+      },
+      {
+        "sample_id": "additional-0007",
+        "kind": "synthetic",
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          192,
+          192
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "reference_px",
+        "annotation_count": 298,
+        "file": "samples/additional-0007.npz",
+        "sha256": "0e8898f15c647cdef8e0e462e44ed95f464c9612c1a0c2718689f4adf625a2eb",
+        "content_sha256": "6b3b2a613e679718d8b3c564b405a79912da0d2ac726920ec6ca8c884a077ff4"
+      },
+      {
+        "sample_id": "additional-0015",
+        "kind": "synthetic",
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          192,
+          192
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "reference_px",
+        "annotation_count": 300,
+        "file": "samples/additional-0015.npz",
+        "sha256": "191b61577df3cab98fa5f4f6163c92d571e5e29d07ec70b523231428e1fa4d48",
+        "content_sha256": "5b3f6a3ed81ee0a91fa0a0269807187874718268802d11432e19336905ff611c"
+      },
+      {
+        "sample_id": "additional-0023",
+        "kind": "synthetic",
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          192,
+          192
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "reference_px",
+        "annotation_count": 297,
+        "file": "samples/additional-0023.npz",
+        "sha256": "f7e8875dd3df3302a45ee0a1d233d71bff086fe35b11d6b3a17d1d8b907a9223",
+        "content_sha256": "dfdac4e2310a513352d2b7f38c5126b06e64526b8b206a928efb88b9a61c518c"
+      },
+      {
+        "sample_id": "probe-01-4101",
+        "kind": "synthetic",
+        "file": "samples/probe-01-4101.npz",
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "shape_hw": [
+          192,
+          192
+        ],
+        "sha256": "df30772295842f153dfce11f148784c56da7176cba2ee672d17496813c260d10",
+        "content_sha256": "7d17f0b99616e467ec49f53ccc399f5d37391464213651d9c07149e7f0cff403"
+      },
+      {
+        "sample_id": "probe-01-4102",
+        "kind": "synthetic",
+        "file": "samples/probe-01-4102.npz",
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "shape_hw": [
+          192,
+          192
+        ],
+        "sha256": "de8a1b178542f065aa81705a62b7728b838c8632efdb4edeb6a8b1b5ad11d569",
+        "content_sha256": "a41cf86f1f5c12974c0256c0603bb0e163aa0f9804f00c2e864fc98a44465101"
+      },
+      {
+        "sample_id": "probe-01-4103",
+        "kind": "synthetic",
+        "file": "samples/probe-01-4103.npz",
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "shape_hw": [
+          192,
+          192
+        ],
+        "sha256": "7172077d1466060457f9fcde68d2fae22022372bb71f8bf38677336249d6004f",
+        "content_sha256": "659151a502ea6ed067f8297309edc798ee38c9f0576776d2c1fb32b02434f8b9"
+      },
+      {
+        "sample_id": "probe-11-4101",
+        "kind": "synthetic",
+        "file": "samples/probe-11-4101.npz",
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "shape_hw": [
+          192,
+          192
+        ],
+        "sha256": "7121ec857d50fdbd5edccef0010e58042d39c7b6c34721f9d994bc2fae594cc5",
+        "content_sha256": "c7da78b624c0743e3f6504920b2278372e05f45f964327e1a0d6287f68be3b75"
+      },
+      {
+        "sample_id": "probe-11-4102",
+        "kind": "synthetic",
+        "file": "samples/probe-11-4102.npz",
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "shape_hw": [
+          192,
+          192
+        ],
+        "sha256": "56d00e045ebd56bc620b7ceacead8163c78ac1e495699f0befddbb184998342a",
+        "content_sha256": "26671c9b9b71b7c2b3dc5446efcead8d22542a858662f001cb66f7ccaac7d474"
+      },
+      {
+        "sample_id": "probe-11-4103",
+        "kind": "synthetic",
+        "file": "samples/probe-11-4103.npz",
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "shape_hw": [
+          192,
+          192
+        ],
+        "sha256": "663aec32f58571e84f0077f38390bc44dc00e0363de50426eab046bbe11513f9",
+        "content_sha256": "1bcaa3c44a6e60096f98913ac185fc7e4f2ba0e688d777ec878ce0cf947ed9be"
+      }
+    ],
+    "measurement": [
+      {
+        "sample_id": "ttmapp-001",
+        "kind": "measurement",
+        "frame_number": 1,
+        "frame_index": 0,
+        "source_frame_index": 0,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          224.0,
+          139.0
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "ok",
+        "registration_quality": 1.0,
+        "annotation_count": 288,
+        "file": "samples/ttmapp-001.npz",
+        "sha256": "f33798cc8e4ae6dfd848f4eaef0e1a129348021dc90acff4eb5236e26f17e205",
+        "content_sha256": "c8d0e2906ade37e2d9398fcf9989777e39241942b24afba43c0d4bae6dc7edc3"
+      },
+      {
+        "sample_id": "ttmapp-050",
+        "kind": "measurement",
+        "frame_number": 50,
+        "frame_index": 49,
+        "source_frame_index": 49,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          170.09678868204355,
+          131.15619571506977
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.056944228013567036,
+        "annotation_count": 102,
+        "file": "samples/ttmapp-050.npz",
+        "sha256": "5f312576afe2e8db93d4ce5196ced1c93e48263d1ce456fcb9255c0d3d0c0fa2",
+        "content_sha256": "b7779886c5cd93daf1c5c349ae49bcbb83c1af4c1b257d0f82dcbb45c5752e0d"
+      },
+      {
+        "sample_id": "ttmapp-100",
+        "kind": "measurement",
+        "frame_number": 100,
+        "frame_index": 99,
+        "source_frame_index": 99,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          134.01465716585517,
+          146.816749420017
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.056944228013567036,
+        "annotation_count": 290,
+        "file": "samples/ttmapp-100.npz",
+        "sha256": "0df1ad2cffe8e8d41b5ed7f0e16dd9d83eb29d2824003de2ddf5c6fa0d773ac3",
+        "content_sha256": "f80f46ee08d1806bb45feafedb3653a7018abe0c108649dabd77f7f463a4a5a4"
+      },
+      {
+        "sample_id": "ttmapp-150",
+        "kind": "measurement",
+        "frame_number": 150,
+        "frame_index": 149,
+        "source_frame_index": 149,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          27.557373013347387,
+          38.340193312615156
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.05556677968532367,
+        "annotation_count": 182,
+        "file": "samples/ttmapp-150.npz",
+        "sha256": "0aca47c3ea780b48bdd1cd085f2610300ff225251719c78c6e32a6a05c5ba04d",
+        "content_sha256": "fde7b3507ae939ada622ece7d3684faf2cb13a1bd92e55cfba313dd43bbcc121"
+      },
+      {
+        "sample_id": "ttmapp-200",
+        "kind": "measurement",
+        "frame_number": 200,
+        "frame_index": 199,
+        "source_frame_index": 199,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          12.727798502892256,
+          42.76872155815363
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 118,
+        "file": "samples/ttmapp-200.npz",
+        "sha256": "8fce9fe06990ccd0715c0ce33f64150a78b528472089157d0450122146c1abef",
+        "content_sha256": "062e572eeda52774d2b326c57aa60d75e5023f2accdd3c0827e6a7bea1f568c0"
+      },
+      {
+        "sample_id": "ttmapp-250",
+        "kind": "measurement",
+        "frame_number": 250,
+        "frame_index": 249,
+        "source_frame_index": 249,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          27.622888259589672,
+          22.00866248458624
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 301,
+        "file": "samples/ttmapp-250.npz",
+        "sha256": "58a2c8573eac490efca9451d55b63d91d5b9363b86e158c47df9f4d6e2dacf5d",
+        "content_sha256": "a37b4ae6d5874995590650cff70e125316550acfa34d72273e3d3dce1b07f872"
+      },
+      {
+        "sample_id": "ttmapp-251",
+        "kind": "measurement",
+        "frame_number": 251,
+        "frame_index": 250,
+        "source_frame_index": 250,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          24.897275142371655,
+          17.791107915341854
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 292,
+        "file": "samples/ttmapp-251.npz",
+        "sha256": "f8b91498466adb976556389493153f06cd4bd1af21b65b6b019381ddc3cd6fa0",
+        "content_sha256": "3c1f658ad5e18a18b7a866265ce339d373c711d3317f7e9f1a74186b23ac261d"
+      },
+      {
+        "sample_id": "ttmapp-252",
+        "kind": "measurement",
+        "frame_number": 252,
+        "frame_index": 251,
+        "source_frame_index": 251,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          22.939053766429424,
+          19.04487194865942
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 290,
+        "file": "samples/ttmapp-252.npz",
+        "sha256": "c1f80f2ae0dc1bffea3cf716ec0a20212580b9fc77cd465dca793e61f79b82a7",
+        "content_sha256": "2d828a78415776322f5e08f3e1d76def17bb12ff3a8886d7b82f637670998412"
+      },
+      {
+        "sample_id": "ttmapp-253",
+        "kind": "measurement",
+        "frame_number": 253,
+        "frame_index": 252,
+        "source_frame_index": 252,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          26.73457919806242,
+          14.591219566762447
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 302,
+        "file": "samples/ttmapp-253.npz",
+        "sha256": "57305a8493703d35a585bf5b854dc82a27d945483aad7a2163a5085c1ace42d9",
+        "content_sha256": "bea6bab983ef1f448b402eb852a7239c39bd03d9492ab6d7b6828f4cdff5b8ff"
+      },
+      {
+        "sample_id": "ttmapp-254",
+        "kind": "measurement",
+        "frame_number": 254,
+        "frame_index": 253,
+        "source_frame_index": 253,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          24.12700115889311,
+          15.475680969655514
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 292,
+        "file": "samples/ttmapp-254.npz",
+        "sha256": "e2e5d334ce19ab91a11277096575ca8dabd3a810d57109380f0f9183615855b0",
+        "content_sha256": "49efe4229c6bf6dbf3d7fb8794c6d5c81b1430879981ba92c2bfa3a70b6f6de6"
+      },
+      {
+        "sample_id": "ttmapp-255",
+        "kind": "measurement",
+        "frame_number": 255,
+        "frame_index": 254,
+        "source_frame_index": 254,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          22.607420079410076,
+          17.40792878717184
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 298,
+        "file": "samples/ttmapp-255.npz",
+        "sha256": "0170553c83cfc3f26ebb7ea59b93c783622314aa732892f29031215985dca53b",
+        "content_sha256": "be6b2724ba541ffd9078516fe2b5e714852a45675b0175c83e2d7ed43c22f700"
+      },
+      {
+        "sample_id": "ttmapp-256",
+        "kind": "measurement",
+        "frame_number": 256,
+        "frame_index": 255,
+        "source_frame_index": 255,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          32.88156711310148,
+          17.900284104049206
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 308,
+        "file": "samples/ttmapp-256.npz",
+        "sha256": "75effd3ac484973b85de83fabfc71b296da31eaeac517cce1837022376845a58",
+        "content_sha256": "bddcb8ab953751e8390d7a509191f3a087f095770e61f85d3b4b63e33fb2f86b"
+      },
+      {
+        "sample_id": "ttmapp-257",
+        "kind": "measurement",
+        "frame_number": 257,
+        "frame_index": 256,
+        "source_frame_index": 256,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          30.575584761798382,
+          12.292130522429943
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 314,
+        "file": "samples/ttmapp-257.npz",
+        "sha256": "be9ff343a70551c2ac89935a7be3af849df537bfe224eb259fcfcd8a6432c1eb",
+        "content_sha256": "2c4eade2ac944ea84b09be7bcead087c6c3463298cec6634b711bbe401994370"
+      },
+      {
+        "sample_id": "ttmapp-258",
+        "kind": "measurement",
+        "frame_number": 258,
+        "frame_index": 257,
+        "source_frame_index": 257,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          29.133983246982098,
+          4.802826218307018
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 299,
+        "file": "samples/ttmapp-258.npz",
+        "sha256": "d3db33484287e376a82a1a46e9f3ac91d89c38747e201813eb6efe6730603cc2",
+        "content_sha256": "872b0d54089a76c7a69a4d58bdb42da31b1ebe57ade2e176af3f789d7254507f"
+      },
+      {
+        "sample_id": "ttmapp-259",
+        "kind": "measurement",
+        "frame_number": 259,
+        "frame_index": 258,
+        "source_frame_index": 258,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          30.608125917613506,
+          13.665860943496227
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 312,
+        "file": "samples/ttmapp-259.npz",
+        "sha256": "de2e2e9ab8624884f2bc0bee0e26632eb851a5ed172a29da3ccab94a9ffcc8bc",
+        "content_sha256": "38ccdba2e4e979cda853fe92c1b5a2c712816987f556a549047fcf45e888808b"
+      },
+      {
+        "sample_id": "ttmapp-260",
+        "kind": "measurement",
+        "frame_number": 260,
+        "frame_index": 259,
+        "source_frame_index": 259,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          28.86777477711439,
+          15.080728583037853
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 301,
+        "file": "samples/ttmapp-260.npz",
+        "sha256": "7387713655c10a42d05c94732b0738fa282b89ee70f2fa2efbe5ce185b222c60",
+        "content_sha256": "f0561a284a22e75d9fb4611273bad1b883552341cd9e1cde9cc242eeca96a2f4"
+      },
+      {
+        "sample_id": "ttmapp-261",
+        "kind": "measurement",
+        "frame_number": 261,
+        "frame_index": 260,
+        "source_frame_index": 260,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          32.37803452461958,
+          10.019925646483898
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 300,
+        "file": "samples/ttmapp-261.npz",
+        "sha256": "74429b8da8ff617d7e2cafea4d9ccaeeaf1e12e0502456fcff791c544eec7c27",
+        "content_sha256": "232904fda42cd82c58d185168046f26fc97ce20682c9e2da1603f515e1660272"
+      },
+      {
+        "sample_id": "ttmapp-262",
+        "kind": "measurement",
+        "frame_number": 262,
+        "frame_index": 261,
+        "source_frame_index": 261,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          30.49799584597349,
+          11.184120528399944
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 300,
+        "file": "samples/ttmapp-262.npz",
+        "sha256": "078b13828b0febf18ce7afbb7effb5bb99db932a0d2434b385bb6dc8dd0b4b5d",
+        "content_sha256": "360daf8773660c3205cfabc8b0d9724762642cfe7b6fbeeef16e035332a904fd"
+      },
+      {
+        "sample_id": "ttmapp-263",
+        "kind": "measurement",
+        "frame_number": 263,
+        "frame_index": 262,
+        "source_frame_index": 262,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          34.78252267092466,
+          10.694067291915417
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 308,
+        "file": "samples/ttmapp-263.npz",
+        "sha256": "d1507924dc7b464129cbb7802b963cc143fd4bf9feea974506bcd54e5ba60b45",
+        "content_sha256": "f0eed4796616a915de9377e1295b73fe263e8e6bccb5febda0b8a63d143855ab"
+      },
+      {
+        "sample_id": "ttmapp-264",
+        "kind": "measurement",
+        "frame_number": 264,
+        "frame_index": 263,
+        "source_frame_index": 263,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          33.67937844246626,
+          6.2245748564600945
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 298,
+        "file": "samples/ttmapp-264.npz",
+        "sha256": "1bb220d6599e1e4abc00cd122dc1876dc8eefa9ea7b4c6242ce8461e16541a15",
+        "content_sha256": "637c58c512395d3002c6717ab33bdfc5490e99ff4fd329b6409390fb7d2c11eb"
+      },
+      {
+        "sample_id": "ttmapp-265",
+        "kind": "measurement",
+        "frame_number": 265,
+        "frame_index": 264,
+        "source_frame_index": 264,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          31.93451177328825,
+          6.676924578845501
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 300,
+        "file": "samples/ttmapp-265.npz",
+        "sha256": "b61bda22753fd2c354b183e9296d345abb0ebe1b0211c017323629998b50280d",
+        "content_sha256": "13419efc85ce76b2401b40867d5aef36cf87da0c68b0287f54ffed548efaf9f0"
+      },
+      {
+        "sample_id": "ttmapp-266",
+        "kind": "measurement",
+        "frame_number": 266,
+        "frame_index": 265,
+        "source_frame_index": 265,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          30.065727941691875,
+          7.353428922593594
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 309,
+        "file": "samples/ttmapp-266.npz",
+        "sha256": "ad1ea9f1f78362bc26701699e83f1af9dc5c211d1f2edfae8c6dfa83e8f0c46b",
+        "content_sha256": "19551516f24601f155abd01dded6778e417ba5d87b47e270b59e61acaefa1d4e"
+      },
+      {
+        "sample_id": "ttmapp-267",
+        "kind": "measurement",
+        "frame_number": 267,
+        "frame_index": 266,
+        "source_frame_index": 266,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          28.383390180766582,
+          8.334247760474682
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 318,
+        "file": "samples/ttmapp-267.npz",
+        "sha256": "240b648c2f6107446b32666d03c21d278114ed564abfa18285bae63ef8944a09",
+        "content_sha256": "1eaea4c13bb6740056ce152e8b3a2f51fbe57fae7d1406f30d4bec0b756dc9b4"
+      },
+      {
+        "sample_id": "ttmapp-268",
+        "kind": "measurement",
+        "frame_number": 268,
+        "frame_index": 267,
+        "source_frame_index": 267,
+        "coordinate_system": "raw_edge_xy",
+        "shape_hw": [
+          256,
+          256
+        ],
+        "pixel_spacing_xy": [
+          1.0,
+          1.0
+        ],
+        "position_unit": "px",
+        "calibration_trusted": false,
+        "origin_in_expanded_xy": [
+          26.884201757609844,
+          8.999746315181255
+        ],
+        "expanded_shape_hw": [
+          408,
+          480
+        ],
+        "registration_status": "low_confidence",
+        "registration_quality": 0.04012640909565268,
+        "annotation_count": 308,
+        "file": "samples/ttmapp-268.npz",
+        "sha256": "81a290fe88a33f26d87b22f2ea4ebceae49cff7d44d0a5cba3df407b25cb99b8",
+        "content_sha256": "a8f240a6a412695340153c0852c08f41031d220aac33ae7bbef197631bc68c59"
+      }
+    ],
+    "previous_lock_sha256": "5f170d2b0decd9dca42f63fe5c30f23f2c22a63a9d63fb0cba5e1ed49d12e513"
+  },
+  "generation": {
+    "images": 60,
+    "replays": 60,
+    "paired_interventions": 33,
+    "settings_sha256": "d120fbeb6f779ccce600c244b41e9cc656a9c92a6fe76d21a644e28d5f6720a3",
+    "protocol_sha256": "c15855e3d3f741b6cf3d1d5f80c8c9f8815f7acd25e24f06294dcaa87b4edbfe",
+    "source_sha256": "2cd04d3cd9606f86caba83850700f545254e2201f5e44b4198e25b7aab19bcad"
+  },
+  "evaluation": {
+    "images": 103,
+    "windows": 7960,
+    "variants": 23880,
+    "decisions": 47760,
+    "reference_sha256": "b2f496fc3100ea3cf038840e2cd48bbcb1e14a5caa09fb325bc65e2993119719",
+    "fresh_reference_sha256": "b9c63be375777bc85fecdec48e874ff75455e24b9b654c7d4d572c4d54306afe",
+    "measurement_lock_sha256": "af3c9b831690d870e216882bf4aee3bc96992487f1cf5e37ad54ba32a18646f1",
+    "evaluator_sha256": "0cde2883def748552e3c6965d69a749623134f4b64ca7f219ac9eb364668bb25",
+    "references_only_after_lock": true,
+    "verified_input_samples": 103,
+    "input_hash_report_sha256": "c1ec969e4515619644382a0b7979c7449dc40d1a0c6d2a8c97881bc79831b35a",
+    "interior_subgroup": "Geometric diagnostic declared before evaluation: entire radius64 disk contained within image bounds and all pixel centers in disk measured. Fresh summaries include all plus interior; TTMAPP pure/mixed/unknown rules unchanged. On192x192 grid12+24n there are4 interior windows per image,12 per three-seed case. No acceptance, model or threshold changes.",
+    "common_threshold_diagnostic": "Maximum already-frozen negative threshold only between position1 and motif, separately for global/new rows. Baseline F has different units and uses its own threshold.",
+    "motif_count_not_accuracy": "No K-correct metric: equivalent cell representations may contain different numbers of sites.",
+    "prediction_evaluation": "Maximum one-to-one matches at distance<=2px and soft F on full image centers in held-out annulus; truth never used to fit/select. Repeated overlapping windows are not independent.",
+    "oracle_evaluation": "Known generator model evaluated only after inference lock; new-row availability is reported separately from fit quality and annotation availability. No oracle-based model selection or thresholds.",
+    "oracle_gauge_limit": "Oracle anchor is the mean of training centers, as in fitting; whole-cell-plane availability can depend on the chosen equivalent cell representation and offset wrapping even for identical predicted node sets.",
+    "physical_disorder_control": "disorder and motif2_disorder physically displace image molecules by sigma4px; they probe degradation, not a guarantee that all residual periodic information is absent.",
+    "hidden_annotation_limit": "all_missing_columns reports physical image prediction and separately observed-only prediction. Hidden regular deletions are unidentifiable from supplied centers; no recovery claim.",
+    "hidden_annotation_flag": "False only for the explicit all_missing_columns non-identifiability control; null means not assessed, not a claim that other hidden annotations are identifiable.",
+    "material_identifiability_pairs": 3
+  },
+  "environment": {
+    "python": "3.12.12 | packaged by conda-forge | (main, Jan 26 2026, 23:51:32) [GCC 14.3.0]",
+    "executable": "/home/rlew/projekty/conda-migration-ubuntu-20261008/envs/netcat/bin/python",
+    "numpy": "2.2.5",
+    "scipy": "1.15.2",
+    "platform": "Linux-7.0.0-38-generic-x86_64-with-glibc2.39",
+    "prototype_commit": "25b270e93c2979b1230c6b9eacf6531ca0e0a55a",
+    "gpu_used": false,
+    "blas_threads": 1,
+    "workers": 4
+  },
+  "performance": {
+    "calibrate": {
+      "seconds": 45.82449242299481,
+      "max_worker_rss_kib": 117240,
+      "candidate_fits": 95142
+    },
+    "fresh": {
+      "seconds": 109.38720720799756,
+      "max_worker_rss_kib": 116856,
+      "candidate_fits": 265065
+    },
+    "measurement": {
+      "seconds": 91.48224283399759,
+      "max_worker_rss_kib": 120760,
+      "candidate_fits": 221098
+    }
+  },
+  "numerical_audit": {
+    "status": "passed",
+    "counts": {
+      "nearest_points": 1440,
+      "density_models": 60,
+      "equivalent_nodes": 267,
+      "permutation_windows": 18,
+      "train_test_separation": 6,
+      "train_validation_separation": 6
+    },
+    "maximum_errors": {
+      "nearest_distance": 0.0,
+      "nearest_position": 3.1530333899354446e-14,
+      "truncation_score": 3.249482352085664e-07,
+      "whole_cell_mean": 8.881784197001252e-16,
+      "representation": 3.3306690738754696e-16,
+      "rotation": 3.094746681142624e-15,
+      "permutation": 0.0,
+      "translation": 4.551914400963142e-15
+    },
+    "diagnostic_only": [
+      {
+        "case": "clean",
+        "selected_k": [
+          1,
+          1,
+          1
+        ],
+        "global_scores": [
+          1.0,
+          1.6594883241233178,
+          1.6594883241233178
+        ],
+        "new_rows_available": [
+          true,
+          true,
+          true
+        ],
+        "oracle_new_rows_available": true
+      },
+      {
+        "case": "motif",
+        "selected_k": [
+          1,
+          1,
+          2
+        ],
+        "global_scores": [
+          0.7469997863987974,
+          1.5160321304363726,
+          1.9424048189715306
+        ],
+        "new_rows_available": [
+          true,
+          true,
+          false
+        ],
+        "oracle_new_rows_available": false
+      },
+      {
+        "case": "missing30",
+        "selected_k": [
+          1,
+          1,
+          1
+        ],
+        "global_scores": [
+          0.9166666666666666,
+          1.6594883241233178,
+          1.6594883241233178
+        ],
+        "new_rows_available": [
+          true,
+          true,
+          true
+        ],
+        "oracle_new_rows_available": true
+      },
+      {
+        "case": "random",
+        "selected_k": [
+          1,
+          1,
+          1
+        ],
+        "global_scores": [
+          0.12907539922538006,
+          -0.014701313977734165,
+          -0.014701313977734165
+        ],
+        "new_rows_available": [
+          true,
+          true,
+          true
+        ],
+        "oracle_new_rows_available": null
+      },
+      {
+        "case": "rows",
+        "selected_k": [
+          1,
+          1,
+          1
+        ],
+        "global_scores": [
+          0.5008251445122763,
+          0.6725670816789231,
+          0.6725670816789231
+        ],
+        "new_rows_available": [
+          true,
+          true,
+          true
+        ],
+        "oracle_new_rows_available": null
+      },
+      {
+        "case": "jitter12",
+        "selected_k": [
+          1,
+          1,
+          1
+        ],
+        "global_scores": [
+          0.6201640685596006,
+          1.1957277391522334,
+          1.1957277391522334
+        ],
+        "new_rows_available": [
+          true,
+          true,
+          true
+        ],
+        "oracle_new_rows_available": true
+      }
+    ],
+    "note": "Checks concern numerical implementation, not domain detection accuracy. The periodic contrast is not a finite-window normalized likelihood."
+  },
+  "results_audit": {
+    "status": "passed",
+    "counts": {
+      "row_npz_checks": 23880,
+      "decisions": 47760,
+      "selected_model_checks": 23880,
+      "summary_fields": 3213,
+      "predictions": 94,
+      "csv_fields": 5661
+    },
+    "images": 103,
+    "ttmapp_equal_position_motif_decisions": true,
+    "ttmapp_accepted_motif_counts": [
+      1
+    ],
+    "independent_rows_false_accept_motif_counts": {
+      "independent_rows": {
+        "1": 0,
+        "2": 9,
+        "3": 0
+      },
+      "independent_rows_rot27": {
+        "1": 0,
+        "2": 15,
+        "3": 1
+      }
+    },
+    "inference": "The additional motif model improves prediction of two-site controls, but creates new accepted independent-row controls and does not change accepted TTMAPP windows. The predefined overall success criterion is not met."
+  },
+  "blind_replay": {
+    "images": 103,
+    "windows": 7960,
+    "decisions": 47760,
+    "candidate_fits": 581305,
+    "all_arrays_identical": true,
+    "truth_reads_blocked": true,
+    "seconds": 253.54260915399936,
+    "duration_note": "Sum of separate stage wall times, not total wall time; a previous interrupted full replay is excluded.",
+    "measurement_lock_sha256": "af3c9b831690d870e216882bf4aee3bc96992487f1cf5e37ad54ba32a18646f1"
+  },
+  "browser": {
+    "checks": 84,
+    "errors": [],
+    "passed": true
+  },
+  "review": {
+    "frames": 44,
+    "windows": 4184,
+    "measurement_frames": 24,
+    "fresh_cases": 20,
+    "reference_optional": true,
+    "inference_not_rerun": true,
+    "common_threshold_only_position_scores": true
+  },
+  "review_checks": {
+    "summary_checks": 399,
+    "exported_value_checks": 83778,
+    "frames": 44,
+    "passed": true
+  },
+  "copy": {
+    "source": "/tmp/netcat-stmdomains-motif-prototype/.scratch/motif-completeness",
+    "destination": "/home/rlew/projekty/NEtCAT-domains/.scratch/motif-completeness",
+    "artifact_files": 258,
+    "artifact_bytes": 149895313,
+    "all_sha256_equal": true,
+    "manifest_equal": true,
+    "previous_symlink_preserved": true
+  },
+  "source_sha256": {
+    "stmdomains/prototypes/MOTIF-COMPLETENESS.md": "ebc40e5f190368f15cc3d7fd49c038811a77c511f5fa23db5f1f422e5567ebad",
+    "stmdomains/prototypes/motif_completeness.py": "245b697814de78b74b50c8947bfd6d21c3c40ac10fad9ff80f116888f9d197e9",
+    "stmdomains/prototypes/motif_completeness_audit.py": "16d77cf8b8124118d5e61a7d6e20c43f1decc4a50e91fc119c81b8541d8c8953",
+    "stmdomains/prototypes/motif_completeness_browser.py": "a9132cc5ce1d0a18d3002e08c4cba9828bf277bb3423f60a6adf0c78dacaae91",
+    "stmdomains/prototypes/motif_completeness_design.json": "c15855e3d3f741b6cf3d1d5f80c8c9f8815f7acd25e24f06294dcaa87b4edbfe",
+    "stmdomains/prototypes/motif_completeness_evaluate.py": "0cde2883def748552e3c6965d69a749623134f4b64ca7f219ac9eb364668bb25",
+    "stmdomains/prototypes/motif_completeness_probes.py": "2cd04d3cd9606f86caba83850700f545254e2201f5e44b4198e25b7aab19bcad",
+    "stmdomains/prototypes/motif_completeness_results_audit.py": "8bdcbcaaa8afa5e7b9f9e8240ac3b29deb681a33639f538fb234b4a69544715c",
+    "stmdomains/prototypes/motif_completeness_review.html": "4495b5bc8b247968f1eec88ae783c2400ad76ef22068fc62e9b540a44f16c4af",
+    "stmdomains/prototypes/motif_completeness_review.py": "79eb96f49a886309b4e692cf1638d163eea08c0aedd8f608d3aa5cf662c90a95",
+    "stmdomains/prototypes/motif_completeness_verify.py": "a2422cc16092f8f090590be1b3ea89167e6e837c598aa01bf73fd51c14f2dbc0",
+    "stmdomains/prototypes/run-motif-completeness.sh": "7afb7471f94586ef4ebae46463d1038d2361186dbe0ac58f58284645b269afa0"
+  },
+  "artifact_manifest_sha256": "ef8e30578e70ba2b17b3d3c32c5828c47e562644d0634fca408db2d626cab559",
+  "measurement_lock_sha256": "af3c9b831690d870e216882bf4aee3bc96992487f1cf5e37ad54ba32a18646f1",
+  "summary_sha256": "34a901b65d94c7aaf61b91ebd830b0fd6a11cc976b3fc5eb22d1afc123e481b4",
+  "report_inputs_sha256": {
+    "evaluation/windows.json": "1a259dcc6f00dcb8e6f6a9efd3906120380943eb61ffdacc568051587081827c",
+    "evaluation/summary.json": "81e1284faf0ad3e6176b5a979c9561d39bbea528412bc61fc0ac040f2fdab5ac",
+    "evaluation/input-hash-verification.json": "c1ec969e4515619644382a0b7979c7449dc40d1a0c6d2a8c97881bc79831b35a",
+    "numerical-audit.json": "e82c91c84962082d14f790f1ad4c12e75b2e23cc7111fa5a4879b6c0345641f4",
+    "results-audit.json": "d11b13dcbbadb07433878ffce05607426ea91ee4a777fa0c0925fc3c79fff653",
+    "blind-replay-verification.json": "5b9803e5068f81ac606fd5817c410bc10054f490a84b8299132f44f41d758a1b",
+    "review-data-verification.json": "313bdae52e5fbd1143c346ddd92369af84c7ba9d7b3aa327c92ebf3e3dd7cb0c",
+    "browser-verification.json": "89d4b047c9d73c15cc221099a19a69903d31329e4cfad5e18f93ddc547719964",
+    "copy-verification.json": "d0b2fabe1639b53b94332404065b7c4de27dae3d6b2bd60fb3454e5627426377"
+  },
+  "scope": {
+    "issue19": "claimed, to discuss",
+    "issue20": "deferred",
+    "production_method_selected": false,
+    "training_started": false,
+    "material_or_domain_segmentation": false
+  },
+  "verdict": "Pozycje oddzielone od kompletności pomagają przy brakach; model par poprawia geometrię, ale dodaje fałszywe akceptacje rzędów. Rozszerzony motyw nie poprawia TTMAPP; nie spełniono całościowego kryterium sukcesu."
+}

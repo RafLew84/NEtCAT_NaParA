@@ -269,9 +269,16 @@ bez referencji. Następnie wykonano [próbę kandydatów baz i nowych powtórze�
 97 obrazów, 54 nowe syntetyki, 15152 otoczenia. Dzielniki baz odzyskują
 prawidłowy okres w 9/9 celowanych kontrolach R64, ale na TTMAPP przy
 wspólnym progu nie ma poprawy. Podgląd `.scratch/basis-candidates/index.html`;
-90912 decyzji odtworzonych bez referencji, 86 kontroli HTML. **19 nadal
-`claimed`; 20 odłożone.** Do omówienia zgodność motywu i kompletność
-oznaczeń. Kolejnej próby ani treningu nie uruchomiono; nie przyjęto metody.
+90912 decyzji odtworzonych bez referencji, 86 kontroli HTML.
+Następnie wykonano [próbę motywu i kompletności](motif-completeness-trial.md):
+103 obrazy, 60 nowych kontroli, 7960 otoczeń. Oddzielna ocena pozycji
+pomaga przy brakach oznaczeń; model dwóch pozycji poprawia przewidywania
+kontrolnych par, ale dodaje fałszywe akceptacje niezależnych rzędów.
+TTMAPP: jedna pozycja i motyw mają te same 7 akceptacji całego pierścienia
+oraz 5 nowych rzędów; w znanych wnętrzach po jednej. Nie przyjęto metody.
+Podgląd `.scratch/motif-completeness/index.html`. **19 nadal `claimed`,
+do omówienia; 20 odłożone.** Propozycja po omówieniu: zachować składniki
+badawcze i przejść do przygotowania treningu. Treningu nie uruchomiono.
 
 
 ## Dwa etapy

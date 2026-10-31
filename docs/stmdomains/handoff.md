@@ -1,3 +1,68 @@
+# STM Domains — motyw i kompletność oznaczeń, issue 19
+
+Data: **2026-10-31**. Dokumentacja `domains/motif-completeness`, baza
+`559daaf`, worktree `/tmp/netcat-stmdomains-motif`. Źródła:
+**`prototype/stmdomains-motif-completeness`, `25b270e`**, baza `b450c4f`.
+Prototyp pozostaje osobno; nie scalać go do aplikacji. Dokumentacja do
+`domains/start`; końcowy commit w odpowiedzi użytkownika. Integrację do
+`stm-next` prowadzi koordynator. Nie zmieniono Viewer ani wspólnych modułów.
+
+Wykonano [próbę motywu i kompletności](motif-completeness-trial.md),
+[manifest](motif-completeness-manifest.json). Podgląd:
+`/home/rlew/projekty/NEtCAT-domains/.scratch/motif-completeness/index.html`.
+103 obrazy: 19 geometrii kalibracji, 24 pełne TTMAPP i 60 nowych kontroli;
+7960 otoczeń, 581305 dopasowań, 47760 decyzji. Trzy warianty: dotychczasowe
+F jednej pozycji, nowa ocena pozycji jednej sieci oraz wybór 1–3 pozycji.
+Osobne dane do dopasowania, wyboru i końcowego testu, progi przed nowymi
+kontrolami, referencje wyłącznie po zamrożeniu wyników.
+
+Oddzielna ocena pozycji pomaga przy brakach oznaczeń: pojedyncza sieć
+z nominalnie 60% braków daje 100/192 lokalnych akceptacji wobec 1/192 dla
+F, przy 104 dostępnych modelach. Model par poprawia medianę zgodności pełnych
+pozycji z .754 do .968. Jednocześnie dodaje fałszywe akceptacje niezależnych
+rzędów: 9/192 i 16/192 po obrocie. Kontrola K3 jest bliska drobniejszej
+sieci w tolerancji; nie potwierdza rozpoznawania trzech odrębnych składników.
+
+TTMAPP: jedna pozycja i rozszerzony motyw oceniane przez S dają te same
+7 akceptacji pierścienia i 5 nowych rzędów, przy wspólnym progu. W znanych
+wnętrzach po jednej; wszystkie zaakceptowane modele rozszerzonego wariantu
+mają K1. Nie wyznaczono domen, granic ani powierzchni. Brak nowych rzędów
+jest osobnym wynikiem; dostępność zależy także od komórki. Pusta przerwa
+i same braki oznaczeń dają identyczną geometrię, więc materiał wymaga obrazu.
+
+**19 nadal `claimed`, do omówienia; 20 odłożone.** Zachowujemy użyteczne
+składniki badawcze, bez przyjęcia detektora. Propozycja po omówieniu:
+zakończyć tę serię diagnostyki i przejść do przygotowania treningu bez
+etykiet. Treningu ani implementacji metody w aplikacji nie uruchomiono.
+
+Sprawdzenia: 60 deterministycznych odtworzeń generatora i 33 kontrole par;
+103 wejścia zgodne z hashami pełnych tablic. Niezależnie sprawdzono
+1440 przypisań, 60 modeli gęstości, równoważne opisy, permutacje i brak
+przecieku między dopasowaniem, wyborem i testem. Audyt wyników obejmuje
+23880 wierszy/wyborów, 47760 decyzji, 3213 pól agregacji, 5661 pól CSV
+i 94 niezależne oceny przewidywań. 103 pomiary i **47760 decyzji** identyczne po pełnym odtworzeniu
+  z blokadą referencji; trzy ukończone partie. Pierwszy proces odtwarzania
+  przerwano (kod 143); wszystkie partie obliczono ponownie od początku.
+84 kontrole QtWebEngine, zero błędów JS, 399 kontroli agregatów podglądu
+i 83778 kontroli eksportowanych wartości/modeli. Zrzut oraz wykres obejrzane.
+Python/Bash sprawdzone, wrapper wykonany etapami. To sprawdzenia
+eksperymentu, nie produkcyjnego GUI ani skuteczności detektora domen.
+
+CPU, 4 procesy po jednym wątku BLAS. Kalibracja 45.82 s, syntetyki
+109.39 s, TTMAPP 91.48 s; maksimum RSS procesu 120760 KiB, nie sumaryczny
+szczyt. Bez GPU i nowych zależności. Artefakty są lokalne, poza Git;
+źródła prototypu i dokumentacja wersjonowane na osobnych gałęziach.
+
+Nie są potrzebne zmiany wspólne. Nadal otwarte: jakość 04, odbiór metod 13,
+decyzja o dalszym zakresie 19 i wykonanie natywnego szkieletu. Uzgodniony
+zapis/statystyki nie zostały przez ten eksperyment zaimplementowane.
+
+Kopię 258 plików wynikowych wskazanych w manifeście (149895313 bajtów)
+zweryfikowano SHA-256 w docelowym katalogu; poprzednie dane pozostają
+pod wskazanym w manifeście lokalnym odsyłaczem.
+
+---
+
 # STM Domains — kandydaci baz i nowe powtórzenia, issue 19
 
 Data: **2026-10-31**. Dokumentacja `domains/basis-candidates`, baza

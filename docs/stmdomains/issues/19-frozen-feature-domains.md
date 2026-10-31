@@ -5,7 +5,7 @@ Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
 Status: claimed
-Assignee: Codex — domains/translation-family
+Assignee: Codex — domains/motif-completeness
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 17, 18
 
@@ -512,4 +512,39 @@ mechanizm propozycji jako część do dalszej oceny, nie jako detektor domen.
 **19 nadal `claimed`, do omówienia; 20 odłożone.** Następna propozycja:
 oddzielić zgodność motywu od kompletności oznaczeń, porównać jedno-
 i wielopunktowy motyw z oceną jego złożoności poza dopasowaniem i wyborem.
-Nie rozpoczęto kolejnego badania ani implementacji w aplikacji.
+Na tamtym etapie nie rozpoczęto kolejnego badania ani implementacji.
+Kolejną próbę wykonano poniżej.
+
+## Rozwinięcie — 2026-10-31: motyw i kompletność oznaczeń
+
+Na polecenie użytkownika wykonano [kolejną próbę](../motif-completeness-trial.md):
+103 obrazy (19 wcześniejszych negatywów, 24 pełne TTMAPP, 60 nowych kontroli),
+7960 otoczeń, 581305 dopasowań. Trzy warianty rozdzielają zmianę miary
+pozycji od zmiany modelu z jednego punktu na 1–3 powtarzalne pozycje.
+Dopasowanie, wybór i końcowy test są rozłączne; referencje wyłącznie do oceny.
+
+Nowa miara podnosi liczbę lokalnych akceptacji pojedynczej sieci przy 60%
+braków oznaczeń z 1 do 100/192, przy 104 dostępnych modelach. Model dwóch
+pozycji poprawia medianę zgodności pełnych pozycji kontrolnej pary z .754
+do .968. Zarazem dodaje 9/192 i 16/192 fałszywych akceptacji niezależnych
+rzędów. Warunek poprawy bez wzrostu fałszywego porządku nie został spełniony.
+Kontrola trzech pozycji jest bliska drobniejszej sieci w tolerancji 2 px,
+więc nie rozstrzyga zdolności rozpoznawania trzech odrębnych składników.
+
+TTMAPP: pojedyncza pozycja i rozszerzony motyw dają dokładnie te same
+7 akceptacji całego pierścienia i 5 nowych rzędów, przy wspólnych progach.
+W znanych wnętrzach pozostają po jednej; wszystkie zaakceptowane modele
+rozszerzonego wariantu mają K1. Nie wyznaczono domen ani ich powierzchni.
+Brak nowych rzędów pozostaje osobnym wynikiem; większa komórka ogranicza
+ich dostępność nawet dla prawdziwego modelu. Sygnał materiału nadal osobny.
+
+Źródła: **`prototype/stmdomains-motif-completeness`, `25b270e`**;
+[manifest](../motif-completeness-manifest.json), podgląd
+`.scratch/motif-completeness/index.html` (44 obrazy, 5 scenariuszy).
+Sprawdzenia liczbowe, niezależny audyt agregacji, odtworzenie bez referencji
+oraz kontrole HTML opisano w raporcie. Prototyp pozostaje poza aplikacją.
+
+**19 nadal `claimed`, do omówienia; 20 odłożone.** Proponujemy zachować
+rozdzielenie pozycji i obsadzenia oraz modele motywu jako składniki badawcze,
+zakończyć tę serię diagnostyki i po omówieniu podjąć przygotowanie treningu
+bez etykiet. Nie rozpoczęto treningu ani implementacji metody w aplikacji.

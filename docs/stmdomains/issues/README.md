@@ -133,7 +133,12 @@ podziale oraz za mało niezależnych rzędów. Nowa ocena tolerancji/liczebnośc
 nie daje ogólnej poprawy. Następnie wykonano [próbę kandydatów baz i nowych powtórzeń](../basis-candidates-trial.md):
 97 obrazów, 54 nowe syntetyki, 15152 otoczenia. Dzielniki odzyskują właściwy
 okres w 9/9 celowanych kontrolach R64, ale na TTMAPP przy wspólnym progu
-nie ma poprawy. Do omówienia zgodność motywu i kompletność oznaczeń.
+nie ma poprawy. Wykonano kolejną [próbę motywu i kompletności](../motif-completeness-trial.md):
+103 obrazy, 60 nowych kontroli. Oddzielna ocena pozycji poprawia odporność
+na braki, motyw poprawia geometrię par, lecz dodaje fałszywe akceptacje rzędów.
+TTMAPP bez przewagi motywu: te same 7/5 lokalnych akceptacji pierścienia/nowych
+rzędów co przy jednej pozycji. Do omówienia zachowanie składników jako punktu
+odniesienia i przygotowanie treningu; nie wybrano metody.
 19 `claimed`, 20 odłożone; odbiór 13 i jakość 04 otwarte.
 
 Lokalny tracker Markdown znajduje się w wersjonowanym `docs/stmdomains/`, zgodnie
@@ -219,7 +224,7 @@ ten nadal warunkuje odbiór metod. Statusy znajdują się w ticketach.
 | [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md) | prototype / HITL | `resolved`: porównanie zachowane, użytkownik wybrał przejście do 17, E2 |
 | [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md) | prototype / HITL | `resolved`: widmo/EWT zachowane do porównań ML, bez przyjęcia metody; E3 |
 | [Jak przygotować cechy gotowych sieci bez treningu na naszych danych?](18-frozen-feature-preparation.md) | task / AFK | `resolved`: oba ekstraktory, cache, geometria i powtarzalność sprawdzone |
-| [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | `claimed`: wykonana próba kandydatów baz i nowych powtórzeń; odzyskane 9/9 celowanych okresów R64, TTMAPP bez poprawy przy wspólnym progu; do omówienia motyw i kompletność oznaczeń; 20 odłożone |
+| [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | `claimed`: wykonana próba motywu i kompletności; poprawa kontroli braków i par, nowe fałszywe akceptacje rzędów, TTMAPP bez przewagi motywu; do omówienia dalszy zakres; 20 odłożone |
 
 Próby geometrii, SBC/MatID i klasycznej tekstury są niezależne. Porównanie
 ML korzysta z wyniku tekstury jako punktu odniesienia, również gdy jest

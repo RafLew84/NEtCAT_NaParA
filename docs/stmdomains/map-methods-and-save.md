@@ -33,8 +33,15 @@ tolerancji/liczebności nie wystarcza. Do omówienia kilka propozycji bazy
 i ocena na nowych powtórzeniach w dwóch kierunkach. Tę próbę wykonano:
 [kandydaci baz i nowe powtórzenia](basis-candidates-trial.md), 97 obrazów,
 54 nowe syntetyki. Dzielniki odzyskują właściwy okres w 9/9 celowanych
-kontrolach R64; TTMAPP przy wspólnym progu bez poprawy. Do omówienia
-zgodność motywu i kompletność oznaczeń. Sygnał pozostaje osobny.
+kontrolach R64; TTMAPP przy wspólnym progu bez poprawy. Następnie wykonano
+[próbę motywu i kompletności](motif-completeness-trial.md): 103 obrazy,
+60 nowych kontroli, 7960 otoczeń. Oddzielna miara pozycji pomaga przy
+brakach; model dwóch pozycji poprawia geometrię par, ale dodaje błędne
+akceptacje niezależnych rzędów. TTMAPP przy wspólnym progu: te same
+7 otoczeń dla całego pierścienia i 5 dla nowych rzędów przy jednej
+pozycji i rozszerzonym motywie. Nie spełniono kryterium całej próby.
+Do omówienia zachowanie wyników i przejście do przygotowania treningu;
+20 nadal odłożone, sygnał materiału pozostaje osobny.
 Nie zamykamy 19 ani nie wybieramy metody do aplikacji.
 
 Zwykły tok tego etapu następuje po odbiorze działającego szkieletu z
