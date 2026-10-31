@@ -15,7 +15,7 @@ def cpu_movie(tmp_path):
     return path
 
 
-@pytest.mark.parametrize('method', ['Tile+RANSAC', 'ECC', 'Optical Flow', 'Korelacja bez normalizacji'])
+@pytest.mark.parametrize('method', ['Tile+RANSAC', 'ECC', 'Optical Flow', 'Korelacja bez normalizacji (v1)'])
 def test_selecting_method_keeps_old_aligned_until_success(qtbot, monkeypatch, tmp_path, method):
     window = STMViewerMainWindow()
     qtbot.addWidget(window)
@@ -34,7 +34,7 @@ def test_selecting_method_keeps_old_aligned_until_success(qtbot, monkeypatch, tm
     info = window.findChild(QLabel, 'registrationInfo').text()
 
     combo = window.findChild(QComboBox, 'registrationMethod')
-    assert [combo.itemText(i) for i in range(combo.count())] == ['Phase', 'Korelacja bez normalizacji', 'Tile+RANSAC', 'ECC', 'Optical Flow', 'Deep Matcher']
+    assert [combo.itemText(i) for i in range(combo.count())] == ['Phase', 'Korelacja bez normalizacji (v1)', 'Tile+RANSAC', 'ECC', 'Optical Flow', 'Deep Matcher']
     combo.setCurrentText(method)
     assert image(window) == before
     assert window.findChild(QLabel, 'registrationInfo').text() == info
@@ -93,7 +93,7 @@ def test_missing_opencv_disables_only_ecc_and_keeps_old_result(qtbot, monkeypatc
     ('Tile+RANSAC', 'tile_correlation_ransac'),
     ('ECC', 'ecc_translation'),
     ('Optical Flow', 'optical_flow_median'),
-    ('Korelacja bez normalizacji', 'phase_no_normalization'),
+    ('Korelacja bez normalizacji (v1)', 'phase_no_normalization'),
 ])
 @pytest.mark.parametrize('outcome', ['cancel', 'exception', 'failed', 'incomplete', 'invalid', 'uncertain'])
 def test_retry_preserves_old_result_or_publishes_complete_uncertainty(
@@ -212,7 +212,7 @@ def test_fresh_process_can_browse_without_registration_dependency(missing):
         assert '80 × 80 px' in '\\n'.join(w.text() for w in window.findChildren(QLabel))
         combo = window.findChild(QComboBox, 'registrationMethod')
         register = window.findChild(QPushButton, 'registerFrames')
-        for name in ['Phase', 'Korelacja bez normalizacji', 'Tile+RANSAC', 'ECC', 'Optical Flow']:
+        for name in ['Phase', 'Korelacja bez normalizacji (v1)', 'Tile+RANSAC', 'ECC', 'Optical Flow']:
             combo.setCurrentText(name)
             if sys.argv[1] in ('scipy', 'skimage') or (sys.argv[1] == 'cv2' and name == 'ECC'):
                 assert not register.isEnabled()

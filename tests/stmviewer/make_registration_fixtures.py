@@ -1,11 +1,21 @@
 """Small reproducible registration movies in source file orientation."""
 
 from pathlib import Path
+from dataclasses import replace
+
+from stmviewer.io import open_stp
 
 import numpy as np
 from scipy.ndimage import fourier_shift
 
 from make_mpp_fixtures import movie_bytes
+
+
+def frames_with_data(*arrays):
+    template = open_stp(Path(__file__).parent / 'fixtures' / 'asymmetric.stp')
+    return tuple(replace(template, data=np.asarray(a, dtype=np.float64),
+                         source_frame_index=i, measurement_time_s=(10, 20, 35)[i % 3])
+                 for i, a in enumerate(arrays))
 
 
 def write_movie(path, frames):

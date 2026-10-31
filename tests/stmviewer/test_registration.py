@@ -1,22 +1,11 @@
 """Original frames -> complete registration, with independent geometric expectations."""
 
 from dataclasses import replace
-from pathlib import Path
 
 import numpy as np
 
-from stmviewer.io import open_stp
+from make_registration_fixtures import frames_with_data
 from stmviewer.registration import register_series
-
-FIXTURES = Path(__file__).parent / 'fixtures'
-
-
-def frames_with_data(*arrays):
-    template = open_stp(FIXTURES / 'asymmetric.stp')
-    return tuple(replace(template, data=np.asarray(a, dtype=np.float64),
-                         source_frame_index=i, measurement_time_s=(10, 20, 35)[i % 3])
-                 for i, a in enumerate(arrays))
-
 
 def test_phase_accumulates_adjacent_xy_and_keeps_whole_original_fields():
     original = np.random.default_rng(42).normal(size=(32, 48))

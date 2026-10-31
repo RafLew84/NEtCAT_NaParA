@@ -16,7 +16,7 @@ from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
 
 CPU_METHODS = {
     "phase_correlation": "Phase",
-    "phase_no_normalization": "Korelacja bez normalizacji",
+    "phase_no_normalization": "Korelacja bez normalizacji (v1)",
     "tile_correlation_ransac": "Tile+RANSAC",
     "ecc_translation": "ECC",
     "optical_flow_median": "Optical Flow",
@@ -214,8 +214,11 @@ def create_shift_backend(method: str) -> ShiftBackend:
         from nanotrack.registration.phase_correlation import (
             PhaseCorrelationShiftBackend, PhaseCorrelationShiftConfig,
         )
-        unnormalized: ShiftBackend = PhaseCorrelationShiftBackend(
-            PhaseCorrelationShiftConfig(normalization=None))
+        # Fixed v1 settings: preserve the version in pair, series and MPP labels.
+        unnormalized: ShiftBackend = PhaseCorrelationShiftBackend(PhaseCorrelationShiftConfig(
+            upsample_factor=20, normalization=None, min_texture_std=1e-8,
+            peak_exclusion_radius=3, low_confidence_peak_ratio=3.0,
+        ))
         return unnormalized
     if method == "ecc_translation":
         # Construction alone does not import OpenCV in the shared ECC backend.

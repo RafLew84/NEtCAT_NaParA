@@ -3,10 +3,10 @@
 import numpy as np
 
 from stmviewer.pair_comparison import estimate_pair
-from test_registration import frames_with_data
+from make_registration_fixtures import frames_with_data
 
 METHOD = 'phase_no_normalization'
-LABEL = 'Korelacja bez normalizacji'
+LABEL = 'Korelacja bez normalizacji (v1)'
 
 
 def test_raw_correlation_finds_pair_shift_without_phase_confidence():
@@ -41,9 +41,9 @@ def test_raw_correlation_series_matches_pairs_and_preserves_missing_confidence()
     assert [f.status for f in result.frames] == ['ok', 'manual_review', 'manual_review']
     assert [f.quality_score for f in result.frames] == [1, None, None]
     assert result.frames[2].inherited_uncertainty
-    pair = estimate_pair(second_frame := frames[1], frames[2], method=METHOD)
+    pair = estimate_pair(frames[1], frames[2], method=METHOD)
     assert pair.shift_xy == (-5, 1)
-    assert result.frames[1].original is second_frame
+    assert result.frames[1].original is frames[1]
     for frame in result.frames:
         assert frame.valid_mask.sum() == 32 * 48
         assert np.isnan(frame.image.data[~frame.valid_mask]).all()
