@@ -22,16 +22,17 @@ Można liczyć pojedynczą parę niezależnie od pełnego aligned.
 [wyniki i przegląd kodu](registration/reviews/REG-01.md).
 
 **[REG-01a — ręczne dopasowanie pary](registration/issues/01a-manual-alignment.md)**
-ma status **ready-for-review** (2026-10-31). W oknie porównania działają ruchy
-±1 px X/Y, start od zera lub wybranej próby, reset/odrzucenie i zastosowanie
-ręcznego wyniku jako B. Krok nie zależy od zoomu; ułamkowy początek zostaje.
+ma status **done**: użytkownik potwierdził testy manualne 2026-10-31.
+W oknie porównania działają ruchy ±1 px X/Y, start od zera lub wybranej próby,
+reset/odrzucenie i zastosowanie ręcznego wyniku jako wyniku bieżącego. Krok nie zależy od zoomu; ułamkowy początek zostaje.
 Pełny aligned i eksport korzystają z dotychczasowej rejestracji filmu.
 [Instrukcja próby](registration/manual-alignment-manual.md),
-[wyniki i przegląd](registration/reviews/REG-01a.md). REG-02 czeka na odbiór REG-01a.
+[wyniki i przegląd](registration/reviews/REG-01a.md). REG-02 jest odblokowany
+i czeka na osobne zlecenie implementacji.
 Wybrany [układ C](registration/pair-window-prototype.md) jest wdrożony: opisowe
 karty wyników i metoda po lewej, ręczne sterowanie pod obrazem. „Zakończ korektę”
 ustawia wynik bieżący; opcjonalne „Zachowaj do porównania” chroni jego kopię
-przed kolejną zmianą. Odbiór nowego GUI pozostaje do wykonania.
+przed kolejną zmianą. Odbiór obejmuje działające okno w układzie C.
 
 ## Stan aplikacji
 

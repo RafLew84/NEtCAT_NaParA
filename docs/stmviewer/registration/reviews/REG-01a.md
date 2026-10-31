@@ -1,6 +1,6 @@
 # REG-01a — karta odbioru
 
-Status: **ready-for-review**. Ręczny odbiór użytkownika: niewykonany.
+Status: **done**. Ręczny odbiór użytkownika zaliczony 2026-10-31 po wdrożeniu układu C.
 
 Po uwagach użytkownika wdrożono wybrany układ C. Aktualne sprawdzenia i instrukcja:
 [wdrożenie układu C](REG-01a-layout-c.md). Poniższy raport opisuje pierwszą
@@ -84,10 +84,13 @@ Wynik po poprawkach: Standards 0 pozostałych uwag; Spec 0 usterek.
 
 ## Ręczny odbiór użytkownika
 
-- Data / osoba / system: do uzupełnienia.
-- Funkcja: oczekuje na próbę zgodnie z instrukcją.
-- Ocena XY i resztkowego tearingu: do uzupełnienia dla stałych par.
-- Decyzja: oczekuje na użytkownika.
+- Data / osoba: 2026-10-31, użytkownik; system niepodany.
+- Potwierdzenie: „testy manualne ok”, po wdrożeniu układu C.
+- Odebrany kod: `b7aaf37` i `a9a072f`; dokumentacja: `8574886`.
+- Funkcja: odbiór zaakceptowany przez użytkownika.
+- Szczegółowe kroki, dane oraz ocena XY i resztkowego tearingu nie zostały
+  podane w potwierdzeniu; nie dopisujemy wyników poszczególnych prób.
+- Decyzja: zamknąć REG-01a jako `done`.
 
-REG-02 pozostaje zablokowany. Ręczne próby par nie podmieniają pełnego aligned;
+Zależność REG-02 jest spełniona; jego implementacja czeka na osobne zlecenie. Ręczne próby par nie podmieniają pełnego aligned;
 zapis na dysk jest zakresem REG-07. Wspólne moduły i algorytmy nie były zmieniane.

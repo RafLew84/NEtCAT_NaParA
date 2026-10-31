@@ -2,7 +2,8 @@
 
 Data: 2026-10-31. Dotyczy [REG-01a](issues/01a-manual-alignment.md).
 Status decyzji: **wybrano C**. Użytkownik potwierdził 2026-10-31:
-„ok, wybierma układ C”. Wdrożenie aplikacji: `b7aaf37`, oczekuje na odbiór GUI.
+„ok, wybierma układ C”. Wdrożenie aplikacji: `b7aaf37`, poprawki `a9a072f`.
+Odbiór GUI zaliczony 2026-10-31: „testy manualne ok”.
 Użytkownik uznał nazewnictwo A/B i „Zastosuj jako B” za niejasne oraz poprosił
 skillem `prototype` o bardziej intuicyjną propozycję bez utraty funkcjonalności.
 
@@ -78,7 +79,8 @@ działają. To sprawdzenie interfejsu, nie jakości rejestracji ani produkcyjneg
 Nie dodawano testów prototypu ani nie uruchamiano pełnego zestawu aplikacji.
 Zrzuty i raport oględzin pozostają lokalnie w `data/registration-pair-ui-prototype/`.
 
-REG-01a nadal oczekuje na odbiór działającego GUI; sam wybór prototypu nie jest
-potwierdzeniem testów manualnych. REG-02 pozostaje zablokowany. Wdrożenie C
-zachowuje wcześniejsze kontrakty obliczeń, szkicu, wyników i eksportu.
-[Karta sprawdzeń](reviews/REG-01a.md) odróżnia testy od oczekującego odbioru.
+Po wyborze prototypu użytkownik osobno potwierdził testy manualne działającego
+GUI 2026-10-31. REG-01a ma status `done`; REG-02 jest odblokowany i czeka
+na zlecenie. Wdrożenie C zachowuje wcześniejsze kontrakty obliczeń, szkicu,
+wyników i eksportu. [Karta sprawdzeń](reviews/REG-01a-layout-c.md) zawiera
+wyniki automatyczne i osobno zapis odbioru użytkownika.

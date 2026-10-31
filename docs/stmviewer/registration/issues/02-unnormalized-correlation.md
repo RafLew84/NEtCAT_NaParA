@@ -2,8 +2,8 @@
 
 **What to build:** Użytkownik jawnie wybiera korelację bez normalizacji fazowej,
 porównuje ją z Phase dla pary i rejestruje nią całą serię.
-**Blocked by:** [REG-01a](01a-manual-alignment.md), w tym odbiór manualny
-(dodane 2026-10-30 po zakończonym REG-01).
+**Blocked by:** [REG-01a](01a-manual-alignment.md), w tym odbiór manualny — spełnione 2026-10-31.
+Zależność dodana 2026-10-30 po zakończonym REG-01; implementacja wymaga osobnego zlecenia.
 **Status:** ready-for-agent
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 

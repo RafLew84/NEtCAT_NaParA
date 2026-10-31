@@ -1,5 +1,25 @@
 # Przekazanie — STM Viewer
 
+## REG-01a: Odbiór manualny układu C — 2026-10-31
+
+Użytkownik potwierdził „testy manualne ok” po wdrożeniu układu C.
+[REG-01a](registration/issues/01a-manual-alignment.md) ma status **done**.
+REG-02 jest odblokowany, pozostaje `ready-for-agent` i czeka na osobne zlecenie.
+Kod układu: `b7aaf37` i `a9a072f`; dokumentacja wdrożenia: `8574886`.
+Gałąź: `viewer/registration-difficult-movies`.
+
+Zaktualizowano ticket, mapę, karty odbioru i odnośniki statusu w instrukcjach.
+Sprawdzono spójność statusów, lokalne odnośniki i `git diff --check`. Zmiana
+wyłącznie dokumentacyjna; nie ponawiano testów kodu. Wcześniejsze wyniki:
+Viewer 398 passed, 2 skipped; pełne repo 2184 passed, 14 istniejących błędów
+poza Viewerem, 16 skipped; Standards 0 i Spec 0.
+
+System, szczegółowe dane i wyniki poszczególnych kroków nie zostały podane
+w potwierdzeniu użytkownika. Odbiór funkcji nie oznacza oceny fizycznej
+poprawności wszystkich XY ani zakończenia odbiorów platformowych. Brak
+nowych zmian współdzielonych; tickety 19–21 zachowują dotychczasowe statusy.
+Poniższe wpisy opisują wcześniejsze etapy, w tym stan przed odbiorem.
+
 ## REG-01a: Wybrany układ C — 2026-10-31
 
 Użytkownik wybrał C. Produkcyjne wdrożenie `b7aaf37`, poprawki `a9a072f`,

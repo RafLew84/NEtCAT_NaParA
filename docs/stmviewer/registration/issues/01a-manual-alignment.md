@@ -4,8 +4,8 @@
 dopasowywaną względem nieruchomej klatki odniesienia przyciskami ±1 piksel X/Y,
 ogląda nakładkę lub przełącza obrazy i zachowuje wynik jako ręczną próbę.
 **Blocked by:** [REG-01](01-pair-comparison.md), w tym odbiór manualny — spełnione.
-**Status:** ready-for-review
-**Manualny odbiór:** oczekuje na użytkownika; implementacja i sprawdzenia wykonane 2026-10-31.
+**Status:** done
+**Manualny odbiór:** zaliczony — użytkownik potwierdził „testy manualne ok” 2026-10-31, po wdrożeniu układu C.
 **Wykonawca:** Codex; baza przeglądu `c5ec70a8b7efc2d0892fc56b8b63c315b79d3b64`.
 **Dodano do planu:** 2026-10-30, na zlecenie użytkownika.
 
@@ -113,7 +113,7 @@ nie staje się automatycznie prawdą odniesienia ani niezależną walidacją.
 
 **Oczekiwany wynik:** użytkownik może sam ustawić przesunięcie pary, natychmiast
 ocenić je wzrokowo i porównać z algorytmem w tych samych warunkach podglądu.
-Po implementacji status `ready-for-review`; ręczny odbiór blokuje REG-02.
+Ręczny odbiór zaliczony 2026-10-31; REG-01a ma status `done`, zależność REG-02 jest spełniona.
 
 
 ## Wykonanie — 2026-10-31
@@ -132,8 +132,8 @@ zawiera zwykłą aplikację, stałe pary MOVIE i dostarczony ułamkowy wzorzec.
 
 Rzeczywiste Qt xcb sterowane skryptem: 6 stałych par, ręczna próba po błędzie ECC
 MOVIE_8 2→3, ułamkowy start oraz układ panelu sprawdzone. To automatyczna kontrola
-funkcji, nie ocena jakości dopasowania przez użytkownika. REG-02 pozostaje zablokowany
-przez ręczny odbiór REG-01a. Kod współdzielony nie wymaga zmiany.
+funkcji, nie ocena jakości dopasowania przez użytkownika. Na tym etapie REG-02 był
+zablokowany przez ręczny odbiór REG-01a; późniejsze potwierdzenie zapisano poniżej. Kod współdzielony nie wymaga zmiany.
 
 
 ## Propozycja zmiany nazw — 2026-10-31
@@ -146,4 +146,15 @@ zastępują listę A/B, „Zakończ korektę” zastępuje „Zastosuj jako B”
 jest opcjonalne, obliczenia i zakres ręcznej próby pozostają bez zmian.
 Aktualne kroki GUI: [instrukcja manualna](../manual-alignment-manual.md).
 Historyczne nazwy A/B w kontrakcie ticketu oznaczają odpowiednio wynik zachowany
-oraz bieżący. REG-01a nadal wymaga odbioru manualnego nowego okna.
+oraz bieżący. Odbiór manualny nowego okna zapisano poniżej.
+
+## Odbiór manualny — 2026-10-31
+
+Użytkownik potwierdził „testy manualne ok” po wdrożeniu układu C. REG-01a
+zamknięto jako `done`; blokada REG-02 jest spełniona. REG-02 pozostaje
+`ready-for-agent`, bez rozpoczęcia implementacji.
+
+Odebrany kod: `b7aaf37` i `a9a072f`; dokumentacja wdrożenia: `8574886`.
+System, szczegółowe dane i wyniki poszczególnych kroków nie zostały podane
+w potwierdzeniu. Nie dopisujemy pomiarów XY ani oceny tearingu.
+Aktualizacja dotyczy tylko dokumentacji; testów kodu nie ponawiano.
