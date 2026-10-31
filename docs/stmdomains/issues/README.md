@@ -15,15 +15,20 @@ wykonano (`resolved`): [raport](../self-supervised-training-preparation.md),
 [protokół](../self-supervised-training-protocol.md), 78 testów i identyczne
 wznowienie GPU dla trzech ziaren. [21 wykonano](../autoencoder-domains-trial.md)
 (`resolved`): 18 fitów, 25 200 predykcji, 143 testy; nie wykazano poprawy
-końcowych domen. Następne jest 22 (`open`), potem decyzja 23;
-jakość 04 i odbiór 13 pozostają otwarte.
+końcowych domen. Na polecenie użytkownika dodano osobny
+[21a — dekoder i regularyzacja rVAE](21a-rvae-decoder-and-kl.md), `open`.
+Następna kolejność to **21a → 22 → 23**; jakość 04 i odbiór 13 pozostają otwarte.
+21a ma osobny budżet: dwa krótkie runy diagnostyczne i najwyżej dziewięć
+nowych fitów transferowych z32. Nie zużywa budżetu 22 i nie zmienia
+zamrożonych wyników 21. Dodanie ticketu nie uruchamia treningów.
 Wcześniejsze statusy w poniższej chronologii opisują historyczne decyzje.
 
 Tego samego dnia użytkownik zatwierdził
 [usprawnienia planu](../research-domain-plan-improvements.md): wpisano je
 do 20–23. Pilot relacji i granic należy do 21/22, bez osobnego ticketu 20a.
-Obowiązuje kolejność **20 → 21 i 22 → 23**, z 24–26 wyłącznie po wyborze
-rozszerzenia. Samo przyjęcie planu nie rozpoczynało tych zadań;
+Pierwotna kolejność to **20 → 21 i 22 → 23**, obecnie uzupełniona o 21a
+przed 22, z 24–26 wyłącznie po wyborze rozszerzenia.
+Samo przyjęcie planu nie rozpoczynało tych zadań;
 przygotowanie 20 wykonano później, na osobne polecenie użytkownika.
 
 Na bezpośrednie polecenie użytkownika z 2026-10-19 wcześniej podejmujemy
@@ -206,7 +211,7 @@ z instrukcjami repozytorium. Nie wymaga zewnętrznego trackera.
 Metadane do wyboru kolejnego pytania:
 
 ```bash
-rg -n '^(# |Status:|Assignee:|Parent:|Blocked by:)' docs/stmdomains/issues/[0-9][0-9]-*.md
+rg -n '^(# |Status:|Assignee:|Parent:|Blocked by:)' docs/stmdomains/issues/ --glob '[0-9][0-9]*-*.md'
 ```
 
 ## Etap 1 — szkielet
@@ -270,17 +275,20 @@ relacje przez granice, pełne propozycje domen i odmowy; nie powtarza serii 19.
 | --- | --- | --- |
 | [20 — Jak przygotować odtwarzalny trening bez etykiet domen?](20-self-supervised-training-preparation.md) | task / AFK | `resolved`: dane, GPU/checkpoint, protokół relacji, budżet i kryteria gotowe |
 | [21 — Czy AE i rVAE uczą się cech przydatnych do odkrywania domen?](21-autoencoder-domains.md) | prototype / HITL | `resolved`: 18 fitów i porównanie granic/podziału wykonane, bez poprawy końcowych domen |
-| [22 — Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](22-local-self-supervised-domains.md) | prototype / HITL | Po 17 i 20; lokalne SSL z pilotem relacji, niezależnie od 21 |
-| [23 — Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md) | grilling / HITL | Po 19, 21 i 22; ocena cech, relacji, podziału i odmów; decyzja o kontynuacji |
+| [21a — Czy zmiana dekodera i regularyzacji poprawia rVAE?](21a-rvae-decoder-and-kl.md) | prototype / HITL | `open`, po 20 i 21: diagnostyka i trzy nowe warianty × trzy ziarna, osobny budżet |
+| [22 — Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](22-local-self-supervised-domains.md) | prototype / HITL | Po 17, 20 i zakończeniu 21a; lokalne SSL z pilotem relacji, bez wymagania sukcesu AE/rVAE |
+| [23 — Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md) | grilling / HITL | Po 19, 21, 21a i 22; ocena cech, relacji, podziału i odmów; decyzja o kontynuacji |
 | [24 — Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md) | prototype / HITL | Warunkowo: wybrane w 23, po wyniku 15 |
 | [25 — Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md) | prototype / HITL | Warunkowo: wybrane w 23 |
 | [26 — Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md) | prototype / HITL | Warunkowo: wybrane w 23, z zachowanym modelem odniesienia |
 
-18, 19, 20 i 21 są zakończone; najbliższe zadanie to niezależne 22.
-Próby 21 i 22 wymagają wyniku tekstury, również negatywnego, i wspólnego
-przygotowania 20; żadna nie wymaga powodzenia drugiej. Ich zestawienie
-23 korzysta również z zachowanych wyników 19. Wspólny pilot nie dodaje
-nowej zależności ani oddzielnego zadania przygotowawczego.
+18, 19, 20 i 21 są zakończone; najbliższe zadanie to **21a**, potem **22**.
+21a obejmuje jedną ograniczoną macierz dekoder × KL, po krótkiej diagnostyce.
+Własny budżet i nowe kontrole opisuje ticket; protokół 20 pozostaje
+zamrożonym punktem odniesienia. Nie ponawiamy strojenia bramki z 19.
+22 wymaga zakończenia 21a, również z wynikiem negatywnym; nadal korzysta
+z wyniku tekstury i przygotowania 20 oraz własnych dziewięciu fitów.
+Zestawienie 23 obejmuje pierwotne 21, dodatek 21a, SSL i zachowane wyniki 19.
 Odbiór 13 czeka na 23, lecz nie na wszystkie warunkowe rodziny modeli.
 Jeśli w 23 wybierzemy rozszerzenie, dodajemy je do zależności 13 i diagramu.
 Brak wyboru nie oznacza wykonania lub nieskuteczności tego rozszerzenia.
@@ -330,6 +338,7 @@ flowchart TD
         s["Domeny z gotowych cech — porównanie ML"]
         t["20: Dane, protokół relacji i kryteria"]
         u["21: AE/rVAE i pilot granic"]
+        ua["21a: Dekoder i regularyzacja rVAE"]
         v["22: Lokalne SSL i pilot relacji"]
         w["23: Ocena domen i decyzja o kontynuacji"]
         x["24: Grafy molekuł — warunkowo"]
@@ -374,10 +383,14 @@ flowchart TD
     n --> t
     q --> u
     t --> u
+    t --> ua
+    u --> ua
     q --> v
     t --> v
+    ua --> v
     s --> w
     u --> w
+    ua --> w
     v --> w
     w --> m
     o --> x

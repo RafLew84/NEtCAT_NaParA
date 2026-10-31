@@ -1,3 +1,33 @@
+# STM Domains — dodano osobną próbę 21a
+
+Data: **2026-10-31**. Na polecenie użytkownika dodano
+[21a — dekoder i regularyzacja rVAE](issues/21a-rvae-decoder-and-kl.md),
+status **`open`**, bez rozpoczęcia treningów. Jeden ticket obejmuje krótką
+diagnostykę odtwarzania wycinków oraz ograniczoną macierz dekoder × KL.
+Aktualna kolejność to **21a → 22 → 23**; negatywny wynik 21a również
+pozwala przejść do 22. 19, 20 i 21 pozostają `resolved`.
+
+21a ma osobny budżet: najwyżej dwa krótkie runy diagnostyczne i dziewięć
+nowych fitów transferowych z32 (trzy nowe konfiguracje × trzy ziarna).
+Punktem odniesienia są zachowane modele 21. Dla 22 pozostaje dziewięć
+fitów z pierwotnego budżetu 27; dodatek nie zmienia planu SSL, protokołu
+20 ani artefaktów 21. Nowe kontrole syntetyczne oceniać po zamrożeniu
+wariantów, TTMAPP traktować jako już oglądaną ocenę rozwojową. Bez strojenia
+bramki, dodatkowych MPP/STP i nowych instalacji. Poprawa reprezentacji
+przed odmowami nie oznacza poprawy końcowego detektora.
+
+Zaktualizowano indeks, diagram zależności, mapę metod, README oraz linki
+w 21/22/23. W poleceniu wyboru ticketów uwzględniono identyfikatory z literą.
+Sprawdzenia: lokalne odnośniki, spójność ID/statusów/zależności i diagramu,
+brak cykli oraz `git diff --check`. Bez testów kodu, GUI lub nowych fitów:
+zmiana dotyczy wyłącznie dokumentacji i planu. Nie zgłoszono potrzeb
+wspólnych modułów; integracja przez koordynatora.
+
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/start`,
+baza `9d729b1`. Commit tej aktualizacji podany w odpowiedzi końcowej.
+
+---
+
 # STM Domains — wykonana próba AE/rVAE, issue 21
 
 Data: **2026-10-31**. Na polecenie użytkownika wykonano zamkniętą próbę

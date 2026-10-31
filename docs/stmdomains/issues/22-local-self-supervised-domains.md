@@ -7,7 +7,17 @@ Mode: HITL
 Status: open
 Assignee:
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
-Blocked by: 17, 20
+Blocked by: 17, 20, 21a
+
+## Kolejność po uzupełnieniu 21 — 2026-10-31
+
+Na polecenie użytkownika najpierw wykonujemy
+[21a — dekoder i regularyzacja rVAE](21a-rvae-decoder-and-kl.md), potem 22
+i decyzję 23. To zależność kolejności prac: wynik negatywny 21a również
+pozwala przejść do 22. Model SSL i jego dziewięć fitów z protokołu 20
+pozostają niezależne od wariantów rVAE; dodatkowy budżet 21a ich nie zużywa.
+Nie dostrajać SSL ani bramki na podstawie końcowych kontroli ujawnionych
+w 21/21a. Status 22 pozostaje `open`; treningu nie rozpoczęto.
 
 ## Question
 
@@ -45,8 +55,8 @@ Pilot jest częścią 22 i nie wymaga nowej serii przygotowawczej ani powodzenia
   nie dowodzi domeny ani powierzchni płata.
 - Porównać z teksturą z kroku 17 i pomocniczo z tym samym encoderem bez
   treningu, aby sprawdzić korzyść z uczenia. Zachować porównywalny budżet
-  strojenia i ujawnić różnice etapów. Próba nie zależy od powodzenia AE
-  i może przebiegać niezależnie od kroku 21.
+  strojenia i ujawnić różnice etapów. Próba nie zależy od powodzenia AE/rVAE;
+  obowiązuje wskazana wyżej kolejność po zakończeniu 21a.
 - Wykonać małe porównanie 2 × 2 z protokołu 20, z MWS jako kandydatem
   na jeden nowy podział. Sprawdzić relacje na rzeczywistych krawędziach
   sąsiedztwa wewnątrz domen i przez granice, również przy częściowo wspólnych
@@ -111,3 +121,4 @@ aby uzyskać dodatni wynik.
 
 - [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md)
 - [Jak przygotować odtwarzalny trening bez etykiet domen?](20-self-supervised-training-preparation.md)
+- [Czy zmiana dekodera i regularyzacji poprawia rVAE?](21a-rvae-decoder-and-kl.md) — zakończenie próby, także z wynikiem negatywnym.

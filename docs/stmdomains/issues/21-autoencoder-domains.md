@@ -9,6 +9,15 @@ Assignee: domains/start
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 17, 20
 
+## Dalszy plan — 2026-10-31
+
+Na polecenie użytkownika dodano osobny
+[21a — dekoder i regularyzacja rVAE](21a-rvae-decoder-and-kl.md).
+To ograniczona próba diagnostyczna i dziewięć dodatkowych fitów,
+z własnym budżetem, przed 22 i wspólną decyzją 23. Niniejszy ticket
+pozostaje `resolved`; jego raport, wagi, predykcje i ocena nie są zastępowane.
+Poniższy Answer opisuje pierwszą zakończoną próbę i ówczesną kolejność.
+
 ## Answer — 2026-10-31
 
 Wykonano pełną zamkniętą próbę: [raport](../autoencoder-domains-trial.md),

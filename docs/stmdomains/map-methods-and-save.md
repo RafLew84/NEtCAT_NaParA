@@ -24,15 +24,28 @@ wykonano (`resolved`): dane, rozdzielone protokoły, pomiar GPU i wznowienie,
 budżet oraz kryteria. [21 wykonano](autoencoder-domains-trial.md), `resolved`:
 18/18 fitów, pełne porównanie 2 × 2, bez wykazanej poprawy końcowych domen.
 Transfer TTMAPP: 0/174 przypisań; transdukcja najwyżej 4/782.
-143 testy i galeria HTML zweryfikowane. Następne jest niezależne 22 (`open`),
-potem 23; nie wybrano metody do aplikacji.
+143 testy i galeria HTML zweryfikowane. Dodano osobny
+[21a — dekoder i regularyzacja rVAE](issues/21a-rvae-decoder-and-kl.md), `open`.
+Aktualna kolejność to **21a → 22 → 23**, bez wymagania sukcesu 21a.
+Nie wybrano metody do aplikacji.
+
+**Uzupełnienie planu na polecenie użytkownika — 2026-10-31:** 21a obejmuje
+małą próbę odtwarzania wycinków i macierz dekoder × waga KL. Dopuszcza
+dwa krótkie runy diagnostyczne oraz najwyżej dziewięć nowych fitów
+transferowych z32; zachowane wagi 21 są punktem odniesienia. To oddzielny
+budżet, bez zużywania dziewięciu fitów przeznaczonych na 22. Pierwotny
+protokół 20, raport i artefakty 21 pozostają zamrożone. Nowe realizacje
+kontroli służą ocenie po zamrożeniu wariantów; znane TTMAPP pozostaje
+oceną rozwojową. Nie ponawiamy strojenia bramki z 19. Dodanie ticketu
+nie uruchamia próby ani nie wymaga dodatkowych danych.
 
 **Decyzja użytkownika — 2026-10-31:** 21/22 wykonujemy najpierw na obecnym
 TTMAPP i kontrolach przygotowanych w 20. Użytkownik przygotuje dodatkowe
 MPP/STP później, jeśli wyniki uzasadnią rozszerzenie zbioru. W 23 oceniamy
 korzyść i potrzebny zakres dalszych danych; audyt archiwum nie blokuje
 obecnego pilota. Wnioski z TTMAPP nie potwierdzają przenoszenia na inne
-molekuły lub podłoża. Zamknięty protokół i statusy pozostają bez zmian.
+molekuły lub podłoża. Pierwotny protokół pozostaje zamrożony;
+powyższy dodatek 21a jawnie rozszerza plan i kolejność.
 
 Na prośbę użytkownika przygotowano [galerię zapisanych propozycji](saved-domain-examples.md)
 z prób 15 i 16: trzy klatki TTMAPP i kontrolę dwóch orientacji. Eksport
@@ -58,7 +71,8 @@ i polecił wpisać je do istniejących ticketów. Przyjęto:
   decyzją według wcześniej ustalonych kryteriów. 24–26 pozostają warunkowe.
 
 Pilot jest częścią 21/22; nie dodajemy zadania 20a ani nowej serii strojenia
-19, które już obejmowało graf i granice. Kolejność: **20 → 21 i 22 → 23**.
+19, które już obejmowało graf i granice. Pierwotna kolejność:
+**20 → 21 i 22 → 23**; po wykonaniu 21 dodano wskazane wyżej 21a przed 22.
 Samo przyjęcie planu nie zmieniło zależności ani statusów i nie uruchomiło
 treningu. Późniejsze wykonanie przygotowania 20 opisano powyżej.
 
@@ -250,7 +264,8 @@ nie zamknięto przez samo dodanie go do mapy.
   trzy skale, trzy ziarna, FH/MWS i pełne odmowy. Nie wykazano korzyści
   końcowego detektora; niskie coverage, granice i fałszywe domeny niezależnych
   rzędów pozostają lukami. Typ i niezwalidowane kąty są `null`.
-  Siatka jest niezmienna przy brakach centrów. Dalsza decyzja po 22 należy do 23.
+  Siatka jest niezmienna przy brakach centrów. Osobne uzupełnienie
+  [21a](issues/21a-rvae-decoder-and-kl.md) poprzedza 22; wspólna decyzja należy do 23.
 
 - [Czy gotowe cechy sieci pomagają znaleźć domeny?](issues/19-frozen-feature-domains.md):
   **`resolved` — seria zakończona na polecenie użytkownika 2026-10-31**.
@@ -286,7 +301,7 @@ uwzględniają zgłoszone przez użytkownika różne molekuły/podłoża i rozmi
 skanów w metadanych. Skład nowego zbioru, audyt kalibracji oraz grupowy
 podział akwizycji wymagają inwentaryzacji, odłożonej decyzją użytkownika
 do ewentualnego rozszerzenia po ocenie 23. Nie jest ona warunkiem wykonania
-21/22 na obecnym zbiorze i nie zmienia przygotowania 20.
+21a/22 na obecnym zbiorze i nie zmienia przygotowania 20.
 
 Kolejne akwizycje i wyniki nowych prób mogą ujawnić dodatkowe klasy błędów,
 potrzebę innych cech lub konkretnego połączenia informacji obrazu i centrów.

@@ -7,7 +7,7 @@ Mode: HITL
 Status: open
 Assignee:
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
-Blocked by: 19, 21, 22
+Blocked by: 19, 21, 21a, 22
 
 ## Question
 
@@ -23,6 +23,12 @@ także źródło błędu: cechy, relacje, podział lub odmowy. Obowiązuje
 realizowany w 21/22, bez nowego ticketu przygotowawczego. Zmiana planu nie
 uruchamia badań; status pozostaje `open`, a 24–26 nadal są warunkowe.
 
+**Uzupełnienie na polecenie użytkownika — 2026-10-31:** przed 22 dodano
+osobny [21a — dekoder i regularyzacja rVAE](21a-rvae-decoder-and-kl.md).
+Zestawienie czeka także na ten wynik, również negatywny. Ująć osobno
+oryginalne 21 i dodatkową próbę, jej budżet oraz zakres oceny; poprawa
+rekonstrukcji lub cech przed bramką nie oznacza poprawy końcowego detektora.
+
 ## Materiał do decyzji
 
 - [Wykonana próba 21](../autoencoder-domains-trial.md): 18/18 fitów AE/rVAE,
@@ -30,7 +36,14 @@ uruchamia badań; status pozostaje `open`, a 24–26 nadal są warunkowe.
   odmowy na TTMAPP, lecz także fałszywe domeny niezależnych rzędów.
   Surowy kąt rVAE nie rozpoznaje orientacji. Zapisane wyniki przed odmowami
   pozwalają oddzielić tę lukę od cech i podziału. Ostateczne zestawienie
-  nadal czeka na 22; samo ukończenie 21 nie wybiera rozszerzenia danych lub 24–26.
+  nadal czeka na 21a i 22; samo ukończenie 21 nie wybiera rozszerzenia danych lub 24–26.
+- [Osobna próba 21a](21a-rvae-decoder-and-kl.md): mała diagnostyka oraz
+  macierz dekoder × KL w transferze z32, najwyżej dziewięć nowych fitów.
+  Zachowane modele 21 ocenić na tych samych nowych kontrolach bez ponownego
+  treningu. Oddzielić nowe realizacje syntetyczne od już oglądanego TTMAPP
+  i nie porównywać nowych fitów transferowych z transdukcją jako równymi
+  warunkami. Koszt dwóch dopuszczonych krótkich runów diagnostycznych
+  również wchodzi do zestawienia kosztów.
 - Tabela wspólnych kontroli, błędów i odmów, stabilności względem ziaren
   oraz zakresu. Oddzielić zero/jedną/wiele domen, typ/orientację, rozstaw,
   granice przesunięcia, nieporządek i brak danych; zobaczyć pełne nakładki.
@@ -110,4 +123,5 @@ realizacji wszystkich możliwych rodzin modeli.
 
 - [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md)
 - [Czy AE i rVAE uczą się cech przydatnych do odkrywania domen?](21-autoencoder-domains.md)
+- [Czy zmiana dekodera i regularyzacji poprawia rVAE?](21a-rvae-decoder-and-kl.md)
 - [Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](22-local-self-supervised-domains.md)
