@@ -93,7 +93,9 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
     else:
         backend = backend if backend is not None else create_shift_backend(method)
     configuration = getattr(backend, 'config', None)
-    if is_dataclass(configuration) and not isinstance(configuration, type):
+    # The local wrapper already describes both stages and its full configuration.
+    if (not isinstance(backend, DeepLocalBackend)
+            and is_dataclass(configuration) and not isinstance(configuration, type)):
         settings += '; ' + '; '.join(f'{k}={v}' for k, v in asdict(configuration).items())
     report(f'{label}: wyznaczanie przesunięcia pary…')
     try:
