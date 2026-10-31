@@ -4,10 +4,20 @@ ID: 23
 Type: grilling
 Labels: wayfinder:grilling
 Mode: HITL
-Status: open
-Assignee:
+Status: claimed
+Assignee: Codex — domains/start
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 19, 21, 21a, 22
+
+## Podjęcie — 2026-11-01
+
+Na polecenie użytkownika zestawiamy zakończone próby 19, 21, 21a i 22.
+Powstaną wspólne tabele dla porównywalnych danych 21/22 oraz osobne
+zestawienia dodatku 21a i wcześniejszych prób o innych warunkach.
+Ocena rozdziela cechy, relacje/podział, porządek i spójność, materiał
+oraz zakres referencji. Przygotujemy konkretną rekomendację zakończenia
+serii lub uzasadnionego rozszerzenia do omówienia zgodnie z warunkiem
+zakończenia poniżej. Nie uruchamiamy kolejnych fitów przez samo podjęcie 23.
 
 ## Question
 
