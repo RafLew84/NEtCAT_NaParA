@@ -14,6 +14,10 @@ podstawowych (w tym REG-01a i REG-02a) i dwa warunkowe. Każdy kończy się ręc
 funkcji oraz jakości; kolejny etap czeka na decyzję użytkownika.
 [Wspólny protokół prób](registration/manual-protocol.md) ustala dane i sposób porównania.
 
+[Przegląd rejestracji wieloklatkowej i nowych matcherów](registration-multiframe-research.md)
+proponuje graf translacji ponad obecnym Deep oraz krótką listę dalszych prób.
+To materiał badawczy, nie wdrożenie ani zmiana zakresu istniejących ticketów.
+
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk
 **Porównaj parę…** otwiera osobny podgląd sąsiednich oryginałów: przed/po XY,
 nakładkę 50/50 i próby A/B ze wspólnym kadrem, kontrastem oraz zoomem.

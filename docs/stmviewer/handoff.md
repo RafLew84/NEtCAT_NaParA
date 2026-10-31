@@ -1,3 +1,26 @@
+# Research: rejestracja wieloklatkowa i nowe matchery — 2026-10-31
+
+Na zlecenie użytkownika, skillem `research`, przygotowano jeden
+[przegląd źródeł i propozycję eksperymentów](registration-multiframe-research.md).
+Baza: `5b7ab58`, gałąź `viewer/registration-difficult-movies`.
+
+- Propozycja: osobny graf translacji z dopasowań do kilku klatek, odporny
+  estymator globalnych XY i diagnostyka połączeń. Bez założenia gładkiego dryfu;
+  odrębne są dopasowanie pary, łączenie wielu wyników oraz korekcja tearingu.
+- Priorytet: obecny Deep jako stała baza, przestrzenne poparcie z REG-05,
+  potem porównania EfficientLoFTR, RoMa v2 i MatchAnything. Materiał rozdziela
+  wyniki autorów, wcześniejsze próby lokalne i nieprzetestowane propozycje.
+- Uwzględniono błędy okresowe i skorelowane artefakty, rozłączny graf,
+  ponowne użycie modelu/cech, ręczne korekty oraz jeden render z oryginałów.
+- Nie zmieniano kodu, ticketów, zależności ani statusu odbioru REG-04.
+  Nie pobierano modeli i nie wykonywano benchmarków nowych algorytmów.
+- Kontrola dokumentacji: źródła pierwotne, przegląd merytoryczny, linki lokalne
+  i `git diff --check`. Testy aplikacji nie są wymagane dla tej zmiany dokumentacji.
+- Wnioski należą do końcowego commita dokumentacyjnego tej pracy;
+  brak zmian wymaganych w modułach współdzielonych na etapie research.
+
+---
+
 # REG-04: Deep Matcher + doprecyzowanie ECC — 2026-10-31
 
 Gałąź `viewer/registration-difficult-movies`, baza `29d7fc9`.
