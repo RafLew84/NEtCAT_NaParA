@@ -28,6 +28,10 @@ ręcznego wyniku jako B. Krok nie zależy od zoomu; ułamkowy początek zostaje.
 Pełny aligned i eksport korzystają z dotychczasowej rejestracji filmu.
 [Instrukcja próby](registration/manual-alignment-manual.md),
 [wyniki i przegląd](registration/reviews/REG-01a.md). REG-02 czeka na odbiór REG-01a.
+Wybrany [układ C](registration/pair-window-prototype.md) jest wdrożony: opisowe
+karty wyników i metoda po lewej, ręczne sterowanie pod obrazem. „Zakończ korektę”
+ustawia wynik bieżący; opcjonalne „Zachowaj do porównania” chroni jego kopię
+przed kolejną zmianą. Odbiór nowego GUI pozostaje do wykonania.
 
 ## Stan aplikacji
 

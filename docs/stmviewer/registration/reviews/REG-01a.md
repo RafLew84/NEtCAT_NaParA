@@ -1,6 +1,10 @@
 # REG-01a — karta odbioru
 
 Status: **ready-for-review**. Ręczny odbiór użytkownika: niewykonany.
+
+Po uwagach użytkownika wdrożono wybrany układ C. Aktualne sprawdzenia i instrukcja:
+[wdrożenie układu C](REG-01a-layout-c.md). Poniższy raport opisuje pierwszą
+implementację; historyczne A/B oznaczają wynik zachowany i bieżący.
 Data sprawdzeń: 2026-10-31, Linux, środowisko `netcat`.
 Implementacja `846a479`, poprawki przeglądu `2276755`; baza `c5ec70a`.
 Gałąź: `viewer/registration-difficult-movies`.

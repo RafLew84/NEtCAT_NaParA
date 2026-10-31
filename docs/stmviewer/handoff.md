@@ -1,5 +1,29 @@
 # Przekazanie — STM Viewer
 
+## REG-01a: Wybrany układ C — 2026-10-31
+
+Użytkownik wybrał C. Produkcyjne wdrożenie `b7aaf37`, poprawki `a9a072f`,
+baza `9b47c15`; gałąź `viewer/registration-difficult-movies`.
+[Karta, przegląd i sprawdzenia](registration/reviews/REG-01a-layout-c.md),
+[aktualna instrukcja manualna](registration/manual-alignment-manual.md).
+
+Karty wyników i metoda po lewej, podgląd po prawej, ręczne sterowanie pod nim.
+Opisowe nazwy zastępują A/B; „Zachowaj do porównania” jest opcjonalne, a „Zakończ
+korektę” ustawia bieżący wynik pary. Obliczenia, szkic, pełny aligned i eksport
+zachowują wcześniejsze działanie. Nie scalono kodu HTML prototypu do aplikacji.
+
+13 testów GUI PASS; pełny Viewer 398 passed, 2 skipped. Pełne repo 2184 passed,
+14 failed, 16 skipped; 14 nazw błędów identycznych z poprzednim REG-01a.
+Mypy strict 38, Ruff i limit plików bez uwag; największy plik 472 linie.
+Niezależny przegląd: Standards 0, Spec 0. Qt xcb: cpu.mpp i MOVIE_8 16→17,
+oba rozmiary okna, zachowanie podglądu, szczegóły i długie ścieżki wag sprawdzone.
+Naprawiono poziome przewijanie i przycięcie opisu korekty; po poprawkach ponowne
+oględziny oraz testy GUI/Viewer. Artefakty `data/registration-pair-layout-c/`.
+
+**Ręczny odbiór użytkownika nadal oczekuje.** Wybór projektu C nie oznacza odbioru
+implementacji. REG-01a ready-for-review, REG-02 pozostaje zablokowany. Wspólnych
+zmian nie potrzeba. Końcowy commit dokumentacji podany w sesji.
+
 ## Prototyp nazw okna dopasowania — 2026-10-31
 
 Na zlecenie użytkownika przygotowano 3 klikalne warianty okna REG-01/REG-01a,

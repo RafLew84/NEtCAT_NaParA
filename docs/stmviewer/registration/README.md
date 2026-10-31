@@ -6,6 +6,9 @@ Baza rozpoznania: `c85aecb`; przegląd metod: `81ff1a0`.
 Status: REG-01 `done`; REG-01a `ready-for-review` (implementacja 2026-10-31).
 REG-01a działa i oczekuje na ręczny odbiór; REG-02 pozostaje zablokowany.
 [Instrukcja manualna](manual-alignment-manual.md), [karta sprawdzeń](reviews/REG-01a.md).
+Użytkownik wybrał układ C; jest wdrożony z opisowymi kartami wyników i ręcznym
+sterowaniem pod obrazem. [Aktualny przegląd i próby](reviews/REG-01a-layout-c.md).
+Wcześniejsze A/B w opisach mapy odpowiadają wynikowi zachowanemu/bieżącemu.
 Zlecenie użytkownika: małe tickety, ręczna ocena wpływu i jakości po każdym.
 
 ## Cel i zakres

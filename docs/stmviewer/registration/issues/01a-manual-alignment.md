@@ -140,5 +140,10 @@ przez ręczny odbiór REG-01a. Kod współdzielony nie wymaga zmiany.
 
 Użytkownik zgłosił niejasne nazewnictwo i poprosił o prototyp zachowujący funkcje.
 [Trzy warianty okna i źródło decyzji](../pair-window-prototype.md): osobna gałąź
-`prototype/stmviewer-pair-naming`, commit `dd8b48f`. Wybór użytkownika oczekuje;
-produkcyjnego okna nie zmieniono. REG-01a nadal wymaga odbioru manualnego.
+`prototype/stmviewer-pair-naming`, commit `dd8b48f`. Użytkownik wybrał układ C
+2026-10-31; implementacja `b7aaf37`. Karty „Wynik zachowany” / „Wynik bieżący”
+zastępują listę A/B, „Zakończ korektę” zastępuje „Zastosuj jako B”. Porównywanie
+jest opcjonalne, obliczenia i zakres ręcznej próby pozostają bez zmian.
+Aktualne kroki GUI: [instrukcja manualna](../manual-alignment-manual.md).
+Historyczne nazwy A/B w kontrakcie ticketu oznaczają odpowiednio wynik zachowany
+oraz bieżący. REG-01a nadal wymaga odbioru manualnego nowego okna.

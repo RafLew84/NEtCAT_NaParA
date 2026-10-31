@@ -1,7 +1,8 @@
 # Okno dopasowania pary — prototyp nazw i układu
 
 Data: 2026-10-31. Dotyczy [REG-01a](issues/01a-manual-alignment.md).
-Status decyzji: **oczekuje na wybór użytkownika**; interfejs aplikacji niezmieniony.
+Status decyzji: **wybrano C**. Użytkownik potwierdził 2026-10-31:
+„ok, wybierma układ C”. Wdrożenie aplikacji: `b7aaf37`, oczekuje na odbiór GUI.
 Użytkownik uznał nazewnictwo A/B i „Zastosuj jako B” za niejasne oraz poprosił
 skillem `prototype` o bardziej intuicyjną propozycję bez utraty funkcjonalności.
 
@@ -33,8 +34,10 @@ Prototyp nie wymaga pakietów JS, instalacji przeglądarki ani zewnętrznych us�
 | B — narzędzia pod obrazem | Podgląd powyżej trzech obszarów: automatycznie, ręcznie, porównanie. Czy czynności są łatwiejsze do odnalezienia obok siebie? |
 | C — porównywanie wyników | Karty wyników/metoda po lewej, ręczne sterowanie pod obrazem. Czy widoczne nazwy i XY wyjaśniają, co jest porównywane? |
 
-Rekomendacja agenta: **C**, ze względu na problem rozumienia A/B.
-To rekomendacja, nie zatwierdzona decyzja użytkownika; można łączyć elementy wariantów.
+Wybrano **C**, po wyjaśnieniu funkcji zachowania wyniku do porównania.
+Jest ona opcjonalna: ręczne dopasowanie nie wymaga tworzenia drugiego wyniku.
+W produkcji karty są po lewej, metoda niżej, a ręczne sterowanie pod podglądem.
+Przycisk przy karcie bieżącej ma skróconą nazwę „Zachowaj do porównania”.
 
 ## Wspólna propozycja nazw
 
@@ -75,5 +78,7 @@ działają. To sprawdzenie interfejsu, nie jakości rejestracji ani produkcyjneg
 Nie dodawano testów prototypu ani nie uruchamiano pełnego zestawu aplikacji.
 Zrzuty i raport oględzin pozostają lokalnie w `data/registration-pair-ui-prototype/`.
 
-REG-01a nadal oczekuje na odbiór, REG-02 pozostaje zablokowany. Kolejna zmiana
-produkcyjnego okna powinna wynikać z wyboru użytkownika i zachować istniejące kontrakty.
+REG-01a nadal oczekuje na odbiór działającego GUI; sam wybór prototypu nie jest
+potwierdzeniem testów manualnych. REG-02 pozostaje zablokowany. Wdrożenie C
+zachowuje wcześniejsze kontrakty obliczeń, szkicu, wyników i eksportu.
+[Karta sprawdzeń](reviews/REG-01a.md) odróżnia testy od oczekującego odbioru.

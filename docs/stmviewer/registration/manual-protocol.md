@@ -32,10 +32,11 @@ Opis i generator: [próba CPU](../cpu-registration-manual.md).
 ## Warunki porównania
 
 1. Otwórz oryginał. Zapisz commit, film/SHA, pary źródłowe i metodę.
-   Do A przypnij wynik przyjętego wcześniej wariantu, do B nowy wariant.
+   Dla przyjętego wcześniej wyniku kliknij **Zachowaj do porównania**.
+   Nowy wariant będzie **Wynikiem bieżącym**, poprzedni — **Wynikiem zachowanym**.
    Zmieniaj jedną badaną rzecz; zanotuj różnice ustawień i masek.
 2. W podglądzie pary ustaw gamma 1 i proporcje pikselowe. Zakres jasności
-   ustal wspólnie z oryginalnej pary i zachowaj dla A/B, nie przeliczaj osobno
+   ustal wspólnie z oryginalnej pary i zachowaj dla obu wyników, nie przeliczaj osobno
    po dopasowaniu. Późniejsza zmiana gamma działa jednakowo na oba warianty.
 3. Porównuj w układzie tej samej źródłowej klatki odniesienia, z tym samym
    zoomem i punktem zakotwiczenia. Nie dopasowuj każdego wariantu osobno do
@@ -51,7 +52,7 @@ Opis i generator: [próba CPU](../cpu-registration-manual.md).
    W REG-07 dodaj także pary/fragmenty niewykorzystane wcześniej do wyboru
    ustawień. Wielokrotne oglądanie tej samej checklisty jest kontrolą regresji,
    ale samo nie stanowi końcowej walidacji na niewidzianych danych.
-6. Przełączaj obrazy odniesienia i dopasowywane albo użyj nakładki. Oceniaj
+6. Przełączaj **Klatkę bazową** i **Klatkę przesuwaną** albo użyj nakładki. Oceniaj
    położenie tych samych konturów/szczegółów we wspólnej ważnej części.
    Jeśli nie można rozpoznać tej samej struktury, zapisz „niejednoznacznie”.
 7. Oddziel globalne XY od resztkowej różnicy góra/środek/dół. Molekuła może
@@ -72,17 +73,20 @@ na ocenę całej klatki ani całych filmów. Dokładność fizyczna nie jest zna
 
 ## Ręczne dopasowanie — REG-01a
 
-Wynik ręczny dotyczy sąsiedniej pary w oknie porównania. Do próby A przypnij
-wynik początkowy, rozpocznij ręczny szkic od zera albo wybranego wyniku,
-a po korekcie zastosuj go jako B. Obrazy nazywamy odniesieniem i dopasowywaną
-klatką; A/B oznaczają próby, nie nazwy obrazów.
+Wynik ręczny dotyczy sąsiedniej pary w oknie porównania. Wybierz **Ustaw ręcznie
+od zera** albo **Popraw wybrany wynik ręcznie**, wykonaj ruchy i kliknij **Zakończ
+korektę**. Ręczne XY staje się wynikiem bieżącym. Porównywanie dwóch wyników
+jest opcjonalne: przed korektą można użyć **Zachowaj do porównania**, aby zachować
+wynik początkowy. Następnie wybieraj karty **Wynik bieżący / Wynik zachowany**.
+Obrazy nazywamy **Klatką bazową** i **Klatką przesuwaną**; karty oznaczają wyniki
+dopasowania. Szczegóły są pod **Szczegóły wybranego wyniku**.
 
 Zapisz początkowe XY, sumę korekt, końcowe XY oraz oglądane struktury. Krok
 wynosi 1 piksel oryginału niezależnie od zoomu; +X w prawo, +Y w dół.
 Przeciąganie przesuwa wspólny widok. Pełny aligned zachowuje swój wynik.
 Przy braku zgodności różnych części obrazu zanotuj rozbieżność. Ręczny wybór
 nie stanowi samodzielnego dowodu fizycznego dryfu ani niezależnej walidacji.
-Szczegółowe próby i reset/odrzucenie opisuje [REG-01a](issues/01a-manual-alignment.md).
+Szczegółowe próby, cofnięcie ruchów i anulowanie korekty opisuje [REG-01a](issues/01a-manual-alignment.md).
 
 ## Karta odbioru każdego ticketu
 
@@ -92,9 +96,9 @@ filmów pomiarowych do Git. Nie wpisujemy rezultatów przed wykonaniem próby.
 
 ```text
 Ticket / data / osoba / system:
-Commit A / commit B:
+Commit wyniku zachowanego / bieżącego:
 Film + SHA / numery źródłowe par:
-Metoda i ustawienia A / B / maski:
+Metoda i ustawienia wyniku zachowanego / bieżącego / maski:
 Dla próby ręcznej: pochodzenie / początkowe XY / korekta / końcowe XY:
 Gamma / zakres jasności / proporcje / zoom:
 Fragmenty estymacji / fragmenty kontroli / czy kontrola niezależna:
