@@ -17,8 +17,8 @@ from stmviewer.mpp_metadata import mpp_sidecar_path
 from stmviewer.registration import (
     CPU_METHODS, DEEP_METHODS, REGISTRATION_METHODS, RegistrationResult, ShiftBackend, registration_unavailable_reason,
 )
-from stmviewer.deep_matcher import deep_unavailable_reason
-from stmviewer.deep_ecc import HYBRID_METHOD, HYBRID_LABEL, hybrid_unavailable_reason
+from stmviewer.deep_ecc import HYBRID_LABEL
+from stmviewer.ui.registration_options import method_unavailable_reason
 from stmviewer.ui.hybrid_details import hybrid_details_text
 from stmviewer.ui.deep_matcher_controls import DeepMatcherControls
 from stmviewer.ui.registration_job import RegistrationJob
@@ -744,12 +744,7 @@ class STMViewerMainWindow(QMainWindow):
 
     def _selected_method_error(self) -> str | None:
         key = str(self._method.currentData())
-        if key == HYBRID_METHOD:
-            return self._method_errors['phase_correlation'] or hybrid_unavailable_reason(self._deep_controls.options())
-        if key in DEEP_METHODS:
-            reason = self._method_errors['phase_correlation'] or deep_unavailable_reason(self._deep_controls.options())
-            return f'Deep Matcher niedostępny: {reason}' if reason else None
-        return self._method_errors[key]
+        return method_unavailable_reason(key, self._deep_controls.options(), self._method_errors)
 
     def _change_registration_method(self) -> None:
         self._deep_controls.setVisible(self._method.currentData() in DEEP_METHODS)

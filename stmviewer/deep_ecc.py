@@ -69,10 +69,11 @@ class DeepEccBackend:
         # With an injected local LoFTR, shared config.device/pretrained are unused.
         deep_config = {key: value for key, value in asdict(getattr(deep, 'config')).items()
                        if key not in ('device', 'pretrained')}
+        ecc_settings = '; '.join(f'{key}={value}' for key, value in asdict(self._ecc.config).items()
+                                 if not key.startswith('coarse_'))
         self.settings_text = (
             'Deep Matcher + ECC v1; oryginały; ECC CPU; MOTION_TRANSLATION; '
-            f'Deep={deep_config}; max_iterations=100; epsilon=1e-06; '
-            'gaussian_filter_size=5; min_texture_std=1e-08; low_confidence_ecc_score=0.75; '
+            f'Deep={deep_config}; {ecc_settings}; '
             f'wagi={options.weights}; wybrane urządzenie={options.device}; Deep={device}'
         )
         self.last_diagnostics: HybridDiagnostics | None = None

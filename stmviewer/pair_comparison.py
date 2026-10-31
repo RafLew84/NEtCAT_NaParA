@@ -99,7 +99,8 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
         if shift.shape != (2,) or not np.isfinite(shift).all():
             raise ValueError('nieprawidłowe przesunięcie XY')
         status, quality = estimate_confidence(method, result)
-    except RegistrationCancelled:
+    except (RegistrationCancelled, RegistrationError):
+        checkpoint()
         raise
     except Exception as error:
         checkpoint()

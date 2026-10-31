@@ -9,9 +9,9 @@ from PyQt6.QtWidgets import (
     QScrollArea, QSizePolicy, QSpinBox, QToolButton, QVBoxLayout, QWidget,
 )
 
-from stmviewer.deep_ecc import HYBRID_METHOD, hybrid_unavailable_reason
+from stmviewer.ui.registration_options import method_unavailable_reason
 from stmviewer.ui.hybrid_details import deep_start_trial, hybrid_details_text
-from stmviewer.deep_matcher import DeepMatcherOptions, deep_unavailable_reason
+from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.frame import ImageFrame
 from stmviewer.manual_pair import ManualPairDraft
 from stmviewer.manual_movie import movie_pair_trial
@@ -334,9 +334,7 @@ class PairComparisonDialog(QDialog):
     def _sync(self) -> None:
         method = str(self._method.currentData())
         self._deep.setVisible(method in DEEP_METHODS)
-        reason = (hybrid_unavailable_reason(self._deep.options()) if method == HYBRID_METHOD
-                  else deep_unavailable_reason(self._deep.options()) if method in DEEP_METHODS
-                  else self._errors[method])
+        reason = method_unavailable_reason(method, self._deep.options(), self._errors)
         self._availability.setText(reason or '')
         available = self._available and not self.busy
         editing = self._draft is not None

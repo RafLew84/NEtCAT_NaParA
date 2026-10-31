@@ -157,6 +157,9 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
             if pair_shift.shape != (2,) or not np.isfinite(pair_shift).all():
                 raise ValueError("nieprawidłowe przesunięcie XY")
             pair_status, pair_quality = estimate_confidence(method, pair)
+        except (RegistrationCancelled, RegistrationError):
+            checkpoint()
+            raise
         except Exception as error:
             checkpoint()
             reason = str(error) or type(error).__name__

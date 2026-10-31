@@ -231,3 +231,19 @@ def test_selected_pair_errors_identify_source_frames_instead_of_first_pair(contr
     moving = replace(moving, source_frame_index=31)
     with pytest.raises(RegistrationError, match='Para 31 → 32.*źródłowe.*Deep Matcher'):
         estimate_pair(reference, moving, method=METHOD, deep_options=DeepMatcherOptions(weights, 'cpu'))
+
+
+def test_ecc_texture_refusal_keeps_pair_identity_and_stage(controlled_loftr):
+    from dataclasses import replace
+    import pytest
+    from stmviewer.registration import RegistrationError, register_series
+
+    _, weights = controlled_loftr
+    reference, moving = textured_pair()
+    reference = replace(reference, data=np.ones((128, 192)), source_frame_index=30)
+    moving = replace(moving, data=np.ones((128, 192)), source_frame_index=31)
+    options = DeepMatcherOptions(weights, 'cpu')
+    with pytest.raises(RegistrationError, match='Para 31 → 32.*źródłowe.*— ECC:.*too little texture'):
+        estimate_pair(reference, moving, method=METHOD, deep_options=options)
+    with pytest.raises(RegistrationError, match='Para 1 → 2.*— ECC:.*too little texture'):
+        register_series((reference, moving), method=METHOD, deep_options=options)

@@ -34,7 +34,10 @@ def test_selecting_method_keeps_old_aligned_until_success(qtbot, monkeypatch, tm
     info = window.findChild(QLabel, 'registrationInfo').text()
 
     combo = window.findChild(QComboBox, 'registrationMethod')
-    assert [combo.itemText(i) for i in range(combo.count())] == ['Phase', 'Korelacja bez normalizacji (v1)', 'Tile+RANSAC', 'ECC', 'Optical Flow', 'Deep Matcher']
+    assert [combo.itemText(i) for i in range(combo.count())] == [
+        'Phase', 'Korelacja bez normalizacji (v1)', 'Tile+RANSAC', 'ECC',
+        'Optical Flow', 'Deep Matcher', 'Deep Matcher + ECC (v1)',
+    ]
     combo.setCurrentText(method)
     assert image(window) == before
     assert window.findChild(QLabel, 'registrationInfo').text() == info
