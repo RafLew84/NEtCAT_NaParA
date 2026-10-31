@@ -4,7 +4,7 @@ Data: 2026-10-28; rozszerzenia ręczne: REG-01a 2026-10-30, REG-02a 2026-10-31.
 Rozszerzenie o graf dopasowań i nowe modele: 2026-10-31, na zlecenie użytkownika.
 Gałąź: `viewer/registration-difficult-movies`.
 Baza rozpoznania: `c85aecb`; przegląd metod: `81ff1a0`.
-Status: REG-01, REG-01a, REG-02, REG-02a, REG-04 i REG-05 `done`. Użytkownik potwierdził odbiór REG-02
+Status: REG-01, REG-01a, REG-02, REG-02a, REG-04, REG-05 i REG-07 `done`. Użytkownik potwierdził odbiór REG-02
 2026-10-31 i zgłosił brak istotnej poprawy względem Phase na MOVIE_4.
 Deep Matcher ocenia najlepiej w obejrzanych pierwszych 100 klatkach.
 [Instrukcja REG-02](unnormalized-correlation-manual.md), [wyniki](reviews/REG-02.md).
@@ -15,8 +15,8 @@ ma status `done`: użytkownik potwierdził „testy manualne 04 ok” 2026-10-31
 [Instrukcja REG-04](deep-ecc-manual.md), [karta](reviews/REG-04.md).
 [REG-05: zgodność lokalnych fragmentów](issues/05-local-consensus.md) zamknięto
 po potwierdzeniu „testy manualne 05 ok” 2026-10-31. REG-06 odłożono na życzenie
-użytkownika. REG-07 oczekuje na odbiór manualny (`ready-for-review`): zapis i odczyt sesji
-zastępują odrzuconą bibliotekę pełnych prób A/B.
+użytkownika. REG-07 ma status `done`: użytkownik potwierdził „testy manualne ok”
+2026-11-01. Zapis i odczyt sesji zastępują odrzuconą bibliotekę pełnych prób A/B.
 [Instrukcja REG-02a](manual-movie-corrections-manual.md), [sprawdzenia](reviews/REG-02a.md).
 Dalsze próby MOVIE_4
 obejmują źródłowe klatki 3–364, zgodnie z [protokołem](manual-protocol.md).
@@ -56,7 +56,7 @@ kontroli REG-06. Ocena wizualna, poparcie estymatora i diagnostyka spójności
 pozostają dostępne zgodnie ze swoimi zakresami; nie nazywamy ich niezależną
 walidacją. Wznowienie REG-06 wymaga osobnego zlecenia.
 
-**Zmiana REG-07 — 2026-11-01:** na zlecenie użytkownika usuwamy bibliotekę
+**Zmiana REG-07 — 2026-11-01:** na zlecenie użytkownika usunięto bibliotekę
 pełnych prób A/B. REG-07 zapisuje i otwiera jedną sesję `.stmsession`, z obrazami
 original i gotowym aligned, zastosowanymi korektami i ustawieniami widoku.
 Plik można przenieść bez źródeł i modeli. Porównanie pojedynczej pary pozostaje.
@@ -106,7 +106,7 @@ REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [karta odbioru](reviews/REG-01.md). REG-01a ma status `done` po odbiorze
 użytkownika 2026-10-31. REG-02 i REG-02a również odebrano 2026-10-31 (`done`).
 REG-04 i REG-05 mają status `done` po odbiorze użytkownika 2026-10-31.
-REG-07 ma status `ready-for-review`. REG-08, REG-08a/08b/08c i REG-10–12 mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
+REG-07 ma status `done` po odbiorze 2026-11-01. REG-08, REG-08a/08b/08c i REG-10–12 mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
 zlecenia użytkownika i zakończenia blokujących ticketów. REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
 REG-08d i REG-09 również mają status `planned` jako warunkowe osobne odnogi.
@@ -119,9 +119,10 @@ technicznie napisać niezależnie. Zależność między REG-10/11/12 porządkuje
 eksperymenty; RoMa nie wymaga uruchamiania EfficientLoFTR, a MatchAnything nie
 wymaga działającego RoMa. Wspólną bazą porównań pozostaje obecny Deep.
 
-Do odbioru manualnego jest [REG-07 — zapis i odczyt sesji](issues/07-session-save-load.md).
-Zależność od REG-05 jest spełniona. Ręczny odbiór nowego zakresu pozostaje przed nami;
-wcześniejsza implementacja biblioteki prób nie jest jego zaliczeniem.
+[REG-07 — zapis i odczyt sesji](issues/07-session-save-load.md) odebrano
+2026-11-01. Następny odblokowany etap to [REG-08 — diagnostyka spójności kilku
+klatek](issues/08-temporal-consistency.md); implementacja pozostaje nierozpoczęta
+i wymaga osobnego zlecenia użytkownika.
 [Instrukcja odbioru](session-manual.md), [wyniki](session-results.md),
 [przegląd](reviews/REG-07-session.md).
 REG-06 jest odłożony i pozostaje niewdrożony.

@@ -3,8 +3,8 @@
 Data: 2026-11-01. Baza: `750c4743411b9eb7ff38f078c277faa04cb752c7`.
 Zakres: [zapis i odczyt sesji](../issues/07-session-save-load.md).
 Implementacja: `5afa8c2`; poprawka po przeglądzie: `ea30b5f`.
-Gałąź: `viewer/registration-difficult-movies`. Status: **ready-for-review**.
-Ręczny odbiór użytkownika GUI/VLC: **niewykonany**.
+Gałąź: `viewer/registration-difficult-movies`. Status: **done**.
+Ręczny odbiór użytkownika: **potwierdzony 2026-11-01** — „testy manualne ok”.
 
 ## Standards
 
@@ -24,7 +24,8 @@ Niezależny przegląd tego samego diffu: **0 usterek** i brak nieuzgodnionego
 rozszerzenia zakresu. Potwierdzono zgodność samodzielnego pliku original/aligned,
 geometrii i korekt, wznowienia edycji/eksportu, widoku, transakcyjnego I/O oraz
 usunięcia biblioteki pełnych prób przy zachowaniu wcześniejszego okna pary.
-Fizyczny Windows i ręczny odbiór pozostają jawnie niewykonane.
+W chwili przeglądu fizyczny Windows i ręczny odbiór były jawnie niewykonane.
+Późniejsze potwierdzenie użytkownika opisano poniżej.
 
 Łącznie: Standards — 1 uwaga naprawiona, 0 otwartych; Spec — 0 usterek.
 
@@ -66,5 +67,9 @@ z długiej próby UI MolTrack; testy kontynuowały i ukończyły cały przebieg.
 [Instrukcja](../session-manual.md) obejmuje jeden plik bez źródeł/wag,
 kontynuację i cofanie korekt, zapis po usunięciu odniesienia, MPP/AVI oraz
 błąd/anulowanie. Program uruchamia się przez `python -m stmviewer`.
-Nie potwierdzono jeszcze ręcznego GUI/VLC, fizycznego Windows 11 ani sprzętu
-z 8 GB VRAM. REG-07 nie jest oznaczony jako `done`; REG-08 nie rozpoczęto.
+Użytkownik potwierdził 2026-11-01: **„testy manualne ok”**. REG-07 ma status
+`done`, zależność REG-08 jest spełniona; REG-08 nie rozpoczęto. Potwierdzenie
+nie określa systemu, sprzętu ani odtwarzacza, więc nie przypisujemy mu
+osobnego odbioru Windows 11, sprzętu z 8 GB VRAM ani VLC na obu systemach.
+Przy aktualizacji statusu sprawdzono spójność dokumentacji i `git diff --check`;
+kod nie zmienił się, testów programu nie powtarzano.

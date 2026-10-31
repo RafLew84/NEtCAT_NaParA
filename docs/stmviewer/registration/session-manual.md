@@ -1,6 +1,8 @@
 # REG-07 — ręczna próba zapisu i odczytu sesji
 
-Status: do wykonania przez użytkownika. Testy Qt offscreen są automatyczne.
+Status: odbiór użytkownika potwierdzony 2026-11-01: „testy manualne ok”.
+Instrukcja pozostaje do ponowienia próby. Testy Qt offscreen są osobnym
+sprawdzeniem automatycznym; użytkownik nie wskazał systemu ani odtwarzacza.
 
 ## Uruchomienie i dane
 

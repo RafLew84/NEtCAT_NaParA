@@ -2,7 +2,7 @@
 
 **What to build:** Użytkownik sprawdza, czy przesunięcie A→C zgadza się
 z sumą A→B i B→C, oraz ogląda pary tworzące niespójny zestaw.
-**Blocked by:** [REG-07](07-session-save-load.md), w tym odbiór manualny.
+**Blocked by:** [REG-07](07-session-save-load.md), w tym odbiór manualny — spełnione 2026-11-01.
 **Status:** ready-for-agent
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 

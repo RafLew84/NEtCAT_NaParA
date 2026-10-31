@@ -65,5 +65,7 @@ python tests/stmviewer/diagnostics/session_validation.py --load-session /tmp/stm
 
 Końcowe liczby testów i przegląd: [karta sprawdzeń](reviews/REG-07-session.md).
 
-Odbiór GUI/VLC przez użytkownika: **niewykonany**. Nie deklarujemy fizycznego
-odbioru Windows 11 ani komputera z 8 GB VRAM. Instrukcja: [próba manualna](session-manual.md).
+Odbiór manualny użytkownika: **potwierdzony 2026-11-01** — „testy manualne ok”.
+REG-07 ma status `done`. Użytkownik nie podał systemu, sprzętu ani odtwarzacza;
+to potwierdzenie nie stanowi osobnego odbioru Windows 11, GPU 8 GB lub VLC
+na obu systemach. Instrukcja: [próba manualna](session-manual.md).

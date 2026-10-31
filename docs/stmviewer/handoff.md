@@ -1,6 +1,28 @@
+# REG-07: odbiór manualny sesji — 2026-11-01
+
+Użytkownik potwierdził: **„testy manualne ok”**.
+[REG-07 — zapis i odczyt sesji](registration/issues/07-session-save-load.md)
+ma status **done**. Baza tej aktualizacji: `cbb0f38`;
+gałąź `viewer/registration-difficult-movies`.
+
+- Zaktualizowano ticket, plan, README, instrukcję, raport i kartę odbioru.
+- Zależność REG-08 jest spełniona. REG-08 pozostaje `ready-for-agent`,
+  implementacja nierozpoczęta; wymaga osobnego zlecenia. REG-09 nadal jest
+  warunkowy i wymaga decyzji użytkownika. REG-06 pozostaje odłożony.
+- Potwierdzenie nie określa systemu, sprzętu ani odtwarzacza. Nie przypisujemy
+  mu odbioru Windows 11, GPU 8 GB ani VLC na obu systemach.
+- Kod bez zmian. Sprawdzono spójność statusów i linków oraz `git diff --check`;
+  testów programu nie powtarzano. Dotychczasowe wyniki są w karcie REG-07.
+- Pliki użytkownika `proba.stmtrial.json`, `proba2.stmtrial.json` i
+  `sesja.stmsession` pozostają lokalne i poza commitem.
+- Zmiany dokumentacji należą do końcowego commita tego odbioru;
+  brak nowych potrzeb zmian wspólnych, publikacji lub scalenia.
+
+---
+
 # REG-07: zapis i odczyt przenośnej sesji — 2026-11-01
 
-Status: **ready-for-review**, odbiór manualny użytkownika oczekuje.
+Stan przy przekazaniu implementacji: **ready-for-review**; późniejszy odbiór opisano powyżej.
 Gałąź: `viewer/registration-difficult-movies`; baza przeglądu `750c474`.
 Implementacja: **`5afa8c2`**, poprawka po przeglądzie: **`ea30b5f`**.
 Końcowy commit dokumentacji domyka przekazanie; bez publikacji ani scalenia.

@@ -4,8 +4,8 @@
 `.stmsession`, otwiera go po ponownym uruchomieniu programu i kontynuuje przeglądanie,
 ręczne korekty oraz eksport bez ponownej rejestracji.
 **Blocked by:** [REG-05](05-local-consensus.md), w tym odbiór manualny — spełnione 2026-10-31.
-**Status:** ready-for-review
-**Manualny odbiór:** niewykonany; implementacja i automatyczne sprawdzenia zakończone, oczekuje na próbę użytkownika.
+**Status:** done
+**Manualny odbiór:** potwierdzony przez użytkownika 2026-11-01: „testy manualne ok”.
 **Wykonawca:** Codex; baza przeglądu `750c474`. Implementacja `5afa8c2`, poprawka instrukcji po przeglądzie `ea30b5f`.
 
 Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).

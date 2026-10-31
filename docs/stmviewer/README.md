@@ -30,9 +30,10 @@ i **Otwórz sesję…** są w głównym panelu; skróty to Ctrl+Shift+S i Ctrl+S
 [Instrukcja ręcznego odbioru](registration/session-manual.md),
 [wyniki sprawdzeń](registration/session-results.md),
 [przegląd kodu](registration/reviews/REG-07-session.md).
-REG-07 ma status **ready-for-review**: testy automatyczne i przegląd zakończone,
-odbiór manualny oczekuje. REG-06 pozostaje
-odłożony, dalsze tickety czekają na odbiór REG-07.
+REG-07 ma status **done**: użytkownik potwierdził „testy manualne ok”
+2026-11-01. REG-06 pozostaje odłożony. Następny odblokowany etap to
+[REG-08 — diagnostyka spójności kilku klatek](registration/issues/08-temporal-consistency.md),
+który czeka na osobne zlecenie.
 
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk
 **Porównaj parę…** otwiera osobny podgląd sąsiednich oryginałów: przed/po XY,
