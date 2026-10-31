@@ -5,6 +5,11 @@ MPP/STP z różnych molekuł i podłoży; rozmiary skanów są w metadanych.
 Nowych plików jeszcze nie audytowano. Ta notatka nie zmienia zamkniętego
 [protokołu 20](self-supervised-training-protocol.md) ani statusów ticketów.
 
+**Przyjęta kolejność — 2026-10-31:** użytkownik wybrał najpierw próby 21/22
+na obecnym TTMAPP i przygotowanych kontrolach. Dodatkowe dane przygotuje
+później, jeśli wyniki będą uzasadniały rozszerzenie. Ocena w 23 określi
+potrzebny zakres; poniższe zalecenia dla archiwum nie blokują obecnych prób.
+
 ## Co wynika ze źródeł
 
 Pojedyncze obrazy wystarczają jako wejście do uczenia cech; film nie jest

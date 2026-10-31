@@ -15,6 +15,12 @@ początku ticketu. Zachowujemy prototypy i wyniki jako punkty odniesienia.
 wznowienie dla trzech ziaren. Następne są 21 i 22, nadal `open`;
 właściwych treningów tych modeli nie uruchomiono. Jakość 04, odbiór 13 i druga mapa są otwarte.
 
+**Decyzja użytkownika — 2026-10-31:** najpierw wykonujemy 21/22 na obecnym
+TTMAPP i przygotowanych kontrolach według protokołu 20. Przygotowanie
+dodatkowych MPP/STP odkładamy; nie jest warunkiem rozpoczęcia tych prób.
+W 23 ocenimy, czy wyniki uzasadniają rozszerzenie zbioru i jakich danych
+potrzeba. Obecny pilot nie ocenia przenoszenia na inne molekuły lub podłoża.
+
 [Galeria zapisanych propozycji domen](saved-domain-examples.md) udostępnia
 trzy klatki TTMAPP oraz kontrolę syntetyczną: PNG, porównanie metod 15/16
 i przypisania CSV. To częściowe propozycje grup molekuł, bez zatwierdzonych

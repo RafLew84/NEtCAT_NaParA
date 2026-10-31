@@ -24,6 +24,13 @@ wykonano (`resolved`): dane, rozdzielone protokoły, pomiar GPU i wznowienie,
 budżet oraz kryteria. Następne są niezależne 21 i 22, oba `open`.
 Techniczna próba 20 nie jest wykonaniem treningów lub porównań tych modeli.
 
+**Decyzja użytkownika — 2026-10-31:** 21/22 wykonujemy najpierw na obecnym
+TTMAPP i kontrolach przygotowanych w 20. Użytkownik przygotuje dodatkowe
+MPP/STP później, jeśli wyniki uzasadnią rozszerzenie zbioru. W 23 oceniamy
+korzyść i potrzebny zakres dalszych danych; audyt archiwum nie blokuje
+obecnego pilota. Wnioski z TTMAPP nie potwierdzają przenoszenia na inne
+molekuły lub podłoża. Zamknięty protokół i statusy pozostają bez zmian.
+
 Na prośbę użytkownika przygotowano [galerię zapisanych propozycji](saved-domain-examples.md)
 z prób 15 i 16: trzy klatki TTMAPP i kontrolę dwóch orientacji. Eksport
 istniejących przypisań pokazuje grupy molekuł, bez nowych obliczeń ani
@@ -266,8 +273,9 @@ jego implementacja i odbiór na wynikach metod pozostają do wykonania.
 [Zalecenia dotyczące dodatkowych MPP/STP](research-training-data-requirements.md)
 uwzględniają zgłoszone przez użytkownika różne molekuły/podłoża i rozmiary
 skanów w metadanych. Skład nowego zbioru, audyt kalibracji oraz grupowy
-podział akwizycji wymagają inwentaryzacji. Notatka nie zmienia wykonanego
-przygotowania 20 ani nie rozpoczyna 21/22.
+podział akwizycji wymagają inwentaryzacji, odłożonej decyzją użytkownika
+do ewentualnego rozszerzenia po ocenie 23. Nie jest ona warunkiem wykonania
+21/22 na obecnym zbiorze i nie zmienia przygotowania 20.
 
 Kolejne akwizycje i wyniki nowych prób mogą ujawnić dodatkowe klasy błędów,
 potrzebę innych cech lub konkretnego połączenia informacji obrazu i centrów.

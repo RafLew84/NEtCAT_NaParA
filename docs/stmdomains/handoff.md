@@ -1,3 +1,24 @@
+# STM Domains — najpierw pilot na obecnych danych
+
+Data: **2026-10-31**. Użytkownik zdecydował, aby najpierw wykonać 21/22
+na obecnym TTMAPP i kontrolach przygotowanych w 20. Dodatkowe MPP/STP
+przygotuje później, jeśli wyniki będą interesujące. Audyt archiwum nie
+blokuje obecnych prób. W 23 oceniamy korzyść według zamrożonych kryteriów
+oraz potrzebny zakres ewentualnego rozszerzenia danych. Wynik obecnego
+pilota nie rozstrzyga przenoszenia na inne molekuły/podłoża.
+
+Uaktualniono README, mapę metod, notatkę o danych i ticket 23.
+Protokół 20 i statusy pozostają bez zmian: 19/20 `resolved`, 21/22/23 `open`.
+Ta aktualizacja zapisuje kolejność prac; nie uruchomiono nowych treningów.
+
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/start`, baza
+`b7ca02a`. Commit dokumentacji w odpowiedzi końcowej; integracja przez
+koordynatora. Sprawdzenia: lokalne odnośniki zmienionych dokumentów oraz
+`git diff --check`. Bez testów kodu lub GUI; zmiana dotyczy tylko dokumentacji.
+Brak potrzebnych zmian wspólnych i nowych instalacji.
+
+---
+
 # STM Domains — wymagania dla dodatkowych danych MPP/STP
 
 Data: **2026-10-31**. Na pytanie użytkownika przygotowano

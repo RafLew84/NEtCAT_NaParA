@@ -48,6 +48,14 @@ uruchamia badań; status pozostaje `open`, a 24–26 nadal są warunkowe.
 
 ## Wybór następnego kroku
 
+**Decyzja użytkownika — 2026-10-31:** pierwsze próby 21/22 korzystają
+z obecnego TTMAPP i kontroli przygotowanych w 20. Dodatkowe MPP/STP
+użytkownik przygotuje później, jeśli wyniki uzasadnią rozszerzenie danych.
+Przy porównaniu wskazać, czy warto podjąć taki krok i jakich akwizycji
+potrzeba do sprawdzenia konkretnej hipotezy. Obecny pilot nie ocenia
+przenoszenia na inne molekuły lub podłoża; jego niepowodzenie również
+nie rozstrzyga skuteczności uczenia na szerszym zbiorze.
+
 Najpierw podjąć decyzję o kontynuacji na podstawie powyższych kryteriów.
 Gdy brak poprawy w ustalonym budżecie, zakończyć dany kierunek i zapisać
 konkretną lukę. Rozszerzenie można wybrać tylko wtedy, gdy jego hipoteza
