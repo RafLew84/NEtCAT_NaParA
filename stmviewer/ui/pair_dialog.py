@@ -1,5 +1,7 @@
 """Modeless, isolated comparison of adjacent original frames."""
 
+from dataclasses import replace
+
 from PyQt6.QtCore import Qt, QSignalBlocker, pyqtSignal
 from PyQt6.QtGui import QCloseEvent, QImage
 from PyQt6.QtWidgets import (
@@ -10,9 +12,11 @@ from PyQt6.QtWidgets import (
 from stmviewer.deep_matcher import DeepMatcherOptions, deep_unavailable_reason
 from stmviewer.frame import ImageFrame
 from stmviewer.manual_pair import ManualPairDraft
+from stmviewer.manual_movie import movie_pair_trial
+from stmviewer.ui.manual_movie_controls import ManualMovieControls
 from stmviewer.ui.manual_pair_controls import ManualPairControls
 from stmviewer.pair_comparison import PairImages, PairTrial
-from stmviewer.registration import CPU_METHODS, REGISTRATION_METHODS, ShiftBackend, registration_unavailable_reason
+from stmviewer.registration import CPU_METHODS, REGISTRATION_METHODS, RegistrationResult, ShiftBackend, registration_unavailable_reason
 from stmviewer.ui.deep_matcher_controls import DeepMatcherControls
 from stmviewer.ui.pair_job import PairJob
 from stmviewer.ui.image_preview import ImagePreview
@@ -21,6 +25,9 @@ from stmviewer.ui.raster import frame_aspect
 
 class PairComparisonDialog(QDialog):
     busy_changed = pyqtSignal()
+    movie_apply_requested = pyqtSignal(object)
+    movie_remove_requested = pyqtSignal(int)
+    movie_cancel_requested = pyqtSignal()
 
     def __init__(self, frames: tuple[ImageFrame, ...], moving_index: int, parent: QWidget,
                  *, method: str = 'phase_correlation', deep_options: DeepMatcherOptions | None = None,
@@ -39,6 +46,9 @@ class PairComparisonDialog(QDialog):
         self._pinned: PairTrial | None = None
         self._draft: ManualPairDraft | None = None
         self._manual_before_alignment = 0
+        self._registration: RegistrationResult | None = None
+        self._published_trial: PairTrial | None = None
+        self._draft_movie_revision: str | None = None
         self._images: PairImages | None = None
         self._errors = {key: registration_unavailable_reason(key) for key in CPU_METHODS}
         outer = QVBoxLayout(self)
@@ -140,6 +150,13 @@ class PairComparisonDialog(QDialog):
         self._cancel.clicked.connect(self._cancel_job)
         auto_layout.addWidget(self._cancel)
         sidebar.addWidget(automatic)
+        self._movie = ManualMovieControls(self)
+        self._movie.start_requested.connect(self._start_movie_manual)
+        self._movie.cancel_requested.connect(self.movie_cancel_requested.emit)
+        self._movie.apply_requested.connect(self._apply_to_movie)
+        self._movie.remove_requested.connect(
+            lambda: self.movie_remove_requested.emit(self._number.value() - 1))
+        sidebar.addWidget(self._movie)
         sidebar.addStretch()
 
         viewer = QVBoxLayout()
@@ -219,8 +236,8 @@ class PairComparisonDialog(QDialog):
         self._message.setTextFormat(Qt.TextFormat.PlainText)
         self._message.setMinimumHeight(self._message.fontMetrics().lineSpacing() * 2)
         outer.addWidget(self._message)
-        note = QLabel('Wyniki tego okna służą porównaniu pary; nie zmieniają całego filmu ani eksportu. '
-                      'Zmiana pary lub zamknięcie okna usuwa wyniki porównania.', self)
+        note = QLabel('Zakończ korektę tworzy próbę pary. Dopiero Zastosuj do filmu zmienia aligned i eksport. '
+                      'Zmiana pary lub zamknięcie okna usuwa próby; zastosowane korekty filmu pozostają.', self)
         note.setObjectName('pairScope')
         note.setWordWrap(True)
         outer.addWidget(note)
@@ -241,6 +258,39 @@ class PairComparisonDialog(QDialog):
         self._available = available
         self._sync()
 
+    def set_registration(self, result: RegistrationResult | None, *,
+                         applied_trial: PairTrial | None = None) -> None:
+        self._registration = result
+        self._published_trial = applied_trial
+        self._sync()
+
+    def show_movie_progress(self, done: int, total: int, description: str) -> None:
+        self._movie.show_progress(done, total, description)
+
+    def finish_movie_progress(self, message: str) -> None:
+        self._movie.finish_progress()
+        self._message.setText(message)
+
+    def movie_cancelling(self) -> None:
+        self._movie.cancelling()
+
+    def _start_movie_manual(self) -> None:
+        if not self._movie.start.isEnabled() or self._registration is None:
+            return
+        index = self._number.value() - 1
+        start = movie_pair_trial(self._registration, index)
+        self._draft = ManualPairDraft(self._frames[index - 1], self._frames[index], start=start)
+        self._draft_movie_revision = start.movie_revision
+        self._manual_before_alignment = self._alignment.currentIndex()
+        self._message.clear()
+        self._show_manual()
+        self._sync()
+
+    def _apply_to_movie(self) -> None:
+        trial = self._selected_trial()
+        if self._movie.apply.isEnabled() and trial is not None:
+            self.movie_apply_requested.emit(trial)
+
     def _change_pair(self) -> None:
         index = self._number.value() - 1
         reference, moving = self._frames[index - 1:index + 1]
@@ -252,6 +302,7 @@ class PairComparisonDialog(QDialog):
         self._trial = None
         self._pinned = None
         self._draft = None
+        self._draft_movie_revision = None
         self._manual.show_draft(None)
         self._current_choice.setChecked(True)
         with QSignalBlocker(self._alignment):
@@ -283,6 +334,10 @@ class PairComparisonDialog(QDialog):
             button.setEnabled(available and not editing and trial is not None)
         self._manual.sync(available=available, editing=editing,
                           can_copy=self._selected_trial() is not None)
+        self._movie.sync(self._registration, self._frames, self._number.value() - 1,
+                         self._selected_trial(), available=available, editing=editing,
+                         already_applied=self._selected_trial() is not None
+                         and self._selected_trial() is self._published_trial)
         for control in (self._method, self._number, self._deep):
             control.setEnabled(self._available and not self.busy)
 
@@ -291,8 +346,12 @@ class PairComparisonDialog(QDialog):
         if not control.isEnabled():
             return
         index = self._number.value() - 1
-        self._draft = ManualPairDraft(self._frames[index - 1], self._frames[index],
-                                      start=self._selected_trial() if copy_trial else None)
+        start = self._selected_trial() if copy_trial else None
+        self._draft = ManualPairDraft(self._frames[index - 1], self._frames[index], start=start)
+        # Bind when editing begins, never when an old trial is later published.
+        self._draft_movie_revision = start.movie_revision if start is not None else None
+        if self._draft_movie_revision is None and self._registration is not None:
+            self._draft_movie_revision = self._registration.revision
         self._manual_before_alignment = self._alignment.currentIndex()
         self._message.clear()
         self._show_manual()
@@ -330,7 +389,7 @@ class PairComparisonDialog(QDialog):
     def _apply_manual(self) -> None:
         if self._draft is None or not self._manual.apply.isEnabled():
             return
-        self._trial = self._draft.apply()
+        self._trial = replace(self._draft.apply(), movie_revision=self._draft_movie_revision)
         self._draft = None
         self._current_choice.setChecked(True)
         self._manual.show_draft(None)

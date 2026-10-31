@@ -31,6 +31,7 @@ class ManualPairDraft:
                 self._source_label = (f'{start.label} v{start.manual.settings_version}; '
                                       f'początek XY=({sx:g}, {sy:g}) px; '
                                       f'korekta XY=({dx:+d}, {dy:+d}) px; {start.device}')
+        self._movie_revision = start.movie_revision if start is not None else None
         self._correction_xy = (0, 0)
 
     @property
@@ -67,4 +68,5 @@ class ManualPairDraft:
             settings,
             'Operator', self.shift_xy, 'manual', None,
             ManualProvenance(self._start_xy, self._correction_xy, self._source_label),
+            movie_revision=self._movie_revision,
         )

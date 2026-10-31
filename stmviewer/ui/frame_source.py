@@ -3,6 +3,7 @@
 from pathlib import PureWindowsPath
 
 from stmviewer.frame import ImageFrame
+from stmviewer.manual_movie_types import MovieCorrection
 
 
 def frame_source_name(frame: ImageFrame) -> str:
@@ -56,4 +57,28 @@ def alignment_history_text(frame: ImageFrame) -> str:
         f'Źródłowy offset XY: {pair(history.original_offset_nm)}\n'
         f'Odniesienie historyczne: {reference}\n'
         f'Wcześniejsze etapy rejestracji: {count}'
+        + ('\n' + movie_corrections_text(history.manual_movie.corrections)
+           if history.manual_movie is not None else '')
     )
+
+
+def movie_corrections_text(corrections: tuple[MovieCorrection, ...]) -> str:
+    """Expose the applied pair edits without calling them algorithm confidence."""
+    if not corrections:
+        return ''
+    lines = [f'Ręczne korekty filmu: {len(corrections)} · jakość nieoceniona']
+    for correction in corrections:
+        def source_name(source: str, index: int | None) -> str:
+            name = PureWindowsPath(source).name or source
+            return name + (f' · MPP {index + 1}' if index is not None else '')
+        reference, moving = correction.reference, correction.moving
+        lines.append(f'{source_name(reference.source, reference.source_frame_index)} → '
+                     f'{source_name(moving.source, moving.source_frame_index)}')
+        bx, by = correction.baseline_xy
+        sx, sy = correction.start_xy
+        dx, dy = correction.correction_xy
+        x, y = correction.shift_xy
+        lines.append(f'Baza XY: ({bx:g}, {by:g}) · Początek XY: ({sx:g}, {sy:g}) px')
+        lines.append(f'Ruchy: ({dx:+d}, {dy:+d}) · Wynik XY: ({x:g}, {y:g}) px '
+                     f'· ręczne v{correction.settings_version}')
+    return '\n'.join(lines)

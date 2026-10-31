@@ -1,9 +1,10 @@
 """Adjacent registration and a complete expanded result, independent of presentation."""
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 import math
 from typing import Callable, Protocol
+from uuid import uuid4
 
 from nanotrack.core import RegistrationFrameResult
 
@@ -11,6 +12,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from stmviewer.frame import ImageFrame
+from stmviewer.manual_movie_types import MovieBaselineFrame, MovieCorrection, MovieSource
 from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
 
 
@@ -59,13 +61,20 @@ class RegistrationResult:
     pixel_size_nm: tuple[float, float] | None
     method: str = 'Phase'
     device: str = 'CPU'
+    settings_version: int = 1
+    revision: str = field(default_factory=lambda: uuid4().hex)
+    baseline: tuple[MovieBaselineFrame, ...] = ()
+    corrections: tuple[MovieCorrection, ...] = ()
+    corrections_editable: bool = True
 
     def without_frame(self, index: int) -> 'RegistrationResult | None':
         """Retain historical coordinates and the exact surviving samples."""
         if not 0 <= index < len(self.frames):
             raise IndexError(index)
         frames = self.frames[:index] + self.frames[index + 1:]
-        return replace(self, frames=frames) if frames else None
+        # Retain lightweight history, including source pairs removed from the movie.
+        return replace(self, frames=frames, corrections_editable=False,
+                       revision=uuid4().hex) if frames else None
 
 
 class RegistrationError(ValueError):
@@ -87,8 +96,6 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
                     progress: Callable[[int, int, str], None] | None = None,
                     cancelled: Callable[[], bool] | None = None) -> RegistrationResult:
     """Align adjacent originals with the selected method and fixed settings."""
-    from scipy.ndimage import affine_transform
-
     def checkpoint() -> None:
         if cancelled is not None and cancelled():
             raise RegistrationCancelled
@@ -149,6 +156,38 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
                          else min(previous_quality, pair_quality))
         statuses.append(max(statuses[-1], pair_status, key=severity.__getitem__))
         report(i + 1, f"{label}: para {i} → {i + 1}")
+    return render_registration(
+        frames, tuple(shifts), tuple(statuses), tuple(qualities),
+        tuple(i > 0 and statuses[i - 1] != 'ok' for i in range(len(frames))),
+        reference=FrameOrigin(frames[0].source, frames[0].source_frame_index),
+        method=label, device=device, cancelled=cancelled,
+        progress=lambda done, total, text: report(len(frames) + done, text),
+    )
+
+
+def render_registration(
+        frames: tuple[ImageFrame, ...], shifts: tuple[tuple[float, float], ...],
+        statuses: tuple[str, ...], qualities: tuple[float | None, ...],
+        inherited: tuple[bool, ...], *, reference: FrameOrigin, method: str, device: str,
+        progress: Callable[[int, int, str], None] | None = None,
+        cancelled: Callable[[], bool] | None = None) -> RegistrationResult:
+    """Build one aligned image per original with a single linear interpolation."""
+    from scipy.ndimage import affine_transform
+
+    def checkpoint() -> None:
+        if cancelled is not None and cancelled():
+            raise RegistrationCancelled
+
+    checkpoint()
+    if not frames or not (len(frames) == len(shifts) == len(statuses) == len(qualities) == len(inherited)):
+        raise RegistrationError('Aligned: wymagany kompletny zestaw klatek i przesunięć.')
+    for frame, shift in zip(frames, shifts):
+        checkpoint()
+        if (frame.data.ndim != 2 or min(frame.data.shape) < 1
+                or frame.data.shape != frames[0].data.shape):
+            raise RegistrationError('Aligned: niezgodne lub puste wymiary obrazu.')
+        if len(shift) != 2 or not np.isfinite(shift).all():
+            raise RegistrationError('Aligned: nieprawidłowe przesunięcie XY.')
     left = math.ceil(max(0, -min(x for x, y in shifts)))
     top = math.ceil(max(0, -min(y for x, y in shifts)))
     right = math.ceil(max(0, max(x for x, y in shifts)))
@@ -173,13 +212,18 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
                             size_y_nm=shape[0] * pixel_size[1] if pixel_size else None,
                             offset_x_nm=None, offset_y_nm=None, alignment=None)
             aligned.append(AlignedFrame(frame, image, mask, shift, (x, y), status, qualities[i],
-                                        i > 0 and statuses[i - 1] != "ok"))
+                                        inherited[i]))
         except Exception as error:
             checkpoint()
             raise RegistrationError(f"Aligned: klatka {i + 1}: {str(error) or type(error).__name__}") from error
-        report(len(frames) + i + 1, f"Aligned: klatka {i + 1}/{len(frames)}")
-    return RegistrationResult(tuple(aligned), FrameOrigin(frames[0].source, frames[0].source_frame_index),
-                              shape, (left, top, right, bottom), pixel_size, method=label, device=device)
+        if progress is not None:
+            progress(i + 1, len(frames), f"Aligned: klatka {i + 1}/{len(frames)}")
+        checkpoint()
+    baseline = tuple(MovieBaselineFrame(
+        MovieSource(str(frame.source), frame.source_frame_index), shift, status, quality, uncertainty,
+    ) for frame, shift, status, quality, uncertainty in zip(frames, shifts, statuses, qualities, inherited))
+    return RegistrationResult(tuple(aligned), reference, shape, (left, top, right, bottom),
+                              pixel_size, method=method, device=device, baseline=baseline)
 
 
 def _common_pixel_size(frames: tuple[ImageFrame, ...]) -> tuple[float, float] | None:

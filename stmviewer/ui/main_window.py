@@ -20,6 +20,8 @@ from stmviewer.registration import (
 from stmviewer.deep_matcher import deep_unavailable_reason
 from stmviewer.ui.deep_matcher_controls import DeepMatcherControls
 from stmviewer.ui.registration_job import RegistrationJob
+from stmviewer.ui.manual_movie_job import ManualMovieJob
+from stmviewer.pair_comparison import PairTrial
 from stmviewer.ui.pair_dialog import PairComparisonDialog
 from stmviewer.ui.filmstrip import Filmstrip
 from stmviewer.ui.frame_source import frame_source_text, alignment_history_text
@@ -43,7 +45,7 @@ class STMViewerMainWindow(QMainWindow):
         self._job: ImportJob | None = None
         self._export_job: MppExportJob | None = None
         self._registration: RegistrationResult | None = None
-        self._registration_job: RegistrationJob | None = None
+        self._registration_job: RegistrationJob | ManualMovieJob | None = None
         self._registration_backend = registration_backend
         self._pair_dialog: PairComparisonDialog | None = None
         self._method_errors = {key: registration_unavailable_reason(key) for key in CPU_METHODS}
@@ -712,6 +714,10 @@ class STMViewerMainWindow(QMainWindow):
                                           deep_options=self._deep_controls.options(),
                                           backend=self._registration_backend)
             self._pair_dialog = dialog
+            dialog.set_registration(self._registration)
+            dialog.movie_apply_requested.connect(self._apply_movie_correction)
+            dialog.movie_remove_requested.connect(self._remove_movie_correction)
+            dialog.movie_cancel_requested.connect(self._cancel_registration)
             dialog.busy_changed.connect(self._pair_busy_changed)
             dialog.finished.connect(self._pair_closed)
         self._pair_dialog.show()
@@ -769,7 +775,36 @@ class STMViewerMainWindow(QMainWindow):
         job.finished.connect(self._finish_registration)
         job.start()
 
+    def _apply_movie_correction(self, trial: PairTrial) -> None:
+        if self._registration is not None and not self._operation_in_progress:
+            self._start_movie_job(ManualMovieJob(self._registration, self, trial=trial))
+
+    def _remove_movie_correction(self, index: int) -> None:
+        if self._registration is not None and not self._operation_in_progress:
+            self._start_movie_job(ManualMovieJob(self._registration, self, remove_index=index))
+
+    def _start_movie_job(self, job: ManualMovieJob) -> None:
+        self._pause()
+        self._registration_job = job
+        self._registration_progress.setRange(0, len(self._frames))
+        self._registration_progress.setValue(0)
+        self._registration_progress.setFormat('Przeliczanie ręcznej korekty filmu…')
+        if self._pair_dialog is not None:
+            self._pair_dialog.show_movie_progress(0, len(self._frames), 'Przeliczanie filmu…')
+        self._registration_progress.show()
+        self._registration_cancel.setText('Anuluj korektę filmu')
+        self._registration_cancel.setEnabled(True)
+        self._registration_cancel.show()
+        self._open_button.setEnabled(False)
+        self._open_action.setEnabled(False)
+        self._sync_navigation()
+        job.progress.connect(self._show_registration_progress)
+        job.finished.connect(self._finish_registration)
+        job.start()
+
     def _show_registration_progress(self, done: int, total: int, description: str) -> None:
+        if isinstance(self._registration_job, ManualMovieJob) and self._pair_dialog is not None:
+            self._pair_dialog.show_movie_progress(done, total, description)
         self._registration_progress.setRange(0, total)
         self._registration_progress.setValue(done)
         if self._registration_cancel.isEnabled():
@@ -778,6 +813,8 @@ class STMViewerMainWindow(QMainWindow):
     def _cancel_registration(self) -> None:
         if self._registration_job is not None:
             self._registration_job.cancel()
+            if isinstance(self._registration_job, ManualMovieJob) and self._pair_dialog is not None:
+                self._pair_dialog.movie_cancelling()
             self._registration_cancel.setEnabled(False)
             self._registration_progress.setFormat("Anulowanie po bieżącym kroku…")
 
@@ -789,7 +826,7 @@ class STMViewerMainWindow(QMainWindow):
             if not job.was_cancelled() and not self._closing:
                 if job.error is not None:
                     self._show_registration_error(job.error)
-                    if self._method.currentData() == 'deep_matcher_translation':
+                    if isinstance(job, RegistrationJob) and self._method.currentData() == 'deep_matcher_translation':
                         self._deep_controls.set_status(f'Niepowodzenie próby: {job.error}')
                 elif job.checked_device is not None:
                     self._deep_controls.set_status(f'Sprawdzono model. Urządzenie: {job.checked_device}')
@@ -799,6 +836,9 @@ class STMViewerMainWindow(QMainWindow):
                     self._preview.set_frame(current.image, view="aligned", reset_view=True,
                                             original_rect=current.original_rect)
                     self._registration = job.result
+                    if self._pair_dialog is not None:
+                        self._pair_dialog.set_registration(
+                            job.result, applied_trial=job.trial if isinstance(job, ManualMovieJob) else None)
                     if job.result.method == 'Deep Matcher':
                         self._deep_controls.set_status(f'Sprawdzono model. Urządzenie: {job.result.device}')
                     self._strip.set_warnings(tuple(
@@ -814,10 +854,17 @@ class STMViewerMainWindow(QMainWindow):
         except (OSError, ValueError, OverflowError, MemoryError) as error:
             self._show_registration_error(str(error) or type(error).__name__)
         finally:
+            if isinstance(job, ManualMovieJob) and self._pair_dialog is not None:
+                message = ('Anulowano. Poprzedni film i korekty pozostają.' if job.was_cancelled()
+                           else f'Niepowodzenie: {job.error}. Poprzedni film i korekty pozostają.' if job.error
+                           else 'Film został przeliczony. Podgląd aligned oraz eksport używają nowego wyniku.'
+                           if self._registration is job.result else 'Nie podmieniono wyniku filmu.')
+                self._pair_dialog.finish_movie_progress(message)
             self._registration_job = None
             job.deleteLater()
             self._registration_progress.hide()
             self._registration_cancel.hide()
+            self._registration_cancel.setText('Anuluj rejestrację')
             self._open_button.setEnabled(True)
             self._open_action.setEnabled(True)
             self._show_current_frame()
@@ -851,6 +898,8 @@ class STMViewerMainWindow(QMainWindow):
             scale = "piksele — opcja Proporcje pikselowe"
         self._registration_text.setText(
             f"{result.method} · {quality}{inherited}\nUrządzenie: {result.device}\n"
-            f"ΔX: {current.shift_xy[0]:g} px · ΔY: {current.shift_xy[1]:g} px\n"
+            + (f"Ręczne korekty filmu: {len(result.corrections)} · jakość nieoceniona\n"
+               if result.corrections else "")
+            +             f"ΔX: {current.shift_xy[0]:g} px · ΔY: {current.shift_xy[1]:g} px\n"
             f"Aligned: {width} × {height} px\nSkala aligned: {scale}\nOdniesienie: {origin}"
         )

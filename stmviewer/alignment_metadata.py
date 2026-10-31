@@ -8,6 +8,8 @@ import numpy as np
 from stmviewer.frame import AlignmentHistory, FrameProvenance, ImageFrame
 from stmviewer.metadata_values import json_object, optional_number, optional_text, source_provenance
 from stmviewer.registration import RegistrationResult
+from stmviewer.manual_movie_types import MovieHistory, MovieSource
+from stmviewer.manual_movie_metadata import manual_frame_state
 
 _KEYS = {'canvas_shape', 'padding_ltrb', 'pixel_size_nm', 'reference', 'method', 'device',
          'original_shape', 'original_size_nm', 'original_offset_nm', 'shift_xy', 'origin_xy',
@@ -51,10 +53,22 @@ def _same(a: float, b: float) -> bool:
     return math.isclose(a, b, rel_tol=1e-9, abs_tol=1e-9)
 
 
-def _decode(value: object, depth: int = 0) -> AlignmentHistory:
+def _decode(value: object, depth: int = 0, *,
+            manual_results: tuple[MovieHistory, ...] = ()) -> AlignmentHistory:
     if depth >= _MAX_DEPTH:
         raise ValueError('Historia rejestracji przekracza 32 etapy.')
-    record = json_object(value, _KEYS)
+    has_manual = isinstance(value, dict) and 'manual_result' in value
+    record = json_object(value, _KEYS | ({'manual_result', 'manual_frame_index'} if has_manual else set()))
+    manual = None
+    manual_index: int | None = None
+    if has_manual:
+        result_index, frame_index = record['manual_result'], record['manual_frame_index']
+        if type(result_index) is not int or not 0 <= result_index < len(manual_results):
+            raise ValueError('Historia: nieznany wynik ręcznej korekty filmu.')
+        manual = manual_results[result_index]
+        if type(frame_index) is not int or not 0 <= frame_index < len(manual.baseline):
+            raise ValueError('Historia: nieznana klatka bazy ręcznej korekty.')
+        manual_index = frame_index
     if record['validity'] != 'isfinite(samples)':
         raise ValueError('Nieobsługiwana reguła ważności próbek.')
     height, width = _integers(record['canvas_shape'], 2, 1)
@@ -84,19 +98,29 @@ def _decode(value: object, depth: int = 0) -> AlignmentHistory:
     inherited = record['inherited_uncertainty']
     if (quality is None and status != 'manual_review') or type(inherited) is not bool:
         raise ValueError('Historia: nieprawidłowa pewność dopasowania.')
+    if manual is not None:
+        assert manual_index is not None
+        expected = manual_frame_state(manual, manual_index)
+        if not all(_same(a, b) for a, b in zip(shift, expected.shift_xy)):
+            raise ValueError('Historia: skumulowane XY nie zgadza się z ręcznymi korektami.')
+        if (status, quality, inherited) != (expected.status, expected.quality_score, expected.inherited_uncertainty):
+            raise ValueError('Historia: pewność nie zgadza się z wpływem ręcznych korekt.')
+        source = manual.baseline[0].source
+        if (reference.source, reference.source_frame_index) != (source.source, source.source_frame_index):
+            raise ValueError('Historia: odniesienie nie zgadza się z bazą korekt filmu.')
     pixel_size = None if record['pixel_size_nm'] is None else _xy(record['pixel_size_nm'], positive=True)
     original_size = _numbers(record['original_size_nm'], nullable=True, positive=True)
     if pixel_size is not None and any(size is None or not _same(size, pixels * scale)
                                       for size, pixels, scale in zip(original_size, (ow, oh), pixel_size)):
         raise ValueError('Historia: skala źródła nie zgadza się ze skalą obszaru aligned.')
-    previous = None if record['previous'] is None else _decode(record['previous'], depth + 1)
+    previous = None if record['previous'] is None else _decode(record['previous'], depth + 1, manual_results=manual_results)
     original_offset = _numbers(record['original_offset_nm'], nullable=True)
     if previous is not None:
         _validate_image_metadata(previous, (oh, ow), original_size, original_offset)
     return AlignmentHistory((height, width), (left, top, right, bottom), pixel_size,
                             reference, method, device, (oh, ow), original_size,
                             original_offset, shift, origin,
-                            status, quality, inherited, previous)
+                            status, quality, inherited, previous, manual, manual_index)
 
 
 def _validate_image_metadata(history: AlignmentHistory, shape: tuple[int, ...],
@@ -114,23 +138,34 @@ def _validate_image_metadata(history: AlignmentHistory, shape: tuple[int, ...],
         raise ValueError('Historia: offset źródła musi być oddzielony od obszaru aligned.')
 
 
-def decode_alignment(value: object, frame: ImageFrame) -> AlignmentHistory:
+def decode_alignment(value: object, frame: ImageFrame, *,
+                     manual_results: tuple[MovieHistory, ...] = ()) -> AlignmentHistory:
     """Validate all geometry before accepting it as history of the opened pixels."""
-    history = _decode(value)
+    history = _decode(value, manual_results=manual_results)
     _validate_image_metadata(history, frame.data.shape, (frame.size_x_nm, frame.size_y_nm),
                              (frame.offset_x_nm, frame.offset_y_nm))
     return history
 
 
-def encode_alignment(history: AlignmentHistory | None, depth: int = 0) -> dict[str, object] | None:
+def encode_alignment(history: AlignmentHistory | None, depth: int = 0, *,
+                     manual_ids: dict[str, int] | None = None) -> dict[str, object] | None:
     if history is None:
         return None
     if depth >= _MAX_DEPTH:
         raise ValueError('Historia rejestracji przekracza 32 etapy.')
     # Exclude the recursive chain before asdict; encode it with a bounded depth.
-    record = asdict(replace(history, previous=None))
+    record = asdict(replace(history, previous=None, manual_movie=None, manual_frame_index=None))
+    record.pop('manual_movie')
+    record.pop('manual_frame_index')
+    if history.manual_movie is not None:
+        if manual_ids is None or history.manual_movie.revision not in manual_ids:
+            raise ValueError('Historia: brak wspólnego zapisu ręcznej korekty filmu.')
+        record['manual_result'] = manual_ids[history.manual_movie.revision]
+        record['manual_frame_index'] = history.manual_frame_index
+    elif history.manual_frame_index is not None:
+        raise ValueError('Historia: indeks ręcznej klatki bez wyniku.')
     record.update(validity='isfinite(samples)', original_rect=list(history.original_rect),
-                  previous=encode_alignment(history.previous, depth + 1))
+                  previous=encode_alignment(history.previous, depth + 1, manual_ids=manual_ids))
     return record
 
 
@@ -144,7 +179,8 @@ def validate_alignment_series(frames: tuple[ImageFrame, ...], *, aligned: bool) 
         if history is None:
             raise ValueError('Aligned wymaga kompletnej geometrii każdej klatki.')
         geometry = (history.canvas_shape, history.padding_ltrb, history.pixel_size_nm,
-                    history.reference, history.method, history.device)
+                    history.reference, history.method, history.device,
+                    history.manual_movie.revision if history.manual_movie else None)
         if shared is not None and geometry != shared:
             raise ValueError('Aligned: klatki opisują różne wyniki rejestracji.')
         shared = geometry
@@ -154,6 +190,9 @@ def aligned_export_frames(result: RegistrationResult,
                           check_cancelled: Callable[[], None]) -> tuple[ImageFrame, ...]:
     """Attach historical geometry to existing samples without materializing again."""
     frames = []
+    manual = (MovieHistory(result.revision, result.settings_version, result.baseline, result.corrections)
+              if result.corrections else None)
+    source_indices = {frame.source: i for i, frame in enumerate(result.baseline)}
     for aligned in result.frames:
         check_cancelled()
         image, original = aligned.image, aligned.original
@@ -165,14 +204,44 @@ def aligned_export_frames(result: RegistrationResult,
             if not np.array_equal(aligned.valid_mask[row:row + block_rows],
                                   np.isfinite(image.data[row:row + block_rows])):
                 raise ValueError('Aligned: maska nie odpowiada skończonym próbkom.')
+        manual_index = None
+        if manual is not None:
+            source = MovieSource(str(original.source), original.source_frame_index)
+            if source not in source_indices:
+                raise ValueError('Aligned: brak źródła w bazie ręcznych korekt filmu.')
+            manual_index = source_indices[source]
         history = AlignmentHistory(
             result.canvas_shape, result.padding_ltrb, result.pixel_size_nm,
             FrameProvenance(str(result.reference.source), result.reference.source_frame_index),
             result.method, result.device, (original.data.shape[0], original.data.shape[1]),
             (original.size_x_nm, original.size_y_nm), (original.offset_x_nm, original.offset_y_nm),
             aligned.shift_xy, aligned.origin_xy, aligned.status, aligned.quality_score,
-            aligned.inherited_uncertainty, original.alignment)
+            aligned.inherited_uncertainty, original.alignment, manual, manual_index)
         frame = replace(image, alignment=history)
-        decode_alignment(encode_alignment(history), frame)
+        histories = collect_manual_histories((frame,), check_cancelled)
+        ids = {item.revision: i for i, item in enumerate(histories)}
+        decode_alignment(encode_alignment(history, manual_ids=ids), frame, manual_results=histories)
         frames.append(frame)
     return tuple(frames)
+
+
+def collect_manual_histories(frames: tuple[ImageFrame, ...],
+                             check_cancelled: Callable[[], None]) -> tuple[MovieHistory, ...]:
+    """Share metadata across frames and prior stages instead of repeating it N times."""
+    results: dict[str, MovieHistory] = {}
+    for frame in frames:
+        history = frame.alignment
+        depth = 0
+        while history is not None:
+            check_cancelled()
+            if depth >= _MAX_DEPTH:
+                raise ValueError('Historia rejestracji przekracza 32 etapy.')
+            manual = history.manual_movie
+            if manual is not None:
+                previous = results.get(manual.revision)
+                if previous is not None and previous is not manual and previous != manual:
+                    raise ValueError('Historia: sprzeczne dane tej samej wersji korekty filmu.')
+                results[manual.revision] = manual
+            history = history.previous
+            depth += 1
+    return tuple(results.values())

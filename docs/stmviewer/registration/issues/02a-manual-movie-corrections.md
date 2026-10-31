@@ -5,8 +5,9 @@ wybrane przejścia między klatkami i jawnie stosuje je do pełnego aligned.
 Odtwarzanie oraz eksport MPP/AVI korzystają z poprawionego wyniku.
 **Blocked by:** [REG-02](02-unnormalized-correlation.md), w tym odbiór manualny — spełnione.
 Korzysta z odebranego [REG-01a](01a-manual-alignment.md).
-**Status:** ready-for-agent
-**Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
+**Status:** in-progress
+**Wykonawca:** Codex; baza przeglądu `c2c8f1f`.
+**Manualny odbiór:** niewykonany; implementacja w toku.
 **Dodano do planu:** 2026-10-31, na zlecenie użytkownika, przed REG-03.
 
 Obowiązują [plan](../README.md), [protokół](../manual-protocol.md) i limity plików

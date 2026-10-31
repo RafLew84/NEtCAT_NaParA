@@ -36,6 +36,7 @@ class PairTrial:
     status: str
     quality_score: float | None
     manual: ManualProvenance | None = None
+    movie_revision: str | None = None
 
 
 def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,

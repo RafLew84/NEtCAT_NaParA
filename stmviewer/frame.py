@@ -7,6 +7,8 @@ from typing import Mapping
 import numpy as np
 from numpy.typing import NDArray
 
+from stmviewer.manual_movie_types import MovieHistory
+
 
 @dataclass(frozen=True)
 class FrameProvenance:
@@ -35,6 +37,8 @@ class AlignmentHistory:
     quality_score: float | None
     inherited_uncertainty: bool
     previous: 'AlignmentHistory | None' = None
+    manual_movie: MovieHistory | None = None
+    manual_frame_index: int | None = None
 
     @property
     def original_rect(self) -> tuple[float, float, int, int]:

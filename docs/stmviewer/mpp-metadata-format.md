@@ -241,3 +241,57 @@ nie ma rozpiętości sygnału, więc jej wygląd w zewnętrznym programie także
 zależy od tego programu. Nie zmieniamy pomiarów, żeby wymusić kolor.
 Stare V3 wypełnione minimum lub inną zapisaną wartością nadal odtwarzają
 braki, ponieważ czytnik korzysta z `fill_value`, a nie z bieżącej polityki eksportu.
+
+## V4: zastosowane ręczne korekty filmu
+
+REG-02a zapisuje V4 wyłącznie wtedy, gdy bieżąca lub wcześniejsza historia
+wyrównania zawiera zastosowane ręczne korekty. Pliki bez takiej historii nadal
+korzystają z V1–V3. Czytnik przyjmuje wszystkie cztery wersje. V4 dodaje dwa
+pola główne:
+
+- `sample_encoding`: `native-f64` (próbki, w tym NaN/Inf, w samym MPP) lub
+  `finite-fill` (jak V3: skończone tło w MPP i obowiązkowe `missing_samples`
+  w każdym rekordzie klatki). GUI używa `finite-fill`; publiczne API pozwala
+  także na `native-f64`. Reguła ważności nadal dotyczy odtworzonych próbek.
+- `manual_results`: niepusta lista lekkich opisów wyników. Każdy występuje
+  **raz na cały dodatek**, także gdy korzysta z niego wiele klatek lub etapów
+  historii. Nie ma kopii obrazów ani historii kolejnych kliknięć.
+
+Opis wyniku zawiera `revision` (identyfikator wersji), `settings_version=1`,
+`baseline` i `corrections`. `baseline` to pełna lista klatek rejestracji bazowej z ich
+źródłem (`source`, `source_frame_index` od zera), bazowym skumulowanym
+`shift_xy`, `status`, `quality_score` oraz `inherited_uncertainty`.
+`corrections` zawiera jedno aktualne nadpisanie na parę:
+
+- źródłowe `reference` i `moving`;
+- `baseline_xy` — automatyczne przesunięcie pary;
+- `start_xy`, całkowite ruchy `correction_xy` i ich wynik `shift_xy`;
+- `source_label` i `settings_version=1` ręcznej próby.
+
+Rekord `alignment` związany z korektami dodaje `manual_result` — indeks opisu
+w `manual_results` — oraz `manual_frame_index` — indeks klatki w jego `baseline`.
+Metoda i urządzenie automatycznej bazy pozostają w `alignment.method/device`;
+aktualne skumulowane XY, geometria i pewność są w dotychczasowych polach
+`alignment`. Ręcznie zmieniona klatka i zależny dalszy ciąg mają
+`status=manual_review`, `quality_score=null`. Wczytane historie współdzielą
+niemutowalny opis wyniku w pamięci.
+
+Usunięcie klatki nie usuwa zastosowanych korekt ani ich źródłowego pochodzenia.
+Eksport zachowuje nadpisania dotyczące również usuniętych par oraz pełną lekką
+bazę źródeł i XY. `manual_frame_index` wskazuje klatkę w tej pierwotnej bazie,
+nie jej bieżącą pozycję po usunięciach. Dzięki temu czytnik może nadal sprawdzić
+sąsiedztwo par, ich bazowe XY, wynik skumulowany i wpływ korekt na pewność.
+Nie oznacza to możliwości dalszej edycji bez ponownej rejestracji. Odczyt MPP
+odtwarza **gotowe próbki i historię**, bez odzyskiwania oryginałów sprzed
+interpolacji. Zapis takiego wejścia jako original zachowuje historię V4.
+
+Nieznana wersja ustawień, błędne odnośniki, powtórzone nadpisanie, niespójne
+`start_xy + correction_xy != shift_xy` lub inne nieprawidłowe dane odrzucają
+cały dodatek. Nadal obowiązuje powiązanie SHA-256 i limit 64 MiB. Błąd dodatku
+nie prowadzi do częściowego odtworzenia brakujących próbek lub historii.
+
+**Starszy STM Viewer (V1–V3)** odrzuca dodatek V4 z komunikatem o nieobsługiwanej
+wersji. Widzi tylko MPP: przy `finite-fill` również sztuczne skończone tło,
+a przy `native-f64` bezpośrednio zapisane NaN/Inf. Czytniki innych aplikacji
+repozytorium nadal czytają próbki MPP i nagłówek bez interpretacji ręcznych
+korekt. Sam format binarny MPP nie zmienia się w V4.
