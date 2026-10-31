@@ -76,6 +76,9 @@ def test_masked_pair_and_movie_use_same_sources_and_keep_saved_comparison(qtbot,
     method.setCurrentIndex(method.findData('masked_correlation'))
     button(window, 'comparePair').click()
     pair = window.findChild(QDialog, 'pairComparison')
+    font = pair.font()
+    font.setPointSize(11)  # Desktop font: catches card overflow hidden by offscreen defaults.
+    pair.setFont(font)
     use = pair.findChild(QCheckBox, 'pairUseMasks')
     use.setChecked(False)
     run = button(pair, 'runPair')

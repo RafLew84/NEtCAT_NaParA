@@ -355,8 +355,9 @@ class PairComparisonDialog(QDialog):
         self._pin.setEnabled(available and not editing and self._trial is not None)
         for button, title, trial in ((self._current_choice, 'Wynik bieżący', self._trial),
                                      (self._saved_choice, 'Wynik zachowany', self._pinned)):
+            label = trial.label.replace(' — ', '\n') if trial is not None else ''
             description = ('Brak wyniku' if trial is None else
-                           f'{trial.label}\nΔX: {trial.shift_xy[0]:g} px · ΔY: {trial.shift_xy[1]:g} px')
+                           f'{label}\nΔX: {trial.shift_xy[0]:g} px · ΔY: {trial.shift_xy[1]:g} px')
             button.setText(f'{title}\n{description}')
             button.setEnabled(available and not editing and trial is not None)
         self._manual.sync(available=available, editing=editing,
