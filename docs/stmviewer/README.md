@@ -22,7 +22,7 @@ REG-08 następują próby grafu LS (REG-08a), odpornego grafu (REG-08b), zastoso
 do filmu i eksport (REG-08c), następnie osobno EfficientLoFTR (REG-10), RoMa v2
 (REG-11) i MatchAnything-ELoFTR (REG-12). Dalsze odniesienia REG-08d oraz tearing
 REG-09 pozostają warunkowe. Użytkownik odłożył REG-06 („na razie pominiemy 06”).
-REG-07 jest w realizacji po odebranym REG-05. Dodano zapis i odczyt lekkich
+REG-07 ma status **ready-for-review** po odebranym REG-05. Dodano zapis i odczyt lekkich
 prób oraz porównanie pełnych A/B w głównym podglądzie.
 [Instrukcja ręcznego odbioru](registration/full-trial-manual.md),
 [wyniki pomiarów](registration/full-trial-results.md). Niezależna kontrola

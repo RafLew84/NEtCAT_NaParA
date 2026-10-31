@@ -1,3 +1,47 @@
+# REG-07: zapis prób i porównanie pełnych filmów — 2026-11-01
+
+Status: **ready-for-review**, odbiór użytkownika/VLC oczekuje.
+Gałąź: `viewer/registration-difficult-movies`; baza `bb06220`.
+Implementacja: **`be0e253`**, poprawka po przeglądzie: **`11441b4`**.
+Końcowy commit dokumentacji domyka przekazanie; brak publikacji lub scalenia.
+
+- Nowa sekcja **Próby rejestracji**: automatyczne zachowanie ukończonych,
+  nieudanych i anulowanych prób, **Zapisz A/B…**, **Otwórz próbę…**,
+  porównanie A/B w głównym podglądzie oraz odczytane pary w obecnym oknie.
+- Dokument `*.stmtrial.json` nie zawiera obrazów: zapisuje ustawienia,
+  wersję kodu, wagi/SHA, źródła, XY, osobne wyniki par i skumulowane,
+  Deep/ECC, fragmenty lokalne i ręczne pochodzenie. Odczyt jest możliwy
+  przy przeniesionych identycznych oryginałach. Zła seria jest odrzucana.
+- Próby pozostają oddzielne od aktywnego aligned i eksportu MPP/AVI.
+  Pełne A/B odtwarza pojedyncze obrazy na CPU, bez drugich stosów filmu.
+  Zmiana składu serii czyści listy z pamięci, zachowując pliki na dysku.
+- Po przeglądzie naprawiono utratę ukończonych etapów po anulowaniu.
+  Zachowane XY i fragmenty pozostają diagnostyką, bez publikowania aligned.
+  Spec: 1 P2 naprawione i sprawdzone ponownie; Standards: 0 naruszeń,
+  1 jawna uwaga utrzymaniowa o słownikowym modelu JSON.
+- Końcowy Viewer: **510 passed, 2 skipped**. Pełne repo:
+  **2296 passed, 14 failed, 16 skipped**; wszystkie 14 identyfikatorów
+  błędów odpowiada wcześniejszej bazie MolTrack/NanoTrack. Mypy 57 modułów,
+  Ruff i diff-check przechodzą. Maksimum długości pliku: 943 linie.
+- Rzeczywiste MOVIE_4 po usunięciu pierwszych dwóch klatek i całe MOVIE_8:
+  Deep Outdoor oraz Deep+ECC ukończyły pełne serie; lokalny konsensus odmówił
+  odpowiednio na 2→3 i 1→2, bez pomijania par. Sprawdzono zapis/odczyt
+  wszystkich wyników, pełnych MPP i FFV1 oraz dwóch ręcznych korekt.
+- Porównanie w świeżych procesach bez Torch/Kornia: około 255/241 MiB RSS.
+  Największy RSS całego sprawdzanego przebiegu z modelem i eksportami:
+  2,90 GiB. Nie deklarujemy fizycznego odbioru Windows, GPU 8 GB ani VLC.
+
+[Instrukcja uruchomienia i ręcznej próby](registration/full-trial-manual.md),
+[raport pomiarów i lokalne artefakty](registration/full-trial-results.md),
+[przegląd, komendy i wyniki testów](registration/reviews/REG-07.md).
+Uruchomienie: `conda activate netcat`, `python -m stmviewer`.
+Dane i wagi pozostają poza Git. Artefakty odbioru: `/tmp/stmviewer-reg07/`.
+
+Brak nowych potrzeb zmian wspólnych. REG-06 pozostaje odłożony; REG-08
+nie został rozpoczęty. Następny krok to odbiór manualny REG-07 i osobne zlecenie.
+
+---
+
 # REG-06: odłożenie na życzenie użytkownika — 2026-10-31
 
 Użytkownik zdecydował: **„na razie pominiemy 06”**.

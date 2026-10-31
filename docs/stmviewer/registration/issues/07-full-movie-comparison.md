@@ -4,8 +4,8 @@
 otwiera przy tych samych źródłach i porównuje pełne wyniki A/B bez dwóch
 dodatkowych stosów obrazów w pamięci. Kończymy ocenę podstawowego wariantu XY.
 **Blocked by:** [REG-05](05-local-consensus.md), w tym odbiór manualny — spełnione 2026-10-31.
-**Status:** in-progress
-**Manualny odbiór:** niewykonany; implementacja w toku.
+**Status:** ready-for-review
+**Manualny odbiór:** oczekuje na użytkownika; implementacja i automatyczne sprawdzenia zakończone 2026-11-01.
 **Wykonawca:** Codex; baza przeglądu `bb06220bdc8f132ebdcef0bc9ac8d045f39ef68e`.
 
 Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
@@ -24,40 +24,40 @@ nawigację. Ten ticket nie buduje osobnego odtwarzacza dwóch filmów.
 
 ## Zakres i kryteria odbioru
 
-- [ ] Z GUI można zapisać/otworzyć dokument próby: wersję formatu, tożsamość
+- [x] Z GUI można zapisać/otworzyć dokument próby: wersję formatu, tożsamość
   źródeł i kolejność klatek, wersję kodu/commit, metodę i pełne ustawienia,
   XY par/skumulowane, statusy i uzyskane dowody oraz diagnozy, w tym fragmenty
   lokalnego konsensusu REG-05. Dokument nie zawiera obrazów ani nie wymaga
   niewdrożonych danych kontroli REG-06.
-- [ ] Próba hybrydy REG-04 zachowuje dokładny start Deep, końcowe XY ECC,
+- [x] Próba hybrydy REG-04 zachowuje dokładny start Deep, końcowe XY ECC,
   ich różnicę, ustawienia obu etapów, pochodzenie lokalnych wag i urządzenie.
   Po odczycie porównuje te same wyniki bez ponownego uruchamiania modelu.
   Diagnoza przerwania rozróżnia etap Deep i ECC; dostępny start po odmowie
   ECC nie staje się kompletną próbą hybrydy.
-- [ ] Próby ręczne z REG-01a zachowują oznaczenie pochodzenia, początkowe XY,
+- [x] Próby ręczne z REG-01a zachowują oznaczenie pochodzenia, początkowe XY,
   opis próby użytej jako punkt startu (jeśli była), łączną korektę, końcowe XY
   i jawny brak automatycznej oceny jakości. Odtwarzane są zatwierdzone próby,
   bez historii kliknięć ani niezastosowanego szkicu. Odczyt nie promuje ręcznej
   próby pary do pełnego aligned i nie nadaje jej pewności backendu.
-- [ ] Dokument kompletnego wyniku po REG-02a zachowuje bazową metodę i wersję,
+- [x] Dokument kompletnego wyniku po REG-02a zachowuje bazową metodę i wersję,
   XY bazowe, zastosowane nadpisania par, ręczne pochodzenie i końcowe XY oraz brak
   oceny jakości. Nie utożsamia zastosowanych korekt filmu z diagnostycznymi próbami
   par. Odtwarza poprawiony wynik do porównania przy właściwych oryginalnych źródłach;
   samo wczytanie dokumentu nie podmienia aktywnego aligned ani eksportu.
-- [ ] Źródła są identyfikowane zawartością i pochodzeniem, nie wyłącznie nazwą.
+- [x] Źródła są identyfikowane zawartością i pochodzeniem, nie wyłącznie nazwą.
   Tożsamość obejmuje również metadane mające wpływ na geometrię.
   Przy ponownym otwarciu można wskazać przeniesiony plik. Inna zawartość,
   kolejność, wymiary lub nieobsługiwana wersja są odrzucane z wyjaśnieniem.
-- [ ] Po ponownym otwarciu właściwego filmu można porównywać dwa kompletne
+- [x] Po ponownym otwarciu właściwego filmu można porównywać dwa kompletne
   wyniki we wspólnym układzie odniesienia, przechodzić przez klatki i oglądać
   stałe pary. Obrazy A/B są odtwarzane na żądanie z oryginałów i transformacji.
-- [ ] Dokument zachowuje także próby par oraz przerwane/niekompletne próby,
+- [x] Dokument zachowuje także próby par oraz przerwane/niekompletne próby,
   z błędem i faktycznie dostępnymi wynikami. Takie dane otwierają się jako
   diagnostyka; nie tworzymy brakujących XY ani pełnego aligned z częściowego przebiegu.
-- [ ] Próba diagnostyczna jest odrębna od aktywnego aligned. Samo otwarcie
+- [x] Próba diagnostyczna jest odrębna od aktywnego aligned. Samo otwarcie
   zapisu do porównania nie podmienia wyniku do MPP/AVI. Dokument nie udaje MPP
   ani nie zmienia jego dotychczasowego schematu metadanych.
-- [ ] Zapis/odczyt ma walidację, postęp/anulowanie dla długich operacji i
+- [x] Zapis/odczyt ma walidację, postęp/anulowanie dla długich operacji i
   ochronę wcześniejszego pliku oraz prób po błędzie. Zmiana składu serii
   nie przypisuje starych transformacji do nowych numerów klatek.
 - [ ] Pełne MOVIE_4 i MOVIE_8 są porównane z bazą według protokołu. Raport
@@ -110,3 +110,23 @@ w Git, zamknięcie wcześniejszych ticketów odbioru platform lub dużych ekspor
 
 **Oczekiwany wynik:** odtwarzalna, udokumentowana ocena całych filmów.
 Nie wymagamy deklaracji skuteczności na każdym obrazie, jeśli dowody jej nie wspierają.
+
+
+## Implementacja i odbiór — 2026-11-01
+
+Commity: `be0e253` (wdrożenie), `11441b4` (poprawka anulowania po przeglądzie).
+Zapis `*.stmtrial.json`, listy A/B i porównanie korzystają z obecnej nawigacji.
+Ręczne pary, zastosowane korekty filmu i przerwane próby zachowują odrębne
+pochodzenie. Pełny podgląd odtwarza jedną klatkę, bez dodatkowych stosów.
+Wczytanie dokumentu nie zmienia aktywnego aligned ani eksportu.
+
+- [Instrukcja manualna](../full-trial-manual.md): dane, przyciski, oczekiwane wyniki.
+- [Raport pełnych filmów](../full-trial-results.md): sukcesy, odmowy, czas/RAM,
+  CPU bez modelu, pełne MPP/AVI oraz historia ręczna.
+- [Przegląd i sprawdzenia](../reviews/REG-07.md): dwa niezależne przeglądy;
+  jedna usterka P2 usunięta i ponownie sprawdzona.
+
+Automatyczne części dwóch ostatnich kryteriów zostały wykonane. Pozostają
+ocena wizualna użytkownika, VLC i decyzja o dalszym wariancie; dlatego te
+kryteria nie są jeszcze zamknięte, a status nie jest `done`.
+REG-06 pozostaje odłożony. REG-08 nie został rozpoczęty.
