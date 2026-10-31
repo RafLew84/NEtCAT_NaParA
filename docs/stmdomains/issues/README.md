@@ -11,14 +11,18 @@ Statusy i zależności przechowujemy w ticketach; indeks poniżej grupuje je wed
 `resolved` — użytkownik zakończył serię analiz, bez przyjęcia detektora.
 [Podsumowanie ustaleń](19-frozen-feature-domains.md) zachowuje osiągnięcia
 cząstkowe i ograniczenia. Przygotowanie [20](20-self-supervised-training-preparation.md)
-pozostaje `open`, nierozpoczęte; jakość 04 i odbiór 13 pozostają otwarte.
+wykonano (`resolved`): [raport](../self-supervised-training-preparation.md),
+[protokół](../self-supervised-training-protocol.md), 78 testów i identyczne
+wznowienie GPU dla trzech ziaren. Następne są niezależne 21 i 22 (`open`);
+jakość 04 i odbiór 13 pozostają otwarte.
 Wcześniejsze statusy w poniższej chronologii opisują historyczne decyzje.
 
 Tego samego dnia użytkownik zatwierdził
 [usprawnienia planu](../research-domain-plan-improvements.md): wpisano je
 do 20–23. Pilot relacji i granic należy do 21/22, bez osobnego ticketu 20a.
 Obowiązuje kolejność **20 → 21 i 22 → 23**, z 24–26 wyłącznie po wyborze
-rozszerzenia. Aktualizacja planu nie oznacza rozpoczęcia tych zadań.
+rozszerzenia. Samo przyjęcie planu nie rozpoczynało tych zadań;
+przygotowanie 20 wykonano później, na osobne polecenie użytkownika.
 
 Na bezpośrednie polecenie użytkownika z 2026-10-19 wcześniej podejmujemy
 [definicje wyspy, typu i domeny sieci](02-order-types-and-domains.md) oraz
@@ -238,7 +242,7 @@ ten nadal warunkuje odbiór metod. Statusy znajdują się w ticketach.
 | [Czy SBC/MatID odtwarza domeny z niepełnych centrów molekuł?](16-sbc-matid-domains.md) | prototype / HITL | `resolved`: porównanie zachowane, użytkownik wybrał przejście do 17, E2 |
 | [Czy lokalna tekstura STM pozwala znaleźć domeny bez przykładów?](17-image-texture-domains.md) | prototype / HITL | `resolved`: widmo/EWT zachowane do porównań ML, bez przyjęcia metody; E3 |
 | [Jak przygotować cechy gotowych sieci bez treningu na naszych danych?](18-frozen-feature-preparation.md) | task / AFK | `resolved`: oba ekstraktory, cache, geometria i powtarzalność sprawdzone |
-| [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | `resolved`: seria porównań i diagnostyki zakończona; zachowane wyniki cząstkowe, brak przyjętej metody TTMAPP; 20 otwarte, nierozpoczęte |
+| [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md) | prototype / HITL | `resolved`: seria porównań i diagnostyki zakończona; zachowane wyniki cząstkowe, brak przyjętej metody TTMAPP |
 
 Próby geometrii, SBC/MatID i klasycznej tekstury są niezależne. Porównanie
 ML korzysta z wyniku tekstury jako punktu odniesienia, również gdy jest
@@ -262,7 +266,7 @@ relacje przez granice, pełne propozycje domen i odmowy; nie powtarza serii 19.
 
 | Pytanie/zadanie | Typ | Kolejność |
 | --- | --- | --- |
-| [20 — Jak przygotować odtwarzalny trening bez etykiet domen?](20-self-supervised-training-preparation.md) | task / AFK | Po 14; dane, GPU, protokół relacji, budżet i kryteria |
+| [20 — Jak przygotować odtwarzalny trening bez etykiet domen?](20-self-supervised-training-preparation.md) | task / AFK | `resolved`: dane, GPU/checkpoint, protokół relacji, budżet i kryteria gotowe |
 | [21 — Czy AE i rVAE uczą się cech przydatnych do odkrywania domen?](21-autoencoder-domains.md) | prototype / HITL | Po 17 i 20; AE/rVAE oraz wspólny pilot granic i podziału |
 | [22 — Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](22-local-self-supervised-domains.md) | prototype / HITL | Po 17 i 20; lokalne SSL z pilotem relacji, niezależnie od 21 |
 | [23 — Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md) | grilling / HITL | Po 19, 21 i 22; ocena cech, relacji, podziału i odmów; decyzja o kontynuacji |
@@ -270,7 +274,7 @@ relacje przez granice, pełne propozycje domen i odmowy; nie powtarza serii 19.
 | [25 — Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md) | prototype / HITL | Warunkowo: wybrane w 23 |
 | [26 — Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md) | prototype / HITL | Warunkowo: wybrane w 23, z zachowanym modelem odniesienia |
 
-18 i 19 są zakończone; najbliższe zadanie to przygotowanie 20.
+18, 19 i 20 są zakończone; najbliższe zadania to niezależne 21 i 22.
 Próby 21 i 22 wymagają wyniku tekstury, również negatywnego, i wspólnego
 przygotowania 20; żadna nie wymaga powodzenia drugiej. Ich zestawienie
 23 korzysta również z zachowanych wyników 19. Wspólny pilot nie dodaje

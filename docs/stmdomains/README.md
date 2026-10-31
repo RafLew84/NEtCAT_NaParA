@@ -9,8 +9,11 @@ Na polecenie użytkownika [ticket 19](issues/19-frozen-feature-domains.md)
 zamknięto jako zakończoną serię badań (`resolved`). Nie wybrano detektora
 domen do aplikacji. Podsumowanie ustaleń i ograniczeń znajduje się na
 początku ticketu. Zachowujemy prototypy i wyniki jako punkty odniesienia.
-Krok 20 jest kolejnym zaplanowanym przygotowaniem, `open`, nierozpoczętym;
-treningu nie uruchomiono. Jakość 04, odbiór metod 13 i druga mapa są otwarte.
+[Krok 20](issues/20-self-supervised-training-preparation.md) wykonano, `resolved`:
+[dane, protokół i techniczna próba GPU](self-supervised-training-preparation.md).
+38 622 rekordy wycinków, 81 nowych kontroli, 78 testów i bitowo identyczne
+wznowienie dla trzech ziaren. Następne są 21 i 22, nadal `open`;
+właściwych treningów tych modeli nie uruchomiono. Jakość 04, odbiór 13 i druga mapa są otwarte.
 
 [Galeria zapisanych propozycji domen](saved-domain-examples.md) udostępnia
 trzy klatki TTMAPP oraz kontrolę syntetyczną: PNG, porównanie metod 15/16
@@ -19,10 +22,10 @@ konturów domen; eksport nie uruchamia kolejnej próby badawczej.
 
 [Przegląd usprawnień kolejnych prób](research-domain-plan-improvements.md)
 został 2026-10-31 przyjęty do [planu 20–23](issues/README.md#trening-bez-etykiet-domen).
-20 przygotowuje protokół i kryteria; 21/22 łączą trening z ograniczoną próbą
+20 przygotowało protokół i kryteria; 21/22 łączą trening z ograniczoną próbą
 relacji/granic oraz porównaniem 2 × 2 cech i podziału, przed/po odmowach.
 23 rozstrzyga dalszy zakres, a 24–26 pozostają warunkowe. Nie dodano 20a,
-nie rozpoczęto treningu ani nowego eksperymentu.
+przy samym przyjęciu planu nie rozpoczęto treningu ani nowego eksperymentu.
 
 Poniższy opis zachowuje historię projektu; wcześniejsze statusy `claimed`
 i odłożenie 20 dotyczą ówczesnych decyzji, zastąpionych powyższym zamknięciem.

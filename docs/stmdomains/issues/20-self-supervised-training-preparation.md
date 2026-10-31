@@ -4,10 +4,31 @@ ID: 20
 Type: task
 Labels: wayfinder:task
 Mode: AFK
-Status: open
-Assignee:
+Status: resolved
+Assignee: Codex — domains/start
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 14
+
+## Answer — 2026-10-31
+
+Przygotowanie wykonane: [raport](../self-supervised-training-preparation.md),
+[protokół](../self-supervised-training-protocol.md),
+[manifest](../self-supervised-training-manifest.json).
+24 pełne klatki, 38 622 rekordy wycinków, 25 530 z pełnym wsparciem;
+rozłączne czasowo/przestrzennie części transferu oraz osobna transdukcja.
+Odtworzenie z blokadą referencji i usunięciem centrów potwierdza niezależność
+siatki. Zarezerwowano 81 nowych realizacji syntetycznych do późniejszej oceny.
+
+Na RTX 5090 sprawdzono obliczenia i pełne wznowienie checkpointu w nowych
+procesach dla trzech ziaren: wynik bitowo identyczny. Przeszło 78 testów.
+Zamknięto format relacji/wyników, porównanie 2 × 2, budżet i liczbowe kryteria.
+CUDA `grid_sample` nie daje ścisłego deterministycznego backward; protokół
+rVAE wskazuje przetestowany obrót współrzędnych przed dekoderem.
+
+To gotowe przygotowanie, bez treningu właściwych modeli lub oceny domen.
+Niska wiarygodność rejestracji, mała część train i jedna akwizycja ograniczają
+wnioski o przenoszeniu. Kolejne zadania to niezależne 21 i 22, potem 23.
+Kod i dokumentacja na `domains/start`; commit podany w przekazaniu/odpowiedzi.
 
 ## Question
 
@@ -19,7 +40,8 @@ ani trening docelowego detektora. Podstawa: [ostatni przegląd](../research-self
 [usprawnienia planu](../research-domain-plan-improvements.md). Przygotowanie
 ma określić wspólny protokół relacji i granic dla 21/22. Pilot wykonujemy
 w tych dwóch próbach, bez nowego ticketu przygotowawczego i bez ponownego
-otwierania 19. Status `open` oznacza, że przygotowania jeszcze nie wykonano.
+otwierania 19. W chwili przyjęcia aktualizacji zadanie było `open`;
+aktualne wykonanie opisano w Answer powyżej.
 
 ## Zakres przygotowania
 
@@ -157,7 +179,7 @@ w kroku 23; ich dostępność nie blokuje tego zadania.
 
 - [Jak przygotować wspólne wejście i kontrole bez narzucania domen?](14-unsupervised-input-and-controls.md)
 
-## Stan po zamknięciu 19 — 2026-10-31
+## Historyczny stan po zamknięciu 19, przed wykonaniem 20 — 2026-10-31
 
 Użytkownik zakończył [serię analiz 19](19-frozen-feature-domains.md).
 Niniejsze przygotowanie pozostaje **`open`, nierozpoczęte**, jako kolejny

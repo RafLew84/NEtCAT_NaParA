@@ -19,8 +19,10 @@ Ustalenia mają pozwolić rozwinąć odebrany szkielet STM Domains.
 [Podsumowanie i rozstrzygnięcie](issues/19-frozen-feature-domains.md): **19
 `resolved`**, bez wyboru detektora do aplikacji. Zachowujemy wyniki i użyteczne
 składniki jako punkty odniesienia. Protokół jakości 04, odbiór 13 i ta mapa
-pozostają otwarte. Następny zaplanowany krok badawczy to przygotowanie 20;
-pozostaje `open`, nierozpoczęte. Zamknięcie 19 nie uruchamia treningu.
+pozostają otwarte. [Przygotowanie 20](self-supervised-training-preparation.md)
+wykonano (`resolved`): dane, rozdzielone protokoły, pomiar GPU i wznowienie,
+budżet oraz kryteria. Następne są niezależne 21 i 22, oba `open`.
+Techniczna próba 20 nie jest wykonaniem treningów lub porównań tych modeli.
 
 Na prośbę użytkownika przygotowano [galerię zapisanych propozycji](saved-domain-examples.md)
 z prób 15 i 16: trzy klatki TTMAPP i kontrolę dwóch orientacji. Eksport
@@ -30,8 +32,8 @@ konturów domen; nie zmienia decyzji o metodach lub statusu ticketów.
 2026-10-31 użytkownik zatwierdził [usprawnienia planu](research-domain-plan-improvements.md)
 i polecił wpisać je do istniejących ticketów. Przyjęto:
 
-- [20](issues/20-self-supervised-training-preparation.md) przygotowuje wspólny
-  protokół relacji, budżet i kryteria kontynuacji przed treningiem.
+- [20](issues/20-self-supervised-training-preparation.md) przygotowało wspólny
+  [protokół relacji](self-supervised-training-protocol.md), budżet i kryteria kontynuacji przed treningiem.
 - [21](issues/21-autoencoder-domains.md) i [22](issues/22-local-self-supervised-domains.md)
   obejmują pilot lokalnych relacji/granic. Mały AE jest punktem odniesienia,
   rVAE bada oddzielenie obrotu, a lokalne SSL — użyteczność nauczonych relacji.
@@ -47,7 +49,8 @@ i polecił wpisać je do istniejących ticketów. Przyjęto:
 
 Pilot jest częścią 21/22; nie dodajemy zadania 20a ani nowej serii strojenia
 19, które już obejmowało graf i granice. Kolejność: **20 → 21 i 22 → 23**.
-Nie zmieniono zależności ani statusów wykonania i nie uruchomiono treningu.
+Samo przyjęcie planu nie zmieniło zależności ani statusów i nie uruchomiło
+treningu. Późniejsze wykonanie przygotowania 20 opisano powyżej.
 
 Historia zakończonej serii: wcześniej użytkownik wybrał pozostanie w 19
 oraz odłożył 20. Wykonano [audyt wektorów i odmów](vector-refusal-audit.md),
@@ -224,6 +227,13 @@ nie zamknięto przez samo dodanie go do mapy.
 
 ## Decisions so far
 
+- [Jak przygotować trening bez etykiet?](issues/20-self-supervised-training-preparation.md):
+  **`resolved` — przygotowanie wykonane**. 24 klatki, 38 622 rekordy wycinków,
+  81 odłożonych kontroli, osobne transfer/transdukcja, protokół 2 × 2 i budżet.
+  78 testów i identyczne wznowienie GPU dla trzech ziaren. [Raport](self-supervised-training-preparation.md).
+  Nie jest to wynik detekcji; niska wiarygodność rejestracji i mały train
+  ograniczają ocenę przenoszenia. 21/22 pozostają do wykonania.
+
 - [Czy gotowe cechy sieci pomagają znaleźć domeny?](issues/19-frozen-feature-domains.md):
   **`resolved` — seria zakończona na polecenie użytkownika 2026-10-31**.
   Badane konfiguracje FCN/DINO i dalsza diagnostyka nie dały kompletnej
@@ -232,7 +242,7 @@ nie zamknięto przez samo dodanie go do mapy.
   [Ostatnia próba](motif-completeness-trial.md) poprawia kontrolne braki/pary,
   lecz dodaje błędy niezależnych rzędów i nie daje przewagi motywu na TTMAPP.
   To wynik tego zakresu prób, nie dowód nieskuteczności całego ML.
-  Przygotowanie 20 pozostaje otwarte i nierozpoczęte.
+  Późniejsze przygotowanie 20 opisano w osobnej decyzji powyżej.
 
 - [Jak przygotować cechy gotowych sieci bez treningu?](issues/18-frozen-feature-preparation.md): [przygotowanie zakończone](frozen-feature-preparation.md). FCN i DINOv2 działają z niezmienionymi wagami; geometria, cache i niezależność od referencji sprawdzone. Gotowe wejście techniczne do 19, bez oceny skuteczności domen.
 - [Czy otoczenie molekuł pozwala znaleźć domeny?](issues/15-local-neighborhood-domains.md): zakończono trzy porównania; użytkownik polecił przejść do 16. Lokalna komórka jest punktem odniesienia, bez przyjęcia metody; pozostają błędy trudnych granic i RED/YELLOW. [Raport orientacji i łączenia](orientation-and-joining-trial.md).

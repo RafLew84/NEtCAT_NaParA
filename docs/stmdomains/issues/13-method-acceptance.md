@@ -51,6 +51,12 @@ na bezpośrednie polecenie użytkownika; nie oznacza to zaliczenia tego odbioru.
 
 ## Ocena przyszłych prób treningu — 2026-10-31
 
+[Przygotowanie 20](../self-supervised-training-preparation.md) jest wykonane:
+rozdzielone transfer/transdukcja, kontrole, protokół relacji i kryteria są
+gotowe, GPU/checkpoint sprawdzone. 21/22 pozostają do wykonania; 20 nie
+dostarcza wyniku domen ani nie zalicza odbioru. Ograniczenia rejestracji
+i liczebności train przechodzą do oceny wniosków o przenoszeniu.
+
 W ramach przyjętego 2026-10-31 planu treningu ocena 13 uwzględni
 [porównanie 23](23-training-comparison-and-next-step.md): wpływ cech,
 lokalnych relacji, podziału oraz odmów, według protokołu z 20.

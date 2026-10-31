@@ -1,3 +1,56 @@
+# STM Domains — przygotowanie treningu, issue 20
+
+Data: **2026-10-31**. Na polecenie użytkownika wykonano
+[20](issues/20-self-supervised-training-preparation.md), status **`resolved`**.
+[Raport](self-supervised-training-preparation.md),
+[protokół](self-supervised-training-protocol.md),
+[manifest](self-supervised-training-manifest.json).
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/start`, baza
+`fab9877`. Commit kodu/dokumentacji podany w odpowiedzi końcowej;
+do integracji przez koordynatora na `stm-next`. Zachowano poprzednie przekazania.
+
+Przygotowano odtwarzalny moduł badawczy `stmdomains/experiments/training`:
+24 pełne raw klatki, 38 622 rekordy siatki/centrów w trzech skalach,
+25 530 wycinków z pełnym wsparciem. Transfer ma rozdzielone bloki czasu
+oraz pasy przestrzenne po zapisanej rejestracji; transdukcja osobny fit.
+Zarezerwowano 81 nowych kontroli syntetycznych. Zamknięto protokół relacji,
+wyjść, porównania 2 × 2, kryteriów oraz budżetu 27 przyszłych fitów w 21/22.
+Nie uruchomiono właściwych modeli ani porównań domen tych ticketów.
+
+Na RTX 5090 w `netcat` wykonano krótki test obliczeń i checkpointów:
+trzy ziarna, sześć kroków vs trzy + zapis + nowy proces + trzy,
+bitowo identyczne wagi, Adam/scheduler, RNG, batch IDs i straty.
+Próba obejmowała 99 technicznych kroków małego AE. Sprawdzono też
+reparametryzację, lokalną wariancję/kowariancję i obrót współrzędnych
+przed MLP. Ścisły deterministyczny CUDA backward `grid_sample` nie działa;
+plan rVAE przewiduje dekoder współrzędnych. Właściwy rVAE/SSL nadal wymaga
+własnego krótkiego sprawdzenia w 21/22.
+
+Sprawdzenia: **78 testów STM Domains przeszło**; odtworzenie tablic i geometrii
+24 klatek z MPP/sesji, 25 530 hashy wycinków, 18 432 identyczne rekordy
+siatki po usunięciu centrów. Pełne przygotowanie i manifest są identyczne
+przy blokadzie referencji. Wrapper wykonany od początku do końca, obejrzano
+rysunek geometrii. Końcowy GPU probe: 13,16 s; batch64 3,13–3,18 ms/krok,
+91 MiB tensorów / 96 MiB rezerwy. To proxy, nie prognoza kosztu pełnych modeli.
+Sprawdzenia dokumentacji obejmują linki, statusy, manifest i `git diff --check`.
+Bez testów natywnego GUI oraz oceny skuteczności detektora.
+
+Artefakty lokalne: `.scratch/training-20/`, około 118 MB z kopią weryfikacyjną;
+`evidence.json`, `geometry.png`, wejścia, kontrole i checkpointy. Polecenie
+odtworzenia w raporcie oraz README modułu. W Git wyłącznie kod, testy,
+protokół i mały manifest. Nie instalowano pakietów lub wag. GPU i operacje
+zapisu Git wymagają w tej sesji wykonania poza sandboxem; pliki tego worktree
+pozostają zapisywalne. Nie zgłoszono zmian wspólnych ani wymagań aplikacji.
+
+Ograniczenia: tylko 96 okien siatki48 train, nakładające się skale/okna,
+jedna akwizycja, słaba rejestracja; bufor8px nie jest skalibrowanym błędem
+położenia. Nie wolno ogłaszać niezależnej generalizacji lub traktować braku
+referencji w części transferu jako błędu0. Następne: **21 i 22 niezależnie,
+potem 23**. 19 pozostaje zakończony; 04/13 oraz implementacja szkieletu
+pozostają otwarte. Viewer i współdzielone moduły bez zmian.
+
+---
+
 # STM Domains — przyjęcie usprawnień planu 20–23
 
 Data: **2026-10-31**. Użytkownik zatwierdził rekomendacje
