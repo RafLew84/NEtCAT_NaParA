@@ -146,5 +146,5 @@ w VLC. Eksport ma nadal korzystać z pełnego Phase, bez ręcznej korekty pary.
 
 Wyniki zapisz w [karcie REG-01a](reviews/REG-01a.md). Próby automatyczne Qt
 nie zastępują ręcznej oceny obrazu. Użytkownik potwierdził „testy manualne ok”
-2026-10-31 po wdrożeniu układu C; REG-01a ma status `done`, a REG-02 czeka
-na osobne zlecenie.
+2026-10-31 po wdrożeniu układu C; REG-01a ma status `done`. REG-02 jest wdrożony
+i czeka na [własny odbiór](unnormalized-correlation-manual.md).

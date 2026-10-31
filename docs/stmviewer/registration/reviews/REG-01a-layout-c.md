@@ -83,7 +83,8 @@ Decyzja o działającym oknie: **zaakceptowane**. Użytkownik potwierdził
 „testy manualne ok” 2026-10-31 dla kodu `b7aaf37` i `a9a072f`,
 z dokumentacją `8574886`. System, szczegółowe kroki i dane nie zostały podane
 w potwierdzeniu; nie dopisujemy wyników poszczególnych prób. REG-01a ma status
-`done`; REG-02 jest odblokowany i czeka na osobne zlecenie.
+`done`; późniejszą implementację i oczekujący odbiór REG-02 opisuje
+[jego karta](REG-02.md).
 
 Przy zapisie odbioru sprawdzono statusy, odnośniki i `git diff --check`;
 aktualizacja wyłącznie dokumentacyjna, bez ponawiania testów kodu.

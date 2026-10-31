@@ -1,5 +1,38 @@
 # Przekazanie — STM Viewer
 
+## REG-02: Korelacja bez normalizacji — 2026-10-31
+
+[Ticket](registration/issues/02-unnormalized-correlation.md): **ready-for-review**.
+Implementacja `d85ba1b`, poprawki `bcf0e70`, baza `e1d42d4` na gałęzi
+`viewer/registration-difficult-movies`. Końcowy commit dokumentacji podany w sesji.
+[Instrukcja manualna](registration/unnormalized-correlation-manual.md),
+[karta wyników i Standards/Spec](registration/reviews/REG-02.md).
+
+- Osobna metoda **Korelacja bez normalizacji (v1)** dla pary i całej serii;
+  publiczny backend NanoTrack z normalization=None, Phase nadal domyślny.
+- Niezweryfikowana pewność bez fałszywego wskaźnika fazowego; propagacja do
+  skumulowanych XY, podglądu i MPP. Zachowane geometria, braki, postęp,
+  anulowanie, wcześniejszy aligned, MPP/AVI i oryginalne pliki.
+- 5 nowych scenariuszy i rozszerzenie istniejących prób GUI; końcowy zestaw
+  wybranych testów: 48 passed. Mypy strict 38, Ruff i limity plików PASS (maks.856).
+  Pełne repo: **2196 passed, 14 failed, 16 skipped**, 263,52 s; te same 14 nazw
+  błędów MolTrack/SAM2 i NanoTrack co wcześniej. Przed pełnym przebiegiem naprawiono
+  kolizję importu fixture podczas zbierania testów.
+- Reproduktor MOVIE_8 1→2: nowy wariant (+13,55;+0,25), 0,51 px od lokalnego
+  konsensusu; Phase zachowuje oczekiwany RED. To lokalny przypadek.
+- Rzeczywiste Qt xcb sterowane skryptem: cpu.mpp, porównanie kart/zoom/gamma,
+  pełne MOVIE_4 i MOVIE_8, rzeczywiste anulowanie, eksport MPP/AVI i ponowny
+  odczyt PASS. Wersja v1 ponownie sprawdzona na cpu. Zrzuty 1080×760/1180×820
+  bez przycinania nowej nazwy. Artefakty `data/registration-reg02-review/`.
+- Standards 0; Spec: brak wersji ustawień naprawiony, 0 otwartych uwag.
+
+**Ręczny odbiór użytkownika oczekuje**; REG-03 zablokowany. Pełne zakończenie
+obliczeń nie jest oceną jakości dopasowania wszystkich struktur. Windows i VLC
+nie były sprawdzane w tej sesji. MPP z null w jakości wymaga bieżącego Viewera
+do odtworzenia całego dodatku; wcześniejsze czytniki mogą go odrzucić, zgodnie
+z [opisem formatu](mpp-metadata-format.md). Bez nowych zmian współdzielonych.
+Statusy wcześniejszych ticketów 19–21 pozostają bez zmian.
+
 ## REG-01a: Odbiór manualny układu C — 2026-10-31
 
 Użytkownik potwierdził „testy manualne ok” po wdrożeniu układu C.

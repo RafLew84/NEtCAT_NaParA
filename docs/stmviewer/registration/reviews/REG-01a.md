@@ -92,5 +92,6 @@ Wynik po poprawkach: Standards 0 pozostałych uwag; Spec 0 usterek.
   podane w potwierdzeniu; nie dopisujemy wyników poszczególnych prób.
 - Decyzja: zamknąć REG-01a jako `done`.
 
-Zależność REG-02 jest spełniona; jego implementacja czeka na osobne zlecenie. Ręczne próby par nie podmieniają pełnego aligned;
+Zależność REG-02 jest spełniona; późniejszą implementację i oczekujący odbiór
+opisuje [karta REG-02](REG-02.md). Ręczne próby par nie podmieniają pełnego aligned;
 zapis na dysk jest zakresem REG-07. Wspólne moduły i algorytmy nie były zmieniane.

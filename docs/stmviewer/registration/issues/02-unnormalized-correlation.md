@@ -3,26 +3,26 @@
 **What to build:** Użytkownik jawnie wybiera korelację bez normalizacji fazowej,
 porównuje ją z Phase dla pary i rejestruje nią całą serię.
 **Blocked by:** [REG-01a](01a-manual-alignment.md), w tym odbiór manualny — spełnione 2026-10-31.
-Zależność dodana 2026-10-30 po zakończonym REG-01; implementacja wymaga osobnego zlecenia.
-**Status:** in-progress
-**Manualny odbiór:** oczekuje na implementację i próbę użytkownika.
+Zależność dodana 2026-10-30 po zakończonym REG-01; realizacja zlecona 2026-10-31.
+**Status:** ready-for-review
+**Manualny odbiór:** oczekuje na użytkownika; implementacja i sprawdzenia wykonane 2026-10-31.
 **Wykonawca:** Codex, 2026-10-31; baza przeglądu `e1d42d4315280d74a2c5494be93c29687909189b`.
 
 Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
 
 ## Zakres i kryteria odbioru
 
-- [ ] Osobno nazwany wariant korzysta z korelacji bez normalizacji fazowej
+- [x] Osobno nazwany wariant korzysta z korelacji bez normalizacji fazowej
   na surowych danych. Nie łączy tej zmiany z filtrowaniem, maskami lub innym
   sposobem wyznaczania odniesienia. Dotychczasowy Phase zachowuje zachowanie.
-- [ ] Ten sam wariant działa w podglądzie pary i w zwykłym Rejestruj dla całej
+- [x] Ten sam wariant działa w podglądzie pary i w zwykłym Rejestruj dla całej
   serii; znaki XY, sumowanie względem pierwszej klatki i geometria są wspólne.
-- [ ] Wynik nie jest przedstawiany jako zweryfikowany na podstawie starego
+- [x] Wynik nie jest przedstawiany jako zweryfikowany na podstawie starego
   wskaźnika piku fazowego. Nowy wariant ma jawną informację o niezweryfikowanej
   pewności; formalne wyliczenie wartości nie jest dowodem poprawności.
-- [ ] Przechodzi istniejący reproduktor MOVIE_8 1→2: odległość od lokalnego
+- [x] Przechodzi istniejący reproduktor MOVIE_8 1→2: odległość od lokalnego
   konsensusu trzech fragmentów ≤3 px. Wynik ten nie staje się progiem dla filmu.
-- [ ] Pełny aligned zachowuje oryginały, postęp, anulowanie i atomową podmianę.
+- [x] Pełny aligned zachowuje oryginały, postęp, anulowanie i atomową podmianę.
   MPP+metadane i AVI przyjmują nowy wynik; metadane MPP zachowują jednoznaczną
   nazwę wariantu. AVI nie wymaga nowych napisów ani formatu metadanych.
   Obliczenie nie zależy od ustawień prezentacji.
@@ -51,3 +51,24 @@ Poza zakresem: domyślne włączenie wariantu, automatyczny wybór metody i nowa
 
 **Oczekiwany wynik:** uczciwe porównanie jednej zmiany algorytmu. Brak poprawy
 na części danych jest informacją do decyzji użytkownika, nie powodem jej ukrycia.
+
+
+## Wykonanie — 2026-10-31
+
+Implementacja `d85ba1b`, poprawki przeglądu `bcf0e70`; baza `e1d42d4`.
+**Korelacja bez normalizacji (v1)** jest dostępna dla pary i całej serii.
+Stała konfiguracja v1 używa `normalization=None`; Phase pozostaje domyślny.
+Wyniki estymacji mają jawną niezweryfikowaną pewność (`manual_review`, `null`),
+zachowaną również w MPP wraz z nazwą i wersją wariantu. Nie zmieniono wspólnego kodu.
+
+Reproduktor MOVIE_8 1→2 przechodzi przez kod aplikacji: (+13,55;+0,25),
+0,51 px od lokalnego odniesienia. Oba pełne filmy kończą obliczenia; rzeczywiste
+anulowanie kolejnej próby zachowuje wcześniejszy aligned. To sprawdzenie funkcji,
+nie ocena fizycznej poprawności całego filmu.
+
+48 końcowych testów wybranych scenariuszy PASS, mypy strict 38, Ruff bez uwag.
+Pełne repo: 2196 passed, 14 failed, 16 skipped; te same 14 wcześniejszych błędów
+poza Viewerem. Standards 0; Spec 1 uwaga naprawiona, 0 otwartych. Pliki ≤856 linii.
+Aktualne kroki z nazwami układu C: [instrukcja manualna](../unnormalized-correlation-manual.md).
+Pełne wyniki, ograniczenia formatu i przegląd: [karta REG-02](../reviews/REG-02.md).
+REG-03 pozostaje zablokowany do odbioru użytkownika.

@@ -134,9 +134,20 @@ Dla `original` historia pozostaje opcjonalna, również osobno dla każdej klatk
 | `original_rect` | `[x, y, szerokość, wysokość]` na krawędziach pikseli; musi odpowiadać `origin_xy` i `original_shape`. |
 | `validity` | Dokładnie `isfinite(samples)`. Maska jest wyznaczana z próbek MPP; prostokąt nie jest maską. |
 | `status` | `ok`, `low_confidence` albo `manual_review`. |
-| `quality_score` | Skończona liczba pewności z wyniku algorytmu. |
+| `quality_score` | Skończona liczba pewności z wyniku algorytmu albo `null` wyłącznie przy `status="manual_review"`, gdy pewność jest niezweryfikowana. |
 | `inherited_uncertainty` | Boolean: niepewność odziedziczona z wcześniejszych dopasowań sąsiednich klatek. |
 | `previous` | Poprzedni etap tej samej klatki o identycznej strukturze albo `null`. Limit 32 etapów. |
+
+Od REG-02 wariant `Korelacja bez normalizacji (v1)` zapisuje dla estymowanych
+klatek `status="manual_review"` i `quality_score=null`. Nazwa w `method` zachowuje
+wersję ustawień; klatka odniesienia ma znane XY=(0,0), status `ok` i wartość 1.
+Brak oceny pewności przechodzi także na kolejne przesunięcia skumulowane.
+Nie używamy wskaźnika piku fazowego jako oceny innego wariantu korelacji.
+
+Starsze wydania Viewera sprzed REG-02 odrzucą dodatek z `quality_score=null`,
+również gdy obsługują V3. Wtedy wczytają sam MPP z komunikatem o pominięciu
+metadanych; pełne odtworzenie geometrii i braków wymaga bieżącego czytnika.
+Bieżący czytnik nadal przyjmuje wcześniejsze dodatki z liczbową pewnością.
 
 Klatka z przesunięciem subpikselowym może mieć prostokąt większy niż obwiednia
 ważnych próbek interpolacji. Nie rekonstruujemy prostokąta z NaN ani maski.
