@@ -21,7 +21,7 @@ REG-08 następują próby grafu LS (REG-08a), odpornego grafu (REG-08b), zastoso
 do filmu i eksport (REG-08c), następnie osobno EfficientLoFTR (REG-10), RoMa v2
 (REG-11) i MatchAnything-ELoFTR (REG-12). Dalsze odniesienia REG-08d oraz tearing
 REG-09 pozostają warunkowe. Są to zaplanowane funkcje; po odebranym REG-04
-najbliższym krokiem jest zlecenie REG-05.
+najbliższym krokiem jest ręczny odbiór REG-05.
 
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk
 **Porównaj parę…** otwiera osobny podgląd sąsiednich oryginałów: przed/po XY,
@@ -74,6 +74,16 @@ start Deep oraz wynik ECC bez ponownego obliczenia modelu. Dostępne są
 [wyniki prób rzeczywistych](registration/deep-ecc-results.md).
 [Karta testów i przeglądu](registration/reviews/REG-04.md).
 Użytkownik potwierdził „testy manualne 04 ok” 2026-10-31. Zależność REG-05 jest spełniona.
+
+**[REG-05 — zgodność lokalnych fragmentów](registration/issues/05-local-consensus.md)**
+ma status **ready-for-review**. Metoda **Deep Matcher + lokalne fragmenty (v1)**
+porównuje dokładny start Deep z jednym końcowym XY, pokazuje rozmieszczenie
+poparcia, odstające wektory i powody odmów. Działa dla pary i serii, z zachowaniem
+ręcznych korekt i eksportów. Na wskazanych pomiarach wynik powstał dla 2/14 par;
+pełne MOVIE_4/MOVIE_8 odmówiły, więc przewaga nad Deep pozostaje niepotwierdzona.
+[Instrukcja ręczna](registration/local-consensus-manual.md),
+[wyniki prób](registration/local-consensus-results.md),
+[karta testów i przeglądu](registration/reviews/REG-05.md).
 
 ## Stan aplikacji
 

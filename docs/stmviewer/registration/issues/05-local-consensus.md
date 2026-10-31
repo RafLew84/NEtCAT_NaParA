@@ -3,8 +3,8 @@
 **What to build:** Użytkownik widzi, jak kilka części obrazu popiera wybrane
 globalne XY, a metoda wyznacza je odpornie na lokalne błędne dopasowania.
 **Blocked by:** [REG-04](04-multiscale-translation.md), w tym odbiór manualny — spełnione 2026-10-31.
-**Status:** in-progress
-**Manualny odbiór:** niewykonany; implementacja w toku.
+**Status:** ready-for-review
+**Manualny odbiór:** niewykonany; oczekuje na testy użytkownika.
 **Wykonawca:** Codex; baza przeglądu `a59029d`.
 **Granice TDD:** para → XY i dowody lokalne, GUI → mapa i wynik, seria/eksport; zgodnie z poniższym zakresem ticketu.
 
@@ -71,3 +71,20 @@ poszczególnych fragmentów. Wszystkie piksele klatki nadal otrzymują jedno XY.
 
 **Oczekiwany wynik:** weryfikowalny konsensus i rzeczywista ocena jego jakości.
 Zgodność fragmentów użytych do estymacji nie jest jeszcze niezależną walidacją.
+
+## Wykonanie — 2026-10-31
+
+Implementacja: `303e401`; poprawka po przeglądzie: `75eb70f`.
+[Instrukcja ręczna](../local-consensus-manual.md),
+[wyniki prób](../local-consensus-results.md),
+[karta testów i przeglądu](../reviews/REG-05.md).
+
+Dostępna metoda **Deep Matcher + lokalne fragmenty (v1)** dla pary i całej
+serii, mapa fragmentów oraz dokładny start Deep. Testy Viewera: 474 PASS,
+2 SKIP; mypy 49 plików PASS. Standards i Spec: 0 otwartych uwag.
+
+Rzeczywiste próby dały wynik lokalny dla 2/14 wskazanych par; pełne MOVIE_4
+i MOVIE_8 kończą się jawną odmową. Udane wzorce i odmowy są możliwe do
+obejrzenia w GUI. Nie potwierdzono poprawy jakości STM względem Deep.
+Kryteria powyżej pozostają otwarte do odbioru użytkownika; status nie oznacza
+odbioru Windows, VLC ani stanowiska GPU 8 GB. REG-06 nie został rozpoczęty.

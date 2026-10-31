@@ -86,8 +86,8 @@ REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [instrukcja próby](pair-comparison-manual.md),
 [karta odbioru](reviews/REG-01.md). REG-01a ma status `done` po odbiorze
 użytkownika 2026-10-31. REG-02 i REG-02a również odebrano 2026-10-31 (`done`).
-REG-04 ma status `done`; REG-05–08, REG-08a/08b/08c i REG-10–12
-mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
+REG-04 ma status `done`; REG-05 ma status `ready-for-review` i czeka na ręczny
+odbiór. REG-06–08, REG-08a/08b/08c i REG-10–12 mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
 zlecenia użytkownika i zakończenia blokujących ticketów. REG-08d i REG-09 mają
 status `planned`; nie uruchamiamy ich automatycznie. Są osobnymi odnogami.
 
@@ -98,7 +98,11 @@ technicznie napisać niezależnie. Zależność między REG-10/11/12 porządkuje
 eksperymenty; RoMa nie wymaga uruchamiania EfficientLoFTR, a MatchAnything nie
 wymaga działającego RoMa. Wspólną bazą porównań pozostaje obecny Deep.
 
-Najbliższy krok: zlecenie REG-05. Jego zależność od odbioru REG-04 jest spełniona.
+Najbliższy krok: ręczny odbiór REG-05 — [instrukcja](local-consensus-manual.md),
+[próby rzeczywiste](local-consensus-results.md), [karta](reviews/REG-05.md).
+Nowy wariant ma mapę fragmentów i jawne odmowy; na danych rzeczywistych dał
+2/14 wyników i nie ukończył obu filmów. Wymaga oceny użytkownika, bez deklaracji
+przewagi nad Deep. REG-06 pozostaje zablokowany odbiorem REG-05.
 
 ## Stałe kontrakty
 

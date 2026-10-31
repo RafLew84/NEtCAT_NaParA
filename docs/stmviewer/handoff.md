@@ -1,3 +1,46 @@
+# REG-05: zgodność lokalnych fragmentów — 2026-10-31
+
+Gałąź `viewer/registration-difficult-movies`, baza `a59029d`.
+Implementacja: `303e401`; poprawka po przeglądzie: `75eb70f`.
+Ten wpis należy do końcowego commita dokumentacji. Status **ready-for-review**;
+ręczny odbiór użytkownika **niewykonany**, lista kryteriów pozostaje otwarta.
+
+- Metoda **Deep Matcher + lokalne fragmenty (v1)** dla pary i całej serii:
+  dokładny start Deep bez ECC, rozdzielone fragmenty, odporna agregacja,
+  jedno XY, jeden końcowy render oryginałów. Bez lokalnej deformacji.
+- GUI przełącza dokładny start/wynik i pokazuje fragmenty, wektory, stany oraz
+  powody odmów. Diagnostyka odmowy nie nadpisuje prób i nie udaje wyniku.
+  Poparcie estymatora nie jest niezależną kontrolą z REG-06.
+- Błąd/anulowanie chroni kompletny aligned i korekty ręczne. Działają eksporty
+  MPP/AVI bez nakładek; mapa fragmentów pozostaje historią w pamięci.
+  Pełny zapis prób to REG-07. Brak pobierania wag lub cichego zastępstwa metody.
+- Pełny Viewer: **474 PASS, 2 SKIP**; po poprawce tekstu **6 testów PASS**.
+  Mypy strict **49 plików PASS**, Ruff/diffcheck PASS. Najdłuższy plik kodu: 908 linii.
+  Pełne repo: **2258 PASS, 14 FAIL, 16 SKIP**. Te same 14 błędów poza Viewerem
+  co REG-02a (11 MolTrack/SAM2, 3 NanoTrack). Szczegóły w karcie; brak zielonego
+  odbioru całego repo. Przebieg repo poprzedza końcową poprawkę szumu/GUI;
+  po nich sprawdzono pełny Viewer.
+- Code-review `a59029d…75eb70f`: Standards 1 uwaga P3 naprawiona, 0 otwartych;
+  Spec 0 uwag. Usunięto podwójny opis parametrów w szczegółach próby.
+- Rzeczywiste wagi CPU/CUDA: local **2/14** wskazanych par, Deep 14/14.
+  Pełny lokalny MOVIE_4 odmawia bieżącej 2→3 po pominięciu źródłowych 1/2;
+  MOVIE_8 odmawia 1→2. Nie potwierdzono poprawy STM ani nie utworzono
+  kompletnego lokalnego filmu tych pomiarów. Znana translacja i zaszumiony
+  wzorzec kończą się; MPP translacji ma dokładny ponowny odczyt danych/NaN/geometrii.
+- Automatyczne GUI XCB z rzeczywistymi wagami: odmowa MOVIE_4 29→30 oraz
+  sukces wzorca, mapy i zachowanie wcześniejszych prób. To odrębne od odbioru
+  użytkownika; Windows/VLC oraz GPU 8 GB nie zostały odebrane. Próby CUDA
+  wykonano na RTX 5090 32 GB.
+- Uruchomienie: aktywuj `netcat`, w katalogu Viewer wykonaj `python -m stmviewer.main`.
+  [Instrukcja ręczna](registration/local-consensus-manual.md),
+  [wyniki rzeczywistych prób](registration/local-consensus-results.md),
+  [karta testów i przeglądu](registration/reviews/REG-05.md).
+  Dane i raporty pozostają lokalne w `/tmp/stmviewer-reg05-*`; modele i pomiary poza Git.
+- Brak nowych zmian wymaganych w kodzie wspólnym lub konfiguracji. REG-06
+  nie został rozpoczęty; czeka na odbiór REG-05 i osobne zlecenie użytkownika.
+
+---
+
 # REG-04: odbiór manualny — 2026-10-31
 
 Użytkownik potwierdził **„testy manualne 04 ok”**. [REG-04](registration/issues/04-multiscale-translation.md)
