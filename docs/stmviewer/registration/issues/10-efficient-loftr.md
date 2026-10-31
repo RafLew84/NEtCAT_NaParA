@@ -49,9 +49,12 @@ EfficientLoFTR nie potrzebuje grafu do dopasowania pojedynczej pary.
   zapisem i odczytem prób oraz MPP/AVI zgodnie z REG-08c. Finalne obrazy
   powstają raz z oryginałów; nie deformujemy fragmentów ani nie dopisujemy
   punktów diagnostycznych do filmu. Poprzedni aligned pozostaje po błędzie.
-- [ ] Kontrola REG-06 jest oznaczona jako zależna, jeśli model widział jej
-  piksele, również przez cechy kontekstowe lub przygotowanie wejścia. Nie
-  deklarujemy niezależności przez samo pominięcie punktów z danego prostokąta.
+- [ ] Raport oddziela poparcie modelu i oględziny danych użytych do estymacji
+  od niezależnej oceny. REG-06 jest odłożony; nie wymagamy jego implementacji
+  ani oznaczania fragmentów, a brak kontroli pozostaje brakiem oceny. Po jego
+  ewentualnym wznowieniu kontrola jest zależna, jeśli model widział jej piksele,
+  również przez cechy kontekstowe lub przygotowanie wejścia. Samo pominięcie
+  korespondencji z prostokąta nie zapewnia niezależności.
 - [ ] Próba z rzeczywistymi wagami obejmuje pary i oba pełne filmy. Raport
   rozdziela jakość, odmowy, czas modelu/solvera/renderowania, RAM i VRAM.
   Zapisujemy faktyczne CPU/CUDA i sprzęt. Działanie na GPU o większej pamięci

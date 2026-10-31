@@ -3,11 +3,19 @@
 **What to build:** Użytkownik zapisuje lekką próbę rejestracji, ponownie ją
 otwiera przy tych samych źródłach i porównuje pełne wyniki A/B bez dwóch
 dodatkowych stosów obrazów w pamięci. Kończymy ocenę podstawowego wariantu XY.
-**Blocked by:** [REG-06](06-independent-validation.md), w tym odbiór manualny.
+**Blocked by:** [REG-05](05-local-consensus.md), w tym odbiór manualny — spełnione 2026-10-31.
 **Status:** ready-for-agent
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 
 Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
+
+**Zmiana kolejności — 2026-10-31:** użytkownik odłożył REG-06. REG-07
+następuje bezpośrednio po odebranym REG-05. Nie obejmuje wydzielania fragmentów
+kontrolnych ani niezależnej walidacji z REG-06. Zapisuje istniejące wyniki
+i diagnostykę; brak niezależnej oceny pozostaje jawny, bez pozornych wyników
+kontroli lub zerowego błędu. Ewentualne dołączenie kontroli należy do przyszłego
+wznowienia REG-06, a nie jest warunkiem wykonania tego ticketu.
+
 W chwili realizacji REG-07 warianty z REG-02, REG-04 i REG-05 oraz ręczne korekty REG-02a
 mają już działać na pełnej serii i współpracować z eksportem.
 Porównanie wykorzystuje podgląd i renderowanie z REG-01 oraz istniejącą
@@ -17,8 +25,9 @@ nawigację. Ten ticket nie buduje osobnego odtwarzacza dwóch filmów.
 
 - [ ] Z GUI można zapisać/otworzyć dokument próby: wersję formatu, tożsamość
   źródeł i kolejność klatek, wersję kodu/commit, metodę i pełne ustawienia,
-  fragmenty kontroli,
-  XY par/skumulowane, statusy i uzyskane diagnozy. Dokument nie zawiera obrazów.
+  XY par/skumulowane, statusy i uzyskane dowody oraz diagnozy, w tym fragmenty
+  lokalnego konsensusu REG-05. Dokument nie zawiera obrazów ani nie wymaga
+  niewdrożonych danych kontroli REG-06.
 - [ ] Próba hybrydy REG-04 zachowuje dokładny start Deep, końcowe XY ECC,
   ich różnicę, ustawienia obu etapów, pochodzenie lokalnych wag i urządzenie.
   Po odczycie porównuje te same wyniki bez ponownego uruchamiania modelu.

@@ -9,19 +9,22 @@ oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 [Rozpoznanie MOVIE_4/MOVIE_8 i reproduktory](registration-difficult-movies.md)
 opisuje zgodność metod ze strukturami obrazu przy zakłóceniach i tearing.
 Domyślne algorytmy aplikacji pozostają bez zmian.
-[Plan rozwoju i tickety](registration/README.md) obejmuje piętnaście etapów
-podstawowych (w tym REG-01a i REG-02a) i dwa warunkowe. Każdy kończy się ręcznym odbiorem
+[Plan rozwoju i tickety](registration/README.md) obejmuje czternaście etapów
+bieżącej ścieżki (w tym REG-01a i REG-02a), odłożony REG-06 i dwa etapy warunkowe.
+Każdy realizowany etap kończy się ręcznym odbiorem
 funkcji oraz jakości; kolejny etap czeka na decyzję użytkownika.
 [Wspólny protokół prób](registration/manual-protocol.md) ustala dane i sposób porównania.
 
 [Przegląd rejestracji wieloklatkowej i nowych matcherów](registration-multiframe-research.md)
 proponuje graf translacji ponad obecnym Deep oraz krótką listę dalszych prób.
-Na zlecenie użytkownika 2026-10-31 rozszerzono plan: po REG-05–07 i diagnostyce
+Na zlecenie użytkownika 2026-10-31 rozszerzono plan: po REG-05, REG-07 i diagnostyce
 REG-08 następują próby grafu LS (REG-08a), odpornego grafu (REG-08b), zastosowanie
 do filmu i eksport (REG-08c), następnie osobno EfficientLoFTR (REG-10), RoMa v2
 (REG-11) i MatchAnything-ELoFTR (REG-12). Dalsze odniesienia REG-08d oraz tearing
-REG-09 pozostają warunkowe. Są to zaplanowane funkcje; po odebranym REG-04
-najbliższym krokiem jest zlecenie REG-06 po odebranym REG-05.
+REG-09 pozostają warunkowe. Użytkownik odłożył REG-06 („na razie pominiemy 06”).
+Najbliższym krokiem jest zlecenie REG-07 po odebranym REG-05; niezależna
+kontrola REG-06 pozostaje poza bieżącą ścieżką, bez przenoszenia jej funkcji
+do REG-07 lub dalszych ticketów.
 
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk
 **Porównaj parę…** otwiera osobny podgląd sąsiednich oryginałów: przed/po XY,

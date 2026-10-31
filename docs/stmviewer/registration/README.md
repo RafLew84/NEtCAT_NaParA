@@ -14,7 +14,8 @@ jako `done` po potwierdzeniu użytkownika „testy manualne ok” 2026-10-31.
 ma status `done`: użytkownik potwierdził „testy manualne 04 ok” 2026-10-31.
 [Instrukcja REG-04](deep-ecc-manual.md), [karta](reviews/REG-04.md).
 [REG-05: zgodność lokalnych fragmentów](issues/05-local-consensus.md) zamknięto
-po potwierdzeniu „testy manualne 05 ok” 2026-10-31. Następny jest REG-06.
+po potwierdzeniu „testy manualne 05 ok” 2026-10-31. REG-06 odłożono na życzenie
+użytkownika; następny jest REG-07.
 [Instrukcja REG-02a](manual-movie-corrections-manual.md), [sprawdzenia](reviews/REG-02a.md).
 Dalsze próby MOVIE_4
 obejmują źródłowe klatki 3–364, zgodnie z [protokołem](manual-protocol.md).
@@ -37,7 +38,7 @@ uznawania wyniku ECC za lepszy. [Instrukcja odbioru](deep-ecc-manual.md)
 i [wyniki prób](deep-ecc-results.md) rozdzielają sprawdzenie funkcji od oceny
 jakości przez użytkownika.
 
-**Rozszerzenie po przeglądzie — 2026-10-31:** przyjęto kierunek
+**Rozszerzenie po przeglądzie — 2026-10-31:** pierwotnie przyjęto kierunek
 REG-05 → ocena i zapis prób REG-06/07 → diagnostyka REG-08 → graf
 REG-08a/08b/08c → osobne próby EfficientLoFTR, RoMa v2 i MatchAnything
 REG-10/11/12. [Przegląd i źródła](../registration-multiframe-research.md)
@@ -45,6 +46,14 @@ uzasadniają te próby, ale nie potwierdzają ich skuteczności na naszych filma
 REG-08 przestaje być warunkowy; nadal sam nie zmienia XY. Dalsze odniesienia
 REG-08d i diagnostyka tearingu REG-09 pozostają warunkowe. Rozszerzenie planu
 nie jest implementacją ani odbiorem REG-04.
+
+**Odłożenie REG-06 — 2026-10-31:** użytkownik zdecydował „na razie pominiemy 06”.
+REG-06 pozostaje w planie ze statusem `planned`, poza bieżącą kolejnością.
+Aktualna ścieżka prowadzi z REG-05 bezpośrednio do REG-07, następnie REG-08
+i dalszych etapów. REG-07 oraz kolejne tickety nie przejmują implementacji
+kontroli REG-06. Ocena wizualna, poparcie estymatora i diagnostyka spójności
+pozostają dostępne zgodnie ze swoimi zakresami; nie nazywamy ich niezależną
+walidacją. Wznowienie REG-06 wymaga osobnego zlecenia.
 
 ## Cel i zakres
 
@@ -58,8 +67,9 @@ Podstawa: [rozpoznanie danych](../registration-difficult-movies.md),
 Nowe zlecenie rozpoczyna etap rozwoju metod odłożony w
 [mapie pierwszej wersji](../map.md). Nie zmienia historycznych odbiorów 01–21.
 Zachowujemy dotychczasowe identyfikatory ticketów, w tym **REG-01a i REG-02a**,
-aby uniknąć kolizji i zmian numerów istniejących zadań. Plan obejmuje piętnaście
-etapów podstawowych i dwa warunkowe. Sufiksy REG-08a–08d rozwijają pracę
+aby uniknąć kolizji i zmian numerów istniejących zadań. Bieżąca ścieżka obejmuje
+czternaście etapów podstawowych; REG-06 jest odłożony, a dwa etapy pozostają
+warunkowe. Sufiksy REG-08a–08d rozwijają pracę
 na wielu klatkach; REG-09 zachowuje dotychczasowy zakres.
 
 ## Kolejność i wynik każdego ticketu
@@ -72,8 +82,8 @@ na wielu klatkach; REG-09 zachowuje dotychczasowy zakres.
 | [REG-02a: Ręczne korekty filmu](issues/02a-manual-movie-corrections.md) | Jawne zastosowanie ręcznego XY pary do całego aligned, przeliczenie dalszych klatek, cofnięcie korekty pary i eksport poprawionego MPP/AVI. | REG-02 |
 | [REG-04: Deep Matcher + doprecyzowanie ECC](issues/04-multiscale-translation.md) | Początkowe XY z Deep Matcher, doprecyzowanie ECC i porównanie dokładnego startu z wynikiem; wpływ oceniany manualnie. | REG-02a |
 | [REG-05: Zgodność lokalnych fragmentów](issues/05-local-consensus.md) | Przestrzenne poparcie XY z różnych części obrazu i konkurujące grupy; porównanie z bazowym Deep, bez obowiązkowego ECC. | REG-04 |
-| [REG-06: Niezależna kontrola dopasowania](issues/06-independent-validation.md) | Ocena na wydzielonych fragmentach kontrolnych i lista par wymagających obejrzenia. | REG-05 |
-| [REG-07: Zapis prób i odbiór pełnych filmów](issues/07-full-movie-comparison.md) | Odtwarzalne porównanie pełnych wyników, zapis/odczyt ustawień i przesunięć, odbiór MOVIE_4/MOVIE_8. | REG-06 |
+| [REG-06: Niezależna kontrola dopasowania](issues/06-independent-validation.md) | **Odłożony** — zakres zachowany do ewentualnego powrotu. | REG-05 + osobne zlecenie wznowienia |
+| [REG-07: Zapis prób i odbiór pełnych filmów](issues/07-full-movie-comparison.md) | Odtwarzalne porównanie pełnych wyników, zapis/odczyt ustawień i przesunięć, odbiór MOVIE_4/MOVIE_8. | REG-05 |
 | [REG-08: Spójność kilku klatek](issues/08-temporal-consistency.md) | Diagnostyka zgodności A→B→C z A→C i porównanie również niesąsiednich par; jeszcze bez zmiany XY. | REG-07 |
 | [REG-08a: Graf z oknem 3/5 klatek](issues/08a-window-graph.md) | Osobna pełna próba: obecny Deep, wspólne XY przez LS, porównanie z łańcuchem i zapis relacji. | REG-08 |
 | [REG-08b: Odporny graf](issues/08b-robust-graph.md) | LS kontra Huber/IRLS na dokładnie tych samych pomiarach; widoczny wpływ odstających relacji. | REG-08a |
@@ -89,19 +99,22 @@ REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [karta odbioru](reviews/REG-01.md). REG-01a ma status `done` po odbiorze
 użytkownika 2026-10-31. REG-02 i REG-02a również odebrano 2026-10-31 (`done`).
 REG-04 i REG-05 mają status `done` po odbiorze użytkownika 2026-10-31.
-REG-06–08, REG-08a/08b/08c i REG-10–12 mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
-zlecenia użytkownika i zakończenia blokujących ticketów. REG-08d i REG-09 mają
-status `planned`; nie uruchamiamy ich automatycznie. Są osobnymi odnogami.
+REG-07–08, REG-08a/08b/08c i REG-10–12 mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
+zlecenia użytkownika i zakończenia blokujących ticketów. REG-06 ma status
+`planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
+REG-08d i REG-09 również mają status `planned` jako warunkowe osobne odnogi.
+Żadnego z tych etapów nie uruchamiamy automatycznie.
 
 Kolejność podstawowa: REG-01 → REG-01a → REG-02 → REG-02a → REG-04 → REG-05
-→ REG-06 → REG-07 → REG-08 → REG-08a → REG-08b → REG-08c → REG-10 → REG-11
+→ REG-07 → REG-08 → REG-08a → REG-08b → REG-08c → REG-10 → REG-11
 → REG-12. To także kolejność ręcznych odbiorów, nawet gdy część kodu można
 technicznie napisać niezależnie. Zależność między REG-10/11/12 porządkuje
 eksperymenty; RoMa nie wymaga uruchamiania EfficientLoFTR, a MatchAnything nie
 wymaga działającego RoMa. Wspólną bazą porównań pozostaje obecny Deep.
 
-Najbliższy krok: zlecenie [REG-06 — niezależna kontrola dopasowania](issues/06-independent-validation.md).
-Zależność od REG-05 jest spełniona; implementacja REG-06 nie została rozpoczęta.
+Najbliższy krok: zlecenie [REG-07 — zapis prób i odbiór pełnych filmów](issues/07-full-movie-comparison.md).
+Zależność od REG-05 jest spełniona; implementacja REG-07 nie została rozpoczęta.
+REG-06 jest odłożony i pozostaje niewdrożony.
 REG-05 zamknięto jako odebrany wariant eksperymentalny: [instrukcja](local-consensus-manual.md),
 [próby rzeczywiste](local-consensus-results.md), [karta](reviews/REG-05.md).
 Zachowujemy ograniczenia 2/14 lokalnych wyników i odmowy obu pełnych filmów,
@@ -194,9 +207,11 @@ użytkownik ocenił Outdoor jako znacznie lepszy; pozostaje bazą dalszych prób
   bazowe/końcowe XY oraz ręczne nadpisania. Rozszerzenia tego dokumentu i
   metadanych MPP należą do wprowadzającego je ticketu i zachowują odczyt starszych
   wersji. Sam aligned MPP nadal nie zawiera oryginałów sprzed interpolacji.
-- Kontrola REG-06 nie ustala wag, progów ani wyboru krawędzi tej samej próby.
-  Jeśli model widział dane kontrolne (także przez globalne cechy obrazu), ocena
-  jest zależna. Zmiana roli danych oznacza nową próbę, nie pozorną niezależność.
+- REG-06 jest odłożony: obecna ścieżka nie wymaga jego interfejsu ani wyników
+  kontroli. Po ewentualnym wznowieniu kontrola nie będzie ustalać wag, progów
+  ani wyboru krawędzi tej samej próby. Jeśli model widział dane kontrolne
+  (także przez globalne cechy obrazu), ocena jest zależna. Brak kontroli oznacza
+  brak oceny, a zmiana roli danych nową próbę, nie pozorną niezależność.
 - Modele są opcjonalne, z lokalnymi wagami, jawną wersją i sumą kontrolną.
   Brak zależności/wag/pamięci ma przyczynę w UI, bez pobierania i podmiany metody.
   Zapisane wyniki można obejrzeć bez ponownej inferencji. Nowy model nie zmienia

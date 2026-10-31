@@ -14,14 +14,16 @@ Obowiązują [plan](../README.md#kontrakty-rozszerzenia-wieloklatkowego),
 
 - [ ] Z zapisanej lub bieżącej próby REG-08a można utworzyć odporny wariant.
   Korzysta z dokładnie tych samych d_ij, odmów, źródeł i kotwicy. Nie uruchamia
-  ponownie Deep ani nie zmienia okna, przygotowania obrazów czy kontroli.
+  ponownie Deep ani nie zmienia okna, przygotowania obrazów czy warunków oceny.
 - [ ] Pierwszy odporny wariant to blokowy Huber/IRLS: funkcja kosztu zależy
   od długości reszty 2D `r_ij=(p_j-p_i)-d_ij`; jedna waga obejmuje obie osie
   danej pary. Wszystkie ważne pomiary mają początkowo równą wagę jak w REG-08a.
   Nie mylimy tego z oddzielnym Huberem na spłaszczonych składowych X i Y.
 - [ ] Próg Hubera w pikselach, warunki zakończenia, limit iteracji i wersja
   solvera są jawne i zapisane. Propozycję wartości domyślnych dobieramy na
-  wzorcach rozwojowych, bez strojenia na niezależnych fragmentach REG-06.
+  wzorcach rozwojowych, oddzielnie od nowych przypadków końcowego odbioru.
+  REG-06 jest odłożony; po ewentualnym wznowieniu jego niezależne fragmenty
+  nie mogą służyć strojeniu tej samej próby.
   UI udostępnia próg; zmiana tworzy nową próbę, nie nadpisuje wyniku zachowanego.
 - [ ] Rozwiązanie nie ma kary za zmianę kierunku/szybkości, gładkość ani
   odległość od zera. Start LS i kolejne ważone rozwiązania mają tę samą kotwicę.

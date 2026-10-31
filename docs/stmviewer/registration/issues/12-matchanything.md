@@ -49,8 +49,11 @@ nie wywołuje RoMa v2 ani nie potrzebuje jej wag.
   urządzenie, wyniki i diagnozy. Odczyt przy właściwych źródłach działa bez
   modelu. Zastosowanie do filmu, ręczne korekty oraz MPP/AVI zachowują REG-08c:
   render z oryginałów raz, z poprawną geometrią i bez nakładek diagnostycznych.
-- [ ] Ocena REG-06 jest zależna, jeśli model lub przygotowanie wejścia
-  używały danych kontrolnych. Sukces treningu między modalnościami nie daje
+- [ ] Raport oddziela poparcie modelu od oceny obrazowej. REG-06 jest
+  odłożony; nie wymagamy jego implementacji ani oznaczania fragmentów,
+  a brak kontroli pozostaje brakiem oceny. Po ewentualnym wznowieniu REG-06
+  jego ocena jest zależna, jeśli model lub przygotowanie wejścia używały
+  danych kontrolnych. Sukces treningu między modalnościami nie daje
   automatycznie niezależnej walidacji ani odporności na tearing STM.
 - [ ] Raport obejmuje rzeczywiste wagi, oba filmy, odmowy, jakość obrazową,
   czas modelu/solvera/renderowania, RAM i VRAM oraz faktyczne CPU/CUDA.

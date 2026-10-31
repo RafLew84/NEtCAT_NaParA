@@ -3,6 +3,11 @@
 Dotyczy każdego [ticketu REG](README.md). Próba jest wykonywana w rzeczywistej
 aplikacji, po testach automatycznych i przed kolejnym etapem.
 
+**Odłożenie REG-06 — 2026-10-31:** na życzenie użytkownika pomijamy na razie
+wydzielanie fragmentów kontrolnych w aplikacji. Nie jest to warunek odbioru
+REG-07 ani dalszych etapów. Zachowujemy oględziny struktur i zapis ograniczeń;
+brak niezależnej kontroli oznacza brak takiej oceny, a nie zerowy błąd.
+
 ## Uruchomienie i materiały
 
 Z katalogu `NEtCAT-viewer`, w środowisku `netcat`:
@@ -60,12 +65,14 @@ Opis i generator: [próba CPU](../cpu-registration-manual.md).
    okna. Padding i białe marginesy nie są strukturami próbki.
 4. W każdej parze wybierz co najmniej trzy rozpoznawalne fragmenty w różnych
    częściach obrazu, jeśli takie istnieją. Zapisz prostokąty w pikselach
-   original oraz krótki opis struktury. Do REG-06 zapis może być ręczny
-   w karcie próby; REG-06 umożliwi wydzielenie ich w aplikacji.
-5. Oddziel fragmenty użyte do dopasowania od fragmentów kontrolnych.
-   Jeżeli aktualny algorytm używa całego obrazu, zapisz, że kontrola nie jest
-   niezależna. Trzy znane cropy MOVIE_8 1→2 służą regresji rozpoznanego
-   przypadku; nie są nowym niezależnym zbiorem walidacyjnym.
+   original oraz krótki opis struktury w karcie próby. Nie wymaga to edytora
+   kontroli w aplikacji; jego dodanie pozostaje w odłożonym REG-06.
+5. Zapisz, czy oglądane fragmenty uczestniczyły w dopasowaniu. Jeżeli
+   aktualny algorytm używa całego obrazu, ocena tych struktur jest zależna.
+   Bez wydzielonej kontroli zapisujemy brak niezależnej oceny; nie wymagamy
+   wdrożenia REG-06 w ramach bieżącego ticketu. Trzy znane cropy MOVIE_8 1→2
+   służą regresji rozpoznanego przypadku; nie są nowym niezależnym zbiorem
+   walidacyjnym.
    W REG-07 dodaj także pary/fragmenty niewykorzystane wcześniej do wyboru
    ustawień. Wielokrotne oglądanie tej samej checklisty jest kontrolą regresji,
    ale samo nie stanowi końcowej walidacji na niewidzianych danych.
@@ -128,9 +135,10 @@ REG-10 ustala odrębną wspólną agregację wektorów korespondencji nowych mod
 z przestrzenną oceną poparcia według tych zasad. Nie uruchamia po cichu metody
 wycinków REG-05. REG-11/12 zachowują agregację REG-10 i jej ustawienia.
 
-Kontrola obrazowa oznaczona jako niezależna nie wpływa na dobór krawędzi,
-ich wag, progów ani modelu w tej samej próbie. Globalne cechy modelu mogą widzieć
-także piksele bez wybranych korespondencji; wtedy ocenę oznaczamy jako zależną.
+REG-06 pozostaje odłożony. Jeśli zostanie wznowiony, kontrola obrazowa
+oznaczona jako niezależna nie może wpływać na dobór krawędzi, ich wag, progów
+ani modelu w tej samej próbie. Już teraz nie przypisujemy niezależności
+ocenie danych użytych przez model, również przez jego globalne cechy.
 Do końcowej oceny dodajemy nowe przypadki. Znane problematyczne pary służą
 rozwojowi i regresji, nie zastępują nowych danych walidacyjnych.
 
@@ -203,7 +211,7 @@ Dla grafu: źródła i zbiór par / okno / kotwica / solver i próg / zakończen
 Brakujące relacje / mosty / rozłączenie / niepewność:
 Dla próby ręcznej: pochodzenie / początkowe XY / korekta / końcowe XY:
 Gamma / zakres jasności / proporcje / zoom:
-Fragmenty estymacji / fragmenty kontroli / czy kontrola niezależna:
+Oglądane fragmenty / udział w estymacji / dostępna kontrola lub brak niezależnej oceny:
 Funkcja: działa | usterka | niewykonane
 Jakość XY dla każdej pary i fragmentu: lepiej | podobnie | gorzej | niejednoznacznie
 Resztkowy tearing: opis osobno

@@ -50,9 +50,12 @@ i nie wymaga jego wag podczas własnych obliczeń.
   pochodzenie wag, XY i diagnozy. Odczyt i porównanie wyniku przy oryginalnych
   źródłach nie wymagają modelu. Nowe obliczenie sprawdza dostępność zasobów.
   Zastosowanie, ręczne korekty i MPP/AVI zachowują kontrakt REG-08c.
-- [ ] Dla REG-06 wskazujemy ocenę zależną, jeśli model lub przygotowanie
-  wejścia używały danych kontrolnych. Wybranie punktów poza prostokątem
-  nie usuwa wpływu tych pikseli przez kontekstowe cechy DINOv3.
+- [ ] Raport oddziela poparcie modelu od oceny obrazowej. REG-06 jest
+  odłożony; nie wymagamy jego implementacji ani oznaczania fragmentów,
+  a brak kontroli pozostaje brakiem oceny. Po ewentualnym wznowieniu REG-06
+  wskazujemy ocenę zależną, jeśli model lub przygotowanie wejścia używały
+  danych kontrolnych. Wybranie punktów poza prostokątem nie usuwa wpływu
+  tych pikseli przez kontekstowe cechy DINOv3.
 - [ ] Raport rzeczywistych prób obejmuje czas estymacji, solvera i renderu,
   RAM/VRAM, faktyczne urządzenie, odmowy i ocenę obrazową osobno. Uruchomienie
   na GPU z większą pamięcią nie potwierdza dostępności wariantu na 8 GB.

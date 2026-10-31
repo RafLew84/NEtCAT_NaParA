@@ -1,3 +1,26 @@
+# REG-06: odłożenie na życzenie użytkownika — 2026-10-31
+
+Użytkownik zdecydował: **„na razie pominiemy 06”**.
+Baza dokumentacji: `757f97a`, gałąź `viewer/registration-difficult-movies`.
+
+- REG-06 ma status `planned` z jawną informacją o odłożeniu. Zachowano zakres
+  i otwarte kryteria do ewentualnego powrotu; nie oznaczono ticketu jako wykonanego
+  ani odebranego. Wznowienie wymaga osobnego zlecenia.
+- REG-07 zależy teraz od odebranego REG-05. Najbliższy etap to zapis prób
+  i porównanie pełnych filmów; implementacja pozostaje nierozpoczęta.
+- REG-07 i dalsze tickety nie wymagają niewdrożonego interfejsu/danych kontroli
+  REG-06. Jego zakres nie został przeniesiony do tych zadań. Przyszłe odwołania
+  do tej kontroli są warunkowe; brak oceny nie oznacza zerowego błędu.
+- Zachowano ręczny odbiór po każdym realizowanym tickecie, uczciwe opisy
+  poparcia i ocen zależnych oraz bazowy checkpoint Outdoor. REG-05 pozostaje `done`.
+- Zaktualizowano plan, README, protokół i zależności/zapisy dalszych ticketów.
+  Kod aplikacji bez zmian. Kontrola: spójność zależności i statusów, linki,
+  przegląd dokumentacji i `git diff --check`; testów programu nie powtarzano.
+- Wszystkie zmiany należą do końcowego commita dokumentacyjnego tej pracy.
+  Brak nowych zmian wymaganych od integracji; nie rozpoczęto REG-07.
+
+---
+
 # REG-05: odbiór manualny i ocena checkpointów — 2026-10-31
 
 Użytkownik potwierdził: **„ok, outdoor wygląda o wiele lepiej. testy manualne 05 ok”**.

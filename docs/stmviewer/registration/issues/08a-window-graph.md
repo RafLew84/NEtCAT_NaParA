@@ -58,7 +58,9 @@ odpornego solvera ani podmiany aktywnego aligned.
 Poza zakresem: Huber/IRLS, ważenie wynikiem confidence, dalsze odniesienia poza
 oknem, automatyczne odrzucanie według cykli, zastosowanie do filmu i korekcja
 tearingu. Eksport nowego grafu dodaje REG-08c; w tym etapie badamy podgląd i zapis
-lekkiej próby. Kontrola REG-06 pozostaje poza wyborem relacji i estymacją.
+lekkiej próby. REG-06 jest odłożony i nie blokuje tego etapu. Po jego
+ewentualnym wznowieniu niezależna kontrola pozostaje poza wyborem relacji
+i estymacją; obecnie nie symulujemy jej wyników.
 
 ## Publiczne granice TDD i automatyczne sprawdzenia
 

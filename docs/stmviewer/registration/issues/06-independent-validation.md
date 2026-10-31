@@ -3,8 +3,13 @@
 **What to build:** Użytkownik wydziela fragmenty kontrolne i widzi na nich
 rozbieżność po dopasowaniu, oddzielnie od wewnętrznej oceny algorytmu.
 **Blocked by:** [REG-05](05-local-consensus.md), w tym odbiór manualny — spełnione 2026-10-31.
-**Status:** ready-for-agent
+**Status:** planned
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
+
+**Decyzja użytkownika — 2026-10-31:** „na razie pominiemy 06”. Ticket jest
+odłożony, bez implementacji i odbioru; poniższy zakres pozostaje do ewentualnego
+powrotu na osobne zlecenie. REG-06 nie blokuje REG-07 ani dalszej ścieżki.
+Nie przenosimy jego funkcji do innych ticketów.
 
 Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
 

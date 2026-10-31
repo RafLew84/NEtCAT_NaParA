@@ -11,6 +11,7 @@ Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
 Ten ticket jest jej pierwszym etapem diagnostycznym; obliczanie globalnych XY
 przeniesiono do [REG-08a](08a-window-graph.md) i [REG-08b](08b-robust-graph.md).
 Do odbioru używamy także trudnych przypadków zapisanych w REG-07.
+REG-06 jest odłożony; odbiór nie wymaga jego narzędzia fragmentów kontrolnych.
 
 ## Zakres i kryteria odbioru
 
@@ -40,8 +41,8 @@ dopasowanych krawędzi i interpolowanie brakujących przesunięć w czasie.
 - **Trójka i wyniki par → reszta złożenia:** poprawne znaki, zmienny kierunek,
   jedna błędna para, brak jednego wyniku; znana trajektoria syntetyczna.
 - **GUI/dokument → diagnoza:** właściwe pary, przejście do porównania,
-  anulowanie i brak modyfikacji pełnego aligned. Spójność nie zastępuje
-  niezależnych fragmentów kontrolnych z REG-06.
+  anulowanie i brak modyfikacji pełnego aligned. Spójność nie jest niezależną
+  kontrolą poprawności obrazu; brak takiej kontroli pozostaje jawnym ograniczeniem.
 
 ## Próba manualna
 
@@ -50,7 +51,8 @@ dopasowanych krawędzi i interpolowanie brakujących przesunięć w czasie.
 2. Na dostarczonym wzorcu z celowo mylącą jedną parą sprawdź resztę i obejrzyj
    wszystkie trzy pary. Diagnostyka nie naprawia automatycznie obrazu.
 3. Na obu filmach wybierz trójki obejmujące problemy z REG-07. Porównaj
-   wskazania z niezależną kontrolą i zapisz przypadki niejednoznaczne.
+   wskazania z oględzinami struktur w istniejącym podglądzie par i zapisz
+   przypadki niejednoznaczne. Ocena danych użytych do dopasowania jest zależna.
 4. Zapisz/otwórz próbę i sprawdź zachowanie diagnoz oraz niezmienione XY.
 
 **Oczekiwany wynik:** dodatkowe narzędzie lokalizacji problemów i podgląd
