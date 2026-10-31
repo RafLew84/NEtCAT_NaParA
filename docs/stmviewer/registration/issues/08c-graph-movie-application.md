@@ -8,15 +8,16 @@ poprawia wybrane przejścia ręcznie i zapisuje wynik do MPP/AVI.
 **Dodano do planu:** 2026-10-31, na zlecenie użytkownika po research.
 
 Obowiązują [plan](../README.md#kontrakty-rozszerzenia-wieloklatkowego),
-[protokół](../manual-protocol.md), [zapis prób REG-07](07-full-movie-comparison.md)
+[protokół](../manual-protocol.md), [zapis sesji REG-07](07-session-save-load.md)
 oraz odebrany [workflow ręczny REG-02a](02a-manual-movie-corrections.md).
 Nie zmieniamy solvera ani nie wybieramy automatycznie LS zamiast Hubera.
 
 ## Zakres i kryteria odbioru
 
 - [ ] **Zastosuj wynik do filmu** działa dla kompletnej próby LS albo Hubera
-  zgodnej z aktualnymi oryginałami, kolejnością i geometrią. Samo obliczenie,
-  otwarcie dokumentu lub oglądanie próby nadal nie podmienia aktywnego wyniku.
+  zgodnej z aktualnymi oryginałami, kolejnością i geometrią. Samo obliczenie
+  lub oglądanie kandydata nie podmienia aktywnego wyniku. Otwarcie całej sesji
+  przywraca jej zapisany aktywny aligned, ale nie stosuje niezastosowanego kandydata.
   Niepełna, rozłączna, anulowana lub numerycznie niepoprawna próba ma powód odmowy.
 - [ ] Przed zastosowaniem widać metodę pary, okno, solver, źródła, oznaczone
   ograniczenia oraz liczbę istniejących ręcznych korekt, które nie są częścią
@@ -51,12 +52,13 @@ Nie zmieniamy solvera ani nie wybieramy automatycznie LS zamiast Hubera.
   Usunięcie klatki zachowuje gotową geometrię i eksport pozostałych; przed
   dalszą ręczną korektą lub nowym zastosowaniem starego grafu wymagana jest
   nowa rejestracja aktualnej serii. Nie przepisujemy relacji na nowe numery listy.
-- [ ] Dokument próby zachowuje pełny graf, bazę G, korekty, końcowe XY i ich
-  wersje. Można go odczytać przy właściwych oryginałach bez modelu, porównać
-  oraz jawnie zastosować. Rozszerzenie formatu zachowuje stare dokumenty REG-07.
+- [ ] Rozszerzenie sesji zachowuje pełny graf, bazę G, korekty, końcowe XY
+  i ich wersje. Odczyt bez modelu przywraca zastosowany graf jako aktywny aligned,
+  gotowy do dalszych ręcznych korekt i eksportu. Niezastosowany kandydat nadal
+  wymaga jawnego zastosowania. Starsze sesje REG-07 bez grafu pozostają czytelne.
 - [ ] MPP+metadane zachowuje końcowe obrazy, geometrię/braki, źródła, opis
   modelu/okna/solvera, bazowe i końcowe XY oraz historię ręcznych nadpisań.
-  Szczegółowe wszystkie krawędzie/diagnozy przechowuje dokument próby; sam MPP
+  Wszystkie szczegółowe krawędzie/diagnozy przechowuje sesja; sam MPP
   nie udaje edytowalnego zapisu grafu i nie odtwarza oryginałów sprzed interpolacji.
   Potrzebne rozszerzenie metadanych należy do ticketu, z odczytem starszych wersji.
 - [ ] AVI korzysta z aktywnego poprawionego filmu i dotychczasowych opcji.
@@ -77,13 +79,13 @@ deformacje lokalne oraz odtwarzanie sesji obliczeniowej z samego aligned MPP.
 - **Baza G + ręczne nadpisania → wynik:** wzorzec, gdzie różnica G jest inna
   niż surowa krawędź Deep; zmiana jednej i dwóch par, ponowienie, cofnięcie jednej,
   pochodzenie i zakres niepewności. Solver nie uruchamia się po ręcznej zmianie.
-- **Dokument/MPP/AVI → odczyt:** graf i korekty przy oryginałach, zgodne końcowe
+- **Sesja/MPP/AVI → odczyt:** graf i korekty wraz z oryginałami w sesji, zgodne końcowe
   próbki i metadane MPP, stare formaty, klatki/FPS AVI, ochrona plików po błędzie.
   Sam MPP nie daje edytowalnej sesji ani danych do ponownej interpolacji oryginałów.
 
 ## Próba manualna
 
-1. Otwórz przygotowaną małą serię i jej kompletną próbę grafu. Przeglądanie
+1. Otwórz przygotowaną sesję małej serii z niezastosowanym kandydatem grafu. Przeglądanie
    próby nie zmienia filmu. Zastosuj ją: sprawdź XY, Play, original/aligned,
    gamma, zoom i położenia źródeł. Spróbuj zastosować próbę rozłączną: odmowa.
 2. Realizujący dostarcza przykład z różnymi surowymi d_ij i różnicami G.
@@ -98,8 +100,9 @@ deformacje lokalne oraz odtwarzanie sesji obliczeniowej z samego aligned MPP.
    poprawkami: porównaj XY, nadpisania i mały eksport MPP z wynikiem sprzed grafu.
 5. Na MOVIE_4 bez źródłowych 1/2 i MOVIE_8 zastosuj wybrany kompletny graf.
    Obejrzyj problemy i cały film według protokołu, popraw ręcznie wybraną parę.
-6. Zapisz próbę oraz mały aligned MPP+metadane i AVI FFV1/MJPG. Otwórz próbę
-   przy oryginałach, MPP jako film, AVI w VLC. Sprawdź obrazy, brzegi i pochodzenie.
+6. Zapisz sesję oraz mały aligned MPP+metadane i AVI FFV1/MJPG. Po restarcie
+   otwórz sesję: zastosowany graf i korekty mają być aktywne bez nowych obliczeń.
+   Otwórz MPP jako film, AVI w VLC. Sprawdź obrazy, brzegi i pochodzenie.
    Usuń klatkę: eksport gotowego wyniku działa, dalsza edycja wymaga przeliczenia.
 
 **Oczekiwany wynik:** sprawdzony graf jest użyteczny w całym dotychczasowym

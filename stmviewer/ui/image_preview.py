@@ -8,6 +8,7 @@ from PyQt6.QtGui import QColor, QImage, QMouseEvent, QPaintEvent, QPainter, QPen
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from stmviewer.frame import ImageFrame
+from stmviewer.session_state import ViewTransform
 from stmviewer.ui.raster import draw_frame, frame_aspect, frame_image
 
 
@@ -46,8 +47,11 @@ class ImagePreview(QWidget):
 
     def set_frame(self, frame: ImageFrame, *, reset_view: bool = True,
                   reset_settings: bool = False, view: str = "original",
-                  original_rect: tuple[float, float, int, int] | None = None) -> None:
-        gamma = 1.0 if reset_settings else self._gamma
+                  original_rect: tuple[float, float, int, int] | None = None,
+                  gamma: float | None = None) -> None:
+        gamma = gamma if gamma is not None else 1.0 if reset_settings else self._gamma
+        if not 0.1 <= gamma <= 4.0:
+            raise ValueError("Gamma musi mieścić się w zakresie 0,1–4.")
         image = frame_image(frame, gamma=gamma)
         pixels = False if reset_settings else self._pixel_proportions
         aspect = frame_aspect(frame, pixel_proportions=pixels)
@@ -71,6 +75,19 @@ class ImagePreview(QWidget):
             self.fit_image()
         else:
             self.update()
+
+    def navigation_states(self) -> dict[str, ViewTransform]:
+        """Capture original/aligned zoom and pan, including the current view."""
+        states = {name: ViewTransform(zoom, (pan.x(), pan.y()))
+                  for name, (zoom, pan) in self._views.items()}
+        states[self._view] = ViewTransform(self._zoom, (self._pan.x(), self._pan.y()))
+        return states
+
+    def restore_navigation(self, states: dict[str, ViewTransform]) -> None:
+        self._views = {name: (state.zoom, QPointF(*state.pan_xy)) for name, state in states.items()}
+        self._zoom, self._pan = self._views.get(self._view, (1.0, QPointF()))
+        self._drag_position = None
+        self.update()
 
     def set_image(self, image: QImage, *, aspect: float, reset_view: bool = False) -> None:
         """Display an already rendered raster, retaining one shared navigation state."""

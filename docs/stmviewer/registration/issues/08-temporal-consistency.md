@@ -2,7 +2,7 @@
 
 **What to build:** Użytkownik sprawdza, czy przesunięcie A→C zgadza się
 z sumą A→B i B→C, oraz ogląda pary tworzące niespójny zestaw.
-**Blocked by:** [REG-07](07-full-movie-comparison.md), w tym odbiór manualny.
+**Blocked by:** [REG-07](07-session-save-load.md), w tym odbiór manualny.
 **Status:** ready-for-agent
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 
@@ -10,7 +10,8 @@ Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
 2026-10-31 użytkownik zlecił rozszerzenie planu o rejestrację wieloklatkową.
 Ten ticket jest jej pierwszym etapem diagnostycznym; obliczanie globalnych XY
 przeniesiono do [REG-08a](08a-window-graph.md) i [REG-08b](08b-robust-graph.md).
-Do odbioru używamy także trudnych przypadków zapisanych w REG-07.
+Do odbioru używamy trudnych przypadków z protokołu; pracę można odtwarzać
+z sesji REG-07. Sam REG-07 nie ocenia jakości dopasowania.
 REG-06 jest odłożony; odbiór nie wymaga jego narzędzia fragmentów kontrolnych.
 
 ## Zakres i kryteria odbioru
@@ -30,8 +31,9 @@ REG-06 jest odłożony; odbiór nie wymaga jego narzędzia fragmentów kontrolny
   na obrazie okresowym.
 - [ ] Diagnostyka nie wymusza gładkości, stałego kierunku ani małych kroków.
   Nie zmienia istniejących XY i nie stosuje automatycznej optymalizacji grafu.
-- [ ] Próba działa w tle z anulowaniem, zapisuje diagnozy w dokumencie
-  próby z REG-07 i pozostawia aktywne aligned oraz eksporty bez zmian.
+- [ ] Diagnostyka działa w tle z anulowaniem i pozostawia aktywne aligned
+  oraz eksporty bez zmian. Ten ticket rozszerza zapis sesji REG-07 o diagnozy
+  trójek i ich ustawienia; odczyt odtwarza wyniki bez nowych obliczeń.
 
 Poza zakresem: optymalizacja trajektorii, automatyczne zastępowanie źle
 dopasowanych krawędzi i interpolowanie brakujących przesunięć w czasie.
@@ -40,7 +42,7 @@ dopasowanych krawędzi i interpolowanie brakujących przesunięć w czasie.
 
 - **Trójka i wyniki par → reszta złożenia:** poprawne znaki, zmienny kierunek,
   jedna błędna para, brak jednego wyniku; znana trajektoria syntetyczna.
-- **GUI/dokument → diagnoza:** właściwe pary, przejście do porównania,
+- **GUI/sesja → diagnoza:** właściwe pary, przejście do porównania,
   anulowanie i brak modyfikacji pełnego aligned. Spójność nie jest niezależną
   kontrolą poprawności obrazu; brak takiej kontroli pozostaje jawnym ograniczeniem.
 
@@ -50,10 +52,10 @@ dopasowanych krawędzi i interpolowanie brakujących przesunięć w czasie.
    powodować alarmu. Obejrzyj bezpośrednią parę 1→3 i składane przesunięcie.
 2. Na dostarczonym wzorcu z celowo mylącą jedną parą sprawdź resztę i obejrzyj
    wszystkie trzy pary. Diagnostyka nie naprawia automatycznie obrazu.
-3. Na obu filmach wybierz trójki obejmujące problemy z REG-07. Porównaj
+3. Na obu filmach wybierz trójki obejmujące problemy z protokołu. Porównaj
    wskazania z oględzinami struktur w istniejącym podglądzie par i zapisz
    przypadki niejednoznaczne. Ocena danych użytych do dopasowania jest zależna.
-4. Zapisz/otwórz próbę i sprawdź zachowanie diagnoz oraz niezmienione XY.
+4. Zapisz/otwórz sesję i sprawdź zachowanie diagnoz oraz tych samych XY.
 
 **Oczekiwany wynik:** dodatkowe narzędzie lokalizacji problemów i podgląd
 niesąsiednich par. Optymalizacja, jej odporność i zastosowanie do filmu mają

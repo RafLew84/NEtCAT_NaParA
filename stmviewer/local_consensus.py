@@ -178,8 +178,7 @@ def estimate_local_consensus(reference: NDArray[np.float64], moving: NDArray[np.
                              initial_shift_xy: tuple[float, float], *,
                              config: LocalConsensusConfig = LocalConsensusConfig(),
                              cancelled: Callable[[], bool] | None = None,
-                             progress: Callable[[str], None] | None = None,
-                             diagnostics: Callable[[LocalDiagnostics], None] | None = None) -> LocalDiagnostics:
+                             progress: Callable[[str], None] | None = None) -> LocalDiagnostics:
     """Measure separated patches around an exact initial XY and return global XY."""
     _checkpoint(cancelled)
     settings = '; '.join(f'{key}={value}' for key, value in asdict(config).items())
@@ -195,33 +194,19 @@ def estimate_local_consensus(reference: NDArray[np.float64], moving: NDArray[np.
         raise LocalConsensusError(LocalDiagnostics(start_xy, None, (), 'failed',
                                                    'Wejście zawiera NaN/Inf; brakujące próbki nie są zerami.', settings))
     reference, moving = _normalized(reference), _normalized(moving)
-    patches: list[LocalPatchEvidence] = []
-
-    def publish_partial(reason: str) -> None:
-        if diagnostics is not None:
-            # A measured candidate is not yet an inlier of a spatial consensus.
-            pending = tuple(replace(p, status='unmatched', reason='Nie oceniono w konsensusie; ' + p.reason)
-                            if p.status == 'inlier' else p for p in patches)
-            diagnostics(LocalDiagnostics(start_xy, None, pending, 'failed', reason, settings))
-
+    patches = []
     height, width = reference.shape
-    from stmviewer.registration import RegistrationCancelled
-    try:
-        for row in range(config.grid_rows):
-            y0, y1 = row * height // config.grid_rows, (row + 1) * height // config.grid_rows
-            for column in range(config.grid_columns):
-                _checkpoint(cancelled)
-                x0, x1 = column * width // config.grid_columns, (column + 1) * width // config.grid_columns
-                size = min(config.patch_size, x1 - x0, y1 - y0)
-                rect = _select_patch(reference, (x0, y0, x1 - x0, y1 - y0), size)
-                patches.append(_match_patch(reference, moving, rect, start_xy, config))
-                publish_partial('Nie zakończono dopasowania fragmentów ani oceny konsensusu.')
-                if progress is not None:
-                    progress(f'Fragmenty: {len(patches)}/{config.grid_rows * config.grid_columns}')
-                _checkpoint(cancelled)
-    except RegistrationCancelled:
-        publish_partial('Anulowano przed wyznaczeniem konsensusu.')
-        raise
+    for row in range(config.grid_rows):
+        y0, y1 = row * height // config.grid_rows, (row + 1) * height // config.grid_rows
+        for column in range(config.grid_columns):
+            _checkpoint(cancelled)
+            x0, x1 = column * width // config.grid_columns, (column + 1) * width // config.grid_columns
+            size = min(config.patch_size, x1 - x0, y1 - y0)
+            rect = _select_patch(reference, (x0, y0, x1 - x0, y1 - y0), size)
+            patches.append(_match_patch(reference, moving, rect, start_xy, config))
+            if progress is not None:
+                progress(f'Fragmenty: {len(patches)}/{config.grid_rows * config.grid_columns}')
+            _checkpoint(cancelled)
     candidates = [p.shift_xy for p in patches if p.shift_xy is not None]
     if not candidates:
         raise LocalConsensusError(LocalDiagnostics(start_xy, None, tuple(patches), 'failed', 'Brak lokalnych dopasowań.', settings))

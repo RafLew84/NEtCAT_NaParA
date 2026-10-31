@@ -42,11 +42,12 @@ EfficientLoFTR nie potrzebuje grafu do dopasowania pojedynczej pary.
   krawędź grafu. Błąd, anulowanie i zakończenie zwalniają zasoby zadania.
   Ewentualny konflikt zależności izolujemy w opcjonalnym adapterze/środowisku,
   z opisanym uruchomieniem z GUI; potrzebne zmiany wspólne trafiają do handoff.
-- [ ] Dokument próby zachowuje ustawienia, pochodzenie wag, urządzenie,
-  wyniki i diagnozy. Ponowny podgląd zapisanej próby przy właściwych źródłach
-  nie wymaga wag ani ponownego uruchamiania modelu. Nowe obliczenie wymaga ich.
+- [ ] Ten ticket rozszerza sesję o ustawienia, pochodzenie wag, urządzenie,
+  wyniki i diagnozy nowej metody. Ponowne otwarcie nie wymaga wag ani modelu.
+  Aktywny wynik jest odtwarzany, niezastosowany kandydat nadal wymaga zastosowania.
+  Nowe obliczenie sprawdza dostępność modelu.
 - [ ] Gotowy wynik działa z zastosowaniem do filmu, ręcznymi korektami,
-  zapisem i odczytem prób oraz MPP/AVI zgodnie z REG-08c. Finalne obrazy
+  zapisem i odczytem sesji oraz MPP/AVI zgodnie z REG-08c. Finalne obrazy
   powstają raz z oryginałów; nie deformujemy fragmentów ani nie dopisujemy
   punktów diagnostycznych do filmu. Poprzedni aligned pozostaje po błędzie.
 - [ ] Raport oddziela poparcie modelu i oględziny danych użytych do estymacji
@@ -74,7 +75,7 @@ eksperymentu, lecz wymaga zapisanej decyzji użytkownika.
   urządzenia, OOM, błąd i anulowanie; brak prób sieciowych i cichego fallbacku.
   Atrapa adaptera sprawdza kontrakt, nie potwierdza jakości ani działania CUDA.
 - **Para/seria/graf → zapisany i zastosowany wynik:** zgodność estymatora,
-  pochodzenia i XY, trwałość próby, zachowanie aktywnego filmu po błędzie,
+  pochodzenia i XY, trwałość sesji, zachowanie aktywnego filmu po błędzie,
   jedna interpolacja i zgodność MPP/AVI po korekcie ręcznej.
 - Rzeczywisty model uzupełnia testy kontraktów na znanym wzorcu oraz pomiarach.
   Kontrole i limity plików kodu wynikają z planu; nie kopiujemy testów
@@ -96,9 +97,10 @@ eksperymentu, lecz wymaga zapisanej decyzji użytkownika.
    i widoku. Deep kontra EfficientLoFTR ocenia cały estymator, jeśli różni się
    agregacja. Obejrzyj pierwsze 150 klatek MOVIE_4, dalszą część i MOVIE_8;
    zapisz też nowe przypadki.
-5. Anuluj nowe obliczenie przy istniejącym aligned. Zapisz i ponownie otwórz
-   próbę, także bez udostępnionych wag. Podgląd ma działać, nowe obliczenie ma
-   podać niedostępność. Aktywny film nie zmienia się od samego odczytu próby.
+5. Anuluj nowe obliczenie przy istniejącym aligned: wcześniejszy wynik zostaje.
+   Zapisz i ponownie otwórz sesję, także bez udostępnionych wag. Podgląd ma działać,
+   nowe obliczenie ma podać niedostępność. Sesja odtwarza zapisany aktywny film,
+   nie stosuje niezastosowanego kandydata.
 6. Jawnie zastosuj kompletny wynik, popraw jedną parę ręcznie i wyeksportuj
    małe MPP+metadane oraz AVI. Otwórz MPP w Viewerze, AVI w VLC; sprawdź
    położenia i brak diagnostyki na obrazie. Zapisz ograniczenia zasobów.

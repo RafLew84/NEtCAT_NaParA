@@ -73,8 +73,8 @@ Opis i generator: [próba CPU](../cpu-registration-manual.md).
    wdrożenia REG-06 w ramach bieżącego ticketu. Trzy znane cropy MOVIE_8 1→2
    służą regresji rozpoznanego przypadku; nie są nowym niezależnym zbiorem
    walidacyjnym.
-   W REG-07 dodaj także pary/fragmenty niewykorzystane wcześniej do wyboru
-   ustawień. Wielokrotne oglądanie tej samej checklisty jest kontrolą regresji,
+   W kolejnych ticketach algorytmicznych dodaj także pary/fragmenty
+   niewykorzystane wcześniej do wyboru ustawień. Wielokrotne oglądanie tej samej checklisty jest kontrolą regresji,
    ale samo nie stanowi końcowej walidacji na niewidzianych danych.
 6. Przełączaj **Klatkę bazową** i **Klatkę przesuwaną** albo użyj nakładki. Oceniaj
    położenie tych samych konturów/szczegółów we wspólnej ważnej części.
@@ -90,11 +90,18 @@ Opis i generator: [próba CPU](../cpu-registration-manual.md).
    sprawdź również zapis małego kompletnego wyniku MPP+metadane i AVI oraz
    powrót do podglądu. Nakładki diagnostyczne nie trafiają do filmu pomiarowego.
 
-**Wyjątek zakresu REG-08a/08b:** te dwa etapy tworzą pełną próbę do oglądania
-i lekkiego zapisu, lecz jeszcze nie stosują jej do filmu. W ich odbiorze
+**Odbiór REG-07:** zapis i odczyt sesji sprawdzamy przez ponowne uruchomienie
+programu, otwarcie samego `.stmsession` bez źródeł i modelu oraz kontynuowanie
+ręcznej korekty i eksportu. Wymagamy zachowania próbek, geometrii, zastosowanych
+nadpisań i widoku; nie oczekujemy zmiany jakości XY ani tworzenia prób A/B.
+
+**Wyjątek zakresu REG-08a/08b:** te dwa etapy dodają podgląd kandydata grafu,
+porównanie z bazą i rozszerzenie zapisu sesji, lecz jeszcze nie stosują go do filmu.
+W ich odbiorze
 MPP/AVI muszą zachować wcześniejszy aktywny aligned, także podczas oglądania
-nowej próby. Eksport grafu, jego ręczne korekty i ponowny odczyt należą
-do REG-08c. Pozostałe nowe metody REG-10–12 korzystają już z tego zastosowania.
+nowej próby. Otwarcie całej sesji przywraca jej zapisany aktywny aligned;
+nie promuje niezastosowanego kandydata grafu. Eksport grafu i jego ręczne korekty
+należą do REG-08c. Pozostałe nowe metody REG-10–12 korzystają już z tego zastosowania.
 
 **Braki w grafie:** lokalny brak dopasowania jest zapisaną brakującą relacją.
 Pełny graf może mieć wynik przez inne połączenia; rozłączny pozostaje diagnozą.
@@ -142,8 +149,8 @@ ocenie danych użytych przez model, również przez jego globalne cechy.
 Do końcowej oceny dodajemy nowe przypadki. Znane problematyczne pary służą
 rozwojowi i regresji, nie zastępują nowych danych walidacyjnych.
 
-Oprócz `cpu.mpp` realizujący dostarcza obrazy oraz lekkie dokumenty znanych
-grafów: poprawny ruch z nawrotami, pojedyncza zła relacja, brak z obejściem,
+W REG-08a oprócz `cpu.mpp` realizujący dostarcza sesje testowe ze znanymi
+grafami: poprawny ruch z nawrotami, pojedyncza zła relacja, brak z obejściem,
 most, rozłączenie i spójny alias okresowy. Oddzielamy wzorce testujące model
 na obrazach od prób testujących solver na podanych relacjach. Dodajemy
 nieruchome pasy oraz różny ruch góry/dół; globalne XY nie ma udawać ich korekcji.
@@ -193,7 +200,8 @@ na MOVIE_4, po usunięciu źródłowych 1 i 2 przed rejestracją. Pierwszy przyp
 użytkownika: bieżąca para 29→30, źródłowa 31→32. Po zastosowaniu sprawdzamy
 sąsiedztwo pary, dalsze klatki, pochodzenie ręczne, brak oceny pewności,
 cofnięcie korekty, anulowanie oraz mały eksport MPP/AVI z ponownym odczytem.
-Zapis poprawionego filmu należy do REG-02a, zapis lekkiej sesji do REG-07.
+Zapis poprawionego filmu należy do REG-02a, samowystarczalna sesja z obrazami
+i stanem zastosowanych korekt do REG-07.
 
 ## Karta odbioru każdego ticketu
 

@@ -22,11 +22,16 @@ REG-08 następują próby grafu LS (REG-08a), odpornego grafu (REG-08b), zastoso
 do filmu i eksport (REG-08c), następnie osobno EfficientLoFTR (REG-10), RoMa v2
 (REG-11) i MatchAnything-ELoFTR (REG-12). Dalsze odniesienia REG-08d oraz tearing
 REG-09 pozostają warunkowe. Użytkownik odłożył REG-06 („na razie pominiemy 06”).
-REG-07 ma status **ready-for-review** po odebranym REG-05. Dodano zapis i odczyt lekkich
-prób oraz porównanie pełnych A/B w głównym podglądzie.
-[Instrukcja ręcznego odbioru](registration/full-trial-manual.md),
-[wyniki pomiarów](registration/full-trial-results.md). Niezależna kontrola
-REG-06 pozostaje odłożona; dalsze tickety czekają na odbiór REG-07.
+REG-07 zastępuje bibliotekę prób A/B **zapisem i odczytem sesji**.
+Jeden `.stmsession` zawiera obrazy original i gotowy aligned, metadane,
+zastosowane ręczne korekty oraz ustawienia widoku. Można otworzyć go bez
+plików źródłowych i kontynuować korekty oraz eksport. Przyciski **Zapisz sesję…**
+i **Otwórz sesję…** są w głównym panelu; skróty to Ctrl+Shift+S i Ctrl+Shift+O.
+[Instrukcja ręcznego odbioru](registration/session-manual.md),
+[wyniki sprawdzeń](registration/session-results.md),
+[przegląd kodu](registration/reviews/REG-07-session.md).
+Weryfikacja implementacji trwa; odbiór manualny oczekuje. REG-06 pozostaje
+odłożony, dalsze tickety czekają na odbiór REG-07.
 
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk
 **Porównaj parę…** otwiera osobny podgląd sąsiednich oryginałów: przed/po XY,

@@ -14,7 +14,7 @@ Nie blokuje REG-10–12 ani REG-09. Nie zaczynamy go automatycznie po REG-08c.
 
 ## Zakres i kryteria odbioru
 
-- [ ] Start wymaga zapisanej bazowej próby okna oraz wskazanych problemów,
+- [ ] Start wymaga sesji z bazowym wynikiem okna oraz wskazanych problemów,
   których lokalne odniesienia nie rozstrzygnęły. Wariant ma dokładnie te same
   istniejące pomiary, model, solver, próg i kotwicę. Dodajemy tylko nowe pary.
 - [ ] W GUI wybieramy skończoną listę klatek odniesienia i zakres klatek,
@@ -28,7 +28,8 @@ Nie blokuje REG-10–12 ani REG-09. Nie zaczynamy go automatycznie po REG-08c.
 - [ ] Powstaje osobny wynik okno+dalsze odniesienia z porównaniem do samego
   okna, listą nowych relacji, ich rozbieżnościami i wpływem na globalne XY.
   Zgodne cykle i mniejszy dryf trajektorii nie wystarczają do oceny jakości.
-- [ ] Zapis/odczyt zachowuje zbiór bazowy i dodane relacje. Zastosowanie,
+- [ ] Rozszerzenie sesji w tym tickecie zachowuje zbiór bazowy i dodane relacje.
+  Odczyt odróżnia aktywny aligned od niezastosowanego kandydata. Zastosowanie,
   korekty manualne, ochrona aktywnego filmu i eksport działają jak REG-08c.
   Błędy/anulowanie nie zmieniają poprzednich prób ani filmu.
 
@@ -43,19 +44,19 @@ zwiększać bez końca liczbę odniesień.
   deduplikacja, prawidłowe źródła/kierunki, brak wyniku dalszej pary i odtwarzalność.
 - **Znana seria + dalsza relacja → XY:** poprawne dalekie połączenie i mylący
   okresowy odpowiednik; diagnozy bez automatycznej deklaracji poprawy.
-- **GUI/dokument/film:** porównanie dwóch prób, wersja ustawień, anulowanie,
+- **GUI/sesja/film:** porównanie dwóch prób, wersja ustawień, anulowanie,
   świadome zastosowanie, ręczne korekty i zgodność małego MPP/AVI z podglądem.
 
 ## Próba manualna
 
-1. Otwórz odebraną próbę okna i przygotowany wzorzec dłuższej serii z błędami
+1. Otwórz sesję z odebranym wynikiem okna i przygotowany wzorzec dłuższej serii z błędami
    lokalnymi. Dodaj dalszą referencję; sprawdź nowe pary, znane XY i kontury.
 2. Na wskazanym fragmencie MOVIE_4/MOVIE_8 wybierz referencję ze wspólnymi
    strukturami. Porównaj cały odcinek przed i po dodaniu relacji, bez zmiany progu
    ani modelu. Zapisz również pogorszenie i rzeczywiste zmiany próbki.
 3. Sprawdź parę bez rozpoznawalnej wspólnej struktury: jawna odmowa albo
    niepewność, bez uznawania zgodnego wzoru okresowego za dowód jakości.
-4. Zapisz/otwórz wariant, anuluj nową próbę, zastosuj kompletny wynik i wykonaj
+4. Zapisz/otwórz sesję, anuluj nowe obliczenie, zastosuj kompletny wynik i wykonaj
    mały eksport. Obrazy i korekty mają odpowiadać wybranemu wynikowi.
 
 **Oczekiwany wynik:** osobny pomiar korzyści dalszych odniesień. Brak poprawy

@@ -46,9 +46,10 @@ i nie wymaga jego wag podczas własnych obliczeń.
 - [ ] Konflikt opcjonalnych zależności ma udokumentowane rozwiązanie
   w zakresie Viewera, z uruchomieniem z GUI i bez psucia istniejących metod.
   Wymagane zmiany modułów wspólnych lub konfiguracji głównej trafiają do handoff.
-- [ ] Dokument próby zachowuje konfigurację modelu/próbkowania, urządzenie,
-  pochodzenie wag, XY i diagnozy. Odczyt i porównanie wyniku przy oryginalnych
-  źródłach nie wymagają modelu. Nowe obliczenie sprawdza dostępność zasobów.
+- [ ] Ten ticket rozszerza sesję o konfigurację modelu/próbkowania, urządzenie,
+  pochodzenie wag, XY i diagnozy. Odczyt oraz porównanie nie wymagają modelu.
+  Przywracamy zapisany aktywny film, bez stosowania niezastosowanego kandydata.
+  Nowe obliczenie sprawdza dostępność zasobów.
   Zastosowanie, ręczne korekty i MPP/AVI zachowują kontrakt REG-08c.
 - [ ] Raport oddziela poparcie modelu od oceny obrazowej. REG-06 jest
   odłożony; nie wymagamy jego implementacji ani oznaczania fragmentów,
@@ -74,7 +75,7 @@ decyzji użytkownika, zgodnie z planem.
 - **Konfiguracja/zasoby → wykonanie:** brak części wag, błąd/OOM/anulowanie,
   brak sieciowego pobierania i fallbacku. Próbkowanie jest odtwarzalne według
   zapisanych ustawień. Test adaptera nie zastępuje próby rzeczywistego modelu.
-- **GUI/seria/graf/dokument:** zgodność XY w poszczególnych drogach, trwałość
+- **GUI/seria/graf/sesja:** zgodność XY w poszczególnych drogach, trwałość
   diagnostyki i pochodzenia, ograniczona pamięć, odczyt bez modelu oraz ochrona
   wcześniejszego aligned. Eksport i korekta ręczna obejmują nowe pochodzenie.
 - Z rzeczywistymi lokalnymi wagami sprawdzamy znany wzorzec i oba filmy.
@@ -95,7 +96,7 @@ decyzji użytkownika, zgodnie z planem.
 4. Uruchom oba pełne filmy w trybie sąsiednim oraz jednym ustalonym wariancie
    grafu. Porównaj przy stałym konsensusie i widoku. Zapisz odmowy, jakość
    pierwszych 150 klatek MOVIE_4 i dalszej części oraz zmierzone zasoby.
-5. Anuluj nowe obliczenie. Poprzedni aligned ma zostać. Zapisz/otwórz próbę,
+5. Anuluj nowe obliczenie. Poprzedni aligned ma zostać. Zapisz/otwórz sesję,
    również przy niedostępnym modelu; dostępny ma być podgląd zapisanych XY.
 6. Zastosuj kompletny wynik, popraw parę ręcznie i zapisz małe MPP+metadane
    oraz AVI. Otwórz MPP w Viewerze, AVI w VLC. Sprawdź położenia, brak gęstego

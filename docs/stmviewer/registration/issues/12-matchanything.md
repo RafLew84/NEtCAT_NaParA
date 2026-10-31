@@ -45,9 +45,9 @@ nie wywołuje RoMa v2 ani nie potrzebuje jej wag.
 - [ ] Konflikty opcjonalnych zależności rozwiązujemy w adapterze/środowisku
   Viewera, z opisanym uruchomieniem z GUI. Zmiany potrzebne we wspólnych
   modułach lub konfiguracji głównej są jawnym zadaniem integracji w handoff.
-- [ ] Dokument próby zachowuje rzeczywistą konfigurację, pochodzenie wag,
-  urządzenie, wyniki i diagnozy. Odczyt przy właściwych źródłach działa bez
-  modelu. Zastosowanie do filmu, ręczne korekty oraz MPP/AVI zachowują REG-08c:
+- [ ] Ten ticket rozszerza sesję o rzeczywistą konfigurację, pochodzenie wag,
+  urządzenie, wyniki i diagnozy. Odczyt sesji działa bez modelu i odtwarza aktywny
+  film, bez stosowania niezastosowanego kandydata. Zastosowanie do filmu, ręczne korekty oraz MPP/AVI zachowują REG-08c:
   render z oryginałów raz, z poprawną geometrią i bez nakładek diagnostycznych.
 - [ ] Raport oddziela poparcie modelu od oceny obrazowej. REG-06 jest
   odłożony; nie wymagamy jego implementacji ani oznaczania fragmentów,
@@ -73,7 +73,7 @@ odrzucenie eksperymentu wymaga zapisanej decyzji użytkownika.
 - **Dostępność/zadanie → wynik albo odmowa:** brak wag, próba pobierania
   przez bibliotekę, błąd/OOM/anulowanie; zachowanie poprzedniego aligned
   i brak fallbacku. Testy z atrapą nie dowodzą jakości rzeczywistych wag.
-- **Para/seria/graf/dokument → zastosowanie i eksport:** spójne pochodzenie
+- **Para/seria/graf/sesja → zastosowanie i eksport:** spójne pochodzenie
   i XY, zapis/odczyt bez uruchamiania modelu, zgodna ręczna korekta i geometria
   MPP/AVI. Nie powielamy całych testów solvera i renderera.
 - Realne wagi muszą przejść próbę na znanym wzorcu i obu filmach; wynik
@@ -93,9 +93,10 @@ odrzucenie eksperymentu wymaga zapisanej decyzji użytkownika.
    grafem. Zmieniaj tylko wariant modelu, a konieczne różnice inference
    zapisz. Oceń pierwsze 150 klatek MOVIE_4 i dalszy film; zachowaj także
    odmowy i miejsca niejednoznaczne, bez uzupełniania XY zerami.
-5. Anuluj próbę przy istniejącym aligned. Zapisz/otwórz kompletną próbę,
-   również bez wag. Podgląd wyników ma działać; nowa estymacja ma podać
-   niedostępność. Sam odczyt nie podmienia aktywnego filmu.
+5. Anuluj obliczenie przy istniejącym aligned: dotychczasowy wynik zostaje.
+   Zapisz/otwórz sesję, również bez wag. Podgląd wyników ma działać; nowa estymacja
+   ma podać niedostępność. Sesja odtwarza zapisany aktywny film,
+   bez stosowania niezastosowanego kandydata.
 6. Zastosuj wynik, wykonaj i cofnij ręczną korektę pary, zapisz małe
    MPP+metadane i AVI. Sprawdź MPP w Viewerze, AVI w VLC, pochodzenie metody,
    położenia i tło. Zapisz pomiary zasobów i osobno status próby 8 GB VRAM.

@@ -59,7 +59,8 @@ REG-01 pozostaje zamknięty; nowe sterowanie ma własny odbiór.
   Nowa korekta zachowuje opis źródła, bez bezterminowego łańcucha kopii prób.
 - [x] Ręczny wynik można przypiąć i porównywać z algorytmem. To lekka próba
   tej pary w sesji okna; oryginały, pełny aligned i aktywny wynik eksportu
-  zachowują wartości. Zapis/odczyt prób ręcznych na dysk obejmuje REG-07.
+  zachowują wartości. Po zmianie zakresu REG-07 z 2026-11-01 zapis sesji
+  obejmuje tylko korekty zastosowane do filmu przez REG-02a, bez prób par.
 
 Poza zakresem: ręczne składanie całej serii, podmiana przesunięć aktywnego
 aligned i przeliczanie następnych klatek, obroty, zmiana skali, deformacje,

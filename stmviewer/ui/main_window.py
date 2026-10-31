@@ -4,15 +4,16 @@ from pathlib import Path
 from time import perf_counter
 
 from PyQt6.QtCore import QSignalBlocker, Qt, QTimer
-from PyQt6.QtGui import QAction, QCloseEvent, QKeySequence
+from PyQt6.QtGui import QAction, QCloseEvent, QKeySequence, QImage
 from PyQt6.QtWidgets import (
     QCheckBox, QComboBox, QDoubleSpinBox, QFileDialog, QFrame, QHBoxLayout, QLabel, QMainWindow, QMenu, QMenuBar,
     QMessageBox, QProgressBar, QPushButton, QScrollArea, QSlider, QSpinBox, QStatusBar, QVBoxLayout, QWidget,
 )
 
 from stmviewer.frame import ImageFrame
-from stmviewer.trial_capture import from_registration
-from stmviewer.ui.trial_controls import TrialControls
+from stmviewer.session_state import SessionState, SessionViewState
+from stmviewer.ui.session_controls import SessionControls
+from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.avi_raster import MoviePresentation
 from stmviewer.ui.avi_export_controls import AviExportControls
 from stmviewer.mpp_metadata import mpp_sidecar_path
@@ -74,6 +75,9 @@ class STMViewerMainWindow(QMainWindow):
         open_button.clicked.connect(self.open_file)
         controls.addWidget(open_button)
         self._open_button = open_button
+        self._session = SessionControls(self._session_snapshot, self._restore_session, panel)
+        self._session.busy_changed.connect(self._pair_busy_changed)
+        controls.addWidget(self._session)
         self._save_button = QPushButton("Zapisz MPP…", panel)
         self._save_button.setObjectName("saveOriginalMpp")
         self._save_button.setToolTip("Zapisz wszystkie pozostałe klatki oraz metadane. W oknie zapisu wybierz original lub aligned.")
@@ -174,11 +178,6 @@ class STMViewerMainWindow(QMainWindow):
         self._compare_pair.setObjectName('comparePair')
         self._compare_pair.clicked.connect(self._open_pair_comparison)
         controls.addWidget(self._compare_pair)
-        self._trials = TrialControls(lambda: self._frames, lambda: self._index, panel)
-        self._trials.busy_changed.connect(self._pair_busy_changed)
-        self._trials.view_changed.connect(self._trial_view_changed)
-        self._trials.pairs_requested.connect(self._open_saved_pair)
-        controls.addWidget(self._trials)
         self._registration_text = QLabel("", panel)
         self._registration_text.setObjectName("registrationInfo")
         self._registration_text.setWordWrap(True)
@@ -299,6 +298,7 @@ class STMViewerMainWindow(QMainWindow):
         open_action.triggered.connect(self.open_file)
         file_menu.addAction(open_action)
         self._open_action = open_action
+        self._session.add_menu_actions(file_menu)
         self._save_action = QAction("Zapisz &MPP…", self)
         self._save_action.setShortcut(QKeySequence.StandardKey.Save)
         self._save_action.triggered.connect(self.save_mpp)
@@ -321,7 +321,7 @@ class STMViewerMainWindow(QMainWindow):
     def _processing_series(self) -> bool:
         """Operations that lock series edits and playback, but allow browsing."""
         return (self._registration_job is not None or self._export_job is not None or self._avi.busy
-                or self._trials.busy
+                or self._session.busy
                 or (self._pair_dialog is not None and self._pair_dialog.busy))
 
     @property
@@ -354,6 +354,52 @@ class STMViewerMainWindow(QMainWindow):
         self._job.finished.connect(self._finish_import)
         self._job.start()
         self._sync_navigation()
+
+    def _session_snapshot(self) -> SessionState:
+        options = self._deep_controls.options()
+        return SessionState(self._frames, self._registration, SessionViewState(
+            index=self._index, view=self._view.currentText(), gamma=self._gamma.value(),
+            pixel_proportions=self._pixel_proportions.isChecked(), fps=int(self._fps.currentText()),
+            loop=self._loop.isChecked(), method=str(self._method.currentData()),
+            deep_weights=str(options.weights) if options.weights is not None else None,
+            deep_device=options.device, navigation=self._preview.navigation_states()))
+
+    def _restore_session(self, state: SessionState, thumbnails: tuple[QImage, ...]) -> None:
+        if self._closing:
+            return
+        display = state.display
+        frame = state.frames[display.index]
+        aligned = state.registration.frames[display.index] if state.registration is not None and display.view == 'aligned' else None
+        self._preview.set_frame(aligned.image if aligned else frame, view=display.view, reset_settings=True,
+                                gamma=display.gamma,
+                                original_rect=aligned.original_rect if aligned else frame.alignment.original_rect if frame.alignment else None)
+        self._pause()
+        self._discard_pair_comparison()
+        self._frames, self._registration, self._index = state.frames, state.registration, display.index
+        self._strip.set_series(state.frames, thumbnails)
+        self._show_registration_warnings()
+        selection = self._strip.selectionModel()
+        assert selection is not None
+        selection.currentChanged.connect(lambda current, previous: self._thumbnail_changed(current.row()))
+        with QSignalBlocker(self._view), QSignalBlocker(self._method), QSignalBlocker(self._deep_controls):
+            self._view.setCurrentText(display.view)
+            self._method.setCurrentIndex(self._method.findData(display.method))
+            self._deep_controls.set_options(DeepMatcherOptions(Path(display.deep_weights) if display.deep_weights else None,
+                                                               display.deep_device))
+        with QSignalBlocker(self._gamma):
+            self._gamma.setValue(display.gamma)
+        self._pixel_proportions.setChecked(display.pixel_proportions)
+        self._preview.set_pixel_proportions(display.pixel_proportions)
+        self._strip.set_pixel_proportions(display.pixel_proportions)
+        if self._fps.findText(str(display.fps)) < 0:
+            self._fps.addItem(str(display.fps), display.fps)
+        self._fps.setCurrentText(str(display.fps))
+        self._loop.setChecked(display.loop)
+        self._preview.restore_navigation(display.navigation)
+        self._export_info.clear()
+        self._avi.clear_message()
+        self._change_registration_method()
+        self._show_current_frame()
 
     def save_avi(self) -> None:
         if not self._frames or self._operation_in_progress:
@@ -484,13 +530,13 @@ class STMViewerMainWindow(QMainWindow):
                     with QSignalBlocker(self._pixel_proportions):
                         self._pixel_proportions.setChecked(False)
                     self._registration = None
+                    self._session.new_series()
                     with QSignalBlocker(self._view):
                         self._view.setCurrentText("original")
                     self._export_info.clear()
                     self._avi.clear_message()
                     self._discard_pair_comparison()
                     self._frames = result.frames
-                    self._trials.clear()
                     self._strip.set_series(result.frames, result.thumbnails)
                     selection = self._strip.selectionModel()
                     assert selection is not None
@@ -528,7 +574,7 @@ class STMViewerMainWindow(QMainWindow):
             self._cancel_registration()
             self._cancel_export()
             self._avi.cancel()
-            self._trials.cancel()
+            self._session.cancel()
             self._discard_pair_comparison()
             event.ignore()
             return
@@ -538,12 +584,12 @@ class STMViewerMainWindow(QMainWindow):
     def _sync_navigation(self) -> None:
         count = len(self._frames)
         busy = self._processing_series
-        self._trials.sync_available(not self._operation_in_progress)
+        self._session.sync(available=not self._operation_in_progress, has_frames=bool(count))
         self._compare_pair.setEnabled(count > 1 and not self._operation_in_progress)
         if self._pair_dialog is not None:
             self._pair_dialog.set_available(not (self._job is not None or self._registration_job is not None
                                                  or self._export_job is not None or self._avi.busy
-                                                 or self._trials.busy))
+                                                 or self._session.busy))
         can_save = bool(count) and not self._operation_in_progress
         self._save_button.setEnabled(can_save)
         self._avi.set_available(can_save)
@@ -559,7 +605,7 @@ class STMViewerMainWindow(QMainWindow):
         self._deep_controls.setEnabled(not self._operation_in_progress)
         self._deep_controls.check.setEnabled(not self._operation_in_progress
                                              and not self._selected_method_error())
-        self._view.setEnabled(self._registration is not None and not self._trials.comparing)
+        self._view.setEnabled(self._registration is not None)
         for preview_control in (self._zoom_in, self._zoom_out, self._fit_button, self._gamma,
                                 self._gamma_reset, self._pixel_proportions):
             preview_control.setEnabled(bool(count))
@@ -585,7 +631,6 @@ class STMViewerMainWindow(QMainWindow):
             return
         self._pause()
         self._discard_pair_comparison()
-        self._trials.clear()
         removed = self._index
         frames = self._frames[:removed] + self._frames[removed + 1:]
         index = min(removed, len(frames) - 1) if frames else 0
@@ -704,11 +749,6 @@ class STMViewerMainWindow(QMainWindow):
 
 
     def _show_preview(self, index: int, *, reset_view: bool = False) -> None:
-        trial = self._trials.preview_frame(index)
-        if trial is not None:
-            image, rect = trial
-            self._preview.set_frame(image, view='trial', original_rect=rect, reset_view=reset_view)
-            return
         if self._view.currentText() == "aligned" and self._registration is not None:
             frame = self._registration.frames[index]
             self._preview.set_frame(frame.image, view="aligned", original_rect=frame.original_rect,
@@ -717,17 +757,6 @@ class STMViewerMainWindow(QMainWindow):
             original = self._frames[index]
             self._preview.set_frame(original, reset_view=reset_view,
                                     original_rect=original.alignment.original_rect if original.alignment else None)
-
-    def _trial_view_changed(self, reset_view: bool) -> None:
-        self._pause()
-        if self._frames:
-            self._show_preview(self._index, reset_view=reset_view)
-            self._sync_navigation()
-
-    def _open_saved_pair(self, a: PairTrial, b: PairTrial) -> None:
-        self._open_pair_comparison()
-        if self._pair_dialog is not None:
-            self._pair_dialog.show_saved_trials(a, b)
 
     def _change_view(self) -> None:
         self._pause()
@@ -746,7 +775,6 @@ class STMViewerMainWindow(QMainWindow):
                                           backend=self._registration_backend)
             self._pair_dialog = dialog
             dialog.set_registration(self._registration)
-            dialog.trial_ready.connect(self._trials.add)
             dialog.movie_apply_requested.connect(self._apply_movie_correction)
             dialog.movie_remove_requested.connect(self._remove_movie_correction)
             dialog.movie_cancel_requested.connect(self._cancel_registration)
@@ -801,7 +829,6 @@ class STMViewerMainWindow(QMainWindow):
 
     def _start_registration_job(self, job: RegistrationJob | ManualMovieJob) -> None:
         self._pause()
-        self._trials.stop_comparison()
         self._registration_job = job
         manual = isinstance(job, ManualMovieJob)
         self._registration_progress.setRange(0, len(self._frames) * (1 if manual else 2))
@@ -859,23 +886,12 @@ class STMViewerMainWindow(QMainWindow):
                             job.result, applied_trial=job.trial if isinstance(job, ManualMovieJob) else None)
                     if job.result.method in (REGISTRATION_METHODS[key] for key in DEEP_METHODS):
                         self._deep_controls.set_status(f'Sprawdzono model. Urządzenie: {job.result.device}')
-                    self._strip.set_warnings(tuple(
-                        (("Do sprawdzenia: pewność niezweryfikowana"
-                          + (" (niepewność odziedziczona)" if frame.inherited_uncertainty else ""))
-                         if frame.quality_score is None
-                         else "Do sprawdzenia: niepewność odziedziczona" if frame.inherited_uncertainty
-                         else "Do sprawdzenia: niska pewność") if frame.status != "ok" else ""
-                        for frame in job.result.frames
-                    ))
+                    self._show_registration_warnings()
                     with QSignalBlocker(self._view):
                         self._view.setCurrentText("aligned")
         except (OSError, ValueError, OverflowError, MemoryError) as error:
             self._show_registration_error(str(error) or type(error).__name__)
         finally:
-            if isinstance(job, RegistrationJob) and job.capture is not None:
-                self._trials.add(job.capture.document)
-            elif isinstance(job, ManualMovieJob) and self._registration is job.result and job.result is not None:
-                self._trials.add(from_registration(job.result))
             if isinstance(job, ManualMovieJob) and self._pair_dialog is not None:
                 message = ('Anulowano. Poprzedni film i korekty pozostają.' if job.was_cancelled()
                            else f'Niepowodzenie: {job.error}. Poprzedni film i korekty pozostają.' if job.error
@@ -901,6 +917,18 @@ class STMViewerMainWindow(QMainWindow):
         message.setTextFormat(Qt.TextFormat.PlainText)
         message.setText(error)
         message.open()
+
+    def _show_registration_warnings(self) -> None:
+        if self._registration is None:
+            return
+        self._strip.set_warnings(tuple(
+            (("Do sprawdzenia: pewność niezweryfikowana"
+              + (" (niepewność odziedziczona)" if frame.inherited_uncertainty else ""))
+             if frame.quality_score is None
+             else "Do sprawdzenia: niepewność odziedziczona" if frame.inherited_uncertainty
+             else "Do sprawdzenia: niska pewność") if frame.status != "ok" else ""
+            for frame in self._registration.frames
+        ))
 
     def _show_registration_info(self) -> None:
         if self._registration is None:

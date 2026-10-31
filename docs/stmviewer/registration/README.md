@@ -15,7 +15,8 @@ ma status `done`: użytkownik potwierdził „testy manualne 04 ok” 2026-10-31
 [Instrukcja REG-04](deep-ecc-manual.md), [karta](reviews/REG-04.md).
 [REG-05: zgodność lokalnych fragmentów](issues/05-local-consensus.md) zamknięto
 po potwierdzeniu „testy manualne 05 ok” 2026-10-31. REG-06 odłożono na życzenie
-użytkownika; REG-07 czeka na ręczny odbiór (`ready-for-review`).
+użytkownika. REG-07 jest w realizacji (`in-progress`): zapis i odczyt sesji
+zastępują odrzuconą bibliotekę pełnych prób A/B.
 [Instrukcja REG-02a](manual-movie-corrections-manual.md), [sprawdzenia](reviews/REG-02a.md).
 Dalsze próby MOVIE_4
 obejmują źródłowe klatki 3–364, zgodnie z [protokołem](manual-protocol.md).
@@ -39,7 +40,7 @@ i [wyniki prób](deep-ecc-results.md) rozdzielają sprawdzenie funkcji od oceny
 jakości przez użytkownika.
 
 **Rozszerzenie po przeglądzie — 2026-10-31:** pierwotnie przyjęto kierunek
-REG-05 → ocena i zapis prób REG-06/07 → diagnostyka REG-08 → graf
+REG-05 → ocena REG-06 i zapis pracy REG-07 → diagnostyka REG-08 → graf
 REG-08a/08b/08c → osobne próby EfficientLoFTR, RoMa v2 i MatchAnything
 REG-10/11/12. [Przegląd i źródła](../registration-multiframe-research.md)
 uzasadniają te próby, ale nie potwierdzają ich skuteczności na naszych filmach.
@@ -54,6 +55,12 @@ i dalszych etapów. REG-07 oraz kolejne tickety nie przejmują implementacji
 kontroli REG-06. Ocena wizualna, poparcie estymatora i diagnostyka spójności
 pozostają dostępne zgodnie ze swoimi zakresami; nie nazywamy ich niezależną
 walidacją. Wznowienie REG-06 wymaga osobnego zlecenia.
+
+**Zmiana REG-07 — 2026-11-01:** na zlecenie użytkownika usuwamy bibliotekę
+pełnych prób A/B. REG-07 zapisuje i otwiera jedną sesję `.stmsession`, z obrazami
+original i gotowym aligned, zastosowanymi korektami i ustawieniami widoku.
+Plik można przenieść bez źródeł i modeli. Porównanie pojedynczej pary pozostaje.
+Przyszły podgląd kandydata grafu i rozszerzenie zapisu relacji należą do REG-08a/08b.
 
 ## Cel i zakres
 
@@ -83,11 +90,11 @@ na wielu klatkach; REG-09 zachowuje dotychczasowy zakres.
 | [REG-04: Deep Matcher + doprecyzowanie ECC](issues/04-multiscale-translation.md) | Początkowe XY z Deep Matcher, doprecyzowanie ECC i porównanie dokładnego startu z wynikiem; wpływ oceniany manualnie. | REG-02a |
 | [REG-05: Zgodność lokalnych fragmentów](issues/05-local-consensus.md) | Przestrzenne poparcie XY z różnych części obrazu i konkurujące grupy; porównanie z bazowym Deep, bez obowiązkowego ECC. | REG-04 |
 | [REG-06: Niezależna kontrola dopasowania](issues/06-independent-validation.md) | **Odłożony** — zakres zachowany do ewentualnego powrotu. | REG-05 + osobne zlecenie wznowienia |
-| [REG-07: Zapis prób i odbiór pełnych filmów](issues/07-full-movie-comparison.md) | Odtwarzalne porównanie pełnych wyników, zapis/odczyt ustawień i przesunięć, odbiór MOVIE_4/MOVIE_8. | REG-05 |
+| [REG-07: Zapis i odczyt sesji](issues/07-session-save-load.md) | Jeden przenośny plik z serią, aktywnym aligned, ręcznymi korektami i widokiem; wznowienie pracy bez rejestracji. | REG-05 |
 | [REG-08: Spójność kilku klatek](issues/08-temporal-consistency.md) | Diagnostyka zgodności A→B→C z A→C i porównanie również niesąsiednich par; jeszcze bez zmiany XY. | REG-07 |
 | [REG-08a: Graf z oknem 3/5 klatek](issues/08a-window-graph.md) | Osobna pełna próba: obecny Deep, wspólne XY przez LS, porównanie z łańcuchem i zapis relacji. | REG-08 |
 | [REG-08b: Odporny graf](issues/08b-robust-graph.md) | LS kontra Huber/IRLS na dokładnie tych samych pomiarach; widoczny wpływ odstających relacji. | REG-08a |
-| [REG-08c: Zastosowanie grafu do filmu](issues/08c-graph-movie-application.md) | Jawna podmiana aligned, ręczne korekty, MPP/AVI i odtworzenie zapisanej próby. | REG-08b |
+| [REG-08c: Zastosowanie grafu do filmu](issues/08c-graph-movie-application.md) | Jawna podmiana aligned, ręczne korekty, MPP/AVI i odtworzenie sesji z zastosowanym grafem. | REG-08b |
 | [REG-10: EfficientLoFTR](issues/10-efficient-loftr.md) | Nowy model dla par, łańcucha i grafu; porównanie z obecnym Deep przy stałej reszcie obliczeń. | REG-08c |
 | [REG-11: RoMa v2](issues/11-roma-v2.md) | Gęste korespondencje jako źródło jednej translacji XY; osobna ocena jakości i zasobów. | REG-10 |
 | [REG-12: MatchAnything-ELoFTR](issues/12-matchanything.md) | Kontrola wpływu treningu: porównanie z EfficientLoFTR przy tym samym konsensusie i grafie. | REG-11 |
@@ -99,7 +106,7 @@ REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [karta odbioru](reviews/REG-01.md). REG-01a ma status `done` po odbiorze
 użytkownika 2026-10-31. REG-02 i REG-02a również odebrano 2026-10-31 (`done`).
 REG-04 i REG-05 mają status `done` po odbiorze użytkownika 2026-10-31.
-REG-07 ma status `ready-for-review`. REG-08, REG-08a/08b/08c i REG-10–12 mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
+REG-07 ma status `in-progress`. REG-08, REG-08a/08b/08c i REG-10–12 mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
 zlecenia użytkownika i zakończenia blokujących ticketów. REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
 REG-08d i REG-09 również mają status `planned` jako warunkowe osobne odnogi.
@@ -112,9 +119,11 @@ technicznie napisać niezależnie. Zależność między REG-10/11/12 porządkuje
 eksperymenty; RoMa nie wymaga uruchamiania EfficientLoFTR, a MatchAnything nie
 wymaga działającego RoMa. Wspólną bazą porównań pozostaje obecny Deep.
 
-Na ręczny odbiór czeka [REG-07 — zapis prób i odbiór pełnych filmów](issues/07-full-movie-comparison.md).
-Zależność od REG-05 jest spełniona. [Instrukcja odbioru](full-trial-manual.md)
-i [raport prób](full-trial-results.md) opisują nowy zapis i porównanie A/B.
+W realizacji jest [REG-07 — zapis i odczyt sesji](issues/07-session-save-load.md).
+Zależność od REG-05 jest spełniona. Ręczny odbiór nowego zakresu pozostaje przed nami;
+wcześniejsza implementacja biblioteki prób nie jest jego zaliczeniem.
+[Instrukcja odbioru](session-manual.md), [wyniki](session-results.md),
+[przegląd](reviews/REG-07-session.md).
 REG-06 jest odłożony i pozostaje niewdrożony.
 REG-05 zamknięto jako odebrany wariant eksperymentalny: [instrukcja](local-consensus-manual.md),
 [próby rzeczywiste](local-consensus-results.md), [karta](reviews/REG-05.md).
@@ -133,7 +142,9 @@ użytkownik ocenił Outdoor jako znacznie lepszy; pozostaje bazą dalszych prób
   „Zastosuj do filmu”, które jawnie podmienia aktywny pełny wynik.
 - Próby ręczne można rozpocząć od zera lub kopii istniejącego wyniku tej pary.
   Podgląd zawsze powstaje z oryginałów i całkowitego XY. REG-07 zachowuje
-  początkowe XY, pochodzenie, korektę i wynik ręczny. Ocena wzrokowa operatora
+  korekty zastosowane do aktywnego filmu wraz z bazą i pochodzeniem;
+  diagnostyczne próby par i niezastosowane szkice nie należą do zapisu sesji.
+  Ocena wzrokowa operatora
   nie staje się automatycznie niezależną kontrolą z REG-06.
 
 - REG-02a wymaga kompletnej rejestracji bazowej. Ręczne XY zastępuje przesunięcie
@@ -142,7 +153,7 @@ użytkownik ocenił Outdoor jako znacznie lepszy; pozostaje bazą dalszych prób
   błąd/anulowanie zachowują wcześniejszy wynik i korekty. Po usunięciu klatki
   dotychczasowy aligned/eksport zostaje, lecz dalsza edycja wymaga nowej rejestracji.
   Eksport poprawionego filmu i ręcznego pochodzenia należy już do REG-02a;
-  zapis edytowalnych prób przy oryginalnych źródłach pozostaje w REG-07.
+  zapis sesji z oryginałami, gotowym aligned i stanem ręcznej edycji należy do REG-07.
 - Każda metoda dodawana w REG-02, REG-04 i REG-05 działa od razu na parze i na całej serii,
   przez ten sam estymator. REG-07 nie odkłada podstawowej integracji z GUI.
 - Dotychczasowe metody pozostają dostępne. Nowe warianty są jawnie wybierane,
@@ -154,9 +165,10 @@ użytkownik ocenił Outdoor jako znacznie lepszy; pozostaje bazą dalszych prób
 - Współrzędne fragmentów odnoszą się do original i pochodzenia klatki.
   Wspólny układ porównania zakotwiczamy w źródłowej klatce odniesienia;
   różny padding wyników nie może przesuwać podglądu A/B.
-- Porównanie przechowuje ustawienia, przesunięcia i potrzebne metadane,
-  renderując oglądane klatki na żądanie. Nie utrzymuje dwóch dodatkowych
-  pełnych filmów float64. Zwykły wynik aligned działa jak dotychczas.
+- Podgląd przyszłych kandydatów grafu w REG-08a/08b przechowuje ustawienia,
+  przesunięcia i metadane, renderując oglądane klatki na żądanie. Nie utrzymuje
+  dwóch dodatkowych pełnych filmów float64. Ten interfejs powstaje w REG-08a,
+  a REG-07 zapewnia zapis bieżącej pracy, bez biblioteki prób.
 - Brak wiarygodnego dopasowania nie oznacza (0,0). Wynik liczbowy z małym
   poparciem może być widoczny jako niepewny; brak wyniku lub błąd przerwie
   dotychczasową próbę łańcuchową, zachowując poprzedni kompletny aligned.
@@ -168,8 +180,8 @@ użytkownik ocenił Outdoor jako znacznie lepszy; pozostaje bazą dalszych prób
   korzysta z oryginałów bieżącej serii. Nie dodajemy odwracania kolejności.
 - Każdy wariant ma jednoznaczną nazwę i wersję ustawień. MPP/AVI korzystają
   z aktywnego kompletnego aligned, a nie z dowolnego eksperymentu pary A/B.
-  Szczegółowy zapis próby z REG-07 jest osobnym dokumentem, nie zmianą
-  istniejącego formatu metadanych MPP.
+  Sesja REG-07 jest osobnym plikiem, bez zmiany istniejących formatów MPP/AVI.
+  Otwiera całą zapisaną pracę wraz z aktywnym aligned; nie wymaga źródeł ani wag.
 
 ## Kontrakty rozszerzenia wieloklatkowego
 
@@ -195,7 +207,9 @@ użytkownik ocenił Outdoor jako znacznie lepszy; pozostaje bazą dalszych prób
   Mosty i brak nadmiarowych połączeń są widocznymi ograniczeniami. Mała reszta,
   zgodny cykl lub duża liczba krawędzi nie gwarantują poprawności fizycznej:
   błędy mogą być powiązane, okresowe albo wynikać ze wspólnego zakłócenia.
-- REG-08a/08b tworzą próbę do oglądania i zapisu w GUI, bez podmiany aktywnego
+- REG-08a/08b dodają własny podgląd kandydata grafu i porównanie z bazą oraz
+  rozszerzają sesję o relacje, wyniki i diagnozy. REG-07 nie dostarcza biblioteki
+  pełnych prób. Samo obliczenie/oglądanie kandydata nie podmienia aktywnego
   aligned. REG-08c dodaje **Zastosuj wynik do filmu** oraz eksport. To celowy
   podział na etapy możliwe do ręcznej oceny; szczegółowy wyjątek eksportowy
   znajduje się w protokole. Pełne klatki próby renderujemy na żądanie.
@@ -204,10 +218,12 @@ użytkownik ocenił Outdoor jako znacznie lepszy; pozostaje bazą dalszych prób
   uruchamiania solvera. Surowa krawędź modelu, wynik grafu i ręczna korekta są
   osobnymi danymi. Nowa optymalizacja tworzy osobną próbę; przed jej zastosowaniem
   UI pokazuje, które ręczne korekty aktywnego wyniku zostaną zastąpione.
-- Dokument próby przechowuje krawędzie i ich źródła, konfigurację grafu,
-  bazowe/końcowe XY oraz ręczne nadpisania. Rozszerzenia tego dokumentu i
-  metadanych MPP należą do wprowadzającego je ticketu i zachowują odczyt starszych
-  wersji. Sam aligned MPP nadal nie zawiera oryginałów sprzed interpolacji.
+- Rozszerzenia sesji przechowują krawędzie i ich źródła, konfigurację grafu,
+  bazowe/końcowe XY oraz ręczne nadpisania. Należą do wprowadzającego je ticketu,
+  tak jak potrzebne rozszerzenia metadanych MPP, i zachowują odczyt starszych sesji.
+  Otwarcie całej sesji odtwarza zapisany aktywny wynik. Zachowany kandydat grafu,
+  którego wcześniej nie zastosowano, nadal czeka na jawne zastosowanie.
+  Sam aligned MPP nadal nie zawiera oryginałów sprzed interpolacji.
 - REG-06 jest odłożony: obecna ścieżka nie wymaga jego interfejsu ani wyników
   kontroli. Po ewentualnym wznowieniu kontrola nie będzie ustalać wag, progów
   ani wyboru krawędzi tej samej próby. Jeśli model widział dane kontrolne

@@ -52,7 +52,6 @@ class DeepLocalBackend:
             + f'; wagi={options.weights}; wybrane urządzenie={options.device}; Deep={device}'
         )
         self.last_diagnostics: LocalDiagnostics | None = None
-        self.trial_settings = {'deep': settings, 'local': asdict(config), 'settings_version': 1}
 
     def _checkpoint(self) -> None:
         from stmviewer.registration import RegistrationCancelled
@@ -79,6 +78,7 @@ class DeepLocalBackend:
         try:
             self._report(f'{pair} — Deep Matcher ({self.device})')
             deep = self._deep.estimate(reference_frame, moving_frame, moving_frame_index=moving_frame_index)
+            self._checkpoint()
             shift = np.asarray(deep.shift_xy, dtype=np.float64)
             quality = float(deep.quality_score)
             if (deep.frame_index != moving_frame_index
@@ -86,38 +86,25 @@ class DeepLocalBackend:
                     or shift.shape != (2,) or not np.isfinite(shift).all()
                     or not np.isfinite(quality) or not 0 <= quality <= 1):
                 raise ValueError('Brak poprawnego wyniku Deep.')
-            self.last_diagnostics = self._details(LocalDiagnostics(
-                (float(shift[0]), float(shift[1])), None, (), 'failed',
-                'Nie ukończono lokalnego dopasowania.', self.settings_text,
-            ), deep)
             stage = 'Lokalne fragmenty'
             self._report(f'{pair} — {stage} (CPU)')
-            def retain_partial(evidence: LocalDiagnostics) -> None:
-                self.last_diagnostics = self._details(evidence, deep)
-
             try:
                 local = estimate_local_consensus(
                     reference_frame, moving_frame, (float(shift[0]), float(shift[1])), config=self.config,
                     cancelled=self._cancelled, progress=lambda text: self._report(f'{pair} — {text}'),
-                    diagnostics=retain_partial,
                 )
             except LocalConsensusError as error:
                 diagnostics = self._details(error.diagnostics, deep)
                 diagnostics = replace(diagnostics, reason=f'{pair} — {stage}: {diagnostics.reason}')
                 self.last_diagnostics = diagnostics
                 raise LocalConsensusError(diagnostics) from error
+            self._checkpoint()
             self.last_diagnostics = self._details(local, deep)
             if local.final_shift_xy is None:
                 raise ValueError('Brak końcowego XY lokalnego konsensusu.')
             return RegistrationFrameResult(frame_index=moving_frame_index, shift_xy=local.final_shift_xy,
                                            method=LOCAL_METHOD, quality_score=0.0, status='manual_review')
-        except RegistrationCancelled:
-            if self.last_diagnostics is not None:
-                self.last_diagnostics = replace(
-                    self.last_diagnostics, reason=f'{pair} — {stage}: Anulowano próbę.',
-                )
-            raise
-        except LocalConsensusError:
+        except (RegistrationCancelled, LocalConsensusError):
             raise
         except Exception as error:
             self._checkpoint()

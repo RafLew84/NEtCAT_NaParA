@@ -12,7 +12,8 @@ Obowiązują [plan](../README.md#kontrakty-rozszerzenia-wieloklatkowego),
 
 ## Zakres i kryteria odbioru
 
-- [ ] Z zapisanej lub bieżącej próby REG-08a można utworzyć odporny wariant.
+- [ ] Z bieżących danych grafu REG-08a, także odtworzonych z sesji, można
+  utworzyć odporny wariant.
   Korzysta z dokładnie tych samych d_ij, odmów, źródeł i kotwicy. Nie uruchamia
   ponownie Deep ani nie zmienia okna, przygotowania obrazów czy warunków oceny.
 - [ ] Pierwszy odporny wariant to blokowy Huber/IRLS: funkcja kosztu zależy
@@ -37,11 +38,12 @@ Obowiązują [plan](../README.md#kontrakty-rozszerzenia-wieloklatkowego),
   Huber nie naprawia identyfikowalności grafu ani zgodnych błędów okresowych.
   Jeśli osłabione relacje powodują numeryczny problem wyznaczenia pozycji,
   zgłaszamy go zamiast pozornie bardzo precyzyjnych XY.
-- [ ] Rozszerzony dokument próby zachowuje identyfikator wspólnego zestawu
+- [ ] Ten ticket rozszerza sesję o identyfikator wspólnego zestawu
   pomiarów, LS, wariant odporny, konfigurację, wagi i zakończenie solvera.
-  Odczyt jest możliwy bez modelu i bez ponownego rozwiązania. Poprzednie formaty
+  Odczyt jest możliwy bez modelu i bez ponownego rozwiązania. Starsze sesje
   zachowują zgodność, nieznane wersje mają czytelną odmowę.
-- [ ] Podgląd całej próby, Play i porównanie korzystają z REG-07/08a.
+- [ ] Podgląd całej próby, Play i porównanie korzystają z REG-08a.
+  REG-07 zapewnia jedynie zapis sesji, bez biblioteki pełnych prób.
   Obliczenia są anulowalne; nie zmieniają aktywnego aligned, korekt ani eksportu.
   Nie materializujemy kolejnego pełnego filmu dla LS i Hubera.
 
@@ -64,16 +66,18 @@ REG-08c będzie osobno odpowiadał za publikację wyniku i eksport.
 
 ## Próba manualna
 
-1. Otwórz dostarczoną lekką próbę znanej sieci z pojedynczym błędnym pomiarem.
+1. Otwórz dostarczoną sesję testową znanej sieci z pojedynczym błędnym pomiarem.
    Porównaj LS i Huber, obejrzyj kontury w filmie oraz reszty i wagi. Źródłowe
    relacje pozostają identyczne. Realizujący podaje oczekiwane pozycje wzorca.
 2. Obejrzyj wzorzec okresowy i graf z mostem. UI nie może deklarować prawdziwego
    ruchu tylko dlatego, że reszta wynosi zero; Huber może niczego nie poprawić.
-3. Dla zapisanych w REG-08a MOVIE_4 i MOVIE_8 porównaj LS i Huber na tym samym
+3. Dla sesji MOVIE_4 i MOVIE_8 zapisanych w REG-08a porównaj LS i Huber na tym samym
    oknie. Obejrzyj problemy z protokołu i pełne filmy; zapisz poprawę, pogorszenie
    oraz niejednoznaczność oddzielnie od spadku kosztu matematycznego.
-4. Utwórz drugi wariant progu, zapisz/otwórz obie próby i przełącz je przy tym
-   samym zoomie. Wyłącz dostępność wag: analiza zapisanych relacji nadal działa.
+4. Utwórz drugi wariant progu i porównaj go z LS w podglądzie grafu przy tym
+   samym zoomie. Zapisz/otwórz sesję z tym stanem grafu; wyniki i wagi zostają.
+   Wyłącz dostępność wag: analiza zapisanych relacji nadal działa.
+   Otwarcie sesji odtwarza zapisany aktywny aligned, bez stosowania kandydata.
 5. Anuluj nowe obliczenie. Sprawdź wcześniejsze próby i aktywny film oraz jego
    eksport. Sam oglądany wynik Hubera nadal nie podmienia MPP/AVI.
 

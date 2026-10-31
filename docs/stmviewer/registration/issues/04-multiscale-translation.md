@@ -77,7 +77,8 @@ ani wyboru dowolnej kombinacji algorytmów. Każda para jest sąsiednia: 2→1,
 - [x] Działają podgląd, Play, ręczna korekta REG-02a i eksport MPP/AVI.
   Nazwa/wersja hybrydy, końcowe XY, geometria i status pozostają prawidłowe
   po odczycie MPP. Lekka diagnostyka obu etapów nie wymaga dwóch dodatkowych
-  stosów obrazów; zapis dokumentów prób na dysk pozostaje w REG-07.
+  stosów obrazów. Po zmianie zakresu 2026-11-01 REG-07 zapisuje aktywny
+  wynik w sesji, bez osobnej biblioteki diagnostycznych prób.
 
 Poza zakresem: ręczne maski, zewnętrzna piramida rozdzielczości, globalne
 poszukiwanie wszystkich konkurencyjnych maksimów, lokalny konsensus,

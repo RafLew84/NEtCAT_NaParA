@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 import math
-from typing import TYPE_CHECKING, Any, Callable, Protocol
+from typing import Callable, Protocol
 from uuid import uuid4
 
 from nanotrack.core import RegistrationFrameResult
@@ -19,10 +19,6 @@ from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
 from stmviewer.deep_ecc import (
     HYBRID_METHOD, HYBRID_LABEL, HybridDiagnostics, DeepEccBackend, load_deep_ecc_backend,
 )
-
-
-if TYPE_CHECKING:
-    from stmviewer.trial_capture import AttemptCapture
 
 
 CPU_METHODS = {
@@ -64,15 +60,6 @@ class AlignedFrame:
 
 
 @dataclass(frozen=True)
-class PairEstimate:
-    """The measured pair confidence, before uncertainty is propagated along the movie."""
-
-    shift_xy: tuple[float, float]
-    status: str
-    quality_score: float | None
-
-
-@dataclass(frozen=True)
 class RegistrationResult:
     frames: tuple[AlignedFrame, ...]
     reference: FrameOrigin
@@ -88,9 +75,6 @@ class RegistrationResult:
     corrections_editable: bool = True
     pair_diagnostics: tuple[HybridDiagnostics | None, ...] = ()
     local_diagnostics: tuple[LocalDiagnostics | None, ...] = ()
-    settings_text: str = ''
-    settings: dict[str, Any] = field(default_factory=dict)
-    pair_estimates: tuple[PairEstimate | None, ...] = ()
 
     def without_frame(self, index: int) -> 'RegistrationResult | None':
         """Retain historical coordinates and the exact surviving samples."""
@@ -102,10 +86,8 @@ class RegistrationResult:
                        if self.pair_diagnostics else ())
         local = (self.local_diagnostics[:index] + self.local_diagnostics[index + 1:]
                  if self.local_diagnostics else ())
-        estimates = (self.pair_estimates[:index] + self.pair_estimates[index + 1:]
-                     if self.pair_estimates else ())
         return replace(self, frames=frames, corrections_editable=False,
-                       pair_diagnostics=diagnostics, local_diagnostics=local, pair_estimates=estimates,
+                       pair_diagnostics=diagnostics, local_diagnostics=local,
                        revision=uuid4().hex) if frames else None
 
 
@@ -126,29 +108,7 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
                     backend: ShiftBackend | None = None,
                     deep_options: DeepMatcherOptions | None = None,
                     progress: Callable[[int, int, str], None] | None = None,
-                    cancelled: Callable[[], bool] | None = None,
-                    capture: 'AttemptCapture | None' = None) -> RegistrationResult:
-    """Register originals, optionally retaining lightweight evidence after failure."""
-    if capture is not None and method in DEEP_METHODS:
-        capture.requested(deep_options or DeepMatcherOptions())
-    try:
-        result = _register_series(frames, method=method, backend=backend, deep_options=deep_options,
-                                  progress=progress, cancelled=cancelled, capture=capture)
-    except Exception as error:
-        if capture is not None:
-            capture.failed(error)
-        raise
-    if capture is not None:
-        capture.finish_registration(result)
-    return result
-
-
-def _register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_correlation",
-                    backend: ShiftBackend | None = None,
-                    deep_options: DeepMatcherOptions | None = None,
-                    progress: Callable[[int, int, str], None] | None = None,
-                    cancelled: Callable[[], bool] | None = None,
-                    capture: 'AttemptCapture | None' = None) -> RegistrationResult:
+                    cancelled: Callable[[], bool] | None = None) -> RegistrationResult:
     """Align adjacent originals with the selected method and fixed settings."""
     def checkpoint() -> None:
         if cancelled is not None and cancelled():
@@ -193,15 +153,8 @@ def _register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_cor
         backend, device = loaded.backend, loaded.device
     else:
         backend = backend if backend is not None else create_shift_backend(method)
-    from stmviewer.trial_capture import backend_settings
-    settings = backend_settings(backend, deep_options if method in DEEP_METHODS else None, device)
-    settings_text = getattr(backend, 'settings_text', str(settings))
-    if capture is not None:
-        capture.configured(backend, deep_options if method in DEEP_METHODS else None, device)
-        capture.reference()
     diagnostics: list[HybridDiagnostics | None] = [None]
     local_diagnostics: list[LocalDiagnostics | None] = [None]
-    pair_estimates: list[PairEstimate | None] = [None]
     shifts = [(0.0, 0.0)]
     statuses = ['ok']
     qualities: list[float | None] = [1.0]
@@ -209,8 +162,6 @@ def _register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_cor
     report(1, "Odniesienie: klatka 1")
     for i in range(1, len(frames)):
         checkpoint()
-        if capture is not None:
-            capture.started(i)
         try:
             pair = backend.estimate(frames[i - 1].data, frames[i].data, moving_frame_index=i)
             if (pair is None or pair.frame_index != i or pair.status not in severity
@@ -220,14 +171,10 @@ def _register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_cor
             if pair_shift.shape != (2,) or not np.isfinite(pair_shift).all():
                 raise ValueError("nieprawidłowe przesunięcie XY")
             pair_status, pair_quality = estimate_confidence(method, pair)
-        except (RegistrationCancelled, RegistrationError, LocalConsensusError) as error:
-            if capture is not None:
-                capture.pair_failed(error, backend)
+        except (RegistrationCancelled, RegistrationError, LocalConsensusError):
             checkpoint()
             raise
         except Exception as error:
-            if capture is not None:
-                capture.pair_failed(error, backend)
             checkpoint()
             reason = str(error) or type(error).__name__
             if 'too little texture' in reason:
@@ -235,21 +182,16 @@ def _register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_cor
             raise RegistrationError(f"Para {i} → {i + 1}: {reason}") from error
         diagnostics.append(backend.last_diagnostics if isinstance(backend, DeepEccBackend) else None)
         local_diagnostics.append(backend.last_diagnostics if isinstance(backend, DeepLocalBackend) else None)
-        pair_estimates.append(PairEstimate((float(pair.shift_xy[0]), float(pair.shift_xy[1])),
-                                           pair_status, pair_quality))
         completed_pairs = i
         shifts.append((shifts[-1][0] + float(pair.shift_xy[0]),
                        shifts[-1][1] + float(pair.shift_xy[1])))
+        checkpoint()
         if not np.isfinite(shifts[-1]).all():
             raise RegistrationError(f"Para {i} → {i + 1}: nieprawidłowe przesunięcie skumulowane.")
         previous_quality = qualities[-1]
         qualities.append(None if previous_quality is None or pair_quality is None
                          else min(previous_quality, pair_quality))
         statuses.append(max(statuses[-1], pair_status, key=severity.__getitem__))
-        if capture is not None:
-            capture.pair_done(i, (float(pair.shift_xy[0]), float(pair.shift_xy[1])), shifts[-1],
-                              statuses[-1], qualities[-1], statuses[-2] != 'ok', backend,
-                              pair_status=pair_status, pair_quality=pair_quality)
         report(i + 1, f"{label}: para {i} → {i + 1}")
     rendered = render_registration(
         frames, tuple(shifts), tuple(statuses), tuple(qualities),
@@ -259,8 +201,7 @@ def _register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_cor
         progress=lambda done, total, text: report(len(frames) + done, text),
     )
     return replace(rendered, pair_diagnostics=tuple(diagnostics) if method == HYBRID_METHOD else (),
-                   local_diagnostics=tuple(local_diagnostics) if method == LOCAL_METHOD else (),
-                   settings_text=settings_text, settings=settings, pair_estimates=tuple(pair_estimates))
+                   local_diagnostics=tuple(local_diagnostics) if method == LOCAL_METHOD else ())
 
 
 def render_registration(

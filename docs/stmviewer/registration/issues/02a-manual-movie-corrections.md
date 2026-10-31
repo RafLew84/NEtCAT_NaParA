@@ -89,8 +89,8 @@ Poza zakresem: nowy algorytm dopasowania, korygowanie tearingu wewnątrz klatki,
 obrót/skala, ruch myszą zmieniający XY, ręczne budowanie filmu bez kompletnej
 rejestracji bazowej, ratowanie niekompletnego przebiegu backendu, przenoszenie
 nadpisań po usunięciu klatek, wielopoziomowy undo i odtwarzanie edytowalnej sesji
-z samego aligned MPP. Zapis lekkiej sesji przy oryginalnych źródłach pozostaje
-w REG-07. Eksport poprawionego filmu jest częścią REG-02a, nie czeka na REG-07.
+z samego aligned MPP. Samowystarczalny zapis sesji z oryginałami i gotowym aligned należy
+do REG-07, zgodnie ze zmianą zakresu 2026-11-01. Eksport poprawionego filmu jest częścią REG-02a, nie czeka na REG-07.
 
 ## Publiczne granice TDD i automatyczne sprawdzenia
 
