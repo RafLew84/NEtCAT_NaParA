@@ -15,6 +15,16 @@ from stmviewer.registration import (
 
 
 @dataclass(frozen=True)
+class ManualProvenance:
+    """A bounded record of one manual edit, independent of backend confidence."""
+
+    start_xy: tuple[float, float]
+    correction_xy: tuple[int, int]
+    source_label: str | None
+    settings_version: int = 1
+
+
+@dataclass(frozen=True)
 class PairTrial:
     reference: FrameOrigin
     moving: FrameOrigin
@@ -24,7 +34,8 @@ class PairTrial:
     device: str
     shift_xy: tuple[float, float]
     status: str
-    quality_score: float
+    quality_score: float | None
+    manual: ManualProvenance | None = None
 
 
 def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,

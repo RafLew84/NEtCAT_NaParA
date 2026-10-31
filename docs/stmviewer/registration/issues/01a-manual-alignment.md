@@ -4,8 +4,9 @@
 dopasowywaną względem nieruchomej klatki odniesienia przyciskami ±1 piksel X/Y,
 ogląda nakładkę lub przełącza obrazy i zachowuje wynik jako ręczną próbę.
 **Blocked by:** [REG-01](01-pair-comparison.md), w tym odbiór manualny — spełnione.
-**Status:** ready-for-agent
-**Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
+**Status:** in-progress
+**Manualny odbiór:** niewykonany; implementacja rozpoczęta 2026-10-31.
+**Wykonawca:** Codex; baza przeglądu `c5ec70a8b7efc2d0892fc56b8b63c315b79d3b64`.
 **Dodano do planu:** 2026-10-30, na zlecenie użytkownika.
 
 Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).

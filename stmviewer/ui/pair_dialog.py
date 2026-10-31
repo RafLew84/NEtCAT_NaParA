@@ -9,6 +9,8 @@ from PyQt6.QtWidgets import (
 
 from stmviewer.deep_matcher import DeepMatcherOptions, deep_unavailable_reason
 from stmviewer.frame import ImageFrame
+from stmviewer.manual_pair import ManualPairDraft
+from stmviewer.ui.manual_pair_controls import ManualPairControls
 from stmviewer.pair_comparison import PairImages, PairTrial
 from stmviewer.registration import CPU_METHODS, REGISTRATION_METHODS, ShiftBackend, registration_unavailable_reason
 from stmviewer.ui.deep_matcher_controls import DeepMatcherControls
@@ -35,6 +37,8 @@ class PairComparisonDialog(QDialog):
         self._available = True
         self._trial: PairTrial | None = None
         self._pinned: PairTrial | None = None
+        self._draft: ManualPairDraft | None = None
+        self._manual_before_alignment = 0
         self._images: PairImages | None = None
         self._errors = {key: registration_unavailable_reason(key) for key in CPU_METHODS}
         outer = QHBoxLayout(self)
@@ -125,6 +129,14 @@ class PairComparisonDialog(QDialog):
         blink.setObjectName('pairToggleImage')
         blink.clicked.connect(self._toggle_layer)
         layout.addWidget(blink)
+        self._manual = ManualPairControls(self)
+        self._manual.start_zero.connect(self._start_manual)
+        self._manual.start_copy.connect(lambda: self._start_manual(copy_trial=True))
+        self._manual.reset_requested.connect(self._reset_manual)
+        self._manual.discarded.connect(self._discard_manual)
+        self._manual.nudged.connect(self._nudge_manual)
+        self._manual.applied.connect(self._apply_manual)
+        layout.addWidget(self._manual)
         row = QHBoxLayout()
         for title, name, callback in (('−', 'pairZoomOut', self._preview.zoom_out),
                                       ('+', 'pairZoomIn', self._preview.zoom_in),
@@ -188,6 +200,8 @@ class PairComparisonDialog(QDialog):
         self._source.setText(f'Odniesienie: {name(reference)}\nDopasowywana: {name(moving)}')
         self._trial = None
         self._pinned = None
+        self._draft = None
+        self._manual.info.setText('Krok: 1 px oryginału · +X w prawo, +Y w dół.')
         with QSignalBlocker(self._trial_choice):
             self._trial_choice.clear()
             self._trial_choice.addItem('B — ostatnia', 'B')
@@ -207,11 +221,74 @@ class PairComparisonDialog(QDialog):
         reason = (deep_unavailable_reason(self._deep.options()) if method == 'deep_matcher_translation'
                   else self._errors[method])
         self._availability.setText(reason or '')
-        self._run.setEnabled(self._available and not self.busy and reason is None)
+        available = self._available and not self.busy
+        editing = self._draft is not None
+        self._run.setEnabled(available and not editing and reason is None)
         self._cancel.setVisible(self.busy)
-        self._pin.setEnabled(self._trial is not None and not self.busy)
+        self._pin.setEnabled(available and not editing and self._trial is not None)
+        self._trial_choice.setEnabled(available and not editing)
+        self._manual.sync(available=available, editing=editing,
+                          can_copy=self._selected_trial() is not None)
         for control in (self._method, self._number, self._deep):
             control.setEnabled(self._available and not self.busy)
+
+    def _start_manual(self, *, copy_trial: bool = False) -> None:
+        control = self._manual.correct if copy_trial else self._manual.zero
+        if not control.isEnabled():
+            return
+        index = self._number.value() - 1
+        self._draft = ManualPairDraft(self._frames[index - 1], self._frames[index],
+                                      start=self._selected_trial() if copy_trial else None)
+        self._manual_before_alignment = self._alignment.currentIndex()
+        self._message.clear()
+        self._show_manual()
+        self._sync()
+
+    def _nudge_manual(self, dx: int, dy: int) -> None:
+        if self._draft is not None and self._available and not self.busy:
+            self._draft.nudge(dx, dy)
+            self._show_manual()
+
+    def _reset_manual(self) -> None:
+        if self._draft is not None and self._manual.reset.isEnabled():
+            self._draft.reset()
+            self._show_manual()
+
+    def _discard_manual(self) -> None:
+        if self._draft is None or not self._manual.discard.isEnabled():
+            return
+        self._draft = None
+        with QSignalBlocker(self._alignment):
+            self._alignment.setCurrentIndex(self._manual_before_alignment)
+        self._manual.info.setText('Krok: 1 px oryginału · +X w prawo, +Y w dół.')
+        self._message.setText('Odrzucono edycję. Zapisane próby A/B pozostają bez zmian.')
+        self._show_trial()
+        self._sync()
+
+    def _show_manual(self) -> None:
+        if self._draft is None:
+            return
+        x, y = self._draft.shift_xy
+        sx, sy = self._draft.start_xy
+        dx, dy = self._draft.correction_xy
+        self._manual.info.setText(f'Szkic: ΔX: {x:g} px · ΔY: {y:g} px\n'
+                                 f'Start: ({sx:g}, {sy:g}) px; korekta: ({dx:+d}, {dy:+d}) px\n'
+                                 'Krok: 1 px oryginału · +X w prawo, +Y w dół.')
+        with QSignalBlocker(self._alignment):
+            self._alignment.setCurrentIndex(1)
+        self._render()
+
+    def _apply_manual(self) -> None:
+        if self._draft is None or not self._manual.apply.isEnabled():
+            return
+        self._trial = self._draft.apply()
+        self._draft = None
+        with QSignalBlocker(self._trial_choice):
+            self._trial_choice.setCurrentIndex(0)
+        self._manual.info.setText('Krok: 1 px oryginału · +X w prawo, +Y w dół.')
+        self._message.setText('Zachowano ręczną próbę B. Pełny aligned pozostaje bez zmian.')
+        self._show_trial()
+        self._sync()
 
     def _start(self) -> None:
         if not self._run.isEnabled():
@@ -278,12 +355,15 @@ class PairComparisonDialog(QDialog):
         if trial is None:
             self._result.setText('Brak wyniku tej pary.')
         else:
-            quality = 'OK backendu (bez niezależnej oceny)' if trial.status == 'ok' else 'Do sprawdzenia'
+            quality = ('ustawione ręcznie — jakość nieoceniona' if trial.manual is not None
+                       else 'OK backendu (bez niezależnej oceny)' if trial.status == 'ok'
+                       else 'Do sprawdzenia')
             self._result.setText(f'{trial.label} · {quality} [{trial.status}]\n'
                                  f'ΔX: {trial.shift_xy[0]:g} px · ΔY: {trial.shift_xy[1]:g} px\n'
                                  'Przesunięcie nakładane na następną klatkę względem poprzedniej.\n'
                                  f'{trial.device}\n{trial.settings_text}')
         self._render()
+        self._sync()
 
     def _toggle_layer(self) -> None:
         self._layer.setCurrentIndex(1 if self._layer.currentIndex() == 0 else 0)
@@ -292,8 +372,12 @@ class PairComparisonDialog(QDialog):
         if self._images is None:
             return
         trial = self._selected_trial()
-        shifted = bool(self._alignment.currentData()) and trial is not None
-        shift = trial.shift_xy if shifted and trial is not None else (0.0, 0.0)
+        shift = (0.0, 0.0)
+        if bool(self._alignment.currentData()):
+            if self._draft is not None:
+                shift = self._draft.shift_xy
+            elif trial is not None:
+                shift = trial.shift_xy
         try:
             raster = self._images.render(shift, gamma=self._gamma.value(), layer=self._layer.currentData())
             pixels = raster.rgba
@@ -307,7 +391,7 @@ class PairComparisonDialog(QDialog):
                     f'({raster.overlap_fraction:.1%} pola odniesienia).')
             if not raster.overlap_pixels:
                 text += '\nBrak wspólnego ważnego obszaru.'
-            if bool(self._alignment.currentData()) and trial is None:
+            if bool(self._alignment.currentData()) and trial is None and self._draft is None:
                 text += '\nBrak wyniku — wyświetlane przed dopasowaniem.'
             self._overlap.setText(text)
         except (ValueError, MemoryError, OverflowError) as error:
