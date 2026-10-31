@@ -4,10 +4,21 @@ ID: 22
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: open
-Assignee:
+Status: claimed
+Assignee: Codex — domains/start
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 17, 20, 21a
+
+## Podjęcie — 2026-10-31
+
+Na polecenie użytkownika wykonujemy zamrożony zakres 22: sześć fitów
+transferowych SSL i trzy transdukcyjne, kontrolę tego samego encodera
+przed uczeniem oraz FFT × FH/MWS. Główna skala to 48 px; 32/64 px
+i centra pozostają diagnostyką tych samych wag. Limit i parametry
+protokołu 20 pozostają niezmienione, bez INPAINTAFF lub strojenia bramki.
+Kontrole przygotowane w 20 i oglądane w 21 są oceną rozwojową;
+TTMAPP jest jedną skorelowaną akwizycją. Osobny budżet 21a nie zużywa
+dziewięciu pozostałych fitów 22. Wyniki zapisujemy w `.scratch/local-ssl-22/`.
 
 ## Kolejność po uzupełnieniu 21 — 2026-10-31
 
