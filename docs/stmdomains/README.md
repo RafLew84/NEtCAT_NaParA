@@ -12,8 +12,13 @@ początku ticketu. Zachowujemy prototypy i wyniki jako punkty odniesienia.
 [Krok 20](issues/20-self-supervised-training-preparation.md) wykonano, `resolved`:
 [dane, protokół i techniczna próba GPU](self-supervised-training-preparation.md).
 38 622 rekordy wycinków, 81 nowych kontroli, 78 testów i bitowo identyczne
-wznowienie dla trzech ziaren. Następne są 21 i 22, nadal `open`;
-właściwych treningów tych modeli nie uruchomiono. Jakość 04, odbiór 13 i druga mapa są otwarte.
+wznowienie dla trzech ziaren.
+[Próbę 21](autoencoder-domains-trial.md) wykonano (`resolved`): 18/18 fitów,
+25 200 predykcji, 143 testy i galeria `.scratch/autoencoder-21/index.html`.
+Nie wykazano poprawy domen: końcowe coverage częściowych referencji TTMAPP
+0% w transferze, najwyżej 0,51% w transdukcji. Nie przyjęto detektora.
+Następne jest niezależne 22 (`open`), potem decyzja 23. Jakość 04, odbiór 13
+i druga mapa pozostają otwarte; treningu SSL jeszcze nie rozpoczęto.
 
 **Decyzja użytkownika — 2026-10-31:** najpierw wykonujemy 21/22 na obecnym
 TTMAPP i przygotowanych kontrolach według protokołu 20. Przygotowanie

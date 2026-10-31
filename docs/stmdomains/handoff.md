@@ -1,3 +1,51 @@
+# STM Domains — wykonana próba AE/rVAE, issue 21
+
+Data: **2026-10-31**. Na polecenie użytkownika wykonano zamkniętą próbę
+[21](issues/21-autoencoder-domains.md), status **`resolved`** jako zakończony
+eksperyment, bez przyjęcia detektora. [Raport](autoencoder-domains-trial.md),
+[manifest dowodów](autoencoder-domains-manifest.json).
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/start`, baza
+`77126f2`. Commit w odpowiedzi końcowej; kopia źródła prototypu na
+`prototype/stmdomains-autoencoder-domains`. Integracja przez koordynatora.
+
+18/18 fitów, 29 700 kroków, 469,09 s treningu; bez restartów lub instalacji.
+12 transferowych fitów AE/rVAE z16/z32 i sześć transdukcyjnych z32.
+25 200 predykcji, 26 160 ocen z pomocniczym mapowaniem centrów. Właściwe
+modele, FFT/ACF, train-only PCA, FH/MWS, odmowy, ocena i galeria są
+w `stmdomains/experiments/training/`; nie rozpoczęto lokalnego SSL.
+
+**Wynik negatywny:** żaden główny z32 nie spełnia kryteriów kontynuacji.
+Końcowe TTMAPP: transfer 0/174, transdukcja najwyżej 4/782 (0,51%),
+bez dostępnego porównania błędów po odmowach. Wspólna bramka przepuszcza
+tylko około 1,5% pełnych okien TTMAPP, a zarazem tworzy fałszywe domeny
+na niezależnych rzędach. Przed odmowami pozostają scalenia i rozdrobnienie.
+rVAE koduje głównie jasność, bez wiarygodnego kąta sieci. Dokładne wartości,
+kontrole granic, trzy ziarna i mianowniki są w raporcie oraz lokalnych CSV.
+
+Sprawdzenia: **143 testy przeszły**, bitowo identyczne wznowienie AE/rVAE,
+297 checkpointów i wybór walidacyjny sprawdzone. Audyt eksportu zachował
+tablice/relacje/przypisania. 100 299 hashy zweryfikowano przed odczytem
+referencji. 1800/1800 zgodnych porównań siatki przy brakach centrów.
+Galeria: 15 interakcji, zero błędów JS; obejrzano finalne screenshoty/PNG.
+Brak odbioru natywnego GUI. Dane, wagi i duże wyniki poza Git.
+
+Lokalnie `.scratch/autoencoder-21/`: `index.html`, `evaluation/`,
+`feature-diagnostics.json`, `figures/`, checkpointy i zamrożony manifest.
+Odtworzenie opisuje [AUTOENCODER.md](../../stmdomains/experiments/training/AUTOENCODER.md).
+Zmiany tylko w zakresie Domains; brak potrzebnych wspólnych zmian.
+GPU i zapis metadanych Git wymagają wykonania poza sandboxem.
+
+Następne **22**, potem **23**; 24–26 warunkowe. Zachować wspólny protokół,
+bez strojenia na kontrolach ujawnionych w 21. Dla 22 pozostaje dziewięć
+fitów ze wspólnego budżetu 27; uwzględnić koszt/checkpointy 21, w tym
+1056,61 s zmierzonego CPU przygotowania, inferencji, podziału i oceny.
+Porównanie SSL przed odmowami może ocenić relacje, ale ta sama bramka
+nadal ogranicza końcowe coverage. Dodatkowe MPP/STP pozostają odłożone.
+Jedna akwizycja, niepewna rejestracja i częściowe referencje nie rozstrzygają
+generalizacji na inne materiały. Nie otwieramy ponownie 19.
+
+---
+
 # STM Domains — najpierw pilot na obecnych danych
 
 Data: **2026-10-31**. Użytkownik zdecydował, aby najpierw wykonać 21/22

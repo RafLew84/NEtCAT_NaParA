@@ -13,7 +13,9 @@ Statusy i zależności przechowujemy w ticketach; indeks poniżej grupuje je wed
 cząstkowe i ograniczenia. Przygotowanie [20](20-self-supervised-training-preparation.md)
 wykonano (`resolved`): [raport](../self-supervised-training-preparation.md),
 [protokół](../self-supervised-training-protocol.md), 78 testów i identyczne
-wznowienie GPU dla trzech ziaren. Następne są niezależne 21 i 22 (`open`);
+wznowienie GPU dla trzech ziaren. [21 wykonano](../autoencoder-domains-trial.md)
+(`resolved`): 18 fitów, 25 200 predykcji, 143 testy; nie wykazano poprawy
+końcowych domen. Następne jest 22 (`open`), potem decyzja 23;
 jakość 04 i odbiór 13 pozostają otwarte.
 Wcześniejsze statusy w poniższej chronologii opisują historyczne decyzje.
 
@@ -267,14 +269,14 @@ relacje przez granice, pełne propozycje domen i odmowy; nie powtarza serii 19.
 | Pytanie/zadanie | Typ | Kolejność |
 | --- | --- | --- |
 | [20 — Jak przygotować odtwarzalny trening bez etykiet domen?](20-self-supervised-training-preparation.md) | task / AFK | `resolved`: dane, GPU/checkpoint, protokół relacji, budżet i kryteria gotowe |
-| [21 — Czy AE i rVAE uczą się cech przydatnych do odkrywania domen?](21-autoencoder-domains.md) | prototype / HITL | Po 17 i 20; AE/rVAE oraz wspólny pilot granic i podziału |
+| [21 — Czy AE i rVAE uczą się cech przydatnych do odkrywania domen?](21-autoencoder-domains.md) | prototype / HITL | `resolved`: 18 fitów i porównanie granic/podziału wykonane, bez poprawy końcowych domen |
 | [22 — Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](22-local-self-supervised-domains.md) | prototype / HITL | Po 17 i 20; lokalne SSL z pilotem relacji, niezależnie od 21 |
 | [23 — Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md) | grilling / HITL | Po 19, 21 i 22; ocena cech, relacji, podziału i odmów; decyzja o kontynuacji |
 | [24 — Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md) | prototype / HITL | Warunkowo: wybrane w 23, po wyniku 15 |
 | [25 — Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md) | prototype / HITL | Warunkowo: wybrane w 23 |
 | [26 — Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md) | prototype / HITL | Warunkowo: wybrane w 23, z zachowanym modelem odniesienia |
 
-18, 19 i 20 są zakończone; najbliższe zadania to niezależne 21 i 22.
+18, 19, 20 i 21 są zakończone; najbliższe zadanie to niezależne 22.
 Próby 21 i 22 wymagają wyniku tekstury, również negatywnego, i wspólnego
 przygotowania 20; żadna nie wymaga powodzenia drugiej. Ich zestawienie
 23 korzysta również z zachowanych wyników 19. Wspólny pilot nie dodaje

@@ -21,8 +21,11 @@ Ustalenia mają pozwolić rozwinąć odebrany szkielet STM Domains.
 składniki jako punkty odniesienia. Protokół jakości 04, odbiór 13 i ta mapa
 pozostają otwarte. [Przygotowanie 20](self-supervised-training-preparation.md)
 wykonano (`resolved`): dane, rozdzielone protokoły, pomiar GPU i wznowienie,
-budżet oraz kryteria. Następne są niezależne 21 i 22, oba `open`.
-Techniczna próba 20 nie jest wykonaniem treningów lub porównań tych modeli.
+budżet oraz kryteria. [21 wykonano](autoencoder-domains-trial.md), `resolved`:
+18/18 fitów, pełne porównanie 2 × 2, bez wykazanej poprawy końcowych domen.
+Transfer TTMAPP: 0/174 przypisań; transdukcja najwyżej 4/782.
+143 testy i galeria HTML zweryfikowane. Następne jest niezależne 22 (`open`),
+potem 23; nie wybrano metody do aplikacji.
 
 **Decyzja użytkownika — 2026-10-31:** 21/22 wykonujemy najpierw na obecnym
 TTMAPP i kontrolach przygotowanych w 20. Użytkownik przygotuje dodatkowe
@@ -239,7 +242,15 @@ nie zamknięto przez samo dodanie go do mapy.
   81 odłożonych kontroli, osobne transfer/transdukcja, protokół 2 × 2 i budżet.
   78 testów i identyczne wznowienie GPU dla trzech ziaren. [Raport](self-supervised-training-preparation.md).
   Nie jest to wynik detekcji; niska wiarygodność rejestracji i mały train
-  ograniczają ocenę przenoszenia. 21/22 pozostają do wykonania.
+  ograniczają ocenę przenoszenia. Później wykonano 21; 22 pozostaje otwarte.
+
+- [Czy AE i rVAE uczą się cech przydatnych do odkrywania domen?](issues/21-autoencoder-domains.md):
+  **`resolved` — wykonana zamknięta próba**. [Raport](autoencoder-domains-trial.md)
+  i [manifest](autoencoder-domains-manifest.json): 18 fitów, 25 200 predykcji,
+  trzy skale, trzy ziarna, FH/MWS i pełne odmowy. Nie wykazano korzyści
+  końcowego detektora; niskie coverage, granice i fałszywe domeny niezależnych
+  rzędów pozostają lukami. Typ i niezwalidowane kąty są `null`.
+  Siatka jest niezmienna przy brakach centrów. Dalsza decyzja po 22 należy do 23.
 
 - [Czy gotowe cechy sieci pomagają znaleźć domeny?](issues/19-frozen-feature-domains.md):
   **`resolved` — seria zakończona na polecenie użytkownika 2026-10-31**.

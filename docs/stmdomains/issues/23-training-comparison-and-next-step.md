@@ -25,6 +25,12 @@ uruchamia badań; status pozostaje `open`, a 24–26 nadal są warunkowe.
 
 ## Materiał do decyzji
 
+- [Wykonana próba 21](../autoencoder-domains-trial.md): 18/18 fitów AE/rVAE,
+  bez spełnienia kryteriów kontynuacji. Bramka porządku daje niemal pełne
+  odmowy na TTMAPP, lecz także fałszywe domeny niezależnych rzędów.
+  Surowy kąt rVAE nie rozpoznaje orientacji. Zapisane wyniki przed odmowami
+  pozwalają oddzielić tę lukę od cech i podziału. Ostateczne zestawienie
+  nadal czeka na 22; samo ukończenie 21 nie wybiera rozszerzenia danych lub 24–26.
 - Tabela wspólnych kontroli, błędów i odmów, stabilności względem ziaren
   oraz zakresu. Oddzielić zero/jedną/wiele domen, typ/orientację, rozstaw,
   granice przesunięcia, nieporządek i brak danych; zobaczyć pełne nakładki.

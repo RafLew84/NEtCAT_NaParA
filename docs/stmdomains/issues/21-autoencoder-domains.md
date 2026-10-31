@@ -4,10 +4,39 @@ ID: 21
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: open
-Assignee:
+Status: resolved
+Assignee: domains/start
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 17, 20
+
+## Answer — 2026-10-31
+
+Wykonano pełną zamkniętą próbę: [raport](../autoencoder-domains-trial.md),
+[manifest](../autoencoder-domains-manifest.json). Status `resolved` oznacza
+zakończony eksperyment, bez przyjęcia detektora do aplikacji.
+
+18/18 fitów AE/rVAE, 29 700 kroków, trzy ziarna, osobny transfer i transdukcja.
+Porównano FFT/uczone cechy × FH/MWS przed i po odmowach, trzy skale oraz
+siatkę i centra. Zapisano 25 200 predykcji i 26 160 rekordów oceny.
+Żadna z ośmiu głównych konfiguracji z32 nie spełnia kryteriów kontynuacji.
+
+Na częściowych referencjach TTMAPP transfer daje 0/174 końcowych przypisań;
+transdukcja najwyżej 4/782 (0,51%). Wspólna bramka odrzuca niemal wszystko,
+a przed odmowami pozostają scalenia i rozdrobnienie. rVAE nie wydzielił
+wiarygodnej orientacji sieci; jego kod silnie wiąże się z jasnością.
+Zawodzą także niezależne rzędy i kontrole granic. Siatka pozostaje niezależna
+od braków centrów: 1800/1800 zgodnych porównań całej próby.
+
+143 testy przeszły; oba wznowienia GPU są bitowo identyczne. Audyt
+100 299 artefaktów poprzedzał odczyt referencji. Galeria HTML przeszła
+15 sprawdzeń interakcji, bez błędów JS; nie jest to odbiór natywnego GUI.
+Kod badawczy znajduje się w `stmdomains/experiments/training/`, źródło
+prototypu zachowuje gałąź `prototype/stmdomains-autoencoder-domains`.
+Artefakty lokalne: `.scratch/autoencoder-21/`, w tym `index.html`.
+
+Nie zmieniano parametrów po ocenie. Wynik dotyczy tej konfiguracji i jednej
+akwizycji; nie rozstrzyga skuteczności na szerszych danych. Następny krok
+to niezależne 22, potem wspólna decyzja 23. Nie rozpoczęto 22 ani 24–26.
 
 ## Question
 
@@ -21,8 +50,8 @@ a nie gotowym rozwiązaniem: jego część dyskretna miała zadaną liczbę skł
 [badaniem usprawnień](../research-domain-plan-improvements.md) głównym
 sprawdzianem cech są lokalne relacje i zachowanie granic. Obowiązuje
 [wspólny protokół 20](20-self-supervised-training-preparation.md#wspólny-protokół-relacji-i-podziału).
-Pilot jest częścią tego ticketu, bez osobnego 20a. Zadanie pozostaje `open`;
-akceptacja planu nie oznacza wykonania treningu.
+Pilot jest częścią tego ticketu, bez osobnego 20a. Przy przyjęciu planu
+zadanie pozostawało `open`; późniejsze wykonanie opisuje Answer powyżej.
 
 ## Porównanie
 
