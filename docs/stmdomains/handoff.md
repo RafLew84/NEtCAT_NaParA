@@ -1,3 +1,32 @@
+# STM Domains — badanie usprawnień planu
+
+Data: **2026-10-31**. Na polecenie użytkownika wykonano przegląd według
+skilla `research`: [raport](research-domain-plan-improvements.md).
+Źródła pierwotne: podział grafu MWS/multicut, rozdzielenie klastrów
+i instancji SEM, cechy STM/SSL, INPAINTAFF i ocena błędów/odmów.
+Oddzielono dowody z innych rodzajów mikroskopii od hipotez dla TTMAPP.
+
+Główna rekomendacja: ukierunkować 21/22 na lokalne relacje i granice;
+oddzielnie oceniać wpływ cech, podziału przestrzennego i odmów, z małym
+porównaniem 2 × 2. 19 już obejmowało graf FH i krawędzie — nie powtarzać
+tej serii jako rzekomo nowego pomysłu. MWS jest kandydatem do ograniczonej
+próby relacji przyciągających/odpychających, nie gotowym detektorem STM.
+Katalog typów, materiał i wiarygodność pozostają osobnymi informacjami.
+Raport proponuje doprecyzowanie 20–23; nie zmieniono ticketów, zależności
+ani statusów. 19 nadal `resolved`, 20 nierozpoczęte, 24–26 warunkowe.
+
+Własny worktree `/tmp/netcat-stmdomains-domain-plan-research`, gałąź
+`domains/domain-plan-research`, baza `f444b2a`. Commit dokumentacji
+w odpowiedzi końcowej; przekazanie do `domains/start`, integracja przez
+koordynatora. Historia tego pliku zachowana, bez zmian wspólnych/Viewer.
+
+Sprawdzenia: lektura publikacji/kodu i istniejących raportów, osobny audyt
+zgodności zaleceń z historią oraz kontrola lokalnych linków i `git diff --check`.
+Nie wykonywano eksperymentu, treningu, instalacji, testów programu ani GUI.
+Żadna rekomendacja nie jest wynikiem potwierdzonej poprawy na STM.
+
+---
+
 # STM Domains — galeria zapisanych propozycji domen
 
 Data: **2026-10-31**. Na prośbę użytkownika wyeksportowano istniejące wyniki

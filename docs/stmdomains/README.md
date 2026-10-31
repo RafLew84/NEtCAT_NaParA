@@ -17,6 +17,11 @@ trzy klatki TTMAPP oraz kontrolę syntetyczną: PNG, porównanie metod 15/16
 i przypisania CSV. To częściowe propozycje grup molekuł, bez zatwierdzonych
 konturów domen; eksport nie uruchamia kolejnej próby badawczej.
 
+[Przegląd usprawnień kolejnych prób](research-domain-plan-improvements.md)
+proponuje konkretniejszy test relacji między otoczeniami oraz oddzielne
+porównanie cech, podziału i odmów w 20–23. To rekomendacje na podstawie
+źródeł i historii wyników; nie rozpoczęto treningu ani nowego eksperymentu.
+
 Poniższy opis zachowuje historię projektu; wcześniejsze statusy `claimed`
 i odłożenie 20 dotyczą ówczesnych decyzji, zastąpionych powyższym zamknięciem.
 

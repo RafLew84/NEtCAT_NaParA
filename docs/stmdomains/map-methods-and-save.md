@@ -27,6 +27,13 @@ z prób 15 i 16: trzy klatki TTMAPP i kontrolę dwóch orientacji. Eksport
 istniejących przypisań pokazuje grupy molekuł, bez nowych obliczeń ani
 konturów domen; nie zmienia decyzji o metodach lub statusu ticketów.
 
+2026-10-31 wykonano [przegląd usprawnień planu](research-domain-plan-improvements.md).
+Rekomenduje ocenę lokalnych relacji/granic w najbliższych treningach oraz
+ograniczone porównanie wpływu cech, podziału i odmów. Uwzględnia, że graf
+i granice już badano w 19; nie proponuje ponownego strojenia tej serii.
+To materiał do doprecyzowania 20–23, bez zmiany ich zakresu, zależności
+lub statusów i bez uruchomienia kolejnych prób. 24–26 pozostają warunkowe.
+
 Historia zakończonej serii: wcześniej użytkownik wybrał pozostanie w 19
 oraz odłożył 20. Wykonano [audyt wektorów i odmów](vector-refusal-audit.md),
 a następnie [ocenę rodziny przesunięć](translation-family-trial.md).
