@@ -201,7 +201,7 @@ class PairComparisonDialog(QDialog):
         self._trial = None
         self._pinned = None
         self._draft = None
-        self._manual.info.setText('Krok: 1 px oryginału · +X w prawo, +Y w dół.')
+        self._manual.show_draft(None)
         with QSignalBlocker(self._trial_choice):
             self._trial_choice.clear()
             self._trial_choice.addItem('B — ostatnia', 'B')
@@ -260,7 +260,7 @@ class PairComparisonDialog(QDialog):
         self._draft = None
         with QSignalBlocker(self._alignment):
             self._alignment.setCurrentIndex(self._manual_before_alignment)
-        self._manual.info.setText('Krok: 1 px oryginału · +X w prawo, +Y w dół.')
+        self._manual.show_draft(None)
         self._message.setText('Odrzucono edycję. Zapisane próby A/B pozostają bez zmian.')
         self._show_trial()
         self._sync()
@@ -268,12 +268,7 @@ class PairComparisonDialog(QDialog):
     def _show_manual(self) -> None:
         if self._draft is None:
             return
-        x, y = self._draft.shift_xy
-        sx, sy = self._draft.start_xy
-        dx, dy = self._draft.correction_xy
-        self._manual.info.setText(f'Szkic: ΔX: {x:g} px · ΔY: {y:g} px\n'
-                                 f'Start: ({sx:g}, {sy:g}) px; korekta: ({dx:+d}, {dy:+d}) px\n'
-                                 'Krok: 1 px oryginału · +X w prawo, +Y w dół.')
+        self._manual.show_draft(self._draft)
         with QSignalBlocker(self._alignment):
             self._alignment.setCurrentIndex(1)
         self._render()
@@ -285,7 +280,7 @@ class PairComparisonDialog(QDialog):
         self._draft = None
         with QSignalBlocker(self._trial_choice):
             self._trial_choice.setCurrentIndex(0)
-        self._manual.info.setText('Krok: 1 px oryginału · +X w prawo, +Y w dół.')
+        self._manual.show_draft(None)
         self._message.setText('Zachowano ręczną próbę B. Pełny aligned pozostaje bez zmian.')
         self._show_trial()
         self._sync()

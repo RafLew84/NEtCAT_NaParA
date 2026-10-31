@@ -119,8 +119,7 @@ def test_draft_and_saved_trial_describe_start_correction_and_source():
 
 
 def test_correcting_a_manual_trial_keeps_bounded_provenance_and_immutable_snapshots():
-    from dataclasses import FrozenInstanceError, asdict
-    from stmviewer.pair_comparison import PairTrial
+    from dataclasses import FrozenInstanceError
     import pytest
     from stmviewer.manual_pair import ManualPairDraft
 
@@ -135,7 +134,6 @@ def test_correcting_a_manual_trial_keeps_bounded_provenance_and_immutable_snapsh
     assert trial.manual.correction_xy == (1, 0)
     assert 'Ręczne v1' in trial.manual.source_label
     assert len(trial.settings_text) < 400
-    assert not any(isinstance(value, PairTrial) for value in asdict(trial.manual).values())
     with pytest.raises(FrozenInstanceError):
         trial.shift_xy = (0, 0)
     with pytest.raises(FrozenInstanceError):

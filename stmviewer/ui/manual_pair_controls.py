@@ -4,6 +4,11 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import QGridLayout, QGroupBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 
+from stmviewer.manual_pair import ManualPairDraft
+
+_STEP_HELP = 'Krok: 1 px oryginału · +X w prawo, +Y w dół.'
+
+
 class ManualPairControls(QGroupBox):
     start_zero = pyqtSignal()
     nudged = pyqtSignal(int, int)
@@ -23,7 +28,7 @@ class ManualPairControls(QGroupBox):
         self.correct.setObjectName('manualPairCorrect')
         self.correct.clicked.connect(self.start_copy.emit)
         layout.addWidget(self.correct)
-        self.info = QLabel('Krok: 1 px oryginału · +X w prawo, +Y w dół.', self)
+        self.info = QLabel(_STEP_HELP, self)
         self.info.setObjectName('manualPairInfo')
         self.info.setTextFormat(Qt.TextFormat.PlainText)
         self.info.setWordWrap(True)
@@ -52,6 +57,17 @@ class ManualPairControls(QGroupBox):
         self.discard.clicked.connect(self.discarded.emit)
         row.addWidget(self.discard)
         layout.addLayout(row)
+
+    def show_draft(self, draft: ManualPairDraft | None) -> None:
+        if draft is None:
+            self.info.setText(_STEP_HELP)
+            return
+        x, y = draft.shift_xy
+        sx, sy = draft.start_xy
+        dx, dy = draft.correction_xy
+        self.info.setText(f'Szkic: ΔX: {x:g} px · ΔY: {y:g} px\n'
+                         f'Start: ({sx:g}, {sy:g}) px; korekta: ({dx:+d}, {dy:+d}) px\n'
+                         + _STEP_HELP)
 
     def sync(self, *, available: bool, editing: bool, can_copy: bool) -> None:
         self.zero.setEnabled(available and not editing)
