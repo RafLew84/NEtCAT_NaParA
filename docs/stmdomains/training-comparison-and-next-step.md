@@ -2,11 +2,11 @@
 
 Data: **2026-11-01**. [Ticket 23](issues/23-training-comparison-and-next-step.md).
 Zestawienie zapisanych wyników, bez nowego treningu, predykcji lub strojenia.
-Status decyzji: **rekomendacja do omówienia z użytkownikiem**.
+Status decyzji: **przyjęta przez użytkownika 2026-11-01; ticket 23 `resolved`**.
 
 **Nie wykazano poprawy końcowego wykrywania domen po uczeniu AE/rVAE,
-zmianie dekodera/KL ani lokalnym SSL w ustalonym budżecie. Rekomendujemy
-zakończyć tę serię porównań bez wyboru detektora i bez aktywowania 24–26.**
+zmianie dekodera/KL ani lokalnym SSL w ustalonym budżecie. Użytkownik
+zdecydował zakończyć tę serię porównań bez wyboru detektora i bez aktywowania 24–26.**
 Nie oznacza to, że FFT jest wystarczającym detektorem albo że większy zbiór
 nie może pomóc. Obecny wynik nie uzasadnia jeszcze kosztu przygotowania
 całego archiwum MPP/STP. Jakość 04 i odbiór 13 pozostają otwarte.
@@ -204,7 +204,7 @@ innych molekułach/podłożach. Więcej wycinków tych samych klatek nie
 zastępuje niezależnych pomiarów, ale sama liczba plików również nie naprawia
 udowodnionego ograniczenia zachowanego filtra.
 
-## Rekomendacja i granica dalszych prac
+## Przyjęta decyzja i granica dalszych prac
 
 | Możliwy kierunek | Ocena na podstawie obecnych wyników |
 | --- | --- |
@@ -214,8 +214,9 @@ udowodnionego ograniczenia zachowanego filtra.
 | Encoder ekwiwariantny | Niewiarygodny kąt rVAE jest faktem, lecz sama naprawa kąta nie usunie ograniczenia odmów i nie dowiedzie granicy przy tym samym kącie |
 | Większy zbiór lub GPU | Potencjalne przyszłe zasoby, bez wykazanej teraz korzyści dla konkretnej wybranej procedury |
 
-Proponowana decyzja: zakończyć obecny pilot, pozostawić **24–26 niewybrane
-i warunkowe**, bez nowych fitów, zbioru lub budżetu. Nie oznaczać tych
+Decyzja przyjęta przez użytkownika 2026-11-01: kończymy obecny pilot,
+pozostawiamy **24–26 niewybrane i warunkowe**, bez nowych fitów, zbioru
+lub budżetu. Dodatkowe MPP/STP pozostają odłożone. Nie oznaczać tych
 rodzin jako wykonanych ani naukowo nieskutecznych. Nie przyjmować FFT
 lub historycznej metody przez brak zwycięzcy uczenia. **13 pozostaje otwarty**.
 

@@ -16,11 +16,12 @@ Ustalenia mają pozwolić rozwinąć odebrany szkielet STM Domains.
 ## Notes
 
 **Aktualny stan — 2026-11-01.**
-[Zestawienie 23](training-comparison-and-next-step.md) jest przygotowane;
-ticket pozostaje `claimed` do omówienia decyzji użytkownika. Rekomendujemy
-zakończyć serię bez przyjęcia detektora i bez aktywacji 24–26. Raport
+[Zestawienie 23](training-comparison-and-next-step.md) zakończono;
+ticket jest **`resolved`**. Użytkownik zdecydował zakończyć obecny pilot
+bez przyjęcia detektora i pozostawić 24–26 niewybrane i warunkowe. Raport
 oddziela błąd granic od limitu bramki, zachowuje osobne warunki 21a
-i historycznych prób 15–19. Nie dodano fitów, danych ani nowego budżetu.
+i historycznych prób 15–19. Dodatkowe MPP/STP pozostają odłożone;
+nie dodano fitów ani nowego budżetu. Jakość 04 i odbiór 13 nadal są otwarte.
 
 **Zakończone próby i przyjęty plan — 2026-10-31.**
 [Podsumowanie i rozstrzygnięcie](issues/19-frozen-feature-domains.md): **19
@@ -211,8 +212,8 @@ Nie powielają oddzielnych poszukiwań solvera i progów. Ich zestawienie z goto
 cechami sieci kończy się [decyzją o dalszym zakresie](issues/23-training-comparison-and-next-step.md).
 Grafy molekuł, maskowany autoenkoder i adaptacja gotowego modelu są
 warunkowymi rozszerzeniami, wybieranymi na podstawie konkretnej luki.
-Odbiór 13 czeka na decyzję 23; wybrane w niej rozszerzenia dopisujemy do
-jego zależności. Niewybrane warianty nie blokują odbioru. Przygotowanie
+Decyzja 23 zakończyła pilot bez wyboru rozszerzeń; nie dopisujemy 24–26 do
+zależności 13. Niewybrane warianty nie blokują odbioru. Przygotowanie
 treningu może przebiegać obok przygotowania zamrożonych modeli.
 
 Sprzęt do pierwszych prób: RTX 5090 z 32 GB VRAM i 128 GB RAM.
@@ -266,6 +267,14 @@ nie zamknięto przez samo dodanie go do mapy.
 
 ## Decisions so far
 
+- [Czy trening daje poprawę i które rozszerzenie warto wykonać?](issues/23-training-comparison-and-next-step.md):
+  **`resolved` — decyzja użytkownika 2026-11-01: zakończyć obecny pilot**.
+  [Raport](training-comparison-and-next-step.md) i [manifest](training-comparison-manifest.json)
+  zachowują porównanie 21/22, osobne 21a i historyczne wyniki 15–19.
+  Częściowe zyski cech nie spełniają całych kryteriów; brak przyjętego detektora.
+  24–26 pozostają niewybrane i warunkowe, dodatkowe dane odłożone,
+  bez nowych fitów lub budżetu. 04 i 13 pozostają otwarte.
+
 - [Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](issues/22-local-self-supervised-domains.md):
   **`resolved` — zakończony eksperyment**. [Raport](local-self-supervised-trial.md),
   [manifest](local-self-supervised-manifest.json): 9 fitów, 18 000 kroków,
@@ -274,7 +283,7 @@ nie zamknięto przez samo dodanie go do mapy.
   transfer 0/174, transdukcja najwyżej 4/782. Bramka/spójność ma te same
   limity niezależnie od cech; SSL ma także F1=0 granic przed odmowami.
   181 testów, 2808 identycznych archiwów FFT, galeria po 89 interakcjach.
-  Zestawienie i decyzja należą teraz do 23; nie przyjęto detektora.
+  Zestawienie i decyzję zakończono w 23; nie przyjęto detektora.
 
 - [Czy zmiana dekodera i regularyzacji poprawia rVAE?](issues/21a-rvae-decoder-and-kl.md):
   **`resolved` — zakończona ograniczona próba**. [Raport](rvae-decoder-kl-trial.md),
@@ -283,7 +292,7 @@ nie zamknięto przez samo dodanie go do mapy.
   o około 14%, ale pozostają wygładzone rekonstrukcje i błędna orientacja.
   Wszystkie warianty po odmowach dają 0/174 przypisań TTMAPP; żaden nowy
   wariant z FH/MWS nie spełnia kryteriów. 161 testów i 672 identyczne
-  tablice bazowe. Następnie wykonano 22; wspólna decyzja należy do 23.
+  tablice bazowe. Następnie wykonano 22 i zakończono wspólną decyzję 23.
 
 - [Jak przygotować trening bez etykiet?](issues/20-self-supervised-training-preparation.md):
   **`resolved` — przygotowanie wykonane**. 24 klatki, 38 622 rekordy wycinków,
@@ -299,7 +308,7 @@ nie zamknięto przez samo dodanie go do mapy.
   końcowego detektora; niskie coverage, granice i fałszywe domeny niezależnych
   rzędów pozostają lukami. Typ i niezwalidowane kąty są `null`.
   Siatka jest niezmienna przy brakach centrów. Osobne uzupełnienie
-  [21a](issues/21a-rvae-decoder-and-kl.md) poprzedza 22; wspólna decyzja należy do 23.
+  [21a](issues/21a-rvae-decoder-and-kl.md) poprzedza 22; wspólną decyzję zakończono w 23.
 
 - [Czy gotowe cechy sieci pomagają znaleźć domeny?](issues/19-frozen-feature-domains.md):
   **`resolved` — seria zakończona na polecenie użytkownika 2026-10-31**.
@@ -333,9 +342,9 @@ jego implementacja i odbiór na wynikach metod pozostają do wykonania.
 [Zalecenia dotyczące dodatkowych MPP/STP](research-training-data-requirements.md)
 uwzględniają zgłoszone przez użytkownika różne molekuły/podłoża i rozmiary
 skanów w metadanych. Skład nowego zbioru, audyt kalibracji oraz grupowy
-podział akwizycji wymagają inwentaryzacji, odłożonej decyzją użytkownika
-do ewentualnego rozszerzenia po ocenie 23. Nie jest ona warunkiem wykonania
-21a/22 na obecnym zbiorze i nie zmienia przygotowania 20.
+podział akwizycji wymagają inwentaryzacji, nadal odłożonej decyzją użytkownika
+w 23. Nie wybrano rozszerzenia danych; zakończone 21a/22 korzystały z obecnego
+zbioru. Decyzja nie zmienia przygotowania 20.
 
 Kolejne akwizycje i wyniki nowych prób mogą ujawnić dodatkowe klasy błędów,
 potrzebę innych cech lub konkretnego połączenia informacji obrazu i centrów.

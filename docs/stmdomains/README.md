@@ -7,9 +7,9 @@ Katalog aplikacji: `stmdomains/`.
 
 [Porównanie 23](training-comparison-and-next-step.md) zestawia istniejące
 wyniki 19/21/21a/22, bez nowych fitów. Nie wykazano poprawy końcowych domen.
-Rekomendacja do omówienia: zakończyć obecny pilot bez wybrania detektora
-i pozostawić 24–26 niewybrane. Ticket 23 jest `claimed`, oczekuje decyzji
-użytkownika; 04 i 13 pozostają otwarte. Dodatkowe dane nadal są odłożone.
+Użytkownik przyjął decyzję o zakończeniu pilota bez wyboru detektora;
+ticket 23 jest **`resolved`**. Tickety 24–26 pozostają niewybrane
+i warunkowe, dodatkowe dane odłożone, a 04 i 13 otwarte.
 
 Na polecenie użytkownika [ticket 19](issues/19-frozen-feature-domains.md)
 zamknięto jako zakończoną serię badań (`resolved`). Nie wybrano detektora
@@ -34,9 +34,9 @@ wykrywania domen; transfer nadal 0/174 przypisań. Galeria lokalna:
 najwyżej 4/782 (0,51%), bez przewagi nad FFT. Zachowana bramka ze spójnością
 ma te same geometryczne limity, a SSL nie rozdziela granic także przed nią.
 Galeria: `.scratch/local-ssl-22/index.html`, 89 sprawdzonych interakcji.
-Trwa **23** — porównanie jest przygotowane, decyzja pozostaje do omówienia. Pierwotny budżet
+**23 zakończono** — porównanie i decyzja są zapisane. Pierwotny budżet
 27 fitów 21/22 został wykorzystany. Jakość 04, odbiór 13 i druga mapa
-pozostają otwarte; dodatkowe MPP/STP nadal są odłożone do tej decyzji.
+pozostają otwarte; dodatkowe MPP/STP nadal są odłożone zgodnie z decyzją 23.
 
 **Decyzja użytkownika — 2026-10-31:** najpierw wykonujemy 21/22 na obecnym
 TTMAPP i przygotowanych kontrolach według protokołu 20. Przygotowanie
@@ -165,9 +165,9 @@ Po dopuszczeniu treningu bez etykiet i ostatnim badaniu dodano
 treningu, AE/rVAE, lokalne SSL, porównanie z wcześniejszymi metodami oraz
 warunkowe próby grafów, maskowania i adaptacji gotowego modelu.
 Pierwsze próby dotyczą RTX 5090; przejście na 96 GB lub Colab wymaga
-uzasadnienia wynikiem i pomiarem. Odbiór 13 czeka na zestawienie 23,
-a dalej tylko na wybrane rozszerzenia. Trening nie został uruchomiony;
-w chwili dodania tych zadań następnym krokiem było przygotowanie wejścia 14.
+uzasadnienia wynikiem i pomiarem. Odbiór 13 ma już zestawienie 23;
+nie wybrano dalszych rozszerzeń. Samo dodanie tych zadań nie uruchamiało
+treningu; ówczesnym następnym krokiem było przygotowanie wejścia 14.
 
 2026-10-23 [zakończono przygotowanie 14](issues/14-unsupervised-input-and-controls.md).
 Gotowy [pakiet i raport](unsupervised-input-preparation.md) obejmuje 24 pełne

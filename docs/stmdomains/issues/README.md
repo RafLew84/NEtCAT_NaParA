@@ -8,9 +8,9 @@ implementacji i odbiorze szkieletu. Otwarte decyzje etapu 2 nie blokują etapu 1
 Statusy i zależności przechowujemy w ticketach; indeks poniżej grupuje je według map.
 
 **Aktualny stan 2026-11-01:** [23](23-training-comparison-and-next-step.md)
-jest `claimed`; [porównanie](../training-comparison-and-next-step.md)
-przygotowane, decyzja użytkownika do omówienia. Rekomendacja: zakończyć
-pilot bez detektora i pozostawić 24–26 niewybrane. Nie wykazano poprawy
+jest **`resolved`**; [porównanie](../training-comparison-and-next-step.md)
+zakończone, użytkownik przyjął decyzję o zakończeniu pilota bez detektora.
+24–26 pozostają niewybrane i warunkowe, dodatkowe dane odłożone. Nie wykazano poprawy
 końcowych domen; 04 i 13 pozostają otwarte.
 
 **Zakończone próby 2026-10-31:** [19](19-frozen-feature-domains.md) ma status
@@ -287,19 +287,19 @@ relacje przez granice, pełne propozycje domen i odmowy; nie powtarza serii 19.
 | [21 — Czy AE i rVAE uczą się cech przydatnych do odkrywania domen?](21-autoencoder-domains.md) | prototype / HITL | `resolved`: 18 fitów i porównanie granic/podziału wykonane, bez poprawy końcowych domen |
 | [21a — Czy zmiana dekodera i regularyzacji poprawia rVAE?](21a-rvae-decoder-and-kl.md) | prototype / HITL | `resolved`: 2 diagnostyki i 9 fitów; niższe MSE, bez poprawy końcowych domen |
 | [22 — Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](22-local-self-supervised-domains.md) | prototype / HITL | `resolved`: 9 fitów SSL; brak poprawy domen, osobna diagnoza granic i bramki |
-| [23 — Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md) | grilling / HITL | `claimed`: porównanie przygotowane, rekomendacja zamknięcia pilota do omówienia |
-| [24 — Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md) | prototype / HITL | Warunkowo: wybrane w 23, po wyniku 15 |
-| [25 — Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md) | prototype / HITL | Warunkowo: wybrane w 23 |
-| [26 — Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md) | prototype / HITL | Warunkowo: wybrane w 23, z zachowanym modelem odniesienia |
+| [23 — Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md) | grilling / HITL | `resolved`: użytkownik zakończył pilot bez detektora; dodatkowe dane odłożone |
+| [24 — Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md) | prototype / HITL | `open`, niewybrane w 23; warunkowe, z wynikiem 15 jako dodatkową przesłanką |
+| [25 — Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md) | prototype / HITL | `open`, niewybrane w 23; warunkowe |
+| [26 — Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md) | prototype / HITL | `open`, niewybrane w 23; warunkowe, z zachowanym modelem odniesienia |
 
-18, 19, 20, 21, 21a i 22 są zakończone; **23** jest podjęte.
+18, 19, 20, 21, 21a, 22 i **23** są zakończone.
 Własny budżet 21a wykorzystano na zamkniętą macierz dekoder × KL;
 protokół 20 pozostaje zamrożonym punktem odniesienia. Nie ponawiano
 strojenia bramki z 19. SSL wykorzystało wynik tekstury, przygotowanie 20
 i dziewięć pozostałych fitów; pierwotny budżet 27 fitów został wyczerpany.
 Zestawienie 23 obejmuje pierwotne 21, dodatek 21a, SSL i zachowane wyniki 19.
-Odbiór 13 czeka na 23, lecz nie na wszystkie warunkowe rodziny modeli.
-Jeśli w 23 wybierzemy rozszerzenie, dodajemy je do zależności 13 i diagramu.
+Odbiór 13 ma już wynik 23, lecz pozostaje otwarty. Nie wybrano rozszerzeń,
+więc nie dodajemy 24–26 do zależności 13 ani nowych krawędzi diagramu.
 Brak wyboru nie oznacza wykonania lub nieskuteczności tego rozszerzenia.
 
 Pierwsze próby planujemy na RTX 5090 32 GB VRAM / 128 GB RAM. Użycie

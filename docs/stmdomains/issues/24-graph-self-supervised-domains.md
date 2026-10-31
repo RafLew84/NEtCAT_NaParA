@@ -15,6 +15,10 @@ Rozszerzenie warunkowe: krok 23 wskazuje tę próbę i jej hipotezę, a wynik
 kroku 15 pozwala ocenić przydatność centrów. Samo spełnienie zależności nie
 uruchamia zadania. Obecnie nie wybrano go do wykonania.
 
+**Decyzja 23 — 2026-11-01:** użytkownik zakończył obecny pilot bez wyboru
+tej próby. Ticket pozostaje `open`, niewybrany i warunkowy; nie ma nowego
+budżetu ani zgody na rozpoczęcie treningu przez samo zakończenie 23.
+
 ## Question
 
 Czy uczenie bez etykiet na grafie zaznaczonych molekuł daje coś ponad

@@ -1,3 +1,31 @@
+# STM Domains — decyzja 23 zakończona
+
+Data: **2026-11-01**. Użytkownik zaakceptował rekomendację i zakończenie
+obecnego pilota. [Ticket 23](issues/23-training-comparison-and-next-step.md)
+ma status **`resolved`**: porównanie i decyzja wykonane, bez wyboru detektora.
+[Raport](training-comparison-and-next-step.md) oraz manifest i audyt
+z commita **`f5d9b56`** pozostają podstawą rozstrzygnięcia.
+
+24–26 pozostają `open`, **niewybrane i warunkowe**. Samo zakończenie 23
+nie włącza ich do kolejki ani zależności 13. Dodatkowe MPP/STP są odłożone;
+nie wybrano nowej próby, budżetu lub większego sprzętu. 04 i 13 pozostają
+otwarte. Zachowujemy częściowe korzyści i wskazane luki porządku/granic;
+nie przyjęto metody klasycznej przez brak zwycięzcy uczenia.
+
+Zaktualizowano datowaną odpowiedź, raport, mapę i indeks, warunki 24–26,
+README, stan odbioru 13 oraz notatki o eksperymentach i danych.
+Sprawdzenia obecnej zmiany: lokalne odnośniki, statusy i graf zależności,
+wykluczenie niewybranych rozszerzeń z kolejki oraz `git diff --check`.
+Nie ponawiano treningów, agregacji, testów kodu ani GUI; ta zmiana zapisuje
+zaakceptowaną decyzję. Audyty analizy są opisane w poprzednim przekazaniu.
+
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/start`, baza
+`f5d9b56`; commit zamknięcia w odpowiedzi końcowej. Zapis roboczy działa.
+Brak zmian wspólnych, kodu i artefaktów eksperymentów. Zapis metadanych Git
+wymaga dostępu poza sandboxem; integracja przez koordynatora.
+
+---
+
 # STM Domains — porównanie 23 przygotowane do decyzji
 
 Data: **2026-11-01**. Na polecenie użytkownika podjęto

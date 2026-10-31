@@ -14,6 +14,10 @@ Blocked by: 23
 Rozszerzenie warunkowe: krok 23 wskazuje konkretną lukę w reprezentacji
 otoczenia i wybiera tę próbę. Obecnie nie wybrano go do wykonania.
 
+**Decyzja 23 — 2026-11-01:** użytkownik zakończył obecny pilot bez wyboru
+tej próby. Ticket pozostaje `open`, niewybrany i warunkowy; nie ma nowego
+budżetu ani zgody na rozpoczęcie treningu przez samo zakończenie 23.
+
 ## Question
 
 Czy przewidywanie zakrytych fragmentów zmusza model do uczenia układu

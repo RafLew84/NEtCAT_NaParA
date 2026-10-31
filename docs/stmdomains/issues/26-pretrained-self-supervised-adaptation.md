@@ -15,6 +15,10 @@ Rozszerzenie warunkowe: krok 23 wybiera adaptację i wskazuje konkretny
 model dostępny po krokach 18–19 oraz oczekiwaną poprawę. Obecnie nie
 wybrano go do wykonania. Brak takiego modelu wymaga doprecyzowania zakresu.
 
+**Decyzja 23 — 2026-11-01:** użytkownik zakończył obecny pilot bez wyboru
+tej próby. Ticket pozostaje `open`, niewybrany i warunkowy; nie ma nowego
+budżetu ani zgody na rozpoczęcie treningu przez samo zakończenie 23.
+
 ## Question
 
 Czy dalsze uczenie bez etykiet na STM poprawia lokalne cechy gotowej

@@ -13,13 +13,13 @@ zakończenia utrzymujemy w ticketach, zamiast w dwóch równoległych planach.
 [Rejestr pytań](issues/README.md#próby-samodzielnego-znajdowania-domen)
 zawiera ich kolejność i diagram zależności.
 
-**Aktualny plan — 2026-10-31:** 19 jest zakończone, a po przyjęciu
-[usprawnień](research-domain-plan-improvements.md) kolejność to
-**20 → 21 i 22 → 23**. 20 ustala wspólny protokół i kryteria; 21/22
-obejmują pilot lokalnych relacji/granic oraz małe porównanie wpływu cech,
-podziału i odmów. Nie dodano osobnego zadania 20a. Rozszerzenia 24–26
-pozostają warunkowe. Treningu nie rozpoczęto; starszy opis poniżej
-zachowuje pochodzenie poszczególnych rodzin prób.
+**Aktualny stan — 2026-11-01:** zakończono 19, przygotowanie 20 oraz
+próby 21, 21a i 22. W [decyzji 23](issues/23-training-comparison-and-next-step.md)
+użytkownik przyjął zakończenie pilota bez wyboru detektora. [Porównanie](training-comparison-and-next-step.md)
+oddziela częściowe korzyści cech od błędów granic i odmów. Rozszerzenia
+24–26 pozostają niewybrane i warunkowe, dodatkowe dane odłożone;
+04 i 13 nadal są otwarte. Starszy opis poniżej zachowuje pochodzenie
+poszczególnych rodzin prób.
 
 | Obszar planu | Aktualne zadanie/pytanie |
 | --- | --- |

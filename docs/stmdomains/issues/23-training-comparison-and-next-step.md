@@ -4,10 +4,30 @@ ID: 23
 Type: grilling
 Labels: wayfinder:grilling
 Mode: HITL
-Status: claimed
+Status: resolved
 Assignee: Codex — domains/start
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 19, 21, 21a, 22
+
+## Answer — 2026-11-01
+
+Użytkownik przyjął rekomendację: **kończymy obecny pilot bez wyboru
+detektora domen**. Tickety **24–26 pozostają niewybrane i warunkowe**;
+nie uruchamiamy nowych treningów, nie przyznajemy nowego budżetu ani
+nie rozpoczynamy przygotowania dodatkowych MPP/STP. Jakość 04 i odbiór
+metody w 13 pozostają otwarte. Nie dodajemy 24–26 do zależności 13.
+
+[Porównanie](../training-comparison-and-next-step.md) zachowuje częściowe
+korzyści reprezentacji, ale żadna uczona procedura nie spełniła pełnych
+kryteriów kontynuacji. Pozostają dwie odrębne luki: lokalne relacje/granice
+przed odmowami oraz kryterium porządku i spójności. Brak zwycięzcy uczenia
+nie oznacza przyjęcia metod klasycznych ani nieskuteczności całych rodzin ML.
+
+Zachowujemy prototypy, modele, oceny i kontrole jako materiał do przyszłych
+porównań. Osobne dalsze badanie wymaga nowego wyboru konkretnej hipotezy,
+porównania kontrolnego i budżetu; nie wynika automatycznie z zakończenia 23.
+Status `resolved` oznacza wykonane zestawienie i uzgodnioną decyzję o zakresie,
+nie odbiór produkcyjnego detektora. Raport i audyt zapisano w `f5d9b56`.
 
 ## Zestawienie — 2026-11-01
 
@@ -17,10 +37,9 @@ oceną 21/22, oddzielnym 21a i historycznym kontekstem 15–19. Brak nowego
 treningu lub predykcji. Nie wykazano poprawy końcowych domen; rozdzielono
 nieudane granice przed odmowami od niezależnego limitu bramki/spójności.
 
-Rekomendacja do omówienia: zakończyć serię bez przyjęcia detektora,
-pozostawić 24–26 niewybrane i warunkowe, bez nowego budżetu lub zbioru.
-Nie jest to jeszcze decyzja użytkownika ani odbiór 13. Status pozostaje
-`claimed` do uzgodnienia odpowiedzi zgodnie z warunkiem zakończenia.
+Rekomendację zakończenia serii bez przyjęcia detektora, nowego budżetu
+lub zbioru następnie zaakceptował użytkownik; decyzja została zapisana
+powyżej. Zestawienie nie zalicza odbioru 13.
 
 ## Podjęcie — 2026-11-01
 

@@ -67,7 +67,8 @@ odbioru; 24–26 nadal nie są wymagane bez wyboru konkretnego rozszerzenia.
 
 **Uzupełnienie 2026-11-01:** [zestawienie 23](../training-comparison-and-next-step.md)
 nie wykazało poprawy końcowych domen przez trening i nie wybrało detektora.
-Rekomendacja zakończenia pilota oczekuje omówienia; nie aktywowano 24–26.
+Użytkownik przyjął zakończenie pilota; 23 jest `resolved`, a 24–26 pozostają
+niewybrane i warunkowe. Dodatkowe dane nadal są odłożone.
 Ograniczenie bramki nie unieważnia błędów granic przed odmowami, a brak
 wygranej uczenia nie zalicza metod klasycznych. Ten odbiór pozostaje otwarty.
 
@@ -190,14 +191,15 @@ odrzucić wszystkie gotowe cechy sieci; nie wymaga wyboru metody ML.
 ## Wynik treningu bez etykiet do uwzględnienia
 
 [Zestawienie pierwszych prób treningowych](23-training-comparison-and-next-step.md)
-porówna AE/rVAE i lokalne SSL z teksturą oraz zamrożonymi modelami.
-Odbiór wymaga tego wyniku, także negatywnego; nie wymaga wybrania metody
+porównało AE/rVAE i lokalne SSL z teksturą oraz historycznymi wynikami
+zamrożonych modeli. W 23 użytkownik zakończył pilot bez wyboru detektora.
+Odbiór uwzględnia ten negatywny wynik; nie wymaga wybrania metody
 uczonej. Rozdzielić poprawę na obecnej serii od przenoszenia na niewidziane
 dane i sprawdzić protokół podziału, pochodzenie wag, wybór checkpointu,
 stabilność, koszty oraz brak uczenia z ręcznych ramek.
 
-Grafy, maskowany autoenkoder i adaptacja modelu pozostają warunkowe.
-Przy wyborze któregoś w kroku 23 dodać jego ID do `Blocked by`, nazwany
+Grafy, maskowany autoenkoder i adaptacja modelu pozostają niewybrane i warunkowe.
+Przy odrębnym przyszłym wyborze rozszerzenia dodać jego ID do `Blocked by`, nazwany
 link poniżej i krawędź diagramu. Wtedy odbiór czeka na ten wynik;
 niewybrane rozszerzenia nie stają się obowiązkowe. Nie wracamy do
 treningu bez końca, jeśli próby nie dają uzasadnionej korzyści.

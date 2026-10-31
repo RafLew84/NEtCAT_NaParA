@@ -10,6 +10,11 @@ na obecnym TTMAPP i przygotowanych kontrolach. Dodatkowe dane przygotuje
 później, jeśli wyniki będą uzasadniały rozszerzenie. Ocena w 23 określi
 potrzebny zakres; poniższe zalecenia dla archiwum nie blokują obecnych prób.
 
+**Decyzja po pilocie — 2026-11-01:** w [23](issues/23-training-comparison-and-next-step.md)
+użytkownik przyjął zakończenie obecnej serii bez wyboru detektora i pozostawił
+dodatkowe dane odłożone. Poniższe zalecenia i robocze liczebności nie są
+zleceniem przygotowania archiwum; przyszły zakres wymaga konkretnej hipotezy.
+
 ## Co wynika ze źródeł
 
 Pojedyncze obrazy wystarczają jako wejście do uczenia cech; film nie jest
