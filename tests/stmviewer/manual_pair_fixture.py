@@ -49,7 +49,7 @@ def create_fixture(parent: QWidget) -> PairComparisonDialog:
     assert panel is not None
     layout = panel.layout()
     assert isinstance(layout, QVBoxLayout)
-    note = QLabel('WZORZEC TESTOWY: „Oblicz parę” zawsze zwraca (2.4, −1.25) px. '
+    note = QLabel('WZORZEC TESTOWY: „Dopasuj automatycznie” zawsze zwraca (2.4, −1.25) px. '
                   'To zadany wynik do sprawdzenia korekty, nie pomiar ani wynik Phase.', dialog)
     note.setWordWrap(True)
     layout.insertWidget(0, note)

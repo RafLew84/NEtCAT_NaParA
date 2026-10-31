@@ -4,7 +4,7 @@ from PyQt6.QtCore import Qt, QSignalBlocker, pyqtSignal
 from PyQt6.QtGui import QCloseEvent, QImage
 from PyQt6.QtWidgets import (
     QButtonGroup, QCheckBox, QComboBox, QDialog, QDoubleSpinBox, QGroupBox, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QSpinBox, QToolButton, QVBoxLayout, QWidget,
+    QScrollArea, QSizePolicy, QSpinBox, QToolButton, QVBoxLayout, QWidget,
 )
 
 from stmviewer.deep_matcher import DeepMatcherOptions, deep_unavailable_reason
@@ -47,6 +47,7 @@ class PairComparisonDialog(QDialog):
         self._source.setObjectName('pairSource')
         self._source.setTextFormat(Qt.TextFormat.PlainText)
         self._source.setWordWrap(True)
+        self._source.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         header.addWidget(self._source, 1)
         header.addWidget(QLabel('Klatka przesuwana:', self))
         self._number = QSpinBox(self)
@@ -100,6 +101,7 @@ class PairComparisonDialog(QDialog):
         self._result = QLabel(self)
         self._result.setObjectName('pairResult')
         self._result.setWordWrap(True)
+        self._result.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self._result.setTextFormat(Qt.TextFormat.PlainText)
         self._result.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self._result.hide()
@@ -126,6 +128,7 @@ class PairComparisonDialog(QDialog):
         self._availability = QLabel(self)
         self._availability.setObjectName('pairAvailability')
         self._availability.setWordWrap(True)
+        self._availability.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self._availability.setTextFormat(Qt.TextFormat.PlainText)
         auto_layout.addWidget(self._availability)
         self._run = QPushButton('Dopasuj automatycznie', self)

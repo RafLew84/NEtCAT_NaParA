@@ -65,6 +65,7 @@ class ManualPairControls(QGroupBox):
         scope = QLabel('Ustawia wynik bieżący do porównania. Film pozostaje bez zmian.', self)
         scope.setObjectName('manualPairScope')
         scope.setWordWrap(True)
+        scope.setMinimumHeight(scope.fontMetrics().lineSpacing() * 3)
         finish.addWidget(scope)
         self.reset = QPushButton('Cofnij wszystkie ruchy', self)
         self.reset.setObjectName('manualPairReset')

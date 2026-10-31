@@ -225,13 +225,20 @@ def test_full_registration_locks_manual_edit_without_losing_draft(qtbot, monkeyp
 
 
 def test_manual_controls_fit_the_panel_without_horizontal_scroll(qtbot, monkeypatch):
-    from PyQt6.QtWidgets import QScrollArea
+    from PyQt6.QtWidgets import QLineEdit, QScrollArea
 
     _, dialog = open_pair(qtbot, monkeypatch)
     button(dialog, 'manualPairZero').click()
     qtbot.waitUntil(dialog.isVisible)
     scroll = dialog.findChild(QScrollArea)
     assert scroll.horizontalScrollBar().maximum() == 0
+    dialog.resize(1080, 760)
+    dialog.findChild(QComboBox, 'pairMethod').setCurrentText('Deep Matcher')
+    dialog.findChild(QLineEdit, 'deepWeights').setText('/tmp/' + 'brak_lokalnego_modelu_' * 10 + '.ckpt')
+    qtbot.wait(30)  # Let Qt apply the wrapped labels' updated size hints.
+    assert scroll.horizontalScrollBar().maximum() == 0
+    scope = dialog.findChild(QLabel, 'manualPairScope')
+    assert scope.height() >= scope.heightForWidth(scope.width())
     dialog.close()
 
 
