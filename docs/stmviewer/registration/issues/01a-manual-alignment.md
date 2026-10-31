@@ -134,3 +134,11 @@ Rzeczywiste Qt xcb sterowane skryptem: 6 stałych par, ręczna próba po błędz
 MOVIE_8 2→3, ułamkowy start oraz układ panelu sprawdzone. To automatyczna kontrola
 funkcji, nie ocena jakości dopasowania przez użytkownika. REG-02 pozostaje zablokowany
 przez ręczny odbiór REG-01a. Kod współdzielony nie wymaga zmiany.
+
+
+## Propozycja zmiany nazw — 2026-10-31
+
+Użytkownik zgłosił niejasne nazewnictwo i poprosił o prototyp zachowujący funkcje.
+[Trzy warianty okna i źródło decyzji](../pair-window-prototype.md): osobna gałąź
+`prototype/stmviewer-pair-naming`, commit `dd8b48f`. Wybór użytkownika oczekuje;
+produkcyjnego okna nie zmieniono. REG-01a nadal wymaga odbioru manualnego.

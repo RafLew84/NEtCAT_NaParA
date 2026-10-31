@@ -1,5 +1,20 @@
 # Przekazanie — STM Viewer
 
+## Prototyp nazw okna dopasowania — 2026-10-31
+
+Na zlecenie użytkownika przygotowano 3 klikalne warianty okna REG-01/REG-01a,
+z opisowymi nazwami wyników zamiast A/B, „Zakończ korektę” oraz wyraźnym zakresem
+pary. [Opis, uruchomienie i źródło](registration/pair-window-prototype.md).
+Prototyp: `prototype/stmviewer-pair-naming`, commit `dd8b48f`, baza `b0ef173`;
+pozostaje poza gałęzią aplikacji. Tutaj zapisano wyłącznie dokumentację i odnośnik.
+
+Qt WebEngine: 3 układy 1360×1000, B także 980×850, obejrzane zrzuty i ścieżka
+obliczenie/zachowanie/ręczna korekta/wybór wyniku; brak błędów JS. Audyt odczytowy
+zachowania głównych funkcji. Bez testów prototypu i bez produkcyjnego zestawu testów.
+Lokalny serwer: 127.0.0.1:8783; artefakty `data/registration-pair-ui-prototype/`.
+Rekomendacja: C; **decyzja użytkownika oczekuje**. Nie wdrożono żadnego wariantu.
+REG-01a nadal ready-for-review, REG-02 czeka. Brak potrzebnych zmian współdzielonych.
+
 ## REG-01a: Ręczne dopasowanie pary — 2026-10-31
 
 [Ticket](registration/issues/01a-manual-alignment.md): **ready-for-review**.
