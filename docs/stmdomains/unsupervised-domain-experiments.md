@@ -2,8 +2,8 @@
 
 Plan z 2026-10-21 przeniesiono na polecenie użytkownika do ticketów
 [istniejącej mapy metod i zapisu](map-methods-and-save.md).
-**Przygotowanie 14 zakończono 2026-10-23. Pierwszą próbę 15 wykonano;
-na życzenie użytkownika pozostaje w dyskusji (`claimed`).**
+Przygotowanie 14 zakończono 2026-10-23. Po pierwszej próbie 15 użytkownik
+wybrał dalszą dyskusję; serię 15 później zakończono wraz z kolejnymi próbami.
 [Raport otoczeń molekuł](local-neighborhood-domains-trial.md) wskazuje
 ograniczenia katalogu i kryterium powtarzalności; nie wybrano metody.
 [Gotowy zestaw](unsupervised-input-preparation.md) i
@@ -12,6 +12,14 @@ Zakres, zależności i warunki
 zakończenia utrzymujemy w ticketach, zamiast w dwóch równoległych planach.
 [Rejestr pytań](issues/README.md#próby-samodzielnego-znajdowania-domen)
 zawiera ich kolejność i diagram zależności.
+
+**Aktualny plan — 2026-10-31:** 19 jest zakończone, a po przyjęciu
+[usprawnień](research-domain-plan-improvements.md) kolejność to
+**20 → 21 i 22 → 23**. 20 ustala wspólny protokół i kryteria; 21/22
+obejmują pilot lokalnych relacji/granic oraz małe porównanie wpływu cech,
+podziału i odmów. Nie dodano osobnego zadania 20a. Rozszerzenia 24–26
+pozostają warunkowe. Treningu nie rozpoczęto; starszy opis poniżej
+zachowuje pochodzenie poszczególnych rodzin prób.
 
 | Obszar planu | Aktualne zadanie/pytanie |
 | --- | --- |

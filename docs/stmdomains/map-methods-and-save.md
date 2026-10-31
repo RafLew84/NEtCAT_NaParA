@@ -15,7 +15,7 @@ Ustalenia mają pozwolić rozwinąć odebrany szkielet STM Domains.
 
 ## Notes
 
-**Aktualna decyzja użytkownika — 2026-10-31: kończymy serię analiz 19.**
+**Aktualny stan i przyjęty plan — 2026-10-31.**
 [Podsumowanie i rozstrzygnięcie](issues/19-frozen-feature-domains.md): **19
 `resolved`**, bez wyboru detektora do aplikacji. Zachowujemy wyniki i użyteczne
 składniki jako punkty odniesienia. Protokół jakości 04, odbiór 13 i ta mapa
@@ -27,12 +27,27 @@ z prób 15 i 16: trzy klatki TTMAPP i kontrolę dwóch orientacji. Eksport
 istniejących przypisań pokazuje grupy molekuł, bez nowych obliczeń ani
 konturów domen; nie zmienia decyzji o metodach lub statusu ticketów.
 
-2026-10-31 wykonano [przegląd usprawnień planu](research-domain-plan-improvements.md).
-Rekomenduje ocenę lokalnych relacji/granic w najbliższych treningach oraz
-ograniczone porównanie wpływu cech, podziału i odmów. Uwzględnia, że graf
-i granice już badano w 19; nie proponuje ponownego strojenia tej serii.
-To materiał do doprecyzowania 20–23, bez zmiany ich zakresu, zależności
-lub statusów i bez uruchomienia kolejnych prób. 24–26 pozostają warunkowe.
+2026-10-31 użytkownik zatwierdził [usprawnienia planu](research-domain-plan-improvements.md)
+i polecił wpisać je do istniejących ticketów. Przyjęto:
+
+- [20](issues/20-self-supervised-training-preparation.md) przygotowuje wspólny
+  protokół relacji, budżet i kryteria kontynuacji przed treningiem.
+- [21](issues/21-autoencoder-domains.md) i [22](issues/22-local-self-supervised-domains.md)
+  obejmują pilot lokalnych relacji/granic. Mały AE jest punktem odniesienia,
+  rVAE bada oddzielenie obrotu, a lokalne SSL — użyteczność nauczonych relacji.
+  Oceniane są rzeczywiste sąsiedztwa, także przecinające granicę, oraz pełne klatki.
+- Małe porównanie 2 × 2 oddziela zachowane/nowe cechy od sposobu podziału.
+  Mutex Watershed jest kandydatem do jednej ograniczonej próby relacji
+  przyciągających/odpychających. Zmiana informacji i solvera musi być jawna.
+- Pokazujemy wyniki przed/po odmowach, scalenia, podziały, odsetek przypisań
+  i stabilność. Typ, orientacja, materiał i brak danych pozostają osobne;
+  klaster ani etykieta grafu nie są automatycznie rozpoznaną domeną.
+- [23](issues/23-training-comparison-and-next-step.md) kończy porównanie
+  decyzją według wcześniej ustalonych kryteriów. 24–26 pozostają warunkowe.
+
+Pilot jest częścią 21/22; nie dodajemy zadania 20a ani nowej serii strojenia
+19, które już obejmowało graf i granice. Kolejność: **20 → 21 i 22 → 23**.
+Nie zmieniono zależności ani statusów wykonania i nie uruchomiono treningu.
 
 Historia zakończonej serii: wcześniej użytkownik wybrał pozostanie w 19
 oraz odłożył 20. Wykonano [audyt wektorów i odmów](vector-refusal-audit.md),
@@ -147,7 +162,10 @@ Na kolejne polecenie użytkownika rozpisano
 [zadania treningu bez etykiet 20–26](issues/README.md#trening-bez-etykiet-domen).
 Po wspólnym wejściu przygotujemy protokół treningu, podział danych i pomiar
 GPU. Pierwsze próby to AE/rVAE oraz lokalne SSL, niezależne od siebie,
-z wynikiem tekstury jako punktem odniesienia. Ich zestawienie z gotowymi
+z wynikiem tekstury jako punktem odniesienia. Zgodnie z aktualizacją
+2026-10-31 oba tickety korzystają ze
+[wspólnego protokołu relacji i podziału](issues/20-self-supervised-training-preparation.md#wspólny-protokół-relacji-i-podziału).
+Nie powielają oddzielnych poszukiwań solvera i progów. Ich zestawienie z gotowymi
 cechami sieci kończy się [decyzją o dalszym zakresie](issues/23-training-comparison-and-next-step.md).
 Grafy molekuł, maskowany autoenkoder i adaptacja gotowego modelu są
 warunkowymi rozszerzeniami, wybieranymi na podstawie konkretnej luki.

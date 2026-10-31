@@ -8,6 +8,16 @@ eksperymentu. Nie uruchomiono treningu, nie zmieniono statusów ani zależności
 20–26, nie otwarto ponownie zakończonej serii 19. Źródła dotyczące SEM, STEM
 i obrazów biologicznych oznaczono osobno: nie są walidacją na molekularnym STM.
 
+**Aktualizacja po badaniu — 2026-10-31:** użytkownik polecił dodać
+rekomendacje do planu. Wpisano je do
+[20](issues/20-self-supervised-training-preparation.md),
+[21](issues/21-autoencoder-domains.md),
+[22](issues/22-local-self-supervised-domains.md) i
+[23](issues/23-training-comparison-and-next-step.md).
+Pilot należy do 21/22, bez nowego ticketu; 24–26 pozostają warunkowe.
+Poniższy tekst zachowuje uzasadnienie badawcze. Bieżący zakres wykonania
+określają tickety; przyjęcie planu nie jest wynikiem eksperymentu.
+
 ## Wniosek
 
 **Rekomenduję uczynić relacje między sąsiednimi obszarami i zachowanie granic

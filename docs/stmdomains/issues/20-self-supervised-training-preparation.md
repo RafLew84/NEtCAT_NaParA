@@ -15,6 +15,12 @@ Przygotować dane, protokół i środowisko dla prób uczenia reprezentacji STM
 bez ręcznych klas domen. To rozszerzenie wspólnego zestawu, nie jego zamiana
 ani trening docelowego detektora. Podstawa: [ostatni przegląd](../research-self-supervised-domain-learning.md).
 
+**Aktualizacja przyjęta przez użytkownika — 2026-10-31:** wdrażamy
+[usprawnienia planu](../research-domain-plan-improvements.md). Przygotowanie
+ma określić wspólny protokół relacji i granic dla 21/22. Pilot wykonujemy
+w tych dwóch próbach, bez nowego ticketu przygotowawczego i bez ponownego
+otwierania 19. Status `open` oznacza, że przygotowania jeszcze nie wykonano.
+
 ## Zakres przygotowania
 
 - Korzystać z surowych obrazów MPP i geometrii z kroku 14. Pobierać wycinki
@@ -52,6 +58,80 @@ ani trening docelowego detektora. Podstawa: [ostatni przegląd](../research-self
   generatorów i postęp, tak aby trening dało się wznowić. Wagi i tablice
   pozostają lokalnie poza Git; wersjonujemy kod/protokół i małe manifesty.
 
+## Wspólny protokół relacji i podziału
+
+Protokół obowiązuje próby 21/22 i ich ocenę w 23. Celem jest poprawa
+wykrywania domen, a grupowanie cech pozostaje etapem pośrednim.
+
+- **Geometria i relacje:** dla otoczenia zapisać ID klatki/elementu,
+  współrzędne `raw_edge_xy`, jednostki, skalę i wsparcie w polu pomiarowym;
+  dla pary — ID obu końców, regułę sąsiedztwa oraz nakładanie się okien.
+  Osobno zapisywać podobieństwo struktury/rozstawu, zgodność orientacji,
+  przesłankę nieciągłości lub przesunięcia wzoru i dostępność danych.
+  Brak danej jest jawny; nie zmienia się automatycznie w zgodność ani
+  granicę. Wartość podobieństwa nie jest skalibrowanym prawdopodobieństwem.
+- **Wyjścia:** zachować propozycję podziału, dowody porządku/granicy,
+  ocenę wiarygodności i powody odmowy oraz osobno typ i orientację.
+  Propozycja może powstać bez znanego typu. ID domen dotyczy jednej klatki;
+  wspólny katalog nie łączy odległych obszarów w jedną domenę. Obecność
+  materiału jest osobną informacją; nieporządek, niejednoznaczność i brak
+  danych pozostają rozróżnione. Etykiety solvera nie stają się automatycznie domenami;
+  otoczka przypisanych centrów nie jest potwierdzonym konturem lub powierzchnią.
+- **Budżet przed treningiem:** zapisać hipotezę, jeden zachowany zestaw
+  cech i podziału, głównego kandydata uczonego, dozwolone skale/augmentacje,
+  liczbę konfiguracji i ziaren, sposób wyboru checkpointu oraz limit kosztu.
+  Ustalić też liczbowe kryteria kontynuacji: tolerancje scaleń/podziałów,
+  zachowanie na zerowej/jednej domenie, minimalny zakres przypisań i korzyść
+  względem punktu odniesienia. Wartości lub zamkniętą procedurę ich kalibracji
+  ustalić na danych rozwojowych przed końcową oceną, bez ręcznych ramek.
+  Nie rozszerzać budżetu po niekorzystnym wyniku, aby szukać zwycięzcy.
+
+Pierwsze porównanie ma cztery pola, z tymi samymi klatkami i porównywalnym
+wsparciem otoczeń. Kolejne reprezentacje oceniać jako osobne ograniczone
+porównania; nie tworzyć iloczynu wszystkich historycznych konfiguracji.
+
+| | Zachowany sposób podziału | Nowe wykorzystanie relacji i podział |
+| --- | --- | --- |
+| Zachowane cechy klasyczne lub zamrożone | Punkt odniesienia | Wpływ relacji i podziału |
+| Nowe cechy AE/SSL | Wpływ uczenia przy zachowanym podziale | Wpływ połączenia zmian |
+
+Kandydatem na **jeden** nowy sposób podziału jest Mutex Watershed (MWS)
+z relacjami przyciągającymi i odpychającymi, bez zadanej liczby segmentów.
+To kandydat eksperymentalny, nie przyjęty detektor STM. Zachować porównywalny
+graf, udokumentować wagi, ich normalizację, parametry i remisy. Wpływ samego
+solvera można mierzyć tylko przy równoważnej dostępnej informacji; nowe
+relacje, których stary podział nie obsługuje, oznaczają wspólną zmianę
+informacji i solvera. Nie przypisywać całego zysku samemu MWS. W 19 był już
+graf FH i ocena krawędzi; nie powtarzać strojenia tych prób jako nowej hipotezy.
+
+W 21/22 wykonać krótki techniczny test podziału na syntetycznych relacjach
+ze znaną odpowiedzią. To sprawdzenie implementacji, nie nauka domen ani
+wynik skuteczności; idealne relacje nie trafiają do predykcji TTMAPP.
+Prawda syntetyczna służy ocenie i temu testowi technicznemu, nie uczeniu
+modelu relacji. Wspólne zapisane bazy można wykorzystać w obu próbach,
+ale ich współdzielenie nie tworzy zależności 21 od 22 ani odwrotnie.
+Pełne próby relacji i podziału nie są warunkiem zakończenia przygotowania 20.
+
+Ocena musi obejmować rzeczywiste krawędzie między sąsiednimi otoczeniami,
+także z oknami przecinającymi granicę. Same odległe, czyste wnętrza nie
+wystarczą. Kontrole obejmują zmianę orientacji/rozstawu, granicę przesunięcia,
+defekt, dwie oddzielone części tej samej sieci, brak centrów bez ubytku
+materiału, pustą przerwę, nieporządek i niedostateczne dane. W każdej części
+porównania pokazać propozycje przed filtrem wiarygodności i wynik po nim.
+
+Raportować osobno błędne scalenia i podziały, fałszywe domeny, odmowy,
+stabilność oraz udział przypisanych elementów z jawnym mianownikiem.
+Zestawić błędy przy porównywalnym udziale przypisań; odrzucenie wszystkiego
+nie daje dobrego wyniku, a brak ocenialnych par daje brak miary, nie zero
+błędów. Udział przypisań nie jest powierzchnią materiału. Na syntezie
+oceniać także granice z ustaloną tolerancją; na TTMAPP tylko ocenialne pary
+i wnętrza częściowych referencji, bez globalnego IoU lub dokładnej prawdy
+przybliżonych ramek. Zachować pełne nakładki i nieprzypisane miejsca.
+Obecne referencje są materiałem rozwojowym; nowe realizacje syntetyczne
+odłożyć przed strojeniem. Zmiana referencji nie zmienia uczenia, wyboru
+checkpointu ani predykcji. Potrzeba dodatkowych oznaczeń wynika dopiero
+z konkretnej nierozstrzygniętej oceny.
+
 ## Warunek zakończenia zadania
 
 - Gotowy manifest i powtarzalny generator wycinków z kontrolą geometrii,
@@ -62,6 +142,9 @@ ani trening docelowego detektora. Podstawa: [ostatni przegląd](../research-self
 - Określono budżet, zakres pierwszego porównania, sposób wyboru checkpointu
   bez referencji i format wyników zgodny z krokiem 14. Braki niezależnych
   danych opisano jawnie; nie blokują próby na obecnej serii.
+- Zapisano format relacji i rozdzielonych wyjść oraz plan porównania 2 × 2
+  z hipotezą, limitem wariantów i kryteriami kontynuacji według powyższego
+  protokołu. Wykonanie porównania pozostaje w 21/22, a decyzja o wyniku w 23.
 - Jest polecenie odtworzenia i raport wykonanych sprawdzeń. Gdy trening
   technicznie nie działa, opisać konkretną przeszkodę; nie zastępować próby
   samym opisem sprzętu i nie oznaczać zadania jako gotowe.

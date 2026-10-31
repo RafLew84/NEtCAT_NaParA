@@ -18,9 +18,11 @@ i przypisania CSV. To częściowe propozycje grup molekuł, bez zatwierdzonych
 konturów domen; eksport nie uruchamia kolejnej próby badawczej.
 
 [Przegląd usprawnień kolejnych prób](research-domain-plan-improvements.md)
-proponuje konkretniejszy test relacji między otoczeniami oraz oddzielne
-porównanie cech, podziału i odmów w 20–23. To rekomendacje na podstawie
-źródeł i historii wyników; nie rozpoczęto treningu ani nowego eksperymentu.
+został 2026-10-31 przyjęty do [planu 20–23](issues/README.md#trening-bez-etykiet-domen).
+20 przygotowuje protokół i kryteria; 21/22 łączą trening z ograniczoną próbą
+relacji/granic oraz porównaniem 2 × 2 cech i podziału, przed/po odmowach.
+23 rozstrzyga dalszy zakres, a 24–26 pozostają warunkowe. Nie dodano 20a,
+nie rozpoczęto treningu ani nowego eksperymentu.
 
 Poniższy opis zachowuje historię projektu; wcześniejsze statusy `claimed`
 i odłożenie 20 dotyczą ówczesnych decyzji, zastąpionych powyższym zamknięciem.

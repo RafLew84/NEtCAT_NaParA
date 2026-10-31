@@ -17,10 +17,18 @@ obrotu od treści, bez zadanej liczby kategorii. Przykład STM opisany
 w [przeglądzie](../research-self-supervised-domain-learning.md) jest precedensem,
 a nie gotowym rozwiązaniem: jego część dyskretna miała zadaną liczbę składowych.
 
+**Aktualizacja przyjęta — 2026-10-31:** zgodnie z
+[badaniem usprawnień](../research-domain-plan-improvements.md) głównym
+sprawdzianem cech są lokalne relacje i zachowanie granic. Obowiązuje
+[wspólny protokół 20](20-self-supervised-training-preparation.md#wspólny-protokół-relacji-i-podziału).
+Pilot jest częścią tego ticketu, bez osobnego 20a. Zadanie pozostaje `open`;
+akceptacja planu nie oznacza wykonania treningu.
+
 ## Porównanie
 
-1. Wytrenować mały konwolucyjny AE i ciągły rVAE na identycznym zakresie
-   nieoznaczonych danych według kroku 20. Zwykły VAE jest dodatkowym
+1. Zacząć od małego konwolucyjnego AE jako punktu odniesienia. Ciągły rVAE
+   sprawdza celowo korzyść z oddzielenia obrotu od struktury na identycznym
+   zakresie nieoznaczonych danych według kroku 20. Zwykły VAE jest dodatkowym
    wariantem, jeśli pomaga oddzielić wpływ regularyzacji od wydzielania obrotu.
    Zapisać architekturę i wymiar cech; wymiar ten nie oznacza liczby domen.
 2. Zacząć od wycinków obrazu w kilku skalach. Lokalna FFT może być osobnym
@@ -38,6 +46,13 @@ a nie gotowym rozwiązaniem: jego część dyskretna miała zadaną liczbę skł
 5. Porównać z wynikiem klasycznej tekstury z kroku 17 przy wspólnej procedurze
    oceny i możliwie tych samych etapach grupowania oraz łączenia. Ujawnić
    konieczne różnice; sukces tekstury nie jest warunkiem próby AE.
+6. Wykonać ograniczone porównanie 2 × 2 z protokołu 20: zachowane/uczone
+   cechy i zachowany/nowy sposób wykorzystania relacji oraz podziału, z MWS
+   jako kandydatem. Jakość relacji sprawdzić na sąsiadach wewnątrz domen
+   i przez granice, także gdy okna częściowo się pokrywają. Zachować osobno
+   opis typu/rozstawu, orientację i informację o przesunięciu wzoru.
+   Brak rozpoznanego typu nie blokuje propozycji domeny. Nie odtwarzać
+   szerokiego przeszukiwania konfiguracji 19; warianty mieszczą się w budżecie 20.
 
 ## Dane i kryteria porównania
 
@@ -47,6 +62,11 @@ defekty, pas nieuporządkowany, szum, pasy skanowania i niepełne centra.
 Raportować fałszywe domeny, scalenia/podziały, odmowy i stabilność katalogu
 przy zmianie ziarna i zakresu; nie wybierać modelu tylko po błędzie rekonstrukcji.
 Sprawdzić, czy cechy nie dzielą danych głównie według jasności lub numeru klatki.
+W każdym polu porównania pokazać wynik przed filtrem wiarygodności i po nim,
+z błędami scaleń/podziałów zestawionymi z udziałem przypisanych elementów.
+Odrzucenie niemal wszystkiego ani poprawa rekonstrukcji nie spełnia kryterium
+poprawy domen. Stosować ustalone w 20 warunki zakończenia i kontynuacji;
+nie dopasowywać ich do korzystnego checkpointu lub częściowej referencji.
 
 Po zamrożeniu konfiguracji i predykcji pokazać pełne klatki oraz częściowe
 referencje TTMAPP. Ich kolory opisują głównie orientacje, a nie trzy typy.
@@ -57,6 +77,9 @@ używane ramki pozostają oceną częściową, nie niezależnym testem.
 
 Odtwarzalny prototyp, tabela kontroli, nakładki pełnych pól i porównanie
 AE/rVAE z teksturą, z kosztem treningu, inferencji, pamięci i checkpointów.
+Pokazać cztery pola porównania i wskazać, czy błąd pochodzi z cech, relacji,
+podziału czy odmów; ujawnić, gdy zmiana wejściowej informacji uniemożliwia
+przypisanie poprawy samemu solverowi.
 Rozdzielić wynik transdukcyjny od próby przenoszenia oraz brak uruchomienia
 od nieskuteczności uruchomionej metody. Udokumentowany wynik negatywny
 może zakończyć badanie po omówieniu; niska strata sama go nie zalicza.

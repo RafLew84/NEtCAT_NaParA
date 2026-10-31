@@ -1,3 +1,31 @@
+# STM Domains — przyjęcie usprawnień planu 20–23
+
+Data: **2026-10-31**. Użytkownik zatwierdził rekomendacje
+[badania](research-domain-plan-improvements.md) i polecił dodać je do planu.
+Uzupełniono aktywną treść 20–23: protokół relacji i wyników, pilot granic
+w 21/22, ograniczone porównanie 2 × 2 oraz kryteria kontynuacji i odmów.
+Mały AE pozostaje punktem odniesienia, rVAE bada obrót, lokalne SSL — cechy
+użyteczne przy granicach. MWS jest kandydatem do ograniczonego porównania,
+a wariant przewidywalności inspirowany INPAINTAFF pozostaje opcjonalny.
+
+Zaktualizowano mapę, README, indeks/diagram, wcześniejszy plan-odnośnik,
+adnotację przyjęcia badania i przekazanie do odbioru 13. Kolejność to
+**20 → 21 i 22 → 23**, potem wyłącznie wybrane rozszerzenia 24–26.
+Nie powstało zadanie 20a. Statusy i zależności nie zmieniły się: 19
+`resolved`, 20–23 `open`, nierozpoczęte. Nie uruchomiono eksperymentu.
+
+Własny worktree `/tmp/netcat-stmdomains-domain-training-plan`, gałąź
+`domains/domain-training-plan`, baza `06b1772`. Commit planu w odpowiedzi
+końcowej; przekazanie do `domains/start`, integracja przez koordynatora.
+Zachowano historię tego pliku. Bez zmian wspólnych, aplikacji lub Viewer.
+
+Sprawdzenia: spójność zakresu z zatwierdzonym badaniem, lokalne odnośniki
+i kotwice, zgodność statusów/zależności z bazą oraz `git diff --check`.
+Bez testów kodu lub GUI — zmiana dotyczy dokumentacji planu, nie oceny
+skuteczności nowej metody. Wartości kryteriów i budżet ustali wykonanie 20.
+
+---
+
 # STM Domains — badanie usprawnień planu
 
 Data: **2026-10-31**. Na polecenie użytkownika wykonano przegląd według

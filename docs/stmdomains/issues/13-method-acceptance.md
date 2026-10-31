@@ -49,6 +49,16 @@ Ten odbiór weryfikuje metody i ich zgodność z wcześniej ustalonym kontraktem
 zapisu, nie jest warunkiem odbioru szkieletu. Kontrakt rozstrzygnięto wcześniej
 na bezpośrednie polecenie użytkownika; nie oznacza to zaliczenia tego odbioru.
 
+## Ocena przyszłych prób treningu — 2026-10-31
+
+W ramach przyjętego 2026-10-31 planu treningu ocena 13 uwzględni
+[porównanie 23](23-training-comparison-and-next-step.md): wpływ cech,
+lokalnych relacji, podziału oraz odmów, według protokołu z 20.
+Wymaga osobnego pokazania błędnych scaleń/podziałów i zakresu przypisań;
+klaster wyglądu, wzrost liczby przypisań lub etykieta nadana przez solver
+nie stanowią samodzielnie dowodu domeny. Przyjęcie planu nie zalicza
+odbioru; 24–26 nadal nie są wymagane bez wyboru konkretnego rozszerzenia.
+
 ## Wynik próby pokrycia do uwzględnienia
 
 Zadanie 10 zakończono jako próbę badawczą (`resolved`), bez zatwierdzenia metody.

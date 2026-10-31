@@ -14,6 +14,12 @@ cząstkowe i ograniczenia. Przygotowanie [20](20-self-supervised-training-prepar
 pozostaje `open`, nierozpoczęte; jakość 04 i odbiór 13 pozostają otwarte.
 Wcześniejsze statusy w poniższej chronologii opisują historyczne decyzje.
 
+Tego samego dnia użytkownik zatwierdził
+[usprawnienia planu](../research-domain-plan-improvements.md): wpisano je
+do 20–23. Pilot relacji i granic należy do 21/22, bez osobnego ticketu 20a.
+Obowiązuje kolejność **20 → 21 i 22 → 23**, z 24–26 wyłącznie po wyborze
+rozszerzenia. Aktualizacja planu nie oznacza rozpoczęcia tych zadań.
+
 Na bezpośrednie polecenie użytkownika z 2026-10-19 wcześniej podejmujemy
 [definicje wyspy, typu i domeny sieci](02-order-types-and-domains.md) oraz
 [pilotaż porównania metod](05-stable-types-across-frames.md). Pilotaż zakończono
@@ -245,23 +251,30 @@ do ticketów; zakres i warunki zakończenia utrzymujemy w ich treści.
 
 ### Trening bez etykiet domen
 
-Rozszerzenie na podstawie [ostatniego badania](../research-self-supervised-domain-learning.md).
+Rozszerzenie na podstawie [badania treningu](../research-self-supervised-domain-learning.md),
+z [usprawnieniami przyjętymi 2026-10-31](../research-domain-plan-improvements.md).
 Każda próba używa pełnych pól pomiarowych; ręczne ramki służą ocenie,
 bez dostarczania klas ani liczby domen. Statusy i zależności są w ticketach.
+W [20](20-self-supervised-training-preparation.md#wspólny-protokół-relacji-i-podziału)
+ustalamy budżet i wspólny protokół małego porównania 2 × 2: zachowane/nowe
+cechy oraz dotychczasowy/nowy sposób podziału. Pilot w 21/22 ocenia lokalne
+relacje przez granice, pełne propozycje domen i odmowy; nie powtarza serii 19.
 
 | Pytanie/zadanie | Typ | Kolejność |
 | --- | --- | --- |
-| [20 — Jak przygotować odtwarzalny trening bez etykiet domen?](20-self-supervised-training-preparation.md) | task / AFK | Po 14; podział danych, augmentacje, budżet i GPU |
-| [21 — Czy AE i rVAE uczą się cech przydatnych do odkrywania domen?](21-autoencoder-domains.md) | prototype / HITL | Po 17 i 20; pierwsza próba treningowa |
-| [22 — Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](22-local-self-supervised-domains.md) | prototype / HITL | Po 17 i 20; niezależnie od 21 |
-| [23 — Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md) | grilling / HITL | Po 19, 21 i 22; porównanie i decyzja o dalszym zakresie |
+| [20 — Jak przygotować odtwarzalny trening bez etykiet domen?](20-self-supervised-training-preparation.md) | task / AFK | Po 14; dane, GPU, protokół relacji, budżet i kryteria |
+| [21 — Czy AE i rVAE uczą się cech przydatnych do odkrywania domen?](21-autoencoder-domains.md) | prototype / HITL | Po 17 i 20; AE/rVAE oraz wspólny pilot granic i podziału |
+| [22 — Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](22-local-self-supervised-domains.md) | prototype / HITL | Po 17 i 20; lokalne SSL z pilotem relacji, niezależnie od 21 |
+| [23 — Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md) | grilling / HITL | Po 19, 21 i 22; ocena cech, relacji, podziału i odmów; decyzja o kontynuacji |
 | [24 — Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md) | prototype / HITL | Warunkowo: wybrane w 23, po wyniku 15 |
 | [25 — Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md) | prototype / HITL | Warunkowo: wybrane w 23 |
 | [26 — Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md) | prototype / HITL | Warunkowo: wybrane w 23, z zachowanym modelem odniesienia |
 
-Przygotowanie 20 można prowadzić obok przygotowania gotowych cech 18.
-Próby 21 i 22 wymagają wyniku tekstury, również negatywnego; nie muszą
-czekać na gotowe modele. Ich wspólne zestawienie 23 korzysta już z 19.
+18 i 19 są zakończone; najbliższe zadanie to przygotowanie 20.
+Próby 21 i 22 wymagają wyniku tekstury, również negatywnego, i wspólnego
+przygotowania 20; żadna nie wymaga powodzenia drugiej. Ich zestawienie
+23 korzysta również z zachowanych wyników 19. Wspólny pilot nie dodaje
+nowej zależności ani oddzielnego zadania przygotowawczego.
 Odbiór 13 czeka na 23, lecz nie na wszystkie warunkowe rodziny modeli.
 Jeśli w 23 wybierzemy rozszerzenie, dodajemy je do zależności 13 i diagramu.
 Brak wyboru nie oznacza wykonania lub nieskuteczności tego rozszerzenia.
@@ -309,10 +322,10 @@ flowchart TD
         q["Lokalna tekstura STM"]
         r["Przygotowanie gotowych cech sieci"]
         s["Domeny z gotowych cech — porównanie ML"]
-        t["20: Protokół i przygotowanie treningu"]
-        u["21: AE i ciągły rVAE"]
-        v["22: Lokalne SSL"]
-        w["23: Porównanie treningu i wybór rozszerzeń"]
+        t["20: Dane, protokół relacji i kryteria"]
+        u["21: AE/rVAE i pilot granic"]
+        v["22: Lokalne SSL i pilot relacji"]
+        w["23: Ocena domen i decyzja o kontynuacji"]
         x["24: Grafy molekuł — warunkowo"]
         y["25: Maskowany AE — warunkowo"]
         z["26: Adaptacja gotowego modelu — warunkowo"]

@@ -16,6 +16,13 @@ koszt, czy wystarczają metody klasyczne lub gotowe cechy? Zestawić wynik
 tekstury, zamrożonych modeli, AE/rVAE i lokalnego SSL na wspólnych danych.
 To decyzja o dalszym badaniu, a nie odbiór produkcyjnej metody z kroku 13.
 
+**Aktualizacja przyjęta — 2026-10-31:** po
+[badaniu usprawnień](../research-domain-plan-improvements.md) rozstrzygamy
+także źródło błędu: cechy, relacje, podział lub odmowy. Obowiązuje
+[wspólny protokół 20](20-self-supervised-training-preparation.md#wspólny-protokół-relacji-i-podziału),
+realizowany w 21/22, bez nowego ticketu przygotowawczego. Zmiana planu nie
+uruchamia badań; status pozostaje `open`, a 24–26 nadal są warunkowe.
+
 ## Materiał do decyzji
 
 - Tabela wspólnych kontroli, błędów i odmów, stabilności względem ziaren
@@ -28,8 +35,25 @@ To decyzja o dalszym badaniu, a nie odbiór produkcyjnej metody z kroku 13.
 - Rozdzielić porządkowanie aktualnej serii od przenoszenia na niewidziane
   dane. Sprawdzić przecieki między oknami/klatkami oraz rolę używanych już
   referencji. Nowe oznaczenia lub akwizycje wskazać tylko dla konkretnej luki.
+- Zestawić cztery pola porównania: zachowane/nowe cechy i zachowane/nowe
+  wykorzystanie relacji oraz podział. Pokazać lokalne krawędzie, nie tylko
+  czyste wnętrza, i osobno wynik przed/po filtrze wiarygodności. Jeśli nowy
+  podział otrzymał dodatkowe informacje o granicy, nie przypisywać całej
+  korzyści solverowi. Wskazać, czy poprawiono także końcowe propozycje domen.
+- Dla każdego głównego kandydata podać spełnienie lub niespełnienie
+  kryteriów zamrożonych w 20: scaleń/podziałów, zerowej/jednej domeny,
+  użytecznego zakresu przypisań, stabilności i kosztu. Mało błędów przy
+  niemal pełnej odmowie nie stanowi sukcesu. TTMAPP oceniać w dostępnym
+  zakresie referencji, bez ogólnej dokładności lub dokładnych granic.
 
 ## Wybór następnego kroku
+
+Najpierw podjąć decyzję o kontynuacji na podstawie powyższych kryteriów.
+Gdy brak poprawy w ustalonym budżecie, zakończyć dany kierunek i zapisać
+konkretną lukę. Rozszerzenie można wybrać tylko wtedy, gdy jego hipoteza
+odpowiada rozpoznanej przyczynie błędu. Samo ukończenie treningu nie
+uzasadnia kolejnego rozszerzenia. Gdy poprawa wystąpiła,
+opisać jej zakres i ograniczenia; kwalifikacja do aplikacji nadal wymaga 13.
 
 Każde rozszerzenie wymaga wskazania obserwowanego problemu, hipotezy,
 porównania kontrolnego i ograniczonego budżetu:
