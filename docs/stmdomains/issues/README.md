@@ -7,7 +7,13 @@ Zadania wykonawcze są oddzielone od poniższego rejestru pytań.
 implementacji i odbiorze szkieletu. Otwarte decyzje etapu 2 nie blokują etapu 1.
 Statusy i zależności przechowujemy w ticketach; indeks poniżej grupuje je według map.
 
-**Aktualny stan 2026-10-31:** [19](19-frozen-feature-domains.md) ma status
+**Aktualny stan 2026-11-01:** [23](23-training-comparison-and-next-step.md)
+jest `claimed`; [porównanie](../training-comparison-and-next-step.md)
+przygotowane, decyzja użytkownika do omówienia. Rekomendacja: zakończyć
+pilot bez detektora i pozostawić 24–26 niewybrane. Nie wykazano poprawy
+końcowych domen; 04 i 13 pozostają otwarte.
+
+**Zakończone próby 2026-10-31:** [19](19-frozen-feature-domains.md) ma status
 `resolved` — użytkownik zakończył serię analiz, bez przyjęcia detektora.
 [Podsumowanie ustaleń](19-frozen-feature-domains.md) zachowuje osiągnięcia
 cząstkowe i ograniczenia. Przygotowanie [20](20-self-supervised-training-preparation.md)
@@ -22,9 +28,9 @@ końcowych domen. Wykonano osobny
 poprawy końcowych domen; transfer nadal 0/174 przypisań.
 [22 — lokalny SSL](../local-self-supervised-trial.md) wykonano (`resolved`):
 9/9 fitów, 21 420 predykcji, 181 testów. Transfer 0/174, transdukcja
-najwyżej 4/782; brak poprawy domen. Następny jest **23**; jakość 04
+najwyżej 4/782; brak poprawy domen. Wyniki zestawiono w **23**; jakość 04
 i odbiór 13 pozostają otwarte.
-Budżet dziewięciu fitów SSL i zamrożone wyniki 21 pozostają zachowane.
+Budżet 27 fitów 21/22 wykorzystano; zamrożone wyniki pozostają zachowane.
 Wcześniejsze statusy w poniższej chronologii opisują historyczne decyzje.
 
 Tego samego dnia użytkownik zatwierdził
@@ -281,12 +287,12 @@ relacje przez granice, pełne propozycje domen i odmowy; nie powtarza serii 19.
 | [21 — Czy AE i rVAE uczą się cech przydatnych do odkrywania domen?](21-autoencoder-domains.md) | prototype / HITL | `resolved`: 18 fitów i porównanie granic/podziału wykonane, bez poprawy końcowych domen |
 | [21a — Czy zmiana dekodera i regularyzacji poprawia rVAE?](21a-rvae-decoder-and-kl.md) | prototype / HITL | `resolved`: 2 diagnostyki i 9 fitów; niższe MSE, bez poprawy końcowych domen |
 | [22 — Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](22-local-self-supervised-domains.md) | prototype / HITL | `resolved`: 9 fitów SSL; brak poprawy domen, osobna diagnoza granic i bramki |
-| [23 — Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md) | grilling / HITL | Po 19, 21, 21a i 22; ocena cech, relacji, podziału i odmów; decyzja o kontynuacji |
+| [23 — Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md) | grilling / HITL | `claimed`: porównanie przygotowane, rekomendacja zamknięcia pilota do omówienia |
 | [24 — Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md) | prototype / HITL | Warunkowo: wybrane w 23, po wyniku 15 |
 | [25 — Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md) | prototype / HITL | Warunkowo: wybrane w 23 |
 | [26 — Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md) | prototype / HITL | Warunkowo: wybrane w 23, z zachowanym modelem odniesienia |
 
-18, 19, 20, 21, 21a i 22 są zakończone; najbliższe zadanie to **23**.
+18, 19, 20, 21, 21a i 22 są zakończone; **23** jest podjęte.
 Własny budżet 21a wykorzystano na zamkniętą macierz dekoder × KL;
 protokół 20 pozostaje zamrożonym punktem odniesienia. Nie ponawiano
 strojenia bramki z 19. SSL wykorzystało wynik tekstury, przygotowanie 20

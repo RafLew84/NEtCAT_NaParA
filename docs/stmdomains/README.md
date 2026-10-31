@@ -3,7 +3,13 @@
 Program do wykrywania i analizy domen pól molekularnych na obrazach STM.
 Katalog aplikacji: `stmdomains/`.
 
-## Aktualny stan — 2026-10-31
+## Aktualny stan — 2026-11-01
+
+[Porównanie 23](training-comparison-and-next-step.md) zestawia istniejące
+wyniki 19/21/21a/22, bez nowych fitów. Nie wykazano poprawy końcowych domen.
+Rekomendacja do omówienia: zakończyć obecny pilot bez wybrania detektora
+i pozostawić 24–26 niewybrane. Ticket 23 jest `claimed`, oczekuje decyzji
+użytkownika; 04 i 13 pozostają otwarte. Dodatkowe dane nadal są odłożone.
 
 Na polecenie użytkownika [ticket 19](issues/19-frozen-feature-domains.md)
 zamknięto jako zakończoną serię badań (`resolved`). Nie wybrano detektora
@@ -28,15 +34,15 @@ wykrywania domen; transfer nadal 0/174 przypisań. Galeria lokalna:
 najwyżej 4/782 (0,51%), bez przewagi nad FFT. Zachowana bramka ze spójnością
 ma te same geometryczne limity, a SSL nie rozdziela granic także przed nią.
 Galeria: `.scratch/local-ssl-22/index.html`, 89 sprawdzonych interakcji.
-Następny jest **23** — wspólne porównanie i decyzja. Pierwotny budżet
+Trwa **23** — porównanie jest przygotowane, decyzja pozostaje do omówienia. Pierwotny budżet
 27 fitów 21/22 został wykorzystany. Jakość 04, odbiór 13 i druga mapa
 pozostają otwarte; dodatkowe MPP/STP nadal są odłożone do tej decyzji.
 
 **Decyzja użytkownika — 2026-10-31:** najpierw wykonujemy 21/22 na obecnym
 TTMAPP i przygotowanych kontrolach według protokołu 20. Przygotowanie
 dodatkowych MPP/STP odkładamy; nie jest warunkiem rozpoczęcia tych prób.
-W 23 ocenimy, czy wyniki uzasadniają rozszerzenie zbioru i jakich danych
-potrzeba. Obecny pilot nie ocenia przenoszenia na inne molekuły lub podłoża.
+Zestawienie 23 nie wskazuje jeszcze uzasadnienia przygotowania całego
+archiwum. Obecny pilot nie ocenia przenoszenia na inne molekuły lub podłoża.
 
 [Galeria zapisanych propozycji domen](saved-domain-examples.md) udostępnia
 trzy klatki TTMAPP oraz kontrolę syntetyczną: PNG, porównanie metod 15/16

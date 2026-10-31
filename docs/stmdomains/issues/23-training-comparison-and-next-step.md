@@ -9,6 +9,19 @@ Assignee: Codex — domains/start
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 19, 21, 21a, 22
 
+## Zestawienie — 2026-11-01
+
+Przygotowano [raport porównawczy](../training-comparison-and-next-step.md)
+i [manifest dowodów](../training-comparison-manifest.json), z główną wspólną
+oceną 21/22, oddzielnym 21a i historycznym kontekstem 15–19. Brak nowego
+treningu lub predykcji. Nie wykazano poprawy końcowych domen; rozdzielono
+nieudane granice przed odmowami od niezależnego limitu bramki/spójności.
+
+Rekomendacja do omówienia: zakończyć serię bez przyjęcia detektora,
+pozostawić 24–26 niewybrane i warunkowe, bez nowego budżetu lub zbioru.
+Nie jest to jeszcze decyzja użytkownika ani odbiór 13. Status pozostaje
+`claimed` do uzgodnienia odpowiedzi zgodnie z warunkiem zakończenia.
+
 ## Podjęcie — 2026-11-01
 
 Na polecenie użytkownika zestawiamy zakończone próby 19, 21, 21a i 22.

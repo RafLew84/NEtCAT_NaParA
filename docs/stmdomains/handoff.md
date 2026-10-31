@@ -1,3 +1,45 @@
+# STM Domains — porównanie 23 przygotowane do decyzji
+
+Data: **2026-11-01**. Na polecenie użytkownika podjęto
+[23 — porównanie i następny krok](issues/23-training-comparison-and-next-step.md).
+Status **`claimed`**: analiza jest wykonana, końcowa decyzja użytkownika
+pozostaje do omówienia zgodnie z trybem HITL i warunkiem zakończenia ticketu.
+[Raport](training-comparison-and-next-step.md),
+[manifest](training-comparison-manifest.json). Rekomendacja: zakończyć
+obecny pilot bez detektora i pozostawić 24–26 niewybrane. Nie aktywowano
+nowych fitów, danych lub budżetu. 04 i 13 pozostają otwarte.
+
+Główna wspólna ocena 21/22: transfer 0/174, transdukcja najwyżej 4/782.
+Zachowana bramka ze spójnością narzuca właśnie takie maksimum niezależnie
+od cech; osobną luką są granice przed odmowami, w tym F1=0 dla SSL z32.
+Zachowano częściowy zysk AE/FH przed odmowami: mediana poprawy błędu par
+7,57 pp w transferze, wszystkie trzy ziarna dodatnie. rVAE/FH transdukcyjny
+poprawia medianę o 7,21 pp, lecz tylko 2/3 ziaren i kosztem rozdrobnienia.
+Żadna uczona konfiguracja nie spełnia całych kryteriów kontynuacji.
+21a i wcześniejsze 15–19 pozostają oddzielne z powodu różnych kontroli,
+przygotowania i mianowników; nie tworzymy pozornego rankingu procentów.
+
+Nowy moduł `stmdomains/experiments/training/comparison.py` czyta zapisane
+oceny. `.scratch/training-comparison-23/` zawiera pełne `tables.md`, JSON,
+10 CSV i audyt wejścia. Nie zmieniono zamrożonych źródeł, modeli, progów,
+predykcji ani galerii 21/21a/22. Punkty siatki opisano jako środki okien,
+a procent przypisań jako udział ocenialnych miejsc, nie wykrywalność molekuł.
+
+Sprawdzenia: 56/61/74 przypięte pliki prób, 112 identycznych agregatów FFT,
+14 zgodnych baz TTMAPP, 83 grupy mianowników; wszystkie 14 artefaktów
+porównania odtworzone bajt w bajt w osobnym katalogu. Kompilacja modułu,
+lokalne linki, 27 ticketów i graf bez cykli oraz `git diff --check` przeszły.
+Niezależne przeglądy historii i interpretacji uwzględnione. Nie ponawiano
+treningów, testów aplikacji ani GUI; korzystamy z wcześniejszych odbiorów.
+
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/start`, baza
+`865bfbc`, podjęcie `b215616`; commit zestawienia w odpowiedzi końcowej.
+Zapis roboczy sprawdzony. Zakres wyłącznie Domains, bez potrzebnych zmian
+wspólnych. Zapis metadanych Git wymaga wykonania poza sandboxem; integracja
+przez koordynatora. Duże wyniki i modele pozostają lokalne.
+
+---
+
 # STM Domains — wykonano lokalny SSL, ticket 22
 
 Data: **2026-10-31**. Na polecenie użytkownika wykonano

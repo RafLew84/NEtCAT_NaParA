@@ -15,7 +15,14 @@ Ustalenia mają pozwolić rozwinąć odebrany szkielet STM Domains.
 
 ## Notes
 
-**Aktualny stan i przyjęty plan — 2026-10-31.**
+**Aktualny stan — 2026-11-01.**
+[Zestawienie 23](training-comparison-and-next-step.md) jest przygotowane;
+ticket pozostaje `claimed` do omówienia decyzji użytkownika. Rekomendujemy
+zakończyć serię bez przyjęcia detektora i bez aktywacji 24–26. Raport
+oddziela błąd granic od limitu bramki, zachowuje osobne warunki 21a
+i historycznych prób 15–19. Nie dodano fitów, danych ani nowego budżetu.
+
+**Zakończone próby i przyjęty plan — 2026-10-31.**
 [Podsumowanie i rozstrzygnięcie](issues/19-frozen-feature-domains.md): **19
 `resolved`**, bez wyboru detektora do aplikacji. Zachowujemy wyniki i użyteczne
 składniki jako punkty odniesienia. Protokół jakości 04, odbiór 13 i ta mapa
@@ -33,7 +40,7 @@ przypisań TTMAPP. [22 — lokalny SSL](local-self-supervised-trial.md) także
 wykonano (`resolved`): 9/9 fitów, 21 420 predykcji, 181 testów.
 Końcowy transfer 0/174, transdukcja najwyżej 4/782; bez poprawy domen.
 Diagnoza zachowanej bramki wyjaśnia te geometryczne limity, lecz SSL
-nie rozdziela badanych granic także przed odmowami. Następny jest **23**.
+nie rozdziela badanych granic także przed odmowami. Wyniki zestawiono w **23**.
 Nie wybrano metody do aplikacji; pierwotny budżet 27 fitów został wykorzystany.
 
 **Uzupełnienie planu na polecenie użytkownika — 2026-10-31:** 21a obejmuje

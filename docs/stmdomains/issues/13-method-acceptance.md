@@ -53,7 +53,7 @@ na bezpośrednie polecenie użytkownika; nie oznacza to zaliczenia tego odbioru.
 
 [Przygotowanie 20](../self-supervised-training-preparation.md) jest wykonane:
 rozdzielone transfer/transdukcja, kontrole, protokół relacji i kryteria są
-gotowe, GPU/checkpoint sprawdzone. 21/22 pozostają do wykonania; 20 nie
+gotowe, GPU/checkpoint sprawdzone. 21/21a/22 następnie wykonano; samo 20 nie
 dostarcza wyniku domen ani nie zalicza odbioru. Ograniczenia rejestracji
 i liczebności train przechodzą do oceny wniosków o przenoszeniu.
 
@@ -64,6 +64,12 @@ Wymaga osobnego pokazania błędnych scaleń/podziałów i zakresu przypisań;
 klaster wyglądu, wzrost liczby przypisań lub etykieta nadana przez solver
 nie stanowią samodzielnie dowodu domeny. Przyjęcie planu nie zalicza
 odbioru; 24–26 nadal nie są wymagane bez wyboru konkretnego rozszerzenia.
+
+**Uzupełnienie 2026-11-01:** [zestawienie 23](../training-comparison-and-next-step.md)
+nie wykazało poprawy końcowych domen przez trening i nie wybrało detektora.
+Rekomendacja zakończenia pilota oczekuje omówienia; nie aktywowano 24–26.
+Ograniczenie bramki nie unieważnia błędów granic przed odmowami, a brak
+wygranej uczenia nie zalicza metod klasycznych. Ten odbiór pozostaje otwarty.
 
 ## Wynik próby pokrycia do uwzględnienia
 
