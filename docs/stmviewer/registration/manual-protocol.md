@@ -123,6 +123,27 @@ sąsiedztwo pary, dalsze klatki, pochodzenie ręczne, brak oceny pewności,
 cofnięcie korekty, anulowanie oraz mały eksport MPP/AVI z ponownym odczytem.
 Zapis poprawionego filmu należy do REG-02a, zapis lekkiej sesji do REG-07.
 
+## Ręczne maski — REG-03
+
+Funkcja jest wdrożona i oczekuje na odbiór: [instrukcja](manual-masks-manual.md),
+[sprawdzenia](reviews/REG-03.md). Edytor zawsze pokazuje oryginalną klatkę.
+Osobno oznacz obie klatki pary, zapisz źródłowe numery i prostokąty w pikselach.
+Wybierz **Korelacja z maskami (v1)**. Policz próbę z wyłączonym uwzględnianiem
+oznaczeń, zachowaj do porównania, włącz oznaczenia i policz ponownie. Obie próby
+korzystają z tego samego masked NCC. Pozostałe metody nie używają tych masek.
+
+Zielona/czerwona nakładka pokazuje próbki używane/pomijane. Zaznaczenia nie
+usuwają danych z original ani aligned; zmiana maski nie przelicza gotowych
+wyników automatycznie. Do pełnego filmu uruchom Rejestruj w głównym oknie.
+Maski są sesyjne: przed nowym importem zapisz użyte prostokąty w karcie próby.
+
+Na wzorcu `masked-artifact.mpp` pominięcie górnych 12 wierszy każdej klatki
+usuwa wpływ nieruchomego zakłócenia. Pierwsza para zmienia XY z (0,0) na (−4,+3),
+a pełny film ma (0,0), (−4,+3), (−7,+1). To kontrola o znanym rozwiązaniu.
+Na MOVIE_4/MOVIE_8 oceniamy osobno rzeczywiste struktury; działające obliczenie
+lub zmiana XY nie dowodzi poprawy. Pełne próby wykonane przez agenta nadal
+wykazują problematyczny dryf w MOVIE_4.
+
 ## Karta odbioru każdego ticketu
 
 Realizujący tworzy kartę w `docs/stmviewer/registration/reviews/REG-XX.md`.

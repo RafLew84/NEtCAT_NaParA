@@ -52,6 +52,17 @@ z oryginałów. MPP/AVI zapisują poprawiony film, MPP+metadane V4 zachowują hi
 ręczną. [Instrukcja odbioru](registration/manual-movie-corrections-manual.md),
 [karta sprawdzeń](registration/reviews/REG-02a.md). Zależność REG-03 jest spełniona.
 
+**[REG-03 — ręczne maski zakłóceń](registration/issues/03-manual-masks.md)**
+ma status **ready-for-review**. **Edytuj maski…** otwiera oryginalne klatki:
+prostokąty „użyj” i „pomiń” określają dane do dopasowania. Osobna metoda
+**Korelacja z maskami (v1)** działa dla pary i całego filmu; przełącznik pozwala
+porównać wynik z oznaczeniami i bez nich. Maski wpływają na kolejne obliczenie,
+zachowując wszystkie wartości obrazu w aligned/MPP/AVI. Oznaczenia pozostają
+w sesji programu; ich zapis należy do REG-07. Dotychczasowe metody nie używają
+tych masek. [Instrukcja próby](registration/manual-masks-manual.md),
+[karta sprawdzeń i ograniczenia jakości](registration/reviews/REG-03.md).
+REG-04 czeka na ręczny odbiór REG-03.
+
 ## Stan aplikacji
 
 Działa otwieranie jednego lub wielu STP/S94, także mieszanych, oraz jednego filmu MPP.
