@@ -8,6 +8,7 @@ from numpy.typing import NDArray
 
 from stmviewer.frame import ImageFrame
 from stmviewer.registration_masks import FrameMask
+from stmviewer.registration_samples import translate_samples
 from stmviewer.masked_correlation import MASKED_METHOD, MaskedCorrelationShiftBackend, masked_label, mask_settings
 from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
 from stmviewer.registration import (
@@ -155,13 +156,8 @@ class PairImages:
         reference = self.reference.data
         moving = self.moving.data
         if np.any(shift):
-            from scipy.ndimage import affine_transform
-
-            x, y = shift
-            moving = np.asarray(affine_transform(
-                moving, matrix=np.eye(2), offset=(-y, -x), output_shape=reference.shape,
-                order=1, mode='constant', cval=np.nan, prefilter=False,
-            ), dtype=np.float64)
+            moving = translate_samples(moving, (float(shift[0]), float(shift[1])),
+                                       (reference.shape[0], reference.shape[1]))
         overlap = np.isfinite(reference) & np.isfinite(moving)
         reference_gray = self._gray(reference, gamma)
         moving_gray = self._gray(moving, gamma)

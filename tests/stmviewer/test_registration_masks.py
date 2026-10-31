@@ -163,3 +163,63 @@ def test_full_series_uses_captured_per_source_masks_after_live_edits_and_can_can
     with pytest.raises(RegistrationError, match='za mało danych'):
         register_series(originals[:1], method='masked_correlation',
                         masks=(FrameMask((MaskRectangle(0, 0, 80, 64, 'omit'),)),))
+
+
+def test_integer_masked_alignment_preserves_every_measured_sample_next_to_nan(tmp_path):
+    from make_mask_fixtures import artefact_arrays
+    from make_registration_fixtures import frames_with_data
+    from stmviewer.mpp_export import save_aligned_mpp
+    from stmviewer.registration import register_series
+    from stmviewer.series import open_frame_series
+
+    first, second, _ = artefact_arrays()
+    first[30, 30] = second[30, 30] = np.nan
+    omitted = FrameMask((MaskRectangle(0, 0, 80, 12, 'omit'),))
+    for moving, expected_shift in ((first.copy(), (0, 0)), (second, (-4, 3))):
+        originals = frames_with_data(first, moving)
+        before = [frame.data.copy() for frame in originals]
+        result = register_series(originals, method='masked_correlation', masks=(omitted, omitted))
+        assert result.frames[1].shift_xy == expected_shift
+        exported = save_aligned_mpp(tmp_path / f'shift-{expected_shift[0]}.mpp', result,
+                                    wsxm_compatible=True)
+        restored = open_frame_series([exported])
+        for aligned, original, saved in zip(result.frames, before, restored):
+            x, y = map(int, aligned.origin_xy)
+            assert aligned.valid_mask.sum() == np.isfinite(saved.data).sum() == 5119
+            np.testing.assert_array_equal(aligned.image.data[y:y + 64, x:x + 80], original)
+            np.testing.assert_array_equal(saved.data, aligned.image.data)
+            assert np.isnan(saved.data[y + 30, x + 30])
+            np.testing.assert_array_equal(aligned.original.data, original)
+            assert np.isnan(aligned.image.data[~aligned.valid_mask]).all()
+
+
+def test_fractional_alignment_requires_every_positive_weight_sample_without_spreading_gaps():
+    from dataclasses import replace
+    from make_mask_fixtures import artefact_arrays
+    from make_registration_fixtures import frames_with_data
+    from stmviewer.manual_movie import apply_movie_correction, movie_pair_trial
+    from stmviewer.manual_pair import ManualPairDraft
+    from stmviewer.registration import register_series
+
+    samples = artefact_arrays()[0]
+    samples[28:33, 28:34] = [
+        [0, 2, 4, 6, 8, 10],
+        [12, 14, 16, 18, 20, 22],
+        [24, 26, np.nan, 30, 32, 34],
+        [36, 38, 40, 42, 44, 46],
+        [48, 50, 52, 54, 56, 58],
+    ]
+    originals = frames_with_data(samples, samples.copy())
+    base = register_series(originals, method='masked_correlation')
+    for xy, valid_count, expected in [
+        ((0.5, 0), 5054, [[13, 15, 17, 19], [25, np.nan, np.nan, 31], [37, 39, 41, 43]]),
+        ((0.5, 0.25), 4973, [[10, 12, 14, 16], [22, np.nan, np.nan, 28],
+                            [34, np.nan, np.nan, 40], [46, 48, 50, 52]]),
+    ]:
+        start = replace(movie_pair_trial(base, 1), shift_xy=xy)
+        trial = ManualPairDraft(*originals, start).apply()
+        aligned = apply_movie_correction(base, trial).frames[1]
+        assert aligned.valid_mask.sum() == valid_count
+        np.testing.assert_array_equal(aligned.image.data[29:29 + len(expected), 29:33], expected)
+        assert np.isnan(aligned.image.data[~aligned.valid_mask]).all()
+        np.testing.assert_array_equal(aligned.original.data, samples)

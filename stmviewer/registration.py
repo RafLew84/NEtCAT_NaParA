@@ -16,6 +16,7 @@ from stmviewer.manual_movie_types import MovieBaselineFrame, MovieCorrection, Mo
 from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
 from stmviewer.masked_correlation import MASKED_METHOD, MASKED_LABEL, MaskedCorrelationShiftBackend, masked_label
 from stmviewer.registration_masks import FrameMask
+from stmviewer.registration_samples import translate_samples
 
 
 CPU_METHODS = {
@@ -194,8 +195,7 @@ def render_registration(
         inherited: tuple[bool, ...], *, reference: FrameOrigin, method: str, device: str,
         progress: Callable[[int, int, str], None] | None = None,
         cancelled: Callable[[], bool] | None = None) -> RegistrationResult:
-    """Build one aligned image per original with a single linear interpolation."""
-    from scipy.ndimage import affine_transform
+    """Build aligned originals with exact integer shifts or one linear interpolation."""
 
     def checkpoint() -> None:
         if cancelled is not None and cancelled():
@@ -223,10 +223,7 @@ def render_registration(
         checkpoint()
         try:
             x, y = left + shift[0], top + shift[1]
-            values = np.asarray(affine_transform(
-                frame.data, matrix=np.eye(2), offset=(-y, -x), output_shape=shape,
-                order=1, mode='constant', cval=np.nan, prefilter=False,
-            ), dtype=np.float64)
+            values = translate_samples(frame.data, (x, y), shape)
             mask = np.isfinite(values)
             values.setflags(write=False)
             mask.setflags(write=False)
