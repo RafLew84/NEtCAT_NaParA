@@ -4,9 +4,9 @@
 `.stmsession`, otwiera go po ponownym uruchomieniu programu i kontynuuje przeglądanie,
 ręczne korekty oraz eksport bez ponownej rejestracji.
 **Blocked by:** [REG-05](05-local-consensus.md), w tym odbiór manualny — spełnione 2026-10-31.
-**Status:** in-progress
-**Manualny odbiór:** niewykonany; oczekuje na implementację i sprawdzenia nowego zakresu.
-**Wykonawca:** Codex; baza przeglądu `750c474`.
+**Status:** ready-for-review
+**Manualny odbiór:** niewykonany; implementacja i automatyczne sprawdzenia zakończone, oczekuje na próbę użytkownika.
+**Wykonawca:** Codex; baza przeglądu `750c474`. Implementacja `5afa8c2`, poprawka instrukcji po przeglądzie `ea30b5f`.
 
 Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
 
@@ -19,47 +19,47 @@ pozostają dostępne. REG-06 nadal jest odłożony; REG-07 nie dodaje walidacji 
 
 ## Zakres i kryteria odbioru
 
-- [ ] GUI udostępnia **Zapisz sesję…** i **Otwórz sesję…**. Otwarcie działa także
+- [x] GUI udostępnia **Zapisz sesję…** i **Otwórz sesję…**. Otwarcie działa także
   w pustym programie. Sesja zawiera jedną bieżącą serię i jej aktywny stan pracy;
   nie trzeba wcześniej otwierać MPP ani wskazywać plików źródłowych.
   Instrukcja i wyniki: [kroki GUI](../session-manual.md),
   [raport sprawdzeń](../session-results.md), [przegląd](../reviews/REG-07-session.md).
-- [ ] Jeden plik `.stmsession` zawiera bezstratnie oryginalne obrazy pozostałych
+- [x] Jeden plik `.stmsession` zawiera bezstratnie oryginalne obrazy pozostałych
   klatek, ich kolejność, trwałe identyfikatory, pochodzenie i pełne metadane.
   Limit ochronny formatu wynosi 8 GiB łącznych nieskompresowanych danych
   obrazów original i aligned; przekroczenie daje czytelną odmowę. To limit pliku,
   a nie potwierdzenie działania na komputerze z określoną ilością RAM.
   Usunięte klatki nie wracają. Nazwy i ścieżki źródeł są informacją historyczną,
   a brak tych plików na drugim komputerze nie blokuje odczytu.
-- [ ] Jeśli istnieje aktywny aligned, zapis obejmuje również jego gotowe próbki,
+- [x] Jeśli istnieje aktywny aligned, zapis obejmuje również jego gotowe próbki,
   w tym NaN, ważność, geometrię, rozmiar płótna, padding, odniesienie, przesunięcia
   i dane kalibracji. Otwarcie przywraca te same wartości bez nowej interpolacji,
   estymacji ani uruchamiania modelu. Można zapisać również serię bez aligned.
-- [ ] Zapis zachowuje metodę bazową, dostępne statusy i diagnostykę aktywnego
+- [x] Zapis zachowuje metodę bazową, dostępne statusy i diagnostykę aktywnego
   wyniku, bazowe XY i zastosowane ręczne nadpisania z REG-02a oraz końcowe XY.
   Pochodzenie ręczne i brak automatycznej oceny jakości pozostają jawne.
   Po odczycie można dalej poprawiać i cofać korekty tych samych par, jeśli
   aktywny wynik przed zapisem dopuszczał edycję.
-- [ ] Usunięcie klatki, także odniesienia, nie zmniejsza zapisanego płótna ani
+- [x] Usunięcie klatki, także odniesienia, nie zmniejsza zapisanego płótna ani
   nie przesuwa pozostałych obrazów. Sesja odtwarza zachowaną geometrię i stan
   edytowalności. Jeśli usunięcie unieważniło dalsze ręczne poprawki, nadal
   wymagają one nowej rejestracji; zapis/odczyt nie znosi tego ograniczenia.
-- [ ] Przywracane są wybrana klatka, original/aligned, gamma, proporcje pikselowe,
+- [x] Przywracane są wybrana klatka, original/aligned, gamma, proporcje pikselowe,
   zoom i przesunięcie widoku osobno dla original/aligned, FPS, pętla oraz wybrana
   metoda i ustawienia Deep Matcher. Odtwarzanie po otwarciu pozostaje zatrzymane.
   Ścieżka wag jest ustawieniem, nie warunkiem wczytania gotowych wyników;
   dostępność modelu jest sprawdzana dopiero przy nowym obliczeniu.
-- [ ] Zapis i odczyt działają w tle, pokazują postęp i umożliwiają anulowanie.
+- [x] Zapis i odczyt działają w tle, pokazują postęp i umożliwiają anulowanie.
   Podczas operacji skład serii i zapisywany stan nie mogą się zmieniać.
   Nowa sesja zastępuje bieżącą dopiero po pełnym, poprawnym odczycie. Błąd lub
   anulowanie zachowują dotychczasową pracę i istniejący plik docelowy.
-- [ ] Format jest wersjonowany, początkowo wersja 1. Nieobsługiwana wersja,
+- [x] Format jest wersjonowany, początkowo wersja 1. Nieobsługiwana wersja,
   uszkodzone obrazy/metadane, niezgodna geometria lub powiązania klatek powodują
   czytelną odmowę. Nie uzupełniamy brakujących danych fikcyjnym XY ani oceną jakości.
-- [ ] MPP/AVI po otwarciu sesji korzystają z odtworzonej aktywnej serii i aligned.
+- [x] MPP/AVI po otwarciu sesji korzystają z odtworzonej aktywnej serii i aligned.
   Zachowują dotychczasowe opcje, wartości i metadane. Ten ticket nie zmienia
   formatów eksportu; sesja jest zapisem pracy, odrębnym od eksportu filmu.
-- [ ] Usunięto bibliotekę pełnych prób A/B i obsługę `*.stmtrial.json` dodane
+- [x] Usunięto bibliotekę pełnych prób A/B i obsługę `*.stmtrial.json` dodane
   w poprzedniej implementacji REG-07. Istniejące pliki użytkownika pozostają
   na dysku. Nie wymagamy migracji tego wycofanego formatu.
 

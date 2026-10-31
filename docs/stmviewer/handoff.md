@@ -1,7 +1,9 @@
 # REG-07: zapis i odczyt przenośnej sesji — 2026-11-01
 
-Status: **in-progress**, odbiór manualny użytkownika oczekuje.
+Status: **ready-for-review**, odbiór manualny użytkownika oczekuje.
 Gałąź: `viewer/registration-difficult-movies`; baza przeglądu `750c474`.
+Implementacja: **`5afa8c2`**, poprawka po przeglądzie: **`ea30b5f`**.
+Końcowy commit dokumentacji domyka przekazanie; bez publikacji ani scalenia.
 
 - Na zlecenie użytkownika usunięto bibliotekę pełnych prób A/B i format
   `*.stmtrial.json`. Wcześniejsze porównanie pary oraz ręczne korekty działają.
@@ -14,6 +16,19 @@ Gałąź: `viewer/registration-difficult-movies`; baza przeglądu `750c474`.
 - Operacje działają w tle z postępem i anulowaniem. Zapis jest atomowy;
   odmowa odczytu nie zastępuje poprzedniej pracy. Format ZIP/JSON/NPY jest
   wersjonowany, bez pickle; limit obrazów po rozpakowaniu to 8 GiB.
+
+- W pełnym zestawie **499 testów Viewera przeszło, 2 pominięto**.
+  Łącznie repozytorium: **2285 passed, 14 failed, 16 skipped**, 293,90 s.
+  Wszystkie 14 identyfikatorów błędów odpowiada wcześniejszej bazie
+  MolTrack/NanoTrack; brak nowych regresji. Mypy (56 modułów), Ruff i diff-check
+  przechodzą. Największy plik kodu: 971 linii.
+- Pełne MOVIE_4 (362 klatki) oraz MOVIE_8 (84): bezstratny zapis/odczyt sesji,
+  dwie ręczne poprawki i dalsza edycja, pełny MPP+JSON oraz zakres FFV1 poprawne.
+  Świeży proces odczytał MOVIE_4 bez importu Torch/Kornia. Sprawdzono semantykę
+  ścieżek Linux→Windows→Linux; to nie zastępuje fizycznego odbioru Windows.
+- Spec: 0 usterek. Standards: 1 P2 dotyczące braku gotowych błędnych plików
+  do manualnego odbioru, naprawione generatorem i ponownie sprawdzone;
+  0 otwartych uwag. Próby Qt offscreen nie są odbiorem manualnym GUI/VLC.
 
 [Instrukcja ręcznej próby](registration/session-manual.md),
 [wyniki i artefakty](registration/session-results.md),

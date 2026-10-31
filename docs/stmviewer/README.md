@@ -30,7 +30,8 @@ i **Otwórz sesję…** są w głównym panelu; skróty to Ctrl+Shift+S i Ctrl+S
 [Instrukcja ręcznego odbioru](registration/session-manual.md),
 [wyniki sprawdzeń](registration/session-results.md),
 [przegląd kodu](registration/reviews/REG-07-session.md).
-Weryfikacja implementacji trwa; odbiór manualny oczekuje. REG-06 pozostaje
+REG-07 ma status **ready-for-review**: testy automatyczne i przegląd zakończone,
+odbiór manualny oczekuje. REG-06 pozostaje
 odłożony, dalsze tickety czekają na odbiór REG-07.
 
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk
