@@ -1,7 +1,9 @@
 # REG-05 — rzeczywiste próby modelu i filmów
 
 Data: 2026-10-31. Implementacja REG-05 po bazie `a59029d`.
-Status: **gotowe do oceny wizualnej; przewaga nad samym Deep niepotwierdzona**.
+Status REG-05: **done**, po potwierdzeniu „testy manualne 05 ok” 2026-10-31.
+Wariant pozostaje eksperymentalny; przewaga lokalnego konsensusu nad Deep
+nie została potwierdzona. Szczegóły odbioru: [karta REG-05](reviews/REG-05.md).
 
 Deep policzył 14/14 wskazanych par. Finalny wariant „Deep Matcher + lokalne
 fragmenty (v1)” policzył 2/14, a pozostałym 12 odmówił. Próby pełnych
@@ -154,12 +156,14 @@ jej **2/14** pochodzi z nowego wykonania, a nie z mieszania najlepszych wyników
 różnych ustawień. Po ustaleniu finalnego zestawu nie wykonano kolejnego
 przeszukiwania parametrów ani ustawień osobnych dla MOVIE_4 i MOVIE_8.
 
-Gotowość do ręcznej oceny oznacza możliwość obejrzenia dwóch zaakceptowanych
-par, diagnostyki odmów oraz wzorców. Bieżąca metoda nie daje kompletnego
+Dostarczony podgląd pozwala obejrzeć dwa wyniki lokalne, diagnostykę odmów
+oraz wzorce. Użytkownik zaakceptował testy manualne REG-05 2026-10-31. Bieżąca metoda nie daje kompletnego
 automatycznego dopasowania tych dwóch trudnych filmów. Nie stwierdzamy poprawy
 fizycznego dryfu, odporności na wszystkie zakłócenia ani przewagi nad Deep.
-Manualne zatwierdzenie REG-05, Windows, VLC i stanowisko 8 GB VRAM pozostają
-poza zakresem tej próby. Status ticketu określa [karta odbioru](reviews/REG-05.md).
+Późniejszy odbiór manualny REG-05 zapisano w [karcie](reviews/REG-05.md),
+oddzielnie od powyższych prób automatycznych. Nie podano osobnych wyników
+Windows, VLC ani stanowiska 8 GB VRAM. Ocena Outdoor z porównania checkpointów
+nie jest oceną przewagi lokalnego konsensusu nad bazowym Deep.
 
 ## Artefakty i odtwarzanie
 

@@ -2,7 +2,7 @@
 
 **What to build:** Użytkownik wydziela fragmenty kontrolne i widzi na nich
 rozbieżność po dopasowaniu, oddzielnie od wewnętrznej oceny algorytmu.
-**Blocked by:** [REG-05](05-local-consensus.md), w tym odbiór manualny.
+**Blocked by:** [REG-05](05-local-consensus.md), w tym odbiór manualny — spełnione 2026-10-31.
 **Status:** ready-for-agent
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 

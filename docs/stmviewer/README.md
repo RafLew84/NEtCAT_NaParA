@@ -21,7 +21,7 @@ REG-08 następują próby grafu LS (REG-08a), odpornego grafu (REG-08b), zastoso
 do filmu i eksport (REG-08c), następnie osobno EfficientLoFTR (REG-10), RoMa v2
 (REG-11) i MatchAnything-ELoFTR (REG-12). Dalsze odniesienia REG-08d oraz tearing
 REG-09 pozostają warunkowe. Są to zaplanowane funkcje; po odebranym REG-04
-najbliższym krokiem jest ręczny odbiór REG-05.
+najbliższym krokiem jest zlecenie REG-06 po odebranym REG-05.
 
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk
 **Porównaj parę…** otwiera osobny podgląd sąsiednich oryginałów: przed/po XY,
@@ -76,7 +76,8 @@ start Deep oraz wynik ECC bez ponownego obliczenia modelu. Dostępne są
 Użytkownik potwierdził „testy manualne 04 ok” 2026-10-31. Zależność REG-05 jest spełniona.
 
 **[REG-05 — zgodność lokalnych fragmentów](registration/issues/05-local-consensus.md)**
-ma status **ready-for-review**. Metoda **Deep Matcher + lokalne fragmenty (v1)**
+ma status **done**: użytkownik potwierdził „testy manualne 05 ok” 2026-10-31.
+Metoda **Deep Matcher + lokalne fragmenty (v1)**
 porównuje dokładny start Deep z jednym końcowym XY, pokazuje rozmieszczenie
 poparcia, odstające wektory i powody odmów. Działa dla pary i serii, z zachowaniem
 ręcznych korekt i eksportów. Na wskazanych pomiarach wynik powstał dla 2/14 par;
@@ -89,7 +90,9 @@ Na osobne pytanie użytkownika wykonano [porównanie checkpointów LoFTR](regist
 Outdoor, Indoor i Indoor New. Dostępne są wyniki 14 stałych par oraz pięć
 kompletnych MPP do oceny. Indoor można wybrać istniejącym polem wag; Indoor New
 wymaga jawnej zmiany konfiguracji i został sprawdzony osobnym skryptem.
-Eksperyment nie zmienia domyślnych wag ani statusu manualnego REG-05.
+Użytkownik ocenił Outdoor jako znacznie lepszy w obejrzanym porównaniu;
+pozostaje on bazą dalszych prób. Ocena checkpointów jest odrębna od odbioru
+REG-05 i nie potwierdza przewagi lokalnego konsensusu nad bazowym Deep.
 
 ## Stan aplikacji
 

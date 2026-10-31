@@ -2,13 +2,17 @@
 
 Na pytanie użytkownika sprawdzono dodatkowe wagi klasycznego LoFTR, bez zmiany
 kodowania obrazów, wyznaczania jednego XY ani ustawień aplikacji. Baza programu:
-`6e50e57`. To osobny eksperyment z wagami, nie odbiór REG-05 ani rozpoczęcie REG-06.
+`6e50e57`. To osobny eksperyment z wagami. Późniejszy odbiór REG-05 jest
+odnotowany w [karcie ticketu](reviews/REG-05.md); REG-06 nie został rozpoczęty.
 
 **Outdoor i Indoor policzyły wszystkie 14 wskazanych par i oba pełne filmy.
 Indoor New policzył 12/14 par, ukończył MOVIE_8 i odmówił w MOVIE_4.**
 Wyniki checkpointów znacznie się różnią. Kompletność, score, rozmiar aligned
 ani gładkość trajektorii nie rozstrzygają, które XY jest fizycznie poprawne.
-Ręczna ocena struktur próbki pozostaje do wykonania.
+Po obejrzeniu wyników użytkownik stwierdził 2026-10-31: **„outdoor wygląda
+o wiele lepiej”**. Outdoor pozostaje bazą dalszych prób. Ta ocena dotyczy
+obejrzanego porównania checkpointów; nie podano osobnych ocen par ani filmów.
+Nie oznacza przewagi lokalnego konsensusu REG-05 nad samym Deep.
 
 ## Checkpointy i zgodność
 
@@ -170,4 +174,5 @@ przez SciPy z interpolacją liniową. Raport: `/tmp/checkpoint-roundtrip.json`.
 To potwierdzenie zapisu, a nie poprawności fizycznego dopasowania.
 
 Raporty, XY, statusy i pliki są w powyższym katalogu danych, poza Git.
-Nie wykonano ręcznego odbioru jakości, Windows ani VLC.
+Automatyczne próby nie obejmowały ręcznej oceny jakości. Późniejszą ocenę
+użytkownika zapisano powyżej; nie podano osobnych wyników Windows ani VLC.

@@ -1,3 +1,27 @@
+# REG-05: odbiór manualny i ocena checkpointów — 2026-10-31
+
+Użytkownik potwierdził: **„ok, outdoor wygląda o wiele lepiej. testy manualne 05 ok”**.
+[REG-05](registration/issues/05-local-consensus.md) ma status `done`;
+zależność [REG-06](registration/issues/06-independent-validation.md) jest spełniona.
+REG-06 pozostaje `ready-for-agent`, bez rozpoczętej implementacji.
+
+- Zaktualizowano ticket, jego kryteria, kartę odbioru, plan, README, raporty
+  prób oraz blokadę REG-06. Kod aplikacji i ustawienia nie zmieniają się.
+- Outdoor pozostaje bazą dalszych prób po ocenie użytkownika w osobnym
+  porównaniu checkpointów. Nie utożsamiamy tej oceny z przewagą lokalnego
+  konsensusu nad bazowym Deep. REG-05 zamknięto jako odebrany wariant
+  eksperymentalny; zachowano ograniczenia 2/14 par i odmów pełnych filmów.
+- Potwierdzenie nie zawiera osobnych ocen par/filmów, Windows, VLC ani GPU 8 GB;
+  nie dopisano takich wyników. Dotychczasowe dowody automatyczne są zachowane.
+- Implementacja REG-05: `303e401`, poprawka `75eb70f`, przekazanie `6e50e57`;
+  eksperyment checkpointów i baza tej aktualizacji: `e2d49dd`. Zapis odbioru
+  należy do końcowego commita dokumentacyjnego tej pracy.
+- Sprawdzenia: spójność statusów i zależności, linki oraz `git diff --check`.
+  Zmiana dotyczy dokumentacji; testów aplikacji nie powtarzano.
+- Brak nowych potrzeb zmian wspólnych; nie rozpoczęto następnego ticketu.
+
+---
+
 # Porównanie checkpointów LoFTR — 2026-10-31
 
 Na pytanie użytkownika o inne checkpointy wykonano osobny eksperyment,

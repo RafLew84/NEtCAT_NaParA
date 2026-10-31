@@ -2,8 +2,8 @@
 
 Data: 2026-10-31. Baza przeglądu: `a59029d`.
 Implementacja: `303e401`; poprawka po przeglądzie: `75eb70f`.
-Status: **ready-for-review**.
-Ręczny odbiór użytkownika: **niewykonany**.
+Status: **done**.
+Ręczny odbiór użytkownika: **zaakceptowany 2026-10-31** — „testy manualne 05 ok”.
 
 ## Dostarczona funkcja
 
@@ -102,16 +102,27 @@ Końcowy zakres `a59029d…75eb70f`: **0 otwartych uwag** dotyczących braków,
 nieprawidłowej implementacji lub rozszerzenia zakresu. Potwierdzono dokładny
 start Deep, rozszerzone lokalne szukanie, rozdzielone poparcie, konkurujące
 grupy/odmowy, diagnostykę GUI, wspólny estymator pary/serii i eksport.
-Poprawka opisu nie zmienia tych zachowań. Odbiór jakości pozostaje manualny.
+Poprawka opisu nie zmienia tych zachowań. Odbiór użytkownika zapisano oddzielnie poniżej.
 
 Standards: 1 uwaga naprawiona, 0 otwartych. Spec: 0 uwag.
 
-## Pozostały odbiór i ograniczenia
+## Odbiór użytkownika — 2026-10-31
 
-[Instrukcja ręczna](../local-consensus-manual.md) podaje uruchomienie, dane,
-stałe pary, odmowy, anulowanie, ręczne korekty i eksporty. Kryteria ticketu
-pozostają otwarte do jawnego odbioru użytkownika. W szczególności nie
-potwierdzono poprawy jakości STM względem Deep, odbioru Windows/VLC ani
-pracy na GPU 8 GB. Poparcie estymatora nie jest kontrolą na niewykorzystanych
+Użytkownik napisał: **„ok, outdoor wygląda o wiele lepiej. testy manualne 05 ok”**.
+REG-05 ma status `done`; kryteria ticketu zamknięto, a zależność REG-06 jest
+spełniona. Lokalny konsensus pozostaje odebranym wariantem eksperymentalnym
+z dotychczasowymi ograniczeniami. REG-06 nie został rozpoczęty.
+
+Ocena Outdoor dotyczy osobnego [porównania checkpointów](../checkpoint-comparison-results.md),
+a nie przewagi lokalnego konsensusu nad bazowym Deep. Outdoor pozostaje
+bazą dalszych prób. Potwierdzenie nie zawiera osobnych ocen klatek, platform,
+VLC ani stanowiska GPU; nie dopisujemy ich jako wykonanych sprawdzeń.
+
+## Zachowane ograniczenia
+
+[Instrukcja ręczna](../local-consensus-manual.md) pozostaje protokołem kolejnych prób.
+Wyniki automatyczne nie zmieniają się: lokalne XY dla 2/14 par i odmowa obu
+pełnych filmów. Nie potwierdzono przewagi lokalnego konsensusu nad Deep,
+odbioru Windows/VLC ani pracy na GPU 8 GB. Poparcie estymatora nie jest kontrolą na niewykorzystanych
 fragmentach z REG-06. NaN/Inf są jawnie odrzucane przed Deep; nie wypełniamy
 braków. Nie ma nowych zmian wymaganych w modułach współdzielonych.
