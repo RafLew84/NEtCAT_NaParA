@@ -263,6 +263,12 @@ jego implementacja i odbiór na wynikach metod pozostają do wykonania.
 
 ## Not yet specified
 
+[Zalecenia dotyczące dodatkowych MPP/STP](research-training-data-requirements.md)
+uwzględniają zgłoszone przez użytkownika różne molekuły/podłoża i rozmiary
+skanów w metadanych. Skład nowego zbioru, audyt kalibracji oraz grupowy
+podział akwizycji wymagają inwentaryzacji. Notatka nie zmienia wykonanego
+przygotowania 20 ani nie rozpoczyna 21/22.
+
 Kolejne akwizycje i wyniki nowych prób mogą ujawnić dodatkowe klasy błędów,
 potrzebę innych cech lub konkretnego połączenia informacji obrazu i centrów.
 Nie rozpisujemy jeszcze takiej metody łączonej ani następnych zestawów

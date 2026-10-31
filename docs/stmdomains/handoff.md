@@ -1,3 +1,32 @@
+# STM Domains — wymagania dla dodatkowych danych MPP/STP
+
+Data: **2026-10-31**. Na pytanie użytkownika przygotowano
+[zalecenia dotyczące zbioru](research-training-data-requirements.md),
+z użyciem skilla `research` i źródeł pierwotnych. Użytkownik potwierdził,
+że archiwum obejmuje różne molekuły/podłoża, a rozmiary skanów znajdują się
+w metadanych. Nowych plików nie udostępniono ani nie audytowano.
+
+Pojedyncze STP mogą być niezależnymi obrazami treningowymi bez kolejności
+czasowej i etykiet domen. Potrzebne są skala obrazu, identyfikacja układu,
+kanału oraz grup powiązanych akwizycji/pól. Liczby 20–50 pól do audytu
+oraz 100–300 do szerszego pilota są roboczymi celami organizacyjnymi,
+nie empirycznie ustalonym minimum. Ostateczną ilość należy ocenić na
+odłożonych akwizycjach; wycinki jednego pola nie są niezależnymi pomiarami.
+
+Kod ma czytniki MPP/STP, lecz obecny adapter eksperymentu20 jest celowo
+ograniczony do audytowanego TTMAPP. Zbiór heterogenicznych skanów wymaga
+osobnego adaptera z metadanymi każdego obrazu, sprawdzenia orientacji/skali
+i nowego manifestu. Nie wolno udawać jednej serii z metadanymi pierwszego
+obrazu. Nie zmieniono kodu, wspólnych modułów ani zatwierdzonego protokołu.
+
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/start`, baza
+`0ab27c6`. Commit dokumentacji w odpowiedzi końcowej; integracja przez
+koordynatora. Statusy pozostają: 19/20 `resolved`, 21/22 `open`.
+Sprawdzono źródła, czytniki, lokalne odnośniki i `git diff --check`.
+Bez nowych eksperymentów, instalacji, testów kodu lub GUI.
+
+---
+
 # STM Domains — przygotowanie treningu, issue 20
 
 Data: **2026-10-31**. Na polecenie użytkownika wykonano

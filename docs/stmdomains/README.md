@@ -350,6 +350,10 @@ Nowe metody będą oceniane na danych i kryteriach rozstrzygniętych przez pytan
 
 ## Materiały do decyzji
 
+- [Dane do treningu z wielu MPP/STP](research-training-data-requirements.md)
+  — wymagane metadane, skala, jakość i podział niezależnych akwizycji.
+  Użytkownik ma dane różnych molekuł/podłoży z rozmiarami skanów w nagłówkach.
+  To zalecenia do inwentaryzacji, bez importu nowego archiwum lub zmiany protokołu 20.
 - [Trening bez etykiet do odkrywania domen](research-self-supervised-domain-learning.md)
   — rVAE, lokalne uczenie cech, maskowane obrazy i grafy oznaczonych molekuł;
   precedensy STM/AFM oraz propozycja prób na RTX 5090. Własny trening
