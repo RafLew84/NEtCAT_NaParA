@@ -1,3 +1,28 @@
+# STM Domains — galeria zapisanych propozycji domen
+
+Data: **2026-10-31**. Na prośbę użytkownika wyeksportowano istniejące wyniki
+15/16 do `.scratch/domain-examples/index.html` w worktree Domains.
+[Opis, liczebności i pochodzenie](saved-domain-examples.md). Trzy klatki
+TTMAPP (250, 259, 268), kontrola dwóch orientacji, porównania i osobne PNG,
+CSV oraz oryginalne JSON przypisań. To propozycje grup molekuł, bez konturów
+i powierzchni. Nie zmieniano parametrów i nie uruchamiano nowych metod.
+19 pozostaje `resolved`, 20 nierozpoczęte; aplikacja bez zmian.
+
+Własny worktree `/tmp/netcat-stmdomains-domain-examples`, gałąź
+`domains/domain-examples`, baza `022a518`. Commit dokumentacji w odpowiedzi
+końcowej; przekazanie do `domains/start`, integracja przez koordynatora.
+Galeria, eksportujący skrypt i manifest z hashami pozostają lokalne poza Git.
+Zachowano wcześniejszą historię tego pliku. Nie są potrzebne zmiany wspólne.
+
+Sprawdzono 2344 przypisania według ID/pozycji, zgodność z pierwotnymi
+predykcjami, 24 rekordy źródłowe i osiem identycznych kopii JSON. Osobny audyt
+potwierdził eksport, geometrię i liczniki. Obejrzano PNG, sprawdzono hashe
+publikacji lokalnej, odnośniki i `git diff --check`. Bez nowych obliczeń metod,
+treningu, testów aplikacji ani odbioru GUI. Wyniki nie dowodzą ogólnej
+skuteczności segmentacji TTMAPP.
+
+---
+
 # STM Domains — zamknięcie serii analiz 19
 
 Data: **2026-10-31**. Na wyraźne polecenie użytkownika podsumowano ustalenia

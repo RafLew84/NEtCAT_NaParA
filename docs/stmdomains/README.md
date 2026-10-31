@@ -12,6 +12,11 @@ początku ticketu. Zachowujemy prototypy i wyniki jako punkty odniesienia.
 Krok 20 jest kolejnym zaplanowanym przygotowaniem, `open`, nierozpoczętym;
 treningu nie uruchomiono. Jakość 04, odbiór metod 13 i druga mapa są otwarte.
 
+[Galeria zapisanych propozycji domen](saved-domain-examples.md) udostępnia
+trzy klatki TTMAPP oraz kontrolę syntetyczną: PNG, porównanie metod 15/16
+i przypisania CSV. To częściowe propozycje grup molekuł, bez zatwierdzonych
+konturów domen; eksport nie uruchamia kolejnej próby badawczej.
+
 Poniższy opis zachowuje historię projektu; wcześniejsze statusy `claimed`
 i odłożenie 20 dotyczą ówczesnych decyzji, zastąpionych powyższym zamknięciem.
 

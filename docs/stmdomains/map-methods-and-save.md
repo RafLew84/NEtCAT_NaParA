@@ -22,6 +22,11 @@ składniki jako punkty odniesienia. Protokół jakości 04, odbiór 13 i ta mapa
 pozostają otwarte. Następny zaplanowany krok badawczy to przygotowanie 20;
 pozostaje `open`, nierozpoczęte. Zamknięcie 19 nie uruchamia treningu.
 
+Na prośbę użytkownika przygotowano [galerię zapisanych propozycji](saved-domain-examples.md)
+z prób 15 i 16: trzy klatki TTMAPP i kontrolę dwóch orientacji. Eksport
+istniejących przypisań pokazuje grupy molekuł, bez nowych obliczeń ani
+konturów domen; nie zmienia decyzji o metodach lub statusu ticketów.
+
 Historia zakończonej serii: wcześniej użytkownik wybrał pozostanie w 19
 oraz odłożył 20. Wykonano [audyt wektorów i odmów](vector-refusal-audit.md),
 a następnie [ocenę rodziny przesunięć](translation-family-trial.md).
