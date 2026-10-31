@@ -9,8 +9,9 @@ Deep Matcher ocenia najlepiej w obejrzanych pierwszych 100 klatkach.
 [Instrukcja REG-02](unnormalized-correlation-manual.md), [wyniki](reviews/REG-02.md).
 [REG-02a: ręczne korekty filmu](issues/02a-manual-movie-corrections.md) zamknięto
 jako `done` po potwierdzeniu użytkownika „testy manualne ok” 2026-10-31.
-Trwa realizacja [REG-04: Deep Matcher + doprecyzowanie ECC](issues/04-multiscale-translation.md).
-Jego zależność REG-02a jest spełniona; użytkownik zlecił implementację 2026-10-31.
+Do odbioru jest [REG-04: Deep Matcher + doprecyzowanie ECC](issues/04-multiscale-translation.md).
+REG-04 ma status `ready-for-review`: kod i przegląd są gotowe; pozostaje
+odbiór manualny. [Instrukcja](deep-ecc-manual.md), [karta](reviews/REG-04.md).
 [Instrukcja REG-02a](manual-movie-corrections-manual.md), [sprawdzenia](reviews/REG-02a.md).
 Dalsze próby MOVIE_4
 obejmują źródłowe klatki 3–364, zgodnie z [protokołem](manual-protocol.md).
@@ -67,7 +68,7 @@ REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [instrukcja próby](pair-comparison-manual.md),
 [karta odbioru](reviews/REG-01.md). REG-01a ma status `done` po odbiorze
 użytkownika 2026-10-31. REG-02 i REG-02a również odebrano 2026-10-31 (`done`).
-REG-04 ma status `in-progress`; REG-05–07 mają status `ready-for-agent`:
+REG-04 ma status `ready-for-review`; REG-05–07 mają status `ready-for-agent`:
 zakres jest przygotowany, ale start
 wymaga zlecenia użytkownika i zakończenia blokujących ticketów. REG-08/09 mają
 status `planned`; nie uruchamiamy ich automatycznie. Nie zależą od siebie.

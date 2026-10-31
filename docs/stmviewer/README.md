@@ -58,11 +58,12 @@ Usunięto implementację i ten etap z planu. Następny jest
 zależny bezpośrednio od odebranego REG-02a. Numeracja dalszych ticketów pozostaje
 bez zmian. Użytkownik doprecyzował REG-04 jako porównanie Deep Matcher
 z ECC startującym od dokładnie tego wyniku Deep. Hybryda nie zakłada
-zewnętrznej piramidy. Metoda **Deep Matcher + ECC (v1)** jest wdrażana w REG-04:
+zewnętrznej piramidy. Metoda **Deep Matcher + ECC (v1)** jest wdrożona; REG-04 ma status **ready-for-review**:
 para i cały film korzystają z tego samego przebiegu, a podgląd porównuje dokładny
 start Deep oraz wynik ECC bez ponownego obliczenia modelu. Dostępne są
 [instrukcja odbioru](registration/deep-ecc-manual.md) i
 [wyniki prób rzeczywistych](registration/deep-ecc-results.md).
+[Karta testów i przeglądu](registration/reviews/REG-04.md).
 Odbiór wizualny użytkownika pozostaje wymagany przed REG-05.
 
 ## Stan aplikacji
@@ -277,6 +278,8 @@ python -m mypy --config-file stmviewer/mypy.ini
 python -m pytest -q tests/stmviewer
 ```
 
+Testy z procesami potomnymi wymagają `PYTHONPATH=.:tests/stmviewer` na Linuksie
+(w PowerShell: `$env:PYTHONPATH = ".;tests/stmviewer"`).
 Testy Qt wymagają ekranu lub ustawienia `QT_QPA_PLATFORM=offscreen` przed
 uruchomieniem pytest (Linux: prefiks komendy; PowerShell:
 `$env:QT_QPA_PLATFORM = "offscreen"`). Tryb offscreen dotyczy testów,

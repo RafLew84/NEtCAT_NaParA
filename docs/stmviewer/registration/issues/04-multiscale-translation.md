@@ -4,8 +4,10 @@
 wyznacza początkowe XY pary, a ECC doprecyzowuje tę translację. Porównuje
 wynik samego Deep z wynikiem hybrydy, aby ocenić rzeczywisty wpływ doprecyzowania.
 **Blocked by:** [REG-02a](02a-manual-movie-corrections.md), w tym odbiór manualny — spełnione.
-**Status:** in-progress
-**Manualny odbiór:** niewykonany; implementacja w toku.
+**Status:** ready-for-review
+**Manualny odbiór:** niewykonany; implementacja i przegląd gotowe.
+**Kod:** `f639fd8`, poprawki `1a2766b`. [Karta sprawdzeń](../reviews/REG-04.md),
+[instrukcja GUI](../deep-ecc-manual.md), [próby rzeczywiste](../deep-ecc-results.md).
 **Wykonawca:** Codex, gałąź `viewer/registration-difficult-movies`; baza przeglądu `29d7fc9`.
 **Zmiana zakresu:** 2026-10-31, zatwierdzona przez użytkownika. Hybryda zastępuje
 wcześniejszy eksperyment ogólnego dopasowania wieloskalowego. Numer i ścieżka

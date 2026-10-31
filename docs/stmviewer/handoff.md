@@ -1,3 +1,46 @@
+# REG-04: Deep Matcher + doprecyzowanie ECC — 2026-10-31
+
+Gałąź `viewer/registration-difficult-movies`, baza `29d7fc9`.
+Kod: `f639fd8`, poprawki po przeglądzie `1a2766b`; niniejszy wpis należy
+do końcowego commita dokumentacji. Status **ready-for-review**;
+odbiór użytkownika pozostaje **niewykonany**, lista kryteriów otwarta.
+
+- Nowa metoda Deep Matcher + ECC (v1) dla pary i całego filmu: dokładny start
+  Deep, ECC na oryginałach, całkowite końcowe XY i jeden render aligned.
+  Lokalne wagi, Auto/CPU/CUDA dla Deep, ECC CPU, brak zastępstwa i pobierania.
+- Okno pary przełącza **Wynik po ECC / Start Deep tej próby**, nie przelicza
+  modelu i nie nadpisuje zachowanej próby. Wspólny widok oraz jawne start,
+  poprawka, wynik, statusy i ustawienia. Jakość pozostaje niezweryfikowana.
+- Błędy/anulowanie chronią poprzedni kompletny film i ręczne korekty.
+  Ręczne korekty zachowują diagnostykę automatyczną jako historię.
+  MPP/AVI działają; metadane zachowują nazwę/wersję, XY, geometrię i status.
+- Finalny Viewer: **455 PASS, 2 SKIP**; mypy strict **46 plików PASS**,
+  Ruff i diffcheck PASS. Najdłuższy zmieniony plik kodu: **902 linie**.
+- Pełne repo przed końcowymi poprawkami: **2236 PASS, 18 FAIL, 16 SKIP**.
+  Cztery asercje starej listy metod Viewera zaktualizowano i sprawdzono
+  w finalnym pełnym Viewerze. Pozostałe 14 identyfikatorów błędów jest
+  identyczne z REG-02a: 11 MolTrack/SAM2, 3 NanoTrack. Szczegóły i polecenia
+  znajdują się w karcie; nie deklarujemy zielonego odbioru całego repo.
+- Code-review od `29d7fc9` do `1a2766b`: Standards 2 uwagi naprawione,
+  Spec 1 uwaga naprawiona; oba końcowe przeglądy mają **0 otwartych uwag**.
+  Poprawka P2 zachowuje numer pary i etap przy odmowie ECC z powodu tekstury.
+- Rzeczywiste próby: LoFTR+ECC CPU/CUDA, 14 wybranych par, pełne MOVIE_4
+  po usunięciu pierwszych dwóch klatek i MOVIE_8, oba warianty Deep/hybryda,
+  odczyt czterech MPP. Automatyczne Qt xcb i oględziny zrzutów pary 29→30.
+  Dane i wyniki pozostają lokalne w `/tmp/stmviewer-reg04-*`.
+- Ograniczenia: wzorzec nieruchomych pasów pokazuje pogorszenie przez ECC;
+  OpenCV nie ujawnia zakończenia przez limit iteracji zamiast epsilon.
+  Ręczna ocena struktur/tearing i odtwarzanie VLC pozostają do wykonania.
+  Nie wykonano próby Windows w REG-04. REG-05 czeka na odbiór użytkownika.
+- Brak zmian wspólnych modułów/konfiguracji i brak potrzeb integracyjnych.
+  Program uruchamia się z `netcat`: `python -m stmviewer.main`.
+
+[Instrukcja manualna](registration/deep-ecc-manual.md),
+[karta testów i przeglądów](registration/reviews/REG-04.md),
+[rzeczywiste próby i wyniki](registration/deep-ecc-results.md).
+
+---
+
 # Przekazanie — STM Viewer
 
 ## Plan REG-04: Deep Matcher + doprecyzowanie ECC — 2026-10-31
