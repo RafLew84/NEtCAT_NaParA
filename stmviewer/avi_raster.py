@@ -8,6 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from stmviewer.frame import ImageFrame
+from stmviewer.calibration import common_pixel_size
 
 
 @dataclass(frozen=True)
@@ -45,18 +46,8 @@ def movie_geometry(frames: tuple[ImageFrame, ...], options: MoviePresentation) -
     if len(shape) != 2 or min(shape) < 1 or any(f.data.shape != shape for f in frames):
         raise ValueError('Klatki muszą mieć jednakowe, dodatnie wymiary.')
     height, width = shape
-    common: tuple[float, float] | None = None
-    physical = not options.pixel_proportions
-    for frame in frames:
-        x, y = frame.size_x_nm, frame.size_y_nm
-        if x is None or y is None or not all(math.isfinite(v) and v > 0 for v in (x, y)):
-            physical = False
-            break
-        size = (x / width, y / height)
-        if common is not None and not all(math.isclose(a, b, rel_tol=1e-9) for a, b in zip(size, common)):
-            physical = False
-            break
-        common = size
+    common = common_pixel_size(frames)
+    physical = not options.pixel_proportions and common is not None
     if physical and common is not None:
         ratio = common[0] / common[1]
         if not math.isfinite(ratio) or ratio <= 0:

@@ -634,7 +634,8 @@ class PairComparisonDialog(QDialog):
                     and not self._failure_view.isChecked()):
                 text += '\nBrak wyniku — obrazy bez przesunięcia.'
             self._overlap.setText(text)
-        except (ValueError, MemoryError, OverflowError) as error:
+        except (ImportError, OSError, ValueError, MemoryError, OverflowError) as error:
+            self._preview.clear_frame()
             self._overlap.setText(f'Nie udało się wyświetlić próby: {error}')
 
     def reject(self) -> None:

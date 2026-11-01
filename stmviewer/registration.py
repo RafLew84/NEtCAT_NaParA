@@ -14,6 +14,7 @@ from numpy.typing import NDArray
 from stmviewer.local_consensus import LocalDiagnostics, LocalConsensusError
 from stmviewer.local_registration import LOCAL_METHOD, LOCAL_LABEL, DeepLocalBackend, load_deep_local_backend
 from stmviewer.frame import ImageFrame
+from stmviewer.calibration import common_pixel_size
 from stmviewer.manual_movie_types import MovieBaselineFrame, MovieCorrection, MovieSource
 from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
 from stmviewer.deep_ecc import (
@@ -233,7 +234,7 @@ def render_registration(
     bottom = math.ceil(max(0, max(y for x, y in shifts)))
     height, width = frames[0].data.shape
     shape = (height + top + bottom, width + left + right)
-    pixel_size = _common_pixel_size(frames)
+    pixel_size = common_pixel_size(frames)
     aligned = []
     for i, (frame, shift, status) in enumerate(zip(frames, shifts, statuses)):
         checkpoint()
@@ -263,20 +264,6 @@ def render_registration(
     ) for frame, shift, status, quality, uncertainty in zip(frames, shifts, statuses, qualities, inherited))
     return RegistrationResult(tuple(aligned), reference, shape, (left, top, right, bottom),
                               pixel_size, method=method, device=device, baseline=baseline)
-
-
-def _common_pixel_size(frames: tuple[ImageFrame, ...]) -> tuple[float, float] | None:
-    common = None
-    for frame in frames:
-        x, y = frame.size_x_nm, frame.size_y_nm
-        if x is None or y is None or not (math.isfinite(x) and math.isfinite(y) and x > 0 and y > 0):
-            return None
-        size = (x / frame.data.shape[1], y / frame.data.shape[0])
-        if common is not None and not all(math.isclose(a, b, rel_tol=1e-9) for a, b in zip(size, common)):
-            return None
-        if common is None:
-            common = size
-    return common
 
 
 def registration_unavailable_reason(method: str) -> str | None:

@@ -18,6 +18,7 @@ class GraphMovieWidget(QWidget):
         super().__init__(parent)
         self._frames = frames
         self._renderer: GraphMoviePreview | None = None
+        self._render_failed = False
         self._trial: GraphTrial | None = None
         self._timer = QTimer(self)
         self._timer.setTimerType(Qt.TimerType.PreciseTimer)
@@ -122,6 +123,7 @@ class GraphMovieWidget(QWidget):
             if previous >= 0:
                 self._variant.setCurrentIndex(previous)
         self._renderer = None
+        self._render_failed = False
         if variants:
             try:
                 self._renderer = GraphMoviePreview(self._frames, variants)
@@ -154,6 +156,8 @@ class GraphMovieWidget(QWidget):
         elif self._renderer is not None:
             if self._number.value() == len(self._frames):
                 self._number.setValue(1)
+            if self._render_failed:
+                return
             self._play.setText('Pause')
             self._timer.start()
 
@@ -176,7 +180,7 @@ class GraphMovieWidget(QWidget):
         available = self._renderer is not None
         self._variant.setEnabled(available)
         self._number.setEnabled(available)
-        self._play.setEnabled(available and len(self._frames) > 1)
+        self._play.setEnabled(available and not self._render_failed and len(self._frames) > 1)
         self._previous.setEnabled(available and self._number.value() > 1)
         self._next.setEnabled(available and self._number.value() < len(self._frames))
 
@@ -201,8 +205,12 @@ class GraphMovieWidget(QWidget):
             image = QImage(raster.rgba.tobytes(), width, height, raster.rgba.strides[0],
                            QImage.Format.Format_RGBA8888).copy()
             self._preview.set_image(image, aspect=raster.aspect)
+            self._render_failed = False
             self._status.setText('Wspólny obszar i kontrast oryginalnej klatki dla obu wariantów. '
                                   'Kandydat grafu nie jest aktywnym aligned ani wynikiem eksportu.')
-        except (ValueError, MemoryError, OverflowError) as error:
+        except (ImportError, OSError, ValueError, MemoryError, OverflowError) as error:
             self.pause()
+            self._render_failed = True
+            self._preview.clear_frame()
             self._status.setText(f'Nie można wyświetlić klatki: {error}')
+        self._sync()

@@ -8,6 +8,7 @@ from numpy.typing import NDArray
 
 from stmviewer.avi_raster import MovieGeometry, MoviePresentation, movie_contrast_levels, render_movie_frame
 from stmviewer.frame import ImageFrame
+from stmviewer.calibration import common_pixel_size
 
 XY = tuple[float, float]
 
@@ -45,7 +46,8 @@ class GraphMoviePreview:
         self.canvas_shape = (height, width)
         self._frames = frames
         self._variants = dict(variants)
-        self._pixel_ratio = self._physical_ratio(frames)
+        pixel_size = common_pixel_size(frames)
+        self._pixel_ratio = pixel_size[0] / pixel_size[1] if pixel_size else 1.0
         self._contrast: dict[int, tuple[float, float] | None] = {}
 
     def render(self, index: int, variant: str, *, gamma: float = 1,
@@ -72,17 +74,3 @@ class GraphMoviePreview:
         rgba.setflags(write=False)
         ratio = 1.0 if pixel_proportions else self._pixel_ratio
         return GraphRaster(rgba, width / height * ratio)
-
-    @staticmethod
-    def _physical_ratio(frames: tuple[ImageFrame, ...]) -> float:
-        common: tuple[float, float] | None = None
-        for frame in frames:
-            x, y = frame.size_x_nm, frame.size_y_nm
-            if x is None or y is None or not all(math.isfinite(v) and v > 0 for v in (x, y)):
-                return 1.0
-            size = (x / frame.data.shape[1], y / frame.data.shape[0])
-            if common is not None and not all(math.isclose(a, b, rel_tol=1e-9) for a, b in zip(size, common)):
-                return 1.0
-            common = size
-        assert common is not None
-        return common[0] / common[1]

@@ -18,17 +18,17 @@ Torch 2.9.1+cu128, Kornia 0.8.2, 4 wątki Torch. Brak pobierania przez sieć.
 Checkpoint: `loftr_outdoor.ckpt`, SHA-256
 `21f5bec5968178e8bc8b7633441836fe5de4f47d861dd2cd7dc38e271b0479ec`.
 Odcisk kodu estymatora, przygotowania danych i grafu zapisany w każdej próbie:
-`sha256:e0e3ee3f5f891a25f8731c46d1eb31ef8a25625de75dca79d909fa75a3bff621`.
+`sha256:df02b29bb7e6c42ed6687999a5da783f55a1f9c40d4ce03402919c5cee959982`.
 Pełna konfiguracja, wersje bibliotek, SHA źródeł i pikseli są w sesjach i raportach.
 
 | Dane | Okno | Pary / braki | Ponownie użyte | Pomiary i przygotowanie | Solver | Render p95 | RAM peak procesu | VRAM allocated / reserved peak |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Wzorzec 7 × 256² | 3 | 15 / 0 | 0 | 0.78 s | 0.60 ms | 2.27 ms | 1504 MiB | 331 / 418 MiB |
-| Wzorzec 7 × 256² | 5 | 20 / 0 | 15 | 0.23 s | 0.45 ms | 1.98 ms | 1657 MiB | 331 / 418 MiB |
-| MOVIE_4, 362 × 256² | 3 | 1080 / 3 | 0 | 13.36 s | 5.11 ms | 3.30 ms | 2757 MiB | 331 / 418 MiB |
-| MOVIE_4, 362 × 256² | 5 | 1795 / 5 | 1080 | 8.14 s | 7.67 ms | 3.06 ms | 2760 MiB | 331 / 418 MiB |
-| MOVIE_8, 84 × 512² | 3 | 246 / 0 | 0 | 13.25 s | 1.56 ms | 11.79 ms | 2620 MiB | 937 / 1636 MiB |
-| MOVIE_8, 84 × 512² | 5 | 405 / 0 | 246 | 5.03 s | 2.07 ms | 11.69 ms | 2656 MiB | 936 / 1636 MiB |
+| Wzorzec 7 × 256² | 3 | 15 / 0 | 0 | 0.80 s | 0.60 ms | 2.14 ms | 1528 MiB | 331 / 418 MiB |
+| Wzorzec 7 × 256² | 5 | 20 / 0 | 15 | 0.22 s | 0.44 ms | 2.49 ms | 1681 MiB | 331 / 418 MiB |
+| MOVIE_4, 362 × 256² | 3 | 1080 / 3 | 0 | 13.20 s | 4.92 ms | 3.29 ms | 2752 MiB | 331 / 418 MiB |
+| MOVIE_4, 362 × 256² | 5 | 1795 / 5 | 1080 | 8.08 s | 7.57 ms | 3.05 ms | 2755 MiB | 331 / 418 MiB |
+| MOVIE_8, 84 × 512² | 3 | 246 / 0 | 0 | 13.17 s | 1.54 ms | 11.58 ms | 2620 MiB | 937 / 1636 MiB |
+| MOVIE_8, 84 × 512² | 5 | 405 / 0 | 246 | 5.04 s | 2.08 ms | 11.35 ms | 2655 MiB | 936 / 1636 MiB |
 
 Czasy są pomiarami tego stanowiska, nie limitami ani gwarancją wydajności.
 „Render” obejmuje pojedynczy raster każdego wariantu i każdej klatki, nie
@@ -79,8 +79,8 @@ To wynik kompletności obliczeń; jakość struktur i tearing wymagają oględzi
 - `/tmp/stmviewer-reg08a-fixtures/`: MPP ze znanymi XY, manifest oraz pięć
   sesji solvera: pełna, obejście braku, most, rozłączenie i spójny błędny alias.
   Te sesje mają **zadane pomiary**, nie wynik Deep.
-- `/tmp/reg08a-known-results/`, `/tmp/reg08a-movie4-results/`,
-  `/tmp/reg08a-movie8-results/`: w każdym katalogu `window-3.stmsession`,
+- `/tmp/reg08a-known-final/`, `/tmp/reg08a-movie4-final/`,
+  `/tmp/reg08a-movie8-final/`: w każdym katalogu `window-3.stmsession`,
   `window-5.stmsession`, `report.json`.
 - Sesje MOVIE_4 i MOVIE_8 zajmują odpowiednio około 192 MB i 199 MB każda.
   Zawierają obrazy, bazę aligned i metadane grafu. Nie trzeba przenosić źródeł.
@@ -100,7 +100,7 @@ PYTHONPATH=.:tests/stmviewer python tests/stmviewer/diagnostics/graph_trial.py d
 Testy pokrywają uzgodnione granice: obrazy/pomiary → graf, braki → jawne
 komponenty i mosty, sesja/GUI → podgląd oraz zachowanie aktywnego filmu.
 Są testy natywnej granicy LoFTR z kontrolowanym modelem; powyższe próby GPU
-są odrębnym dowodem pracy rzeczywistych wag. Typechecking: 66 modułów.
+są odrębnym dowodem pracy rzeczywistych wag. Typechecking: 67 modułów.
 Pełny zestaw repozytorium i dwa przeglądy są odnotowane w
 [karcie odbioru](reviews/REG-08a.md).
 

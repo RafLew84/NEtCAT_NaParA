@@ -185,3 +185,47 @@ def test_closing_graph_also_closes_idle_edge_inspection(qtbot):
     assert pair.isVisible()
     with qtbot.waitSignal(dialog.destroyed):
         dialog.close()
+
+
+@pytest.mark.parametrize('had_preview', [False, True])
+def test_unavailable_scipy_keeps_graph_diagnostics_without_stale_preview(qtbot, monkeypatch, had_preview):
+    import builtins
+    from PyQt6.QtWidgets import QDialog
+    from stmviewer.ui.graph_dialog import GraphComparisonDialog
+    from stmviewer.ui.image_preview import ImagePreview
+    parent = QWidget()
+    qtbot.addWidget(parent)
+    frames = tuple(frame(np.arange(24).reshape(4, 6), i) for i in range(3))
+    saved = candidate(frames)
+    dialog = None
+    if had_preview:
+        dialog = GraphComparisonDialog(frames, parent, trial=saved)
+        dialog.show()
+        assert not dialog.findChild(ImagePreview, 'graphPreview').findChild(QLabel).isVisible()
+    original_import = builtins.__import__
+    def without_scipy(name, *args, **kwargs):
+        if name == 'scipy.ndimage':
+            raise ImportError('SciPy unavailable for preview')
+        return original_import(name, *args, **kwargs)
+    monkeypatch.setattr(builtins, '__import__', without_scipy)
+    if dialog is None:
+        dialog = GraphComparisonDialog(frames, parent, trial=saved)
+        dialog.show()
+    else:
+        dialog.findChild(QSpinBox, 'graphFrame').setValue(2)
+    assert dialog.trial is saved
+    assert 'SciPy unavailable' in dialog.findChild(QLabel, 'graphMovieStatus').text()
+    assert dialog.findChild(ImagePreview, 'graphPreview').findChild(QLabel).isVisible()
+    assert not dialog.findChild(QPushButton, 'graphPlay').isEnabled()
+    assert 'Graf spójny' in dialog.findChild(QLabel, 'graphSummary').text()
+    dialog.findChild(QPushButton, 'inspectGraphPair').click()
+    pair = dialog.findChild(QDialog, 'pairComparison')
+    assert 'ΔX: 1 px' in pair.findChild(QLabel, 'pairResult').text()
+    assert 'SciPy unavailable' in pair.findChild(QLabel, 'pairOverlap').text()
+    assert pair.findChild(ImagePreview).findChild(QLabel).isVisible()
+    monkeypatch.setattr(builtins, '__import__', original_import)
+    dialog.findChild(QSpinBox, 'graphFrame').setValue(3)
+    assert dialog.findChild(QPushButton, 'graphPlay').isEnabled()
+    assert not dialog.findChild(ImagePreview, 'graphPreview').findChild(QLabel).isVisible()
+    with qtbot.waitSignal(dialog.destroyed):
+        dialog.close()

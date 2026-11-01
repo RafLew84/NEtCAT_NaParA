@@ -6,9 +6,6 @@ from typing import Callable, Iterator
 import warnings
 
 import numpy as np
-from scipy.sparse import coo_matrix
-from scipy.sparse.linalg import MatrixRankWarning, spsolve
-from nanotrack.registration.phase_correlation import PhaseCorrelationBackendError
 
 from stmviewer.graph_types import GraphConfig, GraphEdge, GraphSource, GraphTrial
 from stmviewer.registration import RegistrationCancelled, RegistrationError, estimate_confidence
@@ -57,6 +54,9 @@ def solve_graph(sources: tuple[GraphSource, ...], edges: tuple[GraphEdge, ...],
     if len(components) != 1:
         return GraphTrial(sources, config, tuple(replace(e, residual_xy=None) for e in edges),
                           None, None, components, bridges, solver_s=perf_counter() - start)
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.linalg import MatrixRankWarning, spsolve
+
     rows: list[int] = []
     columns: list[int] = []
     values: list[float] = []
@@ -152,6 +152,8 @@ def register_graph(frames: tuple[ImageFrame, ...], *, window: int = 3,
                    progress: Callable[[int, int, str], None] | None = None,
                    cancelled: Callable[[], bool] | None = None) -> GraphTrial:
     """Measure every planned pair with one current Deep model, then solve without rendering."""
+    from nanotrack.registration.phase_correlation import PhaseCorrelationBackendError
+
     pairs = graph_pairs(len(frames), window)
     if len(frames) < 2:
         raise RegistrationError('Próba grafu wymaga co najmniej dwóch klatek.')
