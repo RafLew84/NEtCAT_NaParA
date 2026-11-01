@@ -4,8 +4,9 @@
 Deep dopasowuje także niesąsiednie klatki, a program wspólnie wyznacza ich XY.
 Można obejrzeć i zapisać próbę oraz porównać ją z łańcuchem sąsiednich dopasowań.
 **Blocked by:** [REG-07](07-session-save-load.md), w tym odbiór manualny — spełnione 2026-11-01.
-**Status:** ready-for-agent
-**Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
+**Status:** in-progress
+**Manualny odbiór:** niewykonany; implementacja w toku.
+**Start implementacji:** 2026-11-01; baza przeglądu `e12a79440b806a9f44c3fe5b112212052ae6ce29`.
 **Dodano do planu:** 2026-10-31, na zlecenie użytkownika po research.
 
 Obowiązują [plan](../README.md#kontrakty-rozszerzenia-wieloklatkowego),

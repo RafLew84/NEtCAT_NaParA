@@ -9,6 +9,7 @@ from stmviewer.alignment_metadata import (
     aligned_export_frames, collect_manual_histories, decode_alignment, encode_alignment,
 )
 from stmviewer.frame import ImageFrame
+from stmviewer.graph_metadata import decode_graph, encode_graph
 from stmviewer import session_paths
 from stmviewer.manual_movie_metadata import decode_manual_results, encode_manual_results, manual_frame_state
 from stmviewer.manual_movie_types import MovieHistory, MovieSource
@@ -84,10 +85,12 @@ def _shape(value: object) -> tuple[int, int]:
 
 
 def _root(value: object) -> dict[str, object]:
-    record = json_object(value, _ROOT_KEYS)
-    if record['schema'] != 'stmviewer-state-v1':
-        raise ValueError('Nieobsługiwana wersja stanu sesji.')
-    return record
+    record = json_object(value)
+    if record.get('schema') == 'stmviewer-state-v1':
+        return json_object(record, _ROOT_KEYS)
+    if record.get('schema') == 'stmviewer-state-v2':
+        return json_object(record, _ROOT_KEYS | {'graph'})
+    raise ValueError('Nieobsługiwana wersja stanu sesji.')
 
 
 def _frame_records(value: object, prefix: str) -> list[dict[str, object]]:
@@ -332,6 +335,9 @@ def encode_session(state: SessionState, *, check_cancelled: Callable[[], None] =
         'display': asdict(state.display),
         'manual_histories': encode_manual_results(histories, check_cancelled) if histories else [],
     }
+    if state.graph is not None:
+        manifest['schema'] = 'stmviewer-state-v2'
+        manifest['graph'] = encode_graph(state.graph)
     decode_session(manifest, arrays, check_cancelled=check_cancelled)
     return manifest, arrays
 
@@ -352,4 +358,5 @@ def decode_session(manifest: object, arrays: Mapping[str, NDArray[np.float64]], 
         decoded.append(_decode_frame(record, arrays, histories))
     frames = tuple(decoded)
     registration = None if root['registration'] is None else _decode_registration(root['registration'], frames, arrays, histories, check_cancelled)
-    return SessionState(frames, registration, _decode_display(root['display'], len(frames), registration is not None))
+    graph = None if 'graph' not in root else decode_graph(root['graph'], frames, check_cancelled)
+    return SessionState(frames, registration, _decode_display(root['display'], len(frames), registration is not None), graph)

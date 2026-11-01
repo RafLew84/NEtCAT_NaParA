@@ -1,4 +1,4 @@
-"""Modeless, isolated comparison of adjacent original frames."""
+"""Modeless pair comparison, with fixed nonadjacent inspection for graph edges."""
 
 from dataclasses import replace
 
@@ -35,8 +35,14 @@ class PairComparisonDialog(QDialog):
 
     def __init__(self, frames: tuple[ImageFrame, ...], moving_index: int, parent: QWidget,
                  *, method: str = 'phase_correlation', deep_options: DeepMatcherOptions | None = None,
-                 backend: ShiftBackend | None = None) -> None:
+                 backend: ShiftBackend | None = None, reference_index: int | None = None,
+                 initial_trial: PairTrial | None = None) -> None:
+        if not 1 <= moving_index < len(frames):
+            raise ValueError("Nieprawidłowa klatka przesuwana.")
+        if reference_index is not None and not 0 <= reference_index < moving_index:
+            raise ValueError("Nieprawidłowa klatka bazowa.")
         super().__init__(parent)
+        self._fixed_reference = reference_index
         self.setObjectName('pairComparison')
         self.setWindowTitle('Dopasowanie pary klatek')
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -275,6 +281,24 @@ class PairComparisonDialog(QDialog):
         self._gamma.valueChanged.connect(self._render)
         self._pixels.toggled.connect(self._render)
         self._change_pair()
+        if reference_index is not None:
+            note.setText('Podgląd relacji grafu. Korekta tworzy tylko próbę tej pary; '
+                         'nie zmienia grafu ani filmu. Zamknięcie okna usuwa lokalne próby pary.')
+        if initial_trial is not None:
+            reference, moving = frames[self._reference_index], frames[moving_index]
+            if ((initial_trial.reference.source, initial_trial.reference.source_frame_index)
+                    != (reference.source, reference.source_frame_index)
+                    or (initial_trial.moving.source, initial_trial.moving.source_frame_index)
+                    != (moving.source, moving.source_frame_index)):
+                raise ValueError('Zapisana próba pochodzi z innej pary.')
+            self._trial = initial_trial
+            with QSignalBlocker(self._alignment):
+                self._alignment.setCurrentIndex(1)
+            self._show_trial()
+
+    @property
+    def _reference_index(self) -> int:
+        return self._fixed_reference if self._fixed_reference is not None else self._number.value() - 2
 
     @property
     def busy(self) -> bool:
@@ -286,8 +310,8 @@ class PairComparisonDialog(QDialog):
 
     def set_registration(self, result: RegistrationResult | None, *,
                          applied_trial: PairTrial | None = None) -> None:
-        self._registration = result
-        self._published_trial = applied_trial
+        self._registration = result if self._fixed_reference is None else None
+        self._published_trial = applied_trial if self._fixed_reference is None else None
         self._sync()
 
     def show_movie_progress(self, done: int, total: int, description: str) -> None:
@@ -307,7 +331,7 @@ class PairComparisonDialog(QDialog):
         start = movie_pair_trial(self._registration, index)
         with QSignalBlocker(self._failure_view):
             self._failure_view.setChecked(False)
-        self._draft = ManualPairDraft(self._frames[index - 1], self._frames[index], start=start)
+        self._draft = ManualPairDraft(self._frames[self._reference_index], self._frames[index], start=start)
         self._draft_movie_revision = start.movie_revision
         self._manual_before_alignment = self._alignment.currentIndex()
         self._message.clear()
@@ -321,11 +345,11 @@ class PairComparisonDialog(QDialog):
 
     def _change_pair(self) -> None:
         index = self._number.value() - 1
-        reference, moving = self._frames[index - 1:index + 1]
+        reference, moving = self._frames[self._reference_index], self._frames[index]
         def name(frame: ImageFrame) -> str:
             suffix = f' · MPP {frame.source_frame_index + 1}' if frame.source_frame_index is not None else ''
             return frame.source.name + suffix
-        self._source.setText(f'Klatka bazowa {index}: {name(reference)}\n'
+        self._source.setText(f'Klatka bazowa {self._reference_index + 1}: {name(reference)}\n'
                              f'Klatka przesuwana {index + 1}: {name(moving)}')
         self._trial = None
         self._pinned = None
@@ -383,6 +407,9 @@ class PairComparisonDialog(QDialog):
                          and self._selected_trial() is self._published_trial)
         for control in (self._method, self._number, self._deep):
             control.setEnabled(self._available and not self.busy)
+        self._number.setEnabled(available and self._fixed_reference is None)
+        if self._fixed_reference is not None:
+            self._movie.info.setText('Relacja grafu służy do porównania. Jej korekta nie zmienia grafu ani filmu.')
 
     def _start_manual(self, *, copy_trial: bool = False) -> None:
         control = self._manual.correct if copy_trial else self._manual.zero
@@ -392,7 +419,7 @@ class PairComparisonDialog(QDialog):
         start = self._selected_trial() if copy_trial else None
         with QSignalBlocker(self._failure_view):
             self._failure_view.setChecked(False)
-        self._draft = ManualPairDraft(self._frames[index - 1], self._frames[index], start=start)
+        self._draft = ManualPairDraft(self._frames[self._reference_index], self._frames[index], start=start)
         # Bind when editing begins, never when an old trial is later published.
         self._draft_movie_revision = start.movie_revision if start is not None else None
         if self._draft_movie_revision is None and self._registration is not None:
@@ -446,7 +473,7 @@ class PairComparisonDialog(QDialog):
         if not self._run.isEnabled():
             return
         index = self._number.value() - 1
-        job = PairJob(self._frames[index - 1], self._frames[index], self,
+        job = PairJob(self._frames[self._reference_index], self._frames[index], self,
                       method=str(self._method.currentData()), deep_options=self._deep.options(),
                       backend=self._backend)
         self._job = job
@@ -546,9 +573,12 @@ class PairComparisonDialog(QDialog):
                        else 'Do sprawdzenia — pewność niezweryfikowana' if trial.quality_score is None
                        else 'OK backendu (bez niezależnej oceny)' if trial.status == 'ok'
                        else 'Do sprawdzenia')
+            relation = ('Przesunięcie klatki przesuwanej względem wybranej bazowej.'
+                        if self._fixed_reference is not None else
+                        'Przesunięcie nakładane na następną klatkę względem poprzedniej.')
             self._result.setText(f'{trial.label} · {quality} [{trial.status}]\n'
                                  f'ΔX: {trial.shift_xy[0]:g} px · ΔY: {trial.shift_xy[1]:g} px\n'
-                                 'Przesunięcie nakładane na następną klatkę względem poprzedniej.\n'
+                                 f'{relation}\n'
                                  f'{trial.device}\n{trial.settings_text}')
         self._render()
         self._sync()
@@ -588,7 +618,7 @@ class PairComparisonDialog(QDialog):
             height, width, _ = pixels.shape
             image = QImage(pixels.tobytes(), width, height, pixels.strides[0],
                            QImage.Format.Format_RGBA8888).copy()
-            reference = self._frames[self._number.value() - 2]
+            reference = self._frames[self._reference_index]
             aspect = frame_aspect(reference, pixel_proportions=self._pixels.isChecked())
             self._preview.set_image(image, aspect=aspect, reset_view=reset_view)
             details = self._selected_local_details()

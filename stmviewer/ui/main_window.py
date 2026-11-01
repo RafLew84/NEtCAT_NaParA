@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
 from stmviewer.frame import ImageFrame
 from stmviewer.session_state import SessionState, SessionViewState
 from stmviewer.ui.session_controls import SessionControls
+from stmviewer.ui.graph_controls import GraphControls
 from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.avi_raster import MoviePresentation
 from stmviewer.ui.avi_export_controls import AviExportControls
@@ -178,6 +179,11 @@ class STMViewerMainWindow(QMainWindow):
         self._compare_pair.setObjectName('comparePair')
         self._compare_pair.clicked.connect(self._open_pair_comparison)
         controls.addWidget(self._compare_pair)
+        self._graph = GraphControls(self)
+        self._graph.open_button.clicked.connect(lambda: self._graph.open_graph(
+            self._frames, self._registration, self._deep_controls.options()))
+        self._graph.busy_changed.connect(self._pair_busy_changed)
+        controls.addWidget(self._graph.open_button)
         self._registration_text = QLabel("", panel)
         self._registration_text.setObjectName("registrationInfo")
         self._registration_text.setWordWrap(True)
@@ -321,7 +327,7 @@ class STMViewerMainWindow(QMainWindow):
     def _processing_series(self) -> bool:
         """Operations that lock series edits and playback, but allow browsing."""
         return (self._registration_job is not None or self._export_job is not None or self._avi.busy
-                or self._session.busy
+                or self._session.busy or self._graph.busy
                 or (self._pair_dialog is not None and self._pair_dialog.busy))
 
     @property
@@ -362,7 +368,7 @@ class STMViewerMainWindow(QMainWindow):
             pixel_proportions=self._pixel_proportions.isChecked(), fps=int(self._fps.currentText()),
             loop=self._loop.isChecked(), method=str(self._method.currentData()),
             deep_weights=str(options.weights) if options.weights is not None else None,
-            deep_device=options.device, navigation=self._preview.navigation_states()))
+            deep_device=options.device, navigation=self._preview.navigation_states()), graph=self._graph.trial)
 
     def _restore_session(self, state: SessionState, thumbnails: tuple[QImage, ...]) -> None:
         if self._closing:
@@ -376,6 +382,7 @@ class STMViewerMainWindow(QMainWindow):
         self._pause()
         self._discard_pair_comparison()
         self._frames, self._registration, self._index = state.frames, state.registration, display.index
+        self._graph.restore(state.graph)
         self._strip.set_series(state.frames, thumbnails)
         self._show_registration_warnings()
         selection = self._strip.selectionModel()
@@ -531,6 +538,7 @@ class STMViewerMainWindow(QMainWindow):
                         self._pixel_proportions.setChecked(False)
                     self._registration = None
                     self._session.new_series()
+                    self._graph.clear()
                     with QSignalBlocker(self._view):
                         self._view.setCurrentText("original")
                     self._export_info.clear()
@@ -575,21 +583,24 @@ class STMViewerMainWindow(QMainWindow):
             self._cancel_export()
             self._avi.cancel()
             self._session.cancel()
+            self._graph.cancel()
             self._discard_pair_comparison()
             event.ignore()
             return
         self._discard_pair_comparison()
+        self._graph.close_dialog()
         super().closeEvent(event)
 
     def _sync_navigation(self) -> None:
         count = len(self._frames)
         busy = self._processing_series
         self._session.sync(available=not self._operation_in_progress, has_frames=bool(count))
+        self._graph.sync(available=not self._operation_in_progress, has_frames=count > 1)
         self._compare_pair.setEnabled(count > 1 and not self._operation_in_progress)
         if self._pair_dialog is not None:
             self._pair_dialog.set_available(not (self._job is not None or self._registration_job is not None
                                                  or self._export_job is not None or self._avi.busy
-                                                 or self._session.busy))
+                                                 or self._session.busy or self._graph.busy))
         can_save = bool(count) and not self._operation_in_progress
         self._save_button.setEnabled(can_save)
         self._avi.set_available(can_save)
@@ -649,6 +660,7 @@ class STMViewerMainWindow(QMainWindow):
             with QSignalBlocker(self._view):
                 self._view.setCurrentText("original")
         self._registration = registration
+        self._graph.clear()
         self._frames = frames
         self._index = index
         self._strip.remove_frame(removed)
@@ -881,6 +893,7 @@ class STMViewerMainWindow(QMainWindow):
                     self._preview.set_frame(current.image, view="aligned", reset_view=True,
                                             original_rect=current.original_rect)
                     self._registration = job.result
+                    self._graph.set_registration(job.result)
                     if self._pair_dialog is not None:
                         self._pair_dialog.set_registration(
                             job.result, applied_trial=job.trial if isinstance(job, ManualMovieJob) else None)

@@ -1,8 +1,14 @@
 """A portable snapshot of the open movie, active alignment, and presentation."""
+from __future__ import annotations
+
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from stmviewer.frame import ImageFrame
 from stmviewer.registration import RegistrationResult
+
+if TYPE_CHECKING:
+    from stmviewer.graph_types import GraphTrial
 
 
 @dataclass(frozen=True)
@@ -30,3 +36,4 @@ class SessionState:
     frames: tuple[ImageFrame, ...]
     registration: RegistrationResult | None = None
     display: SessionViewState = field(default_factory=SessionViewState)
+    graph: GraphTrial | None = None
