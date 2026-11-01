@@ -3,8 +3,12 @@
 **What to build:** Użytkownik jawnie stosuje kompletną próbę grafu jako aligned,
 poprawia wybrane przejścia ręcznie i zapisuje wynik do MPP/AVI.
 **Blocked by:** [REG-08b](08b-robust-graph.md), w tym odbiór manualny — spełnione 2026-11-01.
-**Status:** ready-for-agent
-**Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
+**Status:** ready-for-review
+**Manualny odbiór:** oczekuje na użytkownika; automatyczne sprawdzenia zaliczone.
+**Implementacja:** `140136e` + `73bbc44`, 2026-11-01.
+**Materiały:** [instrukcja](../graph-application-manual.md), [wyniki](../graph-application-results.md),
+[karta testów i przeglądu](../reviews/REG-08c.md).
+**Start implementacji:** 2026-11-01, Codex; baza przeglądu `5f45b368a00e2895d7ee0248bdd4f46caac1dd67`.
 **Dodano do planu:** 2026-10-31, na zlecenie użytkownika po research.
 
 Obowiązują [plan](../README.md#kontrakty-rozszerzenia-wieloklatkowego),
@@ -14,12 +18,15 @@ Nie zmieniamy solvera ani nie wybieramy automatycznie LS zamiast Hubera.
 
 ## Zakres i kryteria odbioru
 
-- [ ] **Zastosuj wynik do filmu** działa dla kompletnej próby LS albo Hubera
+Poniższe funkcje wdrożono i sprawdzono automatycznie. Ręczna próba opisana
+niżej pozostaje warunkiem zamknięcia ticketu.
+
+- [x] **Zastosuj wynik do filmu** działa dla kompletnej próby LS albo Hubera
   zgodnej z aktualnymi oryginałami, kolejnością i geometrią. Samo obliczenie
   lub oglądanie kandydata nie podmienia aktywnego wyniku. Otwarcie całej sesji
   przywraca jej zapisany aktywny aligned, ale nie stosuje niezastosowanego kandydata.
   Niepełna, rozłączna, anulowana lub numerycznie niepoprawna próba ma powód odmowy.
-- [ ] Przed zastosowaniem widać metodę pary, okno, solver, źródła, oznaczone
+- [x] Przed zastosowaniem widać metodę pary, okno, solver, źródła, oznaczone
   ograniczenia oraz liczbę istniejących ręcznych korekt, które nie są częścią
   nowej próby. Dotychczasowy lekki wynik z korektami zostaje zachowany do
   porównania/przywrócenia; nie wymaga kopii pikseli. Ten ticket dodaje również
@@ -27,41 +34,41 @@ Nie zmieniamy solvera ani nie wybieramy automatycznie LS zamiast Hubera.
   także łańcuchowego Deep z ręcznymi korektami. Przywrócenie odtwarza jego
   bazę, nadpisania i końcowe XY z oryginałów, bez ponownej inferencji;
   sprawdza tożsamość/skład serii oraz zachowuje aktywny wynik po błędzie.
-- [ ] Zastosowanie liczy aligned z oryginalnych próbek i końcowych globalnych
+- [x] Zastosowanie liczy aligned z oryginalnych próbek i końcowych globalnych
   XY, z jedną interpolacją. Zachowuje skalę, geometrię źródeł, ważność i padding.
   Postęp, anulowanie i blokady są zgodne z rejestracją; błąd/anulowanie pozostawia
   cały poprzedni wynik wraz z nadpisaniami. Po sukcesie pokazujemy tę samą
   klatkę aligned, nowy obszar dopasowany do okna, dotychczasową gamma i Pause.
-- [ ] Wynik grafu `G` staje się zamrożoną bazą ręcznego workflow. Dla sąsiadów
+- [x] Wynik grafu `G` staje się zamrożoną bazą ręcznego workflow. Dla sąsiadów
   `i-1,i` punkt startu to aktualna różnica globalnych XY, a bazowe przesunięcie
   do przywrócenia wynosi `G[i]-G[i-1]`. Nie jest to surowe d_ij modelu; UI
   i dokument odróżniają te dwie liczby, które w grafie mogą być różne.
-- [ ] Po **Zakończ korektę** powstaje tylko próba pary. **Zastosuj do filmu**
+- [x] Po **Zakończ korektę** powstaje tylko próba pary. **Zastosuj do filmu**
   zastępuje jej względne XY i przesuwa dalsze klatki jak w REG-02a, bez nowego
   rozwiązania grafu. Powtórzenie jest idempotentne; nadpisania różnych par
   współistnieją; cofnięcie jednej przywraca różnicę bazy G, zachowując inne.
-- [ ] Przechowujemy osobno pomiary grafu, rozwiązanie bazowe G, ręczne
+- [x] Przechowujemy osobno pomiary grafu, rozwiązanie bazowe G, ręczne
   nadpisania i końcowe XY. Reszty/oceny solvera dotyczą bazy; nie opisujemy nimi
   ręcznie zmienionego filmu jako ponownie zweryfikowanego grafu. Ręczne zmiany
   i zależny dalszy ciąg zachowują jawny brak automatycznej oceny jakości.
-- [ ] Nowe obliczenie grafu korzysta z oryginałów i tworzy odrębną próbę.
+- [x] Nowe obliczenie grafu korzysta z oryginałów i tworzy odrębną próbę.
   Nie wciąga ręcznych poprawek jako krawędzi, nie nadpisuje ich w trakcie pracy
   ani nie obiecuje ich zachowania po zastosowaniu nowej bazy. Nadpisanie
   aktywnego filmu następuje wyłącznie przez opisane jawne zastosowanie.
-- [ ] Nieaktualna próba ręczna po zmianie bazy/serii jest odrzucana.
+- [x] Nieaktualna próba ręczna po zmianie bazy/serii jest odrzucana.
   Usunięcie klatki zachowuje gotową geometrię i eksport pozostałych; przed
   dalszą ręczną korektą lub nowym zastosowaniem starego grafu wymagana jest
   nowa rejestracja aktualnej serii. Nie przepisujemy relacji na nowe numery listy.
-- [ ] Rozszerzenie sesji zachowuje pełny graf, bazę G, korekty, końcowe XY
+- [x] Rozszerzenie sesji zachowuje pełny graf, bazę G, korekty, końcowe XY
   i ich wersje. Odczyt bez modelu przywraca zastosowany graf jako aktywny aligned,
   gotowy do dalszych ręcznych korekt i eksportu. Niezastosowany kandydat nadal
   wymaga jawnego zastosowania. Starsze sesje REG-07 bez grafu pozostają czytelne.
-- [ ] MPP+metadane zachowuje końcowe obrazy, geometrię/braki, źródła, opis
+- [x] MPP+metadane zachowuje końcowe obrazy, geometrię/braki, źródła, opis
   modelu/okna/solvera, bazowe i końcowe XY oraz historię ręcznych nadpisań.
   Wszystkie szczegółowe krawędzie/diagnozy przechowuje sesja; sam MPP
   nie udaje edytowalnego zapisu grafu i nie odtwarza oryginałów sprzed interpolacji.
   Potrzebne rozszerzenie metadanych należy do ticketu, z odczytem starszych wersji.
-- [ ] AVI korzysta z aktywnego poprawionego filmu i dotychczasowych opcji.
+- [x] AVI korzysta z aktywnego poprawionego filmu i dotychczasowych opcji.
   Nakładki, wektory i wagi nie trafiają do obrazów eksportu. Original pozostaje
   niezmieniony. Odbiór obejmuje ponowny odczyt MPP oraz AVI w VLC.
 

@@ -38,7 +38,8 @@ ma status **done**: użytkownik potwierdził „testy manualne ok” 2026-11-01.
 Przycisk **Dopasowanie wieloklatkowe…** pozwala
 obliczyć Deep względem kilku wcześniejszych klatek i obejrzeć film ze wspólnymi XY.
 Wynik można porównać z łańcuchem, sprawdzić relacje i zachować w sesji.
-Kandydat nie zmienia aktywnego aligned ani eksportu; jego zastosowanie należy do REG-08c.
+Samo oglądanie kandydata nie zmienia aktywnego aligned ani eksportu.
+Jawne zastosowanie dodaje opisany poniżej REG-08c.
 [Instrukcja i materiały do ręcznej próby](registration/window-graph-manual.md),
 [wyniki rzeczywistego modelu](registration/window-graph-results.md),
 [testy i przegląd](registration/reviews/REG-08a.md).
@@ -49,8 +50,15 @@ progiem i limitem iteracji, porównać je z LS i zapisać w sesji. Wagi modelu
 nie są potrzebne do analizy zachowanych relacji. Nieukończona próba pozostaje
 diagnostyką; nie tworzy filmu. [Instrukcja](registration/robust-graph-manual.md),
 [wyniki i gotowe sesje](registration/robust-graph-results.md),
-[testy i przegląd](registration/reviews/REG-08b.md). REG-08c ma spełnioną
-zależność i czeka na osobne zlecenie; implementacji nie rozpoczęto.
+[testy i przegląd](registration/reviews/REG-08b.md).
+[REG-08c — zastosowanie grafu do filmu](registration/issues/08c-graph-movie-application.md)
+ma status **ready-for-review**. W oknie wieloklatkowym wybierz LS/Hubera i kliknij
+**Zastosuj wynik do filmu**. Wynik staje się aktywnym aligned do ręcznych korekt,
+MPP/AVI i zapisu sesji. **Przywróć zachowany wynik** odtwarza poprzedni film
+z jego korektami, bez modelu. [Instrukcja i gotowe dane](registration/graph-application-manual.md),
+[wyniki](registration/graph-application-results.md),
+[testy i przegląd](registration/reviews/REG-08c.md). Ręczny odbiór oczekuje;
+REG-10 nie rozpoczęto.
 
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk
 **Porównaj parę…** otwiera osobny podgląd sąsiednich oryginałów: przed/po XY,

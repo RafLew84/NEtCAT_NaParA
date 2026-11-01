@@ -1,3 +1,43 @@
+# REG-08c: graf jako aktywny film — 2026-11-01
+
+Status **ready-for-review**; ręczny odbiór oczekuje.
+Gałąź `viewer/registration-difficult-movies`, baza `5f45b36`.
+Kod **`140136e`**, poprawka przeglądu **`73bbc44`**; końcowa dokumentacja
+w commicie przekazania. Zakres: wyłącznie STM Viewer, testy i dokumentacja.
+
+- Jawne **Zastosuj wynik do filmu** wybiera kompletny LS/Huber. Oryginały są
+  interpolowane raz do gotowego aligned; błąd/anulowanie zostawia poprzedni film.
+  Wybrana klatka i gamma zostają, obszar jest dopasowany, Play zatrzymane.
+- Zamrożona baza G jest punktem odniesienia ręcznych nadpisań; surowe pomiary
+  pozostają osobno. Korekty propagują się dalej bez ponownego solvera.
+  Jeden lekki poprzednik zachowuje historię bez kopii pikseli.
+  **Przywróć zachowany wynik** odtwarza go z oryginałów bez modelu.
+- Sesje v3 zachowują aktywny graf, odrębnego kandydata, korekty i poprzednika;
+  starsze sesje działają. MPP v5 zachowuje wynik, geometrię i opis historii,
+  pełne krawędzie należą do sesji. AVI korzysta z aktywnych poprawionych obrazów.
+- **629 testów Viewera zaliczonych, 2 pominięte**, w tym 34 nowe przypadki.
+  Pełna próba repo przerwana SIGTERM po 2195 przypadkach; pozostałe 250 to
+  Viewer, wszystkie objęte późniejszym pełnym sprawdzeniem aplikacji.
+  Po połączeniu rozłącznych zakresów: **2415 passed, 14 failed, 16 skipped**;
+  14 błędów dokładnie odpowiada wcześniejszym MolTrack/NanoTrack.
+  [Karta testów](registration/reviews/REG-08c.md) opisuje ograniczenie próby.
+- Strict mypy 81 modułów, Ruff i diff-check czyste; największy plik 967 linii.
+  Dwa niezależne przeglądy: Standards — zamknięta jedna uwaga czytelności,
+  Spec — 0 ustaleń. Po poprawce 15 dotkniętych testów ponownie zaliczone.
+- Wzorzec oraz pełne MOVIE_4/MOVIE_8 sprawdzono bez Deep: zastosowanie obu
+  solverów, korekta, sesja, dokładne przywrócenie i eksport. VLC 3.0.24 odczytał
+  FFV1/MJPG do EOF (automatyczne wyjście dummy). Zrzuty Qt offscreen oceniono
+  pod kątem czytelności i dostępności kontrolek. To nie odbiór ręczny.
+- Start: `python -m stmviewer.main` w `netcat`, katalog `NEtCAT-viewer`.
+  [Instrukcja i gotowe sesje](registration/graph-application-manual.md),
+  [wyniki](registration/graph-application-results.md). Windows 11, sprzęt docelowy
+  oraz ręczna ocena jakości pozostają do sprawdzenia. REG-10 nie rozpoczęto.
+- Brak potrzeb wspólnych zmian, publikacji i scalenia. Pliki użytkownika
+  `proba.stmtrial.json`, `proba2.stmtrial.json`, `sesja.stmsession` nietknięte;
+  duże dane, modele, filmy i sesje pozostają lokalne.
+
+---
+
 # REG-08b: odbiór manualny — 2026-11-01
 
 Użytkownik potwierdził: **„testy manualne ok”**.

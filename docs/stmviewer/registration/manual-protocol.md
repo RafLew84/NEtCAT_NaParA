@@ -162,7 +162,9 @@ z 8 GB VRAM nie są zaliczone przez samą próbę na większym komputerze.
 Metoda niedostępna lub odrzucona jakościowo pozostaje jawnym wynikiem próby;
 nie przełączamy jej automatycznie na inną.
 
-W REG-08c dodatkowo sprawdzamy ręczne nadpisanie różnicy globalnych XY grafu,
+[REG-08c — instrukcja i gotowe sesje](graph-application-manual.md) obejmuje jawne
+zastosowanie wybranego LS/Hubera, lekki poprzednik i jego przywrócenie.
+Sprawdzamy także ręczne nadpisanie różnicy globalnych XY grafu,
 powtórzenie, dwie korekty i cofnięcie do bazy grafowej. Surowy d_ij i różnica
 rozwiązania nie muszą być takie same. Ręczne poprawki nie uruchamiają solvera;
 wcześniejsze diagnozy grafu odnoszą się do niezmienionej bazy.
