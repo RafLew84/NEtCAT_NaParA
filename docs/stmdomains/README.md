@@ -5,12 +5,14 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-01
 
-**Podjęto 24a — 2026-11-01:** na polecenie użytkownika wykonujemy
-[diagnozę opisu otoczenia](issues/24a-graph-context-boundaries.md), `claimed`.
-[Protokół](graph-context-boundary-protocol.md): te same centra i 93 znane
-kontrole, zamrożone wagi/adaptery, 0 nowych treningów. Porównanie konwencji
-brzegu i ablacji sąsiadów ma oddzielić usunięcie artefaktu od zachowania
-prawdziwych granic. Wyniki 24 pozostają zamrożone; 25/26 i nowe dane odłożone.
+**Wykonano 24a — 2026-11-01:** [diagnoza opisu otoczenia](issues/24a-graph-context-boundaries.md)
+ma status `resolved` jako zakończona próba. [Raport](graph-context-boundary-trial.md):
+3534 wyniki na 93 znanych kontrolach, 0 treningów. Jednolita konwencja
+brzegu usuwa sztuczny podział jednej sieci: 121/121 centrów w jednej domenie
+przed i po odmowach. Rzeczywiste granice nadal nie spełniają kryteriów,
+a część przypadków się pogarsza. Nie przyjęto detektora. Galeria:
+`.scratch/graph-context-24a/index.html`. Odbiór 13 pozostaje otwarty;
+25/26 i nowe dane odłożone, wyniki 24 zachowane.
 
 **Wykonano 24 — 2026-11-01:** na późniejsze polecenie użytkownika zakończono
 [próbę grafów otoczeń molekuł](issues/24-graph-self-supervised-domains.md),

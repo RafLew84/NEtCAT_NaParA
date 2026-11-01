@@ -1,3 +1,52 @@
+# STM Domains — wykonano diagnozę kontekstu 24a
+
+Data: **2026-11-01**. Na polecenie „wykonaj proponowaną próbę” zakończono
+[24a](issues/24a-graph-context-boundaries.md), `resolved` jako eksperyment.
+[Raport](graph-context-boundary-trial.md), [protokół](graph-context-boundary-protocol.md),
+[manifest](graph-context-boundary-manifest.json). **Artefakt jednej sieci usunięty;
+prawdziwe granice nadal błędne.** Nie przyjęto detektora, 13 i 04 pozostają otwarte.
+25/26, dalsze treningi i dodatkowe MPP/STP nadal niewybrane/odłożone.
+
+93 znane kontrole 24, 19 reprezentacji, FH/MWS, **3534 wyniki**, stałe 8350
+centrów S24. Zamrożone modele SCE+scale transfer i własne inicjalizacje,
+trzy ziarna; 0 nowych fitów, 0 kroków optymalizacji i 0 refitów adapterów.
+Porównano oryginalne closed72, półotwarte halfopen72 i ablację root_only;
+root57 pozostaje wspólną bazą. Nie przeliczano TTMAPP ani transdukcji.
+
+Kryterium A: halfopen72 oraz root_only dają jedną domenę i **121/121**
+przed/po odmowach we wszystkich ziarnach, solverach i stanach wag.
+Kryterium B prawdziwych granic: niezaliczone wszędzie. C: zmienione wyuczone
+modele mają regresje. Czysta faza FH poprawia medianę F1 0,327 → 0,399,
+lecz błąd podziałów nadal 57,1% (wymagane ≤10%). Jitter fazy nie zyskuje
+na halfopen; niezależne rzędy nadal fałszywie przypisane 300/300.
+To diagnoza na znanych kontrolach, bez dowodu generalizacji lub przewagi uczenia.
+
+Galeria `.scratch/graph-context-24a/index.html`: zapisany closed72 po lewej,
+wybrana zmiana po prawej, te same wagi/ziarno/solver i mianowniki. Rzeczywiste
+centra oznaczeń, przełącznik przed/po odmowach, wybór centrum z obrysem 72.
+40 sprawdzeń QtWebEngine, zero błędów JS, trzy zrzuty obejrzane wizualnie.
+
+Audyt techniczny: 3534 archiwa, 745 902 wiersze, niezmienione S24 i adaptery;
+1302 bazowe archiwa predykcji i 651 cech bitowo zgodne z 24. Niezależny audyt
+metryk: 3534 rekordy, 7068 etapów, 14 136 etapów porównań, 1178 agregatów,
+14 kryteriów; wszystkie 1302 bazowe metryki zgodne z 24. Zamrożone źródła
+numeryczne i artefakty 24 zachowane. Nie uruchamiano natywnej aplikacji ani
+ponownie dawnych treningów/testów. Koszt etapów i ograniczenia pomiaru
+CPU/RSS zapisano w manifeście i raporcie.
+Suma zmierzonych etapów: 114,60 s CPU, szczyt 1,57 GiB RSS. Końcowe
+sprawdzenie 21 883 hashów, 409 odnośników, grafu 28 ticketów bez cykli,
+kompilacji modułów i `git diff --check` przeszło.
+
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/start`.
+Podjęcie `959fde3`, implementacja/protokół `ee73c83`; commit zamknięcia
+w odpowiedzi końcowej. Prototyp zachowuje
+`prototype/stmdomains-graph-context-boundaries`. Instrukcja odtworzenia:
+`stmdomains/experiments/training/graph_context/README.md`. Wyniki lokalne poza Git.
+Zakres wyłącznie Domains; brak zmian wspólnych, publikacji i zmian innych worktree.
+Integracja pozostaje zadaniem koordynatora.
+
+---
+
 # STM Domains — wykonano grafowy eksperyment 24
 
 Data: **2026-11-01**. Na bezpośrednie polecenie użytkownika wykonano

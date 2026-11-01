@@ -15,12 +15,14 @@ Ustalenia mają pozwolić rozwinąć odebrany szkielet STM Domains.
 
 ## Notes
 
-**Podjęto 24a — 2026-11-01:** na polecenie użytkownika wykonujemy
-[diagnozę opisu otoczenia](issues/24a-graph-context-boundaries.md), `claimed`.
-[Protokół](graph-context-boundary-protocol.md): te same centra i 93 znane
-kontrole, zamrożone wagi/adaptery, 0 nowych treningów. Porównanie konwencji
-brzegu i ablacji sąsiadów ma oddzielić usunięcie artefaktu od zachowania
-prawdziwych granic. Wyniki 24 pozostają zamrożone; 25/26 i nowe dane odłożone.
+**Wykonano 24a — 2026-11-01:** [diagnoza opisu otoczenia](issues/24a-graph-context-boundaries.md)
+ma status `resolved` jako zakończona próba. [Raport](graph-context-boundary-trial.md):
+3534 wyniki na 93 znanych kontrolach, 0 treningów. Jednolita konwencja
+brzegu usuwa sztuczny podział jednej sieci: 121/121 centrów w jednej domenie
+przed i po odmowach. Rzeczywiste granice nadal nie spełniają kryteriów,
+a część przypadków się pogarsza. Nie przyjęto detektora. Galeria:
+`.scratch/graph-context-24a/index.html`. Odbiór 13 pozostaje otwarty;
+25/26 i nowe dane odłożone, wyniki 24 zachowane.
 
 **Wykonano 24 — 2026-11-01:** na późniejsze polecenie użytkownika zakończono
 [próbę grafów otoczeń molekuł](issues/24-graph-self-supervised-domains.md),
@@ -287,6 +289,14 @@ Przygotowanie wspólnych danych jest zadaniem AFK. Żadnego nowego ticketu
 nie zamknięto przez samo dodanie go do mapy.
 
 ## Decisions so far
+
+- [Czy opis otoczenia usuwa sztuczne granice?](issues/24a-graph-context-boundaries.md):
+  **`resolved` — zakończona diagnoza bez treningów**. [Raport](graph-context-boundary-trial.md)
+  i [manifest](graph-context-boundary-manifest.json): 3534 wyniki, stałe 8350 centrów.
+  Konwencja półotwarta usuwa artefakt pojedynczej sieci (121/121 w jednej domenie),
+  także bez uczenia. Kryteria prawdziwych granic pozostają niespełnione;
+  występują regresje, a jitter fazy nie zyskuje na poprawce. Nie przyjęto detektora,
+  nie wybrano dalszych treningów, 25/26 ani dodatkowych danych.
 
 - [Czy trening daje poprawę i które rozszerzenie warto wykonać?](issues/23-training-comparison-and-next-step.md):
   **`resolved` — decyzja użytkownika 2026-11-01: zakończyć obecny pilot**.

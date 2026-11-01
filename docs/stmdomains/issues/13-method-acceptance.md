@@ -12,8 +12,11 @@ Blocked by: 04, 06, 08, 10, 11, 12, 15, 16, 17, 19, 23, 24, 24a
 ## Diagnoza po 24 — 2026-11-01
 
 Użytkownik wybrał [24a — opis otoczenia i brzeg pola](24a-graph-context-boundaries.md).
-Wynik tej ograniczonej diagnozy bez treningów uzupełni wynik 24 w odbiorze.
-25/26 pozostają niewybrane.
+Próbę wykonano, `resolved`. [Raport 24a](../graph-context-boundary-trial.md):
+121/121 centrów pojedynczej sieci trafia do jednej domeny po ujednoliceniu
+brzegu okna, lecz rzeczywiste granice nadal nie spełniają kryteriów.
+Są regresje i brak poprawy jitteru fazy. To usunięcie konkretnego artefaktu,
+bez odbioru detektora. 25/26 pozostają niewybrane; 13 nadal otwarty.
 
 ## Dalszy wybór użytkownika — 2026-11-01
 
@@ -242,6 +245,7 @@ Osobno sprawdzić zapis wyniku i możliwość odtworzenia eksperymentu.
 - [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md)
 - [Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md)
 - [Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md)
+- [Opis otoczenia i brzeg pola — 24a](24a-graph-context-boundaries.md)
 
 
 ## Wynik tekstury 17 do uwzględnienia — 2026-10-23
@@ -258,5 +262,3 @@ podziały pojedynczej sieci obok jej przypisania, małe różnice orientacji
 na odłożonych próbach oraz zakres banku/katalogu przed odmowami. Granica
 przesunięcia z błędem centrów nie sprawdza odporności na pogorszenie obrazu,
 gdy generator zmienia tylko oznaczenia. Odbiór 13 nadal pozostaje otwarty.
-
-- [Opis otoczenia i brzeg pola — 24a](24a-graph-context-boundaries.md)
