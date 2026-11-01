@@ -1,8 +1,9 @@
 # REG-08b — wyniki obliczeń i materiały do odbioru
 
-Data: 2026-11-01. Próby numeryczne i renderowanie wykonane automatycznie;
-**ocena wizualna użytkownika pozostaje niewykonana**. Zmniejszenie kosztu
-Hubera nie dowodzi poprawnego dopasowania struktur STM.
+Data: 2026-11-01. Próby numeryczne i renderowanie wykonane automatycznie.
+Użytkownik potwierdził **„testy manualne ok”**; REG-08b ma status **done**.
+Nie podał szczegółowej oceny jakości poszczególnych filmów ani przewagi Hubera
+nad LS. Zmniejszenie kosztu Hubera nie dowodzi poprawnego dopasowania struktur STM.
 
 ## Metoda i ustawienia
 

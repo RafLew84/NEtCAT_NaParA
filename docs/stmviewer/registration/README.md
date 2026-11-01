@@ -4,7 +4,7 @@ Data: 2026-10-28; rozszerzenia ręczne: REG-01a 2026-10-30, REG-02a 2026-10-31.
 Rozszerzenie o graf dopasowań i nowe modele: 2026-10-31, na zlecenie użytkownika.
 Gałąź: `viewer/registration-difficult-movies`.
 Baza rozpoznania: `c85aecb`; przegląd metod: `81ff1a0`.
-Status: REG-01, REG-01a, REG-02, REG-02a, REG-04, REG-05, REG-07 i REG-08a `done`. Użytkownik potwierdził odbiór REG-02
+Status: REG-01, REG-01a, REG-02, REG-02a, REG-04, REG-05, REG-07, REG-08a i REG-08b `done`. Użytkownik potwierdził odbiór REG-02
 2026-10-31 i zgłosił brak istotnej poprawy względem Phase na MOVIE_4.
 Deep Matcher ocenia najlepiej w obejrzanych pierwszych 100 klatkach.
 [Instrukcja REG-02](unnormalized-correlation-manual.md), [wyniki](reviews/REG-02.md).
@@ -61,7 +61,7 @@ walidacją. Wznowienie REG-06 wymaga osobnego zlecenia.
 pełnych prób A/B. REG-07 zapisuje i otwiera jedną sesję `.stmsession`, z obrazami
 original i gotowym aligned, zastosowanymi korektami i ustawieniami widoku.
 Plik można przenieść bez źródeł i modeli. Porównanie pojedynczej pary pozostaje.
-Przyszły podgląd kandydata grafu i rozszerzenie zapisu relacji należą do REG-08a/08b.
+Podgląd kandydata grafu i rozszerzenie zapisu relacji dostarczyły REG-08a/08b.
 
 **Usunięcie REG-08 — 2026-11-01:** użytkownik zrezygnował z osobnej
 analizy spójności trójek. Usunięto ticket i jego blokadę; po odebranym REG-07
@@ -113,7 +113,7 @@ REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [karta odbioru](reviews/REG-01.md). REG-01a ma status `done` po odbiorze
 użytkownika 2026-10-31. REG-02 i REG-02a również odebrano 2026-10-31 (`done`).
 REG-04 i REG-05 mają status `done` po odbiorze użytkownika 2026-10-31.
-REG-07 ma status `done` po odbiorze 2026-11-01. REG-08a ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08b ma status `ready-for-review`; REG-08c i REG-10–12 mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
+REG-07 ma status `done` po odbiorze 2026-11-01. REG-08a ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08b ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08c i REG-10–12 mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
 zlecenia użytkownika i zakończenia blokujących ticketów. REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
 REG-08d i REG-09 również mają status `planned` jako warunkowe osobne odnogi.
@@ -133,11 +133,12 @@ również odebrano 2026-11-01: użytkownik potwierdził **„testy manualne ok�
 [Instrukcja](window-graph-manual.md), [wyniki](window-graph-results.md),
 [karta przeglądu](reviews/REG-08a.md).
 [REG-08b — odporny graf](issues/08b-robust-graph.md), zlecony 2026-11-01,
-ma implementację `2802837` i status **ready-for-review**. Dodaje warianty
+ma implementację `2802837` + `417c107` i status **done** po potwierdzeniu
+użytkownika „testy manualne ok” 2026-11-01. Dodaje warianty
 Hubera na tych samych pomiarach, porównanie LS/Huber i zapis diagnostyki w sesji.
 [Instrukcja](robust-graph-manual.md), [wyniki](robust-graph-results.md),
-[karta przeglądu](reviews/REG-08b.md). Oczekuje na ręczny odbiór; zastosowanie
-grafu do aligned i eksportu pozostaje w REG-08c, którego nie rozpoczęto.
+[karta przeglądu](reviews/REG-08b.md). Zastosowanie grafu do aligned i eksportu
+pozostaje w REG-08c; zależność jest spełniona, implementacji nie rozpoczęto.
 [Instrukcja odbioru](session-manual.md), [wyniki](session-results.md),
 [przegląd](reviews/REG-07-session.md).
 REG-06 jest odłożony i pozostaje niewdrożony.
@@ -181,7 +182,7 @@ użytkownik ocenił Outdoor jako znacznie lepszy; pozostaje bazą dalszych prób
 - Współrzędne fragmentów odnoszą się do original i pochodzenia klatki.
   Wspólny układ porównania zakotwiczamy w źródłowej klatce odniesienia;
   różny padding wyników nie może przesuwać podglądu A/B.
-- Podgląd kandydatów grafu, dostarczony w REG-08a i rozszerzany w REG-08b, przechowuje ustawienia,
+- Podgląd kandydatów grafu, dostarczony w REG-08a i rozszerzony w REG-08b, przechowuje ustawienia,
   przesunięcia i metadane, renderując oglądane klatki na żądanie. Nie utrzymuje
   dwóch dodatkowych pełnych filmów float64. Ten interfejs dostarczył REG-08a,
   a REG-07 zapewnia zapis bieżącej pracy, bez biblioteki prób.

@@ -13,9 +13,10 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 - 2026-11-01: wdrożono [REG-08b](registration/issues/08b-robust-graph.md),
   blokowy Huber na zapisanych relacjach LS, porównanie i wiele wariantów w sesji.
-  Status `ready-for-review`, ręczny odbiór oczekuje. [Instrukcja próby](registration/robust-graph-manual.md),
+  Użytkownik potwierdził „testy manualne ok”; status `done`. [Instrukcja próby](registration/robust-graph-manual.md),
   [wyniki i ograniczenia](registration/robust-graph-results.md).
-  Zastosowanie do aligned/eksportu pozostaje REG-08c.
+  Zastosowanie do aligned/eksportu pozostaje REG-08c: zależność spełniona,
+  implementacja nierozpoczęta.
 
 - 2026-11-01: użytkownik potwierdził „testy manualne ok” dla
   [REG-08a](registration/issues/08a-window-graph.md). Etap ma status `done`;

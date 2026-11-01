@@ -1,6 +1,28 @@
+# REG-08b: odbiór manualny — 2026-11-01
+
+Użytkownik potwierdził: **„testy manualne ok”**.
+[REG-08b — odporny graf](registration/issues/08b-robust-graph.md) ma status **done**.
+Baza aktualizacji: `7c6da56`; gałąź `viewer/registration-difficult-movies`.
+Kod: `2802837` + `417c107`; dokumentacja implementacji: `7c6da56`.
+
+- Zaktualizowano ticket, plan, mapę, README, instrukcję, raport i kartę odbioru.
+- REG-08c ma spełnioną zależność, pozostaje `ready-for-agent` i czeka na zlecenie.
+  Nadal odpowiada za zastosowanie grafu do aligned, ręczne korekty i eksport.
+- Potwierdzenie nie określa systemu, sprzętu ani porównawczej jakości filmów.
+  Nie przypisujemy mu odbioru Windows 11 ani przewagi Hubera nad LS.
+  Opisane ograniczenia, w tym niezbieżność MOVIE_4/3, pozostają aktualne.
+- Zmieniono tylko dokumentację. Sprawdzono statusy, odnośniki i `git diff --check`;
+  testów programu nie powtarzano. Wyniki wcześniejszych testów zachowuje
+  [karta REG-08b](registration/reviews/REG-08b.md).
+- Brak zmian wspólnych, publikacji lub scalenia. Pliki użytkownika
+  `proba.stmtrial.json`, `proba2.stmtrial.json`, `sesja.stmsession` pozostają
+  nietknięte. Odbiór zapisano w końcowym commicie tej aktualizacji.
+
+---
+
 # REG-08b: odporny graf — 2026-11-01
 
-Status **ready-for-review**; ręczny odbiór użytkownika oczekuje.
+Stan przy przekazaniu implementacji: **ready-for-review**; późniejszy odbiór opisano powyżej.
 Gałąź `viewer/registration-difficult-movies`, baza `3f6fd5a`.
 Implementacja **`2802837`**, poprawki przeglądu **`417c107`**;
 końcowa dokumentacja w commicie przekazania.

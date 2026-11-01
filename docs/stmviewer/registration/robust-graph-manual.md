@@ -1,6 +1,8 @@
 # REG-08b — porównanie LS i Hubera
 
-Status: ready-for-review; ręczny odbiór użytkownika niewykonany.
+Status: **done**; użytkownik potwierdził „testy manualne ok” 2026-11-01.
+Poniższe kroki zachowano jako instrukcję ponowienia próby. Potwierdzenie nie
+określa systemu, sprzętu ani porównawczej jakości na poszczególnych filmach.
 
 ## Uruchomienie i dane
 

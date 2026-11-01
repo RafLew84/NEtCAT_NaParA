@@ -3,8 +3,8 @@
 **What to build:** Użytkownik porównuje zwykłe LS z odpornym rozwiązaniem
 Hubera na identycznym zbiorze relacji i ogląda, które pomiary mają mniejszy wpływ.
 **Blocked by:** [REG-08a](08a-window-graph.md), w tym odbiór manualny — spełnione 2026-11-01.
-**Status:** ready-for-review
-**Manualny odbiór:** niewykonany; oczekuje na próbę użytkownika.
+**Status:** done
+**Manualny odbiór:** zaliczony 2026-11-01; użytkownik potwierdził „testy manualne ok”.
 **Start implementacji:** 2026-11-01, Codex; baza przeglądu `3f6fd5a32105b79a1143551fa1541c5c97ab5d66`.
 **Dodano do planu:** 2026-10-31, na zlecenie użytkownika po research.
 
@@ -88,7 +88,8 @@ zostać odrzucony po ręcznej ocenie; LS pozostaje dostępną bazą.
 
 ## Realizacja — 2026-11-01
 
-Kod: `2802837` na `viewer/registration-difficult-movies`.
+Kod: `2802837` + `417c107`; dokumentacja implementacji: `7c6da56`.
+Gałąź: `viewer/registration-difficult-movies`.
 [Instrukcja i dane do ręcznej próby](../robust-graph-manual.md),
 [wyniki obliczeń i ograniczenia](../robust-graph-results.md),
 [karta testów i przeglądu](../reviews/REG-08b.md).
@@ -103,8 +104,12 @@ Na nowym wzorcu odstający pomiar daje maksymalny błąd współrzędnej 5,022 p
 w LS i 0,712 px w Huberze. Most i spójny alias pozostają nierozpoznawalne;
 przy błędnej większości Huber może pogorszyć wynik. MOVIE_4/3 nie spełnia
 warunków zbieżności nawet po 5000 iteracjach i ma wyłącznie diagnostykę.
-MOVIE_4/5 oraz MOVIE_8 mają kompletne warianty; ich poprawa wizualna wymaga
-ręcznej oceny. Nie zmieniono tolerancji na podstawie prób odbiorczych.
+MOVIE_4/5 oraz MOVIE_8 mają kompletne warianty. Potwierdzenie odbioru nie
+zawiera szczegółowej oceny poprawy wizualnej tych filmów. Nie zmieniono
+tolerancji na podstawie prób odbiorczych.
 
 Zastosowanie wariantu do aligned i eksportu nadal należy do REG-08c.
-REG-08b pozostaje `ready-for-review` do jawnego ręcznego odbioru użytkownika.
+REG-08b zamknięto jako `done` po potwierdzeniu „testy manualne ok” 2026-11-01.
+Nie podano systemu, sprzętu ani szczegółowej oceny jakości poszczególnych filmów;
+odbiorem nie potwierdzamy Windows 11 ani przewagi Hubera nad LS. REG-08c ma
+spełnioną zależność i czeka na osobne zlecenie. Kod i wyniki obliczeń bez zmian.

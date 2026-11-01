@@ -2,7 +2,7 @@
 
 **What to build:** Użytkownik jawnie stosuje kompletną próbę grafu jako aligned,
 poprawia wybrane przejścia ręcznie i zapisuje wynik do MPP/AVI.
-**Blocked by:** [REG-08b](08b-robust-graph.md), w tym odbiór manualny.
+**Blocked by:** [REG-08b](08b-robust-graph.md), w tym odbiór manualny — spełnione 2026-11-01.
 **Status:** ready-for-agent
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 **Dodano do planu:** 2026-10-31, na zlecenie użytkownika po research.

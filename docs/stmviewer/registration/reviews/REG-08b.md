@@ -1,6 +1,6 @@
 # REG-08b — karta wykonania i odbioru
 
-Data: 2026-11-01. Status: **ready-for-review**; ręczny odbiór oczekuje.
+Data: 2026-11-01. Status: **done**; użytkownik potwierdził „testy manualne ok”.
 Baza przeglądu: `3f6fd5a32105b79a1143551fa1541c5c97ab5d66`.
 Kod: `2802837`; poprawki po przeglądzie: `417c107`.
 Gałąź: `viewer/registration-difficult-movies`.
@@ -31,8 +31,8 @@ Dodatkowy jawny limit iteracji pozostaje w zakresie kontroli solvera.
 Odmowa kompletnego wyniku MOVIE_4/3 odpowiada kontraktowi numerycznemu.
 
 Przegląd delty `2802837..417c107` potwierdził zachowanie kontraktu i brak
-nowych ustaleń. **0 otwartych ustaleń Spec.** Ręczny odbiór pozostaje osobnym,
-niewykonanym sprawdzeniem, nie zastępuje go przegląd kodu.
+nowych ustaleń. **0 otwartych ustaleń Spec.** Podczas przeglądu ręczny odbiór
+jeszcze oczekiwał; późniejsze potwierdzenie użytkownika zapisano poniżej.
 
 ## Testy automatyczne
 
@@ -91,8 +91,13 @@ Zrzuty Qt offscreen obejrzano pod kątem układu, nazw i dostępności kontrolek
 (`/tmp/reg08b-window-{top,huber,table}.png`). To automatyczne sprawdzenie
 prezentacji, nie ręczny odbiór programu ani wizualnej poprawy filmów.
 
-**Ręczny odbiór użytkownika: niewykonany.** Windows 11 i docelowe stanowisko
-nie zostały sprawdzone. REG-08c pozostaje nierozpoczęty; oglądanie Hubera
-nadal nie zmienia aktywnego filmu ani eksportowanych MPP/AVI.
+**Ręczny odbiór użytkownika: zaliczony 2026-11-01.** Użytkownik potwierdził:
+**„testy manualne ok”**. REG-08b zamknięto jako `done`. Nie podano szczegółowych
+obserwacji jakości dla obu filmów, systemu ani sprzętu; nie przypisujemy temu
+potwierdzeniu przewagi Hubera nad LS, odbioru Windows 11 ani stanowiska docelowego.
+Opisane ograniczenia zbieżności pozostają aktualne. REG-08c ma spełnioną
+zależność, ale pozostaje nierozpoczęty; oglądanie Hubera nadal nie zmienia
+aktywnego filmu ani eksportowanych MPP/AVI. Aktualizacja odbioru zmienia tylko
+dokumentację; testów programu nie powtarzano.
 
 Przeglądy: Standards — 0 otwartych ustaleń po poprawkach; Spec — 0 ustaleń.
