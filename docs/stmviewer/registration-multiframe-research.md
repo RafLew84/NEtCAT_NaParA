@@ -212,10 +212,15 @@ serii nie zmienia się przez samą publikację tej notatki.
 
 ## Integracja z obecnym programem
 
-[REG-08](registration/issues/08-temporal-consistency.md) ma dziś zakres
-**diagnostyczny**: porównuje A→C z A→B + B→C i nie zmienia XY. Propozycja
-grafu wykracza poza ten ticket. Po jego odbiorze można uzgodnić małe osobne
-etapy, każdy kończący się próbą w aplikacji:
+**Aktualizacja planu — 2026-11-01:** użytkownik usunął osobny REG-08,
+który miał wyłącznie diagnozować spójność trójek. Po odebranym zapisie sesji
+REG-07 następuje [REG-08a — graf dopasowań](registration/issues/08a-window-graph.md).
+Nie wymagamy wcześniejszego panelu trójek ani jego odbioru. Spójność relacji
+pozostaje informacją pomocniczą rozwiązania grafu.
+
+Poniższy podział opisuje pierwotną propozycję z przeglądu; aktualne numery,
+zakresy i zależności określa [plan](registration/README.md). Każdy realizowany
+etap kończy się próbą w aplikacji:
 
 1. **Próba grafu na kopii wyniku:** wybór okna, obliczenie par, LS/Huber,
    lista braków i rozbieżności, podgląd względem bieżącego aligned. Odbiór:
@@ -227,9 +232,10 @@ etapy, każdy kończący się próbą w aplikacji:
 3. **Dalsze odniesienia lub nowy matcher:** dopiero po osobnym porównaniu,
    ze stałym zbiorem przypadków i manualnym odbiorem.
 
-Nie przypisujemy tym propozycjom nowych numerów ani nie przesuwamy istniejących
-blokad. REG-05/06/07 pozostają istotne: lokalne poparcie, niezależna kontrola
-oraz porównanie całych filmów mogą wykazać, czy graf jest kolejnym potrzebnym krokiem.
+Zgodnie z aktualnym planem LS należy do REG-08a, Huber do REG-08b,
+a zastosowanie do filmu do REG-08c. REG-05 zachowuje lokalne poparcie,
+REG-06 pozostaje odłożony, a REG-07 dostarcza zapis i odczyt sesji. Wizualna
+ocena filmów służy odbiorowi wpływu rejestracji wieloklatkowej.
 
 Dwa szczegóły wymagają jawnego projektu przed implementacją:
 

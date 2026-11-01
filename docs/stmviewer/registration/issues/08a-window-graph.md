@@ -3,7 +3,7 @@
 **What to build:** Użytkownik tworzy osobną próbę pełnego filmu, w której obecny
 Deep dopasowuje także niesąsiednie klatki, a program wspólnie wyznacza ich XY.
 Można obejrzeć i zapisać próbę oraz porównać ją z łańcuchem sąsiednich dopasowań.
-**Blocked by:** [REG-08](08-temporal-consistency.md), w tym odbiór manualny.
+**Blocked by:** [REG-07](07-session-save-load.md), w tym odbiór manualny — spełnione 2026-11-01.
 **Status:** ready-for-agent
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 **Dodano do planu:** 2026-10-31, na zlecenie użytkownika po research.
@@ -14,6 +14,12 @@ Ten etap bada sam efekt dodatkowych relacji. Nie dodaje nowego modelu pary,
 odpornego solvera ani podmiany aktywnego aligned. REG-07 zapewnia zapis bieżącej
 pracy; podgląd kandydata grafu i porównanie go z bazą powstają w tym tickecie.
 Nie zakładamy istnienia biblioteki pełnych prób A/B.
+
+**Zmiana zależności — 2026-11-01:** użytkownik usunął osobny REG-08.
+Ten ticket jest pierwszym etapem rejestracji wieloklatkowej po REG-07.
+Sam dostarcza potrzebne dopasowania i podgląd niesąsiednich par. Spójność
+relacji pokazujemy jako reszty rozwiązania grafu; nie tworzymy osobnego
+panelu trójek ani odrębnego zapisu ich diagnostyki.
 
 ## Zakres i kryteria odbioru
 
@@ -38,7 +44,9 @@ Nie zakładamy istnienia biblioteki pełnych prób A/B.
   komponenty i przyczyny braków. Mosty i obszary bez nadmiarowej weryfikacji są
   oznaczone także w grafie spójnym. Nie resetujemy odłączonej części do zera.
 - [ ] UI pokazuje listę relacji i ich rozbieżności oraz pozwala przejść do
-  porównania konkretnej pary, również niesąsiedniej. Małe reszty nie nadają
+  porównania konkretnej pary, również niesąsiedniej. Ręcznej próby pary
+  niesąsiedniej nie można zastosować jako nadpisania sąsiedniego przejścia REG-02a.
+  Małe reszty nie nadają
   automatycznej oceny „poprawny”: powiązane artefakty i aliasy okresowe mogą
   spełnić wszystkie relacje. Wynik błędnego solvera jest odmową z przyczyną.
 - [ ] Ten ticket dodaje podgląd kandydata grafu z nawigacją/Play i porównaniem

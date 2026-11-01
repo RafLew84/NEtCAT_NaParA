@@ -68,7 +68,8 @@ z długiej próby UI MolTrack; testy kontynuowały i ukończyły cały przebieg.
 kontynuację i cofanie korekt, zapis po usunięciu odniesienia, MPP/AVI oraz
 błąd/anulowanie. Program uruchamia się przez `python -m stmviewer`.
 Użytkownik potwierdził 2026-11-01: **„testy manualne ok”**. REG-07 ma status
-`done`, zależność REG-08 jest spełniona; REG-08 nie rozpoczęto. Potwierdzenie
+`done`. Po usunięciu REG-08 zależność kolejnego REG-08a jest spełniona;
+REG-08a nie rozpoczęto. Potwierdzenie
 nie określa systemu, sprzętu ani odtwarzacza, więc nie przypisujemy mu
 osobnego odbioru Windows 11, sprzętu z 8 GB VRAM ani VLC na obu systemach.
 Przy aktualizacji statusu sprawdzono spójność dokumentacji i `git diff --check`;

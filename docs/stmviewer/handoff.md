@@ -1,3 +1,26 @@
+# Usunięcie REG-08 z planu — 2026-11-01
+
+Użytkownik zlecił: **„usuń REG-08”**. Baza tej zmiany: `cc08ec9`;
+gałąź `viewer/registration-difficult-movies`.
+
+- Usunięto niewdrożony ticket diagnostyki trójek i jego wymaganie odbioru.
+- Następny etap to [REG-08a — graf dopasowań](registration/issues/08a-window-graph.md),
+  zależny bezpośrednio od odebranego REG-07. Nadal `ready-for-agent`, bez implementacji.
+- REG-08a sam zapewnia podgląd niesąsiednich par; nie dodaje osobnego panelu
+  trójek ani zapisu ich diagnostyki. Pozostają reszty rozwiązania grafu oraz
+  ochrona przed zastosowaniem niesąsiedniej pary jako korekty przejścia REG-02a.
+- Zaktualizowano kolejność, liczby etapów, odnośniki i notatkę badawczą.
+  REG-08b/08c i dalsze etapy zachowują zakres oraz numerację. REG-06 pozostaje
+  odłożony; REG-09 warunkowy. Liczba etapów podstawowych: 13.
+- Zmiana wyłącznie dokumentacyjna. Sprawdzono zależności, linki i
+  `git diff --check`; testów programu nie powtarzano. Brak zmian wspólnych.
+- `proba.stmtrial.json`, `proba2.stmtrial.json`, `sesja.stmsession` pozostają
+  nietknięte poza Git. Dokumentację zapisano w końcowym commicie tej zmiany.
+
+Poniższe wpisy zachowują stan wcześniejszych decyzji i odbiorów.
+
+---
+
 # REG-07: odbiór manualny sesji — 2026-11-01
 
 Użytkownik potwierdził: **„testy manualne ok”**.

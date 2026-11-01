@@ -44,13 +44,14 @@ REG-05 → ocena REG-06 i zapis pracy REG-07 → diagnostyka REG-08 → graf
 REG-08a/08b/08c → osobne próby EfficientLoFTR, RoMa v2 i MatchAnything
 REG-10/11/12. [Przegląd i źródła](../registration-multiframe-research.md)
 uzasadniają te próby, ale nie potwierdzają ich skuteczności na naszych filmach.
-REG-08 przestaje być warunkowy; nadal sam nie zmienia XY. Dalsze odniesienia
+W tej wersji planu REG-08 miał być etapem diagnostycznym; został później
+wycofany decyzją z 2026-11-01 opisaną poniżej. Dalsze odniesienia
 REG-08d i diagnostyka tearingu REG-09 pozostają warunkowe. Rozszerzenie planu
 nie jest implementacją ani odbiorem REG-04.
 
 **Odłożenie REG-06 — 2026-10-31:** użytkownik zdecydował „na razie pominiemy 06”.
 REG-06 pozostaje w planie ze statusem `planned`, poza bieżącą kolejnością.
-Aktualna ścieżka prowadzi z REG-05 bezpośrednio do REG-07, następnie REG-08
+Aktualna ścieżka prowadzi z REG-05 bezpośrednio do REG-07, następnie REG-08a
 i dalszych etapów. REG-07 oraz kolejne tickety nie przejmują implementacji
 kontroli REG-06. Ocena wizualna, poparcie estymatora i diagnostyka spójności
 pozostają dostępne zgodnie ze swoimi zakresami; nie nazywamy ich niezależną
@@ -61,6 +62,13 @@ pełnych prób A/B. REG-07 zapisuje i otwiera jedną sesję `.stmsession`, z obr
 original i gotowym aligned, zastosowanymi korektami i ustawieniami widoku.
 Plik można przenieść bez źródeł i modeli. Porównanie pojedynczej pary pozostaje.
 Przyszły podgląd kandydata grafu i rozszerzenie zapisu relacji należą do REG-08a/08b.
+
+**Usunięcie REG-08 — 2026-11-01:** użytkownik zrezygnował z osobnej
+analizy spójności trójek. Usunięto ticket i jego blokadę; po odebranym REG-07
+następuje bezpośrednio REG-08a. Numeracja pozostałych etapów pozostaje.
+Spójność relacji będzie oceniana w ramach rozwiązania grafu i jego reszt;
+nie dodajemy osobnego panelu ani odbioru diagnostyki trójek. Głównym wynikiem
+REG-08a jest podgląd filmu z położeniami wyznaczonymi z wielu dopasowań.
 
 ## Cel i zakres
 
@@ -75,7 +83,7 @@ Nowe zlecenie rozpoczyna etap rozwoju metod odłożony w
 [mapie pierwszej wersji](../map.md). Nie zmienia historycznych odbiorów 01–21.
 Zachowujemy dotychczasowe identyfikatory ticketów, w tym **REG-01a i REG-02a**,
 aby uniknąć kolizji i zmian numerów istniejących zadań. Bieżąca ścieżka obejmuje
-czternaście etapów podstawowych; REG-06 jest odłożony, a dwa etapy pozostają
+trzynaście etapów podstawowych; REG-06 jest odłożony, a dwa etapy pozostają
 warunkowe. Sufiksy REG-08a–08d rozwijają pracę
 na wielu klatkach; REG-09 zachowuje dotychczasowy zakres.
 
@@ -91,8 +99,7 @@ na wielu klatkach; REG-09 zachowuje dotychczasowy zakres.
 | [REG-05: Zgodność lokalnych fragmentów](issues/05-local-consensus.md) | Przestrzenne poparcie XY z różnych części obrazu i konkurujące grupy; porównanie z bazowym Deep, bez obowiązkowego ECC. | REG-04 |
 | [REG-06: Niezależna kontrola dopasowania](issues/06-independent-validation.md) | **Odłożony** — zakres zachowany do ewentualnego powrotu. | REG-05 + osobne zlecenie wznowienia |
 | [REG-07: Zapis i odczyt sesji](issues/07-session-save-load.md) | Jeden przenośny plik z serią, aktywnym aligned, ręcznymi korektami i widokiem; wznowienie pracy bez rejestracji. | REG-05 |
-| [REG-08: Spójność kilku klatek](issues/08-temporal-consistency.md) | Diagnostyka zgodności A→B→C z A→C i porównanie również niesąsiednich par; jeszcze bez zmiany XY. | REG-07 |
-| [REG-08a: Graf z oknem 3/5 klatek](issues/08a-window-graph.md) | Osobna pełna próba: obecny Deep, wspólne XY przez LS, porównanie z łańcuchem i zapis relacji. | REG-08 |
+| [REG-08a: Graf z oknem 3/5 klatek](issues/08a-window-graph.md) | Osobna pełna próba: obecny Deep, wspólne XY przez LS, porównanie z łańcuchem i zapis relacji. | REG-07 |
 | [REG-08b: Odporny graf](issues/08b-robust-graph.md) | LS kontra Huber/IRLS na dokładnie tych samych pomiarach; widoczny wpływ odstających relacji. | REG-08a |
 | [REG-08c: Zastosowanie grafu do filmu](issues/08c-graph-movie-application.md) | Jawna podmiana aligned, ręczne korekty, MPP/AVI i odtworzenie sesji z zastosowanym grafem. | REG-08b |
 | [REG-10: EfficientLoFTR](issues/10-efficient-loftr.md) | Nowy model dla par, łańcucha i grafu; porównanie z obecnym Deep przy stałej reszcie obliczeń. | REG-08c |
@@ -106,22 +113,22 @@ REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [karta odbioru](reviews/REG-01.md). REG-01a ma status `done` po odbiorze
 użytkownika 2026-10-31. REG-02 i REG-02a również odebrano 2026-10-31 (`done`).
 REG-04 i REG-05 mają status `done` po odbiorze użytkownika 2026-10-31.
-REG-07 ma status `done` po odbiorze 2026-11-01. REG-08, REG-08a/08b/08c i REG-10–12 mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
+REG-07 ma status `done` po odbiorze 2026-11-01. REG-08a/08b/08c i REG-10–12 mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
 zlecenia użytkownika i zakończenia blokujących ticketów. REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
 REG-08d i REG-09 również mają status `planned` jako warunkowe osobne odnogi.
 Żadnego z tych etapów nie uruchamiamy automatycznie.
 
 Kolejność podstawowa: REG-01 → REG-01a → REG-02 → REG-02a → REG-04 → REG-05
-→ REG-07 → REG-08 → REG-08a → REG-08b → REG-08c → REG-10 → REG-11
+→ REG-07 → REG-08a → REG-08b → REG-08c → REG-10 → REG-11
 → REG-12. To także kolejność ręcznych odbiorów, nawet gdy część kodu można
 technicznie napisać niezależnie. Zależność między REG-10/11/12 porządkuje
 eksperymenty; RoMa nie wymaga uruchamiania EfficientLoFTR, a MatchAnything nie
 wymaga działającego RoMa. Wspólną bazą porównań pozostaje obecny Deep.
 
 [REG-07 — zapis i odczyt sesji](issues/07-session-save-load.md) odebrano
-2026-11-01. Następny odblokowany etap to [REG-08 — diagnostyka spójności kilku
-klatek](issues/08-temporal-consistency.md); implementacja pozostaje nierozpoczęta
+2026-11-01. Następny odblokowany etap to [REG-08a — graf dopasowań z oknem
+3 lub 5 klatek](issues/08a-window-graph.md); implementacja pozostaje nierozpoczęta
 i wymaga osobnego zlecenia użytkownika.
 [Instrukcja odbioru](session-manual.md), [wyniki](session-results.md),
 [przegląd](reviews/REG-07-session.md).
@@ -291,7 +298,7 @@ trening modeli, automatyczne pobieranie przez aplikację, zastępowanie brakują
 danych oraz wygładzanie trajektorii dryfu nie należą do tego planu.
 REG-10–12 obejmują instrukcje przygotowania lokalnych wag i sprawdzenie warunków
 ich wybranych wersji; sam plan niczego nie instaluje ani nie pobiera.
-REG-08 nie zmienia XY; REG-08a/08b wyznaczają wspólne przesunięcia w próbie,
+REG-08a/08b wyznaczają wspólne przesunięcia w próbie,
 REG-08c stosuje je do filmu. REG-09 nie deformuje pikseli.
 LightGlue + ALIKED i TartanMatch pozostają na liście obserwacyjnej w przeglądzie,
 bez osobnych ticketów przed oceną trzech wybranych modeli. Wszystkie pary filmu,

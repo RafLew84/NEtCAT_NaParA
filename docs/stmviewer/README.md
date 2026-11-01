@@ -9,7 +9,7 @@ oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 [Rozpoznanie MOVIE_4/MOVIE_8 i reproduktory](registration-difficult-movies.md)
 opisuje zgodność metod ze strukturami obrazu przy zakłóceniach i tearing.
 Domyślne algorytmy aplikacji pozostają bez zmian.
-[Plan rozwoju i tickety](registration/README.md) obejmuje czternaście etapów
+[Plan rozwoju i tickety](registration/README.md) obejmuje trzynaście etapów
 bieżącej ścieżki (w tym REG-01a i REG-02a), odłożony REG-06 i dwa etapy warunkowe.
 Każdy realizowany etap kończy się ręcznym odbiorem
 funkcji oraz jakości; kolejny etap czeka na decyzję użytkownika.
@@ -17,8 +17,9 @@ funkcji oraz jakości; kolejny etap czeka na decyzję użytkownika.
 
 [Przegląd rejestracji wieloklatkowej i nowych matcherów](registration-multiframe-research.md)
 proponuje graf translacji ponad obecnym Deep oraz krótką listę dalszych prób.
-Na zlecenie użytkownika 2026-10-31 rozszerzono plan: po REG-05, REG-07 i diagnostyce
-REG-08 następują próby grafu LS (REG-08a), odpornego grafu (REG-08b), zastosowanie
+Na zlecenie użytkownika 2026-10-31 rozszerzono plan. Po usunięciu osobnego
+REG-08 dnia 2026-11-01 po REG-05 i REG-07 następują próby grafu LS (REG-08a),
+odpornego grafu (REG-08b), zastosowanie
 do filmu i eksport (REG-08c), następnie osobno EfficientLoFTR (REG-10), RoMa v2
 (REG-11) i MatchAnything-ELoFTR (REG-12). Dalsze odniesienia REG-08d oraz tearing
 REG-09 pozostają warunkowe. Użytkownik odłożył REG-06 („na razie pominiemy 06”).
@@ -32,7 +33,7 @@ i **Otwórz sesję…** są w głównym panelu; skróty to Ctrl+Shift+S i Ctrl+S
 [przegląd kodu](registration/reviews/REG-07-session.md).
 REG-07 ma status **done**: użytkownik potwierdził „testy manualne ok”
 2026-11-01. REG-06 pozostaje odłożony. Następny odblokowany etap to
-[REG-08 — diagnostyka spójności kilku klatek](registration/issues/08-temporal-consistency.md),
+[REG-08a — graf dopasowań z oknem 3 lub 5 klatek](registration/issues/08a-window-graph.md),
 który czeka na osobne zlecenie.
 
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk

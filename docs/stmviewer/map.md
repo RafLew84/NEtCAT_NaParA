@@ -11,6 +11,10 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-01: na zlecenie użytkownika usunięto z [planu trudnych filmów](registration/README.md)
+  osobny REG-08 — diagnostykę trójek. Po odebranym zapisie sesji REG-07 następuje
+  REG-08a — graf dopasowań. Pozostała numeracja i statusy odbiorów pozostają.
+
 - 2026-10-31: rozszerzono [plan trudnych filmów](registration/README.md) o graf
   dopasowań wielu klatek oraz osobne próby EfficientLoFTR, RoMa v2 i
   MatchAnything-ELoFTR. Każdy etap ma ręczny odbiór; zmiana dotyczy późniejszego

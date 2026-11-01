@@ -3,7 +3,7 @@
 **What to build:** Użytkownik ogląda pozostałe przesunięcia różnych pasów
 obrazu po globalnym XY, aby rozstrzygnąć potrzebę osobnej korekcji tearingu.
 **Blocked by:** [REG-07](07-session-save-load.md) — spełnione 2026-11-01 —
-i osobna decyzja użytkownika o uruchomieniu etapu, nadal oczekiwana. REG-08 nie jest wymagany.
+i osobna decyzja użytkownika o uruchomieniu etapu, nadal oczekiwana.
 **Status:** planned
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 
