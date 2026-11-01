@@ -1,5 +1,5 @@
 """Lazy candidate playback with one viewport shared by graph and baseline."""
-from PyQt6.QtCore import QSignalBlocker, QTimer, Qt
+from PyQt6.QtCore import QSignalBlocker, QTimer, Qt, pyqtSignal
 from PyQt6.QtGui import QImage
 from PyQt6.QtWidgets import (
     QCheckBox, QComboBox, QDoubleSpinBox, QHBoxLayout, QLabel, QPushButton,
@@ -10,16 +10,21 @@ from stmviewer.frame import ImageFrame
 from stmviewer.graph_preview import GraphMoviePreview, XY
 from stmviewer.graph_types import GraphTrial
 from stmviewer.registration import RegistrationResult
+from stmviewer.session_state import ViewTransform
 from stmviewer.ui.image_preview import ImagePreview
 
 
 class GraphMovieWidget(QWidget):
+    variant_changed = pyqtSignal(str)
+
     def __init__(self, frames: tuple[ImageFrame, ...], parent: QWidget) -> None:
         super().__init__(parent)
         self._frames = frames
         self._renderer: GraphMoviePreview | None = None
         self._render_failed = False
+        self._aspect = 1.0
         self._trial: GraphTrial | None = None
+        self._variants: dict[str, tuple[XY, ...]] = {}
         self._timer = QTimer(self)
         self._timer.setTimerType(Qt.TimerType.PreciseTimer)
         self._timer.timeout.connect(self._advance)
@@ -32,6 +37,7 @@ class GraphMovieWidget(QWidget):
         self._source.setObjectName('graphFrameSource')
         self._source.setTextFormat(Qt.TextFormat.PlainText)
         self._source.setWordWrap(True)
+        self._source.setMinimumHeight(4 * self._source.fontMetrics().lineSpacing())
         layout.addWidget(self._source)
         self._preview = ImagePreview(self)
         self._preview.setObjectName('graphPreview')
@@ -92,12 +98,14 @@ class GraphMovieWidget(QWidget):
         self._status.setWordWrap(True)
         self._status.setTextFormat(Qt.TextFormat.PlainText)
         layout.addWidget(self._status)
-        self._variant.currentIndexChanged.connect(self._selected_frame)
+        self._variant.currentIndexChanged.connect(self._selected_variant)
         self._set_interval()
         self._sync()
 
     def set_graph(self, trial: GraphTrial | None, registration: RegistrationResult | None) -> None:
         self.pause()
+        same_graph = trial is not None and self._trial is not None and trial.revision == self._trial.revision
+        previous_renderer, previous_aspect = self._renderer, self._aspect
         self._trial = trial
         selected = self._variant.currentData()
         variants: dict[str, tuple[XY, ...]] = {}
@@ -115,6 +123,13 @@ class GraphMovieWidget(QWidget):
             variants['active'] = tuple((f.shift_xy[0] - x0, f.shift_xy[1] - y0)
                                        for f in registration.frames)
             choices.append((f'Aktywny aligned — {registration.method} · {registration.revision[:8]}', 'active'))
+        if trial is not None:
+            for index, robust in enumerate(trial.robust_trials):
+                if robust.positions is not None:
+                    key = f'huber:{robust.revision}'
+                    variants[key] = robust.positions
+                    choices.append((f'Huber {index + 1} — próg {robust.config.threshold_px:g} px', key))
+        self._variants = variants
         with QSignalBlocker(self._variant):
             self._variant.clear()
             for label, key in choices:
@@ -135,8 +150,42 @@ class GraphMovieWidget(QWidget):
             self._preview.clear_frame()
         else:
             self._render()
-            self._preview.fit_image()
+            if same_graph and previous_renderer is not None and not self._render_failed:
+                self._preserve_geometry(previous_renderer, previous_aspect)
+            elif not same_graph:
+                self._preview.fit_image()
         self._sync()
+
+    def _preserve_geometry(self, previous: GraphMoviePreview, previous_aspect: float) -> None:
+        """Keep the first-frame origin and source-pixel scale as the canvas grows."""
+        current = self._renderer
+        if current is None or (current.canvas_shape == previous.canvas_shape
+                               and current.origin_xy == previous.origin_xy):
+            return
+        states = self._preview.navigation_states()
+        state = states['original']
+        width, height = self._preview.width(), self._preview.height()
+        old_h, old_w = previous.canvas_shape
+        new_h, new_w = current.canvas_shape
+        fitted = min(width, height * previous_aspect)
+        scale_x = fitted * state.zoom / old_w
+        scale_y = fitted * state.zoom / previous_aspect / old_h
+        old_x, old_y = previous.origin_xy
+        new_x, new_y = current.origin_xy
+        zoom = scale_x * new_w / min(width, height * self._aspect)
+        pan_x = state.pan_xy[0] + ((old_x - old_w / 2) - (new_x - new_w / 2)) * scale_x
+        pan_y = state.pan_xy[1] + ((old_y - old_h / 2) - (new_y - new_h / 2)) * scale_y
+        states['original'] = ViewTransform(zoom, (pan_x, pan_y))
+        self._preview.restore_navigation(states)
+
+    def select_variant(self, key: str) -> None:
+        index = self._variant.findData(key)
+        if index >= 0:
+            self._variant.setCurrentIndex(index)
+
+    def _selected_variant(self) -> None:
+        self._selected_frame()
+        self.variant_changed.emit(str(self._variant.currentData()))
 
     def pause(self) -> None:
         self._timer.stop()
@@ -193,10 +242,13 @@ class GraphMovieWidget(QWidget):
         text = f'Klatka {index + 1}: {frame.source}{source_index}'
         variant = str(self._variant.currentData())
         if self._trial is not None:
-            positions = self._trial.positions if variant == 'graph' else self._trial.chain_positions
+            positions = self._variants.get(variant)
             if positions is not None:
                 x, y = positions[index]
                 text += f'\nX: {x:.3f} px · Y: {y:.3f} px · kotwica: klatka 1'
+                if variant.startswith('huber:') and self._trial.positions is not None:
+                    lx, ly = self._trial.positions[index]
+                    text += f'\nHuber − LS: X {x - lx:+.3f} px · Y {y - ly:+.3f} px'
         self._source.setText(text)
         try:
             raster = self._renderer.render(index, variant, gamma=self._gamma.value(),
@@ -205,8 +257,9 @@ class GraphMovieWidget(QWidget):
             image = QImage(raster.rgba.tobytes(), width, height, raster.rgba.strides[0],
                            QImage.Format.Format_RGBA8888).copy()
             self._preview.set_image(image, aspect=raster.aspect)
+            self._aspect = raster.aspect
             self._render_failed = False
-            self._status.setText('Wspólny obszar i kontrast oryginalnej klatki dla obu wariantów. '
+            self._status.setText('Wspólny obszar i kontrast oryginalnej klatki dla wszystkich wariantów. '
                                   'Kandydat grafu nie jest aktywnym aligned ani wynikiem eksportu.')
         except (ImportError, OSError, ValueError, MemoryError, OverflowError) as error:
             self.pause()

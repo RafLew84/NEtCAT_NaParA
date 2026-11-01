@@ -50,6 +50,11 @@ class GraphMoviePreview:
         self._pixel_ratio = pixel_size[0] / pixel_size[1] if pixel_size else 1.0
         self._contrast: dict[int, tuple[float, float] | None] = {}
 
+    @property
+    def origin_xy(self) -> tuple[int, int]:
+        """Canvas location of the shared first-frame origin, in source pixels."""
+        return self._left, self._top
+
     def render(self, index: int, variant: str, *, gamma: float = 1,
                pixel_proportions: bool = False) -> GraphRaster:
         from scipy.ndimage import affine_transform

@@ -1,4 +1,5 @@
 """One lightweight graph candidate, its evidence and a whole-movie preview."""
+from dataclasses import replace
 from pathlib import Path
 
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -13,11 +14,13 @@ from stmviewer.deep_matcher import DeepMatcherOptions, deep_unavailable_reason
 from stmviewer.frame import ImageFrame
 from stmviewer.graph_registration import graph_pairs
 from stmviewer.graph_types import GraphTrial
+from stmviewer.robust_graph_types import RobustTrial
 from stmviewer.pair_comparison import PairTrial
 from stmviewer.registration import FrameOrigin, RegistrationResult
 from stmviewer.ui.deep_matcher_controls import DeepMatcherControls
 from stmviewer.ui.graph_job import GraphJob
 from stmviewer.ui.graph_movie import GraphMovieWidget
+from stmviewer.ui.robust_graph_controls import RobustGraphControls
 from stmviewer.ui.pair_dialog import PairComparisonDialog
 
 
@@ -109,15 +112,18 @@ class GraphComparisonDialog(QDialog):
         self._summary.setTextFormat(Qt.TextFormat.PlainText)
         self._summary.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         sidebar.addWidget(self._summary)
+        self._robust = RobustGraphControls(self)
+        sidebar.addWidget(self._robust)
         sidebar.addStretch()
         tabs = QTabWidget(self)
         body.addWidget(tabs, 1)
         self._movie = GraphMovieWidget(frames, self)
+        self._movie.variant_changed.connect(self._movie_variant_changed)
         tabs.addTab(self._movie, 'Film')
         relations = QWidget(self)
         relations_layout = QVBoxLayout(relations)
-        info = QLabel('Pomiar przesuwa klatkę j na i. LS pokazuje różnicę wspólnych pozycji; '
-                      'reszta = LS − pomiar. Mała reszta oznacza spójność relacji, '
+        info = QLabel('Pomiar przesuwa klatkę j na i. LS i Huber pokazują różnicę wspólnych pozycji; '
+                      'reszta = rozwiązanie − pomiar. Mała reszta oznacza spójność relacji, '
                       'nie potwierdza poprawnego dopasowania struktur.', self)
         info.setWordWrap(True)
         relations_layout.addWidget(info)
@@ -140,6 +146,9 @@ class GraphComparisonDialog(QDialog):
         relations_layout.addWidget(self._inspect)
         self._edges.itemSelectionChanged.connect(self._sync)
         tabs.addTab(relations, 'Relacje i rozbieżności')
+        self._robust.result_ready.connect(self._finish_robust)
+        self._robust.selected_changed.connect(self._selected_robust)
+        self._robust.busy_changed.connect(self._robust_busy_changed)
         self._deep.changed.connect(self._sync)
         self._window.currentIndexChanged.connect(self._sync)
         self._present_trial()
@@ -151,7 +160,7 @@ class GraphComparisonDialog(QDialog):
 
     @property
     def busy(self) -> bool:
-        return self._job is not None or (self._pair is not None and self._pair.busy)
+        return self._job is not None or self._robust.busy or (self._pair is not None and self._pair.busy)
 
     def set_available(self, available: bool) -> None:
         self._available = available
@@ -162,6 +171,7 @@ class GraphComparisonDialog(QDialog):
         self._movie.set_graph(self._trial, registration)
 
     def cancel(self) -> None:
+        self._robust.cancel()
         if self._job is not None:
             self._job.cancel()
             self._cancel.setEnabled(False)
@@ -181,13 +191,13 @@ class GraphComparisonDialog(QDialog):
         self._deep.setEnabled(available)
         self._cancel.setVisible(self._job is not None)
         self._progress.setVisible(self._job is not None)
+        self._robust.set_available(available)
         self._inspect.setEnabled(available and self._trial is not None and self._edges.currentRow() >= 0)
         if self._pair is not None:
-            self._pair.set_available(self._available and self._job is None)
+            self._pair.set_available(self._available and self._job is None and not self._robust.busy)
 
-    def _present_trial(self) -> None:
+    def _present_trial(self, *, select_new_robust: bool = False) -> None:
         trial = self._trial
-        self._edges.setRowCount(len(trial.edges) if trial else 0)
         if trial is None:
             self._summary.setText('Brak kandydata. Wybierz lokalne wagi i oblicz graf.')
         else:
@@ -204,22 +214,72 @@ class GraphComparisonDialog(QDialog):
                 f'{trial.config.device} · wagi: {Path(trial.config.weights_path).name}\n'
                 f'SHA-256 wag: {trial.config.weights_sha256[:16]}…\n'
                 'Równe wagi LS. Wynik modelu i małe reszty nie stanowią oceny jakości obrazu.')
-            for row, edge in enumerate(trial.edges):
-                solved = (tuple(trial.positions[edge.j][d] - trial.positions[edge.i][d] for d in (0, 1))
-                          if trial.positions is not None else None)
-                def xy(value: tuple[float, ...] | None) -> list[str]:
-                    return [f'{v:.3f}' for v in value] if value is not None else ['—', '—']
-                notes = edge.reason or ''
-                if (edge.i, edge.j) in trial.bridges:
-                    notes = f'Most — brak obejścia. {notes}'
-                cells = [f'{edge.i + 1} → {edge.j + 1}', *xy(edge.shift_xy), *xy(solved),
-                         *xy(edge.residual_xy), edge.status,
-                         '—' if edge.quality_score is None else f'{edge.quality_score:.3f}', notes]
-                for column, text in enumerate(cells):
-                    self._edges.setItem(row, column, QTableWidgetItem(text))
-            if trial.edges:
-                self._edges.selectRow(0)
+        self._robust.set_graph(trial, select_new=select_new_robust)
+        self._present_edges()
         self._movie.set_graph(trial, self._registration)
+        if select_new_robust:
+            self._selected_robust()
+
+    def _present_edges(self) -> None:
+        trial, robust = self._trial, self._robust.selected
+        previous = self._edges.currentRow()
+        headers = ['Para i → j', 'Pomiar X', 'Pomiar Y', 'LS X', 'LS Y', 'Reszta LS X', 'Reszta LS Y']
+        if robust is not None:
+            headers += ['Huber X', 'Huber Y', 'Reszta Hubera X', 'Reszta Hubera Y', 'Waga Hubera']
+        headers += ['Stan', 'Wynik modelu', 'Uwagi']
+        self._edges.setColumnCount(len(headers))
+        self._edges.setHorizontalHeaderLabels(headers)
+        self._edges.setRowCount(len(trial.edges) if trial else 0)
+        if trial is None:
+            return
+
+        def xy(value: tuple[float, ...] | None) -> list[str]:
+            return [f'{v:.3f}' for v in value] if value is not None else ['—', '—']
+
+        for row, edge in enumerate(trial.edges):
+            solved = (tuple(trial.positions[edge.j][d] - trial.positions[edge.i][d] for d in (0, 1))
+                      if trial.positions is not None else None)
+            notes = edge.reason or ''
+            if (edge.i, edge.j) in trial.bridges:
+                notes = f'Most — brak obejścia. {notes}'
+            cells = [f'{edge.i + 1} → {edge.j + 1}', *xy(edge.shift_xy), *xy(solved), *xy(edge.residual_xy)]
+            if robust is not None:
+                huber = (tuple(robust.positions[edge.j][d] - robust.positions[edge.i][d] for d in (0, 1))
+                         if robust.positions is not None else None)
+                weight = robust.weights[row]
+                cells += [*xy(huber), *xy(robust.residuals[row]), '—' if weight is None else f'{weight:.6g}']
+                if robust.positions is None:
+                    notes += ' Huber: diagnostyka bez pełnego wyniku.'
+            cells += [edge.status, '—' if edge.quality_score is None else f'{edge.quality_score:.3f}', notes]
+            for column, text in enumerate(cells):
+                self._edges.setItem(row, column, QTableWidgetItem(text))
+        if trial.edges:
+            self._edges.selectRow(max(0, min(previous, len(trial.edges) - 1)))
+
+    def _finish_robust(self, result: RobustTrial) -> None:
+        if self._trial is None:
+            return
+        self._trial = replace(self._trial, robust_trials=(*self._trial.robust_trials, result))
+        self._present_trial(select_new_robust=True)
+        self.changed.emit()
+
+    def _selected_robust(self) -> None:
+        self._present_edges()
+        result = self._robust.selected
+        if result is not None and result.positions is not None:
+            self._movie.select_variant(f'huber:{result.revision}')
+
+    def _movie_variant_changed(self, key: str) -> None:
+        if key.startswith('huber:'):
+            self._robust.select(key.removeprefix('huber:'))
+
+    def _robust_busy_changed(self) -> None:
+        if self._robust.busy:
+            self._movie.pause()
+        self._sync()
+        self.busy_changed.emit()
+        if self._closing and not self.busy:
+            self.close()
 
     def _start(self) -> None:
         if not self._run.isEnabled():

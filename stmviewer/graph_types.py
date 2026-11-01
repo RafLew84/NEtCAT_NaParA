@@ -2,6 +2,10 @@
 
 from dataclasses import dataclass, field
 from uuid import uuid4
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from stmviewer.robust_graph_types import RobustTrial
 
 XY = tuple[float, float]
 
@@ -56,3 +60,4 @@ class GraphTrial:
     reused_pairs: int = 0
     measurement_s: float = 0.
     solver_s: float = 0.
+    robust_trials: tuple['RobustTrial', ...] = ()

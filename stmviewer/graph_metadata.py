@@ -120,16 +120,24 @@ def _edge(value: object) -> GraphEdge:
 
 def encode_graph(trial: GraphTrial) -> dict[str, object]:
     """Store measurements and positions; never store rendered candidate images."""
-    return {'schema': 'stmviewer-graph-v1', **asdict(trial)}
+    record = asdict(trial)
+    record.pop('robust_trials')
+    if trial.robust_trials:
+        from stmviewer.robust_graph_metadata import encode_robust_trial
+        return {'schema': 'stmviewer-graph-v2', **record,
+                'robust_trials': [encode_robust_trial(item) for item in trial.robust_trials]}
+    return {'schema': 'stmviewer-graph-v1', **record}
 
 
 def decode_graph(value: object, frames: tuple[ImageFrame, ...],
                  check_cancelled: Callable[[], None]) -> GraphTrial:
     """Restore graph values without loading weights or running registration."""
     check_cancelled()
-    record = json_object(value, _GRAPH_KEYS)
-    if record['schema'] != 'stmviewer-graph-v1':
+    record = json_object(value)
+    schema = record.get('schema')
+    if schema not in ('stmviewer-graph-v1', 'stmviewer-graph-v2'):
         raise ValueError('Nieobsługiwana wersja grafu sesji.')
+    record = json_object(record, _GRAPH_KEYS | ({'robust_trials'} if schema == 'stmviewer-graph-v2' else set()))
     positions = None if record['positions'] is None else tuple(_xy(item) for item in _items(record['positions']))
     chain = None if record['chain_positions'] is None else tuple(_xy(item) for item in _items(record['chain_positions']))
     trial = GraphTrial(
@@ -142,6 +150,18 @@ def decode_graph(value: object, frames: tuple[ImageFrame, ...],
     )
     _validate_sources(trial, frames, check_cancelled)
     validate_graph_result(trial, check_cancelled)
+    if schema == 'stmviewer-graph-v2':
+        from stmviewer.robust_graph_metadata import decode_robust_trial
+        from stmviewer.robust_graph_validation import validate_robust_result
+        variants = []
+        for item in _items(record['robust_trials']):
+            check_cancelled()
+            variant = decode_robust_trial(item)
+            validate_robust_result(trial, variant, check_cancelled)
+            variants.append(variant)
+        if len({variant.revision for variant in variants}) != len(variants):
+            raise ValueError('Huber: powtórzony identyfikator wariantu.')
+        trial = replace(trial, robust_trials=tuple(variants))
     # Runtime graph identities follow the native frame spelling, as active manual
     # histories do. The frame's provenance preserves historical source text.
     return replace(trial, sources=tuple(replace(source, source=str(frame.source))
