@@ -7,12 +7,15 @@ Zadania wykonawcze są oddzielone od poniższego rejestru pytań.
 implementacji i odbiorze szkieletu. Otwarte decyzje etapu 2 nie blokują etapu 1.
 Statusy i zależności przechowujemy w ticketach; indeks poniżej grupuje je według map.
 
-**Podjęto 26 — 2026-11-01:** na bezpośrednie polecenie użytkownika
-[adaptacja gotowego DINOv2](26-pretrained-self-supervised-adaptation.md) ma status `claimed`.
-[Protokół](../pretrained-self-supervised-protocol.md): sześć fitów po 1000 kroków, ostatni blok i LayerNorm,
-trzy ziarna, transfer/transdukcja, porównanie z oryginalnymi wagami i FFT.
-Oddzielamy poprawę reprezentacji przed odmowami od kwalifikacji detektora
-po niezmienionej bramce. Wynik trafi do 13; dodatkowe dane nadal odłożone.
+**Wykonano 26 — 2026-11-01:** [adaptacja DINOv2](26-pretrained-self-supervised-adaptation.md)
+ma status `resolved` jako eksperyment. [Raport](../pretrained-self-supervised-trial.md):
+6/6 fitów, 6000 kroków, 14 040 predykcji; bez wymaganej poprawy względem
+oryginalnych wag. Cztery główne granice mają F1 0 także przed odmowami.
+TTMAPP po odmowach: transfer 0/174, transdukcja FH 4/782, MWS 0/782.
+Częściowy zysk MWS względem FFT w transferze nie wystarcza: większość
+przewagi była już w oryginalnym DINO. Oba osobne werdykty 26 są negatywne.
+Galeria: `.scratch/pretrained-ssl-26/index.html`. Nie przyjęto detektora;
+13 i 04 pozostają otwarte, dodatkowe MPP/STP nadal odłożone.
 Poniższe wpisy zachowują historię wcześniejszych decyzji.
 
 **Wykonano 25 — 2026-11-01:** [maskowane odtwarzanie obrazu](25-masked-autoencoder-domains.md)
@@ -327,9 +330,9 @@ relacje przez granice, pełne propozycje domen i odmowy; nie powtarza serii 19.
 | [24 — Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md) | prototype / HITL | `resolved`: 9 fitów grafowych; brak przewagi, diagnoza wpływu brzegu i błędów centrów |
 | [24a — Czy opis otoczenia usuwa sztuczne granice?](24a-graph-context-boundaries.md) | prototype / HITL | `resolved`: artefakt jednej sieci usunięty, rzeczywiste granice nadal błędne |
 | [25 — Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md) | prototype / HITL | `resolved`: lepsza rekonstrukcja, brak poprawy końcowych domen |
-| [26 — Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md) | prototype / HITL | `claimed`, wybrane poleceniem użytkownika; protokół 26 |
+| [26 — Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md) | prototype / HITL | `resolved`, brak wymaganej poprawy nad oryginalnym DINO; raport 26 |
 
-18, 19, 20, 21, 21a, 22, 23 i **24** są zakończone.
+18, 19, 20, 21, 21a, 22, 23, 24, 24a, 25 i **26** są zakończone.
 Własny budżet 21a wykorzystano na zamkniętą macierz dekoder × KL;
 protokół 20 pozostaje zamrożonym punktem odniesienia. Nie ponawiano
 strojenia bramki z 19. SSL wykorzystało wynik tekstury, przygotowanie 20
@@ -337,9 +340,9 @@ i dziewięć pozostałych fitów; pierwotny budżet 27 fitów został wyczerpany
 Zestawienie 23 obejmuje pierwotne 21, dodatek 21a, SSL i zachowane wyniki 19.
 Odbiór 13 ma już wynik 23, lecz pozostaje otwarty. Decyzja 23 z 2026-11-01
 nie wybrała rozszerzeń; późniejsze polecenie użytkownika wybrało 24,
-które dodano do zależności13 i diagramu, a następnie wykonano. Później
-wybrano i wykonano 25 z osobnym protokołem. Niewybrane 26 nie blokuje odbioru;
-brak wyboru nie oznacza jego wykonania lub nieskuteczności.
+które dodano do zależności 13 i diagramu, a następnie wykonano. Później
+wybrano i wykonano 24a, 25 oraz 26 z osobnymi protokołami. Ich wyniki
+uzupełniają nadal otwarty odbiór 13; nie wybrano detektora do aplikacji.
 
 Pierwsze próby planujemy na RTX 5090 32 GB VRAM / 128 GB RAM. Użycie
 drugiego komputera z 96 GB VRAM lub Colab wynika z pomiaru i hipotezy
@@ -392,7 +395,7 @@ flowchart TD
         x["24: Grafy molekuł — wykonane"]
         xa["24a: Brzeg opisu otoczenia — diagnoza"]
         y["25: Maskowany AE — wykonane"]
-        z["26: Adaptacja DINOv2 — wybrane"]
+        z["26: Adaptacja DINOv2 — wykonane"]
     end
     a --> g
     a --> i

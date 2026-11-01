@@ -15,12 +15,15 @@ Ustalenia mają pozwolić rozwinąć odebrany szkielet STM Domains.
 
 ## Notes
 
-**Podjęto 26 — 2026-11-01:** na bezpośrednie polecenie użytkownika
-[adaptacja gotowego DINOv2](issues/26-pretrained-self-supervised-adaptation.md) ma status `claimed`.
-[Protokół](pretrained-self-supervised-protocol.md): sześć fitów po 1000 kroków, ostatni blok i LayerNorm,
-trzy ziarna, transfer/transdukcja, porównanie z oryginalnymi wagami i FFT.
-Oddzielamy poprawę reprezentacji przed odmowami od kwalifikacji detektora
-po niezmienionej bramce. Wynik trafi do 13; dodatkowe dane nadal odłożone.
+**Wykonano 26 — 2026-11-01:** [adaptacja DINOv2](issues/26-pretrained-self-supervised-adaptation.md)
+ma status `resolved` jako eksperyment. [Raport](pretrained-self-supervised-trial.md):
+6/6 fitów, 6000 kroków, 14 040 predykcji; bez wymaganej poprawy względem
+oryginalnych wag. Cztery główne granice mają F1 0 także przed odmowami.
+TTMAPP po odmowach: transfer 0/174, transdukcja FH 4/782, MWS 0/782.
+Częściowy zysk MWS względem FFT w transferze nie wystarcza: większość
+przewagi była już w oryginalnym DINO. Oba osobne werdykty 26 są negatywne.
+Galeria: `.scratch/pretrained-ssl-26/index.html`. Nie przyjęto detektora;
+13 i 04 pozostają otwarte, dodatkowe MPP/STP nadal odłożone.
 Poniższe wpisy zachowują historię wcześniejszych decyzji.
 
 **Wykonano 25 — 2026-11-01:** [maskowane odtwarzanie obrazu](issues/25-masked-autoencoder-domains.md)
@@ -254,9 +257,9 @@ Grafy molekuł, maskowany autoenkoder i adaptacja gotowego modelu są
 warunkowymi rozszerzeniami, wybieranymi na podstawie konkretnej luki.
 Decyzja 23 z 2026-11-01 zakończyła pilot bez wyboru rozszerzeń; wtedy nie
 dopisano 24–26 do zależności 13. Późniejsze polecenie użytkownika wybrało 24,
-które dodano do zależności odbioru. Następnie wybrano i wykonano 25 oraz dodano jego zależność.
-Niewybrane 26 nie blokuje odbioru. Przygotowanie
-treningu może przebiegać obok przygotowania zamrożonych modeli.
+które dodano do zależności odbioru. Następnie wybrano i wykonano 24a, 25
+oraz 26, dodając ich zależności i wyniki do nadal otwartego odbioru 13.
+Nie wybrano metody do aplikacji; dodatkowe dane pozostają odłożone.
 
 Sprzęt do pierwszych prób: RTX 5090 z 32 GB VRAM i 128 GB RAM.
 Użytkownik wskazał także drugi komputer z kartą Blackwell Max-Q 96 GB VRAM
@@ -309,13 +312,21 @@ nie zamknięto przez samo dodanie go do mapy.
 
 ## Decisions so far
 
+- [Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](issues/26-pretrained-self-supervised-adaptation.md):
+  **`resolved` — zakończony eksperyment**. [Raport](pretrained-self-supervised-trial.md)
+  i [manifest](pretrained-self-supervised-manifest.json): sześć fitów, 6000 kroków,
+  brak wymaganej poprawy nad oryginalnym DINOv2. Cztery główne granice F1 = 0
+  również przed odmowami; końcowy transfer 0/174, transdukcja FH 4/782 i MWS 0/782.
+  Oba osobne werdykty negatywne. 13 pozostaje otwarty; nowe dane odłożone.
+
 - [Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](issues/25-masked-autoencoder-domains.md):
   **`resolved` — zakończony eksperyment**. [Raport](masked-autoencoder-trial.md)
   i [manifest](masked-autoencoder-manifest.json): 12 fitów, 44 928 predykcji.
   Rekonstrukcja zakrytych pikseli poprawiona o około 59% względem AE21,
   bez poprawy końcowych domen TTMAPP i czterech głównych granic kontrolnych.
   Częściowy zysk syntetyczny względem AE nie daje kwalifikacji. 13 otrzymał
-  wynik i pozostaje otwarty; 26 i dodatkowe dane nadal niewybrane/odłożone.
+  wynik i pozostaje otwarty; później wybrano i wykonano 26 opisane powyżej.
+  Dodatkowe dane nadal odłożone.
 
 - [Czy opis otoczenia usuwa sztuczne granice?](issues/24a-graph-context-boundaries.md):
   **`resolved` — zakończona diagnoza bez treningów**. [Raport](graph-context-boundary-trial.md)

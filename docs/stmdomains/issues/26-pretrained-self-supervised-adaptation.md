@@ -4,10 +4,35 @@ ID: 26
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: claimed
+Status: resolved
 Assignee: Codex — domains/start
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 23
+
+## Wynik — 2026-11-01
+
+Próbę wykonano na polecenie użytkownika. **Zakończony eksperyment, bez
+przyjęcia detektora.** [Raport](../pretrained-self-supervised-trial.md),
+[manifest](../pretrained-self-supervised-manifest.json),
+[galeria lokalna](../../../.scratch/pretrained-ssl-26/index.html).
+
+6/6 fitów, 6000 kroków, 14 040 predykcji; adaptacja ostatniego bloku DINOv2
+zmienia cechy i nie zapada się do stałego opisu, ale nie spełnia wymaganej
+poprawy względem oryginalnych wag. F1 czterech głównych granic wynosi 0
+przed i po odmowach. TTMAPP po odmowach: transfer 0/174, transdukcja
+FH 4/782, MWS 0/782. Osobny werdykt reprezentacji przed odmowami również
+jest negatywny. Częściowy zysk transfer/MWS wobec FFT nie daje wymaganej
+przewagi nad oryginalnym DINO i nie przechodzi kontroli syntetycznych.
+
+Osiem testów mechaniki, trzy bitowe wznowienia, audyt 66 checkpointów,
+pełnych eksportów i niezależny audyt metryk przeszły. Galeria: 55 sprawdzeń,
+zero błędów JS, pięć obejrzanych zrzutów. Nie potrzeba nowych instalacji.
+Odtworzenie: [README](../../../stmdomains/experiments/training/pretrained_ssl/README.md).
+Podjęcie `25caf81`, źródła przed fitami **`77bc6a2`**;
+prototyp `prototype/stmdomains-pretrained-self-supervised`.
+
+Wynik trafia do otwartego 13. Dodatkowe dane pozostają odłożone;
+26 nie uruchamia kolejnego treningu ani wdrożenia. Poniżej historia wyboru.
 
 ## Podjęcie — 2026-11-01
 
@@ -27,7 +52,7 @@ użytkownika wybrało istniejący DINOv2 i próbę opisaną powyżej. Brak zgodn
 modelu byłby ograniczeniem technicznym, nie wynikiem jakości.
 
 **Decyzja 23 — 2026-11-01:** użytkownik zakończył obecny pilot bez wyboru
-tej próby. Ticket pozostaje `open`, niewybrany i warunkowy; nie ma nowego
+tej próby. W tamtej decyzji ticket pozostał `open`, niewybrany i warunkowy; nie było nowego
 budżetu ani zgody na rozpoczęcie treningu przez samo zakończenie 23.
 
 ## Question

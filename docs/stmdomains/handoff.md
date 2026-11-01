@@ -1,18 +1,66 @@
-# STM Domains — podjęto adaptację gotowego DINOv2, 26
+# STM Domains — wykonano adaptację DINOv2, 26
 
-Data: **2026-11-01**. Użytkownik polecił „wykonaj 26”.
-[Ticket](issues/26-pretrained-self-supervised-adaptation.md) ma status `claimed`;
-[protokół](pretrained-self-supervised-protocol.md) określa sześć fitów
-ostatniego bloku DINOv2 ViT-S/14 i porównanie z jego oryginalnymi wagami.
-Start: czysty `9232eb5`, worktree `/home/rlew/projekty/NEtCAT-domains`,
-`domains/start`, zapis potwierdzony. Istnieją netcat i lokalne zasoby 18.
+Data: **2026-11-01**. Na polecenie „wykonaj 26” zakończono
+[ticket 26](issues/26-pretrained-self-supervised-adaptation.md),
+**`resolved` jako eksperyment**. [Raport](pretrained-self-supervised-trial.md),
+[protokół](pretrained-self-supervised-protocol.md),
+[manifest](pretrained-self-supervised-manifest.json).
+**Brak wymaganej poprawy domen względem oryginalnego DINOv2.**
+Nie przyjęto detektora; 13 i 04 pozostają otwarte, dodatkowe dane odłożone.
 
-Kod nowej próby: `stmdomains/experiments/training/pretrained_ssl/`;
-wyniki: `.scratch/pretrained-ssl-26/`. Trwa implementacja i preflight;
-nie rozpoczęto jakościowych fitów ani oceny nowych referencji. Przed fitami
-przypiąć wszystkie źródła, dane i protokół; po predykcjach wykonać audyt,
-freeze, ocenę oraz galerię. Dawne próby pozostają nienaruszone.
-Dodatkowe MPP/STP odłożone; wynik trafi do otwartego odbioru 13.
+6/6 fitów po 1000 kroków, trzy ziarna i transfer/transdukcja. Adaptowano
+ostatni blok i normę DINOv2 ViT-S/14, lokalna samodestylacja z nauczycielem
+EMA. Główny odczyt: `mean384` z kroku 1000, bez wyboru na walidacji. Oryginalne
+wagi i FFT są bazami. Model zmienia cechy, bez stałej reprezentacji, ale F1
+czterech głównych granic = 0 przed i po odmowach. Oba osobne werdykty
+(reprezentacja przed, cały detektor po odmowach) są negatywne.
+
+TTMAPP po odmowach: **transfer 0/174, transdukcja FH 4/782, MWS 0/782**.
+To zakres częściowych referencji, nie czułość wykrywania molekuł.
+Przed odmowami transfer/MWS zmniejsza fragmentację względem FFT:
+mediana 27,73% wobec 77,55%, ale oryginalny DINO miał już 28,59%.
+Zysk adaptacji względem niego nie przekracza progu i nie przechodzi
+kontroli syntetycznych. Zachowany limit bramki nie wyjaśnia błędów granic
+przed odmowami. Nie rozszerzono budżetu ani nie zastępowano ziaren.
+
+Wyniki lokalne `.scratch/pretrained-ssl-26/`, galeria `index.html`:
+117 obrazów, 10 reprezentacji, 2340 widoków grid48 i dwie figury.
+14 040 pełnych predykcji + 1440 osobnych archiwów transferu (300 pustych
+poza testem). Ocena: 14 520 rekordów, w tym 480 diagnostycznych mapowań.
+Punkty w galerii to środki okien siatki, nie wykryte molekuły.
+QtWebEngine: 55 sprawdzeń, 0 błędów JS; 5 zrzutów i obie figury obejrzane.
+
+Sprawdzenia: 8 testów mechaniki; preflight 36 technicznych kroków i bitowe
+wznowienie na 3 ziarnach, odrzucone wagi. Audyt 66 checkpointów, dokładnie 45
+kluczy/kształtów/dtype, optymalizator/RNG/EMA i nienaruszona baza.
+Audyt eksportów: 3 104 460 wierszy i 8 952 420 relacji. Zachowano bitowo 2592
+plików FFT z 21, 432 pliki cache i 12 adapterów. Niezależny audyt potwierdził
+2340 głównych wyników / 4680 etapów, 5616 porównań, 640 agregatów,
+544 warunki korzyści, 8 werdyktów.
+96 pomiarowych rekordów metryk FFT zgodnych z 21. Pierwsza próba niezależnego
+audytu zatrzymała się przed odczytem referencji na błędnym liczniku; jawna korekta dodała
+480 mapowań diagnostycznych. Obie próby i ich koszty zachowane, bez zmiany
+predykcji, metryk, progów lub zamrożonych źródeł. Skorygowany audyt PASS.
+
+Koszt: 297,31 s procesów treningowych (289,91 s wewnętrznych fitów, nie dodawać),
+270,46 s CPU. Maksimum GPU 573 MB, RSS 2,09 GB, checkpointy 1,96 GB. Wszystko w limitach.
+Istniejące środowisko netcat i zasoby 18 wystarczyły bez instalowania.
+Ledger CPU etapów poza fitami oraz reszty wait4 zapisane bez podwójnego liczenia;
+manifest jest migawką ukończonych procesów przed zamknięciem summarize.
+Końcowy audyt integralności: 57 730 bieżących plików i 192 872 pliki
+poprzedniej próby 25 bez zmian; 445 odnośników, 28 ticketów bez cykli.
+Po tym audycie koszt etapów poza fitami wynosi 605,83 s CPU / limit 7200 s.
+Pierwszy start audytu integralności wymagał poprawienia PYTHONPATH;
+źródła nie zmienione, obie próby zachowane. Raport i ledger są osobne.
+
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/start`.
+Start **`9232eb5`**, podjęcie **`25caf81`**, źródła przed fitami **`77bc6a2`**;
+commit zakończenia w odpowiedzi końcowej. Prototyp zachowany na
+`prototype/stmdomains-pretrained-self-supervised`.
+[Odtworzenie](../../stmdomains/experiments/training/pretrained_ssl/README.md).
+Dane/modele/wyniki poza Git; kod i raporty w zakresie Domains.
+Bez zmian wspólnych, innych worktree, natywnego GUI lub publikacji.
+Integracja pozostaje zadaniem koordynatora.
 
 ---
 

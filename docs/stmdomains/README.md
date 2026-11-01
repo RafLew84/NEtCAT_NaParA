@@ -5,12 +5,15 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-01
 
-**Podjęto 26 — 2026-11-01:** na bezpośrednie polecenie użytkownika
-[adaptacja gotowego DINOv2](issues/26-pretrained-self-supervised-adaptation.md) ma status `claimed`.
-[Protokół](pretrained-self-supervised-protocol.md): sześć fitów po 1000 kroków, ostatni blok i LayerNorm,
-trzy ziarna, transfer/transdukcja, porównanie z oryginalnymi wagami i FFT.
-Oddzielamy poprawę reprezentacji przed odmowami od kwalifikacji detektora
-po niezmienionej bramce. Wynik trafi do 13; dodatkowe dane nadal odłożone.
+**Wykonano 26 — 2026-11-01:** [adaptacja DINOv2](issues/26-pretrained-self-supervised-adaptation.md)
+ma status `resolved` jako eksperyment. [Raport](pretrained-self-supervised-trial.md):
+6/6 fitów, 6000 kroków, 14 040 predykcji; bez wymaganej poprawy względem
+oryginalnych wag. Cztery główne granice mają F1 0 także przed odmowami.
+TTMAPP po odmowach: transfer 0/174, transdukcja FH 4/782, MWS 0/782.
+Częściowy zysk MWS względem FFT w transferze nie wystarcza: większość
+przewagi była już w oryginalnym DINO. Oba osobne werdykty 26 są negatywne.
+Galeria: `.scratch/pretrained-ssl-26/index.html`. Nie przyjęto detektora;
+13 i 04 pozostają otwarte, dodatkowe MPP/STP nadal odłożone.
 Poniższe wpisy zachowują historię wcześniejszych decyzji.
 
 **Wykonano 25 — 2026-11-01:** [maskowane odtwarzanie obrazu](issues/25-masked-autoencoder-domains.md)
@@ -207,7 +210,8 @@ treningu, AE/rVAE, lokalne SSL, porównanie z wcześniejszymi metodami oraz
 warunkowe próby grafów, maskowania i adaptacji gotowego modelu.
 Pierwsze próby dotyczą RTX 5090; przejście na 96 GB lub Colab wymaga
 uzasadnienia wynikiem i pomiarem. Odbiór 13 ma już zestawienie 23;
-po osobnym poleceniu z 2026-11-01 czeka także na wybrane 24.
+po kolejnych poleceniach z 2026-11-01 otrzymał także wyniki 24, 24a, 25
+i 26, ale nadal pozostaje otwarty.
 Samo dodanie tych zadań nie uruchamiało
 treningu; ówczesnym następnym krokiem było przygotowanie wejścia 14.
 

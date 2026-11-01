@@ -9,12 +9,20 @@ Assignee:
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 04, 06, 08, 10, 11, 12, 15, 16, 17, 19, 23, 24, 24a, 25, 26
 
-## Wybrano adaptację DINOv2 — 2026-11-01
+## Otrzymano wynik adaptacji DINOv2 — 2026-11-01
 
-Użytkownik polecił wykonać [26](26-pretrained-self-supervised-adaptation.md).
-Wynik porównania oryginalnych i adaptowanych wag uzupełni odbiór,
-z osobnym wnioskiem o cechach przed odmowami i całym procesie po odmowach.
-Dodatkowe dane nadal odłożone; 13 pozostaje otwarty.
+[26](26-pretrained-self-supervised-adaptation.md) wykonano, `resolved` jako
+eksperyment. [Raport](../pretrained-self-supervised-trial.md): sześć fitów,
+6000 kroków, brak wymaganej poprawy nad oryginalnymi wagami. Adaptacja
+zmienia cechy, ale cztery główne granice mają F1 0 także przed odmowami;
+nie przechodzi osobnego werdyktu reprezentacji. Końcowy transfer 0/174,
+transdukcja FH 4/782, MWS 0/782. Częściowy zysk przed odmowami względem
+FFT nie wykazuje wymaganej przewagi nad oryginalnym DINO. Zachowana bramka
+ma znany limit, lecz nie tłumaczy wszystkich błędów przed nią.
+
+Wynik uzupełnia odbiór, bez przyjęcia detektora. 13 i 04 nadal są otwarte;
+dodatkowe dane oraz wybór dalszej pracy pozostają odłożone. Poniższe wpisy
+opisują wcześniejsze decyzje.
 
 ## Otrzymano wynik maskowanego odtwarzania — 2026-11-01
 
@@ -240,10 +248,10 @@ stabilność, koszty oraz brak uczenia z ręcznych ramek.
 
 Po decyzji 23 z 2026-11-01 grafy, maskowany autoenkoder i adaptacja modelu
 pozostały niewybrane i warunkowe. Późniejsze polecenie użytkownika wybrało
-grafy (24): ich ID, nazwany link i krawędź diagramu już dodano, a odbiór
-czeka także na ten wynik. Przy przyszłym wyborze 25 lub 26 należy analogicznie
-uzupełnić zależności; niewybrane rozszerzenia nie stają się obowiązkowe. Nie wracamy do
-treningu bez końca, jeśli próby nie dają uzasadnionej korzyści.
+grafy (24), a następnie 24a, 25 i 26. Wszystkie te próby wykonano; ich ID,
+nazwane linki i krawędzie diagramu dodano do zależności, a wyniki opisano
+powyżej. Odbiór nadal jest otwarty, bez przyjętego detektora. Nie wracamy
+do treningu bez końca, jeśli próby nie dają uzasadnionej korzyści.
 
 Przyjęty wynik ma zachować manifest treningu i identyfikację checkpointu,
 lecz samo oglądanie zapisu nadal nie wymaga modelu ani przeliczania.
