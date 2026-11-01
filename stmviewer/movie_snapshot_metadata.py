@@ -142,9 +142,14 @@ def decode_movie_snapshot(value: object, frames: tuple[ImageFrame, ...],
     if application is not None and (method != f'Deep Matcher — graf {application.solver}'
                                     or device != application.graph.config.device):
         raise ValueError('Zachowany wynik: opis metody nie odpowiada grafowi.')
-    return MovieSnapshot(sources, geometries, final.baseline, reference_source,
-        (height, width), (left, top, right, bottom), pixel_size, method, device,
-        final.settings_version, final.revision, manual.baseline if manual else (),
-        manual.corrections if manual else (), editable,
-        decode_pair_diagnostics(record['pair_diagnostics'], len(sources)),
-        decode_local_diagnostics(record['local_diagnostics'], len(sources)), application)
+    return MovieSnapshot(
+        sources=sources, source_geometry=geometries, final_frames=final.baseline,
+        reference=reference_source, canvas_shape=(height, width),
+        padding_ltrb=(left, top, right, bottom), pixel_size_nm=pixel_size,
+        method=method, device=device, settings_version=final.settings_version,
+        revision=final.revision, baseline=manual.baseline if manual else (),
+        corrections=manual.corrections if manual else (), corrections_editable=editable,
+        pair_diagnostics=decode_pair_diagnostics(record['pair_diagnostics'], len(sources)),
+        local_diagnostics=decode_local_diagnostics(record['local_diagnostics'], len(sources)),
+        graph_application=application,
+    )
