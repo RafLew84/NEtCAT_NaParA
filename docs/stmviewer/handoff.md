@@ -1,3 +1,37 @@
+# REG-08a: graf dopasowań 3/5 — 2026-11-01
+
+Status **ready-for-review** — oczekuje na ręczny odbiór użytkownika.
+Gałąź `viewer/registration-difficult-movies`; baza `e12a794`.
+Implementacja **`ae32f1d`**, poprawki **`665a1ed`**; dokumentacja w końcowym commicie.
+
+- **Dopasowanie wieloklatkowe…**: obecny Deep z lokalnymi wagami, okna do 3/5
+  wcześniejszych klatek, LS z równymi wagami, kotwica pierwszej klatki, tabela relacji
+  i braków, komponenty/mosty, podgląd filmu i niesąsiednich par.
+- Kandydat jest renderowany na żądanie, porównywany z łańcuchem tych samych
+  pomiarów (lub jawną bazą aktywną przy braku łańcucha) i zachowywany w sesji.
+  Nie zmienia aktywnego aligned, ręcznych korekt ani eksportu. Zastosowanie
+  kandydata należy do REG-08c. Stare sesje bez grafu pozostają obsługiwane.
+- Poprawiono dwie regresje startu bez SciPy/scikit-image znalezione pełnym zestawem.
+  Po poprawkach **134 testy przechodzą**, mypy **67 modułów**, Ruff i diff-check
+  czyste. Pełna próba wcześniej: 2331 passed / 16 failed / 16 skipped;
+  po naprawie dwóch nowych przypadków pozostaje **14 znanych błędów poza Viewerem**.
+  Szczegóły, zakres powtórzeń i ograniczenia: [karta](registration/reviews/REG-08a.md).
+- Rzeczywisty Outdoor/CUDA: sześć pełnych prób (wzorzec, oba filmy, oba okna),
+  zapis/odczyt sesji i render każdej klatki. Maksymalny błąd współrzędnej wzorca
+  0,054/0,065 px. Na MOVIE_4 brakuje 3/5 relacji, lecz graf pozostaje połączony;
+  MOVIE_8 bez braków. To nie jest jeszcze ocena wizualnej poprawy STM.
+- [Instrukcja uruchomienia i ręcznej próby](registration/window-graph-manual.md),
+  [wyniki i gotowe sesje w /tmp](registration/window-graph-results.md).
+  Uruchomienie: `python -m stmviewer.main` w `netcat`, katalog `NEtCAT-viewer`.
+- Qt offscreen sprawdzono automatycznie. Ręczny odbiór, Windows 11 i sprzęt
+  docelowy z 8 GB VRAM pozostają niewykonane. REG-08b czeka na odbiór i zlecenie.
+- Dwa niezależne przeglądy: Spec bez ustaleń; Standards wskazał duplikację skali,
+  usuniętą lokalnym helperem `calibration.py`. Brak potrzeb zmian wspólnych.
+- `proba.stmtrial.json`, `proba2.stmtrial.json`, `sesja.stmsession` pozostają
+  nietknięte poza Git. Nie publikowano ani nie scalano branchy.
+
+---
+
 # Usunięcie REG-08 z planu — 2026-11-01
 
 Użytkownik zlecił: **„usuń REG-08”**. Baza tej zmiany: `cc08ec9`;

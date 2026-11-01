@@ -1,6 +1,6 @@
 # REG-08a — ręczna próba dopasowania wieloklatkowego
 
-Status: instrukcja przygotowywana podczas implementacji; odbiór użytkownika niewykonany.
+Status: implementacja gotowa do próby (`ready-for-review`); odbiór użytkownika niewykonany.
 
 ## Uruchomienie
 
@@ -52,6 +52,19 @@ Oczekiwane przesunięcia względem pierwszej klatki w pikselach:
    mała reszta nie jest oceną poprawności obrazu.
 
 ## MOVIE_4 i MOVIE_8
+
+Gotowe do otwarcia przez **Otwórz sesję…**, a potem **Dopasowanie wieloklatkowe…**:
+
+- `/tmp/reg08a-movie4-final/window-3.stmsession` i `window-5.stmsession`.
+- `/tmp/reg08a-movie8-final/window-3.stmsession` i `window-5.stmsession`.
+- Wzorzec z rzeczywistym Deep: `/tmp/reg08a-known-final/window-3.stmsession`
+  i `window-5.stmsession`.
+
+Te sesje mają aktywną bazę łańcuchową z tych samych pomiarów Deep oraz osobny
+kandydat grafu. Źródłowe klatki 1 i 2 MOVIE_4 są już usunięte. Wyniki w `/tmp`
+są tymczasowe — do trwałego zachowania użyj **Zapisz sesję…**.
+
+Poniższe kroki pozwalają również odtworzyć obliczenia samodzielnie:
 
 1. Otwórz `data/MOVIE_4.mpp`. Usuń pierwszą klatkę dwukrotnie **przed**
    obliczaniem. Zostają 362 klatki, źródłowe 3–364.
