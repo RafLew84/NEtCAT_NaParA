@@ -7,12 +7,15 @@ Zadania wykonawcze są oddzielone od poniższego rejestru pytań.
 implementacji i odbiorze szkieletu. Otwarte decyzje etapu 2 nie blokują etapu 1.
 Statusy i zależności przechowujemy w ticketach; indeks poniżej grupuje je według map.
 
-**Podjęto 25 — 2026-11-01:** na bezpośrednie polecenie użytkownika
-[maskowane odtwarzanie obrazu](25-masked-autoencoder-domains.md) ma status `claimed`.
-[Protokół](../masked-autoencoder-protocol.md): dwa udziały maskowania,
-12 nowych fitów małego AE32, kontrola tej samej pojemności z21, SSL22 iFFT,
-trzy ziarna, rozdzielony transfer/transdukcja. Stare próby pozostają zamrożone;
-26 i dodatkowe MPP/STP nadal odłożone. Wynik trafi do otwartego odbioru13.
+**Wykonano 25 — 2026-11-01:** [maskowane odtwarzanie obrazu](25-masked-autoencoder-domains.md)
+ma status `resolved` jako eksperyment. [Raport](../masked-autoencoder-trial.md): 12/12 fitów,
+44 928 predykcji. Mask50 zmniejsza błąd zakrytych pikseli o około 59%,
+ale końcowe domeny TTMAPP pozostają bez poprawy: transfer 0/174,
+transdukcja FH 4/782, MWS 0/782. F1 czterech głównych granic kontrolnych
+wynosi 0 także przed odmowami. Częściowy zysk względem AE na syntetykach
+nie spełnia całych kryteriów. Galeria: `.scratch/masked-ae-25/index.html`.
+Nie przyjęto detektora; 13 i 04 pozostają otwarte, 26 i dodatkowe MPP/STP
+nadal niewybrane/odłożone. Poniższe wpisy zachowują wcześniejsze decyzje.
 
 **Wykonano 24a — 2026-11-01:** [diagnoza opisu otoczenia](24a-graph-context-boundaries.md)
 ma status `resolved` jako zakończona próba. [Raport](../graph-context-boundary-trial.md):
@@ -315,7 +318,7 @@ relacje przez granice, pełne propozycje domen i odmowy; nie powtarza serii 19.
 | [23 — Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md) | grilling / HITL | `resolved`: użytkownik zakończył pilot bez detektora; dodatkowe dane odłożone |
 | [24 — Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md) | prototype / HITL | `resolved`: 9 fitów grafowych; brak przewagi, diagnoza wpływu brzegu i błędów centrów |
 | [24a — Czy opis otoczenia usuwa sztuczne granice?](24a-graph-context-boundaries.md) | prototype / HITL | `resolved`: artefakt jednej sieci usunięty, rzeczywiste granice nadal błędne |
-| [25 — Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md) | prototype / HITL | `claimed`, wybrane późniejszym poleceniem; protokół25 |
+| [25 — Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md) | prototype / HITL | `resolved`: lepsza rekonstrukcja, brak poprawy końcowych domen |
 | [26 — Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md) | prototype / HITL | `open`, niewybrane w 23; warunkowe, z zachowanym modelem odniesienia |
 
 18, 19, 20, 21, 21a, 22, 23 i **24** są zakończone.
@@ -327,7 +330,7 @@ Zestawienie 23 obejmuje pierwotne 21, dodatek 21a, SSL i zachowane wyniki 19.
 Odbiór 13 ma już wynik 23, lecz pozostaje otwarty. Decyzja 23 z 2026-11-01
 nie wybrała rozszerzeń; późniejsze polecenie użytkownika wybrało 24,
 które dodano do zależności13 i diagramu, a następnie wykonano. Później
-wybrano25 z osobnym protokołem. Niewybrane26 nie blokuje odbioru;
+wybrano i wykonano 25 z osobnym protokołem. Niewybrane 26 nie blokuje odbioru;
 brak wyboru nie oznacza jego wykonania lub nieskuteczności.
 
 Pierwsze próby planujemy na RTX 5090 32 GB VRAM / 128 GB RAM. Użycie
@@ -380,7 +383,7 @@ flowchart TD
         w["23: Ocena domen i decyzja o kontynuacji"]
         x["24: Grafy molekuł — wykonane"]
         xa["24a: Brzeg opisu otoczenia — diagnoza"]
-        y["25: Maskowany AE — wybrane"]
+        y["25: Maskowany AE — wykonane"]
         z["26: Adaptacja gotowego modelu — warunkowo"]
     end
     a --> g
@@ -446,4 +449,4 @@ wybór rozszerzenia w 23 lub późniejsze bezpośrednie polecenie użytkownika;
 wtedy dodajemy jego krawędź do odbioru 13.
 
 2026-11-01 użytkownik osobno wybrał 24; jego krawędź do 13 jest dodana.
-Następnie wybrano 25 i dodano jego krawędź do13. 26 pozostaje niewybrane.
+Następnie wybrano i wykonano 25; jego krawędź do 13 jest dodana. 26 pozostaje niewybrane.

@@ -1,20 +1,24 @@
 # Maskowane odtwarzanie obrazu — prototyp 25
 
-Mały konwolucyjny AE32 z próby21 uczy się odtwarzać zakryte bloki16×16
-wejścia64×64. Mask25/50 ukrywają dokładnie4/8 z16bloków. Strata obejmuje
-wyłącznie zakryte, rzeczywiście zmierzone piksele. To inspiracja zadaniemMAE,
-a nie odtworzenie architekturyViT-MAE. Pytanie dotyczy użyteczności cech dla
+Mały konwolucyjny AE32 z próby 21 uczy się odtwarzać zakryte bloki 16×16
+wejścia 64×64. Mask25/50 ukrywają dokładnie 4/8 z 16 bloków. Strata obejmuje
+wyłącznie zakryte, rzeczywiście zmierzone piksele. To inspiracja zadaniem MAE,
+a nie odtworzenie architektury ViT-MAE. Pytanie dotyczy użyteczności cech dla
 podziału domen, nie samej jakości rekonstrukcji.
 
 Parametry, kryteria, zakres wniosków i limity:
 [protokół25](../../../../docs/stmdomains/masked-autoencoder-protocol.md).
 Kod jest prototypem badawczym; nie jest wdrożony do aplikacji.
 
+Wykonana próba: [raport 25](../../../../docs/stmdomains/masked-autoencoder-trial.md).
+12 fitów zakończono; rekonstrukcja poprawiła się, końcowe domeny TTMAPP nie.
+Galeria tej realizacji: `.scratch/masked-ae-25/index.html`.
+
 ## Wejście i środowisko
 
-Potrzebne są niezmienione lokalne artefakty20,21 i22 oraz istniejące
+Potrzebne są niezmienione lokalne artefakty 20, 21 i 22 oraz istniejące
 środowisko `netcat` z Torch/CUDA, NumPy, SciPy, scikit-learn, Pillow,
-Matplotlib iPyQt6/QtWebEngine. Niczego nie pobieramy ani nie instalujemy.
+Matplotlib i PyQt6/QtWebEngine. Niczego nie pobieramy ani nie instalujemy.
 W tej konfiguracji interpreter znajduje się pod poniższą ścieżką.
 
 ```bash
@@ -47,9 +51,9 @@ a nie dodatkowym wariantem pierwotnej próby.
 ```
 
 Preflight sprawdza maskowanie, gradienty, zmierzone wsparcie, zgodność
-inicjalizacji i danych zAE21 oraz krótkie techniczne wznowienia. Wagi
-techniczne są odrzucane. Docelowa macierz obejmuje12fitów:2maski ×3ziarna
-×transfer/transdukcja. Zapisane AE21 iSSL22 oraz FFT nie są ponownie uczone.
+inicjalizacji i danych z AE21 oraz krótkie techniczne wznowienia. Wagi
+techniczne są odrzucane. Docelowa macierz obejmuje 12 fitów: 2 maski × 3 ziarna
+×transfer/transdukcja. Zapisane AE21 i SSL22 oraz FFT nie są ponownie uczone.
 `plan.json` przypina wszystkie numeryczne źródła, protokół, wejścia i użyte
 artefakty baz. Po tym kroku nie zmieniaj kodu interpretującego próbę.
 
@@ -72,18 +76,18 @@ artefakty baz. Po tym kroku nie zmieniaj kodu interpretującego próbę.
   --output "$masked25_output"
 ```
 
-Transfer kończy2000kroków i wybiera checkpoint ze stałej nieetykietowanej
+Transfer kończy 2000 kroków i wybiera checkpoint ze stałej nieetykietowanej
 walidacji. Transdukcja trwa medianę wybranych kroków własnej maski; brak
 trzech poprawnych transferów pomija tę rodzinę. Nie ma automatycznych
 restartów lub zastępczych ziaren. Pełny stan obejmuje osobne RNG maskowania
-i augmentacji. Budżet:900s/fit,10800sfitów łącznie,7200sCPU pozostałych
-etapów,8GiB tensorówGPU,12GiBRSS i10GiB checkpointów.
+i augmentacji. Budżet: 900 s/fit, 10 800 s fitów łącznie, 7200 s CPU pozostałych
+etapów, 8 GiB tensorów GPU, 12 GiB RSS i 10 GiB checkpointów.
 
-32reprezentacje ×117obrazów ×3skale ×2samplery ×2solvery =44928wyników.
-Transfer zachowuje osobny graf testowy:4608archiwów, z czego960pustych
+32 reprezentacje × 117 obrazów × 3 skale × 2 samplery × 2 solvery = 44 928 wyników.
+Transfer zachowuje osobny graf testowy: 4608 archiwów, z czego 960 pustych
 w pięciu klatkach spoza testu. Wagi wnioskowania otrzymują **oryginalny
 niezakryty pomiar**. Rekonstrukcja nie służy jako obraz do znajdowania domen.
-Bazy naTTMAPP są kopiowane bitowo; nowe93kontrole otrzymują nowe inferencje
+Bazy na TTMAPP są kopiowane bitowo; nowe 93 kontrole otrzymują nowe inferencje
 starymi modelami i adapterami. Referencje nie są wejściem tych etapów.
 
 ## Ocena i galeria
@@ -103,8 +107,8 @@ Po zamrożeniu predykcji można otworzyć referencje do oceny:
   --output "$masked25_output" --manifest "$masked25_output/result-manifest.json"
 ```
 
-Główny wynik to **mask50, siatka48px**. Mniejsze maskowanie, pozostałe skale
-i centra są diagnostyką. Porównania wspólnychID/pokrycia i stabilności
+Główny wynik to **mask50, siatka 48 px**. Mniejsze maskowanie, pozostałe skale
+i centra są diagnostyką. Porównania wspólnych ID/pokrycia i stabilności
 odnoszą się do głównej siatki; pełne metryki zachowują pozostałe konfiguracje.
 Ocena przekazuje również nieocenialne wartości, wszystkie ziarna i oba
 etapy przed/po odmowach. Treningi nie wybierają progów na podstawie domen.

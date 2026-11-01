@@ -5,12 +5,15 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-01
 
-**Podjęto 25 — 2026-11-01:** na bezpośrednie polecenie użytkownika
-[maskowane odtwarzanie obrazu](issues/25-masked-autoencoder-domains.md) ma status `claimed`.
-[Protokół](masked-autoencoder-protocol.md): dwa udziały maskowania,
-12 nowych fitów małego AE32, kontrola tej samej pojemności z21, SSL22 iFFT,
-trzy ziarna, rozdzielony transfer/transdukcja. Stare próby pozostają zamrożone;
-26 i dodatkowe MPP/STP nadal odłożone. Wynik trafi do otwartego odbioru13.
+**Wykonano 25 — 2026-11-01:** [maskowane odtwarzanie obrazu](issues/25-masked-autoencoder-domains.md)
+ma status `resolved` jako eksperyment. [Raport](masked-autoencoder-trial.md): 12/12 fitów,
+44 928 predykcji. Mask50 zmniejsza błąd zakrytych pikseli o około 59%,
+ale końcowe domeny TTMAPP pozostają bez poprawy: transfer 0/174,
+transdukcja FH 4/782, MWS 0/782. F1 czterech głównych granic kontrolnych
+wynosi 0 także przed odmowami. Częściowy zysk względem AE na syntetykach
+nie spełnia całych kryteriów. Galeria: `.scratch/masked-ae-25/index.html`.
+Nie przyjęto detektora; 13 i 04 pozostają otwarte, 26 i dodatkowe MPP/STP
+nadal niewybrane/odłożone. Poniższe wpisy zachowują wcześniejsze decyzje.
 
 **Wykonano 24a — 2026-11-01:** [diagnoza opisu otoczenia](issues/24a-graph-context-boundaries.md)
 ma status `resolved` jako zakończona próba. [Raport](graph-context-boundary-trial.md):

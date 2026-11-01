@@ -9,11 +9,16 @@ Assignee:
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 04, 06, 08, 10, 11, 12, 15, 16, 17, 19, 23, 24, 24a, 25
 
-## Wybrano maskowane odtwarzanie — 2026-11-01
+## Otrzymano wynik maskowanego odtwarzania — 2026-11-01
 
 Użytkownik polecił wykonać [25](25-masked-autoencoder-domains.md).
-Wynik porównania maskowanego AE z identycznym zwykłym AE, SSL iFFT
-uzupełni odbiór. 26 pozostaje niewybrane; dodatkowe dane odłożone.
+[Próbę zakończono](../masked-autoencoder-trial.md), `resolved` jako eksperyment.
+Mask50 poprawia odtwarzanie zakrytych pikseli o około 59%, lecz końcowe
+domeny pozostają bez poprawy: transfer 0/174, transdukcja FH 4/782 i MWS 0/782.
+Cztery główne granice kontrolne mają F1 0 także przed odmowami. Częściowy
+zysk względem AE na syntetykach nie spełnia całych kryteriów. Wynik uzupełnia
+odbiór, bez przyjęcia detektora; 13 pozostaje otwarty. 26 nadal niewybrane,
+dodatkowe dane odłożone. Poniższe wpisy opisują wcześniejsze decyzje.
 
 ## Diagnoza po 24 — 2026-11-01
 

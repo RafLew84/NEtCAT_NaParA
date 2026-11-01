@@ -15,12 +15,15 @@ Ustalenia mają pozwolić rozwinąć odebrany szkielet STM Domains.
 
 ## Notes
 
-**Podjęto 25 — 2026-11-01:** na bezpośrednie polecenie użytkownika
-[maskowane odtwarzanie obrazu](issues/25-masked-autoencoder-domains.md) ma status `claimed`.
-[Protokół](masked-autoencoder-protocol.md): dwa udziały maskowania,
-12 nowych fitów małego AE32, kontrola tej samej pojemności z21, SSL22 iFFT,
-trzy ziarna, rozdzielony transfer/transdukcja. Stare próby pozostają zamrożone;
-26 i dodatkowe MPP/STP nadal odłożone. Wynik trafi do otwartego odbioru13.
+**Wykonano 25 — 2026-11-01:** [maskowane odtwarzanie obrazu](issues/25-masked-autoencoder-domains.md)
+ma status `resolved` jako eksperyment. [Raport](masked-autoencoder-trial.md): 12/12 fitów,
+44 928 predykcji. Mask50 zmniejsza błąd zakrytych pikseli o około 59%,
+ale końcowe domeny TTMAPP pozostają bez poprawy: transfer 0/174,
+transdukcja FH 4/782, MWS 0/782. F1 czterech głównych granic kontrolnych
+wynosi 0 także przed odmowami. Częściowy zysk względem AE na syntetykach
+nie spełnia całych kryteriów. Galeria: `.scratch/masked-ae-25/index.html`.
+Nie przyjęto detektora; 13 i 04 pozostają otwarte, 26 i dodatkowe MPP/STP
+nadal niewybrane/odłożone. Poniższe wpisy zachowują wcześniejsze decyzje.
 
 **Wykonano 24a — 2026-11-01:** [diagnoza opisu otoczenia](issues/24a-graph-context-boundaries.md)
 ma status `resolved` jako zakończona próba. [Raport](graph-context-boundary-trial.md):
@@ -243,8 +246,8 @@ Grafy molekuł, maskowany autoenkoder i adaptacja gotowego modelu są
 warunkowymi rozszerzeniami, wybieranymi na podstawie konkretnej luki.
 Decyzja 23 z 2026-11-01 zakończyła pilot bez wyboru rozszerzeń; wtedy nie
 dopisano 24–26 do zależności 13. Późniejsze polecenie użytkownika wybrało 24,
-które dodano do zależności odbioru. Następnie wybrano25 i dodano jego zależność.
-Niewybrane26 nie blokuje odbioru. Przygotowanie
+które dodano do zależności odbioru. Następnie wybrano i wykonano 25 oraz dodano jego zależność.
+Niewybrane 26 nie blokuje odbioru. Przygotowanie
 treningu może przebiegać obok przygotowania zamrożonych modeli.
 
 Sprzęt do pierwszych prób: RTX 5090 z 32 GB VRAM i 128 GB RAM.
@@ -297,6 +300,14 @@ Przygotowanie wspólnych danych jest zadaniem AFK. Żadnego nowego ticketu
 nie zamknięto przez samo dodanie go do mapy.
 
 ## Decisions so far
+
+- [Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](issues/25-masked-autoencoder-domains.md):
+  **`resolved` — zakończony eksperyment**. [Raport](masked-autoencoder-trial.md)
+  i [manifest](masked-autoencoder-manifest.json): 12 fitów, 44 928 predykcji.
+  Rekonstrukcja zakrytych pikseli poprawiona o około 59% względem AE21,
+  bez poprawy końcowych domen TTMAPP i czterech głównych granic kontrolnych.
+  Częściowy zysk syntetyczny względem AE nie daje kwalifikacji. 13 otrzymał
+  wynik i pozostaje otwarty; 26 i dodatkowe dane nadal niewybrane/odłożone.
 
 - [Czy opis otoczenia usuwa sztuczne granice?](issues/24a-graph-context-boundaries.md):
   **`resolved` — zakończona diagnoza bez treningów**. [Raport](graph-context-boundary-trial.md)

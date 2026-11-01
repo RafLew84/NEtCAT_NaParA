@@ -1,18 +1,60 @@
-# STM Domains — podjęto maskowane odtwarzanie 25
+# STM Domains — wykonano maskowane odtwarzanie 25
 
-Data: **2026-11-01**. Użytkownik po omówieniu24a polecił „wykonaj25”.
-[Ticket25](issues/25-masked-autoencoder-domains.md) ma status `claimed`;
-[protokół](masked-autoencoder-protocol.md) określa maksymalnie12 nowychfitów
-maskowanegoAE32 i porównanie z identycznymAE21, SSL22, FFT i inicjalizacjami.
-Stare źródła/wyniki pozostają zamrożone; 26 i dodatkoweMPP/STP niewybrane.
+Data: **2026-11-01**. Na polecenie „wykonaj 25” zakończono
+[ticket 25](issues/25-masked-autoencoder-domains.md), **`resolved` jako eksperyment**.
+[Raport](masked-autoencoder-trial.md), [protokół](masked-autoencoder-protocol.md),
+[manifest](masked-autoencoder-manifest.json). **Lepsza rekonstrukcja nie dała
+poprawy końcowych domen.** Odbiór 13 i jakość 04 pozostają otwarte;
+26 i przygotowanie dodatkowych MPP/STP nadal niewybrane/odłożone.
 
-Start: `/home/rlew/projekty/NEtCAT-domains`, `domains/start`, czysty commit
-`0347455`. Zapis działa, istniejące środowisko netcat iRTX5090 dostępne;
-CUDA wymaga procesu poza sandboxem. Bez instalacji i zmian wspólnych.
-Kod nowej próby: `stmdomains/experiments/training/masked_ae/`;
-wyniki: `.scratch/masked-ae-25/`. Trwa implementacja i techniczne sprawdzenie;
-nie rozpoczęto fitów ani oceny nowych referencji. Następnie przypiąć plan,
-wykonać12 fitów, pełne predykcje, audyt/freeze, ocenę i galerię.
+12/12 fitów, 19 800 kroków, suma zapisanych czasów **349,86 s na RTX 5090**.
+Mały AE32 identyczny z 21, maski blokowe 25/50%, trzy ziarna,
+transfer/transdukcja. Te same dane 20, 24 znane klatki TTMAPP, 93 nowe
+realizacje znanych kontroli. Bez instalacji. Główny kandydat mask50/grid48;
+mask25, inne skale i centra pozostają diagnostyką.
+
+Przy identycznej masce 50% mediana sparowanych redukcji błędu zakrytych
+pikseli względem AE21 wynosi **58,80%**. To walidacja
+wybierająca checkpoint, bez nowego dowodu generalizacji. TTMAPP po odmowach:
+**transfer 0/174**, transdukcja **FH 4/782, MWS 0/782**. Cztery główne granice
+syntetyczne mają F1 0 także przed odmowami. Częściowy zbiorczy zysk par
+względem AE dotyczy mniejszej fragmentacji, bez kwalifikacji całej metody.
+Transdukcyjny AE21 miał 600 kroków, nowe maskowane modele 1300; porównanie
+nie izoluje maskowania przy identycznej liczbie aktualizacji.
+
+Wyniki: `.scratch/masked-ae-25/`, galeria `index.html`. **44 928 predykcji**
+i osobne 4608 archiwów transferu, w tym 960 pustych poza testem. Nakładki
+pokazują środki okien siatki, nie wykryte molekuły. Samowystarczalny HTML
+obejmuje 32 reprezentacje, 117 obrazów, siedem scenariuszy i dwie figury.
+QtWebEngine: 143 sprawdzenia, zero błędów JS; pięć zrzutów obejrzanych.
+
+Sprawdzenia: sześć testów maskowania; pełny stan i bitowo identyczne wznowienie
+na trzech ziarnach; niezależne odtworzenie wejść i zgodność 15 600 wspólnych
+kroków z AE21. Audyt eksportów sprawdził 9 934 272 wiersze; 18 144 pliki
+predykcji baz, cache, cechy i adaptery zachowane bitowo. Zamrożono wyniki
+przed oceną. Niezależny audyt: 7488 głównych rekordów, 14 976 etapów,
+22 464 porównania, 672 rekordy baz zgodne z 21/22. Wszystkie audyty przeszły.
+Nie uruchamiano ponownie dawnych treningów/testów ani natywnej aplikacji.
+
+Pierwszy proces oceny w sandboxie przerwał SIGTERM (kod 143) po około
+29 tys. rekordów. Przyczyna niepotwierdzona; zachowano zapis i obciążenie
+budżetu 900 s CPU jako konserwatywną rezerwę, nie pomiar. Tę samą ocenę
+ukończono poza sandboxem bez zmian numeryki, fitów lub predykcji:
+177,05 s CPU, 4,28 GB RSS. Manifest oddziela zmierzone koszty od rezerwy
+awarii; limit postprocessingu 7200 s pozostaje zachowany.
+Zmierzone etapy poza fitami: 2002,12 s CPU; z rezerwą 2902,12 s.
+Pomiar nie obejmuje w pełni procesów pomocniczych QtWebEngine.
+Końcowo przeszło 192 872 hashów, 429 odnośników, graf 28 ticketów bez cykli
+i `git diff --check`; pełne lokalne podsumowanie pozostało bitowo niezmienione.
+
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/start`.
+Start `0347455`, podjęcie `36d5cb1`, przypięte źródła/protokół **`b8fdc9a`**;
+commit zakończenia w odpowiedzi końcowej. Prototyp zachowuje
+`prototype/stmdomains-masked-autoencoder`. Instrukcja odtworzenia:
+[README](../../stmdomains/experiments/training/masked_ae/README.md).
+Dane, modele i duże wyniki lokalnie poza Git. Zakres wyłącznie Domains;
+brak potrzebnych zmian wspólnych, publikacji i zmian innych worktree.
+Integracja pozostaje zadaniem koordynatora.
 
 ---
 

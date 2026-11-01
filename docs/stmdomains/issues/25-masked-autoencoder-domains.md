@@ -4,10 +4,39 @@ ID: 25
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: claimed
+Status: resolved
 Assignee: Codex — domains/start
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 23
+
+## Answer — 2026-11-01
+
+Wykonano [próbę 25](../masked-autoencoder-trial.md) zgodnie z przypiętym
+[protokołem](../masked-autoencoder-protocol.md); [manifest](../masked-autoencoder-manifest.json)
+zachowuje źródła, koszty i dowody. **12/12 fitów, 19 800 kroków, 44 928 predykcji.**
+Mask50 zmniejsza błąd zakrytych pikseli względem AE21 o medianę 58,80%
+na tych samych wejściach walidacyjnych, ale nie poprawia końcowych domen:
+TTMAPP transfer 0/174, transdukcja FH 4/782, MWS 0/782.
+F1 czterech głównych granic kontrolnych wynosi 0, przed i po odmowach.
+Częściowy zysk zbiorczego błędu par względem AE21 na syntetykach nie daje
+przewagi nad pozostałymi bazami w łącznej ocenie rodzin ani spełnienia
+pełnych kryteriów. Izolowane korzyści, także względem FFT, opisuje raport.
+
+Zakończono eksperyment; **nie przyjęto detektora**. Wynik otrzymuje otwarty
+odbiór 13. 26 i dodatkowe MPP/STP nadal niewybrane/odłożone.
+Porównanie transdukcyjne ma ograniczenie: masked AE trenowano 1300 kroków,
+a zapisany AE21 600. Rekonstrukcja nie zastępuje pomiaru, a przypisanie
+okien nie jest wykrywalnością molekuł. Pełne ograniczenia są w raporcie.
+
+Galeria: `.scratch/masked-ae-25/index.html`; 143 interakcje QtWebEngine,
+zero błędów JS, pięć zrzutów obejrzanych. Audyt metryk niezależnie odtworzył
+7488 głównych wyników i 22 464 porównania; stare bazy zachowano bitowo.
+Pierwszą ocenę przerwał SIGTERM; niezmieniony etap ukończono poza sandboxem,
+bez restartu fitów. Koszt przerwania ujęto konserwatywnie i jawnie.
+
+Podjęcie `36d5cb1`, źródła/protokół `b8fdc9a`; commit zakończenia w przekazaniu
+i odpowiedzi końcowej. Prototyp: `prototype/stmdomains-masked-autoencoder`.
+[Instrukcja odtworzenia](../../../stmdomains/experiments/training/masked_ae/README.md).
 
 ## Podjęcie — 2026-11-01
 
