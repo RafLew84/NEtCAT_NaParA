@@ -1,6 +1,6 @@
 """Choose a Huber threshold and retain separate results on the same measurements."""
 from PyQt6.QtCore import QSignalBlocker, Qt, pyqtSignal
-from PyQt6.QtWidgets import QComboBox, QDoubleSpinBox, QLabel, QProgressBar, QPushButton, QSpinBox, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QComboBox, QDoubleSpinBox, QLabel, QMessageBox, QProgressBar, QPushButton, QSpinBox, QVBoxLayout, QWidget
 
 from stmviewer.graph_types import GraphTrial
 from stmviewer.robust_graph_types import RobustConfig, RobustTrial
@@ -189,6 +189,27 @@ class RobustGraphControls(QWidget):
             self.result_ready.emit(job.result)
             self._message.setText('Zapisano nowy wariant Hubera.' if job.result.positions is not None
                                   else 'Zapisano diagnozę odmowy; nie utworzono pełnego filmu Hubera.')
+            if job.result.positions is None:
+                self._show_incomplete_result(job.result)
         job.deleteLater()
         self._sync()
         self.busy_changed.emit()
+
+    def _show_incomplete_result(self, result: RobustTrial) -> None:
+        message = QMessageBox(self)
+        message.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        message.setIcon(QMessageBox.Icon.Information)
+        message.setWindowTitle('Niekompletny wynik Hubera')
+        message.setTextFormat(Qt.TextFormat.PlainText)
+        message.setText('Nie uzyskano kompletnego wyniku Hubera.')
+        guidance = ('\n\nMożesz zwiększyć „Limit iteracji” i obliczyć nowy wariant Hubera. '
+                    'Większy limit nie gwarantuje uzyskania wyniku.'
+                    if result.status == 'iteration_limit' else '')
+        message.setInformativeText(
+            f'{result.reason}\nIteracje: {result.iterations}/{result.config.max_iterations}.\n\n'
+            'Tego wariantu nie można zastosować do filmu. Dotychczasowy podgląd może '
+            'nadal pokazywać LS lub wcześniejszy wariant Hubera.\n\n'
+            'Aby użyć innego kompletnego wyniku, wybierz go w grupie „Aktywny film” '
+            'nad przyciskiem „Zastosuj wynik do filmu”.' + guidance)
+        message.setStandardButtons(QMessageBox.StandardButton.Ok)
+        message.open()

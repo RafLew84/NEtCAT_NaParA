@@ -122,7 +122,7 @@ def test_adding_a_wider_huber_canvas_preserves_visible_source_pixel_scale_and_an
 
 
 def test_iteration_limit_preserves_previous_film_and_shows_only_failure_diagnostics(qtbot):
-    from PyQt6.QtWidgets import QComboBox, QLabel, QSpinBox
+    from PyQt6.QtWidgets import QComboBox, QLabel, QMessageBox, QSpinBox
     from stmviewer.graph_registration import solve_graph
     from stmviewer.graph_types import GraphEdge
 
@@ -140,6 +140,7 @@ def test_iteration_limit_preserves_previous_film_and_shows_only_failure_diagnost
     run.click()
     qtbot.waitUntil(lambda: len(dialog.trial.robust_trials) == 1)
     first = dialog.trial.robust_trials[0]
+    assert dialog.findChild(QMessageBox) is None
     limit = dialog.findChild(QSpinBox, 'robustMaxIterations')
     assert limit is not None
     assert limit.value() == 200
@@ -159,6 +160,20 @@ def test_iteration_limit_preserves_previous_film_and_shows_only_failure_diagnost
     assert 'tylko diagnostyka' in dialog.findChild(QLabel, 'robustSummary').text()
     assert dialog.findChild(QComboBox, 'robustVariant').currentData() == failure.revision
     assert dialog.trial.positions == graph.positions
+
+    message = dialog.findChild(QMessageBox)
+    assert message is not None and message.isVisible()
+    assert message.windowTitle() == 'Niekompletny wynik Hubera'
+    information = message.text() + message.informativeText()
+    assert failure.reason in information
+    for text in ('1/1', 'nie można zastosować', 'podgląd', 'LS', 'Limit iteracji'):
+        assert text in information
+    assert not dialog.findChild(QPushButton, 'applyGraphMovie').isEnabled()
+    with qtbot.waitSignal(message.destroyed):
+        message.button(QMessageBox.StandardButton.Ok).click()
+    selection = dialog.findChild(QComboBox, 'graphApplicationVariant')
+    selection.setCurrentIndex(selection.findData('graph'))
+    assert dialog.findChild(QPushButton, 'applyGraphMovie').isEnabled()
 
 
 # Delay/failure is injected only at the external SciPy factorization boundary.
