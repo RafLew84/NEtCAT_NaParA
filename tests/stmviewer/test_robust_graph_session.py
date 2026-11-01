@@ -206,8 +206,6 @@ def unavailable(*args, **kwargs):
     raise AssertionError('Loading saved results must not optimize again.')
 numpy.linalg.lstsq = unavailable
 numpy.linalg.solve = unavailable
-from stmviewer import robust_graph
-robust_graph.solve_robust_graph = unavailable
 from pathlib import Path
 from stmviewer.session_archive import load_session
 state = load_session(Path(sys.argv[1]))

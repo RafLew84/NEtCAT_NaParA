@@ -70,9 +70,24 @@ def solve_robust_graph(graph: GraphTrial, config: RobustConfig | None = None, *,
     identity = measurement_id(graph)
     empty = (None,) * len(graph.edges)
     if graph.positions is None:
-        return RobustTrial(identity, config, None, None, empty, empty, 'disconnected',
-                           'Graf rozłączny: Huber nie wyznacza wspólnego układu odłączonych klatek.',
-                           0, None, None, None, None, None, None, perf_counter() - start)
+        return RobustTrial(
+            measurement_id=identity,
+            config=config,
+            positions=None,
+            last_positions=None,
+            residuals=empty,
+            weights=empty,
+            status='disconnected',
+            reason='Graf rozłączny: Huber nie wyznacza wspólnego układu odłączonych klatek.',
+            iterations=0,
+            objective=None,
+            ls_objective=None,
+            max_step_px=None,
+            relative_cost_change=None,
+            gradient_inf=None,
+            condition_estimate=None,
+            solver_s=perf_counter() - start,
+        )
 
     from scipy.sparse import coo_matrix
     from scipy.sparse.linalg import splu
@@ -87,9 +102,24 @@ def solve_robust_graph(graph: GraphTrial, config: RobustConfig | None = None, *,
     current = np.asarray(graph.positions[1:], dtype=np.float64)
     residual, weights, objective, gradient = _diagnostics(incidence @ current - measured, incidence, config.threshold_px)
     if not _finite_diagnostics(residual, weights, objective, gradient):
-        return RobustTrial(identity, config, None, None, empty, empty, 'numerical_failure',
-                           'Koszt lub gradient początkowego LS nie jest skończony.',
-                           0, None, None, None, None, None, None, perf_counter() - start)
+        return RobustTrial(
+            measurement_id=identity,
+            config=config,
+            positions=None,
+            last_positions=None,
+            residuals=empty,
+            weights=empty,
+            status='numerical_failure',
+            reason='Koszt lub gradient początkowego LS nie jest skończony.',
+            iterations=0,
+            objective=None,
+            ls_objective=None,
+            max_step_px=None,
+            relative_cost_change=None,
+            gradient_inf=None,
+            condition_estimate=None,
+            solver_s=perf_counter() - start,
+        )
     initial_objective = objective
     iteration = 0
     step = change = condition = None
@@ -101,10 +131,24 @@ def solve_robust_graph(graph: GraphTrial, config: RobustConfig | None = None, *,
         for (index, _), value, weight in zip(valid, residual, weights, strict=True):
             all_residuals[index] = float(value[0]), float(value[1])
             all_weights[index] = float(weight)
-        return RobustTrial(identity, config, positions if status == 'converged' else None,
-                           positions, tuple(all_residuals), tuple(all_weights), status, reason, iteration,
-                           objective, initial_objective, step, change, gradient, condition,
-                           perf_counter() - start)
+        return RobustTrial(
+            measurement_id=identity,
+            config=config,
+            positions=positions if status == 'converged' else None,
+            last_positions=positions,
+            residuals=tuple(all_residuals),
+            weights=tuple(all_weights),
+            status=status,
+            reason=reason,
+            iterations=iteration,
+            objective=objective,
+            ls_objective=initial_objective,
+            max_step_px=step,
+            relative_cost_change=change,
+            gradient_inf=gradient,
+            condition_estimate=condition,
+            solver_s=perf_counter() - start,
+        )
 
     for number in range(1, config.max_iterations + 1):
         checkpoint()
