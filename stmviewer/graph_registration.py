@@ -8,9 +8,10 @@ import warnings
 import numpy as np
 
 from stmviewer.graph_types import GraphConfig, GraphEdge, GraphSource, GraphTrial
-from stmviewer.registration import RegistrationCancelled, RegistrationError, estimate_confidence
+from stmviewer.registration import RegistrationCancelled, RegistrationError
 from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
 from stmviewer.frame import ImageFrame
+from stmviewer.graph_measurement import measure_graph_pair
 from stmviewer.graph_provenance import (
     MAX_CACHED_PAIRS, check_cancelled, deep_graph_config, graph_sources as graph_sources,
 )
@@ -158,8 +159,6 @@ def register_graph(frames: tuple[ImageFrame, ...], *, window: int = 3,
                    progress: Callable[[int, int, str], None] | None = None,
                    cancelled: Callable[[], bool] | None = None) -> GraphTrial:
     """Measure every planned pair with one current Deep model, then solve without rendering."""
-    from nanotrack.registration.phase_correlation import PhaseCorrelationBackendError
-
     pairs = graph_pairs(len(frames), window)
     if len(frames) < 2:
         raise RegistrationError('Próba grafu wymaga co najmniej dwóch klatek.')
@@ -192,19 +191,7 @@ def register_graph(frames: tuple[ImageFrame, ...], *, window: int = 3,
             reused += 1
             report(done, f'Z pamięci pomiarów: klatki {i + 1}–{j + 1}')
             continue
-        try:
-            result = loaded.backend.estimate(frames[i].data, frames[j].data, moving_frame_index=j)
-        except PhaseCorrelationBackendError as error:
-            check_cancelled(cancelled)
-            edges.append(GraphEdge(i, j, None, 'missing', str(error)))
-        except Exception as error:
-            check_cancelled(cancelled)
-            raise RegistrationError(f'Deep — klatki {i + 1}–{j + 1}: '
-                                    f'{str(error) or type(error).__name__}') from error
-        else:
-            status, score = estimate_confidence('deep_matcher_translation', result)
-            edges.append(GraphEdge(i, j, (float(result.shift_xy[0]), float(result.shift_xy[1])),
-                                   status, quality_score=score))
+        edges.append(measure_graph_pair(loaded.backend, frames, i, j, cancelled=cancelled))
         report(done, f'Deep: klatki {i + 1}–{j + 1}')
     elapsed = perf_counter() - start
     report(len(pairs), 'Wyznaczanie wspólnych XY — równe wagi LS')

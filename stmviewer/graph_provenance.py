@@ -63,6 +63,7 @@ def deep_graph_config(options: DeepMatcherOptions, window: int, device: str, *,
     code = sha256()
     pair_code = sha256()
     for name in ('stmviewer/graph_registration.py', 'stmviewer/graph_provenance.py',
+                 'stmviewer/graph_measurement.py',
                  'stmviewer/deep_matcher.py', 'nanotrack/registration/deep_matcher.py'):
         code.update(name.encode('utf-8'))
         content = (root / name).read_bytes()

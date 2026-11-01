@@ -138,12 +138,11 @@ def extend_graph(frames: tuple[ImageFrame, ...], base: GraphTrial, *,
     from pathlib import Path
     from time import perf_counter
     import numpy as np
-    from nanotrack.registration.phase_correlation import PhaseCorrelationBackendError
     from stmviewer.deep_matcher import load_deep_backend
     from stmviewer.graph_provenance import check_cancelled, deep_graph_config, graph_sources
     from stmviewer.graph_validation import validate_graph_result
     from stmviewer.long_reference_identity import validate_extension_config
-    from stmviewer.registration import estimate_confidence
+    from stmviewer.graph_measurement import measure_graph_pair
 
     def checkpoint() -> None:
         check_cancelled(cancelled)
@@ -180,19 +179,7 @@ def extend_graph(frames: tuple[ImageFrame, ...], base: GraphTrial, *,
     edges = []
     for done, (i, j) in enumerate(pairs, 1):
         report(done - 1, f'Dalsze odniesienia — Deep: klatki {i + 1}–{j + 1}')
-        try:
-            result = loaded.backend.estimate(frames[i].data, frames[j].data, moving_frame_index=j)
-        except PhaseCorrelationBackendError as error:
-            checkpoint()
-            edges.append(GraphEdge(i, j, None, 'missing', str(error) or type(error).__name__))
-        except Exception as error:
-            checkpoint()
-            raise RegistrationError(f'Deep — klatki {i + 1}–{j + 1}: '
-                                    f'{str(error) or type(error).__name__}') from error
-        else:
-            status, score = estimate_confidence('deep_matcher_translation', result)
-            edges.append(GraphEdge(i, j, (float(result.shift_xy[0]), float(result.shift_xy[1])),
-                                   status, quality_score=score))
+        edges.append(measure_graph_pair(loaded.backend, frames, i, j, cancelled=cancelled))
         report(done, f'Dalsze odniesienia — Deep: klatki {i + 1}–{j + 1}')
     elapsed = perf_counter() - start
     report(len(pairs), 'Wyznaczanie wspólnych XY z dalszymi odniesieniami')
