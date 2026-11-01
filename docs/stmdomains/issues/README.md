@@ -326,8 +326,9 @@ i dziewięć pozostałych fitów; pierwotny budżet 27 fitów został wyczerpany
 Zestawienie 23 obejmuje pierwotne 21, dodatek 21a, SSL i zachowane wyniki 19.
 Odbiór 13 ma już wynik 23, lecz pozostaje otwarty. Decyzja 23 z 2026-11-01
 nie wybrała rozszerzeń; późniejsze polecenie użytkownika wybrało 24,
-które dodano do zależności 13 i diagramu, a następnie wykonano. Niewybrane 25/26 nie blokują
-odbioru; brak wyboru nie oznacza ich wykonania lub nieskuteczności.
+które dodano do zależności13 i diagramu, a następnie wykonano. Później
+wybrano25 z osobnym protokołem. Niewybrane26 nie blokuje odbioru;
+brak wyboru nie oznacza jego wykonania lub nieskuteczności.
 
 Pierwsze próby planujemy na RTX 5090 32 GB VRAM / 128 GB RAM. Użycie
 drugiego komputera z 96 GB VRAM lub Colab wynika z pomiaru i hipotezy

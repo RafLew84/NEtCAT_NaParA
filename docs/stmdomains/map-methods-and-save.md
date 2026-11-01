@@ -243,7 +243,8 @@ Grafy molekuł, maskowany autoenkoder i adaptacja gotowego modelu są
 warunkowymi rozszerzeniami, wybieranymi na podstawie konkretnej luki.
 Decyzja 23 z 2026-11-01 zakończyła pilot bez wyboru rozszerzeń; wtedy nie
 dopisano 24–26 do zależności 13. Późniejsze polecenie użytkownika wybrało 24,
-które dodano do zależności odbioru. Niewybrane 25/26 nie blokują odbioru. Przygotowanie
+które dodano do zależności odbioru. Następnie wybrano25 i dodano jego zależność.
+Niewybrane26 nie blokuje odbioru. Przygotowanie
 treningu może przebiegać obok przygotowania zamrożonych modeli.
 
 Sprzęt do pierwszych prób: RTX 5090 z 32 GB VRAM i 128 GB RAM.
