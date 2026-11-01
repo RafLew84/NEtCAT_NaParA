@@ -5,6 +5,14 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-01
 
+**Podjęto 26 — 2026-11-01:** na bezpośrednie polecenie użytkownika
+[adaptacja gotowego DINOv2](issues/26-pretrained-self-supervised-adaptation.md) ma status `claimed`.
+[Protokół](pretrained-self-supervised-protocol.md): sześć fitów po 1000 kroków, ostatni blok i LayerNorm,
+trzy ziarna, transfer/transdukcja, porównanie z oryginalnymi wagami i FFT.
+Oddzielamy poprawę reprezentacji przed odmowami od kwalifikacji detektora
+po niezmienionej bramce. Wynik trafi do 13; dodatkowe dane nadal odłożone.
+Poniższe wpisy zachowują historię wcześniejszych decyzji.
+
 **Wykonano 25 — 2026-11-01:** [maskowane odtwarzanie obrazu](issues/25-masked-autoencoder-domains.md)
 ma status `resolved` jako eksperyment. [Raport](masked-autoencoder-trial.md): 12/12 fitów,
 44 928 predykcji. Mask50 zmniejsza błąd zakrytych pikseli o około 59%,

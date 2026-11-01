@@ -7,6 +7,14 @@ Zadania wykonawcze są oddzielone od poniższego rejestru pytań.
 implementacji i odbiorze szkieletu. Otwarte decyzje etapu 2 nie blokują etapu 1.
 Statusy i zależności przechowujemy w ticketach; indeks poniżej grupuje je według map.
 
+**Podjęto 26 — 2026-11-01:** na bezpośrednie polecenie użytkownika
+[adaptacja gotowego DINOv2](26-pretrained-self-supervised-adaptation.md) ma status `claimed`.
+[Protokół](../pretrained-self-supervised-protocol.md): sześć fitów po 1000 kroków, ostatni blok i LayerNorm,
+trzy ziarna, transfer/transdukcja, porównanie z oryginalnymi wagami i FFT.
+Oddzielamy poprawę reprezentacji przed odmowami od kwalifikacji detektora
+po niezmienionej bramce. Wynik trafi do 13; dodatkowe dane nadal odłożone.
+Poniższe wpisy zachowują historię wcześniejszych decyzji.
+
 **Wykonano 25 — 2026-11-01:** [maskowane odtwarzanie obrazu](25-masked-autoencoder-domains.md)
 ma status `resolved` jako eksperyment. [Raport](../masked-autoencoder-trial.md): 12/12 fitów,
 44 928 predykcji. Mask50 zmniejsza błąd zakrytych pikseli o około 59%,
@@ -319,7 +327,7 @@ relacje przez granice, pełne propozycje domen i odmowy; nie powtarza serii 19.
 | [24 — Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md) | prototype / HITL | `resolved`: 9 fitów grafowych; brak przewagi, diagnoza wpływu brzegu i błędów centrów |
 | [24a — Czy opis otoczenia usuwa sztuczne granice?](24a-graph-context-boundaries.md) | prototype / HITL | `resolved`: artefakt jednej sieci usunięty, rzeczywiste granice nadal błędne |
 | [25 — Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md) | prototype / HITL | `resolved`: lepsza rekonstrukcja, brak poprawy końcowych domen |
-| [26 — Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md) | prototype / HITL | `open`, niewybrane w 23; warunkowe, z zachowanym modelem odniesienia |
+| [26 — Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md) | prototype / HITL | `claimed`, wybrane poleceniem użytkownika; protokół 26 |
 
 18, 19, 20, 21, 21a, 22, 23 i **24** są zakończone.
 Własny budżet 21a wykorzystano na zamkniętą macierz dekoder × KL;
@@ -384,7 +392,7 @@ flowchart TD
         x["24: Grafy molekuł — wykonane"]
         xa["24a: Brzeg opisu otoczenia — diagnoza"]
         y["25: Maskowany AE — wykonane"]
-        z["26: Adaptacja gotowego modelu — warunkowo"]
+        z["26: Adaptacja DINOv2 — wybrane"]
     end
     a --> g
     a --> i
@@ -442,6 +450,7 @@ flowchart TD
     w --> y
     y --> m
     w --> z
+    z --> m
 ```
 
 Krawędzie do 24–26 pokazują warunki wstępne. Dodatkowo wymagany jest
@@ -449,4 +458,4 @@ wybór rozszerzenia w 23 lub późniejsze bezpośrednie polecenie użytkownika;
 wtedy dodajemy jego krawędź do odbioru 13.
 
 2026-11-01 użytkownik osobno wybrał 24; jego krawędź do 13 jest dodana.
-Następnie wybrano i wykonano 25; jego krawędź do 13 jest dodana. 26 pozostaje niewybrane.
+Następnie wybrano i wykonano 25; jego krawędź do 13 jest dodana. Następnie wybrano 26 i dodano jego krawędź do 13.

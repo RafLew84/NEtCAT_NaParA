@@ -1,3 +1,21 @@
+# STM Domains — podjęto adaptację gotowego DINOv2, 26
+
+Data: **2026-11-01**. Użytkownik polecił „wykonaj 26”.
+[Ticket](issues/26-pretrained-self-supervised-adaptation.md) ma status `claimed`;
+[protokół](pretrained-self-supervised-protocol.md) określa sześć fitów
+ostatniego bloku DINOv2 ViT-S/14 i porównanie z jego oryginalnymi wagami.
+Start: czysty `9232eb5`, worktree `/home/rlew/projekty/NEtCAT-domains`,
+`domains/start`, zapis potwierdzony. Istnieją netcat i lokalne zasoby 18.
+
+Kod nowej próby: `stmdomains/experiments/training/pretrained_ssl/`;
+wyniki: `.scratch/pretrained-ssl-26/`. Trwa implementacja i preflight;
+nie rozpoczęto jakościowych fitów ani oceny nowych referencji. Przed fitami
+przypiąć wszystkie źródła, dane i protokół; po predykcjach wykonać audyt,
+freeze, ocenę oraz galerię. Dawne próby pozostają nienaruszone.
+Dodatkowe MPP/STP odłożone; wynik trafi do otwartego odbioru 13.
+
+---
+
 # STM Domains — wykonano maskowane odtwarzanie 25
 
 Data: **2026-11-01**. Na polecenie „wykonaj 25” zakończono

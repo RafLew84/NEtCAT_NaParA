@@ -4,16 +4,27 @@ ID: 26
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: open
-Assignee:
+Status: claimed
+Assignee: Codex — domains/start
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 23
+
+## Podjęcie — 2026-11-01
+
+Użytkownik po zakończeniu 25 polecił „wykonaj 26”. Wybiera to próbę
+niezależnie od historycznej decyzji 23. [Protokół](../pretrained-self-supervised-protocol.md):
+DINOv2 ViT-S/14 dostępny lokalnie po 18, adaptacja ostatniego bloku i normy,
+sześć fitów po 1000 kroków, trzy ziarna i dwa protokoły. Oryginalne wagi
+pozostają bazą; dodatkowo FFT. Wcześniejsze wyniki pozostają zamrożone.
+Osobno oceniamy cechy przed odmowami i cały proces po odmowach, którego
+znany limit bramki nie zmienia się przez adaptację. Dodatkowe MPP/STP odłożone.
 
 ## Warunek podjęcia
 
 Rozszerzenie warunkowe: krok 23 wybiera adaptację i wskazuje konkretny
-model dostępny po krokach 18–19 oraz oczekiwaną poprawę. Obecnie nie
-wybrano go do wykonania. Brak takiego modelu wymaga doprecyzowania zakresu.
+model dostępny po krokach 18–19 oraz oczekiwaną poprawę. Późniejsze polecenie
+użytkownika wybrało istniejący DINOv2 i próbę opisaną powyżej. Brak zgodnego
+modelu byłby ograniczeniem technicznym, nie wynikiem jakości.
 
 **Decyzja 23 — 2026-11-01:** użytkownik zakończył obecny pilot bez wyboru
 tej próby. Ticket pozostaje `open`, niewybrany i warunkowy; nie ma nowego

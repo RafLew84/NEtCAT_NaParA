@@ -7,7 +7,14 @@ Mode: HITL
 Status: open
 Assignee:
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
-Blocked by: 04, 06, 08, 10, 11, 12, 15, 16, 17, 19, 23, 24, 24a, 25
+Blocked by: 04, 06, 08, 10, 11, 12, 15, 16, 17, 19, 23, 24, 24a, 25, 26
+
+## Wybrano adaptację DINOv2 — 2026-11-01
+
+Użytkownik polecił wykonać [26](26-pretrained-self-supervised-adaptation.md).
+Wynik porównania oryginalnych i adaptowanych wag uzupełni odbiór,
+z osobnym wnioskiem o cechach przed odmowami i całym procesie po odmowach.
+Dodatkowe dane nadal odłożone; 13 pozostaje otwarty.
 
 ## Otrzymano wynik maskowanego odtwarzania — 2026-11-01
 
@@ -274,3 +281,5 @@ podziały pojedynczej sieci obok jej przypisania, małe różnice orientacji
 na odłożonych próbach oraz zakres banku/katalogu przed odmowami. Granica
 przesunięcia z błędem centrów nie sprawdza odporności na pogorszenie obrazu,
 gdy generator zmienia tylko oznaczenia. Odbiór 13 nadal pozostaje otwarty.
+
+- [Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md)
