@@ -11,9 +11,15 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-01: wdrożono [REG-08b](registration/issues/08b-robust-graph.md),
+  blokowy Huber na zapisanych relacjach LS, porównanie i wiele wariantów w sesji.
+  Status `ready-for-review`, ręczny odbiór oczekuje. [Instrukcja próby](registration/robust-graph-manual.md),
+  [wyniki i ograniczenia](registration/robust-graph-results.md).
+  Zastosowanie do aligned/eksportu pozostaje REG-08c.
+
 - 2026-11-01: użytkownik potwierdził „testy manualne ok” dla
   [REG-08a](registration/issues/08a-window-graph.md). Etap ma status `done`;
-  REG-08b jest odblokowany i czeka na zlecenie. Zastosowanie grafu do filmu
+  Wtedy odblokowano REG-08b; jego późniejszą realizację opisano powyżej. Zastosowanie grafu do filmu
   i eksportu nadal należy do REG-08c.
 
 - 2026-11-01: na zlecenie użytkownika usunięto z [planu trudnych filmów](registration/README.md)

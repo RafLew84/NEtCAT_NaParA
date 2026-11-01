@@ -1,3 +1,42 @@
+# REG-08b: odporny graf — 2026-11-01
+
+Status **ready-for-review**; ręczny odbiór użytkownika oczekuje.
+Gałąź `viewer/registration-difficult-movies`, baza `3f6fd5a`.
+Implementacja **`2802837`**, poprawki przeglądu **`417c107`**;
+końcowa dokumentacja w commicie przekazania.
+
+- Blokowy Huber IRLS na zapisanym grafie LS: te same pomiary, braki i kotwica,
+  bez ponownego Deep, kary za kierunek ani wygładzania. Próg i jawny limit
+  iteracji tworzą osobne zachowane warianty. Nieukończona próba ma diagnostykę,
+  lecz nie ma pełnych pozycji do podglądu.
+- UI porównuje LS/Huber we wspólnym kadrze, pokazuje różnice XY, reszty i wagi.
+  Warianty są zachowane w wersjonowanej sesji bez dodatkowych stosów pikseli.
+  Odczyt nie wymaga modelu ani ponownej optymalizacji. Starsze sesje działają.
+  Aktywny aligned, ręczne korekty i eksport pozostają bez zmian; zastosowanie
+  kandydata do filmu należy do REG-08c.
+- Pełny zestaw raz: **2381 passed, 14 failed, 16 skipped**; Viewer:
+  **595 passed, 0 failed, 2 skipped**. 14 błędów to dokładnie znane wcześniej
+  MolTrack/NanoTrack. Po dwóch poprawkach przeglądu 28 testów solvera oraz
+  7 sesji ponownie zaliczone. Strict mypy 73 modułów, Ruff i diff-check czyste.
+  [Karta testów i dwóch niezależnych przeglądów](registration/reviews/REG-08b.md):
+  Standards i Spec bez otwartych ustaleń. Największy plik zmiany 382 linie.
+- Osobne wzorce rozwojowe i odbiorcze; maks. błąd współrzędnej znanego wzorca
+  z pojedynczym błędem spada z 5,022 do 0,712 px. Most i zgodny alias nie dają
+  się w ten sposób wykryć; błędna większość może pogorszyć wynik.
+- MOVIE_4/3 nie osiągnął przyjętej zbieżności nawet po 5000 iteracjach;
+  pozostaje diagnostyką. MOVIE_4/5 i MOVIE_8 mają pełne warianty. Nie zmieniono
+  domyślnych tolerancji na podstawie odbioru. Ocena wizualna pozostaje manualna.
+  [Wyniki i gotowe sesje w /tmp](registration/robust-graph-results.md).
+- Start: `python -m stmviewer.main` w `netcat`, katalog `NEtCAT-viewer`.
+  [Instrukcja i dane do ręcznej próby](registration/robust-graph-manual.md).
+  Qt offscreen jest sprawdzeniem automatycznym. Windows 11, docelowy sprzęt
+  i ręczny odbiór nie są zaliczone. REG-08c nie rozpoczęto.
+- Brak potrzeb wspólnych zmian, publikacji i scalania. Pliki użytkownika
+  `proba.stmtrial.json`, `proba2.stmtrial.json`, `sesja.stmsession` pozostają
+  nietknięte i poza Git; duże dane i wyniki są lokalne.
+
+---
+
 # REG-08a: odbiór manualny — 2026-11-01
 
 Użytkownik potwierdził: **„testy manualne ok”**.

@@ -41,8 +41,15 @@ Wynik można porównać z łańcuchem, sprawdzić relacje i zachować w sesji.
 Kandydat nie zmienia aktywnego aligned ani eksportu; jego zastosowanie należy do REG-08c.
 [Instrukcja i materiały do ręcznej próby](registration/window-graph-manual.md),
 [wyniki rzeczywistego modelu](registration/window-graph-results.md),
-[testy i przegląd](registration/reviews/REG-08a.md). REG-08b ma spełnioną zależność
-i czeka na osobne zlecenie.
+[testy i przegląd](registration/reviews/REG-08a.md).
+[REG-08b — odporny graf](registration/issues/08b-robust-graph.md) ma status
+**ready-for-review**. W tym samym oknie można obliczać warianty Hubera z różnym
+progiem i limitem iteracji, porównać je z LS i zapisać w sesji. Wagi modelu
+nie są potrzebne do analizy zachowanych relacji. Nieukończona próba pozostaje
+diagnostyką; nie tworzy filmu. [Instrukcja](registration/robust-graph-manual.md),
+[wyniki i gotowe sesje](registration/robust-graph-results.md),
+[testy i przegląd](registration/reviews/REG-08b.md). Ręczny odbiór oczekuje;
+REG-08c nie został rozpoczęty.
 
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk
 **Porównaj parę…** otwiera osobny podgląd sąsiednich oryginałów: przed/po XY,
