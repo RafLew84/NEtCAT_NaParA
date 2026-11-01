@@ -34,13 +34,15 @@ i **Otwórz sesję…** są w głównym panelu; skróty to Ctrl+Shift+S i Ctrl+S
 REG-07 ma status **done**: użytkownik potwierdził „testy manualne ok”
 2026-11-01. REG-06 pozostaje odłożony.
 [REG-08a — graf dopasowań z oknem 3 lub 5 klatek](registration/issues/08a-window-graph.md)
-ma status **ready-for-review**. Przycisk **Dopasowanie wieloklatkowe…** pozwala
+ma status **done**: użytkownik potwierdził „testy manualne ok” 2026-11-01.
+Przycisk **Dopasowanie wieloklatkowe…** pozwala
 obliczyć Deep względem kilku wcześniejszych klatek i obejrzeć film ze wspólnymi XY.
 Wynik można porównać z łańcuchem, sprawdzić relacje i zachować w sesji.
 Kandydat nie zmienia aktywnego aligned ani eksportu; jego zastosowanie należy do REG-08c.
 [Instrukcja i materiały do ręcznej próby](registration/window-graph-manual.md),
 [wyniki rzeczywistego modelu](registration/window-graph-results.md),
-[testy i przegląd](registration/reviews/REG-08a.md). REG-08b czeka na odbiór i zlecenie.
+[testy i przegląd](registration/reviews/REG-08a.md). REG-08b ma spełnioną zależność
+i czeka na osobne zlecenie.
 
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk
 **Porównaj parę…** otwiera osobny podgląd sąsiednich oryginałów: przed/po XY,

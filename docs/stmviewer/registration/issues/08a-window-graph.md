@@ -4,8 +4,8 @@
 Deep dopasowuje także niesąsiednie klatki, a program wspólnie wyznacza ich XY.
 Można obejrzeć i zapisać próbę oraz porównać ją z łańcuchem sąsiednich dopasowań.
 **Blocked by:** [REG-07](07-session-save-load.md), w tym odbiór manualny — spełnione 2026-11-01.
-**Status:** ready-for-review
-**Manualny odbiór:** oczekuje na użytkownika; implementacja i próby automatyczne ukończone.
+**Status:** done
+**Manualny odbiór:** zaliczony przez użytkownika 2026-11-01 — „testy manualne ok”.
 **Start implementacji:** 2026-11-01; baza przeglądu `e12a79440b806a9f44c3fe5b112212052ae6ce29`.
 **Dodano do planu:** 2026-10-31, na zlecenie użytkownika po research.
 
@@ -129,6 +129,8 @@ Po poprawkach 134 testy dotyczące zmiany przechodzą; mypy 67 modułów i Ruff 
 Pełny zestaw repozytorium wykrył dwie naprawione regresje zależności opcjonalnych
 oraz 14 wcześniejszych błędów poza STM Viewer. Szczegóły w karcie.
 
-Zaznaczone kryteria oznaczają dostarczoną i sprawdzoną automatycznie funkcję.
-Ocena wizualna filmów i ręczny odbiór nadal są wymagane; ticket nie ma statusu
-`done`, a REG-08b nie jest uruchamiany automatycznie.
+Użytkownik potwierdził odbiór 2026-11-01: **„testy manualne ok”**.
+Ticket zamknięto jako `done`; REG-08b ma spełnioną zależność i czeka na zlecenie.
+Potwierdzenie nie zawiera osobnej oceny jakości okna 3 względem 5 ani danych
+systemu i sprzętu. Nie przypisujemy mu przewagi metody, odbioru Windows 11
+lub GPU 8 GB. Eksport kandydata pozostaje w zakresie przyszłego REG-08c.

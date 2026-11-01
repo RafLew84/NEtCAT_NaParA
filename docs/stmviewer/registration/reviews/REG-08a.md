@@ -1,6 +1,6 @@
 # REG-08a — karta wykonania i odbioru
 
-Data: 2026-11-01. Status: **ready-for-review**; ręczny odbiór użytkownika oczekuje.
+Data: 2026-11-01. Status: **done**; użytkownik potwierdził „testy manualne ok”.
 Baza przeglądu: `e12a79440b806a9f44c3fe5b112212052ae6ce29`.
 Kod: `ae32f1d`; poprawki: `665a1ed`. Gałąź: `viewer/registration-difficult-movies`.
 
@@ -22,7 +22,8 @@ Niezależny przegląd: **0 ustaleń** dla `e12a794…ae32f1d`.
 Sprawdzono znaki i kotwicę LS, równe wagi, okna 3/5, lokalne braki, komponenty,
 mosty, ograniczony cache z pochodzeniem, podgląd na żądanie, separację aktywnego
 filmu, anulowanie oraz wersjonowaną sesję. Nie stwierdzono braków ani rozszerzenia
-zakresu. Ręczna ocena jakości pozostaje osobnym, niewykonanym odbiorem.
+zakresu. Na etapie przeglądu ręczny odbiór jeszcze oczekiwał; późniejsze
+potwierdzenie użytkownika zapisano poniżej.
 Końcowa kontrola delty `ae32f1d..665a1ed`: **0 nowych ustaleń**;
 pełny zakres `e12a794…665a1ed` pozostaje zgodny ze specyfikacją.
 
@@ -75,10 +76,13 @@ To automatyczne sprawdzenie prezentacji, nie ręczny odbiór programu ani jakoś
 
 ## Odbiór manualny
 
-**Niewykonany.** Użytkownik ma ocenić jakość na obu filmach oraz przepływ opisany
-w instrukcji. Windows 11, stanowisko GPU 8 GB i VLC nie były sprawdzane w tym
-etapie. Obecny eksport pozostaje aktywnym aligned; eksport kandydata jest poza
-zakresem REG-08a. REG-08b nie może zastąpić odbioru tej funkcji.
+**Zaliczony 2026-11-01.** Użytkownik potwierdził: **„testy manualne ok”**.
+REG-08a zamknięto jako `done`. Nie podano szczegółowych obserwacji jakości dla
+obu filmów ani porównania okna 3 z 5, systemu lub sprzętu. Nie rozszerzamy tego
+potwierdzenia na Windows 11, stanowisko GPU 8 GB ani VLC. Obecny eksport nadal
+korzysta z aktywnego aligned; eksport kandydata należy do REG-08c.
+REG-08b ma spełnioną zależność i pozostaje `ready-for-agent`, bez rozpoczęcia.
+Aktualizacja odbioru zmienia tylko dokumentację; testów programu nie powtarzano.
 
 Podsumowanie przeglądów: Standards — 0 naruszeń, 1 uwaga P3 usunięta;
 Spec — 0 ustaleń. Brak pozostawionych usterek nowej funkcji w wykonanych sprawdzeniach.

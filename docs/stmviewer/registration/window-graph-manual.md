@@ -1,6 +1,7 @@
 # REG-08a — ręczna próba dopasowania wieloklatkowego
 
-Status: implementacja gotowa do próby (`ready-for-review`); odbiór użytkownika niewykonany.
+Status: **done** — użytkownik potwierdził „testy manualne ok” 2026-11-01.
+Poniższe kroki pozostają instrukcją odtworzenia próby; systemu i sprzętu odbioru nie podano.
 
 ## Uruchomienie
 

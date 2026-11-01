@@ -1,6 +1,27 @@
+# REG-08a: odbiór manualny — 2026-11-01
+
+Użytkownik potwierdził: **„testy manualne ok”**.
+[REG-08a — graf dopasowań 3/5](registration/issues/08a-window-graph.md) ma status **done**.
+Baza aktualizacji: `51d7049`; gałąź `viewer/registration-difficult-movies`.
+Kod: `ae32f1d` + `665a1ed`; dokumentacja implementacji: `51d7049`.
+
+- Zaktualizowano ticket, plan, mapę, README, instrukcję, raport i kartę odbioru.
+- REG-08b ma spełnioną zależność, pozostaje `ready-for-agent` i czeka na zlecenie.
+  REG-08c nadal obejmuje zastosowanie grafu do filmu i eksportu, po REG-08b.
+- Potwierdzenie nie określa systemu, sprzętu ani porównawczej jakości okien 3/5.
+  Nie przypisujemy mu odbioru Windows 11, GPU 8 GB ani przewagi metody na konkretnym filmie.
+- Zmieniono tylko dokumentację. Sprawdzono statusy, odnośniki i `git diff --check`;
+  testów programu nie powtarzano. Wyniki wcześniejszych testów zachowuje
+  [karta REG-08a](registration/reviews/REG-08a.md).
+- Brak zmian wspólnych, publikacji lub scalenia. Pliki użytkownika
+  `proba.stmtrial.json`, `proba2.stmtrial.json`, `sesja.stmsession` pozostają nietknięte.
+  Odbiór zapisano w końcowym commicie tej aktualizacji.
+
+---
+
 # REG-08a: graf dopasowań 3/5 — 2026-11-01
 
-Status **ready-for-review** — oczekuje na ręczny odbiór użytkownika.
+Stan przy przekazaniu implementacji: **ready-for-review**; późniejszy odbiór opisano powyżej.
 Gałąź `viewer/registration-difficult-movies`; baza `e12a794`.
 Implementacja **`ae32f1d`**, poprawki **`665a1ed`**; dokumentacja w końcowym commicie.
 

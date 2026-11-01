@@ -1,6 +1,7 @@
 # REG-08a — wyniki prób automatycznych i rzeczywistego modelu
 
-Data: 2026-11-01. Status: próby obliczeniowe ukończone; ręczna ocena jakości niewykonana.
+Data: 2026-11-01. Status: **done** po potwierdzeniu użytkownika „testy manualne ok”.
+Raport zachowuje wyniki obliczeń; potwierdzenie nie zawiera porównawczej oceny jakości okien 3/5.
 Baza zmiany: `e12a79440b806a9f44c3fe5b112212052ae6ce29`.
 
 ## Metoda i odtwarzalność
@@ -65,14 +66,16 @@ Inne relacje zapewniają obejście. Wszystkie pomiary sąsiednie są dostępne,
 więc istnieje też pełna baza łańcuchowa. Rozmiary wspólnego kadru:
 400 × 424 px (Y×X, okno 3), 368 × 409 px (okno 5). Mniejszy kadr nie jest
 oceną poprawności. Problemowe przejścia wskazane przez użytkownika, pierwsze
-150 klatek i cały film nadal wymagają ręcznej oceny.
+150 klatek i cały film należą do protokołu ręcznej próby. Użytkownik potwierdził
+odbiór etapu bez osobnego opisu jakości tych fragmentów.
 
 ## MOVIE_8
 
 Pełne 84 klatki; SHA-256:
 `a06ab5d34250ca564b11eb9da4e9ea65131b80d2a2e3ceaf09f0709569cdbde7`.
 Brak odmów par dla obu okien. Wspólny kadr 759 × 763 px i 743 × 763 px (Y×X).
-To wynik kompletności obliczeń; jakość struktur i tearing wymagają oględzin.
+To wynik kompletności obliczeń; użytkownik potwierdził odbiór etapu, lecz nie
+podał osobnej oceny wpływu okna 3/5 na struktury i tearing w MOVIE_8.
 
 ## Dostępne wyniki lokalne
 
@@ -104,5 +107,7 @@ są odrębnym dowodem pracy rzeczywistych wag. Typechecking: 67 modułów.
 Pełny zestaw repozytorium i dwa przeglądy są odnotowane w
 [karcie odbioru](reviews/REG-08a.md).
 
-Ręczne GUI, ocena dopasowania struktur obu filmów, Windows 11 i docelowe GPU
-8 GB pozostają niewykonane. Zrzuty Qt offscreen służyły tylko kontroli układu.
+Ręczny odbiór użytkownika: **zaliczony 2026-11-01**, „testy manualne ok”.
+Nie podano systemu, sprzętu ani osobnych obserwacji dla obu filmów. Odbiór
+Windows 11 i docelowego GPU 8 GB pozostaje niepotwierdzony. Zrzuty Qt offscreen
+służyły tylko kontroli układu; nie zastępują potwierdzenia użytkownika.

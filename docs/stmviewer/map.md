@@ -11,6 +11,11 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-01: użytkownik potwierdził „testy manualne ok” dla
+  [REG-08a](registration/issues/08a-window-graph.md). Etap ma status `done`;
+  REG-08b jest odblokowany i czeka na zlecenie. Zastosowanie grafu do filmu
+  i eksportu nadal należy do REG-08c.
+
 - 2026-11-01: na zlecenie użytkownika usunięto z [planu trudnych filmów](registration/README.md)
   osobny REG-08 — diagnostykę trójek. Po odebranym zapisie sesji REG-07 następuje
   REG-08a — graf dopasowań. Pozostała numeracja i statusy odbiorów pozostają.

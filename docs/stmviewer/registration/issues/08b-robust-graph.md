@@ -2,7 +2,7 @@
 
 **What to build:** Użytkownik porównuje zwykłe LS z odpornym rozwiązaniem
 Hubera na identycznym zbiorze relacji i ogląda, które pomiary mają mniejszy wpływ.
-**Blocked by:** [REG-08a](08a-window-graph.md), w tym odbiór manualny.
+**Blocked by:** [REG-08a](08a-window-graph.md), w tym odbiór manualny — spełnione 2026-11-01.
 **Status:** ready-for-agent
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 **Dodano do planu:** 2026-10-31, na zlecenie użytkownika po research.
