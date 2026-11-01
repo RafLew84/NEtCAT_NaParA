@@ -52,13 +52,15 @@ diagnostyką; nie tworzy filmu. [Instrukcja](registration/robust-graph-manual.md
 [wyniki i gotowe sesje](registration/robust-graph-results.md),
 [testy i przegląd](registration/reviews/REG-08b.md).
 [REG-08c — zastosowanie grafu do filmu](registration/issues/08c-graph-movie-application.md)
-ma status **ready-for-review**. W oknie wieloklatkowym wybierz LS/Hubera i kliknij
+ma status **done**: użytkownik potwierdził „testy manualne ok” 2026-11-01.
+W oknie wieloklatkowym wybierz LS/Hubera i kliknij
 **Zastosuj wynik do filmu**. Wynik staje się aktywnym aligned do ręcznych korekt,
 MPP/AVI i zapisu sesji. **Przywróć zachowany wynik** odtwarza poprzedni film
 z jego korektami, bez modelu. [Instrukcja i gotowe dane](registration/graph-application-manual.md),
 [wyniki](registration/graph-application-results.md),
-[testy i przegląd](registration/reviews/REG-08c.md). Ręczny odbiór oczekuje;
-REG-10 nie rozpoczęto.
+[testy i przegląd](registration/reviews/REG-08c.md). Po obliczeniu niekompletnego
+Hubera dialog wyjaśnia powód odmowy zastosowania. To uzupełnienie dodano po
+odbytym odbiorze; REG-10 ma spełnioną zależność, ale nie rozpoczęto jego realizacji.
 
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk
 **Porównaj parę…** otwiera osobny podgląd sąsiednich oryginałów: przed/po XY,

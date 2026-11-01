@@ -1,6 +1,6 @@
 # REG-08c — wyniki zastosowania grafu
 
-Data: 2026-11-01. Status: **ready-for-review**; odbiór manualny oczekuje.
+Data: 2026-11-01. Status: **done**; użytkownik potwierdził „testy manualne ok”.
 Kod `140136e`, poprawka czytelności `73bbc44`; baza `5f45b36`.
 
 ## Sprawdzony workflow
@@ -76,5 +76,9 @@ raport `/tmp/reg08c-vlc-report.json`. Niezależne testy eksportu dekodują AVI
 przez OpenCV i porównują klatki z analitycznym wzorcem (FFV1 dokładnie,
 MJPG z tolerancją kompresji), liczbę klatek i FPS.
 
-Ręczna ocena obu filmów, Windows 11 i stanowisko docelowe pozostają do wykonania.
+Ręczny odbiór funkcji użytkownik zaliczył 2026-11-01. Nie podał szczegółowej
+oceny jakości obu filmów, systemu ani sprzętu; nie przypisujemy potwierdzeniu
+przewagi LS/Hubera, odbioru Windows 11 ani stanowiska docelowego.
+Na jego życzenie dodano dialog po obliczeniu niekompletnego Hubera. Nowe
+powiadomienie nie było objęte wcześniejszą próbą manualną.
 [Karta testów i przeglądu](reviews/REG-08c.md).

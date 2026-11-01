@@ -13,9 +13,11 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 - 2026-11-01: wdrożono [REG-08c](registration/issues/08c-graph-movie-application.md),
   jawne zastosowanie LS/Hubera, ręczne poprawki i eksport aktywnego filmu,
-  zapis w sesji oraz przywrócenie poprzednika. Status `ready-for-review`.
+  zapis w sesji oraz przywrócenie poprzednika. Użytkownik potwierdził
+  „testy manualne ok”; status `done`. Na jego życzenie dodano dialog
+  informujący o niekompletnym wyniku Hubera.
   [Instrukcja](registration/graph-application-manual.md),
-  [wyniki i przegląd](registration/reviews/REG-08c.md). Ręczny odbiór oczekuje.
+  [wyniki i przegląd](registration/reviews/REG-08c.md). REG-10 czeka na zlecenie.
 
 - 2026-11-01: wdrożono [REG-08b](registration/issues/08b-robust-graph.md),
   blokowy Huber na zapisanych relacjach LS, porównanie i wiele wariantów w sesji.

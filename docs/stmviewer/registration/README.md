@@ -4,7 +4,7 @@ Data: 2026-10-28; rozszerzenia ręczne: REG-01a 2026-10-30, REG-02a 2026-10-31.
 Rozszerzenie o graf dopasowań i nowe modele: 2026-10-31, na zlecenie użytkownika.
 Gałąź: `viewer/registration-difficult-movies`.
 Baza rozpoznania: `c85aecb`; przegląd metod: `81ff1a0`.
-Status: REG-01, REG-01a, REG-02, REG-02a, REG-04, REG-05, REG-07, REG-08a i REG-08b `done`. Użytkownik potwierdził odbiór REG-02
+Status: REG-01, REG-01a, REG-02, REG-02a, REG-04, REG-05, REG-07, REG-08a, REG-08b i REG-08c `done`. Użytkownik potwierdził odbiór REG-02
 2026-10-31 i zgłosił brak istotnej poprawy względem Phase na MOVIE_4.
 Deep Matcher ocenia najlepiej w obejrzanych pierwszych 100 klatkach.
 [Instrukcja REG-02](unnormalized-correlation-manual.md), [wyniki](reviews/REG-02.md).
@@ -113,7 +113,7 @@ REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [karta odbioru](reviews/REG-01.md). REG-01a ma status `done` po odbiorze
 użytkownika 2026-10-31. REG-02 i REG-02a również odebrano 2026-10-31 (`done`).
 REG-04 i REG-05 mają status `done` po odbiorze użytkownika 2026-10-31.
-REG-07 ma status `done` po odbiorze 2026-11-01. REG-08a ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08b ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08c ma status `ready-for-review`; REG-10–12 mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
+REG-07 ma status `done` po odbiorze 2026-11-01. REG-08a ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08b ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08c ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-10–12 mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
 zlecenia użytkownika i zakończenia blokujących ticketów. REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
 REG-08d i REG-09 również mają status `planned` jako warunkowe osobne odnogi.
@@ -139,10 +139,13 @@ Hubera na tych samych pomiarach, porównanie LS/Huber i zapis diagnostyki w sesj
 [Instrukcja](robust-graph-manual.md), [wyniki](robust-graph-results.md),
 [karta przeglądu](reviews/REG-08b.md). Zastosowanie grafu do aligned i eksportu
 realizuje [REG-08c](issues/08c-graph-movie-application.md), implementacja
-`140136e` + `73bbc44`, status **ready-for-review**. Jawne zastosowanie LS/Hubera,
-ręczne korekty, sesja i przywrócenie poprzednika są gotowe do odbioru.
+`140136e` + `73bbc44`, status **done** po potwierdzeniu „testy manualne ok”
+2026-11-01. Odebrano jawne zastosowanie LS/Hubera, ręczne korekty, sesję
+i przywrócenie poprzednika. Na życzenie użytkownika dodano dialog po obliczeniu
+niekompletnego Hubera; nowe powiadomienie nie było objęte wcześniejszą próbą manualną.
 [Instrukcja](graph-application-manual.md), [wyniki](graph-application-results.md),
-[karta przeglądu](reviews/REG-08c.md). REG-10 czeka na odbiór i osobne zlecenie.
+[karta przeglądu](reviews/REG-08c.md). REG-10 ma spełnioną zależność,
+ale pozostaje nierozpoczęty i czeka na osobne zlecenie.
 [Instrukcja odbioru](session-manual.md), [wyniki](session-results.md),
 [przegląd](reviews/REG-07-session.md).
 REG-06 jest odłożony i pozostaje niewdrożony.

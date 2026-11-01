@@ -1,6 +1,6 @@
 # REG-08c — karta wykonania i odbioru
 
-Data: 2026-11-01. Status: **ready-for-review**; ręczny odbiór oczekuje.
+Data: 2026-11-01. Status: **done**; użytkownik potwierdził „testy manualne ok”.
 Baza: `5f45b368a00e2895d7ee0248bdd4f46caac1dd67`.
 Implementacja: `140136e`; poprawka przeglądu: `73bbc44`.
 Gałąź: `viewer/registration-difficult-movies`.
@@ -29,7 +29,7 @@ zastosowanie i odmowy, render oryginałów, zamrożoną bazę G, ręczną propag
 lekki poprzednik i jego przywrócenie, sesje v3 oraz MPP v5, w tym historię
 po usunięciu klatek. Nie stwierdzono rozszerzenia zakresu ani błędnego zachowania.
 Przegląd delty `140136e..73bbc44` potwierdził zachowanie kontraktu.
-**0 otwartych ustaleń Spec**. Odbiór ręczny pozostaje odrębnym krokiem.
+**0 otwartych ustaleń Spec**. Późniejszy odbiór ręczny opisano poniżej.
 
 ## Testy automatyczne
 
@@ -87,8 +87,39 @@ VLC 3.0.24 odczytał FFV1 i MJPG do EOF z aktywnymi dekoderami, kodem 0
 oraz bez błędów; wyjście dummy nie jest ręczną oceną odtwarzania.
 Odczyt sesji bez modelu i symulowany transfer ścieżek nie zastępują próby Windows.
 
-**Decyzja użytkownika: oczekuje.** Nie zaliczono ręcznego GUI, wizualnej jakości
-MOVIE_4/MOVIE_8, Windows 11 ani docelowego stanowiska. Przykładowe korekty +1
-nie są wynikiem oceny fizycznego dryfu. REG-10 pozostaje nierozpoczęty.
+**Decyzja użytkownika: przyjęte, 2026-11-01.** Potwierdzenie: **„testy manualne ok”**.
+REG-08c zamknięto jako `done`. Użytkownik nie podał szczegółowej oceny jakości
+MOVIE_4/MOVIE_8, systemu ani sprzętu; potwierdzeniu nie przypisujemy przewagi
+LS/Hubera, odbioru Windows 11 ani stanowiska docelowego. Przykładowe korekty +1
+nie są wynikiem oceny fizycznego dryfu. REG-10 ma spełnioną zależność,
+lecz pozostaje nierozpoczęty.
+
+Przy odbiorze użytkownik poprosił o dialog informujący o braku kompletnego
+wyniku. Powiadomienie po nowym niekompletnym Huberze wyjaśnia powód zakończenia,
+liczbę iteracji i niedostępność zastosowania; przypomina o jawnym wyborze
+kompletnego LS/Hubera. Nie zmienia solvera ani wyboru wariantu.
+Nowy dialog nie był objęty wcześniejszą próbą manualną użytkownika.
 
 Przeglądy: Standards — 0 otwartych uwag po poprawce; Spec — 0 ustaleń.
+
+
+## Uzupełnienie: komunikat niekompletnego Hubera
+
+Commit `293d392`, baza przeglądu `be46f91`. Istniejący test granicy GUI
+rozszerzono przed implementacją: RED — brak dialogu po limicie iteracji;
+GREEN — komunikat pokazuje powód i liczbę iteracji, zamyka się przez OK,
+a następnie można wybrać LS i odblokować zastosowanie. Poprawny wynik nie
+wyświetla komunikatu. Zachowano poprzedni podgląd i diagnostykę odmowy.
+
+Zakres regresji: **36 testów GUI zaliczonych**, 4,77 s — Huber, zastosowanie
+grafu oraz okna grafu i ich cykl pracy. Strict mypy: **81 modułów**, Ruff
+obu zmienionych plików i `git diff --check`: bez błędów. Pełnego repo nie
+powtarzano dla tej zmiany prezentacji. Pliki kodu mają 215 i 235 linii.
+Zrzut Qt offscreen `/tmp/reg08c-incomplete-notice.png` obejrzano: cały tekst
+i przycisk OK mieszczą się w oknie 474×277. To sprawdzenie automatyczne.
+
+Dwa niezależne przeglądy `be46f91…293d392`: **Standards — 0 ustaleń;
+Spec — 0 ustaleń**. Dialog używa nieblokującego `open()` z rodzicem Qt
+i automatycznym usunięciem po zamknięciu. Pojawia się po świeżej odmowie
+Hubera, nie przy samym odczycie sesji, sukcesie ani anulowaniu. Algorytm,
+warunki zbieżności i wybór wariantu pozostają bez zmian.

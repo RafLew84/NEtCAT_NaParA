@@ -1,6 +1,8 @@
 # REG-08c — zastosowanie grafu do filmu
 
-Status: **ready-for-review**. Ręczny odbiór użytkownika oczekuje.
+Status: **done**. Użytkownik potwierdził „testy manualne ok” 2026-11-01.
+Poniższe kroki służą ponowieniu próby. Dodany na jego życzenie dialog
+niekompletnego Hubera nie był objęty wcześniejszą próbą manualną.
 
 ## Uruchomienie i gotowe dane
 
@@ -99,6 +101,11 @@ podgląd, zoom i gamma pozostają dostępne.
 - Otwórz `/tmp/stmviewer-reg08b-fixtures/disconnected-with-huber.stmsession`:
   zastosowanie ma być niedostępne z powodem. Dla nieukończonego Hubera nie ma
   cichego zastosowania LS. Przykład: MOVIE_4, okno 3 z materiałów REG-08b.
+- Po nowym obliczeniu niekompletnego Hubera pojawia się dialog z powodem
+  zakończenia i liczbą iteracji. Wyjaśnia, że tego wariantu nie można zastosować,
+  a podgląd może nadal pokazywać poprzedni kompletny wynik. Zamknij komunikat
+  i w grupie **Aktywny film** jawnie wybierz kompletny LS/Huber. Przy limicie
+  iteracji można obliczyć nowego Hubera z większym limitem; nie gwarantuje to zbieżności.
 
 ## Odbiór na STM
 

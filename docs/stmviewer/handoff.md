@@ -1,3 +1,31 @@
+# REG-08c: odbiór manualny i komunikat odmowy — 2026-11-01
+
+Użytkownik potwierdził **„testy manualne ok”**; REG-08c ma status **done**.
+Gałąź `viewer/registration-difficult-movies`, baza tej aktualizacji `be46f91`.
+Na jego życzenie dodano dialog po obliczeniu niekompletnego Hubera:
+commit **`293d392`**. Dokumentacja odbioru w końcowym commicie przekazania.
+
+- Komunikat podaje powód zakończenia, liczbę iteracji i wyjaśnia, dlaczego
+  nie można zastosować wyniku. Wskazuje, że podgląd może nadal przedstawiać
+  LS lub wcześniejszy wariant, oraz jak jawnie wybrać kompletny wynik.
+  Przy limicie iteracji opisuje możliwość zwiększenia go bez obietnicy zbieżności.
+- **36 testów GUI zaliczonych**, strict mypy **81 modułów**, Ruff i diff-check
+  czyste. Istniejący test rozszerzono RED→GREEN; zrzut Qt offscreen obejrzano.
+  [Karta testów i przeglądu](registration/reviews/REG-08c.md): Standards i Spec
+  po niezależnym przeglądzie bez ustaleń. Pełnego repo ponownie nie uruchamiano
+  dla tego uzupełnienia prezentacji; wcześniejsze wyniki pozostają w karcie.
+- Dialog dodano po potwierdzeniu odbioru i nie przypisano mu wcześniejszego
+  ręcznego zaliczenia. Uruchomienie: po zapisaniu bieżącej sesji uruchomić
+  `python -m stmviewer.main` ponownie w `netcat`. Próba: z grafu MOVIE_4
+  obliczyć Hubera z limitem 1; odczytać dialog, zamknąć OK i wybrać kompletny LS.
+- Zaktualizowano ticket, plan, mapę, README, instrukcję, wyniki i kartę odbioru.
+  REG-10 ma spełnioną zależność, ale pozostaje nierozpoczęty.
+- Potwierdzenie użytkownika nie określa systemu, sprzętu ani przewagi algorytmu;
+  nie zalicza Windows 11 lub stanowiska docelowego. Brak zmian wspólnych,
+  publikacji i scalenia. Pliki użytkownika pozostają nietknięte i poza Git.
+
+---
+
 # REG-08c: graf jako aktywny film — 2026-11-01
 
 Status **ready-for-review**; ręczny odbiór oczekuje.

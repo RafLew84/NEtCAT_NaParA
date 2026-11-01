@@ -3,9 +3,11 @@
 **What to build:** Użytkownik jawnie stosuje kompletną próbę grafu jako aligned,
 poprawia wybrane przejścia ręcznie i zapisuje wynik do MPP/AVI.
 **Blocked by:** [REG-08b](08b-robust-graph.md), w tym odbiór manualny — spełnione 2026-11-01.
-**Status:** ready-for-review
-**Manualny odbiór:** oczekuje na użytkownika; automatyczne sprawdzenia zaliczone.
-**Implementacja:** `140136e` + `73bbc44`, 2026-11-01.
+**Status:** done
+**Manualny odbiór:** zaliczony 2026-11-01; użytkownik potwierdził „testy manualne ok”.
+**Uzupełnienie po odbiorze:** dialog informacyjny po obliczeniu niekompletnego Hubera;
+nie był objęty wcześniejszą próbą manualną użytkownika.
+**Implementacja:** `140136e` + `73bbc44`; dialog: `293d392`, 2026-11-01.
 **Materiały:** [instrukcja](../graph-application-manual.md), [wyniki](../graph-application-results.md),
 [karta testów i przeglądu](../reviews/REG-08c.md).
 **Start implementacji:** 2026-11-01, Codex; baza przeglądu `5f45b368a00e2895d7ee0248bdd4f46caac1dd67`.
@@ -18,8 +20,11 @@ Nie zmieniamy solvera ani nie wybieramy automatycznie LS zamiast Hubera.
 
 ## Zakres i kryteria odbioru
 
-Poniższe funkcje wdrożono i sprawdzono automatycznie. Ręczna próba opisana
-niżej pozostaje warunkiem zamknięcia ticketu.
+Poniższe funkcje wdrożono, sprawdzono automatycznie i odebrano manualnie
+2026-11-01. Kroki poniżej pozostają instrukcją ponowienia próby.
+Na życzenie użytkownika dodano dialog wyjaśniający niekompletny wynik Hubera:
+powód zakończenia, liczbę iteracji oraz brak możliwości zastosowania do filmu.
+Dialog nie zmienia solvera ani samoczynnie nie wybiera LS.
 
 - [x] **Zastosuj wynik do filmu** działa dla kompletnej próby LS albo Hubera
   zgodnej z aktualnymi oryginałami, kolejnością i geometrią. Samo obliczenie
