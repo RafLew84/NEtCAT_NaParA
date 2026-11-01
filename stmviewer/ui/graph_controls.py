@@ -12,6 +12,9 @@ from stmviewer.ui.graph_dialog import GraphComparisonDialog
 class GraphControls(QObject):
     changed = pyqtSignal()
     busy_changed = pyqtSignal()
+    movie_apply_requested = pyqtSignal(object, object)
+    movie_restore_requested = pyqtSignal()
+    movie_cancel_requested = pyqtSignal()
 
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
@@ -51,6 +54,9 @@ class GraphControls(QObject):
                                         deep_options=deep_options, trial=self._trial)
         self._dialog = dialog
         dialog.changed.connect(self._changed)
+        dialog.movie_apply_requested.connect(self.movie_apply_requested)
+        dialog.movie_restore_requested.connect(self.movie_restore_requested)
+        dialog.movie_cancel_requested.connect(self.movie_cancel_requested)
         dialog.busy_changed.connect(self.busy_changed)
         dialog.finished.connect(lambda: self._closed(dialog))
         dialog.destroyed.connect(lambda: self._closed(dialog))
@@ -66,6 +72,18 @@ class GraphControls(QObject):
     def set_registration(self, registration: RegistrationResult | None) -> None:
         if self._dialog is not None:
             self._dialog.set_registration(registration)
+
+    def show_movie_progress(self, done: int, total: int, description: str) -> None:
+        if self._dialog is not None:
+            self._dialog.show_movie_progress(done, total, description)
+
+    def finish_movie_progress(self, message: str) -> None:
+        if self._dialog is not None:
+            self._dialog.finish_movie_progress(message)
+
+    def movie_cancelling(self) -> None:
+        if self._dialog is not None:
+            self._dialog.movie_cancelling()
 
     def cancel(self) -> None:
         if self._dialog is not None:

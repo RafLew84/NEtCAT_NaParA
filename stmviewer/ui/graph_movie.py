@@ -116,13 +116,20 @@ class GraphMovieWidget(QWidget):
         if trial is not None and trial.chain_positions is not None:
             variants['chain'] = trial.chain_positions
             choices.append(('Łańcuch — suma sąsiednich pomiarów tej próby', 'chain'))
-        elif registration is not None and len(registration.frames) == len(self._frames):
+        if registration is not None and len(registration.frames) == len(self._frames):
             # An active result may retain an anchor belonging to an already deleted
             # frame. A constant change of origin makes the comparison meaningful.
             x0, y0 = registration.frames[0].shift_xy
             variants['active'] = tuple((f.shift_xy[0] - x0, f.shift_xy[1] - y0)
                                        for f in registration.frames)
-            choices.append((f'Aktywny aligned — {registration.method} · {registration.revision[:8]}', 'active'))
+            choices.append((f'Aktywny aligned — {registration.method} · {registration.revision[:8]} '
+                            f'· korekty: {len(registration.corrections)}', 'active'))
+            previous = registration.predecessor
+            if previous is not None and len(previous.final_positions) == len(self._frames):
+                x0, y0 = previous.final_positions[0]
+                variants['predecessor'] = tuple((x - x0, y - y0) for x, y in previous.final_positions)
+                choices.append((f'Zachowany wynik — {previous.method} · {previous.revision[:8]} '
+                                f'· korekty: {len(previous.corrections)}', 'predecessor'))
         if trial is not None:
             for index, robust in enumerate(trial.robust_trials):
                 if robust.positions is not None:
@@ -134,9 +141,9 @@ class GraphMovieWidget(QWidget):
             self._variant.clear()
             for label, key in choices:
                 self._variant.addItem(label, key)
-            previous = self._variant.findData(selected)
-            if previous >= 0:
-                self._variant.setCurrentIndex(previous)
+            selected_index = self._variant.findData(selected)
+            if selected_index >= 0:
+                self._variant.setCurrentIndex(selected_index)
         self._renderer = None
         self._render_failed = False
         if variants:
@@ -260,7 +267,7 @@ class GraphMovieWidget(QWidget):
             self._aspect = raster.aspect
             self._render_failed = False
             self._status.setText('Wspólny obszar i kontrast oryginalnej klatki dla wszystkich wariantów. '
-                                  'Kandydat grafu nie jest aktywnym aligned ani wynikiem eksportu.')
+                                  'Eksport używa aktywnego aligned. Wybór wariantu porównania nie zmienia filmu.')
         except (ImportError, OSError, ValueError, MemoryError, OverflowError) as error:
             self.pause()
             self._render_failed = True

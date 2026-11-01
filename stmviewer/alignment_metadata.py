@@ -10,6 +10,7 @@ from stmviewer.metadata_values import json_object, optional_number, optional_tex
 from stmviewer.registration import RegistrationResult
 from stmviewer.manual_movie_types import MovieHistory, MovieSource
 from stmviewer.manual_movie_metadata import manual_frame_state
+from stmviewer.graph_movie_provenance import movie_history
 
 _KEYS = {'canvas_shape', 'padding_ltrb', 'pixel_size_nm', 'reference', 'method', 'device',
          'original_shape', 'original_size_nm', 'original_offset_nm', 'shift_xy', 'origin_xy',
@@ -105,6 +106,10 @@ def _decode(value: object, depth: int = 0, *,
             raise ValueError('Historia: skumulowane XY nie zgadza się z ręcznymi korektami.')
         if (status, quality, inherited) != (expected.status, expected.quality_score, expected.inherited_uncertainty):
             raise ValueError('Historia: pewność nie zgadza się z wpływem ręcznych korekt.')
+        graph = manual.graph_provenance
+        if graph is not None and (method != f'Deep Matcher — graf {graph.solver}'
+                                  or device != graph.config.device):
+            raise ValueError('Historia: opis metody nie odpowiada pochodzeniu grafu.')
         source = manual.baseline[0].source
         if (reference.source, reference.source_frame_index) != (source.source, source.source_frame_index):
             raise ValueError('Historia: odniesienie nie zgadza się z bazą korekt filmu.')
@@ -190,8 +195,7 @@ def aligned_export_frames(result: RegistrationResult,
                           check_cancelled: Callable[[], None]) -> tuple[ImageFrame, ...]:
     """Attach historical geometry to existing samples without materializing again."""
     frames = []
-    manual = (MovieHistory(result.revision, result.settings_version, result.baseline, result.corrections)
-              if result.corrections else None)
+    manual = movie_history(result) if result.corrections or result.graph_application is not None else None
     source_indices = {frame.source: i for i, frame in enumerate(result.baseline)}
     for aligned in result.frames:
         check_cancelled()

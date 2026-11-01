@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 import math
-from typing import Callable, Protocol
+from typing import TYPE_CHECKING, Callable, Protocol
 from uuid import uuid4
 
 from nanotrack.core import RegistrationFrameResult
@@ -20,6 +20,10 @@ from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
 from stmviewer.deep_ecc import (
     HYBRID_METHOD, HYBRID_LABEL, HybridDiagnostics, DeepEccBackend, load_deep_ecc_backend,
 )
+
+
+if TYPE_CHECKING:
+    from stmviewer.graph_application_types import GraphApplication, MovieSnapshot
 
 
 CPU_METHODS = {
@@ -76,6 +80,8 @@ class RegistrationResult:
     corrections_editable: bool = True
     pair_diagnostics: tuple[HybridDiagnostics | None, ...] = ()
     local_diagnostics: tuple[LocalDiagnostics | None, ...] = ()
+    graph_application: "GraphApplication | None" = None
+    predecessor: "MovieSnapshot | None" = None
 
     def without_frame(self, index: int) -> 'RegistrationResult | None':
         """Retain historical coordinates and the exact surviving samples."""
@@ -210,7 +216,8 @@ def render_registration(
         statuses: tuple[str, ...], qualities: tuple[float | None, ...],
         inherited: tuple[bool, ...], *, reference: FrameOrigin, method: str, device: str,
         progress: Callable[[int, int, str], None] | None = None,
-        cancelled: Callable[[], bool] | None = None) -> RegistrationResult:
+        cancelled: Callable[[], bool] | None = None,
+        padding_ltrb: tuple[int, int, int, int] | None = None) -> RegistrationResult:
     """Build one aligned image per original with a single linear interpolation."""
     from scipy.ndimage import affine_transform
 
@@ -232,6 +239,13 @@ def render_registration(
     top = math.ceil(max(0, -min(y for x, y in shifts)))
     right = math.ceil(max(0, max(x for x, y in shifts)))
     bottom = math.ceil(max(0, max(y for x, y in shifts)))
+    if padding_ltrb is not None:
+        minimum = (left, top, right, bottom)
+        if (len(padding_ltrb) != 4
+                or any(type(value) is not int or value < required
+                       for value, required in zip(padding_ltrb, minimum))):
+            raise RegistrationError('Aligned: zachowany obszar nie obejmuje pełnych oryginałów.')
+        left, top, right, bottom = padding_ltrb
     height, width = frames[0].data.shape
     shape = (height + top + bottom, width + left + right)
     pixel_size = common_pixel_size(frames)

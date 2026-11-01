@@ -22,11 +22,12 @@ from stmviewer.registration import (
     CPU_METHODS, DEEP_METHODS, REGISTRATION_METHODS, RegistrationResult, ShiftBackend, registration_unavailable_reason,
 )
 from stmviewer.ui.registration_options import method_unavailable_reason
-from stmviewer.ui.hybrid_details import hybrid_details_text
-from stmviewer.ui.local_details import local_details_text
+from stmviewer.ui.registration_info import registration_info, registration_warnings
 from stmviewer.ui.deep_matcher_controls import DeepMatcherControls
 from stmviewer.ui.registration_job import RegistrationJob
 from stmviewer.ui.manual_movie_job import ManualMovieJob
+from stmviewer.ui.graph_application_job import GraphApplicationJob
+from stmviewer.graph_types import GraphTrial
 from stmviewer.pair_comparison import PairTrial
 from stmviewer.ui.pair_dialog import PairComparisonDialog
 from stmviewer.ui.filmstrip import Filmstrip
@@ -34,6 +35,9 @@ from stmviewer.ui.frame_source import frame_source_text, alignment_history_text
 from stmviewer.ui.import_job import ImportJob
 from stmviewer.ui.mpp_export_job import MppExportJob
 from stmviewer.ui.image_preview import ImagePreview
+
+
+MovieJob = RegistrationJob | ManualMovieJob | GraphApplicationJob
 
 
 def _value(value: float | None, unit: str) -> str:
@@ -51,7 +55,7 @@ class STMViewerMainWindow(QMainWindow):
         self._job: ImportJob | None = None
         self._export_job: MppExportJob | None = None
         self._registration: RegistrationResult | None = None
-        self._registration_job: RegistrationJob | ManualMovieJob | None = None
+        self._registration_job: MovieJob | None = None
         self._registration_backend = registration_backend
         self._pair_dialog: PairComparisonDialog | None = None
         self._method_errors = {key: registration_unavailable_reason(key) for key in CPU_METHODS}
@@ -183,6 +187,9 @@ class STMViewerMainWindow(QMainWindow):
         self._graph.open_button.clicked.connect(lambda: self._graph.open_graph(
             self._frames, self._registration, self._deep_controls.options()))
         self._graph.busy_changed.connect(self._pair_busy_changed)
+        self._graph.movie_apply_requested.connect(self._apply_graph_movie)
+        self._graph.movie_restore_requested.connect(self._restore_graph_movie)
+        self._graph.movie_cancel_requested.connect(self._cancel_registration)
         controls.addWidget(self._graph.open_button)
         self._registration_text = QLabel("", panel)
         self._registration_text.setObjectName("registrationInfo")
@@ -839,17 +846,29 @@ class STMViewerMainWindow(QMainWindow):
         if self._registration is not None and not self._operation_in_progress:
             self._start_registration_job(ManualMovieJob(self._registration, self, remove_index=index))
 
-    def _start_registration_job(self, job: RegistrationJob | ManualMovieJob) -> None:
+    def _apply_graph_movie(self, graph: GraphTrial, robust_revision: str | None) -> None:
+        if not self._operation_in_progress:
+            self._start_registration_job(GraphApplicationJob(
+                self._frames, self, previous=self._registration, graph=graph, robust_revision=robust_revision))
+
+    def _restore_graph_movie(self) -> None:
+        if self._registration is not None and not self._operation_in_progress:
+            self._start_registration_job(GraphApplicationJob(self._frames, self, previous=self._registration))
+
+    def _start_registration_job(self, job: MovieJob) -> None:
         self._pause()
         self._registration_job = job
         manual = isinstance(job, ManualMovieJob)
-        self._registration_progress.setRange(0, len(self._frames) * (1 if manual else 2))
+        graph = isinstance(job, GraphApplicationJob)
+        self._registration_progress.setRange(0, len(self._frames) * (1 if manual or graph else 2))
         self._registration_progress.setValue(0)
         self._registration_progress.setFormat('Przeliczanie ręcznej korekty filmu…' if manual else 'Przygotowanie…')
         if manual and self._pair_dialog is not None:
             self._pair_dialog.show_movie_progress(0, len(self._frames), 'Przeliczanie filmu…')
+        if graph:
+            self._graph.show_movie_progress(0, len(self._frames), 'Odtwarzanie filmu z oryginałów…')
         self._registration_progress.show()
-        self._registration_cancel.setText('Anuluj korektę filmu' if manual else 'Anuluj rejestrację')
+        self._registration_cancel.setText('Anuluj zmianę filmu' if graph else 'Anuluj korektę filmu' if manual else 'Anuluj rejestrację')
         self._registration_cancel.setEnabled(True)
         self._registration_cancel.show()
         self._open_button.setEnabled(False)
@@ -862,6 +881,8 @@ class STMViewerMainWindow(QMainWindow):
     def _show_registration_progress(self, done: int, total: int, description: str) -> None:
         if isinstance(self._registration_job, ManualMovieJob) and self._pair_dialog is not None:
             self._pair_dialog.show_movie_progress(done, total, description)
+        if isinstance(self._registration_job, GraphApplicationJob):
+            self._graph.show_movie_progress(done, total, description)
         self._registration_progress.setRange(0, total)
         self._registration_progress.setValue(done)
         if self._registration_cancel.isEnabled():
@@ -870,6 +891,8 @@ class STMViewerMainWindow(QMainWindow):
     def _cancel_registration(self) -> None:
         if self._registration_job is not None:
             self._registration_job.cancel()
+            if isinstance(self._registration_job, GraphApplicationJob):
+                self._graph.movie_cancelling()
             if isinstance(self._registration_job, ManualMovieJob) and self._pair_dialog is not None:
                 self._pair_dialog.movie_cancelling()
             self._registration_cancel.setEnabled(False)
@@ -905,12 +928,15 @@ class STMViewerMainWindow(QMainWindow):
         except (OSError, ValueError, OverflowError, MemoryError) as error:
             self._show_registration_error(str(error) or type(error).__name__)
         finally:
-            if isinstance(job, ManualMovieJob) and self._pair_dialog is not None:
+            if isinstance(job, (ManualMovieJob, GraphApplicationJob)):
                 message = ('Anulowano. Poprzedni film i korekty pozostają.' if job.was_cancelled()
                            else f'Niepowodzenie: {job.error}. Poprzedni film i korekty pozostają.' if job.error
                            else 'Film został przeliczony. Podgląd aligned oraz eksport używają nowego wyniku.'
                            if self._registration is job.result else 'Nie podmieniono wyniku filmu.')
-                self._pair_dialog.finish_movie_progress(message)
+                if isinstance(job, GraphApplicationJob):
+                    self._graph.finish_movie_progress(message)
+                elif self._pair_dialog is not None:
+                    self._pair_dialog.finish_movie_progress(message)
             self._registration_job = None
             job.deleteLater()
             self._registration_progress.hide()
@@ -932,53 +958,10 @@ class STMViewerMainWindow(QMainWindow):
         message.open()
 
     def _show_registration_warnings(self) -> None:
-        if self._registration is None:
-            return
-        self._strip.set_warnings(tuple(
-            (("Do sprawdzenia: pewność niezweryfikowana"
-              + (" (niepewność odziedziczona)" if frame.inherited_uncertainty else ""))
-             if frame.quality_score is None
-             else "Do sprawdzenia: niepewność odziedziczona" if frame.inherited_uncertainty
-             else "Do sprawdzenia: niska pewność") if frame.status != "ok" else ""
-            for frame in self._registration.frames
-        ))
+        if self._registration is not None:
+            self._strip.set_warnings(registration_warnings(self._registration))
 
     def _show_registration_info(self) -> None:
-        if self._registration is None:
-            self._registration_text.setText(alignment_history_text(self._frames[self._index]))
-            return
-        result = self._registration
-        current = result.frames[self._index]
-        origin = result.reference.source.name
-        if result.reference.source_frame_index is not None:
-            origin += f" · MPP {result.reference.source_frame_index + 1}"
-        height, width = result.canvas_shape
-        quality = ("⚠ Do sprawdzenia — pewność niezweryfikowana" if current.quality_score is None
-                   else "OK" if current.status == "ok" else "⚠ Do sprawdzenia")
-        inherited = " (niepewność odziedziczona)" if current.inherited_uncertainty else ""
-        scale = "piksele — brak wspólnej skali" if result.pixel_size_nm is None else "wspólna skala źródłowa"
-        if self._pixel_proportions.isChecked():
-            scale = "piksele — opcja Proporcje pikselowe"
-        self._registration_text.setText(
-            f"{result.method} · {quality}{inherited}\nUrządzenie: {result.device}\n"
-            + (f"Ręczne korekty filmu: {len(result.corrections)} · jakość nieoceniona\n"
-               if result.corrections else "")
-            +             f"ΔX: {current.shift_xy[0]:g} px · ΔY: {current.shift_xy[1]:g} px\n"
-            f"Aligned: {width} × {height} px\nSkala aligned: {scale}\nOdniesienie: {origin}"
-            + self._pair_frame_info(result)
-        )
-
-    def _pair_frame_info(self, result: RegistrationResult) -> str:
-        if result.local_diagnostics:
-            local = result.local_diagnostics[self._index]
-            if local is None:
-                return '\nPierwsza klatka jest odniesieniem; nie wymaga estymacji fragmentów.'
-            return ('\nAutomatyczna estymata pary (przed ręcznymi korektami i usuwaniem):\n'
-                    + local_details_text(local) + '\n' + local.settings_text)
-        if not result.pair_diagnostics:
-            return ''
-        details = result.pair_diagnostics[self._index]
-        if details is None:
-            return '\nHybryda: pierwsza klatka jest odniesieniem; nie wymaga estymacji pary.'
-        return ('\nAutomatyczna estymata pary (przed ręcznymi korektami i usuwaniem):\n'
-                + hybrid_details_text(details) + '\n' + details.settings_text)
+        text = (alignment_history_text(self._frames[self._index]) if self._registration is None else
+                registration_info(self._registration, self._index, self._pixel_proportions.isChecked()))
+        self._registration_text.setText(text)

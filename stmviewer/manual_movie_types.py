@@ -1,6 +1,10 @@
 """Lightweight portable provenance of manual movie corrections; no image arrays."""
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from stmviewer.graph_movie_provenance import GraphMovieProvenance
 
 
 @dataclass(frozen=True)
@@ -36,3 +40,4 @@ class MovieHistory:
     settings_version: int
     baseline: tuple[MovieBaselineFrame, ...]
     corrections: tuple[MovieCorrection, ...]
+    graph_provenance: 'GraphMovieProvenance | None' = None

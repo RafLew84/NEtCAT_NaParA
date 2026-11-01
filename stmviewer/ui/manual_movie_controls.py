@@ -97,6 +97,19 @@ class ManualMovieControls(QGroupBox):
         text = (f'{source(frames[index - 1])} → {source(frames[index])}\n'
                 f'W filmie: XY ({current.shift_xy[0]:g}, {current.shift_xy[1]:g}) px.\n'
                 f'Zmiana obejmie klatki {index + 1}–{len(frames)}.\n')
+        if result.graph_application is not None:
+            application = result.graph_application
+            positions = application.positions
+            gx = positions[index][0] - positions[index - 1][0]
+            gy = positions[index][1] - positions[index - 1][1]
+            edge = next((edge for edge in application.graph.edges
+                         if (edge.i, edge.j) == (index - 1, index)), None)
+            raw = ('brak pomiaru' if edge is None or edge.shift_xy is None else
+                   f'({edge.shift_xy[0]:g}, {edge.shift_xy[1]:g}) px')
+            text += (f'Baza G — różnica sąsiadów: ({gx:g}, {gy:g}) px.\n'
+                     f'Osobny surowy pomiar modelu: {raw}.\n'
+                     'Usunięcie korekty przywraca różnicę G. Ręczna zmiana nie uruchamia solvera; '
+                     'jakość zmienionego filmu pozostaje nieoceniona.\n')
         if trial is None or trial.manual is None:
             text += 'Rozpocznij i zakończ ręczną korektę, aby zastosować ją do filmu.'
         elif already_applied:

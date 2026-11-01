@@ -82,7 +82,9 @@ def decode_manual_results(value: object, check_cancelled: Callable[[], None]) ->
     revisions: set[str] = set()
     for item in value:
         check_cancelled()
-        record = json_object(item, {'revision', 'settings_version', 'baseline', 'corrections'})
+        has_graph = isinstance(item, dict) and 'graph_provenance' in item
+        record = json_object(item, {'revision', 'settings_version', 'baseline', 'corrections'}
+                             | ({'graph_provenance'} if has_graph else set()))
         revision = optional_text(record, 'revision')
         if not revision or not revision.strip() or revision in revisions:
             raise ValueError('Korekta filmu: pusta lub powtórzona wersja wyniku.')
@@ -104,7 +106,11 @@ def decode_manual_results(value: object, check_cancelled: Callable[[], None]) ->
             corrections.append(_correction(correction))
         if len({correction.moving for correction in corrections}) != len(corrections):
             raise ValueError('Korekta filmu: powtórzone nadpisanie tej samej pary.')
-        history = MovieHistory(revision, _version(record), tuple(baseline), tuple(corrections))
+        provenance = None
+        if has_graph:
+            from stmviewer.graph_movie_provenance import decode_graph_movie_provenance
+            provenance = decode_graph_movie_provenance(record['graph_provenance'])
+        history = MovieHistory(revision, _version(record), tuple(baseline), tuple(corrections), provenance)
         _validate_manual_result(history)
         results.append(history)
     return tuple(results)
@@ -116,12 +122,24 @@ def encode_manual_results(results: tuple[MovieHistory, ...],
     records = []
     for result in results:
         check_cancelled()
-        records.append(asdict(result))
+        record = asdict(result)
+        if result.graph_provenance is None:
+            record.pop('graph_provenance')
+        records.append(record)
     decode_manual_results(records, check_cancelled)
     return records
 
 
 def _validate_manual_result(history: MovieHistory) -> None:
+    graph = history.graph_provenance
+    if graph is not None:
+        if (len(graph.final_positions) != len(history.baseline)
+                or history.baseline[0].shift_xy != (0., 0.)
+                or any(frame.status != 'manual_review' or frame.quality_score is not None
+                       or frame.inherited_uncertainty for frame in history.baseline)
+                or graph.final_positions != tuple(manual_frame_state(history, i).shift_xy
+                                                 for i in range(len(history.baseline)))):
+            raise ValueError('Graf: pochodzenie nie odpowiada bazie i końcowym korektom filmu.')
     indices = {frame.source: i for i, frame in enumerate(history.baseline)}
     for correction in history.corrections:
         reference = indices.get(correction.reference)

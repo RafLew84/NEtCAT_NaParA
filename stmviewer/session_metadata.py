@@ -10,6 +10,9 @@ from stmviewer.alignment_metadata import (
 )
 from stmviewer.frame import ImageFrame
 from stmviewer.graph_metadata import decode_graph, encode_graph
+from stmviewer.graph_movie_provenance import movie_history
+from stmviewer.movie_snapshot_metadata import decode_movie_snapshot, encode_movie_snapshot
+from stmviewer.graph_application_metadata import decode_graph_application, encode_graph_application
 from stmviewer import session_paths
 from stmviewer.manual_movie_metadata import decode_manual_results, encode_manual_results, manual_frame_state
 from stmviewer.manual_movie_types import MovieHistory, MovieSource
@@ -88,7 +91,7 @@ def _root(value: object) -> dict[str, object]:
     record = json_object(value)
     if record.get('schema') == 'stmviewer-state-v1':
         return json_object(record, _ROOT_KEYS)
-    if record.get('schema') == 'stmviewer-state-v2':
+    if record.get('schema') in ('stmviewer-state-v2', 'stmviewer-state-v3'):
         return json_object(record, _ROOT_KEYS | {'graph'})
     raise ValueError('Nieobsługiwana wersja stanu sesji.')
 
@@ -114,7 +117,7 @@ def session_array_shapes(manifest: object) -> dict[str, tuple[int, int]]:
     if len(set(shapes.values())) != 1:
         raise ValueError('Sesja: klatki original mają różne wymiary.')
     if root['registration'] is not None:
-        registration = json_object(root['registration'], _REGISTRATION_KEYS)
+        registration = _registration_object(root['registration'])
         aligned = _frame_records(registration.get('frames'), 'aligned')
         if len(originals) != len(aligned):
             raise ValueError('Sesja: liczba obrazów aligned nie odpowiada original.')
@@ -205,8 +208,8 @@ def _decode_display(value: object, count: int, aligned: bool) -> SessionViewStat
 
 
 def _registration_record(result: RegistrationResult, images: tuple[ImageFrame, ...],
-                         manual_ids: dict[str, int]) -> dict[str, object]:
-    return {
+                         manual_ids: dict[str, int], check_cancelled: Callable[[], None]) -> dict[str, object]:
+    record: dict[str, object] = {
         'frames': [_encode_frame(frame, f'aligned/{i:06d}.npy', manual_ids) for i, frame in enumerate(images)],
         'image_alignments': [encode_alignment(frame.image.alignment, manual_ids=manual_ids) for frame in result.frames],
         'reference': {'source': str(result.reference.source), 'source_frame_index': result.reference.source_frame_index},
@@ -218,13 +221,23 @@ def _registration_record(result: RegistrationResult, images: tuple[ImageFrame, .
         'pair_diagnostics': encode_pair_diagnostics(result.pair_diagnostics),
         'local_diagnostics': encode_local_diagnostics(result.local_diagnostics),
     }
+    if result.graph_application is not None:
+        record['graph_application'] = encode_graph_application(result.graph_application)
+    if result.predecessor is not None:
+        record['predecessor'] = encode_movie_snapshot(result.predecessor, check_cancelled)
+    return record
+
+
+def _registration_object(value: object) -> dict[str, object]:
+    record = json_object(value)
+    return json_object(record, _REGISTRATION_KEYS | ({'graph_application', 'predecessor'} & record.keys()))
 
 
 def _decode_registration(value: object, originals: tuple[ImageFrame, ...],
                          arrays: Mapping[str, NDArray[np.float64]],
                          histories: tuple[MovieHistory, ...],
                          check_cancelled: Callable[[], None]) -> RegistrationResult:
-    record = json_object(value, _REGISTRATION_KEYS)
+    record = _registration_object(value)
     images = tuple(_decode_frame(item, arrays, histories) for item in _frame_records(record['frames'], 'aligned'))
     image_histories = _sequence(record['image_alignments'])
     if len(images) != len(originals) or len(image_histories) != len(originals):
@@ -294,7 +307,7 @@ def _decode_registration(value: object, originals: tuple[ImageFrame, ...],
         aligned.append(AlignedFrame(original, image, mask, history.shift_xy, history.origin_xy,
                                     history.status, history.quality_score, history.inherited_uncertainty))
     left, top, right, bottom = padding
-    return RegistrationResult(
+    result = RegistrationResult(
         frames=tuple(aligned), reference=FrameOrigin(session_paths.native_path(reference.source), reference.source_frame_index),
         canvas_shape=canvas, padding_ltrb=(left, top, right, bottom), pixel_size_nm=pixel_size,
         method=method, device=device, settings_version=version, revision=revision,
@@ -302,7 +315,18 @@ def _decode_registration(value: object, originals: tuple[ImageFrame, ...],
         corrections_editable=editable,
         pair_diagnostics=decode_pair_diagnostics(record['pair_diagnostics'], len(originals)),
         local_diagnostics=decode_local_diagnostics(record['local_diagnostics'], len(originals)),
+        graph_application=decode_graph_application(record.get('graph_application'), originals,
+            manual.baseline if manual else (), check_cancelled, allow_subset=not editable),
+        predecessor=decode_movie_snapshot(record.get('predecessor'), originals, check_cancelled),
     )
+    if manual is not None and manual.graph_provenance != movie_history(result).graph_provenance:
+        raise ValueError('Sesja: pochodzenie grafu nie odpowiada aktywnemu zastosowaniu.')
+    if result.graph_application is not None:
+        application = result.graph_application
+        if (result.method != f'Deep Matcher — graf {application.solver}'
+                or result.device != application.graph.config.device):
+            raise ValueError('Sesja: opis metody grafu nie odpowiada aktywnemu zastosowaniu.')
+    return result
 
 
 def encode_session(state: SessionState, *, check_cancelled: Callable[[], None] = _noop
@@ -317,7 +341,7 @@ def encode_session(state: SessionState, *, check_cancelled: Callable[[], None] =
         raise ValueError('Sesja: aktywna rejestracja należy do innej serii original.')
     histories = collect_manual_histories(state.frames + images + exported, check_cancelled)
     if result is not None and result.baseline:
-        active = MovieHistory(result.revision, result.settings_version, result.baseline, result.corrections)
+        active = movie_history(result)
         existing = next((item for item in histories if item.revision == active.revision), None)
         if existing is not None and existing != active:
             raise ValueError('Sesja: sprzeczne historie tej samej korekty.')
@@ -331,13 +355,16 @@ def encode_session(state: SessionState, *, check_cancelled: Callable[[], None] =
     manifest: dict[str, object] = {
         'schema': 'stmviewer-state-v1',
         'frames': [_encode_frame(frame, f'original/{i:06d}.npy', ids) for i, frame in enumerate(state.frames)],
-        'registration': _registration_record(result, exported, ids) if result is not None else None,
+        'registration': _registration_record(result, exported, ids, check_cancelled) if result is not None else None,
         'display': asdict(state.display),
         'manual_histories': encode_manual_results(histories, check_cancelled) if histories else [],
     }
     if state.graph is not None:
         manifest['schema'] = 'stmviewer-state-v2'
         manifest['graph'] = encode_graph(state.graph)
+    if result is not None and (result.graph_application is not None or result.predecessor is not None):
+        manifest['schema'] = 'stmviewer-state-v3'
+        manifest.setdefault('graph', None)
     decode_session(manifest, arrays, check_cancelled=check_cancelled)
     return manifest, arrays
 
@@ -358,5 +385,5 @@ def decode_session(manifest: object, arrays: Mapping[str, NDArray[np.float64]], 
         decoded.append(_decode_frame(record, arrays, histories))
     frames = tuple(decoded)
     registration = None if root['registration'] is None else _decode_registration(root['registration'], frames, arrays, histories, check_cancelled)
-    graph = None if 'graph' not in root else decode_graph(root['graph'], frames, check_cancelled)
+    graph = None if root.get('graph') is None else decode_graph(root['graph'], frames, check_cancelled)
     return SessionState(frames, registration, _decode_display(root['display'], len(frames), registration is not None), graph)

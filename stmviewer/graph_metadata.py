@@ -81,7 +81,7 @@ def _settings(value: object) -> tuple[tuple[str, str], ...]:
     return tuple(pairs)
 
 
-def _source(value: object) -> GraphSource:
+def decode_graph_source(value: object) -> GraphSource:
     record = json_object(value, _SOURCE_KEYS)
     source = source_provenance({key: record[key] for key in ('source', 'source_frame_index')})
     shape = _indices(record['shape'])
@@ -90,7 +90,7 @@ def _source(value: object) -> GraphSource:
     return GraphSource(source.source, source.source_frame_index, shape, _digest(record['pixels_sha256']))
 
 
-def _config(value: object) -> GraphConfig:
+def decode_graph_config(value: object) -> GraphConfig:
     record = json_object(value, _CONFIG_KEYS)
     window = _integer(record['window'])
     version = _integer(record['settings_version'])
@@ -130,7 +130,7 @@ def encode_graph(trial: GraphTrial) -> dict[str, object]:
 
 
 def decode_graph(value: object, frames: tuple[ImageFrame, ...],
-                 check_cancelled: Callable[[], None]) -> GraphTrial:
+                 check_cancelled: Callable[[], None], *, allow_subset: bool = False) -> GraphTrial:
     """Restore graph values without loading weights or running registration."""
     check_cancelled()
     record = json_object(value)
@@ -141,14 +141,16 @@ def decode_graph(value: object, frames: tuple[ImageFrame, ...],
     positions = None if record['positions'] is None else tuple(_xy(item) for item in _items(record['positions']))
     chain = None if record['chain_positions'] is None else tuple(_xy(item) for item in _items(record['chain_positions']))
     trial = GraphTrial(
-        tuple(_source(item) for item in _items(record['sources'])), _config(record['config']),
+        tuple(decode_graph_source(item) for item in _items(record['sources'])), decode_graph_config(record['config']),
         tuple(_edge(item) for item in _items(record['edges'])), positions, chain,
         tuple(tuple(_integer(item) for item in _items(component)) for component in _items(record['components'])),
         tuple(_indices(item) for item in _items(record['bridges'])), _text(record['revision']),
         _integer(record['anchor']), _text(record['solver']), _integer(record['measured_pairs']),
         _integer(record['reused_pairs']), _number(record['measurement_s']), _number(record['solver_s']),
     )
-    _validate_sources(trial, frames, check_cancelled)
+    if len(trial.sources) < 2:
+        raise ValueError('Graf: wymaga przynajmniej dwóch źródeł.')
+    bind_graph_sources(trial.sources, frames, check_cancelled, allow_subset=allow_subset)
     validate_graph_result(trial, check_cancelled)
     if schema == 'stmviewer-graph-v2':
         from stmviewer.robust_graph_metadata import decode_robust_trial
@@ -164,13 +166,14 @@ def decode_graph(value: object, frames: tuple[ImageFrame, ...],
         trial = replace(trial, robust_trials=tuple(variants))
     # Runtime graph identities follow the native frame spelling, as active manual
     # histories do. The frame's provenance preserves historical source text.
-    return replace(trial, sources=tuple(replace(source, source=str(frame.source))
-                                        for source, frame in zip(trial.sources, frames, strict=True)))
+    return replace(trial, sources=tuple(replace(source, source=str(session_paths.native_path(source.source)))
+                                        for source in trial.sources))
 
 
-def _validate_sources(trial: GraphTrial, frames: tuple[ImageFrame, ...],
-                      check_cancelled: Callable[[], None]) -> None:
-    if len(trial.sources) != len(frames) or len(frames) < 2:
+def bind_graph_sources(sources: tuple[GraphSource, ...], frames: tuple[ImageFrame, ...],
+                       check_cancelled: Callable[[], None], *, allow_subset: bool = False
+                       ) -> tuple[GraphSource, ...]:
+    if not frames or not sources or (not allow_subset and len(sources) != len(frames)):
         raise ValueError('Graf: liczba źródeł nie odpowiada serii.')
 
     def cancelled() -> bool:
@@ -178,8 +181,17 @@ def _validate_sources(trial: GraphTrial, frames: tuple[ImageFrame, ...],
         return False
 
     current = graph_sources(frames, cancelled=cancelled)
-    for saved, original in zip(trial.sources, current, strict=True):
-        if (session_paths.native_path(saved.source) != session_paths.native_path(original.source)
-                or saved.source_frame_index != original.source_frame_index
-                or saved.shape != original.shape or saved.pixels_sha256 != original.pixels_sha256):
-            raise ValueError('Graf: powiązanie źródła lub wartości obrazu nie odpowiada sesji.')
+    saved_sources = tuple(replace(source, source=str(session_paths.native_path(source.source)))
+                          for source in sources)
+    if len({(s.source, s.source_frame_index) for s in saved_sources}) != len(saved_sources):
+        raise ValueError('Graf: powtórzone źródło w serii.')
+    previous = -1
+    for original in current:
+        try:
+            index = saved_sources.index(original)
+        except ValueError as error:
+            raise ValueError('Graf: powiązanie źródła lub wartości obrazu nie odpowiada sesji.') from error
+        if index <= previous or (not allow_subset and index != previous + 1):
+            raise ValueError('Graf: kolejność źródeł nie odpowiada sesji.')
+        previous = index
+    return saved_sources

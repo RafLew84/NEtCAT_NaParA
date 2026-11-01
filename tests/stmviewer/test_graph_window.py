@@ -41,7 +41,7 @@ def test_graph_session_and_export_keep_the_active_manual_movie(qtbot, monkeypatc
     summary = graph.findChild(QLabel, 'graphSummary').text()
     assert '3' in summary
     variants = graph.findChild(QComboBox, 'graphVariant')
-    assert {variants.itemData(i) for i in range(variants.count())} == {'graph', 'chain'}
+    assert {variants.itemData(i) for i in range(variants.count())} == {'graph', 'chain', 'active'}
     variants.setCurrentIndex(variants.findData('graph'))
     graph.findChild(QSpinBox, 'graphFrame').setValue(3)
     assert_shifts(window, expected)

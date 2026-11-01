@@ -19,6 +19,7 @@ from stmviewer.pair_comparison import PairTrial
 from stmviewer.registration import FrameOrigin, RegistrationResult
 from stmviewer.ui.deep_matcher_controls import DeepMatcherControls
 from stmviewer.ui.graph_job import GraphJob
+from stmviewer.ui.graph_application_controls import GraphApplicationControls
 from stmviewer.ui.graph_movie import GraphMovieWidget
 from stmviewer.ui.robust_graph_controls import RobustGraphControls
 from stmviewer.ui.pair_dialog import PairComparisonDialog
@@ -44,6 +45,9 @@ def _number_ranges(indices: tuple[int, ...]) -> str:
 class GraphComparisonDialog(QDialog):
     changed = pyqtSignal()
     busy_changed = pyqtSignal()
+    movie_apply_requested = pyqtSignal(object, object)
+    movie_restore_requested = pyqtSignal()
+    movie_cancel_requested = pyqtSignal()
 
     def __init__(self, frames: tuple[ImageFrame, ...], parent: QWidget, *,
                  registration: RegistrationResult | None = None,
@@ -58,8 +62,8 @@ class GraphComparisonDialog(QDialog):
         self._pair: PairComparisonDialog | None = None
         self._available, self._closing = True, False
         layout = QVBoxLayout(self)
-        scope = QLabel('Kandydat do oceny i zapisu w sesji. Aktywny aligned, ręczne korekty '
-                       'i eksport pozostają bez zmian.', self)
+        scope = QLabel('Przeglądanie i obliczanie kandydata zachowuje aktywny film i korekty. '
+                       'Jawne zastosowanie lub przywrócenie podmienia aligned oraz wynik eksportu.', self)
         scope.setObjectName('graphScope')
         scope.setWordWrap(True)
         layout.addWidget(scope)
@@ -72,6 +76,12 @@ class GraphComparisonDialog(QDialog):
         scroll.setFixedWidth(310)
         scroll.setWidget(panel)
         body.addWidget(scroll)
+        self._application = GraphApplicationControls(frames, self)
+        self._application.apply_requested.connect(self.movie_apply_requested)
+        self._application.restore_requested.connect(self.movie_restore_requested)
+        self._application.cancel_requested.connect(self.movie_cancel_requested)
+        self._application.variant_selected.connect(self._application_variant_changed)
+        sidebar.addWidget(self._application)
         sidebar.addWidget(QLabel('Deep Matcher — wspólne XY bez ECC', self))
         self._window = QComboBox(self)
         self._window.setObjectName('graphWindow')
@@ -160,7 +170,7 @@ class GraphComparisonDialog(QDialog):
 
     @property
     def busy(self) -> bool:
-        return self._job is not None or self._robust.busy or (self._pair is not None and self._pair.busy)
+        return self._job is not None or self._robust.busy or self._application.busy or (self._pair is not None and self._pair.busy)
 
     def set_available(self, available: bool) -> None:
         self._available = available
@@ -169,8 +179,25 @@ class GraphComparisonDialog(QDialog):
     def set_registration(self, registration: RegistrationResult | None) -> None:
         self._registration = registration
         self._movie.set_graph(self._trial, registration)
+        self._application.set_context(self._trial, registration)
+
+    def show_movie_progress(self, done: int, total: int, description: str) -> None:
+        self._movie.pause()
+        self._application.show_progress(done, total, description)
+        self._sync()
+
+    def finish_movie_progress(self, message: str) -> None:
+        self._application.finish_progress(message)
+        self._sync()
+        if self._closing and not self.busy:
+            self.close()
+
+    def movie_cancelling(self) -> None:
+        self._application.cancelling()
 
     def cancel(self) -> None:
+        if self._application.busy:
+            self.movie_cancel_requested.emit()
         self._robust.cancel()
         if self._job is not None:
             self._job.cancel()
@@ -192,6 +219,7 @@ class GraphComparisonDialog(QDialog):
         self._cancel.setVisible(self._job is not None)
         self._progress.setVisible(self._job is not None)
         self._robust.set_available(available)
+        self._application.set_available(available)
         self._inspect.setEnabled(available and self._trial is not None and self._edges.currentRow() >= 0)
         if self._pair is not None:
             self._pair.set_available(self._available and self._job is None and not self._robust.busy)
@@ -214,6 +242,7 @@ class GraphComparisonDialog(QDialog):
                 f'{trial.config.device} · wagi: {Path(trial.config.weights_path).name}\n'
                 f'SHA-256 wag: {trial.config.weights_sha256[:16]}…\n'
                 'Równe wagi LS. Wynik modelu i małe reszty nie stanowią oceny jakości obrazu.')
+        self._application.set_context(trial, self._registration)
         self._robust.set_graph(trial, select_new=select_new_robust)
         self._present_edges()
         self._movie.set_graph(trial, self._registration)
@@ -266,10 +295,18 @@ class GraphComparisonDialog(QDialog):
     def _selected_robust(self) -> None:
         self._present_edges()
         result = self._robust.selected
+        if result is not None:
+            self._application.select_variant(f'huber:{result.revision}')
         if result is not None and result.positions is not None:
             self._movie.select_variant(f'huber:{result.revision}')
 
+    def _application_variant_changed(self, key: str) -> None:
+        if key.startswith('huber:'):
+            self._robust.select(key.removeprefix('huber:'))
+        self._movie.select_variant(key)
+
     def _movie_variant_changed(self, key: str) -> None:
+        self._application.select_variant(key)
         if key.startswith('huber:'):
             self._robust.select(key.removeprefix('huber:'))
 

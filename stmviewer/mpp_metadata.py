@@ -84,21 +84,21 @@ def apply_mpp_metadata(path: Path, frames: tuple[ImageFrame, ...], *, sha256: st
         except (UnicodeError, json.JSONDecodeError) as error:
             raise ValueError(f'Nieprawidłowy JSON UTF-8: {error}') from error
         check_cancelled()
-        v4 = isinstance(decoded, dict) and decoded.get('version') == 4
+        shared_history = isinstance(decoded, dict) and decoded.get('version') in (4, 5)
         metadata = _object(decoded, {'format', 'version', 'image_kind', 'movie', 'frames'}
-                           | ({'manual_results', 'sample_encoding'} if v4 else set()))
+                           | ({'manual_results', 'sample_encoding'} if shared_history else set()))
         if metadata['format'] != 'stmviewer-mpp':
             raise ValueError('Nieobsługiwany format dodatku.')
-        if type(metadata['version']) is not int or metadata['version'] not in (1, 2, 3, 4):
+        if type(metadata['version']) is not int or metadata['version'] not in (1, 2, 3, 4, 5):
             raise ValueError(f'Nieobsługiwana wersja dodatku: {metadata["version"]}.')
         version = metadata['version']
         assert isinstance(version, int)
         manual_results: tuple[MovieHistory, ...] = ()
         finite_fill = version == 3
-        if version == 4:
+        if version >= 4:
             manual_results = decode_manual_results(metadata['manual_results'], check_cancelled)
             if metadata['sample_encoding'] not in ('native-f64', 'finite-fill'):
-                raise ValueError('Nieobsługiwany zapis próbek V4.')
+                raise ValueError('Nieobsługiwany zapis próbek V4/V5.')
             finite_fill = metadata['sample_encoding'] == 'finite-fill'
         kind = metadata['image_kind']
         if kind not in ('original', 'aligned') or (version == 1 and kind != 'original'):
@@ -150,7 +150,7 @@ def apply_mpp_metadata(path: Path, frames: tuple[ImageFrame, ...], *, sha256: st
 def encode_mpp_metadata(frames: tuple[ImageFrame, ...], sha256: str, *,
                         check_cancelled: Callable[[], None], image_kind: str = "original",
                         wsxm_compatible: bool = False) -> bytes:
-    """Keep legacy formats, adding shared V4 provenance only for manual history."""
+    """Keep legacy formats; V4 shares manual history, V5 adds frozen graph provenance."""
     validate_alignment_series(frames, aligned=image_kind == "aligned")
     version = 2 if image_kind == "aligned" or any(f.alignment for f in frames) else 1
     if wsxm_compatible:
@@ -159,6 +159,8 @@ def encode_mpp_metadata(frames: tuple[ImageFrame, ...], sha256: str, *,
     manual_ids = {history.revision: index for index, history in enumerate(manual_results)}
     if manual_results:
         version = 4
+    if any(history.graph_provenance is not None for history in manual_results):
+        version = 5
     finite_fill = wsxm_compatible
     remaining_runs = MAX_RUNS
     records = []
@@ -183,7 +185,7 @@ def encode_mpp_metadata(frames: tuple[ImageFrame, ...], sha256: str, *,
     metadata = dict(format='stmviewer-mpp', version=version, image_kind=image_kind,
                     movie=dict(sha256=sha256, frame_count=len(frames), shape_yx=list(frames[0].data.shape)),
                     frames=records)
-    if version == 4:
+    if version >= 4:
         metadata['manual_results'] = encode_manual_results(manual_results, check_cancelled)
         metadata['sample_encoding'] = 'finite-fill' if finite_fill else 'native-f64'
     payload = (json.dumps(metadata, ensure_ascii=False, allow_nan=False, sort_keys=True, separators=(',', ':')) + '\n').encode('utf-8')
