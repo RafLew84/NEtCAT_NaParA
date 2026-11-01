@@ -61,10 +61,16 @@ def deep_graph_config(options: DeepMatcherOptions, window: int, device: str, *,
         libraries.append((library, installed))
     root = Path(__file__).resolve().parent.parent
     code = sha256()
+    pair_code = sha256()
     for name in ('stmviewer/graph_registration.py', 'stmviewer/graph_provenance.py',
                  'stmviewer/deep_matcher.py', 'nanotrack/registration/deep_matcher.py'):
         code.update(name.encode('utf-8'))
-        code.update((root / name).read_bytes())
+        content = (root / name).read_bytes()
+        code.update(content)
+        if name.endswith('/deep_matcher.py'):
+            pair_code.update(name.encode('utf-8'))
+            pair_code.update(content)
     return GraphConfig(window, str(weights), digest.hexdigest(), options.device, device,
                        tuple(sorted((str(k), str(v)) for k, v in settings.items())),
-                       tuple(libraries), 'sha256:' + code.hexdigest())
+                       tuple(libraries), 'sha256:' + code.hexdigest(),
+                       pair_code_version='sha256:' + pair_code.hexdigest())

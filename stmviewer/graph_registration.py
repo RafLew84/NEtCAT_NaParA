@@ -24,7 +24,8 @@ def graph_pairs(count: int, window: int) -> tuple[tuple[int, int], ...]:
 
 
 def solve_graph(sources: tuple[GraphSource, ...], edges: tuple[GraphEdge, ...],
-                config: GraphConfig, *, cancelled: Callable[[], bool] | None = None) -> GraphTrial:
+                config: GraphConfig, *, cancelled: Callable[[], bool] | None = None,
+                extra_pairs: tuple[tuple[int, int], ...] = ()) -> GraphTrial:
     """Solve supplied pixel measurements; model scores never become LS weights."""
     start = perf_counter()
     if cancelled is not None and cancelled():
@@ -33,10 +34,15 @@ def solve_graph(sources: tuple[GraphSource, ...], edges: tuple[GraphEdge, ...],
     if count < 2:
         raise RegistrationError('Próba grafu wymaga co najmniej dwóch klatek.')
     graph_pairs(count, config.window)
+    allowed_extra = set(extra_pairs)
+    if (len(allowed_extra) != len(extra_pairs)
+            or any(not 0 <= i < j < count or j - i <= config.window for i, j in extra_pairs)):
+        raise RegistrationError('Nieprawidłowy jawny plan dalszych relacji.')
     seen: set[tuple[int, int]] = set()
     for edge in edges:
         check_cancelled(cancelled)
-        if (not 0 <= edge.i < edge.j < count or edge.j - edge.i > config.window
+        if (not 0 <= edge.i < edge.j < count
+                or (edge.j - edge.i > config.window and (edge.i, edge.j) not in allowed_extra)
                 or (edge.i, edge.j) in seen):
             raise RegistrationError('Nieprawidłowe indeksy lub powtórzony pomiar grafu.')
         seen.add((edge.i, edge.j))

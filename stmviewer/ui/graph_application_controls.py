@@ -27,6 +27,7 @@ class GraphApplicationControls(QGroupBox):
         layout = QVBoxLayout(self)
         self._selection = QComboBox(self)
         self._selection.setObjectName('graphApplicationVariant')
+        self._selection.setPlaceholderText('Baza — tylko porównanie')
         self._selection.setAccessibleName('Wynik grafu do zastosowania w filmie')
         layout.addWidget(self._selection)
         self._info = QLabel(self)
@@ -85,16 +86,21 @@ class GraphApplicationControls(QGroupBox):
         with QSignalBlocker(self._selection):
             self._selection.clear()
             if trial is not None:
-                self._selection.addItem('LS — wspólne XY', 'graph')
+                label = 'LS — okno + dalsze odniesienia' if trial.extension is not None else 'LS — wspólne XY'
+                self._selection.addItem(label, 'graph')
                 for number, robust in enumerate(trial.robust_trials, 1):
                     self._selection.addItem(f'Huber {number} — próg {robust.config.threshold_px:g} px',
                                             f'huber:{robust.revision}')
                 index = self._selection.findData(selected)
-                if index >= 0:
-                    self._selection.setCurrentIndex(index)
+                self._selection.setCurrentIndex(index if index >= 0 else 0)
         self._describe()
 
     def select_variant(self, key: str) -> None:
+        if key.startswith('base:'):
+            with QSignalBlocker(self._selection):
+                self._selection.setCurrentIndex(-1)
+            self._describe()
+            return
         index = self._selection.findData(key)
         if index >= 0:
             self._selection.setCurrentIndex(index)
@@ -146,6 +152,11 @@ class GraphApplicationControls(QGroupBox):
             else:
                 from stmviewer.graph_application import graph_application_reason
                 self._apply_reason = graph_application_reason(self._frames, trial, robust_revision=revision, check_sources=False)
+            if trial.extension is not None:
+                extra = len(trial.edges) - len(trial.extension.base.edges)
+                text += f'Wynik rozszerzony: {extra} dalszych relacji poza oknem.\n'
+            if self._selection.currentIndex() < 0:
+                self._apply_reason = 'Podgląd bazy porównania. Wybierz powyżej wynik rozszerzony do zastosowania.'
         self._sources_button.setEnabled(trial is not None)
         self._info.setToolTip('SHA-256 wag: ' + trial.config.weights_sha256 if trial is not None else '')
         self._info.setText(text + (self._apply_reason or 'Wybrany wynik jest kompletny. Zastosowanie odtworzy film z oryginałów.'))

@@ -3,6 +3,7 @@ from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING
 
 from stmviewer.graph_types import GraphConfig, XY
+from stmviewer.graph_extension_provenance import GraphExtensionProvenance
 
 if TYPE_CHECKING:
     from stmviewer.manual_movie_types import MovieHistory
@@ -18,6 +19,7 @@ class GraphMovieProvenance:
     solver_settings: tuple[tuple[str, str], ...]
     final_positions: tuple[XY, ...]
     settings_version: int = 1
+    extension: GraphExtensionProvenance | None = None
 
 
 def movie_history(result: 'RegistrationResult') -> 'MovieHistory':
@@ -34,9 +36,12 @@ def movie_history(result: 'RegistrationResult') -> 'MovieHistory':
     if application.robust_revision is not None:
         variant = next(item for item in graph.robust_trials if item.revision == application.robust_revision)
         settings = tuple((key, str(value)) for key, value in asdict(variant.config).items())
+    from stmviewer.graph_extension_provenance import extension_provenance
+    extension = None if graph.extension is None else extension_provenance(graph.extension)
     provenance = GraphMovieProvenance(
         graph.revision, application.robust_revision, graph.config, application.solver, settings,
-        tuple(manual_frame_state(history, index).shift_xy for index in range(len(history.baseline))))
+        tuple(manual_frame_state(history, index).shift_xy for index in range(len(history.baseline))),
+        settings_version=2 if extension is not None else 1, extension=extension)
     return MovieHistory(history.revision, history.settings_version, history.baseline,
                         history.corrections, provenance)
 
@@ -45,8 +50,10 @@ def decode_graph_movie_provenance(value: object) -> GraphMovieProvenance:
     from stmviewer.graph_metadata import decode_graph_config
     from stmviewer.metadata_values import json_object, optional_number, optional_text
 
+    has_extension = isinstance(value, dict) and 'extension' in value
     record = json_object(value, {'graph_revision', 'robust_revision', 'config', 'solver',
-                                 'solver_settings', 'final_positions', 'settings_version'})
+                                 'solver_settings', 'final_positions', 'settings_version'}
+                         | ({'extension'} if has_extension else set()))
     revision = optional_text(record, 'graph_revision')
     robust_revision = optional_text(record, 'robust_revision')
     solver = optional_text(record, 'solver')
@@ -55,7 +62,8 @@ def decode_graph_movie_provenance(value: object) -> GraphMovieProvenance:
     if robust_revision is not None and (not robust_revision.strip() or '\x00' in robust_revision):
         raise ValueError('Graf: nieprawidłowy wariant pochodzenia.')
     expected_solver = 'equal-ls-v1' if robust_revision is None else 'block-huber-irls-v1'
-    if solver != expected_solver or type(record['settings_version']) is not int or record['settings_version'] != 1:
+    if (solver != expected_solver or type(record['settings_version']) is not int
+            or record['settings_version'] != (2 if has_extension else 1)):
         raise ValueError('Graf: nieobsługiwana wersja pochodzenia lub solvera.')
     coordinates = record['final_positions']
     if not isinstance(coordinates, (list, tuple)) or len(coordinates) < 2:
@@ -68,7 +76,33 @@ def decode_graph_movie_provenance(value: object) -> GraphMovieProvenance:
         if x is None or y is None:
             raise ValueError('Graf: pozycja nie może być null.')
         positions.append((x, y))
-    settings = record['solver_settings']
+    settings = decode_solver_settings(record['solver_settings'], expected_solver, robust_revision)
+    config = decode_graph_config(record['config'])
+    extension = None
+    if has_extension:
+        from stmviewer.graph_extension_provenance import decode_extension_provenance
+        extension = decode_extension_provenance(record['extension'], config, len(positions), revision)
+    return GraphMovieProvenance(revision, robust_revision, config, expected_solver, settings,
+                                tuple(positions), 2 if has_extension else 1, extension)
+
+
+def encode_graph_movie_provenance(provenance: GraphMovieProvenance) -> dict[str, object]:
+    from stmviewer.graph_metadata import encode_graph_config
+    from stmviewer.graph_extension_provenance import encode_extension_provenance
+
+    record = asdict(provenance)
+    record['config'] = encode_graph_config(provenance.config)
+    if provenance.extension is None:
+        record.pop('extension')
+    else:
+        record['extension'] = encode_extension_provenance(provenance.extension)
+    return record
+
+
+def decode_solver_settings(settings: object, solver: str,
+                            robust_revision: str | None) -> tuple[tuple[str, str], ...]:
+    from stmviewer.metadata_values import optional_number
+
     if not isinstance(settings, (list, tuple)):
         raise ValueError('Graf: nieprawidłowe ustawienia solvera.')
     pairs = []
@@ -94,5 +128,4 @@ def decode_graph_movie_provenance(value: object) -> GraphMovieProvenance:
         if (not mapping['max_iterations'].isdigit()
                 or mapping['condition_method'] != RobustConfig().condition_method):
             raise ValueError('Graf: nieobsługiwane ustawienie Hubera.')
-    return GraphMovieProvenance(revision, robust_revision, decode_graph_config(record['config']),
-                                expected_solver, tuple(pairs), tuple(positions))
+    return tuple(pairs)

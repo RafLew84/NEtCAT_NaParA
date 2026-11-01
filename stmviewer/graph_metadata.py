@@ -48,6 +48,13 @@ def _digest(value: object) -> str:
     return text
 
 
+def _pair_code(value: object) -> str:
+    text = _text(value)
+    if re.fullmatch(r'sha256:[0-9a-f]{64}', text) is None:
+        raise ValueError('Graf: nieprawidłowy identyfikator kodu estymatora.')
+    return text
+
+
 def _number(value: object) -> float:
     number = optional_number({'value': value}, 'value')
     if number is None:
@@ -90,8 +97,16 @@ def decode_graph_source(value: object) -> GraphSource:
     return GraphSource(source.source, source.source_frame_index, shape, _digest(record['pixels_sha256']))
 
 
+def encode_graph_config(config: GraphConfig) -> dict[str, object]:
+    record = asdict(config)
+    if config.pair_code_version is None:
+        record.pop('pair_code_version')
+    return record
+
+
 def decode_graph_config(value: object) -> GraphConfig:
-    record = json_object(value, _CONFIG_KEYS)
+    has_pair_code = isinstance(value, dict) and 'pair_code_version' in value
+    record = json_object(value, _CONFIG_KEYS | ({'pair_code_version'} if has_pair_code else set()))
     window = _integer(record['window'])
     version = _integer(record['settings_version'])
     if window not in (3, 5) or version != 1:
@@ -101,7 +116,8 @@ def decode_graph_config(value: object) -> GraphConfig:
         raise ValueError('Graf: nieobsługiwane urządzenie.')
     return GraphConfig(window, _text(record['weights_path']), _digest(record['weights_sha256']),
                        requested, device, _settings(record['backend_settings']),
-                       _settings(record['libraries']), _text(record['code_version']), version)
+                       _settings(record['libraries']), _text(record['code_version']), version,
+                       _pair_code(record['pair_code_version']) if has_pair_code else None)
 
 
 def _edge(value: object) -> GraphEdge:
@@ -120,12 +136,18 @@ def _edge(value: object) -> GraphEdge:
 
 def encode_graph(trial: GraphTrial) -> dict[str, object]:
     """Store measurements and positions; never store rendered candidate images."""
-    record = asdict(trial)
+    record = asdict(replace(trial, extension=None, robust_trials=()))
     record.pop('robust_trials')
-    if trial.robust_trials:
-        from stmviewer.robust_graph_metadata import encode_robust_trial
-        return {'schema': 'stmviewer-graph-v2', **record,
-                'robust_trials': [encode_robust_trial(item) for item in trial.robust_trials]}
+    record.pop('extension')
+    record['config'] = encode_graph_config(trial.config)
+    from stmviewer.robust_graph_metadata import encode_robust_trial
+    variants = [encode_robust_trial(item) for item in trial.robust_trials]
+    if trial.extension is not None:
+        from stmviewer.graph_extension_metadata import encode_graph_extension
+        return {'schema': 'stmviewer-graph-v3', **record, 'robust_trials': variants,
+                'extension': encode_graph_extension(trial.extension)}
+    if variants:
+        return {'schema': 'stmviewer-graph-v2', **record, 'robust_trials': variants}
     return {'schema': 'stmviewer-graph-v1', **record}
 
 
@@ -135,9 +157,12 @@ def decode_graph(value: object, frames: tuple[ImageFrame, ...],
     check_cancelled()
     record = json_object(value)
     schema = record.get('schema')
-    if schema not in ('stmviewer-graph-v1', 'stmviewer-graph-v2'):
+    if schema not in ('stmviewer-graph-v1', 'stmviewer-graph-v2', 'stmviewer-graph-v3'):
         raise ValueError('Nieobsługiwana wersja grafu sesji.')
-    record = json_object(record, _GRAPH_KEYS | ({'robust_trials'} if schema == 'stmviewer-graph-v2' else set()))
+    extra = {'robust_trials'} if schema != 'stmviewer-graph-v1' else set()
+    if schema == 'stmviewer-graph-v3':
+        extra.add('extension')
+    record = json_object(record, _GRAPH_KEYS | extra)
     positions = None if record['positions'] is None else tuple(_xy(item) for item in _items(record['positions']))
     chain = None if record['chain_positions'] is None else tuple(_xy(item) for item in _items(record['chain_positions']))
     trial = GraphTrial(
@@ -150,9 +175,14 @@ def decode_graph(value: object, frames: tuple[ImageFrame, ...],
     )
     if len(trial.sources) < 2:
         raise ValueError('Graf: wymaga przynajmniej dwóch źródeł.')
-    bind_graph_sources(trial.sources, frames, check_cancelled, allow_subset=allow_subset)
+    sources = bind_graph_sources(trial.sources, frames, check_cancelled, allow_subset=allow_subset)
+    trial = replace(trial, sources=sources)
+    if schema == 'stmviewer-graph-v3':
+        from stmviewer.graph_extension_metadata import decode_graph_extension
+        trial = replace(trial, extension=decode_graph_extension(
+            record['extension'], frames, check_cancelled, allow_subset=allow_subset))
     validate_graph_result(trial, check_cancelled)
-    if schema == 'stmviewer-graph-v2':
+    if schema != 'stmviewer-graph-v1':
         from stmviewer.robust_graph_metadata import decode_robust_trial
         from stmviewer.robust_graph_validation import validate_robust_result
         variants = []
@@ -164,10 +194,12 @@ def decode_graph(value: object, frames: tuple[ImageFrame, ...],
         if len({variant.revision for variant in variants}) != len(variants):
             raise ValueError('Huber: powtórzony identyfikator wariantu.')
         trial = replace(trial, robust_trials=tuple(variants))
-    # Runtime graph identities follow the native frame spelling, as active manual
-    # histories do. The frame's provenance preserves historical source text.
-    return replace(trial, sources=tuple(replace(source, source=str(session_paths.native_path(source.source)))
-                                        for source in trial.sources))
+    if trial.extension is not None:
+        from stmviewer.long_references import validate_graph_extension
+        if trial.extension.base_robust_revision is not None and not trial.robust_trials:
+            raise ValueError('Dalsze odniesienia: brak nowej próby wybranego solvera Hubera.')
+        validate_graph_extension(trial, check_cancelled)
+    return trial
 
 
 def bind_graph_sources(sources: tuple[GraphSource, ...], frames: tuple[ImageFrame, ...],
