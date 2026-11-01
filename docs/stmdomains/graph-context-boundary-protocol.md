@@ -6,22 +6,22 @@ zamrożonego eksperymentu 24, jego interpretacji ani dotychczasowych danych.
 
 ## Pytanie i zamknięta macierz
 
-Sprawdzamy, czy usunięcie asymetrii wyboru punktów na granicy okna72 usuwa
+Sprawdzamy, czy usunięcie asymetrii wyboru punktów na granicy okna 72 usuwa
 sztuczne domeny w pojedynczej sieci i zachowuje granice orientacji/fazy.
-Porównujemy wyłącznie trzy zapisane główne encodery transferowe24
+Porównujemy wyłącznie trzy zapisane główne encodery transferowe 24
 (sce_scale, ziarna 20261101–20261103) oraz ich własne inicjalizacje.
 Nie wybieramy modelu na podstawie wyników tej diagnozy.
 
-1. **closed72:** dokładne zapisane wejście i wyniki24 — baza.
-2. **halfopen72:** punkty o współrzędnych względem korzenia w[-36,36)
-   w obu osiach. Dolny brzeg: delta>=-36-1e-10; górny:delta<36-1e-10.
-   Opisy57 przeliczamy wewnątrz nowego ego. Promień krawędzi przypinamy
+1. **closed72:** dokładne zapisane wejście i wyniki 24 — baza.
+2. **halfopen72:** punkty o współrzędnych względem korzenia w [-36,36)
+   w obu osiach. Dolny brzeg: delta>=-36-1e-10; górny: delta<36-1e-10.
+   Opisy 57 przeliczamy wewnątrz nowego ego. Promień krawędzi przypinamy
    z oryginalnego closed72, aby zmiana nie dobierała nowego rozstawu.
 3. **root_only:** oryginalne 57 cech korzenia, jeden węzeł z pętlą własną,
    te same dwie warstwy encodera. To ablacja agregacji, nie naprawiony GNN.
 
 Wspólną klasyczną bazą jest root57 z 24. Daje to 19 reprezentacji:
-1 klasyczna  + 3 tryby × 2 stany wag×3 ziarna. Każda otrzyma FH k=4 i MWS,
+1 klasyczna + 3 tryby × 2 stany wag × 3 ziarna. Każda otrzyma FH k=4 i MWS,
 łącznie **3534 wyniki na 93 istniejących kontrolach**. Transdukcja, SCE-only,
 nowe pomiary i ponowna ocena TTMAPP nie należą do tej małej próby.
 
@@ -33,8 +33,8 @@ wytrenowany nowy model. Żadnego skalowania lub uśredniania orientacji.
 
 ## Stałe wejście i mianowniki
 
-Używamy wszystkich 93 kontroli24, z ziarnami 920021–920023, bez wybierania
-przypadków po wyniku. **S24** oznacza te same dostępne ID przy pełnym 72px:
+Używamy wszystkich 93 kontroli 24, z ziarnami 920021–920023, bez wybierania
+przypadków po wyniku. **S24** oznacza te same dostępne ID przy pełnym 72 px:
 8350 centrów łącznie, w pojedynczej sieci 121 na realizację. Każdy wariant
 zachowuje te ID, dostępność, jednostki i graf podziału. Brak przypisania
 pozostaje w mianowniku. Obraz jest wyłącznie tłem galerii.
@@ -46,9 +46,9 @@ Nie zwiększamy pola, nie poszerzamy pasów 20, nie dopasowujemy progów.
 
 Dodatkowy audyt opisuje wymagane nieucięte sąsiedztwo: węzły osiągalne
 w dwóch krokach oraz obwiednia ich opisów R24. Warunek, że obwiednia mieści
-się w ego72 i pomiarze, jest konserwatywnym certyfikatem przy przypiętym
+się w ego 72 i pomiarze, jest konserwatywnym certyfikatem przy przypiętym
 promieniu krawędzi. Nie służy filtrowaniu wyniku lub zmniejszeniu mianownika.
-Finite ego jest definicją starego modelu; ten audyt pyta o kompletność
+Ograniczone otoczenie jest definicją starego modelu; ten audyt pyta o kompletność
 względem sąsiedztwa bez jego ucinania, nie o wyciek danych w 24.
 
 ## Kryteria przed obliczeniami
@@ -57,9 +57,9 @@ A. **Usunięcie artefaktu single:** dokładnie jedna domena i 121/121 przypisań
 przed oraz po odmowach, we wszystkich trzech realizacjach i ziarnach danego
 stanu wag. Odrzucenie 21 korzeni brzegowych nie zalicza poprawy.
 
-B. **Prawdziwe granice:** osobno two_orientations,orientation_8deg,
-different_spacing,phase_boundary. Przed i po odmowach zachowujemy kryteria 24: coverage>=0.50,
-każda część>=0.30, merge<=0.02,split<=0.10 i F1>=0.70. Granice mierzymy
+B. **Prawdziwe granice:** osobno two_orientations, orientation_8deg,
+different_spacing, phase_boundary. Przed i po odmowach zachowujemy kryteria 24: coverage>=0.50,
+każda część>=0.30, merge<=0.02, split<=0.10 i F1>=0.70. Granice mierzymy
 midpointami wszystkich lokalnych krawędzi, tolerancja 8 reference_px.
 Zaliczenie A bez B oznacza jedynie usunięcie konkretnego artefaktu.
 
@@ -87,8 +87,8 @@ Wagi i adaptery są przypięte hashami. Kontrole są znane z 24; mimo to
 nowe źródła/protokół/plan przypinamy przed obliczeniami, predykcje przed
 ponownym otwarciem referencji do ich oceny.
 
-Baseline to oryginalne cache i predykcje24. Techniczny replay encoderaCPU
-może różnić się od oryginalnegoCUDA o błąd numeryczny; sprawdzamy allclose
+Baseline to oryginalne cache i predykcje 24. Techniczny replay encodera CPU
+może różnić się od oryginalnego CUDA o błąd numeryczny; sprawdzamy allclose
 z atol/rtol 1e-5, nie zmieniamy bazowych etykiet. Audyt obejmuje semantykę
 brzegów, permutację i translację, niezmienność root57, stałe ID/mianowniki,
 niezmienione wagi/adaptery oraz brak przypisań bez wsparcia.
