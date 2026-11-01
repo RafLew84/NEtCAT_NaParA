@@ -37,6 +37,10 @@ wyłącznie w tym otoczeniu. Eksportujemy embedding jego centrum. Węzły
 przy brzegu mają kontekst ograniczony z definicji; nie korzystają z globalnego
 cache sąsiadów. Liczby centrów i mianowniki zostaną zapisane przed treningiem.
 Padding nie jest pomiarem; ponad 128 węzłów oznacza jawną niedostępność.
+Przygotowanie wykazało 76 grafów train (66 w klatce 1 i 10 w klatce 50;
+klatka 100 nie ma pełnego wsparcia), 27 validation (19/8 w klatkach 150/200),
+831 testowych i 3795 dostępnych w całej serii. To mały zbiór zależnych
+obserwacji, bez przesuwania podziału dla poprawy liczebności.
 Nie ma rotacji, skalowania ani dodawania jitteru do danych treningowych.
 
 W TTMAPP jednostką pozostaje px: kalibracja tego wejścia nie jest wiarygodna.
@@ -64,7 +68,10 @@ dodatkowa kopia celu, surowe xy ani odległości krawędzi.
 Główny cel: `SCE(alpha=2) + MSE` czterech dostępnych kanałów odległości,
 waga MSE=1; wariant diagnostyczny: samo SCE. Strata dotyczy zamaskowanych
 rzeczywistych węzłów. SCE normalizuje wektory i nie mierzy ich normy;
-MSE zachowuje jawny cel skali. Nie nazywamy tego reprodukcją publikacji.
+MSE zachowuje jawny cel skali. Zerowe cele geometryczne nie wchodzą do
+SCE; ich liczba jest raportowana. Całkowicie nieinformacyjny batch pomija
+optymalizację, zużywając próbę kroku bez zastępczego losowania lub fitu.
+Nie nazywamy tego reprodukcją publikacji.
 [GraphMAE](https://arxiv.org/abs/2205.10803),
 [model autorów](https://github.com/THUDM/GraphMAE/blob/main/graphmae/models/edcoder.py),
 [strata](https://github.com/THUDM/GraphMAE/blob/main/graphmae/models/loss_func.py).
@@ -73,8 +80,8 @@ Najwyżej **9 fitów**: 2 cele × 3 ziarna transferu, następnie 3 refity
 transdukcyjne tylko głównego celu. Ziarna 20261101–20261103; wspólne
 inicjalizacje, losowania i maski dla porównania celów. Zachowujemy własne
 wagi początkowe jako kontrolę bez uczenia. Trening losuje równo klatki,
-następnie dostępne centra; batch64, AdamW lr=0.001, wd=0.0001, clip1,
-float32, bez AMP. Transfer: najwyżej 2000 kroków, checkpoint co100,
+następnie dostępne centra; batch 64, AdamW lr=0.001, wd=0.0001, clip 1,
+float32, bez AMP. Transfer: najwyżej 2000 kroków, checkpoint co 100,
 wybór najmniejszej straty na stałych maskach walidacyjnych bez etykiet.
 Transdukcja: mediana wybranych kroków trzech głównych fitów transferowych.
 
@@ -97,14 +104,14 @@ osobny graf wyłącznie miejsc testowych, bez połączeń przez resztę klatki.
 
 Wspólna bramka to **geometryczna powtarzalność z 15**: R36, tolerancja
 0.24 rozstawu, poprawiony tryb bez gwarantowanego trafienia centrum,
-score >0.25. Spójność liczymy po odmowach; minimum8. Nie zmieniamy tej
-bramki po wynikach. Procedura komórki 15 dodatkowo zachowuje fraction0.65,
-odległość baz0.12, fazę0.3 i zgodność z początkiem rozrostu.
+score >0.25. Spójność liczymy po odmowach; minimum 8. Nie zmieniamy tej
+bramki po wynikach. Procedura komórki 15 dodatkowo zachowuje fraction 0.65,
+odległość baz 0.12, fazę 0.3 i zgodność z początkiem rozrostu.
 Zmiana wobec obrazowego ACF w 21/22 jest jawna: wyniki 24 nie są rankingiem
 tamtych encoderów i nie dziedziczą ich mianownika ani limitu 0/174.
 
 Wspólny dla zakresu katalog podobieństwa można dopasować tylko na train
-przez HDBSCAN (minimum8, min_samples4, dopuszczona jedna grupa), bez zadanej
+przez HDBSCAN (minimum 8, min_samples 4, dopuszczona jedna grupa), bez zadanej
 liczby klas. Przypisanie nowych deskryptorów ma jawny warunek odmowy.
 Klastry pozostają grupami opisów, bez automatycznego fizycznego typu,
 orientacji lub materiału. Domena, typ i powierzchnia pozostają osobne.
@@ -112,8 +119,8 @@ orientacji lub materiału. Domena, typ i powierzchnia pozostają osobne.
 ## Kontrole, zamrożenie i ocena
 
 Nowe ziarna kontroli **920021–920023**: 27 rodzin 20 oraz cztery celowane
-zmiany samych oznaczeń: jitter0.36 px, jitter0.72 px, 10% duplikatów oraz
-granica przesunięcia z jitterem0.72 px. Obraz i prawda pozostają zachowane;
+zmiany samych oznaczeń: jitter 0.36 px, jitter 0.72 px, 10% duplikatów oraz
+granica przesunięcia z jitterem 0.72 px. Obraz i prawda pozostają zachowane;
 duplikaty mają osobne ID. To świeże realizacje znanych rodzin, nie nowe STM.
 Kontrole nie trenują, nie wybierają checkpointów i nie kalibrują progów.
 Kod, model i plan przypinamy przed fitami; kompletne predykcje przed oceną.
@@ -121,7 +128,7 @@ Kod, model i plan przypinamy przed fitami; kompletne predykcje przed oceną.
 Przed/po odmowach raportujemy błędy wszystkich par i rzeczywistych krawędzi,
 zakres przypisań, zero/jedną/wiele domen, ziarna i dostępność mianowników.
 Dla nieregularnego grafu centrów granice używają midpointów **wszystkich**
-lokalnych krawędzi między różnymi przypisaniami; tolerancja8 reference_px.
+lokalnych krawędzi między różnymi przypisaniami; tolerancja 8 reference_px.
 Nie stosujemy osiowego filtra siatki z 20 ani dokładnego F1 do ramek TTMAPP.
 Pary przerwa materiału/brak oznaczeń mogą mieć identyczną geometrię:
 wynik geometryczny nie rozstrzyga wtedy materiału.
@@ -133,7 +140,9 @@ bez domen; TTMAPP coverage≥0.20 i ≥0.10 na reprezentowanych kolorach.
 Puste wejście centrów nie zalicza rozpoznania obrazu szumu/pasów:
 zero domen jest zachowaniem technicznym, a miary geometrii są niedostępne.
 Braki centrów oceniamy na zachowanych ID i pełnym mianowniku, nie wymogiem
-niezmienności całej siatki. Jitter/duplikaty są osobnymi diagnostykami.
+niezmienności całej siatki. Dla braków centrów, jitteru pełnej sieci i duplikatów
+wymagamy jednej domeny, coverage≥0.50 i split≤0.10. Granica fazowa z jitterem
+ma warunki dwóch części i F1≥0.70; każde zaburzenie raportujemy osobno.
 
 Przewaga wymaga mediany poprawy średniego błędu o ≥5 pp przy wspólnym
 coverage≥0.20, bez pogorszenia składnika >2 pp i bez przeciwnego znaku
