@@ -1,3 +1,39 @@
+# REG-08d: dalsze klatki odniesienia — 2026-11-01
+
+Status **ready-for-review**; ręczny odbiór funkcji i jakości oczekuje.
+Gałąź `viewer/registration-difficult-movies`, baza `38d2cb6`.
+Kod **`4c4ffa9`**, poprawka przeglądu **`a811636`**; dokumentacja w końcowym
+commicie przekazania. Zakres tylko Viewer, jego testy i dokumentacja.
+
+- **Dopasowanie wieloklatkowe… → Dalsze odniesienia**: jawne numery i zakres,
+  bazowy LS/Huber, plan nowych par ze źródłami. Tylko nowe pomiary, niezmienione
+  stare relacje/model/solver i porównanie do zachowanego okna.
+- Aktywny aligned zmienia się dopiero po **Zastosuj wynik do filmu**.
+  Działają sesja z odrębnym kandydatem, poprzednik, ręczne korekty i eksport.
+  Sesja zachowuje pełną bazę i dodatki, MPP v6 kompaktowy opis rozszerzenia.
+  Stare sesje/MPP pozostają zgodne; brak automatycznego pobierania modeli.
+- Wzorzec poprawnych dalszych relacji: błąd 13,6→2,35 px. Alias okresowy
+  zachowuje zły ruch mimo małych reszt. MOVIE_4: 151 nowych par/8 odmów,
+  kompletny LS/Huber. MOVIE_8: 48 par, LS kompletny, Huber 2 px/200 iteracji
+  bez zbieżności — zapisany i niedostępny do zastosowania. Jakość do oceny ręcznej.
+- Pełny zestaw repo: **2450 passed, 14 failed, 16 skipped**; Viewer
+  **664 passed, 2 skipped**. Wszystkie 14 błędów zgodne ze znaną bazą.
+  Po poprawce przeglądu 74 dotknięte testy zaliczone. Strict mypy, Ruff,
+  diff-check bez błędów; największy zmieniony plik kodu 462 linie.
+- Dwa niezależne przeglądy: Standards — jedna uwaga P3 zamknięta przez
+  wspólny pomiar pary; Spec — 0 ustaleń. [Karta](registration/reviews/REG-08d.md).
+- [Instrukcja i gotowe sesje](registration/long-references-manual.md),
+  [wyniki i ograniczenia](registration/long-references-results.md).
+  Start w `netcat`: `python -m stmviewer.main` z katalogu Viewera;
+  własną sesję zapisać przed ponownym uruchomieniem aplikacji.
+- Próby Qt offscreen są automatyczne. Odbiór użytkownika, Windows 11,
+  docelowe 8 GB VRAM i fizyczna jakość dopasowania pozostają niezaliczone.
+  REG-10 nie rozpoczęto. Brak potrzeb zmian wspólnych, publikacji i scalenia.
+- Dane, modele i duże wyniki lokalne; pliki użytkownika `proba.stmtrial.json`,
+  `proba2.stmtrial.json`, `sesja.stmsession` nietknięte i poza Git.
+
+---
+
 # REG-08c: odbiór manualny i komunikat odmowy — 2026-11-01
 
 Użytkownik potwierdził **„testy manualne ok”**; REG-08c ma status **done**.

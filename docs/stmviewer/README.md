@@ -10,7 +10,8 @@ oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 opisuje zgodność metod ze strukturami obrazu przy zakłóceniach i tearing.
 Domyślne algorytmy aplikacji pozostają bez zmian.
 [Plan rozwoju i tickety](registration/README.md) obejmuje trzynaście etapów
-bieżącej ścieżki (w tym REG-01a i REG-02a), odłożony REG-06 i dwa etapy warunkowe.
+bieżącej ścieżki (w tym REG-01a i REG-02a), odłożony REG-06 oraz dwie odnogi
+zaplanowane warunkowo: wdrożony na osobne zlecenie REG-08d i planowany REG-09.
 Każdy realizowany etap kończy się ręcznym odbiorem
 funkcji oraz jakości; kolejny etap czeka na decyzję użytkownika.
 [Wspólny protokół prób](registration/manual-protocol.md) ustala dane i sposób porównania.
@@ -21,8 +22,8 @@ Na zlecenie użytkownika 2026-10-31 rozszerzono plan. Po usunięciu osobnego
 REG-08 dnia 2026-11-01 po REG-05 i REG-07 następują próby grafu LS (REG-08a),
 odpornego grafu (REG-08b), zastosowanie
 do filmu i eksport (REG-08c), następnie osobno EfficientLoFTR (REG-10), RoMa v2
-(REG-11) i MatchAnything-ELoFTR (REG-12). Dalsze odniesienia REG-08d oraz tearing
-REG-09 pozostają warunkowe. Użytkownik odłożył REG-06 („na razie pominiemy 06”).
+(REG-11) i MatchAnything-ELoFTR (REG-12). Dalsze odniesienia REG-08d wdrożono
+na osobne zlecenie użytkownika; tearing REG-09 pozostaje warunkowy. Użytkownik odłożył REG-06 („na razie pominiemy 06”).
 REG-07 zastępuje bibliotekę prób A/B **zapisem i odczytem sesji**.
 Jeden `.stmsession` zawiera obrazy original i gotowy aligned, metadane,
 zastosowane ręczne korekty oraz ustawienia widoku. Można otworzyć go bez
@@ -61,6 +62,14 @@ z jego korektami, bez modelu. [Instrukcja i gotowe dane](registration/graph-appl
 [testy i przegląd](registration/reviews/REG-08c.md). Po obliczeniu niekompletnego
 Hubera dialog wyjaśnia powód odmowy zastosowania. To uzupełnienie dodano po
 odbytym odbiorze; REG-10 ma spełnioną zależność, ale nie rozpoczęto jego realizacji.
+
+[REG-08d — dalsze klatki odniesienia](registration/issues/08d-long-range-references.md)
+ma status **ready-for-review**. W **Dopasowanie wieloklatkowe… → Dalsze odniesienia**
+wybierasz bazowy LS/Huber, konkretne klatki i zakres. Program pokazuje plan,
+liczy tylko nowe pary i pozwala porównać rozszerzenie z zachowanym oknem.
+Zastosowanie do filmu pozostaje jawne. [Instrukcja i gotowe sesje](registration/long-references-manual.md),
+[wyniki](registration/long-references-results.md), [testy i przegląd](registration/reviews/REG-08d.md).
+Ręczny odbiór oczekuje; REG-10 pozostaje nierozpoczęty.
 
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk
 **Porównaj parę…** otwiera osobny podgląd sąsiednich oryginałów: przed/po XY,
