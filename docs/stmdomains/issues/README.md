@@ -7,6 +7,13 @@ Zadania wykonawcze są oddzielone od poniższego rejestru pytań.
 implementacji i odbiorze szkieletu. Otwarte decyzje etapu 2 nie blokują etapu 1.
 Statusy i zależności przechowujemy w ticketach; indeks poniżej grupuje je według map.
 
+**Podjęto 24a — 2026-11-01:** na polecenie użytkownika wykonujemy
+[diagnozę opisu otoczenia](24a-graph-context-boundaries.md), `claimed`.
+[Protokół](../graph-context-boundary-protocol.md): te same centra i 93 znane
+kontrole, zamrożone wagi/adaptery, 0 nowych treningów. Porównanie konwencji
+brzegu i ablacji sąsiadów ma oddzielić usunięcie artefaktu od zachowania
+prawdziwych granic. Wyniki 24 pozostają zamrożone; 25/26 i nowe dane odłożone.
+
 **Wykonano 24 — 2026-11-01:** [próba grafowa](24-graph-self-supervised-domains.md)
 ma status `resolved` jako zakończony eksperyment. [Raport](../graph-self-supervised-trial.md)
 zawiera 9/9 fitów, 4212 wyników oraz porównanie geometrii i własnej inicjalizacji.
@@ -298,6 +305,7 @@ relacje przez granice, pełne propozycje domen i odmowy; nie powtarza serii 19.
 | [22 — Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](22-local-self-supervised-domains.md) | prototype / HITL | `resolved`: 9 fitów SSL; brak poprawy domen, osobna diagnoza granic i bramki |
 | [23 — Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md) | grilling / HITL | `resolved`: użytkownik zakończył pilot bez detektora; dodatkowe dane odłożone |
 | [24 — Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md) | prototype / HITL | `resolved`: 9 fitów grafowych; brak przewagi, diagnoza wpływu brzegu i błędów centrów |
+| [24a — Czy opis otoczenia usuwa sztuczne granice?](24a-graph-context-boundaries.md) | prototype / HITL | `claimed`: diagnoza bez treningów na znanych kontrolach24 |
 | [25 — Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md) | prototype / HITL | `open`, niewybrane w 23; warunkowe |
 | [26 — Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md) | prototype / HITL | `open`, niewybrane w 23; warunkowe, z zachowanym modelem odniesienia |
 
@@ -361,6 +369,7 @@ flowchart TD
         v["22: Lokalne SSL i pilot relacji"]
         w["23: Ocena domen i decyzja o kontynuacji"]
         x["24: Grafy molekuł — wykonane"]
+        xa["24a: Brzeg opisu otoczenia — diagnoza"]
         y["25: Maskowany AE — warunkowo"]
         z["26: Adaptacja gotowego modelu — warunkowo"]
     end
@@ -415,6 +424,8 @@ flowchart TD
     o --> x
     w --> x
     x --> m
+    x --> xa
+    xa --> m
     w --> y
     w --> z
 ```

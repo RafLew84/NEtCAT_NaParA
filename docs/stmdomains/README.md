@@ -5,6 +5,13 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-01
 
+**Podjęto 24a — 2026-11-01:** na polecenie użytkownika wykonujemy
+[diagnozę opisu otoczenia](issues/24a-graph-context-boundaries.md), `claimed`.
+[Protokół](graph-context-boundary-protocol.md): te same centra i 93 znane
+kontrole, zamrożone wagi/adaptery, 0 nowych treningów. Porównanie konwencji
+brzegu i ablacji sąsiadów ma oddzielić usunięcie artefaktu od zachowania
+prawdziwych granic. Wyniki 24 pozostają zamrożone; 25/26 i nowe dane odłożone.
+
 **Wykonano 24 — 2026-11-01:** na późniejsze polecenie użytkownika zakończono
 [próbę grafów otoczeń molekuł](issues/24-graph-self-supervised-domains.md),
 `resolved` jako eksperyment. [Raport](graph-self-supervised-trial.md):

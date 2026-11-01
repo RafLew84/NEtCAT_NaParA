@@ -7,7 +7,13 @@ Mode: HITL
 Status: open
 Assignee:
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
-Blocked by: 04, 06, 08, 10, 11, 12, 15, 16, 17, 19, 23, 24
+Blocked by: 04, 06, 08, 10, 11, 12, 15, 16, 17, 19, 23, 24, 24a
+
+## Diagnoza po 24 — 2026-11-01
+
+Użytkownik wybrał [24a — opis otoczenia i brzeg pola](24a-graph-context-boundaries.md).
+Wynik tej ograniczonej diagnozy bez treningów uzupełni wynik 24 w odbiorze.
+25/26 pozostają niewybrane.
 
 ## Dalszy wybór użytkownika — 2026-11-01
 
@@ -252,3 +258,5 @@ podziały pojedynczej sieci obok jej przypisania, małe różnice orientacji
 na odłożonych próbach oraz zakres banku/katalogu przed odmowami. Granica
 przesunięcia z błędem centrów nie sprawdza odporności na pogorszenie obrazu,
 gdy generator zmienia tylko oznaczenia. Odbiór 13 nadal pozostaje otwarty.
+
+- [Opis otoczenia i brzeg pola — 24a](24a-graph-context-boundaries.md)
