@@ -11,10 +11,14 @@ Blocked by: 04, 06, 08, 10, 11, 12, 15, 16, 17, 19, 23, 24
 
 ## Dalszy wybór użytkownika — 2026-11-01
 
-Po zakończeniu23 użytkownik osobno polecił wykonać
+Po zakończeniu 23 użytkownik osobno polecił wykonać
 [24 — uczenie grafu otoczeń](24-graph-self-supervised-domains.md).
-Odbiór czeka także na tę ograniczoną próbę według
-[protokołu24](../graph-self-supervised-protocol.md). 25/26 pozostają niewybrane.
+Próbę wykonano zgodnie z [protokołem 24](../graph-self-supervised-protocol.md),
+status `resolved`. [Raport](../graph-self-supervised-trial.md) nie wykazał
+przewagi uczenia nad geometrią i własną inicjalizacją. Niezerowe przypisania
+FH nadal scalają różne referencje; wpływ brzegu kontekstu oraz błędów oznaczeń
+pozostaje istotny. To wynik do odbioru, bez przyjęcia detektora. 25/26 nadal
+są niewybrane; sam odbiór 13 pozostaje otwarty.
 
 ## Question
 
@@ -70,12 +74,14 @@ lokalnych relacji, podziału oraz odmów, według protokołu z 20.
 Wymaga osobnego pokazania błędnych scaleń/podziałów i zakresu przypisań;
 klaster wyglądu, wzrost liczby przypisań lub etykieta nadana przez solver
 nie stanowią samodzielnie dowodu domeny. Przyjęcie planu nie zalicza
-odbioru; 24–26 nadal nie są wymagane bez wyboru konkretnego rozszerzenia.
+odbioru; 24–26 nie były wymagane bez wyboru konkretnego rozszerzenia.
+Późniejsze polecenie wybrało 24, które dodano do zależności powyżej.
 
 **Uzupełnienie 2026-11-01:** [zestawienie 23](../training-comparison-and-next-step.md)
 nie wykazało poprawy końcowych domen przez trening i nie wybrało detektora.
-Użytkownik przyjął zakończenie pilota; 23 jest `resolved`, a 24–26 pozostają
-niewybrane i warunkowe. Dodatkowe dane nadal są odłożone.
+Użytkownik przyjął zakończenie pilota; 23 jest `resolved`, a 24–26 w tej
+decyzji pozostawiono niewybrane i warunkowe. Późniejsze polecenie tego samego
+dnia wybrało 24. Dodatkowe dane nadal są odłożone.
 Ograniczenie bramki nie unieważnia błędów granic przed odmowami, a brak
 wygranej uczenia nie zalicza metod klasycznych. Ten odbiór pozostaje otwarty.
 
@@ -205,10 +211,11 @@ uczonej. Rozdzielić poprawę na obecnej serii od przenoszenia na niewidziane
 dane i sprawdzić protokół podziału, pochodzenie wag, wybór checkpointu,
 stabilność, koszty oraz brak uczenia z ręcznych ramek.
 
-Grafy, maskowany autoenkoder i adaptacja modelu pozostają niewybrane i warunkowe.
-Przy odrębnym przyszłym wyborze rozszerzenia dodać jego ID do `Blocked by`, nazwany
-link poniżej i krawędź diagramu. Wtedy odbiór czeka na ten wynik;
-niewybrane rozszerzenia nie stają się obowiązkowe. Nie wracamy do
+Po decyzji 23 z 2026-11-01 grafy, maskowany autoenkoder i adaptacja modelu
+pozostały niewybrane i warunkowe. Późniejsze polecenie użytkownika wybrało
+grafy (24): ich ID, nazwany link i krawędź diagramu już dodano, a odbiór
+czeka także na ten wynik. Przy przyszłym wyborze 25 lub 26 należy analogicznie
+uzupełnić zależności; niewybrane rozszerzenia nie stają się obowiązkowe. Nie wracamy do
 treningu bez końca, jeśli próby nie dają uzasadnionej korzyści.
 
 Przyjęty wynik ma zachować manifest treningu i identyfikację checkpointu,

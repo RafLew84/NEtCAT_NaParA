@@ -19,6 +19,9 @@ w `.scratch/graph-ssl-24/`. Poszczególne etapy odmawiają nadpisania istniejąc
 fitów i wyników. Nie usuwaj nieudanego runu w celu ponowienia tego samego fitu.
 
 ```bash
+export OPENBLAS_NUM_THREADS=1
+export OMP_NUM_THREADS=1
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
 graph24_root=.scratch/graph-ssl-24-repeat
 graph24_data=.scratch/training-20/data
 ```
@@ -199,6 +202,8 @@ python -m stmdomains.experiments.training.graph_ssl.predict encode \
   --output "$graph24_root" --device cuda
 python -m stmdomains.experiments.training.graph_ssl.predict partition \
   --output "$graph24_root"
+python -m stmdomains.experiments.training.graph_ssl.audit_predictions \
+  --output "$graph24_root"
 python -m stmdomains.experiments.training.graph_ssl.predict freeze \
   --output "$graph24_root"
 ```
@@ -209,6 +214,12 @@ a partition dopasowuje transformacje i katalog wyłącznie na dozwolonym train.
 Każda reprezentacja dostaje FH k=4 oraz MWS. Pełna procedura 15 pozostaje
 osobnym porównaniem. Transfer pomiarowy ma dodatkowy plik z grafem wyłącznie
 części testowej; pełna klatka jest tylko kontekstem podglądu.
+
+`audit_predictions` sprawdza ukończone 4212 eksportów i 504 osobne grafy
+testowe, zgodność ID/stanów, brak przypisań bez wsparcia, train adapterów,
+przypisania katalogu oraz odtwarzalność procedury 15. Nie ocenia jakości
+i odmawia odczytu referencji. W oryginalnym wykonaniu był dodatkowym
+niezależnym audytem po zamrożeniu, bez zmiany wyników.
 
 `frozen-predictions.json` przypina komplet zapisanych wyników, wejście
 analityczne i kod. Trening oraz etapy `predict` mają blokadę odczytu ścieżek

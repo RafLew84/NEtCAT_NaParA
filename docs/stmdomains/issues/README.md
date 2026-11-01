@@ -7,16 +7,19 @@ Zadania wykonawcze są oddzielone od poniższego rejestru pytań.
 implementacji i odbiorze szkieletu. Otwarte decyzje etapu 2 nie blokują etapu 1.
 Statusy i zależności przechowujemy w ticketach; indeks poniżej grupuje je według map.
 
-**Późniejsze polecenie 2026-11-01:** użytkownik wybrał [24](24-graph-self-supervised-domains.md),
-status `claimed`; [protokół](../graph-self-supervised-protocol.md) ogranicza
-próbę do dziewięciu fitów z kontrolą geometrii i inicjalizacji. Dodano24
-do zależności13 i diagramu. 25/26 oraz nowe dane pozostają odłożone.
+**Wykonano 24 — 2026-11-01:** [próba grafowa](24-graph-self-supervised-domains.md)
+ma status `resolved` jako zakończony eksperyment. [Raport](../graph-self-supervised-trial.md)
+zawiera 9/9 fitów, 4212 wyników oraz porównanie geometrii i własnej inicjalizacji.
+Brak wykazanej przewagi uczenia; 178–183/204 przypisań FH w transferze ze
+100% scaleń ocenianych par różnych referencji, MWS 0/204. Odbiór 13 ma wynik;
+25/26 i dodatkowe dane pozostają niewybrane/odłożone.
 
 **Zakończenie poprzedniego pilota 2026-11-01:** [23](23-training-comparison-and-next-step.md)
 jest **`resolved`**; [porównanie](../training-comparison-and-next-step.md)
 zakończone, użytkownik przyjął decyzję o zakończeniu pilota bez detektora.
-24–26 pozostają niewybrane i warunkowe, dodatkowe dane odłożone. Nie wykazano poprawy
-końcowych domen; 04 i 13 pozostają otwarte.
+Wtedy 24–26 pozostawiono niewybrane i warunkowe; późniejsze polecenie
+wybrało 24 zgodnie z aktualnym stanem powyżej. Dodatkowe dane są odłożone.
+Nie wykazano poprawy końcowych domen; 04 i 13 pozostają otwarte.
 
 **Zakończone próby 2026-10-31:** [19](19-frozen-feature-domains.md) ma status
 `resolved` — użytkownik zakończył serię analiz, bez przyjęcia detektora.
@@ -205,7 +208,8 @@ z instrukcjami repozytorium. Nie wymaga zewnętrznego trackera.
   pierwsze jest przygotowanie wspólnego wejścia; otwarty protokół pełnej
   jakości pozostaje osobnym pytaniem do odbioru, nie blokadą tych prób.
   Dla ticketów z sekcją `Warunek podjęcia` trzeba dodatkowo sprawdzić
-  zapisany wybór w kroku 23. Niewybrane rozszerzenia 24–26 nie trafiają
+  zapisany wybór w kroku 23 lub późniejsze bezpośrednie polecenie użytkownika.
+  Niewybrane rozszerzenia 24–26 nie trafiają
   do frontier, nawet gdy wszystkie ich zależności są `resolved`.
 - **Zależności:** `Blocked by` wskazuje istniejące ID, także innej mapy;
   `Dependencies` zawiera odpowiadające nazwane linki. Zmiana zależności wymaga
@@ -293,19 +297,20 @@ relacje przez granice, pełne propozycje domen i odmowy; nie powtarza serii 19.
 | [21a — Czy zmiana dekodera i regularyzacji poprawia rVAE?](21a-rvae-decoder-and-kl.md) | prototype / HITL | `resolved`: 2 diagnostyki i 9 fitów; niższe MSE, bez poprawy końcowych domen |
 | [22 — Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](22-local-self-supervised-domains.md) | prototype / HITL | `resolved`: 9 fitów SSL; brak poprawy domen, osobna diagnoza granic i bramki |
 | [23 — Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md) | grilling / HITL | `resolved`: użytkownik zakończył pilot bez detektora; dodatkowe dane odłożone |
-| [24 — Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md) | prototype / HITL | `claimed`: wybrane późniejszym poleceniem użytkownika; ograniczona próba grafowa |
+| [24 — Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md) | prototype / HITL | `resolved`: 9 fitów grafowych; brak przewagi, diagnoza wpływu brzegu i błędów centrów |
 | [25 — Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md) | prototype / HITL | `open`, niewybrane w 23; warunkowe |
 | [26 — Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md) | prototype / HITL | `open`, niewybrane w 23; warunkowe, z zachowanym modelem odniesienia |
 
-18, 19, 20, 21, 21a, 22 i **23** są zakończone.
+18, 19, 20, 21, 21a, 22, 23 i **24** są zakończone.
 Własny budżet 21a wykorzystano na zamkniętą macierz dekoder × KL;
 protokół 20 pozostaje zamrożonym punktem odniesienia. Nie ponawiano
 strojenia bramki z 19. SSL wykorzystało wynik tekstury, przygotowanie 20
 i dziewięć pozostałych fitów; pierwotny budżet 27 fitów został wyczerpany.
 Zestawienie 23 obejmuje pierwotne 21, dodatek 21a, SSL i zachowane wyniki 19.
-Odbiór 13 ma już wynik 23, lecz pozostaje otwarty. Nie wybrano rozszerzeń,
-więc nie dodajemy 24–26 do zależności 13 ani nowych krawędzi diagramu.
-Brak wyboru nie oznacza wykonania lub nieskuteczności tego rozszerzenia.
+Odbiór 13 ma już wynik 23, lecz pozostaje otwarty. Decyzja 23 z 2026-11-01
+nie wybrała rozszerzeń; późniejsze polecenie użytkownika wybrało 24,
+które dodano do zależności 13 i diagramu, a następnie wykonano. Niewybrane 25/26 nie blokują
+odbioru; brak wyboru nie oznacza ich wykonania lub nieskuteczności.
 
 Pierwsze próby planujemy na RTX 5090 32 GB VRAM / 128 GB RAM. Użycie
 drugiego komputera z 96 GB VRAM lub Colab wynika z pomiaru i hipotezy
@@ -355,7 +360,7 @@ flowchart TD
         ua["21a: Dekoder i regularyzacja rVAE"]
         v["22: Lokalne SSL i pilot relacji"]
         w["23: Ocena domen i decyzja o kontynuacji"]
-        x["24: Grafy molekuł — wybrane"]
+        x["24: Grafy molekuł — wykonane"]
         y["25: Maskowany AE — warunkowo"]
         z["26: Adaptacja gotowego modelu — warunkowo"]
     end
@@ -415,7 +420,8 @@ flowchart TD
 ```
 
 Krawędzie do 24–26 pokazują warunki wstępne. Dodatkowo wymagany jest
-wybór rozszerzenia w 23; dopiero wtedy dodajemy jego krawędź do odbioru 13.
+wybór rozszerzenia w 23 lub późniejsze bezpośrednie polecenie użytkownika;
+wtedy dodajemy jego krawędź do odbioru 13.
 
-2026-11-01 użytkownik osobno wybrał24; jego krawędź do13 jest dodana.
+2026-11-01 użytkownik osobno wybrał 24; jego krawędź do 13 jest dodana.
 25/26 wymagają nadal osobnego wyboru.

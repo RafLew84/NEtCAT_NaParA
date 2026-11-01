@@ -1,3 +1,55 @@
+# STM Domains — wykonano grafowy eksperyment 24
+
+Data: **2026-11-01**. Na bezpośrednie polecenie użytkownika wykonano
+[24 — grafy otoczeń molekuł](issues/24-graph-self-supervised-domains.md),
+status **`resolved`** jako zakończony eksperyment. [Raport](graph-self-supervised-trial.md),
+[protokół](graph-self-supervised-protocol.md), [manifest](graph-self-supervised-manifest.json).
+Nie wybrano detektora. 13 ma wynik 24, lecz pozostaje otwarty; 04 także.
+25/26 i dodatkowe MPP/STP pozostają niewybrane/odłożone.
+
+**9/9 fitów, 17 400 kroków, 122,86 s na RTX 5090**, bez nowych instalacji.
+24 klatki TTMAPP i 93 świeże kontrole; wejściem są oznaczenia molekuł,
+72 × 72 px kontekstu i geometryczna bramka 15. Transfer ma tylko 76 grafów
+train i 27 validation; osobny test zawiera 204 centra z częściową referencją.
+Transdukcja ma mianownik 1175. Te liczby nie są wykrywalnością molekuł
+ani mianownikami poprzedniej siatki 21/22.
+
+Nie wykazano przewagi nad geometrią i własną inicjalizacją. Główny FH
+w transferze zachowuje **178–183/204**, ale scala wszystkie oceniane pary
+różnych referencji; MWS po odmowach **0/204**. Transdukcja: FH 1070–1093/1175
+ze znacznymi scaleniami, MWS 517–632/1175 wobec 815/1175 geometrii.
+Są częściowe zyski na pojedynczych kontrolach, bez zaliczenia całej próby.
+Brzegowe otoczenia grafu powodują fałszywy podział pełnej sieci także
+bez uczenia. Pary przerwa materiału/brak oznaczeń mają identyczną geometrię
+oraz wyniki. Typ, orientacja fizyczna i powierzchnia pozostają nieokreślone.
+
+Galeria `.scratch/graph-ssl-24/index.html`: rzeczywiste centra, wybór modelu,
+ziarna/podziału, osobny graf testowy i klikalne okno kontekstu. 117 obrazów,
+19 wariantów, 6 scenariuszy; **78 interakcji QtWebEngine, zero błędów JS,
+5 zrzutów obejrzanych wizualnie**. Duże wyniki i modele pozostają lokalne.
+
+Sprawdzenia: zgodność cache 117 próbek, izolacja kontekstu i splitów,
+174 checkpointy oraz 6000 par batchy, bitowo zgodne wznowienie. Zamrożono
+4212 wyników przed referencjami. Audyt 4212+504 eksportów obejmuje 1 090 254
+wiersze; niezależny audyt metryk odtwarza 4212 rekordów, 8424 etapów par,
+6696 ocen granic i 792 warunki przewagi. Nie zmieniano wyników po ocenie.
+Zmierzony koszt pozostałych etapów wynosi 241,25 s CPU; CPU/RSS pierwszego
+przygotowania nie był mierzony, a jego identyczny replay opisano osobno.
+Przed pierwszym fitem poprawiono techniczny błąd typu ścieżki kontroli hashów,
+bez zmiany modelu lub parametrów; wcześniejszy plan i dowód zachowano.
+395 lokalnych odnośników, 27 ticketów i graf bez cykli, kompilacja modułów
+oraz `git diff --check` przeszły. Nie uruchamiano natywnej aplikacji ani
+ponownie starych treningów/testów.
+
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/start`.
+Podjęcie **05d32f2**, implementacja i protokół **f53611b**; commit raportu
+w odpowiedzi końcowej. Prototyp zachowuje
+`prototype/stmdomains-graph-self-supervised`. Zakres wyłącznie Domains,
+bez potrzebnych zmian wspólnych. Integracja przez koordynatora;
+nie scalano, nie publikowano ani nie zmieniano innych worktree.
+
+---
+
 # STM Domains — decyzja 23 zakończona
 
 Data: **2026-11-01**. Użytkownik zaakceptował rekomendację i zakończenie

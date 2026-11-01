@@ -5,19 +5,24 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-01
 
-**Późniejsze polecenie użytkownika — 2026-11-01:** podjęto
-[24 — uczenie grafu otoczeń molekuł](issues/24-graph-self-supervised-domains.md),
-`claimed`. [Protokół](graph-self-supervised-protocol.md): maksymalnie9fitów,
-porównanie z geometrią15 i własną inicjalizacją, nowe kontrole błędów centrów.
-13 czeka także na24; 25/26 i dodatkowe MPP/STP pozostają odłożone.
-Poniższa decyzja23 zachowuje wynik wcześniejszego pilota.
+**Wykonano 24 — 2026-11-01:** na późniejsze polecenie użytkownika zakończono
+[próbę grafów otoczeń molekuł](issues/24-graph-self-supervised-domains.md),
+`resolved` jako eksperyment. [Raport](graph-self-supervised-trial.md):
+9/9 fitów, 4212 wyników i galeria `.scratch/graph-ssl-24/index.html`.
+Główny FH przypisuje 178–183/204 centrów testowych, ale scala wszystkie
+oceniane pary różnych referencji; MWS daje 0/204. Nie wykazano przewagi
+nad geometrią i własną inicjalizacją. Wykazano także wpływ brzegu pola
+na kontekst grafu. 13 otrzymał wynik, lecz pozostaje otwarty; 25/26
+oraz dodatkowe MPP/STP pozostają niewybrane/odłożone.
+Poniższa decyzja 23 zachowuje wynik wcześniejszego pilota.
 
-
-[Porównanie 23](training-comparison-and-next-step.md) zestawia istniejące
+**Wcześniejsza decyzja 23 — 2026-11-01:**
+[porównanie](training-comparison-and-next-step.md) zestawia istniejące
 wyniki 19/21/21a/22, bez nowych fitów. Nie wykazano poprawy końcowych domen.
 Użytkownik przyjął decyzję o zakończeniu pilota bez wyboru detektora;
-ticket 23 jest **`resolved`**. Tickety 24–26 pozostają niewybrane
-i warunkowe, dodatkowe dane odłożone, a 04 i 13 otwarte.
+ticket 23 jest **`resolved`**. Wtedy 24–26 pozostawiono niewybrane
+i warunkowe; późniejsze polecenie wybrało 24 zgodnie z aktualnym stanem
+powyżej. Dodatkowe dane pozostają odłożone, a 04 i 13 otwarte.
 
 Na polecenie użytkownika [ticket 19](issues/19-frozen-feature-domains.md)
 zamknięto jako zakończoną serię badań (`resolved`). Nie wybrano detektora
@@ -61,7 +66,8 @@ konturów domen; eksport nie uruchamia kolejnej próby badawczej.
 został 2026-10-31 przyjęty do [planu 20–23](issues/README.md#trening-bez-etykiet-domen).
 20 przygotowało protokół i kryteria; 21/22 łączą trening z ograniczoną próbą
 relacji/granic oraz porównaniem 2 × 2 cech i podziału, przed/po odmowach.
-23 rozstrzyga dalszy zakres, a 24–26 pozostają warunkowe. Nie dodano 20a,
+W tym planie 23 miało rozstrzygnąć dalszy zakres, a 24–26 były warunkowe.
+Późniejszy wybór 24 opisano powyżej. Nie dodano 20a,
 przy samym przyjęciu planu nie rozpoczęto treningu ani nowego eksperymentu.
 
 Poniższy opis zachowuje historię projektu; wcześniejsze statusy `claimed`
@@ -174,7 +180,8 @@ treningu, AE/rVAE, lokalne SSL, porównanie z wcześniejszymi metodami oraz
 warunkowe próby grafów, maskowania i adaptacji gotowego modelu.
 Pierwsze próby dotyczą RTX 5090; przejście na 96 GB lub Colab wymaga
 uzasadnienia wynikiem i pomiarem. Odbiór 13 ma już zestawienie 23;
-nie wybrano dalszych rozszerzeń. Samo dodanie tych zadań nie uruchamiało
+po osobnym poleceniu z 2026-11-01 czeka także na wybrane 24.
+Samo dodanie tych zadań nie uruchamiało
 treningu; ówczesnym następnym krokiem było przygotowanie wejścia 14.
 
 2026-10-23 [zakończono przygotowanie 14](issues/14-unsupervised-input-and-controls.md).

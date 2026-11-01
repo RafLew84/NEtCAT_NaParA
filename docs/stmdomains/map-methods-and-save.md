@@ -15,21 +15,25 @@ Ustalenia mają pozwolić rozwinąć odebrany szkielet STM Domains.
 
 ## Notes
 
-**Późniejsze polecenie użytkownika — 2026-11-01:** podjęto
-[24 — uczenie grafu otoczeń molekuł](issues/24-graph-self-supervised-domains.md),
-`claimed`. [Protokół](graph-self-supervised-protocol.md): maksymalnie9fitów,
-porównanie z geometrią15 i własną inicjalizacją, nowe kontrole błędów centrów.
-13 czeka także na24; 25/26 i dodatkowe MPP/STP pozostają odłożone.
-Poniższa decyzja23 zachowuje wynik wcześniejszego pilota.
+**Wykonano 24 — 2026-11-01:** na późniejsze polecenie użytkownika zakończono
+[próbę grafów otoczeń molekuł](issues/24-graph-self-supervised-domains.md),
+`resolved` jako eksperyment. [Raport](graph-self-supervised-trial.md):
+9/9 fitów, 4212 wyników i galeria `.scratch/graph-ssl-24/index.html`.
+Główny FH przypisuje 178–183/204 centrów testowych, ale scala wszystkie
+oceniane pary różnych referencji; MWS daje 0/204. Nie wykazano przewagi
+nad geometrią i własną inicjalizacją. Wykazano także wpływ brzegu pola
+na kontekst grafu. 13 otrzymał wynik, lecz pozostaje otwarty; 25/26
+oraz dodatkowe MPP/STP pozostają niewybrane/odłożone.
+Poniższa decyzja 23 zachowuje wynik wcześniejszego pilota.
 
-
-**Aktualny stan — 2026-11-01.**
+**Wcześniejsza decyzja 23 — 2026-11-01.**
 [Zestawienie 23](training-comparison-and-next-step.md) zakończono;
 ticket jest **`resolved`**. Użytkownik zdecydował zakończyć obecny pilot
-bez przyjęcia detektora i pozostawić 24–26 niewybrane i warunkowe. Raport
+bez przyjęcia detektora i pozostawić wtedy 24–26 niewybrane i warunkowe. Raport
 oddziela błąd granic od limitu bramki, zachowuje osobne warunki 21a
 i historycznych prób 15–19. Dodatkowe MPP/STP pozostają odłożone;
-nie dodano fitów ani nowego budżetu. Jakość 04 i odbiór 13 nadal są otwarte.
+w ramach 23 nie dodano fitów ani nowego budżetu. Późniejszy wybór i osobny
+budżet 24 opisano powyżej. Jakość 04 i odbiór 13 nadal są otwarte.
 
 **Zakończone próby i przyjęty plan — 2026-10-31.**
 [Podsumowanie i rozstrzygnięcie](issues/19-frozen-feature-domains.md): **19
@@ -92,7 +96,8 @@ i polecił wpisać je do istniejących ticketów. Przyjęto:
   i stabilność. Typ, orientacja, materiał i brak danych pozostają osobne;
   klaster ani etykieta grafu nie są automatycznie rozpoznaną domeną.
 - [23](issues/23-training-comparison-and-next-step.md) kończy porównanie
-  decyzją według wcześniej ustalonych kryteriów. 24–26 pozostają warunkowe.
+  decyzją według wcześniej ustalonych kryteriów. W przyjętym wtedy planie
+  24–26 były warunkowe; późniejszy wybór 24 opisano powyżej.
 
 Pilot jest częścią 21/22; nie dodajemy zadania 20a ani nowej serii strojenia
 19, które już obejmowało graf i granice. Pierwotna kolejność:
@@ -220,8 +225,9 @@ Nie powielają oddzielnych poszukiwań solvera i progów. Ich zestawienie z goto
 cechami sieci kończy się [decyzją o dalszym zakresie](issues/23-training-comparison-and-next-step.md).
 Grafy molekuł, maskowany autoenkoder i adaptacja gotowego modelu są
 warunkowymi rozszerzeniami, wybieranymi na podstawie konkretnej luki.
-Decyzja 23 zakończyła pilot bez wyboru rozszerzeń; nie dopisujemy 24–26 do
-zależności 13. Niewybrane warianty nie blokują odbioru. Przygotowanie
+Decyzja 23 z 2026-11-01 zakończyła pilot bez wyboru rozszerzeń; wtedy nie
+dopisano 24–26 do zależności 13. Późniejsze polecenie użytkownika wybrało 24,
+które dodano do zależności odbioru. Niewybrane 25/26 nie blokują odbioru. Przygotowanie
 treningu może przebiegać obok przygotowania zamrożonych modeli.
 
 Sprzęt do pierwszych prób: RTX 5090 z 32 GB VRAM i 128 GB RAM.
@@ -280,8 +286,9 @@ nie zamknięto przez samo dodanie go do mapy.
   [Raport](training-comparison-and-next-step.md) i [manifest](training-comparison-manifest.json)
   zachowują porównanie 21/22, osobne 21a i historyczne wyniki 15–19.
   Częściowe zyski cech nie spełniają całych kryteriów; brak przyjętego detektora.
-  24–26 pozostają niewybrane i warunkowe, dodatkowe dane odłożone,
-  bez nowych fitów lub budżetu. 04 i 13 pozostają otwarte.
+  W tej decyzji 24–26 pozostawiono niewybrane i warunkowe, dodatkowe dane
+  odłożono, bez nowych fitów lub budżetu. Później użytkownik osobno wybrał
+  24, opisane w aktualnym stanie powyżej. 04 i 13 pozostają otwarte.
 
 - [Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](issues/22-local-self-supervised-domains.md):
   **`resolved` — zakończony eksperyment**. [Raport](local-self-supervised-trial.md),

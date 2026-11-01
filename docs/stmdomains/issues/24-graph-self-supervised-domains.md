@@ -4,30 +4,55 @@ ID: 24
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: claimed
+Status: resolved
 Assignee: Codex — domains/start
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 15, 23
+
+## Wynik — 2026-11-01
+
+Próbę wykonano: **9/9 fitów, 17 400 kroków, 4212 wyników** na 24 klatkach
+TTMAPP i 93 kontrolach. [Raport](../graph-self-supervised-trial.md),
+[manifest](../graph-self-supervised-manifest.json),
+[odtworzenie](../../../stmdomains/experiments/training/graph_ssl/README.md).
+Galeria lokalna: `.scratch/graph-ssl-24/index.html`; źródła zachowuje
+`prototype/stmdomains-graph-self-supervised`, implementacja `f53611b`.
+
+**Nie wykazano użytecznej przewagi uczenia grafu.** FH zachowuje
+178–183/204 centrów transferu, ale scala wszystkie oceniane pary różnych
+referencji; MWS po odmowach 0/204. Transdukcja nie spełnia warunków
+przewagi nad klasyczną geometrią i własną inicjalizacją. Są cząstkowe zyski
+na pojedynczych kontrolach, bez poprawy całego zestawu. Wykazano zależność
+od błędów centrów i skończonego kontekstu przy brzegu pola.
+
+Status `resolved` oznacza zakończenie zaplanowanego eksperymentu,
+bez przyjęcia detektora lub fizycznego typu. Wynik przekazano do otwartego 13.
+25/26 i dodatkowe MPP/STP pozostają niewybrane/odłożone.
+Sprawdzono checkpointy, wejście, wszystkie eksporty, niezależnie odtworzono
+metryki; GUI: 78 interakcji, bez błędów JavaScript, pięć zrzutów.
 
 ## Podjęcie — 2026-11-01
 
 Bezpośrednie polecenie użytkownika „wykonaj 24” wybiera tę próbę po
 zakończeniu 23. [Protokół 24](../graph-self-supervised-protocol.md) zapisuje
-hipotezę, porównanie z geometrią15 i własną inicjalizacją, jawne adaptacje
-20, nowe kontrole i limit dziewięciu fitów. Wynik15 jest użytecznym,
+hipotezę, porównanie z geometrią 15 i własną inicjalizacją, jawne adaptacje
+20, nowe kontrole i limit dziewięciu fitów. Wynik 15 jest użytecznym,
 lecz ograniczonym punktem odniesienia; jakość centrów podlega kontroli.
-13 czeka także na wynik24. 25/26 i dodatkowe MPP/STP pozostają odłożone.
+Wynik wykonanej próby przekazano do 13. 25/26 i dodatkowe MPP/STP pozostają odłożone.
 
 ## Warunek podjęcia
 
-Rozszerzenie warunkowe: krok 23 wskazuje tę próbę i jej hipotezę, a wynik
+Rozszerzenie wymaga osobnego wyboru i zapisanej hipotezy, a wynik
 kroku 15 pozwala ocenić przydatność centrów. Samo spełnienie zależności nie
 uruchamia zadania. Próbę wybrano późniejszym bezpośrednim poleceniem
 użytkownika, opisanym powyżej.
 
-**Decyzja 23 — 2026-11-01:** użytkownik zakończył obecny pilot bez wyboru
-tej próby. Ticket pozostaje `open`, niewybrany i warunkowy; nie ma nowego
-budżetu ani zgody na rozpoczęcie treningu przez samo zakończenie 23.
+**Wcześniejsza decyzja 23 — 2026-11-01:** użytkownik zakończył poprzedni pilot
+bez wyboru tej próby. Ticket pozostawiono wtedy `open`, niewybrany i warunkowy;
+samo zakończenie 23 nie przyznawało nowego budżetu ani nie uruchamiało treningu.
+Późniejsze polecenie „wykonaj 24” zmieniło tę decyzję zakresową: ticket jest
+następnie wykonano i zamknięto jako eksperyment (`resolved`), z osobnym
+protokołem i budżetem opisanymi powyżej.
 
 ## Question
 
