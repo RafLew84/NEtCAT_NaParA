@@ -7,6 +7,13 @@ Zadania wykonawcze są oddzielone od poniższego rejestru pytań.
 implementacji i odbiorze szkieletu. Otwarte decyzje etapu 2 nie blokują etapu 1.
 Statusy i zależności przechowujemy w ticketach; indeks poniżej grupuje je według map.
 
+**Podjęto 25 — 2026-11-01:** na bezpośrednie polecenie użytkownika
+[maskowane odtwarzanie obrazu](25-masked-autoencoder-domains.md) ma status `claimed`.
+[Protokół](../masked-autoencoder-protocol.md): dwa udziały maskowania,
+12 nowych fitów małego AE32, kontrola tej samej pojemności z21, SSL22 iFFT,
+trzy ziarna, rozdzielony transfer/transdukcja. Stare próby pozostają zamrożone;
+26 i dodatkowe MPP/STP nadal odłożone. Wynik trafi do otwartego odbioru13.
+
 **Wykonano 24a — 2026-11-01:** [diagnoza opisu otoczenia](24a-graph-context-boundaries.md)
 ma status `resolved` jako zakończona próba. [Raport](../graph-context-boundary-trial.md):
 3534 wyniki na 93 znanych kontrolach, 0 treningów. Jednolita konwencja
@@ -308,7 +315,7 @@ relacje przez granice, pełne propozycje domen i odmowy; nie powtarza serii 19.
 | [23 — Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md) | grilling / HITL | `resolved`: użytkownik zakończył pilot bez detektora; dodatkowe dane odłożone |
 | [24 — Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md) | prototype / HITL | `resolved`: 9 fitów grafowych; brak przewagi, diagnoza wpływu brzegu i błędów centrów |
 | [24a — Czy opis otoczenia usuwa sztuczne granice?](24a-graph-context-boundaries.md) | prototype / HITL | `resolved`: artefakt jednej sieci usunięty, rzeczywiste granice nadal błędne |
-| [25 — Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md) | prototype / HITL | `open`, niewybrane w 23; warunkowe |
+| [25 — Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md) | prototype / HITL | `claimed`, wybrane późniejszym poleceniem; protokół25 |
 | [26 — Czy dalsze uczenie gotowego modelu na STM poprawia odkrywanie domen?](26-pretrained-self-supervised-adaptation.md) | prototype / HITL | `open`, niewybrane w 23; warunkowe, z zachowanym modelem odniesienia |
 
 18, 19, 20, 21, 21a, 22, 23 i **24** są zakończone.
@@ -372,7 +379,7 @@ flowchart TD
         w["23: Ocena domen i decyzja o kontynuacji"]
         x["24: Grafy molekuł — wykonane"]
         xa["24a: Brzeg opisu otoczenia — diagnoza"]
-        y["25: Maskowany AE — warunkowo"]
+        y["25: Maskowany AE — wybrane"]
         z["26: Adaptacja gotowego modelu — warunkowo"]
     end
     a --> g
@@ -429,6 +436,7 @@ flowchart TD
     x --> xa
     xa --> m
     w --> y
+    y --> m
     w --> z
 ```
 
@@ -437,4 +445,4 @@ wybór rozszerzenia w 23 lub późniejsze bezpośrednie polecenie użytkownika;
 wtedy dodajemy jego krawędź do odbioru 13.
 
 2026-11-01 użytkownik osobno wybrał 24; jego krawędź do 13 jest dodana.
-25/26 wymagają nadal osobnego wyboru.
+Następnie wybrano 25 i dodano jego krawędź do13. 26 pozostaje niewybrane.

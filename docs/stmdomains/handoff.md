@@ -1,3 +1,21 @@
+# STM Domains — podjęto maskowane odtwarzanie 25
+
+Data: **2026-11-01**. Użytkownik po omówieniu24a polecił „wykonaj25”.
+[Ticket25](issues/25-masked-autoencoder-domains.md) ma status `claimed`;
+[protokół](masked-autoencoder-protocol.md) określa maksymalnie12 nowychfitów
+maskowanegoAE32 i porównanie z identycznymAE21, SSL22, FFT i inicjalizacjami.
+Stare źródła/wyniki pozostają zamrożone; 26 i dodatkoweMPP/STP niewybrane.
+
+Start: `/home/rlew/projekty/NEtCAT-domains`, `domains/start`, czysty commit
+`0347455`. Zapis działa, istniejące środowisko netcat iRTX5090 dostępne;
+CUDA wymaga procesu poza sandboxem. Bez instalacji i zmian wspólnych.
+Kod nowej próby: `stmdomains/experiments/training/masked_ae/`;
+wyniki: `.scratch/masked-ae-25/`. Trwa implementacja i techniczne sprawdzenie;
+nie rozpoczęto fitów ani oceny nowych referencji. Następnie przypiąć plan,
+wykonać12 fitów, pełne predykcje, audyt/freeze, ocenę i galerię.
+
+---
+
 # STM Domains — wykonano diagnozę kontekstu 24a
 
 Data: **2026-11-01**. Na polecenie „wykonaj proponowaną próbę” zakończono

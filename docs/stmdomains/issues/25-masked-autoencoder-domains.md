@@ -4,15 +4,26 @@ ID: 25
 Type: prototype
 Labels: wayfinder:prototype
 Mode: HITL
-Status: open
-Assignee:
+Status: claimed
+Assignee: Codex — domains/start
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 23
+
+## Podjęcie — 2026-11-01
+
+Użytkownik po omówieniu 24a wydał bezpośrednie polecenie „wykonaj 25”.
+To wybiera rozszerzenie niezależnie od wcześniejszej decyzji 23.
+[Protokół 25](../masked-autoencoder-protocol.md) ustala osobny budżet:
+12 nowych fitów (maskowanie25/50%, trzy ziarna, transfer/transdukcja),
+mały AE32 identyczny z 21 oraz zapisane AE/SSL/FFT i własne inicjalizacje
+jako odniesienia. Dane TTMAPP pozostają obecne; nowe realizacje kontroli
+nie są nowymi pomiarami. 26 i przygotowanie dodatkowych MPP/STP niewybrane.
+Próba ocenia maskowanie, bez rozszerzania modelu lub kontekstu.
 
 ## Warunek podjęcia
 
 Rozszerzenie warunkowe: krok 23 wskazuje konkretną lukę w reprezentacji
-otoczenia i wybiera tę próbę. Obecnie nie wybrano go do wykonania.
+otoczenia i wybiera tę próbę. Późniejsze bezpośrednie polecenie użytkownika wybrało próbę, jak powyżej.
 
 **Decyzja 23 — 2026-11-01:** użytkownik zakończył obecny pilot bez wyboru
 tej próby. Ticket pozostaje `open`, niewybrany i warunkowy; nie ma nowego

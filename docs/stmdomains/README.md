@@ -5,6 +5,13 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-01
 
+**Podjęto 25 — 2026-11-01:** na bezpośrednie polecenie użytkownika
+[maskowane odtwarzanie obrazu](issues/25-masked-autoencoder-domains.md) ma status `claimed`.
+[Protokół](masked-autoencoder-protocol.md): dwa udziały maskowania,
+12 nowych fitów małego AE32, kontrola tej samej pojemności z21, SSL22 iFFT,
+trzy ziarna, rozdzielony transfer/transdukcja. Stare próby pozostają zamrożone;
+26 i dodatkowe MPP/STP nadal odłożone. Wynik trafi do otwartego odbioru13.
+
 **Wykonano 24a — 2026-11-01:** [diagnoza opisu otoczenia](issues/24a-graph-context-boundaries.md)
 ma status `resolved` jako zakończona próba. [Raport](graph-context-boundary-trial.md):
 3534 wyniki na 93 znanych kontrolach, 0 treningów. Jednolita konwencja

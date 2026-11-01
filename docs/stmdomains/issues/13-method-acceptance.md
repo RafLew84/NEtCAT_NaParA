@@ -7,7 +7,13 @@ Mode: HITL
 Status: open
 Assignee:
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
-Blocked by: 04, 06, 08, 10, 11, 12, 15, 16, 17, 19, 23, 24, 24a
+Blocked by: 04, 06, 08, 10, 11, 12, 15, 16, 17, 19, 23, 24, 24a, 25
+
+## Wybrano maskowane odtwarzanie — 2026-11-01
+
+Użytkownik polecił wykonać [25](25-masked-autoencoder-domains.md).
+Wynik porównania maskowanego AE z identycznym zwykłym AE, SSL iFFT
+uzupełni odbiór. 26 pozostaje niewybrane; dodatkowe dane odłożone.
 
 ## Diagnoza po 24 — 2026-11-01
 
@@ -246,6 +252,7 @@ Osobno sprawdzić zapis wyniku i możliwość odtworzenia eksperymentu.
 - [Czy trening daje poprawę i które rozszerzenie warto wykonać?](23-training-comparison-and-next-step.md)
 - [Czy uczenie grafu otoczeń molekuł poprawia wykrywanie domen?](24-graph-self-supervised-domains.md)
 - [Opis otoczenia i brzeg pola — 24a](24a-graph-context-boundaries.md)
+- [Czy maskowane odtwarzanie obrazu uczy relacji potrzebnych do domen?](25-masked-autoencoder-domains.md)
 
 
 ## Wynik tekstury 17 do uwzględnienia — 2026-10-23
