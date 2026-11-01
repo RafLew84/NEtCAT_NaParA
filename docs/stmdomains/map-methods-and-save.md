@@ -15,6 +15,15 @@ Ustalenia mają pozwolić rozwinąć odebrany szkielet STM Domains.
 
 ## Notes
 
+**Materiał do decyzji po 26 — 2026-11-01:** [synteza i przegląd badań](research-after-training-pilot.md)
+porównują, na prośbę użytkownika, brak etykiet treningowych z niewielkim
+nadzorowaniem. Wskazują ograniczoną próbę przestrzennego odczytu granic
+oraz warunkowe uczenie relacji jako dalsze kierunki. Nie wybrano kolejnego
+eksperymentu, nie dodano ticketów ani budżetu. Wykorzystanie ręcznych relacji
+do treningu byłoby osobną zmianą dotychczasowego kontraktu; obecne referencje
+oceny nie stają się danymi treningowymi. Statusy 04/13 i odłożenie dodatkowych
+MPP/STP pozostają bez zmian.
+
 **Wykonano 26 — 2026-11-01:** [adaptacja DINOv2](issues/26-pretrained-self-supervised-adaptation.md)
 ma status `resolved` jako eksperyment. [Raport](pretrained-self-supervised-trial.md):
 6/6 fitów, 6000 kroków, 14 040 predykcji; bez wymaganej poprawy względem

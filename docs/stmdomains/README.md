@@ -5,6 +5,14 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-01
 
+**Wnioski po 21–26 — 2026-11-01:** [synteza wyników i przegląd dalszych kierunków](research-after-training-pilot.md)
+porównują wariant bez etykiet treningowych z małym nadzorowaniem, zgodnie
+z prośbą użytkownika. Rekomendacja: ograniczona próba przestrzennego odczytu
+granic z istniejących cech, a następnie ewentualne uczenie bezpośrednich relacji
+między obszarami. Uwzględniono wcześniejsze próby fazy z 12 i diagnozy z 19.
+To materiał do decyzji, bez wyboru kolejnego eksperymentu lub zmiany zasad
+używania referencji. Nie przyjęto detektora; 04 i 13 pozostają otwarte.
+
 **Wykonano 26 — 2026-11-01:** [adaptacja DINOv2](issues/26-pretrained-self-supervised-adaptation.md)
 ma status `resolved` jako eksperyment. [Raport](pretrained-self-supervised-trial.md):
 6/6 fitów, 6000 kroków, 14 040 predykcji; bez wymaganej poprawy względem
@@ -425,6 +433,10 @@ Nowe metody będą oceniane na danych i kryteriach rozstrzygniętych przez pytan
 
 ## Materiały do decyzji
 
+- [Wnioski po treningach 21–26 i dalsze kierunki](research-after-training-pilot.md)
+  — przestrzenne cechy, lokalna struktura, uczenie granic oraz porównanie
+  braku etykiet treningowych z niewielkim nadzorowaniem. Źródła pierwotne
+  i ograniczenia transferu na molekularne STM; propozycje nie są nowym planem prób.
 - [Dane do treningu z wielu MPP/STP](research-training-data-requirements.md)
   — wymagane metadane, skala, jakość i podział niezależnych akwizycji.
   Użytkownik ma dane różnych molekuł/podłoży z rozmiarami skanów w nagłówkach.

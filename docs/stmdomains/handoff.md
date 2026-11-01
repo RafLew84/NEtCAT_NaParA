@@ -1,3 +1,34 @@
+# STM Domains — wnioski po 21–26 i przegląd dalszych kierunków
+
+Data: **2026-11-01**. Na prośbę użytkownika przygotowano
+[syntezę wyników i przegląd źródeł pierwotnych](research-after-training-pilot.md)
+z użyciem skilla `research`. Użytkownik poprosił o porównanie obu wariantów:
+bez etykiet treningowych oraz z niewielkimi ręcznymi wskazaniami relacji/granic.
+
+Wniosek: dotychczasowe treningi nie dały przyjętego detektora. Lepsza
+rekonstrukcja i zmiana cech nie wystarczyły do rozdzielenia domen.
+Rekomendowany następny kierunek to ograniczona diagnoza przestrzennego
+odczytu przy granicach, a warunkowo mały model uczony bezpośrednio relacji.
+Przegląd uwzględnia już wykonane próby 12/19, żeby nie przedstawiać ich
+powtórzeń jako nowych metod. Propozycje fizyczne i nowe gotowe modele
+mają jawnie opisane ograniczenia oraz różnicę wobec wcześniejszych prób.
+
+To materiał do decyzji, bez nowych ticketów, treningów, instalacji, modeli
+lub importu danych. Nie zmieniono protokołów, wyników ani statusów 21–26.
+Nie przyjęto detektora; 04 i 13 pozostają otwarte. Ręczne wskazania do
+treningu wymagałyby osobnego wyboru tej ścieżki; dotychczasowe referencje
+pozostają wyłącznie oceną. Dodatkowe MPP/STP nadal odłożone.
+
+Zakres: nowa notatka oraz nawigacja README, mapa metod i to przekazanie.
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/start`,
+baza **`a1fb554`**; commit dokumentacji podany w odpowiedzi końcowej.
+Sprawdzenia: przegląd raportów i źródeł pierwotnych, lokalne odnośniki
+zmienionych dokumentów oraz `git diff --check`. Nie uruchamiano testów
+programu ani GUI — zmiana obejmuje wyłącznie dokumentację.
+Brak potrzebnych zmian wspólnych; integracja pozostaje zadaniem koordynatora.
+
+---
+
 # STM Domains — wykonano adaptację DINOv2, 26
 
 Data: **2026-11-01**. Na polecenie „wykonaj 26” zakończono
