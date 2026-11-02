@@ -50,6 +50,8 @@ def validate_images(
             or metadata["n_frames"] != len(indices)
             or metadata["source_movie_frame_count"] != len(series.raw_frames)):
         raise V04ImportError("Niespójna mapa klatek w metadanych wyniku.")
+    if len(indices) > series.frame_count or any(index not in source_to_working for index in indices):
+        raise V04ImportError("Wynik zawiera obraz spoza otwartej serii.")
     data = package.read("work/expanded/input_selected.npz")
     _validate_array_headers(data, len(indices), series.frame_shape)
     with np.load(io.BytesIO(data), allow_pickle=False) as arrays:
@@ -63,8 +65,6 @@ def validate_images(
         for local, source in enumerate(sources):
             if cancelled():
                 raise ImportCancelled()
-            if int(source) not in source_to_working:
-                raise V04ImportError("Wynik zawiera obraz spoza otwartej serii.")
             raw = series.frame(source_to_working[int(source)]).image
             if not np.array_equal(images[local], raw, equal_nan=True):
                 raise V04ImportError(f"Niezgodny obraz źródłowej klatki {int(source) + 1}.")

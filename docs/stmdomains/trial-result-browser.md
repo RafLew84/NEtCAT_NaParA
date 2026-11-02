@@ -3,8 +3,11 @@
 Data: **2026-11-02**. Użytkownik wybrał prosty sposób oglądania wyników:
 kolejne obrazy STM z oznaczonymi molekułami i ich przynależnością do domen.
 Dotychczasowe rozbudowane galerie diagnostyczne są dla niego nieczytelne.
-Ten dokument ustala prezentację przyszłych prób; przeglądarka nie jest
-jeszcze zaimplementowana i nie uruchomiono nowego eksperymentu.
+Ten dokument ustala prezentację przyszłych prób. **Aktualizacja SD-V4-04:**
+działa natywna przeglądarka istniejącego wyniku v0.4 z końcowymi przypisaniami
+molekuł — [uruchomienie i test ręczny](implementation/interactive-v04/acceptance-04.md).
+Nie uruchomiono nowego eksperymentu. Obsługa wyników kolejnych metod będzie
+korzystać z poniższych zasad.
 
 ## Podstawowy widok
 

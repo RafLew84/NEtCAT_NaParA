@@ -247,3 +247,26 @@ def test_npz_geometry_is_rejected_from_header_before_allocating_images(tmp_path)
     refresh_package(paths)
     with pytest.raises(V04ImportError, match="geometria|Geometria"):
         load_v04_result(paths["zip"], series)
+
+
+@pytest.mark.parametrize("selected", [[0, 9], [0, 1, 2, 3]])
+def test_result_rejects_outside_series_range_before_numpy_load(tmp_path, monkeypatch, selected):
+    paths = create_result_demo(tmp_path)
+    series = prepare_import(paths["session"]).series
+    root = paths["manifest"].parent
+    path = root / "work/expanded/metadata.json"
+    metadata = json.loads(path.read_text())
+    metadata.update(source_frame_indices=selected, source_frame_numbers=[i + 1 for i in selected],
+                    n_frames=len(selected))
+    path.write_text(json.dumps(metadata))
+    np.savez_compressed(root / "work/expanded/input_selected.npz",
+                        images=np.zeros((len(selected), 16, 24), dtype=np.float64),
+                        source_frame_indices=np.array(selected, dtype=np.int32))
+    refresh_package(paths)
+
+    def reject_array_load(*args, **kwargs):
+        raise AssertionError("NPZ arrays must not be allocated for frames outside the series")
+
+    monkeypatch.setattr(np, "load", reject_array_load)
+    with pytest.raises(V04ImportError, match="spoza otwartej serii"):
+        load_v04_result(paths["zip"], series)

@@ -14,6 +14,16 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**Implementacja SD-V4-04 — 2026-11-02:** wykonano otwieranie zapisanych
+wyników v0.4 i kolory końcowych domen/klas na rzeczywistych molekułach,
+z odmowami i jawnym brakiem analizy. Import odrzuca niezgodne źródła,
+mapy, ID, współrzędne i podsumowania. GUI sprawdzono na wszystkich
+56 analizowanych klatkach TTMAPP. Implementacja `b6159ac`;
+[raport i test ręczny](implementation/interactive-v04/acceptance-04.md).
+Ręczny odbiór użytkownika 04 pozostaje do wykonania. **Następny ticket
+nowego planu: SD-V4-05.** Wpisy poniżej są historią wcześniejszych etapów;
+nie zamykamy badawczych 04/13 ani historycznego odbioru całego szkieletu.
+
 **Odbiór 03 i poprawka wyjścia — 2026-11-02:** użytkownik potwierdził
 ręczne testy wersji `0745e4e`. Następnie zgłoszony crash przy zamykaniu
 usunięto przez zakończenie pracy pul przed destrukcją Qt. 25 celowanych
@@ -52,7 +62,7 @@ Oznaczenia i wyrównanie dodano następnie w 02, zgodnie z aktualizacją powyże
 
 Specyfikację pierwszej mapy zakończono 2026-10-19.
 [Zadania budowy i odbioru](implementation/README.md) są gotowe do podjęcia;
-zakres budowy jest realizowany przez SD-V4-01–03, ale historyczny odbiór
+zakres budowy jest realizowany przez SD-V4-01–04, ale historyczny odbiór
 całego szkieletu nie został zamknięty. Status mapy odnosi się do decyzji,
 nie do gotowości programu.
 

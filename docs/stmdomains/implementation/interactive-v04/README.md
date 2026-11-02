@@ -4,7 +4,7 @@ Gałąź implementacji: **`domains/interactive-v04-ui`**, utworzona z
 `domains/start` na commicie `b21e0ca`. Worktree:
 `/home/rlew/projekty/NEtCAT-domains`.
 
-Stan: **20 osobnych ticketów**, 2026-11-02. **01–03 wykonano (`done`)**:
+Stan: **20 osobnych ticketów**, 2026-11-02. **01–04 wykonano (`done`)**:
 działa otwieranie MolTrack/MPP, podgląd oryginałów i nawigacja z suwakiem;
 [raport 01](acceptance-01.md). **02** dodaje oznaczenia, maski i zapisaną
 geometrię raw/aligned — [uruchomienie i odbiór 02](acceptance-02.md).
@@ -12,8 +12,12 @@ geometrię raw/aligned — [uruchomienie i odbiór 02](acceptance-02.md).
 300 testów PASS; GUI sprawdzone na pełnej serii TTMAPP. Ręczny odbiór 03
 i poprawki układu `0745e4e` potwierdzony przez użytkownika. Późniejsza
 [poprawka błędu wyjścia](acceptance-03.md#poprawka-wyjścia-z-programu) `3dd8b47`
-również odebrana ręcznie 2026-11-02. **Następny ticket: 04**.
-04–15 zachowują status `draft`. Na polecenie użytkownika dodano omówione rozszerzenia:
+również odebrana ręcznie 2026-11-02.
+**04** dodaje otwieranie pełnej paczki v0.4, kolory końcowych domen/klas,
+legendę i odmowy — [raport i test ręczny 04](acceptance-04.md). Wszystkie
+56 klatek wyniku sprawdzono w GUI; ręczny odbiór użytkownika pozostaje
+do wykonania. **Następny ticket: 05**.
+05–15 zachowują status `draft`. Na polecenie użytkownika dodano omówione rozszerzenia:
 16–18 mają status `ready-for-agent` i wymagają ukończenia zależności,
 a dalsze 19–20 status `deferred` z jawnym warunkiem wyboru.
 Pozostałe funkcje są planem implementacji. Użytkownik potwierdził ręczny odbiór

@@ -2,6 +2,8 @@
 
 from pathlib import Path
 from threading import Event
+import gc
+import weakref
 
 import pytest
 
@@ -158,6 +160,27 @@ def test_pause_of_pending_first_result_frame_does_not_commit_it_later(qtbot, tmp
         controller.show_frame(2)
         qtbot.waitUntil(lambda: not controller.is_busy)
         assert controller.result is None
+    finally:
+        controller.shutdown()
+        qtbot.waitUntil(lambda: controller.pending_task_count == 0)
+
+
+def test_replacing_series_releases_previous_images_and_result(qtbot, tmp_path):
+    paths = create_result_demo(tmp_path)
+    controller = SessionController(Prompts())
+    try:
+        controller.open_session(paths["session"])
+        qtbot.waitUntil(lambda: not controller.is_busy and controller.pending_task_count == 0)
+        controller.open_result(paths["manifest"])
+        qtbot.waitUntil(lambda: not controller.is_busy and controller.pending_task_count == 0)
+        controller.show_frame(2)
+        qtbot.waitUntil(lambda: not controller.is_busy and controller.pending_task_count == 0)
+        previous_series, previous_result = weakref.ref(controller.series), weakref.ref(controller.result)
+        controller.open_session(paths["session"])
+        qtbot.waitUntil(lambda: not controller.is_busy and controller.pending_task_count == 0)
+        gc.collect()
+        assert previous_series() is None
+        assert previous_result() is None
     finally:
         controller.shutdown()
         qtbot.waitUntil(lambda: controller.pending_task_count == 0)

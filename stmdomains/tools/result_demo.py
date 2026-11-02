@@ -130,7 +130,8 @@ def create_result_demo(directory: Path):
         "4. Klatka 2: jedno oznaczenie, brak analizy; nie jest wynikiem z zerem domen.\n"
         "5. Klatka 3: analiza wykonana, 2 nieprzypisane molekuły, 0 domen.\n"
         "   f: niewystarczające otoczenie; g: niepotwierdzona okresowość.\n"
-        "6. Najedź na oznaczenia; sprawdź ID, domenę, klasę końcową/wstępną i przyczynę.\n"
+        "6. Kliknij oznaczenie; w opisie pod obrazem lub danych oznaczenia sprawdź ID,\n"
+        "   domenę, klasę końcową/wstępną i przyczynę.\n"
         "7. Zamiast ZIP można otworzyć package/MANIFEST_v04.json.\n",
         encoding="utf-8",
     )

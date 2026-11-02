@@ -1,3 +1,56 @@
+# STM Domains — wykonano SD-V4-04: zapisane domeny v0.4
+
+Data: **2026-11-02**, polecenie `implement 04`. [SD-V4-04](implementation/interactive-v04/04-open-v04-results.md)
+ma status `done`; **ręczny odbiór użytkownika pozostaje do wykonania**.
+Odbiory 01–03 zachowane. [Uruchomienie, scenariusz ręczny i raport](implementation/interactive-v04/acceptance-04.md).
+
+W **netcat**: `python -m stmdomains.main`. Otwórz
+`data/TTMAPP/detection_full.moltrack.json`, potem **Otwórz wynik v0.4…** →
+`data/new_code/stm_domains_prototype_v04.zip` (pełny wynik) lub rozpakowany
+`MANIFEST_v04.json`. Domyślne kolory konkretnych domen, przełącznik końcowych
+klas, legenda/liczniki i odmowy po kliknięciu. Wynik zerowy, brak analizy
+oraz pominięty duplikat mają osobne znaczenie. Domeny/kolory są lokalne
+w klatce; nie oznaczają śledzenia. Nie uruchomiono nowej analizy ani treningu.
+
+Importer sprawdza SHA-256 źródeł i wymaganych plików paczki, rzeczywiste obrazy,
+mapy klatek, ID, współrzędne oraz zgodność liczników. Nie ładuje pickle/joblib.
+Niepoprawna lub anulowana paczka zachowuje poprzedni wynik. Wynik i obraz
+są publikowane razem; nowa seria odrzuca spóźnione wyniki poprzedniej.
+
+**Sprawdzenia:** 355 testów STM Domains PASS, bez pominięć, 16,12 s, w tym
+47 nowych przypadków. Pełny zestaw uruchomiono raz po poprawkach przeglądu.
+Mypy produkcyjnego core/io/ui/tools: **35 plików PASS**. Szerszy mypy całego
+katalogu zgłasza **112 historycznych błędów w 25 plikach badań**; potwierdzono
+ten sam wynik na czystej bazie `24625f2`. Kod/testy: **19 plików, maksimum
+395 linii**, PASS. Przegląd Standards znalazł 2 P2 (stara seria w pamięci,
+zakres NPZ sprawdzany po alokacji) i drobną korektę instrukcji demo: naprawione,
+regresje RED→GREEN, recenzent potwierdził. Spec: bez uwag. **0 otwartych uwag.**
+
+Rzeczywiste GUI X11 sterowane Qt: wszystkie **56 klatek**, porównanie ID,
+współrzędnych, kolorów i liczników z niezależnie odczytanym CSV; **4190
+przypisań / 122 domeny**. Kluczowe klatki 7/120/160/259/268 i 11 w raw/aligned,
+odmowa po kliknięciu, zoom/gamma, odtwarzanie 7–13, stabilny układ 900×650.
+SHA-256 JSON/MPP/ZIP bez zmian; wyjście 0, pule zakończone. Obejrzano zrzuty.
+Import ZIP i manifestu zgodny. Techniczne sprawdzenie agenta jest odrębne
+od oczekującego odbioru użytkownika. Lokalne artefakty:
+`.scratch/stmdomains-ui-04/`; demo: `python -m stmdomains.tools.result_demo`.
+
+Ograniczenia: około **1227 MiB** szczyt RSS lokalnej próby (JSON/MPP w całości,
+plus weryfikacja wyniku); import MolTrack 0,82 s, wyniku 0,49 s. W małym
+oknie kontrolki zostawiają małą przestrzeń obrazu — użyj zoomu lub maksymalizacji.
+Podgląd nie ocenia trafności domen. Kalibracja/rejestracja zachowują ograniczenia
+źródła. Wynik zawiera 56 z 268 klatek; pozostałe jawnie nie były analizowane.
+
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/interactive-v04-ui`,
+baza **`24625f2`**, implementacja **`b6159ac`**. Commit poprawek i dokumentacji
+podano w odpowiedzi końcowej. Zmiany tylko w aplikacji, testach i dokumentacji;
+bez instalacji. Wspólne zależności NumPy/SciPy/pytest-qt pozostają wcześniejszym
+zgłoszeniem integracyjnym, `netcat` jest gotowy. **Następny ticket: SD-V4-05 —
+oblicz domeny na bieżącej klatce.** Historyczny odbiór szkieletu i badawcze
+04/13 pozostają odrębnymi, otwartymi zadaniami. Poniżej historia wcześniejszych etapów.
+
+---
+
 # STM Domains — wykonano SD-V4-03: miniatury i odtwarzanie
 
 **Odbiór poprawki wyjścia — 2026-11-02:** użytkownik potwierdził „testy

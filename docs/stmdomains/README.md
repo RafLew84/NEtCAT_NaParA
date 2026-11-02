@@ -5,6 +5,18 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-02
 
+**Wykonano SD-V4-04:** otwieranie pełnego wyniku v0.4 (ZIP lub manifest),
+końcowe kolory domen/klas, legenda, liczniki i przyczyny odmów po kliknięciu.
+Importer weryfikuje źródła, obrazy, ID, współrzędne i podsumowania.
+Zerowy wynik, brak analizy oraz pominięte duplikaty mają odrębne znaczenie.
+[Uruchomienie i test ręczny 04](implementation/interactive-v04/acceptance-04.md).
+Rzeczywisty wynik sprawdzono w GUI dla wszystkich 56 klatek, 4190 przypisań
+i 122 domen. Implementacja **`b6159ac`**; szczegóły końcowych sprawdzeń
+i poprawek w raporcie. **Odbiór ręczny użytkownika 04 pozostaje do wykonania.**
+**Następny ticket: SD-V4-05 — oblicz domeny na bieżącej klatce.**
+Poniżej zachowano historię 01–03 i badań; dawne wskazania następnego ticketu
+opisują stan z chwili wpisu. Badawcze 04/13 pozostają osobnymi zadaniami.
+
 **Odbiór 03 potwierdzony; poprawiono także błąd wyjścia:** po potwierdzeniu
 testów ręcznych wersji `0745e4e` użytkownik zgłosił crash `TaskSignals has
 been deleted`. Program kończy teraz pracę obu pul przed usunięciem obiektów Qt.

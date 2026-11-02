@@ -219,6 +219,7 @@ class SessionController(QObject):
         if self._automatic_token is not None and self._automatic_token == self._frame_token:
             self._abandon(self._frame_token)
             self._frame_token = None
+            self._frame_presenter = None
             self._requested_presenter = None
             self._requested_index = self.current_index
             self._requested_mode = self.view_mode
@@ -258,6 +259,7 @@ class SessionController(QObject):
         else:
             self._abandon(self._frame_token)
             self._frame_token = None
+            self._frame_presenter = None
             self._requested_index = self.current_index
             self._requested_mode = self.view_mode
             self._requested_gamma = self.gamma
@@ -301,6 +303,7 @@ class SessionController(QObject):
             self._open_token = None
             self._abandon(self._frame_token)
             self._frame_token = None
+            self._frame_presenter = None
             self.series = candidate.series
             self._requested_presenter = None
             self._set_presenter(result.presenter)
@@ -308,9 +311,11 @@ class SessionController(QObject):
             self._publish(result.view)
         elif token == self._frame_token and isinstance(result, PresentedFrame):
             self._frame_token = None
+            presenter = self._frame_presenter
+            self._frame_presenter = None
             if self.series is not None and result.series_id == self.series.identity:
-                if self._frame_presenter is not None:
-                    self._set_presenter(self._frame_presenter)
+                if presenter is not None:
+                    self._set_presenter(presenter)
                 self._requested_presenter = None
                 self._publish(result)
 
@@ -340,6 +345,7 @@ class SessionController(QObject):
             self._open_token = None
         else:
             self._frame_token = None
+            self._frame_presenter = None
             self._requested_presenter = None
             self._requested_index = self.current_index
             self._requested_mode = self.view_mode
@@ -365,6 +371,7 @@ class SessionController(QObject):
         for task in self._tasks.values():
             task.cancelled.set()
         self._open_token = self._frame_token = self._result_token = None
+        self._frame_presenter = None
         self._requested_presenter = None
 
     def wait_for_workers(self) -> None:
