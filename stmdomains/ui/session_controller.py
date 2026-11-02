@@ -12,8 +12,10 @@ from PyQt6.QtCore import QCoreApplication, QObject, QThreadPool, QTimer, Qt, pyq
 
 from stmdomains.core.frame_presentation import FramePresenter, PresentedFrame
 from stmdomains.core.analysis_result import FrameAnalysis
+from stmdomains.core.class_catalogue import ClassCatalogue
 from stmdomains.core.series import Series
-from stmdomains.analysis import analyze_frame, recalculate_domains
+from stmdomains.analysis import analyze_frame, recalculate_domains, discover_classes
+from stmdomains.analysis.class_settings import ClassFitSettings
 from stmdomains.analysis.domain_settings import DomainSettings
 from stmdomains.io.moltrack_import import ImportCandidate, SourceRequest, prepare_import
 from stmdomains.ui.import_prompts import ImportPrompts
@@ -53,6 +55,7 @@ class SessionController(QObject):
         self._results: dict[int, FrameAnalysis] = {}
         self._previous_results: dict[int, FrameAnalysis] = {}
         self._selected_versions: dict[int, str] = {}
+        self._active_catalogue: ClassCatalogue | None = None
         self._published: PresentedFrame | None = None
         self._opening_path: Path | None = None
         self._closed = False
@@ -86,6 +89,21 @@ class SessionController(QObject):
     def result_version(self) -> str:
         return self._selected_versions.get(self.current_index, "new")
 
+    @property
+    def active_catalogue(self) -> ClassCatalogue | None:
+        return self._active_catalogue
+
+    @property
+    def catalogue_status(self) -> str:
+        if self.result is None:
+            return "unanalysed"
+        catalogue = self.result.catalogue
+        if catalogue is None:
+            return "unavailable"
+        if self.active_catalogue is not None and catalogue.identifier != self.active_catalogue.identifier:
+            return "earlier"
+        return "current"
+
     def select_result(self, version: str) -> None:
         if self.is_busy or version not in ("new", "previous") or self._closed:
             return
@@ -93,7 +111,10 @@ class SessionController(QObject):
             return
         self.pause()
         self._selected_versions[self.current_index] = version
+        if self.result is not None and self.result.catalogue is not None:
+            self._active_catalogue = self.result.catalogue
         self._refresh_result()
+        self._busy()
 
     @property
     def can_analyze(self) -> bool:
@@ -187,9 +208,25 @@ class SessionController(QObject):
         if not self.can_analyze or self.presenter is None:
             return
         presenter, index = self.presenter, self.current_index
-        settings = DomainSettings.from_parameters(self.latest_result.parameters) if self.latest_result else DomainSettings()
+        settings = DomainSettings.from_parameters(self.result.parameters) if self.result else DomainSettings()
+        active = self.active_catalogue
+        catalogue = active if active is not None and active.scope != "current_frame" else None
+        k = active.k if active else 5
         self._analysis_token = self._submit(lambda cancelled, report: analyze_frame(
-            presenter.analysis_input(index), settings=settings, cancelled=cancelled.is_set, progress=report,
+            presenter.analysis_input(index), settings=settings, k=k, catalogue=catalogue,
+            cancelled=cancelled.is_set, progress=report,
+        ))
+        self._busy()
+
+    def fit_current_classes(self, settings: ClassFitSettings) -> None:
+        self.pause()
+        if not self.can_analyze or self.presenter is None or self.series is None:
+            return
+        presenter, index, count = self.presenter, self.current_index, self.series.frame_count
+        domain_settings = DomainSettings.from_parameters(self.result.parameters) if self.result else DomainSettings()
+        self._analysis_token = self._submit(lambda cancelled, report: discover_classes(
+            presenter.analysis_input, frame_count=count, current_index=index, settings=settings,
+            domain_settings=domain_settings, cancelled=cancelled.is_set, progress=report,
         ))
         self._busy()
 
@@ -197,12 +234,15 @@ class SessionController(QObject):
         self.pause()
         if not self.can_analyze or self.presenter is None:
             return
-        presenter, index, previous = self.presenter, self.current_index, self.latest_result
+        presenter, index, previous = self.presenter, self.current_index, self.result
+        active = self.active_catalogue
 
         def calculate(cancelled: Event, report: Callable[[str], None]) -> FrameAnalysis:
             data = presenter.analysis_input(index)
             if previous is None:
-                return analyze_frame(data, settings=settings, cancelled=cancelled.is_set, progress=report)
+                return analyze_frame(data, settings=settings, k=active.k if active else 5,
+                                     catalogue=active if active and active.scope != "current_frame" else None,
+                                     cancelled=cancelled.is_set, progress=report)
             return recalculate_domains(data, previous, settings, cancelled=cancelled.is_set, progress=report)
 
         self._analysis_token = self._submit(calculate)
@@ -313,13 +353,14 @@ class SessionController(QObject):
                     and result.source_index == self.series.frame(self.current_index).source_index):
                 previous = self.latest_result
                 if (previous is not None and previous.status == result.status == "complete"
-                        and previous.metadata.get("input_sha256") == result.metadata.get("input_sha256")
-                        and previous.metadata.get("model_id") == result.metadata.get("model_id")):
+                        and previous.metadata.get("input_sha256") == result.metadata.get("input_sha256")):
                     self._previous_results[self.current_index] = previous
                 else:
                     self._previous_results.pop(self.current_index, None)
                 self._results[self.current_index] = result
                 self._selected_versions[self.current_index] = "new"
+                if result.catalogue is not None:
+                    self._active_catalogue = result.catalogue
                 if self._frame_token is None:
                     self._refresh_result()
             self._busy()
@@ -355,6 +396,7 @@ class SessionController(QObject):
             self._results.clear()
             self._previous_results.clear()
             self._selected_versions.clear()
+            self._active_catalogue = None
             self._published = None
             self.series_changed.emit(self.series)
             self._publish(result.view)

@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
 from stmdomains.analysis.domain_settings import DomainSettings
 from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.ui.session_controller import SessionController
+from stmdomains.ui.catalogue_style import catalogue_description
 
 
 class DomainSettingsDialog(QDialog):
@@ -24,8 +25,8 @@ class DomainSettingsDialog(QDialog):
         layout = QVBoxLayout(self)
         self.context = QLabel()
         layout.addWidget(self.context)
-        note = QLabel("Ustawienia dotyczą bieżącej klatki. Klasy molekuł pozostają te same.\n"
-                      "Pierwsze przeliczenie dopasuje K5 z danych tej klatki.")
+        note = QLabel("Przeliczanie zachowuje klasy wyświetlanego wyniku.\n"
+                      "Liczbę klas i zakres zmienisz w menu Analiza → Klasy i zakres…")
         note.setWordWrap(True)
         layout.addWidget(note)
         self.form_widget = QWidget()
@@ -131,10 +132,10 @@ class DomainSettingsDialog(QDialog):
             self.calculate.setEnabled(False)
             return
         self.calculate.setEnabled(self.controller.can_analyze)
-        latest = self.controller.latest_result
-        changed = latest is None or settings != DomainSettings.from_parameters(latest.parameters)
+        displayed = self.controller.result
+        changed = displayed is None or settings != DomainSettings.from_parameters(displayed.parameters)
         self.validation.setText("Ustawienia nieprzeliczone. Kliknij „Przelicz domeny”, aby je zastosować."
-                                if changed else "Ustawienia zgodne z nowym wynikiem. Edycja nie zmienia obrazu.")
+                                if changed else "Ustawienia zgodne z wyświetlanym wynikiem. Edycja nie zmienia obrazu.")
 
     def _calculate(self) -> None:
         try:
@@ -161,7 +162,7 @@ class DomainSettingsDialog(QDialog):
             self.comparison.setCurrentIndex(self.comparison.findData(controller.result_version))
         result = controller.result
         if result is None:
-            text = "Brak wyniku. Pierwsze przeliczenie obliczy klasy i domeny."
+            text = "Brak wyniku. Przeliczenie użyje wybranego katalogu wspólnego albo dopasuje klasy lokalnie."
         else:
             name = "Poprzedni" if controller.result_version == "previous" else "Nowy"
             settings = DomainSettings.from_parameters(result.parameters)
@@ -169,7 +170,8 @@ class DomainSettingsDialog(QDialog):
                     f"Użyto: minimum {settings.minimum_domain_size}, łączenie {settings.edge_distance_factor:g}, "
                     f"maska {settings.raster_radius_factor:g} × odstęp.\n"
                     + (f"Próg {settings.edge_max_hellinger:g}, średnica {settings.region_max_hellinger_diameter:g}."
-                       if settings.geometry_mode != "off" else "Kontrola zgodności otoczeń wyłączona."))
+                       if settings.geometry_mode != "off" else "Kontrola zgodności otoczeń wyłączona.")
+                    + "\n" + catalogue_description(result.catalogue))
             if result.status != "complete":
                 text = result.message
         self.displayed.setText(text)

@@ -51,7 +51,9 @@ def assignment_description(result: FrameAnalysis | None, detection_id: str) -> s
     if assignment is None:
         return "Brak rekordu przypisania dla tego ID"
     if assignment.status == "domain":
-        return f"Klasa lokalna: {assignment.class_id} · domena lokalna: {assignment.domain_local_id}"
+        scope = "wspólna" if result.catalogue is not None and result.catalogue.scope != "current_frame" else "lokalna"
+        description = f"Klasa {scope}: {assignment.class_id} · domena lokalna: {assignment.domain_local_id}"
+        return description + (f" · katalog {result.catalogue.identifier[:8]}" if result.catalogue else "")
     reasons = {
         "insufficient_local_support": "niewystarczające otoczenie molekuły",
         "periodicity_not_confirmed": "niepotwierdzona periodyczność",
@@ -110,6 +112,8 @@ def describe_result(result: FrameAnalysis | None, mode: str) -> ResultPresentati
                    for item in result.classes]
         title = f"Klasy: {sum(count > 0 for count in counts_by_class.values())}"
         note = "Końcowe klasy lokalne dla klatki; wstępne etykiety nie są przypisaniami."
+        if result.catalogue is not None and result.catalogue.scope != "current_frame":
+            note = f"Końcowe klasy wspólnego katalogu {result.catalogue.identifier[:8]}; numery klas są porównywalne tylko w tym katalogu."
     if result.unassigned_count:
         entries.append(LegendEntry("Nieprzypisane", UNASSIGNED_COLOR, result.unassigned_count))
     entries.extend(_excluded_entries(result))

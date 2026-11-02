@@ -6,7 +6,17 @@
 
 **Blocked by:** [05: Oblicz klasy i domeny bieżącej klatki z danych](05-analyze-current-frame.md).
 
-**Status:** ready-for-agent — wymaga ukończenia zależności.
+**Status:** in_progress — baza `eebbfbd`, gałąź `domains/interactive-v04-ui`.
+
+Ustalenie użytkownika: K, wybór zakresu oraz jego początek/koniec w małym
+oknie otwieranym z menu. Dopasowanie uruchamia przycisk; edycja pól nie
+zmienia wcześniejszego wyniku. Zachowujemy działające strojenie domen z 06.
+
+Testowane interfejsy wynikają z kryteriów ticketu: dopasowanie/zastosowanie
+katalogu do danych (K1–8, małe próby, wybrany zakres, pochodzenie i powtarzalność),
+kontroler sesji (wersje, anulowanie, nawigacja i status pozostałych klatek),
+rzeczywiste kontrolki Qt (wybór parametrów, uruchomienie i porównanie).
+Kontrole syntetyczne weryfikują działanie, nie trafność fizyczną domen.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 

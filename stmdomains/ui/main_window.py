@@ -15,6 +15,8 @@ from stmdomains.core.series import Series
 from stmdomains.core.annotations import Detection, Segmentation
 from stmdomains.ui.annotation_controls import AnnotationControls
 from stmdomains.ui.domain_settings_dialog import DomainSettingsDialog
+from stmdomains.ui.class_settings_dialog import ClassSettingsDialog
+from stmdomains.ui.catalogue_style import catalogue_description
 from stmdomains.ui.image_view import ImageView
 from stmdomains.ui.filmstrip import Filmstrip
 from stmdomains.ui.import_prompts import ImportPrompts, QtImportPrompts
@@ -161,7 +163,7 @@ class STMDomainsMainWindow(QMainWindow):
         progress.addWidget(self.cancel_button)
         layout.addLayout(progress)
         self.details_label = QLabel("Oryginał · auto kontrast osobno dla każdej klatki")
-        self.details_label.setWordWrap(True)
+        self.details_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         layout.addWidget(self.details_label)
 
         menu_bar = self.menuBar()
@@ -180,7 +182,13 @@ class STMDomainsMainWindow(QMainWindow):
         self.controller.busy_changed.connect(self._show_progress)
         self.controller.playback_changed.connect(self._show_playback)
         self.domain_settings_dialog = DomainSettingsDialog(self.controller, self)
+        self.class_settings_dialog = ClassSettingsDialog(self.controller, self)
         analysis_menu = menu_bar.addMenu("&Analiza") if menu_bar is not None else None
+        self.class_settings_action = analysis_menu.addAction("Klasy i zakres…") if analysis_menu is not None else None
+        if self.class_settings_action is not None:
+            self.class_settings_action.setObjectName("classSettingsAction")
+            self.class_settings_action.setEnabled(False)
+            self.class_settings_action.triggered.connect(self._show_class_settings)
         self.domain_settings_action = analysis_menu.addAction("Tworzenie domen…") if analysis_menu is not None else None
         if self.domain_settings_action is not None:
             self.domain_settings_action.setObjectName("domainSettingsAction")
@@ -202,6 +210,13 @@ class STMDomainsMainWindow(QMainWindow):
         self.domain_settings_dialog.show()
         self.domain_settings_dialog.raise_()
         self.domain_settings_dialog.activateWindow()
+
+    def _show_class_settings(self) -> None:
+        self.controller.pause()
+        self.class_settings_dialog.refresh()
+        self.class_settings_dialog.show()
+        self.class_settings_dialog.raise_()
+        self.class_settings_dialog.activateWindow()
 
     def _show_series(self, series: Series) -> None:
         self.filmstrip.set_series(series)
@@ -235,11 +250,7 @@ class STMDomainsMainWindow(QMainWindow):
         self._presented = view
         self.image_view.set_frame(view)
         self.result_controls.set_frame(view)
-        self.details_label.setText(
-            ("Poprzedni wynik" if self.controller.result_version == "previous" else "Nowy wynik")
-            + " · Analiza eksperymentalna · klasy i domeny lokalne dla klatki · jednostki: px"
-            if view.result is not None else "Auto kontrast oryginału · jednostki obrazu: px"
-        )
+        self._show_catalogue_status()
         self._select_annotation(None)
         self.frame_info_button.setEnabled(True)
         presenter = self.controller.presenter
@@ -274,6 +285,9 @@ class STMDomainsMainWindow(QMainWindow):
 
     def _show_progress(self, busy: bool, text: str) -> None:
         self.analyze_button.setEnabled(self.controller.can_analyze)
+        self._show_catalogue_status()
+        if self.class_settings_action is not None:
+            self.class_settings_action.setEnabled(self.controller.series is not None)
         if self.domain_settings_action is not None:
             self.domain_settings_action.setEnabled(self.controller.series is not None)
         self.progress_label.setText(text)
@@ -288,6 +302,24 @@ class STMDomainsMainWindow(QMainWindow):
                 self.annotation_controls.view_mode.setCurrentIndex(
                     0 if self.controller.view_mode == "raw" else 1
                 )
+
+    def _show_catalogue_status(self) -> None:
+        active, result = self.controller.active_catalogue, self.controller.result
+        self.analyze_button.setText(f"Analizuj klatkę · K{active.k if active else 5}")
+        self.analyze_button.setToolTip(
+            "Zastosuj wybrany wspólny katalog klas do bieżącej klatki"
+            if active is not None and active.scope != "current_frame" else
+            "Dopasuj lokalne klasy z bieżącego obrazu i oznaczeń molekuł"
+        )
+        if result is None:
+            text = "Nieprzeliczone · " + catalogue_description(active)
+        else:
+            prefix = "Poprzedni wynik" if self.controller.result_version == "previous" else "Nowy wynik"
+            if self.controller.catalogue_status == "earlier":
+                prefix += " · wcześniejszy katalog"
+            text = prefix + " · " + catalogue_description(result.catalogue)
+        self.details_label.setText(text)
+        self.details_label.setToolTip(text + "\nDomeny lokalne dla klatki; metoda eksperymentalna. Jednostki obrazu: px.")
 
     def _toggle_playback(self) -> None:
         if self.controller.is_playing:

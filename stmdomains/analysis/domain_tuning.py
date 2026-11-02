@@ -14,6 +14,7 @@ from stmdomains.analysis.barriers import image_barriers
 from stmdomains.analysis.domain_settings import DomainSettings
 from stmdomains.analysis.features import pair_features, prepare_points
 from stmdomains.analysis.pipeline import PARAMETERS, analyze_frame
+from stmdomains.analysis.config import model_parameters
 from stmdomains.analysis.provenance import input_fingerprint
 from stmdomains.analysis.segmentation import segment_domains
 from stmdomains.core.analysis_result import AnalysisCancelled, AnalysisInput, FrameAnalysis
@@ -39,9 +40,10 @@ def recalculate_domains(
     if previous.status != "complete":
         # There is no fitted catalogue to reuse or fingerprint to require after
         # a resource-limit refusal. Repeat validation and report its real cause.
-        return analyze_frame(data, settings=settings, cancelled=cancelled, progress=progress)
+        return analyze_frame(data, settings=settings, k=int(previous.parameters.get("k", 5)),
+                             catalogue=previous.catalogue, cancelled=cancelled, progress=progress)
     upstream_matches = all(json.dumps(previous.parameters.get(key), sort_keys=True) == json.dumps(value, sort_keys=True)
-                           for key, value in PARAMETERS.items() if key not in settings.parameters())
+                           for key, value in model_parameters(int(previous.parameters.get("k", 5))).items())
     bounded = (image.size <= PARAMETERS["maximum_image_pixels"]
                and len(data.annotations.detections) <= PARAMETERS["maximum_input_detections"])
     if (not upstream_matches or not bounded

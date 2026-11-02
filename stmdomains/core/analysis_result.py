@@ -10,19 +10,13 @@ import numpy as np
 from numpy.typing import NDArray
 
 from stmdomains.core.annotations import FrameAnnotations
+from stmdomains.core.class_catalogue import ClassCatalogue
+from stmdomains.core.immutable import freeze_metadata
 from stmdomains.core.series import FrameData
 
 
 class AnalysisCancelled(Exception):
     """Cooperative cancellation leaves the previous completed result available."""
-
-
-def _freeze(value: Any) -> Any:
-    if isinstance(value, Mapping):
-        return MappingProxyType({key: _freeze(item) for key, item in value.items()})
-    if isinstance(value, (list, tuple)):
-        return tuple(_freeze(item) for item in value)
-    return value
 
 
 @dataclass(frozen=True)
@@ -49,7 +43,7 @@ class MoleculeAssignment:
     metadata: Mapping[str, Any] = field(default_factory=dict, repr=False)
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "metadata", _freeze(self.metadata))
+        object.__setattr__(self, "metadata", freeze_metadata(self.metadata))
 
 
 @dataclass(frozen=True)
@@ -65,10 +59,12 @@ class FrameAnalysis:
     metadata: Mapping[str, Any] = field(default_factory=dict, repr=False)
     domain_labels: NDArray[np.int32] | None = field(default=None, repr=False, compare=False)
 
+    catalogue: ClassCatalogue | None = field(default=None, repr=False, compare=False)
+
     def __post_init__(self) -> None:
         object.__setattr__(self, "assignments", MappingProxyType(dict(self.assignments)))
-        object.__setattr__(self, "parameters", _freeze(self.parameters))
-        object.__setattr__(self, "metadata", _freeze(self.metadata))
+        object.__setattr__(self, "parameters", freeze_metadata(self.parameters))
+        object.__setattr__(self, "metadata", freeze_metadata(self.metadata))
         if self.domain_labels is not None:
             labels = np.asarray(self.domain_labels, dtype=np.int32)
             if labels.ndim != 2 or np.any(labels < 0):

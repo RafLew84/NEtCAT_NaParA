@@ -57,7 +57,7 @@ def molecule_image(points: NDArray[np.float64], *, steps: bool = False) -> NDArr
     return image
 
 
-def _session_annotations(
+def write_analysis_annotations(
     path: Path, points_by_frame: list[NDArray[np.float64]], *, duplicate: bool,
 ) -> None:
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -113,10 +113,10 @@ def create_analysis_demo(directory: Path) -> dict[str, Path]:
     # each imported Gaussian has the literal raw center used in the JSON.
     source = write_mpp(directory / "analysis.mpp", images[:, ::-1, ::-1])
     series = write_session(directory / "series.moltrack.json", source, range(len(points)))
-    _session_annotations(series, points, duplicate=True)
+    write_analysis_annotations(series, points, duplicate=True)
     single_source = write_mpp(directory / "single.mpp", images[:1, ::-1, ::-1])
     single = write_session(directory / "single.moltrack.json", single_source, [0])
-    _session_annotations(single, [patches], duplicate=True)
+    write_analysis_annotations(single, [patches], duplicate=True)
     readme = directory / "README.txt"
     readme.write_text(
         "STM Domains — SD-V4-05, sztuczne wejścia do obliczeń w aplikacji\n\n"
