@@ -15,7 +15,7 @@ def correspondence_details_text(details: CorrespondenceDiagnostics) -> str:
                else f'Przesunięcie: X {details.final_shift_xy[0]:.3f} · Y {details.final_shift_xy[1]:.3f} px')
     residual = 'brak' if details.median_residual_px is None else f'{details.median_residual_px:.3f} px'
     return (f'{outcome}\nZgodne punkty: {details.inlier_count} / {details.valid_count}; '
-            f'wyjście modelu: {details.input_count}.\n'
+            f'punkty przed konsensusem: {details.input_count}.\n'
             f'Rozrzut zgodnych przesunięć (mediana): {residual}.\n'
             f'Zasięg X/Y — bazowa: {details.reference_span_xy[0]:.0%} / '
             f'{details.reference_span_xy[1]:.0%}; przesuwana: '

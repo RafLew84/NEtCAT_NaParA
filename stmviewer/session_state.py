@@ -8,6 +8,7 @@ from stmviewer.frame import ImageFrame
 from stmviewer.registration import RegistrationResult
 
 if TYPE_CHECKING:
+    from stmviewer.deep_matcher import DeepMatcherOptions
     from stmviewer.graph_types import GraphTrial
 
 
@@ -34,6 +35,7 @@ class SessionViewState:
     deep_preset: str = 'turbo'
     deep_samples: int = 1000
     deep_seed: int = 20261102
+    roma_options: DeepMatcherOptions | None = None
 
 
 @dataclass(frozen=True)

@@ -379,7 +379,8 @@ class STMViewerMainWindow(QMainWindow):
             deep_device=options.device, deep_source=str(options.source) if options.source else None,
             deep_interpreter=str(options.interpreter) if options.interpreter else None,
             deep_preset=options.preset, deep_samples=options.samples, deep_seed=options.seed,
-            navigation=self._preview.navigation_states()), graph=self._graph.trial)
+            navigation=self._preview.navigation_states(),
+            roma_options=self._deep_controls.remembered_roma_options()), graph=self._graph.trial)
 
     def _restore_session(self, state: SessionState, thumbnails: tuple[QImage, ...]) -> None:
         if self._closing:
@@ -409,6 +410,7 @@ class STMViewerMainWindow(QMainWindow):
                                                                interpreter=Path(display.deep_interpreter) if display.deep_interpreter else None,
                                                                preset=display.deep_preset, samples=display.deep_samples,
                                                                seed=display.deep_seed))
+            self._deep_controls.restore_roma_options(display.roma_options)
         with QSignalBlocker(self._gamma):
             self._gamma.setValue(display.gamma)
         self._pixel_proportions.setChecked(display.pixel_proportions)

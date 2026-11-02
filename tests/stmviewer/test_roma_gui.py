@@ -1,6 +1,8 @@
 """RoMa setup through visible controls, without starting the model on selection."""
 from pathlib import Path
 
+import pytest
+
 from PyQt6.QtWidgets import QComboBox, QLineEdit, QSpinBox, QWidget
 
 from stmviewer.ui.deep_matcher_controls import DeepMatcherControls
@@ -206,3 +208,59 @@ def test_opening_graph_keeps_selected_roma_even_with_empty_interpreter(qtbot, mo
     assert not graph.findChild(QPushButton, 'runGraph').isEnabled()
     graph.close()
     window.close()
+
+
+@pytest.mark.parametrize('active_method', ['phase_correlation', 'efficient_loftr'])
+def test_session_keeps_roma_configuration_when_another_method_is_selected(
+    qtbot, monkeypatch, tmp_path, active_method
+):
+    import subprocess
+    from PyQt6.QtWidgets import QFileDialog, QLabel, QPushButton
+    from stmviewer.ui.main_window import STMViewerMainWindow
+    from test_registration_gui import open_file
+
+    window = STMViewerMainWindow()
+    qtbot.addWidget(window)
+    window.show()
+    open_file(qtbot, window, monkeypatch, Path(__file__).parent / 'fixtures/registration/cpu.mpp')
+    methods = window.findChild(QComboBox, 'registrationMethod')
+    methods.setCurrentIndex(methods.findData('roma_v2'))
+    expected_paths = {'romaInterpreter': str(tmp_path / 'portable-python'),
+                      'efficientSource': str(tmp_path / 'custom-dino'),
+                      'deepWeights': str(tmp_path / 'custom-roma.pt')}
+    for name, value in expected_paths.items():
+        window.findChild(QLineEdit, name).setText(value)
+    window.findChild(QComboBox, 'romaPreset').setCurrentIndex(2)
+    window.findChild(QComboBox, 'deepDevice').setCurrentText('CPU')
+    window.findChild(QSpinBox, 'romaSamples').setValue(321)
+    window.findChild(QSpinBox, 'romaSeed').setValue(135)
+    methods.setCurrentIndex(methods.findData(active_method))
+    session = tmp_path / 'remembered-roma.stmsession'
+    monkeypatch.setattr(QFileDialog, 'getSaveFileName', lambda *a, **kw: (str(session), ''))
+    window.findChild(QPushButton, 'saveSession').click()
+    qtbot.waitUntil(window.findChild(QPushButton, 'saveSession').isEnabled)
+    assert session.exists(), window.findChild(QLabel, 'sessionInfo').text()
+    window.close()
+
+    def unexpected_process(*args, **kwargs):
+        raise AssertionError('Restoring a remembered model must not execute its interpreter')
+
+    monkeypatch.setattr(subprocess, 'Popen', unexpected_process)
+    restored = STMViewerMainWindow()
+    qtbot.addWidget(restored)
+    restored.show()
+    monkeypatch.setattr(QFileDialog, 'getOpenFileName', lambda *a, **kw: (str(session), ''))
+    restored.findChild(QPushButton, 'openSession').click()
+    qtbot.waitUntil(restored.findChild(QPushButton, 'openSession').isEnabled)
+    assert 'Otwarto sesję' in restored.findChild(QLabel, 'sessionInfo').text()
+    restored_methods = restored.findChild(QComboBox, 'registrationMethod')
+    assert restored_methods.currentData() == active_method
+    restored_methods.setCurrentIndex(restored_methods.findData('roma_v2'))
+    for name, value in expected_paths.items():
+        assert restored.findChild(QLineEdit, name).text() == value
+    assert restored.findChild(QComboBox, 'romaPreset').currentData() == 'base'
+    assert restored.findChild(QComboBox, 'deepDevice').currentText() == 'CPU'
+    assert restored.findChild(QSpinBox, 'romaSamples').value() == 321
+    assert restored.findChild(QSpinBox, 'romaSeed').value() == 135
+    assert not restored.findChild(QPushButton, 'registerFrames').isEnabled()
+    restored.close()

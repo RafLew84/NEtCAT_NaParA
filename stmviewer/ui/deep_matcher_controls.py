@@ -20,7 +20,7 @@ class DeepMatcherControls(QWidget):
         super().__init__(parent)
         self._method = 'deep_matcher_translation'
         self._remembered: dict[str, DeepMatcherOptions] = {
-            EFFICIENT_METHOD: default_efficient_options(), ROMA_METHOD: default_roma_options(),
+            EFFICIENT_METHOD: default_efficient_options(),
         }
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -97,7 +97,8 @@ class DeepMatcherControls(QWidget):
             self._remembered[previous] = self.options()
             self._method = method
             with QSignalBlocker(self):
-                self.set_options(self._remembered.get(family, DeepMatcherOptions()))
+                defaults = default_roma_options() if family == ROMA_METHOD else DeepMatcherOptions()
+                self.set_options(self._remembered.get(family, defaults))
         else:
             self._method = method
         efficient, roma = method == EFFICIENT_METHOD, method == ROMA_METHOD
@@ -120,6 +121,17 @@ class DeepMatcherControls(QWidget):
             self._device.setCurrentText(options.device.upper() if options.device != 'auto' else 'Auto')
             self._roma.set_options(options)
         self._changed()
+
+    def remembered_roma_options(self) -> DeepMatcherOptions | None:
+        """Return RoMa's setup even when another method is currently selected."""
+        return self.options() if self._method == ROMA_METHOD else self._remembered.get(ROMA_METHOD)
+
+    def restore_roma_options(self, options: DeepMatcherOptions | None) -> None:
+        """Replace session-owned cached settings without selecting or executing a model."""
+        if options is None:
+            self._remembered.pop(ROMA_METHOD, None)
+        else:
+            self._remembered[ROMA_METHOD] = options
 
     def set_status(self, text: str) -> None:
         self._status.setText(text)

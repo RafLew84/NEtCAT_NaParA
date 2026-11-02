@@ -1,11 +1,13 @@
 """Strict JSON metadata for a session; array payloads are stored by the archive."""
 from dataclasses import asdict, replace
+from pathlib import Path
 from typing import Callable, Mapping
 
 import numpy as np
 from numpy.typing import NDArray
 
 from stmviewer.graph_methods import graph_method_label
+from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.correspondence_metadata import (
     decode_correspondence_diagnostics, encode_correspondence_diagnostics, validate_correspondence_shape, validate_correspondence_method,
 )
@@ -95,7 +97,7 @@ def _root(value: object) -> dict[str, object]:
     record = json_object(value)
     if record.get('schema') == 'stmviewer-state-v1':
         return json_object(record, _ROOT_KEYS)
-    if record.get('schema') in ('stmviewer-state-v2', 'stmviewer-state-v3', 'stmviewer-state-v4', 'stmviewer-state-v5'):
+    if record.get('schema') in ('stmviewer-state-v2', 'stmviewer-state-v3', 'stmviewer-state-v4', 'stmviewer-state-v5', 'stmviewer-state-v6'):
         return json_object(record, _ROOT_KEYS | {'graph'})
     raise ValueError('Nieobsługiwana wersja stanu sesji.')
 
@@ -182,9 +184,27 @@ def _decode_frame(record: dict[str, object], arrays: Mapping[str, NDArray[np.flo
     return frame
 
 
+def _decode_roma_options(value: object) -> DeepMatcherOptions | None:
+    """Remember the optional model's controls without opening paths or running Python."""
+    if value is None:
+        return None
+    record = json_object(value, {'weights', 'device', 'source', 'interpreter', 'preset', 'samples', 'seed'})
+    paths = {}
+    for key in ('weights', 'source', 'interpreter'):
+        text = optional_text(record, key)
+        paths[key] = Path(_text(text)) if text is not None else None
+    device, preset = _text(record['device']), _text(record['preset'])
+    samples, seed = _integer(record['samples'], 8), _integer(record['seed'])
+    if (device not in ('auto', 'cpu', 'cuda') or preset not in ('turbo', 'fast', 'base', 'precise')
+            or samples > 10000 or seed > 2**31 - 1):
+        raise ValueError('Sesja: nieprawidłowa zapamiętana konfiguracja RoMa.')
+    return DeepMatcherOptions(paths['weights'], device, paths['source'], paths['interpreter'],
+                              preset, samples, seed)
+
+
 def _decode_display(value: object, count: int, aligned: bool) -> SessionViewState:
     fields = json_object(value)
-    extra = {'deep_source', 'deep_interpreter', 'deep_preset', 'deep_samples', 'deep_seed'} & fields.keys()
+    extra = {'deep_source', 'deep_interpreter', 'deep_preset', 'deep_samples', 'deep_seed', 'roma_options'} & fields.keys()
     record = json_object(fields, _DISPLAY_KEYS | extra)
     index = _integer(record['index'])
     view = record['view']
@@ -219,7 +239,7 @@ def _decode_display(value: object, count: int, aligned: bool) -> SessionViewStat
     return SessionViewState(index, view, gamma, _boolean(record['pixel_proportions']), fps,
                             _boolean(record['loop']), method, optional_text(record, 'deep_weights'),
                             device, navigation, optional_text(record, 'deep_source') if 'deep_source' in record else None,
-                            interpreter, preset, samples, seed)
+                            interpreter, preset, samples, seed, _decode_roma_options(record.get('roma_options')))
 
 
 def _registration_record(result: RegistrationResult, images: tuple[ImageFrame, ...],
@@ -413,6 +433,15 @@ def encode_session(state: SessionState, *, check_cancelled: Callable[[], None] =
     else:
         for key in ('deep_interpreter', 'deep_preset', 'deep_samples', 'deep_seed'):
             display.pop(key)
+    if state.display.roma_options is None:
+        display.pop('roma_options')
+    else:
+        options = asdict(state.display.roma_options)
+        for key in ('weights', 'source', 'interpreter'):
+            options[key] = str(options[key]) if options[key] is not None else None
+        display['roma_options'] = options
+        manifest['schema'] = 'stmviewer-state-v6'
+        manifest.setdefault('graph', None)
     decode_session(manifest, arrays, check_cancelled=check_cancelled)
     return manifest, arrays
 

@@ -101,3 +101,18 @@ assert all(sys.modules[name] is None for name in ('torch', 'romav2', 'kornia', '
 '''
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1', PYTHONPATH=str(Path(__file__).resolve().parents[2]))
     subprocess.run([sys.executable, '-c', script, str(path)], env=env, check=True, capture_output=True, text=True)
+
+
+def test_inactive_roma_options_survive_session_separately_from_selected_method(tmp_path):
+    from stmviewer.deep_matcher import DeepMatcherOptions
+    options = DeepMatcherOptions(Path('/absent/roma.pt'), 'cuda', Path('/absent/dino'),
+                                Path('/absent/python'), 'base', 2048, 135)
+    frames = open_mpp_series(CPU, check_cancelled=lambda: None)
+    display = SessionViewState(method='phase_correlation', deep_weights='/other/loftr.ckpt',
+                               deep_device='cpu', roma_options=options)
+    path = save_session(tmp_path / 'roma-remembered.stmsession', SessionState(frames, display=display))
+    restored = load_session(path)
+    assert restored.display.method == 'phase_correlation'
+    assert restored.display.deep_weights == '/other/loftr.ckpt'
+    assert restored.display.deep_device == 'cpu'
+    assert restored.display.roma_options == options
