@@ -22,7 +22,7 @@ def segment_domains(
     points: NDArray[np.float64], labels: NDArray[Any], accepted: NDArray[np.bool_],
     features: NDArray[np.float64], spacing: float, barrier: NDArray[np.bool_],
     check: Callable[[], None],
-) -> tuple[NDArray[np.int32], dict[str, Any]]:
+) -> tuple[NDArray[np.int32], NDArray[np.int32], dict[str, Any]]:
     pairs = np.asarray(sorted(cKDTree(points).query_pairs(1.5 * spacing)), int).reshape(-1, 2)
     eligible = accepted[pairs[:, 0]] & accepted[pairs[:, 1]] & (labels[pairs[:, 0]] == labels[pairs[:, 1]])
     candidates = pairs[eligible]
@@ -75,8 +75,8 @@ def segment_domains(
     ids = np.zeros(len(points), np.int32)
     for number, group in enumerate(groups, 1):
         ids[group] = number
-    final, reconciliation = _reconcile(points, ids, spacing, barrier, check)
-    return final, {"candidate_edges": len(pairs), "eligible_edges": len(candidates),
+    final, regions, reconciliation = _reconcile(points, ids, spacing, barrier, check)
+    return final, regions, {"candidate_edges": len(pairs), "eligible_edges": len(candidates),
                    "barrier_cut_edges": cut, "geometry_cut_edges": geometry_cut,
                    "region_diameter_rejected_merges": rejected, **reconciliation}
 
@@ -84,7 +84,7 @@ def segment_domains(
 def _reconcile(
     points: NDArray[np.float64], ids: NDArray[np.int32], spacing: float,
     barrier: NDArray[np.bool_], check: Callable[[], None],
-) -> tuple[NDArray[np.int32], dict[str, Any]]:
+) -> tuple[NDArray[np.int32], NDArray[np.int32], dict[str, Any]]:
     """Require one seeded 8-connected Voronoi support per final domain, as in v0.4."""
     height, width = barrier.shape
     mask = np.zeros(barrier.shape, np.int32)
@@ -98,7 +98,8 @@ def _reconcile(
         values[distance > .85 * spacing] = 0
         mask[start:start + len(yy)] = values.reshape(yy.shape)
     mask[barrier] = 0
-    groups = []
+    groups: list[tuple[NDArray[np.intp], int]] = []
+    regions = np.zeros(mask.shape, np.int32)
     for domain in np.unique(ids[ids > 0]):
         check()
         components = np.zeros(mask.shape, np.int32)
@@ -109,13 +110,18 @@ def _reconcile(
         seeds[:, 1] = np.clip(seeds[:, 1], 0, height - 1)
         point_components = components[seeds[:, 1], seeds[:, 0]]
         for component in np.unique(point_components):
+            check()
             selected = members[point_components == component]
             if component > 0 and len(selected) >= 8:
-                groups.append(selected)
-    groups.sort(key=lambda group: (float(points[group, 1].mean()), float(points[group, 0].mean())))
+                temporary_id = len(groups) + 1
+                regions[components == component] = temporary_id
+                groups.append((selected, temporary_id))
+    groups.sort(key=lambda item: (float(points[item[0], 1].mean()), float(points[item[0], 0].mean())))
     final = np.zeros(len(points), np.int32)
-    for number, group in enumerate(groups, 1):
+    remap = np.zeros(len(groups) + 1, np.int32)
+    for number, (group, temporary_id) in enumerate(groups, 1):
         final[group] = number
-    return final, {"graph_domains": int(len(np.unique(ids[ids > 0]))),
+        remap[temporary_id] = number
+    return final, remap[regions], {"graph_domains": int(len(np.unique(ids[ids > 0]))),
                    "final_domains": len(groups),
                    "removed_by_raster_support": int(np.sum((ids > 0) & (final == 0)))}

@@ -19,7 +19,8 @@ class AnnotationControls(QWidget):
         row.addWidget(self.view_mode)
         self.centers = QCheckBox("Centra")
         self.boxes = QCheckBox("Ramki")
-        self.masks = QCheckBox("Maski / obrysy")
+        self.masks = QCheckBox("Maski molekuł")
+        self.masks.setToolTip("Maski i obrysy pojedynczych molekuł zapisane w MolTrack")
         self.centers.setChecked(True)
         for control in (self.centers, self.boxes, self.masks):
             control.setEnabled(False)
@@ -46,4 +47,6 @@ class AnnotationControls(QWidget):
         self.centers.setEnabled(detections)
         self.boxes.setEnabled(boxes)
         self.masks.setEnabled(segmentations)
+        self.masks.setToolTip("Maski i obrysy pojedynczych molekuł zapisane w MolTrack"
+                              if segmentations else "Brak zapisanych masek lub obrysów molekuł na tej klatce")
         self.opacity.setEnabled(segmentations)

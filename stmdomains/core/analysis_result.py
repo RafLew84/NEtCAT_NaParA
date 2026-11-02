@@ -6,6 +6,9 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal
 
+import numpy as np
+from numpy.typing import NDArray
+
 from stmdomains.core.annotations import FrameAnnotations
 from stmdomains.core.series import FrameData
 
@@ -60,11 +63,19 @@ class FrameAnalysis:
     classes: tuple[ResultClass, ...] = ()
     parameters: Mapping[str, Any] = field(default_factory=dict)
     metadata: Mapping[str, Any] = field(default_factory=dict, repr=False)
+    domain_labels: NDArray[np.int32] | None = field(default=None, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "assignments", MappingProxyType(dict(self.assignments)))
         object.__setattr__(self, "parameters", _freeze(self.parameters))
         object.__setattr__(self, "metadata", _freeze(self.metadata))
+        if self.domain_labels is not None:
+            labels = np.asarray(self.domain_labels, dtype=np.int32)
+            if labels.ndim != 2 or np.any(labels < 0):
+                raise ValueError("Mapa domen musi być nieujemnym obrazem 2D.")
+            # Own immutable backing storage; callers cannot re-enable writes.
+            frozen = np.frombuffer(labels.tobytes(), dtype=np.int32).reshape(labels.shape)
+            object.__setattr__(self, "domain_labels", frozen)
 
     @property
     def total_count(self) -> int:

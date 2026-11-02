@@ -114,7 +114,7 @@ def analyze_frame(
     metadata["model_id"] = hashlib.sha256(model_bytes).hexdigest()
     progress("Wyznaczanie barier obrazu i domen…")
     barrier, barrier_metadata = image_barriers(image, spacing, check)
-    domain_ids, geometry_metadata = segment_domains(
+    domain_ids, domain_labels, geometry_metadata = segment_domains(
         points, labels, reliable & order["supported"], features, spacing, barrier, check,
     )
     metadata["barriers"] = barrier_metadata
@@ -145,4 +145,5 @@ def analyze_frame(
         )
     check()
     return FrameAnalysis(data.series_id, data.frame.working_index, data.frame.source_index,
-                         "complete", "Obliczono lokalne klasy K5 i domeny.", assignments, classes, parameters, metadata)
+                         "complete", "Obliczono lokalne klasy K5 i domeny.", assignments, classes, parameters,
+                         metadata, domain_labels)

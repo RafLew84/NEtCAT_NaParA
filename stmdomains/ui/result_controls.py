@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
 
 from stmdomains.core.frame_presentation import PresentedFrame
 from stmdomains.ui.result_style import describe_result
+from stmdomains.ui.domain_controls import DomainControls
 
 
 class ResultControls(QWidget):
@@ -45,6 +46,8 @@ class ResultControls(QWidget):
         scrollbar_height = scrollbar.sizeHint().height() if scrollbar is not None else 0
         self.legend_scroll.setFixedHeight(self.legend.fontMetrics().height() + scrollbar_height + 4)
         row.addWidget(self.legend_scroll, 1)
+        self.regions = DomainControls(self)
+        row.addWidget(self.regions)
         self.details_button = QPushButton("Dane…")
         self.details_button.setToolTip("Ustawienia i pochodzenie wyniku tej klatki")
         self.details_button.setEnabled(False)
@@ -66,6 +69,7 @@ class ResultControls(QWidget):
     def _render(self) -> None:
         result = self._frame.result if self._frame is not None else None
         description = describe_result(result, self.mode.currentData())
+        self.regions.set_available(result, self.mode.currentData())
         self.summary.setText(description.summary)
         self.summary.setToolTip(description.summary + "\n" + description.note)
         self.mode.setToolTip(description.note)

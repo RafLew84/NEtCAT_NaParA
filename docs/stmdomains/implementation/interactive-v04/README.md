@@ -10,7 +10,7 @@ implementujemy w aplikacji i następnie rozszerzamy. Użytkownik otwiera
 obrazy z oznaczeniami, wybiera zakres i ustawienia, klika **Analizuj**.
 Parametry klas powstają wewnętrznie z wybranych danych, bez pliku modelu.
 
-Stan: **18 ticketów w aktualnym planie**. **01–03 są wykonane i odebrane
+Stan: **19 ticketów w aktualnym planie**. **01–03 są wykonane i odebrane
 ręcznie**: [obrazy i suwak](acceptance-01.md), [oznaczenia i geometria](acceptance-02.md),
 [miniatury, odtwarzanie i gamma](acceptance-03.md), wraz z poprawkami układu
 `0745e4e` i wyjścia `3dd8b47`. **05 jest zaimplementowany (`fb37431`, `done`),
@@ -27,7 +27,8 @@ dopasowanie jednej klatki przejmują 05 (bazowe K5) i 07 (ręczne K i zakres).
 Numerów 04/11 nie wykorzystujemy ponownie; pozostałe ID i ścieżki zachowano.
 Historia usuniętych ticketów pozostaje w Git.
 
-**Następny ticket: 06.** 01–03 i 05 mają status `done`.
+**W realizacji: [05a — obszary i granice domen](05a-domain-regions.md)**,
+dodany na polecenie użytkownika. Następny po nim: **06**. 01–03 i 05 mają status `done`.
 06–10 oraz 12–18 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
@@ -44,6 +45,7 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [02 — Pokaż molekuły i poprawną geometrię obrazu](02-molecules-and-geometry.md) | SD-V4-01 | Włącz oznaczenia i sprawdź, czy leżą na molekułach. |
 | [03 — Przeglądaj serię przez miniatury i odtwarzanie](03-filmstrip-and-playback.md) | SD-V4-01 | Wybierz miniaturę, odtwórz serię i zatrzymaj. |
 | [05 — Oblicz klasy i domeny bieżącej klatki z danych](05-analyze-current-frame.md) | SD-V4-02 | Kliknij Analizuj klatkę; klasy K5 i domeny powstają z jej danych, bez pliku modelu. |
+| [05a — Obszary i granice domen](05a-domain-regions.md) | SD-V4-05 | Wyłącz centra i oglądaj wypełnienie, obrysy i numery domen; reguluj krycie. |
 | [06 — Strojenie tworzenia domen i porównanie wyniku](06-tune-domain-formation.md) | SD-V4-05 | Zmień progi domen i porównaj poprzedni/nowy wynik. |
 | [07 — Wybierz liczbę klas i zakres ich odkrywania](07-fit-shared-classes.md) | SD-V4-05 | Wpisz K1–8, wybierz jedną klatkę lub wspólny zakres i obejrzyj nowy wynik. |
 | [08 — Przelicz zakres lub całą serię](08-analyze-series.md) | SD-V4-07 | Dopasuj wspólne klasy i przelicz zakres; przeglądaj wyniki i anuluj pozostałe. |
@@ -59,8 +61,8 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [19 — Porównaj domeny z lokalnego FFT i NMF obrazu](19-compare-local-fft-nmf.md) | SD-V4-06, SD-V4-16; warunek wyboru | Zmień okno analizy obrazu i porównaj wynik na molekułach. |
 | [20 — Zachowaj wspólny katalog typów struktury w serii](20-shared-structural-type-catalogue.md) | SD-V4-08, SD-V4-13, SD-V4-16; warunek wyboru | Sprawdź wspólne typy na kolejnych klatkach i po otwarciu zapisanego projektu. |
 
-Rekomendowana kolejność po wykonanym 05: **06 → 07 → 08 → 12**:
-strojenie domen → ręczne K i zakres odkrywania
+Rekomendowana kolejność po wykonanym 05: **05a → 06 → 07 → 08 → 12**:
+obszary i granice domen → strojenie domen → ręczne K i zakres odkrywania
 → analiza serii → Auto. 12 można wykonać już po 07, jeśli Auto ma pierwszeństwo
 przed analizą całej serii. Po 05 dostępne są niezależnie 06, 07, 10, 13,
 14 i 16; po 07 także 08, 09, 12 i 15. 08 wymaga wspólnego dopasowania
@@ -174,7 +176,8 @@ Dokumentacja kandydatów:
   warunkiem rozpoczęcia analizy. Modele robocze są szczegółem obliczeń,
   a podstawowy przepływ nie wymaga szukania ani ładowania pliku modelu.
 - **Czytelny widok:** podstawą są rzeczywiste molekuły na obrazie,
-  kolor konkretnej domeny i szare nieprzypisane oznaczenia. Klasa,
+  kolor konkretnej domeny i szare nieprzypisane oznaczenia. 05a dodaje
+  niezależnie wypełnienie, obrysy i numery końcowych obszarów. Klasa,
   domena, brak analizy i wynik z zerem domen są rozróżnione. Diagnostyka
   jest dostępna osobno; kolor domeny nie oznacza śledzenia jej w czasie.
 - **Zamknięcie zadania:** przekazanie zawiera uruchomienie, wynik sprawdzeń,

@@ -110,6 +110,10 @@ class STMDomainsMainWindow(QMainWindow):
         self.result_controls = ResultControls()
         self.result_controls.mode_changed.connect(self.image_view.set_assignment_mode)
         self.result_controls.details_button.clicked.connect(self._show_analysis_details)
+        self.result_controls.regions.layers_changed.connect(self._set_domain_layers)
+        region_menu = self.result_controls.regions.menu()
+        if region_menu is not None:
+            region_menu.aboutToShow.connect(self.controller.pause)
         layout.addWidget(self.result_controls)
         for spin_control in (self.frame_number, self.playback_controls.gamma):
             spin_control.installEventFilter(self)
@@ -291,6 +295,13 @@ class STMDomainsMainWindow(QMainWindow):
         self.image_view.set_layers(
             centers=controls.centers.isChecked(), boxes=controls.boxes.isChecked(),
             masks=controls.masks.isChecked(), opacity=controls.opacity.value() / 100,
+        )
+
+    def _set_domain_layers(self) -> None:
+        controls = self.result_controls.regions
+        self.image_view.set_domain_layers(
+            fill=controls.fill.isChecked(), outlines=controls.outlines.isChecked(),
+            numbers=controls.numbers.isChecked(), opacity=controls.opacity.value() / 100,
         )
 
     def _select_annotation(self, selected: Detection | Segmentation | None) -> None:

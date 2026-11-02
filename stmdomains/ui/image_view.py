@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import (
 from stmdomains.core.display import RenderedImage
 from stmdomains.core.frame_presentation import PresentedFrame
 from stmdomains.ui.annotation_overlay import AnnotationOverlay
+from stmdomains.ui.domain_overlay import DomainOverlay
 
 
 def image_pixmap(rendered: RenderedImage) -> QPixmap:
@@ -43,6 +44,9 @@ class ImageView(QGraphicsView):
         self._mask_picture = QGraphicsPixmapItem(self._mask_clip)
         self._mask_picture.setOpacity(0.45)
         self._mask_picture.setVisible(False)
+        self._domains = DomainOverlay()
+        self._domains.setZValue(1.5)
+        scene.addItem(self._domains)
         self._field_border = QGraphicsRectItem()
         pen = QPen(QColor("#9bb4c5"), 1, Qt.PenStyle.DashLine)
         pen.setCosmetic(True)
@@ -92,6 +96,7 @@ class ImageView(QGraphicsView):
         self._field_border.setVisible(view.mode == "expanded_aligned")
         self._mask_picture.setPixmap(image_pixmap(view.masks) if view.masks is not None else QPixmap())
         self._overlay.set_frame(view)
+        self._domains.set_frame(view)
         if mode_changed:
             self.fit_to_window()
 
@@ -109,6 +114,10 @@ class ImageView(QGraphicsView):
             raise ValueError("Unknown assignment display mode")
         self._overlay.assignment_mode = mode
         self._overlay.update()
+        self._domains.set_mode(mode)
+
+    def set_domain_layers(self, *, fill: bool, outlines: bool, numbers: bool, opacity: float) -> None:
+        self._domains.set_layers(fill=fill, outlines=outlines, numbers=numbers, opacity=opacity)
 
     def mousePressEvent(self, event: QMouseEvent | None) -> None:
         if event is not None and event.button() == Qt.MouseButton.LeftButton:
