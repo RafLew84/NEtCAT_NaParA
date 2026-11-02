@@ -9,6 +9,7 @@ from numpy.typing import NDArray
 from stmviewer.correspondence_types import CorrespondenceDiagnostics, CorrespondenceRefusal
 from stmviewer.efficient_matcher import EFFICIENT_METHOD, EfficientBackend, load_efficient_backend
 from stmviewer.roma_matcher import ROMA_METHOD, RomaBackend, load_roma_backend
+from stmviewer.matchanything_matcher import MATCHANYTHING_METHOD, MatchAnythingBackend, load_matchanything_backend
 from stmviewer.local_consensus import LocalDiagnostics, LocalConsensusError
 from stmviewer.local_registration import LOCAL_METHOD, DeepLocalBackend, load_deep_local_backend
 from stmviewer.frame import ImageFrame
@@ -81,7 +82,11 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
         raise RegistrationError(f'{prefix}: para wymaga skończonych próbek; wejście zawiera NaN/Inf.')
     device = 'CPU'
     settings = 'Oryginały; ustawienia NanoTrack'
-    if method == ROMA_METHOD:
+    if method == MATCHANYTHING_METHOD:
+        matchanything = load_matchanything_backend(deep_options or DeepMatcherOptions(),
+                                                   cancelled=cancelled, progress=report)
+        backend, device, settings = matchanything, matchanything.device, matchanything.settings_text
+    elif method == ROMA_METHOD:
         roma = load_roma_backend(deep_options or DeepMatcherOptions(),
                                  cancelled=cancelled, progress=report)
         backend, device, settings = roma, roma.device, roma.settings_text
@@ -107,7 +112,7 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
     try:
         configuration = getattr(backend, 'config', None)
         # The local wrapper already describes both stages and its full configuration.
-        if (not isinstance(backend, (DeepLocalBackend, EfficientBackend, RomaBackend))
+        if (not isinstance(backend, (DeepLocalBackend, EfficientBackend, RomaBackend, MatchAnythingBackend))
                 and is_dataclass(configuration) and not isinstance(configuration, type)):
             settings += '; ' + '; '.join(f'{k}={v}' for k, v in asdict(configuration).items())
         report(f'{label}: wyznaczanie przesunięcia pary…')
@@ -136,10 +141,10 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
             method, label, settings, device, (float(result.shift_xy[0]), float(result.shift_xy[1])),
             status, quality, hybrid=backend.last_diagnostics if isinstance(backend, DeepEccBackend) else None,
             local=backend.last_diagnostics if isinstance(backend, DeepLocalBackend) else None,
-            correspondence=backend.last_diagnostics if isinstance(backend, (EfficientBackend, RomaBackend)) else None,
+            correspondence=backend.last_diagnostics if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend)) else None,
         )
     finally:
-        if isinstance(backend, (EfficientBackend, RomaBackend)):
+        if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend)):
             backend.close()
 
 

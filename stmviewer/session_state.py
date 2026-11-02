@@ -36,6 +36,7 @@ class SessionViewState:
     deep_samples: int = 1000
     deep_seed: int = 20261102
     roma_options: DeepMatcherOptions | None = None
+    matchanything_options: DeepMatcherOptions | None = None
 
 
 @dataclass(frozen=True)

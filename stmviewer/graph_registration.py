@@ -11,6 +11,7 @@ from stmviewer.graph_types import GraphConfig, GraphEdge, GraphSource, GraphTria
 from stmviewer.registration import RegistrationCancelled, RegistrationError, estimate_confidence
 from stmviewer.efficient_matcher import EfficientBackend
 from stmviewer.roma_matcher import RomaBackend
+from stmviewer.matchanything_matcher import MatchAnythingBackend
 from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.deep_ecc import DeepEccBackend
 from stmviewer.local_registration import DeepLocalBackend
@@ -236,7 +237,7 @@ def register_graph(frames: tuple[ImageFrame, ...], *, window: int = 3,
                                        local_diagnostics=(backend.last_diagnostics
                                                           if isinstance(backend, DeepLocalBackend) else None),
                                        correspondence_diagnostics=(backend.last_diagnostics
-                                                                   if isinstance(backend, (EfficientBackend, RomaBackend)) else None)))
+                                                                   if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend)) else None)))
             else:
                 edges.append(GraphEdge(i, j, (float(shift[0]), float(shift[1])),
                                        status, quality_score=score,
@@ -245,10 +246,10 @@ def register_graph(frames: tuple[ImageFrame, ...], *, window: int = 3,
                                        local_diagnostics=(backend.last_diagnostics
                                                           if isinstance(backend, DeepLocalBackend) else None),
                                        correspondence_diagnostics=(backend.last_diagnostics
-                                                                   if isinstance(backend, (EfficientBackend, RomaBackend)) else None)))
+                                                                   if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend)) else None)))
             report(done, f'{label}: klatki {i + 1}–{j + 1}')
     finally:
-        if isinstance(backend, (EfficientBackend, RomaBackend)):
+        if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend)):
             backend.close()
     elapsed = perf_counter() - start
     pair_context = ''

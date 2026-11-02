@@ -1,0 +1,8 @@
+-r requirements-deep.txt
+# Optional MatchAnything-ELoFTR runtime; choose the Torch CPU/CUDA build first.
+# Source and checkpoint remain separate, pinned local resources.
+einops==0.8.2
+yacs==0.1.8
+loguru==0.7.3
+opencv-python==4.11.0.86
+Pillow==11.2.1

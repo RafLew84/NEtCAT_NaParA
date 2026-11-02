@@ -1,6 +1,6 @@
 """Opt-in CPU comparison on identical known-motion and interference fixtures.
 
-RoMa and EfficientLoFTR use translation-consensus-v2. Historical Deep is a
+RoMa, EfficientLoFTR and MatchAnything use translation-consensus-v2. Historical Deep is a
 complete-estimator comparison. Results are model support, never a physical
 validation of STM drift. Inputs remain unchanged; reports live outside Git.
 """
@@ -20,6 +20,9 @@ def main():
     parser.add_argument('directory', type=Path)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--deep-weights', type=Path)
+    parser.add_argument('--methods', nargs='+',
+                        choices=('roma_v2', 'efficient_loftr', 'matchanything_eloftr'),
+                        default=['roma_v2', 'efficient_loftr'])
     parser.add_argument('--preset', choices=('turbo', 'fast', 'base', 'precise'), default='turbo')
     args = parser.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = ''
@@ -27,6 +30,7 @@ def main():
     from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
     from stmviewer.efficient_matcher import default_efficient_options, load_efficient_backend
     from stmviewer.roma_matcher import default_roma_options, load_roma_backend
+    from stmviewer.matchanything_matcher import default_matchanything_options, load_matchanything_backend
     from stmviewer.registration import estimate_confidence
     from stmviewer.series import open_frame_series
     import numpy as np
@@ -49,13 +53,16 @@ def main():
     def save():
         (args.output / 'report.json').write_text(json.dumps(report, indent=2, allow_nan=False) + '\n')
 
-    methods = ['roma_v2', 'efficient_loftr']
+    methods = list(args.methods)
     if args.deep_weights is not None:
         methods.append('deep_matcher_translation')
     for method in methods:
         started = perf_counter()
         if method == 'roma_v2':
             backend = load_roma_backend(replace(default_roma_options(), device='cpu', preset=args.preset))
+            device, provenance = backend.device, dict(backend.provenance)
+        elif method == 'matchanything_eloftr':
+            backend = load_matchanything_backend(replace(default_matchanything_options(), device='cpu'))
             device, provenance = backend.device, dict(backend.provenance)
         elif method == 'efficient_loftr':
             backend = load_efficient_backend(replace(default_efficient_options(), device='cpu'))

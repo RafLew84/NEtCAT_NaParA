@@ -93,11 +93,28 @@ def _shape(value: object) -> tuple[int, int]:
     return _integer(values[0], 1), _integer(values[1], 1)
 
 
+def _uses_matchanything(value: object) -> bool:
+    """Find new model records even inside imported alignment or predecessor history."""
+    pending = [value]
+    while pending:
+        item = pending.pop()
+        if isinstance(item, dict):
+            if (item.get('method') in ('matchanything_eloftr', 'MatchAnything-ELoFTR')
+                    or item.get('matchanything_options') is not None):
+                return True
+            pending.extend(item.values())
+        elif isinstance(item, (list, tuple)):
+            pending.extend(item)
+    return False
+
+
 def _root(value: object) -> dict[str, object]:
     record = json_object(value)
+    if record.get('schema') != 'stmviewer-state-v7' and _uses_matchanything(record):
+        raise ValueError('MatchAnything-ELoFTR wymaga stanu sesji v7.')
     if record.get('schema') == 'stmviewer-state-v1':
         return json_object(record, _ROOT_KEYS)
-    if record.get('schema') in ('stmviewer-state-v2', 'stmviewer-state-v3', 'stmviewer-state-v4', 'stmviewer-state-v5', 'stmviewer-state-v6'):
+    if record.get('schema') in ('stmviewer-state-v2', 'stmviewer-state-v3', 'stmviewer-state-v4', 'stmviewer-state-v5', 'stmviewer-state-v6', 'stmviewer-state-v7'):
         return json_object(record, _ROOT_KEYS | {'graph'})
     raise ValueError('Nieobsługiwana wersja stanu sesji.')
 
@@ -202,9 +219,22 @@ def _decode_roma_options(value: object) -> DeepMatcherOptions | None:
                               preset, samples, seed)
 
 
+def _decode_matchanything_options(value: object) -> DeepMatcherOptions | None:
+    """Restore only local ELoFTR controls; never inspect a source or checkpoint path."""
+    if value is None:
+        return None
+    record = json_object(value, {'weights', 'device', 'source'})
+    device = _text(record['device'])
+    if device not in ('auto', 'cpu', 'cuda'):
+        raise ValueError('Sesja: nieprawidłowe urządzenie MatchAnything-ELoFTR.')
+    weights, source = (optional_text(record, key) for key in ('weights', 'source'))
+    return DeepMatcherOptions(Path(_text(weights)) if weights is not None else None, device,
+                              Path(_text(source)) if source is not None else None)
+
+
 def _decode_display(value: object, count: int, aligned: bool) -> SessionViewState:
     fields = json_object(value)
-    extra = {'deep_source', 'deep_interpreter', 'deep_preset', 'deep_samples', 'deep_seed', 'roma_options'} & fields.keys()
+    extra = {'deep_source', 'deep_interpreter', 'deep_preset', 'deep_samples', 'deep_seed', 'roma_options', 'matchanything_options'} & fields.keys()
     record = json_object(fields, _DISPLAY_KEYS | extra)
     index = _integer(record['index'])
     view = record['view']
@@ -239,7 +269,8 @@ def _decode_display(value: object, count: int, aligned: bool) -> SessionViewStat
     return SessionViewState(index, view, gamma, _boolean(record['pixel_proportions']), fps,
                             _boolean(record['loop']), method, optional_text(record, 'deep_weights'),
                             device, navigation, optional_text(record, 'deep_source') if 'deep_source' in record else None,
-                            interpreter, preset, samples, seed, _decode_roma_options(record.get('roma_options')))
+                            interpreter, preset, samples, seed, _decode_roma_options(record.get('roma_options')),
+                            _decode_matchanything_options(record.get('matchanything_options')))
 
 
 def _registration_record(result: RegistrationResult, images: tuple[ImageFrame, ...],
@@ -358,7 +389,7 @@ def _decode_registration(value: object, originals: tuple[ImageFrame, ...],
         predecessor=decode_movie_snapshot(record.get('predecessor'), originals, check_cancelled),
     )
     if result.correspondence_diagnostics:
-        if method not in ('EfficientLoFTR', 'RoMa v2'):
+        if method not in ('EfficientLoFTR', 'RoMa v2', 'MatchAnything-ELoFTR'):
             raise ValueError('Sesja: metoda nie odpowiada diagnostyce korespondencji.')
         for original, diagnostic in zip(originals, result.correspondence_diagnostics, strict=True):
             shape = (original.data.shape[0], original.data.shape[1])
@@ -441,6 +472,22 @@ def encode_session(state: SessionState, *, check_cancelled: Callable[[], None] =
             options[key] = str(options[key]) if options[key] is not None else None
         display['roma_options'] = options
         manifest['schema'] = 'stmviewer-state-v6'
+        manifest.setdefault('graph', None)
+    if state.display.matchanything_options is None:
+        display.pop('matchanything_options')
+    else:
+        remembered = state.display.matchanything_options
+        if (remembered.interpreter, remembered.preset, remembered.samples, remembered.seed) != (None, 'turbo', 1000, 20261102):
+            raise ValueError('Sesja: MatchAnything-ELoFTR nie używa ustawień procesu RoMa.')
+        display['matchanything_options'] = {
+            'weights': str(remembered.weights) if remembered.weights is not None else None,
+            'source': str(remembered.source) if remembered.source is not None else None,
+            'device': remembered.device,
+        }
+        manifest['schema'] = 'stmviewer-state-v7'
+        manifest.setdefault('graph', None)
+    if _uses_matchanything(manifest):
+        manifest['schema'] = 'stmviewer-state-v7'
         manifest.setdefault('graph', None)
     decode_session(manifest, arrays, check_cancelled=check_cancelled)
     return manifest, arrays

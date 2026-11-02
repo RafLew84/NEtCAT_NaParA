@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import QComboBox, QFileDialog, QHBoxLayout, QLabel, QLineEd
 from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.efficient_matcher import EFFICIENT_METHOD, default_efficient_options
 from stmviewer.roma_matcher import ROMA_METHOD, default_roma_options
+from stmviewer.matchanything_matcher import MATCHANYTHING_METHOD, default_matchanything_options
 from stmviewer.ui.roma_controls import RomaControls
 
 
@@ -79,7 +80,7 @@ class DeepMatcherControls(QWidget):
 
     def options(self) -> DeepMatcherOptions:
         value = self._weights.text().strip()
-        source = self._source.text().strip() if self._method in (EFFICIENT_METHOD, ROMA_METHOD) else ''
+        source = self._source.text().strip() if self._method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD) else ''
         roma = self._method == ROMA_METHOD
         return DeepMatcherOptions(Path(value).expanduser() if value else None,
                                   self._device.currentText().lower(),
@@ -91,27 +92,31 @@ class DeepMatcherControls(QWidget):
 
     def set_method(self, method: str) -> None:
         """Remember each model's local files when switching the next calculation."""
-        family = method if method in (EFFICIENT_METHOD, ROMA_METHOD) else 'deep'
-        previous = self._method if self._method in (EFFICIENT_METHOD, ROMA_METHOD) else 'deep'
+        family = method if method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD) else 'deep'
+        previous = self._method if self._method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD) else 'deep'
         if family != previous:
             self._remembered[previous] = self.options()
             self._method = method
             with QSignalBlocker(self):
-                defaults = default_roma_options() if family == ROMA_METHOD else DeepMatcherOptions()
+                defaults = (default_roma_options() if family == ROMA_METHOD else
+                            default_matchanything_options() if family == MATCHANYTHING_METHOD else DeepMatcherOptions())
                 self.set_options(self._remembered.get(family, defaults))
         else:
             self._method = method
         efficient, roma = method == EFFICIENT_METHOD, method == ROMA_METHOD
-        text = ('Lokalne wagi RoMa v2' if roma else 'Lokalne wagi EfficientLoFTR outdoor'
+        matchanything = method == MATCHANYTHING_METHOD
+        text = ('Lokalne wagi MatchAnything-ELoFTR' if matchanything else
+                'Lokalne wagi RoMa v2' if roma else 'Lokalne wagi EfficientLoFTR outdoor'
                 if efficient else 'Lokalne wagi LoFTR outdoor')
         self._weights_label.setText(text)
         self._weights.setAccessibleName(text)
-        source_text = 'Lokalny katalog kodu DINOv3' if roma else 'Lokalny katalog kodu EfficientLoFTR'
+        source_text = ('Lokalny katalog kodu MatchAnything-ELoFTR' if matchanything else
+                       'Lokalny katalog kodu DINOv3' if roma else 'Lokalny katalog kodu EfficientLoFTR')
         self._source_label.setText(source_text)
         self._source.setAccessibleName(source_text)
         self._source.setPlaceholderText('Katalog zawierający hubconf.py i dinov3' if roma
                                         else 'Katalog zawierający src/loftr')
-        self._source_panel.setVisible(efficient or roma)
+        self._source_panel.setVisible(efficient or roma or matchanything)
         self._roma.setVisible(roma)
 
     def set_options(self, options: DeepMatcherOptions) -> None:
@@ -132,6 +137,17 @@ class DeepMatcherControls(QWidget):
             self._remembered.pop(ROMA_METHOD, None)
         else:
             self._remembered[ROMA_METHOD] = options
+
+    def remembered_matchanything_options(self) -> DeepMatcherOptions | None:
+        """Return this model's setup even while another method is selected."""
+        return self.options() if self._method == MATCHANYTHING_METHOD else self._remembered.get(MATCHANYTHING_METHOD)
+
+    def restore_matchanything_options(self, options: DeepMatcherOptions | None) -> None:
+        """Restore session-owned paths without importing or executing the model."""
+        if options is None:
+            self._remembered.pop(MATCHANYTHING_METHOD, None)
+        else:
+            self._remembered[MATCHANYTHING_METHOD] = options
 
     def set_status(self, text: str) -> None:
         self._status.setText(text)

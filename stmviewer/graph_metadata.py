@@ -22,6 +22,11 @@ _CONFIG_KEYS = {
     'backend_settings', 'libraries', 'code_version', 'settings_version',
 }
 _EDGE_KEYS = {'i', 'j', 'shift_xy', 'status', 'reason', 'quality_score', 'residual_xy'}
+_CORRESPONDENCE_SCHEMAS = {
+    'efficient_loftr': 'stmviewer-graph-v5',
+    'roma_v2': 'stmviewer-graph-v6',
+    'matchanything_eloftr': 'stmviewer-graph-v7',
+}
 
 
 def _items(value: object) -> list[object]:
@@ -109,6 +114,9 @@ def decode_graph_config(value: object) -> GraphConfig:
     if method == 'roma_v2':
         from stmviewer.correspondence_metadata import validate_roma_provenance
         validate_roma_provenance(_settings(record['backend_settings']))
+    if method == 'matchanything_eloftr':
+        from stmviewer.correspondence_metadata import validate_matchanything_provenance
+        validate_matchanything_provenance(_settings(record['backend_settings']))
     deep = method in DEEP_METHODS
     weights = _text(record['weights_path']) if deep else None
     digest = _digest(record['weights_sha256']) if deep else None
@@ -158,7 +166,7 @@ def encode_graph(trial: GraphTrial) -> dict[str, object]:
     record.pop('robust_trials')
     record['config'] = encode_graph_config(trial.config)
     modern = trial.config.settings_version == 2
-    correspondence = trial.config.method in ('efficient_loftr', 'roma_v2')
+    correspondence = trial.config.method in _CORRESPONDENCE_SCHEMAS
     if not correspondence:
         for edge in record['edges']:
             if edge.pop('correspondence_diagnostics') is not None:
@@ -169,7 +177,9 @@ def encode_graph(trial: GraphTrial) -> dict[str, object]:
                 raise ValueError('Graf: starsza wersja nie obsługuje diagnostyki metod.')
     if modern or trial.robust_trials:
         from stmviewer.robust_graph_metadata import encode_robust_trial
-        return {'schema': 'stmviewer-graph-v6' if trial.config.method == 'roma_v2' else 'stmviewer-graph-v5' if correspondence else 'stmviewer-graph-v4' if modern else 'stmviewer-graph-v2', **record,
+        schema = _CORRESPONDENCE_SCHEMAS.get(
+            trial.config.method, 'stmviewer-graph-v4' if modern else 'stmviewer-graph-v2')
+        return {'schema': schema, **record,
                 'robust_trials': [encode_robust_trial(item) for item in trial.robust_trials]}
     return {'schema': 'stmviewer-graph-v1', **record}
 
@@ -180,23 +190,25 @@ def decode_graph(value: object, frames: tuple[ImageFrame, ...],
     check_cancelled()
     record = json_object(value)
     schema = record.get('schema')
-    if schema not in ('stmviewer-graph-v1', 'stmviewer-graph-v2', 'stmviewer-graph-v4', 'stmviewer-graph-v5', 'stmviewer-graph-v6'):
+    if schema not in ('stmviewer-graph-v1', 'stmviewer-graph-v2', 'stmviewer-graph-v4',
+                       *_CORRESPONDENCE_SCHEMAS.values()):
         raise ValueError('Nieobsługiwana wersja grafu sesji.')
-    modern = schema in ('stmviewer-graph-v4', 'stmviewer-graph-v5', 'stmviewer-graph-v6')
+    correspondence = schema in _CORRESPONDENCE_SCHEMAS.values()
+    modern = schema == 'stmviewer-graph-v4' or correspondence
     variants_present = schema != 'stmviewer-graph-v1'
     record = json_object(record, _GRAPH_KEYS | ({'robust_trials'} if variants_present else set()))
     positions = None if record['positions'] is None else tuple(_xy(item) for item in _items(record['positions']))
     chain = None if record['chain_positions'] is None else tuple(_xy(item) for item in _items(record['chain_positions']))
     trial = GraphTrial(
         tuple(decode_graph_source(item) for item in _items(record['sources'])), decode_graph_config(record['config']),
-        tuple(_edge(item, modern=modern, correspondence=schema in ('stmviewer-graph-v5', 'stmviewer-graph-v6')) for item in _items(record['edges'])), positions, chain,
+        tuple(_edge(item, modern=modern, correspondence=correspondence) for item in _items(record['edges'])), positions, chain,
         tuple(tuple(_integer(item) for item in _items(component)) for component in _items(record['components'])),
         tuple(_indices(item) for item in _items(record['bridges'])), _text(record['revision']),
         _integer(record['anchor']), _text(record['solver']), _integer(record['measured_pairs']),
         _integer(record['reused_pairs']), _number(record['measurement_s']), _number(record['solver_s']),
     )
-    if ((schema == 'stmviewer-graph-v5') != (trial.config.method == 'efficient_loftr')
-            or (schema == 'stmviewer-graph-v6') != (trial.config.method == 'roma_v2')):
+    if any((schema == model_schema) != (trial.config.method == method)
+           for method, model_schema in _CORRESPONDENCE_SCHEMAS.items()):
         raise ValueError('Graf: format diagnostyki nie odpowiada metodzie.')
     if trial.config.settings_version != (2 if modern else 1):
         raise ValueError('Graf: wersja konfiguracji nie odpowiada formatowi grafu.')

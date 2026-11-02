@@ -186,7 +186,8 @@ class STMViewerMainWindow(QMainWindow):
         self._graph = GraphControls(self)
         self._graph.open_button.clicked.connect(lambda: self._graph.open_graph(
             self._frames, self._registration, self._deep_controls.options(),
-            method='roma_v2' if self._method.currentData() == 'roma_v2' else None))
+            method=str(self._method.currentData())
+            if self._method.currentData() in ('roma_v2', 'matchanything_eloftr') else None))
         self._graph.busy_changed.connect(self._pair_busy_changed)
         self._graph.movie_apply_requested.connect(self._apply_graph_movie)
         self._graph.movie_restore_requested.connect(self._restore_graph_movie)
@@ -380,7 +381,8 @@ class STMViewerMainWindow(QMainWindow):
             deep_interpreter=str(options.interpreter) if options.interpreter else None,
             deep_preset=options.preset, deep_samples=options.samples, deep_seed=options.seed,
             navigation=self._preview.navigation_states(),
-            roma_options=self._deep_controls.remembered_roma_options()), graph=self._graph.trial)
+            roma_options=self._deep_controls.remembered_roma_options(),
+            matchanything_options=self._deep_controls.remembered_matchanything_options()), graph=self._graph.trial)
 
     def _restore_session(self, state: SessionState, thumbnails: tuple[QImage, ...]) -> None:
         if self._closing:
@@ -411,6 +413,7 @@ class STMViewerMainWindow(QMainWindow):
                                                                preset=display.deep_preset, samples=display.deep_samples,
                                                                seed=display.deep_seed))
             self._deep_controls.restore_roma_options(display.roma_options)
+            self._deep_controls.restore_matchanything_options(display.matchanything_options)
         with QSignalBlocker(self._gamma):
             self._gamma.setValue(display.gamma)
         self._pixel_proportions.setChecked(display.pixel_proportions)

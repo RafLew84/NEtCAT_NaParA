@@ -53,7 +53,9 @@ def _frame(frame: ImageFrame, value: object, version: int = 1, *,
     )
     if version >= 2 and record["alignment"] is not None:
         restored = replace(restored, alignment=decode_alignment(record["alignment"], restored, manual_results=manual_results))
-    if version < 9 and _has_roma_history(restored):
+    if version < 10 and _has_model_history(restored, 'MatchAnything-ELoFTR', 'matchanything_eloftr'):
+        raise ValueError('MatchAnything-ELoFTR wymaga dodatku V10.')
+    if version < 9 and _has_model_history(restored, 'RoMa v2', 'roma_v2'):
         raise ValueError('RoMa v2 wymaga dodatku V9.')
     return restored
 
@@ -86,12 +88,12 @@ def apply_mpp_metadata(path: Path, frames: tuple[ImageFrame, ...], *, sha256: st
         except (UnicodeError, json.JSONDecodeError) as error:
             raise ValueError(f'Nieprawidłowy JSON UTF-8: {error}') from error
         check_cancelled()
-        shared_history = isinstance(decoded, dict) and decoded.get('version') in (4, 5, 7, 8, 9)
+        shared_history = isinstance(decoded, dict) and decoded.get('version') in (4, 5, 7, 8, 9, 10)
         metadata = _object(decoded, {'format', 'version', 'image_kind', 'movie', 'frames'}
                            | ({'manual_results', 'sample_encoding'} if shared_history else set()))
         if metadata['format'] != 'stmviewer-mpp':
             raise ValueError('Nieobsługiwany format dodatku.')
-        if type(metadata['version']) is not int or metadata['version'] not in (1, 2, 3, 4, 5, 7, 8, 9):
+        if type(metadata['version']) is not int or metadata['version'] not in (1, 2, 3, 4, 5, 7, 8, 9, 10):
             raise ValueError(f'Nieobsługiwana wersja dodatku: {metadata["version"]}.')
         version = metadata['version']
         assert isinstance(version, int)
@@ -161,7 +163,7 @@ def apply_mpp_metadata(path: Path, frames: tuple[ImageFrame, ...], *, sha256: st
 def encode_mpp_metadata(frames: tuple[ImageFrame, ...], sha256: str, *,
                         check_cancelled: Callable[[], None], image_kind: str = "original",
                         wsxm_compatible: bool = False) -> bytes:
-    """V9 adds RoMa provenance; V6 remains reserved for a withdrawn feature."""
+    """V10 adds MatchAnything provenance; V6 is reserved for a withdrawn feature."""
     validate_alignment_series(frames, aligned=image_kind == "aligned")
     version = 2 if image_kind == "aligned" or any(f.alignment for f in frames) else 1
     if wsxm_compatible:
@@ -180,8 +182,10 @@ def encode_mpp_metadata(frames: tuple[ImageFrame, ...], sha256: str, *,
                    and history.graph_provenance.config.method == 'efficient_loftr'
                    for history in manual_results)):
         version = 8
-    if any(_has_roma_history(frame) for frame in frames):
+    if any(_has_model_history(frame, 'RoMa v2', 'roma_v2') for frame in frames):
         version = 9
+    if any(_has_model_history(frame, 'MatchAnything-ELoFTR', 'matchanything_eloftr') for frame in frames):
+        version = 10
     finite_fill = wsxm_compatible
     remaining_runs = MAX_RUNS
     records = []
@@ -227,13 +231,13 @@ def _has_correspondence(frame: ImageFrame) -> bool:
     return False
 
 
-def _has_roma_history(frame: ImageFrame) -> bool:
+def _has_model_history(frame: ImageFrame, label: str, method: str) -> bool:
     history = frame.alignment
     for _ in range(32):
         if history is None:
             return False
         graph = history.manual_movie.graph_provenance if history.manual_movie is not None else None
-        if history.method == 'RoMa v2' or (graph is not None and graph.config.method == 'roma_v2'):
+        if history.method == label or (graph is not None and graph.config.method == method):
             return True
         history = history.previous
     return False

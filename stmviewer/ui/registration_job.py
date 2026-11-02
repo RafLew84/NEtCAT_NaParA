@@ -6,6 +6,7 @@ from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
 from stmviewer.efficient_matcher import EFFICIENT_METHOD, load_efficient_backend
 from stmviewer.roma_matcher import ROMA_METHOD, load_roma_backend
+from stmviewer.matchanything_matcher import MATCHANYTHING_METHOD, load_matchanything_backend
 from stmviewer.frame import ImageFrame
 from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
 from stmviewer.registration import RegistrationCancelled, RegistrationResult, ShiftBackend, register_series
@@ -36,8 +37,9 @@ class RegistrationJob(QThread):
 
     def run(self) -> None:
         try:
-            if self._check_only and self._method in (EFFICIENT_METHOD, ROMA_METHOD):
-                loader = load_roma_backend if self._method == ROMA_METHOD else load_efficient_backend
+            if self._check_only and self._method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD):
+                loader = (load_matchanything_backend if self._method == MATCHANYTHING_METHOD else
+                          load_roma_backend if self._method == ROMA_METHOD else load_efficient_backend)
                 model = loader(self._deep_options or DeepMatcherOptions(),
                                progress=lambda text: self.progress.emit(0, 0, text),
                                cancelled=self.was_cancelled)

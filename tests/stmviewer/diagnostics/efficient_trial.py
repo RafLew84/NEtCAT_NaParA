@@ -1,4 +1,4 @@
-"""REG-10 full local movie attempts, explicit refusals, provenance and timing.
+"""REG-10/12 full local movie attempts, explicit refusals, provenance and timing.
 
 PYTHONPATH=.:tests/stmviewer python tests/stmviewer/diagnostics/efficient_trial.py
     OUTPUT --source data/MOVIE_4.mpp --drop-first 2 --method efficient_loftr
@@ -20,6 +20,7 @@ from graph_application_trial import fingerprint
 from graph_methods_trial import lifecycle
 from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.efficient_matcher import default_efficient_options
+from stmviewer.matchanything_matcher import default_matchanything_options
 from stmviewer.graph_registration import register_graph
 from stmviewer.registration import register_series
 from stmviewer.robust_graph import solve_robust_graph
@@ -33,9 +34,10 @@ def profile_attempt(function, torch, device):
     # Explicit wall timers survive profiler resets inside optional dependencies.
     from stmviewer.efficient_runtime import TorchEfficientRuntime
     from stmviewer.deep_matcher import _LocalLoFTR
+    from stmviewer.matchanything_runtime import TorchMatchAnythingRuntime
     model_elapsed = 0.
     originals = []
-    for runtime_type in (TorchEfficientRuntime, _LocalLoFTR):
+    for runtime_type in (TorchEfficientRuntime, _LocalLoFTR, TorchMatchAnythingRuntime):
         original = runtime_type.match
         originals.append((runtime_type, original))
         def measured(self, *args, _original=original, **kwargs):
@@ -97,7 +99,7 @@ def main():
     parser.add_argument('output', type=Path)
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--drop-first', type=int, default=0)
-    parser.add_argument('--method', choices=('efficient_loftr', 'deep_matcher_translation'), default='efficient_loftr')
+    parser.add_argument('--method', choices=('efficient_loftr', 'matchanything_eloftr', 'deep_matcher_translation'), default='efficient_loftr')
     parser.add_argument('--weights', type=Path)
     parser.add_argument('--code', type=Path)
     parser.add_argument('--device', choices=('cpu', 'cuda'), default='cuda')
@@ -106,11 +108,14 @@ def main():
     import torch
     torch.set_num_threads(4)
     def no_download(*unused, **keywords):
-        raise RuntimeError('REG-10 diagnostic prohibits network/model downloads.')
+        raise RuntimeError('Registration diagnostic prohibits network/model downloads.')
     torch.hub.load_state_dict_from_url = no_download
     torch.hub.download_url_to_file = no_download
     urllib.request.urlopen = no_download
-    options = replace(default_efficient_options(), device=args.device) if args.method == 'efficient_loftr' else DeepMatcherOptions(args.weights, args.device)
+    defaults = {'efficient_loftr': default_efficient_options,
+                'matchanything_eloftr': default_matchanything_options}
+    options = (replace(defaults[args.method](), device=args.device) if args.method in defaults
+               else DeepMatcherOptions(args.weights, args.device))
     if args.weights is not None:
         options = replace(options, weights=args.weights)
     if args.code is not None:
@@ -184,7 +189,7 @@ def main():
         item['lifecycle'] = lifecycle(frames, graph, args.output, view)
     assert report['original_hashes'] == [hashlib.sha256(frame.data.tobytes()).hexdigest() for frame in frames]
     item['process_peak_rss_mib_with_sessions_exports'] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
-    report['isolated_source_modules_after_job'] = [name for name in sys.modules if name.startswith('_stmviewer_eloftr_')]
+    report['isolated_source_modules_after_job'] = [name for name in sys.modules if name.startswith(('_stmviewer_eloftr_', '_stmviewer_matchanything_'))]
     save_report()
     print('Completed:', args.output / 'report.json', flush=True)
 

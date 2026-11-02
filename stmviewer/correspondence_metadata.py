@@ -57,7 +57,8 @@ def _preparation(value: object) -> ImagePreparation:
         raise ValueError('Korespondencje: niespójna geometria przygotowania obrazu.')
     normalization = _text(record['normalization'])
     channels = _integer(record['channels'], 1)
-    if (normalization, channels) not in (('minmax-float32-v1', 1), ('minmax-float32-rgb-v1', 3)):
+    if (normalization, channels) not in (('minmax-float32-v1', 1), ('minmax-float32-rgb-v1', 3),
+                                         ('minmax-uint8-demo-gray-v1', 1)):
         raise ValueError('Korespondencje: nieobsługiwane przygotowanie obrazu.')
     return ImagePreparation((oh, ow), (mh, mw), (sx, sy), (left, top, right, bottom),
                              (low, high), normalization, channels)
@@ -156,6 +157,27 @@ def validate_roma_provenance(provenance: tuple[tuple[str, str], ...]) -> None:
             raise ValueError('RoMa: nieprawidłowe ustawienie próbkowania.')
 
 
+def validate_matchanything_provenance(provenance: tuple[tuple[str, str], ...]) -> None:
+    """Validate saved architecture identity without importing optional model code."""
+    metadata = dict(_provenance(provenance))
+    if (metadata.get('model') != 'MatchAnything-ELoFTR'
+            or metadata.get('model_config') != 'configs/models/eloftr_model.py'
+            or metadata.get('precision') != 'FP32'
+            or metadata.get('inference_policy') != 'hf-match-images-preset-v1'
+            or metadata.get('model_threshold') != '0.001'
+            or metadata.get('position_encoding') != 'NPE 832,832,832,832'):
+        raise ValueError('MatchAnything-ELoFTR: niezgodny model, konfiguracja lub precyzja.')
+    for key in ('source_path', 'weights_path', 'actual_device'):
+        _text(metadata.get(key))
+    for key in ('source_sha256', 'weights_sha256'):
+        if re.fullmatch('[0-9a-f]{64}', metadata.get(key, '')) is None:
+            raise ValueError('MatchAnything-ELoFTR: brak poprawnej sumy SHA-256.')
+    if re.fullmatch('[0-9a-f]{40}|[0-9a-f]{64}', metadata.get('source_commit', '')) is None:
+        raise ValueError('MatchAnything-ELoFTR: brak wersji kodu.')
+    if metadata.get('requested_device') not in ('auto', 'cpu', 'cuda'):
+        raise ValueError('MatchAnything-ELoFTR: nieprawidłowe urządzenie.')
+
+
 def validate_correspondence_method(value: CorrespondenceDiagnostics | None, method: str) -> None:
     """The persisted preparation and provenance must belong to the named estimator."""
     if value is None:
@@ -165,7 +187,14 @@ def validate_correspondence_method(value: CorrespondenceDiagnostics | None, meth
         expected = ('minmax-float32-rgb-v1', 3)
         if len(value.preparation) != 2:
             raise ValueError('RoMa: brak przygotowania obu obrazów.')
+    elif method in ('MatchAnything-ELoFTR', 'matchanything_eloftr'):
+        validate_matchanything_provenance(value.model_provenance)
+        expected = ('minmax-uint8-demo-gray-v1', 1)
+        if len(value.preparation) != 2:
+            raise ValueError('MatchAnything-ELoFTR: brak przygotowania obu obrazów.')
     elif method in ('EfficientLoFTR', 'efficient_loftr'):
+        if dict(value.model_provenance).get('model') not in (None, 'EfficientLoFTR'):
+            raise ValueError('Korespondencje: model nie odpowiada metodzie EfficientLoFTR.')
         expected = ('minmax-float32-v1', 1)
     else:
         raise ValueError('Korespondencje: nieobsługiwana metoda.')

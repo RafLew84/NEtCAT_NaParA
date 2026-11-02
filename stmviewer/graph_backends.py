@@ -5,12 +5,13 @@ from typing import Callable
 
 from stmviewer.efficient_matcher import EFFICIENT_METHOD, load_efficient_backend
 from stmviewer.roma_matcher import ROMA_METHOD, load_roma_backend
+from stmviewer.matchanything_matcher import MATCHANYTHING_METHOD, load_matchanything_backend
 from stmviewer.correspondence_types import CorrespondenceRefusal
 from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
 from stmviewer.deep_ecc import HYBRID_METHOD, load_deep_ecc_backend
 from stmviewer.local_registration import LOCAL_METHOD, load_deep_local_backend
 from stmviewer.graph_methods import graph_method_label, graph_requires_deep
-from stmviewer.graph_provenance import cpu_graph_config, deep_graph_config, efficient_graph_config, roma_graph_config
+from stmviewer.graph_provenance import cpu_graph_config, deep_graph_config, efficient_graph_config, roma_graph_config, matchanything_graph_config
 from stmviewer.graph_types import GraphConfig
 from stmviewer.registration import ShiftBackend, create_shift_backend
 
@@ -19,6 +20,14 @@ def load_graph_backend(method: str, options: DeepMatcherOptions, window: int, *,
                        progress: Callable[[str], None], cancelled: Callable[[], bool] | None,
                        ) -> tuple[ShiftBackend, GraphConfig]:
     graph_method_label(method)
+    if method == MATCHANYTHING_METHOD:
+        matchanything = load_matchanything_backend(options, progress=progress, cancelled=cancelled)
+        try:
+            return matchanything, matchanything_graph_config(window, matchanything.provenance,
+                                                              asdict(matchanything.config))
+        except BaseException:
+            matchanything.close()
+            raise
     if method == ROMA_METHOD:
         roma = load_roma_backend(options, progress=progress, cancelled=cancelled)
         try:
