@@ -1,10 +1,10 @@
 """AKAZE's public image-to-translation contract, using real OpenCV."""
-from pathlib import Path
-
 import numpy as np
+import pytest
 from scipy.ndimage import gaussian_filter
 
 from stmviewer.akaze_matcher import AkazeBackend
+from stmviewer.correspondence_types import CorrespondenceRefusal
 
 
 def texture(shape=(192, 288)):
@@ -30,10 +30,6 @@ def test_real_akaze_recovers_known_xy_on_nonsquare_original():
         assert dict(detail.model_provenance)['matcher'] == 'BFMatcher; NORM_HAMMING; crossCheck=True'
     finally:
         backend.close()
-
-
-import pytest
-from stmviewer.correspondence_types import CorrespondenceRefusal
 
 
 @pytest.mark.parametrize('shape', [(1, 1), (192, 288)])
@@ -82,5 +78,22 @@ def test_binary_mldb_and_mutual_hamming_are_used_at_opencv_boundary(monkeypatch)
         assert observed['detector']['descriptor_type'] == cv2.AKAZE_DESCRIPTOR_MLDB
         assert observed['matcher'] == (cv2.NORM_HAMMING, True)
         assert observed['matched'] >= 8
+    finally:
+        backend.close()
+
+
+
+@pytest.mark.parametrize('shape', [(1, 64), (64, 1)])
+def test_single_line_nonconstant_image_is_a_local_refusal(shape):
+    original = np.arange(64, dtype=float).reshape(shape)
+    backend = AkazeBackend()
+    try:
+        with pytest.raises(CorrespondenceRefusal) as caught:
+            backend.estimate(original, original.copy(), moving_frame_index=1)
+        assert caught.value.diagnostics.valid_count == 0
+        assert caught.value.diagnostics.preparation[0].original_shape == shape
+        image = texture()
+        result = backend.estimate(image, np.roll(image, 3, axis=1), moving_frame_index=2)
+        np.testing.assert_allclose(result.shift_xy, (-3, 0), atol=0.3)
     finally:
         backend.close()

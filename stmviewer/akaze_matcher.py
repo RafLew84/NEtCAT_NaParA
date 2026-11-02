@@ -92,10 +92,10 @@ class AkazeBackend:
         moving, mp = prepare_akaze_image(moving_frame)
         self._report('punkty i deskryptory obrazu odniesienia')
         k0, d0 = (self._detector.detectAndCompute(reference, None)
-                  if reference.min() != reference.max() else ((), None))
+                  if min(reference.shape) >= 2 and reference.min() != reference.max() else ((), None))
         self._report('punkty i deskryptory obrazu przesuwanego')
         k1, d1 = (self._detector.detectAndCompute(moving, None)
-                  if moving.min() != moving.max() else ((), None))
+                  if min(moving.shape) >= 2 and moving.min() != moving.max() else ((), None))
         self._report('wzajemne dopasowanie Hamming')
         if d0 is None or d1 is None or not len(d0) or not len(d1):
             p0 = p1 = np.empty((0, 2), dtype=np.float64)
