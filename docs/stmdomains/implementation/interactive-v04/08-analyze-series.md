@@ -6,7 +6,18 @@
 
 **Blocked by:** [07: Wybierz liczbę klas i zakres ich odkrywania](07-fit-shared-classes.md).
 
-**Status:** ready-for-agent — wymaga ukończenia zależności.
+**Status:** in_progress — baza `e51b612`, gałąź `domains/interactive-v04-ui`.
+
+Implementacja: osobne niemodalne okno „Analiza → Analiza serii…” z zakresem
+analizy, źródłem wspólnych klas i parametrami domen stosowanymi jednym
+przyciskiem. Domyślnie dopasowanie z zakresu analizy; opcjonalnie inny
+zakres/cała seria albo wybrany zgodny katalog wspólny z 07.
+
+Testowane interfejsy wynikają z kryteriów zadania: strumień wyników analizy
+serii (zakres, jeden katalog, zgodność z pojedynczą klatką, puste dane/błąd),
+kontroler sesji (publikowanie częściowych wyników, anulowanie, nawigacja,
+ponowne otwarcie i zamknięcie) oraz rzeczywiste kontrolki Qt (ustawienia,
+postęp i statusy). Testy syntetyczne sprawdzają działanie, nie trafność domen.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 

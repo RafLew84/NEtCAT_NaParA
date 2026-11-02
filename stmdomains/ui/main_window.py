@@ -16,6 +16,7 @@ from stmdomains.core.annotations import Detection, Segmentation
 from stmdomains.ui.annotation_controls import AnnotationControls
 from stmdomains.ui.domain_settings_dialog import DomainSettingsDialog
 from stmdomains.ui.class_settings_dialog import ClassSettingsDialog
+from stmdomains.ui.series_analysis_dialog import SeriesAnalysisDialog, STATUS_TEXT
 from stmdomains.ui.catalogue_style import catalogue_description
 from stmdomains.ui.image_view import ImageView
 from stmdomains.ui.filmstrip import Filmstrip
@@ -183,7 +184,13 @@ class STMDomainsMainWindow(QMainWindow):
         self.controller.playback_changed.connect(self._show_playback)
         self.domain_settings_dialog = DomainSettingsDialog(self.controller, self)
         self.class_settings_dialog = ClassSettingsDialog(self.controller, self)
+        self.series_analysis_dialog = SeriesAnalysisDialog(self.controller, self)
         analysis_menu = menu_bar.addMenu("&Analiza") if menu_bar is not None else None
+        self.series_analysis_action = analysis_menu.addAction("Analiza serii…") if analysis_menu is not None else None
+        if self.series_analysis_action is not None:
+            self.series_analysis_action.setObjectName("seriesAnalysisAction")
+            self.series_analysis_action.setEnabled(False)
+            self.series_analysis_action.triggered.connect(self._show_series_analysis)
         self.class_settings_action = analysis_menu.addAction("Klasy i zakres…") if analysis_menu is not None else None
         if self.class_settings_action is not None:
             self.class_settings_action.setObjectName("classSettingsAction")
@@ -210,6 +217,13 @@ class STMDomainsMainWindow(QMainWindow):
         self.domain_settings_dialog.show()
         self.domain_settings_dialog.raise_()
         self.domain_settings_dialog.activateWindow()
+
+    def _show_series_analysis(self) -> None:
+        self.controller.pause()
+        self.series_analysis_dialog.refresh()
+        self.series_analysis_dialog.show()
+        self.series_analysis_dialog.raise_()
+        self.series_analysis_dialog.activateWindow()
 
     def _show_class_settings(self) -> None:
         self.controller.pause()
@@ -290,6 +304,8 @@ class STMDomainsMainWindow(QMainWindow):
             self.class_settings_action.setEnabled(self.controller.series is not None)
         if self.domain_settings_action is not None:
             self.domain_settings_action.setEnabled(self.controller.series is not None)
+        if self.series_analysis_action is not None:
+            self.series_analysis_action.setEnabled(self.controller.series is not None)
         self.progress_label.setText(text)
         self.progress_bar.setVisible(busy)
         self.cancel_button.setVisible(busy)
@@ -318,6 +334,11 @@ class STMDomainsMainWindow(QMainWindow):
             if self.controller.catalogue_status == "earlier":
                 prefix += " · wcześniejszy katalog"
             text = prefix + " · " + catalogue_description(result.catalogue)
+        run = self.controller.series_run
+        if run is not None and self.controller.current_index in run.frames:
+            text += " · seria: " + STATUS_TEXT[run.frames[self.controller.current_index].status]
+            if result is not None and result.metadata.get("series_analysis", {}).get("run_id") != run.identifier:
+                text += " (wyświetlono wynik spoza tego przebiegu)"
         self.details_label.setText(text)
         self.details_label.setToolTip(text + "\nDomeny lokalne dla klatki; metoda eksperymentalna. Jednostki obrazu: px.")
 

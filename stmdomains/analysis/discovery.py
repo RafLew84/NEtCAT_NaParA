@@ -35,6 +35,38 @@ def discover_classes(
         if result.catalogue is None:
             raise ValueError(result.message)
         return result
+    catalogue, target = _fit_shared(read_frame, indices, settings, domain_settings, check, progress, current_index)
+    if target is None:
+        data = read_frame(current_index)
+        if data.series_id != catalogue.series_id or data.frame.working_index != current_index:
+            raise ValueError("Bieżąca klatka pochodzi z innej serii.")
+        target = prepare_frame(data, settings.k, domain_settings, check, progress)
+    return apply_prepared(target, catalogue, domain_settings, check, progress)
+
+
+def fit_shared_catalogue(
+    read_frame: Callable[[int], AnalysisInput], *, frame_count: int, settings: ClassFitSettings,
+    cancelled: Callable[[], bool] = lambda: False, progress: Callable[[str], None] = lambda text: None,
+) -> ClassCatalogue:
+    """Discover once without computing domains on any target frame."""
+    if settings.scope == "current_frame":
+        raise ValueError("Analiza serii wymaga wspólnego katalogu z jawnego zakresu.")
+
+    def check() -> None:
+        if cancelled():
+            raise AnalysisCancelled()
+
+    check()
+    catalogue, _ = _fit_shared(read_frame, settings.indices(0, frame_count), settings,
+                                DomainSettings(), check, progress)
+    return catalogue
+
+
+def _fit_shared(
+    read_frame: Callable[[int], AnalysisInput], indices: tuple[int, ...], settings: ClassFitSettings,
+    domain_settings: DomainSettings, check: Callable[[], None], progress: Callable[[str], None],
+    current_index: int | None = None,
+) -> tuple[ClassCatalogue, PreparedFrame | FrameAnalysis | None]:
     if len(indices) > MAX_FIT_SAMPLES:
         raise ValueError(f"Wybierz najwyżej {MAX_FIT_SAMPLES} klatek do jednego dopasowania.")
     per_frame_limit = MAX_FIT_SAMPLES // len(indices)
@@ -81,9 +113,4 @@ def discover_classes(
                                 "maximum_total_samples": MAX_FIT_SAMPLES, "maximum_per_frame": per_frame_limit}},
                                model_parameters(settings.k))
     check()
-    if target is None:
-        data = read_frame(current_index)
-        if data.series_id != series_id or data.frame.working_index != current_index:
-            raise ValueError("Bieżąca klatka pochodzi z innej serii.")
-        target = prepare_frame(data, settings.k, domain_settings, check, progress)
-    return apply_prepared(target, catalogue, domain_settings, check, progress)
+    return catalogue, target

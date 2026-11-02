@@ -17,9 +17,12 @@ from stmdomains.core.series import Series
 from stmdomains.analysis import analyze_frame, recalculate_domains, discover_classes
 from stmdomains.analysis.class_settings import ClassFitSettings
 from stmdomains.analysis.domain_settings import DomainSettings
+from stmdomains.analysis.series_settings import SeriesAnalysisPlan
+from stmdomains.analysis.series_analysis import FrameOutcome
 from stmdomains.io.moltrack_import import ImportCandidate, SourceRequest, prepare_import
 from stmdomains.ui.import_prompts import ImportPrompts
 from stmdomains.ui.tasks import Task
+from stmdomains.ui.series_runner import SeriesRun, SeriesRunner
 
 
 @dataclass(frozen=True)
@@ -34,6 +37,7 @@ class SessionController(QObject):
     frame_changed = pyqtSignal(object)
     busy_changed = pyqtSignal(bool, str)
     playback_changed = pyqtSignal(bool)
+    series_analysis_changed = pyqtSignal()
 
     def __init__(self, prompts: ImportPrompts, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -66,10 +70,15 @@ class SessionController(QObject):
         self._play_timer.setTimerType(Qt.TimerType.PreciseTimer)
         self._play_timer.setSingleShot(True)
         self._play_timer.timeout.connect(self._advance_playback)
+        self._series_runner = SeriesRunner(self)
+        self._series_runner.changed.connect(self._series_changed)
+        self._series_runner.catalogue_ready.connect(self._accept_series_catalogue)
+        self._series_runner.frame_ready.connect(self._accept_series_frame)
+        self._series_runner.failed.connect(self.prompts.show_error)
 
     @property
     def is_busy(self) -> bool:
-        return any(token is not None for token in (
+        return self.series_running or any(token is not None for token in (
             self._open_token, self._frame_token, self._analysis_token,
         ))
 
@@ -123,12 +132,55 @@ class SessionController(QObject):
     @property
     def can_play(self) -> bool:
         return (self.series is not None and self.series.frame_count > 1
-                and self._open_token is None and self._analysis_token is None and not self._closed)
+                and self._open_token is None and self._analysis_token is None
+                and not self.series_running and not self._closed)
 
     @property
     def pending_task_count(self) -> int:
         """Includes abandoned, noninterruptible reads that are still finishing."""
-        return len(self._tasks)
+        return len(self._tasks) + self._series_runner.pending_task_count
+
+    @property
+    def series_running(self) -> bool:
+        return self._series_runner.running
+
+    @property
+    def series_run(self) -> SeriesRun | None:
+        return self._series_runner.state
+
+    def start_series_analysis(self, plan: SeriesAnalysisPlan) -> None:
+        self.pause()
+        if not self.can_analyze or self.presenter is None:
+            return
+        try:
+            self._series_runner.start(self.presenter, plan, self.active_catalogue)
+        except ValueError as error:
+            self.prompts.show_error(str(error))
+
+    def _series_changed(self) -> None:
+        self.series_analysis_changed.emit()
+        self._busy()
+
+    def _accept_series_catalogue(self, catalogue: ClassCatalogue) -> None:
+        if self.series is not None and catalogue.series_id == self.series.identity:
+            self._active_catalogue = catalogue
+
+    def _accept_series_frame(self, outcome: FrameOutcome) -> None:
+        result = outcome.result
+        if result is None or self.series is None or result.series_id != self.series.identity:
+            return
+        index = result.working_index
+        previous = self._results.get(index)
+        if previous is not None and previous.status == "complete":
+            if result.status != "complete":
+                return  # Keep the earlier result; the run table shows this attempt's refusal.
+            self._previous_results[index] = previous
+        else:
+            self._previous_results.pop(index, None)
+        self._results[index] = result
+        self._selected_versions[index] = "new"
+        if index == self.current_index and self._frame_token is None:
+            self._refresh_result()
 
     def _submit(self, operation: Callable[[Event, Callable[[str], None]], object]) -> int:
         self._counter += 1
@@ -148,6 +200,7 @@ class SessionController(QObject):
     def _busy(self, text: str = "") -> None:
         if not text:
             text = "Otwieranie zapisu…" if self._open_token is not None else (
+                self.series_run.message if self.series_running and self.series_run is not None else
                 "Analiza klatki…" if self._analysis_token is not None else
                 f"Przygotowanie klatki {self._requested_index + 1}…"
                 if self._frame_token is not None else "Gotowe"
@@ -156,6 +209,7 @@ class SessionController(QObject):
 
     def open_session(self, path: Path | None = None) -> None:
         self.pause()
+        self._series_runner.cancel()
         self._cancel_analysis()
         self._abandon(self._open_token)
         self._open_token = None
@@ -329,6 +383,7 @@ class SessionController(QObject):
 
     def cancel(self) -> None:
         self.pause()
+        self._series_runner.cancel()
         self._cancel_analysis()
         if self._open_token is not None:
             self._abandon(self._open_token)
@@ -400,6 +455,7 @@ class SessionController(QObject):
             self._previous_results.clear()
             self._selected_versions.clear()
             self._active_catalogue = None
+            self._series_runner.reset()
             self._published = None
             self.series_changed.emit(self.series)
             self._publish(result.view)
@@ -459,6 +515,7 @@ class SessionController(QObject):
 
     def shutdown(self) -> None:
         self.pause()
+        self._series_runner.shutdown()
         self._closed = True
         for task in self._tasks.values():
             task.cancelled.set()
@@ -467,3 +524,4 @@ class SessionController(QObject):
     def wait_for_workers(self) -> None:
         """Join cancelled work before Qt destroys the signals used by run()."""
         self._pool.waitForDone()
+        self._series_runner.wait_for_workers()
