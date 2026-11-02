@@ -12,10 +12,11 @@ from PyQt6.QtWidgets import (
 
 from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.efficient_matcher import EFFICIENT_METHOD
+from stmviewer.roma_matcher import ROMA_METHOD
 from stmviewer.graph_methods import graph_method_label, graph_requires_deep, graph_unavailable_reason
 from stmviewer.frame import ImageFrame
 from stmviewer.graph_registration import graph_pairs
-from stmviewer.graph_types import GraphTrial
+from stmviewer.graph_types import GraphConfig, GraphTrial
 from stmviewer.robust_graph_types import RobustTrial
 from stmviewer.pair_comparison import PairTrial
 from stmviewer.registration import FrameOrigin, REGISTRATION_METHODS, RegistrationResult
@@ -53,7 +54,8 @@ class GraphComparisonDialog(QDialog):
 
     def __init__(self, frames: tuple[ImageFrame, ...], parent: QWidget, *,
                  registration: RegistrationResult | None = None,
-                 deep_options: DeepMatcherOptions | None = None, trial: GraphTrial | None = None) -> None:
+                 deep_options: DeepMatcherOptions | None = None, trial: GraphTrial | None = None,
+                 method: str | None = None) -> None:
         super().__init__(parent)
         self.setObjectName('graphComparison')
         self.setWindowTitle('Dopasowanie wieloklatkowe — kandydat grafu')
@@ -91,7 +93,8 @@ class GraphComparisonDialog(QDialog):
         for key, label in REGISTRATION_METHODS.items():
             self._method.addItem(label, key)
         self._method.setCurrentIndex(self._method.findData(
-            trial.config.method if trial is not None else
+            trial.config.method if trial is not None else method if method is not None else
+            ROMA_METHOD if deep_options is not None and deep_options.interpreter is not None else
             EFFICIENT_METHOD if deep_options is not None and deep_options.source is not None
             else 'deep_matcher_translation'))
         sidebar.addWidget(self._method)
@@ -110,10 +113,7 @@ class GraphComparisonDialog(QDialog):
         self._deep = DeepMatcherControls(self)
         self._deep.check.hide()
         self._deep.set_method(str(self._method.currentData()))
-        source_path = dict(trial.config.backend_settings).get('source_path') if trial is not None else None
-        self._deep.set_options(DeepMatcherOptions(Path(trial.config.weights_path), trial.config.requested_device,
-                                                 Path(source_path) if source_path else None)
-                               if trial is not None and trial.config.weights_path is not None
+        self._deep.set_options(_model_options(trial.config) if trial is not None
                                else deep_options or DeepMatcherOptions())
         sidebar.addWidget(self._deep)
         self._method_status = QLabel(self)
@@ -421,11 +421,7 @@ class GraphComparisonDialog(QDialog):
                                      initial_failure=edge.reason if edge.shift_xy is None else None,
                                      initial_local_failure=edge.local_diagnostics if edge.shift_xy is None else None,
                                      initial_correspondence_failure=edge.correspondence_diagnostics if edge.shift_xy is None else None,
-                                     deep_options=DeepMatcherOptions(
-                                         Path(trial.config.weights_path) if trial.config.weights_path else None,
-                                         trial.config.requested_device,
-                                         Path(dict(trial.config.backend_settings)['source_path'])
-                                         if dict(trial.config.backend_settings).get('source_path') else None))
+                                     deep_options=_model_options(trial.config))
         self._pair = pair
         pair.busy_changed.connect(self._pair_busy_changed)
         pair.finished.connect(lambda: self._pair_closed(pair))
@@ -461,3 +457,15 @@ class GraphComparisonDialog(QDialog):
             return
         self._movie.pause()
         super().closeEvent(event)
+
+
+def _model_options(config: GraphConfig) -> DeepMatcherOptions:
+    """Restore saved computation inputs without probing or executing their interpreter."""
+    settings = dict(config.backend_settings)
+    source, interpreter = settings.get('source_path'), settings.get('interpreter_path')
+    return DeepMatcherOptions(Path(config.weights_path) if config.weights_path else None,
+                              config.requested_device, Path(source) if source else None,
+                              interpreter=Path(interpreter) if interpreter else None,
+                              preset=settings.get('preset', 'turbo'),
+                              samples=int(settings.get('samples', '1000')),
+                              seed=int(settings.get('seed', '20261102')))

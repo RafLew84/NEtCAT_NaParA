@@ -3,16 +3,17 @@
 **What to build:** Użytkownik porównuje RoMa v2 z odebranymi modelami i widzi,
 czy gęste korespondencje poprawiają globalne XY na trudnych obrazach STM.
 **Blocked by:** [REG-10](10-efficient-loftr.md), w tym odbiór manualny.
-**Status:** ready-for-agent
-**Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
+**Status:** in-progress
+**Manualny odbiór:** niewykonany; implementacja rozpoczęta 2026-11-02.
+**Wykonawca:** Codex; baza przeglądu `3a3a684`.
 **Dodano do planu:** 2026-10-31, na zlecenie użytkownika po research.
 
 **Decyzja i przygotowanie — 2026-11-02:** użytkownik wybrał osobne środowisko
 `netcat-romav2` oraz proces roboczy dla tej metody; aplikacja nadal działa
 w `netcat`. Na tym etapie zlecił tylko przygotowanie środowiska i aktualizację
 ticketu. [Zasoby, wersje i sprawdzenia](../roma-environment.md).
-Status pozostaje `ready-for-agent`; wybór metody w GUI i integracja procesu
-nie zostały jeszcze wdrożone. REG-10 ma odbiór `done`.
+Po przygotowaniu status wynosił `ready-for-agent`. Na kolejne zlecenie
+użytkownika rozpoczęto pełną implementację REG-11. REG-10 ma odbiór `done`.
 
 Obowiązują [plan](../README.md), [protokół odbioru](../manual-protocol.md)
 i [przegląd modeli](../../registration-multiframe-research.md).

@@ -130,7 +130,9 @@ def _decode(value: object, depth: int = 0, *,
         _validate_image_metadata(previous, (oh, ow), original_size, original_offset)
     correspondence = decode_correspondence(record.get('correspondence'))
     validate_correspondence_shape(correspondence, (oh, ow), (oh, ow))
-    if correspondence is not None and (method != 'EfficientLoFTR' or correspondence.final_shift_xy is None):
+    from stmviewer.correspondence_metadata import validate_correspondence_method
+    validate_correspondence_method(correspondence, method)
+    if correspondence is not None and (method not in ('EfficientLoFTR', 'RoMa v2') or correspondence.final_shift_xy is None):
         raise ValueError('Historia: metoda lub wynik nie odpowiada diagnostyce korespondencji.')
     return AlignmentHistory((height, width), (left, top, right, bottom), pixel_size,
                             reference, method, device, (oh, ow), original_size,

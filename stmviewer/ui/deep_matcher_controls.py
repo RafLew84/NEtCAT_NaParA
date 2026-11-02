@@ -8,6 +8,8 @@ from PyQt6.QtWidgets import QComboBox, QFileDialog, QHBoxLayout, QLabel, QLineEd
 
 from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.efficient_matcher import EFFICIENT_METHOD, default_efficient_options
+from stmviewer.roma_matcher import ROMA_METHOD, default_roma_options
+from stmviewer.ui.roma_controls import RomaControls
 
 
 class DeepMatcherControls(QWidget):
@@ -17,7 +19,9 @@ class DeepMatcherControls(QWidget):
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
         self._method = 'deep_matcher_translation'
-        self._remembered: dict[bool, DeepMatcherOptions] = {True: default_efficient_options()}
+        self._remembered: dict[str, DeepMatcherOptions] = {
+            EFFICIENT_METHOD: default_efficient_options(), ROMA_METHOD: default_roma_options(),
+        }
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self._weights_label = QLabel('Lokalne wagi LoFTR outdoor', self)
@@ -34,7 +38,8 @@ class DeepMatcherControls(QWidget):
         self._source_panel = QWidget(self)
         source_layout = QVBoxLayout(self._source_panel)
         source_layout.setContentsMargins(0, 0, 0, 0)
-        source_layout.addWidget(QLabel('Lokalny katalog kodu EfficientLoFTR', self))
+        self._source_label = QLabel('Lokalny katalog kodu EfficientLoFTR', self)
+        source_layout.addWidget(self._source_label)
         self._source = QLineEdit(self)
         self._source.setObjectName('efficientSource')
         self._source.setAccessibleName('Lokalny katalog kodu EfficientLoFTR')
@@ -46,6 +51,10 @@ class DeepMatcherControls(QWidget):
         source_layout.addWidget(source_browse)
         layout.addWidget(self._source_panel)
         self._source_panel.hide()
+        self._roma = RomaControls(self)
+        layout.addWidget(self._roma)
+        self._roma.hide()
+        self._roma.changed.connect(self._changed)
         row = QHBoxLayout()
         row.addWidget(QLabel('Urządzenie', self))
         self._device = QComboBox(self)
@@ -70,32 +79,46 @@ class DeepMatcherControls(QWidget):
 
     def options(self) -> DeepMatcherOptions:
         value = self._weights.text().strip()
-        source = self._source.text().strip() if self._method == EFFICIENT_METHOD else ''
+        source = self._source.text().strip() if self._method in (EFFICIENT_METHOD, ROMA_METHOD) else ''
+        roma = self._method == ROMA_METHOD
         return DeepMatcherOptions(Path(value).expanduser() if value else None,
                                   self._device.currentText().lower(),
-                                  Path(source).expanduser() if source else None)
+                                  Path(source).expanduser() if source else None,
+                                  interpreter=self._roma.interpreter if roma else None,
+                                  preset=self._roma.preset if roma else 'turbo',
+                                  samples=self._roma.samples if roma else 1000,
+                                  seed=self._roma.seed if roma else 20261102)
 
     def set_method(self, method: str) -> None:
         """Remember each model's local files when switching the next calculation."""
-        efficient = method == EFFICIENT_METHOD
-        previous = self._method == EFFICIENT_METHOD
-        if efficient != previous:
+        family = method if method in (EFFICIENT_METHOD, ROMA_METHOD) else 'deep'
+        previous = self._method if self._method in (EFFICIENT_METHOD, ROMA_METHOD) else 'deep'
+        if family != previous:
             self._remembered[previous] = self.options()
             self._method = method
             with QSignalBlocker(self):
-                self.set_options(self._remembered.get(efficient, DeepMatcherOptions()))
+                self.set_options(self._remembered.get(family, DeepMatcherOptions()))
         else:
             self._method = method
-        text = 'Lokalne wagi EfficientLoFTR outdoor' if efficient else 'Lokalne wagi LoFTR outdoor'
+        efficient, roma = method == EFFICIENT_METHOD, method == ROMA_METHOD
+        text = ('Lokalne wagi RoMa v2' if roma else 'Lokalne wagi EfficientLoFTR outdoor'
+                if efficient else 'Lokalne wagi LoFTR outdoor')
         self._weights_label.setText(text)
         self._weights.setAccessibleName(text)
-        self._source_panel.setVisible(efficient)
+        source_text = 'Lokalny katalog kodu DINOv3' if roma else 'Lokalny katalog kodu EfficientLoFTR'
+        self._source_label.setText(source_text)
+        self._source.setAccessibleName(source_text)
+        self._source.setPlaceholderText('Katalog zawierający hubconf.py i dinov3' if roma
+                                        else 'Katalog zawierający src/loftr')
+        self._source_panel.setVisible(efficient or roma)
+        self._roma.setVisible(roma)
 
     def set_options(self, options: DeepMatcherOptions) -> None:
         with QSignalBlocker(self):
             self._weights.setText(str(options.weights) if options.weights is not None else '')
             self._source.setText(str(options.source) if options.source is not None else '')
             self._device.setCurrentText(options.device.upper() if options.device != 'auto' else 'Auto')
+            self._roma.set_options(options)
         self._changed()
 
     def set_status(self, text: str) -> None:
@@ -112,6 +135,6 @@ class DeepMatcherControls(QWidget):
             self._weights.setText(path)
 
     def _browse_source(self) -> None:
-        path = QFileDialog.getExistingDirectory(self, 'Lokalny katalog kodu EfficientLoFTR', self._source.text())
+        path = QFileDialog.getExistingDirectory(self, self._source_label.text(), self._source.text())
         if path:
             self._source.setText(path)

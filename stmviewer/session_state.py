@@ -30,6 +30,10 @@ class SessionViewState:
     deep_device: str = 'auto'
     navigation: dict[str, ViewTransform] = field(default_factory=dict)
     deep_source: str | None = None
+    deep_interpreter: str | None = None
+    deep_preset: str = 'turbo'
+    deep_samples: int = 1000
+    deep_seed: int = 20261102
 
 
 @dataclass(frozen=True)

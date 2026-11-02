@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 
 from stmviewer.graph_methods import graph_method_label
 from stmviewer.correspondence_metadata import (
-    decode_correspondence_diagnostics, encode_correspondence_diagnostics, validate_correspondence_shape,
+    decode_correspondence_diagnostics, encode_correspondence_diagnostics, validate_correspondence_shape, validate_correspondence_method,
 )
 from stmviewer.alignment_metadata import (
     aligned_export_frames, collect_manual_histories, decode_alignment, encode_alignment,
@@ -95,7 +95,7 @@ def _root(value: object) -> dict[str, object]:
     record = json_object(value)
     if record.get('schema') == 'stmviewer-state-v1':
         return json_object(record, _ROOT_KEYS)
-    if record.get('schema') in ('stmviewer-state-v2', 'stmviewer-state-v3', 'stmviewer-state-v4'):
+    if record.get('schema') in ('stmviewer-state-v2', 'stmviewer-state-v3', 'stmviewer-state-v4', 'stmviewer-state-v5'):
         return json_object(record, _ROOT_KEYS | {'graph'})
     raise ValueError('Nieobsługiwana wersja stanu sesji.')
 
@@ -184,7 +184,8 @@ def _decode_frame(record: dict[str, object], arrays: Mapping[str, NDArray[np.flo
 
 def _decode_display(value: object, count: int, aligned: bool) -> SessionViewState:
     fields = json_object(value)
-    record = json_object(fields, _DISPLAY_KEYS | ({'deep_source'} if 'deep_source' in fields else set()))
+    extra = {'deep_source', 'deep_interpreter', 'deep_preset', 'deep_samples', 'deep_seed'} & fields.keys()
+    record = json_object(fields, _DISPLAY_KEYS | extra)
     index = _integer(record['index'])
     view = record['view']
     if index >= count or view not in ('original', 'aligned') or (view == 'aligned' and not aligned):
@@ -206,10 +207,19 @@ def _decode_display(value: object, count: int, aligned: bool) -> SessionViewStat
         if zoom is None or not 0.1 <= zoom <= 64:
             raise ValueError('Sesja: nieprawidłowy zoom.')
         navigation[key] = ViewTransform(zoom, _xy(transform['pan_xy']))
+    preset = _text(record.get('deep_preset', 'turbo'))
+    samples = _integer(record.get('deep_samples', 1000), 8)
+    seed = _integer(record.get('deep_seed', 20261102))
+    if preset not in ('turbo', 'fast', 'base', 'precise') or samples > 10000 or seed > 2**31 - 1:
+        raise ValueError('Sesja: nieprawidłowe ustawienia próbkowania RoMa.')
+    interpreter = optional_text(record, 'deep_interpreter') if 'deep_interpreter' in record else None
+    if interpreter is not None and (not interpreter.strip() or '\x00' in interpreter):
+        raise ValueError('Sesja: nieprawidłowa ścieżka interpretera RoMa.')
     assert isinstance(view, str)
     return SessionViewState(index, view, gamma, _boolean(record['pixel_proportions']), fps,
                             _boolean(record['loop']), method, optional_text(record, 'deep_weights'),
-                            device, navigation, optional_text(record, 'deep_source') if 'deep_source' in record else None)
+                            device, navigation, optional_text(record, 'deep_source') if 'deep_source' in record else None,
+                            interpreter, preset, samples, seed)
 
 
 def _registration_record(result: RegistrationResult, images: tuple[ImageFrame, ...],
@@ -328,11 +338,12 @@ def _decode_registration(value: object, originals: tuple[ImageFrame, ...],
         predecessor=decode_movie_snapshot(record.get('predecessor'), originals, check_cancelled),
     )
     if result.correspondence_diagnostics:
-        if method != 'EfficientLoFTR':
+        if method not in ('EfficientLoFTR', 'RoMa v2'):
             raise ValueError('Sesja: metoda nie odpowiada diagnostyce korespondencji.')
         for original, diagnostic in zip(originals, result.correspondence_diagnostics, strict=True):
             shape = (original.data.shape[0], original.data.shape[1])
             validate_correspondence_shape(diagnostic, shape, shape)
+            validate_correspondence_method(diagnostic, method)
             if diagnostic is not None and diagnostic.final_shift_xy is None:
                 raise ValueError('Sesja: aktywny łańcuch nie może zawierać odmowy dopasowania.')
     if manual is not None and manual.graph_provenance != movie_history(result).graph_provenance:
@@ -391,6 +402,17 @@ def encode_session(state: SessionState, *, check_cancelled: Callable[[], None] =
     if result is not None and result.correspondence_diagnostics:
         manifest['schema'] = 'stmviewer-state-v4'
         manifest.setdefault('graph', None)
+    if (state.display.deep_interpreter is not None or state.display.method == 'roma_v2'
+            or (state.graph is not None and state.graph.config.method == 'roma_v2')
+            or (result is not None and (result.method == 'RoMa v2' or
+                (result.graph_application is not None and result.graph_application.graph.config.method == 'roma_v2')))
+            or (state.display.deep_preset, state.display.deep_samples, state.display.deep_seed)
+               != ('turbo', 1000, 20261102)):
+        manifest['schema'] = 'stmviewer-state-v5'
+        manifest.setdefault('graph', None)
+    else:
+        for key in ('deep_interpreter', 'deep_preset', 'deep_samples', 'deep_seed'):
+            display.pop(key)
     decode_session(manifest, arrays, check_cancelled=check_cancelled)
     return manifest, arrays
 

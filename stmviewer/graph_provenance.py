@@ -126,3 +126,22 @@ def efficient_graph_config(window: int, provenance: tuple[tuple[str, str], ...],
                        metadata['requested_device'], metadata['actual_device'],
                        tuple(sorted(settings.items())), libraries, _code_version(root, files),
                        settings_version=2, method=EFFICIENT_METHOD)
+
+
+def roma_graph_config(window: int, provenance: tuple[tuple[str, str], ...],
+                      consensus: dict[str, object]) -> GraphConfig:
+    """Record the isolated RoMa worker and original-pixel aggregation configuration."""
+    metadata = dict(provenance)
+    settings = {**metadata, 'cache_max_pairs': str(MAX_CACHED_PAIRS),
+                **{f'consensus_{key}': str(value) for key, value in consensus.items()}}
+    libraries = tuple((key.removeprefix('library_'), value) for key, value in provenance
+                      if key.startswith('library_'))
+    root = Path(__file__).resolve().parent.parent
+    files = ['stmviewer/graph_registration.py', 'stmviewer/graph_provenance.py',
+             'stmviewer/graph_backends.py', 'stmviewer/correspondence_types.py',
+             'stmviewer/correspondence_consensus.py']
+    files.extend(str(path.relative_to(root)) for path in sorted((root / 'stmviewer').glob('roma_*.py')))
+    return GraphConfig(window, metadata['weights_path'], metadata['weights_sha256'],
+                       metadata['requested_device'], metadata['actual_device'],
+                       tuple(sorted(settings.items())), libraries, _code_version(root, files),
+                       settings_version=2, method='roma_v2')

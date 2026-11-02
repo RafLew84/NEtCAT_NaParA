@@ -10,6 +10,7 @@ import numpy as np
 from stmviewer.graph_types import GraphConfig, GraphEdge, GraphSource, GraphTrial
 from stmviewer.registration import RegistrationCancelled, RegistrationError, estimate_confidence
 from stmviewer.efficient_matcher import EfficientBackend
+from stmviewer.roma_matcher import RomaBackend
 from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.deep_ecc import DeepEccBackend
 from stmviewer.local_registration import DeepLocalBackend
@@ -235,7 +236,7 @@ def register_graph(frames: tuple[ImageFrame, ...], *, window: int = 3,
                                        local_diagnostics=(backend.last_diagnostics
                                                           if isinstance(backend, DeepLocalBackend) else None),
                                        correspondence_diagnostics=(backend.last_diagnostics
-                                                                   if isinstance(backend, EfficientBackend) else None)))
+                                                                   if isinstance(backend, (EfficientBackend, RomaBackend)) else None)))
             else:
                 edges.append(GraphEdge(i, j, (float(shift[0]), float(shift[1])),
                                        status, quality_score=score,
@@ -244,10 +245,10 @@ def register_graph(frames: tuple[ImageFrame, ...], *, window: int = 3,
                                        local_diagnostics=(backend.last_diagnostics
                                                           if isinstance(backend, DeepLocalBackend) else None),
                                        correspondence_diagnostics=(backend.last_diagnostics
-                                                                   if isinstance(backend, EfficientBackend) else None)))
+                                                                   if isinstance(backend, (EfficientBackend, RomaBackend)) else None)))
             report(done, f'{label}: klatki {i + 1}–{j + 1}')
     finally:
-        if isinstance(backend, EfficientBackend):
+        if isinstance(backend, (EfficientBackend, RomaBackend)):
             backend.close()
     elapsed = perf_counter() - start
     pair_context = ''

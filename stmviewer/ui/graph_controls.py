@@ -42,7 +42,7 @@ class GraphControls(QObject):
             self._dialog.set_available(available)
 
     def open_graph(self, frames: tuple[ImageFrame, ...], registration: RegistrationResult | None,
-                   deep_options: DeepMatcherOptions) -> None:
+                   deep_options: DeepMatcherOptions, *, method: str | None = None) -> None:
         if not self._available or len(frames) < 2:
             return
         if self._dialog is not None:
@@ -51,7 +51,7 @@ class GraphControls(QObject):
             self._dialog.activateWindow()
             return
         dialog = GraphComparisonDialog(frames, self._parent, registration=registration,
-                                        deep_options=deep_options, trial=self._trial)
+                                        deep_options=deep_options, trial=self._trial, method=method)
         self._dialog = dialog
         dialog.changed.connect(self._changed)
         dialog.movie_apply_requested.connect(self.movie_apply_requested)

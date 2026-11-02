@@ -17,6 +17,10 @@ class DeepMatcherOptions:
     weights: Path | None = None
     device: str = 'auto'
     source: Path | None = None
+    interpreter: Path | None = None
+    preset: str = 'turbo'
+    samples: int = 1000
+    seed: int = 20261102
 
 
 @dataclass(frozen=True)

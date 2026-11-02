@@ -153,10 +153,12 @@ def decode_movie_snapshot(value: object, frames: tuple[ImageFrame, ...],
                                     or device != application.graph.config.device):
         raise ValueError('Zachowany wynik: opis metody nie odpowiada grafowi.')
     correspondence = decode_correspondence_diagnostics(record.get('correspondence_diagnostics', []), len(sources))
-    if correspondence and method != 'EfficientLoFTR':
+    if correspondence and method not in ('EfficientLoFTR', 'RoMa v2'):
         raise ValueError('Zachowany wynik: metoda nie odpowiada diagnostyce korespondencji.')
     for source, diagnostic in zip(sources, correspondence):
         validate_correspondence_shape(diagnostic, source.shape, source.shape)
+        from stmviewer.correspondence_metadata import validate_correspondence_method
+        validate_correspondence_method(diagnostic, method)
         if diagnostic is not None and diagnostic.final_shift_xy is None:
             raise ValueError('Zachowany wynik: łańcuch nie może zawierać odmowy dopasowania.')
     return MovieSnapshot(

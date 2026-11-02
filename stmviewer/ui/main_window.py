@@ -185,7 +185,8 @@ class STMViewerMainWindow(QMainWindow):
         controls.addWidget(self._compare_pair)
         self._graph = GraphControls(self)
         self._graph.open_button.clicked.connect(lambda: self._graph.open_graph(
-            self._frames, self._registration, self._deep_controls.options()))
+            self._frames, self._registration, self._deep_controls.options(),
+            method='roma_v2' if self._method.currentData() == 'roma_v2' else None))
         self._graph.busy_changed.connect(self._pair_busy_changed)
         self._graph.movie_apply_requested.connect(self._apply_graph_movie)
         self._graph.movie_restore_requested.connect(self._restore_graph_movie)
@@ -375,7 +376,10 @@ class STMViewerMainWindow(QMainWindow):
             pixel_proportions=self._pixel_proportions.isChecked(), fps=int(self._fps.currentText()),
             loop=self._loop.isChecked(), method=str(self._method.currentData()),
             deep_weights=str(options.weights) if options.weights is not None else None,
-            deep_device=options.device, deep_source=str(options.source) if options.source else None, navigation=self._preview.navigation_states()), graph=self._graph.trial)
+            deep_device=options.device, deep_source=str(options.source) if options.source else None,
+            deep_interpreter=str(options.interpreter) if options.interpreter else None,
+            deep_preset=options.preset, deep_samples=options.samples, deep_seed=options.seed,
+            navigation=self._preview.navigation_states()), graph=self._graph.trial)
 
     def _restore_session(self, state: SessionState, thumbnails: tuple[QImage, ...]) -> None:
         if self._closing:
@@ -401,7 +405,10 @@ class STMViewerMainWindow(QMainWindow):
             self._deep_controls.set_method(display.method)
             self._deep_controls.set_options(DeepMatcherOptions(Path(display.deep_weights) if display.deep_weights else None,
                                                                display.deep_device,
-                                                               Path(display.deep_source) if display.deep_source else None))
+                                                               Path(display.deep_source) if display.deep_source else None,
+                                                               interpreter=Path(display.deep_interpreter) if display.deep_interpreter else None,
+                                                               preset=display.deep_preset, samples=display.deep_samples,
+                                                               seed=display.deep_seed))
         with QSignalBlocker(self._gamma):
             self._gamma.setValue(display.gamma)
         self._pixel_proportions.setChecked(display.pixel_proportions)

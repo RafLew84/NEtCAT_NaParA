@@ -1,6 +1,7 @@
 """Method identity and availability, shared by graph presentation and execution."""
 
 from stmviewer.efficient_matcher import EFFICIENT_METHOD, efficient_unavailable_reason
+from stmviewer.roma_matcher import ROMA_METHOD, roma_unavailable_reason
 from stmviewer.deep_matcher import DeepMatcherOptions, deep_unavailable_reason
 from stmviewer.deep_ecc import HYBRID_METHOD, hybrid_unavailable_reason
 from stmviewer.local_registration import LOCAL_METHOD, local_unavailable_reason
@@ -23,6 +24,8 @@ def graph_requires_deep(method: str) -> bool:
 def graph_unavailable_reason(method: str, options: DeepMatcherOptions) -> str | None:
     if method not in REGISTRATION_METHODS:
         return f'Nieznana metoda rejestracji: {method}'
+    if method == ROMA_METHOD:
+        return roma_unavailable_reason(options)
     if method == EFFICIENT_METHOD:
         return efficient_unavailable_reason(options)
     if method == HYBRID_METHOD:

@@ -56,10 +56,11 @@ def _preparation(value: object) -> ImagePreparation:
             or not math.isclose(oh * sy, mh - top - bottom, rel_tol=1e-9, abs_tol=1e-9)):
         raise ValueError('Korespondencje: niespójna geometria przygotowania obrazu.')
     normalization = _text(record['normalization'])
-    if normalization != 'minmax-float32-v1' or _integer(record['channels'], 1) != 1:
+    channels = _integer(record['channels'], 1)
+    if (normalization, channels) not in (('minmax-float32-v1', 1), ('minmax-float32-rgb-v1', 3)):
         raise ValueError('Korespondencje: nieobsługiwane przygotowanie obrazu.')
     return ImagePreparation((oh, ow), (mh, mw), (sx, sy), (left, top, right, bottom),
-                             (low, high), normalization, 1)
+                             (low, high), normalization, channels)
 
 
 def _provenance(value: object) -> tuple[tuple[str, str], ...]:
@@ -140,3 +141,33 @@ def validate_correspondence_shape(value: CorrespondenceDiagnostics | None,
         shapes = tuple(preparation.original_shape for preparation in value.preparation)
         if shapes != (reference_shape, moving_shape):
             raise ValueError('Korespondencje: przygotowanie nie odpowiada wymiarom oryginałów.')
+
+
+def validate_roma_provenance(provenance: tuple[tuple[str, str], ...]) -> None:
+    """Check a saved worker configuration without inspecting or running its paths."""
+    metadata = dict(provenance)
+    if metadata.get('model') != 'RoMa v2' or metadata.get('preset') not in ('turbo', 'fast', 'base', 'precise'):
+        raise ValueError('RoMa: nieobsługiwany model lub preset pochodzenia.')
+    for key in ('interpreter_path', 'source_path', 'weights_path'):
+        _text(metadata.get(key))
+    for key, low, high in (('samples', 8, 10000), ('seed', 0, 2**31 - 1)):
+        value = metadata.get(key, '')
+        if not value.isascii() or not value.isdecimal() or not low <= int(value) <= high:
+            raise ValueError('RoMa: nieprawidłowe ustawienie próbkowania.')
+
+
+def validate_correspondence_method(value: CorrespondenceDiagnostics | None, method: str) -> None:
+    """The persisted preparation and provenance must belong to the named estimator."""
+    if value is None:
+        return
+    if method in ('RoMa v2', 'roma_v2'):
+        validate_roma_provenance(value.model_provenance)
+        expected = ('minmax-float32-rgb-v1', 3)
+        if len(value.preparation) != 2:
+            raise ValueError('RoMa: brak przygotowania obu obrazów.')
+    elif method in ('EfficientLoFTR', 'efficient_loftr'):
+        expected = ('minmax-float32-v1', 1)
+    else:
+        raise ValueError('Korespondencje: nieobsługiwana metoda.')
+    if any((item.normalization, item.channels) != expected for item in value.preparation):
+        raise ValueError('Korespondencje: przygotowanie nie odpowiada metodzie.')
