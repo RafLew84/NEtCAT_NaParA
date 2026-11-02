@@ -1,5 +1,13 @@
 # STM Viewer
 
+**REG-10: EfficientLoFTR — ready-for-review (2026-11-02).** Nowa opcja pary,
+filmu i grafu z zapisem diagnostyki w sesji.
+[Instrukcja próby](registration/efficient-loftr-manual.md),
+[wyniki rzeczywiste](registration/efficient-loftr-results.md),
+[testy i przeglądy](registration/reviews/REG-10.md).
+Na MOVIE_4/MOVIE_8 nowy graf pozostaje rozłączny; ocena użytkownika oczekuje.
+
+
 Program do przeglądania obrazów i sekwencji STP/S94/MPP, rejestracji
 oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 
@@ -64,7 +72,7 @@ z jego korektami, bez modelu. [Instrukcja i gotowe dane](registration/graph-appl
 [wyniki](registration/graph-application-results.md),
 [testy i przegląd](registration/reviews/REG-08c.md). Po obliczeniu niekompletnego
 Hubera dialog wyjaśnia powód odmowy zastosowania. To uzupełnienie dodano po
-odbytym odbiorze; REG-10 ma spełnioną zależność, ale nie rozpoczęto jego realizacji.
+odbytym odbiorze; późniejsza implementacja REG-10 jest opisana powyżej.
 
 [REG-08e — pozostałe metody w dopasowaniu wieloklatkowym](registration/issues/08e-multiframe-methods.md)
 ma status **done** po potwierdzeniu „testy manualne ok” 2026-11-02. Dodano jedno pole wyboru metody par w obecnym

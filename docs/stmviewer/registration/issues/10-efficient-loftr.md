@@ -3,14 +3,17 @@
 **What to build:** Użytkownik wybiera EfficientLoFTR, porównuje dopasowanie
 z obecnym Deep Matcherem i stosuje wybrany wynik do filmu.
 **Blocked by:** [REG-08c](08c-graph-movie-application.md), w tym odbiór manualny.
-**Status:** ready-for-agent
-**Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
+**Status:** ready-for-review
+**Manualny odbiór:** oczekuje; [instrukcja](../efficient-loftr-manual.md).
+**Implementacja:** `6644d8c`; [wyniki](../efficient-loftr-results.md),
+[testy i przeglądy](../reviews/REG-10.md).
+**Baza implementacji i przeglądu:** `03ad8d9`, start 2026-11-02.
 **Dodano do planu:** 2026-10-31, na zlecenie użytkownika po research.
 
 **Przygotowanie lokalne — 2026-11-02:** pobrano kod i wagi; ścisłe ładowanie
 i syntetyczna próba CPU/CUDA zaliczone w `netcat`.
 [Ścieżki, wersje, SHA-256 i instrukcja](../efficient-loftr-setup.md).
-Integracja z aplikacją i ocena STM pozostają nierozpoczęte.
+Integracja została wykonana; ręczna ocena przydatności STM pozostaje otwarta.
 
 Obowiązują [plan](../README.md), [protokół odbioru](../manual-protocol.md)
 i [przegląd modeli](../../registration-multiframe-research.md).
@@ -19,49 +22,49 @@ EfficientLoFTR nie potrzebuje grafu do dopasowania pojedynczej pary.
 
 ## Zakres i kryteria odbioru
 
-- [ ] EfficientLoFTR jest osobnym wyborem dla pary, rejestracji sąsiednich
+- [x] EfficientLoFTR jest osobnym wyborem dla pary, rejestracji sąsiednich
   klatek całej serii oraz grafu odebranego w REG-08a–08c. Te drogi korzystają
   z tego samego estymatora pary. Obecny Deep pozostaje dostępny.
-- [ ] Wynik modelu jest przeliczany na korespondencje w pikselach original,
+- [x] Wynik modelu jest przeliczany na korespondencje w pikselach original,
   a następnie na jedno XY. Zapisujemy skalowanie, padding, normalizację
   jasności i ewentualne kopiowanie kanału szarości. Odwzorowanie powrotne
   uwzględnia obie osie i obie klatki; gamma podglądu nie wpływa na estymację.
-- [ ] Ten ticket wprowadza wspólną, wersjonowaną agregację wektorów
+- [x] Ten ticket wprowadza wspólną, wersjonowaną agregację wektorów
   korespondencji do jednej translacji: wybór zgodnej grupy, odporne wyznaczenie
   XY oraz ocenę przestrzennego poparcia. Korzysta z zasad REG-05, ale nie
   uruchamia jego wyszukiwania wycinków. Te same reguły i parametry będą używane
   w REG-11/12. Lokalna metoda wycinków pozostaje osobnym wariantem pary.
-- [ ] Porównanie z historycznym Deep zachowuje listę kandydatów par, graf
+- [x] Porównanie z historycznym Deep zachowuje listę kandydatów par, graf
   i renderer, ale przy innej agregacji jest porównaniem całych estymatorów.
   Nie przypisujemy całej różnicy samemu modelowi ani nie wymagamy przebudowy
   wspólnego backendu Deep, aby uzyskać jego korespondencje w tym tickecie.
-- [ ] UI pokazuje wynik i rozkład poparcia albo jawną odmowę. Liczba punktów
+- [x] UI pokazuje wynik i rozkład poparcia albo jawną odmowę. Liczba punktów
   i score modelu nie są prawdopodobieństwem poprawnego dryfu. Reguły kwalifikacji
   par są zapisane; surowy score nie staje się wagą porównywalną między modelami.
-- [ ] Zależności i wagi są opcjonalne oraz ładowane lokalnie. Przypinamy
+- [x] Zależności i wagi są opcjonalne oraz ładowane lokalnie. Przypinamy
   wersję kodu, wariant checkpointu i SHA-256, sposób przygotowania oraz warunki
   kodu i wag. Brak, uszkodzenie lub niezgodność daje konkretną niedostępność.
   Aplikacja nie pobiera modeli, nie instaluje pakietów i nie przełącza metody
   ani urządzenia po błędzie. OOM nie prowadzi do cichego zmniejszenia obrazu.
-- [ ] Model jest używany ponownie dla kolejnych par, bez ładowania na każdą
+- [x] Model jest używany ponownie dla kolejnych par, bez ładowania na każdą
   krawędź grafu. Błąd, anulowanie i zakończenie zwalniają zasoby zadania.
   Ewentualny konflikt zależności izolujemy w opcjonalnym adapterze/środowisku,
   z opisanym uruchomieniem z GUI; potrzebne zmiany wspólne trafiają do handoff.
-- [ ] Ten ticket rozszerza sesję o ustawienia, pochodzenie wag, urządzenie,
+- [x] Ten ticket rozszerza sesję o ustawienia, pochodzenie wag, urządzenie,
   wyniki i diagnozy nowej metody. Ponowne otwarcie nie wymaga wag ani modelu.
   Aktywny wynik jest odtwarzany, niezastosowany kandydat nadal wymaga zastosowania.
   Nowe obliczenie sprawdza dostępność modelu.
-- [ ] Gotowy wynik działa z zastosowaniem do filmu, ręcznymi korektami,
+- [x] Gotowy wynik działa z zastosowaniem do filmu, ręcznymi korektami,
   zapisem i odczytem sesji oraz MPP/AVI zgodnie z REG-08c. Finalne obrazy
   powstają raz z oryginałów; nie deformujemy fragmentów ani nie dopisujemy
   punktów diagnostycznych do filmu. Poprzedni aligned pozostaje po błędzie.
-- [ ] Raport oddziela poparcie modelu i oględziny danych użytych do estymacji
+- [x] Raport oddziela poparcie modelu i oględziny danych użytych do estymacji
   od niezależnej oceny. REG-06 jest odłożony; nie wymagamy jego implementacji
   ani oznaczania fragmentów, a brak kontroli pozostaje brakiem oceny. Po jego
   ewentualnym wznowieniu kontrola jest zależna, jeśli model widział jej piksele,
   również przez cechy kontekstowe lub przygotowanie wejścia. Samo pominięcie
   korespondencji z prostokąta nie zapewnia niezależności.
-- [ ] Próba z rzeczywistymi wagami obejmuje pary i oba pełne filmy. Raport
+- [x] Próba z rzeczywistymi wagami obejmuje pary i oba pełne filmy. Raport
   rozdziela jakość, odmowy, czas modelu/solvera/renderowania, RAM i VRAM.
   Zapisujemy faktyczne CPU/CUDA i sprzęt. Działanie na GPU o większej pamięci
   nie zalicza wymagania 8 GB; brak tej próby pozostaje jawnym ograniczeniem.
@@ -112,3 +115,14 @@ eksperymentu, lecz wymaga zapisanej decyzji użytkownika.
 
 **Oczekiwany wynik:** odtwarzalne porównanie EfficientLoFTR z obecnym Deep,
 z rozdzieleniem wpływu modelu, agregacji i grafu oraz ręczną decyzją o jakości.
+
+## Stan odbioru — 2026-11-02
+
+Zaznaczenia powyżej dotyczą dostarczonego zachowania i wykonanych prób
+automatycznych. EfficientLoFTR jest dostępny dla par, łańcucha i grafu;
+kompletne wzorce przechodzą zastosowanie, korekty, sesję i eksport.
+Na pełnych MOVIE_4/MOVIE_8 graf pozostaje rozłączny, a łańcuch odmawia
+na pierwszej parze; zachowano diagnozy i porównanie z Deep outdoor.
+Nie uznajemy tego za poprawę jakości STM ani odbiór manualny.
+Status pozostaje `ready-for-review` do oględzin i decyzji użytkownika.
+Windows 11, VLC i rzeczywista karta 8 GB VRAM nie były odebrane.

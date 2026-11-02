@@ -1,3 +1,40 @@
+# REG-10: EfficientLoFTR — 2026-11-02
+
+Status **ready-for-review**; oczekuje ręcznej oceny użytkownika.
+Baza `03ad8d9`, implementacja `6644d8c`, poprawka testu/raportu `7f96103`.
+Gałąź `viewer/registration-difficult-movies`; commit dokumentacji w końcowej wiadomości.
+
+EfficientLoFTR działa jako osobna metoda pary, łańcucha i grafu. Wspólny
+konsensus korespondencji oraz rozkład poparcia są wersjonowane. Lokalny
+kod i wagi są sprawdzane przez SHA; bez pobierania i fallbacku. Zapisane
+sesje działają bez modelu; aktywny wynik, osobny kandydat, ręczne korekty
+oraz eksport MPP/AVI zachowują dotychczasowy cykl pracy.
+
+[Próba manualna](registration/efficient-loftr-manual.md),
+[wyniki i sesje](registration/efficient-loftr-results.md),
+[testy i przeglądy](registration/reviews/REG-10.md).
+Uruchomienie w `netcat`: `python -m stmviewer.main`; wybierz EfficientLoFTR.
+Przygotowane ścieżki lokalne są domyślne, wcześniejsze wagi Deep pozostają osobne.
+
+- Pełne repo raz: 2480 passed / 18 failed / 22 skipped. Cztery błędy
+  oczekiwania starej listy metod GUI poprawiono; następnie 66 testów
+  celowanych przeszło. Pozostałe 14 błędów dokładnie odpowiada wcześniejszym
+  MolTrack/NanoTrack. Po połączeniu przebiegów Viewer: 698 passed / 8 skipped.
+- Osobno 6 rzeczywistych testów Efficient CPU/CUDA, cykl sesja/korekta/MPP/AVI
+  zaliczony. Mypy 90 modułów, Ruff, limit 1500 i diff-check poprawne.
+  Standards i Spec: 0 uwag w implementacji i delcie poprawki.
+- Pełne MOVIE_4 (bez pierwszych dwóch źródłowych klatek) i MOVIE_8 przeliczono.
+  Efficient: 430/1080 i 229/246 odmów grafu, wynik rozłączny; oba łańcuchy
+  odmawiają pierwszej pary. Zachowano sesje diagnostyczne. Deep outdoor daje
+  kompletne łańcuchy i LS; nie twierdzimy, że nowa metoda poprawia te filmy.
+- Qt offscreen to weryfikacja automatyczna, nie ręczny odbiór. Ocena jakości
+  STM, Windows/VLC i stanowisko 8 GB VRAM pozostają otwarte. Brak niezależnej
+  kontroli obrazowej. REG-11/12 nie rozpoczęto, odłożonych etapów nie wznowiono.
+- Brak zmian wspólnych, publikacji i scalenia. Pliki użytkownika, źródłowe
+  pomiary, modele i duże wyniki pozostają lokalne oraz poza Git.
+
+---
+
 # REG-10: przygotowanie kodu i wag — 2026-11-02
 
 Na zlecenie „biblioteki zainstalowane. ściągnij wagi i kod” pobrano oficjalny

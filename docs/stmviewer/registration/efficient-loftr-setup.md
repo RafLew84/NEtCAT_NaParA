@@ -1,8 +1,10 @@
 # EfficientLoFTR: lokalny kod i wagi
 
 Przygotowano 2026-11-02 na prośbę użytkownika. Biblioteki zainstalował użytkownik;
-kod i checkpoint pobrano oraz sprawdzono w `netcat`. REG-10 pozostaje
-`ready-for-agent`: integracja z aplikacją i próby na filmach STM są przed nami.
+kod i checkpoint pobrano oraz sprawdzono w `netcat`. Następnie wdrożono
+REG-10: [obsługa w aplikacji](efficient-loftr-manual.md),
+[rzeczywiste próby](efficient-loftr-results.md). Poniższa pierwsza próba
+ładowania dokumentuje przygotowanie poprzedzające implementację.
 
 ## Pliki i pochodzenie
 
@@ -51,7 +53,17 @@ Próba zachowuje `weights_only=True` i dopuszcza wyłącznie tę klasę z już
 zainstalowanej biblioteki przez kontekst `torch.serialization.safe_globals`.
 Następnie ładuje `state_dict` z `strict=True`, wywołuje `reparameter()` i `eval()`.
 Nie użyto nieograniczonego ładowania pickle ani nie modyfikowano checkpointu.
-Przyszły adapter REG-10 powinien uwzględnić ten format.
+Adapter REG-10 uwzględnia ten format. Dodatkowo przed wykonaniem sprawdza
+35 plików `src/**/*.py`: posortowana ścieżka POSIX względem repo + NUL +
+zawartość + NUL, SHA-256
+`4007cea8f5fdcaeb46cfab76fe72c94666c49181a077e66eb1deff0268ef78ec`.
+Wykonuje zweryfikowane źródła w odrębnej przestrzeni nazw, pomijając pliki
+`.pyc`; nie wymaga Git podczas pracy programu.
+
+Na Windows zachowaj oryginalne zakończenia linii przy klonowaniu, np.
+`git -c core.autocrlf=false clone https://github.com/zju3dv/EfficientLoFTR.git`,
+a następnie wybierz powyższy commit. Automatyczna zamiana LF na CRLF zmienia
+sumę źródeł. Aplikacja odrzuci taki zmieniony kod z komunikatem o wersji.
 
 Powtórzenie lokalnej próby (wymaga CPU i dostępnego CUDA):
 
@@ -75,6 +87,6 @@ Załadowano wszystkie parametry bez brakujących lub dodatkowych kluczy;
 punkty i wyniki były skończone, błąd mediany w każdej osi poniżej 0,02 px.
 Repozytorium modelu pozostało czyste. To weryfikacja pobrania, zgodności
 bibliotek i wykonania modelu, bez oceny jakości na STM i bez odbioru GPU 8 GB.
-Nie uruchamiano pełnego zestawu testów Viewera ani prób manualnych GUI,
-ponieważ kod aplikacji nie został zmieniony. Dalszy zakres opisuje
-[REG-10](issues/10-efficient-loftr.md).
+Na etapie samego pobrania nie zmieniano kodu aplikacji i nie uruchamiano
+pełnego zestawu jej testów. Późniejszą implementację i sprawdzenia opisuje
+[karta REG-10](reviews/REG-10.md).

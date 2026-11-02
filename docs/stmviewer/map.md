@@ -11,6 +11,12 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-02: na zlecenie użytkownika wdrożono
+  [REG-10: EfficientLoFTR](registration/issues/10-efficient-loftr.md).
+  Status `ready-for-review`; testy i przeglądy zakończone, ręczna ocena
+  oczekuje. [Wyniki](registration/efficient-loftr-results.md) obejmują
+  pełne oba filmy: graf nowej metody jest rozłączny. REG-11/12 nie rozpoczęto.
+
 - 2026-11-02: użytkownik odłożył [REG-09](registration/issues/09-scanline-diagnostics.md)
   („pomińmy na razie ten etap”). Status `planned`, implementacja nierozpoczęta;
   wznowienie wymaga osobnego zlecenia. Etap nie blokuje REG-10.
@@ -19,7 +25,7 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
   Osiem istniejących metod zasila wspólny LS/Huber; przygotowano
   [sesje i instrukcję ręcznej próby](registration/multiframe-methods-manual.md).
   Testy i przeglądy zakończono; użytkownik potwierdził „testy manualne ok”
-  2026-11-02. Status `done`. REG-10 pozostaje nierozpoczęty.
+  2026-11-02. Status `done`. Wtedy REG-10 pozostawał nierozpoczęty.
 - 2026-11-02: dodano [REG-08e](registration/issues/08e-multiframe-methods.md),
   wybór istniejących metod dopasowania par w obecnym oknie wieloklatkowym
   z LS/Huberem. Status `ready-for-agent`, bez implementacji; w planie po
@@ -32,7 +38,7 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
   „testy manualne ok”; status `done`. Na jego życzenie dodano dialog
   informujący o niekompletnym wyniku Hubera.
   [Instrukcja](registration/graph-application-manual.md),
-  [wyniki i przegląd](registration/reviews/REG-08c.md). REG-10 czeka na zlecenie.
+  [wyniki i przegląd](registration/reviews/REG-08c.md). Wtedy REG-10 czekał na zlecenie.
 
 - 2026-11-01: wdrożono [REG-08b](registration/issues/08b-robust-graph.md),
   blokowy Huber na zapisanych relacjach LS, porównanie i wiele wariantów w sesji.
