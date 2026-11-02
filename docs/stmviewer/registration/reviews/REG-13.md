@@ -2,7 +2,9 @@
 
 Data: 2026-11-02. Baza `d86baba`, implementacja `243f83a`,
 końcowe testy i harness AVI `811d765`.
-Status **ready-for-review**; odbiór manualny użytkownika niewykonany.
+Status **done**; odbiór manualny użytkownika potwierdzony 2026-11-02.
+Potwierdzenie nastąpiło po diagnozie odmowy 2/32; wyniki testów i ograniczenia
+pozostają bez zmian. Odbiór zapisano bez zmian kodu i ponawiania testów.
 [Raport modelu i filmów](../lightglue-results.md),
 [instrukcja ręczna](../lightglue-manual.md),
 [zasoby i środowisko](../lightglue-environment.md).
@@ -100,9 +102,9 @@ Oba przeglądy były oddzielne i tylko do odczytu.
 
 ## Odbiór ręczny i ograniczenia
 
-**Niewykonany** — funkcja czeka na próbę użytkownika według instrukcji GUI.
-Automatyczne Qt offscreen i oględziny tablic porównawczych przez agenta nie
-są manualnym odbiorem programu. REG-14 czeka na tę decyzję.
+**Potwierdzony przez użytkownika 2026-11-02**, po diagnozie odmowy 2/32.
+REG-13 zamknięto jako `done`, REG-14 odblokowano. Automatyczne Qt offscreen
+i oględziny tablic przez agenta pozostają osobnymi sprawdzeniami.
 
 LightGlue dał wynik dla **12/18 par STM**. Pełne grafy MOVIE_4/MOVIE_8 są
 rozłączne, więc nie powstał z nich kompletny aligned. Na kompletnym małym
@@ -111,6 +113,7 @@ Brak niezależnego prawdziwego dryfu na STM, a znane filmy są zbiorem
 rozwojowym. Wszystkie trzy porównane metody podążyły za silnym nieruchomym
 artefaktem w jednym wzorcu. Nie stwierdzono przewagi jakościowej LightGlue.
 
-Nie wykonano Windows 11, VLC ani stanowiska z kartą 8 GB VRAM.
+Potwierdzenie użytkownika nie określa osobno Windows 11, VLC ani stanowiska
+z kartą 8 GB VRAM; nie dopisujemy tych prób jako zaliczonych.
 Lokalne CPU/RTX 5090 nie zastępują tych prób. Brak zmian wspólnych,
 instalowania pakietów, scalania i publikowania gałęzi.

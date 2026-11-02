@@ -11,6 +11,10 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-02: użytkownik potwierdził testy manualne [REG-13](registration/issues/13-lightglue-superpoint.md)
+  po diagnozie odmowy 2/32. Status `done`; ograniczenia LightGlue na MOVIE_4/MOVIE_8
+  pozostają zapisane. REG-14 odblokowany, czeka na osobne zlecenie.
+
 - 2026-11-02: wdrożono [REG-13](registration/issues/13-lightglue-superpoint.md),
   status `ready-for-review`. [Instrukcja](registration/lightglue-manual.md),
   [wyniki](registration/lightglue-results.md), [testy](registration/reviews/REG-13.md).

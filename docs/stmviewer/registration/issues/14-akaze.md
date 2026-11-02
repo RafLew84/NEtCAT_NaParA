@@ -2,7 +2,7 @@
 
 **What to build:** Użytkownik rejestruje parę, film lub graf metodą AKAZE
 na CPU, bez modeli sieciowych, i porównuje wynik z Deep, RoMa i LightGlue.
-**Blocked by:** [REG-13](13-lightglue-superpoint.md), w tym odbiór manualny.
+**Blocked by:** [REG-13](13-lightglue-superpoint.md), w tym odbiór manualny — spełnione 2026-11-02.
 **Status:** ready-for-agent
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 **Dodano do planu:** 2026-11-02, na zlecenie użytkownika.

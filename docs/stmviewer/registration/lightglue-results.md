@@ -6,7 +6,9 @@ adapterze REG-13, zapisanym następnie w `243f83a`.
 konsensusu oraz baz Deep/RoMa z tego commita. Pierwotne raporty par pozostawiają
 ówczesny HEAD i dirty state; samo `d86baba` nie odtwarza nowego adaptera.
 Wersje modeli, źródła i ustawienia zachowują raporty lokalne.
-**Odbiór manualny użytkownika pozostaje niewykonany.**
+**Odbiór manualny potwierdzony przez użytkownika 2026-11-02; REG-13: done.**
+Potwierdzenie nastąpiło po diagnozie odmowy 2/32. Nie zmienia opisanych
+wyników ani nie oznacza naprawy dopasowania MOVIE_4.
 
 W sprawdzonej konfiguracji LightGlue dostarczył wynik dla **12 z 18 par STM**,
 lecz nie utworzył kompletnego filmu MOVIE_4 ani MOVIE_8: odmowy rozłączyły
@@ -197,8 +199,9 @@ Zasoby drzewa procesów i VRAM sterownika próbkowano co sekundę; zero z takieg
 próbkowania na krótkiej próbie oznacza nieuchwycone użycie, nie brak użycia GPU.
 Nie prowadzimy rankingu szybkości na podstawie pojedynczych pierwszych prób.
 
-Nie wykonano próby na Windows, karcie 8 GB, niezależnym filmie walidacyjnym
-ani manualnego odtwarzania AVI w VLC. Znane MOVIE_4/MOVIE_8 są zestawem
+W opisanych próbach agenta nie wykonano Windows, karty 8 GB, niezależnego
+filmu walidacyjnego ani manualnego odtwarzania AVI w VLC. Potwierdzenie
+użytkownika nie określa tych sprawdzeń osobno. Znane MOVIE_4/MOVIE_8 są zestawem
 rozwojowym, a oględziny struktur wykorzystywanych przez modele nie są
 niezależną walidacją. Wyników odmów nie usunięto ze zbioru.
 
@@ -254,7 +257,8 @@ już przeliczone do układu wejścia. Nie stwierdzono podwójnego skalowania.
 Wniosek: uzyskane korespondencje nie dają wystarczająco zgodnych wektorów
 tej pary. Zmniejszenie minimum do dwóch dopuściłoby słabo poparty ruch,
 bez dowodu naprawy dopasowania. **Kod i progi pozostały bez zmian;
-odmowa nadal występuje.** Odbiór REG-13 pozostaje niezamknięty.
+odmowa nadal występuje.** Po tej diagnozie użytkownik potwierdził testy
+manualne; REG-13 zamknięto jako `done`, z zachowaniem tego ograniczenia.
 
 Lokalne artefakty: `data/registration-reg13/first-pair-diagnosis/`: manifest,
 `summary.json`, surowe punkty `.npz` oraz dwa skrypty. W `netcat` z CUDA:

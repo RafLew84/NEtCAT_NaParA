@@ -28,17 +28,18 @@ konfigurację oraz diagnostykę. [Instrukcja ręczna](registration/matchanything
 łańcuch i LS. Użytkownik potwierdził „testy manualne ok”; odbiór REG-12 zamknięty.
 Udokumentowane ograniczenia jakości pozostają aktualne.
 
-**REG-13: LightGlue + SuperPoint — ready-for-review (2026-11-02).**
+**REG-13: LightGlue + SuperPoint — done (2026-11-02).**
 Metoda działa w parze, filmie i grafie LS/Huber, z sesją i eksportem.
 [Instrukcja ręczna](registration/lightglue-manual.md),
 [wyniki i ograniczenia](registration/lightglue-results.md),
 [testy i przeglądy](registration/reviews/REG-13.md).
 814 testów Viewera oraz osobne próby CPU/CUDA zaliczone.
 LightGlue dostarczył wynik dla 12/18 par, ale odmowy rozłączyły pełne grafy
-MOVIE_4/MOVIE_8. Ręczny odbiór i ocena jakości pozostają niewykonane.
+MOVIE_4/MOVIE_8. Użytkownik potwierdził odbiór manualny po diagnozie
+odmowy 2/32; ograniczenia jakości pozostają aktualne.
 [Zasoby](registration/lightglue-environment.md) są lokalne; obecny `netcat`
 nie wymagał dodatkowych instalacji. [REG-14: AKAZE](registration/issues/14-akaze.md)
-pozostaje `ready-for-agent` i czeka na odbiór REG-13.
+pozostaje `ready-for-agent` ze spełnioną blokadą REG-13; czeka na osobne zlecenie.
 
 Program do przeglądania obrazów i sekwencji STP/S94/MPP, rejestracji
 oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.

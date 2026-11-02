@@ -1,3 +1,21 @@
+# REG-13: odbiór manualny — 2026-11-02
+
+Użytkownik potwierdził testy manualne po diagnozie odmowy 2/32.
+[REG-13](registration/issues/13-lightglue-superpoint.md) zamknięto jako `done`;
+[REG-14](registration/issues/14-akaze.md) ma spełnioną blokadę odbioru
+i pozostaje `ready-for-agent`, bez rozpoczęcia implementacji.
+Implementacja: `243f83a`, testy: `811d765`, dokumentacja: `8151970`,
+diagnoza: `2b11515`. Commit tego odbioru podano w końcowej odpowiedzi.
+
+Odmowa LightGlue na pierwszej parze MOVIE_4 i rozłączne grafy obu filmów
+pozostają udokumentowanymi ograniczeniami. Odbiór nie oznacza naprawy
+tych przypadków ani potwierdzenia przewagi jakościowej modelu.
+Zmieniono tylko dokumentację: statusy, mapę, instrukcje i kartę odbioru.
+Sprawdzono lokalne odnośniki i `git diff --check`; testów programu nie
+ponawiano. Potwierdzenie nie wymienia osobno Windows, VLC ani GPU 8 GB.
+Brak nowych potrzeb integracji, scalania i publikowania gałęzi.
+Poniżej zachowano historię stanu sprzed odbioru.
+
 # REG-13: diagnoza zgłoszenia 2/32 — 2026-11-02
 
 Na bazie `8151970` dwukrotnie odtworzono odmowę pierwszej pary MOVIE_4

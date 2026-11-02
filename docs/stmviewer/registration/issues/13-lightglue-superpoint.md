@@ -4,9 +4,9 @@
 lub grafu, porównuje wynik z Deep outdoor i RoMa oraz może go zastosować,
 zapisać w sesji i wyeksportować.
 **Blocked by:** [REG-12](12-matchanything.md), w tym odbiór manualny — spełnione.
-**Status:** ready-for-review
+**Status:** done
 **Wykonawca:** Codex; baza przeglądu `d86baba`, implementacja `243f83a`.
-**Manualny odbiór:** niezamknięty; użytkownik zgłosił odmowę 2/32 na pierwszej parze MOVIE_4.
+**Manualny odbiór:** potwierdzony przez użytkownika 2026-11-02, po diagnozie odmowy 2/32 na pierwszej parze MOVIE_4.
 [Diagnoza zgłoszenia](../lightglue-results.md#zgłoszenie-użytkownika-odmowa-232-na-pierwszej-parze):
 odmowa potwierdzona; powiększenie wejścia nie pomogło. Kod i progi bez zmian.
 **Dodano do planu:** 2026-11-02, na zlecenie użytkownika.
@@ -31,7 +31,7 @@ kompletności wag i współrzędne original. [Instrukcja GUI](../lightglue-manua
 814 testów Viewera zaliczonych; osobno rzeczywiste CPU/CUDA i Qt offscreen.
 W pilotażu LightGlue dał wynik dla 12/18 par; odmowy rozłączyły pełne grafy
 MOVIE_4/MOVIE_8. Jakość nie jest uznana za poprawioną. Poniższe zaznaczenia
-oznaczają wdrożenie i sprawdzenia automatyczne, nie odbiór manualny.
+obejmują wdrożenie i sprawdzenia; osobny odbiór użytkownika potwierdzono powyżej.
 
 ## Zakres i kryteria odbioru
 
@@ -126,4 +126,4 @@ Kod/testy: cel do 1000, twardy limit 1500 fizycznych linii na plik.
 **Oczekiwany wynik:** działająca dodatkowa metoda oraz odtwarzalne porównanie
 jakości, możliwe do ręcznego odebrania przed rozpoczęciem REG-14.
 
-- [ ] Odbiór manualny funkcji i ocena jakości przez użytkownika.
+- [x] Odbiór manualny potwierdzony przez użytkownika 2026-11-02. Ograniczenia jakości i odmowy pozostają udokumentowane.

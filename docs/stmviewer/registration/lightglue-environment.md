@@ -3,9 +3,9 @@
 Przygotowano **2026-11-02** na zlecenie użytkownika. Kod oraz oba checkpointy
 są lokalne i przeszły próbę CPU/CUDA w `netcat`, bez pobierania podczas
 obliczeń. Następnie wdrożono [REG-13](issues/13-lightglue-superpoint.md),
-status **ready-for-review**: [instrukcja GUI](lightglue-manual.md),
+status **done**: [instrukcja GUI](lightglue-manual.md),
 [wyniki modelu i filmów](lightglue-results.md), [testy](reviews/REG-13.md).
-Odbiór ręczny pozostaje niewykonany. Poniższe pomiary środowiska pochodzą
+Użytkownik potwierdził odbiór ręczny 2026-11-02. Poniższe pomiary środowiska pochodzą
 z wcześniejszego przygotowania zasobów, oddzielnie od prób adaptera.
 
 ## Lokalne zasoby
@@ -129,8 +129,8 @@ Audyt skryptu i sposobu ładowania nie wykazał blokujących uwag.
 Na etapie przygotowania nie wykonywano pilotażu ani testów aplikacji.
 Późniejsze próby adaptera, 18 par, wzorców, pełnych filmów, Qt offscreen,
 sesji i eksportów opisują [wyniki REG-13](lightglue-results.md) oraz
-[karta sprawdzeń](reviews/REG-13.md). Windows i manualny odbiór pozostają
-niesprawdzone.
+[karta sprawdzeń](reviews/REG-13.md). Odbiór manualny potwierdzono później;
+Windows pozostaje bez osobnego potwierdzenia.
 
 ## Licencje i uwagi dla integracji
 

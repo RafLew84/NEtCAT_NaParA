@@ -9,7 +9,8 @@ python -m stmviewer.main
 
 To dodatkowa metoda rejestracji pary, filmu i grafu. Dotychczasowe algorytmy
 pozostają dostępne. Stan prób automatycznych i ograniczenia jakości opisuje
-[raport](lightglue-results.md). Odbiór użytkownika pozostaje niewykonany.
+[raport](lightglue-results.md). Użytkownik potwierdził odbiór 2026-11-02;
+REG-13 ma status `done`. Instrukcja pozostaje do odtwarzania prób.
 
 ## Wybór i zasoby
 
@@ -85,4 +86,4 @@ można sprawdzić na kompletnym `cpu.mpp`.
 
 Do ręcznego odbioru zapisz osobno działanie funkcji i jakość na strukturach
 próbki. Automatyczne Qt offscreen, poprawne wzorce i zapis sesji nie zastępują
-tej oceny. REG-14 czeka na decyzję po REG-13.
+tej oceny. Odbiór REG-13 jest potwierdzony; REG-14 odblokowany.
