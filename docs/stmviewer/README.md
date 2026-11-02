@@ -1,13 +1,13 @@
 # STM Viewer
 
-**REG-10: EfficientLoFTR — ready-for-review (2026-11-02).** Nowa opcja pary,
+**REG-10: EfficientLoFTR — done (2026-11-02).** Nowa opcja pary,
 filmu i grafu z zapisem diagnostyki w sesji.
 [Instrukcja próby](registration/efficient-loftr-manual.md),
 [wyniki rzeczywiste](registration/efficient-loftr-results.md),
 [testy i przeglądy](registration/reviews/REG-10.md).
 Po [poprawce słabych wyników](registration/efficient-loftr-weak-results.md)
 graf LS obu filmów jest kompletny; MOVIE_8 działa także w łańcuchu.
-Ocena wizualna użytkownika oczekuje.
+Użytkownik potwierdził „testy manualne ok” po poprawce; odbiór REG-10 zamknięty.
 
 
 Program do przeglądania obrazów i sekwencji STP/S94/MPP, rejestracji

@@ -5,7 +5,8 @@ kwalifikację słabych wyników; [diagnoza, reguły v2 i ponowne sprawdzenia](ef
 Poniższe odmowy opisują wersję sprzed poprawki.
 
 Data: 2026-11-02. Implementacja `6644d8c`, baza `03ad8d9`.
-Próby automatyczne; ręczna ocena użytkownika pozostaje otwarta.
+Próby automatyczne; w chwili tego raportu v1 ręczna ocena pozostawała otwarta.
+Późniejszą poprawkę v2 użytkownik odebrał 2026-11-02: „testy manualne ok”.
 **Na obu trudnych filmach nowy estymator nie uzyskał kompletnego wyniku.**
 Stary Deep outdoor daje kompletne łańcuchy i LS. To porównanie całych
 estymatorów, łącznie z różnymi regułami agregacji, nie izolacja jakości modeli.
@@ -129,5 +130,6 @@ PYTHONPATH=.:tests/stmviewer python tests/stmviewer/diagnostics/efficient_trial.
   --method efficient_loftr --device cuda
 ```
 
-**Decyzja użytkownika o przydatności nowej metody i ręczny odbiór oczekują.**
+**Aktualny status REG-10: done.** Użytkownik odebrał wersję po poprawce v2
+2026-11-02; powyższy raport zachowuje historyczne wyniki v1.
 [Instrukcja manualna](efficient-loftr-manual.md), [karta wykonania](reviews/REG-10.md).

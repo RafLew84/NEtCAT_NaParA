@@ -1,7 +1,9 @@
 # REG-10: niepewne wyniki na rzeczywistych pomiarach
 
 Data: 2026-11-02. Baza poprawki: `93a3126`; implementacja `7e7084c`.
-Status: `ready-for-review`; ręczna ocena poprawki oczekuje.
+Status: `done`; użytkownik potwierdził „testy manualne ok” 2026-11-02
+po przekazaniu poprawki `b15fb4d`. To odbiór etapu, bez deklaracji
+przewagi modelu nad Deep outdoor ani potwierdzenia wszystkich stanowisk.
 
 ## Zgłoszenie i decyzja użytkownika
 
@@ -96,8 +98,9 @@ Wykonano ponownie rzeczywiste obliczenia na CUDA, RTX 5090, przez publiczne
 
 MOVIE_4: zastosowanie LS, korekta ręczna, sesja, krótki MPP i AVI przeszły.
 MOVIE_8: ten sam cykl przeszedł dla LS i Hubera, wraz z przywróceniem
-poprzedniego filmu. To próby automatyczne; rzeczywista jakość dopasowania,
-VLC oraz odbiór Windows i docelowej karty 8 GB VRAM pozostają nieocenione.
+poprzedniego filmu. To próby automatyczne. Później użytkownik potwierdził
+odrębnie odbiór ręczny; nie podał szczegółowego porównania jakości ani
+osobnego potwierdzenia VLC, Windows lub docelowej karty 8 GB VRAM.
 
 Uruchomienie pierwotnego `/tmp/reg10-movie4-refusal-probe.py` po poprawce
 zwraca kod 0: źródłowe pary 1→2, 3→4 i 31→32 mają wynik z ostrzeżeniem,

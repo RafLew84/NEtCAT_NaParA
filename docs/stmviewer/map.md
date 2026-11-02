@@ -11,16 +11,20 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-02: użytkownik potwierdził „testy manualne ok” po poprawce
+  [REG-10](registration/issues/10-efficient-loftr.md). Etap zamknięto jako
+  `done`; REG-11 jest odblokowany, lecz wymaga osobnego zlecenia.
+
 - 2026-11-02: po zgłoszeniu odmów rzeczywistych MPP użytkownik zaakceptował
   pokazywanie niepewnych wyników EfficientLoFTR. [Poprawka REG-10](registration/efficient-loftr-weak-results.md)
   zachowuje słabe oszacowania z ostrzeżeniem; brak punktów nadal oznacza odmowę.
   Nowe próby dają kompletny graf LS MOVIE_4/MOVIE_8 i cały łańcuch MOVIE_8.
-  Status nadal `ready-for-review`, ocena wizualna oczekuje.
+  Przed późniejszym odbiorem użytkownika status wynosił `ready-for-review`.
 
 - 2026-11-02: na zlecenie użytkownika wdrożono
   [REG-10: EfficientLoFTR](registration/issues/10-efficient-loftr.md).
-  Status `ready-for-review`; testy i przeglądy zakończone, ręczna ocena
-  oczekuje. [Wyniki](registration/efficient-loftr-results.md) obejmują
+  W chwili wdrożenia status wynosił `ready-for-review`; testy i przeglądy
+  były zakończone, ręczny odbiór nastąpił po poprawce. [Wyniki](registration/efficient-loftr-results.md) obejmują
   pełne oba filmy: przed poprawką graf nowej metody był rozłączny. REG-11/12 nie rozpoczęto.
 
 - 2026-11-02: użytkownik odłożył [REG-09](registration/issues/09-scanline-diagnostics.md)

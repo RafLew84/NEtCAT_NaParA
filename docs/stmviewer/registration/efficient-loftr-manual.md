@@ -1,5 +1,8 @@
 # REG-10: EfficientLoFTR — próba ręczna
 
+**Odbiór zaliczony 2026-11-02:** użytkownik potwierdził „testy manualne ok”
+po poprawce obsługi niepewnych wyników. Instrukcja pozostaje do ponownych prób.
+
 **Aktualizacja 2026-11-02:** [poprawka obsługi słabych wyników](efficient-loftr-weak-results.md).
 Słabe poparcie daje wynik z ostrzeżeniem; odmowa pozostaje przy rzeczywistym
 braku wystarczających punktów. Starszy zapis sesji zachowuje własny wynik.

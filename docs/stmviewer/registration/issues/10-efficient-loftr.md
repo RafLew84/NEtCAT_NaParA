@@ -3,11 +3,12 @@
 **What to build:** Użytkownik wybiera EfficientLoFTR, porównuje dopasowanie
 z obecnym Deep Matcherem i stosuje wybrany wynik do filmu.
 **Blocked by:** [REG-08c](08c-graph-movie-application.md), w tym odbiór manualny.
-**Status:** ready-for-review
+**Status:** done
 **Poprawka po zgłoszeniu:** `7e7084c`; [niepewne wyniki na rzeczywistych MPP](../efficient-loftr-weak-results.md).
 Użytkownik zaakceptował pokazywanie słabo popartych oszacowań z ostrzeżeniem;
 reguły v2 zastępują wcześniejsze twarde odrzucanie takich kandydatów.
-**Manualny odbiór:** oczekuje; [instrukcja](../efficient-loftr-manual.md).
+**Manualny odbiór:** zaliczony 2026-11-02 — użytkownik: „testy manualne ok”,
+po poprawce `7e7084c` i przekazaniu `b15fb4d`; [instrukcja](../efficient-loftr-manual.md).
 **Implementacja:** `6644d8c`; [wyniki](../efficient-loftr-results.md),
 [testy i przeglądy](../reviews/REG-10.md).
 **Baza implementacji i przeglądu:** `03ad8d9`, start 2026-11-02.
@@ -16,7 +17,7 @@ reguły v2 zastępują wcześniejsze twarde odrzucanie takich kandydatów.
 **Przygotowanie lokalne — 2026-11-02:** pobrano kod i wagi; ścisłe ładowanie
 i syntetyczna próba CPU/CUDA zaliczone w `netcat`.
 [Ścieżki, wersje, SHA-256 i instrukcja](../efficient-loftr-setup.md).
-Integracja została wykonana; ręczna ocena przydatności STM pozostaje otwarta.
+Integracja i poprawka niepewnych wyników zostały odebrane przez użytkownika.
 
 Obowiązują [plan](../README.md), [protokół odbioru](../manual-protocol.md)
 i [przegląd modeli](../../registration-multiframe-research.md).
@@ -127,6 +128,9 @@ kompletne wzorce przechodzą zastosowanie, korekty, sesję i eksport.
 W pierwotnej wersji na pełnych MOVIE_4/MOVIE_8 graf pozostawał rozłączny,
 a łańcuch odmawiał pierwszej pary. Zachowano historyczne diagnozy;
 aktualny stan opisuje raport poprawki powyżej.
-Nie uznajemy tego za poprawę jakości STM ani odbiór manualny.
-Status pozostaje `ready-for-review` do oględzin i decyzji użytkownika.
-Windows 11, VLC i rzeczywista karta 8 GB VRAM nie były odebrane.
+Po poprawce użytkownik potwierdził „testy manualne ok” 2026-11-02;
+REG-10 ma status `done`. Potwierdzenie zamyka odbiór etapu, bez twierdzenia
+o przewadze nad Deep outdoor na wszystkich pomiarach. Ograniczenia pozostają:
+łańcuch MOVIE_4 odmawia przy 35→36, a Huber osiąga limit iteracji; kompletny
+film można uzyskać z grafu LS. Brak osobnego potwierdzenia Windows 11, VLC
+i stanowiska z kartą 8 GB VRAM.

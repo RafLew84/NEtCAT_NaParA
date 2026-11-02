@@ -1,8 +1,24 @@
+# REG-10: odbiór manualny — 2026-11-02
+
+Użytkownik potwierdził **„testy manualne ok”** po poprawce `7e7084c`
+i przekazaniu `b15fb4d`. [REG-10](registration/issues/10-efficient-loftr.md)
+zamknięto jako **done**; zsynchronizowano plan, status i raporty odbioru.
+
+Zmiana dotyczy wyłącznie dokumentacji. Nie powtarzano testów kodu; wyniki
+712 testów aplikacji i 6 rzeczywistych prób CPU/CUDA pozostają w
+[raporcie poprawki](registration/efficient-loftr-weak-results.md).
+Potwierdzenie nie dodaje szczegółowej oceny przewagi nad Deep ani
+odbioru Windows, VLC lub sprzętu 8 GB VRAM. Zachowano udokumentowane
+ograniczenia MOVIE_4: odmowę łańcucha 35→36 i limit iteracji Hubera.
+
+REG-11 jest odblokowany, ale nie rozpoczęty; REG-12 również nie rozpoczęto.
+Brak zmian wspólnych, publikacji lub scalenia gałęzi.
+
 # REG-10: słabe wyniki rzeczywistych MPP — 2026-11-02
 
 Baza poprawki: `93a3126`; implementacja `7e7084c`; gałąź `viewer/registration-difficult-movies`.
-Status `ready-for-review`; użytkownik zaakceptował pokazywanie niepewnych
-wyników, ręczny odbiór poprawki pozostaje do wykonania.
+W chwili przekazania status wynosił `ready-for-review`; użytkownik wcześniej
+zaakceptował pokazywanie niepewnych wyników. Późniejszy odbiór zapisano powyżej.
 
 Przyczyną blokady były nowe twarde reguły kwalifikacji par, inne niż
 w historycznym Deep. Konsensus v2 zwraca słaby kandydat z `low_confidence`
@@ -27,7 +43,8 @@ oraz jawnie zastosuj kompletny LS. Brak potrzebnych zmian wspólnych.
 
 # REG-10: EfficientLoFTR — 2026-11-02
 
-Status **ready-for-review**; oczekuje ręcznej oceny użytkownika.
+Historyczny status przy wdrożeniu: **ready-for-review**; odbiór zakończono
+po późniejszej poprawce niepewnych wyników.
 Baza `03ad8d9`, implementacja `6644d8c`, poprawka testu/raportu `7f96103`.
 Gałąź `viewer/registration-difficult-movies`; commit dokumentacji w końcowej wiadomości.
 

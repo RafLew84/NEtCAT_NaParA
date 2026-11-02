@@ -9,7 +9,7 @@ Dwa niezależne przeglądy zakresu `git diff 93a3126...7e7084c`.
 0 istotnych uwag do kodu lub testów. Zmiana pozostaje w zakresie Viewera,
 a największy zmieniony plik Python ma 358 linii. Testy dotyczą publicznych
 granic zachowania i trwałości wyników. Próby automatyczne są oddzielone
-od oczekującej ręcznej oceny obrazu.
+od ręcznej oceny obrazu (potwierdzonej później przez użytkownika).
 
 ## Spec
 
@@ -27,5 +27,5 @@ Huber wyznacza wagi z reszt. Status i score modelu nie są źródłem wag.
 712 testów Viewer passed, 8 skipped; osobno 6 testów rzeczywistych wag
 CPU/CUDA passed. Mypy: 90 modułów bez błędów; Ruff i diff-check czyste.
 389 odnośników lokalnych sprawdzono bez braków. Pełne próby MOVIE_4/MOVIE_8,
-sesje, korekty i eksporty opisuje raport diagnozy. Ręczny odbiór poprawki
-pozostaje do wykonania przez użytkownika.
+sesje, korekty i eksporty opisuje raport diagnozy. Użytkownik potwierdził
+ręczny odbiór poprawki 2026-11-02: „testy manualne ok”; REG-10 ma status `done`.

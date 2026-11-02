@@ -1,6 +1,8 @@
 # REG-10 — karta wykonania i odbioru
 
-Data: 2026-11-02. Status: **ready-for-review**, ręczny odbiór oczekuje.
+Data: 2026-11-02. Status REG-10: **done**, użytkownik potwierdził
+„testy manualne ok” po poprawce v2. Poniższy przegląd dotyczy pierwotnej
+implementacji; [przegląd poprawki](REG-10-weak-results.md).
 Gałąź: `viewer/registration-difficult-movies`. Baza: `03ad8d9`.
 Implementacja: `6644d8c`; aktualizacja oczekiwania GUI i raportu: `7f96103`.
 Commit dokumentacji odbioru w końcowym przekazaniu.
@@ -78,13 +80,14 @@ PYTHONPATH=.:tests/moltrack:tests/stmviewer python -m pytest --import-mode=impor
 ## Odbiór i ograniczenia
 
 Pełne filmy oraz wzorce rzeczywiście przeliczono; ich wyniki i źródła są
-w osobnym raporcie. EfficientLoFTR odmawia wielu relacji i nie tworzy
-kompletnego aligned dla MOVIE_4/MOVIE_8; nie zastąpiono go inną metodą.
+w osobnym raporcie. Pierwotny EfficientLoFTR odmawiał wielu relacji i nie
+tworzył kompletnego aligned dla MOVIE_4/MOVIE_8; nie zastąpiono go inną metodą.
 Działający cykl zastosowania/korekt/eksportów sprawdzono na kompletnych
 wzorcach. Nie zadeklarowano poprawy STM na podstawie liczby punktów.
 
 Qt offscreen, obejrzane zrzuty i odczyt AVI przez bibliotekę są automatycznymi
-sprawdzeniami. Ręczny odbiór użytkownika, Windows 11, VLC i docelowa karta
-8 GB VRAM pozostają otwarte. REG-11/12 nie zostały rozpoczęte; REG-06/09
+sprawdzeniami. Ręczny odbiór użytkownika zakończono po poprawce v2
+2026-11-02. Windows 11, VLC i docelowa karta 8 GB VRAM nie mają
+osobnego potwierdzenia. REG-11/12 nie zostały rozpoczęte; REG-06/09
 pozostają odłożone. Nie zmieniono modułów wspólnych, nie publikowano ani
 nie scalano gałęzi. Dane i modele pozostają lokalne.
