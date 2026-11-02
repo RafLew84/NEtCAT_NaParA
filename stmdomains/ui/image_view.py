@@ -1,13 +1,28 @@
 """A raw image in pixel coordinates, with fitting, zoom and panning."""
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QImage, QPixmap, QResizeEvent, QWheelEvent
-from PyQt6.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QGraphicsView, QLabel, QWidget
+from PyQt6.QtCore import QPoint, QRectF, Qt, pyqtSignal
+from PyQt6.QtGui import QColor, QImage, QMouseEvent, QPen, QPixmap, QResizeEvent, QWheelEvent
+from PyQt6.QtWidgets import (
+    QApplication, QGraphicsItem, QGraphicsPixmapItem, QGraphicsRectItem,
+    QGraphicsScene, QGraphicsView, QLabel, QWidget,
+)
 
 from stmdomains.core.display import RenderedImage
+from stmdomains.core.frame_presentation import PresentedFrame
+from stmdomains.ui.annotation_overlay import AnnotationOverlay
+
+
+def image_pixmap(rendered: RenderedImage) -> QPixmap:
+    pixels = rendered.rgba
+    height, width = pixels.shape[:2]
+    image = QImage(pixels.tobytes(), width, height, pixels.strides[0],
+                   QImage.Format.Format_RGBA8888).copy()
+    return QPixmap.fromImage(image)
 
 
 class ImageView(QGraphicsView):
+    annotation_selected = pyqtSignal(object)
+
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("imageView")
@@ -15,6 +30,33 @@ class ImageView(QGraphicsView):
         self.setScene(scene)
         self._picture = QGraphicsPixmapItem()
         scene.addItem(self._picture)
+        self._field_background = QGraphicsRectItem()
+        self._field_background.setBrush(QColor("#1a252c"))
+        self._field_background.setPen(QPen(Qt.PenStyle.NoPen))
+        self._field_background.setZValue(-1)
+        scene.addItem(self._field_background)
+        self._mask_clip = QGraphicsRectItem()
+        self._mask_clip.setPen(QPen(Qt.PenStyle.NoPen))
+        self._mask_clip.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)
+        self._mask_clip.setZValue(1)
+        scene.addItem(self._mask_clip)
+        self._mask_picture = QGraphicsPixmapItem(self._mask_clip)
+        self._mask_picture.setOpacity(0.45)
+        self._mask_picture.setVisible(False)
+        self._field_border = QGraphicsRectItem()
+        pen = QPen(QColor("#9bb4c5"), 1, Qt.PenStyle.DashLine)
+        pen.setCosmetic(True)
+        self._field_border.setPen(pen)
+        self._field_border.setZValue(2)
+        scene.addItem(self._field_border)
+        self._overlay = AnnotationOverlay()
+        self._overlay.setZValue(3)
+        scene.addItem(self._overlay)
+        for item in (self._picture, self._field_background, self._mask_clip,
+                     self._mask_picture, self._field_border):
+            item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+        self._press_position: QPoint | None = None
+        self._mode = "raw"
         self._fit_mode = True
         self._message = QLabel("Otwórz zapis MolTrack, aby przeglądać obrazy.", self.viewport())
         self._message.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -32,14 +74,52 @@ class ImageView(QGraphicsView):
         height, width = pixels.shape[:2]
         previous = self._picture.pixmap().size()
         size_changed = previous.width() != width or previous.height() != height
-        image = QImage(pixels.tobytes(), width, height, pixels.strides[0],
-                       QImage.Format.Format_RGBA8888).copy()
-        self._picture.setPixmap(QPixmap.fromImage(image))
+        self._picture.setPixmap(image_pixmap(rendered))
         self.setSceneRect(0, 0, width, height)
         self._message.setText("Brak skończonych próbek obrazu w tej klatce.")
         self._message.setVisible(not rendered.has_data)
         if self._fit_mode or size_changed:
             self.fit_to_window()
+
+    def set_frame(self, view: PresentedFrame) -> None:
+        mode_changed = self._mode != view.mode
+        self._mode = view.mode
+        self.set_image(view.rendered)
+        field = QRectF(*view.field_rect)
+        self._field_background.setRect(field)
+        self._mask_clip.setRect(field)
+        self._field_border.setRect(field)
+        self._field_border.setVisible(view.mode == "expanded_aligned")
+        self._mask_picture.setPixmap(image_pixmap(view.masks) if view.masks is not None else QPixmap())
+        self._overlay.set_frame(view)
+        if mode_changed:
+            self.fit_to_window()
+
+    def set_layers(self, *, centers: bool, boxes: bool, masks: bool, opacity: float) -> None:
+        self._overlay.centers = centers
+        self._overlay.boxes = boxes
+        self._overlay.masks = masks
+        self._overlay.mask_opacity = opacity
+        self._mask_picture.setVisible(masks)
+        self._mask_picture.setOpacity(opacity)
+        self._overlay.update()
+
+    def mousePressEvent(self, event: QMouseEvent | None) -> None:
+        if event is not None and event.button() == Qt.MouseButton.LeftButton:
+            self._press_position = event.position().toPoint()
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent | None) -> None:
+        super().mouseReleaseEvent(event)
+        if event is None or event.button() != Qt.MouseButton.LeftButton:
+            return
+        start, self._press_position = self._press_position, None
+        if start is None or (event.position().toPoint() - start).manhattanLength() > QApplication.startDragDistance():
+            return
+        selected = self._overlay.pick(self.mapToScene(event.position().toPoint()))
+        self._overlay.selected_id = getattr(selected, "detection_id", None)
+        self._overlay.update()
+        self.annotation_selected.emit(selected)
 
     def fit_to_window(self) -> None:
         self._fit_mode = True

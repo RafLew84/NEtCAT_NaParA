@@ -1,13 +1,18 @@
 """Compose the raw series browser; input parsing lives outside Qt."""
 
+import json
+
 from PyQt6.QtCore import QSignalBlocker, Qt
 from PyQt6.QtGui import QCloseEvent, QKeySequence
 from PyQt6.QtWidgets import (
-    QHBoxLayout, QLabel, QMainWindow, QProgressBar, QPushButton, QSlider, QSpinBox,
+    QDialog, QHBoxLayout, QLabel, QMainWindow, QPlainTextEdit,
+    QProgressBar, QPushButton, QSlider, QSpinBox,
     QVBoxLayout, QWidget,
 )
 
 from stmdomains.core.series import Series
+from stmdomains.core.annotations import Detection, Segmentation
+from stmdomains.ui.annotation_controls import AnnotationControls
 from stmdomains.ui.image_view import ImageView
 from stmdomains.ui.import_prompts import ImportPrompts, QtImportPrompts
 from stmdomains.ui.session_controller import PresentedFrame, SessionController
@@ -55,9 +60,18 @@ class STMDomainsMainWindow(QMainWindow):
             navigation.addWidget(button)
         layout.addLayout(navigation)
 
+        self.annotation_controls = AnnotationControls()
+        self.annotation_controls.view_mode.currentIndexChanged.connect(self._select_view)
+        self.annotation_controls.layers_changed.connect(self._set_layers)
+        layout.addWidget(self.annotation_controls)
+        self.registration_label = QLabel()
+        self.registration_label.setWordWrap(True)
+        layout.addWidget(self.registration_label)
+
         self.frame_label = QLabel("Wybierz zapis .moltrack.json; obrazy zostaną odczytane z MPP.")
         layout.addWidget(self.frame_label)
         self.image_view = ImageView(self)
+        self.image_view.annotation_selected.connect(self._select_annotation)
         layout.addWidget(self.image_view, 1)
         self.frame_slider = QSlider(Qt.Orientation.Horizontal)
         self.frame_slider.setObjectName("frameSlider")
@@ -70,6 +84,25 @@ class STMDomainsMainWindow(QMainWindow):
             lambda number: self.controller.show_frame(number - 1)
         )
         layout.addWidget(self.frame_slider)
+        self.annotation_status = QLabel()
+        self.annotation_status.setWordWrap(True)
+        layout.addWidget(self.annotation_status)
+        selection = QHBoxLayout()
+        self.selection_label = QLabel("Kliknij oznaczenie, aby zobaczyć jego dane.")
+        self.selection_label.setTextFormat(Qt.TextFormat.PlainText)
+        self.selection_label.setWordWrap(True)
+        selection.addWidget(self.selection_label, 1)
+        self.metadata_button = QPushButton("Dane oznaczenia…")
+        self.metadata_button.setEnabled(False)
+        self.metadata_button.clicked.connect(self._show_metadata)
+        selection.addWidget(self.metadata_button)
+        self.frame_info_button = QPushButton("Informacje o klatce…")
+        self.frame_info_button.setEnabled(False)
+        self.frame_info_button.clicked.connect(self._show_frame_info)
+        selection.addWidget(self.frame_info_button)
+        layout.addLayout(selection)
+        self._selected: Detection | Segmentation | None = None
+        self._presented: PresentedFrame | None = None
         self.fit_button.clicked.connect(self.image_view.fit_to_window)
         self.zoom_in_button.clicked.connect(lambda: self.image_view.zoom_by(1.25))
         self.zoom_out_button.clicked.connect(lambda: self.image_view.zoom_by(0.8))
@@ -121,10 +154,7 @@ class STMDomainsMainWindow(QMainWindow):
         with QSignalBlocker(self.frame_slider):
             self.frame_slider.setRange(1, series.frame_count)
         self.frame_slider.setEnabled(series.frame_count > 1)
-        self.details_label.setText(
-            "Oryginał · auto kontrast klatki · jednostki obrazu: px\n"
-            + "\n".join(series.diagnostics)
-        )
+        self.details_label.setText("Auto kontrast oryginału · jednostki obrazu: px")
         for button in (self.fit_button, self.zoom_in_button, self.zoom_out_button):
             button.setEnabled(True)
 
@@ -133,8 +163,29 @@ class STMDomainsMainWindow(QMainWindow):
         if series is None:
             return
         frame = view.frame
-        height, width = frame.image.shape
-        self.image_view.set_image(view.rendered)
+        height, width = view.rendered.rgba.shape[:2]
+        self._presented = view
+        self.image_view.set_frame(view)
+        self._select_annotation(None)
+        self.frame_info_button.setEnabled(True)
+        presenter = self.controller.presenter
+        controls = self.annotation_controls
+        with QSignalBlocker(controls.view_mode):
+            controls.view_mode.setCurrentIndex(0 if view.mode == "raw" else 1)
+        controls.set_availability(
+            aligned=presenter is not None and presenter.registration.available,
+            detections=bool(view.annotations.detections),
+            boxes=bool(view.annotations.detections) or any(
+                s.bbox_xyxy is not None for s in view.annotations.segmentations
+            ),
+            segmentations=any(s.mask is not None or s.polygon_xy for s in view.annotations.segmentations),
+        )
+        self.registration_label.setText(view.registration_text)
+        self.annotation_status.setText(
+            f"{view.annotations.detection_message} · {view.annotations.segmentation_message}"
+            + (" · Uwagi w informacjach o klatce." if view.annotations.diagnostics else "")
+        )
+        self._set_layers()
         self.frame_label.setText(
             f"Klatka {frame.working_index + 1} / {series.frame_count} · "
             f"źródłowa {frame.source_index + 1} · {width} × {height} px"
@@ -152,6 +203,67 @@ class STMDomainsMainWindow(QMainWindow):
         self.cancel_button.setVisible(busy)
         if not busy:
             self._sync_frame_slider()
+            with QSignalBlocker(self.annotation_controls.view_mode):
+                self.annotation_controls.view_mode.setCurrentIndex(
+                    0 if self.controller.view_mode == "raw" else 1
+                )
+
+    def _select_view(self, index: int) -> None:
+        self.controller.set_view_mode("raw" if index == 0 else "expanded_aligned")
+
+    def _set_layers(self) -> None:
+        controls = self.annotation_controls
+        self.image_view.set_layers(
+            centers=controls.centers.isChecked(), boxes=controls.boxes.isChecked(),
+            masks=controls.masks.isChecked(), opacity=controls.opacity.value() / 100,
+        )
+
+    def _select_annotation(self, selected: Detection | Segmentation | None) -> None:
+        self._selected = selected
+        self.metadata_button.setEnabled(selected is not None)
+        if selected is None:
+            self.selection_label.setText("Kliknij oznaczenie, aby zobaczyć jego dane.")
+            return
+        metadata = selected.metadata
+        if isinstance(selected, Detection):
+            identity = selected.detection_id
+            confidence = metadata.get("confidence")
+        else:
+            identity = selected.segmentation_id
+            confidence = metadata.get("score")
+        self.selection_label.setText(
+            f"ID: {identity} · pochodzenie: {metadata.get('origin', 'nieznane')}"
+            + f" · pewność: {confidence if confidence is not None else 'nieznana'}"
+        )
+
+    def _show_text(self, title: str, text: str) -> None:
+        dialog = QDialog(self)
+        dialog.setWindowTitle(title)
+        dialog.resize(680, 480)
+        layout = QVBoxLayout(dialog)
+        contents = QPlainTextEdit()
+        contents.setReadOnly(True)
+        contents.setPlainText(text)
+        layout.addWidget(contents)
+        close = QPushButton("Zamknij")
+        close.clicked.connect(dialog.accept)
+        layout.addWidget(close)
+        dialog.exec()
+
+    def _show_metadata(self) -> None:
+        if self._selected is not None:
+            self._show_text("Dane zapisanego oznaczenia", json.dumps(
+                dict(self._selected.metadata), ensure_ascii=False, indent=2, default=str,
+            ))
+
+    def _show_frame_info(self) -> None:
+        view, series = self._presented, self.controller.series
+        if view is not None and series is not None:
+            self._show_text("Informacje o klatce", "\n".join((
+                self.frame_label.text(), view.registration_text,
+                view.annotations.detection_message, view.annotations.segmentation_message,
+                *series.diagnostics, *view.annotations.diagnostics,
+            )))
 
     def _sync_frame_slider(self) -> None:
         with QSignalBlocker(self.frame_slider):

@@ -9,29 +9,18 @@ from threading import Event
 
 from PyQt6.QtCore import QCoreApplication, QObject, QThreadPool, pyqtSignal, pyqtSlot
 
-from stmdomains.core.display import RenderedImage, render_image
-from stmdomains.core.series import FrameData, Series
+from stmdomains.core.frame_presentation import FramePresenter, PresentedFrame
+from stmdomains.core.series import Series
 from stmdomains.io.moltrack_import import ImportCandidate, SourceRequest, prepare_import
 from stmdomains.ui.import_prompts import ImportPrompts
 from stmdomains.ui.tasks import Task
 
 
 @dataclass(frozen=True)
-class PresentedFrame:
-    series_id: str
-    frame: FrameData
-    rendered: RenderedImage
-
-
-@dataclass(frozen=True)
 class PreparedImport:
     candidate: ImportCandidate
+    presenter: FramePresenter
     view: PresentedFrame
-
-
-def present_frame(series: Series, index: int) -> PresentedFrame:
-    frame = series.frame(index)
-    return PresentedFrame(series.identity, frame, render_image(frame.image))
 
 
 class SessionController(QObject):
@@ -43,6 +32,9 @@ class SessionController(QObject):
         super().__init__(parent)
         self.prompts = prompts
         self.series: Series | None = None
+        self.presenter: FramePresenter | None = None
+        self.view_mode = "raw"
+        self._requested_mode = "raw"
         self.current_index = 0
         self._requested_index = 0
         self._pool = QThreadPool(QCoreApplication.instance())
@@ -105,19 +97,30 @@ class SessionController(QObject):
             if isinstance(result, SourceRequest):
                 return result
             report("Przygotowanie pierwszego obrazu…")
-            return PreparedImport(result, present_frame(result.series, result.series.active_frame_index))
+            presenter = FramePresenter(result.series)
+            return PreparedImport(result, presenter, presenter.present(result.series.active_frame_index))
 
         self._open_token = self._submit(read)
         self._busy()
 
     def show_frame(self, index: int) -> None:
         series = self.series
-        if series is None or not 0 <= index < series.frame_count or self._closed:
+        presenter = self.presenter
+        if series is None or presenter is None or not 0 <= index < series.frame_count or self._closed:
             return
         self._abandon(self._frame_token)
         self._requested_index = index
-        self._frame_token = self._submit(lambda cancelled, report: present_frame(series, index))
+        mode = self._requested_mode
+        self._frame_token = self._submit(lambda cancelled, report: presenter.present(index, mode))
         self._busy()
+
+    def set_view_mode(self, mode: str) -> None:
+        if mode not in ("raw", "expanded_aligned") or self.presenter is None:
+            return
+        if mode == "expanded_aligned" and not self.presenter.registration.available:
+            return
+        self._requested_mode = mode
+        self.show_frame(self._requested_index)
 
     def step_frame(self, step: int) -> None:
         self.show_frame(self._requested_index + step)
@@ -130,6 +133,7 @@ class SessionController(QObject):
             self._abandon(self._frame_token)
             self._frame_token = None
             self._requested_index = self.current_index
+            self._requested_mode = self.view_mode
         self._busy()
 
     @pyqtSlot(int, object)
@@ -164,6 +168,7 @@ class SessionController(QObject):
             self._abandon(self._frame_token)
             self._frame_token = None
             self.series = candidate.series
+            self.presenter = result.presenter
             self.series_changed.emit(self.series)
             self._publish(result.view)
         elif token == self._frame_token and isinstance(result, PresentedFrame):
@@ -174,6 +179,7 @@ class SessionController(QObject):
     def _publish(self, frame: PresentedFrame) -> None:
         self.current_index = frame.frame.working_index
         self._requested_index = self.current_index
+        self.view_mode = self._requested_mode = frame.mode
         self.frame_changed.emit(frame)
         self._busy()
 
@@ -186,6 +192,7 @@ class SessionController(QObject):
         else:
             self._frame_token = None
             self._requested_index = self.current_index
+            self._requested_mode = self.view_mode
         self._busy()
         self.prompts.show_error(message)
 

@@ -12,14 +12,20 @@ class RenderedImage:
     has_data: bool
 
 
-def render_image(image: NDArray[np.floating]) -> RenderedImage:
+def render_image(
+    image: NDArray[np.floating], *, reference: NDArray[np.floating] | None = None,
+) -> RenderedImage:
     """Apply the agreed per-frame 2–98 percentile contrast."""
     finite = np.isfinite(image)
     rgba = np.zeros((*image.shape, 4), dtype=np.uint8)
     if not finite.any():
         return RenderedImage(rgba, False)
     samples = image[finite]
-    low, high = np.percentile(samples, [2, 98])
+    contrast_source = image if reference is None else reference
+    contrast_samples = contrast_source[np.isfinite(contrast_source)]
+    if not contrast_samples.size:
+        return RenderedImage(rgba, False)
+    low, high = np.percentile(contrast_samples, [2, 98])
     if high == low:
         grey = np.full(samples.shape, 128, dtype=np.uint8)
     else:
