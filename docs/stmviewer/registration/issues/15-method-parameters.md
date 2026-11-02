@@ -17,6 +17,23 @@ Podstawa zakresu: uzgodniona propozycja małego okna parametrów oraz
 Historyczne stałe konfiguracje REG-13/14 stają się ustawieniami domyślnymi;
 ten ticket rozszerza je o świadomą edycję, bez zmiany wcześniejszych wyników.
 
+## Podział rozszerzenia na wszystkie metody
+
+Na zlecenie użytkownika z 2026-11-02 wspólne okno obejmie docelowo
+wszystkie 13 obecnych metod. Każdy etap kończy się działającą funkcją
+i osobnym odbiorem manualnym:
+
+1. **REG-15:** wspólny edytor i kontrakty konfiguracji oraz AKAZE/LightGlue.
+2. **[REG-15a](15a-cpu-method-parameters.md):** Phase, korelacja bez normalizacji,
+   Tile+RANSAC, ECC i Optical Flow.
+3. **[REG-15b](15b-model-method-parameters.md):** Deep Matcher, Deep + ECC,
+   Deep + lokalne fragmenty, EfficientLoFTR, RoMa v2 i MatchAnything-ELoFTR.
+
+Ten ticket nadal wdraża dwie pierwsze metody. Konfiguracje są oddzielone
+od kontrolek i logiki głównego okna tak, aby kolejne etapy dodawały profile
+do tego samego edytora. Nie implementujemy kolejnych etapów przed odbiorem
+poprzedniego ani nie wymagamy ich do ręcznego sprawdzenia REG-15.
+
 ## Wynik widoczny w aplikacji
 
 Menu **Rejestracja → Parametry metod…** otwiera jedno kompaktowe okno.

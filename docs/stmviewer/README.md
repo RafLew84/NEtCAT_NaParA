@@ -51,11 +51,15 @@ Na znanym wzorcu cały cykl działa, ale AKAZE odmówił wszystkich 18 wybranych
 par STM i nie utworzył pełnego grafu MOVIE_4/MOVIE_8.
 Manualny odbiór użytkownika niewykonany.
 
-**REG-15: Parametry metod — zakres przygotowany.**
-[Nowy ticket](registration/issues/15-method-parameters.md) dodaje małe okno
-z menu **Rejestracja → Parametry metod…** dla AKAZE i LightGlue/SuperPoint.
-Obejmuje kontrast, wspólne ustawienia pary/filmu/grafu i ich zapis w sesji.
-Funkcja jeszcze niewdrożona; odbiór manualny REG-14 pozostaje otwarty.
+**REG-15/15a/15b: Parametry wszystkich metod — zakres przygotowany.**
+Jedno małe okno z menu **Rejestracja → Parametry metod…** obejmie 13 metod.
+[REG-15](registration/issues/15-method-parameters.md) dodaje edytor
+i AKAZE/LightGlue, [REG-15a](registration/issues/15a-cpu-method-parameters.md)
+pięć pozostałych metod klasycznych,
+a [REG-15b](registration/issues/15b-model-method-parameters.md) sześć modeli
+i wariantów Deep. Ustawienia są wspólne dla pary/filmu/grafu, zapisane w sesji
+i niezależne od konfiguracji wcześniejszych wyników. Każdy etap ma osobny
+odbiór manualny. Funkcja jeszcze niewdrożona; odbiór REG-14 pozostaje otwarty.
 
 Program do przeglądania obrazów i sekwencji STP/S94/MPP, rejestracji
 oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
@@ -66,7 +70,7 @@ oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 [Rozpoznanie MOVIE_4/MOVIE_8 i reproduktory](registration-difficult-movies.md)
 opisuje zgodność metod ze strukturami obrazu przy zakłóceniach i tearing.
 Domyślne algorytmy aplikacji pozostają bez zmian.
-[Plan rozwoju i tickety](registration/README.md) obejmuje siedemnaście etapów
+[Plan rozwoju i tickety](registration/README.md) obejmuje dziewiętnaście etapów
 bieżącej ścieżki (w tym REG-01a, REG-02a i REG-08e), odłożony REG-06,
 REG-08d po wycofaniu implementacji oraz odłożony REG-09.
 Każdy realizowany etap kończy się ręcznym odbiorem

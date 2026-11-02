@@ -1,3 +1,30 @@
+# REG-15a/15b: parametry pozostałych metod — 2026-11-02
+
+Na bazie 58c0b63, na zlecenie użytkownika, rozszerzono plan wspólnego okna
+parametrów na wszystkie 13 metod. [REG-15](registration/issues/15-method-parameters.md)
+pozostaje etapem edytora i AKAZE/LightGlue. Dodano
+[REG-15a](registration/issues/15a-cpu-method-parameters.md) dla pięciu metod
+klasycznych oraz [REG-15b](registration/issues/15b-model-method-parameters.md)
+dla sześciu modeli/hybryd. Oba mają zakres ready-for-agent i zależą od
+manualnego odbioru poprzedniego etapu. Status REG-14 bez zmian.
+
+Pola i wartości domyślne sprawdzono w konfiguracjach backendów repo,
+lokalnym Kornia/LoFTR i źródle EfficientLoFTR. Uwzględniono brak przekazania
+backend_params do Phase przez obecną fabrykę, jawny próg 0,001 MatchAnything,
+odrębne profile hybryd oraz przeniesienie istniejących pól RoMa do jednego
+edytora. Domyślne przygotowanie obrazów zachowuje zachowanie każdej metody.
+Nie dodano nowych algorytmów, wag ani bibliotek.
+
+Tickety obejmują parametry rzeczywiście używane w parze/filmie/grafie,
+wersjonowanie konfiguracji wyników i cache, sesję/MPP, granice TDD,
+manualne kroki odbioru i limit 1000/1500 linii. Plan ma 19 etapów bieżącej
+ścieżki i trzy odłożone. Zaktualizowano README, mapę i kolejność.
+
+Wykonano kontrolę lokalnych odnośników, numeracji/liczby etapów oraz
+git diff --check. Nie uruchamiano aplikacji ani testów: zmieniono tylko
+dokumentację. Brak nowych potrzeb zmian wspólnych i publikacji.
+Commit tej dokumentacji podano w odpowiedzi końcowej.
+
 # REG-15: ticket okna parametrów — 2026-11-02
 
 Na bazie 4269010, na zlecenie użytkownika, dodano

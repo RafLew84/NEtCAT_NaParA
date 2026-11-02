@@ -11,6 +11,15 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-02: rozszerzono plan okna parametrów na wszystkie 13 obecnych metod.
+  [REG-15](registration/issues/15-method-parameters.md) dostarcza edytor
+  i AKAZE/LightGlue; [REG-15a](registration/issues/15a-cpu-method-parameters.md)
+  dodaje pozostałe metody klasyczne,
+  a [REG-15b](registration/issues/15b-model-method-parameters.md) modele i hybrydy.
+  Jedno okno, oddzielne profile, zachowane domyślne działanie, sesja/MPP
+  i ręczny odbiór po każdym etapie. RoMa zachowa jedno miejsce edycji parametrów.
+  To aktualizacja planu, bez implementacji i bez zmiany odbioru REG-14.
+
 - 2026-11-02: na zlecenie użytkownika dodano
   [REG-15: Okno parametrów metod](registration/issues/15-method-parameters.md).
   Menu główne otwiera mały edytor AKAZE/LightGlue, z przygotowaniem kontrastu,
