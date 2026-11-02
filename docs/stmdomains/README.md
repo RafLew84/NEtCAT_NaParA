@@ -5,6 +5,14 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-02
 
+**Interaktywne UI na bazie v0.4 — 2026-11-02:**
+[ocena wykonalności](v04-interactive-ui-feasibility.md) potwierdza możliwość
+analizy serii lub jednej klatki z regulacją parametrów, ręcznym K i Auto.
+Kod ma statystyczny wybór K, ale wymaga podłączenia przez cały przebieg
+i obsługi jednej klasy/małych danych. Odróżniono stosowanie wspólnego modelu
+od odkrywania klas na jednej klatce. To proponowany zakres rozwoju;
+UI i nowe ścieżki obliczeń nie są jeszcze zaimplementowane.
+
 **Przegląd dostarczonych paczek v0.4 — 2026-11-02:**
 [podsumowanie kodu i wyników](new-code-v04-review.md) opisuje dwa ZIP z
 `data/new_code`. Klasyczna geometria centrów, PCA/KMeans K5 i segmentacja

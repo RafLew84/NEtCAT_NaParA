@@ -15,6 +15,14 @@ Ustalenia mają pozwolić rozwinąć odebrany szkielet STM Domains.
 
 ## Notes
 
+**Oczekiwany program interaktywny — 2026-11-02:** użytkownik wskazał UI
+do strojenia parametrów i analizy serii lub pojedynczej klatki, z ręczną
+lub automatyczną liczbą klas. [Ocena wykonalności v0.4](v04-interactive-ui-feasibility.md)
+opisuje gotowe składniki i potrzebne zmiany. Rozwój może wykorzystać
+istniejący szkielet PyQt6; nie wykonano implementacji, nie dodano ticketów
+ani nie przyjęto metody jako zwalidowanego detektora. Ręczne K jest trybem
+eksploracji, odrębnym od docelowego samodzielnego odkrywania klas.
+
 **Przegląd zewnętrznego prototypu v0.4 — 2026-11-02:** użytkownik dostarczył
 dwie paczki w `data/new_code`; [przegląd](new-code-v04-review.md) opisuje
 metodę geometrii centrów i zapisane wyniki na naszym TTMAPP. To kandydat do

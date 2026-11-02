@@ -1,3 +1,33 @@
+# STM Domains — wykonalność interaktywnego UI v0.4
+
+Data: **2026-11-02**. Użytkownik opisał program do zmiany parametrów,
+uruchamiania analizy serii lub jednej klatki i oglądania wyniku, z ręcznym K
+oraz bez znajomości K. Przeczytano dostarczoną notatkę strojenia i sprawdzono
+kod. [Ocena wykonalności](v04-interactive-ui-feasibility.md): v0.4 jest
+odpowiednią bazą po wydzieleniu obliczeń i ujednoliceniu konfiguracji.
+
+Istotne ustalenie: `discover_classes.py` już wybiera K według silhouette,
+ale runner zawsze przekazuje K z konfiguracji. Auto wymaga podłączenia
+całej ścieżki oraz obsługi K1 i braku danych; obecny ranking preferuje K2,
+nie ręcznie wybrane K5. Dla jednej klatki trzeba rozdzielić użycie słownika
+serii od odkrywania nowego słownika. Runner nadal wymaga pierwszych 10 klatek.
+Pierwsze wejście to obrazy z istniejącymi oznaczeniami MolTrack.
+
+Zapisano proponowane zachowanie UI i zakres zmian, bez implementacji,
+nowych treningów, instalacji, uruchamiania kodu paczki lub nowych ticketów.
+Nie przyjęto detektora; 04/13 pozostają otwarte. Domyślne wyniki v0.4
+pozostają punktem odniesienia, a łagodniejsze progi z notatki nie są sprawdzone.
+
+Sprawdzenia: statyczna analiza skryptów, konfiguracji i obecnego szkieletu
+PyQt6, dodatkowy przegląd wykonalności, lokalne odnośniki dokumentacji
+i `git diff --check`. Bez testów programu lub GUI, ponieważ zmieniono
+wyłącznie dokumentację. Worktree `/home/rlew/projekty/NEtCAT-domains`,
+gałąź `domains/start`, baza **`5d4d430`**; commit w odpowiedzi końcowej.
+Brak bieżących zmian wspólnych; ewentualne zależności aplikacji podczas
+budowy wymagają przekazania do integratora zgodnie z podziałem prac.
+
+---
+
 # STM Domains — przegląd paczek v0.4
 
 Data: **2026-11-02**. Na polecenie użytkownika przejrzano dwa archiwa
