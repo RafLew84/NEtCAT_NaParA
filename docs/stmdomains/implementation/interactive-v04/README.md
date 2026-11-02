@@ -37,9 +37,18 @@ Odbiór ręczny 05a potwierdzony przez użytkownika 2026-11-02 dla `617b006`.
 sześć parametrów, jawne przeliczenie, porównanie poprzedni/nowy i przywracanie
 bazowych ustawień przy zachowanych klasach. [Raport i test ręczny](acceptance-06.md).
 Odbiór ręczny użytkownika 06 potwierdzony 2026-11-02 dla wersji `a4dcace`
-(„testy manualne ok”). Następny ticket: **07**.
-01–03, 05, 05a i 06 mają status `done`.
-07–10 oraz 12–18 mają zakres `ready-for-agent`
+(„testy manualne ok”).
+
+**Wykonano [07 — liczba klas i zakres](07-fit-shared-classes.md)**
+(`dedd8b8`, poprawki `65e9d2a`): **Analiza → Klasy i zakres…**, ręczne K1–8,
+bieżąca klatka / wybrany zakres / cała seria, wspólny katalog i powrót do
+wcześniejszego wyniku z jego katalogiem. Nowe domeny powstają na bieżącej
+klatce; pozostałe mają jawny status wcześniejszego katalogu albo braku analizy.
+[Raport i test ręczny](acceptance-07.md). 396 testów PASS, mypy PASS,
+GUI X11 sprawdzone przez agenta; **odbiór ręczny użytkownika 07 oczekuje**.
+Następny ticket: **08**, potem **12**.
+01–03, 05, 05a, 06 i 07 mają status `done`.
+08–10 oraz 12–18 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
@@ -71,9 +80,8 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [19 — Porównaj domeny z lokalnego FFT i NMF obrazu](19-compare-local-fft-nmf.md) | SD-V4-06, SD-V4-16; warunek wyboru | Zmień okno analizy obrazu i porównaj wynik na molekułach. |
 | [20 — Zachowaj wspólny katalog typów struktury w serii](20-shared-structural-type-catalogue.md) | SD-V4-08, SD-V4-13, SD-V4-16; warunek wyboru | Sprawdź wspólne typy na kolejnych klatkach i po otwarciu zapisanego projektu. |
 
-Po wykonanych 05, 05a i 06 rekomendowana kolejność: **07 → 08 → 12**:
-ręczne K i zakres odkrywania
-→ analiza serii → Auto. 12 można wykonać już po 07, jeśli Auto ma pierwszeństwo
+Po wykonanych 05, 05a, 06 i 07 rekomendowana kolejność: **08 → 12**:
+analiza serii → Auto. 12 można wykonać już po 07, jeśli Auto ma pierwszeństwo
 przed analizą całej serii. Po 05 dostępne są niezależnie 06, 07, 10, 13,
 14 i 16; po 07 także 08, 09, 12 i 15. 08 wymaga wspólnego dopasowania
 z 07, a 14 eksportuje obliczenia z 05. Nie ma zależności od usuniętych 04/11.

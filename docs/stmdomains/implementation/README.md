@@ -1,11 +1,18 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**Wykonano SD-V4-07 — 2026-11-02 (`dedd8b8`, poprawki `65e9d2a`):**
+**Analiza → Klasy i zakres…**, ręczne K1–8, zakres dopasowania i wspólny
+katalog. Przelicza bieżącą klatkę; poprzednie wyniki zachowują własny katalog.
+[Raport i test ręczny](interactive-v04/acceptance-07.md). 396 testów PASS,
+mypy 54 moduły PASS, GUI X11 sprawdzone przez agenta.
+**Ręczny odbiór użytkownika 07 oczekuje. Następny ticket 08**, potem 12.
+
 **Wykonano SD-V4-06 — 2026-11-02 (`98ca8ff`, poprawka `36aea1f`):**
 parametry domen w menu **Analiza → Tworzenie domen…**, przeliczenie,
 porównanie i przywracanie bazowych ustawień bez ponownego dopasowania klas.
 [Raport i test ręczny](interactive-v04/acceptance-06.md). Odbiór ręczny
 użytkownika potwierdzony 2026-11-02 dla wersji `a4dcace`
-(„testy manualne ok”). Następny ticket **07**.
+(„testy manualne ok”). Kolejny etap 07 opisano powyżej.
 
 **Wykonano SD-V4-05a — 2026-11-02 (`dfcf392`):** wypełnienie, obrysy,
 numery domen i krycie w menu **Obszary…**; centra i ramki można wyłączyć.
@@ -19,8 +26,8 @@ oblicza lokalne klasy i końcowe domeny z bieżącego obrazu MPP i oznaczeń
 MolTrack, z kolorami, legendą, odmowami, postępem i anulowaniem.
 [Uruchomienie, sprawdzenia i test ręczny](interactive-v04/acceptance-05.md).
 Ręczny odbiór użytkownika 05 oczekuje. Aktualny plan ma 19 ticketów:
-01–03, 05, 05a i 06 `done`,
-07–10 oraz 12–18 `ready-for-agent` po zależnościach, 19–20 `deferred`.
+01–03, 05, 05a, 06 i 07 `done`,
+08–10 oraz 12–18 `ready-for-agent` po zależnościach, 19–20 `deferred`.
 
 **Wcześniejsza zmiana kierunku — 2026-11-02:** na polecenie użytkownika wycofano
 SD-V4-04 i import jego wyników. Stan aplikacji wrócił wtedy do odebranego 03,

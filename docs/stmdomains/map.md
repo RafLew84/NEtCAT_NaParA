@@ -14,6 +14,16 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**Wykonano SD-V4-07 — 2026-11-02 (`dedd8b8`, poprawki `65e9d2a`):**
+menu **Analiza → Klasy i zakres…**, K1–8, lokalne/wspólne dopasowanie
+z wybranych danych, wynik bieżącej klatki i porównanie wcześniejszego
+katalogu. [Ticket](implementation/interactive-v04/07-fit-shared-classes.md),
+[raport i test ręczny](implementation/interactive-v04/acceptance-07.md).
+396 testów PASS, mypy 54 moduły PASS, 23 pliki kodu/testów do 469 linii.
+GUI X11 sprawdzone przez agenta; **odbiór ręczny użytkownika oczekuje**.
+Status `done`. Plan nadal ma 19 ticketów; następny **08 → 12**.
+01–03, 05, 05a, 06 i 07 wykonane. Poniżej historia wcześniejszych etapów.
+
 **Wykonano SD-V4-06 — 2026-11-02 (`98ca8ff`, poprawka `36aea1f`):**
 menu **Analiza → Tworzenie domen…** otwiera okno sześciu parametrów.
 Przeliczanie zachowuje model klas, porównanie pokazuje dwa ostatnie wyniki

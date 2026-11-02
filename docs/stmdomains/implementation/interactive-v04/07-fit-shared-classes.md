@@ -6,7 +6,13 @@
 
 **Blocked by:** [05: Oblicz klasy i domeny bieżącej klatki z danych](05-analyze-current-frame.md).
 
-**Status:** in_progress — baza `eebbfbd`, gałąź `domains/interactive-v04-ui`.
+**Status:** done — baza `eebbfbd`, implementacja `dedd8b8`, poprawki `65e9d2a`,
+gałąź `domains/interactive-v04-ui`.
+
+[Uruchomienie, sprawdzenia i test ręczny](acceptance-07.md).
+396 testów PASS, mypy 54 moduły PASS; 23 pliki kodu/testów, maksimum 469 linii.
+GUI X11 sprawdzone przez agenta, w tym TTMAPP 259–268 i dopasowanie całych
+268 klatek. **Odbiór ręczny użytkownika oczekuje.** Następny ticket: 08.
 
 Ustalenie użytkownika: K, wybór zakresu oraz jego początek/koniec w małym
 oknie otwieranym z menu. Dopasowanie uruchamia przycisk; edycja pól nie
@@ -22,14 +28,14 @@ Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 
 ## Kryteria akceptacji
 
-- [ ] Wybór Bieżąca klatka / Wybrany zakres / Cała seria określa dane do odkrywania klas. Dopasowanie korzysta tylko z tego wejścia i identyfikowalnej skali; nie wymaga paczki, modelu ani pierwszych dziesięciu klatek. Zakres dopasowania jest odrębny od klatki aktualnie analizowanej.
-- [ ] Ręczne K obsługuje 1–8, z ograniczeniem przez liczbę użytecznych próbek. PCA i miary akceptacji poprawnie obsługują małe dane oraz K1.
-- [ ] Nowy słownik ma własną wersję i wspólne znaczenie klas w swoim zakresie. Dopasowanie jednej klatki pozostaje jawnie lokalne, niezależne od pozostałych obrazów. Zmiana modelu nie przemianowuje wcześniejszych wyników ani nie przenosi automatycznie lokalnego słownika na inne klatki.
-- [ ] Po dopasowaniu bieżąca klatka dostaje wynik z nowym modelem. Wyniki na pozostałych klatkach mają jawny status: wcześniejszy model albo jeszcze nieprzeliczone.
-- [ ] K można zmienić bezpośrednio w UI i uruchomić nowe dopasowanie. Można wrócić do wcześniejszego poprawnego wyniku oraz jego lokalnego/wspólnego słownika. Nie utożsamiamy etykiet dwóch niezależnych dopasowań.
-- [ ] Testy potwierdzają zakres dopasowania, K1, zbyt duże K, brak danych, powtarzalność i prawidłowe zastosowanie zachowanego wewnętrznego słownika.
-- [ ] Działającą funkcję sprawdzono automatycznie i ręcznie zgodnie z zakresem; przekazanie rozróżnia wykonane sprawdzenia od niewykonanych.
-- [ ] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
+- [x] Wybór Bieżąca klatka / Wybrany zakres / Cała seria określa dane do odkrywania klas. Dopasowanie korzysta tylko z tego wejścia i identyfikowalnej skali; nie wymaga paczki, modelu ani pierwszych dziesięciu klatek. Zakres dopasowania jest odrębny od klatki aktualnie analizowanej.
+- [x] Ręczne K obsługuje 1–8, z ograniczeniem przez liczbę użytecznych próbek. PCA i miary akceptacji poprawnie obsługują małe dane oraz K1.
+- [x] Nowy słownik ma własną wersję i wspólne znaczenie klas w swoim zakresie. Dopasowanie jednej klatki pozostaje jawnie lokalne, niezależne od pozostałych obrazów. Zmiana modelu nie przemianowuje wcześniejszych wyników ani nie przenosi automatycznie lokalnego słownika na inne klatki.
+- [x] Po dopasowaniu bieżąca klatka dostaje wynik z nowym modelem. Wyniki na pozostałych klatkach mają jawny status: wcześniejszy model albo jeszcze nieprzeliczone.
+- [x] K można zmienić bezpośrednio w UI i uruchomić nowe dopasowanie. Można wrócić do wcześniejszego poprawnego wyniku oraz jego lokalnego/wspólnego słownika. Nie utożsamiamy etykiet dwóch niezależnych dopasowań.
+- [x] Testy potwierdzają zakres dopasowania, K1, zbyt duże K, brak danych, powtarzalność i prawidłowe zastosowanie zachowanego wewnętrznego słownika.
+- [x] Działającą funkcję sprawdzono automatycznie i ręcznie zgodnie z zakresem; przekazanie rozróżnia wykonane sprawdzenia od niewykonanych.
+- [x] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
 
 ## Test ręczny użytkownika
 

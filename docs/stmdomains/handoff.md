@@ -1,3 +1,71 @@
+# STM Domains — wykonano SD-V4-07: liczba klas i zakres dopasowania
+
+Data **2026-11-02**, baza **`eebbfbd`**, implementacja **`dedd8b8`**, poprawki
+**`65e9d2a`**. Gałąź `domains/interactive-v04-ui`, worktree
+`/home/rlew/projekty/NEtCAT-domains`. [Ticket](implementation/interactive-v04/07-fit-shared-classes.md),
+[raport i test ręczny](implementation/interactive-v04/acceptance-07.md).
+Status `done`; **odbiór ręczny użytkownika 07 oczekuje**. Commit raportu
+podano w odpowiedzi końcowej. Odbiór 06 pozostaje potwierdzony.
+
+Menu **Analiza → Klasy i zakres…** otwiera małe niemodalne okno K1–8,
+bieżącej klatki / zakresu / całej serii i przycisku dopasowania. Pola
+zmieniają szkic; obliczenie tworzy katalog i wynik domen bieżącej klatki.
+Pozostałe klatki mają jawny status wcześniejszego katalogu lub braku analizy.
+Porównanie **Poprzedni / Nowy** przywraca także katalog wybranego wyniku.
+Górne **Analizuj klatkę** stosuje aktywny wspólny katalog bez dopasowania;
+przy lokalnym dopasowuje klasy bieżącej klatki z wybranym K. Strojenie 06
+zachowuje katalog wyświetlanego wyniku. Stare klasy nie są przemianowywane.
+
+Uruchomienie w **netcat**: `python -m stmdomains.main`. Otwórz
+`data/TTMAPP/detection_full.moltrack.json`, wybierz **259**, menu klas.
+Przy bazowych domenach: lokalne K5 **120/312, 6 domen**, K4 **132/312, 6**,
+K5 z 259–268 **105/312, 5**, K5 z całej serii **111/312, 4**.
+Wspólny katalog 259–268 zastosowany na 268: **119/308, 4**.
+To sprawdzenie działania, nie pomiar poprawy trafności.
+
+Dopasowanie wspólne odwiedza wszystkie wskazane klatki i wybiera najwyżej
+6000 próbek, po `floor(6000/liczba klatek)` z każdej. W metadanych zapisuje
+faktyczne próbki, SHA-256 wejścia, indeksy, skalę i powody braków.
+259–268: wszystkie 1715 próbek, około 6,44 s. Cała seria 268 klatek:
+4497 z 20071 użytecznych próbek, limit 22/klatkę, około 159,13 s.
+Wersja katalogu jest skrótem treści; identyczny fit ma ten sam identyfikator.
+K1 pomija margines do drugiego centroidu, zachowuje promień. Mała/stała
+próba zachowuje przestrzeń deskryptora zamiast zdegenerowanego PCA.
+
+**Wykonane sprawdzenia:**
+
+- 23 nowe przypadki i celowane regresje PASS. Pełny zestaw uruchomiony
+  raz po przeglądzie/poprawce: **396 passed, bez pominięć, 65,41 s**.
+- Mypy **54 moduły PASS**. Kod/testy: **23 pliki, maksimum 469 linii**.
+- `git diff --check` i **333 lokalne ścieżki odnośników w 7 dokumentach PASS**.
+- Code-review `eebbfbd...dedd8b8`: **Standards 1 P2**, poprawiona
+  w `65e9d2a` i potwierdzona przez recenzenta; **Spec 0 uwag**.
+  Górny przycisk po nawigacji i odmowie zbyt dużego K zachowuje teraz
+  obie wcześniejsze poprawne wersje. **0 otwartych uwag**.
+- Rzeczywiste GUI **X11/xcb sterowane Qt PASS**: K5/K4, zakres, cała seria,
+  porównanie i użycie katalogu, walidacja, anulowanie/nawigacja/ponowne
+  otwarcie, raw/aligned, gamma, stabilny układ 900×650. Obejrzano zrzuty.
+  Zamknięcie podczas dopasowania: kod 0, obie pule workerów zakończone.
+- Demo `python -m stmdomains.tools.class_discovery_demo`: K1 **12/16,
+  1 domena**, odmowa K8, brak danych, para różniąca się niewybranymi
+  klatkami — identyczne lokalne K5 **357/405, 17 domen**. Poprawiono
+  czytelność małej kontrolki do 128×128 i sprawdzono końcowy dialog w GUI.
+- Źródłowe JSON/MPP niezmienione (SHA-256 przed/po), **0 odczytów ZIP
+  lub historycznych modeli/wyników**. Artefakty `.scratch/stmdomains-ui-07/`
+  poza Git. Szczyt RSS około **666 MiB**, przerwa timera **0,232 s**.
+
+Nie instalowano pakietów; wszystkie próby w **netcat**. Bez nowych wspólnych
+zmian — zależności zgłoszone w 05 nadal aktualne. Wyniki i katalogi są tylko
+w pamięci bieżącej serii, do dwóch ukończonych wersji/klatkę. Deskryptor
+nadal zależy od orientacji; klasy nie są potwierdzonymi fazami fizycznymi.
+Raport zawiera dokładne kroki i komendy ręcznego testu.
+
+**Plan nadal ma 19 ticketów; 01–03, 05, 05a, 06 i 07 done. Dalej 08 → 12.**
+08 nie rozpoczęto; 19–20 pozostają odroczone. Historyczne badawcze 04/13
+i odbiór całej metody są odrębne. Poniżej historia wcześniejszych etapów.
+
+---
+
 # STM Domains — wykonano SD-V4-06: strojenie i porównanie domen
 
 Data **2026-11-02**, baza **`8caa8a7`**, implementacja **`98ca8ff`**, poprawka
