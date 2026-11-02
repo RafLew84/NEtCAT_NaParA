@@ -212,13 +212,12 @@ class Filmstrip(QListView):
                 self.frame_selected.emit(index.row())
             event.accept()
             return
-        super().mousePressEvent(event)
+        if event is not None:
+            event.accept()  # Other buttons must not select a frame behind the controller.
 
     def mouseReleaseEvent(self, event: QMouseEvent | None) -> None:
-        if event is not None and event.button() == Qt.MouseButton.LeftButton:
+        if event is not None:
             event.accept()
-            return
-        super().mouseReleaseEvent(event)
 
     def mouseDoubleClickEvent(self, event: QMouseEvent | None) -> None:
         self.mousePressEvent(event)

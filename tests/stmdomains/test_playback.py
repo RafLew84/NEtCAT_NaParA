@@ -93,6 +93,11 @@ def test_slow_worker_keeps_one_step_and_pause_discards_it(qtbot, qapp, controlle
         controller.pause()
         assert not controller.is_playing
         assert not controller.is_busy
+        # Play adopts an already requested frame; pause must discard it too.
+        controller.show_frame(2)
+        controller.play()
+        controller.pause()
+        assert not controller.is_busy
     finally:
         release.set()
     qtbot.waitUntil(lambda: controller.pending_task_count == 0)

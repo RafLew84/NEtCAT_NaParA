@@ -14,12 +14,18 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**Implementacja SD-V4-03 — 2026-11-02:** wykonano miniatury, odtwarzanie
+z pauzą/restartem i gamma. [Raport i test ręczny](implementation/interactive-v04/acceptance-03.md).
+300 testów PASS, mypy PASS, pełna seria 268 klatek TTMAPP sprawdzona w GUI.
+Odbiór ręczny użytkownika 03 pozostaje do wykonania. Kolejny ticket nowego
+planu to SD-V4-04; historyczny odbiór całego szkieletu pozostaje osobny.
+
 **Implementacja SD-V4-02 — 2026-11-02:** działają oznaczenia molekuł,
 maski z regulacją krycia, kliknięcie metadanych i odtworzenie zapisanej
 rejestracji w widokach raw/aligned. [Raport i test ręczny](implementation/interactive-v04/acceptance-02.md).
 279 testów aplikacji PASS, GUI sprawdzone na TTMAPP; użytkownik potwierdził
-ręczny odbiór 02 (`3572b6d`) 2026-11-02. Pełny zakres szkieletu wymaga jeszcze m.in. miniatur,
-gamma i odtwarzania z 03.
+ręczny odbiór 02 (`3572b6d`) 2026-11-02. Miniatury, gamma i odtwarzanie
+dodano następnie w 03 zgodnie z aktualizacją powyżej.
 
 **Implementacja SD-V4-01 — 2026-11-02:** wykonano pierwszy przekrój
 obejmujący import MolTrack/MPP i przeglądanie oryginałów w działającym oknie.
@@ -31,8 +37,9 @@ Oznaczenia i wyrównanie dodano następnie w 02, zgodnie z aktualizacją powyże
 
 Specyfikację pierwszej mapy zakończono 2026-10-19.
 [Zadania budowy i odbioru](implementation/README.md) są gotowe do podjęcia;
-pełny szkielet nie został jeszcze zaimplementowany ani odebrany. Status mapy
-odnosi się do decyzji, nie do gotowości programu.
+zakres budowy jest realizowany przez SD-V4-01–03, ale historyczny odbiór
+całego szkieletu nie został zamknięty. Status mapy odnosi się do decyzji,
+nie do gotowości programu.
 
 Podział na dwa etapy zatwierdzony przez użytkownika 2026-10-16 zastępuje
 wcześniejsze założenie jednej specyfikacji całego programu.

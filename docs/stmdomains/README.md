@@ -5,14 +5,25 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-02
 
+**Wykonano SD-V4-03:** pasek miniatur, play/pauza, od początku, tempa
+1/2/5/10/20 kl./s i gamma 0,2–5. Odtwarzanie zachowuje kolejność wszystkich
+klatek i zatrzymuje się bez spóźnionego kroku. Zapisany tryb widoku jest
+przywracany przy otwarciu. [Uruchomienie i test ręczny 03](implementation/interactive-v04/acceptance-03.md).
+W `netcat`: **300 testów PASS**, mypy **27 plików PASS**, największy zmieniony
+plik ma **327 linii**. Przegląd kodu zakończony po poprawkach. Rzeczywiste GUI:
+wszystkie 268 klatek TTMAPP, bez pomijania. **Odbiór ręczny użytkownika 03
+pozostaje do wykonania; następny ticket to SD-V4-04**. Implementacja `93701af`,
+końcowe poprawki i raport w następnym commicie. Historyczne wpisy poniżej
+zachowują wyniki wcześniejszych etapów.
+
 **Wykonano SD-V4-02:** podgląd zapisanych centrów, ramek, masek i obrysów,
 krycie masek, ID/metadane po kliknięciu oraz oryginał/wyrównany z zapisaną
 rejestracją. Braki danych i jakość są jawne; maski mają ograniczony cache.
 [Uruchomienie i test ręczny](implementation/interactive-v04/acceptance-02.md).
 W `netcat`: **279 testów PASS**, mypy **23 pliki PASS**, przegląd Standards/Spec
 bez uwag. GUI sprawdzono na siedmiu klatkach TTMAPP w obu widokach i pięciu
-kontrolach; użytkownik potwierdził pomyślny ręczny odbiór 02 (`3572b6d`). Następny ticket to 03;
-04 można podjąć po 02 zgodnie z zależnościami. Implementacja `df5c48b`.
+kontrolach; użytkownik potwierdził pomyślny ręczny odbiór 02 (`3572b6d`).
+Implementacja `df5c48b`; kolejny etap 03 opisano powyżej.
 
 **Wykonano SD-V4-01:** aplikacja otwiera zapis MolTrack z MPP i pokazuje
 obrazy oryginalne, nawigację, wybór numeru oraz zoom/dopasowanie.

@@ -165,7 +165,10 @@ class SessionController(QObject):
             return
         self.is_playing = True
         self.playback_changed.emit(True)
-        if self.current_index == self.series.frame_count - 1 and self._frame_token is None:
+        if self._frame_token is not None:
+            # The requested frame becomes playback's first step, cancellable by pause.
+            self._automatic_token = self._frame_token
+        elif self.current_index == self.series.frame_count - 1:
             self._request_frame(0, automatic=True)
         else:
             self._schedule_playback()

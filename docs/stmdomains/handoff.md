@@ -1,3 +1,51 @@
+# STM Domains — wykonano SD-V4-03: miniatury i odtwarzanie
+
+Data: **2026-11-02**. Na polecenie `implement 03` wykonano
+[SD-V4-03](implementation/interactive-v04/03-filmstrip-and-playback.md), `done`.
+Działa pasek miniatur pod obrazem, play/pauza, od początku, maksymalne tempa
+1/2/5/10/20 kl./s oraz gamma 0,2–5 z resetem do 1. Każdy krok publikuje
+kompletny obraz i oznaczenia; wolne przygotowanie spowalnia odtwarzanie
+bez pomijania klatek. Pauza odrzuca oczekujący krok. Zapisany tryb widoku
+jest przywracany przy otwarciu, jeżeli geometria na to pozwala: TTMAPP
+otwiera klatkę 268 wyrównaną, inaczej niż początkowy oryginał w 02.
+
+[Raport i dokładny test ręczny](implementation/interactive-v04/acceptance-03.md).
+Uruchomienie w **netcat**: `python -m stmdomains.main`. Przykłady 8 klatek,
+niepoprawnych próbek, stałej klatki i jednej klatki:
+`python -m stmdomains.tools.browsing_demo`. **Odbiór ręczny użytkownika 03
+pozostaje do wykonania.** Potwierdzenia 01 i 02 pozostają zachowane.
+
+Sprawdzenia: **300 testów STM Domains PASS, bez pominięć, 13,58 s**, w tym
+21 nowych; mypy **27 plików PASS**; kontrola **12 plików, maksimum 327 linii**.
+Pełny zestaw uruchomiono raz po poprawkach i przeglądzie. Standards znalazł
+błąd zaznaczenia po prawym kliknięciu: naprawiony i sprawdzony regresyjnie.
+Końcowa kontrola wykryła spóźniony krok przy ręcznej nawigacji → Play → Pauza:
+również naprawiony, recenzent Spec potwierdził poprawkę. **0 otwartych uwag**.
+
+Rzeczywiste GUI X11 sterowane Qt: pełne **268 klatek TTMAPP**, wszystkie
+tempa, pauza/wznowienie, restart/koniec, miniatury, gamma, zoom, dialog
+i kontrolne braki danych. Obejrzano zrzuty. Po poprawkach dodatkowo
+**9 testów GUI/kontrolera PASS na X11**. SHA-256 JSON i MPP przed/po identyczne.
+Sprawdzono linki dokumentacji i `git diff --check`. Lokalne artefakty:
+`.scratch/stmdomains-ui-03/`, poza Git.
+
+Cache miniatur: do **64 rastrów/1,5 MiB** plus obiekty Qt; przygotowanie
+pojedynczo dla widocznego fragmentu i sąsiadów. Cache obrazów 3/32 MiB,
+masek 2/64 MiB. JSON i MPP nadal w pamięci w całości, lokalny szczyt RSS
+około **1132 MiB**. Otwarcie około 0,83 s, 267 przejść przy limicie
+20 kl./s około 17,62 s. Anulowanie odrzuca wynik bez przerywania wątku.
+Tempo podglądu nie jest czasem pomiaru; ograniczenia kalibracji pozostają.
+
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/interactive-v04-ui`,
+baza **`d862333`**, implementacja **`93701af`**. Końcowy commit poprawek
+i raportu wskazano w odpowiedzi końcowej. Zmiany tylko w aplikacji, testach
+i dokumentacji; bez nowych zależności lub instalacji. Wcześniejsze zgłoszenie
+NumPy/SciPy/pytest-qt do integratora nadal aktualne, wspólny kod i CI bez zmian.
+**Następny ticket: SD-V4-04**, otwarcie wyników v0.4 i przynależność molekuł.
+Historyczny odbiór szkieletu oraz badawcze 04/13 pozostają osobnymi zadaniami.
+
+---
+
 # STM Domains — wykonano SD-V4-02: oznaczenia i geometria
 
 Data: **2026-11-02**. Na polecenie `implement 02` wykonano

@@ -37,6 +37,10 @@ def test_thumbnails_follow_source_map_and_selection_waits_for_display(qtbot, tmp
     assert model.data(model.index(0, 0), Qt.ItemDataRole.DisplayRole) == "1"
     requests = []
     strip.frame_selected.connect(requests.append)
+    qtbot.mouseClick(strip.viewport(), Qt.MouseButton.RightButton,
+                     pos=strip.visualRect(model.index(1, 0)).center())
+    assert requests == []
+    assert strip.current_index == strip.currentIndex().row() == 0
     qtbot.mouseClick(strip.viewport(), Qt.MouseButton.LeftButton,
                      pos=strip.visualRect(model.index(1, 0)).center())
     assert requests == [1]

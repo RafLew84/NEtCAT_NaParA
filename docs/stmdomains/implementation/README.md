@@ -1,9 +1,15 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**Wykonano SD-V4-03 — 2026-11-02:** miniatury, odtwarzanie bez pomijania
+klatek, pauza/restart i gamma. [Uruchomienie i test ręczny](interactive-v04/acceptance-03.md).
+300 testów PASS, mypy 27 plików PASS; pełne 268 klatek TTMAPP sprawdzone
+w GUI. Ręczny odbiór użytkownika 03 pozostaje do wykonania. Następny ticket
+nowego planu: SD-V4-04. Historyczny odbiór całego szkieletu pozostaje otwarty.
+
 **Wykonano SD-V4-02 — 2026-11-02:** działają zapisane oznaczenia, maski,
 metadane po kliknięciu i geometria raw/aligned. [Uruchomienie i test ręczny](interactive-v04/acceptance-02.md).
-279 testów PASS; ręczny odbiór 02 potwierdzony przez użytkownika (`3572b6d`). Pełny odbiór
-historycznego szkieletu wymaga jeszcze m.in. miniatur, gamma i odtwarzania.
+279 testów PASS; ręczny odbiór 02 potwierdzony przez użytkownika (`3572b6d`).
+Miniatury, gamma i odtwarzanie dodano następnie w 03.
 
 **Wykonano SD-V4-01 — 2026-11-02:** działa otwieranie zapisów MolTrack/MPP
 i przeglądanie obrazów oryginalnych w PyQt6. [Uruchomienie, test ręczny i raport](interactive-v04/acceptance-01.md).
@@ -24,7 +30,7 @@ Dotychczasowe tickety i ich statusy pozostają zachowane.
 Specyfikacja: [przekazanie do implementacji](../issues/09-implementation-handoff.md).
 Pierwsza mapa decyzji jest zakończona. **Poniższe historyczne zadania mają
 status `todo`; ich zakres jest wdrażany przez nowy podział SD-V4.**
-Aktualne wykonanie 01–02 opisano powyżej; nie oznacza ono odbioru całego szkieletu.
+Aktualne wykonanie 01–03 opisano powyżej; nie oznacza ono odbioru całego szkieletu.
 
 To zadania wykonawcze, poza rejestrem pytań `wayfinder`. Nie wybierają ponownie
 metod ani zakresu. Obowiązują [import](../issues/01-import-and-geometry.md),
