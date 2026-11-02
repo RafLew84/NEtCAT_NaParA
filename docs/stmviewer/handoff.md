@@ -1,3 +1,26 @@
+# REG-10: przygotowanie kodu i wag — 2026-11-02
+
+Na zlecenie „biblioteki zainstalowane. ściągnij wagi i kod” pobrano oficjalny
+kod EfficientLoFTR oraz checkpoint `eloftr_outdoor.ckpt`. Lokalizacja:
+`/home/rlew/.cache/stmviewer/efficientloftr/`. Kod przypięto do
+`07e9c1401e71e9c556b1fda9d86d060af36ba176`; SHA-256 i rozmiar wag zgodne
+ze sprawdzonymi kopiami. [Instrukcja i pochodzenie](registration/efficient-loftr-setup.md).
+
+- `netcat`: importy, strict-load parametrów oraz rzeczywiste obliczenie pary
+  na CPU i CUDA zaliczone. FP32, 256 × 256, 729 dopasowań na obu urządzeniach,
+  zadane X=+7/Y=−5 px, błąd mediany w każdej osi <0,02 px. GPU: RTX 5090.
+- Checkpoint wymaga wąskiego dopuszczenia `ModelCheckpoint` przy
+  `weights_only=True`; skrypt i raport zachowano lokalnie. Kod modelu czysty.
+- To przygotowanie środowiska; REG-10 nadal `ready-for-agent`, implementacja
+  nierozpoczęta. Bez oceny STM, odbioru GPU 8 GB i ręcznej próby GUI.
+  Testów programu nie powtarzano; w repo zmienia się tylko dokumentacja.
+- Gałąź `viewer/registration-difficult-movies`, baza `b6c1801`;
+  commit dokumentacji w końcowej wiadomości przekazania. Kontrola odnośników
+  i diff-check; bez zmian współdzielonych, scalenia lub publikacji.
+  Biblioteki zainstalował użytkownik; pobranie nie zmieniało pakietów.
+
+---
+
 # REG-09: odłożenie etapu — 2026-11-02
 
 Użytkownik zdecydował: **„pomińmy na razie ten etap”**. REG-09 pozostaje

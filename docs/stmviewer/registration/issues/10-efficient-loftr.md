@@ -7,6 +7,11 @@ z obecnym Deep Matcherem i stosuje wybrany wynik do filmu.
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 **Dodano do planu:** 2026-10-31, na zlecenie użytkownika po research.
 
+**Przygotowanie lokalne — 2026-11-02:** pobrano kod i wagi; ścisłe ładowanie
+i syntetyczna próba CPU/CUDA zaliczone w `netcat`.
+[Ścieżki, wersje, SHA-256 i instrukcja](../efficient-loftr-setup.md).
+Integracja z aplikacją i ocena STM pozostają nierozpoczęte.
+
 Obowiązują [plan](../README.md), [protokół odbioru](../manual-protocol.md)
 i [przegląd modeli](../../registration-multiframe-research.md).
 Zależność od REG-08c ustala kolejność prób i zapewnia gotowy graf oraz eksport.
