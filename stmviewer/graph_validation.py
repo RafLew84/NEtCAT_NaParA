@@ -104,6 +104,9 @@ def _validate_method(config: GraphConfig) -> None:
     if config.method == 'matchanything_eloftr':
         from stmviewer.correspondence_metadata import validate_matchanything_provenance
         validate_matchanything_provenance(config.backend_settings)
+    if config.method == 'lightglue_superpoint':
+        from stmviewer.correspondence_metadata import validate_lightglue_provenance
+        validate_lightglue_provenance(config.backend_settings)
     if config.method not in DEEP_METHODS and (
             config.weights_path is not None or config.weights_sha256 is not None
             or config.requested_device != 'cpu' or config.device.lower() != 'cpu'):
@@ -133,7 +136,7 @@ def _validate_diagnostics(edge: GraphEdge, config: GraphConfig) -> None:
             raise ValueError('Graf: diagnoza nie odpowiada ustawieniom pomiaru.')
 
     correspondence = edge.correspondence_diagnostics
-    if config.method in ('efficient_loftr', 'roma_v2', 'matchanything_eloftr'):
+    if config.method in ('efficient_loftr', 'roma_v2', 'matchanything_eloftr', 'lightglue_superpoint'):
         if correspondence is None or len(correspondence.preparation) != 2:
             raise ValueError('Graf: niekompletna diagnostyka korespondencji i przygotowanie obrazów.')
         if edge.quality_score is not None or (edge.shift_xy is not None and (
@@ -144,7 +147,7 @@ def _validate_diagnostics(edge: GraphEdge, config: GraphConfig) -> None:
         from stmviewer.correspondence_metadata import decode_correspondence, encode_correspondence
         # Public persistence codec checks finite values, spatial counts and provenance.
         decode_correspondence(encode_correspondence(correspondence))
-        if config.method not in ('efficient_loftr', 'roma_v2', 'matchanything_eloftr'):
+        if config.method not in ('efficient_loftr', 'roma_v2', 'matchanything_eloftr', 'lightglue_superpoint'):
             raise ValueError('Graf: diagnoza korespondencji nie odpowiada metodzie.')
         from stmviewer.correspondence_metadata import validate_correspondence_method
         validate_correspondence_method(correspondence, config.method)

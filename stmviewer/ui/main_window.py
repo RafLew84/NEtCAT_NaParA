@@ -187,7 +187,7 @@ class STMViewerMainWindow(QMainWindow):
         self._graph.open_button.clicked.connect(lambda: self._graph.open_graph(
             self._frames, self._registration, self._deep_controls.options(),
             method=str(self._method.currentData())
-            if self._method.currentData() in ('roma_v2', 'matchanything_eloftr') else None))
+            if self._method.currentData() in ('roma_v2', 'matchanything_eloftr', 'lightglue_superpoint') else None))
         self._graph.busy_changed.connect(self._pair_busy_changed)
         self._graph.movie_apply_requested.connect(self._apply_graph_movie)
         self._graph.movie_restore_requested.connect(self._restore_graph_movie)
@@ -382,7 +382,9 @@ class STMViewerMainWindow(QMainWindow):
             deep_preset=options.preset, deep_samples=options.samples, deep_seed=options.seed,
             navigation=self._preview.navigation_states(),
             roma_options=self._deep_controls.remembered_roma_options(),
-            matchanything_options=self._deep_controls.remembered_matchanything_options()), graph=self._graph.trial)
+            matchanything_options=self._deep_controls.remembered_matchanything_options(),
+            deep_extractor_weights=str(options.extractor_weights) if options.extractor_weights else None,
+            lightglue_options=self._deep_controls.remembered_lightglue_options()), graph=self._graph.trial)
 
     def _restore_session(self, state: SessionState, thumbnails: tuple[QImage, ...]) -> None:
         if self._closing:
@@ -411,9 +413,12 @@ class STMViewerMainWindow(QMainWindow):
                                                                Path(display.deep_source) if display.deep_source else None,
                                                                interpreter=Path(display.deep_interpreter) if display.deep_interpreter else None,
                                                                preset=display.deep_preset, samples=display.deep_samples,
-                                                               seed=display.deep_seed))
+                                                               seed=display.deep_seed,
+                                                               extractor_weights=Path(display.deep_extractor_weights)
+                                                               if display.deep_extractor_weights else None))
             self._deep_controls.restore_roma_options(display.roma_options)
             self._deep_controls.restore_matchanything_options(display.matchanything_options)
+            self._deep_controls.restore_lightglue_options(display.lightglue_options)
         with QSignalBlocker(self._gamma):
             self._gamma.setValue(display.gamma)
         self._pixel_proportions.setChecked(display.pixel_proportions)

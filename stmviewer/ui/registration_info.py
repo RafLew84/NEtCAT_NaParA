@@ -45,7 +45,7 @@ def registration_info(result: RegistrationResult, index: int, pixel_proportions:
 
 def _pair_frame_info(result: RegistrationResult, index: int) -> str:
     application = result.graph_application
-    if application is not None and application.graph.config.method in ('efficient_loftr', 'roma_v2', 'matchanything_eloftr'):
+    if application is not None and application.graph.config.method in ('efficient_loftr', 'roma_v2', 'matchanything_eloftr', 'lightglue_superpoint'):
         measured = tuple(edge for edge in application.graph.edges if edge.shift_xy is not None)
         weak_count = sum(edge.status == 'low_confidence' for edge in measured)
         return (f'\nSłabe poparcie par grafu: {weak_count} / {len(measured)} zmierzonych.'

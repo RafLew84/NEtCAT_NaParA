@@ -178,6 +178,37 @@ def validate_matchanything_provenance(provenance: tuple[tuple[str, str], ...]) -
         raise ValueError('MatchAnything-ELoFTR: nieprawidłowe urządzenie.')
 
 
+def validate_lightglue_provenance(provenance: tuple[tuple[str, str], ...]) -> None:
+    """Validate both saved model identities without loading optional resources."""
+    from stmviewer.lightglue_resources import (
+        COORDINATE_MAPPING, EXTRACTOR_CONFIG, MAX_KEYPOINTS, MODEL_CONFIG, PRECISION, PREPROCESSING,
+    )
+    metadata = dict(_provenance(provenance))
+    expected = {
+        'model': 'LightGlue + SuperPoint',
+        'weights_variant': 'superpoint_lightglue.pth',
+        'extractor_weights_variant': 'superpoint_v1.pth',
+        'extractor_config': EXTRACTOR_CONFIG,
+        'model_config': MODEL_CONFIG,
+        'precision': PRECISION,
+        'max_keypoints': str(MAX_KEYPOINTS),
+        'coordinate_mapping': COORDINATE_MAPPING,
+        'preprocessing': PREPROCESSING,
+        'aggregation': 'translation-consensus-v2',
+    }
+    if any(metadata.get(key) != value for key, value in expected.items()):
+        raise ValueError('LightGlue + SuperPoint: niezgodny model, konfiguracja lub przygotowanie.')
+    for key in ('source_path', 'weights_path', 'extractor_weights_path', 'interpreter_path', 'actual_device'):
+        _text(metadata.get(key))
+    for key in ('source_sha256', 'weights_sha256', 'extractor_weights_sha256'):
+        if re.fullmatch('[0-9a-f]{64}', metadata.get(key, '')) is None:
+            raise ValueError('LightGlue + SuperPoint: brak poprawnej sumy SHA-256.')
+    if re.fullmatch('[0-9a-f]{40}|[0-9a-f]{64}', metadata.get('source_commit', '')) is None:
+        raise ValueError('LightGlue + SuperPoint: brak wersji kodu.')
+    if metadata.get('requested_device') not in ('auto', 'cpu', 'cuda'):
+        raise ValueError('LightGlue + SuperPoint: nieprawidłowe urządzenie.')
+
+
 def validate_correspondence_method(value: CorrespondenceDiagnostics | None, method: str) -> None:
     """The persisted preparation and provenance must belong to the named estimator."""
     if value is None:
@@ -192,6 +223,13 @@ def validate_correspondence_method(value: CorrespondenceDiagnostics | None, meth
         expected = ('minmax-uint8-demo-gray-v1', 1)
         if len(value.preparation) != 2:
             raise ValueError('MatchAnything-ELoFTR: brak przygotowania obu obrazów.')
+    elif method in ('LightGlue + SuperPoint', 'lightglue_superpoint'):
+        validate_lightglue_provenance(value.model_provenance)
+        expected = ('minmax-float32-v1', 1)
+        if (value.settings_version != 2 or len(value.preparation) != 2
+                or any(item.scale_xy != (1., 1.) or item.padding_ltrb != (0, 0, 0, 0)
+                       or item.model_shape != item.original_shape for item in value.preparation)):
+            raise ValueError('LightGlue + SuperPoint: niezgodna geometria oryginałów lub wersja konsensusu.')
     elif method in ('EfficientLoFTR', 'efficient_loftr'):
         if dict(value.model_provenance).get('model') not in (None, 'EfficientLoFTR'):
             raise ValueError('Korespondencje: model nie odpowiada metodzie EfficientLoFTR.')

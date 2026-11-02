@@ -10,6 +10,7 @@ from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.efficient_matcher import EFFICIENT_METHOD, default_efficient_options
 from stmviewer.roma_matcher import ROMA_METHOD, default_roma_options
 from stmviewer.matchanything_matcher import MATCHANYTHING_METHOD, default_matchanything_options
+from stmviewer.lightglue_matcher import LIGHTGLUE_METHOD, default_lightglue_options
 from stmviewer.ui.roma_controls import RomaControls
 
 
@@ -36,6 +37,21 @@ class DeepMatcherControls(QWidget):
         browse.setObjectName('chooseDeepWeights')
         browse.clicked.connect(self._browse)
         layout.addWidget(browse)
+        self._extractor_panel = QWidget(self)
+        extractor_layout = QVBoxLayout(self._extractor_panel)
+        extractor_layout.setContentsMargins(0, 0, 0, 0)
+        extractor_layout.addWidget(QLabel('Lokalne wagi SuperPoint', self))
+        self._extractor_weights = QLineEdit(self)
+        self._extractor_weights.setObjectName('superpointWeights')
+        self._extractor_weights.setAccessibleName('Lokalne wagi SuperPoint')
+        self._extractor_weights.setPlaceholderText('superpoint_v1.pth')
+        extractor_layout.addWidget(self._extractor_weights)
+        extractor_browse = QPushButton('Wybierz wagi SuperPoint…', self)
+        extractor_browse.setObjectName('chooseSuperpointWeights')
+        extractor_browse.clicked.connect(self._browse_extractor)
+        extractor_layout.addWidget(extractor_browse)
+        layout.addWidget(self._extractor_panel)
+        self._extractor_panel.hide()
         self._source_panel = QWidget(self)
         source_layout = QVBoxLayout(self._source_panel)
         source_layout.setContentsMargins(0, 0, 0, 0)
@@ -73,6 +89,7 @@ class DeepMatcherControls(QWidget):
         self._status.setWordWrap(True)
         self._status.setTextFormat(Qt.TextFormat.PlainText)
         layout.addWidget(self._status)
+        self._extractor_weights.textChanged.connect(self._changed)
         self._weights.textChanged.connect(self._changed)
         self._source.textChanged.connect(self._changed)
         self._device.currentIndexChanged.connect(self._changed)
@@ -80,49 +97,58 @@ class DeepMatcherControls(QWidget):
 
     def options(self) -> DeepMatcherOptions:
         value = self._weights.text().strip()
-        source = self._source.text().strip() if self._method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD) else ''
+        source = self._source.text().strip() if self._method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD, LIGHTGLUE_METHOD) else ''
         roma = self._method == ROMA_METHOD
+        extractor = self._extractor_weights.text().strip() if self._method == LIGHTGLUE_METHOD else ''
         return DeepMatcherOptions(Path(value).expanduser() if value else None,
                                   self._device.currentText().lower(),
                                   Path(source).expanduser() if source else None,
                                   interpreter=self._roma.interpreter if roma else None,
                                   preset=self._roma.preset if roma else 'turbo',
                                   samples=self._roma.samples if roma else 1000,
-                                  seed=self._roma.seed if roma else 20261102)
+                                  seed=self._roma.seed if roma else 20261102,
+                                  extractor_weights=Path(extractor).expanduser() if extractor else None)
 
     def set_method(self, method: str) -> None:
         """Remember each model's local files when switching the next calculation."""
-        family = method if method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD) else 'deep'
-        previous = self._method if self._method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD) else 'deep'
+        family = method if method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD, LIGHTGLUE_METHOD) else 'deep'
+        previous = self._method if self._method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD, LIGHTGLUE_METHOD) else 'deep'
         if family != previous:
             self._remembered[previous] = self.options()
             self._method = method
             with QSignalBlocker(self):
-                defaults = (default_roma_options() if family == ROMA_METHOD else
+                defaults = (default_lightglue_options() if family == LIGHTGLUE_METHOD else
+                            default_roma_options() if family == ROMA_METHOD else
                             default_matchanything_options() if family == MATCHANYTHING_METHOD else DeepMatcherOptions())
                 self.set_options(self._remembered.get(family, defaults))
         else:
             self._method = method
         efficient, roma = method == EFFICIENT_METHOD, method == ROMA_METHOD
         matchanything = method == MATCHANYTHING_METHOD
-        text = ('Lokalne wagi MatchAnything-ELoFTR' if matchanything else
+        lightglue = method == LIGHTGLUE_METHOD
+        text = ('Lokalne wagi LightGlue dla SuperPoint' if lightglue else
+                'Lokalne wagi MatchAnything-ELoFTR' if matchanything else
                 'Lokalne wagi RoMa v2' if roma else 'Lokalne wagi EfficientLoFTR outdoor'
                 if efficient else 'Lokalne wagi LoFTR outdoor')
         self._weights_label.setText(text)
         self._weights.setAccessibleName(text)
-        source_text = ('Lokalny katalog kodu MatchAnything-ELoFTR' if matchanything else
+        source_text = ('Lokalny katalog kodu LightGlue + SuperPoint' if lightglue else
+                       'Lokalny katalog kodu MatchAnything-ELoFTR' if matchanything else
                        'Lokalny katalog kodu DINOv3' if roma else 'Lokalny katalog kodu EfficientLoFTR')
         self._source_label.setText(source_text)
         self._source.setAccessibleName(source_text)
-        self._source.setPlaceholderText('Katalog zawierający hubconf.py i dinov3' if roma
+        self._source.setPlaceholderText('Katalog zawierający lightglue/' if lightglue else
+                                        'Katalog zawierający hubconf.py i dinov3' if roma
                                         else 'Katalog zawierający src/loftr')
-        self._source_panel.setVisible(efficient or roma or matchanything)
+        self._source_panel.setVisible(efficient or roma or matchanything or lightglue)
+        self._extractor_panel.setVisible(lightglue)
         self._roma.setVisible(roma)
 
     def set_options(self, options: DeepMatcherOptions) -> None:
         with QSignalBlocker(self):
             self._weights.setText(str(options.weights) if options.weights is not None else '')
             self._source.setText(str(options.source) if options.source is not None else '')
+            self._extractor_weights.setText(str(options.extractor_weights) if options.extractor_weights else '')
             self._device.setCurrentText(options.device.upper() if options.device != 'auto' else 'Auto')
             self._roma.set_options(options)
         self._changed()
@@ -149,6 +175,17 @@ class DeepMatcherControls(QWidget):
         else:
             self._remembered[MATCHANYTHING_METHOD] = options
 
+    def remembered_lightglue_options(self) -> DeepMatcherOptions | None:
+        """Preserve both checkpoints even while another method is selected."""
+        return self.options() if self._method == LIGHTGLUE_METHOD else self._remembered.get(LIGHTGLUE_METHOD)
+
+    def restore_lightglue_options(self, options: DeepMatcherOptions | None) -> None:
+        """Restore session-owned paths without importing or executing the model."""
+        if options is None:
+            self._remembered.pop(LIGHTGLUE_METHOD, None)
+        else:
+            self._remembered[LIGHTGLUE_METHOD] = options
+
     def set_status(self, text: str) -> None:
         self._status.setText(text)
 
@@ -166,3 +203,9 @@ class DeepMatcherControls(QWidget):
         path = QFileDialog.getExistingDirectory(self, self._source_label.text(), self._source.text())
         if path:
             self._source.setText(path)
+
+    def _browse_extractor(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(self, 'Lokalne wagi SuperPoint', self._extractor_weights.text(),
+                                            'Wagi (*.pth *.pt);;Wszystkie pliki (*)')
+        if path:
+            self._extractor_weights.setText(path)

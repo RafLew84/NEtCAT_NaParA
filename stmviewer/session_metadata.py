@@ -93,14 +93,14 @@ def _shape(value: object) -> tuple[int, int]:
     return _integer(values[0], 1), _integer(values[1], 1)
 
 
-def _uses_matchanything(value: object) -> bool:
+def _uses_model(value: object, methods: tuple[str, str], option_fields: tuple[str, ...]) -> bool:
     """Find new model records even inside imported alignment or predecessor history."""
     pending = [value]
     while pending:
         item = pending.pop()
         if isinstance(item, dict):
-            if (item.get('method') in ('matchanything_eloftr', 'MatchAnything-ELoFTR')
-                    or item.get('matchanything_options') is not None):
+            if (item.get('method') in methods
+                    or any(item.get(key) is not None for key in option_fields)):
                 return True
             pending.extend(item.values())
         elif isinstance(item, (list, tuple)):
@@ -108,13 +108,24 @@ def _uses_matchanything(value: object) -> bool:
     return False
 
 
+def _uses_matchanything(value: object) -> bool:
+    return _uses_model(value, ('matchanything_eloftr', 'MatchAnything-ELoFTR'), ('matchanything_options',))
+
+
+def _uses_lightglue(value: object) -> bool:
+    return _uses_model(value, ('lightglue_superpoint', 'LightGlue + SuperPoint'),
+                       ('lightglue_options', 'deep_extractor_weights'))
+
+
 def _root(value: object) -> dict[str, object]:
     record = json_object(value)
-    if record.get('schema') != 'stmviewer-state-v7' and _uses_matchanything(record):
+    if record.get('schema') != 'stmviewer-state-v8' and _uses_lightglue(record):
+        raise ValueError('LightGlue + SuperPoint wymaga stanu sesji v8.')
+    if record.get('schema') not in ('stmviewer-state-v7', 'stmviewer-state-v8') and _uses_matchanything(record):
         raise ValueError('MatchAnything-ELoFTR wymaga stanu sesji v7.')
     if record.get('schema') == 'stmviewer-state-v1':
         return json_object(record, _ROOT_KEYS)
-    if record.get('schema') in ('stmviewer-state-v2', 'stmviewer-state-v3', 'stmviewer-state-v4', 'stmviewer-state-v5', 'stmviewer-state-v6', 'stmviewer-state-v7'):
+    if record.get('schema') in ('stmviewer-state-v2', 'stmviewer-state-v3', 'stmviewer-state-v4', 'stmviewer-state-v5', 'stmviewer-state-v6', 'stmviewer-state-v7', 'stmviewer-state-v8'):
         return json_object(record, _ROOT_KEYS | {'graph'})
     raise ValueError('Nieobsługiwana wersja stanu sesji.')
 
@@ -232,9 +243,26 @@ def _decode_matchanything_options(value: object) -> DeepMatcherOptions | None:
                               Path(_text(source)) if source is not None else None)
 
 
+def _decode_lightglue_options(value: object) -> DeepMatcherOptions | None:
+    """Both local checkpoint paths are restored without inspecting resources."""
+    if value is None:
+        return None
+    record = json_object(value, {'weights', 'extractor_weights', 'device', 'source'})
+    device = _text(record['device'])
+    if device not in ('auto', 'cpu', 'cuda'):
+        raise ValueError('Sesja: nieprawidłowe urządzenie LightGlue + SuperPoint.')
+    paths = {}
+    for key in ('weights', 'extractor_weights', 'source'):
+        text = optional_text(record, key)
+        paths[key] = Path(_text(text)) if text is not None else None
+    return DeepMatcherOptions(paths['weights'], device, paths['source'],
+                              extractor_weights=paths['extractor_weights'])
+
+
 def _decode_display(value: object, count: int, aligned: bool) -> SessionViewState:
     fields = json_object(value)
-    extra = {'deep_source', 'deep_interpreter', 'deep_preset', 'deep_samples', 'deep_seed', 'roma_options', 'matchanything_options'} & fields.keys()
+    extra = {'deep_source', 'deep_interpreter', 'deep_preset', 'deep_samples', 'deep_seed', 'roma_options', 'matchanything_options',
+             'deep_extractor_weights', 'lightglue_options'} & fields.keys()
     record = json_object(fields, _DISPLAY_KEYS | extra)
     index = _integer(record['index'])
     view = record['view']
@@ -270,7 +298,9 @@ def _decode_display(value: object, count: int, aligned: bool) -> SessionViewStat
                             _boolean(record['loop']), method, optional_text(record, 'deep_weights'),
                             device, navigation, optional_text(record, 'deep_source') if 'deep_source' in record else None,
                             interpreter, preset, samples, seed, _decode_roma_options(record.get('roma_options')),
-                            _decode_matchanything_options(record.get('matchanything_options')))
+                            _decode_matchanything_options(record.get('matchanything_options')),
+                            optional_text(record, 'deep_extractor_weights') if 'deep_extractor_weights' in record else None,
+                            _decode_lightglue_options(record.get('lightglue_options')))
 
 
 def _registration_record(result: RegistrationResult, images: tuple[ImageFrame, ...],
@@ -389,7 +419,7 @@ def _decode_registration(value: object, originals: tuple[ImageFrame, ...],
         predecessor=decode_movie_snapshot(record.get('predecessor'), originals, check_cancelled),
     )
     if result.correspondence_diagnostics:
-        if method not in ('EfficientLoFTR', 'RoMa v2', 'MatchAnything-ELoFTR'):
+        if method not in ('EfficientLoFTR', 'RoMa v2', 'MatchAnything-ELoFTR', 'LightGlue + SuperPoint'):
             raise ValueError('Sesja: metoda nie odpowiada diagnostyce korespondencji.')
         for original, diagnostic in zip(originals, result.correspondence_diagnostics, strict=True):
             shape = (original.data.shape[0], original.data.shape[1])
@@ -468,6 +498,8 @@ def encode_session(state: SessionState, *, check_cancelled: Callable[[], None] =
         display.pop('roma_options')
     else:
         options = asdict(state.display.roma_options)
+        if options.pop('extractor_weights') is not None:
+            raise ValueError('Sesja: RoMa nie używa wag ekstraktora SuperPoint.')
         for key in ('weights', 'source', 'interpreter'):
             options[key] = str(options[key]) if options[key] is not None else None
         display['roma_options'] = options
@@ -477,7 +509,7 @@ def encode_session(state: SessionState, *, check_cancelled: Callable[[], None] =
         display.pop('matchanything_options')
     else:
         remembered = state.display.matchanything_options
-        if (remembered.interpreter, remembered.preset, remembered.samples, remembered.seed) != (None, 'turbo', 1000, 20261102):
+        if (remembered.interpreter, remembered.preset, remembered.samples, remembered.seed, remembered.extractor_weights) != (None, 'turbo', 1000, 20261102, None):
             raise ValueError('Sesja: MatchAnything-ELoFTR nie używa ustawień procesu RoMa.')
         display['matchanything_options'] = {
             'weights': str(remembered.weights) if remembered.weights is not None else None,
@@ -488,6 +520,22 @@ def encode_session(state: SessionState, *, check_cancelled: Callable[[], None] =
         manifest.setdefault('graph', None)
     if _uses_matchanything(manifest):
         manifest['schema'] = 'stmviewer-state-v7'
+        manifest.setdefault('graph', None)
+    if state.display.deep_extractor_weights is None:
+        display.pop('deep_extractor_weights')
+    if state.display.lightglue_options is None:
+        display.pop('lightglue_options')
+    else:
+        remembered = state.display.lightglue_options
+        if (remembered.interpreter, remembered.preset, remembered.samples, remembered.seed) != (None, 'turbo', 1000, 20261102):
+            raise ValueError('Sesja: LightGlue nie używa ustawień procesu RoMa.')
+        lightglue_record: dict[str, object] = {
+            key: str(getattr(remembered, key)) if getattr(remembered, key) is not None else None
+            for key in ('weights', 'extractor_weights', 'source')}
+        lightglue_record['device'] = remembered.device
+        display['lightglue_options'] = lightglue_record
+    if _uses_lightglue(manifest):
+        manifest['schema'] = 'stmviewer-state-v8'
         manifest.setdefault('graph', None)
     decode_session(manifest, arrays, check_cancelled=check_cancelled)
     return manifest, arrays

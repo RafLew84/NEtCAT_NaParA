@@ -4,8 +4,9 @@
 lub grafu, porównuje wynik z Deep outdoor i RoMa oraz może go zastosować,
 zapisać w sesji i wyeksportować.
 **Blocked by:** [REG-12](12-matchanything.md), w tym odbiór manualny — spełnione.
-**Status:** ready-for-agent
-**Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
+**Status:** in-progress
+**Wykonawca:** Codex; baza przeglądu `d86baba`.
+**Manualny odbiór:** niewykonany; implementacja w toku.
 **Dodano do planu:** 2026-11-02, na zlecenie użytkownika.
 
 Obowiązują [plan](../README.md), [protokół](../manual-protocol.md),

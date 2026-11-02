@@ -145,3 +145,10 @@ def matchanything_graph_config(window: int, provenance: tuple[tuple[str, str], .
     """Record MatchAnything inference and the unchanged correspondence consensus."""
     files = tuple('stmviewer/' + path.name for path in sorted(Path(__file__).parent.glob('matchanything_*.py')))
     return _correspondence_graph_config(window, provenance, consensus, 'matchanything_eloftr', files)
+
+
+def lightglue_graph_config(window: int, provenance: tuple[tuple[str, str], ...],
+                          consensus: dict[str, object]) -> GraphConfig:
+    """Record both feature models and the shared original-pixel consensus."""
+    files = tuple('stmviewer/' + path.name for path in sorted(Path(__file__).parent.glob('lightglue_*.py')))
+    return _correspondence_graph_config(window, provenance, consensus, 'lightglue_superpoint', files)

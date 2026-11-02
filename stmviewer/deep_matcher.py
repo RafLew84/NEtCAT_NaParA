@@ -21,6 +21,7 @@ class DeepMatcherOptions:
     preset: str = 'turbo'
     samples: int = 1000
     seed: int = 20261102
+    extractor_weights: Path | None = None
 
 
 @dataclass(frozen=True)

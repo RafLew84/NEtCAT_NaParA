@@ -1,0 +1,8 @@
+# Local-only pinned upstream code/weights: see docs/stmviewer/registration/lightglue-environment.md
+# Choose a compatible Torch CPU/CUDA build first; do not install LightGlue from the network at runtime.
+torch>=2.0
+torchvision>=0.3
+numpy
+opencv-python
+matplotlib
+kornia>=0.6.11

@@ -1,5 +1,6 @@
 """Adjacent registration and a complete expanded result, independent of presentation."""
 
+
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 import math
@@ -11,6 +12,9 @@ from nanotrack.core import RegistrationFrameResult
 import numpy as np
 from numpy.typing import NDArray
 
+from stmviewer.lightglue_matcher import (
+    LIGHTGLUE_METHOD, LIGHTGLUE_LABEL, LightGlueBackend, load_lightglue_backend,
+)
 from stmviewer.correspondence_types import CorrespondenceDiagnostics, CorrespondenceRefusal
 from stmviewer.efficient_matcher import (
     EFFICIENT_METHOD, EFFICIENT_LABEL, EfficientBackend, load_efficient_backend,
@@ -43,11 +47,11 @@ CPU_METHODS = {
 }
 
 
-DEEP_METHODS = ("deep_matcher_translation", HYBRID_METHOD, LOCAL_METHOD, EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD)
+DEEP_METHODS = ("deep_matcher_translation", HYBRID_METHOD, LOCAL_METHOD, EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD, LIGHTGLUE_METHOD)
 REGISTRATION_METHODS = {**CPU_METHODS, "deep_matcher_translation": "Deep Matcher",
                         HYBRID_METHOD: HYBRID_LABEL, LOCAL_METHOD: LOCAL_LABEL,
                         EFFICIENT_METHOD: EFFICIENT_LABEL, ROMA_METHOD: ROMA_LABEL,
-                        MATCHANYTHING_METHOD: MATCHANYTHING_LABEL}
+                        MATCHANYTHING_METHOD: MATCHANYTHING_LABEL, LIGHTGLUE_METHOD: LIGHTGLUE_LABEL}
 
 
 @dataclass(frozen=True)
@@ -156,7 +160,13 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
             raise RegistrationError(f"{prefix}: {label} wymaga skończonych próbek; wejście zawiera NaN/Inf.")
     device = 'CPU'
     completed_pairs = 0
-    if method == MATCHANYTHING_METHOD:
+    if method == LIGHTGLUE_METHOD:
+        lightglue = load_lightglue_backend(
+            deep_options or DeepMatcherOptions(),
+            progress=lambda text: report(completed_pairs, text), cancelled=cancelled,
+        )
+        backend, device = lightglue, lightglue.device
+    elif method == MATCHANYTHING_METHOD:
         matchanything = load_matchanything_backend(
             deep_options or DeepMatcherOptions(),
             progress=lambda text: report(completed_pairs, text), cancelled=cancelled,
@@ -226,7 +236,7 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
                 raise RegistrationError(f"Para {i} → {i + 1}: {reason}") from error
             diagnostics.append(backend.last_diagnostics if isinstance(backend, DeepEccBackend) else None)
             local_diagnostics.append(backend.last_diagnostics if isinstance(backend, DeepLocalBackend) else None)
-            correspondence_diagnostics.append(backend.last_diagnostics if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend)) else None)
+            correspondence_diagnostics.append(backend.last_diagnostics if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend, LightGlueBackend)) else None)
             completed_pairs = i
             shifts.append((shifts[-1][0] + float(pair.shift_xy[0]),
                            shifts[-1][1] + float(pair.shift_xy[1])))
@@ -239,7 +249,7 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
             statuses.append(max(statuses[-1], pair_status, key=severity.__getitem__))
             report(i + 1, f"{label}: para {i} → {i + 1}")
     finally:
-        if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend)):
+        if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend, LightGlueBackend)):
             backend.close()
     rendered = render_registration(
         frames, tuple(shifts), tuple(statuses), tuple(qualities),
@@ -251,7 +261,7 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
     return replace(rendered, pair_diagnostics=tuple(diagnostics) if method == HYBRID_METHOD else (),
                    local_diagnostics=tuple(local_diagnostics) if method == LOCAL_METHOD else (),
                    correspondence_diagnostics=(tuple(correspondence_diagnostics)
-                                               if method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD) else ()))
+                                               if method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD, LIGHTGLUE_METHOD) else ()))
 
 
 def render_registration(
@@ -363,7 +373,7 @@ def create_shift_backend(method: str) -> ShiftBackend:
 
 def estimate_confidence(method: str, result: RegistrationFrameResult) -> tuple[str, float | None]:
     """Do not reuse the phase-peak score for an unnormalized estimate."""
-    if method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD):
+    if method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD, LIGHTGLUE_METHOD):
         if result.status not in ('manual_review', 'low_confidence'):
             raise ValueError('nieprawidłowy status wyniku dopasowania korespondencji')
         return str(result.status), None

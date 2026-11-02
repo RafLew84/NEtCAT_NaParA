@@ -1,5 +1,6 @@
 """Method identity and availability, shared by graph presentation and execution."""
 
+from stmviewer.lightglue_matcher import LIGHTGLUE_METHOD, lightglue_unavailable_reason
 from stmviewer.efficient_matcher import EFFICIENT_METHOD, efficient_unavailable_reason
 from stmviewer.roma_matcher import ROMA_METHOD, roma_unavailable_reason
 from stmviewer.matchanything_matcher import MATCHANYTHING_METHOD, matchanything_unavailable_reason
@@ -25,6 +26,8 @@ def graph_requires_deep(method: str) -> bool:
 def graph_unavailable_reason(method: str, options: DeepMatcherOptions) -> str | None:
     if method not in REGISTRATION_METHODS:
         return f'Nieznana metoda rejestracji: {method}'
+    if method == LIGHTGLUE_METHOD:
+        return lightglue_unavailable_reason(options)
     if method == MATCHANYTHING_METHOD:
         return matchanything_unavailable_reason(options)
     if method == ROMA_METHOD:

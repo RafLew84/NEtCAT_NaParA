@@ -26,6 +26,7 @@ _CORRESPONDENCE_SCHEMAS = {
     'efficient_loftr': 'stmviewer-graph-v5',
     'roma_v2': 'stmviewer-graph-v6',
     'matchanything_eloftr': 'stmviewer-graph-v7',
+    'lightglue_superpoint': 'stmviewer-graph-v8',
 }
 
 
@@ -117,6 +118,9 @@ def decode_graph_config(value: object) -> GraphConfig:
     if method == 'matchanything_eloftr':
         from stmviewer.correspondence_metadata import validate_matchanything_provenance
         validate_matchanything_provenance(_settings(record['backend_settings']))
+    if method == 'lightglue_superpoint':
+        from stmviewer.correspondence_metadata import validate_lightglue_provenance
+        validate_lightglue_provenance(_settings(record['backend_settings']))
     deep = method in DEEP_METHODS
     weights = _text(record['weights_path']) if deep else None
     digest = _digest(record['weights_sha256']) if deep else None

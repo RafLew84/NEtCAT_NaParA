@@ -37,6 +37,8 @@ class SessionViewState:
     deep_seed: int = 20261102
     roma_options: DeepMatcherOptions | None = None
     matchanything_options: DeepMatcherOptions | None = None
+    deep_extractor_weights: str | None = None
+    lightglue_options: DeepMatcherOptions | None = None
 
 
 @dataclass(frozen=True)

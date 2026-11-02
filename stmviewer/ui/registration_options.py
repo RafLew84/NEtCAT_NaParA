@@ -2,6 +2,7 @@
 
 from collections.abc import Mapping
 
+from stmviewer.lightglue_matcher import LIGHTGLUE_METHOD, lightglue_unavailable_reason
 from stmviewer.efficient_matcher import EFFICIENT_METHOD, efficient_unavailable_reason
 from stmviewer.roma_matcher import ROMA_METHOD, roma_unavailable_reason
 from stmviewer.matchanything_matcher import MATCHANYTHING_METHOD, matchanything_unavailable_reason
@@ -12,6 +13,8 @@ from stmviewer.deep_matcher import DeepMatcherOptions, deep_unavailable_reason
 
 def method_unavailable_reason(method: str, options: DeepMatcherOptions,
                               cpu_errors: Mapping[str, str | None]) -> str | None:
+    if method == LIGHTGLUE_METHOD:
+        return lightglue_unavailable_reason(options)
     if method == MATCHANYTHING_METHOD:
         return matchanything_unavailable_reason(options)
     if method == ROMA_METHOD:
