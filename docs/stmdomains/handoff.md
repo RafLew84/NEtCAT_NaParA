@@ -1,3 +1,32 @@
+# STM Domains — tickety interaktywnego UI v0.4
+
+Data: **2026-11-02**. Na prośbę użytkownika przygotowano
+[15 osobnych ticketów SD-V4](implementation/interactive-v04/README.md)
+z zależnościami, kryteriami akceptacji i krokami ręcznego testu po każdym
+zadaniu. Pierwszy daje otwarcie pliku i przeglądanie obrazów, kolejne
+oznaczenia molekuł, wynik v0.4, obliczenia oraz regulację parametrów.
+Dalszy zakres obejmuje analizę serii, ręczne K, niezależną klatkę, Auto,
+samowystarczalny projekt i eksport.
+
+Status wszystkich nowych ticketów: **draft**. Podział czeka na zatwierdzenie
+użytkownika zgodnie z wywołanym `to-tickets`; dopiero wtedy status
+`ready-for-agent`. Stare tickety i ich statusy pozostają bez zmian.
+Nie rozpoczęto implementacji ani nowych badań. W instrukcji aplikacji
+zapisano wymaganie użytkownika: cel do 1000, twardy limit 1500 fizycznych
+linii na plik kodu i testów, z kontrolą w każdym zadaniu.
+
+Sprawdzenia dokumentacji: lokalne odnośniki nowych i zmienionych plików,
+kompletność 15 ticketów, zależności bez cykli, scenariusz ręczny każdego
+ticketu oraz `git diff --check`. Nie uruchamiano aplikacji ani testów GUI:
+zmieniono plan i instrukcję, a scenariusze dotyczą przyszłej implementacji.
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/start`,
+baza **`5224554`**; commit w odpowiedzi końcowej. Zmiany dotyczą wyłącznie
+dokumentacji STM Domains i jego instrukcji. Brak potrzebnych teraz zmian
+wspólnych; ewentualne zależności środowiska podczas implementacji należy
+przekazać integratorowi.
+
+---
+
 # STM Domains — wykonalność interaktywnego UI v0.4
 
 Data: **2026-11-02**. Użytkownik opisał program do zmiany parametrów,

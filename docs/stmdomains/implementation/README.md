@@ -1,5 +1,11 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**Nowy podział do uzgodnienia — 2026-11-02:**
+[15 ticketów interaktywnego UI v0.4](interactive-v04/README.md), status
+`draft`, rozpisuje uruchamialne funkcje z testem ręcznym po każdym zadaniu.
+Indeks opisuje zależności i pokrycie historycznych zakresów poniżej.
+Dotychczasowe tickety i ich statusy pozostają zachowane.
+
 Specyfikacja: [przekazanie do implementacji](../issues/09-implementation-handoff.md).
 Pierwsza mapa decyzji jest zakończona. **Implementacja nie została jeszcze
 wykonana; wszystkie poniższe zadania mają status `todo`.**

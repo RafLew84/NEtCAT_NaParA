@@ -15,6 +15,15 @@ Ustalenia mają pozwolić rozwinąć odebrany szkielet STM Domains.
 
 ## Notes
 
+**Proponowany podział implementacji v0.4 — 2026-11-02:**
+[SD-V4-01–15](implementation/interactive-v04/README.md) to osobne szkice
+ticketów z zależnościami i ręcznym odbiorem każdej działającej funkcji.
+Najpierw otwarcie danych i oznaczenia molekuł, następnie zapisany wynik,
+rzeczywiste obliczenia, strojenie, ręczne K i Auto. Status `draft`,
+podział czeka na zatwierdzenie użytkownika. Cel 1000 i limit 1500 linii
+kodu na plik zapisano w instrukcji aplikacji. Nie rozpoczęto implementacji;
+statusy historycznych ticketów i odbiór naukowy 04/13 pozostają bez zmian.
+
 **Oczekiwany program interaktywny — 2026-11-02:** użytkownik wskazał UI
 do strojenia parametrów i analizy serii lub pojedynczej klatki, z ręczną
 lub automatyczną liczbą klas. [Ocena wykonalności v0.4](v04-interactive-ui-feasibility.md)

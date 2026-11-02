@@ -5,6 +5,14 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-02
 
+**Tickety interaktywnego UI v0.4 — 2026-11-02:**
+[indeks 15 ticketów SD-V4](implementation/interactive-v04/README.md)
+prowadzi od otwarcia obrazów do analizy, regulacji parametrów, ręcznego K,
+Auto i zapisu. Każde zadanie dostarcza funkcję do ręcznego sprawdzenia
+w uruchomionej aplikacji. Status `draft`: podział czeka na zatwierdzenie.
+W instrukcji aplikacji zapisano cel 1000 i twardy limit 1500 linii kodu
+na plik. Nie rozpoczęto implementacji ani nie zamknięto dawnych ticketów.
+
 **Interaktywne UI na bazie v0.4 — 2026-11-02:**
 [ocena wykonalności](v04-interactive-ui-feasibility.md) potwierdza możliwość
 analizy serii lub jednej klatki z regulacją parametrów, ręcznym K i Auto.
