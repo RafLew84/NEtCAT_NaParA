@@ -4,7 +4,8 @@
 numery domen i krycie w menu **Obszary…**; centra i ramki można wyłączyć.
 Dotychczasowe „Maski / obrysy” nazwano **Maski molekuł**, zgodnie ze źródłem
 MolTrack. [Raport i test ręczny](interactive-v04/acceptance-05a.md).
-Przypisania i metoda 05 są zachowane, odbiór użytkownika oczekuje.
+Przypisania i metoda 05 są zachowane. Ręczny odbiór 05a potwierdzony przez
+użytkownika 2026-11-02 dla wersji `617b006`.
 
 **Wykonano SD-V4-05 — 2026-11-02 (`fb37431`):** **Analizuj klatkę · K5**
 oblicza lokalne klasy i końcowe domeny z bieżącego obrazu MPP i oznaczeń

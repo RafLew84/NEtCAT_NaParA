@@ -6,7 +6,7 @@
 
 **Blocked by:** [05: Oblicz klasy i domeny bieżącej klatki](05-analyze-current-frame.md).
 
-**Status:** done — implementacja `dfcf392`; ręczny odbiór użytkownika oczekuje.
+**Status:** done — implementacja `dfcf392`; ręczny odbiór użytkownika potwierdzony 2026-11-02 dla wersji `617b006` („testy manualn ok”).
 
 [Uruchomienie, wykonane sprawdzenia i test ręczny](acceptance-05a.md).
 

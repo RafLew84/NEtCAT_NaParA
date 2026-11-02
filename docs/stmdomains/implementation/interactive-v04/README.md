@@ -30,7 +30,8 @@ Historia usuniętych ticketów pozostaje w Git.
 **Wykonano [05a — obszary i granice domen](05a-domain-regions.md)** (`dfcf392`),
 dodany na polecenie użytkownika: wypełnienie, obrysy, numery i krycie
 w menu **Obszary…**. [Raport i test ręczny](acceptance-05a.md).
-Odbiór ręczny użytkownika oczekuje. Następny ticket: **06**.
+Odbiór ręczny 05a potwierdzony przez użytkownika 2026-11-02 dla `617b006`.
+Następny ticket: **06**.
 01–03, 05 i 05a mają status `done`.
 06–10 oraz 12–18 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem

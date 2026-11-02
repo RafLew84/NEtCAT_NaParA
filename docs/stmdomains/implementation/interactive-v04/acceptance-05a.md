@@ -1,8 +1,12 @@
 # SD-V4-05a — obszary i granice domen
 
 Data: **2026-11-02**. Baza `319c156`, implementacja **`dfcf392`**,
-gałąź `domains/interactive-v04-ui`. Ręczny odbiór użytkownika oczekuje.
+gałąź `domains/interactive-v04-ui`. **Ręczny odbiór użytkownika potwierdzony
+2026-11-02 dla wersji `617b006`** słowami „testy manualn ok”.
 Ticket dodano do planu i wykonano na polecenie użytkownika.
+
+Zapis potwierdzenia zmienia wyłącznie dokumentację. `git diff --check` PASS;
+testów kodu nie ponawiano. Następny ticket: **06 — strojenie tworzenia domen**.
 
 ## Uruchomienie i test ręczny
 
@@ -120,7 +124,7 @@ Artefakty `.scratch/stmdomains-ui-05a/`: `gui-smoke.json`,
 `method-smoke.json`, skrypty, demo i zrzuty m.in. `frame-259-raw.png`,
 `frame-259-classes.png`, `frame-259-outlines-numbers.png`,
 `region-controls-popup.png`, `window-900x650.png`. Pozostają poza Git.
-Sprawdzenie agenta nie zastępuje oczekiwanego ręcznego odbioru użytkownika.
+Sprawdzenie agenta jest odrębne od potwierdzonego powyżej odbioru użytkownika.
 
 ## Przegląd code-review
 

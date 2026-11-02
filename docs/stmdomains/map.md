@@ -20,7 +20,8 @@ numerami i kryciem. Przypisania 05 są zachowane; kontrolka **Obszary…**
 działa również bez wejściowych masek molekuł.
 [Ticket](implementation/interactive-v04/05a-domain-regions.md),
 [raport i test ręczny](implementation/interactive-v04/acceptance-05a.md).
-Status `done`, odbiór użytkownika oczekuje. Aktualny plan ma **19 ticketów**,
+Status `done`, odbiór ręczny 05a potwierdzony przez użytkownika 2026-11-02
+dla wersji `617b006`. Aktualny plan ma **19 ticketów**,
 następny jest **06 — strojenie tworzenia domen**. Poniżej historia.
 
 **Implementacja SD-V4-05 — 2026-11-02 (`fb37431`):** aplikacja oblicza

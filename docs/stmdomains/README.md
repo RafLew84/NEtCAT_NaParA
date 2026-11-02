@@ -11,7 +11,8 @@ legendzie pozwala niezależnie przełączać warstwy i regulować krycie.
 Można wyłączyć centra i ramki. Dotychczasowe maski wejściowe mają nazwę
 **Maski molekuł**; ich brak nie blokuje obszarów domen.
 [Raport i test ręczny 05a](implementation/interactive-v04/acceptance-05a.md).
-Odbiór użytkownika oczekuje. Plan ma **19 ticketów**, następny **06**.
+**Odbiór ręczny 05a potwierdzony przez użytkownika 2026-11-02** dla wersji
+`617b006` („testy manualn ok”). Plan ma **19 ticketów**, następny **06**.
 
 **Wykonano SD-V4-05 (`fb37431`):** po otwarciu MPP z oznaczeniami MolTrack
 przycisk **Analizuj klatkę · K5** oblicza pięć lokalnych klas i końcowe domeny

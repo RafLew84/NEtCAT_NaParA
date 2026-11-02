@@ -5,8 +5,10 @@ go wykonać. [Ticket](implementation/interactive-v04/05a-domain-regions.md),
 [raport i test ręczny](implementation/interactive-v04/acceptance-05a.md).
 Baza **`319c156`**, implementacja **`dfcf392`**, gałąź
 `domains/interactive-v04-ui`, worktree `/home/rlew/projekty/NEtCAT-domains`.
-Status `done`; **ręczny odbiór użytkownika 05a oczekuje**. Commit raportu
-i zamknięcia dokumentacji podano w odpowiedzi końcowej.
+Status `done`; **ręczny odbiór użytkownika 05a potwierdzony 2026-11-02**
+dla wersji **`617b006`** słowami „testy manualn ok”. Zapis potwierdzenia
+zmienia wyłącznie dokumentację; `git diff --check` PASS, bez ponawiania
+testów kodu. Commit zapisu podano w odpowiedzi końcowej. Następny ticket: **06**.
 
 Po analizie widoczne są półprzezroczyste obszary domen z obrysami i numerami
 D1, D2… Przycisk **Obszary…** przy legendzie udostępnia niezależne warstwy
@@ -42,7 +44,7 @@ nawigację i anulowanie. Kontrole zera/braków:
   nieanalizowana klatka, powrót, anulowanie oraz demo zera i braków.
   Stabilny układ 900×650; obejrzano zrzuty także maksymalizacji i popupu.
   Zamknięcie podczas kalibracji: kod 0, obie pule workerów zakończone.
-  Sprawdzenie agenta jest odrębne od oczekiwanego odbioru użytkownika.
+  Sprawdzenie agenta jest odrębne od potwierdzonego powyżej odbioru użytkownika.
 
 Wejściowe JSON/MPP niezmienione (SHA-256 przed/po), **0 odczytów ZIP lub
 dawnych artefaktów**. Artefakty `.scratch/stmdomains-ui-05a/` poza Git.

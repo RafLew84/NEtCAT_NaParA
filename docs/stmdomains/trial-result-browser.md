@@ -21,6 +21,7 @@ domen z wypełnieniem, obrysami i lokalnymi numerami, podobnie do PNG v0.4.
 Każdą warstwę można wyłączyć, a krycie regulować w **Obszary…**. Centra
 i ramki pozostają niezależne. To prezentacja własnego wyniku aplikacji,
 bez importu masek z ZIP. [Raport odbioru](implementation/interactive-v04/acceptance-05a.md).
+Użytkownik potwierdził ręczny odbiór 05a 2026-11-02 dla wersji `617b006`.
 
 ## Podstawowy widok
 
