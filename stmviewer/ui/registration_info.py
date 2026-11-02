@@ -7,7 +7,10 @@ from stmviewer.ui.local_details import local_details_text
 
 def registration_warnings(result: RegistrationResult) -> tuple[str, ...]:
     return tuple(
-        (("Do sprawdzenia: pewność niezweryfikowana"
+        (("Do sprawdzenia: Słabe poparcie"
+          + (" (niepewność odziedziczona)" if frame.inherited_uncertainty else ""))
+         if frame.status == "low_confidence" and frame.quality_score is None
+         else ("Do sprawdzenia: pewność niezweryfikowana"
           + (" (niepewność odziedziczona)" if frame.inherited_uncertainty else ""))
          if frame.quality_score is None
          else "Do sprawdzenia: niepewność odziedziczona" if frame.inherited_uncertainty
@@ -22,7 +25,9 @@ def registration_info(result: RegistrationResult, index: int, pixel_proportions:
     if result.reference.source_frame_index is not None:
         origin += f" · MPP {result.reference.source_frame_index + 1}"
     height, width = result.canvas_shape
-    quality = ("⚠ Do sprawdzenia — pewność niezweryfikowana" if current.quality_score is None
+    quality = ("⚠ Słabe poparcie — sprawdź dopasowanie"
+               if current.status == "low_confidence" and current.quality_score is None
+               else "⚠ Do sprawdzenia — pewność niezweryfikowana" if current.quality_score is None
                else "OK" if current.status == "ok" else "⚠ Do sprawdzenia")
     inherited = " (niepewność odziedziczona)" if current.inherited_uncertainty else ""
     scale = "piksele — brak wspólnej skali" if result.pixel_size_nm is None else "wspólna skala źródłowa"
@@ -39,6 +44,13 @@ def registration_info(result: RegistrationResult, index: int, pixel_proportions:
 
 
 def _pair_frame_info(result: RegistrationResult, index: int) -> str:
+    application = result.graph_application
+    if application is not None and application.graph.config.method == 'efficient_loftr':
+        measured = tuple(edge for edge in application.graph.edges if edge.shift_xy is not None)
+        weak_count = sum(edge.status == 'low_confidence' for edge in measured)
+        return (f'\nSłabe poparcie par grafu: {weak_count} / {len(measured)} zmierzonych.'
+                + (' Słabe pary zachowano w dopasowaniu.' if weak_count else '')
+                + '\nWynik grafu wymaga oceny obrazu; poparcie par nie określa jego pewności.')
     if result.correspondence_diagnostics:
         correspondence = result.correspondence_diagnostics[index]
         if correspondence is None:

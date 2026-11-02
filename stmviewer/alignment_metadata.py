@@ -103,7 +103,7 @@ def _decode(value: object, depth: int = 0, *,
     assert status is not None
     quality = optional_number(record, 'quality_score')
     inherited = record['inherited_uncertainty']
-    if (quality is None and status != 'manual_review') or type(inherited) is not bool:
+    if (quality is None and status not in ('manual_review', 'low_confidence')) or type(inherited) is not bool:
         raise ValueError('Historia: nieprawidłowa pewność dopasowania.')
     if manual is not None:
         assert manual_index is not None

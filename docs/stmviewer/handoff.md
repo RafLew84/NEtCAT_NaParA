@@ -1,3 +1,28 @@
+# REG-10: słabe wyniki rzeczywistych MPP — 2026-11-02
+
+Baza poprawki: `93a3126`; gałąź `viewer/registration-difficult-movies`.
+Status `ready-for-review`; użytkownik zaakceptował pokazywanie niepewnych
+wyników, ręczny odbiór poprawki pozostaje do wykonania.
+
+Przyczyną blokady były nowe twarde reguły kwalifikacji par, inne niż
+w historycznym Deep. Konsensus v2 zwraca słaby kandydat z `low_confidence`
+i bez liczbowej pewności; rzeczywisty brak co najmniej 8 poprawnych punktów
+łącznie i 4 zgodnych wektorów nadal daje odmowę. Sesja, graf, ręczne korekty
+oraz MPP zachowują ostrzeżenia, a stare diagnozy v1 pozostają odczytywalne.
+Wagi, przygotowanie obrazów i model pozostają te same.
+
+Wykonane: 712 testów Viewer passed, 8 skipped; dodatkowo 6 rzeczywistych
+prób CPU/CUDA passed. Mypy 90 modułów, Ruff, diff-check czyste. Pełna próba
+MOVIE_8 daje łańcuch, graf LS i Hubera; MOVIE_4 daje kompletny graf LS,
+ale łańcuch odmawia 35→36, a Huber osiąga limit 200 iteracji.
+Zastosowanie, sesje, korekty, MPP i AVI sprawdzono automatycznie.
+Przydatność wizualna, Windows, VLC i karta 8 GB VRAM nie są tym potwierdzone.
+
+[Diagnoza, wyniki i instrukcja próby](registration/efficient-loftr-weak-results.md).
+Uruchom ponownie w `netcat`: `python -m stmviewer.main`. Nie trzeba pobierać
+wag. W MOVIE_4 usuń źródłowe 1–2; do całego filmu użyj grafu z oknem 3
+oraz jawnie zastosuj kompletny LS. Brak potrzebnych zmian wspólnych.
+
 # REG-10: EfficientLoFTR — 2026-11-02
 
 Status **ready-for-review**; oczekuje ręcznej oceny użytkownika.

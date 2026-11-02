@@ -130,7 +130,9 @@ def _validate_diagnostics(edge: GraphEdge, config: GraphConfig) -> None:
     if config.method == 'efficient_loftr':
         if correspondence is None or len(correspondence.preparation) != 2:
             raise ValueError('Graf: niekompletna diagnostyka EfficientLoFTR i przygotowanie obrazów.')
-        if edge.quality_score is not None or (edge.shift_xy is not None and edge.status != 'manual_review'):
+        if edge.quality_score is not None or (edge.shift_xy is not None and (
+                edge.status not in ('manual_review', 'low_confidence')
+                or edge.status != correspondence.status)):
             raise ValueError('Graf: poparcie korespondencji nie jest oceną pewności dopasowania.')
     if correspondence is not None:
         from stmviewer.correspondence_metadata import decode_correspondence, encode_correspondence

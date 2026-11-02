@@ -44,7 +44,9 @@ def alignment_history_text(frame: ImageFrame) -> str:
     while previous is not None:
         count += 1
         previous = previous.previous
-    quality = ('⚠ Do sprawdzenia — pewność niezweryfikowana' if history.quality_score is None
+    quality = ('⚠ Słabe poparcie — sprawdź dopasowanie'
+               if history.status == 'low_confidence' and history.quality_score is None
+               else '⚠ Do sprawdzenia — pewność niezweryfikowana' if history.quality_score is None
                else 'OK' if history.status == 'ok' else '⚠ Do sprawdzenia')
     return (
         'Historia aligned — wczytane piksele są wejściem original.\n'

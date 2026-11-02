@@ -4,6 +4,9 @@
 z obecnym Deep Matcherem i stosuje wybrany wynik do filmu.
 **Blocked by:** [REG-08c](08c-graph-movie-application.md), w tym odbiór manualny.
 **Status:** ready-for-review
+**Poprawka po zgłoszeniu:** [niepewne wyniki na rzeczywistych MPP](../efficient-loftr-weak-results.md).
+Użytkownik zaakceptował pokazywanie słabo popartych oszacowań z ostrzeżeniem;
+reguły v2 zastępują wcześniejsze twarde odrzucanie takich kandydatów.
 **Manualny odbiór:** oczekuje; [instrukcja](../efficient-loftr-manual.md).
 **Implementacja:** `6644d8c`; [wyniki](../efficient-loftr-results.md),
 [testy i przeglądy](../reviews/REG-10.md).
@@ -121,8 +124,9 @@ z rozdzieleniem wpływu modelu, agregacji i grafu oraz ręczną decyzją o jako�
 Zaznaczenia powyżej dotyczą dostarczonego zachowania i wykonanych prób
 automatycznych. EfficientLoFTR jest dostępny dla par, łańcucha i grafu;
 kompletne wzorce przechodzą zastosowanie, korekty, sesję i eksport.
-Na pełnych MOVIE_4/MOVIE_8 graf pozostaje rozłączny, a łańcuch odmawia
-na pierwszej parze; zachowano diagnozy i porównanie z Deep outdoor.
+W pierwotnej wersji na pełnych MOVIE_4/MOVIE_8 graf pozostawał rozłączny,
+a łańcuch odmawiał pierwszej pary. Zachowano historyczne diagnozy;
+aktualny stan opisuje raport poprawki powyżej.
 Nie uznajemy tego za poprawę jakości STM ani odbiór manualny.
 Status pozostaje `ready-for-review` do oględzin i decyzji użytkownika.
 Windows 11, VLC i rzeczywista karta 8 GB VRAM nie były odebrane.

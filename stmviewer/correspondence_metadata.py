@@ -85,7 +85,8 @@ def decode_correspondence(value: object) -> CorrespondenceDiagnostics | None:
     if value is None:
         return None
     record = json_object(value, _KEYS)
-    if _integer(record['settings_version'], 1) != 1:
+    version = _integer(record['settings_version'], 1)
+    if version not in (1, 2):
         raise ValueError('Korespondencje: nieobsługiwana wersja diagnostyki.')
     counts = [_integer(record[key]) for key in ('input_count', 'valid_count', 'inlier_count')]
     total, valid, inliers = counts
@@ -100,8 +101,10 @@ def decode_correspondence(value: object) -> CorrespondenceDiagnostics | None:
             or not math.isclose(fraction, inliers / valid if valid else 0., rel_tol=1e-9, abs_tol=1e-9)
             or any(not 0 <= span <= 1 for span in (*ref_span, *mov_span))
             or (residual is not None and residual < 0)
-            or status not in ('manual_review', 'failed')
-            or (status == 'manual_review' and (shift is None or residual is None or inliers == 0))
+            or status not in ('manual_review', 'low_confidence', 'failed')
+            or (status == 'low_confidence' and version < 2)
+            or (status in ('manual_review', 'low_confidence')
+                and (shift is None or residual is None or inliers == 0))
             or (status == 'failed' and shift is not None)):
         raise ValueError('Korespondencje: niespójne poparcie, status lub przesunięcie.')
     preparation = _items(record['preparation'])
@@ -109,7 +112,7 @@ def decode_correspondence(value: object) -> CorrespondenceDiagnostics | None:
         raise ValueError('Korespondencje: wymagane przygotowanie obu obrazów.')
     return CorrespondenceDiagnostics(shift, total, valid, inliers, fraction, reference, moving,
         ref_span, mov_span, residual, status, _text(record['reason']), _text(record['settings_text']),
-        tuple(_preparation(item) for item in preparation), _provenance(record['model_provenance']))
+        tuple(_preparation(item) for item in preparation), _provenance(record['model_provenance']), version)
 
 
 def encode_correspondence(value: CorrespondenceDiagnostics | None) -> dict[str, object] | None:

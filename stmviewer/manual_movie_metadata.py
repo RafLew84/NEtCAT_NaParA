@@ -50,7 +50,8 @@ def _baseline(value: object) -> MovieBaselineFrame:
     inherited = record['inherited_uncertainty']
     if status not in ('ok', 'low_confidence', 'manual_review'):
         raise ValueError('Korekta filmu: nieprawidłowy status bazowy.')
-    if (quality is None and status != 'manual_review') or (quality is not None and not 0 <= quality <= 1):
+    if ((quality is None and status not in ('manual_review', 'low_confidence'))
+            or (quality is not None and not 0 <= quality <= 1)):
         raise ValueError('Korekta filmu: nieprawidłowa pewność bazowa.')
     if type(inherited) is not bool:
         raise ValueError('Korekta filmu: nieprawidłowa odziedziczona niepewność.')

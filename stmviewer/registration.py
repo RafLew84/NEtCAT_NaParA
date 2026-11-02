@@ -182,7 +182,7 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
         shifts = [(0.0, 0.0)]
         statuses = ['ok']
         qualities: list[float | None] = [1.0]
-        severity = {'ok': 0, 'low_confidence': 1, 'manual_review': 2, 'failed': 3}
+        severity = {'ok': 0, 'manual_review': 1, 'low_confidence': 2, 'failed': 3}
         report(1, "Odniesienie: klatka 1")
         for i in range(1, len(frames)):
             checkpoint()
@@ -346,7 +346,11 @@ def create_shift_backend(method: str) -> ShiftBackend:
 
 def estimate_confidence(method: str, result: RegistrationFrameResult) -> tuple[str, float | None]:
     """Do not reuse the phase-peak score for an unnormalized estimate."""
-    if method in ('phase_no_normalization', HYBRID_METHOD, LOCAL_METHOD, EFFICIENT_METHOD):
+    if method == EFFICIENT_METHOD:
+        if result.status not in ('manual_review', 'low_confidence'):
+            raise ValueError('nieprawidłowy status wyniku EfficientLoFTR')
+        return str(result.status), None
+    if method in ('phase_no_normalization', HYBRID_METHOD, LOCAL_METHOD):
         return 'manual_review', None
     quality = float(result.quality_score)
     if not np.isfinite(quality) or not 0 <= quality <= 1:

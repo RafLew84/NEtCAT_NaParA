@@ -1,5 +1,9 @@
 # REG-10: EfficientLoFTR — próba ręczna
 
+**Aktualizacja 2026-11-02:** [poprawka obsługi słabych wyników](efficient-loftr-weak-results.md).
+Słabe poparcie daje wynik z ostrzeżeniem; odmowa pozostaje przy rzeczywistym
+braku wystarczających punktów. Starszy zapis sesji zachowuje własny wynik.
+
 Uruchom z katalogu repozytorium, w środowisku `netcat`:
 
 ```bash
@@ -97,7 +101,9 @@ PYTHONPATH=.:tests/stmviewer python tests/stmviewer/make_local_consensus_fixture
 
 W `stationary-artifact.mpp` pas pozostaje nieruchomy, a struktury przesuwają
 się o (+7, −5) px. W `one-band.mpp` tekstura jest skupiona w jednym pasie.
-Sprawdź, czy metoda pokazuje rozproszone poparcie albo uczciwą odmowę.
+Sprawdź ostrzeżenia o konkurencyjnych ruchach lub ograniczonym poparciu
+przestrzennym. Wynik z ostrzeżeniem można obejrzeć; nie oznacza on
+potwierdzonego przesunięcia całego obrazu.
 W `split-motion.mpp` pojedyncze globalne XY nie dopasuje obu połówek.
 Generator i manifest określają znane ruchy; wyniku na STM nie oceniamy
 przez samą zgodność solvera lub gładkość filmu.

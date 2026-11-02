@@ -113,7 +113,7 @@ def test_inconsistent_correspondence_metadata_is_rejected_before_restoration():
         lambda d: d.update(inlier_count=21),
         lambda d: d.update(reference_support=[1] * 15),
         lambda d: d.update(inlier_fraction=float('nan')),
-        lambda d: d.update(settings_version=2),
+        lambda d: d.update(settings_version=3),
         lambda d: d.update(status='failed'),
         lambda d: d['preparation'][0].update(scale_xy=[2, 1]),
         lambda d: d.update(preparation=d['preparation'][:1]),

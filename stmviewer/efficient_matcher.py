@@ -97,7 +97,7 @@ class EfficientBackend:
         self._cancelled = cancelled
         self.last_diagnostics: CorrespondenceDiagnostics | None = None
         self.settings_text = ('EfficientLoFTR outdoor; full; FP32; oryginały, niezależny min/max; '
-                              'bez skalowania, padding do wielokrotności 32; translation-consensus-v1; '
+                              'bez skalowania, padding do wielokrotności 32; translation-consensus-v2; '
                               'poparcie nie jest prawdopodobieństwem poprawnego dryfu.; '
                               + '; '.join(f'{key}={value}' for key, value in asdict(config).items()))
 
@@ -201,7 +201,7 @@ def load_efficient_backend(options: DeepMatcherOptions, *,
             'actual_device': engine.device, 'precision': 'FP32',
             'model_config': 'full_default_cfg; reparameter; eval',
             'preprocessing': 'minmax-float32-v1; no resize; right/bottom zero padding to 32',
-            'aggregation': 'translation-consensus-v1',
+            'aggregation': 'translation-consensus-v2',
         }
         for name in ('torch', 'torchvision', 'numpy', 'einops', 'kornia', 'yacs', 'loguru',
                      'pytorch-lightning', 'torchmetrics', 'joblib'):

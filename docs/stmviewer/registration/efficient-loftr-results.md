@@ -1,5 +1,9 @@
 # REG-10: wyniki prób EfficientLoFTR
 
+**Raport historyczny: konsensus v1.** Po zgłoszeniu użytkownika zmieniono
+kwalifikację słabych wyników; [diagnoza, reguły v2 i ponowne sprawdzenia](efficient-loftr-weak-results.md).
+Poniższe odmowy opisują wersję sprzed poprawki.
+
 Data: 2026-11-02. Implementacja `6644d8c`, baza `03ad8d9`.
 Próby automatyczne; ręczna ocena użytkownika pozostaje otwarta.
 **Na obu trudnych filmach nowy estymator nie uzyskał kompletnego wyniku.**

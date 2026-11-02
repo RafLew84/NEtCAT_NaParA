@@ -5,7 +5,9 @@ filmu i grafu z zapisem diagnostyki w sesji.
 [Instrukcja próby](registration/efficient-loftr-manual.md),
 [wyniki rzeczywiste](registration/efficient-loftr-results.md),
 [testy i przeglądy](registration/reviews/REG-10.md).
-Na MOVIE_4/MOVIE_8 nowy graf pozostaje rozłączny; ocena użytkownika oczekuje.
+Po [poprawce słabych wyników](registration/efficient-loftr-weak-results.md)
+graf LS obu filmów jest kompletny; MOVIE_8 działa także w łańcuchu.
+Ocena wizualna użytkownika oczekuje.
 
 
 Program do przeglądania obrazów i sekwencji STP/S94/MPP, rejestracji

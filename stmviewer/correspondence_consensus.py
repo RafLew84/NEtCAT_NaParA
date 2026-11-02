@@ -11,16 +11,18 @@ from stmviewer.correspondence_types import CorrespondenceDiagnostics, Correspond
 
 @dataclass(frozen=True)
 class CorrespondenceConfig:
-    inlier_radius: float = 1.5
+    inlier_radius: float = 2.0
     max_hypotheses: int = 128
     minimum_span_fraction: float = 0.25
     minimum_orthogonal_spread: float = 0.05
     minimum_cells: int = 4
     minimum_grid_lines: int = 3
-    minimum_inliers: int = 8
+    minimum_matches: int = 8
+    minimum_inliers: int = 4
+    review_minimum_inliers: int = 8
     minimum_fraction: float = 0.25
     competing_fraction: float = 0.8
-    settings_version: int = 1
+    settings_version: int = 2
 
 
 def _check_cancelled(cancelled: Callable[[], bool] | None) -> None:
@@ -88,10 +90,12 @@ def estimate_correspondence_translation(
     p0, p1 = p0[valid], p1[valid]
     shifts = p0 - p1
     settings = '; '.join(f'{key}={value}' for key, value in asdict(config).items())
-    if len(shifts) < config.minimum_inliers:
+    if len(shifts) < config.minimum_matches:
         raise CorrespondenceRefusal(CorrespondenceDiagnostics(
             None, count, len(shifts), 0, 0., (0,) * 16, (0,) * 16, (0., 0.), (0., 0.),
-            None, 'failed', 'Za mało poprawnych korespondencji do globalnego przesunięcia.', settings))
+            None, 'failed', (f'Za mało poprawnych korespondencji: {len(shifts)}; '
+                             f'wymagane co najmniej {config.minimum_matches}.'), settings,
+            settings_version=config.settings_version))
     selected = _cluster(shifts, config, cancelled)
     xy = np.median(shifts[selected], axis=0)
     residuals = np.linalg.norm(shifts[selected] - xy, axis=1)
@@ -102,10 +106,18 @@ def estimate_correspondence_translation(
         (float(xy[0]), float(xy[1])), count, len(shifts), int(selected.sum()), float(selected.mean()),
         ref_grid, mov_grid, ref_span, mov_span, float(np.median(residuals)),
         'manual_review', 'Poparcie korespondencji wymaga oceny obrazu.', settings,
+        settings_version=config.settings_version,
     )
-    if diagnostic.inlier_count < config.minimum_inliers or diagnostic.inlier_fraction < config.minimum_fraction:
+    if diagnostic.inlier_count < config.minimum_inliers:
         raise CorrespondenceRefusal(replace(diagnostic, final_shift_xy=None, status='failed',
-                                           reason='Za mało zgodnych wektorów przesunięcia.'))
+                                           reason=(f'Za mało zgodnych wektorów przesunięcia: '
+                                                   f'{diagnostic.inlier_count}/{diagnostic.valid_count}; '
+                                                   f'wymagane co najmniej {config.minimum_inliers} zgodne.')))
+    warnings = []
+    if diagnostic.inlier_count < config.review_minimum_inliers:
+        warnings.append(f'mała liczba zgodnych punktów (próg ostrzeżenia {config.review_minimum_inliers})')
+    if diagnostic.inlier_fraction < config.minimum_fraction:
+        warnings.append(f'niski udział zgodnych punktów (próg ostrzeżenia {config.minimum_fraction:.0%})')
     remaining = shifts[~selected]
     if len(remaining) >= config.minimum_inliers:
         alternative = _cluster(remaining, config, cancelled)
@@ -113,13 +125,18 @@ def estimate_correspondence_translation(
         alternative_xy = np.median(remaining[alternative], axis=0)
         if (second >= config.minimum_inliers and second >= config.competing_fraction * diagnostic.inlier_count
                 and np.linalg.norm(alternative_xy - xy) > 2 * config.inlier_radius):
-            raise CorrespondenceRefusal(replace(diagnostic, final_shift_xy=None, status='failed',
-                                               reason='Niejednoznaczne grupy przesunięć: podobne poparcie różnych XY.'))
+            warnings.append(f'konkurencyjne przesunięcia o podobnym poparciu: '
+                            f'{diagnostic.inlier_count} i {second} punktów; '
+                            f'alternatywa XY=({alternative_xy[0]:.3f}, {alternative_xy[1]:.3f}) px')
     if (min(_grid_lines(ref_grid), _grid_lines(mov_grid)) < config.minimum_grid_lines
             or min(_orthogonal_spread(p0[selected], reference_shape),
             _orthogonal_spread(p1[selected], moving_shape)) < config.minimum_orthogonal_spread
             or min(*ref_span, *mov_span) < config.minimum_span_fraction
             or min(sum(n > 0 for n in ref_grid), sum(n > 0 for n in mov_grid)) < config.minimum_cells):
-        raise CorrespondenceRefusal(replace(diagnostic, final_shift_xy=None, status='failed',
-                                           reason='Za małe poparcie przestrzenne w dwóch osiach obrazu.'))
+        warnings.append('ograniczone poparcie przestrzenne — dopasowanie może dotyczyć tylko fragmentu obrazu')
+    if warnings:
+        return replace(diagnostic, status='low_confidence', reason=(
+            f'Słabe poparcie: {diagnostic.inlier_count}/{diagnostic.valid_count} zgodnych punktów '
+            f'({diagnostic.inlier_fraction:.1%}). ' + '; '.join(warnings) + '. '
+            'Wynik niepewny — sprawdź dopasowanie obrazu.'))
     return diagnostic

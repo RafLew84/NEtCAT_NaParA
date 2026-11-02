@@ -8,8 +8,9 @@ Baza rozpoznania: `c85aecb`; przegląd metod: `81ff1a0`.
 **REG-10 — 2026-11-02: ready-for-review.** EfficientLoFTR wdrożono dla par,
 łańcucha i grafu; [instrukcja](efficient-loftr-manual.md),
 [wyniki](efficient-loftr-results.md), [przeglądy](reviews/REG-10.md).
-Pełne MOVIE_4/MOVIE_8 nie dały kompletnego wyniku nową metodą; ręczna
-ocena i decyzja użytkownika oczekują. REG-11/12 nie rozpoczęto.
+Po [zaakceptowanej poprawce obsługi niepewnych wyników](efficient-loftr-weak-results.md)
+graf LS obu filmów jest kompletny, a MOVIE_8 także w łańcuchu.
+Ręczna ocena wizualna oczekuje. REG-11/12 nie rozpoczęto.
 
 Status: REG-01, REG-01a, REG-02, REG-02a, REG-04, REG-05, REG-07, REG-08a, REG-08b, REG-08c i REG-08e `done`. Użytkownik potwierdził odbiór REG-02
 2026-10-31 i zgłosił brak istotnej poprawy względem Phase na MOVIE_4.
