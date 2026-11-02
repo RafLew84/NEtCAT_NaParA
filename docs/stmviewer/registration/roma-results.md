@@ -1,9 +1,11 @@
 # REG-11: RoMa v2 — wyniki implementacji i prób
 
 Data: 2026-11-02. Baza: `3a3a684`; implementacja: `cfc1547`.
-Status użytkowy: **gotowe do ręcznej próby** według [instrukcji](roma-manual.md).
+Status użytkowy: **done** — użytkownik potwierdził „testy manualne ok”
+2026-11-02. [Instrukcja odbioru](roma-manual.md).
 Poparcie korespondencji i kompletność grafu nie stanowią potwierdzenia
-poprawnego dryfu STM. Odbiór użytkownika pozostaje osobnym krokiem.
+poprawnego dryfu STM. Potwierdzenie odbioru nie zmienia wyników
+automatycznych prób ani odnotowanych ograniczeń modelu.
 
 ## Zaimplementowany przebieg
 

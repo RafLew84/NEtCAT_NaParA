@@ -1,3 +1,15 @@
+# REG-11: odbiór manualny — 2026-11-02
+
+Użytkownik potwierdził **„testy manualne ok”**. REG-11 zmieniono na `done`;
+zsynchronizowano bieżące podsumowania, mapę, instrukcję i raport odbioru.
+Implementacja: `cfc1547` i poprawka `4e69d40`; wyniki: `fbbf97d`.
+Commit tego potwierdzenia podano w odpowiedzi sesji.
+
+REG-12 jest odblokowany, lecz nie rozpoczęto go bez osobnego zlecenia.
+Nie zmieniono kodu ani wyników prób automatycznych; nie powtarzano testów.
+Potwierdzenie nie dopisuje szczegółowych wyników Windows, sprzętu 8 GB
+lub VLC. Zapisane ograniczenia RoMa i limit Hubera pozostają aktualne.
+
 # REG-11: RoMa v2 — wdrożenie do odbioru — 2026-11-02
 
 Zakres `3a3a684..4e69d40`: implementacja `cfc1547`, poprawka przeglądu

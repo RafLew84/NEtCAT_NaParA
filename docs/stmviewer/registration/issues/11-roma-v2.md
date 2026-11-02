@@ -3,8 +3,8 @@
 **What to build:** Użytkownik porównuje RoMa v2 z odebranymi modelami i widzi,
 czy gęste korespondencje poprawiają globalne XY na trudnych obrazach STM.
 **Blocked by:** [REG-10](10-efficient-loftr.md), w tym odbiór manualny.
-**Status:** ready-for-review
-**Manualny odbiór:** oczekuje na użytkownika; automatyczne Qt offscreen CPU/CUDA zaliczone.
+**Status:** done
+**Manualny odbiór:** użytkownik potwierdził „testy manualne ok” 2026-11-02.
 **Wykonawca:** Codex; baza przeglądu `3a3a684`.
 **Dodano do planu:** 2026-10-31, na zlecenie użytkownika po research.
 
@@ -20,8 +20,9 @@ użytkownika wdrożono pełną integrację REG-11. REG-10 ma odbiór `done`.
 [testy i przeglądy](../reviews/REG-11.md). 761 testów Viewera zaliczonych,
 14 pominiętych; osobno 4 rzeczywiste testy modelu i 2 rzeczywiste testy GUI.
 Oba filmy mają kompletny łańcuch i LS; Huber osiągnął limit iteracji.
-RoMa podąża za nieruchomym pasem w jednym wzorcu; jakość STM wymaga oceny.
-REG-12 pozostaje nierozpoczęty, zablokowany odbiorem tego etapu.
+RoMa podąża za nieruchomym pasem w jednym wzorcu; to zapisane ograniczenie modelu.
+Odbiór użytkownika zamyka REG-11. REG-12 jest odblokowany, ale pozostaje
+nierozpoczęty i wymaga osobnego zlecenia.
 
 Obowiązują [plan](../README.md), [protokół odbioru](../manual-protocol.md)
 i [przegląd modeli](../../registration-multiframe-research.md).

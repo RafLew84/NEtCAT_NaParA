@@ -11,14 +11,14 @@ Baza rozpoznania: `c85aecb`; przegląd metod: `81ff1a0`.
 Po [zaakceptowanej poprawce obsługi niepewnych wyników](efficient-loftr-weak-results.md)
 graf LS obu filmów jest kompletny, a MOVIE_8 także w łańcuchu.
 Użytkownik potwierdził „testy manualne ok” po poprawce.
-**REG-11 — 2026-11-02: ready-for-review.** RoMa v2 działa dla pary, filmu
+**REG-11 — 2026-11-02: done.** RoMa v2 działa dla pary, filmu
 oraz grafu przez [osobne środowisko](roma-environment.md).
 [Instrukcja](roma-manual.md), [wyniki i ograniczenia](roma-results.md),
 [przeglądy](reviews/REG-11.md). 761 testów Viewera oraz osobne rzeczywiste
-próby CPU/CUDA i Qt offscreen zaliczone. Ręczny odbiór pozostaje do wykonania.
-REG-12 nie rozpoczęto; czeka na odbiór REG-11.
+próby CPU/CUDA i Qt offscreen zaliczone. Użytkownik potwierdził
+„testy manualne ok”; odbiór zamknięty. REG-12 odblokowany, lecz nierozpoczęty.
 
-Status: REG-01, REG-01a, REG-02, REG-02a, REG-04, REG-05, REG-07, REG-08a, REG-08b, REG-08c, REG-08e i REG-10 `done`. Użytkownik potwierdził odbiór REG-02
+Status: REG-01, REG-01a, REG-02, REG-02a, REG-04, REG-05, REG-07, REG-08a, REG-08b, REG-08c, REG-08e, REG-10 i REG-11 `done`. Użytkownik potwierdził odbiór REG-02
 2026-10-31 i zgłosił brak istotnej poprawy względem Phase na MOVIE_4.
 Deep Matcher ocenia najlepiej w obejrzanych pierwszych 100 klatkach.
 [Instrukcja REG-02](unnormalized-correlation-manual.md), [wyniki](reviews/REG-02.md).
@@ -138,9 +138,9 @@ REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [karta odbioru](reviews/REG-01.md). REG-01a ma status `done` po odbiorze
 użytkownika 2026-10-31. REG-02 i REG-02a również odebrano 2026-10-31 (`done`).
 REG-04 i REG-05 mają status `done` po odbiorze użytkownika 2026-10-31.
-REG-07 ma status `done` po odbiorze 2026-11-01. REG-08a ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08b ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08c ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-10 ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-02; REG-11 ma status `ready-for-review` po implementacji 2026-11-02.
-REG-12 pozostaje `ready-for-agent`: jego start wymaga zlecenia użytkownika
-i zakończenia odbioru REG-11. REG-06 ma status
+REG-07 ma status `done` po odbiorze 2026-11-01. REG-08a ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08b ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08c ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-10 ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-02; REG-11 ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-02.
+REG-12 pozostaje `ready-for-agent`: blokada odbioru jest zakończona,
+a jego start wymaga osobnego zlecenia użytkownika. REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
 REG-08d ma status `planned` jako odłożony po wycofaniu implementacji; REG-09
 pozostaje `planned` jako odłożony na życzenie użytkownika 2026-11-02. Nie blokuje REG-10. REG-08e ma status

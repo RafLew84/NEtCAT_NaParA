@@ -2,7 +2,7 @@
 
 Data: 2026-11-02. Baza `3a3a684`. Implementacja `cfc1547`,
 poprawka po przeglądzie `4e69d40`; zakres `3a3a684..4e69d40`.
-Status: `ready-for-review`; odbiór ręczny pozostaje do wykonania.
+Status: `done`; użytkownik potwierdził „testy manualne ok” 2026-11-02.
 
 ## Testy
 
@@ -72,9 +72,11 @@ Przegląd zamknięty: **0 otwartych uwag Spec; 0 uwag Standards**.
 
 ## Odbiór ręczny i ograniczenia
 
-Automatyczne Qt offscreen nie jest ręcznym odbiorem GUI. Użytkownik ma
-wykonać [scenariusz](../roma-manual.md), w tym ocenę jakości na obu filmach,
-ręczną korektę i VLC. Windows oraz karta 8 GB nie były stanowiskami próby.
+Użytkownik potwierdził „testy manualne ok” 2026-11-02; odbiór REG-11 zamknięto.
+[Scenariusz](../roma-manual.md) pozostaje instrukcją odtworzenia prób.
+Automatyczne Qt offscreen stanowi osobny dowód. Ogólne potwierdzenie
+nie określa osobno platformy Windows, karty 8 GB ani odtwarzacza VLC;
+nie dopisujemy takich wyników do wcześniej wykonanych prób.
 RoMa wciąż potrafi dopasować nieruchomy artefakt. Huber osiągnął limit
 iteracji na pełnych filmach; LS i łańcuch były kompletne. Tych ograniczeń
 nie oznaczono jako sukcesu jakościowego modelu.

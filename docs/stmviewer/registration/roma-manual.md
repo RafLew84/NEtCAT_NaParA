@@ -1,6 +1,7 @@
 # REG-11: RoMa v2 — próba ręczna
 
-**Status:** instrukcja do odbioru; nie oznacza zaliczonych prób ręcznych.
+**Status REG-11:** `done`; użytkownik potwierdził „testy manualne ok” 2026-11-02.
+Poniższa instrukcja pozostaje scenariuszem odtworzenia prób.
 Próby automatyczne, ocena użytkownika w GUI i odtworzenie AVI w VLC są
 odrębnymi sprawdzeniami. Data przygotowania: 2026-11-02.
 Zakres: [REG-11](issues/11-roma-v2.md), wspólny [protokół](manual-protocol.md).

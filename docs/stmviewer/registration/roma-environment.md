@@ -3,7 +3,8 @@
 Data: 2026-11-02. **Przygotowanie środowiska zakończone.**
 Pierwotnie użytkownik wybrał „Przygotuj środowisko i zaktualizuj REG-11”.
 Poniższe pomiary opisują tamten etap przygotowania. Na późniejsze zlecenie
-wdrożono [REG-11](issues/11-roma-v2.md); status `ready-for-review`.
+wdrożono [REG-11](issues/11-roma-v2.md); po potwierdzeniu użytkownika
+„testy manualne ok” 2026-11-02 status wynosi `done`.
 Aktualne próby integracji i produkcyjnego procesu: [wyniki](roma-results.md),
 [obsługa w GUI](roma-manual.md).
 
