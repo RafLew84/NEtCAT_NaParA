@@ -6,6 +6,11 @@ EfficientLoFTR ze zwykłym EfficientLoFTR przy tej samej agregacji i grafie.
 **Status:** ready-for-agent
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 **Dodano do planu:** 2026-10-31, na zlecenie użytkownika po research.
+**Przygotowanie zasobów — 2026-11-02:** kod i oficjalny checkpoint pobrane,
+próby CPU/CUDA w istniejącym `netcat` zaliczone bez instalacji bibliotek.
+[Lokalizacje, wersje, sumy i ograniczenia](../matchanything-environment.md).
+Zlecenie obejmowało pobranie i weryfikację; implementacja GUI pozostaje
+nierozpoczęta, kryteria poniżej nadal wymagają realizacji.
 
 Obowiązują [plan](../README.md), [protokół odbioru](../manual-protocol.md)
 i [przegląd modeli](../../registration-multiframe-research.md).

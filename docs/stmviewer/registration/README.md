@@ -18,6 +18,11 @@ oraz grafu przez [osobne środowisko](roma-environment.md).
 próby CPU/CUDA i Qt offscreen zaliczone. Użytkownik potwierdził
 „testy manualne ok”; odbiór zamknięty. REG-12 odblokowany, lecz nierozpoczęty.
 
+**REG-12 — przygotowanie zasobów, 2026-11-02.**
+[Kod, wagi i próby CPU/CUDA](matchanything-environment.md) są gotowe.
+Istniejący `netcat` wystarczył bez instalacji. Pełna implementacja
+pozostaje `ready-for-agent`; funkcja nie jest jeszcze dostępna w GUI.
+
 Status: REG-01, REG-01a, REG-02, REG-02a, REG-04, REG-05, REG-07, REG-08a, REG-08b, REG-08c, REG-08e, REG-10 i REG-11 `done`. Użytkownik potwierdził odbiór REG-02
 2026-10-31 i zgłosił brak istotnej poprawy względem Phase na MOVIE_4.
 Deep Matcher ocenia najlepiej w obejrzanych pierwszych 100 klatkach.

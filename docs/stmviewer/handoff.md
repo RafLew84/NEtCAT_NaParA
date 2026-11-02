@@ -1,3 +1,28 @@
+# REG-12: pobrane zasoby i próba środowiska — 2026-11-02
+
+Zlecenie użytkownika: „ściągnij wymagane elementy”. Przygotowano kod
+MatchAnything i oficjalny checkpoint ELoFTR w
+`/home/rlew/.cache/stmviewer/matchanything/`.
+[Pełne ścieżki, wersje, SHA i wyniki](registration/matchanything-environment.md).
+Commit dokumentacji podano w odpowiedzi sesji; lokalne modele nie trafiają do Git.
+
+- Kod HF przypięty do `6a7bcb589ec8da3a9e861e799122beaa5eba2193`;
+  163 pliki zweryfikowane względem Git blob SHA i lokalnego manifestu SHA-256.
+- Checkpoint 64 366 723 B pobrany z oficjalnego Drive, wyłącznie członek
+  ELoFTR archiwum ZIP. CRC i SHA sprawdzone; ścisłe ładowanie poprawne.
+- Próby rzeczywiste CPU/CUDA na wzorcu 256²: błąd osi poniżej 0,032 px,
+  bez prób sieci. Punkty przeszły konsensus v2 Viewera ze statusem `manual_review`.
+- 213 pakietów `netcat` ma identyczne wersje przed i po; `pip check` czyste.
+  Nie instalowano zależności i nie tworzono środowiska. Pominięto wrapper
+  treningowy Lightning; produkcyjny import wymaga izolacji globalnego `src`.
+- Zachowano licencje HF i GitHub z odnotowaniem rozbieżności ich treści.
+
+REG-12 pozostaje **ready-for-agent**; kryteria funkcji nie są oznaczone
+jako wykonane. Brak zmian kodu aplikacji, wspólnych modułów i konfiguracji.
+Nie powtarzano testów Viewera; nie wykonano nowej próby manualnej GUI,
+pełnych filmów STM, Windows ani stanowiska 8 GB VRAM.
+Brak potrzebnych zmian integracyjnych, publikacji i scalania.
+
 # REG-11: odbiór manualny — 2026-11-02
 
 Użytkownik potwierdził **„testy manualne ok”**. REG-11 zmieniono na `done`;

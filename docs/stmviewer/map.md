@@ -11,6 +11,12 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-02: na zlecenie użytkownika pobrano kod i wagi
+  [MatchAnything-ELoFTR](registration/matchanything-environment.md).
+  Próby CPU/CUDA zaliczone w niezmienionym `netcat`; nie potrzeba instalacji
+  dodatkowych bibliotek dla sprawdzonego importu modelu. REG-12 pozostaje
+  `ready-for-agent`, bez rozpoczęcia integracji aplikacji.
+
 - 2026-11-02: użytkownik potwierdził „testy manualne ok” dla
   [REG-11](registration/issues/11-roma-v2.md). Status `done`;
   REG-12 odblokowany, lecz jego implementacja wymaga osobnego zlecenia.

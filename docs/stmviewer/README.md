@@ -20,6 +20,11 @@ Pełne MOVIE_4/MOVIE_8 mają łańcuch i LS. Użytkownik potwierdził
 „testy manualne ok”; odbiór REG-11 zamknięty.
 [Opis środowiska](registration/roma-environment.md).
 
+**REG-12: zasoby przygotowane (2026-11-02).** Kod i wagi MatchAnything-ELoFTR
+[zweryfikowano na CPU/CUDA](registration/matchanything-environment.md)
+w istniejącym `netcat`, bez instalowania bibliotek. Integracja metody
+pozostaje `ready-for-agent`; nie jest jeszcze dostępna w GUI.
+
 Program do przeglądania obrazów i sekwencji STP/S94/MPP, rejestracji
 oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 
