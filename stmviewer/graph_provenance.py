@@ -152,3 +152,18 @@ def lightglue_graph_config(window: int, provenance: tuple[tuple[str, str], ...],
     """Record both feature models and the shared original-pixel consensus."""
     files = tuple('stmviewer/' + path.name for path in sorted(Path(__file__).parent.glob('lightglue_*.py')))
     return _correspondence_graph_config(window, provenance, consensus, 'lightglue_superpoint', files)
+
+
+def akaze_graph_config(window: int, provenance: tuple[tuple[str, str], ...],
+                       consensus: dict[str, object]) -> GraphConfig:
+    """Record a CPU correspondence provider without inventing model resources."""
+    settings = {**dict(provenance), 'cache_max_pairs': str(MAX_CACHED_PAIRS),
+                **{f'consensus_{key}': str(value) for key, value in consensus.items()}}
+    root = Path(__file__).resolve().parent.parent
+    files = ('stmviewer/akaze_matcher.py', 'stmviewer/correspondence_consensus.py',
+             'stmviewer/correspondence_types.py', 'stmviewer/graph_provenance.py',
+             'stmviewer/graph_backends.py', 'stmviewer/graph_registration.py')
+    libraries = tuple((key.removeprefix('library_'), value) for key, value in provenance
+                      if key.startswith('library_'))
+    return GraphConfig(window, None, None, 'cpu', 'CPU', tuple(sorted(settings.items())),
+                       libraries, _code_version(root, files), settings_version=2, method='akaze')

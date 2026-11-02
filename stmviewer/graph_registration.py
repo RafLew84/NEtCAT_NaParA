@@ -8,6 +8,7 @@ import warnings
 
 import numpy as np
 
+from stmviewer.akaze_matcher import AkazeBackend
 from stmviewer.lightglue_matcher import LightGlueBackend
 from stmviewer.graph_types import GraphConfig, GraphEdge, GraphSource, GraphTrial
 from stmviewer.registration import RegistrationCancelled, RegistrationError, estimate_confidence
@@ -239,7 +240,7 @@ def register_graph(frames: tuple[ImageFrame, ...], *, window: int = 3,
                                        local_diagnostics=(backend.last_diagnostics
                                                           if isinstance(backend, DeepLocalBackend) else None),
                                        correspondence_diagnostics=(backend.last_diagnostics
-                                                                   if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend, LightGlueBackend)) else None)))
+                                                                   if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend, LightGlueBackend, AkazeBackend)) else None)))
             else:
                 edges.append(GraphEdge(i, j, (float(shift[0]), float(shift[1])),
                                        status, quality_score=score,
@@ -248,10 +249,10 @@ def register_graph(frames: tuple[ImageFrame, ...], *, window: int = 3,
                                        local_diagnostics=(backend.last_diagnostics
                                                           if isinstance(backend, DeepLocalBackend) else None),
                                        correspondence_diagnostics=(backend.last_diagnostics
-                                                                   if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend, LightGlueBackend)) else None)))
+                                                                   if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend, LightGlueBackend, AkazeBackend)) else None)))
             report(done, f'{label}: klatki {i + 1}–{j + 1}')
     finally:
-        if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend, LightGlueBackend)):
+        if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend, LightGlueBackend, AkazeBackend)):
             backend.close()
     elapsed = perf_counter() - start
     pair_context = ''

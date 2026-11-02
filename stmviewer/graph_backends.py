@@ -3,6 +3,8 @@
 from dataclasses import asdict, replace
 from typing import Callable
 
+from stmviewer.akaze_matcher import AKAZE_METHOD, AkazeBackend
+from stmviewer.graph_provenance import akaze_graph_config
 from stmviewer.lightglue_matcher import LIGHTGLUE_METHOD, load_lightglue_backend
 from stmviewer.efficient_matcher import EFFICIENT_METHOD, load_efficient_backend
 from stmviewer.roma_matcher import ROMA_METHOD, load_roma_backend
@@ -21,6 +23,13 @@ def load_graph_backend(method: str, options: DeepMatcherOptions, window: int, *,
                        progress: Callable[[str], None], cancelled: Callable[[], bool] | None,
                        ) -> tuple[ShiftBackend, GraphConfig]:
     graph_method_label(method)
+    if method == AKAZE_METHOD:
+        akaze = AkazeBackend(cancelled=cancelled, progress=progress)
+        try:
+            return akaze, akaze_graph_config(window, akaze.provenance, asdict(akaze.config))
+        except BaseException:
+            akaze.close()
+            raise
     if method == LIGHTGLUE_METHOD:
         lightglue = load_lightglue_backend(options, progress=progress, cancelled=cancelled)
         try:

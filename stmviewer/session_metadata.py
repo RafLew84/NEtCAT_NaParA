@@ -119,13 +119,15 @@ def _uses_lightglue(value: object) -> bool:
 
 def _root(value: object) -> dict[str, object]:
     record = json_object(value)
-    if record.get('schema') != 'stmviewer-state-v8' and _uses_lightglue(record):
+    if record.get('schema') != 'stmviewer-state-v9' and _uses_model(record, ('akaze', 'AKAZE'), ()):
+        raise ValueError('AKAZE wymaga stanu sesji v9.')
+    if record.get('schema') not in ('stmviewer-state-v8', 'stmviewer-state-v9') and _uses_lightglue(record):
         raise ValueError('LightGlue + SuperPoint wymaga stanu sesji v8.')
-    if record.get('schema') not in ('stmviewer-state-v7', 'stmviewer-state-v8') and _uses_matchanything(record):
+    if record.get('schema') not in ('stmviewer-state-v7', 'stmviewer-state-v8', 'stmviewer-state-v9') and _uses_matchanything(record):
         raise ValueError('MatchAnything-ELoFTR wymaga stanu sesji v7.')
     if record.get('schema') == 'stmviewer-state-v1':
         return json_object(record, _ROOT_KEYS)
-    if record.get('schema') in ('stmviewer-state-v2', 'stmviewer-state-v3', 'stmviewer-state-v4', 'stmviewer-state-v5', 'stmviewer-state-v6', 'stmviewer-state-v7', 'stmviewer-state-v8'):
+    if record.get('schema') in ('stmviewer-state-v2', 'stmviewer-state-v3', 'stmviewer-state-v4', 'stmviewer-state-v5', 'stmviewer-state-v6', 'stmviewer-state-v7', 'stmviewer-state-v8', 'stmviewer-state-v9'):
         return json_object(record, _ROOT_KEYS | {'graph'})
     raise ValueError('Nieobsługiwana wersja stanu sesji.')
 
@@ -419,7 +421,7 @@ def _decode_registration(value: object, originals: tuple[ImageFrame, ...],
         predecessor=decode_movie_snapshot(record.get('predecessor'), originals, check_cancelled),
     )
     if result.correspondence_diagnostics:
-        if method not in ('EfficientLoFTR', 'RoMa v2', 'MatchAnything-ELoFTR', 'LightGlue + SuperPoint'):
+        if method not in ('EfficientLoFTR', 'RoMa v2', 'MatchAnything-ELoFTR', 'LightGlue + SuperPoint', 'AKAZE'):
             raise ValueError('Sesja: metoda nie odpowiada diagnostyce korespondencji.')
         for original, diagnostic in zip(originals, result.correspondence_diagnostics, strict=True):
             shape = (original.data.shape[0], original.data.shape[1])
@@ -536,6 +538,9 @@ def encode_session(state: SessionState, *, check_cancelled: Callable[[], None] =
         display['lightglue_options'] = lightglue_record
     if _uses_lightglue(manifest):
         manifest['schema'] = 'stmviewer-state-v8'
+        manifest.setdefault('graph', None)
+    if _uses_model(manifest, ('akaze', 'AKAZE'), ()):
+        manifest['schema'] = 'stmviewer-state-v9'
         manifest.setdefault('graph', None)
     decode_session(manifest, arrays, check_cancelled=check_cancelled)
     return manifest, arrays

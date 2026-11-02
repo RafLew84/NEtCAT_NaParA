@@ -27,6 +27,7 @@ _CORRESPONDENCE_SCHEMAS = {
     'roma_v2': 'stmviewer-graph-v6',
     'matchanything_eloftr': 'stmviewer-graph-v7',
     'lightglue_superpoint': 'stmviewer-graph-v8',
+    'akaze': 'stmviewer-graph-v9',
 }
 
 
@@ -112,6 +113,9 @@ def decode_graph_config(value: object) -> GraphConfig:
     method = 'deep_matcher_translation' if version == 1 else _text(record['method'])
     if method not in REGISTRATION_METHODS:
         raise ValueError('Graf: nieobsługiwana metoda pomiaru.')
+    if method == 'akaze':
+        from stmviewer.correspondence_metadata import validate_akaze_provenance
+        validate_akaze_provenance(_settings(record['backend_settings']))
     if method == 'roma_v2':
         from stmviewer.correspondence_metadata import validate_roma_provenance
         validate_roma_provenance(_settings(record['backend_settings']))

@@ -7,6 +7,7 @@ from typing import Callable, Literal
 import numpy as np
 from numpy.typing import NDArray
 
+from stmviewer.akaze_matcher import AKAZE_METHOD, AKAZE_LABEL, AkazeBackend
 from stmviewer.lightglue_matcher import LIGHTGLUE_METHOD, LightGlueBackend, load_lightglue_backend
 from stmviewer.correspondence_types import CorrespondenceDiagnostics, CorrespondenceRefusal
 from stmviewer.efficient_matcher import EFFICIENT_METHOD, EfficientBackend, load_efficient_backend
@@ -84,7 +85,10 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
         raise RegistrationError(f'{prefix}: para wymaga skończonych próbek; wejście zawiera NaN/Inf.')
     device = 'CPU'
     settings = 'Oryginały; ustawienia NanoTrack'
-    if method == LIGHTGLUE_METHOD:
+    if method == AKAZE_METHOD:
+        akaze = AkazeBackend(cancelled=cancelled, progress=report)
+        backend, settings = akaze, akaze.settings_text
+    elif method == LIGHTGLUE_METHOD:
         lightglue = load_lightglue_backend(deep_options or DeepMatcherOptions(),
                                          cancelled=cancelled, progress=report)
         backend, device, settings = lightglue, lightglue.device, lightglue.settings_text
@@ -118,7 +122,7 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
     try:
         configuration = getattr(backend, 'config', None)
         # The local wrapper already describes both stages and its full configuration.
-        if (not isinstance(backend, (DeepLocalBackend, EfficientBackend, RomaBackend, MatchAnythingBackend, LightGlueBackend))
+        if (not isinstance(backend, (DeepLocalBackend, EfficientBackend, RomaBackend, MatchAnythingBackend, LightGlueBackend, AkazeBackend))
                 and is_dataclass(configuration) and not isinstance(configuration, type)):
             settings += '; ' + '; '.join(f'{k}={v}' for k, v in asdict(configuration).items())
         report(f'{label}: wyznaczanie przesunięcia pary…')
@@ -147,10 +151,10 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
             method, label, settings, device, (float(result.shift_xy[0]), float(result.shift_xy[1])),
             status, quality, hybrid=backend.last_diagnostics if isinstance(backend, DeepEccBackend) else None,
             local=backend.last_diagnostics if isinstance(backend, DeepLocalBackend) else None,
-            correspondence=backend.last_diagnostics if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend, LightGlueBackend)) else None,
+            correspondence=backend.last_diagnostics if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend, LightGlueBackend, AkazeBackend)) else None,
         )
     finally:
-        if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend, LightGlueBackend)):
+        if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend, LightGlueBackend, AkazeBackend)):
             backend.close()
 
 

@@ -187,7 +187,7 @@ class STMViewerMainWindow(QMainWindow):
         self._graph.open_button.clicked.connect(lambda: self._graph.open_graph(
             self._frames, self._registration, self._deep_controls.options(),
             method=str(self._method.currentData())
-            if self._method.currentData() in ('roma_v2', 'matchanything_eloftr', 'lightglue_superpoint') else None))
+            if self._method.currentData() in ('roma_v2', 'matchanything_eloftr', 'lightglue_superpoint', 'akaze') else None))
         self._graph.busy_changed.connect(self._pair_busy_changed)
         self._graph.movie_apply_requested.connect(self._apply_graph_movie)
         self._graph.movie_restore_requested.connect(self._restore_graph_movie)

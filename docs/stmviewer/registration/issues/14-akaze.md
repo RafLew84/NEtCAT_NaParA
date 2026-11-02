@@ -3,8 +3,9 @@
 **What to build:** Użytkownik rejestruje parę, film lub graf metodą AKAZE
 na CPU, bez modeli sieciowych, i porównuje wynik z Deep, RoMa i LightGlue.
 **Blocked by:** [REG-13](13-lightglue-superpoint.md), w tym odbiór manualny — spełnione 2026-11-02.
-**Status:** ready-for-agent
-**Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
+**Status:** in-progress
+**Wykonawca:** Codex; baza przeglądu `cc8dfcd`.
+**Manualny odbiór:** niewykonany; implementacja w toku.
 **Dodano do planu:** 2026-11-02, na zlecenie użytkownika.
 
 Obowiązują [plan](../README.md), [protokół](../manual-protocol.md),

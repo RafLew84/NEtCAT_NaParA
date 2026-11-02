@@ -12,6 +12,7 @@ from nanotrack.core import RegistrationFrameResult
 import numpy as np
 from numpy.typing import NDArray
 
+from stmviewer.akaze_matcher import AKAZE_METHOD, AKAZE_LABEL, AkazeBackend
 from stmviewer.lightglue_matcher import (
     LIGHTGLUE_METHOD, LIGHTGLUE_LABEL, LightGlueBackend, load_lightglue_backend,
 )
@@ -44,6 +45,7 @@ CPU_METHODS = {
     "tile_correlation_ransac": "Tile+RANSAC",
     "ecc_translation": "ECC",
     "optical_flow_median": "Optical Flow",
+    AKAZE_METHOD: AKAZE_LABEL,
 }
 
 
@@ -160,7 +162,9 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
             raise RegistrationError(f"{prefix}: {label} wymaga skończonych próbek; wejście zawiera NaN/Inf.")
     device = 'CPU'
     completed_pairs = 0
-    if method == LIGHTGLUE_METHOD:
+    if method == AKAZE_METHOD:
+        backend = AkazeBackend(cancelled=cancelled, progress=lambda text: report(completed_pairs, text))
+    elif method == LIGHTGLUE_METHOD:
         lightglue = load_lightglue_backend(
             deep_options or DeepMatcherOptions(),
             progress=lambda text: report(completed_pairs, text), cancelled=cancelled,
@@ -236,7 +240,7 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
                 raise RegistrationError(f"Para {i} → {i + 1}: {reason}") from error
             diagnostics.append(backend.last_diagnostics if isinstance(backend, DeepEccBackend) else None)
             local_diagnostics.append(backend.last_diagnostics if isinstance(backend, DeepLocalBackend) else None)
-            correspondence_diagnostics.append(backend.last_diagnostics if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend, LightGlueBackend)) else None)
+            correspondence_diagnostics.append(backend.last_diagnostics if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend, LightGlueBackend, AkazeBackend)) else None)
             completed_pairs = i
             shifts.append((shifts[-1][0] + float(pair.shift_xy[0]),
                            shifts[-1][1] + float(pair.shift_xy[1])))
@@ -249,7 +253,7 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
             statuses.append(max(statuses[-1], pair_status, key=severity.__getitem__))
             report(i + 1, f"{label}: para {i} → {i + 1}")
     finally:
-        if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend, LightGlueBackend)):
+        if isinstance(backend, (EfficientBackend, RomaBackend, MatchAnythingBackend, LightGlueBackend, AkazeBackend)):
             backend.close()
     rendered = render_registration(
         frames, tuple(shifts), tuple(statuses), tuple(qualities),
@@ -261,7 +265,7 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
     return replace(rendered, pair_diagnostics=tuple(diagnostics) if method == HYBRID_METHOD else (),
                    local_diagnostics=tuple(local_diagnostics) if method == LOCAL_METHOD else (),
                    correspondence_diagnostics=(tuple(correspondence_diagnostics)
-                                               if method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD, LIGHTGLUE_METHOD) else ()))
+                                               if method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD, LIGHTGLUE_METHOD, AKAZE_METHOD) else ()))
 
 
 def render_registration(
@@ -347,6 +351,8 @@ def create_shift_backend(method: str) -> ShiftBackend:
     """Use NanoTrack defaults or the explicit unnormalized variant; never substitute."""
     if method not in CPU_METHODS:
         raise RegistrationError(f"Nieznana metoda rejestracji: {method}")
+    if method == AKAZE_METHOD:
+        return AkazeBackend()
     if method == "phase_no_normalization":
         from nanotrack.registration.phase_correlation import (
             PhaseCorrelationShiftBackend, PhaseCorrelationShiftConfig,
@@ -373,7 +379,7 @@ def create_shift_backend(method: str) -> ShiftBackend:
 
 def estimate_confidence(method: str, result: RegistrationFrameResult) -> tuple[str, float | None]:
     """Do not reuse the phase-peak score for an unnormalized estimate."""
-    if method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD, LIGHTGLUE_METHOD):
+    if method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD, LIGHTGLUE_METHOD, AKAZE_METHOD):
         if result.status not in ('manual_review', 'low_confidence'):
             raise ValueError('nieprawidłowy status wyniku dopasowania korespondencji')
         return str(result.status), None

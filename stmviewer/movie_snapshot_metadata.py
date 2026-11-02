@@ -153,7 +153,7 @@ def decode_movie_snapshot(value: object, frames: tuple[ImageFrame, ...],
                                     or device != application.graph.config.device):
         raise ValueError('Zachowany wynik: opis metody nie odpowiada grafowi.')
     correspondence = decode_correspondence_diagnostics(record.get('correspondence_diagnostics', []), len(sources))
-    if correspondence and method not in ('EfficientLoFTR', 'RoMa v2', 'MatchAnything-ELoFTR', 'LightGlue + SuperPoint'):
+    if correspondence and method not in ('EfficientLoFTR', 'RoMa v2', 'MatchAnything-ELoFTR', 'LightGlue + SuperPoint', 'AKAZE'):
         raise ValueError('Zachowany wynik: metoda nie odpowiada diagnostyce korespondencji.')
     for source, diagnostic in zip(sources, correspondence):
         validate_correspondence_shape(diagnostic, source.shape, source.shape)

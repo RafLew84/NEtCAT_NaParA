@@ -58,7 +58,7 @@ def _preparation(value: object) -> ImagePreparation:
     normalization = _text(record['normalization'])
     channels = _integer(record['channels'], 1)
     if (normalization, channels) not in (('minmax-float32-v1', 1), ('minmax-float32-rgb-v1', 3),
-                                         ('minmax-uint8-demo-gray-v1', 1)):
+                                         ('minmax-uint8-demo-gray-v1', 1), ('minmax-uint8-round-v1', 1)):
         raise ValueError('Korespondencje: nieobsługiwane przygotowanie obrazu.')
     return ImagePreparation((oh, ow), (mh, mw), (sx, sy), (left, top, right, bottom),
                              (low, high), normalization, channels)
@@ -209,11 +209,40 @@ def validate_lightglue_provenance(provenance: tuple[tuple[str, str], ...]) -> No
         raise ValueError('LightGlue + SuperPoint: nieprawidłowe urządzenie.')
 
 
+
+def validate_akaze_provenance(provenance: tuple[tuple[str, str], ...]) -> None:
+    """Restore AKAZE identity without importing OpenCV or running the estimator."""
+    from stmviewer.akaze_matcher import ADAPTER_VERSION, DETECTOR_CONFIG, MATCHER_CONFIG, NORMALIZATION
+    metadata = dict(_provenance(provenance))
+    expected = {
+        'model': 'AKAZE', 'adapter_version': ADAPTER_VERSION,
+        'detector': DETECTOR_CONFIG, 'matcher': MATCHER_CONFIG,
+        'selection': 'all mutual matches; no distance cutoff or score weighting',
+        'preprocessing': NORMALIZATION + '; native; no padding',
+        'coordinate_mapping': 'original-pixels; scale_xy=1,1',
+        'aggregation': 'translation-consensus-v2',
+        'requested_device': 'cpu', 'actual_device': 'CPU',
+    }
+    if any(metadata.get(key) != value for key, value in expected.items()):
+        raise ValueError('AKAZE: niezgodna konfiguracja detektora, matchera lub urządzenia.')
+    if any(key in metadata for key in ('weights_path', 'weights_sha256', 'extractor_weights_path')):
+        raise ValueError('AKAZE: metoda CPU nie używa plików wag.')
+    _text(metadata.get('library_opencv'))
+    if re.fullmatch('[0-9a-f]{64}', metadata.get('opencv_build_sha256', '')) is None:
+        raise ValueError('AKAZE: brak identyfikatora kompilacji OpenCV.')
+
 def validate_correspondence_method(value: CorrespondenceDiagnostics | None, method: str) -> None:
     """The persisted preparation and provenance must belong to the named estimator."""
     if value is None:
         return
-    if method in ('RoMa v2', 'roma_v2'):
+    if method in ('AKAZE', 'akaze'):
+        validate_akaze_provenance(value.model_provenance)
+        expected = ('minmax-uint8-round-v1', 1)
+        if (value.settings_version != 2 or len(value.preparation) != 2
+                or any(item.scale_xy != (1., 1.) or item.padding_ltrb != (0, 0, 0, 0)
+                       or item.model_shape != item.original_shape for item in value.preparation)):
+            raise ValueError('AKAZE: niezgodna geometria oryginałów lub wersja konsensusu.')
+    elif method in ('RoMa v2', 'roma_v2'):
         validate_roma_provenance(value.model_provenance)
         expected = ('minmax-float32-rgb-v1', 3)
         if len(value.preparation) != 2:

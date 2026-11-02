@@ -98,6 +98,9 @@ def _validate_method(config: GraphConfig) -> None:
     if (config.settings_version not in (1, 2) or config.method not in REGISTRATION_METHODS
             or (config.settings_version == 1 and config.method != 'deep_matcher_translation')):
         raise ValueError('Graf: metoda nie odpowiada wersji ustawień.')
+    if config.method == 'akaze':
+        from stmviewer.correspondence_metadata import validate_akaze_provenance
+        validate_akaze_provenance(config.backend_settings)
     if config.method == 'roma_v2':
         from stmviewer.correspondence_metadata import validate_roma_provenance
         validate_roma_provenance(config.backend_settings)
@@ -136,7 +139,7 @@ def _validate_diagnostics(edge: GraphEdge, config: GraphConfig) -> None:
             raise ValueError('Graf: diagnoza nie odpowiada ustawieniom pomiaru.')
 
     correspondence = edge.correspondence_diagnostics
-    if config.method in ('efficient_loftr', 'roma_v2', 'matchanything_eloftr', 'lightglue_superpoint'):
+    if config.method in ('efficient_loftr', 'roma_v2', 'matchanything_eloftr', 'lightglue_superpoint', 'akaze'):
         if correspondence is None or len(correspondence.preparation) != 2:
             raise ValueError('Graf: niekompletna diagnostyka korespondencji i przygotowanie obrazów.')
         if edge.quality_score is not None or (edge.shift_xy is not None and (
@@ -147,7 +150,7 @@ def _validate_diagnostics(edge: GraphEdge, config: GraphConfig) -> None:
         from stmviewer.correspondence_metadata import decode_correspondence, encode_correspondence
         # Public persistence codec checks finite values, spatial counts and provenance.
         decode_correspondence(encode_correspondence(correspondence))
-        if config.method not in ('efficient_loftr', 'roma_v2', 'matchanything_eloftr', 'lightglue_superpoint'):
+        if config.method not in ('efficient_loftr', 'roma_v2', 'matchanything_eloftr', 'lightglue_superpoint', 'akaze'):
             raise ValueError('Graf: diagnoza korespondencji nie odpowiada metodzie.')
         from stmviewer.correspondence_metadata import validate_correspondence_method
         validate_correspondence_method(correspondence, config.method)

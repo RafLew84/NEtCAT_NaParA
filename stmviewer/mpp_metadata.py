@@ -53,6 +53,8 @@ def _frame(frame: ImageFrame, value: object, version: int = 1, *,
     )
     if version >= 2 and record["alignment"] is not None:
         restored = replace(restored, alignment=decode_alignment(record["alignment"], restored, manual_results=manual_results))
+    if version < 12 and _has_model_history(restored, 'AKAZE', 'akaze'):
+        raise ValueError('AKAZE wymaga dodatku V12.')
     if version < 11 and _has_model_history(restored, 'LightGlue + SuperPoint', 'lightglue_superpoint'):
         raise ValueError('LightGlue + SuperPoint wymaga dodatku V11.')
     if version < 10 and _has_model_history(restored, 'MatchAnything-ELoFTR', 'matchanything_eloftr'):
@@ -90,12 +92,12 @@ def apply_mpp_metadata(path: Path, frames: tuple[ImageFrame, ...], *, sha256: st
         except (UnicodeError, json.JSONDecodeError) as error:
             raise ValueError(f'Nieprawidłowy JSON UTF-8: {error}') from error
         check_cancelled()
-        shared_history = isinstance(decoded, dict) and decoded.get('version') in (4, 5, 7, 8, 9, 10, 11)
+        shared_history = isinstance(decoded, dict) and decoded.get('version') in (4, 5, 7, 8, 9, 10, 11, 12)
         metadata = _object(decoded, {'format', 'version', 'image_kind', 'movie', 'frames'}
                            | ({'manual_results', 'sample_encoding'} if shared_history else set()))
         if metadata['format'] != 'stmviewer-mpp':
             raise ValueError('Nieobsługiwany format dodatku.')
-        if type(metadata['version']) is not int or metadata['version'] not in (1, 2, 3, 4, 5, 7, 8, 9, 10, 11):
+        if type(metadata['version']) is not int or metadata['version'] not in (1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12):
             raise ValueError(f'Nieobsługiwana wersja dodatku: {metadata["version"]}.')
         version = metadata['version']
         assert isinstance(version, int)
@@ -165,7 +167,7 @@ def apply_mpp_metadata(path: Path, frames: tuple[ImageFrame, ...], *, sha256: st
 def encode_mpp_metadata(frames: tuple[ImageFrame, ...], sha256: str, *,
                         check_cancelled: Callable[[], None], image_kind: str = "original",
                         wsxm_compatible: bool = False) -> bytes:
-    """V11 adds LightGlue/SuperPoint provenance; V6 is reserved for a withdrawn feature."""
+    """V12 adds CPU AKAZE provenance; V6 is reserved for a withdrawn feature."""
     validate_alignment_series(frames, aligned=image_kind == "aligned")
     version = 2 if image_kind == "aligned" or any(f.alignment for f in frames) else 1
     if wsxm_compatible:
@@ -190,6 +192,8 @@ def encode_mpp_metadata(frames: tuple[ImageFrame, ...], sha256: str, *,
         version = 10
     if any(_has_model_history(frame, 'LightGlue + SuperPoint', 'lightglue_superpoint') for frame in frames):
         version = 11
+    if any(_has_model_history(frame, 'AKAZE', 'akaze') for frame in frames):
+        version = 12
     finite_fill = wsxm_compatible
     remaining_runs = MAX_RUNS
     records = []
