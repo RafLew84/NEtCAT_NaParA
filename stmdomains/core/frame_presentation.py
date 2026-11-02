@@ -7,7 +7,7 @@ from threading import RLock
 import numpy as np
 
 from stmdomains.core.annotations import FrameAnnotations
-from stmdomains.core.display import RenderedImage, render_image
+from stmdomains.core.display import RenderedImage, contrast_limits, render_image
 from stmdomains.core.registration import parse_registration
 from stmdomains.core.series import FrameData, Series
 from stmdomains.io.annotations import AnnotationStore
@@ -23,6 +23,7 @@ class PresentedFrame:
     annotations: FrameAnnotations
     registration_text: str
     masks: RenderedImage | None
+    gamma: float = 1.0
 
 
 class FramePresenter:
@@ -36,7 +37,8 @@ class FramePresenter:
         self.annotations = AnnotationStore(
             series.raw_payload, series.frame_count, self.registration, series.frame_shape,
         )
-        self._images: OrderedDict[tuple[int, str], RenderedImage] = OrderedDict()
+        self._images: OrderedDict[tuple[int, str, float], RenderedImage] = OrderedDict()
+        self._contrast: dict[int, tuple[float, float] | None] = {}
         self._lock = RLock()
 
     @property
@@ -44,14 +46,25 @@ class FramePresenter:
         with self._lock:
             return sum(item.rgba.nbytes for item in self._images.values())
 
-    def present(self, index: int, mode: str = "raw") -> PresentedFrame:
+    @property
+    def initial_mode(self) -> str:
+        ui = self.series.raw_payload.get("ui")
+        saved = ui.get("registration_view_mode") if isinstance(ui, dict) else None
+        if self.registration.available and saved in ("expanded_aligned", "Show expanded aligned"):
+            return "expanded_aligned"
+        return "raw"
+
+    def present(self, index: int, mode: str = "raw", gamma: float = 1.0) -> PresentedFrame:
         with self._lock:
             frame = self.series.frame(index)
-            key = index, mode
+            key = index, mode, gamma
             rendered = self._images.get(key)
             if rendered is None:
+                if index not in self._contrast:
+                    self._contrast[index] = contrast_limits(frame.image)
                 samples = self.registration.image(frame.image, index, mode)
-                rendered = render_image(samples, reference=frame.image)
+                rendered = render_image(samples, reference=frame.image, gamma=gamma,
+                                        limits=self._contrast[index])
                 if rendered.rgba.nbytes <= 32 * 1024**2:
                     self._images[key] = rendered
             if key in self._images:
@@ -73,5 +86,5 @@ class FramePresenter:
             return PresentedFrame(
                 self.series.identity, frame, rendered, mode,
                 self.registration.field_rect(index, mode), annotations,
-                self.registration.describe(index), masks,
+                self.registration.describe(index), masks, gamma,
             )

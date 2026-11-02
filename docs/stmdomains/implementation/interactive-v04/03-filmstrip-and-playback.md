@@ -6,7 +6,11 @@
 
 **Blocked by:** [01: Otwórz zapis i przeglądaj obrazy](01-open-images.md).
 
-**Status:** draft — podział oczekuje na zatwierdzenie użytkownika.
+**Status:** in_progress — realizacja na polecenie użytkownika `implement 03`.
+
+Baza implementacji i przeglądu: `d862333`, gałąź `domains/interactive-v04-ui`.
+Środowisko: `netcat`. Testy przez publiczne interfejsy renderera, paska miniatur,
+kontrolera i pełną ścieżkę import–widok, zgodnie z kryteriami podglądu.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 

@@ -2,7 +2,7 @@
 
 import json
 
-from PyQt6.QtCore import QSignalBlocker, Qt
+from PyQt6.QtCore import QEvent, QObject, QSignalBlocker, Qt
 from PyQt6.QtGui import QCloseEvent, QKeySequence
 from PyQt6.QtWidgets import (
     QDialog, QHBoxLayout, QLabel, QMainWindow, QPlainTextEdit,
@@ -14,7 +14,9 @@ from stmdomains.core.series import Series
 from stmdomains.core.annotations import Detection, Segmentation
 from stmdomains.ui.annotation_controls import AnnotationControls
 from stmdomains.ui.image_view import ImageView
+from stmdomains.ui.filmstrip import Filmstrip
 from stmdomains.ui.import_prompts import ImportPrompts, QtImportPrompts
+from stmdomains.ui.playback_controls import PlaybackControls
 from stmdomains.ui.session_controller import PresentedFrame, SessionController
 
 
@@ -80,10 +82,27 @@ class STMDomainsMainWindow(QMainWindow):
         self.frame_slider.setRange(1, 1)
         self.frame_slider.setEnabled(False)
         self.frame_slider.setTracking(True)
+        self.frame_slider.sliderPressed.connect(self.controller.pause)
         self.frame_slider.valueChanged.connect(
             lambda number: self.controller.show_frame(number - 1)
         )
         layout.addWidget(self.frame_slider)
+        self.filmstrip = Filmstrip()
+        self.filmstrip.frame_selected.connect(self.controller.show_frame)
+        layout.addWidget(self.filmstrip)
+        self.playback_controls = PlaybackControls()
+        self.playback_controls.play.clicked.connect(self._toggle_playback)
+        self.playback_controls.restart.clicked.connect(self.controller.restart)
+        self.playback_controls.rate.currentIndexChanged.connect(
+            lambda: self.controller.set_playback_rate(self.playback_controls.rate.currentData())
+        )
+        self.playback_controls.gamma.valueChanged.connect(self.controller.set_gamma)
+        layout.addWidget(self.playback_controls)
+        for spin_control in (self.frame_number, self.playback_controls.gamma):
+            spin_control.installEventFilter(self)
+            editor = spin_control.lineEdit()
+            if editor is not None:
+                editor.installEventFilter(self)
         self.annotation_status = QLabel()
         self.annotation_status.setWordWrap(True)
         layout.addWidget(self.annotation_status)
@@ -137,6 +156,7 @@ class STMDomainsMainWindow(QMainWindow):
         self.controller.series_changed.connect(self._show_series)
         self.controller.frame_changed.connect(self._show_frame)
         self.controller.busy_changed.connect(self._show_progress)
+        self.controller.playback_changed.connect(self._show_playback)
 
     def _select_frame(self, number: int) -> None:
         # The displayed number changes together with the prepared image.
@@ -145,6 +165,7 @@ class STMDomainsMainWindow(QMainWindow):
         self.controller.show_frame(number - 1)
 
     def _show_series(self, series: Series) -> None:
+        self.filmstrip.set_series(series)
         self.setWindowTitle(f"STM Domains — {series.session_path.name}")
         self.source_label.setText(series.session_path.name)
         self.source_label.setToolTip(f"{series.session_path}\nMPP: {series.source_path}")
@@ -155,6 +176,8 @@ class STMDomainsMainWindow(QMainWindow):
             self.frame_slider.setRange(1, series.frame_count)
         self.frame_slider.setEnabled(series.frame_count > 1)
         self.details_label.setText("Auto kontrast oryginału · jednostki obrazu: px")
+        self.playback_controls.gamma.setEnabled(True)
+        self.playback_controls.reset_gamma.setEnabled(True)
         for button in (self.fit_button, self.zoom_in_button, self.zoom_out_button):
             button.setEnabled(True)
 
@@ -163,6 +186,9 @@ class STMDomainsMainWindow(QMainWindow):
         if series is None:
             return
         frame = view.frame
+        self.filmstrip.set_current_index(frame.working_index)
+        with QSignalBlocker(self.playback_controls.gamma):
+            self.playback_controls.gamma.setValue(view.gamma)
         height, width = view.rendered.rgba.shape[:2]
         self._presented = view
         self.image_view.set_frame(view)
@@ -196,17 +222,37 @@ class STMDomainsMainWindow(QMainWindow):
         self._sync_frame_slider()
         self.previous_button.setEnabled(frame.working_index > 0)
         self.next_button.setEnabled(frame.working_index < series.frame_count - 1)
+        self._show_playback()
 
     def _show_progress(self, busy: bool, text: str) -> None:
         self.progress_label.setText(text)
         self.progress_bar.setVisible(busy)
         self.cancel_button.setVisible(busy)
+        self._show_playback()
         if not busy:
             self._sync_frame_slider()
+            with QSignalBlocker(self.playback_controls.gamma):
+                self.playback_controls.gamma.setValue(self.controller.gamma)
             with QSignalBlocker(self.annotation_controls.view_mode):
                 self.annotation_controls.view_mode.setCurrentIndex(
                     0 if self.controller.view_mode == "raw" else 1
                 )
+
+    def _toggle_playback(self) -> None:
+        if self.controller.is_playing:
+            self.controller.pause()
+        else:
+            self.controller.play()
+
+    def _show_playback(self, playing: bool | None = None) -> None:
+        controls, controller = self.playback_controls, self.controller
+        at_end = controller.series is not None and controller.current_index == controller.series.frame_count - 1
+        controls.play.setText("⏸ Pauza" if controller.is_playing else (
+            "▶ Od początku" if at_end else "▶ Odtwórz"
+        ))
+        controls.play.setEnabled(controller.can_play)
+        controls.restart.setEnabled(controller.can_play)
+        controls.rate.setEnabled(controller.can_play)
 
     def _select_view(self, index: int) -> None:
         self.controller.set_view_mode("raw" if index == 0 else "expanded_aligned")
@@ -237,6 +283,7 @@ class STMDomainsMainWindow(QMainWindow):
         )
 
     def _show_text(self, title: str, text: str) -> None:
+        self.controller.pause()
         dialog = QDialog(self)
         dialog.setWindowTitle(title)
         dialog.resize(680, 480)
@@ -270,5 +317,11 @@ class STMDomainsMainWindow(QMainWindow):
             self.frame_slider.setValue(self.controller.current_index + 1)
 
     def closeEvent(self, event: QCloseEvent | None) -> None:
+        self.filmstrip.shutdown()
         self.controller.shutdown()
         super().closeEvent(event)
+
+    def eventFilter(self, watched: QObject | None, event: QEvent | None) -> bool:
+        if event is not None and event.type() in (QEvent.Type.FocusIn, QEvent.Type.MouseButtonPress):
+            self.controller.pause()
+        return super().eventFilter(watched, event)
