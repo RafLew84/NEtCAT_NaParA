@@ -11,6 +11,14 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-02: wdrożono [REG-14: AKAZE](registration/issues/14-akaze.md),
+  status `ready-for-review`. [Instrukcja](registration/akaze-manual.md),
+  [wyniki 72 prób](registration/akaze-results.md), [testy](registration/reviews/REG-14.md).
+  Metoda CPU bez wag działa w parze, filmie, grafie, sesji i eksporcie.
+  AKAZE odmówił 18/18 wybranych par STM; pełne grafy są rozłączne.
+  Kompletny wzorzec przeszedł cały cykl. Odbiór manualny jeszcze niewykonany.
+  Poniższe wpisy zachowują historię wcześniejszych zleceń i odbiorów.
+
 - 2026-11-02: użytkownik potwierdził testy manualne [REG-13](registration/issues/13-lightglue-superpoint.md)
   po diagnozie odmowy 2/32. Status `done`; ograniczenia LightGlue na MOVIE_4/MOVIE_8
   pozostają zapisane. REG-14 odblokowany, czeka na osobne zlecenie.

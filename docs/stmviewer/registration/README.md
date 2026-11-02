@@ -10,7 +10,12 @@ i grafie, z zapisem sesji i eksportem. [Instrukcja](lightglue-manual.md),
 814 testów Viewera zaliczonych; osobno rzeczywiste próby CPU/CUDA.
 LightGlue dał wynik dla 12/18 par; pełne grafy MOVIE_4/MOVIE_8 są rozłączne.
 Użytkownik potwierdził odbiór manualny REG-13 2026-11-02; ograniczenia
-jakości pozostają aktualne. REG-14 jest odblokowany i czeka na osobne zlecenie.
+jakości pozostają aktualne. **REG-14: ready-for-review** — AKAZE działa
+na CPU bez wag; [instrukcja](akaze-manual.md), [wyniki](akaze-results.md),
+[środowisko](akaze-environment.md), [przeglądy](reviews/REG-14.md).
+18 prób AKAZE uzupełnia porównanie do 72; wszystkie te próby STM zakończyły
+się odmową, pełne grafy pozostały rozłączne. Cykl na znanym wzorcu działa.
+Manualny odbiór REG-14 oczekuje potwierdzenia użytkownika.
 [Kod i oba checkpointy](lightglue-environment.md) są lokalne; `netcat`
 nie wymagał instalowania pakietów.
 
@@ -166,8 +171,8 @@ REG-12 ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-02.
 REG-13 ma status `done`: wdrożono metodę i wykonano pilotaż 54 prób par,
 wzorce oraz oba pełne filmy. Użytkownik potwierdził odbiór 2026-11-02,
 po diagnozie odmowy 2/32; ograniczenia metody pozostają zapisane.
-REG-14 ma status `ready-for-agent` ze spełnioną blokadą REG-13;
-dołoży 18 wyników AKAZE do wspólnego porównania po osobnym zleceniu.
+REG-14 ma status `ready-for-review`: metoda oraz 18 dodatkowych prób AKAZE
+są gotowe; ograniczenia jakości opisuje raport. Odbiór manualny niewykonany.
 REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
 REG-08d ma status `planned` jako odłożony po wycofaniu implementacji; REG-09

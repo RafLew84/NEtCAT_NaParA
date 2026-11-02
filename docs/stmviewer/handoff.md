@@ -1,3 +1,41 @@
+# REG-14: AKAZE do odbioru — 2026-11-02
+
+Baza cc8dfcd; implementacja a9abf0f; poprawka po przeglądzie 9dd0337.
+Commit dokumentacji podano w końcowej odpowiedzi.
+Status **ready-for-review**, manualny odbiór użytkownika niewykonany.
+[Ticket](registration/issues/14-akaze.md), [instrukcja GUI](registration/akaze-manual.md),
+[wyniki](registration/akaze-results.md), [środowisko](registration/akaze-environment.md),
+[testy i dwa przeglądy](registration/reviews/REG-14.md).
+
+AKAZE/MLDB + wzajemny Hamming na CPU jest dostępne w parze, łańcuchu i grafie
+LS/Huber. Bez wag, modeli, CUDA i instalowania zależności. Ten sam konsensus
+v2, natywne piksele i jawne przygotowanie min/max uint8. Metoda i konfiguracja
+przetrwają sesję, MPP, ręczną korektę i cofnięcie; v9 sesji/grafu, v12 dodatku MPP.
+Błędy/anulowanie zachowują wcześniejszą pracę, brak cech jest lokalną odmową.
+
+**Jakość:** 0/18 wyników dla wybranych par STM. Pełne grafy:
+MOVIE_4 192/1080 relacji, 243 składowe; MOVIE_8 33/246 relacji, 55 składowych.
+Oba łańcuchy odmawiają już na pierwszej parze. Nie obniżano progów.
+Pełny cykl, korekta, sesja, MPP i AVI przeszły na lokalnym known.mpp
+(ośmioklatkowy wzorzec). Dotychczasowy cpu.mpp ma za mało cech dla AKAZE.
+
+**Automatyczne:** końcowy Viewer 840 passed / 36 skipped; mypy 100 plików bez
+błędów. Pełne repo przed wąską poprawką: 2624 passed / 14 failed / 50 skipped;
+14 awarii identycznych z REG-12, poza Viewerem. Po poprawce wykonano cały Viewer.
+Realne próby czterech metod obejmują 72 wyniki/odmowy, z weryfikacją historycznych
+wejść i kodu baz. Próby CPU/modelów oraz automatyczne Qt nie są odbiorem ręcznym.
+Odbiór GUI/VLC i Windows jeszcze niewykonany.
+
+Przeglądy: Standards 0 naruszeń i 1 nieblokująca uwaga o powtórzeniu stałej
+konfiguracji; Spec wykrył P2 dla jednowierszowych/kolumnowych wejść,
+poprawiony i ponownie sprawdzony. Pliki kodu maksymalnie 987 linii.
+
+Zmiany wyłącznie w stmviewer/, tests/stmviewer/ i docs/stmviewer/.
+Nie ma nowych potrzeb wspólnego kodu, scalania ani publikacji gałęzi.
+Dane/artefakty pozostają w ignorowanym data/registration-reg14/.
+Zachowano pliki użytkownika proba.stmtrial.json, proba2.stmtrial.json
+i sesja.stmsession. Poniżej historia wcześniejszych przekazań.
+
 # REG-13: odbiór manualny — 2026-11-02
 
 Użytkownik potwierdził testy manualne po diagnozie odmowy 2/32.

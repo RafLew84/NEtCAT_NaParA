@@ -38,8 +38,18 @@ LightGlue dostarczył wynik dla 12/18 par, ale odmowy rozłączyły pełne grafy
 MOVIE_4/MOVIE_8. Użytkownik potwierdził odbiór manualny po diagnozie
 odmowy 2/32; ograniczenia jakości pozostają aktualne.
 [Zasoby](registration/lightglue-environment.md) są lokalne; obecny `netcat`
-nie wymagał dodatkowych instalacji. [REG-14: AKAZE](registration/issues/14-akaze.md)
-pozostaje `ready-for-agent` ze spełnioną blokadą REG-13; czeka na osobne zlecenie.
+nie wymagał dodatkowych instalacji.
+
+**REG-14: AKAZE — ready-for-review (2026-11-02).**
+Nowa metoda CPU bez wag działa w parze, filmie i grafie LS/Huber,
+z zachowaniem sesji, korekt i eksportu.
+[Instrukcja ręczna](registration/akaze-manual.md),
+[porównanie czterech metod](registration/akaze-results.md),
+[środowisko](registration/akaze-environment.md),
+[testy i przeglądy](registration/reviews/REG-14.md).
+Na znanym wzorcu cały cykl działa, ale AKAZE odmówił wszystkich 18 wybranych
+par STM i nie utworzył pełnego grafu MOVIE_4/MOVIE_8.
+Manualny odbiór użytkownika niewykonany.
 
 Program do przeglądania obrazów i sekwencji STP/S94/MPP, rejestracji
 oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
@@ -210,7 +220,7 @@ MPP pokazuje numer źródłowej klatki oraz dostępny czas pomiaru, także przy
 częściowych brakach: [instrukcja próby MPP](mpp-series-manual.md).
 Play/Pause, tempo 1/2/5/10/20/30 kl./s i pętla działają; ręczny wybór
 zatrzymuje film. [Instrukcja odtwarzania](playback-manual.md).
-Rejestracja Phase, Tile+RANSAC, ECC i Optical Flow działa w tle z postępem i anulowaniem. Wynik aligned ma
+Rejestracja Phase, Tile+RANSAC, ECC, Optical Flow i AKAZE działa w tle z postępem i anulowaniem. Wynik aligned ma
 pełny obszar, obrys źródła i oznaczenia niepewności; przełącznik original/aligned
 zachowuje osobne kadry. [Instrukcja rejestracji](phase-registration-manual.md).
 [Próba metod CPU](cpu-registration-manual.md) opisuje wybór metody,
