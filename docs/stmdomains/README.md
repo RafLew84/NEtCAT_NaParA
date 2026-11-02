@@ -5,6 +5,15 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-02
 
+**Rozszerzenia planu UI — 2026-11-02:** dodano
+[SD-V4-16–20](implementation/interactive-v04/README.md#rozszerzenia):
+pomiary geometrii na obrazie, tolerancje tworzenia domen, ograniczona próba
+freud, a jako dalsze warunkowe kroki FFT/NMF i wspólny katalog typów.
+16–18 mają przygotowany zakres `ready-for-agent`, 19–20 status `deferred`.
+Każdy ticket ma zależności i test ręczny; nadal obowiązuje limit 1000/1500
+linii. Nie wykonano implementacji, instalacji ani nowych badań.
+Wcześniejsze 01–15 pozostają `draft`, a badawcze 04/13 otwarte.
+
 **Tickety interaktywnego UI v0.4 — 2026-11-02:**
 [indeks 15 ticketów SD-V4](implementation/interactive-v04/README.md)
 prowadzi od otwarcia obrazów do analizy, regulacji parametrów, ręcznego K,

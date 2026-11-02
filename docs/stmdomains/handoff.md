@@ -1,3 +1,40 @@
+# STM Domains — rozszerzenia planu interaktywnego UI
+
+Data: **2026-11-02**. Użytkownik polecił dopisać omówione rozszerzenia jako
+osobne tickety. Dodano [SD-V4-16–20](implementation/interactive-v04/README.md#rozszerzenia):
+
+- 16: pomiary kierunku, rozstawu i jakości bezpośrednio na obrazie;
+- 17: eksperymentalne tworzenie domen według tolerancji geometrycznych;
+- 18: ograniczona próba freud.EnvironmentCluster bez zadawania K;
+- 19: lokalne FFT/NMF jako dalsza, warunkowa próba porównawcza;
+- 20: wspólny katalog typów w serii i zapis w projekcie, po ocenie stabilności opisu.
+
+16–18 mają status `ready-for-agent`, przy nieukończonych zależnościach;
+19–20 `deferred` z jawnym warunkiem wyboru. Użytkownik zlecił dodanie
+omówionych rozszerzeń, więc nie wymagano ponownego potwierdzenia tego
+zapisu. Podstawowych 01–15 nie zmieniano: pozostają `draft`.
+Każdy nowy ticket zawiera kryteria, test ręczny z oczekiwanym zachowaniem
+i obowiązek kontroli 1000/1500 linii kodu oraz testów. Najkrótsza droga
+do pomiarów to 01 → 02 → 04 → 05 → 16; 17 i 18 wymagają dodatkowo 06.
+
+Porównania zachowują v0.4 oraz sprawdzają jedną sieć, dwie orientacje,
+granicę przesunięcia, braki detekcji i rzeczywistą przerwę. Doprecyzowano
+rozróżnienie typu, orientacji, domeny i porządku 1D/2D, nieokresowe brzegi
+obrazu dla freud oraz brak niezależności statystycznej obrazu i jego detekcji.
+Nie dodano integracji Gwyddion/Atomap/OVITO, GPA, symulacji ani nowego treningu.
+
+Sprawdzenia: przegląd zależności i zakresu przez drugiego agenta, kompletność
+20 ticketów, acykliczność zależności, kroki testów ręcznych, lokalne odnośniki
+i `git diff --check`. Nie uruchamiano aplikacji, testów GUI ani eksperymentów;
+zmiany obejmują wyłącznie plan. Nie instalowano bibliotek. Statusy odbioru
+naukowego i historycznych ticketów pozostają bez zmian.
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/start`,
+baza **`5c78b66`**; commit w odpowiedzi końcowej. Ewentualne wspólne zmiany
+zależności przy realizacji prób należy przekazać integratorowi; obecnie
+brak zmian wspólnych do wykonania.
+
+---
+
 # STM Domains — tickety interaktywnego UI v0.4
 
 Data: **2026-11-02**. Na prośbę użytkownika przygotowano

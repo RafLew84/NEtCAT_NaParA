@@ -1,13 +1,16 @@
 # Interaktywne STM Domains na bazie v0.4
 
-Stan: **draft**, 2026-11-02. Piętnaście osobnych ticketów czeka na
-zatwierdzenie podziału przez użytkownika. To plan implementacji; aplikacja
-nie ma jeszcze opisanych tu funkcji. Po zatwierdzeniu tickety otrzymają
-status `ready-for-agent`. Samo zapisanie planu nie rozpoczyna implementacji.
+Stan: **20 osobnych ticketów**, 2026-11-02. Podstawowe 01–15 zachowują
+status `draft`. Na polecenie użytkownika dodano omówione rozszerzenia:
+16–18 mają status `ready-for-agent` i wymagają ukończenia zależności,
+a dalsze 19–20 status `deferred` z jawnym warunkiem wyboru.
+To plan implementacji; aplikacja nie ma jeszcze opisanych tu funkcji.
+Dodanie rozszerzeń nie rozpoczyna obliczeń ani implementacji i nie zmienia
+statusów wcześniejszych ticketów.
 
 ## Tickety i kolejność
 
-Identyfikatory **SD-V4-01–15** odróżniają tę serię od dawnych ticketów
+Identyfikatory **SD-V4-01–20** odróżniają tę serię od dawnych ticketów
 badawczych 01–26 i implementacyjnych SD-IMPL. Każdy plik zawiera zakres,
 zależności, kryteria akceptacji i instrukcję testu ręcznego.
 
@@ -28,6 +31,11 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [13 — Zapisz projekt i otwórz wynik bez ponownych obliczeń](13-save-open-project.md) | SD-V4-05 | Zapisz projekt i otwórz go bez plików źródłowych. |
 | [14 — Wyeksportuj przypisania i widok do CSV oraz PNG](14-export-csv-png.md) | SD-V4-04 | Otwórz CSV i PNG poza aplikacją i porównaj z widokiem. |
 | [15 — Dostosuj opis otoczenia i bariery obrazu](15-advanced-descriptors-barriers.md) | SD-V4-07 | Zmień opis otoczenia/barier i sprawdź ich wpływ. |
+| [16 — Zobacz kierunek, rozstaw i jakość geometrii na obrazie](16-inspect-local-geometry.md) | SD-V4-05 | Kliknij molekułę i zobacz jej pomiary oraz kierunek na obrazie. |
+| [17 — Porównaj domeny tworzone według tolerancji geometrycznych](17-segment-geometric-tolerances.md) | SD-V4-06, SD-V4-16 | Zmień tolerancje kąta i rozstawu, porównaj domeny z v0.4. |
+| [18 — Porównaj otoczenia molekuł metodą freud bez zadawania K](18-compare-freud-environments.md) | SD-V4-06, SD-V4-16 | Przelicz jedną klatkę metodą freud i obejrzyj końcowe przypisania. |
+| [19 — Porównaj domeny z lokalnego FFT i NMF obrazu](19-compare-local-fft-nmf.md) | SD-V4-06, SD-V4-16; warunek wyboru | Zmień okno analizy obrazu i porównaj wynik na molekułach. |
+| [20 — Zachowaj wspólny katalog typów struktury w serii](20-shared-structural-type-catalogue.md) | SD-V4-08, SD-V4-13, SD-V4-16; warunek wyboru | Sprawdź wspólne typy na kolejnych klatkach i po otwarciu zapisanego projektu. |
 
 Można realizować w kolejności numerów. Zależności pozwalają jednak wybrać
 wcześniej inną gotową funkcję: po 02 można zrobić 04, bez czekania na 03;
@@ -36,11 +44,74 @@ Najkrótsza droga do regulacji parametrów i rzeczywistego wyniku to
 **01 → 02 → 04 → 05 → 06**. Ręczne K wymaga potem 07, a Auto — 11 i 12.
 Analiza serii 08 może korzystać z dostarczonego modelu jeszcze przed 07.
 
+Rozszerzenia można zacząć od **16 po 05**, bez czekania na wszystkie 01–15.
+Po 06 i 16 dostępne są niezależne 17 oraz 18. Jako pierwszą próbę nowej
+biblioteki wybieramy 18; 19 pozostaje dalszym wariantem po jej ocenie,
+jeśli wskażemy informację, którą może wnieść obraz. 20 czeka na stabilny
+opis struktur oraz analizę serii i zapis projektu. Numeracja nie wymusza
+ukończenia wszystkich wcześniejszych numerów.
+
 Nie tworzymy osobnych etapów „sam backend” lub „sam refaktor”. Potrzebne
 wydzielenie operacji v0.4 należy do pierwszego ticketu, który z nich korzysta.
 Każdy ukończony ticket pozostawia uruchamialny program i zachowuje wcześniejsze
-funkcje. Po zatwierdzeniu wykonawca wybiera ticket, którego wszystkie
-zależności są ukończone.
+funkcje. Wykonawca wybiera ticket o uzgodnionym zakresie, którego wszystkie
+zależności są ukończone. `ready-for-agent` oznacza przygotowany zakres,
+a nie ukończenie zależności. `deferred` oznacza zachowany dalszy pomysł;
+warunek jego wyboru jest opisany w pliku. `in_progress` i `done` opisują
+wykonanie, przy czym odbiór programu i pozytywny wynik eksperymentu są odrębne.
+
+## Rozszerzenia
+
+Rozszerzenia wynikają z zaakceptowanej przez użytkownika rekomendacji:
+najpierw czytelne pomiary geometrii i możliwość strojenia, potem ograniczona
+próba porównania otoczeń. FFT/NMF oraz trwały katalog typów są dalszymi
+krokami. Dla pierwszych prób wystarczą obecne obrazy i oznaczenia TTMAPP.
+
+**Co jest nowe:** 16 pokazuje pomiary w aplikacji; 17 wprowadza jeden
+alternatywny sposób tworzenia domen według tolerancji o czytelnych jednostkach;
+18 sprawdza konkretnie EnvironmentCluster; 19 sprawdza jeden przebieg FFT/NMF;
+20 nadaje stabilne znaczenie typom w serii i zapisuje katalog w projekcie.
+Nie wystarczy dopisać kontrolki bez wpływu na obliczenia albo dostarczyć
+raport bez wyniku widocznego w aplikacji.
+
+**Co już istnieje:** v0.4 ma koherencję Fouriera i kontrolę podobieństwa
+całego regionu. Geometrię, dopasowanie sieci i lokalną fazę badano wcześniej.
+Każda próba opisuje różnicę względem tych punktów odniesienia;
+zmiana biblioteki sama nie dowodzi poprawy. Zobacz
+[przegląd v0.4](../../new-code-v04-review.md),
+[próbę fazy](../../phase-boundaries-trial.md) i
+[syntezę badań](../../research-after-training-pilot.md).
+
+**Wspólny sprawdzian:** jedna sieć, dwie orientacje, granica przesunięcia
+przy jednakowym kącie i rozstawie, brakujące centra, rzeczywista przerwa,
+szum oraz rzędy bez potwierdzonej sieci 2D. Dla 17 dochodzi stopniowa zmiana
+orientacji, sprawdzająca zgodność całego regionu. Wykonawca dostarcza małe
+przykłady do otwarcia w tym samym UI, z opisanym oczekiwanym wynikiem.
+Na TTMAPP punktem porównania są klatki 259–266 przy identycznych wejściach.
+Nie dodajemy nowych ręcznych etykiet treningowych; istniejące częściowe
+referencje pozostają materiałem oceny, z ich rzeczywistym zakresem.
+
+**Ocena próby:** przed oceną zapisać ograniczony zestaw ustawień, zakres
+dopasowania i warunki odtwarzania. Raportować błędne scalenia, rozdrobnienie,
+granice oraz odmowy, a udział przypisań osobno. Metryki granic mają znaczenie
+tam, gdzie jest odpowiednia referencja; ocena wzrokowa nie staje się accuracy.
+Negatywna ocena metody może zakończyć poprawnie wykonany ticket eksperymentalny,
+lecz nie uprawnia do przyjęcia detektora. Porażka granicy przesunięcia pozostaje
+porażką; nie znika przez nazwanie dwóch obszarów jedną klasą.
+
+**Znaczenie wyniku:** typ struktury jest niezależny od obrotu; orientacja
+i konkretna domena są osobnymi informacjami. Jeden kierunek periodyczności
+nie potwierdza sieci 2D. Dla nowych metod wymagane są końcowe przypisania
+na rzeczywistych molekułach, szare odmowy i możliwość powrotu do v0.4.
+Pomiary i diagnostyka są opcjonalne, żeby zachować prosty widok podstawowy.
+
+Gwyddion może pomagać w kontrolnym pomiarze kilku fragmentów, bez osobnego
+ticketu integracyjnego. PyGPA, integracje Atomap/OVITO, symulacje ASE/GPAW
+i kolejne treningi rVAE pozostają poza tym rozszerzeniem planu.
+Dokumentacja kandydatów:
+[freud — porównanie otoczeń](https://freud.readthedocs.io/en/stable/modules/environment.html),
+[AtomAI — lokalne FFT/NMF](https://atomai.readthedocs.io/en/latest/multivar.html),
+[Gwyddion — pomiar sieci](https://gwyddion.net/documentation/user-guide-en/feature-measurement.html).
 
 ## Wspólne kryteria odbioru
 

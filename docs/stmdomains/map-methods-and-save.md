@@ -15,6 +15,18 @@ Ustalenia mają pozwolić rozwinąć odebrany szkielet STM Domains.
 
 ## Notes
 
+**Rozszerzenia interaktywnej analizy — 2026-11-02:** na polecenie użytkownika
+dodano [SD-V4-16–20](implementation/interactive-v04/README.md#rozszerzenia).
+Najpierw pomiary kierunku, rozstawu i jakości oraz alternatywne tworzenie
+domen według czytelnych tolerancji, następnie ograniczona próba freud.
+FFT/NMF i wspólny katalog typów są dalszymi zadaniami warunkowymi.
+Zakres 16–18 jest przygotowany do wykonania po zależnościach; 19–20
+pozostają odłożone. Podstawowe 01–15 zachowują status `draft`.
+Wymagany jest ręczny odbiór każdego rozszerzenia w UI oraz porównanie
+na rzeczywistych molekułach. Typ, orientacja i domena pozostają odrębne;
+porażka granicy przesunięcia nie znika przez większy udział przypisań.
+Nie wykonano implementacji ani prób i nie zamknięto badawczych 04/13.
+
 **Proponowany podział implementacji v0.4 — 2026-11-02:**
 [SD-V4-01–15](implementation/interactive-v04/README.md) to osobne szkice
 ticketów z zależnościami i ręcznym odbiorem każdej działającej funkcji.

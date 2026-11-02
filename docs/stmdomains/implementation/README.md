@@ -1,5 +1,10 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**Rozszerzenie planu — 2026-11-02:** [SD-V4-16–20](interactive-v04/README.md#rozszerzenia)
+obejmuje pomiary geometrii, tolerancje domen i próbę freud (`ready-for-agent`
+po zależnościach) oraz późniejsze FFT/NMF i katalog typów (`deferred`).
+Każdy ticket kończy się funkcją do ręcznego sprawdzenia w aplikacji.
+
 **Nowy podział do uzgodnienia — 2026-11-02:**
 [15 ticketów interaktywnego UI v0.4](interactive-v04/README.md), status
 `draft`, rozpisuje uruchamialne funkcje z testem ręcznym po każdym zadaniu.
