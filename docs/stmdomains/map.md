@@ -14,6 +14,17 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**Wykonano SD-V4-08 — 2026-11-03 (`1c39ae2`, poprawka `46c274f`):**
+menu **Analiza → Analiza serii…** łączy zakres, klasy i parametry domen;
+oblicza domeny każdej wybranej klatki ze wspólnym katalogiem. Postęp,
+statusy klatek i częściowe anulowanie działają podczas nawigacji.
+[Ticket](implementation/interactive-v04/08-analyze-series.md),
+[raport i test ręczny](implementation/interactive-v04/acceptance-08.md).
+409 testów PASS, mypy 59 modułów PASS; 14 plików kodu/testów do 527 linii.
+Rzeczywiste GUI: 268 klatek TTMAPP bez błędów. **Odbiór ręczny użytkownika
+oczekuje.** Status `done`; następny rekomendowany **12 — Auto**.
+Plan nadal ma 19 ticketów; 01–03, 05, 05a, 06–08 wykonane. Poniżej historia.
+
 **Wykonano SD-V4-07 — 2026-11-02 (`dedd8b8`, poprawki `65e9d2a`):**
 menu **Analiza → Klasy i zakres…**, K1–8, lokalne/wspólne dopasowanie
 z wybranych danych, wynik bieżącej klatki i porównanie wcześniejszego

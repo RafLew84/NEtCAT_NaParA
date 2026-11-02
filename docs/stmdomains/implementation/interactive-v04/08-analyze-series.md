@@ -6,7 +6,13 @@
 
 **Blocked by:** [07: Wybierz liczbę klas i zakres ich odkrywania](07-fit-shared-classes.md).
 
-**Status:** in_progress — baza `e51b612`, gałąź `domains/interactive-v04-ui`.
+**Status:** done — baza `e51b612`, implementacja `1c39ae2`, poprawka `46c274f`,
+gałąź `domains/interactive-v04-ui`, ukończono 2026-11-03.
+
+[Uruchomienie, raport i test ręczny](acceptance-08.md). 409 testów PASS,
+mypy 59 modułów PASS; 14 plików kodu/testów, maksimum 527 linii.
+GUI X11 sprawdzone przez agenta, w tym pełne 268 klatek TTMAPP.
+**Odbiór ręczny użytkownika oczekuje.** Następny rekomendowany ticket: 12.
 
 Implementacja: osobne niemodalne okno „Analiza → Analiza serii…” z zakresem
 analizy, źródłem wspólnych klas i parametrami domen stosowanymi jednym
@@ -23,14 +29,14 @@ Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 
 ## Kryteria akceptacji
 
-- [ ] Domyślnie zakres odkrywania klas odpowiada zakresowi analizy. UI pozwala jawnie użyć innego zakresu dopasowania albo zgodnego słownika już wyznaczonego w 07. Po jednym dopasowaniu ta sama konfiguracja i wersja modelu są stosowane do wszystkich analizowanych klatek, bez niezależnego odkrywania klas na każdej.
-- [ ] UI pokazuje postęp oraz status każdej klatki. Klasy mają wspólny słownik, a domeny lokalne identyfikatory.
-- [ ] Anulowanie podczas dopasowania zachowuje poprzedni poprawny słownik/wynik. Podczas analizy zachowuje ukończone klatki jako wynik częściowy. Niewykonane klatki pozostają bez wyniku; błąd jednej klatki jest jawny.
-- [ ] Nawigacja podczas pracy nie miesza obrazu i wyniku. Pamięć/cache nie rosną bez ograniczenia przy kolejnych przejściach.
-- [ ] Wynik klatki obliczonej w serii jest zgodny z analizą tej samej klatki osobno dla tych samych danych, modelu i ustawień.
-- [ ] Testy obejmują zakres, puste klatki, anulowanie, błąd i porównanie batch/pojedyncza klatka.
-- [ ] Działającą funkcję sprawdzono automatycznie i ręcznie zgodnie z zakresem; przekazanie rozróżnia wykonane sprawdzenia od niewykonanych.
-- [ ] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
+- [x] Domyślnie zakres odkrywania klas odpowiada zakresowi analizy. UI pozwala jawnie użyć innego zakresu dopasowania albo zgodnego słownika już wyznaczonego w 07. Po jednym dopasowaniu ta sama konfiguracja i wersja modelu są stosowane do wszystkich analizowanych klatek, bez niezależnego odkrywania klas na każdej.
+- [x] UI pokazuje postęp oraz status każdej klatki. Klasy mają wspólny słownik, a domeny lokalne identyfikatory.
+- [x] Anulowanie podczas dopasowania zachowuje poprzedni poprawny słownik/wynik. Podczas analizy zachowuje ukończone klatki jako wynik częściowy. Niewykonane klatki pozostają bez wyniku; błąd jednej klatki jest jawny.
+- [x] Nawigacja podczas pracy nie miesza obrazu i wyniku. Pamięć/cache nie rosną bez ograniczenia przy kolejnych przejściach.
+- [x] Wynik klatki obliczonej w serii jest zgodny z analizą tej samej klatki osobno dla tych samych danych, modelu i ustawień.
+- [x] Testy obejmują zakres, puste klatki, anulowanie, błąd i porównanie batch/pojedyncza klatka.
+- [x] Działającą funkcję sprawdzono automatycznie i ręcznie zgodnie z zakresem; przekazanie rozróżnia wykonane sprawdzenia od niewykonanych.
+- [x] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
 
 ## Test ręczny użytkownika
 

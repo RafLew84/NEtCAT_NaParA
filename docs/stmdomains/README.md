@@ -3,7 +3,17 @@
 Program do wykrywania i analizy domen pól molekularnych na obrazach STM.
 Katalog aplikacji: `stmdomains/`.
 
-## Aktualny stan — 2026-11-02
+## Aktualny stan — 2026-11-03
+
+**Wykonano SD-V4-08 (`1c39ae2`, poprawka `46c274f`):** menu
+**Analiza → Analiza serii…** ma zakładki **Zakres i klasy** oraz
+**Tworzenie domen**. Jeden przycisk stosuje wspólne klasy i parametry domen
+do całego zakresu lub serii. Można użyć innego zakresu dopasowania albo
+katalogu z 07; tabela pokazuje stan każdej klatki, a anulowanie zachowuje
+ukończone wyniki. [Raport i test ręczny 08](implementation/interactive-v04/acceptance-08.md).
+**409 testów PASS**, mypy 59 modułów PASS, największy zmieniony plik 527 linii.
+GUI X11: pełne **268 klatek bez błędów**, nawigacja i częściowe anulowanie.
+**Odbiór ręczny użytkownika 08 oczekuje. Następny rekomendowany ticket: 12 — Auto.**
 
 **Wykonano SD-V4-07 (`dedd8b8`, poprawki `65e9d2a`):** menu
 **Analiza → Klasy i zakres…** udostępnia ręczne K1–8 i dane do dopasowania:
@@ -14,7 +24,7 @@ dopasowania. [Raport i test ręczny 07](implementation/interactive-v04/acceptanc
 **396 testów PASS**, mypy 54 moduły PASS, największy zmieniony plik 469 linii.
 GUI X11 sprawdzone przez agenta; **odbiór ręczny użytkownika 07 potwierdzony
 2026-11-02** dla wersji `7f79362` („testy manualne ok”).
-Następny ticket **08 — analiza serii**, potem **12 — Auto**.
+Kolejny etap 08 wykonano zgodnie z wpisem powyżej.
 
 **Wykonano SD-V4-06 (`98ca8ff`, poprawka `36aea1f`):** parametry są
 w niemodalnym oknie **Analiza → Tworzenie domen…**. Działa jawne przeliczenie,
@@ -31,7 +41,7 @@ Można wyłączyć centra i ramki. Dotychczasowe maski wejściowe mają nazwę
 **Maski molekuł**; ich brak nie blokuje obszarów domen.
 [Raport i test ręczny 05a](implementation/interactive-v04/acceptance-05a.md).
 **Odbiór ręczny 05a potwierdzony przez użytkownika 2026-11-02** dla wersji
-`617b006` („testy manualn ok”). Plan ma **19 ticketów**, następny **08**.
+`617b006` („testy manualn ok”). Plan ma **19 ticketów**, następny rekomendowany **12**.
 
 **Wykonano SD-V4-05 (`fb37431`):** po otwarciu MPP z oznaczeniami MolTrack
 przycisk **Analizuj klatkę · K5** oblicza pięć lokalnych klas i końcowe domeny
@@ -39,8 +49,8 @@ z bieżących danych. Działają kolory domen/klas, legenda, liczniki, przyczyny
 odmów, postęp i anulowanie. Program nie wczytuje modelu ani wyniku v0.4.
 [Uruchomienie, wykonane sprawdzenia i test ręczny 05](implementation/interactive-v04/acceptance-05.md).
 **Odbiór ręczny użytkownika 05 oczekuje.** W aktualnym planie
-01–03, 05, 05a, 06 i 07 mają status `done`,
-08–10 oraz 12–18 — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
+01–03, 05, 05a, 06, 07 i 08 mają status `done`,
+09–10 oraz 12–18 — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
 To wdrożenie eksperymentalnej metody, bez potwierdzenia trafności detektora.
 
 **Wcześniejsza zmiana kierunku na polecenie użytkownika:** usunięto ticket SD-V4-04

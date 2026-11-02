@@ -47,9 +47,16 @@ klatce; pozostałe mają jawny status wcześniejszego katalogu albo braku analiz
 [Raport i test ręczny](acceptance-07.md). 396 testów PASS, mypy PASS,
 GUI X11 sprawdzone przez agenta; **odbiór ręczny użytkownika 07 potwierdzony
 2026-11-02** dla wersji `7f79362` („testy manualne ok”).
-Następny ticket: **08**, potem **12**.
-01–03, 05, 05a, 06 i 07 mają status `done`.
-08–10 oraz 12–18 mają zakres `ready-for-agent`
+
+**Wykonano [08 — analiza zakresu/serii](08-analyze-series.md)** — 2026-11-03,
+`1c39ae2`, poprawka `46c274f`: menu **Analiza → Analiza serii…** łączy
+zakres, źródło wspólnych klas i parametry domen w jednym uruchomieniu.
+Każda klatka dostaje wynik/status; można nawigować i anulować z zachowaniem
+ukończonych wyników. [Raport i test ręczny](acceptance-08.md).
+409 testów PASS, mypy PASS, 268 klatek TTMAPP przeliczonych w rzeczywistym GUI.
+**Odbiór ręczny użytkownika 08 oczekuje. Następny rekomendowany ticket: 12.**
+01–03, 05, 05a, 06, 07 i 08 mają status `done`.
+09–10 oraz 12–18 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
@@ -81,9 +88,8 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [19 — Porównaj domeny z lokalnego FFT i NMF obrazu](19-compare-local-fft-nmf.md) | SD-V4-06, SD-V4-16; warunek wyboru | Zmień okno analizy obrazu i porównaj wynik na molekułach. |
 | [20 — Zachowaj wspólny katalog typów struktury w serii](20-shared-structural-type-catalogue.md) | SD-V4-08, SD-V4-13, SD-V4-16; warunek wyboru | Sprawdź wspólne typy na kolejnych klatkach i po otwarciu zapisanego projektu. |
 
-Po wykonanych 05, 05a, 06 i 07 rekomendowana kolejność: **08 → 12**:
-analiza serii → Auto. 12 można wykonać już po 07, jeśli Auto ma pierwszeństwo
-przed analizą całej serii. Po 05 dostępne są niezależnie 06, 07, 10, 13,
+Po wykonanych 05, 05a i 06–08 następny rekomendowany ticket: **12 — Auto**.
+Jego zależność 07 jest ukończona. Po 05 dostępne są niezależnie 06, 07, 10, 13,
 14 i 16; po 07 także 08, 09, 12 i 15. 08 wymaga wspólnego dopasowania
 z 07, a 14 eksportuje obliczenia z 05. Nie ma zależności od usuniętych 04/11.
 

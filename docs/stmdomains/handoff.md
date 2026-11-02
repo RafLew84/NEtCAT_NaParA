@@ -1,3 +1,73 @@
+# STM Domains — wykonano SD-V4-08: domeny na zakresie lub całej serii
+
+Ukończono **2026-11-03**. Baza **`e51b612`**, implementacja **`1c39ae2`**,
+poprawka **`46c274f`**, gałąź `domains/interactive-v04-ui`, worktree
+`/home/rlew/projekty/NEtCAT-domains`. [Ticket](implementation/interactive-v04/08-analyze-series.md),
+[raport i test ręczny](implementation/interactive-v04/acceptance-08.md).
+Status `done`; **odbiór ręczny użytkownika 08 oczekuje**. Commit raportu
+podano w odpowiedzi końcowej. Ręczny odbiór 07 pozostaje potwierdzony.
+
+Menu **Analiza → Analiza serii…** otwiera niemodalne okno z zakładkami
+**Zakres i klasy** oraz **Tworzenie domen**. Jeden przycisk stosuje oba
+zestawy ustawień: dopasowuje wspólny katalog i oblicza domeny wszystkich
+wybranych klatek. Można wskazać osobny zakres dopasowania lub użyć aktywnego
+wspólnego katalogu z 07 bez ponownego fitu. Pola nieaktywnego zakresu
+pokazują faktyczne dane dopasowania. Osobne strojenie 06 pozostaje dostępne.
+
+Tabela pokazuje postęp, wyniki, brak oznaczeń, odmowę, błąd albo niewykonane
+klatki; dwuklik przechodzi do obrazu. Podczas pracy można nawigować.
+Anulowanie dopasowania zachowuje wcześniejszy katalog; anulowanie analizy
+pozostawia ukończone wyniki. Stare wyniki niewykonanych klatek nie są
+uznawane za nowe: stopka pokazuje, że pochodzą spoza przebiegu.
+Wyniki mają wspólne klasy i lokalne numery domen; bez śledzenia w czasie.
+
+Uruchomienie w **netcat**: `python -m stmdomains.main`. Otwórz
+`data/TTMAPP/detection_full.moltrack.json`, wybierz w oknie serii **259–268,
+K5, Ten sam zakres co analiza**, bazowe domeny. Wynik 259: **105/312,
+5 domen**; 268: **119/308, 4**. Dla **250–268, K8, minimum 6, łączenie 1,80**
+wynik 268 to **131/308, 6 domen**. Oznaczenia są dostępne na każdej klatce
+przebiegu. Parametry domen można skopiować z zastosowanego wyniku lub
+ustawić bezpośrednio w oknie serii; szkic drugiego okna nie jest przejmowany.
+
+**Wykonane sprawdzenia:**
+
+- 13 nowych przypadków oraz celowane regresje PASS. Pełny zestaw uruchomiony
+  raz po przeglądzie/poprawce: **409 passed, bez pominięć, 95,15 s**.
+- Mypy **59 modułów PASS**. Kod/testy: **14 plików, maksimum 527 linii**.
+- `git diff --check` i **341 lokalnych ścieżek odnośników w 7 dokumentach PASS**.
+- Code-review `e51b612...1c39ae2`: **Standards 1 P2**, poprawiona w `46c274f`
+  i potwierdzona przez recenzenta; **Spec 0 uwag**, 0 otwartych. Indywidualne
+  strojenie usuwa teraz z nowego wyniku znacznik przynależności do przebiegu,
+  zachowując oryginalny wynik/tabelę i prawidłową stopkę przy porównaniu.
+- Rzeczywiste GUI **X11/xcb sterowane Qt PASS**: 259–268 K5 (**13,00 s**),
+  250–268 K8 z minimum 6 i łączeniem 1,80 (**24,73 s**), niezależny zakres
+  dopasowania, zastosowanie istniejącego katalogu do **268/268 klatek
+  bez błędów — 167,67 s**. Zgodność z pojedynczą analizą potwierdzona.
+- Anulowanie zachowało **2 ukończone klatki**, nawigacja nie pomieszała
+  wyników. Gamma/raw/aligned i układ 900×650 PASS. Ponowne otwarcie serii
+  czyści stan. Zamknięcie podczas fitu: kod 0 i **trzy pule zakończone**.
+- Demo w GUI: pozytywny wynik i brak oznaczeń; odmowa K8 sprawdzona
+  testem kontrolera Qt offscreen. Końcowa próba GUI
+  sprawdziła pola zakresu, dwuklik w tabeli i indywidualne strojenie
+  **357 → 231** przypisań przy zachowanym wyniku serii. Obejrzano zrzuty.
+- Źródłowe JSON/MPP niezmienione (SHA-256 przed/po), **0 odczytów paczek
+  lub dawnych modeli/wyników**. Szczyt RSS **866 MiB**, przerwa timera
+  **0,237 s**, cache obrazów przy przejściach **2350080 B** (limit 32 MiB).
+
+Artefakty `.scratch/stmdomains-ui-08/` poza Git, w tym pełny log pytest,
+raporty GUI i demo. Nie instalowano pakietów; użyto wskazanego **netcat**.
+Bez nowych zmian wspólnych — zależności zgłoszone w 05 nadal aktualne.
+Wyniki i modele są tylko w pamięci: do dwóch wersji/klatkę i tabela
+ostatniego przebiegu. Jeden katalog/metadane są współdzielone, kolejka
+przetwarza po jednym wyniku. Limity i zastrzeżenia metody z 07 pozostają;
+liczniki nie są pomiarem trafności detektora. Zapis projektu to 13, eksport 14.
+
+**Plan nadal ma 19 ticketów; 01–03, 05, 05a i 06–08 done. Następny: 12 — Auto.**
+12 nie rozpoczęto. 19–20 pozostają odroczone; historyczne badawcze 04/13
+i odbiór metody są odrębne. Poniżej historia wcześniejszych etapów.
+
+---
+
 # STM Domains — wykonano SD-V4-07: liczba klas i zakres dopasowania
 
 Data **2026-11-02**, baza **`eebbfbd`**, implementacja **`dedd8b8`**, poprawki
