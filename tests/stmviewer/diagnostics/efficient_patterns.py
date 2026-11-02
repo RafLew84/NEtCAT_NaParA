@@ -24,6 +24,7 @@ def main():
     from stmviewer.correspondence_types import CorrespondenceRefusal
     from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
     from stmviewer.efficient_matcher import default_efficient_options, load_efficient_backend
+    from stmviewer.registration import estimate_confidence
     from stmviewer.series import open_frame_series
     import torch
     import numpy as np
@@ -72,8 +73,9 @@ def main():
                     started = perf_counter()
                     try:
                         result = backend.estimate(frames[i - 1].data, frames[i].data, moving_frame_index=i)
+                        status, score = estimate_confidence(method, result)
                         record.update(outcome='result', shift_xy=[float(v) for v in result.shift_xy],
-                                      status=result.status, quality_score=result.quality_score)
+                                      status=status, quality_score=score)
                         if expected is not None:
                             record['error_from_scene_xy'] = (np.asarray(result.shift_xy) - expected).tolist()
                     except CorrespondenceRefusal as error:
