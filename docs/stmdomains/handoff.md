@@ -1,3 +1,39 @@
+# STM Domains — przegląd paczek v0.4
+
+Data: **2026-11-02**. Na polecenie użytkownika przejrzano dwa archiwa
+`data/new_code/stm_domains_source_v04.zip` i `stm_domains_prototype_v04.zip`.
+[Podsumowanie](new-code-v04-review.md) opisuje zawartość, metodę, wyniki,
+przeglądarkę i ograniczenia ponownego użycia. Kopie rozpakowane są w
+`.scratch/new-code-v04-review/source/` i `prototype/`, poza Git.
+
+Wspólna treść kodu jest identyczna. Pełna paczka zawiera 56 klatek naszego
+TTMAPP, 9695 aktywnych pozycji, 4190 końcowych przypisań i 122 domeny.
+Metoda korzysta z geometrii centrów, PCA/KMeans K5 i ograniczeń podobieństwa
+wewnątrz regionu. Dopuszcza jeden kierunek periodyczności; liczby nie są
+bezpośrednio porównywalne z kryterium sieci 2D i mianownikami 21–26.
+K i parametry wybrano na tej samej serii; nie ma niezależnej oceny trafności.
+
+Gotowy HTML pokazuje maski i klasy geometrii. Końcowe przypisania molekuł
+w CSV mogą zasilić uzgodniony prosty widok, którego paczka jeszcze nie ma.
+Wynik pozostaje częściowy, z opisanymi w paczce brakami i scaleniami A/B.
+Nie scalono kodu, nie zmieniono metod ani protokołu, nie uruchomiono nowych
+analiz lub treningów. 04 i 13 pozostają otwarte, bez nowych ticketów.
+
+Sprawdzenia: odczyt wszystkich ZIP/CRC, zgodność 35/299 wpisów manifestów
+z SHA-256 i rozmiarami, porównanie obu paczek, składnia 27 plików Python,
+zgodność źródeł MPP/JSON, ID i geometrii 9697 rekordów, liczniki CSV,
+porównanie zapisanych wariantów i inspekcja PNG. Przejrzano kod i zakres
+dołączonych audytów. Nie odtwarzano pipeline'u ani testów autora; dołączony
+test HTML używał imitacji DOM, nie pełnego odbioru przeglądarki.
+Sprawdzono lokalne odnośniki dokumentacji i `git diff --check`.
+
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/start`,
+baza **`126b9eb`**. Commit przeglądu podany w odpowiedzi końcowej.
+Wersjonowano tylko dokumentację; oryginalne paczki, kod i dane pozostają
+lokalne. Brak potrzebnych zmian wspólnych; integracja po stronie koordynatora.
+
+---
+
 # STM Domains — prosty podgląd wyników przyszłych prób
 
 Data: **2026-11-02**. Użytkownik uznał dotychczasowe raporty za nieczytelne

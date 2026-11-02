@@ -5,6 +5,16 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-02
 
+**Przegląd dostarczonych paczek v0.4 — 2026-11-02:**
+[podsumowanie kodu i wyników](new-code-v04-review.md) opisuje dwa ZIP z
+`data/new_code`. Klasyczna geometria centrów, PCA/KMeans K5 i segmentacja
+dają zapisane 4190 przypisań w 122 domenach na 56 klatkach naszego TTMAPP.
+To udział przypisań, bez niezależnej oceny trafności; metoda dopuszcza jeden
+kierunek periodyczności. Gotowy HTML wymaga uproszczenia do końcowych
+przypisań molekuł. Zweryfikowano zawartość i eksporty, bez ponownego
+uruchamiania analizy lub przyjęcia detektora. Rozpakowane pliki są lokalnie
+w `.scratch/new-code-v04-review/`; 04 i 13 pozostają otwarte.
+
 **Prezentacja przyszłych prób — 2026-11-02:** użytkownik wybrał
 [prostą przeglądarkę wyników](trial-result-browser.md): kolejne obrazy STM,
 oznaczenia rzeczywistych molekuł, kolory domen i szare molekuły nieprzypisane.

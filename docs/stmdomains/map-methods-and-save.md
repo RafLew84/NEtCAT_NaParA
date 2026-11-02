@@ -15,6 +15,14 @@ Ustalenia mają pozwolić rozwinąć odebrany szkielet STM Domains.
 
 ## Notes
 
+**Przegląd zewnętrznego prototypu v0.4 — 2026-11-02:** użytkownik dostarczył
+dwie paczki w `data/new_code`; [przegląd](new-code-v04-review.md) opisuje
+metodę geometrii centrów i zapisane wyniki na naszym TTMAPP. To kandydat do
+osobnego porównania, z innym kryterium porządku i eksploracyjnym wyborem K5.
+Nie przyjęto kodu ani detektora, nie zmieniono definicji domen i nie wybrano
+nowego eksperymentu. Gotowe przypisania umożliwiają przygotowanie prostego
+podglądu zgodnego z wymaganiem poniżej; tej implementacji jeszcze nie wykonano.
+
 **Prezentacja przyszłych prób — 2026-11-02:** na prośbę użytkownika wyniki
 będą pokazywane w [prostej przeglądarce obrazów](trial-result-browser.md),
 z oznaczeniami na molekułach i kolorami ich przynależności do domen.
