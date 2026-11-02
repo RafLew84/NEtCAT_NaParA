@@ -1,3 +1,40 @@
+# STM Domains — wykonano SD-V4-02: oznaczenia i geometria
+
+Data: **2026-11-02**. Na polecenie `implement 02` wykonano
+[SD-V4-02](implementation/interactive-v04/02-molecules-and-geometry.md), `done`.
+Działają centra/ramki/maski/obrysy, krycie, ID i metadane po kliknięciu,
+widoki oryginał/wyrównany z zapisaną rejestracją oraz jawna dostępność danych.
+Ułamkowe przesunięcia, globalny padding i pole pomiarowe korzystają z jednego
+modelu geometrii; błędna maska pozostawia poprawne ramki/obrysy.
+
+[Raport i dokładny scenariusz ręczny](implementation/interactive-v04/acceptance-02.md).
+Uruchomienie w **netcat**: `python -m stmdomains.main`. Kontrole braków:
+`python -m stmdomains.tools.annotation_demo`. Ręczny odbiór 02 przez użytkownika
+pozostaje otwarty; 01 i suwak mają już jego potwierdzenie.
+
+Sprawdzenia: **279 testów STM Domains PASS**, w tym 49 nowych, bez pominięć;
+mypy **23 pliki PASS**; kontrola **17 plików kodu/testów, maksimum 274 linie**.
+Code-review `152146a...df5c48b`: Standards **0 uwag**, Spec **0 uwag**.
+Pełny zestaw uruchomiono raz po przeglądzie. Rzeczywiste GUI X11 sterowane
+Qt: 14 par klatka/widok na TTMAPP (1/40/41/64/68/69/268) i 5 plików kontrolnych;
+obejrzano zrzuty. SHA-256 JSON i MPP przed/po identyczne. Linki dokumentacji
+i `git diff --check` sprawdzone. Artefakty `.scratch/stmdomains-ui-02/` poza Git.
+
+Maski dekodowane na potrzebę klatki: cache do 2 wpisów/64 MiB, obrazy
+podglądu do 3 wpisów/32 MiB. Aktualny wynik i bufory mają dodatkowy koszt.
+MPP/JSON nadal w pamięci w całości; lokalny szczyt RSS około 1121 MiB.
+Anulowanie odrzuca wynik bez siłowego przerywania wątku. Czas/kalibracja
+TTMAPP pozostają niepotwierdzone; 267 rejestracji ma niską pewność.
+
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/interactive-v04-ui`,
+baza **`152146a`**, implementacja **`df5c48b`**, commit raportu w odpowiedzi końcowej.
+Zmiany tylko w aplikacji, testach i dokumentacji. Integrator powinien dodać
+używane teraz **SciPy** do wcześniejszego zgłoszenia NumPy/pytest-qt;
+lokalny `netcat` zawiera pakiety, nic nie instalowano. Wspólny kod i CI bez zmian.
+Następny ticket w kolejności to 03; 04 jest również dostępny po 02.
+
+---
+
 # STM Domains — odbiór 01 i suwak klatek
 
 Data: **2026-11-02**. Użytkownik potwierdził pomyślne testy ręczne pierwotnego

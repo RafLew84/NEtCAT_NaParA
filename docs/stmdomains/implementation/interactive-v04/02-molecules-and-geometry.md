@@ -6,24 +6,26 @@
 
 **Blocked by:** [01: Otwórz zapis i przeglądaj obrazy](01-open-images.md).
 
-**Status:** in_progress — realizacja na polecenie użytkownika `implement 02`.
+**Status:** done — implementacja i sprawdzenia techniczne zakończone.
 
 Baza implementacji i przeglądu: `152146a`, gałąź `domains/interactive-v04-ui`.
 Środowisko aplikacji i sprawdzeń: `netcat`. Testy przez publiczne interfejsy
 importu/modelu/geometrii oraz pełną ścieżkę import–widok, zgodnie z poniższymi
 kryteriami i istniejącym kontraktem importu.
+Implementacja: `df5c48b`. [Raport i instrukcja testu ręcznego](acceptance-02.md).
+Ręczny odbiór użytkownika nowego zakresu 02 pozostaje do wykonania.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 
 ## Kryteria akceptacji
 
-- [ ] Centra i bboxy są powiązane po ID z właściwą klatką; dostępne maski można pokazać z regulowanym kryciem. Błędna opcjonalna maska nie ukrywa poprawnego bboxa.
-- [ ] Oryginał i wyrównany widok odtwarzają zapisaną rejestrację. Padding jest odrębny od obrazu; brak lub niska pewność rejestracji zachowują uzgodnione znaczenie.
-- [ ] Zoom, pan, zmiana rozmiaru okna i przełączenie widoku zachowują zgodność oznaczeń, bez ponownego odbijania osi lub kumulowania interpolacji.
-- [ ] Kliknięcie oznaczenia pokazuje ID i dostępne metadane bez zmiany źródła. Brak oznaczeń różni się od potwierdzonej pustej listy.
-- [ ] Dekodowanie masek i przygotowanie wyrównania dotyczą potrzebnych klatek, z ograniczonym cache. Testy obejmują niekwadratowy obraz, ułamkową translację oraz braki.
-- [ ] Działającą funkcję sprawdzono automatycznie i ręcznie zgodnie z zakresem; przekazanie rozróżnia wykonane sprawdzenia od niewykonanych.
-- [ ] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
+- [x] Centra i bboxy są powiązane po ID z właściwą klatką; dostępne maski można pokazać z regulowanym kryciem. Błędna opcjonalna maska nie ukrywa poprawnego bboxa.
+- [x] Oryginał i wyrównany widok odtwarzają zapisaną rejestrację. Padding jest odrębny od obrazu; brak lub niska pewność rejestracji zachowują uzgodnione znaczenie.
+- [x] Zoom, pan, zmiana rozmiaru okna i przełączenie widoku zachowują zgodność oznaczeń, bez ponownego odbijania osi lub kumulowania interpolacji.
+- [x] Kliknięcie oznaczenia pokazuje ID i dostępne metadane bez zmiany źródła. Brak oznaczeń różni się od potwierdzonej pustej listy.
+- [x] Dekodowanie masek i przygotowanie wyrównania dotyczą potrzebnych klatek, z ograniczonym cache. Testy obejmują niekwadratowy obraz, ułamkową translację oraz braki.
+- [x] Działającą funkcję sprawdzono automatycznie, w rzeczywistym GUI sterowanym Qt i przez ogląd zrzutów; przekazanie oddziela to od ręcznego odbioru pozostającego użytkownikowi.
+- [x] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
 
 ## Test ręczny użytkownika
 

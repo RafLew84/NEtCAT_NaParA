@@ -14,13 +14,20 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**Implementacja SD-V4-02 — 2026-11-02:** działają oznaczenia molekuł,
+maski z regulacją krycia, kliknięcie metadanych i odtworzenie zapisanej
+rejestracji w widokach raw/aligned. [Raport i test ręczny](implementation/interactive-v04/acceptance-02.md).
+279 testów aplikacji PASS, GUI sprawdzone na TTMAPP; odbiór użytkownika 02
+pozostaje otwarty. Pełny zakres szkieletu wymaga jeszcze m.in. miniatur,
+gamma i odtwarzania z 03.
+
 **Implementacja SD-V4-01 — 2026-11-02:** wykonano pierwszy przekrój
 obejmujący import MolTrack/MPP i przeglądanie oryginałów w działającym oknie.
 [Raport i odbiór ręczny](implementation/interactive-v04/acceptance-01.md).
 Użytkownik potwierdził testy ręczne 01; na jego kolejne zlecenie dodano
 suwak pod obrazem do przełączania klatek podczas przeciągania.
 Ręczny odbiór dodatku (`ee54638`) również potwierdzono 2026-11-02.
-Pełny zakres szkieletu, w tym oznaczenia i wyrównanie, pozostaje do wykonania.
+Oznaczenia i wyrównanie dodano następnie w 02, zgodnie z aktualizacją powyżej.
 
 Specyfikację pierwszej mapy zakończono 2026-10-19.
 [Zadania budowy i odbioru](implementation/README.md) są gotowe do podjęcia;

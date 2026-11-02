@@ -1,5 +1,10 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**Wykonano SD-V4-02 — 2026-11-02:** działają zapisane oznaczenia, maski,
+metadane po kliknięciu i geometria raw/aligned. [Uruchomienie i test ręczny](interactive-v04/acceptance-02.md).
+279 testów PASS; ręczny odbiór 02 pozostaje użytkownikowi. Pełny odbiór
+historycznego szkieletu wymaga jeszcze m.in. miniatur, gamma i odtwarzania.
+
 **Wykonano SD-V4-01 — 2026-11-02:** działa otwieranie zapisów MolTrack/MPP
 i przeglądanie obrazów oryginalnych w PyQt6. [Uruchomienie, test ręczny i raport](interactive-v04/acceptance-01.md).
 To pierwszy działający przekrój nowego planu; historyczne zadania poniżej
@@ -17,8 +22,9 @@ Indeks opisuje zależności i pokrycie historycznych zakresów poniżej.
 Dotychczasowe tickety i ich statusy pozostają zachowane.
 
 Specyfikacja: [przekazanie do implementacji](../issues/09-implementation-handoff.md).
-Pierwsza mapa decyzji jest zakończona. **Implementacja nie została jeszcze
-wykonana; wszystkie poniższe zadania mają status `todo`.**
+Pierwsza mapa decyzji jest zakończona. **Poniższe historyczne zadania mają
+status `todo`; ich zakres jest wdrażany przez nowy podział SD-V4.**
+Aktualne wykonanie 01–02 opisano powyżej; nie oznacza ono odbioru całego szkieletu.
 
 To zadania wykonawcze, poza rejestrem pytań `wayfinder`. Nie wybierają ponownie
 metod ani zakresu. Obowiązują [import](../issues/01-import-and-geometry.md),

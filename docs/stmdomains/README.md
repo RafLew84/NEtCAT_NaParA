@@ -5,6 +5,15 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-02
 
+**Wykonano SD-V4-02:** podgląd zapisanych centrów, ramek, masek i obrysów,
+krycie masek, ID/metadane po kliknięciu oraz oryginał/wyrównany z zapisaną
+rejestracją. Braki danych i jakość są jawne; maski mają ograniczony cache.
+[Uruchomienie i test ręczny](implementation/interactive-v04/acceptance-02.md).
+W `netcat`: **279 testów PASS**, mypy **23 pliki PASS**, przegląd Standards/Spec
+bez uwag. GUI sprawdzono na siedmiu klatkach TTMAPP w obu widokach i pięciu
+kontrolach; ręczny odbiór 02 pozostaje użytkownikowi. Następny ticket to 03;
+04 można podjąć po 02 zgodnie z zależnościami. Implementacja `df5c48b`.
+
 **Wykonano SD-V4-01:** aplikacja otwiera zapis MolTrack z MPP i pokazuje
 obrazy oryginalne, nawigację, wybór numeru oraz zoom/dopasowanie.
 Po pomyślnym odbiorze ręcznym użytkownika dodano suwak pod obrazem,
@@ -16,7 +25,7 @@ na TTMAPP 268 klatek. Pierwotny zakres 01 odebrano ręcznie; dodatek z suwakiem
 sprawdzono osobno: 9 testów widoku/nawigacji PASS, mypy PASS i przeciąganie
 w rzeczywistym GUI. Użytkownik potwierdził również pomyślny odbiór ręczny
 suwaka z commita `ee54638`.
-Gałąź `domains/interactive-v04-ui`; następny zakres to oznaczenia i geometria w 02.
+Gałąź `domains/interactive-v04-ui`; oznaczenia i geometrię dodano następnie w 02.
 Poniższe wpisy zachowują historię przygotowania planu i badań.
 
 **Rozszerzenia planu UI — 2026-11-02:** dodano
