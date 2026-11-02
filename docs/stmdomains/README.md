@@ -5,14 +5,20 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-02
 
+**Poprawka UI po sprawdzeniu 03:** usunięto skakanie obrazu i nawigacji
+podczas pojawiania się postępu ładowania. Miejsce na pasek postępu i Anuluj
+pozostaje zarezerwowane. **13 testów okna PASS**, mypy PASS, rzeczywiste GUI
+TTMAPP sprawdzone w dwóch rozmiarach okna; odbiór poprawki przez użytkownika
+pozostaje do wykonania. [Szczegóły i test ręczny](implementation/interactive-v04/acceptance-03.md#poprawka-po-zgłoszeniu-użytkownika--stabilny-układ-okna).
+
 **Wykonano SD-V4-03:** pasek miniatur, play/pauza, od początku, tempa
 1/2/5/10/20 kl./s i gamma 0,2–5. Odtwarzanie zachowuje kolejność wszystkich
 klatek i zatrzymuje się bez spóźnionego kroku. Zapisany tryb widoku jest
 przywracany przy otwarciu. [Uruchomienie i test ręczny 03](implementation/interactive-v04/acceptance-03.md).
 W `netcat`: **300 testów PASS**, mypy **27 plików PASS**, największy zmieniony
 plik ma **327 linii**. Przegląd kodu zakończony po poprawkach. Rzeczywiste GUI:
-wszystkie 268 klatek TTMAPP, bez pomijania. **Odbiór ręczny użytkownika 03
-pozostaje do wykonania; następny ticket to SD-V4-04**. Implementacja `93701af`,
+wszystkie 268 klatek TTMAPP, bez pomijania. **Następny ticket to SD-V4-04**;
+uwagę z ręcznego sprawdzenia 03 i poprawkę opisano powyżej. Implementacja `93701af`,
 końcowe poprawki i raport w następnym commicie. Historyczne wpisy poniżej
 zachowują wyniki wcześniejszych etapów.
 

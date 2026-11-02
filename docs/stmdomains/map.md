@@ -14,6 +14,12 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**Poprawka SD-V4-03 po zgłoszeniu użytkownika — 2026-11-02:** usunięto
+zmianę geometrii obrazu/nawigacji przy pokazywaniu postępu. 13 celowanych
+testów PASS, mypy PASS i 12 przejść TTMAPP w dwóch rozmiarach okna bez skoków.
+[Raport i test ręczny poprawki](implementation/interactive-v04/acceptance-03.md#poprawka-po-zgłoszeniu-użytkownika--stabilny-układ-okna).
+Ponowne sprawdzenie poprawki przez użytkownika pozostaje do wykonania.
+
 **Implementacja SD-V4-03 — 2026-11-02:** wykonano miniatury, odtwarzanie
 z pauzą/restartem i gamma. [Raport i test ręczny](implementation/interactive-v04/acceptance-03.md).
 300 testów PASS, mypy PASS, pełna seria 268 klatek TTMAPP sprawdzona w GUI.

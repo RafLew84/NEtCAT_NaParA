@@ -133,6 +133,10 @@ class STMDomainsMainWindow(QMainWindow):
         self.progress_bar.hide()
         self.cancel_button = QPushButton("Anuluj")
         self.cancel_button.hide()
+        for indicator in (self.progress_bar, self.cancel_button):
+            policy = indicator.sizePolicy()
+            policy.setRetainSizeWhenHidden(True)
+            indicator.setSizePolicy(policy)
         self.cancel_button.clicked.connect(self.controller.cancel)
         progress.addWidget(self.progress_label, 1)
         progress.addWidget(self.progress_bar)

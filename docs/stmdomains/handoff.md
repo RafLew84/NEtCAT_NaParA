@@ -1,5 +1,18 @@
 # STM Domains — wykonano SD-V4-03: miniatury i odtwarzanie
 
+**Poprawka po odbiorze użytkownika — 2026-11-02, baza `c5deb59`:**
+zgłoszony skok przy ładowaniu klatki został odtworzony i usunięty. Pokazywanie
+paska postępu i przycisku Anuluj zwiększało dolny wiersz o 8 px; układ
+zachowuje teraz ich miejsce także w stanie ukrytym. W `netcat`: **13 testów
+okna PASS**, w tym 4 nowe regresje, mypy **27 plików PASS**, kod/test 331/71
+linii. Rzeczywiste GUI X11: 12 przejść TTMAPP w 1100×760 i 900×650 bez zmian
+geometrii przy ładowaniu i publikacji, także przy różnych komunikatach.
+Artefakty `.scratch/stmdomains-ui-03/layout-debug/`. Pełnego zestawu 300
+testów nie powtarzano. [Scenariusz ponownego sprawdzenia](implementation/interactive-v04/acceptance-03.md#poprawka-po-zgłoszeniu-użytkownika--stabilny-układ-okna).
+Użytkownik wstępnie sprawdził funkcje 03; **odbiór poprawki pozostaje do
+wykonania**. Zmiany tylko w aplikacji, testach i dokumentacji, bez instalacji.
+Commit poprawki podano w odpowiedzi końcowej. Poniżej pierwotny raport 03.
+
 Data: **2026-11-02**. Na polecenie `implement 03` wykonano
 [SD-V4-03](implementation/interactive-v04/03-filmstrip-and-playback.md), `done`.
 Działa pasek miniatur pod obrazem, play/pauza, od początku, maksymalne tempa

@@ -14,6 +14,9 @@ Baza implementacji i przeglądu: `d862333`, gałąź `domains/interactive-v04-ui
 kontrolera i pełną ścieżkę import–widok, zgodnie z kryteriami podglądu.
 Implementacja: `93701af`; końcowy commit zawiera poprawki pauzy/zaznaczenia
 i [raport z instrukcją testu ręcznego](acceptance-03.md).
+Po wstępnym sprawdzeniu użytkownika poprawiono skakanie układu podczas
+ładowania; [raport poprawki](acceptance-03.md#poprawka-po-zgłoszeniu-użytkownika--stabilny-układ-okna)
+zawiera scenariusz ponownego sprawdzenia. Odbiór poprawki pozostaje otwarty.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 

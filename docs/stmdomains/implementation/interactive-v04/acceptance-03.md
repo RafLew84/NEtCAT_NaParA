@@ -3,8 +3,39 @@
 Data: **2026-11-02**. [Ticket 03](03-filmstrip-and-playback.md) wykonano na
 `domains/interactive-v04-ui`, baza `d862333`, implementacja **`93701af`**.
 Końcowy commit zawiera poprawki zaznaczenia/pauzy i ten raport; jego identyfikator
-jest w historii Git i odpowiedzi końcowej. **Odbiór ręczny użytkownika 03
-pozostaje do wykonania.** Potwierdzenia 01 i 02 dotyczą poprzednich funkcji.
+jest w historii Git i odpowiedzi końcowej. Użytkownik sprawdził 03 i zgłosił
+skakanie układu okna podczas ładowania klatki. **Ponowne ręczne sprawdzenie
+poniższej poprawki pozostaje do wykonania.**
+
+## Poprawka po zgłoszeniu użytkownika — stabilny układ okna
+
+2026-11-02, baza `c5deb59`. Pokazywanie paska postępu i przycisku **Anuluj**
+zwiększało wysokość dolnego wiersza. W odtworzonym przypadku obraz kurczył
+się o **8 px**, a suwak i miniatury przesuwały się o tę samą wartość.
+Ukryte elementy zachowują teraz swoje miejsce w układzie; informacja
+o ładowaniu i anulowanie pozostają dostępne.
+
+Regresja w `test_window_layout.py` odtworzyła błąd dwukrotnie przed poprawką.
+Po poprawce sprawdza rzeczywiste żądanie klatki przy zajętych workerach Qt,
+geometrię okna/obrazu/nawigacji przed ładowaniem, w trakcie i po zakończeniu
+lub anulowaniu, dla okien **1100×760** oraz **900×650**.
+
+W `netcat`: **13 celowanych testów okna PASS** (w tym 4 nowe przypadki
+regresyjne), mypy **27 plików PASS**. Kod/testy: **331/71 linii**.
+Pełnego zestawu 300 testów z pierwotnego odbioru nie powtarzano.
+Rzeczywiste GUI X11: **12 przejść** przez klatki TTMAPP 1/40/41/64/69/268
+w obu rozmiarach, widok wyrównany. Geometria pozostała identyczna w cyklu
+gotowe → ładowanie → nowa klatka, również przy zmianach komunikatów masek
+i oznaczeń. Obejrzano zrzut mniejszego okna. Artefakty lokalne:
+`.scratch/stmdomains-ui-03/layout-debug/`. Bez nowych zależności.
+
+**Ręcznie:** uruchom aplikację ponownie, ustaw zwykłe okno około 900×650,
+otwórz TTMAPP i zmieniaj klatki numerem, suwakiem oraz miniaturami.
+Włącz także odtwarzanie. Podczas pojawiania się komunikatu o ładowaniu
+obraz, suwak i pasek miniatur mają pozostać na miejscu, bez zmiany rozmiaru.
+Jeśli przygotowanie trwa wystarczająco długo, sprawdź **Anuluj** — układ
+również ma pozostać nieruchomy. To poprawka 03; kolejny ticket 04 nie jest
+częścią tego zgłoszenia. Poniżej zachowano pierwotny raport implementacji.
 
 ## Uruchomienie i test ręczny
 
