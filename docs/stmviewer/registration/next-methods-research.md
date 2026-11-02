@@ -10,6 +10,13 @@ Nie zmienia statusów ticketów. Obserwacja użytkownika — Deep Matcher i RoMa
 są najbliższe oczekiwanemu wynikowi, lecz niektóre klatki nadal przesuwają
 się za bardzo — jest punktem wyjścia, nie liczbową walidacją.
 
+**Aktualizacja planu — 2026-11-02:** po tym przeglądzie użytkownik zlecił
+[REG-13: LightGlue + SuperPoint](issues/13-lightglue-superpoint.md) oraz
+[REG-14: AKAZE](issues/14-akaze.md). Wdrożenie i manualny odbiór każdego
+pozostają osobnymi etapami; aktualny stan jest w [planie](README.md).
+Poniższa synteza zachowuje wyniki i ograniczenia rozpoznania, a nie raportuje
+wykonanego pilotażu. [Protokół](manual-protocol.md) rozdziela go na 54 + 18 wyników.
+
 ## Rekomendacja
 
 Najpierw porównać **LightGlue + SuperPoint** oraz **AKAZE** z obecnym

@@ -101,7 +101,7 @@ W ich odbiorze
 MPP/AVI muszą zachować wcześniejszy aktywny aligned, także podczas oglądania
 nowej próby. Otwarcie całej sesji przywraca jej zapisany aktywny aligned;
 nie promuje niezastosowanego kandydata grafu. Eksport grafu i jego ręczne korekty
-należą do REG-08c. Pozostałe nowe metody REG-10–12 korzystają już z tego zastosowania.
+należą do REG-08c. Pozostałe nowe metody REG-10–14 korzystają już z tego zastosowania.
 
 **Braki w grafie:** lokalny brak dopasowania jest zapisaną brakującą relacją.
 Pełny graf może mieć wynik przez inne połączenia; rozłączny pozostaje diagnozą.
@@ -148,7 +148,7 @@ hybrydzie tylko dlatego, że zakończyła doprecyzowanie. Próba REG-05 porównu
 przestrzenne poparcie z bazowym Deep przez wyszukiwanie lokalnych wycinków.
 REG-10 ustala odrębną wspólną agregację wektorów korespondencji nowych modeli,
 z przestrzenną oceną poparcia według tych zasad. Nie uruchamia po cichu metody
-wycinków REG-05. REG-11/12 zachowują agregację REG-10 i jej ustawienia.
+wycinków REG-05. REG-11–14 zachowują agregację REG-10 i jej ustawienia.
 
 REG-06 pozostaje odłożony. Jeśli zostanie wznowiony, kontrola obrazowa
 oznaczona jako niezależna nie może wpływać na dobór krawędzi, ich wag, progów
@@ -176,6 +176,48 @@ Sprawdzamy także ręczne nadpisanie różnicy globalnych XY grafu,
 powtórzenie, dwie korekty i cofnięcie do bazy grafowej. Surowy d_ij i różnica
 rozwiązania nie muszą być takie same. Ręczne poprawki nie uruchamiają solvera;
 wcześniejsze diagnozy grafu odnoszą się do niezmienionej bazy.
+
+## Pilotaż LightGlue + SuperPoint i AKAZE — REG-13/14
+
+Wykonanie rozdzielamy według ręcznych odbiorów. W
+[REG-13](issues/13-lightglue-superpoint.md) porównujemy **Deep outdoor
+(LoFTR), RoMa v2 Turbo oraz LightGlue + SuperPoint**: 18 tych samych par × 3
+metody = **54 wyniki prób par**, wliczając odmowy. Po odbiorze REG-13
+[REG-14](issues/14-akaze.md) dodaje **18 prób AKAZE**, domykając 72 wyniki
+czterech metod. REG-13 nie wymaga jeszcze działającego AKAZE.
+
+| Film | Pary bieżące, numerowane od 1 | Liczba |
+| --- | --- | --- |
+| MOVIE_4 po usunięciu źródłowych 1 i 2 | 1→2, 31→32, 118→119, 29→30, 35→36, 44→45, 45→46, 61→62, 94→95, 95→96, 96→97, 160→161, 250→251 | 13 |
+| MOVIE_8 bez usuwania klatek | 1→2, 16→17, 56→57, 25→26, 70→71 | 5 |
+
+To wspólny zestaw rozwojowy z [projektu eksperymentu](next-methods-research.md),
+nie niezależna walidacja na nowych filmach. Manifest zapisuje SHA wejść,
+numery bieżące i źródłowe, kod/wagi, konfigurację, urządzenie oraz przygotowanie.
+Ustawienia zamrażamy przed próbą i nie stroimy osobno dla każdej pary.
+Zachowujemy wyniki baz z REG-13; w REG-14 powtarzamy je tylko, gdy zmiana
+warunków podważa porównywalność, z podaniem przyczyny i obu konfiguracji.
+
+LightGlue i AKAZE stosują `translation-consensus-v2` z tymi samymi parametrami
+co RoMa. Historyczny Deep pozostaje przy swoim konsensusie: porównanie
+z nim dotyczy całego estymatora, nie wyłącznie sieci. Różnice przygotowania
+obrazu i doboru korespondencji są jawne. Pewności modeli i odległości Hamming
+nie łączymy w wspólną skalę ani wagi solvera.
+
+Po każdej implementacji sprawdzamy osobno znane XY na wzorcach (w tym pas
+nieruchomy i motyw okresowy), rzeczywiste 18 par oraz oba pełne filmy:
+łańcuch i graf ze wspólną listą kandydatów par i ustawieniami solvera.
+Porównanie LS/Huber w obrębie metody korzysta z tych samych pomiarów.
+Rozłączenie, odmowy, ostrzeżenia i limit iteracji są raportowane, a nie
+uzupełniane zerami. Czas ekstrakcji/dopasowania, solvera/renderowania i zasoby
+mierzymy osobno; AKAZE działa na CPU, więc brak użycia CUDA jest oczekiwany.
+
+Manualna ocena obejmuje te same kontury przy wspólnym widoku, pogorszenia,
+przypadki nierozstrzygalne i resztkowy tearing. Kolejność oglądania wariantów
+rotujemy między parami; powtórne obejrzenie nie jest dodatkową niezależną próbką.
+Po próbach funkcji (zastosowanie, korekta/cofnięcie, sesja, MPP/AVI) zapisujemy
+osobno ocenę jakości i decyzję użytkownika. Brak przewagi nad bazami nie jest
+z góry wykluczony. Wyników nie wpisujemy przed wykonaniem prób.
 
 ## Ręczne dopasowanie — REG-01a
 

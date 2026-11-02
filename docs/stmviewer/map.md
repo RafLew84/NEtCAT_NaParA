@@ -11,6 +11,13 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-02: na zlecenie użytkownika rozszerzono osobny plan rejestracji o
+  [REG-13: LightGlue + SuperPoint](registration/issues/13-lightglue-superpoint.md)
+  i [REG-14: AKAZE](registration/issues/14-akaze.md). Status `ready-for-agent`;
+  REG-14 czeka na odbiór manualny REG-13. Każdy etap obejmuje użycie metody
+  w parze, filmie i grafie oraz sesję/eksport. To przygotowanie ticketów,
+  bez implementacji i zmiany historycznych odbiorów pierwszej wersji.
+
 - 2026-11-02: użytkownik potwierdził „testy manualne ok” dla
   [REG-12](registration/issues/12-matchanything.md). Status `done`;
   zamknięto odbiór MatchAnything-ELoFTR. Wyniki pomiarów i ograniczenia

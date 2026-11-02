@@ -28,6 +28,14 @@ konfigurację oraz diagnostykę. [Instrukcja ręczna](registration/matchanything
 łańcuch i LS. Użytkownik potwierdził „testy manualne ok”; odbiór REG-12 zamknięty.
 Udokumentowane ograniczenia jakości pozostają aktualne.
 
+**Kolejne metody — plan z 2026-11-02:**
+[REG-13: LightGlue + SuperPoint](registration/issues/13-lightglue-superpoint.md)
+oraz [REG-14: AKAZE](registration/issues/14-akaze.md) mają status
+`ready-for-agent`. Kolejność: REG-13 → odbiór manualny → REG-14.
+Oba tickety obejmują parę, film, graf, sesję i eksport; implementacja
+nie rozpoczęła się. [Wspólny protokół](registration/manual-protocol.md)
+rozdziela pilotaż na trzy metody w REG-13 i dodanie AKAZE w REG-14.
+
 Program do przeglądania obrazów i sekwencji STP/S94/MPP, rejestracji
 oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 
@@ -37,7 +45,7 @@ oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 [Rozpoznanie MOVIE_4/MOVIE_8 i reproduktory](registration-difficult-movies.md)
 opisuje zgodność metod ze strukturami obrazu przy zakłóceniach i tearing.
 Domyślne algorytmy aplikacji pozostają bez zmian.
-[Plan rozwoju i tickety](registration/README.md) obejmuje czternaście etapów
+[Plan rozwoju i tickety](registration/README.md) obejmuje szesnaście etapów
 bieżącej ścieżki (w tym REG-01a, REG-02a i REG-08e), odłożony REG-06,
 REG-08d po wycofaniu implementacji oraz odłożony REG-09.
 Każdy realizowany etap kończy się ręcznym odbiorem
@@ -51,7 +59,9 @@ REG-08 dnia 2026-11-01 po REG-05 i REG-07 następują próby grafu LS (REG-08a),
 odpornego grafu (REG-08b), zastosowanie
 do filmu i eksport (REG-08c), wybór istniejących metod par (REG-08e),
 następnie osobno EfficientLoFTR (REG-10), RoMa v2 (REG-11) i
-MatchAnything-ELoFTR (REG-12). Implementację REG-08d wycofano na życzenie
+MatchAnything-ELoFTR (REG-12). Po kolejnym przeglądzie 2026-11-02 użytkownik
+zlecił dodanie LightGlue + SuperPoint (REG-13) i AKAZE (REG-14) do planu.
+Implementację REG-08d wycofano na życzenie
 użytkownika 2026-11-02. Tego samego dnia użytkownik odłożył diagnostykę
 tearingu REG-09 („pomińmy na razie ten etap”); nie blokuje ona REG-10.
 Użytkownik odłożył REG-06 („na razie pominiemy 06”).

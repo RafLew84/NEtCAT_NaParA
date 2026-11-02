@@ -2,9 +2,10 @@
 
 **Przegląd kolejnych metod — 2026-11-02:**
 [Rekomendacje i projekt porównania po REG-12](next-methods-research.md).
-Pierwsza propozycja: LightGlue + SuperPoint oraz AKAZE, z Deep outdoor
-(LoFTR) i RoMa v2 jako bazami. To rozpoznanie źródeł i plan próby;
-nie wykonano nowych benchmarków ani nie dodano ticketów.
+Na zlecenie użytkownika dodano [REG-13: LightGlue + SuperPoint](issues/13-lightglue-superpoint.md)
+i [REG-14: AKAZE](issues/14-akaze.md), z Deep outdoor (LoFTR) i RoMa Turbo
+jako bazami. Tickety są przygotowane do realizacji; REG-14 czeka na ręczny
+odbiór REG-13. Nie rozpoczęto implementacji ani nowych benchmarków.
 
 Data: 2026-10-28; rozszerzenia ręczne: REG-01a 2026-10-30, REG-02a 2026-10-31.
 Rozszerzenie o graf dopasowań i nowe modele: 2026-10-31, na zlecenie użytkownika.
@@ -120,7 +121,7 @@ Nowe zlecenie rozpoczyna etap rozwoju metod odłożony w
 [mapie pierwszej wersji](../map.md). Nie zmienia historycznych odbiorów 01–21.
 Zachowujemy dotychczasowe identyfikatory ticketów, w tym **REG-01a i REG-02a**,
 aby uniknąć kolizji i zmian numerów istniejących zadań. Bieżąca ścieżka obejmuje
-czternaście etapów podstawowych; REG-06 jest odłożony, REG-08d odłożono
+szesnaście etapów podstawowych; REG-06 jest odłożony, REG-08d odłożono
 po wycofaniu implementacji, a REG-09 odłożono na życzenie użytkownika 2026-11-02. REG-08e rozszerza
 wybór istniejących metod w grafie REG-08a–08c; REG-09 zachowuje swój zakres.
 
@@ -143,6 +144,8 @@ wybór istniejących metod w grafie REG-08a–08c; REG-09 zachowuje swój zakres
 | [REG-10: EfficientLoFTR](issues/10-efficient-loftr.md) | Nowy model dla par, łańcucha i grafu; porównanie z obecnym Deep przy stałej reszcie obliczeń. | REG-08c |
 | [REG-11: RoMa v2](issues/11-roma-v2.md) | Gęste korespondencje jako źródło jednej translacji XY; osobna ocena jakości i zasobów. | REG-10 |
 | [REG-12: MatchAnything-ELoFTR](issues/12-matchanything.md) | Kontrola wpływu treningu: porównanie z EfficientLoFTR przy tym samym konsensusie i grafie. | REG-11 |
+| [REG-13: LightGlue + SuperPoint](issues/13-lightglue-superpoint.md) | Rzadkie punkty SuperPoint dopasowane przez LightGlue; para, film, graf, sesja i eksport, osobna ocena jakości. | REG-12, odebrany |
+| [REG-14: AKAZE](issues/14-akaze.md) | Cechy MLDB i dopasowanie Hamming na CPU bez wag; ten sam cykl pracy oraz porównanie z bazami i REG-13. | REG-13 + odbiór manualny |
 | [REG-08d: Dalsze klatki odniesienia](issues/08d-long-range-references.md) | Odłożony po wycofaniu implementacji 2026-11-02; nie jest częścią REG-08e. | REG-08c + decyzja po odbiorze |
 | [REG-09: Rozpoznanie deformacji w pasach](issues/09-scanline-diagnostics.md) | Odłożony 2026-11-02: podgląd lokalnych rozbieżności po globalnym XY i podstawa decyzji o korekcji tearingu. | REG-07 + decyzja o wznowieniu |
 
@@ -153,6 +156,10 @@ użytkownika 2026-10-31. REG-02 i REG-02a również odebrano 2026-10-31 (`done`)
 REG-04 i REG-05 mają status `done` po odbiorze użytkownika 2026-10-31.
 REG-07 ma status `done` po odbiorze 2026-11-01. REG-08a ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08b ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08c ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-10 ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-02; REG-11 ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-02.
 REG-12 ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-02.
+REG-13 i REG-14 mają status `ready-for-agent`; implementacja i odbiór jeszcze
+nie nastąpiły. REG-13 może rozpocząć się po osobnym zleceniu; REG-14 ma
+niespełnioną blokadę odbioru REG-13. Wspólny pilotaż obejmuje 54 wyniki par
+w REG-13 oraz 18 dodatkowych wyników AKAZE w REG-14, zgodnie z protokołem.
 REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
 REG-08d ma status `planned` jako odłożony po wycofaniu implementacji; REG-09
@@ -162,8 +169,10 @@ pozostaje `planned` jako odłożony na życzenie użytkownika 2026-11-02. Nie bl
 
 Kolejność podstawowa: REG-01 → REG-01a → REG-02 → REG-02a → REG-04 → REG-05
 → REG-07 → REG-08a → REG-08b → REG-08c → REG-08e → REG-10 → REG-11
-→ REG-12. To także kolejność ręcznych odbiorów, nawet gdy część kodu można
-technicznie napisać niezależnie. Zależność między REG-10/11/12 porządkuje
+→ REG-12 → REG-13 → REG-14. To także kolejność ręcznych odbiorów, nawet gdy
+część kodu można technicznie napisać niezależnie. REG-14 nie wymaga modeli
+LightGlue/SuperPoint do działania; czeka na odbiór REG-13, aby zachować
+osobną ocenę każdego etapu. Zależność między REG-10/11/12 porządkuje
 eksperymenty; RoMa nie wymaga uruchamiania EfficientLoFTR, a MatchAnything nie
 wymaga działającego RoMa. REG-08e poprzedza nowe modele w planie, ale nie
 dodaje technicznej blokady REG-10; jego zależność od REG-08c pozostaje.

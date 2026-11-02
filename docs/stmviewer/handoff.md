@@ -1,3 +1,26 @@
+# REG-13/14: nowe tickety rejestracji — 2026-11-02
+
+Na zlecenie użytkownika dodano [LightGlue + SuperPoint](registration/issues/13-lightglue-superpoint.md)
+i [AKAZE](registration/issues/14-akaze.md) do [planu rejestracji](registration/README.md).
+Baza zadania: `7df3e23`; commit dokumentacji podano w odpowiedzi sesji.
+Oba tickety mają status `ready-for-agent`. REG-13 ma spełnioną blokadę REG-12;
+REG-14 czeka na wykonanie i ręczny odbiór REG-13. Implementacji nie rozpoczęto.
+
+Każdy ticket obejmuje parę, łańcuch, graf LS/Huber, sesję, zastosowanie,
+ręczne korekty i eksport, z zachowaniem istniejącego konsensusu oraz ostrzeżeń.
+LightGlue/SuperPoint wymagają lokalnych zasobów obu składników i osobnego
+sprawdzenia warunków ich wykorzystania; AKAZE jest metodą CPU bez wag.
+Protokół dzieli wspólny pilotaż: 54 wyniki trzech metod w REG-13, następnie
+18 wyników AKAZE w REG-14. Bazami są Deep outdoor i RoMa v2 Turbo.
+
+Niezależny przegląd szkiców nie wskazał blokujących uwag. Doprecyzowano preset
+RoMa, podział pilotażu i sprawdzanie sesji bez estymatora AKAZE bez usuwania
+OpenCV użytkownika. Sprawdzenia dokumentacji: lokalne odnośniki, spójność
+kolejności/statusów i `git diff --check`. Testów programu i prób manualnych
+nie uruchamiano — to zmiana planu. Nie pobierano wag i nie instalowano pakietów.
+REG-06/08d/09 pozostają odłożone; maski nie wracają. Brak zmian wspólnych,
+scalania i publikowania gałęzi.
+
 # Rejestracja: kolejne metody po REG-12 — 2026-11-02
 
 Na zlecenie użytkownika przygotowano [przegląd i projekt eksperymentu](registration/next-methods-research.md)
