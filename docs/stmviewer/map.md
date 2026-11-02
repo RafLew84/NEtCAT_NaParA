@@ -11,6 +11,10 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-02: na osobne zlecenie pobrano [kod i wagi LightGlue/SuperPoint](registration/lightglue-environment.md).
+  Próby CPU/CUDA na znanym XY zaliczone, bez zmian pakietów `netcat`.
+  REG-13 nadal `ready-for-agent`; funkcja w aplikacji i manualny odbiór przed nami.
+
 - 2026-11-02: na zlecenie użytkownika rozszerzono osobny plan rejestracji o
   [REG-13: LightGlue + SuperPoint](registration/issues/13-lightglue-superpoint.md)
   i [REG-14: AKAZE](registration/issues/14-akaze.md). Status `ready-for-agent`;

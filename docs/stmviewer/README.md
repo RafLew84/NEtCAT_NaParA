@@ -35,6 +35,8 @@ oraz [REG-14: AKAZE](registration/issues/14-akaze.md) mają status
 Oba tickety obejmują parę, film, graf, sesję i eksport; implementacja
 nie rozpoczęła się. [Wspólny protokół](registration/manual-protocol.md)
 rozdziela pilotaż na trzy metody w REG-13 i dodanie AKAZE w REG-14.
+[Zasoby LightGlue/SuperPoint](registration/lightglue-environment.md) przygotowano
+lokalnie; próby CPU/CUDA zaliczone w niezmienionym `netcat`.
 
 Program do przeglądania obrazów i sekwencji STP/S94/MPP, rejestracji
 oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.

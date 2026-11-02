@@ -5,7 +5,9 @@
 Na zlecenie użytkownika dodano [REG-13: LightGlue + SuperPoint](issues/13-lightglue-superpoint.md)
 i [REG-14: AKAZE](issues/14-akaze.md), z Deep outdoor (LoFTR) i RoMa Turbo
 jako bazami. Tickety są przygotowane do realizacji; REG-14 czeka na ręczny
-odbiór REG-13. Nie rozpoczęto implementacji ani nowych benchmarków.
+odbiór REG-13. Nie rozpoczęto implementacji ani pilotażu jakości.
+[Kod i oba checkpointy REG-13](lightglue-environment.md) są pobrane;
+próby znanego XY na CPU/CUDA w `netcat` zaliczone bez instalowania pakietów.
 
 Data: 2026-10-28; rozszerzenia ręczne: REG-01a 2026-10-30, REG-02a 2026-10-31.
 Rozszerzenie o graf dopasowań i nowe modele: 2026-10-31, na zlecenie użytkownika.

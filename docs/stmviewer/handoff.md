@@ -1,3 +1,24 @@
+# REG-13: przygotowanie LightGlue/SuperPoint — 2026-11-02
+
+Pobrano zamówiony kod i oba checkpointy do `/home/rlew/.cache/stmviewer/lightglue/`.
+[Instrukcja, pochodzenie, sumy i wyniki](registration/lightglue-environment.md).
+Kod upstream `5a650c444718caffc2669dc0094cde908f42dd73`, wagi wydania `v0.1_arxiv`.
+Baza dokumentacji Viewera: `9987d4a`; commit tego przekazania podano w odpowiedzi.
+
+Zaliczone rzeczywiste wykonanie CPU oraz CUDA RTX 5090, bez sieci:
+200/198 dopasowań, poprawne XY (−7, +5) na wzorcu, także konsensusem v2.
+Sprawdzono kompletność aktualnych parametrów oraz jawne różnice starego
+checkpointu LightGlue. SuperPoint odczytany z `weights_only=True` mimo starszego
+formatu pliku. Niezależny audyt sposobu ładowania i skryptu bez blokujących uwag.
+Sprawdzono sumy kodu/wag po wykonaniu, 213 pakietów `netcat` bez zmian,
+`pip check` bez uszkodzonych wymagań. Kod importowany lokalnie w procesie próby;
+nie instalowano `lightglue`, nie wymieniano Torch i nie tworzono środowiska.
+
+Zaktualizowano odnośniki i przygotowanie REG-13; status `ready-for-agent`.
+Brak zmian programu i wspólnych modułów. Próby GUI/manualne, pilotaż pomiarów,
+pełne testy aplikacji, Windows i sprzęt 8 GB niewykonane — należą do implementacji.
+Nie scalano i nie publikowano gałęzi. Licencje obu składników zachowano lokalnie.
+
 # REG-13/14: nowe tickety rejestracji — 2026-11-02
 
 Na zlecenie użytkownika dodano [LightGlue + SuperPoint](registration/issues/13-lightglue-superpoint.md)

@@ -14,6 +14,15 @@ oraz [zasady implementacji i odbioru](../../implementation/README.md).
 Zależność ustala kolejność odbiorów, nie zależność modelu od MatchAnything.
 Nazwa Deep Matcher oznacza obecny LoFTR outdoor; LightGlue jest osobną metodą.
 
+## Przygotowane zasoby — 2026-11-02
+
+Na osobne zlecenie użytkownika pobrano kod oraz oba checkpointy do
+`/home/rlew/.cache/stmviewer/lightglue/`. Rzeczywiste próby CPU i CUDA w
+niezmienionym `netcat` zaliczone: [ścieżki, wersje i wyniki](../lightglue-environment.md).
+Są to próby środowiska, nie implementacja ani manualny odbiór tego ticketu.
+Adapter nadal musi zapewnić lokalne ładowanie, kontrolę kompletności wag,
+poprawną skalę punktów i pełny zakres opisany poniżej.
+
 ## Zakres i kryteria odbioru
 
 - [ ] Jedna jawna opcja **LightGlue + SuperPoint** w podglądzie pary,
