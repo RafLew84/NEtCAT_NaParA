@@ -14,9 +14,14 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**Implementacja SD-V4-01 — 2026-11-02:** wykonano pierwszy przekrój
+obejmujący import MolTrack/MPP i przeglądanie oryginałów w działającym oknie.
+[Raport i odbiór ręczny](implementation/interactive-v04/acceptance-01.md).
+Pełny zakres szkieletu, w tym oznaczenia i wyrównanie, pozostaje do wykonania.
+
 Specyfikację pierwszej mapy zakończono 2026-10-19.
 [Zadania budowy i odbioru](implementation/README.md) są gotowe do podjęcia;
-aplikacja nie została jeszcze zaimplementowana ani odebrana. Status mapy
+pełny szkielet nie został jeszcze zaimplementowany ani odebrany. Status mapy
 odnosi się do decyzji, nie do gotowości programu.
 
 Podział na dwa etapy zatwierdzony przez użytkownika 2026-10-16 zastępuje

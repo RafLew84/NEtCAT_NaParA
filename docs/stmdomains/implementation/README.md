@@ -1,5 +1,10 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**Wykonano SD-V4-01 — 2026-11-02:** działa otwieranie zapisów MolTrack/MPP
+i przeglądanie obrazów oryginalnych w PyQt6. [Uruchomienie, test ręczny i raport](interactive-v04/acceptance-01.md).
+To pierwszy działający przekrój nowego planu; historyczne zadania poniżej
+nadal obejmują szerszy zakres oznaczeń, geometrii i pełnego odbioru szkieletu.
+
 **Rozszerzenie planu — 2026-11-02:** [SD-V4-16–20](interactive-v04/README.md#rozszerzenia)
 obejmuje pomiary geometrii, tolerancje domen i próbę freud (`ready-for-agent`
 po zależnościach) oraz późniejsze FFT/NMF i katalog typów (`deferred`).

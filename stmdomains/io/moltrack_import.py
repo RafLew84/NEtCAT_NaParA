@@ -129,10 +129,13 @@ def _series_from_source(
         active = 0
         diagnostics.append("Brak poprawnego numeru aktywnej klatki; pokazano pierwszą klatkę serii.")
     source = payload["source"]
-    missing = [name for name in ("size_bytes", "mtime_ns", "frame_shape_hw") if source.get(name) is None]
+    metadata_names = {
+        "size_bytes": "rozmiaru pliku", "mtime_ns": "daty modyfikacji",
+        "frame_shape_hw": "wymiarów obrazów",
+    }
+    missing = [label for name, label in metadata_names.items() if source.get(name) is None]
     if missing:
         diagnostics.append("Niepełna weryfikacja źródła — w zapisie brak: " + ", ".join(missing) + ".")
-    diagnostics.append("Zgodność metadanych źródła nie jest dowodem tożsamości jego zawartości.")
     diagnostics.append("Kalibracja fizyczna niepotwierdzona; współrzędne obrazu są w px.")
     times = sequence.metadata.frame_times_s
     source_times = None

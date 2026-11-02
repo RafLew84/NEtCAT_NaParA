@@ -5,6 +5,15 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-02
 
+**Wykonano SD-V4-01:** aplikacja otwiera zapis MolTrack z MPP i pokazuje
+obrazy oryginalne, nawigację, wybór numeru oraz zoom/dopasowanie.
+Import działa w tle; anulowanie, błąd i niezgodne źródło zachowują poprzednią
+serię. [Instrukcja uruchomienia i ręcznego odbioru](implementation/interactive-v04/acceptance-01.md).
+W `netcat`: 230 testów STM Domains PASS, mypy PASS i próba rzeczywistego GUI
+na TTMAPP 268 klatek. Ręczny odbiór użytkownika pozostaje osobnym krokiem.
+Gałąź `domains/interactive-v04-ui`; następny zakres to oznaczenia i geometria w 02.
+Poniższe wpisy zachowują historię przygotowania planu i badań.
+
 **Rozszerzenia planu UI — 2026-11-02:** dodano
 [SD-V4-16–20](implementation/interactive-v04/README.md#rozszerzenia):
 pomiary geometrii na obrazie, tolerancje tworzenia domen, ograniczona próba

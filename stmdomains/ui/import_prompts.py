@@ -33,13 +33,19 @@ class QtImportPrompts:
         return Path(filename) if filename else None
 
     def confirm_source(self, path: Path, reasons: tuple[str, ...]) -> bool:
-        answer = QMessageBox.question(
-            self.parent, "Potwierdź źródło obrazów",
+        dialog = QMessageBox(
+            QMessageBox.Icon.Question, "Potwierdź źródło obrazów",
             f"{path}\n\n" + "\n".join(reasons),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.Cancel,
+            self.parent,
         )
-        return answer == QMessageBox.StandardButton.Yes
+        for choice, label in ((QMessageBox.StandardButton.Yes, "Użyj tego pliku"),
+                              (QMessageBox.StandardButton.Cancel, "Anuluj")):
+            button = dialog.button(choice)
+            if button is not None:
+                button.setText(label)
+        dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
+        return dialog.exec() == QMessageBox.StandardButton.Yes
 
     def show_error(self, message: str) -> None:
         QMessageBox.warning(self.parent, "Nie można otworzyć obrazu", message)

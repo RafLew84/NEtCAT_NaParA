@@ -1,3 +1,42 @@
+# STM Domains — wykonano SD-V4-01: otwarcie danych i przeglądanie obrazów
+
+Data: **2026-11-02**. Na polecenie `implement 01` wykonano
+[SD-V4-01](implementation/interactive-v04/01-open-images.md), status `done`.
+Działa otwarcie MolTrack schema 1/2/3 z jednym MPP, relokacja źródła,
+potwierdzenie zmienionego mtime, podgląd oryginałów, nawigacja, numer klatki,
+zoom/pan/dopasowanie oraz anulowanie importu w tle. Atomowa aktywacja
+i tokeny żądań zachowują poprzednią serię po błędzie lub anulowaniu.
+
+[Raport i gotowy scenariusz ręczny](implementation/interactive-v04/acceptance-01.md)
+zawierają uruchomienie przez `python -m stmdomains.main` w **netcat** oraz
+generator małych przykładów. Oznaczenia i raw/aligned należą do następnego
+02; stare zadania odbioru całego szkieletu i naukowe 04/13 pozostają otwarte.
+
+Sprawdzenia: **230 testów aplikacji PASS**, w tym 35 nowych; mypy **14 plików
+PASS**; kontrola **16 plików kodu/testów, maksymalnie 209 linii**; wejście
+modułowe aplikacji; rzeczywiste GUI xcb na TTMAPP 268×256×256, dziewięć
+wybranych klatek, zoom/dopasowanie, rzeczywiste potwierdzenie źródła i jedna
+klatka. GUI sterowano automatycznie i obejrzano zrzuty. Ręczny odbiór przez
+użytkownika pozostaje do wykonania; nie deklarujemy jego przeprowadzenia.
+Sprawdzono też lokalne linki dokumentacji i `git diff --check`.
+
+Code-review od bazy `4c4825f`: Standards — brak twardych naruszeń, jedna
+uwaga czytelności poprawiona i ponownie sprawdzona; Spec — brak niezgodności.
+Pełne raporty obu osi są w raporcie odbioru. Nie instalowano zależności.
+Czytnik materializuje cały MPP; lokalny pomiar dał około 0,72 s otwarcia
+oraz szczyt RSS około 1051 MiB. To ograniczenie przy większych plikach;
+anulowanie odrzuca wynik, lecz nie przerywa siłowo trwającego odczytu.
+
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/interactive-v04-ui`.
+Implementacja `347a2b5`, po bazie **`4c4825f`**; commit końcowych poprawek
+i dokumentacji w odpowiedzi końcowej. Zmiany tylko w aplikacji, jej testach
+i dokumentacji. Integrator powinien uzupełnić główne zależności szkieletów
+o NumPy dla tej funkcji oraz pytest-qt w testach; przyszłe wyrównanie będzie
+potrzebowało SciPy. Lokalny netcat już zawiera te pakiety. Nie zmieniano
+wspólnego czytnika, konfiguracji głównej ani CI.
+
+---
+
 # STM Domains — środowisko uruchomienia i testów
 
 Data: **2026-11-02**. Użytkownik wskazał istniejące środowisko Conda
