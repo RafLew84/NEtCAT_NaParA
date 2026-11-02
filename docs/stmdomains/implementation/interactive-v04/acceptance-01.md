@@ -6,8 +6,9 @@ końcowe poprawki po przeglądzie i pierwotny raport: `808f3b7`.
 
 **Odbiór ręczny 01 potwierdzony przez użytkownika 2026-11-02** słowami
 „testy manualne ok”. Następnie użytkownik zlecił dodanie poziomego suwaka
-pod obrazem. To uzupełnienie ma osobny scenariusz odbioru poniżej;
-potwierdzenie wcześniejszej funkcji nie obejmuje jeszcze nowego suwaka.
+pod obrazem. Po jego wdrożeniu (`ee54638`) użytkownik ponownie potwierdził
+„testy manualne ok” — odbiór obejmuje już także suwak. Osobny scenariusz
+ponownego sprawdzenia zachowano poniżej.
 
 ## Uruchomienie i ręczne sprawdzenie
 
@@ -69,7 +70,7 @@ szkieletu ani metody wykrywania domen.
 4. Otwórz przykład `single.moltrack.json`: suwak jest nieaktywny. Ponownie
    otwórz TTMAPP: suwak odzyskuje pełny zakres 1–268.
 
-**Ręczny odbiór suwaka przez użytkownika pozostaje do wykonania.**
+**Ręczny odbiór suwaka potwierdzony przez użytkownika 2026-11-02 (`ee54638`).**
 
 Sprawdzenia dodatku w `netcat`: **9 testów widoku i nawigacji PASS**
 (`test_browsing_window.py`, `test_image_view.py`), mypy **14 plików PASS**.
@@ -125,8 +126,8 @@ mypy. Bez instalacji i zmian wspólnej konfiguracji.
 
 Powyższe sprawdzenia techniczne dotyczą pierwotnej implementacji 01.
 Sterowanie Qt i ogląd zrzutów przez agenta były sprawdzeniami technicznymi;
-późniejszy pomyślny odbiór ręczny potwierdził użytkownik. Wynik ten nie
-stanowi odbioru nowego dodatku z suwakiem.
+późniejszy pomyślny odbiór ręczny potwierdził użytkownik. Suwak został
+sprawdzony i odebrany osobno, zgodnie z zapisem powyżej.
 
 ## Dane i pomiary lokalne
 

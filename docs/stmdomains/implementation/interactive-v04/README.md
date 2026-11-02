@@ -12,7 +12,7 @@ status `draft`. Na polecenie użytkownika dodano omówione rozszerzenia:
 a dalsze 19–20 status `deferred` z jawnym warunkiem wyboru.
 Pozostałe funkcje są planem implementacji. Oznaczenia molekuł, wyrównanie
 i analiza nie są częścią ukończonego 01. Użytkownik potwierdził ręczny odbiór
-pierwotnego 01; dodany następnie suwak ma osobny scenariusz odbioru.
+pierwotnego 01 oraz dodanego następnie suwaka (`ee54638`).
 
 ## Tickety i kolejność
 

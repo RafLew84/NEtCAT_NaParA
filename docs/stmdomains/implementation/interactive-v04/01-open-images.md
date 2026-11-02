@@ -14,7 +14,8 @@ z kryteriami poniżej; środowisko `netcat`. Implementacja: `347a2b5`,
 z końcowymi poprawkami po przeglądzie. [Raport i instrukcja odbioru](acceptance-01.md)
 opisują wykonane sprawdzenia. **2026-11-02 użytkownik potwierdził pomyślny
 odbiór ręczny dotychczasowego zakresu 01** i zlecił dodanie poziomego suwaka
-klatek pod obrazem. Ręczny odbiór tego dodatku pozostaje osobnym krokiem.
+klatek pod obrazem. Następnie potwierdził pomyślne testy ręczne suwaka
+z commita `ee54638`; odbiór dodatku zakończono.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 
@@ -26,7 +27,7 @@ Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 - [x] Długi odczyt nie blokuje okna; anulowanie lub błąd nowego otwarcia pozostawia poprzednią serię. Spóźniony odczyt nie podmienia aktualnego widoku.
 - [x] Automatyczne sprawdzenia obejmują prawdziwą ścieżkę import–model–widok, niesymetryczny obraz, niestandardową kolejność klatek oraz błąd/anulowanie.
 - [x] Do lokalnych sprawdzeń zadania dołączono kontrolę długości plików według wspólnej zasady; nie zmienia ona wspólnego CI.
-- [x] Działającą funkcję sprawdzono automatycznie, w rzeczywistym GUI sterowanym Qt oraz przez ogląd zrzutów; użytkownik potwierdził pomyślny odbiór ręczny pierwotnego zakresu 01.
+- [x] Działającą funkcję sprawdzono automatycznie, w rzeczywistym GUI sterowanym Qt oraz przez ogląd zrzutów; użytkownik potwierdził pomyślny odbiór ręczny pierwotnego zakresu 01 i dodatku z suwakiem.
 - [x] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
 
 ## Test ręczny użytkownika

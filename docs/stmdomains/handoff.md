@@ -6,6 +6,9 @@ przeciągania i podąża za zmianami numeru/przycisków. Bez serii i dla jednej
 klatki jest nieaktywny. Wykorzystuje istniejącą obsługę pracy w tle i odrzucania
 starszych wyników; anulowanie przywraca pozycję wyświetlanej klatki.
 
+**Odbiór suwaka (`ee54638`) potwierdzony przez użytkownika 2026-11-02:**
+„testy manualne ok”. SD-V4-01 wraz z dodatkiem został odebrany ręcznie.
+
 W `netcat`: **9 testów widoku/nawigacji PASS**, mypy **14 plików PASS**,
 kontrola długości zmienionego kodu/testów **162/204 linie**, przegląd drugiego
 agenta bez uwag. Rzeczywiste GUI X11: przeciąganie na TTMAPP 268 klatek,
@@ -14,10 +17,12 @@ sprawdzenie obrazu i numeru przed puszczeniem uchwytu; zrzut lokalny
 Pełnego zestawu 230 testów z poprzedniego odbioru nie powtarzano.
 
 [Scenariusz ręczny suwaka](implementation/interactive-v04/acceptance-01.md#ręczne-sprawdzenie-nowego-suwaka)
-jest gotowy do osobnego odbioru użytkownika. Uruchomienie w `netcat`:
+zachowano jako instrukcję ponownego sprawdzenia. Uruchomienie w `netcat`:
 `python -m stmdomains.main`. Kolejny ticket pozostaje 02.
 Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/interactive-v04-ui`,
-baza **`808f3b7`**, commit dodatku w odpowiedzi końcowej. Brak nowych potrzeb
+baza **`808f3b7`**, commit dodatku **`ee54638`**. Potwierdzenie odbioru zmienia
+tylko dokumentację; sprawdzono `git diff --check`, bez ponawiania testów kodu.
+Commit zapisu odbioru w odpowiedzi końcowej. Brak nowych potrzeb
 integracyjnych, instalacji i zmian wspólnych modułów.
 
 ---

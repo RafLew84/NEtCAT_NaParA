@@ -19,6 +19,7 @@ obejmujący import MolTrack/MPP i przeglądanie oryginałów w działającym okn
 [Raport i odbiór ręczny](implementation/interactive-v04/acceptance-01.md).
 Użytkownik potwierdził testy ręczne 01; na jego kolejne zlecenie dodano
 suwak pod obrazem do przełączania klatek podczas przeciągania.
+Ręczny odbiór dodatku (`ee54638`) również potwierdzono 2026-11-02.
 Pełny zakres szkieletu, w tym oznaczenia i wyrównanie, pozostaje do wykonania.
 
 Specyfikację pierwszej mapy zakończono 2026-10-19.

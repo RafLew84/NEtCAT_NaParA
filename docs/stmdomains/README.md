@@ -14,7 +14,8 @@ serię. [Instrukcja uruchomienia i ręcznego odbioru](implementation/interactive
 W `netcat`: 230 testów STM Domains PASS, mypy PASS i próba rzeczywistego GUI
 na TTMAPP 268 klatek. Pierwotny zakres 01 odebrano ręcznie; dodatek z suwakiem
 sprawdzono osobno: 9 testów widoku/nawigacji PASS, mypy PASS i przeciąganie
-w rzeczywistym GUI. Ręczny odbiór dodatku pozostaje osobnym krokiem.
+w rzeczywistym GUI. Użytkownik potwierdził również pomyślny odbiór ręczny
+suwaka z commita `ee54638`.
 Gałąź `domains/interactive-v04-ui`; następny zakres to oznaczenia i geometria w 02.
 Poniższe wpisy zachowują historię przygotowania planu i badań.
 
