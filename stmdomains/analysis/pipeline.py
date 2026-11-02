@@ -9,8 +9,10 @@ import numpy as np
 
 from stmdomains.analysis.barriers import image_barriers
 from stmdomains.analysis.clustering import fit_classes
+from stmdomains.analysis.domain_settings import DomainSettings
 from stmdomains.analysis.features import pair_features, prepare_points
 from stmdomains.analysis.order import evaluate_order
+from stmdomains.analysis.provenance import input_fingerprint
 from stmdomains.analysis.segmentation import segment_domains
 from stmdomains.core.analysis_result import (
     AnalysisCancelled, AnalysisInput, FrameAnalysis, MoleculeAssignment, ResultClass,
@@ -21,20 +23,20 @@ PARAMETERS: dict[str, Any] = {
     "method_version": "stm-domains-local-1", "k": 5, "seed": 24,
     "descriptor_radial_bins": 14, "descriptor_angle_bins": 36, "descriptor_sigma_factor": 1.25,
     "descriptor_pair_distance_range": [.55, 2.8], "pca_max_components": 24,
-    "minimum_domain_size": 8, "edge_distance_factor": 1.5,
-    "edge_max_hellinger": .20, "region_max_hellinger_diameter": .50,
+    **DomainSettings().parameters(),
     "class_margin": .075, "class_radius_quantile": .95, "class_radius_multiplier": 1.10,
     "order_radius_factor": 3., "order_sigma_factor": 4 / 3,
     "order_frequency_range_in_inverse_spacings": [.5, 2.], "order_frequency_count": 22,
     "order_angle_count": 48, "order_minimum_local_count": 10, "order_minimum_effective_count": 8.,
-    "raster_radius_factor": .85, "maximum_input_detections": 3000,
+    "maximum_input_detections": 3000,
     "maximum_image_pixels": 4_194_304,
 }
 COLORS = ("#10b9bd", "#f5b343", "#e366b6", "#9075db", "#66c26d")
 
 
 def analyze_frame(
-    data: AnalysisInput, *, cancelled: Callable[[], bool] = lambda: False,
+    data: AnalysisInput, *, settings: DomainSettings = DomainSettings(),
+    cancelled: Callable[[], bool] = lambda: False,
     progress: Callable[[str], None] = lambda text: None,
 ) -> FrameAnalysis:
     def check() -> None:
@@ -44,7 +46,7 @@ def analyze_frame(
     check()
     image = np.asarray(data.frame.image, dtype=float)
     detections = data.annotations.detections
-    parameters = dict(PARAMETERS)
+    parameters = {**PARAMETERS, **settings.parameters()}
     metadata: dict[str, Any] = {
         "fit_scope": "current_frame", "working_index": data.frame.working_index,
         "source_index": data.frame.source_index, "annotation_state": data.annotations.detection_state,
@@ -52,15 +54,7 @@ def analyze_frame(
         "interpretation": "Experimental local descriptor classes and domains; no temporal tracking or confirmed physical types.",
     }
     if image.size <= PARAMETERS["maximum_image_pixels"] and len(detections) <= PARAMETERS["maximum_input_detections"]:
-        digest = hashlib.sha256()
-        digest.update(str(image.shape).encode())
-        digest.update(np.ascontiguousarray(image, dtype="<f8").tobytes())
-        digest.update(data.annotations.detection_state.encode())
-        for item in sorted(detections, key=lambda item: item.detection_id):
-            digest.update(json.dumps((item.detection_id, item.center_xy, item.outside_field,
-                                      item.metadata.get("origin"), item.metadata.get("confidence")),
-                                     ensure_ascii=False, default=str).encode())
-        metadata["input_sha256"] = digest.hexdigest()
+        metadata["input_sha256"] = input_fingerprint(data)
     else:
         metadata["fingerprint_status"] = "not_computed_input_exceeds_resource_limit"
     excluded: dict[str, tuple[str, dict[str, Any]]] = {}
@@ -115,7 +109,7 @@ def analyze_frame(
     progress("Wyznaczanie barier obrazu i domen…")
     barrier, barrier_metadata = image_barriers(image, spacing, check)
     domain_ids, domain_labels, geometry_metadata = segment_domains(
-        points, labels, reliable & order["supported"], features, spacing, barrier, check,
+        points, labels, reliable & order["supported"], features, spacing, barrier, check, settings=settings,
     )
     metadata["barriers"] = barrier_metadata
     metadata["domain_construction"] = geometry_metadata

@@ -6,7 +6,18 @@
 
 **Blocked by:** [05: Oblicz klasy i domeny bieżącej klatki z danych](05-analyze-current-frame.md).
 
-**Status:** ready-for-agent — wymaga ukończenia zależności.
+**Status:** in-progress — baza `8caa8a7`, gałąź `domains/interactive-v04-ui`.
+
+Ustalenie użytkownika: parametry w małym oknie otwieranym z menu. Okno będzie
+niemodalne, aby porównywać wyniki bez zasłaniania i blokowania przeglądarki.
+Edycja pól i przywrócenie wartości bazowych zmieniają szkic ustawień;
+obliczenia uruchamia dopiero przycisk „Przelicz domeny”.
+
+Testowane granice zgodnie z kryteriami ticketu: publiczna konfiguracja i wynik
+segmentacji (wpływ wszystkich parametrów), wejście analizy → niezmienny wynik
+(zachowanie klas, weryfikacja pochodzenia), kontroler i rzeczywiste kontrolki Qt
+(porównanie, walidacja, anulowanie, zmiana klatki). Testy nie oceniają jakości
+fizycznej domen; tę część wspiera oglądanie wyników na danych użytkownika.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 

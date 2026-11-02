@@ -9,6 +9,8 @@ from scipy import ndimage as ndi
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
 
+from stmdomains.analysis.domain_settings import DomainSettings
+
 
 def _crosses_barrier(a: NDArray[Any], b: NDArray[Any], barrier: NDArray[np.bool_]) -> bool:
     count = max(3, int(np.ceil(np.linalg.norm(a - b) * 3)))
@@ -21,9 +23,9 @@ def _crosses_barrier(a: NDArray[Any], b: NDArray[Any], barrier: NDArray[np.bool_
 def segment_domains(
     points: NDArray[np.float64], labels: NDArray[Any], accepted: NDArray[np.bool_],
     features: NDArray[np.float64], spacing: float, barrier: NDArray[np.bool_],
-    check: Callable[[], None],
+    check: Callable[[], None], *, settings: DomainSettings = DomainSettings(),
 ) -> tuple[NDArray[np.int32], NDArray[np.int32], dict[str, Any]]:
-    pairs = np.asarray(sorted(cKDTree(points).query_pairs(1.5 * spacing)), int).reshape(-1, 2)
+    pairs = np.asarray(sorted(cKDTree(points).query_pairs(settings.edge_distance_factor * spacing)), int).reshape(-1, 2)
     eligible = accepted[pairs[:, 0]] & accepted[pairs[:, 1]] & (labels[pairs[:, 0]] == labels[pairs[:, 1]])
     candidates = pairs[eligible]
     h = features / np.maximum(np.linalg.norm(features, axis=1, keepdims=True), 1e-12)
@@ -36,7 +38,7 @@ def segment_domains(
             cut += 1
             continue
         distance = float(np.linalg.norm(h[a] - h[b]) / np.sqrt(2))
-        if distance <= .20:
+        if settings.geometry_mode == "off" or distance <= settings.edge_max_hellinger:
             edges.append((distance, int(a), int(b)))
         else:
             geometry_cut += 1
@@ -57,10 +59,10 @@ def segment_domains(
             continue
         # Bound temporary distance matrices instead of allocating n×n globally.
         incompatible = False
-        for start in range(0, len(members[a]), 32):
+        for start in range(0, len(members[a]) if settings.geometry_mode != "off" else 0, 32):
             check()
             distance = cdist(h[members[a][start:start + 32]], h[members[b]]) / np.sqrt(2)
-            if float(distance.max()) > .50:
+            if float(distance.max()) > settings.region_max_hellinger_diameter:
                 incompatible = True
                 break
         if incompatible:
@@ -70,12 +72,12 @@ def segment_domains(
             a, b = b, a
         parents[b] = a
         members[a].extend(members.pop(b))
-    groups = [group for group in members.values() if len(group) >= 8]
+    groups = [group for group in members.values() if len(group) >= settings.minimum_domain_size]
     groups.sort(key=lambda group: (float(points[group, 1].mean()), float(points[group, 0].mean())))
     ids = np.zeros(len(points), np.int32)
     for number, group in enumerate(groups, 1):
         ids[group] = number
-    final, regions, reconciliation = _reconcile(points, ids, spacing, barrier, check)
+    final, regions, reconciliation = _reconcile(points, ids, spacing, barrier, check, settings)
     return final, regions, {"candidate_edges": len(pairs), "eligible_edges": len(candidates),
                    "barrier_cut_edges": cut, "geometry_cut_edges": geometry_cut,
                    "region_diameter_rejected_merges": rejected, **reconciliation}
@@ -83,7 +85,7 @@ def segment_domains(
 
 def _reconcile(
     points: NDArray[np.float64], ids: NDArray[np.int32], spacing: float,
-    barrier: NDArray[np.bool_], check: Callable[[], None],
+    barrier: NDArray[np.bool_], check: Callable[[], None], settings: DomainSettings,
 ) -> tuple[NDArray[np.int32], NDArray[np.int32], dict[str, Any]]:
     """Require one seeded 8-connected Voronoi support per final domain, as in v0.4."""
     height, width = barrier.shape
@@ -95,7 +97,7 @@ def _reconcile(
         samples = np.column_stack((xx.ravel(), (yy + start).ravel()))
         distance, nearest = tree.query(samples)
         values = ids[nearest].copy()
-        values[distance > .85 * spacing] = 0
+        values[distance > settings.raster_radius_factor * spacing] = 0
         mask[start:start + len(yy)] = values.reshape(yy.shape)
     mask[barrier] = 0
     groups: list[tuple[NDArray[np.intp], int]] = []
@@ -112,7 +114,7 @@ def _reconcile(
         for component in np.unique(point_components):
             check()
             selected = members[point_components == component]
-            if component > 0 and len(selected) >= 8:
+            if component > 0 and len(selected) >= settings.minimum_domain_size:
                 temporary_id = len(groups) + 1
                 regions[components == component] = temporary_id
                 groups.append((selected, temporary_id))

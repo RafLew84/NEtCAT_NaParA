@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
 from stmdomains.core.series import Series
 from stmdomains.core.annotations import Detection, Segmentation
 from stmdomains.ui.annotation_controls import AnnotationControls
+from stmdomains.ui.domain_settings_dialog import DomainSettingsDialog
 from stmdomains.ui.image_view import ImageView
 from stmdomains.ui.filmstrip import Filmstrip
 from stmdomains.ui.import_prompts import ImportPrompts, QtImportPrompts
@@ -178,6 +179,13 @@ class STMDomainsMainWindow(QMainWindow):
         self.controller.frame_changed.connect(self._show_frame)
         self.controller.busy_changed.connect(self._show_progress)
         self.controller.playback_changed.connect(self._show_playback)
+        self.domain_settings_dialog = DomainSettingsDialog(self.controller, self)
+        analysis_menu = menu_bar.addMenu("&Analiza") if menu_bar is not None else None
+        self.domain_settings_action = analysis_menu.addAction("Tworzenie domen…") if analysis_menu is not None else None
+        if self.domain_settings_action is not None:
+            self.domain_settings_action.setObjectName("domainSettingsAction")
+            self.domain_settings_action.setEnabled(False)
+            self.domain_settings_action.triggered.connect(self._show_domain_settings)
         app = QCoreApplication.instance()
         if app is not None:
             app.aboutToQuit.connect(self._finish_background_work)
@@ -187,6 +195,13 @@ class STMDomainsMainWindow(QMainWindow):
         with QSignalBlocker(self.frame_number):
             self.frame_number.setValue(self.controller.current_index + 1)
         self.controller.show_frame(number - 1)
+
+    def _show_domain_settings(self) -> None:
+        self.controller.pause()
+        self.domain_settings_dialog.refresh()
+        self.domain_settings_dialog.show()
+        self.domain_settings_dialog.raise_()
+        self.domain_settings_dialog.activateWindow()
 
     def _show_series(self, series: Series) -> None:
         self.filmstrip.set_series(series)
@@ -221,7 +236,8 @@ class STMDomainsMainWindow(QMainWindow):
         self.image_view.set_frame(view)
         self.result_controls.set_frame(view)
         self.details_label.setText(
-            "Analiza eksperymentalna · klasy i domeny lokalne dla klatki · jednostki: px"
+            ("Poprzedni wynik" if self.controller.result_version == "previous" else "Nowy wynik")
+            + " · Analiza eksperymentalna · klasy i domeny lokalne dla klatki · jednostki: px"
             if view.result is not None else "Auto kontrast oryginału · jednostki obrazu: px"
         )
         self._select_annotation(None)
@@ -258,6 +274,8 @@ class STMDomainsMainWindow(QMainWindow):
 
     def _show_progress(self, busy: bool, text: str) -> None:
         self.analyze_button.setEnabled(self.controller.can_analyze)
+        if self.domain_settings_action is not None:
+            self.domain_settings_action.setEnabled(self.controller.series is not None)
         self.progress_label.setText(text)
         self.progress_bar.setVisible(busy)
         self.cancel_button.setVisible(busy)

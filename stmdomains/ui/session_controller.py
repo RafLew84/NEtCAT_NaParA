@@ -13,7 +13,8 @@ from PyQt6.QtCore import QCoreApplication, QObject, QThreadPool, QTimer, Qt, pyq
 from stmdomains.core.frame_presentation import FramePresenter, PresentedFrame
 from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.core.series import Series
-from stmdomains.analysis import analyze_frame
+from stmdomains.analysis import analyze_frame, recalculate_domains
+from stmdomains.analysis.domain_settings import DomainSettings
 from stmdomains.io.moltrack_import import ImportCandidate, SourceRequest, prepare_import
 from stmdomains.ui.import_prompts import ImportPrompts
 from stmdomains.ui.tasks import Task
@@ -50,6 +51,8 @@ class SessionController(QObject):
         self._frame_token: int | None = None
         self._analysis_token: int | None = None
         self._results: dict[int, FrameAnalysis] = {}
+        self._previous_results: dict[int, FrameAnalysis] = {}
+        self._selected_versions: dict[int, str] = {}
         self._published: PresentedFrame | None = None
         self._opening_path: Path | None = None
         self._closed = False
@@ -69,7 +72,28 @@ class SessionController(QObject):
 
     @property
     def result(self) -> FrameAnalysis | None:
+        return self.previous_result if self.result_version == "previous" else self.latest_result
+
+    @property
+    def latest_result(self) -> FrameAnalysis | None:
         return self._results.get(self.current_index)
+
+    @property
+    def previous_result(self) -> FrameAnalysis | None:
+        return self._previous_results.get(self.current_index)
+
+    @property
+    def result_version(self) -> str:
+        return self._selected_versions.get(self.current_index, "new")
+
+    def select_result(self, version: str) -> None:
+        if self.is_busy or version not in ("new", "previous") or self._closed:
+            return
+        if version == "previous" and self.previous_result is None:
+            return
+        self.pause()
+        self._selected_versions[self.current_index] = version
+        self._refresh_result()
 
     @property
     def can_analyze(self) -> bool:
@@ -163,9 +187,25 @@ class SessionController(QObject):
         if not self.can_analyze or self.presenter is None:
             return
         presenter, index = self.presenter, self.current_index
+        settings = DomainSettings.from_parameters(self.latest_result.parameters) if self.latest_result else DomainSettings()
         self._analysis_token = self._submit(lambda cancelled, report: analyze_frame(
-            presenter.analysis_input(index), cancelled=cancelled.is_set, progress=report,
+            presenter.analysis_input(index), settings=settings, cancelled=cancelled.is_set, progress=report,
         ))
+        self._busy()
+
+    def recalculate_domains(self, settings: DomainSettings) -> None:
+        self.pause()
+        if not self.can_analyze or self.presenter is None:
+            return
+        presenter, index, previous = self.presenter, self.current_index, self.latest_result
+
+        def calculate(cancelled: Event, report: Callable[[str], None]) -> FrameAnalysis:
+            data = presenter.analysis_input(index)
+            if previous is None:
+                return analyze_frame(data, settings=settings, cancelled=cancelled.is_set, progress=report)
+            return recalculate_domains(data, previous, settings, cancelled=cancelled.is_set, progress=report)
+
+        self._analysis_token = self._submit(calculate)
         self._busy()
 
     def _cancel_analysis(self) -> None:
@@ -271,7 +311,15 @@ class SessionController(QObject):
             if (self.series is not None and result.series_id == self.series.identity
                     and result.working_index == self.current_index == self._requested_index
                     and result.source_index == self.series.frame(self.current_index).source_index):
+                previous = self.latest_result
+                if (previous is not None and previous.status == result.status == "complete"
+                        and previous.metadata.get("input_sha256") == result.metadata.get("input_sha256")
+                        and previous.metadata.get("model_id") == result.metadata.get("model_id")):
+                    self._previous_results[self.current_index] = previous
+                else:
+                    self._previous_results.pop(self.current_index, None)
                 self._results[self.current_index] = result
+                self._selected_versions[self.current_index] = "new"
                 if self._frame_token is None:
                     self._refresh_result()
             self._busy()
@@ -305,6 +353,8 @@ class SessionController(QObject):
             self.series = candidate.series
             self.presenter = result.presenter
             self._results.clear()
+            self._previous_results.clear()
+            self._selected_versions.clear()
             self._published = None
             self.series_changed.emit(self.series)
             self._publish(result.view)
@@ -314,7 +364,10 @@ class SessionController(QObject):
                 self._publish(result)
 
     def _publish(self, frame: PresentedFrame) -> None:
-        frame = replace(frame, result=self._results.get(frame.frame.working_index))
+        index = frame.frame.working_index
+        result = (self._previous_results.get(index) if self._selected_versions.get(index) == "previous"
+                  else self._results.get(index))
+        frame = replace(frame, result=result)
         self._published = frame
         self._automatic_token = None
         self.current_index = frame.frame.working_index
