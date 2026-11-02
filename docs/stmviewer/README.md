@@ -9,8 +9,9 @@ oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.
 [Rozpoznanie MOVIE_4/MOVIE_8 i reproduktory](registration-difficult-movies.md)
 opisuje zgodność metod ze strukturami obrazu przy zakłóceniach i tearing.
 Domyślne algorytmy aplikacji pozostają bez zmian.
-[Plan rozwoju i tickety](registration/README.md) obejmuje trzynaście etapów
-bieżącej ścieżki (w tym REG-01a i REG-02a), odłożony REG-06 i dwa etapy warunkowe.
+[Plan rozwoju i tickety](registration/README.md) obejmuje czternaście etapów
+bieżącej ścieżki (w tym REG-01a, REG-02a i REG-08e), odłożony REG-06,
+REG-08d po wycofaniu implementacji oraz warunkowy REG-09.
 Każdy realizowany etap kończy się ręcznym odbiorem
 funkcji oraz jakości; kolejny etap czeka na decyzję użytkownika.
 [Wspólny protokół prób](registration/manual-protocol.md) ustala dane i sposób porównania.
@@ -20,9 +21,11 @@ proponuje graf translacji ponad obecnym Deep oraz krótką listę dalszych prób
 Na zlecenie użytkownika 2026-10-31 rozszerzono plan. Po usunięciu osobnego
 REG-08 dnia 2026-11-01 po REG-05 i REG-07 następują próby grafu LS (REG-08a),
 odpornego grafu (REG-08b), zastosowanie
-do filmu i eksport (REG-08c), następnie osobno EfficientLoFTR (REG-10), RoMa v2
-(REG-11) i MatchAnything-ELoFTR (REG-12). Dalsze odniesienia REG-08d oraz tearing
-REG-09 pozostają warunkowe. Użytkownik odłożył REG-06 („na razie pominiemy 06”).
+do filmu i eksport (REG-08c), wybór istniejących metod par (REG-08e),
+następnie osobno EfficientLoFTR (REG-10), RoMa v2 (REG-11) i
+MatchAnything-ELoFTR (REG-12). Implementację REG-08d wycofano na życzenie
+użytkownika 2026-11-02; tearing REG-09 pozostaje warunkowy.
+Użytkownik odłożył REG-06 („na razie pominiemy 06”).
 REG-07 zastępuje bibliotekę prób A/B **zapisem i odczytem sesji**.
 Jeden `.stmsession` zawiera obrazy original i gotowy aligned, metadane,
 zastosowane ręczne korekty oraz ustawienia widoku. Można otworzyć go bez
@@ -61,6 +64,13 @@ z jego korektami, bez modelu. [Instrukcja i gotowe dane](registration/graph-appl
 [testy i przegląd](registration/reviews/REG-08c.md). Po obliczeniu niekompletnego
 Hubera dialog wyjaśnia powód odmowy zastosowania. To uzupełnienie dodano po
 odbytym odbiorze; REG-10 ma spełnioną zależność, ale nie rozpoczęto jego realizacji.
+
+[REG-08e — pozostałe metody w dopasowaniu wieloklatkowym](registration/issues/08e-multiframe-methods.md)
+ma status **ready-for-agent**. Plan zakłada jedno pole wyboru metody par
+w obecnym oknie: pięć metod CPU oraz Deep, Deep+ECC i Deep+lokalne fragmenty.
+Każda będzie mogła dostarczać pomiary do LS/Hubera z zachowaniem sesji
+i zastosowania wyniku. Ticket dodano 2026-11-02; kod nadal obsługuje w grafie
+wyłącznie Deep. Implementacja REG-08e nie została rozpoczęta.
 
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk
 **Porównaj parę…** otwiera osobny podgląd sąsiednich oryginałów: przed/po XY,

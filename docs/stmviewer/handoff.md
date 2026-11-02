@@ -1,3 +1,28 @@
+# REG-08e: ticket metod w dopasowaniu wieloklatkowym — 2026-11-02
+
+Na zlecenie użytkownika dodano
+[REG-08e](registration/issues/08e-multiframe-methods.md): **ready-for-agent**,
+implementacja nierozpoczęta. Gałąź `viewer/registration-difficult-movies`,
+baza tej aktualizacji `c8e9141`; commit planu w końcowym przekazaniu.
+
+- Jedno pole wyboru metody par w istniejącym oknie 3/5; pięć metod CPU,
+  Deep, Deep+ECC i Deep+lokalne fragmenty. LS i Huber używają pomiarów
+  wybranej metody; bez nowego okna, biblioteki prób i planowania dalszych par.
+- Ticket obejmuje brak pewności i odmowy, parametry i odrębność pamięci
+  pomiarów, CPU bez wag, sesje i zgodność starych grafów Deep, zastosowanie,
+  ręczne korekty oraz MPP/AVI. Dodano granice TDD i testy manualne.
+- Plan umieszcza REG-08e po REG-08c, przed REG-10; techniczne zależności
+  nowych modeli pozostają. Żadnego etapu implementacji nie uruchomiono.
+- Uzupełniono fakt wycofania REG-08d commitem `c8e9141`. Historyczny ticket
+  pozostaje odłożony; nowe zadanie nie przywraca usuniętej funkcji.
+- Zmiana wyłącznie dokumentacji: kontrola zakresu metod względem kodu,
+  zależności, spójności statusów, odnośników i `git diff --check`.
+  Testów programu nie uruchamiano; próby manualne nowej funkcji należą
+  do przyszłej implementacji. Brak zmian wspólnych, publikacji i scalania.
+  Pliki użytkownika i dane pozostają nietknięte.
+
+---
+
 # REG-08c: odbiór manualny i komunikat odmowy — 2026-11-01
 
 Użytkownik potwierdził **„testy manualne ok”**; REG-08c ma status **done**.

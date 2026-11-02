@@ -11,6 +11,12 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-02: dodano [REG-08e](registration/issues/08e-multiframe-methods.md),
+  wybór istniejących metod dopasowania par w obecnym oknie wieloklatkowym
+  z LS/Huberem. Status `ready-for-agent`, bez implementacji; w planie po
+  REG-08c i przed REG-10. Oddzielnie zapisano wycofanie implementacji REG-08d
+  commitem `c8e9141` na życzenie użytkownika. REG-08e nie przywraca dalszych odniesień.
+
 - 2026-11-01: wdrożono [REG-08c](registration/issues/08c-graph-movie-application.md),
   jawne zastosowanie LS/Hubera, ręczne poprawki i eksport aktywnego filmu,
   zapis w sesji oraz przywrócenie poprzednika. Użytkownik potwierdził

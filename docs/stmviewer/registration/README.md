@@ -70,6 +70,14 @@ Spójność relacji będzie oceniana w ramach rozwiązania grafu i jego reszt;
 nie dodajemy osobnego panelu ani odbioru diagnostyki trójek. Głównym wynikiem
 REG-08a jest podgląd filmu z położeniami wyznaczonymi z wielu dopasowań.
 
+**Rozszerzenie metod — 2026-11-02:** użytkownik zlecił osobny
+[REG-08e](issues/08e-multiframe-methods.md): wybór wszystkich istniejących
+metod dopasowania par w tym samym oknie wieloklatkowym, z LS/Huberem,
+sesją i zastosowaniem do filmu. Status `ready-for-agent`; implementacja
+nie jest rozpoczęta. Umieszczamy go po REG-08c, przed próbami nowych modeli.
+To osobny zakres od REG-08d, którego implementację wycofano na życzenie
+użytkownika commitem `c8e9141` jako nieintuicyjną. Nie przywracamy jej w REG-08e.
+
 ## Cel i zakres
 
 Poprawić dopasowanie struktur próbki w MOVIE_4 i MOVIE_8 mimo zakłóceń linii
@@ -83,9 +91,9 @@ Nowe zlecenie rozpoczyna etap rozwoju metod odłożony w
 [mapie pierwszej wersji](../map.md). Nie zmienia historycznych odbiorów 01–21.
 Zachowujemy dotychczasowe identyfikatory ticketów, w tym **REG-01a i REG-02a**,
 aby uniknąć kolizji i zmian numerów istniejących zadań. Bieżąca ścieżka obejmuje
-trzynaście etapów podstawowych; REG-06 jest odłożony, a dwa etapy pozostają
-warunkowe. Sufiksy REG-08a–08d rozwijają pracę
-na wielu klatkach; REG-09 zachowuje dotychczasowy zakres.
+czternaście etapów podstawowych; REG-06 jest odłożony, REG-08d odłożono
+po wycofaniu implementacji, a REG-09 pozostaje warunkowy. REG-08e rozszerza
+wybór istniejących metod w grafie REG-08a–08c; REG-09 zachowuje swój zakres.
 
 ## Kolejność i wynik każdego ticketu
 
@@ -102,10 +110,11 @@ na wielu klatkach; REG-09 zachowuje dotychczasowy zakres.
 | [REG-08a: Graf z oknem 3/5 klatek](issues/08a-window-graph.md) | Osobna pełna próba: obecny Deep, wspólne XY przez LS, porównanie z łańcuchem i zapis relacji. | REG-07 |
 | [REG-08b: Odporny graf](issues/08b-robust-graph.md) | LS kontra Huber/IRLS na dokładnie tych samych pomiarach; widoczny wpływ odstających relacji. | REG-08a |
 | [REG-08c: Zastosowanie grafu do filmu](issues/08c-graph-movie-application.md) | Jawna podmiana aligned, ręczne korekty, MPP/AVI i odtworzenie sesji z zastosowanym grafem. | REG-08b |
+| [REG-08e: Metody w dopasowaniu wieloklatkowym](issues/08e-multiframe-methods.md) | Wybór istniejącego algorytmu par (w tym Optical Flow, Phase i ECC), LS/Huber oraz ten sam podgląd, sesja i zastosowanie. | REG-08c |
 | [REG-10: EfficientLoFTR](issues/10-efficient-loftr.md) | Nowy model dla par, łańcucha i grafu; porównanie z obecnym Deep przy stałej reszcie obliczeń. | REG-08c |
 | [REG-11: RoMa v2](issues/11-roma-v2.md) | Gęste korespondencje jako źródło jednej translacji XY; osobna ocena jakości i zasobów. | REG-10 |
 | [REG-12: MatchAnything-ELoFTR](issues/12-matchanything.md) | Kontrola wpływu treningu: porównanie z EfficientLoFTR przy tym samym konsensusie i grafie. | REG-11 |
-| [REG-08d: Dalsze klatki odniesienia](issues/08d-long-range-references.md) | Warunkowo: uzupełnienie odebranego okna o jawne dalsze odniesienia, bez zmiany modelu pary. | REG-08c + decyzja po odbiorze |
+| [REG-08d: Dalsze klatki odniesienia](issues/08d-long-range-references.md) | Odłożony po wycofaniu implementacji 2026-11-02; nie jest częścią REG-08e. | REG-08c + decyzja po odbiorze |
 | [REG-09: Rozpoznanie deformacji w pasach](issues/09-scanline-diagnostics.md) | Warunkowo: podgląd lokalnych rozbieżności po globalnym XY i podstawa decyzji o korekcji tearingu. | REG-07 + decyzja po odbiorze |
 
 REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
@@ -116,15 +125,19 @@ REG-04 i REG-05 mają status `done` po odbiorze użytkownika 2026-10-31.
 REG-07 ma status `done` po odbiorze 2026-11-01. REG-08a ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08b ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08c ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-10–12 mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
 zlecenia użytkownika i zakończenia blokujących ticketów. REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
-REG-08d i REG-09 również mają status `planned` jako warunkowe osobne odnogi.
+REG-08d ma status `planned` jako odłożony po wycofaniu implementacji; REG-09
+pozostaje `planned` jako warunkowa osobna odnoga. REG-08e ma status
+`ready-for-agent`: ticket przygotowano 2026-11-02, implementacja nierozpoczęta.
 Żadnego z tych etapów nie uruchamiamy automatycznie.
 
 Kolejność podstawowa: REG-01 → REG-01a → REG-02 → REG-02a → REG-04 → REG-05
-→ REG-07 → REG-08a → REG-08b → REG-08c → REG-10 → REG-11
+→ REG-07 → REG-08a → REG-08b → REG-08c → REG-08e → REG-10 → REG-11
 → REG-12. To także kolejność ręcznych odbiorów, nawet gdy część kodu można
 technicznie napisać niezależnie. Zależność między REG-10/11/12 porządkuje
 eksperymenty; RoMa nie wymaga uruchamiania EfficientLoFTR, a MatchAnything nie
-wymaga działającego RoMa. Wspólną bazą porównań pozostaje obecny Deep.
+wymaga działającego RoMa. REG-08e poprzedza nowe modele w planie, ale nie
+dodaje technicznej blokady REG-10; jego zależność od REG-08c pozostaje.
+Wspólną bazą porównań pozostaje obecny Deep.
 
 [REG-07 — zapis i odczyt sesji](issues/07-session-save-load.md) odebrano
 2026-11-01. [REG-08a — graf dopasowań z oknem
@@ -189,6 +202,11 @@ użytkownik ocenił Outdoor jako znacznie lepszy; pozostaje bazą dalszych prób
 - Współrzędne fragmentów odnoszą się do original i pochodzenia klatki.
   Wspólny układ porównania zakotwiczamy w źródłowej klatce odniesienia;
   różny padding wyników nie może przesuwać podglądu A/B.
+- REG-08e doda wybór wszystkich ośmiu istniejących metod par, zachowując
+  okna 3/5 oraz obecne LS/Huber. Poprawne XY bez oceny pewności pozostaje
+  pomiarem, a lokalna odmowa pozostaje brakiem. Dane różnych metod nie
+  współdzielą pamięci pomiarów; CPU nie wymaga wag Deep. Rozszerzenie sesji
+  zachowa odczyt dotychczasowych grafów Deep. To zakres planowany, nie obecna funkcja.
 - Podgląd kandydatów grafu, dostarczony w REG-08a i rozszerzony w REG-08b, przechowuje ustawienia,
   przesunięcia i metadane, renderując oglądane klatki na żądanie. Nie utrzymuje
   dwóch dodatkowych pełnych filmów float64. Ten interfejs dostarczył REG-08a,

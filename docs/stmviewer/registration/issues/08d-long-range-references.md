@@ -4,13 +4,19 @@
 klatki odniesienia i porównuje wpływ dodatkowych relacji na cały film.
 **Blocked by:** [REG-08c](08c-graph-movie-application.md) oraz osobna decyzja
 użytkownika po odbiorze, poparta przykładami problemów na dłuższym odcinku.
-**Status:** planned
-**Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
+**Status:** planned — odłożony po wycofaniu implementacji.
+**Manualny odbiór:** wcześniejsze potwierdzenie zostało zastąpione decyzją o wycofaniu funkcji 2026-11-02.
 **Dodano do planu:** 2026-10-31 jako warunkowe rozwinięcie rekomendacji.
 
 Obowiązują [plan](../README.md), [protokół](../manual-protocol.md)
 i [przegląd strategii połączeń](../../registration-multiframe-research.md#jak-wybierać-połączenia).
 Nie blokuje REG-10–12 ani REG-09. Nie zaczynamy go automatycznie po REG-08c.
+
+**Decyzja 2026-11-02:** użytkownik uznał implementację za nieintuicyjną
+i zlecił jej wycofanie. Commit `c8e9141` przywrócił stan sprzed REG-08d.
+Poniższy zakres pozostaje historycznym opisem odłożonego pomysłu, nie
+zleceniem ponownej implementacji. Nowy [REG-08e](08e-multiframe-methods.md)
+dotyczy wyłącznie wyboru istniejących metod par w obecnym oknie 3/5.
 
 ## Zakres i kryteria odbioru
 

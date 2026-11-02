@@ -123,7 +123,8 @@ Każda para wyników porównywanych w danej próbie zmienia jeden element:
 | --- | --- | --- |
 | Łańcuch Deep / okno 3 albo 5, LS | Model, ustawienia, dostępne pomiary sąsiednie | Dodatkowe relacje i wspólne XY |
 | Graf LS / Huber | Dokładnie ten sam zapisany zbiór relacji i kotwica | Odporność solvera |
-| Okno / okno+dalsze odniesienia (REG-08d) | Stare pomiary, model, solver i progi | Nowe jawnie wybrane pary |
+| Metoda par A / metoda par B (REG-08e, planowany) | Źródła, okno/lista kandydatów par, solver i progi, widok | Algorytm pary i jego jawne ustawienia; odmowy mogą się różnić |
+| Okno / okno+dalsze odniesienia (REG-08d, odłożony po wycofaniu) | Stare pomiary, model, solver i progi | Nowe jawnie wybrane pary |
 | Historyczny Deep / EfficientLoFTR | Lista kandydatów par, solver, widok | Cały estymator pary, jeśli agregacja jest różna |
 | EfficientLoFTR / RoMa v2 | Agregacja korespondencji REG-10, pary, solver, widok | Model pary |
 | EfficientLoFTR / MatchAnything-ELoFTR | Wspólna agregacja, pary, graf, widok | Wariant modelu i jego trening |
@@ -134,6 +135,13 @@ Jeśli łańcuch nie jest kompletny, nie uzupełniamy braków, aby uzyskać film
 raport wskazuje ograniczenie porównania. Dla modeli niezbędne różnice
 przygotowania wejścia i kwalifikacji punktów są jawne. Historyczny Deep i nowy
 model z inną agregacją są porównaniem całych wariantów, nie izolacją samego modelu.
+
+Planowany REG-08e rozszerzy wybór metody par na istniejące algorytmy CPU
+i warianty Deep. Dla jednej metody LS i Huber używają tych samych pomiarów,
+bez ponownej estymacji. Przy porównaniu metod zachowujemy źródła, okno,
+solver i widok; odnotowujemy różne odmowy i brak pewności. Nie mieszamy
+wskaźników jakości różnych metod ani nie używamy ich jako wag solvera.
+REG-08e zachowuje pełny cykl zastosowania, korekt i eksportu z REG-08c.
 
 Pierwszy graf używa obecnego Deep bez ECC; nie przyznajemy wyższego poparcia
 hybrydzie tylko dlatego, że zakończyła doprecyzowanie. Próba REG-05 porównuje
