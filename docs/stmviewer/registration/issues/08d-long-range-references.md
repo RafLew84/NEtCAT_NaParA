@@ -4,8 +4,8 @@
 klatki odniesienia i porównuje wpływ dodatkowych relacji na cały film.
 **Blocked by:** [REG-08c](08c-graph-movie-application.md) oraz osobna decyzja
 użytkownika po odbiorze, poparta przykładami problemów na dłuższym odcinku.
-**Status:** ready-for-review
-**Manualny odbiór:** oczekuje na użytkownika; automatyczne próby i gotowe sesje dostarczone.
+**Status:** done
+**Manualny odbiór:** zaliczony 2026-11-02; użytkownik: „testy manualne ok”.
 **Start:** 2026-11-01, Codex; użytkownik jawnie zlecił REG-08d po odbiorze REG-08c.
 **Baza przeglądu:** `38d2cb6612b7daf5bf731f049f030bd7aa92c8fd`.
 **Dodano do planu:** 2026-10-31 jako warunkowe rozwinięcie rekomendacji.
@@ -88,6 +88,9 @@ Kod: `4c4ffa9`; poprawka po przeglądzie: `a811636`.
 - Wzorzec pokazuje zarówno poprawę znanego ruchu, jak i spójny błędny alias.
   Nie przypisujemy automatycznej poprawy jakości rzeczywistym wynikom.
 
-Kryteria implementacji zaznaczono po sprawdzeniu kodu i testów. Ręczny odbiór
-funkcji i jakości, Windows 11 oraz docelowe 8 GB VRAM pozostają niewykonane.
-REG-10 nie rozpoczęto. Brak zmian wspólnych i scalania gałęzi.
+Kryteria implementacji zaznaczono po sprawdzeniu kodu i testów. Użytkownik
+potwierdził odbiór REG-08d 2026-11-02: „testy manualne ok”; status `done`.
+Nie podał systemu, sprzętu ani szczegółowej oceny porównawczej filmów.
+Potwierdzenie nie zalicza osobnego odbioru Windows 11 lub stanowiska 8 GB VRAM
+ani nie stanowi deklaracji przewagi dalszych odniesień. Ograniczenia prób
+pozostają aktualne. REG-10 nie rozpoczęto. Brak zmian wspólnych i scalania gałęzi.

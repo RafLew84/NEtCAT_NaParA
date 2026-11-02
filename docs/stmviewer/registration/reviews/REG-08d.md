@@ -1,7 +1,8 @@
 # REG-08d — karta testów i przeglądu
 
 Data: 2026-11-01. Gałąź `viewer/registration-difficult-movies`.
-Status: **ready-for-review**; decyzja użytkownika i ręczna ocena jakości oczekują.
+Status: **done** — ręczny odbiór potwierdzony przez użytkownika 2026-11-02:
+„testy manualne ok”. Karta zachowuje testy i przeglądy wykonane 2026-11-01.
 Baza: `38d2cb6612b7daf5bf731f049f030bd7aa92c8fd`.
 Kod: `4c4ffa9`; refaktoryzacja przeglądu: `a811636`.
 Specyfikacja: [REG-08d](../issues/08d-long-range-references.md).
@@ -54,9 +55,10 @@ w [raporcie](../long-references-results.md). Wszystkie kompletne warianty
 przeszły te kontrole. Niekompletny Huber MOVIE_8 pozostał diagnostyką.
 
 Zrzuty Qt offscreen na wzorcu i MOVIE_4 oceniono pod kątem czytelności
-kontrolek i źródeł. Nie wykonano ręcznego odbioru przez użytkownika,
-Windows 11 ani próby na docelowym GPU 8 GB. Nie ogłaszamy poprawy jakości
-rzeczywistych struktur na podstawie zmian XY lub reszt.
+kontrolek i źródeł. Użytkownik później potwierdził ręczny odbiór REG-08d
+2026-11-02. Nie podał systemu, sprzętu ani szczegółowej oceny porównawczej
+filmów. Odbiór nie potwierdza Windows 11 lub stanowiska GPU 8 GB ani
+przewagi jakościowej metody. Opisane ograniczenia pozostają aktualne.
 
 ## Standards
 
@@ -79,7 +81,9 @@ zachowanie bazowych pomiarów i konfiguracji, porównanie z oknem,
 tożsamość źródeł, trwałość sesji, rozdzielenie kandydata od aktywnego filmu
 oraz ochronę przy błędzie/anulowaniu. Ponownie sprawdził `4c4ffa9..a811636`:
 wspólny helper zachowuje kontrakt i jawne przyczyny odmów.
-Ręczny odbiór pozostaje osobnym etapem.
+Ręczny odbiór był osobnym etapem, później potwierdzonym przez użytkownika.
+Aktualizacja odbioru zmienia wyłącznie dokumentację; sprawdzono spójność
+statusów, odnośniki i `git diff --check`, bez powtarzania testów programu.
 
 Wynik: Standards — jedna zamknięta uwaga P3, 0 otwartych;
 Spec — 0 ustaleń. REG-10 nie rozpoczęto; brak publikacji i scalenia.

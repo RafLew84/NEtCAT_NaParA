@@ -1,7 +1,8 @@
 # REG-08d — wyniki prób dalszych odniesień
 
 Data: 2026-11-01. Baza kodu `38d2cb6`; implementacja `4c4ffa9`, wspólny pomiar pary po przeglądzie `a811636`.
-Status: oczekuje na ręczny odbiór użytkownika.
+Status: **done** — użytkownik potwierdził „testy manualne ok” 2026-11-02.
+Poniżej zachowano wyniki automatycznych prób z 2026-11-01.
 [Instrukcja i sesje](long-references-manual.md), [karta testów](reviews/REG-08d.md).
 
 ## Wzorzec z podanymi relacjami
@@ -94,5 +95,8 @@ indeksami bazowych/dodanych par i pochodzeniem konfiguracji. Pełne surowe
 relacje, reszty i bazowy wynik do porównania należą do sesji. Eksport samego
 okna nadal używa v5; zachowano starsze warianty MPP i sesji.
 
-Ręczna ocena funkcji i jakości, Windows 11 oraz docelowy sprzęt pozostają
-niewykonane. Kolejny ticket nie jest uruchamiany automatycznie.
+Użytkownik potwierdził ręczny odbiór REG-08d 2026-11-02: „testy manualne ok”.
+Nie wskazał systemu, sprzętu ani szczegółowej oceny porównawczej filmów; nie
+przypisujemy temu odbiorowi potwierdzenia przewagi metody, Windows 11 lub
+stanowiska z 8 GB VRAM. Ograniczenia pomiarów powyżej pozostają aktualne.
+REG-10 pozostaje nierozpoczęty i czeka na osobne zlecenie.

@@ -13,8 +13,8 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 - 2026-11-01: na osobne zlecenie wdrożono [REG-08d](registration/issues/08d-long-range-references.md),
   jawne dalsze klatki odniesienia, zachowanie bazowego okna i porównanie wpływu
-  nowych relacji. Kod `4c4ffa9` + `a811636`, status `ready-for-review`;
-  ręczny odbiór funkcji i jakości oczekuje. [Instrukcja](registration/long-references-manual.md),
+  nowych relacji. Kod `4c4ffa9` + `a811636`; użytkownik potwierdził
+  „testy manualne ok” 2026-11-02, status `done`. [Instrukcja](registration/long-references-manual.md),
   [wyniki](registration/long-references-results.md), [przegląd](registration/reviews/REG-08d.md).
   REG-10 nie rozpoczęto.
 

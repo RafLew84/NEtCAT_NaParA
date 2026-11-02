@@ -64,12 +64,13 @@ Hubera dialog wyjaśnia powód odmowy zastosowania. To uzupełnienie dodano po
 odbytym odbiorze; REG-10 ma spełnioną zależność, ale nie rozpoczęto jego realizacji.
 
 [REG-08d — dalsze klatki odniesienia](registration/issues/08d-long-range-references.md)
-ma status **ready-for-review**. W **Dopasowanie wieloklatkowe… → Dalsze odniesienia**
+ma status **done** po potwierdzeniu „testy manualne ok” 2026-11-02.
+W **Dopasowanie wieloklatkowe… → Dalsze odniesienia**
 wybierasz bazowy LS/Huber, konkretne klatki i zakres. Program pokazuje plan,
 liczy tylko nowe pary i pozwala porównać rozszerzenie z zachowanym oknem.
 Zastosowanie do filmu pozostaje jawne. [Instrukcja i gotowe sesje](registration/long-references-manual.md),
 [wyniki](registration/long-references-results.md), [testy i przegląd](registration/reviews/REG-08d.md).
-Ręczny odbiór oczekuje; REG-10 pozostaje nierozpoczęty.
+REG-10 pozostaje nierozpoczęty i czeka na osobne zlecenie.
 
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk
 **Porównaj parę…** otwiera osobny podgląd sąsiednich oryginałów: przed/po XY,

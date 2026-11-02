@@ -1,6 +1,8 @@
 # REG-08d — dalsze klatki odniesienia
 
-Status: implementacja gotowa do prób; ręczna ocena użytkownika oczekuje.
+Status: **done** — użytkownik potwierdził „testy manualne ok” 2026-11-02.
+Poniższy scenariusz pozostaje instrukcją dalszych prób. Potwierdzenie nie określa
+systemu, sprzętu ani szczegółowej porównawczej jakości filmów.
 [Ticket](issues/08d-long-range-references.md), [wyniki](long-references-results.md).
 
 Z katalogu `/home/rlew/projekty/NEtCAT-viewer`, w środowisku `netcat`:

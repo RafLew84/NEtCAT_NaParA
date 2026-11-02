@@ -4,7 +4,7 @@ Data: 2026-10-28; rozszerzenia ręczne: REG-01a 2026-10-30, REG-02a 2026-10-31.
 Rozszerzenie o graf dopasowań i nowe modele: 2026-10-31, na zlecenie użytkownika.
 Gałąź: `viewer/registration-difficult-movies`.
 Baza rozpoznania: `c85aecb`; przegląd metod: `81ff1a0`.
-Status: REG-01, REG-01a, REG-02, REG-02a, REG-04, REG-05, REG-07, REG-08a, REG-08b i REG-08c `done`. Użytkownik potwierdził odbiór REG-02
+Status: REG-01, REG-01a, REG-02, REG-02a, REG-04, REG-05, REG-07, REG-08a, REG-08b, REG-08c i REG-08d `done`. Użytkownik potwierdził odbiór REG-02
 2026-10-31 i zgłosił brak istotnej poprawy względem Phase na MOVIE_4.
 Deep Matcher ocenia najlepiej w obejrzanych pierwszych 100 klatkach.
 [Instrukcja REG-02](unnormalized-correlation-manual.md), [wyniki](reviews/REG-02.md).
@@ -106,7 +106,7 @@ na wielu klatkach; REG-09 zachowuje dotychczasowy zakres.
 | [REG-10: EfficientLoFTR](issues/10-efficient-loftr.md) | Nowy model dla par, łańcucha i grafu; porównanie z obecnym Deep przy stałej reszcie obliczeń. | REG-08c |
 | [REG-11: RoMa v2](issues/11-roma-v2.md) | Gęste korespondencje jako źródło jednej translacji XY; osobna ocena jakości i zasobów. | REG-10 |
 | [REG-12: MatchAnything-ELoFTR](issues/12-matchanything.md) | Kontrola wpływu treningu: porównanie z EfficientLoFTR przy tym samym konsensusie i grafie. | REG-11 |
-| [REG-08d: Dalsze klatki odniesienia](issues/08d-long-range-references.md) | Jawne dalsze odniesienia, zachowanie bazy i porównanie wpływu nowych relacji; gotowe do ręcznej oceny. | REG-08c + decyzja po odbiorze |
+| [REG-08d: Dalsze klatki odniesienia](issues/08d-long-range-references.md) | Jawne dalsze odniesienia, zachowanie bazy i porównanie wpływu nowych relacji; odbiór potwierdzony 2026-11-02. | REG-08c + decyzja po odbiorze |
 | [REG-09: Rozpoznanie deformacji w pasach](issues/09-scanline-diagnostics.md) | Warunkowo: podgląd lokalnych rozbieżności po globalnym XY i podstawa decyzji o korekcji tearingu. | REG-07 + decyzja po odbiorze |
 
 REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
@@ -117,8 +117,8 @@ REG-04 i REG-05 mają status `done` po odbiorze użytkownika 2026-10-31.
 REG-07 ma status `done` po odbiorze 2026-11-01. REG-08a ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08b ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08c ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-10–12 mają status `ready-for-agent`: zakres jest przygotowany, ale start wymaga
 zlecenia użytkownika i zakończenia blokujących ticketów. REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
-REG-08d ma status `ready-for-review`: wdrożony na osobne zlecenie użytkownika
-2026-11-01 po odbiorze REG-08c; ręczna ocena funkcji i jakości oczekuje.
+REG-08d ma status `done`: wdrożony na osobne zlecenie 2026-11-01,
+użytkownik potwierdził „testy manualne ok” 2026-11-02.
 REG-09 ma status `planned` jako warunkowa osobna odnoga.
 Żadnego z tych etapów nie uruchamiamy automatycznie.
 
@@ -159,11 +159,13 @@ bez deklaracji przewagi nad Deep. W osobnym [porównaniu checkpointów](checkpoi
 użytkownik ocenił Outdoor jako znacznie lepszy; pozostaje bazą dalszych prób.
 
 [REG-08d — dalsze odniesienia](issues/08d-long-range-references.md), kod `4c4ffa9`
-+ `a811636`, ma status **ready-for-review**. Zakładka **Dalsze odniesienia**
+oraz `a811636`, ma status **done** po potwierdzeniu „testy manualne ok”
+2026-11-02. Zakładka **Dalsze odniesienia**
 planuje nowe pary i zachowuje bazowe pomiary oraz ustawienia solvera.
 Porównanie okna i rozszerzenia pozostaje oddzielone od jawnego zastosowania.
 [Instrukcja i sesje](long-references-manual.md), [wyniki](long-references-results.md),
-[testy i przegląd](reviews/REG-08d.md). Ręczny odbiór oczekuje; REG-10 nie rozpoczęto.
+[testy i przegląd](reviews/REG-08d.md). Potwierdzenie nie określa systemu,
+sprzętu ani przewagi jakościowej metody. REG-10 nie rozpoczęto.
 
 ## Stałe kontrakty
 

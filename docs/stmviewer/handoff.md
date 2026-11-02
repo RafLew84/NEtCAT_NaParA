@@ -1,6 +1,26 @@
+# REG-08d: odbiór manualny — 2026-11-02
+
+Użytkownik potwierdził **„testy manualne ok”**.
+[REG-08d — dalsze klatki odniesienia](registration/issues/08d-long-range-references.md)
+ma status **done**. Baza aktualizacji: `4ecf2cb`; gałąź
+`viewer/registration-difficult-movies`. Kod: `4c4ffa9` + `a811636`.
+
+- Zaktualizowano ticket, plan, mapę, README, instrukcję, wyniki i kartę odbioru.
+- Potwierdzenie nie określa systemu, sprzętu ani szczegółowej oceny porównawczej
+  filmów. Nie przypisujemy mu zaliczenia Windows 11, stanowiska 8 GB VRAM
+  ani przewagi metody; wcześniejsze ograniczenia pozostają aktualne.
+- REG-10 pozostaje `ready-for-agent`, nierozpoczęty i czeka na osobne zlecenie.
+- Zmieniono wyłącznie dokumentację. Sprawdzono spójność statusów, lokalne
+  odnośniki oraz `git diff --check`; testów programu nie powtarzano.
+  Wcześniejsze wyniki zachowuje [karta REG-08d](registration/reviews/REG-08d.md).
+- Brak zmian wspólnych, publikacji i scalania. Pliki użytkownika pozostają
+  nietknięte. Odbiór zapisano w końcowym commicie tej aktualizacji.
+
+---
+
 # REG-08d: dalsze klatki odniesienia — 2026-11-01
 
-Status **ready-for-review**; ręczny odbiór funkcji i jakości oczekuje.
+Stan przy przekazaniu implementacji: **ready-for-review**; późniejszy odbiór opisano powyżej.
 Gałąź `viewer/registration-difficult-movies`, baza `38d2cb6`.
 Kod **`4c4ffa9`**, poprawka przeglądu **`a811636`**; dokumentacja w końcowym
 commicie przekazania. Zakres tylko Viewer, jego testy i dokumentacja.
