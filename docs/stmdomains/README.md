@@ -454,13 +454,15 @@ gotowy do odbioru w sesji integracyjnej.
 
 ## Uruchomienie
 
-Z katalogu głównego worktree, w jego środowisku:
+Z katalogu głównego worktree, w środowisku **`netcat`**:
 
 ```bash
 python -m stmdomains.main
 ```
 
-[Przygotowanie środowiska](../../README.md) i
+To samo środowisko służy do testów i prób. Zweryfikowany interpreter oraz
+polecenia opisuje [instrukcja uruchomienia](implementation/README.md#uruchomienie-i-środowisko).
+[Ogólne przygotowanie środowiska](../../README.md) i
 [praca równoległa](../PARALLEL_DEVELOPMENT.md).
 
 ## Kod do oceny i testy

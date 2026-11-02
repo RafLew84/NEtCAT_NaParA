@@ -43,13 +43,23 @@ Wcześniej rozstrzygnięte pytania o definicje/statystyki/zapis nadal obowiązuj
 
 ## Uruchomienie i środowisko
 
-Rozwój może korzystać z lokalnego `netcat`, zgodnie z poleceniem użytkownika.
-Z katalogu głównego worktree:
+Do uruchamiania STM Domains, testów oraz prób używamy istniejącego środowiska
+Conda **`netcat`**, zgodnie z [instrukcją aplikacji](../../../stmdomains/AGENTS.md).
+Z katalogu głównego worktree, przy aktywnym `netcat`, sprawdź interpreter,
+a następnie uruchom potrzebne polecenie:
 
 ```bash
+python -c 'import sys; print(sys.executable); print(sys.prefix)'
 python -m stmdomains.main
 python -m pytest -q tests/stmdomains
 ```
+
+Na tym komputerze zweryfikowano interpreter
+`/home/rlew/projekty/conda-migration-ubuntu-20261008/envs/netcat/bin/python`.
+Można wywołać go bezpośrednio zamiast `python`, gdy powłoka nie aktywowała
+środowiska albo `conda run -n netcat` nie działa w piaskownicy. Przy aktywacji
+porównaj `CONDA_PREFIX` z `sys.prefix`; przy bezpośrednim wywołaniu sprawdź,
+czy `sys.executable` i `sys.prefix` należą do wskazanego `netcat`.
 
 Testy wymagające Qt na maszynie bez ekranu uruchamia się z
 `QT_QPA_PLATFORM=offscreen`. Scenariusze pełnych danych i GUI mają być

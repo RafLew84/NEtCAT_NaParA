@@ -1,3 +1,25 @@
+# STM Domains — środowisko uruchomienia i testów
+
+Data: **2026-11-02**. Użytkownik wskazał istniejące środowisko Conda
+**`netcat`** jako środowisko do uruchamiania programu, testów i prób.
+Zapisano tę zasadę w instrukcji aplikacji oraz powiązano ją z instrukcją
+uruchomienia i wspólnymi kryteriami ticketów.
+
+Sprawdzono aktywne `CONDA_DEFAULT_ENV=netcat` oraz zgodność `CONDA_PREFIX`
+z `sys.prefix`. Działający interpreter:
+`/home/rlew/projekty/conda-migration-ubuntu-20261008/envs/netcat/bin/python`.
+Próba `conda run -n netcat` w piaskownicy zwróciła `NoWritableEnvsDirError`;
+Python już aktywnego środowiska działa poprawnie. Można również wskazać
+zweryfikowany interpreter bezpośrednio. Nie zmieniano ani nie instalowano
+środowiska; nie uruchamiano aplikacji lub testów funkcjonalnych.
+
+Sprawdzenia dokumentacji: lokalne odnośniki i `git diff --check`.
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź
+`domains/interactive-v04-ui`, baza **`d317329`**; commit w odpowiedzi końcowej.
+Statusy ticketów pozostają bez zmian; brak potrzebnych zmian wspólnych.
+
+---
+
 # STM Domains — gałąź implementacji interaktywnego UI
 
 Data: **2026-11-02**. Na polecenie użytkownika utworzono i wybrano lokalną

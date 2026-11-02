@@ -120,7 +120,8 @@ Dokumentacja kandydatów:
 ## Wspólne kryteria odbioru
 
 - **Uruchamialna aplikacja:** te same drzwi wejściowe do STM Domains
-  (`python -m stmdomains.main` w przygotowanym środowisku lokalnym).
+  (`python -m stmdomains.main` w środowisku **`netcat`**, używanym także
+  do testów i prób zgodnie z [instrukcją uruchomienia](../README.md#uruchomienie-i-środowisko)).
   Przekazanie ticketu podaje dokładną komendę, potrzebne dane, kroki w UI
   i oczekiwany rezultat; użytkownik nie musi sam tworzyć plików testowych.
 - **Ręczny test każdego ticketu:** instrukcja z jego pliku jest częścią

@@ -3,6 +3,11 @@
 Zakres tej sesji: `stmdomains/`, `tests/stmdomains/`, `docs/stmdomains/`.
 Instrukcja startu i status: [docs/stmdomains/README.md](../docs/stmdomains/README.md).
 
+Do uruchamiania aplikacji, testów i prób używaj istniejącego środowiska Conda
+`netcat`, wskazanego przez użytkownika. Przed uruchomieniem sprawdź, czy
+interpreter należy do tego środowiska; polecenia i lokalną ścieżkę opisuje
+[uruchomienie i środowisko](../docs/stmdomains/implementation/README.md#uruchomienie-i-środowisko).
+
 Przed implementacją odczytaj `docs/stmdomains/map.md` i wskazany w niej ticket,
 jeśli użytkownik już je dodał. Gdy mapy brakuje, oprzyj zakres na bieżącym zleceniu;
 sam szkielet nie wybiera algorytmu ani definicji domeny.
