@@ -1,3 +1,20 @@
+# REG-12: odbiór manualny — 2026-11-02
+
+Użytkownik potwierdził **„testy manualne ok”**. REG-12 zmieniono na `done`;
+zsynchronizowano bieżące podsumowania, mapę, instrukcję i raport odbioru.
+Implementacja: `b4d9441`; dokumentacja wyników i przeglądów: `50c7bc4`.
+[Ticket](registration/issues/12-matchanything.md),
+[wyniki](registration/matchanything-results.md),
+[karta odbioru](registration/reviews/REG-12.md).
+
+Zmiana obejmuje tylko dokumentację. Sprawdzono spójność statusów,
+lokalne odnośniki i `git diff --check`; testów aplikacji nie ponawiano.
+Wyniki wcześniejszych testów i ograniczenia jakości pozostają bez zmian.
+Nie wskazano osobno Windows, VLC ani stanowiska z kartą 8 GB VRAM,
+więc nie zapisujemy ich jako zaliczonych. Brak nowych potrzeb integracji;
+nie scalano ani nie publikowano gałęzi. Odłożone REG-06, REG-08d i REG-09
+pozostają odłożone. Poniżej zachowano historyczny stan sprzed odbioru.
+
 # REG-12: MatchAnything-ELoFTR do odbioru — 2026-11-02
 
 Implementacja `b4d9441`, baza `1c30ef5`; końcowy commit dokumentacji podany

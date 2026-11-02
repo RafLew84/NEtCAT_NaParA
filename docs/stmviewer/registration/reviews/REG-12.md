@@ -2,7 +2,9 @@
 
 Data: 2026-11-02. Baza `1c30ef5`, implementacja `b4d9441`.
 `git diff 1c30ef5...b4d9441`; `git log 1c30ef5..b4d9441 --oneline`.
-Status **ready-for-review**; ręczny odbiór niewykonany.
+Status **done**; użytkownik potwierdził „testy manualne ok” 2026-11-02.
+Implementacja `b4d9441`, dokumentacja wyników `50c7bc4`; odbiór zapisano
+bez zmian kodu i ponawiania testów automatycznych.
 [Wyniki modelu i filmów](../matchanything-results.md), [ręczna próba](../matchanything-manual.md).
 
 ## TDD i automatyczne sprawdzenia
@@ -67,15 +69,18 @@ Przegląd `1c30ef5…b4d9441`: **0 uwag** dotyczących brakującej/błędnej
 implementacji lub rozszerzenia zakresu. Preset autorów, przeliczenie
 współrzędnych, wspólny konsensus/graf, obsługa błędów i anulowania oraz
 wersjonowana tożsamość sesji/MPP odpowiadają REG-12. Odtworzenie wyników
-nie wymaga uruchomienia modelu. Niewykonany ręczny odbiór i próby sprzętu
-nie pozwalają oznaczyć ticketu jako `done`.
+nie wymaga uruchomienia modelu. W chwili przeglądu ręczny odbiór był
+niewykonany; późniejsze potwierdzenie użytkownika zapisano poniżej.
 
 Oba przeglądy były niezależne i wyłącznie odczytowe. Łącznie: Standards 0,
 Spec 0; bez wymaganych poprawek kodu po przeglądzie.
 
-## Do odbioru ręcznego
+## Odbiór ręczny i ograniczenia
 
-Rzeczywista aplikacja, oba pełne filmy, ocena struktur i resztkowego tearingu;
-VLC dla MJPG/FFV1; Windows 11; stanowisko z 16 GB wolnego RAM i NVIDIA
-8 GB VRAM. Test lokalnej RTX 5090 nie zastępuje tych prób. Instrukcja i
-materiały są przygotowane, decyzja użytkownika pozostaje otwarta.
+Użytkownik potwierdził „testy manualne ok” 2026-11-02; odbiór REG-12 zamknięto.
+[Scenariusz](../matchanything-manual.md) pozostaje instrukcją odtworzenia prób.
+Automatyczne Qt offscreen stanowi osobny dowód. Potwierdzenie nie określa
+osobno Windows 11, VLC ani stanowiska z 16 GB wolnego RAM i NVIDIA
+8 GB VRAM; tych prób nie dopisujemy jako zaliczonych. Test lokalnej
+RTX 5090 ich nie zastępuje. Zapisane niepewności modelu, błąd wzorca
+i limit iteracji Hubera MOVIE_4 pozostają aktualne.

@@ -11,6 +11,11 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-02: użytkownik potwierdził „testy manualne ok” dla
+  [REG-12](registration/issues/12-matchanything.md). Status `done`;
+  zamknięto odbiór MatchAnything-ELoFTR. Wyniki pomiarów i ograniczenia
+  pozostają bez zmian; brak osobnego potwierdzenia Windows, VLC i karty 8 GB.
+
 - 2026-11-02: na zlecenie `implement 12` wdrożono
   [MatchAnything-ELoFTR](registration/issues/12-matchanything.md), commit `b4d9441`.
   Status `ready-for-review`; [wyniki](registration/matchanything-results.md)

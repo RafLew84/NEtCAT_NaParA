@@ -18,13 +18,14 @@ oraz grafu przez [osobne środowisko](roma-environment.md).
 próby CPU/CUDA i Qt offscreen zaliczone. Użytkownik potwierdził
 „testy manualne ok”; odbiór REG-11 zamknięty. Bieżący stan REG-12 poniżej.
 
-**REG-12 — 2026-11-02: ready-for-review.** MatchAnything-ELoFTR działa
+**REG-12 — 2026-11-02: done.** MatchAnything-ELoFTR działa
 w parze, filmie i grafie, z zapisem sesji oraz MPP/AVI.
 [Instrukcja ręczna](matchanything-manual.md), [wyniki](matchanything-results.md),
 [przeglądy](reviews/REG-12.md). Pełne oba filmy mają łańcuch i LS;
-wyniki są przeważnie niepewne. Odbiór jakości użytkownika niewykonany.
+wyniki są przeważnie niepewne. Użytkownik potwierdził „testy manualne ok”;
+odbiór REG-12 zamknięty, ograniczenia modelu pozostają zapisane.
 
-Status: REG-01, REG-01a, REG-02, REG-02a, REG-04, REG-05, REG-07, REG-08a, REG-08b, REG-08c, REG-08e, REG-10 i REG-11 `done`. Użytkownik potwierdził odbiór REG-02
+Status: REG-01, REG-01a, REG-02, REG-02a, REG-04, REG-05, REG-07, REG-08a, REG-08b, REG-08c, REG-08e, REG-10, REG-11 i REG-12 `done`. Użytkownik potwierdził odbiór REG-02
 2026-10-31 i zgłosił brak istotnej poprawy względem Phase na MOVIE_4.
 Deep Matcher ocenia najlepiej w obejrzanych pierwszych 100 klatkach.
 [Instrukcja REG-02](unnormalized-correlation-manual.md), [wyniki](reviews/REG-02.md).
@@ -145,8 +146,8 @@ REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 użytkownika 2026-10-31. REG-02 i REG-02a również odebrano 2026-10-31 (`done`).
 REG-04 i REG-05 mają status `done` po odbiorze użytkownika 2026-10-31.
 REG-07 ma status `done` po odbiorze 2026-11-01. REG-08a ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08b ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08c ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-10 ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-02; REG-11 ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-02.
-REG-12 ma status `ready-for-review`: implementacja jest gotowa do ręcznej próby,
-oczekuje na potwierdzenie odbioru użytkownika. REG-06 ma status
+REG-12 ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-02.
+REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
 REG-08d ma status `planned` jako odłożony po wycofaniu implementacji; REG-09
 pozostaje `planned` jako odłożony na życzenie użytkownika 2026-11-02. Nie blokuje REG-10. REG-08e ma status

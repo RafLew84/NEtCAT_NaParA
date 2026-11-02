@@ -1,7 +1,9 @@
 # REG-12: MatchAnything-ELoFTR — wyniki
 
 Data: 2026-11-02. Implementacja `b4d9441`, baza przeglądu `1c30ef5`.
-Status **ready-for-review**; ręczna ocena użytkownika jeszcze niewykonana.
+Status **done**; użytkownik potwierdził „testy manualne ok” 2026-11-02.
+Poniższe pomiary i ograniczenia pozostają bez zmian. Potwierdzenie nie
+określa osobno Windows, VLC ani stanowiska z kartą 8 GB VRAM.
 [Instrukcja GUI](matchanything-manual.md), [zasoby i dokładny preset](matchanything-environment.md),
 [karta sprawdzeń](reviews/REG-12.md).
 
@@ -109,8 +111,10 @@ Obejmują zgłoszone pary MOVIE_4 oraz 1→2, 16→17 i 56→57 MOVIE_8.
 Oględziny zrzutów pokazują rozbieżne XY i pozostające różnice pasów/tearingu.
 W MOVIE_8 16→17 i 56→57 większe struktury zbliżają się w obu wariantach;
 nie ma podstaw do ogłoszenia jednego zwycięzcy dla całych filmów.
-Nie obejrzano ręcznie pełnego odtwarzania pierwszych 150 klatek i reszty
-MOVIE_4. Ostateczna ocena obrazu oraz decyzja należą do ręcznego odbioru.
+Agent nie obejrzał ręcznie pełnego odtwarzania pierwszych 150 klatek
+i reszty MOVIE_4. Następnie użytkownik potwierdził „testy manualne ok”
+2026-11-02, zamykając odbiór REG-12. Nie podał szczegółowej oceny
+poszczególnych fragmentów; nie dopisujemy jej do pomiarów powyżej.
 Brak niezależnej prawdy fizycznej STM; REG-06 pozostaje odłożony.
 
 ## Odtwarzanie prób

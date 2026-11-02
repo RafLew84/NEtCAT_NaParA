@@ -3,8 +3,8 @@
 **What to build:** Użytkownik porównuje wariant MatchAnything oparty na
 EfficientLoFTR ze zwykłym EfficientLoFTR przy tej samej agregacji i grafie.
 **Blocked by:** [REG-11](11-roma-v2.md), w tym odbiór manualny.
-**Status:** ready-for-review
-**Manualny odbiór:** niewykonany; implementacja gotowa 2026-11-02.
+**Status:** done
+**Manualny odbiór:** użytkownik potwierdził „testy manualne ok” 2026-11-02.
 **Wykonawca:** Codex. Baza przeglądu: `1c30ef5`; implementacja `b4d9441`.
 [Wyniki](../matchanything-results.md), [próba ręczna](../matchanything-manual.md),
 [testy i dwa przeglądy](../reviews/REG-12.md).
@@ -13,8 +13,9 @@ EfficientLoFTR ze zwykłym EfficientLoFTR przy tej samej agregacji i grafie.
 próby CPU/CUDA w istniejącym `netcat` zaliczone bez instalacji bibliotek.
 [Lokalizacje, wersje, sumy i ograniczenia](../matchanything-environment.md).
 Pierwsze zlecenie obejmowało pobranie i weryfikację. Kolejne zlecenie
-`implement 12` objęło pełną implementację poniższych kryteriów;
-otwarty pozostaje ręczny odbiór jakości i platform.
+`implement 12` objęło pełną implementację poniższych kryteriów.
+Odbiór użytkownika zamyka REG-12. Nie wskazano osobno platformy, VLC ani
+karty 8 GB; te próby pozostają niepotwierdzone, zgodnie z raportem.
 
 Obowiązują [plan](../README.md), [protokół odbioru](../manual-protocol.md)
 i [przegląd modeli](../../registration-multiframe-research.md).
@@ -120,5 +121,7 @@ Finalny preset biblioteki autorów ma próg 0,001, NPE 832 i obraz roboczy
 uwzględnia tę różnicę inference względem EfficientLoFTR. Oba pełne filmy
 mają łańcuch i LS; Huber MOVIE_4 osiągnął limit 200, MOVIE_8 jest zbieżny.
 Wszystkie przejścia łańcucha są niepewne. Wzorzec cpu.mpp ujawnia około
-1 px błędu Y, mimo poprawnego wykonania programu. Ostateczna jakość,
-odtwarzanie w VLC i odbiory platform/sprzętu pozostają do sprawdzenia.
+1 px błędu Y, mimo poprawnego wykonania programu. Użytkownik potwierdził
+„testy manualne ok” 2026-11-02; odbiór REG-12 zamknięto. Potwierdzenie
+nie zmienia zapisanych wyników pomiarów ani nie zalicza osobno VLC,
+Windows i stanowiska z kartą 8 GB VRAM.

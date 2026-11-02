@@ -20,12 +20,13 @@ Pełne MOVIE_4/MOVIE_8 mają łańcuch i LS. Użytkownik potwierdził
 „testy manualne ok”; odbiór REG-11 zamknięty.
 [Opis środowiska](registration/roma-environment.md).
 
-**REG-12: MatchAnything-ELoFTR — ready-for-review (2026-11-02).**
+**REG-12: MatchAnything-ELoFTR — done (2026-11-02).**
 Metoda pary, filmu i grafu działa w istniejącym `netcat`; sesja zachowuje
 konfigurację oraz diagnostykę. [Instrukcja ręczna](registration/matchanything-manual.md),
 [wyniki i ograniczenia jakości](registration/matchanything-results.md),
 [testy i przeglądy](registration/reviews/REG-12.md). Oba filmy mają pełny
-łańcuch i LS, ale wynik wymaga oceny obrazu. Odbiór użytkownika niewykonany.
+łańcuch i LS. Użytkownik potwierdził „testy manualne ok”; odbiór REG-12 zamknięty.
+Udokumentowane ograniczenia jakości pozostają aktualne.
 
 Program do przeglądania obrazów i sekwencji STP/S94/MPP, rejestracji
 oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.

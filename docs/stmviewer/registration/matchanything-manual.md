@@ -1,7 +1,9 @@
 # REG-12: ręczna próba MatchAnything-ELoFTR
 
-Status odbioru: **niewykonany**. Próby automatyczne oraz Qt offscreen są
-raportowane osobno w [wynikach](matchanything-results.md).
+Status odbioru: **zaliczony przez użytkownika** — „testy manualne ok”,
+2026-11-02. REG-12 ma status `done`; poniżej pozostaje scenariusz odtworzenia prób.
+Próby automatyczne oraz Qt offscreen są raportowane osobno
+w [wynikach](matchanything-results.md).
 [Przygotowane zasoby i środowisko](matchanything-environment.md).
 
 ## Uruchomienie i wybór metody
