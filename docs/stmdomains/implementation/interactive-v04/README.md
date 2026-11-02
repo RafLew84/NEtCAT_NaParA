@@ -31,9 +31,14 @@ Historia usuniętych ticketów pozostaje w Git.
 dodany na polecenie użytkownika: wypełnienie, obrysy, numery i krycie
 w menu **Obszary…**. [Raport i test ręczny](acceptance-05a.md).
 Odbiór ręczny 05a potwierdzony przez użytkownika 2026-11-02 dla `617b006`.
-Następny ticket: **06**.
-01–03, 05 i 05a mają status `done`.
-06–10 oraz 12–18 mają zakres `ready-for-agent`
+
+**Wykonano [06 — strojenie i porównanie domen](06-tune-domain-formation.md)**
+(`98ca8ff`, poprawka `36aea1f`): menu **Analiza → Tworzenie domen…**,
+sześć parametrów, jawne przeliczenie, porównanie poprzedni/nowy i przywracanie
+bazowych ustawień przy zachowanych klasach. [Raport i test ręczny](acceptance-06.md).
+Odbiór ręczny użytkownika 06 oczekuje. Następny ticket: **07**.
+01–03, 05, 05a i 06 mają status `done`.
+07–10 oraz 12–18 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
@@ -65,8 +70,8 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [19 — Porównaj domeny z lokalnego FFT i NMF obrazu](19-compare-local-fft-nmf.md) | SD-V4-06, SD-V4-16; warunek wyboru | Zmień okno analizy obrazu i porównaj wynik na molekułach. |
 | [20 — Zachowaj wspólny katalog typów struktury w serii](20-shared-structural-type-catalogue.md) | SD-V4-08, SD-V4-13, SD-V4-16; warunek wyboru | Sprawdź wspólne typy na kolejnych klatkach i po otwarciu zapisanego projektu. |
 
-Po wykonanych 05 i 05a rekomendowana kolejność: **06 → 07 → 08 → 12**:
-strojenie domen → ręczne K i zakres odkrywania
+Po wykonanych 05, 05a i 06 rekomendowana kolejność: **07 → 08 → 12**:
+ręczne K i zakres odkrywania
 → analiza serii → Auto. 12 można wykonać już po 07, jeśli Auto ma pierwszeństwo
 przed analizą całej serii. Po 05 dostępne są niezależnie 06, 07, 10, 13,
 14 i 16; po 07 także 08, 09, 12 i 15. 08 wymaga wspólnego dopasowania

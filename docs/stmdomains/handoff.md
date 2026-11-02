@@ -1,3 +1,70 @@
+# STM Domains — wykonano SD-V4-06: strojenie i porównanie domen
+
+Data **2026-11-02**, baza **`8caa8a7`**, implementacja **`98ca8ff`**, poprawka
+**`36aea1f`**. Gałąź `domains/interactive-v04-ui`, worktree
+`/home/rlew/projekty/NEtCAT-domains`. [Ticket](implementation/interactive-v04/06-tune-domain-formation.md),
+[raport i test ręczny](implementation/interactive-v04/acceptance-06.md).
+Status `done`; **odbiór ręczny użytkownika 06 oczekuje**. Commit dokumentacji
+podano w odpowiedzi końcowej. Następny ticket: **07 — ręczne K i zakres**.
+
+Zgodnie z życzeniem użytkownika menu **Analiza → Tworzenie domen…** otwiera
+małe, niemodalne okno. Dostępne: minimum molekuł, odległość łączenia,
+kontrola geometrii, próg krawędzi, średnica regionu i zasięg maski. Edycja
+i **Przywróć bazowe** zmieniają tylko szkic; **Przelicz domeny** uruchamia
+obliczenia. **Poprzedni / Nowy** pokazuje dwa ostatnie ukończone wyniki
+na tej samej klatce, bez zmiany zoomu i przesunięcia obrazu. W stopce
+głównego okna pozostaje informacja o wybranej wersji także po zamknięciu
+dialogu. Nie dodano kolejnego wiersza do głównego układu.
+
+Przeliczanie zachowuje słownik klas, dopasowany model i decyzje porządku.
+Przed użyciem poprzednich przypisań sprawdza SHA-256 danych, serię, indeksy
+i parametry wcześniejszych etapów. Deskryptory i bariery są wyliczane
+ponownie; bez dużego cache pośrednich tablic. Oba minima domen i metadane
+korzystają z jednej konfiguracji `DomainSettings`. Zmiana serii usuwa
+wyniki; anulowanie/błąd nie zastępują ukończonej pary. Przy braku modelu
+przeliczenie wykonuje pełną analizę i zachowuje właściwy powód odmowy.
+
+Uruchomienie w **netcat**: `python -m stmdomains.main`. Otwórz
+`data/TTMAPP/detection_full.moltrack.json`, wybierz **259**, analizuj,
+a następnie otwórz menu ustawień. Bazowo **120/312, 6 domen**. Średnice
+0,50/0,55/0,60 dają tu ten sam wynik; minimum 6 daje **127/312, 7 domen**,
+a osobno łączenie 1,80 daje **129/312, 7 domen**. Przywrócenie bazowych
+ustawień i przeliczenie odtwarzają identyczne przypisania oraz mapę pikseli.
+Więcej przypisań nie oznacza potwierdzonej poprawy trafności.
+
+**Wykonane sprawdzenia:**
+
+- 25 nowych testów oraz celowane regresje PASS. Pełny zestaw uruchomiony
+  raz po przeglądzie/poprawce: **373 passed, bez pominięć, 41,51 s**.
+- Mypy **45 modułów PASS**. Kod/testy: **12 plików, maksimum 424 linie**.
+- Code-review `8caa8a7...98ca8ff`: **Standards 0 uwag**; **Spec 1 P3**,
+  poprawiony w `36aea1f`, potwierdzony przez recenzenta, **0 otwartych**.
+  Dotyczył błędnego komunikatu przy ponowieniu po przekroczeniu limitu
+  pikseli/oznaczeń; dodano dwie regresje.
+- Rzeczywiste GUI **X11/xcb sterowane Qt PASS** dla `98ca8ff`: menu myszą,
+  sześć parametrów, walidacja, porównanie, odtworzenie wyniku, raw/aligned,
+  gamma, układ 900×650, anulowanie/nawigacja/ponowne otwarcie serii.
+  Demo: dodatni wynik, zero, brak oznaczeń, brak danych do K5.
+  Zamknięcie podczas kalibracji: kod 0, obie pule workerów zakończone.
+  Zrzuty okna i dialogu obejrzano. To odbiór agenta; użytkownik jeszcze
+  nie potwierdził testu ręcznego 06.
+- SHA-256 wejściowych JSON/MPP identyczne przed i po, 0 odczytów ZIP lub
+  dawnych modeli/wyników. Model klas identyczny we wszystkich próbach.
+- `git diff --check` i lokalne odnośniki dokumentacji PASS. Artefakty
+  `.scratch/stmdomains-ui-06/` poza Git, w tym pełny log pytest i raport GUI.
+
+Nie instalowano pakietów; użyto wskazanego **netcat**. Bez nowych wspólnych
+zmian — zależności zgłoszone w 05 nadal aktualne. Wyniki są w pamięci,
+nie w projekcie na dysku: najwyżej dwie wersje/klatkę; 512 KiB map/klatkę
+TTMAPP, do 32 MiB przy największym dopuszczonym obrazie, plus model
+i przypisania. Szczyt RSS próby GUI około 1462 MiB, przerwa timera 0,179 s.
+
+**Plan nadal ma 19 ticketów; 01–03, 05, 05a i 06 done. Dalej 07 → 08 → 12.**
+07 nie rozpoczęto. 19–20 pozostają odroczone; historyczne badawcze 04/13
+i odbiór całej metody są odrębne. Poniżej historia wcześniejszych etapów.
+
+---
+
 # STM Domains — wykonano SD-V4-05a: obszary i granice domen
 
 Data: **2026-11-02**. Użytkownik polecił dopisać 05a do planu i od razu

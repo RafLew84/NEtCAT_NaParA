@@ -5,6 +5,13 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-02
 
+**Wykonano SD-V4-06 (`98ca8ff`, poprawka `36aea1f`):** parametry są
+w niemodalnym oknie **Analiza → Tworzenie domen…**. Działa jawne przeliczenie,
+porównanie poprzedni/nowy na tej samej klatce oraz przywrócenie bazowych
+ustawień, przy zachowanych klasach i ich modelu.
+[Raport i instrukcja testu ręcznego 06](implementation/interactive-v04/acceptance-06.md).
+**Odbiór ręczny 06 oczekuje; następny ticket 07 — ręczne K i zakres.**
+
 **Dodano i wykonano SD-V4-05a (`dfcf392`):** obliczone domeny są widoczne
 jako półprzezroczyste obszary z obrysami i numerami. **Obszary…** przy
 legendzie pozwala niezależnie przełączać warstwy i regulować krycie.
@@ -12,16 +19,16 @@ Można wyłączyć centra i ramki. Dotychczasowe maski wejściowe mają nazwę
 **Maski molekuł**; ich brak nie blokuje obszarów domen.
 [Raport i test ręczny 05a](implementation/interactive-v04/acceptance-05a.md).
 **Odbiór ręczny 05a potwierdzony przez użytkownika 2026-11-02** dla wersji
-`617b006` („testy manualn ok”). Plan ma **19 ticketów**, następny **06**.
+`617b006` („testy manualn ok”). Plan ma **19 ticketów**, następny **07**.
 
 **Wykonano SD-V4-05 (`fb37431`):** po otwarciu MPP z oznaczeniami MolTrack
 przycisk **Analizuj klatkę · K5** oblicza pięć lokalnych klas i końcowe domeny
 z bieżących danych. Działają kolory domen/klas, legenda, liczniki, przyczyny
 odmów, postęp i anulowanie. Program nie wczytuje modelu ani wyniku v0.4.
 [Uruchomienie, wykonane sprawdzenia i test ręczny 05](implementation/interactive-v04/acceptance-05.md).
-**Odbiór ręczny użytkownika 05 oczekuje; następny ticket: SD-V4-06 — strojenie
-tworzenia domen.** W aktualnym planie 01–03, 05 i 05a mają status `done`,
-06–10 oraz 12–18 — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
+**Odbiór ręczny użytkownika 05 oczekuje.** W aktualnym planie
+01–03, 05, 05a i 06 mają status `done`,
+07–10 oraz 12–18 — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
 To wdrożenie eksperymentalnej metody, bez potwierdzenia trafności detektora.
 
 **Wcześniejsza zmiana kierunku na polecenie użytkownika:** usunięto ticket SD-V4-04

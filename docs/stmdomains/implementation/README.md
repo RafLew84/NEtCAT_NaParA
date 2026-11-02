@@ -1,5 +1,11 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**Wykonano SD-V4-06 — 2026-11-02 (`98ca8ff`, poprawka `36aea1f`):**
+parametry domen w menu **Analiza → Tworzenie domen…**, przeliczenie,
+porównanie i przywracanie bazowych ustawień bez ponownego dopasowania klas.
+[Raport i test ręczny](interactive-v04/acceptance-06.md). Odbiór ręczny
+użytkownika oczekuje. Następny ticket **07**.
+
 **Wykonano SD-V4-05a — 2026-11-02 (`dfcf392`):** wypełnienie, obrysy,
 numery domen i krycie w menu **Obszary…**; centra i ramki można wyłączyć.
 Dotychczasowe „Maski / obrysy” nazwano **Maski molekuł**, zgodnie ze źródłem
@@ -11,9 +17,9 @@ użytkownika 2026-11-02 dla wersji `617b006`.
 oblicza lokalne klasy i końcowe domeny z bieżącego obrazu MPP i oznaczeń
 MolTrack, z kolorami, legendą, odmowami, postępem i anulowaniem.
 [Uruchomienie, sprawdzenia i test ręczny](interactive-v04/acceptance-05.md).
-Ręczny odbiór użytkownika oczekuje. **Następny ticket: 06 — strojenie
-tworzenia domen.** Aktualny plan ma 19 ticketów: 01–03, 05 i 05a `done`,
-06–10 oraz 12–18 `ready-for-agent` po zależnościach, 19–20 `deferred`.
+Ręczny odbiór użytkownika 05 oczekuje. Aktualny plan ma 19 ticketów:
+01–03, 05, 05a i 06 `done`,
+07–10 oraz 12–18 `ready-for-agent` po zależnościach, 19–20 `deferred`.
 
 **Wcześniejsza zmiana kierunku — 2026-11-02:** na polecenie użytkownika wycofano
 SD-V4-04 i import jego wyników. Stan aplikacji wrócił wtedy do odebranego 03,

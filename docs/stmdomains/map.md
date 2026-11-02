@@ -14,6 +14,16 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**Wykonano SD-V4-06 — 2026-11-02 (`98ca8ff`, poprawka `36aea1f`):**
+menu **Analiza → Tworzenie domen…** otwiera okno sześciu parametrów.
+Przeliczanie zachowuje model klas, porównanie pokazuje dwa ostatnie wyniki
+na tej samej klatce, a bazowe ustawienia odtwarzają wynik aplikacji.
+[Ticket](implementation/interactive-v04/06-tune-domain-formation.md),
+[raport i test ręczny](implementation/interactive-v04/acceptance-06.md).
+Status `done`, odbiór ręczny użytkownika oczekuje. Aktualnie 01–03, 05, 05a
+i 06 wykonane; następny **07 → 08 → 12**. Plan nadal ma 19 ticketów.
+Poniżej historia wcześniejszych etapów.
+
 **Dodano i wykonano SD-V4-05a — 2026-11-02 (`dfcf392`):** na polecenie
 użytkownika do planu wszedł widok obszarów domen z wypełnieniem, obrysami,
 numerami i kryciem. Przypisania 05 są zachowane; kontrolka **Obszary…**
