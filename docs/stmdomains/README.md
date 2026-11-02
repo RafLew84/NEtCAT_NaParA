@@ -3,7 +3,14 @@
 Program do wykrywania i analizy domen pól molekularnych na obrazach STM.
 Katalog aplikacji: `stmdomains/`.
 
-## Aktualny stan — 2026-11-01
+## Aktualny stan — 2026-11-02
+
+**Prezentacja przyszłych prób — 2026-11-02:** użytkownik wybrał
+[prostą przeglądarkę wyników](trial-result-browser.md): kolejne obrazy STM,
+oznaczenia rzeczywistych molekuł, kolory domen i szare molekuły nieprzypisane.
+To podstawowy widok do odbioru; szczegółowa diagnostyka pozostaje osobno.
+Zapisano wymaganie dla przyszłych prób, bez implementacji przeglądarki
+lub uruchomienia nowego badania.
 
 **Wnioski po 21–26 — 2026-11-01:** [synteza wyników i przegląd dalszych kierunków](research-after-training-pilot.md)
 porównują wariant bez etykiet treningowych z małym nadzorowaniem, zgodnie

@@ -9,6 +9,17 @@ Assignee:
 Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
 Blocked by: 04, 06, 08, 10, 11, 12, 15, 16, 17, 19, 23, 24, 24a, 25, 26
 
+## Prezentacja przyszłych wyników — 2026-11-02
+
+Użytkownik wybrał [przeglądarkę kolejnych obrazów z molekułami i domenami](../trial-result-browser.md)
+jako podstawowy sposób oglądania przyszłych prób. Końcowe przypisania
+pokazujemy kolorem na rzeczywistych molekułach, a nie na środkach okien
+analizy. Nieprzypisane molekuły pozostają widoczne. Brak wykonanej analizy
+jest odróżniony od zerowego wyniku; szczegółowa diagnostyka jest osobno.
+Odbiór obejmuje zgodność tej prezentacji z zachowanymi przypisaniami.
+To wymaganie dla następnych prób, nie implementacja ani przyjęcie detektora;
+13 pozostaje otwarty.
+
 ## Otrzymano wynik adaptacji DINOv2 — 2026-11-01
 
 [26](26-pretrained-self-supervised-adaptation.md) wykonano, `resolved` jako

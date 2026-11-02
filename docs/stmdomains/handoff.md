@@ -1,3 +1,30 @@
+# STM Domains — prosty podgląd wyników przyszłych prób
+
+Data: **2026-11-02**. Użytkownik uznał dotychczasowe raporty za nieczytelne
+i wskazał potrzebę przeglądarki kolejnych obrazów z oznaczonymi molekułami
+oraz przynależnością do domen. Zapisano [wymaganie prezentacji](trial-result-browser.md)
+i połączono je z README, mapą metod oraz odbiorem 13.
+
+Podstawowy widok: jeden obraz, nawigacja po klatkach, oznaczenia w centrach
+molekuł, kolor domeny i szary brak przypisania. Diagnostyka pozostaje osobno.
+Przypisania muszą wynikać z zapisanego wyniku metody; istniejące diagnostyczne
+mapowanie najbliższego punktu siatki z 25/26 nie staje się końcowym wynikiem.
+Kolory nie oznaczają tożsamości domen między klatkami. Zero i brak analizy
+pozostają odrębne; szczegóły zgodne z wcześniejszymi regułami statystyk.
+
+Zakres bieżącej pracy to wyłącznie dokumentacja przyszłych prób, bez nowego
+GUI, treningu, przeliczania wyników, zmiany metody lub historycznych galerii.
+13 i 04 pozostają otwarte. Przeglądarka zostanie wykonana przy przyszłych
+próbach zgodnie z tym wymaganiem; obecny wpis nie potwierdza jej implementacji.
+
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/start`,
+baza **`bdce82a`**; commit podany w odpowiedzi końcowej. Sprawdzono zgodność
+z kontraktem przypisań i precedensem 15/16, lokalne odnośniki zmienionych
+dokumentów i `git diff --check`. Nie uruchamiano testów programu lub GUI.
+Brak potrzebnych zmian wspólnych; integracja pozostaje zadaniem koordynatora.
+
+---
+
 # STM Domains — wnioski po 21–26 i przegląd dalszych kierunków
 
 Data: **2026-11-01**. Na prośbę użytkownika przygotowano

@@ -15,6 +15,13 @@ Ustalenia mają pozwolić rozwinąć odebrany szkielet STM Domains.
 
 ## Notes
 
+**Prezentacja przyszłych prób — 2026-11-02:** na prośbę użytkownika wyniki
+będą pokazywane w [prostej przeglądarce obrazów](trial-result-browser.md),
+z oznaczeniami na molekułach i kolorami ich przynależności do domen.
+Diagnostyka jest osobnym materiałem. Próba musi dostarczyć sprawdzone
+przypisania do molekuł; punkty siatki nie zastępują ich oznaczeń.
+Zapisano wymaganie prezentacji, bez wyboru nowej metody lub zmiany statusu 13.
+
 **Materiał do decyzji po 26 — 2026-11-01:** [synteza i przegląd badań](research-after-training-pilot.md)
 porównują, na prośbę użytkownika, brak etykiet treningowych z niewielkim
 nadzorowaniem. Wskazują ograniczoną próbę przestrzennego odczytu granic
