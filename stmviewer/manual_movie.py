@@ -131,4 +131,5 @@ def _rebuild(result: RegistrationResult, corrections: tuple[MovieCorrection, ...
     return replace(rebuilt, baseline=result.baseline, corrections=ordered,
                    settings_version=result.settings_version, pair_diagnostics=result.pair_diagnostics,
                    local_diagnostics=result.local_diagnostics,
+                   correspondence_diagnostics=result.correspondence_diagnostics,
                    graph_application=result.graph_application, predecessor=result.predecessor)

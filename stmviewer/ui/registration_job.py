@@ -4,6 +4,7 @@ from threading import Event
 
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
+from stmviewer.efficient_matcher import EFFICIENT_METHOD, load_efficient_backend
 from stmviewer.frame import ImageFrame
 from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
 from stmviewer.registration import RegistrationCancelled, RegistrationResult, ShiftBackend, register_series
@@ -34,6 +35,16 @@ class RegistrationJob(QThread):
 
     def run(self) -> None:
         try:
+            if self._check_only and self._method == EFFICIENT_METHOD:
+                efficient = load_efficient_backend(self._deep_options or DeepMatcherOptions(),
+                                                   progress=lambda text: self.progress.emit(0, 0, text),
+                                                   cancelled=self.was_cancelled)
+                try:
+                    if not self.was_cancelled():
+                        self.checked_device = efficient.device
+                finally:
+                    efficient.close()
+                return
             if self._check_only:
                 loaded = load_deep_backend(self._deep_options or DeepMatcherOptions(),
                                           progress=lambda text: self.progress.emit(0, 0, text),

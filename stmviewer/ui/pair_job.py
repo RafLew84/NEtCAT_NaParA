@@ -4,6 +4,7 @@ from threading import Event
 
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
+from stmviewer.correspondence_types import CorrespondenceDiagnostics, CorrespondenceRefusal
 from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.frame import ImageFrame
 from stmviewer.local_consensus import LocalDiagnostics, LocalConsensusError
@@ -24,6 +25,7 @@ class PairJob(QThread):
         self.result: PairTrial | None = None
         self.error: str | None = None
         self.local_failure: LocalDiagnostics | None = None
+        self.correspondence_failure: CorrespondenceDiagnostics | None = None
 
     def cancel(self) -> None:
         self._cancelled.set()
@@ -40,6 +42,10 @@ class PairJob(QThread):
                 self.result = result
         except RegistrationCancelled:
             pass
+        except CorrespondenceRefusal as error:
+            if not self.was_cancelled():
+                self.correspondence_failure = error.diagnostics
+                self.error = str(error)
         except LocalConsensusError as error:
             if not self.was_cancelled():
                 self.local_failure = error.diagnostics

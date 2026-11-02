@@ -13,6 +13,8 @@ from stmviewer.ui.registration_options import method_unavailable_reason
 from stmviewer.ui.hybrid_details import deep_start_trial, hybrid_details_text
 from stmviewer.ui.local_details import LocalDetails, local_overlays, local_start_trial
 from stmviewer.local_consensus import LocalDiagnostics
+from stmviewer.correspondence_types import CorrespondenceDiagnostics
+from stmviewer.ui.correspondence_details import CorrespondenceDetails
 from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.frame import ImageFrame
 from stmviewer.manual_pair import ManualPairDraft
@@ -37,7 +39,8 @@ class PairComparisonDialog(QDialog):
                  *, method: str = 'phase_correlation', deep_options: DeepMatcherOptions | None = None,
                  backend: ShiftBackend | None = None, reference_index: int | None = None,
                  initial_trial: PairTrial | None = None, initial_failure: str | None = None,
-                 initial_local_failure: LocalDiagnostics | None = None) -> None:
+                 initial_local_failure: LocalDiagnostics | None = None,
+                 initial_correspondence_failure: CorrespondenceDiagnostics | None = None) -> None:
         if not 1 <= moving_index < len(frames):
             raise ValueError("Nieprawidłowa klatka przesuwana.")
         if reference_index is not None and not 0 <= reference_index < moving_index:
@@ -56,6 +59,7 @@ class PairComparisonDialog(QDialog):
         self._trial: PairTrial | None = None
         self._pinned: PairTrial | None = None
         self._local_failure: LocalDiagnostics | None = None
+        self._correspondence_failure: CorrespondenceDiagnostics | None = None
         self._draft: ManualPairDraft | None = None
         self._manual_before_alignment = 0
         self._registration: RegistrationResult | None = None
@@ -134,6 +138,8 @@ class PairComparisonDialog(QDialog):
         self._local_details = LocalDetails(self)
         self._local_details.changed.connect(self._show_trial)
         choices.addWidget(self._local_details)
+        self._correspondence_details = CorrespondenceDetails(self)
+        choices.addWidget(self._correspondence_details)
         self._details_toggle = QToolButton(self)
         self._details_toggle.setObjectName('pairResultDetails')
         self._details_toggle.setText('Szczegóły wybranego wyniku')
@@ -164,6 +170,7 @@ class PairComparisonDialog(QDialog):
         auto_layout.addWidget(QLabel('Metoda', self))
         auto_layout.addWidget(self._method)
         self._deep = DeepMatcherControls(self)
+        self._deep.set_method(method)
         self._deep.check.hide()
         if deep_options is not None:
             self._deep.set_options(deep_options)
@@ -299,8 +306,12 @@ class PairComparisonDialog(QDialog):
         elif initial_failure is not None:
             self._message.setText(initial_failure)
             self._local_failure = initial_local_failure
+            self._correspondence_failure = initial_correspondence_failure
             with QSignalBlocker(self._failure_view):
-                self._failure_view.setChecked(initial_local_failure is not None)
+                self._failure_view.setChecked(initial_local_failure is not None or initial_correspondence_failure is not None)
+            if initial_correspondence_failure is not None:
+                with QSignalBlocker(self._alignment):
+                    self._alignment.setCurrentIndex(1)
             self._show_trial()
 
     @property
@@ -361,6 +372,7 @@ class PairComparisonDialog(QDialog):
         self._trial = None
         self._pinned = None
         self._local_failure = None
+        self._correspondence_failure = None
         with QSignalBlocker(self._failure_view):
             self._failure_view.setChecked(False)
         self._draft = None
@@ -379,6 +391,7 @@ class PairComparisonDialog(QDialog):
 
     def _sync(self) -> None:
         method = str(self._method.currentData())
+        self._deep.set_method(method)
         self._deep.setVisible(method in DEEP_METHODS)
         reason = method_unavailable_reason(method, self._deep.options(), self._errors)
         self._availability.setText(reason or '')
@@ -390,7 +403,12 @@ class PairComparisonDialog(QDialog):
         self._hybrid_stage.setEnabled(available and not editing)
         self._hybrid_details.setVisible(hybrid is not None)
         self._hybrid_details.setText(hybrid_details_text(hybrid) if hybrid else '')
-        self._failure_view.setVisible(self._local_failure is not None)
+        self._failure_view.setVisible(self._local_failure is not None or self._correspondence_failure is not None)
+        self._failure_view.setText('Pokaż poparcie odrzuconej próby' if self._correspondence_failure is not None
+                                   else 'Pokaż fragmenty odrzuconej próby')
+        correspondence = (self._correspondence_failure if self._failure_view.isChecked()
+                          else selected.correspondence if selected is not None else None)
+        self._correspondence_details.set_details(correspondence)
         self._failure_view.setEnabled(available and not editing)
         details = self._selected_local_details()
         self._local_details.set_details(details)
@@ -509,8 +527,9 @@ class PairComparisonDialog(QDialog):
         if job.was_cancelled():
             self._message.setText('Anulowano próbę. Poprzedni wynik zachowany.')
         elif job.error is not None:
-            if job.local_failure is not None:
+            if job.local_failure is not None or job.correspondence_failure is not None:
                 self._local_failure = job.local_failure
+                self._correspondence_failure = job.correspondence_failure
                 with QSignalBlocker(self._failure_view):
                     self._failure_view.setChecked(True)
                 with QSignalBlocker(self._alignment):
@@ -519,6 +538,7 @@ class PairComparisonDialog(QDialog):
             self._message.setText(f'Niepowodzenie nowej próby: {job.error}\nPoprzedni wynik zachowany.')
         elif job.result is not None:
             self._local_failure = None
+            self._correspondence_failure = None
             with QSignalBlocker(self._failure_view):
                 self._failure_view.setChecked(False)
             self._trial = job.result
@@ -572,7 +592,7 @@ class PairComparisonDialog(QDialog):
     def _show_trial(self) -> None:
         trial = self._selected_trial()
         if self._failure_view.isChecked():
-            self._result.setText('Odmowa lokalnego dopasowania. To diagnostyka, nie nowy wynik pary.')
+            self._result.setText('Odmowa dopasowania. To diagnostyka, nie nowy wynik pary.')
         elif trial is None:
             self._result.setText('Brak wyniku tej pary.')
         else:
@@ -604,7 +624,9 @@ class PairComparisonDialog(QDialog):
         elif self._draft is not None:
             caption = 'Podgląd ręcznej korekty'
         elif self._failure_view.isChecked():
-            caption = 'Diagnostyka odmowy — start Deep, brak nowego wyniku lokalnego'
+            caption = ('Diagnostyka odmowy — obrazy bez przesunięcia, brak nowego wyniku pary'
+                       if self._correspondence_failure is not None else
+                       'Diagnostyka odmowy — start Deep, brak nowego wyniku lokalnego')
         elif trial is None:
             caption = 'Brak wyniku — obrazy bez przesunięcia'
         else:

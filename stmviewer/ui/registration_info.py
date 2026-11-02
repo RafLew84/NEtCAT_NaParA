@@ -1,5 +1,6 @@
 """Descriptions and warnings for the active registration, without window state."""
 from stmviewer.registration import RegistrationResult
+from stmviewer.ui.correspondence_details import correspondence_details_text
 from stmviewer.ui.hybrid_details import hybrid_details_text
 from stmviewer.ui.local_details import local_details_text
 
@@ -38,6 +39,12 @@ def registration_info(result: RegistrationResult, index: int, pixel_proportions:
 
 
 def _pair_frame_info(result: RegistrationResult, index: int) -> str:
+    if result.correspondence_diagnostics:
+        correspondence = result.correspondence_diagnostics[index]
+        if correspondence is None:
+            return '\nPierwsza klatka jest odniesieniem; nie wymaga estymacji pary.'
+        return ('\nAutomatyczna estymata pary (przed ręcznymi korektami i usuwaniem):\n'
+                + correspondence_details_text(correspondence) + '\n' + correspondence.settings_text)
     if result.local_diagnostics:
         local = result.local_diagnostics[index]
         if local is None:

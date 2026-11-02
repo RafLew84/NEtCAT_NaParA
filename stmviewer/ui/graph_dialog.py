@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
 )
 
 from stmviewer.deep_matcher import DeepMatcherOptions
+from stmviewer.efficient_matcher import EFFICIENT_METHOD
 from stmviewer.graph_methods import graph_method_label, graph_requires_deep, graph_unavailable_reason
 from stmviewer.frame import ImageFrame
 from stmviewer.graph_registration import graph_pairs
@@ -90,7 +91,9 @@ class GraphComparisonDialog(QDialog):
         for key, label in REGISTRATION_METHODS.items():
             self._method.addItem(label, key)
         self._method.setCurrentIndex(self._method.findData(
-            trial.config.method if trial is not None else 'deep_matcher_translation'))
+            trial.config.method if trial is not None else
+            EFFICIENT_METHOD if deep_options is not None and deep_options.source is not None
+            else 'deep_matcher_translation'))
         sidebar.addWidget(self._method)
         self._window = QComboBox(self)
         self._window.setObjectName('graphWindow')
@@ -106,7 +109,10 @@ class GraphComparisonDialog(QDialog):
         sidebar.addWidget(self._count)
         self._deep = DeepMatcherControls(self)
         self._deep.check.hide()
-        self._deep.set_options(DeepMatcherOptions(Path(trial.config.weights_path), trial.config.requested_device)
+        self._deep.set_method(str(self._method.currentData()))
+        source_path = dict(trial.config.backend_settings).get('source_path') if trial is not None else None
+        self._deep.set_options(DeepMatcherOptions(Path(trial.config.weights_path), trial.config.requested_device,
+                                                 Path(source_path) if source_path else None)
                                if trial is not None and trial.config.weights_path is not None
                                else deep_options or DeepMatcherOptions())
         sidebar.addWidget(self._deep)
@@ -227,6 +233,7 @@ class GraphComparisonDialog(QDialog):
         self._count.setText(f'{len(self._frames)} klatek · {count} par do rozpatrzenia.\n'
                             'Każda para liczona raz; zachowane pomiary tej samej konfiguracji są używane ponownie.')
         method = str(self._method.currentData())
+        self._deep.set_method(method)
         deep = graph_requires_deep(method)
         self._deep.setVisible(deep)
         reason = graph_unavailable_reason(method, self._deep.options())
@@ -407,14 +414,18 @@ class GraphComparisonDialog(QDialog):
                                 FrameOrigin(moving.source, moving.source_frame_index), trial.config.method,
                                 f'Pomiar grafu — {graph_method_label(trial.config.method)}', details, trial.config.device,
                                 edge.shift_xy, edge.status, edge.quality_score,
-                                hybrid=edge.hybrid_diagnostics, local=edge.local_diagnostics)
+                                hybrid=edge.hybrid_diagnostics, local=edge.local_diagnostics,
+                                correspondence=edge.correspondence_diagnostics)
         pair = PairComparisonDialog(self._frames, edge.j, self, reference_index=edge.i,
                                      initial_trial=initial, method=trial.config.method,
                                      initial_failure=edge.reason if edge.shift_xy is None else None,
                                      initial_local_failure=edge.local_diagnostics if edge.shift_xy is None else None,
+                                     initial_correspondence_failure=edge.correspondence_diagnostics if edge.shift_xy is None else None,
                                      deep_options=DeepMatcherOptions(
                                          Path(trial.config.weights_path) if trial.config.weights_path else None,
-                                         trial.config.requested_device))
+                                         trial.config.requested_device,
+                                         Path(dict(trial.config.backend_settings)['source_path'])
+                                         if dict(trial.config.backend_settings).get('source_path') else None))
         self._pair = pair
         pair.busy_changed.connect(self._pair_busy_changed)
         pair.finished.connect(lambda: self._pair_closed(pair))

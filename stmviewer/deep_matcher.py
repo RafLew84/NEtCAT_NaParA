@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 class DeepMatcherOptions:
     weights: Path | None = None
     device: str = 'auto'
+    source: Path | None = None
 
 
 @dataclass(frozen=True)

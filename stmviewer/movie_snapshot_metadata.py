@@ -4,6 +4,9 @@ import math
 from typing import Callable
 
 from stmviewer.graph_methods import graph_method_label
+from stmviewer.correspondence_metadata import (
+    decode_correspondence_diagnostics, encode_correspondence_diagnostics, validate_correspondence_shape,
+)
 from stmviewer.frame import ImageFrame
 from stmviewer.graph_application_types import MovieSnapshot, SourceGeometry
 from stmviewer.graph_application_metadata import decode_graph_application, encode_graph_application
@@ -28,7 +31,7 @@ def encode_movie_snapshot(saved: MovieSnapshot | None,
     final = MovieHistory(saved.revision, saved.settings_version, saved.final_frames, ())
     manual = (MovieHistory(saved.revision, saved.settings_version, saved.baseline, saved.corrections)
               if saved.baseline else None)
-    return {
+    record: dict[str, object] = {
         'schema': 'stmviewer-movie-snapshot-v1',
         'sources': [asdict(source) for source in saved.sources],
         'source_geometry': saved.source_geometry,
@@ -42,6 +45,10 @@ def encode_movie_snapshot(saved: MovieSnapshot | None,
         'local_diagnostics': encode_local_diagnostics(saved.local_diagnostics),
         'graph_application': encode_graph_application(saved.graph_application),
     }
+    if saved.correspondence_diagnostics:
+        record['schema'] = 'stmviewer-movie-snapshot-v2'
+        record['correspondence_diagnostics'] = encode_correspondence_diagnostics(saved.correspondence_diagnostics)
+    return record
 
 
 def _items(value: object, size: int | None = None) -> list[object]:
@@ -82,8 +89,10 @@ def decode_movie_snapshot(value: object, frames: tuple[ImageFrame, ...],
                           check_cancelled: Callable[[], None]) -> MovieSnapshot | None:
     if value is None:
         return None
-    record = json_object(value, _KEYS)
-    if record['schema'] != 'stmviewer-movie-snapshot-v1':
+    fields = json_object(value)
+    modern = fields.get('schema') == 'stmviewer-movie-snapshot-v2'
+    record = json_object(fields, _KEYS | ({'correspondence_diagnostics'} if modern else set()))
+    if record['schema'] not in ('stmviewer-movie-snapshot-v1', 'stmviewer-movie-snapshot-v2'):
         raise ValueError('Zachowany wynik: nieobsługiwana wersja.')
     sources = bind_graph_sources(tuple(decode_graph_source(item) for item in _items(record['sources'])),
                                  frames, check_cancelled, allow_subset=True)
@@ -143,6 +152,13 @@ def decode_movie_snapshot(value: object, frames: tuple[ImageFrame, ...],
     if application is not None and (method != f'{graph_method_label(application.graph.config.method)} — graf {application.solver}'
                                     or device != application.graph.config.device):
         raise ValueError('Zachowany wynik: opis metody nie odpowiada grafowi.')
+    correspondence = decode_correspondence_diagnostics(record.get('correspondence_diagnostics', []), len(sources))
+    if correspondence and method != 'EfficientLoFTR':
+        raise ValueError('Zachowany wynik: metoda nie odpowiada diagnostyce korespondencji.')
+    for source, diagnostic in zip(sources, correspondence):
+        validate_correspondence_shape(diagnostic, source.shape, source.shape)
+        if diagnostic is not None and diagnostic.final_shift_xy is None:
+            raise ValueError('Zachowany wynik: łańcuch nie może zawierać odmowy dopasowania.')
     return MovieSnapshot(
         sources=sources, source_geometry=geometries, final_frames=final.baseline,
         reference=reference_source, canvas_shape=(height, width),
@@ -153,4 +169,5 @@ def decode_movie_snapshot(value: object, frames: tuple[ImageFrame, ...],
         pair_diagnostics=decode_pair_diagnostics(record['pair_diagnostics'], len(sources)),
         local_diagnostics=decode_local_diagnostics(record['local_diagnostics'], len(sources)),
         graph_application=application,
+        correspondence_diagnostics=correspondence,
     )

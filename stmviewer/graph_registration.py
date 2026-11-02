@@ -9,6 +9,7 @@ import numpy as np
 
 from stmviewer.graph_types import GraphConfig, GraphEdge, GraphSource, GraphTrial
 from stmviewer.registration import RegistrationCancelled, RegistrationError, estimate_confidence
+from stmviewer.efficient_matcher import EfficientBackend
 from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.deep_ecc import DeepEccBackend
 from stmviewer.local_registration import DeepLocalBackend
@@ -181,65 +182,73 @@ def register_graph(frames: tuple[ImageFrame, ...], *, window: int = 3,
     backend, config = load_graph_backend(
         method, options, window, progress=lambda text: report(completed, text), cancelled=cancelled,
     )
-    label = graph_method_label(method)
-    cache: dict[tuple[int, int], GraphEdge] = {}
-    if (previous is not None and previous.sources == sources
-            and replace(previous.config, window=window) == config):
-        cache = {(e.i, e.j): e for e in previous.edges[:MAX_CACHED_PAIRS]}
-    edges = []
-    reused = 0
-    for done, (i, j) in enumerate(pairs, 1):
-        pair_context = ' → '.join(
-            frame.source.name + (f' [źródłowa {frame.source_frame_index + 1}]'
-                                 if frame.source_frame_index is not None else '')
-            for frame in (frames[i], frames[j]))
-        completed = done - 1
-        report(done - 1, f'{label}: klatki {i + 1}–{j + 1}')
-        if (cached := cache.get((i, j))) is not None:
-            edges.append(replace(cached, residual_xy=None))
-            reused += 1
-            report(done, f'Z pamięci pomiarów: klatki {i + 1}–{j + 1}')
-            continue
-        try:
-            if isinstance(backend, (DeepEccBackend, DeepLocalBackend)):
-                result = backend.estimate(frames[i].data, frames[j].data,
-                                          moving_frame_index=j, reference_frame_index=i)
+    try:
+        label = graph_method_label(method)
+        cache: dict[tuple[int, int], GraphEdge] = {}
+        if (previous is not None and previous.sources == sources
+                and replace(previous.config, window=window) == config):
+            cache = {(e.i, e.j): e for e in previous.edges[:MAX_CACHED_PAIRS]}
+        edges = []
+        reused = 0
+        for done, (i, j) in enumerate(pairs, 1):
+            pair_context = ' → '.join(
+                frame.source.name + (f' [źródłowa {frame.source_frame_index + 1}]'
+                                     if frame.source_frame_index is not None else '')
+                for frame in (frames[i], frames[j]))
+            completed = done - 1
+            report(done - 1, f'{label}: klatki {i + 1}–{j + 1}')
+            if (cached := cache.get((i, j))) is not None:
+                edges.append(replace(cached, residual_xy=None))
+                reused += 1
+                report(done, f'Z pamięci pomiarów: klatki {i + 1}–{j + 1}')
+                continue
+            try:
+                if isinstance(backend, (DeepEccBackend, DeepLocalBackend)):
+                    result = backend.estimate(frames[i].data, frames[j].data,
+                                              moving_frame_index=j, reference_frame_index=i)
+                else:
+                    result = backend.estimate(frames[i].data, frames[j].data, moving_frame_index=j)
+                if (result is None or result.frame_index != j
+                        or result.status not in ('ok', 'low_confidence', 'manual_review')):
+                    raise ValueError('nieprawidłowa tożsamość pary lub status wyniku backendu')
+                shift = np.asarray(result.shift_xy, dtype=np.float64)
+                if shift.shape != (2,) or not np.isfinite(shift).all():
+                    raise ValueError('nieprawidłowy wektor XY wyniku backendu')
+                native_score = result.quality_score
+                if native_score is None:
+                    if result.status != 'manual_review':
+                        raise ValueError('brak oceny backendu bez statusu manual_review')
+                    status, score = 'manual_review', None
+                else:
+                    if not np.isfinite(native_score) or not 0 <= native_score <= 1:
+                        raise ValueError('nieprawidłowa ocena wyniku backendu')
+                    status, score = estimate_confidence(method, result)
+            except RegistrationCancelled:
+                raise
+            except Exception as error:
+                check_cancelled(cancelled)
+                reason = (f'{label} — klatki {i + 1}–{j + 1}: {pair_failure_reason(error)}; '
+                          f'{pair_context}')
+                if not local_pair_refusal(error):
+                    raise RegistrationError(reason) from error
+                edges.append(GraphEdge(i, j, None, 'missing', reason,
+                                       local_diagnostics=(backend.last_diagnostics
+                                                          if isinstance(backend, DeepLocalBackend) else None),
+                                       correspondence_diagnostics=(backend.last_diagnostics
+                                                                   if isinstance(backend, EfficientBackend) else None)))
             else:
-                result = backend.estimate(frames[i].data, frames[j].data, moving_frame_index=j)
-            if (result is None or result.frame_index != j
-                    or result.status not in ('ok', 'low_confidence', 'manual_review')):
-                raise ValueError('nieprawidłowa tożsamość pary lub status wyniku backendu')
-            shift = np.asarray(result.shift_xy, dtype=np.float64)
-            if shift.shape != (2,) or not np.isfinite(shift).all():
-                raise ValueError('nieprawidłowy wektor XY wyniku backendu')
-            native_score = result.quality_score
-            if native_score is None:
-                if result.status != 'manual_review':
-                    raise ValueError('brak oceny backendu bez statusu manual_review')
-                status, score = 'manual_review', None
-            else:
-                if not np.isfinite(native_score) or not 0 <= native_score <= 1:
-                    raise ValueError('nieprawidłowa ocena wyniku backendu')
-                status, score = estimate_confidence(method, result)
-        except RegistrationCancelled:
-            raise
-        except Exception as error:
-            check_cancelled(cancelled)
-            reason = (f'{label} — klatki {i + 1}–{j + 1}: {pair_failure_reason(error)}; '
-                      f'{pair_context}')
-            if not local_pair_refusal(error):
-                raise RegistrationError(reason) from error
-            edges.append(GraphEdge(i, j, None, 'missing', reason,
-                                   local_diagnostics=(backend.last_diagnostics
-                                                      if isinstance(backend, DeepLocalBackend) else None)))
-        else:
-            edges.append(GraphEdge(i, j, (float(shift[0]), float(shift[1])),
-                                   status, quality_score=score,
-                                   hybrid_diagnostics=(backend.last_diagnostics
-                                                       if isinstance(backend, DeepEccBackend) else None),
-                                   local_diagnostics=(backend.last_diagnostics
-                                                      if isinstance(backend, DeepLocalBackend) else None)))
-        report(done, f'{label}: klatki {i + 1}–{j + 1}')
+                edges.append(GraphEdge(i, j, (float(shift[0]), float(shift[1])),
+                                       status, quality_score=score,
+                                       hybrid_diagnostics=(backend.last_diagnostics
+                                                           if isinstance(backend, DeepEccBackend) else None),
+                                       local_diagnostics=(backend.last_diagnostics
+                                                          if isinstance(backend, DeepLocalBackend) else None),
+                                       correspondence_diagnostics=(backend.last_diagnostics
+                                                                   if isinstance(backend, EfficientBackend) else None)))
+            report(done, f'{label}: klatki {i + 1}–{j + 1}')
+    finally:
+        if isinstance(backend, EfficientBackend):
+            backend.close()
     elapsed = perf_counter() - start
     pair_context = ''
     report(len(pairs), 'Wyznaczanie wspólnych XY — równe wagi LS')

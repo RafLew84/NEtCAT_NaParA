@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 from uuid import uuid4
+from stmviewer.correspondence_types import CorrespondenceDiagnostics
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -47,6 +48,7 @@ class GraphEdge:
     residual_xy: XY | None = None
     hybrid_diagnostics: 'HybridDiagnostics | None' = None
     local_diagnostics: 'LocalDiagnostics | None' = None
+    correspondence_diagnostics: CorrespondenceDiagnostics | None = None
 
 
 @dataclass(frozen=True)

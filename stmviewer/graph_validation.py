@@ -22,6 +22,10 @@ def validate_graph_result(trial: GraphTrial, check_cancelled: Callable[[], None]
     for edge in trial.edges:
         check_cancelled()
         _validate_diagnostics(edge, trial.config)
+        if edge.correspondence_diagnostics is not None:
+            from stmviewer.correspondence_metadata import validate_correspondence_shape
+            validate_correspondence_shape(edge.correspondence_diagnostics,
+                                          trial.sources[edge.i].shape, trial.sources[edge.j].shape)
         if edge.shift_xy is None:
             if edge.status != 'missing' or not edge.reason or edge.quality_score is not None:
                 raise ValueError('Graf: brak pomiaru wymaga statusu missing i przyczyny bez oceny.')
@@ -101,7 +105,8 @@ def _validate_method(config: GraphConfig) -> None:
 
 
 def _validate_diagnostics(edge: GraphEdge, config: GraphConfig) -> None:
-    if edge.hybrid_diagnostics is not None and edge.local_diagnostics is not None:
+    if sum(item is not None for item in (edge.hybrid_diagnostics, edge.local_diagnostics,
+                                        edge.correspondence_diagnostics)) > 1:
         raise ValueError('Graf: sprzeczne rodzaje diagnozy jednego pomiaru.')
     for method, diagnostic in (('deep_matcher_ecc', edge.hybrid_diagnostics),
                                ('deep_local_consensus', edge.local_diagnostics)):
@@ -120,3 +125,29 @@ def _validate_diagnostics(edge: GraphEdge, config: GraphConfig) -> None:
         recorded_settings = dict(config.backend_settings).get('settings_text')
         if recorded_settings is not None and diagnostic.settings_text != recorded_settings:
             raise ValueError('Graf: diagnoza nie odpowiada ustawieniom pomiaru.')
+
+    correspondence = edge.correspondence_diagnostics
+    if config.method == 'efficient_loftr':
+        if correspondence is None or len(correspondence.preparation) != 2:
+            raise ValueError('Graf: niekompletna diagnostyka EfficientLoFTR i przygotowanie obrazów.')
+        if edge.quality_score is not None or (edge.shift_xy is not None and edge.status != 'manual_review'):
+            raise ValueError('Graf: poparcie korespondencji nie jest oceną pewności dopasowania.')
+    if correspondence is not None:
+        from stmviewer.correspondence_metadata import decode_correspondence, encode_correspondence
+        # Public persistence codec checks finite values, spatial counts and provenance.
+        decode_correspondence(encode_correspondence(correspondence))
+        if config.method != 'efficient_loftr':
+            raise ValueError('Graf: diagnoza korespondencji nie odpowiada metodzie.')
+        metadata = dict(correspondence.model_provenance)
+        if (metadata.get('weights_path') != config.weights_path
+                or metadata.get('weights_sha256') != config.weights_sha256
+                or metadata.get('requested_device') != config.requested_device
+                or metadata.get('actual_device') != config.device
+                or any(dict(config.backend_settings).get(key) != value
+                       for key, value in correspondence.model_provenance)):
+            raise ValueError('Graf: pochodzenie korespondencji nie odpowiada konfiguracji.')
+        if (correspondence.final_shift_xy is None) != (edge.shift_xy is None):
+            raise ValueError('Graf: diagnoza korespondencji nie odpowiada odmowie.')
+        if correspondence.final_shift_xy is not None and (edge.shift_xy is None
+                or not np.allclose(correspondence.final_shift_xy, edge.shift_xy, rtol=0., atol=1e-7)):
+            raise ValueError('Graf: diagnoza korespondencji nie odpowiada przesunięciu.')

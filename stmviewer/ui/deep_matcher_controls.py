@@ -1,12 +1,13 @@
-"""File and device inputs; model validation itself runs in the registration worker."""
+"""Local model paths and device inputs shared by pair, film and graph windows."""
 
 import os
 from pathlib import Path
 
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import QSignalBlocker, Qt, pyqtSignal
 from PyQt6.QtWidgets import QComboBox, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
 
 from stmviewer.deep_matcher import DeepMatcherOptions
+from stmviewer.efficient_matcher import EFFICIENT_METHOD, default_efficient_options
 
 
 class DeepMatcherControls(QWidget):
@@ -15,9 +16,12 @@ class DeepMatcherControls(QWidget):
 
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
+        self._method = 'deep_matcher_translation'
+        self._remembered: dict[bool, DeepMatcherOptions] = {True: default_efficient_options()}
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(QLabel('Lokalne wagi LoFTR outdoor', self))
+        self._weights_label = QLabel('Lokalne wagi LoFTR outdoor', self)
+        layout.addWidget(self._weights_label)
         self._weights = QLineEdit(os.environ.get('STMVIEWER_LOFTR_WEIGHTS', ''), self)
         self._weights.setObjectName('deepWeights')
         self._weights.setPlaceholderText('Ścieżka do pliku .ckpt')
@@ -27,6 +31,21 @@ class DeepMatcherControls(QWidget):
         browse.setObjectName('chooseDeepWeights')
         browse.clicked.connect(self._browse)
         layout.addWidget(browse)
+        self._source_panel = QWidget(self)
+        source_layout = QVBoxLayout(self._source_panel)
+        source_layout.setContentsMargins(0, 0, 0, 0)
+        source_layout.addWidget(QLabel('Lokalny katalog kodu EfficientLoFTR', self))
+        self._source = QLineEdit(self)
+        self._source.setObjectName('efficientSource')
+        self._source.setAccessibleName('Lokalny katalog kodu EfficientLoFTR')
+        self._source.setPlaceholderText('Katalog zawierający src/loftr')
+        source_layout.addWidget(self._source)
+        source_browse = QPushButton('Wybierz katalog kodu…', self)
+        source_browse.setObjectName('chooseEfficientSource')
+        source_browse.clicked.connect(self._browse_source)
+        source_layout.addWidget(source_browse)
+        layout.addWidget(self._source_panel)
+        self._source_panel.hide()
         row = QHBoxLayout()
         row.addWidget(QLabel('Urządzenie', self))
         self._device = QComboBox(self)
@@ -45,16 +64,39 @@ class DeepMatcherControls(QWidget):
         self._status.setTextFormat(Qt.TextFormat.PlainText)
         layout.addWidget(self._status)
         self._weights.textChanged.connect(self._changed)
+        self._source.textChanged.connect(self._changed)
         self._device.currentIndexChanged.connect(self._changed)
         self._changed()
 
     def options(self) -> DeepMatcherOptions:
         value = self._weights.text().strip()
-        return DeepMatcherOptions(Path(value).expanduser() if value else None, self._device.currentText().lower())
+        source = self._source.text().strip() if self._method == EFFICIENT_METHOD else ''
+        return DeepMatcherOptions(Path(value).expanduser() if value else None,
+                                  self._device.currentText().lower(),
+                                  Path(source).expanduser() if source else None)
+
+    def set_method(self, method: str) -> None:
+        """Remember each model's local files when switching the next calculation."""
+        efficient = method == EFFICIENT_METHOD
+        previous = self._method == EFFICIENT_METHOD
+        if efficient != previous:
+            self._remembered[previous] = self.options()
+            self._method = method
+            with QSignalBlocker(self):
+                self.set_options(self._remembered.get(efficient, DeepMatcherOptions()))
+        else:
+            self._method = method
+        text = 'Lokalne wagi EfficientLoFTR outdoor' if efficient else 'Lokalne wagi LoFTR outdoor'
+        self._weights_label.setText(text)
+        self._weights.setAccessibleName(text)
+        self._source_panel.setVisible(efficient)
 
     def set_options(self, options: DeepMatcherOptions) -> None:
-        self._weights.setText(str(options.weights) if options.weights is not None else '')
-        self._device.setCurrentText(options.device.upper() if options.device != 'auto' else 'Auto')
+        with QSignalBlocker(self):
+            self._weights.setText(str(options.weights) if options.weights is not None else '')
+            self._source.setText(str(options.source) if options.source is not None else '')
+            self._device.setCurrentText(options.device.upper() if options.device != 'auto' else 'Auto')
+        self._changed()
 
     def set_status(self, text: str) -> None:
         self._status.setText(text)
@@ -64,7 +106,12 @@ class DeepMatcherControls(QWidget):
         self.changed.emit()
 
     def _browse(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, 'Lokalne wagi LoFTR outdoor', self._weights.text(),
+        path, _ = QFileDialog.getOpenFileName(self, self._weights_label.text(), self._weights.text(),
                                             'Wagi (*.ckpt *.pth *.pt);;Wszystkie pliki (*)')
         if path:
             self._weights.setText(path)
+
+    def _browse_source(self) -> None:
+        path = QFileDialog.getExistingDirectory(self, 'Lokalny katalog kodu EfficientLoFTR', self._source.text())
+        if path:
+            self._source.setText(path)

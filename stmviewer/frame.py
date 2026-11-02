@@ -8,6 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from stmviewer.manual_movie_types import MovieHistory
+from stmviewer.correspondence_types import CorrespondenceDiagnostics
 
 
 @dataclass(frozen=True)
@@ -39,6 +40,7 @@ class AlignmentHistory:
     previous: 'AlignmentHistory | None' = None
     manual_movie: MovieHistory | None = None
     manual_frame_index: int | None = None
+    correspondence: CorrespondenceDiagnostics | None = None
 
     @property
     def original_rect(self) -> tuple[float, float, int, int]:

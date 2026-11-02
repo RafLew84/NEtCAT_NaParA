@@ -375,7 +375,7 @@ class STMViewerMainWindow(QMainWindow):
             pixel_proportions=self._pixel_proportions.isChecked(), fps=int(self._fps.currentText()),
             loop=self._loop.isChecked(), method=str(self._method.currentData()),
             deep_weights=str(options.weights) if options.weights is not None else None,
-            deep_device=options.device, navigation=self._preview.navigation_states()), graph=self._graph.trial)
+            deep_device=options.device, deep_source=str(options.source) if options.source else None, navigation=self._preview.navigation_states()), graph=self._graph.trial)
 
     def _restore_session(self, state: SessionState, thumbnails: tuple[QImage, ...]) -> None:
         if self._closing:
@@ -398,8 +398,10 @@ class STMViewerMainWindow(QMainWindow):
         with QSignalBlocker(self._view), QSignalBlocker(self._method), QSignalBlocker(self._deep_controls):
             self._view.setCurrentText(display.view)
             self._method.setCurrentIndex(self._method.findData(display.method))
+            self._deep_controls.set_method(display.method)
             self._deep_controls.set_options(DeepMatcherOptions(Path(display.deep_weights) if display.deep_weights else None,
-                                                               display.deep_device))
+                                                               display.deep_device,
+                                                               Path(display.deep_source) if display.deep_source else None))
         with QSignalBlocker(self._gamma):
             self._gamma.setValue(display.gamma)
         self._pixel_proportions.setChecked(display.pixel_proportions)
@@ -824,6 +826,7 @@ class STMViewerMainWindow(QMainWindow):
         return method_unavailable_reason(key, self._deep_controls.options(), self._method_errors)
 
     def _change_registration_method(self) -> None:
+        self._deep_controls.set_method(str(self._method.currentData()))
         self._deep_controls.setVisible(self._method.currentData() in DEEP_METHODS)
         reason = self._selected_method_error()
         self._method_availability.setText(reason or "")

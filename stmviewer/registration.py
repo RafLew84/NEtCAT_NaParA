@@ -11,6 +11,10 @@ from nanotrack.core import RegistrationFrameResult
 import numpy as np
 from numpy.typing import NDArray
 
+from stmviewer.correspondence_types import CorrespondenceDiagnostics, CorrespondenceRefusal
+from stmviewer.efficient_matcher import (
+    EFFICIENT_METHOD, EFFICIENT_LABEL, EfficientBackend, load_efficient_backend,
+)
 from stmviewer.local_consensus import LocalDiagnostics, LocalConsensusError
 from stmviewer.local_registration import LOCAL_METHOD, LOCAL_LABEL, DeepLocalBackend, load_deep_local_backend
 from stmviewer.frame import ImageFrame
@@ -35,9 +39,10 @@ CPU_METHODS = {
 }
 
 
-DEEP_METHODS = ("deep_matcher_translation", HYBRID_METHOD, LOCAL_METHOD)
+DEEP_METHODS = ("deep_matcher_translation", HYBRID_METHOD, LOCAL_METHOD, EFFICIENT_METHOD)
 REGISTRATION_METHODS = {**CPU_METHODS, "deep_matcher_translation": "Deep Matcher",
-                        HYBRID_METHOD: HYBRID_LABEL, LOCAL_METHOD: LOCAL_LABEL}
+                        HYBRID_METHOD: HYBRID_LABEL, LOCAL_METHOD: LOCAL_LABEL,
+                        EFFICIENT_METHOD: EFFICIENT_LABEL}
 
 
 @dataclass(frozen=True)
@@ -82,6 +87,7 @@ class RegistrationResult:
     local_diagnostics: tuple[LocalDiagnostics | None, ...] = ()
     graph_application: "GraphApplication | None" = None
     predecessor: "MovieSnapshot | None" = None
+    correspondence_diagnostics: tuple[CorrespondenceDiagnostics | None, ...] = ()
 
     def without_frame(self, index: int) -> 'RegistrationResult | None':
         """Retain historical coordinates and the exact surviving samples."""
@@ -93,7 +99,10 @@ class RegistrationResult:
                        if self.pair_diagnostics else ())
         local = (self.local_diagnostics[:index] + self.local_diagnostics[index + 1:]
                  if self.local_diagnostics else ())
+        correspondence = (self.correspondence_diagnostics[:index] + self.correspondence_diagnostics[index + 1:]
+                          if self.correspondence_diagnostics else ())
         return replace(self, frames=frames, corrections_editable=False,
+                       correspondence_diagnostics=correspondence,
                        pair_diagnostics=diagnostics, local_diagnostics=local,
                        revision=uuid4().hex) if frames else None
 
@@ -142,7 +151,13 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
             raise RegistrationError(f"{prefix}: {label} wymaga skończonych próbek; wejście zawiera NaN/Inf.")
     device = 'CPU'
     completed_pairs = 0
-    if method == LOCAL_METHOD:
+    if method == EFFICIENT_METHOD:
+        efficient = load_efficient_backend(
+            deep_options or DeepMatcherOptions(),
+            progress=lambda text: report(completed_pairs, text), cancelled=cancelled,
+        )
+        backend, device = efficient, efficient.device
+    elif method == LOCAL_METHOD:
         local_backend = load_deep_local_backend(
             deep_options or DeepMatcherOptions(),
             progress=lambda text: report(completed_pairs, text), cancelled=cancelled,
@@ -160,46 +175,55 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
         backend, device = loaded.backend, loaded.device
     else:
         backend = backend if backend is not None else create_shift_backend(method)
-    diagnostics: list[HybridDiagnostics | None] = [None]
-    local_diagnostics: list[LocalDiagnostics | None] = [None]
-    shifts = [(0.0, 0.0)]
-    statuses = ['ok']
-    qualities: list[float | None] = [1.0]
-    severity = {'ok': 0, 'low_confidence': 1, 'manual_review': 2, 'failed': 3}
-    report(1, "Odniesienie: klatka 1")
-    for i in range(1, len(frames)):
-        checkpoint()
-        try:
-            pair = backend.estimate(frames[i - 1].data, frames[i].data, moving_frame_index=i)
-            if (pair is None or pair.frame_index != i or pair.status not in severity
-                    or pair.status == 'failed'):
-                raise ValueError("brak poprawnego wyniku klatki lub status failed")
-            pair_shift = np.asarray(pair.shift_xy, dtype=np.float64)
-            if pair_shift.shape != (2,) or not np.isfinite(pair_shift).all():
-                raise ValueError("nieprawidłowe przesunięcie XY")
-            pair_status, pair_quality = estimate_confidence(method, pair)
-        except (RegistrationCancelled, RegistrationError, LocalConsensusError):
+    try:
+        diagnostics: list[HybridDiagnostics | None] = [None]
+        local_diagnostics: list[LocalDiagnostics | None] = [None]
+        correspondence_diagnostics: list[CorrespondenceDiagnostics | None] = [None]
+        shifts = [(0.0, 0.0)]
+        statuses = ['ok']
+        qualities: list[float | None] = [1.0]
+        severity = {'ok': 0, 'low_confidence': 1, 'manual_review': 2, 'failed': 3}
+        report(1, "Odniesienie: klatka 1")
+        for i in range(1, len(frames)):
             checkpoint()
-            raise
-        except Exception as error:
+            try:
+                pair = backend.estimate(frames[i - 1].data, frames[i].data, moving_frame_index=i)
+                if (pair is None or pair.frame_index != i or pair.status not in severity
+                        or pair.status == 'failed'):
+                    raise ValueError("brak poprawnego wyniku klatki lub status failed")
+                pair_shift = np.asarray(pair.shift_xy, dtype=np.float64)
+                if pair_shift.shape != (2,) or not np.isfinite(pair_shift).all():
+                    raise ValueError("nieprawidłowe przesunięcie XY")
+                pair_status, pair_quality = estimate_confidence(method, pair)
+            except CorrespondenceRefusal as error:
+                checkpoint()
+                raise RegistrationError(f"Para {i} → {i + 1} ({label}): {error}") from error
+            except (RegistrationCancelled, RegistrationError, LocalConsensusError):
+                checkpoint()
+                raise
+            except Exception as error:
+                checkpoint()
+                reason = str(error) or type(error).__name__
+                if 'too little texture' in reason:
+                    reason = f'za mało tekstury do rejestracji {label}'
+                raise RegistrationError(f"Para {i} → {i + 1}: {reason}") from error
+            diagnostics.append(backend.last_diagnostics if isinstance(backend, DeepEccBackend) else None)
+            local_diagnostics.append(backend.last_diagnostics if isinstance(backend, DeepLocalBackend) else None)
+            correspondence_diagnostics.append(backend.last_diagnostics if isinstance(backend, EfficientBackend) else None)
+            completed_pairs = i
+            shifts.append((shifts[-1][0] + float(pair.shift_xy[0]),
+                           shifts[-1][1] + float(pair.shift_xy[1])))
             checkpoint()
-            reason = str(error) or type(error).__name__
-            if 'too little texture' in reason:
-                reason = f'za mało tekstury do rejestracji {label}'
-            raise RegistrationError(f"Para {i} → {i + 1}: {reason}") from error
-        diagnostics.append(backend.last_diagnostics if isinstance(backend, DeepEccBackend) else None)
-        local_diagnostics.append(backend.last_diagnostics if isinstance(backend, DeepLocalBackend) else None)
-        completed_pairs = i
-        shifts.append((shifts[-1][0] + float(pair.shift_xy[0]),
-                       shifts[-1][1] + float(pair.shift_xy[1])))
-        checkpoint()
-        if not np.isfinite(shifts[-1]).all():
-            raise RegistrationError(f"Para {i} → {i + 1}: nieprawidłowe przesunięcie skumulowane.")
-        previous_quality = qualities[-1]
-        qualities.append(None if previous_quality is None or pair_quality is None
-                         else min(previous_quality, pair_quality))
-        statuses.append(max(statuses[-1], pair_status, key=severity.__getitem__))
-        report(i + 1, f"{label}: para {i} → {i + 1}")
+            if not np.isfinite(shifts[-1]).all():
+                raise RegistrationError(f"Para {i} → {i + 1}: nieprawidłowe przesunięcie skumulowane.")
+            previous_quality = qualities[-1]
+            qualities.append(None if previous_quality is None or pair_quality is None
+                             else min(previous_quality, pair_quality))
+            statuses.append(max(statuses[-1], pair_status, key=severity.__getitem__))
+            report(i + 1, f"{label}: para {i} → {i + 1}")
+    finally:
+        if isinstance(backend, EfficientBackend):
+            backend.close()
     rendered = render_registration(
         frames, tuple(shifts), tuple(statuses), tuple(qualities),
         tuple(i > 0 and statuses[i - 1] != 'ok' for i in range(len(frames))),
@@ -208,7 +232,9 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
         progress=lambda done, total, text: report(len(frames) + done, text),
     )
     return replace(rendered, pair_diagnostics=tuple(diagnostics) if method == HYBRID_METHOD else (),
-                   local_diagnostics=tuple(local_diagnostics) if method == LOCAL_METHOD else ())
+                   local_diagnostics=tuple(local_diagnostics) if method == LOCAL_METHOD else (),
+                   correspondence_diagnostics=(tuple(correspondence_diagnostics)
+                                               if method == EFFICIENT_METHOD else ()))
 
 
 def render_registration(
@@ -320,7 +346,7 @@ def create_shift_backend(method: str) -> ShiftBackend:
 
 def estimate_confidence(method: str, result: RegistrationFrameResult) -> tuple[str, float | None]:
     """Do not reuse the phase-peak score for an unnormalized estimate."""
-    if method in ('phase_no_normalization', HYBRID_METHOD, LOCAL_METHOD):
+    if method in ('phase_no_normalization', HYBRID_METHOD, LOCAL_METHOD, EFFICIENT_METHOD):
         return 'manual_review', None
     quality = float(result.quality_score)
     if not np.isfinite(quality) or not 0 <= quality <= 1:

@@ -84,19 +84,24 @@ def apply_mpp_metadata(path: Path, frames: tuple[ImageFrame, ...], *, sha256: st
         except (UnicodeError, json.JSONDecodeError) as error:
             raise ValueError(f'Nieprawidłowy JSON UTF-8: {error}') from error
         check_cancelled()
-        shared_history = isinstance(decoded, dict) and decoded.get('version') in (4, 5, 7)
+        shared_history = isinstance(decoded, dict) and decoded.get('version') in (4, 5, 7, 8)
         metadata = _object(decoded, {'format', 'version', 'image_kind', 'movie', 'frames'}
                            | ({'manual_results', 'sample_encoding'} if shared_history else set()))
         if metadata['format'] != 'stmviewer-mpp':
             raise ValueError('Nieobsługiwany format dodatku.')
-        if type(metadata['version']) is not int or metadata['version'] not in (1, 2, 3, 4, 5, 7):
+        if type(metadata['version']) is not int or metadata['version'] not in (1, 2, 3, 4, 5, 7, 8):
             raise ValueError(f'Nieobsługiwana wersja dodatku: {metadata["version"]}.')
         version = metadata['version']
         assert isinstance(version, int)
         manual_results: tuple[MovieHistory, ...] = ()
         finite_fill = version == 3
         if version >= 4:
-            manual_results = decode_manual_results(metadata['manual_results'], check_cancelled)
+            histories = metadata['manual_results']
+            manual_results = () if version == 8 and histories == [] else decode_manual_results(histories, check_cancelled)
+            if version < 8 and any(history.graph_provenance is not None
+                                   and history.graph_provenance.config.method == 'efficient_loftr'
+                                   for history in manual_results):
+                raise ValueError('EfficientLoFTR wymaga dodatku V8.')
             if version < 7 and any(history.graph_provenance is not None
                                    and history.graph_provenance.settings_version != 1
                                    for history in manual_results):
@@ -154,7 +159,7 @@ def apply_mpp_metadata(path: Path, frames: tuple[ImageFrame, ...], *, sha256: st
 def encode_mpp_metadata(frames: tuple[ImageFrame, ...], sha256: str, *,
                         check_cancelled: Callable[[], None], image_kind: str = "original",
                         wsxm_compatible: bool = False) -> bytes:
-    """Keep legacy formats; V7 records method-aware graph provenance (V6 is reserved)."""
+    """V8 retains correspondence evidence; V6 remains reserved for a withdrawn feature."""
     validate_alignment_series(frames, aligned=image_kind == "aligned")
     version = 2 if image_kind == "aligned" or any(f.alignment for f in frames) else 1
     if wsxm_compatible:
@@ -168,6 +173,11 @@ def encode_mpp_metadata(frames: tuple[ImageFrame, ...], sha256: str, *,
     if any(history.graph_provenance is not None and history.graph_provenance.settings_version == 3
            for history in manual_results):
         version = 7
+    if (any(_has_correspondence(frame) for frame in frames)
+            or any(history.graph_provenance is not None
+                   and history.graph_provenance.config.method == 'efficient_loftr'
+                   for history in manual_results)):
+        version = 8
     finite_fill = wsxm_compatible
     remaining_runs = MAX_RUNS
     records = []
@@ -193,10 +203,21 @@ def encode_mpp_metadata(frames: tuple[ImageFrame, ...], sha256: str, *,
                     movie=dict(sha256=sha256, frame_count=len(frames), shape_yx=list(frames[0].data.shape)),
                     frames=records)
     if version >= 4:
-        metadata['manual_results'] = encode_manual_results(manual_results, check_cancelled)
+        metadata['manual_results'] = encode_manual_results(manual_results, check_cancelled) if manual_results else []
         metadata['sample_encoding'] = 'finite-fill' if finite_fill else 'native-f64'
     payload = (json.dumps(metadata, ensure_ascii=False, allow_nan=False, sort_keys=True, separators=(',', ':')) + '\n').encode('utf-8')
     if len(payload) > _MAX_BYTES:
         raise ValueError('Dodatek przekracza 64 MiB.')
     check_cancelled()
     return payload
+
+
+def _has_correspondence(frame: ImageFrame) -> bool:
+    history = frame.alignment
+    for _ in range(32):
+        if history is None:
+            return False
+        if history.correspondence is not None:
+            return True
+        history = history.previous
+    return False

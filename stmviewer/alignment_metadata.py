@@ -6,6 +6,7 @@ import math
 import numpy as np
 
 from stmviewer.graph_methods import graph_method_label
+from stmviewer.correspondence_metadata import decode_correspondence, encode_correspondence, validate_correspondence_shape
 from stmviewer.frame import AlignmentHistory, FrameProvenance, ImageFrame
 from stmviewer.metadata_values import json_object, optional_number, optional_text, source_provenance
 from stmviewer.registration import RegistrationResult
@@ -60,7 +61,11 @@ def _decode(value: object, depth: int = 0, *,
     if depth >= _MAX_DEPTH:
         raise ValueError('Historia rejestracji przekracza 32 etapy.')
     has_manual = isinstance(value, dict) and 'manual_result' in value
-    record = json_object(value, _KEYS | ({'manual_result', 'manual_frame_index'} if has_manual else set()))
+    fields = json_object(value)
+    extra = {'manual_result', 'manual_frame_index'} if has_manual else set()
+    if 'correspondence' in fields:
+        extra.add('correspondence')
+    record = json_object(fields, _KEYS | extra)
     manual = None
     manual_index: int | None = None
     if has_manual:
@@ -123,10 +128,15 @@ def _decode(value: object, depth: int = 0, *,
     original_offset = _numbers(record['original_offset_nm'], nullable=True)
     if previous is not None:
         _validate_image_metadata(previous, (oh, ow), original_size, original_offset)
+    correspondence = decode_correspondence(record.get('correspondence'))
+    validate_correspondence_shape(correspondence, (oh, ow), (oh, ow))
+    if correspondence is not None and (method != 'EfficientLoFTR' or correspondence.final_shift_xy is None):
+        raise ValueError('Historia: metoda lub wynik nie odpowiada diagnostyce korespondencji.')
     return AlignmentHistory((height, width), (left, top, right, bottom), pixel_size,
                             reference, method, device, (oh, ow), original_size,
                             original_offset, shift, origin,
-                            status, quality, inherited, previous, manual, manual_index)
+                            status, quality, inherited, previous, manual, manual_index,
+                            correspondence)
 
 
 def _validate_image_metadata(history: AlignmentHistory, shape: tuple[int, ...],
@@ -163,6 +173,10 @@ def encode_alignment(history: AlignmentHistory | None, depth: int = 0, *,
     record = asdict(replace(history, previous=None, manual_movie=None, manual_frame_index=None))
     record.pop('manual_movie')
     record.pop('manual_frame_index')
+    if history.correspondence is None:
+        record.pop('correspondence')
+    else:
+        record['correspondence'] = encode_correspondence(history.correspondence)
     if history.manual_movie is not None:
         if manual_ids is None or history.manual_movie.revision not in manual_ids:
             raise ValueError('Historia: brak wspólnego zapisu ręcznej korekty filmu.')
@@ -198,7 +212,9 @@ def aligned_export_frames(result: RegistrationResult,
     frames = []
     manual = movie_history(result) if result.corrections or result.graph_application is not None else None
     source_indices = {frame.source: i for i, frame in enumerate(result.baseline)}
-    for aligned in result.frames:
+    if result.correspondence_diagnostics and len(result.correspondence_diagnostics) != len(result.frames):
+        raise ValueError('Aligned: diagnostyka korespondencji ma inną liczbę klatek.')
+    for frame_index, aligned in enumerate(result.frames):
         check_cancelled()
         image, original = aligned.image, aligned.original
         if aligned.valid_mask.shape != image.data.shape or image.data.shape != result.canvas_shape:
@@ -221,7 +237,8 @@ def aligned_export_frames(result: RegistrationResult,
             result.method, result.device, (original.data.shape[0], original.data.shape[1]),
             (original.size_x_nm, original.size_y_nm), (original.offset_x_nm, original.offset_y_nm),
             aligned.shift_xy, aligned.origin_xy, aligned.status, aligned.quality_score,
-            aligned.inherited_uncertainty, original.alignment, manual, manual_index)
+            aligned.inherited_uncertainty, original.alignment, manual, manual_index,
+            result.correspondence_diagnostics[frame_index] if result.correspondence_diagnostics else None)
         frame = replace(image, alignment=history)
         histories = collect_manual_histories((frame,), check_cancelled)
         ids = {item.revision: i for i, item in enumerate(histories)}

@@ -6,6 +6,9 @@ import numpy as np
 from numpy.typing import NDArray
 
 from stmviewer.graph_methods import graph_method_label
+from stmviewer.correspondence_metadata import (
+    decode_correspondence_diagnostics, encode_correspondence_diagnostics, validate_correspondence_shape,
+)
 from stmviewer.alignment_metadata import (
     aligned_export_frames, collect_manual_histories, decode_alignment, encode_alignment,
 )
@@ -92,7 +95,7 @@ def _root(value: object) -> dict[str, object]:
     record = json_object(value)
     if record.get('schema') == 'stmviewer-state-v1':
         return json_object(record, _ROOT_KEYS)
-    if record.get('schema') in ('stmviewer-state-v2', 'stmviewer-state-v3'):
+    if record.get('schema') in ('stmviewer-state-v2', 'stmviewer-state-v3', 'stmviewer-state-v4'):
         return json_object(record, _ROOT_KEYS | {'graph'})
     raise ValueError('Nieobsługiwana wersja stanu sesji.')
 
@@ -180,7 +183,8 @@ def _decode_frame(record: dict[str, object], arrays: Mapping[str, NDArray[np.flo
 
 
 def _decode_display(value: object, count: int, aligned: bool) -> SessionViewState:
-    record = json_object(value, _DISPLAY_KEYS)
+    fields = json_object(value)
+    record = json_object(fields, _DISPLAY_KEYS | ({'deep_source'} if 'deep_source' in fields else set()))
     index = _integer(record['index'])
     view = record['view']
     if index >= count or view not in ('original', 'aligned') or (view == 'aligned' and not aligned):
@@ -205,7 +209,7 @@ def _decode_display(value: object, count: int, aligned: bool) -> SessionViewStat
     assert isinstance(view, str)
     return SessionViewState(index, view, gamma, _boolean(record['pixel_proportions']), fps,
                             _boolean(record['loop']), method, optional_text(record, 'deep_weights'),
-                            device, navigation)
+                            device, navigation, optional_text(record, 'deep_source') if 'deep_source' in record else None)
 
 
 def _registration_record(result: RegistrationResult, images: tuple[ImageFrame, ...],
@@ -222,6 +226,8 @@ def _registration_record(result: RegistrationResult, images: tuple[ImageFrame, .
         'pair_diagnostics': encode_pair_diagnostics(result.pair_diagnostics),
         'local_diagnostics': encode_local_diagnostics(result.local_diagnostics),
     }
+    if result.correspondence_diagnostics:
+        record['correspondence_diagnostics'] = encode_correspondence_diagnostics(result.correspondence_diagnostics)
     if result.graph_application is not None:
         record['graph_application'] = encode_graph_application(result.graph_application)
     if result.predecessor is not None:
@@ -231,7 +237,7 @@ def _registration_record(result: RegistrationResult, images: tuple[ImageFrame, .
 
 def _registration_object(value: object) -> dict[str, object]:
     record = json_object(value)
-    return json_object(record, _REGISTRATION_KEYS | ({'graph_application', 'predecessor'} & record.keys()))
+    return json_object(record, _REGISTRATION_KEYS | ({'graph_application', 'predecessor', 'correspondence_diagnostics'} & record.keys()))
 
 
 def _decode_registration(value: object, originals: tuple[ImageFrame, ...],
@@ -316,10 +322,19 @@ def _decode_registration(value: object, originals: tuple[ImageFrame, ...],
         corrections_editable=editable,
         pair_diagnostics=decode_pair_diagnostics(record['pair_diagnostics'], len(originals)),
         local_diagnostics=decode_local_diagnostics(record['local_diagnostics'], len(originals)),
+        correspondence_diagnostics=decode_correspondence_diagnostics(record.get('correspondence_diagnostics', []), len(originals)),
         graph_application=decode_graph_application(record.get('graph_application'), originals,
             manual.baseline if manual else (), check_cancelled, allow_subset=not editable),
         predecessor=decode_movie_snapshot(record.get('predecessor'), originals, check_cancelled),
     )
+    if result.correspondence_diagnostics:
+        if method != 'EfficientLoFTR':
+            raise ValueError('Sesja: metoda nie odpowiada diagnostyce korespondencji.')
+        for original, diagnostic in zip(originals, result.correspondence_diagnostics, strict=True):
+            shape = (original.data.shape[0], original.data.shape[1])
+            validate_correspondence_shape(diagnostic, shape, shape)
+            if diagnostic is not None and diagnostic.final_shift_xy is None:
+                raise ValueError('Sesja: aktywny łańcuch nie może zawierać odmowy dopasowania.')
     if manual is not None and manual.graph_provenance != movie_history(result).graph_provenance:
         raise ValueError('Sesja: pochodzenie grafu nie odpowiada aktywnemu zastosowaniu.')
     if result.graph_application is not None:
@@ -365,6 +380,16 @@ def encode_session(state: SessionState, *, check_cancelled: Callable[[], None] =
         manifest['graph'] = encode_graph(state.graph)
     if result is not None and (result.graph_application is not None or result.predecessor is not None):
         manifest['schema'] = 'stmviewer-state-v3'
+        manifest.setdefault('graph', None)
+    display = manifest['display']
+    assert isinstance(display, dict)
+    if state.display.deep_source is None:
+        display.pop('deep_source')
+    else:
+        manifest['schema'] = 'stmviewer-state-v4'
+        manifest.setdefault('graph', None)
+    if result is not None and result.correspondence_diagnostics:
+        manifest['schema'] = 'stmviewer-state-v4'
         manifest.setdefault('graph', None)
     decode_session(manifest, arrays, check_cancelled=check_cancelled)
     return manifest, arrays

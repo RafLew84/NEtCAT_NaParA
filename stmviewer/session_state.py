@@ -29,6 +29,7 @@ class SessionViewState:
     deep_weights: str | None = None
     deep_device: str = 'auto'
     navigation: dict[str, ViewTransform] = field(default_factory=dict)
+    deep_source: str | None = None
 
 
 @dataclass(frozen=True)

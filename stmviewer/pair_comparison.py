@@ -6,6 +6,8 @@ from typing import Callable, Literal
 import numpy as np
 from numpy.typing import NDArray
 
+from stmviewer.correspondence_types import CorrespondenceDiagnostics, CorrespondenceRefusal
+from stmviewer.efficient_matcher import EFFICIENT_METHOD, EfficientBackend, load_efficient_backend
 from stmviewer.local_consensus import LocalDiagnostics, LocalConsensusError
 from stmviewer.local_registration import LOCAL_METHOD, DeepLocalBackend, load_deep_local_backend
 from stmviewer.frame import ImageFrame
@@ -42,6 +44,7 @@ class PairTrial:
     movie_revision: str | None = None
     hybrid: HybridDiagnostics | None = None
     local: LocalDiagnostics | None = None
+    correspondence: CorrespondenceDiagnostics | None = None
 
 
 def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
@@ -77,7 +80,11 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
         raise RegistrationError(f'{prefix}: para wymaga skończonych próbek; wejście zawiera NaN/Inf.')
     device = 'CPU'
     settings = 'Oryginały; ustawienia NanoTrack'
-    if method == LOCAL_METHOD:
+    if method == EFFICIENT_METHOD:
+        efficient = load_efficient_backend(deep_options or DeepMatcherOptions(),
+                                           cancelled=cancelled, progress=report)
+        backend, device, settings = efficient, efficient.device, efficient.settings_text
+    elif method == LOCAL_METHOD:
         local = load_deep_local_backend(deep_options or DeepMatcherOptions(), cancelled=cancelled,
                                        progress=report, pair_label=pair_label)
         backend, device, settings = local, local.device, local.settings_text
@@ -92,38 +99,43 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
         settings += f'; wagi={options.weights}; wybrane urządzenie={options.device}'
     else:
         backend = backend if backend is not None else create_shift_backend(method)
-    configuration = getattr(backend, 'config', None)
-    # The local wrapper already describes both stages and its full configuration.
-    if (not isinstance(backend, DeepLocalBackend)
-            and is_dataclass(configuration) and not isinstance(configuration, type)):
-        settings += '; ' + '; '.join(f'{k}={v}' for k, v in asdict(configuration).items())
-    report(f'{label}: wyznaczanie przesunięcia pary…')
     try:
-        result = backend.estimate(reference.data, moving.data, moving_frame_index=1)
-        checkpoint()
-        if (result is None or result.frame_index != 1
-                or result.status not in ('ok', 'low_confidence', 'manual_review')):
-            raise ValueError('brak poprawnego wyniku pary lub status failed')
-        shift = np.asarray(result.shift_xy, dtype=np.float64)
-        if shift.shape != (2,) or not np.isfinite(shift).all():
-            raise ValueError('nieprawidłowe przesunięcie XY')
-        status, quality = estimate_confidence(method, result)
-    except (RegistrationCancelled, RegistrationError, LocalConsensusError):
-        checkpoint()
-        raise
-    except Exception as error:
-        checkpoint()
-        reason = str(error) or type(error).__name__
-        if 'too little texture' in reason:
-            reason = f'za mało tekstury do rejestracji {label}'
-        raise RegistrationError(f'Para ({label}): {reason}') from error
-    return PairTrial(
-        FrameOrigin(reference.source, reference.source_frame_index),
-        FrameOrigin(moving.source, moving.source_frame_index),
-        method, label, settings, device, (float(result.shift_xy[0]), float(result.shift_xy[1])),
-        status, quality, hybrid=backend.last_diagnostics if isinstance(backend, DeepEccBackend) else None,
-        local=backend.last_diagnostics if isinstance(backend, DeepLocalBackend) else None,
-    )
+        configuration = getattr(backend, 'config', None)
+        # The local wrapper already describes both stages and its full configuration.
+        if (not isinstance(backend, (DeepLocalBackend, EfficientBackend))
+                and is_dataclass(configuration) and not isinstance(configuration, type)):
+            settings += '; ' + '; '.join(f'{k}={v}' for k, v in asdict(configuration).items())
+        report(f'{label}: wyznaczanie przesunięcia pary…')
+        try:
+            result = backend.estimate(reference.data, moving.data, moving_frame_index=1)
+            checkpoint()
+            if (result is None or result.frame_index != 1
+                    or result.status not in ('ok', 'low_confidence', 'manual_review')):
+                raise ValueError('brak poprawnego wyniku pary lub status failed')
+            shift = np.asarray(result.shift_xy, dtype=np.float64)
+            if shift.shape != (2,) or not np.isfinite(shift).all():
+                raise ValueError('nieprawidłowe przesunięcie XY')
+            status, quality = estimate_confidence(method, result)
+        except (RegistrationCancelled, RegistrationError, LocalConsensusError, CorrespondenceRefusal):
+            checkpoint()
+            raise
+        except Exception as error:
+            checkpoint()
+            reason = str(error) or type(error).__name__
+            if 'too little texture' in reason:
+                reason = f'za mało tekstury do rejestracji {label}'
+            raise RegistrationError(f'Para ({label}): {reason}') from error
+        return PairTrial(
+            FrameOrigin(reference.source, reference.source_frame_index),
+            FrameOrigin(moving.source, moving.source_frame_index),
+            method, label, settings, device, (float(result.shift_xy[0]), float(result.shift_xy[1])),
+            status, quality, hybrid=backend.last_diagnostics if isinstance(backend, DeepEccBackend) else None,
+            local=backend.last_diagnostics if isinstance(backend, DeepLocalBackend) else None,
+            correspondence=backend.last_diagnostics if isinstance(backend, EfficientBackend) else None,
+        )
+    finally:
+        if isinstance(backend, EfficientBackend):
+            backend.close()
 
 
 def _source_pair_label(reference: ImageFrame, moving: ImageFrame) -> str:

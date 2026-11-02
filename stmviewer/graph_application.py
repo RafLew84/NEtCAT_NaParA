@@ -116,6 +116,7 @@ def _snapshot(result: RegistrationResult,
         corrections=result.corrections, corrections_editable=result.corrections_editable,
         pair_diagnostics=result.pair_diagnostics, local_diagnostics=result.local_diagnostics,
         graph_application=result.graph_application,
+        correspondence_diagnostics=result.correspondence_diagnostics,
     )
 
 
@@ -182,4 +183,5 @@ def restore_movie_result(
         corrections=saved.corrections, corrections_editable=saved.corrections_editable,
         pair_diagnostics=saved.pair_diagnostics, local_diagnostics=saved.local_diagnostics,
         graph_application=saved.graph_application, predecessor=predecessor,
+        correspondence_diagnostics=saved.correspondence_diagnostics,
     )
