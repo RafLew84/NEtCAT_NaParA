@@ -7,7 +7,8 @@
 **Blocked by:** [05: Oblicz klasy i domeny bieżącej klatki z danych](05-analyze-current-frame.md).
 
 **Status:** done — baza `8caa8a7`, implementacja `98ca8ff`, poprawka `36aea1f`,
-gałąź `domains/interactive-v04-ui`. Ręczny odbiór użytkownika oczekuje.
+gałąź `domains/interactive-v04-ui`. Ręczny odbiór użytkownika potwierdzony
+2026-11-02 dla wersji `a4dcace`: „testy manualne ok”.
 [Raport, wykonane sprawdzenia i test ręczny](acceptance-06.md).
 
 Ustalenie użytkownika: parametry w małym oknie otwieranym z menu. Okno jest

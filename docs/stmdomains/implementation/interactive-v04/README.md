@@ -36,7 +36,8 @@ Odbiór ręczny 05a potwierdzony przez użytkownika 2026-11-02 dla `617b006`.
 (`98ca8ff`, poprawka `36aea1f`): menu **Analiza → Tworzenie domen…**,
 sześć parametrów, jawne przeliczenie, porównanie poprzedni/nowy i przywracanie
 bazowych ustawień przy zachowanych klasach. [Raport i test ręczny](acceptance-06.md).
-Odbiór ręczny użytkownika 06 oczekuje. Następny ticket: **07**.
+Odbiór ręczny użytkownika 06 potwierdzony 2026-11-02 dla wersji `a4dcace`
+(„testy manualne ok”). Następny ticket: **07**.
 01–03, 05, 05a i 06 mają status `done`.
 07–10 oraz 12–18 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem

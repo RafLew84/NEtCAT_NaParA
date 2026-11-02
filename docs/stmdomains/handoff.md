@@ -4,8 +4,11 @@ Data **2026-11-02**, baza **`8caa8a7`**, implementacja **`98ca8ff`**, poprawka
 **`36aea1f`**. Gałąź `domains/interactive-v04-ui`, worktree
 `/home/rlew/projekty/NEtCAT-domains`. [Ticket](implementation/interactive-v04/06-tune-domain-formation.md),
 [raport i test ręczny](implementation/interactive-v04/acceptance-06.md).
-Status `done`; **odbiór ręczny użytkownika 06 oczekuje**. Commit dokumentacji
-podano w odpowiedzi końcowej. Następny ticket: **07 — ręczne K i zakres**.
+Status `done`; **odbiór ręczny użytkownika 06 potwierdzony 2026-11-02**
+dla wersji **`a4dcace`** słowami „testy manualne ok”. Zapis potwierdzenia
+zmienia wyłącznie dokumentację; `git diff --check` PASS, bez ponawiania
+testów kodu. Commit zapisu podano w odpowiedzi końcowej.
+Następny ticket: **07 — ręczne K i zakres**.
 
 Zgodnie z życzeniem użytkownika menu **Analiza → Tworzenie domen…** otwiera
 małe, niemodalne okno. Dostępne: minimum molekuł, odległość łączenia,
@@ -46,8 +49,8 @@ Więcej przypisań nie oznacza potwierdzonej poprawy trafności.
   gamma, układ 900×650, anulowanie/nawigacja/ponowne otwarcie serii.
   Demo: dodatni wynik, zero, brak oznaczeń, brak danych do K5.
   Zamknięcie podczas kalibracji: kod 0, obie pule workerów zakończone.
-  Zrzuty okna i dialogu obejrzano. To odbiór agenta; użytkownik jeszcze
-  nie potwierdził testu ręcznego 06.
+  Zrzuty okna i dialogu obejrzano. To odbiór agenta, odrębny od potwierdzonego
+  powyżej testu ręcznego użytkownika 06.
 - SHA-256 wejściowych JSON/MPP identyczne przed i po, 0 odczytów ZIP lub
   dawnych modeli/wyników. Model klas identyczny we wszystkich próbach.
 - `git diff --check` i lokalne odnośniki dokumentacji PASS. Artefakty

@@ -4,7 +4,8 @@
 parametry domen w menu **Analiza → Tworzenie domen…**, przeliczenie,
 porównanie i przywracanie bazowych ustawień bez ponownego dopasowania klas.
 [Raport i test ręczny](interactive-v04/acceptance-06.md). Odbiór ręczny
-użytkownika oczekuje. Następny ticket **07**.
+użytkownika potwierdzony 2026-11-02 dla wersji `a4dcace`
+(„testy manualne ok”). Następny ticket **07**.
 
 **Wykonano SD-V4-05a — 2026-11-02 (`dfcf392`):** wypełnienie, obrysy,
 numery domen i krycie w menu **Obszary…**; centra i ramki można wyłączyć.

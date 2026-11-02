@@ -20,7 +20,8 @@ Przeliczanie zachowuje model klas, porównanie pokazuje dwa ostatnie wyniki
 na tej samej klatce, a bazowe ustawienia odtwarzają wynik aplikacji.
 [Ticket](implementation/interactive-v04/06-tune-domain-formation.md),
 [raport i test ręczny](implementation/interactive-v04/acceptance-06.md).
-Status `done`, odbiór ręczny użytkownika oczekuje. Aktualnie 01–03, 05, 05a
+Status `done`, odbiór ręczny użytkownika potwierdzony 2026-11-02 dla wersji
+`a4dcace` („testy manualne ok”). Aktualnie 01–03, 05, 05a
 i 06 wykonane; następny **07 → 08 → 12**. Plan nadal ma 19 ticketów.
 Poniżej historia wcześniejszych etapów.
 

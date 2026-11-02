@@ -10,7 +10,8 @@ w niemodalnym oknie **Analiza → Tworzenie domen…**. Działa jawne przeliczen
 porównanie poprzedni/nowy na tej samej klatce oraz przywrócenie bazowych
 ustawień, przy zachowanych klasach i ich modelu.
 [Raport i instrukcja testu ręcznego 06](implementation/interactive-v04/acceptance-06.md).
-**Odbiór ręczny 06 oczekuje; następny ticket 07 — ręczne K i zakres.**
+**Odbiór ręczny 06 potwierdzony przez użytkownika 2026-11-02** dla wersji
+`a4dcace` („testy manualne ok”). Następny ticket **07 — ręczne K i zakres**.
 
 **Dodano i wykonano SD-V4-05a (`dfcf392`):** obliczone domeny są widoczne
 jako półprzezroczyste obszary z obrysami i numerami. **Obszary…** przy

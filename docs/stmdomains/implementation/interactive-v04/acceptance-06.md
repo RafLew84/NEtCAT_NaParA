@@ -1,8 +1,12 @@
 # SD-V4-06 — strojenie tworzenia domen
 
 Data: **2026-11-02**. Baza `8caa8a7`, implementacja **`98ca8ff`**, poprawka **`36aea1f`**,
-gałąź `domains/interactive-v04-ui`. **Odbiór ręczny użytkownika oczekuje.**
+gałąź `domains/interactive-v04-ui`. **Odbiór ręczny użytkownika potwierdzony
+2026-11-02 dla wersji `a4dcace`** słowami „testy manualne ok”.
 Sprawdzenie agenta w rzeczywistym GUI opisano osobno poniżej.
+
+Zapis potwierdzenia zmienia wyłącznie dokumentację. `git diff --check` PASS;
+testów kodu nie ponawiano. Następny ticket: **07 — liczba klas i zakres dopasowania**.
 
 ## Uruchomienie i test ręczny
 
