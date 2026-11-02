@@ -3,6 +3,7 @@ from dataclasses import asdict, replace
 import math
 from typing import Callable
 
+from stmviewer.graph_methods import graph_method_label
 from stmviewer.frame import ImageFrame
 from stmviewer.graph_application_types import MovieSnapshot, SourceGeometry
 from stmviewer.graph_application_metadata import decode_graph_application, encode_graph_application
@@ -139,7 +140,7 @@ def decode_movie_snapshot(value: object, frames: tuple[ImageFrame, ...],
         raise ValueError('Zachowany wynik: brak metody lub urządzenia.')
     application = decode_graph_application(record['graph_application'], frames,
         manual.baseline if manual else (), check_cancelled, allow_subset=True)
-    if application is not None and (method != f'Deep Matcher — graf {application.solver}'
+    if application is not None and (method != f'{graph_method_label(application.graph.config.method)} — graf {application.solver}'
                                     or device != application.graph.config.device):
         raise ValueError('Zachowany wynik: opis metody nie odpowiada grafowi.')
     return MovieSnapshot(

@@ -36,7 +36,8 @@ def movie_history(result: 'RegistrationResult') -> 'MovieHistory':
         settings = tuple((key, str(value)) for key, value in asdict(variant.config).items())
     provenance = GraphMovieProvenance(
         graph.revision, application.robust_revision, graph.config, application.solver, settings,
-        tuple(manual_frame_state(history, index).shift_xy for index in range(len(history.baseline))))
+        tuple(manual_frame_state(history, index).shift_xy for index in range(len(history.baseline))),
+        settings_version=3 if graph.config.settings_version == 2 else 1)
     return MovieHistory(history.revision, history.settings_version, history.baseline,
                         history.corrections, provenance)
 
@@ -54,8 +55,10 @@ def decode_graph_movie_provenance(value: object) -> GraphMovieProvenance:
         raise ValueError('Graf: brak identyfikatora pochodzenia.')
     if robust_revision is not None and (not robust_revision.strip() or '\x00' in robust_revision):
         raise ValueError('Graf: nieprawidłowy wariant pochodzenia.')
+    config = decode_graph_config(record['config'])
+    version = 3 if config.settings_version == 2 else 1
     expected_solver = 'equal-ls-v1' if robust_revision is None else 'block-huber-irls-v1'
-    if solver != expected_solver or type(record['settings_version']) is not int or record['settings_version'] != 1:
+    if solver != expected_solver or type(record['settings_version']) is not int or record['settings_version'] != version:
         raise ValueError('Graf: nieobsługiwana wersja pochodzenia lub solvera.')
     coordinates = record['final_positions']
     if not isinstance(coordinates, (list, tuple)) or len(coordinates) < 2:
@@ -94,5 +97,5 @@ def decode_graph_movie_provenance(value: object) -> GraphMovieProvenance:
         if (not mapping['max_iterations'].isdigit()
                 or mapping['condition_method'] != RobustConfig().condition_method):
             raise ValueError('Graf: nieobsługiwane ustawienie Hubera.')
-    return GraphMovieProvenance(revision, robust_revision, decode_graph_config(record['config']),
-                                expected_solver, tuple(pairs), tuple(positions))
+    return GraphMovieProvenance(revision, robust_revision, config,
+                                expected_solver, tuple(pairs), tuple(positions), version)

@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
 from stmviewer.frame import ImageFrame
 from stmviewer.graph_preview import GraphMoviePreview, XY
 from stmviewer.graph_types import GraphTrial
+from stmviewer.graph_methods import graph_method_label
 from stmviewer.registration import RegistrationResult
 from stmviewer.session_state import ViewTransform
 from stmviewer.ui.image_preview import ImagePreview
@@ -112,10 +113,10 @@ class GraphMovieWidget(QWidget):
         choices: list[tuple[str, str]] = []
         if trial is not None and trial.positions is not None:
             variants['graph'] = trial.positions
-            choices.append(('Kandydat grafu — wspólne XY (LS)', 'graph'))
+            choices.append((f'Kandydat grafu — {graph_method_label(trial.config.method)} · LS', 'graph'))
         if trial is not None and trial.chain_positions is not None:
             variants['chain'] = trial.chain_positions
-            choices.append(('Łańcuch — suma sąsiednich pomiarów tej próby', 'chain'))
+            choices.append((f'Łańcuch — {graph_method_label(trial.config.method)} · suma sąsiednich pomiarów', 'chain'))
         if registration is not None and len(registration.frames) == len(self._frames):
             # An active result may retain an anchor belonging to an already deleted
             # frame. A constant change of origin makes the comparison meaningful.
@@ -135,7 +136,7 @@ class GraphMovieWidget(QWidget):
                 if robust.positions is not None:
                     key = f'huber:{robust.revision}'
                     variants[key] = robust.positions
-                    choices.append((f'Huber {index + 1} — próg {robust.config.threshold_px:g} px', key))
+                    choices.append((f'Huber {index + 1} — {graph_method_label(trial.config.method)} · próg {robust.config.threshold_px:g} px', key))
         self._variants = variants
         with QSignalBlocker(self._variant):
             self._variant.clear()

@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from stmviewer.robust_graph_types import RobustTrial
+    from stmviewer.deep_ecc import HybridDiagnostics
+    from stmviewer.local_consensus import LocalDiagnostics
 
 XY = tuple[float, float]
 
@@ -21,14 +23,15 @@ class GraphSource:
 @dataclass(frozen=True)
 class GraphConfig:
     window: int
-    weights_path: str
-    weights_sha256: str
+    weights_path: str | None
+    weights_sha256: str | None
     requested_device: str
     device: str
     backend_settings: tuple[tuple[str, str], ...]
     libraries: tuple[tuple[str, str], ...]
     code_version: str
     settings_version: int = 1
+    method: str = 'deep_matcher_translation'
 
 
 @dataclass(frozen=True)
@@ -42,6 +45,8 @@ class GraphEdge:
     reason: str | None = None
     quality_score: float | None = None
     residual_xy: XY | None = None
+    hybrid_diagnostics: 'HybridDiagnostics | None' = None
+    local_diagnostics: 'LocalDiagnostics | None' = None
 
 
 @dataclass(frozen=True)

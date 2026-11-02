@@ -8,6 +8,7 @@ import numpy as np
 from stmviewer.frame import ImageFrame
 from stmviewer.graph_application_types import GraphApplication, MovieSnapshot, SourceGeometry
 from stmviewer.graph_types import GraphTrial
+from stmviewer.graph_methods import graph_method_label
 from stmviewer.graph_provenance import check_cancelled, graph_sources
 from stmviewer.graph_validation import validate_graph_result
 from stmviewer.manual_movie_types import MovieBaselineFrame, MovieSource
@@ -35,7 +36,7 @@ def apply_graph_to_movie(
         frames, application.positions, ('manual_review',) * len(frames),
         (None,) * len(frames), (False,) * len(frames),
         reference=FrameOrigin(frames[0].source, frames[0].source_frame_index),
-        method=f'Deep Matcher — graf {application.solver}', device=graph.config.device,
+        method=f'{graph_method_label(graph.config.method)} — graf {application.solver}', device=graph.config.device,
         progress=progress, cancelled=cancelled,
     )
     return replace(rendered, graph_application=application, predecessor=predecessor)
@@ -50,7 +51,7 @@ def graph_application_reason(
     Applying always performs the full check in its cancellable worker.
     """
     check_cancelled(cancelled)
-    if graph.config.settings_version != 1:
+    if graph.config.settings_version not in (1, 2):
         return 'Graf: nieobsługiwana wersja ustawień.'
     if len(frames) < 2 or len(frames) != len(graph.sources):
         return 'Graf: liczba źródeł nie odpowiada aktualnej serii; wykonaj nową rejestrację.'
@@ -80,7 +81,7 @@ def graph_application_reason(
             if edge.shift_xy is None:
                 if edge.status != 'missing' or not edge.reason:
                     return 'Graf: brakujący pomiar nie zawiera powodu odmowy.'
-            elif (edge.status not in ('ok', 'low_confidence')
+            elif (edge.status not in ('ok', 'low_confidence', 'manual_review')
                   or np.asarray(edge.shift_xy).shape != (2,)
                   or not np.isfinite(edge.shift_xy).all()):
                 return 'Graf: nieprawidłowy pomiar lub anulowana próba.'

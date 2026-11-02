@@ -90,11 +90,12 @@ class DeepEccBackend:
         self._checkpoint()
 
     def estimate(self, reference_frame: NDArray[np.float64], moving_frame: NDArray[np.float64],
-                 *, moving_frame_index: int) -> RegistrationFrameResult:
+                 *, moving_frame_index: int, reference_frame_index: int | None = None) -> RegistrationFrameResult:
         from stmviewer.registration import RegistrationCancelled, RegistrationError
 
         self.last_diagnostics = None
-        pair_label = self._pair_label or f'Para {moving_frame_index} → {moving_frame_index + 1}'
+        reference_number = reference_frame_index + 1 if reference_frame_index is not None else moving_frame_index
+        pair_label = self._pair_label or f'Para {reference_number} → {moving_frame_index + 1}'
         stage = 'Deep Matcher'
         try:
             self._report(f'{pair_label} — Deep Matcher ({self.device})')

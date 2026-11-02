@@ -73,8 +73,8 @@ REG-08a jest podgląd filmu z położeniami wyznaczonymi z wielu dopasowań.
 **Rozszerzenie metod — 2026-11-02:** użytkownik zlecił osobny
 [REG-08e](issues/08e-multiframe-methods.md): wybór wszystkich istniejących
 metod dopasowania par w tym samym oknie wieloklatkowym, z LS/Huberem,
-sesją i zastosowaniem do filmu. Status `ready-for-agent`; implementacja
-nie jest rozpoczęta. Umieszczamy go po REG-08c, przed próbami nowych modeli.
+sesją i zastosowaniem do filmu. Status `in-progress`; implementacja
+rozpoczęta na osobne zlecenie użytkownika 2026-11-02. Umieszczamy go po REG-08c, przed próbami nowych modeli.
 To osobny zakres od REG-08d, którego implementację wycofano na życzenie
 użytkownika commitem `c8e9141` jako nieintuicyjną. Nie przywracamy jej w REG-08e.
 
@@ -127,7 +127,7 @@ zlecenia użytkownika i zakończenia blokujących ticketów. REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
 REG-08d ma status `planned` jako odłożony po wycofaniu implementacji; REG-09
 pozostaje `planned` jako warunkowa osobna odnoga. REG-08e ma status
-`ready-for-agent`: ticket przygotowano 2026-11-02, implementacja nierozpoczęta.
+`in-progress`: ticket przygotowano i osobno zlecono implementację 2026-11-02.
 Żadnego z tych etapów nie uruchamiamy automatycznie.
 
 Kolejność podstawowa: REG-01 → REG-01a → REG-02 → REG-02a → REG-04 → REG-05

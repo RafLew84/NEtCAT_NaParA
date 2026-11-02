@@ -1,3 +1,23 @@
+# REG-08e: metody w dopasowaniu wieloklatkowym — 2026-11-02
+
+Status: **in-progress**, kod przygotowany; końcowe testy i przegląd w toku.
+Baza przeglądu: `a631c79661dff5cb5d7b1bc387edcb22a4a490d6`.
+
+W istniejącym oknie dodano wybór ośmiu metod par. LS/Huber pozostają wspólne,
+wynik wymaga jawnego zastosowania. CPU nie wymaga modelu; sesje i MPP zachowują
+rzeczywistą metodę, diagnostykę i historię. Nie przywrócono REG-08d.
+[Instrukcja i gotowe sesje](registration/multiframe-methods-manual.md),
+[wykonane próby](registration/multiframe-methods-results.md).
+
+Wspólny Tile+RANSAC pomijał wszystkie wyjątki lokalnej korelacji, także brak
+pamięci, oraz błędne wektory. Lokalny adapter `graph_tile_backend.py` zachowuje
+matematykę, ale propaguje takie awarie. Wspólnych modułów nie zmieniono.
+Do sesji integracyjnej: rozważyć zawężenie tego zachowania w
+`nanotrack/registration/tile_correlation.py`, z testami jego pozostałych odbiorców;
+wtedy lokalną pętlę Viewera będzie można usunąć. Nie blokuje to REG-08e.
+
+Ręczny odbiór użytkownika, Windows 11 i VLC pozostają niewykonane.
+
 # REG-08e: ticket metod w dopasowaniu wieloklatkowym — 2026-11-02
 
 Na zlecenie użytkownika dodano

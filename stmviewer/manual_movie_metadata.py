@@ -123,6 +123,9 @@ def encode_manual_results(results: tuple[MovieHistory, ...],
     for result in results:
         check_cancelled()
         record = asdict(result)
+        if result.graph_provenance is not None:
+            from stmviewer.graph_metadata import encode_graph_config
+            record['graph_provenance']['config'] = encode_graph_config(result.graph_provenance.config)
         if result.graph_provenance is None:
             record.pop('graph_provenance')
         records.append(record)

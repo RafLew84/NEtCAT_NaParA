@@ -1,4 +1,4 @@
-"""Canonical source/content fingerprints and reproducible Deep configuration."""
+"""Canonical source/content fingerprints and reproducible estimator configuration."""
 
 from collections.abc import Callable, Sequence
 from dataclasses import asdict
@@ -39,7 +39,8 @@ def check_cancelled(cancelled: Callable[[], bool] | None) -> None:
 
 
 def deep_graph_config(options: DeepMatcherOptions, window: int, device: str, *,
-                      cancelled: Callable[[], bool] | None) -> GraphConfig:
+                      cancelled: Callable[[], bool] | None,
+                      method: str = 'deep_matcher_translation') -> GraphConfig:
     from nanotrack.registration import DeepMatcherTranslationConfig
 
     weights = options.weights
@@ -53,7 +54,10 @@ def deep_graph_config(options: DeepMatcherOptions, window: int, device: str, *,
     settings = asdict(DeepMatcherTranslationConfig())
     settings.update(preprocessing='local-loftr-minmax-float32-v1', cache_max_pairs=MAX_CACHED_PAIRS)
     libraries = []
-    for library in ('numpy', 'scipy', 'torch', 'kornia'):
+    names = ['numpy', 'scipy', 'torch', 'kornia']
+    if method == 'deep_matcher_ecc':
+        names.extend(('opencv-python', 'scikit-image'))
+    for library in names:
         try:
             installed = version(library)
         except PackageNotFoundError:
@@ -61,10 +65,46 @@ def deep_graph_config(options: DeepMatcherOptions, window: int, device: str, *,
         libraries.append((library, installed))
     root = Path(__file__).resolve().parent.parent
     code = sha256()
-    for name in ('stmviewer/graph_registration.py', 'stmviewer/graph_provenance.py',
-                 'stmviewer/deep_matcher.py', 'nanotrack/registration/deep_matcher.py'):
+    files = ['stmviewer/graph_registration.py', 'stmviewer/graph_provenance.py',
+             'stmviewer/graph_backends.py', 'stmviewer/graph_methods.py',
+             'stmviewer/registration.py', 'stmviewer/deep_matcher.py',
+             'nanotrack/registration/deep_matcher.py']
+    if method == 'deep_matcher_ecc':
+        files.extend(('stmviewer/deep_ecc.py', 'nanotrack/registration/ecc_translation.py',
+                      'nanotrack/registration/phase_correlation.py'))
+    elif method == 'deep_local_consensus':
+        files.extend(('stmviewer/local_registration.py', 'stmviewer/local_consensus.py'))
+    for name in files:
         code.update(name.encode('utf-8'))
         code.update((root / name).read_bytes())
     return GraphConfig(window, str(weights), digest.hexdigest(), options.device, device,
                        tuple(sorted((str(k), str(v)) for k, v in settings.items())),
-                       tuple(libraries), 'sha256:' + code.hexdigest())
+                       tuple(libraries), 'sha256:' + code.hexdigest(), settings_version=2, method=method)
+
+
+def cpu_graph_config(method: str, window: int, settings: dict[str, object]) -> GraphConfig:
+    """Record the selected CPU estimator without importing any model runtime."""
+    settings = {**settings, 'cache_max_pairs': MAX_CACHED_PAIRS}
+    libraries = []
+    for library in ('numpy', 'scipy', 'scikit-image', 'opencv-python'):
+        try:
+            installed = version(library)
+        except PackageNotFoundError:
+            installed = 'unavailable'
+        libraries.append((library, installed))
+    root = Path(__file__).resolve().parent.parent
+    code = sha256()
+    names = ['stmviewer/graph_registration.py', 'stmviewer/graph_provenance.py',
+             'stmviewer/registration.py', 'stmviewer/graph_backends.py',
+             'stmviewer/graph_methods.py']
+    if method == 'tile_correlation_ransac':
+        names.append('stmviewer/graph_tile_backend.py')
+    names.extend(str(path.relative_to(root)) for path in sorted(
+        (root / 'nanotrack/registration').glob('*.py')))
+    for name in names:
+        code.update(name.encode('utf-8'))
+        code.update((root / name).read_bytes())
+    return GraphConfig(window, None, None, 'cpu', 'CPU',
+                       tuple(sorted((str(k), str(v)) for k, v in settings.items())),
+                       tuple(libraries), 'sha256:' + code.hexdigest(),
+                       settings_version=2, method=method)

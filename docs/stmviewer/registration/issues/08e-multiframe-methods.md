@@ -4,15 +4,17 @@
 oknie **Dopasowanie wieloklatkowe…**, oblicza wspólne położenia klatek przez
 LS albo Huber i stosuje wybrany wynik do filmu.
 **Blocked by:** [REG-08c](08c-graph-movie-application.md), odebrany.
-**Status:** ready-for-agent
-**Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
+**Status:** in-progress
+**Manualny odbiór:** niewykonany; implementacja w toku.
+**Start:** 2026-11-02, na jawne zlecenie użytkownika.
+**Baza przeglądu:** `a631c79661dff5cb5d7b1bc387edcb22a4a490d6`.
 **Dodano do planu:** 2026-11-02, na zlecenie użytkownika.
 
 Obowiązują [plan](../README.md), [protokół prób](../manual-protocol.md)
 i [zasady implementacji](../../implementation/README.md#praca-ze-skillem-implement).
 To rozszerzenie istniejącego okna 3/5 klatek. REG-08d został wycofany;
 nie jest zależnością ani częścią tego zadania. REG-10–12 zachowują osobne
-zakresy nowych modeli. Zlecenie przygotowania ticketu nie rozpoczyna implementacji.
+zakresy nowych modeli. Po przygotowaniu ticketu użytkownik osobno zlecił implementację REG-08e.
 
 ## Efekt w aplikacji
 

@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import QComboBox, QGroupBox, QLabel, QPlainTextEdit, QProgr
 
 from stmviewer.frame import ImageFrame
 from stmviewer.graph_types import GraphTrial
+from stmviewer.graph_methods import graph_method_label
 from stmviewer.registration import RegistrationResult
 
 
@@ -132,9 +133,13 @@ class GraphApplicationControls(QGroupBox):
             if len(files) == 1 and source_indices:
                 source_summary += f' · MPP {min(source_indices)}–{max(source_indices)}'
             count = len(result.corrections) if result is not None else 0
-            text = (f'Metoda pary: Deep Matcher — translacja bez ECC.\n'
-                    f'Model: {Path(trial.config.weights_path).name}\n'
-                    f'SHA-256 wag: {trial.config.weights_sha256[:16]}…\n'
+            model = ''
+            if trial.config.weights_path is not None:
+                model += f'Model: {Path(trial.config.weights_path).name}\n'
+            if trial.config.weights_sha256 is not None:
+                model += f'SHA-256 wag: {trial.config.weights_sha256[:16]}…\n'
+            text = (f'Metoda pary: {graph_method_label(trial.config.method)} · {trial.config.device}\n'
+                    + model +
                     f'Okno: {trial.config.window} · solver: {solver}\n'
                     f'Źródła: {len(trial.sources)} klatek · {source_summary}\n'
                     f'Ręczne korekty do zastąpienia: {count}.\n'
@@ -147,7 +152,8 @@ class GraphApplicationControls(QGroupBox):
                 from stmviewer.graph_application import graph_application_reason
                 self._apply_reason = graph_application_reason(self._frames, trial, robust_revision=revision, check_sources=False)
         self._sources_button.setEnabled(trial is not None)
-        self._info.setToolTip('SHA-256 wag: ' + trial.config.weights_sha256 if trial is not None else '')
+        self._info.setToolTip('SHA-256 wag: ' + trial.config.weights_sha256
+                             if trial is not None and trial.config.weights_sha256 is not None else '')
         self._info.setText(text + (self._apply_reason or 'Wybrany wynik jest kompletny. Zastosowanie odtworzy film z oryginałów.'))
         predecessor = result.predecessor if result is not None else None
         if predecessor is None or result is None:

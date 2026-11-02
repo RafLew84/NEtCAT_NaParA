@@ -5,6 +5,7 @@ from typing import Callable, Mapping
 import numpy as np
 from numpy.typing import NDArray
 
+from stmviewer.graph_methods import graph_method_label
 from stmviewer.alignment_metadata import (
     aligned_export_frames, collect_manual_histories, decode_alignment, encode_alignment,
 )
@@ -323,7 +324,7 @@ def _decode_registration(value: object, originals: tuple[ImageFrame, ...],
         raise ValueError('Sesja: pochodzenie grafu nie odpowiada aktywnemu zastosowaniu.')
     if result.graph_application is not None:
         application = result.graph_application
-        if (result.method != f'Deep Matcher — graf {application.solver}'
+        if (result.method != f'{graph_method_label(application.graph.config.method)} — graf {application.solver}'
                 or result.device != application.graph.config.device):
             raise ValueError('Sesja: opis metody grafu nie odpowiada aktywnemu zastosowaniu.')
     return result

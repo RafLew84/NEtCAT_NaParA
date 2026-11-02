@@ -131,7 +131,7 @@ class RobustGraphControls(QWidget):
     def _show_summary(self) -> None:
         result = self.selected
         if result is None:
-            self._summary.setText('Obliczenie korzysta z relacji LS bez ponownego uruchamiania Deep. Każdy próg tworzy osobny wariant.')
+            self._summary.setText('Obliczenie korzysta z relacji LS bez ponownego dopasowania par. Każdy próg tworzy osobny wariant.')
             return
         config = result.config
         status = 'Zbieżny — pozycje dostępne do porównania.' if result.positions is not None else 'Brak pełnego wyniku — tylko diagnostyka.'

@@ -9,10 +9,14 @@ import numpy as np
 
 from stmviewer.graph_types import GraphConfig, GraphEdge, GraphSource, GraphTrial
 from stmviewer.registration import RegistrationCancelled, RegistrationError, estimate_confidence
-from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
+from stmviewer.deep_matcher import DeepMatcherOptions
+from stmviewer.deep_ecc import DeepEccBackend
+from stmviewer.local_registration import DeepLocalBackend
+from stmviewer.graph_backends import load_graph_backend, local_pair_refusal, pair_failure_reason
+from stmviewer.graph_methods import graph_method_label
 from stmviewer.frame import ImageFrame
 from stmviewer.graph_provenance import (
-    MAX_CACHED_PAIRS, check_cancelled, deep_graph_config, graph_sources as graph_sources,
+    MAX_CACHED_PAIRS, check_cancelled, graph_sources as graph_sources,
 )
 
 
@@ -43,7 +47,7 @@ def solve_graph(sources: tuple[GraphSource, ...], edges: tuple[GraphEdge, ...],
         if edge.shift_xy is None:
             if edge.status != 'missing' or not edge.reason:
                 raise RegistrationError('Brakujący pomiar musi zawierać powód odmowy.')
-        elif (edge.status not in ('ok', 'low_confidence') or len(edge.shift_xy) != 2
+        elif (edge.status not in ('ok', 'low_confidence', 'manual_review') or len(edge.shift_xy) != 2
               or not np.isfinite(edge.shift_xy).all()):
             raise RegistrationError('Nieprawidłowy pomiar grafu: status lub wektor XY.')
         if edge.quality_score is not None and (not np.isfinite(edge.quality_score)
@@ -147,32 +151,37 @@ def graph_topology(count: int, edges: tuple[GraphEdge, ...]
 
 
 def register_graph(frames: tuple[ImageFrame, ...], *, window: int = 3,
+                   method: str = 'deep_matcher_translation',
                    deep_options: DeepMatcherOptions | None = None,
                    previous: GraphTrial | None = None,
                    progress: Callable[[int, int, str], None] | None = None,
                    cancelled: Callable[[], bool] | None = None) -> GraphTrial:
-    """Measure every planned pair with one current Deep model, then solve without rendering."""
-    from nanotrack.registration.phase_correlation import PhaseCorrelationBackendError
-
+    """Measure planned pairs with one selected estimator, then solve without rendering."""
     pairs = graph_pairs(len(frames), window)
     if len(frames) < 2:
         raise RegistrationError('Próba grafu wymaga co najmniej dwóch klatek.')
     for frame in frames:
         check_cancelled(cancelled)
-        if frame.data.shape != frames[0].data.shape or not np.isfinite(frame.data).all():
-            raise RegistrationError('Deep wymaga jednakowych wymiarów i skończonych wartości original.')
+        if (frame.data.ndim != 2 or min(frame.data.shape) < 1
+                or frame.data.shape != frames[0].data.shape or not np.isfinite(frame.data).all()):
+            raise RegistrationError('Rejestracja wymaga jednakowych wymiarów i skończonych wartości original.')
+    pair_context = ''
+
     def report(done: int, text: str) -> None:
         check_cancelled(cancelled)
         if progress is not None:
-            progress(done, len(pairs), text)
+            progress(done, len(pairs), f'{text}; {pair_context}' if pair_context else text)
         check_cancelled(cancelled)
 
     start = perf_counter()
     report(0, 'Sprawdzanie oryginalnych klatek')
     sources = graph_sources(frames, cancelled=cancelled)
     options = deep_options or DeepMatcherOptions()
-    loaded = load_deep_backend(options, progress=lambda text: report(0, text), cancelled=cancelled)
-    config = deep_graph_config(options, window, loaded.device, cancelled=cancelled)
+    completed = 0
+    backend, config = load_graph_backend(
+        method, options, window, progress=lambda text: report(completed, text), cancelled=cancelled,
+    )
+    label = graph_method_label(method)
     cache: dict[tuple[int, int], GraphEdge] = {}
     if (previous is not None and previous.sources == sources
             and replace(previous.config, window=window) == config):
@@ -180,27 +189,59 @@ def register_graph(frames: tuple[ImageFrame, ...], *, window: int = 3,
     edges = []
     reused = 0
     for done, (i, j) in enumerate(pairs, 1):
-        report(done - 1, f'Deep: klatki {i + 1}–{j + 1}')
+        pair_context = ' → '.join(
+            frame.source.name + (f' [źródłowa {frame.source_frame_index + 1}]'
+                                 if frame.source_frame_index is not None else '')
+            for frame in (frames[i], frames[j]))
+        completed = done - 1
+        report(done - 1, f'{label}: klatki {i + 1}–{j + 1}')
         if (cached := cache.get((i, j))) is not None:
             edges.append(replace(cached, residual_xy=None))
             reused += 1
             report(done, f'Z pamięci pomiarów: klatki {i + 1}–{j + 1}')
             continue
         try:
-            result = loaded.backend.estimate(frames[i].data, frames[j].data, moving_frame_index=j)
-        except PhaseCorrelationBackendError as error:
-            check_cancelled(cancelled)
-            edges.append(GraphEdge(i, j, None, 'missing', str(error)))
+            if isinstance(backend, (DeepEccBackend, DeepLocalBackend)):
+                result = backend.estimate(frames[i].data, frames[j].data,
+                                          moving_frame_index=j, reference_frame_index=i)
+            else:
+                result = backend.estimate(frames[i].data, frames[j].data, moving_frame_index=j)
+            if (result is None or result.frame_index != j
+                    or result.status not in ('ok', 'low_confidence', 'manual_review')):
+                raise ValueError('nieprawidłowa tożsamość pary lub status wyniku backendu')
+            shift = np.asarray(result.shift_xy, dtype=np.float64)
+            if shift.shape != (2,) or not np.isfinite(shift).all():
+                raise ValueError('nieprawidłowy wektor XY wyniku backendu')
+            native_score = result.quality_score
+            if native_score is None:
+                if result.status != 'manual_review':
+                    raise ValueError('brak oceny backendu bez statusu manual_review')
+                status, score = 'manual_review', None
+            else:
+                if not np.isfinite(native_score) or not 0 <= native_score <= 1:
+                    raise ValueError('nieprawidłowa ocena wyniku backendu')
+                status, score = estimate_confidence(method, result)
+        except RegistrationCancelled:
+            raise
         except Exception as error:
             check_cancelled(cancelled)
-            raise RegistrationError(f'Deep — klatki {i + 1}–{j + 1}: '
-                                    f'{str(error) or type(error).__name__}') from error
+            reason = (f'{label} — klatki {i + 1}–{j + 1}: {pair_failure_reason(error)}; '
+                      f'{pair_context}')
+            if not local_pair_refusal(error):
+                raise RegistrationError(reason) from error
+            edges.append(GraphEdge(i, j, None, 'missing', reason,
+                                   local_diagnostics=(backend.last_diagnostics
+                                                      if isinstance(backend, DeepLocalBackend) else None)))
         else:
-            status, score = estimate_confidence('deep_matcher_translation', result)
-            edges.append(GraphEdge(i, j, (float(result.shift_xy[0]), float(result.shift_xy[1])),
-                                   status, quality_score=score))
-        report(done, f'Deep: klatki {i + 1}–{j + 1}')
+            edges.append(GraphEdge(i, j, (float(shift[0]), float(shift[1])),
+                                   status, quality_score=score,
+                                   hybrid_diagnostics=(backend.last_diagnostics
+                                                       if isinstance(backend, DeepEccBackend) else None),
+                                   local_diagnostics=(backend.last_diagnostics
+                                                      if isinstance(backend, DeepLocalBackend) else None)))
+        report(done, f'{label}: klatki {i + 1}–{j + 1}')
     elapsed = perf_counter() - start
+    pair_context = ''
     report(len(pairs), 'Wyznaczanie wspólnych XY — równe wagi LS')
     trial = solve_graph(sources, tuple(edges), config, cancelled=cancelled)
     check_cancelled(cancelled)

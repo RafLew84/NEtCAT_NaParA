@@ -36,7 +36,8 @@ class PairComparisonDialog(QDialog):
     def __init__(self, frames: tuple[ImageFrame, ...], moving_index: int, parent: QWidget,
                  *, method: str = 'phase_correlation', deep_options: DeepMatcherOptions | None = None,
                  backend: ShiftBackend | None = None, reference_index: int | None = None,
-                 initial_trial: PairTrial | None = None) -> None:
+                 initial_trial: PairTrial | None = None, initial_failure: str | None = None,
+                 initial_local_failure: LocalDiagnostics | None = None) -> None:
         if not 1 <= moving_index < len(frames):
             raise ValueError("Nieprawidłowa klatka przesuwana.")
         if reference_index is not None and not 0 <= reference_index < moving_index:
@@ -294,6 +295,12 @@ class PairComparisonDialog(QDialog):
             self._trial = initial_trial
             with QSignalBlocker(self._alignment):
                 self._alignment.setCurrentIndex(1)
+            self._show_trial()
+        elif initial_failure is not None:
+            self._message.setText(initial_failure)
+            self._local_failure = initial_local_failure
+            with QSignalBlocker(self._failure_view):
+                self._failure_view.setChecked(initial_local_failure is not None)
             self._show_trial()
 
     @property

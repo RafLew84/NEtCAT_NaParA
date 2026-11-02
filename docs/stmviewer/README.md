@@ -66,11 +66,13 @@ Hubera dialog wyjaśnia powód odmowy zastosowania. To uzupełnienie dodano po
 odbytym odbiorze; REG-10 ma spełnioną zależność, ale nie rozpoczęto jego realizacji.
 
 [REG-08e — pozostałe metody w dopasowaniu wieloklatkowym](registration/issues/08e-multiframe-methods.md)
-ma status **ready-for-agent**. Plan zakłada jedno pole wyboru metody par
-w obecnym oknie: pięć metod CPU oraz Deep, Deep+ECC i Deep+lokalne fragmenty.
-Każda będzie mogła dostarczać pomiary do LS/Hubera z zachowaniem sesji
-i zastosowania wyniku. Ticket dodano 2026-11-02; kod nadal obsługuje w grafie
-wyłącznie Deep. Implementacja REG-08e nie została rozpoczęta.
+ma status **in-progress**. Dodano jedno pole wyboru metody par w obecnym
+oknie: pięć metod CPU oraz Deep, Deep+ECC i Deep+lokalne fragmenty.
+Każda dostarcza pomiary do wspólnego LS/Hubera z zachowaniem sesji,
+korekt i zastosowania wyniku. Kod jest gotowy do końcowych testów i przeglądu;
+odbiór użytkownika pozostaje niewykonany.
+[Instrukcja i gotowe sesje](registration/multiframe-methods-manual.md),
+[wyniki prób na wzorcu i MOVIE_4/MOVIE_8](registration/multiframe-methods-results.md).
 
 REG-01 ma status **done**: użytkownik potwierdził testy manualne 2026-10-29. Przycisk
 **Porównaj parę…** otwiera osobny podgląd sąsiednich oryginałów: przed/po XY,

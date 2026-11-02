@@ -5,6 +5,7 @@ import math
 
 import numpy as np
 
+from stmviewer.graph_methods import graph_method_label
 from stmviewer.frame import AlignmentHistory, FrameProvenance, ImageFrame
 from stmviewer.metadata_values import json_object, optional_number, optional_text, source_provenance
 from stmviewer.registration import RegistrationResult
@@ -107,7 +108,7 @@ def _decode(value: object, depth: int = 0, *,
         if (status, quality, inherited) != (expected.status, expected.quality_score, expected.inherited_uncertainty):
             raise ValueError('Historia: pewność nie zgadza się z wpływem ręcznych korekt.')
         graph = manual.graph_provenance
-        if graph is not None and (method != f'Deep Matcher — graf {graph.solver}'
+        if graph is not None and (method != f'{graph_method_label(graph.config.method)} — graf {graph.solver}'
                                   or device != graph.config.device):
             raise ValueError('Historia: opis metody nie odpowiada pochodzeniu grafu.')
         source = manual.baseline[0].source

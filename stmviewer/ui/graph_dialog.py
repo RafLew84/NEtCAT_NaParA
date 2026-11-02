@@ -10,13 +10,14 @@ from PyQt6.QtWidgets import (
     QTableWidgetItem, QVBoxLayout, QWidget,
 )
 
-from stmviewer.deep_matcher import DeepMatcherOptions, deep_unavailable_reason
+from stmviewer.deep_matcher import DeepMatcherOptions
+from stmviewer.graph_methods import graph_method_label, graph_requires_deep, graph_unavailable_reason
 from stmviewer.frame import ImageFrame
 from stmviewer.graph_registration import graph_pairs
 from stmviewer.graph_types import GraphTrial
 from stmviewer.robust_graph_types import RobustTrial
 from stmviewer.pair_comparison import PairTrial
-from stmviewer.registration import FrameOrigin, RegistrationResult
+from stmviewer.registration import FrameOrigin, REGISTRATION_METHODS, RegistrationResult
 from stmviewer.ui.deep_matcher_controls import DeepMatcherControls
 from stmviewer.ui.graph_job import GraphJob
 from stmviewer.ui.graph_application_controls import GraphApplicationControls
@@ -82,7 +83,15 @@ class GraphComparisonDialog(QDialog):
         self._application.cancel_requested.connect(self.movie_cancel_requested)
         self._application.variant_selected.connect(self._application_variant_changed)
         sidebar.addWidget(self._application)
-        sidebar.addWidget(QLabel('Deep Matcher — wspólne XY bez ECC', self))
+        sidebar.addWidget(QLabel('Metoda dopasowania par', self))
+        self._method = QComboBox(self)
+        self._method.setObjectName('graphMethod')
+        self._method.setAccessibleName('Metoda dopasowania par grafu')
+        for key, label in REGISTRATION_METHODS.items():
+            self._method.addItem(label, key)
+        self._method.setCurrentIndex(self._method.findData(
+            trial.config.method if trial is not None else 'deep_matcher_translation'))
+        sidebar.addWidget(self._method)
         self._window = QComboBox(self)
         self._window.setObjectName('graphWindow')
         self._window.setAccessibleName('Liczba poprzednich klatek grafu')
@@ -98,8 +107,14 @@ class GraphComparisonDialog(QDialog):
         self._deep = DeepMatcherControls(self)
         self._deep.check.hide()
         self._deep.set_options(DeepMatcherOptions(Path(trial.config.weights_path), trial.config.requested_device)
-                               if trial is not None else deep_options or DeepMatcherOptions())
+                               if trial is not None and trial.config.weights_path is not None
+                               else deep_options or DeepMatcherOptions())
         sidebar.addWidget(self._deep)
+        self._method_status = QLabel(self)
+        self._method_status.setObjectName('graphMethodStatus')
+        self._method_status.setWordWrap(True)
+        self._method_status.setTextFormat(Qt.TextFormat.PlainText)
+        sidebar.addWidget(self._method_status)
         self._run = QPushButton('Oblicz kandydata grafu', self)
         self._run.setObjectName('runGraph')
         self._run.clicked.connect(self._start)
@@ -141,7 +156,7 @@ class GraphComparisonDialog(QDialog):
         self._edges.setObjectName('graphEdges')
         self._edges.setColumnCount(10)
         self._edges.setHorizontalHeaderLabels(['Para i → j', 'Pomiar X', 'Pomiar Y', 'LS X', 'LS Y',
-                                               'Reszta X', 'Reszta Y', 'Stan', 'Wynik modelu', 'Uwagi'])
+                                               'Reszta X', 'Reszta Y', 'Stan', 'Wskaźnik metody', 'Uwagi'])
         self._edges.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self._edges.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self._edges.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -159,6 +174,7 @@ class GraphComparisonDialog(QDialog):
         self._robust.result_ready.connect(self._finish_robust)
         self._robust.selected_changed.connect(self._selected_robust)
         self._robust.busy_changed.connect(self._robust_busy_changed)
+        self._method.currentIndexChanged.connect(self._sync)
         self._deep.changed.connect(self._sync)
         self._window.currentIndexChanged.connect(self._sync)
         self._present_trial()
@@ -210,11 +226,17 @@ class GraphComparisonDialog(QDialog):
         count = len(graph_pairs(len(self._frames), int(self._window.currentData())))
         self._count.setText(f'{len(self._frames)} klatek · {count} par do rozpatrzenia.\n'
                             'Każda para liczona raz; zachowane pomiary tej samej konfiguracji są używane ponownie.')
-        reason = deep_unavailable_reason(self._deep.options())
+        method = str(self._method.currentData())
+        deep = graph_requires_deep(method)
+        self._deep.setVisible(deep)
+        reason = graph_unavailable_reason(method, self._deep.options())
         self._deep.set_status(reason or 'Model zostanie sprawdzony podczas obliczania; bez pobierania wag.')
+        self._method_status.setVisible(not deep)
+        self._method_status.setText(reason or 'CPU · bez modelu i wag.')
         available = self._available and not self.busy
         self._run.setEnabled(available and len(self._frames) > 1 and reason is None)
         self._window.setEnabled(available)
+        self._method.setEnabled(available)
         self._deep.setEnabled(available)
         self._cancel.setVisible(self._job is not None)
         self._progress.setVisible(self._job is not None)
@@ -227,21 +249,24 @@ class GraphComparisonDialog(QDialog):
     def _present_trial(self, *, select_new_robust: bool = False) -> None:
         trial = self._trial
         if trial is None:
-            self._summary.setText('Brak kandydata. Wybierz lokalne wagi i oblicz graf.')
+            self._summary.setText('Brak kandydata. Wybierz metodę dopasowania par i oblicz graf.')
         else:
             state = ('Graf spójny — pełne wspólne XY.' if trial.positions is not None else
                      f'Graf rozłączny — {len(trial.components)} komponenty. Brak pełnych XY.')
             groups = '; '.join(_number_ranges(group) for group in trial.components)
             bridge = ', '.join(f'{i + 1}–{j + 1}' for i, j in trial.bridges) or 'brak'
             bridge_note = ' Brak niezależnego obejścia tych relacji.' if trial.bridges else ''
+            method = f'Metoda par: {graph_method_label(trial.config.method)} · {trial.config.device}\n'
+            if trial.config.weights_path is not None:
+                method += f'Wagi: {Path(trial.config.weights_path).name}\n'
+            if trial.config.weights_sha256 is not None:
+                method += f'SHA-256 wag: {trial.config.weights_sha256[:16]}…\n'
             self._summary.setText(
-                f'{state}\nKotwica: klatka {trial.anchor + 1}. Okno: {trial.config.window}.\n'
+                method + f'{state}\nKotwica: klatka {trial.anchor + 1}. Okno: {trial.config.window}.\n'
                 f'Nowe pomiary: {trial.measured_pairs}; użyte ponownie: {trial.reused_pairs}.\n'
                 f'Pomiary: {trial.measurement_s:.2f} s; solver: {trial.solver_s:.3f} s.\n'
                 f'Komponenty: {groups}\nMosty: {bridge}.{bridge_note}\n'
-                f'{trial.config.device} · wagi: {Path(trial.config.weights_path).name}\n'
-                f'SHA-256 wag: {trial.config.weights_sha256[:16]}…\n'
-                'Równe wagi LS. Wynik modelu i małe reszty nie stanowią oceny jakości obrazu.')
+                'Równe wagi LS. Wskaźniki metod i małe reszty nie stanowią oceny jakości obrazu.')
         self._application.set_context(trial, self._registration)
         self._robust.set_graph(trial, select_new=select_new_robust)
         self._present_edges()
@@ -255,7 +280,7 @@ class GraphComparisonDialog(QDialog):
         headers = ['Para i → j', 'Pomiar X', 'Pomiar Y', 'LS X', 'LS Y', 'Reszta LS X', 'Reszta LS Y']
         if robust is not None:
             headers += ['Huber X', 'Huber Y', 'Reszta Hubera X', 'Reszta Hubera Y', 'Waga Hubera']
-        headers += ['Stan', 'Wynik modelu', 'Uwagi']
+        headers += ['Stan', 'Wskaźnik metody', 'Uwagi']
         self._edges.setColumnCount(len(headers))
         self._edges.setHorizontalHeaderLabels(headers)
         self._edges.setRowCount(len(trial.edges) if trial else 0)
@@ -323,7 +348,7 @@ class GraphComparisonDialog(QDialog):
             return
         self._movie.pause()
         job = GraphJob(self._frames, self, window=int(self._window.currentData()),
-                        deep_options=self._deep.options(), previous=self._trial)
+                        deep_options=self._deep.options(), previous=self._trial, method=str(self._method.currentData()))
         self._job = job
         self._cancel.setEnabled(True)
         self._progress.setRange(0, 0)
@@ -371,17 +396,25 @@ class GraphComparisonDialog(QDialog):
         if edge.shift_xy is not None:
             reference, moving = self._frames[edge.i], self._frames[edge.j]
             details = (f'Zapisany pomiar grafu: {edge.i + 1} → {edge.j + 1}. '
-                       f'Wagi: {trial.config.weights_path}; okno {trial.config.window}.')
+                       f'Okno {trial.config.window}.')
+            if trial.config.weights_path is not None:
+                details += f' Wagi: {trial.config.weights_path}.'
+            if edge.reason:
+                details += f'\n{edge.reason}'
             if edge.residual_xy is not None:
                 details += f'\nReszta LS − pomiar: {edge.residual_xy[0]:.3f}, {edge.residual_xy[1]:.3f} px.'
             initial = PairTrial(FrameOrigin(reference.source, reference.source_frame_index),
-                                FrameOrigin(moving.source, moving.source_frame_index), 'deep_matcher_translation',
-                                'Pomiar grafu — Deep Matcher', details, trial.config.device,
-                                edge.shift_xy, edge.status, edge.quality_score)
+                                FrameOrigin(moving.source, moving.source_frame_index), trial.config.method,
+                                f'Pomiar grafu — {graph_method_label(trial.config.method)}', details, trial.config.device,
+                                edge.shift_xy, edge.status, edge.quality_score,
+                                hybrid=edge.hybrid_diagnostics, local=edge.local_diagnostics)
         pair = PairComparisonDialog(self._frames, edge.j, self, reference_index=edge.i,
-                                     initial_trial=initial, method='deep_matcher_translation',
-                                     deep_options=DeepMatcherOptions(Path(trial.config.weights_path),
-                                                                      trial.config.requested_device))
+                                     initial_trial=initial, method=trial.config.method,
+                                     initial_failure=edge.reason if edge.shift_xy is None else None,
+                                     initial_local_failure=edge.local_diagnostics if edge.shift_xy is None else None,
+                                     deep_options=DeepMatcherOptions(
+                                         Path(trial.config.weights_path) if trial.config.weights_path else None,
+                                         trial.config.requested_device))
         self._pair = pair
         pair.busy_changed.connect(self._pair_busy_changed)
         pair.finished.connect(lambda: self._pair_closed(pair))

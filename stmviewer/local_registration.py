@@ -70,10 +70,11 @@ class DeepLocalBackend:
                        deep_status=str(deep.status), deep_quality_score=float(deep.quality_score))
 
     def estimate(self, reference_frame: NDArray[np.float64], moving_frame: NDArray[np.float64], *,
-                 moving_frame_index: int) -> RegistrationFrameResult:
+                 moving_frame_index: int, reference_frame_index: int | None = None) -> RegistrationFrameResult:
         from stmviewer.registration import RegistrationCancelled, RegistrationError
         self.last_diagnostics = None
-        pair = self._pair_label or f'Para {moving_frame_index} → {moving_frame_index + 1}'
+        reference_number = reference_frame_index + 1 if reference_frame_index is not None else moving_frame_index
+        pair = self._pair_label or f'Para {reference_number} → {moving_frame_index + 1}'
         stage = 'Deep Matcher'
         try:
             self._report(f'{pair} — Deep Matcher ({self.device})')

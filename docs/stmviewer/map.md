@@ -11,6 +11,10 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-02: na osobne zlecenie użytkownika rozpoczęto implementację REG-08e.
+  Osiem istniejących metod zasila wspólny LS/Huber; przygotowano
+  [sesje i instrukcję ręcznej próby](registration/multiframe-methods-manual.md).
+  Końcowe testy i przegląd są w toku; odbiór użytkownika niewykonany.
 - 2026-11-02: dodano [REG-08e](registration/issues/08e-multiframe-methods.md),
   wybór istniejących metod dopasowania par w obecnym oknie wieloklatkowym
   z LS/Huberem. Status `ready-for-agent`, bez implementacji; w planie po

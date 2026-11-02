@@ -91,40 +91,73 @@ def decode_graph_source(value: object) -> GraphSource:
 
 
 def decode_graph_config(value: object) -> GraphConfig:
-    record = json_object(value, _CONFIG_KEYS)
+    record = json_object(value)
+    version = _integer(record.get('settings_version'))
+    record = json_object(record, _CONFIG_KEYS | ({'method'} if version == 2 else set()))
     window = _integer(record['window'])
     version = _integer(record['settings_version'])
-    if window not in (3, 5) or version != 1:
+    if window not in (3, 5) or version not in (1, 2):
         raise ValueError('Graf: nieobsługiwane okno lub wersja ustawień.')
     requested, device = _text(record['requested_device']), _text(record['device'])
     if requested not in ('auto', 'cpu', 'cuda'):
         raise ValueError('Graf: nieobsługiwane urządzenie.')
-    return GraphConfig(window, _text(record['weights_path']), _digest(record['weights_sha256']),
-                       requested, device, _settings(record['backend_settings']),
-                       _settings(record['libraries']), _text(record['code_version']), version)
+    from stmviewer.registration import REGISTRATION_METHODS
+    method = 'deep_matcher_translation' if version == 1 else _text(record['method'])
+    if method not in REGISTRATION_METHODS:
+        raise ValueError('Graf: nieobsługiwana metoda pomiaru.')
+    deep = method.startswith('deep_')
+    weights = _text(record['weights_path']) if deep else None
+    digest = _digest(record['weights_sha256']) if deep else None
+    if not deep and (record['weights_path'] is not None or record['weights_sha256'] is not None
+                     or requested != 'cpu' or device.lower() != 'cpu'):
+        raise ValueError('Graf: metoda CPU ma sprzeczne metadane modelu lub urządzenia.')
+    return GraphConfig(window, weights, digest, requested, device, _settings(record['backend_settings']),
+                       _settings(record['libraries']), _text(record['code_version']), version, method)
 
 
-def _edge(value: object) -> GraphEdge:
-    record = json_object(value, _EDGE_KEYS)
+def encode_graph_config(config: GraphConfig) -> dict[str, object]:
+    record = asdict(config)
+    if config.settings_version == 1:
+        if config.method != 'deep_matcher_translation':
+            raise ValueError('Graf: starsza wersja ustawień wymaga Deep Matcher.')
+        record.pop('method')
+    decode_graph_config(record)
+    return record
+
+
+def _edge(value: object, *, modern: bool = False) -> GraphEdge:
+    extra = {'hybrid_diagnostics', 'local_diagnostics'} if modern else set()
+    record = json_object(value, _EDGE_KEYS | extra)
     status = _text(record['status'])
-    if status not in ('ok', 'low_confidence', 'missing'):
+    if status not in ('ok', 'low_confidence', 'manual_review', 'missing'):
         raise ValueError('Graf: nieobsługiwany stan relacji.')
     shift = None if record['shift_xy'] is None else _xy(record['shift_xy'])
     reason = None if record['reason'] is None else _text(record['reason'])
     residual = None if record['residual_xy'] is None else _xy(record['residual_xy'])
     if (status == 'missing') != (shift is None) or (shift is None and reason is None):
         raise ValueError('Graf: stan i przyczyna relacji są niespójne.')
+    hybrid = local = None
+    if modern:
+        from stmviewer.session_diagnostics import decode_pair_diagnostics, decode_local_diagnostics
+        hybrid = decode_pair_diagnostics([record['hybrid_diagnostics']], 1)[0]
+        local = decode_local_diagnostics([record['local_diagnostics']], 1)[0]
     return GraphEdge(_integer(record['i']), _integer(record['j']), shift, status, reason,
-                     optional_number(record, 'quality_score'), residual)
+                     optional_number(record, 'quality_score'), residual, hybrid, local)
 
 
 def encode_graph(trial: GraphTrial) -> dict[str, object]:
     """Store measurements and positions; never store rendered candidate images."""
     record = asdict(trial)
     record.pop('robust_trials')
-    if trial.robust_trials:
+    record['config'] = encode_graph_config(trial.config)
+    modern = trial.config.settings_version == 2
+    if not modern:
+        for edge in record['edges']:
+            if edge.pop('hybrid_diagnostics') is not None or edge.pop('local_diagnostics') is not None:
+                raise ValueError('Graf: starsza wersja nie obsługuje diagnostyki metod.')
+    if modern or trial.robust_trials:
         from stmviewer.robust_graph_metadata import encode_robust_trial
-        return {'schema': 'stmviewer-graph-v2', **record,
+        return {'schema': 'stmviewer-graph-v4' if modern else 'stmviewer-graph-v2', **record,
                 'robust_trials': [encode_robust_trial(item) for item in trial.robust_trials]}
     return {'schema': 'stmviewer-graph-v1', **record}
 
@@ -135,24 +168,28 @@ def decode_graph(value: object, frames: tuple[ImageFrame, ...],
     check_cancelled()
     record = json_object(value)
     schema = record.get('schema')
-    if schema not in ('stmviewer-graph-v1', 'stmviewer-graph-v2'):
+    if schema not in ('stmviewer-graph-v1', 'stmviewer-graph-v2', 'stmviewer-graph-v4'):
         raise ValueError('Nieobsługiwana wersja grafu sesji.')
-    record = json_object(record, _GRAPH_KEYS | ({'robust_trials'} if schema == 'stmviewer-graph-v2' else set()))
+    modern = schema == 'stmviewer-graph-v4'
+    variants_present = schema != 'stmviewer-graph-v1'
+    record = json_object(record, _GRAPH_KEYS | ({'robust_trials'} if variants_present else set()))
     positions = None if record['positions'] is None else tuple(_xy(item) for item in _items(record['positions']))
     chain = None if record['chain_positions'] is None else tuple(_xy(item) for item in _items(record['chain_positions']))
     trial = GraphTrial(
         tuple(decode_graph_source(item) for item in _items(record['sources'])), decode_graph_config(record['config']),
-        tuple(_edge(item) for item in _items(record['edges'])), positions, chain,
+        tuple(_edge(item, modern=modern) for item in _items(record['edges'])), positions, chain,
         tuple(tuple(_integer(item) for item in _items(component)) for component in _items(record['components'])),
         tuple(_indices(item) for item in _items(record['bridges'])), _text(record['revision']),
         _integer(record['anchor']), _text(record['solver']), _integer(record['measured_pairs']),
         _integer(record['reused_pairs']), _number(record['measurement_s']), _number(record['solver_s']),
     )
+    if trial.config.settings_version != (2 if modern else 1):
+        raise ValueError('Graf: wersja konfiguracji nie odpowiada formatowi grafu.')
     if len(trial.sources) < 2:
         raise ValueError('Graf: wymaga przynajmniej dwóch źródeł.')
     bind_graph_sources(trial.sources, frames, check_cancelled, allow_subset=allow_subset)
     validate_graph_result(trial, check_cancelled)
-    if schema == 'stmviewer-graph-v2':
+    if variants_present:
         from stmviewer.robust_graph_metadata import decode_robust_trial
         from stmviewer.robust_graph_validation import validate_robust_result
         variants = []
