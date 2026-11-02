@@ -34,15 +34,19 @@ def recalculate_domains(
                         and data.frame.working_index == previous.working_index
                         and data.frame.source_index == previous.source_index
                         and all(item.frame_index == data.frame.working_index for item in data.annotations.detections))
+    if not identity_matches:
+        raise ValueError("Wynik pochodzi z innej klatki. Wykonaj ponownie «Analizuj klatkę».")
+    if previous.status != "complete":
+        # There is no fitted catalogue to reuse or fingerprint to require after
+        # a resource-limit refusal. Repeat validation and report its real cause.
+        return analyze_frame(data, settings=settings, cancelled=cancelled, progress=progress)
     upstream_matches = all(json.dumps(previous.parameters.get(key), sort_keys=True) == json.dumps(value, sort_keys=True)
                            for key, value in PARAMETERS.items() if key not in settings.parameters())
     bounded = (image.size <= PARAMETERS["maximum_image_pixels"]
                and len(data.annotations.detections) <= PARAMETERS["maximum_input_detections"])
-    if (not identity_matches or not upstream_matches or not bounded
+    if (not upstream_matches or not bounded
             or input_fingerprint(data) != previous.metadata.get("input_sha256")):
         raise ValueError("Dane lub metoda różnią się od poprzedniego wyniku. Wykonaj ponownie «Analizuj klatkę».")
-    if previous.status != "complete":
-        return analyze_frame(data, settings=settings, cancelled=cancelled, progress=progress)
     progress("Przeliczanie domen przy zachowanych klasach…")
     active, points, spacing, _ = prepare_points(data.annotations.detections, (image.shape[0], image.shape[1]), check)
     if spacing is None or spacing != previous.parameters.get("spacing_px"):

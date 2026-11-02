@@ -117,3 +117,21 @@ def test_reuse_refuses_changed_input_frame_or_upstream_parameters_and_honours_ca
         recalculate_domains(data, wrong_method, DomainSettings())
     with pytest.raises(AnalysisCancelled):
         recalculate_domains(data, base, DomainSettings(), cancelled=lambda: True)
+
+
+@pytest.mark.parametrize("resource", ["pixels", "detections"])
+def test_repeated_unavailable_analysis_reports_resource_limit_not_stale_model(resource):
+    from stmdomains.analysis import analyze_frame, recalculate_domains
+    from test_frame_analysis import analysis_input
+
+    data = (analysis_input([(10, 10), (20, 10), (10, 20), (20, 20), (30, 30)],
+                           image=np.zeros((2049, 2049))) if resource == "pixels"
+            else analysis_input([(i % 100 + 1, i // 100 + 1) for i in range(3001)]))
+    first = analyze_frame(data)
+    assert first.status == "insufficient_data"
+    assert "input_sha256" not in first.metadata and "model_id" not in first.metadata
+    repeated = recalculate_domains(data, first, DomainSettings(minimum_domain_size=6))
+    assert repeated.status == first.status and repeated.message == first.message
+    assert repeated.parameters["minimum_domain_size"] == 6
+    with pytest.raises(ValueError, match="Analizuj klatkę"):
+        recalculate_domains(replace(data, series_id="other"), first, DomainSettings())
