@@ -15,6 +15,13 @@ V0.4 służy jako wzór metody. Podstawowym wejściem są obrazy i oznaczenia,
 a klasy i domeny powstają w aplikacji. Wdrożenie i próby działania nie
 stanowią potwierdzenia trafności detektora.
 
+**Rozszerzenie zatwierdzone i wdrożone 2026-11-02:**
+[05a](implementation/interactive-v04/05a-domain-regions.md) dodaje obszary
+domen z wypełnieniem, obrysami i lokalnymi numerami, podobnie do PNG v0.4.
+Każdą warstwę można wyłączyć, a krycie regulować w **Obszary…**. Centra
+i ramki pozostają niezależne. To prezentacja własnego wyniku aplikacji,
+bez importu masek z ZIP. [Raport odbioru](implementation/interactive-v04/acceptance-05a.md).
+
 ## Podstawowy widok
 
 - Jeden duży obraz STM, poprzednia/następna klatka oraz numer i wybór klatki.
@@ -22,6 +29,9 @@ stanowią potwierdzenia trafności detektora.
 - Małe, czytelne oznaczenia w rzeczywistych centrach zapisanych molekuł.
   Ten sam kolor oznacza tę samą domenę w danej klatce; szare oznaczenie
   oznacza molekułę bez przypisania. Oznaczenia nie zasłaniają obrazu.
+- Opcjonalnie całe końcowe obszary domen: półprzezroczyste wypełnienie,
+  obrys i numer. Otwory i odrzucone fragmenty nie są zamalowywane. Widok
+  działa również po wyłączeniu oznaczeń molekuł; nie zmienia przypisań.
 - Krótka legenda domen i liczebności, np. „3 domeny · przypisano 87 z 312”.
   Liczebność dotyczy poprawnych oznaczeń w polu klatki, nie punktów siatki,
   i nie jest miarą trafności detektora.

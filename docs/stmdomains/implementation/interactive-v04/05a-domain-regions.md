@@ -6,7 +6,9 @@
 
 **Blocked by:** [05: Oblicz klasy i domeny bieżącej klatki](05-analyze-current-frame.md).
 
-**Status:** in_progress — dodano i rozpoczęto na polecenie użytkownika.
+**Status:** done — implementacja `dfcf392`; ręczny odbiór użytkownika oczekuje.
+
+[Uruchomienie, wykonane sprawdzenia i test ręczny](acceptance-05a.md).
 
 Baza implementacji/przeglądu: `319c156`, gałąź `domains/interactive-v04-ui`,
 środowisko `netcat`. Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
@@ -16,15 +18,15 @@ obszarów z przypisaniami i zachowanie widoczne w aplikacji.
 
 ## Kryteria akceptacji
 
-- [ ] Wynik zachowuje mapę końcowych domen w oryginalnej geometrii obrazu. ID pikseli zgadzają się z przypisaniami po podziale, odrzuceniu małych fragmentów i renumeracji. Bariery, otwory i odrzucone fragmenty pozostają bez wypełnienia; nie rysujemy otoczki wypukłej ani wstępnych składowych.
-- [ ] Domyślny widok obliczonego wyniku ma półprzezroczyste wypełnienie, obrys i lokalny numer domeny. Każdą warstwę można niezależnie wyłączyć; działa regulacja krycia wypełnienia oraz niezależne centra i ramki.
-- [ ] Domeny/Klasy używają tych samych kolorów obszarów, molekuł i legendy. Klasy nie łączą oddzielnych domen: obrysy i numery pozostają osobne. Wejściowe ukrywa obliczone obszary.
-- [ ] „Maski / obrysy” mają nazwę „Maski molekuł” i informację o źródle MolTrack. Brak tych masek nie blokuje obliczonych domen, np. na klatce 259.
-- [ ] Obszary zachowują położenie przy raw/aligned, przesunięciach ułamkowych, gamma i zoomie. Nic nie jest dorysowywane w dopełnieniu poza oryginalnym polem.
-- [ ] Brak analizy, brak dopasowania i poprawne zero nie pozostawiają obszarów poprzedniego wyniku. Anulowanie i błędy zachowują poprzedni poprawny wynik wraz z mapą. Ustawienia widoku nie przeliczają analizy ani nie zmieniają przypisań.
-- [ ] Układ nie skacze podczas obliczeń lub zmiany klatki. Prezentacja pozostaje responsywna, bez nieograniczonego cache kolorowych kopii rastra. Działanie nie wymaga danych ZIP ani instalacji.
-- [ ] Kontrole obejmują rozdzielenie i renumerację, otwór/barierę, odrzucenie małego fragmentu, geometrię i UI na TTMAPP 7/120/259/268. Podano instrukcję ręczną, odróżniając sprawdzenie agenta od odbioru użytkownika.
-- [ ] Sprawdzono długość kodu/testów według zasady 1000/1500 linii; zaktualizowano plan i przekazanie, wykonano przegląd i commit.
+- [x] Wynik zachowuje mapę końcowych domen w oryginalnej geometrii obrazu. ID pikseli zgadzają się z przypisaniami po podziale, odrzuceniu małych fragmentów i renumeracji. Bariery, otwory i odrzucone fragmenty pozostają bez wypełnienia; nie rysujemy otoczki wypukłej ani wstępnych składowych.
+- [x] Domyślny widok obliczonego wyniku ma półprzezroczyste wypełnienie, obrys i lokalny numer domeny. Każdą warstwę można niezależnie wyłączyć; działa regulacja krycia wypełnienia oraz niezależne centra i ramki.
+- [x] Domeny/Klasy używają tych samych kolorów obszarów, molekuł i legendy. Klasy nie łączą oddzielnych domen: obrysy i numery pozostają osobne. Wejściowe ukrywa obliczone obszary.
+- [x] „Maski / obrysy” mają nazwę „Maski molekuł” i informację o źródle MolTrack. Brak tych masek nie blokuje obliczonych domen, np. na klatce 259.
+- [x] Obszary zachowują położenie przy raw/aligned, przesunięciach ułamkowych, gamma i zoomie. Nic nie jest dorysowywane w dopełnieniu poza oryginalnym polem.
+- [x] Brak analizy, brak dopasowania i poprawne zero nie pozostawiają obszarów poprzedniego wyniku. Anulowanie i błędy zachowują poprzedni poprawny wynik wraz z mapą. Ustawienia widoku nie przeliczają analizy ani nie zmieniają przypisań.
+- [x] Układ nie skacze podczas obliczeń lub zmiany klatki. Prezentacja pozostaje responsywna, bez nieograniczonego cache kolorowych kopii rastra. Działanie nie wymaga danych ZIP ani instalacji.
+- [x] Kontrole obejmują rozdzielenie i renumerację, otwór/barierę, odrzucenie małego fragmentu, geometrię i UI na TTMAPP 7/120/259/268. Podano instrukcję ręczną, odróżniając sprawdzenie agenta od odbioru użytkownika.
+- [x] Sprawdzono długość kodu/testów według zasady 1000/1500 linii; zaktualizowano plan i przekazanie, wykonano przegląd i commit.
 
 ## Test ręczny użytkownika
 

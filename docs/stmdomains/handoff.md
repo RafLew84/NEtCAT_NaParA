@@ -1,3 +1,69 @@
+# STM Domains — wykonano SD-V4-05a: obszary i granice domen
+
+Data: **2026-11-02**. Użytkownik polecił dopisać 05a do planu i od razu
+go wykonać. [Ticket](implementation/interactive-v04/05a-domain-regions.md),
+[raport i test ręczny](implementation/interactive-v04/acceptance-05a.md).
+Baza **`319c156`**, implementacja **`dfcf392`**, gałąź
+`domains/interactive-v04-ui`, worktree `/home/rlew/projekty/NEtCAT-domains`.
+Status `done`; **ręczny odbiór użytkownika 05a oczekuje**. Commit raportu
+i zamknięcia dokumentacji podano w odpowiedzi końcowej.
+
+Po analizie widoczne są półprzezroczyste obszary domen z obrysami i numerami
+D1, D2… Przycisk **Obszary…** przy legendzie udostępnia niezależne warstwy
+i krycie 0–100% (domyślnie 35%). Centra i ramki można wyłączyć. Numer
+domeny pozostaje czytelny przy zoomie, a kolory odpowiadają wybranemu
+trybowi Domeny/Klasy. Wejściowe ukrywa obszary. Górne **Maski molekuł**
+(dawniej Maski / obrysy) dotyczą wyłącznie segmentacji MolTrack: na 259
+nie są dostępne, lecz obliczone obszary domen działają.
+
+Uruchomienie w **netcat**: `python -m stmdomains.main`. Otwórz
+`data/TTMAPP/detection_full.moltrack.json`, wybierz **259**, kliknij analizę,
+wyłącz Centra i Ramki. Powinno być **120/312, 6 domen** i obszary D1–D6.
+Sprawdź menu Obszary…, oba tryby kolorowania, raw/aligned, gamma/zoom,
+nawigację i anulowanie. Kontrole zera/braków:
+`python -m stmdomains.tools.analysis_demo`; szczegóły w raporcie.
+
+**Wykonane sprawdzenia:**
+
+- 8 nowych testów mapy/widoku/kontrolek oraz 25 celowanych regresji PASS.
+  Pełny zestaw po przeglądach: **348 passed, bez pominięć, 30,10 s**;
+  uruchomiony raz na koniec, komenda w raporcie.
+- Mypy **41 modułów PASS**. Kod/testy: **13 plików, maksimum 405 linii**.
+- 325 lokalnych odnośników w 8 dokumentach PASS, graf 19 ticketów bez cykli;
+  `git diff --check` PASS.
+- Code-review `319c156...dfcf392`: **Standards 0 uwag, Spec 0 uwag**.
+  Obaj recenzenci niezależnie potwierdzili 8 nowych testów.
+- Na TTMAPP 7/120/259/268 porównano z kodem 05: **identyczne przypisania
+  każdej molekuły, statusy, przyczyny odmów i model**, również identyczne
+  liczniki 245/317 (12 domen), 67/248 (3), 120/312 (6), 145/308 (5).
+  Mapa pikseli jest zgodna z końcowymi ID po podziale i renumeracji.
+- Rzeczywiste GUI **X11/xcb sterowane Qt PASS**: wszystkie cztery klatki
+  raw/aligned, menu i przełączniki myszą, krycie, klasy/domeny, gamma/zoom,
+  nieanalizowana klatka, powrót, anulowanie oraz demo zera i braków.
+  Stabilny układ 900×650; obejrzano zrzuty także maksymalizacji i popupu.
+  Zamknięcie podczas kalibracji: kod 0, obie pule workerów zakończone.
+  Sprawdzenie agenta jest odrębne od oczekiwanego odbioru użytkownika.
+
+Wejściowe JSON/MPP niezmienione (SHA-256 przed/po), **0 odczytów ZIP lub
+dawnych artefaktów**. Artefakty `.scratch/stmdomains-ui-05a/` poza Git.
+Szczyt RSS GUI około 1462 MiB, maksymalna przerwa testowego timera 0,233 s.
+Mapa TTMAPP zajmuje 256 KiB/wynik; największy dopuszczony obraz to 16 MiB
+mapy. Kolorowy raster i obrysy są przechowywane tylko dla aktualnego wyniku.
+Na TTMAPP budowa ścieżek około 0,8–2,7 ms; kontrola 2048² około 22 ms.
+
+Obszar jest przybliżeniem wspartym centrami i barierami. Zmiana prezentacji
+nie stanowi nowego pomiaru granic ani poprawy trafności metody. Ograniczenia
+K5/porządku/barier i fragmentacja z 05 pozostają. Brak trwałego zapisu
+wyników; przyszłe 13/14 powinny zachować/eksportować także tę końcową mapę.
+Bez instalacji i nowych wspólnych zmian; zależności zgłoszone w 05 nadal
+aktualne. Badawcze 04/13 i odbiór całej metody pozostają odrębne.
+
+**Plan: 19 ticketów; 01–03, 05 i 05a done. Następny: 06 — strojenie
+tworzenia domen.** Nie rozpoczęto go w tym zleceniu. Pozostałe statusy
+i zależności zachowane. Poniżej historia poprzednich etapów.
+
+---
+
 # STM Domains — wykonano SD-V4-05: własne obliczenia klatki
 
 Data: **2026-11-02**. Na polecenie `implement 05` wykonano

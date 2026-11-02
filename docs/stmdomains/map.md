@@ -14,6 +14,15 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**Dodano i wykonano SD-V4-05a — 2026-11-02 (`dfcf392`):** na polecenie
+użytkownika do planu wszedł widok obszarów domen z wypełnieniem, obrysami,
+numerami i kryciem. Przypisania 05 są zachowane; kontrolka **Obszary…**
+działa również bez wejściowych masek molekuł.
+[Ticket](implementation/interactive-v04/05a-domain-regions.md),
+[raport i test ręczny](implementation/interactive-v04/acceptance-05a.md).
+Status `done`, odbiór użytkownika oczekuje. Aktualny plan ma **19 ticketów**,
+następny jest **06 — strojenie tworzenia domen**. Poniżej historia.
+
 **Implementacja SD-V4-05 — 2026-11-02 (`fb37431`):** aplikacja oblicza
 lokalne klasy K5 i końcowe domeny bieżącej klatki z MPP i oznaczeń MolTrack,
 bez importu modelu/wyniku v0.4. Widok pokazuje kolory, legendę i odmowy;

@@ -27,15 +27,18 @@ dopasowanie jednej klatki przejmują 05 (bazowe K5) i 07 (ręczne K i zakres).
 Numerów 04/11 nie wykorzystujemy ponownie; pozostałe ID i ścieżki zachowano.
 Historia usuniętych ticketów pozostaje w Git.
 
-**W realizacji: [05a — obszary i granice domen](05a-domain-regions.md)**,
-dodany na polecenie użytkownika. Następny po nim: **06**. 01–03 i 05 mają status `done`.
+**Wykonano [05a — obszary i granice domen](05a-domain-regions.md)** (`dfcf392`),
+dodany na polecenie użytkownika: wypełnienie, obrysy, numery i krycie
+w menu **Obszary…**. [Raport i test ręczny](acceptance-05a.md).
+Odbiór ręczny użytkownika oczekuje. Następny ticket: **06**.
+01–03, 05 i 05a mają status `done`.
 06–10 oraz 12–18 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
 ## Tickety i kolejność
 
-Identyfikatory **SD-V4-01–20** odróżniają tę serię od dawnych ticketów
+Identyfikatory **SD-V4-01–20 oraz SD-V4-05a** odróżniają tę serię od dawnych ticketów
 badawczych 01–26 i implementacyjnych SD-IMPL. Każdy plik zawiera zakres,
 zależności, kryteria akceptacji i instrukcję testu ręcznego.
 
@@ -61,8 +64,8 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [19 — Porównaj domeny z lokalnego FFT i NMF obrazu](19-compare-local-fft-nmf.md) | SD-V4-06, SD-V4-16; warunek wyboru | Zmień okno analizy obrazu i porównaj wynik na molekułach. |
 | [20 — Zachowaj wspólny katalog typów struktury w serii](20-shared-structural-type-catalogue.md) | SD-V4-08, SD-V4-13, SD-V4-16; warunek wyboru | Sprawdź wspólne typy na kolejnych klatkach i po otwarciu zapisanego projektu. |
 
-Rekomendowana kolejność po wykonanym 05: **05a → 06 → 07 → 08 → 12**:
-obszary i granice domen → strojenie domen → ręczne K i zakres odkrywania
+Po wykonanych 05 i 05a rekomendowana kolejność: **06 → 07 → 08 → 12**:
+strojenie domen → ręczne K i zakres odkrywania
 → analiza serii → Auto. 12 można wykonać już po 07, jeśli Auto ma pierwszeństwo
 przed analizą całej serii. Po 05 dostępne są niezależnie 06, 07, 10, 13,
 14 i 16; po 07 także 08, 09, 12 i 15. 08 wymaga wspólnego dopasowania
