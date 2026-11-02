@@ -7,6 +7,7 @@ from threading import RLock
 import numpy as np
 
 from stmdomains.core.annotations import FrameAnnotations
+from stmdomains.core.analysis_result import AnalysisInput, FrameAnalysis
 from stmdomains.core.display import RenderedImage, contrast_limits, render_image
 from stmdomains.core.registration import parse_registration
 from stmdomains.core.series import FrameData, Series
@@ -24,6 +25,7 @@ class PresentedFrame:
     registration_text: str
     masks: RenderedImage | None
     gamma: float = 1.0
+    result: FrameAnalysis | None = None
 
 
 class FramePresenter:
@@ -54,9 +56,22 @@ class FramePresenter:
             return "expanded_aligned"
         return "raw"
 
-    def present(self, index: int, mode: str = "raw", gamma: float = 1.0) -> PresentedFrame:
+    def analysis_input(self, index: int) -> AnalysisInput:
+        """Analysis sees one original frame, independent of the current display mode."""
+        with self._lock:
+            return AnalysisInput(self.series.identity, self.series.frame(index),
+                                 self.annotations.frame(index, "raw"))
+
+    def present(
+        self, index: int, mode: str = "raw", gamma: float = 1.0, *,
+        result: FrameAnalysis | None = None,
+    ) -> PresentedFrame:
         with self._lock:
             frame = self.series.frame(index)
+            if result is not None and (result.series_id != self.series.identity
+                                       or result.working_index != index
+                                       or result.source_index != frame.source_index):
+                raise ValueError("Wynik należy do innej serii lub klatki.")
             key = index, mode, gamma
             rendered = self._images.get(key)
             if rendered is None:
@@ -86,5 +101,5 @@ class FramePresenter:
             return PresentedFrame(
                 self.series.identity, frame, rendered, mode,
                 self.registration.field_rect(index, mode), annotations,
-                self.registration.describe(index), masks, gamma,
+                self.registration.describe(index), masks, gamma, result,
             )

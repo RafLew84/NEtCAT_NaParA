@@ -1,12 +1,13 @@
 """Compose the raw series browser; input parsing lives outside Qt."""
 
 import json
+from collections.abc import Mapping
 
 from PyQt6.QtCore import QCoreApplication, QEvent, QObject, QSignalBlocker, Qt
 from PyQt6.QtGui import QCloseEvent, QKeySequence
 from PyQt6.QtWidgets import (
     QDialog, QHBoxLayout, QLabel, QMainWindow, QPlainTextEdit,
-    QProgressBar, QPushButton, QSlider, QSpinBox,
+    QProgressBar, QPushButton, QSizePolicy, QSlider, QSpinBox,
     QVBoxLayout, QWidget,
 )
 
@@ -17,6 +18,8 @@ from stmdomains.ui.image_view import ImageView
 from stmdomains.ui.filmstrip import Filmstrip
 from stmdomains.ui.import_prompts import ImportPrompts, QtImportPrompts
 from stmdomains.ui.playback_controls import PlaybackControls
+from stmdomains.ui.result_controls import ResultControls
+from stmdomains.ui.result_style import assignment_description
 from stmdomains.ui.session_controller import PresentedFrame, SessionController
 
 
@@ -37,6 +40,12 @@ class STMDomainsMainWindow(QMainWindow):
         self.open_button.setObjectName("openButton")
         self.open_button.clicked.connect(lambda: self.controller.open_session())
         files.addWidget(self.open_button)
+        self.analyze_button = QPushButton("Analizuj klatkę · K5")
+        self.analyze_button.setObjectName("analyzeButton")
+        self.analyze_button.setToolTip("Oblicz klasy i domeny z bieżącego obrazu i oznaczeń molekuł")
+        self.analyze_button.setEnabled(False)
+        self.analyze_button.clicked.connect(self.controller.analyze_current_frame)
+        files.addWidget(self.analyze_button)
         self.source_label = QLabel("Brak otwartej serii")
         files.addWidget(self.source_label, 1)
         layout.addLayout(files)
@@ -98,6 +107,10 @@ class STMDomainsMainWindow(QMainWindow):
         )
         self.playback_controls.gamma.valueChanged.connect(self.controller.set_gamma)
         layout.addWidget(self.playback_controls)
+        self.result_controls = ResultControls()
+        self.result_controls.mode_changed.connect(self.image_view.set_assignment_mode)
+        self.result_controls.details_button.clicked.connect(self._show_analysis_details)
+        layout.addWidget(self.result_controls)
         for spin_control in (self.frame_number, self.playback_controls.gamma):
             spin_control.installEventFilter(self)
             editor = spin_control.lineEdit()
@@ -109,7 +122,7 @@ class STMDomainsMainWindow(QMainWindow):
         selection = QHBoxLayout()
         self.selection_label = QLabel("Kliknij oznaczenie, aby zobaczyć jego dane.")
         self.selection_label.setTextFormat(Qt.TextFormat.PlainText)
-        self.selection_label.setWordWrap(True)
+        self.selection_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         selection.addWidget(self.selection_label, 1)
         self.metadata_button = QPushButton("Dane oznaczenia…")
         self.metadata_button.setEnabled(False)
@@ -173,6 +186,9 @@ class STMDomainsMainWindow(QMainWindow):
 
     def _show_series(self, series: Series) -> None:
         self.filmstrip.set_series(series)
+        with QSignalBlocker(self.result_controls.mode):
+            self.result_controls.mode.setCurrentIndex(0)
+        self.image_view.set_assignment_mode("domains")
         self.setWindowTitle(f"STM Domains — {series.session_path.name}")
         self.source_label.setText(series.session_path.name)
         self.source_label.setToolTip(f"{series.session_path}\nMPP: {series.source_path}")
@@ -199,6 +215,11 @@ class STMDomainsMainWindow(QMainWindow):
         height, width = view.rendered.rgba.shape[:2]
         self._presented = view
         self.image_view.set_frame(view)
+        self.result_controls.set_frame(view)
+        self.details_label.setText(
+            "Analiza eksperymentalna · klasy i domeny lokalne dla klatki · jednostki: px"
+            if view.result is not None else "Auto kontrast oryginału · jednostki obrazu: px"
+        )
         self._select_annotation(None)
         self.frame_info_button.setEnabled(True)
         presenter = self.controller.presenter
@@ -232,6 +253,7 @@ class STMDomainsMainWindow(QMainWindow):
         self._show_playback()
 
     def _show_progress(self, busy: bool, text: str) -> None:
+        self.analyze_button.setEnabled(self.controller.can_analyze)
         self.progress_label.setText(text)
         self.progress_bar.setVisible(busy)
         self.cancel_button.setVisible(busy)
@@ -276,6 +298,7 @@ class STMDomainsMainWindow(QMainWindow):
         self.metadata_button.setEnabled(selected is not None)
         if selected is None:
             self.selection_label.setText("Kliknij oznaczenie, aby zobaczyć jego dane.")
+            self.selection_label.setToolTip("")
             return
         metadata = selected.metadata
         if isinstance(selected, Detection):
@@ -287,7 +310,11 @@ class STMDomainsMainWindow(QMainWindow):
         self.selection_label.setText(
             f"ID: {identity} · pochodzenie: {metadata.get('origin', 'nieznane')}"
             + f" · pewność: {confidence if confidence is not None else 'nieznana'}"
+            + (" · " + assignment_description(
+                self._presented.result if self._presented is not None else None, identity,
+            ) if isinstance(selected, Detection) else "")
         )
+        self.selection_label.setToolTip(self.selection_label.text())
 
     def _show_text(self, title: str, text: str) -> None:
         self.controller.pause()
@@ -306,9 +333,35 @@ class STMDomainsMainWindow(QMainWindow):
 
     def _show_metadata(self) -> None:
         if self._selected is not None:
+            metadata = dict(self._selected.metadata)
+            if isinstance(self._selected, Detection) and self._presented is not None:
+                result = self._presented.result
+                assignment = None if result is None else result.assignments.get(self._selected.detection_id)
+                if assignment is not None:
+                    metadata["analiza_stmdomains"] = {
+                        "opis": assignment_description(result, self._selected.detection_id),
+                        "domain_local_id": assignment.domain_local_id,
+                        "class_id": assignment.class_id,
+                        "provisional_class_id": assignment.provisional_class_id,
+                        "status": assignment.status,
+                        "przyczyna": assignment.rejection_reason,
+                        "pomiary": dict(assignment.metadata),
+                    }
             self._show_text("Dane zapisanego oznaczenia", json.dumps(
-                dict(self._selected.metadata), ensure_ascii=False, indent=2, default=str,
+                metadata, ensure_ascii=False, indent=2,
+                default=lambda value: dict(value) if isinstance(value, Mapping) else str(value),
             ))
+
+    def _show_analysis_details(self) -> None:
+        result = None if self._presented is None else self._presented.result
+        if result is not None:
+            self._show_text("Dane analizy bieżącej klatki", json.dumps({
+                "status": result.status, "opis": result.message,
+                "klatka_robocza": result.working_index + 1,
+                "klatka_źródłowa": result.source_index + 1,
+                "parametry": result.parameters, "pochodzenie_i_dopasowanie": result.metadata,
+            }, ensure_ascii=False, indent=2,
+                default=lambda value: dict(value) if isinstance(value, Mapping) else str(value)))
 
     def _show_frame_info(self) -> None:
         view, series = self._presented, self.controller.series

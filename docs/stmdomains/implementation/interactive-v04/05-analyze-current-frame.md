@@ -6,7 +6,13 @@
 
 **Blocked by:** [02: Pokaż molekuły i poprawną geometrię obrazu](02-molecules-and-geometry.md).
 
-**Status:** ready-for-agent — zakres zmieniony zgodnie z decyzją użytkownika 2026-11-02; zależność 02 jest ukończona.
+**Status:** in_progress — realizacja na polecenie użytkownika `implement 05`.
+
+Baza implementacji/przeglądu: `2d01c5e`, gałąź `domains/interactive-v04-ui`,
+środowisko `netcat`. Publiczne granice testów wynikają z kryteriów ticketu:
+analiza bieżącego obrazu i oznaczeń → wynik po ID oraz analiza → publikacja
+w kontrolerze i UI (kolory, odmowy, stany braku danych, anulowanie i nawigacja).
+Testy tych granic powstają zgodnie z TDD; nie wczytujemy modelu ani wyników v0.4.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 

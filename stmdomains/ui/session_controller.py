@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from math import isfinite
 from pathlib import Path
 from threading import Event
@@ -11,7 +11,9 @@ from threading import Event
 from PyQt6.QtCore import QCoreApplication, QObject, QThreadPool, QTimer, Qt, pyqtSignal, pyqtSlot
 
 from stmdomains.core.frame_presentation import FramePresenter, PresentedFrame
+from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.core.series import Series
+from stmdomains.analysis import analyze_frame
 from stmdomains.io.moltrack_import import ImportCandidate, SourceRequest, prepare_import
 from stmdomains.ui.import_prompts import ImportPrompts
 from stmdomains.ui.tasks import Task
@@ -46,6 +48,9 @@ class SessionController(QObject):
         self._counter = 0
         self._open_token: int | None = None
         self._frame_token: int | None = None
+        self._analysis_token: int | None = None
+        self._results: dict[int, FrameAnalysis] = {}
+        self._published: PresentedFrame | None = None
         self._opening_path: Path | None = None
         self._closed = False
         self.is_playing = False
@@ -58,12 +63,22 @@ class SessionController(QObject):
 
     @property
     def is_busy(self) -> bool:
-        return self._open_token is not None or self._frame_token is not None
+        return any(token is not None for token in (
+            self._open_token, self._frame_token, self._analysis_token,
+        ))
+
+    @property
+    def result(self) -> FrameAnalysis | None:
+        return self._results.get(self.current_index)
+
+    @property
+    def can_analyze(self) -> bool:
+        return self.presenter is not None and self._published is not None and not self.is_busy and not self._closed
 
     @property
     def can_play(self) -> bool:
         return (self.series is not None and self.series.frame_count > 1
-                and self._open_token is None and not self._closed)
+                and self._open_token is None and self._analysis_token is None and not self._closed)
 
     @property
     def pending_task_count(self) -> int:
@@ -88,6 +103,7 @@ class SessionController(QObject):
     def _busy(self, text: str = "") -> None:
         if not text:
             text = "Otwieranie zapisu…" if self._open_token is not None else (
+                "Analiza klatki…" if self._analysis_token is not None else
                 f"Przygotowanie klatki {self._requested_index + 1}…"
                 if self._frame_token is not None else "Gotowe"
             )
@@ -95,6 +111,7 @@ class SessionController(QObject):
 
     def open_session(self, path: Path | None = None) -> None:
         self.pause()
+        self._cancel_analysis()
         self._abandon(self._open_token)
         self._open_token = None
         self._busy()
@@ -131,6 +148,8 @@ class SessionController(QObject):
         presenter = self.presenter
         if series is None or presenter is None or not 0 <= index < series.frame_count or self._closed:
             return
+        if index != self.current_index:
+            self._cancel_analysis()
         self._abandon(self._frame_token)
         self._requested_index = index
         mode = self._requested_mode
@@ -138,6 +157,20 @@ class SessionController(QObject):
         self._frame_token = self._submit(lambda cancelled, report: presenter.present(index, mode, gamma))
         self._automatic_token = self._frame_token if automatic else None
         self._busy()
+
+    def analyze_current_frame(self) -> None:
+        self.pause()
+        if not self.can_analyze or self.presenter is None:
+            return
+        presenter, index = self.presenter, self.current_index
+        self._analysis_token = self._submit(lambda cancelled, report: analyze_frame(
+            presenter.analysis_input(index), cancelled=cancelled.is_set, progress=report,
+        ))
+        self._busy()
+
+    def _cancel_analysis(self) -> None:
+        self._abandon(self._analysis_token)
+        self._analysis_token = None
 
     def set_view_mode(self, mode: str) -> None:
         if mode not in ("raw", "expanded_aligned") or self.presenter is None:
@@ -160,8 +193,7 @@ class SessionController(QObject):
         self.show_frame(self._requested_index + step)
 
     def play(self) -> None:
-        if (self.series is None or self.series.frame_count < 2 or self._closed
-                or self._open_token is not None or self.is_playing):
+        if not self.can_play or self.series is None or self.is_playing:
             return
         self.is_playing = True
         self.playback_changed.emit(True)
@@ -175,8 +207,7 @@ class SessionController(QObject):
 
     def restart(self) -> None:
         self.pause()
-        if (self.series is None or self.series.frame_count < 2 or self._closed
-                or self._open_token is not None):
+        if not self.can_play:
             return
         self.is_playing = True
         self.playback_changed.emit(True)
@@ -218,6 +249,7 @@ class SessionController(QObject):
 
     def cancel(self) -> None:
         self.pause()
+        self._cancel_analysis()
         if self._open_token is not None:
             self._abandon(self._open_token)
             self._open_token = None
@@ -228,12 +260,22 @@ class SessionController(QObject):
             self._requested_mode = self.view_mode
             self._requested_gamma = self.gamma
         self._busy()
+        self._refresh_result()
 
     @pyqtSlot(int, object)
     def _receive(self, token: int, result: object) -> None:
         if self._closed:
             return
-        if token == self._open_token:
+        if token == self._analysis_token and isinstance(result, FrameAnalysis):
+            self._analysis_token = None
+            if (self.series is not None and result.series_id == self.series.identity
+                    and result.working_index == self.current_index == self._requested_index
+                    and result.source_index == self.series.frame(self.current_index).source_index):
+                self._results[self.current_index] = result
+                if self._frame_token is None:
+                    self._refresh_result()
+            self._busy()
+        elif token == self._open_token:
             if isinstance(result, SourceRequest):
                 selected = self.prompts.choose_source(result.message, result.suggested_path)
                 if token != self._open_token or self._closed:
@@ -262,6 +304,8 @@ class SessionController(QObject):
             self._frame_token = None
             self.series = candidate.series
             self.presenter = result.presenter
+            self._results.clear()
+            self._published = None
             self.series_changed.emit(self.series)
             self._publish(result.view)
         elif token == self._frame_token and isinstance(result, PresentedFrame):
@@ -270,6 +314,8 @@ class SessionController(QObject):
                 self._publish(result)
 
     def _publish(self, frame: PresentedFrame) -> None:
+        frame = replace(frame, result=self._results.get(frame.frame.working_index))
+        self._published = frame
         self._automatic_token = None
         self.current_index = frame.frame.working_index
         self._requested_index = self.current_index
@@ -279,11 +325,18 @@ class SessionController(QObject):
         self._busy()
         self._schedule_playback()
 
+    def _refresh_result(self) -> None:
+        if self._published is not None and self._published.result is not self.result:
+            self._published = replace(self._published, result=self.result)
+            self.frame_changed.emit(self._published)
+
     @pyqtSlot(int, str)
     def _failed(self, token: int, message: str) -> None:
-        if self._closed or token not in (self._open_token, self._frame_token):
+        if self._closed or token not in (self._open_token, self._frame_token, self._analysis_token):
             return
-        if token == self._open_token:
+        if token == self._analysis_token:
+            self._analysis_token = None
+        elif token == self._open_token:
             self._open_token = None
         else:
             self._frame_token = None
@@ -292,11 +345,14 @@ class SessionController(QObject):
             self._requested_gamma = self.gamma
         self.pause()
         self._busy()
+        self._refresh_result()
         self.prompts.show_error(message)
 
     @pyqtSlot(int, str)
     def _progress(self, token: int, text: str) -> None:
-        if token == self._open_token or (self._open_token is None and token == self._frame_token):
+        if token == self._open_token or (self._open_token is None and (
+            token == self._analysis_token or (self._analysis_token is None and token == self._frame_token)
+        )):
             self._busy(text)
 
     @pyqtSlot(int)
@@ -308,7 +364,7 @@ class SessionController(QObject):
         self._closed = True
         for task in self._tasks.values():
             task.cancelled.set()
-        self._open_token = self._frame_token = None
+        self._open_token = self._frame_token = self._analysis_token = None
 
     def wait_for_workers(self) -> None:
         """Join cancelled work before Qt destroys the signals used by run()."""
