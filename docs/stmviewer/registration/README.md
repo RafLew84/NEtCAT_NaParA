@@ -1,5 +1,11 @@
 # Plan rozwoju rejestracji trudnych filmów STM
 
+**Przegląd kolejnych metod — 2026-11-02:**
+[Rekomendacje i projekt porównania po REG-12](next-methods-research.md).
+Pierwsza propozycja: LightGlue + SuperPoint oraz AKAZE, z Deep outdoor
+(LoFTR) i RoMa v2 jako bazami. To rozpoznanie źródeł i plan próby;
+nie wykonano nowych benchmarków ani nie dodano ticketów.
+
 Data: 2026-10-28; rozszerzenia ręczne: REG-01a 2026-10-30, REG-02a 2026-10-31.
 Rozszerzenie o graf dopasowań i nowe modele: 2026-10-31, na zlecenie użytkownika.
 Gałąź: `viewer/registration-difficult-movies`.

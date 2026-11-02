@@ -1,3 +1,26 @@
+# Rejestracja: kolejne metody po REG-12 — 2026-11-02
+
+Na zlecenie użytkownika przygotowano [przegląd i projekt eksperymentu](registration/next-methods-research.md)
+z użyciem `research`, `experimental-design` i `scientific-critical-thinking`.
+Użytkownik doprecyzował, że chodzi o rejestrację klatek STM w Viewerze.
+Baza odczytanego kodu i raportów: `92601a7`; commit tej dokumentacji podano
+w odpowiedzi sesji.
+
+Rekomendacja pierwszego porównania: obecne Deep outdoor (LoFTR) i RoMa v2
+oraz nowe LightGlue + SuperPoint i AKAZE. Raport oddziela nowe matchery,
+przetwarzanie pomocniczego wejścia i korekcję deformacji wewnątrz klatki.
+Sprawdzono źródła pierwotne oraz aktualny kod: konsensus, siatki i lokalne
+NCC już istnieją, więc nie są przedstawiane jako nowe funkcje.
+
+Przeprowadzono badanie źródeł i audyt tylko do odczytu. Nie wykonano
+nowych pomiarów jakości, testów aplikacji, instalacji ani prób manualnych.
+Sprawdzono lokalne odnośniki dokumentacji i `git diff --check`.
+18 tych samych par × 4 warianty to proponowany pilotaż, nie wykonany benchmark.
+Dwa znane filmy są zestawem rozwojowym; brak niezależnego testu na nowym filmie.
+Brak zmian kodu, nowych ticketów i potrzeb integracyjnych. REG-06, REG-08d,
+REG-09 i usunięte maski zachowują dotychczasowy status. Nie scalano i nie
+publikowano gałęzi.
+
 # REG-12: odbiór manualny — 2026-11-02
 
 Użytkownik potwierdził **„testy manualne ok”**. REG-12 zmieniono na `done`;
