@@ -45,7 +45,8 @@ bieżąca klatka / wybrany zakres / cała seria, wspólny katalog i powrót do
 wcześniejszego wyniku z jego katalogiem. Nowe domeny powstają na bieżącej
 klatce; pozostałe mają jawny status wcześniejszego katalogu albo braku analizy.
 [Raport i test ręczny](acceptance-07.md). 396 testów PASS, mypy PASS,
-GUI X11 sprawdzone przez agenta; **odbiór ręczny użytkownika 07 oczekuje**.
+GUI X11 sprawdzone przez agenta; **odbiór ręczny użytkownika 07 potwierdzony
+2026-11-02** dla wersji `7f79362` („testy manualne ok”).
 Następny ticket: **08**, potem **12**.
 01–03, 05, 05a, 06 i 07 mają status `done`.
 08–10 oraz 12–18 mają zakres `ready-for-agent`

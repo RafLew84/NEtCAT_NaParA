@@ -4,8 +4,11 @@ Data **2026-11-02**, baza **`eebbfbd`**, implementacja **`dedd8b8`**, poprawki
 **`65e9d2a`**. Gałąź `domains/interactive-v04-ui`, worktree
 `/home/rlew/projekty/NEtCAT-domains`. [Ticket](implementation/interactive-v04/07-fit-shared-classes.md),
 [raport i test ręczny](implementation/interactive-v04/acceptance-07.md).
-Status `done`; **odbiór ręczny użytkownika 07 oczekuje**. Commit raportu
-podano w odpowiedzi końcowej. Odbiór 06 pozostaje potwierdzony.
+Status `done`; **odbiór ręczny użytkownika 07 potwierdzony 2026-11-02**
+dla wersji **`7f79362`** słowami „testy manualne ok”. Zapis potwierdzenia
+zmienia wyłącznie dokumentację; `git diff --check` PASS, bez ponawiania
+testów kodu. Commit zapisu podano w odpowiedzi końcowej.
+Następny ticket: **08 — analiza zakresu lub całej serii**.
 
 Menu **Analiza → Klasy i zakres…** otwiera małe niemodalne okno K1–8,
 bieżącej klatki / zakresu / całej serii i przycisku dopasowania. Pola

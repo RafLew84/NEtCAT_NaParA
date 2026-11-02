@@ -2,8 +2,12 @@
 
 Data **2026-11-02**. Baza `eebbfbd`, implementacja **`dedd8b8`**, poprawki
 **`65e9d2a`**, gałąź `domains/interactive-v04-ui`. Status `done`.
-**Ręczny odbiór użytkownika oczekuje.** Poniżej oddzielnie opisano wykonane
-sprawdzenia agenta i instrukcję użytkownika.
+**Ręczny odbiór użytkownika potwierdzony 2026-11-02 dla wersji `7f79362`**
+słowami „testy manualne ok”. Poniżej oddzielnie opisano wykonane sprawdzenia
+agenta i instrukcję użytkownika.
+
+Zapis potwierdzenia zmienia wyłącznie dokumentację. `git diff --check` PASS;
+testów kodu nie ponawiano. Następny ticket: **08 — analiza zakresu/serii**.
 
 ## Uruchomienie i test ręczny
 
@@ -161,7 +165,7 @@ wspólnego modelu na 268, walidacja zakresu, anulowanie, nawigacja,
 ponowne otwarcie, gamma/raw/aligned oraz stabilny układ **900×650**.
 Obejrzano zrzuty dialogu i wyniku. Zamknięcie podczas dopasowania:
 kod procesu **0**, obie pule workerów zakończone. To sprawdzenie agenta,
-odrębne od oczekującego ręcznego odbioru użytkownika.
+odrębne od potwierdzonego powyżej ręcznego odbioru użytkownika.
 
 | Wynik / zakres dopasowania | Przypisane / aktywne | Domeny | Czas dopasowania z wynikiem |
 | --- | ---: | ---: | ---: |

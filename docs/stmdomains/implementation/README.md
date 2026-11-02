@@ -5,7 +5,8 @@
 katalog. Przelicza bieżącą klatkę; poprzednie wyniki zachowują własny katalog.
 [Raport i test ręczny](interactive-v04/acceptance-07.md). 396 testów PASS,
 mypy 54 moduły PASS, GUI X11 sprawdzone przez agenta.
-**Ręczny odbiór użytkownika 07 oczekuje. Następny ticket 08**, potem 12.
+**Ręczny odbiór użytkownika 07 potwierdzony 2026-11-02** dla wersji
+`7f79362` („testy manualne ok”). **Następny ticket 08**, potem 12.
 
 **Wykonano SD-V4-06 — 2026-11-02 (`98ca8ff`, poprawka `36aea1f`):**
 parametry domen w menu **Analiza → Tworzenie domen…**, przeliczenie,

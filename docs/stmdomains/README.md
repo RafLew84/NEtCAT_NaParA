@@ -12,7 +12,8 @@ analizuje bieżącą klatkę i pozwala wrócić do wcześniejszego wyniku z jego
 katalogiem. Wspólnego katalogu można użyć na kolejnej klatce bez ponownego
 dopasowania. [Raport i test ręczny 07](implementation/interactive-v04/acceptance-07.md).
 **396 testów PASS**, mypy 54 moduły PASS, największy zmieniony plik 469 linii.
-GUI X11 sprawdzone przez agenta; **odbiór ręczny użytkownika 07 oczekuje**.
+GUI X11 sprawdzone przez agenta; **odbiór ręczny użytkownika 07 potwierdzony
+2026-11-02** dla wersji `7f79362` („testy manualne ok”).
 Następny ticket **08 — analiza serii**, potem **12 — Auto**.
 
 **Wykonano SD-V4-06 (`98ca8ff`, poprawka `36aea1f`):** parametry są

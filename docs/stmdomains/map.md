@@ -20,7 +20,8 @@ z wybranych danych, wynik bieżącej klatki i porównanie wcześniejszego
 katalogu. [Ticket](implementation/interactive-v04/07-fit-shared-classes.md),
 [raport i test ręczny](implementation/interactive-v04/acceptance-07.md).
 396 testów PASS, mypy 54 moduły PASS, 23 pliki kodu/testów do 469 linii.
-GUI X11 sprawdzone przez agenta; **odbiór ręczny użytkownika oczekuje**.
+GUI X11 sprawdzone przez agenta; **odbiór ręczny użytkownika 07 potwierdzony
+2026-11-02** dla wersji `7f79362` („testy manualne ok”).
 Status `done`. Plan nadal ma 19 ticketów; następny **08 → 12**.
 01–03, 05, 05a, 06 i 07 wykonane. Poniżej historia wcześniejszych etapów.
 

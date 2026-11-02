@@ -12,7 +12,8 @@ gałąź `domains/interactive-v04-ui`.
 [Uruchomienie, sprawdzenia i test ręczny](acceptance-07.md).
 396 testów PASS, mypy 54 moduły PASS; 23 pliki kodu/testów, maksimum 469 linii.
 GUI X11 sprawdzone przez agenta, w tym TTMAPP 259–268 i dopasowanie całych
-268 klatek. **Odbiór ręczny użytkownika oczekuje.** Następny ticket: 08.
+268 klatek. **Odbiór ręczny użytkownika potwierdzony 2026-11-02** dla wersji
+`7f79362` („testy manualne ok”). Następny ticket: 08.
 
 Ustalenie użytkownika: K, wybór zakresu oraz jego początek/koniec w małym
 oknie otwieranym z menu. Dopasowanie uruchamia przycisk; edycja pól nie
