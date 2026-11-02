@@ -7,10 +7,44 @@ czy gęste korespondencje poprawiają globalne XY na trudnych obrazach STM.
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 **Dodano do planu:** 2026-10-31, na zlecenie użytkownika po research.
 
+**Decyzja i przygotowanie — 2026-11-02:** użytkownik wybrał osobne środowisko
+`netcat-romav2` oraz proces roboczy dla tej metody; aplikacja nadal działa
+w `netcat`. Na tym etapie zlecił tylko przygotowanie środowiska i aktualizację
+ticketu. [Zasoby, wersje i sprawdzenia](../roma-environment.md).
+Status pozostaje `ready-for-agent`; wybór metody w GUI i integracja procesu
+nie zostały jeszcze wdrożone. REG-10 ma odbiór `done`.
+
 Obowiązują [plan](../README.md), [protokół odbioru](../manual-protocol.md)
 i [przegląd modeli](../../registration-multiframe-research.md).
 Blokada ustala kolejność odbiorów. RoMa v2 nie wywołuje EfficientLoFTR
 i nie wymaga jego wag podczas własnych obliczeń.
+
+## Uzgodnione uruchamianie w osobnym procesie
+
+- GUI, odczyt obrazów, sesje, konsensus `translation-consensus-v2`, LS/Huber,
+  renderowanie i eksport pozostają w `netcat`. Tylko inferencja RoMa v2
+  i próbkowanie gęstego pola działają w `netcat-romav2`.
+- Interpreter uruchamiamy bezpośrednio po pełnej ścieżce, bez powłoki
+  i `conda activate`. Utworzenie procesu następuje przy rozpoczęciu obliczeń
+  lub jawnym sprawdzeniu dostępności, nie przy samym otwarciu sesji.
+  Jeden proces i model obsługują całe zadanie pary, serii lub grafu.
+- Sterowanie i metadane mają wersjonowany protokół JSON. Pary obrazów oraz
+  ograniczone tablice punktów przekazujemy lokalnymi plikami NumPy,
+  z `allow_pickle=False`. Bez pickle i bez kopiowania całego filmu.
+  Gęste pola pozostają w procesie RoMa i są zwalniane po próbkowaniu.
+- Wynik zawiera korespondencje oraz informacje o geometrii wejścia,
+  urządzeniu, wersjach kodu/bibliotek i wagach. Rodzic sprawdza odpowiedź
+  przed użyciem wspólnej agregacji i istniejącego renderera.
+- Anulowanie, błąd i zamknięcie programu kończą proces, czekają na jego
+  zakończenie i sprzątają pliki robocze; w razie braku reakcji proces jest
+  przymusowo kończony. Awaria, zerwany protokół lub OOM zachowuje poprzedni
+  aligned. Bez pobierania w tle, cichego fallbacku lub zmiany urządzenia.
+- Sesja zachowuje ścieżkę interpretera i konfigurację obliczeń. Jej odczyt
+  nie uruchamia zapisanego interpretera i nie wymaga środowiska RoMa.
+  Przed nowym obliczeniem można poprawić ścieżkę na innym komputerze.
+- Dla domyślnego modelu wymagany jest jeden pełny checkpoint RoMa v2
+  oraz lokalny kod DINOv3. Wagi DINOv3 i VGG są częścią tego checkpointu;
+  nie wymagamy osobnego pobierania wag tych składników.
 
 ## Zakres i kryteria odbioru
 
@@ -41,11 +75,13 @@ i nie wymaga jego wag podczas własnych obliczeń.
 - [ ] Brak pamięci, błąd modelu lub brak wskazanego urządzenia pozostawia
   poprzedni wynik. Nie zmieniamy po cichu modelu, urządzenia ani rozdzielczości.
   Możliwy jawny preset o mniejszym koszcie jest odrębną zapisaną konfiguracją.
-  Model ładuje się raz na zadanie; dane gęste pary zwalniamy po agregacji,
+  Model ładuje się raz na zadanie; dane gęste pary zwalniamy po próbkowaniu,
   zachowując tylko potrzebną, ograniczoną diagnostykę.
-- [ ] Konflikt opcjonalnych zależności ma udokumentowane rozwiązanie
-  w zakresie Viewera, z uruchomieniem z GUI i bez psucia istniejących metod.
-  Wymagane zmiany modułów wspólnych lub konfiguracji głównej trafiają do handoff.
+- [ ] RoMa v2 działa w osobnym procesie środowiska `netcat-romav2`, zgodnie
+  z powyższym kontraktem. GUI i pozostałe metody zachowują środowisko `netcat`.
+  Brak interpretera lub zależności daje konkretną niedostępność tej metody.
+  Konfiguracja i wymagania procesu są w zakresie Viewera; ewentualne zmiany
+  modułów wspólnych lub konfiguracji głównej trafiają do handoff.
 - [ ] Ten ticket rozszerza sesję o konfigurację modelu/próbkowania, urządzenie,
   pochodzenie wag, XY i diagnozy. Odczyt oraz porównanie nie wymagają modelu.
   Przywracamy zapisany aktywny film, bez stosowania niezastosowanego kandydata.
@@ -73,7 +109,9 @@ decyzji użytkownika, zgodnie z planem.
   współrzędnych obu obrazów, niekwadratowe wymiary, subpiksele, padding,
   znany ruch i błędna gęsta grupa. Sprawdzamy także odmowę i brak lokalnego warpu.
 - **Konfiguracja/zasoby → wykonanie:** brak części wag, błąd/OOM/anulowanie,
-  brak sieciowego pobierania i fallbacku. Próbkowanie jest odtwarzalne według
+  brak sieciowego pobierania i fallbacku. Granica procesu obejmuje brak
+  interpretera, niezgodność protokołu, awarię/EOF, anulowanie, oczekiwanie
+  na zamknięcie i sprzątanie plików. Próbkowanie jest odtwarzalne według
   zapisanych ustawień. Test adaptera nie zastępuje próby rzeczywistego modelu.
 - **GUI/seria/graf/sesja:** zgodność XY w poszczególnych drogach, trwałość
   diagnostyki i pochodzenia, ograniczona pamięć, odczyt bez modelu oraz ochrona

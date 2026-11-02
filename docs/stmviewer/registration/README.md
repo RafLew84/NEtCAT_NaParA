@@ -10,7 +10,9 @@ Baza rozpoznania: `c85aecb`; przegląd metod: `81ff1a0`.
 [wyniki](efficient-loftr-results.md), [przeglądy](reviews/REG-10.md).
 Po [zaakceptowanej poprawce obsługi niepewnych wyników](efficient-loftr-weak-results.md)
 graf LS obu filmów jest kompletny, a MOVIE_8 także w łańcuchu.
-Użytkownik potwierdził „testy manualne ok” po poprawce. REG-11/12 nie rozpoczęto.
+Użytkownik potwierdził „testy manualne ok” po poprawce.
+Dla REG-11 przygotowano [osobne środowisko i zasoby](roma-environment.md)
+po decyzji użytkownika 2026-11-02. Integracja REG-11 i REG-12 nie rozpoczęta.
 
 Status: REG-01, REG-01a, REG-02, REG-02a, REG-04, REG-05, REG-07, REG-08a, REG-08b, REG-08c, REG-08e i REG-10 `done`. Użytkownik potwierdził odbiór REG-02
 2026-10-31 i zgłosił brak istotnej poprawy względem Phase na MOVIE_4.

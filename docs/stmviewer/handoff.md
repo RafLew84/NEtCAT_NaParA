@@ -1,3 +1,29 @@
+# REG-11: osobne środowisko i kontrakt procesu — 2026-11-02
+
+Na wyraźne zlecenie użytkownika przygotowano **tylko środowisko i aktualizację
+ticketu**. REG-11 pozostaje `ready-for-agent`, wszystkie kryteria funkcji
+są nieoznaczone. Nie dodano jeszcze RoMa do wyboru metody w GUI.
+
+- Nowe środowisko: `/home/rlew/miniconda3/envs/netcat-romav2/bin/python`.
+  Python 3.12.16, RoMa 2.0.1, Torch 2.11.0/CUDA 13.0, torchvision 0.26.0,
+  fused-local-corr 0.3.211. Zależności zapisane w zakresie Viewera.
+- Zweryfikowany checkpoint i przypięty kod DINOv3 są w
+  `/home/rlew/.cache/stmviewer/romav2/`; pełna dokumentacja wersji,
+  SHA-256 i licencji: [przygotowanie](registration/roma-environment.md).
+- Proces uruchomiony z `netcat` zaliczył rzeczywiste próby CPU/CUDA na
+  znanym przesunięciu: błąd osi poniżej 0,04 px, bez połączeń sieciowych.
+  Odbiór punktów przez konsensus `netcat` również poprawny. `pip check` czyste.
+- Inwentarz wszystkich 213 pakietów `netcat` pozostał identyczny.
+  GUI, sesje, graf, render i eksport nadal działają w tym środowisku.
+- REG-11 określa jeden proces/model na zadanie, JSON/NumPy bez pickle,
+  anulowanie i sprzątanie, jawne błędy oraz brak uruchamiania procesu
+  przy samym otwieraniu sesji. Produkcyjny mechanizm jest jeszcze do wdrożenia.
+
+Nie powtarzano testów aplikacji: zmieniono dokumentację oraz osobny plik
+wymagań środowiska, bez kodu działającego Viewera. Nie wykonano odbioru
+GUI nowej metody, rzeczywistych filmów, Windows lub stanowiska 8 GB VRAM.
+Brak zmian wspólnych, publikacji i scalania.
+
 # REG-10: odbiór manualny — 2026-11-02
 
 Użytkownik potwierdził **„testy manualne ok”** po poprawce `7e7084c`

@@ -11,6 +11,12 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-02: użytkownik wybrał osobne środowisko `netcat-romav2` i proces
+  dla modelu, przy zachowaniu GUI i reszty programu w `netcat`. Zlecił tylko
+  przygotowanie środowiska i aktualizację [REG-11](registration/issues/11-roma-v2.md).
+  [Środowisko, lokalne zasoby i próby CPU/CUDA](registration/roma-environment.md)
+  są gotowe; integracja aplikacji pozostaje do realizacji, status `ready-for-agent`.
+
 - 2026-11-02: użytkownik potwierdził „testy manualne ok” po poprawce
   [REG-10](registration/issues/10-efficient-loftr.md). Etap zamknięto jako
   `done`; REG-11 jest odblokowany, lecz wymaga osobnego zlecenia.

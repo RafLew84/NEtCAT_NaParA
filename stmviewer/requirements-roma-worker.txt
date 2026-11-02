@@ -1,0 +1,11 @@
+# Install only in the separate netcat-romav2 environment (Python 3.12).
+# Verified on Ubuntu / CUDA 13.0. Keep the main netcat environment unchanged.
+romav2==2.0.1
+torch==2.11.0
+torchvision==0.26.0
+fused-local-corr==0.3.211; sys_platform == 'linux'
+numpy==2.2.5
+einops==0.8.2
+pillow==12.3.0
+rich==14.3.4
+tqdm==4.67.3
