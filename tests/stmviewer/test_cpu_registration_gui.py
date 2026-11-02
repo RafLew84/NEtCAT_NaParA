@@ -38,6 +38,7 @@ def test_selecting_method_keeps_old_aligned_until_success(qtbot, monkeypatch, tm
         'Phase', 'Korelacja bez normalizacji (v1)', 'Tile+RANSAC', 'ECC',
         'Optical Flow', 'Deep Matcher', 'Deep Matcher + ECC (v1)',
         'Deep Matcher + lokalne fragmenty (v1)', 'EfficientLoFTR', 'RoMa v2', 'MatchAnything-ELoFTR',
+        'LightGlue + SuperPoint',
     ]
     combo.setCurrentText(method)
     assert image(window) == before

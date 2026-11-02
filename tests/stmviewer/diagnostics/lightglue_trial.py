@@ -280,7 +280,29 @@ def run_movie(args):
     save(output / 'report.json', report)
     if graph.positions is not None:
         report['graph']['lifecycle'] = lifecycle(frames, graph, output, view)
+        report['graph']['corrected_avi'] = export_corrected_avi(output, report['graph']['lifecycle'])
     save(output / 'report.json', report)
+
+
+def export_corrected_avi(output, variants):
+    """Export the manually corrected snapshots; save_avi verifies by decoding."""
+    from stmviewer.avi_export import prepare_avi, save_avi
+    from stmviewer.avi_raster import MoviePresentation
+    from stmviewer.session_archive import load_session
+    results = []
+    for variant in variants:
+        name = variant['solver']
+        state = load_session(output / f'{name}-corrected.stmsession')
+        assert state.registration is not None
+        frames = tuple(frame.image for frame in state.registration.frames)
+        for codec in ('FFV1', 'MJPG'):
+            plan = prepare_avi(frames, fps=5, codec=codec,
+                               presentation=MoviePresentation(pixel_proportions=True, background=255))
+            path = save_avi(output / f'{name}-corrected-{codec}.avi', plan)
+            results.append({'file': path.name, 'codec': codec, 'frames': plan.frame_count,
+                            'size': list(plan.geometry.output_size), 'fps': 5,
+                            'decoded_verification': 'save_avi passed; FFV1 exact raster hashes'})
+    return results
 
 
 def run_visuals(args):

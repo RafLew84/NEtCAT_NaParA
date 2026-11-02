@@ -24,8 +24,9 @@ def test_selecting_cpu_method_keeps_existing_deep_candidate_and_needs_no_weights
     method = dialog.findChild(QComboBox, 'graphMethod')
     assert method is not None
     assert method.currentData() == 'deep_matcher_translation'
-    assert method.count() == 11
+    assert method.count() == 12
     assert method.findData('roma_v2') >= 0
+    assert method.findData('lightglue_superpoint') >= 0
     method.setCurrentIndex(method.findData('phase_correlation'))
     assert dialog.findChild(QPushButton, 'runGraph').isEnabled()
     assert not dialog.findChild(QLineEdit, 'deepWeights').isVisible()
